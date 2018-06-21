@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>login</title>
+</head>
+<body>
+<h1>Login</h1>
+{{range $key,$value := .Providers}}
+<p><a href="/auth/{{$key}}">Log in with {{$value}}</a></p>
+{{end}}
+</body>
+</html>
