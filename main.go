@@ -235,7 +235,15 @@ func main() {
 	flag.DurationVar(&wait, "graceful-timeout", time.Second*15, "the duration for which the server gracefully wait for existing connections to finish - e.g. 15s or 1m")
 	flag.Parse()
 
+	dir := http.Dir("./assets/")
+	f,e := dir.Open("css/main.css")
+	if e == nil {
+		defer f.Close()
+	} else {
+		log.Print(e)
+	}
 	m := mux.NewRouter()
+
 	m.HandleFunc("/", app.handleIndex).
 		Methods(http.MethodGet, http.MethodHead).
 		Name("index")
@@ -246,7 +254,12 @@ func main() {
 
 	m.HandleFunc("/.well-known/webfinger", app.handleWebFinger).
 		Methods(http.MethodGet, http.MethodHead).
-		Name("content")
+		Name("webfinger")
+
+	m.HandleFunc("/~{user}", app.handleUser).
+		Methods(http.MethodGet, http.MethodHead).
+		Name("user")
+
 	o := m.PathPrefix("/auth").Subrouter()
 	o.HandleFunc("/{provider}", app.handleAuth).Name("auth")
 	o.HandleFunc("/{provider}/callback", app.handleCallback).Name("authCallback")
@@ -254,6 +267,9 @@ func main() {
 	a := m.PathPrefix("/admin").Subrouter()
 	a.Use(app.authCheck)
 	a.HandleFunc("/", app.handleAdmin).Name("admin")
+
+	m.PathPrefix("/assets/").
+		Handler(http.StripPrefix("/assets/", http.FileServer(dir)))
 
 	m.NotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		d := errorModel{

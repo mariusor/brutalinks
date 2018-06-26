@@ -46,6 +46,10 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	t, _ := template.New("content.html").ParseFiles(templateDir + "content.html")
-	t.New("head.html").ParseFiles(templateDir + "content/head.html")
+	t.Funcs(template.FuncMap{
+		"formatDateInterval": relativeDate,
+		"formatDate":         formatDate,
+	})
+	t.New("link.html").ParseFiles(templateDir + "content/link.html")
 	t.Execute(w, c)
 }

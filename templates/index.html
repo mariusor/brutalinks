@@ -3,16 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <title>{{.Title}}</title>
+    <link rel="stylesheet" type="text/css" href="/assets/css/main.css">
 </head>
 <body>
-<section id="content">
-<dl>
+<header><h1><a href="/">littr</a></h1></header>
+<main id="content">
+<ol>
 {{range $key,$value := .Content}}
-    <dt data-index="{{$key}}"> <a href="" data-hash="{{$value.Key}}">+</a> <span>{{ $value.ScoreFmt }}</span> <a href="" data-hash="{{$value.Key}}">-</a></dt>
-    <dd data-flags="{{$value.Flags}}" data-index="{{$key}}" data-hash="{{$value.Key}}">{{ template "link.html" $value }}</dd>
+    <li data-index="{{$key}}">
+        <aside class="score">
+            <a href="" class="inc" data-action="inc" data-hash="{{$value.Key}}">🔺</a>
+            <p>{{ $value.ScoreFmt }}</p>
+            <a href="" class="dec" data-action="dec" data-hash="{{$value.Key}}">🔻</a>
+        </aside>
+        <section class="submission" data-flags="{{$value.Flags}}" data-index="{{$key}}" data-hash="{{$value.Key}}">{{ template "link.html" $value }}</section>
+    </li>
 {{end}}
-</dl>
-</section>
+</ol>
+</main>
 <footer>
 {{ if .Auth | len gt 0 }}
     <ul id="auth">

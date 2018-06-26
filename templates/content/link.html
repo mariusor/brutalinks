@@ -1,6 +1,6 @@
 {{if .Deleted }}
-<tt style="font-variant: small-caps; text-decoration: line-through" data-hash="{{.Key}}">deleted</tt>
+<tt class="deleted" data-hash="{{.Key}}">deleted</tt>
 {{else}}
 <a data-id="{{.Id}}" href="{{.Data | printf "%s"}}">{{.Title}}</a>
-<div><a href="{{.PermaLink}}">discussion</a></div>
+<aside class="meta">submitted <time datetime="{{ .CreatedAt| formatDate }}" title="{{ .CreatedAt| formatDate }}">{{.CreatedAt | formatDateInterval }}</time> by <a href="{{ "~anonymous" }}">{{ "~anonymous" }}</a> | <a href="{{.PermaLink}}">discussion</a></aside>
 {{end}}

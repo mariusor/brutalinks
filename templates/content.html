@@ -3,10 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <title>{{.Title}}</title>
+    <link rel="stylesheet" type="text/css" href="/assets/css/main.css">
 </head>
 <body>
-<section>
-    <h1>{{.Title}}</h1>
+<header><h1><a href="/">littr</a></h1></header>
+<section id="content">
+    {{ template "link.html" .Content }}
 </section>
 </body>
 </html>
