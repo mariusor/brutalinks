@@ -1,0 +1,52 @@
+@charset "UTF-8";
+body header h1 {
+    font-size:1em;
+}
+#content ol {
+    list-style: none;
+    padding-left:0px;
+}
+#content ol li{
+    padding-top:15px;
+    clear:both;
+}
+.score {
+    float:left;
+    width:70px;
+}
+.score a {
+    text-decoration: none;
+    padding: 2px 27px;
+    font-weight: bold;
+}
+.score p {
+    text-align: center;
+    margin: 0px;
+    padding: 2px 0;
+    font-size:0.7em;
+}
+.score a.inc:active {
+    color:orangered;
+}
+.score a.dec:active {
+    color:dodgerblue;
+}
+.deleted {
+    text-decoration: line-through;
+    line-height: 4.4em;
+    text-align: center;
+}
+.meta {
+    font-size:0.9em;
+    /*color:#4E4E4E;*/
+}
+.meta .by {
+    font-weight: bold;
+}
+.meta time {
+    text-decoration: underline dotted;
+}
+.domains {
+    font-size: 0.9em;
+    font-weight: lighter;
+}
