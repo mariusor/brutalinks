@@ -1,0 +1,6 @@
+{{if .Deleted }}
+<tt style="font-variant: small-caps; text-decoration: line-through" data-hash="{{.Key}}">deleted</tt>
+{{else}}
+<a data-id="{{.Id}}" href="{{.Data | printf "%s"}}">{{.Title}}</a>
+<div><a href="{{.PermaLink}}">discussion</a></div>
+{{end}}

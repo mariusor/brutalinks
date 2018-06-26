@@ -2,12 +2,25 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>login</title>
+    <title>{{.Title}}</title>
 </head>
 <body>
-<h1>Login</h1>
-{{range $key,$value := .}}
-<p><a href="/auth/{{$key}}">Log in with {{$value}}</a></p>
+<section id="content">
+<dl>
+{{range $key,$value := .Content}}
+    <dt data-index="{{$key}}"> <a href="" data-hash="{{$value.Key}}">+</a> <span>{{ $value.ScoreFmt }}</span> <a href="" data-hash="{{$value.Key}}">-</a></dt>
+    <dd data-flags="{{$value.Flags}}" data-index="{{$key}}" data-hash="{{$value.Key}}">{{ template "link.html" $value }}</dd>
 {{end}}
+</dl>
+</section>
+<footer>
+{{ if .Auth | len gt 0 }}
+    <ul id="auth">
+{{range $key,$value := .Auth}}
+    <p><a href="/auth/{{$key}}">Sign in with {{$value}}</a></p>
+{{end}}
+    </ul>
+{{ end }}
+</footer>
 </body>
 </html>
