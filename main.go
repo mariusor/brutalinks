@@ -256,9 +256,9 @@ func main() {
 		Methods(http.MethodGet, http.MethodHead).
 		Name("webfinger")
 
-	m.HandleFunc("/~{user}", app.handleUser).
+	m.HandleFunc("/~{handle}", app.handleUser).
 		Methods(http.MethodGet, http.MethodHead).
-		Name("user")
+		Name("account")
 
 	o := m.PathPrefix("/auth").Subrouter()
 	o.HandleFunc("/{provider}", app.handleAuth).Name("auth")

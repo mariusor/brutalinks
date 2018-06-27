@@ -7,8 +7,15 @@
 </head>
 <body>
 <header><h1><a href="/">littr</a></h1></header>
-<section id="content">
+<section id="item">
+    <aside class="score">
+        <a href="" class="inc active" data-action="inc" data-hash="{{.Content.Key}}">▲</a>
+        <p>{{ .Content.ScoreFmt }}</p>
+        <a href="" class="dec active" data-action="dec" data-hash="{{.Content.Key}}">▼</a>
+    </aside>
+
     {{ template "link.html" .Content }}
+    {{ template "data.html" .Content }}
 </section>
 </body>
 </html>

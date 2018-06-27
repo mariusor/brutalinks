@@ -1,35 +1,41 @@
 @charset "UTF-8";
+body {
+    font-size: 1.1em;
+    line-height: 1em;
+}
 body header h1 {
     font-size:1em;
 }
-#content ol {
+#items ol {
     list-style: none;
     padding-left:0px;
 }
-#content ol li{
+#items ol li{
     padding-top:15px;
     clear:both;
 }
 .score {
     float:left;
-    width:70px;
+    width:40px;
 }
 .score a {
     text-decoration: none;
-    padding: 2px 27px;
-    font-weight: bold;
+    padding: 2px 13px;
 }
 .score p {
     text-align: center;
-    margin: 0px;
-    padding: 2px 0;
+    margin: 0;
+    padding: 2px 0 0 0;
     font-size:0.7em;
 }
-.score a.inc:active {
-    color:orangered;
+.score a {
+    color: #333333;
 }
-.score a.dec:active {
-    color:dodgerblue;
+.score a.inc:active, .score a.inc.active  {
+    color:crimson;
+}
+.score a.dec:active, .score a.dec.active {
+    color:darkblue;
 }
 .deleted {
     text-decoration: line-through;
@@ -49,4 +55,12 @@ body header h1 {
 .domains {
     font-size: 0.9em;
     font-weight: lighter;
+}
+#data {
+    margin-top: 20px;
+}
+.text-plain {
+    white-space: pre;
+    font-family: monospace;
+    max-width: 80ex;
 }

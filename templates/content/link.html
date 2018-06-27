@@ -1,6 +1,13 @@
 {{if .Deleted }}
-<tt class="deleted" data-hash="{{.Key}}">deleted</tt>
+<tt class="deleted titles" data-hash="{{.Key}}">deleted</tt>
 {{else}}
-<a data-id="{{.Id}}" href="{{.Data | printf "%s"}}">{{.Title}}</a>
-<aside class="meta">submitted <time datetime="{{ .CreatedAt| formatDate }}" title="{{ .CreatedAt| formatDate }}">{{.CreatedAt | formatDateInterval }}</time> by <a href="{{ "~anonymous" }}">{{ "~anonymous" }}</a> | <a href="{{.PermaLink}}">discussion</a></aside>
+{{if .IsLink }}
+<a class="titles" data-id="{{.Id}}" href="{{.Data | printf "%s"}}">{{.Title}}</a> <a class="domains">{{.GetDomain}}</a>
+{{else}}
+<span data-id="{{.Id}}" >{{.Title}}</span>
+{{end}}
+<aside class="meta">
+    by <a class="by" href="/~{{ .Handle }}">~{{ .Handle }}</a> |
+    <a href="{{.PermaLink}}">discussion</a>
+</aside>
 {{end}}

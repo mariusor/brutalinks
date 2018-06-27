@@ -7,6 +7,10 @@
 </head>
 <body>
 <header><h1><a href="/">littr</a></h1></header>
-<p>Email: {{.User.Email}}</p>
+<section id="user">User: {{.User.Handle}}</section>
+<main id="items">
+
+{{ template "items.html" .Items }}
+</main>
 </body>
 </html>

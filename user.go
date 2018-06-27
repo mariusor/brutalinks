@@ -4,24 +4,107 @@ import (
 	"net/http"
 	"html/template"
 	"github.com/gorilla/mux"
+	"github.com/astaxie/beego/orm"
+	"fmt"
+	"time"
+	"log"
 )
 
-type user struct {
-	Email string
+type User struct {
+	Id int64 `orm:id,"auto"`
+	Key string`orm:key`
+	Email string `orm:email`
+	Handle string `orm:handle`
+	Score int64`orm:score`
+	CreatedAt time.Time `orm:created_at`
+	UpdatedAt time.Time`orm:updated_at`
+	Flags int8 `orm:flags`
+	Metadata []byte `orm:metadata`
 }
 
 type userModel struct {
 	Title string
-	User user
+	User User
+	Items []Content
 }
 
 // handleMain serves /~{user}
 func (l *littr) handleUser(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	u := userModel{Title: vars["user"], User: user{Email: ""}}
+	db, err := orm.GetDB("default")
+	if err != nil {
+		l.handleError(w, r, err)
+		return
+	}
+	m := userModel{}
 
-	t, _ := template.New("user.html").ParseFiles(templateDir + "user.html")
-	t.New("link.html").ParseFiles(templateDir + "content/link.html")
-	t.Execute(w, u)
+	u := User{}
+	selAcct := `select "id", "key", "handle", "email", "score", "created_at", "updated_at", "metadata", "flags" from "accounts" where "handle" = $1`
+	{
+		rows, err := db.Query(selAcct, vars["handle"])
+		if err != nil {
+			l.handleError(w, r, err)
+			return
+		}
+		for rows.Next() {
+			err = rows.Scan(&u.Id, &u.Key, &u.Handle, &u.Email, &u.Score, &u.CreatedAt, &u.UpdatedAt, &u.Metadata, &u.Flags)
+			if err != nil {
+				l.handleError(w, r, err)
+				return
+			}
+		}
+
+		m.Title = fmt.Sprintf("Activity %s", u.Handle)
+		m.User = u
+	}
+	selC := `select "content_items"."id", "content_items"."key", "mime_type", "data", "title", "content_items"."score", 
+			"submitted_at", "content_items"."flags", "content_items"."metadata"  from "content_items" 
+			left join "accounts" on "accounts"."id" = "content_items"."submitted_by" 
+			where "submitted_by" = $1`
+	{
+		rows, err := db.Query(selC, u.Id)
+		if err != nil {
+			l.handleError(w, r, err)
+			return
+		}
+		for rows.Next() {
+			p := Content{}
+			err = rows.Scan(&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.Flags, &p.Metadata)
+			if err != nil {
+				l.handleError(w, r, err)
+				return
+			}
+			p.Handle = u.Handle
+			p.SubmittedBy = u.Id
+			p.MimeTypeSlug = sluggify(p.MimeType)
+			p.PermaLink = fmt.Sprintf("http://%s:3000/%4d/%02d/%02d/%s", listenHost, p.SubmittedAt.Year(),  p.SubmittedAt.Month(), p.SubmittedAt.Day(), p.Key[0:8])
+			m.Items = append(m.Items, p)
+		}
+	}
+	var t *template.Template
+	var terr error
+	t, terr = template.New("user.html").ParseFiles(templateDir + "user.html")
+	if terr != nil {
+		log.Print(terr)
+	}
+	t.Funcs(template.FuncMap{
+		"formatDateInterval": relativeDate,
+		"formatDate":         formatDate,
+	})
+	if terr != nil {
+		log.Print(terr)
+	}
+	_, terr = t.New("items.html").ParseFiles(templateDir + "content/items.html")
+	if terr != nil {
+		log.Print(terr)
+	}
+	_, terr = t.New("link.html").ParseFiles(templateDir + "content/link.html")
+	if terr != nil {
+		log.Print(terr)
+	}
+	terr = t.Execute(w, m)
+	if terr != nil {
+		log.Print(terr)
+	}
 }

@@ -1,0 +1,3 @@
+{{ if .IsSelf }}
+<article id="data" class="{{ .MimeTypeSlug }}">{{.Data | printf "%s" }}</article>
+{{end}}

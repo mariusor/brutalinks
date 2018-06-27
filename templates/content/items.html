@@ -1,0 +1,12 @@
+<ol id="item_list">
+{{range $key, $value := . }}
+    <li data-index="{{$key}}">
+        <aside class="score">
+            <a href="" class="inc active" data-action="inc" data-hash="{{$value.Key}}">▲</a>
+            <p>{{ $value.ScoreFmt }}</p>
+            <a href="" class="dec active" data-action="dec" data-hash="{{$value.Key}}">▼</a>
+        </aside>
+        <section class="submission" data-flags="{{$value.Flags}}" data-index="{{$key}}" data-hash="{{$value.Key}}">{{ template "link.html" $value }}</section>
+    </li>
+{{end}}
+</ol>

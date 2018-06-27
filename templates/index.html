@@ -7,22 +7,11 @@
 </head>
 <body>
 <header><h1><a href="/">littr</a></h1></header>
-<main id="content">
-<ol>
-{{range $key,$value := .Content}}
-    <li data-index="{{$key}}">
-        <aside class="score">
-            <a href="" class="inc" data-action="inc" data-hash="{{$value.Key}}">🔺</a>
-            <p>{{ $value.ScoreFmt }}</p>
-            <a href="" class="dec" data-action="dec" data-hash="{{$value.Key}}">🔻</a>
-        </aside>
-        <section class="submission" data-flags="{{$value.Flags}}" data-index="{{$key}}" data-hash="{{$value.Key}}">{{ template "link.html" $value }}</section>
-    </li>
-{{end}}
-</ol>
+<main id="items">
+{{ template "items.html" .Items }}
 </main>
 <footer>
-{{ if .Auth | len gt 0 }}
+{{ if len .Auth }}
     <ul id="auth">
 {{range $key,$value := .Auth}}
     <p><a href="/auth/{{$key}}">Sign in with {{$value}}</a></p>
