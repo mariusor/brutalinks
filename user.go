@@ -77,7 +77,6 @@ func (l *littr) handleUser(w http.ResponseWriter, r *http.Request) {
 			}
 			p.Handle = u.Handle
 			p.SubmittedBy = u.Id
-			p.MimeTypeSlug = sluggify(p.MimeType)
 			p.PermaLink = fmt.Sprintf("http://%s:3000/%4d/%02d/%02d/%s", listenHost, p.SubmittedAt.Year(),  p.SubmittedAt.Month(), p.SubmittedAt.Day(), p.Key[0:8])
 			m.Items = append(m.Items, p)
 		}
@@ -95,15 +94,23 @@ func (l *littr) handleUser(w http.ResponseWriter, r *http.Request) {
 	if terr != nil {
 		log.Print(terr)
 	}
-	_, terr = t.New("items.html").ParseFiles(templateDir + "content/items.html")
+	_, terr = t.New("items.html").ParseFiles(templateDir + "partials/content/items.html")
 	if terr != nil {
 		log.Print(terr)
 	}
-	_, terr = t.New("score.html").ParseFiles(templateDir + "content/score.html")
+	_, terr = t.New("score.html").ParseFiles(templateDir + "partials/content/score.html")
 	if terr != nil {
 		log.Print(terr)
 	}
-	_, terr = t.New("link.html").ParseFiles(templateDir + "content/link.html")
+	_, terr = t.New("link.html").ParseFiles(templateDir + "partials/content/link.html")
+	if terr != nil {
+		log.Print(terr)
+	}
+	_, terr = t.New("head.html").ParseFiles(templateDir + "partials/head.html")
+	if terr != nil {
+		log.Print(terr)
+	}
+	_, terr = t.New("header.html").ParseFiles(templateDir + "partials/header.html")
 	if terr != nil {
 		log.Print(terr)
 	}

@@ -1,0 +1,3 @@
+{{ if .IsSelf }}
+<article id="data" class="{{ .MimeType | sluggify }}">{{.Data | printf "%s" }}</article>
+{{end}}

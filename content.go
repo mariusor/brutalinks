@@ -15,11 +15,6 @@ type contentModel struct {
 	Title string
 	Content Content
 }
-const (
-	MimeTypeTextPlain = "text/plain"
-	MimeTypeHtml = "text/html"
-	MimeTypeMarkdown = "text/markdown"
-)
 func sluggify (s string) string {
 	if s == "" {
 		return s
@@ -63,7 +58,7 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 			l.handleError(w, r, err)
 			return
 		}
-		p.MimeTypeSlug = sluggify(p.MimeType)
+		//p.MimeTypeSlug = sluggify(p.MimeType)
 		m.Title = p.Title
 		m.Content = p
 	}
@@ -77,20 +72,28 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 	t.Funcs(template.FuncMap{
 		"formatDateInterval": relativeDate,
 		"formatDate":         formatDate,
+		"sluggify": 		  sluggify,
 	})
-	_, terr = t.New("link.html").ParseFiles(templateDir + "content/link.html")
+	_, terr = t.New("link.html").ParseFiles(templateDir + "partials/content/link.html")
 	if terr != nil {
 		log.Print(terr)
 	}
-	_, terr = t.New("score.html").ParseFiles(templateDir + "content/score.html")
+	_, terr = t.New("score.html").ParseFiles(templateDir + "partials/content/score.html")
 	if terr != nil {
 		log.Print(terr)
 	}
-	_, terr = t.New("data.html").ParseFiles(templateDir + "content/data.html")
+	_, terr = t.New("data.html").ParseFiles(templateDir + "partials/content/data.html")
 	if terr != nil {
 		log.Print(terr)
 	}
-
+	_, terr = t.New("head.html").ParseFiles(templateDir + "partials/head.html")
+	if terr != nil {
+		log.Print(terr)
+	}
+	_, terr = t.New("header.html").ParseFiles(templateDir + "partials/header.html")
+	if terr != nil {
+		log.Print(terr)
+	}
 	terr = t.Execute(w, m)
 	if terr != nil {
 		log.Print(terr)

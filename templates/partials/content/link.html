@@ -7,6 +7,7 @@
 <span data-id="{{.Id}}" >{{.Title}}</span>
 {{end}}
 <aside class="meta">
+    submitted <time datetime="{{ .SubmittedAt| formatDate }}" title="{{ .SubmittedAt| formatDate }}">{{.SubmittedAt | formatDateInterval }}</time>
     by <a class="by" href="/~{{ .Handle }}">~{{ .Handle }}</a> |
     <a href="{{.PermaLink}}">discussion</a>
 </aside>

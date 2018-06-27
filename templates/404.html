@@ -1,12 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>404: Not Found</title>
-    <link rel="stylesheet" type="text/css" href="assets/css/main.css">
+{{ template "head.html" }}
 </head>
 <body>
-<header><h1><a href="/">littr</a></h1></header>
+{{ template "header.html" }}
 <h1>Not Found</h1>
 <p>Path <q>{{.path}}</q> was not found on the server.</p>
 </body>

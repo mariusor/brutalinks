@@ -1,13 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>{{.Title}}</title>
-    <link rel="stylesheet" type="text/css" href="/assets/css/main.css">
+{{ template "head.html" }}
 </head>
 <body>
-<header><h1><a href="/">littr</a></h1></header>
-<section id="item">
+{{ template "header.html" }}
+<section class="submission" id="content" data-hash="{{.Content.Key}}">
     {{ template "score.html" .Content }}
     {{ template "link.html" .Content }}
     {{ template "data.html" .Content }}

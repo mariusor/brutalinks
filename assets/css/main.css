@@ -3,6 +3,9 @@ body {
     font-size: 1.1em;
     line-height: 1em;
 }
+body>header h1 a {
+    text-decoration: none;
+}
 body header h1 {
     font-size:1em;
 }
@@ -15,20 +18,18 @@ body header h1 {
     clear:both;
 }
 .score {
-    float:left;
-    width:40px;
-}
-.score a {
-    text-decoration: none;
-    padding: 2px 13px;
+    float: left;
+    width: 30px;
 }
 .score p {
     text-align: center;
     margin: 0;
     padding: 2px 0 0 0;
-    font-size:0.7em;
+    font-size: 0.7em;
 }
 .score a {
+    text-decoration: none;
+    padding: 1px 8px;
     color: #333333;
 }
 .score a.inc:active, .score a.inc.active  {
@@ -36,6 +37,13 @@ body header h1 {
 }
 .score a.dec:active, .score a.dec.active {
     color:darkblue;
+}
+.submission {
+    padding-top: .3em;
+}
+.submission .meta {
+    padding: 0.4em 0 0 5ex;
+    font-size: 0.8em;
 }
 .deleted {
     text-decoration: line-through;
@@ -57,7 +65,9 @@ body header h1 {
     font-weight: lighter;
 }
 #data {
-    margin-top: 20px;
+    margin: 1.8em 0.5ex;
+    border: 1px solid;
+    padding: 1em 1ex;
 }
 .text-plain {
     white-space: pre;
