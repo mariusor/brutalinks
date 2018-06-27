@@ -187,6 +187,10 @@ func (l *littr) handleIndex(w http.ResponseWriter, r *http.Request) {
 	if terr != nil {
 		log.Print(terr)
 	}
+	_, terr = t.New("score.html").ParseFiles(templateDir + "content/score.html")
+	if terr != nil {
+		log.Print(terr)
+	}
 	terr = t.Execute(w, m)
 	if terr != nil {
 		log.Print(terr)
