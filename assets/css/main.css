@@ -3,11 +3,14 @@ body {
     font-size: 1.1em;
     line-height: 1em;
 }
+
+body>header h1 {
+    font-size:2em;
+    font-weight: lighter;
+}
 body>header h1 a {
     text-decoration: none;
-}
-body header h1 {
-    font-size:1em;
+    font-weight: bolder;
 }
 #items ol {
     list-style: none;
@@ -41,7 +44,7 @@ body header h1 {
 .submission {
     padding-top: .3em;
 }
-.submission .meta {
+.submission .meta, .comment {
     padding: 0.4em 0 0 5ex;
     font-size: 0.8em;
 }
@@ -67,7 +70,12 @@ body header h1 {
 #data {
     margin: 1.8em 0.5ex;
     border: 1px solid;
+    border-radius: 3px;
     padding: 1em 1ex;
+}
+#comments #data {
+    border: none;
+    margin: -8px 1ex;
 }
 .text-plain {
     white-space: pre;

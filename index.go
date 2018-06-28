@@ -2,13 +2,14 @@ package main
 
 import (
 	"time"
-	"net/http"
-	"github.com/astaxie/beego/orm"
 	"fmt"
+	"bytes"
 	"html/template"
 	"math"
 	"log"
 	"strings"
+	"net/http"
+	"github.com/astaxie/beego/orm"
 )
 
 const (
@@ -24,7 +25,7 @@ const (
 
 type Content struct {
 	Id           int64     `orm:id,"auto"`
-	Key          string    `orm:key,size(56)`
+	Key          []byte    `orm:key,size(56)`
 	Title        string    `orm:title`
 	MimeType     string    `orm:mime_type`
 	Data         []byte    `orm:data`
@@ -35,13 +36,55 @@ type Content struct {
 	Handle       string    `orm:handle`
 	Flags        int8      `orm:flags`
 	Metadata     []byte    `orm:metadata`
-	PermaLink    string
+	Path     	 []byte    `orm:path`
+	fullPath	 []byte
+	parentLink   string
 }
 
 type indexModel struct {
 	Title string
 	Auth  map[string]string
 	Items []Content
+}
+func (c Content)IsTop() bool {
+	return c.Path == nil
+}
+func (c Content)Hash() string {
+	return c.Hash8()
+}
+func (c Content)Hash8() string {
+	return string(c.Key[0:8])
+}
+func (c Content)Hash16() string {
+	return string(c.Key[0:16])
+}
+func (c Content)Hash32() string {
+	return string(c.Key[0:32])
+}
+func (c Content)Hash64() string {
+	return string(c.Key)
+}
+func (c Content)PermaLink() string {
+	if c.SubmittedAt.IsZero() {
+		return ""
+	}
+	return fmt.Sprintf("/%4d/%02d/%02d/%s", c.SubmittedAt.Year(),  c.SubmittedAt.Month(), c.SubmittedAt.Day(), c.Key[0:8])
+}
+func (c *Content)FullPath() []byte {
+	if c.fullPath == nil {
+		c.fullPath = append(c.fullPath, c.Path...)
+		if len(c.fullPath) > 0 {
+			c.fullPath = append(c.fullPath, byte('.'))
+		}
+		c.fullPath = append(c.fullPath, c.Key...)
+	}
+	return c.fullPath
+}
+func (c Content)Level() int {
+	if c.Path == nil {
+		return 0
+	}
+	return bytes.Count(c.FullPath(), []byte("."))
 }
 func (c Content)Deleted () bool {
 	return c.Flags &FlagsDeleted == FlagsDeleted
@@ -86,6 +129,9 @@ func relativeDate (c time.Time) string {
 	i := time.Now().Sub(c)
 	pluralize := func (d float64, unit string) string {
 		if math.Round(d) != 1 {
+			if unit == "century" {
+				unit = "centurie"
+			}
 			return unit + "s"
 		}
 		return unit
@@ -114,7 +160,7 @@ func relativeDate (c time.Time) string {
 			unit = "minute"
 		}
 	} else if hours < 24 {
-		val = math.Mod(hours, 24)
+		val = hours
 		unit = "hour"
 	} else if hours < 168 {
 		val = hours / 24
@@ -125,9 +171,15 @@ func relativeDate (c time.Time) string {
 	} else if hours < 8760 {
 		val = hours / 672
 		unit = "month"
-	} else {
+	} else if hours < 87600 {
 		val = hours / 8760
 		unit = "year"
+	}  else if hours < 876000 {
+		val = hours / 87600
+		unit = "decade"
+	} else {
+		val = hours / 876000
+		unit = "century"
 	}
 	return fmt.Sprintf("%.0f %s %s", val, pluralize(val, unit), when)
 }
@@ -151,6 +203,7 @@ func (l *littr) handleIndex(w http.ResponseWriter, r *http.Request) {
 			"submitted_at", "submitted_by", "handle", "content_items"."flags" 
 		from "content_items" 
 			left join "accounts" on "accounts"."id" = "content_items"."submitted_by" 
+		where path is NULL
 	order by "score" desc, "submitted_at" desc limit %d`, MaxContentItems)
 	rows, err := db.Query(sel)
 	if err != nil {
@@ -164,7 +217,6 @@ func (l *littr) handleIndex(w http.ResponseWriter, r *http.Request) {
 			l.handleError(w, r, err)
 			return
 		}
-		p.PermaLink = fmt.Sprintf("http://%s:3000/%4d/%02d/%02d/%s", listenHost, p.SubmittedAt.Year(),  p.SubmittedAt.Month(), p.SubmittedAt.Day(), p.Key[0:8])
 		m.Items = append(m.Items, p)
 	}
 

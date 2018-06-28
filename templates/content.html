@@ -5,10 +5,13 @@
 </head>
 <body>
 {{ template "header.html" }}
-<section class="submission" id="content" data-hash="{{.Content.Key}}">
-    {{ template "score.html" .Content }}
-    {{ template "link.html" .Content }}
-    {{ template "data.html" .Content }}
+<section class="submission" id="content" data-hash="{{.Content.Hash}}">
+{{template "score.html" .Content.Content}}
+{{template "link.html" .Content.Content}}
+{{template "data.html" .Content.Content}}
+</section>
+<section id="items">
+    {{ template "comments.html" .Content }}
 </section>
 </body>
 </html>

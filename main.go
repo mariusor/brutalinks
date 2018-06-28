@@ -252,9 +252,13 @@ func main() {
 		Methods(http.MethodGet, http.MethodHead).
 		Name("content")
 
-	m.HandleFunc("/.well-known/webfinger", app.handleWebFinger).
+	m.HandleFunc("/p/{hash}/{parent}", app.handleParent).
 		Methods(http.MethodGet, http.MethodHead).
-		Name("webfinger")
+		Name("parent")
+
+	//m.HandleFunc("/.well-known/webfinger", app.handleWebFinger).
+	//	Methods(http.MethodGet, http.MethodHead).
+	//	Name("webfinger")
 
 	m.HandleFunc("/~{handle}", app.handleUser).
 		Methods(http.MethodGet, http.MethodHead).

@@ -1,14 +1,15 @@
 {{if .Deleted }}
-<tt class="deleted titles" data-hash="{{.Key}}">deleted</tt>
+<tt class="deleted titles" data-hash="{{.Hash}}">deleted</tt>
 {{else}}
 {{if .IsLink }}
 <a class="titles" data-id="{{.Id}}" href="{{.Data | printf "%s"}}">{{.Title}}</a> <a class="domains">{{.GetDomain}}</a>
 {{else}}
-<span data-id="{{.Id}}" >{{.Title}}</span>
+{{if .IsTop}}<span data-id="{{.Id}}" >{{.Title}}</span>{{end}}
 {{end}}
 <aside class="meta">
     submitted <time datetime="{{ .SubmittedAt| formatDate }}" title="{{ .SubmittedAt| formatDate }}">{{.SubmittedAt | formatDateInterval }}</time>
-    by <a class="by" href="/~{{ .Handle }}">~{{ .Handle }}</a> |
-    <a href="{{.PermaLink}}">discussion</a>
+    {{if .Handle }}by <a class="by" href="/~{{ .Handle }}">{{ .Handle }}</a>{{end}}
+    {{if .PermaLink }} | <a href="{{.PermaLink}}" title="discussion">¶</a>{{end}}
+    {{if .ParentLink }}<a href="{{.ParentLink}}" title="parent">&#11173;</a>{{end}}
 </aside>
 {{end}}

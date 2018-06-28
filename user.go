@@ -77,7 +77,6 @@ func (l *littr) handleUser(w http.ResponseWriter, r *http.Request) {
 			}
 			p.Handle = u.Handle
 			p.SubmittedBy = u.Id
-			p.PermaLink = fmt.Sprintf("http://%s:3000/%4d/%02d/%02d/%s", listenHost, p.SubmittedAt.Year(),  p.SubmittedAt.Month(), p.SubmittedAt.Day(), p.Key[0:8])
 			m.Items = append(m.Items, p)
 		}
 	}

@@ -1,8 +1,8 @@
-<ol id="item_list">
+<ol id="item_list" class="lvl">
 {{range $key, $value := . }}
     <li data-index="{{$key}}">
-        {{ template "score.html" $value }}
-        <section class="submission" data-flags="{{$value.Flags}}" data-index="{{$key}}" data-hash="{{$value.Key}}">{{ template "link.html" $value }}</section>
+    {{ template "score.html" $value }}
+        <section class="submission" data-flags="{{$value.Flags}}" data-index="{{$key}}" data-hash="{{$value.Hash}}">{{ template "link.html" $value }}</section>
     </li>
 {{end}}
 </ol>
