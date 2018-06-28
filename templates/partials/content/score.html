@@ -1,5 +1,5 @@
 <aside class="score" data-score="{{if .Deleted}}-1{{else}}{{.ScoreFmt}}{{end}}" data-hash="{{.Hash}}">
-    <a href="" class="inc{{ if false }} active{{end}}" data-action="inc" data-hash="{{.Hash}}">&#9650;</a>
+    <a href="" class="inc{{ if false }} active{{end}}" data-action="inc" data-hash="{{.Hash}}"></a>
     <data>{{if .Deleted}}&#9851;{{else}}{{.ScoreFmt}}{{end}}</data>
-    <a href="" class="dec{{ if false }}  active{{end}}" data-action="dec" data-hash="{{.Hash}}">&#9660;</a>
+    <a href="" class="dec{{ if false }}  active{{end}}" data-action="dec" data-hash="{{.Hash}}"></a>
 </aside>

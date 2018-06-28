@@ -57,11 +57,17 @@ body>header h1 a:before {
     /*padding: 0 8px 1px 8px;*/
     color: #333333;
 }
+.score a.inc::before {
+    content: "▲";
+}
 .score a.inc {
     margin-bottom: 3px;
 }
 .score a.inc:active, .score a.inc.active  {
     color:crimson;
+}
+.score a.dec::after {
+    content: "▼";
 }
 .score a.dec:active, .score a.dec.active {
     color:darkblue;
