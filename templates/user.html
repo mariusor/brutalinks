@@ -4,8 +4,7 @@
 {{ template "head.html" }}
 </head>
 <body>
-{{ template "header.html" }}
-<section id="user">User: {{.User.Handle}}</section>
+{{ template "header.html" . }}
 <main id="items">
 
 {{ template "items.html" .Items }}
