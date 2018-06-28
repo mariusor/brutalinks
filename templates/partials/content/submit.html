@@ -1,0 +1,8 @@
+<form>
+    <fieldset>
+        <legend>{{ if not .Content.Id }}Submit &#11175;{{else}}Reply to &#11173;{{end}}</legend>
+        <textarea></textarea>
+        {{ if not .Content.Id }}<label for="title">Title: </label><input type="text" name="title" id="title" />{{end}}
+        <button type="submit">submit</button>
+    </fieldset>
+</form>

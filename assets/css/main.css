@@ -1,16 +1,35 @@
 @charset "UTF-8";
 body {
-    font-size: 1.1em;
-    line-height: 1em;
+    font-size: 1em;
+    line-height: 1.1em;
 }
 
 body>header h1 {
-    font-size:2em;
+    font-size:1.6em;
     font-weight: lighter;
 }
 body>header h1 a {
     text-decoration: none;
     font-weight: bolder;
+}
+body>header h1 a:before {
+    content: "♻";
+    padding-right:1ex;
+}
+.submission h1,
+.submission h2,
+.submission h3,
+.submission h4,
+.submission h5,
+.submission h6 {
+    font-weight: normal;
+}
+.submission h1 {
+    font-size: 1.1em;
+    margin: 0.2em 0;
+}
+#content #data {
+    margin-left:4ex;
 }
 #items ol {
     list-style: none;
@@ -22,18 +41,25 @@ body>header h1 a {
 }
 .score {
     float: left;
-    width: 30px;
-}
-.score p {
+    width: 2.4ex;
     text-align: center;
-    margin: 0;
-    padding: 2px 0 0 0;
-    font-size: 0.7em;
+    margin-right:.5ex;
+}
+.score data {
+    margin:auto;
+    display:block;
+    text-align: center;
+    width:100%;
 }
 .score a {
+    display:block;
+    width:100%;
     text-decoration: none;
-    padding: 1px 8px;
+    /*padding: 0 8px 1px 8px;*/
     color: #333333;
+}
+.score a.inc {
+    margin-bottom: 3px;
 }
 .score a.inc:active, .score a.inc.active  {
     color:crimson;
@@ -44,25 +70,29 @@ body>header h1 a {
 .submission {
     padding-top: .3em;
 }
-.submission .meta, .comment {
-    padding: 0.4em 0 0 5ex;
-    font-size: 0.8em;
-}
-.deleted {
-    line-height: 2.4em;
-    padding-left: 2ex;
-    letter-spacing: 0.3ex;
-    font-weight: lighter;
-}
 .meta {
-    font-size:0.9em;
-    /*color:#4E4E4E;*/
+    padding: .4em 0 0 5ex;
+    font-size: .8em;
 }
-.meta .by {
-    font-weight: bold;
+.meta a {
+    text-decoration: none;
+    font-weight: bolder;
+}
+.by:before {
+    content: "~"
 }
 .meta time {
     text-decoration: underline dotted;
+}
+.comment {
+    padding: .4em 0 0 5ex;
+    font-size: .92em;
+}
+.deleted {
+    line-height: 55px;
+    padding-left: 2ex;
+    letter-spacing: 0.3ex;
+    font-weight: lighter;
 }
 .domains {
     font-size: 0.9em;
@@ -82,4 +112,16 @@ body>header h1 a {
     white-space: pre;
     font-family: monospace;
     max-width: 80ex;
+}
+#reply {
+    max-width:80ex;
+}
+#reply fieldset legend {
+    padding: 0 2ex;
+}
+#reply textarea {
+    width:100%;
+    height:12em;
+}
+#reply label {
 }

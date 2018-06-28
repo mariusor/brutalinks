@@ -80,7 +80,7 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 			l.handleError(w, r, err)
 			return
 		}
-		m.Title = p.Title
+		m.Title = string(p.Title)
 		m.Content = comment {Content:p}
 	}
 
@@ -142,6 +142,10 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 		"formatDate":         formatDate,
 		"sluggify": 		  sluggify,
 	})
+	_, terr = t.New("submit.html").ParseFiles(templateDir + "partials/content/submit.html")
+	if terr != nil {
+		log.Print(terr)
+	}
 	_, terr = t.New("comments.html").ParseFiles(templateDir + "partials/content/comments.html")
 	if terr != nil {
 		log.Print(terr)

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-{{ template "head.html" }}
+{{ template "head.html" . }}
 </head>
 <body>
 {{ template "header.html" }}
@@ -10,8 +10,11 @@
 {{template "link.html" .Content.Content}}
 {{template "data.html" .Content.Content}}
 </section>
+<section id="reply">
+{{template "submit.html" . }}
+</section>
 <section id="items">
-    {{ template "comments.html" .Content }}
+{{ template "comments.html" .Content }}
 </section>
 </body>
 </html>

@@ -26,7 +26,7 @@ const (
 type Content struct {
 	Id           int64     `orm:id,"auto"`
 	Key          []byte    `orm:key,size(56)`
-	Title        string    `orm:title`
+	Title        template.HTML    `orm:title`
 	MimeType     string    `orm:mime_type`
 	Data         []byte    `orm:data`
 	Score        int64     `orm:score`
