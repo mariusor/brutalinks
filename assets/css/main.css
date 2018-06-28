@@ -49,9 +49,10 @@ body>header h1 a {
     font-size: 0.8em;
 }
 .deleted {
-    text-decoration: line-through;
-    line-height: 4.4em;
-    text-align: center;
+    line-height: 2.4em;
+    padding-left: 2ex;
+    letter-spacing: 0.3ex;
+    font-weight: lighter;
 }
 .meta {
     font-size:0.9em;

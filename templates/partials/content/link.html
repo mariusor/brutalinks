@@ -1,5 +1,5 @@
 {{if .Deleted }}
-<tt class="deleted titles" data-hash="{{.Hash}}">deleted</tt>
+<del class="deleted titles" data-hash="{{.Hash}}">deleted</del>
 {{else}}
 {{if .IsLink }}
 <a class="titles" data-id="{{.Id}}" href="{{.Data | printf "%s"}}">{{.Title}}</a> <a class="domains">{{.GetDomain}}</a>

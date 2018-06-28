@@ -1,5 +1,5 @@
 <aside class="score">
     <a href="" class="inc{{ if false }} active{{end}}" data-action="inc" data-hash="{{.Hash}}">▲</a>
-    <p>{{.ScoreFmt}}</p>
+    <p>{{if .Deleted}}&#9851;{{else}}{{.ScoreFmt}}{{end}}</p>
     <a href="" class="dec{{ if false }}  active{{end}}" data-action="dec" data-hash="{{.Hash}}">▼</a>
 </aside>
