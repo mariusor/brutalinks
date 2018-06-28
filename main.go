@@ -43,7 +43,33 @@ type errorModel struct {
 //	}
 //	return sess
 //}
+func (l *littr) Vote (p Content, multi int, userId int) (bool, error) {
+	var act string
+	if multi < 0 {
+		act = "nay"
+	}
+	if multi > 0 {
+		act = "yay"
+	}
+	log.Printf("User %d %s'd item at path %s", userId, act, p.FullPath())
+	db, err := orm.GetDB("default")
+	if err != nil {
+		return false, err
+	}
+	upd := `update "content_items" set score = score + $1 where "id" = $2`
+	res, err := db.Exec(upd, int(multi * ScoreMultiplier), p.Id)
+	if err != nil {
+		return false, err
+	}
+	if rows, _ := res.RowsAffected(); rows == 0 {
+		return false, fmt.Errorf("content hash %q not found", p.Hash())
+	}
+	if rows, _ := res.RowsAffected(); rows > 1 {
+		return false, fmt.Errorf("content hash %q collision", p.Hash())
+	}
 
+	return true, nil
+}
 func (l *littr) Run(m *mux.Router, wait time.Duration) {
 	log.SetPrefix(l.Host + " ")
 	log.SetFlags(0)

@@ -46,6 +46,18 @@ type indexModel struct {
 	Auth  map[string]string
 	Items []Content
 }
+func (c Content)scoreLink(dir string) string {
+	if c.SubmittedAt.IsZero() {
+		return ""
+	}
+	return fmt.Sprintf("/%4d/%02d/%02d/%s?%s", c.SubmittedAt.Year(),  c.SubmittedAt.Month(), c.SubmittedAt.Day(), c.Key[0:8], dir)
+}
+func (c Content)ScoreUPLink() string {
+	return c.scoreLink("yay")
+}
+func (c Content)ScoreDOWNLink() string {
+	return c.scoreLink("nay")
+}
 func (c Content)IsTop() bool {
 	return c.Path == nil
 }
