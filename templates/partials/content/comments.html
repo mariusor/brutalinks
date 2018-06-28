@@ -1,4 +1,4 @@
-<ol id="comments" class="lvl-{{ .Level }}">
+<ol class="items comments lvl-{{ .Level }}">
 {{range $key, $value := .Children }}
     <li data-index="{{$key}}" class="comment">
     {{template "comment.html" $value}}

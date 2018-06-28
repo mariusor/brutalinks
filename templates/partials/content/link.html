@@ -2,14 +2,16 @@
 <del class="deleted titles" data-hash="{{.Hash}}">deleted</del>
 {{else}}
 {{if .IsLink }}
-<h1><a class="titles" data-hash="{{.Hash}}" href="{{.Data | printf "%s"}}">{{.Title}}</a> <a class="domains">{{.GetDomain}}</a></h1>
+<h1><a class="titles" data-hash="{{.Hash}}" href="{{.Data | printf "%s"}}">{{.Title}}</a> <span class="domain">{{.GetDomain}}<a class="domain" title="domain submissions"></a></span></h1>
 {{else}}
 {{if .IsTop}}<h1 data-hash="{{.Hash}}" >{{.Title}}</h1>{{end}}
 {{end}}
 <aside class="meta">
     submitted <time datetime="{{ .SubmittedAt| formatDate }}" title="{{ .SubmittedAt| formatDate }}">{{.SubmittedAt | formatDateInterval }}</time>
     {{if .Handle }}by <a class="by" href="/~{{ .Handle }}">{{ .Handle }}</a>{{end}}
-    {{if .PermaLink }} | <a href="{{.PermaLink}}" title="discussion">¶</a>{{end}}
-    {{if .ParentLink }}<a href="{{.ParentLink}}" title="parent">&#11173;</a>{{end}}
+    <ul class="meta-items">
+    {{if .PermaLink }}<li><a href="{{.PermaLink}}" class="perma" title="discussion"></a></li>{{end}}
+    {{if .ParentLink | ne "/" }}<li><a href="{{.ParentLink}}" class="parent" title="parent"></a></li>{{end}}
+    </ul>
 </aside>
 {{end}}
