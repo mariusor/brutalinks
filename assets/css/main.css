@@ -4,16 +4,16 @@ body {
     line-height: 1.1em;
 }
 body>header h1 {
-    font-size:1.6em;
+    font-size: 1.6em;
     font-weight: lighter;
 }
 body>header h1 a {
     text-decoration: none;
-    color:WindowText;
+    color: WindowText;
 }
 body>header h1 a:before {
     content: "♻";
-    padding-right:1ex;
+    padding-right: 1ex;
     font-weight: 1000;
 }
 .submission h1,
@@ -66,14 +66,14 @@ body>header h1 a:before {
     margin-bottom: 3px;
 }
 .score a.inc:active, .score a.inc.active  {
-    color:royalblue;
+    color: royalblue;
 }
 .score a.dec::after {
     content: "▼";
     font-weight: 1000;
 }
 .score a.dec:active, .score a.dec.active {
-    color:cornflowerblue;
+    color: cornflowerblue;
 }
 .submission {
     padding-top: .3em;
@@ -101,11 +101,11 @@ body>header h1 a:before {
     line-height: 55px;
     padding-left: 2ex;
     letter-spacing: 0.3ex;
-    font-weight: lighter;
+    font-weight: 200;
 }
 .domains {
     font-size: 0.9em;
-    font-weight: lighter;
+    font-weight: 200;
 }
 #data {
     margin: 1.8em 0.5ex;
@@ -115,7 +115,7 @@ body>header h1 a:before {
 }
 ol.comments li {
     display: block;
-    clear:both;
+    clear: both;
 }
 ol.comments {
     clear: both;
@@ -172,8 +172,7 @@ ol.lvl-9 {
     width: 100%;
     height: 12em;
 }
-#reply label {
-}
+#reply label {}
 ul.meta-items {
     display: inline;
     margin: 0;
@@ -190,7 +189,7 @@ ul.meta-items:before {
 ul.meta-items:after {
     content: "] ";
 }
-ul.meta-items a{
+ul.meta-items a {
     font-weight: 1000;
 }
 a.perma:before {
@@ -200,10 +199,10 @@ a.domain:before {
     /*content: " ¶ ";*/
 }
 span.domain:before {
-    content: " :: "
+    content: " ::"
 }
 span.domain {
-    font-weight: lighter;
+    font-weight: 200;
     font-size: .7em;
     margin-left: 4ex;
 }
