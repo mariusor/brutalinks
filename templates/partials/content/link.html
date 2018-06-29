@@ -9,9 +9,9 @@
 <aside class="meta">
     submitted <time datetime="{{ .SubmittedAt| formatDate }}" title="{{ .SubmittedAt| formatDate }}">{{.SubmittedAt | formatDateInterval }}</time>
     {{if .Handle }}by <a class="by" href="/~{{ .Handle }}">{{ .Handle }}</a>{{end}}
-    <ul class="meta-items">
+    <menu class="meta-items">
     {{if .PermaLink }}<li><a href="{{.PermaLink}}" class="perma" title="discussion"></a></li>{{end}}
     {{if .ParentLink | ne "/" }}<li><a href="{{.ParentLink}}" class="parent" title="parent"></a></li>{{end}}
-    </ul>
+    </menu>
 </aside>
 {{end}}

@@ -10,10 +10,14 @@ body>header h1 {
 body>header h1 a {
     text-decoration: none;
     color: WindowText;
+    display:block;
+    float:left;
+    text-align: center;
+    margin-right: 1.2ex;
+    margin-top: 2px;
 }
 body>header h1 a:before {
     content: "♻";
-    padding-right: 1ex;
     font-weight: 1000;
 }
 .submission h1,
@@ -37,6 +41,16 @@ body>header h1 a:before {
 }
 #items ol li {
     min-height: 7ex;
+}
+ol.comments li {
+    display: block;
+    clear: both;
+}
+ol.comments {
+    clear: both;
+    width: 100%;
+    border-left: 2px solid transparent;
+    margin: .9em 0 0 .7em;
 }
 .score {
     float: left;
@@ -113,16 +127,6 @@ body>header h1 a:before {
     border-radius: 3px;
     padding: 1em 1ex;
 }
-ol.comments li {
-    display: block;
-    clear: both;
-}
-ol.comments {
-    clear: both;
-    width: 100%;
-    border-left: 2px solid transparent;
-    margin: .9em 0 0 .7em;
-}
 ol.lvl-0 {
     border-color: #691d52;
 }
@@ -162,34 +166,34 @@ ol.lvl-9 {
     font-family: monospace;
     max-width: 80ex;
 }
-#reply {
+#reply, #new {
     max-width: 80ex;
 }
-#reply fieldset legend {
+#reply fieldset legend, #new fieldset legend {
     padding: 0 2ex;
 }
-#reply textarea {
+#reply textarea,
+#new textarea {
     width: 100%;
-    height: 12em;
 }
-#reply label {}
-ul.meta-items, ul#auth {
+#reply label, #new label {}
+menu.meta-items, menu#auth, menu#top {
     display: inline;
     margin: 0;
     padding: 0;
 }
-ul.meta-items li, ul#auth li {
+menu.meta-items li, menu#auth li, menu#top li {
     display:inline;
     margin: 0;
     padding: 0;
 }
-ul.meta-items:before {
+menu.meta-items:before {
     content: " [";
 }
-ul.meta-items:after {
+menu.meta-items:after {
     content: "] ";
 }
-ul.meta-items a {
+menu.meta-items a {
     font-weight: 1000;
 }
 a.perma:before {
@@ -212,15 +216,20 @@ a.parent:before {
 footer {
     font-size: 0.7em;
 }
-footer #auth {
-    float:right
+header menu#top {
+    display: block !important;
 }
-ul#auth li:first-child::before, ul#auth li:nth-child(2)::before {
+footer #auth, header #top  {
+    float:right;
+}
+menu#auth li:first-child::before,
+menu#auth li:nth-child(2)::before,
+menu#top li:first-child::before  {
     content: "";
 }
-ul#auth li:first-child::after {
-    content: " : ";
+menu#auth li:first-child::after {
+    content: ": ";
 }
-ul#auth li::before {
-    content: "| ";
+menu#auth li::before, menu#top li::before {
+    content: " | ";
 }
