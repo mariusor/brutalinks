@@ -1,30 +1,30 @@
 package main
 
 import (
-	"net/http"
-	"html/template"
-	"github.com/gorilla/mux"
-	"github.com/astaxie/beego/orm"
 	"fmt"
-	"time"
+	"github.com/astaxie/beego/orm"
+	"github.com/gorilla/mux"
+	"html/template"
 	"log"
+	"net/http"
+	"time"
 )
 
 type User struct {
-	Id int64 `orm:id,"auto"`
-	Key string`orm:key`
-	Email string `orm:email`
-	Handle string `orm:handle`
-	Score int64`orm:score`
+	Id        int64     `orm:id,"auto"`
+	Key       string    `orm:key`
+	Email     string    `orm:email`
+	Handle    string    `orm:handle`
+	Score     int64     `orm:score`
 	CreatedAt time.Time `orm:created_at`
-	UpdatedAt time.Time`orm:updated_at`
-	Flags int8 `orm:flags`
-	Metadata []byte `orm:metadata`
+	UpdatedAt time.Time `orm:updated_at`
+	Flags     int8      `orm:flags`
+	Metadata  []byte    `orm:metadata`
 }
 
 type userModel struct {
 	Title string
-	User User
+	User  User
 	Items []Content
 }
 

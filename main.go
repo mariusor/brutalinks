@@ -3,18 +3,18 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/astaxie/beego/orm"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
+	_ "github.com/lib/pq"
 	"golang.org/x/net/context"
+	"golang.org/x/oauth2"
+	"html/template"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"time"
-	"html/template"
-	"golang.org/x/oauth2"
-	"github.com/astaxie/beego/orm"
-	_ "github.com/lib/pq"
 
 	"math"
 )
@@ -32,8 +32,8 @@ type littr struct {
 
 type errorModel struct {
 	Status int
-	Title string
-	Error error
+	Title  string
+	Error  error
 }
 
 //func (l *littr) session(r *http.Request) *sessions.Session {
@@ -46,16 +46,16 @@ type errorModel struct {
 //}
 
 type Vote struct {
-	Id int `orm:id`
-	SubmittedBy  int64     `orm:submitted_by`
-	SubmittedAt  time.Time `orm:created_at`
-	UpdatedAt    time.Time `orm:updated_at`
-	ItemId		 int64		`orm:item_id`
-	Weight		 int		`orm:weight`
-	Flags        int8      `orm:flags`
+	Id          int       `orm:id`
+	SubmittedBy int64     `orm:submitted_by`
+	SubmittedAt time.Time `orm:created_at`
+	UpdatedAt   time.Time `orm:updated_at`
+	ItemId      int64     `orm:item_id`
+	Weight      int       `orm:weight`
+	Flags       int8      `orm:flags`
 }
 
-func (l *littr) Vote (p Content, multi int, userId int) (bool, error) {
+func (l *littr) Vote(p Content, multi int, userId int) (bool, error) {
 	db, err := orm.GetDB("default")
 	if err != nil {
 		return false, err
@@ -170,8 +170,8 @@ func (l *littr) handleAdmin(w http.ResponseWriter, _ *http.Request) {
 func (l *littr) handleError(w http.ResponseWriter, r *http.Request, err error) {
 	d := errorModel{
 		Status: http.StatusInternalServerError,
-		Title: fmt.Sprintf("Error %d", http.StatusInternalServerError),
-		Error: err,
+		Title:  fmt.Sprintf("Error %d", http.StatusInternalServerError),
+		Error:  err,
 	}
 
 	log.Printf("%s %s Message: %q", r.Method, r.URL, d.Error)
@@ -215,7 +215,7 @@ func (l *littr) handleAuth(w http.ResponseWriter, r *http.Request) {
 	url, _ := mux.CurrentRoute(r).
 		Subrouter().
 		Get("authCallback").
-		Host(listenHost + ":3000").
+		Host(listenHost+":3000").
 		URL("provider", provider)
 
 	var config oauth2.Config
@@ -225,8 +225,8 @@ func (l *littr) handleAuth(w http.ResponseWriter, r *http.Request) {
 			ClientID:     os.Getenv("GITHUB_KEY"),
 			ClientSecret: os.Getenv("GITHUB_SECRET"),
 			Endpoint: oauth2.Endpoint{
-				AuthURL: 	"https://github.com/login/oauth/authorize",
-				TokenURL:   "https://github.com/login/oauth/access_token",
+				AuthURL:  "https://github.com/login/oauth/authorize",
+				TokenURL: "https://github.com/login/oauth/access_token",
 			},
 			RedirectURL: url.String(),
 		}
@@ -235,18 +235,18 @@ func (l *littr) handleAuth(w http.ResponseWriter, r *http.Request) {
 			ClientID:     os.Getenv("FACEBOOK_KEY"),
 			ClientSecret: os.Getenv("FACEBOOK_SECRET"),
 			Endpoint: oauth2.Endpoint{
-				AuthURL: "https://graph.facebook.com/oauth/authorize",
-				TokenURL:     "https://graph.facebook.com/oauth/access_token",
+				AuthURL:  "https://graph.facebook.com/oauth/authorize",
+				TokenURL: "https://graph.facebook.com/oauth/access_token",
 			},
-			RedirectURL:  url.String(),
+			RedirectURL: url.String(),
 		}
 	case "google":
 		config = oauth2.Config{
 			ClientID:     os.Getenv("GOOGLE_KEY"),
 			ClientSecret: os.Getenv("GOOGLE_SECRET"),
 			Endpoint: oauth2.Endpoint{
-				AuthURL: 	"https://accounts.google.com/o/oauth2/auth", // access_type=offline
-				TokenURL:   "https://accounts.google.com/o/oauth2/token",
+				AuthURL:  "https://accounts.google.com/o/oauth2/auth", // access_type=offline
+				TokenURL: "https://accounts.google.com/o/oauth2/token",
 			},
 			RedirectURL: url.String(),
 		}
@@ -306,7 +306,7 @@ func main() {
 	flag.Parse()
 
 	dir := http.Dir("./assets/")
-	f,e := dir.Open("css/main.css")
+	f, e := dir.Open("css/main.css")
 	if e == nil {
 		defer f.Close()
 	} else {
@@ -348,8 +348,8 @@ func main() {
 	m.NotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		d := errorModel{
 			Status: http.StatusNotFound,
-			Title: fmt.Sprintf("Not found"),
-			Error: fmt.Errorf("url %q couldn't be found", r.URL),
+			Title:  fmt.Sprintf("Not found"),
+			Error:  fmt.Errorf("url %q couldn't be found", r.URL),
 		}
 
 		w.WriteHeader(d.Status)

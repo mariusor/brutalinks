@@ -1,37 +1,38 @@
 package main
 
 import (
-	"net/http"
-	"html/template"
-	"github.com/gorilla/mux"
-	"github.com/astaxie/beego/orm"
-	"fmt"
-	"time"
-	"strings"
-	"log"
 	"bytes"
+	"fmt"
+	"github.com/astaxie/beego/orm"
+	"github.com/gorilla/mux"
+	"html/template"
+	"log"
+	"net/http"
+	"strings"
+	"time"
 )
 
 type comment struct {
 	Content
-	Parent *comment
+	Parent   *comment
 	Children []*comment
 }
 
 type contentModel struct {
-	Title string
+	Title   string
 	Content comment
 }
-func (c contentModel)Level() int {
+
+func (c contentModel) Level() int {
 	return c.Content.Level()
 }
-func sluggify (s string) string {
+func sluggify(s string) string {
 	if s == "" {
 		return s
 	}
 	return strings.Replace(s, "/", "-", -1)
 }
-func (c Content)ParentLink() string {
+func (c Content) ParentLink() string {
 	if c.parentLink == "" {
 		if c.Path == nil {
 			c.parentLink = "/"
@@ -43,10 +44,11 @@ func (c Content)ParentLink() string {
 	}
 	return c.parentLink
 }
-func (c Content)IsSelf () bool {
+func (c Content) IsSelf() bool {
 	mimeComponents := strings.Split(c.MimeType, "/")
 	return mimeComponents[0] == "text"
 }
+
 // handleMain serves /{year}/{month}/{day}/{hash} request
 func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
@@ -81,7 +83,7 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		m.Title = string(p.Title)
-		m.Content = comment {Content:p}
+		m.Content = comment{Content: p}
 	}
 
 	if r.Method == http.MethodGet {
@@ -91,7 +93,7 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 		multiplier := 0
 		userId := 1
 
-		if yay || nay  {
+		if yay || nay {
 			if nay {
 				multiplier = -1
 			}
@@ -134,7 +136,7 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, cur := range allComments {
-		par := func (t []*comment, path []byte) *comment {
+		par := func(t []*comment, path []byte) *comment {
 			// findParent
 			if path == nil {
 				return nil
@@ -162,7 +164,7 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 	t.Funcs(template.FuncMap{
 		"formatDateInterval": relativeDate,
 		"formatDate":         formatDate,
-		"sluggify": 		  sluggify,
+		"sluggify":           sluggify,
 	})
 	_, terr = t.New("submit.html").ParseFiles(templateDir + "partials/content/submit.html")
 	if terr != nil {
