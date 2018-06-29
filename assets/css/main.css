@@ -9,6 +9,7 @@ body>header h1 {
 }
 body>header h1 a {
     text-decoration: none;
+    color:WindowText;
 }
 body>header h1 a:before {
     content: "♻";
