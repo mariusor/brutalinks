@@ -34,7 +34,7 @@ func (l *littr) handleUser(w http.ResponseWriter, r *http.Request) {
 
 	db, err := orm.GetDB("default")
 	if err != nil {
-		l.handleError(w, r, err)
+		l.handleError(w, r, err, -1)
 		return
 	}
 	m := userModel{}
@@ -44,13 +44,13 @@ func (l *littr) handleUser(w http.ResponseWriter, r *http.Request) {
 	{
 		rows, err := db.Query(selAcct, vars["handle"])
 		if err != nil {
-			l.handleError(w, r, err)
+			l.handleError(w, r, err, -1)
 			return
 		}
 		for rows.Next() {
 			err = rows.Scan(&u.Id, &u.Key, &u.Handle, &u.Email, &u.Score, &u.CreatedAt, &u.UpdatedAt, &u.Metadata, &u.Flags)
 			if err != nil {
-				l.handleError(w, r, err)
+				l.handleError(w, r, err, -1)
 				return
 			}
 		}
@@ -65,14 +65,14 @@ func (l *littr) handleUser(w http.ResponseWriter, r *http.Request) {
 	{
 		rows, err := db.Query(selC, u.Id)
 		if err != nil {
-			l.handleError(w, r, err)
+			l.handleError(w, r, err, -1)
 			return
 		}
 		for rows.Next() {
 			p := Content{}
 			err = rows.Scan(&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.Flags, &p.Metadata)
 			if err != nil {
-				l.handleError(w, r, err)
+				l.handleError(w, r, err, -1)
 				return
 			}
 			p.Handle = u.Handle

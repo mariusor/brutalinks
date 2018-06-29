@@ -167,17 +167,35 @@ func (l *littr) handleAdmin(w http.ResponseWriter, _ *http.Request) {
 	w.Write([]byte("done!!!"))
 }
 
-func (l *littr) handleError(w http.ResponseWriter, r *http.Request, err error) {
+func (l *littr) handleError(w http.ResponseWriter, r *http.Request, err error, status int) {
+	if status <= 0 {
+		status = http.StatusInternalServerError
+	}
 	d := errorModel{
-		Status: http.StatusInternalServerError,
-		Title:  fmt.Sprintf("Error %d", http.StatusInternalServerError),
+		Status: status,
+		Title:  fmt.Sprintf("Error %d", status),
 		Error:  err,
 	}
+	w.WriteHeader(status)
 
+	var terr error
 	log.Printf("%s %s Message: %q", r.Method, r.URL, d.Error)
-
-	t, _ := template.New("error.html").ParseFiles(templateDir + "error.html")
-	t.Execute(w, d)
+	t, terr := template.New("error.html").ParseFiles(templateDir + "error.html")
+	if terr != nil {
+		log.Print(terr)
+	}
+	_, terr = t.New("head.html").ParseFiles(templateDir + "partials/head.html")
+	if terr != nil {
+		log.Print(terr)
+	}
+	_, terr = t.New("header.html").ParseFiles(templateDir + "partials/header.html")
+	if terr != nil {
+		log.Print(terr)
+	}
+	terr = t.Execute(w, d)
+	if terr != nil {
+		log.Print(terr)
+	}
 }
 
 // handleMain serves /auth/{provider}/callback request

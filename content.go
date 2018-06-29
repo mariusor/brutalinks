@@ -54,14 +54,14 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	date, err := time.Parse(time.RFC3339, fmt.Sprintf("%s-%s-%sT00:00:00+00:00", vars["year"], vars["month"], vars["day"]))
 	if err != nil {
-		l.handleError(w, r, err)
+		l.handleError(w, r, err, -1)
 		return
 	}
 	hash := vars["hash"]
 
 	db, err := orm.GetDB("default")
 	if err != nil {
-		l.handleError(w, r, err)
+		l.handleError(w, r, err, -1)
 		return
 	}
 
@@ -71,7 +71,7 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 			where "submitted_at" > $1::date and "content_items"."key" ~* $2`
 	rows, err := db.Query(sel, date, hash)
 	if err != nil {
-		l.handleError(w, r, err)
+		l.handleError(w, r, err, -1)
 		return
 	}
 	m := contentModel{}
@@ -119,14 +119,14 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 		rows, err := db.Query(selCom, m.Content.Content.FullPath())
 
 		if err != nil {
-			l.handleError(w, r, err)
+			l.handleError(w, r, err, -1)
 			return
 		}
 		for rows.Next() {
 			c := Content{}
 			err = rows.Scan(&c.Id, &c.Key, &c.MimeType, &c.Data, &c.Title, &c.Score, &c.SubmittedAt, &c.SubmittedBy, &c.Handle, &c.Path, &c.Flags)
 			if err != nil {
-				l.handleError(w, r, err)
+				l.handleError(w, r, err, -1)
 				return
 			}
 

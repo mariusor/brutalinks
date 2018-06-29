@@ -12,7 +12,7 @@ func (l *littr) handleParent(w http.ResponseWriter, r *http.Request) {
 
 	db, err := orm.GetDB("default")
 	if err != nil {
-		l.handleError(w, r, err)
+		l.handleError(w, r, err, -1)
 		return
 	}
 
@@ -21,14 +21,14 @@ func (l *littr) handleParent(w http.ResponseWriter, r *http.Request) {
 			where cur.Key ~* $1 and par.Key ~* $2`
 	rows, err := db.Query(sel, vars["hash"], vars["parent"])
 	if err != nil {
-		l.handleError(w, r, err)
+		l.handleError(w, r, err, -1)
 		return
 	}
 	for rows.Next() {
 		p := Content{}
 		err = rows.Scan(&p.SubmittedAt, &p.Key)
 		if err != nil {
-			l.handleError(w, r, err)
+			l.handleError(w, r, err, -1)
 			return
 		}
 

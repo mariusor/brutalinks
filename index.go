@@ -208,7 +208,7 @@ func (l *littr) handleIndex(w http.ResponseWriter, r *http.Request) {
 
 	db, err := orm.GetDB("default")
 	if err != nil {
-		l.handleError(w, r, err)
+		l.handleError(w, r, err, -1)
 		return
 	}
 
@@ -220,14 +220,14 @@ func (l *littr) handleIndex(w http.ResponseWriter, r *http.Request) {
 	order by "score" desc, "submitted_at" desc limit %d`, MaxContentItems)
 	rows, err := db.Query(sel)
 	if err != nil {
-		l.handleError(w, r, err)
+		l.handleError(w, r, err, -1)
 		return
 	}
 	for rows.Next() {
 		p := Content{}
 		err = rows.Scan(&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Handle, &p.Flags)
 		if err != nil {
-			l.handleError(w, r, err)
+			l.handleError(w, r, err, -1)
 			return
 		}
 		m.Items = append(m.Items, p)
