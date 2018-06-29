@@ -1,3 +1,9 @@
 <header>
-    <h1><a href="/" title="littr.me" alt="littr.me"></a>littering <strong>allowed</strong>{{if .User }} :: <span class="by">{{.User.Handle}}</span>{{end}}</h1>
+    <h1><a href="/" title="littr.me" alt="littr.me"></a><strong>littering:</strong>
+    {{- if .User -}} <span class="by">{{.User.Handle}}</span>{{- else -}}
+    {{- if .Title -}}
+    {{ .Title }}
+    {{- else -}} allowed{{- end -}}
+    {{- end -}}
+    </h1>
 </header>

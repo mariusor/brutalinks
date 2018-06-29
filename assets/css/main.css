@@ -3,18 +3,17 @@ body {
     font-size: 1em;
     line-height: 1.1em;
 }
-
 body>header h1 {
     font-size:1.6em;
     font-weight: lighter;
 }
 body>header h1 a {
     text-decoration: none;
-    font-weight: bolder;
 }
 body>header h1 a:before {
     content: "♻";
     padding-right:1ex;
+    font-weight: 1000;
 }
 .submission h1,
 .submission h2,
@@ -33,7 +32,7 @@ body>header h1 a:before {
 }
 #items ol {
     list-style: none;
-    padding-left: 0px;
+    padding-left: 0;
 }
 #items ol li {
     min-height: 7ex;
@@ -42,23 +41,25 @@ body>header h1 a:before {
     float: left;
     width: 2.4ex;
     text-align: center;
-    margin-right:.5ex;
+    margin-right: .5ex;
 }
 .score data {
-    margin:auto;
-    display:block;
+    margin: auto;
+    display: block;
     text-align: center;
     width: 100%;
+    font-size:.8em;
 }
 .score a {
-    display:block;
-    width:100%;
+    display: block;
+    width: 100%;
     text-decoration: none;
     /*padding: 0 8px 1px 8px;*/
     color: #333333;
 }
 .score a.inc::before {
     content: "▲";
+    font-weight: 1000;
 }
 .score a.inc {
     margin-bottom: 3px;
@@ -68,6 +69,7 @@ body>header h1 a:before {
 }
 .score a.dec::after {
     content: "▼";
+    font-weight: 1000;
 }
 .score a.dec:active, .score a.dec.active {
     color:cornflowerblue;
@@ -81,10 +83,11 @@ body>header h1 a:before {
 }
 .meta a {
     text-decoration: none;
-    font-weight: bolder;
+    font-weight: 900;
 }
 .by:before {
-    content: "~"
+    content: "~";
+    font-weight: 1000;
 }
 .meta time {
     text-decoration: underline dotted;
@@ -114,16 +117,25 @@ ol.comments li {
     clear:both;
 }
 ol.comments {
-    clear:both;
-    width:100%;
+    clear: both;
+    width: 100%;
     border-left: 2px solid transparent;
     margin: 1em 0 0 9px;
 }
 ol.lvl-0 {
-    border-color: #2A5A84;
+    border-color: #581845;
 }
 ol.lvl-1 {
-    border-color: #33B5E5;
+    border-color: #900c3f;
+}
+ol.lvl-2 {
+    border-color: #c70039;
+}
+ol.lvl-3 {
+    border-color: #ff5733;
+}
+ol.lvl-4 {
+    border-color: #ffc30f;
 }
 .comments #data {
     border: none;
@@ -135,19 +147,19 @@ ol.lvl-1 {
     max-width: 80ex;
 }
 #reply {
-    max-width:80ex;
+    max-width: 80ex;
 }
 #reply fieldset legend {
     padding: 0 2ex;
 }
 #reply textarea {
-    width:100%;
-    height:12em;
+    width: 100%;
+    height: 12em;
 }
 #reply label {
 }
 ul.meta-items {
-    display:inline;
+    display: inline;
     margin: 0;
     padding: 0;
 }
@@ -161,6 +173,9 @@ ul.meta-items:before {
 }
 ul.meta-items:after {
     content: "] ";
+}
+ul.meta-items a{
+    font-weight: 1000;
 }
 a.perma:before {
     content: " ¶ ";

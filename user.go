@@ -61,7 +61,7 @@ func (l *littr) handleUser(w http.ResponseWriter, r *http.Request) {
 	selC := `select "content_items"."id", "content_items"."key", "mime_type", "data", "title", "content_items"."score", 
 			"submitted_at", "content_items"."flags", "content_items"."metadata"  from "content_items" 
 			left join "accounts" on "accounts"."id" = "content_items"."submitted_by" 
-			where "submitted_by" = $1`
+			where "submitted_by" = $1 order by "submitted_at" desc`
 	{
 		rows, err := db.Query(selC, u.Id)
 		if err != nil {
