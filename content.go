@@ -122,11 +122,11 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 			res, err := db.Exec(ins, repl.Key, repl.Data, repl.MimeType, repl.SubmittedBy, repl.Path)
 			if err != nil {
 				log.Print(err)
+			} else {
+				if rows, _ := res.RowsAffected(); rows == 0 {
+					log.Print(fmt.Errorf("could not save new reply %q", repl.Hash()))
+				}
 			}
-			if rows, _ := res.RowsAffected(); rows == 0 {
-				log.Print(fmt.Errorf("could not save new reply %q", repl.Hash()))
-			}
-			log.Printf("",)
 		}
 
 		http.Redirect(w, r, p.PermaLink(), http.StatusMovedPermanently)
