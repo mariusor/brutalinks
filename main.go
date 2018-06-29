@@ -195,6 +195,9 @@ func (l *littr) handleError(w http.ResponseWriter, r *http.Request, err error, s
 	var terr error
 	log.Printf("%s %s Message: %q", r.Method, r.URL, d.Error)
 	t, terr := template.New("error.html").ParseFiles(templateDir + "error.html")
+	t.Funcs(template.FuncMap{
+		"getProviders": 	  getAuthProviders,
+	})
 	if terr != nil {
 		log.Print(terr)
 	}
@@ -203,6 +206,10 @@ func (l *littr) handleError(w http.ResponseWriter, r *http.Request, err error, s
 		log.Print(terr)
 	}
 	_, terr = t.New("header.html").ParseFiles(templateDir + "partials/header.html")
+	if terr != nil {
+		log.Print(terr)
+	}
+	_, terr = t.New("footer.html").ParseFiles(templateDir + "partials/footer.html")
 	if terr != nil {
 		log.Print(terr)
 	}
@@ -406,7 +413,22 @@ func main() {
 
 		w.WriteHeader(d.Status)
 		log.Printf("%s %s Message: %s", r.Method, r.URL, d.Error)
-		t, _ := template.New("error.html").ParseFiles(templateDir + "error.html")
+		t, terr := template.New("error.html").ParseFiles(templateDir + "error.html")
+		if terr != nil {
+			log.Print(terr)
+		}
+		_, terr = t.New("footer.html").ParseFiles(templateDir + "partials/footer.html")
+		if terr != nil {
+			log.Print(terr)
+		}
+		_, terr = t.New("header.html").ParseFiles(templateDir + "partials/header.html")
+		if terr != nil {
+			log.Print(terr)
+		}
+		_, terr = t.New("head.html").ParseFiles(templateDir + "partials/head.html")
+		if terr != nil {
+			log.Print(terr)
+		}
 		t.Execute(w, d)
 	})
 
