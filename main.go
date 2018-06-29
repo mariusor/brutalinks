@@ -16,6 +16,7 @@ import (
 	"github.com/astaxie/beego/orm"
 	_ "github.com/lib/pq"
 
+	"math"
 )
 
 const sessionName = "_s"
@@ -43,29 +44,72 @@ type errorModel struct {
 //	}
 //	return sess
 //}
+
+type Vote struct {
+	Id int `orm:id`
+	SubmittedBy  int64     `orm:submitted_by`
+	SubmittedAt  time.Time `orm:created_at`
+	UpdatedAt    time.Time `orm:updated_at`
+	ItemId		 int64		`orm:item_id`
+	Weight		 int		`orm:weight`
+	Flags        int8      `orm:flags`
+}
+
 func (l *littr) Vote (p Content, multi int, userId int) (bool, error) {
-	var act string
-	if multi < 0 {
-		act = "nay"
-	}
-	if multi > 0 {
-		act = "yay"
-	}
-	log.Printf("User %d %s'd item at path %s", userId, act, p.FullPath())
 	db, err := orm.GetDB("default")
 	if err != nil {
 		return false, err
 	}
-	upd := `update "content_items" set score = score + $1 where "id" = $2`
-	res, err := db.Exec(upd, int(multi * ScoreMultiplier), p.Id)
-	if err != nil {
-		return false, err
+	newWeight := int(multi * ScoreMultiplier)
+
+	v := Vote{}
+	sel := `select "id", "weight" from "votes" where "submitted_by" = $1 and "item_id" = $2;`
+	{
+		rows, err := db.Query(sel, userId, p.Id)
+		if err != nil {
+			return false, err
+		}
+		for rows.Next() {
+			err = rows.Scan(&v.Id, &v.Weight)
+			if err != nil {
+				return false, err
+			}
+		}
 	}
-	if rows, _ := res.RowsAffected(); rows == 0 {
-		return false, fmt.Errorf("content hash %q not found", p.Hash())
+
+	q := ""
+	if v.Id != 0 {
+		if v.Weight != 0 && math.Signbit(float64(newWeight)) == math.Signbit(float64(v.Weight)) {
+			newWeight = 0
+		}
+		q = `update "votes" set "updated_at" = now(), "weight" = $1 where "item_id" = $2 and "submitted_by" = $3;`
+	} else {
+		q = `insert into "votes" ("weight", "item_id", "submitted_by") values ($1, $2, $3)`
 	}
-	if rows, _ := res.RowsAffected(); rows > 1 {
-		return false, fmt.Errorf("content hash %q collision", p.Hash())
+	{
+		res, err := db.Exec(q, newWeight, p.Id, userId)
+		if err != nil {
+			return false, err
+		}
+		if rows, _ := res.RowsAffected(); rows == 0 {
+			return false, fmt.Errorf("scoring %d failed on item %q", newWeight, p.Hash())
+		}
+		log.Printf("%d scoring %d on %s", userId, newWeight, p.Hash())
+	}
+
+	upd := `update "content_items" set score = score - $1 + $2 where "id" = $3`
+	{
+		res, err := db.Exec(upd, v.Weight, newWeight, p.Id)
+		if err != nil {
+			return false, err
+		}
+		if rows, _ := res.RowsAffected(); rows == 0 {
+			return false, fmt.Errorf("content hash %q not found", p.Hash())
+		}
+		if rows, _ := res.RowsAffected(); rows > 1 {
+			return false, fmt.Errorf("content hash %q collision", p.Hash())
+		}
+		log.Printf("updated content_items with %d", newWeight)
 	}
 
 	return true, nil
