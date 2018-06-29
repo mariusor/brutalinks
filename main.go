@@ -20,9 +20,9 @@ import (
 )
 
 const sessionName = "_s"
-const listenHost = "myk.localdomain"
 const templateDir = "templates/"
 
+var listenHost = os.Getenv("HOSTNAME")
 var app littr
 
 type littr struct {
@@ -293,8 +293,11 @@ func init() {
 	app = littr{Host: listenHost, Session: s}
 
 	dbPw := os.Getenv("DB_PASSWORD")
+	dbName := os.Getenv("DB_NAME")
+	dbUser := os.Getenv("DB_USER")
+	dbSource := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable", dbUser, dbPw, dbName)
 	orm.NewLog(&app)
-	err := orm.RegisterDataBase("default", "postgres", "user=littr password="+dbPw+" dbname=littr sslmode=disable", 30)
+	err := orm.RegisterDataBase("default", "postgres", dbSource, 30)
 	if err != nil {
 		log.Print(err)
 	}
