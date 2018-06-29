@@ -24,9 +24,6 @@ type contentModel struct {
 	Content comment
 }
 
-func (c contentModel) Level() int {
-	return c.Content.Level()
-}
 func sluggify(s string) string {
 	if s == "" {
 		return s
@@ -193,6 +190,7 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 		"formatDate":         formatDate,
 		"sluggify":           sluggify,
 		"title":			  func(t []byte) string { return string(t) },
+		"mod":			  	  func(lvl int) float64 { return math.Mod(float64(lvl), float64(10)) },
 	})
 	_, terr = t.New("submit.html").ParseFiles(templateDir + "partials/content/submit.html")
 	if terr != nil {
