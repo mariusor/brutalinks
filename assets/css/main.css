@@ -20,6 +20,9 @@ body>header h1 a:before {
     content: "♻";
     font-weight: 1000;
 }
+header {
+    width: 100%;
+}
 .submission h1,
 .submission h2,
 .submission h3,
@@ -32,15 +35,26 @@ body>header h1 a:before {
     font-size: 1.1em;
     margin: 0.2em 0;
 }
-#content #data {
-    margin-left:4ex;
+#content .data, .items .data {
+    /*margin-left: 3ex;*/
+}
+#content .data {
+    /*margin: 0 0 1ex 2em;*/
+}
+#items .data  {
+    /*margin: 1.2em 0;*/
+}
+.data {
+    margin: 1.8em 0.5ex;
+    /*padding: 1em 11ex;*/
 }
 #items ol {
     list-style: none;
     padding-left: 0;
 }
 #items ol li {
-    min-height: 7ex;
+    padding-top: .5em;
+    clear: both;
 }
 ol.comments li {
     display: block;
@@ -108,6 +122,7 @@ ol.comments {
     text-decoration: underline dotted;
 }
 .comment {
+    margin:auto;
     padding: .4em 0 .4em 2.4ex;
     font-size: .92em;
 }
@@ -121,11 +136,8 @@ ol.comments {
     font-size: 0.9em;
     font-weight: 200;
 }
-#data {
-    margin: 1.8em 0.5ex;
-    border: 1px solid;
-    border-radius: 3px;
-    padding: 1em 1ex;
+#content .meta {
+    padding: 0 0 0 5ex;
 }
 ol.lvl-0 {
     border-color: #691d52;
@@ -157,14 +169,18 @@ ol.lvl-8 {
 ol.lvl-9 {
     border-color: #6cd8d2;
 }
-.comments #data {
+.comments .data, #content .data  {
     border: none;
     margin: -8px .3ex;
+    padding: 1em 5ex;
 }
 .text-plain {
     white-space: pre;
     font-family: monospace;
-    max-width: 80ex;
+    min-width: 80ex;
+}
+#reply {
+    margin-top: 1em;
 }
 #reply, #new {
     max-width: 80ex;
@@ -199,11 +215,10 @@ menu.meta-items a {
 a.perma:before {
     content: " ¶ ";
 }
-a.domain:before {
-    /*content: " ¶ ";*/
-}
-span.domain:before {
-    content: " ::"
+.domain a:before {
+    content: "⮡";
+    margin-right: .6ex;
+    font-weight: 1000;
 }
 span.domain {
     font-weight: 200;
@@ -211,10 +226,12 @@ span.domain {
     margin-left: 4ex;
 }
 a.parent:before {
-    content: " ⮥ ";
+    content: "‥";
+    font-weight: 1000;
 }
 footer {
     font-size: 0.7em;
+    width: 100%;
 }
 header menu#top {
     display: block !important;
