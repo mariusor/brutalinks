@@ -55,6 +55,7 @@ func (c *Content) GetKey() []byte {
 	}
 	data = append(data, []byte(fmt.Sprintf("%d", now.UnixNano()))...)
 	data = append(data, []byte(c.Path)...)
+	data = append(data, []byte(fmt.Sprintf("%d",c.SubmittedBy))...)
 
 	c.Key = []byte(fmt.Sprintf("%x", sha256.Sum256(data)))
 	return c.Key
