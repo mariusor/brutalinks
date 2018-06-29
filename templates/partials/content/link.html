@@ -2,9 +2,9 @@
 <del class="deleted titles" data-hash="{{.Hash}}">deleted</del>
 {{else}}
 {{if .IsLink }}
-<h1><a class="titles" data-hash="{{.Hash}}" href="{{.Data | printf "%s"}}">{{.Title}}</a> <span class="domain">{{.GetDomain}}<a class="domain" title="domain submissions"></a></span></h1>
+<h1><a class="titles" data-hash="{{.Hash}}" href="{{.Data | printf "%s"}}">{{.Title | title }}</a> <span class="domain">{{.GetDomain}}<a class="domain" title="domain submissions"></a></span></h1>
 {{else}}
-{{if .IsTop}}<h1 data-hash="{{.Hash}}" >{{.Title}}</h1>{{end}}
+{{if .IsTop}}<h1 data-hash="{{.Hash}}" >{{.Title | title }}</h1>{{end}}
 {{end}}
 <aside class="meta">
     submitted <time datetime="{{ .SubmittedAt| formatDate }}" title="{{ .SubmittedAt| formatDate }}">{{.SubmittedAt | formatDateInterval }}</time>

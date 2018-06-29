@@ -89,6 +89,7 @@ func (l *littr) handleUser(w http.ResponseWriter, r *http.Request) {
 	t.Funcs(template.FuncMap{
 		"formatDateInterval": relativeDate,
 		"formatDate":         formatDate,
+		"title":			  func(t []byte) string { return string(t) },
 	})
 	if terr != nil {
 		log.Print(terr)

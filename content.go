@@ -168,6 +168,7 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 		"formatDateInterval": relativeDate,
 		"formatDate":         formatDate,
 		"sluggify":           sluggify,
+		"title":			  func(t []byte) string { return string(t) },
 	})
 	_, terr = t.New("submit.html").ParseFiles(templateDir + "partials/content/submit.html")
 	if terr != nil {

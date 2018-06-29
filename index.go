@@ -26,7 +26,7 @@ const (
 type Content struct {
 	Id          int64         `orm:id,"auto"`
 	Key         []byte        `orm:key,size(56)`
-	Title       template.HTML `orm:title`
+	Title       []byte	      `orm:title`
 	MimeType    string        `orm:mime_type`
 	Data        []byte        `orm:data`
 	Score       int64         `orm:score`
@@ -242,6 +242,7 @@ func (l *littr) handleIndex(w http.ResponseWriter, r *http.Request) {
 	t.Funcs(template.FuncMap{
 		"formatDateInterval": relativeDate,
 		"formatDate":         formatDate,
+		"title":			  func(t []byte) string { return string(t) },
 	})
 	_, terr = t.New("items.html").ParseFiles(templateDir + "partials/content/items.html")
 	if terr != nil {
