@@ -79,19 +79,22 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		err = rows.Scan(&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Handle, &p.Path, &p.Flags)
 		if err != nil {
-			l.handleError(w, r, err)
+			l.handleError(w, r, err, -1)
 			return
 		}
 		m.Title = string(p.Title)
 		m.Content = comment{Content: p}
 	}
-
+	if p.Data == nil {
+		l.handleError(w, r, fmt.Errorf("not found"), http.StatusNotFound)
+		return
+	}
+	var userId int64 = 1
 	if r.Method == http.MethodGet {
 		q := r.URL.Query()
 		yay := len(q["yay"]) > 0
 		nay := len(q["nay"]) > 0
 		multiplier := 0
-		userId := 1
 
 		if yay || nay {
 			if nay {
