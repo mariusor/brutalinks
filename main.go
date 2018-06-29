@@ -55,7 +55,7 @@ type Vote struct {
 	Flags       int8      `orm:flags`
 }
 
-func (l *littr) Vote(p Content, multi int, userId int) (bool, error) {
+func (l *littr) Vote(p Content, multi int, userId int64) (bool, error) {
 	db, err := orm.GetDB("default")
 	if err != nil {
 		return false, err
