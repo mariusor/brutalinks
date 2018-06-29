@@ -25,7 +25,7 @@ func detectMimeType(data []byte) string {
 }
 
 // handleMain serves /{year}/{month}/{day}/{hash} request
-func (l *littr) handleNew(w http.ResponseWriter, r *http.Request) {
+func (l *littr) handleSubmit(w http.ResponseWriter, r *http.Request) {
 	p := Content{}
 	m := newModel{Title: "Submit new content", Content: p}
 	db, err := orm.GetDB("default")

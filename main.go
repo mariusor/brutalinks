@@ -26,7 +26,7 @@ const defaultHost = "myk.localdomain"
 const defaultPort = 3000
 
 var listenHost = os.Getenv("HOSTNAME")
-var listenPort, _ = strconv.ParseInt(os.Getenv("PORT"), 10, 8)
+var listenPort, _ = strconv.ParseInt(os.Getenv("PORT"), 10, 64)
 var app littr
 
 type littr struct {
@@ -366,9 +366,9 @@ func main() {
 		Methods(http.MethodGet, http.MethodHead).
 		Name("index")
 
-	m.HandleFunc("/add", app.handleNew).
+	m.HandleFunc("/submit", app.handleSubmit).
 		Methods(http.MethodGet, http.MethodHead, http.MethodPost).
-		Name("newContent")
+		Name("submit")
 
 	m.HandleFunc("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}", app.handleContent).
 		Methods(http.MethodGet, http.MethodHead, http.MethodPost).
