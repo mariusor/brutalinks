@@ -340,7 +340,7 @@ func main() {
 		Name("index")
 
 	m.HandleFunc("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}", app.handleContent).
-		Methods(http.MethodGet, http.MethodHead).
+		Methods(http.MethodGet, http.MethodHead, http.MethodPost).
 		Name("content")
 
 	m.HandleFunc("/p/{hash}/{parent}", app.handleParent).

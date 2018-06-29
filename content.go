@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"crypto/sha256"
 )
 
 type comment struct {
@@ -109,6 +110,29 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 			}
 			http.Redirect(w, r, p.PermaLink(), http.StatusMovedPermanently)
 		}
+	}
+	if r.Method == http.MethodPost {
+		repl := Content{}
+
+		repl.Data = []byte(r.PostFormValue("data"))
+		repl.Key = []byte(fmt.Sprintf("%x", sha256.Sum256(repl.Data)))
+		repl.MimeType = "text/plain"
+		repl.SubmittedBy = userId
+		repl.Path = p.FullPath()
+
+		ins := `insert into "content_items" ("key", "data", "mime_type", "submitted_by", "path") values($1, $2, $3, $4, $5)`
+		{
+			res, err := db.Exec(ins, repl.Key, repl.Data, repl.MimeType, repl.SubmittedBy, repl.Path)
+			if err != nil {
+				log.Print(err)
+			}
+			if rows, _ := res.RowsAffected(); rows == 0 {
+				log.Print(fmt.Errorf("could not save new reply %q", repl.Hash()))
+			}
+			log.Printf("",)
+		}
+
+		http.Redirect(w, r, p.PermaLink(), http.StatusMovedPermanently)
 	}
 
 	allComments := make([]*comment, 0)
