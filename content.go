@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
-	"crypto/sha256"
+	"math"
 )
 
 type comment struct {
@@ -112,7 +112,7 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 		repl := Content{}
 
 		repl.Data = []byte(r.PostFormValue("data"))
-		repl.Key = []byte(fmt.Sprintf("%x", sha256.Sum256(repl.Data)))
+		repl.Key = repl.GetKey()
 		repl.MimeType = "text/plain"
 		repl.SubmittedBy = userId
 		repl.Path = p.FullPath()

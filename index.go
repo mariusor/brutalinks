@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"crypto/sha256"
 )
 
 const (
@@ -47,6 +48,18 @@ type indexModel struct {
 	Items []Content
 }
 
+func (c *Content) GetKey() []byte {
+	data := c.Data
+	now := c.UpdatedAt
+	if now.IsZero() {
+		now = time.Now()
+	}
+	data = append(data, []byte(fmt.Sprintf("%d", now.UnixNano()))...)
+	data = append(data, []byte(c.Path)...)
+
+	c.Key = []byte(fmt.Sprintf("%x", sha256.Sum256(data)))
+	return c.Key
+}
 func (c Content) scoreLink(dir string) string {
 	if c.SubmittedAt.IsZero() {
 		return ""
