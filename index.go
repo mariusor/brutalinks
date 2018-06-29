@@ -255,6 +255,7 @@ func (l *littr) handleIndex(w http.ResponseWriter, r *http.Request) {
 	t.Funcs(template.FuncMap{
 		"formatDateInterval": relativeDate,
 		"formatDate":         formatDate,
+		"sluggify":           sluggify,
 		"title":			  func(t []byte) string { return string(t) },
 	})
 	_, terr = t.New("items.html").ParseFiles(templateDir + "partials/content/items.html")
@@ -262,6 +263,10 @@ func (l *littr) handleIndex(w http.ResponseWriter, r *http.Request) {
 		log.Print(terr)
 	}
 	_, terr = t.New("link.html").ParseFiles(templateDir + "partials/content/link.html")
+	if terr != nil {
+		log.Print(terr)
+	}
+	_, terr = t.New("data.html").ParseFiles(templateDir + "partials/content/data.html")
 	if terr != nil {
 		log.Print(terr)
 	}
