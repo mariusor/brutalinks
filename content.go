@@ -113,14 +113,17 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 
 		repl.Data = []byte(r.PostFormValue("data"))
 		if len(repl.Data) > 0 {
-			repl.Key = repl.GetKey()
+			now := time.Now()
 			repl.MimeType = "text/plain"
 			repl.SubmittedBy = userId
+			repl.SubmittedAt = now
+			repl.UpdatedAt = now
+			repl.Key = repl.GetKey()
 			repl.Path = p.FullPath()
 
-			ins := `insert into "content_items" ("key", "data", "mime_type", "submitted_by", "path") values($1, $2, $3, $4, $5)`
+			ins := `insert into "content_items" ("key", "data", "mime_type", "submitted_by", "path", "submitted_at", "updated_at") values($1, $2, $3, $4, $5, $6, $7)`
 			{
-				res, err := db.Exec(ins, repl.Key, repl.Data, repl.MimeType, repl.SubmittedBy, repl.Path)
+				res, err := db.Exec(ins, repl.Key, repl.Data, repl.MimeType, repl.SubmittedBy, repl.Path, repl.SubmittedAt, repl.UpdatedAt)
 				if err != nil {
 					log.Print(err)
 				} else {
@@ -130,6 +133,7 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
+		l.Vote(repl, 1, userId)
 		http.Redirect(w, r, p.PermaLink(), http.StatusMovedPermanently)
 	}
 
