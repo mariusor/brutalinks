@@ -85,18 +85,26 @@ ol.comments {
     text-decoration: none;
     /*padding: 0 8px 1px 8px;*/
     color: #333333;
-    font-size: .6em;
+    font-size: 1em;
+}
+.score a.inc {
+    margin-top: 2px;
+    margin-bottom: -3px;
 }
 .score a.inc::before {
-    content: "▲";
     font-weight: 1000;
+    content: "➕";
+}
+.score a.dec {
+    margin-top: -3px;
+    margin-bottom: 2px;
 }
 .score a.inc:active, .score a.inc.active  {
     color: royalblue;
 }
 .score a.dec::after {
-    content: "▼";
     font-weight: 1000;
+    content: "━";
 }
 .score a.dec:active, .score a.dec.active {
     color: cornflowerblue;
