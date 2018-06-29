@@ -112,23 +112,24 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 		repl := Content{}
 
 		repl.Data = []byte(r.PostFormValue("data"))
-		repl.Key = repl.GetKey()
-		repl.MimeType = "text/plain"
-		repl.SubmittedBy = userId
-		repl.Path = p.FullPath()
+		if len(repl.Data) > 0 {
+			repl.Key = repl.GetKey()
+			repl.MimeType = "text/plain"
+			repl.SubmittedBy = userId
+			repl.Path = p.FullPath()
 
-		ins := `insert into "content_items" ("key", "data", "mime_type", "submitted_by", "path") values($1, $2, $3, $4, $5)`
-		{
-			res, err := db.Exec(ins, repl.Key, repl.Data, repl.MimeType, repl.SubmittedBy, repl.Path)
-			if err != nil {
-				log.Print(err)
-			} else {
-				if rows, _ := res.RowsAffected(); rows == 0 {
-					log.Print(fmt.Errorf("could not save new reply %q", repl.Hash()))
+			ins := `insert into "content_items" ("key", "data", "mime_type", "submitted_by", "path") values($1, $2, $3, $4, $5)`
+			{
+				res, err := db.Exec(ins, repl.Key, repl.Data, repl.MimeType, repl.SubmittedBy, repl.Path)
+				if err != nil {
+					log.Print(err)
+				} else {
+					if rows, _ := res.RowsAffected(); rows == 0 {
+						log.Print(fmt.Errorf("could not save new reply %q", repl.Hash()))
+					}
 				}
 			}
 		}
-
 		http.Redirect(w, r, p.PermaLink(), http.StatusMovedPermanently)
 	}
 
