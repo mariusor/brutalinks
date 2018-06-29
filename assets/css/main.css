@@ -77,7 +77,7 @@ ol.comments {
     display: block;
     text-align: center;
     width: 100%;
-    font-size:.8em;
+    font-size:.6em;
 }
 .score a {
     display: block;
@@ -85,13 +85,11 @@ ol.comments {
     text-decoration: none;
     /*padding: 0 8px 1px 8px;*/
     color: #333333;
+    font-size: .6em;
 }
 .score a.inc::before {
     content: "▲";
     font-weight: 1000;
-}
-.score a.inc {
-    margin-bottom: 3px;
 }
 .score a.inc:active, .score a.inc.active  {
     color: royalblue;
