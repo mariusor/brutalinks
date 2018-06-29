@@ -1,5 +1,5 @@
 {{ if .IsSelf }}
 {{ if not .Deleted }}
-<article id="data" class="{{ .MimeType | sluggify }}">{{.Data | printf "%s" }}</article>
+<article class="data {{ .MimeType | sluggify }}{{if not .Title}} comment{{end}}">{{.Data | printf "%s" }}</article>
 {{end}}
 {{end}}

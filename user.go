@@ -112,6 +112,10 @@ func (l *littr) handleUser(w http.ResponseWriter, r *http.Request) {
 	if terr != nil {
 		log.Print(terr)
 	}
+	_, terr = t.New("meta.html").ParseFiles(templateDir + "partials/content/meta.html")
+	if terr != nil {
+		log.Print(terr)
+	}
 	_, terr = t.New("head.html").ParseFiles(templateDir + "partials/head.html")
 	if terr != nil {
 		log.Print(terr)

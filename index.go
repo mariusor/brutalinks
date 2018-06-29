@@ -275,6 +275,10 @@ func (l *littr) handleIndex(w http.ResponseWriter, r *http.Request) {
 	if terr != nil {
 		log.Print(terr)
 	}
+	_, terr = t.New("meta.html").ParseFiles(templateDir + "partials/content/meta.html")
+	if terr != nil {
+		log.Print(terr)
+	}
 	_, terr = t.New("data.html").ParseFiles(templateDir + "partials/content/data.html")
 	if terr != nil {
 		log.Print(terr)

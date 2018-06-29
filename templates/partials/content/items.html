@@ -7,6 +7,7 @@
     {{- else -}}
         <section class="submission" data-flags="{{$value.Flags}}" data-index="{{$key}}" data-hash="{{$value.Hash}}">{{ template "link.html" $value }}</section>
     {{- end -}}
+    {{template "meta.html" $value}}
     </li>
 {{end}}
 </ol>

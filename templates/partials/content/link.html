@@ -1,17 +1,16 @@
 {{if .Deleted }}
 <del class="deleted titles" data-hash="{{.Hash}}">deleted</del>
 {{else}}
+{{if .Title }}
+<h1 data-hash="{{.Hash}}">
 {{if .IsLink }}
-<h1><a class="titles" data-hash="{{.Hash}}" href="{{.Data | printf "%s"}}">{{.Title | title }}</a> <span class="domain">{{.GetDomain}}<a class="domain" title="domain submissions"></a></span></h1>
-{{else}}
-{{if .IsTop}}<h1 data-hash="{{.Hash}}" >{{.Title | title }}</h1>{{end}}
+    <a class="titles" data-hash="{{.Hash}}" href="{{.Data | printf "%s"}}">
 {{end}}
-<aside class="meta">
-    submitted <time datetime="{{ .SubmittedAt| formatDate }}" title="{{ .SubmittedAt| formatDate }}">{{.SubmittedAt | formatDateInterval }}</time>
-    {{if .Handle }}by <a class="by" href="/~{{ .Handle }}">{{ .Handle }}</a>{{end}}
-    <menu class="meta-items">
-    {{if .PermaLink }}<li><a href="{{.PermaLink}}" class="perma" title="discussion"></a></li>{{end}}
-    {{if .ParentLink | ne "/" }}<li><a href="{{.ParentLink}}" class="parent" title="parent"></a></li>{{end}}
-    </menu>
-</aside>
+    {{.Title | title }}
+{{if .IsLink }}
+</a>
+{{end}}
+    <span class="domain">{{if .IsLink}}<a title="domain submissions"></a>{{.GetDomain}}{{else}}self{{end}}</span>
+</h1>
+{{end}}
 {{end}}
