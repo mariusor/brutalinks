@@ -105,7 +105,7 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				log.Print(err)
 			}
-			http.Redirect(w, r, p.PermaLink(), http.StatusMovedPermanently)
+			http.Redirect(w, r, p.PermaLink(), http.StatusFound)
 		}
 	}
 	if r.Method == http.MethodPost {
@@ -134,7 +134,7 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		l.Vote(repl, 1, userId)
-		http.Redirect(w, r, p.PermaLink(), http.StatusMovedPermanently)
+		http.Redirect(w, r, p.PermaLink(), http.StatusFound)
 	}
 
 	allComments := make([]*comment, 0)
