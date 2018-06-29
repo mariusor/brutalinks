@@ -192,6 +192,7 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 		"sluggify":           sluggify,
 		"title":			  func(t []byte) string { return string(t) },
 		"mod":			  	  func(lvl int) float64 { return math.Mod(float64(lvl), float64(10)) },
+		"getProviders": 	  getAuthProviders,
 	})
 	_, terr = t.New("submit.html").ParseFiles(templateDir + "partials/content/submit.html")
 	if terr != nil {
@@ -222,6 +223,10 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 		log.Print(terr)
 	}
 	_, terr = t.New("header.html").ParseFiles(templateDir + "partials/header.html")
+	if terr != nil {
+		log.Print(terr)
+	}
+	_, terr = t.New("footer.html").ParseFiles(templateDir + "partials/footer.html")
 	if terr != nil {
 		log.Print(terr)
 	}

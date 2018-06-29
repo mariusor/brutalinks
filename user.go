@@ -91,6 +91,7 @@ func (l *littr) handleUser(w http.ResponseWriter, r *http.Request) {
 		"formatDate":         formatDate,
 		"sluggify":           sluggify,
 		"title":			  func(t []byte) string { return string(t) },
+		"getProviders": 	  getAuthProviders,
 	})
 	if terr != nil {
 		log.Print(terr)
@@ -116,6 +117,10 @@ func (l *littr) handleUser(w http.ResponseWriter, r *http.Request) {
 		log.Print(terr)
 	}
 	_, terr = t.New("header.html").ParseFiles(templateDir + "partials/header.html")
+	if terr != nil {
+		log.Print(terr)
+	}
+	_, terr = t.New("footer.html").ParseFiles(templateDir + "partials/footer.html")
 	if terr != nil {
 		log.Print(terr)
 	}

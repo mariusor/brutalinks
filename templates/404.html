@@ -7,5 +7,8 @@
 {{ template "header.html" }}
 <h1>Not Found</h1>
 <p>Path <q>{{.path}}</q> was not found on the server.</p>
+<footer>
+{{template "footer.html" . }}
+</footer>
 </body>
 </html>

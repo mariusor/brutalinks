@@ -173,12 +173,12 @@ ol.lvl-9 {
     height: 12em;
 }
 #reply label {}
-ul.meta-items {
+ul.meta-items, ul#auth {
     display: inline;
     margin: 0;
     padding: 0;
 }
-ul.meta-items li {
+ul.meta-items li, ul#auth li {
     display:inline;
     margin: 0;
     padding: 0;
@@ -208,4 +208,19 @@ span.domain {
 }
 a.parent:before {
     content: " ⮥ ";
+}
+footer {
+    font-size: 0.7em;
+}
+footer #auth {
+    float:right
+}
+ul#auth li:first-child::before, ul#auth li:nth-child(2)::before {
+    content: "";
+}
+ul#auth li:first-child::after {
+    content: " : ";
+}
+ul#auth li::before {
+    content: "| ";
 }

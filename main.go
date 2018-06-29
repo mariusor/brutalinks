@@ -17,16 +17,21 @@ import (
 	"time"
 
 	"math"
+	"strconv"
 )
 
 const sessionName = "_s"
 const templateDir = "templates/"
+const defaultHost = "myk.localdomain"
+const defaultPort = 3000
 
 var listenHost = os.Getenv("HOSTNAME")
+var listenPort, _ = strconv.ParseInt(os.Getenv("PORT"), 10, 8)
 var app littr
 
 type littr struct {
 	Host    string
+	Port	int64
 	Session sessions.Store
 }
 
@@ -35,7 +40,16 @@ type errorModel struct {
 	Title  string
 	Error  error
 }
-
+func (l *littr) host() string {
+	var port string
+	if l.Port != 0 {
+		port = fmt.Sprintf(":%d", l.Port)
+	}
+	return fmt.Sprintf("%s%s", l.Host, port)
+}
+func (l *littr) BaseUrl() string {
+	return fmt.Sprintf("http://%s", l.host())
+}
 //func (l *littr) session(r *http.Request) *sessions.Session {
 //	sess, err := l.Session.Get(r, sessionName)
 //	if err != nil {
@@ -120,7 +134,7 @@ func (l *littr) Run(m *mux.Router, wait time.Duration) {
 	log.SetOutput(l)
 
 	srv := &http.Server{
-		Addr: l.Host + ":3000",
+		Addr: l.host(),
 		// Good practice to set timeouts to avoid Slowloris attacks.
 		WriteTimeout: time.Second * 15,
 		ReadTimeout:  time.Second * 15,
@@ -201,15 +215,17 @@ func (l *littr) handleError(w http.ResponseWriter, r *http.Request, err error, s
 // handleMain serves /auth/{provider}/callback request
 func (l *littr) handleCallback(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
+	q := r.URL.Query()
 	provider := vars["provider"]
-	providerErr := vars["error"]
-	if providerErr != "" {
+	providerErr := q["error"]
+	if providerErr != nil {
 		t, _ := template.New("error.html").ParseFiles(templateDir + "error.html")
 		t.Execute(w, fmt.Errorf("%s error %s", provider, providerErr))
 		return
 	}
-	code := vars["code"]
-	if code == "" {
+	code := q["code"]
+	state := q["state"]
+	if code == nil {
 		t, _ := template.New("error.html").ParseFiles(templateDir + "error.html")
 		t.Execute(w, fmt.Errorf("%s error: Empty authentication token", provider))
 		return
@@ -219,10 +235,14 @@ func (l *littr) handleCallback(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("ERROR %s", err)
 	}
-	s.Values["auth_token"] = code
+
+	s.Values["provider"] = provider
+	s.Values["code"] = code
+	s.Values["state"] = state
 	s.AddFlash("Success")
 
 	l.Session.Save(r, w, s)
+	http.Redirect(w, r, l.BaseUrl(), http.StatusFound)
 }
 
 // handleMain serves /auth/{provider}/callback request
@@ -230,11 +250,7 @@ func (l *littr) handleAuth(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	provider := vars["provider"]
 
-	url, _ := mux.CurrentRoute(r).
-		Subrouter().
-		Get("authCallback").
-		Host(listenHost+":3000").
-		URL("provider", provider)
+	url := fmt.Sprintf("%s/auth/%s/callback", l.BaseUrl(), provider)
 
 	var config oauth2.Config
 	switch provider {
@@ -246,7 +262,17 @@ func (l *littr) handleAuth(w http.ResponseWriter, r *http.Request) {
 				AuthURL:  "https://github.com/login/oauth/authorize",
 				TokenURL: "https://github.com/login/oauth/access_token",
 			},
-			RedirectURL: url.String(),
+			RedirectURL: url,
+		}
+	case "gitlab":
+		config = oauth2.Config{
+			ClientID:     os.Getenv("GITLAB_KEY"),
+			ClientSecret: os.Getenv("GITLAB_SECRET"),
+			Endpoint: oauth2.Endpoint{
+				AuthURL:  "https://gitlab.com/login/oauth/authorize",
+				TokenURL: "https://gitlab.com/login/oauth/access_token",
+			},
+			RedirectURL: url,
 		}
 	case "facebook":
 		config = oauth2.Config{
@@ -256,7 +282,7 @@ func (l *littr) handleAuth(w http.ResponseWriter, r *http.Request) {
 				AuthURL:  "https://graph.facebook.com/oauth/authorize",
 				TokenURL: "https://graph.facebook.com/oauth/access_token",
 			},
-			RedirectURL: url.String(),
+			RedirectURL: url,
 		}
 	case "google":
 		config = oauth2.Config{
@@ -266,7 +292,7 @@ func (l *littr) handleAuth(w http.ResponseWriter, r *http.Request) {
 				AuthURL:  "https://accounts.google.com/o/oauth2/auth", // access_type=offline
 				TokenURL: "https://accounts.google.com/o/oauth2/token",
 			},
-			RedirectURL: url.String(),
+			RedirectURL: url,
 		}
 	default:
 		s, err := l.Session.Get(r, sessionName)
@@ -304,11 +330,19 @@ func (l *littr) authCheck(next http.Handler) http.Handler {
 func init() {
 	authKey := []byte(os.Getenv("SESS_AUTH_KEY"))
 	encKey := []byte(os.Getenv("SESS_ENC_KEY"))
+	if listenPort == 0{
+		listenPort = defaultPort
+	}
+	if listenHost == "" {
+		listenHost = defaultHost
+	}
+
 	s := sessions.NewCookieStore(authKey, encKey)
 	s.Options.Domain = listenHost
 	s.Options.Path = "/"
 
-	app = littr{Host: listenHost, Session: s}
+
+	app = littr{Host: listenHost, Port: listenPort, Session: s}
 
 	dbPw := os.Getenv("DB_PASSWORD")
 	dbName := os.Getenv("DB_NAME")

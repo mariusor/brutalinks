@@ -9,13 +9,7 @@
 {{ template "items.html" .Items }}
 </main>
 <footer>
-{{ if len .Auth }}
-    <ul id="auth">
-{{range $key,$value := .Auth}}
-    <p><a href="/auth/{{$key}}">Sign in with {{$value}}</a></p>
-{{end}}
-    </ul>
-{{ end }}
+{{template "footer.html" . }}
 </footer>
 </body>
 </html>

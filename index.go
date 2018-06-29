@@ -44,7 +44,6 @@ type Content struct {
 
 type indexModel struct {
 	Title string
-	Auth  map[string]string
 	Items []Content
 }
 
@@ -213,11 +212,19 @@ func formatDate(c time.Time) string {
 	return c.Format("2006-01-02T15:04:05.000-07:00")
 }
 
+func getAuthProviders() map[string]string {
+	p := make(map[string]string)
+	p["github"] = "Github"
+	p["gitlab"] = "Gitlab"
+	p["google"] = "Google"
+	p["facebook"] = "Facebook"
+
+	return p
+}
+
 // handleMain serves / request
 func (l *littr) handleIndex(w http.ResponseWriter, r *http.Request) {
 	m := indexModel{Title: "Index"}
-	m.Auth = make(map[string]string)
-	m.Auth["github"] = "Github"
 
 	db, err := orm.GetDB("default")
 	if err != nil {
@@ -257,6 +264,7 @@ func (l *littr) handleIndex(w http.ResponseWriter, r *http.Request) {
 		"formatDate":         formatDate,
 		"sluggify":           sluggify,
 		"title":			  func(t []byte) string { return string(t) },
+		"getProviders": 	  getAuthProviders,
 	})
 	_, terr = t.New("items.html").ParseFiles(templateDir + "partials/content/items.html")
 	if terr != nil {
@@ -279,6 +287,10 @@ func (l *littr) handleIndex(w http.ResponseWriter, r *http.Request) {
 		log.Print(terr)
 	}
 	_, terr = t.New("header.html").ParseFiles(templateDir + "partials/header.html")
+	if terr != nil {
+		log.Print(terr)
+	}
+	_, terr = t.New("footer.html").ParseFiles(templateDir + "partials/footer.html")
 	if terr != nil {
 		log.Print(terr)
 	}

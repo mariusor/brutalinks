@@ -1,0 +1,9 @@
+{{ $providers := getProviders }}
+{{ if $providers }}
+<ul id="auth">
+    <li class="first-item">Sign in</li>
+{{range $key, $value := $providers}}
+    <li><a href="/auth/{{$key}}">{{$value}}</a></li>
+{{end}}
+</ul>
+{{ end }}
