@@ -2,6 +2,12 @@
 body {
     font-size: 1em;
     line-height: 1.1em;
+    padding: 1ex 0 0 1em;
+}
+body>header {
+    margin: 0 0 0 -.5em;
+    height: 2.4em;
+    width: 100%;
 }
 body>header h1 {
     font-size: 1.6em;
@@ -16,13 +22,10 @@ body>header h1 a {
     margin-right: 1.2ex;
     margin-top: 2px;
 }
-body>header h1 a:before {
+/*body>header h1 a:before {
     content: "♻";
     font-weight: 1000;
-}
-header {
-    width: 100%;
-}
+}*/
 .submission h1,
 .submission h2,
 .submission h3,
@@ -79,6 +82,9 @@ ol.comments {
     width: 100%;
     font-size:.6em;
 }
+.score a:hover, .score a:focus {
+    text-decoration: none;
+}
 .score a {
     display: block;
     width: 100%;
@@ -89,11 +95,11 @@ ol.comments {
 }
 .score a.inc {
     margin-top: 2px;
-    margin-bottom: -3px;
+    margin-bottom: 1px;
 }
 .score a.inc::before {
     font-weight: 1000;
-    content: "➕";
+    content: "🞦";
 }
 .score a.dec {
     margin-top: -3px;
@@ -221,10 +227,24 @@ menu.meta-items a {
 a.perma:before {
     content: " ¶ ";
 }
-.domain a:before {
+    /*
+span.domain:before {
+    content: "[";
+}
+span.domain:after {
+    content: "]";
+}
+    */
+.domain a:after {
+    /*
     content: "⮡";
-    margin-right: .6ex;
-    font-weight: 1000;
+    */
+    margin-left: .6ex;
+    content: " ¶ ";
+    font-size:1.1em;
+}
+.domain a {
+    text-decoration: none;
 }
 span.domain {
     font-weight: 200;
@@ -244,6 +264,9 @@ header menu#top {
 }
 footer #auth, header #top  {
     float:right;
+}
+menu#auth {
+    margin-right:2em;
 }
 menu#auth li:first-child::before,
 menu#auth li:nth-child(2)::before,

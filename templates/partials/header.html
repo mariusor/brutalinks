@@ -1,10 +1,11 @@
 <header>
-    <h1><a href="/" title="littr.me" alt="littr.me"></a><strong>littering:</strong>
+    <h1><!--<a href="/" title="littr.me" alt="littr.me" class="far fa-trash-alt"></a><strong>littering:</strong>
     {{- if .User -}} <span class="by">{{.User.Handle}}</span>{{- else -}}
     {{- if .Title -}}
     {{ .Title }}
     {{- else -}} allowed{{- end -}}
-    {{- end -}}
+    {{- end -}}  -->
+    <a href="/" title="littr.me" alt="littr.me"><i class="far fa-trash-alt"> littr</i></a>
     </h1>
     <menu id="top">
         <li><a href="/submit">Add</a></li>
