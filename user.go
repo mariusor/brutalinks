@@ -42,17 +42,18 @@ func (u *Account) LoadVotes(ids []int64) error {
 	if err != nil {
 		return err
 	}
-	sids := func(i []int64) []string {
+
+	sids := func(l int) []string {
 		var s  []string
-		for _, v := range i {
-			s = append(s, fmt.Sprintf("%d", v))
+		for i := 0; i < l; l++ {
+			s = append(s, "?")
 		}
 		return s
-	}(ids)
+	}(len(ids))
 	sel := fmt.Sprintf(`select "id", "submitted_by", "submitted_at", "updated_at",
 		"item_id", "weight", "flags"
-	from Votes where "submitted_by" = $1 and "item_id" in (%s)`,  strings.Join( sids, ", "))
-	rows, err := db.Query(sel, u.id)
+	from "votes" where "submitted_by" = $1 and "item_id" in (%s)`,  strings.Join( sids, ", "))
+	rows, err := db.Query(sel, ids)
 	if err != nil {
 		return err
 	}
