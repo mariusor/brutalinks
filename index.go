@@ -25,19 +25,19 @@ const (
 )
 
 type Content struct {
-	Id          int64         `orm:id,"auto"`
-	Key         []byte        `orm:key,size(56)`
-	Title       []byte	      `orm:title`
-	MimeType    string        `orm:mime_type`
-	Data        []byte        `orm:data`
-	Score       int64         `orm:score`
-	SubmittedAt time.Time     `orm:created_at`
-	SubmittedBy int64         `orm:submitted_by`
-	UpdatedAt   time.Time     `orm:updated_at`
-	Handle      string        `orm:handle`
-	Flags       int8          `orm:flags`
-	Metadata    []byte        `orm:metadata`
-	Path        []byte        `orm:path`
+	id          int64     `orm:id,"auto"`
+	Key         []byte    `orm:key,size(56)`
+	Title       []byte    `orm:title`
+	MimeType    string    `orm:mime_type`
+	Data        []byte    `orm:data`
+	Score       int64     `orm:score`
+	SubmittedAt time.Time `orm:created_at`
+	submittedBy int64     `orm:submitted_by`
+	UpdatedAt   time.Time `orm:updated_at`
+	Handle      string    `orm:handle`
+	flags       int8      `orm:flags`
+	Metadata    []byte    `orm:metadata`
+	Path        []byte    `orm:path`
 	fullPath    []byte
 	parentLink  string
 }
@@ -55,7 +55,7 @@ func (c *Content) GetKey() []byte {
 	}
 	data = append(data, []byte(fmt.Sprintf("%d", now.UnixNano()))...)
 	data = append(data, []byte(c.Path)...)
-	data = append(data, []byte(fmt.Sprintf("%d",c.SubmittedBy))...)
+	data = append(data, []byte(fmt.Sprintf("%d",c.submittedBy))...)
 
 	c.Key = []byte(fmt.Sprintf("%x", sha256.Sum256(data)))
 	return c.Key
@@ -112,8 +112,9 @@ func (c Content) Level() int {
 	}
 	return bytes.Count(c.FullPath(), []byte("."))
 }
+
 func (c Content) Deleted() bool {
-	return c.Flags&FlagsDeleted == FlagsDeleted
+	return c.flags&FlagsDeleted == FlagsDeleted
 }
 func (c Content) IsLink() bool {
 	return c.MimeType == MimeTypeURL
@@ -246,12 +247,17 @@ func (l *littr) handleIndex(w http.ResponseWriter, r *http.Request) {
 	}
 	for rows.Next() {
 		p := Content{}
-		err = rows.Scan(&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Handle, &p.Flags)
+		err = rows.Scan(&p.id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.submittedBy, &p.Handle, &p.flags)
 		if err != nil {
 			l.handleError(w, r, err, -1)
 			return
 		}
 		m.Items = append(m.Items, p)
+	}
+
+	err = CurrentAccount().LoadVotes(getAllIds(m.Items))
+	if err != nil {
+		log.Print(err)
 	}
 
 	var terr error
@@ -266,6 +272,7 @@ func (l *littr) handleIndex(w http.ResponseWriter, r *http.Request) {
 		"sluggify":           sluggify,
 		"title":			  func(t []byte) string { return string(t) },
 		"getProviders": 	  getAuthProviders,
+		"CurrentAccount": 	  CurrentAccount,
 	})
 	_, terr = t.New("items.html").ParseFiles(templateDir + "partials/content/items.html")
 	if terr != nil {

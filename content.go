@@ -56,6 +56,7 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	hash := vars["hash"]
+	items := make([]Content,0)
 
 	db, err := orm.GetDB("default")
 	if err != nil {
@@ -75,7 +76,7 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 	m := contentModel{}
 	p := Content{}
 	for rows.Next() {
-		err = rows.Scan(&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Handle, &p.Path, &p.Flags)
+		err = rows.Scan(&p.id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.submittedBy, &p.Handle, &p.Path, &p.flags)
 		if err != nil {
 			l.handleError(w, r, err, -1)
 			return
@@ -87,7 +88,8 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 		l.handleError(w, r, fmt.Errorf("not found"), http.StatusNotFound)
 		return
 	}
-	var userId int64 = 1
+	items = append(items,p)
+
 	if r.Method == http.MethodGet {
 		q := r.URL.Query()
 		yay := len(q["yay"]) > 0
@@ -101,7 +103,7 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 			if yay {
 				multiplier = 1
 			}
-			_, err := app.Vote(p, multiplier, userId)
+			_, err := app.Vote(p, multiplier, CurrentAccount().id)
 			if err != nil {
 				log.Print(err)
 			}
@@ -115,15 +117,16 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 		if len(repl.Data) > 0 {
 			now := time.Now()
 			repl.MimeType = "text/plain"
-			repl.SubmittedBy = userId
+			repl.submittedBy = CurrentAccount().id
 			repl.SubmittedAt = now
 			repl.UpdatedAt = now
 			repl.Key = repl.GetKey()
 			repl.Path = p.FullPath()
+			log.Printf("generated key[%d] %s", len(repl.Key), repl.Key)
 
 			ins := `insert into "content_items" ("key", "data", "mime_type", "submitted_by", "path", "submitted_at", "updated_at") values($1, $2, $3, $4, $5, $6, $7)`
 			{
-				res, err := db.Exec(ins, repl.Key, repl.Data, repl.MimeType, repl.SubmittedBy, repl.Path, repl.SubmittedAt, repl.UpdatedAt)
+				res, err := db.Exec(ins, repl.Key, repl.Data, repl.MimeType, repl.submittedBy, repl.Path, repl.SubmittedAt, repl.UpdatedAt)
 				if err != nil {
 					log.Print(err)
 				} else {
@@ -133,7 +136,7 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
-		l.Vote(repl, 1, userId)
+		l.Vote(repl, 1, CurrentAccount().id)
 		http.Redirect(w, r, p.PermaLink(), http.StatusFound)
 	}
 
@@ -153,14 +156,16 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 		}
 		for rows.Next() {
 			c := Content{}
-			err = rows.Scan(&c.Id, &c.Key, &c.MimeType, &c.Data, &c.Title, &c.Score, &c.SubmittedAt, &c.SubmittedBy, &c.Handle, &c.Path, &c.Flags)
+			err = rows.Scan(&c.id, &c.Key, &c.MimeType, &c.Data, &c.Title, &c.Score, &c.SubmittedAt, &c.submittedBy, &c.Handle, &c.Path, &c.flags)
 			if err != nil {
 				l.handleError(w, r, err, -1)
 				return
 			}
 
 			com := comment{Content: c}
+			items = append(items,c)
 			allComments = append(allComments, &com)
+
 		}
 	}
 
@@ -183,6 +188,10 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 			par.Children = append(par.Children, cur)
 		}
 	}
+	err = CurrentAccount().LoadVotes(getAllIds(items))
+	if err != nil {
+		log.Print(err)
+	}
 
 	var terr error
 	var t *template.Template
@@ -197,6 +206,7 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 		"title":			  func(t []byte) string { return string(t) },
 		"mod":			  	  func(lvl int) float64 { return math.Mod(float64(lvl), float64(10)) },
 		"getProviders": 	  getAuthProviders,
+		"CurrentAccount": 	  CurrentAccount,
 	})
 	_, terr = t.New("submit.html").ParseFiles(templateDir + "partials/content/submit.html")
 	if terr != nil {

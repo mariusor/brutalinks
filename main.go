@@ -29,6 +29,24 @@ var listenHost = os.Getenv("HOSTNAME")
 var listenPort, _ = strconv.ParseInt(os.Getenv("PORT"), 10, 64)
 var app littr
 
+var LocalUser = Account{id: 1, Handle: "anonymous", Votes: make(map[int64]Vote)}
+
+func CurrentAccount() *Account {
+	return &LocalUser
+}
+
+type Item interface {
+	Id() int64
+}
+
+func getAllIds(c []Content) []int64 {
+	var i []int64
+	for _, k := range c {
+		i = append(i, k.id)
+	}
+	return i
+}
+
 type littr struct {
 	Host    string
 	Port	int64
@@ -60,15 +78,20 @@ func (l *littr) BaseUrl() string {
 //}
 
 type Vote struct {
-	Id          int       `orm:id`
-	SubmittedBy int64     `orm:submitted_by`
+	id          int64     `orm:id`
+	submittedBy int64     `orm:submitted_by`
 	SubmittedAt time.Time `orm:created_at`
 	UpdatedAt   time.Time `orm:updated_at`
-	ItemId      int64     `orm:item_id`
-	Weight      int       `orm:weight`
-	Flags       int8      `orm:flags`
+	itemId      int64     `orm:item_id`
+	weight      int       `orm:weight`
+	flags       int8      `orm:flags`
 }
-
+func (v *Vote) IsYay () bool {
+	return v != nil && v.weight > 0
+}
+func (v *Vote) IsNay () bool {
+	return v != nil && v.weight < 0
+}
 func (l *littr) Vote(p Content, score int, userId int64) (bool, error) {
 	db, err := orm.GetDB("default")
 	if err != nil {
@@ -77,14 +100,14 @@ func (l *littr) Vote(p Content, score int, userId int64) (bool, error) {
 	newWeight := int(score * ScoreMultiplier)
 
 	v := Vote{}
-	sel := `select "id", "weight" from "votes" where "submitted_by" = $1 and "item_id" = $2;`
+	sel := `select "id", "weight" from "Votes" where "submitted_by" = $1 and "item_id" = $2;`
 	{
-		rows, err := db.Query(sel, userId, p.Id)
+		rows, err := db.Query(sel, userId, p.id)
 		if err != nil {
 			return false, err
 		}
 		for rows.Next() {
-			err = rows.Scan(&v.Id, &v.Weight)
+			err = rows.Scan(&v.id, &v.weight)
 			if err != nil {
 				return false, err
 			}
@@ -92,16 +115,16 @@ func (l *littr) Vote(p Content, score int, userId int64) (bool, error) {
 	}
 
 	q := ""
-	if v.Id != 0 {
-		if v.Weight != 0 && math.Signbit(float64(newWeight)) == math.Signbit(float64(v.Weight)) {
+	if v.id != 0 {
+		if v.weight != 0 && math.Signbit(float64(newWeight)) == math.Signbit(float64(v.weight)) {
 			newWeight = 0
 		}
-		q = `update "votes" set "updated_at" = now(), "weight" = $1 where "item_id" = $2 and "submitted_by" = $3;`
+		q = `update "Votes" set "updated_at" = now(), "weight" = $1 where "item_id" = $2 and "submitted_by" = $3;`
 	} else {
-		q = `insert into "votes" ("weight", "item_id", "submitted_by") values ($1, $2, $3)`
+		q = `insert into "Votes" ("weight", "item_id", "submitted_by") values ($1, $2, $3)`
 	}
 	{
-		res, err := db.Exec(q, newWeight, p.Id, userId)
+		res, err := db.Exec(q, newWeight, p.id, userId)
 		if err != nil {
 			return false, err
 		}
@@ -113,7 +136,7 @@ func (l *littr) Vote(p Content, score int, userId int64) (bool, error) {
 
 	upd := `update "content_items" set score = score - $1 + $2 where "id" = $3`
 	{
-		res, err := db.Exec(upd, v.Weight, newWeight, p.Id)
+		res, err := db.Exec(upd, v.weight, newWeight, p.id)
 		if err != nil {
 			return false, err
 		}
@@ -197,6 +220,7 @@ func (l *littr) handleError(w http.ResponseWriter, r *http.Request, err error, s
 	t, terr := template.New("error.html").ParseFiles(templateDir + "error.html")
 	t.Funcs(template.FuncMap{
 		"getProviders": 	  getAuthProviders,
+		"CurrentAccount": 	  CurrentAccount,
 	})
 	if terr != nil {
 		log.Print(terr)
@@ -356,6 +380,7 @@ func init() {
 	dbUser := os.Getenv("DB_USER")
 	dbSource := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable", dbUser, dbPw, dbName)
 	orm.NewLog(&app)
+	orm.Debug = true
 	err := orm.RegisterDataBase("default", "postgres", dbSource, 30)
 	if err != nil {
 		log.Print(err)
@@ -414,6 +439,10 @@ func main() {
 		w.WriteHeader(d.Status)
 		log.Printf("%s %s Message: %s", r.Method, r.URL, d.Error)
 		t, terr := template.New("error.html").ParseFiles(templateDir + "error.html")
+		t.Funcs(template.FuncMap{
+			"getProviders": 	  getAuthProviders,
+			"CurrentAccount": 	  CurrentAccount,
+		})
 		if terr != nil {
 			log.Print(terr)
 		}

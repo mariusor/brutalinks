@@ -1,24 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-{{ template "head.html" . }}
-</head>
+<he1ad>
+{{- template "head.html" . -}}
+</he1ad>
 <body>
 {{ template "header.html" }}
-<section class="submission" id="content" data-hash="{{.Content.Hash}}">
-{{template "score.html" .Content.Content}}
-{{template "link.html" .Content.Content}}
-{{template "data.html" .Content.Content}}
- {{template "meta.html" .Content.Content}}
+<section class="submission op" id="i-{{.Content.Hash}}" data-hash="{{.Content.Hash}}">
+    {{template "score.html" .Content.Content}}
+    {{template "link.html" .Content.Content}}
+    {{template "data.html" .Content.Content}}
+    {{template "meta.html" .Content.Content}}
 </section>
-<section id="reply">
-{{template "submit.html" . }}
-</section>
-<section id="items">
-{{ template "comments.html" .Content }}
-</section>
-<footer>
-{{template "footer.html" . }}
-</footer>
+<section id="reply">{{template "submit.html" . }}</section>
+<section id="items">{{ template "comments.html" .Content }}</section>
+<footer>{{template "footer.html" . }}</footer>
 </body>
 </html>

@@ -43,12 +43,12 @@ func (l *littr) handleSubmit(w http.ResponseWriter, r *http.Request) {
 			p.MimeType = detectMimeType(p.Data)
 			p.SubmittedAt = now
 			p.UpdatedAt = now
-			p.SubmittedBy = userId
+			p.submittedBy = userId
 			p.Key = p.GetKey()
 
 			ins := `insert into "content_items" ("key", "title", "data", "mime_type", "submitted_by", "submitted_at", "updated_at") values($1, $2, $3, $4, $5, $6, $7)`
 			{
-				res, err := db.Exec(ins, p.Key, p.Title, p.Data, p.MimeType, p.SubmittedBy, p.SubmittedAt, p.UpdatedAt)
+				res, err := db.Exec(ins, p.Key, p.Title, p.Data, p.MimeType, p.submittedBy, p.SubmittedAt, p.UpdatedAt)
 				if err != nil {
 					log.Print(err)
 				} else {
@@ -76,6 +76,7 @@ func (l *littr) handleSubmit(w http.ResponseWriter, r *http.Request) {
 		"title":			  func(t []byte) string { return string(t) },
 		"mod":			  	  func(lvl int) float64 { return math.Mod(float64(lvl), float64(10)) },
 		"getProviders": 	  getAuthProviders,
+		"CurrentAccount": 	  CurrentAccount,
 	})
 	_, terr = t.New("submit.html").ParseFiles(templateDir + "partials/content/submit.html")
 	if terr != nil {

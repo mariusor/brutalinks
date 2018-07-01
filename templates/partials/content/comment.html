@@ -1,7 +1,9 @@
+<section class="_item" id="i-{{.Hash}}" data-hash="{{.Hash}}">
 {{template "score.html" .Content}}
 {{template "data.html" .Content}}
 {{template "link.html" .Content}}
 {{template "meta.html" .Content}}
+</section>
 {{if .Children | len }}
 {{ template "comments.html" . }}
-{{end}}
+{{- end}}

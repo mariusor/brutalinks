@@ -1,16 +1,16 @@
-{{if .Deleted }}
+{{- if .Deleted}}
 <del class="deleted titles" data-hash="{{.Hash}}">deleted</del>
-{{else}}
-{{if .Title }}
+{{else -}}
+{{- if .Title}}
 <h1 data-hash="{{.Hash}}">
-{{if .IsLink }}
+{{if .IsLink}}
     <a class="titles" data-hash="{{.Hash}}" href="{{.Data | printf "%s"}}">
-{{end}}
+{{- end}}
     {{.Title | title }}
-{{if .IsLink }}
+{{if .IsLink -}}
 </a>
-{{end}}
+{{- end}}
     <span class="domain">{{if .IsLink}}{{.GetDomain}}<a title="all submissions" href={{"/"}}></a>{{else}}self{{end}}</span>
 </h1>
-{{end}}
-{{end}}
+{{end -}}
+{{- end -}}

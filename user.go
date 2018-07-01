@@ -8,24 +8,65 @@ import (
 	"log"
 	"net/http"
 	"time"
+	"strings"
 )
 
-type User struct {
-	Id        int64     `orm:id,"auto"`
+type Account struct {
+	id        int64     `orm:id,"auto"`
 	Key       string    `orm:key`
 	Email     string    `orm:email`
 	Handle    string    `orm:handle`
 	Score     int64     `orm:score`
 	CreatedAt time.Time `orm:created_at`
 	UpdatedAt time.Time `orm:updated_at`
-	Flags     int8      `orm:flags`
+	flags     int8      `orm:flags`
 	Metadata  []byte    `orm:metadata`
+	Votes     map[int64]Vote
 }
 
 type userModel struct {
 	Title string
-	User  User
+	User  Account
 	Items []Content
+}
+func (u *Account) VotedOn(i Content) *Vote{
+	for _, v := range u.Votes {
+		if v.id == i.id {
+			return &v
+		}
+	}
+	return nil
+}
+func (u *Account) LoadVotes(ids []int64) error {
+	db, err := orm.GetDB("default")
+	if err != nil {
+		return err
+	}
+	sids := func(i []int64) []string {
+		var s  []string
+		for _, v := range i {
+			s = append(s, fmt.Sprintf("%d", v))
+		}
+		return s
+	}(ids)
+	sel := fmt.Sprintf(`select "id", "submitted_by", "submitted_at", "updated_at",
+		"item_id", "weight", "flags"
+	from Votes where "submitted_by" = $1 and "item_id" in (%s)`,  strings.Join( sids, ", "))
+	rows, err := db.Query(sel, u.id)
+	if err != nil {
+		return err
+	}
+	for rows.Next() {
+		v := Vote{}
+		err = rows.Scan(&v.id, &v.submittedBy, &v.SubmittedAt, &v.UpdatedAt,
+			&v.itemId, &v.weight, &u.flags)
+		if err != nil {
+			return err
+		}
+		u.Votes[v.id] = v
+	}
+
+	return nil
 }
 
 // handleMain serves /~{user}
@@ -39,7 +80,7 @@ func (l *littr) handleUser(w http.ResponseWriter, r *http.Request) {
 	}
 	m := userModel{}
 
-	u := User{}
+	u := Account{}
 	selAcct := `select "id", "key", "handle", "email", "score", "created_at", "updated_at", "metadata", "flags" from "accounts" where "handle" = $1`
 	{
 		rows, err := db.Query(selAcct, vars["handle"])
@@ -48,7 +89,7 @@ func (l *littr) handleUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		for rows.Next() {
-			err = rows.Scan(&u.Id, &u.Key, &u.Handle, &u.Email, &u.Score, &u.CreatedAt, &u.UpdatedAt, &u.Metadata, &u.Flags)
+			err = rows.Scan(&u.id, &u.Key, &u.Handle, &u.Email, &u.Score, &u.CreatedAt, &u.UpdatedAt, &u.Metadata, &u.flags)
 			if err != nil {
 				l.handleError(w, r, err, -1)
 				return
@@ -63,23 +104,28 @@ func (l *littr) handleUser(w http.ResponseWriter, r *http.Request) {
 			left join "accounts" on "accounts"."id" = "content_items"."submitted_by" 
 			where "submitted_by" = $1 order by "submitted_at" desc`
 	{
-		rows, err := db.Query(selC, u.Id)
+		rows, err := db.Query(selC, u.id)
 		if err != nil {
 			l.handleError(w, r, err, -1)
 			return
 		}
 		for rows.Next() {
 			p := Content{}
-			err = rows.Scan(&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.Flags, &p.Metadata)
+			err = rows.Scan(&p.id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.flags, &p.Metadata)
 			if err != nil {
 				l.handleError(w, r, err, -1)
 				return
 			}
 			p.Handle = u.Handle
-			p.SubmittedBy = u.Id
+			p.submittedBy = u.id
 			m.Items = append(m.Items, p)
 		}
 	}
+	err = CurrentAccount().LoadVotes(getAllIds(m.Items))
+	if err != nil {
+		log.Print(err)
+	}
+
 	var t *template.Template
 	var terr error
 	t, terr = template.New("user.html").ParseFiles(templateDir + "user.html")
@@ -92,6 +138,7 @@ func (l *littr) handleUser(w http.ResponseWriter, r *http.Request) {
 		"sluggify":           sluggify,
 		"title":			  func(t []byte) string { return string(t) },
 		"getProviders": 	  getAuthProviders,
+		"CurrentAccount": 	  CurrentAccount,
 	})
 	if terr != nil {
 		log.Print(terr)

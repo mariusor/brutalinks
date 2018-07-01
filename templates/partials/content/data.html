@@ -1,5 +1,5 @@
-{{ if .IsSelf }}
-{{ if not .Deleted }}
+{{- if .IsSelf -}}
+{{- if not .Deleted -}}
 <article class="data {{ .MimeType | sluggify }}{{if not .Title}} comment{{end}}">{{.Data | printf "%s" }}</article>
-{{end}}
-{{end}}
+{{- end -}}
+{{- end -}}
