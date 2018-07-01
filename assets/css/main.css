@@ -240,7 +240,7 @@ span.domain:after {
     content: "⮡";
     */
     margin-left: .6ex;
-    content: " ¶ ";
+    content: "¶ ";
     font-size:1.1em;
 }
 .domain a {

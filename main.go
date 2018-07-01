@@ -272,7 +272,10 @@ func (l *littr) handleCallback(w http.ResponseWriter, r *http.Request) {
 	s.Values["state"] = state
 	s.AddFlash("Success")
 
-	l.Session.Save(r, w, s)
+	err = l.Session.Save(r, w, s)
+	if err != nil {
+		log.Print(err)
+	}
 	http.Redirect(w, r, l.BaseUrl(), http.StatusFound)
 }
 
@@ -343,6 +346,16 @@ func (l *littr) loggerMw(n http.Handler) http.Handler {
 		n.ServeHTTP(w, r)
 	})
 }
+func (l *littr) flashSessions(n http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		sess, err := l.Session.Get(r, sessionName)
+		if err != nil {
+			log.Print(err)
+		}
+		log.Printf("%#v", sess.Values)
+		n.ServeHTTP(w, r)
+	})
+}
 
 func (l *littr) authCheck(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -371,7 +384,6 @@ func init() {
 	s := sessions.NewCookieStore(authKey, encKey)
 	s.Options.Domain = listenHost
 	s.Options.Path = "/"
-
 
 	app = littr{Host: listenHost, Port: listenPort, Session: s}
 
@@ -462,5 +474,6 @@ func main() {
 	})
 
 	m.Use(app.loggerMw)
+	m.Use(app.flashSessions)
 	app.Run(m, wait)
 }
