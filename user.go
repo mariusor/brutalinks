@@ -42,18 +42,21 @@ func (u *Account) LoadVotes(ids []int64) error {
 	if err != nil {
 		return err
 	}
-
-	sids := func(l int) []string {
-		var s  []string
-		for i := 0; i < l; l++ {
-			s = append(s, "?")
-		}
-		return s
-	}(len(ids))
+	// this here code following is the ugliest I wrote in quite a long time
+	// so ugly it warrants its own fucking shame corner
+	sids := make([]string, 0)
+	for i := 0; i < len(ids); i++ {
+		sids = append(sids, fmt.Sprintf("$%d", i+2))
+	}
+	iitems := make([]interface{}, len(ids)+1)
+	iitems[0] = u.id
+	for i, v := range ids {
+		iitems[i+1] = v
+	}
 	sel := fmt.Sprintf(`select "id", "submitted_by", "submitted_at", "updated_at",
 		"item_id", "weight", "flags"
-	from "votes" where "submitted_by" = $1 and "item_id" in (%s)`,  strings.Join( sids, ", "))
-	rows, err := db.Query(sel, ids)
+	from "votes" where "submitted_by" = $1 and "item_id" in (%s)`,  strings.Join(sids, ", "))
+	rows, err := db.Query(sel, iitems...)
 	if err != nil {
 		return err
 	}
