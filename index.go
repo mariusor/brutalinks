@@ -217,9 +217,9 @@ func formatDate(c time.Time) string {
 func getAuthProviders() map[string]string {
 	p := make(map[string]string)
 	p["github"] = "Github"
-	p["gitlab"] = "Gitlab"
-	p["google"] = "Google"
-	p["facebook"] = "Facebook"
+	//p["gitlab"] = "Gitlab"
+	//p["google"] = "Google"
+	//p["facebook"] = "Facebook"
 
 	return p
 }
