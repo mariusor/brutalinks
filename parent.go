@@ -3,17 +3,24 @@ package main
 import (
 	"github.com/gorilla/mux"
 	"net/http"
+	"fmt"
 )
 
-// handleMain serves /parent/{hash} request
+// handleMain serves /p/{hash}/{parent} request
 func (l *littr) handleParent(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
 	db := l.Db
-
-	sel := `select par.submitted_at, par.key from content_items par 
-		inner join content_items cur on subltree(cur.Path, nlevel(cur.Path)-1, nlevel(cur.Path)) <@ par.Key::ltree
-			where cur.Key ~* $1 and par.Key ~* $2`
+	typ := vars["ancestor"]
+	var pSel string
+	if typ == "p" {
+		pSel = "nlevel(cur.Path)-1"
+	} else {
+		pSel = " 0"
+	}
+	sel := fmt.Sprintf(`select par.submitted_at, par.key from content_items par 
+		inner join content_items cur on subltree(cur.Path, %s, nlevel(cur.Path)) <@ par.Key::ltree
+			where cur.Key ~* $1 and par.Key ~* $2`, pSel)
 	rows, err := db.Query(sel, vars["hash"], vars["parent"])
 	if err != nil {
 		l.handleError(w, r, err, -1)

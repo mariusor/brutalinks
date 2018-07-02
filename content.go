@@ -41,6 +41,16 @@ func (c Content) ParentLink() string {
 	}
 	return c.parentLink
 }
+func (c Content) OPLink() string {
+	if c.Path != nil {
+		parentHash := c.Path[0 : 8]
+		return fmt.Sprintf("/op/%s/%s", c.Hash(), parentHash)
+	}
+	return "/"
+}
+//func (c Content) ancestorLink(lvl int) string {
+//
+//}
 func (c Content) IsSelf() bool {
 	mimeComponents := strings.Split(c.MimeType, "/")
 	return mimeComponents[0] == "text"

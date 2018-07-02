@@ -419,10 +419,6 @@ func main() {
 		Methods(http.MethodGet, http.MethodHead, http.MethodPost).
 		Name("content")
 
-	m.HandleFunc("/p/{hash}/{parent}", app.handleParent).
-		Methods(http.MethodGet, http.MethodHead).
-		Name("parent")
-
 	//m.HandleFunc("/.well-known/webfinger", app.handleWebFinger).
 	//	Methods(http.MethodGet, http.MethodHead).
 	//	Name("webfinger")
@@ -441,6 +437,11 @@ func main() {
 
 	m.PathPrefix("/assets/").
 		Handler(http.StripPrefix("/assets/", http.FileServer(http.Dir("./assets/"))))
+
+	m.HandleFunc("/{ancestor}/{hash}/{parent}", app.handleParent).
+		Methods(http.MethodGet, http.MethodHead).
+		Name("parent")
+
 
 	m.NotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		d := errorModel{

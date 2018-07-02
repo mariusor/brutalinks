@@ -14,12 +14,11 @@ body {
 .inverted a {
     color: dodgerblue;
 }
+.inverted a:visited {
+    color: mediumpurple;
+}
 .inverted a:active {
     color: crimson;
-}
-.inverted a:visited,
-.inverted a:active:visited {
-    color: mediumpurple;
 }
 .inverted .score a {
     color: unset;
@@ -39,6 +38,7 @@ body>header h1 a {
 }
 .inverted header h1 a,
 .inverted header h1 a:active,
+.inverted header h1 a:visited,
 .inverted header h1 a:focus
 {
     color: Window;
@@ -87,7 +87,6 @@ ol.comments li {
 }
 ol.comments {
     clear: both;
-    width: 100%;
     border-left: 2px solid transparent;
     margin: .9em 0 0 .7em;
 }
@@ -119,11 +118,8 @@ ol.comments {
     content: "🞦";
 }
 .score a.yay:active,
-.score a.yay.ed/*,
-.score a.nay:active,
-.score a.nay.ed*/ {
-    color: orangered;
-    /*color: WindowText;*/
+.score a.yay.ed {
+    color: deeppink;
 }
 .score a.nay::after {
     font-weight: 1000;
@@ -131,7 +127,11 @@ ol.comments {
 }
 .score a.nay:active,
 .score a.nay.ed {
-    color: darkgreen;
+    color: #689a1c;
+}
+.inverted .score a.nay:active,
+.inverted .score a.nay.ed {
+    color: greenyellow;
 }
 .submission {
     padding-top: .3em;
@@ -242,7 +242,7 @@ menu.meta-items:after {
 menu.meta-items a {
     font-weight: 1000;
 }
-a.perma:before {
+a.to-item:before {
     content: " ¶ ";
 }
     /*
@@ -269,8 +269,16 @@ span.domain {
     font-size: .7em;
     margin-left: 4ex;
 }
-a.parent:before {
+.comments a.to-parent,
+.comments a.to-op {
+    display:none;
+}
+a.to-parent:before {
     content: "‥";
+    font-weight: 1000;
+}
+a.to-op:before {
+    content: "^";
     font-weight: 1000;
 }
 footer {

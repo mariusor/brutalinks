@@ -2,7 +2,8 @@
     submitted <time datetime="{{ .SubmittedAt| formatDate }}" title="{{ .SubmittedAt| formatDate }}">{{.SubmittedAt | formatDateInterval }}</time>
 {{if .Handle }}by <a class="by" href="/~{{ .Handle }}">{{ .Handle }}</a>{{end}}
     <menu class="meta-items">
-        {{if .PermaLink }}<li><a href="{{.PermaLink}}" class="perma" title="discussion"></a></li>{{end}}
-        {{if .ParentLink | ne "/" }}<li><a href="{{.ParentLink}}" class="parent" title="parent"></a></li>{{end}}
+        {{if .PermaLink }}<li><a href="{{.PermaLink}}" class="to-item" title="Go to discussion"></a></li>{{end}}
+        {{if .Path }}<li><a href="{{.ParentLink}}" class="to-parent" title="Go to parent"></a></li>{{end}}
+        {{if .Path }}<li><a href="{{.OPLink}}" class="to-op" title="Go to original post"></a></li>{{end}}
     </menu>
 </aside>

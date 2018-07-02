@@ -1,5 +1,4 @@
 $( document ).ready(function() {
-    console.debug("ready");
 
     var _User = JSON.parse($("#currentUser").html());
     console.debug(_User);
@@ -9,7 +8,6 @@ $( document ).ready(function() {
     if (isInverted) {
         $(":root").toggleClass("inverted");
     }
-
     $("#act-invert").click(function(e) {
         $(":root").toggleClass("inverted");
         if (isInverted) {
