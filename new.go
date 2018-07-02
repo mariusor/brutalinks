@@ -72,8 +72,13 @@ func (l *littr) handleSubmit(w http.ResponseWriter, r *http.Request) {
 		"mod":			  	  func(lvl int) float64 { return math.Mod(float64(lvl), float64(10)) },
 		"getProviders": 	  getAuthProviders,
 		"CurrentAccount": 	  CurrentAccount,
+		"LoadFlashMessages":  LoadFlashMessages,
 	})
 	_, terr = t.New("submit.html").ParseFiles(templateDir + "partials/content/submit.html")
+	if terr != nil {
+		log.Print(terr)
+	}
+	_, terr = t.New("flash.html").ParseFiles(templateDir + "partials/flash.html")
 	if terr != nil {
 		log.Print(terr)
 	}

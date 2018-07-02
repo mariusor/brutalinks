@@ -7,6 +7,7 @@ import (
 )
 
 // handleMain serves /p/{hash}/{parent} request
+// handleMain serves /op/{hash}/{parent} request
 func (l *littr) handleParent(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 

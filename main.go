@@ -36,6 +36,10 @@ func CurrentAccount() *Account {
 	return &LocalUser
 }
 
+func LoadFlashMessages() []interface{} {
+	return app.FlashData
+}
+
 type Item interface {
 	Id() int64
 }
@@ -52,7 +56,9 @@ type littr struct {
 	Host    string
 	Port	int64
 	Db 	    *sql.DB
-	Session sessions.Store
+	session sessions.Store
+	FlashData []interface{}
+	SessionData []interface{}
 }
 
 type errorModel struct {
@@ -60,6 +66,15 @@ type errorModel struct {
 	Title  string
 	Error  error
 }
+
+func (l *littr) Session(r *http.Request) *sessions.Session {
+	s, err := l.session.Get(r, sessionName)
+	if err != nil {
+		log.Print(err)
+	}
+	return s
+}
+
 func (l *littr) host() string {
 	var port string
 	if l.Port != 0 {
@@ -113,7 +128,7 @@ func (l *littr) Vote(p Content, score int, userId int64) (bool, error) {
 		}
 	}
 
-	q := ""
+	var q string
 	if v.id != 0 {
 		if v.weight != 0 && math.Signbit(float64(newWeight)) == math.Signbit(float64(v.weight)) {
 			newWeight = 0
@@ -261,7 +276,7 @@ func (l *littr) handleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s, err := l.Session.Get(r, sessionName)
+	s, err := l.session.Get(r, sessionName)
 	if err != nil {
 		log.Printf("ERROR %s", err)
 	}
@@ -271,7 +286,7 @@ func (l *littr) handleCallback(w http.ResponseWriter, r *http.Request) {
 	s.Values["state"] = state
 	s.AddFlash("Success")
 
-	err = l.Session.Save(r, w, s)
+	err = l.session.Save(r, w, s)
 	if err != nil {
 		log.Print(err)
 	}
@@ -328,7 +343,7 @@ func (l *littr) handleAuth(w http.ResponseWriter, r *http.Request) {
 			RedirectURL: url,
 		}
 	default:
-		s, err := l.Session.Get(r, sessionName)
+		s, err := l.session.Get(r, sessionName)
 		if err != nil {
 			log.Printf("ERROR %s", err)
 		}
@@ -345,13 +360,14 @@ func (l *littr) loggerMw(n http.Handler) http.Handler {
 		n.ServeHTTP(w, r)
 	})
 }
-func (l *littr) flashSessions(n http.Handler) http.Handler {
+func (l *littr) sessions(n http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		sess, err := l.Session.Get(r, sessionName)
+		s, err := l.session.Get(r, sessionName)
 		if err != nil {
 			log.Print(err)
 		}
-		log.Printf("%#v", sess.Values)
+		l.FlashData = s.Flashes()
+
 		n.ServeHTTP(w, r)
 	})
 }
@@ -359,14 +375,12 @@ func (l *littr) flashSessions(n http.Handler) http.Handler {
 func (l *littr) authCheck(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		s, err := l.Session.Get(r, sessionName)
+		s, err := l.session.Get(r, sessionName)
 		if err != nil {
 			log.Printf("ERROR %s", err)
 		}
-		//data := []byte(fmt.Sprintf("found test: %#v", s.Values))
-		//w.Write(data)
-
-		l.Session.Save(r, w, s)
+		log.Printf("%#v", s.Values)
+		//l.session.Save(r, w, s)
 	})
 }
 
@@ -384,15 +398,13 @@ func init() {
 	s.Options.Domain = listenHost
 	s.Options.Path = "/"
 
-	app = littr{Host: listenHost, Port: listenPort, Session: s}
+	app = littr{Host: listenHost, Port: listenPort, session: s}
 
 	dbPw := os.Getenv("DB_PASSWORD")
 	dbName := os.Getenv("DB_NAME")
 	dbUser := os.Getenv("DB_USER")
 
 	connStr := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable", dbUser, dbPw, dbName)
-	//orm.NewLog(&app)
-	//orm.Debug = true
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		log.Print(err)
@@ -476,6 +488,7 @@ func main() {
 	})
 
 	m.Use(app.loggerMw)
-	m.Use(app.flashSessions)
+	m.Use(app.sessions)
+
 	app.Run(m, wait)
 }

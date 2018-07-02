@@ -255,6 +255,11 @@ func (l *littr) handleIndex(w http.ResponseWriter, r *http.Request) {
 		log.Print(err)
 	}
 
+	err = l.session.Save(r, w, l.Session(r))
+	if err != nil {
+		log.Print(err)
+	}
+
 	var terr error
 	var t *template.Template
 	t, terr = template.New("index.html").ParseFiles(templateDir + "index.html")
@@ -268,12 +273,17 @@ func (l *littr) handleIndex(w http.ResponseWriter, r *http.Request) {
 		"title":			  func(t []byte) string { return string(t) },
 		"getProviders": 	  getAuthProviders,
 		"CurrentAccount": 	  CurrentAccount,
+		"LoadFlashMessages":  LoadFlashMessages,
 	})
 	_, terr = t.New("items.html").ParseFiles(templateDir + "partials/content/items.html")
 	if terr != nil {
 		log.Print(terr)
 	}
 	_, terr = t.New("link.html").ParseFiles(templateDir + "partials/content/link.html")
+	if terr != nil {
+		log.Print(terr)
+	}
+	_, terr = t.New("flash.html").ParseFiles(templateDir + "partials/flash.html")
 	if terr != nil {
 		log.Print(terr)
 	}
