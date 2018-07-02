@@ -1,11 +1,30 @@
 @charset "UTF-8";
+:root {
+    background: Window;
+    color: WindowText;
+}
 body {
-    font-size: 1em;
-    line-height: 1.1em;
-    padding: 1ex 0 0 1em;
+    font-size: 1rem;
+    line-height: 1.4em;
+}
+.inverted {
+    color: Window !important;
+    background-color: WindowText !important;
+}
+.inverted a {
+    color: dodgerblue;
+}
+.inverted a:active {
+    color: crimson;
+}
+.inverted a:visited,
+.inverted a:active:visited {
+    color: mediumpurple;
+}
+.inverted .score a {
+    color: unset;
 }
 body>header {
-    margin: 0 0 0 -.5em;
     height: 2.4em;
     width: 100%;
 }
@@ -16,11 +35,13 @@ body>header h1 {
 body>header h1 a {
     text-decoration: none;
     color: WindowText;
-    display:block;
-    float:left;
     text-align: center;
-    margin-right: 1.2ex;
-    margin-top: 2px;
+}
+.inverted header h1 a,
+.inverted header h1 a:active,
+.inverted header h1 a:focus
+{
+    color: Window;
 }
 /*body>header h1 a:before {
     content: "♻";
@@ -38,7 +59,8 @@ body>header h1 a {
     font-size: 1.1em;
     margin: 0.2em 0;
 }
-#content .data, .items .data {
+#content .data,
+.items .data {
     /*margin-left: 3ex;*/
 }
 #content .data {
@@ -48,7 +70,7 @@ body>header h1 a {
     /*margin: 1.2em 0;*/
 }
 .data {
-    margin: 1.8em 0.5ex;
+    /*margin: 1.8em 0.5ex;*/
     /*padding: 1em 11ex;*/
 }
 #items ol {
@@ -82,38 +104,34 @@ ol.comments {
     width: 100%;
     font-size:.6em;
 }
-.score a:hover, .score a:focus {
+.score a:hover,
+.score a:focus {
     text-decoration: none;
 }
 .score a {
-    display: block;
-    width: 100%;
     text-decoration: none;
-    /*padding: 0 8px 1px 8px;*/
-    color: #333333;
-    font-size: 1em;
+    padding: 0 2px 0 2px;
+    font-size: 1.1em;
+    color: WindowText;
 }
-.score a.inc {
-    margin-top: 2px;
-    margin-bottom: 1px;
-}
-.score a.inc::before {
+.score a.yay::before {
     font-weight: 1000;
     content: "🞦";
 }
-.score a.dec {
-    margin-top: -3px;
-    margin-bottom: 2px;
+.score a.yay:active,
+.score a.yay.ed/*,
+.score a.nay:active,
+.score a.nay.ed*/ {
+    color: orangered;
+    /*color: WindowText;*/
 }
-.score a.inc:active, .score a.inc.active  {
-    color: royalblue;
-}
-.score a.dec::after {
+.score a.nay::after {
     font-weight: 1000;
     content: "━";
 }
-.score a.dec:active, .score a.dec.active {
-    color: cornflowerblue;
+.score a.nay:active,
+.score a.nay.ed {
+    color: darkgreen;
 }
 .submission {
     padding-top: .3em;
