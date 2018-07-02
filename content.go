@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/astaxie/beego/orm"
 	"github.com/gorilla/mux"
 	"html/template"
 	"log"
@@ -58,11 +57,7 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 	hash := vars["hash"]
 	items := make([]Content,0)
 
-	db, err := orm.GetDB("default")
-	if err != nil {
-		l.handleError(w, r, err, -1)
-		return
-	}
+	db := l.Db
 
 	sel := `select "content_items"."id", "content_items"."key", "mime_type", "data", "title", "content_items"."score",
 			"submitted_at", "submitted_by", "handle", "path", "content_items"."flags" from "content_items"

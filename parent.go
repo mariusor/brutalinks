@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/astaxie/beego/orm"
 	"github.com/gorilla/mux"
 	"net/http"
 )
@@ -10,11 +9,7 @@ import (
 func (l *littr) handleParent(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	db, err := orm.GetDB("default")
-	if err != nil {
-		l.handleError(w, r, err, -1)
-		return
-	}
+	db := l.Db
 
 	sel := `select par.submitted_at, par.key from content_items par 
 		inner join content_items cur on subltree(cur.Path, nlevel(cur.Path)-1, nlevel(cur.Path)) <@ par.Key::ltree

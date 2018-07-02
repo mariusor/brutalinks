@@ -3,7 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/astaxie/beego/orm"
+	"database/sql"
+
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
 	_ "github.com/lib/pq"
@@ -50,6 +51,7 @@ func getAllIds(c []Content) []int64 {
 type littr struct {
 	Host    string
 	Port	int64
+	Db 	    *sql.DB
 	Session sessions.Store
 }
 
@@ -93,14 +95,11 @@ func (v *Vote) IsNay () bool {
 	return v != nil && v.weight < 0
 }
 func (l *littr) Vote(p Content, score int, userId int64) (bool, error) {
-	db, err := orm.GetDB("default")
-	if err != nil {
-		return false, err
-	}
+	db := l.Db
 	newWeight := int(score * ScoreMultiplier)
 
 	v := Vote{}
-	sel := `select "id", "weight" from "Votes" where "submitted_by" = $1 and "item_id" = $2;`
+	sel := `select "id", "weight" from "votes" where "submitted_by" = $1 and "item_id" = $2;`
 	{
 		rows, err := db.Query(sel, userId, p.id)
 		if err != nil {
@@ -119,9 +118,9 @@ func (l *littr) Vote(p Content, score int, userId int64) (bool, error) {
 		if v.weight != 0 && math.Signbit(float64(newWeight)) == math.Signbit(float64(v.weight)) {
 			newWeight = 0
 		}
-		q = `update "Votes" set "updated_at" = now(), "weight" = $1 where "item_id" = $2 and "submitted_by" = $3;`
+		q = `update "votes" set "updated_at" = now(), "weight" = $1 where "item_id" = $2 and "submitted_by" = $3;`
 	} else {
-		q = `insert into "Votes" ("weight", "item_id", "submitted_by") values ($1, $2, $3)`
+		q = `insert into "votes" ("weight", "item_id", "submitted_by") values ($1, $2, $3)`
 	}
 	{
 		res, err := db.Exec(q, newWeight, p.id, userId)
@@ -390,13 +389,15 @@ func init() {
 	dbPw := os.Getenv("DB_PASSWORD")
 	dbName := os.Getenv("DB_NAME")
 	dbUser := os.Getenv("DB_USER")
-	dbSource := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable", dbUser, dbPw, dbName)
-	orm.NewLog(&app)
-	orm.Debug = true
-	err := orm.RegisterDataBase("default", "postgres", dbSource, 30)
+
+	connStr := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable", dbUser, dbPw, dbName)
+	//orm.NewLog(&app)
+	//orm.Debug = true
+	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		log.Print(err)
 	}
+	app.Db = db
 }
 
 func main() {

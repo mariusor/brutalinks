@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/astaxie/beego/orm"
 	"github.com/gorilla/mux"
 	"html/template"
 	"log"
@@ -31,17 +30,14 @@ type userModel struct {
 }
 func (u *Account) VotedOn(i Content) *Vote{
 	for _, v := range u.Votes {
-		if v.id == i.id {
+		if v.itemId == i.id {
 			return &v
 		}
 	}
 	return nil
 }
 func (u *Account) LoadVotes(ids []int64) error {
-	db, err := orm.GetDB("default")
-	if err != nil {
-		return err
-	}
+	db := app.Db
 	// this here code following is the ugliest I wrote in quite a long time
 	// so ugly it warrants its own fucking shame corner
 	sids := make([]string, 0)
@@ -77,11 +73,7 @@ func (u *Account) LoadVotes(ids []int64) error {
 func (l *littr) handleUser(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	db, err := orm.GetDB("default")
-	if err != nil {
-		l.handleError(w, r, err, -1)
-		return
-	}
+	db := l.Db
 	m := userModel{}
 
 	u := Account{}
@@ -125,7 +117,7 @@ func (l *littr) handleUser(w http.ResponseWriter, r *http.Request) {
 			m.Items = append(m.Items, p)
 		}
 	}
-	err = CurrentAccount().LoadVotes(getAllIds(m.Items))
+	err := CurrentAccount().LoadVotes(getAllIds(m.Items))
 	if err != nil {
 		log.Print(err)
 	}

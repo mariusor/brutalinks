@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/astaxie/beego/orm"
 	"html/template"
 	"log"
 	"math"
@@ -228,11 +227,7 @@ func getAuthProviders() map[string]string {
 func (l *littr) handleIndex(w http.ResponseWriter, r *http.Request) {
 	m := indexModel{Title: "Index"}
 
-	db, err := orm.GetDB("default")
-	if err != nil {
-		l.handleError(w, r, err, -1)
-		return
-	}
+	db := l.Db
 
 	sel := fmt.Sprintf(`select "content_items"."id", "content_items"."key", "mime_type", "data", "title", "content_items"."score", 
 			"submitted_at", "submitted_by", "handle", "content_items"."flags" 

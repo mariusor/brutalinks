@@ -5,7 +5,6 @@ import (
 	"html/template"
 	"math"
 	"log"
-	"github.com/astaxie/beego/orm"
 	"fmt"
 	"time"
 	"net/url"
@@ -28,11 +27,7 @@ func detectMimeType(data []byte) string {
 func (l *littr) handleSubmit(w http.ResponseWriter, r *http.Request) {
 	p := Content{}
 	m := newModel{Title: "Submit new content", Content: p}
-	db, err := orm.GetDB("default")
-	if err != nil {
-		l.handleError(w, r, err, -1)
-		return
-	}
+	db := l.Db
 	var userId int64 = 1
 
 	if r.Method == http.MethodPost {
