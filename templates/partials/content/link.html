@@ -10,7 +10,7 @@
 {{if .IsLink -}}
 </a>
 {{- end}}
-    <span class="domain">{{if .IsLink}}{{.GetDomain}}<a title="all submissions" href={{"/"}}></a>{{else}}self{{end}}</span>
+    <span class="domain">{{if .IsLink}}{{.GetDomain}}<a title="all submissions" href=/domains/{{.GetDomain}}></a>{{else}}self{{end}}</span>
 </h1>
 {{end -}}
 {{- end -}}
