@@ -10,10 +10,11 @@ import (
 	"strings"
 	"time"
 	"math"
+	"models"
 )
 
 type comment struct {
-	Content
+	models.Content
 	Parent   *comment
 	Children []*comment
 }
@@ -29,32 +30,6 @@ func sluggify(s string) string {
 	}
 	return strings.Replace(s, "/", "-", -1)
 }
-func (c Content) ParentLink() string {
-	if c.parentLink == "" {
-		if c.Path == nil {
-			c.parentLink = "/"
-		} else {
-			lastDotPos := bytes.LastIndex(c.Path, []byte(".")) + 1
-			parentHash := c.Path[lastDotPos : lastDotPos+8]
-			c.parentLink = fmt.Sprintf("/p/%s/%s", c.Hash(), parentHash)
-		}
-	}
-	return c.parentLink
-}
-func (c Content) OPLink() string {
-	if c.Path != nil {
-		parentHash := c.Path[0 : 8]
-		return fmt.Sprintf("/op/%s/%s", c.Hash(), parentHash)
-	}
-	return "/"
-}
-//func (c Content) ancestorLink(lvl int) string {
-//
-//}
-func (c Content) IsSelf() bool {
-	mimeComponents := strings.Split(c.MimeType, "/")
-	return mimeComponents[0] == "text"
-}
 
 // handleMain serves /{year}/{month}/{day}/{hash} request
 func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
@@ -65,7 +40,7 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	hash := vars["hash"]
-	items := make([]Content,0)
+	items := make([]models.Content,0)
 
 	db := l.Db
 
@@ -79,9 +54,9 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	m := contentModel{}
-	p := Content{}
+	p := models.Content{}
 	for rows.Next() {
-		err = rows.Scan(&p.id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.submittedBy, &p.Handle, &p.Path, &p.flags)
+		err = rows.Scan(&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Handle, &p.Path, &p.Flags)
 		if err != nil {
 			l.handleError(w, r, err, -1)
 			return
@@ -108,7 +83,7 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 			if yay {
 				multiplier = 1
 			}
-			_, err := app.Vote(p, multiplier, CurrentAccount().id)
+			_, err := app.Vote(p, multiplier, CurrentAccount().Id)
 			if err != nil {
 				log.Print(err)
 			}
@@ -116,13 +91,13 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if r.Method == http.MethodPost {
-		repl := Content{}
+		repl := models.Content{}
 
 		repl.Data = []byte(r.PostFormValue("data"))
 		if len(repl.Data) > 0 {
 			now := time.Now()
 			repl.MimeType = "text/plain"
-			repl.submittedBy = CurrentAccount().id
+			repl.SubmittedBy = CurrentAccount().Id
 			repl.SubmittedAt = now
 			repl.UpdatedAt = now
 			repl.Key = repl.GetKey()
@@ -131,7 +106,7 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 
 			ins := `insert into "content_items" ("key", "data", "mime_type", "submitted_by", "path", "submitted_at", "updated_at") values($1, $2, $3, $4, $5, $6, $7)`
 			{
-				res, err := db.Exec(ins, repl.Key, repl.Data, repl.MimeType, repl.submittedBy, repl.Path, repl.SubmittedAt, repl.UpdatedAt)
+				res, err := db.Exec(ins, repl.Key, repl.Data, repl.MimeType, repl.SubmittedBy, repl.Path, repl.SubmittedAt, repl.UpdatedAt)
 				if err != nil {
 					log.Print(err)
 				} else {
@@ -141,7 +116,7 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
-		l.Vote(repl, 1, CurrentAccount().id)
+		l.Vote(repl, 1, CurrentAccount().Id)
 		http.Redirect(w, r, p.PermaLink(), http.StatusFound)
 	}
 
@@ -160,8 +135,8 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		for rows.Next() {
-			c := Content{}
-			err = rows.Scan(&c.id, &c.Key, &c.MimeType, &c.Data, &c.Title, &c.Score, &c.SubmittedAt, &c.submittedBy, &c.Handle, &c.Path, &c.flags)
+			c := models.Content{}
+			err = rows.Scan(&c.Id, &c.Key, &c.MimeType, &c.Data, &c.Title, &c.Score, &c.SubmittedAt, &c.SubmittedBy, &c.Handle, &c.Path, &c.Flags)
 			if err != nil {
 				l.handleError(w, r, err, -1)
 				return
@@ -193,7 +168,7 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 			par.Children = append(par.Children, cur)
 		}
 	}
-	err = CurrentAccount().LoadVotes(getAllIds(items))
+	err = l.LoadVotes(CurrentAccount(), getAllIds(items))
 	if err != nil {
 		log.Print(err)
 	}

@@ -1,156 +1,24 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"html/template"
 	"log"
 	"math"
 	"net/http"
-	"strings"
 	"time"
-	"crypto/sha256"
+	"models"
 )
 
 const (
-	FlagsNone       = 0
-	FlagsDeleted    = 1
-	MimeTypeURL     = "application/url"
-	ScoreMultiplier = 10000.0
-	ScoreMaxK       = 10000.0
-	ScoreMaxM       = 10000000.0
-	ScoreMaxB       = 10000000000.0
 	MaxContentItems = 200
 )
 
-type Content struct {
-	id          int64     `orm:id,"auto"`
-	Key         []byte    `orm:key,size(56)`
-	Title       []byte    `orm:title`
-	MimeType    string    `orm:mime_type`
-	Data        []byte    `orm:data`
-	Score       int64     `orm:score`
-	SubmittedAt time.Time `orm:created_at`
-	submittedBy int64     `orm:submitted_by`
-	UpdatedAt   time.Time `orm:updated_at`
-	Handle      string    `orm:handle`
-	flags       int8      `orm:flags`
-	Metadata    []byte    `orm:metadata`
-	Path        []byte    `orm:path`
-	fullPath    []byte
-	parentLink  string
-}
-
 type indexModel struct {
 	Title string
-	Items []Content
+	Items []models.Content
 }
 
-func (c *Content) GetKey() []byte {
-	data := c.Data
-	now := c.UpdatedAt
-	if now.IsZero() {
-		now = time.Now()
-	}
-	data = append(data, []byte(fmt.Sprintf("%d", now.UnixNano()))...)
-	data = append(data, []byte(c.Path)...)
-	data = append(data, []byte(fmt.Sprintf("%d",c.submittedBy))...)
-
-	c.Key = []byte(fmt.Sprintf("%x", sha256.Sum256(data)))
-	return c.Key
-}
-func (c Content) scoreLink(dir string) string {
-	if c.SubmittedAt.IsZero() {
-		return ""
-	}
-	return fmt.Sprintf("/%4d/%02d/%02d/%s?%s", c.SubmittedAt.Year(), c.SubmittedAt.Month(), c.SubmittedAt.Day(), c.Key[0:8], dir)
-}
-func (c Content) ScoreUPLink() string {
-	return c.scoreLink("yay")
-}
-func (c Content) ScoreDOWNLink() string {
-	return c.scoreLink("nay")
-}
-func (c Content) IsTop() bool {
-	return c.Path == nil
-}
-func (c Content) Hash() string {
-	return c.Hash8()
-}
-func (c Content) Hash8() string {
-	return string(c.Key[0:8])
-}
-func (c Content) Hash16() string {
-	return string(c.Key[0:16])
-}
-func (c Content) Hash32() string {
-	return string(c.Key[0:32])
-}
-func (c Content) Hash64() string {
-	return string(c.Key)
-}
-func (c Content) PermaLink() string {
-	if c.SubmittedAt.IsZero() {
-		return ""
-	}
-	return fmt.Sprintf("/%4d/%02d/%02d/%s", c.SubmittedAt.Year(), c.SubmittedAt.Month(), c.SubmittedAt.Day(), c.Key[0:8])
-}
-func (c *Content) FullPath() []byte {
-	if c.fullPath == nil {
-		c.fullPath = append(c.fullPath, c.Path...)
-		if len(c.fullPath) > 0 {
-			c.fullPath = append(c.fullPath, byte('.'))
-		}
-		c.fullPath = append(c.fullPath, c.Key...)
-	}
-	return c.fullPath
-}
-func (c Content) Level() int {
-	if c.Path == nil {
-		return 0
-	}
-	return bytes.Count(c.FullPath(), []byte("."))
-}
-
-func (c Content) Deleted() bool {
-	return c.flags&FlagsDeleted == FlagsDeleted
-}
-func (c Content) IsLink() bool {
-	return c.MimeType == MimeTypeURL
-}
-func (c Content) ScoreFmt() string {
-	score := 0.0
-	units := ""
-	base := float64(c.Score) / ScoreMultiplier
-	d := math.Ceil(math.Log10(math.Abs(base)))
-	if d < 5 {
-		score = math.Ceil(base)
-		return fmt.Sprintf("%d", int(score))
-	} else if d < 8 {
-		score = base / ScoreMaxK
-		units = "K"
-	} else if d < 11 {
-		score = base / ScoreMaxM
-		units = "M"
-	} else if d < 13 {
-		score = base / ScoreMaxB
-		units = "B"
-	} else {
-		sign := ""
-		if base < 0 {
-			sign = "-"
-		}
-		return fmt.Sprintf("%s%s", sign, "∞")
-	}
-
-	return fmt.Sprintf("%3.1f%s", score, units)
-}
-func (c Content) GetDomain() string {
-	if !c.IsLink() {
-		return ""
-	}
-	return strings.Split(string(c.Data), "/")[2]
-}
 func relativeDate(c time.Time) string {
 	i := time.Now().Sub(c)
 	pluralize := func(d float64, unit string) string {
@@ -241,8 +109,8 @@ func (l *littr) handleIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	for rows.Next() {
-		p := Content{}
-		err = rows.Scan(&p.id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.submittedBy, &p.Handle, &p.flags)
+		p := models.Content{}
+		err = rows.Scan(&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Handle, &p.Flags)
 		if err != nil {
 			l.handleError(w, r, err, -1)
 			return
@@ -250,7 +118,7 @@ func (l *littr) handleIndex(w http.ResponseWriter, r *http.Request) {
 		m.Items = append(m.Items, p)
 	}
 
-	err = CurrentAccount().LoadVotes(getAllIds(m.Items))
+	err = l.LoadVotes(CurrentAccount(), getAllIds(m.Items))
 	if err != nil {
 		log.Print(err)
 	}

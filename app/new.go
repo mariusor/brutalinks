@@ -8,24 +8,25 @@ import (
 	"fmt"
 	"time"
 	"net/url"
+	"models"
 )
 
 type newModel struct {
 	Title   string
-	Content Content
+	Content models.Content
 }
 
 func detectMimeType(data []byte) string {
 	u, err := url.ParseRequestURI(string(data))
 	if err == nil && u != nil {
-		return MimeTypeURL
+		return models.MimeTypeURL
 	}
 	return "text/plain"
 }
 
 // handleMain serves /{year}/{month}/{day}/{hash} request
 func (l *littr) handleSubmit(w http.ResponseWriter, r *http.Request) {
-	p := Content{}
+	p := models.Content{}
 	m := newModel{Title: "Submit new content", Content: p}
 	db := l.Db
 	var userId int64 = 1
@@ -38,12 +39,12 @@ func (l *littr) handleSubmit(w http.ResponseWriter, r *http.Request) {
 			p.MimeType = detectMimeType(p.Data)
 			p.SubmittedAt = now
 			p.UpdatedAt = now
-			p.submittedBy = userId
+			p.SubmittedBy = userId
 			p.Key = p.GetKey()
 
 			ins := `insert into "content_items" ("key", "title", "data", "mime_type", "submitted_by", "submitted_at", "updated_at") values($1, $2, $3, $4, $5, $6, $7)`
 			{
-				res, err := db.Exec(ins, p.Key, p.Title, p.Data, p.MimeType, p.submittedBy, p.SubmittedAt, p.UpdatedAt)
+				res, err := db.Exec(ins, p.Key, p.Title, p.Data, p.MimeType, p.SubmittedBy, p.SubmittedAt, p.UpdatedAt)
 				if err != nil {
 					log.Print(err)
 				} else {

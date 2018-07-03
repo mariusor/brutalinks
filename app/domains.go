@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"models"
 )
 
 // handleMain serves /domains/{domain} request
@@ -15,7 +16,7 @@ func (l *littr)handleDomains(w http.ResponseWriter, r *http.Request) {
 	m := userModel{}
 
 	selC := `select "content_items"."id", "content_items"."key", "mime_type", "data", "title", "content_items"."score", 
-			"submitted_at", "content_items"."flags", "content_items"."metadata"  from "content_items" 
+			"submitted_at", "content_items"."flags", "content_items"."metadata", "accounts"."handle" from "content_items" 
 			left join "accounts" on "accounts"."id" = "content_items"."submitted_by" 
 			where substring(data::text from 'http[s]?://([^/]*)') = $1 order by "submitted_at" desc`
 	{
@@ -25,8 +26,8 @@ func (l *littr)handleDomains(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		for rows.Next() {
-			p := Content{}
-			err = rows.Scan(&p.id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.flags, &p.Metadata)
+			p := models.Content{}
+			err = rows.Scan(&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.Flags, &p.Metadata, &p.Handle)
 			if err != nil {
 				l.handleError(w, r, err, -1)
 				return
@@ -34,7 +35,7 @@ func (l *littr)handleDomains(w http.ResponseWriter, r *http.Request) {
 			m.Items = append(m.Items, p)
 		}
 	}
-	err := CurrentAccount().LoadVotes(getAllIds(m.Items))
+	err := l.LoadVotes(CurrentAccount(), getAllIds(m.Items))
 	if err != nil {
 		log.Print(err)
 	}

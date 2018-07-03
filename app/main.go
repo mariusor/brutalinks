@@ -19,6 +19,8 @@ import (
 
 	"math"
 	"strconv"
+	"models"
+	"strings"
 )
 
 const sessionName = "_s"
@@ -30,9 +32,9 @@ var listenHost = os.Getenv("HOSTNAME")
 var listenPort, _ = strconv.ParseInt(os.Getenv("PORT"), 10, 64)
 var app littr
 
-var LocalUser = Account{id: 1, Handle: "anonymous", Votes: make(map[int64]Vote)}
+var LocalUser = models.AnonymousAccount()
 
-func CurrentAccount() *Account {
+func CurrentAccount() *models.Account {
 	return &LocalUser
 }
 
@@ -44,16 +46,9 @@ func CleanFlashMessages() string {
 	app.FlashData = app.FlashData[:0]
 	return ""
 }
-type Item interface {
-	Id() int64
-}
 
-func getAllIds(c []Content) []int64 {
-	var i []int64
-	for _, k := range c {
-		i = append(i, k.id)
-	}
-	return i
+func getAllIds(c []models.Content) []int64 {
+	return models.ContentCollection(c).GetAllIds()
 }
 
 type littr struct {
@@ -86,9 +81,44 @@ func (l *littr) host() string {
 	}
 	return fmt.Sprintf("%s%s", l.Host, port)
 }
+
 func (l *littr) BaseUrl() string {
 	return fmt.Sprintf("http://%s", l.host())
 }
+
+
+func (l *littr) LoadVotes(u *models.Account, ids []int64) error {
+	db := l.Db
+	// this here code following is the ugliest I wrote in quite a long time
+	// so ugly it warrants its own fucking shame corner
+	sids := make([]string, 0)
+	for i := 0; i < len(ids); i++ {
+		sids = append(sids, fmt.Sprintf("$%d", i+2))
+	}
+	iitems := make([]interface{}, len(ids)+1)
+	iitems[0] = u.Id
+	for i, v := range ids {
+		iitems[i+1] = v
+	}
+	sel := fmt.Sprintf(`select "id", "submitted_by", "submitted_at", "updated_at", "item_id", "weight", "flags"
+	from "votes" where "submitted_by" = $1 and "item_id" in (%s)`,  strings.Join(sids, ", "))
+	rows, err := db.Query(sel, iitems...)
+	if err != nil {
+		return err
+	}
+	for rows.Next() {
+		v := models.Vote{}
+		err = rows.Scan(&v.Id, &v.SubmittedBy, &v.SubmittedAt, &v.UpdatedAt,
+			&v.ItemId, &v.Weight, &u.Flags)
+		if err != nil {
+			return err
+		}
+		u.Votes[v.Id] = v
+	}
+
+	return nil
+}
+
 //func (l *littr) session(r *http.Request) *sessions.Session {
 //	sess, err := l.Session.Get(r, sessionName)
 //	if err != nil {
@@ -98,34 +128,19 @@ func (l *littr) BaseUrl() string {
 //	return sess
 //}
 
-type Vote struct {
-	id          int64     `orm:id`
-	submittedBy int64     `orm:submitted_by`
-	SubmittedAt time.Time `orm:created_at`
-	UpdatedAt   time.Time `orm:updated_at`
-	itemId      int64     `orm:item_id`
-	weight      int       `orm:weight`
-	flags       int8      `orm:flags`
-}
-func (v *Vote) IsYay () bool {
-	return v != nil && v.weight > 0
-}
-func (v *Vote) IsNay () bool {
-	return v != nil && v.weight < 0
-}
-func (l *littr) Vote(p Content, score int, userId int64) (bool, error) {
+func (l *littr) Vote(p models.Content, score int, userId int64) (bool, error) {
 	db := l.Db
-	newWeight := int(score * ScoreMultiplier)
+	newWeight := int(score * models.ScoreMultiplier)
 
-	v := Vote{}
+	v := models.Vote{}
 	sel := `select "id", "weight" from "votes" where "submitted_by" = $1 and "item_id" = $2;`
 	{
-		rows, err := db.Query(sel, userId, p.id)
+		rows, err := db.Query(sel, userId, p.Id)
 		if err != nil {
 			return false, err
 		}
 		for rows.Next() {
-			err = rows.Scan(&v.id, &v.weight)
+			err = rows.Scan(&v.Id, &v.Weight)
 			if err != nil {
 				return false, err
 			}
@@ -133,8 +148,8 @@ func (l *littr) Vote(p Content, score int, userId int64) (bool, error) {
 	}
 
 	var q string
-	if v.id != 0 {
-		if v.weight != 0 && math.Signbit(float64(newWeight)) == math.Signbit(float64(v.weight)) {
+	if v.Id != 0 {
+		if v.Weight != 0 && math.Signbit(float64(newWeight)) == math.Signbit(float64(v.Weight)) {
 			newWeight = 0
 		}
 		q = `update "votes" set "updated_at" = now(), "weight" = $1 where "item_id" = $2 and "submitted_by" = $3;`
@@ -142,7 +157,7 @@ func (l *littr) Vote(p Content, score int, userId int64) (bool, error) {
 		q = `insert into "votes" ("weight", "item_id", "submitted_by") values ($1, $2, $3)`
 	}
 	{
-		res, err := db.Exec(q, newWeight, p.id, userId)
+		res, err := db.Exec(q, newWeight, p.Id, userId)
 		if err != nil {
 			return false, err
 		}
@@ -154,7 +169,7 @@ func (l *littr) Vote(p Content, score int, userId int64) (bool, error) {
 
 	upd := `update "content_items" set score = score - $1 + $2 where "id" = $3`
 	{
-		res, err := db.Exec(upd, v.weight, newWeight, p.id)
+		res, err := db.Exec(upd, v.Weight, newWeight, p.Id)
 		if err != nil {
 			return false, err
 		}
@@ -169,6 +184,7 @@ func (l *littr) Vote(p Content, score int, userId int64) (bool, error) {
 
 	return true, nil
 }
+
 func (l *littr) Run(m *mux.Router, wait time.Duration) {
 	log.SetPrefix(l.Host + " ")
 	log.SetFlags(0)

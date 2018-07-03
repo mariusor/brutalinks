@@ -4,6 +4,7 @@ import (
 	"github.com/gorilla/mux"
 	"net/http"
 	"fmt"
+	"models"
 )
 
 // handleMain serves /p/{hash}/{parent} request
@@ -28,7 +29,7 @@ func (l *littr) handleParent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	for rows.Next() {
-		p := Content{}
+		p := models.Content{}
 		err = rows.Scan(&p.SubmittedAt, &p.Key)
 		if err != nil {
 			l.handleError(w, r, err, -1)
