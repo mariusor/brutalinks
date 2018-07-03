@@ -57,6 +57,11 @@ func (l *littr) handleSubmit(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, p.PermaLink(), http.StatusMovedPermanently)
 	}
 
+	err := l.session.Save(r, w, l.Session(r))
+	if err != nil {
+		log.Print(err)
+	}
+
 	var terr error
 	var t *template.Template
 	t, terr = template.New("new.html").ParseFiles(templateDir + "new.html")
@@ -73,6 +78,7 @@ func (l *littr) handleSubmit(w http.ResponseWriter, r *http.Request) {
 		"getProviders": 	  getAuthProviders,
 		"CurrentAccount": 	  CurrentAccount,
 		"LoadFlashMessages":  LoadFlashMessages,
+		"CleanFlashMessages":  CleanFlashMessages,
 	})
 	_, terr = t.New("submit.html").ParseFiles(templateDir + "partials/content/submit.html")
 	if terr != nil {

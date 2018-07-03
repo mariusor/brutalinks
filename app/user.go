@@ -122,6 +122,11 @@ func (l *littr) handleUser(w http.ResponseWriter, r *http.Request) {
 		log.Print(err)
 	}
 
+	err = l.session.Save(r, w, l.Session(r))
+	if err != nil {
+		log.Print(err)
+	}
+
 	var t *template.Template
 	var terr error
 	t, terr = template.New("user.html").ParseFiles(templateDir + "user.html")
@@ -136,6 +141,7 @@ func (l *littr) handleUser(w http.ResponseWriter, r *http.Request) {
 		"getProviders": 	  getAuthProviders,
 		"CurrentAccount": 	  CurrentAccount,
 		"LoadFlashMessages":  LoadFlashMessages,
+		"CleanFlashMessages":  CleanFlashMessages,
 	})
 	if terr != nil {
 		log.Print(terr)

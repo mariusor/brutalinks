@@ -40,6 +40,10 @@ func LoadFlashMessages() []interface{} {
 	return app.FlashData
 }
 
+func CleanFlashMessages() string {
+	app.FlashData = app.FlashData[:0]
+	return ""
+}
 type Item interface {
 	Id() int64
 }
@@ -453,6 +457,10 @@ func main() {
 	m.HandleFunc("/{ancestor}/{hash}/{parent}", app.handleParent).
 		Methods(http.MethodGet, http.MethodHead).
 		Name("parent")
+
+	m.HandleFunc("/domains/{domain}", app.handleDomains).
+		Methods(http.MethodGet, http.MethodHead).
+		Name("domains")
 
 
 	m.NotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -3,4 +3,4 @@
 export GOPATH=$(pwd):$GOPATH
 . .env
 
-go run ./*.go
+go run ./app/*.go

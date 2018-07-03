@@ -274,6 +274,7 @@ func (l *littr) handleIndex(w http.ResponseWriter, r *http.Request) {
 		"getProviders": 	  getAuthProviders,
 		"CurrentAccount": 	  CurrentAccount,
 		"LoadFlashMessages":  LoadFlashMessages,
+		"CleanFlashMessages":  CleanFlashMessages,
 	})
 	_, terr = t.New("items.html").ParseFiles(templateDir + "partials/content/items.html")
 	if terr != nil {

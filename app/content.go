@@ -197,6 +197,10 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Print(err)
 	}
+	err = l.session.Save(r, w, l.Session(r))
+	if err != nil {
+		log.Print(err)
+	}
 
 	var terr error
 	var t *template.Template
@@ -213,6 +217,7 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 		"getProviders": 	  getAuthProviders,
 		"CurrentAccount": 	  CurrentAccount,
 		"LoadFlashMessages":  LoadFlashMessages,
+		"CleanFlashMessages":  CleanFlashMessages,
 	})
 	_, terr = t.New("submit.html").ParseFiles(templateDir + "partials/content/submit.html")
 	if terr != nil {
