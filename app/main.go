@@ -63,9 +63,10 @@ type littr struct {
 }
 
 type errorModel struct {
-	Status int
-	Title  string
-	Error  error
+	Status        int
+	Title         string
+	InvertedTheme bool
+	Error         error
 }
 
 func (l *littr) Session(r *http.Request) *sessions.Session {
@@ -244,9 +245,10 @@ func (l *littr) handleError(w http.ResponseWriter, r *http.Request, err error, s
 		status = http.StatusInternalServerError
 	}
 	d := errorModel{
-		Status: status,
-		Title:  fmt.Sprintf("Error %d", status),
-		Error:  err,
+		Status:        status,
+		Title:         fmt.Sprintf("Error %d", status),
+		InvertedTheme: l.InvertedTheme,
+		Error:         err,
 	}
 	w.WriteHeader(status)
 
@@ -490,9 +492,10 @@ func main() {
 
 	m.NotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		d := errorModel{
-			Status: http.StatusNotFound,
-			Title:  fmt.Sprintf("Not found"),
-			Error:  fmt.Errorf("url %q couldn't be found", r.URL),
+			Status:        http.StatusNotFound,
+			Title:         fmt.Sprintf("Not found"),
+			InvertedTheme: app.InvertedTheme,
+			Error:         fmt.Errorf("url %q couldn't be found", r.URL),
 		}
 
 		w.WriteHeader(d.Status)
