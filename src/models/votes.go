@@ -2,6 +2,13 @@ package models
 
 import "time"
 
+const (
+	ScoreMultiplier = 10000
+	ScoreMaxK       = 10000.0
+	ScoreMaxM       = 10000000.0
+	ScoreMaxB       = 10000000000.0
+)
+
 type Vote struct {
 	Id          int64     `orm:Id`
 	SubmittedBy int64     `orm:submitted_by`
@@ -11,9 +18,10 @@ type Vote struct {
 	Weight      int       `orm:Weight`
 	Flags       int8      `orm:Flags`
 }
-func (v *Vote) IsYay () bool {
+
+func (v *Vote) IsYay() bool {
 	return v != nil && v.Weight > 0
 }
-func (v *Vote) IsNay () bool {
+func (v *Vote) IsNay() bool {
 	return v != nil && v.Weight < 0
 }

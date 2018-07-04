@@ -12,10 +12,6 @@ const (
 	FlagsNone       = 0
 	FlagsDeleted    = 1
 	MimeTypeURL     = "application/url"
-	ScoreMultiplier = 10000.0
-	ScoreMaxK       = 10000.0
-	ScoreMaxM       = 10000000.0
-	ScoreMaxB       = 10000000000.0
 )
 type Content struct {
 	Id          int64     `orm:Id,"auto"`
@@ -150,6 +146,7 @@ func (c *Content) Delete() {
 func (c Content) IsLink() bool {
 	return c.MimeType == MimeTypeURL
 }
+
 func (c Content) ScoreFmt() string {
 	score := 0.0
 	units := ""

@@ -23,7 +23,7 @@ type CanDelete interface {
 	UnDelete()
 }
 
-func (u *Account) VotedOn(i Content) *Vote{
+func (u *Account) VotedOn(i Content) *Vote {
 	for _, v := range u.Votes {
 		if v.ItemId == i.Id {
 			return &v
@@ -35,5 +35,5 @@ func (u *Account) VotedOn(i Content) *Vote{
 const anonymous = "anonymous"
 
 func AnonymousAccount() Account {
-	return Account{Id: 1, Handle: anonymous, Votes: make(map[int64]Vote)}
+	return Account{Id: -1, Handle: anonymous, Votes: make(map[int64]Vote)}
 }
