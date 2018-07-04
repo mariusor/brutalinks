@@ -1,19 +1,20 @@
 package main
 
 import (
-	"net/http"
-	"html/template"
-	"math"
-	"log"
 	"fmt"
-	"time"
-	"net/url"
+	"html/template"
+	"log"
+	"math"
 	"models"
+	"net/http"
+	"net/url"
+	"time"
 )
 
 type newModel struct {
-	Title   string
-	Content models.Content
+	Title         string
+	InvertedTheme bool
+	Content       models.Content
 }
 
 func detectMimeType(data []byte) string {
@@ -74,12 +75,12 @@ func (l *littr) handleSubmit(w http.ResponseWriter, r *http.Request) {
 		"formatDateInterval": relativeDate,
 		"formatDate":         formatDate,
 		"sluggify":           sluggify,
-		"title":			  func(t []byte) string { return string(t) },
-		"mod":			  	  func(lvl int) float64 { return math.Mod(float64(lvl), float64(10)) },
-		"getProviders": 	  getAuthProviders,
-		"CurrentAccount": 	  CurrentAccount,
+		"title":              func(t []byte) string { return string(t) },
+		"mod":                func(lvl int) float64 { return math.Mod(float64(lvl), float64(10)) },
+		"getProviders":       getAuthProviders,
+		"CurrentAccount":     CurrentAccount,
 		"LoadFlashMessages":  LoadFlashMessages,
-		"CleanFlashMessages":  CleanFlashMessages,
+		"CleanFlashMessages": CleanFlashMessages,
 	})
 	_, terr = t.New("submit.html").ParseFiles(templateDir + "partials/content/submit.html")
 	if terr != nil {

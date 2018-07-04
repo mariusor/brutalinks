@@ -1,18 +1,8 @@
-{{ $flashes := LoadFlashMessages }}
-{{range $i, $flash := $flashes }}
-{{/*}}
-{{if $flash.SuccessMsg }}
-<h2 style="color:forestgreen">{{$flash.SuccessMsg}}</h2>
-{{end}}
-{{if $flash.ErrorMsg}}
-<h2 style="color:red">{{$flash.ErrorMsg}}</h2>
-{{end}}
-{{if $flash.InfoMsg }}
-<h2 style="color:dodgerblue">{{$flash.InfoMsg}}</h2>
-{{end}}
-{{if $flash.WarningMsg }}
-<h2 style="color:coral">{{$flash.WarningMsg}}</h2>
-{{end}}
-*/}}
-<h2 style="color:coral">{{$flash | printf "%s"}}</h2>
+{{range $flash := LoadFlashMessages}}
+<div class="alert alert-warning alert-dismissible fade show" role="alert">
+    {{$flash}}
+    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+</div>
 {{end}}

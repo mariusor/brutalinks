@@ -1,19 +1,20 @@
 package main
 
 import (
-	"github.com/gorilla/mux"
 	"html/template"
 	"log"
-	"net/http"
 	"models"
+	"net/http"
+
+	"github.com/gorilla/mux"
 )
 
 // handleMain serves /domains/{domain} request
-func (l *littr)handleDomains(w http.ResponseWriter, r *http.Request) {
+func (l *littr) handleDomains(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
 	db := l.Db
-	m := userModel{}
+	m := userModel{InvertedTheme: l.InvertedTheme}
 
 	selC := `select "content_items"."id", "content_items"."key", "mime_type", "data", "title", "content_items"."score", 
 			"submitted_at", "content_items"."flags", "content_items"."metadata", "accounts"."handle" from "content_items" 
@@ -50,11 +51,11 @@ func (l *littr)handleDomains(w http.ResponseWriter, r *http.Request) {
 		"formatDateInterval": relativeDate,
 		"formatDate":         formatDate,
 		"sluggify":           sluggify,
-		"title":			  func(t []byte) string { return string(t) },
-		"getProviders": 	  getAuthProviders,
-		"CurrentAccount": 	  CurrentAccount,
+		"title":              func(t []byte) string { return string(t) },
+		"getProviders":       getAuthProviders,
+		"CurrentAccount":     CurrentAccount,
 		"LoadFlashMessages":  LoadFlashMessages,
-		"CleanFlashMessages":  CleanFlashMessages,
+		"CleanFlashMessages": CleanFlashMessages,
 	})
 	if terr != nil {
 		log.Print(terr)

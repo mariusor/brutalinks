@@ -2,17 +2,19 @@ package main
 
 import (
 	"fmt"
-	"github.com/gorilla/mux"
 	"html/template"
 	"log"
-	"net/http"
 	"models"
+	"net/http"
+
+	"github.com/gorilla/mux"
 )
 
 type userModel struct {
-	Title string
-	User  models.Account
-	Items []models.Content
+	Title         string
+	InvertedTheme bool
+	User          models.Account
+	Items         []models.Content
 }
 
 // handleMain serves /~{user}
@@ -20,7 +22,7 @@ func (l *littr) handleUser(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
 	db := l.Db
-	m := userModel{}
+	m := userModel{InvertedTheme: l.InvertedTheme}
 
 	u := models.Account{}
 	selAcct := `select "id", "key", "handle", "email", "score", "created_at", "updated_at", "metadata", "flags" from "accounts" where "handle" = $1`
@@ -83,11 +85,11 @@ func (l *littr) handleUser(w http.ResponseWriter, r *http.Request) {
 		"formatDateInterval": relativeDate,
 		"formatDate":         formatDate,
 		"sluggify":           sluggify,
-		"title":			  func(t []byte) string { return string(t) },
-		"getProviders": 	  getAuthProviders,
-		"CurrentAccount": 	  CurrentAccount,
+		"title":              func(t []byte) string { return string(t) },
+		"getProviders":       getAuthProviders,
+		"CurrentAccount":     CurrentAccount,
 		"LoadFlashMessages":  LoadFlashMessages,
-		"CleanFlashMessages":  CleanFlashMessages,
+		"CleanFlashMessages": CleanFlashMessages,
 	})
 	if terr != nil {
 		log.Print(terr)

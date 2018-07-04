@@ -1,10 +1,11 @@
 package main
 
 import (
-	"github.com/gorilla/mux"
-	"net/http"
 	"fmt"
 	"models"
+	"net/http"
+
+	"github.com/gorilla/mux"
 )
 
 // handleMain serves /p/{hash}/{parent} request

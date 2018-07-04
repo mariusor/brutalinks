@@ -5,9 +5,9 @@ import (
 	"html/template"
 	"log"
 	"math"
+	"models"
 	"net/http"
 	"time"
-	"models"
 )
 
 const (
@@ -15,8 +15,9 @@ const (
 )
 
 type indexModel struct {
-	Title string
-	Items []models.Content
+	Title         string
+	InvertedTheme bool
+	Items         []models.Content
 }
 
 func relativeDate(c time.Time) string {
@@ -93,7 +94,7 @@ func getAuthProviders() map[string]string {
 
 // handleMain serves / request
 func (l *littr) handleIndex(w http.ResponseWriter, r *http.Request) {
-	m := indexModel{Title: "Index"}
+	m := indexModel{Title: "Index", InvertedTheme: l.InvertedTheme}
 
 	db := l.Db
 
@@ -134,15 +135,15 @@ func (l *littr) handleIndex(w http.ResponseWriter, r *http.Request) {
 	if terr != nil {
 		log.Print(terr)
 	}
+
 	t.Funcs(template.FuncMap{
 		"formatDateInterval": relativeDate,
 		"formatDate":         formatDate,
 		"sluggify":           sluggify,
-		"title":			  func(t []byte) string { return string(t) },
-		"getProviders": 	  getAuthProviders,
-		"CurrentAccount": 	  CurrentAccount,
+		"title":              func(t []byte) string { return string(t) },
+		"getProviders":       getAuthProviders,
+		"CurrentAccount":     CurrentAccount,
 		"LoadFlashMessages":  LoadFlashMessages,
-		"CleanFlashMessages":  CleanFlashMessages,
 	})
 	_, terr = t.New("items.html").ParseFiles(templateDir + "partials/content/items.html")
 	if terr != nil {

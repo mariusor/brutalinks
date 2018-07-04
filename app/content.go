@@ -3,14 +3,15 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/gorilla/mux"
 	"html/template"
 	"log"
+	"math"
+	"models"
 	"net/http"
 	"strings"
 	"time"
-	"math"
-	"models"
+
+	"github.com/gorilla/mux"
 )
 
 type comment struct {
@@ -20,8 +21,9 @@ type comment struct {
 }
 
 type contentModel struct {
-	Title   string
-	Content comment
+	Title         string
+	InvertedTheme bool
+	Content       comment
 }
 
 func sluggify(s string) string {
@@ -40,7 +42,7 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	hash := vars["hash"]
-	items := make([]models.Content,0)
+	items := make([]models.Content, 0)
 
 	db := l.Db
 
@@ -53,7 +55,7 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 		l.handleError(w, r, err, -1)
 		return
 	}
-	m := contentModel{}
+	m := contentModel{InvertedTheme: l.InvertedTheme}
 	p := models.Content{}
 	for rows.Next() {
 		err = rows.Scan(&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Handle, &p.Path, &p.Flags)
@@ -68,7 +70,7 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 		l.handleError(w, r, fmt.Errorf("not found"), http.StatusNotFound)
 		return
 	}
-	items = append(items,p)
+	items = append(items, p)
 
 	if r.Method == http.MethodGet {
 		q := r.URL.Query()
@@ -143,7 +145,7 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 			}
 
 			com := comment{Content: c}
-			items = append(items,c)
+			items = append(items, c)
 			allComments = append(allComments, &com)
 
 		}
@@ -187,12 +189,12 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 		"formatDateInterval": relativeDate,
 		"formatDate":         formatDate,
 		"sluggify":           sluggify,
-		"title":			  func(t []byte) string { return string(t) },
-		"mod":			  	  func(lvl int) float64 { return math.Mod(float64(lvl), float64(10)) },
-		"getProviders": 	  getAuthProviders,
-		"CurrentAccount": 	  CurrentAccount,
+		"title":              func(t []byte) string { return string(t) },
+		"mod":                func(lvl int) float64 { return math.Mod(float64(lvl), float64(10)) },
+		"getProviders":       getAuthProviders,
+		"CurrentAccount":     CurrentAccount,
 		"LoadFlashMessages":  LoadFlashMessages,
-		"CleanFlashMessages":  CleanFlashMessages,
+		"CleanFlashMessages": CleanFlashMessages,
 	})
 	_, terr = t.New("submit.html").ParseFiles(templateDir + "partials/content/submit.html")
 	if terr != nil {

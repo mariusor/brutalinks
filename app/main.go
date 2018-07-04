@@ -1,15 +1,10 @@
 package main
 
 import (
+	"database/sql"
 	"flag"
 	"fmt"
-	"database/sql"
 
-	"github.com/gorilla/mux"
-	"github.com/gorilla/sessions"
-	_ "github.com/lib/pq"
-	"golang.org/x/net/context"
-	"golang.org/x/oauth2"
 	"html/template"
 	"log"
 	"net/http"
@@ -17,9 +12,15 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/gorilla/mux"
+	"github.com/gorilla/sessions"
+	_ "github.com/lib/pq"
+	"golang.org/x/net/context"
+	"golang.org/x/oauth2"
+
 	"math"
-	"strconv"
 	"models"
+	"strconv"
 	"strings"
 )
 
@@ -52,12 +53,13 @@ func getAllIds(c []models.Content) []int64 {
 }
 
 type littr struct {
-	Host    string
-	Port	int64
-	Db 	    *sql.DB
-	session sessions.Store
-	FlashData []interface{}
-	SessionData []interface{}
+	Host          string
+	Port          int64
+	Db            *sql.DB
+	session       sessions.Store
+	FlashData     []interface{}
+	SessionData   []interface{}
+	InvertedTheme bool
 }
 
 type errorModel struct {
@@ -86,7 +88,6 @@ func (l *littr) BaseUrl() string {
 	return fmt.Sprintf("http://%s", l.host())
 }
 
-
 func (l *littr) LoadVotes(u *models.Account, ids []int64) error {
 	db := l.Db
 	// this here code following is the ugliest I wrote in quite a long time
@@ -101,7 +102,7 @@ func (l *littr) LoadVotes(u *models.Account, ids []int64) error {
 		iitems[i+1] = v
 	}
 	sel := fmt.Sprintf(`select "id", "submitted_by", "submitted_at", "updated_at", "item_id", "weight", "flags"
-	from "votes" where "submitted_by" = $1 and "item_id" in (%s)`,  strings.Join(sids, ", "))
+	from "votes" where "submitted_by" = $1 and "item_id" in (%s)`, strings.Join(sids, ", "))
 	rows, err := db.Query(sel, iitems...)
 	if err != nil {
 		return err
@@ -253,8 +254,8 @@ func (l *littr) handleError(w http.ResponseWriter, r *http.Request, err error, s
 	log.Printf("%s %s Message: %q", r.Method, r.URL, d.Error)
 	t, terr := template.New("error.html").ParseFiles(templateDir + "error.html")
 	t.Funcs(template.FuncMap{
-		"getProviders": 	  getAuthProviders,
-		"CurrentAccount": 	  CurrentAccount,
+		"getProviders":   getAuthProviders,
+		"CurrentAccount": CurrentAccount,
 	})
 	if terr != nil {
 		log.Print(terr)
@@ -388,6 +389,15 @@ func (l *littr) sessions(n http.Handler) http.Handler {
 		}
 		l.FlashData = s.Flashes()
 
+		cookies := r.Cookies()
+		for _, c := range cookies {
+			//log.Printf("cookie %s:%s", c.Name, c.Value)
+			if c.Name == "inverted" {
+				l.InvertedTheme = true
+				break
+			}
+			l.InvertedTheme = false
+		}
 		n.ServeHTTP(w, r)
 	})
 }
@@ -407,7 +417,7 @@ func (l *littr) authCheck(next http.Handler) http.Handler {
 func init() {
 	authKey := []byte(os.Getenv("SESS_AUTH_KEY"))
 	encKey := []byte(os.Getenv("SESS_ENC_KEY"))
-	if listenPort == 0{
+	if listenPort == 0 {
 		listenPort = defaultPort
 	}
 	if listenHost == "" {
@@ -478,7 +488,6 @@ func main() {
 		Methods(http.MethodGet, http.MethodHead).
 		Name("domains")
 
-
 	m.NotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		d := errorModel{
 			Status: http.StatusNotFound,
@@ -490,8 +499,8 @@ func main() {
 		log.Printf("%s %s Message: %s", r.Method, r.URL, d.Error)
 		t, terr := template.New("error.html").ParseFiles(templateDir + "error.html")
 		t.Funcs(template.FuncMap{
-			"getProviders": 	  getAuthProviders,
-			"CurrentAccount": 	  CurrentAccount,
+			"getProviders":   getAuthProviders,
+			"CurrentAccount": CurrentAccount,
 		})
 		if terr != nil {
 			log.Print(terr)
