@@ -1,5 +1,15 @@
 {{- if .IsSelf -}}
 {{- if not .Deleted -}}
-<article class="data {{ .MimeType | sluggify }}{{if not .Title}} comment{{end}}">{{.Data | printf "%s" }}</article>
+<article class="data {{ .MimeType | sluggify }}{{if not .Title}} comment{{end}}">
+{{- if eq .MimeType "text/html" -}}
+{{.HTML}}
+{{- end -}}
+{{- if eq .MimeType "text/plain" -}}
+{{.Text}}
+{{end}}
+{{- if eq .MimeType "text/markdown" -}}
+{{.Markdown}}
+{{- end -}}
+</article>
 {{- end -}}
 {{- end -}}

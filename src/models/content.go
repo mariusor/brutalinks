@@ -4,9 +4,12 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"fmt"
+	"html/template"
 	"math"
 	"strings"
 	"time"
+
+	"github.com/russross/blackfriday"
 )
 
 const (
@@ -254,4 +257,13 @@ func (c Content) FromNow() string {
 
 func (c Content) ISODate() string {
 	return c.SubmittedAt.Format("2006-01-02T15:04:05.000-07:00")
+}
+func (c Content) HTML() template.HTML {
+	return template.HTML(string(c.Data))
+}
+func (c Content) Markdown() template.HTML {
+	return template.HTML(blackfriday.MarkdownCommon(c.Data))
+}
+func (c Content) Text() string {
+	return string(c.Data)
 }
