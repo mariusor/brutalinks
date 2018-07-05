@@ -60,6 +60,7 @@ type littr struct {
 	FlashData     []interface{}
 	SessionData   []interface{}
 	InvertedTheme bool
+	ErrorHandler  http.HandlerFunc
 }
 
 type errorModel struct {
@@ -90,6 +91,9 @@ func (l *littr) BaseUrl() string {
 }
 
 func (l *littr) LoadVotes(u *models.Account, ids []int64) error {
+	if len(ids) == 0 {
+		return fmt.Errorf("no ids to load")
+	}
 	db := l.Db
 	// this here code following is the ugliest I wrote in quite a long time
 	// so ugly it warrants its own fucking shame corner
@@ -130,14 +134,12 @@ func (l *littr) LoadTemplates(base string, main string) (*template.Template, err
 	}
 
 	t.Funcs(template.FuncMap{
-		"formatDateInterval": relativeDate,
-		"formatDate":         formatDate,
-		"sluggify":           sluggify,
-		"title":              func(t []byte) string { return string(t) },
-		"getProviders":       getAuthProviders,
-		"CurrentAccount":     CurrentAccount,
-		"LoadFlashMessages":  LoadFlashMessages,
-		"mod":                func(lvl int) float64 { return math.Mod(float64(lvl), float64(10)) },
+		"sluggify":          sluggify,
+		"title":             func(t []byte) string { return string(t) },
+		"getProviders":      getAuthProviders,
+		"CurrentAccount":    CurrentAccount,
+		"LoadFlashMessages": LoadFlashMessages,
+		"mod":               func(lvl int) float64 { return math.Mod(float64(lvl), float64(10)) },
 
 		"CleanFlashMessages": CleanFlashMessages,
 	})
@@ -327,46 +329,6 @@ func (l *littr) Write(bytes []byte) (int, error) {
 func (l *littr) handleAdmin(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(200)
 	w.Write([]byte("done!!!"))
-}
-
-func (l *littr) handleError(w http.ResponseWriter, r *http.Request, err error, status int) {
-	if status <= 0 {
-		status = http.StatusInternalServerError
-	}
-	d := errorModel{
-		Status:        status,
-		Title:         fmt.Sprintf("Error %d", status),
-		InvertedTheme: l.InvertedTheme,
-		Error:         err,
-	}
-	w.WriteHeader(status)
-
-	var terr error
-	log.Printf("%s %s Message: %q", r.Method, r.URL, d.Error)
-	t, terr := template.New("error.html").ParseFiles(templateDir + "error.html")
-	t.Funcs(template.FuncMap{
-		"getProviders":   getAuthProviders,
-		"CurrentAccount": CurrentAccount,
-	})
-	if terr != nil {
-		log.Print(terr)
-	}
-	_, terr = t.New("head.html").ParseFiles(templateDir + "partials/head.html")
-	if terr != nil {
-		log.Print(terr)
-	}
-	_, terr = t.New("header.html").ParseFiles(templateDir + "partials/header.html")
-	if terr != nil {
-		log.Print(terr)
-	}
-	_, terr = t.New("footer.html").ParseFiles(templateDir + "partials/footer.html")
-	if terr != nil {
-		log.Print(terr)
-	}
-	terr = t.Execute(w, d)
-	if terr != nil {
-		log.Print(terr)
-	}
 }
 
 // handleMain serves /auth/{provider}/callback request
@@ -580,36 +542,7 @@ func main() {
 		Name("domains")
 
 	m.NotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		d := errorModel{
-			Status:        http.StatusNotFound,
-			Title:         fmt.Sprintf("Not found"),
-			InvertedTheme: app.InvertedTheme,
-			Error:         fmt.Errorf("url %q couldn't be found", r.URL),
-		}
-
-		w.WriteHeader(d.Status)
-		log.Printf("%s %s Message: %s", r.Method, r.URL, d.Error)
-		t, terr := template.New("error.html").ParseFiles(templateDir + "error.html")
-		t.Funcs(template.FuncMap{
-			"getProviders":   getAuthProviders,
-			"CurrentAccount": CurrentAccount,
-		})
-		if terr != nil {
-			log.Print(terr)
-		}
-		_, terr = t.New("footer.html").ParseFiles(templateDir + "partials/footer.html")
-		if terr != nil {
-			log.Print(terr)
-		}
-		_, terr = t.New("header.html").ParseFiles(templateDir + "partials/header.html")
-		if terr != nil {
-			log.Print(terr)
-		}
-		_, terr = t.New("head.html").ParseFiles(templateDir + "partials/head.html")
-		if terr != nil {
-			log.Print(terr)
-		}
-		t.Execute(w, d)
+		app.handleError(w, r, fmt.Errorf("url %q couldn't be found", r.URL), 404)
 	})
 
 	m.Use(app.loggerMw)
