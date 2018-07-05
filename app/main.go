@@ -134,10 +134,19 @@ func (l *littr) Vote(p models.Content, score int, userId int64) (bool, error) {
 	db := l.Db
 	newWeight := int(score * models.ScoreMultiplier)
 
+	var sel string
+	var p2 interface{}
+	if p.Id == 0 {
+		sel = `select "id", "weight" from "votes" where "submitted_by" = $1 and "key" ~* $2;`
+		p2 = interface{}(p.Key)
+	} else {
+		sel = `select "id", "weight" from "votes" where "submitted_by" = $1 and "item_id" = $2;`
+		p2 = interface{}(p.Id)
+	}
+
 	v := models.Vote{}
-	sel := `select "id", "weight" from "votes" where "submitted_by" = $1 and "item_id" = $2;`
 	{
-		rows, err := db.Query(sel, userId, p.Id)
+		rows, err := db.Query(sel, userId, p2)
 		if err != nil {
 			return false, err
 		}
