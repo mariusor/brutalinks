@@ -1,5 +1,5 @@
 <aside class="meta">
-    submitted <time datetime="{{ .SubmittedAt| formatDate }}" title="{{ .SubmittedAt| formatDate }}">{{.SubmittedAt | formatDateInterval }}</time>
+    submitted <time datetime="{{ .ISODate }}" title="{{ .ISODate }}">{{ .FromNow }}</time>
 {{if .Handle }}by <a class="by" href="/~{{ .Handle }}">{{ .Handle }}</a>{{end}}
     <menu class="meta-items">
         {{if .PermaLink }}<li><a href="{{.PermaLink}}" class="to-item" title="Go to discussion"></a></li>{{end}}
