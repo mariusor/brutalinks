@@ -3,10 +3,8 @@ package main
 import (
 	"fmt"
 	"log"
-	"math"
 	"models"
 	"net/http"
-	"time"
 )
 
 const (
@@ -17,68 +15,6 @@ type indexModel struct {
 	Title         string
 	InvertedTheme bool
 	Items         []models.Content
-}
-
-func relativeDate(c time.Time) string {
-	i := time.Now().Sub(c)
-	pluralize := func(d float64, unit string) string {
-		if math.Round(d) != 1 {
-			if unit == "century" {
-				unit = "centurie"
-			}
-			return unit + "s"
-		}
-		return unit
-	}
-	val := 0.0
-	unit := ""
-	when := "ago"
-
-	hours := math.Abs(i.Hours())
-	minutes := math.Abs(i.Minutes())
-	seconds := math.Abs(i.Seconds())
-
-	if i.Seconds() < 0 {
-		// we're in the future
-		when = "in the future"
-	}
-	if seconds < 30 {
-		return "now"
-	}
-	if hours < 1 {
-		if minutes < 1 {
-			val = math.Mod(seconds, 60)
-			unit = "second"
-		} else {
-			val = math.Mod(minutes, 60)
-			unit = "minute"
-		}
-	} else if hours < 24 {
-		val = hours
-		unit = "hour"
-	} else if hours < 168 {
-		val = hours / 24
-		unit = "day"
-	} else if hours < 672 {
-		val = hours / 168
-		unit = "week"
-	} else if hours < 8760 {
-		val = hours / 672
-		unit = "month"
-	} else if hours < 87600 {
-		val = hours / 8760
-		unit = "year"
-	} else if hours < 876000 {
-		val = hours / 87600
-		unit = "decade"
-	} else {
-		val = hours / 876000
-		unit = "century"
-	}
-	return fmt.Sprintf("%.0f %s %s", val, pluralize(val, unit), when)
-}
-func formatDate(c time.Time) string {
-	return c.Format("2006-01-02T15:04:05.000-07:00")
 }
 
 func getAuthProviders() map[string]string {

@@ -1,18 +1,20 @@
 package models
 
 import (
-	"time"
 	"bytes"
-	"fmt"
-	"strings"
 	"crypto/sha256"
+	"fmt"
 	"math"
+	"strings"
+	"time"
 )
+
 const (
-	FlagsNone       = 0
-	FlagsDeleted    = 1
-	MimeTypeURL     = "application/url"
+	FlagsNone    = 0
+	FlagsDeleted = 1
+	MimeTypeURL  = "application/url"
 )
+
 type Content struct {
 	Id          int64     `orm:Id,"auto"`
 	Key         []byte    `orm:key,size(56)`
@@ -30,6 +32,7 @@ type Content struct {
 	fullPath    []byte
 	parentLink  string
 }
+
 //
 //func (c Content) Id() int64 {
 //	return c.Id
@@ -55,11 +58,12 @@ func (c Content) ParentLink() string {
 }
 func (c Content) OPLink() string {
 	if c.Path != nil {
-		parentHash := c.Path[0 : 8]
+		parentHash := c.Path[0:8]
 		return fmt.Sprintf("/op/%s/%s", c.Hash(), parentHash)
 	}
 	return "/"
 }
+
 //func (c Content) ancestorLink(lvl int) string {
 //
 //}
@@ -76,7 +80,7 @@ func (c *Content) GetKey() []byte {
 	}
 	data = append(data, []byte(fmt.Sprintf("%d", now.UnixNano()))...)
 	data = append(data, []byte(c.Path)...)
-	data = append(data, []byte(fmt.Sprintf("%d",c.SubmittedBy))...)
+	data = append(data, []byte(fmt.Sprintf("%d", c.SubmittedBy))...)
 
 	c.Key = []byte(fmt.Sprintf("%x", sha256.Sum256(data)))
 	return c.Key
@@ -138,10 +142,10 @@ func (c Content) Deleted() bool {
 	return c.Flags&FlagsDeleted == FlagsDeleted
 }
 func (c Content) UnDelete() {
-	c.Flags^=FlagsDeleted
+	c.Flags ^= FlagsDeleted
 }
 func (c *Content) Delete() {
-	c.Flags&=FlagsDeleted
+	c.Flags &= FlagsDeleted
 }
 func (c Content) IsLink() bool {
 	return c.MimeType == MimeTypeURL
@@ -181,10 +185,73 @@ func (c Content) GetDomain() string {
 	return strings.Split(string(c.Data), "/")[2]
 }
 
-func (c ContentCollection)GetAllIds() []int64 {
+func (c ContentCollection) GetAllIds() []int64 {
 	var i []int64
 	for _, k := range c {
 		i = append(i, k.Id)
 	}
 	return i
+}
+
+func (c Content) FromNow() string {
+	i := time.Now().Sub(c.SubmittedAt)
+	pluralize := func(d float64, unit string) string {
+		if math.Round(d) != 1 {
+			if unit == "century" {
+				unit = "centurie"
+			}
+			return unit + "s"
+		}
+		return unit
+	}
+	val := 0.0
+	unit := ""
+	when := "ago"
+
+	hours := math.Abs(i.Hours())
+	minutes := math.Abs(i.Minutes())
+	seconds := math.Abs(i.Seconds())
+
+	if i.Seconds() < 0 {
+		// we're in the future
+		when = "in the future"
+	}
+	if seconds < 30 {
+		return "now"
+	}
+	if hours < 1 {
+		if minutes < 1 {
+			val = math.Mod(seconds, 60)
+			unit = "second"
+		} else {
+			val = math.Mod(minutes, 60)
+			unit = "minute"
+		}
+	} else if hours < 24 {
+		val = hours
+		unit = "hour"
+	} else if hours < 168 {
+		val = hours / 24
+		unit = "day"
+	} else if hours < 672 {
+		val = hours / 168
+		unit = "week"
+	} else if hours < 8760 {
+		val = hours / 672
+		unit = "month"
+	} else if hours < 87600 {
+		val = hours / 8760
+		unit = "year"
+	} else if hours < 876000 {
+		val = hours / 87600
+		unit = "decade"
+	} else {
+		val = hours / 876000
+		unit = "century"
+	}
+	return fmt.Sprintf("%.0f %s %s", val, pluralize(val, unit), when)
+}
+
+func (c Content) ISODate() string {
+	return c.SubmittedAt.Format("2006-01-02T15:04:05.000-07:00")
 }
