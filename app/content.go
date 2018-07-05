@@ -90,33 +90,14 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, p.PermaLink(), http.StatusFound)
 		}
 	}
+
 	if r.Method == http.MethodPost {
-		repl := models.Content{}
-
-		repl.Data = []byte(r.PostFormValue("data"))
-		if len(repl.Data) > 0 {
-			now := time.Now()
-			repl.MimeType = "text/plain"
-			repl.SubmittedBy = CurrentAccount().Id
-			repl.SubmittedAt = now
-			repl.UpdatedAt = now
-			repl.Key = repl.GetKey()
-			repl.Path = p.FullPath()
-			log.Printf("generated key[%d] %s", len(repl.Key), repl.Key)
-
-			ins := `insert into "content_items" ("key", "data", "mime_type", "submitted_by", "path", "submitted_at", "updated_at") values($1, $2, $3, $4, $5, $6, $7)`
-			{
-				res, err := db.Exec(ins, repl.Key, repl.Data, repl.MimeType, repl.SubmittedBy, repl.Path, repl.SubmittedAt, repl.UpdatedAt)
-				if err != nil {
-					log.Print(err)
-				} else {
-					if rows, _ := res.RowsAffected(); rows == 0 {
-						log.Print(fmt.Errorf("could not save new reply %q", repl.Hash()))
-					}
-				}
-			}
+		e, err := l.ContentFromRequest(r, p.FullPath())
+		if err != nil {
+			l.handleError(w, r, err, http.StatusInternalServerError)
+			return
 		}
-		l.Vote(repl, 1, CurrentAccount().Id)
+		l.Vote(*e, 1, CurrentAccount().Id)
 		http.Redirect(w, r, p.PermaLink(), http.StatusFound)
 	}
 

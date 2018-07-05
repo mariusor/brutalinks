@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"models"
@@ -17,46 +18,70 @@ type newModel struct {
 
 func detectMimeType(data []byte) string {
 	u, err := url.ParseRequestURI(string(data))
-	if err == nil && u != nil {
+	if err == nil && u != nil && !bytes.ContainsRune(data, '\n') {
 		return models.MimeTypeURL
 	}
 	return "text/plain"
 }
 
+func (l *littr) ContentFromRequest(r *http.Request, p []byte) (*models.Content, error) {
+	if r.Method != http.MethodPost {
+		return nil, fmt.Errorf("invalid http method type")
+	}
+
+	i := models.Content{}
+
+	tit := r.PostFormValue("title")
+	if tit != "" {
+		i.Title = []byte(tit)
+	}
+	dat := r.PostFormValue("data")
+	if dat != "" {
+		i.Data = []byte(dat)
+	}
+	i.SubmittedBy = CurrentAccount().Id
+	i.Path = p
+	i.MimeType = detectMimeType(i.Data)
+	if !i.IsLink() {
+		i.MimeType = r.PostFormValue("mime-type")
+	}
+	if len(i.Data) > 0 {
+		now := time.Now()
+		i.SubmittedAt = now
+		i.UpdatedAt = now
+
+		i.Key = i.GetKey()
+	}
+	ins := `insert into "content_items" ("key", "title", "data", "mime_type", "submitted_by", "submitted_at", "updated_at", "path") values($1, $2, $3, $4, $5, $6, $7, $8)`
+	{
+		res, err := l.Db.Exec(ins, i.Key, i.Title, i.Data, i.MimeType, i.SubmittedBy, i.SubmittedAt, i.UpdatedAt, i.Path)
+		if err != nil {
+			return nil, err
+		} else {
+			if rows, _ := res.RowsAffected(); rows == 0 {
+				return nil, fmt.Errorf("could not save item %q", i.Hash())
+			}
+		}
+	}
+	return &i, nil
+}
+
 // handleMain serves /{year}/{month}/{day}/{hash} request
 func (l *littr) handleSubmit(w http.ResponseWriter, r *http.Request) {
-	p := models.Content{}
-	m := newModel{Title: "Submit new content", Content: p}
-	db := l.Db
 	var userId = CurrentAccount().Id
 
 	if r.Method == http.MethodPost {
-		p.Title = []byte(r.PostFormValue("title"))
-		p.Data = []byte(r.PostFormValue("data"))
-		if len(p.Data) > 0 {
-			now := time.Now()
-			p.MimeType = detectMimeType(p.Data)
-			p.SubmittedAt = now
-			p.UpdatedAt = now
-			p.SubmittedBy = userId
-			p.Key = p.GetKey()
+		p, err := l.ContentFromRequest(r, nil)
 
-			ins := `insert into "content_items" ("key", "title", "data", "mime_type", "submitted_by", "submitted_at", "updated_at") values($1, $2, $3, $4, $5, $6, $7)`
-			{
-				res, err := db.Exec(ins, p.Key, p.Title, p.Data, p.MimeType, p.SubmittedBy, p.SubmittedAt, p.UpdatedAt)
-				if err != nil {
-					log.Print(err)
-				} else {
-					if rows, _ := res.RowsAffected(); rows == 0 {
-						log.Print(fmt.Errorf("could not save new reply %q", p.Hash()))
-					}
-				}
-			}
+		if err != nil {
+			l.handleError(w, r, err, http.StatusInternalServerError)
+			return
 		}
-		l.Vote(p, 1, userId)
+		l.Vote(*p, 1, userId)
 		http.Redirect(w, r, p.PermaLink(), http.StatusMovedPermanently)
+		return
 	}
-
+	m := newModel{Title: "Submit new content"}
 	err := l.session.Save(r, w, l.Session(r))
 	if err != nil {
 		log.Print(err)
