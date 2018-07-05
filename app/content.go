@@ -3,9 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"html/template"
 	"log"
-	"math"
 	"models"
 	"net/http"
 	"strings"
@@ -179,66 +177,10 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 		log.Print(err)
 	}
 
-	var terr error
-	var t *template.Template
-	t, terr = template.New("content.html").ParseFiles(templateDir + "content.html")
+	t, terr := l.LoadTemplates(templateDir, "content.html")
 	if terr != nil {
 		log.Print(terr)
-	}
-	t.Funcs(template.FuncMap{
-		"formatDateInterval": relativeDate,
-		"formatDate":         formatDate,
-		"sluggify":           sluggify,
-		"title":              func(t []byte) string { return string(t) },
-		"mod":                func(lvl int) float64 { return math.Mod(float64(lvl), float64(10)) },
-		"getProviders":       getAuthProviders,
-		"CurrentAccount":     CurrentAccount,
-		"LoadFlashMessages":  LoadFlashMessages,
-		"CleanFlashMessages": CleanFlashMessages,
-	})
-	_, terr = t.New("submit.html").ParseFiles(templateDir + "partials/content/submit.html")
-	if terr != nil {
-		log.Print(terr)
-	}
-	_, terr = t.New("flash.html").ParseFiles(templateDir + "partials/flash.html")
-	if terr != nil {
-		log.Print(terr)
-	}
-	_, terr = t.New("comments.html").ParseFiles(templateDir + "partials/content/comments.html")
-	if terr != nil {
-		log.Print(terr)
-	}
-	_, terr = t.New("comment.html").ParseFiles(templateDir + "partials/content/comment.html")
-	if terr != nil {
-		log.Print(terr)
-	}
-	_, terr = t.New("link.html").ParseFiles(templateDir + "partials/content/link.html")
-	if terr != nil {
-		log.Print(terr)
-	}
-	_, terr = t.New("meta.html").ParseFiles(templateDir + "partials/content/meta.html")
-	if terr != nil {
-		log.Print(terr)
-	}
-	_, terr = t.New("score.html").ParseFiles(templateDir + "partials/content/score.html")
-	if terr != nil {
-		log.Print(terr)
-	}
-	_, terr = t.New("data.html").ParseFiles(templateDir + "partials/content/data.html")
-	if terr != nil {
-		log.Print(terr)
-	}
-	_, terr = t.New("head.html").ParseFiles(templateDir + "partials/head.html")
-	if terr != nil {
-		log.Print(terr)
-	}
-	_, terr = t.New("header.html").ParseFiles(templateDir + "partials/header.html")
-	if terr != nil {
-		log.Print(terr)
-	}
-	_, terr = t.New("footer.html").ParseFiles(templateDir + "partials/footer.html")
-	if terr != nil {
-		log.Print(terr)
+		return
 	}
 	terr = t.Execute(w, m)
 	if terr != nil {

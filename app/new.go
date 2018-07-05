@@ -2,9 +2,7 @@ package main
 
 import (
 	"fmt"
-	"html/template"
 	"log"
-	"math"
 	"models"
 	"net/http"
 	"net/url"
@@ -64,43 +62,10 @@ func (l *littr) handleSubmit(w http.ResponseWriter, r *http.Request) {
 		log.Print(err)
 	}
 
-	var terr error
-	var t *template.Template
-	t, terr = template.New("new.html").ParseFiles(templateDir + "new.html")
+	t, terr := l.LoadTemplates(templateDir, "new.html")
 	if terr != nil {
 		log.Print(terr)
-	}
-
-	t.Funcs(template.FuncMap{
-		"formatDateInterval": relativeDate,
-		"formatDate":         formatDate,
-		"sluggify":           sluggify,
-		"title":              func(t []byte) string { return string(t) },
-		"mod":                func(lvl int) float64 { return math.Mod(float64(lvl), float64(10)) },
-		"getProviders":       getAuthProviders,
-		"CurrentAccount":     CurrentAccount,
-		"LoadFlashMessages":  LoadFlashMessages,
-		"CleanFlashMessages": CleanFlashMessages,
-	})
-	_, terr = t.New("submit.html").ParseFiles(templateDir + "partials/content/submit.html")
-	if terr != nil {
-		log.Print(terr)
-	}
-	_, terr = t.New("flash.html").ParseFiles(templateDir + "partials/flash.html")
-	if terr != nil {
-		log.Print(terr)
-	}
-	_, terr = t.New("head.html").ParseFiles(templateDir + "partials/head.html")
-	if terr != nil {
-		log.Print(terr)
-	}
-	_, terr = t.New("header.html").ParseFiles(templateDir + "partials/header.html")
-	if terr != nil {
-		log.Print(terr)
-	}
-	_, terr = t.New("footer.html").ParseFiles(templateDir + "partials/footer.html")
-	if terr != nil {
-		log.Print(terr)
+		return
 	}
 	terr = t.Execute(w, m)
 	if terr != nil {

@@ -121,6 +121,86 @@ func (l *littr) LoadVotes(u *models.Account, ids []int64) error {
 	return nil
 }
 
+func (l *littr) LoadTemplates(base string, main string) (*template.Template, error) {
+	var terr error
+	var t *template.Template
+	t, terr = template.New(main).ParseFiles(base + main)
+	if terr != nil {
+		return nil, terr
+	}
+
+	t.Funcs(template.FuncMap{
+		"formatDateInterval": relativeDate,
+		"formatDate":         formatDate,
+		"sluggify":           sluggify,
+		"title":              func(t []byte) string { return string(t) },
+		"getProviders":       getAuthProviders,
+		"CurrentAccount":     CurrentAccount,
+		"LoadFlashMessages":  LoadFlashMessages,
+		"mod":                func(lvl int) float64 { return math.Mod(float64(lvl), float64(10)) },
+
+		"CleanFlashMessages": CleanFlashMessages,
+	})
+	_, terr = t.New("items.html").ParseFiles(base + "partials/content/items.html")
+	if terr != nil {
+		return nil, terr
+	}
+	_, terr = t.New("link.html").ParseFiles(base + "partials/content/link.html")
+	if terr != nil {
+		return nil, terr
+		log.Print(terr)
+	}
+	_, terr = t.New("submit.html").ParseFiles(templateDir + "partials/content/submit.html")
+	if terr != nil {
+		log.Print(terr)
+	}
+	_, terr = t.New("comments.html").ParseFiles(templateDir + "partials/content/comments.html")
+	if terr != nil {
+		return nil, terr
+		log.Print(terr)
+	}
+	_, terr = t.New("comment.html").ParseFiles(templateDir + "partials/content/comment.html")
+	if terr != nil {
+		return nil, terr
+		log.Print(terr)
+	}
+	_, terr = t.New("flash.html").ParseFiles(base + "partials/flash.html")
+	if terr != nil {
+		return nil, terr
+		log.Print(terr)
+	}
+	_, terr = t.New("meta.html").ParseFiles(base + "partials/content/meta.html")
+	if terr != nil {
+		return nil, terr
+		log.Print(terr)
+	}
+	_, terr = t.New("data.html").ParseFiles(base + "partials/content/data.html")
+	if terr != nil {
+		return nil, terr
+		log.Print(terr)
+	}
+	_, terr = t.New("score.html").ParseFiles(base + "partials/content/score.html")
+	if terr != nil {
+		return nil, terr
+		log.Print(terr)
+	}
+	_, terr = t.New("head.html").ParseFiles(base + "partials/head.html")
+	if terr != nil {
+		return nil, terr
+		log.Print(terr)
+	}
+	_, terr = t.New("header.html").ParseFiles(base + "partials/header.html")
+	if terr != nil {
+		log.Print(terr)
+	}
+	_, terr = t.New("footer.html").ParseFiles(base + "partials/footer.html")
+	if terr != nil {
+		return nil, terr
+		log.Print(terr)
+	}
+	return t, nil
+}
+
 //func (l *littr) session(r *http.Request) *sessions.Session {
 //	sess, err := l.Session.Get(r, sessionName)
 //	if err != nil {

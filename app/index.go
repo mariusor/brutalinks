@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"html/template"
 	"log"
 	"math"
 	"models"
@@ -129,57 +128,10 @@ func (l *littr) handleIndex(w http.ResponseWriter, r *http.Request) {
 		log.Print(err)
 	}
 
-	var terr error
-	var t *template.Template
-	t, terr = template.New("index.html").ParseFiles(templateDir + "index.html")
+	t, terr := l.LoadTemplates(templateDir, "index.html")
 	if terr != nil {
 		log.Print(terr)
-	}
-
-	t.Funcs(template.FuncMap{
-		"formatDateInterval": relativeDate,
-		"formatDate":         formatDate,
-		"sluggify":           sluggify,
-		"title":              func(t []byte) string { return string(t) },
-		"getProviders":       getAuthProviders,
-		"CurrentAccount":     CurrentAccount,
-		"LoadFlashMessages":  LoadFlashMessages,
-	})
-	_, terr = t.New("items.html").ParseFiles(templateDir + "partials/content/items.html")
-	if terr != nil {
-		log.Print(terr)
-	}
-	_, terr = t.New("link.html").ParseFiles(templateDir + "partials/content/link.html")
-	if terr != nil {
-		log.Print(terr)
-	}
-	_, terr = t.New("flash.html").ParseFiles(templateDir + "partials/flash.html")
-	if terr != nil {
-		log.Print(terr)
-	}
-	_, terr = t.New("meta.html").ParseFiles(templateDir + "partials/content/meta.html")
-	if terr != nil {
-		log.Print(terr)
-	}
-	_, terr = t.New("data.html").ParseFiles(templateDir + "partials/content/data.html")
-	if terr != nil {
-		log.Print(terr)
-	}
-	_, terr = t.New("score.html").ParseFiles(templateDir + "partials/content/score.html")
-	if terr != nil {
-		log.Print(terr)
-	}
-	_, terr = t.New("head.html").ParseFiles(templateDir + "partials/head.html")
-	if terr != nil {
-		log.Print(terr)
-	}
-	_, terr = t.New("header.html").ParseFiles(templateDir + "partials/header.html")
-	if terr != nil {
-		log.Print(terr)
-	}
-	_, terr = t.New("footer.html").ParseFiles(templateDir + "partials/footer.html")
-	if terr != nil {
-		log.Print(terr)
+		return
 	}
 	terr = t.Execute(w, m)
 	if terr != nil {
