@@ -23,6 +23,8 @@ func (l *littr) handleUser(w http.ResponseWriter, r *http.Request) {
 	db := l.Db
 	m := userModel{InvertedTheme: l.InvertedTheme}
 
+	found := false
+
 	u := models.Account{}
 	selAcct := `select "id", "key", "handle", "email", "score", "created_at", "updated_at", "metadata", "flags" from "accounts" where "handle" = $1`
 	{
@@ -37,11 +39,17 @@ func (l *littr) handleUser(w http.ResponseWriter, r *http.Request) {
 				l.handleError(w, r, err, -1)
 				return
 			}
+			found = true
 		}
-
 		m.Title = fmt.Sprintf("Activity %s", u.Handle)
 		m.User = u
 	}
+
+	if !found {
+		l.handleError(w, r, fmt.Errorf("user %q not found", vars["handle"]), http.StatusNotFound)
+		return
+	}
+
 	selC := `select "content_items"."id", "content_items"."key", "mime_type", "data", "title", "content_items"."score", 
 			"submitted_at", "content_items"."flags", "content_items"."metadata", "accounts"."handle" f from "content_items" 
 			left join "accounts" on "accounts"."id" = "content_items"."submitted_by" 
