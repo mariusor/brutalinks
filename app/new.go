@@ -30,7 +30,7 @@ func (l *littr) handleSubmit(w http.ResponseWriter, r *http.Request) {
 	p := models.Content{}
 	m := newModel{Title: "Submit new content", Content: p}
 	db := l.Db
-	var userId int64 = 1
+	var userId = CurrentAccount().Id
 
 	if r.Method == http.MethodPost {
 		p.Title = []byte(r.PostFormValue("title"))
