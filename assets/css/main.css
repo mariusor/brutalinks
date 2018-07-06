@@ -310,3 +310,16 @@ menu#auth li:first-child::after {
 menu#auth li::before, menu#top li::before {
     content: " | ";
 }
+.new-acct-details {
+    display: block;
+    float: right;
+    width: 50%;
+    text-align: center;
+}
+.details-agree {
+    font-size: .8em;
+}
+.details-agree input[type=checkbox] {
+    position: relative;
+    top: 3px;
+}

@@ -140,16 +140,16 @@ func LoadTemplates(base string, main string) (*template.Template, error) {
 		return nil, terr
 		log.Print(terr)
 	}
-	_, terr = t.New("submit.html").ParseFiles(templateDir + "partials/content/submit.html")
+	_, terr = t.New("submit.html").ParseFiles(base + "partials/new/submit.html")
 	if terr != nil {
 		log.Print(terr)
 	}
-	_, terr = t.New("comments.html").ParseFiles(templateDir + "partials/content/comments.html")
+	_, terr = t.New("comments.html").ParseFiles(base + "partials/content/comments.html")
 	if terr != nil {
 		return nil, terr
 		log.Print(terr)
 	}
-	_, terr = t.New("comment.html").ParseFiles(templateDir + "partials/content/comment.html")
+	_, terr = t.New("comment.html").ParseFiles(base + "partials/content/comment.html")
 	if terr != nil {
 		return nil, terr
 		log.Print(terr)
@@ -184,6 +184,11 @@ func LoadTemplates(base string, main string) (*template.Template, error) {
 		log.Print(terr)
 	}
 	_, terr = t.New("footer.html").ParseFiles(base + "partials/footer.html")
+	if terr != nil {
+		return nil, terr
+		log.Print(terr)
+	}
+	_, terr = t.New("new_account.html").ParseFiles(base + "partials/register/new_account.html")
 	if terr != nil {
 		return nil, terr
 		log.Print(terr)

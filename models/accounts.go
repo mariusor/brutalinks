@@ -1,14 +1,21 @@
 package models
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"time"
 )
 
+type AccountMetadata struct {
+	Password []byte `json:"pw,omitemtpty"`
+	Provider string `json:"provider,omitempty"`
+	Salt     []byte `json:"salt,omitempty"`
+}
+
 type Account struct {
 	Id        int64     `orm:Id,"auto"`
-	Key       string    `orm:key`
-	Email     string    `orm:email`
+	Key       []byte    `orm:key`
+	Email     []byte    `orm:email`
 	Handle    string    `orm:handle`
 	Score     int64     `orm:score`
 	CreatedAt time.Time `orm:created_at`
@@ -56,4 +63,15 @@ func (a Account) Hash64() string {
 }
 func (a Account) PermaLink() string {
 	return fmt.Sprintf("/~%s", a.Handle)
+}
+
+func (a Account) GetKey() []byte {
+	data := []byte(a.Handle)
+	now := a.UpdatedAt
+	if now.IsZero() {
+		now = time.Now()
+	}
+
+	a.Key = []byte(fmt.Sprintf("%x", sha256.Sum256(data)))
+	return a.Key
 }

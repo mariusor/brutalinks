@@ -1,0 +1,17 @@
+<form method="post">
+    <fieldset>
+        <label class="new-acct-details">{{.Terms}}</label>
+        <legend>Register a new account</legend>
+        <label for="new-acct-handle">Handle: </label><br/>
+        <input name="handle" id="new-acct-handle" type="text" size="40" required/><br/>
+        <label for="new-acct-pw">Password: </label><br/>
+        <input name="pw" id="new-acct-pw" type="password" minlength="8" size="40" required/><br/>
+        <label for="new-acct-pw-confirm">Confirm password: </label><br/>
+        <input name="pw-confirm" id="new-acct-pw-confirm" type="password" minlength="8" size="40" required/><br/>
+        <button type="submit">register</button>
+        <label class="new-acct-details details-agree">
+            <input type="checkbox" name="agree" id="new-acct-agree" value="y" />
+            I agree not to be a dick to other people.
+        </label>
+    </fieldset>
+</form>

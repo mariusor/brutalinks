@@ -74,6 +74,7 @@ func main() {
 	app.CurrentAccount = CurrentAccount()
 	api.CurrentAccount = CurrentAccount()
 	api.Db = littr.Db
+	api.BaseURL = littr.Host
 
 	m.HandleFunc("/", littr.HandleIndex).
 		Methods(http.MethodGet, http.MethodHead).
@@ -82,6 +83,10 @@ func main() {
 	m.HandleFunc("/submit", littr.HandleSubmit).
 		Methods(http.MethodGet, http.MethodHead, http.MethodPost).
 		Name("submit")
+
+	m.HandleFunc("/register", littr.HandleRegister).
+		Methods(http.MethodGet, http.MethodHead, http.MethodPost).
+		Name("register")
 
 	m.HandleFunc("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}", littr.HandleContent).
 		Methods(http.MethodGet, http.MethodHead, http.MethodPost).
