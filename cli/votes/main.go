@@ -5,9 +5,10 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"models"
 	"os"
 	"time"
+
+	"github.com/mariusor/littr.go/models"
 
 	_ "github.com/lib/pq"
 )
@@ -37,17 +38,17 @@ func main() {
 	par = append(par, interface{}(since.Seconds()))
 
 	if key == "" {
-		q = `select "item_id", max("content_items"."submitted_at"),
+		q = `select "item_id", "key", max("content_items"."submitted_at"),
 		sum(CASE WHEN "weight" > 0 THEN "weight" ELSE 0 END) AS "ups",
 		sum(CASE WHEN "weight" < 0 THEN abs("weight") ELSE 0 END) AS "downs"
 		from "votes" inner join "content_items" on "content_items"."id" = "item_id"
-		where current_timestamp - "content_items"."submitted_at" < $1 group by "item_id" order by "item_id";`
+		where current_timestamp - "content_items"."submitted_at" < $1 group by "item_id", "key" order by "item_id";`
 	} else {
-		q = `select "item_id", max("content_items"."submitted_at"),
+		q = `select "item_id", "key", max("content_items"."submitted_at"),
 		sum(CASE WHEN "weight" > 0 THEN "weight" ELSE 0 END) AS "ups",
 		sum(CASE WHEN "weight" < 0 THEN abs("weight") ELSE 0 END) AS "downs"
 		from "votes" inner join "content_items" on "content_items"."id" = "item_id"
-		where current_timestamp - "content_items"."submitted_at" < $1 and "content_items"."key" ~* $2 group by "item_id" order by "item_id";`
+		where current_timestamp - "content_items"."submitted_at" < $1 and "content_items"."key" ~* $2 group by "item_id", "key" order by "item_id";`
 		par = append(par, interface{}(key))
 	}
 	rows, err := db.Query(q, par...)
@@ -57,13 +58,14 @@ func main() {
 	for rows.Next() {
 		var i, ups, downs int64
 		var submitted time.Time
-		err = rows.Scan(&i, &submitted, &ups, &downs)
+		var key []byte
+		err = rows.Scan(&i, &key, &submitted, &ups, &downs)
 
 		now := time.Now()
 		reddit := int64(models.Reddit(ups, downs, now.Sub(submitted)) * models.ScoreMultiplier)
 		wilson := int64(models.Wilson(ups, downs) * models.ScoreMultiplier)
 		hacker := int64(models.Hacker(ups-downs, now.Sub(submitted)) * models.ScoreMultiplier)
-		log.Printf("Votes[%d:%s]: UPS[%d] DOWNS[%d] - new score %d:%d:%d", i, now.Sub(submitted), ups, downs, reddit, wilson, hacker)
+		log.Printf("Votes[%s:%s]: UPS[%d] DOWNS[%d] - new score %d:%d:%d", key[0:8], now.Sub(submitted), ups, downs, reddit, wilson, hacker)
 		score := wilson
 		upd := `update "content_items" set score = $1 where id = $2;`
 		_, err := db.Exec(upd, score, i)
