@@ -10,4 +10,5 @@ for i in ${__env[@]}; do
     value=${quot//\"}
     export ${name}=${value}
 done
-go build -o littr main.go && ./littr
+
+go run $@
