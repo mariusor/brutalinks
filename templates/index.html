@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en"{{ if .InvertedTheme }} class="inverted"{{end}}>
+<html lang="en">
 <head>
 {{ template "head.html" . }}
 </head>
-<body>
+<body{{ if .InvertedTheme }} class="inverted"{{end}}>
 {{ template "header.html" }}
 <main id="items">
 {{ template "items.html" .Items }}

@@ -1,23 +1,23 @@
 $( document ).ready(function() {
 
     var _User = JSON.parse($("#currentUser").html());
-    console.debug(_User);
+    //console.debug(_User);
 
     var isInverted = Cookies.get("inverted") || false;
 
-    if (isInverted && $(":root").filter(".inverted").length == 0) {
-        $(":root").addClass("inverted");
+    if (isInverted && $("body").filter(".inverted").length == 0) {
+        $("body").addClass("inverted");
         Cookies.set("inverted", true);
     }
-    if (!isInverted && $(":root").filter(".inverted").length == 1) {
-        $(":root").removeClass("inverted");
+    if (!isInverted && $("body").filter(".inverted").length == 1) {
+        $("body").removeClass("inverted");
         Cookies.remove("inverted");
     }
 
     $("#act-invert").click(function(e) {
         var isInverted = Cookies.get("inverted") || false;
 
-        $(":root").toggleClass("inverted");
+        $("body").toggleClass("inverted");
         if (isInverted) {
             Cookies.remove("inverted");
         } else {

@@ -1,11 +1,12 @@
 @charset "UTF-8";
-:root {
+:root {}
+body {
     background: Window;
     color: WindowText;
-}
-body {
     font-size: 1rem;
     line-height: 1.4em;
+    margin:0;
+    padding: 1ex .8em;
 }
 .inverted {
     color: Window !important;
@@ -69,6 +70,10 @@ body>header h1 a {
 #items .data  {
     /*margin: 1.2em 0;*/
 }
+#items article pre {}
+#items article pre code {}
+.inverted #items article pre {}
+.inverted #items article pre code {}
 .data {
     /*margin: 1.8em 0.5ex;*/
     /*padding: 1em 11ex;*/
