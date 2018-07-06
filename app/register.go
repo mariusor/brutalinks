@@ -92,7 +92,7 @@ func (l *Littr) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	}
 
 	m := registerModel{InvertedTheme: l.InvertedTheme}
-	m.Terms = `<p>We try to follow <cite><q>Wheaton's Law</q></cite>.<br/>` +
+	m.Terms = `<p>We try to follow <q><cite>Wheaton's Law</cite></q>:<br/>` +
 		`<blockquote>Don't be a dick!</blockquote></p>`
 
 	RenderTemplate(w, "register.html", m)
