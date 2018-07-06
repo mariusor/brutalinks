@@ -100,7 +100,21 @@ func (l *Littr) LoadVotes(u *models.Account, ids []int64) error {
 	return nil
 }
 
-func (l *Littr) LoadTemplates(base string, main string) (*template.Template, error) {
+func RenderTemplate(w http.ResponseWriter, name string, m interface{}) error {
+	t, terr := LoadTemplates(templateDir, name)
+	if terr != nil {
+		log.Print(terr)
+		return terr
+	}
+	terr = t.Execute(w, m)
+	if terr != nil {
+		log.Print(terr)
+		return terr
+	}
+	return nil
+}
+
+func LoadTemplates(base string, main string) (*template.Template, error) {
 	var terr error
 	var t *template.Template
 	t, terr = template.New(main).ParseFiles(base + main)

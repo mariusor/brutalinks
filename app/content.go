@@ -159,14 +159,5 @@ func (l *Littr) HandleContent(w http.ResponseWriter, r *http.Request) {
 		log.Print(err)
 	}
 
-	t, terr := l.LoadTemplates(templateDir, "content.html")
-	if terr != nil {
-		log.Print(terr)
-		return
-	}
-	terr = t.Execute(w, m)
-	if terr != nil {
-		log.Print(terr)
-		return
-	}
+	RenderTemplate(w, "content.html", m)
 }

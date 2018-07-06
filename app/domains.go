@@ -42,14 +42,5 @@ func (l *Littr) HandleDomains(w http.ResponseWriter, r *http.Request) {
 		log.Print(err)
 	}
 
-	t, terr := l.LoadTemplates(templateDir, "user.html")
-	if terr != nil {
-		log.Print(terr)
-		return
-	}
-	terr = t.Execute(w, m)
-	if terr != nil {
-		log.Print(terr)
-		return
-	}
+	RenderTemplate(w, "user.html", m)
 }

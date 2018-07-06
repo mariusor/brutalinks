@@ -18,15 +18,7 @@ func (l *Littr) HandleError(w http.ResponseWriter, r *http.Request, err error, s
 	}
 	w.WriteHeader(status)
 
-	var terr error
 	log.Printf("%s %s Message: %q", r.Method, r.URL, d.Error)
 
-	t, terr := l.LoadTemplates(templateDir, "error.html")
-	if terr != nil {
-		log.Print(terr)
-	}
-	terr = t.Execute(w, d)
-	if terr != nil {
-		log.Print(terr)
-	}
+	RenderTemplate(w, "error.html", d)
 }
