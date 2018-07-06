@@ -110,6 +110,8 @@ func main() {
 	m.PathPrefix("/assets/").
 		Handler(http.StripPrefix("/assets/", http.FileServer(http.Dir("./assets/"))))
 
+	m.Handle("/favicon.ico", http.FileServer(http.Dir("./assets/")))
+
 	m.HandleFunc("/{ancestor}/{hash}/{parent}", littr.HandleParent).
 		Methods(http.MethodGet, http.MethodHead).
 		Name("parent")
