@@ -20,7 +20,7 @@ const (
 
 type Content struct {
 	Id          int64     `orm:Id,"auto"`
-	Key         []byte    `orm:key,size(56)`
+	Key         []byte    `orm:key,size(64)`
 	Title       []byte    `orm:title`
 	MimeType    string    `orm:mime_type`
 	Data        []byte    `orm:data`
