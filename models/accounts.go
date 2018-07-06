@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -23,8 +24,8 @@ type CanDelete interface {
 	UnDelete()
 }
 
-func (u *Account) VotedOn(i Content) *Vote {
-	for _, v := range u.Votes {
+func (a *Account) VotedOn(i Content) *Vote {
+	for _, v := range a.Votes {
 		if v.ItemId == i.Id {
 			return &v
 		}
@@ -36,4 +37,23 @@ const anonymous = "anonymous"
 
 func AnonymousAccount() Account {
 	return Account{Id: 0, Handle: anonymous, Votes: make(map[int64]Vote)}
+}
+
+func (a Account) Hash() string {
+	return a.Hash8()
+}
+func (a Account) Hash8() string {
+	return string(a.Key[0:8])
+}
+func (a Account) Hash16() string {
+	return string(a.Key[0:16])
+}
+func (a Account) Hash32() string {
+	return string(a.Key[0:32])
+}
+func (a Account) Hash64() string {
+	return string(a.Key)
+}
+func (a Account) PermaLink() string {
+	return fmt.Sprintf("/~%s", a.Handle)
 }
