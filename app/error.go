@@ -1,4 +1,4 @@
-package main
+package app
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-func (l *littr) handleError(w http.ResponseWriter, r *http.Request, err error, status int) {
+func (l *Littr) HandleError(w http.ResponseWriter, r *http.Request, err error, status int) {
 	if status <= 0 {
 		status = http.StatusInternalServerError
 	}

@@ -1,13 +1,14 @@
-package main
+package app
 
 import (
 	"bytes"
 	"fmt"
 	"log"
-	"models"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/mariusor/littr.go/models"
 
 	"github.com/gorilla/mux"
 )
@@ -32,11 +33,11 @@ func sluggify(s string) string {
 }
 
 // handleMain serves /{year}/{month}/{day}/{hash} request
-func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
+func (l *Littr) HandleContent(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	date, err := time.Parse(time.RFC3339, fmt.Sprintf("%s-%s-%sT00:00:00+00:00", vars["year"], vars["month"], vars["day"]))
 	if err != nil {
-		l.handleError(w, r, err, -1)
+		l.HandleError(w, r, err, -1)
 		return
 	}
 	hash := vars["hash"]
@@ -50,7 +51,7 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 			where "submitted_at" > $1::date and "content_items"."key" ~* $2`
 	rows, err := db.Query(sel, date, hash)
 	if err != nil {
-		l.handleError(w, r, err, -1)
+		l.HandleError(w, r, err, -1)
 		return
 	}
 	m := contentModel{InvertedTheme: l.InvertedTheme}
@@ -58,14 +59,14 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		err = rows.Scan(&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Handle, &p.Path, &p.Flags)
 		if err != nil {
-			l.handleError(w, r, err, -1)
+			l.HandleError(w, r, err, -1)
 			return
 		}
 		m.Title = string(p.Title)
 		m.Content = comment{Content: p}
 	}
 	if p.Data == nil {
-		l.handleError(w, r, fmt.Errorf("not found"), http.StatusNotFound)
+		l.HandleError(w, r, fmt.Errorf("not found"), http.StatusNotFound)
 		return
 	}
 	items = append(items, p)
@@ -83,7 +84,7 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 			if yay {
 				multiplier = 1
 			}
-			_, err := app.Vote(p, multiplier, CurrentAccount().Id)
+			_, err := l.Vote(p, multiplier, CurrentAccount.Id)
 			if err != nil {
 				log.Print(err)
 			}
@@ -94,10 +95,10 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
 		e, err := l.ContentFromRequest(r, p.FullPath())
 		if err != nil {
-			l.handleError(w, r, err, http.StatusInternalServerError)
+			l.HandleError(w, r, err, http.StatusInternalServerError)
 			return
 		}
-		l.Vote(*e, 1, CurrentAccount().Id)
+		l.Vote(*e, 1, CurrentAccount.Id)
 		http.Redirect(w, r, p.PermaLink(), http.StatusFound)
 	}
 
@@ -112,14 +113,14 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 		rows, err := db.Query(selCom, m.Content.Content.FullPath())
 
 		if err != nil {
-			l.handleError(w, r, err, -1)
+			l.HandleError(w, r, err, -1)
 			return
 		}
 		for rows.Next() {
 			c := models.Content{}
 			err = rows.Scan(&c.Id, &c.Key, &c.MimeType, &c.Data, &c.Title, &c.Score, &c.SubmittedAt, &c.SubmittedBy, &c.Handle, &c.Path, &c.Flags)
 			if err != nil {
-				l.handleError(w, r, err, -1)
+				l.HandleError(w, r, err, -1)
 				return
 			}
 
@@ -149,11 +150,11 @@ func (l *littr) handleContent(w http.ResponseWriter, r *http.Request) {
 			par.Children = append(par.Children, cur)
 		}
 	}
-	err = l.LoadVotes(CurrentAccount(), getAllIds(items))
+	err = l.LoadVotes(CurrentAccount, getAllIds(items))
 	if err != nil {
 		log.Print(err)
 	}
-	err = l.session.Save(r, w, l.Session(r))
+	err = l.SessionStore.Save(r, w, l.GetSession(r))
 	if err != nil {
 		log.Print(err)
 	}

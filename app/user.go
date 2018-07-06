@@ -1,10 +1,12 @@
-package main
+package app
 
 import (
 	"fmt"
 	"log"
-	"models"
+
 	"net/http"
+
+	"github.com/mariusor/littr.go/models"
 
 	"github.com/gorilla/mux"
 )
@@ -17,7 +19,7 @@ type userModel struct {
 }
 
 // handleMain serves /~{user}
-func (l *littr) handleUser(w http.ResponseWriter, r *http.Request) {
+func (l *Littr) HandleUser(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
 	db := l.Db
@@ -30,13 +32,13 @@ func (l *littr) handleUser(w http.ResponseWriter, r *http.Request) {
 	{
 		rows, err := db.Query(selAcct, vars["handle"])
 		if err != nil {
-			l.handleError(w, r, err, -1)
+			l.HandleError(w, r, err, -1)
 			return
 		}
 		for rows.Next() {
 			err = rows.Scan(&u.Id, &u.Key, &u.Handle, &u.Email, &u.Score, &u.CreatedAt, &u.UpdatedAt, &u.Metadata, &u.Flags)
 			if err != nil {
-				l.handleError(w, r, err, -1)
+				l.HandleError(w, r, err, -1)
 				return
 			}
 			found = true
@@ -46,7 +48,7 @@ func (l *littr) handleUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !found {
-		l.handleError(w, r, fmt.Errorf("user %q not found", vars["handle"]), http.StatusNotFound)
+		l.HandleError(w, r, fmt.Errorf("user %q not found", vars["handle"]), http.StatusNotFound)
 		return
 	}
 
@@ -57,14 +59,14 @@ func (l *littr) handleUser(w http.ResponseWriter, r *http.Request) {
 	{
 		rows, err := db.Query(selC, u.Id)
 		if err != nil {
-			l.handleError(w, r, err, -1)
+			l.HandleError(w, r, err, -1)
 			return
 		}
 		for rows.Next() {
 			p := models.Content{}
 			err = rows.Scan(&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.Flags, &p.Metadata, &p.Handle)
 			if err != nil {
-				l.handleError(w, r, err, -1)
+				l.HandleError(w, r, err, -1)
 				return
 			}
 			//p.Handle = u.Handle
@@ -72,12 +74,12 @@ func (l *littr) handleUser(w http.ResponseWriter, r *http.Request) {
 			m.Items = append(m.Items, p)
 		}
 	}
-	err := l.LoadVotes(CurrentAccount(), getAllIds(m.Items))
+	err := l.LoadVotes(CurrentAccount, getAllIds(m.Items))
 	if err != nil {
 		log.Print(err)
 	}
 
-	err = l.session.Save(r, w, l.Session(r))
+	err = l.SessionStore.Save(r, w, l.GetSession(r))
 	if err != nil {
 		log.Print(err)
 	}

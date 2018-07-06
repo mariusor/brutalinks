@@ -1,62 +1,34 @@
-package main
+package app
 
 import (
+	"context"
 	"database/sql"
-	"flag"
 	"fmt"
-
 	"html/template"
 	"log"
+	"math"
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
-	_ "github.com/lib/pq"
-	"golang.org/x/net/context"
+	"github.com/mariusor/littr.go/models"
 	"golang.org/x/oauth2"
-
-	"math"
-	"models"
-	"strconv"
-	"strings"
 )
 
 const sessionName = "_s"
 const templateDir = "templates/"
-const defaultHost = "myk.localdomain"
-const defaultPort = 3000
 
-var listenHost = os.Getenv("HOSTNAME")
-var listenPort, _ = strconv.ParseInt(os.Getenv("PORT"), 10, 64)
-var app littr
+var CurrentAccount *models.Account
 
-var LocalUser = models.AnonymousAccount()
-
-func CurrentAccount() *models.Account {
-	return &LocalUser
-}
-
-func LoadFlashMessages() []interface{} {
-	return app.FlashData
-}
-
-func CleanFlashMessages() string {
-	app.FlashData = app.FlashData[:0]
-	return ""
-}
-
-func getAllIds(c []models.Content) []int64 {
-	return models.ContentCollection(c).GetAllIds()
-}
-
-type littr struct {
+type Littr struct {
 	Host          string
 	Port          int64
 	Db            *sql.DB
-	session       sessions.Store
+	SessionStore  sessions.Store
 	FlashData     []interface{}
 	SessionData   []interface{}
 	InvertedTheme bool
@@ -70,27 +42,30 @@ type errorModel struct {
 	Error         error
 }
 
-func (l *littr) Session(r *http.Request) *sessions.Session {
-	s, err := l.session.Get(r, sessionName)
+func (l *Littr) GetSession(r *http.Request) *sessions.Session {
+	s, err := l.SessionStore.Get(r, sessionName)
 	if err != nil {
 		log.Print(err)
 	}
 	return s
 }
 
-func (l *littr) host() string {
+func (l *Littr) host() string {
 	var port string
 	if l.Port != 0 {
 		port = fmt.Sprintf(":%d", l.Port)
 	}
-	return fmt.Sprintf("%s%s", l.Host, port)
+	return fmt.Sprintf("%s%s", "127.0.0.1", port)
 }
 
-func (l *littr) BaseUrl() string {
+func (l *Littr) BaseUrl() string {
 	return fmt.Sprintf("http://%s", l.host())
 }
 
-func (l *littr) LoadVotes(u *models.Account, ids []int64) error {
+func (l *Littr) LoadVotes(u *models.Account, ids []int64) error {
+	if u == nil {
+		return fmt.Errorf("invalid user")
+	}
 	if len(ids) == 0 {
 		return fmt.Errorf("no ids to load")
 	}
@@ -125,7 +100,7 @@ func (l *littr) LoadVotes(u *models.Account, ids []int64) error {
 	return nil
 }
 
-func (l *littr) LoadTemplates(base string, main string) (*template.Template, error) {
+func (l *Littr) LoadTemplates(base string, main string) (*template.Template, error) {
 	var terr error
 	var t *template.Template
 	t, terr = template.New(main).ParseFiles(base + main)
@@ -134,14 +109,13 @@ func (l *littr) LoadTemplates(base string, main string) (*template.Template, err
 	}
 
 	t.Funcs(template.FuncMap{
-		"sluggify":          sluggify,
-		"title":             func(t []byte) string { return string(t) },
-		"getProviders":      getAuthProviders,
-		"CurrentAccount":    CurrentAccount,
-		"LoadFlashMessages": LoadFlashMessages,
-		"mod":               func(lvl int) float64 { return math.Mod(float64(lvl), float64(10)) },
-
-		"CleanFlashMessages": CleanFlashMessages,
+		"sluggify":           sluggify,
+		"title":              func(t []byte) string { return string(t) },
+		"getProviders":       getAuthProviders,
+		"CurrentAccount":     func() *models.Account { return CurrentAccount },
+		"LoadFlashMessages":  func() []int { return []int{} }, //LoadFlashMessages,
+		"mod":                func(lvl int) float64 { return math.Mod(float64(lvl), float64(10)) },
+		"CleanFlashMessages": func() string { return "" }, //CleanFlashMessages,
 	})
 	_, terr = t.New("items.html").ParseFiles(base + "partials/content/items.html")
 	if terr != nil {
@@ -203,16 +177,16 @@ func (l *littr) LoadTemplates(base string, main string) (*template.Template, err
 	return t, nil
 }
 
-//func (l *littr) session(r *http.Request) *sessions.Session {
-//	sess, err := l.Session.Get(r, sessionName)
+//func (l *Littr) SessionStore(r *http.Request) *sessions.GetSession {
+//	sess, err := l.GetSession.Get(r, sessionName)
 //	if err != nil {
-//		log.Printf("unable to load session")
+//		log.Printf("unable to load SessionStore")
 //		return nil
 //	}
 //	return sess
 //}
 
-func (l *littr) Vote(p models.Content, score int, userId int64) (bool, error) {
+func (l *Littr) Vote(p models.Content, score int, userId int64) (bool, error) {
 	db := l.Db
 	newWeight := int(score * models.ScoreMultiplier)
 
@@ -278,7 +252,7 @@ func (l *littr) Vote(p models.Content, score int, userId int64) (bool, error) {
 	return true, nil
 }
 
-func (l *littr) Run(m *mux.Router, wait time.Duration) {
+func (l *Littr) Run(m *mux.Router, wait time.Duration) {
 	log.SetPrefix(l.Host + " ")
 	log.SetFlags(0)
 	log.SetOutput(l)
@@ -321,18 +295,18 @@ func (l *littr) Run(m *mux.Router, wait time.Duration) {
 }
 
 // Write is used to conform to the Logger interface
-func (l *littr) Write(bytes []byte) (int, error) {
+func (l *Littr) Write(bytes []byte) (int, error) {
 	return fmt.Printf("%s [%s] %s", time.Now().UTC().Format("2006-01-02 15:04:05.999"), "DEBUG", bytes)
 }
 
 // handleAdmin serves /admin request
-func (l *littr) handleAdmin(w http.ResponseWriter, _ *http.Request) {
+func (l *Littr) HandleAdmin(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(200)
 	w.Write([]byte("done!!!"))
 }
 
 // handleMain serves /auth/{provider}/callback request
-func (l *littr) handleCallback(w http.ResponseWriter, r *http.Request) {
+func (l *Littr) HandleCallback(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	q := r.URL.Query()
 	provider := vars["provider"]
@@ -350,7 +324,7 @@ func (l *littr) handleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s, err := l.session.Get(r, sessionName)
+	s, err := l.SessionStore.Get(r, sessionName)
 	if err != nil {
 		log.Printf("ERROR %s", err)
 	}
@@ -360,7 +334,7 @@ func (l *littr) handleCallback(w http.ResponseWriter, r *http.Request) {
 	s.Values["state"] = state
 	s.AddFlash("Success")
 
-	err = l.session.Save(r, w, s)
+	err = l.SessionStore.Save(r, w, s)
 	if err != nil {
 		log.Print(err)
 	}
@@ -368,7 +342,7 @@ func (l *littr) handleCallback(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleMain serves /auth/{provider}/callback request
-func (l *littr) handleAuth(w http.ResponseWriter, r *http.Request) {
+func (l *Littr) HandleAuth(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	provider := vars["provider"]
 
@@ -417,7 +391,7 @@ func (l *littr) handleAuth(w http.ResponseWriter, r *http.Request) {
 			RedirectURL: url,
 		}
 	default:
-		s, err := l.session.Get(r, sessionName)
+		s, err := l.SessionStore.Get(r, sessionName)
 		if err != nil {
 			log.Printf("ERROR %s", err)
 		}
@@ -428,15 +402,15 @@ func (l *littr) handleAuth(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, config.AuthCodeURL("state", oauth2.AccessTypeOnline), http.StatusFound)
 }
 
-func (l *littr) loggerMw(n http.Handler) http.Handler {
+func (l *Littr) LoggerMw(n http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log.Printf("%s %s", r.Method, r.RequestURI)
 		n.ServeHTTP(w, r)
 	})
 }
-func (l *littr) sessions(n http.Handler) http.Handler {
+func (l *Littr) Sessions(n http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		s, err := l.session.Get(r, sessionName)
+		s, err := l.SessionStore.Get(r, sessionName)
 		if err != nil {
 			log.Print(err)
 		}
@@ -455,98 +429,28 @@ func (l *littr) sessions(n http.Handler) http.Handler {
 	})
 }
 
-func (l *littr) authCheck(next http.Handler) http.Handler {
+func (l *Littr) AuthCheck(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		s, err := l.session.Get(r, sessionName)
+		s, err := l.SessionStore.Get(r, sessionName)
 		if err != nil {
 			log.Printf("ERROR %s", err)
 		}
 		log.Printf("%#v", s.Values)
-		//l.session.Save(r, w, s)
+		//l.SessionStore.Save(r, w, s)
 	})
 }
 
-func init() {
-	authKey := []byte(os.Getenv("SESS_AUTH_KEY"))
-	encKey := []byte(os.Getenv("SESS_ENC_KEY"))
-	if listenPort == 0 {
-		listenPort = defaultPort
-	}
-	if listenHost == "" {
-		listenHost = defaultHost
-	}
-
-	s := sessions.NewCookieStore(authKey, encKey)
-	s.Options.Domain = listenHost
-	s.Options.Path = "/"
-
-	app = littr{Host: listenHost, Port: listenPort, session: s}
-
-	dbPw := os.Getenv("DB_PASSWORD")
-	dbName := os.Getenv("DB_NAME")
-	dbUser := os.Getenv("DB_USER")
-
-	connStr := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable", dbUser, dbPw, dbName)
-	db, err := sql.Open("postgres", connStr)
-	if err != nil {
-		log.Print(err)
-	}
-	app.Db = db
+func getAllIds(c []models.Content) []int64 {
+	return models.ContentCollection(c).GetAllIds()
 }
 
-func main() {
-	var wait time.Duration
-	flag.DurationVar(&wait, "graceful-timeout", time.Second*15, "the duration for which the server gracefully wait for existing connections to finish - e.g. 15s or 1m")
-	flag.Parse()
-
-	m := mux.NewRouter()
-
-	m.HandleFunc("/", app.handleIndex).
-		Methods(http.MethodGet, http.MethodHead).
-		Name("index")
-
-	m.HandleFunc("/submit", app.handleSubmit).
-		Methods(http.MethodGet, http.MethodHead, http.MethodPost).
-		Name("submit")
-
-	m.HandleFunc("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}", app.handleContent).
-		Methods(http.MethodGet, http.MethodHead, http.MethodPost).
-		Name("content")
-
-	//m.HandleFunc("/.well-known/webfinger", app.handleWebFinger).
-	//	Methods(http.MethodGet, http.MethodHead).
-	//	Name("webfinger")
-
-	m.HandleFunc("/~{handle}", app.handleUser).
-		Methods(http.MethodGet, http.MethodHead).
-		Name("account")
-
-	o := m.PathPrefix("/auth").Subrouter()
-	o.HandleFunc("/{provider}", app.handleAuth).Name("auth")
-	o.HandleFunc("/{provider}/callback", app.handleCallback).Name("authCallback")
-
-	a := m.PathPrefix("/admin").Subrouter()
-	a.Use(app.authCheck)
-	a.HandleFunc("/", app.handleAdmin).Name("admin")
-
-	m.PathPrefix("/assets/").
-		Handler(http.StripPrefix("/assets/", http.FileServer(http.Dir("./assets/"))))
-
-	m.HandleFunc("/{ancestor}/{hash}/{parent}", app.handleParent).
-		Methods(http.MethodGet, http.MethodHead).
-		Name("parent")
-
-	m.HandleFunc("/domains/{domain}", app.handleDomains).
-		Methods(http.MethodGet, http.MethodHead).
-		Name("domains")
-
-	m.NotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		app.handleError(w, r, fmt.Errorf("url %q couldn't be found", r.URL), 404)
-	})
-
-	m.Use(app.loggerMw)
-	m.Use(app.sessions)
-
-	app.Run(m, wait)
-}
+//
+//func LoadFlashMessages() []interface{} {
+//	return a.FlashData
+//}
+//
+//func CleanFlashMessages() string {
+//	a.FlashData = a.FlashData[:0]
+//	return ""
+//}

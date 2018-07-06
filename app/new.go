@@ -1,13 +1,15 @@
-package main
+package app
 
 import (
 	"bytes"
 	"fmt"
 	"log"
-	"models"
+
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/mariusor/littr.go/models"
 )
 
 type newModel struct {
@@ -24,7 +26,7 @@ func detectMimeType(data []byte) string {
 	return "text/plain"
 }
 
-func (l *littr) ContentFromRequest(r *http.Request, p []byte) (*models.Content, error) {
+func (l *Littr) ContentFromRequest(r *http.Request, p []byte) (*models.Content, error) {
 	if r.Method != http.MethodPost {
 		return nil, fmt.Errorf("invalid http method type")
 	}
@@ -39,7 +41,7 @@ func (l *littr) ContentFromRequest(r *http.Request, p []byte) (*models.Content, 
 	if dat != "" {
 		i.Data = []byte(dat)
 	}
-	i.SubmittedBy = CurrentAccount().Id
+	i.SubmittedBy = CurrentAccount.Id
 	i.Path = p
 	i.MimeType = detectMimeType(i.Data)
 	if !i.IsLink() {
@@ -67,14 +69,14 @@ func (l *littr) ContentFromRequest(r *http.Request, p []byte) (*models.Content, 
 }
 
 // handleMain serves /{year}/{month}/{day}/{hash} request
-func (l *littr) handleSubmit(w http.ResponseWriter, r *http.Request) {
-	var userId = CurrentAccount().Id
+func (l *Littr) HandleSubmit(w http.ResponseWriter, r *http.Request) {
+	var userId = CurrentAccount.Id
 
 	if r.Method == http.MethodPost {
 		p, err := l.ContentFromRequest(r, nil)
 
 		if err != nil {
-			l.handleError(w, r, err, http.StatusInternalServerError)
+			l.HandleError(w, r, err, http.StatusInternalServerError)
 			return
 		}
 		l.Vote(*p, 1, userId)
@@ -82,7 +84,7 @@ func (l *littr) handleSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	m := newModel{Title: "Submit new content"}
-	err := l.session.Save(r, w, l.Session(r))
+	err := l.SessionStore.Save(r, w, l.GetSession(r))
 	if err != nil {
 		log.Print(err)
 	}

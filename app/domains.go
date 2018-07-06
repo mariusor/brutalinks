@@ -1,15 +1,17 @@
-package main
+package app
 
 import (
 	"log"
-	"models"
+
 	"net/http"
+
+	"github.com/mariusor/littr.go/models"
 
 	"github.com/gorilla/mux"
 )
 
 // handleMain serves /domains/{domain} request
-func (l *littr) handleDomains(w http.ResponseWriter, r *http.Request) {
+func (l *Littr) HandleDomains(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
 	db := l.Db
@@ -22,20 +24,20 @@ func (l *littr) handleDomains(w http.ResponseWriter, r *http.Request) {
 	{
 		rows, err := db.Query(selC, vars["domain"])
 		if err != nil {
-			l.handleError(w, r, err, -1)
+			l.HandleError(w, r, err, -1)
 			return
 		}
 		for rows.Next() {
 			p := models.Content{}
 			err = rows.Scan(&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.Flags, &p.Metadata, &p.Handle)
 			if err != nil {
-				l.handleError(w, r, err, -1)
+				l.HandleError(w, r, err, -1)
 				return
 			}
 			m.Items = append(m.Items, p)
 		}
 	}
-	err := l.LoadVotes(CurrentAccount(), getAllIds(m.Items))
+	err := l.LoadVotes(CurrentAccount, getAllIds(m.Items))
 	if err != nil {
 		log.Print(err)
 	}

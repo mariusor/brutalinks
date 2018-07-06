@@ -1,10 +1,12 @@
-package main
+package app
 
 import (
 	"fmt"
 	"log"
-	"models"
+
 	"net/http"
+
+	"github.com/mariusor/littr.go/models"
 )
 
 const (
@@ -28,7 +30,7 @@ func getAuthProviders() map[string]string {
 }
 
 // handleMain serves / request
-func (l *littr) handleIndex(w http.ResponseWriter, r *http.Request) {
+func (l *Littr) HandleIndex(w http.ResponseWriter, r *http.Request) {
 	m := indexModel{Title: "Index", InvertedTheme: l.InvertedTheme}
 
 	db := l.Db
@@ -41,25 +43,25 @@ func (l *littr) handleIndex(w http.ResponseWriter, r *http.Request) {
 	order by "score" desc, "submitted_at" desc limit %d`, MaxContentItems)
 	rows, err := db.Query(sel)
 	if err != nil {
-		l.handleError(w, r, err, -1)
+		l.HandleError(w, r, err, -1)
 		return
 	}
 	for rows.Next() {
 		p := models.Content{}
 		err = rows.Scan(&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Handle, &p.Flags)
 		if err != nil {
-			l.handleError(w, r, err, -1)
+			l.HandleError(w, r, err, -1)
 			return
 		}
 		m.Items = append(m.Items, p)
 	}
 
-	err = l.LoadVotes(CurrentAccount(), getAllIds(m.Items))
+	err = l.LoadVotes(CurrentAccount, getAllIds(m.Items))
 	if err != nil {
 		log.Print(err)
 	}
 
-	err = l.session.Save(r, w, l.Session(r))
+	err = l.SessionStore.Save(r, w, l.GetSession(r))
 	if err != nil {
 		log.Print(err)
 	}
