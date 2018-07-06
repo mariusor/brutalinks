@@ -74,8 +74,8 @@ func HandleAccount(w http.ResponseWriter, r *http.Request) {
 	u.PreferredUsername["en"] = a.Handle
 	u.URL = fmt.Sprintf(a.PermaLink())
 
-	ctx := json.Context{}
-	j, err := json.Marshal(u, &ctx)
+	json.Ctx = GetContext()
+	j, err := json.Marshal(u)
 	if err != nil {
 		HandleError(w, r, err, http.StatusInternalServerError)
 		return
@@ -116,8 +116,8 @@ func HandleVerifyCredentials(w http.ResponseWriter, r *http.Request) {
 		Bot:              true,
 	}
 
-	ctx := json.Context{}
-	j, err := json.Marshal(u, &ctx)
+	json.Ctx = GetContext()
+	j, err := json.Marshal(u)
 	if err != nil {
 		HandleError(w, r, err, http.StatusInternalServerError)
 		return

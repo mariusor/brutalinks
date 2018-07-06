@@ -4,9 +4,12 @@ import (
 	"database/sql"
 	"encoding/json"
 	"net/http"
+
+	"github.com/mariusor/activitypub.go/jsonld"
 )
 
 var Db *sql.DB
+var BaseURL string
 
 type Field struct {
 	Name  string `json:"name"`
@@ -14,6 +17,10 @@ type Field struct {
 }
 
 type Fields []Field
+
+func GetContext() *jsonld.Context {
+	return &jsonld.Context{URL: jsonld.Ref(BaseURL)}
+}
 
 func HandleError(w http.ResponseWriter, r *http.Request, err error, code int) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
