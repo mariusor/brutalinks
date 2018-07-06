@@ -122,7 +122,7 @@ func (c Content) PermaLink() string {
 	if c.SubmittedAt.IsZero() {
 		return ""
 	}
-	return fmt.Sprintf("/%4d/%02d/%02d/%s", c.SubmittedAt.Year(), c.SubmittedAt.Month(), c.SubmittedAt.Day(), c.Key[0:8])
+	return fmt.Sprintf("/%4d/%02d/%02d/%s", c.SubmittedAt.Year(), c.SubmittedAt.Month(), c.SubmittedAt.Day(), c.Hash())
 }
 func (c *Content) FullPath() []byte {
 	if c.fullPath == nil {
