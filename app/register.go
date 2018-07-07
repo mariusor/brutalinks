@@ -66,9 +66,9 @@ func (l *Littr) AccountFromRequest(r *http.Request) (*models.Account, []error) {
 	if err != nil {
 		log.Print(err)
 	}
-	ins := `insert into "accounts" ("key", "handle", "created_at", "updated_at") values($1, $2, $3, $4)`
+	ins := `insert into "accounts" ("key", "handle", "created_at", "updated_at", "metadata") values($1, $2, $3, $4)`
 	{
-		res, err := l.Db.Exec(ins, a.Key, a.Handle, a.CreatedAt, a.UpdatedAt)
+		res, err := l.Db.Exec(ins, a.Key, a.Handle, a.CreatedAt, a.UpdatedAt, a.Metadata)
 		if err != nil {
 			return nil, []error{err}
 		} else {
@@ -82,10 +82,10 @@ func (l *Littr) AccountFromRequest(r *http.Request) (*models.Account, []error) {
 }
 func (l *Littr) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
-		a, err := l.AccountFromRequest(r)
+		a, errs := l.AccountFromRequest(r)
 
-		if err != nil {
-			l.HandleError(w, r, http.StatusInternalServerError, err...)
+		if len(errs) > 0 {
+			l.HandleError(w, r, http.StatusInternalServerError, errs...)
 			return
 		}
 		http.Redirect(w, r, a.PermaLink(), http.StatusMovedPermanently)
