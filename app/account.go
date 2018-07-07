@@ -32,13 +32,13 @@ func (l *Littr) HandleUser(w http.ResponseWriter, r *http.Request) {
 	{
 		rows, err := db.Query(selAcct, vars["handle"])
 		if err != nil {
-			l.HandleError(w, r, err, -1)
+			l.HandleError(w, r, StatusUnknown, err)
 			return
 		}
 		for rows.Next() {
 			err = rows.Scan(&u.Id, &u.Key, &u.Handle, &u.Email, &u.Score, &u.CreatedAt, &u.UpdatedAt, &u.Metadata, &u.Flags)
 			if err != nil {
-				l.HandleError(w, r, err, -1)
+				l.HandleError(w, r, StatusUnknown, err)
 				return
 			}
 			found = true
@@ -48,7 +48,7 @@ func (l *Littr) HandleUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !found {
-		l.HandleError(w, r, fmt.Errorf("user %q not found", vars["handle"]), http.StatusNotFound)
+		l.HandleError(w, r, http.StatusNotFound, fmt.Errorf("user %q not found", vars["handle"]))
 		return
 	}
 
@@ -59,14 +59,14 @@ func (l *Littr) HandleUser(w http.ResponseWriter, r *http.Request) {
 	{
 		rows, err := db.Query(selC, u.Id)
 		if err != nil {
-			l.HandleError(w, r, err, -1)
+			l.HandleError(w, r, StatusUnknown, err)
 			return
 		}
 		for rows.Next() {
 			p := models.Content{}
 			err = rows.Scan(&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.Flags, &p.Metadata, &p.Handle)
 			if err != nil {
-				l.HandleError(w, r, err, -1)
+				l.HandleError(w, r, StatusUnknown, err)
 				return
 			}
 			//p.Handle = u.Handle

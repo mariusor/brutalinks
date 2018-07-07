@@ -37,7 +37,7 @@ func (l *Littr) HandleContent(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	date, err := time.Parse(time.RFC3339, fmt.Sprintf("%s-%s-%sT00:00:00+00:00", vars["year"], vars["month"], vars["day"]))
 	if err != nil {
-		l.HandleError(w, r, err, -1)
+		l.HandleError(w, r, StatusUnknown, err)
 		return
 	}
 	hash := vars["hash"]
@@ -51,7 +51,7 @@ func (l *Littr) HandleContent(w http.ResponseWriter, r *http.Request) {
 			where "submitted_at" > $1::date and "content_items"."key" ~* $2`
 	rows, err := db.Query(sel, date, hash)
 	if err != nil {
-		l.HandleError(w, r, err, -1)
+		l.HandleError(w, r, StatusUnknown, err)
 		return
 	}
 	m := contentModel{InvertedTheme: l.InvertedTheme}
@@ -59,14 +59,14 @@ func (l *Littr) HandleContent(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		err = rows.Scan(&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Handle, &p.Path, &p.Flags)
 		if err != nil {
-			l.HandleError(w, r, err, -1)
+			l.HandleError(w, r, StatusUnknown, err)
 			return
 		}
 		m.Title = string(p.Title)
 		m.Content = comment{Content: p}
 	}
 	if p.Data == nil {
-		l.HandleError(w, r, fmt.Errorf("not found"), http.StatusNotFound)
+		l.HandleError(w, r, http.StatusNotFound, fmt.Errorf("not found"))
 		return
 	}
 	items = append(items, p)
@@ -95,7 +95,7 @@ func (l *Littr) HandleContent(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
 		e, err := l.ContentFromRequest(r, p.FullPath())
 		if err != nil {
-			l.HandleError(w, r, err, http.StatusInternalServerError)
+			l.HandleError(w, r, http.StatusInternalServerError, err)
 			return
 		}
 		l.Vote(*e, 1, CurrentAccount.Id)
@@ -113,14 +113,14 @@ func (l *Littr) HandleContent(w http.ResponseWriter, r *http.Request) {
 		rows, err := db.Query(selCom, m.Content.Content.FullPath())
 
 		if err != nil {
-			l.HandleError(w, r, err, -1)
+			l.HandleError(w, r, StatusUnknown, err)
 			return
 		}
 		for rows.Next() {
 			c := models.Content{}
 			err = rows.Scan(&c.Id, &c.Key, &c.MimeType, &c.Data, &c.Title, &c.Score, &c.SubmittedAt, &c.SubmittedBy, &c.Handle, &c.Path, &c.Flags)
 			if err != nil {
-				l.HandleError(w, r, err, -1)
+				l.HandleError(w, r, StatusUnknown, err)
 				return
 			}
 

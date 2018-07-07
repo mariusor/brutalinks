@@ -21,25 +21,26 @@ type registerModel struct {
 	Account       models.Account
 }
 
-func (l *Littr) AccountFromRequest(r *http.Request) (*models.Account, error) {
+func (l *Littr) AccountFromRequest(r *http.Request) (*models.Account, []error) {
 	if r.Method != http.MethodPost {
-		return nil, fmt.Errorf("invalid http method type")
+		return nil, []error{fmt.Errorf("invalid http method type")}
 	}
+	errs := make([]error, 0)
 	a := models.Account{}
 	pw := r.PostFormValue("pw")
 	pwConfirm := r.PostFormValue("pw-confirm")
 	if pw != pwConfirm {
-		return nil, fmt.Errorf("passwords are not matching")
-	}
-	if pw != pwConfirm {
-		return nil, fmt.Errorf("passwords are not matching")
+		errs = append(errs, fmt.Errorf("the passwords don't match"))
 	}
 
 	agree := r.PostFormValue("agree")
 	if agree != "y" {
-		return nil, fmt.Errorf("you must agree not to be a dick to other people")
+		errs = append(errs, fmt.Errorf("you must agree not to be a dick to other people"))
 	}
 
+	if len(errs) > 0 {
+		return nil, errs
+	}
 	handle := r.PostFormValue("handle")
 	if handle != "" {
 		a.Handle = handle
@@ -69,10 +70,10 @@ func (l *Littr) AccountFromRequest(r *http.Request) (*models.Account, error) {
 	{
 		res, err := l.Db.Exec(ins, a.Key, a.Handle, a.CreatedAt, a.UpdatedAt)
 		if err != nil {
-			return nil, err
+			return nil, []error{err}
 		} else {
 			if rows, _ := res.RowsAffected(); rows == 0 {
-				return nil, fmt.Errorf("could not save account %q", a.Hash())
+				return nil, []error{fmt.Errorf("could not save account %q", a.Hash())}
 			}
 		}
 	}
@@ -84,7 +85,7 @@ func (l *Littr) HandleRegister(w http.ResponseWriter, r *http.Request) {
 		a, err := l.AccountFromRequest(r)
 
 		if err != nil {
-			l.HandleError(w, r, err, http.StatusInternalServerError)
+			l.HandleError(w, r, http.StatusInternalServerError, err...)
 			return
 		}
 		http.Redirect(w, r, a.PermaLink(), http.StatusMovedPermanently)

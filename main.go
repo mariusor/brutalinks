@@ -126,7 +126,7 @@ func main() {
 		Name("domains")
 
 	m.NotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		littr.HandleError(w, r, fmt.Errorf("url %q couldn't be found", r.URL), 404)
+		littr.HandleError(w, r, http.StatusNotFound, fmt.Errorf("url %q couldn't be found", r.URL))
 	})
 
 	m.Use(littr.LoggerMw)

@@ -76,7 +76,7 @@ func (l *Littr) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 		p, err := l.ContentFromRequest(r, nil)
 
 		if err != nil {
-			l.HandleError(w, r, err, http.StatusInternalServerError)
+			l.HandleError(w, r, http.StatusInternalServerError, err)
 			return
 		}
 		l.Vote(*p, 1, userId)

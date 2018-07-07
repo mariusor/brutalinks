@@ -24,14 +24,14 @@ func (l *Littr) HandleDomains(w http.ResponseWriter, r *http.Request) {
 	{
 		rows, err := db.Query(selC, vars["domain"])
 		if err != nil {
-			l.HandleError(w, r, err, -1)
+			l.HandleError(w, r, StatusUnknown, err)
 			return
 		}
 		for rows.Next() {
 			p := models.Content{}
 			err = rows.Scan(&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.Flags, &p.Metadata, &p.Handle)
 			if err != nil {
-				l.HandleError(w, r, err, -1)
+				l.HandleError(w, r, StatusUnknown, err)
 				return
 			}
 			m.Items = append(m.Items, p)

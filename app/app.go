@@ -19,8 +19,11 @@ import (
 	"golang.org/x/oauth2"
 )
 
-const sessionName = "_s"
-const templateDir = "templates/"
+const (
+	sessionName   = "_s"
+	templateDir   = "templates/"
+	StatusUnknown = -1
+)
 
 var CurrentAccount *models.Account
 
@@ -39,7 +42,7 @@ type errorModel struct {
 	Status        int
 	Title         string
 	InvertedTheme bool
-	Error         error
+	Errors        []error
 }
 
 func (l *Littr) GetSession(r *http.Request) *sessions.Session {

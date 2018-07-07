@@ -43,14 +43,14 @@ func (l *Littr) HandleIndex(w http.ResponseWriter, r *http.Request) {
 	order by "score" desc, "submitted_at" desc limit %d`, MaxContentItems)
 	rows, err := db.Query(sel)
 	if err != nil {
-		l.HandleError(w, r, err, -1)
+		l.HandleError(w, r, StatusUnknown, err)
 		return
 	}
 	for rows.Next() {
 		p := models.Content{}
 		err = rows.Scan(&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Handle, &p.Flags)
 		if err != nil {
-			l.HandleError(w, r, err, -1)
+			l.HandleError(w, r, StatusUnknown, err)
 			return
 		}
 		m.Items = append(m.Items, p)
