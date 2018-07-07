@@ -1,10 +1,14 @@
+{{ $account := CurrentAccount}}
 {{ $providers := getProviders }}
 <menu id="auth">
     <li>Sign in</li>
     <li><a href="/auth/local" class="far fa-trash-alt"></a></li>
 {{range $key, $value := $providers}}
 <li><a href="/auth/{{$key}}" class="fab fa-{{$key}}"></a></li>
+{{ if ge $account.Id 0}}
+    <li>{{$account.Handle}}</li>
+{{end}}
 {{end}}
 </menu>
 {{/*}}<script type="application/json" id="flashMessages">{{LoadFlashMessages}}</script>*/}}
-<script type="application/json" id="currentUser">{{CurrentAccount}}</script>
+<script type="application/json" id="currentUser">{{$account}}</script>
