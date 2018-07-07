@@ -5,11 +5,16 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"fmt"
+
 	"github.com/mariusor/activitypub.go/jsonld"
 )
 
 var Db *sql.DB
 var BaseURL string
+
+const NotFound = 404
+const InternalError = 500
 
 type Field struct {
 	Name  string `json:"name"`
@@ -18,23 +23,44 @@ type Field struct {
 
 type Fields []Field
 
-func GetContext() *jsonld.Context {
-	return &jsonld.Context{URL: jsonld.Ref(BaseURL)}
+type ApiError struct {
+	Code  int
+	Error error
 }
 
-func HandleError(w http.ResponseWriter, r *http.Request, err error, code int) {
+func Errorf(c int, m string, args ...interface{}) *ApiError {
+	return &ApiError{c, fmt.Errorf(m, args...)}
+}
+
+func GetContext() *jsonld.Context {
+	return &jsonld.Context{URL: jsonld.Ref("http://www.w3.org/ns/activitystreams")}
+}
+
+func HandleError(w http.ResponseWriter, r *http.Request, code int, errs ...error) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(code)
 
-	e := struct {
+	type error struct {
 		Code    int    `json:"code"`
 		Message string `json:"message"`
-	}{
-		code,
-		err.Error(),
+	}
+	type eresp struct {
+		Status int     `json:"status"`
+		Errors []error `json:"errors"`
 	}
 
-	j, _ := json.Marshal(e)
+	res := eresp{
+		Status: code,
+		Errors: []error{},
+	}
+	for _, err := range errs {
+		e := error{
+			Message: err.Error(),
+		}
+		res.Errors = append(res.Errors, e)
+	}
+
+	j, _ := json.Marshal(res)
 	w.Write(j)
 }

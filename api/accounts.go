@@ -2,7 +2,6 @@ package api
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/mariusor/littr.go/models"
 
@@ -13,25 +12,6 @@ import (
 	json "github.com/mariusor/activitypub.go/jsonld"
 )
 
-type Account struct {
-	//The username of the account
-	Username string `json:"username"`
-	// Equals username for local users, includes @domain for remote ones
-	Acct string `json:"acct"`
-	// The time the account was created
-	CreatedAt time.Time `json:"created_at"`
-	// URL of the user's profile page (can be remote)
-	Url string `json:"url"`
-	// The number of votes received
-	Score int64 `json:"score"`
-	//The number of statuses the account has made
-	SubmissionsCount int64 `json:"submissions_count"`
-	// Array of profile metadata field, each element has 'name' and 'value'
-	Fields Fields `json:"fields"`
-	// Boolean to indicate that the account performs automated actions
-	Bot bool `json:"bot"`
-}
-
 var CurrentAccount *models.Account
 
 func loadAccount(handle string) (*models.Account, int64, error) {
@@ -40,7 +20,7 @@ func loadAccount(handle string) (*models.Account, int64, error) {
 	selAcct := `select "accounts"."id", "accounts"."key", "handle", "email", "accounts"."score", "created_at", "accounts"."updated_at",
   "accounts"."metadata", "accounts"."flags",
   count("content_items"."id") as "submission_count" from "accounts"
-inner join "content_items" on "content_items"."submitted_by" = "accounts"."id"
+left join "content_items" on "content_items"."submitted_by" = "accounts"."id"
  where "handle" = $1 group by "accounts"."id"`
 	rows, err := Db.Query(selAcct, handle)
 	if err != nil {
@@ -61,23 +41,23 @@ func HandleAccount(w http.ResponseWriter, r *http.Request) {
 
 	a, _, err := loadAccount(vars["handle"])
 	if err != nil {
-		HandleError(w, r, err, http.StatusInternalServerError)
+		HandleError(w, r, http.StatusInternalServerError, err)
 		return
 	}
 	if a.Handle == "" {
-		HandleError(w, r, fmt.Errorf("acccount not found"), http.StatusNotFound)
+		HandleError(w, r, http.StatusNotFound, fmt.Errorf("acccount not found"))
 		return
 	}
 
-	u := ap.PersonNew(ap.ObjectID(a.Hash()))
-	u.Name["en"] = a.Handle
-	u.PreferredUsername["en"] = a.Handle
-	u.URL = fmt.Sprintf(a.PermaLink())
+	p := ap.PersonNew(ap.ObjectID(a.Hash()))
+	p.Name["en"] = a.Handle
+	p.PreferredUsername["en"] = a.Handle
+	p.URL = fmt.Sprintf(a.PermaLink())
 
 	json.Ctx = GetContext()
-	j, err := json.Marshal(u)
+	j, err := json.Marshal(p)
 	if err != nil {
-		HandleError(w, r, err, http.StatusInternalServerError)
+		HandleError(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -93,33 +73,28 @@ func HandleAccount(w http.ResponseWriter, r *http.Request) {
 func HandleVerifyCredentials(w http.ResponseWriter, r *http.Request) {
 	a := CurrentAccount
 	if a == nil {
-		HandleError(w, r, fmt.Errorf("acccount not found"), http.StatusNotFound)
+		HandleError(w, r, http.StatusNotFound, fmt.Errorf("acccount not found"))
 	}
 
-	a, items, err := loadAccount(a.Handle)
+	a, _, err := loadAccount(a.Handle)
 	if err != nil {
-		HandleError(w, r, err, http.StatusInternalServerError)
+		HandleError(w, r, http.StatusInternalServerError, err)
 		return
 	}
 	if a.Handle == "" {
-		HandleError(w, r, fmt.Errorf("acccount not found"), http.StatusNotFound)
+		HandleError(w, r, http.StatusNotFound, fmt.Errorf("acccount not found"))
 		return
 	}
 
-	u := Account{
-		Username:         a.Handle,
-		Acct:             a.Handle,
-		CreatedAt:        a.CreatedAt,
-		Url:              fmt.Sprintf("/~%s", a.Handle),
-		Score:            a.Score,
-		SubmissionsCount: items,
-		Bot:              true,
-	}
+	p := ap.PersonNew(ap.ObjectID(a.Hash()))
+	p.Name["en"] = a.Handle
+	p.PreferredUsername["en"] = a.Handle
+	p.URL = fmt.Sprintf(a.PermaLink())
 
 	json.Ctx = GetContext()
-	j, err := json.Marshal(u)
+	j, err := json.Marshal(p)
 	if err != nil {
-		HandleError(w, r, err, http.StatusInternalServerError)
+		HandleError(w, r, http.StatusInternalServerError, err)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
