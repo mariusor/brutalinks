@@ -101,6 +101,7 @@ func main() {
 		Name("account")
 
 	o := m.PathPrefix("/auth").Subrouter()
+	o.HandleFunc("/local", littr.HandleLogin).Name("login")
 	o.HandleFunc("/{provider}", littr.HandleAuth).Name("auth")
 	o.HandleFunc("/{provider}/callback", littr.HandleCallback).Name("authCallback")
 

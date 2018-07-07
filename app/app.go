@@ -191,7 +191,12 @@ func LoadTemplates(base string, main string) (*template.Template, error) {
 		return nil, terr
 		log.Print(terr)
 	}
-	_, terr = t.New("new_account.html").ParseFiles(base + "partials/register/new_account.html")
+	_, terr = t.New("new-account.html").ParseFiles(base + "partials/register/new-account.html")
+	if terr != nil {
+		return nil, terr
+		log.Print(terr)
+	}
+	_, terr = t.New("local-login.html").ParseFiles(base + "partials/login/local-login.html")
 	if terr != nil {
 		return nil, terr
 		log.Print(terr)
@@ -432,15 +437,19 @@ func (l *Littr) LoggerMw(n http.Handler) http.Handler {
 }
 func (l *Littr) Sessions(n http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		s, err := l.SessionStore.Get(r, sessionName)
-		if err != nil {
-			log.Print(err)
-		}
+		s := l.GetSession(r)
 		l.FlashData = s.Flashes()
+		for k, v := range s.Values {
+			log.Printf("sess %s %#v", k, v)
+		}
+		if s.Values[SessionUserKey] != nil {
+			a := s.Values[SessionUserKey].(models.Account)
+			CurrentAccount = &a
+		}
 
 		cookies := r.Cookies()
 		for _, c := range cookies {
-			//log.Printf("cookie %s:%s", c.Name, c.Value)
+			log.Printf("cookie %s:%s", c.Name, c.Value)
 			if c.Name == "inverted" {
 				l.InvertedTheme = true
 				break
