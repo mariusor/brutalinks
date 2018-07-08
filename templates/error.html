@@ -8,7 +8,7 @@
 <main id="error">
 <h1>{{.Title}}</h1>
 {{range $error := .Errors}}
-<p>{{.Error}}</p>
+<p>{{$error}}</p>
 {{end}}
 <footer><a href="/">back to the main page</a></footer>
 </main>
