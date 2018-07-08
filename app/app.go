@@ -376,6 +376,12 @@ func (l *Littr) HandleAuth(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	provider := vars["provider"]
 
+	indexUrl := "/"
+	if os.Getenv(strings.ToUpper(provider) + "_KEY") == "" {
+		log.Printf("Provider %s has no credentials set", provider)
+		http.Redirect(w, r, indexUrl, http.StatusPermanentRedirect)
+		return
+	}
 	url := fmt.Sprintf("%s/auth/%s/callback", l.BaseUrl(), provider)
 
 	var config oauth2.Config
@@ -426,8 +432,7 @@ func (l *Littr) HandleAuth(w http.ResponseWriter, r *http.Request) {
 			log.Printf("ERROR %s", err)
 		}
 		s.AddFlash("Missing oauth provider")
-		indexUrl, _ := mux.CurrentRoute(r).Subrouter().Get("index").URL()
-		http.Redirect(w, r, indexUrl.String(), http.StatusNotFound)
+		http.Redirect(w, r, indexUrl, http.StatusPermanentRedirect)
 	}
 	http.Redirect(w, r, config.AuthCodeURL("state", oauth2.AccessTypeOnline), http.StatusFound)
 }

@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/mariusor/littr.go/models"
+	"os"
 )
 
 const (
@@ -21,10 +22,18 @@ type indexModel struct {
 
 func getAuthProviders() map[string]string {
 	p := make(map[string]string)
-	p["github"] = "Github"
-	//p["gitlab"] = "Gitlab"
-	//p["google"] = "Google"
-	//p["facebook"] = "Facebook"
+	if os.Getenv("GITHUB_KEY") != "" {
+		p["github"] = "Github"
+	}
+	if os.Getenv("GITLAB_KEY") != "" {
+		p["gitlab"] = "Gitlab"
+	}
+	if os.Getenv("GOOGLE_KEY") != "" {
+		p["google"] = "Google"
+	}
+	if os.Getenv("FACEBOOK_KEY") != "" {
+		p["facebook"] = "Facebook"
+	}
 
 	return p
 }
