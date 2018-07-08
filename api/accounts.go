@@ -75,8 +75,7 @@ func HandleAccount(w http.ResponseWriter, r *http.Request) {
 	p.PreferredUsername["en"] = a.Handle
 	p.URL = fmt.Sprintf(a.PermaLink())
 
-	//p.Outbox = ap.OutboxStream(ap.Outbox(ap.OrderedCollection{ID: ap.ObjectID("outbox")}))
-	p.Outbox = ap.OrderedCollectionNew(ap.ObjectID("outbox"))
+	p.Outbox = ap.OutboxStream(ap.Outbox(ap.OrderedCollection{ID: ap.ObjectID("outbox")}))
 	for _, item := range *items {
 		note := ap.ObjectNew(ap.ObjectID(item.Hash()), ap.ArticleType)
 		note.Content["en"] = string(item.Data)
