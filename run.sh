@@ -8,7 +8,9 @@ for i in ${__env[@]}; do
     name=${i%=*}
     quot=${i#*=}
     value=${quot//\"}
-    export ${name}=${value}
+    if [[ -n "${name}" && -n "${value}" ]]; then
+        export ${name}=${value}
+    fi
 done
 
 go run $@
