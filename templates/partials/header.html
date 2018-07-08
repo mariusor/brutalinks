@@ -11,10 +11,10 @@
     <a href="/" title="littr.me" alt="littr.me"><i class="far fa-trash-alt"> littr</i></a>
     </h1>
     <menu id="top">
-        {{/*<li><a id="act-invert" href="/#invert"><span class="inverted">Inv</span>ert</a></li>*/}}
+        <li><a id="act-invert" href="/#invert"><span class="inverted">Inv</span>ert</a></li>
         <li><a href="/submit">Add</a></li>
     {{ if gt $account.Id 0}}
-        <li class="handle">{{$account.Handle}}<span class="score">{{$account.Score}}</span></li>
+        <li class="acct">{{$account.Handle}} <span class="score">{{$account.Score}}</span></li>
         <li><a href="/auth/local?logout">Sign out</a></li>
     {{else}}
         <li>Sign in</li>

@@ -95,13 +95,19 @@ ol.comments {
     border-left: 2px solid transparent;
     margin: .9em 0 0 .7em;
 }
-.score {
+.acct .score:before {
+    content: "[";
+}
+.acct .score:after {
+    content: "]";
+}
+.item .score {
     float: left;
     width: 2.4ex;
     text-align: center;
     margin-right: .5ex;
 }
-.score data {
+.item .score data {
     margin: auto;
     display: block;
     text-align: center;
@@ -138,7 +144,7 @@ ol.comments {
 .inverted .score a.nay.ed {
     color: greenyellow;
 }
-.submission {
+.item.op {
     padding-top: .3em;
 }
 .meta {

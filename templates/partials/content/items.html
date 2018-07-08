@@ -1,6 +1,6 @@
 <ol class="items">
 {{range $key, $value := . }}
-    <li data-index="{{$key}}">
+    <li data-index="{{$key}}" class="item">
     {{template "score.html" $value}}
     {{if not .Title -}}
     {{template "data.html" $value}}

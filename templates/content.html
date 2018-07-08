@@ -5,7 +5,7 @@
 </he1ad>
 <body{{ if .InvertedTheme }} class="inverted"{{end}}>
 {{ template "header.html" }}
-<section class="submission op" id="i-{{.Content.Hash}}" data-hash="{{.Content.Hash}}">
+<section class="item op" id="i-{{.Content.Hash}}" data-hash="{{.Content.Hash}}">
     {{template "score.html" .Content.Content}}
     {{template "link.html" .Content.Content}}
     {{template "data.html" .Content.Content}}
