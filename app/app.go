@@ -90,6 +90,9 @@ func (l *Littr) LoadVotes(u *models.Account, ids []int64) error {
 	if err != nil {
 		return err
 	}
+	if u.Votes == nil {
+		u.Votes = make(map[int64]models.Vote,0)
+	}
 	for rows.Next() {
 		v := models.Vote{}
 		err = rows.Scan(&v.Id, &v.SubmittedBy, &v.SubmittedAt, &v.UpdatedAt,
@@ -439,9 +442,9 @@ func (l *Littr) Sessions(n http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		s := l.GetSession(r)
 		l.FlashData = s.Flashes()
-		for k, v := range s.Values {
-			log.Printf("sess %s %#v", k, v)
-		}
+		//for k, v := range s.Values {
+		//	log.Printf("sess %s %#v", k, v)
+		//}
 		if s.Values[SessionUserKey] != nil {
 			a := s.Values[SessionUserKey].(models.Account)
 			CurrentAccount = &a
