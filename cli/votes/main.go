@@ -35,22 +35,23 @@ func main() {
 
 	var q string
 	par := make([]interface{}, 0)
-	par = append(par, interface{}(since.Seconds()))
+	par = append(par, interface{}(since.Hours()))
 
 	if key == "" {
 		q = `select "item_id", "key", max("content_items"."submitted_at"),
 		sum(CASE WHEN "weight" > 0 THEN "weight" ELSE 0 END) AS "ups",
 		sum(CASE WHEN "weight" < 0 THEN abs("weight") ELSE 0 END) AS "downs"
 		from "votes" inner join "content_items" on "content_items"."id" = "item_id"
-		where current_timestamp - "content_items"."submitted_at" < $1 group by "item_id", "key" order by "item_id";`
+		where current_timestamp - "content_items"."submitted_at" < ($1 * INTERVAL '1 hour') group by "item_id", "key" order by "item_id";`
 	} else {
 		q = `select "item_id", "key", max("content_items"."submitted_at"),
 		sum(CASE WHEN "weight" > 0 THEN "weight" ELSE 0 END) AS "ups",
 		sum(CASE WHEN "weight" < 0 THEN abs("weight") ELSE 0 END) AS "downs"
 		from "votes" inner join "content_items" on "content_items"."id" = "item_id"
-		where current_timestamp - "content_items"."submitted_at" < $1 and "content_items"."key" ~* $2 group by "item_id", "key" order by "item_id";`
+		where current_timestamp - "content_items"."submitted_at" < ($1 * INTERVAL '1 hour') and "content_items"."key" ~* $2 group by "item_id", "key" order by "item_id";`
 		par = append(par, interface{}(key))
 	}
+	log.Printf("Checking votes since %s", since)
 	rows, err := db.Query(q, par...)
 	if err != nil {
 		panic(err)
