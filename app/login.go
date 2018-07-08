@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/mariusor/littr.go/models"
-	"encoding/gob"
 )
 
 const SessionUserKey = "acct"
@@ -38,8 +37,6 @@ func (l *Littr) HandleLogin(w http.ResponseWriter, r *http.Request) {
 			errs = append(errs, fmt.Errorf("handle or password are wrong"))
 		}
 
-		gob.Register(a)
-
 		s := l.GetSession(r)
 		s.Values[SessionUserKey] = a
 		s.AddFlash("Success")
@@ -56,6 +53,15 @@ func (l *Littr) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	q := r.URL.Query()
+	logout := len(q["logout"]) > 0
+	if logout {
+		s := l.GetSession(r)
+		s.Values[SessionUserKey] = nil
+		l.SessionStore.Save(r, w, s)
+		*CurrentAccount = models.AnonymousAccount()
+		http.Redirect(w, r, "/", http.StatusMovedPermanently)
+	}
 	m := loginModel{InvertedTheme: l.InvertedTheme}
 	//m.Account = a
 

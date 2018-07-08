@@ -19,6 +19,7 @@ import (
 	"github.com/mariusor/littr.go/api"
 	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/models"
+	"encoding/gob"
 )
 
 const defaultHost = "littr.git"
@@ -45,6 +46,7 @@ func init() {
 		listenHost = defaultHost
 	}
 
+	gob.Register(models.Account{})
 	s := sessions.NewCookieStore(authKey, encKey)
 	s.Options.Domain = listenHost
 	s.Options.Path = "/"

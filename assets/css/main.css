@@ -217,17 +217,19 @@ ol.lvl-9 {
 #reply {
     margin-top: 1em;
 }
-#reply, #new {
+#reply, #new, #login {
     max-width: 80ex;
 }
-#reply fieldset legend, #new fieldset legend {
+#reply fieldset legend,
+#new fieldset legend,
+#login fieldset legent {
     padding: 0 2ex;
 }
 #reply textarea,
 #new textarea {
     width: 100%;
 }
-#reply label, #new label {}
+#reply label, #new label, #login label {}
 menu.meta-items, menu#auth, menu#top {
     display: inline;
     margin: 0;

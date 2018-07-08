@@ -1,5 +1,7 @@
 <header>
-    {{template "flash.html" }}
+{{ $account := CurrentAccount}}
+{{ $providers := getProviders }}
+{{template "flash.html" }}
     <h1><!--<a href="/" title="littr.me" alt="littr.me" class="far fa-trash-alt"></a><strong>littering:</strong>
     {{- if .User -}} <span class="by">{{.User.Handle}}</span>{{- else -}}
     {{- if .Title -}}
@@ -9,8 +11,17 @@
     <a href="/" title="littr.me" alt="littr.me"><i class="far fa-trash-alt"> littr</i></a>
     </h1>
     <menu id="top">
-        <li><a id="act-invert" href="/#invert"><span class="inverted">Inv</span>ert</a></li>
+        {{/*<li><a id="act-invert" href="/#invert"><span class="inverted">Inv</span>ert</a></li>*/}}
         <li><a href="/submit">Add</a></li>
-        <li><a href="/register">New account</a></li>
+    {{ if gt $account.Id 0}}
+        <li class="handle">{{$account.Handle}}<span class="score">{{$account.Score}}</span></li>
+        <li><a href="/auth/local?logout">Sign out</a></li>
+    {{else}}
+        <li>Sign in</li>
+        <li><a href="/auth/local" class="far fa-trash-alt"></a></li>
+    {{range $key, $value := $providers}}
+        <li><a href="/auth/{{$key}}" class="fab fa-{{$key}}"></a></li>
+    {{end}}
+    {{end}}
     </menu>
 </header>
