@@ -66,7 +66,7 @@ func (l *Littr) AccountFromRequest(r *http.Request) (*models.Account, []error) {
 	if err != nil {
 		log.Print(err)
 	}
-	ins := `insert into "accounts" ("key", "handle", "created_at", "updated_at", "metadata") values($1, $2, $3, $4)`
+	ins := `insert into "accounts" ("key", "handle", "created_at", "updated_at", "metadata") values($1, $2, $3, $4, $5)`
 	{
 		res, err := l.Db.Exec(ins, a.Key, a.Handle, a.CreatedAt, a.UpdatedAt, a.Metadata)
 		if err != nil {
