@@ -5,6 +5,9 @@ import (
 	"net/http"
 
 	"github.com/mariusor/littr.go/models"
+	"golang.org/x/crypto/bcrypt"
+	"log"
+	"encoding/json"
 )
 
 const SessionUserKey = "acct"
@@ -33,8 +36,21 @@ func (l *Littr) HandleLogin(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
-		if pw == "" {
-			errs = append(errs, fmt.Errorf("handle or password are wrong"))
+		m := &models.AccountMetadata{}
+		err = json.Unmarshal(a.Metadata, m)
+		if err != nil {
+			log.Print(err)
+			l.HandleError(w, r, StatusUnknown, fmt.Errorf("handle or password are wrong"))
+			return
+		}
+		salt := m.Salt
+		saltedpw := []byte(pw)
+		saltedpw = append(saltedpw, salt...)
+		err = bcrypt.CompareHashAndPassword(m.Password, saltedpw)
+		if err != nil {
+			log.Print(err)
+			l.HandleError(w, r, StatusUnknown, fmt.Errorf("handle or password are wrong"))
+			return
 		}
 
 		s := l.GetSession(r)
