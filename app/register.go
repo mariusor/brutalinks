@@ -16,12 +16,12 @@ import (
 
 type registerModel struct {
 	Title         string
-	InvertedTheme bool
+	InvertedTheme func(r *http.Request) bool
 	Terms         template.HTML
 	Account       models.Account
 }
 
-func (l *Littr) AccountFromRequest(r *http.Request) (*models.Account, []error) {
+func AccountFromRequest(r *http.Request) (*models.Account, []error) {
 	if r.Method != http.MethodPost {
 		return nil, []error{fmt.Errorf("invalid http method type")}
 	}
@@ -68,7 +68,7 @@ func (l *Littr) AccountFromRequest(r *http.Request) (*models.Account, []error) {
 	}
 	ins := `insert into "accounts" ("key", "handle", "created_at", "updated_at", "metadata") values($1, $2, $3, $4, $5)`
 	{
-		res, err := l.Db.Exec(ins, a.Key, a.Handle, a.CreatedAt, a.UpdatedAt, a.Metadata)
+		res, err := Db.Exec(ins, a.Key, a.Handle, a.CreatedAt, a.UpdatedAt, a.Metadata)
 		if err != nil {
 			return nil, []error{err}
 		} else {
@@ -80,19 +80,20 @@ func (l *Littr) AccountFromRequest(r *http.Request) (*models.Account, []error) {
 
 	return &a, nil
 }
-func (l *Littr) HandleRegister(w http.ResponseWriter, r *http.Request) {
+
+func HandleRegister(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
-		a, errs := l.AccountFromRequest(r)
+		a, errs := AccountFromRequest(r)
 
 		if len(errs) > 0 {
-			l.HandleError(w, r, http.StatusInternalServerError, errs...)
+			HandleError(w, r, http.StatusInternalServerError, errs...)
 			return
 		}
 		http.Redirect(w, r, a.GetLink(), http.StatusMovedPermanently)
 		return
 	}
 
-	m := registerModel{InvertedTheme: l.InvertedTheme}
+	m := registerModel{InvertedTheme: IsInverted}
 	m.Terms = `<p>We try to follow <q><cite>Wheaton's Law</cite></q>:<br/>` +
 		`<blockquote>Don't be a dick!</blockquote></p>`
 

@@ -15,7 +15,7 @@ const SessionUserKey = "acct"
 
 type loginModel struct {
 	Title         string
-	InvertedTheme bool
+	InvertedTheme func(r *http.Request) bool
 	Account       models.Account
 }
 
@@ -28,13 +28,13 @@ func (l *Littr) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		sel := `select "id", "key", "handle", "email", "score", "created_at", "updated_at", "metadata", "flags" from "accounts" where "handle" = $1`
 		rows, err := l.Db.Query(sel, handle)
 		if err != nil {
-			l.HandleError(w, r, StatusUnknown, err)
+			HandleError(w, r, StatusUnknown, err)
 			return
 		}
 		for rows.Next() {
 			err = rows.Scan(&a.Id, &a.Key, &a.Handle, &a.Email, &a.Score, &a.CreatedAt, &a.UpdatedAt, &a.Metadata, &a.Flags)
 			if err != nil {
-				l.HandleError(w, r, StatusUnknown, err)
+				HandleError(w, r, StatusUnknown, err)
 				return
 			}
 		}
@@ -42,7 +42,7 @@ func (l *Littr) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		err = json.Unmarshal(a.Metadata, m)
 		if err != nil {
 			log.Print(err)
-			l.HandleError(w, r, StatusUnknown, fmt.Errorf("handle or password are wrong"))
+			HandleError(w, r, StatusUnknown, fmt.Errorf("handle or password are wrong"))
 			return
 		}
 		salt := m.Salt
@@ -51,7 +51,7 @@ func (l *Littr) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		err = bcrypt.CompareHashAndPassword(m.Password, saltedpw)
 		if err != nil {
 			log.Print(err)
-			l.HandleError(w, r, StatusUnknown, fmt.Errorf("handle or password are wrong"))
+			HandleError(w, r, StatusUnknown, fmt.Errorf("handle or password are wrong"))
 			return
 		}
 
@@ -64,7 +64,7 @@ func (l *Littr) HandleLogin(w http.ResponseWriter, r *http.Request) {
 			errs = append(errs, err)
 		}
 		if len(errs) > 0 {
-			l.HandleError(w, r, http.StatusInternalServerError, errs...)
+			HandleError(w, r, http.StatusInternalServerError, errs...)
 			return
 		}
 		http.Redirect(w, r, a.GetLink(), http.StatusMovedPermanently)
@@ -80,7 +80,7 @@ func (l *Littr) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		CurrentAccount = AnonymousAccount()
 		http.Redirect(w, r, "/", http.StatusMovedPermanently)
 	}
-	m := loginModel{InvertedTheme: l.InvertedTheme}
+	m := loginModel{InvertedTheme: IsInverted}
 	//m.Account = a
 
 	RenderTemplate(w, "login.html", m)

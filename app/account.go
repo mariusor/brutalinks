@@ -12,7 +12,7 @@ import (
 
 type userModel struct {
 	Title         string
-	InvertedTheme bool
+	InvertedTheme func(r *http.Request) bool
 	User          *Account
 	Items         []Item
 }
@@ -21,23 +21,22 @@ type userModel struct {
 func (l *Littr) HandleUser(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	db := l.Db
-	m := userModel{InvertedTheme: l.InvertedTheme}
+	m := userModel{InvertedTheme: IsInverted}
 
 	found := false
 
 	u := models.Account{}
 	selAcct := `select "id", "key", "handle", "email", "score", "created_at", "updated_at", "metadata", "flags" from "accounts" where "handle" = $1`
 	{
-		rows, err := db.Query(selAcct, vars["handle"])
+		rows, err := Db.Query(selAcct, vars["handle"])
 		if err != nil {
-			l.HandleError(w, r, StatusUnknown, err)
+			HandleError(w, r, StatusUnknown, err)
 			return
 		}
 		for rows.Next() {
 			err = rows.Scan(&u.Id, &u.Key, &u.Handle, &u.Email, &u.Score, &u.CreatedAt, &u.UpdatedAt, &u.Metadata, &u.Flags)
 			if err != nil {
-				l.HandleError(w, r, StatusUnknown, err)
+				HandleError(w, r, StatusUnknown, err)
 				return
 			}
 			found = true
@@ -57,7 +56,7 @@ func (l *Littr) HandleUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !found {
-		l.HandleError(w, r, http.StatusNotFound, fmt.Errorf("user %q not found", vars["handle"]))
+		HandleError(w, r, http.StatusNotFound, fmt.Errorf("user %q not found", vars["handle"]))
 		return
 	}
 
@@ -66,9 +65,9 @@ func (l *Littr) HandleUser(w http.ResponseWriter, r *http.Request) {
 			left join "accounts" on "accounts"."id" = "content_items"."submitted_by" 
 			where "submitted_by" = $1 order by "submitted_at" desc`
 	{
-		rows, err := db.Query(selC, u.Id)
+		rows, err := Db.Query(selC, u.Id)
 		if err != nil {
-			l.HandleError(w, r, StatusUnknown, err)
+			HandleError(w, r, StatusUnknown, err)
 			return
 		}
 		for rows.Next() {
@@ -76,7 +75,7 @@ func (l *Littr) HandleUser(w http.ResponseWriter, r *http.Request) {
 			var handle string
 			err = rows.Scan(&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.Flags, &p.Metadata, &handle)
 			if err != nil {
-				l.HandleError(w, r, StatusUnknown, err)
+				HandleError(w, r, StatusUnknown, err)
 				return
 			}
 			l := LoadItem(p, handle)

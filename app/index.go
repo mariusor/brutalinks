@@ -254,7 +254,7 @@ func (i comment) Level() int {
 
 type indexModel struct {
 	Title         string
-	InvertedTheme bool
+	InvertedTheme func(r *http.Request) bool
 	Items         []Item
 }
 
@@ -359,7 +359,7 @@ func LoadItem(c models.Content, handle string) Item {
 
 // handleMain serves /index request
 func (l *Littr) HandleIndexAPI(w http.ResponseWriter, r *http.Request) {
-	m := indexModel{Title: "Index", InvertedTheme: l.InvertedTheme}
+	m := indexModel{Title: "Index", InvertedTheme: IsInverted}
 
 	db := l.Db
 
@@ -371,7 +371,7 @@ func (l *Littr) HandleIndexAPI(w http.ResponseWriter, r *http.Request) {
 	order by "score" desc, "submitted_at" desc limit %d`, MaxContentItems)
 	rows, err := db.Query(sel)
 	if err != nil {
-		l.HandleError(w, r, StatusUnknown, err)
+		HandleError(w, r, StatusUnknown, err)
 		return
 	}
 	for rows.Next() {
@@ -379,7 +379,7 @@ func (l *Littr) HandleIndexAPI(w http.ResponseWriter, r *http.Request) {
 		var handle string
 		err = rows.Scan(&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &handle, &p.Flags)
 		if err != nil {
-			l.HandleError(w, r, StatusUnknown, err)
+			HandleError(w, r, StatusUnknown, err)
 			return
 		}
 		l := LoadItem(p, handle)

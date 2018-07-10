@@ -23,7 +23,7 @@ type comment struct {
 
 type contentModel struct {
 	Title         string
-	InvertedTheme bool
+	InvertedTheme func(r *http.Request) bool
 	Content       comment
 }
 
@@ -61,31 +61,29 @@ func (l *Littr) HandleContent(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	date, err := time.Parse(time.RFC3339, fmt.Sprintf("%s-%s-%sT00:00:00+00:00", vars["year"], vars["month"], vars["day"]))
 	if err != nil {
-		l.HandleError(w, r, StatusUnknown, err)
+		HandleError(w, r, StatusUnknown, err)
 		return
 	}
 	hash := vars["hash"]
 	items := make([]Item, 0)
 
-	db := l.Db
-
 	sel := `select "content_items"."id", "content_items"."key", "mime_type", "data", "title", "content_items"."score",
 			"submitted_at", "submitted_by", "handle", "path", "content_items"."flags" from "content_items"
 			left join "accounts" on "accounts"."id" = "content_items"."submitted_by"
 			where "submitted_at" > $1::date and "content_items"."key" ~* $2`
-	rows, err := db.Query(sel, date, hash)
+	rows, err := Db.Query(sel, date, hash)
 	if err != nil {
-		l.HandleError(w, r, StatusUnknown, err)
+		HandleError(w, r, StatusUnknown, err)
 		return
 	}
-	m := contentModel{InvertedTheme: l.InvertedTheme}
+	m := contentModel{InvertedTheme: IsInverted}
 	p := models.Content{}
 	var i Item
 	for rows.Next() {
 		var handle string
 		err = rows.Scan(&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &handle, &p.Path, &p.Flags)
 		if err != nil {
-			l.HandleError(w, r, StatusUnknown, err)
+			HandleError(w, r, StatusUnknown, err)
 			return
 		}
 		m.Title = string(p.Title)
@@ -93,7 +91,7 @@ func (l *Littr) HandleContent(w http.ResponseWriter, r *http.Request) {
 		m.Content = comment{Item: i, Path: p.Path, FullPath: p.FullPath()}
 	}
 	if p.Data == nil {
-		l.HandleError(w, r, http.StatusNotFound, fmt.Errorf("not found"))
+		HandleError(w, r, http.StatusNotFound, fmt.Errorf("not found"))
 		return
 	}
 	items = append(items, i)
@@ -120,9 +118,9 @@ func (l *Littr) HandleContent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Method == http.MethodPost {
-		e, err := l.ContentFromRequest(r, p.FullPath())
+		e, err := ContentFromRequest(r, p.FullPath())
 		if err != nil {
-			l.HandleError(w, r, http.StatusInternalServerError, err)
+			HandleError(w, r, http.StatusInternalServerError, err)
 			return
 		}
 		l.Vote(*e, 1, CurrentAccount.id)
@@ -137,10 +135,10 @@ func (l *Littr) HandleContent(w http.ResponseWriter, r *http.Request) {
 			left join "accounts" on "accounts"."id" = "content_items"."submitted_by" 
 			where "path" <@ $1 order by "path" asc, "score" desc`
 	{
-		rows, err := db.Query(selCom, m.Content.Path)
+		rows, err := Db.Query(selCom, m.Content.Path)
 
 		if err != nil {
-			l.HandleError(w, r, StatusUnknown, err)
+			HandleError(w, r, StatusUnknown, err)
 			return
 		}
 		for rows.Next() {
@@ -148,7 +146,7 @@ func (l *Littr) HandleContent(w http.ResponseWriter, r *http.Request) {
 			var handle string
 			err = rows.Scan(&c.Id, &c.Key, &c.MimeType, &c.Data, &c.Title, &c.Score, &c.SubmittedAt, &c.SubmittedBy, &handle, &c.Path, &c.Flags)
 			if err != nil {
-				l.HandleError(w, r, StatusUnknown, err)
+				HandleError(w, r, StatusUnknown, err)
 				return
 			}
 

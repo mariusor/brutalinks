@@ -52,7 +52,7 @@ type Littr struct {
 type errorModel struct {
 	Status        int
 	Title         string
-	InvertedTheme bool
+	InvertedTheme func(r *http.Request) bool
 	Errors        []error
 }
 
@@ -76,9 +76,6 @@ func (l *Littr) BaseUrl() string {
 	return fmt.Sprintf("http://%s", l.host())
 }
 
-func IsInverted() bool {
-	return false
-}
 func (l *Littr) LoadVotes(u *models.Account, ids []int64) error {
 	if u == nil {
 		return fmt.Errorf("invalid user")
@@ -458,6 +455,18 @@ func (l *Littr) LoggerMw(n http.Handler) http.Handler {
 		n.ServeHTTP(w, r)
 	})
 }
+
+func IsInverted(r *http.Request) bool {
+	cookies := r.Cookies()
+	for _, c := range cookies {
+		log.Printf("cookie %s:%s", c.Name, c.Value)
+		if c.Name == "inverted" {
+			return true
+		}
+	}
+	return false
+}
+
 func (l *Littr) Sessions(n http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		s := l.GetSession(r)
@@ -468,16 +477,6 @@ func (l *Littr) Sessions(n http.Handler) http.Handler {
 		if s.Values[SessionUserKey] != nil {
 			a := s.Values[SessionUserKey].(Account)
 			CurrentAccount = &a
-		}
-
-		cookies := r.Cookies()
-		for _, c := range cookies {
-			log.Printf("cookie %s:%s", c.Name, c.Value)
-			if c.Name == "inverted" {
-				l.InvertedTheme = true
-				break
-			}
-			l.InvertedTheme = false
 		}
 		n.ServeHTTP(w, r)
 	})

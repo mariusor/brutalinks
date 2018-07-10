@@ -28,14 +28,14 @@ func (l *Littr) HandleParent(w http.ResponseWriter, r *http.Request) {
 			where cur.Key ~* $1 and par.Key ~* $2`, pSel)
 	rows, err := db.Query(sel, vars["hash"], vars["parent"])
 	if err != nil {
-		l.HandleError(w, r, StatusUnknown, err)
+		HandleError(w, r, StatusUnknown, err)
 		return
 	}
 	for rows.Next() {
 		p := models.Content{}
 		err = rows.Scan(&p.SubmittedAt, &p.Key)
 		if err != nil {
-			l.HandleError(w, r, StatusUnknown, err)
+			HandleError(w, r, StatusUnknown, err)
 			return
 		}
 

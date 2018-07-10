@@ -14,7 +14,7 @@ func (l *Littr) HandleDomains(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
 	db := l.Db
-	m := userModel{InvertedTheme: l.InvertedTheme}
+	m := userModel{InvertedTheme: IsInverted}
 
 	selC := `select "content_items"."id", "content_items"."key", "mime_type", "data", "title", "content_items"."score", 
 			"submitted_at", "content_items"."flags", "content_items"."metadata", "accounts"."handle" from "content_items" 
@@ -23,7 +23,7 @@ func (l *Littr) HandleDomains(w http.ResponseWriter, r *http.Request) {
 	{
 		rows, err := db.Query(selC, vars["domain"])
 		if err != nil {
-			l.HandleError(w, r, StatusUnknown, err)
+			HandleError(w, r, StatusUnknown, err)
 			return
 		}
 		for rows.Next() {
@@ -31,7 +31,7 @@ func (l *Littr) HandleDomains(w http.ResponseWriter, r *http.Request) {
 			var handle string
 			err = rows.Scan(&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.Flags, &p.Metadata, &handle)
 			if err != nil {
-				l.HandleError(w, r, StatusUnknown, err)
+				HandleError(w, r, StatusUnknown, err)
 				return
 			}
 			l := LoadItem(p, handle)

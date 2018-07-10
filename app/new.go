@@ -26,7 +26,7 @@ func detectMimeType(data []byte) string {
 	return "text/plain"
 }
 
-func (l *Littr) ContentFromRequest(r *http.Request, p []byte) (*models.Content, error) {
+func ContentFromRequest(r *http.Request, p []byte) (*models.Content, error) {
 	if r.Method != http.MethodPost {
 		return nil, fmt.Errorf("invalid http method type")
 	}
@@ -42,7 +42,9 @@ func (l *Littr) ContentFromRequest(r *http.Request, p []byte) (*models.Content, 
 		i.Data = []byte(dat)
 	}
 	i.SubmittedBy = CurrentAccount.id
-	i.Path = p
+	if len(p) > 0 {
+		i.Path = p
+	}
 	i.MimeType = detectMimeType(i.Data)
 	if !i.IsLink() {
 		i.MimeType = r.PostFormValue("mime-type")
@@ -56,7 +58,7 @@ func (l *Littr) ContentFromRequest(r *http.Request, p []byte) (*models.Content, 
 	}
 	ins := `insert into "content_items" ("key", "title", "data", "mime_type", "submitted_by", "submitted_at", "updated_at", "path") values($1, $2, $3, $4, $5, $6, $7, $8)`
 	{
-		res, err := l.Db.Exec(ins, i.Key, i.Title, i.Data, i.MimeType, i.SubmittedBy, i.SubmittedAt, i.UpdatedAt, i.Path)
+		res, err := Db.Exec(ins, i.Key, i.Title, i.Data, i.MimeType, i.SubmittedBy, i.SubmittedAt, i.UpdatedAt, i.Path)
 		if err != nil {
 			return nil, err
 		} else {
@@ -73,10 +75,10 @@ func (l *Littr) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	var userId = CurrentAccount.id
 
 	if r.Method == http.MethodPost {
-		p, err := l.ContentFromRequest(r, nil)
+		p, err := ContentFromRequest(r, nil)
 
 		if err != nil {
-			l.HandleError(w, r, http.StatusInternalServerError, err)
+			HandleError(w, r, http.StatusInternalServerError, err)
 			return
 		}
 		l.Vote(*p, 1, userId)
