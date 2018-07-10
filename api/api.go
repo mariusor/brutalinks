@@ -7,6 +7,10 @@ import (
 
 	"fmt"
 
+	"strings"
+
+	"github.com/gorilla/mux"
+	ap "github.com/mariusor/activitypub.go/activitypub"
 	"github.com/mariusor/activitypub.go/jsonld"
 )
 
@@ -33,7 +37,17 @@ func Errorf(c int, m string, args ...interface{}) *ApiError {
 }
 
 func GetContext() *jsonld.Context {
-	return &jsonld.Context{URL: jsonld.Ref("http://www.w3.org/ns/activitystreams")}
+	return &jsonld.Context{URL: jsonld.Ref(ap.ActivityBaseURI)}
+}
+
+func BuildObjectURL(parent ap.LinkOrURI, cur ap.ObjectOrLink) ap.URI {
+	return ap.URI(fmt.Sprintf("%s/%s", parent.GetLink(), cur.GetID()))
+}
+
+func HandleApiCall(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	path := strings.ToLower(vars["handle"])
+	fmt.Sprintf("%s", strings.Split(path, "/"))
 }
 
 func HandleError(w http.ResponseWriter, r *http.Request, code int, errs ...error) {

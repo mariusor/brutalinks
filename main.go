@@ -16,10 +16,10 @@ import (
 	"github.com/gorilla/sessions"
 	_ "github.com/lib/pq"
 
+	"encoding/gob"
+
 	"github.com/mariusor/littr.go/api"
 	"github.com/mariusor/littr.go/app"
-	"github.com/mariusor/littr.go/models"
-	"encoding/gob"
 )
 
 const defaultHost = "littr.git"
@@ -29,12 +29,6 @@ var listenHost = os.Getenv("HOSTNAME")
 var listenPort, _ = strconv.ParseInt(os.Getenv("PORT"), 10, 64)
 
 var littr app.Littr
-
-var LocalUser = models.AnonymousAccount()
-
-func CurrentAccount() *models.Account {
-	return &LocalUser
-}
 
 func init() {
 	authKey := []byte(os.Getenv("SESS_AUTH_KEY"))
@@ -46,7 +40,7 @@ func init() {
 		listenHost = defaultHost
 	}
 
-	gob.Register(models.Account{})
+	gob.Register(app.Account{})
 	s := sessions.NewCookieStore(authKey, encKey)
 	s.Options.Domain = listenHost
 	s.Options.Path = "/"
@@ -73,12 +67,11 @@ func main() {
 
 	m := mux.NewRouter()
 
-	app.CurrentAccount = CurrentAccount()
-	api.CurrentAccount = CurrentAccount()
 	api.Db = littr.Db
+	app.Db = littr.Db
 	api.BaseURL = littr.Host
 
-	m.HandleFunc("/", littr.HandleIndex).
+	m.HandleFunc("/", littr.HandleIndexAPI).
 		Methods(http.MethodGet, http.MethodHead).
 		Name("index")
 
@@ -114,6 +107,7 @@ func main() {
 	ap := m.PathPrefix("/api").Subrouter()
 	ap.HandleFunc("/accounts/verify_credentials", api.HandleVerifyCredentials).Name("api-verify-credentials")
 	ap.HandleFunc("/accounts/{handle}", api.HandleAccount).Name("api-account")
+	ap.HandleFunc("/accounts/{handle}/{type}", api.HandleAccountOutbox).Name("api-account-child")
 
 	m.PathPrefix("/assets/").
 		Handler(http.StripPrefix("/assets/", http.FileServer(http.Dir("./assets/"))))

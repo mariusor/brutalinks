@@ -1,8 +1,8 @@
 <form method="post">
     <fieldset>
-        <legend>{{ if not .Content.Key }}Submit &#11175;{{else}}Reply to &#11173;{{end}}</legend>
+        <legend>{{ if not .Content.Hash }}Submit &#11175;{{else}}Reply to &#11173;{{end}}</legend>
         <textarea name="data" id="new-data" cols="80" rows="5" required></textarea><br/>
-    {{- if not .Content.Key -}}
+    {{- if not .Content.Hash -}}
         <label for="new-title">Title: </label><br/>
         <textarea name="title" id="new-title" rows="2" required></textarea><br/>
     {{- end -}}

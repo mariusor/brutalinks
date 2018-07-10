@@ -2,7 +2,6 @@ package app
 
 import (
 	"log"
-
 	"net/http"
 
 	"github.com/mariusor/littr.go/models"
@@ -29,17 +28,20 @@ func (l *Littr) HandleDomains(w http.ResponseWriter, r *http.Request) {
 		}
 		for rows.Next() {
 			p := models.Content{}
-			err = rows.Scan(&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.Flags, &p.Metadata, &p.Handle)
+			var handle string
+			err = rows.Scan(&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.Flags, &p.Metadata, &handle)
 			if err != nil {
 				l.HandleError(w, r, StatusUnknown, err)
 				return
 			}
-			m.Items = append(m.Items, p)
+			l := LoadItem(p, handle)
+			m.Items = append(m.Items, l)
 		}
-	}
-	err := l.LoadVotes(CurrentAccount, getAllIds(m.Items))
-	if err != nil {
-		log.Print(err)
+
+		_, err = LoadVotes(CurrentAccount, m.Items)
+		if err != nil {
+			log.Print(err)
+		}
 	}
 
 	RenderTemplate(w, "user.html", m)

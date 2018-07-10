@@ -15,7 +15,7 @@ import (
 type newModel struct {
 	Title         string
 	InvertedTheme bool
-	Content       models.Content
+	Content       Item
 }
 
 func detectMimeType(data []byte) string {
@@ -41,7 +41,7 @@ func (l *Littr) ContentFromRequest(r *http.Request, p []byte) (*models.Content, 
 	if dat != "" {
 		i.Data = []byte(dat)
 	}
-	i.SubmittedBy = CurrentAccount.Id
+	i.SubmittedBy = CurrentAccount.id
 	i.Path = p
 	i.MimeType = detectMimeType(i.Data)
 	if !i.IsLink() {
@@ -70,7 +70,7 @@ func (l *Littr) ContentFromRequest(r *http.Request, p []byte) (*models.Content, 
 
 // handleMain serves /{year}/{month}/{day}/{hash} request
 func (l *Littr) HandleSubmit(w http.ResponseWriter, r *http.Request) {
-	var userId = CurrentAccount.Id
+	var userId = CurrentAccount.id
 
 	if r.Method == http.MethodPost {
 		p, err := l.ContentFromRequest(r, nil)

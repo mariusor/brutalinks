@@ -14,8 +14,10 @@ import (
 )
 
 type comment struct {
-	models.Content
+	Item
 	Parent   *comment
+	Path     []byte
+	FullPath []byte
 	Children []*comment
 }
 
@@ -32,6 +34,28 @@ func sluggify(s string) string {
 	return strings.Replace(s, "/", "-", -1)
 }
 
+func ReparentComments(allComments []*comment) {
+	for _, cur := range allComments {
+		par := func(t []*comment, path []byte) *comment {
+			// findParent
+			if path == nil {
+				return nil
+			}
+			for _, n := range t {
+				if bytes.Equal(path, n.FullPath) {
+					return n
+				}
+			}
+			return nil
+		}(allComments, cur.Path)
+
+		if par != nil {
+			cur.Parent = par
+			par.Children = append(par.Children, cur)
+		}
+	}
+}
+
 // handleMain serves /{year}/{month}/{day}/{hash} request
 func (l *Littr) HandleContent(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
@@ -41,7 +65,7 @@ func (l *Littr) HandleContent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	hash := vars["hash"]
-	items := make([]models.Content, 0)
+	items := make([]Item, 0)
 
 	db := l.Db
 
@@ -56,20 +80,23 @@ func (l *Littr) HandleContent(w http.ResponseWriter, r *http.Request) {
 	}
 	m := contentModel{InvertedTheme: l.InvertedTheme}
 	p := models.Content{}
+	var i Item
 	for rows.Next() {
-		err = rows.Scan(&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Handle, &p.Path, &p.Flags)
+		var handle string
+		err = rows.Scan(&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &handle, &p.Path, &p.Flags)
 		if err != nil {
 			l.HandleError(w, r, StatusUnknown, err)
 			return
 		}
 		m.Title = string(p.Title)
-		m.Content = comment{Content: p}
+		i = LoadItem(p, handle)
+		m.Content = comment{Item: i, Path: p.Path, FullPath: p.FullPath()}
 	}
 	if p.Data == nil {
 		l.HandleError(w, r, http.StatusNotFound, fmt.Errorf("not found"))
 		return
 	}
-	items = append(items, p)
+	items = append(items, i)
 
 	if r.Method == http.MethodGet {
 		q := r.URL.Query()
@@ -84,7 +111,7 @@ func (l *Littr) HandleContent(w http.ResponseWriter, r *http.Request) {
 			if yay {
 				multiplier = 1
 			}
-			_, err := l.Vote(p, multiplier, CurrentAccount.Id)
+			_, err := l.Vote(p, multiplier, CurrentAccount.id)
 			if err != nil {
 				log.Print(err)
 			}
@@ -98,7 +125,7 @@ func (l *Littr) HandleContent(w http.ResponseWriter, r *http.Request) {
 			l.HandleError(w, r, http.StatusInternalServerError, err)
 			return
 		}
-		l.Vote(*e, 1, CurrentAccount.Id)
+		l.Vote(*e, 1, CurrentAccount.id)
 		http.Redirect(w, r, p.PermaLink(), http.StatusFound)
 	}
 
@@ -110,7 +137,7 @@ func (l *Littr) HandleContent(w http.ResponseWriter, r *http.Request) {
 			left join "accounts" on "accounts"."id" = "content_items"."submitted_by" 
 			where "path" <@ $1 order by "path" asc, "score" desc`
 	{
-		rows, err := db.Query(selCom, m.Content.Content.FullPath())
+		rows, err := db.Query(selCom, m.Content.Path)
 
 		if err != nil {
 			l.HandleError(w, r, StatusUnknown, err)
@@ -118,39 +145,22 @@ func (l *Littr) HandleContent(w http.ResponseWriter, r *http.Request) {
 		}
 		for rows.Next() {
 			c := models.Content{}
-			err = rows.Scan(&c.Id, &c.Key, &c.MimeType, &c.Data, &c.Title, &c.Score, &c.SubmittedAt, &c.SubmittedBy, &c.Handle, &c.Path, &c.Flags)
+			var handle string
+			err = rows.Scan(&c.Id, &c.Key, &c.MimeType, &c.Data, &c.Title, &c.Score, &c.SubmittedAt, &c.SubmittedBy, &handle, &c.Path, &c.Flags)
 			if err != nil {
 				l.HandleError(w, r, StatusUnknown, err)
 				return
 			}
 
-			com := comment{Content: c}
-			items = append(items, c)
+			i := LoadItem(c, handle)
+			com := comment{Item: i, Path: c.Path, FullPath: c.FullPath()}
+			items = append(items, i)
 			allComments = append(allComments, &com)
-
 		}
 	}
 
-	for _, cur := range allComments {
-		par := func(t []*comment, path []byte) *comment {
-			// findParent
-			if path == nil {
-				return nil
-			}
-			for _, n := range t {
-				if bytes.Equal(path, n.FullPath()) {
-					return n
-				}
-			}
-			return nil
-		}(allComments, cur.Path)
-
-		if par != nil {
-			cur.Parent = par
-			par.Children = append(par.Children, cur)
-		}
-	}
-	err = l.LoadVotes(CurrentAccount, getAllIds(items))
+	ReparentComments(allComments)
+	_, err = LoadVotes(CurrentAccount, items)
 	if err != nil {
 		log.Print(err)
 	}

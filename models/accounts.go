@@ -40,12 +40,6 @@ func (a *Account) VotedOn(i Content) *Vote {
 	return nil
 }
 
-const anonymous = "anonymous"
-
-func AnonymousAccount() Account {
-	return Account{Id: 0, Handle: anonymous, Votes: make(map[int64]Vote)}
-}
-
 func (a Account) Hash() string {
 	return a.Hash8()
 }
@@ -61,7 +55,7 @@ func (a Account) Hash32() string {
 func (a Account) Hash64() string {
 	return string(a.Key)
 }
-func (a Account) PermaLink() string {
+func (a Account) GetLink() string {
 	return fmt.Sprintf("/~%s", a.Handle)
 }
 

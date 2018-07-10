@@ -88,7 +88,7 @@ func (l *Littr) HandleRegister(w http.ResponseWriter, r *http.Request) {
 			l.HandleError(w, r, http.StatusInternalServerError, errs...)
 			return
 		}
-		http.Redirect(w, r, a.PermaLink(), http.StatusMovedPermanently)
+		http.Redirect(w, r, a.GetLink(), http.StatusMovedPermanently)
 		return
 	}
 

@@ -3,7 +3,6 @@ package app
 import (
 	"fmt"
 	"log"
-
 	"net/http"
 
 	"github.com/mariusor/littr.go/models"
@@ -14,8 +13,8 @@ import (
 type userModel struct {
 	Title         string
 	InvertedTheme bool
-	User          models.Account
-	Items         []models.Content
+	User          *Account
+	Items         []Item
 }
 
 // handleMain serves /~{user}
@@ -44,7 +43,17 @@ func (l *Littr) HandleUser(w http.ResponseWriter, r *http.Request) {
 			found = true
 		}
 		m.Title = fmt.Sprintf("Activity %s", u.Handle)
-		m.User = u
+		m.User = &Account{
+			id:        u.Id,
+			Hash:      u.Hash(),
+			flags:     u.Flags,
+			UpdatedAt: u.UpdatedAt,
+			Handle:    u.Handle,
+			metadata:  u.Metadata,
+			Score:     u.Score,
+			CreatedAt: u.CreatedAt,
+			Email:     u.Email,
+		}
 	}
 
 	if !found {
@@ -64,21 +73,25 @@ func (l *Littr) HandleUser(w http.ResponseWriter, r *http.Request) {
 		}
 		for rows.Next() {
 			p := models.Content{}
-			err = rows.Scan(&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.Flags, &p.Metadata, &p.Handle)
+			var handle string
+			err = rows.Scan(&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.Flags, &p.Metadata, &handle)
 			if err != nil {
 				l.HandleError(w, r, StatusUnknown, err)
 				return
 			}
-			//p.Handle = u.Handle
-			p.SubmittedBy = u.Id
-			m.Items = append(m.Items, p)
+			l := LoadItem(p, handle)
+			m.Items = append(m.Items, l)
+		}
+
+		_, err = LoadVotes(CurrentAccount, m.Items)
+		if err != nil {
+			log.Print(err)
 		}
 	}
-	err := l.LoadVotes(CurrentAccount, getAllIds(m.Items))
+	_, err := LoadVotes(CurrentAccount, m.Items)
 	if err != nil {
 		log.Print(err)
 	}
-
 	err = l.SessionStore.Save(r, w, l.GetSession(r))
 	if err != nil {
 		log.Print(err)

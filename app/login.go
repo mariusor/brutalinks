@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"net/http"
 
+	"encoding/json"
+	"log"
+
 	"github.com/mariusor/littr.go/models"
 	"golang.org/x/crypto/bcrypt"
-	"log"
-	"encoding/json"
 )
 
 const SessionUserKey = "acct"
@@ -17,6 +18,7 @@ type loginModel struct {
 	InvertedTheme bool
 	Account       models.Account
 }
+
 func (l *Littr) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
 		errs := make([]error, 0)
@@ -65,7 +67,7 @@ func (l *Littr) HandleLogin(w http.ResponseWriter, r *http.Request) {
 			l.HandleError(w, r, http.StatusInternalServerError, errs...)
 			return
 		}
-		http.Redirect(w, r, a.PermaLink(), http.StatusMovedPermanently)
+		http.Redirect(w, r, a.GetLink(), http.StatusMovedPermanently)
 		return
 	}
 
@@ -75,7 +77,7 @@ func (l *Littr) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		s := l.GetSession(r)
 		s.Values[SessionUserKey] = nil
 		l.SessionStore.Save(r, w, s)
-		*CurrentAccount = models.AnonymousAccount()
+		CurrentAccount = AnonymousAccount()
 		http.Redirect(w, r, "/", http.StatusMovedPermanently)
 	}
 	m := loginModel{InvertedTheme: l.InvertedTheme}

@@ -6,10 +6,10 @@
 <body{{ if .InvertedTheme }} class="inverted"{{end}}>
 {{ template "header.html" }}
 <section class="item op" id="i-{{.Content.Hash}}" data-hash="{{.Content.Hash}}">
-    {{template "score.html" .Content.Content}}
-    {{template "link.html" .Content.Content}}
-    {{template "data.html" .Content.Content}}
-    {{template "meta.html" .Content.Content}}
+    {{template "score.html" .Content.Item}}
+    {{template "link.html" .Content.Item}}
+    {{template "data.html" .Content.Item}}
+    {{template "meta.html" .Content.Item}}
 </section>
 <section id="reply">{{template "submit.html" . }}</section>
 <section id="items">{{ template "comments.html" .Content }}</section>

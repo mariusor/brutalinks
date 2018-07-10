@@ -4,7 +4,7 @@
 {{ template "head.html" . }}
 </head>
 <body{{ if .InvertedTheme }} class="inverted"{{end}}>
-{{ template "header.html" }}
+{{template "flash.html" }}
 <main id="error">
 <h1>{{.Title}}</h1>
 {{range $error := .Errors}}

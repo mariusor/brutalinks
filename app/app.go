@@ -25,7 +25,18 @@ const (
 	StatusUnknown = -1
 )
 
-var CurrentAccount *models.Account
+var Db *sql.DB
+var CurrentAccount = AnonymousAccount()
+
+const anonymous = "anonymous"
+
+func AnonymousAccount() *Account {
+	return &Account{id: 0, Handle: anonymous, votes: make([]Vote, 0)}
+}
+
+func (a *Account) IsLogged() bool {
+	return a == nil || a.id > 0
+}
 
 type Littr struct {
 	Host          string
@@ -65,6 +76,9 @@ func (l *Littr) BaseUrl() string {
 	return fmt.Sprintf("http://%s", l.host())
 }
 
+func IsInverted() bool {
+	return false
+}
 func (l *Littr) LoadVotes(u *models.Account, ids []int64) error {
 	if u == nil {
 		return fmt.Errorf("invalid user")
@@ -91,7 +105,7 @@ func (l *Littr) LoadVotes(u *models.Account, ids []int64) error {
 		return err
 	}
 	if u.Votes == nil {
-		u.Votes = make(map[int64]models.Vote,0)
+		u.Votes = make(map[int64]models.Vote, 0)
 	}
 	for rows.Next() {
 		v := models.Vote{}
@@ -129,10 +143,11 @@ func LoadTemplates(base string, main string) (*template.Template, error) {
 	}
 
 	t.Funcs(template.FuncMap{
+		"isInverted":         IsInverted,
 		"sluggify":           sluggify,
 		"title":              func(t []byte) string { return string(t) },
 		"getProviders":       getAuthProviders,
-		"CurrentAccount":     func() *models.Account { return CurrentAccount },
+		"CurrentAccount":     func() *Account { return CurrentAccount },
 		"LoadFlashMessages":  func() []int { return []int{} }, //LoadFlashMessages,
 		"mod":                func(lvl int) float64 { return math.Mod(float64(lvl), float64(10)) },
 		"CleanFlashMessages": func() string { return "" }, //CleanFlashMessages,
@@ -377,7 +392,7 @@ func (l *Littr) HandleAuth(w http.ResponseWriter, r *http.Request) {
 	provider := vars["provider"]
 
 	indexUrl := "/"
-	if os.Getenv(strings.ToUpper(provider) + "_KEY") == "" {
+	if os.Getenv(strings.ToUpper(provider)+"_KEY") == "" {
 		log.Printf("Provider %s has no credentials set", provider)
 		http.Redirect(w, r, indexUrl, http.StatusPermanentRedirect)
 		return
@@ -451,7 +466,7 @@ func (l *Littr) Sessions(n http.Handler) http.Handler {
 		//	log.Printf("sess %s %#v", k, v)
 		//}
 		if s.Values[SessionUserKey] != nil {
-			a := s.Values[SessionUserKey].(models.Account)
+			a := s.Values[SessionUserKey].(Account)
 			CurrentAccount = &a
 		}
 
@@ -478,10 +493,6 @@ func (l *Littr) AuthCheck(next http.Handler) http.Handler {
 		log.Printf("%#v", s.Values)
 		//l.SessionStore.Save(r, w, s)
 	})
-}
-
-func getAllIds(c []models.Content) []int64 {
-	return models.ContentCollection(c).GetAllIds()
 }
 
 //

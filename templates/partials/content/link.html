@@ -6,7 +6,7 @@
 {{if .IsLink}}
     <a class="titles" data-hash="{{.Hash}}" href="{{.Data | printf "%s"}}">
 {{- end}}
-    {{.Title | title }}
+    {{.Title}}
 {{if .IsLink -}}
 </a>
 {{- end}}

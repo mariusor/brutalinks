@@ -1,6 +1,6 @@
 {{ $vote := CurrentAccount.VotedOn . }}
 <aside class="score" data-score="{{if .Deleted}}-1{{else}}{{.ScoreFmt}}{{end}}" data-hash="{{.Hash}}">
-    <a href="{{.ScoreUPLink}}" class="yay{{ if $vote.IsYay }} ed{{end}}" data-action="yay" data-hash="{{.Hash}}" rel="nofollow"></a>
+    <a href="{{.ScoreUPLink}}" class="yay{{if $vote.IsYay }} ed{{end}}" data-action="yay" data-hash="{{.Hash}}" rel="nofollow"></a>
     <data>{{if .Deleted}}&#9851;{{else}}{{.ScoreFmt}}{{end}}</data>
-    <a href="{{.ScoreDOWNLink}}" class="nay{{ if $vote.IsNay }} ed{{end}}" data-action="nay" data-hash="{{.Hash}}" rel="nofollow"></a>
+    <a href="{{.ScoreDOWNLink}}" class="nay{{if $vote.IsNay }} ed{{end}}" data-action="nay" data-hash="{{.Hash}}" rel="nofollow"></a>
 </aside>
