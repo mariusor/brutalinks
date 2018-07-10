@@ -79,7 +79,7 @@ func main() {
 		Methods(http.MethodGet, http.MethodHead, http.MethodPost).
 		Name("submit")
 
-	m.HandleFunc("/register", littr.HandleRegister).
+	m.HandleFunc("/register", app.HandleRegister).
 		Methods(http.MethodGet, http.MethodHead, http.MethodPost).
 		Name("register")
 
@@ -123,7 +123,7 @@ func main() {
 		Name("domains")
 
 	m.NotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		littr.HandleError(w, r, http.StatusNotFound, fmt.Errorf("url %q couldn't be found", r.URL))
+		app.HandleError(w, r, http.StatusNotFound, fmt.Errorf("url %q couldn't be found", r.URL))
 	})
 
 	m.Use(littr.LoggerMw)
