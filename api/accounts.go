@@ -191,6 +191,8 @@ func HandleAccountOutbox(w http.ResponseWriter, r *http.Request) {
 		}
 	case "inbox":
 		data, err = json.Marshal(p.Inbox)
+	case "liked":
+		data, err = json.Marshal(p.Liked)
 	}
 
 	if err != nil {
@@ -198,7 +200,7 @@ func HandleAccountOutbox(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Content-Type", "application/ld+json; charset=utf-8")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(http.StatusOK)
 	w.Write(data)
