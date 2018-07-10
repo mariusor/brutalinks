@@ -358,10 +358,8 @@ func LoadItem(c models.Content, handle string) Item {
 }
 
 // handleMain serves /index request
-func (l *Littr) HandleIndexAPI(w http.ResponseWriter, r *http.Request) {
+func HandleIndexAPI(w http.ResponseWriter, r *http.Request) {
 	m := indexModel{Title: "Index", InvertedTheme: IsInverted}
-
-	db := l.Db
 
 	sel := fmt.Sprintf(`select "content_items"."id", "content_items"."key", "mime_type", "data", "title", "content_items"."score", 
 			"submitted_at", "submitted_by", "handle", "content_items"."flags" 
@@ -369,7 +367,7 @@ func (l *Littr) HandleIndexAPI(w http.ResponseWriter, r *http.Request) {
 			left join "accounts" on "accounts"."id" = "content_items"."submitted_by" 
 		where path is NULL
 	order by "score" desc, "submitted_at" desc limit %d`, MaxContentItems)
-	rows, err := db.Query(sel)
+	rows, err := Db.Query(sel)
 	if err != nil {
 		HandleError(w, r, StatusUnknown, err)
 		return
@@ -391,7 +389,7 @@ func (l *Littr) HandleIndexAPI(w http.ResponseWriter, r *http.Request) {
 		log.Print(err)
 	}
 
-	err = l.SessionStore.Save(r, w, l.GetSession(r))
+	err = SessionStore.Save(r, w, GetSession(r))
 	if err != nil {
 		log.Print(err)
 	}

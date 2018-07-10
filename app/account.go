@@ -18,7 +18,7 @@ type userModel struct {
 }
 
 // handleMain serves /~{user}
-func (l *Littr) HandleUser(w http.ResponseWriter, r *http.Request) {
+func HandleUser(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
 	m := userModel{InvertedTheme: IsInverted}
@@ -91,7 +91,7 @@ func (l *Littr) HandleUser(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Print(err)
 	}
-	err = l.SessionStore.Save(r, w, l.GetSession(r))
+	err = SessionStore.Save(r, w, GetSession(r))
 	if err != nil {
 		log.Print(err)
 	}

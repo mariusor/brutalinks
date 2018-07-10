@@ -57,7 +57,7 @@ func ReparentComments(allComments []*comment) {
 }
 
 // handleMain serves /{year}/{month}/{day}/{hash} request
-func (l *Littr) HandleContent(w http.ResponseWriter, r *http.Request) {
+func HandleContent(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	date, err := time.Parse(time.RFC3339, fmt.Sprintf("%s-%s-%sT00:00:00+00:00", vars["year"], vars["month"], vars["day"]))
 	if err != nil {
@@ -109,7 +109,7 @@ func (l *Littr) HandleContent(w http.ResponseWriter, r *http.Request) {
 			if yay {
 				multiplier = 1
 			}
-			_, err := l.Vote(p, multiplier, CurrentAccount.id)
+			_, err := AddVote(p, multiplier, CurrentAccount.id)
 			if err != nil {
 				log.Print(err)
 			}
@@ -123,7 +123,7 @@ func (l *Littr) HandleContent(w http.ResponseWriter, r *http.Request) {
 			HandleError(w, r, http.StatusInternalServerError, err)
 			return
 		}
-		l.Vote(*e, 1, CurrentAccount.id)
+		AddVote(*e, 1, CurrentAccount.id)
 		http.Redirect(w, r, p.PermaLink(), http.StatusFound)
 	}
 
@@ -162,7 +162,7 @@ func (l *Littr) HandleContent(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Print(err)
 	}
-	err = l.SessionStore.Save(r, w, l.GetSession(r))
+	err = SessionStore.Save(r, w, GetSession(r))
 	if err != nil {
 		log.Print(err)
 	}

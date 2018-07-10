@@ -10,10 +10,9 @@ import (
 )
 
 // handleMain serves /domains/{domain} request
-func (l *Littr) HandleDomains(w http.ResponseWriter, r *http.Request) {
+func HandleDomains(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	db := l.Db
 	m := userModel{InvertedTheme: IsInverted}
 
 	selC := `select "content_items"."id", "content_items"."key", "mime_type", "data", "title", "content_items"."score", 
@@ -21,7 +20,7 @@ func (l *Littr) HandleDomains(w http.ResponseWriter, r *http.Request) {
 			left join "accounts" on "accounts"."id" = "content_items"."submitted_by" 
 			where substring(data::text from 'http[s]?://([^/]*)') = $1 order by "submitted_at" desc`
 	{
-		rows, err := db.Query(selC, vars["domain"])
+		rows, err := Db.Query(selC, vars["domain"])
 		if err != nil {
 			HandleError(w, r, StatusUnknown, err)
 			return

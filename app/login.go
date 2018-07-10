@@ -19,14 +19,14 @@ type loginModel struct {
 	Account       models.Account
 }
 
-func (l *Littr) HandleLogin(w http.ResponseWriter, r *http.Request) {
+func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
 		errs := make([]error, 0)
 		a := models.Account{}
 		pw := r.PostFormValue("pw")
 		handle := r.PostFormValue("handle")
 		sel := `select "id", "key", "handle", "email", "score", "created_at", "updated_at", "metadata", "flags" from "accounts" where "handle" = $1`
-		rows, err := l.Db.Query(sel, handle)
+		rows, err := Db.Query(sel, handle)
 		if err != nil {
 			HandleError(w, r, StatusUnknown, err)
 			return
@@ -55,11 +55,11 @@ func (l *Littr) HandleLogin(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		s := l.GetSession(r)
+		s := GetSession(r)
 		s.Values[SessionUserKey] = a
 		s.AddFlash("Success")
 
-		err = l.SessionStore.Save(r, w, l.GetSession(r))
+		err = SessionStore.Save(r, w, s)
 		if err != nil {
 			errs = append(errs, err)
 		}
@@ -74,9 +74,9 @@ func (l *Littr) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	logout := len(q["logout"]) > 0
 	if logout {
-		s := l.GetSession(r)
+		s := GetSession(r)
 		s.Values[SessionUserKey] = nil
-		l.SessionStore.Save(r, w, s)
+		SessionStore.Save(r, w, s)
 		CurrentAccount = AnonymousAccount()
 		http.Redirect(w, r, "/", http.StatusMovedPermanently)
 	}

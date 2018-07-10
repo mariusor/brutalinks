@@ -27,6 +27,7 @@ const (
 
 var Db *sql.DB
 var CurrentAccount = AnonymousAccount()
+var SessionStore sessions.Store
 
 const anonymous = "anonymous"
 
@@ -39,14 +40,10 @@ func (a *Account) IsLogged() bool {
 }
 
 type Littr struct {
-	Host          string
-	Port          int64
-	Db            *sql.DB
-	SessionStore  sessions.Store
-	FlashData     []interface{}
-	SessionData   []interface{}
-	InvertedTheme bool
-	ErrorHandler  http.HandlerFunc
+	Host      string
+	Port      int64
+	Db        *sql.DB
+	FlashData []interface{}
 }
 
 type errorModel struct {
@@ -56,8 +53,8 @@ type errorModel struct {
 	Errors        []error
 }
 
-func (l *Littr) GetSession(r *http.Request) *sessions.Session {
-	s, err := l.SessionStore.Get(r, sessionName)
+func GetSession(r *http.Request) *sessions.Session {
+	s, err := SessionStore.Get(r, sessionName)
 	if err != nil {
 		log.Print(err)
 	}
@@ -76,14 +73,14 @@ func (l *Littr) BaseUrl() string {
 	return fmt.Sprintf("http://%s", l.host())
 }
 
-func (l *Littr) LoadVotes(u *models.Account, ids []int64) error {
+/*
+func LoadVotes(u *models.Account, ids []int64) error {
 	if u == nil {
 		return fmt.Errorf("invalid user")
 	}
 	if len(ids) == 0 {
 		return fmt.Errorf("no ids to load")
 	}
-	db := l.Db
 	// this here code following is the ugliest I wrote in quite a long time
 	// so ugly it warrants its own fucking shame corner
 	sids := make([]string, 0)
@@ -97,7 +94,7 @@ func (l *Littr) LoadVotes(u *models.Account, ids []int64) error {
 	}
 	sel := fmt.Sprintf(`select "id", "submitted_by", "submitted_at", "updated_at", "item_id", "weight", "flags"
 	from "votes" where "submitted_by" = $1 and "item_id" in (%s)`, strings.Join(sids, ", "))
-	rows, err := db.Query(sel, iitems...)
+	rows, err := Db.Query(sel, iitems...)
 	if err != nil {
 		return err
 	}
@@ -116,7 +113,7 @@ func (l *Littr) LoadVotes(u *models.Account, ids []int64) error {
 
 	return nil
 }
-
+*/
 func RenderTemplate(w http.ResponseWriter, name string, m interface{}) error {
 	t, terr := LoadTemplates(templateDir, name)
 	if terr != nil {
@@ -228,8 +225,7 @@ func LoadTemplates(base string, main string) (*template.Template, error) {
 //	return sess
 //}
 
-func (l *Littr) Vote(p models.Content, score int, userId int64) (bool, error) {
-	db := l.Db
+func AddVote(p models.Content, score int, userId int64) (bool, error) {
 	newWeight := int(score * models.ScoreMultiplier)
 
 	var sel string
@@ -244,7 +240,7 @@ func (l *Littr) Vote(p models.Content, score int, userId int64) (bool, error) {
 
 	v := models.Vote{}
 	{
-		rows, err := db.Query(sel, userId, p2)
+		rows, err := Db.Query(sel, userId, p2)
 		if err != nil {
 			return false, err
 		}
@@ -266,7 +262,7 @@ func (l *Littr) Vote(p models.Content, score int, userId int64) (bool, error) {
 		q = `insert into "votes" ("weight", "item_id", "submitted_by") values ($1, $2, $3)`
 	}
 	{
-		res, err := db.Exec(q, newWeight, p.Id, userId)
+		res, err := Db.Exec(q, newWeight, p.Id, userId)
 		if err != nil {
 			return false, err
 		}
@@ -278,7 +274,7 @@ func (l *Littr) Vote(p models.Content, score int, userId int64) (bool, error) {
 
 	upd := `update "content_items" set score = score - $1 + $2 where "id" = $3`
 	{
-		res, err := db.Exec(upd, v.Weight, newWeight, p.Id)
+		res, err := Db.Exec(upd, v.Weight, newWeight, p.Id)
 		if err != nil {
 			return false, err
 		}
@@ -342,7 +338,7 @@ func (l *Littr) Write(bytes []byte) (int, error) {
 }
 
 // handleAdmin serves /admin request
-func (l *Littr) HandleAdmin(w http.ResponseWriter, _ *http.Request) {
+func HandleAdmin(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(200)
 	w.Write([]byte("done!!!"))
 }
@@ -366,7 +362,7 @@ func (l *Littr) HandleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s, err := l.SessionStore.Get(r, sessionName)
+	s, err := SessionStore.Get(r, sessionName)
 	if err != nil {
 		log.Printf("ERROR %s", err)
 	}
@@ -376,7 +372,7 @@ func (l *Littr) HandleCallback(w http.ResponseWriter, r *http.Request) {
 	s.Values["state"] = state
 	s.AddFlash("Success")
 
-	err = l.SessionStore.Save(r, w, s)
+	err = SessionStore.Save(r, w, s)
 	if err != nil {
 		log.Print(err)
 	}
@@ -439,7 +435,7 @@ func (l *Littr) HandleAuth(w http.ResponseWriter, r *http.Request) {
 			RedirectURL: url,
 		}
 	default:
-		s, err := l.SessionStore.Get(r, sessionName)
+		s, err := SessionStore.Get(r, sessionName)
 		if err != nil {
 			log.Printf("ERROR %s", err)
 		}
@@ -469,7 +465,7 @@ func IsInverted(r *http.Request) bool {
 
 func (l *Littr) Sessions(n http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		s := l.GetSession(r)
+		s := GetSession(r)
 		l.FlashData = s.Flashes()
 		//for k, v := range s.Values {
 		//	log.Printf("sess %s %#v", k, v)
@@ -485,7 +481,7 @@ func (l *Littr) Sessions(n http.Handler) http.Handler {
 func (l *Littr) AuthCheck(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		s, err := l.SessionStore.Get(r, sessionName)
+		s, err := SessionStore.Get(r, sessionName)
 		if err != nil {
 			log.Printf("ERROR %s", err)
 		}

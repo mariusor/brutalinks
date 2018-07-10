@@ -45,7 +45,9 @@ func init() {
 	s.Options.Domain = listenHost
 	s.Options.Path = "/"
 
-	littr = app.Littr{Host: listenHost, Port: listenPort, SessionStore: s}
+	app.SessionStore = s
+
+	littr = app.Littr{Host: listenHost, Port: listenPort}
 
 	dbPw := os.Getenv("DB_PASSWORD")
 	dbName := os.Getenv("DB_NAME")
@@ -57,7 +59,8 @@ func init() {
 		log.Print(err)
 	}
 
-	littr.Db = db
+	api.Db = db
+	app.Db = db
 }
 
 func main() {
@@ -67,15 +70,13 @@ func main() {
 
 	m := mux.NewRouter()
 
-	api.Db = littr.Db
-	app.Db = littr.Db
 	api.BaseURL = littr.Host
 
-	m.HandleFunc("/", littr.HandleIndexAPI).
+	m.HandleFunc("/", app.HandleIndexAPI).
 		Methods(http.MethodGet, http.MethodHead).
 		Name("index")
 
-	m.HandleFunc("/submit", littr.HandleSubmit).
+	m.HandleFunc("/submit", app.HandleSubmit).
 		Methods(http.MethodGet, http.MethodHead, http.MethodPost).
 		Name("submit")
 
@@ -83,7 +84,7 @@ func main() {
 		Methods(http.MethodGet, http.MethodHead, http.MethodPost).
 		Name("register")
 
-	m.HandleFunc("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}", littr.HandleContent).
+	m.HandleFunc("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}", app.HandleContent).
 		Methods(http.MethodGet, http.MethodHead, http.MethodPost).
 		Name("content")
 
@@ -91,18 +92,18 @@ func main() {
 	//	Methods(http.MethodGet, http.MethodHead).
 	//	Name("webfinger")
 
-	m.HandleFunc("/~{handle}", littr.HandleUser).
+	m.HandleFunc("/~{handle}", app.HandleUser).
 		Methods(http.MethodGet, http.MethodHead).
 		Name("account")
 
 	o := m.PathPrefix("/auth").Subrouter()
-	o.HandleFunc("/local", littr.HandleLogin).Name("login")
+	o.HandleFunc("/local", app.HandleLogin).Name("login")
 	o.HandleFunc("/{provider}", littr.HandleAuth).Name("auth")
 	o.HandleFunc("/{provider}/callback", littr.HandleCallback).Name("authCallback")
 
 	ad := m.PathPrefix("/admin").Subrouter()
 	ad.Use(littr.AuthCheck)
-	ad.HandleFunc("/", littr.HandleAdmin).Name("admin")
+	ad.HandleFunc("/", app.HandleAdmin).Name("admin")
 
 	ap := m.PathPrefix("/api").Subrouter()
 	ap.HandleFunc("/accounts/verify_credentials", api.HandleVerifyCredentials).Name("api-verify-credentials")
@@ -114,11 +115,11 @@ func main() {
 
 	m.Handle("/favicon.ico", http.FileServer(http.Dir("./assets/")))
 
-	m.HandleFunc("/{ancestor}/{hash}/{parent}", littr.HandleParent).
+	m.HandleFunc("/{ancestor}/{hash}/{parent}", app.HandleParent).
 		Methods(http.MethodGet, http.MethodHead).
 		Name("parent")
 
-	m.HandleFunc("/domains/{domain}", littr.HandleDomains).
+	m.HandleFunc("/domains/{domain}", app.HandleDomains).
 		Methods(http.MethodGet, http.MethodHead).
 		Name("domains")
 

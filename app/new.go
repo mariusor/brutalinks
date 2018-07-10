@@ -71,7 +71,7 @@ func ContentFromRequest(r *http.Request, p []byte) (*models.Content, error) {
 }
 
 // handleMain serves /{year}/{month}/{day}/{hash} request
-func (l *Littr) HandleSubmit(w http.ResponseWriter, r *http.Request) {
+func HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	var userId = CurrentAccount.id
 
 	if r.Method == http.MethodPost {
@@ -81,12 +81,12 @@ func (l *Littr) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 			HandleError(w, r, http.StatusInternalServerError, err)
 			return
 		}
-		l.Vote(*p, 1, userId)
+		AddVote(*p, 1, userId)
 		http.Redirect(w, r, p.PermaLink(), http.StatusMovedPermanently)
 		return
 	}
 	m := newModel{Title: "Submit new content"}
-	err := l.SessionStore.Save(r, w, l.GetSession(r))
+	err := SessionStore.Save(r, w, GetSession(r))
 	if err != nil {
 		log.Print(err)
 	}
