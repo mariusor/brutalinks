@@ -45,7 +45,7 @@ type ContentCollection []Content
 
 func (c Content) ParentLink() string {
 	if c.parentLink == "" {
-		if c.Path == nil {
+		if len(c.Path) == 0 {
 			c.parentLink = "/"
 		} else {
 			lastDotPos := bytes.LastIndex(c.Path, []byte(".")) + 1
@@ -56,7 +56,7 @@ func (c Content) ParentLink() string {
 	return c.parentLink
 }
 func (c Content) OPLink() string {
-	if c.Path != nil {
+	if len(c.Path) > 0 {
 		parentHash := c.Path[0:8]
 		return fmt.Sprintf("/op/%s/%s", c.Hash(), parentHash)
 	}
@@ -106,7 +106,7 @@ func (c Content) PermaLink() string {
 	return fmt.Sprintf("/%4d/%02d/%02d/%s", c.SubmittedAt.Year(), c.SubmittedAt.Month(), c.SubmittedAt.Day(), c.Hash())
 }
 func (c *Content) FullPath() []byte {
-	if c.fullPath == nil {
+	if len(c.fullPath) == 0 {
 		c.fullPath = append(c.fullPath, c.Path...)
 		if len(c.fullPath) > 0 {
 			c.fullPath = append(c.fullPath, byte('.'))
