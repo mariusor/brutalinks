@@ -18,10 +18,3 @@ type Vote struct {
 	Weight      int       `orm:Weight`
 	Flags       int8      `orm:Flags`
 }
-
-func (v *Vote) IsYay() bool {
-	return v != nil && v.Weight > 0
-}
-func (v *Vote) IsNay() bool {
-	return v != nil && v.Weight < 0
-}
