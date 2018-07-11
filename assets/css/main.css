@@ -44,10 +44,14 @@ body>header h1 a {
 {
     color: Window;
 }
-/*body>header h1 a:before {
-    content: "♻";
-    font-weight: 1000;
-}*/
+body>header h1 a:before {
+    /*content: "♻";
+    content: "\f1b8";*/
+    content: "\f2ed";
+    font-family: "Font Awesome 5 Free";
+    font-weight: 400;
+    margin-right: .4em;
+}
 .submission h1,
 .submission h2,
 .submission h3,
@@ -126,7 +130,8 @@ ol.comments {
 }
 .score a.yay::before {
     font-weight: 1000;
-    content: "🞦";
+    font-family: "Font Awesome 5 Free";
+    content: "\f067";
 }
 .score a.yay:active,
 .score a.yay.ed {
@@ -134,7 +139,8 @@ ol.comments {
 }
 .score a.nay::after {
     font-weight: 1000;
-    content: "━";
+    font-family: "Font Awesome 5 Free";
+    content: "\f068";
 }
 .score a.nay:active,
 .score a.nay.ed {
