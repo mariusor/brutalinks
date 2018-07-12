@@ -18,7 +18,7 @@ type comment struct {
 	Parent   *comment
 	Path     []byte
 	FullPath []byte
-	Children []*comment
+	Children []comment
 }
 
 type contentModel struct {
@@ -34,16 +34,16 @@ func sluggify(s string) string {
 	return strings.Replace(s, "/", "-", -1)
 }
 
-func ReparentComments(allComments []*comment) {
+func ReparentComments(allComments []comment) {
 	for _, cur := range allComments {
-		par := func(t []*comment, path []byte) *comment {
+		par := func(t []comment, path []byte) *comment {
 			// findParent
 			if path == nil {
 				return nil
 			}
 			for _, n := range t {
 				if bytes.Equal(path, n.FullPath) {
-					return n
+					return &n
 				}
 			}
 			return nil
@@ -109,7 +109,7 @@ func HandleContent(w http.ResponseWriter, r *http.Request) {
 			if yay {
 				multiplier = 1
 			}
-			_, err := AddVote(p, multiplier, CurrentAccount.id)
+			_, err := AddVote(p, multiplier, CurrentAccount.Id)
 			if err != nil {
 				log.Print(err)
 			}
@@ -123,37 +123,40 @@ func HandleContent(w http.ResponseWriter, r *http.Request) {
 			HandleError(w, r, http.StatusInternalServerError, err)
 			return
 		}
-		AddVote(*e, 1, CurrentAccount.id)
+		AddVote(*e, 1, CurrentAccount.Id)
 		http.Redirect(w, r, p.PermaLink(), http.StatusFound)
 	}
 
-	allComments := make([]*comment, 0)
-	allComments = append(allComments, &m.Content)
-	// comments
-	selCom := `select "content_items"."id", "content_items"."key", "mime_type", "data", "title", "content_items"."score", 
+	allComments := make([]comment, 0)
+	allComments = append(allComments, m.Content)
+
+	if len(m.Content.Path) > 0 {
+		// comments
+		selCom := `select "content_items"."id", "content_items"."key", "mime_type", "data", "title", "content_items"."score", 
 			"submitted_at", "submitted_by", "handle", "path", "content_items"."flags" from "content_items" 
 			left join "accounts" on "accounts"."id" = "content_items"."submitted_by" 
-			where "path" <@ $1 order by "path" asc, "score" desc`
-	{
-		rows, err := Db.Query(selCom, m.Content.Path)
+			where "path" <@ $1 and "path" is not null order by "path" asc, "score" desc`
+		{
+			rows, err := Db.Query(selCom, m.Content.Path)
 
-		if err != nil {
-			HandleError(w, r, StatusUnknown, err)
-			return
-		}
-		for rows.Next() {
-			c := models.Content{}
-			var handle string
-			err = rows.Scan(&c.Id, &c.Key, &c.MimeType, &c.Data, &c.Title, &c.Score, &c.SubmittedAt, &c.SubmittedBy, &handle, &c.Path, &c.Flags)
 			if err != nil {
 				HandleError(w, r, StatusUnknown, err)
 				return
 			}
+			for rows.Next() {
+				c := models.Content{}
+				var handle string
+				err = rows.Scan(&c.Id, &c.Key, &c.MimeType, &c.Data, &c.Title, &c.Score, &c.SubmittedAt, &c.SubmittedBy, &handle, &c.Path, &c.Flags)
+				if err != nil {
+					HandleError(w, r, StatusUnknown, err)
+					return
+				}
 
-			i := LoadItem(c, handle)
-			com := comment{Item: i, Path: c.Path, FullPath: c.FullPath()}
-			items = append(items, i)
-			allComments = append(allComments, &com)
+				i := LoadItem(c, handle)
+				com := comment{Item: i, Path: c.Path, FullPath: c.FullPath()}
+				items = append(items, i)
+				allComments = append(allComments, com)
+			}
 		}
 	}
 

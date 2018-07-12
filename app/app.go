@@ -32,11 +32,11 @@ var SessionStore sessions.Store
 const anonymous = "anonymous"
 
 func AnonymousAccount() *Account {
-	return &Account{id: 0, Handle: anonymous, votes: make([]Vote, 0)}
+	return &Account{Id: 0, Handle: anonymous, votes: make([]Vote, 0)}
 }
 
 func (a *Account) IsLogged() bool {
-	return a == nil || a.id > 0
+	return a != nil && a.Handle != anonymous
 }
 
 type Littr struct {
@@ -272,7 +272,7 @@ func AddVote(p models.Content, score int, userId int64) (bool, error) {
 		log.Printf("%d scoring %d on %s", userId, newWeight, p.Hash())
 	}
 
-	upd := `update "content_items" set score = score - $1 + $2 where "id" = $3`
+	upd := `update "content_items" set score = score - $1 + $2 where "Id" = $3`
 	{
 		res, err := Db.Exec(upd, v.Weight, newWeight, p.Id)
 		if err != nil {

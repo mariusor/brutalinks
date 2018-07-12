@@ -20,9 +20,9 @@ type loginModel struct {
 }
 
 func HandleLogin(w http.ResponseWriter, r *http.Request) {
+	a := models.Account{}
 	if r.Method == http.MethodPost {
 		errs := make([]error, 0)
-		a := models.Account{}
 		pw := r.PostFormValue("pw")
 		handle := r.PostFormValue("handle")
 		sel := `select "id", "key", "handle", "email", "score", "created_at", "updated_at", "metadata", "flags" from "accounts" where "handle" = $1`
@@ -45,6 +45,7 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 			HandleError(w, r, StatusUnknown, fmt.Errorf("handle or password are wrong"))
 			return
 		}
+		log.Printf("Loaded pw: %q, salt: %q", m.Password, m.Salt)
 		salt := m.Salt
 		saltedpw := []byte(pw)
 		saltedpw = append(saltedpw, salt...)
@@ -56,7 +57,18 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 		}
 
 		s := GetSession(r)
-		s.Values[SessionUserKey] = a
+		acct := Account{
+			Id:        a.Id,
+			Handle:    a.Handle,
+			Email:     a.Email,
+			Hash:      a.Hash(),
+			Score:     a.Score,
+			CreatedAt: a.CreatedAt,
+			UpdatedAt: a.UpdatedAt,
+			flags:     a.Flags,
+		}
+		s.Values[SessionUserKey] = acct
+		CurrentAccount = &acct
 		s.AddFlash("Success")
 
 		err = SessionStore.Save(r, w, s)
@@ -81,7 +93,7 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/", http.StatusMovedPermanently)
 	}
 	m := loginModel{InvertedTheme: IsInverted}
-	//m.Account = a
+	m.Account = a
 
 	RenderTemplate(w, "login.html", m)
 }

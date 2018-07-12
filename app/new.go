@@ -41,7 +41,7 @@ func ContentFromRequest(r *http.Request, p []byte) (*models.Content, error) {
 	if dat != "" {
 		i.Data = []byte(dat)
 	}
-	i.SubmittedBy = CurrentAccount.id
+	i.SubmittedBy = CurrentAccount.Id
 	if len(p) > 0 {
 		i.Path = p
 	}
@@ -72,7 +72,7 @@ func ContentFromRequest(r *http.Request, p []byte) (*models.Content, error) {
 
 // handleMain serves /{year}/{month}/{day}/{hash} request
 func HandleSubmit(w http.ResponseWriter, r *http.Request) {
-	var userId = CurrentAccount.id
+	var userId = CurrentAccount.Id
 
 	if r.Method == http.MethodPost {
 		p, err := ContentFromRequest(r, nil)

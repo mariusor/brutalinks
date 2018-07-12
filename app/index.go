@@ -233,7 +233,7 @@ type AccountMetadata struct {
 }
 
 type Account struct {
-	id        int64
+	Id        int64
 	Hash      string    `json:"key"`
 	Email     []byte    `json:"email"`
 	Handle    string    `json:"handle"`
@@ -296,7 +296,7 @@ func LoadVotes(a *Account, it []Item) ([]Vote, error) {
 		sids = append(sids, fmt.Sprintf("$%d", i+2))
 	}
 	iitems := make([]interface{}, len(ids)+1)
-	iitems[0] = a.id
+	iitems[0] = a.Id
 	for i, v := range ids {
 		iitems[i+1] = v
 	}

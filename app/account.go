@@ -43,7 +43,7 @@ func HandleUser(w http.ResponseWriter, r *http.Request) {
 		}
 		m.Title = fmt.Sprintf("Activity %s", u.Handle)
 		m.User = &Account{
-			id:        u.Id,
+			Id:        u.Id,
 			Hash:      u.Hash(),
 			flags:     u.Flags,
 			UpdatedAt: u.UpdatedAt,
@@ -80,11 +80,6 @@ func HandleUser(w http.ResponseWriter, r *http.Request) {
 			}
 			l := LoadItem(p, handle)
 			m.Items = append(m.Items, l)
-		}
-
-		_, err = LoadVotes(CurrentAccount, m.Items)
-		if err != nil {
-			log.Print(err)
 		}
 	}
 	_, err := LoadVotes(CurrentAccount, m.Items)
