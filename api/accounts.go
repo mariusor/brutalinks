@@ -90,6 +90,7 @@ func HandleAccount(w http.ResponseWriter, r *http.Request) {
 
 	p.Outbox.URL = BuildObjectURL(p, p.Outbox)
 	p.Inbox.URL = BuildObjectURL(p, p.Inbox)
+	p.Liked.URL = BuildObjectURL(p, p.Liked)
 
 	json.Ctx = GetContext()
 	j, err := json.Marshal(p)
