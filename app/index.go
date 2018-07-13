@@ -107,7 +107,7 @@ func (i Item) scoreLink(dir string) string {
 	if i.SubmittedAt.IsZero() {
 		return ""
 	}
-	return fmt.Sprintf("/%4d/%02d/%02d/%s?%s", i.SubmittedAt.Year(), i.SubmittedAt.Month(), i.SubmittedAt.Day(), i.Hash, dir)
+	return fmt.Sprintf("/%4d/%02d/%02d/%s/%s", i.SubmittedAt.Year(), i.SubmittedAt.Month(), i.SubmittedAt.Day(), i.Hash, dir)
 }
 func (i Item) ScoreUPLink() string {
 	return i.scoreLink("yay")

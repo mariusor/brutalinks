@@ -88,6 +88,10 @@ func main() {
 		Methods(http.MethodGet, http.MethodHead, http.MethodPost).
 		Name("content")
 
+	m.HandleFunc("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}/{direction}", app.HandleVoting).
+		Methods(http.MethodGet, http.MethodHead).
+		Name("content")
+
 	//m.HandleFunc("/.well-known/webfinger", littr.handleWebFinger).
 	//	Methods(http.MethodGet, http.MethodHead).
 	//	Name("webfinger")

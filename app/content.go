@@ -13,6 +13,9 @@ import (
 	"github.com/gorilla/mux"
 )
 
+const Yay = "yay"
+const Nay = "nay"
+
 type comment struct {
 	Item
 	Parent   *comment
@@ -171,4 +174,58 @@ func HandleContent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	RenderTemplate(w, "content.html", m)
+}
+
+// handleMain serves /{year}/{month}/{day}/{hash}/{direction} request
+func HandleVoting(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	date, err := time.Parse(time.RFC3339, fmt.Sprintf("%s-%s-%sT00:00:00+00:00", vars["year"], vars["month"], vars["day"]))
+	if err != nil {
+		HandleError(w, r, StatusUnknown, err)
+		return
+	}
+	hash := vars["hash"]
+	items := make([]Item, 0)
+
+	sel := `select "content_items"."id", "content_items"."key", "mime_type", "data", "title", "content_items"."score",
+			"submitted_at", "submitted_by", "handle", "path", "content_items"."flags" from "content_items"
+			left join "accounts" on "accounts"."id" = "content_items"."submitted_by"
+			where "submitted_at" > $1::date and "content_items"."key" ~* $2`
+	rows, err := Db.Query(sel, date, hash)
+	if err != nil {
+		HandleError(w, r, StatusUnknown, err)
+		return
+	}
+	m := contentModel{InvertedTheme: IsInverted}
+	p := models.Content{}
+	var i Item
+	for rows.Next() {
+		var handle string
+		err = rows.Scan(&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &handle, &p.Path, &p.Flags)
+		if err != nil {
+			HandleError(w, r, StatusUnknown, err)
+			return
+		}
+		m.Title = string(p.Title)
+		i = LoadItem(p, handle)
+		m.Content = comment{Item: i, Path: p.Path, FullPath: p.FullPath()}
+	}
+	if p.Data == nil {
+		HandleError(w, r, http.StatusNotFound, fmt.Errorf("not found"))
+		return
+	}
+	items = append(items, i)
+
+	multiplier := 0
+	switch vars["direction"] {
+	case Yay:
+		multiplier = 1
+	case Nay:
+		multiplier = -1
+	}
+
+	if _, err := AddVote(p, multiplier, CurrentAccount.Id); err != nil {
+		log.Print(err)
+	}
+	http.Redirect(w, r, p.PermaLink(), http.StatusFound)
 }
