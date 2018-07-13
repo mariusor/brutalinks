@@ -25,7 +25,7 @@ type Account struct {
 	Votes     map[int64]Vote
 }
 
-type CanDelete interface {
+type Deletable interface {
 	Deleted() bool
 	Delete()
 	UnDelete()
