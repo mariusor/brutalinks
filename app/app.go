@@ -473,6 +473,8 @@ func (l *Littr) Sessions(n http.Handler) http.Handler {
 		if s.Values[SessionUserKey] != nil {
 			a := s.Values[SessionUserKey].(Account)
 			CurrentAccount = &a
+		} else {
+			CurrentAccount = AnonymousAccount()
 		}
 		n.ServeHTTP(w, r)
 	})
