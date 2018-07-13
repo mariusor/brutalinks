@@ -272,7 +272,7 @@ func AddVote(p models.Content, score int, userId int64) (bool, error) {
 		log.Printf("%d scoring %d on %s", userId, newWeight, p.Hash())
 	}
 
-	upd := `update "content_items" set score = score - $1 + $2 where "Id" = $3`
+	upd := `update "content_items" set score = score - $1 + $2 where "id" = $3`
 	{
 		res, err := Db.Exec(upd, v.Weight, newWeight, p.Id)
 		if err != nil {
