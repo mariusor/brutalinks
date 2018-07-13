@@ -365,7 +365,7 @@ func HandleIndexAPI(w http.ResponseWriter, r *http.Request) {
 			"submitted_at", "submitted_by", "handle", "content_items"."flags" 
 		from "content_items" 
 			left join "accounts" on "accounts"."id" = "content_items"."submitted_by" 
-		where path is NULL
+		where "path" is NULL or nlevel("path") = 0
 	order by "score" desc, "submitted_at" desc limit %d`, MaxContentItems)
 	rows, err := Db.Query(sel)
 	if err != nil {

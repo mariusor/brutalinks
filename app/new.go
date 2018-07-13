@@ -34,17 +34,15 @@ func ContentFromRequest(r *http.Request, p []byte) (*models.Content, error) {
 	i := models.Content{}
 
 	tit := r.PostFormValue("title")
-	if tit != "" {
+	if len(tit) > 0 {
 		i.Title = []byte(tit)
 	}
 	dat := r.PostFormValue("data")
-	if dat != "" {
+	if len(dat) > 0 {
 		i.Data = []byte(dat)
 	}
 	i.SubmittedBy = CurrentAccount.Id
-	if len(p) > 0 {
-		i.Path = p
-	}
+	i.Path = p
 	i.MimeType = detectMimeType(i.Data)
 	if !i.IsLink() {
 		i.MimeType = r.PostFormValue("mime-type")
