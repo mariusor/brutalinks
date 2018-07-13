@@ -18,7 +18,7 @@ type comment struct {
 	Parent   *comment
 	Path     []byte
 	FullPath []byte
-	Children []comment
+	Children []*comment
 }
 
 type contentModel struct {
@@ -34,16 +34,16 @@ func sluggify(s string) string {
 	return strings.Replace(s, "/", "-", -1)
 }
 
-func ReparentComments(allComments []comment) {
+func ReparentComments(allComments []*comment) {
 	for _, cur := range allComments {
-		par := func(t []comment, path []byte) *comment {
+		par := func(t []*comment, path []byte) *comment {
 			// findParent
-			if path == nil {
+			if len(path) == 0 {
 				return nil
 			}
 			for _, n := range t {
 				if bytes.Equal(path, n.FullPath) {
-					return &n
+					return n
 				}
 			}
 			return nil
@@ -127,17 +127,17 @@ func HandleContent(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, p.PermaLink(), http.StatusFound)
 	}
 
-	allComments := make([]comment, 0)
-	allComments = append(allComments, m.Content)
+	allComments := make([]*comment, 0)
+	allComments = append(allComments, &m.Content)
 
-	if len(m.Content.Path) > 0 {
+	if len(m.Content.FullPath) > 0 {
 		// comments
 		selCom := `select "content_items"."id", "content_items"."key", "mime_type", "data", "title", "content_items"."score", 
 			"submitted_at", "submitted_by", "handle", "path", "content_items"."flags" from "content_items" 
 			left join "accounts" on "accounts"."id" = "content_items"."submitted_by" 
 			where "path" <@ $1 and "path" is not null order by "path" asc, "score" desc`
 		{
-			rows, err := Db.Query(selCom, m.Content.Path)
+			rows, err := Db.Query(selCom, m.Content.FullPath)
 
 			if err != nil {
 				HandleError(w, r, StatusUnknown, err)
@@ -155,7 +155,7 @@ func HandleContent(w http.ResponseWriter, r *http.Request) {
 				i := LoadItem(c, handle)
 				com := comment{Item: i, Path: c.Path, FullPath: c.FullPath()}
 				items = append(items, i)
-				allComments = append(allComments, com)
+				allComments = append(allComments, &com)
 			}
 		}
 	}
