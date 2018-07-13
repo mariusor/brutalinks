@@ -42,7 +42,7 @@ func init() {
 
 	gob.Register(app.Account{})
 	s := sessions.NewCookieStore(authKey, encKey)
-	s.Options.Domain = listenHost
+	//s.Options.Domain = listenHost
 	s.Options.Path = "/"
 
 	app.SessionStore = s
