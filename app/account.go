@@ -91,5 +91,5 @@ func HandleUser(w http.ResponseWriter, r *http.Request) {
 		log.Print(err)
 	}
 
-	RenderTemplate(w, "user.html", m)
+	RenderTemplate(r, w, "user.html", m)
 }

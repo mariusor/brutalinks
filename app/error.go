@@ -22,5 +22,5 @@ func HandleError(w http.ResponseWriter, r *http.Request, status int, errs ...err
 		log.Printf("Err: %q", err)
 	}
 
-	RenderTemplate(w, "error.html", d)
+	RenderTemplate(r, w, "error.html", d)
 }

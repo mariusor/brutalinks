@@ -394,5 +394,5 @@ func HandleIndexAPI(w http.ResponseWriter, r *http.Request) {
 		log.Print(err)
 	}
 
-	RenderTemplate(w, "index.html", m)
+	RenderTemplate(r, w, "index.html", m)
 }

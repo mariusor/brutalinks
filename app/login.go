@@ -95,5 +95,5 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	m := loginModel{InvertedTheme: IsInverted}
 	m.Account = a
 
-	RenderTemplate(w, "login.html", m)
+	RenderTemplate(r, w, "login.html", m)
 }

@@ -89,5 +89,5 @@ func HandleSubmit(w http.ResponseWriter, r *http.Request) {
 		log.Print(err)
 	}
 
-	RenderTemplate(w, "new.html", m)
+	RenderTemplate(r, w, "new.html", m)
 }

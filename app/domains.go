@@ -43,5 +43,5 @@ func HandleDomains(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	RenderTemplate(w, "user.html", m)
+	RenderTemplate(r, w, "user.html", m)
 }

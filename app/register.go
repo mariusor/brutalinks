@@ -97,5 +97,5 @@ func HandleRegister(w http.ResponseWriter, r *http.Request) {
 	m.Terms = `<p>We try to follow <q><cite>Wheaton's Law</cite></q>:<br/>` +
 		`<blockquote>Don't be a dick!</blockquote></p>`
 
-	RenderTemplate(w, "register.html", m)
+	RenderTemplate(r, w, "register.html", m)
 }

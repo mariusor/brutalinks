@@ -98,7 +98,6 @@ func HandleContent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	items = append(items, i)
-
 	if r.Method == http.MethodGet {
 		q := r.URL.Query()
 		yay := len(q["yay"]) > 0
@@ -167,13 +166,15 @@ func HandleContent(w http.ResponseWriter, r *http.Request) {
 	_, err = LoadVotes(CurrentAccount, items)
 	if err != nil {
 		log.Print(err)
+		AddFlashMessage(fmt.Sprint(err), Error, r, w)
 	}
 	err = SessionStore.Save(r, w, GetSession(r))
 	if err != nil {
 		log.Print(err)
+		AddFlashMessage(fmt.Sprint(err), Error, r, w)
 	}
 
-	RenderTemplate(w, "content.html", m)
+	RenderTemplate(r, w, "content.html", m)
 }
 
 // handleMain serves /{year}/{month}/{day}/{hash}/{direction} request
@@ -224,8 +225,12 @@ func HandleVoting(w http.ResponseWriter, r *http.Request) {
 		multiplier = -1
 	}
 
-	if _, err := AddVote(p, multiplier, CurrentAccount.Id); err != nil {
-		log.Print(err)
+	if CurrentAccount.IsLogged() {
+		if _, err := AddVote(p, multiplier, CurrentAccount.Id); err != nil {
+			log.Print(err)
+		}
+	} else {
+		AddFlashMessage(fmt.Sprintf("unable to add vote as an %s user", anonymous), Error, r, w)
 	}
 	http.Redirect(w, r, p.PermaLink(), http.StatusFound)
 }

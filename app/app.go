@@ -30,13 +30,26 @@ var CurrentAccount = AnonymousAccount()
 var SessionStore sessions.Store
 
 const anonymous = "anonymous"
+var defaultAccount = Account{Id: 0, Handle: anonymous, votes: make([]Vote, 0)}
+
+const (
+	Success = "success"
+	Info = "info"
+	Warning = "warning"
+	Error = "error"
+)
+
+type Flash struct {
+	Type string
+	Msg  string
+}
 
 func AnonymousAccount() *Account {
-	return &Account{Id: 0, Handle: anonymous, votes: make([]Vote, 0)}
+	return &defaultAccount
 }
 
 func (a *Account) IsLogged() bool {
-	return a != nil && a.Handle != anonymous
+	return a != nil && (a.Handle != defaultAccount.Handle && a.CreatedAt != defaultAccount.CreatedAt)
 }
 
 type Littr struct {
@@ -73,62 +86,24 @@ func (l *Littr) BaseUrl() string {
 	return fmt.Sprintf("http://%s", l.host())
 }
 
-/*
-func LoadVotes(u *models.Account, ids []int64) error {
-	if u == nil {
-		return fmt.Errorf("invalid user")
-	}
-	if len(ids) == 0 {
-		return fmt.Errorf("no ids to load")
-	}
-	// this here code following is the ugliest I wrote in quite a long time
-	// so ugly it warrants its own fucking shame corner
-	sids := make([]string, 0)
-	for i := 0; i < len(ids); i++ {
-		sids = append(sids, fmt.Sprintf("$%d", i+2))
-	}
-	iitems := make([]interface{}, len(ids)+1)
-	iitems[0] = u.Id
-	for i, v := range ids {
-		iitems[i+1] = v
-	}
-	sel := fmt.Sprintf(`select "id", "submitted_by", "submitted_at", "updated_at", "item_id", "weight", "flags"
-	from "votes" where "submitted_by" = $1 and "item_id" in (%s)`, strings.Join(sids, ", "))
-	rows, err := Db.Query(sel, iitems...)
-	if err != nil {
-		return err
-	}
-	if u.Votes == nil {
-		u.Votes = make(map[int64]models.Vote, 0)
-	}
-	for rows.Next() {
-		v := models.Vote{}
-		err = rows.Scan(&v.Id, &v.SubmittedBy, &v.SubmittedAt, &v.UpdatedAt,
-			&v.ItemId, &v.Weight, &u.Flags)
-		if err != nil {
-			return err
-		}
-		u.Votes[v.Id] = v
-	}
-
-	return nil
-}
-*/
-func RenderTemplate(w http.ResponseWriter, name string, m interface{}) error {
-	t, terr := LoadTemplates(templateDir, name)
+func RenderTemplate(r *http.Request, w http.ResponseWriter, name string, m interface{}) error {
+	t, terr := LoadTemplates(templateDir, name, r)
 	if terr != nil {
 		log.Print(terr)
+		AddFlashMessage(fmt.Sprint(terr), Error, r, w)
 		return terr
 	}
 	terr = t.Execute(w, m)
 	if terr != nil {
 		log.Print(terr)
+		AddFlashMessage(fmt.Sprint(terr), Error, r, w)
 		return terr
 	}
+	sessions.Save(r, w)
 	return nil
 }
 
-func LoadTemplates(base string, main string) (*template.Template, error) {
+func LoadTemplates(base string, main string, r *http.Request) (*template.Template, error) {
 	var terr error
 	var t *template.Template
 	t, terr = template.New(main).ParseFiles(base + main)
@@ -142,7 +117,10 @@ func LoadTemplates(base string, main string) (*template.Template, error) {
 		"title":              func(t []byte) string { return string(t) },
 		"getProviders":       getAuthProviders,
 		"CurrentAccount":     func() *Account { return CurrentAccount },
-		"LoadFlashMessages":  func() []int { return []int{} }, //LoadFlashMessages,
+		"LoadFlashMessages":  func () []interface{} {
+			s := GetSession(r)
+			return s.Flashes()
+		},
 		"mod":                func(lvl int) float64 { return math.Mod(float64(lvl), float64(10)) },
 		"CleanFlashMessages": func() string { return "" }, //CleanFlashMessages,
 	})
@@ -467,6 +445,10 @@ func (l *Littr) Sessions(n http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		s := GetSession(r)
 		l.FlashData = s.Flashes()
+		log.Printf("flashes %#v", l.FlashData)
+		for _, err := range l.FlashData {
+			log.Print(err)
+		}
 		//for k, v := range s.Values {
 		//	log.Printf("sess %s %#v", k, v)
 		//}
@@ -492,11 +474,15 @@ func (l *Littr) AuthCheck(next http.Handler) http.Handler {
 	})
 }
 
-//
-//func LoadFlashMessages() []interface{} {
-//	return a.FlashData
+func AddFlashMessage(msg string, typ string, r *http.Request, w http.ResponseWriter) {
+	s := GetSession(r)
+	s.AddFlash(Flash{typ, msg})
+}
+
+//func LoadFlashMessages(r *http.Request) []interface{} {
+//	s := GetSession(r)
+//	return s.Flashes()
 //}
-//
 //func CleanFlashMessages() string {
 //	a.FlashData = a.FlashData[:0]
 //	return ""

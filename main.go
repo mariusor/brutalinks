@@ -41,6 +41,7 @@ func init() {
 	}
 
 	gob.Register(app.Account{})
+	gob.Register(app.Flash{})
 	s := sessions.NewCookieStore(authKey, encKey)
 	//s.Options.Domain = listenHost
 	s.Options.Path = "/"
