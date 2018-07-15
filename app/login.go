@@ -90,7 +90,7 @@ func ShowLogin(c *gin.Context) {
 	w := c.Writer
 	a := models.Account{}
 
-	m := loginModel{InvertedTheme: IsInverted(r)}
+	m := loginModel{Title: "Login", InvertedTheme: IsInverted(r)}
 	m.Account = a
 
 	RenderTemplate(r, w, "login.html", m)
