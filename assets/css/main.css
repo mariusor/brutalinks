@@ -129,18 +129,21 @@ ol.comments {
     color: WindowText;
 }
 .score a.yay::before {
-    font-weight: 1000;
     font-family: "Font Awesome 5 Free";
     content: "\f067";
+    font-weight: 800;
 }
 .score a.yay:active,
 .score a.yay.ed {
     color: deeppink;
 }
+.inverted .score a.yay:active,
+.inverted .score a.yay.ed {
+}
 .score a.nay::after {
-    font-weight: 1000;
     font-family: "Font Awesome 5 Free";
     content: "\f068";
+    font-weight: 800;
 }
 .score a.nay:active,
 .score a.nay.ed {
@@ -148,7 +151,7 @@ ol.comments {
 }
 .inverted .score a.nay:active,
 .inverted .score a.nay.ed {
-    color: greenyellow;
+   color: greenyellow;
 }
 .item.op {
     padding-top: .3em;
@@ -264,21 +267,18 @@ menu.meta-items a {
 a.to-item:before {
     content: " ¶ ";
 }
-    /*
 span.domain:before {
-    content: "[";
+    content: "(";
 }
 span.domain:after {
-    content: "]";
+    content: ")";
 }
-    */
 .domain a:after {
-    /*
-    content: "⮡";
-    */
-    margin-left: .6ex;
-    content: "¶ ";
-    font-size:1.1em;
+    margin-left: 1ex;
+    content: "\f105";
+    font-family: "Font Awesome 5 Free";
+    font-weight: 800;
+    font-size: .9em;
 }
 .domain a {
     text-decoration: none;
@@ -293,12 +293,13 @@ span.domain {
     display:none;
 }
 a.to-parent:before {
-    content: "‥";
+    content: "\2303";
     font-weight: 1000;
 }
 a.to-op:before {
-    content: "^";
-    font-weight: 1000;
+    content: "\f102";
+    font-family: "Font Awesome 5 Free";
+    font-weight: 800;
 }
 footer {
     font-size: 0.7em;
