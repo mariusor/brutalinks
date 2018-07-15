@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
-<he1ad>
+<head>
 {{- template "head.html" . -}}
-</he1ad>
+</head>
 <body{{ if .InvertedTheme }} class="inverted"{{end}}>
 {{ template "header.html" }}
 <section class="item op" id="i-{{.Content.Hash}}" data-hash="{{.Content.Hash}}">
