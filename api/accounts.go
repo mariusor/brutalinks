@@ -13,6 +13,8 @@ import (
 	"github.com/gorilla/mux"
 	ap "github.com/mariusor/activitypub.go/activitypub"
 	json "github.com/mariusor/activitypub.go/jsonld"
+	"github.com/gin-gonic/gin"
+	"github.com/mariusor/littr.go/app"
 )
 
 var CurrentAccount *models.Account
@@ -70,16 +72,16 @@ func loadAccount(handle string) (*models.Account, error) {
 }
 
 // GET /api/accounts/{handle}
-func HandleAccount(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-
-	a, err := loadAccount(vars["handle"])
+func HandleAccount(c *gin.Context) {
+	a, err := loadAccount(c.Params.ByName("handle"))
 	if err != nil {
-		HandleError(w, r, http.StatusInternalServerError, err)
+		log.Print(err)
+		//HandleError(w, r, http.StatusInternalServerError, err)
 		return
 	}
 	if a.Handle == "" {
-		HandleError(w, r, http.StatusNotFound, fmt.Errorf("acccount not found"))
+		log.Print("could not load account information")
+		//HandleError(w, r, http.StatusNotFound, fmt.Errorf("acccount not found"))
 		return
 	}
 
@@ -95,15 +97,18 @@ func HandleAccount(w http.ResponseWriter, r *http.Request) {
 	json.Ctx = GetContext()
 	j, err := json.Marshal(p)
 	if err != nil {
-		HandleError(w, r, http.StatusInternalServerError, err)
+		//HandleError(w, r, http.StatusInternalServerError, err)
+		log.Print(err)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.Header().Set("X-Content-Type-Options", "nosniff")
-	w.WriteHeader(http.StatusOK)
-	w.Write(j)
-	return
+	//w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	//w.Header().Set("X-Content-Type-Options", "nosniff")
+	//w.WriteHeader(http.StatusOK)
+	//w.Write(j)
+	c.Header("Content-Type", "application/ld+json; charset=utf-8")
+	c.Header("X-Content-Type-Options", "nosniff")
+	c.Data(http.StatusOK,"application/ld+json; charset=utf-8", j)
 }
 
 // GET /api/accounts/verify_credentials
@@ -185,7 +190,7 @@ func HandleAccountOutbox(w http.ResponseWriter, r *http.Request) {
 			}
 			note.Published = item.SubmittedAt
 			note.Updated = item.UpdatedAt
-			note.URL = ap.URI(item.PermaLink())
+			note.URL = ap.URI(app.PermaLink(item, a.Handle))
 			p.Outbox.Append(note)
 
 			data, err = json.Marshal(p.Outbox)

@@ -43,26 +43,6 @@ type Item interface {
 
 type ContentCollection []Content
 
-func (c Content) ParentLink() string {
-	if c.parentLink == "" {
-		if len(c.Path) == 0 {
-			c.parentLink = "/"
-		} else {
-			lastDotPos := bytes.LastIndex(c.Path, []byte(".")) + 1
-			parentHash := c.Path[lastDotPos : lastDotPos+8]
-			c.parentLink = fmt.Sprintf("/p/%s/%s", c.Hash(), parentHash)
-		}
-	}
-	return c.parentLink
-}
-func (c Content) OPLink() string {
-	if len(c.Path) > 0 {
-		parentHash := c.Path[0:8]
-		return fmt.Sprintf("/op/%s/%s", c.Hash(), parentHash)
-	}
-	return "/"
-}
-
 func (c Content) IsSelf() bool {
 	mimeComponents := strings.Split(c.MimeType, "/")
 	return mimeComponents[0] == "text"
@@ -99,12 +79,7 @@ func (c Content) Hash32() string {
 func (c Content) Hash64() string {
 	return string(c.Key)
 }
-func (c Content) PermaLink() string {
-	if c.SubmittedAt.IsZero() {
-		return ""
-	}
-	return fmt.Sprintf("/%4d/%02d/%02d/%s", c.SubmittedAt.Year(), c.SubmittedAt.Month(), c.SubmittedAt.Day(), c.Hash())
-}
+
 func (c *Content) FullPath() []byte {
 	if len(c.fullPath) == 0 {
 		c.fullPath = append(c.fullPath, c.Path...)

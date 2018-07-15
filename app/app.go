@@ -13,10 +13,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gorilla/mux"
-	"github.com/gorilla/sessions"
+		"github.com/gorilla/sessions"
 	"github.com/mariusor/littr.go/models"
 	"golang.org/x/oauth2"
+	"github.com/gin-gonic/gin"
 )
 
 const (
@@ -268,7 +268,7 @@ func AddVote(p models.Content, score int, userId int64) (bool, error) {
 	return true, nil
 }
 
-func (l *Littr) Run(m *mux.Router, wait time.Duration) {
+func (l *Littr) Run(m http.Handler, wait time.Duration) {
 	log.SetPrefix(l.Host + " ")
 	log.SetFlags(0)
 	log.SetOutput(l)
@@ -322,10 +322,13 @@ func HandleAdmin(w http.ResponseWriter, _ *http.Request) {
 }
 
 // handleMain serves /auth/{provider}/callback request
-func (l *Littr) HandleCallback(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
+func (l *Littr) HandleCallback(c *gin.Context) {
+	r := c.Request
+	w := c.Writer
+
+	vars := c.Params
 	q := r.URL.Query()
-	provider := vars["provider"]
+	provider := vars.ByName("provider")
 	providerErr := q["error"]
 	if providerErr != nil {
 		t, _ := template.New("error.html").ParseFiles(templateDir + "error.html")
@@ -358,9 +361,11 @@ func (l *Littr) HandleCallback(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleMain serves /auth/{provider}/callback request
-func (l *Littr) HandleAuth(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	provider := vars["provider"]
+func (l *Littr) HandleAuth(c *gin.Context) {
+	r := c.Request
+	w := c.Writer
+	vars := c.Params
+	provider := vars.ByName("provider")
 
 	indexUrl := "/"
 	if os.Getenv(strings.ToUpper(provider)+"_KEY") == "" {
@@ -441,25 +446,23 @@ func IsInverted(r *http.Request) bool {
 	return false
 }
 
-func (l *Littr) Sessions(n http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		s := GetSession(r)
-		l.FlashData = s.Flashes()
-		log.Printf("flashes %#v", l.FlashData)
-		for _, err := range l.FlashData {
-			log.Print(err)
-		}
-		//for k, v := range s.Values {
-		//	log.Printf("sess %s %#v", k, v)
-		//}
-		if s.Values[SessionUserKey] != nil {
-			a := s.Values[SessionUserKey].(Account)
-			CurrentAccount = &a
-		} else {
-			CurrentAccount = AnonymousAccount()
-		}
-		n.ServeHTTP(w, r)
-	})
+func (l *Littr) Sessions(c *gin.Context) {
+	r := c.Request
+	s := GetSession(r)
+	l.FlashData = s.Flashes()
+	log.Printf("flashes %#v", l.FlashData)
+	for _, err := range l.FlashData {
+		log.Print(err)
+	}
+	//for k, v := range s.Values {
+	//	log.Printf("sess %s %#v", k, v)
+	//}
+	if s.Values[SessionUserKey] != nil {
+		a := s.Values[SessionUserKey].(Account)
+		CurrentAccount = &a
+	} else {
+		CurrentAccount = AnonymousAccount()
+	}
 }
 
 func (l *Littr) AuthCheck(next http.Handler) http.Handler {

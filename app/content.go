@@ -6,11 +6,9 @@ import (
 	"log"
 	"net/http"
 	"strings"
-	"time"
+		"github.com/mariusor/littr.go/models"
 
-	"github.com/mariusor/littr.go/models"
-
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 )
 
 const Yay = "yay"
@@ -60,21 +58,18 @@ func ReparentComments(allComments []*comment) {
 }
 
 // handleMain serves /{year}/{month}/{day}/{hash} request
-func HandleContent(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	date, err := time.Parse(time.RFC3339, fmt.Sprintf("%s-%s-%sT00:00:00+00:00", vars["year"], vars["month"], vars["day"]))
-	if err != nil {
-		HandleError(w, r, StatusUnknown, err)
-		return
-	}
-	hash := vars["hash"]
+func HandleContent(c *gin.Context) {
+	r := c.Request
+	w := c.Writer
+	vars := c.Params
+	hash := vars.ByName("hash")
 	items := make([]Item, 0)
 
 	sel := `select "content_items"."id", "content_items"."key", "mime_type", "data", "title", "content_items"."score",
 			"submitted_at", "submitted_by", "handle", "path", "content_items"."flags" from "content_items"
 			left join "accounts" on "accounts"."id" = "content_items"."submitted_by"
-			where "submitted_at" > $1::date and "content_items"."key" ~* $2`
-	rows, err := Db.Query(sel, date, hash)
+			where "content_items"."key" ~* $1`
+	rows, err := Db.Query(sel, hash)
 	if err != nil {
 		HandleError(w, r, StatusUnknown, err)
 		return
@@ -98,26 +93,6 @@ func HandleContent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	items = append(items, i)
-	if r.Method == http.MethodGet {
-		q := r.URL.Query()
-		yay := len(q["yay"]) > 0
-		nay := len(q["nay"]) > 0
-		multiplier := 0
-
-		if yay || nay {
-			if nay {
-				multiplier = -1
-			}
-			if yay {
-				multiplier = 1
-			}
-			_, err := AddVote(p, multiplier, CurrentAccount.Id)
-			if err != nil {
-				log.Print(err)
-			}
-			http.Redirect(w, r, p.PermaLink(), http.StatusFound)
-		}
-	}
 
 	if r.Method == http.MethodPost {
 		e, err := ContentFromRequest(r, p.FullPath())
@@ -126,7 +101,7 @@ func HandleContent(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		AddVote(*e, 1, CurrentAccount.Id)
-		http.Redirect(w, r, p.PermaLink(), http.StatusFound)
+		http.Redirect(w, r, i.PermaLink(), http.StatusFound)
 	}
 
 	allComments := make([]*comment, 0)
@@ -178,21 +153,19 @@ func HandleContent(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleMain serves /{year}/{month}/{day}/{hash}/{direction} request
-func HandleVoting(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	date, err := time.Parse(time.RFC3339, fmt.Sprintf("%s-%s-%sT00:00:00+00:00", vars["year"], vars["month"], vars["day"]))
-	if err != nil {
-		HandleError(w, r, StatusUnknown, err)
-		return
-	}
-	hash := vars["hash"]
+func HandleVoting(c *gin.Context) {
+	r := c.Request
+	w := c.Writer
+
+	vars := c.Params
+	hash := vars.ByName("hash")
 	items := make([]Item, 0)
 
 	sel := `select "content_items"."id", "content_items"."key", "mime_type", "data", "title", "content_items"."score",
 			"submitted_at", "submitted_by", "handle", "path", "content_items"."flags" from "content_items"
 			left join "accounts" on "accounts"."id" = "content_items"."submitted_by"
-			where "submitted_at" > $1::date and "content_items"."key" ~* $2`
-	rows, err := Db.Query(sel, date, hash)
+			where "content_items"."key" ~* $1`
+	rows, err := Db.Query(sel, hash)
 	if err != nil {
 		HandleError(w, r, StatusUnknown, err)
 		return
@@ -218,7 +191,7 @@ func HandleVoting(w http.ResponseWriter, r *http.Request) {
 	items = append(items, i)
 
 	multiplier := 0
-	switch vars["direction"] {
+	switch vars.ByName("direction") {
 	case Yay:
 		multiplier = 1
 	case Nay:
@@ -232,5 +205,5 @@ func HandleVoting(w http.ResponseWriter, r *http.Request) {
 	} else {
 		AddFlashMessage(fmt.Sprintf("unable to add vote as an %s user", anonymous), Error, r, w)
 	}
-	http.Redirect(w, r, p.PermaLink(), http.StatusFound)
+	http.Redirect(w, r, i.PermaLink(), http.StatusFound)
 }

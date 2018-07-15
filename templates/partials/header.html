@@ -14,10 +14,10 @@
         <li><a href="/submit">Add</a></li>
     {{ if $account.IsLogged }}
         <li class="acct">{{$account.Handle}} <span class="score">{{$account.Score}}</span></li>
-        <li><a href="/auth/local?logout">Sign out</a></li>
+        <li><a href="/logout">Sign out</a></li>
     {{else}}
         <li>Sign in</li>
-        <li><a href="/auth/local" class="far fa-trash-alt"></a></li>
+        <li><a href="/login" class="far fa-trash-alt"></a></li>
     {{range $key, $value := $providers}}
         <li><a href="/auth/{{$key}}" class="fab fa-{{$key}}"></a></li>
     {{end}}

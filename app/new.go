@@ -3,13 +3,13 @@ package app
 import (
 	"bytes"
 	"fmt"
-	"log"
-
-	"net/http"
+		"net/http"
 	"net/url"
 	"time"
 
 	"github.com/mariusor/littr.go/models"
+	"github.com/gin-gonic/gin"
+	"log"
 )
 
 type newModel struct {
@@ -69,20 +69,10 @@ func ContentFromRequest(r *http.Request, p []byte) (*models.Content, error) {
 }
 
 // handleMain serves /{year}/{month}/{day}/{hash} request
-func HandleSubmit(w http.ResponseWriter, r *http.Request) {
-	var userId = CurrentAccount.Id
+func ShowSubmit(c *gin.Context) {
+	w := c.Writer
+	r := c.Request
 
-	if r.Method == http.MethodPost {
-		p, err := ContentFromRequest(r, nil)
-
-		if err != nil {
-			HandleError(w, r, http.StatusInternalServerError, err)
-			return
-		}
-		AddVote(*p, 1, userId)
-		http.Redirect(w, r, p.PermaLink(), http.StatusMovedPermanently)
-		return
-	}
 	m := newModel{Title: "Submit new content"}
 	err := SessionStore.Save(r, w, GetSession(r))
 	if err != nil {
@@ -90,4 +80,19 @@ func HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	RenderTemplate(r, w, "new.html", m)
+}
+
+func HandleSubmit(c *gin.Context) {
+	w := c.Writer
+	r := c.Request
+	var userId = CurrentAccount.Id
+
+	p, err := ContentFromRequest(r, nil)
+	if err != nil {
+		HandleError(w, r, http.StatusInternalServerError, err)
+		return
+	}
+	AddVote(*p, 1, userId)
+	i := LoadItem(*p, CurrentAccount.Handle)
+	http.Redirect(w, r, i.PermaLink(), http.StatusMovedPermanently)
 }

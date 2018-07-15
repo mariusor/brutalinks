@@ -6,13 +6,13 @@ import (
 	"fmt"
 
 	"log"
-	"net/http"
-	"os"
+		"os"
 	"time"
 
 	"strconv"
 
-	"github.com/gorilla/mux"
+	"github.com/thinkerou/favicon"
+	"github.com/gin-gonic/gin"
 	"github.com/gorilla/sessions"
 	_ "github.com/lib/pq"
 
@@ -20,7 +20,7 @@ import (
 
 	"github.com/mariusor/littr.go/api"
 	"github.com/mariusor/littr.go/app"
-)
+	)
 
 const defaultHost = "littr.git"
 const defaultPort = 3000
@@ -69,71 +69,44 @@ func main() {
 	flag.DurationVar(&wait, "graceful-timeout", time.Second*15, "the duration for which the server gracefully wait for existing connections to finish - e.g. 15s or 1m")
 	flag.Parse()
 
-	m := mux.NewRouter()
+	router := gin.Default()
 
-	api.BaseURL = littr.Host
+	router.Use(littr.Sessions)
 
-	m.HandleFunc("/", app.HandleIndexAPI).
-		Methods(http.MethodGet, http.MethodHead).
-		Name("index")
+	router.Use(favicon.New("./assets/favicon.ico"))
+	router.Static("/assets", "./assets")
 
-	m.HandleFunc("/submit", app.HandleSubmit).
-		Methods(http.MethodGet, http.MethodHead, http.MethodPost).
-		Name("submit")
+	router.GET("/", app.HandleIndex)
 
-	m.HandleFunc("/register", app.HandleRegister).
-		Methods(http.MethodGet, http.MethodHead, http.MethodPost).
-		Name("register")
+	router.GET("/submit", app.ShowSubmit)
+	router.POST("/submit", app.HandleSubmit)
 
-	m.HandleFunc("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}", app.HandleContent).
-		Methods(http.MethodGet, http.MethodHead, http.MethodPost).
-		Name("content")
+	router.GET("/register", app.ShowRegister)
+	router.POST("/register", app.HandleRegister)
 
-	m.HandleFunc("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}/{direction}", app.HandleVoting).
-		Methods(http.MethodGet, http.MethodHead).
-		Name("content")
+	router.GET("/~:handle", app.HandleUser)
+	router.GET("/~:handle/:hash", app.HandleContent)
+	router.GET("/~:handle/:hash/:direction", app.HandleVoting)
 
-	//m.HandleFunc("/.well-known/webfinger", littr.handleWebFinger).
-	//	Methods(http.MethodGet, http.MethodHead).
-	//	Name("webfinger")
+	router.GET("/parent/:hash/:parent", app.HandleParent)
+	router.GET("/op/:hash/:parent", app.HandleOp)
 
-	m.HandleFunc("/~{handle}", app.HandleUser).
-		Methods(http.MethodGet, http.MethodHead).
-		Name("account")
+	router.GET("/domains/:domain", app.HandleDomains)
 
-	o := m.PathPrefix("/auth").Subrouter()
-	o.HandleFunc("/local", app.HandleLogin).Name("login")
-	o.HandleFunc("/{provider}", littr.HandleAuth).Name("auth")
-	o.HandleFunc("/{provider}/callback", littr.HandleCallback).Name("authCallback")
+	router.GET("/logout", app.HandleLogout)
+	router.GET("/login", app.ShowLogin)
+	router.POST("/login", app.HandleLogin)
 
-	ad := m.PathPrefix("/admin").Subrouter()
-	ad.Use(littr.AuthCheck)
-	ad.HandleFunc("/", app.HandleAdmin).Name("admin")
+	router.GET("/auth/:provider",  littr.HandleAuth)
+	router.GET("/auth/:provider/callback",  littr.HandleCallback)
 
-	ap := m.PathPrefix("/api").Subrouter()
-	ap.HandleFunc("/accounts/verify_credentials", api.HandleVerifyCredentials).Name("api-verify-credentials")
-	ap.HandleFunc("/accounts/{handle}", api.HandleAccount).Name("api-account")
-	ap.HandleFunc("/accounts/{handle}/{type}", api.HandleAccountOutbox).Name("api-account-child")
+	a := router.Group("/api")
+	{
+		a.GET("/accounts/:handle", api.HandleAccount)
+	}
+	//Router.NotFound = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	//	app.HandleError(w, r, http.StatusNotFound, fmt.Errorf("url %q couldn't be found", r.URL))
+	//})
 
-	m.PathPrefix("/assets/").
-		Handler(http.StripPrefix("/assets/", http.FileServer(http.Dir("./assets/"))))
-
-	m.Handle("/favicon.ico", http.FileServer(http.Dir("./assets/")))
-
-	m.HandleFunc("/{ancestor}/{hash}/{parent}", app.HandleParent).
-		Methods(http.MethodGet, http.MethodHead).
-		Name("parent")
-
-	m.HandleFunc("/domains/{domain}", app.HandleDomains).
-		Methods(http.MethodGet, http.MethodHead).
-		Name("domains")
-
-	m.NotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		app.HandleError(w, r, http.StatusNotFound, fmt.Errorf("url %q couldn't be found", r.URL))
-	})
-
-	m.Use(littr.LoggerMw)
-	m.Use(littr.Sessions)
-
-	littr.Run(m, wait)
+	littr.Run(router, wait)
 }

@@ -17,7 +17,8 @@ import (
 	"bytes"
 
 	"github.com/mariusor/littr.go/models"
-	"github.com/russross/blackfriday"
+	"gopkg.in/russross/blackfriday.v2"
+	"github.com/gin-gonic/gin"
 )
 
 const (
@@ -104,10 +105,7 @@ func (i Item) ScoreFmt() string {
 	return fmt.Sprintf("%3.1f%s", score, units)
 }
 func (i Item) scoreLink(dir string) string {
-	if i.SubmittedAt.IsZero() {
-		return ""
-	}
-	return fmt.Sprintf("/%4d/%02d/%02d/%s/%s", i.SubmittedAt.Year(), i.SubmittedAt.Month(), i.SubmittedAt.Day(), i.Hash, dir)
+	return fmt.Sprintf("%s/%s", i.PermaLink(), dir)
 }
 func (i Item) ScoreUPLink() string {
 	return i.scoreLink("yay")
@@ -196,10 +194,7 @@ func (i Item) FromNow() string {
 }
 
 func (i Item) PermaLink() string {
-	if i.SubmittedAt.IsZero() {
-		return ""
-	}
-	return fmt.Sprintf("/%4d/%02d/%02d/%s", i.SubmittedAt.Year(), i.SubmittedAt.Month(), i.SubmittedAt.Day(), i.Hash)
+	return fmt.Sprintf("/~%s/%s", i.SubmittedBy, i.Hash)
 }
 
 func (i Item) ParentLink() string {
@@ -221,7 +216,7 @@ func (i Item) HTML() template.HTML {
 	return template.HTML(string(i.Data))
 }
 func (i Item) Markdown() template.HTML {
-	return template.HTML(blackfriday.MarkdownCommon([]byte(i.Data)))
+	return template.HTML(blackfriday.Run([]byte(i.Data)))
 }
 func (i Item) Text() string {
 	return string(i.Data)
@@ -329,6 +324,25 @@ func LoadVotes(a *Account, it []Item) ([]Vote, error) {
 	return a.votes, nil
 }
 
+func ParentLink(c models.Content) string {
+	if len(c.Path) == 0 {
+		return  "/"
+	} else {
+		lastDotPos := bytes.LastIndex(c.Path, []byte(".")) + 1
+		parentHash := c.Path[lastDotPos : lastDotPos+8]
+		return fmt.Sprintf("/parent/%s/%s", c.Hash(), parentHash)
+	}
+}
+func OPLink(c models.Content) string {
+	if len(c.Path) > 0 {
+		parentHash := c.Path[0:8]
+		return fmt.Sprintf("/op/%s/%s", c.Hash(), parentHash)
+	}
+	return "/"
+}
+func PermaLink(c models.Content, handle string) string {
+	return fmt.Sprintf("/~%s/%s", handle, c.Hash())
+}
 func LoadItem(c models.Content, handle string) Item {
 	i := Item{
 		Hash:        c.Hash(),
@@ -344,9 +358,9 @@ func LoadItem(c models.Content, handle string) Item {
 		id:          c.Id,
 		isTop:       c.IsTop(),
 		isLink:      c.IsLink(),
-		parentLink:  c.ParentLink(),
-		permaLink:   c.PermaLink(),
-		opLink:      c.OPLink(),
+		parentLink:  ParentLink(c),
+		permaLink:   PermaLink(c, handle),
+		opLink:      OPLink(c),
 	}
 	if len(c.Title) > 0 {
 		i.Title = string(c.Title)
@@ -358,7 +372,9 @@ func LoadItem(c models.Content, handle string) Item {
 }
 
 // handleMain serves /index request
-func HandleIndexAPI(w http.ResponseWriter, r *http.Request) {
+func HandleIndex(c *gin.Context) {
+	r := c.Request
+	w := c.Writer
 	m := indexModel{Title: "Index", InvertedTheme: IsInverted}
 
 	sel := fmt.Sprintf(`select "content_items"."id", "content_items"."key", "mime_type", "data", "title", "content_items"."score", 
@@ -369,6 +385,7 @@ func HandleIndexAPI(w http.ResponseWriter, r *http.Request) {
 	order by "score" desc, "submitted_at" desc limit %d`, MaxContentItems)
 	rows, err := Db.Query(sel)
 	if err != nil {
+		log.Print(err)
 		HandleError(w, r, StatusUnknown, err)
 		return
 	}
@@ -377,6 +394,7 @@ func HandleIndexAPI(w http.ResponseWriter, r *http.Request) {
 		var handle string
 		err = rows.Scan(&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &handle, &p.Flags)
 		if err != nil {
+			log.Print(err)
 			HandleError(w, r, StatusUnknown, err)
 			return
 		}

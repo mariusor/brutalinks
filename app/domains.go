@@ -2,16 +2,16 @@ package app
 
 import (
 	"log"
-	"net/http"
+		"github.com/mariusor/littr.go/models"
 
-	"github.com/mariusor/littr.go/models"
-
-	"github.com/gorilla/mux"
+		"github.com/gin-gonic/gin"
 )
 
 // handleMain serves /domains/{domain} request
-func HandleDomains(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
+func HandleDomains(c *gin.Context) {
+	r := c.Request
+	w := c.Writer
+	vars := c.Params
 
 	m := userModel{InvertedTheme: IsInverted}
 
@@ -20,7 +20,7 @@ func HandleDomains(w http.ResponseWriter, r *http.Request) {
 			left join "accounts" on "accounts"."id" = "content_items"."submitted_by" 
 			where substring(data::text from 'http[s]?://([^/]*)') = $1 order by "submitted_at" desc`
 	{
-		rows, err := Db.Query(selC, vars["domain"])
+		rows, err := Db.Query(selC, vars.ByName("domain"))
 		if err != nil {
 			HandleError(w, r, StatusUnknown, err)
 			return
