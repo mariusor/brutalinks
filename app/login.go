@@ -81,7 +81,7 @@ func HandleLogin(c *gin.Context) {
 		HandleError(w, r, http.StatusInternalServerError, errs...)
 		return
 	}
-	http.Redirect(w, r, a.GetLink(), http.StatusMovedPermanently)
+	http.Redirect(w, r, "/", http.StatusMovedPermanently)
 	return
 }
 
