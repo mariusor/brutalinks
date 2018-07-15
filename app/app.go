@@ -62,7 +62,7 @@ type Littr struct {
 type errorModel struct {
 	Status        int
 	Title         string
-	InvertedTheme func(r *http.Request) bool
+	InvertedTheme bool
 	Errors        []error
 }
 
@@ -450,9 +450,11 @@ func (l *Littr) Sessions(c *gin.Context) {
 	r := c.Request
 	s := GetSession(r)
 	l.FlashData = s.Flashes()
-	log.Printf("flashes %#v", l.FlashData)
-	for _, err := range l.FlashData {
-		log.Print(err)
+	if len(l.FlashData) > 0 {
+		log.Printf("flashes %#v", l.FlashData)
+		for _, err := range l.FlashData {
+			log.Print(err)
+		}
 	}
 	//for k, v := range s.Values {
 	//	log.Printf("sess %s %#v", k, v)

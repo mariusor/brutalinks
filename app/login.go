@@ -16,7 +16,7 @@ const SessionUserKey = "acct"
 
 type loginModel struct {
 	Title         string
-	InvertedTheme func(r *http.Request) bool
+	InvertedTheme bool
 	Account       models.Account
 }
 
@@ -90,7 +90,7 @@ func ShowLogin(c *gin.Context) {
 	w := c.Writer
 	a := models.Account{}
 
-	m := loginModel{InvertedTheme: IsInverted}
+	m := loginModel{InvertedTheme: IsInverted(r)}
 	m.Account = a
 
 	RenderTemplate(r, w, "login.html", m)

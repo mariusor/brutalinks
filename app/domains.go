@@ -5,6 +5,7 @@ import (
 		"github.com/mariusor/littr.go/models"
 
 		"github.com/gin-gonic/gin"
+	"fmt"
 )
 
 // handleMain serves /domains/{domain} request
@@ -13,14 +14,15 @@ func HandleDomains(c *gin.Context) {
 	w := c.Writer
 	vars := c.Params
 
-	m := userModel{InvertedTheme: IsInverted}
+	domain := vars.ByName("domain")
 
+	m := userModel{Title: fmt.Sprintf("Submissions from %s", domain),InvertedTheme: IsInverted(r)}
 	selC := `select "content_items"."id", "content_items"."key", "mime_type", "data", "title", "content_items"."score", 
 			"submitted_at", "content_items"."flags", "content_items"."metadata", "accounts"."handle" from "content_items" 
 			left join "accounts" on "accounts"."id" = "content_items"."submitted_by" 
 			where substring(data::text from 'http[s]?://([^/]*)') = $1 order by "submitted_at" desc`
 	{
-		rows, err := Db.Query(selC, vars.ByName("domain"))
+		rows, err := Db.Query(selC, domain)
 		if err != nil {
 			HandleError(w, r, StatusUnknown, err)
 			return

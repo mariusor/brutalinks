@@ -73,7 +73,7 @@ func ShowSubmit(c *gin.Context) {
 	w := c.Writer
 	r := c.Request
 
-	m := newModel{Title: "Submit new content"}
+	m := newModel{Title: "Submit new content", InvertedTheme: IsInverted(r)}
 	err := SessionStore.Save(r, w, GetSession(r))
 	if err != nil {
 		log.Print(err)

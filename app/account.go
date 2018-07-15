@@ -13,7 +13,7 @@ import (
 
 type userModel struct {
 	Title         string
-	InvertedTheme func(r *http.Request) bool
+	InvertedTheme bool
 	User          *Account
 	Items         []Item
 }
@@ -23,7 +23,7 @@ func HandleUser(c *gin.Context) {
 	w := c.Writer
 	vars := mux.Vars(r)
 
-	m := userModel{InvertedTheme: IsInverted}
+	m := userModel{InvertedTheme:  IsInverted(r) }
 
 	found := false
 
@@ -43,7 +43,7 @@ func HandleUser(c *gin.Context) {
 			}
 			found = true
 		}
-		m.Title = fmt.Sprintf("Activity %s", u.Handle)
+		m.Title = fmt.Sprintf("Submissions by %s", u.Handle)
 		m.User = &Account{
 			Id:        u.Id,
 			Hash:      u.Hash(),

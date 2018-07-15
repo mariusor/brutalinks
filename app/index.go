@@ -2,7 +2,6 @@ package app
 
 import (
 	"log"
-	"net/http"
 	"os"
 	"strings"
 
@@ -249,7 +248,7 @@ func (i comment) Level() int {
 
 type indexModel struct {
 	Title         string
-	InvertedTheme func(r *http.Request) bool
+	InvertedTheme bool
 	Items         []Item
 }
 
@@ -375,7 +374,7 @@ func LoadItem(c models.Content, handle string) Item {
 func HandleIndex(c *gin.Context) {
 	r := c.Request
 	w := c.Writer
-	m := indexModel{Title: "Index", InvertedTheme: IsInverted}
+	m := indexModel{Title: "Index", InvertedTheme:  IsInverted(r) }
 
 	sel := fmt.Sprintf(`select "content_items"."id", "content_items"."key", "mime_type", "data", "title", "content_items"."score", 
 			"submitted_at", "submitted_by", "handle", "content_items"."flags" 

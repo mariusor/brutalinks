@@ -17,7 +17,7 @@ import (
 
 type registerModel struct {
 	Title         string
-	InvertedTheme func(r *http.Request) bool
+	InvertedTheme bool
 	Terms         template.HTML
 	Account       models.Account
 }
@@ -86,7 +86,7 @@ func ShowRegister(c *gin.Context) {
 	r := c.Request
 	w := c.Writer
 
-	m := registerModel{InvertedTheme: IsInverted}
+	m := registerModel{InvertedTheme: IsInverted(r)}
 	m.Terms = `<p>We try to follow <q><cite>Wheaton's Law</cite></q>:<br/>` +
 		`<blockquote>Don't be a dick!</blockquote></p>`
 

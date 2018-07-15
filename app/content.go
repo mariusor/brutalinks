@@ -24,7 +24,7 @@ type comment struct {
 
 type contentModel struct {
 	Title         string
-	InvertedTheme func(r *http.Request) bool
+	InvertedTheme bool
 	Content       comment
 }
 
@@ -74,7 +74,7 @@ func HandleContent(c *gin.Context) {
 		HandleError(w, r, StatusUnknown, err)
 		return
 	}
-	m := contentModel{InvertedTheme: IsInverted}
+	m := contentModel{InvertedTheme: IsInverted(r)}
 	p := models.Content{}
 	var i Item
 	for rows.Next() {
@@ -93,7 +93,6 @@ func HandleContent(c *gin.Context) {
 		return
 	}
 	items = append(items, i)
-
 	if r.Method == http.MethodPost {
 		e, err := ContentFromRequest(r, p.FullPath())
 		if err != nil {
@@ -148,8 +147,20 @@ func HandleContent(c *gin.Context) {
 		log.Print(err)
 		AddFlashMessage(fmt.Sprint(err), Error, r, w)
 	}
-
+	if len(m.Title) > 0 {
+		m.Title = fmt.Sprintf("%s", p.Title)
+	} else {
+		m.Title = fmt.Sprintf("%s comment", genitive(i.SubmittedBy))
+	}
 	RenderTemplate(r, w, "content.html", m)
+}
+
+func genitive(name string) string {
+	l := len(name)
+	if name[l-1:l] != "s" {
+		return name + "'s"
+	}
+	return name + "'"
 }
 
 // handleMain serves /{year}/{month}/{day}/{hash}/{direction} request
@@ -170,7 +181,7 @@ func HandleVoting(c *gin.Context) {
 		HandleError(w, r, StatusUnknown, err)
 		return
 	}
-	m := contentModel{InvertedTheme: IsInverted}
+	m := contentModel{InvertedTheme: IsInverted(r)}
 	p := models.Content{}
 	var i Item
 	for rows.Next() {
@@ -180,7 +191,6 @@ func HandleVoting(c *gin.Context) {
 			HandleError(w, r, StatusUnknown, err)
 			return
 		}
-		m.Title = string(p.Title)
 		i = LoadItem(p, handle)
 		m.Content = comment{Item: i, Path: p.Path, FullPath: p.FullPath()}
 	}
