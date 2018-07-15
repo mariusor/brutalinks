@@ -1,3 +1,5 @@
+.env
 .idea/
 pkg/
 src/*.*
+vendor/
