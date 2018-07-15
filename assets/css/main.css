@@ -8,6 +8,9 @@ body {
     margin:0;
     padding: 1ex .8em;
 }
+body section {
+    max-width: 100ex;
+}
 .inverted {
     color: Window !important;
     background-color: WindowText !important;
@@ -262,24 +265,27 @@ menu.meta-items:after {
     content: "] ";
 }
 menu.meta-items a {
-    font-weight: 1000;
+    font-weight: 800;
 }
 a.to-item:before {
     content: " ¶ ";
 }
+/*
 span.domain:before {
     content: "(";
 }
 span.domain:after {
     content: ")";
 }
-.domain a:after {
-    margin-left: 1ex;
+*/
+.domain a:before {
+    margin-right: 1ex;
     content: "\f105";
     font-family: "Font Awesome 5 Free";
     font-weight: 800;
     font-size: .9em;
 }
+
 .domain a {
     text-decoration: none;
 }
