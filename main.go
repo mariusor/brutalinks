@@ -6,21 +6,23 @@ import (
 	"fmt"
 
 	"log"
-		"os"
+	"os"
 	"time"
 
 	"strconv"
 
-	"github.com/thinkerou/favicon"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/sessions"
 	_ "github.com/lib/pq"
+	"github.com/thinkerou/favicon"
 
 	"encoding/gob"
 
+	"net/http"
+
 	"github.com/mariusor/littr.go/api"
 	"github.com/mariusor/littr.go/app"
-	)
+)
 
 const defaultHost = "littr.git"
 const defaultPort = 3000
@@ -97,16 +99,17 @@ func main() {
 	router.GET("/login", app.ShowLogin)
 	router.POST("/login", app.HandleLogin)
 
-	router.GET("/auth/:provider",  littr.HandleAuth)
-	router.GET("/auth/:provider/callback",  littr.HandleCallback)
+	router.GET("/auth/:provider", littr.HandleAuth)
+	router.GET("/auth/:provider/callback", littr.HandleCallback)
 
 	a := router.Group("/api")
 	{
 		a.GET("/accounts/:handle", api.HandleAccount)
 	}
-	//Router.NotFound = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	//	app.HandleError(w, r, http.StatusNotFound, fmt.Errorf("url %q couldn't be found", r.URL))
-	//})
+
+	router.NoRoute(func(c *gin.Context) {
+		app.HandleError(c.Writer, c.Request, http.StatusNotFound, fmt.Errorf("url %q couldn't be found", c.Request.URL))
+	})
 
 	littr.Run(router, wait)
 }
