@@ -36,8 +36,8 @@ func Errorf(c int, m string, args ...interface{}) *ApiError {
 	return &ApiError{c, fmt.Errorf(m, args...)}
 }
 
-func GetContext() *jsonld.Context {
-	return &jsonld.Context{URL: jsonld.Ref(ap.ActivityBaseURI)}
+func GetContext() jsonld.Ref {
+	return jsonld.Ref(ap.ActivityBaseURI)
 }
 
 func BuildObjectURL(parent ap.LinkOrURI, cur ap.ObjectOrLink) ap.URI {

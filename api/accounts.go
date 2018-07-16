@@ -10,10 +10,9 @@ import (
 
 	"strings"
 
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 	ap "github.com/mariusor/activitypub.go/activitypub"
 	json "github.com/mariusor/activitypub.go/jsonld"
-	"github.com/gin-gonic/gin"
 	"github.com/mariusor/littr.go/app"
 )
 
@@ -71,17 +70,23 @@ func loadAccount(handle string) (*models.Account, error) {
 	return &a, nil
 }
 
-// GET /api/accounts/{handle}
+// GET /api/accounts/:handle
 func HandleAccount(c *gin.Context) {
-	a, err := loadAccount(c.Params.ByName("handle"))
+
+	handle := c.Params.ByName("handle")
+	if handle == "verify_credentials" {
+		HandleVerifyCredentials(c)
+		return
+	}
+	a, err := loadAccount(handle)
 	if err != nil {
 		log.Print(err)
 		//HandleError(w, r, http.StatusInternalServerError, err)
 		return
 	}
+	//HandleError(w, r, http.StatusNotFound, fmt.Errorf("acccount not found"))
 	if a.Handle == "" {
 		log.Print("could not load account information")
-		//HandleError(w, r, http.StatusNotFound, fmt.Errorf("acccount not found"))
 		return
 	}
 
@@ -108,50 +113,18 @@ func HandleAccount(c *gin.Context) {
 	//w.Write(j)
 	c.Header("Content-Type", "application/ld+json; charset=utf-8")
 	c.Header("X-Content-Type-Options", "nosniff")
-	c.Data(http.StatusOK,"application/ld+json; charset=utf-8", j)
+	c.Data(http.StatusOK, "application/ld+json; charset=utf-8", j)
 }
 
-// GET /api/accounts/verify_credentials
-func HandleVerifyCredentials(w http.ResponseWriter, r *http.Request) {
-	a := CurrentAccount
-	if a == nil {
-		HandleError(w, r, http.StatusNotFound, fmt.Errorf("acccount not found"))
-	}
+// GET /api/accounts/:handle/:path
+func HandleAccountPath(c *gin.Context) {
+	vars := c.Params
 
-	a, err := loadAccount(a.Handle)
-	if err != nil {
-		HandleError(w, r, http.StatusInternalServerError, err)
-		return
-	}
-	if a.Handle == "" {
-		HandleError(w, r, http.StatusNotFound, fmt.Errorf("acccount not found"))
-		return
-	}
-
-	p := ap.PersonNew(ap.ObjectID(a.Hash()))
-	p.Name["en"] = a.Handle
-	p.PreferredUsername["en"] = a.Handle
-	p.URL = ap.URI(a.GetLink())
-	p.Outbox.URL = BuildObjectURL(p, p.Outbox)
-	p.Inbox.URL = BuildObjectURL(p, p.Inbox)
-	json.Ctx = GetContext()
-	j, err := json.Marshal(p)
-	if err != nil {
-		HandleError(w, r, http.StatusInternalServerError, err)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.Header().Set("X-Content-Type-Options", "nosniff")
-	w.WriteHeader(http.StatusOK)
-	w.Write(j)
-}
-
-// GET /api/accounts/{handle}
-func HandleAccountOutbox(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
+	r := c.Request
+	w := c.Writer
 
 	var data []byte
-	a, err := loadAccount(vars["handle"])
+	a, err := loadAccount(vars.ByName("handle"))
 	if err != nil {
 		HandleError(w, r, http.StatusInternalServerError, err)
 		return
@@ -168,8 +141,8 @@ func HandleAccountOutbox(w http.ResponseWriter, r *http.Request) {
 
 	json.Ctx = GetContext()
 
-	typ := vars["type"]
-	switch strings.ToLower(typ) {
+	path := vars.ByName("path")
+	switch strings.ToLower(path) {
 	case "outbox":
 		items, err := loadItems(a.Id)
 		if err != nil {
@@ -210,5 +183,41 @@ func HandleAccountOutbox(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(http.StatusOK)
 	w.Write(data)
-	return
+}
+
+// GET /api/accounts/verify_credentials
+func HandleVerifyCredentials(c *gin.Context) {
+	r := c.Request
+	w := c.Writer
+	a := CurrentAccount
+	if a == nil {
+		HandleError(w, r, http.StatusNotFound, fmt.Errorf("acccount not found"))
+	}
+
+	a, err := loadAccount(a.Handle)
+	if err != nil {
+		HandleError(w, r, http.StatusInternalServerError, err)
+		return
+	}
+	if a.Handle == "" {
+		HandleError(w, r, http.StatusNotFound, fmt.Errorf("acccount not found"))
+		return
+	}
+
+	p := ap.PersonNew(ap.ObjectID(a.Hash()))
+	p.Name["en"] = a.Handle
+	p.PreferredUsername["en"] = a.Handle
+	p.URL = ap.URI(a.GetLink())
+	p.Outbox.URL = BuildObjectURL(p, p.Outbox)
+	p.Inbox.URL = BuildObjectURL(p, p.Inbox)
+	json.Ctx = GetContext()
+	j, err := json.Marshal(p)
+	if err != nil {
+		HandleError(w, r, http.StatusInternalServerError, err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/ld+json; charset=utf-8")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.WriteHeader(http.StatusOK)
+	w.Write(j)
 }

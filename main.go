@@ -105,6 +105,7 @@ func main() {
 	a := router.Group("/api")
 	{
 		a.GET("/accounts/:handle", api.HandleAccount)
+		a.GET("/accounts/:handle/:path", api.HandleAccountPath)
 	}
 
 	router.NoRoute(func(c *gin.Context) {
