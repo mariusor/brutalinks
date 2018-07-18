@@ -15,9 +15,10 @@ import (
 
 	"bytes"
 
+	"net/http"
+
 	"github.com/mariusor/littr.go/models"
 	"gopkg.in/russross/blackfriday.v2"
-	"github.com/gin-gonic/gin"
 )
 
 const (
@@ -325,7 +326,7 @@ func LoadVotes(a *Account, it []Item) ([]Vote, error) {
 
 func ParentLink(c models.Content) string {
 	if len(c.Path) == 0 {
-		return  "/"
+		return "/"
 	} else {
 		lastDotPos := bytes.LastIndex(c.Path, []byte(".")) + 1
 		parentHash := c.Path[lastDotPos : lastDotPos+8]
@@ -371,10 +372,9 @@ func LoadItem(c models.Content, handle string) Item {
 }
 
 // handleMain serves /index request
-func HandleIndex(c *gin.Context) {
-	r := c.Request
-	w := c.Writer
-	m := indexModel{Title: "Index", InvertedTheme:  IsInverted(r) }
+//func HandleIndex(c *gin.Context) {
+func HandleIndex(w http.ResponseWriter, r *http.Request) {
+	m := indexModel{Title: "Index", InvertedTheme: IsInverted(r)}
 
 	sel := fmt.Sprintf(`select "content_items"."id", "content_items"."key", "mime_type", "data", "title", "content_items"."score", 
 			"submitted_at", "submitted_by", "handle", "content_items"."flags" 

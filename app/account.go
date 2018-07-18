@@ -7,8 +7,8 @@ import (
 
 	"github.com/mariusor/littr.go/models"
 
+	"github.com/go-chi/chi"
 	"github.com/gorilla/mux"
-	"github.com/gin-gonic/gin"
 )
 
 type userModel struct {
@@ -18,19 +18,17 @@ type userModel struct {
 	Items         []Item
 }
 
-func HandleUser(c *gin.Context) {
-	r := c.Request
-	w := c.Writer
+func HandleUser(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	m := userModel{InvertedTheme:  IsInverted(r) }
+	m := userModel{InvertedTheme: IsInverted(r)}
 
 	found := false
 
 	u := models.Account{}
 	selAcct := `select "id", "key", "handle", "email", "score", "created_at", "updated_at", "metadata", "flags" from "accounts" where "handle" = $1`
 	{
-		rows, err := Db.Query(selAcct, c.Params.ByName("handle"))
+		rows, err := Db.Query(selAcct, chi.URLParam(r, "handle"))
 		if err != nil {
 			HandleError(w, r, StatusUnknown, err)
 			return

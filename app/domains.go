@@ -2,21 +2,20 @@ package app
 
 import (
 	"log"
-		"github.com/mariusor/littr.go/models"
+	"net/http"
 
-		"github.com/gin-gonic/gin"
+	"github.com/mariusor/littr.go/models"
+
 	"fmt"
+
+	"github.com/go-chi/chi"
 )
 
 // handleMain serves /domains/{domain} request
-func HandleDomains(c *gin.Context) {
-	r := c.Request
-	w := c.Writer
-	vars := c.Params
+func HandleDomains(w http.ResponseWriter, r *http.Request) {
+	domain := chi.URLParam(r, "domain")
 
-	domain := vars.ByName("domain")
-
-	m := userModel{Title: fmt.Sprintf("Submissions from %s", domain),InvertedTheme: IsInverted(r)}
+	m := userModel{Title: fmt.Sprintf("Submissions from %s", domain), InvertedTheme: IsInverted(r)}
 	selC := `select "content_items"."id", "content_items"."key", "mime_type", "data", "title", "content_items"."score", 
 			"submitted_at", "content_items"."flags", "content_items"."metadata", "accounts"."handle" from "content_items" 
 			left join "accounts" on "accounts"."id" = "content_items"."submitted_by" 

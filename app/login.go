@@ -9,7 +9,6 @@ import (
 
 	"github.com/mariusor/littr.go/models"
 	"golang.org/x/crypto/bcrypt"
-	"github.com/gin-gonic/gin"
 )
 
 const SessionUserKey = "acct"
@@ -20,9 +19,7 @@ type loginModel struct {
 	Account       models.Account
 }
 
-func HandleLogin(c *gin.Context) {
-	r := c.Request
-	w := c.Writer
+func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	a := models.Account{}
 	errs := make([]error, 0)
 	pw := r.PostFormValue("pw")
@@ -81,13 +78,11 @@ func HandleLogin(c *gin.Context) {
 		HandleError(w, r, http.StatusInternalServerError, errs...)
 		return
 	}
-	http.Redirect(w, r, "/", http.StatusMovedPermanently)
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 	return
 }
 
-func ShowLogin(c *gin.Context) {
-	r := c.Request
-	w := c.Writer
+func ShowLogin(w http.ResponseWriter, r *http.Request) {
 	a := models.Account{}
 
 	m := loginModel{Title: "Login", InvertedTheme: IsInverted(r)}
@@ -96,12 +91,10 @@ func ShowLogin(c *gin.Context) {
 	RenderTemplate(r, w, "login.html", m)
 }
 
-func HandleLogout(c *gin.Context) {
-	r := c.Request
-	w := c.Writer
+func HandleLogout(w http.ResponseWriter, r *http.Request) {
 	s := GetSession(r)
 	s.Values[SessionUserKey] = nil
 	SessionStore.Save(r, w, s)
 	CurrentAccount = AnonymousAccount()
-	http.Redirect(w, r, "/", http.StatusMovedPermanently)
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }

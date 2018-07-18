@@ -6,9 +6,10 @@ import (
 	"log"
 	"net/http"
 	"strings"
-		"github.com/mariusor/littr.go/models"
 
-	"github.com/gin-gonic/gin"
+	"github.com/mariusor/littr.go/models"
+
+	"github.com/go-chi/chi"
 )
 
 const Yay = "yay"
@@ -58,11 +59,9 @@ func ReparentComments(allComments []*comment) {
 }
 
 // handleMain serves /{year}/{month}/{day}/{hash} request
-func HandleContent(c *gin.Context) {
-	r := c.Request
-	w := c.Writer
-	vars := c.Params
-	hash := vars.ByName("hash")
+// handleMain serves /~{handle}/{hash} request
+func HandleContent(w http.ResponseWriter, r *http.Request) {
+	hash := chi.URLParam(r, "hash")
 	items := make([]Item, 0)
 
 	sel := `select "content_items"."id", "content_items"."key", "mime_type", "data", "title", "content_items"."score",
@@ -164,12 +163,8 @@ func genitive(name string) string {
 }
 
 // handleMain serves /{year}/{month}/{day}/{hash}/{direction} request
-func HandleVoting(c *gin.Context) {
-	r := c.Request
-	w := c.Writer
-
-	vars := c.Params
-	hash := vars.ByName("hash")
+func HandleVoting(w http.ResponseWriter, r *http.Request) {
+	hash := chi.URLParam(r, "hash")
 	items := make([]Item, 0)
 
 	sel := `select "content_items"."id", "content_items"."key", "mime_type", "data", "title", "content_items"."score",
@@ -201,7 +196,7 @@ func HandleVoting(c *gin.Context) {
 	items = append(items, i)
 
 	multiplier := 0
-	switch vars.ByName("direction") {
+	switch chi.URLParam(r, "direction") {
 	case Yay:
 		multiplier = 1
 	case Nay:

@@ -13,10 +13,10 @@ import (
 	"strings"
 	"time"
 
-		"github.com/gorilla/sessions"
+	"github.com/go-chi/chi"
+	"github.com/gorilla/sessions"
 	"github.com/mariusor/littr.go/models"
 	"golang.org/x/oauth2"
-	"github.com/gin-gonic/gin"
 )
 
 const (
@@ -30,13 +30,14 @@ var CurrentAccount = AnonymousAccount()
 var SessionStore sessions.Store
 
 const anonymous = "anonymous"
+
 var defaultAccount = Account{Id: 0, Handle: anonymous, votes: make([]Vote, 0)}
 
 const (
 	Success = "success"
-	Info = "info"
+	Info    = "info"
 	Warning = "warning"
-	Error = "error"
+	Error   = "error"
 )
 
 type Flash struct {
@@ -112,12 +113,12 @@ func LoadTemplates(base string, main string, r *http.Request) (*template.Templat
 	}
 
 	t.Funcs(template.FuncMap{
-		"isInverted":         IsInverted,
-		"sluggify":           sluggify,
-		"title":              func(t []byte) string { return string(t) },
-		"getProviders":       getAuthProviders,
-		"CurrentAccount":     func() *Account { return CurrentAccount },
-		"LoadFlashMessages":  func () []interface{} {
+		"isInverted":     IsInverted,
+		"sluggify":       sluggify,
+		"title":          func(t []byte) string { return string(t) },
+		"getProviders":   getAuthProviders,
+		"CurrentAccount": func() *Account { return CurrentAccount },
+		"LoadFlashMessages": func() []interface{} {
 			s := GetSession(r)
 			return s.Flashes()
 		},
@@ -269,10 +270,6 @@ func AddVote(p models.Content, score int, userId int64) (bool, error) {
 }
 
 func (l *Littr) Run(m http.Handler, wait time.Duration) {
-	log.SetPrefix(l.Host + " ")
-	log.SetFlags(0)
-	log.SetOutput(l)
-
 	srv := &http.Server{
 		Addr: l.host(),
 		// Good practice to set timeouts to avoid Slowloris attacks.
@@ -310,11 +307,6 @@ func (l *Littr) Run(m http.Handler, wait time.Duration) {
 	os.Exit(0)
 }
 
-// Write is used to conform to the Logger interface
-func (l *Littr) Write(bytes []byte) (int, error) {
-	return fmt.Printf("%s [%s] %s", time.Now().UTC().Format("2006-01-02 15:04:05.999"), "DEBUG", bytes)
-}
-
 // handleAdmin serves /admin request
 func HandleAdmin(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(200)
@@ -322,13 +314,9 @@ func HandleAdmin(w http.ResponseWriter, _ *http.Request) {
 }
 
 // handleMain serves /auth/{provider}/callback request
-func (l *Littr) HandleCallback(c *gin.Context) {
-	r := c.Request
-	w := c.Writer
-
-	vars := c.Params
+func (l *Littr) HandleCallback(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
-	provider := vars.ByName("provider")
+	provider := chi.URLParam(r, "provider")
 	providerErr := q["error"]
 	if providerErr != nil {
 		t, _ := template.New("error.html").ParseFiles(templateDir + "error.html")
@@ -361,11 +349,8 @@ func (l *Littr) HandleCallback(c *gin.Context) {
 }
 
 // handleMain serves /auth/{provider}/callback request
-func (l *Littr) HandleAuth(c *gin.Context) {
-	r := c.Request
-	w := c.Writer
-	vars := c.Params
-	provider := vars.ByName("provider")
+func (l *Littr) HandleAuth(w http.ResponseWriter, r *http.Request) {
+	provider := chi.URLParam(r, "provider")
 
 	indexUrl := "/"
 	if os.Getenv(strings.ToUpper(provider)+"_KEY") == "" {
@@ -428,13 +413,6 @@ func (l *Littr) HandleAuth(c *gin.Context) {
 	http.Redirect(w, r, config.AuthCodeURL("state", oauth2.AccessTypeOnline), http.StatusFound)
 }
 
-func (l *Littr) LoggerMw(n http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("%s %s", r.Method, r.RequestURI)
-		n.ServeHTTP(w, r)
-	})
-}
-
 func IsInverted(r *http.Request) bool {
 	cookies := r.Cookies()
 	for _, c := range cookies {
@@ -446,25 +424,25 @@ func IsInverted(r *http.Request) bool {
 	return false
 }
 
-func (l *Littr) Sessions(c *gin.Context) {
-	r := c.Request
-	s := GetSession(r)
-	l.FlashData = s.Flashes()
-	if len(l.FlashData) > 0 {
-		log.Printf("flashes %#v", l.FlashData)
-		for _, err := range l.FlashData {
-			log.Print(err)
+func (l *Littr) Sessions(next http.Handler) http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		s := GetSession(r)
+		l.FlashData = s.Flashes()
+		if len(l.FlashData) > 0 {
+			log.Printf("flashes %#v", l.FlashData)
+			for _, err := range l.FlashData {
+				log.Print(err)
+			}
 		}
+		if s.Values[SessionUserKey] != nil {
+			a := s.Values[SessionUserKey].(Account)
+			CurrentAccount = &a
+		} else {
+			CurrentAccount = AnonymousAccount()
+		}
+		next.ServeHTTP(w, r)
 	}
-	//for k, v := range s.Values {
-	//	log.Printf("sess %s %#v", k, v)
-	//}
-	if s.Values[SessionUserKey] != nil {
-		a := s.Values[SessionUserKey].(Account)
-		CurrentAccount = &a
-	} else {
-		CurrentAccount = AnonymousAccount()
-	}
+	return http.HandlerFunc(fn)
 }
 
 func (l *Littr) AuthCheck(next http.Handler) http.Handler {

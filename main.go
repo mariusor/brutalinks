@@ -11,14 +11,18 @@ import (
 
 	"strconv"
 
-	"github.com/gin-gonic/gin"
+	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/middleware"
 	"github.com/gorilla/sessions"
 	_ "github.com/lib/pq"
-	"github.com/thinkerou/favicon"
 
 	"encoding/gob"
 
 	"net/http"
+
+	"strings"
+
+	"path/filepath"
 
 	"github.com/mariusor/littr.go/api"
 	"github.com/mariusor/littr.go/app"
@@ -66,51 +70,81 @@ func init() {
 	app.Db = db
 }
 
+// FileServer conveniently sets up a http.FileServer handler to serve
+// static files from a http.FileSystem.
+func FileServer(r chi.Router, path string, root http.FileSystem) {
+	if strings.ContainsAny(path, "{}*") {
+		panic("FileServer does not permit URL parameters.")
+	}
+
+	fs := http.StripPrefix(path, http.FileServer(root))
+
+	if path != "/" && path[len(path)-1] != '/' {
+		r.Get(path, http.RedirectHandler(path+"/", 301).ServeHTTP)
+		path += "/"
+	}
+	path += "*"
+
+	r.Get(path, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fs.ServeHTTP(w, r)
+	}))
+}
+
 func main() {
 	var wait time.Duration
 	flag.DurationVar(&wait, "graceful-timeout", time.Second*15, "the duration for which the server gracefully wait for existing connections to finish - e.g. 15s or 1m")
 	flag.Parse()
 
-	router := gin.Default()
+	// Routes
+	r := chi.NewRouter()
+	r.Use(middleware.RequestID)
+	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
+	//r.Use(littr.Sessions)
 
-	router.Use(littr.Sessions)
-
-	router.Use(favicon.New("./assets/favicon.ico"))
-	router.Static("/assets", "./assets")
-
-	router.GET("/", app.HandleIndex)
-
-	router.GET("/submit", app.ShowSubmit)
-	router.POST("/submit", app.HandleSubmit)
-
-	router.GET("/register", app.ShowRegister)
-	router.POST("/register", app.HandleRegister)
-
-	router.GET("/~:handle", app.HandleUser)
-	router.GET("/~:handle/:hash", app.HandleContent)
-	router.GET("/~:handle/:hash/:direction", app.HandleVoting)
-
-	router.GET("/parent/:hash/:parent", app.HandleParent)
-	router.GET("/op/:hash/:parent", app.HandleOp)
-
-	router.GET("/domains/:domain", app.HandleDomains)
-
-	router.GET("/logout", app.HandleLogout)
-	router.GET("/login", app.ShowLogin)
-	router.POST("/login", app.HandleLogin)
-
-	router.GET("/auth/:provider", littr.HandleAuth)
-	router.GET("/auth/:provider/callback", littr.HandleCallback)
-
-	a := router.Group("/api")
-	{
-		a.GET("/accounts/:handle", api.HandleAccount)
-		a.GET("/accounts/:handle/:path", api.HandleAccountPath)
-	}
-
-	router.NoRoute(func(c *gin.Context) {
-		app.HandleError(c.Writer, c.Request, http.StatusNotFound, fmt.Errorf("url %q couldn't be found", c.Request.URL))
+	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
+		app.HandleError(w, r, http.StatusNotFound, fmt.Errorf("%s not found", r.RequestURI))
 	})
 
-	littr.Run(router, wait)
+	workDir, _ := os.Getwd()
+	filesDir := filepath.Join(workDir, "assets")
+	FileServer(r, "/assets", http.Dir(filesDir))
+
+	r.Get("/", app.HandleIndex)
+
+	r.Get("/submit", app.ShowSubmit)
+	r.Post("/submit", app.HandleSubmit)
+
+	r.Get("/register", app.ShowRegister)
+	r.Post("/register", app.HandleRegister)
+
+	r.Get("/~{handle}", app.HandleUser)
+	r.Get("/~{handle}/{hash}", app.HandleContent)
+	r.Get("/~{handle}/{hash}/{direction}", app.HandleVoting)
+
+	r.Get("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}", app.HandleContent)
+
+	r.Get("/parent/{hash}/{parent}", app.HandleParent)
+	r.Get("/op/{hash}/{parent}", app.HandleOp)
+
+	r.Get("/domains/{domain}", app.HandleDomains)
+
+	r.Get("/logout", app.HandleLogout)
+	r.Get("/login", app.ShowLogin)
+	r.Post("/login", app.HandleLogin)
+
+	r.Get("/auth/{provider}", littr.HandleAuth)
+	r.Get("/auth/{provider}/callback", littr.HandleCallback)
+
+	r.Route("/api", func(r chi.Router) {
+		r.Get("/accounts/verify_credentials", api.HandleVerifyCredentials)
+		r.Get("/accounts/{handle}", api.HandleAccount)
+		r.Get("/accounts/{handle}/{path}", api.HandleAccountPath)
+
+		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
+			api.HandleError(w, r, http.StatusNotFound, fmt.Errorf("%s not found", r.RequestURI))
+		})
+	})
+
+	littr.Run(r, wait)
 }

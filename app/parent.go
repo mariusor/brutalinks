@@ -1,23 +1,20 @@
 package app
 
 import (
-		"net/http"
+	"net/http"
 
 	"github.com/mariusor/littr.go/models"
 
-		"github.com/gin-gonic/gin"
+	"github.com/go-chi/chi"
 )
 
 // handleMain serves /parent/{hash}/{parent} request
-func HandleParent(c *gin.Context) {
-	r := c.Request
-	w := c.Writer
-
+func HandleParent(w http.ResponseWriter, r *http.Request) {
 	sel := `select accounts.handle, par.key from content_items par 
 		inner join content_items cur on subltree(cur.Path, nlevel(cur.Path)-1, nlevel(cur.Path)) <@ par.Key::ltree
 		inner join accounts on accounts.id = par.submitted_by
 			where cur.Key ~* $1 and par.Key ~* $2`
-	rows, err := Db.Query(sel, c.Param("hash"), c.Param("parent"))
+	rows, err := Db.Query(sel, chi.URLParam(r, "hash"), chi.URLParam(r, "parent"))
 	if err != nil {
 		HandleError(w, r, StatusUnknown, err)
 		return
@@ -35,16 +32,14 @@ func HandleParent(c *gin.Context) {
 		http.Redirect(w, r, url, http.StatusMovedPermanently)
 	}
 }
-// handleMain serves /op/{hash}/{parent} request
-func HandleOp(c *gin.Context) {
-	r := c.Request
-	w := c.Writer
 
+// handleMain serves /op/{hash}/{parent} request
+func HandleOp(w http.ResponseWriter, r *http.Request) {
 	sel := `select accounts.handle, par.key from content_items par 
 		inner join content_items cur on subltree(cur.Path, 0, nlevel(cur.Path)) <@ par.Key::ltree
 		inner join accounts on accounts.id = par.submitted_by
 			where cur.Key ~* $1 and par.Key ~* $2`
-	rows, err := Db.Query(sel, c.Param("hash"), c.Param("parent"))
+	rows, err := Db.Query(sel, chi.URLParam(r, "hash"), chi.URLParam(r, "parent"))
 	if err != nil {
 		HandleError(w, r, StatusUnknown, err)
 		return

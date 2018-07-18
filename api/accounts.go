@@ -10,7 +10,7 @@ import (
 
 	"strings"
 
-	"github.com/gin-gonic/gin"
+	"github.com/go-chi/chi"
 	ap "github.com/mariusor/activitypub.go/activitypub"
 	json "github.com/mariusor/activitypub.go/jsonld"
 	"github.com/mariusor/littr.go/app"
@@ -71,13 +71,8 @@ func loadAccount(handle string) (*models.Account, error) {
 }
 
 // GET /api/accounts/:handle
-func HandleAccount(c *gin.Context) {
-
-	handle := c.Params.ByName("handle")
-	if handle == "verify_credentials" {
-		HandleVerifyCredentials(c)
-		return
-	}
+func HandleAccount(w http.ResponseWriter, r *http.Request) {
+	handle := chi.URLParam(r, "handle")
 	a, err := loadAccount(handle)
 	if err != nil {
 		log.Print(err)
@@ -99,7 +94,7 @@ func HandleAccount(c *gin.Context) {
 	p.Inbox.URL = BuildObjectURL(p, p.Inbox)
 	p.Liked.URL = BuildObjectURL(p, p.Liked)
 
-	json.Ctx = GetContext()
+	//json.Ctx = GetContext()
 	j, err := json.Marshal(p)
 	if err != nil {
 		//HandleError(w, r, http.StatusInternalServerError, err)
@@ -107,24 +102,16 @@ func HandleAccount(c *gin.Context) {
 		return
 	}
 
-	//w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	//w.Header().Set("X-Content-Type-Options", "nosniff")
-	//w.WriteHeader(http.StatusOK)
-	//w.Write(j)
-	c.Header("Content-Type", "application/ld+json; charset=utf-8")
-	c.Header("X-Content-Type-Options", "nosniff")
-	c.Data(http.StatusOK, "application/ld+json; charset=utf-8", j)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.WriteHeader(http.StatusOK)
+	w.Write(j)
 }
 
 // GET /api/accounts/:handle/:path
-func HandleAccountPath(c *gin.Context) {
-	vars := c.Params
-
-	r := c.Request
-	w := c.Writer
-
+func HandleAccountPath(w http.ResponseWriter, r *http.Request) {
 	var data []byte
-	a, err := loadAccount(vars.ByName("handle"))
+	a, err := loadAccount(chi.URLParam(r, "handle"))
 	if err != nil {
 		HandleError(w, r, http.StatusInternalServerError, err)
 		return
@@ -139,9 +126,9 @@ func HandleAccountPath(c *gin.Context) {
 	p.PreferredUsername["en"] = a.Handle
 	p.URL = ap.URI(fmt.Sprintf(fmt.Sprintf("%s/%s", APIAccountsURL, a.Handle)))
 
-	json.Ctx = GetContext()
+	//json.Ctx = GetContext()
 
-	path := vars.ByName("path")
+	path := chi.URLParam(r, "path")
 	switch strings.ToLower(path) {
 	case "outbox":
 		items, err := loadItems(a.Id)
@@ -186,9 +173,7 @@ func HandleAccountPath(c *gin.Context) {
 }
 
 // GET /api/accounts/verify_credentials
-func HandleVerifyCredentials(c *gin.Context) {
-	r := c.Request
-	w := c.Writer
+func HandleVerifyCredentials(w http.ResponseWriter, r *http.Request) {
 	a := CurrentAccount
 	if a == nil {
 		HandleError(w, r, http.StatusNotFound, fmt.Errorf("acccount not found"))
@@ -210,7 +195,7 @@ func HandleVerifyCredentials(c *gin.Context) {
 	p.URL = ap.URI(a.GetLink())
 	p.Outbox.URL = BuildObjectURL(p, p.Outbox)
 	p.Inbox.URL = BuildObjectURL(p, p.Inbox)
-	json.Ctx = GetContext()
+	//json.Ctx = GetContext()
 	j, err := json.Marshal(p)
 	if err != nil {
 		HandleError(w, r, http.StatusInternalServerError, err)

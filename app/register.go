@@ -12,7 +12,6 @@ import (
 	"github.com/gorilla/securecookie"
 	"github.com/mariusor/littr.go/models"
 	"golang.org/x/crypto/bcrypt"
-	"github.com/gin-gonic/gin"
 )
 
 type registerModel struct {
@@ -82,10 +81,7 @@ func AccountFromRequest(r *http.Request) (*models.Account, []error) {
 	return &a, nil
 }
 
-func ShowRegister(c *gin.Context) {
-	r := c.Request
-	w := c.Writer
-
+func ShowRegister(w http.ResponseWriter, r *http.Request) {
 	m := registerModel{InvertedTheme: IsInverted(r)}
 	m.Terms = `<p>We try to follow <q><cite>Wheaton's Law</cite></q>:<br/>` +
 		`<blockquote>Don't be a dick!</blockquote></p>`
@@ -93,10 +89,7 @@ func ShowRegister(c *gin.Context) {
 	RenderTemplate(r, w, "register.html", m)
 }
 
-func HandleRegister(c *gin.Context) {
-	r := c.Request
-	w := c.Writer
-
+func HandleRegister(w http.ResponseWriter, r *http.Request) {
 	a, errs := AccountFromRequest(r)
 
 	if len(errs) > 0 {

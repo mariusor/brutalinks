@@ -3,13 +3,13 @@ package app
 import (
 	"bytes"
 	"fmt"
-		"net/http"
+	"net/http"
 	"net/url"
 	"time"
 
-	"github.com/mariusor/littr.go/models"
-	"github.com/gin-gonic/gin"
 	"log"
+
+	"github.com/mariusor/littr.go/models"
 )
 
 type newModel struct {
@@ -69,10 +69,7 @@ func ContentFromRequest(r *http.Request, p []byte) (*models.Content, error) {
 }
 
 // handleMain serves /{year}/{month}/{day}/{hash} request
-func ShowSubmit(c *gin.Context) {
-	w := c.Writer
-	r := c.Request
-
+func ShowSubmit(w http.ResponseWriter, r *http.Request) {
 	m := newModel{Title: "New submission", InvertedTheme: IsInverted(r)}
 	err := SessionStore.Save(r, w, GetSession(r))
 	if err != nil {
@@ -82,9 +79,7 @@ func ShowSubmit(c *gin.Context) {
 	RenderTemplate(r, w, "new.html", m)
 }
 
-func HandleSubmit(c *gin.Context) {
-	w := c.Writer
-	r := c.Request
+func HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	var userId = CurrentAccount.Id
 
 	p, err := ContentFromRequest(r, nil)
