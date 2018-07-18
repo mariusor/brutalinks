@@ -1,5 +1,7 @@
 #!/bin/bash
 
+export GOPATH="$GOPATH:$(pwd)/vendor"
+
 IFS=$'\r\n'
 GLOBIGNORE='*'
 
