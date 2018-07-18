@@ -40,7 +40,7 @@ func GetContext() jsonld.Ref {
 	return jsonld.Ref(ap.ActivityBaseURI)
 }
 
-func BuildObjectURL(parent ap.LinkOrURI, cur ap.ObjectOrLink) ap.URI {
+func BuildObjectURL(parent ap.LinkOrURI, cur ap.Item) ap.URI {
 	return ap.URI(fmt.Sprintf("%s/%s", parent.GetLink(), cur.GetID()))
 }
 

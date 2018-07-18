@@ -18,7 +18,7 @@ import (
 
 var CurrentAccount *models.Account
 
-var APIAccountsURL = BaseURL + "/accounts"
+var AccountsURL = BaseURL + "/accounts"
 
 func loadItems(id int64) (*[]models.Content, error) {
 	var err error
@@ -76,10 +76,10 @@ func HandleAccount(w http.ResponseWriter, r *http.Request) {
 	a, err := loadAccount(handle)
 	if err != nil {
 		log.Print(err)
-		//HandleError(w, r, http.StatusInternalServerError, err)
+		HandleError(w, r, http.StatusInternalServerError, err)
 		return
 	}
-	//HandleError(w, r, http.StatusNotFound, fmt.Errorf("acccount not found"))
+	HandleError(w, r, http.StatusNotFound, fmt.Errorf("acccount not found"))
 	if a.Handle == "" {
 		log.Print("could not load account information")
 		return
@@ -88,16 +88,16 @@ func HandleAccount(w http.ResponseWriter, r *http.Request) {
 	p := ap.PersonNew(ap.ObjectID(a.Hash()))
 	p.Name["en"] = a.Handle
 	p.PreferredUsername["en"] = a.Handle
-	p.URL = ap.URI(fmt.Sprintf(fmt.Sprintf("%s/%s", APIAccountsURL, a.Handle)))
+	p.URL = ap.URI(fmt.Sprintf(fmt.Sprintf("%s/%s", AccountsURL, a.Handle)))
 
 	p.Outbox.URL = BuildObjectURL(p, p.Outbox)
 	p.Inbox.URL = BuildObjectURL(p, p.Inbox)
 	p.Liked.URL = BuildObjectURL(p, p.Liked)
 
-	//json.Ctx = GetContext()
+	json.Ctx = GetContext()
 	j, err := json.Marshal(p)
 	if err != nil {
-		//HandleError(w, r, http.StatusInternalServerError, err)
+		HandleError(w, r, http.StatusInternalServerError, err)
 		log.Print(err)
 		return
 	}
@@ -124,9 +124,9 @@ func HandleAccountPath(w http.ResponseWriter, r *http.Request) {
 	p := ap.PersonNew(ap.ObjectID(a.Hash()))
 	p.Name["en"] = a.Handle
 	p.PreferredUsername["en"] = a.Handle
-	p.URL = ap.URI(fmt.Sprintf(fmt.Sprintf("%s/%s", APIAccountsURL, a.Handle)))
+	p.URL = ap.URI(fmt.Sprintf(fmt.Sprintf("%s/%s", AccountsURL, a.Handle)))
 
-	//json.Ctx = GetContext()
+	json.Ctx = GetContext()
 
 	path := chi.URLParam(r, "path")
 	switch strings.ToLower(path) {
@@ -143,15 +143,27 @@ func HandleAccountPath(w http.ResponseWriter, r *http.Request) {
 
 		p.Outbox.URL = BuildObjectURL(p, p.Outbox)
 		for _, item := range *items {
-			note := ap.ObjectNew(ap.ObjectID(item.Hash()), ap.ArticleType)
-			note.Content["en"] = string(item.Data)
-			if item.Title != nil {
-				note.Name["en"] = string(item.Title)
+			var el ap.Item
+			if item.IsLink() {
+				l := ap.LinkNew(ap.ObjectID(item.Hash()), ap.LinkType)
+				l.Href = ap.URI(item.Data)
+				el = l
+			} else {
+				o := ap.ObjectNew(ap.ObjectID(item.Hash()), ap.ArticleType)
+				o.Content["en"] = string(item.Data)
+				o.Published = item.SubmittedAt
+				o.Updated = item.UpdatedAt
+				o.URL = ap.URI(app.PermaLink(item, a.Handle))
+				o.MediaType = ap.MimeType(item.MimeType)
+				if item.Title != nil {
+					o.Name["en"] = string(item.Title)
+				}
+				el = o
 			}
-			note.Published = item.SubmittedAt
-			note.Updated = item.UpdatedAt
-			note.URL = ap.URI(app.PermaLink(item, a.Handle))
-			p.Outbox.Append(note)
+
+			//oc := ap.OrderedCollection(p.Outbox)
+			//pag := ap.OrderedCollectionPageNew(&oc)
+			p.Outbox.Append(el)
 
 			data, err = json.Marshal(p.Outbox)
 		}
@@ -195,7 +207,8 @@ func HandleVerifyCredentials(w http.ResponseWriter, r *http.Request) {
 	p.URL = ap.URI(a.GetLink())
 	p.Outbox.URL = BuildObjectURL(p, p.Outbox)
 	p.Inbox.URL = BuildObjectURL(p, p.Inbox)
-	//json.Ctx = GetContext()
+
+	json.Ctx = GetContext()
 	j, err := json.Marshal(p)
 	if err != nil {
 		HandleError(w, r, http.StatusInternalServerError, err)
