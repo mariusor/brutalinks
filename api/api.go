@@ -6,16 +6,18 @@ import (
 	"net/http"
 
 	"fmt"
+		"strings"
+	"reflect"
+	"os"
 
-	"strings"
-
-	"github.com/gorilla/mux"
 	ap "github.com/mariusor/activitypub.go/activitypub"
-	"github.com/mariusor/activitypub.go/jsonld"
+	j "github.com/mariusor/activitypub.go/jsonld"
+	"github.com/go-chi/chi"
 )
 
 var Db *sql.DB
 var BaseURL string
+var AccountsURL string
 
 const NotFound = 404
 const InternalError = 500
@@ -32,21 +34,78 @@ type ApiError struct {
 	Error error
 }
 
+func init() {
+	https := os.Getenv("HTTPS") != ""
+	host := os.Getenv("HOSTNAME")
+
+	if https {
+		BaseURL = fmt.Sprintf("https://%s/api", host)
+	} else {
+		BaseURL = fmt.Sprintf("http://%s/api", host)
+	}
+
+	AccountsURL = BaseURL + "/accounts"
+}
+
 func Errorf(c int, m string, args ...interface{}) *ApiError {
 	return &ApiError{c, fmt.Errorf(m, args...)}
 }
 
-func GetContext() jsonld.Ref {
-	return jsonld.Ref(ap.ActivityBaseURI)
+func GetContext() j.Ref {
+	return j.Ref(ap.ActivityBaseURI)
 }
 
-func BuildObjectURL(parent ap.LinkOrURI, cur ap.Item) ap.URI {
-	return ap.URI(fmt.Sprintf("%s/%s", parent.GetLink(), cur.GetID()))
+func BuildObjectID(path string, parent ap.Item, cur ap.Item) ap.ObjectID {
+	return ap.ObjectID(fmt.Sprintf("%s%s/%s", path, parent.GetID(), cur.GetID()))
+}
+
+func BuildObjectURL(b ap.LinkOrURI, el ap.Item) ap.URI {
+	var (
+		label            = ""
+		typeOutbox       = reflect.TypeOf(ap.Outbox{})
+		typeOutboxStream = reflect.TypeOf(ap.OutboxStream{})
+		typeInbox        = reflect.TypeOf(ap.Inbox{})
+		typeInboxStream  = reflect.TypeOf(ap.InboxStream{})
+		typeLiked        = reflect.TypeOf(ap.Liked{})
+		typeLikedCollection        = reflect.TypeOf(ap.LikedCollection{})
+		typePerson        = reflect.TypeOf(ap.Person{})
+	)
+	typ := reflect.TypeOf(el)
+	val := reflect.ValueOf(el)
+	if typ.Kind() == reflect.Ptr {
+		typ = typ.Elem()
+		val = val.Elem()
+	}
+	switch typ {
+	case typeOutbox:
+		fallthrough
+	case typeOutboxStream:
+		label = "outbox"
+	case typeInbox:
+		fallthrough
+	case typeInboxStream:
+		label = "inbox"
+	case typeLiked:
+		fallthrough
+	case typeLikedCollection:
+		label = "liked"
+	case typePerson:
+		o := val.Interface().(ap.Person)
+		for _, n := range o.Name {
+			label = n
+			break
+		}
+	}
+	pURL := b.GetLink()
+	if pURL == "" {
+		pURL =  ap.URI(BaseURL)
+	}
+
+	return ap.URI(fmt.Sprintf("%s/%s", b.GetLink(), label))
 }
 
 func HandleApiCall(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	path := strings.ToLower(vars["handle"])
+	path := strings.ToLower(chi.URLParam(r,"handle"))
 	fmt.Sprintf("%s", strings.Split(path, "/"))
 }
 

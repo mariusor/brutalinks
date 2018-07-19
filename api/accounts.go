@@ -9,8 +9,7 @@ import (
 	"fmt"
 
 	"strings"
-
-	"github.com/go-chi/chi"
+		"github.com/go-chi/chi"
 	ap "github.com/mariusor/activitypub.go/activitypub"
 	json "github.com/mariusor/activitypub.go/jsonld"
 	"github.com/mariusor/littr.go/app"
@@ -18,7 +17,9 @@ import (
 
 var CurrentAccount *models.Account
 
-var AccountsURL = BaseURL + "/accounts"
+func apObjectID(a models.Account) ap.ObjectID {
+	return ap.ObjectID(fmt.Sprintf("%s/%s", AccountsURL, a.Handle))
+}
 
 func loadItems(id int64) (*[]models.Content, error) {
 	var err error
@@ -70,6 +71,25 @@ func loadAccount(handle string) (*models.Account, error) {
 	return &a, nil
 }
 
+func loadAPPerson(a models.Account) *ap.Person {
+	baseURL := ap.URI(fmt.Sprintf("%s", AccountsURL))
+
+	log.Printf("loading person %s", baseURL)
+	p := ap.PersonNew(ap.ObjectID(apObjectID(a)))
+	p.Name["en"] = a.Handle
+	p.PreferredUsername["en"] = a.Handle
+	p.URL = BuildObjectURL(baseURL, p)
+
+	p.Outbox.URL = BuildObjectURL(p.URL, p.Outbox)
+	p.Outbox.ID = BuildObjectID("", p, p.Outbox)
+	p.Inbox.URL = BuildObjectURL(p.URL, p.Inbox)
+	p.Inbox.ID = BuildObjectID("", p, p.Inbox)
+	p.Liked.URL = BuildObjectURL(p.URL, p.Liked)
+	p.Liked.ID = BuildObjectID("", p, p.Liked)
+
+	return p
+}
+
 // GET /api/accounts/:handle
 func HandleAccount(w http.ResponseWriter, r *http.Request) {
 	handle := chi.URLParam(r, "handle")
@@ -79,20 +99,12 @@ func HandleAccount(w http.ResponseWriter, r *http.Request) {
 		HandleError(w, r, http.StatusInternalServerError, err)
 		return
 	}
-	HandleError(w, r, http.StatusNotFound, fmt.Errorf("acccount not found"))
 	if a.Handle == "" {
+		HandleError(w, r, http.StatusInternalServerError, err)
 		log.Print("could not load account information")
 		return
 	}
-
-	p := ap.PersonNew(ap.ObjectID(a.Hash()))
-	p.Name["en"] = a.Handle
-	p.PreferredUsername["en"] = a.Handle
-	p.URL = ap.URI(fmt.Sprintf(fmt.Sprintf("%s/%s", AccountsURL, a.Handle)))
-
-	p.Outbox.URL = BuildObjectURL(p, p.Outbox)
-	p.Inbox.URL = BuildObjectURL(p, p.Inbox)
-	p.Liked.URL = BuildObjectURL(p, p.Liked)
+	p := loadAPPerson(*a)
 
 	json.Ctx = GetContext()
 	j, err := json.Marshal(p)
@@ -121,11 +133,7 @@ func HandleAccountPath(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	p := ap.PersonNew(ap.ObjectID(a.Hash()))
-	p.Name["en"] = a.Handle
-	p.PreferredUsername["en"] = a.Handle
-	p.URL = ap.URI(fmt.Sprintf(fmt.Sprintf("%s/%s", AccountsURL, a.Handle)))
-
+	p:= loadAPPerson(*a)
 	json.Ctx = GetContext()
 
 	path := chi.URLParam(r, "path")
@@ -141,15 +149,17 @@ func HandleAccountPath(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		p.Outbox.URL = BuildObjectURL(p, p.Outbox)
+		p.Outbox.ID = BuildObjectID(r.Host, p, p.Outbox)
+		p.Outbox.URL = BuildObjectURL(p.URL, p.Outbox)
 		for _, item := range *items {
+			id := ap.ObjectID(fmt.Sprintf("%s/%s", p.Outbox.GetID(), item.Hash()))
 			var el ap.Item
 			if item.IsLink() {
-				l := ap.LinkNew(ap.ObjectID(item.Hash()), ap.LinkType)
+				l := ap.LinkNew(id, ap.LinkType)
 				l.Href = ap.URI(item.Data)
 				el = l
 			} else {
-				o := ap.ObjectNew(ap.ObjectID(item.Hash()), ap.ArticleType)
+				o := ap.ObjectNew(id, ap.ArticleType)
 				o.Content["en"] = string(item.Data)
 				o.Published = item.SubmittedAt
 				o.Updated = item.UpdatedAt
@@ -189,6 +199,7 @@ func HandleVerifyCredentials(w http.ResponseWriter, r *http.Request) {
 	a := CurrentAccount
 	if a == nil {
 		HandleError(w, r, http.StatusNotFound, fmt.Errorf("acccount not found"))
+		return
 	}
 
 	a, err := loadAccount(a.Handle)
@@ -201,12 +212,7 @@ func HandleVerifyCredentials(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	p := ap.PersonNew(ap.ObjectID(a.Hash()))
-	p.Name["en"] = a.Handle
-	p.PreferredUsername["en"] = a.Handle
-	p.URL = ap.URI(a.GetLink())
-	p.Outbox.URL = BuildObjectURL(p, p.Outbox)
-	p.Inbox.URL = BuildObjectURL(p, p.Inbox)
+	p := loadAPPerson(*a)
 
 	json.Ctx = GetContext()
 	j, err := json.Marshal(p)
