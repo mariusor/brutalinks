@@ -80,7 +80,7 @@ func (l *Littr) host() string {
 	if l.Port != 0 {
 		port = fmt.Sprintf(":%d", l.Port)
 	}
-	return fmt.Sprintf("%s%s", "127.0.0.1", port)
+	return fmt.Sprintf("%s%s", l.Host, port)
 }
 
 func (l *Littr) BaseUrl() string {
@@ -416,7 +416,6 @@ func (l *Littr) HandleAuth(w http.ResponseWriter, r *http.Request) {
 func IsInverted(r *http.Request) bool {
 	cookies := r.Cookies()
 	for _, c := range cookies {
-		log.Printf("cookie %s:%s", c.Name, c.Value)
 		if c.Name == "inverted" {
 			return true
 		}

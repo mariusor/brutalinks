@@ -2,12 +2,6 @@
 
 
 [[projects]]
-  branch = "master"
-  name = "github.com/buger/jsonparser"
-  packages = ["."]
-  revision = "2cac668e8456b4284edb0715e17e2af02d3ec993"
-
-[[projects]]
   name = "github.com/go-chi/chi"
   packages = [
     ".",
@@ -27,12 +21,6 @@
   packages = ["."]
   revision = "08b5f424b9271eedf6f9f0ce86cb9396ed337a42"
   version = "v1.1.1"
-
-[[projects]]
-  name = "github.com/gorilla/mux"
-  packages = ["."]
-  revision = "e3702bed27f0d39777b0b37b664b6280e8ef8fbf"
-  version = "v1.6.2"
 
 [[projects]]
   name = "github.com/gorilla/securecookie"
@@ -62,7 +50,7 @@
     "activitypub",
     "jsonld"
   ]
-  revision = "327128b67f5cea24c5cd1a620d8e2e09c3dccb78"
+  revision = "1100bd7ddce35c3f3f4d34940bf5a81818c806b3"
 
 [[projects]]
   branch = "master"
@@ -77,7 +65,7 @@
     "bcrypt",
     "blowfish"
   ]
-  revision = "a49355c7e3f8fe157a85be2f77e6e269a0f89602"
+  revision = "a2144134853fc9a27a7b1e3eb4f19f1a76df13c9"
 
 [[projects]]
   branch = "master"
@@ -86,7 +74,7 @@
     "context",
     "context/ctxhttp"
   ]
-  revision = "d0887baf81f4598189d4e12a37c6da86f0bba4d0"
+  revision = "8887df42c721e930089d31b28391090a10a497d7"
 
 [[projects]]
   branch = "master"
@@ -120,6 +108,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "c22f0e96b942238a380cd530be3200e97f266cd031e582acec141c6f11c20824"
+  inputs-digest = "8f8a68c307e49c1b030282d913fa855c436fc261968b1bbdb57c936d48718d7a"
   solver-name = "gps-cdcl"
   solver-version = 1

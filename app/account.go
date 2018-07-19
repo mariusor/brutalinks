@@ -8,8 +8,7 @@ import (
 	"github.com/mariusor/littr.go/models"
 
 	"github.com/go-chi/chi"
-	"github.com/gorilla/mux"
-)
+	)
 
 type userModel struct {
 	Title         string
@@ -19,16 +18,15 @@ type userModel struct {
 }
 
 func HandleUser(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-
 	m := userModel{InvertedTheme: IsInverted(r)}
 
 	found := false
 
+	handle := chi.URLParam(r, "handle")
 	u := models.Account{}
 	selAcct := `select "id", "key", "handle", "email", "score", "created_at", "updated_at", "metadata", "flags" from "accounts" where "handle" = $1`
 	{
-		rows, err := Db.Query(selAcct, chi.URLParam(r, "handle"))
+		rows, err := Db.Query(selAcct, handle)
 		if err != nil {
 			HandleError(w, r, StatusUnknown, err)
 			return
@@ -56,7 +54,7 @@ func HandleUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !found {
-		HandleError(w, r, http.StatusNotFound, fmt.Errorf("user %q not found", vars["handle"]))
+		HandleError(w, r, http.StatusNotFound, fmt.Errorf("user %q not found", handle))
 		return
 	}
 
