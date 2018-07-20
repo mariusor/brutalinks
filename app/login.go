@@ -19,6 +19,7 @@ type loginModel struct {
 	Account       models.Account
 }
 
+// ShowLogin handles POST /login requests
 func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	a := models.Account{}
 	errs := make([]error, 0)
@@ -82,15 +83,17 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+// ShowLogin serves GET /login requests
 func ShowLogin(w http.ResponseWriter, r *http.Request) {
 	a := models.Account{}
 
 	m := loginModel{Title: "Login", InvertedTheme: IsInverted(r)}
 	m.Account = a
 
-	RenderTemplate(r, w, "login.html", m)
+	RenderTemplate(r, w, "login", m)
 }
 
+// HandleLogout serves /logout requests
 func HandleLogout(w http.ResponseWriter, r *http.Request) {
 	s := GetSession(r)
 	s.Values[SessionUserKey] = nil

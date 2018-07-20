@@ -4,28 +4,20 @@ import (
 	"database/sql"
 	"flag"
 	"fmt"
-
 	"log"
 	"os"
 	"time"
-
 	"strconv"
-
-	"github.com/go-chi/chi"
+	"encoding/gob"
+	"net/http"
+	"strings"
+	"path/filepath"
+		"github.com/mariusor/littr.go/api"
+	"github.com/mariusor/littr.go/app"
+		"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/gorilla/sessions"
 	_ "github.com/lib/pq"
-
-	"encoding/gob"
-
-	"net/http"
-
-	"strings"
-
-	"path/filepath"
-
-	"github.com/mariusor/littr.go/api"
-	"github.com/mariusor/littr.go/app"
 )
 
 const defaultHost = "littr.git"
@@ -119,10 +111,15 @@ func main() {
 	r.Post("/register", app.HandleRegister)
 
 	r.Get("/~{handle}", app.HandleUser)
-	r.Get("/~{handle}/{hash}", app.HandleContent)
+
+	r.Get("/~{handle}/{hash}", app.ShowContent)
+	r.Post("/~{handle}/{hash}", app.HandleSubmit)
 	r.Get("/~{handle}/{hash}/{direction}", app.HandleVoting)
 
-	r.Get("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}", app.HandleContent)
+	//r.Get("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/", app.HandleDate)
+	r.Get("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}", app.ShowContent)
+	r.Get("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}/{direction}", app.HandleVoting)
+	r.Post("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}", app.HandleSubmit)
 
 	r.Get("/parent/{hash}/{parent}", app.HandleParent)
 	r.Get("/op/{hash}/{parent}", app.HandleOp)

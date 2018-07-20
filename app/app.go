@@ -17,6 +17,7 @@ import (
 	"github.com/gorilla/sessions"
 	"github.com/mariusor/littr.go/models"
 	"golang.org/x/oauth2"
+	"github.com/unrolled/render"
 )
 
 const (
@@ -28,6 +29,7 @@ const (
 var Db *sql.DB
 var CurrentAccount = AnonymousAccount()
 var SessionStore sessions.Store
+var Renderer *render.Render
 
 const anonymous = "anonymous"
 
@@ -43,6 +45,48 @@ const (
 type Flash struct {
 	Type string
 	Msg  string
+}
+
+func init() {
+	Renderer = render.New(render.Options{
+		Directory: templateDir,
+		Asset: nil,
+		AssetNames: nil,
+		Layout: "layout",
+		Extensions: []string{".html"},
+		Funcs: []template.FuncMap{{
+			"isInverted":     IsInverted,
+			"sluggify":       sluggify,
+			"title":          func(t []byte) string { return string(t) },
+			"getProviders":   getAuthProviders,
+			"CurrentAccount": func() *Account { return CurrentAccount },
+			"LoadFlashMessages": func() []interface{} {
+				//s := GetSession(r)
+				//return s.Flashes()
+				return []interface{}{}
+			},
+			"mod":                func(lvl int) float64 { return math.Mod(float64(lvl), float64(10)) },
+			"CleanFlashMessages": func() string { return "" }, //CleanFlashMessages,
+		}},
+		Delims: render.Delims{"{{", "}}"},
+		Charset: "UTF-8",
+		DisableCharset: false,
+		//IndentJSON: false,
+		//IndentXML: false,
+		//PrefixJSON: []byte(""),
+		//PrefixXML: []byte(""),
+		BinaryContentType: "application/octet-stream",
+		HTMLContentType: "text/html",
+		//JSONContentType: "application/json",
+		//JSONPContentType: "application/javascript",
+		//TextContentType: "text/plain",
+		//XMLContentType: "application/xhtml+xml",
+		IsDevelopment: true,
+		//UnEscapeHTML: false,
+		//StreamingJSON: false,
+		//RequirePartials: false,
+		DisableHTTPErrorRendering: false,
+	})
 }
 
 func AnonymousAccount() *Account {
@@ -88,18 +132,17 @@ func (l *Littr) BaseUrl() string {
 }
 
 func RenderTemplate(r *http.Request, w http.ResponseWriter, name string, m interface{}) error {
-	t, terr := LoadTemplates(templateDir, name, r)
-	if terr != nil {
-		log.Print(terr)
-		AddFlashMessage(fmt.Sprint(terr), Error, r, w)
-		return terr
+	err := Renderer.HTML(w, http.StatusOK, name, m)
+	if err != nil {
+		Renderer.HTML(w, http.StatusInternalServerError, "error", err)
+		return err
 	}
-	terr = t.Execute(w, m)
-	if terr != nil {
-		log.Print(terr)
-		AddFlashMessage(fmt.Sprint(terr), Error, r, w)
-		return terr
-	}
+	//terr = t.Execute(w, m)
+	//if terr != nil {
+	//	log.Print(terr)
+	//	AddFlashMessage(fmt.Sprint(terr), Error, r, w)
+	//	return terr
+	//}
 	sessions.Save(r, w)
 	return nil
 }
@@ -459,6 +502,18 @@ func (l *Littr) AuthCheck(next http.Handler) http.Handler {
 func AddFlashMessage(msg string, typ string, r *http.Request, w http.ResponseWriter) {
 	s := GetSession(r)
 	s.AddFlash(Flash{typ, msg})
+}
+
+func InvertedMw(next http.Handler) http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			IsInverted(r)
+		}()
+
+		next.ServeHTTP(w, r)
+	}
+
+	return http.HandlerFunc(fn)
 }
 
 //func LoadFlashMessages(r *http.Request) []interface{} {

@@ -55,6 +55,7 @@ func (a Account) Hash32() string {
 func (a Account) Hash64() string {
 	return string(a.Key)
 }
+
 func (a Account) GetLink() string {
 	return fmt.Sprintf("/~%s", a.Handle)
 }

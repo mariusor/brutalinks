@@ -81,14 +81,16 @@ func AccountFromRequest(r *http.Request) (*models.Account, []error) {
 	return &a, nil
 }
 
+// ShowRegister serves GET /register requests
 func ShowRegister(w http.ResponseWriter, r *http.Request) {
 	m := registerModel{InvertedTheme: IsInverted(r)}
 	m.Terms = `<p>We try to follow <q><cite>Wheaton's Law</cite></q>:<br/>` +
 		`<blockquote>Don't be a dick!</blockquote></p>`
 
-	RenderTemplate(r, w, "register.html", m)
+	RenderTemplate(r, w, "register", m)
 }
 
+// HandleRegister handles POST /register requests
 func HandleRegister(w http.ResponseWriter, r *http.Request) {
 	a, errs := AccountFromRequest(r)
 

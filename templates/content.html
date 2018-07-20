@@ -1,18 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-{{- template "head.html" . -}}
-</head>
-<body{{ if .InvertedTheme }} class="inverted"{{end}}>
-{{ template "header.html" }}
 <section class="item op" id="i-{{.Content.Hash}}" data-hash="{{.Content.Hash}}">
-    {{template "score.html" .Content.Item}}
-    {{template "link.html" .Content.Item}}
-    {{template "data.html" .Content.Item}}
-    {{template "meta.html" .Content.Item}}
+    {{template "partials/score" .Content.Item}}
+    {{template "partials/link" .Content.Item}}
+    {{template "partials/data" .Content.Item}}
+    {{template "partials/meta" .Content.Item}}
 </section>
-<section id="reply">{{template "submit.html" . }}</section>
-<section id="items">{{ template "comments.html" .Content }}</section>
-<footer>{{template "footer.html" . }}</footer>
-</body>
-</html>
+<section id="reply">{{template "partials/new/submit" . }}</section>
+<section id="items">{{ template "partials/content/comments" .Content }}</section>
+

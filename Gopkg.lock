@@ -60,6 +60,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/unrolled/render"
+  packages = ["."]
+  revision = "65450fb6b2d3595beca39f969c411db8f8d5c806"
+
+[[projects]]
+  branch = "master"
   name = "golang.org/x/crypto"
   packages = [
     "bcrypt",
@@ -108,6 +114,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "8f8a68c307e49c1b030282d913fa855c436fc261968b1bbdb57c936d48718d7a"
+  inputs-digest = "7dc5a39364dd3d3f5c7a7b25089dc75f81e8149e8e417ed74774c7a11af9a136"
   solver-name = "gps-cdcl"
   solver-version = 1

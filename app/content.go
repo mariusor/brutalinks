@@ -58,9 +58,9 @@ func ReparentComments(allComments []*comment) {
 	}
 }
 
-// handleMain serves /{year}/{month}/{day}/{hash} request
-// handleMain serves /~{handle}/{hash} request
-func HandleContent(w http.ResponseWriter, r *http.Request) {
+// ShowContent serves /{year}/{month}/{day}/{hash} request
+// ShowContent serves /~{handle}/{hash} request
+func ShowContent(w http.ResponseWriter, r *http.Request) {
 	hash := chi.URLParam(r, "hash")
 	items := make([]Item, 0)
 
@@ -92,16 +92,6 @@ func HandleContent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	items = append(items, i)
-	if r.Method == http.MethodPost {
-		e, err := ContentFromRequest(r, p.FullPath())
-		if err != nil {
-			HandleError(w, r, http.StatusInternalServerError, err)
-			return
-		}
-		AddVote(*e, 1, CurrentAccount.Id)
-		http.Redirect(w, r, i.PermaLink(), http.StatusFound)
-	}
-
 	allComments := make([]*comment, 0)
 	allComments = append(allComments, &m.Content)
 
@@ -151,7 +141,7 @@ func HandleContent(w http.ResponseWriter, r *http.Request) {
 	} else {
 		m.Title = fmt.Sprintf("%s comment", genitive(i.SubmittedBy))
 	}
-	RenderTemplate(r, w, "content.html", m)
+	RenderTemplate(r, w, "content", m)
 }
 
 func genitive(name string) string {
@@ -162,7 +152,8 @@ func genitive(name string) string {
 	return name + "'"
 }
 
-// handleMain serves /{year}/{month}/{day}/{hash}/{direction} request
+// HandleVoting serves /{year}/{month}/{day}/{hash}/{direction} request
+// HandleVoting serves /~{handle}/{direction} request
 func HandleVoting(w http.ResponseWriter, r *http.Request) {
 	hash := chi.URLParam(r, "hash")
 	items := make([]Item, 0)

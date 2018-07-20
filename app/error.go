@@ -6,6 +6,7 @@ import (
 	"net/http"
 )
 
+// HandleError serves failed requests
 func HandleError(w http.ResponseWriter, r *http.Request, status int, errs ...error) {
 	if status <= 0 {
 		status = http.StatusInternalServerError
@@ -22,5 +23,5 @@ func HandleError(w http.ResponseWriter, r *http.Request, status int, errs ...err
 		log.Printf("Err: %q", err)
 	}
 
-	RenderTemplate(r, w, "error.html", d)
+	RenderTemplate(r, w, "error", d)
 }

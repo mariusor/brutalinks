@@ -8,7 +8,7 @@ import (
 	"github.com/go-chi/chi"
 )
 
-// handleMain serves /parent/{hash}/{parent} request
+// HandleParent serves /parent/{hash}/{parent} request
 func HandleParent(w http.ResponseWriter, r *http.Request) {
 	sel := `select accounts.handle, par.key from content_items par 
 		inner join content_items cur on subltree(cur.Path, nlevel(cur.Path)-1, nlevel(cur.Path)) <@ par.Key::ltree
@@ -33,7 +33,7 @@ func HandleParent(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// handleMain serves /op/{hash}/{parent} request
+// HandleOp serves /op/{hash}/{parent} request
 func HandleOp(w http.ResponseWriter, r *http.Request) {
 	sel := `select accounts.handle, par.key from content_items par 
 		inner join content_items cur on subltree(cur.Path, 0, nlevel(cur.Path)) <@ par.Key::ltree

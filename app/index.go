@@ -251,6 +251,7 @@ type indexModel struct {
 	Title         string
 	InvertedTheme bool
 	Items         []Item
+	User 		*Account
 }
 
 func getAuthProviders() map[string]string {
@@ -371,8 +372,7 @@ func LoadItem(c models.Content, handle string) Item {
 	return i
 }
 
-// handleMain serves /index request
-//func HandleIndex(c *gin.Context) {
+// HandleIndex serves / request
 func HandleIndex(w http.ResponseWriter, r *http.Request) {
 	m := indexModel{Title: "Index", InvertedTheme: IsInverted(r)}
 
@@ -411,5 +411,5 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 		log.Print(err)
 	}
 
-	RenderTemplate(r, w, "index.html", m)
+	RenderTemplate(r, w, "index", m)
 }

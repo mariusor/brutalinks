@@ -1,15 +1,3 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-{{ template "head.html" . }}
-</head>
-<body{{ if .InvertedTheme }} class="inverted"{{end}}>
-{{ template "header.html" . }}
 <main id="items">
-{{ template "items.html" .Items }}
+{{ template "partials/items" .Items }}
 </main>
-<footer>
-{{template "footer.html" . }}
-</footer>
-</body>
-</html>

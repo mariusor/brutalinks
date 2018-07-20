@@ -1,17 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-{{ template "head.html" . }}
-</head>
-<body{{ if .InvertedTheme }} class="inverted"{{end}}>
-{{ template "header.html" }}
 
 <section id="new">
-{{template "submit.html" . }}
+{{template "partials/new/submit" . }}
 </section>
-
-<footer>
-{{template "footer.html" . }}
-</footer>
-</body>
-</html>

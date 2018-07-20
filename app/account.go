@@ -17,6 +17,7 @@ type userModel struct {
 	Items         []Item
 }
 
+// HandleUser serves /~handle request
 func HandleUser(w http.ResponseWriter, r *http.Request) {
 	m := userModel{InvertedTheme: IsInverted(r)}
 
@@ -89,5 +90,5 @@ func HandleUser(w http.ResponseWriter, r *http.Request) {
 		log.Print(err)
 	}
 
-	RenderTemplate(r, w, "user.html", m)
+	RenderTemplate(r, w, "user", m)
 }

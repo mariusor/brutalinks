@@ -1,19 +1,6 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-{{ template "head.html" . }}
-</head>
-<body{{ if .InvertedTheme }} class="inverted"{{end}}>
-{{template "flash.html" }}
+{{template "partials/flash" }}
 <main id="error">
 <h1>{{.Title}}</h1>
 {{range $error := .Errors}}
 <p>{{$error}}</p>
 {{end}}
-<footer><a href="/">back to the main page</a></footer>
-</main>
-<footer>
-{{template "footer.html" . }}
-</footer>
-</body>
-</html>

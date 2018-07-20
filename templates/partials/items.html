@@ -1,0 +1,13 @@
+<ol class="items">
+{{range $key, $value := . }}
+    <li data-index="{{$key}}" class="item">
+    {{template "partials/score" $value}}
+    {{if not .Title -}}
+    {{template "partials/data" $value}}
+    {{- else}}
+        <section class="submission" data-index="{{$key}}" data-hash="{{$value.Hash}}">{{ template "partials/link" $value }}</section>
+    {{end -}}
+    {{template "partials/meta" $value}}
+    </li>
+{{end}}
+</ol>

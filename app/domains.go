@@ -11,7 +11,7 @@ import (
 	"github.com/go-chi/chi"
 )
 
-// handleMain serves /domains/{domain} request
+// HandleDomains serves /domains/{domain} request
 func HandleDomains(w http.ResponseWriter, r *http.Request) {
 	domain := chi.URLParam(r, "domain")
 
@@ -44,5 +44,5 @@ func HandleDomains(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	RenderTemplate(r, w, "user.html", m)
+	RenderTemplate(r, w, "user", m)
 }
