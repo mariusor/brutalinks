@@ -238,15 +238,20 @@ func LoadTemplates(base string, main string, r *http.Request) (*template.Templat
 	return t, nil
 }
 
-//func (l *Littr) SessionStore(r *http.Request) *sessions.GetSession {
-//	sess, err := l.GetSession.Get(r, sessionName)
-//	if err != nil {
-//		log.Printf("unable to load SessionStore")
-//		return nil
-//	}
-//	return sess
-//}
-
+// AddVote adds a vote to the p content item
+//   const {
+//      add_vote = "add_vote"
+//      delete = "delete"
+//   }
+//   type queue_message struct {
+//       type    string
+//       payload json.RawMessage
+//   }
+// Ideally this should be done asynchronously pushing an add_vote message to our
+// messaging queue. Details of this queue to be established (strongest possibility is Redis PubSub)
+// The cli/votes/main.go script would be responsible with waiting on the queue for these messages
+// and updating the new score and all models dependent on it.
+//   content_items and accounts tables, corresponding ES documents, etc
 func AddVote(p models.Content, score int, userId int64) (bool, error) {
 	newWeight := int(score * models.ScoreMultiplier)
 
