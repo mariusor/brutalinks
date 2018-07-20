@@ -305,11 +305,27 @@ func LoadVotes(a *Account, it []Item) ([]Vote, error) {
 	if a.votes == nil {
 		a.votes = make([]Vote, 0)
 	}
+RowLoop:
 	for rows.Next() {
 		v := models.Vote{}
 		err = rows.Scan(&v.Id, &v.SubmittedBy, &v.SubmittedAt, &v.UpdatedAt, &v.ItemId, &v.Weight, &v.Flags)
 		if err != nil {
 			return nil, err
+		}
+		for key, vv := range a.votes {
+			if vv.id == v.Id {
+				a.votes[key] = Vote{
+					SubmittedBy: a.Handle,
+					SubmittedAt: v.SubmittedAt,
+					UpdatedAt:   v.UpdatedAt,
+					ItemHash:    hashes[v.Id],
+					Weight:      v.Weight,
+					id:          v.Id,
+					flags:       v.Flags,
+					itemId:      v.ItemId,
+				}
+				continue RowLoop
+			}
 		}
 		a.votes = append(a.votes, Vote{
 			SubmittedBy: a.Handle,
@@ -402,11 +418,6 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_, err = LoadVotes(CurrentAccount, m.Items)
-	if err != nil {
-		log.Print(err)
-	}
-
-	err = SessionStore.Save(r, w, GetSession(r))
 	if err != nil {
 		log.Print(err)
 	}

@@ -27,8 +27,9 @@ const (
 )
 
 var Db *sql.DB
-var CurrentAccount = AnonymousAccount()
 var SessionStore sessions.Store
+
+var CurrentAccount *Account
 var Renderer *render.Render
 
 const anonymous = "anonymous"
@@ -87,6 +88,10 @@ func init() {
 		//RequirePartials: false,
 		DisableHTTPErrorRendering: false,
 	})
+
+	if CurrentAccount == nil {
+		CurrentAccount = AnonymousAccount()
+	}
 }
 
 func AnonymousAccount() *Account {

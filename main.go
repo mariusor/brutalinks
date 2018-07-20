@@ -92,7 +92,7 @@ func main() {
 	r.Use(middleware.RequestID)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
-	//r.Use(littr.Sessions)
+	r.Use(littr.Sessions)
 
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		app.HandleError(w, r, http.StatusNotFound, fmt.Errorf("%s not found", r.RequestURI))
