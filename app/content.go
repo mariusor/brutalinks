@@ -95,14 +95,15 @@ func ShowContent(w http.ResponseWriter, r *http.Request) {
 	allComments := make([]*comment, 0)
 	allComments = append(allComments, &m.Content)
 
-	if len(m.Content.FullPath) > 0 {
+	fullPath := bytes.Trim(m.Content.FullPath, " \n\r\t")
+	if len(fullPath) > 0 {
 		// comments
 		selCom := `select "content_items"."id", "content_items"."key", "mime_type", "data", "title", "content_items"."score", 
 			"submitted_at", "submitted_by", "handle", "path", "content_items"."flags" from "content_items" 
 			left join "accounts" on "accounts"."id" = "content_items"."submitted_by" 
 			where "path" <@ $1 and "path" is not null order by "path" asc, "score" desc`
 		{
-			rows, err := Db.Query(selCom, m.Content.FullPath)
+			rows, err := Db.Query(selCom, fullPath)
 
 			if err != nil {
 				HandleError(w, r, StatusUnknown, err)
