@@ -96,12 +96,12 @@ func BuildObjectURL(b ap.LinkOrURI, el ap.Item) ap.URI {
 			break
 		}
 	}
-	pURL := b.GetLink()
-	if pURL == "" {
-		pURL =  ap.URI(BaseURL)
+	pURL :=  ap.URI(BaseURL)
+	if b != nil && b.GetLink() != "" {
+		pURL = b.GetLink()
 	}
 
-	return ap.URI(fmt.Sprintf("%s/%s", b.GetLink(), label))
+	return ap.URI(fmt.Sprintf("%s/%s", pURL, label))
 }
 
 func HandleApiCall(w http.ResponseWriter, r *http.Request) {

@@ -21,7 +21,68 @@ func apObjectID(a models.Account) ap.ObjectID {
 	return ap.ObjectID(fmt.Sprintf("%s/%s", AccountsURL, a.Handle))
 }
 
-func loadItems(id int64) (*[]models.Content, error) {
+func loadLikedItems(id int64) (*[]models.Content, *[]models.Vote, error) {
+	var err error
+	items := make([]models.Content, 0)
+	votes := make([]models.Vote, 0)
+	selC := `select 
+		"votes"."id", 
+		"votes"."weight", 
+		"votes"."submitted_at", 
+		"votes"."flags",
+		"content_items"."id", 
+		"content_items"."key", 
+		"content_items"."mime_type", 
+		"content_items"."data", 
+		"content_items"."title", 
+		"content_items"."score",
+		"content_items"."submitted_at", 
+		"content_items"."submitted_by",
+		"content_items"."flags", 
+		"content_items"."metadata", 
+		"accounts"."handle"
+from "content_items"
+  inner join "votes" on "content_items"."id" = "votes"."item_id"
+  left join "accounts" on "accounts"."id" = "content_items"."submitted_by"
+where "votes"."submitted_by" = $1 order by "votes"."submitted_at" desc`
+	{
+		rows, err := Db.Query(selC, id)
+		if err != nil {
+			return nil, nil, err
+		}
+		for rows.Next() {
+			v := models.Vote{}
+			p := models.Content{}
+			err = rows.Scan(
+				&v.Id,
+				&v.Weight,
+				&v.SubmittedAt,
+				&v.Flags,
+				&p.Id,
+				&p.Key,
+				&p.MimeType,
+				&p.Data,
+				&p.Title,
+				&p.Score,
+				&p.SubmittedAt,
+				&p.SubmittedBy,
+				&p.Flags,
+				&p.Metadata,
+				&p.Handle)
+			if err != nil {
+				return nil, nil, err
+			}
+			v.SubmittedBy = id
+			items = append(items, p)
+			votes = append(votes, v)
+		}
+	}
+	if err != nil {
+		log.Print(err)
+	}
+	return &items, &votes, nil
+}
+func loadSubmittedItems(id int64) (*[]models.Content, error) {
 	var err error
 	items := make([]models.Content, 0)
 	selC := `select "content_items"."id", "content_items"."key", "mime_type", "data", "title", "content_items"."score", 
@@ -74,20 +135,99 @@ func loadAccount(handle string) (*models.Account, error) {
 func loadAPPerson(a models.Account) *ap.Person {
 	baseURL := ap.URI(fmt.Sprintf("%s", AccountsURL))
 
-	log.Printf("loading person %s", baseURL)
 	p := ap.PersonNew(ap.ObjectID(apObjectID(a)))
 	p.Name["en"] = a.Handle
 	p.PreferredUsername["en"] = a.Handle
+
+	out := ap.OutboxNew()
+	liked := ap.LikedNew()
+
+	out.URL = BuildObjectURL(p.URL, p.Outbox)
+	out.ID = BuildObjectID("", p, p.Outbox)
+
+	p.Outbox = ap.OutboxStream(*out)
+	p.Liked = ap.LikedCollection(*liked)
+
 	p.URL = BuildObjectURL(baseURL, p)
 
-	p.Outbox.URL = BuildObjectURL(p.URL, p.Outbox)
-	p.Outbox.ID = BuildObjectID("", p, p.Outbox)
-	p.Inbox.URL = BuildObjectURL(p.URL, p.Inbox)
-	p.Inbox.ID = BuildObjectID("", p, p.Inbox)
 	p.Liked.URL = BuildObjectURL(p.URL, p.Liked)
 	p.Liked.ID = BuildObjectID("", p, p.Liked)
 
 	return p
+}
+
+func loadAPLiked(a *models.Account, o ap.CollectionInterface, items *[]models.Content, votes *[]models.Vote) (ap.CollectionInterface, error) {
+	if items == nil || len(*items) == 0 {
+		return nil, fmt.Errorf("no items loaded")
+	}
+	if votes == nil || len(*votes) == 0 {
+		return nil, fmt.Errorf("no votes loaded")
+	}
+	if len(*items) != len(*votes) {
+		return nil, fmt.Errorf("items and votes lengths are not matching")
+	}
+	for k, item := range *items {
+		vote := (*votes)[k]
+		if vote.Weight == 0 {
+			// skip 0 weight votes from the collection
+			continue
+		}
+
+		typ :=  ap.ArticleType
+		if item.IsLink() {
+			typ =  ap.LinkType
+		}
+		oid := ap.ObjectID(fmt.Sprintf("%s/%s/outbox/%s", AccountsURL, item.Handle, item.Hash()))
+		obj := ap.ObjectNew(oid, typ)
+		obj.URL = ap.URI(fmt.Sprintf("%s/%s", a.GetLink(), item.Hash()))
+
+		id := ap.ObjectID(fmt.Sprintf("%s/%s", o.GetID(), item.Hash()))
+		var it ap.Item
+		if vote.Weight > 0 {
+			l := ap.LikeNew(id, obj)
+			l.Published = vote.SubmittedAt
+			l.Updated = item.UpdatedAt
+			it = l
+		} else  {
+			d := ap.DislikeNew(id, obj)
+			d.Published = vote.SubmittedAt
+			d.Updated = item.UpdatedAt
+			it = d
+		}
+
+		o.Append(it)
+	}
+
+	return o, nil
+}
+
+func loadAPCollection(a *models.Account, o ap.CollectionInterface, items *[]models.Content) (ap.CollectionInterface, error) {
+	for _, item := range *items {
+		id := ap.ObjectID(fmt.Sprintf("%s/%s", o.GetID(), item.Hash()))
+		var el ap.Item
+		if item.IsLink() {
+			l := ap.LinkNew(id, ap.LinkType)
+			l.Href = ap.URI(item.Data)
+			el = l
+		} else {
+			o := ap.ObjectNew(id, ap.ArticleType)
+			o.Content["en"] = string(item.Data)
+			o.Published = item.SubmittedAt
+			o.Updated = item.UpdatedAt
+			o.URL = ap.URI(app.PermaLink(item, a.Handle))
+			o.MediaType = ap.MimeType(item.MimeType)
+			if item.Title != nil {
+				o.Name["en"] = string(item.Title)
+			}
+			el = o
+		}
+
+		//oc := ap.OrderedCollection(p.Outbox)
+		//pag := ap.OrderedCollectionPageNew(&oc)
+		o.Append(el)
+	}
+
+	return o, nil
 }
 
 // GET /api/accounts/:handle
@@ -120,6 +260,7 @@ func HandleAccount(w http.ResponseWriter, r *http.Request) {
 	w.Write(j)
 }
 
+
 // GET /api/accounts/:handle/:path
 func HandleAccountPath(w http.ResponseWriter, r *http.Request) {
 	var data []byte
@@ -139,47 +280,18 @@ func HandleAccountPath(w http.ResponseWriter, r *http.Request) {
 	path := chi.URLParam(r, "path")
 	switch strings.ToLower(path) {
 	case "outbox":
-		items, err := loadItems(a.Id)
+		items, err := loadSubmittedItems(a.Id)
 		if err != nil {
-			HandleError(w, r, http.StatusInternalServerError, err)
-			return
+			log.Print(err)
 		}
-		if a.Handle == "" {
-			HandleError(w, r, http.StatusNotFound, fmt.Errorf("acccount not found"))
-			return
-		}
-
-		p.Outbox.ID = BuildObjectID(r.Host, p, p.Outbox)
-		p.Outbox.URL = BuildObjectURL(p.URL, p.Outbox)
-		for _, item := range *items {
-			id := ap.ObjectID(fmt.Sprintf("%s/%s", p.Outbox.GetID(), item.Hash()))
-			var el ap.Item
-			if item.IsLink() {
-				l := ap.LinkNew(id, ap.LinkType)
-				l.Href = ap.URI(item.Data)
-				el = l
-			} else {
-				o := ap.ObjectNew(id, ap.ArticleType)
-				o.Content["en"] = string(item.Data)
-				o.Published = item.SubmittedAt
-				o.Updated = item.UpdatedAt
-				o.URL = ap.URI(app.PermaLink(item, a.Handle))
-				o.MediaType = ap.MimeType(item.MimeType)
-				if item.Title != nil {
-					o.Name["en"] = string(item.Title)
-				}
-				el = o
-			}
-
-			//oc := ap.OrderedCollection(p.Outbox)
-			//pag := ap.OrderedCollectionPageNew(&oc)
-			p.Outbox.Append(el)
-
-			data, err = json.Marshal(p.Outbox)
-		}
-	case "inbox":
-		data, err = json.Marshal(p.Inbox)
+		_, err = loadAPCollection(a, &p.Outbox, items)
+		data, err = json.Marshal(p.Outbox)
 	case "liked":
+		items, votes, err := loadLikedItems(a.Id)
+		if err != nil {
+			log.Print(err)
+		}
+		_, err = loadAPLiked(a, &p.Liked, items, votes)
 		data, err = json.Marshal(p.Liked)
 	}
 
