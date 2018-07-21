@@ -55,17 +55,21 @@ body>header h1 a:before {
     font-weight: 400;
     margin-right: .4em;
 }
-.submission h1,
-.submission h2,
-.submission h3,
-.submission h4,
-.submission h5,
-.submission h6 {
+.item h1,
+.item h2,
+.item h3,
+.item h4,
+.item h5,
+.item h6 {
     font-weight: normal;
 }
-.submission h1 {
-    font-size: 1.1em;
+.item h1 {
+    font-weight: bold;
+    font-size: 1.2em;
     margin: 0.2em 0;
+}
+.item h1 a {
+    padding-left: 0.3em;
 }
 #content .data,
 .items .data {
@@ -77,10 +81,13 @@ body>header h1 a:before {
 #items .data  {
     /*margin: 1.2em 0;*/
 }
-#items article pre {}
-#items article pre code {}
-.inverted #items article pre {}
-.inverted #items article pre code {}
+article.data pre {}
+article.data code {
+    white-space: pre;
+}
+.items article pre code {}
+.inverted .items article pre {}
+.inverted .items article pre code {}
 .data {
     /*margin: 1.8em 0.5ex;*/
     /*padding: 1em 11ex;*/

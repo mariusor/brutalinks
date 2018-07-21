@@ -1,16 +1,8 @@
-{{- if .Deleted}}
-<del class="deleted titles" data-hash="{{.Hash}}">deleted</del>
-{{else -}}
-{{- if .Title}}
 <h1 data-hash="{{.Hash}}">
-{{if .IsLink}}
-    <a class="titles" data-hash="{{.Hash}}" href="{{.Data | printf "%s"}}">
-{{- end}}
-    {{.Title}}
-{{if .IsLink -}}
-</a>
-{{- end}}
-    <span class="domain">{{if .IsLink}}<a title="all submissions" href=/domains/{{.GetDomain}}></a>{{.GetDomain}}{{else}}self{{end}}</span>
-</h1>
-{{end -}}
+{{- if .IsLink -}}
+<a class="titles" data-hash="{{.Hash}}" href="{{.Data | printf "%s"}}">{{- .Title -}}</a>
+{{- else -}}
+{{- .Title -}}
 {{- end -}}
+<span class="domain">{{if .IsLink}}<a title="all submissions" href=/domains/{{.GetDomain}}></a>{{.GetDomain}}{{else}}self{{end}}</span>
+</h1>

@@ -1,14 +1,12 @@
-<header>
-{{ $account := CurrentAccount }}
-{{ $providers := getProviders }}
-    <h1><!--<a href="/" title="littr.me" alt="littr.me" class="far fa-trash-alt"></a><strong>littering:</strong>
+{{- $account := CurrentAccount -}}
+{{- $providers := getProviders}}
+    <h1> {{- /* <!--<a href="/" title="littr.me" alt="littr.me" class="far fa-trash-alt"></a><strong>littering:</strong>
     {{- if $account -}} <span class="by">{{$account.Handle}}</span>{{- else -}}
     {{- if .Title -}}
     {{ .Title }}
     {{- else -}} allowed{{- end -}}
-    {{- end -}}  -->
-    <a href="/" title="littr.me" alt="littr.me">littr me</a>
-    </h1>
+    {{- end -}}  --> */ -}}
+    <a href="/" title="littr.me" alt="littr.me">littr me</a></h1>
     <menu id="top">
         <li><a id="act-invert" href="/#invert"><span class="inverted">Inv</span>ert</a></li>
         <li><a href="/submit">Add</a></li>
@@ -23,5 +21,4 @@
     {{end}}
     {{end}}
     </menu>
-{{template "partials/flash" }}
-</header>
+{{template "partials/flash" -}}

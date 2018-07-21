@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-{{ template "partials/head" . }}
+{{- template "partials/head" . -}}
 </head>
 <body{{ if .InvertedTheme }} class="inverted"{{end}}>
 <header>{{ template "partials/header" . }}</header>
-{{ yield }}
-<footer>{{template "partials/footer" . }}</footer>
+{{ yield -}}
+<footer>
+{{- template "partials/footer" . -}}
+</footer>
 </body>
 </html>

@@ -1,9 +1,9 @@
 <section class="item" id="i-{{.Hash}}" data-hash="{{.Hash}}">
-{{template "partials/score" .Item}}
-{{template "partials/data" .Item}}
-{{template "partials/link" .Item}}
-{{template "partials/meta" .Item}}
+{{- template "partials/score" .Item -}}
+{{- template "partials/data" .Item -}}
+{{- template "partials/link" .Item -}}
+{{- template "partials/meta" .Item -}}
 </section>
-{{if .Children | len }}
+{{- if .Children | len -}}
 {{ template "partials/content/comments" . }}
-{{- end}}
+{{- end -}}
