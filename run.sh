@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export GOPATH="$GOPATH:$(pwd)/vendor"
+#export GOPATH="$GOPATH:$(pwd)/vendor"
 
 IFS=$'\r\n'
 GLOBIGNORE='*'
@@ -15,4 +15,4 @@ for i in ${__env[@]}; do
     fi
 done
 
-go run $@
+vgo run $@
