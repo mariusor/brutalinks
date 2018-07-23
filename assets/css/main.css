@@ -62,11 +62,11 @@ body>header h1 a:before {
 .item h5,
 .item h6 {
     font-weight: normal;
+    margin: 0.2em 0;
 }
 .item h1 {
     font-weight: bold;
     font-size: 1.2em;
-    margin: 0.2em 0;
 }
 .item h1 a {
     padding-left: 0.3em;
@@ -120,6 +120,7 @@ ol.comments {
     width: 2.4ex;
     text-align: center;
     margin-right: .5ex;
+    padding-top: 10px;
 }
 .item .score data {
     margin: auto;
@@ -176,15 +177,22 @@ ol.comments {
 }
 .by:before {
     content: "~";
-    font-weight: 1000;
+    font-weight: 900;
 }
 .meta time {
     text-decoration: underline dotted;
 }
+.submission {
+    padding: .8em 0 0 1.9em;
+}
 .comment {
     margin:auto;
-    padding: .4em 0 .4em 2.4ex;
+    padding: 1em 0 0 2.3em;
     font-size: .92em;
+    min-height: 3ex;
+}
+.comment p {
+    margin: 0;
 }
 .deleted {
     line-height: 55px;
@@ -307,7 +315,7 @@ span.domain {
 }
 a.to-parent:before {
     content: "\2303";
-    font-weight: 1000;
+    font-weight: 900;
 }
 a.to-op:before {
     content: "\f102";
