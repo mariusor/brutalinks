@@ -1,7 +1,7 @@
 <section class="item" id="i-{{.Hash}}" data-hash="{{.Hash}}">
 {{- template "partials/score" .Item -}}
 {{- template "partials/data" .Item -}}
-{{- template "partials/link" .Item -}}
+{{if .Item.IsTop }}{{- template "partials/link" .Item -}}{{end}}
 {{- template "partials/meta" .Item -}}
 </section>
 {{- if .Children | len -}}

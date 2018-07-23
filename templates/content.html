@@ -3,7 +3,7 @@
     <del class="deleted titles" data-hash="{{.Content.Hash}}">deleted</del>
 {{- else -}}
 {{- template "partials/score" .Content.Item -}}
-{{- if .Content.Item.Title -}}{{template "partials/link" .Content.Item}}{{- end -}}
+{{- if .Content.Item.IsTop -}}{{template "partials/link" .Content.Item}}{{- end -}}
 {{- template "partials/data" .Content.Item -}}
 {{- template "partials/meta" .Content.Item -}}
 {{- end -}}
