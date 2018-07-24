@@ -1,6 +1,7 @@
 {{template "partials/flash"}}
-<main id="error">
+<section id="error">
 <h1>{{.Title}}</h1>
 {{range $error := .Errors}}
 <p>{{$error}}</p>
 {{end}}
+</section>

@@ -1,6 +1,6 @@
 {{- if .IsSelf -}}
 {{- if not .Deleted }}
-<article class="data {{ .MimeType | sluggify }}{{if not .Title}} comment{{end}}">
+<article class="col data {{ .MimeType | sluggify }}{{if not .Title}} comment{{end}}">
 {{- if eq .MimeType "text/html" -}}
 {{.HTML}}
 {{- end -}}

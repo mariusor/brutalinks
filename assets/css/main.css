@@ -3,13 +3,12 @@
 body {
     background: Window;
     color: WindowText;
-    font-size: 1rem;
-    line-height: 1.4em;
-    margin:0;
-    padding: 1ex .8em;
 }
-body section {
-    max-width: 100ex;
+body header {
+    padding: 1ex 1rem 0 0;
+}
+body main {
+    padding-left: 1rem;
 }
 .inverted {
     color: Window !important;
@@ -27,18 +26,16 @@ body section {
 .inverted .score a {
     color: unset;
 }
-body>header {
-    height: 2.4em;
-    width: 100%;
-}
 body>header h1 {
     font-size: 1.6em;
     font-weight: lighter;
 }
 body>header h1 a {
-    text-decoration: none;
     color: WindowText;
     text-align: center;
+}
+body>header h1 a:hover {
+    text-decoration: none;
 }
 .inverted header h1 a,
 .inverted header h1 a:active,
@@ -81,9 +78,12 @@ body>header h1 a:before {
 #items .data  {
     /*margin: 1.2em 0;*/
 }
-article.data pre {}
+article.data pre {
+    color:unset;
+}
 article.data code {
     white-space: pre;
+    color: unset;
 }
 .items article pre code {}
 .inverted .items article pre {}
@@ -185,6 +185,9 @@ ol.comments {
 .submission {
     padding: .8em 0 0 1.9em;
 }
+.comments .comment {
+    padding: 1em 0 0 .6rem;
+}
 .comment {
     margin:auto;
     padding: 1em 0 0 2.3em;
@@ -240,7 +243,7 @@ ol.lvl-9 {
 .comments .data, #content .data  {
     border: none;
     margin: -8px .3ex;
-    padding: 1em 5ex;
+    padding: 1em 2rem;
 }
 .text-plain {
     white-space: pre;

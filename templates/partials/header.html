@@ -1,23 +1,23 @@
 {{- $account := CurrentAccount -}}
 {{- $providers := getProviders}}
-    <h1> {{- /* <!--<a href="/" title="littr.me" alt="littr.me" class="far fa-trash-alt"></a><strong>littering:</strong>
+    <h1 class="col">{{- /* <!--<a href="/" title="littr.me" alt="littr.me" class="far fa-trash-alt"></a><strong>littering:</strong>
     {{- if $account -}} <span class="by">{{$account.Handle}}</span>{{- else -}}
     {{- if .Title -}}
     {{ .Title }}
     {{- else -}} allowed{{- end -}}
     {{- end -}}  --> */ -}}
     <a href="/" title="littr.me" alt="littr.me">littr me</a></h1>
-    <menu id="top">
-        <li><a id="act-invert" href="/#invert"><span class="inverted">Inv</span>ert</a></li>
-        <li><a href="/submit">Add</a></li>
+    <menu id="top" class="col-l-3 row">
+        <li class="col"><a id="act-invert" href="/#invert"><span class="inverted">Inv</span>ert</a></li>
+        <li class="col"><a href="/submit">Add</a></li>
     {{ if $account.IsLogged }}
-        <li class="acct">{{$account.Handle}} <span class="score">{{$account.Score}}</span></li>
-        <li><a href="/logout">Sign out</a></li>
+        <li class="acct col">{{$account.Handle}} <span class="score">{{$account.Score}}</span></li>
+        <li class="col"><a href="/logout">Sign out</a></li>
     {{else}}
-        <li>Sign in</li>
-        <li><a href="/login" class="far fa-trash-alt"></a></li>
+        <li class="col">Sign in</li>
+        <li class="col"><a href="/login" class="far fa-trash-alt"></a></li>
     {{range $key, $value := $providers}}
-        <li><a href="/auth/{{$key}}" class="fab fa-{{$key}}"></a></li>
+        <li class="col"><a href="/auth/{{$key}}" class="fab fa-{{$key}}"></a></li>
     {{end}}
     {{end}}
     </menu>
