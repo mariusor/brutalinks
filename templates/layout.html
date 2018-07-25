@@ -1,14 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <head>
 {{- template "partials/head" . -}}
 </head>
 <body class="container-fluid{{ if .InvertedTheme }} inverted{{end}}">
-<header class="row">{{ template "partials/header" . }}</header>
-<main class="row">
+<header class="container-fluid row">{{ template "partials/header" . }}</header>
+<main class="container-fluid row no-gutters">
 {{ yield -}}
 </main>
-<footer  class="row">
+<footer>
 {{- template "partials/footer" . -}}
 </footer>
 </body>

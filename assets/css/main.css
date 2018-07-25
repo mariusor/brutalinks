@@ -1,4 +1,24 @@
 @charset "UTF-8";
+@media (min-width: 576px) {
+    html {
+        font-size: 16pt;
+    }
+}
+@media (min-width: 768px) {
+    html {
+        font-size: 14pt;
+    }
+}
+@media (min-width: 992px) {
+    html {
+        font-size: 12pt;
+    }
+}
+@media (min-width: 1200px) {
+    html{
+        font-size: 12pt;
+    }
+}
 :root {}
 body {
     background: Window;
@@ -62,8 +82,24 @@ body>header h1 a:before {
     margin: 0.2em 0;
 }
 .item h1 {
+    font-weight: bolder;
+    font-size: 1.6em;
+}
+.item h2 {
     font-weight: bold;
+    font-size: 1.4em;
+}
+.item h3 {
+    font-weight: bolder;
     font-size: 1.2em;
+}
+.item h4 {
+    font-weight: bold;
+    font-size: 1.1em;
+}
+.item h5, .item h6 {
+    font-weight: bold;
+    font-size: 1em;
 }
 .item h1 a {
     padding-left: 0.3em;
@@ -117,7 +153,6 @@ ol.comments {
 }
 .item .score {
     float: left;
-    width: 2.4ex;
     text-align: center;
     margin-right: .5ex;
     padding-top: 10px;
@@ -183,7 +218,7 @@ ol.comments {
     text-decoration: underline dotted;
 }
 .submission {
-    padding: .8em 0 0 1.9em;
+    padding: .2em 0 0 1.9em;
 }
 .comments .comment {
     padding: 1em 0 0 .6rem;
@@ -191,7 +226,7 @@ ol.comments {
 .comment {
     margin:auto;
     padding: 1em 0 0 2.3em;
-    font-size: .92em;
+    font-size: .96rem;
     min-height: 3ex;
 }
 .comment p {
@@ -252,6 +287,7 @@ ol.lvl-9 {
 }
 #reply {
     margin-top: 1em;
+    clear: both;
 }
 #reply, #new, #login {
     max-width: 80ex;
