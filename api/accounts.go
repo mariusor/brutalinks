@@ -144,14 +144,13 @@ func loadAPPerson(a models.Account) *ap.Person {
 
 	out.URL = BuildObjectURL(p.URL, p.Outbox)
 	out.ID = BuildObjectID("", p, p.Outbox)
+	liked.URL = BuildObjectURL(p.URL, p.Liked)
+	liked.ID = BuildObjectID("", p, p.Liked)
 
-	p.Outbox = ap.OutboxStream(*out)
-	p.Liked = ap.LikedCollection(*liked)
+	p.Outbox = out
+	p.Liked = liked
 
 	p.URL = BuildObjectURL(baseURL, p)
-
-	p.Liked.URL = BuildObjectURL(p.URL, p.Liked)
-	p.Liked.ID = BuildObjectID("", p, p.Liked)
 
 	return p
 }
@@ -181,7 +180,7 @@ func loadAPLiked(a *models.Account, o ap.CollectionInterface, items *[]models.Co
 		obj := ap.ObjectNew(oid, typ)
 		obj.URL = ap.URI(fmt.Sprintf("%s/%s", a.GetLink(), item.Hash()))
 
-		id := ap.ObjectID(fmt.Sprintf("%s/%s", o.GetID(), item.Hash()))
+		id := ap.ObjectID(fmt.Sprintf("%s/%s", *o.GetID(), item.Hash()))
 		var it ap.Item
 		if vote.Weight > 0 {
 			l := ap.LikeNew(id, obj)
@@ -203,7 +202,7 @@ func loadAPLiked(a *models.Account, o ap.CollectionInterface, items *[]models.Co
 
 func loadAPCollection(a *models.Account, o ap.CollectionInterface, items *[]models.Content) (ap.CollectionInterface, error) {
 	for _, item := range *items {
-		id := ap.ObjectID(fmt.Sprintf("%s/%s", o.GetID(), item.Hash()))
+		id := ap.ObjectID(fmt.Sprintf("%s/%s", *o.GetID(), item.Hash()))
 		var el ap.Item
 		if item.IsLink() {
 			l := ap.LinkNew(id, ap.LinkType)
@@ -284,14 +283,14 @@ func HandleAccountPath(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Print(err)
 		}
-		_, err = loadAPCollection(a, &p.Outbox, items)
+		_, err = loadAPCollection(a, p.Outbox, items)
 		data, err = json.Marshal(p.Outbox)
 	case "liked":
 		items, votes, err := loadLikedItems(a.Id)
 		if err != nil {
 			log.Print(err)
 		}
-		_, err = loadAPLiked(a, &p.Liked, items, votes)
+		_, err = loadAPLiked(a, p.Liked, items, votes)
 		data, err = json.Marshal(p.Liked)
 	}
 

@@ -7,7 +7,7 @@ require (
 	github.com/gorilla/securecookie v1.1.1
 	github.com/gorilla/sessions v1.1.1
 	github.com/lib/pq v0.0.0-20180523175426-90697d60dd84
-	github.com/mariusor/activitypub.go v0.0.0-20180720162826-57dab0cb45c3
+	github.com/mariusor/activitypub.go v0.0.0-20180725121126-55205ca
 	github.com/shurcooL/sanitized_anchor_name v0.0.0-20170918181015-86672fcb3f95 // indirect
 	github.com/unrolled/render v0.0.0-20171102162132-65450fb6b2d3
 	golang.org/x/crypto v0.0.0-20180718160520-a2144134853f

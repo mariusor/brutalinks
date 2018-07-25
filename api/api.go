@@ -56,7 +56,7 @@ func GetContext() j.Ref {
 }
 
 func BuildObjectID(path string, parent ap.Item, cur ap.Item) ap.ObjectID {
-	return ap.ObjectID(fmt.Sprintf("%s%s/%s", path, parent.GetID(), cur.GetID()))
+	return ap.ObjectID(fmt.Sprintf("%s%s/%s", path, *parent.GetID(), *cur.GetID()))
 }
 
 func BuildObjectURL(b ap.LinkOrURI, el ap.Item) ap.URI {
