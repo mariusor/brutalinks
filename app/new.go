@@ -73,8 +73,6 @@ func ContentFromRequest(r *http.Request) (*models.Content, error) {
 		)`
 
 		params = append(params, parent)
-
-		log.Printf("%s %v", ins, params)
 	}
 
 	res, err := Db.Exec(ins, params...)
