@@ -333,8 +333,9 @@ span.domain:after {
 }
 */
 .domain a:before {
-    margin-right: 1ex;
-    content: "\f105";
+    margin-right: .3em;
+    /*content: "\f105";*/
+    content: " ::";
     font-family: "Font Awesome 5 Free";
     font-weight: 800;
     font-size: .9em;
