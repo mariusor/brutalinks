@@ -399,3 +399,9 @@ menu#auth li::before, menu#top li::before {
     position: relative;
     top: 3px;
 }
+hr {
+    border-color: WindowText;
+}
+.inverted hr {
+    border-color: Window;
+}
