@@ -1,21 +1,15 @@
 package app
 
 import (
+	"bytes"
+	"fmt"
+	"html/template"
 	"log"
+	"math"
+	"net/http"
 	"os"
 	"strings"
-
 	"time"
-
-	"fmt"
-
-	"math"
-
-	"html/template"
-
-	"bytes"
-
-	"net/http"
 
 	"github.com/mariusor/littr.go/models"
 	"gopkg.in/russross/blackfriday.v2"
@@ -24,6 +18,19 @@ import (
 const (
 	MaxContentItems = 200
 )
+
+type Account struct {
+	Id        int64
+	Hash      string    `json:"key"`
+	Email     []byte    `json:"email"`
+	Handle    string    `json:"handle"`
+	Score     int64     `json:"score"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	flags     int8
+	metadata  []byte
+	votes     []Vote
+}
 
 type Vote struct {
 	SubmittedBy string    `json:"submitted_by"`
@@ -227,19 +234,6 @@ type AccountMetadata struct {
 	salt     string
 }
 
-type Account struct {
-	Id        int64
-	Hash      string    `json:"key"`
-	Email     []byte    `json:"email"`
-	Handle    string    `json:"handle"`
-	Score     int64     `json:"score"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	flags     int8
-	metadata  []byte
-	votes     []Vote
-}
-
 func (i comment) Level() int {
 	if i.path == nil {
 		return 0
@@ -251,7 +245,7 @@ type indexModel struct {
 	Title         string
 	InvertedTheme bool
 	Items         []Item
-	User 		*Account
+	User          *Account
 }
 
 func getAuthProviders() map[string]string {
