@@ -21,6 +21,31 @@ func apObjectID(a models.Account) ap.ObjectID {
 	return ap.ObjectID(fmt.Sprintf("%s/%s", AccountsURL, a.Handle))
 }
 
+func loadAPItem(item models.Content, handle string, o ap.CollectionInterface) (ap.Item, error) {
+	if o == nil {
+		return nil, fmt.Errorf("unable to load item")
+	}
+	id := ap.ObjectID(fmt.Sprintf("%s/%s", *o.GetID(), item.Hash()))
+	var el ap.Item
+	if item.IsLink() {
+		l := ap.LinkNew(id, ap.LinkType)
+		l.Href = ap.URI(item.Data)
+		el = l
+	} else {
+		o := ap.ObjectNew(id, ap.ArticleType)
+		o.Content["en"] = string(item.Data)
+		o.Published = item.SubmittedAt
+		o.Updated = item.UpdatedAt
+		o.URL = ap.URI(app.PermaLink(item, handle))
+		o.MediaType = ap.MimeType(item.MimeType)
+		if item.Title != nil {
+			o.Name["en"] = string(item.Title)
+		}
+		el = o
+	}
+	return el, nil
+}
+
 func loadLikedItems(id int64) (*[]models.Content, *[]models.Vote, error) {
 	var err error
 	items := make([]models.Content, 0)
@@ -110,6 +135,9 @@ func loadSubmittedItems(id int64) (*[]models.Content, error) {
 
 	return &items, nil
 }
+func loadReceivedItems(id int64)(*[]models.Content, error) {
+	return nil, nil
+}
 
 func loadAccount(handle string) (*models.Account, error) {
 	a := models.Account{}
@@ -140,15 +168,20 @@ func loadAPPerson(a models.Account) *ap.Person {
 	p.PreferredUsername["en"] = a.Handle
 
 	out := ap.OutboxNew()
-	liked := ap.LikedNew()
-
 	out.URL = BuildObjectURL(p.URL, p.Outbox)
 	out.ID = BuildObjectID("", p, p.Outbox)
+	p.Outbox = out
+/*
+	in := ap.InboxNew()
+	in.URL = BuildObjectURL(p.URL, p.Inbox)
+	in.ID = BuildObjectID("", p,  p.Inbox)
+	p.Inbox = in
+
+	liked := ap.LikedNew()
 	liked.URL = BuildObjectURL(p.URL, p.Liked)
 	liked.ID = BuildObjectID("", p, p.Liked)
-
-	p.Outbox = out
 	p.Liked = liked
+*/
 
 	p.URL = BuildObjectURL(baseURL, p)
 
@@ -201,25 +234,11 @@ func loadAPLiked(a *models.Account, o ap.CollectionInterface, items *[]models.Co
 }
 
 func loadAPCollection(a *models.Account, o ap.CollectionInterface, items *[]models.Content) (ap.CollectionInterface, error) {
+	if items == nil || len(*items) == 0 {
+		return nil, fmt.Errorf("empty collection %T", o)
+	}
 	for _, item := range *items {
-		id := ap.ObjectID(fmt.Sprintf("%s/%s", *o.GetID(), item.Hash()))
-		var el ap.Item
-		if item.IsLink() {
-			l := ap.LinkNew(id, ap.LinkType)
-			l.Href = ap.URI(item.Data)
-			el = l
-		} else {
-			o := ap.ObjectNew(id, ap.ArticleType)
-			o.Content["en"] = string(item.Data)
-			o.Published = item.SubmittedAt
-			o.Updated = item.UpdatedAt
-			o.URL = ap.URI(app.PermaLink(item, a.Handle))
-			o.MediaType = ap.MimeType(item.MimeType)
-			if item.Title != nil {
-				o.Name["en"] = string(item.Title)
-			}
-			el = o
-		}
+		el, _ := loadAPItem(item, a.Handle, o)
 
 		//oc := ap.OrderedCollection(p.Outbox)
 		//pag := ap.OrderedCollectionPageNew(&oc)
@@ -260,8 +279,62 @@ func HandleAccount(w http.ResponseWriter, r *http.Request) {
 }
 
 
-// GET /api/accounts/:handle/:path
-func HandleAccountPath(w http.ResponseWriter, r *http.Request) {
+// GET /api/accounts/:handle/:collection/:hash
+func HandleAccountCollectionItem(w http.ResponseWriter, r *http.Request) {
+	var data []byte
+	a, err := loadAccount(chi.URLParam(r, "handle"))
+	if err != nil {
+		HandleError(w, r, http.StatusInternalServerError, err)
+		return
+	}
+	if a.Handle == "" {
+		HandleError(w, r, http.StatusNotFound, fmt.Errorf("acccount not found"))
+		return
+	}
+
+	p := loadAPPerson(*a)
+	json.Ctx = GetContext()
+
+	collection := chi.URLParam(r, "collection")
+	var whichCol ap.CollectionInterface
+	switch strings.ToLower(collection) {
+	case "inbox":
+		whichCol = p.Inbox
+	case "outbox":
+		whichCol = p.Outbox
+	case "liked":
+		whichCol = p.Liked
+	default:
+		err = fmt.Errorf("collection not found")
+	}
+
+	hash := chi.URLParam(r, "hash")
+	sel := `select "content_items"."id", "content_items"."key", "mime_type", "data", "title", "content_items"."score",
+			"submitted_at", "submitted_by", "path", "content_items"."flags" from "content_items"
+			where "content_items"."key" ~* $1`
+	rows, err := Db.Query(sel, hash)
+	if err != nil {
+		return
+	}
+
+	var c models.Content
+	var el ap.Item
+	for rows.Next() {
+		err = rows.Scan(&c.Id, &c.Key, &c.MimeType, &c.Data, &c.Title, &c.Score, &c.SubmittedAt, &c.SubmittedBy, &c.Path, &c.Flags)
+		if err != nil {
+			return
+		}
+		el, _ = loadAPItem(c, a.Handle, whichCol)
+	}
+
+	data, err = json.Marshal(el)
+	w.Header().Set("Content-Type", "application/ld+json; charset=utf-8")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.WriteHeader(http.StatusOK)
+	w.Write(data)
+}
+// GET /api/accounts/:handle/:collection
+func HandleAccountCollection(w http.ResponseWriter, r *http.Request) {
 	var data []byte
 	a, err := loadAccount(chi.URLParam(r, "handle"))
 	if err != nil {
@@ -276,8 +349,15 @@ func HandleAccountPath(w http.ResponseWriter, r *http.Request) {
 	p:= loadAPPerson(*a)
 	json.Ctx = GetContext()
 
-	path := chi.URLParam(r, "path")
-	switch strings.ToLower(path) {
+	collection := chi.URLParam(r, "collection")
+	switch strings.ToLower(collection) {
+	case "inbox":
+		items, err := loadReceivedItems(a.Id)
+		if err != nil {
+			log.Print(err)
+		}
+		_, err = loadAPCollection(a, p.Inbox, items)
+		data, err = json.Marshal(p.Inbox)
 	case "outbox":
 		items, err := loadSubmittedItems(a.Id)
 		if err != nil {
@@ -292,6 +372,8 @@ func HandleAccountPath(w http.ResponseWriter, r *http.Request) {
 		}
 		_, err = loadAPLiked(a, p.Liked, items, votes)
 		data, err = json.Marshal(p.Liked)
+	default:
+		err = fmt.Errorf("collection not found")
 	}
 
 	if err != nil {

@@ -136,7 +136,8 @@ func main() {
 	r.Route("/api", func(r chi.Router) {
 		r.Get("/accounts/verify_credentials", api.HandleVerifyCredentials)
 		r.Get("/accounts/{handle}", api.HandleAccount)
-		r.Get("/accounts/{handle}/{path}", api.HandleAccountPath)
+		r.Get("/accounts/{handle}/{collection}", api.HandleAccountCollection)
+		r.Get("/accounts/{handle}/{collection}/{hash}", api.HandleAccountCollectionItem)
 
 		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 			api.HandleError(w, r, http.StatusNotFound, fmt.Errorf("%s not found", r.RequestURI))
