@@ -4,5 +4,11 @@
 {{- else -}}
 {{- .Title -}}
 {{- end -}}
-<span class="domain">{{if .IsLink}}<a title="all submissions" href=/domains/{{.GetDomain}}></a>{{.GetDomain}}{{else}}self{{end}}</span>
+<span class="domain">
+{{- if .IsLink -}}
+    <a title="all submissions" href=/domains/{{.GetDomain}}></a>{{- .GetDomain -}}
+{{- else -}}
+    self
+{{- end -}}
+</span>
 </h1>
