@@ -10,15 +10,15 @@
     <menu id="top" class="col-l-3 row">
         <li class="col"><a id="act-invert" href="/#invert"><span class="inverted">Inv</span>ert</a></li>
         <li class="col"><a href="/submit">Add</a></li>
-    {{ if $account.IsLogged }}
+    {{- if $account.IsLogged }}
         <li class="acct col">{{$account.Handle}} <span class="score">{{$account.Score}}</span></li>
         <li class="col"><a href="/logout">Sign out</a></li>
-    {{else}}
+    {{- else}}
         <li class="col">Sign in</li>
         <li class="col"><a href="/login" class="far fa-trash-alt"></a></li>
     {{range $key, $value := $providers}}
         <li class="col"><a href="/auth/{{$key}}" class="fab fa-{{$key}}"></a></li>
-    {{end}}
-    {{end}}
+    {{- end -}}
+    {{- end -}}
     </menu>
 {{template "partials/flash" -}}
