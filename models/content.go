@@ -62,7 +62,7 @@ func (c *Content) GetKey() []byte {
 	return c.Key
 }
 func (c Content) IsTop() bool {
-	return c.Path == nil
+	return c.Path == nil || len(c.Path) == 0
 }
 func (c Content) Hash() string {
 	return c.Hash8()
