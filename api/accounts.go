@@ -1,17 +1,15 @@
 package api
 
 import (
-	"log"
 	"net/http"
-
-	"github.com/mariusor/littr.go/models"
-
 	"fmt"
-
 	"strings"
-		"github.com/go-chi/chi"
+	"github.com/juju/errors"
+	"github.com/go-chi/chi"
+	log "github.com/sirupsen/logrus"
 	ap "github.com/mariusor/activitypub.go/activitypub"
 	json "github.com/mariusor/activitypub.go/jsonld"
+	"github.com/mariusor/littr.go/models"
 	"github.com/mariusor/littr.go/app"
 )
 
@@ -23,7 +21,7 @@ func apObjectID(a models.Account) ap.ObjectID {
 
 func loadAPItem(item models.Content, handle string, o ap.CollectionInterface) (ap.Item, error) {
 	if o == nil {
-		return nil, fmt.Errorf("unable to load item")
+		return nil, errors.Errorf("unable to load item")
 	}
 	id := ap.ObjectID(fmt.Sprintf("%s/%s", *o.GetID(), item.Hash()))
 	var el ap.Item
@@ -190,13 +188,13 @@ func loadAPPerson(a models.Account) *ap.Person {
 
 func loadAPLiked(a *models.Account, o ap.CollectionInterface, items *[]models.Content, votes *[]models.Vote) (ap.CollectionInterface, error) {
 	if items == nil || len(*items) == 0 {
-		return nil, fmt.Errorf("no items loaded")
+		return nil, errors.Errorf("no items loaded")
 	}
 	if votes == nil || len(*votes) == 0 {
-		return nil, fmt.Errorf("no votes loaded")
+		return nil, errors.Errorf("no votes loaded")
 	}
 	if len(*items) != len(*votes) {
-		return nil, fmt.Errorf("items and votes lengths are not matching")
+		return nil, errors.Errorf("items and votes lengths are not matching")
 	}
 	for k, item := range *items {
 		vote := (*votes)[k]
@@ -235,7 +233,7 @@ func loadAPLiked(a *models.Account, o ap.CollectionInterface, items *[]models.Co
 
 func loadAPCollection(a *models.Account, o ap.CollectionInterface, items *[]models.Content) (ap.CollectionInterface, error) {
 	if items == nil || len(*items) == 0 {
-		return nil, fmt.Errorf("empty collection %T", o)
+		return nil, errors.Errorf("empty collection %T", o)
 	}
 	for _, item := range *items {
 		el, _ := loadAPItem(item, a.Handle, o)
@@ -264,8 +262,7 @@ func HandleAccount(w http.ResponseWriter, r *http.Request) {
 	}
 	p := loadAPPerson(*a)
 
-	json.Ctx = GetContext()
-	j, err := json.Marshal(p)
+	j, err := json.WithContext(GetContext()).Marshal(p)
 	if err != nil {
 		HandleError(w, r, http.StatusInternalServerError, err)
 		log.Print(err)
@@ -288,12 +285,11 @@ func HandleAccountCollectionItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if a.Handle == "" {
-		HandleError(w, r, http.StatusNotFound, fmt.Errorf("acccount not found"))
+		HandleError(w, r, http.StatusNotFound, errors.Errorf("acccount not found"))
 		return
 	}
 
 	p := loadAPPerson(*a)
-	json.Ctx = GetContext()
 
 	collection := chi.URLParam(r, "collection")
 	var whichCol ap.CollectionInterface
@@ -305,7 +301,7 @@ func HandleAccountCollectionItem(w http.ResponseWriter, r *http.Request) {
 	case "liked":
 		whichCol = p.Liked
 	default:
-		err = fmt.Errorf("collection not found")
+		err = errors.Errorf("collection not found")
 	}
 
 	hash := chi.URLParam(r, "hash")
@@ -327,7 +323,7 @@ func HandleAccountCollectionItem(w http.ResponseWriter, r *http.Request) {
 		el, _ = loadAPItem(c, a.Handle, whichCol)
 	}
 
-	data, err = json.Marshal(el)
+	data, err = json.WithContext(GetContext()).Marshal(el)
 	w.Header().Set("Content-Type", "application/ld+json; charset=utf-8")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(http.StatusOK)
@@ -342,12 +338,11 @@ func HandleAccountCollection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if a.Handle == "" {
-		HandleError(w, r, http.StatusNotFound, fmt.Errorf("acccount not found"))
+		HandleError(w, r, http.StatusNotFound, errors.Errorf("acccount not found"))
 		return
 	}
 
 	p:= loadAPPerson(*a)
-	json.Ctx = GetContext()
 
 	collection := chi.URLParam(r, "collection")
 	switch strings.ToLower(collection) {
@@ -371,9 +366,9 @@ func HandleAccountCollection(w http.ResponseWriter, r *http.Request) {
 			log.Print(err)
 		}
 		_, err = loadAPLiked(a, p.Liked, items, votes)
-		data, err = json.Marshal(p.Liked)
+		data, err = json.WithContext(GetContext()).Marshal(p.Liked)
 	default:
-		err = fmt.Errorf("collection not found")
+		err = errors.Errorf("collection not found")
 	}
 
 	if err != nil {
@@ -391,7 +386,7 @@ func HandleAccountCollection(w http.ResponseWriter, r *http.Request) {
 func HandleVerifyCredentials(w http.ResponseWriter, r *http.Request) {
 	a := CurrentAccount
 	if a == nil {
-		HandleError(w, r, http.StatusNotFound, fmt.Errorf("acccount not found"))
+		HandleError(w, r, http.StatusNotFound, errors.Errorf("acccount not found"))
 		return
 	}
 
@@ -401,14 +396,13 @@ func HandleVerifyCredentials(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if a.Handle == "" {
-		HandleError(w, r, http.StatusNotFound, fmt.Errorf("acccount not found"))
+		HandleError(w, r, http.StatusNotFound, errors.Errorf("acccount not found"))
 		return
 	}
 
 	p := loadAPPerson(*a)
 
-	json.Ctx = GetContext()
-	j, err := json.Marshal(p)
+	j, err := json.WithContext(GetContext()).Marshal(p)
 	if err != nil {
 		HandleError(w, r, http.StatusInternalServerError, err)
 		return

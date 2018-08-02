@@ -11,14 +11,15 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/mariusor/littr.go/api"
 	"github.com/mariusor/littr.go/app"
-	"log"
+	log "github.com/sirupsen/logrus"
+		"github.com/juju/errors"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
-)
+	)
 
 const defaultHost = "littr.git"
 const defaultPort = 3000
@@ -31,6 +32,11 @@ var littr app.Littr
 func init() {
 	authKey := []byte(os.Getenv("SESS_AUTH_KEY"))
 	encKey := []byte(os.Getenv("SESS_ENC_KEY"))
+	env := app.EnvType(os.Getenv("ENV"))
+	if !app.ValidEnv(env) {
+		env = app.DEV
+	}
+	littr.Env = env
 	if listenPort == 0 {
 		listenPort = defaultPort
 	}
@@ -38,10 +44,18 @@ func init() {
 		listenHost = defaultHost
 	}
 
+	log.SetFormatter(&log.TextFormatter{})
+	log.SetOutput(os.Stdout)
+
+	if littr.Env == app.DEV {
+		log.SetLevel(log.DebugLevel)
+	} else {
+		log.SetLevel(log.ErrorLevel)
+	}
 	gob.Register(app.Account{})
 	gob.Register(app.Flash{})
 	s := sessions.NewCookieStore(authKey, encKey)
-	//s.Options.Domain = listenHost
+	s.Options.Domain = listenHost
 	s.Options.Path = "/"
 
 	app.SessionStore = s
@@ -55,7 +69,7 @@ func init() {
 	connStr := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable", dbUser, dbPw, dbName)
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
-		log.Print(err)
+		log.Error(err)
 	}
 
 	api.Db = db
@@ -82,6 +96,16 @@ func FileServer(r chi.Router, path string, root http.FileSystem) {
 	}))
 }
 
+func Logger(next http.Handler) http.Handler {
+	DefaultLogger := RequestLogger(&middleware.DefaultLogFormatter{Logger: log.New()})
+	return DefaultLogger(next)
+}
+
+// RequestLogger returns a logger handler using a custom LogFormatter.
+func RequestLogger(f middleware.LogFormatter) func(next http.Handler) http.Handler {
+	return middleware.RequestLogger(f)
+}
+
 func main() {
 	var wait time.Duration
 	flag.DurationVar(&wait, "graceful-timeout", time.Second*15, "the duration for which the server gracefully wait for existing connections to finish - e.g. 15s or 1m")
@@ -90,12 +114,12 @@ func main() {
 	// Routes
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
-	r.Use(middleware.Logger)
+	r.Use(Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(littr.Sessions)
 
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
-		app.HandleError(w, r, http.StatusNotFound, fmt.Errorf("%s not found", r.RequestURI))
+		app.HandleError(w, r, http.StatusNotFound, errors.Errorf("%s not found", r.RequestURI))
 	})
 
 	workDir, _ := os.Getwd()
@@ -140,7 +164,7 @@ func main() {
 		r.Get("/accounts/{handle}/{collection}/{hash}", api.HandleAccountCollectionItem)
 
 		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
-			api.HandleError(w, r, http.StatusNotFound, fmt.Errorf("%s not found", r.RequestURI))
+			api.HandleError(w, r, http.StatusNotFound, errors.Errorf("%s not found", r.RequestURI))
 		})
 	})
 

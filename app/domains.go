@@ -1,13 +1,12 @@
 package app
 
 import (
-	"log"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 
 	"github.com/mariusor/littr.go/models"
 
 	"fmt"
-
 	"github.com/go-chi/chi"
 )
 

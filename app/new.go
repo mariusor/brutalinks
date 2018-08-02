@@ -2,11 +2,10 @@ package app
 
 import (
 	"bytes"
-	"fmt"
 	"net/http"
 	"net/url"
-		"log"
-
+	log "github.com/sirupsen/logrus"
+	"github.com/juju/errors"
 	"github.com/mariusor/littr.go/models"
 	"time"
 )
@@ -27,7 +26,7 @@ func detectMimeType(data []byte) string {
 
 func ContentFromRequest(r *http.Request) (*models.Content, error) {
 	if r.Method != http.MethodPost {
-		return nil, fmt.Errorf("invalid http method type")
+		return nil, errors.Errorf("invalid http method type")
 	}
 
 	i := models.Content{}
@@ -80,7 +79,7 @@ func ContentFromRequest(r *http.Request) (*models.Content, error) {
 		return nil, err
 	} else {
 		if rows, _ := res.RowsAffected(); rows == 0 {
-			return nil, fmt.Errorf("could not save item %q", i.Hash())
+			return nil, errors.Errorf("could not save item %q", i.Hash())
 		}
 	}
 	return &i, nil

@@ -2,12 +2,12 @@ package app
 
 import (
 	"encoding/json"
-	"fmt"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 	"time"
 
 	"html/template"
+	"github.com/juju/errors"
 
 	"github.com/gorilla/securecookie"
 	"github.com/mariusor/littr.go/models"
@@ -23,19 +23,19 @@ type registerModel struct {
 
 func AccountFromRequest(r *http.Request) (*models.Account, []error) {
 	if r.Method != http.MethodPost {
-		return nil, []error{fmt.Errorf("invalid http method type")}
+		return nil, []error{errors.Errorf("invalid http method type")}
 	}
 	errs := make([]error, 0)
 	a := models.Account{}
 	pw := r.PostFormValue("pw")
 	pwConfirm := r.PostFormValue("pw-confirm")
 	if pw != pwConfirm {
-		errs = append(errs, fmt.Errorf("the passwords don't match"))
+		errs = append(errs, errors.Errorf("the passwords don't match"))
 	}
 
 	agree := r.PostFormValue("agree")
 	if agree != "y" {
-		errs = append(errs, fmt.Errorf("you must agree not to be a dick to other people"))
+		errs = append(errs, errors.Errorf("you must agree not to be a dick to other people"))
 	}
 
 	if len(errs) > 0 {
@@ -73,7 +73,7 @@ func AccountFromRequest(r *http.Request) (*models.Account, []error) {
 			return nil, []error{err}
 		} else {
 			if rows, _ := res.RowsAffected(); rows == 0 {
-				return nil, []error{fmt.Errorf("could not save account %q", a.Hash())}
+				return nil, []error{errors.Errorf("could not save account %q", a.Hash())}
 			}
 		}
 	}

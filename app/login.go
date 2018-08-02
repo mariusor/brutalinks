@@ -1,12 +1,12 @@
 package app
 
 import (
-	"fmt"
 	"net/http"
 
 	"encoding/json"
-	"log"
+	log "github.com/sirupsen/logrus"
 
+	"github.com/juju/errors"
 	"github.com/mariusor/littr.go/models"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -42,7 +42,7 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	err = json.Unmarshal(a.Metadata, m)
 	if err != nil {
 		log.Print(err)
-		HandleError(w, r, StatusUnknown, fmt.Errorf("handle or password are wrong"))
+		HandleError(w, r, StatusUnknown, errors.Errorf("handle or password are wrong"))
 		return
 	}
 	log.Printf("Loaded pw: %q, salt: %q", m.Password, m.Salt)
@@ -52,7 +52,7 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	err = bcrypt.CompareHashAndPassword(m.Password, saltedpw)
 	if err != nil {
 		log.Print(err)
-		HandleError(w, r, StatusUnknown, fmt.Errorf("handle or password are wrong"))
+		HandleError(w, r, StatusUnknown, errors.Errorf("handle or password are wrong"))
 		return
 	}
 

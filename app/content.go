@@ -3,10 +3,10 @@ package app
 import (
 	"bytes"
 	"fmt"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 	"strings"
-
+	"github.com/juju/errors"
 	"github.com/mariusor/littr.go/models"
 
 	"github.com/go-chi/chi"
@@ -88,7 +88,7 @@ func ShowContent(w http.ResponseWriter, r *http.Request) {
 		m.Content = comment{Item: i, Path: p.Path, FullPath: p.FullPath()}
 	}
 	if p.Data == nil {
-		HandleError(w, r, http.StatusNotFound, fmt.Errorf("not found"))
+		HandleError(w, r, http.StatusNotFound, errors.Errorf("not found"))
 		return
 	}
 	items = append(items, i)
@@ -182,7 +182,7 @@ func HandleVoting(w http.ResponseWriter, r *http.Request) {
 		m.Content = comment{Item: i, Path: p.Path, FullPath: p.FullPath()}
 	}
 	if p.Data == nil {
-		HandleError(w, r, http.StatusNotFound, fmt.Errorf("not found"))
+		HandleError(w, r, http.StatusNotFound, errors.Errorf("not found"))
 		return
 	}
 	items = append(items, i)

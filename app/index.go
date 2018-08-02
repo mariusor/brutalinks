@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"fmt"
 	"html/template"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"math"
 	"net/http"
 	"os"
 	"strings"
 	"time"
-
+	"github.com/juju/errors"
 	"github.com/mariusor/littr.go/models"
 	"gopkg.in/russross/blackfriday.v2"
 )
@@ -274,10 +274,10 @@ func LoadVotes(a *Account, it []Item) ([]Vote, error) {
 		hashes[k.id] = k.Hash
 	}
 	if a == nil {
-		return nil, fmt.Errorf("no account to load for")
+		return nil, errors.Errorf("no account to load for")
 	}
 	if len(ids) == 0 {
-		return nil, fmt.Errorf("no ids to load")
+		return nil, errors.Errorf("no ids to load")
 	}
 	// this here code following is the ugliest I wrote in quite a long time
 	// so ugly it warrants its own fucking shame corner
@@ -385,6 +385,9 @@ func LoadItem(c models.Content, handle string) Item {
 // HandleIndex serves / request
 func HandleIndex(w http.ResponseWriter, r *http.Request) {
 	m := indexModel{Title: "Index", InvertedTheme: IsInverted(r)}
+	log.WithFields(log.Fields{
+		"index": "index page",
+	})
 
 	sel := fmt.Sprintf(`select "content_items"."id", "content_items"."key", "mime_type", "data", "title", "content_items"."score", 
 			"submitted_at", "submitted_by", "handle", "content_items"."flags" 

@@ -9,7 +9,7 @@ import (
 		"strings"
 	"reflect"
 	"os"
-
+	"github.com/juju/errors"
 	ap "github.com/mariusor/activitypub.go/activitypub"
 	j "github.com/mariusor/activitypub.go/jsonld"
 	"github.com/go-chi/chi"
@@ -48,11 +48,11 @@ func init() {
 }
 
 func Errorf(c int, m string, args ...interface{}) *ApiError {
-	return &ApiError{c, fmt.Errorf(m, args...)}
+	return &ApiError{c, errors.Errorf(m, args...)}
 }
 
-func GetContext() j.Ref {
-	return j.Ref(ap.ActivityBaseURI)
+func GetContext() j.IRI {
+	return j.IRI(ap.ActivityBaseURI)
 }
 
 func BuildObjectID(path string, parent ap.Item, cur ap.Item) ap.ObjectID {

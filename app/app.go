@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"fmt"
 	"html/template"
-	"log"
 	"math"
 	"net/http"
 	"os"
@@ -13,6 +12,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/juju/errors"
+	log "github.com/sirupsen/logrus"
 	"github.com/go-chi/chi"
 	"github.com/gorilla/sessions"
 	"github.com/mariusor/littr.go/models"
@@ -31,6 +32,7 @@ var SessionStore sessions.Store
 
 var CurrentAccount *Account
 var Renderer *render.Render
+
 
 const anonymous = "anonymous"
 
@@ -102,7 +104,26 @@ func (a *Account) IsLogged() bool {
 	return a != nil && (a.Handle != defaultAccount.Handle && a.CreatedAt != defaultAccount.CreatedAt)
 }
 
+type EnvType string
+const DEV EnvType = "development"
+const PROD EnvType = "production"
+
+var validEnvTypes = []EnvType{
+	DEV,
+	PROD,
+}
+
+func ValidEnv(s EnvType) bool {
+	for _, k := range validEnvTypes {
+		if k == s {
+			return true
+		}
+	}
+	return false
+}
+
 type Littr struct {
+	Env       EnvType
 	Host      string
 	Port      int64
 	Db        *sql.DB
@@ -133,7 +154,7 @@ func (l *Littr) host() string {
 }
 
 func (l *Littr) BaseUrl() string {
-	return fmt.Sprintf("http://%s", l.host())
+	return fmt.Sprintf("http://%s", l.Host)
 }
 
 func RenderTemplate(r *http.Request, w http.ResponseWriter, name string, m interface{}) error {
@@ -208,7 +229,7 @@ func AddVote(p models.Content, score int, userId int64) (bool, error) {
 			return false, err
 		}
 		if rows, _ := res.RowsAffected(); rows == 0 {
-			return false, fmt.Errorf("scoring %d failed on item %q", newWeight, p.Hash())
+			return false, errors.Errorf("scoring %d failed on item %q", newWeight, p.Hash())
 		}
 		log.Printf("%d scoring %d on %s", userId, newWeight, p.Hash())
 	}
@@ -220,10 +241,10 @@ func AddVote(p models.Content, score int, userId int64) (bool, error) {
 			return false, err
 		}
 		if rows, _ := res.RowsAffected(); rows == 0 {
-			return false, fmt.Errorf("content hash %q not found", p.Hash())
+			return false, errors.Errorf("content hash %q not found", p.Hash())
 		}
 		if rows, _ := res.RowsAffected(); rows > 1 {
-			return false, fmt.Errorf("content hash %q collision", p.Hash())
+			return false, errors.Errorf("content hash %q collision", p.Hash())
 		}
 		log.Printf("updated content_items with %d", newWeight)
 	}
@@ -232,6 +253,9 @@ func AddVote(p models.Content, score int, userId int64) (bool, error) {
 }
 
 func (l *Littr) Run(m http.Handler, wait time.Duration) {
+	log.Infof("starting debug level %q", log.GetLevel().String())
+	log.Infof("listening on %s", l.host())
+
 	srv := &http.Server{
 		Addr: l.host(),
 		// Good practice to set timeouts to avoid Slowloris attacks.
@@ -244,7 +268,7 @@ func (l *Littr) Run(m http.Handler, wait time.Duration) {
 	// Run our server in a goroutine so that it doesn't block.
 	go func() {
 		if err := srv.ListenAndServe(); err != nil {
-			log.Println(err)
+			log.Error(err)
 		}
 	}()
 
@@ -258,6 +282,7 @@ func (l *Littr) Run(m http.Handler, wait time.Duration) {
 
 	// Create a deadline to wait for.
 	ctx, cancel := context.WithTimeout(context.Background(), wait)
+	log.RegisterExitHandler(cancel)
 	defer cancel()
 	// Doesn't block if no connections, but will otherwise wait
 	// until the timeout deadline.
@@ -265,7 +290,7 @@ func (l *Littr) Run(m http.Handler, wait time.Duration) {
 	// Optionally, you could run srv.Shutdown in a goroutine and block on
 	// <-ctx.Done() if your application should wait for other services
 	// to finalize based on context cancellation.
-	log.Println("Shutting down")
+	log.Infof("Shutting down")
 	os.Exit(0)
 }
 
@@ -281,15 +306,19 @@ func (l *Littr) HandleCallback(w http.ResponseWriter, r *http.Request) {
 	provider := chi.URLParam(r, "provider")
 	providerErr := q["error"]
 	if providerErr != nil {
-		t, _ := template.New("error.html").ParseFiles(templateDir + "error.html")
-		t.Execute(w, fmt.Errorf("%s error %s", provider, providerErr))
+		errDescriptions := q["error_description"]
+		var errs = make([]error, 1)
+		errs[0] = errors.Errorf("Error for provider %q:\n", provider)
+		for _, errDesc := range errDescriptions {
+			errs = append(errs, errors.Errorf(errDesc))
+		}
+		HandleError(w, r, http.StatusForbidden, errs...)
 		return
 	}
 	code := q["code"]
 	state := q["state"]
 	if code == nil {
-		t, _ := template.New("error.html").ParseFiles(templateDir + "error.html")
-		t.Execute(w, fmt.Errorf("%s error: Empty authentication token", provider))
+		HandleError(w, r, http.StatusForbidden, errors.Errorf("%s error: Empty authentication token", provider))
 		return
 	}
 
