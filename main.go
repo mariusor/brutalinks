@@ -8,30 +8,36 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/gorilla/sessions"
+	"github.com/juju/errors"
 	_ "github.com/lib/pq"
 	"github.com/mariusor/littr.go/api"
 	"github.com/mariusor/littr.go/app"
 	log "github.com/sirupsen/logrus"
-		"github.com/juju/errors"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
-	)
+)
 
-const defaultHost = "littr.git"
+const defaultHost = "localhost"
 const defaultPort = 3000
 
-var listenHost = os.Getenv("HOSTNAME")
-var listenPort, _ = strconv.ParseInt(os.Getenv("PORT"), 10, 64)
+var listenHost string
+var listenPort int64
+var listenOn string
 
 var littr app.Littr
 
-func init() {
-	authKey := []byte(os.Getenv("SESS_AUTH_KEY"))
-	encKey := []byte(os.Getenv("SESS_ENC_KEY"))
+func loadEnv(l *app.Littr) (bool, error) {
+	l.SessionKeys[0] = []byte(os.Getenv("SESS_AUTH_KEY"))
+	l.SessionKeys[1] = []byte(os.Getenv("SESS_ENC_KEY"))
+
+	listenHost = os.Getenv("HOSTNAME")
+	listenPort, _ = strconv.ParseInt(os.Getenv("PORT"), 10, 64)
+	listenOn = os.Getenv("LISTEN")
+
 	env := app.EnvType(os.Getenv("ENV"))
 	if !app.ValidEnv(env) {
 		env = app.DEV
@@ -43,24 +49,33 @@ func init() {
 	if listenHost == "" {
 		listenHost = defaultHost
 	}
+	l.Host = listenHost
+	l.Port = listenPort
+	l.Listen = listenOn
+
+	return true, nil
+}
+
+func init() {
+	littr = app.Littr{Host: listenHost, Port: listenPort}
+
+	loadEnv(&littr)
 
 	log.SetFormatter(&log.TextFormatter{})
 	log.SetOutput(os.Stdout)
 
-	if littr.Env == app.DEV {
-		log.SetLevel(log.DebugLevel)
-	} else {
+	if littr.Env == app.PROD {
 		log.SetLevel(log.ErrorLevel)
+	} else {
+		log.SetLevel(log.DebugLevel)
 	}
 	gob.Register(app.Account{})
 	gob.Register(app.Flash{})
-	s := sessions.NewCookieStore(authKey, encKey)
+
+	s := sessions.NewCookieStore(littr.SessionKeys[0], littr.SessionKeys[1])
 	s.Options.Domain = listenHost
 	s.Options.Path = "/"
-
 	app.SessionStore = s
-
-	littr = app.Littr{Host: listenHost, Port: listenPort}
 
 	dbPw := os.Getenv("DB_PASSWORD")
 	dbName := os.Getenv("DB_NAME")
