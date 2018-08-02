@@ -1,22 +1,33 @@
 @charset "UTF-8";
+@media (max-width: 480px) {
+    :root {
+        font-size: 3vw;
+    }
+}
+@media (min-width: 480px) {
+    :root {
+        font-size: 2.5vw;
+    }
+}
 @media (min-width: 576px) {
-    html {
-        font-size: 16pt;
+    :root {
+        font-size: 2vw;
     }
 }
 @media (min-width: 768px) {
-    html {
-        font-size: 14pt;
+    :root {
+        font-size: 1.8vw;
+
     }
 }
 @media (min-width: 992px) {
-    html {
-        font-size: 12pt;
+    :root {
+        font-size: 1.5vw;
     }
 }
 @media (min-width: 1200px) {
-    html{
-        font-size: 12pt;
+    :root {
+        font-size: 1.2vw;
     }
 }
 :root {}
@@ -82,24 +93,19 @@ body>header h1 a:before {
     margin: 0.2em 0;
 }
 .item h1 {
-    font-weight: bolder;
-    font-size: 1.6em;
-}
-.item h2 {
-    font-weight: bold;
-    font-size: 1.4em;
-}
-.item h3 {
-    font-weight: bolder;
     font-size: 1.2em;
 }
+.item h2 {
+    font-size: 1.12em;
+}
+.item h3 {
+    font-size: 1.09em;
+}
 .item h4 {
-    font-weight: bold;
-    font-size: 1.1em;
+    font-size: 1em;
 }
 .item h5, .item h6 {
-    font-weight: bold;
-    font-size: 1em;
+    font-size: 0.9em;
 }
 .item h1 a {
     padding-left: 0.3em;
@@ -306,6 +312,7 @@ menu.meta-items, menu#auth, menu#top {
     display: inline;
     margin: 0;
     padding: 0;
+    text-align: right;
 }
 menu.meta-items li, menu#auth li, menu#top li {
     display:inline;
@@ -375,15 +382,10 @@ footer #auth, header #top  {
 menu#auth {
     margin-right:2em;
 }
-menu#auth li:first-child::before,
-menu#auth li:nth-child(2)::before,
 menu#top li:first-child::before  {
     content: "";
 }
-menu#auth li:first-child::after {
-    content: ": ";
-}
-menu#auth li::before, menu#top li::before {
+menu#top li::before {
     content: " | ";
 }
 .new-acct-details {

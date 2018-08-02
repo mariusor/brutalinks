@@ -6,18 +6,18 @@
     {{ .Title }}
     {{- else -}} allowed{{- end -}}
     {{- end -}}  --> */ -}}
-    <a href="/" title="littr.me" alt="littr.me">littr me</a></h1>
-    <menu id="top" class="col-l-3 row">
-        <li class="col"><a id="act-invert" href="/#invert"><span class="inverted">Inv</span>ert</a></li>
-        <li class="col"><a href="/submit">Add</a></li>
-    {{- if $account.IsLogged }}
-        <li class="acct col">{{$account.Handle}} <span class="score">{{$account.Score}}</span></li>
-        <li class="col"><a href="/logout">Sign out</a></li>
-    {{- else}}
-        <li class="col">Sign in</li>
-        <li class="col"><a href="/login" class="far fa-trash-alt"></a></li>
+    <a href="/" title="littr.me" alt="littr.me">littr<small> me</small></a></h1>
+    <menu id="top" class="col-xs-8 row">
+    {{ if $account.IsLogged }}
+        <li class="acct">{{$account.Handle}} <span class="score">{{$account.Score}}</span></li>
+        <li class=""><a href="/logout">Sign out</a></li>
+    {{end -}}
+        <li class=""><a id="act-invert" href="/#invert"><span class="inverted">Inv</span>ert</a></li>
+        <li class=""><a href="/submit">Add</a></li>
+    {{- if not $account.IsLogged }}
+        <li class="auth-local"><a href="/login" title="Local auth" class="far fa-trash-alt"></a></li>
     {{range $key, $value := $providers}}
-        <li class="col"><a href="/auth/{{$key}}" class="fab fa-{{$key}}"></a></li>
+        <li class=""><a href="/auth/{{$key}}" title="{{$value}} auth" class="fab fa-{{$key}}"></a></li>
     {{- end -}}
     {{- end -}}
     </menu>
