@@ -12,14 +12,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/juju/errors"
-	log "github.com/sirupsen/logrus"
 	"github.com/go-chi/chi"
 	"github.com/gorilla/sessions"
+	"github.com/juju/errors"
 	"github.com/mariusor/littr.go/models"
-	"golang.org/x/oauth2"
+	log "github.com/sirupsen/logrus"
 	"github.com/unrolled/render"
-)
+	"golang.org/x/oauth2"
+	)
 
 const (
 	sessionName   = "_s"
@@ -32,7 +32,6 @@ var SessionStore sessions.Store
 
 var CurrentAccount *Account
 var Renderer *render.Render
-
 
 const anonymous = "anonymous"
 
@@ -52,10 +51,10 @@ type Flash struct {
 
 func init() {
 	Renderer = render.New(render.Options{
-		Directory: templateDir,
-		Asset: nil,
+		Directory:  templateDir,
+		Asset:      nil,
 		AssetNames: nil,
-		Layout: "layout",
+		Layout:     "layout",
 		Extensions: []string{".html"},
 		Funcs: []template.FuncMap{{
 			"isInverted":     IsInverted,
@@ -71,15 +70,15 @@ func init() {
 			"mod":                func(lvl int) float64 { return math.Mod(float64(lvl), float64(10)) },
 			"CleanFlashMessages": func() string { return "" }, //CleanFlashMessages,
 		}},
-		Delims: render.Delims{"{{", "}}"},
-		Charset: "UTF-8",
+		Delims:         render.Delims{"{{", "}}"},
+		Charset:        "UTF-8",
 		DisableCharset: false,
 		//IndentJSON: false,
 		//IndentXML: false,
 		//PrefixJSON: []byte(""),
 		//PrefixXML: []byte(""),
 		BinaryContentType: "application/octet-stream",
-		HTMLContentType: "text/html",
+		HTMLContentType:   "text/html",
 		//JSONContentType: "application/json",
 		//JSONPContentType: "application/javascript",
 		//TextContentType: "text/plain",
@@ -105,8 +104,10 @@ func (a *Account) IsLogged() bool {
 }
 
 type EnvType string
+
 const DEV EnvType = "development"
 const PROD EnvType = "production"
+const QA EnvType = "qa"
 
 var validEnvTypes = []EnvType{
 	DEV,
@@ -123,11 +124,13 @@ func ValidEnv(s EnvType) bool {
 }
 
 type Littr struct {
-	Env       EnvType
-	Host      string
-	Port      int64
-	Db        *sql.DB
-	FlashData []interface{}
+	Env         EnvType
+	Host        string
+	Port        int64
+	Listen      string
+	Db          *sql.DB
+	SessionKeys [2][]byte
+	FlashData   []interface{}
 }
 
 type errorModel struct {
@@ -146,6 +149,9 @@ func GetSession(r *http.Request) *sessions.Session {
 }
 
 func (l *Littr) host() string {
+	if len(l.Listen) > 0 {
+		return l.Listen
+	}
 	var port string
 	if l.Port != 0 {
 		port = fmt.Sprintf(":%d", l.Port)
@@ -276,7 +282,6 @@ func (l *Littr) Run(m http.Handler, wait time.Duration) {
 	// We'll accept graceful shutdowns when quit via SIGINT (Ctrl+C)
 	// SIGKILL, SIGQUIT or SIGTERM (Ctrl+/) will not be caught.
 	signal.Notify(c, os.Interrupt)
-
 	// Block until we receive our signal.
 	<-c
 
@@ -290,7 +295,7 @@ func (l *Littr) Run(m http.Handler, wait time.Duration) {
 	// Optionally, you could run srv.Shutdown in a goroutine and block on
 	// <-ctx.Done() if your application should wait for other services
 	// to finalize based on context cancellation.
-	log.Infof("Shutting down")
+	log.Infof("shutting down")
 	os.Exit(0)
 }
 

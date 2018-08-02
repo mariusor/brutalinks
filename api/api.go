@@ -6,13 +6,13 @@ import (
 	"net/http"
 
 	"fmt"
-		"strings"
-	"reflect"
-	"os"
+	"github.com/go-chi/chi"
 	"github.com/juju/errors"
 	ap "github.com/mariusor/activitypub.go/activitypub"
 	j "github.com/mariusor/activitypub.go/jsonld"
-	"github.com/go-chi/chi"
+	"os"
+	"reflect"
+	"strings"
 )
 
 var Db *sql.DB
@@ -61,14 +61,14 @@ func BuildObjectID(path string, parent ap.Item, cur ap.Item) ap.ObjectID {
 
 func BuildObjectURL(b ap.LinkOrURI, el ap.Item) ap.URI {
 	var (
-		label            = ""
-		typeOutbox       = reflect.TypeOf(ap.Outbox{})
-		typeOutboxStream = reflect.TypeOf(ap.OutboxStream{})
-		typeInbox        = reflect.TypeOf(ap.Inbox{})
-		typeInboxStream  = reflect.TypeOf(ap.InboxStream{})
-		typeLiked        = reflect.TypeOf(ap.Liked{})
-		typeLikedCollection        = reflect.TypeOf(ap.LikedCollection{})
-		typePerson        = reflect.TypeOf(ap.Person{})
+		label               = ""
+		typeOutbox          = reflect.TypeOf(ap.Outbox{})
+		typeOutboxStream    = reflect.TypeOf(ap.OutboxStream{})
+		typeInbox           = reflect.TypeOf(ap.Inbox{})
+		typeInboxStream     = reflect.TypeOf(ap.InboxStream{})
+		typeLiked           = reflect.TypeOf(ap.Liked{})
+		typeLikedCollection = reflect.TypeOf(ap.LikedCollection{})
+		typePerson          = reflect.TypeOf(ap.Person{})
 	)
 	typ := reflect.TypeOf(el)
 	val := reflect.ValueOf(el)
@@ -96,7 +96,7 @@ func BuildObjectURL(b ap.LinkOrURI, el ap.Item) ap.URI {
 			break
 		}
 	}
-	pURL :=  ap.URI(BaseURL)
+	pURL := ap.URI(BaseURL)
 	if b != nil && b.GetLink() != "" {
 		pURL = b.GetLink()
 	}
@@ -105,7 +105,7 @@ func BuildObjectURL(b ap.LinkOrURI, el ap.Item) ap.URI {
 }
 
 func HandleApiCall(w http.ResponseWriter, r *http.Request) {
-	path := strings.ToLower(chi.URLParam(r,"handle"))
+	path := strings.ToLower(chi.URLParam(r, "handle"))
 	fmt.Sprintf("%s", strings.Split(path, "/"))
 }
 

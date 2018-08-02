@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	"html/template"
 	"github.com/juju/errors"
+	"html/template"
 
 	"github.com/gorilla/securecookie"
 	"github.com/mariusor/littr.go/models"

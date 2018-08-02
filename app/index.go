@@ -3,16 +3,16 @@ package app
 import (
 	"bytes"
 	"fmt"
-	"html/template"
+	"github.com/juju/errors"
+	"github.com/mariusor/littr.go/models"
 	log "github.com/sirupsen/logrus"
+	"gopkg.in/russross/blackfriday.v2"
+	"html/template"
 	"math"
 	"net/http"
 	"os"
 	"strings"
 	"time"
-	"github.com/juju/errors"
-	"github.com/mariusor/littr.go/models"
-	"gopkg.in/russross/blackfriday.v2"
 )
 
 const (

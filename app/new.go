@@ -2,11 +2,11 @@ package app
 
 import (
 	"bytes"
-	"net/http"
-	"net/url"
-	log "github.com/sirupsen/logrus"
 	"github.com/juju/errors"
 	"github.com/mariusor/littr.go/models"
+	log "github.com/sirupsen/logrus"
+	"net/http"
+	"net/url"
 	"time"
 )
 
@@ -54,7 +54,7 @@ func ContentFromRequest(r *http.Request) (*models.Content, error) {
 	ins := `insert into "content_items" ("key", "title", "data", "mime_type", "submitted_by", "submitted_at", "updated_at") 
 		values($1, $2, $3, $4, $5, $6, $7)`
 
-	var params = make([]interface{},0)
+	var params = make([]interface{}, 0)
 	params = append(params, i.Key)
 	params = append(params, i.Title)
 	params = append(params, i.Data)
@@ -95,6 +95,7 @@ func ShowSubmit(w http.ResponseWriter, r *http.Request) {
 
 	RenderTemplate(r, w, "new", m)
 }
+
 // HandleSubmit handles POST /submit requests
 // HandleSubmit handles POST /~handle/hash requests
 // HandleSubmit handles POST /year/month/day/hash requests

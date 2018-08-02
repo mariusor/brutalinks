@@ -5,11 +5,11 @@ import (
 	log "github.com/sirupsen/logrus"
 	"net/http"
 
-	"github.com/mariusor/littr.go/models"
-	"github.com/juju/errors"
 	"github.com/go-chi/chi"
+	"github.com/juju/errors"
 	"github.com/mariusor/activitypub.go/activitypub"
 	"github.com/mariusor/activitypub.go/jsonld"
+	"github.com/mariusor/littr.go/models"
 	"io/ioutil"
 )
 
@@ -56,7 +56,7 @@ func HandleUser(w http.ResponseWriter, r *http.Request) {
 			}
 			log.Infof("resp %s", body)
 			log.Infof("resp %#v", p)
-			m, _ :=  loadFromAPPerson(p)
+			m, _ := loadFromAPPerson(p)
 			log.Debugf("resp %#v", m)
 		}
 	}

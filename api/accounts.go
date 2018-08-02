@@ -1,16 +1,16 @@
 package api
 
 import (
-	"net/http"
 	"fmt"
-	"strings"
-	"github.com/juju/errors"
 	"github.com/go-chi/chi"
-	log "github.com/sirupsen/logrus"
+	"github.com/juju/errors"
 	ap "github.com/mariusor/activitypub.go/activitypub"
 	json "github.com/mariusor/activitypub.go/jsonld"
-	"github.com/mariusor/littr.go/models"
 	"github.com/mariusor/littr.go/app"
+	"github.com/mariusor/littr.go/models"
+	log "github.com/sirupsen/logrus"
+	"net/http"
+	"strings"
 )
 
 var CurrentAccount *models.Account
@@ -133,7 +133,7 @@ func loadSubmittedItems(id int64) (*[]models.Content, error) {
 
 	return &items, nil
 }
-func loadReceivedItems(id int64)(*[]models.Content, error) {
+func loadReceivedItems(id int64) (*[]models.Content, error) {
 	return nil, nil
 }
 
@@ -169,17 +169,17 @@ func loadAPPerson(a models.Account) *ap.Person {
 	out.URL = BuildObjectURL(p.URL, p.Outbox)
 	out.ID = BuildObjectID("", p, p.Outbox)
 	p.Outbox = out
-/*
-	in := ap.InboxNew()
-	in.URL = BuildObjectURL(p.URL, p.Inbox)
-	in.ID = BuildObjectID("", p,  p.Inbox)
-	p.Inbox = in
+	/*
+		in := ap.InboxNew()
+		in.URL = BuildObjectURL(p.URL, p.Inbox)
+		in.ID = BuildObjectID("", p,  p.Inbox)
+		p.Inbox = in
 
-	liked := ap.LikedNew()
-	liked.URL = BuildObjectURL(p.URL, p.Liked)
-	liked.ID = BuildObjectID("", p, p.Liked)
-	p.Liked = liked
-*/
+		liked := ap.LikedNew()
+		liked.URL = BuildObjectURL(p.URL, p.Liked)
+		liked.ID = BuildObjectID("", p, p.Liked)
+		p.Liked = liked
+	*/
 
 	p.URL = BuildObjectURL(baseURL, p)
 
@@ -203,9 +203,9 @@ func loadAPLiked(a *models.Account, o ap.CollectionInterface, items *[]models.Co
 			continue
 		}
 
-		typ :=  ap.ArticleType
+		typ := ap.ArticleType
 		if item.IsLink() {
-			typ =  ap.LinkType
+			typ = ap.LinkType
 		}
 		oid := ap.ObjectID(fmt.Sprintf("%s/%s/outbox/%s", AccountsURL, item.Handle, item.Hash()))
 		obj := ap.ObjectNew(oid, typ)
@@ -218,7 +218,7 @@ func loadAPLiked(a *models.Account, o ap.CollectionInterface, items *[]models.Co
 			l.Published = vote.SubmittedAt
 			l.Updated = item.UpdatedAt
 			it = l
-		} else  {
+		} else {
 			d := ap.DislikeNew(id, obj)
 			d.Published = vote.SubmittedAt
 			d.Updated = item.UpdatedAt
@@ -275,7 +275,6 @@ func HandleAccount(w http.ResponseWriter, r *http.Request) {
 	w.Write(j)
 }
 
-
 // GET /api/accounts/:handle/:collection/:hash
 func HandleAccountCollectionItem(w http.ResponseWriter, r *http.Request) {
 	var data []byte
@@ -329,6 +328,7 @@ func HandleAccountCollectionItem(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write(data)
 }
+
 // GET /api/accounts/:handle/:collection
 func HandleAccountCollection(w http.ResponseWriter, r *http.Request) {
 	var data []byte
@@ -342,7 +342,7 @@ func HandleAccountCollection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	p:= loadAPPerson(*a)
+	p := loadAPPerson(*a)
 
 	collection := chi.URLParam(r, "collection")
 	switch strings.ToLower(collection) {

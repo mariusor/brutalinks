@@ -2,7 +2,7 @@ package api
 
 import (
 	"net/http"
-	)
+)
 
 // GET /api/outbox
 func HandleServiceOutbox(w http.ResponseWriter, r *http.Request) {

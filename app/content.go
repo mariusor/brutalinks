@@ -3,11 +3,11 @@ package app
 import (
 	"bytes"
 	"fmt"
+	"github.com/juju/errors"
+	"github.com/mariusor/littr.go/models"
 	log "github.com/sirupsen/logrus"
 	"net/http"
 	"strings"
-	"github.com/juju/errors"
-	"github.com/mariusor/littr.go/models"
 
 	"github.com/go-chi/chi"
 )
