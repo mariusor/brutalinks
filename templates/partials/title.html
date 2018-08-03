@@ -2,7 +2,7 @@
 <h1 data-hash="{{.Hash}}" class="title">
 {{- if .IsLink -}}
 <a class="titles" data-hash="{{.Hash}}" href="{{.Data | printf "%s"}}">{{- .Title -}}</a>
-{{- else -}}else{{- .Title -}}{{- end -}}
+{{- else -}}{{- .Title -}}{{- end -}}
 </h1>
 <h6 class="domain">
 {{- if .IsLink -}}<a title="all submissions" href=/domains/{{.GetDomain}}></a>{{- .GetDomain -}}{{- else -}} self {{- end -}}
