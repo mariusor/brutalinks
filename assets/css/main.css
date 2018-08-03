@@ -68,10 +68,10 @@ body>header h1 a {
 body>header h1 a:hover {
     text-decoration: none;
 }
-body.inverted header:first-of-type h1 a,
-body.inverted header:first-of-type h1 a:active,
-body.inverted header:first-of-type h1 a:visited,
-body.inverted header:first-of-type h1 a:focus
+.inverted > header h1 a,
+.inverted > header h1 a:active,
+.inverted > header h1 a:visited,
+.inverted > header h1 a:focus
 {
     color: Window;
 }
@@ -173,6 +173,9 @@ ol {
 }
 ol li {
     margin-bottom: .8rem;
+}
+ol.comments {
+    padding-left: 2vmin;
 }
 ol.comments li {
     list-style: none;

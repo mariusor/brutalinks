@@ -1,15 +1,15 @@
 {{ $count := .Children | len }}
-{{- if $count -}}
+{{/* if $count -}}
 <details>
 <summary>
-{{end}}
+{{end */}}
 <section class="item row no-gutters" id="i-{{.Hash}}" data-hash="{{.Hash}}">
 {{- template "partials/item" . -}}
 </section>
 {{- if $count -}}
-</summary>
+{{/*</summary>*/}}
 {{ template "partials/content/comments" . }}
 {{- end -}}
-{{- if $count | gt 1 -}}
+{{/* - if $count | gt 1 -}}
 </details>
-{{end}}
+{{end */}}
