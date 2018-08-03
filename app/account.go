@@ -17,7 +17,7 @@ type userModel struct {
 	Title         string
 	InvertedTheme bool
 	User          *Account
-	Items         []Item
+	Items         []comment
 }
 
 func loadFromAPPerson(p activitypub.Person) (Account, error) {
@@ -38,7 +38,7 @@ func HandleUser(w http.ResponseWriter, r *http.Request) {
 	found := false
 
 	handle := chi.URLParam(r, "handle")
-	if true {
+	if false {
 		resp, err := http.Get(fmt.Sprintf("http://localhost:3000/api/accounts/%s", handle))
 		if err != nil {
 			log.Error(err)
@@ -95,6 +95,7 @@ func HandleUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	items := make([]Item, 0)
 	selC := `select "content_items"."id", "content_items"."key", "mime_type", "data", "title", "content_items"."score", 
 			"submitted_at", "content_items"."flags", "content_items"."metadata", "accounts"."handle" f from "content_items" 
 			left join "accounts" on "accounts"."id" = "content_items"."submitted_by" 
@@ -114,10 +115,12 @@ func HandleUser(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			l := LoadItem(p, handle)
-			m.Items = append(m.Items, l)
+			com := comment{Item: l, Path: p.Path, FullPath: p.FullPath()}
+			items = append(items, l)
+			m.Items = append(m.Items, com)
 		}
 	}
-	_, err := LoadVotes(CurrentAccount, m.Items)
+	_, err := LoadVotes(CurrentAccount, items)
 	if err != nil {
 		log.Error(err)
 	}
@@ -126,5 +129,5 @@ func HandleUser(w http.ResponseWriter, r *http.Request) {
 		log.Error(err)
 	}
 
-	RenderTemplate(r, w, "user", m)
+	RenderTemplate(r, w, "listing", m)
 }

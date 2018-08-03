@@ -1,6 +1,6 @@
 <!-- {{ . | printf "%#v" }} -->
-<ol class="comments lvl-{{ .Level | mod }}" data-parent="{{ .Hash }}" id="c-{{.Hash}}">
-{{- range $key, $value := .Children}}
+<ol class="comments no-gutters container lvl-{{ .Level | mod }}" data-parent="{{ .Hash }}" id="c-{{.Hash}}">
+{{- range $key, $value := .Children }}
     <li data-index="{{$key}}" class="comment" data-hash="{{.Hash}}">
         {{template "partials/content/comment" $value }}
     </li>

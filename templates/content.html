@@ -1,17 +1,12 @@
-<section class="item op col-12" id="i-{{.Content.Hash}}" data-hash="{{.Content.Hash}}">
-{{- if .Content.Item.Deleted -}}
-    <del class="deleted titles" data-hash="{{.Content.Hash}}">deleted</del>
-{{- else -}}
-{{- template "partials/score" .Content.Item -}}
-{{- if .Content.Item.IsTop -}}{{template "partials/link" .Content.Item}}{{- end -}}
-{{- template "partials/data" .Content.Item -}}
-{{- template "partials/meta" .Content.Item -}}
-{{- end -}}
+<section class="item op row" id="i-{{.Content.Hash}}" data-hash="{{.Content.Hash}}">
+{{ template "partials/item" .Content }}
 </section>
+{{- if not .Content.Item.Deleted -}}
 <section id="reply">{{template "partials/new/submit" . }}</section>
+{{end}}
 <hr class="w-100"/>
 {{- if .Content.Children | len -}}
-<section id="items">{{ template "partials/content/comments" .Content }}</section>
+{{ template "partials/content/comments" .Content }}
 {{- else -}}
-<section class="col-12">Nobody has any thoughts about this... yet.</section>
+Nobody has any thoughts about this... yet.
 {{- end -}}

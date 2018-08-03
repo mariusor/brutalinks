@@ -1,9 +1,15 @@
-<section class="item" id="i-{{.Hash}}" data-hash="{{.Hash}}">
-{{- template "partials/score" .Item -}}
-{{- template "partials/data" .Item -}}
-{{if .Item.IsTop }}{{- template "partials/link" .Item -}}{{end}}
-{{- template "partials/meta" .Item -}}
+{{ $count := .Children | len }}
+{{- if $count -}}
+<details>
+<summary>
+{{end}}
+<section class="item row no-gutters" id="i-{{.Hash}}" data-hash="{{.Hash}}">
+{{- template "partials/item" . -}}
 </section>
-{{- if .Children | len -}}
+{{- if $count -}}
+</summary>
 {{ template "partials/content/comments" . }}
 {{- end -}}
+{{- if $count | gt 1 -}}
+</details>
+{{end}}

@@ -6,10 +6,10 @@
 </head>
 <body class="container-fluid{{ if .InvertedTheme }} inverted{{end}}">
 <header class="container-fluid row">{{ template "partials/header" . }}</header>
-<main class="container-fluid row no-gutters">
+<main class="no-gutters">
 {{ yield -}}
 </main>
-<footer>
+<footer class="container-fluid row">
 {{- template "partials/footer" . -}}
 </footer>
 </body>

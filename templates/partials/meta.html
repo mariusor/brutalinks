@@ -1,11 +1,14 @@
-<aside class="meta">
-    submitted <time datetime="{{ .ISODate }}" title="{{ .ISODate }}">{{ .FromNow }}</time>
-    {{- if .SubmittedBy }} by <a class="by" href="/~{{ .SubmittedBy }}">{{ .SubmittedBy }}</a>{{end}}
+{{- $count := .Children | len -}}
+{{- $it := .Item -}}
+<aside class="meta col offset-2">
+    submitted <time datetime="{{ $it.ISODate }}" title="{{ $it.ISODate }}">{{ $it.FromNow }}</time>
+    {{- if $it.SubmittedBy }} by <a class="by" href="/~{{ $it.SubmittedBy }}">{{ $it.SubmittedBy }}</a>{{end}}
     <menu class="meta-items">
-        {{if .PermaLink }}<li><a href="{{.PermaLink}}" class="to-item" title="Go to discussion"></a></li>{{end}}
-        {{- if not .IsTop -}}
-        {{if .ParentLink }}<li><a href="{{.ParentLink}}" class="to-parent" title="Go to parent"></a></li>{{end}}
-        {{if .OPLink }}<li><a href="{{.OPLink}}" class="to-op" title="Go to original post"></a></li>{{- end}}
-        {{- end}}
+        {{if $it.PermaLink }}<li><a href="{{$it.PermaLink}}" class="to-item" title="Go to discussion"></a></li>{{end}}
+        {{- if not $it.IsTop -}}
+        {{if $it.ParentLink }}<li><a href="{{$it.ParentLink}}" class="to-parent" title="Go to parent"></a></li>{{end}}
+        {{if $it.OPLink }}<li><a href="{{$it.OPLink}}" class="to-op" title="Go to original post"></a></li>{{end}}
+        {{- end -}}
     </menu>
+    {{- if not $it.IsTop -}}{{if $count }}<span>{ {{$count}} child{{if $count | ne 1 }}ren{{end}} }</span>{{end}}{{end}}
 </aside>

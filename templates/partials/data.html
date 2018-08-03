@@ -1,15 +1,12 @@
-{{- if .IsSelf -}}
-{{- if not .Deleted }}
-<article class="col data {{ .MimeType | sluggify }}{{if not .Title}} comment{{end}}">
-{{- if eq .MimeType "text/html" -}}
-{{.HTML}}
+<article class="col-11">
+{{- if .Title -}}
+{{ template "partials/title" . }}
 {{- end -}}
-{{- if eq .MimeType "text/plain" -}}
-{{.Text}}
-{{end}}
-{{- if eq .MimeType "text/markdown" -}}
-{{.Markdown}}
+{{- if .IsSelf -}}
+<section class="data {{ .MimeType | sluggify }}{{if not .Title}} comment{{end}}">
+{{- if eq .MimeType "text/html" -}}{{- .HTML -}}{{- end -}}
+{{- if eq .MimeType "text/plain" -}}{{- .Text -}}{{end}}
+{{- if eq .MimeType "text/markdown" -}}{{- .Markdown -}}{{- end -}}
+</section>
 {{- end -}}
 </article>
-{{- end -}}
-{{- end -}}

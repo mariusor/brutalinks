@@ -244,7 +244,7 @@ func (i comment) Level() int {
 type indexModel struct {
 	Title         string
 	InvertedTheme bool
-	Items         []Item
+	Items         []comment
 	User          *Account
 }
 
@@ -389,6 +389,7 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 		"index": "index page",
 	})
 
+	items := make([]Item, 0)
 	sel := fmt.Sprintf(`select "content_items"."id", "content_items"."key", "mime_type", "data", "title", "content_items"."score", 
 			"submitted_at", "submitted_by", "handle", "content_items"."flags" 
 		from "content_items" 
@@ -411,13 +412,15 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		l := LoadItem(p, handle)
-		m.Items = append(m.Items, l)
+		com := comment{Item: l, Path: p.Path, FullPath: p.FullPath()}
+		items = append(items, l)
+		m.Items = append(m.Items, com)
 	}
 
-	_, err = LoadVotes(CurrentAccount, m.Items)
+	_, err = LoadVotes(CurrentAccount, items)
 	if err != nil {
 		log.Print(err)
 	}
 
-	RenderTemplate(r, w, "index", m)
+	RenderTemplate(r, w, "listing", m)
 }
