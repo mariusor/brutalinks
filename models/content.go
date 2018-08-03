@@ -32,11 +32,6 @@ type Content struct {
 	parentLink  string
 }
 
-//
-//func (c Content) Id() int64 {
-//	return c.Id
-//}
-
 type Item interface {
 	Id() int64
 }

@@ -49,7 +49,7 @@ func loadEnv(l *app.Littr) (bool, error) {
 	if listenHost == "" {
 		listenHost = defaultHost
 	}
-	l.Host = listenHost
+	l.HostName = listenHost
 	l.Port = listenPort
 	l.Listen = listenOn
 
@@ -57,7 +57,7 @@ func loadEnv(l *app.Littr) (bool, error) {
 }
 
 func init() {
-	littr = app.Littr{Host: listenHost, Port: listenPort}
+	littr = app.Littr{HostName: listenHost, Port: listenPort}
 
 	loadEnv(&littr)
 
@@ -73,7 +73,7 @@ func init() {
 	gob.Register(app.Flash{})
 
 	s := sessions.NewCookieStore(littr.SessionKeys[0], littr.SessionKeys[1])
-	s.Options.Domain = listenHost
+	//s.Options.Domain = littr.HostName
 	s.Options.Path = "/"
 	app.SessionStore = s
 

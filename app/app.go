@@ -125,7 +125,7 @@ func ValidEnv(s EnvType) bool {
 
 type Littr struct {
 	Env         EnvType
-	Host        string
+	HostName    string
 	Port        int64
 	Listen      string
 	Db          *sql.DB
@@ -143,12 +143,12 @@ type errorModel struct {
 func GetSession(r *http.Request) *sessions.Session {
 	s, err := SessionStore.Get(r, sessionName)
 	if err != nil {
-		log.Print(err)
+		log.WithField("context", "Session").Error(err)
 	}
 	return s
 }
 
-func (l *Littr) host() string {
+func (l *Littr) listen() string {
 	if len(l.Listen) > 0 {
 		return l.Listen
 	}
@@ -156,11 +156,11 @@ func (l *Littr) host() string {
 	if l.Port != 0 {
 		port = fmt.Sprintf(":%d", l.Port)
 	}
-	return fmt.Sprintf("%s%s", l.Host, port)
+	return fmt.Sprintf("%s%s", l.HostName, port)
 }
 
 func (l *Littr) BaseUrl() string {
-	return fmt.Sprintf("http://%s", l.Host)
+	return fmt.Sprintf("http://%s", l.HostName)
 }
 
 func RenderTemplate(r *http.Request, w http.ResponseWriter, name string, m interface{}) error {
@@ -169,14 +169,7 @@ func RenderTemplate(r *http.Request, w http.ResponseWriter, name string, m inter
 		Renderer.HTML(w, http.StatusInternalServerError, "error", err)
 		return err
 	}
-	//terr = t.Execute(w, m)
-	//if terr != nil {
-	//	log.Print(terr)
-	//	AddFlashMessage(fmt.Sprint(terr), Error, r, w)
-	//	return terr
-	//}
-	sessions.Save(r, w)
-	return nil
+	return sessions.Save(r, w)
 }
 
 // AddVote adds a vote to the p content item
@@ -260,10 +253,10 @@ func AddVote(p models.Content, score int, userId int64) (bool, error) {
 
 func (l *Littr) Run(m http.Handler, wait time.Duration) {
 	log.Infof("starting debug level %q", log.GetLevel().String())
-	log.Infof("listening on %s", l.host())
+	log.Infof("listening on %s", l.listen())
 
 	srv := &http.Server{
-		Addr: l.host(),
+		Addr: l.listen(),
 		// Good practice to set timeouts to avoid Slowloris attacks.
 		WriteTimeout: time.Second * 15,
 		ReadTimeout:  time.Second * 15,
@@ -424,9 +417,9 @@ func (l *Littr) Sessions(next http.Handler) http.Handler {
 		s := GetSession(r)
 		l.FlashData = s.Flashes()
 		if len(l.FlashData) > 0 {
-			log.Printf("flashes %#v", l.FlashData)
-			for _, err := range l.FlashData {
-				log.Print(err)
+			log.Debugf("flashes %#v", l.FlashData)
+			for _, errMsg := range l.FlashData {
+				log.Error(errMsg)
 			}
 		}
 		if s.Values[SessionUserKey] != nil {
@@ -445,9 +438,9 @@ func (l *Littr) AuthCheck(next http.Handler) http.Handler {
 
 		s, err := SessionStore.Get(r, sessionName)
 		if err != nil {
-			log.Printf("ERROR %s", err)
+			log.Error(err)
 		}
-		log.Printf("%#v", s.Values)
+		log.Debugf("%#v", s.Values)
 		//l.SessionStore.Save(r, w, s)
 	})
 }
