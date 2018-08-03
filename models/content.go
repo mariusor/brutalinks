@@ -6,7 +6,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
-)
+	"database/sql"
+	)
 
 const (
 	FlagsNone    = 0
@@ -28,6 +29,7 @@ type Content struct {
 	Flags       int8      `orm:Flags`
 	Metadata    []byte    `orm:metadata`
 	Path        []byte    `orm:path`
+	SubmittedByAccount Account
 	fullPath    []byte
 	parentLink  string
 }
@@ -108,4 +110,63 @@ func (c Content) GetDomain() string {
 		return ""
 	}
 	return strings.Split(string(c.Data), "/")[2]
+}
+
+func LoadItem(db *sql.DB, h string) (Content, error) {
+	p := Content{}
+	sel := `select 
+			"content_items"."id", "content_items"."key", "content_items"."mime_type", "content_items"."data", 
+			"content_items"."title", "content_items"."score", "content_items"."submitted_at", 
+			"content_items"."submitted_by", "content_items"."flags", "content_items"."metadata", "content_items"."path",
+			"accounts"."id", "accounts"."key", "accounts"."handle", "accounts"."email", "accounts"."score", 
+			"accounts"."created_at", "accounts"."metadata", "accounts"."flags"
+		from "content_items" 
+			left join "accounts" on "accounts"."id" = "content_items"."submitted_by" 
+		where "content_items"."key" ~* $1`
+	rows, err := db.Query(sel, h)
+	if err != nil {
+		return p, err
+	}
+	for rows.Next() {
+		a := Account{}
+		err := rows.Scan(
+			&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Flags, &p.Metadata, &p.Path,
+			&a.Id, &a.Key, &a.Handle, &a.Email, &a.Score, &a.CreatedAt, &a.Metadata, &a.Flags)
+		if err != nil {
+			return p, err
+		}
+		p.SubmittedByAccount = a
+	}
+	return p, nil
+}
+func LoadOPItems(db *sql.DB, max int) ([]Content, error) {
+	items := make([]Content, 0)
+	sel := fmt.Sprintf(`select 
+			"content_items"."id", "content_items"."key", "content_items"."mime_type", "content_items"."data", 
+			"content_items"."title", "content_items"."score", "content_items"."submitted_at", 
+			"content_items"."submitted_by", "content_items"."flags", "content_items"."metadata", "content_items"."path",
+			"accounts"."id", "accounts"."key", "accounts"."handle", "accounts"."email", "accounts"."score", 
+			"accounts"."created_at", "accounts"."metadata", "accounts"."flags"
+		from "content_items" 
+			left join "accounts" on "accounts"."id" = "content_items"."submitted_by" 
+		where "path" is NULL or nlevel("path") = 0
+	order by "content_items"."score" desc, "content_items"."submitted_at" desc limit %d`, max)
+	rows, err := db.Query(sel)
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		p := Content{}
+		a := Account{}
+		err := rows.Scan(
+			&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Flags, &p.Metadata, &p.Path,
+			&a.Id, &a.Key, &a.Handle, &a.Email, &a.Score, &a.CreatedAt, &a.Metadata, &a.Flags)
+		if err != nil {
+			return nil, err
+		}
+		p.SubmittedByAccount = a
+		items = append(items, p)
+	}
+
+	return items, nil
 }
