@@ -238,7 +238,7 @@ func (i comment) Level() int {
 	if i.path == nil {
 		return 0
 	}
-	return bytes.Count(i.path, []byte("."))
+	return bytes.Count(i.path, []byte(".")) + 1
 }
 
 type indexModel struct {
