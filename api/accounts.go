@@ -86,7 +86,7 @@ func loadAPPerson(a models.Account) *ap.Person {
 	return p
 }
 
-func loadAPLiked(a *models.Account, o ap.CollectionInterface, items *[]models.Content, votes *[]models.Vote) (ap.CollectionInterface, error) {
+func loadAPLiked(a models.Account, o ap.CollectionInterface, items *[]models.Content, votes *[]models.Vote) (ap.CollectionInterface, error) {
 	if items == nil || len(*items) == 0 {
 		return nil, errors.Errorf("no items loaded")
 	}
@@ -158,7 +158,7 @@ func HandleAccount(w http.ResponseWriter, r *http.Request) {
 		log.Print("could not load account information")
 		return
 	}
-	p := loadAPPerson(*a)
+	p := loadAPPerson(a)
 
 	j, err := json.WithContext(GetContext()).Marshal(p)
 	if err != nil {
@@ -186,7 +186,7 @@ func HandleAccountCollectionItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	p := loadAPPerson(*a)
+	p := loadAPPerson(a)
 
 	collection := chi.URLParam(r, "collection")
 	var whichCol ap.CollectionInterface
@@ -229,7 +229,7 @@ func HandleAccountCollection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	p := loadAPPerson(*a)
+	p := loadAPPerson(a)
 
 	collection := chi.URLParam(r, "collection")
 	switch strings.ToLower(collection) {
@@ -245,7 +245,7 @@ func HandleAccountCollection(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Print(err)
 		}
-		_, err = loadAPCollection(a.Handle, p.Outbox, items)
+		_, err = loadAPCollection(a.Handle, p.Outbox, &items)
 		data, err = json.WithContext(GetContext()).Marshal(p.Outbox)
 	case "liked":
 		items, votes, err := models.LoadItemsAndVotesSubmittedBy(Db, a.Handle)
@@ -271,8 +271,8 @@ func HandleAccountCollection(w http.ResponseWriter, r *http.Request) {
 
 // GET /api/accounts/verify_credentials
 func HandleVerifyCredentials(w http.ResponseWriter, r *http.Request) {
-	a := CurrentAccount
-	if a == nil {
+	a := *CurrentAccount
+	if len(a.Handle) == 0 {
 		HandleError(w, r, http.StatusNotFound, errors.Errorf("acccount not found"))
 		return
 	}
@@ -287,7 +287,7 @@ func HandleVerifyCredentials(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	p := loadAPPerson(*a)
+	p := loadAPPerson(a)
 
 	j, err := json.WithContext(GetContext()).Marshal(p)
 	if err != nil {

@@ -170,3 +170,93 @@ func LoadOPItems(db *sql.DB, max int) ([]Content, error) {
 
 	return items, nil
 }
+
+func LoadItemsByPath(db *sql.DB, path []byte, max int) ([]Content, error) {
+	items := make([]Content, 0)
+	sel := fmt.Sprintf(`select 
+			"content_items"."id", "content_items"."key", "content_items"."mime_type", "content_items"."data", 
+			"content_items"."title", "content_items"."score", "content_items"."submitted_at", 
+			"content_items"."submitted_by", "content_items"."flags", "content_items"."metadata", "content_items"."path",
+			"accounts"."id", "accounts"."key", "accounts"."handle", "accounts"."email", "accounts"."score", 
+			"accounts"."created_at", "accounts"."metadata", "accounts"."flags"
+		from "content_items" 
+			left join "accounts" on "accounts"."id" = "content_items"."submitted_by" 
+		where "content_items"."path" <@ $1 and "content_items"."path" is not null order by "content_items"."path" asc, 
+			"content_items"."score" desc, "content_items"."submitted_at" desc limit %d`, max)
+	rows, err := db.Query(sel, path)
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		p := Content{}
+		a := Account{}
+		err := rows.Scan(
+			&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Flags, &p.Metadata, &p.Path,
+			&a.Id, &a.Key, &a.Handle, &a.Email, &a.Score, &a.CreatedAt, &a.Metadata, &a.Flags)
+		if err != nil {
+			return nil, err
+		}
+		p.SubmittedByAccount = a
+		items = append(items, p)
+	}
+
+	return items, nil
+}
+
+func LoadItemsByDomain(db *sql.DB, domain string, max int) ([]Content, error) {
+	items := make([]Content, 0)
+	sel := fmt.Sprintf(`select 
+			"content_items"."id", "content_items"."key", "content_items"."mime_type", "content_items"."data", 
+			"content_items"."title", "content_items"."score", "content_items"."submitted_at", 
+			"content_items"."submitted_by", "content_items"."flags", "content_items"."metadata", "content_items"."path",
+			"accounts"."id", "accounts"."key", "accounts"."handle", "accounts"."email", "accounts"."score", 
+			"accounts"."created_at", "accounts"."metadata", "accounts"."flags"
+		from "content_items" 
+			left join "accounts" on "accounts"."id" = "content_items"."submitted_by" 
+		where substring("content_items"."data"::text from 'http[s]?://([^/]*)') = $1 order by "content_items"."submitted_at" desc limit %d`, max)
+	rows, err := db.Query(sel, domain)
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		p := Content{}
+		a := Account{}
+		err := rows.Scan(
+			&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Flags, &p.Metadata, &p.Path,
+			&a.Id, &a.Key, &a.Handle, &a.Email, &a.Score, &a.CreatedAt, &a.Metadata, &a.Flags)
+		if err != nil {
+			return nil, err
+		}
+		p.SubmittedByAccount = a
+		items = append(items, p)
+	}
+
+	return items, nil
+}
+func LoadItemByHash(db *sql.DB, hash string) (Content, error) {
+	p := Content{}
+	a := Account{}
+
+	sel := `select "content_items"."id", "content_items"."key", "content_items"."mime_type", "content_items"."data", 
+			"content_items"."title", "content_items"."score", "content_items"."submitted_at", 
+			"content_items"."submitted_by", "content_items"."flags", "content_items"."metadata", "content_items"."path",
+			"accounts"."id", "accounts"."key", "accounts"."handle", "accounts"."email", "accounts"."score", 
+			"accounts"."created_at", "accounts"."metadata", "accounts"."flags"
+ 			from "content_items"
+			left join "accounts" on "accounts"."id" = "content_items"."submitted_by"
+			where "content_items"."key" ~* $1`
+	rows, err := db.Query(sel, hash)
+	if err != nil {
+		return p, err
+	}
+
+	for rows.Next() {
+		err = rows.Scan(&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Flags, &p.Metadata, &p.Path,
+			&a.Id, &a.Key, &a.Handle, &a.Email, &a.Score, &a.CreatedAt, &a.Metadata, &a.Flags)
+		if err != nil {
+			return p, err
+		}
+		p.SubmittedByAccount = a
+	}
+	return p, nil
+}

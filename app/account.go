@@ -17,7 +17,7 @@ type userModel struct {
 	Title         string
 	InvertedTheme bool
 	User          *Account
-	Items         []comment
+	Items         comments
 }
 
 func loadFromAPPerson(p activitypub.Person) (Account, error) {
@@ -29,13 +29,26 @@ func loadFromAPPerson(p activitypub.Person) (Account, error) {
 	return u, nil
 }
 
+func loadFromModel(a models.Account) (Account, error) {
+	return Account{
+		Id:        a.Id,
+		Hash:      a.Hash(),
+		flags:     a.Flags,
+		UpdatedAt: a.UpdatedAt,
+		Handle:    a.Handle,
+		metadata:  a.Metadata,
+		Score:     a.Score,
+		CreatedAt: a.CreatedAt,
+		Email:     a.Email,
+	}, nil
+}
+
 // HandleUser serves /~handle request
 func HandleUser(w http.ResponseWriter, r *http.Request) {
 	m := userModel{InvertedTheme: IsInverted(r)}
 	log.WithFields(log.Fields{
 		"account": "account page",
 	})
-	found := false
 
 	handle := chi.URLParam(r, "handle")
 	if false {
@@ -60,67 +73,29 @@ func HandleUser(w http.ResponseWriter, r *http.Request) {
 			log.Debugf("resp %#v", m)
 		}
 	}
-	u := models.Account{}
-	selAcct := `select "id", "key", "handle", "email", "score", "created_at", "updated_at", "metadata", "flags" from "accounts" where "handle" = $1`
-	{
-		rows, err := Db.Query(selAcct, handle)
-		if err != nil {
-			HandleError(w, r, StatusUnknown, err)
-			return
-		}
-		for rows.Next() {
-			err = rows.Scan(&u.Id, &u.Key, &u.Handle, &u.Email, &u.Score, &u.CreatedAt, &u.UpdatedAt, &u.Metadata, &u.Flags)
-			if err != nil {
-				HandleError(w, r, StatusUnknown, err)
-				return
-			}
-			found = true
-		}
-		m.Title = fmt.Sprintf("Submissions by %s", u.Handle)
-		m.User = &Account{
-			Id:        u.Id,
-			Hash:      u.Hash(),
-			flags:     u.Flags,
-			UpdatedAt: u.UpdatedAt,
-			Handle:    u.Handle,
-			metadata:  u.Metadata,
-			Score:     u.Score,
-			CreatedAt: u.CreatedAt,
-			Email:     u.Email,
-		}
-	}
-
-	if !found {
+	u, err := models.LoadAccount(Db, handle)
+	if err != nil {
 		HandleError(w, r, http.StatusNotFound, errors.Errorf("user %q not found", handle))
 		return
 	}
+	m.Title = fmt.Sprintf("%s submissions", genitive(u.Handle))
+	a, _ := loadFromModel(u)
+	m.User = &a
 
-	items := make([]Item, 0)
-	selC := `select "content_items"."id", "content_items"."key", "mime_type", "data", "title", "content_items"."score", 
-			"submitted_at", "content_items"."flags", "content_items"."metadata", "accounts"."handle" f from "content_items" 
-			left join "accounts" on "accounts"."id" = "content_items"."submitted_by" 
-			where "submitted_by" = $1 order by "submitted_at" desc`
-	{
-		rows, err := Db.Query(selC, u.Id)
-		if err != nil {
-			HandleError(w, r, StatusUnknown, err)
-			return
-		}
-		for rows.Next() {
-			p := models.Content{}
-			var handle string
-			err = rows.Scan(&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.Flags, &p.Metadata, &handle)
-			if err != nil {
-				HandleError(w, r, StatusUnknown, err)
-				return
-			}
-			l := LoadItem(p, handle)
-			com := comment{Item: l, Path: p.Path, FullPath: p.FullPath()}
-			items = append(items, l)
-			m.Items = append(m.Items, com)
-		}
+	items, err := models.LoadItemsSubmittedBy(Db, handle)
+	if err != nil {
+		log.Error(err)
+		HandleError(w, r, http.StatusNotFound, err)
+		return
 	}
-	_, err := LoadVotes(CurrentAccount, items)
+	m.Items = loadComments(items)
+
+	_, err = LoadVotes(CurrentAccount, m.Items.getItems())
+	if err != nil {
+		log.Error(err)
+		HandleError(w, r, http.StatusNotFound, err)
+		return
+	}
 	if err != nil {
 		log.Error(err)
 	}

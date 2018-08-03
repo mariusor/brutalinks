@@ -15,18 +15,37 @@ import (
 const Yay = "yay"
 const Nay = "nay"
 
+type comments []*comment
 type comment struct {
 	Item
 	Parent   *comment
 	Path     []byte
 	FullPath []byte
-	Children []*comment
+	Children comments
 }
 
 type contentModel struct {
 	Title         string
 	InvertedTheme bool
 	Content       comment
+}
+
+func loadComments(items []models.Content) comments {
+	var comments = make([]*comment, len(items))
+	for k, item := range items {
+		l := LoadItem(item)
+		com := comment{Item: l, Path: item.Path, FullPath: item.FullPath()}
+
+		comments[k] = &com
+	}
+	return comments
+}
+func (c comments) getItems() []Item {
+	var items = make([]Item, len(c))
+	for k, com := range c {
+		items[k] = com.Item
+	}
+	return items
 }
 
 func sluggify(s string) string {
@@ -64,67 +83,32 @@ func ShowContent(w http.ResponseWriter, r *http.Request) {
 	hash := chi.URLParam(r, "hash")
 	items := make([]Item, 0)
 
-	sel := `select "content_items"."id", "content_items"."key", "mime_type", "data", "title", "content_items"."score",
-			"submitted_at", "submitted_by", "handle", "path", "content_items"."flags" from "content_items"
-			left join "accounts" on "accounts"."id" = "content_items"."submitted_by"
-			where "content_items"."key" ~* $1`
-	rows, err := Db.Query(sel, hash)
+	m := contentModel{InvertedTheme: IsInverted(r)}
+
+	p, err := models.LoadItemByHash(Db, hash)
 	if err != nil {
-		HandleError(w, r, StatusUnknown, err)
+		log.Error(err)
+		HandleError(w, r, http.StatusNotFound, err)
 		return
 	}
-	m := contentModel{InvertedTheme: IsInverted(r)}
-	p := models.Content{}
-	var i Item
-	for rows.Next() {
-		var handle string
-		err = rows.Scan(&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &handle, &p.Path, &p.Flags)
-		if err != nil {
-			HandleError(w, r, StatusUnknown, err)
-			return
-		}
-		m.Title = string(p.Title)
-		i = LoadItem(p, handle)
-		m.Content = comment{Item: i, Path: p.Path, FullPath: p.FullPath()}
-	}
+	i := LoadItem(p)
+	m.Content = comment{Item: i, Path: p.Path, FullPath: p.FullPath()}
 	if p.Data == nil {
 		HandleError(w, r, http.StatusNotFound, errors.Errorf("not found"))
 		return
 	}
 	items = append(items, i)
-	allComments := make([]*comment, 0)
-	allComments = append(allComments, &m.Content)
+	allComments := make(comments, 1)
+	allComments[0] = &m.Content
 
 	fullPath := bytes.Trim(m.Content.FullPath, " \n\r\t")
-	if len(fullPath) > 0 {
-		// comments
-		selCom := `select "content_items"."id", "content_items"."key", "mime_type", "data", "title", "content_items"."score", 
-			"submitted_at", "submitted_by", "handle", "path", "content_items"."flags" from "content_items" 
-			left join "accounts" on "accounts"."id" = "content_items"."submitted_by" 
-			where "path" <@ $1 and "path" is not null order by "path" asc, "score" desc`
-		{
-			rows, err := Db.Query(selCom, fullPath)
-
-			if err != nil {
-				HandleError(w, r, StatusUnknown, err)
-				return
-			}
-			for rows.Next() {
-				c := models.Content{}
-				var handle string
-				err = rows.Scan(&c.Id, &c.Key, &c.MimeType, &c.Data, &c.Title, &c.Score, &c.SubmittedAt, &c.SubmittedBy, &handle, &c.Path, &c.Flags)
-				if err != nil {
-					HandleError(w, r, StatusUnknown, err)
-					return
-				}
-
-				i := LoadItem(c, handle)
-				com := comment{Item: i, Path: c.Path, FullPath: c.FullPath()}
-				items = append(items, i)
-				allComments = append(allComments, &com)
-			}
-		}
+	contentItems, err := models.LoadItemsByPath(Db, fullPath, MaxContentItems)
+	if err != nil {
+		log.Error(err)
+		HandleError(w, r, http.StatusNotFound, err)
+		return
 	}
+	allComments = append(allComments, loadComments(contentItems)...)
 
 	ReparentComments(allComments)
 	_, err = LoadVotes(CurrentAccount, items)
@@ -140,7 +124,8 @@ func ShowContent(w http.ResponseWriter, r *http.Request) {
 	if len(m.Title) > 0 {
 		m.Title = fmt.Sprintf("%s", p.Title)
 	} else {
-		m.Title = fmt.Sprintf("%s comment", genitive(i.SubmittedBy))
+		// FIXME(marius): we lost the handle of the account
+		m.Title = fmt.Sprintf("%s comment", genitive(m.Content.SubmittedBy))
 	}
 	RenderTemplate(r, w, "content", m)
 }
@@ -157,35 +142,12 @@ func genitive(name string) string {
 // HandleVoting serves /~{handle}/{direction} request
 func HandleVoting(w http.ResponseWriter, r *http.Request) {
 	hash := chi.URLParam(r, "hash")
-	items := make([]Item, 0)
-
-	sel := `select "content_items"."id", "content_items"."key", "mime_type", "data", "title", "content_items"."score",
-			"submitted_at", "submitted_by", "handle", "path", "content_items"."flags" from "content_items"
-			left join "accounts" on "accounts"."id" = "content_items"."submitted_by"
-			where "content_items"."key" ~* $1`
-	rows, err := Db.Query(sel, hash)
+	p, err := models.LoadItemByHash(Db, hash)
 	if err != nil {
-		HandleError(w, r, StatusUnknown, err)
+		log.Error(err)
+		HandleError(w, r, http.StatusNotFound, err)
 		return
 	}
-	m := contentModel{InvertedTheme: IsInverted(r)}
-	p := models.Content{}
-	var i Item
-	for rows.Next() {
-		var handle string
-		err = rows.Scan(&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &handle, &p.Path, &p.Flags)
-		if err != nil {
-			HandleError(w, r, StatusUnknown, err)
-			return
-		}
-		i = LoadItem(p, handle)
-		m.Content = comment{Item: i, Path: p.Path, FullPath: p.FullPath()}
-	}
-	if p.Data == nil {
-		HandleError(w, r, http.StatusNotFound, errors.Errorf("not found"))
-		return
-	}
-	items = append(items, i)
 
 	multiplier := 0
 	switch chi.URLParam(r, "direction") {
@@ -202,5 +164,6 @@ func HandleVoting(w http.ResponseWriter, r *http.Request) {
 	} else {
 		AddFlashMessage(fmt.Sprintf("unable to add vote as an %s user", anonymous), Error, r, w)
 	}
+	i := LoadItem(p)
 	http.Redirect(w, r, i.PermaLink(), http.StatusFound)
 }

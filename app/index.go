@@ -244,7 +244,7 @@ func (i comment) Level() int {
 type indexModel struct {
 	Title         string
 	InvertedTheme bool
-	Items         []comment
+	Items         comments
 	User          *Account
 }
 
@@ -354,12 +354,12 @@ func OPLink(c models.Content) string {
 func PermaLink(c models.Content, handle string) string {
 	return fmt.Sprintf("/~%s/%s", handle, c.Hash())
 }
-func LoadItem(c models.Content, handle string) Item {
+func LoadItem(c models.Content) Item {
 	i := Item{
 		Hash:        c.Hash(),
 		UpdatedAt:   c.UpdatedAt,
 		SubmittedAt: c.SubmittedAt,
-		SubmittedBy: handle,
+		SubmittedBy: c.SubmittedByAccount.Handle,
 		MimeType:    c.MimeType,
 		Score:       c.Score,
 		flags:       c.Flags,
@@ -370,7 +370,7 @@ func LoadItem(c models.Content, handle string) Item {
 		isTop:       c.IsTop(),
 		isLink:      c.IsLink(),
 		parentLink:  ParentLink(c),
-		permaLink:   PermaLink(c, handle),
+		permaLink:   PermaLink(c, c.SubmittedByAccount.Handle),
 		opLink:      OPLink(c),
 	}
 	if len(c.Title) > 0 {
@@ -389,37 +389,21 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 		"index": "index page",
 	})
 
-	items := make([]Item, 0)
-	sel := fmt.Sprintf(`select "content_items"."id", "content_items"."key", "mime_type", "data", "title", "content_items"."score", 
-			"submitted_at", "submitted_by", "handle", "content_items"."flags" 
-		from "content_items" 
-			left join "accounts" on "accounts"."id" = "content_items"."submitted_by" 
-		where "path" is NULL or nlevel("path") = 0
-	order by "score" desc, "submitted_at" desc limit %d`, MaxContentItems)
-	rows, err := Db.Query(sel)
+	var err error
+	var items []models.Content
+	items, err = models.LoadOPItems(Db, MaxContentItems)
 	if err != nil {
-		log.Print(err)
-		HandleError(w, r, StatusUnknown, err)
+		log.Error(err)
+		HandleError(w, r, http.StatusNotFound, err)
 		return
 	}
-	for rows.Next() {
-		p := models.Content{}
-		var handle string
-		err = rows.Scan(&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &handle, &p.Flags)
-		if err != nil {
-			log.Print(err)
-			HandleError(w, r, StatusUnknown, err)
-			return
-		}
-		l := LoadItem(p, handle)
-		com := comment{Item: l, Path: p.Path, FullPath: p.FullPath()}
-		items = append(items, l)
-		m.Items = append(m.Items, com)
-	}
+	m.Items = loadComments(items)
 
-	_, err = LoadVotes(CurrentAccount, items)
+	_, err = LoadVotes(CurrentAccount, m.Items.getItems())
 	if err != nil {
-		log.Print(err)
+		log.Error(err)
+		HandleError(w, r, http.StatusNotFound, err)
+		return
 	}
 
 	RenderTemplate(r, w, "listing", m)

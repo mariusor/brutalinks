@@ -53,7 +53,7 @@ func HandleOp(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		it := LoadItem(p, handle)
+		it := LoadItem(p)
 		http.Redirect(w, r, it.PermaLink(), http.StatusMovedPermanently)
 	}
 }

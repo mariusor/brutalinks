@@ -73,17 +73,17 @@ func (a Account) GetKey() []byte {
 	return a.Key
 }
 
-func LoadAccount(db *sql.DB, handle string) (*Account, error) {
+func LoadAccount(db *sql.DB, handle string) (Account, error) {
 	a := Account{}
 	selAcct := `select "id", "key", "handle", "email", "score", "created_at", "updated_at", "metadata", "flags" from "accounts" where "handle" = $1`
 	rows, err := db.Query(selAcct, handle)
 	if err != nil {
-		return nil, err
+		return a, err
 	}
 	for rows.Next() {
 		err = rows.Scan(&a.Id, &a.Key, &a.Handle, &a.Email, &a.Score, &a.CreatedAt, &a.UpdatedAt, &a.Metadata, &a.Flags)
 		if err != nil {
-			return nil, err
+			return a, err
 		}
 	}
 
@@ -91,10 +91,10 @@ func LoadAccount(db *sql.DB, handle string) (*Account, error) {
 		log.Print(err)
 	}
 
-	return &a, nil
+	return a, nil
 }
 
-func LoadItemsSubmittedBy(db *sql.DB, handle string) (*[]Content, error) {
+func LoadItemsSubmittedBy(db *sql.DB, handle string) ([]Content, error) {
 	var err error
 	p := Content{}
 	items := make([]Content, 0)
@@ -128,5 +128,5 @@ func LoadItemsSubmittedBy(db *sql.DB, handle string) (*[]Content, error) {
 		log.Error(err)
 	}
 
-	return &items, nil
+	return items, nil
 }

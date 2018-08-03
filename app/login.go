@@ -21,22 +21,15 @@ type loginModel struct {
 
 // ShowLogin handles POST /login requests
 func HandleLogin(w http.ResponseWriter, r *http.Request) {
-	a := models.Account{}
+
 	errs := make([]error, 0)
 	pw := r.PostFormValue("pw")
 	handle := r.PostFormValue("handle")
-	sel := `select "id", "key", "handle", "email", "score", "created_at", "updated_at", "metadata", "flags" from "accounts" where "handle" = $1`
-	rows, err := Db.Query(sel, handle)
+	a, err := models.LoadAccount(Db, handle)
 	if err != nil {
-		HandleError(w, r, StatusUnknown, err)
+		log.Print(err)
+		HandleError(w, r, StatusUnknown, errors.Errorf("handle or password are wrong"))
 		return
-	}
-	for rows.Next() {
-		err = rows.Scan(&a.Id, &a.Key, &a.Handle, &a.Email, &a.Score, &a.CreatedAt, &a.UpdatedAt, &a.Metadata, &a.Flags)
-		if err != nil {
-			HandleError(w, r, StatusUnknown, err)
-			return
-		}
 	}
 	m := &models.AccountMetadata{}
 	err = json.Unmarshal(a.Metadata, m)

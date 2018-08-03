@@ -108,6 +108,6 @@ func HandleSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	AddVote(*p, 1, userId)
-	i := LoadItem(*p, CurrentAccount.Handle)
+	i := LoadItem(*p)
 	http.Redirect(w, r, i.PermaLink(), http.StatusSeeOther)
 }
