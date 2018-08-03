@@ -10,6 +10,7 @@ import (
 	"github.com/juju/errors"
 	ap "github.com/mariusor/activitypub.go/activitypub"
 	j "github.com/mariusor/activitypub.go/jsonld"
+	log "github.com/sirupsen/logrus"
 	"os"
 	"reflect"
 	"strings"
@@ -131,6 +132,7 @@ func HandleError(w http.ResponseWriter, r *http.Request, code int, errs ...error
 		e := error{
 			Message: err.Error(),
 		}
+		log.Error(err)
 		res.Errors = append(res.Errors, e)
 	}
 

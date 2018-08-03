@@ -15,14 +15,19 @@ import (
 
 var CurrentAccount *models.Account
 
-func apObjectID(a models.Account) ap.ObjectID {
-	return ap.ObjectID(fmt.Sprintf("%s/%s", AccountsURL, a.Handle))
+func getObjectID(s string) ap.ObjectID {
+	return ap.ObjectID(fmt.Sprintf("%s/%s", AccountsURL, s))
+}
+
+func apAccountID(a models.Account) ap.ObjectID {
+	return getObjectID(a.Handle)
 }
 
 func loadAPItem(item models.Content, handle string, o ap.CollectionInterface) (ap.Item, error) {
 	if o == nil {
 		return nil, errors.Errorf("unable to load item")
 	}
+
 	id := ap.ObjectID(fmt.Sprintf("%s/%s", *o.GetID(), item.Hash()))
 	var el ap.Item
 	if item.IsLink() {
@@ -34,7 +39,11 @@ func loadAPItem(item models.Content, handle string, o ap.CollectionInterface) (a
 		o.Content["en"] = string(item.Data)
 		o.Published = item.SubmittedAt
 		o.Updated = item.UpdatedAt
-		o.URL = ap.URI(app.PermaLink(item, handle))
+		if len(item.SubmittedByAccount.Handle) > 0 {
+			o.URL = ap.URI(app.PermaLink(item, item.SubmittedByAccount.Handle))
+		} else {
+			o.URL = ap.URI(app.PermaLink(item, handle))
+		}
 		o.MediaType = ap.MimeType(item.MimeType)
 		if item.Title != nil {
 			o.Name["en"] = string(item.Title)
@@ -44,124 +53,15 @@ func loadAPItem(item models.Content, handle string, o ap.CollectionInterface) (a
 	return el, nil
 }
 
-func loadLikedItems(id int64) (*[]models.Content, *[]models.Vote, error) {
-	var err error
-	items := make([]models.Content, 0)
-	votes := make([]models.Vote, 0)
-	selC := `select 
-		"votes"."id", 
-		"votes"."weight", 
-		"votes"."submitted_at", 
-		"votes"."flags",
-		"content_items"."id", 
-		"content_items"."key", 
-		"content_items"."mime_type", 
-		"content_items"."data", 
-		"content_items"."title", 
-		"content_items"."score",
-		"content_items"."submitted_at", 
-		"content_items"."submitted_by",
-		"content_items"."flags", 
-		"content_items"."metadata", 
-		"accounts"."handle"
-from "content_items"
-  inner join "votes" on "content_items"."id" = "votes"."item_id"
-  left join "accounts" on "accounts"."id" = "content_items"."submitted_by"
-where "votes"."submitted_by" = $1 order by "votes"."submitted_at" desc`
-	{
-		rows, err := Db.Query(selC, id)
-		if err != nil {
-			return nil, nil, err
-		}
-		for rows.Next() {
-			v := models.Vote{}
-			p := models.Content{}
-			err = rows.Scan(
-				&v.Id,
-				&v.Weight,
-				&v.SubmittedAt,
-				&v.Flags,
-				&p.Id,
-				&p.Key,
-				&p.MimeType,
-				&p.Data,
-				&p.Title,
-				&p.Score,
-				&p.SubmittedAt,
-				&p.SubmittedBy,
-				&p.Flags,
-				&p.Metadata,
-				&p.Handle)
-			if err != nil {
-				return nil, nil, err
-			}
-			v.SubmittedBy = id
-			items = append(items, p)
-			votes = append(votes, v)
-		}
-	}
-	if err != nil {
-		log.Print(err)
-	}
-	return &items, &votes, nil
-}
-func loadSubmittedItems(id int64) (*[]models.Content, error) {
-	var err error
-	items := make([]models.Content, 0)
-	selC := `select "content_items"."id", "content_items"."key", "mime_type", "data", "title", "content_items"."score", 
-			"submitted_at", "content_items"."flags", "content_items"."metadata", "accounts"."handle" f from "content_items" 
-			left join "accounts" on "accounts"."id" = "content_items"."submitted_by" 
-			where "submitted_by" = $1 order by "submitted_at" desc`
-	{
-		rows, err := Db.Query(selC, id)
-		if err != nil {
-			return nil, err
-		}
-		for rows.Next() {
-			p := models.Content{}
-			err = rows.Scan(&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.Flags, &p.Metadata, &p.Handle)
-			if err != nil {
-				return nil, err
-			}
-			p.SubmittedBy = id
-			items = append(items, p)
-		}
-	}
-	if err != nil {
-		log.Print(err)
-	}
 
-	return &items, nil
-}
 func loadReceivedItems(id int64) (*[]models.Content, error) {
 	return nil, nil
-}
-
-func loadAccount(handle string) (*models.Account, error) {
-	a := models.Account{}
-	selAcct := `select "id", "key", "handle", "email", "score", "created_at", "updated_at", "metadata", "flags" from "accounts" where "handle" = $1`
-	rows, err := Db.Query(selAcct, handle)
-	if err != nil {
-		return nil, err
-	}
-	for rows.Next() {
-		err = rows.Scan(&a.Id, &a.Key, &a.Handle, &a.Email, &a.Score, &a.CreatedAt, &a.UpdatedAt, &a.Metadata, &a.Flags)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if err != nil {
-		log.Print(err)
-	}
-
-	return &a, nil
 }
 
 func loadAPPerson(a models.Account) *ap.Person {
 	baseURL := ap.URI(fmt.Sprintf("%s", AccountsURL))
 
-	p := ap.PersonNew(ap.ObjectID(apObjectID(a)))
+	p := ap.PersonNew(ap.ObjectID(apAccountID(a)))
 	p.Name["en"] = a.Handle
 	p.PreferredUsername["en"] = a.Handle
 
@@ -231,15 +131,13 @@ func loadAPLiked(a *models.Account, o ap.CollectionInterface, items *[]models.Co
 	return o, nil
 }
 
-func loadAPCollection(a *models.Account, o ap.CollectionInterface, items *[]models.Content) (ap.CollectionInterface, error) {
+func loadAPCollection(s string, o ap.CollectionInterface, items *[]models.Content) (ap.CollectionInterface, error) {
 	if items == nil || len(*items) == 0 {
 		return nil, errors.Errorf("empty collection %T", o)
 	}
 	for _, item := range *items {
-		el, _ := loadAPItem(item, a.Handle, o)
+		el, _ := loadAPItem(item, s, o)
 
-		//oc := ap.OrderedCollection(p.Outbox)
-		//pag := ap.OrderedCollectionPageNew(&oc)
 		o.Append(el)
 	}
 
@@ -249,7 +147,7 @@ func loadAPCollection(a *models.Account, o ap.CollectionInterface, items *[]mode
 // GET /api/accounts/:handle
 func HandleAccount(w http.ResponseWriter, r *http.Request) {
 	handle := chi.URLParam(r, "handle")
-	a, err := loadAccount(handle)
+	a, err := models.LoadAccount(Db, handle)
 	if err != nil {
 		log.Print(err)
 		HandleError(w, r, http.StatusInternalServerError, err)
@@ -278,7 +176,7 @@ func HandleAccount(w http.ResponseWriter, r *http.Request) {
 // GET /api/accounts/:handle/:collection/:hash
 func HandleAccountCollectionItem(w http.ResponseWriter, r *http.Request) {
 	var data []byte
-	a, err := loadAccount(chi.URLParam(r, "handle"))
+	a, err := models.LoadAccount(Db, chi.URLParam(r, "handle"))
 	if err != nil {
 		HandleError(w, r, http.StatusInternalServerError, err)
 		return
@@ -304,23 +202,12 @@ func HandleAccountCollectionItem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	hash := chi.URLParam(r, "hash")
-	sel := `select "content_items"."id", "content_items"."key", "mime_type", "data", "title", "content_items"."score",
-			"submitted_at", "submitted_by", "path", "content_items"."flags" from "content_items"
-			where "content_items"."key" ~* $1`
-	rows, err := Db.Query(sel, hash)
+	c, err  := models.LoadItem(Db, hash)
 	if err != nil {
+		HandleError(w, r, http.StatusNotFound, err)
 		return
 	}
-
-	var c models.Content
-	var el ap.Item
-	for rows.Next() {
-		err = rows.Scan(&c.Id, &c.Key, &c.MimeType, &c.Data, &c.Title, &c.Score, &c.SubmittedAt, &c.SubmittedBy, &c.Path, &c.Flags)
-		if err != nil {
-			return
-		}
-		el, _ = loadAPItem(c, a.Handle, whichCol)
-	}
+	el, _ := loadAPItem(c,"", whichCol)
 
 	data, err = json.WithContext(GetContext()).Marshal(el)
 	w.Header().Set("Content-Type", "application/ld+json; charset=utf-8")
@@ -332,7 +219,7 @@ func HandleAccountCollectionItem(w http.ResponseWriter, r *http.Request) {
 // GET /api/accounts/:handle/:collection
 func HandleAccountCollection(w http.ResponseWriter, r *http.Request) {
 	var data []byte
-	a, err := loadAccount(chi.URLParam(r, "handle"))
+	a, err := models.LoadAccount(Db, chi.URLParam(r, "handle"))
 	if err != nil {
 		HandleError(w, r, http.StatusInternalServerError, err)
 		return
@@ -351,17 +238,17 @@ func HandleAccountCollection(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Print(err)
 		}
-		_, err = loadAPCollection(a, p.Inbox, items)
-		data, err = json.Marshal(p.Inbox)
+		_, err = loadAPCollection(a.Handle, p.Inbox, items)
+		data, err = json.WithContext(GetContext()).Marshal(p.Inbox)
 	case "outbox":
-		items, err := loadSubmittedItems(a.Id)
+		items, err := models.LoadItemsSubmittedBy(Db, a.Handle)
 		if err != nil {
 			log.Print(err)
 		}
-		_, err = loadAPCollection(a, p.Outbox, items)
-		data, err = json.Marshal(p.Outbox)
+		_, err = loadAPCollection(a.Handle, p.Outbox, items)
+		data, err = json.WithContext(GetContext()).Marshal(p.Outbox)
 	case "liked":
-		items, votes, err := loadLikedItems(a.Id)
+		items, votes, err := models.LoadItemsAndVotesSubmittedBy(Db, a.Handle)
 		if err != nil {
 			log.Print(err)
 		}
@@ -390,7 +277,7 @@ func HandleVerifyCredentials(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	a, err := loadAccount(a.Handle)
+	a, err := models.LoadAccount(Db, a.Handle)
 	if err != nil {
 		HandleError(w, r, http.StatusInternalServerError, err)
 		return

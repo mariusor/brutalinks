@@ -177,6 +177,8 @@ func main() {
 		r.Get("/accounts/{handle}", api.HandleAccount)
 		r.Get("/accounts/{handle}/{collection}", api.HandleAccountCollection)
 		r.Get("/accounts/{handle}/{collection}/{hash}", api.HandleAccountCollectionItem)
+		r.Get("/{collection}", api.HandleServiceCollection)
+		r.Get("/{collection}/{hash}", api.HandleServiceCollectionItem)
 
 		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 			api.HandleError(w, r, http.StatusNotFound, errors.Errorf("%s not found", r.RequestURI))
