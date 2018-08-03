@@ -137,14 +137,14 @@ h6.domain {
     /*margin-left: 5ex;*/
 }
 .domain:before {
-    content: "(";
+    content: "( ";
 }
 .domain:after {
-    content: ")";
+    content: " )";
 }
-.domain a:before {
-    margin-right: .4em;
-    content: " //";
+.domain a:after {
+    margin-right: .15em;
+    content: "//";
     font-weight: 800;
     font-size: .78em;
 }
