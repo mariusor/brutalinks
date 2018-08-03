@@ -151,8 +151,8 @@ h6.domain {
 .domain a {
     text-decoration: none;
 }
-section.data {
-    margin-top: .3em;
+article > header {
+    margin-bottom: .4em;
 }
 section.data pre {
     color:unset;
