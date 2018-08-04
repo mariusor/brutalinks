@@ -1,4 +1,4 @@
-<ol cass="items container">
+<ol class="items {{if not ShowText}} hide-text{{end}}">
 {{- range $key, $value := . }}
     <li data-index="{{$key}}" class="item row">
     {{- template "partials/item" $value -}}

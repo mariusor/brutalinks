@@ -113,6 +113,9 @@ body>header h1 a:before {
 .item h1 a {
     padding-left: 0.3em;
 }
+ol.hide-text article section.data {
+    display: none;
+}
 article {
     /*border-top: solid 1px silver;*/
     display: flex;
@@ -211,6 +214,19 @@ ol.comments {
     text-decoration: none;
     font-size: 1.1em;
     color: WindowText;
+}
+.inverted #top-invert::before {
+    /*content: "\f0eb";*/
+    content: "\1F312";
+    font-family: "Font Awesome 5 Free";
+    font-weight: 400;
+}
+#top-invert::before {
+    /*content: "\f0eb";*/
+    /*font-weight: 800;*/
+    content: "\1F316";
+    font-weight: 400;
+    font-family: "Font Awesome 5 Free";
 }
 .score a.yay::before {
     font-family: "Font Awesome 5 Free";

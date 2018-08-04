@@ -8,11 +8,11 @@
     {{- end -}}  --> */ -}}
     <a href="/" title="littr.me" alt="littr.me">littr<small> me</small></a></h1>
     <menu id="top" class="col-xs-8 row">
+        <li class=""><a id="top-invert" title="Turn {{if .InvertedTheme }}on{{else}}off{{end}} the light" href="/#invert"></a></li>
     {{ if $account.IsLogged }}
         <li class="acct">{{$account.Handle}} <span class="score">{{$account.Score}}</span></li>
         <li class=""><a href="/logout">Sign out</a></li>
     {{end -}}
-        <li class=""><a id="act-invert" href="/#invert"><span class="inverted">Inv</span>ert</a></li>
         <li class=""><a href="/submit">Add</a></li>
     {{- if not $account.IsLogged }}
         <li class="auth-local"><a href="/login" title="Local auth" class="far fa-trash-alt"></a></li>
