@@ -14,6 +14,8 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"github.com/mariusor/littr.go/models"
+		"net/url"
 )
 
 var Db *sql.DB
@@ -56,11 +58,15 @@ func GetContext() j.IRI {
 	return j.IRI(ap.ActivityBaseURI)
 }
 
-func BuildObjectID(path string, parent ap.Item, cur ap.Item) ap.ObjectID {
-	return ap.ObjectID(fmt.Sprintf("%s%s/%s", path, *parent.GetID(), *cur.GetID()))
+func BuildCollectionID(a models.Account, o ap.CollectionInterface) ap.ObjectID {
+	return ap.ObjectID(fmt.Sprintf("%s/%s/%s", AccountsURL, url.PathEscape(a.Handle), getObjectType(o)))
 }
 
-func BuildObjectURL(b ap.LinkOrURI, el ap.Item) ap.URI {
+func BuildObjectIDFromContent(i models.Content) ap.ObjectID {
+	return ap.ObjectID(fmt.Sprintf("%s/%s/outbox/%s", AccountsURL, url.PathEscape(i.SubmittedByAccount.Handle), url.PathEscape(i.Hash())))
+}
+
+func getObjectType (el ap.Item) string {
 	var (
 		label               = ""
 		typeOutbox          = reflect.TypeOf(ap.Outbox{})
@@ -97,12 +103,16 @@ func BuildObjectURL(b ap.LinkOrURI, el ap.Item) ap.URI {
 			break
 		}
 	}
+	return label
+}
+
+func BuildObjectURL(b ap.LinkOrURI, el ap.Item) ap.URI {
 	pURL := ap.URI(BaseURL)
 	if b != nil && b.GetLink() != "" {
 		pURL = b.GetLink()
 	}
 
-	return ap.URI(fmt.Sprintf("%s/%s", pURL, label))
+	return ap.URI(fmt.Sprintf("%s/%s", pURL, getObjectType(el)))
 }
 
 func HandleApiCall(w http.ResponseWriter, r *http.Request) {

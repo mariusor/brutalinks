@@ -23,12 +23,12 @@ func apAccountID(a models.Account) ap.ObjectID {
 	return getObjectID(a.Handle)
 }
 
-func loadAPItem(item models.Content, handle string, o ap.CollectionInterface) (ap.Item, error) {
+func loadAPItem(item models.Content, o ap.CollectionInterface) (ap.Item, error) {
 	if o == nil {
 		return nil, errors.Errorf("unable to load item")
 	}
 
-	id := ap.ObjectID(fmt.Sprintf("%s/%s", *o.GetID(), item.Hash()))
+	id := BuildObjectIDFromContent(item)
 	var el ap.Item
 	if item.IsLink() {
 		l := ap.LinkNew(id, ap.LinkType)
@@ -39,11 +39,7 @@ func loadAPItem(item models.Content, handle string, o ap.CollectionInterface) (a
 		o.Content["en"] = string(item.Data)
 		o.Published = item.SubmittedAt
 		o.Updated = item.UpdatedAt
-		if len(item.SubmittedByAccount.Handle) > 0 {
-			o.URL = ap.URI(app.PermaLink(item, item.SubmittedByAccount.Handle))
-		} else {
-			o.URL = ap.URI(app.PermaLink(item, handle))
-		}
+		o.URL = ap.URI(app.PermaLink(item, item.SubmittedByAccount.Handle))
 		o.MediaType = ap.MimeType(item.MimeType)
 		if item.Title != nil {
 			o.Name["en"] = string(item.Title)
@@ -67,7 +63,7 @@ func loadAPPerson(a models.Account) *ap.Person {
 
 	out := ap.OutboxNew()
 	out.URL = BuildObjectURL(p.URL, p.Outbox)
-	out.ID = BuildObjectID("", p, p.Outbox)
+	out.ID = BuildCollectionID(a, p.Outbox)
 	p.Outbox = out
 	/*
 		in := ap.InboxNew()
@@ -107,7 +103,7 @@ func loadAPLiked(a models.Account, o ap.CollectionInterface, items *[]models.Con
 		if item.IsLink() {
 			typ = ap.LinkType
 		}
-		oid := ap.ObjectID(fmt.Sprintf("%s/%s/outbox/%s", AccountsURL, item.Handle, item.Hash()))
+		oid := ap.ObjectID(fmt.Sprintf("%s/%s/outbox/%s", AccountsURL, item.SubmittedByAccount.Handle, item.Hash()))
 		obj := ap.ObjectNew(oid, typ)
 		obj.URL = ap.URI(fmt.Sprintf("%s/%s", a.GetLink(), item.Hash()))
 
@@ -131,12 +127,12 @@ func loadAPLiked(a models.Account, o ap.CollectionInterface, items *[]models.Con
 	return o, nil
 }
 
-func loadAPCollection(s string, o ap.CollectionInterface, items *[]models.Content) (ap.CollectionInterface, error) {
+func loadAPCollection(o ap.CollectionInterface, a ap.Item, items *[]models.Content) (ap.CollectionInterface, error) {
 	if items == nil || len(*items) == 0 {
 		return nil, errors.Errorf("empty collection %T", o)
 	}
 	for _, item := range *items {
-		el, _ := loadAPItem(item, s, o)
+		el, _ := loadAPItem(item, o)
 
 		o.Append(el)
 	}
@@ -207,7 +203,7 @@ func HandleAccountCollectionItem(w http.ResponseWriter, r *http.Request) {
 		HandleError(w, r, http.StatusNotFound, err)
 		return
 	}
-	el, _ := loadAPItem(c,"", whichCol)
+	el, _ := loadAPItem(c, whichCol)
 
 	data, err = json.WithContext(GetContext()).Marshal(el)
 	w.Header().Set("Content-Type", "application/ld+json; charset=utf-8")
@@ -238,14 +234,14 @@ func HandleAccountCollection(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Print(err)
 		}
-		_, err = loadAPCollection(a.Handle, p.Inbox, items)
+		_, err = loadAPCollection(p.Inbox, p, items)
 		data, err = json.WithContext(GetContext()).Marshal(p.Inbox)
 	case "outbox":
 		items, err := models.LoadItemsSubmittedBy(Db, a.Handle)
 		if err != nil {
 			log.Print(err)
 		}
-		_, err = loadAPCollection(a.Handle, p.Outbox, &items)
+		_, err = loadAPCollection(p.Outbox, p, &items)
 		data, err = json.WithContext(GetContext()).Marshal(p.Outbox)
 	case "liked":
 		items, votes, err := models.LoadItemsAndVotesSubmittedBy(Db, a.Handle)

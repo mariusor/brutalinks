@@ -38,7 +38,7 @@ func HandleServiceCollection(w http.ResponseWriter, r *http.Request) {
 			HandleError(w, r, http.StatusInternalServerError, err)
 			return
 		}
-		_, err = loadAPCollection("/", us.Outbox, &items)
+		_, err = loadAPCollection(us.Outbox, us, &items)
 		data, err = json.WithContext(GetContext()).Marshal(us.Outbox)
 	case "liked":
 	default:
@@ -84,7 +84,7 @@ func HandleServiceCollectionItem(w http.ResponseWriter, r *http.Request) {
 		HandleError(w, r, http.StatusNotFound, err)
 		return
 	}
-	el, _ := loadAPItem(c,"", whichCol)
+	el, _ := loadAPItem(c, whichCol)
 
 	data, err = json.WithContext(GetContext()).Marshal(el)
 	w.Header().Set("Content-Type", "application/ld+json; charset=utf-8")
