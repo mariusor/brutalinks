@@ -25,7 +25,6 @@ type Content struct {
 	SubmittedAt time.Time `orm:created_at`
 	SubmittedBy int64     `orm:submitted_by`
 	UpdatedAt   time.Time `orm:updated_at`
-	Handle      string    `orm:handle`
 	Flags       int8      `orm:Flags`
 	Metadata    []byte    `orm:metadata`
 	Path        []byte    `orm:path`
@@ -213,8 +212,9 @@ func LoadItemsByDomain(db *sql.DB, domain string, max int) ([]Content, error) {
 			"accounts"."created_at", "accounts"."metadata", "accounts"."flags"
 		from "content_items" 
 			left join "accounts" on "accounts"."id" = "content_items"."submitted_by" 
-		where substring("content_items"."data"::text from 'http[s]?://([^/]*)') = $1 order by "content_items"."submitted_at" desc limit %d`, max)
-	rows, err := db.Query(sel, domain)
+		where "content_items"."data" = $1 
+			AND substring("content_items"."data"::text from 'http[s]?://([^/]*)') = $2 order by "content_items"."submitted_at" desc limit %d`, max)
+	rows, err := db.Query(sel, MimeTypeURL, domain)
 	if err != nil {
 		return nil, err
 	}
