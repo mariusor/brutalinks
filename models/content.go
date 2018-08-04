@@ -212,7 +212,7 @@ func LoadItemsByDomain(db *sql.DB, domain string, max int) ([]Content, error) {
 			"accounts"."created_at", "accounts"."metadata", "accounts"."flags"
 		from "content_items" 
 			left join "accounts" on "accounts"."id" = "content_items"."submitted_by" 
-		where "content_items"."data" = $1 
+		where "content_items"."mime_type" = $1 
 			AND substring("content_items"."data"::text from 'http[s]?://([^/]*)') = $2 order by "content_items"."submitted_at" desc limit %d`, max)
 	rows, err := db.Query(sel, MimeTypeURL, domain)
 	if err != nil {
