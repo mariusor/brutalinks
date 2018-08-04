@@ -11,7 +11,7 @@
 }
 @media (min-width: 576px) {
     :root {
-        font-size: 2vw;
+        font-size: 2.3vw;
     }
 }
 @media (min-width: 768px) {
@@ -22,12 +22,17 @@
 }
 @media (min-width: 992px) {
     :root {
-        font-size: 1.5vw;
+        font-size: 1.2vw;
     }
 }
 @media (min-width: 1200px) {
     :root {
-        font-size: 1.2vw;
+        font-size: 1.1vw;
+    }
+}
+@media (min-width: 1500px) {
+    :root {
+        font-size: 1vw;
     }
 }
 :root {}
