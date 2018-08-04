@@ -49,6 +49,7 @@ func HandleUser(w http.ResponseWriter, r *http.Request) {
 	log.WithFields(log.Fields{
 		"account": "account page",
 	})
+	ShowItemData = true
 
 	handle := chi.URLParam(r, "handle")
 	if false {

@@ -389,6 +389,7 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 		"index": "index page",
 	})
 
+	ShowItemData = false
 	var err error
 	var items []models.Content
 	items, err = models.LoadOPItems(Db, MaxContentItems)

@@ -13,6 +13,7 @@ import (
 // HandleDomains serves /domains/{domain} request
 func HandleDomains(w http.ResponseWriter, r *http.Request) {
 	domain := chi.URLParam(r, "domain")
+	ShowItemData = false
 
 	m := userModel{ Title: fmt.Sprintf("Submissions from %s", domain), InvertedTheme: IsInverted(r)}
 

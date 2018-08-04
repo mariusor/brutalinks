@@ -29,6 +29,7 @@ const (
 
 var Db *sql.DB
 var SessionStore sessions.Store
+var ShowItemData = false
 
 var CurrentAccount *Account
 var Renderer *render.Render
@@ -69,6 +70,7 @@ func init() {
 			},
 			"mod":                func(lvl int) float64 { return math.Mod(float64(lvl), float64(10)) },
 			"CleanFlashMessages": func() string { return "" }, //CleanFlashMessages,
+			"ShowText":			  func() bool { return ShowItemData },
 		}},
 		Delims:         render.Delims{"{{", "}}"},
 		Charset:        "UTF-8",

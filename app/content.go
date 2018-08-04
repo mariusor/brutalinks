@@ -82,6 +82,7 @@ func ReparentComments(allComments []*comment) {
 func ShowContent(w http.ResponseWriter, r *http.Request) {
 	hash := chi.URLParam(r, "hash")
 	items := make([]Item, 0)
+	ShowItemData = true
 
 	m := contentModel{InvertedTheme: IsInverted(r)}
 
