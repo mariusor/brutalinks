@@ -391,6 +391,7 @@ menu.meta-items {
     display: inline;
     margin: 0;
     text-align: center;
+    padding-left: 1em;
 }
 menu.meta-items li,
 menu#top li {
@@ -399,7 +400,7 @@ menu#top li {
 }
 menu.meta-items:before {
     content: " [";
-    padding-right: .4em;
+    padding-right: .1em;
 }
 menu.meta-items:after {
     content: "] ";
