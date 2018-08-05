@@ -1,6 +1,6 @@
 {{- $count := .Children | len -}}
 {{- $it := .Item -}}
-<aside class="meta col offset-4 ">
+<aside class="meta col">
     submitted <time datetime="{{ $it.ISODate }}" title="{{ $it.ISODate }}">{{ $it.FromNow }}</time>
     {{- if $it.SubmittedBy }} by <a class="by" href="/~{{ $it.SubmittedBy }}">{{ $it.SubmittedBy }}</a>{{end}}
     <menu class="meta-items">

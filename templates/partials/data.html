@@ -1,12 +1,13 @@
 <article class="col-11">
-{{- if .Title -}}
+{{- if .Item.Title -}}
 {{ template "partials/title" . }}
 {{- end -}}
-{{- if .IsSelf -}}
-<section class="data {{ .MimeType | sluggify }}{{if not .Title}} comment{{end}}">
-{{- if eq .MimeType "text/html" -}}{{- .HTML -}}{{- end -}}
-{{- if eq .MimeType "text/plain" -}}{{- .Text -}}{{end}}
-{{- if eq .MimeType "text/markdown" -}}{{- .Markdown -}}{{- end -}}
+{{- if .Item.IsSelf -}}
+<section class="data {{ .Item.MimeType | sluggify }}{{if not .Item.Title}} comment{{end}}">
+{{- if eq .MimeType "text/html" -}}{{- .Item.HTML -}}{{- end -}}
+{{- if eq .MimeType "text/plain" -}}{{- .Item.Text -}}{{end}}
+{{- if eq .MimeType "text/markdown" -}}{{- .Item.Markdown -}}{{- end -}}
 </section>
 {{- end -}}
+{{- template "partials/meta" . -}}
 </article>
