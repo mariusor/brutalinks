@@ -391,18 +391,18 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 
 	ShowItemData = false
 	var err error
-	//items, err := models.LoadOPItems(Db, MaxContentItems)
-	//if err != nil {
-	//	log.Error(err)
-	//	HandleError(w, r, http.StatusNotFound, err)
-	//	return
-	//}
-	items, err := LoadOPItems()
+	items, err := models.LoadOPItems(Db, MaxContentItems)
 	if err != nil {
 		log.Error(err)
 		HandleError(w, r, http.StatusNotFound, err)
 		return
 	}
+	//items, err := LoadOPItems()
+	//if err != nil {
+	//	log.Error(err)
+	//	HandleError(w, r, http.StatusNotFound, err)
+	//	return
+	//}
 	//fmt.Printf("%#v", aItems)
 
 	m.Items = loadComments(items)
