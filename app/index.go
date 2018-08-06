@@ -277,7 +277,7 @@ func LoadVotes(a *Account, it []Item) ([]Vote, error) {
 		return nil, errors.Errorf("no account to load for")
 	}
 	if len(ids) == 0 {
-		return nil, errors.Errorf("no ids to load")
+		log.Error(errors.Errorf("no ids to load"))
 	}
 	// this here code following is the ugliest I wrote in quite a long time
 	// so ugly it warrants its own fucking shame corner
@@ -391,13 +391,20 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 
 	ShowItemData = false
 	var err error
-	var items []models.Content
-	items, err = models.LoadOPItems(Db, MaxContentItems)
+	//items, err := models.LoadOPItems(Db, MaxContentItems)
+	//if err != nil {
+	//	log.Error(err)
+	//	HandleError(w, r, http.StatusNotFound, err)
+	//	return
+	//}
+	items, err := LoadOPItems()
 	if err != nil {
 		log.Error(err)
 		HandleError(w, r, http.StatusNotFound, err)
 		return
 	}
+	//fmt.Printf("%#v", aItems)
+
 	m.Items = loadComments(items)
 
 	_, err = LoadVotes(CurrentAccount, m.Items.getItems())
