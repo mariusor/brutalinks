@@ -64,13 +64,22 @@ func (c Content) Hash() string {
 	return c.Hash8()
 }
 func (c Content) Hash8() string {
-	return string(c.Key[0:8])
+	if len(c.Key) > 8 {
+		return string(c.Key[0:8])
+	}
+	return string(c.Key)
 }
 func (c Content) Hash16() string {
-	return string(c.Key[0:16])
+	if len(c.Key) > 16 {
+		return string(c.Key[0:16])
+	}
+	return string(c.Key)
 }
 func (c Content) Hash32() string {
-	return string(c.Key[0:32])
+	if len(c.Key) > 32 {
+ 	return string(c.Key[0:32])
+	}
+	return string(c.Key)
 }
 func (c Content) Hash64() string {
 	return string(c.Key)
