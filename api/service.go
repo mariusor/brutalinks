@@ -18,6 +18,9 @@ func loadAPService() *ap.Service {
 	out := ap.OutboxNew()
 	out.ID = ap.ObjectID(fmt.Sprintf("%s/%s", BaseURL, *out.GetID()))
 	s.Outbox = out
+	liked := ap.LikedNew()
+	out.ID = ap.ObjectID(fmt.Sprintf("%s/%s", BaseURL, *liked.GetID()))
+	s.Liked = liked
 
 	return s
 }
@@ -38,9 +41,30 @@ func HandleServiceCollection(w http.ResponseWriter, r *http.Request) {
 			HandleError(w, r, http.StatusInternalServerError, err)
 			return
 		}
-		_, err = loadAPCollection(us.Outbox, us, &items)
+		_, err = loadAPCollection(us.Outbox, &items)
 		data, err = json.WithContext(GetContext()).Marshal(us.Outbox)
 	case "liked":
+		types := r.URL.Query()["type"]
+		clauses := make(models.Clauses, 0)
+		if types == nil {
+			clauses = nil
+		} else {
+			for _, typ := range types {
+				if strings.ToLower(typ) == strings.ToLower(string(ap.LikeType)) {
+					clauses = append(clauses, models.Clause{ColName: `"votes"."weight" > `, Val: interface{}(0)})
+				} else {
+					clauses = append(clauses, models.Clause{ColName: ` "votes"."weight" < `, Val: interface{}(0)})
+				}
+			}
+		}
+
+		votes, err := models.LoadVotes(Db, clauses, app.MaxContentItems)
+		if err != nil {
+			HandleError(w, r, http.StatusInternalServerError, err)
+			return
+		}
+		_, err = loadAPLiked(us.Liked, votes)
+		data, err = json.WithContext(GetContext()).Marshal(us.Liked)
 	default:
 		err = errors.Errorf("collection not found")
 	}

@@ -4,6 +4,8 @@ import (
 	"time"
 	"database/sql"
 	log "github.com/sirupsen/logrus"
+	"fmt"
+	"strings"
 )
 
 const (
@@ -21,11 +23,116 @@ type Vote struct {
 	ItemId      int64     `orm:item_id`
 	Weight      int       `orm:Weight`
 	Flags       int8      `orm:Flags`
+	SubmittedByAccount *Account
+	Item 		*Content
 }
 
-func LoadItemsAndVotesSubmittedBy(db *sql.DB, handle string) (*[]Content, *[]Vote, error) {
+type Clauses []Clause
+type Clause struct {
+	ColName string
+	Val interface{}
+}
+
+func (cl Clauses) Values() []interface{} {
+	clauses := make([]interface{}, 0)
+	if cl == nil || len(cl) == 0 {
+		clauses = append(clauses, interface{}(true))
+	} else {
+		for _, t := range cl {
+			clauses = append(clauses, t.Val)
+		}
+	}
+	return clauses
+}
+func (cl Clauses) AndWhere() string {
+	placeHolders := make([]string, 0)
+	if cl == nil || len(cl) == 0 {
+		placeHolders = append(placeHolders,"$1")
+	} else {
+		for i, t := range cl {
+			placeHolders = append(placeHolders, fmt.Sprintf("%s $%d", t.ColName, i+1))
+		}
+	}
+	return strings.Join(placeHolders, " AND ")
+}
+
+func (cl Clauses) OrWhere() string {
+	placeHolders := make([]string, 0)
+	if cl == nil || len(cl) == 0 {
+		placeHolders = append(placeHolders,"$1")
+	}
+	return strings.Join(placeHolders, " OR ")
+}
+
+func LoadVotes(db *sql.DB, wheres Clauses, max int) (*[]Vote, error) {
 	var err error
-	items := make([]Content, 0)
+	votes := make([]Vote, 0)
+	selC := fmt.Sprintf(`select 
+		"votes"."id", 
+		"votes"."weight", 
+		"votes"."submitted_at", 
+		"votes"."flags",
+		"content_items"."id", 
+		"content_items"."key", 
+		"content_items"."mime_type", 
+		"content_items"."data", 
+		"content_items"."title", 
+		"content_items"."score",
+		"content_items"."submitted_at", 
+		"content_items"."submitted_by",
+		"content_items"."flags", 
+		"content_items"."metadata",
+		"author"."id", "author"."key", "author"."handle", "author"."email", "author"."score", 
+			"author"."created_at", "author"."metadata", "author"."flags",
+		"voter"."id", "voter"."key", "voter"."handle", "voter"."email", "voter"."score", 
+			"voter"."created_at", "voter"."metadata", "voter"."flags"
+from "votes"
+  inner join "content_items" on "content_items"."id" = "votes"."item_id"
+  left join "accounts" as "author" on "author"."id" = "content_items"."submitted_by"
+  left join "accounts" as "voter" on "voter"."id" = "votes"."submitted_by"
+where %s order by "votes"."submitted_at" desc limit %d`, wheres.AndWhere(),  max)
+	rows, err := db.Query(selC, wheres.Values()...)
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		v := Vote{}
+		p := Content{}
+		auth := Account{}
+		voter := Account{}
+		err = rows.Scan(
+			&v.Id,
+			&v.Weight,
+			&v.SubmittedAt,
+			&v.Flags,
+			&p.Id,
+			&p.Key,
+			&p.MimeType,
+			&p.Data,
+			&p.Title,
+			&p.Score,
+			&p.SubmittedAt,
+			&p.SubmittedBy,
+			&p.Flags,
+			&p.Metadata,
+			&auth.Id, &auth.Key, &auth.Handle, &auth.Email, &auth.Score, &auth.CreatedAt, &auth.Metadata, &auth.Flags,
+			&voter.Id, &voter.Key, &voter.Handle, &voter.Email, &voter.Score, &voter.CreatedAt, &voter.Metadata, &voter.Flags)
+		if err != nil {
+			return nil, err
+		}
+		p.SubmittedByAccount= &auth
+		v.SubmittedByAccount = &voter
+		v.Item = &p
+		votes = append(votes, v)
+	}
+	if err != nil {
+		log.Error(err)
+	}
+	return &votes, nil
+}
+func LoadItemsVotes(db *sql.DB, hash string) (*Content, *[]Vote, error) {
+	var err error
+	p := Content{}
 	votes := make([]Vote, 0)
 	selC := `select 
 		"votes"."id", 
@@ -42,19 +149,19 @@ func LoadItemsAndVotesSubmittedBy(db *sql.DB, handle string) (*[]Content, *[]Vot
 		"content_items"."submitted_by",
 		"content_items"."flags", 
 		"content_items"."metadata", 
-		"accounts"."id"
+		"accounts"."id", "accounts"."key", "accounts"."handle", "accounts"."email", "accounts"."score", 
+			"accounts"."created_at", "accounts"."metadata", "accounts"."flags"
 from "content_items"
   inner join "votes" on "content_items"."id" = "votes"."item_id"
   left join "accounts" on "accounts"."id" = "content_items"."submitted_by"
-where "accounts"."handle" = $1 order by "votes"."submitted_at" desc`
+where "content_items"."key" ~* $1 order by "votes"."submitted_at" desc`
 	{
-		rows, err := db.Query(selC, handle)
+		rows, err := db.Query(selC, hash)
 		if err != nil {
 			return nil, nil, err
 		}
 		for rows.Next() {
 			v := Vote{}
-			p := Content{}
 			a := Account{}
 			err = rows.Scan(
 				&v.Id,
@@ -75,13 +182,25 @@ where "accounts"."handle" = $1 order by "votes"."submitted_at" desc`
 			if err != nil {
 				return nil, nil, err
 			}
-			p.SubmittedByAccount = a
-			items = append(items, p)
+			p.SubmittedByAccount = &a
 			votes = append(votes, v)
 		}
 	}
 	if err != nil {
 		log.Error(err)
 	}
-	return &items, &votes, nil
+	return &p, &votes, nil
+}
+
+func LoadVotesSubmittedBy(db *sql.DB, handle string, which int, max int) (*[]Vote, error) {
+	clauses := make(Clauses, 0)
+	clauses = append(clauses, Clause{ColName: `"voter"."handle" = `, Val: interface{}(handle)})
+	if which != 0 {
+		if which > 0 {
+			clauses = append(clauses, Clause{ColName: `"votes"."weight" > `, Val: interface{}(0)})
+		} else {
+			clauses = append(clauses, Clause{ColName: `"votes"."weight" < `, Val: interface{}(0)})
+		}
+	}
+	return LoadVotes(db, clauses, max)
 }

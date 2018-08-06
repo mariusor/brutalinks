@@ -22,6 +22,21 @@ func getObjectID(s string) ap.ObjectID {
 func apAccountID(a models.Account) ap.ObjectID {
 	return getObjectID(a.Handle)
 }
+func loadAPLike(vote models.Vote) (ap.ObjectOrLink, error) {
+	id := BuildObjectIDFromContent(*vote.Item)
+	lID := BuildObjectIDFromVote(vote)
+	whomArt := ap.IRI(BuildActorID(*vote.Item.SubmittedByAccount))
+	if vote.Weight > 0 {
+		l := ap.LikeNew(lID, ap.IRI(id))
+		l.AttributedTo = whomArt
+		return *l, nil
+	} else {
+		l := ap.DislikeNew(lID, ap.IRI(id))
+		l.AttributedTo = whomArt
+		return *l, nil
+	}
+}
+
 func loadAPItem(item models.Content) (ap.Item, error) {
 	id := BuildObjectIDFromContent(item)
 	o := ap.ObjectNew(id, ap.ArticleType)
@@ -30,7 +45,7 @@ func loadAPItem(item models.Content) (ap.Item, error) {
 	o.URL = ap.URI(app.PermaLink(item, item.SubmittedByAccount.Handle))
 	o.MediaType = ap.MimeType(item.MimeType)
 	o.Generator = ap.IRI("http://littr.git")
-	o.AttributedTo = ap.IRI(BuildActorID(item.SubmittedByAccount))
+	o.AttributedTo = ap.IRI(BuildActorID(*item.SubmittedByAccount))
 	if item.Title != nil {
 		o.Name["en"] = string(item.Title)
 	}
@@ -43,7 +58,6 @@ func loadAPItem(item models.Content) (ap.Item, error) {
 	}
 	return a, nil
 }
-
 
 func loadReceivedItems(id int64) (*[]models.Content, error) {
 	return nil, nil
@@ -65,64 +79,75 @@ func loadAPPerson(a models.Account) *ap.Person {
 		in.URL = BuildObjectURL(p.URL, p.Inbox)
 		in.ID = BuildObjectID("", p,  p.Inbox)
 		p.Inbox = in
-
-		liked := ap.LikedNew()
-		liked.URL = BuildObjectURL(p.URL, p.Liked)
-		liked.ID = BuildObjectID("", p, p.Liked)
-		p.Liked = liked
 	*/
+	liked := ap.LikedNew()
+	liked.URL = BuildObjectURL(p.URL, p.Liked)
+	liked.ID = BuildCollectionID(a, p.Liked)
+	p.Liked = liked
 
 	p.URL = BuildObjectURL(baseURL, p)
 
 	return p
 }
+//
+//func loadAPLiked(a models.Account, o ap.CollectionInterface, items *[]models.Content, votes *[]models.Vote) (ap.CollectionInterface, error) {
+//	if items == nil || len(*items) == 0 {
+//		return nil, errors.Errorf("no items loaded")
+//	}
+//	if votes == nil || len(*votes) == 0 {
+//		return nil, errors.Errorf("no votes loaded")
+//	}
+//	if len(*items) != len(*votes) {
+//		return nil, errors.Errorf("items and votes lengths are not matching")
+//	}
+//	for k, item := range *items {
+//		vote := (*votes)[k]
+//		if vote.Weight == 0 {
+//			// skip 0 weight votes from the collection
+//			continue
+//		}
+//
+//		typ := ap.ArticleType
+//		if item.IsLink() {
+//			typ = ap.LinkType
+//		}
+//		oid := ap.ObjectID(fmt.Sprintf("%s/%s/outbox/%s", AccountsURL, item.SubmittedByAccount.Handle, item.Hash()))
+//		obj := ap.ObjectNew(oid, typ)
+//		obj.URL = ap.URI(fmt.Sprintf("%s/%s", a.GetLink(), item.Hash()))
+//
+//		id := ap.ObjectID(fmt.Sprintf("%s/%s", *o.GetID(), item.Hash()))
+//		var it ap.Item
+//		if vote.Weight > 0 {
+//			l := ap.LikeNew(id, obj)
+//			l.Published = vote.SubmittedAt
+//			l.Updated = item.UpdatedAt
+//			it = l
+//		} else {
+//			d := ap.DislikeNew(id, obj)
+//			d.Published = vote.SubmittedAt
+//			d.Updated = item.UpdatedAt
+//			it = d
+//		}
+//
+//		o.Append(it)
+//	}
+//
+//	return o, nil
+//}
 
-func loadAPLiked(a models.Account, o ap.CollectionInterface, items *[]models.Content, votes *[]models.Vote) (ap.CollectionInterface, error) {
-	if items == nil || len(*items) == 0 {
-		return nil, errors.Errorf("no items loaded")
-	}
+func loadAPLiked(o ap.CollectionInterface, votes *[]models.Vote) (ap.CollectionInterface, error) {
 	if votes == nil || len(*votes) == 0 {
-		return nil, errors.Errorf("no votes loaded")
+		return nil, errors.Errorf("empty collection %T", o)
 	}
-	if len(*items) != len(*votes) {
-		return nil, errors.Errorf("items and votes lengths are not matching")
-	}
-	for k, item := range *items {
-		vote := (*votes)[k]
-		if vote.Weight == 0 {
-			// skip 0 weight votes from the collection
-			continue
-		}
+	for _, vote := range *votes {
+		el, _ := loadAPLike(vote)
 
-		typ := ap.ArticleType
-		if item.IsLink() {
-			typ = ap.LinkType
-		}
-		oid := ap.ObjectID(fmt.Sprintf("%s/%s/outbox/%s", AccountsURL, item.SubmittedByAccount.Handle, item.Hash()))
-		obj := ap.ObjectNew(oid, typ)
-		obj.URL = ap.URI(fmt.Sprintf("%s/%s", a.GetLink(), item.Hash()))
-
-		id := ap.ObjectID(fmt.Sprintf("%s/%s", *o.GetID(), item.Hash()))
-		var it ap.Item
-		if vote.Weight > 0 {
-			l := ap.LikeNew(id, obj)
-			l.Published = vote.SubmittedAt
-			l.Updated = item.UpdatedAt
-			it = l
-		} else {
-			d := ap.DislikeNew(id, obj)
-			d.Published = vote.SubmittedAt
-			d.Updated = item.UpdatedAt
-			it = d
-		}
-
-		o.Append(it)
+		o.Append(el)
 	}
 
 	return o, nil
 }
-
-func loadAPCollection(o ap.CollectionInterface, a ap.Item, items *[]models.Content) (ap.CollectionInterface, error) {
+func loadAPCollection(o ap.CollectionInterface, items *[]models.Content) (ap.CollectionInterface, error) {
 	if items == nil || len(*items) == 0 {
 		return nil, errors.Errorf("empty collection %T", o)
 	}
@@ -229,21 +254,34 @@ func HandleAccountCollection(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Print(err)
 		}
-		_, err = loadAPCollection(p.Inbox, p, items)
+		_, err = loadAPCollection(p.Inbox, items)
 		data, err = json.WithContext(GetContext()).Marshal(p.Inbox)
 	case "outbox":
 		items, err := models.LoadItemsSubmittedBy(Db, a.Handle)
 		if err != nil {
 			log.Print(err)
 		}
-		_, err = loadAPCollection(p.Outbox, p, &items)
+		_, err = loadAPCollection(p.Outbox, &items)
 		data, err = json.WithContext(GetContext()).Marshal(p.Outbox)
 	case "liked":
-		items, votes, err := models.LoadItemsAndVotesSubmittedBy(Db, a.Handle)
+		types := r.URL.Query()["type"]
+		var which int
+		if types == nil {
+			which = 0
+		} else {
+			for _, typ := range types {
+				if strings.ToLower(typ) == strings.ToLower(string(ap.LikeType)) {
+					which = 1
+				} else {
+					which = -1
+				}
+			}
+		}
+		votes, err := models.LoadVotesSubmittedBy(Db, a.Handle, which, app.MaxContentItems)
 		if err != nil {
 			log.Print(err)
 		}
-		_, err = loadAPLiked(a, p.Liked, items, votes)
+		_, err = loadAPLiked(p.Liked, votes)
 		data, err = json.WithContext(GetContext()).Marshal(p.Liked)
 	default:
 		err = errors.Errorf("collection not found")

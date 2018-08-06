@@ -120,7 +120,7 @@ func LoadItemsSubmittedBy(db *sql.DB, handle string) ([]Content, error) {
 			if err != nil {
 				return nil, err
 			}
-			p.SubmittedByAccount = a
+			p.SubmittedByAccount = &a
 			items = append(items, p)
 		}
 	}

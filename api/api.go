@@ -91,6 +91,13 @@ func BuildCollectionID(a models.Account, o ap.CollectionInterface) ap.ObjectID {
 func BuildObjectIDFromContent(i models.Content) ap.ObjectID {
 	return ap.ObjectID(fmt.Sprintf("%s/%s/outbox/%s", AccountsURL, url.PathEscape(i.SubmittedByAccount.Handle), url.PathEscape(i.Hash())))
 }
+func BuildObjectIDFromVote(v models.Vote) ap.ObjectID {
+	att := "liked"
+	//if v.Weight < 0 {
+	//	att = "disliked"
+	//}
+	return ap.ObjectID(fmt.Sprintf("%s/%s/%s/%s", AccountsURL, url.PathEscape(v.SubmittedByAccount.Handle), att, url.PathEscape(v.Item.Hash())))
+}
 
 func getObjectType (el ap.Item) string {
 	var (

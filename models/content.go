@@ -28,7 +28,7 @@ type Content struct {
 	Flags       int8      `orm:Flags`
 	Metadata    []byte    `orm:metadata`
 	Path        []byte    `orm:path`
-	SubmittedByAccount Account
+	SubmittedByAccount *Account
 	fullPath    []byte
 	parentLink  string
 }
@@ -143,7 +143,7 @@ func LoadItem(db *sql.DB, h string) (Content, error) {
 		if err != nil {
 			return p, err
 		}
-		p.SubmittedByAccount = a
+		p.SubmittedByAccount = &a
 	}
 	return p, nil
 }
@@ -172,7 +172,7 @@ func LoadOPItems(db *sql.DB, max int) ([]Content, error) {
 		if err != nil {
 			return nil, err
 		}
-		p.SubmittedByAccount = a
+		p.SubmittedByAccount = &a
 		items = append(items, p)
 	}
 
@@ -204,7 +204,7 @@ func LoadItemsByPath(db *sql.DB, path []byte, max int) ([]Content, error) {
 		if err != nil {
 			return nil, err
 		}
-		p.SubmittedByAccount = a
+		p.SubmittedByAccount = &a
 		items = append(items, p)
 	}
 
@@ -236,7 +236,7 @@ func LoadItemsByDomain(db *sql.DB, domain string, max int) ([]Content, error) {
 		if err != nil {
 			return nil, err
 		}
-		p.SubmittedByAccount = a
+		p.SubmittedByAccount = &a
 		items = append(items, p)
 	}
 
@@ -265,7 +265,7 @@ func LoadItemByHash(db *sql.DB, hash string) (Content, error) {
 		if err != nil {
 			return p, err
 		}
-		p.SubmittedByAccount = a
+		p.SubmittedByAccount = &a
 	}
 	return p, nil
 }
