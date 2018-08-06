@@ -59,24 +59,23 @@ func HandleServiceCollectionItem(w http.ResponseWriter, r *http.Request) {
 	var data []byte
 	var err error
 
-	us := loadAPService()
-
-	collection := chi.URLParam(r, "collection")
-	var whichCol ap.CollectionInterface
-	switch strings.ToLower(collection) {
-	case "inbox":
-		whichCol = us.Inbox
-	case "outbox":
-		whichCol = us.Outbox
-	case "liked":
-		whichCol = us.Liked
-	default:
-		err = errors.Errorf("collection not found")
-	}
-	if err != nil {
-		HandleError(w, r, http.StatusInternalServerError, err)
-		return
-	}
+	//us := loadAPService()
+	//collection := chi.URLParam(r, "collection")
+	//var whichCol ap.CollectionInterface
+	//switch strings.ToLower(collection) {
+	//case "inbox":
+	//	whichCol = us.Inbox
+	//case "outbox":
+	//	whichCol = us.Outbox
+	//case "liked":
+	//	whichCol = us.Liked
+	//default:
+	//	err = errors.Errorf("collection not found")
+	//}
+	//if err != nil {
+	//	HandleError(w, r, http.StatusInternalServerError, err)
+	//	return
+	//}
 
 	hash := chi.URLParam(r, "hash")
 	c, err  := models.LoadItem(Db, hash)
@@ -84,7 +83,7 @@ func HandleServiceCollectionItem(w http.ResponseWriter, r *http.Request) {
 		HandleError(w, r, http.StatusNotFound, err)
 		return
 	}
-	el, _ := loadAPItem(c, whichCol)
+	el, _ := loadAPItem(c)
 
 	data, err = json.WithContext(GetContext()).Marshal(el)
 	w.Header().Set("Content-Type", "application/ld+json; charset=utf-8")

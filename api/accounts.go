@@ -22,31 +22,26 @@ func getObjectID(s string) ap.ObjectID {
 func apAccountID(a models.Account) ap.ObjectID {
 	return getObjectID(a.Handle)
 }
-
-func loadAPItem(item models.Content, o ap.CollectionInterface) (ap.Item, error) {
-	if o == nil {
-		return nil, errors.Errorf("unable to load item")
-	}
-
+func loadAPItem(item models.Content) (ap.Item, error) {
 	id := BuildObjectIDFromContent(item)
-	var el ap.Item
-	if item.IsLink() {
-		l := ap.LinkNew(id, ap.LinkType)
-		l.Href = ap.URI(item.Data)
-		el = l
-	} else {
-		o := ap.ObjectNew(id, ap.ArticleType)
-		o.Content["en"] = string(item.Data)
-		o.Published = item.SubmittedAt
-		o.Updated = item.UpdatedAt
-		o.URL = ap.URI(app.PermaLink(item, item.SubmittedByAccount.Handle))
-		o.MediaType = ap.MimeType(item.MimeType)
-		if item.Title != nil {
-			o.Name["en"] = string(item.Title)
-		}
-		el = o
+	o := ap.ObjectNew(id, ap.ArticleType)
+	o.Published = item.SubmittedAt
+	o.Updated = item.UpdatedAt
+	o.URL = ap.URI(app.PermaLink(item, item.SubmittedByAccount.Handle))
+	o.MediaType = ap.MimeType(item.MimeType)
+	o.Generator = ap.IRI("http://littr.git")
+	o.AttributedTo = ap.IRI(BuildActorID(item.SubmittedByAccount))
+	if item.Title != nil {
+		o.Name["en"] = string(item.Title)
 	}
-	return el, nil
+	if item.Data != nil {
+		o.Content["en"] = string(item.Data)
+	}
+	a := Article{
+		_obj: _obj(*o),
+		Score: item.Score/models.ScoreMultiplier,
+	}
+	return a, nil
 }
 
 
@@ -132,7 +127,7 @@ func loadAPCollection(o ap.CollectionInterface, a ap.Item, items *[]models.Conte
 		return nil, errors.Errorf("empty collection %T", o)
 	}
 	for _, item := range *items {
-		el, _ := loadAPItem(item, o)
+		el, _ := loadAPItem(item)
 
 		o.Append(el)
 	}
@@ -182,20 +177,20 @@ func HandleAccountCollectionItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	p := loadAPPerson(a)
-
-	collection := chi.URLParam(r, "collection")
-	var whichCol ap.CollectionInterface
-	switch strings.ToLower(collection) {
-	case "inbox":
-		whichCol = p.Inbox
-	case "outbox":
-		whichCol = p.Outbox
-	case "liked":
-		whichCol = p.Liked
-	default:
-		err = errors.Errorf("collection not found")
-	}
+	//p := loadAPPerson(a)
+	//
+	//collection := chi.URLParam(r, "collection")
+	//var whichCol ap.CollectionInterface
+	//switch strings.ToLower(collection) {
+	//case "inbox":
+	//	whichCol = p.Inbox
+	//case "outbox":
+	//	whichCol = p.Outbox
+	//case "liked":
+	//	whichCol = p.Liked
+	//default:
+	//	err = errors.Errorf("collection not found")
+	//}
 
 	hash := chi.URLParam(r, "hash")
 	c, err  := models.LoadItem(Db, hash)
@@ -203,7 +198,7 @@ func HandleAccountCollectionItem(w http.ResponseWriter, r *http.Request) {
 		HandleError(w, r, http.StatusNotFound, err)
 		return
 	}
-	el, _ := loadAPItem(c, whichCol)
+	el, _ := loadAPItem(c)
 
 	data, err = json.WithContext(GetContext()).Marshal(el)
 	w.Header().Set("Content-Type", "application/ld+json; charset=utf-8")

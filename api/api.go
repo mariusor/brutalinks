@@ -25,6 +25,25 @@ var AccountsURL string
 const NotFound = 404
 const InternalError = 500
 
+type _obj ap.Object
+
+type Article struct {
+	_obj
+	Score int64	`jsonld:"score"`
+}
+func (a Article)GetID() *ap.ObjectID{
+	return &a._obj.ID
+}
+func (a Article)GetType() ap.ActivityVocabularyType{
+	return a._obj.Type
+}
+func (a Article)IsLink() bool {
+	return false
+}
+func (a Article)IsObject() bool {
+	return true
+}
+
 type Field struct {
 	Name  string `json:"name"`
 	Value string `json:"value"`
@@ -54,8 +73,15 @@ func Errorf(c int, m string, args ...interface{}) *ApiError {
 	return &ApiError{c, errors.Errorf(m, args...)}
 }
 
-func GetContext() j.IRI {
-	return j.IRI(ap.ActivityBaseURI)
+func GetContext() j.Context {
+	return j.Context{
+		j.Term(j.NilTerm): j.IRI(ap.ActivityBaseURI),
+		j.Term("score"): j.IRI("http://littr.me/#ns"),
+	}
+}
+
+func BuildActorID(a models.Account) ap.ObjectID {
+	return ap.ObjectID(fmt.Sprintf("%s/%s", AccountsURL, url.PathEscape(a.Handle)))
 }
 
 func BuildCollectionID(a models.Account, o ap.CollectionInterface) ap.ObjectID {
