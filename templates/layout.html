@@ -5,6 +5,7 @@
 {{- template "partials/head" . -}}
 </head>
 <body class="container-fluid{{ if .InvertedTheme }} inverted{{end}}">
+{{- template "partials/flash" -}}
 <header class="container-fluid row">{{ template "partials/header" . }}</header>
 <main class="no-gutters">
 {{ yield -}}

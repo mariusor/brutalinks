@@ -1,24 +1,24 @@
 {{- $account := CurrentAccount -}}
 {{- $providers := getProviders}}
-    <h1 class="col">{{- /* <!--<a href="/" title="littr.me" alt="littr.me" class="far fa-trash-alt"></a><strong>littering:</strong>
-    {{- if $account -}} <span class="by">{{$account.Handle}}</span>{{- else -}}
-    {{- if .Title -}}
-    {{ .Title }}
-    {{- else -}} allowed{{- end -}}
-    {{- end -}}  --> */ -}}
-    <a href="/" title="littr.me" alt="littr.me">littr<small> me</small></a></h1>
-    <menu id="top" class="col-xs-8 row">
-        <li class=""><a id="top-invert" title="Turn {{if .InvertedTheme }}on{{else}}off{{end}} the light" href="/#invert"></a></li>
-    {{ if $account.IsLogged }}
-        <li class="acct">{{$account.Handle}} <span class="score">{{$account.Score}}</span></li>
-        <li class=""><a href="/logout">Sign out</a></li>
-    {{end -}}
-        <li class=""><a href="/submit">Add</a></li>
-    {{- if not $account.IsLogged }}
-        <li class="auth-local"><a href="/login" title="Local auth" class="far fa-trash-alt"></a></li>
-    {{range $key, $value := $providers}}
-        <li class=""><a href="/auth/{{$key}}" title="{{$value}} auth" class="fab fa-{{$key}}"></a></li>
-    {{- end -}}
-    {{- end -}}
-    </menu>
-{{template "partials/flash" -}}
+<h1 class="col">{{- /* <!--<a href="/" title="littr.me" alt="littr.me" class="far fa-trash-alt"></a><strong>littering:</strong>
+{{- if $account -}} <span class="by">{{$account.Handle}}</span>{{- else -}}
+{{- if .Title -}}
+{{ .Title }}
+{{- else -}} allowed{{- end -}}
+{{- end -}}  --> */ -}}
+<a href="/" title="littr.me" alt="littr.me">littr<small> me</small></a></h1>
+<menu id="top" class="col-xs-8 row">
+    <li class=""><a id="top-invert" title="Turn {{if .InvertedTheme }}on{{else}}off{{end}} the light" href="/#invert"></a></li>
+{{ if $account.IsLogged }}
+    <li class="acct">{{$account.Handle}} <span class="score">{{$account.Score}}</span></li>
+    <li class=""><a href="/logout">Sign out</a></li>
+{{end -}}
+    <li class=""><a href="/submit">Add</a></li>
+{{- if not $account.IsLogged }}
+    <li class="auth-local"><a href="/login" title="Local auth" class="far fa-trash-alt"></a></li>
+{{range $key, $value := $providers}}
+    <li class=""><a href="/auth/{{$key}}" title="{{$value}} auth" class="fab fa-{{$key}}"></a></li>
+{{- end -}}
+{{- end -}}
+</menu>
+
