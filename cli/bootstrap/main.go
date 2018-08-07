@@ -45,20 +45,20 @@ func er (err errors.Err) bool {
 
 	return false
 }
+
 func main() {
 	var dbRootUser string
 	var dbRootPw string
 	var dbHost string
-	var dbName string
 
 	flag.StringVar(&dbRootUser, "user", "", "the admin user for the database")
 	flag.StringVar(&dbRootPw, "pw", "", "the admin pass for the database")
-	flag.StringVar(&dbName, "db", "littr", "the db name")
 	flag.StringVar(&dbHost, "host", "", "the db host")
 	flag.Parse()
 
 	dbPw := os.Getenv("DB_PASSWORD")
 	dbUser := os.Getenv("DB_USER")
+	dbName := os.Getenv("DB_NAME")
 	var dot *dotsql.DotSql
 	if len(dbRootUser) != 0 {
 		dbRootName := "postgres"
