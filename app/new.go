@@ -70,7 +70,6 @@ func ContentFromRequest(r *http.Request) (*models.Content, error) {
 			$1, $2, $3, $4, $5, $6, $7, (select (case when "path" is not null then concat("path", '.', "key") else "key" end) 
 				as "parent_path" from "content_items" where key ~* $8)::ltree
 		)`
-
 		params = append(params, parent)
 	}
 
@@ -82,6 +81,7 @@ func ContentFromRequest(r *http.Request) (*models.Content, error) {
 			return nil, errors.Errorf("could not save item %q", i.Hash())
 		}
 	}
+
 	return &i, nil
 }
 
@@ -103,6 +103,11 @@ func HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	var userId = CurrentAccount.Id
 
 	p, err := ContentFromRequest(r)
+	if err != nil {
+		HandleError(w, r, http.StatusInternalServerError, err)
+		return
+	}
+	*p, err = models.LoadItemByHash(Db, p.Hash64())
 	if err != nil {
 		HandleError(w, r, http.StatusInternalServerError, err)
 		return
