@@ -1,11 +1,14 @@
 module github.com/mariusor/littr.go
 
 require (
+	github.com/Masterminds/squirrel v0.0.0-20180802154824-cebd809c54c4
 	github.com/buger/jsonparser v0.0.0-20180318095312-2cac668e8456
 	github.com/davecgh/go-spew v1.1.0 // indirect
 	github.com/eknkc/amber v0.0.0-20171010120322-cdade1c07385 // indirect
 	github.com/fsnotify/fsnotify v1.4.7 // indirect
+	github.com/gchaincl/dotsql v0.1.0 // indirect
 	github.com/go-chi/chi v0.0.0-20171222161133-e83ac2304db3
+	github.com/go-sql-driver/mysql v1.4.0 // indirect
 	github.com/golang/protobuf v1.1.0 // indirect
 	github.com/gorilla/securecookie v1.1.1
 	github.com/gorilla/sessions v1.1.1
@@ -13,8 +16,11 @@ require (
 	github.com/juju/errors v0.0.0-20180726005433-812b06ada177
 	github.com/juju/loggo v0.0.0-20180524022052-584905176618 // indirect
 	github.com/juju/testing v0.0.0-20180517134105-72703b1e95eb // indirect
+	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
+	github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 // indirect
 	github.com/lib/pq v0.0.0-20180523175426-90697d60dd84
 	github.com/mariusor/activitypub.go v0.0.0-20180806171124-28d2a1e33f8e
+	github.com/mattn/go-sqlite3 v1.9.0 // indirect
 	github.com/onsi/ginkgo v1.6.0 // indirect
 	github.com/onsi/gomega v1.4.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
