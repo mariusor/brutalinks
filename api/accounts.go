@@ -42,7 +42,7 @@ func loadAPItem(item models.Content) (ap.Item, error) {
 	o := ap.ObjectNew(id, ap.ArticleType)
 	o.Published = item.SubmittedAt
 	o.Updated = item.UpdatedAt
-	o.URL = ap.URI(app.PermaLink(item, item.SubmittedByAccount.Handle))
+	o.URL = ap.URI(app.PermaLink(item))
 	o.MediaType = ap.MimeType(item.MimeType)
 	o.Generator = ap.IRI("http://littr.git")
 	o.AttributedTo = ap.IRI(BuildActorID(*item.SubmittedByAccount))

@@ -351,8 +351,11 @@ func OPLink(c models.Content) string {
 	}
 	return "/"
 }
-func PermaLink(c models.Content, handle string) string {
-	return fmt.Sprintf("/~%s/%s", handle, c.Hash())
+func PermaLink(c models.Content) string {
+	if c.SubmittedByAccount == nil {
+		return ""
+	}
+	return fmt.Sprintf("/~%s/%s", c.SubmittedByAccount.Handle, c.Hash())
 }
 func LoadItem(c models.Content) Item {
 	i := Item{
@@ -370,7 +373,7 @@ func LoadItem(c models.Content) Item {
 		isTop:       c.IsTop(),
 		isLink:      c.IsLink(),
 		parentLink:  ParentLink(c),
-		permaLink:   PermaLink(c, c.SubmittedByAccount.Handle),
+		permaLink:   PermaLink(c),
 		opLink:      OPLink(c),
 	}
 	if len(c.Title) > 0 {
