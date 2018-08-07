@@ -29,7 +29,7 @@ func HandleParent(w http.ResponseWriter, r *http.Request) {
 		}
 
 		url := PermaLink(p, handle)
-		http.Redirect(w, r, url, http.StatusMovedPermanently)
+		Redirect(w, r, url, http.StatusMovedPermanently)
 	}
 }
 
@@ -54,6 +54,6 @@ func HandleOp(w http.ResponseWriter, r *http.Request) {
 		}
 
 		it := LoadItem(p)
-		http.Redirect(w, r, it.PermaLink(), http.StatusMovedPermanently)
+		Redirect(w, r, it.PermaLink(), http.StatusMovedPermanently)
 	}
 }

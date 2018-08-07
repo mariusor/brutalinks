@@ -98,6 +98,6 @@ func HandleRegister(w http.ResponseWriter, r *http.Request) {
 		HandleError(w, r, http.StatusInternalServerError, errs...)
 		return
 	}
-	http.Redirect(w, r, a.GetLink(), http.StatusMovedPermanently)
+	Redirect(w, r, a.GetLink(), http.StatusSeeOther)
 	return
 }

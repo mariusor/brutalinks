@@ -109,5 +109,5 @@ func HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 	AddVote(*p, 1, userId)
 	i := LoadItem(*p)
-	http.Redirect(w, r, i.PermaLink(), http.StatusSeeOther)
+	Redirect(w, r, i.PermaLink(), http.StatusSeeOther)
 }

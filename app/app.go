@@ -38,15 +38,16 @@ const anonymous = "anonymous"
 
 var defaultAccount = Account{Id: 0, Handle: anonymous, votes: make([]Vote, 0)}
 
+type flashType string
 const (
-	Success = "success"
-	Info    = "info"
-	Warning = "warning"
-	Error   = "error"
+	Success flashType = "success"
+	Info    flashType = "info"
+	Warning flashType = "warning"
+	Error   flashType = "error"
 )
 
 type Flash struct {
-	Type string
+	Type flashType
 	Msg  string
 }
 
@@ -58,19 +59,14 @@ func init() {
 		Layout:     "layout",
 		Extensions: []string{".html"},
 		Funcs: []template.FuncMap{{
-			"isInverted":     IsInverted,
-			"sluggify":       sluggify,
-			"title":          func(t []byte) string { return string(t) },
-			"getProviders":   getAuthProviders,
-			"CurrentAccount": func() *Account { return CurrentAccount },
-			"LoadFlashMessages": func() []interface{} {
-				//s := GetSession(r)
-				//return s.Flashes()
-				return []interface{}{}
-			},
-			"mod":                func(lvl int) float64 { return math.Mod(float64(lvl), float64(10)) },
-			"CleanFlashMessages": func() string { return "" }, //CleanFlashMessages,
-			"ShowText":			  func() bool { return ShowItemData },
+			"isInverted":        IsInverted,
+			"sluggify":          sluggify,
+			"title":             func(t []byte) string { return string(t) },
+			"getProviders":      getAuthProviders,
+			"CurrentAccount":    func() *Account { return CurrentAccount },
+			"LoadFlashMessages": LoadFlashMessages,
+			"mod":               func(lvl int) float64 { return math.Mod(float64(lvl), float64(10)) },
+			"ShowText":          func() bool { return ShowItemData },
 		}},
 		Delims:         render.Delims{"{{", "}}"},
 		Charset:        "UTF-8",
@@ -125,6 +121,8 @@ func ValidEnv(s EnvType) bool {
 	return false
 }
 
+var FlashData   = make([]Flash, 0)
+
 type Littr struct {
 	Env         EnvType
 	HostName    string
@@ -132,7 +130,6 @@ type Littr struct {
 	Listen      string
 	Db          *sql.DB
 	SessionKeys [2][]byte
-	FlashData   []interface{}
 }
 
 type errorModel struct {
@@ -145,7 +142,7 @@ type errorModel struct {
 func GetSession(r *http.Request) *sessions.Session {
 	s, err := SessionStore.Get(r, sessionName)
 	if err != nil {
-		log.WithField("context", "Session").Error(err)
+		log.Error(errors.NewErrWithCause(err, "unable to load session with name %s", sessionName))
 	}
 	return s
 }
@@ -165,13 +162,29 @@ func (l *Littr) BaseUrl() string {
 	return fmt.Sprintf("http://%s", l.HostName)
 }
 
-func RenderTemplate(r *http.Request, w http.ResponseWriter, name string, m interface{}) error {
-	err := Renderer.HTML(w, http.StatusOK, name, m)
+func Redirect(w http.ResponseWriter, r *http.Request, url string, status int ) error {
+	err := sessions.Save(r, w)
 	if err != nil {
-		Renderer.HTML(w, http.StatusInternalServerError, "error", err)
-		return err
+		log.Error(errors.NewErrWithCause(err, "failed to save session before redirect [%d:%s]", status, url))
 	}
-	return sessions.Save(r, w)
+	http.Redirect(w, r, url, status)
+	return err
+}
+
+func RenderTemplate(r *http.Request, w http.ResponseWriter, name string, m interface{}) error {
+	var err error
+	err = sessions.Save(r, w)
+	if err != nil {
+		log.Error(errors.NewErrWithCause(err, "failed to save session before rendering template %s with model %T", name, m))
+	}
+	err = Renderer.HTML(w, http.StatusOK, name, m)
+	if err != nil {
+		rr := errors.NewErrWithCause(err, "failed to render template %s with model %T", name, m)
+		log.Error(rr)
+		Renderer.HTML(w, http.StatusInternalServerError, "error", rr)
+	}
+	return err
+
 }
 
 // AddVote adds a vote to the p content item
@@ -330,13 +343,13 @@ func (l *Littr) HandleCallback(w http.ResponseWriter, r *http.Request) {
 	s.Values["provider"] = provider
 	s.Values["code"] = code
 	s.Values["state"] = state
-	s.AddFlash("Success")
+	AddFlashMessage(Success, fmt.Sprintf("Login successful with %s", provider), r, w)
 
 	err = SessionStore.Save(r, w, s)
 	if err != nil {
 		log.Print(err)
 	}
-	http.Redirect(w, r, l.BaseUrl(), http.StatusFound)
+	Redirect(w, r, l.BaseUrl(), http.StatusFound)
 }
 
 // handleMain serves /auth/{provider}/callback request
@@ -346,7 +359,7 @@ func (l *Littr) HandleAuth(w http.ResponseWriter, r *http.Request) {
 	indexUrl := "/"
 	if os.Getenv(strings.ToUpper(provider)+"_KEY") == "" {
 		log.Printf("Provider %s has no credentials set", provider)
-		http.Redirect(w, r, indexUrl, http.StatusPermanentRedirect)
+		Redirect(w, r, indexUrl, http.StatusPermanentRedirect)
 		return
 	}
 	url := fmt.Sprintf("%s/auth/%s/callback", l.BaseUrl(), provider)
@@ -399,9 +412,9 @@ func (l *Littr) HandleAuth(w http.ResponseWriter, r *http.Request) {
 			log.Printf("ERROR %s", err)
 		}
 		s.AddFlash("Missing oauth provider")
-		http.Redirect(w, r, indexUrl, http.StatusPermanentRedirect)
+		Redirect(w, r, indexUrl, http.StatusPermanentRedirect)
 	}
-	http.Redirect(w, r, config.AuthCodeURL("state", oauth2.AccessTypeOnline), http.StatusFound)
+	Redirect(w, r, config.AuthCodeURL("state", oauth2.AccessTypeOnline), http.StatusFound)
 }
 
 func IsInverted(r *http.Request) bool {
@@ -414,22 +427,39 @@ func IsInverted(r *http.Request) bool {
 	return false
 }
 
-func (l *Littr) Sessions(next http.Handler) http.Handler {
+func loadCurrentAccount(s *sessions.Session) {
+	CurrentAccount = AnonymousAccount()
+	// load the current account from the session or setting it to anonymous
+	if raw, ok := s.Values[SessionUserKey]; ok {
+		if raw != nil {
+			a := raw.(Account)
+			CurrentAccount = &a
+		}
+	} else {
+		log.Error(errors.NewErr("unable to load user from session"))
+	}
+}
+func loadFlashMessages(s *sessions.Session) {
+	FlashData = FlashData[:0]
+	// setting the local FlashData value
+	for _, int := range s.Flashes() {
+		if int == nil {
+			continue
+		}
+		f, ok := int.(Flash)
+		if !ok {
+			log.Error(errors.NewErr("unable to read flash struct from %T %#v", int, int))
+		}
+		FlashData = append(FlashData, f)
+	}
+}
+
+func LoadSessionData(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		s := GetSession(r)
-		l.FlashData = s.Flashes()
-		if len(l.FlashData) > 0 {
-			log.Debugf("flashes %#v", l.FlashData)
-			for _, errMsg := range l.FlashData {
-				log.Error(errMsg)
-			}
-		}
-		if s.Values[SessionUserKey] != nil {
-			a := s.Values[SessionUserKey].(Account)
-			CurrentAccount = &a
-		} else {
-			CurrentAccount = AnonymousAccount()
-		}
+		loadFlashMessages(s)
+
+		loadCurrentAccount(s)
 		next.ServeHTTP(w, r)
 	}
 	return http.HandlerFunc(fn)
@@ -437,38 +467,18 @@ func (l *Littr) Sessions(next http.Handler) http.Handler {
 
 func (l *Littr) AuthCheck(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
-		s, err := SessionStore.Get(r, sessionName)
-		if err != nil {
-			log.Error(err)
-		}
+		s := GetSession(r)
 		log.Debugf("%#v", s.Values)
-		//l.SessionStore.Save(r, w, s)
 	})
 }
 
-func AddFlashMessage(msg string, typ string, r *http.Request, w http.ResponseWriter) {
+func AddFlashMessage(typ flashType, msg string, r *http.Request, w http.ResponseWriter) {
 	s := GetSession(r)
 	s.AddFlash(Flash{typ, msg})
 }
 
-func InvertedMw(next http.Handler) http.Handler {
-	fn := func(w http.ResponseWriter, r *http.Request) {
-		defer func() {
-			IsInverted(r)
-		}()
-
-		next.ServeHTTP(w, r)
-	}
-
-	return http.HandlerFunc(fn)
+func LoadFlashMessages() []Flash {
+	f := FlashData
+	FlashData = nil
+	return f
 }
-
-//func LoadFlashMessages(r *http.Request) []interface{} {
-//	s := GetSession(r)
-//	return s.Flashes()
-//}
-//func CleanFlashMessages() string {
-//	a.FlashData = a.FlashData[:0]
-//	return ""
-//}

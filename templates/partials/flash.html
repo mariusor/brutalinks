@@ -1,6 +1,6 @@
 {{range $flash := LoadFlashMessages}}
-<div class="alert alert-warning alert-dismissible fade show" role="alert">
-    {{$flash | printf "%s"}}
+<div class="alert alert-{{$flash.Type}} alert-dismissible fade show" role="alert">
+    {{$flash.Msg}}
     <button type="button" class="close" data-dismiss="alert" aria-label="Close">
         <span aria-hidden="true">&times;</span>
     </button>

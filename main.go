@@ -65,7 +65,7 @@ func init() {
 	log.SetOutput(os.Stdout)
 
 	if littr.Env == app.PROD {
-		log.SetLevel(log.ErrorLevel)
+		log.SetLevel(log.WarnLevel)
 	} else {
 		log.SetLevel(log.DebugLevel)
 	}
@@ -84,7 +84,7 @@ func init() {
 	connStr := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable", dbUser, dbPw, dbName)
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
-		log.Error(err)
+		log.Error(errors.NewErrWithCause(err, "failed to connect to the database"))
 	}
 
 	api.Db = db
@@ -111,27 +111,20 @@ func FileServer(r chi.Router, path string, root http.FileSystem) {
 	}))
 }
 
-func Logger(next http.Handler) http.Handler {
-	DefaultLogger := RequestLogger(&middleware.DefaultLogFormatter{Logger: log.New()})
-	return DefaultLogger(next)
-}
-
-// RequestLogger returns a logger handler using a custom LogFormatter.
-func RequestLogger(f middleware.LogFormatter) func(next http.Handler) http.Handler {
-	return middleware.RequestLogger(f)
-}
-
 func main() {
 	var wait time.Duration
 	flag.DurationVar(&wait, "graceful-timeout", time.Second*15, "the duration for which the server gracefully wait for existing connections to finish - e.g. 15s or 1m")
 	flag.Parse()
 
+	logger := log.New()
+	log.Printf("%#v", logger)
+	middleware.DefaultLogger = middleware.RequestLogger(&middleware.DefaultLogFormatter{Logger: logger})
 	// Routes
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
-	r.Use(Logger)
+	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
-	r.Use(littr.Sessions)
+	r.Use(app.LoadSessionData)
 
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		app.HandleError(w, r, http.StatusNotFound, errors.Errorf("%s not found", r.RequestURI))
@@ -186,4 +179,7 @@ func main() {
 	})
 
 	littr.Run(r, wait)
+
+	api.Db.Close()
+	app.Db.Close()
 }

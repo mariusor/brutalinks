@@ -11,7 +11,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-const SessionUserKey = "acct"
+const SessionUserKey = "__current_acct"
 
 type loginModel struct {
 	Title         string
@@ -62,7 +62,7 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	s.Values[SessionUserKey] = acct
 	CurrentAccount = &acct
-	s.AddFlash("Success")
+	AddFlashMessage(Success, "Login successful", r, w)
 
 	err = SessionStore.Save(r, w, s)
 	if err != nil {
@@ -72,7 +72,7 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 		HandleError(w, r, http.StatusInternalServerError, errs...)
 		return
 	}
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	Redirect(w, r, "/", http.StatusSeeOther)
 	return
 }
 
@@ -92,5 +92,5 @@ func HandleLogout(w http.ResponseWriter, r *http.Request) {
 	s.Values[SessionUserKey] = nil
 	SessionStore.Save(r, w, s)
 	CurrentAccount = AnonymousAccount()
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	Redirect(w, r, "/", http.StatusSeeOther)
 }

@@ -115,12 +115,12 @@ func ShowContent(w http.ResponseWriter, r *http.Request) {
 	_, err = LoadVotes(CurrentAccount, items)
 	if err != nil {
 		log.Print(err)
-		AddFlashMessage(fmt.Sprint(err), Error, r, w)
+		AddFlashMessage(Error,fmt.Sprint(err), r, w)
 	}
 	err = SessionStore.Save(r, w, GetSession(r))
 	if err != nil {
 		log.Print(err)
-		AddFlashMessage(fmt.Sprint(err), Error, r, w)
+		AddFlashMessage(Error, fmt.Sprint(err), r, w)
 	}
 	if len(m.Title) > 0 {
 		m.Title = fmt.Sprintf("%s", p.Title)
@@ -163,8 +163,8 @@ func HandleVoting(w http.ResponseWriter, r *http.Request) {
 			log.Print(err)
 		}
 	} else {
-		AddFlashMessage(fmt.Sprintf("unable to add vote as an %s user", anonymous), Error, r, w)
+		AddFlashMessage(Error, fmt.Sprintf("unable to add vote as an %s user", anonymous), r, w)
 	}
 	i := LoadItem(p)
-	http.Redirect(w, r, i.PermaLink(), http.StatusFound)
+	Redirect(w, r, i.PermaLink(), http.StatusFound)
 }
