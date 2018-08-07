@@ -242,6 +242,7 @@ func LoadItemsByDomain(db *sql.DB, domain string, max int) ([]Content, error) {
 
 	return items, nil
 }
+
 func LoadItemByHash(db *sql.DB, hash string) (Content, error) {
 	p := Content{}
 	a := Account{}
@@ -251,10 +252,68 @@ func LoadItemByHash(db *sql.DB, hash string) (Content, error) {
 			"content_items"."submitted_by", "content_items"."flags", "content_items"."metadata", "content_items"."path",
 			"accounts"."id", "accounts"."key", "accounts"."handle", "accounts"."email", "accounts"."score", 
 			"accounts"."created_at", "accounts"."metadata", "accounts"."flags"
- 			from "content_items"
+ 			from "content_items" 
 			left join "accounts" on "accounts"."id" = "content_items"."submitted_by"
 			where "content_items"."key" ~* $1`
 	rows, err := db.Query(sel, hash)
+	if err != nil {
+		return p, err
+	}
+
+	for rows.Next() {
+		err = rows.Scan(&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Flags, &p.Metadata, &p.Path,
+			&a.Id, &a.Key, &a.Handle, &a.Email, &a.Score, &a.CreatedAt, &a.Metadata, &a.Flags)
+		if err != nil {
+			return p, err
+		}
+		p.SubmittedByAccount = &a
+	}
+	return p, nil
+}
+
+func LoadItemParent(db *sql.DB, hash string, opHash string) (Content, error){
+	p := Content{}
+	a := Account{}
+
+	sel := `select "par"."id", "par"."key", "par"."mime_type", "par"."data", 
+			"par"."title", "par"."score", "par"."submitted_at", 
+			"par"."submitted_by", "par"."flags", "par"."metadata", "par"."path",
+			"accounts"."id", "accounts"."key", "accounts"."handle", "accounts"."email", "accounts"."score", 
+			"accounts"."created_at", "accounts"."metadata", "accounts"."flags"
+ 			from "content_items" as "par"
+			inner join "content_items" as "cur" on subltree("cur"."path", nlevel("cur"."path")-1, nlevel("cur"."path")) <@ "par"."key"::ltree
+			left join "accounts" on "accounts"."id" = "par"."submitted_by"
+			where "cur"."key" ~* $1 and "par"."key" ~* $2`
+	rows, err := db.Query(sel, hash, opHash)
+	if err != nil {
+		return p, err
+	}
+
+	for rows.Next() {
+		err = rows.Scan(&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Flags, &p.Metadata, &p.Path,
+			&a.Id, &a.Key, &a.Handle, &a.Email, &a.Score, &a.CreatedAt, &a.Metadata, &a.Flags)
+		if err != nil {
+			return p, err
+		}
+		p.SubmittedByAccount = &a
+	}
+	return p, nil
+}
+
+func LoadItemOP(db *sql.DB, hash string, opHash string) (Content, error){
+	p := Content{}
+	a := Account{}
+
+	sel := `select "par"."id", "par"."key", "par"."mime_type", "par"."data", 
+			"par"."title", "par"."score", "par"."submitted_at", 
+			"par"."submitted_by", "par"."flags", "par"."metadata", "par"."path",
+			"accounts"."id", "accounts"."key", "accounts"."handle", "accounts"."email", "accounts"."score", 
+			"accounts"."created_at", "accounts"."metadata", "accounts"."flags"
+ 			from "content_items" as "par"
+			inner join "content_items" as "cur" on subltree("cur"."path", 0, nlevel("cur"."path")) <@ "par"."key"::ltree
+			left join "accounts" on "accounts"."id" = "par"."submitted_by"
+			where "cur"."key" ~* $1 and "par"."key" ~* $2`
+	rows, err := db.Query(sel, hash, opHash)
 	if err != nil {
 		return p, err
 	}
