@@ -146,6 +146,42 @@ func GetSession(r *http.Request) *sessions.Session {
 	}
 	return s
 }
+const (
+	ScoreMaxK       = 10000.0
+	ScoreMaxM       = 10000000.0
+	ScoreMaxB       = 10000000000.0
+)
+
+func scoreFmt(s int64) string {
+	score := 0.0
+	units := ""
+	base := float64(s)
+	d := math.Ceil(math.Log10(math.Abs(base)))
+	dK := math.Ceil(math.Log10(math.Abs(ScoreMaxK)))
+	dM := math.Ceil(math.Log10(math.Abs(ScoreMaxM)))
+	dB := math.Ceil(math.Log10(math.Abs(ScoreMaxB)))
+	if d < dK {
+		score = math.Ceil(base)
+		return fmt.Sprintf("%d", int(score))
+	} else if d < dM {
+		score = base / ScoreMaxK
+		units = "K"
+	} else if d < dB {
+		score = base / ScoreMaxM
+		units = "M"
+	} else if d < dB + 2 {
+		score = base / ScoreMaxB
+		units = "B"
+	} else {
+		sign := ""
+		if base < 0 {
+			sign = "-"
+		}
+		return fmt.Sprintf("%s%s", sign, "∞")
+	}
+
+	return fmt.Sprintf("%3.1f%s", score, units)
+}
 
 func (l *Littr) listen() string {
 	if len(l.Listen) > 0 {

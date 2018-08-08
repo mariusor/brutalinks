@@ -64,6 +64,10 @@ type Item struct {
 	isTop       bool
 }
 
+func (a Account) ScoreFmt() string {
+	return scoreFmt(a.Score)
+}
+
 func (a *Account) VotedOn(i Item) *Vote {
 	for _, v := range a.votes {
 		if v.itemId == i.id {
@@ -85,31 +89,7 @@ func (i Item) Deleted() bool {
 }
 
 func (i Item) ScoreFmt() string {
-	score := 0.0
-	units := ""
-	base := float64(i.Score) / models.ScoreMultiplier
-	d := math.Ceil(math.Log10(math.Abs(base)))
-	if d < 5 {
-		score = math.Ceil(base)
-		return fmt.Sprintf("%d", int(score))
-	} else if d < 8 {
-		score = base / models.ScoreMaxK
-		units = "K"
-	} else if d < 11 {
-		score = base / models.ScoreMaxM
-		units = "M"
-	} else if d < 13 {
-		score = base / models.ScoreMaxB
-		units = "B"
-	} else {
-		sign := ""
-		if base < 0 {
-			sign = "-"
-		}
-		return fmt.Sprintf("%s%s", sign, "∞")
-	}
-
-	return fmt.Sprintf("%3.1f%s", score, units)
+	return scoreFmt(i.Score)
 }
 func (i Item) scoreLink(dir string) string {
 	return fmt.Sprintf("%s/%s", i.PermaLink(), dir)
@@ -364,7 +344,7 @@ func LoadItem(c models.Content) Item {
 		SubmittedAt: c.SubmittedAt,
 		SubmittedBy: c.SubmittedByAccount.Handle,
 		MimeType:    c.MimeType,
-		Score:       c.Score,
+		Score:       int64(float64(c.Score) / models.ScoreMultiplier),
 		flags:       c.Flags,
 		metadata:    c.Metadata,
 		path:        c.Path,

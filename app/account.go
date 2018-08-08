@@ -37,7 +37,7 @@ func loadFromModel(a models.Account) (Account, error) {
 		UpdatedAt: a.UpdatedAt,
 		Handle:    a.Handle,
 		metadata:  a.Metadata,
-		Score:     a.Score,
+		Score:     int64(float64(a.Score) / models.ScoreMultiplier),
 		CreatedAt: a.CreatedAt,
 		Email:     a.Email,
 	}, nil
