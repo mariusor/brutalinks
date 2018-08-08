@@ -16,7 +16,7 @@ type AccountMetadata struct {
 
 type Account struct {
 	Id        int64     `orm:Id,"auto"`
-	Key       []byte    `orm:key`
+	Key       Key       `orm:key`
 	Email     []byte    `orm:email`
 	Handle    string    `orm:handle`
 	Score     int64     `orm:score`
@@ -55,21 +55,21 @@ func (a Account) Hash32() string {
 	return string(a.Key[0:32])
 }
 func (a Account) Hash64() string {
-	return string(a.Key)
+	return a.Key.String()
 }
 
 func (a Account) GetLink() string {
 	return fmt.Sprintf("/~%s", a.Handle)
 }
 
-func (a Account) GetKey() []byte {
+func (a Account) GetKey() Key {
 	data := []byte(a.Handle)
 	now := a.UpdatedAt
 	if now.IsZero() {
 		now = time.Now()
 	}
 
-	a.Key = []byte(fmt.Sprintf("%x", sha256.Sum256(data)))
+	a.Key.FromString(fmt.Sprintf("%x", sha256.Sum256(data)))
 	return a.Key
 }
 
@@ -80,11 +80,13 @@ func LoadAccount(db *sql.DB, handle string) (Account, error) {
 	if err != nil {
 		return a, err
 	}
+	var aKey []byte
 	for rows.Next() {
-		err = rows.Scan(&a.Id, &a.Key, &a.Handle, &a.Email, &a.Score, &a.CreatedAt, &a.UpdatedAt, &a.Metadata, &a.Flags)
+		err = rows.Scan(&a.Id, &aKey, &a.Handle, &a.Email, &a.Score, &a.CreatedAt, &a.UpdatedAt, &a.Metadata, &a.Flags)
 		if err != nil {
 			return a, err
 		}
+		a.Key.FromBytes(aKey)
 	}
 
 	if err != nil {
@@ -112,14 +114,18 @@ func LoadItemsSubmittedBy(db *sql.DB, handle string) ([]Content, error) {
 		if err != nil {
 			return nil, err
 		}
+		var aKey, pKey []byte
 		for rows.Next() {
 			a := Account{}
 			err := rows.Scan(
-				&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Flags, &p.Metadata, &p.Path,
-				&a.Id, &a.Key, &a.Handle, &a.Email, &a.Score, &a.CreatedAt, &a.Metadata, &a.Flags)
+				&p.Id, &pKey, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Flags, &p.Metadata, &p.Path,
+				&a.Id, &aKey, &a.Handle, &a.Email, &a.Score, &a.CreatedAt, &a.Metadata, &a.Flags)
 			if err != nil {
 				return nil, err
 			}
+
+			p.Key.FromBytes(pKey)
+			a.Key.FromBytes(aKey)
 			p.SubmittedByAccount = &a
 			items = append(items, p)
 		}

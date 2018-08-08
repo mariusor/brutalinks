@@ -7,7 +7,8 @@ import (
 	"strings"
 	"time"
 	"database/sql"
-	)
+	"github.com/juju/errors"
+)
 
 const (
 	FlagsNone    = 0
@@ -15,9 +16,45 @@ const (
 	MimeTypeURL  = "application/url"
 )
 
+type Key [64]byte
+
+func (k Key) String() string {
+	return string(k[0:64])
+}
+func (k Key) Bytes() []byte {
+	return []byte(k[0:64])
+}
+
+func (k *Key) FromBytes(s []byte) error {
+	var err error
+	if len(s) > 64 {
+		err = errors.Errorf("incoming byte array %q longer than expected ", s)
+	}
+	if len(s) < 64 {
+		err = errors.Errorf("incoming byte array %q longer than expected ", s)
+	}
+	for i := range s {
+		k[i] = s[i]
+	}
+	return err
+}
+func (k *Key) FromString(s string) error {
+	var err error
+	if len(s) > 64 {
+		err = errors.Errorf("incoming string %q longer than expected ", s)
+	}
+	if len(s) < 64 {
+		err = errors.Errorf("incoming string %q longer than expected ", s)
+	}
+	for i := range s {
+		k[i] = s[i]
+	}
+	return err
+}
+
 type Content struct {
 	Id          int64     `orm:Id,"auto"`
-	Key         []byte    `orm:key,size(64)`
+	Key         Key       `orm:key,size(64)`
 	Title       []byte    `orm:title`
 	MimeType    string    `orm:mime_type`
 	Data        []byte    `orm:data`
@@ -44,7 +81,7 @@ func (c Content) IsSelf() bool {
 	return mimeComponents[0] == "text"
 }
 
-func (c *Content) GetKey() []byte {
+func (c *Content) GetKey() Key {
 	data := c.Data
 	now := c.UpdatedAt
 	if now.IsZero() {
@@ -54,7 +91,7 @@ func (c *Content) GetKey() []byte {
 	data = append(data, []byte(c.Path)...)
 	data = append(data, []byte(fmt.Sprintf("%d", c.SubmittedBy))...)
 
-	c.Key = []byte(fmt.Sprintf("%x", sha256.Sum256(data)))
+	c.Key.FromString(fmt.Sprintf("%x", sha256.Sum256(data)))
 	return c.Key
 }
 func (c Content) IsTop() bool {
@@ -67,22 +104,22 @@ func (c Content) Hash8() string {
 	if len(c.Key) > 8 {
 		return string(c.Key[0:8])
 	}
-	return string(c.Key)
+	return c.Key.String()
 }
 func (c Content) Hash16() string {
 	if len(c.Key) > 16 {
 		return string(c.Key[0:16])
 	}
-	return string(c.Key)
+	return c.Key.String()
 }
 func (c Content) Hash32() string {
 	if len(c.Key) > 32 {
  	return string(c.Key[0:32])
 	}
-	return string(c.Key)
+	return c.Key.String()
 }
 func (c Content) Hash64() string {
-	return string(c.Key)
+	return c.Key.String()
 }
 
 func (c *Content) FullPath() []byte {
@@ -91,7 +128,7 @@ func (c *Content) FullPath() []byte {
 		if len(c.fullPath) > 0 {
 			c.fullPath = append(c.fullPath, byte('.'))
 		}
-		c.fullPath = append(c.fullPath, c.Key...)
+		c.fullPath = append(c.fullPath, c.Key.Bytes()...)
 	}
 	return c.fullPath
 }
@@ -137,12 +174,15 @@ func LoadItem(db *sql.DB, h string) (Content, error) {
 	}
 	for rows.Next() {
 		a := Account{}
+		var aKey, iKey []byte
 		err := rows.Scan(
-			&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Flags, &p.Metadata, &p.Path,
-			&a.Id, &a.Key, &a.Handle, &a.Email, &a.Score, &a.CreatedAt, &a.Metadata, &a.Flags)
+			&p.Id, &iKey, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Flags, &p.Metadata, &p.Path,
+			&a.Id, &aKey, &a.Handle, &a.Email, &a.Score, &a.CreatedAt, &a.Metadata, &a.Flags)
 		if err != nil {
 			return p, err
 		}
+		p.Key.FromBytes(iKey)
+		a.Key.FromBytes(aKey)
 		p.SubmittedByAccount = &a
 	}
 	return p, nil
@@ -166,12 +206,15 @@ func LoadOPItems(db *sql.DB, max int) ([]Content, error) {
 	for rows.Next() {
 		p := Content{}
 		a := Account{}
+		var aKey, iKey []byte
 		err := rows.Scan(
-			&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Flags, &p.Metadata, &p.Path,
-			&a.Id, &a.Key, &a.Handle, &a.Email, &a.Score, &a.CreatedAt, &a.Metadata, &a.Flags)
+			&p.Id, &iKey, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Flags, &p.Metadata, &p.Path,
+			&a.Id, &aKey, &a.Handle, &a.Email, &a.Score, &a.CreatedAt, &a.Metadata, &a.Flags)
 		if err != nil {
 			return nil, err
 		}
+		p.Key.FromBytes(iKey)
+		a.Key.FromBytes(aKey)
 		p.SubmittedByAccount = &a
 		items = append(items, p)
 	}
@@ -198,12 +241,15 @@ func LoadItemsByPath(db *sql.DB, path []byte, max int) ([]Content, error) {
 	for rows.Next() {
 		p := Content{}
 		a := Account{}
+		var aKey, iKey []byte
 		err := rows.Scan(
-			&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Flags, &p.Metadata, &p.Path,
-			&a.Id, &a.Key, &a.Handle, &a.Email, &a.Score, &a.CreatedAt, &a.Metadata, &a.Flags)
+			&p.Id, &iKey, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Flags, &p.Metadata, &p.Path,
+			&a.Id, &aKey, &a.Handle, &a.Email, &a.Score, &a.CreatedAt, &a.Metadata, &a.Flags)
 		if err != nil {
 			return nil, err
 		}
+		p.Key.FromBytes(iKey)
+		a.Key.FromBytes(aKey)
 		p.SubmittedByAccount = &a
 		items = append(items, p)
 	}
@@ -230,12 +276,15 @@ func LoadItemsByDomain(db *sql.DB, domain string, max int) ([]Content, error) {
 	for rows.Next() {
 		p := Content{}
 		a := Account{}
+		var aKey, iKey []byte
 		err := rows.Scan(
-			&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Flags, &p.Metadata, &p.Path,
-			&a.Id, &a.Key, &a.Handle, &a.Email, &a.Score, &a.CreatedAt, &a.Metadata, &a.Flags)
+			&p.Id, &iKey, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Flags, &p.Metadata, &p.Path,
+			&a.Id, &aKey, &a.Handle, &a.Email, &a.Score, &a.CreatedAt, &a.Metadata, &a.Flags)
 		if err != nil {
 			return nil, err
 		}
+		p.Key.FromBytes(iKey)
+		a.Key.FromBytes(aKey)
 		p.SubmittedByAccount = &a
 		items = append(items, p)
 	}
@@ -246,7 +295,7 @@ func LoadItemsByDomain(db *sql.DB, domain string, max int) ([]Content, error) {
 func LoadItemByHash(db *sql.DB, hash string) (Content, error) {
 	p := Content{}
 	a := Account{}
-
+	var aKey, iKey []byte
 	sel := `select "content_items"."id", "content_items"."key", "content_items"."mime_type", "content_items"."data", 
 			"content_items"."title", "content_items"."score", "content_items"."submitted_at", 
 			"content_items"."submitted_by", "content_items"."flags", "content_items"."metadata", "content_items"."path",
@@ -261,11 +310,13 @@ func LoadItemByHash(db *sql.DB, hash string) (Content, error) {
 	}
 
 	for rows.Next() {
-		err = rows.Scan(&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Flags, &p.Metadata, &p.Path,
-			&a.Id, &a.Key, &a.Handle, &a.Email, &a.Score, &a.CreatedAt, &a.Metadata, &a.Flags)
+		err = rows.Scan(&p.Id, &iKey, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Flags, &p.Metadata, &p.Path,
+			&a.Id, &aKey, &a.Handle, &a.Email, &a.Score, &a.CreatedAt, &a.Metadata, &a.Flags)
 		if err != nil {
 			return p, err
 		}
+		p.Key.FromBytes(iKey)
+		a.Key.FromBytes(aKey)
 		p.SubmittedByAccount = &a
 	}
 	return p, nil
@@ -288,13 +339,15 @@ func LoadItemParent(db *sql.DB, hash string, opHash string) (Content, error){
 	if err != nil {
 		return p, err
 	}
-
+	var aKey, iKey []byte
 	for rows.Next() {
-		err = rows.Scan(&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Flags, &p.Metadata, &p.Path,
-			&a.Id, &a.Key, &a.Handle, &a.Email, &a.Score, &a.CreatedAt, &a.Metadata, &a.Flags)
+		err = rows.Scan(&p.Id, &iKey, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Flags, &p.Metadata, &p.Path,
+			&a.Id, &aKey, &a.Handle, &a.Email, &a.Score, &a.CreatedAt, &a.Metadata, &a.Flags)
 		if err != nil {
 			return p, err
 		}
+		p.Key.FromBytes(iKey)
+		a.Key.FromBytes(aKey)
 		p.SubmittedByAccount = &a
 	}
 	return p, nil
@@ -318,12 +371,15 @@ func LoadItemOP(db *sql.DB, hash string, opHash string) (Content, error){
 		return p, err
 	}
 
+	var aKey, iKey []byte
 	for rows.Next() {
-		err = rows.Scan(&p.Id, &p.Key, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Flags, &p.Metadata, &p.Path,
-			&a.Id, &a.Key, &a.Handle, &a.Email, &a.Score, &a.CreatedAt, &a.Metadata, &a.Flags)
+		err = rows.Scan(&p.Id, &iKey, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Flags, &p.Metadata, &p.Path,
+			&a.Id, &aKey, &a.Handle, &a.Email, &a.Score, &a.CreatedAt, &a.Metadata, &a.Flags)
 		if err != nil {
 			return p, err
 		}
+		p.Key.FromBytes(iKey)
+		a.Key.FromBytes(aKey)
 		p.SubmittedByAccount = &a
 	}
 	return p, nil

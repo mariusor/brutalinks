@@ -172,7 +172,6 @@ func LoadOPItems() ([]models.Content, error) {
 	for k, it := range col.OrderedItems {
 		c := models.Content{
 			Id: int64(k),
-			Key: getHash(it.GetID()),
 			Title: []byte(ap.NaturalLanguageValue(it.Name).First()),
 			MimeType: string(it.MediaType),
 			Data: []byte(ap.NaturalLanguageValue(it.Content).First()),
@@ -182,6 +181,7 @@ func LoadOPItems() ([]models.Content, error) {
 				Handle: getAccountHandle(it.AttributedTo),
 			},
 		}
+		c.Key.FromBytes(getHash(it.GetID()))
 
 		items[k] = c
 	}
