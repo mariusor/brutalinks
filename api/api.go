@@ -15,7 +15,7 @@ import (
 	"reflect"
 	"strings"
 	"github.com/mariusor/littr.go/models"
-		"net/url"
+	"net/url"
 )
 
 var Db *sql.DB
@@ -26,11 +26,20 @@ const NotFound = 404
 const InternalError = 500
 
 type _obj ap.Object
+type _per ap.Person
 
+// Person is an extension of the AP/Person object
+type Person struct {
+	_per
+	Score int64	`jsonld:"score"`
+}
+
+// Article is an extension of the AP/Article object
 type Article struct {
 	_obj
 	Score int64	`jsonld:"score"`
 }
+
 func (a Article)GetID() *ap.ObjectID{
 	return &a._obj.ID
 }
@@ -109,6 +118,7 @@ func getObjectType (el ap.Item) string {
 		typeLiked           = reflect.TypeOf(ap.Liked{})
 		typeLikedCollection = reflect.TypeOf(ap.LikedCollection{})
 		typePerson          = reflect.TypeOf(ap.Person{})
+		typeLocalPerson     = reflect.TypeOf(Person{})
 	)
 	typ := reflect.TypeOf(el)
 	val := reflect.ValueOf(el)
@@ -131,6 +141,12 @@ func getObjectType (el ap.Item) string {
 		label = "liked"
 	case typePerson:
 		o := val.Interface().(ap.Person)
+		for _, n := range o.Name {
+			label = n
+			break
+		}
+	case typeLocalPerson:
+		o := val.Interface().(Person)
 		for _, n := range o.Name {
 			label = n
 			break

@@ -63,7 +63,7 @@ func loadReceivedItems(id int64) (*[]models.Content, error) {
 	return nil, nil
 }
 
-func loadAPPerson(a models.Account) *ap.Person {
+func loadAPPerson(a models.Account) *Person {
 	baseURL := ap.URI(fmt.Sprintf("%s", AccountsURL))
 
 	p := ap.PersonNew(ap.ObjectID(apAccountID(a)))
@@ -73,21 +73,26 @@ func loadAPPerson(a models.Account) *ap.Person {
 	out := ap.OutboxNew()
 	out.URL = BuildObjectURL(p.URL, p.Outbox)
 	out.ID = BuildCollectionID(a, p.Outbox)
+	out.AttributedTo = ap.URI(p.ID)
 	p.Outbox = out
-	/*
-		in := ap.InboxNew()
-		in.URL = BuildObjectURL(p.URL, p.Inbox)
-		in.ID = BuildObjectID("", p,  p.Inbox)
-		p.Inbox = in
-	*/
+
+	in := ap.InboxNew()
+	in.URL = BuildObjectURL(p.URL, p.Inbox)
+	in.ID = BuildCollectionID(a,  p.Inbox)
+	in.AttributedTo = ap.URI(p.ID)
+	p.Inbox = in
+
 	liked := ap.LikedNew()
 	liked.URL = BuildObjectURL(p.URL, p.Liked)
 	liked.ID = BuildCollectionID(a, p.Liked)
+	liked.AttributedTo = ap.URI(p.ID)
 	p.Liked = liked
 
 	p.URL = BuildObjectURL(baseURL, p)
+	pp := Person{_per: _per(*p)}
+	pp.Score = a.Score
 
-	return p
+	return &pp
 }
 //
 //func loadAPLiked(a models.Account, o ap.CollectionInterface, items *[]models.Content, votes *[]models.Vote) (ap.CollectionInterface, error) {
