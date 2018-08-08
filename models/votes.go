@@ -100,13 +100,16 @@ where %s order by "votes"."submitted_at" desc limit %d`, wheres.AndWhere(),  max
 		p := Content{}
 		auth := Account{}
 		voter := Account{}
+		var pKey []byte
+		var aKey []byte
+		var vKey []byte
 		err = rows.Scan(
 			&v.Id,
 			&v.Weight,
 			&v.SubmittedAt,
 			&v.Flags,
 			&p.Id,
-			&p.Key,
+			&pKey,
 			&p.MimeType,
 			&p.Data,
 			&p.Title,
@@ -115,14 +118,19 @@ where %s order by "votes"."submitted_at" desc limit %d`, wheres.AndWhere(),  max
 			&p.SubmittedBy,
 			&p.Flags,
 			&p.Metadata,
-			&auth.Id, &auth.Key, &auth.Handle, &auth.Email, &auth.Score, &auth.CreatedAt, &auth.Metadata, &auth.Flags,
-			&voter.Id, &voter.Key, &voter.Handle, &voter.Email, &voter.Score, &voter.CreatedAt, &voter.Metadata, &voter.Flags)
+			&auth.Id, &aKey, &auth.Handle, &auth.Email, &auth.Score, &auth.CreatedAt, &auth.Metadata, &auth.Flags,
+			&voter.Id, &vKey, &voter.Handle, &voter.Email, &voter.Score, &voter.CreatedAt, &voter.Metadata, &voter.Flags)
 		if err != nil {
 			return nil, err
 		}
+		auth.Key.FromBytes(aKey)
 		p.SubmittedByAccount= &auth
+		p.Key.FromBytes(pKey)
+
+		voter.Key.FromBytes(vKey)
 		v.SubmittedByAccount = &voter
 		v.Item = &p
+
 		votes = append(votes, v)
 	}
 	if err != nil {
