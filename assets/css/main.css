@@ -63,6 +63,9 @@ body > main {
 .inverted a {
     color: dodgerblue;
 }
+a:visited {
+    color: rebeccapurple;
+}
 .inverted a:visited {
     color: mediumpurple;
 }
@@ -244,15 +247,15 @@ ol.comments {
 }
 .inverted #top-invert::before {
     /*content: "\f0eb";*/
-    content: "\1F312";
+    content: "\f042";
     font-family: "Font Awesome 5 Free";
-    font-weight: 400;
+    font-weight: 800;
 }
 #top-invert::before {
     /*content: "\f0eb";*/
     /*font-weight: 800;*/
-    content: "\1F316";
-    font-weight: 400;
+    content: "\f042";
+    font-weight: 800;
     font-family: "Font Awesome 5 Free";
 }
 .score a.yay::before {
