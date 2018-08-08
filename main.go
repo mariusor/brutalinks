@@ -117,13 +117,14 @@ func main() {
 	flag.Parse()
 
 	logger := log.New()
-	log.Printf("%#v", logger)
 	middleware.DefaultLogger = middleware.RequestLogger(&middleware.DefaultLogFormatter{Logger: logger})
 	// Routes
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
 	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
+	if littr.Env == app.PROD {
+		r.Use(middleware.Recoverer)
+	}
 	r.Use(app.LoadSessionData)
 
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
