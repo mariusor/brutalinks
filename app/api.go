@@ -15,6 +15,65 @@ import (
 	"github.com/buger/jsonparser"
 )
 
+type (
+	ObjectID ap.ObjectID
+	ActivityVocabularyType ap.ActivityVocabularyType
+	NaturalLanguageValue ap.NaturalLanguageValue
+	ObjectOrLink ap.ObjectOrLink
+	LinkOrURI ap.LinkOrURI
+	ImageOrLink ap.ImageOrLink
+	MimeType ap.MimeType
+	ObjectsArr ap.ObjectsArr
+	CollectionInterface ap.CollectionInterface
+	Endpoints ap.Endpoints
+)
+
+// Person it should be identical to:
+//    github.com/mariusor/activitypub.go/activitypub/actors.go#Actor
+// We need it here in order to be able to add to it our Score property
+type Person struct {
+	ID ObjectID `jsonld:"id,omitempty"`
+	Type ActivityVocabularyType `jsonld:"type,omitempty"`
+	Name NaturalLanguageValue `jsonld:"name,omitempty,collapsible"`
+	Attachment ObjectOrLink `jsonld:"attachment,omitempty"`
+	AttributedTo ObjectOrLink `jsonld:"attributedTo,omitempty"`
+	Audience ObjectOrLink `jsonld:"audience,omitempty"`
+	Content NaturalLanguageValue `jsonld:"content,omitempty,collapsible"`
+	Context ObjectOrLink `jsonld:"_"`
+	EndTime time.Time `jsonld:"endTime,omitempty"`
+	Generator ObjectOrLink `jsonld:"generator,omitempty"`
+	Icon ImageOrLink `jsonld:"icon,omitempty"`
+	Image ImageOrLink `jsonld:"image,omitempty"`
+	InReplyTo ObjectOrLink `jsonld:"inReplyTo,omitempty"`
+	Location ObjectOrLink `jsonld:"location,omitempty"`
+	Preview ObjectOrLink `jsonld:"preview,omitempty"`
+	Published time.Time `jsonld:"published,omitempty"`
+	Replies ObjectOrLink `jsonld:"replies,omitempty"`
+	StartTime time.Time `jsonld:"startTime,omitempty"`
+	Summary NaturalLanguageValue `jsonld:"summary,omitempty,collapsible"`
+	Tag ObjectOrLink `jsonld:"tag,omitempty"`
+	Updated time.Time `jsonld:"updated,omitempty"`
+	URL LinkOrURI `jsonld:"url,omitempty"`
+	To ObjectsArr `jsonld:"to,omitempty"`
+	Bto ObjectsArr `jsonld:"bto,omitempty"`
+	CC ObjectsArr `jsonld:"cc,omitempty"`
+	BCC ObjectsArr `jsonld:"bcc,omitempty"`
+	Duration time.Duration `jsonld:"duration,omitempty"`
+	Inbox CollectionInterface `jsonld:"inbox,omitempty"`
+	Outbox CollectionInterface `jsonld:"outbox,omitempty"`
+	Following CollectionInterface `jsonld:"following,omitempty"`
+	Followers CollectionInterface `jsonld:"followers,omitempty"`
+	Liked CollectionInterface `jsonld:"liked,omitempty"`
+	PreferredUsername NaturalLanguageValue `jsonld:"preferredUsername,omitempty,collapsible"`
+	Endpoints Endpoints `jsonld:"endpoints,omitempty"`
+	Streams []CollectionInterface `jsonld:"streams,omitempty"`
+	// Score is our own custom property for which we needed to extend the existing AP one
+	Score int64	`jsonld:"score"`
+}
+
+// Article it should be identical to:
+//    github.com/mariusor/activitypub.go/activitypub/objects.go#Object
+// We need it here in order to be able to add to it our Score property
 type Article struct {
 	ID ObjectID `jsonld:"id,omitempty"`
 	Type ActivityVocabularyType `jsonld:"type,omitempty"`
@@ -44,6 +103,7 @@ type Article struct {
 	CC ObjectsArr `jsonld:"cc,omitempty"`
 	BCC ObjectsArr `jsonld:"bcc,omitempty"`
 	Duration time.Duration `jsonld:"duration,omitempty"`
+	// Score is our own custom property for which we needed to extend the existing AP one
 	Score int64	`jsonld:"score"`
 }
 
@@ -61,16 +121,9 @@ func (a Article)IsObject() bool {
 	return true
 }
 
-type (
-	ObjectID ap.ObjectID
-	ActivityVocabularyType ap.ActivityVocabularyType
-	NaturalLanguageValue ap.NaturalLanguageValue
-	ObjectOrLink ap.ObjectOrLink
-	LinkOrURI ap.LinkOrURI
-	ImageOrLink ap.ImageOrLink
-	MimeType ap.MimeType
-	ObjectsArr ap.ObjectsArr
-)
+// OrderedCollection it should be identical to:
+//    github.com/mariusor/activitypub.go/activitypub/collections.go#OrderedCollection
+// We need it here in order to be able to implement our own UnmarshalJSON() method
 type OrderedCollection struct {
 	ID ObjectID `jsonld:"id,omitempty"`
 	Type ActivityVocabularyType `jsonld:"type,omitempty"`
