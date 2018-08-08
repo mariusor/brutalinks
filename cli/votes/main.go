@@ -39,105 +39,37 @@ func main() {
 		log.Print(err)
 	}
 
-	var q string
-	par := make([]interface{}, 0)
-	par = append(par, interface{}(since.Hours()))
-
+	var scores []models.Score
 	if accounts {
-		items = false
-	}
-
-	if items {
-		if key == "" {
-			q = `select "item_id", "key", max("content_items"."submitted_at"),
-		sum(CASE WHEN "weight" > 0 THEN "weight" ELSE 0 END) AS "ups",
-		sum(CASE WHEN "weight" < 0 THEN abs("weight") ELSE 0 END) AS "downs"
-		from "votes" inner join "content_items" on "content_items"."id" = "item_id"
-		where current_timestamp - "content_items"."submitted_at" < ($1 * INTERVAL '1 hour') group by "item_id", "key" order by "item_id";`
-		} else {
-			q = `select "item_id", "key", max("content_items"."submitted_at"),
-		sum(CASE WHEN "weight" > 0 THEN "weight" ELSE 0 END) AS "ups",
-		sum(CASE WHEN "weight" < 0 THEN abs("weight") ELSE 0 END) AS "downs"
-		from "votes" inner join "content_items" on "content_items"."id" = "item_id"
-		where current_timestamp - "content_items"."submitted_at" < ($1 * INTERVAL '1 hour') and "content_items"."key" ~* $2 group by "item_id", "key" order by "item_id";`
-			par = append(par, interface{}(key))
-		}
-		log.Printf("Checking votes since %s", since)
-		rows, err := db.Query(q, par...)
-		if err != nil {
-			panic(err)
-		}
-		for rows.Next() {
-			var i, ups, downs int64
-			var submitted time.Time
-			var key []byte
-			err = rows.Scan(&i, &key, &submitted, &ups, &downs)
-
-			now := time.Now()
-			reddit := int64(models.Reddit(ups, downs, now.Sub(submitted)) * models.ScoreMultiplier)
-			wilson := int64(models.Wilson(ups, downs) * models.ScoreMultiplier)
-			hacker := int64(models.Hacker(ups-downs, now.Sub(submitted)) * models.ScoreMultiplier)
-			log.Printf("Votes[%s:%s]: UPS[%d] DOWNS[%d] - new score %d:%d:%d", key[0:8], now.Sub(submitted), ups, downs, reddit, wilson, hacker)
-			score := wilson
-			upd := `update "content_items" set score = $1 where id = $2;`
-			_, err := db.Exec(upd, score, i)
-			if err != nil {
-				panic(err)
-			}
-		}
-	}
-
-	if accounts {
-		if handle == "" && key == "" {
-			q = `select "accounts"."id", "accounts"."handle", "accounts"."key", max("content_items"."submitted_at"),
-       sum(CASE WHEN "weight" > 0 THEN "weight" ELSE 0 END) AS "ups",
-       sum(CASE WHEN "weight" < 0 THEN abs("weight") ELSE 0 END) AS "downs"
-from "votes"
-       inner join "content_items" on "content_items"."id" = "item_id"
-       inner join "accounts" on "content_items"."submitted_by" = "accounts"."id"
-where current_timestamp - "content_items"."submitted_at" < ($1 * INTERVAL '1 hour') 
-group by "accounts"."id", "accounts"."key" order by "accounts"."id";`
-		} else {
-			which := "key"
-			if handle != "" && key == "" {
+		which := ""
+		val := ""
+		if handle != "" || key != "" {
+			if len(handle) > 0 {
 				which = "handle"
-				par = append(par, interface{}(handle))
+				val = handle
 			} else {
-				par = append(par, interface{}(key))
+				which = "key"
+				val = key
 			}
-
-			q = fmt.Sprintf(`select "accounts"."id", "accounts"."handle", "accounts"."key", max("content_items"."submitted_at"),
-       sum(CASE WHEN "weight" > 0 THEN "weight" ELSE 0 END) AS "ups",
-       sum(CASE WHEN "weight" < 0 THEN abs("weight") ELSE 0 END) AS "downs"
-from "votes"
-       inner join "content_items" on "content_items"."id" = "item_id"
-       inner join "accounts" on "content_items"."submitted_by" = "accounts"."id"
-where current_timestamp - "content_items"."submitted_at" < ($1 * INTERVAL '1 hour') 
-and "content_items"."%s" ~* $2 group by "accounts"."id", "accounts"."key" order by "accounts"."id";`, which)
 		}
-		log.Printf("Checking votes since %s", since)
-		rows, err := db.Query(q, par...)
+		scores, err = models.LoadScoresForAccounts(db, since, which, val)
+	} else if items {
+		scores, err = models.LoadScoresForItems(db, since, key)
+	}
+	if err != nil {
+		panic(err)
+	}
+
+	for _, score :=  range scores {
+		var upd string
+		if score.Type == models.ScoreItem {
+			upd = `update "content_items" set score = $1 where id = $2;`
+		} else {
+			upd = `update "accounts" set score = $1 where id = $2;`
+		}
+		_, err := db.Exec(upd, score.Score, score.Id)
 		if err != nil {
 			panic(err)
-		}
-		for rows.Next() {
-			var i, ups, downs int64
-			var submitted time.Time
-			var key []byte
-			var handle string
-			err = rows.Scan(&i, &handle, &key, &submitted, &ups, &downs)
-
-			now := time.Now()
-			reddit := int64(models.Reddit(ups, downs, now.Sub(submitted)) * models.ScoreMultiplier)
-			wilson := int64(models.Wilson(ups, downs) * models.ScoreMultiplier)
-			hacker := int64(models.Hacker(ups-downs, now.Sub(submitted)) * models.ScoreMultiplier)
-			log.Printf("Votes[%s]: UPS[%d] DOWNS[%d] - new score %d:%d:%d", handle, ups, downs, reddit, wilson, hacker)
-			score := hacker
-			upd := `update "accounts" set "score" = $1 where id = $2;`
-			_, err := db.Exec(upd, score, i)
-			if err != nil {
-				panic(err)
-			}
 		}
 	}
 }

@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	ScoreMultiplier = 10000
+	ScoreMultiplier = 1
 	ScoreMaxK       = 10000.0
 	ScoreMaxM       = 10000000.0
 	ScoreMaxB       = 10000000000.0
@@ -130,6 +130,7 @@ where %s order by "votes"."submitted_at" desc limit %d`, wheres.AndWhere(),  max
 	}
 	return &votes, nil
 }
+
 func LoadItemsVotes(db *sql.DB, hash string) (*Content, *[]Vote, error) {
 	var err error
 	p := Content{}
@@ -203,4 +204,108 @@ func LoadVotesSubmittedBy(db *sql.DB, handle string, which int, max int) (*[]Vot
 		}
 	}
 	return LoadVotes(db, clauses, max)
+}
+
+type ScoreType int
+const (
+	ScoreItem = ScoreType(iota)
+	ScoreAccount
+)
+type Score struct {
+	Id  int64
+	Key []byte
+	Score int64
+	Submitted time.Time
+	Type ScoreType
+}
+
+func LoadScoresForItems(db *sql.DB, since time.Duration, key string) ([]Score, error) {
+	par := make([]interface{}, 0)
+	par = append(par, interface{}(since.Hours()))
+
+	keyClause := ""
+	if len(key) > 0 {
+		keyClause = ` and "content_items"."key" ~* $2`
+		par = append(par, interface{}(key))
+	}
+	q := fmt.Sprintf(`select "item_id", "content_items"."key", max("content_items"."submitted_at"),
+		sum(CASE WHEN "weight" > 0 THEN "weight" ELSE 0 END) AS "ups",
+		sum(CASE WHEN "weight" < 0 THEN abs("weight") ELSE 0 END) AS "downs"
+		from "votes" inner join "content_items" on "content_items"."id" = "item_id"
+		where current_timestamp - "content_items"."submitted_at" < ($1 * INTERVAL '1 hour')%s group by "item_id", "key" order by "item_id";`,
+		keyClause)
+	rows, err := db.Query(q, par...)
+	if err != nil {
+		return nil, err
+	}
+	scores := make([]Score, 0)
+	for rows.Next() {
+		var i, ups, downs int64
+		var submitted time.Time
+		var key []byte
+		err = rows.Scan(&i, &key, &submitted, &ups, &downs)
+
+		now := time.Now()
+		reddit := int64(Reddit(ups, downs, now.Sub(submitted)))
+		wilson := int64(Wilson(ups, downs))
+		hacker := int64(Hacker(ups-downs, now.Sub(submitted)))
+		log.Infof("Votes[%s]: UPS[%d] DOWNS[%d] - new score %d:%d:%d", key, ups, downs, reddit, wilson, hacker)
+		new := Score{
+			Id: i,
+			Key: key,
+			Submitted: submitted,
+			Type: ScoreAccount,
+			Score: hacker,
+		}
+		scores = append(scores, new)
+	}
+	return scores, nil
+}
+
+func LoadScoresForAccounts(db *sql.DB, since time.Duration, col string, val string)  ([]Score, error) {
+	par := make([]interface{}, 0)
+	par = append(par, interface{}(since.Hours()))
+
+	keyClause := ""
+	if len(val) > 0 && len(col) > 0 {
+		keyClause = fmt.Sprintf(` and "content_items"."%s" ~* $2`, col)
+		par = append(par, interface{}(val))
+	}
+	q := fmt.Sprintf(`select "accounts"."id", "accounts"."handle", "accounts"."key", max("content_items"."submitted_at"),
+       sum(CASE WHEN "weight" > 0 THEN "weight" ELSE 0 END) AS "ups",
+       sum(CASE WHEN "weight" < 0 THEN abs("weight") ELSE 0 END) AS "downs"
+from "votes"
+       inner join "content_items" on "content_items"."id" = "item_id"
+       inner join "accounts" on "content_items"."submitted_by" = "accounts"."id"
+where current_timestamp - "content_items"."submitted_at" < ($1 * INTERVAL '1 hour')%s
+group by "accounts"."id", "accounts"."key" order by "accounts"."id";`,
+		keyClause)
+	rows, err := db.Query(q, par...)
+	if err != nil {
+		return nil, err
+	}
+
+	scores := make([]Score, 0)
+	for rows.Next() {
+		var i, ups, downs int64
+		var submitted time.Time
+		var key []byte
+		var handle string
+		err = rows.Scan(&i, &handle, &key, &submitted, &ups, &downs)
+
+		now := time.Now()
+		reddit := int64(Reddit(ups, downs, now.Sub(submitted)))
+		wilson := int64(Wilson(ups, downs))
+		hacker := int64(Hacker(ups-downs, now.Sub(submitted)))
+		log.Infof("Votes[%s]: UPS[%d] DOWNS[%d] - new score %d:%d:%d", handle, ups, downs, reddit, wilson, hacker)
+		new := Score{
+			Id: i,
+			Key: key,
+			Submitted: submitted,
+			Type: ScoreAccount,
+			Score: hacker,
+		}
+		scores = append(scores, new)
+	}
+	return scores, nil
 }
