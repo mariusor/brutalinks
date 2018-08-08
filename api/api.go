@@ -85,7 +85,7 @@ func Errorf(c int, m string, args ...interface{}) *ApiError {
 func GetContext() j.Context {
 	return j.Context{
 		j.Term(j.NilTerm): j.IRI(ap.ActivityBaseURI),
-		j.Term("score"): j.IRI("http://littr.me/#ns"),
+		j.Term("score"): j.IRI("http://littr.me/as#score"),
 	}
 }
 
