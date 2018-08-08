@@ -337,6 +337,7 @@ func PermaLink(c models.Content) string {
 	}
 	return fmt.Sprintf("/~%s/%s", c.SubmittedByAccount.Handle, c.Hash())
 }
+
 func LoadItem(c models.Content) Item {
 	i := Item{
 		Hash:        c.Hash(),
@@ -374,14 +375,13 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 
 	ShowItemData = false
 	var err error
-	items, err := models.LoadOPItems(Db, MaxContentItems)
-	//items, err := LoadOPItems()
+	//items, err := models.LoadOPItems(Db, MaxContentItems)
+	items, err := LoadOPItems()
 	if err != nil {
 		log.Error(err)
 		HandleError(w, r, http.StatusNotFound, err)
 		return
 	}
-	//fmt.Printf("%#v", aItems)
 
 	m.Items = loadComments(items)
 
