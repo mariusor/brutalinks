@@ -89,7 +89,6 @@ func init() {
 		log.Error(errors.NewErrWithCause(err, "failed to connect to the database"))
 	}
 
-	api.Db = db
 	app.Db = db
 	models.Db = db
 }
@@ -205,6 +204,4 @@ func main() {
 	})
 
 	littr.Run(r, wait)
-
-	api.Db.Close()
 }

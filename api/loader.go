@@ -1,8 +1,7 @@
 package api
 
 import (
-	"database/sql"
-	"github.com/juju/errors"
+		"github.com/juju/errors"
 	"github.com/mariusor/littr.go/models"
 	"time"
 	"github.com/buger/jsonparser"
@@ -23,8 +22,9 @@ const ServiceCtxtKey = "loader"
 var Service LoaderService
 
 type LoaderService struct {
-	DB *sql.DB
+	BaseUrl string
 }
+
 // Loader middleware
 func Loader (next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {

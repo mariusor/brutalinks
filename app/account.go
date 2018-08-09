@@ -72,18 +72,16 @@ func HandleUser(w http.ResponseWriter, r *http.Request) {
 	}
 	m.Items = loadComments(items)
 
-	_, err = LoadVotes(CurrentAccount, m.Items.getItems())
-	if err != nil {
-		log.Error(err)
-		HandleError(w, r, http.StatusNotFound, err)
-		return
-	}
-	if err != nil {
-		log.Error(err)
-	}
-	err = SessionStore.Save(r, w, GetSession(r))
-	if err != nil {
-		log.Error(err)
+	if CurrentAccount.IsLogged() {
+		CurrentAccount.Votes, err = models.Service.LoadVotes(models.LoadVotesFilter{
+			SubmittedBy: []string{CurrentAccount.Hash,},
+			ItemKey:     m.Items.getItemsHashes(),
+			MaxItems:    MaxContentItems,
+		})
+
+		if err != nil {
+			log.Error(err)
+		}
 	}
 
 	RenderTemplate(r, w, "listing", m)

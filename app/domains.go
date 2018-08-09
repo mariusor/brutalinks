@@ -25,9 +25,16 @@ func HandleDomains(w http.ResponseWriter, r *http.Request) {
 	}
 	m.Items = loadComments(contentItems)
 
-	_, err = LoadVotes(CurrentAccount, m.Items.getItems())
-	if err != nil {
-		log.Print(err)
+	if CurrentAccount.IsLogged() {
+		CurrentAccount.Votes, err = models.Service.LoadVotes(models.LoadVotesFilter{
+			SubmittedBy: []string{CurrentAccount.Hash,},
+			ItemKey:     m.Items.getItemsHashes(),
+			MaxItems:    MaxContentItems,
+		})
+
+		if err != nil {
+			log.Error(err)
+		}
 	}
 
 	RenderTemplate(r, w, "listing", m)

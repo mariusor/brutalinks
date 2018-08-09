@@ -265,7 +265,8 @@ func AddVote(p models.Item, score int, userHash string) (bool, error) {
 	var sel string
 	var p2 interface{}
 	//if p.Id == 0 {
-		sel = `select "id", "accounts"."id", "weight" from "votes" inner join "accounts" on "accounts"."id" = "votes"."submitted_by" where "accounts"."hash" ~* $1 and "key" ~* $2;`
+		sel = `select "id", "accounts"."id", "weight" from "votes" 
+		inner join "accounts" on "accounts"."id" = "votes"."submitted_by" where "accounts"."hash" ~* $1 and "key" ~* $2;`
 		p2 = interface{}(p.Hash)
 	//} else {
 	//	sel = `select "id", "weight" from "votes" where "submitted_by" = $1 and "item_id" = $2;`

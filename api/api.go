@@ -19,8 +19,10 @@ import (
 )
 
 var Db *sql.DB
+
 var BaseURL string
 var AccountsURL string
+var OutboxURL string
 
 const NotFound = 404
 const InternalError = 500
@@ -39,7 +41,7 @@ type Error struct {
 
 func init () {
 	https := os.Getenv("HTTPS") != ""
-	host := os.Getenv("HOSTNAME")
+	host := os.Getenv("LISTEN")
 
 	if https {
 		BaseURL = fmt.Sprintf("https://%s/api", host)
@@ -48,6 +50,7 @@ func init () {
 	}
 
 	AccountsURL = BaseURL + "/accounts"
+	OutboxURL = BaseURL + "/outbox"
 }
 
 func Errorf(c int, m string, args ...interface{}) *Error {

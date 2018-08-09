@@ -120,15 +120,17 @@ func ShowItem(w http.ResponseWriter, r *http.Request) {
 	allComments = append(allComments, loadComments(contentItems)...)
 
 	ReparentComments(allComments)
-	_, err = LoadVotes(CurrentAccount, items)
-	if err != nil {
-		log.Print(err)
-		AddFlashMessage(Error,fmt.Sprint(err), r, w)
-	}
-	err = SessionStore.Save(r, w, GetSession(r))
-	if err != nil {
-		log.Print(err)
-		AddFlashMessage(Error, fmt.Sprint(err), r, w)
+
+	if CurrentAccount.IsLogged() {
+		CurrentAccount.Votes, err = models.Service.LoadVotes(models.LoadVotesFilter{
+			SubmittedBy: []string{CurrentAccount.Hash,},
+			ItemKey:     allComments.getItemsHashes(),
+			MaxItems:    MaxContentItems,
+		})
+
+		if err != nil {
+			log.Error(err)
+		}
 	}
 	if len(m.Title) > 0 {
 		m.Title = fmt.Sprintf("%s", i.Title)

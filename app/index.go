@@ -7,9 +7,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"net/http"
 	"os"
-	"github.com/juju/errors"
-	"strings"
-	)
+			)
 
 const (
 	MaxContentItems = 200
@@ -60,81 +58,6 @@ func getAuthProviders() map[string]string {
 	return p
 }
 
-func LoadVotes(a *models.Account, it models.ItemCollection) (map[string]models.Vote, error) {
-	var ids = make([]int64, len(it))
-	var hashes = make(map[string]string, 0)
-	for i, k := range it {
-		ids[i] = int64(i)
-		hashes[k.Hash] = k.Hash
-	}
-	if a == nil {
-		return nil, errors.Errorf("no account to load for")
-	}
-	if len(ids) == 0 {
-		log.Error(errors.Errorf("no ids to load"))
-	}
-	// this here code following is the ugliest I wrote in quite a long time
-	// so ugly it warrants its own fucking shame corner
-	sids := make([]string, 0)
-	for i := 0; i < len(ids); i++ {
-		sids = append(sids, fmt.Sprintf("$%d", i+2))
-	}
-	iitems := make([]interface{}, len(ids)+1)
-	iitems[0] = a.Hash
-	for i, v := range ids {
-		iitems[i+1] = v
-	}
-	sel := fmt.Sprintf(`select "votes"."id", "content_items"."key", "votes"."submitted_by", 
-		"votes"."submitted_at", "votes"."updated_at", "item_id", "weight", "votes"."flags"
-	from "votes" 
-	inner join "content_items" on "content_items"."id" = "votes"."item_id"
-	inner join "accounts" on "accounts"."id" = "votes"."submitted_by"
-	where "content_items"."key" = $1 and "votes"."item_id" in (%s)`, strings.Join(sids, ", "))
-	rows, err := Db.Query(sel, iitems...)
-
-	//log.Debugf("q: %s", sel)
-	//log.Debugf("q: %#v", ids)
-	if err != nil {
-		return nil, err
-	}
-	if a.Votes == nil {
-		a.Votes = make(map[string]models.Vote, 0)
-	}
-RowLoop:
-	for rows.Next() {
-		v := models.Vote{}
-		var vId int64
-		var vHash string
-		var vItemId int64
-		err = rows.Scan(&vId, &vHash, &v.SubmittedBy, &v.SubmittedAt, &v.UpdatedAt, &vItemId, &v.Weight, &v.Flags)
-		if err != nil {
-			return nil, err
-		}
-		for key, vv := range a.Votes {
-			if vv.Item.Hash == vHash {
-				log.Debugf("checking %s vs %s", vv.Item.Hash, vHash)
-				a.Votes[key] = models.Vote{
-					SubmittedBy: a,
-					SubmittedAt: v.SubmittedAt,
-					UpdatedAt:   v.UpdatedAt,
-					Item:        vv.Item, // FIXME(marius): v.Id
-					Weight:      v.Weight,
-					Flags:       v.Flags,
-				}
-				continue RowLoop
-			}
-		}
-		a.Votes[vHash] = models.Vote{
-			SubmittedBy: a,
-			SubmittedAt: v.SubmittedAt,
-			UpdatedAt:   v.UpdatedAt,
-			Weight:      v.Weight,
-			Flags:       v.Flags,
-		}
-	}
-	return a.Votes, nil
-}
-
 func ParentLink(c models.Item) string {
 	if len(c.Path) == 0 {
 		return "/"
@@ -168,6 +91,7 @@ func YayLink(i models.Item) string {
 func NayLink(i models.Item)  string {
 	return scoreLink(i, "nay")
 }
+
 // HandleIndex serves / request
 func HandleIndex(w http.ResponseWriter, r *http.Request) {
 	m := indexModel{Title: "Index", InvertedTheme: isInverted(r)}
