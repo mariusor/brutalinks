@@ -53,7 +53,7 @@ func (k *Key) FromString(s string) error {
 }
 
 type item struct {
-	Id          int64     `orm:Id,"auto"`
+	Id          int64     `orm:id,"auto"`
 	Key         Key       `orm:key,size(64)`
 	Title       []byte    `orm:title`
 	MimeType    string    `orm:mime_type`
@@ -62,7 +62,7 @@ type item struct {
 	SubmittedAt time.Time `orm:created_at`
 	SubmittedBy int64     `orm:submitted_by`
 	UpdatedAt   time.Time `orm:updated_at`
-	Flags       int8      `orm:Flags`
+	Flags       int8      `orm:flags`
 	Metadata    []byte    `orm:metadata`
 	Path        []byte    `orm:path`
 	SubmittedByAccount *Account
@@ -206,9 +206,9 @@ func LoadItems(max int) (ItemCollection, error) {
 		}
 		p.Key.FromBytes(iKey)
 		a.Key.FromBytes(aKey)
-		acct := loadFromModel(a)
+		acct := loadAccountFromModel(a)
 		p.SubmittedByAccount = &acct
-		items = append(items, loadItemFromContent(p))
+		items = append(items, loadItemFromModel(p))
 	}
 
 	return items, nil
@@ -242,9 +242,9 @@ func LoadItemsByPath(path []byte, max int) (ItemCollection, error) {
 		}
 		p.Key.FromBytes(iKey)
 		a.Key.FromBytes(aKey)
-		acct := loadFromModel(a)
+		acct := loadAccountFromModel(a)
 		p.SubmittedByAccount = &acct
-		items = append(items, loadItemFromContent(p))
+		items = append(items, loadItemFromModel(p))
 	}
 
 	return items, nil
@@ -278,9 +278,9 @@ func LoadItemsByDomain(domain string, max int) (ItemCollection, error) {
 		}
 		p.Key.FromBytes(iKey)
 		a.Key.FromBytes(aKey)
-		acct := loadFromModel(a)
+		acct := loadAccountFromModel(a)
 		p.SubmittedByAccount = &acct
-		items = append(items, loadItemFromContent(p))
+		items = append(items, loadItemFromModel(p))
 	}
 
 	return items, nil
@@ -312,10 +312,10 @@ func LoadItemByHash(hash string) (Item, error) {
 		}
 		p.Key.FromBytes(iKey)
 		a.Key.FromBytes(aKey)
-		acct := loadFromModel(a)
+		acct := loadAccountFromModel(a)
 		p.SubmittedByAccount = &acct
 	}
-	i = loadItemFromContent(p)
+	i = loadItemFromModel(p)
 	return i, nil
 }
 
@@ -346,10 +346,10 @@ func LoadItemParent(hash string, opHash string) (Item, error){
 		}
 		p.Key.FromBytes(iKey)
 		a.Key.FromBytes(aKey)
-		acct := loadFromModel(a)
+		acct := loadAccountFromModel(a)
 		p.SubmittedByAccount = &acct
 	}
-	i = loadItemFromContent(p)
+	i = loadItemFromModel(p)
 	return i, nil
 }
 
@@ -381,10 +381,10 @@ func LoadItemOP(hash string, opHash string) (Item, error){
 		}
 		p.Key.FromBytes(iKey)
 		a.Key.FromBytes(aKey)
-		acct := loadFromModel(a)
+		acct := loadAccountFromModel(a)
 		p.SubmittedByAccount = &acct
 
-		i = loadItemFromContent(p)
+		i = loadItemFromModel(p)
 	}
 	return i, nil
 }

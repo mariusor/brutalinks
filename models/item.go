@@ -12,22 +12,21 @@ type Identifiable interface {
 }
 
 type Item struct {
-	id          int64
 	Hash        string    `json:"key"`
 	Title       string    `json:"title"`
-	MimeType    string    `json:"mime_type"`
+	MimeType    string    `json:"mimeType"`
 	Data        string    `json:"data"`
 	Score       int64     `json:"score"`
-	SubmittedAt time.Time `json:"created_at"`
-	SubmittedBy *Account  `json:"submitted_by"`
-	UpdatedAt   time.Time `json:"updated_at"`
-	Flags       int8
-	Path        []byte
-	FullPath    []byte
-	Metadata    []byte
-	IsTop       bool
-	Parent		*Item
-	OP		*Item
+	SubmittedAt time.Time `json:"createdAt"`
+	SubmittedBy *Account  `json:"submittedBy"`
+	UpdatedAt   time.Time `json:"-"`
+	Flags       int8      `json:"-"`
+	Path        []byte    `json:"-"`
+	FullPath    []byte    `json:"-"`
+	Metadata    []byte    `json:"-"`
+	IsTop       bool      `json:"isTop"`
+	Parent		*Item     `json:"-"`
+	OP		*Item         `json:"-"`
 }
 
 func (i Item) Deleted() bool {
@@ -143,14 +142,14 @@ func LoadItem(h string) (Item, error) {
 		}
 		p.Key.FromBytes(iKey)
 		a.Key.FromBytes(aKey)
-		acct := loadFromModel(a)
+		acct := loadAccountFromModel(a)
 		p.SubmittedByAccount = &acct
 	}
-	i = loadItemFromContent(p)
+	i = loadItemFromModel(p)
 	return i, nil
 }
 
-func loadItemFromContent(c item) Item {
+func loadItemFromModel(c item) Item {
 	i := Item{
 		Hash:        c.Hash(),
 		UpdatedAt:   c.UpdatedAt,

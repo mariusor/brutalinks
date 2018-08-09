@@ -15,6 +15,20 @@ import (
 
 var defaultSince, _ = time.ParseDuration("90h")
 
+func init() {
+	dbPw := os.Getenv("DB_PASSWORD")
+	dbName := os.Getenv("DB_NAME")
+	dbUser := os.Getenv("DB_USER")
+
+	connStr := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable", dbUser, dbPw, dbName)
+	db, err := sql.Open("postgres", connStr)
+	if err != nil {
+		log.Print(err)
+	}
+
+	models.Db = db
+}
+
 func main() {
 	var key string
 	var handle string
@@ -28,17 +42,8 @@ func main() {
 	flag.DurationVar(&since, "since", defaultSince, "the content key to update votes for, default is 90h")
 	flag.Parse()
 
+	var err error
 	// recount all votes for content items
-	dbPw := os.Getenv("DB_PASSWORD")
-	dbName := os.Getenv("DB_NAME")
-	dbUser := os.Getenv("DB_USER")
-
-	connStr := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable", dbUser, dbPw, dbName)
-	db, err := sql.Open("postgres", connStr)
-	if err != nil {
-		log.Print(err)
-	}
-
 	var scores []models.Score
 	if accounts {
 		which := ""
@@ -52,9 +57,9 @@ func main() {
 				val = key
 			}
 		}
-		scores, err = models.LoadScoresForAccounts(db, since, which, val)
+		scores, err = models.LoadScoresForAccounts(since, which, val)
 	} else if items {
-		scores, err = models.LoadScoresForItems(db, since, key)
+		scores, err = models.LoadScoresForItems(since, key)
 	}
 	if err != nil {
 		panic(err)
@@ -67,7 +72,7 @@ func main() {
 		} else {
 			upd = `update "accounts" set score = $1 where id = $2;`
 		}
-		_, err := db.Exec(upd, score.Score, score.Id)
+		_, err := models.Db.Exec(upd, score.Score, score.Id)
 		if err != nil {
 			panic(err)
 		}

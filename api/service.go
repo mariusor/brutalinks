@@ -33,7 +33,7 @@ func HandleServiceCollection(w http.ResponseWriter, r *http.Request) {
 
 	us := loadAPService()
 	val := r.Context().Value(ServiceCtxtKey)
-	loader, ok := val.(models.CanLoad)
+	loader, ok := val.(models.CanLoadItems)
 	if ok {
 		log.Infof("loaded LoaderService of type %T", loader)
 	} else {
@@ -41,7 +41,8 @@ func HandleServiceCollection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	items, err := loader.LoadItems(models.LoadItemsFilter{MaxItems:app.MaxContentItems})
+	types := []string{string(ap.ArticleType)}
+	items, err := loader.LoadItems(models.LoadItemsFilter{Type: types, MaxItems:app.MaxContentItems})
 	if err != nil {
 		log.Error(err)
 		HandleError(w, r, http.StatusNotFound, err)

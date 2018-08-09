@@ -76,9 +76,11 @@ func init() {
 			"sluggify":          sluggify,
 			"title":             func(t []byte) string { return string(t) },
 			"getProviders":      getAuthProviders,
-			"CurrentAccount":    func() *models.Account { return CurrentAccount },
+			"CurrentAccount":    func() *models.Account {
+				return CurrentAccount
+			},
 			"LoadFlashMessages": loadFlashMessages,
-			"Mod10":               func(lvl int) float64 { return math.Mod(float64(lvl), float64(10)) },
+			"Mod10":             func(lvl int) float64 { return math.Mod(float64(lvl), float64(10)) },
 			"ShowText":          func() bool { return ShowItemData },
 			"HTML":              html,
 			"Text":              text,
@@ -162,7 +164,7 @@ type errorModel struct {
 func GetSession(r *http.Request) *sessions.Session {
 	s, err := SessionStore.Get(r, sessionName)
 	if err != nil {
-		log.Error(errors.NewErrWithCause(err, "unable to load session with name %s", sessionName))
+		log.Infof("empty session %s", sessionName)
 	}
 	return s
 }
@@ -271,6 +273,7 @@ func AddVote(p models.Item, score int, userHash string) (bool, error) {
 	//}
 
 	var userId int64
+	var vId int64
 	v := models.Vote{}
 	{
 		rows, err := Db.Query(sel, userHash, p2)
@@ -278,7 +281,7 @@ func AddVote(p models.Item, score int, userHash string) (bool, error) {
 			return false, err
 		}
 		for rows.Next() {
-			err = rows.Scan(&v.Id, &userId, &v.Weight)
+			err = rows.Scan(&vId, &userId, &v.Weight)
 			if err != nil {
 				return false, err
 			}
@@ -286,7 +289,7 @@ func AddVote(p models.Item, score int, userHash string) (bool, error) {
 	}
 
 	var q string
-	if v.Id != 0 {
+	if vId != 0 {
 		if v.Weight != 0 && math.Signbit(float64(newWeight)) == math.Signbit(float64(v.Weight)) {
 			newWeight = 0
 		}
@@ -491,9 +494,11 @@ func loadCurrentAccount(s *sessions.Session) {
 		if raw != nil {
 			a := raw.(models.Account)
 			CurrentAccount = &a
+			CurrentAccount.Metadata = models.AccountMetadata{}
+			log.Infof("loaded %#v from session", CurrentAccount)
 		}
-	//} else {
-	//	log.Error(errors.NewErr("unable to load user from session"))
+	} else {
+		log.Error(errors.NewErr("unable to load user from session"))
 	}
 }
 

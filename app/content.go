@@ -40,10 +40,19 @@ func loadComments(items []models.Item) comments {
 	}
 	return comments
 }
-func (c comments) getItems() []models.Item {
-	var items = make([]models.Item, len(c))
+
+func (c comments) getItems() models.ItemCollection {
+	var items = make(models.ItemCollection, len(c))
 	for k, com := range c {
 		items[k] = com.Item
+	}
+	return items
+}
+
+func (c comments) getItemsHashes() []string {
+	var items = make([]string, len(c))
+	for k, com := range c {
+		items[k] = com.Item.Hash
 	}
 	return items
 }

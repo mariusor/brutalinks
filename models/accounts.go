@@ -7,50 +7,58 @@ import (
 	"database/sql"
 	log "github.com/sirupsen/logrus"
 		"github.com/juju/errors"
+	"encoding/json"
 )
 
 type AccountMetadata struct {
-	Password []byte `json:"pw,omitemtpty"`
+	Password []byte `json:"pw,omitempty"`
 	Provider string `json:"provider,omitempty"`
 	Salt     []byte `json:"salt,omitempty"`
 }
 
 type account struct {
-	Id        int64     `orm:Id,"auto"`
+	Id        int64     `orm:id,"auto"`
 	Key       Key       `orm:key`
 	Email     []byte    `orm:email`
 	Handle    string    `orm:handle`
 	Score     int64     `orm:score`
 	CreatedAt time.Time `orm:created_at`
 	UpdatedAt time.Time `orm:updated_at`
-	Flags     int8      `orm:Flags`
+	Flags     int8      `orm:flags`
 	Metadata  []byte    `orm:metadata`
-	Votes     map[Key]Vote
+	Votes     map[Key]vote
 }
 
 type Account struct {
+	Email     string    `json:"-"`
 	Hash      string    `json:"key"`
-	Email     []byte    `json:"email"`
-	Handle    string    `json:"handle"`
 	Score     int64     `json:"score"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	Flags     int8
-	Metadata  []byte
+	Handle    string    `json:"handle"`
+	CreatedAt time.Time `json:"-"`
+	UpdatedAt time.Time `json:"-"`
+	Flags     int8       `json:"-"`
+	Metadata  AccountMetadata `json:"-"`
 	Votes     map[string]Vote
 }
 
-func loadFromModel (a account) Account {
-	return Account{
+func loadAccountFromModel (a account) Account {
+	acct := Account{
 		Hash:      a.Hash(),
 		Flags:     a.Flags,
 		UpdatedAt: a.UpdatedAt,
 		Handle:    a.Handle,
-		Metadata:  a.Metadata, // this needs processing
 		Score:     int64(float64(a.Score) / ScoreMultiplier),
 		CreatedAt: a.CreatedAt,
-		Email:     a.Email,
+		Email:     string(a.Email),
 	}
+	if a.Metadata != nil {
+		err := json.Unmarshal(a.Metadata, &acct.Metadata)
+		if err != nil {
+			log.Error(errors.NewErrWithCause(err, "unable to unmarshal account metadata"))
+		}
+	}
+
+	return acct
 }
 
 func LoadAccount(handle string) (Account, error) {
@@ -58,7 +66,7 @@ func LoadAccount(handle string) (Account, error) {
 	if err != nil {
 		return Account{}, errors.Errorf("user %q not found", handle)
 	}
-	return loadFromModel(a), nil
+	return loadAccountFromModel(a), nil
 }
 
 type Deletable interface {
@@ -70,14 +78,6 @@ type Deletable interface {
 func (a *Account) VotedOn(i Item) *Vote {
 	for key, v := range a.Votes {
 		if key == i.Hash {
-			return &v
-		}
-	}
-	return nil
-}
-func (a *account) VotedOn(i item) *Vote {
-	for _, v := range a.Votes {
-		if v.ItemId == i.Id {
 			return &v
 		}
 	}
@@ -172,9 +172,9 @@ func LoadItemsSubmittedBy(handle string) (ItemCollection, error) {
 
 			p.Key.FromBytes(pKey)
 			a.Key.FromBytes(aKey)
-			acct := loadFromModel(a)
+			acct := loadAccountFromModel(a)
 			p.SubmittedByAccount = &acct
-			items = append(items, loadItemFromContent(p))
+			items = append(items, loadItemFromModel(p))
 		}
 	}
 	if err != nil {

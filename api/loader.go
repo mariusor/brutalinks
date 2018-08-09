@@ -66,7 +66,7 @@ type Person struct {
 	AttributedTo ObjectOrLink `jsonld:"attributedTo,omitempty"`
 	Audience ObjectOrLink `jsonld:"audience,omitempty"`
 	Content NaturalLanguageValue `jsonld:"content,omitempty,collapsible"`
-	Context ObjectOrLink `jsonld:"_"`
+	Context ObjectOrLink `jsonld:"context,omitempty,collapsible"`
 	EndTime time.Time `jsonld:"endTime,omitempty"`
 	Generator ObjectOrLink `jsonld:"generator,omitempty"`
 	Icon ImageOrLink `jsonld:"icon,omitempty"`
@@ -173,7 +173,7 @@ type OrderedCollection struct {
 	AttributedTo ObjectOrLink `jsonld:"attributedTo,omitempty"`
 	Audience ObjectOrLink `jsonld:"audience,omitempty"`
 	Content NaturalLanguageValue `jsonld:"content,omitempty,collapsible"`
-	Context ObjectOrLink `jsonld:"_"`
+	Context ObjectOrLink `jsonld:"context,omitempty,collapsible"`
 	EndTime time.Time `jsonld:"endTime,omitempty"`
 	Generator ObjectOrLink `jsonld:"generator,omitempty"`
 	InReplyTo ObjectOrLink `jsonld:"inReplyTo,omitempty"`
@@ -286,4 +286,8 @@ func LoadOPItems(maxItems int) (models.ItemCollection, error) {
 	}
 
 	return items, nil
+}
+
+func (l LoaderService) LoadVotes(f models.LoadVotesFilter) (models.VoteCollection, error) {
+	return nil, errors.Errorf("not implemented") //models.LoadItemsVotes(f.ItemKey[0])
 }

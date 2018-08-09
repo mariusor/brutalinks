@@ -62,13 +62,13 @@ func AccountFromRequest(r *http.Request) (*models.Account, []error) {
 		Salt:     salt,
 		Password: savpw,
 	}
-	a.Metadata, err = json.Marshal(m)
+	jMetadata, err := json.Marshal(m)
 	if err != nil {
 		log.Print(err)
 	}
 	ins := `insert into "accounts" ("key", "handle", "created_at", "updated_at", "metadata") values($1, $2, $3, $4, $5)`
 	{
-		res, err := Db.Exec(ins, a.Handle, a.Handle, a.CreatedAt, a.UpdatedAt, a.Metadata)
+		res, err := Db.Exec(ins, a.Handle, a.Handle, a.CreatedAt, a.UpdatedAt, jMetadata)
 		if err != nil {
 			return nil, []error{err}
 		} else {

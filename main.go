@@ -114,6 +114,25 @@ func FileServer(r chi.Router, path string, root http.FileSystem) {
 	}))
 }
 
+func Item(next http.Handler) http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		var i models.Item
+		l := r.Context().Value("loader")
+		if loader, ok := l.(models.LoaderService); ok {
+			f := models.LoadItemFilter{}
+			var err error
+			i, err = loader.LoadItem(f)
+			if err != nil {
+				app.HandleError(w, r, http.StatusNotFound, errors.NotFoundf("item not found"))
+			}
+		}
+		ctx := context.WithValue(r.Context(), "item", i)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	}
+	return http.HandlerFunc(fn)
+}
+
+
 func main() {
 	var wait time.Duration
 	flag.DurationVar(&wait, "graceful-timeout", time.Second*15, "the duration for which the server gracefully wait for existing connections to finish - e.g. 15s or 1m")
@@ -128,7 +147,6 @@ func main() {
 	if littr.Env == app.PROD {
 		r.Use(middleware.Recoverer)
 	}
-	r.Use(app.LoadSessionData)
 
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		app.HandleError(w, r, http.StatusNotFound, errors.Errorf("%s not found", r.RequestURI))
@@ -138,7 +156,7 @@ func main() {
 	filesDir := filepath.Join(workDir, "assets")
 	FileServer(r, "/assets", http.Dir(filesDir))
 
-	r.With(api.Loader).Route("/", func(r chi.Router) {
+	r.With(app.LoadSessionData, api.Loader).Route("/", func(r chi.Router) {
 		r.Get("/", app.HandleIndex)
 
 		r.Get("/submit", app.ShowSubmit)

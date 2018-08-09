@@ -3,8 +3,7 @@ package app
 import (
 	"net/http"
 
-	"encoding/json"
-	log "github.com/sirupsen/logrus"
+		log "github.com/sirupsen/logrus"
 
 	"github.com/juju/errors"
 	"github.com/mariusor/littr.go/models"
@@ -30,18 +29,12 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 		HandleError(w, r, StatusUnknown, errors.Errorf("handle or password are wrong"))
 		return
 	}
-	m := &models.AccountMetadata{}
-	err = json.Unmarshal(a.Metadata, m)
-	if err != nil {
-		log.Print(err)
-		HandleError(w, r, StatusUnknown, errors.Errorf("handle or password are wrong"))
-		return
-	}
+	m := a.Metadata
 	log.Printf("Loaded pw: %q, salt: %q", m.Password, m.Salt)
 	salt := m.Salt
 	saltedpw := []byte(pw)
 	saltedpw = append(saltedpw, salt...)
-	err = bcrypt.CompareHashAndPassword(m.Password, saltedpw)
+	err = bcrypt.CompareHashAndPassword([]byte(m.Password), saltedpw)
 	if err != nil {
 		log.Print(err)
 		HandleError(w, r, StatusUnknown, errors.Errorf("handle or password are wrong"))

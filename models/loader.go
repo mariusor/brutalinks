@@ -28,6 +28,15 @@ const (
 	MatchAfter
 	MatchFuzzy
 )
+type LoadVotesFilter struct {
+	ItemKey []string
+	Type []string
+	SubmittedBy []string
+	SubmittedAt time.Time
+	SubmittedAtMatchType MatchType
+	Page int
+	MaxItems int
+}
 
 type LoadItemsFilter struct {
 	Key []string
@@ -40,6 +49,7 @@ type LoadItemsFilter struct {
 	SubmittedAtMatchType MatchType
 	Content string
 	ContentMatchType MatchType
+	Page int
 	MaxItems int
 }
 
@@ -47,9 +57,13 @@ type LoadItemFilter struct {
 	Key string
 }
 
-type CanLoad interface {
+type CanLoadItems interface {
 	LoadItem(f LoadItemFilter) (Item, error)
 	LoadItems(f LoadItemsFilter) (ItemCollection, error)
+}
+
+type CanLoadVotes interface {
+	LoadVotes(f LoadVotesFilter) (VoteCollection, error)
 }
 
 var Service LoaderService
@@ -64,4 +78,8 @@ func (l LoaderService) LoadItem(f LoadItemFilter) (Item, error) {
 
 func (l LoaderService) LoadItems(f LoadItemsFilter) (ItemCollection, error) {
 	return LoadItems(f.MaxItems)
+}
+
+func (l LoaderService) LoadVotes(f LoadVotesFilter) (VoteCollection, error) {
+	return LoadVotes(f)
 }

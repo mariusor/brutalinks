@@ -7,36 +7,13 @@ import (
 	log "github.com/sirupsen/logrus"
 	"net/http"
 	"os"
-	"time"
+	"github.com/juju/errors"
+	"strings"
 	)
 
 const (
 	MaxContentItems = 200
 )
-
-type Account struct {
-	Id        int64
-	Hash      string    `json:"key"`
-	Email     []byte    `json:"email"`
-	Handle    string    `json:"handle"`
-	Score     int64     `json:"score"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	flags     int8
-	metadata  []byte
-	votes     map[string]Vote
-}
-
-type Vote struct {
-	SubmittedBy string    `json:"submitted_by"`
-	SubmittedAt time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
-	Weight      int       `json:"weight"`
-	ItemHash    string    `json:"item_hash"`
-	id          int64
-	itemId      int64
-	flags       int8
-}
 
 func IsYay(v *models.Vote)  bool {
 	return v != nil && v.Weight > 0
@@ -83,74 +60,79 @@ func getAuthProviders() map[string]string {
 	return p
 }
 
-func LoadVotes(a *models.Account, it []models.Item) ([]Vote, error) {
-	return nil, nil
-//	var ids = make([]int64, len(it))
-//	var hashes = make(map[string]string, 0)
-//	for i, k := range it {
-//		ids[i] = int64(i)
-//		hashes[k.Hash] = k.Hash
-//	}
-//	if a == nil {
-//		return nil, errors.Errorf("no account to load for")
-//	}
-//	if len(ids) == 0 {
-//		log.Error(errors.Errorf("no ids to load"))
-//	}
-//	// this here code following is the ugliest I wrote in quite a long time
-//	// so ugly it warrants its own fucking shame corner
-//	sids := make([]string, 0)
-//	for i := 0; i < len(ids); i++ {
-//		sids = append(sids, fmt.Sprintf("$%d", i+2))
-//	}
-//	iitems := make([]interface{}, len(ids)+1)
-//	iitems[0] = a.Id
-//	for i, v := range ids {
-//		iitems[i+1] = v
-//	}
-//	sel := fmt.Sprintf(`select "id", "submitted_by", "submitted_at", "updated_at", "item_id", "weight", "flags"
-//	from "votes" where "submitted_by" = $1 and "item_id" in (%s)`, strings.Join(sids, ", "))
-//	rows, err := Db.Query(sel, iitems...)
-//	if err != nil {
-//		return nil, err
-//	}
-//	if a.votes == nil {
-//		a.votes = make(map[string]Vote, 0)
-//	}
-//RowLoop:
-//	for rows.Next() {
-//		v := models.Vote{}
-//		err = rows.Scan(&v.Id, &v.SubmittedBy, &v.SubmittedAt, &v.UpdatedAt, &v.ItemId, &v.Weight, &v.Flags)
-//		if err != nil {
-//			return nil, err
-//		}
-//		for key, vv := range a.votes {
-//			if vv.id == v.Id {
-//				a.votes[key] = Vote{
-//					SubmittedBy: a.Handle,
-//					SubmittedAt: v.SubmittedAt,
-//					UpdatedAt:   v.UpdatedAt,
-//					ItemHash:    hashes[key], // FIXME(marius): v.Id
-//					Weight:      v.Weight,
-//					id:          v.Id,
-//					flags:       v.Flags,
-//					itemId:      v.ItemId,
-//				}
-//				continue RowLoop
-//			}
-//		}
-//		a.votes = append(a.votes, Vote{
-//			SubmittedBy: a.Handle,
-//			SubmittedAt: v.SubmittedAt,
-//			UpdatedAt:   v.UpdatedAt,
-//			ItemHash:    hashes[0], // FIXME(marius): v.Id
-//			Weight:      v.Weight,
-//			id:          v.Id,
-//			flags:       v.Flags,
-//			itemId:      v.ItemId,
-//		})
-//	}
-//	return a.votes, nil
+func LoadVotes(a *models.Account, it models.ItemCollection) (map[string]models.Vote, error) {
+	var ids = make([]int64, len(it))
+	var hashes = make(map[string]string, 0)
+	for i, k := range it {
+		ids[i] = int64(i)
+		hashes[k.Hash] = k.Hash
+	}
+	if a == nil {
+		return nil, errors.Errorf("no account to load for")
+	}
+	if len(ids) == 0 {
+		log.Error(errors.Errorf("no ids to load"))
+	}
+	// this here code following is the ugliest I wrote in quite a long time
+	// so ugly it warrants its own fucking shame corner
+	sids := make([]string, 0)
+	for i := 0; i < len(ids); i++ {
+		sids = append(sids, fmt.Sprintf("$%d", i+2))
+	}
+	iitems := make([]interface{}, len(ids)+1)
+	iitems[0] = a.Hash
+	for i, v := range ids {
+		iitems[i+1] = v
+	}
+	sel := fmt.Sprintf(`select "votes"."id", "content_items"."key", "votes"."submitted_by", 
+		"votes"."submitted_at", "votes"."updated_at", "item_id", "weight", "votes"."flags"
+	from "votes" 
+	inner join "content_items" on "content_items"."id" = "votes"."item_id"
+	inner join "accounts" on "accounts"."id" = "votes"."submitted_by"
+	where "content_items"."key" = $1 and "votes"."item_id" in (%s)`, strings.Join(sids, ", "))
+	rows, err := Db.Query(sel, iitems...)
+
+	//log.Debugf("q: %s", sel)
+	//log.Debugf("q: %#v", ids)
+	if err != nil {
+		return nil, err
+	}
+	if a.Votes == nil {
+		a.Votes = make(map[string]models.Vote, 0)
+	}
+RowLoop:
+	for rows.Next() {
+		v := models.Vote{}
+		var vId int64
+		var vHash string
+		var vItemId int64
+		err = rows.Scan(&vId, &vHash, &v.SubmittedBy, &v.SubmittedAt, &v.UpdatedAt, &vItemId, &v.Weight, &v.Flags)
+		if err != nil {
+			return nil, err
+		}
+		for key, vv := range a.Votes {
+			if vv.Item.Hash == vHash {
+				log.Debugf("checking %s vs %s", vv.Item.Hash, vHash)
+				a.Votes[key] = models.Vote{
+					SubmittedBy: a,
+					SubmittedAt: v.SubmittedAt,
+					UpdatedAt:   v.UpdatedAt,
+					Item:        vv.Item, // FIXME(marius): v.Id
+					Weight:      v.Weight,
+					Flags:       v.Flags,
+				}
+				continue RowLoop
+			}
+		}
+		a.Votes[vHash] = models.Vote{
+			SubmittedBy: a,
+			SubmittedAt: v.SubmittedAt,
+			UpdatedAt:   v.UpdatedAt,
+			Weight:      v.Weight,
+			Flags:       v.Flags,
+		}
+	}
+	return a.Votes, nil
 }
 
 func ParentLink(c models.Item) string {
@@ -191,16 +173,15 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 	m := indexModel{Title: "Index", InvertedTheme: isInverted(r)}
 
 	val := r.Context().Value(ServiceCtxtKey)
-	loader, ok := val.(models.CanLoad)
+	itemLoader, ok := val.(models.CanLoadItems)
 	if ok {
-		log.Infof("loaded LoaderService of type %T", loader)
+		log.Infof("loaded LoaderService of type %T", itemLoader)
 	} else {
 		log.Errorf("could not load loader service from Context")
 		return
 	}
-
 	var err error
-	items, err := loader.LoadItems(models.LoadItemsFilter{MaxItems:MaxContentItems})
+	items, err := itemLoader.LoadItems(models.LoadItemsFilter{MaxItems: MaxContentItems, })
 	if err != nil {
 		log.Error(err)
 		HandleError(w, r, http.StatusNotFound, err)
@@ -210,10 +191,19 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 	ShowItemData = false
 	m.Items = loadComments(items)
 
-	_, err = LoadVotes(CurrentAccount, m.Items.getItems())
+	votesLoader, ok := val.(models.CanLoadVotes)
+	votes, err := votesLoader.LoadVotes(models.LoadVotesFilter{
+		SubmittedBy: []string{CurrentAccount.Hash,},
+		ItemKey: m.Items.getItemsHashes(),
+	})
+	for _, v := range votes {
+		CurrentAccount.Votes[v.Item.Hash] = v
+	}
+	_, err = models.LoadAccountVotes(CurrentAccount, m.Items.getItems())
+	//_, err = LoadVotes(CurrentAccount, m.Items.getItems())
 	if err != nil {
 		log.Error(err)
-		HandleError(w, r, http.StatusNotFound, err)
+		//HandleError(w, r, http.StatusNotFound, err)
 		return
 	}
 
