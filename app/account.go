@@ -6,8 +6,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi"
-	"github.com/juju/errors"
-	"github.com/mariusor/activitypub.go/activitypub"
+		"github.com/mariusor/activitypub.go/activitypub"
 	"github.com/mariusor/activitypub.go/jsonld"
 	"github.com/mariusor/littr.go/models"
 	"io/ioutil"
@@ -16,12 +15,12 @@ import (
 type userModel struct {
 	Title         string
 	InvertedTheme bool
-	User          *Account
+	User          *models.Account
 	Items         comments
 }
 
-func loadFromAPPerson(p activitypub.Person) (Account, error) {
-	u := Account{
+func loadFromAPPerson(p activitypub.Person) (models.Account, error) {
+	u := models.Account{
 		UpdatedAt: p.Updated,
 		Handle:    p.Name.First(),
 		CreatedAt: p.Published,
@@ -29,23 +28,9 @@ func loadFromAPPerson(p activitypub.Person) (Account, error) {
 	return u, nil
 }
 
-func loadFromModel(a models.Account) (Account, error) {
-	return Account{
-		Id:        a.Id,
-		Hash:      a.Hash(),
-		flags:     a.Flags,
-		UpdatedAt: a.UpdatedAt,
-		Handle:    a.Handle,
-		metadata:  a.Metadata,
-		Score:     int64(float64(a.Score) / models.ScoreMultiplier),
-		CreatedAt: a.CreatedAt,
-		Email:     a.Email,
-	}, nil
-}
-
 // HandleUser serves /~handle request
 func HandleUser(w http.ResponseWriter, r *http.Request) {
-	m := userModel{InvertedTheme: IsInverted(r)}
+	m := userModel{InvertedTheme: isInverted(r)}
 	log.WithFields(log.Fields{
 		"account": "account page",
 	})
@@ -74,16 +59,12 @@ func HandleUser(w http.ResponseWriter, r *http.Request) {
 			log.Debugf("resp %#v", m)
 		}
 	}
-	u, err := models.LoadAccount(Db, handle)
-	if err != nil {
-		HandleError(w, r, http.StatusNotFound, errors.Errorf("user %q not found", handle))
-		return
-	}
-	m.Title = fmt.Sprintf("%s submissions", genitive(u.Handle))
-	a, _ := loadFromModel(u)
+
+	a, _ := models.LoadAccount(handle)
+	m.Title = fmt.Sprintf("%s submissions", genitive(a.Handle))
 	m.User = &a
 
-	items, err := models.LoadItemsSubmittedBy(Db, handle)
+	items, err := models.LoadItemsSubmittedBy(handle)
 	if err != nil {
 		log.Error(err)
 		HandleError(w, r, http.StatusNotFound, err)

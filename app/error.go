@@ -14,7 +14,7 @@ func HandleError(w http.ResponseWriter, r *http.Request, status int, errs ...err
 	d := errorModel{
 		Status:        status,
 		Title:         fmt.Sprintf("Error %d", status),
-		InvertedTheme: IsInverted(r),
+		InvertedTheme: isInverted(r),
 		Errors:        errs,
 	}
 	w.WriteHeader(status)

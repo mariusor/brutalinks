@@ -6,10 +6,11 @@ import (
 	"github.com/mariusor/littr.go/app"
 	ap "github.com/mariusor/activitypub.go/activitypub"
 	json "github.com/mariusor/activitypub.go/jsonld"
-		"github.com/go-chi/chi"
+	"github.com/go-chi/chi"
 	"strings"
 	"github.com/juju/errors"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 )
 
 func loadAPService() *ap.Service {
@@ -31,40 +32,59 @@ func HandleServiceCollection(w http.ResponseWriter, r *http.Request) {
 	var err error
 
 	us := loadAPService()
+	val := r.Context().Value(ServiceCtxtKey)
+	loader, ok := val.(models.CanLoad)
+	if ok {
+		log.Infof("loaded LoaderService of type %T", loader)
+	} else {
+		log.Errorf("could not load loader service from Context")
+		return
+	}
 
+	items, err := loader.LoadItems(models.LoadItemsFilter{MaxItems:app.MaxContentItems})
+	if err != nil {
+		log.Error(err)
+		HandleError(w, r, http.StatusNotFound, err)
+		return
+	}
 	collection := chi.URLParam(r, "collection")
 	switch strings.ToLower(collection) {
 	case "inbox":
 	case "outbox":
-		items, err := models.LoadOPItems(Db, app.MaxContentItems)
-		if err != nil {
-			HandleError(w, r, http.StatusInternalServerError, err)
-			return
-		}
 		_, err = loadAPCollection(us.Outbox, &items)
-		data, err = json.WithContext(GetContext()).Marshal(us.Outbox)
-	case "liked":
-		types := r.URL.Query()["type"]
-		clauses := make(models.Clauses, 0)
-		if types == nil {
-			clauses = nil
-		} else {
-			for _, typ := range types {
-				if strings.ToLower(typ) == strings.ToLower(string(ap.LikeType)) {
-					clauses = append(clauses, models.Clause{ColName: `"votes"."weight" > `, Val: interface{}(0)})
-				} else {
-					clauses = append(clauses, models.Clause{ColName: ` "votes"."weight" < `, Val: interface{}(0)})
-				}
-			}
-		}
-
-		votes, err := models.LoadVotes(Db, clauses, app.MaxContentItems)
 		if err != nil {
-			HandleError(w, r, http.StatusInternalServerError, err)
+			log.Error(err)
+			HandleError(w, r, http.StatusNotFound, err)
 			return
 		}
-		_, err = loadAPLiked(us.Liked, votes)
-		data, err = json.WithContext(GetContext()).Marshal(us.Liked)
+		data, err = json.WithContext(GetContext()).Marshal(us.Outbox)
+		if err != nil {
+			log.Error(err)
+			HandleError(w, r, http.StatusNotFound, err)
+			return
+		}
+	case "liked":
+		//types := r.URL.Query()["type"]
+		//clauses := make(models.Clauses, 0)
+		//if types == nil {
+		//	clauses = nil
+		//} else {
+		//	for _, typ := range types {
+		//		if strings.ToLower(typ) == strings.ToLower(string(ap.LikeType)) {
+		//			clauses = append(clauses, models.Clause{ColName: `"votes"."weight" > `, Val: interface{}(0)})
+		//		} else {
+		//			clauses = append(clauses, models.Clause{ColName: ` "votes"."weight" < `, Val: interface{}(0)})
+		//		}
+		//	}
+		//}
+		//
+		//votes, err := models.LoadVotes(Db, clauses, app.MaxContentItems)
+		//if err != nil {
+		//	HandleError(w, r, http.StatusInternalServerError, err)
+		//	return
+		//}
+		//_, err = loadAPLiked(us.Liked, votes)
+		//data, err = json.WithContext(GetContext()).Marshal(us.Liked)
 	default:
 		err = errors.Errorf("collection not found")
 	}
@@ -73,8 +93,8 @@ func HandleServiceCollection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("item-Type", "application/json; charset=utf-8")
+	w.Header().Set("X-item-Type-Options", "nosniff")
 	w.WriteHeader(http.StatusOK)
 	w.Write(data)
 }
@@ -102,7 +122,7 @@ func HandleServiceCollectionItem(w http.ResponseWriter, r *http.Request) {
 	//}
 
 	hash := chi.URLParam(r, "hash")
-	c, err  := models.LoadItem(Db, hash)
+	c, err  := models.LoadItem(hash)
 	if err != nil {
 		HandleError(w, r, http.StatusNotFound, err)
 		return
@@ -110,8 +130,8 @@ func HandleServiceCollectionItem(w http.ResponseWriter, r *http.Request) {
 	el, _ := loadAPItem(c)
 
 	data, err = json.WithContext(GetContext()).Marshal(el)
-	w.Header().Set("Content-Type", "application/ld+json; charset=utf-8")
-	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("item-Type", "application/ld+json; charset=utf-8")
+	w.Header().Set("X-item-Type-Options", "nosniff")
 	w.WriteHeader(http.StatusOK)
 	w.Write(data)
 }

@@ -13,7 +13,7 @@ import (
 type newModel struct {
 	Title         string
 	InvertedTheme bool
-	Content       Item
+	Content       models.Item
 }
 
 func detectMimeType(data []byte) string {
@@ -24,22 +24,22 @@ func detectMimeType(data []byte) string {
 	return "text/plain"
 }
 
-func ContentFromRequest(r *http.Request) (*models.Content, error) {
+func ContentFromRequest(r *http.Request) (models.Item, error) {
 	if r.Method != http.MethodPost {
-		return nil, errors.Errorf("invalid http method type")
+		return models.Item{}, errors.Errorf("invalid http method type")
 	}
 
-	i := models.Content{}
+	i := models.Item{}
 	tit := r.PostFormValue("title")
 	if len(tit) > 0 {
-		i.Title = []byte(tit)
+		i.Title = tit
 	}
 	dat := r.PostFormValue("data")
 	if len(dat) > 0 {
-		i.Data = []byte(dat)
+		i.Data = dat
 	}
-	i.SubmittedBy = CurrentAccount.Id
-	i.MimeType = detectMimeType(i.Data)
+	i.SubmittedBy = CurrentAccount
+	i.MimeType = i.Data
 	if !i.IsLink() {
 		i.MimeType = r.PostFormValue("mime-type")
 	}
@@ -48,14 +48,14 @@ func ContentFromRequest(r *http.Request) (*models.Content, error) {
 		i.SubmittedAt = now
 		i.UpdatedAt = now
 
-		i.Key = i.GetKey()
+		//i.Hash = models.GenKey()i.GetKey()
 	}
 
 	ins := `insert into "content_items" ("key", "title", "data", "mime_type", "submitted_by", "submitted_at", "updated_at") 
 		values($1, $2, $3, $4, $5, $6, $7)`
 
 	var params = make([]interface{}, 0)
-	params = append(params, i.Key)
+	//params = append(params, i.Key)
 	params = append(params, i.Title)
 	params = append(params, i.Data)
 	params = append(params, i.MimeType)
@@ -75,19 +75,19 @@ func ContentFromRequest(r *http.Request) (*models.Content, error) {
 
 	res, err := Db.Exec(ins, params...)
 	if err != nil {
-		return nil, err
+		return models.Item{}, err
 	} else {
 		if rows, _ := res.RowsAffected(); rows == 0 {
-			return nil, errors.Errorf("could not save item %q", i.Hash())
+			return models.Item{}, errors.Errorf("could not save item %q", i.Hash)
 		}
 	}
 
-	return &i, nil
+	return i, nil
 }
 
 // ShowSubmit serves GET /submit request
 func ShowSubmit(w http.ResponseWriter, r *http.Request) {
-	m := newModel{Title: "New submission", InvertedTheme: IsInverted(r)}
+	m := newModel{Title: "New submission", InvertedTheme: isInverted(r)}
 	err := SessionStore.Save(r, w, GetSession(r))
 	if err != nil {
 		log.Print(err)
@@ -100,19 +100,18 @@ func ShowSubmit(w http.ResponseWriter, r *http.Request) {
 // HandleSubmit handles POST /~handle/hash requests
 // HandleSubmit handles POST /year/month/day/hash requests
 func HandleSubmit(w http.ResponseWriter, r *http.Request) {
-	var userId = CurrentAccount.Id
+	//var userId = CurrentAccount.Id
 
 	p, err := ContentFromRequest(r)
 	if err != nil {
 		HandleError(w, r, http.StatusInternalServerError, err)
 		return
 	}
-	*p, err = models.LoadItemByHash(Db, p.Hash64())
+	p, err = models.LoadItemByHash(p.Hash)
 	if err != nil {
 		HandleError(w, r, http.StatusInternalServerError, err)
 		return
 	}
-	AddVote(*p, 1, userId)
-	i := LoadItem(*p)
-	Redirect(w, r, i.PermaLink(), http.StatusSeeOther)
+	//AddVote(p, 1, userId)
+	Redirect(w, r, permaLink(p), http.StatusSeeOther)
 }

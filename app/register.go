@@ -49,7 +49,7 @@ func AccountFromRequest(r *http.Request) (*models.Account, []error) {
 	a.CreatedAt = now
 	a.UpdatedAt = now
 
-	a.Key = a.GetKey()
+	a.Hash = models.GenKey(a.Handle).String()
 	salt := securecookie.GenerateRandomKey(8)
 	saltedpw := []byte(pw)
 	saltedpw = append(saltedpw, salt...)
@@ -68,12 +68,12 @@ func AccountFromRequest(r *http.Request) (*models.Account, []error) {
 	}
 	ins := `insert into "accounts" ("key", "handle", "created_at", "updated_at", "metadata") values($1, $2, $3, $4, $5)`
 	{
-		res, err := Db.Exec(ins, a.Key, a.Handle, a.CreatedAt, a.UpdatedAt, a.Metadata)
+		res, err := Db.Exec(ins, a.Handle, a.Handle, a.CreatedAt, a.UpdatedAt, a.Metadata)
 		if err != nil {
 			return nil, []error{err}
 		} else {
 			if rows, _ := res.RowsAffected(); rows == 0 {
-				return nil, []error{errors.Errorf("could not save account %q", a.Hash())}
+				return nil, []error{errors.Errorf("could not save account %s:%q", a.Handle, a.Hash)}
 			}
 		}
 	}
@@ -83,7 +83,7 @@ func AccountFromRequest(r *http.Request) (*models.Account, []error) {
 
 // ShowRegister serves GET /register requests
 func ShowRegister(w http.ResponseWriter, r *http.Request) {
-	m := registerModel{InvertedTheme: IsInverted(r)}
+	m := registerModel{InvertedTheme: isInverted(r)}
 	m.Terms = `<p>We try to follow <q><cite>Wheaton's Law</cite></q>:<br/>` +
 		`<blockquote>Don't be a dick!</blockquote></p>`
 

@@ -19,7 +19,8 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/unrolled/render"
 	"golang.org/x/oauth2"
-	)
+	"gopkg.in/russross/blackfriday.v2"
+)
 
 const (
 	sessionName   = "_s"
@@ -31,12 +32,12 @@ var Db *sql.DB
 var SessionStore sessions.Store
 var ShowItemData = false
 
-var CurrentAccount *Account
+var CurrentAccount *models.Account
 var Renderer *render.Render
 
 const anonymous = "anonymous"
 
-var defaultAccount = Account{Id: 0, Handle: anonymous, votes: make([]Vote, 0)}
+var defaultAccount = models.Account{Handle: anonymous}
 
 type flashType string
 const (
@@ -51,6 +52,18 @@ type Flash struct {
 	Msg  string
 }
 
+func html(i models.Item) template.HTML {
+	return template.HTML(string(i.Data))
+}
+
+func markdown(i models.Item) template.HTML {
+	return template.HTML(blackfriday.Run([]byte(i.Data)))
+}
+
+func text(i models.Item) string {
+	return string(i.Data)
+}
+
 func init() {
 	Renderer = render.New(render.Options{
 		Directory:  templateDir,
@@ -59,14 +72,25 @@ func init() {
 		Layout:     "layout",
 		Extensions: []string{".html"},
 		Funcs: []template.FuncMap{{
-			"isInverted":        IsInverted,
+			"isInverted":        isInverted,
 			"sluggify":          sluggify,
 			"title":             func(t []byte) string { return string(t) },
 			"getProviders":      getAuthProviders,
-			"CurrentAccount":    func() *Account { return CurrentAccount },
-			"LoadFlashMessages": LoadFlashMessages,
-			"mod":               func(lvl int) float64 { return math.Mod(float64(lvl), float64(10)) },
+			"CurrentAccount":    func() *models.Account { return CurrentAccount },
+			"LoadFlashMessages": loadFlashMessages,
+			"Mod10":               func(lvl int) float64 { return math.Mod(float64(lvl), float64(10)) },
 			"ShowText":          func() bool { return ShowItemData },
+			"HTML":              html,
+			"Text":              text,
+			"Markdown":          markdown,
+			"PermaLink":         permaLink,
+			"ParentLink":        ParentLink,
+			"OPLink":            OPLink,
+			"IsYay" :            IsYay,
+			"IsNay":             IsNay,
+			"ScoreFmt":          scoreFmt,
+			"YayLink":       YayLink,
+			"NayLink": NayLink,
 		}},
 		Delims:         render.Delims{"{{", "}}"},
 		Charset:        "UTF-8",
@@ -93,12 +117,8 @@ func init() {
 	}
 }
 
-func AnonymousAccount() *Account {
+func AnonymousAccount() *models.Account {
 	return &defaultAccount
-}
-
-func (a *Account) IsLogged() bool {
-	return a != nil && (a.Handle != defaultAccount.Handle && a.CreatedAt != defaultAccount.CreatedAt)
 }
 
 type EnvType string
@@ -237,27 +257,28 @@ func RenderTemplate(r *http.Request, w http.ResponseWriter, name string, m inter
 // The cli/votes/main.go script would be responsible with waiting on the queue for these messages
 // and updating the new score and all models dependent on it.
 //   content_items and accounts tables, corresponding ES documents, etc
-func AddVote(p models.Content, score int, userId int64) (bool, error) {
+func AddVote(p models.Item, score int, userHash string) (bool, error) {
 	newWeight := int(score * models.ScoreMultiplier)
 
 	var sel string
 	var p2 interface{}
-	if p.Id == 0 {
-		sel = `select "id", "weight" from "votes" where "submitted_by" = $1 and "key" ~* $2;`
-		p2 = interface{}(p.Key)
-	} else {
-		sel = `select "id", "weight" from "votes" where "submitted_by" = $1 and "item_id" = $2;`
-		p2 = interface{}(p.Id)
-	}
+	//if p.Id == 0 {
+		sel = `select "id", "accounts"."id", "weight" from "votes" inner join "accounts" on "accounts"."id" = "votes"."submitted_by" where "accounts"."hash" ~* $1 and "key" ~* $2;`
+		p2 = interface{}(p.Hash)
+	//} else {
+	//	sel = `select "id", "weight" from "votes" where "submitted_by" = $1 and "item_id" = $2;`
+	//	p2 = interface{}(p.Id)
+	//}
 
+	var userId int64
 	v := models.Vote{}
 	{
-		rows, err := Db.Query(sel, userId, p2)
+		rows, err := Db.Query(sel, userHash, p2)
 		if err != nil {
 			return false, err
 		}
 		for rows.Next() {
-			err = rows.Scan(&v.Id, &v.Weight)
+			err = rows.Scan(&v.Id, &userId, &v.Weight)
 			if err != nil {
 				return false, err
 			}
@@ -274,27 +295,27 @@ func AddVote(p models.Content, score int, userId int64) (bool, error) {
 		q = `insert into "votes" ("weight", "item_id", "submitted_by") values ($1, $2, $3)`
 	}
 	{
-		res, err := Db.Exec(q, newWeight, p.Id, userId)
+		res, err := Db.Exec(q, newWeight, p.Hash, userId)
 		if err != nil {
 			return false, err
 		}
 		if rows, _ := res.RowsAffected(); rows == 0 {
-			return false, errors.Errorf("scoring %d failed on item %q", newWeight, p.Hash())
+			return false, errors.Errorf("scoring %d failed on item %q", newWeight, p.Hash)
 		}
-		log.Printf("%d scoring %d on %s", userId, newWeight, p.Hash())
+		log.Printf("%d scoring %d on %s", userId, newWeight, p.Hash)
 	}
 
 	upd := `update "content_items" set score = score - $1 + $2 where "id" = $3`
 	{
-		res, err := Db.Exec(upd, v.Weight, newWeight, p.Id)
+		res, err := Db.Exec(upd, v.Weight, newWeight, p.Hash)
 		if err != nil {
 			return false, err
 		}
 		if rows, _ := res.RowsAffected(); rows == 0 {
-			return false, errors.Errorf("content hash %q not found", p.Hash())
+			return false, errors.Errorf("content hash %q not found", p.Hash)
 		}
 		if rows, _ := res.RowsAffected(); rows > 1 {
-			return false, errors.Errorf("content hash %q collision", p.Hash())
+			return false, errors.Errorf("content hash %q collision", p.Hash)
 		}
 		log.Printf("updated content_items with %d", newWeight)
 	}
@@ -453,7 +474,7 @@ func (l *Littr) HandleAuth(w http.ResponseWriter, r *http.Request) {
 	Redirect(w, r, config.AuthCodeURL("state", oauth2.AccessTypeOnline), http.StatusFound)
 }
 
-func IsInverted(r *http.Request) bool {
+func isInverted(r *http.Request) bool {
 	cookies := r.Cookies()
 	for _, c := range cookies {
 		if c.Name == "inverted" {
@@ -468,14 +489,15 @@ func loadCurrentAccount(s *sessions.Session) {
 	// load the current account from the session or setting it to anonymous
 	if raw, ok := s.Values[SessionUserKey]; ok {
 		if raw != nil {
-			a := raw.(Account)
+			a := raw.(models.Account)
 			CurrentAccount = &a
 		}
-	} else {
-		log.Error(errors.NewErr("unable to load user from session"))
+	//} else {
+	//	log.Error(errors.NewErr("unable to load user from session"))
 	}
 }
-func loadFlashMessages(s *sessions.Session) {
+
+func loadSessionFlashMessages(s *sessions.Session) {
 	FlashData = FlashData[:0]
 	// setting the local FlashData value
 	for _, int := range s.Flashes() {
@@ -493,7 +515,7 @@ func loadFlashMessages(s *sessions.Session) {
 func LoadSessionData(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		s := GetSession(r)
-		loadFlashMessages(s)
+		loadSessionFlashMessages(s)
 
 		loadCurrentAccount(s)
 		next.ServeHTTP(w, r)
@@ -510,10 +532,21 @@ func (l *Littr) AuthCheck(next http.Handler) http.Handler {
 
 func AddFlashMessage(typ flashType, msg string, r *http.Request, w http.ResponseWriter) {
 	s := GetSession(r)
-	s.AddFlash(Flash{typ, msg})
+	n := Flash{typ, msg}
+
+	exists := false
+	for _, f := range FlashData {
+		if f == n {
+			exists = true
+			break
+		}
+	}
+	if !exists {
+		s.AddFlash(n)
+	}
 }
 
-func LoadFlashMessages() []Flash {
+func loadFlashMessages() []Flash {
 	f := FlashData
 	FlashData = nil
 	return f

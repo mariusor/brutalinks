@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/go-chi/chi"
+	"context"
 	"github.com/go-chi/chi/middleware"
 	"github.com/gorilla/sessions"
 	"github.com/juju/errors"
@@ -19,6 +20,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"github.com/mariusor/littr.go/models"
 )
 
 const defaultHost = "localhost"
@@ -69,7 +71,7 @@ func init() {
 	} else {
 		log.SetLevel(log.DebugLevel)
 	}
-	gob.Register(app.Account{})
+	gob.Register(models.Account{})
 	gob.Register(app.Flash{})
 
 	s := sessions.NewCookieStore(littr.SessionKeys[0], littr.SessionKeys[1])
@@ -89,6 +91,7 @@ func init() {
 
 	api.Db = db
 	app.Db = db
+	models.Db = db
 }
 
 // FileServer conveniently sets up a http.FileServer handler to serve
@@ -135,41 +138,45 @@ func main() {
 	filesDir := filepath.Join(workDir, "assets")
 	FileServer(r, "/assets", http.Dir(filesDir))
 
-	r.Get("/", app.HandleIndex)
+	r.With(api.Loader).Route("/", func(r chi.Router) {
+		r.Get("/", app.HandleIndex)
 
-	r.Get("/submit", app.ShowSubmit)
-	r.Post("/submit", app.HandleSubmit)
+		r.Get("/submit", app.ShowSubmit)
+		r.Post("/submit", app.HandleSubmit)
 
-	r.Get("/register", app.ShowRegister)
-	r.Post("/register", app.HandleRegister)
+		r.Get("/register", app.ShowRegister)
+		r.Post("/register", app.HandleRegister)
 
-	r.Get("/~{handle}", app.HandleUser)
+		r.Get("/~{handle}", app.HandleUser)
 
-	r.Get("/~{handle}/{hash}", app.ShowContent)
-	r.Post("/~{handle}/{hash}", app.HandleSubmit)
-	r.Get("/~{handle}/{hash}/{direction}", app.HandleVoting)
+		//r.With(Item).Get("/~{handle}/{hash}", app.ShowItem)
+		r.Get("/~{handle}/{hash}", app.ShowItem)
+		r.Post("/~{handle}/{hash}", app.HandleSubmit)
+		r.Get("/~{handle}/{hash}/{direction}", app.HandleVoting)
 
-	//r.Get("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/", app.HandleDate)
-	r.Get("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}", app.ShowContent)
-	r.Get("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}/{direction}", app.HandleVoting)
-	r.Post("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}", app.HandleSubmit)
+		//r.Get("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/", app.HandleDate)
+		r.Get("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}", app.ShowItem)
+		r.Get("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}/{direction}", app.HandleVoting)
+		r.Post("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}", app.HandleSubmit)
 
-	r.Get("/parent/{hash}/{parent}", app.HandleParent)
-	r.Get("/op/{hash}/{parent}", app.HandleOp)
+		r.Get("/parent/{hash}/{parent}", app.HandleParent)
+		r.Get("/op/{hash}/{parent}", app.HandleOp)
 
-	r.Get("/domains/{domain}", app.HandleDomains)
+		r.Get("/domains/{domain}", app.HandleDomains)
 
-	r.Get("/logout", app.HandleLogout)
-	r.Get("/login", app.ShowLogin)
-	r.Post("/login", app.HandleLogin)
+		r.Get("/logout", app.HandleLogout)
+		r.Get("/login", app.ShowLogin)
+		r.Post("/login", app.HandleLogin)
 
-	r.Get("/auth/{provider}", littr.HandleAuth)
-	r.Get("/auth/{provider}/callback", littr.HandleCallback)
+		r.Get("/auth/{provider}", littr.HandleAuth)
+		r.Get("/auth/{provider}/callback", littr.HandleCallback)
+	})
 
-	r.Route("/api", func(r chi.Router) {
+	r.With(models.Loader).Route("/api", func(r chi.Router) {
 		r.Get("/accounts/verify_credentials", api.HandleVerifyCredentials)
 		r.Get("/accounts/{handle}", api.HandleAccount)
 		r.Get("/accounts/{handle}/{collection}", api.HandleAccountCollection)
+		//r.With(Item).Get("/accounts/{handle}/{collection}/{hash}", api.HandleAccountCollectionItem)
 		r.Get("/accounts/{handle}/{collection}/{hash}", api.HandleAccountCollectionItem)
 		r.Get("/{collection}", api.HandleServiceCollection)
 		r.Get("/{collection}/{hash}", api.HandleServiceCollectionItem)
@@ -182,5 +189,4 @@ func main() {
 	littr.Run(r, wait)
 
 	api.Db.Close()
-	app.Db.Close()
 }

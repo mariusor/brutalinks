@@ -10,7 +10,7 @@
 <menu id="top" class="col-xs-8 row">
     <li class=""><a id="top-invert" title="Turn {{if .InvertedTheme }}on{{else}}off{{end}} the light" href="/#invert"></a></li>
 {{ if $account.IsLogged }}
-    <li class="acct">{{$account.Handle}} <span class="score">{{$account.ScoreFmt}}</span></li>
+    <li class="acct">{{$account.Handle}} <span class="score">{{$account.Score | ScoreFmt}}</span></li>
     <li class=""><a href="/logout">Sign out</a></li>
 {{end -}}
     <li class=""><a href="/submit">Add</a></li>

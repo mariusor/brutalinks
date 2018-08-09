@@ -25,34 +25,6 @@ var AccountsURL string
 const NotFound = 404
 const InternalError = 500
 
-type _obj ap.Object
-type _per ap.Person
-
-// Person is an extension of the AP/Person object
-type Person struct {
-	_per
-	Score int64	`jsonld:"score"`
-}
-
-// Article is an extension of the AP/Article object
-type Article struct {
-	_obj
-	Score int64	`jsonld:"score"`
-}
-
-func (a Article)GetID() *ap.ObjectID{
-	return &a._obj.ID
-}
-func (a Article)GetType() ap.ActivityVocabularyType{
-	return a._obj.Type
-}
-func (a Article)IsLink() bool {
-	return false
-}
-func (a Article)IsObject() bool {
-	return true
-}
-
 type Field struct {
 	Name  string `json:"name"`
 	Value string `json:"value"`
@@ -60,12 +32,12 @@ type Field struct {
 
 type Fields []Field
 
-type ApiError struct {
+type Error struct {
 	Code  int
 	Error error
 }
 
-func init() {
+func init () {
 	https := os.Getenv("HTTPS") != ""
 	host := os.Getenv("HOSTNAME")
 
@@ -78,8 +50,8 @@ func init() {
 	AccountsURL = BaseURL + "/accounts"
 }
 
-func Errorf(c int, m string, args ...interface{}) *ApiError {
-	return &ApiError{c, errors.Errorf(m, args...)}
+func Errorf(c int, m string, args ...interface{}) *Error {
+	return &Error{c, errors.Errorf(m, args...)}
 }
 
 func GetContext() j.Context {
@@ -97,8 +69,12 @@ func BuildCollectionID(a models.Account, o ap.CollectionInterface) ap.ObjectID {
 	return ap.ObjectID(fmt.Sprintf("%s/%s/%s", AccountsURL, url.PathEscape(a.Handle), getObjectType(o)))
 }
 
-func BuildObjectIDFromContent(i models.Content) ap.ObjectID {
-	return ap.ObjectID(fmt.Sprintf("%s/%s/outbox/%s", AccountsURL, url.PathEscape(i.SubmittedByAccount.Handle), url.PathEscape(i.Hash())))
+func BuildObjectIDFromItem(i models.Item) ap.ObjectID {
+	handle := "anonymous"
+	if i.SubmittedBy != nil {
+		handle = i.SubmittedBy.Handle
+	}
+	return ap.ObjectID(fmt.Sprintf("%s/%s/outbox/%s", AccountsURL, url.PathEscape(handle), url.PathEscape(i.Hash)))
 }
 func BuildObjectIDFromVote(v models.Vote) ap.ObjectID {
 	att := "liked"
@@ -109,6 +85,9 @@ func BuildObjectIDFromVote(v models.Vote) ap.ObjectID {
 }
 
 func getObjectType (el ap.Item) string {
+	if el == nil {
+		return ""
+	}
 	var (
 		label               = ""
 		typeOutbox          = reflect.TypeOf(ap.Outbox{})
@@ -156,6 +135,9 @@ func getObjectType (el ap.Item) string {
 }
 
 func BuildObjectURL(b ap.LinkOrURI, el ap.Item) ap.URI {
+	if el == nil {
+		return ""
+	}
 	pURL := ap.URI(BaseURL)
 	if b != nil && b.GetLink() != "" {
 		pURL = b.GetLink()
@@ -170,8 +152,8 @@ func HandleApiCall(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleError(w http.ResponseWriter, r *http.Request, code int, errs ...error) {
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("item-Type", "application/json; charset=utf-8")
+	w.Header().Set("X-item-Type-Options", "nosniff")
 	w.WriteHeader(code)
 
 	type error struct {

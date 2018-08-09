@@ -23,8 +23,8 @@ type Vote struct {
 	ItemId      int64     `orm:item_id`
 	Weight      int       `orm:Weight`
 	Flags       int8      `orm:Flags`
-	SubmittedByAccount *Account
-	Item 		*Content
+	SubmittedByAccount *account
+	Item 		*item
 }
 
 type Clauses []Clause
@@ -97,9 +97,9 @@ where %s order by "votes"."submitted_at" desc limit %d`, wheres.AndWhere(),  max
 	}
 	for rows.Next() {
 		v := Vote{}
-		p := Content{}
-		auth := Account{}
-		voter := Account{}
+		p := item{}
+		auth := account{}
+		voter := account{}
 		var pKey []byte
 		var aKey []byte
 		var vKey []byte
@@ -124,7 +124,8 @@ where %s order by "votes"."submitted_at" desc limit %d`, wheres.AndWhere(),  max
 			return nil, err
 		}
 		auth.Key.FromBytes(aKey)
-		p.SubmittedByAccount= &auth
+		acct := loadFromModel(auth)
+		p.SubmittedByAccount = &acct
 		p.Key.FromBytes(pKey)
 
 		voter.Key.FromBytes(vKey)
@@ -139,9 +140,9 @@ where %s order by "votes"."submitted_at" desc limit %d`, wheres.AndWhere(),  max
 	return &votes, nil
 }
 
-func LoadItemsVotes(db *sql.DB, hash string) (*Content, *[]Vote, error) {
+func LoadItemsVotes(db *sql.DB, hash string) (*item, *[]Vote, error) {
 	var err error
-	p := Content{}
+	p := item{}
 	votes := make([]Vote, 0)
 	selC := `select 
 		"votes"."id", 
@@ -171,7 +172,7 @@ where "content_items"."key" ~* $1 order by "votes"."submitted_at" desc`
 		}
 		for rows.Next() {
 			v := Vote{}
-			a := Account{}
+			a := account{}
 			err = rows.Scan(
 				&v.Id,
 				&v.Weight,
@@ -191,7 +192,8 @@ where "content_items"."key" ~* $1 order by "votes"."submitted_at" desc`
 			if err != nil {
 				return nil, nil, err
 			}
-			p.SubmittedByAccount = &a
+			acct := loadFromModel(a)
+			p.SubmittedByAccount = &acct
 			votes = append(votes, v)
 		}
 	}

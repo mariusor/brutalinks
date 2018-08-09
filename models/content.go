@@ -6,15 +6,15 @@ import (
 	"fmt"
 	"strings"
 	"time"
-	"database/sql"
 	"github.com/juju/errors"
 )
 
 const (
-	FlagsNone    = 0
-	FlagsDeleted = 1
-	MimeTypeURL  = "application/url"
+	FlagsDeleted = int8(1 << iota)
+
+	FlagsNone    = int8(0)
 )
+const	MimeTypeURL  = "application/url"
 
 type Key [64]byte
 
@@ -52,7 +52,7 @@ func (k *Key) FromString(s string) error {
 	return err
 }
 
-type Content struct {
+type item struct {
 	Id          int64     `orm:Id,"auto"`
 	Key         Key       `orm:key,size(64)`
 	Title       []byte    `orm:title`
@@ -70,18 +70,39 @@ type Content struct {
 	parentLink  string
 }
 
-type Item interface {
-	Id() int64
+type ItemCollection []Item
+
+func getAncestorHash(path []byte, cnt int) []byte {
+	if path == nil {
+		return nil
+	}
+	elem := bytes.Split(path, []byte("."))
+	l := len(elem)
+	if cnt > l || cnt < 0 {
+		cnt = l
+	}
+	return elem[l-cnt]
 }
 
-type ContentCollection []Content
+func (c item) GetParentHash() string {
+	if c.IsTop() {
+		return ""
+	}
+	return string(getAncestorHash(c.Path, 1)[0:8])
+}
+func (c item) GetOPHash() string {
+	if c.IsTop() {
+		return ""
+	}
+	return string(getAncestorHash(c.Path, -1)[0:8])
+}
 
-func (c Content) IsSelf() bool {
+func (c item) IsSelf() bool {
 	mimeComponents := strings.Split(c.MimeType, "/")
 	return mimeComponents[0] == "text"
 }
 
-func (c *Content) GetKey() Key {
+func (c *item) GetKey() Key {
 	data := c.Data
 	now := c.UpdatedAt
 	if now.IsZero() {
@@ -94,35 +115,35 @@ func (c *Content) GetKey() Key {
 	c.Key.FromString(fmt.Sprintf("%x", sha256.Sum256(data)))
 	return c.Key
 }
-func (c Content) IsTop() bool {
+func (c item) IsTop() bool {
 	return c.Path == nil || len(c.Path) == 0
 }
-func (c Content) Hash() string {
+func (c item) Hash() string {
 	return c.Hash8()
 }
-func (c Content) Hash8() string {
+func (c item) Hash8() string {
 	if len(c.Key) > 8 {
 		return string(c.Key[0:8])
 	}
 	return c.Key.String()
 }
-func (c Content) Hash16() string {
+func (c item) Hash16() string {
 	if len(c.Key) > 16 {
 		return string(c.Key[0:16])
 	}
 	return c.Key.String()
 }
-func (c Content) Hash32() string {
+func (c item) Hash32() string {
 	if len(c.Key) > 32 {
  	return string(c.Key[0:32])
 	}
 	return c.Key.String()
 }
-func (c Content) Hash64() string {
+func (c item) Hash64() string {
 	return c.Key.String()
 }
 
-func (c *Content) FullPath() []byte {
+func (c *item) FullPath() []byte {
 	if len(c.fullPath) == 0 {
 		c.fullPath = append(c.fullPath, c.Path...)
 		if len(c.fullPath) > 0 {
@@ -132,63 +153,33 @@ func (c *Content) FullPath() []byte {
 	}
 	return c.fullPath
 }
-func (c Content) Level() int {
+func (c item) Level() int {
 	if c.Path == nil {
 		return 0
 	}
 	return bytes.Count(c.FullPath(), []byte("."))
 }
-func (c Content) Deleted() bool {
-	return c.Flags&FlagsDeleted == FlagsDeleted
+func (c item) Deleted() bool {
+	return c.Flags & FlagsDeleted == FlagsDeleted
 }
-func (c Content) UnDelete() {
+func (c item) UnDelete() {
 	c.Flags ^= FlagsDeleted
 }
-func (c *Content) Delete() {
+func (c *item) Delete() {
 	c.Flags &= FlagsDeleted
 }
-func (c Content) IsLink() bool {
+func (c item) IsLink() bool {
 	return c.MimeType == MimeTypeURL
 }
-func (c Content) GetDomain() string {
+func (c item) GetDomain() string {
 	if !c.IsLink() {
 		return ""
 	}
 	return strings.Split(string(c.Data), "/")[2]
 }
 
-func LoadItem(db *sql.DB, h string) (Content, error) {
-	p := Content{}
-	sel := `select 
-			"content_items"."id", "content_items"."key", "content_items"."mime_type", "content_items"."data", 
-			"content_items"."title", "content_items"."score", "content_items"."submitted_at", 
-			"content_items"."submitted_by", "content_items"."flags", "content_items"."metadata", "content_items"."path",
-			"accounts"."id", "accounts"."key", "accounts"."handle", "accounts"."email", "accounts"."score", 
-			"accounts"."created_at", "accounts"."metadata", "accounts"."flags"
-		from "content_items" 
-			left join "accounts" on "accounts"."id" = "content_items"."submitted_by" 
-		where "content_items"."key" ~* $1`
-	rows, err := db.Query(sel, h)
-	if err != nil {
-		return p, err
-	}
-	for rows.Next() {
-		a := Account{}
-		var aKey, iKey []byte
-		err := rows.Scan(
-			&p.Id, &iKey, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Flags, &p.Metadata, &p.Path,
-			&a.Id, &aKey, &a.Handle, &a.Email, &a.Score, &a.CreatedAt, &a.Metadata, &a.Flags)
-		if err != nil {
-			return p, err
-		}
-		p.Key.FromBytes(iKey)
-		a.Key.FromBytes(aKey)
-		p.SubmittedByAccount = &a
-	}
-	return p, nil
-}
-func LoadOPItems(db *sql.DB, max int) ([]Content, error) {
-	items := make([]Content, 0)
+func LoadItems(max int) (ItemCollection, error) {
+	items := make(ItemCollection, 0)
 	sel := fmt.Sprintf(`select 
 			"content_items"."id", "content_items"."key", "content_items"."mime_type", "content_items"."data", 
 			"content_items"."title", "content_items"."score", "content_items"."submitted_at", 
@@ -199,13 +190,13 @@ func LoadOPItems(db *sql.DB, max int) ([]Content, error) {
 			left join "accounts" on "accounts"."id" = "content_items"."submitted_by" 
 		where "path" is NULL or nlevel("path") = 0
 	order by "content_items"."score" desc, "content_items"."submitted_at" desc limit %d`, max)
-	rows, err := db.Query(sel)
+	rows, err := Db.Query(sel)
 	if err != nil {
 		return nil, err
 	}
 	for rows.Next() {
-		p := Content{}
-		a := Account{}
+		p := item{}
+		a := account{}
 		var aKey, iKey []byte
 		err := rows.Scan(
 			&p.Id, &iKey, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Flags, &p.Metadata, &p.Path,
@@ -215,15 +206,16 @@ func LoadOPItems(db *sql.DB, max int) ([]Content, error) {
 		}
 		p.Key.FromBytes(iKey)
 		a.Key.FromBytes(aKey)
-		p.SubmittedByAccount = &a
-		items = append(items, p)
+		acct := loadFromModel(a)
+		p.SubmittedByAccount = &acct
+		items = append(items, loadItemFromContent(p))
 	}
 
 	return items, nil
 }
 
-func LoadItemsByPath(db *sql.DB, path []byte, max int) ([]Content, error) {
-	items := make([]Content, 0)
+func LoadItemsByPath(path []byte, max int) (ItemCollection, error) {
+	items := make(ItemCollection, 0)
 	sel := fmt.Sprintf(`select 
 			"content_items"."id", "content_items"."key", "content_items"."mime_type", "content_items"."data", 
 			"content_items"."title", "content_items"."score", "content_items"."submitted_at", 
@@ -234,13 +226,13 @@ func LoadItemsByPath(db *sql.DB, path []byte, max int) ([]Content, error) {
 			left join "accounts" on "accounts"."id" = "content_items"."submitted_by" 
 		where "content_items"."path" <@ $1 and "content_items"."path" is not null order by "content_items"."path" asc, 
 			"content_items"."score" desc, "content_items"."submitted_at" desc limit %d`, max)
-	rows, err := db.Query(sel, path)
+	rows, err := Db.Query(sel, path)
 	if err != nil {
 		return nil, err
 	}
 	for rows.Next() {
-		p := Content{}
-		a := Account{}
+		p := item{}
+		a := account{}
 		var aKey, iKey []byte
 		err := rows.Scan(
 			&p.Id, &iKey, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Flags, &p.Metadata, &p.Path,
@@ -250,15 +242,16 @@ func LoadItemsByPath(db *sql.DB, path []byte, max int) ([]Content, error) {
 		}
 		p.Key.FromBytes(iKey)
 		a.Key.FromBytes(aKey)
-		p.SubmittedByAccount = &a
-		items = append(items, p)
+		acct := loadFromModel(a)
+		p.SubmittedByAccount = &acct
+		items = append(items, loadItemFromContent(p))
 	}
 
 	return items, nil
 }
 
-func LoadItemsByDomain(db *sql.DB, domain string, max int) ([]Content, error) {
-	items := make([]Content, 0)
+func LoadItemsByDomain(domain string, max int) (ItemCollection, error) {
+	items := make(ItemCollection, 0)
 	sel := fmt.Sprintf(`select 
 			"content_items"."id", "content_items"."key", "content_items"."mime_type", "content_items"."data", 
 			"content_items"."title", "content_items"."score", "content_items"."submitted_at", 
@@ -269,13 +262,13 @@ func LoadItemsByDomain(db *sql.DB, domain string, max int) ([]Content, error) {
 			left join "accounts" on "accounts"."id" = "content_items"."submitted_by" 
 		where "content_items"."mime_type" = $1 
 			AND substring("content_items"."data"::text from 'http[s]?://([^/]*)') = $2 order by "content_items"."submitted_at" desc limit %d`, max)
-	rows, err := db.Query(sel, MimeTypeURL, domain)
+	rows, err := Db.Query(sel, MimeTypeURL, domain)
 	if err != nil {
 		return nil, err
 	}
 	for rows.Next() {
-		p := Content{}
-		a := Account{}
+		p := item{}
+		a := account{}
 		var aKey, iKey []byte
 		err := rows.Scan(
 			&p.Id, &iKey, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Flags, &p.Metadata, &p.Path,
@@ -285,16 +278,18 @@ func LoadItemsByDomain(db *sql.DB, domain string, max int) ([]Content, error) {
 		}
 		p.Key.FromBytes(iKey)
 		a.Key.FromBytes(aKey)
-		p.SubmittedByAccount = &a
-		items = append(items, p)
+		acct := loadFromModel(a)
+		p.SubmittedByAccount = &acct
+		items = append(items, loadItemFromContent(p))
 	}
 
 	return items, nil
 }
 
-func LoadItemByHash(db *sql.DB, hash string) (Content, error) {
-	p := Content{}
-	a := Account{}
+func LoadItemByHash(hash string) (Item, error) {
+	p := item{}
+	a := account{}
+	i := Item{}
 	var aKey, iKey []byte
 	sel := `select "content_items"."id", "content_items"."key", "content_items"."mime_type", "content_items"."data", 
 			"content_items"."title", "content_items"."score", "content_items"."submitted_at", 
@@ -304,27 +299,30 @@ func LoadItemByHash(db *sql.DB, hash string) (Content, error) {
  			from "content_items" 
 			left join "accounts" on "accounts"."id" = "content_items"."submitted_by"
 			where "content_items"."key" ~* $1`
-	rows, err := db.Query(sel, hash)
+	rows, err := Db.Query(sel, hash)
 	if err != nil {
-		return p, err
+		return i, err
 	}
 
 	for rows.Next() {
 		err = rows.Scan(&p.Id, &iKey, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Flags, &p.Metadata, &p.Path,
 			&a.Id, &aKey, &a.Handle, &a.Email, &a.Score, &a.CreatedAt, &a.Metadata, &a.Flags)
 		if err != nil {
-			return p, err
+			return i, err
 		}
 		p.Key.FromBytes(iKey)
 		a.Key.FromBytes(aKey)
-		p.SubmittedByAccount = &a
+		acct := loadFromModel(a)
+		p.SubmittedByAccount = &acct
 	}
-	return p, nil
+	i = loadItemFromContent(p)
+	return i, nil
 }
 
-func LoadItemParent(db *sql.DB, hash string, opHash string) (Content, error){
-	p := Content{}
-	a := Account{}
+func LoadItemParent(hash string, opHash string) (Item, error){
+	i := Item{}
+	p := item{}
+	a := account{}
 
 	sel := `select "par"."id", "par"."key", "par"."mime_type", "par"."data", 
 			"par"."title", "par"."score", "par"."submitted_at", 
@@ -335,27 +333,30 @@ func LoadItemParent(db *sql.DB, hash string, opHash string) (Content, error){
 			inner join "content_items" as "cur" on subltree("cur"."path", nlevel("cur"."path")-1, nlevel("cur"."path")) <@ "par"."key"::ltree
 			left join "accounts" on "accounts"."id" = "par"."submitted_by"
 			where "cur"."key" ~* $1 and "par"."key" ~* $2`
-	rows, err := db.Query(sel, hash, opHash)
+	rows, err := Db.Query(sel, hash, opHash)
 	if err != nil {
-		return p, err
+		return i, err
 	}
 	var aKey, iKey []byte
 	for rows.Next() {
 		err = rows.Scan(&p.Id, &iKey, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Flags, &p.Metadata, &p.Path,
 			&a.Id, &aKey, &a.Handle, &a.Email, &a.Score, &a.CreatedAt, &a.Metadata, &a.Flags)
 		if err != nil {
-			return p, err
+			return i, err
 		}
 		p.Key.FromBytes(iKey)
 		a.Key.FromBytes(aKey)
-		p.SubmittedByAccount = &a
+		acct := loadFromModel(a)
+		p.SubmittedByAccount = &acct
 	}
-	return p, nil
+	i = loadItemFromContent(p)
+	return i, nil
 }
 
-func LoadItemOP(db *sql.DB, hash string, opHash string) (Content, error){
-	p := Content{}
-	a := Account{}
+func LoadItemOP(hash string, opHash string) (Item, error){
+	i := Item{}
+	p := item{}
+	a := account{}
 
 	sel := `select "par"."id", "par"."key", "par"."mime_type", "par"."data", 
 			"par"."title", "par"."score", "par"."submitted_at", 
@@ -366,9 +367,9 @@ func LoadItemOP(db *sql.DB, hash string, opHash string) (Content, error){
 			inner join "content_items" as "cur" on subltree("cur"."path", 0, nlevel("cur"."path")) <@ "par"."key"::ltree
 			left join "accounts" on "accounts"."id" = "par"."submitted_by"
 			where "cur"."key" ~* $1 and "par"."key" ~* $2`
-	rows, err := db.Query(sel, hash, opHash)
+	rows, err := Db.Query(sel, hash, opHash)
 	if err != nil {
-		return p, err
+		return i, err
 	}
 
 	var aKey, iKey []byte
@@ -376,11 +377,14 @@ func LoadItemOP(db *sql.DB, hash string, opHash string) (Content, error){
 		err = rows.Scan(&p.Id, &iKey, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Flags, &p.Metadata, &p.Path,
 			&a.Id, &aKey, &a.Handle, &a.Email, &a.Score, &a.CreatedAt, &a.Metadata, &a.Flags)
 		if err != nil {
-			return p, err
+			return i, err
 		}
 		p.Key.FromBytes(iKey)
 		a.Key.FromBytes(aKey)
-		p.SubmittedByAccount = &a
+		acct := loadFromModel(a)
+		p.SubmittedByAccount = &acct
+
+		i = loadItemFromContent(p)
 	}
-	return p, nil
+	return i, nil
 }

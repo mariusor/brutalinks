@@ -21,11 +21,10 @@ type loginModel struct {
 
 // ShowLogin handles POST /login requests
 func HandleLogin(w http.ResponseWriter, r *http.Request) {
-
 	errs := make([]error, 0)
 	pw := r.PostFormValue("pw")
 	handle := r.PostFormValue("handle")
-	a, err := models.LoadAccount(Db, handle)
+	a, err := models.LoadAccount(handle)
 	if err != nil {
 		log.Print(err)
 		HandleError(w, r, StatusUnknown, errors.Errorf("handle or password are wrong"))
@@ -50,18 +49,8 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s := GetSession(r)
-	acct := Account{
-		Id:        a.Id,
-		Handle:    a.Handle,
-		Email:     a.Email,
-		Hash:      a.Hash(),
-		Score:     a.Score,
-		CreatedAt: a.CreatedAt,
-		UpdatedAt: a.UpdatedAt,
-		flags:     a.Flags,
-	}
-	s.Values[SessionUserKey] = acct
-	CurrentAccount = &acct
+	s.Values[SessionUserKey] = a
+	CurrentAccount = &a
 	AddFlashMessage(Success, "Login successful", r, w)
 
 	err = SessionStore.Save(r, w, s)
@@ -80,7 +69,7 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 func ShowLogin(w http.ResponseWriter, r *http.Request) {
 	a := models.Account{}
 
-	m := loginModel{Title: "Login", InvertedTheme: IsInverted(r)}
+	m := loginModel{Title: "Login", InvertedTheme: isInverted(r)}
 	m.Account = a
 
 	RenderTemplate(r, w, "login", m)

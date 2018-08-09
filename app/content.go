@@ -17,7 +17,7 @@ const Nay = "nay"
 
 type comments []*comment
 type comment struct {
-	Item
+	models.Item
 	Parent   *comment
 	Path     []byte
 	FullPath []byte
@@ -30,18 +30,18 @@ type contentModel struct {
 	Content       comment
 }
 
-func loadComments(items []models.Content) comments {
+func loadComments(items []models.Item) comments {
 	var comments = make([]*comment, len(items))
 	for k, item := range items {
-		l := LoadItem(item)
-		com := comment{Item: l, Path: item.Path, FullPath: item.FullPath()}
+		//l := LoadItem(item)
+		com := comment{Item: item, Path: item.Path, FullPath: item.FullPath}
 
 		comments[k] = &com
 	}
 	return comments
 }
-func (c comments) getItems() []Item {
-	var items = make([]Item, len(c))
+func (c comments) getItems() []models.Item {
+	var items = make([]models.Item, len(c))
 	for k, com := range c {
 		items[k] = com.Item
 	}
@@ -77,24 +77,23 @@ func ReparentComments(allComments []*comment) {
 	}
 }
 
-// ShowContent serves /{year}/{month}/{day}/{hash} request
-// ShowContent serves /~{handle}/{hash} request
-func ShowContent(w http.ResponseWriter, r *http.Request) {
+// ShowItem serves /{year}/{month}/{day}/{hash} request
+// ShowItem serves /~{handle}/{hash} request
+func ShowItem(w http.ResponseWriter, r *http.Request) {
 	hash := chi.URLParam(r, "hash")
-	items := make([]Item, 0)
+	items := make([]models.Item, 0)
 	ShowItemData = true
 
-	m := contentModel{InvertedTheme: IsInverted(r)}
+	m := contentModel{InvertedTheme: isInverted(r)}
 
-	p, err := models.LoadItemByHash(Db, hash)
+	i, err := models.LoadItemByHash(hash)
 	if err != nil {
 		log.Error(err)
 		HandleError(w, r, http.StatusNotFound, err)
 		return
 	}
-	i := LoadItem(p)
-	m.Content = comment{Item: i, Path: p.Path, FullPath: p.FullPath()}
-	if p.Data == nil {
+	m.Content = comment{Item: i, Path: i.Path, FullPath: i.FullPath}
+	if i.Data == "" {
 		HandleError(w, r, http.StatusNotFound, errors.Errorf("not found"))
 		return
 	}
@@ -103,7 +102,7 @@ func ShowContent(w http.ResponseWriter, r *http.Request) {
 	allComments[0] = &m.Content
 
 	fullPath := bytes.Trim(m.Content.FullPath, " \n\r\t")
-	contentItems, err := models.LoadItemsByPath(Db, fullPath, MaxContentItems)
+	contentItems, err := models.LoadItemsByPath(fullPath, MaxContentItems)
 	if err != nil {
 		log.Error(err)
 		HandleError(w, r, http.StatusNotFound, err)
@@ -123,10 +122,10 @@ func ShowContent(w http.ResponseWriter, r *http.Request) {
 		AddFlashMessage(Error, fmt.Sprint(err), r, w)
 	}
 	if len(m.Title) > 0 {
-		m.Title = fmt.Sprintf("%s", p.Title)
+		m.Title = fmt.Sprintf("%s", i.Title)
 	} else {
 		// FIXME(marius): we lost the handle of the account
-		m.Title = fmt.Sprintf("%s comment", genitive(m.Content.SubmittedBy))
+		m.Title = fmt.Sprintf("%s comment", genitive(m.Content.SubmittedBy.Handle))
 	}
 	RenderTemplate(r, w, "content", m)
 }
@@ -143,7 +142,7 @@ func genitive(name string) string {
 // HandleVoting serves /~{handle}/{direction} request
 func HandleVoting(w http.ResponseWriter, r *http.Request) {
 	hash := chi.URLParam(r, "hash")
-	p, err := models.LoadItemByHash(Db, hash)
+	p, err := models.LoadItem( hash)
 	if err != nil {
 		log.Error(err)
 		HandleError(w, r, http.StatusNotFound, err)
@@ -159,12 +158,11 @@ func HandleVoting(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if CurrentAccount.IsLogged() {
-		if _, err := AddVote(p, multiplier, CurrentAccount.Id); err != nil {
+		if _, err := AddVote(p, multiplier, CurrentAccount.Hash); err != nil {
 			log.Print(err)
 		}
 	} else {
 		AddFlashMessage(Error, fmt.Sprintf("unable to add vote as an %s user", anonymous), r, w)
 	}
-	i := LoadItem(p)
-	Redirect(w, r, i.PermaLink(), http.StatusFound)
+	Redirect(w, r, permaLink(p), http.StatusFound)
 }

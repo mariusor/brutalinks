@@ -2,12 +2,12 @@
 {{- $it := .Item -}}
 <aside class="meta col">
     submitted <time datetime="{{ $it.ISODate }}" title="{{ $it.ISODate }}">{{ $it.FromNow }}</time>
-    {{- if $it.SubmittedBy }} by <a class="by" href="/~{{ $it.SubmittedBy }}">{{ $it.SubmittedBy }}</a>{{end}}
+    {{- if $it.SubmittedBy.Handle }} by <a class="by" href="/~{{ $it.SubmittedBy.Handle }}">{{ $it.SubmittedBy.Handle }}</a>{{end}}
     <menu class="meta-items">
-        {{if $it.PermaLink }}<li><a href="{{$it.PermaLink}}" class="to-item" title="Go to discussion"></a></li>{{end}}
+        <li><a href="{{$it | PermaLink }}" class="to-item" title="Go to discussion"></a></li>
         {{- if not $it.IsTop -}}
-        {{if $it.ParentLink }}<li><a href="{{$it.ParentLink}}" class="to-parent" title="Go to parent"></a></li>{{end}}
-        {{if $it.OPLink }}<li><a href="{{$it.OPLink}}" class="to-op" title="Go to original post"></a></li>{{end}}
+        {{if false }}<li><a href="{{$it | ParentLink}}" class="to-parent" title="Go to parent"></a></li>{{end}}
+        {{if false }}<li><a href="{{$it | OPLink}}" class="to-op" title="Go to original post"></a></li>{{end}}
         {{- end -}}
     </menu>
     {{- if not $it.IsTop -}}{{if $count }}<span>{{$count}} child{{if $count | ne 1 }}ren{{end}}</span>{{end}}{{end}}
