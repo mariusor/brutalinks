@@ -47,41 +47,9 @@ func ContentFromRequest(r *http.Request) (models.Item, error) {
 		now := time.Now()
 		i.SubmittedAt = now
 		i.UpdatedAt = now
-
-		//i.Hash = models.GenKey()i.GetKey()
 	}
-
-	ins := `insert into "content_items" ("key", "title", "data", "mime_type", "submitted_by", "submitted_at", "updated_at") 
-		values($1, $2, $3, $4, $5, $6, $7)`
-
-	var params = make([]interface{}, 0)
-	//params = append(params, i.Key)
-	params = append(params, i.Title)
-	params = append(params, i.Data)
-	params = append(params, i.MimeType)
-	params = append(params, i.SubmittedBy)
-	params = append(params, i.SubmittedAt)
-	params = append(params, i.UpdatedAt)
-
 	parent := r.PostFormValue("parent")
-	if len(parent) > 0 {
-		ins = `insert into "content_items" ("key", "title", "data", "mime_type", "submitted_by", "submitted_at", "updated_at", "path") 
-		values(
-			$1, $2, $3, $4, $5, $6, $7, (select (case when "path" is not null then concat("path", '.', "key") else "key" end) 
-				as "parent_path" from "content_items" where key ~* $8)::ltree
-		)`
-		params = append(params, parent)
-	}
-
-	res, err := Db.Exec(ins, params...)
-	if err != nil {
-		return models.Item{}, err
-	} else {
-		if rows, _ := res.RowsAffected(); rows == 0 {
-			return models.Item{}, errors.Errorf("could not save item %q", i.Hash)
-		}
-	}
-
+	i.Parent = &models.Item{Hash:parent}
 	return i, nil
 }
 
@@ -100,18 +68,15 @@ func ShowSubmit(w http.ResponseWriter, r *http.Request) {
 // HandleSubmit handles POST /~handle/hash requests
 // HandleSubmit handles POST /year/month/day/hash requests
 func HandleSubmit(w http.ResponseWriter, r *http.Request) {
-	//var userId = CurrentAccount.Id
-
 	p, err := ContentFromRequest(r)
 	if err != nil {
-		HandleError(w, r, http.StatusInternalServerError, err)
-		return
+		log.Error(errors.NewErrWithCause(err, "wrong http method"))
 	}
-	p, err = models.LoadItemByHash(p.Hash)
+	p, err = models.SaveItem(p)
 	if err != nil {
+		log.Error(errors.NewErrWithCause(err, "unable to save item"))
 		HandleError(w, r, http.StatusInternalServerError, err)
-		return
 	}
-	//AddVote(p, 1, userId)
+	//AddVote(p, 1, p.SubmittedBy.Hash)
 	Redirect(w, r, permaLink(p), http.StatusSeeOther)
 }

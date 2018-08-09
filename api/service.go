@@ -41,7 +41,7 @@ func HandleServiceCollection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	types := []string{string(ap.ArticleType)}
+	types := []models.ItemType{models.TypeOP} // ap.ArticleType
 	items, err := loader.LoadItems(models.LoadItemsFilter{Type: types, MaxItems:app.MaxContentItems})
 	if err != nil {
 		log.Error(err)
@@ -123,7 +123,7 @@ func HandleServiceCollectionItem(w http.ResponseWriter, r *http.Request) {
 	//}
 
 	hash := chi.URLParam(r, "hash")
-	c, err  := models.LoadItem(hash)
+	c, err  := models.Service.LoadItem(models.LoadItemFilter{Key: hash})
 	if err != nil {
 		HandleError(w, r, http.StatusNotFound, err)
 		return

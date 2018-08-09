@@ -181,7 +181,10 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var err error
-	items, err := itemLoader.LoadItems(models.LoadItemsFilter{MaxItems: MaxContentItems, })
+	items, err := itemLoader.LoadItems(models.LoadItemsFilter{
+		Type: []models.ItemType{models.TypeOP},
+		MaxItems: MaxContentItems,
+	})
 	if err != nil {
 		log.Error(err)
 		HandleError(w, r, http.StatusNotFound, err)
@@ -191,21 +194,18 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 	ShowItemData = false
 	m.Items = loadComments(items)
 
-	votesLoader, ok := val.(models.CanLoadVotes)
-	votes, err := votesLoader.LoadVotes(models.LoadVotesFilter{
-		SubmittedBy: []string{CurrentAccount.Hash,},
-		ItemKey: m.Items.getItemsHashes(),
-	})
-	for _, v := range votes {
-		CurrentAccount.Votes[v.Item.Hash] = v
-	}
-	_, err = models.LoadAccountVotes(CurrentAccount, m.Items.getItems())
-	//_, err = LoadVotes(CurrentAccount, m.Items.getItems())
-	if err != nil {
-		log.Error(err)
-		//HandleError(w, r, http.StatusNotFound, err)
-		return
-	}
+	if CurrentAccount.IsLogged() {
+		CurrentAccount.Votes, err = models.Service.LoadVotes(models.LoadVotesFilter{
+			SubmittedBy: []string{CurrentAccount.Hash,},
+			ItemKey:     m.Items.getItemsHashes(),
+			MaxItems:    MaxContentItems,
+		})
 
+		if err != nil {
+			log.Error(err)
+			//HandleError(w, r, http.StatusNotFound, err)
+			//return
+		}
+	}
 	RenderTemplate(r, w, "listing", m)
 }

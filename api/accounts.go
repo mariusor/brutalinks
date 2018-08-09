@@ -233,7 +233,7 @@ func HandleAccountCollectionItem(w http.ResponseWriter, r *http.Request) {
 	//}
 
 	hash := chi.URLParam(r, "hash")
-	c, err  := models.LoadItem(hash)
+	c, err  := models.Service.LoadItem(models.LoadItemFilter{Key: hash})
 	if err != nil {
 		HandleError(w, r, http.StatusNotFound, err)
 		return

@@ -5,7 +5,10 @@ import (
 	"strings"
 	"fmt"
 	"math"
-			)
+	"github.com/juju/errors"
+	"encoding/json"
+	log "github.com/sirupsen/logrus"
+)
 
 type Identifiable interface {
 	Id() int64
@@ -115,38 +118,9 @@ func (i Item) IsSelf() bool {
 	return mimeComponents[0] == "text"
 }
 
-func LoadItem(h string) (Item, error) {
-	p := item{}
-	i := Item{}
-	sel := `select 
-			"content_items"."id", "content_items"."key", "content_items"."mime_type", "content_items"."data", 
-			"content_items"."title", "content_items"."score", "content_items"."submitted_at", 
-			"content_items"."submitted_by", "content_items"."flags", "content_items"."metadata", "content_items"."path",
-			"accounts"."id", "accounts"."key", "accounts"."handle", "accounts"."email", "accounts"."score", 
-			"accounts"."created_at", "accounts"."metadata", "accounts"."flags"
-		from "content_items" 
-			left join "accounts" on "accounts"."id" = "content_items"."submitted_by" 
-		where "content_items"."key" ~* $1`
-	rows, err := Db.Query(sel, h)
-	if err != nil {
-		return i, err
-	}
-	for rows.Next() {
-		a := account{}
-		var aKey, iKey []byte
-		err := rows.Scan(
-			&p.Id, &iKey, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Flags, &p.Metadata, &p.Path,
-			&a.Id, &aKey, &a.Handle, &a.Email, &a.Score, &a.CreatedAt, &a.Metadata, &a.Flags)
-		if err != nil {
-			return i, err
-		}
-		p.Key.FromBytes(iKey)
-		a.Key.FromBytes(aKey)
-		acct := loadAccountFromModel(a)
-		p.SubmittedByAccount = &acct
-	}
-	i = loadItemFromModel(p)
-	return i, nil
+
+func LoadItem(f LoadItemFilter) (Item, error) {
+	return LoadItemByHash(f.Key)
 }
 
 func loadItemFromModel(c item) Item {
@@ -182,4 +156,52 @@ func loadItemFromModel(c item) Item {
 		}
 	}
 	return i
+}
+
+func SaveItem(it Item) (Item, error) {
+	i := item{
+		Flags: it.Flags,
+		Score: it.Score,
+		MimeType: it.MimeType,
+		Data: []byte(it.Data),
+		Title: []byte(it.Title),
+	}
+
+	if it.Metadata != nil{
+		jMetadata, err := json.Marshal(it.Metadata)
+		log.Warning(err)
+		i.Metadata = jMetadata
+	}
+	i.GetKey()
+
+	var params = make([]interface{}, 0)
+	params = append(params, i.Key.Bytes())
+	params = append(params, i.Title)
+	params = append(params, i.Data)
+	params = append(params, i.MimeType)
+	params = append(params, it.SubmittedBy.Hash)
+
+	var ins string
+	if it.Parent != nil {
+		ins = `insert into "content_items" ("key", "title", "data", "mime_type", "submitted_by", "path") 
+		values(
+			$1, $2, $3, $4, (select "id" from "accounts" where "key" ~* $5), (select (case when "path" is not null then concat("path", '.', "key") else "key" end) 
+				as "parent_path" from "content_items" where key ~* $6)::ltree
+		)`
+		params = append(params, it.Parent.Hash)
+	} else {
+		ins = `insert into "content_items" ("key", "title", "data", "mime_type", "submitted_by") 
+		values($1, $2, $3, $4, (select "id" from "accounts" where "key" ~* $5))`
+	}
+
+	res, err := Db.Exec(ins, params...)
+	if err != nil {
+		return Item{}, err
+	} else {
+		if rows, _ := res.RowsAffected(); rows == 0 {
+			return Item{}, errors.Errorf("could not save item %q", i.Hash)
+		}
+	}
+
+	return LoadItem(LoadItemFilter{Key: i.Key.String()})
 }

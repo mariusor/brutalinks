@@ -2,8 +2,7 @@ package models
 
 import (
 	"database/sql"
-	"github.com/juju/errors"
-	"net/http"
+		"net/http"
 	"golang.org/x/net/context"
 	"time"
 	)
@@ -21,6 +20,7 @@ func Loader (next http.Handler) http.Handler {
 }
 
 type MatchType string
+type ItemType string
 
 const (
 	MatchEquals = MatchType(1 << iota)
@@ -28,9 +28,14 @@ const (
 	MatchAfter
 	MatchFuzzy
 )
+
+const (
+	TypeOP = ItemType("op")
+)
+
 type LoadVotesFilter struct {
 	ItemKey []string
-	Type []string
+	Type string
 	SubmittedBy []string
 	SubmittedAt time.Time
 	SubmittedAtMatchType MatchType
@@ -40,7 +45,7 @@ type LoadVotesFilter struct {
 
 type LoadItemsFilter struct {
 	Key []string
-	Type []string
+	Type []ItemType
 	MediaType []string
 	SubmittedBy []string
 	Parent string
@@ -66,20 +71,29 @@ type CanLoadVotes interface {
 	LoadVotes(f LoadVotesFilter) (VoteCollection, error)
 }
 
+type CanSaveItems interface {
+	SaveItem(it Item) (Item, error)
+}
+
 var Service LoaderService
 
 type LoaderService struct {
 	DB *sql.DB
 }
 
+func (l LoaderService) SaveItem(it Item) (Item, error) {
+	return SaveItem(it)
+}
+
 func (l LoaderService) LoadItem(f LoadItemFilter) (Item, error) {
-	return Item{}, errors.Errorf("not implemented")
+	return LoadItem(f)
 }
 
 func (l LoaderService) LoadItems(f LoadItemsFilter) (ItemCollection, error) {
-	return LoadItems(f.MaxItems)
+	return LoadItems(f)
 }
 
 func (l LoaderService) LoadVotes(f LoadVotesFilter) (VoteCollection, error) {
 	return LoadVotes(f)
 }
+

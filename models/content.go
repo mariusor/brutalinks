@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 	"github.com/juju/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -178,8 +179,34 @@ func (c item) GetDomain() string {
 	return strings.Split(string(c.Data), "/")[2]
 }
 
-func LoadItems(max int) (ItemCollection, error) {
+func LoadItems(filter LoadItemsFilter) (ItemCollection, error) {
 	items := make(ItemCollection, 0)
+
+	var wheres []string
+	whereValues := make([]interface{}, 0)
+	counter := 1
+	if len(filter.SubmittedBy) > 0 {
+		whereColumns := make([]string, 0)
+		for _, v := range filter.SubmittedBy {
+			whereColumns = append(whereColumns, fmt.Sprintf(`"accounts"."key" ~* $%d`, counter))
+			whereValues = append(whereValues, interface{}(v))
+			counter += 1
+		}
+		wheres = append(wheres, fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR ")))
+	}
+	if len(filter.Type) > 0 {
+		whereColumns := make([]string, 0)
+		for _, typ := range filter.Type {
+			if typ == TypeOP {
+				whereColumns = append(whereColumns,`"content_items"."path" is NULL OR nlevel("content_items"."path") = 0`)
+				counter += 1
+			}
+		}
+		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
+	}
+
+	fullWhere := fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(wheres, " AND ")))
+
 	sel := fmt.Sprintf(`select 
 			"content_items"."id", "content_items"."key", "content_items"."mime_type", "content_items"."data", 
 			"content_items"."title", "content_items"."score", "content_items"."submitted_at", 
@@ -188,10 +215,11 @@ func LoadItems(max int) (ItemCollection, error) {
 			"accounts"."created_at", "accounts"."metadata", "accounts"."flags"
 		from "content_items" 
 			left join "accounts" on "accounts"."id" = "content_items"."submitted_by" 
-		where "path" is NULL or nlevel("path") = 0
-	order by "content_items"."score" desc, "content_items"."submitted_at" desc limit %d`, max)
+		where %s 
+	order by "content_items"."score" desc, "content_items"."submitted_at" desc limit %d`, fullWhere, filter.MaxItems)
 	rows, err := Db.Query(sel)
 	if err != nil {
+		log.Error(errors.NewErrWithCause(err, "querying failed"))
 		return nil, err
 	}
 	for rows.Next() {
@@ -202,7 +230,8 @@ func LoadItems(max int) (ItemCollection, error) {
 			&p.Id, &iKey, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Flags, &p.Metadata, &p.Path,
 			&a.Id, &aKey, &a.Handle, &a.Email, &a.Score, &a.CreatedAt, &a.Metadata, &a.Flags)
 		if err != nil {
-			return nil, err
+			log.Error(errors.NewErrWithCause(err, "load items failed"))
+			continue
 		}
 		p.Key.FromBytes(iKey)
 		a.Key.FromBytes(aKey)

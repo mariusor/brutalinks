@@ -39,7 +39,15 @@ func (l LoaderService) LoadItem(f models.LoadItemFilter) (models.Item, error) {
 }
 
 func (l LoaderService) LoadItems(f models.LoadItemsFilter) (models.ItemCollection, error) {
-	return LoadOPItems(f.MaxItems)
+	return LoadItems(f)
+}
+
+func (l LoaderService) LoadVotes(f models.LoadVotesFilter) (models.VoteCollection, error) {
+	return nil, errors.Errorf("not implemented") //models.LoadItemsVotes(f.ItemKey[0])
+}
+
+func (l LoaderService) SaveItem(it models.Item) (models.Item, error) {
+	return it, errors.Errorf("not implemented")
 }
 
 type (
@@ -239,7 +247,7 @@ func getAccountHandle(o ObjectOrLink) string {
 	return s[len(s)-1]
 }
 
-func LoadOPItems(maxItems int) (models.ItemCollection, error) {
+func LoadItems(f models.LoadItemsFilter) (models.ItemCollection, error) {
 	apiBaseUrl := os.Getenv("LISTEN")
 
 	var err error
@@ -286,8 +294,4 @@ func LoadOPItems(maxItems int) (models.ItemCollection, error) {
 	}
 
 	return items, nil
-}
-
-func (l LoaderService) LoadVotes(f models.LoadVotesFilter) (models.VoteCollection, error) {
-	return nil, errors.Errorf("not implemented") //models.LoadItemsVotes(f.ItemKey[0])
 }

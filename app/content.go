@@ -95,7 +95,7 @@ func ShowItem(w http.ResponseWriter, r *http.Request) {
 
 	m := contentModel{InvertedTheme: isInverted(r)}
 
-	i, err := models.LoadItemByHash(hash)
+	i, err  := models.Service.LoadItem(models.LoadItemFilter{Key: hash})
 	if err != nil {
 		log.Error(err)
 		HandleError(w, r, http.StatusNotFound, err)
@@ -151,7 +151,7 @@ func genitive(name string) string {
 // HandleVoting serves /~{handle}/{direction} request
 func HandleVoting(w http.ResponseWriter, r *http.Request) {
 	hash := chi.URLParam(r, "hash")
-	p, err := models.LoadItem( hash)
+	p, err  := models.Service.LoadItem(models.LoadItemFilter{Key: hash})
 	if err != nil {
 		log.Error(err)
 		HandleError(w, r, http.StatusNotFound, err)

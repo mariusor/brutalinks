@@ -16,7 +16,7 @@ const (
 	ScoreMaxB       = 10000000000.0
 )
 
-type VoteCollection []Vote
+type VoteCollection map[string]Vote
 
 type Vote struct {
 	SubmittedBy *Account  `json:"submittedBy"`
@@ -94,49 +94,77 @@ func (cl Clauses) OrWhere() string {
 	return strings.Join(placeHolders, " OR ")
 }
 
+func trimHash(s string) string {
+	h, err := url.PathUnescape(s)
+	if err != nil {
+		return ""
+	}
+	h = strings.TrimSpace(h)
+	if len(h) == 0 {
+		return ""
+	}
+	return h
+}
+
 func LoadVotes(filter LoadVotesFilter) (VoteCollection, error) {
 	var err error
 	votes := make(VoteCollection, 0)
 
-	wheres := make(Clauses, 0)
-	if len(filter.SubmittedBy) == 1 {
-		wheres = append(wheres, Clause{ColName: `"voter"."handle" = `, Val: filter.SubmittedBy[0]})
-	}
-	if len(filter.Type) == 1 {
-		typ := filter.Type[0]
-		if typ == "like" {
-			wheres = append(wheres, Clause{ColName: `"votes"."weight" > `, Val: interface{}(0)})
-		} else {
-			wheres = append(wheres, Clause{ColName: `"votes"."weight" < `, Val: interface{}(0)})
+	var wheres []string
+	whereValues := make([]interface{}, 0)
+	counter := 1
+	if len(filter.SubmittedBy) > 0 {
+		whereColumns := make([]string, 0)
+		for _, v := range filter.SubmittedBy {
+			whereColumns = append(whereColumns, fmt.Sprintf(`"voter"."key" ~* $%d`, counter))
+			whereValues = append(whereValues, interface{}(v))
+			counter += 1
 		}
+		wheres = append(wheres, fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR ")))
 	}
+	if len(filter.Type) > 0 {
+		whereColumns := make([]string, 0)
+		if filter.Type == "like" {
+			whereColumns = append(whereColumns, fmt.Sprintf(`"votes"."weight" > $%d`, counter))
+			whereValues = append(whereValues, interface{}(0))
+		} else {
+			whereColumns = append(whereColumns, fmt.Sprintf(`"votes"."weight" < $%d`, counter))
+			whereValues = append(whereValues, interface{}(0))
+		}
+		counter += 1
+		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
+	}
+	if len(filter.ItemKey) > 0 {
+		whereColumns := make([]string, 0)
+		for _, k := range filter.ItemKey {
+			h := trimHash(k)
+			if len(h) == 0 {
+				continue
+			}
+			whereColumns = append(whereColumns, fmt.Sprintf(`"items"."key" ~* $%d`, counter))
+			whereValues = append(whereValues, interface{}(h))
+			counter += 1
+		}
+		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
+	}
+	fullWhere := fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(wheres, " AND ")))
 
-	selC := fmt.Sprintf(`select 
-		"votes"."id", 
-		"votes"."weight", 
-		"votes"."submitted_at", 
-		"votes"."flags",
-		"content_items"."id", 
-		"content_items"."key", 
-		"content_items"."mime_type", 
-		"content_items"."data", 
-		"content_items"."title", 
-		"content_items"."score",
-		"content_items"."submitted_at", 
-		"content_items"."submitted_by",
-		"content_items"."flags", 
-		"content_items"."metadata",
-		"author"."id", "author"."key", "author"."handle", "author"."email", "author"."score", 
-			"author"."created_at", "author"."metadata", "author"."flags",
-		"voter"."id", "voter"."key", "voter"."handle", "voter"."email", "voter"."score", 
-			"voter"."created_at", "voter"."metadata", "voter"."flags"
+	selC := fmt.Sprintf(`select
+		  "votes"."id", "votes"."weight", "votes"."submitted_at", "votes"."flags",
+       "items"."id", "items"."key", "items"."mime_type", "items"."data", "items"."title", "items"."score",
+       "items"."submitted_at", "items"."submitted_by", "items"."flags", "items"."metadata",
+       "voter"."id", "voter"."key", "voter"."handle", "voter"."email", "voter"."score",
+       "voter"."created_at", "voter"."metadata", "voter"."flags",
+       "author"."id", "author"."key", "author"."handle", "author"."email", "author"."score",
+       "author"."created_at", "author"."metadata", "author"."flags"
 from "votes"
-  inner join "content_items" on "content_items"."id" = "votes"."item_id"
-  left join "accounts" as "author" on "author"."id" = "content_items"."submitted_by"
-  left join "accounts" as "voter" on "voter"."id" = "votes"."submitted_by"
-where %s order by "votes"."submitted_at" desc limit %d`, wheres.AndWhere(),  filter.MaxItems)
-	rows, err := Db.Query(selC, wheres.Values()...)
+       inner join "accounts" as "voter" on "voter"."id" = "votes"."submitted_by"
+       inner join "content_items" as "items" on "items"."id" = "votes"."item_id"
+       left join "accounts" as "author" on "author"."id" = "items"."submitted_by"
+where %s order by "votes"."submitted_at" desc limit %d`, fullWhere,  filter.MaxItems)
+	rows, err := Db.Query(selC, whereValues...)
 	if err != nil {
+		log.Error(errors.NewErrWithCause(err, "querying failed"))
 		return nil, err
 	}
 	for rows.Next() {
@@ -147,25 +175,14 @@ where %s order by "votes"."submitted_at" desc limit %d`, wheres.AndWhere(),  fil
 		var pKey []byte
 		var aKey []byte
 		var vKey []byte
-		err = rows.Scan(
-			&v.Id,
-			&v.Weight,
-			&v.SubmittedAt,
-			&v.Flags,
-			&p.Id,
-			&pKey,
-			&p.MimeType,
-			&p.Data,
-			&p.Title,
-			&p.Score,
-			&p.SubmittedAt,
-			&p.SubmittedBy,
-			&p.Flags,
-			&p.Metadata,
+		err = rows.Scan( &v.Id, &v.Weight, &v.SubmittedAt, &v.Flags,
+			&p.Id, &pKey, &p.MimeType, &p.Data, &p.Title, &p.Score,
+			&p.SubmittedAt, &p.SubmittedBy, &p.Flags, &p.Metadata,
 			&auth.Id, &aKey, &auth.Handle, &auth.Email, &auth.Score, &auth.CreatedAt, &auth.Metadata, &auth.Flags,
 			&voter.Id, &vKey, &voter.Handle, &voter.Email, &voter.Score, &voter.CreatedAt, &voter.Metadata, &voter.Flags)
 		if err != nil {
-			return nil, err
+			log.Error(errors.NewErrWithCause(err, "load items failed"))
+			continue
 		}
 		auth.Key.FromBytes(aKey)
 		acct := loadAccountFromModel(auth)
@@ -174,91 +191,14 @@ where %s order by "votes"."submitted_at" desc limit %d`, wheres.AndWhere(),  fil
 
 		voter.Key.FromBytes(vKey)
 		v.Item = &p
-
-		votes = append(votes, loadVoteFromModel(v, &voter, &p))
+		votes[p.Hash()] = loadVoteFromModel(v, &voter, &p)
 	}
 	if err != nil {
-		log.Error(err)
+		log.Error(errors.NewErrWithCause(err, "load items failed"))
+		return nil, err
 	}
 	return votes, nil
 }
-
-func LoadItemVotes(hash string) (VoteCollection, error) {
-	var err error
-	p := item{}
-	votes := make(VoteCollection, 0)
-	selC := `select 
-		"votes"."id", 
-		"votes"."weight", 
-		"votes"."submitted_at", 
-		"votes"."flags",
-		"content_items"."id", 
-		"content_items"."key", 
-		"content_items"."mime_type", 
-		"content_items"."data", 
-		"content_items"."title", 
-		"content_items"."score",
-		"content_items"."submitted_at", 
-		"content_items"."submitted_by",
-		"content_items"."flags", 
-		"content_items"."metadata", 
-		"accounts"."id", "accounts"."key", "accounts"."handle", "accounts"."email", "accounts"."score", 
-			"accounts"."created_at", "accounts"."metadata", "accounts"."flags"
-from "content_items"
-  inner join "votes" on "content_items"."id" = "votes"."item_id"
-  left join "accounts" on "accounts"."id" = "content_items"."submitted_by"
-where "content_items"."key" ~* $1 order by "votes"."submitted_at" desc`
-	{
-		rows, err := Db.Query(selC, hash)
-		if err != nil {
-			return nil, err
-		}
-		for rows.Next() {
-			v := vote{}
-			a := account{}
-			err = rows.Scan(
-				&v.Id,
-				&v.Weight,
-				&v.SubmittedAt,
-				&v.Flags,
-				&p.Id,
-				&p.Key,
-				&p.MimeType,
-				&p.Data,
-				&p.Title,
-				&p.Score,
-				&p.SubmittedAt,
-				&p.SubmittedBy,
-				&p.Flags,
-				&p.Metadata,
-				&a.Id, &a.Key, &a.Handle, &a.Email, &a.Score, &a.CreatedAt, &a.Metadata, &a.Flags)
-			if err != nil {
-				return nil, err
-			}
-			acct := loadAccountFromModel(a)
-			p.SubmittedByAccount = &acct
-			vv := loadVoteFromModel(v, &a, &p)
-			votes = append(votes, vv)
-		}
-	}
-	if err != nil {
-		log.Error(err)
-	}
-	return votes, nil
-}
-
-//func LoadVotesSubmittedBy(handle string, which int, max int) (VoteCollection, error) {
-//	clauses := make(Clauses, 0)
-//	clauses = append(clauses, Clause{ColName: `"voter"."handle" = `, Val: interface{}(handle)})
-//	if which != 0 {
-//		if which > 0 {
-//			clauses = append(clauses, Clause{ColName: `"votes"."weight" > `, Val: interface{}(0)})
-//		} else {
-//			clauses = append(clauses, Clause{ColName: `"votes"."weight" < `, Val: interface{}(0)})
-//		}
-//	}
-//	return LoadVotes(clauses, max)
-//}
 
 type ScoreType int
 const (
