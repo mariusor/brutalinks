@@ -397,7 +397,8 @@ menu.meta-items {
     padding-left: 1em;
 }
 menu.meta-items li,
-menu#top li {
+menu#top li,
+menu#bottom li {
     display: inline;
     margin: 0;
 }
@@ -444,10 +445,12 @@ footer #auth, header #top  {
 menu#auth {
     margin-right:2em;
 }
-menu#top li:first-child::before  {
+menu#top li:first-child::before,
+menu#bottom li:first-child::before {
     content: "";
 }
-menu#top li::before {
+menu#top li::before,
+menu#bottom li::before {
     content: " | ";
 }
 .new-acct-details {
