@@ -3,3 +3,9 @@
 pkg/
 src/*.*
 vendor/
+*.aci
+*.oci
+go.sum
+rkt/
+docker/
+db/
