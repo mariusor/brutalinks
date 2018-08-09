@@ -48,7 +48,7 @@ type LoadItemsFilter struct {
 	Type []ItemType
 	MediaType []string
 	SubmittedBy []string
-	Parent string
+	Parent []string
 	OP string
 	SubmittedAt time.Time
 	SubmittedAtMatchType MatchType

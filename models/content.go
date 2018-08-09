@@ -204,7 +204,17 @@ func LoadItems(filter LoadItemsFilter) (ItemCollection, error) {
 		}
 		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
 	}
-
+	if len(filter.Parent) > 0 {
+		whereColumns := make([]string, 0)
+		for _, hash := range filter.Parent {
+			whereColumns = append(whereColumns,fmt.Sprintf(`("content_items"."path" <@ (select
+CASE WHEN path is null THEN key::ltree ELSE ltree_addltree(path, key::ltree) END
+from "content_items" where key ~* $%d) AND "content_items"."path" IS NOT NULL)`, counter))
+			whereValues = append(whereValues, interface{}(hash))
+			counter += 1
+		}
+		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
+	}
 	fullWhere := fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(wheres, " AND ")))
 
 	sel := fmt.Sprintf(`select 
@@ -217,7 +227,7 @@ func LoadItems(filter LoadItemsFilter) (ItemCollection, error) {
 			left join "accounts" on "accounts"."id" = "content_items"."submitted_by" 
 		where %s 
 	order by "content_items"."score" desc, "content_items"."submitted_at" desc limit %d`, fullWhere, filter.MaxItems)
-	rows, err := Db.Query(sel)
+	rows, err := Db.Query(sel, whereValues...)
 	if err != nil {
 		log.Error(errors.NewErrWithCause(err, "querying failed"))
 		return nil, err
@@ -232,42 +242,6 @@ func LoadItems(filter LoadItemsFilter) (ItemCollection, error) {
 		if err != nil {
 			log.Error(errors.NewErrWithCause(err, "load items failed"))
 			continue
-		}
-		p.Key.FromBytes(iKey)
-		a.Key.FromBytes(aKey)
-		acct := loadAccountFromModel(a)
-		p.SubmittedByAccount = &acct
-		items = append(items, loadItemFromModel(p))
-	}
-
-	return items, nil
-}
-
-func LoadItemsByPath(path []byte, max int) (ItemCollection, error) {
-	items := make(ItemCollection, 0)
-	sel := fmt.Sprintf(`select 
-			"content_items"."id", "content_items"."key", "content_items"."mime_type", "content_items"."data", 
-			"content_items"."title", "content_items"."score", "content_items"."submitted_at", 
-			"content_items"."submitted_by", "content_items"."flags", "content_items"."metadata", "content_items"."path",
-			"accounts"."id", "accounts"."key", "accounts"."handle", "accounts"."email", "accounts"."score", 
-			"accounts"."created_at", "accounts"."metadata", "accounts"."flags"
-		from "content_items" 
-			left join "accounts" on "accounts"."id" = "content_items"."submitted_by" 
-		where "content_items"."path" <@ $1 and "content_items"."path" is not null order by "content_items"."path" asc, 
-			"content_items"."score" desc, "content_items"."submitted_at" desc limit %d`, max)
-	rows, err := Db.Query(sel, path)
-	if err != nil {
-		return nil, err
-	}
-	for rows.Next() {
-		p := item{}
-		a := account{}
-		var aKey, iKey []byte
-		err := rows.Scan(
-			&p.Id, &iKey, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Flags, &p.Metadata, &p.Path,
-			&a.Id, &aKey, &a.Handle, &a.Email, &a.Score, &a.CreatedAt, &a.Metadata, &a.Flags)
-		if err != nil {
-			return nil, err
 		}
 		p.Key.FromBytes(iKey)
 		a.Key.FromBytes(aKey)
@@ -315,7 +289,7 @@ func LoadItemsByDomain(domain string, max int) (ItemCollection, error) {
 	return items, nil
 }
 
-func LoadItemByHash(hash string) (Item, error) {
+func LoadItem(f LoadItemFilter) (Item, error) {
 	p := item{}
 	a := account{}
 	i := Item{}
@@ -328,7 +302,7 @@ func LoadItemByHash(hash string) (Item, error) {
  			from "content_items" 
 			left join "accounts" on "accounts"."id" = "content_items"."submitted_by"
 			where "content_items"."key" ~* $1`
-	rows, err := Db.Query(sel, hash)
+	rows, err := Db.Query(sel, f.Key)
 	if err != nil {
 		return i, err
 	}

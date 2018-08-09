@@ -118,11 +118,6 @@ func (i Item) IsSelf() bool {
 	return mimeComponents[0] == "text"
 }
 
-
-func LoadItem(f LoadItemFilter) (Item, error) {
-	return LoadItemByHash(f.Key)
-}
-
 func loadItemFromModel(c item) Item {
 	i := Item{
 		Hash:        c.Hash(),
