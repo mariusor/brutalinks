@@ -29,7 +29,7 @@ require (
 	github.com/stretchr/testify v1.2.2 // indirect
 	github.com/unrolled/render v0.0.0-20171102162132-65450fb6b2d3
 	golang.org/x/crypto v0.0.0-20180718160520-a2144134853f
-	golang.org/x/net v0.0.0-20180718182112-8887df42c721 // indirect
+	golang.org/x/net v0.0.0-20180718182112-8887df42c721
 	golang.org/x/oauth2 v0.0.0-20180620175406-ef147856a6dd
 	golang.org/x/sync v0.0.0-20180314180146-1d60e4601c6f // indirect
 	golang.org/x/sys v0.0.0-20180727230415-bd9dbc187b6e // indirect
