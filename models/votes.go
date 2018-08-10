@@ -124,14 +124,17 @@ func LoadVotes(filter LoadVotesFilter) (VoteCollection, error) {
 	}
 	if len(filter.Type) > 0 {
 		whereColumns := make([]string, 0)
-		if filter.Type == "like" {
-			whereColumns = append(whereColumns, fmt.Sprintf(`"votes"."weight" > $%d`, counter))
-			whereValues = append(whereValues, interface{}(0))
-		} else {
-			whereColumns = append(whereColumns, fmt.Sprintf(`"votes"."weight" < $%d`, counter))
-			whereValues = append(whereValues, interface{}(0))
+		for _, typ := range filter.Type {
+			if typ == TypeLike {
+				whereColumns = append(whereColumns, fmt.Sprintf(`"votes"."weight" > $%d`, counter))
+				whereValues = append(whereValues, interface{}(0))
+			}
+			if typ == TypeDislike {
+				whereColumns = append(whereColumns, fmt.Sprintf(`"votes"."weight" < $%d`, counter))
+				whereValues = append(whereValues, interface{}(0))
+			}
+			counter += 1
 		}
-		counter += 1
 		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
 	}
 	if len(filter.ItemKey) > 0 {
@@ -170,26 +173,26 @@ where %s order by "votes"."submitted_at" desc limit %d`, fullWhere,  filter.MaxI
 	for rows.Next() {
 		v := vote{}
 		p := item{}
-		auth := account{}
 		voter := account{}
+		auth := account{}
 		var pKey []byte
 		var aKey []byte
 		var vKey []byte
 		err = rows.Scan( &v.Id, &v.Weight, &v.SubmittedAt, &v.Flags,
 			&p.Id, &pKey, &p.MimeType, &p.Data, &p.Title, &p.Score,
 			&p.SubmittedAt, &p.SubmittedBy, &p.Flags, &p.Metadata,
-			&auth.Id, &aKey, &auth.Handle, &auth.Email, &auth.Score, &auth.CreatedAt, &auth.Metadata, &auth.Flags,
-			&voter.Id, &vKey, &voter.Handle, &voter.Email, &voter.Score, &voter.CreatedAt, &voter.Metadata, &voter.Flags)
+			&voter.Id, &aKey, &voter.Handle, &voter.Email, &voter.Score, &voter.CreatedAt, &voter.Metadata, &voter.Flags,
+			&auth.Id, &vKey, &auth.Handle, &auth.Email, &auth.Score, &auth.CreatedAt, &auth.Metadata, &auth.Flags)
 		if err != nil {
 			log.Error(errors.NewErrWithCause(err, "load items failed"))
 			continue
 		}
-		auth.Key.FromBytes(aKey)
+		voter.Key.FromBytes(aKey)
 		acct := loadAccountFromModel(auth)
 		p.SubmittedByAccount = &acct
 		p.Key.FromBytes(pKey)
 
-		voter.Key.FromBytes(vKey)
+		auth.Key.FromBytes(vKey)
 		v.Item = &p
 		votes[p.Hash()] = loadVoteFromModel(v, &voter, &p)
 	}

@@ -2,8 +2,9 @@ package models
 
 import (
 	"database/sql"
-		"net/http"
+	"net/http"
 	"golang.org/x/net/context"
+	"github.com/juju/errors"
 	"time"
 	)
 
@@ -21,6 +22,7 @@ func Loader (next http.Handler) http.Handler {
 
 type MatchType string
 type ItemType string
+type VoteType string
 
 const (
 	MatchEquals = MatchType(1 << iota)
@@ -31,11 +33,14 @@ const (
 
 const (
 	TypeOP = ItemType("op")
+
+	TypeLike = VoteType("like")
+	TypeDislike = VoteType("dislike")
 )
 
 type LoadVotesFilter struct {
 	ItemKey []string
-	Type string
+	Type []VoteType
 	SubmittedBy []string
 	SubmittedAt time.Time
 	SubmittedAtMatchType MatchType
@@ -62,6 +67,15 @@ type LoadItemFilter struct {
 	Key string
 }
 
+type LoadAccountFilter struct {
+	Key string
+	Handle string
+}
+
+type CanSaveItems interface {
+	SaveItem(it Item) (Item, error)
+}
+
 type CanLoadItems interface {
 	LoadItem(f LoadItemFilter) (Item, error)
 	LoadItems(f LoadItemsFilter) (ItemCollection, error)
@@ -69,10 +83,15 @@ type CanLoadItems interface {
 
 type CanLoadVotes interface {
 	LoadVotes(f LoadVotesFilter) (VoteCollection, error)
+	LoadVote(f LoadVotesFilter) (Vote, error)
 }
 
-type CanSaveItems interface {
-	SaveItem(it Item) (Item, error)
+type CanSaveVotes interface {
+	SaveVote(v Vote) (Vote, error)
+}
+
+type CanLoadAccounts interface {
+	LoadAccount(f LoadAccountFilter) (Account, error)
 }
 
 var Service LoaderService
@@ -93,7 +112,25 @@ func (l LoaderService) LoadItems(f LoadItemsFilter) (ItemCollection, error) {
 	return LoadItems(f)
 }
 
+func (l LoaderService) SaveVote(v Vote) (Vote, error) {
+	return SaveVote(v)
+}
+
 func (l LoaderService) LoadVotes(f LoadVotesFilter) (VoteCollection, error) {
 	return LoadVotes(f)
 }
 
+func (l LoaderService) LoadVote(f LoadVotesFilter) (Vote, error) {
+	f.MaxItems = 1
+	votes, err := LoadVotes(f)
+	if err != nil {
+		return Vote{}, err
+	}
+	for _, vote := range votes {
+		return vote, nil
+	}
+	return Vote{}, errors.Errorf("not found")
+}
+func (l LoaderService) LoadAccount(f LoadAccountFilter) (Account, error) {
+	return loadAccount(f.Handle)
+}

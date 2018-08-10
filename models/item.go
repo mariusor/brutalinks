@@ -200,3 +200,61 @@ func SaveItem(it Item) (Item, error) {
 
 	return LoadItem(LoadItemFilter{Key: i.Key.String()})
 }
+
+func SaveVote(vot Vote) (Vote, error) {
+	var sel string
+	sel = `select "id", "accounts"."id", "weight" from "votes" inner join "accounts" on "accounts"."id" = "votes"."submitted_by" 
+			where "accounts"."hash" ~* $1 and "key" ~* $2;`
+	var userId int64
+	var vId int64
+	var oldWeight int64
+	{
+		rows, err := Db.Query(sel, vot.SubmittedBy.Hash, vot.Item.Hash)
+		if err != nil {
+			return vot, err
+		}
+		for rows.Next() {
+			err = rows.Scan(&vId, &userId, &oldWeight)
+			if err != nil {
+				return vot, err
+			}
+		}
+	}
+
+	v := vote{}
+	var q string
+	if vId != 0 {
+		if vot.Weight != 0 && math.Signbit(float64(oldWeight)) == math.Signbit(float64(vot.Weight)) {
+			vot.Weight = 0
+		}
+		q = `update "votes" set "updated_at" = now(), "weight" = $1, "flags" = $2 where "item_id" = $3 and "submitted_by" = $4";`
+	} else {
+		q = `insert into "votes" ("weight",  "flags", "item_id", "submitted_by") values ($1, $2, $3, $4)`
+	}
+	v.Flags = vot.Flags
+	v.Weight = int(vot.Weight * ScoreMultiplier)
+
+	res, err := Db.Exec(q, oldWeight, vot.Item.Hash, userId, v)
+	if err != nil {
+		return vot, err
+	}
+	if rows, _ := res.RowsAffected(); rows == 0 {
+		return vot, errors.Errorf("scoring %d failed on item %q", oldWeight, vot.Item.Hash)
+	}
+	log.Printf("%d scoring %d on %s", userId, oldWeight, vot.Item.Hash)
+
+	upd := `update "content_items" set score = score - $1 + $2 where "id" = $3`
+	res, err = Db.Exec(upd, v.Weight, oldWeight, vot.Item.Hash)
+	if err != nil {
+		return vot, err
+	}
+	if rows, _ := res.RowsAffected(); rows == 0 {
+		return vot, errors.Errorf("content hash %q not found", vot.Item.Hash)
+	}
+	if rows, _ := res.RowsAffected(); rows > 1 {
+		return vot, errors.Errorf("content hash %q collision", vot.Item.Hash)
+	}
+	log.Printf("updated content_items with %d", oldWeight)
+
+	return vot, nil
+}

@@ -4,8 +4,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"time"
-	"database/sql"
-	log "github.com/sirupsen/logrus"
+		log "github.com/sirupsen/logrus"
 		"github.com/juju/errors"
 	"encoding/json"
 )
@@ -61,8 +60,8 @@ func loadAccountFromModel (a account) Account {
 	return acct
 }
 
-func LoadAccount(handle string) (Account, error) {
-	a, err := LoadAccountByHandle(Db, handle)
+func loadAccount(handle string) (Account, error) {
+	a, err := loadAccountByHandle(handle)
 	if err != nil {
 		return Account{}, errors.Errorf("user %q not found", handle)
 	}
@@ -119,10 +118,10 @@ func (a *Account) IsLogged() bool {
 	return a != nil && (!a.CreatedAt.IsZero())
 }
 
-func LoadAccountByHandle(db *sql.DB, handle string) (account, error) {
+func loadAccountByHandle(handle string) (account, error) {
 	a := account{}
 	selAcct := `select "id", "key", "handle", "email", "score", "created_at", "updated_at", "metadata", "flags" from "accounts" where "handle" = $1`
-	rows, err := db.Query(selAcct, handle)
+	rows, err := Db.Query(selAcct, handle)
 	if err != nil {
 		return a, err
 	}
