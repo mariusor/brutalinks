@@ -41,7 +41,7 @@ type Error struct {
 
 func init () {
 	https := os.Getenv("HTTPS") != ""
-	host := os.Getenv("LISTEN")
+	host := os.Getenv("HOSTNAME")
 
 	if https {
 		BaseURL = fmt.Sprintf("https://%s/api", host)

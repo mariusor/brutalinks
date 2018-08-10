@@ -42,10 +42,17 @@ func (l LoaderService) LoadItems(f models.LoadItemsFilter) (models.ItemCollectio
 	return LoadItems(f)
 }
 
+func (l LoaderService) SaveVote(v models.Vote) (models.Vote, error) {
+	return models.Vote{}, errors.Errorf("not implemented")
+}
+
 func (l LoaderService) LoadVotes(f models.LoadVotesFilter) (models.VoteCollection, error) {
 	return nil, errors.Errorf("not implemented") //models.LoadItemsVotes(f.ItemKey[0])
 }
 
+func (l LoaderService) LoadVote(f models.LoadVotesFilter) (models.Vote, error) {
+	return models.Vote{}, errors.Errorf("not implemented")
+}
 func (l LoaderService) SaveItem(it models.Item) (models.Item, error) {
 	return it, errors.Errorf("not implemented")
 }
@@ -295,3 +302,4 @@ func LoadItems(f models.LoadItemsFilter) (models.ItemCollection, error) {
 
 	return items, nil
 }
+

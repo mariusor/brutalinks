@@ -10,9 +10,8 @@ import (
 	log "github.com/sirupsen/logrus"
 	"net/http"
 	"strings"
-	)
-
-var CurrentAccount *models.Account
+	"github.com/mariusor/littr.go/app"
+)
 
 func getObjectID(s string) ap.ObjectID {
 	return ap.ObjectID(fmt.Sprintf("%s/%s", AccountsURL, s))
@@ -22,20 +21,20 @@ func apAccountID(a models.Account) ap.ObjectID {
 	return getObjectID(a.Handle)
 }
 
-//func loadAPLike(vote models.Vote) (ap.ObjectOrLink, error) {
-//	id := BuildObjectIDFromItem(*vote.Item)
-//	lID := BuildObjectIDFromVote(vote)
-//	whomArt := ap.IRI(BuildActorID(*vote.Item.SubmittedByAccount))
-//	if vote.Weight > 0 {
-//		l := ap.LikeNew(lID, ap.IRI(id))
-//		l.AttributedTo = whomArt
-//		return *l, nil
-//	} else {
-//		l := ap.DislikeNew(lID, ap.IRI(id))
-//		l.AttributedTo = whomArt
-//		return *l, nil
-//	}
-//}
+func loadAPLike(vote models.Vote) (ap.ObjectOrLink, error) {
+	id := BuildObjectIDFromItem(*vote.Item)
+	lID := BuildObjectIDFromVote(vote)
+	whomArt := ap.IRI(BuildActorID(*vote.Item.SubmittedBy))
+	if vote.Weight > 0 {
+		l := ap.LikeNew(lID, ap.IRI(id))
+		l.AttributedTo = whomArt
+		return *l, nil
+	} else {
+		l := ap.DislikeNew(lID, ap.IRI(id))
+		l.AttributedTo = whomArt
+		return *l, nil
+	}
+}
 
 func loadAPItem(item models.Item) (ap.Item, error) {
 	id := BuildObjectIDFromItem(item)
@@ -150,18 +149,19 @@ func loadAPPerson(a models.Account) *Person {
 //
 //	return o, nil
 //}
-//func loadAPLiked(o ap.CollectionInterface, votes *[]models.Vote) (ap.CollectionInterface, error) {
-//	if votes == nil || len(*votes) == 0 {
-//		return nil, errors.Errorf("empty collection %T", o)
-//	}
-//	for _, vote := range *votes {
-//		el, _ := loadAPLike(vote)
-//
-//		o.Append(el)
-//	}
-//
-//	return o, nil
-//}
+func loadAPLiked(o ap.CollectionInterface, votes models.VoteCollection) (ap.CollectionInterface, error) {
+	if votes == nil || len(votes) == 0 {
+		return nil, errors.Errorf("empty collection %T", o)
+	}
+	for _, vote := range votes {
+		el, _ := loadAPLike(vote)
+
+		o.Append(el)
+	}
+
+	return o, nil
+}
+
 func loadAPCollection(o ap.CollectionInterface, items *models.ItemCollection) (ap.CollectionInterface, error) {
 	if items == nil || len(*items) == 0 {
 		return nil, errors.Errorf("empty collection %T", o)
@@ -178,7 +178,7 @@ func loadAPCollection(o ap.CollectionInterface, items *models.ItemCollection) (a
 // GET /api/accounts/:handle
 func HandleAccount(w http.ResponseWriter, r *http.Request) {
 	handle := chi.URLParam(r, "handle")
-	a, err := models.LoadAccount(handle)
+	a, err := models.Service.LoadAccount(models.LoadAccountFilter{Handle : handle})
 	if err != nil {
 		log.Print(err)
 		HandleError(w, r, http.StatusInternalServerError, err)
@@ -207,7 +207,7 @@ func HandleAccount(w http.ResponseWriter, r *http.Request) {
 // GET /api/accounts/:handle/:collection/:hash
 func HandleAccountCollectionItem(w http.ResponseWriter, r *http.Request) {
 	var data []byte
-	a, err := models.LoadAccount(chi.URLParam(r, "handle"))
+	a, err := models.Service.LoadAccount(models.LoadAccountFilter{Handle:chi.URLParam(r, "handle")})
 	if err != nil {
 		HandleError(w, r, http.StatusInternalServerError, err)
 		return
@@ -217,28 +217,40 @@ func HandleAccountCollectionItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//p := loadAPPerson(a)
-	//
-	//collection := chi.URLParam(r, "collection")
-	//var whichCol ap.CollectionInterface
-	//switch strings.ToLower(collection) {
-	//case "inbox":
-	//	whichCol = p.Inbox
-	//case "outbox":
-	//	whichCol = p.Outbox
-	//case "liked":
-	//	whichCol = p.Liked
-	//default:
-	//	err = errors.Errorf("collection not found")
-	//}
-
 	hash := chi.URLParam(r, "hash")
-	c, err  := models.Service.LoadItem(models.LoadItemFilter{Key: hash})
-	if err != nil {
-		HandleError(w, r, http.StatusNotFound, err)
-		return
+	collection := chi.URLParam(r, "collection")
+
+	var el ObjectOrLink
+	switch strings.ToLower(collection) {
+	case "inbox":
+	case "outbox":
+		c, err  := models.Service.LoadItem(models.LoadItemFilter{Key: hash})
+		if err != nil {
+			HandleError(w, r, http.StatusNotFound, err)
+			return
+		}
+		el, _ = loadAPItem(c)
+		if err != nil {
+			HandleError(w, r, http.StatusNotFound, err)
+			return
+		}
+	case "liked":
+		c, err  := models.Service.LoadVote(models.LoadVotesFilter{
+			ItemKey: []string{hash,},
+			SubmittedBy: []string{a.Hash,},
+		})
+		if err != nil {
+			HandleError(w, r, http.StatusNotFound, err)
+			return
+		}
+		el, _ = loadAPLike(c)
+		if err != nil {
+			HandleError(w, r, http.StatusNotFound, err)
+			return
+		}
+	default:
+		err = errors.Errorf("collection not found")
 	}
-	el, _ := loadAPItem(c)
 
 	data, err = json.WithContext(GetContext()).Marshal(el)
 	w.Header().Set("item-Type", "application/ld+json; charset=utf-8")
@@ -250,7 +262,7 @@ func HandleAccountCollectionItem(w http.ResponseWriter, r *http.Request) {
 // GET /api/accounts/:handle/:collection
 func HandleAccountCollection(w http.ResponseWriter, r *http.Request) {
 	var data []byte
-	a, err := models.LoadAccount(chi.URLParam(r, "handle"))
+	a, err := models.Service.LoadAccount(models.LoadAccountFilter{Handle: chi.URLParam(r, "handle")})
 	if err != nil {
 		HandleError(w, r, http.StatusInternalServerError, err)
 		return
@@ -279,25 +291,32 @@ func HandleAccountCollection(w http.ResponseWriter, r *http.Request) {
 		_, err = loadAPCollection(p.Outbox, &items)
 		data, err = json.WithContext(GetContext()).Marshal(p.Outbox)
 	case "liked":
-		//types := r.URL.Query()["type"]
-		//var which int
-		//if types == nil {
-		//	which = 0
-		//} else {
-		//	for _, typ := range types {
-		//		if strings.ToLower(typ) == strings.ToLower(string(ap.LikeType)) {
-		//			which = 1
-		//		} else {
-		//			which = -1
-		//		}
-		//	}
-		//}
-		//votes, err := models.LoadVotesSubmittedBy(Db, a.Handle, which, app.MaxContentItems)
-		//if err != nil {
-		//	log.Print(err)
-		//}
-		//_, err = loadAPLiked(p.Liked, votes)
-		//data, err = json.WithContext(GetContext()).Marshal(p.Liked)
+		types := r.URL.Query()["type"]
+		var which []models.VoteType
+		if types == nil {
+			which =  []models.VoteType{
+				models.VoteType(strings.ToLower(string(ap.LikeType))),
+				models.VoteType(strings.ToLower(string(ap.DislikeType))),
+			}
+		} else {
+			for _, typ := range types {
+				if strings.ToLower(typ) == strings.ToLower(string(ap.LikeType)) {
+					which = []models.VoteType{models.VoteType(strings.ToLower(string(ap.LikeType))),}
+				} else {
+					which = []models.VoteType{models.VoteType(strings.ToLower(string(ap.DislikeType))),}
+				}
+			}
+		}
+		votes, err := models.Service.LoadVotes(models.LoadVotesFilter{
+			SubmittedBy: []string{a.Hash,},
+			Type: which,
+			MaxItems: app.MaxContentItems,
+		})
+		if err != nil {
+			log.Print(err)
+		}
+		_, err = loadAPLiked(p.Liked, votes)
+		data, err = json.WithContext(GetContext()).Marshal(p.Liked)
 	default:
 		err = errors.Errorf("collection not found")
 	}
@@ -315,19 +334,15 @@ func HandleAccountCollection(w http.ResponseWriter, r *http.Request) {
 
 // GET /api/accounts/verify_credentials
 func HandleVerifyCredentials(w http.ResponseWriter, r *http.Request) {
-	a := *CurrentAccount
-	if len(a.Handle) == 0 {
-		HandleError(w, r, http.StatusNotFound, errors.Errorf("acccount not found"))
+	acct := app.CurrentAccount
+	if acct == nil || len(acct.Handle) == 0 {
+		HandleError(w, r, http.StatusNotFound, errors.Errorf("account not found"))
 		return
 	}
 
-	a, err := models.LoadAccount(a.Handle)
+	a, err := models.Service.LoadAccount(models.LoadAccountFilter{Handle: acct.Handle})
 	if err != nil {
 		HandleError(w, r, http.StatusInternalServerError, err)
-		return
-	}
-	if a.Handle == "" {
-		HandleError(w, r, http.StatusNotFound, errors.Errorf("acccount not found"))
 		return
 	}
 
