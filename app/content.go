@@ -110,8 +110,6 @@ func ShowItem(w http.ResponseWriter, r *http.Request) {
 	allComments := make(comments, 1)
 	allComments[0] = &m.Content
 
-	//fullPath := bytes.Trim(m.Content.FullPath, " \n\r\t")
-	//contentItems, err := models.LoadItemsByPath(fullPath, MaxContentItems)
 	contentItems, err := models.Service.LoadItems(models.LoadItemsFilter{
 		Parent: []string{m.Content.Hash,},
 		MaxItems: MaxContentItems,

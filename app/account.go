@@ -60,7 +60,7 @@ func HandleUser(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	a, _ := models.LoadAccount(handle)
+	a, _ := models.Service.LoadAccount(models.LoadAccountFilter{Handle:handle})
 	m.Title = fmt.Sprintf("%s submissions", genitive(a.Handle))
 	m.User = &a
 

@@ -8,7 +8,7 @@ import (
 
 	"fmt"
 	"github.com/go-chi/chi"
-)
+	)
 
 // HandleDomains serves /domains/{domain} request
 func HandleDomains(w http.ResponseWriter, r *http.Request) {
@@ -17,7 +17,12 @@ func HandleDomains(w http.ResponseWriter, r *http.Request) {
 
 	m := userModel{ Title: fmt.Sprintf("Submissions from %s", domain), InvertedTheme: isInverted(r)}
 
-	contentItems, err := models.LoadItemsByDomain(domain, MaxContentItems)
+	contentItems, err := models.Service.LoadItems(models.LoadItemsFilter{
+		Content: fmt.Sprintf("http[s]?://%s", domain),
+		ContentMatchType: models.MatchFuzzy,
+		MediaType: []string{models.MimeTypeURL},
+		MaxItems: MaxContentItems,
+	})
 	if err != nil {
 		log.Error(err)
 		HandleError(w, r, http.StatusNotFound, err)
