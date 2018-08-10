@@ -65,27 +65,31 @@ func HandleServiceCollection(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	case "liked":
-		//types := r.URL.Query()["type"]
-		//clauses := make(models.Clauses, 0)
-		//if types == nil {
-		//	clauses = nil
-		//} else {
-		//	for _, typ := range types {
-		//		if strings.ToLower(typ) == strings.ToLower(string(ap.LikeType)) {
-		//			clauses = append(clauses, models.Clause{ColName: `"votes"."weight" > `, Val: interface{}(0)})
-		//		} else {
-		//			clauses = append(clauses, models.Clause{ColName: ` "votes"."weight" < `, Val: interface{}(0)})
-		//		}
-		//	}
-		//}
-		//
-		//votes, err := models.LoadVotes(Db, clauses, app.MaxContentItems)
-		//if err != nil {
-		//	HandleError(w, r, http.StatusInternalServerError, err)
-		//	return
-		//}
-		//_, err = loadAPLiked(us.Liked, votes)
-		//data, err = json.WithContext(GetContext()).Marshal(us.Liked)
+		types := r.URL.Query()["type"]
+		var which []models.VoteType
+		if types == nil {
+			which =  []models.VoteType{
+				models.VoteType(strings.ToLower(string(ap.LikeType))),
+				models.VoteType(strings.ToLower(string(ap.DislikeType))),
+			}
+		} else {
+			for _, typ := range types {
+				if strings.ToLower(typ) == strings.ToLower(string(ap.LikeType)) {
+					which = []models.VoteType{models.VoteType(strings.ToLower(string(ap.LikeType))),}
+				} else {
+					which = []models.VoteType{models.VoteType(strings.ToLower(string(ap.DislikeType))),}
+				}
+			}
+		}
+		votes, err := models.Service.LoadVotes(models.LoadVotesFilter{
+			Type: which,
+			MaxItems: app.MaxContentItems,
+		})
+		if err != nil {
+			log.Print(err)
+		}
+		_, err = loadAPLiked(us.Liked, votes)
+		data, err = json.WithContext(GetContext()).Marshal(us.Liked)
 	default:
 		err = errors.Errorf("collection not found")
 	}

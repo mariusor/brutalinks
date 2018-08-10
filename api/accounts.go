@@ -24,7 +24,7 @@ func apAccountID(a models.Account) ap.ObjectID {
 func loadAPLike(vote models.Vote) (ap.ObjectOrLink, error) {
 	id := BuildObjectIDFromItem(*vote.Item)
 	lID := BuildObjectIDFromVote(vote)
-	whomArt := ap.IRI(BuildActorID(*vote.Item.SubmittedBy))
+	whomArt := ap.IRI(BuildActorID(*vote.SubmittedBy))
 	if vote.Weight > 0 {
 		l := ap.LikeNew(lID, ap.IRI(id))
 		l.AttributedTo = whomArt
@@ -105,50 +105,6 @@ func loadAPPerson(a models.Account) *Person {
 	return &p
 }
 
-//func loadAPLiked(a models.account, o ap.CollectionInterface, items *[]models.item, votes *[]models.Vote) (ap.CollectionInterface, error) {
-//	if items == nil || len(*items) == 0 {
-//		return nil, errors.Errorf("no items loaded")
-//	}
-//	if votes == nil || len(*votes) == 0 {
-//		return nil, errors.Errorf("no votes loaded")
-//	}
-//	if len(*items) != len(*votes) {
-//		return nil, errors.Errorf("items and votes lengths are not matching")
-//	}
-//	for k, item := range *items {
-//		vote := (*votes)[k]
-//		if vote.Weight == 0 {
-//			// skip 0 weight votes from the collection
-//			continue
-//		}
-//
-//		typ := ap.ArticleType
-//		if item.IsLink() {
-//			typ = ap.LinkType
-//		}
-//		oid := ap.ObjectID(fmt.Sprintf("%s/%s/outbox/%s", AccountsURL, item.SubmittedByAccount.Handle, item.Hash()))
-//		obj := ap.ObjectNew(oid, typ)
-//		obj.URL = ap.URI(fmt.Sprintf("%s/%s", a.GetLink(), item.Hash()))
-//
-//		id := ap.ObjectID(fmt.Sprintf("%s/%s", *o.GetID(), item.Hash()))
-//		var it ap.Item
-//		if vote.Weight > 0 {
-//			l := ap.LikeNew(id, obj)
-//			l.Published = vote.SubmittedAt
-//			l.Updated = item.UpdatedAt
-//			it = l
-//		} else {
-//			d := ap.DislikeNew(id, obj)
-//			d.Published = vote.SubmittedAt
-//			d.Updated = item.UpdatedAt
-//			it = d
-//		}
-//
-//		o.Append(it)
-//	}
-//
-//	return o, nil
-//}
 func loadAPLiked(o ap.CollectionInterface, votes models.VoteCollection) (ap.CollectionInterface, error) {
 	if votes == nil || len(votes) == 0 {
 		return nil, errors.Errorf("empty collection %T", o)
