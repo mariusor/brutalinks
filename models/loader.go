@@ -10,11 +10,12 @@ import (
 
 var Db *sql.DB
 
+const ServiceCtxtKey = "__loader"
 // Loader middleware
 func Loader (next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		newCtx := context.WithValue(ctx, "loader", Service)
+		newCtx := context.WithValue(ctx, ServiceCtxtKey, Service)
 		next.ServeHTTP(w, r.WithContext(newCtx))
 	}
 	return http.HandlerFunc(fn)
@@ -131,6 +132,7 @@ func (l LoaderService) LoadVote(f LoadVotesFilter) (Vote, error) {
 	}
 	return Vote{}, errors.Errorf("not found")
 }
+
 func (l LoaderService) LoadAccount(f LoadAccountFilter) (Account, error) {
 	return loadAccount(f.Handle)
 }

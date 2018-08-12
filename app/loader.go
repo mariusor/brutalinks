@@ -1,3 +1,3 @@
 package app
 
-const ServiceCtxtKey = "loader"
+const ServiceCtxtKey = "__loader"

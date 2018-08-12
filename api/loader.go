@@ -13,7 +13,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const ServiceCtxtKey = "loader"
+const ServiceCtxtKey = "__loader"
 
 // Service is used to retrieve information from the database
 var Service LoaderService
