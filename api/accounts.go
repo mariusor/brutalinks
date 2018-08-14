@@ -154,7 +154,8 @@ func HandleAccount(w http.ResponseWriter, r *http.Request) {
 }
 
 // GET /api/accounts/:handle/:collection/:hash
-func HandleAccountCollectionItem(w http.ResponseWriter, r *http.Request) {
+// GET /api/:collection/:hash
+func HandleCollectionItem(w http.ResponseWriter, r *http.Request) {
 	var data []byte
 	var err error
 
@@ -199,7 +200,8 @@ func HandleAccountCollectionItem(w http.ResponseWriter, r *http.Request) {
 }
 
 // GET /api/accounts/:handle/:collection
-func HandleAccountCollection(w http.ResponseWriter, r *http.Request) {
+// GET /api/:collection
+func HandleCollection(w http.ResponseWriter, r *http.Request) {
 	var data []byte
 	var err error
 	val := r.Context().Value(AccountCtxtKey)

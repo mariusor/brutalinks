@@ -178,15 +178,15 @@ func main() {
 			r.Use(api.AccountCtxt)
 
 			r.Get("/", api.HandleAccount)
-			r.With(api.LoadFiltersCtxt, api.ItemCollectionCtxt).Get("/{collection}", api.HandleAccountCollection)
-			r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/{collection}/{hash}", api.HandleAccountCollectionItem)
+			r.With(api.LoadFiltersCtxt, api.ItemCollectionCtxt).Get("/{collection}", api.HandleCollection)
+			r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/{collection}/{hash}", api.HandleCollectionItem)
 		})
 
 		r.Route("/{collection}", func (r chi.Router) {
 			r.Use(api.ServiceCtxt)
 
-			r.With(api.LoadFiltersCtxt, api.ItemCollectionCtxt).Get("/", api.HandleServiceCollection)
-			r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/{hash}", api.HandleServiceCollectionItem)
+			r.With(api.LoadFiltersCtxt, api.ItemCollectionCtxt).Get("/", api.HandleCollection)
+			r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/{hash}", api.HandleCollectionItem)
 		})
 
 		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
