@@ -7,13 +7,13 @@ import (
 	"github.com/juju/errors"
 	ap "github.com/mariusor/activitypub.go/activitypub"
 	j "github.com/mariusor/activitypub.go/jsonld"
-	"github.com/mariusor/littr.go/app"
-	"github.com/mariusor/littr.go/models"
 	log "github.com/sirupsen/logrus"
+	"github.com/mariusor/littr.go/models"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
+	"net/url"
 )
 
 const ServiceCtxtKey = "__loader"
@@ -21,8 +21,6 @@ const AccountCtxtKey = "__acct"
 const CollectionCtxtKey = "__collection"
 const FilterCtxtKey = "__filter"
 const ItemCtxtKey = "__item"
-const VotesCtxtKey = "__votes"
-const VoteCtxtKey = "__vote"
 
 // Service is used to retrieve information from the database
 var Service LoaderService
@@ -120,7 +118,7 @@ func ItemCtxt(next http.Handler) http.Handler {
 
 func loadOutboxFilterFromReq(r *http.Request) models.LoadItemsFilter {
 	filters := models.LoadItemsFilter{
-		MaxItems:    app.MaxContentItems,
+		MaxItems:    MaxContentItems,
 	}
 
 	val := r.Context().Value(AccountCtxtKey)
@@ -133,6 +131,11 @@ func loadOutboxFilterFromReq(r *http.Request) models.LoadItemsFilter {
 		filters.Key = []string{hash}
 		filters.MaxItems = 1
 	}
+	filters.InReplyTo = r.URL.Query()["inReplyTo"]
+	for _, typ := range r.URL.Query()["type"] {
+		filters.Type = append(filters.Type, models.ItemType(typ))
+	}
+	filters.MediaType = r.URL.Query()["mediaType"]
 
 	return filters
 }
@@ -157,7 +160,7 @@ func loadLikedFilterFromReq(r *http.Request) models.LoadVotesFilter {
 
 	filters := models.LoadVotesFilter{
 		Type:        which,
-		MaxItems:    app.MaxContentItems,
+		MaxItems:    MaxContentItems,
 	}
 	val := r.Context().Value(AccountCtxtKey)
 	a, ok := val.(models.Account)
@@ -236,7 +239,33 @@ func ItemCollectionCtxt(next http.Handler) http.Handler {
 }
 
 func (l LoaderService) LoadItem(f models.LoadItemsFilter) (models.Item, error) {
-	return models.Item{}, errors.Errorf("not implemented")
+	apiBaseUrl := os.Getenv("LISTEN")
+
+	var art Article
+	var it models.Item
+	var err error
+	if len(f.Key) != 1 {
+		return it, errors.Errorf("invalid item hash")
+	}
+	resp, err := http.Get(fmt.Sprintf("http://localhost%s/api/outbox/%s", apiBaseUrl, f.Key[0]))
+	if err != nil {
+		log.Error(err)
+		return it, err
+	}
+	if resp != nil {
+		defer resp.Body.Close()
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			log.Error(err)
+			return it, err
+		}
+		err = j.Unmarshal(body, &art)
+		if err != nil {
+			log.Error(err)
+			return it, err
+		}
+	}
+	return loadFromAPItem(art), nil
 }
 
 func (l LoaderService) LoadItems(f models.LoadItemsFilter) (models.ItemCollection, error) {
@@ -261,8 +290,25 @@ func (l LoaderService) SaveItem(it models.Item) (models.Item, error) {
 func LoadItems(f models.LoadItemsFilter) (models.ItemCollection, error) {
 	apiBaseUrl := os.Getenv("LISTEN")
 
+	q := url.Values{}
+	if len(f.InReplyTo) > 0 {
+		for _, p := range f.InReplyTo {
+			q.Add("inReplyTo", p)
+		}
+	}
+	if len(f.Type) > 0 {
+		for _, p := range f.Type {
+			q.Add("type", string(p))
+		}
+	}
+
+	qs := ""
+	if len(q) > 0 {
+		qs = fmt.Sprintf("?%s", q.Encode())
+	}
+
 	var err error
-	resp, err := http.Get(fmt.Sprintf("http://localhost%s/api/outbox", apiBaseUrl))
+	resp, err := http.Get(fmt.Sprintf("http://localhost%s/api/outbox%s", apiBaseUrl, qs))
 	if err != nil {
 		log.Error(err)
 		return nil, err
@@ -284,25 +330,29 @@ func LoadItems(f models.LoadItemsFilter) (models.ItemCollection, error) {
 
 	items := make(models.ItemCollection, col.TotalItems)
 	for k, it := range col.OrderedItems {
-		c := models.Item{
-			Hash:        getHash(it.GetID()),
-			Title:       string(ap.NaturalLanguageValue(it.Name).First()),
-			MimeType:    string(it.MediaType),
-			Data:        string(ap.NaturalLanguageValue(it.Content).First()),
-			Score:       it.Score,
-			SubmittedAt: it.Published,
-			SubmittedBy: &models.Account{
-				Handle: getAccountHandle(it.AttributedTo),
-			},
-		}
-		r := it.InReplyTo
-		if p, ok := r.(ap.IRI); ok {
-			c.Parent = &models.Item{
-				Hash: getAccountHandle(p),
-			}
-		}
-		items[k] = c
+		items[k] = loadFromAPItem(it)
 	}
 
 	return items, nil
+}
+
+func loadFromAPItem(it Article) models.Item {
+	c := models.Item{
+		Hash:        getHash(it.GetID()),
+		Title:       string(ap.NaturalLanguageValue(it.Name).First()),
+		MimeType:    string(it.MediaType),
+		Data:        string(ap.NaturalLanguageValue(it.Content).First()),
+		Score:       it.Score,
+		SubmittedAt: it.Published,
+		SubmittedBy: &models.Account{
+			Handle: getAccountHandle(it.AttributedTo),
+		},
+	}
+	r := it.InReplyTo
+	if p, ok := r.(ap.IRI); ok {
+		c.Parent = &models.Item{
+			Hash: getAccountHandle(p),
+		}
+	}
+	return c
 }

@@ -27,10 +27,11 @@ type AccountMetadata struct {
 }
 
 func (i comment) Level() int {
-	if i.Path == nil {
-		return 0
-	}
-	return bytes.Count(i.Path, []byte(".")) + 1
+	//if i.Path == nil {
+	//	return 0
+	//}
+	//return bytes.Count(i.Path, []byte(".")) + 1
+	return 0
 }
 
 type indexModel struct {
@@ -101,7 +102,7 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 	if ok {
 		log.Infof("loaded LoaderService of type %T", itemLoader)
 	} else {
-		log.Errorf("could not load loader service from Context")
+		log.Errorf("could not load item loader service from Context")
 		return
 	}
 	var err error
@@ -119,16 +120,20 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 	m.Items = loadComments(items)
 
 	if CurrentAccount.IsLogged() {
-		CurrentAccount.Votes, err = models.Service.LoadVotes(models.LoadVotesFilter{
-			SubmittedBy: []string{CurrentAccount.Hash,},
-			ItemKey:     m.Items.getItemsHashes(),
-			MaxItems:    MaxContentItems,
-		})
+		votesLoader, ok := val.(models.CanLoadVotes)
+		if ok {
+			log.Infof("loaded LoaderService of type %T", itemLoader)
+			CurrentAccount.Votes, err = votesLoader.LoadVotes(models.LoadVotesFilter{
+				SubmittedBy: []string{CurrentAccount.Hash,},
+				ItemKey:     m.Items.getItemsHashes(),
+				MaxItems:    MaxContentItems,
+			})
 
-		if err != nil {
-			log.Error(err)
-			//HandleError(w, r, http.StatusNotFound, err)
-			//return
+			if err != nil {
+				log.Error(err)
+			}
+		} else {
+			log.Errorf("could not load vote loader service from Context")
 		}
 	}
 	RenderTemplate(r, w, "listing", m)

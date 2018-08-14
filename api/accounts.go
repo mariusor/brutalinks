@@ -176,6 +176,26 @@ func HandleCollectionItem(w http.ResponseWriter, r *http.Request) {
 			HandleError(w, r, http.StatusNotFound, err)
 			return
 		}
+		val := r.Context().Value(ServiceCtxtKey)
+		if service, ok := val.(models.CanLoadItems); ok {
+			replies, err := service.LoadItems(models.LoadItemsFilter{
+				InReplyTo: []string{i.Hash},
+				MaxItems: MaxContentItems,
+			})
+			if err != nil {
+				log.Error(err)
+			}
+			if len(replies) > 0 {
+				if o, ok := el.(Article); ok {
+					o.Replies = make(ObjectsArr, 0)
+					for _, repl := range replies {
+						rIRI := fmt.Sprintf("%s/%s/outbox/%s", AccountsURL, repl.SubmittedBy.Handle, repl.Hash)
+						o.Replies = append(o.Replies, ap.IRI(rIRI))
+					}
+					el = o
+				}
+			}
+		}
 	case "liked":
 		v, ok := val.(models.Vote)
 		if !ok {

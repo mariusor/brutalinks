@@ -22,6 +22,11 @@ import (
 
 var Db *sql.DB
 
+const (
+	MaxContentItems = 200
+)
+
+
 var BaseURL string
 var AccountsURL string
 var OutboxURL string
@@ -146,7 +151,7 @@ type Article struct {
 	Location ObjectOrLink `jsonld:"location,omitempty"`
 	Preview ObjectOrLink `jsonld:"preview,omitempty"`
 	Published time.Time `jsonld:"published,omitempty"`
-	Replies ObjectOrLink `jsonld:"replies,omitempty"`
+	Replies ObjectsArr `jsonld:"replies,omitempty"`
 	StartTime time.Time `jsonld:"startTime,omitempty"`
 	Summary NaturalLanguageValue `jsonld:"summary,omitempty,collapsible"`
 	Tag ObjectOrLink `jsonld:"tag,omitempty"`
@@ -203,6 +208,32 @@ type OrderedCollection struct {
 	OrderedItems []Article `jsonld:"orderedItems,omitempty"`
 }
 
+func (a *Article) UnmarshalJSON(data []byte) error {
+	it := ap.Object{}
+	err := it.UnmarshalJSON(data)
+	if err != nil {
+		return err
+	}
+
+	a.ID = ObjectID(*it.GetID())
+	a.Type = ActivityVocabularyType(it.GetType())
+	a.Name = it.Name
+	a.Content = it.Content
+	a.Context = it.Context
+	a.Generator = it.Generator
+	a.AttributedTo = it.AttributedTo
+	a.Published = it.Published
+	a.MediaType = MimeType(it.MediaType)
+	if score, err := jsonparser.GetInt(data, "score"); err == nil {
+		a.Score = score
+	}
+	if inReplyTo, err := jsonparser.GetString(data, "inReplyTo"); err == nil {
+		a.InReplyTo = ap.IRI(inReplyTo)
+	}
+
+	return nil
+}
+
 func (o *OrderedCollection) UnmarshalJSON(data []byte) error {
 	col := ap.OrderedCollection{}
 	err := col.UnmarshalJSON(data)
@@ -214,12 +245,11 @@ func (o *OrderedCollection) UnmarshalJSON(data []byte) error {
 	o.TotalItems = col.TotalItems
 	o.OrderedItems = make([]Article, o.TotalItems)
 	for i, it := range col.OrderedItems {
-		score, _ := jsonparser.GetInt(data, "orderedItems", fmt.Sprintf("[%d]", i), "score")
 		el, success := it.(*ap.Object)
 		if !success {
 			continue
 		}
-		o.OrderedItems[i] = Article{
+		a := Article{
 			ID: ObjectID(*it.GetID()),
 			Type: ActivityVocabularyType(it.GetType()),
 			Name: el.Name,
@@ -229,8 +259,14 @@ func (o *OrderedCollection) UnmarshalJSON(data []byte) error {
 			AttributedTo: el.AttributedTo,
 			Published: el.Published,
 			MediaType: MimeType(el.MediaType),
-			Score: score,
 		}
+		if score, err := jsonparser.GetInt(data, "orderedItems", fmt.Sprintf("[%d]", i), "score"); err == nil {
+			a.Score = score
+		}
+		if inReplyTo, err := jsonparser.GetString(data, "orderedItems", fmt.Sprintf("[%d]", i), "inReplyTo"); err == nil {
+			a.InReplyTo = ap.IRI(inReplyTo)
+		}
+		o.OrderedItems[i] = a
 	}
 	return nil
 }

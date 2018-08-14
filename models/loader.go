@@ -50,18 +50,17 @@ type LoadVotesFilter struct {
 }
 
 type LoadItemsFilter struct {
-	Key []string
-	Type []ItemType
-	MediaType []string
-	SubmittedBy []string
-	Parent []string
-	OP string
-	SubmittedAt time.Time
+	Key                  []string
+	Type                 []ItemType
+	MediaType            []string
+	SubmittedBy          []string
+	InReplyTo            []string
+	SubmittedAt          time.Time
 	SubmittedAtMatchType MatchType
-	Content string
-	ContentMatchType MatchType
-	Page int
-	MaxItems int
+	Content              string
+	ContentMatchType     MatchType
+	Page                 int
+	MaxItems             int
 }
 
 type LoadAccountFilter struct {

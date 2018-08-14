@@ -146,12 +146,13 @@ func main() {
 		r.Get("/register", app.ShowRegister)
 		r.Post("/register", app.HandleRegister)
 
-		r.Get("/~{handle}", app.HandleUser)
-
 		//r.With(Item).Get("/~{handle}/{hash}", app.ShowItem)
-		r.Get("/~{handle}/{hash}", app.ShowItem)
-		r.Post("/~{handle}/{hash}", app.HandleSubmit)
-		r.Get("/~{handle}/{hash}/{direction}", app.HandleVoting)
+		r.Route("/~{handle}", func (r chi.Router) {
+			r.Get("/", app.HandleUser)
+			r.Get("/{hash}", app.ShowItem)
+			r.Post("/{hash}", app.HandleSubmit)
+			r.Get("/{hash}/{direction}", app.HandleVoting)
+		})
 
 		//r.Get("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/", app.HandleDate)
 		r.Get("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}", app.ShowItem)

@@ -1,7 +1,6 @@
 package app
 
 import (
-	"bytes"
 	"fmt"
 	"github.com/juju/errors"
 	"github.com/mariusor/littr.go/models"
@@ -18,9 +17,6 @@ const Nay = "nay"
 type comments []*comment
 type comment struct {
 	models.Item
-	Parent   *comment
-	Path     []byte
-	FullPath []byte
 	Children comments
 }
 
@@ -34,7 +30,7 @@ func loadComments(items []models.Item) comments {
 	var comments = make([]*comment, len(items))
 	for k, item := range items {
 		//l := LoadItem(item)
-		com := comment{Item: item, Path: item.Path, FullPath: item.FullPath}
+		com := comment{Item: item, /*Path: item.Path, FullPath: item.FullPath*/}
 
 		comments[k] = &com
 	}
@@ -66,21 +62,16 @@ func sluggify(s string) string {
 
 func ReparentComments(allComments []*comment) {
 	for _, cur := range allComments {
-		par := func(t []*comment, path []byte) *comment {
-			// findParent
-			if len(path) == 0 {
-				return nil
-			}
+		par := func(t []*comment, cur comment) *comment {
 			for _, n := range t {
-				if bytes.Equal(path, n.FullPath) {
+				if cur.Parent != nil && cur.Parent.Hash == n.Hash {
 					return n
 				}
 			}
 			return nil
-		}(allComments, cur.Path)
+		}(allComments, *cur)
 
 		if par != nil {
-			cur.Parent = par
 			par.Children = append(par.Children, cur)
 		}
 	}
@@ -89,19 +80,38 @@ func ReparentComments(allComments []*comment) {
 // ShowItem serves /{year}/{month}/{day}/{hash} request
 // ShowItem serves /~{handle}/{hash} request
 func ShowItem(w http.ResponseWriter, r *http.Request) {
-	hash := chi.URLParam(r, "hash")
 	items := make([]models.Item, 0)
 	ShowItemData = true
 
 	m := contentModel{InvertedTheme: isInverted(r)}
+	val := r.Context().Value(ServiceCtxtKey)
+	itemLoader, ok := val.(models.CanLoadItems)
+	if ok {
+		log.Infof("loaded LoaderService of type %T", itemLoader)
+	} else {
+		log.Errorf("could not load item loader service from Context")
+		return
+	}
+	//handle := chi.URLParam(r, "handle")
+	//acctLoader, ok := val.(models.CanLoadAccounts)
+	//if ok {
+	//	log.Infof("loaded LoaderService of type %T", acctLoader)
+	//} else {
+	//	log.Errorf("could not load account loader service from Context")
+	//}
+	//act, err := acctLoader.LoadAccount(models.LoadAccountFilter{Handle: handle})
 
-	i, err  := models.Service.LoadItem(models.LoadItemFilter{Key: hash})
+	hash := chi.URLParam(r, "hash")
+	i, err  := itemLoader.LoadItem(models.LoadItemsFilter{
+		//SubmittedBy: []string{act.Hash},
+		Key: []string{hash},
+	})
 	if err != nil {
 		log.Error(err)
 		HandleError(w, r, http.StatusNotFound, err)
 		return
 	}
-	m.Content = comment{Item: i, Path: i.Path, FullPath: i.FullPath}
+	m.Content = comment{Item: i, /*Path: i.Path, FullPath: i.FullPath*/}
 	if i.Data == "" {
 		HandleError(w, r, http.StatusNotFound, errors.Errorf("not found"))
 		return
@@ -110,9 +120,9 @@ func ShowItem(w http.ResponseWriter, r *http.Request) {
 	allComments := make(comments, 1)
 	allComments[0] = &m.Content
 
-	contentItems, err := models.Service.LoadItems(models.LoadItemsFilter{
-		Parent: []string{m.Content.Hash,},
-		MaxItems: MaxContentItems,
+	contentItems, err := itemLoader.LoadItems(models.LoadItemsFilter{
+		InReplyTo: []string{m.Content.Hash},
+		MaxItems:  MaxContentItems,
 	})
 	if err != nil {
 		log.Error(err)
@@ -124,14 +134,19 @@ func ShowItem(w http.ResponseWriter, r *http.Request) {
 	ReparentComments(allComments)
 
 	if CurrentAccount.IsLogged() {
-		CurrentAccount.Votes, err = models.Service.LoadVotes(models.LoadVotesFilter{
-			SubmittedBy: []string{CurrentAccount.Hash,},
-			ItemKey:     allComments.getItemsHashes(),
-			MaxItems:    MaxContentItems,
-		})
-
-		if err != nil {
-			log.Error(err)
+		votesLoader, ok := val.(models.CanLoadVotes)
+		if ok {
+			log.Infof("loaded LoaderService of type %T", itemLoader)
+			CurrentAccount.Votes, err = votesLoader.LoadVotes(models.LoadVotesFilter{
+				SubmittedBy: []string{CurrentAccount.Hash,},
+				ItemKey:     allComments.getItemsHashes(),
+				MaxItems:    MaxContentItems,
+			})
+			if err != nil {
+				log.Error(err)
+			}
+		} else {
+			log.Errorf("could not load vote loader service from Context")
 		}
 	}
 	if len(m.Title) > 0 {
@@ -155,7 +170,7 @@ func genitive(name string) string {
 // HandleVoting serves /~{handle}/{direction} request
 func HandleVoting(w http.ResponseWriter, r *http.Request) {
 	hash := chi.URLParam(r, "hash")
-	p, err  := models.Service.LoadItem(models.LoadItemFilter{Key: hash})
+	p, err  := models.Service.LoadItem(models.LoadItemsFilter{Key: []string{hash}})
 	if err != nil {
 		log.Error(err)
 		HandleError(w, r, http.StatusNotFound, err)

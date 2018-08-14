@@ -205,9 +205,9 @@ func LoadItems(filter LoadItemsFilter) (ItemCollection, error) {
 		}
 		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
 	}
-	if len(filter.Parent) > 0 {
+	if len(filter.InReplyTo) > 0 {
 		whereColumns := make([]string, 0)
-		for _, hash := range filter.Parent {
+		for _, hash := range filter.InReplyTo {
 			whereColumns = append(whereColumns,fmt.Sprintf(`("content_items"."path" <@ (select
 CASE WHEN path is null THEN key::ltree ELSE ltree_addltree(path, key::ltree) END
 from "content_items" where key ~* $%d) AND "content_items"."path" IS NOT NULL)`, counter))
@@ -239,8 +239,12 @@ from "content_items" where key ~* $%d) AND "content_items"."path" IS NOT NULL)`,
 		}
 		wheres = append(wheres, fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR ")))
 	}
-	fullWhere := fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(wheres, " AND ")))
-
+	var fullWhere string
+	if len(wheres) > 0 {
+		fullWhere = fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(wheres, " AND ")))
+	} else {
+		fullWhere = " true"
+	}
 	sel := fmt.Sprintf(`select 
 			"content_items"."id", "content_items"."key", "content_items"."mime_type", "content_items"."data", 
 			"content_items"."title", "content_items"."score", "content_items"."submitted_at", 
@@ -312,6 +316,7 @@ func LoadItem(f LoadItemsFilter) (Item, error) {
 		p.SubmittedByAccount = &acct
 	}
 	i = loadItemFromModel(p)
+
 	return i, nil
 }
 
