@@ -6,11 +6,11 @@ import (
 	"github.com/juju/errors"
 	ap "github.com/mariusor/activitypub.go/activitypub"
 	json "github.com/mariusor/activitypub.go/jsonld"
+	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/models"
 	log "github.com/sirupsen/logrus"
 	"net/http"
 	"strings"
-	"github.com/mariusor/littr.go/app"
 )
 
 func getObjectID(s string) ap.ObjectID {
@@ -48,7 +48,7 @@ func loadAPItem(item models.Item) (ap.Item, error) {
 	//o.URL = ap.URI(PermaLink(item))
 	o.MediaType = MimeType(item.MimeType)
 	o.Generator = ap.IRI("http://littr.git")
-	o.Score =  item.Score/models.ScoreMultiplier
+	o.Score = item.Score / models.ScoreMultiplier
 	if item.Title != "" {
 		o.Name["en"] = string(item.Title)
 	}
@@ -89,7 +89,7 @@ func loadAPPerson(a models.Account) *Person {
 
 	in := ap.InboxNew()
 	p.Inbox = in
-	in.ID = BuildCollectionID(a,  p.Inbox)
+	in.ID = BuildCollectionID(a, p.Inbox)
 	in.URL = BuildObjectURL(p.URL, p.Inbox)
 	in.AttributedTo = ap.URI(p.ID)
 
@@ -133,17 +133,10 @@ func loadAPCollection(o ap.CollectionInterface, items *models.ItemCollection) (a
 
 // GET /api/accounts/:handle
 func HandleAccount(w http.ResponseWriter, r *http.Request) {
-	handle := chi.URLParam(r, "handle")
-	a, err := models.Service.LoadAccount(models.LoadAccountFilter{Handle : handle})
-	if err != nil {
-		log.Print(err)
-		HandleError(w, r, http.StatusInternalServerError, err)
-		return
-	}
-	if a.Handle == "" {
-		HandleError(w, r, http.StatusInternalServerError, err)
-		log.Print("could not load account information")
-		return
+	val := r.Context().Value(AccountCtxtKey)
+	a, ok := val.(models.Account)
+	if !ok {
+		log.Errorf("could not load Account from Context")
 	}
 	p := loadAPPerson(a)
 
@@ -163,52 +156,42 @@ func HandleAccount(w http.ResponseWriter, r *http.Request) {
 // GET /api/accounts/:handle/:collection/:hash
 func HandleAccountCollectionItem(w http.ResponseWriter, r *http.Request) {
 	var data []byte
-	a, err := models.Service.LoadAccount(models.LoadAccountFilter{Handle:chi.URLParam(r, "handle")})
-	if err != nil {
-		HandleError(w, r, http.StatusInternalServerError, err)
-		return
-	}
-	if a.Handle == "" {
-		HandleError(w, r, http.StatusNotFound, errors.Errorf("acccount not found"))
-		return
-	}
+	var err error
 
-	hash := chi.URLParam(r, "hash")
+	val := r.Context().Value(ItemCtxtKey)
+
 	collection := chi.URLParam(r, "collection")
-
 	var el ObjectOrLink
 	switch strings.ToLower(collection) {
 	case "inbox":
 	case "outbox":
-		c, err  := models.Service.LoadItem(models.LoadItemFilter{Key: hash})
-		if err != nil {
-			HandleError(w, r, http.StatusNotFound, err)
+		i, ok := val.(models.Item)
+		if !ok {
+			log.Errorf("could not load Item from Context")
 			return
 		}
-		el, _ = loadAPItem(c)
+		el, err = loadAPItem(i)
 		if err != nil {
 			HandleError(w, r, http.StatusNotFound, err)
 			return
 		}
 	case "liked":
-		c, err  := models.Service.LoadVote(models.LoadVotesFilter{
-			ItemKey: []string{hash,},
-			SubmittedBy: []string{a.Hash,},
-		})
-		if err != nil {
-			HandleError(w, r, http.StatusNotFound, err)
+		v, ok := val.(models.Vote)
+		if !ok {
+			log.Errorf("could not load Vote from Context")
 			return
 		}
-		el, _ = loadAPLike(c)
+		el, err = loadAPLike(v)
 		if err != nil {
 			HandleError(w, r, http.StatusNotFound, err)
 			return
 		}
 	default:
-		err = errors.Errorf("collection not found")
+		log.Error(errors.Errorf("collection not found"))
 	}
 
 	data, err = json.WithContext(GetContext()).Marshal(el)
+	log.Error(err)
 	w.Header().Set("item-Type", "application/ld+json; charset=utf-8")
 	w.Header().Set("X-item-Type-Options", "nosniff")
 	w.WriteHeader(http.StatusOK)
@@ -218,56 +201,33 @@ func HandleAccountCollectionItem(w http.ResponseWriter, r *http.Request) {
 // GET /api/accounts/:handle/:collection
 func HandleAccountCollection(w http.ResponseWriter, r *http.Request) {
 	var data []byte
-	a, err := models.Service.LoadAccount(models.LoadAccountFilter{Handle: chi.URLParam(r, "handle")})
-	if err != nil {
-		HandleError(w, r, http.StatusInternalServerError, err)
-		return
+	var err error
+	val := r.Context().Value(AccountCtxtKey)
+	a, ok := val.(models.Account)
+	if !ok {
+		log.Errorf("could not load Account from Context")
 	}
-	if a.Handle == "" {
-		HandleError(w, r, http.StatusNotFound, errors.Errorf("acccount not found"))
-		return
-	}
-
 	p := loadAPPerson(a)
 
-	collection := chi.URLParam(r, "collection")
-	switch strings.ToLower(collection) {
+	typ := chi.URLParam(r, "collection")
+
+	collection := r.Context().Value(CollectionCtxtKey)
+	switch strings.ToLower(typ) {
 	case "inbox":
-		items, err := loadReceivedItems(a.Hash)
-		if err != nil {
-			log.Print(err)
-		}
-		_, err = loadAPCollection(p.Inbox, items)
-		data, err = json.WithContext(GetContext()).Marshal(p.Inbox)
 	case "outbox":
-		items, err := models.LoadItemsSubmittedBy(a.Handle)
-		if err != nil {
-			log.Print(err)
+		items, ok := collection.(models.ItemCollection)
+		if !ok {
+			log.Errorf("could not load Items from Context")
+			return
 		}
 		_, err = loadAPCollection(p.Outbox, &items)
 		data, err = json.WithContext(GetContext()).Marshal(p.Outbox)
 	case "liked":
-		types := r.URL.Query()["type"]
-		var which []models.VoteType
-		if types == nil {
-			which =  []models.VoteType{
-				models.VoteType(strings.ToLower(string(ap.LikeType))),
-				models.VoteType(strings.ToLower(string(ap.DislikeType))),
-			}
-		} else {
-			for _, typ := range types {
-				if strings.ToLower(typ) == strings.ToLower(string(ap.LikeType)) {
-					which = []models.VoteType{models.VoteType(strings.ToLower(string(ap.LikeType))),}
-				} else {
-					which = []models.VoteType{models.VoteType(strings.ToLower(string(ap.DislikeType))),}
-				}
-			}
+		votes, ok := collection.(models.VoteCollection)
+		if !ok {
+			log.Errorf("could not load Votes from Context")
+			return
 		}
-		votes, err := models.Service.LoadVotes(models.LoadVotesFilter{
-			SubmittedBy: []string{a.Hash,},
-			Type: which,
-			MaxItems: app.MaxContentItems,
-		})
 		if err != nil {
 			log.Print(err)
 		}
@@ -295,10 +255,21 @@ func HandleVerifyCredentials(w http.ResponseWriter, r *http.Request) {
 		HandleError(w, r, http.StatusNotFound, errors.Errorf("account not found"))
 		return
 	}
-
-	a, err := models.Service.LoadAccount(models.LoadAccountFilter{Handle: acct.Handle})
+	val := r.Context().Value(ServiceCtxtKey)
+	AcctLoader, ok := val.(models.CanLoadAccounts)
+	if ok {
+		log.Infof("loaded LoaderService of type %T", AcctLoader)
+	} else {
+		log.Errorf("could not load account loader service from Context")
+	}
+	a, err := AcctLoader.LoadAccount(models.LoadAccountFilter{Handle: acct.Handle})
 	if err != nil {
-		HandleError(w, r, http.StatusInternalServerError, err)
+		log.Error(err)
+		HandleError(w, r, http.StatusNotFound, err)
+		return
+	}
+	if a.Handle == "" {
+		HandleError(w, r, http.StatusNotFound, errors.Errorf("account not found"))
 		return
 	}
 

@@ -6,7 +6,6 @@ import (
 	"flag"
 	"fmt"
 	"github.com/go-chi/chi"
-	"context"
 	"github.com/go-chi/chi/middleware"
 	"github.com/gorilla/sessions"
 	"github.com/juju/errors"
@@ -113,25 +112,6 @@ func FileServer(r chi.Router, path string, root http.FileSystem) {
 	}))
 }
 
-func Item(next http.Handler) http.Handler {
-	fn := func(w http.ResponseWriter, r *http.Request) {
-		var i models.Item
-		l := r.Context().Value("loader")
-		if loader, ok := l.(models.LoaderService); ok {
-			f := models.LoadItemFilter{}
-			var err error
-			i, err = loader.LoadItem(f)
-			if err != nil {
-				app.HandleError(w, r, http.StatusNotFound, errors.NotFoundf("item not found"))
-			}
-		}
-		ctx := context.WithValue(r.Context(), "item", i)
-		next.ServeHTTP(w, r.WithContext(ctx))
-	}
-	return http.HandlerFunc(fn)
-}
-
-
 func main() {
 	var wait time.Duration
 	flag.DurationVar(&wait, "graceful-timeout", time.Second*15, "the duration for which the server gracefully wait for existing connections to finish - e.g. 15s or 1m")
@@ -155,7 +135,9 @@ func main() {
 	filesDir := filepath.Join(workDir, "assets")
 	FileServer(r, "/assets", http.Dir(filesDir))
 
-	r.With(app.LoadSessionData, api.Loader).Route("/", func(r chi.Router) {
+	r.With(api.Loader).Route("/", func(r chi.Router) {
+		r.Use(app.LoadSessionData)
+
 		r.Get("/", app.HandleIndex)
 
 		r.Get("/submit", app.ShowSubmit)
@@ -190,16 +172,28 @@ func main() {
 	})
 
 	r.With(models.Loader).Route("/api", func(r chi.Router) {
-		r.Get("/accounts/verify_credentials", api.HandleVerifyCredentials)
-		r.Get("/accounts/{handle}", api.HandleAccount)
-		r.Get("/accounts/{handle}/{collection}", api.HandleAccountCollection)
-		//r.With(Item).Get("/accounts/{handle}/{collection}/{hash}", api.HandleAccountCollectionItem)
-		r.Get("/accounts/{handle}/{collection}/{hash}", api.HandleAccountCollectionItem)
-		r.Get("/{collection}", api.HandleServiceCollection)
-		r.Get("/{collection}/{hash}", api.HandleServiceCollectionItem)
+		r.With(app.LoadSessionData).Get("/accounts/verify_credentials", api.HandleVerifyCredentials)
+
+		r.Route("/accounts/{handle}", func (r chi.Router) {
+			r.Use(api.AccountCtxt)
+
+			r.Get("/", api.HandleAccount)
+			r.With(api.LoadFiltersCtxt, api.ItemCollectionCtxt).Get("/{collection}", api.HandleAccountCollection)
+			r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/{collection}/{hash}", api.HandleAccountCollectionItem)
+		})
+
+		r.Route("/{collection}", func (r chi.Router) {
+			r.Use(api.ServiceCtxt)
+
+			r.With(api.LoadFiltersCtxt, api.ItemCollectionCtxt).Get("/", api.HandleServiceCollection)
+			r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/{hash}", api.HandleServiceCollectionItem)
+		})
 
 		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 			api.HandleError(w, r, http.StatusNotFound, errors.Errorf("%s not found", r.RequestURI))
+		})
+		r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
+			api.HandleError(w, r, http.StatusMethodNotAllowed, errors.Errorf("invalid %s request", r.Method))
 		})
 	})
 

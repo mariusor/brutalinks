@@ -64,10 +64,6 @@ type LoadItemsFilter struct {
 	MaxItems int
 }
 
-type LoadItemFilter struct {
-	Key string
-}
-
 type LoadAccountFilter struct {
 	Key string
 	Handle string
@@ -78,7 +74,7 @@ type CanSaveItems interface {
 }
 
 type CanLoadItems interface {
-	LoadItem(f LoadItemFilter) (Item, error)
+	LoadItem(f LoadItemsFilter) (Item, error)
 	LoadItems(f LoadItemsFilter) (ItemCollection, error)
 }
 
@@ -105,7 +101,7 @@ func (l LoaderService) SaveItem(it Item) (Item, error) {
 	return SaveItem(it)
 }
 
-func (l LoaderService) LoadItem(f LoadItemFilter) (Item, error) {
+func (l LoaderService) LoadItem(f LoadItemsFilter) (Item, error) {
 	return LoadItem(f)
 }
 

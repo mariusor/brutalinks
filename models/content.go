@@ -277,7 +277,12 @@ from "content_items" where key ~* $%d) AND "content_items"."path" IS NOT NULL)`,
 	return items, nil
 }
 
-func LoadItem(f LoadItemFilter) (Item, error) {
+func LoadItem(f LoadItemsFilter) (Item, error) {
+	if len(f.Key) == 0 {
+		return Item{}, errors.Errorf("invalid item key to load")
+	}
+
+	hash := f.Key[0]
 	p := item{}
 	a := account{}
 	i := Item{}
@@ -290,7 +295,7 @@ func LoadItem(f LoadItemFilter) (Item, error) {
  			from "content_items" 
 			left join "accounts" on "accounts"."id" = "content_items"."submitted_by"
 			where "content_items"."key" ~* $1`
-	rows, err := Db.Query(sel, f.Key)
+	rows, err := Db.Query(sel, hash)
 	if err != nil {
 		return i, err
 	}

@@ -198,7 +198,7 @@ func SaveItem(it Item) (Item, error) {
 		}
 	}
 
-	return LoadItem(LoadItemFilter{Key: i.Key.String()})
+	return LoadItem(LoadItemsFilter{Key: []string{i.Key.String()}})
 }
 
 func SaveVote(vot Vote) (Vote, error) {
