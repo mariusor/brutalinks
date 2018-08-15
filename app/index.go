@@ -1,13 +1,12 @@
 package app
 
 import (
-	"bytes"
 	"fmt"
 	"github.com/mariusor/littr.go/models"
 	log "github.com/sirupsen/logrus"
 	"net/http"
 	"os"
-			)
+)
 
 const (
 	MaxContentItems = 200
@@ -60,18 +59,14 @@ func getAuthProviders() map[string]string {
 }
 
 func ParentLink(c models.Item) string {
-	if len(c.Path) == 0 {
-		return "/"
-	} else {
-		lastDotPos := bytes.LastIndex(c.Path, []byte(".")) + 1
-		parentHash := c.Path[lastDotPos : lastDotPos+8]
-		return fmt.Sprintf("/parent/%s/%s", c.Hash, parentHash)
+	if c.Parent != nil {
+		return fmt.Sprintf("/parent/%s", c.Hash)
 	}
+	return "/"
 }
 func OPLink(c models.Item) string {
-	if len(c.Path) > 0 {
-		parentHash := c.Path[0:8]
-		return fmt.Sprintf("/op/%s/%s", c.Hash, parentHash)
+	if c.Parent != nil {
+		return fmt.Sprintf("/op/%s", c.Hash)
 	}
 	return "/"
 }

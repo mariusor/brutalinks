@@ -320,7 +320,7 @@ func LoadItem(f LoadItemsFilter) (Item, error) {
 	return i, nil
 }
 
-func LoadItemParent(hash string, opHash string) (Item, error){
+func LoadItemParent(hash string) (Item, error){
 	i := Item{}
 	p := item{}
 	a := account{}
@@ -331,10 +331,10 @@ func LoadItemParent(hash string, opHash string) (Item, error){
 			"accounts"."id", "accounts"."key", "accounts"."handle", "accounts"."email", "accounts"."score", 
 			"accounts"."created_at", "accounts"."metadata", "accounts"."flags"
  			from "content_items" as "par"
-			inner join "content_items" as "cur" on subltree("cur"."path", nlevel("cur"."path")-1, nlevel("cur"."path")) <@ "par"."key"::ltree
+			inner join "content_items" as "cur" on subltree("cur"."path", nlevel("cur"."path")-1, nlevel("cur"."path"))::text = "par"."key"
 			left join "accounts" on "accounts"."id" = "par"."submitted_by"
-			where "cur"."key" ~* $1 and "par"."key" ~* $2`
-	rows, err := Db.Query(sel, hash, opHash)
+			where "cur"."key" ~* $1`
+	rows, err := Db.Query(sel, hash)
 	if err != nil {
 		return i, err
 	}
@@ -354,21 +354,21 @@ func LoadItemParent(hash string, opHash string) (Item, error){
 	return i, nil
 }
 
-func LoadItemOP(hash string, opHash string) (Item, error){
+func LoadItemOP(hash string) (Item, error){
 	i := Item{}
 	p := item{}
 	a := account{}
 
-	sel := `select "par"."id", "par"."key", "par"."mime_type", "par"."data", 
-			"par"."title", "par"."score", "par"."submitted_at", 
-			"par"."submitted_by", "par"."flags", "par"."metadata", "par"."path",
-			"accounts"."id", "accounts"."key", "accounts"."handle", "accounts"."email", "accounts"."score", 
-			"accounts"."created_at", "accounts"."metadata", "accounts"."flags"
- 			from "content_items" as "par"
-			inner join "content_items" as "cur" on subltree("cur"."path", 0, nlevel("cur"."path")) <@ "par"."key"::ltree
-			left join "accounts" on "accounts"."id" = "par"."submitted_by"
-			where "cur"."key" ~* $1 and "par"."key" ~* $2`
-	rows, err := Db.Query(sel, hash, opHash)
+	sel := `select "par"."id", "par"."key", "par"."mime_type", "par"."data",
+       "par"."title", "par"."score", "par"."submitted_at",
+       "par"."submitted_by", "par"."flags", "par"."metadata", "par"."path",
+       "accounts"."id", "accounts"."key", "accounts"."handle", "accounts"."email", "accounts"."score",
+       "accounts"."created_at", "accounts"."metadata", "accounts"."flags"
+from "content_items" as "cur"
+       inner join "content_items" as "par" on subltree("cur"."path", 0, 1)::text = "par"."key"
+       left join "accounts" on "accounts"."id" = "par"."submitted_by"
+			where "cur"."key" ~* $1`
+	rows, err := Db.Query(sel, hash)
 	if err != nil {
 		return i, err
 	}
