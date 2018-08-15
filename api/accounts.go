@@ -187,10 +187,10 @@ func HandleCollectionItem(w http.ResponseWriter, r *http.Request) {
 			}
 			if len(replies) > 0 {
 				if o, ok := el.(Article); ok {
-					o.Replies = make(ObjectsArr, 0)
+					o.Replies = ap.CollectionNew(ap.ObjectID(fmt.Sprintf("%s/%s/outbox/%s/replies", AccountsURL, i.SubmittedBy.Handle, i.Hash)))
 					for _, repl := range replies {
 						rIRI := fmt.Sprintf("%s/%s/outbox/%s", AccountsURL, repl.SubmittedBy.Handle, repl.Hash)
-						o.Replies = append(o.Replies, ap.IRI(rIRI))
+						o.Replies.Append(ap.IRI(rIRI))
 					}
 					el = o
 				}

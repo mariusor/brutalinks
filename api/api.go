@@ -151,7 +151,7 @@ type Article struct {
 	Location ObjectOrLink `jsonld:"location,omitempty"`
 	Preview ObjectOrLink `jsonld:"preview,omitempty"`
 	Published time.Time `jsonld:"published,omitempty"`
-	Replies ObjectsArr `jsonld:"replies,omitempty"`
+	Replies CollectionInterface `jsonld:"replies,omitempty"`
 	StartTime time.Time `jsonld:"startTime,omitempty"`
 	Summary NaturalLanguageValue `jsonld:"summary,omitempty,collapsible"`
 	Tag ObjectOrLink `jsonld:"tag,omitempty"`
@@ -198,7 +198,7 @@ type OrderedCollection struct {
 	Location ObjectOrLink `jsonld:"location,omitempty"`
 	Preview ObjectOrLink `jsonld:"preview,omitempty"`
 	Published time.Time `jsonld:"published,omitempty"`
-	Replies ObjectOrLink `jsonld:"replies,omitempty"`
+	Replies CollectionInterface `jsonld:"replies,omitempty"`
 	Summary NaturalLanguageValue `jsonld:"summary,omitempty,collapsible"`
 	Tag ObjectOrLink `jsonld:"tag,omitempty"`
 	Updated time.Time `jsonld:"updated,omitempty"`
