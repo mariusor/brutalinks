@@ -222,7 +222,7 @@ from "content_items" where key ~* $%d) AND "content_items"."path" IS NOT NULL)`,
 		if filter.ContentMatchType == MatchFuzzy {
 			operator = "~"
 		}
-		if filter.ContentMatchType == MatchEquals{
+		if filter.ContentMatchType == MatchEquals {
 			operator = "="
 		}
 		whereColumns = append(whereColumns, fmt.Sprintf(`"content_items"."data" %s $%d`, operator, counter))

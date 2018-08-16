@@ -21,7 +21,7 @@ func Loader (next http.Handler) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
-type MatchType string
+type MatchType int
 type ItemType string
 type VoteType string
 

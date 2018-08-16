@@ -14,6 +14,7 @@ import (
 	"os"
 	"strings"
 	"net/url"
+	"strconv"
 )
 
 const ServiceCtxtKey = "__loader"
@@ -135,7 +136,21 @@ func loadOutboxFilterFromReq(r *http.Request) models.LoadItemsFilter {
 	for _, typ := range r.URL.Query()["type"] {
 		filters.Type = append(filters.Type, models.ItemType(typ))
 	}
-	filters.MediaType = r.URL.Query()["mediaType"]
+	mediaType := r.URL.Query()["mediaType"]
+	for _, typ := range mediaType {
+		if m, err := url.QueryUnescape(typ); err == nil {
+			filters.MediaType = append(filters.MediaType, m)
+		}
+	}
+	content := r.URL.Query().Get("content")
+	if len(content) > 0 {
+		filters.ContentMatchType = models.MatchEquals
+		filters.Content, _ = url.QueryUnescape(content)
+	}
+	matchType := r.URL.Query().Get("contentMatchType")
+	if m, err := strconv.Atoi(matchType); err == nil {
+		filters.ContentMatchType = models.MatchType(m)
+	}
 
 	return filters
 }
@@ -299,6 +314,17 @@ func LoadItems(f models.LoadItemsFilter) (models.ItemCollection, error) {
 	if len(f.Type) > 0 {
 		for _, p := range f.Type {
 			q.Add("type", string(p))
+		}
+	}
+	if len(f.Content) > 0 {
+		q.Add("content", url.QueryEscape(f.Content))
+	}
+	if f.ContentMatchType > 0 {
+		q.Add("contentMatchType", strconv.Itoa(int(f.ContentMatchType)))
+	}
+	if len(f.MediaType) > 0 {
+		for _, mediaType := range f.MediaType {
+			q.Add("mediaType", url.QueryEscape(mediaType))
 		}
 	}
 
