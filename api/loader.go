@@ -267,7 +267,7 @@ func (l LoaderService) LoadItem(f models.LoadItemsFilter) (models.Item, error) {
 	if len(f.Key) != 1 {
 		return it, errors.Errorf("invalid item hash")
 	}
-	resp, err := http.Get(fmt.Sprintf("http://localhost%s/api/outbox/%s", apiBaseUrl, f.Key[0]))
+	resp, err := http.Get(fmt.Sprintf("http://%s/api/outbox/%s", apiBaseUrl, f.Key[0]))
 	if err != nil {
 		log.Error(err)
 		return it, err
@@ -341,7 +341,7 @@ func LoadItems(f models.LoadItemsFilter) (models.ItemCollection, error) {
 	}
 
 	var err error
-	resp, err := http.Get(fmt.Sprintf("http://localhost%s/api/outbox%s", apiBaseUrl, qs))
+	resp, err := http.Get(fmt.Sprintf("http://%s/api/outbox%s", apiBaseUrl, qs))
 	if err != nil {
 		log.Error(err)
 		return nil, err
