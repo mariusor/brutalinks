@@ -61,15 +61,16 @@ func getAuthProviders() map[string]string {
 
 func ParentLink(c models.Item) string {
 	if c.Parent != nil {
-		return fmt.Sprintf("/parent/%s", c.Hash)
+		return fmt.Sprintf("/item/%s", c.Parent.Hash)
 	}
-	return "/"
+	return ""
 }
+
 func OPLink(c models.Item) string {
-	if c.Parent != nil {
-		return fmt.Sprintf("/op/%s", c.Hash)
+	if c.OP != nil {
+		return fmt.Sprintf("/item/%s", c.OP.Hash)
 	}
-	return "/"
+	return ""
 }
 
 func permaLink(c models.Item) string {

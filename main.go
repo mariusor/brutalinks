@@ -160,7 +160,7 @@ func main() {
 		r.Get("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}/{direction}", app.HandleVoting)
 		r.Post("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}", app.HandleSubmit)
 
-		r.Get("/{parent}/{hash}", app.HandleParent)
+		r.Get("/item/{hash}", app.HandleItemRedirect)
 
 		r.Get("/domains/{domain}", app.HandleDomains)
 

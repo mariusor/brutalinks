@@ -399,10 +399,12 @@ func loadFromAPItem(it Article) models.Item {
 			Hash: getAccountHandle(p),
 		}
 	}
-	op := it.Context
-	if p, ok := op.(ap.IRI); ok {
-		c.OP = &models.Item{
-			Hash: getAccountHandle(p),
+	if it.Context != it.InReplyTo {
+		op := it.Context
+		if p, ok := op.(ap.IRI); ok {
+			c.OP = &models.Item{
+				Hash: getAccountHandle(p),
+			}
 		}
 	}
 	return c
