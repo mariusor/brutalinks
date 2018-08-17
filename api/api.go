@@ -73,6 +73,12 @@ type (
 	Endpoints              ap.Endpoints
 )
 
+type PublicKey struct {
+	Id           ObjectID     `jsonld:"id,omitempty"`
+	Owner        ObjectOrLink `jsonld:"owner,omitempty"`
+	PublicKeyPem []byte       `jsonld:"publicKeyPem,omitempty"`
+}
+
 // Person it should be identical to:
 //    github.com/mariusor/activitypub.go/activitypub/actors.go#Actor
 // We need it here in order to be able to add to it our Score property
@@ -112,6 +118,7 @@ type Person struct {
 	PreferredUsername NaturalLanguageValue   `jsonld:"preferredUsername,omitempty,collapsible"`
 	Endpoints         Endpoints              `jsonld:"endpoints,omitempty"`
 	Streams           []CollectionInterface  `jsonld:"streams,omitempty"`
+	PublicKey         PublicKey              `jsonld:"publicKey,omitempty"`
 	// Score is our own custom property for which we needed to extend the existing AP one
 	Score int64 `jsonld:"score"`
 }
@@ -295,6 +302,7 @@ func Errorf(c int, m string, args ...interface{}) *Error {
 func GetContext() j.Context {
 	return j.Context{
 		j.Term(j.NilTerm): j.IRI(ap.ActivityBaseURI),
+		j.Term("w3id"):    j.IRI("https://w3id.org/security/v1"),
 		j.Term("score"):   j.IRI("http://littr.me/as#score"),
 	}
 }
