@@ -2,10 +2,11 @@ package models
 
 import (
 	"database/sql"
-	"github.com/juju/errors"
-	"golang.org/x/net/context"
 	"net/http"
 	"time"
+
+	"github.com/juju/errors"
+	"golang.org/x/net/context"
 )
 
 var Db *sql.DB
@@ -34,10 +35,9 @@ const (
 )
 
 const (
-	TypeOP = ItemType("op")
-
 	TypeLike    = VoteType("like")
 	TypeDislike = VoteType("dislike")
+	ContextNil  = "0"
 )
 
 type LoadVotesFilter struct {
@@ -52,10 +52,10 @@ type LoadVotesFilter struct {
 
 type LoadItemsFilter struct {
 	Key                  []string
-	Type                 []ItemType
 	MediaType            []string
 	SubmittedBy          []string
 	InReplyTo            []string
+	Context              []string
 	SubmittedAt          time.Time
 	SubmittedAtMatchType MatchType
 	Content              string

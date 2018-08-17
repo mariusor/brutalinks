@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"fmt"
-	"github.com/juju/errors"
-	log "github.com/sirupsen/logrus"
 	"strings"
 	"time"
+
+	"github.com/juju/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -195,12 +196,14 @@ func LoadItems(filter LoadItemsFilter) (ItemCollection, error) {
 		}
 		wheres = append(wheres, fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR ")))
 	}
-	if len(filter.Type) > 0 {
+	if len(filter.Context) > 0 {
+		// Context filters are hashes belonging to a top element
 		whereColumns := make([]string, 0)
-		for _, typ := range filter.Type {
-			if typ == TypeOP {
+		for _, ctxtHash := range filter.Context {
+			if ctxtHash == ContextNil {
 				whereColumns = append(whereColumns, `"content_items"."path" is NULL OR nlevel("content_items"."path") = 0`)
 				counter += 1
+				break
 			}
 		}
 		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))

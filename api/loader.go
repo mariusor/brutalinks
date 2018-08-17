@@ -3,6 +3,13 @@ package api
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"net/url"
+	"os"
+	"strconv"
+	"strings"
+
 	"github.com/buger/jsonparser"
 	"github.com/go-chi/chi"
 	"github.com/juju/errors"
@@ -10,12 +17,6 @@ import (
 	j "github.com/mariusor/activitypub.go/jsonld"
 	"github.com/mariusor/littr.go/models"
 	log "github.com/sirupsen/logrus"
-	"io/ioutil"
-	"net/http"
-	"net/url"
-	"os"
-	"strconv"
-	"strings"
 )
 
 const ServiceCtxtKey = "__loader"
@@ -134,8 +135,8 @@ func loadOutboxFilterFromReq(r *http.Request) models.LoadItemsFilter {
 		filters.MaxItems = 1
 	}
 	filters.InReplyTo = r.URL.Query()["inReplyTo"]
-	for _, typ := range r.URL.Query()["type"] {
-		filters.Type = append(filters.Type, models.ItemType(typ))
+	for _, ctxtHash := range r.URL.Query()["context"] {
+		filters.Context = append(filters.Context, ctxtHash)
 	}
 	mediaType := r.URL.Query()["mediaType"]
 	for _, typ := range mediaType {
@@ -312,9 +313,9 @@ func LoadItems(f models.LoadItemsFilter) (models.ItemCollection, error) {
 			q.Add("inReplyTo", p)
 		}
 	}
-	if len(f.Type) > 0 {
-		for _, p := range f.Type {
-			q.Add("type", string(p))
+	if len(f.Context) > 0 {
+		for _, p := range f.Context {
+			q.Add("context", string(p))
 		}
 	}
 	if len(f.Content) > 0 {

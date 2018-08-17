@@ -2,10 +2,11 @@ package app
 
 import (
 	"fmt"
-	"github.com/mariusor/littr.go/models"
-	log "github.com/sirupsen/logrus"
 	"net/http"
 	"os"
+
+	"github.com/mariusor/littr.go/models"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -102,7 +103,7 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 	}
 	var err error
 	items, err := itemLoader.LoadItems(models.LoadItemsFilter{
-		Type:     []models.ItemType{models.TypeOP},
+		Context:  []string{"0"},
 		MaxItems: MaxContentItems,
 	})
 	if err != nil {
