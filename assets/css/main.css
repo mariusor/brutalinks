@@ -431,11 +431,11 @@ a.to-op:before {
     font-family: "Font Awesome 5 Free";
     font-weight: 900;
 }
-footer {
+body>footer {
     font-size: 0.7em;
     width: 100%;
 }
-footer menu#bottom {
+menu#bottom {
 }
 header menu#top {
     display: block !important;
