@@ -304,7 +304,10 @@ func BuildActorID(a models.Account) ap.ObjectID {
 }
 
 func BuildCollectionID(a models.Account, o ap.CollectionInterface) ap.ObjectID {
-	return ap.ObjectID(fmt.Sprintf("%s/%s/%s", AccountsURL, url.PathEscape(a.Handle), getObjectType(o)))
+	if len(a.Handle) > 0 {
+		return ap.ObjectID(fmt.Sprintf("%s/%s/%s", AccountsURL, url.PathEscape(a.Handle), getObjectType(o)))
+	}
+	return ap.ObjectID(fmt.Sprintf("%s/%s", BaseURL, getObjectType(o)))
 }
 
 func BuildRepliesCollectionID(i ap.Item) ap.ObjectID {

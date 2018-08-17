@@ -86,19 +86,21 @@ func loadAPPerson(a models.Account) *Person {
 	p.Outbox = out
 	out.ID = BuildCollectionID(a, p.Outbox)
 	out.URL = BuildObjectURL(p.URL, p.Outbox)
-	out.AttributedTo = ap.URI(p.ID)
-
+	if len(a.Handle) > 0 {
+		out.AttributedTo = ap.URI(p.ID)
+	}
 	in := ap.InboxNew()
 	p.Inbox = in
 	in.ID = BuildCollectionID(a, p.Inbox)
 	in.URL = BuildObjectURL(p.URL, p.Inbox)
-	in.AttributedTo = ap.URI(p.ID)
 
 	liked := ap.LikedNew()
 	p.Liked = liked
 	liked.ID = BuildCollectionID(a, p.Liked)
 	liked.URL = BuildObjectURL(p.URL, p.Liked)
-	liked.AttributedTo = ap.URI(p.ID)
+	if len(a.Handle) > 0 {
+		liked.AttributedTo = ap.URI(p.ID)
+	}
 
 	p.URL = BuildObjectURL(baseURL, p)
 	p.Score = a.Score
