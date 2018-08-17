@@ -134,6 +134,9 @@ func loadOutboxFilterFromReq(r *http.Request) models.LoadItemsFilter {
 		filters.Key = []string{hash}
 		filters.MaxItems = 1
 	}
+	for _, by := range r.URL.Query()["submittedBy"] {
+		filters.SubmittedBy = append(filters.SubmittedBy, by)
+	}
 	filters.InReplyTo = r.URL.Query()["inReplyTo"]
 	for _, ctxtHash := range r.URL.Query()["context"] {
 		filters.Context = append(filters.Context, ctxtHash)
@@ -311,6 +314,11 @@ func LoadItems(f models.LoadItemsFilter) (models.ItemCollection, error) {
 	if len(f.InReplyTo) > 0 {
 		for _, p := range f.InReplyTo {
 			q.Add("inReplyTo", p)
+		}
+	}
+	if len(f.SubmittedBy) > 0 {
+		for _, a := range f.SubmittedBy {
+			q.Add("submittedBy", a)
 		}
 	}
 	if len(f.Context) > 0 {
