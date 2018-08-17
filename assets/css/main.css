@@ -17,7 +17,6 @@
 @media (min-width: 768px) {
     :root {
         font-size: 1.8vw;
-
     }
 }
 @media (min-width: 992px) {
@@ -436,6 +435,7 @@ footer {
     font-size: 0.7em;
     width: 100%;
 }
+footer menu#bottom {}
 header menu#top {
     display: block !important;
 }
