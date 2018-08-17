@@ -205,6 +205,11 @@ func LoadItems(filter LoadItemsFilter) (ItemCollection, error) {
 				counter += 1
 				break
 			}
+			whereColumns = append(whereColumns, fmt.Sprintf(`("content_items"."path" <@ (select
+CASE WHEN path is null THEN key::ltree ELSE ltree_addltree(path, key::ltree) END
+from "content_items" where key ~* $%d) AND "content_items"."path" IS NOT NULL)`, counter))
+			whereValues = append(whereValues, interface{}(ctxtHash))
+			counter += 1
 		}
 		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
 	}

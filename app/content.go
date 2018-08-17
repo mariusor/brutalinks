@@ -2,11 +2,12 @@ package app
 
 import (
 	"fmt"
+	"net/http"
+	"strings"
+
 	"github.com/juju/errors"
 	"github.com/mariusor/littr.go/models"
 	log "github.com/sirupsen/logrus"
-	"net/http"
-	"strings"
 
 	"github.com/go-chi/chi"
 )
@@ -121,8 +122,8 @@ func ShowItem(w http.ResponseWriter, r *http.Request) {
 	allComments[0] = &m.Content
 
 	contentItems, err := itemLoader.LoadItems(models.LoadItemsFilter{
-		InReplyTo: []string{m.Content.Hash},
-		MaxItems:  MaxContentItems,
+		Context:  []string{m.Content.Hash},
+		MaxItems: MaxContentItems,
 	})
 	if err != nil {
 		log.Error(err)
