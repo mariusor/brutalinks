@@ -30,7 +30,7 @@ func loadComments(items []models.Item) comments {
 	var comments = make([]*comment, len(items))
 	for k, item := range items {
 		//l := LoadItem(item)
-		com := comment{Item: item, /*Path: item.Path, FullPath: item.FullPath*/}
+		com := comment{Item: item /*Path: item.Path, FullPath: item.FullPath*/}
 
 		comments[k] = &com
 	}
@@ -102,7 +102,7 @@ func ShowItem(w http.ResponseWriter, r *http.Request) {
 	//act, err := acctLoader.LoadAccount(models.LoadAccountFilter{Handle: handle})
 
 	hash := chi.URLParam(r, "hash")
-	i, err  := itemLoader.LoadItem(models.LoadItemsFilter{
+	i, err := itemLoader.LoadItem(models.LoadItemsFilter{
 		//SubmittedBy: []string{act.Hash},
 		Key: []string{hash},
 	})
@@ -111,7 +111,7 @@ func ShowItem(w http.ResponseWriter, r *http.Request) {
 		HandleError(w, r, http.StatusNotFound, err)
 		return
 	}
-	m.Content = comment{Item: i, /*Path: i.Path, FullPath: i.FullPath*/}
+	m.Content = comment{Item: i /*Path: i.Path, FullPath: i.FullPath*/}
 	if i.Data == "" {
 		HandleError(w, r, http.StatusNotFound, errors.Errorf("not found"))
 		return
@@ -138,7 +138,7 @@ func ShowItem(w http.ResponseWriter, r *http.Request) {
 		if ok {
 			log.Infof("loaded LoaderService of type %T", itemLoader)
 			CurrentAccount.Votes, err = votesLoader.LoadVotes(models.LoadVotesFilter{
-				SubmittedBy: []string{CurrentAccount.Hash,},
+				SubmittedBy: []string{CurrentAccount.Hash},
 				ItemKey:     allComments.getItemsHashes(),
 				MaxItems:    MaxContentItems,
 			})
@@ -170,7 +170,7 @@ func genitive(name string) string {
 // HandleVoting serves /~{handle}/{direction} request
 func HandleVoting(w http.ResponseWriter, r *http.Request) {
 	hash := chi.URLParam(r, "hash")
-	p, err  := models.Service.LoadItem(models.LoadItemsFilter{Key: []string{hash}})
+	p, err := models.Service.LoadItem(models.LoadItemsFilter{Key: []string{hash}})
 	if err != nil {
 		log.Error(err)
 		HandleError(w, r, http.StatusNotFound, err)

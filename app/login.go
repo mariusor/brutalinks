@@ -3,7 +3,7 @@ package app
 import (
 	"net/http"
 
-		log "github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/juju/errors"
 	"github.com/mariusor/littr.go/models"
@@ -23,7 +23,7 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	errs := make([]error, 0)
 	pw := r.PostFormValue("pw")
 	handle := r.PostFormValue("handle")
-	a, err := models.Service.LoadAccount(models.LoadAccountFilter{Handle:handle})
+	a, err := models.Service.LoadAccount(models.LoadAccountFilter{Handle: handle})
 	if err != nil {
 		log.Print(err)
 		HandleError(w, r, StatusUnknown, errors.Errorf("handle or password are wrong"))

@@ -180,7 +180,7 @@ func HandleCollectionItem(w http.ResponseWriter, r *http.Request) {
 		if service, ok := val.(models.CanLoadItems); ok {
 			replies, err := service.LoadItems(models.LoadItemsFilter{
 				InReplyTo: []string{i.Hash},
-				MaxItems: MaxContentItems,
+				MaxItems:  MaxContentItems,
 			})
 			if err != nil {
 				log.Error(err)

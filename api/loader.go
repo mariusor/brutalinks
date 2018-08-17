@@ -3,19 +3,19 @@ package api
 import (
 	"context"
 	"fmt"
+	"github.com/buger/jsonparser"
 	"github.com/go-chi/chi"
 	"github.com/juju/errors"
 	ap "github.com/mariusor/activitypub.go/activitypub"
 	j "github.com/mariusor/activitypub.go/jsonld"
-	log "github.com/sirupsen/logrus"
 	"github.com/mariusor/littr.go/models"
+	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
-	"os"
-	"strings"
 	"net/url"
+	"os"
 	"strconv"
-	"github.com/buger/jsonparser"
+	"strings"
 )
 
 const ServiceCtxtKey = "__loader"
@@ -120,7 +120,7 @@ func ItemCtxt(next http.Handler) http.Handler {
 
 func loadOutboxFilterFromReq(r *http.Request) models.LoadItemsFilter {
 	filters := models.LoadItemsFilter{
-		MaxItems:    MaxContentItems,
+		MaxItems: MaxContentItems,
 	}
 
 	val := r.Context().Value(AccountCtxtKey)
@@ -175,8 +175,8 @@ func loadLikedFilterFromReq(r *http.Request) models.LoadVotesFilter {
 	}
 
 	filters := models.LoadVotesFilter{
-		Type:        which,
-		MaxItems:    MaxContentItems,
+		Type:     which,
+		MaxItems: MaxContentItems,
 	}
 	val := r.Context().Value(AccountCtxtKey)
 	a, ok := val.(models.Account)
@@ -364,7 +364,7 @@ func LoadItems(f models.LoadItemsFilter) (models.ItemCollection, error) {
 }
 
 func jsonUnescape(s string) string {
-	if  out, err := jsonparser.Unescape([]byte(s), nil); err != nil {
+	if out, err := jsonparser.Unescape([]byte(s), nil); err != nil {
 		log.Error(err)
 		return s
 	} else {

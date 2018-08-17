@@ -1,13 +1,13 @@
 package models
 
 import (
-	"time"
-	log "github.com/sirupsen/logrus"
 	"fmt"
-	"strings"
 	"github.com/juju/errors"
+	log "github.com/sirupsen/logrus"
 	"net/url"
-	)
+	"strings"
+	"time"
+)
 
 const (
 	ScoreMultiplier = 1
@@ -28,15 +28,15 @@ type Vote struct {
 }
 
 type vote struct {
-	Id          int64     `orm:id`
-	SubmittedBy int64     `orm:submitted_by`
-	SubmittedAt time.Time `orm:created_at`
-	UpdatedAt   time.Time `orm:updated_at`
-	ItemId      int64     `orm:item_id`
-	Weight      int       `orm:weight`
-	Flags       int8      `orm:flags`
+	Id                 int64     `orm:id`
+	SubmittedBy        int64     `orm:submitted_by`
+	SubmittedAt        time.Time `orm:created_at`
+	UpdatedAt          time.Time `orm:updated_at`
+	ItemId             int64     `orm:item_id`
+	Weight             int       `orm:weight`
+	Flags              int8      `orm:flags`
 	SubmittedByAccount *account
-	Item 		*item
+	Item               *item
 }
 
 func loadVoteFromModel(v vote, a *account, i *item) Vote {
@@ -48,7 +48,7 @@ func loadVoteFromModel(v vote, a *account, i *item) Vote {
 	}
 	if i != nil {
 		it := loadItemFromModel(*i)
-		vv.Item =        &it
+		vv.Item = &it
 	}
 	if a != nil {
 		act := loadAccountFromModel(*a)
@@ -60,7 +60,7 @@ func loadVoteFromModel(v vote, a *account, i *item) Vote {
 type Clauses []Clause
 type Clause struct {
 	ColName string
-	Val interface{}
+	Val     interface{}
 }
 
 func (cl Clauses) Values() []interface{} {
@@ -77,7 +77,7 @@ func (cl Clauses) Values() []interface{} {
 func (cl Clauses) AndWhere() string {
 	placeHolders := make([]string, 0)
 	if cl == nil || len(cl) == 0 {
-		placeHolders = append(placeHolders,"$1")
+		placeHolders = append(placeHolders, "$1")
 	} else {
 		for i, t := range cl {
 			placeHolders = append(placeHolders, fmt.Sprintf("%s $%d", t.ColName, i+1))
@@ -89,7 +89,7 @@ func (cl Clauses) AndWhere() string {
 func (cl Clauses) OrWhere() string {
 	placeHolders := make([]string, 0)
 	if cl == nil || len(cl) == 0 {
-		placeHolders = append(placeHolders,"$1")
+		placeHolders = append(placeHolders, "$1")
 	}
 	return strings.Join(placeHolders, " OR ")
 }
@@ -164,7 +164,7 @@ from "votes"
        inner join "accounts" as "voter" on "voter"."id" = "votes"."submitted_by"
        inner join "content_items" as "items" on "items"."id" = "votes"."item_id"
        left join "accounts" as "author" on "author"."id" = "items"."submitted_by"
-where %s order by "votes"."submitted_at" desc limit %d`, fullWhere,  filter.MaxItems)
+where %s order by "votes"."submitted_at" desc limit %d`, fullWhere, filter.MaxItems)
 	rows, err := Db.Query(selC, whereValues...)
 	if err != nil {
 		log.Error(errors.NewErrWithCause(err, "querying failed"))
@@ -178,7 +178,7 @@ where %s order by "votes"."submitted_at" desc limit %d`, fullWhere,  filter.MaxI
 		var pKey []byte
 		var aKey []byte
 		var vKey []byte
-		err = rows.Scan( &v.Id, &v.Weight, &v.SubmittedAt, &v.Flags,
+		err = rows.Scan(&v.Id, &v.Weight, &v.SubmittedAt, &v.Flags,
 			&p.Id, &pKey, &p.MimeType, &p.Data, &p.Title, &p.Score,
 			&p.SubmittedAt, &p.SubmittedBy, &p.Flags, &p.Metadata,
 			&voter.Id, &aKey, &voter.Handle, &voter.Email, &voter.Score, &voter.CreatedAt, &voter.Metadata, &voter.Flags,
@@ -204,16 +204,18 @@ where %s order by "votes"."submitted_at" desc limit %d`, fullWhere,  filter.MaxI
 }
 
 type ScoreType int
+
 const (
 	ScoreItem = ScoreType(iota)
 	ScoreAccount
 )
+
 type Score struct {
-	Id  int64
-	Key []byte
-	Score int64
+	Id        int64
+	Key       []byte
+	Score     int64
 	Submitted time.Time
-	Type ScoreType
+	Type      ScoreType
 }
 
 func LoadScoresForItems(since time.Duration, key string) ([]Score, error) {
@@ -248,18 +250,18 @@ func LoadScoresForItems(since time.Duration, key string) ([]Score, error) {
 		hacker := int64(Hacker(ups-downs, now.Sub(submitted)))
 		log.Infof("Votes[%s]: UPS[%d] DOWNS[%d] - new score %d:%d:%d", key, ups, downs, reddit, wilson, hacker)
 		new := Score{
-			Id: i,
-			Key: key,
+			Id:        i,
+			Key:       key,
 			Submitted: submitted,
-			Type: ScoreAccount,
-			Score: hacker,
+			Type:      ScoreAccount,
+			Score:     hacker,
 		}
 		scores = append(scores, new)
 	}
 	return scores, nil
 }
 
-func LoadScoresForAccounts(since time.Duration, col string, val string)  ([]Score, error) {
+func LoadScoresForAccounts(since time.Duration, col string, val string) ([]Score, error) {
 	par := make([]interface{}, 0)
 	par = append(par, interface{}(since.Hours()))
 
@@ -296,11 +298,11 @@ group by "accounts"."id", "accounts"."key" order by "accounts"."id";`,
 		hacker := int64(Hacker(ups-downs, now.Sub(submitted)))
 		log.Infof("Votes[%s]: UPS[%d] DOWNS[%d] - new score %d:%d:%d", handle, ups, downs, reddit, wilson, hacker)
 		new := Score{
-			Id: i,
-			Key: key,
+			Id:        i,
+			Key:       key,
 			Submitted: submitted,
-			Type: ScoreAccount,
-			Score: hacker,
+			Type:      ScoreAccount,
+			Score:     hacker,
 		}
 		scores = append(scores, new)
 	}

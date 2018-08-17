@@ -4,18 +4,18 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"fmt"
-	"strings"
-	"time"
 	"github.com/juju/errors"
 	log "github.com/sirupsen/logrus"
+	"strings"
+	"time"
 )
 
 const (
 	FlagsDeleted = int8(1 << iota)
 
-	FlagsNone    = int8(0)
+	FlagsNone = int8(0)
 )
-const	MimeTypeURL  = "application/url"
+const MimeTypeURL = "application/url"
 
 type Key [64]byte
 
@@ -54,21 +54,21 @@ func (k *Key) FromString(s string) error {
 }
 
 type item struct {
-	Id          int64     `orm:id,"auto"`
-	Key         Key       `orm:key,size(64)`
-	Title       []byte    `orm:title`
-	MimeType    string    `orm:mime_type`
-	Data        []byte    `orm:data`
-	Score       int64     `orm:score`
-	SubmittedAt time.Time `orm:created_at`
-	SubmittedBy int64     `orm:submitted_by`
-	UpdatedAt   time.Time `orm:updated_at`
-	Flags       int8      `orm:flags`
-	Metadata    []byte    `orm:metadata`
-	Path        []byte    `orm:path`
+	Id                 int64     `orm:id,"auto"`
+	Key                Key       `orm:key,size(64)`
+	Title              []byte    `orm:title`
+	MimeType           string    `orm:mime_type`
+	Data               []byte    `orm:data`
+	Score              int64     `orm:score`
+	SubmittedAt        time.Time `orm:created_at`
+	SubmittedBy        int64     `orm:submitted_by`
+	UpdatedAt          time.Time `orm:updated_at`
+	Flags              int8      `orm:flags`
+	Metadata           []byte    `orm:metadata`
+	Path               []byte    `orm:path`
 	SubmittedByAccount *Account
-	fullPath    []byte
-	parentLink  string
+	fullPath           []byte
+	parentLink         string
 }
 
 type ItemCollection []Item
@@ -136,7 +136,7 @@ func (c item) Hash16() string {
 }
 func (c item) Hash32() string {
 	if len(c.Key) > 32 {
- 	return string(c.Key[0:32])
+		return string(c.Key[0:32])
 	}
 	return c.Key.String()
 }
@@ -162,7 +162,7 @@ func (c item) Level() int {
 	return bytes.Count(c.FullPath(), []byte("."))
 }
 func (c item) Deleted() bool {
-	return c.Flags & FlagsDeleted == FlagsDeleted
+	return c.Flags&FlagsDeleted == FlagsDeleted
 }
 func (c item) UnDelete() {
 	c.Flags ^= FlagsDeleted
@@ -199,7 +199,7 @@ func LoadItems(filter LoadItemsFilter) (ItemCollection, error) {
 		whereColumns := make([]string, 0)
 		for _, typ := range filter.Type {
 			if typ == TypeOP {
-				whereColumns = append(whereColumns,`"content_items"."path" is NULL OR nlevel("content_items"."path") = 0`)
+				whereColumns = append(whereColumns, `"content_items"."path" is NULL OR nlevel("content_items"."path") = 0`)
 				counter += 1
 			}
 		}
@@ -208,7 +208,7 @@ func LoadItems(filter LoadItemsFilter) (ItemCollection, error) {
 	if len(filter.InReplyTo) > 0 {
 		whereColumns := make([]string, 0)
 		for _, hash := range filter.InReplyTo {
-			whereColumns = append(whereColumns,fmt.Sprintf(`("content_items"."path" <@ (select
+			whereColumns = append(whereColumns, fmt.Sprintf(`("content_items"."path" <@ (select
 CASE WHEN path is null THEN key::ltree ELSE ltree_addltree(path, key::ltree) END
 from "content_items" where key ~* $%d) AND "content_items"."path" IS NOT NULL)`, counter))
 			whereValues = append(whereValues, interface{}(hash))
@@ -320,7 +320,7 @@ func LoadItem(f LoadItemsFilter) (Item, error) {
 	return i, nil
 }
 
-func LoadItemParent(hash string) (Item, error){
+func LoadItemParent(hash string) (Item, error) {
 	i := Item{}
 	p := item{}
 	a := account{}
@@ -354,7 +354,7 @@ func LoadItemParent(hash string) (Item, error){
 	return i, nil
 }
 
-func LoadItemOP(hash string) (Item, error){
+func LoadItemOP(hash string) (Item, error) {
 	i := Item{}
 	p := item{}
 	a := account{}

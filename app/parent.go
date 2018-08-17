@@ -10,7 +10,7 @@ import (
 
 // HandleParent serves /parent/{hash}/{parent} request
 func HandleParent(w http.ResponseWriter, r *http.Request) {
-	p, err :=  models.LoadItemParent(chi.URLParam(r, "hash"))
+	p, err := models.LoadItemParent(chi.URLParam(r, "hash"))
 	if err != nil {
 		HandleError(w, r, StatusUnknown, err)
 		return
@@ -22,7 +22,7 @@ func HandleParent(w http.ResponseWriter, r *http.Request) {
 
 // HandleOp serves /op/{hash}/{parent} request
 func HandleOp(w http.ResponseWriter, r *http.Request) {
-	p, err :=  models.LoadItemOP(chi.URLParam(r, "hash"))
+	p, err := models.LoadItemOP(chi.URLParam(r, "hash"))
 	if err != nil {
 		HandleError(w, r, StatusUnknown, err)
 		return

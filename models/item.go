@@ -1,13 +1,13 @@
 package models
 
 import (
-	"time"
-	"strings"
-	"fmt"
-	"math"
-	"github.com/juju/errors"
 	"encoding/json"
+	"fmt"
+	"github.com/juju/errors"
 	log "github.com/sirupsen/logrus"
+	"math"
+	"strings"
+	"time"
 )
 
 type Identifiable interface {
@@ -28,8 +28,8 @@ type Item struct {
 	FullPath    []byte    `json:"-"`
 	Metadata    []byte    `json:"-"`
 	IsTop       bool      `json:"isTop"`
-	Parent		*Item     `json:"-"`
-	OP		*Item         `json:"-"`
+	Parent      *Item     `json:"-"`
+	OP          *Item     `json:"-"`
 }
 
 func (i Item) Deleted() bool {
@@ -140,7 +140,7 @@ func loadItemFromModel(c item) Item {
 	}
 	parentHash := c.GetParentHash()
 	if len(parentHash) > 0 {
-		i.Parent= 	 &Item{
+		i.Parent = &Item{
 			Hash: parentHash,
 		}
 	}
@@ -155,14 +155,14 @@ func loadItemFromModel(c item) Item {
 
 func SaveItem(it Item) (Item, error) {
 	i := item{
-		Flags: it.Flags,
-		Score: it.Score,
+		Flags:    it.Flags,
+		Score:    it.Score,
 		MimeType: it.MimeType,
-		Data: []byte(it.Data),
-		Title: []byte(it.Title),
+		Data:     []byte(it.Data),
+		Title:    []byte(it.Title),
 	}
 
-	if it.Metadata != nil{
+	if it.Metadata != nil {
 		jMetadata, err := json.Marshal(it.Metadata)
 		log.Warning(err)
 		i.Metadata = jMetadata

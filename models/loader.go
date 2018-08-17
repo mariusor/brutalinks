@@ -2,17 +2,18 @@ package models
 
 import (
 	"database/sql"
-	"net/http"
-	"golang.org/x/net/context"
 	"github.com/juju/errors"
+	"golang.org/x/net/context"
+	"net/http"
 	"time"
-	)
+)
 
 var Db *sql.DB
 
 const ServiceCtxtKey = "__loader"
+
 // Loader middleware
-func Loader (next http.Handler) http.Handler {
+func Loader(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		newCtx := context.WithValue(ctx, ServiceCtxtKey, Service)
@@ -35,18 +36,18 @@ const (
 const (
 	TypeOP = ItemType("op")
 
-	TypeLike = VoteType("like")
+	TypeLike    = VoteType("like")
 	TypeDislike = VoteType("dislike")
 )
 
 type LoadVotesFilter struct {
-	ItemKey []string
-	Type []VoteType
-	SubmittedBy []string
-	SubmittedAt time.Time
+	ItemKey              []string
+	Type                 []VoteType
+	SubmittedBy          []string
+	SubmittedAt          time.Time
 	SubmittedAtMatchType MatchType
-	Page int
-	MaxItems int
+	Page                 int
+	MaxItems             int
 }
 
 type LoadItemsFilter struct {
@@ -64,7 +65,7 @@ type LoadItemsFilter struct {
 }
 
 type LoadAccountFilter struct {
-	Key string
+	Key    string
 	Handle string
 }
 

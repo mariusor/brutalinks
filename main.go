@@ -12,6 +12,7 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/mariusor/littr.go/api"
 	"github.com/mariusor/littr.go/app"
+	"github.com/mariusor/littr.go/models"
 	log "github.com/sirupsen/logrus"
 	"net/http"
 	"os"
@@ -19,7 +20,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"github.com/mariusor/littr.go/models"
 )
 
 const defaultHost = "localhost"
@@ -147,7 +147,7 @@ func main() {
 		r.Post("/register", app.HandleRegister)
 
 		//r.With(Item).Get("/~{handle}/{hash}", app.ShowItem)
-		r.Route("/~{handle}", func (r chi.Router) {
+		r.Route("/~{handle}", func(r chi.Router) {
 			r.Get("/", app.HandleUser)
 			r.Get("/{hash}", app.ShowItem)
 			r.Post("/{hash}", app.HandleSubmit)
@@ -175,7 +175,7 @@ func main() {
 	r.With(models.Loader).Route("/api", func(r chi.Router) {
 		r.With(app.LoadSessionData).Get("/accounts/verify_credentials", api.HandleVerifyCredentials)
 
-		r.Route("/accounts/{handle}", func (r chi.Router) {
+		r.Route("/accounts/{handle}", func(r chi.Router) {
 			r.Use(api.AccountCtxt)
 
 			r.Get("/", api.HandleAccount)
@@ -183,7 +183,7 @@ func main() {
 			r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/{collection}/{hash}", api.HandleCollectionItem)
 		})
 
-		r.Route("/{collection}", func (r chi.Router) {
+		r.Route("/{collection}", func(r chi.Router) {
 			r.Use(api.ServiceCtxt)
 
 			r.With(api.LoadFiltersCtxt, api.ItemCollectionCtxt).Get("/", api.HandleCollection)

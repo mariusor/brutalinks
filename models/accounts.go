@@ -2,11 +2,11 @@ package models
 
 import (
 	"crypto/sha256"
-	"fmt"
-	"time"
-		log "github.com/sirupsen/logrus"
-		"github.com/juju/errors"
 	"encoding/json"
+	"fmt"
+	"github.com/juju/errors"
+	log "github.com/sirupsen/logrus"
+	"time"
 )
 
 type AccountMetadata struct {
@@ -29,18 +29,18 @@ type account struct {
 }
 
 type Account struct {
-	Email     string    `json:"-"`
-	Hash      string    `json:"key"`
-	Score     int64     `json:"score"`
-	Handle    string    `json:"handle"`
-	CreatedAt time.Time `json:"-"`
-	UpdatedAt time.Time `json:"-"`
-	Flags     int8       `json:"-"`
+	Email     string          `json:"-"`
+	Hash      string          `json:"key"`
+	Score     int64           `json:"score"`
+	Handle    string          `json:"handle"`
+	CreatedAt time.Time       `json:"-"`
+	UpdatedAt time.Time       `json:"-"`
+	Flags     int8            `json:"-"`
 	Metadata  AccountMetadata `json:"-"`
 	Votes     map[string]Vote
 }
 
-func loadAccountFromModel (a account) Account {
+func loadAccountFromModel(a account) Account {
 	acct := Account{
 		Hash:      a.Hash(),
 		Flags:     a.Flags,

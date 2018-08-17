@@ -12,7 +12,7 @@ const (
 	MaxContentItems = 200
 )
 
-func IsYay(v *models.Vote)  bool {
+func IsYay(v *models.Vote) bool {
 	return v != nil && v.Weight > 0
 }
 
@@ -84,7 +84,7 @@ func scoreLink(i models.Item, dir string) string {
 func YayLink(i models.Item) string {
 	return scoreLink(i, "yay")
 }
-func NayLink(i models.Item)  string {
+func NayLink(i models.Item) string {
 	return scoreLink(i, "nay")
 }
 
@@ -102,7 +102,7 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 	}
 	var err error
 	items, err := itemLoader.LoadItems(models.LoadItemsFilter{
-		Type: []models.ItemType{models.TypeOP},
+		Type:     []models.ItemType{models.TypeOP},
 		MaxItems: MaxContentItems,
 	})
 	if err != nil {
@@ -119,7 +119,7 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 		if ok {
 			log.Infof("loaded LoaderService of type %T", itemLoader)
 			CurrentAccount.Votes, err = votesLoader.LoadVotes(models.LoadVotesFilter{
-				SubmittedBy: []string{CurrentAccount.Hash,},
+				SubmittedBy: []string{CurrentAccount.Hash},
 				ItemKey:     m.Items.getItemsHashes(),
 				MaxItems:    MaxContentItems,
 			})

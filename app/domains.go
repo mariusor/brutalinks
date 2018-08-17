@@ -6,10 +6,10 @@ import (
 
 	"github.com/mariusor/littr.go/models"
 
+	"context"
 	"fmt"
 	"github.com/go-chi/chi"
 	"github.com/juju/errors"
-	"context"
 )
 
 func loadItems(c context.Context, filter models.LoadItemsFilter) (itemListingModel, error) {
@@ -33,7 +33,7 @@ func loadItems(c context.Context, filter models.LoadItemsFilter) (itemListingMod
 		if ok {
 			log.Infof("loaded LoaderService of type %T", itemLoader)
 			CurrentAccount.Votes, err = votesLoader.LoadVotes(models.LoadVotesFilter{
-				SubmittedBy: []string{CurrentAccount.Hash,},
+				SubmittedBy: []string{CurrentAccount.Hash},
 				ItemKey:     m.Items.getItemsHashes(),
 				MaxItems:    MaxContentItems,
 			})
@@ -52,10 +52,10 @@ func HandleDomains(w http.ResponseWriter, r *http.Request) {
 	domain := chi.URLParam(r, "domain")
 
 	filter := models.LoadItemsFilter{
-		Content: fmt.Sprintf("http[s]?://%s", domain),
+		Content:          fmt.Sprintf("http[s]?://%s", domain),
 		ContentMatchType: models.MatchFuzzy,
-		MediaType: []string{models.MimeTypeURL},
-		MaxItems: MaxContentItems,
+		MediaType:        []string{models.MimeTypeURL},
+		MaxItems:         MaxContentItems,
 	}
 	if m, err := loadItems(r.Context(), filter); err == nil {
 		m.Title = fmt.Sprintf("Submissions from %s", domain)

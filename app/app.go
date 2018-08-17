@@ -40,6 +40,7 @@ const anonymous = "anonymous"
 var defaultAccount = models.Account{Handle: anonymous}
 
 type flashType string
+
 const (
 	Success flashType = "success"
 	Info    flashType = "info"
@@ -72,11 +73,11 @@ func init() {
 		Layout:     "layout",
 		Extensions: []string{".html"},
 		Funcs: []template.FuncMap{{
-			"isInverted":        isInverted,
-			"sluggify":          sluggify,
-			"title":             func(t []byte) string { return string(t) },
-			"getProviders":      getAuthProviders,
-			"CurrentAccount":    func() *models.Account {
+			"isInverted":   isInverted,
+			"sluggify":     sluggify,
+			"title":        func(t []byte) string { return string(t) },
+			"getProviders": getAuthProviders,
+			"CurrentAccount": func() *models.Account {
 				return CurrentAccount
 			},
 			"LoadFlashMessages": loadFlashMessages,
@@ -88,11 +89,11 @@ func init() {
 			"PermaLink":         permaLink,
 			"ParentLink":        ParentLink,
 			"OPLink":            OPLink,
-			"IsYay" :            IsYay,
+			"IsYay":             IsYay,
 			"IsNay":             IsNay,
 			"ScoreFmt":          scoreFmt,
-			"YayLink":       YayLink,
-			"NayLink": NayLink,
+			"YayLink":           YayLink,
+			"NayLink":           NayLink,
 		}},
 		Delims:         render.Delims{"{{", "}}"},
 		Charset:        "UTF-8",
@@ -143,7 +144,7 @@ func ValidEnv(s EnvType) bool {
 	return false
 }
 
-var FlashData   = make([]Flash, 0)
+var FlashData = make([]Flash, 0)
 
 type Littr struct {
 	Env         EnvType
@@ -168,10 +169,11 @@ func GetSession(r *http.Request) *sessions.Session {
 	}
 	return s
 }
+
 const (
-	ScoreMaxK       = 10000.0
-	ScoreMaxM       = 10000000.0
-	ScoreMaxB       = 10000000000.0
+	ScoreMaxK = 10000.0
+	ScoreMaxM = 10000000.0
+	ScoreMaxB = 10000000000.0
 )
 
 func scoreFmt(s int64) string {
@@ -191,7 +193,7 @@ func scoreFmt(s int64) string {
 	} else if d < dB {
 		score = base / ScoreMaxM
 		units = "M"
-	} else if d < dB + 2 {
+	} else if d < dB+2 {
 		score = base / ScoreMaxB
 		units = "B"
 	} else {
@@ -220,7 +222,7 @@ func (l *Littr) BaseUrl() string {
 	return fmt.Sprintf("http://%s", l.HostName)
 }
 
-func Redirect(w http.ResponseWriter, r *http.Request, url string, status int ) error {
+func Redirect(w http.ResponseWriter, r *http.Request, url string, status int) error {
 	err := sessions.Save(r, w)
 	if err != nil {
 		log.Error(errors.NewErrWithCause(err, "failed to save session before redirect [%d:%s]", status, url))
@@ -265,9 +267,9 @@ func AddVote(p models.Item, score int, userHash string) (bool, error) {
 	var sel string
 	var p2 interface{}
 	//if p.Id == 0 {
-		sel = `select "id", "accounts"."id", "weight" from "votes" 
+	sel = `select "id", "accounts"."id", "weight" from "votes" 
 		inner join "accounts" on "accounts"."id" = "votes"."submitted_by" where "accounts"."hash" ~* $1 and "key" ~* $2;`
-		p2 = interface{}(p.Hash)
+	p2 = interface{}(p.Hash)
 	//} else {
 	//	sel = `select "id", "weight" from "votes" where "submitted_by" = $1 and "item_id" = $2;`
 	//	p2 = interface{}(p.Id)
