@@ -5,6 +5,13 @@ import (
 	"encoding/gob"
 	"flag"
 	"fmt"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/gorilla/sessions"
@@ -14,12 +21,6 @@ import (
 	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/models"
 	log "github.com/sirupsen/logrus"
-	"net/http"
-	"os"
-	"path/filepath"
-	"strconv"
-	"strings"
-	"time"
 )
 
 const defaultHost = "localhost"
@@ -179,8 +180,13 @@ func main() {
 			r.Use(api.AccountCtxt)
 
 			r.Get("/", api.HandleAccount)
-			r.With(api.LoadFiltersCtxt, api.ItemCollectionCtxt).Get("/{collection}", api.HandleCollection)
-			r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/{collection}/{hash}", api.HandleCollectionItem)
+			r.Route("/{collection}", func(r chi.Router) {
+				r.With(api.LoadFiltersCtxt, api.ItemCollectionCtxt).Get("/", api.HandleCollection)
+				r.Route("/{hash}", func(r chi.Router) {
+					r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/", api.HandleCollectionItem)
+					r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/replies", api.HandleItemReplies)
+				})
+			})
 		})
 
 		r.Route("/{collection}", func(r chi.Router) {
@@ -188,6 +194,7 @@ func main() {
 
 			r.With(api.LoadFiltersCtxt, api.ItemCollectionCtxt).Get("/", api.HandleCollection)
 			r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/{hash}", api.HandleCollectionItem)
+			r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/{hash}/replies", api.HandleItemReplies)
 		})
 
 		r.NotFound(func(w http.ResponseWriter, r *http.Request) {

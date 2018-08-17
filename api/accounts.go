@@ -2,6 +2,9 @@ package api
 
 import (
 	"fmt"
+	"net/http"
+	"strings"
+
 	"github.com/go-chi/chi"
 	"github.com/juju/errors"
 	ap "github.com/mariusor/activitypub.go/activitypub"
@@ -9,8 +12,6 @@ import (
 	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/models"
 	log "github.com/sirupsen/logrus"
-	"net/http"
-	"strings"
 )
 
 func getObjectID(s string) ap.ObjectID {
@@ -142,8 +143,8 @@ func HandleAccount(w http.ResponseWriter, r *http.Request) {
 
 	j, err := json.WithContext(GetContext()).Marshal(p)
 	if err != nil {
-		HandleError(w, r, http.StatusInternalServerError, err)
 		log.Print(err)
+		HandleError(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -160,7 +161,6 @@ func HandleCollectionItem(w http.ResponseWriter, r *http.Request) {
 	var err error
 
 	val := r.Context().Value(ItemCtxtKey)
-
 	collection := chi.URLParam(r, "collection")
 	var el ObjectOrLink
 	switch strings.ToLower(collection) {
@@ -169,6 +169,7 @@ func HandleCollectionItem(w http.ResponseWriter, r *http.Request) {
 		i, ok := val.(models.Item)
 		if !ok {
 			log.Errorf("could not load Item from Context")
+			HandleError(w, r, http.StatusInternalServerError, err)
 			return
 		}
 		el, err = loadAPItem(i)
@@ -187,11 +188,7 @@ func HandleCollectionItem(w http.ResponseWriter, r *http.Request) {
 			}
 			if len(replies) > 0 {
 				if o, ok := el.(Article); ok {
-					o.Replies = ap.CollectionNew(ap.ObjectID(fmt.Sprintf("%s/%s/outbox/%s/replies", AccountsURL, i.SubmittedBy.Handle, i.Hash)))
-					for _, repl := range replies {
-						rIRI := fmt.Sprintf("%s/%s/outbox/%s", AccountsURL, repl.SubmittedBy.Handle, repl.Hash)
-						o.Replies.Append(ap.IRI(rIRI))
-					}
+					o.Replies = ap.CollectionNew(BuildRepliesCollectionID(o))
 					el = o
 				}
 			}
@@ -213,6 +210,45 @@ func HandleCollectionItem(w http.ResponseWriter, r *http.Request) {
 
 	data, err = json.WithContext(GetContext()).Marshal(el)
 	log.Error(err)
+	w.Header().Set("item-Type", "application/ld+json; charset=utf-8")
+	w.Header().Set("X-item-Type-Options", "nosniff")
+	w.WriteHeader(http.StatusOK)
+	w.Write(data)
+}
+
+// GET /api/accounts/:handle/:collection/:hash/replies
+// GET /api/:collection/:hash/replies
+func HandleItemReplies(w http.ResponseWriter, r *http.Request) {
+	var ok bool
+
+	var it models.Item
+	item := r.Context().Value(ItemCtxtKey)
+	var data []byte
+	if it, ok = item.(models.Item); !ok {
+		log.Errorf("could not load Item from Context")
+		return
+	} else {
+		val := r.Context().Value(ServiceCtxtKey)
+		el, err := loadAPItem(it)
+		if service, ok := val.(models.CanLoadItems); ok {
+			var replies models.ItemCollection
+
+			filter := models.LoadItemsFilter{
+				InReplyTo: []string{it.Hash},
+				MaxItems:  MaxContentItems,
+			}
+
+			p, _ := el.(Article)
+			p.Replies = ap.CollectionNew(BuildRepliesCollectionID(p))
+			if replies, err = service.LoadItems(filter); err == nil {
+				_, err = loadAPCollection(p.Replies, &replies)
+				data, err = json.WithContext(GetContext()).Marshal(p.Replies)
+			} else {
+				log.Error(err)
+			}
+		}
+	}
+
 	w.Header().Set("item-Type", "application/ld+json; charset=utf-8")
 	w.Header().Set("X-item-Type-Options", "nosniff")
 	w.WriteHeader(http.StatusOK)
@@ -255,6 +291,14 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 		}
 		_, err = loadAPLiked(p.Liked, votes)
 		data, err = json.WithContext(GetContext()).Marshal(p.Liked)
+	case "replies":
+		items, ok := collection.(models.ItemCollection)
+		if !ok {
+			log.Errorf("could not load Replies from Context")
+			return
+		}
+		_, err = loadAPCollection(p.Replies, &items)
+		data, err = json.WithContext(GetContext()).Marshal(p.Outbox)
 	default:
 		err = errors.Errorf("collection not found")
 	}

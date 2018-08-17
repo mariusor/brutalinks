@@ -6,6 +6,12 @@ import (
 	"net/http"
 
 	"fmt"
+	"net/url"
+	"os"
+	"reflect"
+	"strings"
+	"time"
+
 	"github.com/buger/jsonparser"
 	"github.com/go-chi/chi"
 	"github.com/juju/errors"
@@ -13,11 +19,6 @@ import (
 	j "github.com/mariusor/activitypub.go/jsonld"
 	"github.com/mariusor/littr.go/models"
 	log "github.com/sirupsen/logrus"
-	"net/url"
-	"os"
-	"reflect"
-	"strings"
-	"time"
 )
 
 var Db *sql.DB
@@ -92,7 +93,7 @@ type Person struct {
 	Location          ObjectOrLink           `jsonld:"location,omitempty"`
 	Preview           ObjectOrLink           `jsonld:"preview,omitempty"`
 	Published         time.Time              `jsonld:"published,omitempty"`
-	Replies           ObjectOrLink           `jsonld:"replies,omitempty"`
+	Replies           CollectionInterface    `jsonld:"replies,omitempty"`
 	StartTime         time.Time              `jsonld:"startTime,omitempty"`
 	Summary           NaturalLanguageValue   `jsonld:"summary,omitempty,collapsible"`
 	Tag               ObjectOrLink           `jsonld:"tag,omitempty"`
@@ -304,6 +305,10 @@ func BuildActorID(a models.Account) ap.ObjectID {
 
 func BuildCollectionID(a models.Account, o ap.CollectionInterface) ap.ObjectID {
 	return ap.ObjectID(fmt.Sprintf("%s/%s/%s", AccountsURL, url.PathEscape(a.Handle), getObjectType(o)))
+}
+
+func BuildRepliesCollectionID(i ap.Item) ap.ObjectID {
+	return ap.ObjectID(fmt.Sprintf("%s/replies", *i.GetID()))
 }
 
 func BuildObjectIDFromItem(i models.Item) ap.ObjectID {
