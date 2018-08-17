@@ -73,10 +73,11 @@ func OPLink(c models.Item) string {
 }
 
 func permaLink(c models.Item) string {
-	if c.SubmittedBy == nil {
-		return ""
+	handle := "anonymous"
+	if c.SubmittedBy != nil {
+		handle = c.SubmittedBy.Handle
 	}
-	return fmt.Sprintf("/~%s/%s", c.SubmittedBy.Handle, c.Hash)
+	return fmt.Sprintf("/~%s/%s", handle, c.Hash)
 }
 
 func scoreLink(i models.Item, dir string) string {

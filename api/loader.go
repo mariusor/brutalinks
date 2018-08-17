@@ -274,18 +274,15 @@ func (l LoaderService) LoadItem(f models.LoadItemsFilter) (models.Item, error) {
 	}
 	if resp != nil {
 		defer resp.Body.Close()
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			log.Error(err)
-			return it, err
-		}
-		err = j.Unmarshal(body, &art)
-		if err != nil {
-			log.Error(err)
-			return it, err
+
+		if body, err := ioutil.ReadAll(resp.Body); err == nil {
+			if err := j.Unmarshal(body, &art); err == nil {
+				return loadFromAPItem(art), nil
+			}
 		}
 	}
-	return loadFromAPItem(art), nil
+	log.Error(err)
+	return it, err
 }
 
 func (l LoaderService) LoadItems(f models.LoadItemsFilter) (models.ItemCollection, error) {
@@ -399,6 +396,12 @@ func loadFromAPItem(it Article) models.Item {
 	r := it.InReplyTo
 	if p, ok := r.(ap.IRI); ok {
 		c.Parent = &models.Item{
+			Hash: getAccountHandle(p),
+		}
+	}
+	op := it.Context
+	if p, ok := op.(ap.IRI); ok {
+		c.OP = &models.Item{
 			Hash: getAccountHandle(p),
 		}
 	}

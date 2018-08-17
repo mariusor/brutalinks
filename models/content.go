@@ -187,8 +187,8 @@ func LoadItems(filter LoadItemsFilter) (ItemCollection, error) {
 	var wheres []string
 	whereValues := make([]interface{}, 0)
 	counter := 1
+	whereColumns := make([]string, 0)
 	if len(filter.SubmittedBy) > 0 {
-		whereColumns := make([]string, 0)
 		for _, v := range filter.SubmittedBy {
 			whereColumns = append(whereColumns, fmt.Sprintf(`"accounts"."key" ~* $%d`, counter))
 			whereValues = append(whereValues, interface{}(v))
@@ -289,25 +289,60 @@ from "content_items" where key ~* $%d) AND "content_items"."path" IS NOT NULL)`,
 	return items, nil
 }
 
-func LoadItem(f LoadItemsFilter) (Item, error) {
-	if len(f.Key) == 0 {
-		return Item{}, errors.Errorf("invalid item key to load")
+func LoadItem(filter LoadItemsFilter) (Item, error) {
+	var wheres []string
+	whereValues := make([]interface{}, 0)
+	counter := 1
+	if len(filter.Key) > 0 {
+		whereColumns := make([]string, 0)
+		for _, hash := range filter.Key {
+			whereColumns = append(whereColumns, fmt.Sprintf(`"content_items"."key" ~* $%d`, counter))
+			whereValues = append(whereValues, interface{}(hash))
+			counter += 1
+		}
+		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
+	}
+	if len(filter.InReplyTo) > 0 {
+		// Context filters are hashes belonging to a top element
+		whereColumns := make([]string, 0)
+		for _, replHash := range filter.InReplyTo {
+			whereColumns = append(whereColumns, fmt.Sprintf(`"content_items"."key" = (select subltree("path", nlevel("path")-1, nlevel("path"))::text from content_items where key ~* $%d')`, counter))
+			whereValues = append(whereValues, interface{}(replHash))
+			counter += 1
+		}
+		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
+	}
+	if len(filter.Context) > 0 {
+		// Context filters are hashes belonging to a top element
+		whereColumns := make([]string, 0)
+		for _, ctxtHash := range filter.Context {
+			whereColumns = append(whereColumns, fmt.Sprintf(`"content_items"."key" = (select subltree("path", 0, 1)::text from content_items where key ~* $%d')`, counter))
+			whereValues = append(whereValues, interface{}(ctxtHash))
+			counter += 1
+		}
+		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
 	}
 
-	hash := f.Key[0]
 	p := item{}
 	a := account{}
 	i := Item{}
 	var aKey, iKey []byte
-	sel := `select "content_items"."id", "content_items"."key", "content_items"."mime_type", "content_items"."data", 
+
+	var fullWhere string
+	if len(wheres) > 0 {
+		fullWhere = fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(wheres, " AND ")))
+	} else {
+		fullWhere = " true"
+	}
+	sel := fmt.Sprintf(`select "content_items"."id", "content_items"."key", "content_items"."mime_type", "content_items"."data", 
 			"content_items"."title", "content_items"."score", "content_items"."submitted_at", 
 			"content_items"."submitted_by", "content_items"."flags", "content_items"."metadata", "content_items"."path",
 			"accounts"."id", "accounts"."key", "accounts"."handle", "accounts"."email", "accounts"."score", 
 			"accounts"."created_at", "accounts"."metadata", "accounts"."flags"
  			from "content_items" 
 			left join "accounts" on "accounts"."id" = "content_items"."submitted_by"
-			where "content_items"."key" ~* $1`
-	rows, err := Db.Query(sel, hash)
+			where %s`, fullWhere)
+	rows, err := Db.Query(sel, whereValues...)
 	if err != nil {
 		return i, err
 	}
@@ -325,75 +360,5 @@ func LoadItem(f LoadItemsFilter) (Item, error) {
 	}
 	i = loadItemFromModel(p)
 
-	return i, nil
-}
-
-func LoadItemParent(hash string) (Item, error) {
-	i := Item{}
-	p := item{}
-	a := account{}
-
-	sel := `select "par"."id", "par"."key", "par"."mime_type", "par"."data", 
-			"par"."title", "par"."score", "par"."submitted_at", 
-			"par"."submitted_by", "par"."flags", "par"."metadata", "par"."path",
-			"accounts"."id", "accounts"."key", "accounts"."handle", "accounts"."email", "accounts"."score", 
-			"accounts"."created_at", "accounts"."metadata", "accounts"."flags"
- 			from "content_items" as "par"
-			inner join "content_items" as "cur" on subltree("cur"."path", nlevel("cur"."path")-1, nlevel("cur"."path"))::text = "par"."key"
-			left join "accounts" on "accounts"."id" = "par"."submitted_by"
-			where "cur"."key" ~* $1`
-	rows, err := Db.Query(sel, hash)
-	if err != nil {
-		return i, err
-	}
-	var aKey, iKey []byte
-	for rows.Next() {
-		err = rows.Scan(&p.Id, &iKey, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Flags, &p.Metadata, &p.Path,
-			&a.Id, &aKey, &a.Handle, &a.Email, &a.Score, &a.CreatedAt, &a.Metadata, &a.Flags)
-		if err != nil {
-			return i, err
-		}
-		p.Key.FromBytes(iKey)
-		a.Key.FromBytes(aKey)
-		acct := loadAccountFromModel(a)
-		p.SubmittedByAccount = &acct
-	}
-	i = loadItemFromModel(p)
-	return i, nil
-}
-
-func LoadItemOP(hash string) (Item, error) {
-	i := Item{}
-	p := item{}
-	a := account{}
-
-	sel := `select "par"."id", "par"."key", "par"."mime_type", "par"."data",
-       "par"."title", "par"."score", "par"."submitted_at",
-       "par"."submitted_by", "par"."flags", "par"."metadata", "par"."path",
-       "accounts"."id", "accounts"."key", "accounts"."handle", "accounts"."email", "accounts"."score",
-       "accounts"."created_at", "accounts"."metadata", "accounts"."flags"
-from "content_items" as "cur"
-       inner join "content_items" as "par" on subltree("cur"."path", 0, 1)::text = "par"."key"
-       left join "accounts" on "accounts"."id" = "par"."submitted_by"
-			where "cur"."key" ~* $1`
-	rows, err := Db.Query(sel, hash)
-	if err != nil {
-		return i, err
-	}
-
-	var aKey, iKey []byte
-	for rows.Next() {
-		err = rows.Scan(&p.Id, &iKey, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Flags, &p.Metadata, &p.Path,
-			&a.Id, &aKey, &a.Handle, &a.Email, &a.Score, &a.CreatedAt, &a.Metadata, &a.Flags)
-		if err != nil {
-			return i, err
-		}
-		p.Key.FromBytes(iKey)
-		a.Key.FromBytes(aKey)
-		acct := loadAccountFromModel(a)
-		p.SubmittedByAccount = &acct
-
-		i = loadItemFromModel(p)
-	}
 	return i, nil
 }
