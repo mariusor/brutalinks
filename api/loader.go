@@ -15,6 +15,7 @@ import (
 	"strings"
 	"net/url"
 	"strconv"
+	"github.com/buger/jsonparser"
 )
 
 const ServiceCtxtKey = "__loader"
@@ -362,12 +363,24 @@ func LoadItems(f models.LoadItemsFilter) (models.ItemCollection, error) {
 	return items, nil
 }
 
+func jsonUnescape(s string) string {
+	if  out, err := jsonparser.Unescape([]byte(s), nil); err != nil {
+		log.Error(err)
+		return s
+	} else {
+		return string(out)
+	}
+}
+
 func loadFromAPItem(it Article) models.Item {
+	title := jsonUnescape(ap.NaturalLanguageValue(it.Name).First())
+	content := jsonUnescape(ap.NaturalLanguageValue(it.Content).First())
+
 	c := models.Item{
 		Hash:        getHash(it.GetID()),
-		Title:       string(ap.NaturalLanguageValue(it.Name).First()),
+		Title:       title,
 		MimeType:    string(it.MediaType),
-		Data:        string(ap.NaturalLanguageValue(it.Content).First()),
+		Data:        content,
 		Score:       it.Score,
 		SubmittedAt: it.Published,
 		SubmittedBy: &models.Account{
