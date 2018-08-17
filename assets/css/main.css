@@ -222,6 +222,7 @@ ol.comments {
     content: "]";
 }
 .item .score {
+    display: none !important;
     text-align: center;
     max-width: 2em;
     padding: 0;
