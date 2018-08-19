@@ -65,7 +65,7 @@ func main() {
 		panic(err)
 	}
 
-	for _, score :=  range scores {
+	for _, score := range scores {
 		var upd string
 		if score.Type == models.ScoreItem {
 			upd = `update "content_items" set score = $1 where id = $2;`

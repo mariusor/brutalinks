@@ -7,9 +7,9 @@ import (
 	log "github.com/sirupsen/logrus"
 	"os"
 
-	_ "github.com/lib/pq"
 	"github.com/gchaincl/dotsql"
 	"github.com/juju/errors"
+	_ "github.com/lib/pq"
 )
 
 func dbConnection(dbUser string, dbPw string, dbName string) (*sql.DB, error) {
@@ -25,7 +25,7 @@ func dbConnection(dbUser string, dbPw string, dbName string) (*sql.DB, error) {
 	return sql.Open("postgres", connStr)
 }
 
-func er (err errors.Err) bool {
+func er(err errors.Err) bool {
 	if err.Underlying() != nil {
 		fields := make(log.Fields)
 		f, l := err.Location()
@@ -77,7 +77,7 @@ func main() {
 
 		s2, _ := dot.Raw("create-db-for-role")
 		_, err = rootDB.Exec(fmt.Sprintf(s2, dbName, dbUser))
-		er(errors.NewErrWithCause(err, "query: %s",s2))
+		er(errors.NewErrWithCause(err, "query: %s", s2))
 
 		// root user, but our new created db
 		db, err := dbConnection(dbRootUser, dbRootPw, dbName)
