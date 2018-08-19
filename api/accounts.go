@@ -104,7 +104,13 @@ func loadAPPerson(a models.Account) *Person {
 
 	p.URL = BuildObjectURL(baseURL, p)
 	p.Score = a.Score
-
+	if a.HasMetadata() && a.Metadata.Key.Public != nil {
+		p.PublicKey = PublicKey{
+			Id:           ObjectID(fmt.Sprintf("%s#main-key", p.ID)),
+			Owner:        ap.IRI(p.ID),
+			PublicKeyPem: fmt.Sprintf("%s", a.Metadata.Key.Public),
+		}
+	}
 	return &p
 }
 

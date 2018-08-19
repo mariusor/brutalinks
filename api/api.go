@@ -76,7 +76,7 @@ type (
 type PublicKey struct {
 	Id           ObjectID     `jsonld:"id,omitempty"`
 	Owner        ObjectOrLink `jsonld:"owner,omitempty"`
-	PublicKeyPem []byte       `jsonld:"publicKeyPem,omitempty"`
+	PublicKeyPem string       `jsonld:"publicKeyPem,omitempty"`
 }
 
 // Person it should be identical to:
