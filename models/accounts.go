@@ -9,10 +9,17 @@ import (
 	"time"
 )
 
+type SSHKey struct {
+	Id      string `json:"id"`
+	Private []byte `json:"-"`
+	Public  []byte `json:"publicKeyPem"`
+}
+
 type AccountMetadata struct {
-	Password []byte `json:"pw,omitempty"`
+	Password []byte `json:"-"`
 	Provider string `json:"provider,omitempty"`
-	Salt     []byte `json:"salt,omitempty"`
+	Salt     []byte `json:"-"`
+	Key      SSHKey `json:"-"`
 }
 
 type account struct {
@@ -30,14 +37,18 @@ type account struct {
 
 type Account struct {
 	Email     string          `json:"-"`
-	Hash      string          `json:"key"`
+	Hash      string          `json:"hash"`
 	Score     int64           `json:"score"`
 	Handle    string          `json:"handle"`
 	CreatedAt time.Time       `json:"-"`
 	UpdatedAt time.Time       `json:"-"`
 	Flags     int8            `json:"-"`
-	Metadata  AccountMetadata `json:"-"`
-	Votes     map[string]Vote
+	Metadata  *AccountMetadata `json:"metadata,omitempty"`
+	Votes     map[string]Vote `json:"votes,omitempty"`
+}
+
+func (a Account) HasMetadata() bool {
+	return a.Metadata != nil
 }
 
 func loadAccountFromModel(a account) Account {
