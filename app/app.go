@@ -497,7 +497,6 @@ func loadCurrentAccount(s *sessions.Session) {
 		if raw != nil {
 			a := raw.(models.Account)
 			CurrentAccount = &a
-			CurrentAccount.Metadata = models.AccountMetadata{}
 			//log.Infof("loaded account from session %#v", CurrentAccount)
 		}
 	} else {
