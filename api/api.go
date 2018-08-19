@@ -237,6 +237,9 @@ func (a *Article) UnmarshalJSON(data []byte) error {
 	if inReplyTo, err := jsonparser.GetString(data, "inReplyTo"); err == nil {
 		a.InReplyTo = ap.IRI(inReplyTo)
 	}
+	if context, err := jsonparser.GetString(data, "context"); err == nil {
+		a.Context = ap.IRI(context)
+	}
 
 	return nil
 }
@@ -251,27 +254,10 @@ func (o *OrderedCollection) UnmarshalJSON(data []byte) error {
 	o.Type = ActivityVocabularyType(col.Type)
 	o.TotalItems = col.TotalItems
 	o.OrderedItems = make([]Article, o.TotalItems)
-	for i, it := range col.OrderedItems {
-		el, success := it.(*ap.Object)
-		if !success {
-			continue
-		}
-		a := Article{
-			ID:           ObjectID(*it.GetID()),
-			Type:         ActivityVocabularyType(it.GetType()),
-			Name:         el.Name,
-			Content:      el.Content,
-			Context:      el.Context,
-			Generator:    el.Generator,
-			AttributedTo: el.AttributedTo,
-			Published:    el.Published,
-			MediaType:    MimeType(el.MediaType),
-		}
-		if score, err := jsonparser.GetInt(data, "orderedItems", fmt.Sprintf("[%d]", i), "score"); err == nil {
-			a.Score = score
-		}
-		if inReplyTo, err := jsonparser.GetString(data, "orderedItems", fmt.Sprintf("[%d]", i), "inReplyTo"); err == nil {
-			a.InReplyTo = ap.IRI(inReplyTo)
+	for i := range col.OrderedItems {
+		a := Article{}
+		if data, _, _, err := jsonparser.Get(data, "orderedItems", fmt.Sprintf("[%d]", i)); err == nil {
+			a.UnmarshalJSON(data)
 		}
 		o.OrderedItems[i] = a
 	}
