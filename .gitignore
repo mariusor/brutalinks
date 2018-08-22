@@ -11,4 +11,6 @@ docker/
 db/
 votes
 bootstrap
-littr
+bin/app
+bin/votes
+bin/bootstrap
