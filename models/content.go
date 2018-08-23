@@ -3,6 +3,7 @@ package models
 import (
 	"bytes"
 	"crypto/sha256"
+	"database/sql"
 	"fmt"
 	"strings"
 	"time"
@@ -181,7 +182,7 @@ func (c item) GetDomain() string {
 	return strings.Split(string(c.Data), "/")[2]
 }
 
-func LoadItems(filter LoadItemsFilter) (ItemCollection, error) {
+func loadItems(db *sql.DB, filter LoadItemsFilter) (ItemCollection, error) {
 	items := make(ItemCollection, 0)
 
 	var wheres []string
@@ -263,7 +264,7 @@ from "content_items" where key ~* $%d) AND "content_items"."path" IS NOT NULL)`,
 			left join "accounts" on "accounts"."id" = "content_items"."submitted_by" 
 		where %s 
 	order by "content_items"."score" desc, "content_items"."submitted_at" desc limit %d`, fullWhere, filter.MaxItems)
-	rows, err := Db.Query(sel, whereValues...)
+	rows, err := db.Query(sel, whereValues...)
 	if err != nil {
 		log.Error(errors.NewErrWithCause(err, "querying failed"))
 		return nil, err
@@ -289,7 +290,7 @@ from "content_items" where key ~* $%d) AND "content_items"."path" IS NOT NULL)`,
 	return items, nil
 }
 
-func LoadItem(filter LoadItemsFilter) (Item, error) {
+func loadItem(db *sql.DB, filter LoadItemsFilter) (Item, error) {
 	var wheres []string
 	whereValues := make([]interface{}, 0)
 	counter := 1
@@ -342,7 +343,7 @@ func LoadItem(filter LoadItemsFilter) (Item, error) {
  			from "content_items" 
 			left join "accounts" on "accounts"."id" = "content_items"."submitted_by"
 			where %s`, fullWhere)
-	rows, err := Db.Query(sel, whereValues...)
+	rows, err := db.Query(sel, whereValues...)
 	if err != nil {
 		return i, err
 	}

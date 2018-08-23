@@ -9,8 +9,6 @@ import (
 	"golang.org/x/net/context"
 )
 
-var Db *sql.DB
-
 const ServiceCtxtKey = "__loader"
 
 // Loader middleware
@@ -98,28 +96,28 @@ type LoaderService struct {
 }
 
 func (l LoaderService) SaveItem(it Item) (Item, error) {
-	return SaveItem(it)
+	return saveItem(l.DB, it)
 }
 
 func (l LoaderService) LoadItem(f LoadItemsFilter) (Item, error) {
-	return LoadItem(f)
+	return loadItem(l.DB, f)
 }
 
 func (l LoaderService) LoadItems(f LoadItemsFilter) (ItemCollection, error) {
-	return LoadItems(f)
+	return loadItems(l.DB, f)
 }
 
 func (l LoaderService) SaveVote(v Vote) (Vote, error) {
-	return SaveVote(v)
+	return saveVote(l.DB, v)
 }
 
 func (l LoaderService) LoadVotes(f LoadVotesFilter) (VoteCollection, error) {
-	return LoadVotes(f)
+	return loadVotes(l.DB, f)
 }
 
 func (l LoaderService) LoadVote(f LoadVotesFilter) (Vote, error) {
 	f.MaxItems = 1
-	votes, err := LoadVotes(f)
+	votes, err := loadVotes(l.DB, f)
 	if err != nil {
 		return Vote{}, err
 	}
@@ -130,5 +128,5 @@ func (l LoaderService) LoadVote(f LoadVotesFilter) (Vote, error) {
 }
 
 func (l LoaderService) LoadAccount(f LoadAccountFilter) (Account, error) {
-	return loadAccount(f.Handle)
+	return loadAccount(l.DB, f.Handle)
 }

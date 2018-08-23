@@ -89,8 +89,8 @@ func init() {
 		log.Error(errors.NewErrWithCause(err, "failed to connect to the database"))
 	}
 
+	models.Service.DB = db
 	app.Db = db
-	models.Db = db
 }
 
 // FileServer conveniently sets up a http.FileServer handler to serve

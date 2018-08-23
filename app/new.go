@@ -2,12 +2,13 @@ package app
 
 import (
 	"bytes"
-	"github.com/juju/errors"
-	"github.com/mariusor/littr.go/models"
-	log "github.com/sirupsen/logrus"
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/juju/errors"
+	"github.com/mariusor/littr.go/models"
+	log "github.com/sirupsen/logrus"
 )
 
 type newModel struct {

@@ -3,11 +3,14 @@ package models
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/juju/errors"
-	log "github.com/sirupsen/logrus"
 	"math"
 	"strings"
 	"time"
+
+	"database/sql"
+
+	"github.com/juju/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 type Identifiable interface {
@@ -154,6 +157,10 @@ func loadItemFromModel(c item) Item {
 }
 
 func SaveItem(it Item) (Item, error) {
+	return saveItem(Service.DB, it)
+}
+
+func saveItem(db *sql.DB, it Item) (Item, error) {
 	i := item{
 		Flags:    it.Flags,
 		Score:    it.Score,
@@ -189,7 +196,7 @@ func SaveItem(it Item) (Item, error) {
 		values($1, $2, $3, $4, (select "id" from "accounts" where "key" ~* $5))`
 	}
 
-	res, err := Db.Exec(ins, params...)
+	res, err := db.Exec(ins, params...)
 	if err != nil {
 		return Item{}, err
 	} else {
@@ -198,10 +205,10 @@ func SaveItem(it Item) (Item, error) {
 		}
 	}
 
-	return LoadItem(LoadItemsFilter{Key: []string{i.Key.String()}})
+	return loadItem(db, LoadItemsFilter{Key: []string{i.Key.String()}})
 }
 
-func SaveVote(vot Vote) (Vote, error) {
+func saveVote(db *sql.DB, vot Vote) (Vote, error) {
 	var sel string
 	sel = `select "id", "accounts"."id", "weight" from "votes" inner join "accounts" on "accounts"."id" = "votes"."submitted_by" 
 			where "accounts"."hash" ~* $1 and "key" ~* $2;`
@@ -209,7 +216,7 @@ func SaveVote(vot Vote) (Vote, error) {
 	var vId int64
 	var oldWeight int64
 	{
-		rows, err := Db.Query(sel, vot.SubmittedBy.Hash, vot.Item.Hash)
+		rows, err := db.Query(sel, vot.SubmittedBy.Hash, vot.Item.Hash)
 		if err != nil {
 			return vot, err
 		}
@@ -234,7 +241,7 @@ func SaveVote(vot Vote) (Vote, error) {
 	v.Flags = vot.Flags
 	v.Weight = int(vot.Weight * ScoreMultiplier)
 
-	res, err := Db.Exec(q, oldWeight, vot.Item.Hash, userId, v)
+	res, err := db.Exec(q, oldWeight, vot.Item.Hash, userId, v)
 	if err != nil {
 		return vot, err
 	}
@@ -244,7 +251,7 @@ func SaveVote(vot Vote) (Vote, error) {
 	log.Printf("%d scoring %d on %s", userId, oldWeight, vot.Item.Hash)
 
 	upd := `update "content_items" set score = score - $1 + $2 where "id" = $3`
-	res, err = Db.Exec(upd, v.Weight, oldWeight, vot.Item.Hash)
+	res, err = db.Exec(upd, v.Weight, oldWeight, vot.Item.Hash)
 	if err != nil {
 		return vot, err
 	}

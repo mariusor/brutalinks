@@ -1,12 +1,15 @@
 package models
 
 import (
+	"database/sql"
 	"fmt"
-	"github.com/juju/errors"
-	log "github.com/sirupsen/logrus"
+	"math"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/juju/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -106,7 +109,7 @@ func trimHash(s string) string {
 	return h
 }
 
-func LoadVotes(filter LoadVotesFilter) (VoteCollection, error) {
+func loadVotes(db *sql.DB, filter LoadVotesFilter) (VoteCollection, error) {
 	var err error
 	votes := make(VoteCollection, 0)
 
@@ -165,7 +168,7 @@ from "votes"
        inner join "content_items" as "items" on "items"."id" = "votes"."item_id"
        left join "accounts" as "author" on "author"."id" = "items"."submitted_by"
 where %s order by "votes"."submitted_at" desc limit %d`, fullWhere, filter.MaxItems)
-	rows, err := Db.Query(selC, whereValues...)
+	rows, err := db.Query(selC, whereValues...)
 	if err != nil {
 		log.Error(errors.NewErrWithCause(err, "querying failed"))
 		return nil, err
@@ -218,7 +221,7 @@ type Score struct {
 	Type      ScoreType
 }
 
-func LoadScoresForItems(since time.Duration, key string) ([]Score, error) {
+func LoadScoresForItems(db *sql.DB, since time.Duration, key string) ([]Score, error) {
 	par := make([]interface{}, 0)
 	par = append(par, interface{}(since.Hours()))
 
@@ -233,7 +236,7 @@ func LoadScoresForItems(since time.Duration, key string) ([]Score, error) {
 		from "votes" inner join "content_items" on "content_items"."id" = "item_id"
 		where current_timestamp - "content_items"."submitted_at" < ($1 * INTERVAL '1 hour')%s group by "item_id", "key" order by "item_id";`,
 		keyClause)
-	rows, err := Db.Query(q, par...)
+	rows, err := db.Query(q, par...)
 	if err != nil {
 		return nil, err
 	}
@@ -261,7 +264,7 @@ func LoadScoresForItems(since time.Duration, key string) ([]Score, error) {
 	return scores, nil
 }
 
-func LoadScoresForAccounts(since time.Duration, col string, val string) ([]Score, error) {
+func LoadScoresForAccounts(db *sql.DB, since time.Duration, col string, val string) ([]Score, error) {
 	par := make([]interface{}, 0)
 	par = append(par, interface{}(since.Hours()))
 
@@ -279,7 +282,7 @@ from "votes"
 where current_timestamp - "content_items"."submitted_at" < ($1 * INTERVAL '1 hour')%s
 group by "accounts"."id", "accounts"."key" order by "accounts"."id";`,
 		keyClause)
-	rows, err := Db.Query(q, par...)
+	rows, err := db.Query(q, par...)
 	if err != nil {
 		return nil, err
 	}

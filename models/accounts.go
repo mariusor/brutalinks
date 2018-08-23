@@ -2,11 +2,13 @@ package models
 
 import (
 	"crypto/sha256"
+	"database/sql"
 	"encoding/json"
 	"fmt"
+	"time"
+
 	"github.com/juju/errors"
 	log "github.com/sirupsen/logrus"
-	"time"
 )
 
 type SSHKey struct {
@@ -36,15 +38,15 @@ type account struct {
 }
 
 type Account struct {
-	Email     string          `json:"-"`
-	Hash      string          `json:"hash"`
-	Score     int64           `json:"score"`
-	Handle    string          `json:"handle"`
-	CreatedAt time.Time       `json:"-"`
-	UpdatedAt time.Time       `json:"-"`
-	Flags     int8            `json:"-"`
+	Email     string           `json:"-"`
+	Hash      string           `json:"hash"`
+	Score     int64            `json:"score"`
+	Handle    string           `json:"handle"`
+	CreatedAt time.Time        `json:"-"`
+	UpdatedAt time.Time        `json:"-"`
+	Flags     int8             `json:"-"`
 	Metadata  *AccountMetadata `json:"metadata,omitempty"`
-	Votes     map[string]Vote `json:"votes,omitempty"`
+	Votes     map[string]Vote  `json:"votes,omitempty"`
 }
 
 func (a Account) HasMetadata() bool {
@@ -71,8 +73,8 @@ func loadAccountFromModel(a account) Account {
 	return acct
 }
 
-func loadAccount(handle string) (Account, error) {
-	a, err := loadAccountByHandle(handle)
+func loadAccount(db *sql.DB, handle string) (Account, error) {
+	a, err := loadAccountByHandle(db, handle)
 	if err != nil {
 		return Account{}, errors.Errorf("user %q not found", handle)
 	}
@@ -129,10 +131,10 @@ func (a *Account) IsLogged() bool {
 	return a != nil && (!a.CreatedAt.IsZero())
 }
 
-func loadAccountByHandle(handle string) (account, error) {
+func loadAccountByHandle(db *sql.DB, handle string) (account, error) {
 	a := account{}
 	selAcct := `select "id", "key", "handle", "email", "score", "created_at", "updated_at", "metadata", "flags" from "accounts" where "handle" = $1`
-	rows, err := Db.Query(selAcct, handle)
+	rows, err := db.Query(selAcct, handle)
 	if err != nil {
 		return a, err
 	}
