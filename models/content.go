@@ -234,6 +234,9 @@ from "content_items" where key ~* $%d) AND "content_items"."path" IS NOT NULL)`,
 		if filter.ContentMatchType == MatchEquals {
 			operator = "="
 		}
+		whereColumns = append(whereColumns, fmt.Sprintf(`"content_items"."title" %s $%d`, operator, counter))
+		whereValues = append(whereValues, interface{}(filter.Content))
+		counter += 1
 		whereColumns = append(whereColumns, fmt.Sprintf(`"content_items"."data" %s $%d`, operator, counter))
 		whereValues = append(whereValues, interface{}(filter.Content))
 		counter += 1

@@ -27,9 +27,9 @@ type VoteType string
 
 const (
 	MatchEquals = MatchType(1 << iota)
+	MatchFuzzy
 	MatchBefore
 	MatchAfter
-	MatchFuzzy
 )
 
 const (
