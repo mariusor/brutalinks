@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/juju/errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -22,7 +23,7 @@ func HandleError(w http.ResponseWriter, r *http.Request, status int, errs ...err
 
 	for _, err := range errs {
 		if err != nil {
-			log.WithFields(log.Fields{}).Error("Err: %q", err)
+			log.WithFields(log.Fields{"trace": errors.ErrorStack(err)}).Error("Err: %q", err)
 		}
 	}
 
