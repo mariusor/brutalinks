@@ -221,7 +221,10 @@ type Score struct {
 	Type      ScoreType
 }
 
-func LoadScoresForItems(db *sql.DB, since time.Duration, key string) ([]Score, error) {
+func LoadScoresForItems(since time.Duration, key string) ([]Score, error) {
+	return loadScoresForItems(Service.DB, since, key)
+}
+func loadScoresForItems(db *sql.DB, since time.Duration, key string) ([]Score, error) {
 	par := make([]interface{}, 0)
 	par = append(par, interface{}(since.Hours()))
 
@@ -264,7 +267,11 @@ func LoadScoresForItems(db *sql.DB, since time.Duration, key string) ([]Score, e
 	return scores, nil
 }
 
-func LoadScoresForAccounts(db *sql.DB, since time.Duration, col string, val string) ([]Score, error) {
+func LoadScoresForAccounts(since time.Duration, col string, val string) ([]Score, error) {
+	return loadScoresForAccounts(Service.DB, since, col, val)
+}
+
+func loadScoresForAccounts(db *sql.DB, since time.Duration, col string, val string) ([]Score, error) {
 	par := make([]interface{}, 0)
 	par = append(par, interface{}(since.Hours()))
 

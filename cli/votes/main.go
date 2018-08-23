@@ -4,9 +4,10 @@ import (
 	"database/sql"
 	"flag"
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"os"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/mariusor/littr.go/models"
 
@@ -14,19 +15,21 @@ import (
 )
 
 var defaultSince, _ = time.ParseDuration("90h")
+var db *sql.DB
 
 func init() {
 	dbPw := os.Getenv("DB_PASSWORD")
 	dbName := os.Getenv("DB_NAME")
 	dbUser := os.Getenv("DB_USER")
 
+	var err error
 	connStr := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable", dbUser, dbPw, dbName)
-	db, err := sql.Open("postgres", connStr)
+
+	db, err = sql.Open("postgres", connStr)
 	if err != nil {
 		log.Print(err)
 	}
 
-	models.Db = db
 }
 
 func main() {
@@ -72,7 +75,7 @@ func main() {
 		} else {
 			upd = `update "accounts" set score = $1 where id = $2;`
 		}
-		_, err := models.Db.Exec(upd, score.Score, score.Id)
+		_, err := db.Exec(upd, score.Score, score.Id)
 		if err != nil {
 			panic(err)
 		}
