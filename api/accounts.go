@@ -176,7 +176,7 @@ func HandleCollectionItem(w http.ResponseWriter, r *http.Request) {
 	case "outbox":
 		i, ok := val.(models.Item)
 		if !ok {
-			log.Errorf("could not load Item from Context")
+			log.WithFields(log.Fields{}).Errorf("could not load Item from Context")
 			HandleError(w, r, http.StatusInternalServerError, err)
 			return
 		}
