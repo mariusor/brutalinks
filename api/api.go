@@ -259,6 +259,9 @@ func (o *OrderedCollection) UnmarshalJSON(data []byte) error {
 		if data, _, _, err := jsonparser.Get(data, "orderedItems", fmt.Sprintf("[%d]", i)); err == nil {
 			a.UnmarshalJSON(data)
 		}
+		if context, err := jsonparser.GetString(data, "orderedItems", fmt.Sprintf("[%d]", i), "context"); err == nil {
+			a.Context = ap.IRI(context)
+		}
 		o.OrderedItems[i] = a
 	}
 	return nil
