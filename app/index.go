@@ -100,7 +100,7 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 	if ok {
 		log.Infof("loaded LoaderService of type %T", itemLoader)
 	} else {
-		log.Errorf("could not load item loader service from Context")
+		log.WithFields(log.Fields{}).Errorf("could not load item loader service from Context")
 		return
 	}
 	var err error
@@ -109,7 +109,7 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 		MaxItems: MaxContentItems,
 	})
 	if err != nil {
-		log.Error(err)
+		log.WithFields(log.Fields{}).Error(err)
 		HandleError(w, r, http.StatusNotFound, err)
 		return
 	}
@@ -122,16 +122,16 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 		if ok {
 			log.Infof("loaded LoaderService of type %T", itemLoader)
 			CurrentAccount.Votes, err = votesLoader.LoadVotes(models.LoadVotesFilter{
-				SubmittedBy: []string{CurrentAccount.Hash},
-				ItemKey:     m.Items.getItemsHashes(),
-				MaxItems:    MaxContentItems,
+				AttributedTo: []string{CurrentAccount.Hash},
+				ItemKey:      m.Items.getItemsHashes(),
+				MaxItems:     MaxContentItems,
 			})
 
 			if err != nil {
-				log.Error(err)
+				log.WithFields(log.Fields{}).Error(err)
 			}
 		} else {
-			log.Errorf("could not load vote loader service from Context")
+			log.WithFields(log.Fields{}).Errorf("could not load vote loader service from Context")
 		}
 	}
 	RenderTemplate(r, w, "listing", m)

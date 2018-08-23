@@ -171,7 +171,7 @@ func saveItem(db *sql.DB, it Item) (Item, error) {
 
 	if it.Metadata != nil {
 		jMetadata, err := json.Marshal(it.Metadata)
-		log.Warning(err)
+		log.WithFields(log.Fields{}).Warning(err)
 		i.Metadata = jMetadata
 	}
 	i.GetKey()
@@ -248,7 +248,7 @@ func saveVote(db *sql.DB, vot Vote) (Vote, error) {
 	if rows, _ := res.RowsAffected(); rows == 0 {
 		return vot, errors.Errorf("scoring %d failed on item %q", oldWeight, vot.Item.Hash)
 	}
-	log.Printf("%d scoring %d on %s", userId, oldWeight, vot.Item.Hash)
+	log.WithFields(log.Fields{}).Infof("%d scoring %d on %s", userId, oldWeight, vot.Item.Hash)
 
 	upd := `update "content_items" set score = score - $1 + $2 where "id" = $3`
 	res, err = db.Exec(upd, v.Weight, oldWeight, vot.Item.Hash)
@@ -261,7 +261,7 @@ func saveVote(db *sql.DB, vot Vote) (Vote, error) {
 	if rows, _ := res.RowsAffected(); rows > 1 {
 		return vot, errors.Errorf("content hash %q collision", vot.Item.Hash)
 	}
-	log.Printf("updated content_items with %d", oldWeight)
+	log.WithFields(log.Fields{}).Infof("updated content_items with %d", oldWeight)
 
 	return vot, nil
 }

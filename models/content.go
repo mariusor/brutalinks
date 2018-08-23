@@ -189,8 +189,8 @@ func loadItems(db *sql.DB, filter LoadItemsFilter) (ItemCollection, error) {
 	whereValues := make([]interface{}, 0)
 	counter := 1
 	whereColumns := make([]string, 0)
-	if len(filter.SubmittedBy) > 0 {
-		for _, v := range filter.SubmittedBy {
+	if len(filter.AttributedTo) > 0 {
+		for _, v := range filter.AttributedTo {
 			whereColumns = append(whereColumns, fmt.Sprintf(`"accounts"."key" ~* $%d`, counter))
 			whereValues = append(whereValues, interface{}(v))
 			counter += 1
@@ -269,7 +269,7 @@ from "content_items" where key ~* $%d) AND "content_items"."path" IS NOT NULL)`,
 	order by "content_items"."score" desc, "content_items"."submitted_at" desc limit %d`, fullWhere, filter.MaxItems)
 	rows, err := db.Query(sel, whereValues...)
 	if err != nil {
-		log.Error(errors.NewErrWithCause(err, "querying failed"))
+		log.WithFields(log.Fields{}).Error(errors.NewErrWithCause(err, "querying failed"))
 		return nil, err
 	}
 	for rows.Next() {
@@ -280,7 +280,7 @@ from "content_items" where key ~* $%d) AND "content_items"."path" IS NOT NULL)`,
 			&p.Id, &iKey, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Flags, &p.Metadata, &p.Path,
 			&a.Id, &aKey, &a.Handle, &a.Email, &a.Score, &a.CreatedAt, &a.Metadata, &a.Flags)
 		if err != nil {
-			log.Error(errors.NewErrWithCause(err, "load items failed"))
+			log.WithFields(log.Fields{}).WithFields(log.Fields{}).Error(errors.NewErrWithCause(err, "load items failed"))
 			continue
 		}
 		p.Key.FromBytes(iKey)

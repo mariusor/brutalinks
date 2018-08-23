@@ -86,7 +86,7 @@ func init() {
 	connStr := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable", dbUser, dbPw, dbName)
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
-		log.Error(errors.NewErrWithCause(err, "failed to connect to the database"))
+		log.WithFields(log.Fields{}).Error(errors.NewErrWithCause(err, "failed to connect to the database"))
 	}
 
 	models.Service.DB = db

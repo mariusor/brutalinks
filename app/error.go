@@ -2,8 +2,9 @@ package app
 
 import (
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"net/http"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // HandleError serves failed requests
@@ -20,7 +21,9 @@ func HandleError(w http.ResponseWriter, r *http.Request, status int, errs ...err
 	w.WriteHeader(status)
 
 	for _, err := range errs {
-		log.Printf("Err: %q", err)
+		if err != nil {
+			log.WithFields(log.Fields{}).Error("Err: %q", err)
+		}
 	}
 
 	RenderTemplate(r, w, "error", d)

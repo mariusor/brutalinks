@@ -413,7 +413,7 @@ func HandleError(w http.ResponseWriter, r *http.Request, code int, errs ...error
 		e := error{
 			Message: err.Error(),
 		}
-		log.Error(err)
+		log.WithFields(log.Fields{}).Error(err)
 		res.Errors = append(res.Errors, e)
 	}
 

@@ -116,9 +116,9 @@ func loadVotes(db *sql.DB, filter LoadVotesFilter) (VoteCollection, error) {
 	var wheres []string
 	whereValues := make([]interface{}, 0)
 	counter := 1
-	if len(filter.SubmittedBy) > 0 {
+	if len(filter.AttributedTo) > 0 {
 		whereColumns := make([]string, 0)
-		for _, v := range filter.SubmittedBy {
+		for _, v := range filter.AttributedTo {
 			whereColumns = append(whereColumns, fmt.Sprintf(`"voter"."key" ~* $%d`, counter))
 			whereValues = append(whereValues, interface{}(v))
 			counter += 1
@@ -170,7 +170,7 @@ from "votes"
 where %s order by "votes"."submitted_at" desc limit %d`, fullWhere, filter.MaxItems)
 	rows, err := db.Query(selC, whereValues...)
 	if err != nil {
-		log.Error(errors.NewErrWithCause(err, "querying failed"))
+		log.WithFields(log.Fields{}).Error(errors.NewErrWithCause(err, "querying failed"))
 		return nil, err
 	}
 	for rows.Next() {
@@ -187,7 +187,7 @@ where %s order by "votes"."submitted_at" desc limit %d`, fullWhere, filter.MaxIt
 			&voter.Id, &aKey, &voter.Handle, &voter.Email, &voter.Score, &voter.CreatedAt, &voter.Metadata, &voter.Flags,
 			&auth.Id, &vKey, &auth.Handle, &auth.Email, &auth.Score, &auth.CreatedAt, &auth.Metadata, &auth.Flags)
 		if err != nil {
-			log.Error(errors.NewErrWithCause(err, "load items failed"))
+			log.WithFields(log.Fields{}).Error(errors.NewErrWithCause(err, "load items failed"))
 			continue
 		}
 		voter.Key.FromBytes(aKey)
@@ -200,7 +200,7 @@ where %s order by "votes"."submitted_at" desc limit %d`, fullWhere, filter.MaxIt
 		votes[p.Hash()] = loadVoteFromModel(v, &voter, &p)
 	}
 	if err != nil {
-		log.Error(errors.NewErrWithCause(err, "load items failed"))
+		log.WithFields(log.Fields{}).Error(errors.NewErrWithCause(err, "load items failed"))
 		return nil, err
 	}
 	return votes, nil
@@ -254,7 +254,7 @@ func loadScoresForItems(db *sql.DB, since time.Duration, key string) ([]Score, e
 		reddit := int64(Reddit(ups, downs, now.Sub(submitted)))
 		wilson := int64(Wilson(ups, downs))
 		hacker := int64(Hacker(ups-downs, now.Sub(submitted)))
-		log.Infof("Votes[%s]: UPS[%d] DOWNS[%d] - new score %d:%d:%d", key, ups, downs, reddit, wilson, hacker)
+		log.WithFields(log.Fields{}).Infof("Votes[%s]: UPS[%d] DOWNS[%d] - new score %d:%d:%d", key, ups, downs, reddit, wilson, hacker)
 		new := Score{
 			Id:        i,
 			Key:       key,
@@ -306,7 +306,7 @@ group by "accounts"."id", "accounts"."key" order by "accounts"."id";`,
 		reddit := int64(Reddit(ups, downs, now.Sub(submitted)))
 		wilson := int64(Wilson(ups, downs))
 		hacker := int64(Hacker(ups-downs, now.Sub(submitted)))
-		log.Infof("Votes[%s]: UPS[%d] DOWNS[%d] - new score %d:%d:%d", handle, ups, downs, reddit, wilson, hacker)
+		log.WithFields(log.Fields{}).Infof("Votes[%s]: UPS[%d] DOWNS[%d] - new score %d:%d:%d", handle, ups, downs, reddit, wilson, hacker)
 		new := Score{
 			Id:        i,
 			Key:       key,
@@ -384,7 +384,7 @@ func addVote(db *sql.DB, p Item, score int, userHash string) (bool, error) {
 		if rows, _ := res.RowsAffected(); rows == 0 {
 			return false, errors.Errorf("scoring %d failed on item %q", newWeight, p.Hash)
 		}
-		log.Printf("%d scoring %d on %s", userId, newWeight, p.Hash)
+		log.WithFields(log.Fields{}).Infof("%d scoring %d on %s", userId, newWeight, p.Hash)
 	}
 
 	upd := `update "content_items" set score = score - $1 + $2 where "id" = $3`
@@ -399,7 +399,7 @@ func addVote(db *sql.DB, p Item, score int, userHash string) (bool, error) {
 		if rows, _ := res.RowsAffected(); rows > 1 {
 			return false, errors.Errorf("content hash %q collision", p.Hash)
 		}
-		log.Printf("updated content_items with %d", newWeight)
+		log.WithFields(log.Fields{}).Infof("updated content_items with %d", newWeight)
 	}
 
 	return true, nil

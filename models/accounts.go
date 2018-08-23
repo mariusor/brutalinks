@@ -66,7 +66,7 @@ func loadAccountFromModel(a account) Account {
 	if a.Metadata != nil {
 		err := json.Unmarshal(a.Metadata, &acct.Metadata)
 		if err != nil {
-			log.Error(errors.NewErrWithCause(err, "unable to unmarshal account metadata"))
+			log.WithFields(log.Fields{}).Error(errors.NewErrWithCause(err, "unable to unmarshal account metadata"))
 		}
 	}
 
@@ -148,7 +148,7 @@ func loadAccountByHandle(db *sql.DB, handle string) (account, error) {
 	}
 
 	if err != nil {
-		log.Print(err)
+		log.WithFields(log.Fields{}).Error(err)
 	}
 
 	return a, nil

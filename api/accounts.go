@@ -145,13 +145,13 @@ func HandleAccount(w http.ResponseWriter, r *http.Request) {
 	val := r.Context().Value(AccountCtxtKey)
 	a, ok := val.(models.Account)
 	if !ok {
-		log.Errorf("could not load Account from Context")
+		log.WithFields(log.Fields{}).Errorf("could not load Account from Context")
 	}
 	p := loadAPPerson(a)
 
 	j, err := json.WithContext(GetContext()).Marshal(p)
 	if err != nil {
-		log.Print(err)
+		log.WithFields(log.Fields{}).Error(err)
 		HandleError(w, r, http.StatusInternalServerError, err)
 		return
 	}
@@ -192,7 +192,7 @@ func HandleCollectionItem(w http.ResponseWriter, r *http.Request) {
 				MaxItems:  MaxContentItems,
 			})
 			if err != nil {
-				log.Error(err)
+				log.WithFields(log.Fields{}).Error(err)
 			}
 			if len(replies) > 0 {
 				if o, ok := el.(Article); ok {
@@ -204,7 +204,7 @@ func HandleCollectionItem(w http.ResponseWriter, r *http.Request) {
 	case "liked":
 		v, ok := val.(models.Vote)
 		if !ok {
-			log.Errorf("could not load Vote from Context")
+			log.WithFields(log.Fields{}).Errorf("could not load Vote from Context")
 			return
 		}
 		el, err = loadAPLike(v)
@@ -213,11 +213,11 @@ func HandleCollectionItem(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	default:
-		log.Error(errors.Errorf("collection not found"))
+		log.WithFields(log.Fields{}).Error(errors.Errorf("collection not found"))
 	}
 
 	data, err = json.WithContext(GetContext()).Marshal(el)
-	log.Error(err)
+	log.WithFields(log.Fields{}).Error(err)
 	w.Header().Set("item-Type", "application/ld+json; charset=utf-8")
 	w.Header().Set("X-item-Type-Options", "nosniff")
 	w.WriteHeader(http.StatusOK)
@@ -233,7 +233,7 @@ func HandleItemReplies(w http.ResponseWriter, r *http.Request) {
 	item := r.Context().Value(ItemCtxtKey)
 	var data []byte
 	if it, ok = item.(models.Item); !ok {
-		log.Errorf("could not load Item from Context")
+		log.WithFields(log.Fields{}).Errorf("could not load Item from Context")
 		return
 	} else {
 		val := r.Context().Value(ServiceCtxtKey)
@@ -252,7 +252,7 @@ func HandleItemReplies(w http.ResponseWriter, r *http.Request) {
 				_, err = loadAPCollection(p.Replies, &replies)
 				data, err = json.WithContext(GetContext()).Marshal(p.Replies)
 			} else {
-				log.Error(err)
+				log.WithFields(log.Fields{}).Error(err)
 			}
 		}
 	}
@@ -271,7 +271,7 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 	val := r.Context().Value(AccountCtxtKey)
 	a, ok := val.(models.Account)
 	if !ok {
-		log.Errorf("could not load Account from Context")
+		log.WithFields(log.Fields{}).WithFields(log.Fields{}).Errorf("could not load Account from Context")
 	}
 	p := loadAPPerson(a)
 
@@ -283,7 +283,7 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 	case "outbox":
 		items, ok := collection.(models.ItemCollection)
 		if !ok {
-			log.Errorf("could not load Items from Context")
+			log.WithFields(log.Fields{}).Errorf("could not load Items from Context")
 			return
 		}
 		_, err = loadAPCollection(p.Outbox, &items)
@@ -291,11 +291,11 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 	case "liked":
 		votes, ok := collection.(models.VoteCollection)
 		if !ok {
-			log.Errorf("could not load Votes from Context")
+			log.WithFields(log.Fields{}).Errorf("could not load Votes from Context")
 			return
 		}
 		if err != nil {
-			log.Print(err)
+			log.WithFields(log.Fields{}).Error(err)
 		}
 		_, err = loadAPLiked(p.Liked, votes)
 		data, err = json.WithContext(GetContext()).Marshal(p.Liked)
@@ -332,13 +332,13 @@ func HandleVerifyCredentials(w http.ResponseWriter, r *http.Request) {
 	val := r.Context().Value(ServiceCtxtKey)
 	AcctLoader, ok := val.(models.CanLoadAccounts)
 	if ok {
-		log.Infof("loaded LoaderService of type %T", AcctLoader)
+		log.WithFields(log.Fields{}).Infof("loaded LoaderService of type %T", AcctLoader)
 	} else {
-		log.Errorf("could not load account loader service from Context")
+		log.WithFields(log.Fields{}).Errorf("could not load account loader service from Context")
 	}
 	a, err := AcctLoader.LoadAccount(models.LoadAccountFilter{Handle: acct.Handle})
 	if err != nil {
-		log.Error(err)
+		log.WithFields(log.Fields{}).Error(err)
 		HandleError(w, r, http.StatusNotFound, err)
 		return
 	}

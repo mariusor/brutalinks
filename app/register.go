@@ -2,12 +2,14 @@ package app
 
 import (
 	"encoding/json"
-	log "github.com/sirupsen/logrus"
 	"net/http"
 	"time"
 
-	"github.com/juju/errors"
+	log "github.com/sirupsen/logrus"
+
 	"html/template"
+
+	"github.com/juju/errors"
 
 	"github.com/gorilla/securecookie"
 	"github.com/mariusor/littr.go/models"
@@ -56,7 +58,7 @@ func AccountFromRequest(r *http.Request) (*models.Account, []error) {
 
 	savpw, err := bcrypt.GenerateFromPassword(saltedpw, 14)
 	if err != nil {
-		log.Print(err)
+		log.WithFields(log.Fields{}).Error(err)
 	}
 	m := models.AccountMetadata{
 		Salt:     salt,
@@ -64,7 +66,7 @@ func AccountFromRequest(r *http.Request) (*models.Account, []error) {
 	}
 	jMetadata, err := json.Marshal(m)
 	if err != nil {
-		log.Print(err)
+		log.WithFields(log.Fields{}).Error(err)
 	}
 	ins := `insert into "accounts" ("key", "handle", "created_at", "updated_at", "metadata") values($1, $2, $3, $4, $5)`
 	{

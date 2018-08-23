@@ -21,8 +21,8 @@ func HandleUser(w http.ResponseWriter, r *http.Request) {
 	a, _ := models.Service.LoadAccount(models.LoadAccountFilter{Handle: handle})
 
 	filter := models.LoadItemsFilter{
-		SubmittedBy: []string{a.Hash},
-		MaxItems:    MaxContentItems,
+		AttributedTo: []string{a.Hash},
+		MaxItems:     MaxContentItems,
 	}
 	if m, err := loadItems(r.Context(), filter); err == nil {
 		m.Title = fmt.Sprintf("%s submissions", genitive(a.Handle))

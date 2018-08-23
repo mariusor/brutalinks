@@ -14,9 +14,9 @@ func HandleItemRedirect(w http.ResponseWriter, r *http.Request) {
 	val := r.Context().Value(ServiceCtxtKey)
 	itemLoader, ok := val.(models.CanLoadItems)
 	if ok {
-		log.Infof("loaded LoaderService of type %T", itemLoader)
+		log.WithFields(log.Fields{}).Infof("loaded LoaderService of type %T", itemLoader)
 	} else {
-		log.Errorf("could not load item loader service from Context")
+		log.WithFields(log.Fields{}).Errorf("could not load item loader service from Context")
 		return
 	}
 	p, err := itemLoader.LoadItem(models.LoadItemsFilter{

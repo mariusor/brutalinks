@@ -1,13 +1,15 @@
 package app
 
 import (
-	log "github.com/sirupsen/logrus"
 	"net/http"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/mariusor/littr.go/models"
 
 	"context"
 	"fmt"
+
 	"github.com/go-chi/chi"
 	"github.com/juju/errors"
 )
@@ -33,15 +35,15 @@ func loadItems(c context.Context, filter models.LoadItemsFilter) (itemListingMod
 		if ok {
 			log.Infof("loaded LoaderService of type %T", itemLoader)
 			CurrentAccount.Votes, err = votesLoader.LoadVotes(models.LoadVotesFilter{
-				SubmittedBy: []string{CurrentAccount.Hash},
-				ItemKey:     m.Items.getItemsHashes(),
-				MaxItems:    MaxContentItems,
+				AttributedTo: []string{CurrentAccount.Hash},
+				ItemKey:      m.Items.getItemsHashes(),
+				MaxItems:     MaxContentItems,
 			})
 			if err != nil {
-				log.Error(err)
+				log.WithFields(log.Fields{}).Error(err)
 			}
 		} else {
-			log.Errorf("could not load vote loader service from Context")
+			log.WithFields(log.Fields{}).Errorf("could not load vote loader service from Context")
 		}
 	}
 	return m, nil

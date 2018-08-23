@@ -41,7 +41,7 @@ const (
 type LoadVotesFilter struct {
 	ItemKey              []string
 	Type                 []VoteType
-	SubmittedBy          []string
+	AttributedTo         []string
 	SubmittedAt          time.Time
 	SubmittedAtMatchType MatchType
 	Page                 int
@@ -51,7 +51,7 @@ type LoadVotesFilter struct {
 type LoadItemsFilter struct {
 	Key                  []string
 	MediaType            []string
-	SubmittedBy          []string
+	AttributedTo         []string
 	InReplyTo            []string
 	Context              []string
 	SubmittedAt          time.Time

@@ -88,27 +88,27 @@ func ShowItem(w http.ResponseWriter, r *http.Request) {
 	val := r.Context().Value(ServiceCtxtKey)
 	itemLoader, ok := val.(models.CanLoadItems)
 	if ok {
-		log.Infof("loaded LoaderService of type %T", itemLoader)
+		log.WithFields(log.Fields{}).Infof("loaded LoaderService of type %T", itemLoader)
 	} else {
-		log.Errorf("could not load item loader service from Context")
+		log.WithFields(log.Fields{}).Errorf("could not load item loader service from Context")
 		return
 	}
 	//handle := chi.URLParam(r, "handle")
 	//acctLoader, ok := val.(models.CanLoadAccounts)
 	//if ok {
-	//	log.Infof("loaded LoaderService of type %T", acctLoader)
+	//	log.WithFields(log.Fields{}).Infof("loaded LoaderService of type %T", acctLoader)
 	//} else {
-	//	log.Errorf("could not load account loader service from Context")
+	//	log.WithFields(log.Fields{}).Errorf("could not load account loader service from Context")
 	//}
 	//act, err := acctLoader.LoadAccount(models.LoadAccountFilter{Handle: handle})
 
 	hash := chi.URLParam(r, "hash")
 	i, err := itemLoader.LoadItem(models.LoadItemsFilter{
-		//SubmittedBy: []string{act.Hash},
+		//AttributedTo: []string{act.Hash},
 		Key: []string{hash},
 	})
 	if err != nil {
-		log.Error(err)
+		log.WithFields(log.Fields{}).Error(err)
 		HandleError(w, r, http.StatusNotFound, err)
 		return
 	}
@@ -126,7 +126,7 @@ func ShowItem(w http.ResponseWriter, r *http.Request) {
 		MaxItems: MaxContentItems,
 	})
 	if err != nil {
-		log.Error(err)
+		log.WithFields(log.Fields{}).Error(err)
 		HandleError(w, r, http.StatusNotFound, err)
 		return
 	}
@@ -137,17 +137,17 @@ func ShowItem(w http.ResponseWriter, r *http.Request) {
 	if CurrentAccount.IsLogged() {
 		votesLoader, ok := val.(models.CanLoadVotes)
 		if ok {
-			log.Infof("loaded LoaderService of type %T", itemLoader)
+			log.WithFields(log.Fields{}).Infof("loaded LoaderService of type %T", itemLoader)
 			CurrentAccount.Votes, err = votesLoader.LoadVotes(models.LoadVotesFilter{
-				SubmittedBy: []string{CurrentAccount.Hash},
-				ItemKey:     allComments.getItemsHashes(),
-				MaxItems:    MaxContentItems,
+				AttributedTo: []string{CurrentAccount.Hash},
+				ItemKey:      allComments.getItemsHashes(),
+				MaxItems:     MaxContentItems,
 			})
 			if err != nil {
-				log.Error(err)
+				log.WithFields(log.Fields{}).Error(err)
 			}
 		} else {
-			log.Errorf("could not load vote loader service from Context")
+			log.WithFields(log.Fields{}).Errorf("could not load vote loader service from Context")
 		}
 	}
 	if len(m.Title) > 0 {
@@ -173,7 +173,7 @@ func HandleVoting(w http.ResponseWriter, r *http.Request) {
 	hash := chi.URLParam(r, "hash")
 	p, err := models.Service.LoadItem(models.LoadItemsFilter{Key: []string{hash}})
 	if err != nil {
-		log.Error(err)
+		log.WithFields(log.Fields{}).Error(err)
 		HandleError(w, r, http.StatusNotFound, err)
 		return
 	}
@@ -188,7 +188,7 @@ func HandleVoting(w http.ResponseWriter, r *http.Request) {
 
 	if CurrentAccount.IsLogged() {
 		if _, err := models.AddVote(p, multiplier, CurrentAccount.Hash); err != nil {
-			log.Print(err)
+			log.WithFields(log.Fields{}).Error(err)
 		}
 	} else {
 		AddFlashMessage(Error, fmt.Sprintf("unable to add vote as an %s user", anonymous), r, w)

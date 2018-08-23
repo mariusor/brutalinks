@@ -165,7 +165,7 @@ type errorModel struct {
 func GetSession(r *http.Request) *sessions.Session {
 	s, err := SessionStore.Get(r, sessionName)
 	if err != nil {
-		log.Infof("empty session %s", sessionName)
+		log.WithFields(log.Fields{}).Infof("empty session %s", sessionName)
 	}
 	return s
 }
@@ -225,7 +225,7 @@ func (l *Littr) BaseUrl() string {
 func Redirect(w http.ResponseWriter, r *http.Request, url string, status int) error {
 	err := sessions.Save(r, w)
 	if err != nil {
-		log.Error(errors.NewErrWithCause(err, "failed to save session before redirect [%d:%s]", status, url))
+		log.WithFields(log.Fields{}).Error(errors.NewErrWithCause(err, "failed to save session before redirect [%d:%s]", status, url))
 	}
 	http.Redirect(w, r, url, status)
 	return err
@@ -235,12 +235,12 @@ func RenderTemplate(r *http.Request, w http.ResponseWriter, name string, m inter
 	var err error
 	err = sessions.Save(r, w)
 	if err != nil {
-		log.Error(errors.NewErrWithCause(err, "failed to save session before rendering template %s with model %T", name, m))
+		log.WithFields(log.Fields{}).Error(errors.NewErrWithCause(err, "failed to save session before rendering template %s with model %T", name, m))
 	}
 	err = Renderer.HTML(w, http.StatusOK, name, m)
 	if err != nil {
 		rr := errors.NewErrWithCause(err, "failed to render template %s with model %T", name, m)
-		log.Error(rr)
+		log.WithFields(log.Fields{}).Error(rr)
 		Renderer.HTML(w, http.StatusInternalServerError, "error", rr)
 	}
 	return err
@@ -248,8 +248,8 @@ func RenderTemplate(r *http.Request, w http.ResponseWriter, name string, m inter
 }
 
 func (l *Littr) Run(m http.Handler, wait time.Duration) {
-	log.Infof("starting debug level %q", log.GetLevel().String())
-	log.Infof("listening on %s", l.listen())
+	log.WithFields(log.Fields{}).Infof("starting debug level %q", log.GetLevel().String())
+	log.WithFields(log.Fields{}).Infof("listening on %s", l.listen())
 
 	srv := &http.Server{
 		Addr: l.listen(),
@@ -263,7 +263,7 @@ func (l *Littr) Run(m http.Handler, wait time.Duration) {
 	// Run our server in a goroutine so that it doesn't block.
 	go func() {
 		if err := srv.ListenAndServe(); err != nil {
-			log.Error(err)
+			log.WithFields(log.Fields{}).Error(err)
 		}
 	}()
 
@@ -284,7 +284,7 @@ func (l *Littr) Run(m http.Handler, wait time.Duration) {
 	// Optionally, you could run srv.Shutdown in a goroutine and block on
 	// <-ctx.Done() if your application should wait for other services
 	// to finalize based on context cancellation.
-	log.Infof("shutting down")
+	log.WithFields(log.Fields{}).Infof("shutting down")
 	os.Exit(0)
 }
 
@@ -318,7 +318,7 @@ func (l *Littr) HandleCallback(w http.ResponseWriter, r *http.Request) {
 
 	s, err := SessionStore.Get(r, sessionName)
 	if err != nil {
-		log.Printf("ERROR %s", err)
+		log.WithFields(log.Fields{}).Infof("ERROR %s", err)
 	}
 
 	s.Values["provider"] = provider
@@ -328,7 +328,7 @@ func (l *Littr) HandleCallback(w http.ResponseWriter, r *http.Request) {
 
 	err = SessionStore.Save(r, w, s)
 	if err != nil {
-		log.Print(err)
+		log.WithFields(log.Fields{}).Info(err)
 	}
 	Redirect(w, r, l.BaseUrl(), http.StatusFound)
 }
@@ -339,7 +339,7 @@ func (l *Littr) HandleAuth(w http.ResponseWriter, r *http.Request) {
 
 	indexUrl := "/"
 	if os.Getenv(strings.ToUpper(provider)+"_KEY") == "" {
-		log.Printf("Provider %s has no credentials set", provider)
+		log.WithFields(log.Fields{}).Infof("Provider %s has no credentials set", provider)
 		Redirect(w, r, indexUrl, http.StatusPermanentRedirect)
 		return
 	}
@@ -390,7 +390,7 @@ func (l *Littr) HandleAuth(w http.ResponseWriter, r *http.Request) {
 	default:
 		s, err := SessionStore.Get(r, sessionName)
 		if err != nil {
-			log.Printf("ERROR %s", err)
+			log.WithFields(log.Fields{}).Infof("ERROR %s", err)
 		}
 		s.AddFlash("Missing oauth provider")
 		Redirect(w, r, indexUrl, http.StatusPermanentRedirect)
@@ -415,10 +415,10 @@ func loadCurrentAccount(s *sessions.Session) {
 		if raw != nil {
 			a := raw.(models.Account)
 			CurrentAccount = &a
-			//log.Infof("loaded account from session %#v", CurrentAccount)
+			//log.WithFields(log.Fields{}).Infof("loaded account from session %#v", CurrentAccount)
 		}
 	} else {
-		log.Error(errors.NewErr("unable to load user from session"))
+		log.WithFields(log.Fields{}).Error(errors.NewErr("unable to load user from session"))
 	}
 }
 
@@ -431,7 +431,7 @@ func loadSessionFlashMessages(s *sessions.Session) {
 		}
 		f, ok := int.(Flash)
 		if !ok {
-			log.Error(errors.NewErr("unable to read flash struct from %T %#v", int, int))
+			log.WithFields(log.Fields{}).Error(errors.NewErr("unable to read flash struct from %T %#v", int, int))
 		}
 		FlashData = append(FlashData, f)
 	}
@@ -451,7 +451,7 @@ func LoadSessionData(next http.Handler) http.Handler {
 func (l *Littr) AuthCheck(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		s := GetSession(r)
-		log.Debugf("%#v", s.Values)
+		log.WithFields(log.Fields{}).Debugf("%#v", s.Values)
 	})
 }
 

@@ -53,13 +53,13 @@ func AccountCtxt(next http.Handler) http.Handler {
 		val := r.Context().Value(ServiceCtxtKey)
 		AcctLoader, ok := val.(models.CanLoadAccounts)
 		if ok {
-			log.Infof("loaded LoaderService of type %T", AcctLoader)
+			log.WithFields(log.Fields{}).Infof("loaded LoaderService of type %T", AcctLoader)
 		} else {
-			log.Errorf("could not load account loader service from Context")
+			log.WithFields(log.Fields{}).Errorf("could not load account loader service from Context")
 		}
 		a, err := AcctLoader.LoadAccount(models.LoadAccountFilter{Handle: handle})
 		if err != nil {
-			log.Error(err)
+			log.WithFields(log.Fields{}).Error(err)
 			HandleError(w, r, http.StatusNotFound, err)
 			return
 		}
@@ -86,29 +86,29 @@ func ItemCtxt(next http.Handler) http.Handler {
 		if col == "outbox" {
 			filters, ok := f.(models.LoadItemsFilter)
 			if !ok {
-				log.Errorf("could not load item filter from Context")
+				log.WithFields(log.Fields{}).Errorf("could not load item filter from Context")
 			}
 			loader, ok := val.(models.CanLoadItems)
 			if !ok {
-				log.Errorf("could not load item loader service from Context")
+				log.WithFields(log.Fields{}).Errorf("could not load item loader service from Context")
 			}
 			i, err = loader.LoadItem(filters)
 			if err != nil {
-				log.Error(err)
+				log.WithFields(log.Fields{}).Error(err)
 			}
 		}
 		if col == "liked" {
 			filters, ok := f.(models.LoadVotesFilter)
 			if !ok {
-				log.Errorf("could not load vote filter from Context")
+				log.WithFields(log.Fields{}).Errorf("could not load vote filter from Context")
 			}
 			loader, ok := val.(models.CanLoadVotes)
 			if !ok {
-				log.Errorf("could not load votes loader service from Context")
+				log.WithFields(log.Fields{}).Errorf("could not load votes loader service from Context")
 			}
 			i, err = loader.LoadVote(filters)
 			if err != nil {
-				log.Error(err)
+				log.WithFields(log.Fields{}).Error(err)
 			}
 		}
 
@@ -126,15 +126,15 @@ func loadOutboxFilterFromReq(r *http.Request) models.LoadItemsFilter {
 	val := r.Context().Value(AccountCtxtKey)
 	a, ok := val.(models.Account)
 	if ok {
-		filters.SubmittedBy = []string{a.Hash}
+		filters.AttributedTo = []string{a.Hash}
 	}
 	hash := chi.URLParam(r, "hash")
 	if len(hash) > 0 {
 		filters.Key = []string{hash}
 		filters.MaxItems = 1
 	}
-	for _, by := range r.URL.Query()["submittedBy"] {
-		filters.SubmittedBy = append(filters.SubmittedBy, by)
+	for _, by := range r.URL.Query()["attributedTo"] {
+		filters.AttributedTo = append(filters.AttributedTo, by)
 	}
 	filters.InReplyTo = r.URL.Query()["inReplyTo"]
 	for _, ctxtHash := range r.URL.Query()["context"] {
@@ -184,7 +184,7 @@ func loadLikedFilterFromReq(r *http.Request) models.LoadVotesFilter {
 	val := r.Context().Value(AccountCtxtKey)
 	a, ok := val.(models.Account)
 	if ok {
-		filters.SubmittedBy = []string{a.Hash}
+		filters.AttributedTo = []string{a.Hash}
 	}
 	hash := chi.URLParam(r, "hash")
 	if len(hash) > 0 {
@@ -225,29 +225,29 @@ func ItemCollectionCtxt(next http.Handler) http.Handler {
 		if col == "outbox" {
 			filters, ok := f.(models.LoadItemsFilter)
 			if !ok {
-				log.Errorf("could not load item filters from Context")
+				log.WithFields(log.Fields{}).Errorf("could not load item filters from Context")
 			}
 			loader, ok := val.(models.CanLoadItems)
 			if !ok {
-				log.Errorf("could not load item loader service from Context")
+				log.WithFields(log.Fields{}).Errorf("could not load item loader service from Context")
 			}
 			items, err = loader.LoadItems(filters)
 			if err != nil {
-				log.Error(err)
+				log.WithFields(log.Fields{}).Error(err)
 			}
 		}
 		if col == "liked" {
 			filters, ok := f.(models.LoadVotesFilter)
 			if !ok {
-				log.Errorf("could not load votes filters from Context")
+				log.WithFields(log.Fields{}).Errorf("could not load votes filters from Context")
 			}
 			loader, ok := val.(models.CanLoadVotes)
 			if !ok {
-				log.Errorf("could not load votes loader service from Context")
+				log.WithFields(log.Fields{}).Errorf("could not load votes loader service from Context")
 			}
 			items, err = loader.LoadVotes(filters)
 			if err != nil {
-				log.Error(err)
+				log.WithFields(log.Fields{}).Error(err)
 			}
 		}
 
@@ -266,7 +266,7 @@ func (l LoaderService) LoadItem(f models.LoadItemsFilter) (models.Item, error) {
 	}
 	resp, err := http.Get(fmt.Sprintf("http://%s/api/outbox/%s", l.BaseUrl, f.Key[0]))
 	if err != nil {
-		log.Error(err)
+		log.WithFields(log.Fields{}).Error(err)
 		return it, err
 	}
 	if resp != nil {
@@ -278,7 +278,7 @@ func (l LoaderService) LoadItem(f models.LoadItemsFilter) (models.Item, error) {
 			}
 		}
 	}
-	log.Error(err)
+	log.WithFields(log.Fields{}).Error(err)
 	return it, err
 }
 
@@ -289,8 +289,8 @@ func (l LoaderService) LoadItems(f models.LoadItemsFilter) (models.ItemCollectio
 			q.Add("inReplyTo", p)
 		}
 	}
-	if len(f.SubmittedBy) > 0 {
-		for _, a := range f.SubmittedBy {
+	if len(f.AttributedTo) > 0 {
+		for _, a := range f.AttributedTo {
 			q.Add("submittedBy", a)
 		}
 	}
@@ -319,7 +319,7 @@ func (l LoaderService) LoadItems(f models.LoadItemsFilter) (models.ItemCollectio
 	var err error
 	resp, err := http.Get(fmt.Sprintf("http://%s/api/outbox%s", l.BaseUrl, qs))
 	if err != nil {
-		log.Error(err)
+		log.WithFields(log.Fields{}).Error(err)
 		return nil, err
 	}
 	col := OrderedCollection{}
@@ -327,12 +327,12 @@ func (l LoaderService) LoadItems(f models.LoadItemsFilter) (models.ItemCollectio
 		defer resp.Body.Close()
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			log.Error(err)
+			log.WithFields(log.Fields{}).Error(err)
 			return nil, err
 		}
 		err = j.Unmarshal(body, &col)
 		if err != nil {
-			log.Error(err)
+			log.WithFields(log.Fields{}).Error(err)
 			return nil, err
 		}
 	}
@@ -363,7 +363,7 @@ func (l LoaderService) SaveItem(it models.Item) (models.Item, error) {
 
 func jsonUnescape(s string) string {
 	if out, err := jsonparser.Unescape([]byte(s), nil); err != nil {
-		log.Error(err)
+		log.WithFields(log.Fields{}).Error(err)
 		return s
 	} else {
 		return string(out)

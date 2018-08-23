@@ -59,7 +59,7 @@ func ShowSubmit(w http.ResponseWriter, r *http.Request) {
 	m := newModel{Title: "New submission", InvertedTheme: isInverted(r)}
 	err := SessionStore.Save(r, w, GetSession(r))
 	if err != nil {
-		log.Print(err)
+		log.WithFields(log.Fields{}).Error(err)
 	}
 
 	RenderTemplate(r, w, "new", m)
@@ -71,13 +71,13 @@ func ShowSubmit(w http.ResponseWriter, r *http.Request) {
 func HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	p, err := ContentFromRequest(r)
 	if err != nil {
-		log.Error(errors.NewErrWithCause(err, "wrong http method"))
+		log.WithFields(log.Fields{}).Error(errors.NewErrWithCause(err, "wrong http method"))
 	}
 	p, err = models.SaveItem(p)
 	if err != nil {
-		log.Error(errors.NewErrWithCause(err, "unable to save item"))
+		log.WithFields(log.Fields{}).Error(errors.NewErrWithCause(err, "unable to save item"))
 		HandleError(w, r, http.StatusInternalServerError, err)
 	}
-	//AddVote(p, 1, p.SubmittedBy.Hash)
+	//AddVote(p, 1, p.AttributedTo.Hash)
 	Redirect(w, r, permaLink(p), http.StatusSeeOther)
 }
