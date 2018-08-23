@@ -187,7 +187,7 @@ func HandleVoting(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if CurrentAccount.IsLogged() {
-		if _, err := AddVote(p, multiplier, CurrentAccount.Hash); err != nil {
+		if _, err := models.AddVote(p, multiplier, CurrentAccount.Hash); err != nil {
 			log.Print(err)
 		}
 	} else {

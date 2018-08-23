@@ -311,3 +311,89 @@ group by "accounts"."id", "accounts"."key" order by "accounts"."id";`,
 	}
 	return scores, nil
 }
+
+func AddVote(p Item, score int, userHash string) (bool, error) {
+	return addVote(Service.DB, p, score, userHash)
+}
+
+// AddVote adds a vote to the p content item
+//   const {
+//      add_vote = "add_vote"
+//      delete = "delete"
+//   }
+//   type queue_message struct {
+//       type    string
+//       payload json.RawMessage
+//   }
+// Ideally this should be done asynchronously pushing an add_vote message to our
+// messaging queue. Details of this queue to be established (strongest possibility is Redis PubSub)
+// The cli/votes/main.go script would be responsible with waiting on the queue for these messages
+// and updating the new score and all models dependent on it.
+//   content_items and accounts tables, corresponding ES documents, etc
+func addVote(db *sql.DB, p Item, score int, userHash string) (bool, error) {
+	newWeight := int(score * ScoreMultiplier)
+
+	var sel string
+	var p2 interface{}
+	//if p.Id == 0 {
+	sel = `select "id", "accounts"."id", "weight" from "votes" 
+		inner join "accounts" on "accounts"."id" = "votes"."submitted_by" where "accounts"."hash" ~* $1 and "key" ~* $2;`
+	p2 = interface{}(p.Hash)
+	//} else {
+	//	sel = `select "id", "weight" from "votes" where "submitted_by" = $1 and "item_id" = $2;`
+	//	p2 = interface{}(p.Id)
+	//}
+
+	var userId int64
+	var vId int64
+	v := Vote{}
+	{
+		rows, err := db.Query(sel, userHash, p2)
+		if err != nil {
+			return false, err
+		}
+		for rows.Next() {
+			err = rows.Scan(&vId, &userId, &v.Weight)
+			if err != nil {
+				return false, err
+			}
+		}
+	}
+
+	var q string
+	if vId != 0 {
+		if v.Weight != 0 && math.Signbit(float64(newWeight)) == math.Signbit(float64(v.Weight)) {
+			newWeight = 0
+		}
+		q = `update "votes" set "updated_at" = now(), "weight" = $1 where "item_id" = $2 and "submitted_by" = $3;`
+	} else {
+		q = `insert into "votes" ("weight", "item_id", "submitted_by") values ($1, $2, $3)`
+	}
+	{
+		res, err := db.Exec(q, newWeight, p.Hash, userId)
+		if err != nil {
+			return false, err
+		}
+		if rows, _ := res.RowsAffected(); rows == 0 {
+			return false, errors.Errorf("scoring %d failed on item %q", newWeight, p.Hash)
+		}
+		log.Printf("%d scoring %d on %s", userId, newWeight, p.Hash)
+	}
+
+	upd := `update "content_items" set score = score - $1 + $2 where "id" = $3`
+	{
+		res, err := db.Exec(upd, v.Weight, newWeight, p.Hash)
+		if err != nil {
+			return false, err
+		}
+		if rows, _ := res.RowsAffected(); rows == 0 {
+			return false, errors.Errorf("content hash %q not found", p.Hash)
+		}
+		if rows, _ := res.RowsAffected(); rows > 1 {
+			return false, errors.Errorf("content hash %q collision", p.Hash)
+		}
+		log.Printf("updated content_items with %d", newWeight)
+	}
+
+	return true, nil
+}
