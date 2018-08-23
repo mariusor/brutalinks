@@ -90,6 +90,7 @@ func init() {
 	}
 
 	models.Service.DB = db
+	api.Service.BaseUrl = os.Getenv("LISTEN")
 	app.Db = db
 }
 

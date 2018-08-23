@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"os"
 	"strconv"
 	"strings"
 
@@ -259,15 +258,13 @@ func ItemCollectionCtxt(next http.Handler) http.Handler {
 }
 
 func (l LoaderService) LoadItem(f models.LoadItemsFilter) (models.Item, error) {
-	apiBaseUrl := os.Getenv("LISTEN")
-
 	var art Article
 	var it models.Item
 	var err error
 	if len(f.Key) != 1 {
 		return it, errors.Errorf("invalid item hash")
 	}
-	resp, err := http.Get(fmt.Sprintf("http://%s/api/outbox/%s", apiBaseUrl, f.Key[0]))
+	resp, err := http.Get(fmt.Sprintf("http://%s/api/outbox/%s", l.BaseUrl, f.Key[0]))
 	if err != nil {
 		log.Error(err)
 		return it, err
@@ -286,27 +283,6 @@ func (l LoaderService) LoadItem(f models.LoadItemsFilter) (models.Item, error) {
 }
 
 func (l LoaderService) LoadItems(f models.LoadItemsFilter) (models.ItemCollection, error) {
-	return LoadItems(f)
-}
-
-func (l LoaderService) SaveVote(v models.Vote) (models.Vote, error) {
-	return models.Vote{}, errors.Errorf("not implemented")
-}
-
-func (l LoaderService) LoadVotes(f models.LoadVotesFilter) (models.VoteCollection, error) {
-	return nil, errors.Errorf("not implemented") //models.LoadItemsVotes(f.ItemKey[0])
-}
-
-func (l LoaderService) LoadVote(f models.LoadVotesFilter) (models.Vote, error) {
-	return models.Vote{}, errors.Errorf("not implemented")
-}
-func (l LoaderService) SaveItem(it models.Item) (models.Item, error) {
-	return it, errors.Errorf("not implemented")
-}
-
-func LoadItems(f models.LoadItemsFilter) (models.ItemCollection, error) {
-	apiBaseUrl := os.Getenv("LISTEN")
-
 	q := url.Values{}
 	if len(f.InReplyTo) > 0 {
 		for _, p := range f.InReplyTo {
@@ -341,7 +317,7 @@ func LoadItems(f models.LoadItemsFilter) (models.ItemCollection, error) {
 	}
 
 	var err error
-	resp, err := http.Get(fmt.Sprintf("http://%s/api/outbox%s", apiBaseUrl, qs))
+	resp, err := http.Get(fmt.Sprintf("http://%s/api/outbox%s", l.BaseUrl, qs))
 	if err != nil {
 		log.Error(err)
 		return nil, err
@@ -367,6 +343,22 @@ func LoadItems(f models.LoadItemsFilter) (models.ItemCollection, error) {
 	}
 
 	return items, nil
+}
+
+func (l LoaderService) SaveVote(v models.Vote) (models.Vote, error) {
+	return models.Vote{}, errors.Errorf("not implemented")
+}
+
+func (l LoaderService) LoadVotes(f models.LoadVotesFilter) (models.VoteCollection, error) {
+	return nil, errors.Errorf("not implemented") //models.LoadItemsVotes(f.ItemKey[0])
+}
+
+func (l LoaderService) LoadVote(f models.LoadVotesFilter) (models.Vote, error) {
+	return models.Vote{}, errors.Errorf("not implemented")
+}
+
+func (l LoaderService) SaveItem(it models.Item) (models.Item, error) {
+	return it, errors.Errorf("not implemented")
 }
 
 func jsonUnescape(s string) string {
