@@ -172,6 +172,12 @@ func main() {
 		r.Get("/auth/{provider}", littr.HandleAuth)
 		r.Get("/auth/{provider}/callback", littr.HandleCallback)
 	})
+	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
+		app.HandleError(w, r, http.StatusNotFound, errors.Errorf("%q not found", r.RequestURI))
+	})
+	r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
+		app.HandleError(w, r, http.StatusMethodNotAllowed, errors.Errorf("invalid %q request", r.Method))
+	})
 
 	r.With(models.Loader).Route("/api", func(r chi.Router) {
 		r.With(app.LoadSessionData).Get("/accounts/verify_credentials", api.HandleVerifyCredentials)
@@ -196,7 +202,6 @@ func main() {
 			r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/{hash}", api.HandleCollectionItem)
 			r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/{hash}/replies", api.HandleItemReplies)
 		})
-
 		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 			api.HandleError(w, r, http.StatusNotFound, errors.Errorf("%s not found", r.RequestURI))
 		})
