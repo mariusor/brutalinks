@@ -247,14 +247,16 @@ ol.comments {
 }
 .inverted #top-invert::before {
     /*content: "\f0eb";*/
-    content: "\f042";
+    /*content: "\f042";*/
+    content: "\f185";
     font-family: "Font Awesome 5 Free";
     font-weight: 800;
 }
 #top-invert::before {
     /*content: "\f0eb";*/
     /*font-weight: 800;*/
-    content: "\f042";
+    /*content: "\f042";*/
+    content: "\f186";
     font-weight: 800;
     font-family: "Font Awesome 5 Free";
 }
