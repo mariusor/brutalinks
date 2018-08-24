@@ -103,7 +103,6 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 		log.WithFields(log.Fields{}).Errorf("could not load item loader service from Context")
 		return
 	}
-	var err error
 	items, err := itemLoader.LoadItems(models.LoadItemsFilter{
 		Context:  []string{"0"},
 		MaxItems: MaxContentItems,

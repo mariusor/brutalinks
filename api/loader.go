@@ -245,7 +245,13 @@ func (l LoaderService) LoadItem(f models.LoadItemsFilter) (models.Item, error) {
 		log.WithFields(log.Fields{}).Error(err)
 		return it, err
 	}
+
 	if resp != nil {
+		if resp.StatusCode != http.StatusOK {
+			err := fmt.Errorf("unable to load from the API")
+			log.WithFields(log.Fields{}).Error(err)
+			return it, err
+		}
 		defer resp.Body.Close()
 
 		if body, err := ioutil.ReadAll(resp.Body); err == nil {
@@ -273,6 +279,11 @@ func (l LoaderService) LoadItems(f models.LoadItemsFilter) (models.ItemCollectio
 	}
 	col := OrderedCollection{}
 	if resp != nil {
+		if resp.StatusCode != http.StatusOK {
+			err := fmt.Errorf("unable to load from the API")
+			log.WithFields(log.Fields{}).Error(err)
+			return nil, err
+		}
 		defer resp.Body.Close()
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
