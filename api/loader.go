@@ -5,11 +5,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"net/url"
-	"strconv"
-	"strings"
 
 	"github.com/buger/jsonparser"
+	"github.com/dyninc/qstring"
 	"github.com/go-chi/chi"
 	"github.com/juju/errors"
 	ap "github.com/mariusor/activitypub.go/activitypub"
@@ -123,71 +121,33 @@ func loadOutboxFilterFromReq(r *http.Request) models.LoadItemsFilter {
 		MaxItems: MaxContentItems,
 	}
 
+	if err := qstring.Unmarshal(r.URL.Query(), &filters); err != nil {
+		return filters
+	}
+
 	val := r.Context().Value(AccountCtxtKey)
 	a, ok := val.(models.Account)
 	if ok {
 		filters.AttributedTo = []string{a.Hash}
-	}
-	hash := chi.URLParam(r, "hash")
-	if len(hash) > 0 {
-		filters.Key = []string{hash}
-		filters.MaxItems = 1
-	}
-	for _, by := range r.URL.Query()["attributedTo"] {
-		filters.AttributedTo = append(filters.AttributedTo, by)
-	}
-	filters.InReplyTo = r.URL.Query()["inReplyTo"]
-	for _, ctxtHash := range r.URL.Query()["context"] {
-		filters.Context = append(filters.Context, ctxtHash)
-	}
-	mediaType := r.URL.Query()["mediaType"]
-	for _, typ := range mediaType {
-		if m, err := url.QueryUnescape(typ); err == nil {
-			filters.MediaType = append(filters.MediaType, m)
-		}
-	}
-	content := r.URL.Query().Get("content")
-	if len(content) > 0 {
-		filters.ContentMatchType = models.MatchEquals
-		filters.Content, _ = url.QueryUnescape(content)
-	}
-	matchType := r.URL.Query().Get("contentMatchType")
-	if m, err := strconv.Atoi(matchType); err == nil {
-		filters.ContentMatchType = models.MatchType(m)
 	}
 
 	return filters
 }
 
 func loadLikedFilterFromReq(r *http.Request) models.LoadVotesFilter {
-	types := r.URL.Query()["type"]
-	var which []models.VoteType
-	if types == nil {
-		which = []models.VoteType{
-			models.VoteType(strings.ToLower(string(ap.LikeType))),
-			models.VoteType(strings.ToLower(string(ap.DislikeType))),
-		}
-	} else {
-		for _, typ := range types {
-			if strings.ToLower(typ) == strings.ToLower(string(ap.LikeType)) {
-				which = []models.VoteType{models.VoteType(strings.ToLower(string(ap.LikeType)))}
-			} else {
-				which = []models.VoteType{models.VoteType(strings.ToLower(string(ap.DislikeType)))}
-			}
-		}
-	}
-
 	filters := models.LoadVotesFilter{
-		Type:     which,
 		MaxItems: MaxContentItems,
 	}
+	if err := qstring.Unmarshal(r.URL.Query(), &filters); err != nil {
+		return filters
+	}
+
 	val := r.Context().Value(AccountCtxtKey)
 	a, ok := val.(models.Account)
 	if ok {
 		filters.AttributedTo = []string{a.Hash}
 	}
-	hash := chi.URLParam(r, "hash")
-	if len(hash) > 0 {
+	if len(filters.ItemKey) > 0 {
 		filters.MaxItems = 1
 	}
 	return filters
@@ -283,39 +243,12 @@ func (l LoaderService) LoadItem(f models.LoadItemsFilter) (models.Item, error) {
 }
 
 func (l LoaderService) LoadItems(f models.LoadItemsFilter) (models.ItemCollection, error) {
-	q := url.Values{}
-	if len(f.InReplyTo) > 0 {
-		for _, p := range f.InReplyTo {
-			q.Add("inReplyTo", p)
-		}
-	}
-	if len(f.AttributedTo) > 0 {
-		for _, a := range f.AttributedTo {
-			q.Add("submittedBy", a)
-		}
-	}
-	if len(f.Context) > 0 {
-		for _, p := range f.Context {
-			q.Add("context", string(p))
-		}
-	}
-	if len(f.Content) > 0 {
-		q.Add("content", url.QueryEscape(f.Content))
-	}
-	if f.ContentMatchType > 0 {
-		q.Add("contentMatchType", strconv.Itoa(int(f.ContentMatchType)))
-	}
-	if len(f.MediaType) > 0 {
-		for _, mediaType := range f.MediaType {
-			q.Add("mediaType", url.QueryEscape(mediaType))
-		}
-	}
-
 	qs := ""
-	if len(q) > 0 {
-		qs = fmt.Sprintf("?%s", q.Encode())
+	if q, err := qstring.MarshalString(&f); err == nil {
+		qs = fmt.Sprintf("?%s", q)
 	}
 
+	log.Infof("qs url query %s", qs)
 	var err error
 	resp, err := http.Get(fmt.Sprintf("http://%s/api/outbox%s", l.BaseUrl, qs))
 	if err != nil {

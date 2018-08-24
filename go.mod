@@ -4,6 +4,7 @@ require (
 	github.com/Masterminds/squirrel v0.0.0-20180802154824-cebd809c54c4
 	github.com/buger/jsonparser v0.0.0-20180318095312-2cac668e8456
 	github.com/davecgh/go-spew v1.1.0 // indirect
+	github.com/dyninc/qstring v0.0.0-20160719172318-ab5840a88e81
 	github.com/eknkc/amber v0.0.0-20171010120322-cdade1c07385 // indirect
 	github.com/fsnotify/fsnotify v1.4.7 // indirect
 	github.com/gchaincl/dotsql v0.1.0 // indirect
