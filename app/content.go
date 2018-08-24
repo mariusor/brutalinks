@@ -161,6 +161,9 @@ func ShowItem(w http.ResponseWriter, r *http.Request) {
 
 func genitive(name string) string {
 	l := len(name)
+	if l == 0 {
+		return name
+	}
 	if name[l-1:l] != "s" {
 		return name + "'s"
 	}
