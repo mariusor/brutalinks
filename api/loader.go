@@ -61,7 +61,7 @@ func AccountCtxt(next http.Handler) http.Handler {
 			HandleError(w, r, http.StatusNotFound, err)
 			return
 		}
-		if a.Handle == "" {
+		if a.Handle == "" && len(a.Hash) == 0 {
 			HandleError(w, r, http.StatusNotFound, errors.Errorf("account not found"))
 			return
 		}
@@ -89,10 +89,14 @@ func ItemCtxt(next http.Handler) http.Handler {
 			loader, ok := val.(models.CanLoadItems)
 			if !ok {
 				log.WithFields(log.Fields{}).Errorf("could not load item loader service from Context")
+				HandleError(w, r, http.StatusInternalServerError, err)
+				return
 			}
 			i, err = loader.LoadItem(filters)
 			if err != nil {
 				log.WithFields(log.Fields{}).Error(err)
+				HandleError(w, r, http.StatusNotFound, err)
+				return
 			}
 		}
 		if col == "liked" {
@@ -103,10 +107,14 @@ func ItemCtxt(next http.Handler) http.Handler {
 			loader, ok := val.(models.CanLoadVotes)
 			if !ok {
 				log.WithFields(log.Fields{}).Errorf("could not load votes loader service from Context")
+				HandleError(w, r, http.StatusInternalServerError, err)
+				return
 			}
 			i, err = loader.LoadVote(filters)
 			if err != nil {
 				log.WithFields(log.Fields{}).Error(err)
+				HandleError(w, r, http.StatusNotFound, err)
+				return
 			}
 		}
 
@@ -190,10 +198,14 @@ func ItemCollectionCtxt(next http.Handler) http.Handler {
 			loader, ok := val.(models.CanLoadItems)
 			if !ok {
 				log.WithFields(log.Fields{}).Errorf("could not load item loader service from Context")
+				HandleError(w, r, http.StatusInternalServerError, err)
+				return
 			}
 			items, err = loader.LoadItems(filters)
 			if err != nil {
 				log.WithFields(log.Fields{}).Error(err)
+				HandleError(w, r, http.StatusNotFound, err)
+				return
 			}
 		}
 		if col == "liked" {
@@ -204,10 +216,14 @@ func ItemCollectionCtxt(next http.Handler) http.Handler {
 			loader, ok := val.(models.CanLoadVotes)
 			if !ok {
 				log.WithFields(log.Fields{}).Errorf("could not load votes loader service from Context")
+				HandleError(w, r, http.StatusInternalServerError, err)
+				return
 			}
 			items, err = loader.LoadVotes(filters)
 			if err != nil {
 				log.WithFields(log.Fields{}).Error(err)
+				HandleError(w, r, http.StatusNotFound, err)
+				return
 			}
 		}
 
