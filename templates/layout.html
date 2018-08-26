@@ -3,13 +3,13 @@
 <head>
 {{- template "partials/head" . -}}
 </head>
-<body class="container-fluid{{ if .InvertedTheme }} inverted{{end}}">
+<body class="{{ if .InvertedTheme }}inverted{{end}}">
 {{- template "partials/flash" -}}
-<header class="row no-gutters">{{ template "partials/header" . }}</header>
-<main class="no-gutters">
+<header>{{ template "partials/header" . }}</header>
+<main>
 {{ yield -}}
 </main>
-<footer class="row no-gutters">
+<footer>
 {{- template "partials/footer" . -}}
 </footer>
 </body>

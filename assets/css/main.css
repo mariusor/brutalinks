@@ -1,4 +1,83 @@
 @charset "UTF-8";
+/* http://meyerweb.com/eric/tools/css/reset/
+   v2.0 | 20110126
+   License: none (public domain)
+*/
+html, body, div, span, applet, object, iframe,
+h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+a, abbr, acronym, address, big, cite, code,
+del, dfn, em, img, ins, kbd, q, s, samp,
+small, strike, strong, sub, sup, tt, var,
+b, u, i, center,
+dl, dt, dd, ol, ul, li,
+fieldset, form, label, legend,
+table, caption, tbody, tfoot, thead, tr, th, td,
+article, aside, canvas, details, embed,
+figure, figcaption, footer, header, hgroup,
+menu, nav, output, ruby, section, summary,
+time, mark, audio, video {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    font-size: 100%;
+    font: inherit;
+    vertical-align: baseline;
+}
+/* HTML5 display-role reset for older browsers */
+article, aside, details, figcaption, figure,
+footer, header, hgroup, menu, nav, section {
+    display: block;
+}
+body {
+    line-height: 1;
+}
+ol, ul {
+    list-style: none;
+}
+blockquote, q {
+    quotes: none;
+}
+.auth-local-icon::before {
+    content: "\f2ed";
+    font-family: "Font Awesome 5 Free";
+}
+.auth-github-icon::before {
+    content:"\f09b";
+    font-family: "Font Awesome 5 Brands";
+}
+blockquote:before, blockquote:after,
+q:before, q:after {
+    content: '';
+    content: none;
+}
+table {
+    border-collapse: collapse;
+    border-spacing: 0;
+}
+/* end reset css */
+/* font awesome */
+@font-face {
+    font-family: "Font Awesome 5 Brands";
+    font-style: normal;
+    font-weight: normal;
+    src: url(https://use.fontawesome.com/releases/v5.1.0/webfonts/fa-brands-400.eot);
+    src: url(https://use.fontawesome.com/releases/v5.1.0/webfonts/fa-brands-400.eot?#iefix) format("embedded-opentype"),url(https://use.fontawesome.com/releases/v5.1.0/webfonts/fa-brands-400.woff2) format("woff2"),url(https://use.fontawesome.com/releases/v5.1.0/webfonts/fa-brands-400.woff) format("woff"),url(https://use.fontawesome.com/releases/v5.1.0/webfonts/fa-brands-400.ttf) format("truetype"),url(https://use.fontawesome.com/releases/v5.1.0/webfonts/fa-brands-400.svg#fontawesome) format("svg")
+}
+@font-face {
+    font-family: "Font Awesome 5 Free";
+    font-style: normal;
+    font-weight: 400;
+    src: url(https://use.fontawesome.com/releases/v5.1.0/webfonts/fa-regular-400.eot);
+    src: url(https://use.fontawesome.com/releases/v5.1.0/webfonts/fa-regular-400.eot?#iefix) format("embedded-opentype"),url(https://use.fontawesome.com/releases/v5.1.0/webfonts/fa-regular-400.woff2) format("woff2"),url(https://use.fontawesome.com/releases/v5.1.0/webfonts/fa-regular-400.woff) format("woff"),url(https://use.fontawesome.com/releases/v5.1.0/webfonts/fa-regular-400.ttf) format("truetype"),url(https://use.fontawesome.com/releases/v5.1.0/webfonts/fa-regular-400.svg#fontawesome) format("svg")
+}
+@font-face {
+    font-family: "Font Awesome 5 Free";
+    font-style: normal;
+    font-weight: 900;
+    src: url(https://use.fontawesome.com/releases/v5.1.0/webfonts/fa-solid-900.eot);
+    src: url(https://use.fontawesome.com/releases/v5.1.0/webfonts/fa-solid-900.eot?#iefix) format("embedded-opentype"),url(https://use.fontawesome.com/releases/v5.1.0/webfonts/fa-solid-900.woff2) format("woff2"),url(https://use.fontawesome.com/releases/v5.1.0/webfonts/fa-solid-900.woff) format("woff"),url(https://use.fontawesome.com/releases/v5.1.0/webfonts/fa-solid-900.ttf) format("truetype"),url(https://use.fontawesome.com/releases/v5.1.0/webfonts/fa-solid-900.svg#fontawesome) format("svg")
+}
+/* font awesome */
 @media (max-width: 480px) {
     :root {
         font-size: 3vw;
@@ -48,12 +127,45 @@
 body {
     background: Window;
     color: WindowText;
+    display: grid;
+    padding: 0.5rem;
+    grid-gap: 0.5rem;
+    grid-template-rows: 3.4rem minmax(10fr, max-content) 2rem;
+    grid-template-areas: "header" "main" "footer";
 }
 body > header {
-    padding: 1ex 1rem 0 0;
+    display: grid;
+    grid-template-columns: 10fr 1fr;
+    grid-template-rows: 1fr;
+    grid-area: header;
+    grid-template-areas: "main" "aside";
+}
+body > header h1 {
+    font-size: 1.6em;
+    font-weight: lighter;
+    grid-area: main;
+}
+body > header h1 a {
+    color: WindowText;
+    text-align: center;
+}
+body > header h1 a:hover {
+    text-decoration: none;
+}
+body > header h1 a:before {
+    /*content: "♻";
+    content: "\f1b8";*/
+    content: "\f2ed";
+    font-family: "Font Awesome 5 Free";
+    font-weight: 400;
+    margin-right: .4em;
 }
 body > main {
-    padding-left: 1rem;
+    grid-area: main;
+}
+body > footer {
+    grid-area: footer;
+    font-size: 0.7em;
 }
 .inverted {
     color: Window !important;
@@ -74,17 +186,6 @@ a:visited {
 .inverted .score a {
     color: unset;
 }
-body>header h1 {
-    font-size: 1.6em;
-    font-weight: lighter;
-}
-body>header h1 a {
-    color: WindowText;
-    text-align: center;
-}
-body>header h1 a:hover {
-    text-decoration: none;
-}
 .inverted > header h1 a,
 .inverted > header h1 a:active,
 .inverted > header h1 a:visited,
@@ -92,13 +193,9 @@ body>header h1 a:hover {
 {
     color: Window;
 }
-body>header h1 a:before {
-    /*content: "♻";
-    content: "\f1b8";*/
-    content: "\f2ed";
-    font-family: "Font Awesome 5 Free";
-    font-weight: 400;
-    margin-right: .4em;
+.item header h1
+{
+    display:inline-flex;
 }
 .item h1,
 .item h2,
@@ -205,6 +302,27 @@ ol {
 ol li {
     margin-bottom: .8rem;
 }
+.item {
+    display: grid;
+    grid-template-columns: 2.4rem max-content;
+    grid-template-rows: 33% 33% 33%;
+    grid-template-areas:
+            "sidebar header"
+            "sidebar main"
+            "sidebar footer"
+}
+.item aside.score {
+    grid-area: sidebar;
+}
+.item header {
+    grid-area: header;
+}
+.item .data {
+    grid-area: main;
+}
+.item footer {
+    grid-area: footer
+}
 ol.comments {
     margin-top: .8em;
     padding-left: 2vmin;
@@ -222,7 +340,7 @@ ol.comments {
     content: "]";
 }
 .item .score {
-    display: none !important;
+    /*display: none !important;*/
     text-align: center;
     max-width: 2em;
     padding: 0;
@@ -235,6 +353,7 @@ ol.comments {
 .item .score data {
     margin: auto;
     font-size:.6em;
+    margin-top: 5px;
 }
 .score a:hover,
 .score a:focus {
@@ -291,7 +410,6 @@ ol.comments {
 .meta {
     clear:both;
     font-size: .8em;
-    margin-left: -15px;
 }
 .meta a {
     text-decoration: none;
@@ -399,7 +517,6 @@ menu.meta-items {
     padding-left: 1em;
 }
 menu.meta-items li,
-menu#top li,
 menu#bottom li {
     display: inline;
     margin: 0;
@@ -434,21 +551,8 @@ a.to-op:before {
     font-family: "Font Awesome 5 Free";
     font-weight: 900;
 }
-body>footer {
-    font-size: 0.7em;
-    width: 100%;
-}
-menu#bottom {
-}
-header menu#top {
-    display: block !important;
-    z-index: 10;
-}
-footer #auth, header #top  {
-    float:right;
-}
-menu#auth {
-    margin-right:2em;
+menu#top li {
+    display:inline-block;
 }
 menu#top li:first-child::before,
 menu#bottom li:first-child::before {

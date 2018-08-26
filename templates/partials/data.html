@@ -1,7 +1,4 @@
 <article class="col-11">
-{{- if .Item.Title -}}
-{{ template "partials/title" . }}
-{{- end -}}
 {{- if .Item.IsSelf -}}
 <section class="data {{ .Item.MimeType | sluggify }}{{if not .Item.Title}} comment{{end}}">
 {{- if eq .MimeType "text/html" -}}{{- .Item | HTML -}}{{- end -}}
@@ -9,5 +6,4 @@
 {{- if eq .MimeType "text/markdown" -}}{{- .Item | Markdown -}}{{- end -}}
 </section>
 {{- end -}}
-{{- template "partials/meta" . -}}
 </article>
