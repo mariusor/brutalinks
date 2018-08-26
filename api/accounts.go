@@ -46,7 +46,6 @@ func loadAPItem(item models.Item) (ap.Item, error) {
 	o.Type = ActivityVocabularyType(ap.ArticleType)
 	o.Published = item.SubmittedAt
 	o.Updated = item.UpdatedAt
-	//o.URL = ap.URI(PermaLink(item))
 	o.MediaType = MimeType(item.MimeType)
 	o.Generator = ap.IRI("http://littr.git")
 	o.Score = item.Score / models.ScoreMultiplier
@@ -76,6 +75,7 @@ func loadAPPerson(a models.Account) *Person {
 	baseURL := ap.URI(fmt.Sprintf("%s", AccountsURL))
 
 	p := Person{}
+	p.Type = ActivityVocabularyType(ap.PersonType)
 	p.Name = make(NaturalLanguageValue)
 	p.PreferredUsername = make(NaturalLanguageValue)
 	p.ID = ObjectID(ap.ObjectID(apAccountID(a)))
@@ -104,7 +104,7 @@ func loadAPPerson(a models.Account) *Person {
 
 	p.URL = BuildObjectURL(baseURL, p)
 	p.Score = a.Score
-	if a.HasMetadata() && a.Metadata.Key.Public != nil {
+	if a.IsValid() && a.HasMetadata() && a.Metadata.Key != nil && a.Metadata.Key.Public != nil {
 		p.PublicKey = PublicKey{
 			Id:           ObjectID(fmt.Sprintf("%s#main-key", p.ID)),
 			Owner:        ap.IRI(p.ID),

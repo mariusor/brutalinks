@@ -1,5 +1,6 @@
 .env
 .idea/
+*.orig
 pkg/
 src/*.*
 vendor/
@@ -14,3 +15,4 @@ bootstrap
 bin/app
 bin/votes
 bin/bootstrap
+

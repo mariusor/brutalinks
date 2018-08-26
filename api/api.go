@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/buger/jsonparser"
-	"github.com/go-chi/chi"
 	"github.com/juju/errors"
 	ap "github.com/mariusor/activitypub.go/activitypub"
 	j "github.com/mariusor/activitypub.go/jsonld"
@@ -267,6 +266,53 @@ func (o *OrderedCollection) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+func (p *Person) UnmarshalJSON(data []byte) error {
+	app := ap.Person{}
+	err := app.UnmarshalJSON(data)
+	if err != nil {
+		return err
+	}
+
+	p.ID = ObjectID(*app.GetID())
+	p.Type = ActivityVocabularyType(app.GetType())
+	p.Name = NaturalLanguageValue(app.Name)
+	p.Content = NaturalLanguageValue(app.Content)
+	p.Context = app.Context
+	p.Generator = app.Generator
+	p.AttributedTo = app.AttributedTo
+	p.Published = app.Published
+	if score, err := jsonparser.GetInt(data, "score"); err == nil {
+		p.Score = score
+	}
+	if inReplyTo, err := jsonparser.GetString(data, "inReplyTo"); err == nil {
+		p.InReplyTo = ap.IRI(inReplyTo)
+	}
+	if context, err := jsonparser.GetString(data, "context"); err == nil {
+		p.Context = ap.IRI(context)
+	}
+	if outbox, _, _, err := jsonparser.Get(data, "outbox"); err == nil {
+		c := ap.OrderedCollection{}
+		j.Unmarshal(outbox, &c)
+		p.Outbox = &c
+	}
+	if inbox, _, _, err := jsonparser.Get(data, "inbox"); err == nil {
+		c := ap.OrderedCollection{}
+		j.Unmarshal(inbox, &c)
+		p.Inbox = &c
+	}
+	if liked, _, _, err := jsonparser.Get(data, "liked"); err == nil {
+		c := ap.OrderedCollection{}
+		j.Unmarshal(liked, &c)
+		p.Liked = &c
+	}
+	if replies, _, _, err := jsonparser.Get(data, "replies"); err == nil {
+		c := ap.Collection{}
+		j.Unmarshal(replies, &c)
+		p.Replies = &c
+	}
+	return nil
+}
+
 func getHash(i *ap.ObjectID) string {
 	if i == nil {
 		return ""
@@ -387,11 +433,6 @@ func BuildObjectURL(b ap.LinkOrURI, el ap.Item) ap.URI {
 	}
 
 	return ap.URI(fmt.Sprintf("%s/%s", pURL, getObjectType(el)))
-}
-
-func HandleApiCall(w http.ResponseWriter, r *http.Request) {
-	path := strings.ToLower(chi.URLParam(r, "handle"))
-	fmt.Sprintf("%s", strings.Split(path, "/"))
 }
 
 func HandleError(w http.ResponseWriter, r *http.Request, code int, errs ...error) {

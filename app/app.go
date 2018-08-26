@@ -118,6 +118,7 @@ func init() {
 	if CurrentAccount == nil {
 		CurrentAccount = AnonymousAccount()
 	}
+	CurrentAccount.Metadata = nil
 }
 
 func AnonymousAccount() *models.Account {

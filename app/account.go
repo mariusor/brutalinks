@@ -5,7 +5,9 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi"
+	"github.com/juju/errors"
 	"github.com/mariusor/littr.go/models"
+	log "github.com/sirupsen/logrus"
 )
 
 type itemListingModel struct {
@@ -15,11 +17,28 @@ type itemListingModel struct {
 	Items         comments
 }
 
-// HandleUser serves /~handle request
-func HandleUser(w http.ResponseWriter, r *http.Request) {
+// ShowAccount serves /~handle request
+func ShowAccount(w http.ResponseWriter, r *http.Request) {
 	handle := chi.URLParam(r, "handle")
-	a, _ := models.Service.LoadAccount(models.LoadAccountFilter{Handle: handle})
 
+	val := r.Context().Value(ServiceCtxtKey)
+	accountLoader, ok := val.(models.CanLoadAccounts)
+	if ok {
+		log.Infof("loaded LoaderService of type %T", accountLoader)
+	} else {
+		log.Errorf("could not load item loader service from Context")
+		return
+	}
+	var err error
+	a, err := accountLoader.LoadAccount(models.LoadAccountFilter{Handle: handle})
+	if err != nil {
+		HandleError(w, r, http.StatusNotFound, err)
+		return
+	}
+	if !a.IsValid() {
+		HandleError(w, r, http.StatusNotFound, errors.Errorf("account %s not found", handle))
+		return
+	}
 	filter := models.LoadItemsFilter{
 		AttributedTo: []string{a.Hash},
 		MaxItems:     MaxContentItems,

@@ -26,18 +26,24 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	a, err := models.Service.LoadAccount(models.LoadAccountFilter{Handle: handle})
 	if err != nil {
 		log.WithFields(log.Fields{}).Error(err)
-		HandleError(w, r, StatusUnknown, errors.Errorf("handle or password are wrong"))
+		HandleError(w, r, http.StatusForbidden, errors.Errorf("handle or password are wrong"))
 		return
 	}
 	m := a.Metadata
-	log.WithFields(log.Fields{}).Infof("Loaded pw: %q, salt: %q", m.Password, m.Salt)
-	salt := m.Salt
-	saltedpw := []byte(pw)
-	saltedpw = append(saltedpw, salt...)
-	err = bcrypt.CompareHashAndPassword([]byte(m.Password), saltedpw)
+	if m != nil {
+		log.WithFields(log.Fields{}).Infof("Loaded pw: %q, salt: %q", m.Password, m.Salt)
+		salt := m.Salt
+		saltyPw := []byte(pw)
+		saltyPw = append(saltyPw, salt...)
+		err = bcrypt.CompareHashAndPassword([]byte(m.Password), saltyPw)
+	} else {
+		log.Print(err)
+		HandleError(w, r, http.StatusForbidden, errors.Errorf("invalid account metadata"))
+		return
+	}
 	if err != nil {
 		log.WithFields(log.Fields{}).Error(err)
-		HandleError(w, r, StatusUnknown, errors.Errorf("handle or password are wrong"))
+		HandleError(w, r, http.StatusForbidden, errors.Errorf("handle or password are wrong"))
 		return
 	}
 

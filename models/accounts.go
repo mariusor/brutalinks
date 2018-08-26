@@ -5,23 +5,23 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"time"
-
 	"github.com/juju/errors"
 	log "github.com/sirupsen/logrus"
+	"strings"
+	"time"
 )
 
 type SSHKey struct {
 	Id      string `json:"id"`
-	Private []byte `json:"-"`
-	Public  []byte `json:"publicKeyPem"`
+	Private []byte `json:"prv,omitempty"`
+	Public  []byte `json:"pub,omitempty"`
 }
 
 type AccountMetadata struct {
-	Password []byte `json:"-"`
-	Provider string `json:"provider,omitempty"`
-	Salt     []byte `json:"-"`
-	Key      SSHKey `json:"-"`
+	Password []byte  `json:"pw,omitempty"`
+	Provider string  `json:"provider,omitempty"`
+	Salt     []byte  `json:"salt,omitempty"`
+	Key      *SSHKey `json:"key,omitempty"`
 }
 
 type account struct {
@@ -38,19 +38,23 @@ type account struct {
 }
 
 type Account struct {
-	Email     string           `json:"-"`
-	Hash      string           `json:"hash"`
-	Score     int64            `json:"score"`
+	Email     string           `json:"email,omitempty"`
+	Hash      string           `json:"hash,omitempty"`
+	Score     int64            `json:"score,omitempty"`
 	Handle    string           `json:"handle"`
 	CreatedAt time.Time        `json:"-"`
 	UpdatedAt time.Time        `json:"-"`
-	Flags     int8             `json:"-"`
+	Flags     int8             `json:"flags,omitempty"`
 	Metadata  *AccountMetadata `json:"metadata,omitempty"`
 	Votes     map[string]Vote  `json:"votes,omitempty"`
 }
 
 func (a Account) HasMetadata() bool {
 	return a.Metadata != nil
+}
+
+func (a Account) IsValid() bool {
+	return len(a.Handle) > 0
 }
 
 func loadAccountFromModel(a account) Account {
@@ -71,14 +75,6 @@ func loadAccountFromModel(a account) Account {
 	}
 
 	return acct
-}
-
-func loadAccount(db *sql.DB, handle string) (Account, error) {
-	a, err := loadAccountByHandle(db, handle)
-	if err != nil {
-		return Account{}, errors.Errorf("user %q not found", handle)
-	}
-	return loadAccountFromModel(a), nil
 }
 
 type Deletable interface {
@@ -131,24 +127,74 @@ func (a *Account) IsLogged() bool {
 	return a != nil && (!a.CreatedAt.IsZero())
 }
 
-func loadAccountByHandle(db *sql.DB, handle string) (account, error) {
-	a := account{}
-	selAcct := `select "id", "key", "handle", "email", "score", "created_at", "updated_at", "metadata", "flags" from "accounts" where "handle" = $1`
-	rows, err := db.Query(selAcct, handle)
-	if err != nil {
-		return a, err
+func loadAccount(db *sql.DB, filter LoadAccountFilter) (Account, error) {
+	var wheres []string
+	whereValues := make([]interface{}, 0)
+	counter := 1
+	if len(filter.Key) > 0 {
+		whereColumns := make([]string, 0)
+		//for _, hash := range filter.Key {
+		whereColumns = append(whereColumns, fmt.Sprintf(`"accounts"."key" ~* $%d`, counter))
+		whereValues = append(whereValues, interface{}(filter.Key))
+		counter += 1
+		//}
+		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
 	}
+	if len(filter.Handle) > 0 {
+		whereColumns := make([]string, 0)
+		//for _, hash := range filter.Handle {
+		whereColumns = append(whereColumns, fmt.Sprintf(`"accounts"."handle" ~* $%d`, counter))
+		whereValues = append(whereValues, interface{}(filter.Handle))
+		counter += 1
+		//}
+		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
+	}
+	a := account{}
+	var acct Account
+	var fullWhere string
+	if len(wheres) > 0 {
+		fullWhere = fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(wheres, " AND ")))
+	} else {
+		fullWhere = " true"
+	}
+	sel := fmt.Sprintf(`select 
+		"id", "key", "handle", "email", "score", "created_at", "updated_at", "metadata", "flags"
+	from "accounts" where %s`, fullWhere)
+	rows, err := db.Query(sel, whereValues...)
+	if err != nil {
+		return acct, err
+	}
+
 	var aKey []byte
 	for rows.Next() {
 		err = rows.Scan(&a.Id, &aKey, &a.Handle, &a.Email, &a.Score, &a.CreatedAt, &a.UpdatedAt, &a.Metadata, &a.Flags)
 		if err != nil {
-			return a, err
+			return acct, err
 		}
 		a.Key.FromBytes(aKey)
 	}
 
+	acct = loadAccountFromModel(a)
+	if len(a.Handle) == 0 {
+		return acct, errors.Errorf("not found")
+	}
+	return acct, nil
+}
+
+func saveAccount(db *sql.DB, a Account) (Account, error) {
+	jMetadata, err := json.Marshal(a.Metadata)
 	if err != nil {
-		log.WithFields(log.Fields{}).Error(err)
+		log.Error(err)
+	}
+	ins := `insert into "accounts" ("key", "handle", "email", "score", "created_at", "updated_at", "flags", "metadata") 
+	values ($1, $2, $3, $4, $5, $6, $7::bit(8), $8)`
+
+	if res, err := db.Exec(ins, a.Hash, a.Handle, a.Email, a.Score, a.CreatedAt, a.UpdatedAt, a.Flags, jMetadata); err == nil {
+		if rows, _ := res.RowsAffected(); rows == 0 {
+			return a, errors.Errorf("could not save account %s:%q", a.Handle, a.Hash)
+		}
+	} else {
+		return a, err
 	}
 
 	return a, nil

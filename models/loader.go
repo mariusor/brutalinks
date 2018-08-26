@@ -89,6 +89,10 @@ type CanLoadAccounts interface {
 	LoadAccount(f LoadAccountFilter) (Account, error)
 }
 
+type CanSaveAccounts interface {
+	SaveAccount(a Account) (Account, error)
+}
+
 var Service LoaderService
 
 type LoaderService struct {
@@ -128,5 +132,9 @@ func (l LoaderService) LoadVote(f LoadVotesFilter) (Vote, error) {
 }
 
 func (l LoaderService) LoadAccount(f LoadAccountFilter) (Account, error) {
-	return loadAccount(l.DB, f.Handle)
+	return loadAccount(l.DB, f)
+}
+
+func (l LoaderService) SaveAccount(a Account) (Account, error) {
+	return saveAccount(l.DB, a)
 }

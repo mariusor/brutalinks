@@ -3,11 +3,11 @@ package api
 import (
 	"context"
 	"fmt"
+	"github.com/dyninc/qstring"
 	"io/ioutil"
 	"net/http"
 
 	"github.com/buger/jsonparser"
-	"github.com/dyninc/qstring"
 	"github.com/go-chi/chi"
 	"github.com/juju/errors"
 	ap "github.com/mariusor/activitypub.go/activitypub"
@@ -57,7 +57,10 @@ func AccountCtxt(next http.Handler) http.Handler {
 		}
 		a, err := AcctLoader.LoadAccount(models.LoadAccountFilter{Handle: handle})
 		if err != nil {
-			log.WithFields(log.Fields{}).Error(err)
+			a, err = AcctLoader.LoadAccount(models.LoadAccountFilter{Key: handle})
+		}
+		if err != nil {
+			log.Error(err)
 			HandleError(w, r, http.StatusNotFound, err)
 			return
 		}
@@ -256,7 +259,7 @@ func (l LoaderService) LoadItem(f models.LoadItemsFilter) (models.Item, error) {
 
 		if body, err := ioutil.ReadAll(resp.Body); err == nil {
 			if err := j.Unmarshal(body, &art); err == nil {
-				return loadFromAPItem(art), nil
+				return loadFromAPItem(art)
 			}
 		}
 	}
@@ -270,7 +273,6 @@ func (l LoaderService) LoadItems(f models.LoadItemsFilter) (models.ItemCollectio
 		qs = fmt.Sprintf("?%s", q)
 	}
 
-	log.Infof("qs url query %s", qs)
 	var err error
 	resp, err := http.Get(fmt.Sprintf("http://%s/api/outbox%s", l.BaseUrl, qs))
 	if err != nil {
@@ -299,7 +301,7 @@ func (l LoaderService) LoadItems(f models.LoadItemsFilter) (models.ItemCollectio
 
 	items := make(models.ItemCollection, col.TotalItems)
 	for k, it := range col.OrderedItems {
-		items[k] = loadFromAPItem(it)
+		items[k], _ = loadFromAPItem(it)
 	}
 
 	return items, nil
@@ -330,7 +332,7 @@ func jsonUnescape(s string) string {
 	}
 }
 
-func loadFromAPItem(it Article) models.Item {
+func loadFromAPItem(it Article) (models.Item, error) {
 	title := jsonUnescape(ap.NaturalLanguageValue(it.Name).First())
 	content := jsonUnescape(ap.NaturalLanguageValue(it.Content).First())
 
@@ -359,5 +361,53 @@ func loadFromAPItem(it Article) models.Item {
 			}
 		}
 	}
-	return c
+	return c, nil
+}
+
+func loadFromAPPerson(p Person) (models.Account, error) {
+	name := jsonUnescape(ap.NaturalLanguageValue(p.Name).First())
+	a := models.Account{
+		Hash:   getHash(p.GetID()),
+		Handle: name,
+		Email:  "",
+		Metadata: &models.AccountMetadata{
+			Key: &models.SSHKey{
+				Id:     "",
+				Public: []byte(p.PublicKey.PublicKeyPem),
+			},
+		},
+		Score: p.Score,
+		//CreatedAt: nil,
+		//UpdatedAt: nil,
+		Flags: 0,
+		Votes: nil,
+	}
+	return a, nil
+}
+
+func (l LoaderService) LoadAccount(f models.LoadAccountFilter) (models.Account, error) {
+	p := Person{}
+
+	resp, err := http.Get(fmt.Sprintf("http://%s/api/accounts/%s", l.BaseUrl, f.Handle))
+	if err != nil {
+		log.WithFields(log.Fields{}).Error(err)
+		return models.Account{}, err
+	}
+	if resp != nil {
+		defer resp.Body.Close()
+
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return models.Account{}, err
+		}
+		err = j.Unmarshal(body, &p)
+		if err != nil {
+			return models.Account{}, err
+		}
+	}
+	return loadFromAPPerson(p)
+}
+
+func (l LoaderService) SaveAccount(a models.Account) (models.Account, error) {
+	return models.Account{}, errors.Errorf("not implemented")
 }

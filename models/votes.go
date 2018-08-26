@@ -3,13 +3,12 @@ package models
 import (
 	"database/sql"
 	"fmt"
+	"github.com/juju/errors"
+	log "github.com/sirupsen/logrus"
 	"math"
 	"net/url"
 	"strings"
 	"time"
-
-	"github.com/juju/errors"
-	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -224,6 +223,7 @@ type Score struct {
 func LoadScoresForItems(since time.Duration, key string) ([]Score, error) {
 	return loadScoresForItems(Service.DB, since, key)
 }
+
 func loadScoresForItems(db *sql.DB, since time.Duration, key string) ([]Score, error) {
 	par := make([]interface{}, 0)
 	par = append(par, interface{}(since.Hours()))

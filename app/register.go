@@ -1,15 +1,12 @@
 package app
 
 import (
-	"encoding/json"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 	"time"
 
-	log "github.com/sirupsen/logrus"
-
-	"html/template"
-
 	"github.com/juju/errors"
+	"html/template"
 
 	"github.com/gorilla/securecookie"
 	"github.com/mariusor/littr.go/models"
@@ -60,26 +57,16 @@ func AccountFromRequest(r *http.Request) (*models.Account, []error) {
 	if err != nil {
 		log.WithFields(log.Fields{}).Error(err)
 	}
-	m := models.AccountMetadata{
+	a.Metadata = &models.AccountMetadata{
 		Salt:     salt,
 		Password: savpw,
 	}
-	jMetadata, err := json.Marshal(m)
+
+	a, err = models.Service.SaveAccount(a)
 	if err != nil {
 		log.WithFields(log.Fields{}).Error(err)
+		return nil, []error{err}
 	}
-	ins := `insert into "accounts" ("key", "handle", "created_at", "updated_at", "metadata") values($1, $2, $3, $4, $5)`
-	{
-		res, err := Db.Exec(ins, a.Handle, a.Handle, a.CreatedAt, a.UpdatedAt, jMetadata)
-		if err != nil {
-			return nil, []error{err}
-		} else {
-			if rows, _ := res.RowsAffected(); rows == 0 {
-				return nil, []error{errors.Errorf("could not save account %s:%q", a.Handle, a.Hash)}
-			}
-		}
-	}
-
 	return &a, nil
 }
 

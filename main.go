@@ -150,7 +150,7 @@ func main() {
 
 		//r.With(Item).Get("/~{handle}/{hash}", app.ShowItem)
 		r.Route("/~{handle}", func(r chi.Router) {
-			r.Get("/", app.HandleUser)
+			r.Get("/", app.ShowAccount)
 			r.Get("/{hash}", app.ShowItem)
 			r.Post("/{hash}", app.HandleSubmit)
 			r.Get("/{hash}/{direction}", app.HandleVoting)
@@ -188,7 +188,7 @@ func main() {
 			r.Get("/", api.HandleAccount)
 			r.Route("/{collection}", func(r chi.Router) {
 				r.With(api.LoadFiltersCtxt, api.ItemCollectionCtxt).Get("/", api.HandleCollection)
-				r.Route("/{hash}", func(r chi.Router) {
+				r.Route("/{item_hash}", func(r chi.Router) {
 					r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/", api.HandleCollectionItem)
 					r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/replies", api.HandleItemReplies)
 				})
