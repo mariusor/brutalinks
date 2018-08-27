@@ -130,12 +130,12 @@ body {
     display: grid;
     padding: 0.5rem;
     grid-gap: 0.5rem;
-    grid-template-rows: 3.4rem minmax(10fr, max-content) 2rem;
+    /*grid-template-rows: 3.4rem minmax(10fr, max-content) 2rem;*/
     grid-template-areas: "header" "main" "footer";
 }
 body > header {
     display: grid;
-    grid-template-columns: 10fr 1fr;
+    grid-template-columns: 6fr 2fr;
     grid-template-rows: 1fr;
     grid-area: header;
     grid-template-areas: "main" "aside";
@@ -144,6 +144,9 @@ body > header h1 {
     font-size: 1.6em;
     font-weight: lighter;
     grid-area: main;
+}
+body > header menu {
+    text-align: right;
 }
 body > header h1 a {
     color: WindowText;
