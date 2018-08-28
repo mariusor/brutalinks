@@ -157,12 +157,6 @@ func (c *item) FullPath() []byte {
 	return c.fullPath
 }
 
-func (c item) Level() int {
-	if c.Path == nil {
-		return 0
-	}
-	return bytes.Count(c.FullPath(), []byte("."))
-}
 func (c item) Deleted() bool {
 	return c.Flags&FlagsDeleted == FlagsDeleted
 }

@@ -18,6 +18,7 @@ const Nay = "nay"
 type comments []*comment
 type comment struct {
 	models.Item
+	Level    int
 	Children comments
 }
 
@@ -73,6 +74,7 @@ func ReparentComments(allComments []*comment) {
 		}(allComments, *cur)
 
 		if par != nil {
+			cur.Level = par.Level + 1
 			par.Children = append(par.Children, cur)
 		}
 	}

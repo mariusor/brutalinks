@@ -26,14 +26,6 @@ type AccountMetadata struct {
 	salt     string
 }
 
-func (i comment) Level() int {
-	//if i.Path == nil {
-	//	return 0
-	//}
-	//return bytes.Count(i.Path, []byte(".")) + 1
-	return 0
-}
-
 type indexModel struct {
 	Title         string
 	InvertedTheme bool
