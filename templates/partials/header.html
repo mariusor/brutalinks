@@ -15,9 +15,9 @@
 {{end -}}
     <li class=""><a href="/submit">Add</a></li>
 {{- if not $account.IsLogged }}
-    <li class="auth-local"><a href="/login" title="Local auth" class="auth-local-icon"></a></li>
+    <li class="auth-local"><a href="/login" title="Local auth" class="auth local-icon"></a></li>
 {{range $key, $value := $providers}}
-    <li class=""><a href="/auth/{{$key}}" title="{{$value}} auth" class="auth-{{$key}}-icon"></a></li>
+    <li class=""><a href="/auth/{{$key}}" title="{{$value}} auth" class="auth {{$key}}-icon"></a></li>
 {{- end -}}
 {{- end -}}
 </menu>

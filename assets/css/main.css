@@ -37,11 +37,11 @@ ol, ul {
 blockquote, q {
     quotes: none;
 }
-.auth-local-icon::before {
+.local-icon::before {
     content: "\f2ed";
     font-family: "Font Awesome 5 Free";
 }
-.auth-github-icon::before {
+.github-icon::before {
     content:"\f09b";
     font-family: "Font Awesome 5 Brands";
 }
