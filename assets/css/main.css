@@ -230,7 +230,7 @@ a:visited {
 .item h1 a {
     /*padding-left: 0.3em;*/
 }
-ol.hide-text article section.data {
+ol.hide-text article.data {
     display: none;
 }
 .hide-text li.item {
@@ -285,10 +285,10 @@ h6.domain {
 article > header {
     margin-bottom: .4em;
 }
-section.data pre {
+.data pre {
     color:unset;
 }
-section.data code {
+.data code {
     white-space: pre;
     color: unset;
 }
@@ -308,7 +308,7 @@ ol li {
 .item {
     display: grid;
     grid-template-columns: 2.4rem max-content;
-    grid-template-rows: 33% 33% 33%;
+    grid-template-rows: fit-content(33%);
     grid-template-areas:
             "sidebar header"
             "sidebar main"
@@ -381,6 +381,9 @@ ol.comments {
     content: "\f186";
     font-weight: 800;
     font-family: "Font Awesome 5 Free";
+}
+.score a.yay {
+    margin-top: 2px;
 }
 .score a.yay::before {
     font-family: "Font Awesome 5 Free";

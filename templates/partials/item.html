@@ -2,9 +2,7 @@
 <del class="deleted titles col-12" data-hash="{{.Hash}}">deleted</del>
 {{- else -}}
 {{- template "partials/score" .Item -}}
-{{- if .Item.Title -}}
-{{ template "partials/title" . }}
-{{- end -}}
+{{- template "partials/title" . -}}
 {{- template "partials/data" . -}}
 {{- template "partials/meta" . -}}
 {{- end -}}

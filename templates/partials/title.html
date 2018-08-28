@@ -1,3 +1,4 @@
+{{- if .Item.Title -}}
 <header>
 <h1 data-hash="{{.Hash}}" class="title">
 {{- if .IsLink -}}
@@ -8,3 +9,4 @@
 {{- if .IsLink -}}<a title="all submissions" href=/domains/{{.GetDomain}}></a>{{- .GetDomain -}}{{- else -}} self {{- end -}}
 </h6>
 </header>
+{{- end -}}
