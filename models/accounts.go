@@ -5,10 +5,11 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"github.com/juju/errors"
-	log "github.com/sirupsen/logrus"
 	"strings"
 	"time"
+
+	"github.com/juju/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 type SSHKey struct {
@@ -32,7 +33,7 @@ type account struct {
 	Score     int64     `orm:score`
 	CreatedAt time.Time `orm:created_at`
 	UpdatedAt time.Time `orm:updated_at`
-	Flags     int8      `orm:flags`
+	Flags     FlagBits  `orm:flags`
 	Metadata  []byte    `orm:metadata`
 	Votes     map[Key]vote
 }
@@ -44,7 +45,7 @@ type Account struct {
 	Handle    string           `json:"handle"`
 	CreatedAt time.Time        `json:"-"`
 	UpdatedAt time.Time        `json:"-"`
-	Flags     int8             `json:"flags,omitempty"`
+	Flags     FlagBits         `json:"flags,omitempty"`
 	Metadata  *AccountMetadata `json:"metadata,omitempty"`
 	Votes     map[string]Vote  `json:"votes,omitempty"`
 }

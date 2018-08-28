@@ -3,12 +3,13 @@ package models
 import (
 	"database/sql"
 	"fmt"
-	"github.com/juju/errors"
-	log "github.com/sirupsen/logrus"
 	"math"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/juju/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -26,7 +27,7 @@ type Vote struct {
 	UpdatedAt   time.Time `json:"-"`
 	Weight      int       `json:"weight"`
 	Item        *Item     `json:"-"`
-	Flags       int8      `json:"-"`
+	Flags       FlagBits  `json:"-"`
 }
 
 type vote struct {
@@ -36,7 +37,7 @@ type vote struct {
 	UpdatedAt          time.Time `orm:updated_at`
 	ItemId             int64     `orm:item_id`
 	Weight             int       `orm:weight`
-	Flags              int8      `orm:flags`
+	Flags              FlagBits  `orm:flags`
 	SubmittedByAccount *account
 	Item               *item
 }
@@ -186,7 +187,7 @@ where %s order by "votes"."submitted_at" desc limit %d`, fullWhere, filter.MaxIt
 			&voter.Id, &aKey, &voter.Handle, &voter.Email, &voter.Score, &voter.CreatedAt, &voter.Metadata, &voter.Flags,
 			&auth.Id, &vKey, &auth.Handle, &auth.Email, &auth.Score, &auth.CreatedAt, &auth.Metadata, &auth.Flags)
 		if err != nil {
-			log.WithFields(log.Fields{}).Error(errors.NewErrWithCause(err, "load items failed"))
+			log.WithFields(log.Fields{}).Errorf("load items failed: %s", err.Error())
 			continue
 		}
 		voter.Key.FromBytes(aKey)
@@ -199,7 +200,7 @@ where %s order by "votes"."submitted_at" desc limit %d`, fullWhere, filter.MaxIt
 		votes[p.Hash()] = loadVoteFromModel(v, &voter, &p)
 	}
 	if err != nil {
-		log.WithFields(log.Fields{}).Error(errors.NewErrWithCause(err, "load items failed"))
+		log.WithFields(log.Fields{}).Errorf("load votes failed: %s", err.Error())
 		return nil, err
 	}
 	return votes, nil

@@ -12,10 +12,12 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const (
-	FlagsDeleted = int8(1 << iota)
+type FlagBits uint16
 
-	FlagsNone = int8(0)
+const (
+	FlagsDeleted = FlagBits(1 << iota)
+
+	FlagsNone = FlagBits(0)
 )
 const MimeTypeURL = "application/url"
 
@@ -55,6 +57,10 @@ func (k *Key) FromString(s string) error {
 	return err
 }
 
+func (f *FlagBits) FromInt64() error {
+	return nil
+}
+
 type item struct {
 	Id                 int64     `orm:id,"auto"`
 	Key                Key       `orm:key,size(64)`
@@ -65,7 +71,7 @@ type item struct {
 	SubmittedAt        time.Time `orm:created_at`
 	SubmittedBy        int64     `orm:submitted_by`
 	UpdatedAt          time.Time `orm:updated_at`
-	Flags              int8      `orm:flags`
+	Flags              FlagBits  `orm:flags`
 	Metadata           []byte    `orm:metadata`
 	Path               []byte    `orm:path`
 	SubmittedByAccount *Account
@@ -197,7 +203,6 @@ func loadItems(db *sql.DB, filter LoadItemsFilter) (ItemCollection, error) {
 		for _, ctxtHash := range filter.Context {
 			if ctxtHash == ContextNil {
 				whereColumns = append(whereColumns, `"content_items"."path" is NULL OR nlevel("content_items"."path") = 0`)
-				counter += 1
 				break
 			}
 			whereColumns = append(whereColumns, fmt.Sprintf(`("content_items"."path" <@ (select
@@ -245,6 +250,18 @@ from "content_items" where key ~* $%d) AND "content_items"."path" IS NOT NULL)`,
 		}
 		wheres = append(wheres, fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR ")))
 	}
+	var eqOp string
+	if filter.Deleted {
+		eqOp = "="
+	} else {
+		eqOp = "!="
+	}
+	whereDeleted := fmt.Sprintf(`("content_items"."flags" & $%d::bit(8)) %s $%d::bit(8)`, counter, eqOp, counter+1)
+	whereValues = append(whereValues, interface{}(FlagsDeleted))
+	whereValues = append(whereValues, interface{}(FlagsDeleted))
+	counter += 2
+	wheres = append(wheres, fmt.Sprintf("%s", whereDeleted))
+
 	var fullWhere string
 	if len(wheres) > 0 {
 		fullWhere = fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(wheres, " AND ")))
@@ -274,7 +291,7 @@ from "content_items" where key ~* $%d) AND "content_items"."path" IS NOT NULL)`,
 			&p.Id, &iKey, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Flags, &p.Metadata, &p.Path,
 			&a.Id, &aKey, &a.Handle, &a.Email, &a.Score, &a.CreatedAt, &a.Metadata, &a.Flags)
 		if err != nil {
-			log.WithFields(log.Fields{}).WithFields(log.Fields{}).Error(errors.NewErrWithCause(err, "load items failed"))
+			log.WithFields(log.Fields{}).Errorf("load items failed: %s", err)
 			continue
 		}
 		p.Key.FromBytes(iKey)
@@ -320,6 +337,17 @@ func loadItem(db *sql.DB, filter LoadItemsFilter) (Item, error) {
 		}
 		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
 	}
+	var eqOp string
+	if filter.Deleted {
+		eqOp = "="
+	} else {
+		eqOp = "!="
+	}
+	whereDeleted := fmt.Sprintf(`("content_items"."flags" & $%d::bit(8)) %s $%d::bit(8)`, counter, eqOp, counter+1)
+	whereValues = append(whereValues, interface{}(FlagsDeleted))
+	whereValues = append(whereValues, interface{}(FlagsDeleted))
+	counter += 2
+	wheres = append(wheres, fmt.Sprintf("%s", whereDeleted))
 
 	p := item{}
 	a := account{}

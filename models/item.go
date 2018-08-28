@@ -26,7 +26,7 @@ type Item struct {
 	SubmittedAt time.Time `json:"createdAt"`
 	SubmittedBy *Account  `json:"submittedBy"`
 	UpdatedAt   time.Time `json:"-"`
-	Flags       int8      `json:"-"`
+	Flags       FlagBits  `json:"-"`
 	Path        []byte    `json:"-"`
 	FullPath    []byte    `json:"-"`
 	Metadata    []byte    `json:"-"`

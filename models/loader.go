@@ -58,13 +58,15 @@ type LoadItemsFilter struct {
 	SubmittedAtMatchType MatchType `qstring:"submittedAtMatchType,omitempty"`
 	Content              string    `qstring:"content,omitempty"`
 	ContentMatchType     MatchType `qstring:"contentMatchType,omitempty"`
+	Deleted              bool      `qstring:"deleted,omitempty"`
 	Page                 int       `qstring:"page,omitempty"`
 	MaxItems             int       `qstring:"maxItems,omitempty"`
 }
 
 type LoadAccountFilter struct {
-	Key    string `qstring:"hash,omitempty"`
-	Handle string `qstring:"handle,omitempty"`
+	Key     string `qstring:"hash,omitempty"`
+	Handle  string `qstring:"handle,omitempty"`
+	Deleted bool   `qstring:"deleted,omitempty"`
 }
 
 type CanSaveItems interface {
