@@ -10,7 +10,7 @@ del, dfn, em, img, ins, kbd, q, s, samp,
 small, strike, strong, sub, sup, tt, var,
 b, u, i, center,
 dl, dt, dd, ol, ul, li,
-fieldset, form, label, legend,
+/*fieldset, form, label, legend,*/
 table, caption, tbody, tfoot, thead, tr, th, td,
 article, aside, canvas, details, embed,
 figure, figcaption, footer, header, hgroup,
@@ -144,7 +144,9 @@ table {
         font-size: .6vw;
     }
 }
-* {
+a,
+article,
+p {
     overflow-wrap: break-word;
     word-wrap: break-word;
     /* This is the dangerous one in WebKit, as it breaks things wherever */
@@ -153,9 +155,7 @@ table {
     word-break: break-word;
     hyphens: auto;
 }
-:root {
-
-}
+:root {}
 body {
     background: Window;
     color: WindowText;
@@ -278,6 +278,7 @@ ol.hide-text article.data {
 article {
     min-height: 2.0rem;
     padding-bottom: 1.2rem;
+    line-height: 1.6rem;
 }
 .hide-text article header {
     margin-bottom: 0px;
@@ -285,12 +286,6 @@ article {
 /*.hide-text .score {*/
     /*height: 3.4rem;*/
 /*}*/
-article {
-    display: flex;
-    align-items: center;
-    /*max-width: 80vw;*/
-    flex-wrap: wrap;
-}
 article > section {
     width: 100%;
 }
@@ -321,11 +316,10 @@ h6.domain {
 .domain a {
     text-decoration: none;
 }
-.data p {
-    line-height: 1.6rem;
-}
+.data p {}
 .data pre {
-    color:unset;
+    color: unset;
+    line-height: 1rem;
 }
 .data code {
     white-space: pre;
@@ -393,9 +387,9 @@ ol.comments li {
     margin: auto;
 }
 .item .score data {
-    margin: auto;
     font-size:.6em;
-    margin-top: 5px;
+    line-height: 1.8rem;
+    /*margin: 5px auto 3px auto;*/
 }
 .score a:hover,
 .score a:focus {
@@ -546,6 +540,7 @@ details > summary::-webkit-details-marker {
     font-family: monospace;
     /*width: 80ex;*/
     overflow: auto;
+    line-height: revert;
 }
 #reply {
     margin-top: 1em;
