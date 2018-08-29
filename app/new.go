@@ -71,11 +71,11 @@ func ShowSubmit(w http.ResponseWriter, r *http.Request) {
 func HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	p, err := ContentFromRequest(r)
 	if err != nil {
-		log.WithFields(log.Fields{}).Error(errors.NewErrWithCause(err, "wrong http method"))
+		log.WithFields(log.Fields{}).Errorf("wrong http method: %s", err)
 	}
 	p, err = models.SaveItem(p)
 	if err != nil {
-		log.WithFields(log.Fields{}).Error(errors.NewErrWithCause(err, "unable to save item"))
+		log.WithFields(log.Fields{}).Errorf("unable to save item: %s", err)
 		HandleError(w, r, http.StatusInternalServerError, err)
 	}
 	//AddVote(p, 1, p.AttributedTo.Hash)
