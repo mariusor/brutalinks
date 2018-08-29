@@ -12,7 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type FlagBits uint16
+type FlagBits uint8
 
 const (
 	FlagsDeleted = FlagBits(1 << iota)
@@ -194,6 +194,9 @@ func loadItems(db *sql.DB, filter LoadItemsFilter) (ItemCollection, error) {
 			whereColumns = append(whereColumns, fmt.Sprintf(`"accounts"."key" ~* $%d`, counter))
 			whereValues = append(whereValues, interface{}(v))
 			counter += 1
+			whereColumns = append(whereColumns, fmt.Sprintf(`"accounts"."handle" = $%d`, counter))
+			whereValues = append(whereValues, interface{}(v))
+			counter += 1
 		}
 		wheres = append(wheres, fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR ")))
 	}
@@ -256,17 +259,18 @@ from "content_items" where key ~* $%d) AND "content_items"."path" IS NOT NULL)`,
 	} else {
 		eqOp = "!="
 	}
-	whereDeleted := fmt.Sprintf(`("content_items"."flags" & $%d::bit(8)) %s $%d::bit(8)`, counter, eqOp, counter+1)
+	whereDeleted := fmt.Sprintf(`"content_items"."flags" & $%d::bit(8) %s $%d::bit(8)`, counter, eqOp, counter)
 	whereValues = append(whereValues, interface{}(FlagsDeleted))
-	whereValues = append(whereValues, interface{}(FlagsDeleted))
-	counter += 2
+	counter += 1
 	wheres = append(wheres, fmt.Sprintf("%s", whereDeleted))
 
 	var fullWhere string
-	if len(wheres) > 0 {
-		fullWhere = fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(wheres, " AND ")))
-	} else {
+	if len(wheres) == 0 {
 		fullWhere = " true"
+	} else if len(wheres) == 1 {
+		fullWhere = fmt.Sprintf("%s", wheres[0])
+	} else {
+		fullWhere = fmt.Sprintf("(%s)", strings.Join(wheres, " AND "))
 	}
 	sel := fmt.Sprintf(`select 
 			"content_items"."id", "content_items"."key", "content_items"."mime_type", "content_items"."data", 
@@ -279,8 +283,9 @@ from "content_items" where key ~* $%d) AND "content_items"."path" IS NOT NULL)`,
 		where %s 
 	order by "content_items"."score" desc, "content_items"."submitted_at" desc limit %d`, fullWhere, filter.MaxItems)
 	rows, err := db.Query(sel, whereValues...)
+
 	if err != nil {
-		log.WithFields(log.Fields{}).Error(errors.NewErrWithCause(err, "querying failed"))
+		log.WithFields(log.Fields{}).Errorf("querying failed: %s", err)
 		return nil, err
 	}
 	for rows.Next() {
