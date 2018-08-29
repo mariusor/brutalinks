@@ -7,7 +7,7 @@
 {{- else -}} allowed{{- end -}}
 {{- end -}}  --> */ -}}
 <a href="/" title="littr.me" alt="littr.me">littr<small> me</small></a></h1>
-<menu id="top" class="col-xs-8 col-sm-5 col-md-4 col-lg-4 col-xl-4 row text-right">
+<menu id="top">
     <li class=""><a id="top-invert" title="Turn {{if .InvertedTheme }}on{{else}}off{{end}} the light" href="/#invert"></a></li>
 {{ if $account.IsLogged }}
     <li class="acct">{{$account.Handle}} <span class="score">{{$account.Score | ScoreFmt}}</span></li>

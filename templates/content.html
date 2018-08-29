@@ -1,10 +1,10 @@
-<section class="item op row" id="i-{{.Content.Hash}}" data-hash="{{.Content.Hash}}">
+<section class="item op" id="i-{{.Content.Hash}}" data-hash="{{.Content.Hash}}">
 {{ template "partials/item" .Content }}
 </section>
 {{- if not .Content.Item.Deleted -}}
 <section id="reply">{{template "partials/new/submit" . }}</section>
 {{end}}
-<hr class="w-100"/>
+<hr />
 {{- if .Content.Children | len -}}
 {{ template "partials/content/comments" .Content }}
 {{- else -}}

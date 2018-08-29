@@ -10,5 +10,4 @@
         {{if $it.OP }}<li><a href="{{$it | OPLink}}" class="to-op" title="Go to original post"></a></li>{{end}}
         {{- end -}}
     </menu>
-    {{- if not $it.IsTop -}}{{if $count }}<span>{{$count}} child{{if $count | ne 1 }}ren{{end}}</span>{{end}}{{end}}
 </footer>
