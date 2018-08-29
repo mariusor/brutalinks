@@ -3,9 +3,10 @@ package api
 import (
 	"context"
 	"fmt"
-	"github.com/dyninc/qstring"
 	"io/ioutil"
 	"net/http"
+
+	"github.com/dyninc/qstring"
 
 	"github.com/buger/jsonparser"
 	"github.com/go-chi/chi"
@@ -135,12 +136,26 @@ func loadOutboxFilterFromReq(r *http.Request) models.LoadItemsFilter {
 	if err := qstring.Unmarshal(r.URL.Query(), &filters); err != nil {
 		return filters
 	}
-
-	val := r.Context().Value(AccountCtxtKey)
-	a, ok := val.(models.Account)
-	if ok {
-		filters.AttributedTo = []string{a.Hash}
+	handle := chi.URLParam(r, "handle")
+	if handle != "" {
+		old := filters.AttributedTo
+		filters.AttributedTo = nil
+		filters.AttributedTo = append(filters.AttributedTo, handle)
+		filters.AttributedTo = append(filters.AttributedTo, old...)
 	}
+	hash := chi.URLParam(r, "hash")
+	if hash != "" {
+		old := filters.Key
+		filters.Key = nil
+		filters.Key = append(filters.Key, hash)
+		filters.Key = append(filters.Key, old...)
+	}
+
+	//val := r.Context().Value(AccountCtxtKey)
+	//a, ok := val.(models.Account)
+	//if ok {
+	//	filters.AttributedTo = []string{a.Hash}
+	//}
 
 	return filters
 }
@@ -240,10 +255,18 @@ func (l LoaderService) LoadItem(f models.LoadItemsFilter) (models.Item, error) {
 	var art Article
 	var it models.Item
 	var err error
-	if len(f.Key) != 1 {
-		return it, errors.Errorf("invalid item hash")
+
+	f.MaxItems = 1
+	f.AttributedTo = nil
+	hashes := f.Key
+	f.Key = nil
+	qs := ""
+
+	if q, err := qstring.MarshalString(&f); err == nil {
+		qs = fmt.Sprintf("?%s", q)
 	}
-	resp, err := http.Get(fmt.Sprintf("http://%s/api/outbox/%s", l.BaseUrl, f.Key[0]))
+	url := fmt.Sprintf("http://%s/api/outbox/%s%s", l.BaseUrl, hashes[0], qs)
+	resp, err := http.Get(url)
 	if err != nil {
 		log.WithFields(log.Fields{}).Error(err)
 		return it, err

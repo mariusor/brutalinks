@@ -187,7 +187,7 @@ func main() {
 			r.Get("/", api.HandleAccount)
 			r.Route("/{collection}", func(r chi.Router) {
 				r.With(api.LoadFiltersCtxt, api.ItemCollectionCtxt).Get("/", api.HandleCollection)
-				r.Route("/{item_hash}", func(r chi.Router) {
+				r.Route("/{hash}", func(r chi.Router) {
 					r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/", api.HandleCollectionItem)
 					r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/replies", api.HandleItemReplies)
 				})

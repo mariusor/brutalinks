@@ -95,7 +95,7 @@ func ShowItem(w http.ResponseWriter, r *http.Request) {
 		log.WithFields(log.Fields{}).Errorf("could not load item loader service from Context")
 		return
 	}
-	//handle := chi.URLParam(r, "handle")
+	handle := chi.URLParam(r, "handle")
 	//acctLoader, ok := val.(models.CanLoadAccounts)
 	//if ok {
 	//	log.WithFields(log.Fields{}).Infof("loaded LoaderService of type %T", acctLoader)
@@ -106,8 +106,8 @@ func ShowItem(w http.ResponseWriter, r *http.Request) {
 
 	hash := chi.URLParam(r, "hash")
 	i, err := itemLoader.LoadItem(models.LoadItemsFilter{
-		//AttributedTo: []string{act.Hash},
-		Key: []string{hash},
+		AttributedTo: []string{handle},
+		Key:          []string{hash},
 	})
 	if err != nil {
 		log.WithFields(log.Fields{}).Error(err)
