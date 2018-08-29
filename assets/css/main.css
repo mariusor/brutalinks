@@ -180,11 +180,18 @@ body > header h1 {
 body > header menu {
     text-align: right;
 }
-body > header h1 a {
-    color: WindowText;
-    text-align: center;
+body > header menu a,
+body > header menu a:visited,
+body > header menu a:active
+{
+    text-decoration: none;
 }
-body > header h1 a:hover {
+body > header h1 a,
+body > header h1 a:hover,
+body > header h1 a:visited,
+body > header h1 a:active
+{
+    color: WindowText;
     text-decoration: none;
 }
 body > header h1 a:before {
