@@ -82,35 +82,56 @@ table {
     :root {
         font-size: 3vw;
     }
+    h6.domain {
+        display: none;
+    }
 }
 @media (min-width: 480px) {
     :root {
         font-size: 2.5vw;
+    }
+    h6.domain {
+        display: none;
     }
 }
 @media (min-width: 576px) {
     :root {
         font-size: 2.3vw;
     }
+    h6.domain {
+        display: none;
+    }
 }
 @media (min-width: 768px) {
     :root {
         font-size: 1.8vw;
+    }
+    h6.domain {
+        display: none;
     }
 }
 @media (min-width: 992px) {
     :root {
         font-size: 1.2vw;
     }
+    h6.domain {
+        display: inline;
+    }
 }
 @media (min-width: 1200px) {
     :root {
         font-size: 1.1vw;
     }
+    h6.domain {
+        display: inline;
+    }
 }
 @media (min-width: 1500px) {
     :root {
         font-size: 1vw;
+    }
+    h6.domain {
+        display: inline;
     }
 }
 @media (min-width: 1800px) {
