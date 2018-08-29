@@ -631,3 +631,10 @@ time::before {
     font-family: "Font Awesome 5 Free";
     font-size: 0.7em;
 }
+fieldset {
+    padding: 1rem;
+}
+form label {
+    min-height: 1.8rem;
+    line-height: 1.8rem;
+}
