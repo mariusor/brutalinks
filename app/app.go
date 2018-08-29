@@ -37,7 +37,7 @@ var Renderer *render.Render
 
 const anonymous = "anonymous"
 
-var defaultAccount = models.Account{Handle: anonymous}
+var defaultAccount = models.Account{Handle: anonymous, Hash: "77b7b721"}
 
 type flashType string
 
