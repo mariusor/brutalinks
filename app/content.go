@@ -18,8 +18,9 @@ const Nay = "nay"
 type comments []*comment
 type comment struct {
 	models.Item
-	Level    int
+	Level    uint8
 	Children comments
+	Parent   *comment
 }
 
 type contentModel struct {
@@ -63,19 +64,20 @@ func sluggify(s string) string {
 }
 
 func ReparentComments(allComments []*comment) {
-	for _, cur := range allComments {
-		par := func(t []*comment, cur comment) *comment {
-			for _, n := range t {
-				if cur.Parent != nil && cur.Parent.Hash == n.Hash {
-					return n
-				}
+	parFn := func(t []*comment, cur comment) *comment {
+		for _, n := range t {
+			if cur.Item.Parent != nil && cur.Item.Parent.Hash == n.Hash {
+				return n
 			}
-			return nil
-		}(allComments, *cur)
+		}
+		return nil
+	}
 
-		if par != nil {
-			cur.Level = par.Level + 1
+	for _, cur := range allComments {
+		if par := parFn(allComments, *cur); par != nil {
 			par.Children = append(par.Children, cur)
+			cur.Parent = par
+			cur.Level = par.Level + 1
 		}
 	}
 }

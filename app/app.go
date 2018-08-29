@@ -84,7 +84,7 @@ func init() {
 				return CurrentAccount
 			},
 			"LoadFlashMessages": loadFlashMessages,
-			"Mod10":             func(lvl int) float64 { return math.Mod(float64(lvl), float64(10)) },
+			"Mod10":             func(lvl uint8) float64 { return math.Mod(float64(lvl), float64(10)) },
 			"ShowText":          func() bool { return ShowItemData },
 			"HTML":              html,
 			"Text":              text,
