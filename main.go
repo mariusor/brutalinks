@@ -91,7 +91,6 @@ func init() {
 
 	models.Service.DB = db
 	api.Service.BaseUrl = os.Getenv("LISTEN")
-	app.Db = db
 }
 
 // FileServer conveniently sets up a http.FileServer handler to serve

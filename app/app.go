@@ -23,12 +23,10 @@ import (
 )
 
 const (
-	sessionName   = "_s"
-	templateDir   = "templates/"
-	StatusUnknown = -1
+	sessionName = "_s"
+	templateDir = "templates/"
 )
 
-var Db *sql.DB
 var SessionStore sessions.Store
 var ShowItemData = false
 

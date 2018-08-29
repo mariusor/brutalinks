@@ -24,7 +24,7 @@ func HandleItemRedirect(w http.ResponseWriter, r *http.Request) {
 		MaxItems: 1,
 	})
 	if err != nil {
-		HandleError(w, r, StatusUnknown, err)
+		HandleError(w, r, http.StatusInternalServerError, err)
 		return
 	}
 	url := permaLink(p)
