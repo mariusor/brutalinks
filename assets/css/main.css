@@ -276,7 +276,8 @@ ol.hide-text article.data {
     min-height: 3.3rem;
 }
 article {
-    min-height: 2.2rem;
+    min-height: 2.0rem;
+    padding-bottom: 1.2rem;
 }
 .hide-text article header {
     margin-bottom: 0px;
@@ -285,7 +286,6 @@ article {
     /*height: 3.4rem;*/
 /*}*/
 article {
-    /*border-top: solid 1px silver;*/
     display: flex;
     align-items: center;
     /*max-width: 80vw;*/
@@ -296,12 +296,12 @@ article > section {
 }
 article > header {
     width: 100%;
+    margin-bottom: .4em;
 }
 article > header h1 {
-    display:inline;
+    display: inline;
 }
 h6.domain {
-    display:inline;
     font-weight: 200;
     font-size: .8em;
     /*margin-left: 5ex;*/
@@ -321,8 +321,8 @@ h6.domain {
 .domain a {
     text-decoration: none;
 }
-article > header {
-    margin-bottom: .4em;
+.data p {
+    line-height: 1.6rem;
 }
 .data pre {
     color:unset;
@@ -342,12 +342,12 @@ ol {
     padding-left: 0;
 }
 ol li {
-    margin-bottom: .8rem;
+    margin-bottom: 1.2rem;
 }
 .item {
     display: grid;
     grid-template-columns: 2.4rem max-content;
-    grid-template-rows: fit-content(33%);
+    grid-template-rows: minmax(0px, 11fr);
     grid-template-areas:
             "sidebar header"
             "sidebar main"
