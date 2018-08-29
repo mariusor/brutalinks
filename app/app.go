@@ -56,7 +56,12 @@ func html(i models.Item) template.HTML {
 }
 
 func markdown(i models.Item) template.HTML {
-	return template.HTML(blackfriday.Run([]byte(i.Data)))
+	ext := blackfriday.NoIntraEmphasis | blackfriday.Tables | blackfriday.FencedCode |
+		blackfriday.Autolink | blackfriday.Strikethrough | blackfriday.SpaceHeadings | blackfriday.HeadingIDs |
+		blackfriday.DefinitionLists | blackfriday.LaxHTMLBlocks | blackfriday.HardLineBreak |
+		blackfriday.Footnotes | blackfriday.Titleblock | blackfriday.AutoHeadingIDs |
+		blackfriday.DefinitionLists
+	return template.HTML(blackfriday.Run([]byte(i.Data), blackfriday.WithExtensions(ext)))
 }
 
 func text(i models.Item) string {
