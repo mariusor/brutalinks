@@ -577,8 +577,8 @@ menu.meta-items:before {
     padding-right: .1em;
 }
 menu.meta-items:after {
-    content: "] ";
-    padding-left: .5em;
+    content: "]";
+    padding-left: .1em;
 }
 menu.meta-items a::before {
     font-weight: 900;
