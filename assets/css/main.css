@@ -502,44 +502,45 @@ details > summary {
     list-style: none;
     font-size: 0.7rem;
     display: inline;
-    padding-left: .6rem;
     margin-top: 1rem;
+    padding: .3rem 0 0 .3rem;
+    border-radius: .4rem 0 0 0;
 }
 details > summary::-webkit-details-marker {
     display: none;
 }
 .comments, summary {
-    border-left: 2px solid Window;
-}
-.lvl-0 {
-    border-color: #691d52;
-}
-.lvl-1 {
-    border-color: #900c3f;
-}
-.lvl-2 {
-    border-color: #c70039;
-}
-.lvl-3 {
-    border-color: #ff5733;
-}
-.lvl-4 {
-    border-color: #f39c12;
-}
-.lvl-5 {
-    border-color: #efec00;
-}
-.lvl-6 {
-    border-color: #b3ff35;
-}
-.lvl-7 {
-    border-color: #beffb9;
-}
-.lvl-8 {
-    border-color: #80fff8;
+    border-left: 1px solid;
 }
 .lvl-9 {
-    border-color: #6cd8d2;
+    border-color: #ebebebaa;
+}
+.lvl-8 {
+    border-color: #d7d7d7aa;
+}
+.lvl-7 {
+    border-color: #c4c4c4aa;
+}
+.lvl-6 {
+    border-color: #b0b0b0aa;
+}
+.lvl-5 {
+    border-color: #9c9c9caa;
+}
+.lvl-4 {
+    border-color: #898989aa;
+}
+.lvl-3 {
+    border-color: #757575aa;
+}
+.lvl-2 {
+    border-color: #626262aa;
+}
+.lvl-1 {
+    border-color: #4e4e4eaa;
+}
+.lvl-0 {
+    border-color: #3a3a3aaa;
 }
 /*.data {*/
     /*margin-bottom: 15px;*/
