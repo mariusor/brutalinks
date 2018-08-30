@@ -204,7 +204,7 @@ func loadItems(db *sql.DB, filter LoadItemsFilter) (ItemCollection, error) {
 		// Context filters are hashes belonging to a top element
 		whereColumns := make([]string, 0)
 		for _, ctxtHash := range filter.Context {
-			if ctxtHash == ContextNil {
+			if ctxtHash == ContextNil || ctxtHash == "" {
 				whereColumns = append(whereColumns, `"content_items"."path" is NULL OR nlevel("content_items"."path") = 0`)
 				break
 			}
