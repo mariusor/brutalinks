@@ -364,6 +364,10 @@ ol li {
 }
 ol.comments {
     padding: 1.5vmin 0 0 1.5vmin;
+    border-radius: 0 0 0 .4rem;
+}
+ol.comments.lvl-0 {
+    border-radius: .4rem 0 0 .4rem;
 }
 ol.comments li {
     list-style: none;
@@ -415,6 +419,9 @@ ol.comments li {
     font-weight: 800;
     font-family: "Font Awesome 5 Free";
 }
+.score a:not([href]) {
+    opacity: .4;
+}
 .score a.yay {
     margin-top: 2px;
 }
@@ -439,17 +446,23 @@ ol.comments li {
 .score a.nay.ed {
     color: #689a1c;
 }
+
 .inverted .score a.nay:active,
 .inverted .score a.nay.ed {
    color: greenyellow;
 }
 .item.op {
-    padding-top: .3em;
+    margin-top: 1em;
 }
 .meta {
     clear:both;
     font-size: .8em;
+    opacity: .6;
 }
+/*.meta:hover,*/
+/*.meta:active {*/
+    /*opacity: 1;*/
+/*}*/
 .meta a {
     text-decoration: none;
     font-weight: 900;
