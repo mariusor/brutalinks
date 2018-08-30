@@ -63,6 +63,17 @@ func sluggify(s string) string {
 	return strings.Replace(s, "/", "-", -1)
 }
 
+func AddLevelComments(comments comments) {
+	for _, cur := range comments {
+		if len(cur.Children) > 0 {
+			for _, child := range cur.Children {
+				child.Level = cur.Level + 1
+				AddLevelComments(cur.Children)
+			}
+		}
+	}
+}
+
 func ReparentComments(allComments []*comment) {
 	parFn := func(t []*comment, cur comment) *comment {
 		for _, n := range t {
@@ -76,8 +87,6 @@ func ReparentComments(allComments []*comment) {
 	for _, cur := range allComments {
 		if par := parFn(allComments, *cur); par != nil {
 			par.Children = append(par.Children, cur)
-			cur.Parent = par
-			cur.Level = par.Level + 1
 		}
 	}
 }
@@ -137,6 +146,7 @@ func ShowItem(w http.ResponseWriter, r *http.Request) {
 	allComments = append(allComments, loadComments(contentItems)...)
 
 	ReparentComments(allComments)
+	AddLevelComments(allComments)
 
 	if CurrentAccount.IsLogged() {
 		votesLoader, ok := val.(models.CanLoadVotes)
