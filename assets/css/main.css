@@ -107,12 +107,12 @@ table {
         font-size: 1.8vw;
     }
     h6.domain {
-        display: none;
+        display: inline;
     }
 }
 @media (min-width: 992px) {
     :root {
-        font-size: 1.2vw;
+        font-size: 1.5vw;
     }
     h6.domain {
         display: inline;
@@ -120,7 +120,7 @@ table {
 }
 @media (min-width: 1200px) {
     :root {
-        font-size: 1.1vw;
+        font-size: 1.3vw;
     }
     h6.domain {
         display: inline;
@@ -128,7 +128,7 @@ table {
 }
 @media (min-width: 1500px) {
     :root {
-        font-size: 1vw;
+        font-size: 1.12vw;
     }
     h6.domain {
         display: inline;
@@ -136,7 +136,7 @@ table {
 }
 @media (min-width: 1800px) {
     :root {
-        font-size: .8vw;
+        font-size: .96vw;
     }
 }
 @media (min-width: 2200px) {
@@ -235,10 +235,10 @@ a:visited {
 {
     color: Window;
 }
-.item header h1
-{
-    display:inline-flex;
-}
+/*.item header h1*/
+/*{*/
+    /*display: block;*/
+/*}*/
 .item h1,
 .item h2,
 .item h3,
@@ -277,7 +277,7 @@ ol.hide-text article.data {
 }
 article {
     min-height: 2.0rem;
-    padding-bottom: 1.2rem;
+    /*padding-bottom: 1.2rem;*/
     line-height: 1.6rem;
 }
 .hide-text article header {
@@ -290,7 +290,7 @@ article > section {
     width: 100%;
 }
 article > header {
-    width: 100%;
+    max-height: 2rem;
     margin-bottom: .4em;
 }
 article > header h1 {
@@ -319,7 +319,7 @@ h6.domain {
 .data p {}
 .data pre {
     color: unset;
-    line-height: 1rem;
+    line-height: 2rem;
 }
 .data code {
     white-space: pre;
@@ -340,19 +340,18 @@ ol li {
 }
 .item {
     display: grid;
-    grid-template-columns: 2.4rem max-content;
+    grid-template-columns: 2.4rem 11fr;
     grid-template-rows: minmax(0px, 11fr);
     grid-template-areas:
-            "sidebar header"
             "sidebar main"
             "sidebar footer"
 }
 .item aside.score {
     grid-area: sidebar;
 }
-.item header {
-    grid-area: header;
-}
+/*.item header {*/
+    /*grid-area: header;*/
+/*}*/
 .item .data {
     grid-area: main;
 }
@@ -392,8 +391,8 @@ ol.comments li {
 }
 .item .score data {
     font-size:.6em;
-    line-height: 1.8rem;
-    /*margin: 5px auto 3px auto;*/
+    /*line-height: 1.8rem;*/
+    margin: 5px auto 3px auto;
 }
 .score a:hover,
 .score a:focus {
@@ -542,9 +541,9 @@ details > summary::-webkit-details-marker {
 .lvl-0 {
     border-color: #3a3a3aaa;
 }
-/*.data {*/
+.data {
     /*margin-bottom: 15px;*/
-/*}*/
+}
 .comments .data,
 #content .data  {
     border: none;
