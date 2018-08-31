@@ -436,8 +436,8 @@ func BuildObjectURL(b ap.LinkOrURI, el ap.Item) ap.URI {
 }
 
 func HandleError(w http.ResponseWriter, r *http.Request, code int, errs ...error) {
-	w.Header().Set("item-Type", "application/json; charset=utf-8")
-	w.Header().Set("X-item-Type-Options", "nosniff")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(code)
 
 	type error struct {
