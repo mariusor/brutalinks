@@ -190,6 +190,7 @@ func main() {
 				r.Route("/{hash}", func(r chi.Router) {
 					r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/", api.HandleCollectionItem)
 					r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/replies", api.HandleItemReplies)
+					r.With(api.LoadFiltersCtxt, api.ItemCtxt).Post("/replies", api.HandleItem)
 				})
 			})
 		})
