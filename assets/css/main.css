@@ -39,11 +39,11 @@ blockquote, q {
 }
 .local-icon::before {
     content: "\f2ed";
-    font-family: "Font Awesome 5 Free";
+    font-family: "Awesome";
 }
 .github-icon::before {
     content:"\f09b";
-    font-family: "Font Awesome 5 Brands";
+    font-family: "AwesomeBrands";
 }
 blockquote:before, blockquote:after,
 q:before, q:after {
@@ -57,21 +57,21 @@ table {
 /* end reset css */
 /* font awesome */
 @font-face {
-    font-family: "Font Awesome 5 Brands";
+    font-family: "AwesomeBrands";
     font-style: normal;
     font-weight: normal;
     src: url(https://use.fontawesome.com/releases/v5.1.0/webfonts/fa-brands-400.eot);
     src: url(https://use.fontawesome.com/releases/v5.1.0/webfonts/fa-brands-400.eot?#iefix) format("embedded-opentype"),url(https://use.fontawesome.com/releases/v5.1.0/webfonts/fa-brands-400.woff2) format("woff2"),url(https://use.fontawesome.com/releases/v5.1.0/webfonts/fa-brands-400.woff) format("woff"),url(https://use.fontawesome.com/releases/v5.1.0/webfonts/fa-brands-400.ttf) format("truetype"),url(https://use.fontawesome.com/releases/v5.1.0/webfonts/fa-brands-400.svg#fontawesome) format("svg")
 }
 @font-face {
-    font-family: "Font Awesome 5 Free";
+    font-family: "Awesome";
     font-style: normal;
     font-weight: 400;
     src: url(https://use.fontawesome.com/releases/v5.1.0/webfonts/fa-regular-400.eot);
     src: url(https://use.fontawesome.com/releases/v5.1.0/webfonts/fa-regular-400.eot?#iefix) format("embedded-opentype"),url(https://use.fontawesome.com/releases/v5.1.0/webfonts/fa-regular-400.woff2) format("woff2"),url(https://use.fontawesome.com/releases/v5.1.0/webfonts/fa-regular-400.woff) format("woff"),url(https://use.fontawesome.com/releases/v5.1.0/webfonts/fa-regular-400.ttf) format("truetype"),url(https://use.fontawesome.com/releases/v5.1.0/webfonts/fa-regular-400.svg#fontawesome) format("svg")
 }
 @font-face {
-    font-family: "Font Awesome 5 Free";
+    font-family: "Awesome";
     font-style: normal;
     font-weight: 900;
     src: url(https://use.fontawesome.com/releases/v5.1.0/webfonts/fa-solid-900.eot);
@@ -144,17 +144,17 @@ table {
         font-size: .6vw;
     }
 }
-a,
-article,
-p {
-    overflow-wrap: break-word;
-    word-wrap: break-word;
-    /* This is the dangerous one in WebKit, as it breaks things wherever */
-    word-break: break-all;
-    /* Instead use this non-standard one: */
-    word-break: break-word;
-    hyphens: auto;
-}
+/*a,*/
+/*article,*/
+/*p {*/
+    /*overflow-wrap: break-word;*/
+    /*word-wrap: break-word;*/
+    /*!* This is the dangerous one in WebKit, as it breaks things wherever *!*/
+    /*word-break: break-all;*/
+    /*!* Instead use this non-standard one: *!*/
+    /*word-break: break-word;*/
+    /*hyphens: auto;*/
+/*}*/
 :root {}
 body {
     background: Window;
@@ -198,7 +198,7 @@ body > header h1 a:before {
     /*content: "♻";
     content: "\f1b8";*/
     content: "\f2ed";
-    font-family: "Font Awesome 5 Free";
+    font-family: "Awesome";
     font-weight: 400;
     margin-right: .4em;
 }
@@ -408,7 +408,7 @@ ol.comments li {
     /*content: "\f0eb";*/
     /*content: "\f042";*/
     content: "\f185";
-    font-family: "Font Awesome 5 Free";
+    font-family: "Awesome";
     font-weight: 800;
 }
 #top-invert::before {
@@ -417,7 +417,7 @@ ol.comments li {
     /*content: "\f042";*/
     content: "\f186";
     font-weight: 800;
-    font-family: "Font Awesome 5 Free";
+    font-family: "Awesome";
 }
 .score a:not([href]) {
     opacity: .4;
@@ -426,7 +426,7 @@ ol.comments li {
     margin-top: 2px;
 }
 .score a.yay::before {
-    font-family: "Font Awesome 5 Free";
+    font-family: "Awesome";
     content: "\f067";
     font-weight: 800;
 }
@@ -438,7 +438,7 @@ ol.comments li {
 .inverted .score a.yay.ed {
 }
 .score a.nay::after {
-    font-family: "Font Awesome 5 Free";
+    font-family: "Awesome";
     content: "\f068";
     font-weight: 800;
 }
@@ -597,7 +597,7 @@ menu.meta-items a::before {
 }
 a.to-item:before {
     content: "¶";
-    font-family: "Font Awesome 5 Free";
+    font-family: "Awesome";
     font-weight: 900;
 }
 .comments a.to-parent,
@@ -610,7 +610,7 @@ a.to-parent:before {
 }
 a.to-op:before {
     content: "\f102";
-    font-family: "Font Awesome 5 Free";
+    font-family: "Awesome";
     font-weight: 900;
 }
 menu#top li {
@@ -645,7 +645,7 @@ hr {
 }
 time::before {
     content: "\f017  ";
-    font-family: "Font Awesome 5 Free";
+    font-family: "Awesome";
     font-size: 0.7em;
 }
 fieldset {
