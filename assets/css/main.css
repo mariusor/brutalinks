@@ -203,6 +203,7 @@ body > header h1 a:before {
     margin-right: .4em;
 }
 body > main {
+    margin-top: 1em;
     grid-area: main;
 }
 body > footer {
@@ -449,9 +450,6 @@ ol.comments li {
 .inverted .score a.nay:active,
 .inverted .score a.nay.ed {
    color: greenyellow;
-}
-.item.op {
-    margin-top: 1em;
 }
 .meta {
     clear:both;
