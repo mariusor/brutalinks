@@ -1,7 +1,16 @@
 FROM scratch
-COPY bin/app /bin/app
-COPY ./assets /assets
-COPY ./templates ./templates
+
+ARG HOSTNAME
+ARG LISTEN
+
+EXPOSE $LISTEN
+
+ENV HOSTNAME $HOSTNAME
+ENV LISTEN $LISTEN
+
+ADD ./bin/app /bin/app
+ADD ./assets /assets
+ADD ./templates ./templates
 
 CMD ["/bin/app"]
 
