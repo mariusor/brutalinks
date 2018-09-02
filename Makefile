@@ -34,12 +34,14 @@ clean:
 run: app
 	@./bin/app
 
-image:
-include .env.docker
-image:
-	docker build --build-arg LISTEN=${LISTEN} \
-		--build-arg HOSTNAME=${HOSTNAME} \
-		-t mariusor/littr.go${VERSION} .
+image: app
+	cp -r bin docker/
+	cp -r templates docker/
+	cp -r assets docker/
+	cd docker && $(MAKE) $@
 
-compose:
-	cd docker && $(MAKE) compose
+compose: app
+	cp -r bin docker/
+	cp -r templates docker/
+	cp -r assets docker/
+	cd docker && $(MAKE) $@

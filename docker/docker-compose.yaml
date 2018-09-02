@@ -1,7 +1,7 @@
 version: "3"
 services:
   postgres:
-    env_file: ../.env
+    env_file: ./.env
     image: postgres:10
     environment:
       POSTGRES_USER: ${DB_USER}
@@ -11,14 +11,11 @@ services:
       - "5432:5432"
     command: postgres -c log_connections=on -c logging_collector=on -c log_destination=stderr -c log_directory=/var/log/postgresql
 
-  nginxproxy:
-    build: blocks/nginx_proxy
-    network_mode: host
+    #  nginx:
+    #    network_mode: host
 
   application:
-    env_file: ../.env
+    env_file: ./.env
     build:
       context: ./
-      dockerfile: Dockerfile
-    ports:
-      - ${PORT}
+      dockerfile: ./Dockerfile

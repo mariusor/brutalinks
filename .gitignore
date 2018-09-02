@@ -4,14 +4,11 @@
 pkg/
 src/*.*
 vendor/
-*.aci
-*.oci
 go.sum
-rkt/
 db/
-votes
-bootstrap
 bin/app
 bin/votes
 bin/bootstrap
-
+docker/bin
+docker/assets
+docker/templates
