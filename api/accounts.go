@@ -50,10 +50,10 @@ func loadAPItem(item models.Item) (ap.Item, error) {
 	o.Generator = ap.IRI("http://littr.git")
 	o.Score = item.Score / models.ScoreMultiplier
 	if item.Title != "" {
-		o.Name["en"] = string(item.Title)
+		o.Name.Set("en", string(item.Title))
 	}
 	if item.Data != "" {
-		o.Content["en"] = string(item.Data)
+		o.Content.Set("en", string(item.Data))
 	}
 	if item.SubmittedBy != nil {
 		o.AttributedTo = ap.IRI(BuildActorID(*item.SubmittedBy))
@@ -76,11 +76,11 @@ func loadAPPerson(a models.Account) *Person {
 
 	p := Person{}
 	p.Type = ActivityVocabularyType(ap.PersonType)
-	p.Name = make(NaturalLanguageValue)
-	p.PreferredUsername = make(NaturalLanguageValue)
+	p.Name = ap.NaturalLanguageValueNew()
+	p.PreferredUsername = ap.NaturalLanguageValueNew()
 	p.ID = ObjectID(ap.ObjectID(apAccountID(a)))
-	p.Name["en"] = a.Handle
-	p.PreferredUsername["en"] = a.Handle
+	p.Name.Set("en", a.Handle)
+	p.PreferredUsername.Set("en", a.Handle)
 
 	out := ap.OutboxNew()
 	p.Outbox = out

@@ -84,11 +84,11 @@ type PublicKey struct {
 type Person struct {
 	ID                ObjectID               `jsonld:"id,omitempty"`
 	Type              ActivityVocabularyType `jsonld:"type,omitempty"`
-	Name              NaturalLanguageValue   `jsonld:"name,omitempty,collapsible"`
+	Name              ap.NaturalLanguageValue   `jsonld:"name,omitempty,collapsible"`
 	Attachment        ObjectOrLink           `jsonld:"attachment,omitempty"`
 	AttributedTo      ObjectOrLink           `jsonld:"attributedTo,omitempty"`
 	Audience          ObjectOrLink           `jsonld:"audience,omitempty"`
-	Content           NaturalLanguageValue   `jsonld:"content,omitempty,collapsible"`
+	Content           ap.NaturalLanguageValue   `jsonld:"content,omitempty,collapsible"`
 	Context           ObjectOrLink           `jsonld:"context,omitempty,collapsible"`
 	EndTime           time.Time              `jsonld:"endTime,omitempty"`
 	Generator         ObjectOrLink           `jsonld:"generator,omitempty"`
@@ -100,7 +100,7 @@ type Person struct {
 	Published         time.Time              `jsonld:"published,omitempty"`
 	Replies           CollectionInterface    `jsonld:"replies,omitempty"`
 	StartTime         time.Time              `jsonld:"startTime,omitempty"`
-	Summary           NaturalLanguageValue   `jsonld:"summary,omitempty,collapsible"`
+	Summary           ap.NaturalLanguageValue   `jsonld:"summary,omitempty,collapsible"`
 	Tag               ObjectOrLink           `jsonld:"tag,omitempty"`
 	Updated           time.Time              `jsonld:"updated,omitempty"`
 	URL               LinkOrURI              `jsonld:"url,omitempty"`
@@ -114,7 +114,7 @@ type Person struct {
 	Following         CollectionInterface    `jsonld:"following,omitempty"`
 	Followers         CollectionInterface    `jsonld:"followers,omitempty"`
 	Liked             CollectionInterface    `jsonld:"liked,omitempty"`
-	PreferredUsername NaturalLanguageValue   `jsonld:"preferredUsername,omitempty,collapsible"`
+	PreferredUsername ap.NaturalLanguageValue   `jsonld:"preferredUsername,omitempty,collapsible"`
 	Endpoints         Endpoints              `jsonld:"endpoints,omitempty"`
 	Streams           []CollectionInterface  `jsonld:"streams,omitempty"`
 	PublicKey         PublicKey              `jsonld:"publicKey,omitempty"`
@@ -275,8 +275,8 @@ func (p *Person) UnmarshalJSON(data []byte) error {
 
 	p.ID = ObjectID(*app.GetID())
 	p.Type = ActivityVocabularyType(app.GetType())
-	p.Name = NaturalLanguageValue(app.Name)
-	p.Content = NaturalLanguageValue(app.Content)
+	p.Name = app.Name
+	p.Content = app.Content
 	p.Context = app.Context
 	p.Generator = app.Generator
 	p.AttributedTo = app.AttributedTo
@@ -410,13 +410,13 @@ func getObjectType(el ap.Item) string {
 	case typePerson:
 		o := val.Interface().(ap.Person)
 		for _, n := range o.Name {
-			label = n
+			label = n.Value
 			break
 		}
 	case typeLocalPerson:
 		o := val.Interface().(Person)
 		for _, n := range o.Name {
-			label = n
+			label = n.Value
 			break
 		}
 	}
