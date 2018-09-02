@@ -8,7 +8,6 @@ vendor/
 *.oci
 go.sum
 rkt/
-docker/
 db/
 votes
 bootstrap

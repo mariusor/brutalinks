@@ -1,0 +1,24 @@
+version: "3"
+services:
+  postgres:
+    env_file: ../.env
+    image: postgres:10
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DATABASE: ${DB_NAME}
+    ports:
+      - "5432:5432"
+    command: postgres -c log_connections=on -c logging_collector=on -c log_destination=stderr -c log_directory=/var/log/postgresql
+
+  nginxproxy:
+    build: blocks/nginx_proxy
+    network_mode: host
+
+  application:
+    env_file: ../.env
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    ports:
+      - ${PORT}
