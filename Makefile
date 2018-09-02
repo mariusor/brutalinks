@@ -9,6 +9,14 @@ SOURCES := $(wildcard ./app/*/*.go)
 
 all: app cli
 
+ifeq ($(shell git describe --always > /dev/null 2>&1 ; echo $$?), 0)
+	VERSION := :$(shell git describe --always --dirty=-git)
+endif
+ifeq ($(shell git describe --tags > /dev/null 2>&1 ; echo $$?), 0)
+	VERSION := :$(shell git describe --tags)
+endif
+
+
 app: main.go $(SOURCES)
 	$(BUILD) -o bin/$@ ./main.go
 
@@ -25,3 +33,13 @@ clean:
 
 run: app
 	@./bin/app
+
+image:
+include .env.docker
+image:
+	docker build --build-arg LISTEN=${LISTEN} \
+		--build-arg HOSTNAME=${HOSTNAME} \
+		-t mariusor/littr.go${VERSION} .
+
+compose:
+	cd docker && $(MAKE) compose
