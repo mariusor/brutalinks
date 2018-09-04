@@ -38,6 +38,8 @@ type account struct {
 	Votes     map[Key]vote
 }
 
+type AccountCollection []Account
+
 type Account struct {
 	Email     string           `json:"email,omitempty"`
 	Hash      string           `json:"hash,omitempty"`
@@ -180,6 +182,64 @@ func loadAccount(db *sql.DB, filter LoadAccountFilter) (Account, error) {
 		return acct, errors.Errorf("not found")
 	}
 	return acct, nil
+}
+
+func loadAccounts(db *sql.DB, filter LoadAccountsFilter) (AccountCollection, error) {
+	var wheres []string
+	whereValues := make([]interface{}, 0)
+	counter := 1
+
+	accounts := make(AccountCollection, 0)
+
+	if len(filter.Key) > 0 {
+		whereColumns := make([]string, 0)
+		for _, hash := range filter.Key {
+			whereColumns = append(whereColumns, fmt.Sprintf(`"accounts"."key" ~* $%d`, counter))
+			whereValues = append(whereValues, interface{}(hash))
+			counter += 1
+		}
+		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
+	}
+	if len(filter.Handle) > 0 {
+		whereColumns := make([]string, 0)
+		for _, handle := range filter.Handle {
+			whereColumns = append(whereColumns, fmt.Sprintf(`"accounts"."handle" ~* $%d`, counter))
+			whereValues = append(whereValues, interface{}(handle))
+			counter += 1
+		}
+		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
+	}
+	a := account{}
+	var acct Account
+	var fullWhere string
+	if len(wheres) > 0 {
+		fullWhere = fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(wheres, " AND ")))
+	} else {
+		fullWhere = " true"
+	}
+	sel := fmt.Sprintf(`select 
+		"id", "key", "handle", "email", "score", "created_at", "updated_at", "metadata", "flags"
+	from "accounts" where %s`, fullWhere)
+	rows, err := db.Query(sel, whereValues...)
+	if err != nil {
+		return accounts, err
+	}
+
+	var aKey []byte
+	for rows.Next() {
+		err = rows.Scan(&a.Id, &aKey, &a.Handle, &a.Email, &a.Score, &a.CreatedAt, &a.UpdatedAt, &a.Metadata, &a.Flags)
+		if err != nil {
+			return accounts, err
+		}
+		if len(aKey) == 0 {
+			continue
+		}
+		a.Key.FromBytes(aKey)
+		acct = loadAccountFromModel(a)
+		accounts = append(accounts, acct)
+	}
+
+	return accounts, nil
 }
 
 func saveAccount(db *sql.DB, a Account) (Account, error) {

@@ -179,18 +179,21 @@ func main() {
 	})
 
 	r.With(models.Loader).Route("/api", func(r chi.Router) {
-		r.With(app.LoadSessionData).Get("/accounts/verify_credentials", api.HandleVerifyCredentials)
+		r.Route("/accounts", func(r chi.Router) {
+			r.With(api.LoadFiltersCtxt).Get("/", api.HandleAccountsCollection)
 
-		r.Route("/accounts/{handle}", func(r chi.Router) {
-			r.Use(api.AccountCtxt)
+			r.With(app.LoadSessionData).Get("/accounts/verify_credentials", api.HandleVerifyCredentials)
+			r.Route("/{handle}", func(r chi.Router) {
+				r.Use(api.AccountCtxt)
 
-			r.Get("/", api.HandleAccount)
-			r.Route("/{collection}", func(r chi.Router) {
-				r.With(api.LoadFiltersCtxt, api.ItemCollectionCtxt).Get("/", api.HandleCollection)
-				r.Route("/{hash}", func(r chi.Router) {
-					r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/", api.HandleCollectionItem)
-					r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/replies", api.HandleItemReplies)
-					r.With(api.LoadFiltersCtxt, api.ItemCtxt).Post("/replies", api.HandleItem)
+				r.Get("/", api.HandleAccount)
+				r.Route("/{collection}", func(r chi.Router) {
+					r.With(api.LoadFiltersCtxt, api.ItemCollectionCtxt).Get("/", api.HandleCollection)
+					r.Route("/{hash}", func(r chi.Router) {
+						r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/", api.HandleCollectionItem)
+						r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/replies", api.HandleItemReplies)
+						r.With(api.LoadFiltersCtxt, api.ItemCtxt).Post("/replies", api.HandleItem)
+					})
 				})
 			})
 		})

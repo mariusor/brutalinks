@@ -140,6 +140,39 @@ func loadAPCollection(o ap.CollectionInterface, items *models.ItemCollection) (a
 	return o, nil
 }
 
+// GET /api/accounts?filters
+func HandleAccountsCollection(w http.ResponseWriter, r *http.Request) {
+	var ok bool
+	var filter models.LoadAccountsFilter
+	var data []byte
+
+	f := r.Context().Value(FilterCtxtKey)
+	if filter, ok = f.(models.LoadAccountsFilter); !ok {
+		log.WithFields(log.Fields{}).Errorf("could not load filter from Context")
+		return
+	} else {
+		val := r.Context().Value(ServiceCtxtKey)
+		if service, ok := val.(models.CanLoadAccounts); ok {
+			var accounts models.AccountCollection
+			var err error
+
+			col := ap.Collection{}
+			if accounts, err = service.LoadAccounts(filter); err == nil {
+				for _, acct := range accounts {
+					col.Append(loadAPPerson(acct))
+				}
+				data, err = json.WithContext(GetContext()).Marshal(col)
+			} else {
+				log.WithFields(log.Fields{}).Error(err)
+			}
+		}
+	}
+	w.Header().Set("Content-Type", "application/ld+json; charset=utf-8")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.WriteHeader(http.StatusOK)
+	w.Write(data)
+}
+
 // GET /api/accounts/:handle
 func HandleAccount(w http.ResponseWriter, r *http.Request) {
 	val := r.Context().Value(AccountCtxtKey)
@@ -186,7 +219,7 @@ func HandleCollectionItem(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		val := r.Context().Value(ServiceCtxtKey)
-		if service, ok := val.(models.CanLoadItems); ok {
+		if service, ok := val.(models.CanLoadItems); ok && len(i.Hash) > 0 {
 			replies, err := service.LoadItems(models.LoadItemsFilter{
 				InReplyTo: []string{i.Hash},
 				MaxItems:  MaxContentItems,

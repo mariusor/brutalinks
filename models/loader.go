@@ -63,6 +63,14 @@ type LoadItemsFilter struct {
 	MaxItems             int       `qstring:"maxItems,omitempty"`
 }
 
+type LoadAccountsFilter struct {
+	Key      []string `qstring:"hash,omitempty"`
+	Handle   []string `qstring:"handle,omitempty"`
+	Deleted  bool     `qstring:"deleted,omitempty"`
+	Page     int      `qstring:"page,omitempty"`
+	MaxItems int      `qstring:"maxItems,omitempty"`
+}
+
 type LoadAccountFilter struct {
 	Key     string `qstring:"hash,omitempty"`
 	Handle  string `qstring:"handle,omitempty"`
@@ -89,6 +97,7 @@ type CanSaveVotes interface {
 
 type CanLoadAccounts interface {
 	LoadAccount(f LoadAccountFilter) (Account, error)
+	LoadAccounts(f LoadAccountsFilter) (AccountCollection, error)
 }
 
 type CanSaveAccounts interface {
@@ -135,6 +144,10 @@ func (l LoaderService) LoadVote(f LoadVotesFilter) (Vote, error) {
 
 func (l LoaderService) LoadAccount(f LoadAccountFilter) (Account, error) {
 	return loadAccount(l.DB, f)
+}
+
+func (l LoaderService) LoadAccounts(f LoadAccountsFilter) (AccountCollection, error) {
+	return loadAccounts(l.DB, f)
 }
 
 func (l LoaderService) SaveAccount(a Account) (Account, error) {

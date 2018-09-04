@@ -128,6 +128,17 @@ func ItemCtxt(next http.Handler) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
+func loadPersonFiltersFromReq(r *http.Request) models.LoadAccountsFilter {
+	filters := models.LoadAccountsFilter{
+		MaxItems: MaxContentItems,
+	}
+
+	if err := qstring.Unmarshal(r.URL.Query(), &filters); err != nil {
+		return filters
+	}
+	return filters
+}
+
 func loadOutboxFilterFromReq(r *http.Request) models.LoadItemsFilter {
 	filters := models.LoadItemsFilter{
 		MaxItems: MaxContentItems,
@@ -191,6 +202,8 @@ func LoadFiltersCtxt(next http.Handler) http.Handler {
 		case "outbox":
 			filters = loadOutboxFilterFromReq(r)
 		case "inbox":
+		case "":
+			filters = loadPersonFiltersFromReq(r)
 		}
 
 		ctx := context.WithValue(r.Context(), FilterCtxtKey, filters)
@@ -406,6 +419,33 @@ func loadFromAPPerson(p Person) (models.Account, error) {
 		Votes: nil,
 	}
 	return a, nil
+}
+
+func (l LoaderService) LoadAccounts(f models.LoadAccountsFilter) (models.AccountCollection, error) {
+	qs := ""
+	if q, err := qstring.MarshalString(&f); err == nil {
+		qs = fmt.Sprintf("?%s", q)
+	}
+
+	accounts := make(models.AccountCollection, 0)
+	resp, err := http.Get(fmt.Sprintf("http://%s/api/accounts?%s", l.BaseUrl, qs))
+	if err != nil {
+		log.WithFields(log.Fields{}).Error(err)
+		return nil, err
+	}
+	if resp != nil {
+		defer resp.Body.Close()
+
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return nil, err
+		}
+		err = j.Unmarshal(body, &accounts)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return nil, errors.Errorf("not implemented")
 }
 
 func (l LoaderService) LoadAccount(f models.LoadAccountFilter) (models.Account, error) {
