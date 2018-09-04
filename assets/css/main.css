@@ -171,6 +171,10 @@ body > header {
     grid-template-rows: 1fr;
     grid-area: header;
     grid-template-areas: "main" "aside";
+    /*height: 2rem;*/
+    /*background-color: silver;*/
+    /*margin: -.5rem -.5rem 0 -.5rem;*/
+    /*padding: .5rem;*/
 }
 body > header h1 {
     font-size: 1.6em;
@@ -210,15 +214,15 @@ body > footer {
     grid-area: footer;
     font-size: 0.7em;
 }
+a:visited {
+    color: rebeccapurple;
+}
 .inverted {
     color: Window !important;
     background-color: WindowText !important;
 }
 .inverted a {
     color: dodgerblue;
-}
-a:visited {
-    color: rebeccapurple;
 }
 .inverted a:visited {
     color: mediumpurple;
@@ -229,10 +233,10 @@ a:visited {
 .inverted .score a {
     color: unset;
 }
-.inverted > header h1 a,
-.inverted > header h1 a:active,
-.inverted > header h1 a:visited,
-.inverted > header h1 a:focus
+body.inverted > header h1 a,
+body.inverted > header h1 a:active,
+body.inverted > header h1 a:visited,
+body.inverted > header h1 a:focus
 {
     color: Window;
 }
