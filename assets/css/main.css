@@ -367,6 +367,7 @@ ol li {
     grid-area: footer;
 }
 ol.comments {
+    margin-top: -1px;
     padding: 1.5vmin 0 0 1.5vmin;
     border-radius: 0 0 0 .4rem;
 }
