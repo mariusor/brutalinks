@@ -3,7 +3,7 @@ export
 export CGO_ENABLED=0
 export GOOS=linux
 
-GO := vgo
+GO := go
 BUILD := $(GO) build -a -ldflags '-extldflags "-static"'
 
 app: main.go $(wildcard ./app/*.go) $(wildcard ./api/*.go) $(wildcard ./models/*.go)
