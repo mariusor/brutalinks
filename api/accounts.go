@@ -19,7 +19,7 @@ func getObjectID(s string) ap.ObjectID {
 }
 
 func apAccountID(a models.Account) ap.ObjectID {
-	return getObjectID(a.Handle)
+	return ap.ObjectID(fmt.Sprintf("%s/%s", AccountsURL, a.Hash))
 }
 
 func loadAPLike(vote models.Vote) (ap.ObjectOrLink, error) {
@@ -78,7 +78,7 @@ func loadAPPerson(a models.Account) *Person {
 	p.Type = ActivityVocabularyType(ap.PersonType)
 	p.Name = ap.NaturalLanguageValueNew()
 	p.PreferredUsername = ap.NaturalLanguageValueNew()
-	p.ID = ObjectID(ap.ObjectID(apAccountID(a)))
+	p.ID = apAccountID(a)
 	p.Name.Set("en", a.Handle)
 	p.PreferredUsername.Set("en", a.Handle)
 

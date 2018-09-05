@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"github.com/dyninc/qstring"
 
@@ -57,21 +58,25 @@ func AccountCtxt(next http.Handler) http.Handler {
 			log.WithFields(log.Fields{}).Errorf("could not load account loader service from Context")
 		}
 		a, err := AcctLoader.LoadAccount(models.LoadAccountFilter{Handle: handle})
-		if err != nil {
-			a, err = AcctLoader.LoadAccount(models.LoadAccountFilter{Key: handle})
-		}
-		if err != nil {
-			log.Error(err)
-			HandleError(w, r, http.StatusNotFound, err)
+		if err == nil {
+			// we redirect to the Hash based account URL
+			url := strings.Replace(r.RequestURI, a.Handle, a.Hash, 1)
+			http.Redirect(w, r, url, http.StatusSeeOther)
 			return
+		} else {
+			a, err := AcctLoader.LoadAccount(models.LoadAccountFilter{Key: handle})
+			if err != nil {
+				log.Error(err)
+				HandleError(w, r, http.StatusNotFound, err)
+				return
+			}
+			if a.Handle == "" && len(a.Hash) == 0 {
+				HandleError(w, r, http.StatusNotFound, errors.Errorf("account not found"))
+				return
+			}
+			ctx := context.WithValue(r.Context(), AccountCtxtKey, a)
+			next.ServeHTTP(w, r.WithContext(ctx))
 		}
-		if a.Handle == "" && len(a.Hash) == 0 {
-			HandleError(w, r, http.StatusNotFound, errors.Errorf("account not found"))
-			return
-		}
-
-		ctx := context.WithValue(r.Context(), AccountCtxtKey, a)
-		next.ServeHTTP(w, r.WithContext(ctx))
 	}
 	return http.HandlerFunc(fn)
 }

@@ -82,42 +82,42 @@ type PublicKey struct {
 //    github.com/mariusor/activitypub.go/activitypub/actors.go#Actor
 // We need it here in order to be able to add to it our Score property
 type Person struct {
-	ID                ObjectID               `jsonld:"id,omitempty"`
-	Type              ActivityVocabularyType `jsonld:"type,omitempty"`
-	Name              ap.NaturalLanguageValue   `jsonld:"name,omitempty,collapsible"`
-	Attachment        ObjectOrLink           `jsonld:"attachment,omitempty"`
-	AttributedTo      ObjectOrLink           `jsonld:"attributedTo,omitempty"`
-	Audience          ObjectOrLink           `jsonld:"audience,omitempty"`
-	Content           ap.NaturalLanguageValue   `jsonld:"content,omitempty,collapsible"`
-	Context           ObjectOrLink           `jsonld:"context,omitempty,collapsible"`
-	EndTime           time.Time              `jsonld:"endTime,omitempty"`
-	Generator         ObjectOrLink           `jsonld:"generator,omitempty"`
-	Icon              ImageOrLink            `jsonld:"icon,omitempty"`
-	Image             ImageOrLink            `jsonld:"image,omitempty"`
-	InReplyTo         ObjectOrLink           `jsonld:"inReplyTo,omitempty"`
-	Location          ObjectOrLink           `jsonld:"location,omitempty"`
-	Preview           ObjectOrLink           `jsonld:"preview,omitempty"`
-	Published         time.Time              `jsonld:"published,omitempty"`
-	Replies           CollectionInterface    `jsonld:"replies,omitempty"`
-	StartTime         time.Time              `jsonld:"startTime,omitempty"`
-	Summary           ap.NaturalLanguageValue   `jsonld:"summary,omitempty,collapsible"`
-	Tag               ObjectOrLink           `jsonld:"tag,omitempty"`
-	Updated           time.Time              `jsonld:"updated,omitempty"`
-	URL               LinkOrURI              `jsonld:"url,omitempty"`
-	To                ObjectsArr             `jsonld:"to,omitempty"`
-	Bto               ObjectsArr             `jsonld:"bto,omitempty"`
-	CC                ObjectsArr             `jsonld:"cc,omitempty"`
-	BCC               ObjectsArr             `jsonld:"bcc,omitempty"`
-	Duration          time.Duration          `jsonld:"duration,omitempty"`
-	Inbox             CollectionInterface    `jsonld:"inbox,omitempty"`
-	Outbox            CollectionInterface    `jsonld:"outbox,omitempty"`
-	Following         CollectionInterface    `jsonld:"following,omitempty"`
-	Followers         CollectionInterface    `jsonld:"followers,omitempty"`
-	Liked             CollectionInterface    `jsonld:"liked,omitempty"`
-	PreferredUsername ap.NaturalLanguageValue   `jsonld:"preferredUsername,omitempty,collapsible"`
-	Endpoints         Endpoints              `jsonld:"endpoints,omitempty"`
-	Streams           []CollectionInterface  `jsonld:"streams,omitempty"`
-	PublicKey         PublicKey              `jsonld:"publicKey,omitempty"`
+	ID                ap.ObjectID             `jsonld:"id,omitempty"`
+	Type              ActivityVocabularyType  `jsonld:"type,omitempty"`
+	Name              ap.NaturalLanguageValue `jsonld:"name,omitempty,collapsible"`
+	Attachment        ObjectOrLink            `jsonld:"attachment,omitempty"`
+	AttributedTo      ObjectOrLink            `jsonld:"attributedTo,omitempty"`
+	Audience          ObjectOrLink            `jsonld:"audience,omitempty"`
+	Content           ap.NaturalLanguageValue `jsonld:"content,omitempty,collapsible"`
+	Context           ObjectOrLink            `jsonld:"context,omitempty,collapsible"`
+	EndTime           time.Time               `jsonld:"endTime,omitempty"`
+	Generator         ObjectOrLink            `jsonld:"generator,omitempty"`
+	Icon              ImageOrLink             `jsonld:"icon,omitempty"`
+	Image             ImageOrLink             `jsonld:"image,omitempty"`
+	InReplyTo         ObjectOrLink            `jsonld:"inReplyTo,omitempty"`
+	Location          ObjectOrLink            `jsonld:"location,omitempty"`
+	Preview           ObjectOrLink            `jsonld:"preview,omitempty"`
+	Published         time.Time               `jsonld:"published,omitempty"`
+	Replies           CollectionInterface     `jsonld:"replies,omitempty"`
+	StartTime         time.Time               `jsonld:"startTime,omitempty"`
+	Summary           ap.NaturalLanguageValue `jsonld:"summary,omitempty,collapsible"`
+	Tag               ObjectOrLink            `jsonld:"tag,omitempty"`
+	Updated           time.Time               `jsonld:"updated,omitempty"`
+	URL               LinkOrURI               `jsonld:"url,omitempty"`
+	To                ObjectsArr              `jsonld:"to,omitempty"`
+	Bto               ObjectsArr              `jsonld:"bto,omitempty"`
+	CC                ObjectsArr              `jsonld:"cc,omitempty"`
+	BCC               ObjectsArr              `jsonld:"bcc,omitempty"`
+	Duration          time.Duration           `jsonld:"duration,omitempty"`
+	Inbox             CollectionInterface     `jsonld:"inbox,omitempty"`
+	Outbox            CollectionInterface     `jsonld:"outbox,omitempty"`
+	Following         CollectionInterface     `jsonld:"following,omitempty"`
+	Followers         CollectionInterface     `jsonld:"followers,omitempty"`
+	Liked             CollectionInterface     `jsonld:"liked,omitempty"`
+	PreferredUsername ap.NaturalLanguageValue `jsonld:"preferredUsername,omitempty,collapsible"`
+	Endpoints         Endpoints               `jsonld:"endpoints,omitempty"`
+	Streams           []CollectionInterface   `jsonld:"streams,omitempty"`
+	PublicKey         PublicKey               `jsonld:"publicKey,omitempty"`
 	// Score is our own custom property for which we needed to extend the existing AP one
 	Score int64 `jsonld:"score"`
 }
@@ -273,7 +273,7 @@ func (p *Person) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	p.ID = ObjectID(*app.GetID())
+	p.ID = *app.GetID()
 	p.Type = ActivityVocabularyType(app.GetType())
 	p.Name = app.Name
 	p.Content = app.Content
