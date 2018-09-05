@@ -495,11 +495,16 @@ ol.comments li {
 #content .meta {
     padding: 0 0 0 5ex;
 }
+details[open] {}
+details:not([open]) {}
 details {}
-details > summary::before {
-    content: '+ ';
-    font-size: 1rem;
+details[open] summary::before {
+    content: "collapse";
 }
+details:not([open]) summary::before {
+    content: "expand";
+}
+details > summary::before {}
 details > summary {
     list-style: none;
     font-size: 0.7rem;
@@ -507,6 +512,7 @@ details > summary {
     margin-top: 1rem;
     padding: .3rem 0 0 .3rem;
     border-radius: .4rem 0 0 0;
+    opacity: .6;
 }
 details > summary::-webkit-details-marker {
     display: none;
