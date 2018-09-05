@@ -336,9 +336,9 @@ func Errorf(c int, m string, args ...interface{}) *Error {
 
 func GetContext() j.Context {
 	return j.Context{
-		j.Term(j.NilTerm): j.IRI(ap.ActivityBaseURI),
-		j.Term("w3id"):    j.IRI("https://w3id.org/security/v1"),
-		j.Term("score"):   j.IRI("http://littr.me/as#score"),
+		{IRI: j.IRI(ap.ActivityBaseURI)},
+		{IRI: j.IRI("https://w3id.org/security/v1")},
+		{j.Term("score"), j.IRI("http://littr.me/as#score")},
 	}
 }
 
