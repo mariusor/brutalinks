@@ -496,27 +496,28 @@ ol.comments li {
     padding: 0 0 0 5ex;
 }
 details[open] {}
-details:not([open]) {}
+details:not([open]) {
+}
 details {}
-details[open] summary::before {
-    content: "collapse";
+details[open] > summary {
+    padding: .3rem 0 0 .3rem;
+    border-radius: .3rem 0 0 0;
 }
-details:not([open]) summary::before {
-    content: "expand";
-}
+details:not([open]) > summary {}
 details > summary::before {}
 details > summary {
-    list-style: none;
     font-size: 0.7rem;
     display: inline;
     margin-top: 1rem;
-    padding: .3rem 0 0 .3rem;
-    border-radius: .4rem 0 0 0;
+    padding: .3rem 0 .3rem .3rem;
+    border-radius: .3rem 0 0 .3rem;
+}
+details > summary span {
     opacity: .6;
 }
-details > summary::-webkit-details-marker {
-    display: none;
-}
+/*details > summary::-webkit-details-marker {*/
+    /*display: none;*/
+/*}*/
 .comments, summary {
     border-left: 1px solid;
 }

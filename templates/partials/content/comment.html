@@ -5,7 +5,7 @@
 {{- if $count -}}
 
 <details{{ if lt .Level 3 }} open{{end}}>
-    <summary class="lvl-{{ .Level | Mod10  }}">{{/* if lt .Level 3 }} hide{{else}} show{{end*/}} {{if $count }}{{$count}} child{{if $count | ne 1 }}ren{{end}}{{end}}</summary>
+    <summary class="lvl-{{ .Level | Mod10  }}"><span>{{/* if lt .Level 3 }} hide{{else}} show{{end*/}} {{if $count }}{{$count}} child{{if $count | ne 1 }}ren{{end}}{{end}}</span></summary>
 {{ template "partials/content/comments" . }}
 {{- end -}}
 {{- if $count -}}
