@@ -25,7 +25,7 @@ func init() {
 	var err error
 	connStr := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable", dbUser, dbPw, dbName)
 
-	db, err = sql.Open("postgres", connStr)
+	models.Config.DB, err = sql.Open("postgres", connStr)
 	if err != nil {
 		log.WithFields(log.Fields{}).Error(err)
 	}
@@ -75,7 +75,7 @@ func main() {
 		} else {
 			upd = `update "accounts" set score = $1 where id = $2;`
 		}
-		_, err := db.Exec(upd, score.Score, score.Id)
+		_, err := models.Config.DB.Exec(upd, score.Score, score.Id)
 		if err != nil {
 			panic(err)
 		}
