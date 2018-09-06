@@ -270,3 +270,10 @@ func saveVote(db *sql.DB, vot Vote) (Vote, error) {
 
 	return vot, nil
 }
+
+func (i ItemCollection) First() (*Item, error) {
+	for _, it := range i {
+		return &it, nil
+	}
+	return nil, errors.Errorf("empty %T", i)
+}
