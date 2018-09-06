@@ -21,7 +21,6 @@ time, mark, audio, video {
     padding: 0;
     border: 0;
     font-size: 100%;
-    font: inherit;
     vertical-align: baseline;
 }
 /* HTML5 display-role reset for older browsers */
@@ -251,7 +250,7 @@ body.inverted > header h1 a:focus
 .item h4,
 .item h5,
 .item h6 {
-    /*font-weight: normal;*/
+    font-weight: normal;
     /*margin: 0.2em 0;*/
 }
 .item h1 {
