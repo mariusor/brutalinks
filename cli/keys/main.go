@@ -7,10 +7,11 @@ import (
 	"database/sql"
 	"flag"
 	"fmt"
-	"github.com/mariusor/littr.go/models"
-	log "github.com/sirupsen/logrus"
 	"math/rand"
 	"os"
+
+	"github.com/mariusor/littr.go/models"
+	log "github.com/sirupsen/logrus"
 )
 
 func init() {
@@ -24,7 +25,7 @@ func init() {
 		log.Print(err)
 	}
 
-	models.Db = db
+	models.Config.DB = db
 }
 func main() {
 	var handle string
@@ -33,7 +34,7 @@ func main() {
 	flag.Int64Var(&seed, "seed", 0, "the seed used for the random number generator in key creation")
 	flag.Parse()
 
-	loader := models.LoaderService{}
+	loader := models.Config
 	acct, err := loader.LoadAccount(models.LoadAccountFilter{
 		Handle: handle,
 	})
@@ -52,7 +53,8 @@ func main() {
 						Private: priv,
 					}
 
-					loader.SaveAccount()
+					// TODO(marius): add the actual stuff
+					//loader.SaveAccount()
 				} else if errPub != nil {
 					log.Error(errPub)
 				} else {
