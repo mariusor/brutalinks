@@ -48,15 +48,18 @@ func (i *Item) Delete() {
 func (i Item) IsLink() bool {
 	return i.MimeType == MimeTypeURL
 }
+
 func (i Item) GetDomain() string {
 	if !i.IsLink() {
 		return ""
 	}
 	return strings.Split(i.Data, "/")[2]
 }
+
 func (i Item) ISODate() string {
 	return i.SubmittedAt.Format("2006-01-02T15:04:05.000-07:00")
 }
+
 func (i Item) FromNow() string {
 	td := time.Now().Sub(i.SubmittedAt)
 	pluralize := func(d float64, unit string) string {
@@ -210,22 +213,24 @@ func saveItem(db *sql.DB, it Item) (Item, error) {
 
 func saveVote(db *sql.DB, vot Vote) (Vote, error) {
 	var sel string
-	sel = `select "id", "accounts"."id", "weight" from "votes" inner join "accounts" on "accounts"."id" = "votes"."submitted_by" 
-			where "accounts"."hash" ~* $1 and "key" ~* $2;`
+	sel = `select "votes"."id", "accounts"."id", "votes"."weight", "votes"."submitted_at" from "votes" inner join "accounts" on "accounts"."id" = "votes"."submitted_by" 
+			where "accounts"."key" ~* $1 and "votes"."item_id" = (select "id" from "content_items" where "key" ~* $2);`
 	var userId int64
 	var vId int64
 	var oldWeight int64
+	var submittedAt time.Time
 	{
 		rows, err := db.Query(sel, vot.SubmittedBy.Hash, vot.Item.Hash)
 		if err != nil {
 			return vot, err
 		}
 		for rows.Next() {
-			err = rows.Scan(&vId, &userId, &oldWeight)
+			err = rows.Scan(&vId, &userId, &oldWeight, &submittedAt)
 			if err != nil {
 				return vot, err
 			}
 		}
+		vot.SubmittedAt = submittedAt
 	}
 
 	v := vote{}
@@ -234,24 +239,24 @@ func saveVote(db *sql.DB, vot Vote) (Vote, error) {
 		if vot.Weight != 0 && math.Signbit(float64(oldWeight)) == math.Signbit(float64(vot.Weight)) {
 			vot.Weight = 0
 		}
-		q = `update "votes" set "updated_at" = now(), "weight" = $1, "flags" = $2 where "item_id" = $3 and "submitted_by" = $4";`
+		q = `update "votes" set "updated_at" = now(), "weight" = $1, "flags" = $2::bit(8) where "item_id" = (select "id" from "content_items" where "key" ~* $3) and "submitted_by" = (select "id" from "accounts" where "key" ~* $4);`
 	} else {
-		q = `insert into "votes" ("weight",  "flags", "item_id", "submitted_by") values ($1, $2, $3, $4)`
+		q = `insert into "votes" ("weight", "flags", "item_id", "submitted_by") values ($1, $2::bit(8), (select "id" from "content_items" where "key" ~* $3), (select "id" from "accounts" where "key" ~* $4))`
 	}
 	v.Flags = vot.Flags
 	v.Weight = int(vot.Weight * ScoreMultiplier)
 
-	res, err := db.Exec(q, oldWeight, vot.Item.Hash, userId, v)
+	res, err := db.Exec(q, v.Weight, FlagsNone, vot.Item.Hash, vot.SubmittedBy.Hash)
 	if err != nil {
 		return vot, err
 	}
 	if rows, _ := res.RowsAffected(); rows == 0 {
-		return vot, errors.Errorf("scoring %d failed on item %q", oldWeight, vot.Item.Hash)
+		return vot, errors.Errorf("scoring %d failed on item %q", v.Weight, vot.Item.Hash)
 	}
-	log.WithFields(log.Fields{}).Infof("%d scoring %d on %s", userId, oldWeight, vot.Item.Hash)
+	log.WithFields(log.Fields{}).Infof("%d scoring %d on %s", userId, v.Weight, vot.Item.Hash)
 
-	upd := `update "content_items" set score = score - $1 + $2 where "id" = $3`
-	res, err = db.Exec(upd, v.Weight, oldWeight, vot.Item.Hash)
+	upd := `update "content_items" set score = score - $1 + $2 where "id" = (select "id" from "content_items" where "key" ~* $3)`
+	res, err = db.Exec(upd, v.Weight, v.Weight, vot.Item.Hash)
 	if err != nil {
 		return vot, err
 	}

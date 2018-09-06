@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/juju/errors"
 	"golang.org/x/net/context"
 )
 
@@ -138,10 +137,8 @@ func (l repository) LoadVote(f LoadVotesFilter) (Vote, error) {
 	if err != nil {
 		return Vote{}, err
 	}
-	for _, vote := range votes {
-		return vote, nil
-	}
-	return Vote{}, errors.Errorf("not found")
+	v, err := votes.First()
+	return *v, err
 }
 
 func (l repository) LoadAccount(f LoadAccountFilter) (Account, error) {

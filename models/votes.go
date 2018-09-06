@@ -405,3 +405,10 @@ func addVote(db *sql.DB, p Item, score int, userHash string) (bool, error) {
 
 	return true, nil
 }
+
+func (v VoteCollection) First() (*Vote, error) {
+	for _, vv := range v {
+		return &vv, nil
+	}
+	return nil, errors.Errorf("empty %T", v)
+}

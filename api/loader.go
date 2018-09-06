@@ -1,8 +1,10 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -29,6 +31,36 @@ var Config repository
 
 type repository struct {
 	BaseUrl string
+}
+
+func (r repository) Head(url string) (resp *http.Response, err error) {
+	return http.Head(url)
+}
+
+func (r repository) Get(url string) (resp *http.Response, err error) {
+	return http.Get(url)
+}
+
+func (r repository) Post(url, contentType string, body io.Reader) (resp *http.Response, err error) {
+	return http.Post(url, contentType, body)
+}
+
+func (r repository) Put(url, contentType string, body io.Reader) (resp *http.Response, err error) {
+	req, err := http.NewRequest(http.MethodPut, url, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", contentType)
+	return http.DefaultClient.Do(req)
+}
+
+func (r repository) Delete(url, contentType string, body io.Reader) (resp *http.Response, err error) {
+	req, err := http.NewRequest(http.MethodDelete, url, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", contentType)
+	return http.DefaultClient.Do(req)
 }
 
 // Repository middleware
@@ -283,7 +315,7 @@ func ItemCollectionCtxt(next http.Handler) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
-func (l repository) LoadItem(f models.LoadItemsFilter) (models.Item, error) {
+func (r repository) LoadItem(f models.LoadItemsFilter) (models.Item, error) {
 	var art Article
 	var it models.Item
 	var err error
@@ -297,7 +329,7 @@ func (l repository) LoadItem(f models.LoadItemsFilter) (models.Item, error) {
 	if q, err := qstring.MarshalString(&f); err == nil {
 		qs = fmt.Sprintf("?%s", q)
 	}
-	url := fmt.Sprintf("http://%s/api/outbox/%s%s", l.BaseUrl, hashes[0], qs)
+	url := fmt.Sprintf("http://%s/api/outbox/%s%s", r.BaseUrl, hashes[0], qs)
 	resp, err := http.Get(url)
 	if err != nil {
 		log.WithFields(log.Fields{}).Error(err)
@@ -322,14 +354,14 @@ func (l repository) LoadItem(f models.LoadItemsFilter) (models.Item, error) {
 	return it, err
 }
 
-func (l repository) LoadItems(f models.LoadItemsFilter) (models.ItemCollection, error) {
+func (r repository) LoadItems(f models.LoadItemsFilter) (models.ItemCollection, error) {
 	qs := ""
 	if q, err := qstring.MarshalString(&f); err == nil {
 		qs = fmt.Sprintf("?%s", q)
 	}
 
 	var err error
-	resp, err := http.Get(fmt.Sprintf("http://%s/api/outbox%s", l.BaseUrl, qs))
+	resp, err := r.Get(fmt.Sprintf("http://%s/api/outbox%s", r.BaseUrl, qs))
 	if err != nil {
 		log.WithFields(log.Fields{}).Error(err)
 		return nil, err
@@ -362,22 +394,67 @@ func (l repository) LoadItems(f models.LoadItemsFilter) (models.ItemCollection, 
 	return items, nil
 }
 
-func (l repository) SaveVote(v models.Vote) (models.Vote, error) {
+func (r repository) SaveVote(v models.Vote) (models.Vote, error) {
 	//body := nil
-	//url := fmt.Sprintf("http://%s/api/accounts/%s/liked/%s", l.BaseUrl, v.SubmittedBy.Hash, v.Item.Hash)
-	//resp, err := http.Post(url, "application/json+activity", body)
-	return models.Vote{}, errors.Errorf("not implemented")
+	url := fmt.Sprintf("http://%s/api/accounts/%s/liked/%s", r.BaseUrl, v.SubmittedBy.Hash, v.Item.Hash)
+
+	// first step is to verify if vote already exists:
+	//resp, err := r.Head(url)
+	//if err != nil {
+	//	log.WithFields(log.Fields{}).Error(err)
+	//	return v, err
+	//}
+	//var exists bool
+	//if resp.StatusCode == http.StatusOK {
+	//	// found a vote, needs updating
+	//	exists = true
+	//}
+	//if resp.StatusCode == http.StatusNotFound {
+	//	// found a vote, needs updating
+	//	exists = false
+	//}
+	p := loadAPPerson(*v.SubmittedBy)
+	o, err := loadAPItem(*v.Item)
+	id := ap.ObjectID(url)
+	var body []byte
+	var act ap.Activity
+	if v.Weight > 0 {
+		like := ap.LikeActivityNew(id, ap.IRI(p.ID), ap.IRI(*o.GetID()))
+		body, err = j.Marshal(like)
+		act = ap.Activity(*like.Activity)
+	} else {
+		like := ap.DislikeActivityNew(id, ap.IRI(p.ID), ap.IRI(*o.GetID()))
+		body, err = j.Marshal(like)
+		act = ap.Activity(*like.Activity)
+	}
+	if err != nil {
+		log.Error(err)
+		return v, err
+	}
+
+	resp, err := r.Put(url, "application/json+activity", bytes.NewReader(body))
+	if err != nil {
+		log.WithFields(log.Fields{}).Error(err)
+		return v, err
+	}
+	if resp.StatusCode == http.StatusOK {
+		return loadFromAPLike(act)
+	}
+	if resp.StatusCode == http.StatusNotFound {
+		return models.Vote{}, errors.Errorf("not found")
+	}
+	return models.Vote{}, errors.Errorf("unknown error")
 }
 
-func (l repository) LoadVotes(f models.LoadVotesFilter) (models.VoteCollection, error) {
-	return nil, errors.Errorf("not implemented") //models.LoadItemsVotes(f.ItemKey[0])
+func (r repository) LoadVotes(f models.LoadVotesFilter) (models.VoteCollection, error) {
+	return models.Config.LoadVotes(f)
 }
 
-func (l repository) LoadVote(f models.LoadVotesFilter) (models.Vote, error) {
-	return models.Vote{}, errors.Errorf("not implemented")
+func (r repository) LoadVote(f models.LoadVotesFilter) (models.Vote, error) {
+	return models.Config.LoadVote(f)
 }
 
-func (l repository) SaveItem(it models.Item) (models.Item, error) {
+func (r repository) SaveItem(it models.Item) (models.Item, error) {
 	return it, errors.Errorf("not implemented")
 }
 
@@ -422,6 +499,27 @@ func loadFromAPItem(it Article) (models.Item, error) {
 	return c, nil
 }
 
+func loadFromAPLike(l ap.Activity) (models.Vote, error) {
+	v := models.Vote{
+		Item: &models.Item{
+			Hash: getHash(l.Object.GetID()),
+		},
+		SubmittedBy: &models.Account{
+			Hash: getHash(l.Actor.GetID()),
+		},
+		//CreatedAt: nil,
+		//UpdatedAt: nil,
+		Flags: 0,
+	}
+	if l.Type == ap.LikeType {
+		v.Weight = 1
+	}
+	if l.Type == ap.DislikeType {
+		v.Weight = -1
+	}
+	return v, nil
+}
+
 func loadFromAPPerson(p Person) (models.Account, error) {
 	name := jsonUnescape(ap.NaturalLanguageValue(p.Name).First())
 	a := models.Account{
@@ -443,14 +541,14 @@ func loadFromAPPerson(p Person) (models.Account, error) {
 	return a, nil
 }
 
-func (l repository) LoadAccounts(f models.LoadAccountsFilter) (models.AccountCollection, error) {
+func (r repository) LoadAccounts(f models.LoadAccountsFilter) (models.AccountCollection, error) {
 	qs := ""
 	if q, err := qstring.MarshalString(&f); err == nil {
 		qs = fmt.Sprintf("?%s", q)
 	}
 
 	accounts := make(models.AccountCollection, 0)
-	resp, err := http.Get(fmt.Sprintf("http://%s/api/accounts?%s", l.BaseUrl, qs))
+	resp, err := r.Get(fmt.Sprintf("http://%s/api/accounts?%s", r.BaseUrl, qs))
 	if err != nil {
 		log.WithFields(log.Fields{}).Error(err)
 		return nil, err
@@ -470,10 +568,10 @@ func (l repository) LoadAccounts(f models.LoadAccountsFilter) (models.AccountCol
 	return nil, errors.Errorf("not implemented")
 }
 
-func (l repository) LoadAccount(f models.LoadAccountFilter) (models.Account, error) {
+func (r repository) LoadAccount(f models.LoadAccountFilter) (models.Account, error) {
 	p := Person{}
 
-	resp, err := http.Get(fmt.Sprintf("http://%s/api/accounts/%s", l.BaseUrl, f.Handle))
+	resp, err := r.Get(fmt.Sprintf("http://%s/api/accounts/%s", r.BaseUrl, f.Handle))
 	if err != nil {
 		log.WithFields(log.Fields{}).Error(err)
 		return models.Account{}, err
@@ -493,6 +591,6 @@ func (l repository) LoadAccount(f models.LoadAccountFilter) (models.Account, err
 	return loadFromAPPerson(p)
 }
 
-func (l repository) SaveAccount(a models.Account) (models.Account, error) {
+func (r repository) SaveAccount(a models.Account) (models.Account, error) {
 	return models.Account{}, errors.Errorf("not implemented")
 }

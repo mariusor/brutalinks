@@ -22,18 +22,18 @@ func apAccountID(a models.Account) ap.ObjectID {
 	return ap.ObjectID(fmt.Sprintf("%s/%s", AccountsURL, a.Hash))
 }
 
-func loadAPLike(vote models.Vote) (ap.ObjectOrLink, error) {
+func loadAPLike(vote models.Vote) ap.ObjectOrLink {
 	id := BuildObjectIDFromItem(*vote.Item)
 	lID := BuildObjectIDFromVote(vote)
 	whomArt := ap.IRI(BuildActorID(*vote.SubmittedBy))
 	if vote.Weight > 0 {
 		l := ap.LikeNew(lID, ap.IRI(id))
 		l.AttributedTo = whomArt
-		return *l, nil
+		return *l
 	} else {
 		l := ap.DislikeNew(lID, ap.IRI(id))
 		l.AttributedTo = whomArt
-		return *l, nil
+		return *l
 	}
 }
 
@@ -119,7 +119,7 @@ func loadAPLiked(o ap.CollectionInterface, votes models.VoteCollection) (ap.Coll
 		return nil, errors.Errorf("empty collection %T", o)
 	}
 	for _, vote := range votes {
-		el, _ := loadAPLike(vote)
+		el := loadAPLike(vote)
 
 		o.Append(el)
 	}
@@ -240,7 +240,7 @@ func HandleCollectionItem(w http.ResponseWriter, r *http.Request) {
 			log.WithFields(log.Fields{}).Errorf("could not load Vote from Context")
 			return
 		}
-		el, err = loadAPLike(v)
+		el = loadAPLike(v)
 		if err != nil {
 			HandleError(w, r, http.StatusNotFound, err)
 			return
