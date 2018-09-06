@@ -184,6 +184,20 @@ func loadLikedFilterFromReq(r *http.Request) models.LoadVotesFilter {
 		return filters
 	}
 
+	handle := chi.URLParam(r, "handle")
+	if handle != "" {
+		old := filters.AttributedTo
+		filters.AttributedTo = nil
+		filters.AttributedTo = append(filters.AttributedTo, handle)
+		filters.AttributedTo = append(filters.AttributedTo, old...)
+	}
+	hash := chi.URLParam(r, "hash")
+	if hash != "" {
+		old := filters.ItemKey
+		filters.ItemKey = nil
+		filters.ItemKey = append(filters.ItemKey, hash)
+		filters.ItemKey = append(filters.ItemKey, old...)
+	}
 	val := r.Context().Value(AccountCtxtKey)
 	a, ok := val.(models.Account)
 	if ok {
