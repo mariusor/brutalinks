@@ -1,12 +1,14 @@
 package app
 
 import (
-	log "github.com/sirupsen/logrus"
 	"net/http"
 	"time"
 
-	"github.com/juju/errors"
+	log "github.com/sirupsen/logrus"
+
 	"html/template"
+
+	"github.com/juju/errors"
 
 	"github.com/gorilla/securecookie"
 	"github.com/mariusor/littr.go/models"
@@ -62,7 +64,7 @@ func AccountFromRequest(r *http.Request) (*models.Account, []error) {
 		Password: savpw,
 	}
 
-	a, err = models.Service.SaveAccount(a)
+	a, err = models.Config.SaveAccount(a)
 	if err != nil {
 		log.WithFields(log.Fields{}).Error(err)
 		return nil, []error{err}

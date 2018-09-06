@@ -419,7 +419,7 @@ func loadCurrentAccount(s *sessions.Session) {
 		if raw != nil {
 			a := raw.(models.Account)
 			CurrentAccount = &a
-			//log.WithFields(log.Fields{}).Infof("loaded account from session %#v", CurrentAccount)
+			log.WithFields(log.Fields{}).Infof("loaded account from session %#v", CurrentAccount)
 		}
 	} else {
 		log.WithFields(log.Fields{}).Error(errors.NewErr("unable to load user from session"))

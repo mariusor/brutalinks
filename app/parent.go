@@ -11,10 +11,10 @@ import (
 
 // HandleItemRedirect serves /item/{hash} request
 func HandleItemRedirect(w http.ResponseWriter, r *http.Request) {
-	val := r.Context().Value(ServiceCtxtKey)
+	val := r.Context().Value(RepositoryCtxtKey)
 	itemLoader, ok := val.(models.CanLoadItems)
 	if ok {
-		log.WithFields(log.Fields{}).Infof("loaded LoaderService of type %T", itemLoader)
+		log.WithFields(log.Fields{}).Infof("loaded repository of type %T", itemLoader)
 	} else {
 		log.WithFields(log.Fields{}).Errorf("could not load item loader service from Context")
 		return

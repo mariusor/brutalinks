@@ -9,13 +9,13 @@ import (
 	"golang.org/x/net/context"
 )
 
-const ServiceCtxtKey = "__loader"
+const RepositoryCtxtKey = "__repository"
 
-// Loader middleware
-func Loader(next http.Handler) http.Handler {
+// Repository middleware
+func Repository(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		newCtx := context.WithValue(ctx, ServiceCtxtKey, Service)
+		newCtx := context.WithValue(ctx, RepositoryCtxtKey, Config)
 		next.ServeHTTP(w, r.WithContext(newCtx))
 	}
 	return http.HandlerFunc(fn)
@@ -104,33 +104,35 @@ type CanSaveAccounts interface {
 	SaveAccount(a Account) (Account, error)
 }
 
-var Service LoaderService
+// I think we can move from using the exported Config package variable
+// to an unexported one. First we need to decouple the DB config from the repository struct to a config struct
+var Config repository
 
-type LoaderService struct {
+type repository struct {
 	DB *sql.DB
 }
 
-func (l LoaderService) SaveItem(it Item) (Item, error) {
+func (l repository) SaveItem(it Item) (Item, error) {
 	return saveItem(l.DB, it)
 }
 
-func (l LoaderService) LoadItem(f LoadItemsFilter) (Item, error) {
+func (l repository) LoadItem(f LoadItemsFilter) (Item, error) {
 	return loadItem(l.DB, f)
 }
 
-func (l LoaderService) LoadItems(f LoadItemsFilter) (ItemCollection, error) {
+func (l repository) LoadItems(f LoadItemsFilter) (ItemCollection, error) {
 	return loadItems(l.DB, f)
 }
 
-func (l LoaderService) SaveVote(v Vote) (Vote, error) {
+func (l repository) SaveVote(v Vote) (Vote, error) {
 	return saveVote(l.DB, v)
 }
 
-func (l LoaderService) LoadVotes(f LoadVotesFilter) (VoteCollection, error) {
+func (l repository) LoadVotes(f LoadVotesFilter) (VoteCollection, error) {
 	return loadVotes(l.DB, f)
 }
 
-func (l LoaderService) LoadVote(f LoadVotesFilter) (Vote, error) {
+func (l repository) LoadVote(f LoadVotesFilter) (Vote, error) {
 	f.MaxItems = 1
 	votes, err := loadVotes(l.DB, f)
 	if err != nil {
@@ -142,14 +144,14 @@ func (l LoaderService) LoadVote(f LoadVotesFilter) (Vote, error) {
 	return Vote{}, errors.Errorf("not found")
 }
 
-func (l LoaderService) LoadAccount(f LoadAccountFilter) (Account, error) {
+func (l repository) LoadAccount(f LoadAccountFilter) (Account, error) {
 	return loadAccount(l.DB, f)
 }
 
-func (l LoaderService) LoadAccounts(f LoadAccountsFilter) (AccountCollection, error) {
+func (l repository) LoadAccounts(f LoadAccountsFilter) (AccountCollection, error) {
 	return loadAccounts(l.DB, f)
 }
 
-func (l LoaderService) SaveAccount(a Account) (Account, error) {
+func (l repository) SaveAccount(a Account) (Account, error) {
 	return saveAccount(l.DB, a)
 }

@@ -87,10 +87,10 @@ func NayLink(i models.Item) string {
 func HandleIndex(w http.ResponseWriter, r *http.Request) {
 	m := indexModel{Title: "Index", InvertedTheme: isInverted(r)}
 
-	val := r.Context().Value(ServiceCtxtKey)
+	val := r.Context().Value(RepositoryCtxtKey)
 	itemLoader, ok := val.(models.CanLoadItems)
 	if ok {
-		log.Infof("loaded LoaderService of type %T", itemLoader)
+		log.Infof("loaded repository of type %T", itemLoader)
 	} else {
 		log.WithFields(log.Fields{}).Errorf("could not load item loader service from Context")
 		return
@@ -111,7 +111,7 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 	if CurrentAccount.IsLogged() {
 		votesLoader, ok := val.(models.CanLoadVotes)
 		if ok {
-			log.Infof("loaded LoaderService of type %T", itemLoader)
+			log.Infof("loaded repository of type %T", itemLoader)
 			CurrentAccount.Votes, err = votesLoader.LoadVotes(models.LoadVotesFilter{
 				AttributedTo: []string{CurrentAccount.Hash},
 				ItemKey:      m.Items.getItemsHashes(),

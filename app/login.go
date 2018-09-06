@@ -20,10 +20,9 @@ type loginModel struct {
 
 // ShowLogin handles POST /login requests
 func HandleLogin(w http.ResponseWriter, r *http.Request) {
-	errs := make([]error, 0)
 	pw := r.PostFormValue("pw")
 	handle := r.PostFormValue("handle")
-	a, err := models.Service.LoadAccount(models.LoadAccountFilter{Handle: handle})
+	a, err := models.Config.LoadAccount(models.LoadAccountFilter{Handle: handle})
 	if err != nil {
 		log.WithFields(log.Fields{}).Error(err)
 		HandleError(w, r, http.StatusForbidden, errors.Errorf("handle or password are wrong"))
@@ -52,14 +51,6 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	CurrentAccount = &a
 	AddFlashMessage(Success, "Login successful", r, w)
 
-	err = SessionStore.Save(r, w, s)
-	if err != nil {
-		errs = append(errs, err)
-	}
-	if len(errs) > 0 {
-		HandleError(w, r, http.StatusInternalServerError, errs...)
-		return
-	}
 	Redirect(w, r, "/", http.StatusSeeOther)
 	return
 }

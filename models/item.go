@@ -157,7 +157,7 @@ func loadItemFromModel(c item) Item {
 }
 
 func SaveItem(it Item) (Item, error) {
-	return saveItem(Service.DB, it)
+	return saveItem(Config.DB, it)
 }
 
 func saveItem(db *sql.DB, it Item) (Item, error) {

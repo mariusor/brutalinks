@@ -222,7 +222,7 @@ type Score struct {
 }
 
 func LoadScoresForItems(since time.Duration, key string) ([]Score, error) {
-	return loadScoresForItems(Service.DB, since, key)
+	return loadScoresForItems(Config.DB, since, key)
 }
 
 func loadScoresForItems(db *sql.DB, since time.Duration, key string) ([]Score, error) {
@@ -269,7 +269,7 @@ func loadScoresForItems(db *sql.DB, since time.Duration, key string) ([]Score, e
 }
 
 func LoadScoresForAccounts(since time.Duration, col string, val string) ([]Score, error) {
-	return loadScoresForAccounts(Service.DB, since, col, val)
+	return loadScoresForAccounts(Config.DB, since, col, val)
 }
 
 func loadScoresForAccounts(db *sql.DB, since time.Duration, col string, val string) ([]Score, error) {
@@ -321,7 +321,7 @@ group by "accounts"."id", "accounts"."key" order by "accounts"."id";`,
 }
 
 func AddVote(p Item, score int, userHash string) (bool, error) {
-	return addVote(Service.DB, p, score, userHash)
+	return addVote(Config.DB, p, score, userHash)
 }
 
 // AddVote adds a vote to the p content item

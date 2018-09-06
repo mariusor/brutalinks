@@ -98,10 +98,10 @@ func ShowItem(w http.ResponseWriter, r *http.Request) {
 	ShowItemData = true
 
 	m := contentModel{InvertedTheme: isInverted(r)}
-	val := r.Context().Value(ServiceCtxtKey)
+	val := r.Context().Value(RepositoryCtxtKey)
 	itemLoader, ok := val.(models.CanLoadItems)
 	if ok {
-		log.WithFields(log.Fields{}).Infof("loaded LoaderService of type %T", itemLoader)
+		log.WithFields(log.Fields{}).Infof("loaded repository of type %T", itemLoader)
 	} else {
 		log.WithFields(log.Fields{}).Errorf("could not load item loader service from Context")
 		return
@@ -109,7 +109,7 @@ func ShowItem(w http.ResponseWriter, r *http.Request) {
 	handle := chi.URLParam(r, "handle")
 	//acctLoader, ok := val.(models.CanLoadAccounts)
 	//if ok {
-	//	log.WithFields(log.Fields{}).Infof("loaded LoaderService of type %T", acctLoader)
+	//	log.WithFields(log.Fields{}).Infof("loaded repository of type %T", acctLoader)
 	//} else {
 	//	log.WithFields(log.Fields{}).Errorf("could not load account loader service from Context")
 	//}
@@ -151,7 +151,7 @@ func ShowItem(w http.ResponseWriter, r *http.Request) {
 	if CurrentAccount.IsLogged() {
 		votesLoader, ok := val.(models.CanLoadVotes)
 		if ok {
-			log.WithFields(log.Fields{}).Infof("loaded LoaderService of type %T", itemLoader)
+			log.WithFields(log.Fields{}).Infof("loaded repository of type %T", itemLoader)
 			CurrentAccount.Votes, err = votesLoader.LoadVotes(models.LoadVotesFilter{
 				AttributedTo: []string{CurrentAccount.Hash},
 				ItemKey:      allComments.getItemsHashes(),
@@ -188,7 +188,17 @@ func genitive(name string) string {
 // HandleVoting serves /~{handle}/{direction} request
 func HandleVoting(w http.ResponseWriter, r *http.Request) {
 	hash := chi.URLParam(r, "hash")
-	p, err := models.Service.LoadItem(models.LoadItemsFilter{Key: []string{hash}})
+
+	val := r.Context().Value(RepositoryCtxtKey)
+	itemLoader, ok := val.(models.CanLoadItems)
+	if ok {
+		log.WithFields(log.Fields{}).Infof("loaded repository of type %T", itemLoader)
+	} else {
+		log.WithFields(log.Fields{}).Errorf("could not load item loader service from Context")
+		return
+	}
+
+	p, err := itemLoader.LoadItem(models.LoadItemsFilter{Key: []string{hash}})
 	if err != nil {
 		log.WithFields(log.Fields{}).Error(err)
 		HandleError(w, r, http.StatusNotFound, err)
@@ -204,7 +214,19 @@ func HandleVoting(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if CurrentAccount.IsLogged() {
-		if _, err := models.AddVote(p, multiplier, CurrentAccount.Hash); err != nil {
+		voter, ok := val.(models.CanSaveVotes)
+		if ok {
+			log.WithFields(log.Fields{}).Infof("loaded repository of type %T", voter)
+		} else {
+			log.WithFields(log.Fields{}).Errorf("could not load item loader service from Context")
+			return
+		}
+		v := models.Vote{
+			SubmittedBy: CurrentAccount,
+			Item:        &p,
+			Weight:      multiplier * models.ScoreMultiplier,
+		}
+		if _, err := voter.SaveVote(v); err != nil {
 			log.WithFields(log.Fields{}).Error(err)
 		}
 	} else {

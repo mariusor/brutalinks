@@ -18,23 +18,23 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const ServiceCtxtKey = "__loader"
+const RepositoryCtxtKey = "__repository"
 const AccountCtxtKey = "__acct"
 const CollectionCtxtKey = "__collection"
 const FilterCtxtKey = "__filter"
 const ItemCtxtKey = "__item"
 
-// Service is used to retrieve information from the database
-var Service LoaderService
+// Config is used to retrieve information from the database
+var Config repository
 
-type LoaderService struct {
+type repository struct {
 	BaseUrl string
 }
 
-// Loader middleware
-func Loader(next http.Handler) http.Handler {
+// Repository middleware
+func Repository(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		ctx := context.WithValue(r.Context(), ServiceCtxtKey, Service)
+		ctx := context.WithValue(r.Context(), RepositoryCtxtKey, Config)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	}
 	return http.HandlerFunc(fn)
@@ -50,10 +50,10 @@ func ServiceCtxt(next http.Handler) http.Handler {
 func AccountCtxt(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		handle := chi.URLParam(r, "handle")
-		val := r.Context().Value(ServiceCtxtKey)
+		val := r.Context().Value(RepositoryCtxtKey)
 		AcctLoader, ok := val.(models.CanLoadAccounts)
 		if ok {
-			log.WithFields(log.Fields{}).Infof("loaded LoaderService of type %T", AcctLoader)
+			log.WithFields(log.Fields{}).Infof("loaded repository of type %T", AcctLoader)
 		} else {
 			log.WithFields(log.Fields{}).Errorf("could not load account loader service from Context")
 		}
@@ -86,7 +86,7 @@ func ItemCtxt(next http.Handler) http.Handler {
 		col := chi.URLParam(r, "collection")
 
 		f := r.Context().Value(FilterCtxtKey)
-		val := r.Context().Value(ServiceCtxtKey)
+		val := r.Context().Value(RepositoryCtxtKey)
 
 		var err error
 		var i interface{}
@@ -237,7 +237,7 @@ func ItemCollectionCtxt(next http.Handler) http.Handler {
 		var err error
 
 		f := r.Context().Value(FilterCtxtKey)
-		val := r.Context().Value(ServiceCtxtKey)
+		val := r.Context().Value(RepositoryCtxtKey)
 
 		var items interface{}
 		if col == "outbox" {
@@ -283,7 +283,7 @@ func ItemCollectionCtxt(next http.Handler) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
-func (l LoaderService) LoadItem(f models.LoadItemsFilter) (models.Item, error) {
+func (l repository) LoadItem(f models.LoadItemsFilter) (models.Item, error) {
 	var art Article
 	var it models.Item
 	var err error
@@ -322,7 +322,7 @@ func (l LoaderService) LoadItem(f models.LoadItemsFilter) (models.Item, error) {
 	return it, err
 }
 
-func (l LoaderService) LoadItems(f models.LoadItemsFilter) (models.ItemCollection, error) {
+func (l repository) LoadItems(f models.LoadItemsFilter) (models.ItemCollection, error) {
 	qs := ""
 	if q, err := qstring.MarshalString(&f); err == nil {
 		qs = fmt.Sprintf("?%s", q)
@@ -362,19 +362,22 @@ func (l LoaderService) LoadItems(f models.LoadItemsFilter) (models.ItemCollectio
 	return items, nil
 }
 
-func (l LoaderService) SaveVote(v models.Vote) (models.Vote, error) {
+func (l repository) SaveVote(v models.Vote) (models.Vote, error) {
+	//body := nil
+	//url := fmt.Sprintf("http://%s/api/accounts/%s/liked/%s", l.BaseUrl, v.SubmittedBy.Hash, v.Item.Hash)
+	//resp, err := http.Post(url, "application/json+activity", body)
 	return models.Vote{}, errors.Errorf("not implemented")
 }
 
-func (l LoaderService) LoadVotes(f models.LoadVotesFilter) (models.VoteCollection, error) {
+func (l repository) LoadVotes(f models.LoadVotesFilter) (models.VoteCollection, error) {
 	return nil, errors.Errorf("not implemented") //models.LoadItemsVotes(f.ItemKey[0])
 }
 
-func (l LoaderService) LoadVote(f models.LoadVotesFilter) (models.Vote, error) {
+func (l repository) LoadVote(f models.LoadVotesFilter) (models.Vote, error) {
 	return models.Vote{}, errors.Errorf("not implemented")
 }
 
-func (l LoaderService) SaveItem(it models.Item) (models.Item, error) {
+func (l repository) SaveItem(it models.Item) (models.Item, error) {
 	return it, errors.Errorf("not implemented")
 }
 
@@ -440,7 +443,7 @@ func loadFromAPPerson(p Person) (models.Account, error) {
 	return a, nil
 }
 
-func (l LoaderService) LoadAccounts(f models.LoadAccountsFilter) (models.AccountCollection, error) {
+func (l repository) LoadAccounts(f models.LoadAccountsFilter) (models.AccountCollection, error) {
 	qs := ""
 	if q, err := qstring.MarshalString(&f); err == nil {
 		qs = fmt.Sprintf("?%s", q)
@@ -467,7 +470,7 @@ func (l LoaderService) LoadAccounts(f models.LoadAccountsFilter) (models.Account
 	return nil, errors.Errorf("not implemented")
 }
 
-func (l LoaderService) LoadAccount(f models.LoadAccountFilter) (models.Account, error) {
+func (l repository) LoadAccount(f models.LoadAccountFilter) (models.Account, error) {
 	p := Person{}
 
 	resp, err := http.Get(fmt.Sprintf("http://%s/api/accounts/%s", l.BaseUrl, f.Handle))
@@ -490,6 +493,6 @@ func (l LoaderService) LoadAccount(f models.LoadAccountFilter) (models.Account, 
 	return loadFromAPPerson(p)
 }
 
-func (l LoaderService) SaveAccount(a models.Account) (models.Account, error) {
+func (l repository) SaveAccount(a models.Account) (models.Account, error) {
 	return models.Account{}, errors.Errorf("not implemented")
 }

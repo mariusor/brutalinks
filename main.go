@@ -89,8 +89,8 @@ func init() {
 		log.WithFields(log.Fields{}).Error(errors.NewErrWithCause(err, "failed to connect to the database"))
 	}
 
-	models.Service.DB = db
-	api.Service.BaseUrl = os.Getenv("LISTEN")
+	models.Config.DB = db
+	api.Config.BaseUrl = os.Getenv("LISTEN")
 }
 
 // FileServer conveniently sets up a http.FileServer handler to serve
@@ -136,7 +136,7 @@ func main() {
 	filesDir := filepath.Join(workDir, "assets")
 	FileServer(r, "/assets", http.Dir(filesDir))
 
-	r.With(api.Loader).Route("/", func(r chi.Router) {
+	r.With(api.Repository).Route("/", func(r chi.Router) {
 		r.Use(app.LoadSessionData)
 
 		r.Get("/", app.HandleIndex)
@@ -178,7 +178,7 @@ func main() {
 		app.HandleError(w, r, http.StatusMethodNotAllowed, errors.Errorf("invalid %q request", r.Method))
 	})
 
-	r.With(models.Loader).Route("/api", func(r chi.Router) {
+	r.With(models.Repository).Route("/api", func(r chi.Router) {
 		r.Route("/accounts", func(r chi.Router) {
 			r.With(api.LoadFiltersCtxt).Get("/", api.HandleAccountsCollection)
 

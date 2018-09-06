@@ -21,10 +21,10 @@ type itemListingModel struct {
 func ShowAccount(w http.ResponseWriter, r *http.Request) {
 	handle := chi.URLParam(r, "handle")
 
-	val := r.Context().Value(ServiceCtxtKey)
+	val := r.Context().Value(RepositoryCtxtKey)
 	accountLoader, ok := val.(models.CanLoadAccounts)
 	if ok {
-		log.Infof("loaded LoaderService of type %T", accountLoader)
+		log.Infof("loaded repository of type %T", accountLoader)
 	} else {
 		log.Errorf("could not load item loader service from Context")
 		return

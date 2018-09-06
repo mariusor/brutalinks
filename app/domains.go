@@ -16,10 +16,10 @@ import (
 
 func loadItems(c context.Context, filter models.LoadItemsFilter) (itemListingModel, error) {
 	m := itemListingModel{}
-	val := c.Value(ServiceCtxtKey)
+	val := c.Value(RepositoryCtxtKey)
 	itemLoader, ok := val.(models.CanLoadItems)
 	if ok {
-		log.Infof("loaded LoaderService of type %T", itemLoader)
+		log.Infof("loaded repository of type %T", itemLoader)
 	} else {
 		err := errors.Errorf("could not load item loader service from Context")
 		return m, err
@@ -33,7 +33,7 @@ func loadItems(c context.Context, filter models.LoadItemsFilter) (itemListingMod
 	if CurrentAccount.IsLogged() {
 		votesLoader, ok := val.(models.CanLoadVotes)
 		if ok {
-			log.Infof("loaded LoaderService of type %T", itemLoader)
+			log.Infof("loaded repository of type %T", itemLoader)
 			CurrentAccount.Votes, err = votesLoader.LoadVotes(models.LoadVotesFilter{
 				AttributedTo: []string{CurrentAccount.Hash},
 				ItemKey:      m.Items.getItemsHashes(),
