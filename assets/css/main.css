@@ -167,7 +167,7 @@ body {
 }
 body > header {
     display: grid;
-    grid-template-columns: 6fr 2fr;
+    grid-template-columns: 6fr 3fr;
     grid-template-rows: 1fr;
     grid-area: header;
     grid-template-areas: "main" "aside";
