@@ -209,9 +209,7 @@ func loadOutboxFilterFromReq(r *http.Request) models.LoadItemsFilter {
 }
 
 func loadLikedFilterFromReq(r *http.Request) models.LoadVotesFilter {
-	filters := models.LoadVotesFilter{
-		MaxItems: MaxContentItems,
-	}
+	filters := models.LoadVotesFilter{}
 	if err := qstring.Unmarshal(r.URL.Query(), &filters); err != nil {
 		return filters
 	}
@@ -235,8 +233,12 @@ func loadLikedFilterFromReq(r *http.Request) models.LoadVotesFilter {
 	if ok {
 		filters.AttributedTo = []string{a.Hash}
 	}
-	if len(filters.ItemKey) > 0 {
-		filters.MaxItems = 1
+	if filters.MaxItems == 0 {
+		if len(filters.ItemKey) > 0 {
+			filters.MaxItems = 1
+		} else {
+			filters.MaxItems = MaxContentItems
+		}
 	}
 	return filters
 }
@@ -330,7 +332,7 @@ func (r repository) LoadItem(f models.LoadItemsFilter) (models.Item, error) {
 		qs = fmt.Sprintf("?%s", q)
 	}
 	url := fmt.Sprintf("http://%s/api/outbox/%s%s", r.BaseUrl, hashes[0], qs)
-	resp, err := http.Get(url)
+	resp, err := r.Get(url)
 	if err != nil {
 		log.WithFields(log.Fields{}).Error(err)
 		return it, err
@@ -388,7 +390,11 @@ func (r repository) LoadItems(f models.LoadItemsFilter) (models.ItemCollection, 
 
 	items := make(models.ItemCollection, col.TotalItems)
 	for k, it := range col.OrderedItems {
-		items[k], _ = loadFromAPItem(it)
+		if art, ok := it.(*Article); ok {
+			items[k], _ = loadFromAPItem(*art)
+		} else {
+			log.WithFields(log.Fields{}).Errorf("unable to load Article from %T", it)
+		}
 	}
 
 	return items, nil
@@ -447,7 +453,44 @@ func (r repository) SaveVote(v models.Vote) (models.Vote, error) {
 }
 
 func (r repository) LoadVotes(f models.LoadVotesFilter) (models.VoteCollection, error) {
-	return models.Config.LoadVotes(f)
+	qs := ""
+
+	if q, err := qstring.MarshalString(&f); err == nil {
+		qs = fmt.Sprintf("?%s", q)
+	}
+	url := fmt.Sprintf("http://%s/api/liked%s", r.BaseUrl, qs)
+	resp, err := r.Get(url)
+	if err != nil {
+		log.WithFields(log.Fields{}).Error(err)
+		return nil, err
+	}
+
+	var items models.VoteCollection
+	if resp != nil {
+		if resp.StatusCode != http.StatusOK {
+			err := fmt.Errorf("unable to load from the API")
+			log.WithFields(log.Fields{}).Error(err)
+			return nil, err
+		}
+		defer resp.Body.Close()
+
+		col := OrderedCollection{}
+		if body, err := ioutil.ReadAll(resp.Body); err == nil {
+			if err := j.Unmarshal(body, &col); err == nil {
+				items = make(models.VoteCollection, col.TotalItems)
+				for _, it := range col.OrderedItems {
+					if like, ok := it.(*ap.Activity); ok {
+						vot, _ := loadFromAPLike(*like)
+						items[vot.Item.Hash] = vot
+					} else {
+						log.WithFields(log.Fields{}).Errorf("unable to load Activity from %T", it)
+					}
+				}
+			}
+		}
+	}
+	return items, nil
+	//return models.Config.LoadVotes(f)
 }
 
 func (r repository) LoadVote(f models.LoadVotesFilter) (models.Vote, error) {
@@ -501,16 +544,36 @@ func loadFromAPItem(it Article) (models.Item, error) {
 
 func loadFromAPLike(l ap.Activity) (models.Vote, error) {
 	v := models.Vote{
-		Item: &models.Item{
-			Hash: getHash(l.Object.GetID()),
-		},
-		SubmittedBy: &models.Account{
-			Hash: getHash(l.Actor.GetID()),
-		},
-		//CreatedAt: nil,
-		//UpdatedAt: nil,
 		Flags: 0,
 	}
+	if l.Object != nil {
+		if l.Object.IsLink() {
+			i := ap.ObjectID(l.Object.(ap.IRI))
+			v.Item = &models.Item{
+				Hash: getHash(&i),
+			}
+		}
+		if l.Object.IsObject() {
+			v.Item = &models.Item{
+				Hash: getHash(l.Object.GetID()),
+			}
+		}
+	}
+	if l.AttributedTo != nil {
+		if l.AttributedTo.IsLink() {
+			i := ap.ObjectID(l.AttributedTo.(ap.IRI))
+			v.SubmittedBy = &models.Account{
+				Hash: getHash(&i),
+			}
+		}
+		if l.AttributedTo.IsObject() {
+			v.SubmittedBy = &models.Account{
+				Hash: getHash(l.AttributedTo.GetID()),
+			}
+		}
+	}
+	//CreatedAt: nil,
+	//UpdatedAt: nil,
 	if l.Type == ap.LikeType {
 		v.Weight = 1
 	}

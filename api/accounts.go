@@ -25,7 +25,7 @@ func apAccountID(a models.Account) ap.ObjectID {
 func loadAPLike(vote models.Vote) ap.ObjectOrLink {
 	id := BuildObjectIDFromItem(*vote.Item)
 	lID := BuildObjectIDFromVote(vote)
-	whomArt := ap.IRI(BuildActorID(*vote.SubmittedBy))
+	whomArt := ap.IRI(BuildActorHashID(*vote.SubmittedBy))
 	if vote.Weight > 0 {
 		l := ap.LikeNew(lID, ap.IRI(id))
 		l.AttributedTo = whomArt

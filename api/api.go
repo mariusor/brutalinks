@@ -211,7 +211,7 @@ type OrderedCollection struct {
 	URL          LinkOrURI              `jsonld:"url,omitempty"`
 	Duration     time.Duration          `jsonld:"duration,omitempty"`
 	TotalItems   uint                   `jsonld:"totalItems,omitempty"`
-	OrderedItems []Article              `jsonld:"orderedItems,omitempty"`
+	OrderedItems ap.ObjectsArr          `jsonld:"orderedItems,omitempty"`
 }
 
 func (a *Article) UnmarshalJSON(data []byte) error {
@@ -252,15 +252,34 @@ func (o *OrderedCollection) UnmarshalJSON(data []byte) error {
 	o.ID = ObjectID(col.ID)
 	o.Type = ActivityVocabularyType(col.Type)
 	o.TotalItems = col.TotalItems
-	o.OrderedItems = make([]Article, o.TotalItems)
-	for i := range col.OrderedItems {
-		a := Article{}
-		if data, _, _, err := jsonparser.Get(data, "orderedItems", fmt.Sprintf("[%d]", i)); err == nil {
-			a.UnmarshalJSON(data)
+	o.OrderedItems = make([]ap.ObjectOrLink, o.TotalItems)
+	for i, it := range col.OrderedItems {
+		var a ap.ObjectOrLink
+		switch it.GetType() {
+		case ap.ArticleType:
+			art := &Article{}
+			if data, _, _, err := jsonparser.Get(data, "orderedItems", fmt.Sprintf("[%d]", i)); err == nil {
+				art.UnmarshalJSON(data)
+			}
+			if context, err := jsonparser.GetString(data, "orderedItems", fmt.Sprintf("[%d]", i), "context"); err == nil {
+				art.Context = ap.IRI(context)
+			}
+			a = art
+		case ap.LikeType:
+			fallthrough
+		case ap.DislikeType:
+			fallthrough
+		case ap.ActivityType:
+			act := &ap.Activity{}
+			if data, _, _, err := jsonparser.Get(data, "orderedItems", fmt.Sprintf("[%d]", i)); err == nil {
+				act.UnmarshalJSON(data)
+			}
+			if context, err := jsonparser.GetString(data, "orderedItems", fmt.Sprintf("[%d]", i), "context"); err == nil {
+				act.Context = ap.IRI(context)
+			}
+			a = act
 		}
-		if context, err := jsonparser.GetString(data, "orderedItems", fmt.Sprintf("[%d]", i), "context"); err == nil {
-			a.Context = ap.IRI(context)
-		}
+
 		o.OrderedItems[i] = a
 	}
 	return nil
@@ -344,6 +363,9 @@ func GetContext() j.Context {
 
 func BuildActorID(a models.Account) ap.ObjectID {
 	return ap.ObjectID(fmt.Sprintf("%s/%s", AccountsURL, url.PathEscape(a.Handle)))
+}
+func BuildActorHashID(a models.Account) ap.ObjectID {
+	return ap.ObjectID(fmt.Sprintf("%s/%s", AccountsURL, url.PathEscape(a.Hash)))
 }
 
 func BuildCollectionID(a models.Account, o ap.CollectionInterface) ap.ObjectID {
