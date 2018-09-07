@@ -435,25 +435,24 @@ ol.comments li {
     content: "\f067";
     font-weight: 800;
 }
-.score a.yay:active,
-.score a.yay.ed {
+.score a[href].yay:active,
+.score a[href].yay.ed {
     color: deeppink;
 }
-.inverted .score a.yay:active,
-.inverted .score a.yay.ed {
-}
+.inverted .score a[href].yay:active,
+.inverted .score a[href].yay.ed {}
 .score a.nay::after {
     font-family: "Awesome";
     content: "\f068";
     font-weight: 800;
 }
-.score a.nay:active,
-.score a.nay.ed {
+.score a[href].nay:active,
+.score a[href].nay.ed {
     color: #689a1c;
 }
 
-.inverted .score a.nay:active,
-.inverted .score a.nay.ed {
+.inverted .score a[href].nay:active,
+.inverted .score a[href].nay.ed {
    color: greenyellow;
 }
 .meta {
