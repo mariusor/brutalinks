@@ -425,7 +425,7 @@ ol.comments li {
     font-family: "Awesome";
 }
 .score a:not([href]) {
-    opacity: .4;
+    opacity: .2;
 }
 .score a.yay {
     margin-top: 2px;
@@ -517,9 +517,9 @@ details > summary {
 details > summary span {
     opacity: .6;
 }
-/*details > summary::-webkit-details-marker {*/
-    /*display: none;*/
-/*}*/
+details > summary::-webkit-details-marker {
+    opacity: .3;
+}
 .comments, summary {
     border-left: 1px solid;
 }
