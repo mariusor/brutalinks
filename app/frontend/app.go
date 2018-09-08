@@ -1,4 +1,4 @@
-package app
+package frontend
 
 import (
 	"context"
@@ -15,7 +15,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/gorilla/sessions"
 	"github.com/juju/errors"
-	"github.com/mariusor/littr.go/models"
+	"github.com/mariusor/littr.go/app/models"
 	log "github.com/sirupsen/logrus"
 	"github.com/unrolled/render"
 	"golang.org/x/oauth2"

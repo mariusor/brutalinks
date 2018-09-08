@@ -1,4 +1,4 @@
-package app
+package frontend
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/juju/errors"
-	"github.com/mariusor/littr.go/models"
+	"github.com/mariusor/littr.go/app/models"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/go-chi/chi"

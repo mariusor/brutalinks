@@ -1,4 +1,4 @@
-package app
+package frontend
 
 import (
 	"net/http"
@@ -11,7 +11,7 @@ import (
 	"github.com/juju/errors"
 
 	"github.com/gorilla/securecookie"
-	"github.com/mariusor/littr.go/models"
+	"github.com/mariusor/littr.go/app/models"
 	"golang.org/x/crypto/bcrypt"
 )
 

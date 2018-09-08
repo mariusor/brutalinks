@@ -1,11 +1,11 @@
-package app
+package frontend
 
 import (
 	"net/http"
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/mariusor/littr.go/models"
+	"github.com/mariusor/littr.go/app/models"
 
 	"context"
 	"fmt"

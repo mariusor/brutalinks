@@ -5,7 +5,9 @@ export GOOS=linux
 
 GO := go
 BUILD := $(GO) build -a -ldflags '-extldflags "-static"'
-SOURCES := $(wildcard ./app/*.go) $(wildcard ./api/*.go) $(wildcard ./models/*.go)
+SOURCES := $(wildcard ./app/*/*.go)
+
+all: app cli
 
 app: main.go $(SOURCES)
 	$(BUILD) -o bin/$@ ./main.go

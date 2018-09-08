@@ -1,11 +1,14 @@
-package app
+package frontend
 
 import (
 	"fmt"
 	"net/http"
 	"os"
 
-	"github.com/mariusor/littr.go/models"
+	"github.com/jmoiron/sqlx"
+	"github.com/mariusor/littr.go/app/db"
+
+	"github.com/mariusor/littr.go/app/models"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -112,15 +115,25 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 		votesLoader, ok := val.(models.CanLoadVotes)
 		if ok {
 			log.Infof("loaded repository of type %T", itemLoader)
-			CurrentAccount.Votes, err = votesLoader.LoadVotes(models.LoadVotesFilter{
+			filters := models.LoadVotesFilter{
 				AttributedTo: []string{CurrentAccount.Hash},
 				ItemKey:      m.Items.getItemsHashes(),
 				MaxItems:     MaxContentItems,
-			})
-
+			}
+			CurrentAccount.Votes, err = votesLoader.LoadVotes(filters)
 			if err != nil {
 				log.WithFields(log.Fields{}).Error(err)
 			}
+
+			d := sqlx.NewDb(models.Config.DB, "postgres")
+			if agg, err := db.LoadVotes(d, filters); err != nil {
+				log.WithFields(log.Fields{}).Error(err)
+			} else {
+				for k, v := range agg {
+					log.Infof("Vote %d => %#v", k, v)
+				}
+			}
+
 		} else {
 			log.WithFields(log.Fields{}).Errorf("could not load vote loader service from Context")
 		}

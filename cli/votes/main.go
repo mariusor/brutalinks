@@ -9,7 +9,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/mariusor/littr.go/models"
+	"github.com/mariusor/littr.go/app/models"
 
 	_ "github.com/lib/pq"
 )

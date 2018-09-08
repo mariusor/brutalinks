@@ -1,4 +1,4 @@
-package app
+package frontend
 
 import (
 	"bytes"
@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/juju/errors"
-	"github.com/mariusor/littr.go/models"
+	"github.com/mariusor/littr.go/app/models"
 	log "github.com/sirupsen/logrus"
 )
 

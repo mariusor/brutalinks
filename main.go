@@ -17,9 +17,9 @@ import (
 	"github.com/gorilla/sessions"
 	"github.com/juju/errors"
 	_ "github.com/lib/pq"
-	"github.com/mariusor/littr.go/api"
-	"github.com/mariusor/littr.go/app"
-	"github.com/mariusor/littr.go/models"
+	"github.com/mariusor/littr.go/app/api"
+	"github.com/mariusor/littr.go/app/frontend"
+	"github.com/mariusor/littr.go/app/models"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -30,9 +30,9 @@ var listenHost string
 var listenPort int64
 var listenOn string
 
-var littr app.Littr
+var littr frontend.Littr
 
-func loadEnv(l *app.Littr) (bool, error) {
+func loadEnv(l *frontend.Littr) (bool, error) {
 	l.SessionKeys[0] = []byte(os.Getenv("SESS_AUTH_KEY"))
 	l.SessionKeys[1] = []byte(os.Getenv("SESS_ENC_KEY"))
 
@@ -40,9 +40,9 @@ func loadEnv(l *app.Littr) (bool, error) {
 	listenPort, _ = strconv.ParseInt(os.Getenv("PORT"), 10, 64)
 	listenOn = os.Getenv("LISTEN")
 
-	env := app.EnvType(os.Getenv("ENV"))
-	if !app.ValidEnv(env) {
-		env = app.DEV
+	env := frontend.EnvType(os.Getenv("ENV"))
+	if !frontend.ValidEnv(env) {
+		env = frontend.DEV
 	}
 	littr.Env = env
 	if listenPort == 0 {
@@ -59,25 +59,25 @@ func loadEnv(l *app.Littr) (bool, error) {
 }
 
 func init() {
-	littr = app.Littr{HostName: listenHost, Port: listenPort}
+	littr = frontend.Littr{HostName: listenHost, Port: listenPort}
 
 	loadEnv(&littr)
 
 	log.SetFormatter(&log.TextFormatter{})
 	log.SetOutput(os.Stdout)
 
-	if littr.Env == app.PROD {
+	if littr.Env == frontend.PROD {
 		log.SetLevel(log.WarnLevel)
 	} else {
 		log.SetLevel(log.DebugLevel)
 	}
 	gob.Register(models.Account{})
-	gob.Register(app.Flash{})
+	gob.Register(frontend.Flash{})
 
 	s := sessions.NewCookieStore(littr.SessionKeys[0], littr.SessionKeys[1])
 	//s.Options.Domain = littr.HostName
 	s.Options.Path = "/"
-	app.SessionStore = s
+	frontend.SessionStore = s
 
 	dbPw := os.Getenv("DB_PASSWORD")
 	dbName := os.Getenv("DB_NAME")
@@ -124,12 +124,12 @@ func main() {
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
 	r.Use(middleware.Logger)
-	if littr.Env == app.PROD {
+	if littr.Env == frontend.PROD {
 		r.Use(middleware.Recoverer)
 	}
 
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
-		app.HandleError(w, r, http.StatusNotFound, errors.Errorf("%s not found", r.RequestURI))
+		frontend.HandleError(w, r, http.StatusNotFound, errors.Errorf("%s not found", r.RequestURI))
 	})
 
 	workDir, _ := os.Getwd()
@@ -137,52 +137,52 @@ func main() {
 	FileServer(r, "/assets", http.Dir(filesDir))
 
 	r.With(api.Repository).Route("/", func(r chi.Router) {
-		r.Use(app.LoadSessionData)
+		r.Use(frontend.LoadSessionData)
 
-		r.Get("/", app.HandleIndex)
+		r.Get("/", frontend.HandleIndex)
 
-		r.Get("/submit", app.ShowSubmit)
-		r.Post("/submit", app.HandleSubmit)
+		r.Get("/submit", frontend.ShowSubmit)
+		r.Post("/submit", frontend.HandleSubmit)
 
-		r.Get("/register", app.ShowRegister)
-		r.Post("/register", app.HandleRegister)
+		r.Get("/register", frontend.ShowRegister)
+		r.Post("/register", frontend.HandleRegister)
 
-		//r.With(Item).Get("/~{handle}/{hash}", app.ShowItem)
+		//r.With(Item).Get("/~{handle}/{hash}", frontend.ShowItem)
 		r.Route("/~{handle}", func(r chi.Router) {
-			r.Get("/", app.ShowAccount)
-			r.Get("/{hash}", app.ShowItem)
-			r.Post("/{hash}", app.HandleSubmit)
-			r.Get("/{hash}/{direction}", app.HandleVoting)
+			r.Get("/", frontend.ShowAccount)
+			r.Get("/{hash}", frontend.ShowItem)
+			r.Post("/{hash}", frontend.HandleSubmit)
+			r.Get("/{hash}/{direction}", frontend.HandleVoting)
 		})
 
-		//r.Get("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/", app.HandleDate)
-		r.Get("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}", app.ShowItem)
-		r.Get("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}/{direction}", app.HandleVoting)
-		r.Post("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}", app.HandleSubmit)
+		//r.Get("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/", frontend.HandleDate)
+		r.Get("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}", frontend.ShowItem)
+		r.Get("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}/{direction}", frontend.HandleVoting)
+		r.Post("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}", frontend.HandleSubmit)
 
-		r.Get("/item/{hash}", app.HandleItemRedirect)
+		r.Get("/item/{hash}", frontend.HandleItemRedirect)
 
-		r.Get("/domains/{domain}", app.HandleDomains)
+		r.Get("/domains/{domain}", frontend.HandleDomains)
 
-		r.Get("/logout", app.HandleLogout)
-		r.Get("/login", app.ShowLogin)
-		r.Post("/login", app.HandleLogin)
+		r.Get("/logout", frontend.HandleLogout)
+		r.Get("/login", frontend.ShowLogin)
+		r.Post("/login", frontend.HandleLogin)
 
 		r.Get("/auth/{provider}", littr.HandleAuth)
 		r.Get("/auth/{provider}/callback", littr.HandleCallback)
 	})
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
-		app.HandleError(w, r, http.StatusNotFound, errors.Errorf("%q not found", r.RequestURI))
+		frontend.HandleError(w, r, http.StatusNotFound, errors.Errorf("%q not found", r.RequestURI))
 	})
 	r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
-		app.HandleError(w, r, http.StatusMethodNotAllowed, errors.Errorf("invalid %q request", r.Method))
+		frontend.HandleError(w, r, http.StatusMethodNotAllowed, errors.Errorf("invalid %q request", r.Method))
 	})
 
 	r.With(models.Repository).Route("/api", func(r chi.Router) {
 		r.Route("/accounts", func(r chi.Router) {
 			r.With(api.LoadFiltersCtxt).Get("/", api.HandleAccountsCollection)
 
-			r.With(app.LoadSessionData).Get("/accounts/verify_credentials", api.HandleVerifyCredentials)
+			r.With(frontend.LoadSessionData).Get("/accounts/verify_credentials", api.HandleVerifyCredentials)
 			r.Route("/{handle}", func(r chi.Router) {
 				r.Use(api.AccountCtxt)
 

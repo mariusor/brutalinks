@@ -1,4 +1,4 @@
-package app
+package frontend
 
 import (
 	"net/http"
@@ -6,7 +6,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/juju/errors"
-	"github.com/mariusor/littr.go/models"
+	"github.com/mariusor/littr.go/app/models"
 	"golang.org/x/crypto/bcrypt"
 )
 

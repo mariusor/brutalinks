@@ -10,7 +10,7 @@ import (
 	"math/rand"
 	"os"
 
-	"github.com/mariusor/littr.go/models"
+	"github.com/mariusor/littr.go/app/models"
 	log "github.com/sirupsen/logrus"
 )
 

@@ -260,10 +260,3 @@ func saveAccount(db *sql.DB, a Account) (Account, error) {
 
 	return a, nil
 }
-
-func (a AccountCollection) First() (*Account, error) {
-	for _, aa := range a {
-		return &aa, nil
-	}
-	return nil, errors.Errorf("empty %T", a)
-}

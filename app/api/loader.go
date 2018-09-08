@@ -16,7 +16,7 @@ import (
 	"github.com/juju/errors"
 	ap "github.com/mariusor/activitypub.go/activitypub"
 	j "github.com/mariusor/activitypub.go/jsonld"
-	"github.com/mariusor/littr.go/models"
+	"github.com/mariusor/littr.go/app/models"
 	log "github.com/sirupsen/logrus"
 )
 

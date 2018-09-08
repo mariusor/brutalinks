@@ -5,12 +5,13 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/mariusor/littr.go/app/frontend"
+
 	"github.com/go-chi/chi"
 	"github.com/juju/errors"
 	ap "github.com/mariusor/activitypub.go/activitypub"
 	json "github.com/mariusor/activitypub.go/jsonld"
-	"github.com/mariusor/littr.go/app"
-	"github.com/mariusor/littr.go/models"
+	"github.com/mariusor/littr.go/app/models"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -357,7 +358,7 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 
 // GET /api/accounts/verify_credentials
 func HandleVerifyCredentials(w http.ResponseWriter, r *http.Request) {
-	acct := app.CurrentAccount
+	acct := frontend.CurrentAccount
 	if acct == nil || len(acct.Handle) == 0 {
 		HandleError(w, r, http.StatusNotFound, errors.Errorf("account not found"))
 		return

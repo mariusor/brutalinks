@@ -32,8 +32,8 @@ const (
 )
 
 const (
-	TypeLike    = VoteType("like")
 	TypeDislike = VoteType("dislike")
+	TypeLike    = VoteType("like")
 	ContextNil  = "0"
 )
 
