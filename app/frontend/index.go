@@ -5,9 +5,6 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/jmoiron/sqlx"
-	"github.com/mariusor/littr.go/app/db"
-
 	"github.com/mariusor/littr.go/app/models"
 	log "github.com/sirupsen/logrus"
 )
@@ -123,15 +120,6 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 			CurrentAccount.Votes, err = votesLoader.LoadVotes(filters)
 			if err != nil {
 				log.WithFields(log.Fields{}).Error(err)
-			}
-
-			d := sqlx.NewDb(models.Config.DB, "postgres")
-			if agg, err := db.LoadVotes(d, filters); err != nil {
-				log.WithFields(log.Fields{}).Error(err)
-			} else {
-				for k, v := range agg {
-					log.Infof("Vote %d => %#v", k, v)
-				}
 			}
 
 		} else {
