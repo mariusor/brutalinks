@@ -41,6 +41,9 @@ blockquote, q {
     content: "\f2ed";
     font-family: "Awesome";
 }
+i.github-icon {
+    font-style: normal;
+}
 .github-icon::before {
     content:"\f09b";
     font-family: "AwesomeBrands";
