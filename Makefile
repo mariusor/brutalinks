@@ -26,7 +26,10 @@ bootstrap: cli/bootstrap/main.go
 votes: cli/votes/main.go
 	$(BUILD) -o bin/$@ cli/votes/main.go
 
-cli: bootstrap votes
+keys: cli/keys/main.go
+	$(BUILD) -o bin/$@ cli/keys/main.go
+
+cli: bootstrap votes keys
 
 clean:
 	$(RM) bin/*
