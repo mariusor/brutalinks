@@ -6,9 +6,7 @@ src/*.*
 vendor/
 go.sum
 db/
-bin/app
-bin/votes
-bin/bootstrap
+bin/*
 docker/bin
 docker/assets
 docker/templates
