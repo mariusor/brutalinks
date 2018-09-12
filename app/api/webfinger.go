@@ -29,7 +29,9 @@ func HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	d := fmt.Sprintf(`{"subject": "`+typ+`:`+res+`","links": [{"rel": "self","type": "application/activity+json","href": "https://%s/api/accounts/%s"}]}`, "littr.me", res)
+	acct := strings.Replace(res, "@littr.me", "", 1)
+
+	d := fmt.Sprintf(`{"subject": "`+typ+`:`+res+`","links": [{"rel": "self","type": "application/activity+json","href": "https://%s/api/accounts/%s"}]}`, "littr.me", acct)
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(d))
 }
