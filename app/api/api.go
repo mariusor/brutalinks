@@ -1,7 +1,6 @@
 package api
 
 import (
-	"database/sql"
 	"encoding/json"
 	"net/http"
 
@@ -19,8 +18,6 @@ import (
 	"github.com/mariusor/littr.go/app/models"
 	log "github.com/sirupsen/logrus"
 )
-
-var Db *sql.DB
 
 const (
 	MaxContentItems = 200
