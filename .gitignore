@@ -2,7 +2,6 @@
 .idea/
 *.orig
 go.sum
-db/*.sql
 bin/*
 docker/bin
 docker/assets
