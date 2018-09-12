@@ -141,6 +141,13 @@ func main() {
 	FileServer(r, "/assets", http.Dir(filesDir))
 
 	r.With(api.Repository).Route("/", func(r chi.Router) {
+		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
+			frontend.HandleError(w, r, http.StatusNotFound, errors.Errorf("%q not found", r.RequestURI))
+		})
+		r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
+			frontend.HandleError(w, r, http.StatusMethodNotAllowed, errors.Errorf("invalid %q request", r.Method))
+		})
+
 		r.Use(frontend.LoadSessionData)
 
 		r.Get("/", frontend.HandleIndex)
@@ -174,12 +181,6 @@ func main() {
 
 		r.Get("/auth/{provider}", littr.HandleAuth)
 		r.Get("/auth/{provider}/callback", littr.HandleCallback)
-	})
-	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
-		frontend.HandleError(w, r, http.StatusNotFound, errors.Errorf("%q not found", r.RequestURI))
-	})
-	r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
-		frontend.HandleError(w, r, http.StatusMethodNotAllowed, errors.Errorf("invalid %q request", r.Method))
 	})
 
 	r.With(models.Repository).Route("/api", func(r chi.Router) {
