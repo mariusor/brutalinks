@@ -1,11 +1,8 @@
 .env
 .idea/
 *.orig
-pkg/
-src/*.*
-vendor/
 go.sum
-db/
+db/*.sql
 bin/*
 docker/bin
 docker/assets

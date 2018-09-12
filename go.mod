@@ -1,7 +1,7 @@
 module github.com/mariusor/littr.go
 
 require (
-	github.com/Masterminds/squirrel v0.0.0-20180802154824-cebd809c54c4
+	github.com/Masterminds/squirrel v0.0.0-20180830200806-ba9c5a05a8f4
 	github.com/buger/jsonparser v0.0.0-20180318095312-2cac668e8456
 	github.com/davecgh/go-spew v1.1.0 // indirect
 	github.com/dyninc/qstring v0.0.0-20160719172318-ab5840a88e81
@@ -14,6 +14,7 @@ require (
 	github.com/gorilla/securecookie v1.1.1
 	github.com/gorilla/sessions v1.1.1
 	github.com/hpcloud/tail v1.0.0 // indirect
+	github.com/jmoiron/sqlx v0.0.0-20180614180643-0dae4fefe7c0
 	github.com/juju/errors v0.0.0-20180726005433-812b06ada177
 	github.com/juju/loggo v0.0.0-20180524022052-584905176618 // indirect
 	github.com/juju/testing v0.0.0-20180517134105-72703b1e95eb // indirect
@@ -35,7 +36,7 @@ require (
 	golang.org/x/sync v0.0.0-20180314180146-1d60e4601c6f // indirect
 	golang.org/x/sys v0.0.0-20180727230415-bd9dbc187b6e // indirect
 	golang.org/x/text v0.3.0 // indirect
-	google.golang.org/appengine v1.1.0 // indirect
+	google.golang.org/appengine v1.1.0
 	gopkg.in/airbrake/gobrake.v2 v2.0.9 // indirect
 	gopkg.in/fsnotify.v1 v1.4.7 // indirect
 	gopkg.in/gemnasium/logrus-airbrake-hook.v2 v2.1.2 // indirect

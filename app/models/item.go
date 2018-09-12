@@ -13,26 +13,28 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+type ItemMetadata []byte
+
 type Identifiable interface {
 	Id() int64
 }
 
 type Item struct {
-	Hash        string    `json:"key"`
-	Title       string    `json:"title"`
-	MimeType    string    `json:"mimeType"`
-	Data        string    `json:"data"`
-	Score       int64     `json:"score"`
-	SubmittedAt time.Time `json:"createdAt"`
-	SubmittedBy *Account  `json:"submittedBy"`
-	UpdatedAt   time.Time `json:"-"`
-	Flags       FlagBits  `json:"-"`
-	Path        []byte    `json:"-"`
-	FullPath    []byte    `json:"-"`
-	Metadata    []byte    `json:"-"`
-	IsTop       bool      `json:"isTop"`
-	Parent      *Item     `json:"-"`
-	OP          *Item     `json:"-"`
+	Hash        string       `json:"key"`
+	Title       string       `json:"title"`
+	MimeType    string       `json:"mimeType"`
+	Data        string       `json:"data"`
+	Score       int64        `json:"score"`
+	SubmittedAt time.Time    `json:"createdAt"`
+	SubmittedBy *Account     `json:"submittedBy"`
+	UpdatedAt   time.Time    `json:"-"`
+	Flags       FlagBits     `json:"-"`
+	Path        []byte       `json:"-"`
+	FullPath    []byte       `json:"-"`
+	Metadata    ItemMetadata `json:"-"`
+	IsTop       bool         `json:"isTop"`
+	Parent      *Item        `json:"-"`
+	OP          *Item        `json:"-"`
 }
 
 func (i Item) Deleted() bool {

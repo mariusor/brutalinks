@@ -12,6 +12,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jmoiron/sqlx"
+	"github.com/mariusor/littr.go/app/db"
+
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/gorilla/sessions"
@@ -84,12 +87,13 @@ func init() {
 	dbUser := os.Getenv("DB_USER")
 
 	connStr := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable", dbUser, dbPw, dbName)
-	db, err := sql.Open("postgres", connStr)
+	con, err := sql.Open("postgres", connStr)
 	if err != nil {
 		log.WithFields(log.Fields{}).Error(errors.NewErrWithCause(err, "failed to connect to the database"))
 	}
 
-	models.Config.DB = db
+	models.Config.DB = con
+	db.Config.DB = sqlx.NewDb(con, "postgres")
 	api.Config.BaseUrl = os.Getenv("LISTEN")
 }
 
