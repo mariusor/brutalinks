@@ -219,7 +219,7 @@ func main() {
 		})
 	})
 
-	r.Route("/.well-known", func(r chi.Router) {
+	r.With(models.Repository).Route("/.well-known", func(r chi.Router) {
 		r.Get("/webfinger", api.HandleWebFinger)
 		r.Get("/host-meta", api.HandleHostMeta)
 	})
