@@ -48,7 +48,7 @@ type Account struct {
 	CreatedAt time.Time        `json:"-"`
 	UpdatedAt time.Time        `json:"-"`
 	Flags     FlagBits         `json:"flags,omitempty"`
-	Metadata  *AccountMetadata `json:"metadata,omitempty"`
+	Metadata  *AccountMetadata `json:"-"`
 	Votes     map[string]Vote  `json:"votes,omitempty"`
 }
 
