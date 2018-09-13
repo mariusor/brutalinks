@@ -30,6 +30,14 @@ func init() {
 
 	models.Config.DB = db
 }
+
+func e(err error) {
+	if err != nil {
+		log.Error(err)
+		os.Exit(1)
+	}
+}
+
 func main() {
 	var handle string
 	var seed int64
@@ -38,72 +46,69 @@ func main() {
 	flag.Parse()
 
 	if seed == 0 {
-		log.Error("no seed value provided")
-		os.Exit(1)
-		return
+		err := errors.New("no seed value provided")
+		e(err)
 	}
 	loader := models.Config
 	filter := models.LoadAccountsFilter{}
 	if len(handle) != 0 {
 		filter.Handle = []string{handle}
 	} else {
-		err := errors.New("invalid handle, generating for all accounts")
-		log.Error(err)
+		hashes := make([]string, 0)
+		log.Info("No account handle, generating for all")
 
-		sel := `select "key" from accounts where id != 0 AND metadata#>'{key}' is null;`
-		rows, err := loader.DB.Query(sel)
-		if err != nil {
-			log.Error(err)
-			os.Exit(1)
-			return
-		}
+		sel := `select "key" from "accounts" where "id" != $1 AND "metadata"#>'{key}' is null;`
+		rows, err := loader.DB.Query(sel, 0)
+		e(err)
 
 		for rows.Next() {
 			var hash string
-			err = rows.Scan(&hash)
-			if err != nil {
-				log.Error(err)
-				os.Exit(1)
-				return
-			}
-			filter.Key = append(filter.Key, hash)
+			err := rows.Scan(&hash)
+			e(err)
+			hashes = append(hashes, hash)
 		}
+		if len(hashes) == 0 {
+			log.WithFields(log.Fields{}).Warn("Nothing to do")
+			return
+		}
+		filter.Key = hashes
 	}
-	accts, err := loader.LoadAccounts(filter)
-	if err != nil {
-		log.Error(err)
-		os.Exit(1)
-		return
-	}
-	r := rand.New(rand.NewSource(seed))
-	for _, acct := range accts {
-		if privKey, err := ecdsa.GenerateKey(elliptic.P224(), r); err == nil {
-			pub, errPub := x509.MarshalPKIXPublicKey(&privKey.PublicKey)
-			priv, errPrv := x509.MarshalECPrivateKey(privKey)
-			if errPub == nil && errPrv == nil {
-				acct.Metadata.Key = &models.SSHKey{
-					Id:      "id-ecdsa",
-					Public:  pub,
-					Private: priv,
-				}
-				s, err := loader.SaveAccount(acct)
-				if err != nil {
-					log.Error(err)
-					continue
-				}
-				log.WithFields(log.Fields{}).
-					Infof("Updated Key for %s:%s - %s:%s", s.Handle, s.Hash[0:8], s.Metadata.Key.Id, base64.StdEncoding.EncodeToString(s.Metadata.Key.Public))
 
-			} else {
-				if errPub != nil {
-					log.Error(errPub)
-				}
-				if errPrv != nil {
-					log.Error(errPrv)
-				}
-			}
-		} else {
-			log.Error(err)
+	accts, err := loader.LoadAccounts(filter)
+	e(err)
+
+	r := rand.New(rand.NewSource(seed))
+
+	for _, acct := range accts {
+		if acct.Metadata.Key != nil {
+			log.WithFields(log.Fields{}).
+				Warnf("Existing Key for %s:%s//%d", acct.Handle, acct.Hash[0:8], len(acct.Hash))
+			continue
 		}
+		privKey, err := ecdsa.GenerateKey(elliptic.P224(), r)
+		e(err)
+
+		pub, errPub := x509.MarshalPKIXPublicKey(&privKey.PublicKey)
+		if errPub != nil {
+			log.Error(errPub)
+			continue
+		}
+		priv, errPrv := x509.MarshalECPrivateKey(privKey)
+		if errPrv != nil {
+			log.Error(errPrv)
+			continue
+		}
+		acct.Metadata.Key = &models.SSHKey{
+			Id:      "id-ecdsa",
+			Public:  pub,
+			Private: priv,
+		}
+		s, err := models.UpdateAccount(models.Config.DB, acct)
+		if err != nil {
+			log.Error(err)
+			continue
+		}
+		log.WithFields(log.Fields{}).
+			Infof("Updated Key for %s:%s//%d - %s:%s", s.Handle, s.Hash[0:8], len(s.Hash), s.Metadata.Key.Id, base64.StdEncoding.EncodeToString(s.Metadata.Key.Public))
 	}
 }
