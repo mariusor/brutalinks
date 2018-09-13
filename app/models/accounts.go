@@ -62,7 +62,7 @@ func (a Account) IsValid() bool {
 
 func loadAccountFromModel(a account) Account {
 	acct := Account{
-		Hash:      a.Hash(),
+		Hash:      a.Hash64(),
 		Flags:     a.Flags,
 		UpdatedAt: a.UpdatedAt,
 		Handle:    a.Handle,
@@ -242,6 +242,24 @@ func loadAccounts(db *sql.DB, filter LoadAccountsFilter) (AccountCollection, err
 	return accounts, nil
 }
 
+func UpdateAccount(db *sql.DB, a Account) (Account, error) {
+	jMetadata, err := json.Marshal(a.Metadata)
+	if err != nil {
+		log.Error(err)
+	}
+	upd := `UPDATE "accounts" SET "score" = $1, "updated_at" = $2, "flags" = $3::bit(8), "metadata" = $4 where "key" ~* $5;`
+
+	if res, err := db.Exec(upd, a.Score, a.UpdatedAt, a.Flags, jMetadata, a.Hash); err == nil {
+		if rows, _ := res.RowsAffected(); rows == 0 {
+			return a, errors.Errorf("could not update account %s:%q", a.Handle, a.Hash)
+		}
+	} else {
+		return a, err
+	}
+
+	return a, nil
+}
+
 func saveAccount(db *sql.DB, a Account) (Account, error) {
 	return addAccount(db, a)
 }
@@ -252,13 +270,13 @@ func addAccount(db *sql.DB, a Account) (Account, error) {
 	}
 	ins := `insert into "accounts" ("key", "handle", "email", "score", "created_at", "updated_at", "flags", "metadata") 
 	VALUES ($1, $2, $3, $4, $5, $6, $7::bit(8), $8)
-	ON CONFLICT(email) DO UPDATE
+	ON CONFLICT("key") DO UPDATE
 		SET "score" = $4, "updated_at" = $6, "flags" = $7::bit(8), "metadata" = $8
 	`
 
 	if res, err := db.Exec(ins, a.Hash, a.Handle, a.Email, a.Score, a.CreatedAt, a.UpdatedAt, a.Flags, jMetadata); err == nil {
 		if rows, _ := res.RowsAffected(); rows == 0 {
-			return a, errors.Errorf("could not save account %s:%q", a.Handle, a.Hash)
+			return a, errors.Errorf("could not insert account %s:%q", a.Handle, a.Hash)
 		}
 	} else {
 		return a, err
