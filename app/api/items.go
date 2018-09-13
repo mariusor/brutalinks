@@ -85,7 +85,7 @@ func UpdateItem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "application/ld+json; charset=utf-8")
-	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("Content-Type", "application/activity+json; charset=utf-8")
+	//w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Write([]byte(`{"status": "ok"}`))
 }

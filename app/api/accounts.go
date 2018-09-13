@@ -168,8 +168,8 @@ func HandleAccountsCollection(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	w.Header().Set("Content-Type", "application/ld+json; charset=utf-8")
-	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("Content-Type", "application/activity+json; charset=utf-8")
+	//w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(http.StatusOK)
 	w.Write(data)
 }
@@ -190,8 +190,8 @@ func HandleAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("Content-Type", "application/activity+json")
+	//w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(http.StatusOK)
 	w.Write(j)
 }
@@ -252,8 +252,8 @@ func HandleCollectionItem(w http.ResponseWriter, r *http.Request) {
 
 	data, err = json.WithContext(GetContext()).Marshal(el)
 	log.WithFields(log.Fields{}).Error(err)
-	w.Header().Set("Content-Type", "application/ld+json; charset=utf-8")
-	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("Content-Type", "application/activity+json; charset=utf-8")
+	//w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(http.StatusOK)
 	w.Write(data)
 }
@@ -291,8 +291,8 @@ func HandleItemReplies(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	w.Header().Set("Content-Type", "application/ld+json; charset=utf-8")
-	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("Content-Type", "application/activity+json; charset=utf-8")
+	//w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(http.StatusOK)
 	w.Write(data)
 }
@@ -350,8 +350,8 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/ld+json; charset=utf-8")
-	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("Content-Type", "application/activity+json; charset=utf-8")
+	//w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(http.StatusOK)
 	w.Write(data)
 }
@@ -388,8 +388,8 @@ func HandleVerifyCredentials(w http.ResponseWriter, r *http.Request) {
 		HandleError(w, r, http.StatusInternalServerError, err)
 		return
 	}
-	w.Header().Set("Content-Type", "application/ld+json; charset=utf-8")
-	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("Content-Type", "application/activity+json; charset=utf-8")
+	//w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(http.StatusOK)
 	w.Write(j)
 }
