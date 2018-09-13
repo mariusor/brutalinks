@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"strings"
@@ -109,7 +110,7 @@ func loadAPPerson(a models.Account) *Person {
 		p.PublicKey = PublicKey{
 			Id:           ObjectID(fmt.Sprintf("%s#main-key", p.ID)),
 			Owner:        ap.IRI(p.ID),
-			PublicKeyPem: fmt.Sprintf("%s", a.Metadata.Key.Public),
+			PublicKeyPem: fmt.Sprintf("-----BEGIN PUBLIC KEY-----\n%s\n-----END PUBLIC KEY-----", base64.StdEncoding.EncodeToString(a.Metadata.Key.Public)),
 		}
 	}
 	return &p
