@@ -243,12 +243,18 @@ func loadAccounts(db *sql.DB, filter LoadAccountsFilter) (AccountCollection, err
 }
 
 func saveAccount(db *sql.DB, a Account) (Account, error) {
+	return addAccount(db, a)
+}
+func addAccount(db *sql.DB, a Account) (Account, error) {
 	jMetadata, err := json.Marshal(a.Metadata)
 	if err != nil {
 		log.Error(err)
 	}
 	ins := `insert into "accounts" ("key", "handle", "email", "score", "created_at", "updated_at", "flags", "metadata") 
-	values ($1, $2, $3, $4, $5, $6, $7::bit(8), $8)`
+	VALUES ($1, $2, $3, $4, $5, $6, $7::bit(8), $8)
+	ON CONFLICT(email) DO UPDATE
+		SET "score" = $4, "updated_at" = $6, "flags" = $7::bit(8), "metadata" = $8
+	`
 
 	if res, err := db.Exec(ins, a.Hash, a.Handle, a.Email, a.Score, a.CreatedAt, a.UpdatedAt, a.Flags, jMetadata); err == nil {
 		if rows, _ := res.RowsAffected(); rows == 0 {
