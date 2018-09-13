@@ -21,7 +21,7 @@ func getObjectID(s string) ap.ObjectID {
 }
 
 func apAccountID(a models.Account) ap.ObjectID {
-	return ap.ObjectID(fmt.Sprintf("%s/%s", AccountsURL, a.Hash))
+	return ap.ObjectID(fmt.Sprintf("%s/%s", AccountsURL, a.Hash[0:8]))
 }
 
 func loadAPLike(vote models.Vote) ap.ObjectOrLink {
