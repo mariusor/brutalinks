@@ -92,7 +92,7 @@ func AccountCtxt(next http.Handler) http.Handler {
 		a, err := AcctLoader.LoadAccount(models.LoadAccountFilter{Handle: handle})
 		if err == nil {
 			// we redirect to the Hash based account URL
-			url := strings.Replace(r.RequestURI, a.Handle, a.Hash, 1)
+			url := strings.Replace(r.RequestURI, a.Handle, a.Hash[0:7], 1)
 			http.Redirect(w, r, url, http.StatusSeeOther)
 			return
 		} else {

@@ -80,7 +80,11 @@ func loadAPPerson(a models.Account) *Person {
 	p.Type = ActivityVocabularyType(ap.PersonType)
 	p.Name = ap.NaturalLanguageValueNew()
 	p.PreferredUsername = ap.NaturalLanguageValueNew()
-	p.ID = apAccountID(a)
+
+	if len(a.Hash) > 7 {
+		p.ID = apAccountID(a)
+	}
+
 	p.Name.Set("en", a.Handle)
 	p.PreferredUsername.Set("en", a.Handle)
 
