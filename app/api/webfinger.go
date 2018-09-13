@@ -12,12 +12,35 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+type link struct {
+	Rel      string `json:"rel,omitempty"`
+	Type     string `json:"type,omitempty"`
+	Href     string `json:"href,omitempty"`
+	Template string `json:"template,omitempty"`
+}
+
+type webfinger struct {
+	Subject string   `json:"subject"`
+	Aliases []string `json:"aliases"`
+	Links   []link   `json:"links"`
+}
+
 // HandleHostMeta serves /.well-known/host-meta
 func HandleHostMeta(w http.ResponseWriter, r *http.Request) {
 
-	d := fmt.Sprintf(`{ "links": [{ "rel": "lrdd", "type": "application/xrd+json", "template":"https://%s/.well-known/webfinger?resource={uri}" }] }`, "littr.me")
+	hm := webfinger{
+		Links: []link{
+			{
+				Rel:      "lrdd",
+				Type:     "application/xrd+json",
+				Template: fmt.Sprintf("https://%s/.well-known/webfinger?resource={uri}", "littr.me"),
+			},
+		},
+	}
+	dat, _ := json.Marshal(hm)
+	w.Header().Set("Content-Type", "application/jrd+json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(d))
+	w.Write(dat)
 }
 
 // HandleWebFinger serves /.well-known/webfinger/ request
@@ -55,38 +78,26 @@ func HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	type link struct {
-		Rel      string `json:"rel,omitempty"`
-		Type     string `json:"type,omitempty"`
-		Href     string `json:"href,omitempty"`
-		Template string `json:"template,omitempty"`
-	}
-	type webfinger struct {
-		Subject string   `json:"subject"`
-		Aliases []string `json:"aliases"`
-		Links   []link   `json:"links"`
-	}
-
 	wf := webfinger{
 		Aliases: []string{
 			fmt.Sprintf("https://%s/api/accounts/%s", "littr.me", a.Handle),
 		},
 		Subject: typ + ":" + res,
 		Links: []link{
-			link{
+			{
 				Rel:  "self",
 				Type: "application/activity+json",
 				Href: fmt.Sprintf("https://%s/api/accounts/%s", "littr.me", a.Hash),
 			},
-			link{
+			{
 				Rel:  "http://webfinger.net/rel/profile-page",
 				Href: fmt.Sprintf("https://%s/api/accounts/%s", "littr.me", a.Hash),
 			},
 		},
 	}
 
-	//d = fmt.Sprintf(`{"subject": "`+typ+`:`+res+`","links": [{"rel": "self","type": "application/activity+json","href": "https://%s/api/accounts/%s", "template": null}, {"rel": "http://webfinger.net/rel/profile-page","type": null, "href": "https://%s/api/accounts/%s", "template": null},]}`, "littr.me", handle, "littr.me", handle)
 	dat, _ := json.Marshal(wf)
+	w.Header().Set("Content-Type", "application/jrd+json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(dat)
 }
