@@ -89,10 +89,10 @@ func HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 				Type: "application/activity+json",
 				Href: fmt.Sprintf("https://%s/api/accounts/%s", "littr.me", a.Hash),
 			},
-			{
-				Rel:  "http://webfinger.net/rel/profile-page",
-				Href: fmt.Sprintf("https://%s/api/accounts/%s", "littr.me", a.Hash),
-			},
+			//{
+			//	Rel:  "http://webfinger.net/rel/profile-page",
+			//	Href: fmt.Sprintf("https://%s/api/accounts/%s", "littr.me", a.Hash),
+			//},
 		},
 	}
 
