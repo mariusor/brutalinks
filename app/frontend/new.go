@@ -17,9 +17,9 @@ type newModel struct {
 	Content       models.Item
 }
 
-func detectMimeType(data []byte) string {
-	u, err := url.ParseRequestURI(string(data))
-	if err == nil && u != nil && !bytes.ContainsRune(data, '\n') {
+func detectMimeType(data string) string {
+	u, err := url.ParseRequestURI(data)
+	if err == nil && u != nil && !bytes.ContainsRune([]byte(data), '\n') {
 		return models.MimeTypeURL
 	}
 	return "text/plain"
@@ -40,7 +40,7 @@ func ContentFromRequest(r *http.Request) (models.Item, error) {
 		i.Data = dat
 	}
 	i.SubmittedBy = CurrentAccount
-	i.MimeType = i.Data
+	i.MimeType = detectMimeType(i.Data)
 	if !i.IsLink() {
 		i.MimeType = r.PostFormValue("mime-type")
 	}
