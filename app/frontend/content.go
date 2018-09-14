@@ -227,7 +227,11 @@ func HandleVoting(w http.ResponseWriter, r *http.Request) {
 			Weight:      multiplier * models.ScoreMultiplier,
 		}
 		if _, err := voter.SaveVote(v); err != nil {
-			log.WithFields(log.Fields{}).Error(err)
+			log.WithFields(log.Fields{
+				"hash":   v.Item.Hash,
+				"author": v.SubmittedBy.Handle,
+				"weight": v.Weight,
+			}).Error(err)
 		}
 	} else {
 		AddFlashMessage(Error, fmt.Sprintf("unable to add vote as an %s user", anonymous), r, w)

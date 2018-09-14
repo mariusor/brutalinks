@@ -253,9 +253,8 @@ func saveVote(db *sql.DB, vot Vote) (Vote, error) {
 		return vot, err
 	}
 	if rows, _ := res.RowsAffected(); rows == 0 {
-		return vot, errors.Errorf("scoring %d failed on item %q", v.Weight, vot.Item.Hash)
+		return vot, errors.Errorf("scoring failed")
 	}
-	log.WithFields(log.Fields{}).Infof("%d scoring %d on %s", userId, v.Weight, vot.Item.Hash)
 
 	upd := `update "content_items" set score = score - $1 + $2 where "id" = (select "id" from "content_items" where "key" ~* $3)`
 	res, err = db.Exec(upd, v.Weight, v.Weight, vot.Item.Hash)
@@ -263,12 +262,17 @@ func saveVote(db *sql.DB, vot Vote) (Vote, error) {
 		return vot, err
 	}
 	if rows, _ := res.RowsAffected(); rows == 0 {
-		return vot, errors.Errorf("content hash %q not found", vot.Item.Hash)
+		return vot, errors.Errorf("content not found")
 	}
 	if rows, _ := res.RowsAffected(); rows > 1 {
-		return vot, errors.Errorf("content hash %q collision", vot.Item.Hash)
+		return vot, errors.Errorf("content collision")
 	}
-	log.WithFields(log.Fields{}).Infof("updated content_items with %d", oldWeight)
+	log.WithFields(log.Fields{
+		"hash":      vot.Item.Hash,
+		"oldWeight": oldWeight,
+		"newWeight": vot.Weight,
+		"voter":     vot.SubmittedBy.Hash,
+	}).Infof("vote updated successfully")
 
 	return vot, nil
 }

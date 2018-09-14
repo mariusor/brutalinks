@@ -368,6 +368,7 @@ func addVote(db *sql.DB, p Item, score int, userHash string) (bool, error) {
 		}
 	}
 
+	oldWeight := v.Weight
 	var q string
 	if vId != 0 {
 		if v.Weight != 0 && math.Signbit(float64(newWeight)) == math.Signbit(float64(v.Weight)) {
@@ -400,7 +401,11 @@ func addVote(db *sql.DB, p Item, score int, userHash string) (bool, error) {
 		if rows, _ := res.RowsAffected(); rows > 1 {
 			return false, errors.Errorf("content hash %q collision", p.Hash)
 		}
-		log.WithFields(log.Fields{}).Infof("updated content_items with %d", newWeight)
+		log.WithFields(log.Fields{
+			"hash":      p.Hash,
+			"newWeight": newWeight,
+			"oldWeight": oldWeight,
+		}).Infof("updated item")
 	}
 
 	return true, nil
