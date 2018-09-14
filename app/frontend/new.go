@@ -50,7 +50,7 @@ func ContentFromRequest(r *http.Request) (models.Item, error) {
 		i.UpdatedAt = now
 	}
 	parent := r.PostFormValue("parent")
-	i.Parent = &models.Item{Hash: parent}
+	i.Parent = &models.Item{Hash: models.Hash(parent)}
 	return i, nil
 }
 

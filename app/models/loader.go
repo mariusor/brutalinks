@@ -40,7 +40,7 @@ const (
 type LoadVotesFilter struct {
 	ItemKey              []string   `qstring:"hash,omitempty"`
 	Type                 []VoteType `qstring:"type,omitempty"`
-	AttributedTo         []string   `qstring:"attributedTo,omitempty"`
+	AttributedTo         []Hash     `qstring:"attributedTo,omitempty"`
 	SubmittedAt          time.Time  `qstring:"submittedAt,omitempty"`
 	SubmittedAtMatchType MatchType  `qstring:"submittedAtMatchType,omitempty"`
 	Page                 int        `qstring:"page,omitempty"`
@@ -50,7 +50,7 @@ type LoadVotesFilter struct {
 type LoadItemsFilter struct {
 	Key                  []string  `qstring:"hash,omitempty"`
 	MediaType            []string  `qstring:"mediaType,omitempty"`
-	AttributedTo         []string  `qstring:"attributedTo,omitempty"`
+	AttributedTo         []Hash    `qstring:"attributedTo,omitempty"`
 	InReplyTo            []string  `qstring:"inReplyTo,omitempty"`
 	Context              []string  `qstring:"context,omitempty"`
 	SubmittedAt          time.Time `qstring:"submittedAt,omitempty"`

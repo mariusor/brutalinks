@@ -36,14 +36,14 @@ func UpdateItem(w http.ResponseWriter, r *http.Request) {
 	actor := act.Activity.Actor
 	ob := act.Activity.Object
 
-	var accountHash string
+	var accountHash models.Hash
 	if actor.IsLink() {
 		// just the ObjectID
-		accountHash = path.Base(string(actor.(ap.IRI)))
+		accountHash = models.Hash(path.Base(string(actor.(ap.IRI))))
 	}
 	if actor.IsObject() {
 		// full Actor struct
-		accountHash = path.Base(string(*actor.GetID()))
+		accountHash = models.Hash(path.Base(string(*actor.GetID())))
 	}
 	var itemHash string
 	if ob.IsLink() {
@@ -59,7 +59,7 @@ func UpdateItem(w http.ResponseWriter, r *http.Request) {
 			Hash: accountHash,
 		},
 		Item: &models.Item{
-			Hash: itemHash,
+			Hash: models.Hash(itemHash),
 		},
 	}
 	if act.Activity.GetType() == ap.LikeType {

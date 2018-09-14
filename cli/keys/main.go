@@ -82,7 +82,7 @@ func main() {
 	for _, acct := range accts {
 		if acct.Metadata.Key != nil {
 			log.WithFields(log.Fields{}).
-				Warnf("Existing Key for %s:%s//%d", acct.Handle, acct.Hash[0:8], len(acct.Hash))
+				Warnf("Existing Key for %s:%s//%d", acct.Handle, acct.Hash.String(), len(acct.Hash))
 			continue
 		}
 		privKey, err := ecdsa.GenerateKey(elliptic.P224(), r)

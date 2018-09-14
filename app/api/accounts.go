@@ -21,7 +21,10 @@ func getObjectID(s string) ap.ObjectID {
 }
 
 func apAccountID(a models.Account) ap.ObjectID {
-	return ap.ObjectID(fmt.Sprintf("%s/%s", AccountsURL, a.Hash[0:8]))
+	if len(a.Hash) < 9 {
+		return ap.ObjectID("::unknown")
+	}
+	return ap.ObjectID(fmt.Sprintf("%s/%s", AccountsURL, a.Hash.String()))
 }
 
 func loadAPLike(vote models.Vote) ap.ObjectOrLink {
@@ -227,7 +230,7 @@ func HandleCollectionItem(w http.ResponseWriter, r *http.Request) {
 		val := r.Context().Value(RepositoryCtxtKey)
 		if service, ok := val.(models.CanLoadItems); ok && len(i.Hash) > 0 {
 			replies, err := service.LoadItems(models.LoadItemsFilter{
-				InReplyTo: []string{i.Hash},
+				InReplyTo: []string{i.Hash.String()},
 				MaxItems:  MaxContentItems,
 			})
 			if err != nil {
@@ -281,7 +284,7 @@ func HandleItemReplies(w http.ResponseWriter, r *http.Request) {
 			var replies models.ItemCollection
 
 			filter := models.LoadItemsFilter{
-				InReplyTo: []string{it.Hash},
+				InReplyTo: []string{it.Hash.String()},
 				MaxItems:  MaxContentItems,
 			}
 

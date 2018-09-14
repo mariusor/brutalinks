@@ -42,14 +42,24 @@ type AccountCollection []Account
 
 type Account struct {
 	Email     string           `json:"email,omitempty"`
-	Hash      string           `json:"hash,omitempty"`
+	Hash      Hash             `json:"hash,omitempty"`
 	Score     int64            `json:"score,omitempty"`
-	Handle    string           `json:"handle"`
+	Handle    string           `json:"handle,omitempty"`
 	CreatedAt time.Time        `json:"-"`
 	UpdatedAt time.Time        `json:"-"`
 	Flags     FlagBits         `json:"flags,omitempty"`
 	Metadata  *AccountMetadata `json:"-"`
-	Votes     map[string]Vote  `json:"votes,omitempty"`
+	Votes     map[Hash]Vote    `json:"votes,omitempty"`
+}
+
+type Hash string
+
+func (a Hash) String() string {
+	return string(a[0:8])
+}
+
+func (a Hash) MarshalText() ([]byte, error) {
+	return []byte(a[0:8]), nil
 }
 
 func (a Account) HasMetadata() bool {
@@ -107,8 +117,8 @@ func (a account) Hash16() string {
 func (a account) Hash32() string {
 	return string(a.Key[0:32])
 }
-func (a account) Hash64() string {
-	return a.Key.String()
+func (a account) Hash64() Hash {
+	return Hash(a.Key.String())
 }
 
 func (a Account) GetLink() string {

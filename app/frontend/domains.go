@@ -35,7 +35,7 @@ func loadItems(c context.Context, filter models.LoadItemsFilter) (itemListingMod
 		if ok {
 			log.Infof("loaded repository of type %T", itemLoader)
 			CurrentAccount.Votes, err = votesLoader.LoadVotes(models.LoadVotesFilter{
-				AttributedTo: []string{CurrentAccount.Hash},
+				AttributedTo: []models.Hash{CurrentAccount.Hash},
 				ItemKey:      m.Items.getItemsHashes(),
 				MaxItems:     MaxContentItems,
 			})

@@ -19,7 +19,7 @@ const (
 	ScoreMaxB       = 10000000000.0
 )
 
-type VoteCollection map[string]Vote
+type VoteCollection map[Hash]Vote
 
 type Vote struct {
 	SubmittedBy *Account  `json:"submittedBy"`
@@ -197,7 +197,7 @@ where %s order by "votes"."submitted_at" desc limit %d`, fullWhere, filter.MaxIt
 
 		auth.Key.FromBytes(vKey)
 		v.Item = &p
-		votes[p.Hash()] = loadVoteFromModel(v, &voter, &p)
+		votes[p.Hash64()] = loadVoteFromModel(v, &voter, &p)
 	}
 	if err != nil {
 		log.WithFields(log.Fields{}).Errorf("load votes failed: %s", err.Error())

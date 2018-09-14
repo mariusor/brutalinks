@@ -27,6 +27,9 @@ type (
 	Metadata types.JSONText
 )
 
+func (k Key) Hash() models.Hash {
+	return models.Hash(k[0:8])
+}
 func (k Key) String() string {
 	return string(k[0:64])
 }
@@ -97,7 +100,7 @@ func (a Account) Model() models.Account {
 	return models.Account{
 		Email:     string(a.Email),
 		Handle:    a.Handle,
-		Hash:      a.Key.String(),
+		Hash:      a.Key.Hash(),
 		CreatedAt: a.CreatedAt,
 		UpdatedAt: a.UpdatedAt,
 		Score:     a.Score,

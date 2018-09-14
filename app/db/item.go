@@ -40,7 +40,7 @@ func (i Item) Model() models.Item {
 		SubmittedAt: i.SubmittedAt,
 		SubmittedBy: &a,
 		Metadata:    ItemMetadata(i.Metadata),
-		Hash:        i.Key.String(),
+		Hash:        i.Key.Hash(),
 		Flags:       ItemFlags(i.Flags),
 		Path:        i.Path,
 		Data:        string(i.Data),

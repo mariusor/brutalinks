@@ -93,17 +93,17 @@ func getAncestorHash(path []byte, cnt int) []byte {
 	return elem[l-cnt]
 }
 
-func (c item) GetParentHash() string {
+func (c item) GetParentHash() Hash {
 	if c.IsTop() {
 		return ""
 	}
-	return string(getAncestorHash(c.Path, 1)[0:8])
+	return Hash(getAncestorHash(c.Path, 1))
 }
-func (c item) GetOPHash() string {
+func (c item) GetOPHash() Hash {
 	if c.IsTop() {
 		return ""
 	}
-	return string(getAncestorHash(c.Path, -1)[0:8])
+	return Hash(getAncestorHash(c.Path, -1))
 }
 
 func (c item) IsSelf() bool {
@@ -127,29 +127,29 @@ func (c *item) GetKey() Key {
 func (c item) IsTop() bool {
 	return c.Path == nil || len(c.Path) == 0
 }
-func (c item) Hash() string {
+func (c item) Hash() Hash {
 	return c.Hash8()
 }
-func (c item) Hash8() string {
+func (c item) Hash8() Hash {
 	if len(c.Key) > 8 {
-		return string(c.Key[0:8])
+		return Hash(c.Key[0:8])
 	}
-	return c.Key.String()
+	return Hash(c.Key.String())
 }
-func (c item) Hash16() string {
+func (c item) Hash16() Hash {
 	if len(c.Key) > 16 {
-		return string(c.Key[0:16])
+		return Hash(c.Key[0:16])
 	}
-	return c.Key.String()
+	return Hash(c.Key.String())
 }
-func (c item) Hash32() string {
+func (c item) Hash32() Hash {
 	if len(c.Key) > 32 {
-		return string(c.Key[0:32])
+		return Hash(c.Key[0:32])
 	}
-	return c.Key.String()
+	return Hash(c.Key.String())
 }
-func (c item) Hash64() string {
-	return c.Key.String()
+func (c item) Hash64() Hash {
+	return Hash(c.Key.String())
 }
 
 func (c *item) FullPath() []byte {

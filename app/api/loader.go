@@ -92,7 +92,7 @@ func AccountCtxt(next http.Handler) http.Handler {
 		a, err := AcctLoader.LoadAccount(models.LoadAccountFilter{Handle: handle})
 		if err == nil {
 			// we redirect to the Hash based account URL
-			url := strings.Replace(r.RequestURI, a.Handle, a.Hash[0:7], 1)
+			url := strings.Replace(r.RequestURI, a.Handle, a.Hash.String(), 1)
 			http.Redirect(w, r, url, http.StatusSeeOther)
 			return
 		} else {
@@ -188,7 +188,7 @@ func loadOutboxFilterFromReq(r *http.Request) models.LoadItemsFilter {
 	if handle != "" {
 		old := filters.AttributedTo
 		filters.AttributedTo = nil
-		filters.AttributedTo = append(filters.AttributedTo, handle)
+		filters.AttributedTo = append(filters.AttributedTo, models.Hash(handle))
 		filters.AttributedTo = append(filters.AttributedTo, old...)
 	}
 	hash := chi.URLParam(r, "hash")
@@ -218,7 +218,7 @@ func loadLikedFilterFromReq(r *http.Request) models.LoadVotesFilter {
 	if handle != "" {
 		old := filters.AttributedTo
 		filters.AttributedTo = nil
-		filters.AttributedTo = append(filters.AttributedTo, handle)
+		filters.AttributedTo = append(filters.AttributedTo, models.Hash(handle))
 		filters.AttributedTo = append(filters.AttributedTo, old...)
 	}
 	hash := chi.URLParam(r, "hash")
@@ -231,7 +231,7 @@ func loadLikedFilterFromReq(r *http.Request) models.LoadVotesFilter {
 	val := r.Context().Value(AccountCtxtKey)
 	a, ok := val.(models.Account)
 	if ok {
-		filters.AttributedTo = []string{a.Hash}
+		filters.AttributedTo = []models.Hash{a.Hash}
 	}
 	if filters.MaxItems == 0 {
 		if len(filters.ItemKey) > 0 {
@@ -528,14 +528,14 @@ func loadFromAPItem(it Article) (models.Item, error) {
 	r := it.InReplyTo
 	if p, ok := r.(ap.IRI); ok {
 		c.Parent = &models.Item{
-			Hash: getAccountHandle(p),
+			Hash: models.Hash(getAccountHandle(p)),
 		}
 	}
 	if it.Context != it.InReplyTo {
 		op := it.Context
 		if p, ok := op.(ap.IRI); ok {
 			c.OP = &models.Item{
-				Hash: getAccountHandle(p),
+				Hash: models.Hash(getAccountHandle(p)),
 			}
 		}
 	}
@@ -563,12 +563,12 @@ func loadFromAPLike(l ap.Activity) (models.Vote, error) {
 		if l.AttributedTo.IsLink() {
 			i := ap.ObjectID(l.AttributedTo.(ap.IRI))
 			v.SubmittedBy = &models.Account{
-				Hash: getHash(&i),
+				Hash: models.Hash(getHash(&i)),
 			}
 		}
 		if l.AttributedTo.IsObject() {
 			v.SubmittedBy = &models.Account{
-				Hash: getHash(l.AttributedTo.GetID()),
+				Hash: models.Hash(getHash(l.AttributedTo.GetID())),
 			}
 		}
 	}
@@ -586,7 +586,7 @@ func loadFromAPLike(l ap.Activity) (models.Vote, error) {
 func loadFromAPPerson(p Person) (models.Account, error) {
 	name := jsonUnescape(ap.NaturalLanguageValue(p.Name).First())
 	a := models.Account{
-		Hash:   getHash(p.GetID()),
+		Hash:   models.Hash(getHash(p.GetID())),
 		Handle: name,
 		Email:  "",
 		Metadata: &models.AccountMetadata{

@@ -113,7 +113,7 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 		if ok {
 			log.Infof("loaded repository of type %T", itemLoader)
 			filters := models.LoadVotesFilter{
-				AttributedTo: []string{CurrentAccount.Hash},
+				AttributedTo: []models.Hash{CurrentAccount.Hash},
 				ItemKey:      m.Items.getItemsHashes(),
 				MaxItems:     MaxContentItems,
 			}

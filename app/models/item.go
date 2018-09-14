@@ -20,7 +20,7 @@ type Identifiable interface {
 }
 
 type Item struct {
-	Hash        string       `json:"key"`
+	Hash        Hash         `json:"key"`
 	Title       string       `json:"title"`
 	MimeType    string       `json:"mimeType"`
 	Data        string       `json:"data"`
@@ -206,7 +206,7 @@ func saveItem(db *sql.DB, it Item) (Item, error) {
 		return Item{}, err
 	} else {
 		if rows, _ := res.RowsAffected(); rows == 0 {
-			return Item{}, errors.Errorf("could not save item %q", i.Hash)
+			return Item{}, errors.Errorf("could not save item %q", i.Hash())
 		}
 	}
 

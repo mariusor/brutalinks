@@ -51,7 +51,7 @@ func (c comments) getItems() models.ItemCollection {
 func (c comments) getItemsHashes() []string {
 	var items = make([]string, len(c))
 	for k, com := range c {
-		items[k] = com.Item.Hash
+		items[k] = com.Item.Hash.String()
 	}
 	return items
 }
@@ -117,7 +117,7 @@ func ShowItem(w http.ResponseWriter, r *http.Request) {
 
 	hash := chi.URLParam(r, "hash")
 	i, err := itemLoader.LoadItem(models.LoadItemsFilter{
-		AttributedTo: []string{handle},
+		AttributedTo: []models.Hash{models.Hash(handle)},
 		Key:          []string{hash},
 	})
 	if err != nil {
@@ -135,7 +135,7 @@ func ShowItem(w http.ResponseWriter, r *http.Request) {
 	allComments[0] = &m.Content
 
 	contentItems, err := itemLoader.LoadItems(models.LoadItemsFilter{
-		Context:  []string{m.Content.Hash},
+		Context:  []string{m.Content.Hash.String()},
 		MaxItems: MaxContentItems,
 	})
 	if err != nil {
@@ -153,7 +153,7 @@ func ShowItem(w http.ResponseWriter, r *http.Request) {
 		if ok {
 			log.WithFields(log.Fields{}).Infof("loaded repository of type %T", itemLoader)
 			CurrentAccount.Votes, err = votesLoader.LoadVotes(models.LoadVotesFilter{
-				AttributedTo: []string{CurrentAccount.Hash},
+				AttributedTo: []models.Hash{CurrentAccount.Hash},
 				ItemKey:      allComments.getItemsHashes(),
 				MaxItems:     MaxContentItems,
 			})

@@ -329,12 +329,12 @@ func (p *Person) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func getHash(i *ap.ObjectID) string {
+func getHash(i *ap.ObjectID) models.Hash {
 	if i == nil {
 		return ""
 	}
 	s := strings.Split(string(*i), "/")
-	return s[len(s)-1]
+	return models.Hash(s[len(s)-1])
 }
 
 func getAccountHandle(o ObjectOrLink) string {
@@ -362,7 +362,7 @@ func BuildActorID(a models.Account) ap.ObjectID {
 	return ap.ObjectID(fmt.Sprintf("%s/%s", AccountsURL, url.PathEscape(a.Handle)))
 }
 func BuildActorHashID(a models.Account) ap.ObjectID {
-	return ap.ObjectID(fmt.Sprintf("%s/%s", AccountsURL, url.PathEscape(a.Hash)))
+	return ap.ObjectID(fmt.Sprintf("%s/%s", AccountsURL, url.PathEscape(a.Hash.String())))
 }
 
 func BuildCollectionID(a models.Account, o ap.CollectionInterface) ap.ObjectID {
@@ -381,7 +381,7 @@ func BuildObjectIDFromItem(i models.Item) ap.ObjectID {
 	if i.SubmittedBy != nil {
 		handle = i.SubmittedBy.Handle
 	}
-	return ap.ObjectID(fmt.Sprintf("%s/%s/outbox/%s", AccountsURL, url.PathEscape(handle), url.PathEscape(i.Hash)))
+	return ap.ObjectID(fmt.Sprintf("%s/%s/outbox/%s", AccountsURL, url.PathEscape(handle), url.PathEscape(i.Hash.String())))
 }
 
 func BuildObjectIDFromVote(v models.Vote) ap.ObjectID {
@@ -389,7 +389,7 @@ func BuildObjectIDFromVote(v models.Vote) ap.ObjectID {
 	//if v.Weight < 0 {
 	//	att = "disliked"
 	//}
-	return ap.ObjectID(fmt.Sprintf("%s/%s/%s/%s", AccountsURL, url.PathEscape(v.SubmittedBy.Handle), att, url.PathEscape(v.Item.Hash)))
+	return ap.ObjectID(fmt.Sprintf("%s/%s/%s/%s", AccountsURL, url.PathEscape(v.SubmittedBy.Handle), att, url.PathEscape(v.Item.Hash.String())))
 }
 
 func getObjectType(el ap.Item) string {

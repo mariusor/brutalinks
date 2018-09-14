@@ -40,7 +40,7 @@ func ShowAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	filter := models.LoadItemsFilter{
-		AttributedTo: []string{a.Hash},
+		AttributedTo: []models.Hash{a.Hash},
 		MaxItems:     MaxContentItems,
 	}
 	if m, err := loadItems(r.Context(), filter); err == nil {
