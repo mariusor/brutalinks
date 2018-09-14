@@ -30,6 +30,11 @@ require (
 	github.com/sirupsen/logrus v1.0.6
 	github.com/stretchr/testify v1.2.2 // indirect
 	github.com/unrolled/render v0.0.0-20171102162132-65450fb6b2d3
+	gitlab.com/golang-commonmark/html v0.0.0-20180912085939-e512ef1a6b8f // indirect
+	gitlab.com/golang-commonmark/linkify v0.0.0-20180914052436-e7556e2d0743 // indirect
+	gitlab.com/golang-commonmark/markdown v0.0.0-20180914132307-336f1a7685ce
+	gitlab.com/golang-commonmark/mdurl v0.0.0-20180912090424-e5bce34c34f2 // indirect
+	gitlab.com/golang-commonmark/puny v0.0.0-20180912090636-2cd490539afe // indirect
 	golang.org/x/crypto v0.0.0-20180718160520-a2144134853f
 	golang.org/x/net v0.0.0-20180718182112-8887df42c721
 	golang.org/x/oauth2 v0.0.0-20180620175406-ef147856a6dd
@@ -41,7 +46,6 @@ require (
 	gopkg.in/fsnotify.v1 v1.4.7 // indirect
 	gopkg.in/gemnasium/logrus-airbrake-hook.v2 v2.1.2 // indirect
 	gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce // indirect
-	gopkg.in/russross/blackfriday.v2 v2.0.0
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v2 v2.2.1 // indirect
 )

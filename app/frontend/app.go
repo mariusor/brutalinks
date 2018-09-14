@@ -19,7 +19,8 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/unrolled/render"
 	"golang.org/x/oauth2"
-	blackfriday "gopkg.in/russross/blackfriday.v2"
+
+	mark "gitlab.com/golang-commonmark/markdown"
 )
 
 const (
@@ -56,12 +57,19 @@ func html(i models.Item) template.HTML {
 }
 
 func markdown(i models.Item) template.HTML {
-	ext := blackfriday.NoIntraEmphasis | blackfriday.Tables | blackfriday.FencedCode |
-		blackfriday.Autolink | blackfriday.Strikethrough | blackfriday.SpaceHeadings | blackfriday.HeadingIDs |
-		blackfriday.DefinitionLists | blackfriday.LaxHTMLBlocks | blackfriday.HardLineBreak |
-		blackfriday.Footnotes | blackfriday.Titleblock | blackfriday.AutoHeadingIDs |
-		blackfriday.DefinitionLists
-	return template.HTML(blackfriday.Run([]byte(i.Data), blackfriday.WithExtensions(ext)))
+	md := mark.New(
+		mark.HTML(false),
+		mark.Tables(false),
+		mark.Linkify(false),
+		mark.Breaks(false),
+		mark.Typographer(false),
+		mark.XHTMLOutput(false),
+	)
+
+	d := strings.Replace(i.Data, "\r\n", "\n", -1)
+
+	h := md.RenderToString([]byte(d))
+	return template.HTML(h)
 }
 
 func text(i models.Item) string {
