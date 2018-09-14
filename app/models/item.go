@@ -189,7 +189,7 @@ func saveItem(db *sql.DB, it Item) (Item, error) {
 	params = append(params, it.SubmittedBy.Hash)
 
 	var ins string
-	if it.Parent != nil {
+	if it.Parent != nil && len(it.Parent.Hash) > 0 {
 		ins = `insert into "content_items" ("key", "title", "data", "mime_type", "submitted_by", "path") 
 		values(
 			$1, $2, $3, $4, (select "id" from "accounts" where "key" ~* $5), (select (case when "path" is not null then concat("path", '.', "key") else "key" end) 
