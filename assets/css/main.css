@@ -372,10 +372,10 @@ ol li {
 ol.comments {
     margin-top: -1px;
     padding: 1.5vmin 0 0 1.5vmin;
-    border-radius: 0 0 0 .4rem;
+    /*border-radius: 0 0 0 .4rem;*/
 }
 ol.comments.lvl-0 {
-    border-radius: .4rem 0 0 .4rem;
+    /*border-radius: .4rem 0 0 .4rem;*/
 }
 ol.comments li {
     list-style: none;
@@ -506,7 +506,7 @@ summary:focus {
 }
 details[open] > summary {
     padding: .3rem 0 0 .3rem;
-    border-radius: .3rem 0 0 0;
+    /*border-radius: .3rem 0 0 0;*/
 }
 details:not([open]) > summary {}
 details > summary::before {}
@@ -515,7 +515,7 @@ details > summary {
     display: inline;
     margin-top: 1rem;
     padding: .3rem 0 .3rem .3rem;
-    border-radius: .3rem 0 0 .3rem;
+    /*border-radius: .3rem 0 0 .3rem;*/
 }
 details > summary span {
     opacity: .6;
