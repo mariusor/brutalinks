@@ -283,9 +283,9 @@ ol.hide-text article.data {
     min-height: 3.3rem;
 }
 article {
-    min-height: 2.0rem;
+    min-height: 1.3rem;
     /*padding-bottom: 1.2rem;*/
-    line-height: 1.6rem;
+    line-height: 1.35rem;
 }
 .hide-text article header {
     margin-bottom: 0px;
@@ -298,7 +298,7 @@ article > section {
 }
 article > header {
     max-height: 2rem;
-    margin-bottom: .4em;
+    margin-bottom: .1rem;
 }
 article > header h1 {
     display: inline;
@@ -343,7 +343,7 @@ ol {
     padding-left: 0;
 }
 ol li {
-    margin-bottom: 1.2rem;
+    margin-bottom: .4rem;
 }
 .item {
     display: grid;
