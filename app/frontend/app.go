@@ -66,9 +66,9 @@ func markdown(i models.Item) template.HTML {
 		mark.XHTMLOutput(false),
 	)
 
-	d := strings.Replace(i.Data, "\r\n", "\n", -1)
+	//d := strings.Replace(i.Data, "\r\n", "\n", -1)
 
-	h := md.RenderToString([]byte(d))
+	h := md.RenderToString([]byte(i.Data))
 	return template.HTML(h)
 }
 

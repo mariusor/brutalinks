@@ -32,7 +32,7 @@ require (
 	github.com/unrolled/render v0.0.0-20171102162132-65450fb6b2d3
 	gitlab.com/golang-commonmark/html v0.0.0-20180912085939-e512ef1a6b8f // indirect
 	gitlab.com/golang-commonmark/linkify v0.0.0-20180914052436-e7556e2d0743 // indirect
-	gitlab.com/golang-commonmark/markdown v0.0.0-20180914132307-336f1a7685ce
+	gitlab.com/golang-commonmark/markdown v0.0.0-20180916053358-4976918e34cf
 	gitlab.com/golang-commonmark/mdurl v0.0.0-20180912090424-e5bce34c34f2 // indirect
 	gitlab.com/golang-commonmark/puny v0.0.0-20180912090636-2cd490539afe // indirect
 	golang.org/x/crypto v0.0.0-20180718160520-a2144134853f
