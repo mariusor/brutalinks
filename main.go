@@ -58,6 +58,20 @@ func loadEnv(l *frontend.Littr) (bool, error) {
 	l.Port = listenPort
 	l.Listen = listenOn
 
+	if littr.Env == frontend.PROD {
+		log.SetLevel(log.WarnLevel)
+	} else {
+		log.SetFormatter(&log.TextFormatter{
+			DisableColors:          false,
+			DisableLevelTruncation: true,
+			ForceColors:            true,
+		})
+		log.SetOutput(os.Stdout)
+		log.SetLevel(log.DebugLevel)
+	}
+
+	middleware.DefaultLogger = middleware.RequestLogger(&middleware.DefaultLogFormatter{Logger: log.StandardLogger()})
+
 	return true, nil
 }
 
@@ -66,14 +80,6 @@ func init() {
 
 	loadEnv(&littr)
 
-	log.SetFormatter(&log.TextFormatter{})
-	log.SetOutput(os.Stdout)
-
-	if littr.Env == frontend.PROD {
-		log.SetLevel(log.WarnLevel)
-	} else {
-		log.SetLevel(log.DebugLevel)
-	}
 	gob.Register(models.Account{})
 	gob.Register(frontend.Flash{})
 
@@ -89,7 +95,10 @@ func init() {
 	connStr := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable", dbUser, dbPw, dbName)
 	con, err := sql.Open("postgres", connStr)
 	if err != nil {
-		log.WithFields(log.Fields{}).Error(errors.NewErrWithCause(err, "failed to connect to the database"))
+		log.WithFields(log.Fields{
+			"dbName": dbName,
+			"dbUser": dbUser,
+		}).Error(errors.NewErrWithCause(err, "failed to connect to the database"))
 	}
 
 	models.Config.DB = con
@@ -122,12 +131,11 @@ func main() {
 	flag.DurationVar(&wait, "graceful-timeout", time.Second*15, "the duration for which the server gracefully wait for existing connections to finish - e.g. 15s or 1m")
 	flag.Parse()
 
-	logger := log.New()
-	middleware.DefaultLogger = middleware.RequestLogger(&middleware.DefaultLogFormatter{Logger: logger})
 	// Routes
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
 	r.Use(middleware.Logger)
+
 	if littr.Env == frontend.PROD {
 		r.Use(middleware.Recoverer)
 	}
