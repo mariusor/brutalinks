@@ -58,11 +58,11 @@ func html(i models.Item) template.HTML {
 
 func markdown(i models.Item) template.HTML {
 	md := mark.New(
-		mark.HTML(false),
-		mark.Tables(false),
+		mark.HTML(true),
+		mark.Tables(true),
 		mark.Linkify(false),
-		mark.Breaks(false),
-		mark.Typographer(false),
+		mark.Breaks(true),
+		mark.Typographer(true),
 		mark.XHTMLOutput(false),
 	)
 
