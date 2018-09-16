@@ -2,10 +2,15 @@ include .env
 export
 export CGO_ENABLED=0
 export GOOS=linux
+export GOARCH=amd64
 
 GO := go
 BUILD := $(GO) build -a -ldflags '-extldflags "-static"'
 SOURCES := $(wildcard ./app/*/*.go)
+
+ifeq ($(ENV),)
+	ENV := dev
+endif
 
 all: app cli
 
@@ -18,7 +23,7 @@ endif
 
 
 app: main.go $(SOURCES)
-	$(BUILD) -o bin/$@ ./main.go
+	$(BUILD) -tags $(ENV) -o bin/$@ ./main.go
 
 bootstrap: cli/bootstrap/main.go
 	$(BUILD) -o bin/$@ cli/bootstrap/main.go
