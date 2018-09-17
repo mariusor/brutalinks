@@ -13,4 +13,4 @@ for i in ${__env[@]}; do
     fi
 done
 
-vgo run $@
+go run $@
