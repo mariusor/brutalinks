@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/dyninc/qstring"
+	"github.com/mariusor/qstring"
 
 	"github.com/buger/jsonparser"
 	"github.com/go-chi/chi"
@@ -337,7 +337,6 @@ func (r repository) LoadItem(f models.LoadItemsFilter) (models.Item, error) {
 		log.WithFields(log.Fields{}).Error(err)
 		return it, err
 	}
-
 	if resp != nil {
 		if resp.StatusCode != http.StatusOK {
 			err := fmt.Errorf("unable to load from the API")
