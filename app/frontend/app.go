@@ -61,7 +61,7 @@ func markdown(i models.Item) template.HTML {
 		mark.HTML(true),
 		mark.Tables(true),
 		mark.Linkify(false),
-		mark.Breaks(true),
+		mark.Breaks(false),
 		mark.Typographer(true),
 		mark.XHTMLOutput(false),
 	)
