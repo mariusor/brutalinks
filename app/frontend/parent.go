@@ -16,7 +16,7 @@ func HandleItemRedirect(w http.ResponseWriter, r *http.Request) {
 	if ok {
 		log.WithFields(log.Fields{}).Infof("loaded repository of type %T", itemLoader)
 	} else {
-		log.WithFields(log.Fields{}).Errorf("could not load item loader service from Context")
+		log.WithFields(log.Fields{}).Errorf("could not load item repository from Context")
 		return
 	}
 	p, err := itemLoader.LoadItem(models.LoadItemsFilter{

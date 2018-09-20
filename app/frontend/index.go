@@ -92,7 +92,7 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 	if ok {
 		log.Infof("loaded repository of type %T", itemLoader)
 	} else {
-		log.WithFields(log.Fields{}).Errorf("could not load item loader service from Context")
+		log.WithFields(log.Fields{}).Errorf("could not load item repository from Context")
 		return
 	}
 	items, err := itemLoader.LoadItems(models.LoadItemsFilter{
@@ -123,7 +123,7 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 			}
 
 		} else {
-			log.WithFields(log.Fields{}).Errorf("could not load vote loader service from Context")
+			log.WithFields(log.Fields{}).Errorf("could not load vote repository from Context")
 		}
 	}
 	RenderTemplate(r, w, "listing", m)

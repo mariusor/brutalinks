@@ -129,7 +129,7 @@ func ItemCtxt(next http.Handler) http.Handler {
 			}
 			loader, ok := val.(models.CanLoadItems)
 			if !ok {
-				log.WithFields(log.Fields{}).Errorf("could not load item loader service from Context")
+				log.WithFields(log.Fields{}).Errorf("could not load item repository from Context")
 				HandleError(w, r, http.StatusInternalServerError, err)
 				return
 			}
@@ -147,7 +147,7 @@ func ItemCtxt(next http.Handler) http.Handler {
 			}
 			loader, ok := val.(models.CanLoadVotes)
 			if !ok {
-				log.WithFields(log.Fields{}).Errorf("could not load votes loader service from Context")
+				log.WithFields(log.Fields{}).Errorf("could not load vote repository from Context")
 				HandleError(w, r, http.StatusInternalServerError, err)
 				return
 			}
@@ -281,7 +281,7 @@ func ItemCollectionCtxt(next http.Handler) http.Handler {
 			}
 			loader, ok := val.(models.CanLoadItems)
 			if !ok {
-				log.WithFields(log.Fields{}).Errorf("could not load item loader service from Context")
+				log.WithFields(log.Fields{}).Errorf("could not load item repository from Context")
 				HandleError(w, r, http.StatusInternalServerError, err)
 				return
 			}
@@ -299,7 +299,7 @@ func ItemCollectionCtxt(next http.Handler) http.Handler {
 			}
 			loader, ok := val.(models.CanLoadVotes)
 			if !ok {
-				log.WithFields(log.Fields{}).Errorf("could not load votes loader service from Context")
+				log.WithFields(log.Fields{}).Errorf("could not load vote repository from Context")
 				HandleError(w, r, http.StatusInternalServerError, err)
 				return
 			}

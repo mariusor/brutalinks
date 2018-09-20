@@ -103,7 +103,7 @@ func ShowItem(w http.ResponseWriter, r *http.Request) {
 	if ok {
 		log.WithFields(log.Fields{}).Infof("loaded repository of type %T", itemLoader)
 	} else {
-		log.WithFields(log.Fields{}).Errorf("could not load item loader service from Context")
+		log.WithFields(log.Fields{}).Errorf("could not load item repository from Context")
 		return
 	}
 	handle := chi.URLParam(r, "handle")
@@ -111,7 +111,7 @@ func ShowItem(w http.ResponseWriter, r *http.Request) {
 	//if ok {
 	//	log.WithFields(log.Fields{}).Infof("loaded repository of type %T", acctLoader)
 	//} else {
-	//	log.WithFields(log.Fields{}).Errorf("could not load account loader service from Context")
+	//	log.WithFields(log.Fields{}).Errorf("could not load account repository from Context")
 	//}
 	//act, err := acctLoader.LoadAccount(models.LoadAccountFilter{Handle: handle})
 
@@ -161,7 +161,7 @@ func ShowItem(w http.ResponseWriter, r *http.Request) {
 				log.WithFields(log.Fields{}).Error(err)
 			}
 		} else {
-			log.WithFields(log.Fields{}).Errorf("could not load vote loader service from Context")
+			log.WithFields(log.Fields{}).Errorf("could not load vote repository from Context")
 		}
 	}
 	if len(m.Title) > 0 {
@@ -194,7 +194,7 @@ func HandleVoting(w http.ResponseWriter, r *http.Request) {
 	if ok {
 		log.WithFields(log.Fields{}).Infof("loaded repository of type %T", itemLoader)
 	} else {
-		log.WithFields(log.Fields{}).Errorf("could not load item loader service from Context")
+		log.WithFields(log.Fields{}).Errorf("could not load item repository from Context")
 		return
 	}
 
@@ -218,7 +218,7 @@ func HandleVoting(w http.ResponseWriter, r *http.Request) {
 		if ok {
 			log.WithFields(log.Fields{}).Infof("loaded repository of type %T", voter)
 		} else {
-			log.WithFields(log.Fields{}).Errorf("could not load item loader service from Context")
+			log.WithFields(log.Fields{}).Errorf("could not load vote repository from Context")
 			return
 		}
 		v := models.Vote{

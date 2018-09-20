@@ -21,7 +21,7 @@ func loadItems(c context.Context, filter models.LoadItemsFilter) (itemListingMod
 	if ok {
 		log.Infof("loaded repository of type %T", itemLoader)
 	} else {
-		err := errors.Errorf("could not load item loader service from Context")
+		err := errors.Errorf("could not load item repository from Context")
 		return m, err
 	}
 	contentItems, err := itemLoader.LoadItems(filter)
@@ -43,7 +43,7 @@ func loadItems(c context.Context, filter models.LoadItemsFilter) (itemListingMod
 				log.WithFields(log.Fields{}).Error(err)
 			}
 		} else {
-			log.WithFields(log.Fields{}).Errorf("could not load vote loader service from Context")
+			log.WithFields(log.Fields{}).Errorf("could not load vote repository from Context")
 		}
 	}
 	return m, nil
