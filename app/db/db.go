@@ -165,15 +165,49 @@ func trimHash(s string) string {
 }
 
 func (c config) LoadVotes(f models.LoadVotesFilter) (models.VoteCollection, error) {
-	return LoadVotes(c.DB, f)
+	return loadVotes(c.DB, f)
 }
 
 func (c config) LoadVote(f models.LoadVotesFilter) (models.Vote, error) {
 	f.MaxItems = 1
-	votes, err := LoadVotes(c.DB, f)
+	votes, err := loadVotes(c.DB, f)
 	if err != nil {
 		return models.Vote{}, err
 	}
 	v, err := votes.First()
 	return *v, err
+}
+
+func (c config) SaveVote(v models.Vote) (models.Vote, error) {
+	return saveVote(c.DB, v)
+}
+
+func (c config) SaveItem(it models.Item) (models.Item, error) {
+	return saveItem(c.DB, it)
+}
+
+func (c config) LoadItem(f models.LoadItemsFilter) (models.Item, error) {
+	f.MaxItems = 1
+	items, err := loadItems(c.DB, f)
+	if err != nil {
+		return models.Item{}, err
+	}
+	v, err := items.First()
+	return *v, err
+}
+
+func (c config) LoadItems(f models.LoadItemsFilter) (models.ItemCollection, error) {
+	return loadItems(c.DB, f)
+}
+
+func (c config) LoadAccount(f models.LoadAccountsFilter) (models.Account, error) {
+	return loadAccount(c.DB, f)
+}
+
+func (c config) LoadAccounts(f models.LoadAccountsFilter) (models.AccountCollection, error) {
+	return loadAccounts(c.DB, f)
+}
+
+func (c config) SaveAccount(a models.Account) (models.Account, error) {
+	return saveAccount(c.DB, a)
 }

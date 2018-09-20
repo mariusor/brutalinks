@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/juju/errors"
 	"github.com/mariusor/littr.go/app/models"
 )
 
@@ -53,7 +54,7 @@ func (a Account) Votes() VoteCollection {
 	return nil
 }
 
-func LoadVotes(db *sqlx.DB, filter models.LoadVotesFilter) (models.VoteCollection, error) {
+func loadVotes(db *sqlx.DB, filter models.LoadVotesFilter) (models.VoteCollection, error) {
 	var wheres []string
 	whereValues := make([]interface{}, 0)
 	counter := 1
@@ -211,6 +212,7 @@ func (v votesView) voter() Account {
 		Metadata:  v.VoterMetadata,
 	}
 }
+
 func (v votesView) vote() Vote {
 	voter := v.voter()
 	item := v.item()
@@ -244,4 +246,8 @@ func (v votesView) item() Item {
 		Metadata:    v.ItemMetadata,
 		author:      &author,
 	}
+}
+
+func saveVote(db *sqlx.DB, v models.Vote) (models.Vote, error) {
+	return v, errors.New("not implemented")
 }

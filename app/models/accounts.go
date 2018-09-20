@@ -295,3 +295,10 @@ func addAccount(db *sql.DB, a Account) (Account, error) {
 
 	return a, nil
 }
+
+func (a AccountCollection) First() (*Account, error) {
+	for _, act := range a {
+		return &act, nil
+	}
+	return nil, errors.Errorf("empty %T", a)
+}
