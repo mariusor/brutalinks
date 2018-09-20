@@ -219,6 +219,12 @@ from "content_items" where key ~* $%d) AND "content_items"."path" IS NOT NULL)`,
 	if len(filter.InReplyTo) > 0 {
 		whereColumns := make([]string, 0)
 		for _, hash := range filter.InReplyTo {
+			if len(hash) == 0 {
+				log.WithFields(log.Fields{
+					"filter": filter,
+				}).Errorf("trying to load for empty hash")
+				continue
+			}
 			whereColumns = append(whereColumns, fmt.Sprintf(`("content_items"."path" <@ (select
 CASE WHEN path is null THEN key::ltree ELSE ltree_addltree(path, key::ltree) END
 from "content_items" where key ~* $%d) AND "content_items"."path" IS NOT NULL)`, counter))
@@ -285,7 +291,11 @@ from "content_items" where key ~* $%d) AND "content_items"."path" IS NOT NULL)`,
 	rows, err := db.Query(sel, whereValues...)
 
 	if err != nil {
-		log.WithFields(log.Fields{}).Errorf("querying failed: %s", err)
+		log.WithFields(log.Fields{
+			"query":   sel,
+			"values":  whereValues,
+			"filters": filter,
+		}).Errorf("error loading items: %s", err)
 		return nil, err
 	}
 	for rows.Next() {
@@ -295,8 +305,12 @@ from "content_items" where key ~* $%d) AND "content_items"."path" IS NOT NULL)`,
 		err := rows.Scan(
 			&p.Id, &iKey, &p.MimeType, &p.Data, &p.Title, &p.Score, &p.SubmittedAt, &p.SubmittedBy, &p.Flags, &p.Metadata, &p.Path,
 			&a.Id, &aKey, &a.Handle, &a.Email, &a.Score, &a.CreatedAt, &a.Metadata, &a.Flags)
-		if err != nil {
-			log.WithFields(log.Fields{}).Errorf("load items failed: %s", err)
+		if err != nil || len(iKey) == 0 {
+			log.WithFields(log.Fields{
+				"query":   sel,
+				"values":  whereValues,
+				"filters": filter,
+			}).Errorf("error loading items: %s", err)
 			continue
 		}
 		p.Key.FromBytes(iKey)
@@ -348,10 +362,9 @@ func loadItem(db *sql.DB, filter LoadItemsFilter) (Item, error) {
 	} else {
 		eqOp = "!="
 	}
-	whereDeleted := fmt.Sprintf(`("content_items"."flags" & $%d::bit(8)) %s $%d::bit(8)`, counter, eqOp, counter+1)
+	whereDeleted := fmt.Sprintf(`("content_items"."flags" & $%d::bit(8)) %s $%d::bit(8)`, counter, eqOp, counter)
 	whereValues = append(whereValues, interface{}(FlagsDeleted))
-	whereValues = append(whereValues, interface{}(FlagsDeleted))
-	counter += 2
+	counter += 1
 	wheres = append(wheres, fmt.Sprintf("%s", whereDeleted))
 
 	p := item{}

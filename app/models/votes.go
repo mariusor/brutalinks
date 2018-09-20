@@ -155,7 +155,7 @@ func loadVotes(db *sql.DB, filter LoadVotesFilter) (VoteCollection, error) {
 	}
 	fullWhere := fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(wheres, " AND ")))
 
-	selC := fmt.Sprintf(`select
+	sel := fmt.Sprintf(`select
 		  "votes"."id", "votes"."weight", "votes"."submitted_at", "votes"."flags",
        "items"."id", "items"."key", "items"."mime_type", "items"."data", "items"."title", "items"."score",
        "items"."submitted_at", "items"."submitted_by", "items"."flags", "items"."metadata",
@@ -168,9 +168,13 @@ from "votes"
        inner join "content_items" as "items" on "items"."id" = "votes"."item_id"
        left join "accounts" as "author" on "author"."id" = "items"."submitted_by"
 where %s order by "votes"."submitted_at" desc limit %d`, fullWhere, filter.MaxItems)
-	rows, err := db.Query(selC, whereValues...)
+	rows, err := db.Query(sel, whereValues...)
 	if err != nil {
-		log.WithFields(log.Fields{}).Error(errors.NewErrWithCause(err, "querying failed"))
+		log.WithFields(log.Fields{
+			"query":   sel,
+			"values":  whereValues,
+			"filters": filter,
+		}).Errorf("error loading votes: %s", err)
 		return nil, err
 	}
 	for rows.Next() {
@@ -186,8 +190,12 @@ where %s order by "votes"."submitted_at" desc limit %d`, fullWhere, filter.MaxIt
 			&p.SubmittedAt, &p.SubmittedBy, &p.Flags, &p.Metadata,
 			&voter.Id, &aKey, &voter.Handle, &voter.Email, &voter.Score, &voter.CreatedAt, &voter.Metadata, &voter.Flags,
 			&auth.Id, &vKey, &auth.Handle, &auth.Email, &auth.Score, &auth.CreatedAt, &auth.Metadata, &auth.Flags)
-		if err != nil {
-			log.WithFields(log.Fields{}).Errorf("load items failed: %s", err.Error())
+		if err != nil || len(pKey) == 0 {
+			log.WithFields(log.Fields{
+				"query":   sel,
+				"values":  whereValues,
+				"filters": filter,
+			}).Errorf("error loading votes: %s", err)
 			continue
 		}
 		voter.Key.FromBytes(aKey)

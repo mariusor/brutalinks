@@ -148,6 +148,7 @@ func main() {
 	filesDir := filepath.Join(workDir, "assets")
 	FileServer(r, "/assets", http.Dir(filesDir))
 
+	// Frontend
 	r.With(api.Repository).Route("/", func(r chi.Router) {
 		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 			frontend.HandleError(w, r, http.StatusNotFound, errors.Errorf("%q not found", r.RequestURI))
@@ -191,6 +192,7 @@ func main() {
 		r.Get("/auth/{provider}/callback", littr.HandleCallback)
 	})
 
+	// API
 	r.With(models.Repository).Route("/api", func(r chi.Router) {
 		r.Route("/accounts", func(r chi.Router) {
 			r.With(api.LoadFiltersCtxt).Get("/", api.HandleAccountsCollection)
@@ -227,6 +229,7 @@ func main() {
 		})
 	})
 
+	// Web-Finger
 	r.With(models.Repository).Route("/.well-known", func(r chi.Router) {
 		r.Get("/webfinger", api.HandleWebFinger)
 		r.Get("/host-meta", api.HandleHostMeta)
