@@ -26,11 +26,11 @@ func ShowAccount(w http.ResponseWriter, r *http.Request) {
 	if ok {
 		log.Infof("loaded repository of type %T", accountLoader)
 	} else {
-		log.Errorf("could not load item loader service from Context")
+		log.Errorf("could not load account repository from Context")
 		return
 	}
 	var err error
-	a, err := accountLoader.LoadAccount(models.LoadAccountFilter{Handle: handle})
+	a, err := accountLoader.LoadAccount(models.LoadAccountsFilter{Handle: []string{handle}})
 	if err != nil {
 		HandleError(w, r, http.StatusNotFound, err)
 		return

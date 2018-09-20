@@ -65,12 +65,12 @@ func HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 	if ok {
 		log.WithFields(log.Fields{}).Infof("loaded repository of type %T", AcctLoader)
 	} else {
-		err := errors.New("could not load account loader service from Context")
+		err := errors.New("could not load account repository from Context")
 		log.WithFields(log.Fields{}).Error(err)
 		HandleError(w, r, http.StatusInternalServerError, err)
 		return
 	}
-	a, err := AcctLoader.LoadAccount(models.LoadAccountFilter{Handle: handle})
+	a, err := AcctLoader.LoadAccount(models.LoadAccountsFilter{Handle: []string{handle}})
 	if err != nil {
 		err := errors.New("resource not found")
 		log.WithFields(log.Fields{}).Error(err)

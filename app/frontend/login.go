@@ -22,7 +22,7 @@ type loginModel struct {
 func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	pw := r.PostFormValue("pw")
 	handle := r.PostFormValue("handle")
-	a, err := models.Config.LoadAccount(models.LoadAccountFilter{Handle: handle})
+	a, err := models.Config.LoadAccount(models.LoadAccountsFilter{Handle: []string{handle}})
 	if err != nil {
 		log.WithFields(log.Fields{}).Error(err)
 		HandleError(w, r, http.StatusForbidden, errors.Errorf("handle or password are wrong"))

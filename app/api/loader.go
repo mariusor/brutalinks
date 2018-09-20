@@ -87,16 +87,16 @@ func AccountCtxt(next http.Handler) http.Handler {
 		if ok {
 			log.WithFields(log.Fields{}).Infof("loaded repository of type %T", AcctLoader)
 		} else {
-			log.WithFields(log.Fields{}).Errorf("could not load account loader service from Context")
+			log.WithFields(log.Fields{}).Errorf("could not load account repository from Context")
 		}
-		a, err := AcctLoader.LoadAccount(models.LoadAccountFilter{Handle: handle})
+		a, err := AcctLoader.LoadAccount(models.LoadAccountsFilter{Handle: []string{handle}})
 		if err == nil {
 			// we redirect to the Hash based account URL
 			url := strings.Replace(r.RequestURI, a.Handle, a.Hash.String(), 1)
 			http.Redirect(w, r, url, http.StatusSeeOther)
 			return
 		} else {
-			a, err := AcctLoader.LoadAccount(models.LoadAccountFilter{Key: handle})
+			a, err := AcctLoader.LoadAccount(models.LoadAccountsFilter{Key: []string{handle}})
 			if err != nil {
 				log.Error(err)
 				HandleError(w, r, http.StatusNotFound, err)
@@ -630,10 +630,14 @@ func (r repository) LoadAccounts(f models.LoadAccountsFilter) (models.AccountCol
 	return nil, errors.Errorf("not implemented")
 }
 
-func (r repository) LoadAccount(f models.LoadAccountFilter) (models.Account, error) {
+func (r repository) LoadAccount(f models.LoadAccountsFilter) (models.Account, error) {
 	p := Person{}
 
-	resp, err := r.Get(fmt.Sprintf("http://%s/api/accounts/%s", r.BaseUrl, f.Handle))
+	if len(f.Handle) == 0 {
+		return models.Account{}, errors.New("invalid account handle")
+	}
+	handle := f.Handle[0]
+	resp, err := r.Get(fmt.Sprintf("http://%s/api/accounts/%s", r.BaseUrl, handle))
 	if err != nil {
 		log.WithFields(log.Fields{}).Error(err)
 		return models.Account{}, err

@@ -70,12 +70,6 @@ type LoadAccountsFilter struct {
 	MaxItems int      `qstring:"maxItems,omitempty"`
 }
 
-type LoadAccountFilter struct {
-	Key     string `qstring:"hash,omitempty"`
-	Handle  string `qstring:"handle,omitempty"`
-	Deleted bool   `qstring:"deleted,omitempty"`
-}
-
 type CanSaveItems interface {
 	SaveItem(it Item) (Item, error)
 }
@@ -95,7 +89,7 @@ type CanSaveVotes interface {
 }
 
 type CanLoadAccounts interface {
-	LoadAccount(f LoadAccountFilter) (Account, error)
+	LoadAccount(f LoadAccountsFilter) (Account, error)
 	LoadAccounts(f LoadAccountsFilter) (AccountCollection, error)
 }
 
@@ -141,7 +135,7 @@ func (l repository) LoadVote(f LoadVotesFilter) (Vote, error) {
 	return *v, err
 }
 
-func (l repository) LoadAccount(f LoadAccountFilter) (Account, error) {
+func (l repository) LoadAccount(f LoadAccountsFilter) (Account, error) {
 	return loadAccount(l.DB, f)
 }
 

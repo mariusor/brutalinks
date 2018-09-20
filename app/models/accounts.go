@@ -140,26 +140,26 @@ func (a *Account) IsLogged() bool {
 	return a != nil && (!a.CreatedAt.IsZero())
 }
 
-func loadAccount(db *sql.DB, filter LoadAccountFilter) (Account, error) {
+func loadAccount(db *sql.DB, filter LoadAccountsFilter) (Account, error) {
 	var wheres []string
 	whereValues := make([]interface{}, 0)
 	counter := 1
 	if len(filter.Key) > 0 {
 		whereColumns := make([]string, 0)
-		//for _, hash := range filter.Key {
-		whereColumns = append(whereColumns, fmt.Sprintf(`"accounts"."key" ~* $%d`, counter))
-		whereValues = append(whereValues, interface{}(filter.Key))
-		counter += 1
-		//}
+		for _, hash := range filter.Key {
+			whereColumns = append(whereColumns, fmt.Sprintf(`"accounts"."key" ~* $%d`, counter))
+			whereValues = append(whereValues, interface{}(hash))
+			counter += 1
+		}
 		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
 	}
 	if len(filter.Handle) > 0 {
 		whereColumns := make([]string, 0)
-		//for _, hash := range filter.Handle {
-		whereColumns = append(whereColumns, fmt.Sprintf(`"accounts"."handle" ~* $%d`, counter))
-		whereValues = append(whereValues, interface{}(filter.Handle))
-		counter += 1
-		//}
+		for _, handle := range filter.Handle {
+			whereColumns = append(whereColumns, fmt.Sprintf(`"accounts"."handle" ~* $%d`, counter))
+			whereValues = append(whereValues, interface{}(handle))
+			counter += 1
+		}
 		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
 	}
 	a := account{}
@@ -273,6 +273,7 @@ func UpdateAccount(db *sql.DB, a Account) (Account, error) {
 func saveAccount(db *sql.DB, a Account) (Account, error) {
 	return addAccount(db, a)
 }
+
 func addAccount(db *sql.DB, a Account) (Account, error) {
 	jMetadata, err := json.Marshal(a.Metadata)
 	if err != nil {
