@@ -6,7 +6,7 @@ require (
 	github.com/davecgh/go-spew v1.1.0 // indirect
 	github.com/eknkc/amber v0.0.0-20171010120322-cdade1c07385 // indirect
 	github.com/fsnotify/fsnotify v1.4.7 // indirect
-	github.com/gchaincl/dotsql v0.1.0 // indirect
+	github.com/gchaincl/dotsql v0.1.0
 	github.com/go-chi/chi v0.0.0-20171222161133-e83ac2304db3
 	github.com/go-sql-driver/mysql v1.4.0 // indirect
 	github.com/golang/protobuf v1.1.0 // indirect

@@ -6,13 +6,14 @@ import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"os"
+	"strings"
 
 	"github.com/gchaincl/dotsql"
 	"github.com/juju/errors"
 	_ "github.com/lib/pq"
 )
 
-func dbConnection(dbUser string, dbPw string, dbName string) (*sql.DB, error) {
+func dbConnection(dbHost string, dbUser string, dbPw string, dbName string) (*sql.DB, error) {
 	if dbUser == "" && dbPw == "" {
 		er(errors.NewErr("missing user and/or pw"))
 	}
@@ -21,7 +22,7 @@ func dbConnection(dbUser string, dbPw string, dbName string) (*sql.DB, error) {
 	if dbPw != "" {
 		pw = fmt.Sprintf(" password=%s", dbPw)
 	}
-	connStr := fmt.Sprintf("user=%s%s dbname=%s sslmode=disable", dbUser, pw, dbName)
+	connStr := fmt.Sprintf("host=%s user=%s%s dbname=%s sslmode=disable", dbHost, dbUser, pw, dbName)
 	return sql.Open("postgres", connStr)
 }
 
@@ -51,6 +52,14 @@ func main() {
 	var dbRootPw string
 	var dbHost string
 
+	log.SetFormatter(&log.TextFormatter{
+		DisableColors:          false,
+		DisableLevelTruncation: true,
+		ForceColors:            true,
+	})
+	log.SetOutput(os.Stdout)
+	log.SetLevel(log.DebugLevel)
+
 	flag.StringVar(&dbRootUser, "user", "", "the admin user for the database")
 	flag.StringVar(&dbRootPw, "pw", "", "the admin pass for the database")
 	flag.StringVar(&dbHost, "host", "", "the db host")
@@ -59,10 +68,14 @@ func main() {
 	dbPw := os.Getenv("DB_PASSWORD")
 	dbUser := os.Getenv("DB_USER")
 	dbName := os.Getenv("DB_NAME")
+	if dbHost == "" {
+		dbHost = os.Getenv("DB_HOST")
+	}
+
 	var dot *dotsql.DotSql
 	if len(dbRootUser) != 0 {
 		dbRootName := "postgres"
-		rootDB, err := dbConnection(dbRootUser, dbRootPw, dbRootName)
+		rootDB, err := dbConnection(dbHost, dbRootUser, dbRootPw, dbRootName)
 		if er(errors.NewErrWithCause(err, "connection failed")) {
 			os.Exit(1)
 		}
@@ -70,9 +83,9 @@ func main() {
 		defer rootDB.Close()
 
 		// create new role and db with root user in root database
-		dot, err = dotsql.LoadFromFile("db/create_role.sql")
+		dot, err = dotsql.LoadFromFile("./db/create_role.sql")
 		s1, _ := dot.Raw("create-role-with-pass")
-		_, err = rootDB.Exec(fmt.Sprintf(s1, dbUser, dbPw))
+		_, err = rootDB.Exec(fmt.Sprintf(s1, dbUser, strings.Trim(dbPw, "'")))
 		er(errors.NewErrWithCause(err, "query: %s", s1))
 
 		s2, _ := dot.Raw("create-db-for-role")
@@ -80,12 +93,12 @@ func main() {
 		er(errors.NewErrWithCause(err, "query: %s", s2))
 
 		// root user, but our new created db
-		db, err := dbConnection(dbRootUser, dbRootPw, dbName)
+		db, err := dbConnection(dbHost, dbRootUser, dbRootPw, dbName)
 		if er(errors.NewErrWithCause(err, "connection failed")) {
 			os.Exit(1)
 		}
 		defer db.Close()
-		dot, err = dotsql.LoadFromFile("db/extensions.sql")
+		dot, err = dotsql.LoadFromFile("./db/extensions.sql")
 		_, err = dot.Exec(db, "extension-pgcrypto")
 		s1, _ = dot.Raw("extension-pgcrypto")
 		er(errors.NewErrWithCause(err, "query: %s", s1))
@@ -95,13 +108,14 @@ func main() {
 	}
 
 	// newly created user in newly created database
-	db, err := dbConnection(dbUser, dbPw, dbName)
+	db, err := dbConnection(dbHost, dbUser, dbPw, dbName)
 	if er(errors.NewErrWithCause(err, "connection failed")) {
 		os.Exit(1)
 	}
 	defer db.Close()
 	// create new role and db with root user in root database
-	dot, err = dotsql.LoadFromFile("db/init.sql")
+	dot, err = dotsql.LoadFromFile("./db/init.sql")
+	er(errors.NewErrWithCause(err, "unable to load file"))
 	drop, _ := dot.Raw("drop-tables")
 	_, err = db.Exec(fmt.Sprintf(drop))
 	er(errors.NewErrWithCause(err, "query: %s", drop))
