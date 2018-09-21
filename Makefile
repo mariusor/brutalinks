@@ -15,10 +15,10 @@ endif
 all: app cli
 
 ifeq ($(shell git describe --always > /dev/null 2>&1 ; echo $$?), 0)
-	VERSION := :$(shell git describe --always --dirty=-git)
+	export VERSION=$(shell git describe --always --dirty=-git)
 endif
 ifeq ($(shell git describe --tags > /dev/null 2>&1 ; echo $$?), 0)
-	VERSION := :$(shell git describe --tags)
+	export VERSION=$(shell git describe --tags)
 endif
 
 
@@ -38,18 +38,22 @@ cli: bootstrap votes keys
 
 clean:
 	$(RM) bin/*
+	$(RM) -rf docker/app/bin
+	$(RM) -rf docker/app/templates
+	$(RM) -rf docker/app/assets
+	$(RM) -rf docker/app/db
 
 run: app
 	@./bin/app
 
-image: app
-	cp -r bin docker/
-	cp -r templates docker/
-	cp -r assets docker/
+assets: app cli
+	cp -r bin docker/app
+	cp -r templates docker/app
+	cp -r assets docker/app
+	cp -r db docker/app
+
+image: app assets
 	cd docker && $(MAKE) $@
 
-compose: app
-	cp -r bin docker/
-	cp -r templates docker/
-	cp -r assets docker/
+compose: app assets
 	cd docker && $(MAKE) $@
