@@ -91,8 +91,9 @@ func init() {
 	dbPw := os.Getenv("DB_PASSWORD")
 	dbName := os.Getenv("DB_NAME")
 	dbUser := os.Getenv("DB_USER")
+	dbHost := os.Getenv("DB_HOST")
 
-	connStr := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable", dbUser, dbPw, dbName)
+	connStr := fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable", dbHost, dbUser, dbPw, dbName)
 	con, err := sql.Open("postgres", connStr)
 	if err != nil {
 		log.WithFields(log.Fields{
