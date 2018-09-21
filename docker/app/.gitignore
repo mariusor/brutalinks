@@ -1,0 +1,4 @@
+bin/*
+templates/*
+db/*
+assets/*
