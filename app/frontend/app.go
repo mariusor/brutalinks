@@ -433,8 +433,8 @@ func loadCurrentAccount(s *sessions.Session) {
 				"email":  CurrentAccount.Email,
 			}).Infof("loaded account from session")
 		}
-	} else {
-		log.WithFields(log.Fields{}).Error(errors.NewErr("unable to load user from session"))
+	//} else {
+	//	log.WithFields(log.Fields{}).Errorf(errors.NewErr("unable to load user from session"))
 	}
 }
 
