@@ -138,8 +138,8 @@ func AnonymousAccount() *models.Account {
 
 type EnvType string
 
-const DEV EnvType = "development"
-const PROD EnvType = "production"
+const DEV EnvType = "dev"
+const PROD EnvType = "prod"
 const QA EnvType = "qa"
 
 var validEnvTypes = []EnvType{
