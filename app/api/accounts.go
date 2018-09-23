@@ -185,10 +185,10 @@ func HandleAccountsCollection(w http.ResponseWriter, r *http.Request) {
 // GET /api/accounts/:handle
 func HandleAccount(w http.ResponseWriter, r *http.Request) {
 	val := r.Context().Value(AccountCtxtKey)
-	a, ok := val.(models.Account)
-	if !ok {
-		log.WithFields(log.Fields{}).Errorf("could not load Account from Context")
-	}
+	a, _ := val.(models.Account)
+	//if !ok {
+	//	log.WithFields(log.Fields{}).Errorf("could not load Account from Context")
+	//}
 	p := loadAPPerson(a)
 
 	j, err := json.WithContext(GetContext()).Marshal(p)
@@ -259,7 +259,6 @@ func HandleCollectionItem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data, err = json.WithContext(GetContext()).Marshal(el)
-	log.WithFields(log.Fields{}).Error(err)
 	w.Header().Set("Content-Type", "application/activity+json; charset=utf-8")
 	//w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(http.StatusOK)
@@ -311,10 +310,10 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 	var data []byte
 	var err error
 	val := r.Context().Value(AccountCtxtKey)
-	a, ok := val.(models.Account)
-	if !ok {
-		log.WithFields(log.Fields{}).WithFields(log.Fields{}).Errorf("could not load Account from Context")
-	}
+	a, _ := val.(models.Account)
+	//if !ok {
+	//	log.WithFields(log.Fields{}).WithFields(log.Fields{}).Errorf("could not load Account from Context")
+	//}
 	p := loadAPPerson(a)
 
 	typ := chi.URLParam(r, "collection")
