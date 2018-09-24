@@ -28,6 +28,7 @@ footer, header, hgroup, menu, nav, section {
     display: block;
 }
 body {
+    font-family: sans;
     line-height: 1;
 }
 ol, ul {
@@ -98,7 +99,7 @@ table {
 }
 @media (min-width: 576px) {
     :root {
-        font-size: 2.3vw;
+        font-size: 2.2vw;
     }
     h6.domain {
         display: none;
@@ -106,7 +107,7 @@ table {
 }
 @media (min-width: 768px) {
     :root {
-        font-size: 1.8vw;
+        font-size: 1.6vw;
     }
     h6.domain {
         display: inline;
@@ -114,7 +115,7 @@ table {
 }
 @media (min-width: 992px) {
     :root {
-        font-size: 1.5vw;
+        font-size: 1.1vw;
     }
     h6.domain {
         display: inline;
@@ -122,7 +123,7 @@ table {
 }
 @media (min-width: 1200px) {
     :root {
-        font-size: 1.3vw;
+        font-size: 1vw;
     }
     h6.domain {
         display: inline;
@@ -130,7 +131,7 @@ table {
 }
 @media (min-width: 1500px) {
     :root {
-        font-size: 1.12vw;
+        font-size: .96vw;
     }
     h6.domain {
         display: inline;
@@ -138,7 +139,7 @@ table {
 }
 @media (min-width: 1800px) {
     :root {
-        font-size: .96vw;
+        font-size: .86vw;
     }
 }
 @media (min-width: 2200px) {
@@ -297,6 +298,7 @@ article > section {
     width: 100%;
 }
 article > header {
+    padding-top:4px;
     max-height: 2rem;
     margin-bottom: .1rem;
 }
@@ -343,7 +345,7 @@ ol {
     padding-left: 0;
 }
 ol li {
-    margin-bottom: .4rem;
+    margin-bottom: .9rem;
 }
 .item {
     display: grid;
