@@ -2,7 +2,9 @@ package models
 
 import (
 	"database/sql"
+	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"golang.org/x/net/context"
@@ -68,6 +70,170 @@ type LoadAccountsFilter struct {
 	Deleted  bool     `qstring:"deleted,omitempty"`
 	Page     int      `qstring:"page,omitempty"`
 	MaxItems int      `qstring:"maxItems,omitempty"`
+}
+
+func (f LoadVotesFilter) GetWhereClauses() ([]string, []interface{}) {
+	wheres := make([]string, 0)
+	whereValues := make([]interface{}, 0)
+	counter := 1
+	if len(f.AttributedTo) > 0 {
+		whereColumns := make([]string, 0)
+		for _, v := range f.AttributedTo {
+			whereColumns = append(whereColumns, fmt.Sprintf(`"voter"."key" ~* $%d`, counter))
+			whereValues = append(whereValues, interface{}(v))
+			counter += 1
+		}
+		wheres = append(wheres, fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR ")))
+	}
+	if len(f.Type) > 0 {
+		whereColumns := make([]string, 0)
+		for _, typ := range f.Type {
+			if typ == TypeLike {
+				whereColumns = append(whereColumns, fmt.Sprintf(`"votes"."weight" > $%d`, counter))
+				whereValues = append(whereValues, interface{}(0))
+			}
+			if typ == TypeDislike {
+				whereColumns = append(whereColumns, fmt.Sprintf(`"votes"."weight" < $%d`, counter))
+				whereValues = append(whereValues, interface{}(0))
+			}
+			counter += 1
+		}
+		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
+	}
+	if len(f.ItemKey) > 0 {
+		whereColumns := make([]string, 0)
+		for _, k := range f.ItemKey {
+			h := trimHash(k)
+			if len(h) == 0 {
+				continue
+			}
+			whereColumns = append(whereColumns, fmt.Sprintf(`"items"."key" ~* $%d`, counter))
+			whereValues = append(whereValues, interface{}(h))
+			counter += 1
+		}
+		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
+	}
+	return wheres, whereValues
+}
+
+func (filter LoadItemsFilter) GetWhereClauses() ([]string, []interface{}) {
+	wheres := make([]string, 0)
+	whereValues := make([]interface{}, 0)
+	counter := 1
+	if len(filter.Key) > 0 {
+		keyWhere := make([]string, 0)
+		for _, hash := range filter.Key {
+			keyWhere = append(keyWhere, fmt.Sprintf(`"content_items"."key" ~* $%d`, counter))
+			whereValues = append(whereValues, interface{}(hash))
+			counter += 1
+		}
+		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(keyWhere, " OR "))))
+	}
+	if len(filter.AttributedTo) > 0 {
+		attrWhere := make([]string, 0)
+		for _, v := range filter.AttributedTo {
+			attrWhere = append(attrWhere, fmt.Sprintf(`"accounts"."key" ~* $%d`, counter))
+			attrWhere = append(attrWhere, fmt.Sprintf(`"accounts"."handle" = $%d`, counter))
+			whereValues = append(whereValues, interface{}(v))
+			counter += 1
+		}
+		wheres = append(wheres, fmt.Sprintf("(%s)", strings.Join(attrWhere, " OR ")))
+	}
+	if len(filter.Context) > 0 {
+		// Context filters are hashes belonging to a top element
+		ctxtWhere := make([]string, 0)
+		for _, ctxtHash := range filter.Context {
+			if ctxtHash == ContextNil || ctxtHash == "" {
+				ctxtWhere = append(ctxtWhere, `"content_items"."path" is NULL OR nlevel("content_items"."path") = 0`)
+				break
+			}
+			ctxtWhere = append(ctxtWhere, fmt.Sprintf(`("content_items"."path" <@ (select
+CASE WHEN path is null THEN key::ltree ELSE ltree_addltree(path, key::ltree) END
+from "content_items" where key ~* $%d) AND "content_items"."path" IS NOT NULL)`, counter))
+			whereValues = append(whereValues, interface{}(ctxtHash))
+			counter += 1
+		}
+		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(ctxtWhere, " OR "))))
+	}
+	if len(filter.InReplyTo) > 0 {
+		whereColumns := make([]string, 0)
+		for _, hash := range filter.InReplyTo {
+			if len(hash) == 0 {
+				continue
+			}
+			whereColumns = append(whereColumns, fmt.Sprintf(`("content_items"."path" <@ (select
+CASE WHEN path is null THEN key::ltree ELSE ltree_addltree(path, key::ltree) END
+from "content_items" where key ~* $%d) AND "content_items"."path" IS NOT NULL)`, counter))
+			whereValues = append(whereValues, interface{}(hash))
+			counter += 1
+		}
+		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
+	}
+	if len(filter.Content) > 0 {
+		contentWhere := make([]string, 0)
+		var operator string
+		if filter.ContentMatchType == MatchFuzzy {
+			operator = "~"
+		}
+		if filter.ContentMatchType == MatchEquals {
+			operator = "="
+		}
+		contentWhere = append(contentWhere, fmt.Sprintf(`"content_items"."title" %s $%d`, operator, counter))
+		whereValues = append(whereValues, interface{}(filter.Content))
+		counter += 1
+		contentWhere = append(contentWhere, fmt.Sprintf(`"content_items"."data" %s $%d`, operator, counter))
+		whereValues = append(whereValues, interface{}(filter.Content))
+		counter += 1
+		wheres = append(wheres, fmt.Sprintf("(%s)", strings.Join(contentWhere, " OR ")))
+	}
+	if len(filter.MediaType) > 0 {
+		mediaWhere := make([]string, 0)
+		for _, v := range filter.MediaType {
+			mediaWhere = append(mediaWhere, fmt.Sprintf(`"content_items"."mime_type" = $%d`, counter))
+			whereValues = append(whereValues, interface{}(v))
+			counter += 1
+		}
+		wheres = append(wheres, fmt.Sprintf("(%s)", strings.Join(mediaWhere, " OR ")))
+	}
+	var eqOp string
+	if filter.Deleted {
+		eqOp = "="
+	} else {
+		eqOp = "!="
+	}
+	whereDeleted := fmt.Sprintf(`"content_items"."flags" & $%d::bit(8) %s $%d::bit(8)`, counter, eqOp, counter)
+	whereValues = append(whereValues, interface{}(FlagsDeleted))
+	counter += 1
+	wheres = append(wheres, fmt.Sprintf("%s", whereDeleted))
+
+	return wheres, whereValues
+}
+
+func (f LoadAccountsFilter) GetWhereClauses() ([]string, []interface{}) {
+	wheres := make([]string, 0)
+	whereValues := make([]interface{}, 0)
+	counter := 1
+
+	if len(f.Key) > 0 {
+		whereColumns := make([]string, 0)
+		for _, hash := range f.Key {
+			whereColumns = append(whereColumns, fmt.Sprintf(`"accounts"."key" ~* $%d`, counter))
+			whereValues = append(whereValues, interface{}(hash))
+			counter += 1
+		}
+		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
+	}
+	if len(f.Handle) > 0 {
+		whereColumns := make([]string, 0)
+		for _, handle := range f.Handle {
+			whereColumns = append(whereColumns, fmt.Sprintf(`"accounts"."handle" ~* $%d`, counter))
+			whereValues = append(whereValues, interface{}(handle))
+			counter += 1
+		}
+		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
+	}
+
+	return wheres, whereValues
 }
 
 type CanSaveItems interface {

@@ -185,91 +185,7 @@ func (c item) GetDomain() string {
 func loadItems(db *sql.DB, filter LoadItemsFilter) (ItemCollection, error) {
 	items := make(ItemCollection, 0)
 
-	var wheres []string
-	whereValues := make([]interface{}, 0)
-	counter := 1
-	whereColumns := make([]string, 0)
-	if len(filter.AttributedTo) > 0 {
-		for _, v := range filter.AttributedTo {
-			whereColumns = append(whereColumns, fmt.Sprintf(`"accounts"."key" ~* $%d`, counter))
-			whereValues = append(whereValues, interface{}(v))
-			counter += 1
-			whereColumns = append(whereColumns, fmt.Sprintf(`"accounts"."handle" = $%d`, counter))
-			whereValues = append(whereValues, interface{}(v))
-			counter += 1
-		}
-		wheres = append(wheres, fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR ")))
-	}
-	if len(filter.Context) > 0 {
-		// Context filters are hashes belonging to a top element
-		whereColumns := make([]string, 0)
-		for _, ctxtHash := range filter.Context {
-			if ctxtHash == ContextNil || ctxtHash == "" {
-				whereColumns = append(whereColumns, `"content_items"."path" is NULL OR nlevel("content_items"."path") = 0`)
-				break
-			}
-			whereColumns = append(whereColumns, fmt.Sprintf(`("content_items"."path" <@ (select
-CASE WHEN path is null THEN key::ltree ELSE ltree_addltree(path, key::ltree) END
-from "content_items" where key ~* $%d) AND "content_items"."path" IS NOT NULL)`, counter))
-			whereValues = append(whereValues, interface{}(ctxtHash))
-			counter += 1
-		}
-		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
-	}
-	if len(filter.InReplyTo) > 0 {
-		whereColumns := make([]string, 0)
-		for _, hash := range filter.InReplyTo {
-			if len(hash) == 0 {
-				log.WithFields(log.Fields{
-					"filter": filter,
-				}).Errorf("trying to load for empty hash")
-				continue
-			}
-			whereColumns = append(whereColumns, fmt.Sprintf(`("content_items"."path" <@ (select
-CASE WHEN path is null THEN key::ltree ELSE ltree_addltree(path, key::ltree) END
-from "content_items" where key ~* $%d) AND "content_items"."path" IS NOT NULL)`, counter))
-			whereValues = append(whereValues, interface{}(hash))
-			counter += 1
-		}
-		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
-	}
-	if len(filter.Content) > 0 {
-		whereColumns := make([]string, 0)
-		var operator string
-		if filter.ContentMatchType == MatchFuzzy {
-			operator = "~"
-		}
-		if filter.ContentMatchType == MatchEquals {
-			operator = "="
-		}
-		whereColumns = append(whereColumns, fmt.Sprintf(`"content_items"."title" %s $%d`, operator, counter))
-		whereValues = append(whereValues, interface{}(filter.Content))
-		counter += 1
-		whereColumns = append(whereColumns, fmt.Sprintf(`"content_items"."data" %s $%d`, operator, counter))
-		whereValues = append(whereValues, interface{}(filter.Content))
-		counter += 1
-		wheres = append(wheres, fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR ")))
-	}
-	if len(filter.MediaType) > 0 {
-		whereColumns := make([]string, 0)
-		for _, v := range filter.MediaType {
-			whereColumns = append(whereColumns, fmt.Sprintf(`"content_items"."mime_type" = $%d`, counter))
-			whereValues = append(whereValues, interface{}(v))
-			counter += 1
-		}
-		wheres = append(wheres, fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR ")))
-	}
-	var eqOp string
-	if filter.Deleted {
-		eqOp = "="
-	} else {
-		eqOp = "!="
-	}
-	whereDeleted := fmt.Sprintf(`"content_items"."flags" & $%d::bit(8) %s $%d::bit(8)`, counter, eqOp, counter)
-	whereValues = append(whereValues, interface{}(FlagsDeleted))
-	counter += 1
-	wheres = append(wheres, fmt.Sprintf("%s", whereDeleted))
-
+	wheres, whereValues := filter.GetWhereClauses()
 	var fullWhere string
 	if len(wheres) == 0 {
 		fullWhere = " true"
@@ -324,48 +240,7 @@ from "content_items" where key ~* $%d) AND "content_items"."path" IS NOT NULL)`,
 }
 
 func loadItem(db *sql.DB, filter LoadItemsFilter) (Item, error) {
-	var wheres []string
-	whereValues := make([]interface{}, 0)
-	counter := 1
-	if len(filter.Key) > 0 {
-		whereColumns := make([]string, 0)
-		for _, hash := range filter.Key {
-			whereColumns = append(whereColumns, fmt.Sprintf(`"content_items"."key" ~* $%d`, counter))
-			whereValues = append(whereValues, interface{}(hash))
-			counter += 1
-		}
-		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
-	}
-	if len(filter.InReplyTo) > 0 {
-		// Context filters are hashes belonging to a top element
-		whereColumns := make([]string, 0)
-		for _, replHash := range filter.InReplyTo {
-			whereColumns = append(whereColumns, fmt.Sprintf(`"content_items"."key" = (select subltree("path", nlevel("path")-1, nlevel("path"))::text from content_items where key ~* $%d')`, counter))
-			whereValues = append(whereValues, interface{}(replHash))
-			counter += 1
-		}
-		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
-	}
-	if len(filter.Context) > 0 {
-		// Context filters are hashes belonging to a top element
-		whereColumns := make([]string, 0)
-		for _, ctxtHash := range filter.Context {
-			whereColumns = append(whereColumns, fmt.Sprintf(`"content_items"."key" = (select subltree("path", 0, 1)::text from content_items where key ~* $%d')`, counter))
-			whereValues = append(whereValues, interface{}(ctxtHash))
-			counter += 1
-		}
-		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
-	}
-	var eqOp string
-	if filter.Deleted {
-		eqOp = "="
-	} else {
-		eqOp = "!="
-	}
-	whereDeleted := fmt.Sprintf(`("content_items"."flags" & $%d::bit(8)) %s $%d::bit(8)`, counter, eqOp, counter)
-	whereValues = append(whereValues, interface{}(FlagsDeleted))
-	counter += 1
-	wheres = append(wheres, fmt.Sprintf("%s", whereDeleted))
+	wheres, whereValues := filter.GetWhereClauses()
 
 	p := item{}
 	a := account{}

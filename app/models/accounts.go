@@ -141,27 +141,7 @@ func (a *Account) IsLogged() bool {
 }
 
 func loadAccount(db *sql.DB, filter LoadAccountsFilter) (Account, error) {
-	var wheres []string
-	whereValues := make([]interface{}, 0)
-	counter := 1
-	if len(filter.Key) > 0 {
-		whereColumns := make([]string, 0)
-		for _, hash := range filter.Key {
-			whereColumns = append(whereColumns, fmt.Sprintf(`"accounts"."key" ~* $%d`, counter))
-			whereValues = append(whereValues, interface{}(hash))
-			counter += 1
-		}
-		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
-	}
-	if len(filter.Handle) > 0 {
-		whereColumns := make([]string, 0)
-		for _, handle := range filter.Handle {
-			whereColumns = append(whereColumns, fmt.Sprintf(`"accounts"."handle" ~* $%d`, counter))
-			whereValues = append(whereValues, interface{}(handle))
-			counter += 1
-		}
-		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
-	}
+	wheres, whereValues := filter.GetWhereClauses()
 	a := account{}
 	var acct Account
 	var fullWhere string
@@ -195,30 +175,9 @@ func loadAccount(db *sql.DB, filter LoadAccountsFilter) (Account, error) {
 }
 
 func loadAccounts(db *sql.DB, filter LoadAccountsFilter) (AccountCollection, error) {
-	var wheres []string
-	whereValues := make([]interface{}, 0)
-	counter := 1
-
+	wheres, whereValues := filter.GetWhereClauses()
 	accounts := make(AccountCollection, 0)
 
-	if len(filter.Key) > 0 {
-		whereColumns := make([]string, 0)
-		for _, hash := range filter.Key {
-			whereColumns = append(whereColumns, fmt.Sprintf(`"accounts"."key" ~* $%d`, counter))
-			whereValues = append(whereValues, interface{}(hash))
-			counter += 1
-		}
-		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
-	}
-	if len(filter.Handle) > 0 {
-		whereColumns := make([]string, 0)
-		for _, handle := range filter.Handle {
-			whereColumns = append(whereColumns, fmt.Sprintf(`"accounts"."handle" ~* $%d`, counter))
-			whereValues = append(whereValues, interface{}(handle))
-			counter += 1
-		}
-		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
-	}
 	a := account{}
 	var acct Account
 	var fullWhere string

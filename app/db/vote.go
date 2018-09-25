@@ -55,46 +55,8 @@ func (a Account) Votes() VoteCollection {
 }
 
 func loadVotes(db *sqlx.DB, filter models.LoadVotesFilter) (models.VoteCollection, error) {
-	var wheres []string
-	whereValues := make([]interface{}, 0)
-	counter := 1
-	if len(filter.AttributedTo) > 0 {
-		whereColumns := make([]string, 0)
-		for _, v := range filter.AttributedTo {
-			whereColumns = append(whereColumns, fmt.Sprintf(`"voter"."key" ~* $%d`, counter))
-			whereValues = append(whereValues, interface{}(v))
-			counter += 1
-		}
-		wheres = append(wheres, fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR ")))
-	}
-	if len(filter.Type) > 0 {
-		whereColumns := make([]string, 0)
-		for _, typ := range filter.Type {
-			if typ == models.TypeLike {
-				whereColumns = append(whereColumns, fmt.Sprintf(`"vote"."weight" > $%d`, counter))
-				whereValues = append(whereValues, interface{}(0))
-			}
-			if typ == models.TypeDislike {
-				whereColumns = append(whereColumns, fmt.Sprintf(`"vote"."weight" < $%d`, counter))
-				whereValues = append(whereValues, interface{}(0))
-			}
-			counter += 1
-		}
-		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
-	}
-	if len(filter.ItemKey) > 0 {
-		whereColumns := make([]string, 0)
-		for _, k := range filter.ItemKey {
-			h := trimHash(k)
-			if len(h) == 0 {
-				continue
-			}
-			whereColumns = append(whereColumns, fmt.Sprintf(`"item"."key" ~* $%d`, counter))
-			whereValues = append(whereValues, interface{}(h))
-			counter += 1
-		}
-		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
-	}
+	wheres, whereValues := filter.GetWhereClauses()
+
 	fullWhere := fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(wheres, " AND ")))
 	selC := fmt.Sprintf(`select
 	   "vote"."id" as "vote_id",

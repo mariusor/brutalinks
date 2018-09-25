@@ -123,86 +123,9 @@ func (i itemsView) item() Item {
 }
 
 func loadItems(db *sqlx.DB, f models.LoadItemsFilter) (models.ItemCollection, error) {
-	var wheres []string
-	whereValues := make([]interface{}, 0)
-	counter := 1
-	whereColumns := make([]string, 0)
-	if len(f.AttributedTo) > 0 {
-		for _, v := range f.AttributedTo {
-			whereColumns = append(whereColumns, fmt.Sprintf(`"accounts"."key" ~* $%d`, counter))
-			whereValues = append(whereValues, interface{}(v))
-			counter += 1
-			whereColumns = append(whereColumns, fmt.Sprintf(`"accounts"."handle" = $%d`, counter))
-			whereValues = append(whereValues, interface{}(v))
-			counter += 1
-		}
-		wheres = append(wheres, fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR ")))
-	}
-	if len(f.Context) > 0 {
-		// Context filters are hashes belonging to a top element
-		whereColumns := make([]string, 0)
-		for _, ctxtHash := range f.Context {
-			if ctxtHash == models.ContextNil || ctxtHash == "" {
-				whereColumns = append(whereColumns, `"content_items"."path" is NULL OR nlevel("content_items"."path") = 0`)
-				break
-			}
-			whereColumns = append(whereColumns, fmt.Sprintf(`("content_items"."path" <@ (select
-CASE WHEN path is null THEN key::ltree ELSE ltree_addltree(path, key::ltree) END
-from "content_items" where key ~* $%d) AND "content_items"."path" IS NOT NULL)`, counter))
-			whereValues = append(whereValues, interface{}(ctxtHash))
-			counter += 1
-		}
-		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
-	}
-	if len(f.InReplyTo) > 0 {
-		whereColumns := make([]string, 0)
-		for _, hash := range f.InReplyTo {
-			whereColumns = append(whereColumns, fmt.Sprintf(`("content_items"."path" <@ (select
-CASE WHEN path is null THEN key::ltree ELSE ltree_addltree(path, key::ltree) END
-from "content_items" where key ~* $%d) AND "content_items"."path" IS NOT NULL)`, counter))
-			whereValues = append(whereValues, interface{}(hash))
-			counter += 1
-		}
-		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
-	}
-	if len(f.Content) > 0 {
-		whereColumns := make([]string, 0)
-		var operator string
-		if f.ContentMatchType == models.MatchFuzzy {
-			operator = "~"
-		}
-		if f.ContentMatchType == models.MatchEquals {
-			operator = "="
-		}
-		whereColumns = append(whereColumns, fmt.Sprintf(`"content_items"."title" %s $%d`, operator, counter))
-		whereValues = append(whereValues, interface{}(f.Content))
-		counter += 1
-		whereColumns = append(whereColumns, fmt.Sprintf(`"content_items"."data" %s $%d`, operator, counter))
-		whereValues = append(whereValues, interface{}(f.Content))
-		counter += 1
-		wheres = append(wheres, fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR ")))
-	}
-	if len(f.MediaType) > 0 {
-		whereColumns := make([]string, 0)
-		for _, v := range f.MediaType {
-			whereColumns = append(whereColumns, fmt.Sprintf(`"content_items"."mime_type" = $%d`, counter))
-			whereValues = append(whereValues, interface{}(v))
-			counter += 1
-		}
-		wheres = append(wheres, fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR ")))
-	}
-	var eqOp string
-	if f.Deleted {
-		eqOp = "="
-	} else {
-		eqOp = "!="
-	}
-	whereDeleted := fmt.Sprintf(`"content_items"."flags" & $%d::bit(8) %s $%d::bit(8)`, counter, eqOp, counter)
-	whereValues = append(whereValues, interface{}(models.FlagsDeleted))
-	counter += 1
-	wheres = append(wheres, fmt.Sprintf("%s", whereDeleted))
-
+	wheres, whereValues := f.GetWhereClauses()
 	var fullWhere string
+
 	if len(wheres) == 0 {
 		fullWhere = " true"
 	} else if len(wheres) == 1 {
