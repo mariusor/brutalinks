@@ -34,10 +34,12 @@ func AccountFromRequest(r *http.Request) (*models.Account, []error) {
 		errs = append(errs, errors.Errorf("the passwords don't match"))
 	}
 
-	agree := r.PostFormValue("agree")
-	if agree != "y" {
-		errs = append(errs, errors.Errorf("you must agree not to be a dick to other people"))
-	}
+	/*
+		agree := r.PostFormValue("agree")
+		if agree != "y" {
+			errs = append(errs, errors.Errorf("you must agree not to be a dick to other people"))
+		}
+	*/
 
 	if len(errs) > 0 {
 		return nil, errs
