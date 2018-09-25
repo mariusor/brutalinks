@@ -89,9 +89,7 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 
 	val := r.Context().Value(RepositoryCtxtKey)
 	itemLoader, ok := val.(models.CanLoadItems)
-	if ok {
-		log.Infof("loaded repository of type %T", itemLoader)
-	} else {
+	if !ok {
 		log.WithFields(log.Fields{}).Errorf("could not load item repository from Context")
 		return
 	}
@@ -111,7 +109,6 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 	if CurrentAccount.IsLogged() {
 		votesLoader, ok := val.(models.CanLoadVotes)
 		if ok {
-			log.Infof("loaded repository of type %T", itemLoader)
 			filters := models.LoadVotesFilter{
 				AttributedTo: []models.Hash{CurrentAccount.Hash},
 				ItemKey:      m.Items.getItemsHashes(),

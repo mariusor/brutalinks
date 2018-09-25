@@ -372,9 +372,7 @@ func HandleVerifyCredentials(w http.ResponseWriter, r *http.Request) {
 	}
 	val := r.Context().Value(RepositoryCtxtKey)
 	AcctLoader, ok := val.(models.CanLoadAccounts)
-	if ok {
-		log.WithFields(log.Fields{}).Infof("loaded repository of type %T", AcctLoader)
-	} else {
+	if !ok {
 		log.WithFields(log.Fields{}).Errorf("could not load account repository from Context")
 	}
 	a, err := AcctLoader.LoadAccount(models.LoadAccountsFilter{Handle: []string{acct.Handle}, MaxItems: 1})

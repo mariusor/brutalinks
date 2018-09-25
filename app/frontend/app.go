@@ -23,6 +23,7 @@ import (
 	mark "gitlab.com/golang-commonmark/markdown"
 )
 
+const RepositoryCtxtKey = "__repository"
 const (
 	sessionName = "_s"
 	templateDir = "templates/"
@@ -433,8 +434,8 @@ func loadCurrentAccount(s *sessions.Session) {
 				"email":  CurrentAccount.Email,
 			}).Infof("loaded account from session")
 		}
-	//} else {
-	//	log.WithFields(log.Fields{}).Errorf(errors.NewErr("unable to load user from session"))
+		//} else {
+		//	log.WithFields(log.Fields{}).Errorf(errors.NewErr("unable to load user from session"))
 	}
 }
 

@@ -18,9 +18,7 @@ func loadItems(c context.Context, filter models.LoadItemsFilter) (itemListingMod
 	m := itemListingModel{}
 	val := c.Value(RepositoryCtxtKey)
 	itemLoader, ok := val.(models.CanLoadItems)
-	if ok {
-		log.Infof("loaded repository of type %T", itemLoader)
-	} else {
+	if !ok {
 		err := errors.Errorf("could not load item repository from Context")
 		return m, err
 	}
@@ -33,7 +31,6 @@ func loadItems(c context.Context, filter models.LoadItemsFilter) (itemListingMod
 	if CurrentAccount.IsLogged() {
 		votesLoader, ok := val.(models.CanLoadVotes)
 		if ok {
-			log.Infof("loaded repository of type %T", itemLoader)
 			CurrentAccount.Votes, err = votesLoader.LoadVotes(models.LoadVotesFilter{
 				AttributedTo: []models.Hash{CurrentAccount.Hash},
 				ItemKey:      m.Items.getItemsHashes(),

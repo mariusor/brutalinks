@@ -23,9 +23,7 @@ func ShowAccount(w http.ResponseWriter, r *http.Request) {
 
 	val := r.Context().Value(RepositoryCtxtKey)
 	accountLoader, ok := val.(models.CanLoadAccounts)
-	if ok {
-		log.Infof("loaded repository of type %T", accountLoader)
-	} else {
+	if !ok {
 		log.Errorf("could not load account repository from Context")
 		return
 	}

@@ -100,17 +100,13 @@ func ShowItem(w http.ResponseWriter, r *http.Request) {
 	m := contentModel{InvertedTheme: isInverted(r)}
 	val := r.Context().Value(RepositoryCtxtKey)
 	itemLoader, ok := val.(models.CanLoadItems)
-	if ok {
-		log.WithFields(log.Fields{}).Infof("loaded repository of type %T", itemLoader)
-	} else {
+	if !ok {
 		log.WithFields(log.Fields{}).Errorf("could not load item repository from Context")
 		return
 	}
 	handle := chi.URLParam(r, "handle")
 	//acctLoader, ok := val.(models.CanLoadAccounts)
-	//if ok {
-	//	log.WithFields(log.Fields{}).Infof("loaded repository of type %T", acctLoader)
-	//} else {
+	//if !ok {
 	//	log.WithFields(log.Fields{}).Errorf("could not load account repository from Context")
 	//}
 	//act, err := acctLoader.LoadAccount(models.LoadAccountFilter{Handle: handle})
@@ -151,7 +147,6 @@ func ShowItem(w http.ResponseWriter, r *http.Request) {
 	if CurrentAccount.IsLogged() {
 		votesLoader, ok := val.(models.CanLoadVotes)
 		if ok {
-			log.WithFields(log.Fields{}).Infof("loaded repository of type %T", itemLoader)
 			CurrentAccount.Votes, err = votesLoader.LoadVotes(models.LoadVotesFilter{
 				AttributedTo: []models.Hash{CurrentAccount.Hash},
 				ItemKey:      allComments.getItemsHashes(),
@@ -191,9 +186,7 @@ func HandleVoting(w http.ResponseWriter, r *http.Request) {
 
 	val := r.Context().Value(RepositoryCtxtKey)
 	itemLoader, ok := val.(models.CanLoadItems)
-	if ok {
-		log.WithFields(log.Fields{}).Infof("loaded repository of type %T", itemLoader)
-	} else {
+	if !ok {
 		log.WithFields(log.Fields{}).Errorf("could not load item repository from Context")
 		return
 	}
@@ -215,9 +208,7 @@ func HandleVoting(w http.ResponseWriter, r *http.Request) {
 
 	if CurrentAccount.IsLogged() {
 		voter, ok := val.(models.CanSaveVotes)
-		if ok {
-			log.WithFields(log.Fields{}).Infof("loaded repository of type %T", voter)
-		} else {
+		if !ok {
 			log.WithFields(log.Fields{}).Errorf("could not load vote repository from Context")
 			return
 		}
