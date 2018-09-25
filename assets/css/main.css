@@ -257,19 +257,19 @@ body.inverted > header h1 a:focus
     /*margin: 0.2em 0;*/
 }
 .item h1 {
-    font-size: 1.4em;
+    font-size: 1.22em;
 }
 .item h2 {
-    font-size: 1.2em;
+    font-size: 1.16em;
 }
 .item h3 {
-    font-size: 1.12em;
+    font-size: 1.11em;
 }
 .item h4 {
-    font-size: 1.04em;
+    font-size: 1em;
 }
 .item h5 {
-    font-size: 1em;
+    font-size: .96em;
 }
 .item h6 {
     font-size: .94em;
@@ -350,7 +350,8 @@ ol li {
 .item {
     display: grid;
     grid-template-columns: 2.4rem 11fr;
-    grid-template-rows: minmax(0px, 11fr);
+    /*grid-template-rows: minmax(0px, 11fr);*/
+    grid-template-rows: max-content;
     grid-template-areas:
             "sidebar main"
             "sidebar footer"
