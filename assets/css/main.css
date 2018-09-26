@@ -83,7 +83,7 @@ table {
 /* font awesome */
 @media (max-width: 480px) {
     :root {
-        font-size: 3vw;
+        font-size: 3.6vw;
     }
     h6.domain {
         display: none;
@@ -91,7 +91,7 @@ table {
 }
 @media (min-width: 480px) {
     :root {
-        font-size: 2.5vw;
+        font-size: 2.8vw;
     }
     h6.domain {
         display: none;
@@ -123,7 +123,7 @@ table {
 }
 @media (min-width: 1200px) {
     :root {
-        font-size: 1vw;
+        font-size: .9vw;
     }
     h6.domain {
         display: inline;
@@ -131,7 +131,7 @@ table {
 }
 @media (min-width: 1500px) {
     :root {
-        font-size: .96vw;
+        font-size: .8vw;
     }
     h6.domain {
         display: inline;
@@ -139,33 +139,36 @@ table {
 }
 @media (min-width: 1800px) {
     :root {
-        font-size: .86vw;
+        font-size: .75vw;
     }
 }
 @media (min-width: 2200px) {
     :root {
-        font-size: .6vw;
+        font-size: .7vw;
     }
 }
-/*a,*/
-/*article,*/
-/*p {*/
+:root {
+    height: 100%;
+}
+p {
+    text-indent: 2rem;
+    padding-bottom: .2rem;
     /*overflow-wrap: break-word;*/
     /*word-wrap: break-word;*/
-    /*!* This is the dangerous one in WebKit, as it breaks things wherever *!*/
+    /* This is the dangerous one in WebKit, as it breaks things wherever */
     /*word-break: break-all;*/
-    /*!* Instead use this non-standard one: *!*/
+    /* Instead use this non-standard one: */
     /*word-break: break-word;*/
-    /*hyphens: auto;*/
-/*}*/
-:root {}
+    hyphens: auto;
+}
 body {
     background: Window;
     color: WindowText;
+    min-height: 100%;
     display: grid;
-    padding: 0.5rem;
-    grid-gap: 0.5rem;
-    /*grid-template-rows: 3.4rem minmax(10fr, max-content) 2rem;*/
+    padding: 0 .5rem 0 .5rem;
+    /*grid-gap: .5rem;*/
+    grid-template-rows: 2rem 1fr 2rem;
     grid-template-areas: "header" "main" "footer";
 }
 body > header {
@@ -174,10 +177,7 @@ body > header {
     grid-template-rows: 1fr;
     grid-area: header;
     grid-template-areas: "main" "aside";
-    /*height: 2rem;*/
-    /*background-color: silver;*/
-    /*margin: -.5rem -.5rem 0 -.5rem;*/
-    /*padding: .5rem;*/
+    margin: .5rem 0 0 0;
 }
 body > header h1 {
     font-size: 1.6em;
@@ -220,6 +220,9 @@ body > footer {
 a:visited {
     color: rebeccapurple;
 }
+a:active {
+    color: red;
+}
 .inverted {
     color: Window !important;
     background-color: WindowText !important;
@@ -231,7 +234,7 @@ a:visited {
     color: mediumpurple;
 }
 .inverted a:active {
-    color: crimson;
+    color: red;
 }
 .inverted .score a {
     color: unset;
@@ -243,10 +246,6 @@ body.inverted > header h1 a:focus
 {
     color: Window;
 }
-/*.item header h1*/
-/*{*/
-    /*display: block;*/
-/*}*/
 .item h1,
 .item h2,
 .item h3,
@@ -298,8 +297,8 @@ article > section {
     width: 100%;
 }
 article > header {
-    padding-top:4px;
-    max-height: 2rem;
+    /*padding-top:4px;*/
+    /*max-height: 2rem;*/
     margin-bottom: .1rem;
 }
 article > header h1 {
@@ -415,19 +414,14 @@ ol.comments li {
     color: WindowText;
 }
 .inverted #top-invert::before {
-    /*content: "\f0eb";*/
-    /*content: "\f042";*/
     content: "\f185";
-    font-family: "Awesome";
-    font-weight: 800;
+    font-size: 1em;
 }
 #top-invert::before {
-    /*content: "\f0eb";*/
-    /*font-weight: 800;*/
-    /*content: "\f042";*/
     content: "\f186";
-    font-weight: 800;
+    font-weight: 400;
     font-family: "Awesome";
+    font-size: .8em;
 }
 .score a:not([href]) {
     opacity: .2;
@@ -435,31 +429,31 @@ ol.comments li {
 .score a.yay {
     margin-top: 2px;
 }
-.score a.yay::before {
+.score a.yay::before,
+.score a.nay::after
+{
     font-family: "Awesome";
-    content: "\f067";
     font-weight: 800;
+}
+.score a.nay::after {
+    content: "\f068";
+}
+.score a.yay::before {
+    content: "\f067";
 }
 .score a[href].yay:active,
-.score a[href].yay.ed {
-    color: deeppink;
-}
-.inverted .score a[href].yay:active,
-.inverted .score a[href].yay.ed {}
-.score a.nay::after {
-    font-family: "Awesome";
-    content: "\f068";
-    font-weight: 800;
-}
+.score a[href].yay.ed,
 .score a[href].nay:active,
 .score a[href].nay.ed {
-    color: #689a1c;
+    color: mediumpurple;
 }
-
-.inverted .score a[href].nay:active,
-.inverted .score a[href].nay.ed {
-   color: greenyellow;
-}
+/*.inverted .score a[href].yay:active,*/
+/*.inverted .score a[href].yay.ed,*/
+/*.inverted .score a[href].nay:active,*/
+/*.inverted .score a[href].nay.ed*/
+/*{*/
+    /*color: mediumpurple;*/
+/*}*/
 .meta {
     clear:both;
     font-size: .8em;
@@ -559,18 +553,21 @@ details > summary::-webkit-details-marker {
     border-color: #3a3a3aaa;
 }
 .data {
-    /*margin-bottom: 15px;*/
+    margin-bottom: .3rem;
 }
 .comments .data,
-#content .data  {
+#content .data {
     border: none;
 }
 .text-plain {
     white-space: pre;
     font-family: monospace;
-    /*width: 80ex;*/
     overflow: auto;
     line-height: revert;
+}
+.text-plain > header {
+    white-space: normal;
+    font-family: revert;
 }
 #reply {
     margin-top: 1em;

@@ -1,12 +1,10 @@
-<article class="data">
+<article class="data{{if ShowText}} {{ .Item.MimeType | sluggify }}{{if not .Item.Title}} comment{{end}}{{- end -}}">
 {{- template "partials/title" . -}}
 {{- if .Item.IsSelf -}}
 {{if ShowText}}
-<article class="{{ .Item.MimeType | sluggify }}{{if not .Item.Title}} comment{{end}}">
 {{- if eq .MimeType "text/html" -}}{{- .Item | HTML -}}{{- end -}}
 {{- if eq .MimeType "text/plain" -}}{{- .Item | Text -}}{{end}}
 {{- if eq .MimeType "text/markdown" -}}{{- .Item | Markdown -}}{{- end -}}
 {{end}}
-</article>
 {{- end -}}
 </article>
