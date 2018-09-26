@@ -594,6 +594,9 @@ menu.meta-items {
     text-align: center;
     padding-left: 1em;
 }
+menu#bottom {
+    float:right;
+}
 menu.meta-items li,
 menu#bottom li {
     display: inline;
@@ -614,7 +617,7 @@ menu.meta-items a::before {
 a.to-item:before {
     content: "¶";
     font-family: "Awesome";
-    font-weight: 900;
+    font-weight: 800;
 }
 .comments a.to-parent,
 .comments a.to-op {
@@ -622,7 +625,7 @@ a.to-item:before {
 }
 a.to-parent:before {
     content: "\2303";
-    font-weight: 900;
+    font-weight: 800;
 }
 a.to-op:before {
     content: "\f102";
