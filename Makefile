@@ -1,8 +1,8 @@
 include .env
-export
 export CGO_ENABLED=0
 export GOOS=linux
 export GOARCH=amd64
+export VERSION=unknown
 
 GO := go
 BUILD := $(GO) build -a -ldflags '-extldflags "-static"'
@@ -15,12 +15,11 @@ endif
 all: app cli
 
 ifeq ($(shell git describe --always > /dev/null 2>&1 ; echo $$?), 0)
-	export VERSION=$(shell git describe --always --dirty=-git)
+export VERSION = $(shell git describe --always)
 endif
 ifeq ($(shell git describe --tags > /dev/null 2>&1 ; echo $$?), 0)
-	export VERSION=$(shell git describe --tags)
+export VERSION = $(shell git describe --tags)
 endif
-
 
 app: main.go $(SOURCES)
 	$(BUILD) -tags $(ENV) -o bin/$@ ./main.go
@@ -38,6 +37,9 @@ cli: bootstrap votes keys
 
 clean:
 	$(RM) bin/*
+	$(RM) -rf docker/bin
+	$(RM) -rf docker/templates
+	$(RM) -rf docker/assets
 	$(RM) -rf docker/app/bin
 	$(RM) -rf docker/app/templates
 	$(RM) -rf docker/app/assets
