@@ -29,6 +29,7 @@ const (
 	templateDir = "templates/"
 )
 
+var Version string = ""
 var SessionStore sessions.Store
 var ShowItemData = false
 
@@ -106,6 +107,7 @@ func init() {
 			"ScoreFmt":          scoreFmt,
 			"YayLink":           YayLink,
 			"NayLink":           NayLink,
+			"version":           func() string { return Version },
 		}},
 		Delims:         render.Delims{"{{", "}}"},
 		Charset:        "UTF-8",

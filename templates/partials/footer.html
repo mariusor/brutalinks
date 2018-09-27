@@ -1,6 +1,7 @@
 <menu id="bottom" class="col text-right">
     <li><a href="https://github.com/mariusor/littr.go"><i class="github-icon"></i> Source</a></li>
     <li>Licensed under <a href="https://github.com/mariusor/littr.go/blob/master/LICENSE">MIT</a></li>
+    {{if version }}<li id="version">running <a href="https://github.com/mariusor/littr.go/commits/{{version}}">{{version}}</a></li>{{end}}
 </menu>
 {{- $account := CurrentAccount -}}
 {{/*<script type="application/json" id="flashMessages">{{LoadFlashMessages}}</script>*/}}

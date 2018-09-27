@@ -42,6 +42,7 @@ func loadEnv(l *frontend.Littr) (bool, error) {
 	listenPort, _ = strconv.ParseInt(os.Getenv("PORT"), 10, 64)
 	listenOn = os.Getenv("LISTEN")
 
+	frontend.Version = os.Getenv("VERSION")
 	env := frontend.EnvType(os.Getenv("ENV"))
 	if !frontend.ValidEnv(env) {
 		env = frontend.DEV
