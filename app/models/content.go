@@ -185,7 +185,7 @@ func (c item) GetDomain() string {
 func loadItems(db *sql.DB, filter LoadItemsFilter) (ItemCollection, error) {
 	items := make(ItemCollection, 0)
 
-	wheres, whereValues := filter.GetWhereClauses()
+	wheres, whereValues := filter.GetWhereClauses("content_items", "accounts")
 	var fullWhere string
 	if len(wheres) == 0 {
 		fullWhere = " true"
@@ -240,7 +240,7 @@ func loadItems(db *sql.DB, filter LoadItemsFilter) (ItemCollection, error) {
 }
 
 func loadItem(db *sql.DB, filter LoadItemsFilter) (Item, error) {
-	wheres, whereValues := filter.GetWhereClauses()
+	wheres, whereValues := filter.GetWhereClauses("content_items", "accounts")
 
 	p := item{}
 	a := account{}

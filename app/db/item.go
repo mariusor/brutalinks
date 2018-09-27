@@ -1,6 +1,7 @@
 package db
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
 	"time"
@@ -36,11 +37,29 @@ func ItemFlags(f FlagBits) models.FlagBits {
 	return VoteFlags(f)
 }
 
+func getAncestorKey(path []byte, cnt int) (Key, bool) {
+	if path == nil {
+		return Key{}, false
+	}
+	elem := bytes.Split(path, []byte("."))
+	l := len(elem)
+	if cnt > l || cnt < 0 {
+		cnt = l
+	}
+	var k Key
+	i := copy(k[:], elem[l-cnt][0:64])
+	return k, i == 64
+}
+
+func GetParentKey(i Item) (Key, bool) {
+	return getAncestorKey(i.Path, 1)
+}
+func GetOPKey(i Item) (Key, bool) {
+	return getAncestorKey(i.Path, -1)
+}
 func (i Item) Model() models.Item {
 	a := i.Author().Model()
-	fp := append(i.Path, byte('.'))
-	fp = append(fp, i.Key.Bytes()...)
-	return models.Item{
+	res := models.Item{
 		MimeType:    i.MimeType,
 		SubmittedAt: i.SubmittedAt,
 		SubmittedBy: &a,
@@ -52,11 +71,23 @@ func (i Item) Model() models.Item {
 		Title:       string(i.Title),
 		Score:       i.Score,
 		UpdatedAt:   i.UpdatedAt,
-		Parent:      nil,
-		OP:          nil,
-		FullPath:    fp,
 		IsTop:       len(i.Path) == 0,
 	}
+	if len(i.Path) > 0 {
+		res.FullPath = append(i.Path, byte('.'))
+		res.FullPath = append(res.FullPath, i.Key.Bytes()...)
+	}
+	if pKey, ok := GetParentKey(i); ok {
+		res.Parent = &models.Item{
+			Hash: pKey.Hash(),
+		}
+		if opKey, ok := GetOPKey(i); ok && pKey != opKey {
+			res.OP = &models.Item{
+				Hash: opKey.Hash(),
+			}
+		}
+	}
+	return res
 }
 
 type ItemCollection []Item
@@ -123,7 +154,7 @@ func (i itemsView) item() Item {
 }
 
 func loadItems(db *sqlx.DB, f models.LoadItemsFilter) (models.ItemCollection, error) {
-	wheres, whereValues := f.GetWhereClauses()
+	wheres, whereValues := f.GetWhereClauses("item", "author")
 	var fullWhere string
 
 	if len(wheres) == 0 {
@@ -144,6 +175,7 @@ func loadItems(db *sqlx.DB, f models.LoadItemsFilter) (models.ItemCollection, er
 		"item"."submitted_by" as "item_submitted_by",
 		"item"."flags" as "item_flags",
 		"item"."metadata" as "item_metadata",
+		"item"."path" as "item_path",
 		"author"."id" as "author_id",
 		"author"."key" as "author_key",
 		"author"."handle" as "author_handle",

@@ -25,6 +25,7 @@ func Repository(next http.Handler) http.Handler {
 type MatchType int
 type ItemType string
 type VoteType string
+type Tristate byte
 
 const (
 	MatchEquals = MatchType(1 << iota)
@@ -116,14 +117,14 @@ func (f LoadVotesFilter) GetWhereClauses() ([]string, []interface{}) {
 	return wheres, whereValues
 }
 
-func (filter LoadItemsFilter) GetWhereClauses() ([]string, []interface{}) {
+func (filter LoadItemsFilter) GetWhereClauses(it string, acc string) ([]string, []interface{}) {
 	wheres := make([]string, 0)
 	whereValues := make([]interface{}, 0)
 	counter := 1
 	if len(filter.Key) > 0 {
 		keyWhere := make([]string, 0)
 		for _, hash := range filter.Key {
-			keyWhere = append(keyWhere, fmt.Sprintf(`"content_items"."key" ~* $%d`, counter))
+			keyWhere = append(keyWhere, fmt.Sprintf(`"%s"."key" ~* $%d`, it, counter))
 			whereValues = append(whereValues, interface{}(hash))
 			counter += 1
 		}
@@ -132,8 +133,8 @@ func (filter LoadItemsFilter) GetWhereClauses() ([]string, []interface{}) {
 	if len(filter.AttributedTo) > 0 {
 		attrWhere := make([]string, 0)
 		for _, v := range filter.AttributedTo {
-			attrWhere = append(attrWhere, fmt.Sprintf(`"accounts"."key" ~* $%d`, counter))
-			attrWhere = append(attrWhere, fmt.Sprintf(`"accounts"."handle" = $%d`, counter))
+			attrWhere = append(attrWhere, fmt.Sprintf(`"%s"."key" ~* $%d`, acc, counter))
+			attrWhere = append(attrWhere, fmt.Sprintf(`"%s"."handle" = $%d`, acc, counter))
 			whereValues = append(whereValues, interface{}(v))
 			counter += 1
 		}
@@ -144,12 +145,12 @@ func (filter LoadItemsFilter) GetWhereClauses() ([]string, []interface{}) {
 		ctxtWhere := make([]string, 0)
 		for _, ctxtHash := range filter.Context {
 			if ctxtHash == ContextNil || ctxtHash == "" {
-				ctxtWhere = append(ctxtWhere, `"content_items"."path" is NULL OR nlevel("content_items"."path") = 0`)
+				ctxtWhere = append(ctxtWhere, fmt.Sprintf(`"%s"."path" is NULL OR nlevel("%s"."path") = 0`, it, it))
 				break
 			}
-			ctxtWhere = append(ctxtWhere, fmt.Sprintf(`("content_items"."path" <@ (select
+			ctxtWhere = append(ctxtWhere, fmt.Sprintf(`("%s"."path" <@ (select
 CASE WHEN path is null THEN key::ltree ELSE ltree_addltree(path, key::ltree) END
-from "content_items" where key ~* $%d) AND "content_items"."path" IS NOT NULL)`, counter))
+from "content_items" where key ~* $%d) AND "%s"."path" IS NOT NULL)`, it, counter, it))
 			whereValues = append(whereValues, interface{}(ctxtHash))
 			counter += 1
 		}
@@ -161,9 +162,9 @@ from "content_items" where key ~* $%d) AND "content_items"."path" IS NOT NULL)`,
 			if len(hash) == 0 {
 				continue
 			}
-			whereColumns = append(whereColumns, fmt.Sprintf(`("content_items"."path" <@ (select
+			whereColumns = append(whereColumns, fmt.Sprintf(`("%s"."path" <@ (select
 CASE WHEN path is null THEN key::ltree ELSE ltree_addltree(path, key::ltree) END
-from "content_items" where key ~* $%d) AND "content_items"."path" IS NOT NULL)`, counter))
+from "%s" where key ~* $%d) AND "%s"."path" IS NOT NULL)`, it, it, counter, it))
 			whereValues = append(whereValues, interface{}(hash))
 			counter += 1
 		}
@@ -178,10 +179,10 @@ from "content_items" where key ~* $%d) AND "content_items"."path" IS NOT NULL)`,
 		if filter.ContentMatchType == MatchEquals {
 			operator = "="
 		}
-		contentWhere = append(contentWhere, fmt.Sprintf(`"content_items"."title" %s $%d`, operator, counter))
+		contentWhere = append(contentWhere, fmt.Sprintf(`"%s"."title" %s $%d`, it, operator, counter))
 		whereValues = append(whereValues, interface{}(filter.Content))
 		counter += 1
-		contentWhere = append(contentWhere, fmt.Sprintf(`"content_items"."data" %s $%d`, operator, counter))
+		contentWhere = append(contentWhere, fmt.Sprintf(`"%s"."data" %s $%d`, it, operator, counter))
 		whereValues = append(whereValues, interface{}(filter.Content))
 		counter += 1
 		wheres = append(wheres, fmt.Sprintf("(%s)", strings.Join(contentWhere, " OR ")))
@@ -189,7 +190,7 @@ from "content_items" where key ~* $%d) AND "content_items"."path" IS NOT NULL)`,
 	if len(filter.MediaType) > 0 {
 		mediaWhere := make([]string, 0)
 		for _, v := range filter.MediaType {
-			mediaWhere = append(mediaWhere, fmt.Sprintf(`"content_items"."mime_type" = $%d`, counter))
+			mediaWhere = append(mediaWhere, fmt.Sprintf(`"%s"."mime_type" = $%d`, it, counter))
 			whereValues = append(whereValues, interface{}(v))
 			counter += 1
 		}
@@ -201,7 +202,7 @@ from "content_items" where key ~* $%d) AND "content_items"."path" IS NOT NULL)`,
 	} else {
 		eqOp = "!="
 	}
-	whereDeleted := fmt.Sprintf(`"content_items"."flags" & $%d::bit(8) %s $%d::bit(8)`, counter, eqOp, counter)
+	whereDeleted := fmt.Sprintf(`"%s"."flags" & $%d::bit(8) %s $%d::bit(8)`, it, counter, eqOp, counter)
 	whereValues = append(whereValues, interface{}(FlagsDeleted))
 	counter += 1
 	wheres = append(wheres, fmt.Sprintf("%s", whereDeleted))
