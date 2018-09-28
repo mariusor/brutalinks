@@ -1,11 +1,14 @@
 package main
 
 import (
-	"database/sql"
 	"flag"
 	"fmt"
 	"os"
 	"time"
+
+	"github.com/jmoiron/sqlx"
+
+	"github.com/mariusor/littr.go/app/db"
 
 	log "github.com/sirupsen/logrus"
 
@@ -15,7 +18,6 @@ import (
 )
 
 var defaultSince, _ = time.ParseDuration("90h")
-var db *sql.DB
 
 func init() {
 	dbPw := os.Getenv("DB_PASSWORD")
@@ -25,11 +27,10 @@ func init() {
 	var err error
 	connStr := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable", dbUser, dbPw, dbName)
 
-	models.Config.DB, err = sql.Open("postgres", connStr)
+	db.Config.DB, err = sqlx.Connect("postgres", connStr)
 	if err != nil {
 		log.WithFields(log.Fields{}).Error(err)
 	}
-
 }
 
 func main() {
@@ -60,9 +61,9 @@ func main() {
 				val = key
 			}
 		}
-		scores, err = models.LoadScoresForAccounts(since, which, val)
+		scores, err = db.LoadScoresForAccounts(since, which, val)
 	} else if items {
-		scores, err = models.LoadScoresForItems(since, key)
+		scores, err = db.LoadScoresForItems(since, key)
 	}
 	if err != nil {
 		panic(err)
@@ -75,7 +76,7 @@ func main() {
 		} else {
 			upd = `update "accounts" set score = $1 where id = $2;`
 		}
-		_, err := models.Config.DB.Exec(upd, score.Score, score.Id)
+		_, err := db.Config.DB.Exec(upd, score.Score, score.ID)
 		if err != nil {
 			panic(err)
 		}

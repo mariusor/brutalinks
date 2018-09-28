@@ -1,12 +1,17 @@
 package db
 
 import (
+	"context"
 	"database/sql/driver"
 	"encoding/json"
+	"fmt"
+	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/mariusor/littr.go/app/models"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/jmoiron/sqlx/types"
@@ -21,6 +26,16 @@ type config struct {
 // to an unexported one. First we need to decouple the DB config from the repository struct to a config struct
 var Config config
 
+// Repository middleware
+func Repository(next http.Handler) http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		newCtx := context.WithValue(ctx, models.RepositoryCtxtKey, Config)
+		next.ServeHTTP(w, r.WithContext(newCtx))
+	}
+	return http.HandlerFunc(fn)
+}
+
 type (
 	Key      [64]byte
 	FlagBits [8]byte
@@ -28,7 +43,7 @@ type (
 )
 
 func (k Key) Hash() models.Hash {
-	return models.Hash(k[0:8])
+	return models.Hash(k[0:10])
 }
 func (k Key) String() string {
 	return string(k[0:64])
@@ -98,9 +113,9 @@ func (a Account) Model() models.Account {
 	m := AccountMetadata(a.Metadata)
 	f := AccountFlags(a.Flags)
 	return models.Account{
+		Hash:      a.Key.Hash(),
 		Email:     string(a.Email),
 		Handle:    a.Handle,
-		Hash:      a.Key.Hash(),
 		CreatedAt: a.CreatedAt,
 		UpdatedAt: a.UpdatedAt,
 		Score:     a.Score,
@@ -192,8 +207,11 @@ func (c config) LoadItem(f models.LoadItemsFilter) (models.Item, error) {
 	if err != nil {
 		return models.Item{}, err
 	}
-	v, err := items.First()
-	return *v, err
+	if i, err := items.First(); err == nil {
+		return *i, nil
+	} else {
+		return models.Item{}, err
+	}
 }
 
 func (c config) LoadItems(f models.LoadItemsFilter) (models.ItemCollection, error) {
@@ -201,7 +219,16 @@ func (c config) LoadItems(f models.LoadItemsFilter) (models.ItemCollection, erro
 }
 
 func (c config) LoadAccount(f models.LoadAccountsFilter) (models.Account, error) {
-	return loadAccount(c.DB, f)
+	f.MaxItems = 1
+	accounts, err := loadAccounts(c.DB, f)
+	if err != nil {
+		return models.Account{}, err
+	}
+	if a, err := accounts.First(); err == nil {
+		return *a, nil
+	} else {
+		return models.Account{}, err
+	}
 }
 
 func (c config) LoadAccounts(f models.LoadAccountsFilter) (models.AccountCollection, error) {
@@ -210,4 +237,103 @@ func (c config) LoadAccounts(f models.LoadAccountsFilter) (models.AccountCollect
 
 func (c config) SaveAccount(a models.Account) (models.Account, error) {
 	return saveAccount(c.DB, a)
+}
+
+func LoadScoresForItems(since time.Duration, key string) ([]models.Score, error) {
+	return loadScoresForItems(Config.DB, since, key)
+}
+
+func loadScoresForItems(db *sqlx.DB, since time.Duration, key string) ([]models.Score, error) {
+	par := make([]interface{}, 0)
+	par = append(par, interface{}(since.Hours()))
+
+	keyClause := ""
+	if len(key) > 0 {
+		keyClause = ` and "content_items"."key" ~* $2`
+		par = append(par, interface{}(key))
+	}
+	q := fmt.Sprintf(`select "item_id", "content_items"."key", max("content_items"."submitted_at"),
+		sum(CASE WHEN "weight" > 0 THEN "weight" ELSE 0 END) AS "ups",
+		sum(CASE WHEN "weight" < 0 THEN abs("weight") ELSE 0 END) AS "downs"
+		from "votes" inner join "content_items" on "content_items"."id" = "item_id"
+		where current_timestamp - "content_items"."submitted_at" < ($1 * INTERVAL '1 hour')%s group by "item_id", "key" order by "item_id";`,
+		keyClause)
+	rows, err := db.Query(q, par...)
+	if err != nil {
+		return nil, err
+	}
+	scores := make([]models.Score, 0)
+	for rows.Next() {
+		var i, ups, downs int64
+		var submitted time.Time
+		var key []byte
+		err = rows.Scan(&i, &key, &submitted, &ups, &downs)
+
+		now := time.Now()
+		reddit := int64(models.Reddit(ups, downs, now.Sub(submitted)))
+		wilson := int64(models.Wilson(ups, downs))
+		hacker := int64(models.Hacker(ups-downs, now.Sub(submitted)))
+		log.WithFields(log.Fields{}).Infof("Votes[%s]: UPS[%d] DOWNS[%d] - new score %d:%d:%d", key, ups, downs, reddit, wilson, hacker)
+		new := models.Score{
+			ID:        i,
+			Key:       key,
+			Submitted: submitted,
+			Type:      models.ScoreAccount,
+			Score:     hacker,
+		}
+		scores = append(scores, new)
+	}
+	return scores, nil
+}
+
+func LoadScoresForAccounts(since time.Duration, col string, val string) ([]models.Score, error) {
+	return loadScoresForAccounts(Config.DB, since, col, val)
+}
+
+func loadScoresForAccounts(db *sqlx.DB, since time.Duration, col string, val string) ([]models.Score, error) {
+	par := make([]interface{}, 0)
+	par = append(par, interface{}(since.Hours()))
+
+	keyClause := ""
+	if len(val) > 0 && len(col) > 0 {
+		keyClause = fmt.Sprintf(` and "content_items"."%s" ~* $2`, col)
+		par = append(par, interface{}(val))
+	}
+	q := fmt.Sprintf(`select "accounts"."id", "accounts"."handle", "accounts"."key", max("content_items"."submitted_at"),
+       sum(CASE WHEN "weight" > 0 THEN "weight" ELSE 0 END) AS "ups",
+       sum(CASE WHEN "weight" < 0 THEN abs("weight") ELSE 0 END) AS "downs"
+from "votes"
+       inner join "content_items" on "content_items"."id" = "item_id"
+       inner join "accounts" on "content_items"."submitted_by" = "accounts"."id"
+where current_timestamp - "content_items"."submitted_at" < ($1 * INTERVAL '1 hour')%s
+group by "accounts"."id", "accounts"."key" order by "accounts"."id";`,
+		keyClause)
+	rows, err := db.Query(q, par...)
+	if err != nil {
+		return nil, err
+	}
+
+	scores := make([]models.Score, 0)
+	for rows.Next() {
+		var i, ups, downs int64
+		var submitted time.Time
+		var key []byte
+		var handle string
+		err = rows.Scan(&i, &handle, &key, &submitted, &ups, &downs)
+
+		now := time.Now()
+		reddit := int64(models.Reddit(ups, downs, now.Sub(submitted)))
+		wilson := int64(models.Wilson(ups, downs))
+		hacker := int64(models.Hacker(ups-downs, now.Sub(submitted)))
+		log.WithFields(log.Fields{}).Infof("Votes[%s]: UPS[%d] DOWNS[%d] - new score %d:%d:%d", handle, ups, downs, reddit, wilson, hacker)
+		new := models.Score{
+			ID:        i,
+			Key:       key,
+			Submitted: submitted,
+			Type:      models.ScoreAccount,
+			Score:     wilson,
+		}
+		scores = append(scores, new)
+	}
+	return scores, nil
 }

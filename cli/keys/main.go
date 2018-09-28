@@ -4,13 +4,16 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/x509"
-	"database/sql"
 	"encoding/base64"
 	"errors"
 	"flag"
 	"fmt"
 	"math/rand"
 	"os"
+
+	"github.com/jmoiron/sqlx"
+
+	"github.com/mariusor/littr.go/app/db"
 
 	_ "github.com/lib/pq"
 	"github.com/mariusor/littr.go/app/models"
@@ -22,13 +25,12 @@ func init() {
 	dbName := os.Getenv("DB_NAME")
 	dbUser := os.Getenv("DB_USER")
 
+	var err error
 	connStr := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable", dbUser, dbPw, dbName)
-	db, err := sql.Open("postgres", connStr)
+	db.Config.DB, err = sqlx.Open("postgres", connStr)
 	if err != nil {
 		log.Print(err)
 	}
-
-	models.Config.DB = db
 }
 
 func e(err error) {
@@ -49,7 +51,7 @@ func main() {
 		err := errors.New("no seed value provided")
 		e(err)
 	}
-	loader := models.Config
+	loader := db.Config
 	filter := models.LoadAccountsFilter{}
 	if len(handle) != 0 {
 		filter.Handle = []string{handle}
@@ -99,16 +101,16 @@ func main() {
 			continue
 		}
 		acct.Metadata.Key = &models.SSHKey{
-			Id:      "id-ecdsa",
+			ID:      "id-ecdsa",
 			Public:  pub,
 			Private: priv,
 		}
-		s, err := models.UpdateAccount(models.Config.DB, acct)
+		s, err := db.UpdateAccount(db.Config.DB, acct)
 		if err != nil {
 			log.Error(err)
 			continue
 		}
 		log.WithFields(log.Fields{}).
-			Infof("Updated Key for %s:%s//%d - %s:%s", s.Handle, s.Hash[0:8], len(s.Hash), s.Metadata.Key.Id, base64.StdEncoding.EncodeToString(s.Metadata.Key.Public))
+			Infof("Updated Key for %s:%s//%d - %s:%s", s.Handle, s.Hash[0:8], len(s.Hash), s.Metadata.Key.ID, base64.StdEncoding.EncodeToString(s.Metadata.Key.Public))
 	}
 }

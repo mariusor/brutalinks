@@ -1,6 +1,9 @@
 package db
 
 import (
+	"encoding/json"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -20,14 +23,53 @@ type Account struct {
 	Metadata  Metadata  `db:"metadata"`
 }
 
-func loadAccount(db *sqlx.DB, f models.LoadAccountsFilter) (models.Account, error) {
-	return models.Account{}, errors.New("not implemented")
-}
-
 func loadAccounts(db *sqlx.DB, f models.LoadAccountsFilter) (models.AccountCollection, error) {
-	return nil, errors.New("not implemented")
+	wheres, whereValues := f.GetWhereClauses()
+
+	var fullWhere string
+	if len(wheres) > 0 {
+		fullWhere = fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(wheres, " AND ")))
+	} else {
+		fullWhere = " true"
+	}
+	sel := fmt.Sprintf(`select 
+		"id", "key", "handle", "email", "score", "created_at", "updated_at", "metadata", "flags"
+	from "accounts" where %s`, fullWhere)
+
+	agg := make([]Account, 0)
+	if err := db.Select(&agg, sel, whereValues...); err != nil {
+		return nil, err
+	}
+
+	udb := db.Unsafe()
+	if err := udb.Select(&agg, sel, whereValues...); err != nil {
+		return nil, err
+	}
+	accounts := make(models.AccountCollection, len(agg))
+	for k, acc := range agg {
+		accounts[k] = acc.Model()
+	}
+	return accounts, nil
 }
 
 func saveAccount(db *sqlx.DB, a models.Account) (models.Account, error) {
 	return a, errors.New("not implemented")
+}
+
+func UpdateAccount(db *sqlx.DB, a models.Account) (models.Account, error) {
+	jMetadata, err := json.Marshal(a.Metadata)
+	if err != nil {
+		return a, err
+	}
+	upd := `UPDATE "accounts" SET "score" = $1, "updated_at" = $2, "flags" = $3::bit(8), "metadata" = $4 where "key" ~* $5;`
+
+	if res, err := db.Exec(upd, a.Score, a.UpdatedAt, a.Flags, jMetadata, a.Hash); err == nil {
+		if rows, _ := res.RowsAffected(); rows == 0 {
+			return a, errors.Errorf("could not update account %s:%q", a.Handle, a.Hash)
+		}
+	} else {
+		return a, err
+	}
+
+	return a, nil
 }

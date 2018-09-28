@@ -2,18 +2,14 @@ package models
 
 import (
 	"crypto/sha256"
-	"database/sql"
-	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/juju/errors"
-	log "github.com/sirupsen/logrus"
 )
 
 type SSHKey struct {
-	Id      string `json:"id"`
+	ID      string `json:"id"`
 	Private []byte `json:"prv,omitempty"`
 	Public  []byte `json:"pub,omitempty"`
 }
@@ -23,19 +19,6 @@ type AccountMetadata struct {
 	Provider string  `json:"provider,omitempty"`
 	Salt     []byte  `json:"salt,omitempty"`
 	Key      *SSHKey `json:"key,omitempty"`
-}
-
-type account struct {
-	Id        int64     `orm:id,"auto"`
-	Key       Key       `orm:key`
-	Email     []byte    `orm:email`
-	Handle    string    `orm:handle`
-	Score     int64     `orm:score`
-	CreatedAt time.Time `orm:created_at`
-	UpdatedAt time.Time `orm:updated_at`
-	Flags     FlagBits  `orm:flags`
-	Metadata  []byte    `orm:metadata`
-	Votes     map[Key]vote
 }
 
 type AccountCollection []Account
@@ -70,26 +53,6 @@ func (a Account) IsValid() bool {
 	return len(a.Handle) > 0
 }
 
-func loadAccountFromModel(a account) Account {
-	acct := Account{
-		Hash:      a.Hash64(),
-		Flags:     a.Flags,
-		UpdatedAt: a.UpdatedAt,
-		Handle:    a.Handle,
-		Score:     int64(float64(a.Score) / ScoreMultiplier),
-		CreatedAt: a.CreatedAt,
-		Email:     string(a.Email),
-	}
-	if a.Metadata != nil {
-		err := json.Unmarshal(a.Metadata, &acct.Metadata)
-		if err != nil {
-			log.WithFields(log.Fields{}).Error(errors.NewErrWithCause(err, "unable to unmarshal account metadata"))
-		}
-	}
-
-	return acct
-}
-
 type Deletable interface {
 	Deleted() bool
 	Delete()
@@ -103,22 +66,6 @@ func (a *Account) VotedOn(i Item) *Vote {
 		}
 	}
 	return nil
-}
-
-func (a account) Hash() string {
-	return a.Hash8()
-}
-func (a account) Hash8() string {
-	return string(a.Key[0:8])
-}
-func (a account) Hash16() string {
-	return string(a.Key[0:16])
-}
-func (a account) Hash32() string {
-	return string(a.Key[0:32])
-}
-func (a account) Hash64() Hash {
-	return Hash(a.Key.String())
 }
 
 func (a Account) GetLink() string {
@@ -138,121 +85,6 @@ func GenKey(handle string) Key {
 
 func (a *Account) IsLogged() bool {
 	return a != nil && (!a.CreatedAt.IsZero())
-}
-
-func loadAccount(db *sql.DB, filter LoadAccountsFilter) (Account, error) {
-	wheres, whereValues := filter.GetWhereClauses()
-	a := account{}
-	var acct Account
-	var fullWhere string
-	if len(wheres) > 0 {
-		fullWhere = fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(wheres, " AND ")))
-	} else {
-		fullWhere = " true"
-	}
-	sel := fmt.Sprintf(`select 
-		"id", "key", "handle", "email", "score", "created_at", "updated_at", "metadata", "flags"
-	from "accounts" where %s`, fullWhere)
-	rows, err := db.Query(sel, whereValues...)
-	if err != nil {
-		return acct, err
-	}
-
-	var aKey []byte
-	for rows.Next() {
-		err = rows.Scan(&a.Id, &aKey, &a.Handle, &a.Email, &a.Score, &a.CreatedAt, &a.UpdatedAt, &a.Metadata, &a.Flags)
-		if err != nil {
-			return acct, err
-		}
-		a.Key.FromBytes(aKey)
-	}
-
-	acct = loadAccountFromModel(a)
-	if len(a.Handle) == 0 {
-		return acct, errors.Errorf("not found")
-	}
-	return acct, nil
-}
-
-func loadAccounts(db *sql.DB, filter LoadAccountsFilter) (AccountCollection, error) {
-	wheres, whereValues := filter.GetWhereClauses()
-	accounts := make(AccountCollection, 0)
-
-	a := account{}
-	var acct Account
-	var fullWhere string
-	if len(wheres) > 0 {
-		fullWhere = fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(wheres, " AND ")))
-	} else {
-		fullWhere = " true"
-	}
-	sel := fmt.Sprintf(`select 
-		"id", "key", "handle", "email", "score", "created_at", "updated_at", "metadata", "flags"
-	from "accounts" where %s`, fullWhere)
-	rows, err := db.Query(sel, whereValues...)
-	if err != nil {
-		return accounts, err
-	}
-
-	var aKey []byte
-	for rows.Next() {
-		err = rows.Scan(&a.Id, &aKey, &a.Handle, &a.Email, &a.Score, &a.CreatedAt, &a.UpdatedAt, &a.Metadata, &a.Flags)
-		if err != nil {
-			return accounts, err
-		}
-		if len(aKey) == 0 {
-			continue
-		}
-		a.Key.FromBytes(aKey)
-		acct = loadAccountFromModel(a)
-		accounts = append(accounts, acct)
-	}
-
-	return accounts, nil
-}
-
-func UpdateAccount(db *sql.DB, a Account) (Account, error) {
-	jMetadata, err := json.Marshal(a.Metadata)
-	if err != nil {
-		log.Error(err)
-	}
-	upd := `UPDATE "accounts" SET "score" = $1, "updated_at" = $2, "flags" = $3::bit(8), "metadata" = $4 where "key" ~* $5;`
-
-	if res, err := db.Exec(upd, a.Score, a.UpdatedAt, a.Flags, jMetadata, a.Hash); err == nil {
-		if rows, _ := res.RowsAffected(); rows == 0 {
-			return a, errors.Errorf("could not update account %s:%q", a.Handle, a.Hash)
-		}
-	} else {
-		return a, err
-	}
-
-	return a, nil
-}
-
-func saveAccount(db *sql.DB, a Account) (Account, error) {
-	return addAccount(db, a)
-}
-
-func addAccount(db *sql.DB, a Account) (Account, error) {
-	jMetadata, err := json.Marshal(a.Metadata)
-	if err != nil {
-		log.Error(err)
-	}
-	ins := `insert into "accounts" ("key", "handle", "email", "score", "created_at", "updated_at", "flags", "metadata") 
-	VALUES ($1, $2, $3, $4, $5, $6, $7::bit(8), $8)
-	ON CONFLICT("key") DO UPDATE
-		SET "score" = $4, "updated_at" = $6, "flags" = $7::bit(8), "metadata" = $8
-	`
-
-	if res, err := db.Exec(ins, a.Hash, a.Handle, a.Email, a.Score, a.CreatedAt, a.UpdatedAt, a.Flags, jMetadata); err == nil {
-		if rows, _ := res.RowsAffected(); rows == 0 {
-			return a, errors.Errorf("could not insert account %s:%q", a.Handle, a.Hash)
-		}
-	} else {
-		return a, err
-	}
-
-	return a, nil
 }
 
 func (a AccountCollection) First() (*Account, error) {

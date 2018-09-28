@@ -28,6 +28,9 @@ func apAccountID(a models.Account) ap.ObjectID {
 }
 
 func loadAPLike(vote models.Vote) ap.ObjectOrLink {
+	if vote.Weight == 0 {
+		return nil
+	}
 	id := BuildObjectIDFromItem(*vote.Item)
 	lID := BuildObjectIDFromVote(vote)
 	whomArt := ap.IRI(BuildActorHashID(*vote.SubmittedBy))
@@ -130,7 +133,9 @@ func loadAPLiked(o ap.CollectionInterface, votes models.VoteCollection) (ap.Coll
 	for _, vote := range votes {
 		el := loadAPLike(vote)
 
-		o.Append(el)
+		if el != nil {
+			o.Append(el)
+		}
 	}
 
 	return o, nil
@@ -172,7 +177,7 @@ func HandleAccountsCollection(w http.ResponseWriter, r *http.Request) {
 				}
 				data, err = json.WithContext(GetContext()).Marshal(col)
 			} else {
-				log.WithFields(log.Fields{}).Error(err)
+				log.WithFields(log.Fields{"trace": errors.Trace(err)}).Error(err)
 			}
 		}
 	}
@@ -193,7 +198,7 @@ func HandleAccount(w http.ResponseWriter, r *http.Request) {
 
 	j, err := json.WithContext(GetContext()).Marshal(p)
 	if err != nil {
-		log.WithFields(log.Fields{}).Error(err)
+		log.WithFields(log.Fields{"trace": errors.Trace(err)}).Error(err)
 		HandleError(w, r, http.StatusInternalServerError, err)
 		return
 	}
@@ -234,7 +239,7 @@ func HandleCollectionItem(w http.ResponseWriter, r *http.Request) {
 				MaxItems:  MaxContentItems,
 			})
 			if err != nil {
-				log.WithFields(log.Fields{}).Error(err)
+				log.WithFields(log.Fields{"trace": errors.Trace(err)}).Error(err)
 			}
 			if len(replies) > 0 {
 				if o, ok := el.(Article); ok {
@@ -244,15 +249,10 @@ func HandleCollectionItem(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	case "liked":
-		v, ok := val.(models.Vote)
-		if !ok {
+		if v, ok := val.(models.Vote); !ok {
 			log.WithFields(log.Fields{}).Errorf("could not load Vote from Context")
-			return
-		}
-		el = loadAPLike(v)
-		if err != nil {
-			HandleError(w, r, http.StatusNotFound, err)
-			return
+		} else {
+			el = loadAPLike(v)
 		}
 	default:
 		log.WithFields(log.Fields{}).Error(errors.Errorf("collection not found"))

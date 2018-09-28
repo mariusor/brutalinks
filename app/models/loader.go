@@ -1,26 +1,12 @@
 package models
 
 import (
-	"database/sql"
 	"fmt"
-	"net/http"
 	"strings"
 	"time"
-
-	"golang.org/x/net/context"
 )
 
 const RepositoryCtxtKey = "__repository"
-
-// Repository middleware
-func Repository(next http.Handler) http.Handler {
-	fn := func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		newCtx := context.WithValue(ctx, RepositoryCtxtKey, Config)
-		next.ServeHTTP(w, r.WithContext(newCtx))
-	}
-	return http.HandlerFunc(fn)
-}
 
 type MatchType int
 type ItemType string
@@ -82,7 +68,7 @@ func (f LoadVotesFilter) GetWhereClauses() ([]string, []interface{}) {
 		for _, v := range f.AttributedTo {
 			whereColumns = append(whereColumns, fmt.Sprintf(`"voter"."key" ~* $%d`, counter))
 			whereValues = append(whereValues, interface{}(v))
-			counter += 1
+			counter++
 		}
 		wheres = append(wheres, fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR ")))
 	}
@@ -97,7 +83,7 @@ func (f LoadVotesFilter) GetWhereClauses() ([]string, []interface{}) {
 				whereColumns = append(whereColumns, fmt.Sprintf(`"votes"."weight" < $%d`, counter))
 				whereValues = append(whereValues, interface{}(0))
 			}
-			counter += 1
+			counter++
 		}
 		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
 	}
@@ -108,9 +94,9 @@ func (f LoadVotesFilter) GetWhereClauses() ([]string, []interface{}) {
 			if len(h) == 0 {
 				continue
 			}
-			whereColumns = append(whereColumns, fmt.Sprintf(`"items"."key" ~* $%d`, counter))
+			whereColumns = append(whereColumns, fmt.Sprintf(`"item"."key" ~* $%d`, counter))
 			whereValues = append(whereValues, interface{}(h))
-			counter += 1
+			counter++
 		}
 		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
 	}
@@ -126,7 +112,7 @@ func (filter LoadItemsFilter) GetWhereClauses(it string, acc string) ([]string, 
 		for _, hash := range filter.Key {
 			keyWhere = append(keyWhere, fmt.Sprintf(`"%s"."key" ~* $%d`, it, counter))
 			whereValues = append(whereValues, interface{}(hash))
-			counter += 1
+			counter++
 		}
 		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(keyWhere, " OR "))))
 	}
@@ -136,7 +122,7 @@ func (filter LoadItemsFilter) GetWhereClauses(it string, acc string) ([]string, 
 			attrWhere = append(attrWhere, fmt.Sprintf(`"%s"."key" ~* $%d`, acc, counter))
 			attrWhere = append(attrWhere, fmt.Sprintf(`"%s"."handle" = $%d`, acc, counter))
 			whereValues = append(whereValues, interface{}(v))
-			counter += 1
+			counter++
 		}
 		wheres = append(wheres, fmt.Sprintf("(%s)", strings.Join(attrWhere, " OR ")))
 	}
@@ -148,11 +134,11 @@ func (filter LoadItemsFilter) GetWhereClauses(it string, acc string) ([]string, 
 				ctxtWhere = append(ctxtWhere, fmt.Sprintf(`"%s"."path" is NULL OR nlevel("%s"."path") = 0`, it, it))
 				break
 			}
-			ctxtWhere = append(ctxtWhere, fmt.Sprintf(`("%s"."path" <@ (select
-CASE WHEN path is null THEN key::ltree ELSE ltree_addltree(path, key::ltree) END
-from "content_items" where key ~* $%d) AND "%s"."path" IS NOT NULL)`, it, counter, it))
+			ctxtWhere = append(ctxtWhere, fmt.Sprintf(`("%s"."path" <@ (SELECT
+CASE WHEN "path" IS NULL THEN "key"::ltree ELSE ltree_addltree("path", "key"::ltree) END
+FROM "content_items" WHERE "key" ~* $%d) AND "%s"."path" IS NOT NULL)`, it, counter, it))
 			whereValues = append(whereValues, interface{}(ctxtHash))
-			counter += 1
+			counter++
 		}
 		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(ctxtWhere, " OR "))))
 	}
@@ -162,11 +148,11 @@ from "content_items" where key ~* $%d) AND "%s"."path" IS NOT NULL)`, it, counte
 			if len(hash) == 0 {
 				continue
 			}
-			whereColumns = append(whereColumns, fmt.Sprintf(`("%s"."path" <@ (select
-CASE WHEN path is null THEN key::ltree ELSE ltree_addltree(path, key::ltree) END
-from "%s" where key ~* $%d) AND "%s"."path" IS NOT NULL)`, it, it, counter, it))
+			whereColumns = append(whereColumns, fmt.Sprintf(`("%s"."path" <@ (SELECT
+CASE WHEN "path" IS NULL THEN "key"::ltree ELSE ltree_addltree("path", "key"::ltree) END
+FROM "content_items" WHERE "key" ~* $%d) AND "%s"."path" IS NOT NULL)`, it, counter, it))
 			whereValues = append(whereValues, interface{}(hash))
-			counter += 1
+			counter++
 		}
 		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
 	}
@@ -181,10 +167,10 @@ from "%s" where key ~* $%d) AND "%s"."path" IS NOT NULL)`, it, it, counter, it))
 		}
 		contentWhere = append(contentWhere, fmt.Sprintf(`"%s"."title" %s $%d`, it, operator, counter))
 		whereValues = append(whereValues, interface{}(filter.Content))
-		counter += 1
+		counter++
 		contentWhere = append(contentWhere, fmt.Sprintf(`"%s"."data" %s $%d`, it, operator, counter))
 		whereValues = append(whereValues, interface{}(filter.Content))
-		counter += 1
+		counter++
 		wheres = append(wheres, fmt.Sprintf("(%s)", strings.Join(contentWhere, " OR ")))
 	}
 	if len(filter.MediaType) > 0 {
@@ -192,7 +178,7 @@ from "%s" where key ~* $%d) AND "%s"."path" IS NOT NULL)`, it, it, counter, it))
 		for _, v := range filter.MediaType {
 			mediaWhere = append(mediaWhere, fmt.Sprintf(`"%s"."mime_type" = $%d`, it, counter))
 			whereValues = append(whereValues, interface{}(v))
-			counter += 1
+			counter++
 		}
 		wheres = append(wheres, fmt.Sprintf("(%s)", strings.Join(mediaWhere, " OR ")))
 	}
@@ -204,7 +190,7 @@ from "%s" where key ~* $%d) AND "%s"."path" IS NOT NULL)`, it, it, counter, it))
 	}
 	whereDeleted := fmt.Sprintf(`"%s"."flags" & $%d::bit(8) %s $%d::bit(8)`, it, counter, eqOp, counter)
 	whereValues = append(whereValues, interface{}(FlagsDeleted))
-	counter += 1
+	counter++
 	wheres = append(wheres, fmt.Sprintf("%s", whereDeleted))
 
 	return wheres, whereValues
@@ -220,7 +206,7 @@ func (f LoadAccountsFilter) GetWhereClauses() ([]string, []interface{}) {
 		for _, hash := range f.Key {
 			whereColumns = append(whereColumns, fmt.Sprintf(`"accounts"."key" ~* $%d`, counter))
 			whereValues = append(whereValues, interface{}(hash))
-			counter += 1
+			counter++
 		}
 		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
 	}
@@ -229,7 +215,7 @@ func (f LoadAccountsFilter) GetWhereClauses() ([]string, []interface{}) {
 		for _, handle := range f.Handle {
 			whereColumns = append(whereColumns, fmt.Sprintf(`"accounts"."handle" ~* $%d`, counter))
 			whereValues = append(whereValues, interface{}(handle))
-			counter += 1
+			counter++
 		}
 		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
 	}
@@ -252,6 +238,20 @@ type CanLoadVotes interface {
 }
 
 type CanSaveVotes interface {
+	// SaveVote adds a vote to the p content item
+	//   const {
+	//      add_vote = "add_vote"
+	//      delete = "delete"
+	//   }
+	//   type queue_message struct {
+	//       type    string
+	//       payload json.RawMessage
+	//   }
+	// Ideally this should be done asynchronously pushing an add_vote message to our
+	// messaging queue. Details of this queue to be established (strongest possibility is Redis PubSub)
+	// The cli/votes/main.go script would be responsible with waiting on the queue for these messages
+	// and updating the new score and all models dependent on it.
+	//   content_items and accounts tables, corresponding ES documents, etc
 	SaveVote(v Vote) (Vote, error)
 }
 
@@ -262,54 +262,4 @@ type CanLoadAccounts interface {
 
 type CanSaveAccounts interface {
 	SaveAccount(a Account) (Account, error)
-}
-
-// I think we can move from using the exported Config package variable
-// to an unexported one. First we need to decouple the DB config from the repository struct to a config struct
-var Config repository
-
-type repository struct {
-	DB *sql.DB
-}
-
-func (l repository) SaveItem(it Item) (Item, error) {
-	return saveItem(l.DB, it)
-}
-
-func (l repository) LoadItem(f LoadItemsFilter) (Item, error) {
-	return loadItem(l.DB, f)
-}
-
-func (l repository) LoadItems(f LoadItemsFilter) (ItemCollection, error) {
-	return loadItems(l.DB, f)
-}
-
-func (l repository) SaveVote(v Vote) (Vote, error) {
-	return saveVote(l.DB, v)
-}
-
-func (l repository) LoadVotes(f LoadVotesFilter) (VoteCollection, error) {
-	return loadVotes(l.DB, f)
-}
-
-func (l repository) LoadVote(f LoadVotesFilter) (Vote, error) {
-	f.MaxItems = 1
-	votes, err := loadVotes(l.DB, f)
-	if err != nil {
-		return Vote{}, err
-	}
-	v, err := votes.First()
-	return *v, err
-}
-
-func (l repository) LoadAccount(f LoadAccountsFilter) (Account, error) {
-	return loadAccount(l.DB, f)
-}
-
-func (l repository) LoadAccounts(f LoadAccountsFilter) (AccountCollection, error) {
-	return loadAccounts(l.DB, f)
-}
-
-func (l repository) SaveAccount(a Account) (Account, error) {
-	return saveAccount(l.DB, a)
 }

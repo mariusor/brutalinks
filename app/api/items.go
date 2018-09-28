@@ -73,7 +73,7 @@ func UpdateItem(w http.ResponseWriter, r *http.Request) {
 	if repository, ok := ctxt.(models.CanSaveVotes); ok {
 		newVot, err := repository.SaveVote(v)
 		if err != nil {
-			log.WithFields(log.Fields{}).Error(err)
+			log.WithFields(log.Fields{"saveVote": v.SubmittedBy.Hash}).Error(err)
 			HandleError(w, r, http.StatusInternalServerError, err)
 			return
 		}

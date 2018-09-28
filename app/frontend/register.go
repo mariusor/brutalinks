@@ -11,6 +11,7 @@ import (
 	"github.com/juju/errors"
 
 	"github.com/gorilla/securecookie"
+	"github.com/mariusor/littr.go/app/db"
 	"github.com/mariusor/littr.go/app/models"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -66,7 +67,8 @@ func AccountFromRequest(r *http.Request) (*models.Account, []error) {
 		Password: savpw,
 	}
 
-	a, err = models.Config.SaveAccount(a)
+	a, err = db.Config.SaveAccount(a)
+	log.WithFields(log.Fields{}).Warnf("using hardcoded db.Config.SaveAccount")
 	if err != nil {
 		log.WithFields(log.Fields{}).Error(err)
 		return nil, []error{err}

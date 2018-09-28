@@ -9,6 +9,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/juju/errors"
 	"github.com/mariusor/littr.go/app/models"
+	log "github.com/sirupsen/logrus"
 )
 
 type VoteCollection map[Key]Vote
@@ -33,7 +34,7 @@ func (v Vote) Item() *Item {
 }
 
 func VoteFlags(f FlagBits) models.FlagBits {
-	var ab uint8 = 0
+	var ab uint8
 	for _, b := range f {
 		ab = ab & uint8(b)
 	}
@@ -45,6 +46,9 @@ func (v Vote) Model() models.Vote {
 	voter := v.Voter().Model()
 	return models.Vote{
 		Item:        &it,
+		Weight:      v.Weight,
+		UpdatedAt:   v.UpdatedAt,
+		SubmittedAt: v.SubmittedAt,
 		SubmittedBy: &voter,
 		Flags:       VoteFlags(v.Flags),
 	}
@@ -59,40 +63,40 @@ func loadVotes(db *sqlx.DB, filter models.LoadVotesFilter) (models.VoteCollectio
 
 	fullWhere := fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(wheres, " AND ")))
 	selC := fmt.Sprintf(`select
-	   "vote"."id" as "vote_id",
-	   	"vote"."weight" as "vote_weight",
-	   	"vote"."submitted_at" as "vote_submitted_at",
-	   	"vote"."flags" as "vote_flags",
-	   	"item"."id" as "item_id",
-	   	"item"."key" as "item_key",
-	   	"item"."mime_type" as "item_mime_type",
-	   	"item"."data" as "item_data",
-	   	"item"."title" as "item_title",
-	   	"item"."score" as "item_score",
-	   	"item"."submitted_at" as "item_submitted_at",
-	   	"item"."submitted_by" as "item_submitted_by",
-	   	"item"."flags" as "item_flags",
-	   	"item"."metadata" as "item_metadata",
-	   	"voter"."id" as "voter_id",
-	   	"voter"."key" as "voter_key",
-	   	"voter"."handle" as "voter_handle",
-	   	"voter"."email" as "voter_email",
-	   	"voter"."score" as "voter_score",
-	   	"voter"."created_at" as "voter_created_at",
-	   	"voter"."metadata" as "voter_metadata",
-	   	"voter"."flags" as "voter_flags",
+		"vote"."id" as "vote_id",
+		"vote"."weight" as "vote_weight",
+		"vote"."submitted_at" as "vote_submitted_at",
+		"vote"."flags" as "vote_flags",
+		"item"."id" as "item_id",
+		"item"."key" as "item_key",
+		"item"."mime_type" as "item_mime_type",
+		"item"."data" as "item_data",
+		"item"."title" as "item_title",
+		"item"."score" as "item_score",
+		"item"."submitted_at" as "item_submitted_at",
+		"item"."submitted_by" as "item_submitted_by",
+		"item"."flags" as "item_flags",
+		"item"."metadata" as "item_metadata",
+		"voter"."id" as "voter_id",
+		"voter"."key" as "voter_key",
+		"voter"."handle" as "voter_handle",
+		"voter"."email" as "voter_email",
+		"voter"."score" as "voter_score",
+		"voter"."created_at" as "voter_created_at",
+		"voter"."metadata" as "voter_metadata",
+		"voter"."flags" as "voter_flags",
 		"author"."id" as "author_id",
-	   	"author"."key" as "author_key",
-	   	"author"."handle" as "author_handle",
-	   	"author"."email" as "author_email",
-	   	"author"."score" as "author_score",
-	   	"author"."created_at" as "author_created_at",
-	   	"author"."metadata" as "author_metadata",
-	   	"author"."flags" as "author_flags"
+		"author"."key" as "author_key",
+		"author"."handle" as "author_handle",
+		"author"."email" as "author_email",
+		"author"."score" as "author_score",
+		"author"."created_at" as "author_created_at",
+		"author"."metadata" as "author_metadata",
+		"author"."flags" as "author_flags"
 	from "votes" as "vote"
-       inner join "accounts" as "voter" on "voter"."id" = "vote"."submitted_by"
-       inner join "content_items" as "item" on "item"."id" = "vote"."item_id" 
-	   inner join "accounts" as "author" on "item"."submitted_by" = "author"."id"
+		inner join "accounts" as "voter" on "voter"."id" = "vote"."submitted_by"
+		inner join "content_items" as "item" on "item"."id" = "vote"."item_id" 
+		inner join "accounts" as "author" on "item"."submitted_by" = "author"."id"
 where %s order by "vote"."submitted_at" desc limit %d`, fullWhere, filter.MaxItems)
 	agg := make([]votesView, 0)
 	udb := db.Unsafe()
@@ -109,13 +113,13 @@ where %s order by "vote"."submitted_at" desc limit %d`, fullWhere, filter.MaxIte
 }
 
 type votesView struct {
-	VoteId          int64     `db:"vote_id"`
+	VoteID          int64     `db:"vote_id"`
 	VoteSubmittedBy int64     `db:"vote_submitted_by"`
 	VoteSubmittedAt time.Time `db:"vote_submitted_at"`
 	VoteUpdatedAt   time.Time `db:"vote_updated_at"`
 	Weight          int       `db:"vote_weight"`
 	VoteFlags       FlagBits  `db:"vote_flags"`
-	ItemId          int64     `db:"item_id,"auto"`
+	ItemID          int64     `db:"item_id,"auto"`
 	ItemKey         Key       `db:"item_key,size(64)"`
 	Title           []byte    `db:"item_title"`
 	MimeType        string    `db:"item_mime_type"`
@@ -127,7 +131,7 @@ type votesView struct {
 	ItemFlags       FlagBits  `db:"item_flags"`
 	ItemMetadata    Metadata  `db:"item_metadata"`
 	Path            []byte    `db:"item_path"`
-	VoterId         int64     `db:"voter_id,auto"`
+	VoterID         int64     `db:"voter_id,auto"`
 	VoterKey        Key       `db:"voter_key,size(64)"`
 	VoterEmail      []byte    `db:"voter_email"`
 	VoterHandle     string    `db:"voter_handle"`
@@ -136,7 +140,7 @@ type votesView struct {
 	VoterUpdatedAt  time.Time `db:"voter_updated_at"`
 	VoterFlags      FlagBits  `db:"voter_flags"`
 	VoterMetadata   Metadata  `db:"voter_metadata"`
-	AuthorId        int64     `db:"author_id,auto"`
+	AuthorID        int64     `db:"author_id,auto"`
 	AuthorKey       Key       `db:"author_key,size(64)"`
 	AuthorEmail     []byte    `db:"author_email"`
 	AuthorHandle    string    `db:"author_handle"`
@@ -149,7 +153,7 @@ type votesView struct {
 
 func (v votesView) author() Account {
 	return Account{
-		Id:        v.AuthorId,
+		Id:        v.AuthorID,
 		Email:     v.AuthorEmail,
 		Handle:    v.AuthorHandle,
 		Key:       v.AuthorKey,
@@ -163,7 +167,7 @@ func (v votesView) author() Account {
 
 func (v votesView) voter() Account {
 	return Account{
-		Id:        v.VoterId,
+		Id:        v.VoterID,
 		Email:     v.VoterEmail,
 		Handle:    v.VoterHandle,
 		Key:       v.VoterKey,
@@ -179,10 +183,10 @@ func (v votesView) vote() Vote {
 	voter := v.voter()
 	item := v.item()
 	return Vote{
-		Id:          v.VoteId,
+		Id:          v.VoteID,
 		Weight:      v.Weight,
-		ItemId:      v.ItemId,
-		SubmittedBy: int64(math.Max(float64(v.VoteSubmittedBy), float64(v.VoterId))),
+		ItemId:      v.ItemID,
+		SubmittedBy: int64(math.Max(float64(v.VoteSubmittedBy), float64(v.VoterID))),
 		SubmittedAt: v.VoteSubmittedAt,
 		UpdatedAt:   v.VoteUpdatedAt,
 		Flags:       v.VoteFlags,
@@ -194,7 +198,7 @@ func (v votesView) vote() Vote {
 func (v votesView) item() Item {
 	author := v.author()
 	return Item{
-		Id:          v.ItemId,
+		ID:          v.ItemID,
 		Key:         v.ItemKey,
 		Title:       v.Title,
 		Data:        v.Data,
@@ -210,6 +214,66 @@ func (v votesView) item() Item {
 	}
 }
 
-func saveVote(db *sqlx.DB, v models.Vote) (models.Vote, error) {
-	return v, errors.New("not implemented")
+func saveVote(db *sqlx.DB, vot models.Vote) (models.Vote, error) {
+	var sel string
+	sel = `select "votes"."id", "accounts"."id", "votes"."weight", "votes"."submitted_at" from "votes" inner join "accounts" on "accounts"."id" = "votes"."submitted_by" 
+			where "accounts"."key" ~* $1 and "votes"."item_id" = (select "id" from "content_items" where "key" ~* $2);`
+	var userID int64
+	var vID int64
+	var oldWeight int64
+	var submittedAt time.Time
+	{
+		rows, err := db.Query(sel, vot.SubmittedBy.Hash, vot.Item.Hash)
+		if err != nil {
+			return vot, err
+		}
+		for rows.Next() {
+			err = rows.Scan(&vID, &userID, &oldWeight, &submittedAt)
+			if err != nil {
+				return vot, err
+			}
+		}
+		vot.SubmittedAt = submittedAt
+	}
+
+	v := Vote{}
+	var q string
+	if vID != 0 {
+		if vot.Weight != 0 && math.Signbit(float64(oldWeight)) == math.Signbit(float64(vot.Weight)) {
+			vot.Weight = 0
+		}
+		q = `update "votes" set "updated_at" = now(), "weight" = $1, "flags" = $2::bit(8) where "item_id" = (select "id" from "content_items" where "key" ~* $3) and "submitted_by" = (select "id" from "accounts" where "key" ~* $4);`
+	} else {
+		q = `insert into "votes" ("weight", "flags", "item_id", "submitted_by") values ($1, $2::bit(8), (select "id" from "content_items" where "key" ~* $3), (select "id" from "accounts" where "key" ~* $4))`
+	}
+	v.Flags.Scan(vot.Flags)
+	v.Weight = int(vot.Weight * models.ScoreMultiplier)
+
+	res, err := db.Exec(q, v.Weight, models.FlagsNone, vot.Item.Hash, vot.SubmittedBy.Hash)
+	if err != nil {
+		return vot, err
+	}
+	if rows, err := res.RowsAffected(); rows == 0 || err != nil {
+		return vot, errors.Errorf("scoring failed %s", err)
+	}
+
+	upd := `update "content_items" set score = score - $1 + $2 where "id" = (select "id" from "content_items" where "key" ~* $3)`
+	res, err = db.Exec(upd, v.Weight, v.Weight, vot.Item.Hash)
+	if err != nil {
+		return vot, err
+	}
+	if rows, _ := res.RowsAffected(); rows == 0 {
+		return vot, errors.Errorf("content not found")
+	}
+	if rows, _ := res.RowsAffected(); rows > 1 {
+		return vot, errors.Errorf("content collision")
+	}
+	log.WithFields(log.Fields{
+		"hash":      vot.Item.Hash,
+		"oldWeight": oldWeight,
+		"newWeight": vot.Weight,
+		"voter":     vot.SubmittedBy.Hash,
+	}).Infof("vote updated successfully")
+
+	return vot, nil
 }

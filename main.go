@@ -102,7 +102,6 @@ func init() {
 		}).Error(errors.NewErrWithCause(err, "failed to connect to the database"))
 	}
 
-	models.Config.DB = con
 	db.Config.DB = sqlx.NewDb(con, "postgres")
 	api.Config.BaseUrl = os.Getenv("LISTEN")
 }
@@ -190,7 +189,7 @@ func main() {
 	})
 
 	// API
-	r.With(models.Repository).Route("/api", func(r chi.Router) {
+	r.With(db.Repository).Route("/api", func(r chi.Router) {
 		r.Route("/accounts", func(r chi.Router) {
 			r.With(api.LoadFiltersCtxt).Get("/", api.HandleAccountsCollection)
 
@@ -227,7 +226,7 @@ func main() {
 	})
 
 	// Web-Finger
-	r.With(models.Repository).Route("/.well-known", func(r chi.Router) {
+	r.With(db.Repository).Route("/.well-known", func(r chi.Router) {
 		r.Get("/webfinger", api.HandleWebFinger)
 		r.Get("/host-meta", api.HandleHostMeta)
 	})

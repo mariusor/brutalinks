@@ -16,6 +16,7 @@ import (
 	"github.com/juju/errors"
 	ap "github.com/mariusor/activitypub.go/activitypub"
 	j "github.com/mariusor/activitypub.go/jsonld"
+	"github.com/mariusor/littr.go/app/db"
 	"github.com/mariusor/littr.go/app/models"
 	log "github.com/sirupsen/logrus"
 )
@@ -446,7 +447,10 @@ func (r repository) SaveVote(v models.Vote) (models.Vote, error) {
 	if resp.StatusCode == http.StatusNotFound {
 		return models.Vote{}, errors.Errorf("not found")
 	}
-	return models.Vote{}, errors.Errorf("unknown error")
+	if resp.StatusCode == http.StatusInternalServerError {
+		return models.Vote{}, errors.Errorf("unable to save vote")
+	}
+	return models.Vote{}, errors.Errorf("unknown error, received status %d", resp.StatusCode)
 }
 
 func (r repository) LoadVotes(f models.LoadVotesFilter) (models.VoteCollection, error) {
@@ -487,11 +491,10 @@ func (r repository) LoadVotes(f models.LoadVotesFilter) (models.VoteCollection, 
 		}
 	}
 	return items, nil
-	//return models.Config.LoadVotes(f)
 }
 
 func (r repository) LoadVote(f models.LoadVotesFilter) (models.Vote, error) {
-	return models.Config.LoadVote(f)
+	return db.Config.LoadVote(f)
 }
 
 func (r repository) SaveItem(it models.Item) (models.Item, error) {
@@ -588,7 +591,7 @@ func loadFromAPPerson(p Person) (models.Account, error) {
 		Email:  "",
 		Metadata: &models.AccountMetadata{
 			Key: &models.SSHKey{
-				Id:     "",
+				ID:     "",
 				Public: []byte(p.PublicKey.PublicKeyPem),
 			},
 		},

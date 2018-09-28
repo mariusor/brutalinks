@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/juju/errors"
+	"github.com/mariusor/littr.go/app/db"
 	"github.com/mariusor/littr.go/app/models"
 	log "github.com/sirupsen/logrus"
 )
@@ -73,10 +74,11 @@ func HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.WithFields(log.Fields{}).Errorf("wrong http method: %s", err)
 	}
-	p, err = models.SaveItem(p)
+	p, err = db.Config.SaveItem(p)
 	if err != nil {
 		log.WithFields(log.Fields{}).Errorf("unable to save item: %s", err)
 		HandleError(w, r, http.StatusInternalServerError, err)
+		return
 	}
 	//AddVote(p, 1, p.AttributedTo.Hash)
 	Redirect(w, r, permaLink(p), http.StatusSeeOther)

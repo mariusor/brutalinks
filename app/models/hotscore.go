@@ -7,7 +7,7 @@ import (
 
 // represents the statistical confidence
 //var StatisticalConfidence = 1.0 => ~69%, 1.96 => ~95% (default)
-var StatisticalConfidence = 1.96
+var StatisticalConfidence = 1.94
 
 // wilson score interval sort
 // http://www.evanmiller.org/how-not-to-sort-by-average-rating.html
@@ -31,7 +31,7 @@ func Wilson(ups, downs int64) float64 {
 func Hacker(votes int64, date time.Duration) float64 {
 	gravity := 1.8
 	hoursAge := date.Hours()
-	return float64(votes-1*ScoreMultiplier) / math.Pow(hoursAge+2, gravity)
+	return float64((votes-1)*ScoreMultiplier) / math.Pow(hoursAge+2, gravity)
 }
 
 // reddit's hot sort
@@ -39,8 +39,6 @@ func Hacker(votes int64, date time.Duration) float64 {
 func Reddit(ups, downs int64, date time.Duration) float64 {
 	decay := 45000.0
 	s := float64(ups - downs)
-	order := math.Log(math.Max(math.Abs(s), 1.0)) / math.Ln10
-	sec := date.Seconds()
-	ddecay := sec / decay
-	return order - ddecay
+	order := math.Log(math.Max(math.Abs(s), 1)) / math.Ln10
+	return order - date.Seconds()/float64(decay)
 }
