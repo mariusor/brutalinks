@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"encoding/gob"
 	"flag"
 	"fmt"
@@ -72,7 +71,9 @@ func loadEnv(l *app.Littr) (bool, error) {
 		log.SetLevel(log.DebugLevel)
 	}
 
-	middleware.DefaultLogger = middleware.RequestLogger(&middleware.DefaultLogFormatter{Logger: log.StandardLogger()})
+	logger := log.StandardLogger()
+	middleware.DefaultLogger = middleware.RequestLogger(&middleware.DefaultLogFormatter{Logger: logger})
+	api.Logger = logger
 
 	return true, nil
 }
@@ -96,7 +97,7 @@ func init() {
 	dbHost := os.Getenv("DB_HOST")
 
 	connStr := fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable", dbHost, dbUser, dbPw, dbName)
-	con, err := sql.Open("postgres", connStr)
+	con, err := sqlx.Open("postgres", connStr)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"dbName": dbName,
@@ -104,7 +105,7 @@ func init() {
 		}).Error(errors.NewErrWithCause(err, "failed to connect to the database"))
 	}
 
-	db.Config.DB = sqlx.NewDb(con, "postgres")
+	db.Config.DB = con
 	api.Config.BaseUrl = os.Getenv("LISTEN")
 }
 

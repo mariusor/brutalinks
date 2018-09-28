@@ -60,7 +60,7 @@ func ShowSubmit(w http.ResponseWriter, r *http.Request) {
 	m := newModel{Title: "New submission", InvertedTheme: isInverted(r)}
 	err := SessionStore.Save(r, w, GetSession(r))
 	if err != nil {
-		log.WithFields(log.Fields{}).Error(err)
+		Logger.WithFields(log.Fields{}).Error(err)
 	}
 
 	RenderTemplate(r, w, "new", m)
@@ -72,11 +72,11 @@ func ShowSubmit(w http.ResponseWriter, r *http.Request) {
 func HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	p, err := ContentFromRequest(r)
 	if err != nil {
-		log.WithFields(log.Fields{}).Errorf("wrong http method: %s", err)
+		Logger.WithFields(log.Fields{}).Errorf("wrong http method: %s", err)
 	}
 	p, err = db.Config.SaveItem(p)
 	if err != nil {
-		log.WithFields(log.Fields{}).Errorf("unable to save item: %s", err)
+		Logger.WithFields(log.Fields{}).Errorf("unable to save item: %s", err)
 		HandleError(w, r, http.StatusInternalServerError, err)
 		return
 	}

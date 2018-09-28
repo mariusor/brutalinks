@@ -63,6 +63,7 @@ func GetParentKey(i Item) (Key, bool) {
 func GetOPKey(i Item) (Key, bool) {
 	return getAncestorKey(i.Path, -1)
 }
+
 func (i Item) Model() models.Item {
 	a := i.Author().Model()
 	res := models.Item{

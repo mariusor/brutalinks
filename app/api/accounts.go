@@ -162,7 +162,7 @@ func HandleAccountsCollection(w http.ResponseWriter, r *http.Request) {
 
 	f := r.Context().Value(models.FilterCtxtKey)
 	if filter, ok = f.(models.LoadAccountsFilter); !ok {
-		log.WithFields(log.Fields{}).Errorf("could not load filter from Context")
+		Logger.WithFields(log.Fields{}).Errorf("could not load filter from Context")
 		return
 	} else {
 		val := r.Context().Value(models.RepositoryCtxtKey)
@@ -177,7 +177,7 @@ func HandleAccountsCollection(w http.ResponseWriter, r *http.Request) {
 				}
 				data, err = json.WithContext(GetContext()).Marshal(col)
 			} else {
-				log.WithFields(log.Fields{"trace": errors.Trace(err)}).Error(err)
+				Logger.WithFields(log.Fields{"trace": errors.Trace(err)}).Error(err)
 			}
 		}
 	}
@@ -192,13 +192,13 @@ func HandleAccount(w http.ResponseWriter, r *http.Request) {
 	val := r.Context().Value(AccountCtxtKey)
 	a, _ := val.(models.Account)
 	//if !ok {
-	//	log.WithFields(log.Fields{}).Errorf("could not load Account from Context")
+	//	Logger.WithFields(log.Fields{}).Errorf("could not load Account from Context")
 	//}
 	p := loadAPPerson(a)
 
 	j, err := json.WithContext(GetContext()).Marshal(p)
 	if err != nil {
-		log.WithFields(log.Fields{"trace": errors.Trace(err)}).Error(err)
+		Logger.WithFields(log.Fields{"trace": errors.Trace(err)}).Error(err)
 		HandleError(w, r, http.StatusInternalServerError, err)
 		return
 	}
@@ -223,7 +223,7 @@ func HandleCollectionItem(w http.ResponseWriter, r *http.Request) {
 	case "outbox":
 		i, ok := val.(models.Item)
 		if !ok {
-			log.WithFields(log.Fields{}).Errorf("could not load Item from Context")
+			Logger.WithFields(log.Fields{}).Errorf("could not load Item from Context")
 			HandleError(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -239,7 +239,7 @@ func HandleCollectionItem(w http.ResponseWriter, r *http.Request) {
 				MaxItems:  MaxContentItems,
 			})
 			if err != nil {
-				log.WithFields(log.Fields{"trace": errors.Trace(err)}).Error(err)
+				Logger.WithFields(log.Fields{"trace": errors.Trace(err)}).Error(err)
 			}
 			if len(replies) > 0 {
 				if o, ok := el.(Article); ok {
@@ -250,12 +250,12 @@ func HandleCollectionItem(w http.ResponseWriter, r *http.Request) {
 		}
 	case "liked":
 		if v, ok := val.(models.Vote); !ok {
-			log.WithFields(log.Fields{}).Errorf("could not load Vote from Context")
+			Logger.WithFields(log.Fields{}).Errorf("could not load Vote from Context")
 		} else {
 			el = loadAPLike(v)
 		}
 	default:
-		log.WithFields(log.Fields{}).Error(errors.Errorf("collection not found"))
+		Logger.WithFields(log.Fields{}).Error(errors.Errorf("collection not found"))
 	}
 
 	data, err = json.WithContext(GetContext()).Marshal(el)
@@ -274,7 +274,7 @@ func HandleItemReplies(w http.ResponseWriter, r *http.Request) {
 	item := r.Context().Value(ItemCtxtKey)
 	var data []byte
 	if it, ok = item.(models.Item); !ok {
-		log.WithFields(log.Fields{}).Errorf("could not load Item from Context")
+		Logger.WithFields(log.Fields{}).Errorf("could not load Item from Context")
 		return
 	} else {
 		val := r.Context().Value(models.RepositoryCtxtKey)
@@ -293,7 +293,7 @@ func HandleItemReplies(w http.ResponseWriter, r *http.Request) {
 				_, err = loadAPCollection(p.Replies, &replies)
 				data, err = json.WithContext(GetContext()).Marshal(p.Replies)
 			} else {
-				log.WithFields(log.Fields{}).Error(err)
+				Logger.WithFields(log.Fields{}).Error(err)
 			}
 		}
 	}
@@ -312,7 +312,7 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 	val := r.Context().Value(AccountCtxtKey)
 	a, _ := val.(models.Account)
 	//if !ok {
-	//	log.WithFields(log.Fields{}).WithFields(log.Fields{}).Errorf("could not load Account from Context")
+	//	Logger.WithFields(log.Fields{}).WithFields(log.Fields{}).Errorf("could not load Account from Context")
 	//}
 	p := loadAPPerson(a)
 
@@ -324,7 +324,7 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 	case "outbox":
 		items, ok := collection.(models.ItemCollection)
 		if !ok {
-			log.WithFields(log.Fields{}).Errorf("could not load Items from Context")
+			Logger.WithFields(log.Fields{}).Errorf("could not load Items from Context")
 			return
 		}
 		_, err = loadAPCollection(p.Outbox, &items)
@@ -332,11 +332,11 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 	case "liked":
 		votes, ok := collection.(models.VoteCollection)
 		if !ok {
-			log.WithFields(log.Fields{}).Errorf("could not load Votes from Context")
+			Logger.WithFields(log.Fields{}).Errorf("could not load Votes from Context")
 			return
 		}
 		if err != nil {
-			log.WithFields(log.Fields{}).Error(err)
+			Logger.WithFields(log.Fields{}).Error(err)
 		}
 		_, err = loadAPLiked(p.Liked, votes)
 		data, err = json.WithContext(GetContext()).Marshal(p.Liked)
@@ -373,11 +373,11 @@ func HandleVerifyCredentials(w http.ResponseWriter, r *http.Request) {
 	val := r.Context().Value(models.RepositoryCtxtKey)
 	AcctLoader, ok := val.(models.CanLoadAccounts)
 	if !ok {
-		log.WithFields(log.Fields{}).Errorf("could not load account repository from Context")
+		Logger.WithFields(log.Fields{}).Errorf("could not load account repository from Context")
 	}
 	a, err := AcctLoader.LoadAccount(models.LoadAccountsFilter{Handle: []string{acct.Handle}, MaxItems: 1})
 	if err != nil {
-		log.WithFields(log.Fields{}).Error(err)
+		Logger.WithFields(log.Fields{}).Error(err)
 		HandleError(w, r, http.StatusNotFound, err)
 		return
 	}

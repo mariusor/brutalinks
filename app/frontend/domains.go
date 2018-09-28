@@ -37,10 +37,10 @@ func loadItems(c context.Context, filter models.LoadItemsFilter) (itemListingMod
 				MaxItems:     MaxContentItems,
 			})
 			if err != nil {
-				log.WithFields(log.Fields{}).Error(err)
+				Logger.WithFields(log.Fields{}).Error(err)
 			}
 		} else {
-			log.WithFields(log.Fields{}).Errorf("could not load vote repository from Context")
+			Logger.WithFields(log.Fields{}).Errorf("could not load vote repository from Context")
 		}
 	}
 	return m, nil

@@ -9,7 +9,11 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/juju/errors"
 	"github.com/mariusor/littr.go/app/models"
+
+	log "github.com/sirupsen/logrus"
 )
+
+var Logger log.FieldLogger
 
 type Account struct {
 	Id        int64     `db:"id,auto"`

@@ -60,7 +60,7 @@ func AccountFromRequest(r *http.Request) (*models.Account, []error) {
 
 	savpw, err := bcrypt.GenerateFromPassword(saltedpw, 14)
 	if err != nil {
-		log.WithFields(log.Fields{}).Error(err)
+		Logger.WithFields(log.Fields{}).Error(err)
 	}
 	a.Metadata = &models.AccountMetadata{
 		Salt:     salt,
@@ -68,9 +68,9 @@ func AccountFromRequest(r *http.Request) (*models.Account, []error) {
 	}
 
 	a, err = db.Config.SaveAccount(a)
-	log.WithFields(log.Fields{}).Warnf("using hardcoded db.Config.SaveAccount")
+	Logger.WithFields(log.Fields{}).Warnf("using hardcoded db.Config.SaveAccount")
 	if err != nil {
-		log.WithFields(log.Fields{}).Error(err)
+		Logger.WithFields(log.Fields{}).Error(err)
 		return nil, []error{err}
 	}
 	return &a, nil

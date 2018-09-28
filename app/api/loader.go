@@ -84,7 +84,7 @@ func AccountCtxt(next http.Handler) http.Handler {
 		val := r.Context().Value(models.RepositoryCtxtKey)
 		AcctLoader, ok := val.(models.CanLoadAccounts)
 		if !ok {
-			log.WithFields(log.Fields{}).Errorf("could not load account repository from Context")
+			Logger.WithFields(log.Fields{}).Errorf("could not load account repository from Context")
 		}
 		a, err := AcctLoader.LoadAccount(models.LoadAccountsFilter{Handle: []string{handle}})
 		if err == nil {
@@ -122,17 +122,17 @@ func ItemCtxt(next http.Handler) http.Handler {
 		if col == "outbox" {
 			filters, ok := f.(models.LoadItemsFilter)
 			if !ok {
-				log.WithFields(log.Fields{}).Errorf("could not load item filter from Context")
+				Logger.WithFields(log.Fields{}).Errorf("could not load item filter from Context")
 			}
 			loader, ok := val.(models.CanLoadItems)
 			if !ok {
-				log.WithFields(log.Fields{}).Errorf("could not load item repository from Context")
+				Logger.WithFields(log.Fields{}).Errorf("could not load item repository from Context")
 				HandleError(w, r, http.StatusInternalServerError, err)
 				return
 			}
 			i, err = loader.LoadItem(filters)
 			if err != nil {
-				log.WithFields(log.Fields{}).Error(err)
+				Logger.WithFields(log.Fields{}).Error(err)
 				HandleError(w, r, http.StatusNotFound, err)
 				return
 			}
@@ -140,17 +140,17 @@ func ItemCtxt(next http.Handler) http.Handler {
 		if col == "liked" {
 			filters, ok := f.(models.LoadVotesFilter)
 			if !ok {
-				log.WithFields(log.Fields{}).Errorf("could not load vote filter from Context")
+				Logger.WithFields(log.Fields{}).Errorf("could not load vote filter from Context")
 			}
 			loader, ok := val.(models.CanLoadVotes)
 			if !ok {
-				log.WithFields(log.Fields{}).Errorf("could not load vote repository from Context")
+				Logger.WithFields(log.Fields{}).Errorf("could not load vote repository from Context")
 				HandleError(w, r, http.StatusInternalServerError, err)
 				return
 			}
 			i, err = loader.LoadVote(filters)
 			if err != nil {
-				log.WithFields(log.Fields{}).Error(err)
+				Logger.WithFields(log.Fields{}).Error(err)
 				HandleError(w, r, http.StatusNotFound, err)
 				return
 			}
@@ -274,17 +274,17 @@ func ItemCollectionCtxt(next http.Handler) http.Handler {
 		if col == "outbox" {
 			filters, ok := f.(models.LoadItemsFilter)
 			if !ok {
-				log.WithFields(log.Fields{}).Errorf("could not load item filters from Context")
+				Logger.WithFields(log.Fields{}).Errorf("could not load item filters from Context")
 			}
 			loader, ok := val.(models.CanLoadItems)
 			if !ok {
-				log.WithFields(log.Fields{}).Errorf("could not load item repository from Context")
+				Logger.WithFields(log.Fields{}).Errorf("could not load item repository from Context")
 				HandleError(w, r, http.StatusInternalServerError, err)
 				return
 			}
 			items, err = loader.LoadItems(filters)
 			if err != nil {
-				log.WithFields(log.Fields{}).Error(err)
+				Logger.WithFields(log.Fields{}).Error(err)
 				HandleError(w, r, http.StatusNotFound, err)
 				return
 			}
@@ -292,17 +292,17 @@ func ItemCollectionCtxt(next http.Handler) http.Handler {
 		if col == "liked" {
 			filters, ok := f.(models.LoadVotesFilter)
 			if !ok {
-				log.WithFields(log.Fields{}).Errorf("could not load votes filters from Context")
+				Logger.WithFields(log.Fields{}).Errorf("could not load votes filters from Context")
 			}
 			loader, ok := val.(models.CanLoadVotes)
 			if !ok {
-				log.WithFields(log.Fields{}).Errorf("could not load vote repository from Context")
+				Logger.WithFields(log.Fields{}).Errorf("could not load vote repository from Context")
 				HandleError(w, r, http.StatusInternalServerError, err)
 				return
 			}
 			items, err = loader.LoadVotes(filters)
 			if err != nil {
-				log.WithFields(log.Fields{}).Error(err)
+				Logger.WithFields(log.Fields{}).Error(err)
 				HandleError(w, r, http.StatusNotFound, err)
 				return
 			}
@@ -331,13 +331,13 @@ func (r repository) LoadItem(f models.LoadItemsFilter) (models.Item, error) {
 	url := fmt.Sprintf("http://%s/api/outbox/%s%s", r.BaseUrl, hashes[0], qs)
 	resp, err := r.Get(url)
 	if err != nil {
-		log.WithFields(log.Fields{}).Error(err)
+		Logger.WithFields(log.Fields{}).Error(err)
 		return it, err
 	}
 	if resp != nil {
 		if resp.StatusCode != http.StatusOK {
 			err := fmt.Errorf("unable to load from the API")
-			log.WithFields(log.Fields{}).Error(err)
+			Logger.WithFields(log.Fields{}).Error(err)
 			return it, err
 		}
 		defer resp.Body.Close()
@@ -348,7 +348,7 @@ func (r repository) LoadItem(f models.LoadItemsFilter) (models.Item, error) {
 			}
 		}
 	}
-	log.WithFields(log.Fields{}).Error(err)
+	Logger.WithFields(log.Fields{}).Error(err)
 	return it, err
 }
 
@@ -361,25 +361,25 @@ func (r repository) LoadItems(f models.LoadItemsFilter) (models.ItemCollection, 
 	var err error
 	resp, err := r.Get(fmt.Sprintf("http://%s/api/outbox%s", r.BaseUrl, qs))
 	if err != nil {
-		log.WithFields(log.Fields{}).Error(err)
+		Logger.WithFields(log.Fields{}).Error(err)
 		return nil, err
 	}
 	col := OrderedCollection{}
 	if resp != nil {
 		if resp.StatusCode != http.StatusOK {
 			err := fmt.Errorf("unable to load from the API")
-			log.WithFields(log.Fields{}).Error(err)
+			Logger.WithFields(log.Fields{}).Error(err)
 			return nil, err
 		}
 		defer resp.Body.Close()
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			log.WithFields(log.Fields{}).Error(err)
+			Logger.WithFields(log.Fields{}).Error(err)
 			return nil, err
 		}
 		err = j.Unmarshal(body, &col)
 		if err != nil {
-			log.WithFields(log.Fields{}).Error(err)
+			Logger.WithFields(log.Fields{}).Error(err)
 			return nil, err
 		}
 	}
@@ -389,7 +389,7 @@ func (r repository) LoadItems(f models.LoadItemsFilter) (models.ItemCollection, 
 		if art, ok := it.(*Article); ok {
 			items[k], _ = loadFromAPItem(*art)
 		} else {
-			log.WithFields(log.Fields{}).Errorf("unable to load Article from %T", it)
+			Logger.WithFields(log.Fields{}).Errorf("unable to load Article from %T", it)
 		}
 	}
 
@@ -403,10 +403,9 @@ func (r repository) SaveVote(v models.Vote) (models.Vote, error) {
 	// first step is to verify if vote already exists:
 	//resp, err := r.Head(url)
 	//if err != nil {
-	//	log.WithFields(log.Fields{}).Error(err)
+	//	Logger.WithFields(log.Fields{}).Error(err)
 	//	return v, err
 	//}
-	//var exists bool
 	//if resp.StatusCode == http.StatusOK {
 	//	// found a vote, needs updating
 	//	exists = true
@@ -436,7 +435,7 @@ func (r repository) SaveVote(v models.Vote) (models.Vote, error) {
 
 	resp, err := r.Put(url, "application/json+activity", bytes.NewReader(body))
 	if err != nil {
-		log.WithFields(log.Fields{}).Error(err)
+		Logger.WithFields(log.Fields{}).Error(err)
 		return v, err
 	}
 	if resp.StatusCode == http.StatusOK {
@@ -460,7 +459,7 @@ func (r repository) LoadVotes(f models.LoadVotesFilter) (models.VoteCollection, 
 	url := fmt.Sprintf("http://%s/api/liked%s", r.BaseUrl, qs)
 	resp, err := r.Get(url)
 	if err != nil {
-		log.WithFields(log.Fields{}).Error(err)
+		Logger.WithFields(log.Fields{}).Error(err)
 		return nil, err
 	}
 
@@ -468,7 +467,7 @@ func (r repository) LoadVotes(f models.LoadVotesFilter) (models.VoteCollection, 
 	if resp != nil {
 		if resp.StatusCode != http.StatusOK {
 			err := fmt.Errorf("unable to load from the API")
-			log.WithFields(log.Fields{}).Error(err)
+			Logger.WithFields(log.Fields{}).Error(err)
 			return nil, err
 		}
 		defer resp.Body.Close()
@@ -482,7 +481,7 @@ func (r repository) LoadVotes(f models.LoadVotesFilter) (models.VoteCollection, 
 						vot, _ := loadFromAPLike(*like)
 						items[vot.Item.Hash] = vot
 					} else {
-						log.WithFields(log.Fields{}).Errorf("unable to load Activity from %T", it)
+						Logger.WithFields(log.Fields{}).Errorf("unable to load Activity from %T", it)
 					}
 				}
 			}
@@ -501,7 +500,7 @@ func (r repository) SaveItem(it models.Item) (models.Item, error) {
 
 func jsonUnescape(s string) string {
 	if out, err := jsonparser.Unescape([]byte(s), nil); err != nil {
-		log.WithFields(log.Fields{}).Error(err)
+		Logger.WithFields(log.Fields{}).Error(err)
 		return s
 	} else {
 		return string(out)
@@ -611,7 +610,7 @@ func (r repository) LoadAccounts(f models.LoadAccountsFilter) (models.AccountCol
 	accounts := make(models.AccountCollection, 0)
 	resp, err := r.Get(fmt.Sprintf("http://%s/api/accounts?%s", r.BaseUrl, qs))
 	if err != nil {
-		log.WithFields(log.Fields{}).Error(err)
+		Logger.WithFields(log.Fields{}).Error(err)
 		return nil, err
 	}
 	if resp != nil {
@@ -638,7 +637,7 @@ func (r repository) LoadAccount(f models.LoadAccountsFilter) (models.Account, er
 	handle := f.Handle[0]
 	resp, err := r.Get(fmt.Sprintf("http://%s/api/accounts/%s", r.BaseUrl, handle))
 	if err != nil {
-		log.WithFields(log.Fields{}).Error(err)
+		Logger.WithFields(log.Fields{}).Error(err)
 		return models.Account{}, err
 	}
 	if resp != nil {

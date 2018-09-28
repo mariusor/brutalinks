@@ -25,6 +25,7 @@ const (
 	templateDir = "templates/"
 )
 
+var Logger log.FieldLogger
 var Version = ""
 var SessionStore sessions.Store
 var ShowItemData = false
@@ -129,6 +130,7 @@ func init() {
 		CurrentAccount = AnonymousAccount()
 	}
 	CurrentAccount.Metadata = nil
+	Logger = log.StandardLogger()
 }
 
 func AnonymousAccount() *models.Account {
@@ -147,7 +149,7 @@ type errorModel struct {
 func GetSession(r *http.Request) *sessions.Session {
 	s, err := SessionStore.Get(r, sessionName)
 	if err != nil {
-		log.WithFields(log.Fields{}).Infof("empty session %s", sessionName)
+		Logger.WithFields(log.Fields{}).Infof("empty session %s", sessionName)
 	}
 	return s
 }
@@ -192,7 +194,7 @@ func scoreFmt(s int64) string {
 func Redirect(w http.ResponseWriter, r *http.Request, url string, status int) error {
 	err := sessions.Save(r, w)
 	if err != nil {
-		log.WithFields(log.Fields{}).Error(errors.NewErrWithCause(err, "failed to save session before redirect [%d:%s]", status, url))
+		Logger.WithFields(log.Fields{}).Error(errors.NewErrWithCause(err, "failed to save session before redirect [%d:%s]", status, url))
 	}
 	http.Redirect(w, r, url, status)
 	return err
@@ -202,12 +204,12 @@ func RenderTemplate(r *http.Request, w http.ResponseWriter, name string, m inter
 	var err error
 	err = sessions.Save(r, w)
 	if err != nil {
-		log.WithFields(log.Fields{}).Error(errors.NewErrWithCause(err, "failed to save session before rendering template %s with model %T", name, m))
+		Logger.WithFields(log.Fields{}).Error(errors.NewErrWithCause(err, "failed to save session before rendering template %s with model %T", name, m))
 	}
 	err = Renderer.HTML(w, http.StatusOK, name, m)
 	if err != nil {
 		rr := errors.NewErrWithCause(err, "failed to render template %s with model %T", name, m)
-		log.WithFields(log.Fields{}).Error(rr)
+		Logger.WithFields(log.Fields{}).Error(rr)
 		Renderer.HTML(w, http.StatusInternalServerError, "error", rr)
 	}
 	return err
@@ -244,7 +246,7 @@ func HandleCallback(w http.ResponseWriter, r *http.Request) {
 
 	s, err := SessionStore.Get(r, sessionName)
 	if err != nil {
-		log.WithFields(log.Fields{}).Infof("ERROR %s", err)
+		Logger.WithFields(log.Fields{}).Infof("ERROR %s", err)
 	}
 
 	s.Values["provider"] = provider
@@ -254,7 +256,7 @@ func HandleCallback(w http.ResponseWriter, r *http.Request) {
 
 	err = SessionStore.Save(r, w, s)
 	if err != nil {
-		log.WithFields(log.Fields{}).Info(err)
+		Logger.WithFields(log.Fields{}).Info(err)
 	}
 	Redirect(w, r, "/", http.StatusFound)
 }
@@ -265,7 +267,7 @@ func HandleAuth(w http.ResponseWriter, r *http.Request) {
 
 	indexUrl := "/"
 	if os.Getenv(strings.ToUpper(provider)+"_KEY") == "" {
-		log.WithFields(log.Fields{}).Infof("Provider %s has no credentials set", provider)
+		Logger.WithFields(log.Fields{}).Infof("Provider %s has no credentials set", provider)
 		Redirect(w, r, indexUrl, http.StatusPermanentRedirect)
 		return
 	}
@@ -316,7 +318,7 @@ func HandleAuth(w http.ResponseWriter, r *http.Request) {
 	default:
 		s, err := SessionStore.Get(r, sessionName)
 		if err != nil {
-			log.WithFields(log.Fields{}).Infof("ERROR %s", err)
+			Logger.WithFields(log.Fields{}).Infof("ERROR %s", err)
 		}
 		s.AddFlash("Missing oauth provider")
 		Redirect(w, r, indexUrl, http.StatusPermanentRedirect)
@@ -341,14 +343,14 @@ func loadCurrentAccount(s *sessions.Session) {
 		if raw != nil {
 			a := raw.(models.Account)
 			CurrentAccount = &a
-			log.WithFields(log.Fields{
+			Logger.WithFields(log.Fields{
 				"handle": CurrentAccount.Handle,
 				"hash":   CurrentAccount.Hash,
 				"email":  CurrentAccount.Email,
 			}).Infof("loaded account from session")
 		}
 		//} else {
-		//	log.WithFields(log.Fields{}).Errorf(errors.NewErr("unable to load user from session"))
+		//	Logger.WithFields(log.Fields{}).Errorf(errors.NewErr("unable to load user from session"))
 	}
 }
 
@@ -361,7 +363,7 @@ func loadSessionFlashMessages(s *sessions.Session) {
 		}
 		f, ok := int.(Flash)
 		if !ok {
-			log.WithFields(log.Fields{}).Error(errors.NewErr("unable to read flash struct from %T %#v", int, int))
+			Logger.WithFields(log.Fields{}).Error(errors.NewErr("unable to read flash struct from %T %#v", int, int))
 		}
 		FlashData = append(FlashData, f)
 	}
@@ -381,7 +383,7 @@ func LoadSessionData(next http.Handler) http.Handler {
 func AuthCheck(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		s := GetSession(r)
-		log.WithFields(log.Fields{}).Debugf("%#v", s.Values)
+		Logger.WithFields(log.Fields{}).Debugf("%#v", s.Values)
 	})
 }
 

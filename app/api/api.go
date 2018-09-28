@@ -23,6 +23,8 @@ const (
 	MaxContentItems = 200
 )
 
+var Logger log.FieldLogger
+
 var BaseURL string
 var AccountsURL string
 var OutboxURL string
@@ -54,6 +56,8 @@ func init() {
 
 	AccountsURL = BaseURL + "/accounts"
 	OutboxURL = BaseURL + "/outbox"
+
+	Logger = log.StandardLogger()
 }
 
 type (
@@ -476,7 +480,7 @@ func HandleError(w http.ResponseWriter, r *http.Request, code int, errs ...error
 		e := error{
 			Message: err.Error(),
 		}
-		log.WithFields(log.Fields{}).Error(err)
+		Logger.WithFields(log.Fields{}).Error(err)
 		res.Errors = append(res.Errors, e)
 	}
 

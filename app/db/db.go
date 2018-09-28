@@ -22,6 +22,10 @@ type config struct {
 	DB *sqlx.DB
 }
 
+func init() {
+	Logger = log.StandardLogger()
+}
+
 // I think we can move from using the exported Config package variable
 // to an unexported one. First we need to decouple the DB config from the repository struct to a config struct
 var Config config
@@ -273,7 +277,7 @@ func loadScoresForItems(db *sqlx.DB, since time.Duration, key string) ([]models.
 		reddit := int64(models.Reddit(ups, downs, now.Sub(submitted)))
 		wilson := int64(models.Wilson(ups, downs))
 		hacker := int64(models.Hacker(ups-downs, now.Sub(submitted)))
-		log.WithFields(log.Fields{}).Infof("Votes[%s]: UPS[%d] DOWNS[%d] - new score %d:%d:%d", key[0:8], ups, downs, reddit, wilson, hacker)
+		Logger.WithFields(log.Fields{}).Infof("Votes[%s]: UPS[%d] DOWNS[%d] - new score %d:%d:%d", key[0:8], ups, downs, reddit, wilson, hacker)
 		new := models.Score{
 			ID:        i,
 			Key:       key,
@@ -325,7 +329,7 @@ group by "accounts"."id", "accounts"."key" order by "accounts"."id";`,
 		reddit := int64(models.Reddit(ups, downs, now.Sub(submitted)))
 		wilson := int64(models.Wilson(ups, downs))
 		hacker := int64(models.Hacker(ups-downs, now.Sub(submitted)))
-		log.WithFields(log.Fields{}).Infof("Votes[%s]: UPS[%d] DOWNS[%d] - new score %d:%d:%d", handle, ups, downs, reddit, wilson, hacker)
+		Logger.WithFields(log.Fields{}).Infof("Votes[%s]: UPS[%d] DOWNS[%d] - new score %d:%d:%d", handle, ups, downs, reddit, wilson, hacker)
 		new := models.Score{
 			ID:        i,
 			Key:       key,

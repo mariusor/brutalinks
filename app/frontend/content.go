@@ -101,13 +101,13 @@ func ShowItem(w http.ResponseWriter, r *http.Request) {
 	val := r.Context().Value(RepositoryCtxtKey)
 	itemLoader, ok := val.(models.CanLoadItems)
 	if !ok {
-		log.WithFields(log.Fields{}).Errorf("could not load item repository from Context")
+		Logger.WithFields(log.Fields{}).Errorf("could not load item repository from Context")
 		return
 	}
 	handle := chi.URLParam(r, "handle")
 	//acctLoader, ok := val.(models.CanLoadAccounts)
 	//if !ok {
-	//	log.WithFields(log.Fields{}).Errorf("could not load account repository from Context")
+	//	Logger.WithFields(log.Fields{}).Errorf("could not load account repository from Context")
 	//}
 	//act, err := acctLoader.LoadAccount(models.LoadAccountFilter{Handle: handle})
 
@@ -117,7 +117,7 @@ func ShowItem(w http.ResponseWriter, r *http.Request) {
 		Key:          []string{hash},
 	})
 	if err != nil {
-		log.WithFields(log.Fields{}).Error(err)
+		Logger.WithFields(log.Fields{}).Error(err)
 		HandleError(w, r, http.StatusNotFound, err)
 		return
 	}
@@ -135,7 +135,7 @@ func ShowItem(w http.ResponseWriter, r *http.Request) {
 		MaxItems: MaxContentItems,
 	})
 	if err != nil {
-		log.WithFields(log.Fields{}).Error(err)
+		Logger.WithFields(log.Fields{}).Error(err)
 		HandleError(w, r, http.StatusNotFound, err)
 		return
 	}
@@ -153,10 +153,10 @@ func ShowItem(w http.ResponseWriter, r *http.Request) {
 				MaxItems:     MaxContentItems,
 			})
 			if err != nil {
-				log.WithFields(log.Fields{}).Error(err)
+				Logger.WithFields(log.Fields{}).Error(err)
 			}
 		} else {
-			log.WithFields(log.Fields{}).Errorf("could not load vote repository from Context")
+			Logger.WithFields(log.Fields{}).Errorf("could not load vote repository from Context")
 		}
 	}
 	if len(m.Title) > 0 {
@@ -187,13 +187,13 @@ func HandleVoting(w http.ResponseWriter, r *http.Request) {
 	val := r.Context().Value(RepositoryCtxtKey)
 	itemLoader, ok := val.(models.CanLoadItems)
 	if !ok {
-		log.WithFields(log.Fields{}).Errorf("could not load item repository from Context")
+		Logger.WithFields(log.Fields{}).Errorf("could not load item repository from Context")
 		return
 	}
 
 	p, err := itemLoader.LoadItem(models.LoadItemsFilter{Key: []string{hash}})
 	if err != nil {
-		log.WithFields(log.Fields{}).Error(err)
+		Logger.WithFields(log.Fields{}).Error(err)
 		HandleError(w, r, http.StatusNotFound, err)
 		return
 	}
@@ -209,7 +209,7 @@ func HandleVoting(w http.ResponseWriter, r *http.Request) {
 	if CurrentAccount.IsLogged() {
 		voter, ok := val.(models.CanSaveVotes)
 		if !ok {
-			log.WithFields(log.Fields{}).Errorf("could not load vote repository from Context")
+			Logger.WithFields(log.Fields{}).Errorf("could not load vote repository from Context")
 			return
 		}
 		v := models.Vote{
@@ -218,7 +218,7 @@ func HandleVoting(w http.ResponseWriter, r *http.Request) {
 			Weight:      multiplier * models.ScoreMultiplier,
 		}
 		if _, err := voter.SaveVote(v); err != nil {
-			log.WithFields(log.Fields{
+			Logger.WithFields(log.Fields{
 				"hash":   v.Item.Hash,
 				"author": v.SubmittedBy.Handle,
 				"weight": v.Weight,

@@ -26,10 +26,10 @@ func UpdateItem(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
 
 		if body, err = ioutil.ReadAll(r.Body); err != nil {
-			log.WithFields(log.Fields{}).Errorf("request body read error: %s", err)
+			Logger.WithFields(log.Fields{}).Errorf("request body read error: %s", err)
 		}
 		if err := j.Unmarshal(body, &act); err != nil {
-			log.WithFields(log.Fields{}).Errorf("json-ld unmarshal error: %s", err)
+			Logger.WithFields(log.Fields{}).Errorf("json-ld unmarshal error: %s", err)
 		}
 	}
 
@@ -73,7 +73,7 @@ func UpdateItem(w http.ResponseWriter, r *http.Request) {
 	if repository, ok := ctxt.(models.CanSaveVotes); ok {
 		newVot, err := repository.SaveVote(v)
 		if err != nil {
-			log.WithFields(log.Fields{"saveVote": v.SubmittedBy.Hash}).Error(err)
+			Logger.WithFields(log.Fields{"saveVote": v.SubmittedBy.Hash}).Error(err)
 			HandleError(w, r, http.StatusInternalServerError, err)
 			return
 		}

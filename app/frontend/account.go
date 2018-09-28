@@ -7,7 +7,6 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/juju/errors"
 	"github.com/mariusor/littr.go/app/models"
-	log "github.com/sirupsen/logrus"
 )
 
 type itemListingModel struct {
@@ -24,7 +23,7 @@ func ShowAccount(w http.ResponseWriter, r *http.Request) {
 	val := r.Context().Value(models.RepositoryCtxtKey)
 	accountLoader, ok := val.(models.CanLoadAccounts)
 	if !ok {
-		log.Errorf("could not load account repository from Context")
+		Logger.Errorf("could not load account repository from Context")
 		return
 	}
 	var err error

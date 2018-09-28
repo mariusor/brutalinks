@@ -14,7 +14,7 @@ func HandleItemRedirect(w http.ResponseWriter, r *http.Request) {
 	val := r.Context().Value(RepositoryCtxtKey)
 	itemLoader, ok := val.(models.CanLoadItems)
 	if !ok {
-		log.WithFields(log.Fields{}).Errorf("could not load item repository from Context")
+		Logger.WithFields(log.Fields{}).Errorf("could not load item repository from Context")
 		return
 	}
 	p, err := itemLoader.LoadItem(models.LoadItemsFilter{

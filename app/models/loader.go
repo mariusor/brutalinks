@@ -192,7 +192,6 @@ FROM "content_items" WHERE "key" ~* $%d) AND "%s"."path" IS NOT NULL)`, it, coun
 	whereValues = append(whereValues, interface{}(FlagsDeleted))
 	counter++
 	wheres = append(wheres, fmt.Sprintf("%s", whereDeleted))
-
 	return wheres, whereValues
 }
 

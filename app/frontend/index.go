@@ -90,7 +90,7 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 	val := r.Context().Value(RepositoryCtxtKey)
 	itemLoader, ok := val.(models.CanLoadItems)
 	if !ok {
-		log.WithFields(log.Fields{}).Errorf("could not load item repository from Context")
+		Logger.WithFields(log.Fields{}).Errorf("could not load item repository from Context")
 		return
 	}
 	items, err := itemLoader.LoadItems(models.LoadItemsFilter{
@@ -98,7 +98,7 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 		MaxItems: MaxContentItems,
 	})
 	if err != nil {
-		log.WithFields(log.Fields{}).Error(err)
+		Logger.WithFields(log.Fields{}).Error(err)
 		HandleError(w, r, http.StatusNotFound, err)
 		return
 	}
@@ -116,11 +116,11 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 			}
 			CurrentAccount.Votes, err = votesLoader.LoadVotes(filters)
 			if err != nil {
-				log.WithFields(log.Fields{}).Error(err)
+				Logger.WithFields(log.Fields{}).Error(err)
 			}
 
 		} else {
-			log.WithFields(log.Fields{}).Errorf("could not load vote repository from Context")
+			Logger.WithFields(log.Fields{}).Errorf("could not load vote repository from Context")
 		}
 	}
 	RenderTemplate(r, w, "listing", m)
