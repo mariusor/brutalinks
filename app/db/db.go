@@ -273,7 +273,7 @@ func loadScoresForItems(db *sqlx.DB, since time.Duration, key string) ([]models.
 		reddit := int64(models.Reddit(ups, downs, now.Sub(submitted)))
 		wilson := int64(models.Wilson(ups, downs))
 		hacker := int64(models.Hacker(ups-downs, now.Sub(submitted)))
-		log.WithFields(log.Fields{}).Infof("Votes[%s]: UPS[%d] DOWNS[%d] - new score %d:%d:%d", key, ups, downs, reddit, wilson, hacker)
+		log.WithFields(log.Fields{}).Infof("Votes[%s]: UPS[%d] DOWNS[%d] - new score %d:%d:%d", key[0:8], ups, downs, reddit, wilson, hacker)
 		new := models.Score{
 			ID:        i,
 			Key:       key,
