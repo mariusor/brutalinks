@@ -151,7 +151,7 @@ table {
     height: 100%;
 }
 p {
-    text-indent: 2rem;
+    text-indent: .4rem;
     padding-bottom: .2rem;
     /*overflow-wrap: break-word;*/
     /*word-wrap: break-word;*/
