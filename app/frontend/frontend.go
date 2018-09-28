@@ -1,16 +1,12 @@
 package frontend
 
 import (
-	"context"
-	"database/sql"
 	"fmt"
 	"html/template"
 	"math"
 	"net/http"
 	"os"
-	"os/signal"
 	"strings"
-	"time"
 
 	"github.com/go-chi/chi"
 	"github.com/gorilla/sessions"
@@ -29,7 +25,7 @@ const (
 	templateDir = "templates/"
 )
 
-var Version string = ""
+var Version = ""
 var SessionStore sessions.Store
 var ShowItemData = false
 
@@ -139,36 +135,7 @@ func AnonymousAccount() *models.Account {
 	return &defaultAccount
 }
 
-type EnvType string
-
-const DEV EnvType = "dev"
-const PROD EnvType = "prod"
-const QA EnvType = "qa"
-
-var validEnvTypes = []EnvType{
-	DEV,
-	PROD,
-}
-
-func ValidEnv(s EnvType) bool {
-	for _, k := range validEnvTypes {
-		if k == s {
-			return true
-		}
-	}
-	return false
-}
-
 var FlashData = make([]Flash, 0)
-
-type Littr struct {
-	Env         EnvType
-	HostName    string
-	Port        int64
-	Listen      string
-	Db          *sql.DB
-	SessionKeys [2][]byte
-}
 
 type errorModel struct {
 	Status        int
@@ -222,21 +189,6 @@ func scoreFmt(s int64) string {
 	return fmt.Sprintf("%3.1f%s", score, units)
 }
 
-func (l *Littr) listen() string {
-	if len(l.Listen) > 0 {
-		return l.Listen
-	}
-	var port string
-	if l.Port != 0 {
-		port = fmt.Sprintf(":%d", l.Port)
-	}
-	return fmt.Sprintf("%s%s", l.HostName, port)
-}
-
-func (l *Littr) BaseUrl() string {
-	return fmt.Sprintf("http://%s", l.HostName)
-}
-
 func Redirect(w http.ResponseWriter, r *http.Request, url string, status int) error {
 	err := sessions.Save(r, w)
 	if err != nil {
@@ -262,47 +214,6 @@ func RenderTemplate(r *http.Request, w http.ResponseWriter, name string, m inter
 
 }
 
-func (l *Littr) Run(m http.Handler, wait time.Duration) {
-	log.WithFields(log.Fields{}).Infof("starting debug level %q", log.GetLevel().String())
-	log.WithFields(log.Fields{}).Infof("listening on %s", l.listen())
-
-	srv := &http.Server{
-		Addr: l.listen(),
-		// Good practice to set timeouts to avoid Slowloris attacks.
-		WriteTimeout: time.Second * 15,
-		ReadTimeout:  time.Second * 15,
-		IdleTimeout:  time.Second * 60,
-		Handler:      m,
-	}
-
-	// Run our server in a goroutine so that it doesn't block.
-	go func() {
-		if err := srv.ListenAndServe(); err != nil {
-			log.WithFields(log.Fields{}).Error(err)
-		}
-	}()
-
-	c := make(chan os.Signal, 1)
-	// We'll accept graceful shutdowns when quit via SIGINT (Ctrl+C)
-	// SIGKILL, SIGQUIT or SIGTERM (Ctrl+/) will not be caught.
-	signal.Notify(c, os.Interrupt)
-	// Block until we receive our signal.
-	<-c
-
-	// Create a deadline to wait for.
-	ctx, cancel := context.WithTimeout(context.Background(), wait)
-	log.RegisterExitHandler(cancel)
-	defer cancel()
-	// Doesn't block if no connections, but will otherwise wait
-	// until the timeout deadline.
-	srv.Shutdown(ctx)
-	// Optionally, you could run srv.Shutdown in a goroutine and block on
-	// <-ctx.Done() if your application should wait for other services
-	// to finalize based on context cancellation.
-	log.WithFields(log.Fields{}).Infof("shutting down")
-	os.Exit(0)
-}
-
 // handleAdmin serves /admin request
 func HandleAdmin(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(200)
@@ -310,7 +221,7 @@ func HandleAdmin(w http.ResponseWriter, _ *http.Request) {
 }
 
 // handleMain serves /auth/{provider}/callback request
-func (l *Littr) HandleCallback(w http.ResponseWriter, r *http.Request) {
+func HandleCallback(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	provider := chi.URLParam(r, "provider")
 	providerErr := q["error"]
@@ -345,11 +256,11 @@ func (l *Littr) HandleCallback(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.WithFields(log.Fields{}).Info(err)
 	}
-	Redirect(w, r, l.BaseUrl(), http.StatusFound)
+	Redirect(w, r, "/", http.StatusFound)
 }
 
 // handleMain serves /auth/{provider}/callback request
-func (l *Littr) HandleAuth(w http.ResponseWriter, r *http.Request) {
+func HandleAuth(w http.ResponseWriter, r *http.Request) {
 	provider := chi.URLParam(r, "provider")
 
 	indexUrl := "/"
@@ -358,7 +269,7 @@ func (l *Littr) HandleAuth(w http.ResponseWriter, r *http.Request) {
 		Redirect(w, r, indexUrl, http.StatusPermanentRedirect)
 		return
 	}
-	url := fmt.Sprintf("%s/auth/%s/callback", l.BaseUrl(), provider)
+	url := fmt.Sprintf("%s/auth/%s/callback", "", provider)
 
 	var config oauth2.Config
 	switch provider {
@@ -467,7 +378,7 @@ func LoadSessionData(next http.Handler) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
-func (l *Littr) AuthCheck(next http.Handler) http.Handler {
+func AuthCheck(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		s := GetSession(r)
 		log.WithFields(log.Fields{}).Debugf("%#v", s.Values)

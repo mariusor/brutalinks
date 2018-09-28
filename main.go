@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/mariusor/littr.go/app"
+
 	"github.com/jmoiron/sqlx"
 	"github.com/mariusor/littr.go/app/db"
 
@@ -32,9 +34,9 @@ var listenHost string
 var listenPort int64
 var listenOn string
 
-var littr frontend.Littr
+var littr app.Littr
 
-func loadEnv(l *frontend.Littr) (bool, error) {
+func loadEnv(l *app.Littr) (bool, error) {
 	l.SessionKeys[0] = []byte(os.Getenv("SESS_AUTH_KEY"))
 	l.SessionKeys[1] = []byte(os.Getenv("SESS_ENC_KEY"))
 
@@ -43,9 +45,9 @@ func loadEnv(l *frontend.Littr) (bool, error) {
 	listenOn = os.Getenv("LISTEN")
 
 	frontend.Version = os.Getenv("VERSION")
-	env := frontend.EnvType(os.Getenv("ENV"))
-	if !frontend.ValidEnv(env) {
-		env = frontend.DEV
+	env := app.EnvType(os.Getenv("ENV"))
+	if !app.ValidEnv(env) {
+		env = app.DEV
 	}
 	littr.Env = env
 	if listenPort == 0 {
@@ -58,7 +60,7 @@ func loadEnv(l *frontend.Littr) (bool, error) {
 	l.Port = listenPort
 	l.Listen = listenOn
 
-	if littr.Env == frontend.PROD {
+	if littr.Env == app.PROD {
 		log.SetLevel(log.WarnLevel)
 	} else {
 		log.SetFormatter(&log.TextFormatter{
@@ -76,7 +78,7 @@ func loadEnv(l *frontend.Littr) (bool, error) {
 }
 
 func init() {
-	littr = frontend.Littr{HostName: listenHost, Port: listenPort}
+	littr = app.Littr{HostName: listenHost, Port: listenPort}
 
 	loadEnv(&littr)
 
@@ -132,7 +134,7 @@ func main() {
 	r.Use(middleware.RequestID)
 	r.Use(middleware.Logger)
 
-	if littr.Env == frontend.PROD {
+	if littr.Env == app.PROD {
 		r.Use(middleware.Recoverer)
 	}
 
@@ -184,8 +186,8 @@ func main() {
 		r.Get("/login", frontend.ShowLogin)
 		r.Post("/login", frontend.HandleLogin)
 
-		r.Get("/auth/{provider}", littr.HandleAuth)
-		r.Get("/auth/{provider}/callback", littr.HandleCallback)
+		r.Get("/auth/{provider}", frontend.HandleAuth)
+		r.Get("/auth/{provider}/callback", frontend.HandleCallback)
 	})
 
 	// API
