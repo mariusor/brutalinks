@@ -7,11 +7,11 @@ import (
 )
 
 const RepositoryCtxtKey = "__repository"
+const FilterCtxtKey = "__filter"
 
 type MatchType int
 type ItemType string
 type VoteType string
-type Tristate byte
 
 const (
 	MatchEquals = MatchType(1 << iota)

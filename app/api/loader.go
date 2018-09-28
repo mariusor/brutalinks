@@ -21,10 +21,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const RepositoryCtxtKey = "__repository"
 const AccountCtxtKey = "__acct"
 const CollectionCtxtKey = "__collection"
-const FilterCtxtKey = "__filter"
 const ItemCtxtKey = "__item"
 
 // Config is used to retrieve information from the database
@@ -67,7 +65,7 @@ func (r repository) Delete(url, contentType string, body io.Reader) (resp *http.
 // Repository middleware
 func Repository(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		ctx := context.WithValue(r.Context(), RepositoryCtxtKey, Config)
+		ctx := context.WithValue(r.Context(), models.RepositoryCtxtKey, Config)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	}
 	return http.HandlerFunc(fn)
@@ -83,7 +81,7 @@ func ServiceCtxt(next http.Handler) http.Handler {
 func AccountCtxt(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		handle := chi.URLParam(r, "handle")
-		val := r.Context().Value(RepositoryCtxtKey)
+		val := r.Context().Value(models.RepositoryCtxtKey)
 		AcctLoader, ok := val.(models.CanLoadAccounts)
 		if !ok {
 			log.WithFields(log.Fields{}).Errorf("could not load account repository from Context")
@@ -116,8 +114,8 @@ func ItemCtxt(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		col := chi.URLParam(r, "collection")
 
-		f := r.Context().Value(FilterCtxtKey)
-		val := r.Context().Value(RepositoryCtxtKey)
+		f := r.Context().Value(models.FilterCtxtKey)
+		val := r.Context().Value(models.RepositoryCtxtKey)
 
 		var err error
 		var i interface{}
@@ -258,7 +256,7 @@ func LoadFiltersCtxt(next http.Handler) http.Handler {
 			filters = loadPersonFiltersFromReq(r)
 		}
 
-		ctx := context.WithValue(r.Context(), FilterCtxtKey, filters)
+		ctx := context.WithValue(r.Context(), models.FilterCtxtKey, filters)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	}
 	return http.HandlerFunc(fn)
@@ -269,8 +267,8 @@ func ItemCollectionCtxt(next http.Handler) http.Handler {
 		col := chi.URLParam(r, "collection")
 		var err error
 
-		f := r.Context().Value(FilterCtxtKey)
-		val := r.Context().Value(RepositoryCtxtKey)
+		f := r.Context().Value(models.FilterCtxtKey)
+		val := r.Context().Value(models.RepositoryCtxtKey)
 
 		var items interface{}
 		if col == "outbox" {

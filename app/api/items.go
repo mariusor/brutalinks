@@ -69,7 +69,7 @@ func UpdateItem(w http.ResponseWriter, r *http.Request) {
 		v.Weight = -1
 	}
 
-	ctxt := r.Context().Value(RepositoryCtxtKey)
+	ctxt := r.Context().Value(models.RepositoryCtxtKey)
 	if repository, ok := ctxt.(models.CanSaveVotes); ok {
 		newVot, err := repository.SaveVote(v)
 		if err != nil {

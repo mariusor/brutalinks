@@ -160,12 +160,12 @@ func HandleAccountsCollection(w http.ResponseWriter, r *http.Request) {
 	var filter models.LoadAccountsFilter
 	var data []byte
 
-	f := r.Context().Value(FilterCtxtKey)
+	f := r.Context().Value(models.FilterCtxtKey)
 	if filter, ok = f.(models.LoadAccountsFilter); !ok {
 		log.WithFields(log.Fields{}).Errorf("could not load filter from Context")
 		return
 	} else {
-		val := r.Context().Value(RepositoryCtxtKey)
+		val := r.Context().Value(models.RepositoryCtxtKey)
 		if service, ok := val.(models.CanLoadAccounts); ok {
 			var accounts models.AccountCollection
 			var err error
@@ -232,7 +232,7 @@ func HandleCollectionItem(w http.ResponseWriter, r *http.Request) {
 			HandleError(w, r, http.StatusNotFound, err)
 			return
 		}
-		val := r.Context().Value(RepositoryCtxtKey)
+		val := r.Context().Value(models.RepositoryCtxtKey)
 		if service, ok := val.(models.CanLoadItems); ok && len(i.Hash) > 0 {
 			replies, err := service.LoadItems(models.LoadItemsFilter{
 				InReplyTo: []string{i.Hash.String()},
@@ -277,7 +277,7 @@ func HandleItemReplies(w http.ResponseWriter, r *http.Request) {
 		log.WithFields(log.Fields{}).Errorf("could not load Item from Context")
 		return
 	} else {
-		val := r.Context().Value(RepositoryCtxtKey)
+		val := r.Context().Value(models.RepositoryCtxtKey)
 		el, err := loadAPItem(it)
 		if service, ok := val.(models.CanLoadItems); ok {
 			var replies models.ItemCollection
@@ -370,7 +370,7 @@ func HandleVerifyCredentials(w http.ResponseWriter, r *http.Request) {
 		HandleError(w, r, http.StatusNotFound, errors.Errorf("account not found"))
 		return
 	}
-	val := r.Context().Value(RepositoryCtxtKey)
+	val := r.Context().Value(models.RepositoryCtxtKey)
 	AcctLoader, ok := val.(models.CanLoadAccounts)
 	if !ok {
 		log.WithFields(log.Fields{}).Errorf("could not load account repository from Context")

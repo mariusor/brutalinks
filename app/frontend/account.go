@@ -21,7 +21,7 @@ type itemListingModel struct {
 func ShowAccount(w http.ResponseWriter, r *http.Request) {
 	handle := chi.URLParam(r, "handle")
 
-	val := r.Context().Value(RepositoryCtxtKey)
+	val := r.Context().Value(models.RepositoryCtxtKey)
 	accountLoader, ok := val.(models.CanLoadAccounts)
 	if !ok {
 		log.Errorf("could not load account repository from Context")

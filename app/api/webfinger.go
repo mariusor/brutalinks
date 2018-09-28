@@ -60,7 +60,7 @@ func HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 
 	handle := strings.Replace(res, "@littr.me", "", 1)
 
-	val := r.Context().Value(RepositoryCtxtKey)
+	val := r.Context().Value(models.RepositoryCtxtKey)
 	AcctLoader, ok := val.(models.CanLoadAccounts)
 	if !ok {
 		err := errors.New("could not load account repository from Context")
