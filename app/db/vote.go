@@ -239,7 +239,7 @@ func saveVote(db *sqlx.DB, vot models.Vote) (models.Vote, error) {
 	v := Vote{}
 	var q string
 	if vID != 0 {
-		if vot.Weight != 0 && math.Signbit(float64(oldWeight)) == math.Signbit(float64(vot.Weight)) {
+		if vot.Weight != 0 && oldWeight != 0 && math.Signbit(float64(oldWeight)) == math.Signbit(float64(vot.Weight)) {
 			vot.Weight = 0
 		}
 		q = `update "votes" set "updated_at" = now(), "weight" = $1, "flags" = $2::bit(8) where "item_id" = (select "id" from "content_items" where "key" ~* $3) and "submitted_by" = (select "id" from "accounts" where "key" ~* $4);`
