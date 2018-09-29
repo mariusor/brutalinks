@@ -26,13 +26,13 @@ app: main.go $(SOURCES)
 	$(BUILD) -tags $(ENV) -o bin/$@ ./main.go
 
 bootstrap: cli/bootstrap/main.go
-	$(BUILD) -o bin/$@ cli/bootstrap/main.go
+	$(BUILD) -tags $(ENV) -o bin/$@ cli/bootstrap/main.go
 
 votes: cli/votes/main.go
-	$(BUILD) -o bin/$@ cli/votes/main.go
+	$(BUILD) -tags $(ENV) -o bin/$@ cli/votes/main.go
 
 keys: cli/keys/main.go
-	$(BUILD) -o bin/$@ cli/keys/main.go
+	$(BUILD) -tags $(ENV) -o bin/$@ cli/keys/main.go
 
 cli: bootstrap votes keys
 
@@ -41,19 +41,21 @@ clean:
 	$(RM) -rf docker/bin
 	$(RM) -rf docker/templates
 	$(RM) -rf docker/assets
-	$(RM) -rf docker/app/bin
+	$(RM) -rf docker/{app,bootstrap}/bin
 	$(RM) -rf docker/app/templates
 	$(RM) -rf docker/app/assets
-	$(RM) -rf docker/app/db
+	$(RM) -rf docker/bootstrap/db
 
 run: app
 	@./bin/app
 
 assets: app cli
-	cp -r bin docker/app
+	mkdir -p docker/{app,bootstrap}/bin
+	cp bin/app docker/app/bin/
+	cp bin/bootstrap docker/bootstrap/bin/
 	cp -r templates docker/app
 	cp -r assets docker/app
-	cp -r db docker/app
+	cp -r db docker/bootstrap
 
 image: app assets
 	cd docker && $(MAKE) $@

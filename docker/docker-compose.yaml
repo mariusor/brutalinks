@@ -57,14 +57,13 @@ services:
     depends_on:
       - postgres
     build:
-      context: app
-      dockerfile: ./Dockerfile-bootstrap
+      context: bootstrap
+      dockerfile: ./Dockerfile
       args:
           DB_HOST: ${DB_HOST}
           DB_NAME: ${DB_NAME}
           DB_USER: ${DB_USER}
           DB_PASSWORD: ${DB_PASSWORD}
-
 
   application:
     env_file: ./.env
@@ -75,7 +74,7 @@ services:
 #      - redis
     build:
       context: app
-      dockerfile: ./Dockerfile-application
+      dockerfile: ./Dockerfile
       args:
           ENV: ${ENV}
           LISTEN: ${LISTEN}
