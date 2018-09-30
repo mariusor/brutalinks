@@ -28,28 +28,34 @@ services:
 ##    volumes:
 ##      - ./elasticsearch:/usr/share/elasticsearch/data
 
-#  nginx:
-#    #image: nginx_proxy:${ENV}
-#    image: jwilder/nginx-proxy:alpine
-#    environment:
-#      - DEFAULT_HOST=littr.git
-#      - VIRTUAL_PORT=${LISTEN}
-#     #- VIRTUAL_HOST=${HOSTNAME}:${LISTEN}
-#    volumes:
-#      - /var/run/docker.sock:/tmp/docker.sock:ro
-#    build:
-#      context: nginx
-#      dockerfile: ./Dockerfile
-#    ports:
-#      - 80:80
-
   proxy:
-    image: thiagofigueiro/varnish-alpine-docker
+    env_file: ./.env
+    build:
+      context: varnish
+      dockerfile: ./Dockerfile
+      args:
+        LISTEN: ${LISTEN}
+        HOSTNAME: ${HOSTNAME}
     ports:
       - 80:80
+      - 6086:6086
     environment:
       - VARNISH_BACKEND_ADDRESS=application
-      - VARNISH_BACKEND_PORT=3000
+      - VARNISH_BACKEND_PORT=${LISTEN}
+
+  ssl:
+    env_file: ./.env
+    build:
+      context: hitch
+      dockerfile: ./Dockerfile
+      args:
+        LISTEN: ${LISTEN}
+        HOSTNAME: ${HtOSTNAME}
+    ports:
+      - 443:443
+    environment:
+      - HITCH_BACKEND_ADDRESS=proxy
+      - HITCH_BACKEND_PORT=6086
 
   bootstrap:
     env_file: ./.env
@@ -70,7 +76,9 @@ services:
     image: web_app:${ENV}
     depends_on:
       - postgres
-#      - bootstrap
+      - bootstrap
+      - proxy
+#      - ssl
 #      - redis
     build:
       context: app
@@ -79,4 +87,3 @@ services:
           ENV: ${ENV}
           LISTEN: ${LISTEN}
           HOSTNAME: ${HOSTNAME}
-
