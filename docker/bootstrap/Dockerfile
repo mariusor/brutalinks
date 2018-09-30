@@ -13,5 +13,5 @@ ENV DB_PASSWORD $DB_PASSWORD
 ADD ./bin/bootstrap /bin/bootstrap
 ADD ./db /db
 
-CMD ["/bin/bootstrap", "-user", "postgres"]
+CMD ["/bin/bootstrap", "-user", "postgres", "-seed"]
 
