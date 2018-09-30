@@ -4,9 +4,10 @@ import (
 	"database/sql"
 	"flag"
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"os"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/gchaincl/dotsql"
 	"github.com/juju/errors"
@@ -51,6 +52,7 @@ func main() {
 	var dbRootUser string
 	var dbRootPw string
 	var dbHost string
+	var seed bool
 
 	log.SetFormatter(&log.TextFormatter{
 		DisableColors:          false,
@@ -63,6 +65,7 @@ func main() {
 	flag.StringVar(&dbRootUser, "user", "", "the admin user for the database")
 	flag.StringVar(&dbRootPw, "pw", "", "the admin pass for the database")
 	flag.StringVar(&dbHost, "host", "", "the db host")
+	flag.BoolVar(&seed, "seed", false, "seed database with data")
 	flag.Parse()
 
 	dbPw := os.Getenv("DB_PASSWORD")
@@ -131,4 +134,21 @@ func main() {
 	votes, _ := dot.Raw("create-votes")
 	_, err = db.Exec(fmt.Sprintf(votes))
 	er(errors.NewErrWithCause(err, "query: %s", votes))
+
+	if seed {
+		dot, err = dotsql.LoadFromFile("./db/seed.sql")
+		er(errors.NewErrWithCause(err, "unable to load file"))
+
+		sysAcct, _ := dot.Raw("add-account-system")
+		_, err = db.Exec(fmt.Sprintf(sysAcct))
+		er(errors.NewErrWithCause(err, "query: %s", sysAcct))
+
+		anonAcct, _ := dot.Raw("add-account-anonymous")
+		_, err = db.Exec(fmt.Sprintf(anonAcct))
+		er(errors.NewErrWithCause(err, "query: %s", anonAcct))
+
+		itemAbout, _ := dot.Raw("add-item-about")
+		_, err = db.Exec(fmt.Sprintf(itemAbout))
+		er(errors.NewErrWithCause(err, "query: %s", itemAbout))
+	}
 }
