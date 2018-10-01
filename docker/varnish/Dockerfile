@@ -12,6 +12,7 @@ RUN apk update && \
 RUN mkdir -p /var/lib/varnish/`hostname` && chown varnish /var/lib/varnish/`hostname`
 
 COPY default.vcl /etc/varnish/default.vcl
-RUN chown -R varnish: /etc/varnish/
+#RUN chown :varnish /etc/varnish/default.vcl
+#RUN chmod g+r /etc/varnish/default.vcl
 
-CMD ["varnishd", "-a :80", "-a 6081,proxy", "-f /etc/varnish/default.vcl"]
+CMD ["/bin/sh", "-c", "varnishd -a :80 -a :6081,proxy -f /etc/varnish/default.vcl -s malloc,64M && varnishlog"]
