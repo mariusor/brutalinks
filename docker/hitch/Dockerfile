@@ -6,6 +6,8 @@ ARG HITCH_CHECKSUM=d52ba690d90c25bbfca73f5e0ed427738366dac12faf46fb5834e497cc2d1
 #USER hitch:hitch
 
 RUN echo "http://dl-3.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories
+RUN apk update && \
+    apk upgrade
 RUN apk add --no-cache openssl libev
 RUN apk add --no-cache --virtual .build-deps gcc curl libev-dev openssl-dev autoconf libtool py-docutils make automake pkgconfig gcc musl-dev byacc flex \
     && mkdir /usr/src \
@@ -21,6 +23,7 @@ RUN apk add --no-cache --virtual .build-deps gcc curl libev-dev openssl-dev auto
     && cd /usr/src \
     && rm hitch.tar.gz sha256sums.txt \
     && apk del .build-deps
+
 RUN adduser -h /var/lib/hitch -s /sbin/nologin -u 1000 -D hitch
 RUN mkdir -p /etc/hitch/ /etc/ssl/hitch/
 RUN chown -R root:hitch /etc/hitch /etc/ssl/hitch

@@ -39,6 +39,8 @@ services:
     ports:
       - 80:80
       - 6081:6081
+    depends_on:
+    - application
     environment:
       - VARNISH_BACKEND_ADDRESS=application
       - VARNISH_BACKEND_PORT=${LISTEN}
@@ -81,7 +83,7 @@ services:
     depends_on:
       - postgres
 #      - bootstrap
-      - ssl_terminator
+#      - ssl_terminator
 #      - redis
     build:
       context: app
