@@ -22,32 +22,31 @@ ifeq ($(shell git describe --tags > /dev/null 2>&1 ; echo $$?), 0)
 export VERSION = $(shell git describe --tags)
 endif
 
-app: main.go $(SOURCES)
-	$(BUILD) -tags $(ENV) -o bin/$@ ./main.go
+app: bin/app
+bin/app: main.go $(SOURCES)
+	$(BUILD) -tags $(ENV) -o $@ ./main.go
 
-bootstrap: cli/bootstrap/main.go
-	$(BUILD) -tags $(ENV) -o bin/$@ cli/bootstrap/main.go
+bootstrap: bin/bootstrap
+bin/bootstrap: cli/bootstrap/main.go
+	$(BUILD) -tags $(ENV) -o $@ cli/bootstrap/main.go
 
-votes: cli/votes/main.go
-	$(BUILD) -tags $(ENV) -o bin/$@ cli/votes/main.go
+votes: bin/votes
+bin/votes: cli/votes/main.go
+	$(BUILD) -tags $(ENV) -o $@ cli/votes/main.go
 
-keys: cli/keys/main.go
-	$(BUILD) -tags $(ENV) -o bin/$@ cli/keys/main.go
+keys: bin/keys
+bin/keys: cli/keys/main.go
+	$(BUILD) -tags $(ENV) -o $@ cli/keys/main.go
 
 cli: bootstrap votes keys
 
 clean:
 	$(RM) bin/*
-	$(RM) -rf docker/bin
-	$(RM) -rf docker/templates
-	$(RM) -rf docker/assets
-	$(RM) -rf docker/{app,bootstrap}/bin
-	$(RM) -rf docker/app/templates
-	$(RM) -rf docker/app/assets
-	$(RM) -rf docker/bootstrap/db
+	cd docker && $(MAKE) $@
 
 run: app
 	@./bin/app
+	cd docker && $(MAKE) $@
 
 assets: app cli
 	mkdir -p docker/{app,bootstrap}/bin
@@ -56,6 +55,9 @@ assets: app cli
 	cp -r templates docker/app
 	cp -r assets docker/app
 	cp -r db docker/bootstrap
+
+cert:
+	cd docker && $(MAKE) $@
 
 image: app assets
 	cd docker && $(MAKE) $@
