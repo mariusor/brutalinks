@@ -28,7 +28,7 @@ services:
 ##    volumes:
 ##      - ./elasticsearch:/usr/share/elasticsearch/data
 
-  proxy:
+  load_balancer:
     env_file: ./.env
     build:
       context: varnish
@@ -43,7 +43,7 @@ services:
       - VARNISH_BACKEND_ADDRESS=application
       - VARNISH_BACKEND_PORT=${LISTEN}
 
-  ssl:
+  ssl_terminator:
     env_file: ./.env
     build:
       context: hitch
@@ -53,9 +53,13 @@ services:
         HOSTNAME: ${HtOSTNAME}
     ports:
       - 443:443
+    volumes:
+      - /etc/hitch/littr.git.pem:/etc/ssl/hitch/littr.pem
+    depends_on:
+      - load_balancer
     environment:
       - HITCH_BACKEND_ADDRESS=proxy
-      - HITCH_BACKEND_PORT=6086
+      - HITCH_BACKEND_PORT=6081
 
   bootstrap:
     env_file: ./.env
@@ -76,9 +80,8 @@ services:
     image: web_app:${ENV}
     depends_on:
       - postgres
-      - bootstrap
-      - proxy
-#      - ssl
+#      - bootstrap
+      - ssl_terminator
 #      - redis
     build:
       context: app
