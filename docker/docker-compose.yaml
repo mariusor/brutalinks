@@ -38,7 +38,7 @@ services:
         HOSTNAME: ${HOSTNAME}
     ports:
       - 80:80
-      - 6086:6086
+      - 6081:6081
     environment:
       - VARNISH_BACKEND_ADDRESS=application
       - VARNISH_BACKEND_PORT=${LISTEN}
@@ -50,15 +50,15 @@ services:
       dockerfile: ./Dockerfile
       args:
         LISTEN: ${LISTEN}
-        HOSTNAME: ${HtOSTNAME}
+        HOSTNAME: ${HOSTNAME}
     ports:
       - 443:443
     volumes:
-      - /etc/hitch/littr.git.pem:/etc/ssl/hitch/littr.pem
+      - ./littr.git.pem:/etc/ssl/hitch/littr.pem
     depends_on:
       - load_balancer
     environment:
-      - HITCH_BACKEND_ADDRESS=proxy
+      - HITCH_BACKEND_ADDRESS=load_balancer
       - HITCH_BACKEND_PORT=6081
 
   bootstrap:

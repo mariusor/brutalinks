@@ -21,8 +21,9 @@ RUN apk add --no-cache --virtual .build-deps gcc curl libev-dev openssl-dev auto
     && cd /usr/src \
     && rm hitch.tar.gz sha256sums.txt \
     && apk del .build-deps
-RUN mkdir /etc/hitch /etc/ssl/hitch
 RUN adduser -h /var/lib/hitch -s /sbin/nologin -u 1000 -D hitch
+RUN mkdir -p /etc/hitch/ /etc/ssl/hitch/
+RUN chown -R root:hitch /etc/hitch /etc/ssl/hitch
 RUN rm -rf /tmp/*
 
 COPY hitch.conf /etc/hitch/hitch.conf
