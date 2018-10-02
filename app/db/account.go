@@ -57,7 +57,31 @@ func loadAccounts(db *sqlx.DB, f models.LoadAccountsFilter) (models.AccountColle
 }
 
 func saveAccount(db *sqlx.DB, a models.Account) (models.Account, error) {
-	return a, errors.New("not implemented")
+	jMetadata, err := json.Marshal(a.Metadata)
+	if err != nil {
+		Logger.WithFields(log.Fields{}).Error(err)
+	}
+
+	var em interface{}
+	if len(a.Email) == 0 {
+		em = interface{}(nil)
+	} else {
+		em = interface{}(a.Email)
+	}
+
+	ins := `insert into "accounts" ("key", "handle", "email", "score", "created_at", "updated_at", "flags", "metadata") 	
+	VALUES ($1, $2, $3, $4, $5, $6, $7::bit(8), $8)	
+	ON CONFLICT("key") DO UPDATE	
+		SET "score" = $4, "updated_at" = $6, "flags" = $7::bit(8), "metadata" = $8	
+	`
+	if res, err := db.Exec(ins, a.Hash, a.Handle, em, a.Score, a.CreatedAt, a.UpdatedAt, a.Flags, jMetadata); err == nil {
+		if rows, _ := res.RowsAffected(); rows == 0 {
+			return a, errors.Errorf("could not insert account %s:%q", a.Handle, a.Hash)
+		}
+	} else {
+		return a, err
+	}
+	return a, nil
 }
 
 func UpdateAccount(db *sqlx.DB, a models.Account) (models.Account, error) {
