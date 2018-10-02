@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
+	"crypto/rsa"
 	"crypto/x509"
 	"encoding/base64"
 	"errors"
@@ -43,7 +44,9 @@ func e(err error) {
 func main() {
 	var handle string
 	var seed int64
+	var kType string
 	flag.StringVar(&handle, "handle", "", "the content key to update votes for")
+	flag.StringVar(&kType, "type", "rsa", "key type to use: ecdsa, rsa")
 	flag.Int64Var(&seed, "seed", 0, "the seed used for the random number generator in key creation")
 	flag.Parse()
 
@@ -74,6 +77,7 @@ func main() {
 			return
 		}
 		filter.Key = hashes
+		filter.MaxItems = len(hashes)
 	}
 
 	accts, err := loader.LoadAccounts(filter)
@@ -87,21 +91,39 @@ func main() {
 				Warnf("Existing Key for %s:%s//%d", acct.Handle, acct.Hash.String(), len(acct.Hash))
 			continue
 		}
-		privKey, err := ecdsa.GenerateKey(elliptic.P224(), r)
-		e(err)
-
-		pub, errPub := x509.MarshalPKIXPublicKey(&privKey.PublicKey)
-		if errPub != nil {
-			log.Error(errPub)
-			continue
-		}
-		priv, errPrv := x509.MarshalECPrivateKey(privKey)
-		if errPrv != nil {
-			log.Error(errPrv)
-			continue
+		var pub, priv []byte
+		var err error
+		if kType == "ecdsa" {
+			var privKey *ecdsa.PrivateKey
+			privKey, err = ecdsa.GenerateKey(elliptic.P224(), r)
+			e(err)
+			pub, err = x509.MarshalPKIXPublicKey(&privKey.PublicKey)
+			if err != nil {
+				log.Error(err)
+				continue
+			}
+			priv, err = x509.MarshalECPrivateKey(privKey)
+			if err != nil {
+				log.Error(err)
+				continue
+			}
+		} else {
+			var privKey *rsa.PrivateKey
+			privKey, err = rsa.GenerateKey(r, 2048)
+			e(err)
+			pub, err = x509.MarshalPKIXPublicKey(&privKey.PublicKey)
+			if err != nil {
+				log.Error(err)
+				continue
+			}
+			priv, err = x509.MarshalPKCS8PrivateKey(privKey)
+			if err != nil {
+				log.Error(err)
+				continue
+			}
 		}
 		acct.Metadata.Key = &models.SSHKey{
-			ID:      "id-ecdsa",
+			ID:      "id-" + kType,
 			Public:  pub,
 			Private: priv,
 		}
