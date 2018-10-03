@@ -31,7 +31,7 @@ func Wilson(ups, downs int64) float64 {
 func Hacker(votes int64, date time.Duration) float64 {
 	gravity := 1.8
 	hoursAge := date.Hours()
-	return float64((votes-1)*ScoreMultiplier) / math.Pow(hoursAge+2, gravity)
+	return float64(votes-1) / math.Pow(hoursAge+2, gravity)
 }
 
 // reddit's hot sort
