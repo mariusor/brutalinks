@@ -87,7 +87,7 @@ func init() {
 	gob.Register(frontend.Flash{})
 
 	s := sessions.NewCookieStore(littr.SessionKeys[0], littr.SessionKeys[1])
-	//s.Options.Domain = littr.HostName
+	s.Options.Domain = littr.HostName
 	s.Options.Path = "/"
 	frontend.SessionStore = s
 
@@ -203,6 +203,7 @@ func main() {
 				r.Get("/", api.HandleAccount)
 				r.Route("/{collection}", func(r chi.Router) {
 					r.With(api.LoadFiltersCtxt, api.ItemCollectionCtxt).Get("/", api.HandleCollection)
+					r.With(api.LoadFiltersCtxt).Post("/", api.UpdateItem)
 					r.Route("/{hash}", func(r chi.Router) {
 						r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/", api.HandleCollectionItem)
 						r.With(api.LoadFiltersCtxt).Put("/", api.UpdateItem)
