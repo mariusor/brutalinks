@@ -365,7 +365,7 @@ func (r repository) LoadItems(f models.LoadItemsFilter) (models.ItemCollection, 
 		Logger.WithFields(log.Fields{}).Error(err)
 		return nil, err
 	}
-	col := OrderedCollection{}
+	col := ap.OrderedCollection{}
 	if resp != nil {
 		if resp.StatusCode != http.StatusOK {
 			err := fmt.Errorf("unable to load from the API")
@@ -474,7 +474,7 @@ func (r repository) LoadVotes(f models.LoadVotesFilter) (models.VoteCollection, 
 		}
 		defer resp.Body.Close()
 
-		col := OrderedCollection{}
+		col := ap.OrderedCollection{}
 		if body, err := ioutil.ReadAll(resp.Body); err == nil {
 			if err := j.Unmarshal(body, &col); err == nil {
 				items = make(models.VoteCollection, col.TotalItems)
@@ -621,37 +621,8 @@ func loadFromAPItem(it ap.Item) (models.Item, error) {
 	return models.Item{}, errors.New("invalid object type")
 }
 
-func loadFromAPArticle(it Article) (models.Item, error) {
-	ob := ap.Object(it)
-	title := jsonUnescape(ap.NaturalLanguageValue(it.Name).First())
-	content := jsonUnescape(ap.NaturalLanguageValue(it.Content).First())
-
-	c := models.Item{
-		Hash:        getHashFromAP(it),
-		Title:       title,
-		MimeType:    string(it.MediaType),
-		Data:        content,
-		Score:       it.Score,
-		SubmittedAt: it.Published,
-		SubmittedBy: &models.Account{
-			Handle: getAccountHandle(it.AttributedTo),
-		},
-	}
-	r := it.InReplyTo
-	if p, ok := r.(ap.IRI); ok {
-		c.Parent = &models.Item{
-			Hash: models.Hash(getAccountHandle(p)),
-		}
-	}
-	if it.Context != it.InReplyTo {
-		op := it.Context
-		if p, ok := op.(ap.IRI); ok {
-			c.OP = &models.Item{
-				Hash: models.Hash(getAccountHandle(p)),
-			}
-		}
-	}
-	return c, nil
+func loadFromAPArticle(a Article) (models.Item, error) {
+	return loadFromAPObject(a.Object)
 }
 
 func loadFromAPLike(l ap.Activity) (models.Vote, error) {

@@ -50,12 +50,12 @@ func loadAPItem(item models.Item) ap.Item {
 	o.Name = make(ap.NaturalLanguageValue, 0)
 	o.Content = make(ap.NaturalLanguageValue, 0)
 	if id, ok := BuildObjectIDFromItem(item); ok {
-		o.ID = ObjectID(id)
+		o.ID = id
 	}
-	o.Type = ActivityVocabularyType(ap.ArticleType)
+	o.Type = ap.ArticleType
 	o.Published = item.SubmittedAt
 	o.Updated = item.UpdatedAt
-	o.MediaType = MimeType(item.MimeType)
+	o.MediaType = ap.MimeType(item.MimeType)
 	o.Generator = ap.IRI("http://littr.git")
 	o.Score = item.Score / models.ScoreMultiplier
 	if item.Title != "" {
@@ -86,7 +86,7 @@ func loadAPPerson(a models.Account) *Person {
 	baseURL := ap.URI(fmt.Sprintf("%s", AccountsURL))
 
 	p := Person{}
-	p.Type = ActivityVocabularyType(ap.PersonType)
+	p.Type = ap.PersonType
 	p.Name = ap.NaturalLanguageValueNew()
 	p.PreferredUsername = ap.NaturalLanguageValueNew()
 
@@ -121,7 +121,7 @@ func loadAPPerson(a models.Account) *Person {
 	p.Score = a.Score
 	if a.IsValid() && a.HasMetadata() && a.Metadata.Key != nil && a.Metadata.Key.Public != nil {
 		p.PublicKey = PublicKey{
-			Id:           ObjectID(fmt.Sprintf("%s#main-key", p.ID)),
+			Id:           ap.ObjectID(fmt.Sprintf("%s#main-key", p.ID)),
 			Owner:        ap.IRI(p.ID),
 			PublicKeyPem: fmt.Sprintf("-----BEGIN PUBLIC KEY-----\n%s\n-----END PUBLIC KEY-----", base64.StdEncoding.EncodeToString(a.Metadata.Key.Public)),
 		}
@@ -218,7 +218,7 @@ func HandleCollectionItem(w http.ResponseWriter, r *http.Request) {
 
 	val := r.Context().Value(ItemCtxtKey)
 	collection := chi.URLParam(r, "collection")
-	var el ObjectOrLink
+	var el ap.ObjectOrLink
 	switch strings.ToLower(collection) {
 	case "inbox":
 	case "outbox":
