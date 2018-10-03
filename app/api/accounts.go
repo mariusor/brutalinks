@@ -21,10 +21,10 @@ func getObjectID(s string) ap.ObjectID {
 }
 
 func apAccountID(a models.Account) ap.ObjectID {
-	if len(a.Hash) < 7 {
-		return ap.ObjectID("::unknown")
+	if len(a.Hash) >= 8 {
+		return ap.ObjectID(fmt.Sprintf("%s/%s", AccountsURL, a.Hash.String()))
 	}
-	return ap.ObjectID(fmt.Sprintf("%s/%s", AccountsURL, a.Hash.String()))
+	return ap.ObjectID(fmt.Sprintf("%s/anonymous", AccountsURL))
 }
 
 func loadAPLike(vote models.Vote) ap.ObjectOrLink {
@@ -90,7 +90,7 @@ func loadAPPerson(a models.Account) *Person {
 	p.Name = ap.NaturalLanguageValueNew()
 	p.PreferredUsername = ap.NaturalLanguageValueNew()
 
-	if len(a.Hash) > 7 {
+	if len(a.Hash) >= 8 {
 		p.ID = apAccountID(a)
 	}
 

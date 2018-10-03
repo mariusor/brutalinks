@@ -387,11 +387,7 @@ func (r repository) LoadItems(f models.LoadItemsFilter) (models.ItemCollection, 
 
 	items := make(models.ItemCollection, col.TotalItems)
 	for k, it := range col.OrderedItems {
-		if art, ok := it.(*Article); ok {
-			items[k], _ = loadFromAPItem(*art)
-		} else {
-			Logger.WithFields(log.Fields{}).Errorf("unable to load Article from %T", it)
-		}
+		items[k], _ = loadFromAPItem(it)
 	}
 
 	return items, nil
@@ -479,8 +475,8 @@ func (r repository) LoadVotes(f models.LoadVotesFilter) (models.VoteCollection, 
 			if err := j.Unmarshal(body, &col); err == nil {
 				items = make(models.VoteCollection, col.TotalItems)
 				for _, it := range col.OrderedItems {
-					if like, ok := it.(*ap.Activity); ok {
-						vot, _ := loadFromAPLike(*like)
+					if like, ok := it.(*ap.Like); ok {
+						vot, _ := loadFromAPLike(ap.Activity(*like))
 						items[vot.Item.Hash] = vot
 					} else {
 						Logger.WithFields(log.Fields{}).Errorf("unable to load Activity from %T", it)
