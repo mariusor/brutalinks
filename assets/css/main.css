@@ -575,7 +575,7 @@ details > summary::-webkit-details-marker {
 .text-plain {
     white-space: pre;
     font-family: monospace;
-    overflow: auto;
+    /*overflow: auto;*/
     line-height: revert;
 }
 .text-plain > header {
