@@ -571,7 +571,58 @@ func jsonUnescape(s string) string {
 	return string(out)
 }
 
-func loadFromAPItem(it Article) (models.Item, error) {
+func loadFromAPObject(ob ap.Object) (models.Item, error) {
+	title := jsonUnescape(ap.NaturalLanguageValue(ob.Name).First())
+	content := jsonUnescape(ap.NaturalLanguageValue(ob.Content).First())
+
+	c := models.Item{
+		Hash:        getHashFromAP(ob),
+		Title:       title,
+		MimeType:    string(ob.MediaType),
+		Data:        content,
+		SubmittedAt: ob.Published,
+		SubmittedBy: &models.Account{
+			Handle: getAccountHandle(ob.AttributedTo),
+		},
+	}
+	r := ob.InReplyTo
+	if p, ok := r.(ap.IRI); ok {
+		c.Parent = &models.Item{
+			Hash: models.Hash(getAccountHandle(p)),
+		}
+	}
+	if ob.Context != ob.InReplyTo {
+		op := ob.Context
+		if p, ok := op.(ap.IRI); ok {
+			c.OP = &models.Item{
+				Hash: models.Hash(getAccountHandle(p)),
+			}
+		}
+	}
+	return c, nil
+}
+
+func loadFromAPItem(it ap.Item) (models.Item, error) {
+	if it.IsLink() {
+		return models.Item{}, errors.New("unable to load from IRI")
+	}
+	if art, ok := it.(*Article); ok {
+		return loadFromAPArticle(*art)
+	}
+	if art, ok := it.(Article); ok {
+		return loadFromAPArticle(art)
+	}
+	if ob, ok := it.(*ap.Object); ok {
+		return loadFromAPObject(*ob)
+	}
+	if ob, ok := it.(ap.Object); ok {
+		return loadFromAPObject(ob)
+	}
+	return models.Item{}, errors.New("invalid object type")
+}
+
+func loadFromAPArticle(it Article) (models.Item, error) {
+	ob := ap.Object(it)
 	title := jsonUnescape(ap.NaturalLanguageValue(it.Name).First())
 	content := jsonUnescape(ap.NaturalLanguageValue(it.Content).First())
 
@@ -643,7 +694,7 @@ func loadFromAPPerson(p Person) (models.Account, error) {
 		Score: p.Score,
 		//CreatedAt: nil,
 		//UpdatedAt: nil,
-		Flags: 0,
+		Flags: models.FlagsNone,
 		Votes: nil,
 	}
 	return a, nil
