@@ -115,6 +115,14 @@ table {
 }
 @media (min-width: 992px) {
     :root {
+        font-size: 1.2vw;
+    }
+    h6.domain {
+        display: inline;
+    }
+}
+@media (min-width: 1050px) {
+    :root {
         font-size: 1.1vw;
     }
     h6.domain {
@@ -123,7 +131,7 @@ table {
 }
 @media (min-width: 1200px) {
     :root {
-        font-size: .9vw;
+        font-size: 1.2vw;
     }
     h6.domain {
         display: inline;
@@ -131,7 +139,15 @@ table {
 }
 @media (min-width: 1500px) {
     :root {
-        font-size: .8vw;
+        font-size: .9vw;
+    }
+    h6.domain {
+        display: inline;
+    }
+}
+@media (min-width: 1700px) {
+    :root {
+        font-size: .95vw;
     }
     h6.domain {
         display: inline;
@@ -153,12 +169,7 @@ table {
 p {
     text-indent: .4rem;
     padding-bottom: .2rem;
-    /*overflow-wrap: break-word;*/
-    /*word-wrap: break-word;*/
-    /* This is the dangerous one in WebKit, as it breaks things wherever */
-    /*word-break: break-all;*/
-    /* Instead use this non-standard one: */
-    /*word-break: break-word;*/
+    word-break: break-word;
     hyphens: auto;
 }
 body {
@@ -231,7 +242,7 @@ a:active {
     color: dodgerblue;
 }
 .inverted a:visited {
-    color: mediumpurple;
+    color: mediumslateblue;
 }
 .inverted a:active {
     color: red;
@@ -445,7 +456,8 @@ ol.comments li {
 .score a[href].yay.ed,
 .score a[href].nay:active,
 .score a[href].nay.ed {
-    color: mediumpurple;
+    color: mediumslateblue;
+    /*text-shadow: black 1px 1px 10px;*/
 }
 /*.inverted .score a[href].yay:active,*/
 /*.inverted .score a[href].yay.ed,*/
@@ -554,6 +566,7 @@ details > summary::-webkit-details-marker {
 }
 .data {
     margin-bottom: .3rem;
+    max-width: 960px;
 }
 .comments .data,
 #content .data {
