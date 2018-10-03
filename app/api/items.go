@@ -22,15 +22,14 @@ func UpdateItem(w http.ResponseWriter, r *http.Request) {
 	act := ap.LikeActivity{}
 	var body []byte
 	var err error
-	if r != nil {
-		defer r.Body.Close()
 
-		if body, err = ioutil.ReadAll(r.Body); err != nil {
-			Logger.WithFields(log.Fields{}).Errorf("request body read error: %s", err)
-		}
-		if err := j.Unmarshal(body, &act); err != nil {
-			Logger.WithFields(log.Fields{}).Errorf("json-ld unmarshal error: %s", err)
-		}
+	defer r.Body.Close()
+	if body, err = ioutil.ReadAll(r.Body); err != nil {
+		Logger.WithFields(log.Fields{}).Errorf("request body read error: %s", err)
+	}
+
+	if err := j.Unmarshal(body, &act); err != nil {
+		Logger.WithFields(log.Fields{}).Errorf("json-ld unmarshal error: %s", err)
 	}
 
 	actor := act.Activity.Actor
