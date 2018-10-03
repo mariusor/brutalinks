@@ -20,7 +20,7 @@ require (
 	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
 	github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 // indirect
 	github.com/lib/pq v0.0.0-20180523175426-90697d60dd84
-	github.com/mariusor/activitypub.go v0.0.0-20180906195646-e1d7e465d763
+	github.com/mariusor/activitypub.go v0.0.0-20181002092238-d507b72a7aba
 	github.com/mariusor/qstring v0.0.0-20180919140350-29d781f85f0f
 	github.com/mattn/go-sqlite3 v1.9.0 // indirect
 	github.com/onsi/ginkgo v1.6.0 // indirect
