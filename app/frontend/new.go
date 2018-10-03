@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/juju/errors"
-	"github.com/mariusor/littr.go/app/db"
 	"github.com/mariusor/littr.go/app/models"
 	log "github.com/sirupsen/logrus"
 )
@@ -74,7 +73,14 @@ func HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		Logger.WithFields(log.Fields{}).Errorf("wrong http method: %s", err)
 	}
-	p, err = db.Config.SaveItem(p)
+
+	val := r.Context().Value(RepositoryCtxtKey)
+	itemSaver, ok := val.(models.CanSaveItems)
+	if !ok {
+		Logger.WithFields(log.Fields{}).Errorf("could not load item repository from Context")
+		return
+	}
+	p, err = itemSaver.SaveItem(p)
 	if err != nil {
 		Logger.WithFields(log.Fields{}).Errorf("unable to save item: %s", err)
 		HandleError(w, r, http.StatusInternalServerError, err)

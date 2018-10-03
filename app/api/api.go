@@ -380,12 +380,12 @@ func BuildRepliesCollectionID(i ap.Item) ap.ObjectID {
 	return ap.ObjectID(fmt.Sprintf("%s/replies", *i.GetID()))
 }
 
-func BuildObjectIDFromItem(i models.Item) ap.ObjectID {
-	handle := "anonymous"
-	if i.SubmittedBy != nil {
-		handle = i.SubmittedBy.Handle
+func BuildObjectIDFromItem(i models.Item) (ap.ObjectID, bool) {
+	if i.SubmittedBy == nil || len(i.Hash) == 0 {
+		return ap.ObjectID(""), false
 	}
-	return ap.ObjectID(fmt.Sprintf("%s/%s/outbox/%s", AccountsURL, url.PathEscape(handle), url.PathEscape(i.Hash.String())))
+	handle := i.SubmittedBy.Handle
+	return ap.ObjectID(fmt.Sprintf("%s/%s/outbox/%s", AccountsURL, url.PathEscape(handle), url.PathEscape(i.Hash.String()))), true
 }
 
 func BuildObjectIDFromVote(v models.Vote) ap.ObjectID {

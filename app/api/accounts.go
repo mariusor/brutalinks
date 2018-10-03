@@ -31,7 +31,7 @@ func loadAPLike(vote models.Vote) ap.ObjectOrLink {
 	if vote.Weight == 0 {
 		return nil
 	}
-	id := BuildObjectIDFromItem(*vote.Item)
+	id, _ := BuildObjectIDFromItem(*vote.Item)
 	lID := BuildObjectIDFromVote(vote)
 	whomArt := ap.IRI(BuildActorHashID(*vote.SubmittedBy))
 	if vote.Weight > 0 {
@@ -45,12 +45,13 @@ func loadAPLike(vote models.Vote) ap.ObjectOrLink {
 	}
 }
 
-func loadAPItem(item models.Item) (ap.Item, error) {
-	id := BuildObjectIDFromItem(item)
+func loadAPItem(item models.Item) ap.Item {
 	o := Article{}
 	o.Name = make(ap.NaturalLanguageValue, 0)
 	o.Content = make(ap.NaturalLanguageValue, 0)
-	o.ID = ObjectID(id)
+	if id, ok := BuildObjectIDFromItem(item); ok {
+		o.ID = ObjectID(id)
+	}
 	o.Type = ActivityVocabularyType(ap.ArticleType)
 	o.Published = item.SubmittedAt
 	o.Updated = item.UpdatedAt
@@ -67,12 +68,14 @@ func loadAPItem(item models.Item) (ap.Item, error) {
 		o.AttributedTo = ap.IRI(BuildActorID(*item.SubmittedBy))
 	}
 	if item.Parent != nil {
-		o.InReplyTo = ap.IRI(BuildObjectIDFromItem(*item.Parent))
+		id, _ := BuildObjectIDFromItem(*item.Parent)
+		o.InReplyTo = ap.IRI(id)
 	}
 	if item.OP != nil {
-		o.Context = ap.IRI(BuildObjectIDFromItem(*item.OP))
+		id, _ := BuildObjectIDFromItem(*item.OP)
+		o.Context = ap.IRI(id)
 	}
-	return o, nil
+	return o
 }
 
 func loadReceivedItems(hash string) (*models.ItemCollection, error) {
@@ -146,9 +149,7 @@ func loadAPCollection(o ap.CollectionInterface, items *models.ItemCollection) (a
 		return nil, errors.Errorf("empty collection %T", o)
 	}
 	for _, item := range *items {
-		el, _ := loadAPItem(item)
-
-		o.Append(el)
+		o.Append(loadAPItem(item))
 	}
 
 	return o, nil
@@ -227,7 +228,7 @@ func HandleCollectionItem(w http.ResponseWriter, r *http.Request) {
 			HandleError(w, r, http.StatusInternalServerError, err)
 			return
 		}
-		el, err = loadAPItem(i)
+		el = loadAPItem(i)
 		if err != nil {
 			HandleError(w, r, http.StatusNotFound, err)
 			return
@@ -278,10 +279,8 @@ func HandleItemReplies(w http.ResponseWriter, r *http.Request) {
 		return
 	} else {
 		val := r.Context().Value(models.RepositoryCtxtKey)
-		el, err := loadAPItem(it)
+		el := loadAPItem(it)
 		if service, ok := val.(models.CanLoadItems); ok {
-			var replies models.ItemCollection
-
 			filter := models.LoadItemsFilter{
 				InReplyTo: []string{it.Hash.String()},
 				MaxItems:  MaxContentItems,
@@ -289,7 +288,7 @@ func HandleItemReplies(w http.ResponseWriter, r *http.Request) {
 
 			p, _ := el.(Article)
 			p.Replies = ap.CollectionNew(BuildRepliesCollectionID(p))
-			if replies, err = service.LoadItems(filter); err == nil {
+			if replies, err := service.LoadItems(filter); err == nil {
 				_, err = loadAPCollection(p.Replies, &replies)
 				data, err = json.WithContext(GetContext()).Marshal(p.Replies)
 			} else {

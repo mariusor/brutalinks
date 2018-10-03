@@ -415,9 +415,10 @@ func (r repository) SaveVote(v models.Vote) (models.Vote, error) {
 	//	exists = false
 	//}
 	p := loadAPPerson(*v.SubmittedBy)
-	o, err := loadAPItem(*v.Item)
+	o := loadAPItem(*v.Item)
 	id := ap.ObjectID(url)
 	var body []byte
+	var err error
 	var act ap.Activity
 	if v.Weight > 0 {
 		like := ap.LikeActivityNew(id, ap.IRI(p.ID), ap.IRI(*o.GetID()))
@@ -495,16 +496,66 @@ func (r repository) LoadVote(f models.LoadVotesFilter) (models.Vote, error) {
 }
 
 func (r repository) SaveItem(it models.Item) (models.Item, error) {
-	return it, errors.Errorf("not implemented")
+	doUpd := false
+	art := loadAPItem(it)
+	actor := loadAPPerson(*it.SubmittedBy)
+
+	var body []byte
+	var err error
+	if len(*art.GetID()) == 0 {
+		id := ap.ObjectID("")
+		create := ap.CreateActivityNew(id, actor, art)
+		body, err = j.Marshal(create)
+	} else {
+		id := art.GetID()
+		doUpd = true
+		update := ap.UpdateActivityNew(*id, actor, art)
+		body, err = j.Marshal(update)
+	}
+
+	if err != nil {
+		Logger.WithFields(log.Fields{"item": it.Hash}).Error(err)
+		return it, err
+	}
+	var resp *http.Response
+	if doUpd {
+		url := string(*art.GetID())
+		resp, err = r.Put(url, "application/json+activity", bytes.NewReader(body))
+	} else {
+		url := fmt.Sprintf("http://%s/api/accounts/%s/outbox", r.BaseUrl, it.SubmittedBy.Hash)
+		resp, err = r.Post(url, "application/json+activity", bytes.NewReader(body))
+	}
+	if err != nil {
+		Logger.WithFields(log.Fields{}).Error(err)
+		return it, err
+	}
+	if resp.StatusCode == http.StatusOK {
+		if a, ok := art.(Article); ok {
+			return loadFromAPItem(a)
+		} else {
+			return it, errors.Errorf("incompatible article")
+		}
+	}
+	if resp.StatusCode == http.StatusNotFound {
+		return models.Item{}, errors.Errorf("%s", resp.Status)
+	}
+	if resp.StatusCode == http.StatusMethodNotAllowed {
+		return models.Item{}, errors.Errorf("%s", resp.Status)
+	}
+	if resp.StatusCode == http.StatusInternalServerError {
+		return models.Item{}, errors.Errorf("unable to save item %s", resp.Status)
+	}
+	return models.Item{}, errors.Errorf("unknown error, received status %d", resp.StatusCode)
 }
 
 func jsonUnescape(s string) string {
-	if out, err := jsonparser.Unescape([]byte(s), nil); err != nil {
+	var out []byte
+	var err error
+	if out, err = jsonparser.Unescape([]byte(s), nil); err != nil {
 		Logger.WithFields(log.Fields{}).Error(err)
 		return s
-	} else {
-		return string(out)
 	}
+	return string(out)
 }
 
 func loadFromAPItem(it Article) (models.Item, error) {
