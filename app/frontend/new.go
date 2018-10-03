@@ -72,6 +72,8 @@ func HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	p, err := ContentFromRequest(r)
 	if err != nil {
 		Logger.WithFields(log.Fields{}).Errorf("wrong http method: %s", err)
+		HandleError(w, r, http.StatusMethodNotAllowed, err)
+		return
 	}
 
 	val := r.Context().Value(RepositoryCtxtKey)

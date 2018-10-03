@@ -128,7 +128,9 @@ func saveItem(db *sqlx.DB, it models.Item) (models.Item, error) {
 		i.Flags = f
 	}
 
-	i.Key = genKey(i)
+	if i.Key == [64]byte{} {
+		i.Key = genKey(i)
+	}
 	var params = make([]interface{}, 0)
 	params = append(params, i.Key.Bytes())
 	params = append(params, i.Title)

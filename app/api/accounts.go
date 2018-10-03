@@ -21,7 +21,7 @@ func getObjectID(s string) ap.ObjectID {
 }
 
 func apAccountID(a models.Account) ap.ObjectID {
-	if len(a.Hash) < 9 {
+	if len(a.Hash) < 7 {
 		return ap.ObjectID("::unknown")
 	}
 	return ap.ObjectID(fmt.Sprintf("%s/%s", AccountsURL, a.Hash.String()))

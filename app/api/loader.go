@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"path"
 	"strings"
 
 	"github.com/mariusor/qstring"
@@ -504,12 +505,12 @@ func (r repository) SaveItem(it models.Item) (models.Item, error) {
 	var err error
 	if len(*art.GetID()) == 0 {
 		id := ap.ObjectID("")
-		create := ap.CreateActivityNew(id, actor, art)
+		create := ap.CreateActivityNew(id, ap.IRI(*actor.GetID()), art)
 		body, err = j.Marshal(create)
 	} else {
 		id := art.GetID()
 		doUpd = true
-		update := ap.UpdateActivityNew(*id, actor, art)
+		update := ap.UpdateActivityNew(*id, ap.IRI(*actor.GetID()), art)
 		body, err = j.Marshal(update)
 	}
 
@@ -529,11 +530,23 @@ func (r repository) SaveItem(it models.Item) (models.Item, error) {
 		Logger.WithFields(log.Fields{}).Error(err)
 		return it, err
 	}
+	if resp.StatusCode == http.StatusCreated {
+		newLoc := resp.Header.Get("Location")
+		hash := path.Base(newLoc)
+		filt := models.LoadItemsFilter{
+			Key: []string{hash,},
+		}
+		return r.LoadItem(filt)
+	}
 	if resp.StatusCode == http.StatusOK {
 		if a, ok := art.(Article); ok {
 			return loadFromAPItem(a)
 		} else {
-			return it, errors.Errorf("incompatible article")
+			hash := path.Base(string(*a.GetID()))
+			filt := models.LoadItemsFilter{
+				Key: []string{hash,},
+			}
+			return r.LoadItem(filt)
 		}
 	}
 	if resp.StatusCode == http.StatusNotFound {

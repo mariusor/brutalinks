@@ -1,6 +1,8 @@
 package api
 
 import (
+	"fmt"
+	"github.com/go-chi/chi"
 	"io/ioutil"
 	"net/http"
 	"path"
@@ -13,20 +15,8 @@ import (
 	j "github.com/mariusor/activitypub.go/jsonld"
 )
 
-// POST /api - not implemented yet - but we should have all information in the CreateActivity body
-// PUT /api/accounts/{handle}/{collection}/{item_hash}
-func UpdateItem(w http.ResponseWriter, r *http.Request) {
-	// verify signature header:
-	// Signature: keyId="https://my-example.com/actor#main-key",headers="(request-target) host date",signature="..."
-
+func loadVote (body []byte) models.Vote {
 	act := ap.LikeActivity{}
-	var body []byte
-	var err error
-
-	defer r.Body.Close()
-	if body, err = ioutil.ReadAll(r.Body); err != nil {
-		Logger.WithFields(log.Fields{}).Errorf("request body read error: %s", err)
-	}
 
 	if err := j.Unmarshal(body, &act); err != nil {
 		Logger.WithFields(log.Fields{}).Errorf("json-ld unmarshal error: %s", err)
@@ -68,23 +58,137 @@ func UpdateItem(w http.ResponseWriter, r *http.Request) {
 		v.Weight = -1
 	}
 
-	ctxt := r.Context().Value(models.RepositoryCtxtKey)
-	if repository, ok := ctxt.(models.CanSaveVotes); ok {
-		newVot, err := repository.SaveVote(v)
-		if err != nil {
-			Logger.WithFields(log.Fields{"saveVote": v.SubmittedBy.Hash}).Error(err)
-			HandleError(w, r, http.StatusInternalServerError, err)
-			return
+	return v
+}
+
+func loadItem(body []byte) models.Item {
+	act := ap.UpdateActivity{}
+
+	if err := j.Unmarshal(body, &act); err != nil {
+		Logger.WithFields(log.Fields{}).Errorf("json-ld unmarshal error: %s", err)
+	}
+
+	actor := act.Activity.Actor
+	ob := act.Activity.Object
+	var accountHash models.Hash
+	if actor.IsLink() {
+		// just the ObjectID
+		accountHash = models.Hash(path.Base(string(actor.(ap.IRI))))
+	}
+	if actor.IsObject() {
+		// full Actor struct
+		accountHash = models.Hash(path.Base(string(*actor.GetID())))
+	}
+	it := models.Item{
+		SubmittedBy: &models.Account{
+			Hash: accountHash,
+		},
+	}
+	var itemHash string
+	if ob.IsLink() {
+		// just the ObjectID
+		itemHash = path.Base(string(ob.(ap.IRI)))
+	}
+	if ob.IsObject() {
+		// full Object struct
+		obj, ok := act.Activity.Object.(*ap.Object)
+		if !ok {
+			Logger.Errorf("invalid object in %T activity", act)
+		} else {
+			if len(obj.ID) > 0 {
+				it.Hash = models.Hash(path.Base(string(obj.ID)))
+			}
+			it.Data = obj.Content.First()
+			it.Title = obj.Name.First()
+			it.MimeType = string(obj.MediaType)
+			if obj.Context != nil {
+				it.OP = &models.Item{
+					Hash: getHash(obj.Context.GetID()),
+				}
+			}
+			if obj.InReplyTo != nil {
+				it.Parent = &models.Item{
+					Hash: getHash(obj.InReplyTo.GetID()),
+				}
+			}
 		}
-		if newVot.SubmittedAt != newVot.UpdatedAt {
-			// we need to make a difference between created vote and updated vote
-			// created - http.StatusCreated
-			// updated - http.StatusOK
+	}
+	it.Hash = models.Hash(itemHash)
+
+	return it
+}
+
+// POST /api - not implemented yet - but we should have all information in the CreateActivity body
+// PUT /api/accounts/{handle}/{collection}/{item_hash}
+func UpdateItem(w http.ResponseWriter, r *http.Request) {
+	// verify signature header:
+	// Signature: keyId="https://my-example.com/actor#main-key",headers="(request-target) host date",signature="..."
+
+	var body []byte
+	var err error
+	defer r.Body.Close()
+	status := http.StatusInternalServerError
+
+	if body, err = ioutil.ReadAll(r.Body); err != nil {
+		Logger.WithFields(log.Fields{}).Errorf("request body read error: %s", err)
+		HandleError(w, r, http.StatusInternalServerError, err)
+		return
+	}
+
+	location := ""
+	col := chi.URLParam(r, "collection")
+	switch col {
+	case "outbox":
+		it := loadItem(body)
+		ctxt := r.Context().Value(models.RepositoryCtxtKey)
+		if repository, ok := ctxt.(models.CanSaveItems); ok {
+			newIt, err := repository.SaveItem(it)
+			if err != nil {
+				Logger.WithFields(log.Fields{"saveItem": it.SubmittedBy.Hash}).Error(err)
+				HandleError(w, r, http.StatusInternalServerError, err)
+				return
+			}
+			if newIt.UpdatedAt.IsZero() {
+				// we need to make a difference between created vote and updated vote
+				// created - http.StatusCreated
+				status = http.StatusCreated
+				location = fmt.Sprintf("/api/accounts/%s/%s/%s", newIt.SubmittedBy.Handle, col, newIt.Hash)
+			} else {
+				// updated - http.StatusOK
+				status = http.StatusOK
+			}
+		}
+	case "liked":
+		v := loadVote(body)
+		ctxt := r.Context().Value(models.RepositoryCtxtKey)
+		if repository, ok := ctxt.(models.CanSaveVotes); ok {
+			newVot, err := repository.SaveVote(v)
+			if err != nil {
+				Logger.WithFields(log.Fields{"saveVote": v.SubmittedBy.Hash}).Error(err)
+				HandleError(w, r, http.StatusInternalServerError, err)
+				return
+			}
+			if  newVot.UpdatedAt.IsZero() {
+				// we need to make a difference between created vote and updated vote
+				// created - http.StatusCreated
+				status = http.StatusCreated
+				location = fmt.Sprintf("/api/accounts/%s/%s/%s", newVot.SubmittedBy.Handle, col, newVot.Item.Hash)
+			} else {
+				// updated - http.StatusOK
+				status = http.StatusOK
+			}
 		}
 	}
 
-	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "application/activity+json; charset=utf-8")
+	w.Header().Add("Content-Type", "application/activity+json; charset=utf-8")
+	if status == http.StatusCreated {
+		w.Header().Add("Location", location)
+	}
+	w.WriteHeader(status)
 	//w.Header().Set("X-Content-Type-Options", "nosniff")
-	w.Write([]byte(`{"status": "ok"}`))
+	if status >= 400 {
+		w.Write([]byte(`{"status": "nok"}`))
+	} else {
+		w.Write([]byte(`{"status": "ok"}`))
+	}
 }
