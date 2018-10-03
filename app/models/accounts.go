@@ -38,7 +38,11 @@ type Account struct {
 type Hash string
 
 func (a Hash) String() string {
-	return string(a[0:8])
+	if len(a) > 8 {
+		return string(a[0:8])
+	} else {
+		return string(a)
+	}
 }
 
 func (a Hash) MarshalText() ([]byte, error) {
