@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"path"
 
 	"fmt"
 	"net/url"
@@ -333,6 +334,16 @@ func (p *Person) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+func getHashFromAP(obj ap.ObjectOrLink) models.Hash {
+	var h models.Hash
+	if obj.IsLink() {
+		h = models.Hash(path.Base(string(obj.(ap.IRI))))
+	} else {
+		h = getHash(obj.GetID())
+	}
+	return h
+}
+
 func getHash(i *ap.ObjectID) models.Hash {
 	if i == nil {
 		return ""
@@ -381,11 +392,15 @@ func BuildRepliesCollectionID(i ap.Item) ap.ObjectID {
 }
 
 func BuildObjectIDFromItem(i models.Item) (ap.ObjectID, bool) {
-	if i.SubmittedBy == nil || len(i.Hash) == 0 {
+	if len(i.Hash) == 0 {
 		return ap.ObjectID(""), false
 	}
-	handle := i.SubmittedBy.Handle
-	return ap.ObjectID(fmt.Sprintf("%s/%s/outbox/%s", AccountsURL, url.PathEscape(handle), url.PathEscape(i.Hash.String()))), true
+	if i.SubmittedBy != nil {
+		handle := i.SubmittedBy.Handle
+		return ap.ObjectID(fmt.Sprintf("%s/%s/outbox/%s", AccountsURL, url.PathEscape(handle), url.PathEscape(i.Hash.String()))), true
+	} else {
+		return ap.ObjectID(fmt.Sprintf("%s/outbox/%s", BaseURL, url.PathEscape(i.Hash.String()))), true
+	}
 }
 
 func BuildObjectIDFromVote(v models.Vote) ap.ObjectID {

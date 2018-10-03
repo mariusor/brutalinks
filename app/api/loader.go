@@ -534,7 +534,7 @@ func (r repository) SaveItem(it models.Item) (models.Item, error) {
 		newLoc := resp.Header.Get("Location")
 		hash := path.Base(newLoc)
 		filt := models.LoadItemsFilter{
-			Key: []string{hash,},
+			Key: []string{hash},
 		}
 		return r.LoadItem(filt)
 	}
@@ -544,7 +544,7 @@ func (r repository) SaveItem(it models.Item) (models.Item, error) {
 		} else {
 			hash := path.Base(string(*a.GetID()))
 			filt := models.LoadItemsFilter{
-				Key: []string{hash,},
+				Key: []string{hash},
 			}
 			return r.LoadItem(filt)
 		}
@@ -576,7 +576,7 @@ func loadFromAPItem(it Article) (models.Item, error) {
 	content := jsonUnescape(ap.NaturalLanguageValue(it.Content).First())
 
 	c := models.Item{
-		Hash:        getHash(it.GetID()),
+		Hash:        getHashFromAP(it),
 		Title:       title,
 		MimeType:    string(it.MediaType),
 		Data:        content,
@@ -608,29 +608,13 @@ func loadFromAPLike(l ap.Activity) (models.Vote, error) {
 		Flags: 0,
 	}
 	if l.Object != nil {
-		if l.Object.IsLink() {
-			i := ap.ObjectID(l.Object.(ap.IRI))
-			v.Item = &models.Item{
-				Hash: getHash(&i),
-			}
-		}
-		if l.Object.IsObject() {
-			v.Item = &models.Item{
-				Hash: getHash(l.Object.GetID()),
-			}
+		v.Item = &models.Item{
+			Hash: getHashFromAP(l.Object),
 		}
 	}
 	if l.AttributedTo != nil {
-		if l.AttributedTo.IsLink() {
-			i := ap.ObjectID(l.AttributedTo.(ap.IRI))
-			v.SubmittedBy = &models.Account{
-				Hash: models.Hash(getHash(&i)),
-			}
-		}
-		if l.AttributedTo.IsObject() {
-			v.SubmittedBy = &models.Account{
-				Hash: models.Hash(getHash(l.AttributedTo.GetID())),
-			}
+		v.SubmittedBy = &models.Account{
+			Hash: getHashFromAP(l.AttributedTo),
 		}
 	}
 	//CreatedAt: nil,
@@ -647,7 +631,7 @@ func loadFromAPLike(l ap.Activity) (models.Vote, error) {
 func loadFromAPPerson(p Person) (models.Account, error) {
 	name := jsonUnescape(ap.NaturalLanguageValue(p.Name).First())
 	a := models.Account{
-		Hash:   models.Hash(getHash(p.GetID())),
+		Hash:   getHashFromAP(p),
 		Handle: name,
 		Email:  "",
 		Metadata: &models.AccountMetadata{

@@ -2,10 +2,11 @@ package api
 
 import (
 	"fmt"
-	"github.com/go-chi/chi"
 	"io/ioutil"
 	"net/http"
 	"path"
+
+	"github.com/go-chi/chi"
 
 	"github.com/mariusor/littr.go/app/models"
 
@@ -15,7 +16,7 @@ import (
 	j "github.com/mariusor/activitypub.go/jsonld"
 )
 
-func loadVote (body []byte) models.Vote {
+func loadVote(body []byte) models.Vote {
 	act := ap.LikeActivity{}
 
 	if err := j.Unmarshal(body, &act); err != nil {
@@ -62,7 +63,7 @@ func loadVote (body []byte) models.Vote {
 }
 
 func loadItem(body []byte) models.Item {
-	act := ap.UpdateActivity{}
+	act := ap.CreateActivity{}
 
 	if err := j.Unmarshal(body, &act); err != nil {
 		Logger.WithFields(log.Fields{}).Errorf("json-ld unmarshal error: %s", err)
@@ -70,24 +71,10 @@ func loadItem(body []byte) models.Item {
 
 	actor := act.Activity.Actor
 	ob := act.Activity.Object
-	var accountHash models.Hash
-	if actor.IsLink() {
-		// just the ObjectID
-		accountHash = models.Hash(path.Base(string(actor.(ap.IRI))))
-	}
-	if actor.IsObject() {
-		// full Actor struct
-		accountHash = models.Hash(path.Base(string(*actor.GetID())))
-	}
 	it := models.Item{
 		SubmittedBy: &models.Account{
-			Hash: accountHash,
+			Hash: getHashFromAP(actor),
 		},
-	}
-	var itemHash string
-	if ob.IsLink() {
-		// just the ObjectID
-		itemHash = path.Base(string(ob.(ap.IRI)))
 	}
 	if ob.IsObject() {
 		// full Object struct
@@ -98,22 +85,28 @@ func loadItem(body []byte) models.Item {
 			if len(obj.ID) > 0 {
 				it.Hash = models.Hash(path.Base(string(obj.ID)))
 			}
-			it.Data = obj.Content.First()
-			it.Title = obj.Name.First()
+			title := jsonUnescape(ap.NaturalLanguageValue(obj.Name).First())
+			content := jsonUnescape(ap.NaturalLanguageValue(obj.Content).First())
+
+			it.Data = content
+			it.Title = title
 			it.MimeType = string(obj.MediaType)
 			if obj.Context != nil {
 				it.OP = &models.Item{
-					Hash: getHash(obj.Context.GetID()),
+					Hash: getHashFromAP(obj.Context),
 				}
 			}
 			if obj.InReplyTo != nil {
 				it.Parent = &models.Item{
-					Hash: getHash(obj.InReplyTo.GetID()),
+					Hash: getHashFromAP(obj.InReplyTo),
 				}
 			}
 		}
 	}
-	it.Hash = models.Hash(itemHash)
+	it.SubmittedBy = &models.Account{
+		Hash: getHashFromAP(actor),
+	}
+	it.Hash = getHashFromAP(ob)
 
 	return it
 }
@@ -168,7 +161,7 @@ func UpdateItem(w http.ResponseWriter, r *http.Request) {
 				HandleError(w, r, http.StatusInternalServerError, err)
 				return
 			}
-			if  newVot.UpdatedAt.IsZero() {
+			if newVot.UpdatedAt.IsZero() {
 				// we need to make a difference between created vote and updated vote
 				// created - http.StatusCreated
 				status = http.StatusCreated
