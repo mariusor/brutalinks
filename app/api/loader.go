@@ -163,6 +163,118 @@ func ItemCtxt(next http.Handler) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
+func jsonUnescape(s string) string {
+	var out []byte
+	var err error
+	if out, err = jsonparser.Unescape([]byte(s), nil); err != nil {
+		Logger.WithFields(log.Fields{}).Error(err)
+		return s
+	}
+	return string(out)
+}
+
+func loadFromAPObject(ob ap.Object) (models.Item, error) {
+	title := jsonUnescape(ap.NaturalLanguageValue(ob.Name).First())
+	content := jsonUnescape(ap.NaturalLanguageValue(ob.Content).First())
+
+	c := models.Item{
+		Hash:        getHashFromAP(ob),
+		Title:       title,
+		MimeType:    string(ob.MediaType),
+		Data:        content,
+		SubmittedAt: ob.Published,
+		SubmittedBy: &models.Account{
+			Handle: getAccountHandle(ob.AttributedTo),
+		},
+	}
+	r := ob.InReplyTo
+	if p, ok := r.(ap.IRI); ok {
+		c.Parent = &models.Item{
+			Hash: models.Hash(getAccountHandle(p)),
+		}
+	}
+	if ob.Context != ob.InReplyTo {
+		op := ob.Context
+		if p, ok := op.(ap.IRI); ok {
+			c.OP = &models.Item{
+				Hash: models.Hash(getAccountHandle(p)),
+			}
+		}
+	}
+	return c, nil
+}
+
+func loadFromAPItem(it ap.Item) (models.Item, error) {
+	if it.IsLink() {
+		return models.Item{}, errors.New("unable to load from IRI")
+	}
+	if art, ok := it.(*Article); ok {
+		return loadFromAPArticle(*art)
+	}
+	if art, ok := it.(Article); ok {
+		return loadFromAPArticle(art)
+	}
+	if ob, ok := it.(*ap.Object); ok {
+		return loadFromAPObject(*ob)
+	}
+	if ob, ok := it.(ap.Object); ok {
+		return loadFromAPObject(ob)
+	}
+	return models.Item{}, errors.New("invalid object type")
+}
+
+func loadFromAPArticle(a Article) (models.Item, error) {
+	it, err := loadFromAPObject(a.Object)
+	it.Score = a.Score
+	return it, err
+}
+
+func loadFromAPLike(l ap.Activity) (models.Vote, error) {
+	v := models.Vote{
+		Flags: 0,
+	}
+	if l.Object != nil {
+		v.Item = &models.Item{
+			Hash: getHashFromAP(l.Object),
+		}
+	}
+	if l.AttributedTo != nil {
+		v.SubmittedBy = &models.Account{
+			Hash: getHashFromAP(l.AttributedTo),
+		}
+	}
+	//CreatedAt: nil,
+	//UpdatedAt: nil,
+	if l.Type == ap.LikeType {
+		v.Weight = 1
+	}
+	if l.Type == ap.DislikeType {
+		v.Weight = -1
+	}
+	return v, nil
+}
+
+func loadFromAPPerson(p Person) (models.Account, error) {
+	name := jsonUnescape(ap.NaturalLanguageValue(p.Name).First())
+	a := models.Account{
+		Hash:   getHashFromAP(p),
+		Handle: name,
+		Email:  "",
+		Metadata: &models.AccountMetadata{
+			Key: &models.SSHKey{
+				ID:     "",
+				Public: []byte(p.PublicKey.PublicKeyPem),
+			},
+		},
+		Score: p.Score,
+		//CreatedAt: nil,
+		//UpdatedAt: nil,
+		Flags: models.FlagsNone,
+		Votes: nil,
+	}
+	return a, nil
+}
+
 func loadPersonFiltersFromReq(r *http.Request) models.LoadAccountsFilter {
 	filters := models.LoadAccountsFilter{
 		MaxItems: MaxContentItems,
@@ -449,52 +561,91 @@ func (r repository) SaveVote(v models.Vote) (models.Vote, error) {
 }
 
 func (r repository) LoadVotes(f models.LoadVotesFilter) (models.VoteCollection, error) {
-	qs := ""
-
-	if q, err := qstring.MarshalString(&f); err == nil {
-		qs = fmt.Sprintf("?%s", q)
+	var qs string
+	var err error
+	if qs, err = qstring.MarshalString(&f); err != nil {
+		Logger.WithFields(log.Fields{}).Error(err)
+		return nil, err
 	}
-	url := fmt.Sprintf("http://%s/api/liked%s", r.BaseUrl, qs)
-	resp, err := r.Get(url)
-	if err != nil {
+	if len(qs) > 0 {
+		qs = "?" + qs
+	}
+	var resp *http.Response
+	if resp, err = r.Get(fmt.Sprintf("http://%s/api/liked%s", r.BaseUrl, qs)); err != nil {
+		Logger.WithFields(log.Fields{}).Error(err)
+		return nil, err
+	}
+	if resp == nil {
+		Logger.WithFields(log.Fields{}).Error(err)
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		err := fmt.Errorf("unable to load from the API")
 		Logger.WithFields(log.Fields{}).Error(err)
 		return nil, err
 	}
 
 	var items models.VoteCollection
-	if resp != nil {
-		if resp.StatusCode != http.StatusOK {
-			err := fmt.Errorf("unable to load from the API")
-			Logger.WithFields(log.Fields{}).Error(err)
-			return nil, err
-		}
-		defer resp.Body.Close()
+	defer resp.Body.Close()
+	var body []byte
 
-		col := ap.OrderedCollection{}
-		if body, err := ioutil.ReadAll(resp.Body); err == nil {
-			if err := j.Unmarshal(body, &col); err == nil {
-				items = make(models.VoteCollection, col.TotalItems)
-				for _, it := range col.OrderedItems {
-					if like, ok := it.(*ap.Like); ok {
-						vot, _ := loadFromAPLike(ap.Activity(*like))
-						items[vot.Item.Hash] = vot
-						continue
-					}
-					if like, ok := it.(*ap.Dislike); ok {
-						vot, _ := loadFromAPLike(ap.Activity(*like))
-						items[vot.Item.Hash] = vot
-						continue
-					}
-					Logger.WithFields(log.Fields{}).Errorf("unable to load Activity from %T", it)
-				}
-			}
+	col := ap.OrderedCollection{}
+	if body, err = ioutil.ReadAll(resp.Body); err != nil {
+		return nil, err
+	}
+	if err := j.Unmarshal(body, &col); err != nil {
+		return nil, err
+	}
+	items = make(models.VoteCollection, col.TotalItems)
+	for _, it := range col.OrderedItems {
+		if like, ok := it.(*ap.Like); ok {
+			vot, _ := loadFromAPLike(ap.Activity(*like))
+			items[vot.Item.Hash] = vot
+			continue
 		}
+		if like, ok := it.(*ap.Dislike); ok {
+			vot, _ := loadFromAPLike(ap.Activity(*like))
+			items[vot.Item.Hash] = vot
+			continue
+		}
+		Logger.WithFields(log.Fields{}).Errorf("unable to load Activity from %T", it)
 	}
 	return items, nil
 }
 
 func (r repository) LoadVote(f models.LoadVotesFilter) (models.Vote, error) {
-	return db.Config.LoadVote(f)
+	if len(f.ItemKey) == 0 {
+		return models.Vote{}, errors.New("invalid item hash")
+	}
+
+	itemHash := f.ItemKey[0]
+	f.ItemKey = nil
+	url := fmt.Sprintf("http://%s/api/liked/%s", r.BaseUrl, itemHash)
+	resp, err := r.Get(url)
+	if err != nil {
+		Logger.WithFields(log.Fields{}).Error(err)
+		return models.Vote{}, err
+	}
+	if resp == nil {
+		return models.Vote{}, errors.New("invalid response received")
+	}
+	if resp.StatusCode != http.StatusOK {
+		return models.Vote{}, errors.New("unable to load from the API")
+	}
+	defer resp.Body.Close()
+
+	var body []byte
+	if body, err = ioutil.ReadAll(resp.Body); err != nil {
+		Logger.WithFields(log.Fields{}).Error(err)
+		return models.Vote{}, err
+	}
+
+	var like ap.Activity
+	if err := j.Unmarshal(body, &like); err != nil {
+		Logger.WithFields(log.Fields{}).Error(err)
+		return models.Vote{}, err
+	}
+	return loadFromAPLike(like)
 }
 
 func (r repository) SaveItem(it models.Item) (models.Item, error) {
@@ -562,141 +713,40 @@ func (r repository) SaveItem(it models.Item) (models.Item, error) {
 	return models.Item{}, errors.Errorf("unknown error, received status %d", resp.StatusCode)
 }
 
-func jsonUnescape(s string) string {
-	var out []byte
-	var err error
-	if out, err = jsonparser.Unescape([]byte(s), nil); err != nil {
-		Logger.WithFields(log.Fields{}).Error(err)
-		return s
-	}
-	return string(out)
-}
-
-func loadFromAPObject(ob ap.Object) (models.Item, error) {
-	title := jsonUnescape(ap.NaturalLanguageValue(ob.Name).First())
-	content := jsonUnescape(ap.NaturalLanguageValue(ob.Content).First())
-
-	c := models.Item{
-		Hash:        getHashFromAP(ob),
-		Title:       title,
-		MimeType:    string(ob.MediaType),
-		Data:        content,
-		SubmittedAt: ob.Published,
-		SubmittedBy: &models.Account{
-			Handle: getAccountHandle(ob.AttributedTo),
-		},
-	}
-	r := ob.InReplyTo
-	if p, ok := r.(ap.IRI); ok {
-		c.Parent = &models.Item{
-			Hash: models.Hash(getAccountHandle(p)),
-		}
-	}
-	if ob.Context != ob.InReplyTo {
-		op := ob.Context
-		if p, ok := op.(ap.IRI); ok {
-			c.OP = &models.Item{
-				Hash: models.Hash(getAccountHandle(p)),
-			}
-		}
-	}
-	return c, nil
-}
-
-func loadFromAPItem(it ap.Item) (models.Item, error) {
-	if it.IsLink() {
-		return models.Item{}, errors.New("unable to load from IRI")
-	}
-	if art, ok := it.(*Article); ok {
-		return loadFromAPArticle(*art)
-	}
-	if art, ok := it.(Article); ok {
-		return loadFromAPArticle(art)
-	}
-	if ob, ok := it.(*ap.Object); ok {
-		return loadFromAPObject(*ob)
-	}
-	if ob, ok := it.(ap.Object); ok {
-		return loadFromAPObject(ob)
-	}
-	return models.Item{}, errors.New("invalid object type")
-}
-
-func loadFromAPArticle(a Article) (models.Item, error) {
-	it, err := loadFromAPObject(a.Object)
-	it.Score = a.Score
-	return it, err
-}
-
-func loadFromAPLike(l ap.Activity) (models.Vote, error) {
-	v := models.Vote{
-		Flags: 0,
-	}
-	if l.Object != nil {
-		v.Item = &models.Item{
-			Hash: getHashFromAP(l.Object),
-		}
-	}
-	if l.AttributedTo != nil {
-		v.SubmittedBy = &models.Account{
-			Hash: getHashFromAP(l.AttributedTo),
-		}
-	}
-	//CreatedAt: nil,
-	//UpdatedAt: nil,
-	if l.Type == ap.LikeType {
-		v.Weight = 1
-	}
-	if l.Type == ap.DislikeType {
-		v.Weight = -1
-	}
-	return v, nil
-}
-
-func loadFromAPPerson(p Person) (models.Account, error) {
-	name := jsonUnescape(ap.NaturalLanguageValue(p.Name).First())
-	a := models.Account{
-		Hash:   getHashFromAP(p),
-		Handle: name,
-		Email:  "",
-		Metadata: &models.AccountMetadata{
-			Key: &models.SSHKey{
-				ID:     "",
-				Public: []byte(p.PublicKey.PublicKeyPem),
-			},
-		},
-		Score: p.Score,
-		//CreatedAt: nil,
-		//UpdatedAt: nil,
-		Flags: models.FlagsNone,
-		Votes: nil,
-	}
-	return a, nil
-}
-
 func (r repository) LoadAccounts(f models.LoadAccountsFilter) (models.AccountCollection, error) {
-	qs := ""
-	if q, err := qstring.MarshalString(&f); err == nil {
-		qs = fmt.Sprintf("?%s", q)
-	}
-
-	accounts := make(models.AccountCollection, 0)
-	resp, err := r.Get(fmt.Sprintf("http://%s/api/accounts?%s", r.BaseUrl, qs))
-	if err != nil {
+	var qs string
+	var err error
+	if qs, err = qstring.MarshalString(&f); err != nil {
 		Logger.WithFields(log.Fields{}).Error(err)
 		return nil, err
 	}
-	if resp != nil {
-		defer resp.Body.Close()
+	if len(qs) > 0 {
+		qs = "?" + qs
+	}
 
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return nil, err
-		}
-		err = j.Unmarshal(body, &accounts)
-		if err != nil {
-			return nil, err
-		}
+	accounts := make(models.AccountCollection, 0)
+	var resp *http.Response
+
+	if resp, err = r.Get(fmt.Sprintf("http://%s/api/accounts?%s", r.BaseUrl, qs)); err != nil {
+		Logger.WithFields(log.Fields{}).Error(err)
+		return nil, err
+	}
+	if resp == nil {
+		Logger.WithFields(log.Fields{}).Error(err)
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		err := fmt.Errorf("unable to load from the API")
+		Logger.WithFields(log.Fields{}).Error(err)
+		return nil, err
+	}
+	defer resp.Body.Close()
+	var body []byte
+	if body, err = ioutil.ReadAll(resp.Body); err != nil {
+		return nil, err
+	}
+	if err = j.Unmarshal(body, &accounts); err != nil {
+		return nil, err
 	}
 	return nil, errors.Errorf("not implemented")
 }
@@ -729,5 +779,5 @@ func (r repository) LoadAccount(f models.LoadAccountsFilter) (models.Account, er
 }
 
 func (r repository) SaveAccount(a models.Account) (models.Account, error) {
-	return models.Account{}, errors.Errorf("not implemented")
+	return db.Config.SaveAccount(a)
 }
