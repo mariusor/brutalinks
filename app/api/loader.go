@@ -478,9 +478,14 @@ func (r repository) LoadVotes(f models.LoadVotesFilter) (models.VoteCollection, 
 					if like, ok := it.(*ap.Like); ok {
 						vot, _ := loadFromAPLike(ap.Activity(*like))
 						items[vot.Item.Hash] = vot
-					} else {
-						Logger.WithFields(log.Fields{}).Errorf("unable to load Activity from %T", it)
+						continue
 					}
+					if like, ok := it.(*ap.Dislike); ok {
+						vot, _ := loadFromAPLike(ap.Activity(*like))
+						items[vot.Item.Hash] = vot
+						continue
+					}
+					Logger.WithFields(log.Fields{}).Errorf("unable to load Activity from %T", it)
 				}
 			}
 		}
