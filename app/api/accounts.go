@@ -78,10 +78,6 @@ func loadAPItem(item models.Item) ap.Item {
 	return o
 }
 
-func loadReceivedItems(hash string) (*models.ItemCollection, error) {
-	return nil, nil
-}
-
 func loadAPPerson(a models.Account) *Person {
 	baseURL := ap.URI(fmt.Sprintf("%s", AccountsURL))
 
@@ -98,24 +94,24 @@ func loadAPPerson(a models.Account) *Person {
 	p.PreferredUsername.Set("en", a.Handle)
 
 	out := ap.OutboxNew()
-	p.Outbox = out
 	out.ID = BuildCollectionID(a, p.Outbox)
 	out.URL = BuildObjectURL(p.URL, p.Outbox)
 	if len(a.Handle) > 0 {
 		out.AttributedTo = ap.URI(p.ID)
 	}
+	p.Outbox = out
 	//in := ap.InboxNew()
 	//p.Inbox = in
 	//in.ID = BuildCollectionID(a, p.Inbox)
 	//in.URL = BuildObjectURL(p.URL, p.Inbox)
 
 	liked := ap.LikedNew()
-	p.Liked = liked
 	liked.ID = BuildCollectionID(a, p.Liked)
 	liked.URL = BuildObjectURL(p.URL, p.Liked)
 	if len(a.Handle) > 0 {
 		liked.AttributedTo = ap.URI(p.ID)
 	}
+	p.Liked = liked
 
 	p.URL = BuildObjectURL(baseURL, p)
 	p.Score = a.Score
@@ -171,10 +167,13 @@ func HandleAccountsCollection(w http.ResponseWriter, r *http.Request) {
 			var accounts models.AccountCollection
 			var err error
 
-			col := ap.Collection{}
+			col := ap.CollectionNew(ap.ObjectID(AccountsURL))
 			if accounts, err = service.LoadAccounts(filter); err == nil {
 				for _, acct := range accounts {
-					col.Append(loadAPPerson(acct))
+					p := loadAPPerson(acct)
+					p.Outbox = ap.IRI(BuildCollectionID(acct, p.Outbox))
+					p.Liked = ap.IRI(BuildCollectionID(acct, p.Liked))
+					col.Append(p)
 				}
 				data, err = json.WithContext(GetContext()).Marshal(col)
 			} else {
@@ -196,6 +195,8 @@ func HandleAccount(w http.ResponseWriter, r *http.Request) {
 	//	Logger.WithFields(log.Fields{}).Errorf("could not load Account from Context")
 	//}
 	p := loadAPPerson(a)
+	p.Outbox = ap.IRI(BuildCollectionID(a, p.Outbox))
+	p.Liked = ap.IRI(BuildCollectionID(a, p.Liked))
 
 	j, err := json.WithContext(GetContext()).Marshal(p)
 	if err != nil {
@@ -244,7 +245,7 @@ func HandleCollectionItem(w http.ResponseWriter, r *http.Request) {
 			}
 			if len(replies) > 0 {
 				if o, ok := el.(Article); ok {
-					o.Replies = ap.CollectionNew(BuildRepliesCollectionID(o))
+					o.Replies = ap.IRI(BuildRepliesCollectionID(o))
 					el = o
 				}
 			}
@@ -287,13 +288,14 @@ func HandleItemReplies(w http.ResponseWriter, r *http.Request) {
 			}
 
 			p, _ := el.(Article)
-			p.Replies = ap.CollectionNew(BuildRepliesCollectionID(p))
+			col := ap.CollectionNew(BuildRepliesCollectionID(p))
 			if replies, err := service.LoadItems(filter); err == nil {
-				_, err = loadAPCollection(p.Replies, &replies)
+				_, err = loadAPCollection(col, &replies)
 				data, err = json.WithContext(GetContext()).Marshal(p.Replies)
 			} else {
 				Logger.WithFields(log.Fields{}).Error(err)
 			}
+			p.Replies = col
 		}
 	}
 
@@ -326,7 +328,10 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 			Logger.WithFields(log.Fields{}).Errorf("could not load Items from Context")
 			return
 		}
-		_, err = loadAPCollection(p.Outbox, &items)
+		col := ap.OutboxNew()
+		col.ID = BuildCollectionID(a, col)
+		_, err = loadAPCollection(col, &items)
+		p.Outbox = col
 		data, err = json.WithContext(GetContext()).Marshal(p.Outbox)
 	case "liked":
 		votes, ok := collection.(models.VoteCollection)
@@ -337,7 +342,10 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			Logger.WithFields(log.Fields{}).Error(err)
 		}
-		_, err = loadAPLiked(p.Liked, votes)
+		liked := ap.LikedNew()
+		liked.ID = BuildCollectionID(a, liked)
+		_, err = loadAPLiked(liked, votes)
+		p.Liked = liked
 		data, err = json.WithContext(GetContext()).Marshal(p.Liked)
 	case "replies":
 		items, ok := collection.(models.ItemCollection)
@@ -345,7 +353,10 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 			log.Errorf("could not load Replies from Context")
 			return
 		}
-		_, err = loadAPCollection(p.Replies, &items)
+		replies := ap.OrderedCollectionNew(ap.ObjectID(""))
+		replies.ID = BuildCollectionID(a, replies)
+		_, err = loadAPCollection(replies, &items)
+		p.Replies = replies
 		data, err = json.WithContext(GetContext()).Marshal(p.Outbox)
 	default:
 		err = errors.Errorf("collection not found")

@@ -472,12 +472,13 @@ func (r repository) LoadItems(f models.LoadItemsFilter) (models.ItemCollection, 
 	}
 
 	var err error
-	resp, err := r.Get(fmt.Sprintf("http://%s/api/outbox%s", r.BaseUrl, qs))
+	url := fmt.Sprintf("http://%s/api/outbox", r.BaseUrl)
+	resp, err := r.Get(fmt.Sprintf("%s%s", url, qs))
 	if err != nil {
 		Logger.WithFields(log.Fields{}).Error(err)
 		return nil, err
 	}
-	col := ap.OrderedCollection{}
+	col := ap.OrderedCollectionNew(ap.ObjectID(url))
 	if resp != nil {
 		if resp.StatusCode != http.StatusOK {
 			err := fmt.Errorf("unable to load from the API")
@@ -571,7 +572,8 @@ func (r repository) LoadVotes(f models.LoadVotesFilter) (models.VoteCollection, 
 		qs = "?" + qs
 	}
 	var resp *http.Response
-	if resp, err = r.Get(fmt.Sprintf("http://%s/api/liked%s", r.BaseUrl, qs)); err != nil {
+	url := fmt.Sprintf("http://%s/api/liked", r.BaseUrl)
+	if resp, err = r.Get(fmt.Sprintf("%s%s", url, qs)); err != nil {
 		Logger.WithFields(log.Fields{}).Error(err)
 		return nil, err
 	}
@@ -589,7 +591,7 @@ func (r repository) LoadVotes(f models.LoadVotesFilter) (models.VoteCollection, 
 	defer resp.Body.Close()
 	var body []byte
 
-	col := ap.OrderedCollection{}
+	col := ap.OrderedCollectionNew(ap.ObjectID(url))
 	if body, err = ioutil.ReadAll(resp.Body); err != nil {
 		return nil, err
 	}

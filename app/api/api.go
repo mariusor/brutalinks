@@ -188,7 +188,7 @@ func BuildActorHashID(a models.Account) ap.ObjectID {
 	return ap.ObjectID(fmt.Sprintf("%s/%s", AccountsURL, url.PathEscape(a.Hash.String())))
 }
 
-func BuildCollectionID(a models.Account, o ap.CollectionInterface) ap.ObjectID {
+func BuildCollectionID(a models.Account, o ap.Item) ap.ObjectID {
 	if len(a.Handle) > 0 {
 		return ap.ObjectID(fmt.Sprintf("%s/%s/%s", AccountsURL, url.PathEscape(a.Handle), getObjectType(o)))
 	}
