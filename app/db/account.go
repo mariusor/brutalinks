@@ -40,13 +40,9 @@ func loadAccounts(db *sqlx.DB, f models.LoadAccountsFilter) (models.AccountColle
 		"id", "key", "handle", "email", "score", "created_at", "updated_at", "metadata", "flags"
 	from "accounts" where %s`, fullWhere)
 
-	agg := make([]Account, 0)
+	type AccountCollection []Account
+	agg := make(AccountCollection, 0)
 	if err := db.Select(&agg, sel, whereValues...); err != nil {
-		return nil, err
-	}
-
-	udb := db.Unsafe()
-	if err := udb.Select(&agg, sel, whereValues...); err != nil {
 		return nil, err
 	}
 	accounts := make(models.AccountCollection, len(agg))
