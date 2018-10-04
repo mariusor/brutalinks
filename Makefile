@@ -46,7 +46,6 @@ clean:
 
 run: app
 	@./bin/app
-	cd docker && $(MAKE) $@
 
 assets: app cli
 	mkdir -p docker/{app,bootstrap}/bin

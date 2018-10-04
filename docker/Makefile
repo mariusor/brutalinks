@@ -1,7 +1,7 @@
 include ./.env
 
 $(HOSTNAME).pem:
-	openssl req -subj "/C=DE/ST=Berlin/L=Berlin/O=$(HOSTNAME)/OU=none/CN=$(HOSTNAME)" -newkey rsa:2048 -sha256 -keyout $(HOSTNAME).key -nodes -x509 -days 365 -out $(HOSTNAME).crt
+	openssl req -subj "/C=AQ/ST=Omond/L=Omond/O=$(HOSTNAME)/OU=none/CN=$(HOSTNAME)" -newkey rsa:2048 -sha256 -keyout $(HOSTNAME).key -nodes -x509 -days 365 -out $(HOSTNAME).crt
 	cat $(HOSTNAME).key $(HOSTNAME).crt > $(HOSTNAME).pem
 
 clean:
