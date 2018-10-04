@@ -618,7 +618,9 @@ func loadFromAPItem(it ap.Item) (models.Item, error) {
 }
 
 func loadFromAPArticle(a Article) (models.Item, error) {
-	return loadFromAPObject(a.Object)
+	it, err := loadFromAPObject(a.Object)
+	it.Score = a.Score
+	return it, err
 }
 
 func loadFromAPLike(l ap.Activity) (models.Vote, error) {
