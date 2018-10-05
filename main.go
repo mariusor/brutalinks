@@ -147,6 +147,14 @@ func main() {
 	filesDir := filepath.Join(workDir, "assets")
 	FileServer(r, "/assets", http.Dir(filesDir))
 
+	r.Get("/ns", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json+ld")
+		http.ServeFile(w, r,  filepath.Join(filesDir, "ns.json"))
+	}))
+	r.Get("/favicon.ico", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, filepath.Join(filesDir, "favicon.ico"))
+	}))
+
 	// Frontend
 	r.With(api.Repository).Route("/", func(r chi.Router) {
 		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
