@@ -93,7 +93,7 @@ func GetContext() j.Context {
 	return j.Context{
 		{IRI: j.IRI(ap.ActivityBaseURI)},
 		{IRI: j.IRI("https://w3id.org/security/v1")},
-		{j.Term("score"), j.IRI("http://littr.me/as#score")},
+		{j.Term("score"), j.IRI("http://littr.me/ns#score")},
 	}
 }
 
