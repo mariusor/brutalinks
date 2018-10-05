@@ -353,7 +353,7 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 			log.Errorf("could not load Replies from Context")
 			return
 		}
-		replies := ap.OrderedCollectionNew(ap.ObjectID(""))
+		replies := OrderedCollectionNew(ap.ObjectID(""))
 		replies.ID = BuildCollectionID(a, replies)
 		_, err = loadAPCollection(replies, &items)
 		p.Replies = replies

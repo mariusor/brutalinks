@@ -2,16 +2,14 @@ package api
 
 import (
 	"encoding/json"
-	"net/http"
-	"path"
-
 	"fmt"
+	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"reflect"
 	"strings"
 
-	"github.com/buger/jsonparser"
 	"github.com/juju/errors"
 	ap "github.com/mariusor/activitypub.go/activitypub"
 	j "github.com/mariusor/activitypub.go/jsonld"
@@ -58,88 +56,6 @@ func init() {
 	OutboxURL = BaseURL + "/outbox"
 
 	Logger = log.StandardLogger()
-}
-
-type PublicKey struct {
-	Id           ap.ObjectID     `jsonld:"id,omitempty"`
-	Owner        ap.ObjectOrLink `jsonld:"owner,omitempty"`
-	PublicKeyPem string          `jsonld:"publicKeyPem,omitempty"`
-}
-
-// Person it should be identical to:
-//    github.com/mariusor/activitypub.go/activitypub/actors.go#Actor
-// We need it here in order to be able to add to it our Score property
-type Person struct {
-	ap.Person
-	PublicKey PublicKey `jsonld:"publicKey,omitempty"`
-	// Score is our own custom property for which we needed to extend the existing AP one
-	Score int64 `jsonld:"score"`
-}
-
-func (p Person) GetID() *ap.ObjectID {
-	id := ap.ObjectID(p.ID)
-	return &id
-}
-func (p Person) GetType() ap.ActivityVocabularyType {
-	return ap.ActivityVocabularyType(p.Type)
-}
-func (p Person) IsLink() bool {
-	return false
-}
-func (p Person) IsObject() bool {
-	return true
-}
-
-// Article it should be identical to:
-//    github.com/mariusor/activitypub.go/activitypub/objects.go#Object
-// We need it here in order to be able to add to it our Score property
-type Article struct {
-	ap.Object
-	Score int64 `jsonld:"score"`
-}
-
-func (a Article) GetID() *ap.ObjectID {
-	id := ap.ObjectID(a.ID)
-	return &id
-}
-func (a Article) GetType() ap.ActivityVocabularyType {
-	return ap.ActivityVocabularyType(a.Type)
-}
-func (a Article) IsLink() bool {
-	return false
-}
-func (a Article) IsObject() bool {
-	return true
-}
-
-func (a *Article) UnmarshalJSON(data []byte) error {
-	it := ap.Object{}
-	err := it.UnmarshalJSON(data)
-	if err != nil {
-		return err
-	}
-
-	a.Object = it
-	if score, err := jsonparser.GetInt(data, "score"); err == nil {
-		a.Score = score
-	}
-
-	return nil
-}
-
-func (p *Person) UnmarshalJSON(data []byte) error {
-	app := ap.Person{}
-	err := app.UnmarshalJSON(data)
-	if err != nil {
-		return err
-	}
-
-	p.Person = app
-	if score, err := jsonparser.GetInt(data, "score"); err == nil {
-		p.Score = score
-	}
-
-	return nil
 }
 
 func getHashFromAP(obj ap.ObjectOrLink) models.Hash {

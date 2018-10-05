@@ -478,7 +478,7 @@ func (r repository) LoadItems(f models.LoadItemsFilter) (models.ItemCollection, 
 		Logger.WithFields(log.Fields{}).Error(err)
 		return nil, err
 	}
-	col := ap.OrderedCollectionNew(ap.ObjectID(url))
+	col := OrderedCollectionNew(ap.ObjectID(url))
 	if resp != nil {
 		if resp.StatusCode != http.StatusOK {
 			err := fmt.Errorf("unable to load from the API")
@@ -591,7 +591,7 @@ func (r repository) LoadVotes(f models.LoadVotesFilter) (models.VoteCollection, 
 	defer resp.Body.Close()
 	var body []byte
 
-	col := ap.OrderedCollectionNew(ap.ObjectID(url))
+	col := OrderedCollectionNew(ap.ObjectID(url))
 	if body, err = ioutil.ReadAll(resp.Body); err != nil {
 		return nil, err
 	}
@@ -607,6 +607,11 @@ func (r repository) LoadVotes(f models.LoadVotesFilter) (models.VoteCollection, 
 		}
 		if like, ok := it.(*ap.Dislike); ok {
 			vot, _ := loadFromAPLike(ap.Activity(*like))
+			items[vot.Item.Hash] = vot
+			continue
+		}
+		if act, ok := it.(*ap.Activity); ok {
+			vot, _ := loadFromAPLike(*act)
 			items[vot.Item.Hash] = vot
 			continue
 		}
