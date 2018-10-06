@@ -69,9 +69,11 @@ func ShowLogin(w http.ResponseWriter, r *http.Request) {
 
 // HandleLogout serves /logout requests
 func HandleLogout(w http.ResponseWriter, r *http.Request) {
+	CurrentAccount = AnonymousAccount()
+
 	s := GetSession(r)
 	s.Values[SessionUserKey] = nil
 	SessionStore.Save(r, w, s)
-	CurrentAccount = AnonymousAccount()
+	w.Header().Del("Cookie")
 	Redirect(w, r, "/", http.StatusSeeOther)
 }
