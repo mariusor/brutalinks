@@ -435,7 +435,7 @@ ol.comments li {
 .score a.nay::after
 {
     font-family: IconFont;
-    font-weight: 800;
+    font-weight: 400;
 }
 .score a.nay::after {
     content: "\f068";
