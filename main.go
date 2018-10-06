@@ -33,9 +33,7 @@ var listenHost string
 var listenPort int64
 var listenOn string
 
-var littr app.Littr
-
-func loadEnv(l *app.Littr) (bool, error) {
+func loadEnv(l *app.Application) (bool, error) {
 	l.SessionKeys[0] = []byte(os.Getenv("SESS_AUTH_KEY"))
 	l.SessionKeys[1] = []byte(os.Getenv("SESS_ENC_KEY"))
 
@@ -48,7 +46,7 @@ func loadEnv(l *app.Littr) (bool, error) {
 	if !app.ValidEnv(env) {
 		env = app.DEV
 	}
-	littr.Env = env
+	app.Instance.Env = env
 	if listenPort == 0 {
 		listenPort = defaultPort
 	}
@@ -59,7 +57,7 @@ func loadEnv(l *app.Littr) (bool, error) {
 	l.Port = listenPort
 	l.Listen = listenOn
 
-	if littr.Env == app.PROD {
+	if app.Instance.Env == app.PROD {
 		log.SetLevel(log.WarnLevel)
 	} else {
 		log.SetFormatter(&log.TextFormatter{
@@ -79,15 +77,15 @@ func loadEnv(l *app.Littr) (bool, error) {
 }
 
 func init() {
-	littr = app.Littr{HostName: listenHost, Port: listenPort}
+	app.Instance = app.Application{HostName: listenHost, Port: listenPort}
 
-	loadEnv(&littr)
+	loadEnv(&app.Instance)
 
 	gob.Register(models.Account{})
 	gob.Register(frontend.Flash{})
 
-	s := sessions.NewCookieStore(littr.SessionKeys[0], littr.SessionKeys[1])
-	s.Options.Domain = littr.HostName
+	s := sessions.NewCookieStore(app.Instance.SessionKeys[0], app.Instance.SessionKeys[1])
+	s.Options.Domain = app.Instance.HostName
 	s.Options.Path = "/"
 	frontend.SessionStore = s
 
@@ -132,20 +130,15 @@ func main() {
 	r.Use(middleware.RequestID)
 	r.Use(Logger)
 
-	if littr.Env == app.PROD {
+	if app.Instance.Env == app.PROD {
 		r.Use(middleware.Recoverer)
 	}
 
 	// Frontend
 	r.With(api.Repository).Route("/", func(r chi.Router) {
-		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
-			frontend.HandleError(w, r, http.StatusNotFound, errors.Errorf("%q not found", r.RequestURI))
-		})
-		r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
-			frontend.HandleError(w, r, http.StatusMethodNotAllowed, errors.Errorf("invalid %q request", r.Method))
-		})
-
 		r.Use(frontend.LoadSessionData)
+		r.Use(middleware.GetHead)
+		r.Use(middleware.RedirectSlashes)
 
 		r.Get("/", frontend.HandleIndex)
 
@@ -257,5 +250,5 @@ func main() {
 		frontend.HandleError(w, r, http.StatusMethodNotAllowed, errors.Errorf("%s not allowed", r.Method))
 	})
 
-	littr.Run(r, wait)
+	app.Instance.Run(r, wait)
 }

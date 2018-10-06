@@ -23,6 +23,8 @@ var validEnvTypes = []EnvType{
 	PROD,
 }
 
+var Instance Application
+
 func ValidEnv(s EnvType) bool {
 	for _, k := range validEnvTypes {
 		if k == s {
@@ -32,7 +34,7 @@ func ValidEnv(s EnvType) bool {
 	return false
 }
 
-type Littr struct {
+type Application struct {
 	Env         EnvType
 	HostName    string
 	Port        int64
@@ -41,27 +43,27 @@ type Littr struct {
 	SessionKeys [2][]byte
 }
 
-func (l *Littr) listen() string {
-	if len(l.Listen) > 0 {
-		return l.Listen
+func (a *Application) listen() string {
+	if len(a.Listen) > 0 {
+		return a.Listen
 	}
 	var port string
-	if l.Port != 0 {
-		port = fmt.Sprintf(":%d", l.Port)
+	if a.Port != 0 {
+		port = fmt.Sprintf(":%d", a.Port)
 	}
-	return fmt.Sprintf("%s%s", l.HostName, port)
+	return fmt.Sprintf("%s%s", a.HostName, port)
 }
 
-func (l *Littr) BaseUrl() string {
-	return fmt.Sprintf("http://%s", l.HostName)
+func (a *Application) BaseUrl() string {
+	return fmt.Sprintf("http://%s", a.HostName)
 }
 
-func (l *Littr) Run(m http.Handler, wait time.Duration) {
+func (a *Application) Run(m http.Handler, wait time.Duration) {
 	log.WithFields(log.Fields{}).Infof("starting debug level %q", log.GetLevel().String())
-	log.WithFields(log.Fields{}).Infof("listening on %s", l.listen())
+	log.WithFields(log.Fields{}).Infof("listening on %s", a.listen())
 
 	srv := &http.Server{
-		Addr: l.listen(),
+		Addr: a.listen(),
 		// Good practice to set timeouts to avoid Slowloris attacks.
 		WriteTimeout: time.Second * 15,
 		ReadTimeout:  time.Second * 15,
