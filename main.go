@@ -109,22 +109,6 @@ func init() {
 	api.Config.BaseUrl = os.Getenv("LISTEN")
 }
 
-// FileServer conveniently sets up a http.FileServer handler to serve
-// static files from a http.FileSystem.
-func FileServer(r chi.Router, path string, root http.FileSystem) {
-	fs := http.StripPrefix(path, http.FileServer(root))
-
-	if path != "/" && path[len(path)-1] != '/' {
-		r.Get(path, http.RedirectHandler(path+"/", 301).ServeHTTP)
-		path += "/"
-	}
-	path += "*"
-
-	r.Get(path, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fs.ServeHTTP(w, r)
-	}))
-}
-
 func main() {
 	var wait time.Duration
 	flag.DurationVar(&wait, "graceful-timeout", time.Second*15, "the duration for which the server gracefully wait for existing connections to finish - e.g. 15s or 1m")
@@ -138,22 +122,6 @@ func main() {
 	if littr.Env == app.PROD {
 		r.Use(middleware.Recoverer)
 	}
-
-	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
-		frontend.HandleError(w, r, http.StatusNotFound, errors.Errorf("%s not found", r.RequestURI))
-	})
-
-	workDir, _ := os.Getwd()
-	filesDir := filepath.Join(workDir, "assets")
-	FileServer(r, "/assets", http.Dir(filesDir))
-
-	r.Get("/ns", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json+ld")
-		http.ServeFile(w, r,  filepath.Join(filesDir, "ns.json"))
-	}))
-	r.Get("/favicon.ico", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, filepath.Join(filesDir, "favicon.ico"))
-	}))
 
 	// Frontend
 	r.With(api.Repository).Route("/", func(r chi.Router) {
@@ -241,6 +209,33 @@ func main() {
 	r.With(db.Repository).Route("/.well-known", func(r chi.Router) {
 		r.Get("/webfinger", api.HandleWebFinger)
 		r.Get("/host-meta", api.HandleHostMeta)
+	})
+
+	workDir, _ := os.Getwd()
+	assets := filepath.Join(workDir, "assets")
+	// static
+	r.Get("/ns", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json+ld")
+		w.Header().Del("Cookie")
+		http.ServeFile(w, r, filepath.Join(assets, "ns.json"))
+	}))
+	r.Get("/favicon.ico", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Del("Cookie")
+		http.ServeFile(w, r, filepath.Join(assets, "favicon.ico"))
+	}))
+	r.Get("/{static}/{path}", func(w http.ResponseWriter, r *http.Request) {
+		st := filepath.Join(assets, chi.URLParam(r, "static"))
+		path := filepath.Clean(chi.URLParam(r, "path"))
+		fullPath := filepath.Join(st, path)
+		w.Header().Del("Cookie")
+		http.ServeFile(w, r, fullPath)
+	})
+
+	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
+		frontend.HandleError(w, r, http.StatusNotFound, errors.Errorf("%s not found", r.RequestURI))
+	})
+	r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
+		frontend.HandleError(w, r, http.StatusMethodNotAllowed, errors.Errorf("%s not allowed", r.Method))
 	})
 
 	littr.Run(r, wait)
