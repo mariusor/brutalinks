@@ -109,6 +109,14 @@ func init() {
 	api.Config.BaseUrl = os.Getenv("LISTEN")
 }
 
+func serveFile(st string) func (w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		path := filepath.Clean(chi.URLParam(r, "path"))
+		fullPath := filepath.Join(st, path)
+		w.Header().Del("Cookie")
+		http.ServeFile(w, r, fullPath)
+	}
+}
 func main() {
 	var wait time.Duration
 	flag.DurationVar(&wait, "graceful-timeout", time.Second*15, "the duration for which the server gracefully wait for existing connections to finish - e.g. 15s or 1m")
@@ -165,6 +173,13 @@ func main() {
 
 		r.Get("/auth/{provider}", frontend.HandleAuth)
 		r.Get("/auth/{provider}/callback", frontend.HandleCallback)
+
+		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
+			frontend.HandleError(w, r, http.StatusNotFound, errors.Errorf("%q not found", r.RequestURI))
+		})
+		r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
+			frontend.HandleError(w, r, http.StatusMethodNotAllowed, errors.Errorf("invalid %q request", r.Method))
+		})
 	})
 
 	// API
@@ -209,6 +224,9 @@ func main() {
 	r.With(db.Repository).Route("/.well-known", func(r chi.Router) {
 		r.Get("/webfinger", api.HandleWebFinger)
 		r.Get("/host-meta", api.HandleHostMeta)
+		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
+			api.HandleError(w, r, http.StatusNotFound, errors.Errorf("%s not found", r.RequestURI))
+		})
 	})
 
 	workDir, _ := os.Getwd()
@@ -223,13 +241,9 @@ func main() {
 		w.Header().Del("Cookie")
 		http.ServeFile(w, r, filepath.Join(assets, "favicon.ico"))
 	}))
-	r.Get("/{static}/{path}", func(w http.ResponseWriter, r *http.Request) {
-		st := filepath.Join(assets, chi.URLParam(r, "static"))
-		path := filepath.Clean(chi.URLParam(r, "path"))
-		fullPath := filepath.Join(st, path)
-		w.Header().Del("Cookie")
-		http.ServeFile(w, r, fullPath)
-	})
+
+	r.Get("/css/{path}", serveFile(filepath.Join(assets, "css")))
+	r.Get("/js/{path}", serveFile(filepath.Join(assets, "js")))
 
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		frontend.HandleError(w, r, http.StatusNotFound, errors.Errorf("%s not found", r.RequestURI))
