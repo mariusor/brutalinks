@@ -205,6 +205,7 @@ func HandleAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Del("Cookie")
 	w.Header().Set("Content-Type", "application/activity+json")
 	//w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(http.StatusOK)
@@ -261,6 +262,7 @@ func HandleCollectionItem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data, err = json.WithContext(GetContext()).Marshal(el)
+	w.Header().Del("Cookie")
 	w.Header().Set("Content-Type", "application/activity+json; charset=utf-8")
 	//w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(http.StatusOK)
@@ -299,6 +301,7 @@ func HandleItemReplies(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	w.Header().Del("Cookie")
 	w.Header().Set("Content-Type", "application/activity+json; charset=utf-8")
 	//w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(http.StatusOK)
@@ -367,6 +370,7 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Del("Cookie")
 	w.Header().Set("Content-Type", "application/activity+json; charset=utf-8")
 	//w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(http.StatusOK)
@@ -403,6 +407,8 @@ func HandleVerifyCredentials(w http.ResponseWriter, r *http.Request) {
 		HandleError(w, r, http.StatusInternalServerError, err)
 		return
 	}
+
+	w.Header().Del("Cookie")
 	w.Header().Set("Content-Type", "application/activity+json; charset=utf-8")
 	//w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(http.StatusOK)

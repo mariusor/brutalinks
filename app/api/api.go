@@ -224,5 +224,6 @@ func HandleError(w http.ResponseWriter, r *http.Request, code int, errs ...error
 	}
 
 	j, _ := json.Marshal(res)
+	w.Header().Del("Cookie")
 	w.Write(j)
 }
