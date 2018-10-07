@@ -206,7 +206,7 @@ func HandleVoting(w http.ResponseWriter, r *http.Request) {
 	case Nay:
 		multiplier = -1
 	}
-	url := permaLink(p)
+	url := PermaLink(p)
 
 	if CurrentAccount.IsLogged() {
 		voter, ok := val.(models.CanSaveVotes)

@@ -97,7 +97,7 @@ func init() {
 			"HTML":              html,
 			"Text":              text,
 			"Markdown":          markdown,
-			"PermaLink":         permaLink,
+			"PermaLink":         PermaLink,
 			"ParentLink":        ParentLink,
 			"OPLink":            OPLink,
 			"IsYay":             IsYay,
