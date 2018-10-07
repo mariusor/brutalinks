@@ -4,13 +4,23 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/mariusor/littr.go/app/frontend"
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 )
+
+
+const defaultHost = "localhost"
+const defaultPort = 3000
+
+var listenHost string
+var listenPort int64
+var listenOn string
 
 type EnvType string
 
@@ -23,17 +33,6 @@ var validEnvTypes = []EnvType{
 	PROD,
 }
 
-var Instance Application
-
-func ValidEnv(s EnvType) bool {
-	for _, k := range validEnvTypes {
-		if k == s {
-			return true
-		}
-	}
-	return false
-}
-
 type Application struct {
 	Env         EnvType
 	HostName    string
@@ -41,6 +40,23 @@ type Application struct {
 	Listen      string
 	Db          *sql.DB
 	SessionKeys [2][]byte
+}
+
+var Instance Application
+
+func New() Application {
+	app := Application{HostName: listenHost, Port: listenPort}
+	loadEnv(&app)
+	return app
+}
+
+func validEnv(s EnvType) bool {
+	for _, k := range validEnvTypes {
+		if k == s {
+			return true
+		}
+	}
+	return false
 }
 
 func (a *Application) listen() string {
@@ -56,6 +72,33 @@ func (a *Application) listen() string {
 
 func (a *Application) BaseUrl() string {
 	return fmt.Sprintf("http://%s", a.HostName)
+}
+
+func loadEnv(l *Application) (bool, error) {
+	l.SessionKeys[0] = []byte(os.Getenv("SESS_AUTH_KEY"))
+	l.SessionKeys[1] = []byte(os.Getenv("SESS_ENC_KEY"))
+
+	listenHost = os.Getenv("HOSTNAME")
+	listenPort, _ = strconv.ParseInt(os.Getenv("PORT"), 10, 64)
+	listenOn = os.Getenv("LISTEN")
+
+	frontend.Version = os.Getenv("VERSION")
+	env := EnvType(os.Getenv("ENV"))
+	if !validEnv(env) {
+		env = DEV
+	}
+	Instance.Env = env
+	if listenPort == 0 {
+		listenPort = defaultPort
+	}
+	if listenHost == "" {
+		listenHost = defaultHost
+	}
+	l.HostName = listenHost
+	l.Port = listenPort
+	l.Listen = listenOn
+
+	return true, nil
 }
 
 func (a *Application) Run(m http.Handler, wait time.Duration) {

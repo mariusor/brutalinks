@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
 	"time"
 
 	"github.com/mariusor/littr.go/app"
@@ -26,60 +25,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const defaultHost = "localhost"
-const defaultPort = 3000
-
-var listenHost string
-var listenPort int64
-var listenOn string
-
-func loadEnv(l *app.Application) (bool, error) {
-	l.SessionKeys[0] = []byte(os.Getenv("SESS_AUTH_KEY"))
-	l.SessionKeys[1] = []byte(os.Getenv("SESS_ENC_KEY"))
-
-	listenHost = os.Getenv("HOSTNAME")
-	listenPort, _ = strconv.ParseInt(os.Getenv("PORT"), 10, 64)
-	listenOn = os.Getenv("LISTEN")
-
-	frontend.Version = os.Getenv("VERSION")
-	env := app.EnvType(os.Getenv("ENV"))
-	if !app.ValidEnv(env) {
-		env = app.DEV
-	}
-	app.Instance.Env = env
-	if listenPort == 0 {
-		listenPort = defaultPort
-	}
-	if listenHost == "" {
-		listenHost = defaultHost
-	}
-	l.HostName = listenHost
-	l.Port = listenPort
-	l.Listen = listenOn
-
-	if app.Instance.Env == app.PROD {
-		log.SetLevel(log.WarnLevel)
-	} else {
-		log.SetFormatter(&log.TextFormatter{
-			DisableColors:          false,
-			DisableLevelTruncation: true,
-			ForceColors:            true,
-		})
-		log.SetOutput(os.Stdout)
-		log.SetLevel(log.DebugLevel)
-	}
-
-	logger := log.StandardLogger()
-	middleware.DefaultLogger = middleware.RequestLogger(&middleware.DefaultLogFormatter{Logger: logger})
-	api.Logger = logger
-
-	return true, nil
-}
-
 func init() {
-	app.Instance = app.Application{HostName: listenHost, Port: listenPort}
-
-	loadEnv(&app.Instance)
+	app.Instance = app.New()
 
 	gob.Register(models.Account{})
 	gob.Register(frontend.Flash{})
@@ -102,6 +49,22 @@ func init() {
 			"dbUser": dbUser,
 		}).Error(errors.NewErrWithCause(err, "failed to connect to the database"))
 	}
+
+	if app.Instance.Env == app.PROD {
+		log.SetLevel(log.WarnLevel)
+	} else {
+		log.SetFormatter(&log.TextFormatter{
+			DisableColors:          false,
+			DisableLevelTruncation: true,
+			ForceColors:            true,
+		})
+		log.SetOutput(os.Stdout)
+		log.SetLevel(log.DebugLevel)
+	}
+
+	logger := log.StandardLogger()
+	middleware.DefaultLogger = middleware.RequestLogger(&middleware.DefaultLogFormatter{Logger: logger})
+	api.Logger = logger
 
 	db.Config.DB = con
 	api.Config.BaseUrl = os.Getenv("LISTEN")
