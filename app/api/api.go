@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/mariusor/littr.go/app"
 	"net/http"
 	"net/url"
 	"os"
@@ -93,7 +94,7 @@ func GetContext() j.Context {
 	return j.Context{
 		{IRI: j.IRI(ap.ActivityBaseURI)},
 		{IRI: j.IRI("https://w3id.org/security/v1")},
-		{j.Term("score"), j.IRI("http://littr.me/ns#score")},
+		{j.Term("score"), j.IRI(fmt.Sprintf("%sns/#score", app.Instance.BaseUrl()))},
 	}
 }
 
@@ -183,18 +184,6 @@ func getObjectType(el ap.Item) string {
 		}
 	}
 	return label
-}
-
-func BuildObjectURL(b ap.LinkOrURI, el ap.Item) ap.IRI {
-	if el == nil {
-		return ""
-	}
-	pURL := ap.URI(BaseURL)
-	if b != nil && b.GetLink() != "" {
-		pURL = b.GetLink()
-	}
-
-	return ap.IRI(fmt.Sprintf("%s/%s", pURL, getObjectType(el)))
 }
 
 func HandleError(w http.ResponseWriter, r *http.Request, code int, errs ...error) {

@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/base64"
 	"fmt"
+	"github.com/mariusor/littr.go/app"
 	"net/http"
 	"strings"
 
@@ -52,11 +53,12 @@ func loadAPItem(item models.Item) ap.Item {
 	if id, ok := BuildObjectIDFromItem(item); ok {
 		o.ID = id
 	}
+	o.URL = ap.IRI(frontend.ItemPermaLink(item))
 	o.Type = ap.ArticleType
 	o.Published = item.SubmittedAt
 	o.Updated = item.UpdatedAt
 	o.MediaType = ap.MimeType(item.MimeType)
-	o.Generator = ap.IRI("http://littr.me")
+	o.Generator = ap.IRI(app.Instance.BaseUrl())
 	o.Score = item.Score / models.ScoreMultiplier
 	if item.Title != "" {
 		o.Name.Set("en", string(item.Title))
@@ -79,8 +81,6 @@ func loadAPItem(item models.Item) ap.Item {
 }
 
 func loadAPPerson(a models.Account) *Person {
-	baseURL := ap.URI(fmt.Sprintf("%s", AccountsURL))
-
 	p := Person{}
 	p.Type = ap.PersonType
 	p.Name = ap.NaturalLanguageValueNew()
@@ -95,7 +95,6 @@ func loadAPPerson(a models.Account) *Person {
 
 	out := ap.OutboxNew()
 	out.ID = BuildCollectionID(a, p.Outbox)
-	out.URL = BuildObjectURL(p.URL, p.Outbox)
 	if len(a.Handle) > 0 {
 		out.AttributedTo = ap.URI(p.ID)
 	}
@@ -103,17 +102,15 @@ func loadAPPerson(a models.Account) *Person {
 	//in := ap.InboxNew()
 	//p.Inbox = in
 	//in.ID = BuildCollectionID(a, p.Inbox)
-	//in.URL = BuildObjectURL(p.URL, p.Inbox)
 
 	liked := ap.LikedNew()
 	liked.ID = BuildCollectionID(a, p.Liked)
-	liked.URL = BuildObjectURL(p.URL, p.Liked)
 	if len(a.Handle) > 0 {
 		liked.AttributedTo = ap.URI(p.ID)
 	}
 	p.Liked = liked
 
-	p.URL = BuildObjectURL(baseURL, p)
+	p.URL = ap.IRI(frontend.AccountPermaLink(a))
 	p.Score = a.Score
 	if a.IsValid() && a.HasMetadata() && a.Metadata.Key != nil && a.Metadata.Key.Public != nil {
 		p.PublicKey = PublicKey{

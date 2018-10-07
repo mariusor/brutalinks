@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/mariusor/littr.go/app"
 	"net/http"
 	"strings"
 
@@ -33,7 +34,7 @@ func HandleHostMeta(w http.ResponseWriter, r *http.Request) {
 			{
 				Rel:      "lrdd",
 				Type:     "application/xrd+json",
-				Template: fmt.Sprintf("https://%s/.well-known/webfinger?resource={uri}", "littr.me"),
+				Template: fmt.Sprintf("%s/.well-known/webfinger?resource={uri}", app.Instance.BaseUrl()),
 			},
 		},
 	}
@@ -60,7 +61,7 @@ func HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	handle := strings.Replace(res, "@littr.me", "", 1)
+	handle := strings.Replace(res, fmt.Sprintf("@%s", app.Instance.HostName), "", 1)
 
 	val := r.Context().Value(models.RepositoryCtxtKey)
 	AcctLoader, ok := val.(models.CanLoadAccounts)
@@ -80,18 +81,18 @@ func HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 
 	wf := webfinger{
 		Aliases: []string{
-			fmt.Sprintf("https://%s/api/accounts/%s", "littr.me", a.Handle),
+			fmt.Sprintf("%s/api/accounts/%s", app.Instance.BaseUrl(), a.Handle),
 		},
 		Subject: typ + ":" + res,
 		Links: []link{
 			{
 				Rel:  "self",
 				Type: "application/activity+json",
-				Href: fmt.Sprintf("https://%s/api/accounts/%s", "littr.me", a.Hash),
+				Href: fmt.Sprintf("%s/api/accounts/%s", app.Instance.BaseUrl(), a.Hash),
 			},
 			//{
 			//	Rel:  "http://webfinger.net/rel/profile-page",
-			//	Href: fmt.Sprintf("https://%s/api/accounts/%s", "littr.me", a.Hash),
+			//	Href: fmt.Sprintf("%s/api/accounts/%s", app.Instance.BaseUrl(), a.Hash),
 			//},
 		},
 	}
