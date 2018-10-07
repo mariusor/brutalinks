@@ -4,6 +4,7 @@ import (
 	"encoding/gob"
 	"fmt"
 	"github.com/mariusor/littr.go/app"
+	"github.com/mariusor/littr.go/app/db"
 	"html/template"
 	"math"
 	"net/http"
@@ -34,9 +35,12 @@ var ShowItemData = false
 var CurrentAccount *models.Account
 var Renderer *render.Render
 
-const anonymous = "anonymous"
+const (
+	anonymous = "anonymous"
+	anonymousHash = models.Hash("77b7b7215e8d78452dc40da9efbb65fdc918c757844387aa0f88143762495c6b")
+)
 
-var defaultAccount = models.Account{Handle: anonymous, Hash: models.Hash("77b7b7215e8d78452dc40da9efbb65fdc918c757844387aa0f88143762495c6b")}
+var defaultAccount = models.Account{Handle: anonymous, Hash: anonymousHash}
 
 type flashType string
 
@@ -65,8 +69,6 @@ func markdown(i models.Item) template.HTML {
 		mark.Typographer(true),
 		mark.XHTMLOutput(false),
 	)
-
-	//d := strings.Replace(i.Data, "\r\n", "\n", -1)
 
 	h := md.RenderToString([]byte(i.Data))
 	return template.HTML(h)
@@ -127,7 +129,7 @@ func init() {
 		DisableHTTPErrorRendering: false,
 	})
 
-	gob.Register(models.Account{})
+	gob.Register(sessionAccount{})
 	gob.Register(Flash{})
 
 	if CurrentAccount == nil {
@@ -359,13 +361,20 @@ func loadCurrentAccount(s *sessions.Session) {
 	// load the current account from the session or setting it to anonymous
 	if raw, ok := s.Values[SessionUserKey]; ok {
 		if raw != nil {
-			a := raw.(models.Account)
-			CurrentAccount = &a
+			a := raw.(sessionAccount)
+			acc, err := db.Config.LoadAccount(models.LoadAccountsFilter{Handle: []string{a.Handle}})
+			if err != nil {
+				Logger.WithFields(log.Fields{
+					"handle": a.Handle,
+					"hash": a.Hash,
+				}).Error(err)
+				return
+			}
+			CurrentAccount = &acc
 			Logger.WithFields(log.Fields{
 				"handle": CurrentAccount.Handle,
 				"hash":   CurrentAccount.Hash,
 				"email":  CurrentAccount.Email,
-				"vote_count": len(CurrentAccount.Votes),
 			}).Infof("loaded account from session")
 		}
 	}

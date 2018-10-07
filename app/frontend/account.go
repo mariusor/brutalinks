@@ -16,6 +16,11 @@ type itemListingModel struct {
 	Items         comments
 }
 
+type sessionAccount struct {
+	Hash []byte
+	Handle string
+}
+
 // ShowAccount serves /~handle request
 func ShowAccount(w http.ResponseWriter, r *http.Request) {
 	handle := chi.URLParam(r, "handle")

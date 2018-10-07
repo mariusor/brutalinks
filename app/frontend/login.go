@@ -49,7 +49,10 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s := GetSession(r)
-	s.Values[SessionUserKey] = a
+	s.Values[SessionUserKey] = sessionAccount{
+		Handle: a.Handle,
+		Hash: []byte(a.Hash),
+	}
 	CurrentAccount = &a
 	AddFlashMessage(Success, "Login successful", r, w)
 
