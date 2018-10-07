@@ -109,7 +109,7 @@ func init() {
 	api.Config.BaseUrl = os.Getenv("LISTEN")
 }
 
-func serveFile(st string) func (w http.ResponseWriter, r *http.Request) {
+func serveFile(st string) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		path := filepath.Clean(chi.URLParam(r, "path"))
 		fullPath := filepath.Join(st, path)
@@ -117,6 +117,11 @@ func serveFile(st string) func (w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, fullPath)
 	}
 }
+
+func Logger(next http.Handler) http.Handler {
+	return middleware.DefaultLogger(next)
+}
+
 func main() {
 	var wait time.Duration
 	flag.DurationVar(&wait, "graceful-timeout", time.Second*15, "the duration for which the server gracefully wait for existing connections to finish - e.g. 15s or 1m")
@@ -125,7 +130,7 @@ func main() {
 	// Routes
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
-	r.Use(middleware.Logger)
+	r.Use(Logger)
 
 	if littr.Env == app.PROD {
 		r.Use(middleware.Recoverer)
