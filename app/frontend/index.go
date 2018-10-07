@@ -13,11 +13,11 @@ const (
 	MaxContentItems = 200
 )
 
-func IsYay(v *models.Vote) bool {
+func isYay(v *models.Vote) bool {
 	return v != nil && v.Weight > 0
 }
 
-func IsNay(v *models.Vote) bool {
+func isNay(v *models.Vote) bool {
 	return v != nil && v.Weight < 0
 }
 
@@ -51,14 +51,14 @@ func getAuthProviders() map[string]string {
 	return p
 }
 
-func ParentLink(c models.Item) string {
+func parentLink(c models.Item) string {
 	if c.Parent != nil {
 		return fmt.Sprintf("/item/%s", c.Parent.Hash)
 	}
 	return ""
 }
 
-func OPLink(c models.Item) string {
+func opLink(c models.Item) string {
 	if c.OP != nil {
 		return fmt.Sprintf("/item/%s", c.OP.Hash)
 	}
@@ -77,10 +77,11 @@ func scoreLink(i models.Item, dir string) string {
 	return fmt.Sprintf("%s/%s", PermaLink(i), dir)
 }
 
-func YayLink(i models.Item) string {
+func yayLink(i models.Item) string {
 	return scoreLink(i, "yay")
 }
-func NayLink(i models.Item) string {
+
+func nayLink(i models.Item) string {
 	return scoreLink(i, "nay")
 }
 
