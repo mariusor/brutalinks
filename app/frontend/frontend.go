@@ -365,10 +365,9 @@ func loadCurrentAccount(s *sessions.Session) {
 				"handle": CurrentAccount.Handle,
 				"hash":   CurrentAccount.Hash,
 				"email":  CurrentAccount.Email,
+				"vote_count": len(CurrentAccount.Votes),
 			}).Infof("loaded account from session")
 		}
-		//} else {
-		//	Logger.WithFields(log.Fields{}).Errorf(errors.NewErr("unable to load user from session"))
 	}
 }
 
