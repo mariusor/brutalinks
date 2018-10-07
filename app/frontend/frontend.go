@@ -2,6 +2,7 @@ package frontend
 
 import (
 	"fmt"
+	"github.com/mariusor/littr.go/app"
 	"html/template"
 	"math"
 	"net/http"
@@ -26,7 +27,6 @@ const (
 )
 
 var Logger log.FieldLogger
-var Version = ""
 var SessionStore sessions.Store
 var ShowItemData = false
 
@@ -104,7 +104,7 @@ func init() {
 			"ScoreFmt":          scoreFmt,
 			"YayLink":           YayLink,
 			"NayLink":           NayLink,
-			"version":           func() string { return Version },
+			"version":           func() string { return app.Instance.Version },
 		}},
 		Delims:         render.Delims{"{{", "}}"},
 		Charset:        "UTF-8",
@@ -194,7 +194,12 @@ func scoreFmt(s int64) string {
 func Redirect(w http.ResponseWriter, r *http.Request, url string, status int) error {
 	err := sessions.Save(r, w)
 	if err != nil {
-		Logger.WithFields(log.Fields{}).Error(errors.NewErrWithCause(err, "failed to save session before redirect [%d:%s]", status, url))
+		new := errors.NewErrWithCause(err, "failed to save session before redirect")
+		Logger.WithFields(log.Fields{
+			"status": status,
+			"url": url,
+			"trace": new.StackTrace(),
+		}).Error(new)
 	}
 	http.Redirect(w, r, url, status)
 	return err

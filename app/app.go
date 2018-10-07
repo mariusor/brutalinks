@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/mariusor/littr.go/app/frontend"
 	"net/http"
 	"os"
 	"os/signal"
@@ -34,6 +33,7 @@ var validEnvTypes = []EnvType{
 }
 
 type Application struct {
+	Version		string
 	Env         EnvType
 	HostName    string
 	Port        int64
@@ -82,7 +82,7 @@ func loadEnv(l *Application) (bool, error) {
 	listenPort, _ = strconv.ParseInt(os.Getenv("PORT"), 10, 64)
 	listenOn = os.Getenv("LISTEN")
 
-	frontend.Version = os.Getenv("VERSION")
+	l.Version = os.Getenv("VERSION")
 	env := EnvType(os.Getenv("ENV"))
 	if !validEnv(env) {
 		env = DEV
