@@ -65,7 +65,7 @@ func opLink(c models.Item) string {
 	return ""
 }
 
-func PermaLink(c models.Item) string {
+func ItemPermaLink(c models.Item) string {
 	handle := "anonymous"
 	if c.SubmittedBy != nil {
 		handle = c.SubmittedBy.Handle
@@ -74,7 +74,7 @@ func PermaLink(c models.Item) string {
 }
 
 func scoreLink(i models.Item, dir string) string {
-	return fmt.Sprintf("%s/%s", PermaLink(i), dir)
+	return fmt.Sprintf("%s/%s", ItemPermaLink(i), dir)
 }
 
 func yayLink(i models.Item) string {

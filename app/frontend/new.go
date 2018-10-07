@@ -89,5 +89,5 @@ func HandleSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	//AddVote(p, 1, p.AttributedTo.Hash)
-	Redirect(w, r, PermaLink(p), http.StatusSeeOther)
+	Redirect(w, r, ItemPermaLink(p), http.StatusSeeOther)
 }

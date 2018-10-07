@@ -25,6 +25,6 @@ func HandleItemRedirect(w http.ResponseWriter, r *http.Request) {
 		HandleError(w, r, http.StatusInternalServerError, err)
 		return
 	}
-	url := PermaLink(p)
+	url := ItemPermaLink(p)
 	Redirect(w, r, url, http.StatusMovedPermanently)
 }
