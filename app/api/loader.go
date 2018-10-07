@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"context"
 	"crypto"
+	"crypto/x509"
 	"fmt"
+	"github.com/mariusor/littr.go/app/frontend"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -32,12 +34,29 @@ var Config repository
 
 type repository struct {
 	BaseUrl string
-	Current Person
-	CurrentKey crypto.PrivateKey
 }
 
 func (r repository) sign(req *http.Request) error {
-	return SignRequest(req, r.Current, r.CurrentKey)
+	k := frontend.CurrentAccount.Metadata.Key
+	var prv crypto.PrivateKey
+	var err error
+	if k.ID == "id-rsa" {
+		prv, err = x509.ParsePKCS8PrivateKey(k.Private)
+	}
+	if err != nil {
+		return err
+	}
+	if k.ID == "id-ecdsa" {
+		return errors.Errorf("unsupported private key type %s", k.ID)
+		//prv, err = x509.ParseECPrivateKey(k.Private)
+	}
+	if err != nil {
+		return err
+	}
+
+	p := *loadAPPerson(*frontend.CurrentAccount)
+
+	return SignRequest(req, p, prv)
 }
 
 func (r repository) Head(url string) (resp *http.Response, err error) {
@@ -50,9 +69,17 @@ func (r repository) Get(url string) (resp *http.Response, err error) {
 
 func (r repository) Post(url, contentType string, body io.Reader) (resp *http.Response, err error) {
 	req, err := http.NewRequest(http.MethodPost, url, body)
-	r.sign(req)
 	if err != nil {
 		return nil, err
+	}
+	err = r.sign(req)
+	if err != nil {
+		new := errors.NewErrWithCause(err, "unable to sign request")
+		Logger.WithFields(log.Fields{
+			"account": frontend.CurrentAccount.Handle,
+			"url": req.URL,
+			"method": req.Method,
+		}).Warn(new)
 	}
 	req.Header.Set("Content-Type", contentType)
 	return http.DefaultClient.Do(req)
@@ -60,9 +87,17 @@ func (r repository) Post(url, contentType string, body io.Reader) (resp *http.Re
 
 func (r repository) Put(url, contentType string, body io.Reader) (resp *http.Response, err error) {
 	req, err := http.NewRequest(http.MethodPut, url, body)
-	r.sign(req)
 	if err != nil {
 		return nil, err
+	}
+	err = r.sign(req)
+	if err != nil {
+		new := errors.NewErrWithCause(err, "unable to sign request")
+		Logger.WithFields(log.Fields{
+			"account": frontend.CurrentAccount.Handle,
+			"url": req.URL,
+			"method": req.Method,
+		}).Warn(new)
 	}
 	req.Header.Set("Content-Type", contentType)
 	return http.DefaultClient.Do(req)
