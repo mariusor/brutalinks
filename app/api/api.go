@@ -185,7 +185,7 @@ func getObjectType(el ap.Item) string {
 	return label
 }
 
-func BuildObjectURL(b ap.LinkOrURI, el ap.Item) ap.URI {
+func BuildObjectURL(b ap.LinkOrURI, el ap.Item) ap.IRI {
 	if el == nil {
 		return ""
 	}
@@ -194,7 +194,7 @@ func BuildObjectURL(b ap.LinkOrURI, el ap.Item) ap.URI {
 		pURL = b.GetLink()
 	}
 
-	return ap.URI(fmt.Sprintf("%s/%s", pURL, getObjectType(el)))
+	return ap.IRI(fmt.Sprintf("%s/%s", pURL, getObjectType(el)))
 }
 
 func HandleError(w http.ResponseWriter, r *http.Request, code int, errs ...error) {
