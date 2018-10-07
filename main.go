@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/gob"
 	"flag"
 	"fmt"
 	"net/http"
@@ -21,15 +20,11 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/mariusor/littr.go/app/api"
 	"github.com/mariusor/littr.go/app/frontend"
-	"github.com/mariusor/littr.go/app/models"
 	log "github.com/sirupsen/logrus"
 )
 
 func init() {
 	app.Instance = app.New()
-
-	gob.Register(models.Account{})
-	gob.Register(frontend.Flash{})
 
 	s := sessions.NewCookieStore(app.Instance.SessionKeys[0], app.Instance.SessionKeys[1])
 	s.Options.Domain = app.Instance.HostName

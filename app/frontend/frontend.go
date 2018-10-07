@@ -1,6 +1,7 @@
 package frontend
 
 import (
+	"encoding/gob"
 	"fmt"
 	"github.com/mariusor/littr.go/app"
 	"html/template"
@@ -126,6 +127,9 @@ func init() {
 		DisableHTTPErrorRendering: false,
 	})
 
+	gob.Register(models.Account{})
+	gob.Register(Flash{})
+
 	if CurrentAccount == nil {
 		CurrentAccount = AnonymousAccount()
 	}
@@ -209,13 +213,22 @@ func RenderTemplate(r *http.Request, w http.ResponseWriter, name string, m inter
 	var err error
 	err = sessions.Save(r, w)
 	if err != nil {
-		Logger.WithFields(log.Fields{}).Error(errors.NewErrWithCause(err, "failed to save session before rendering template %s with model %T", name, m))
+		new := errors.NewErrWithCause(err, "failed to save session before rendering template")
+		Logger.WithFields(log.Fields{
+			"template": name,
+			"model": m,
+			"trace": new.StackTrace(),
+		}).Error(new)
 	}
 	err = Renderer.HTML(w, http.StatusOK, name, m)
 	if err != nil {
-		rr := errors.NewErrWithCause(err, "failed to render template %s with model %T", name, m)
-		Logger.WithFields(log.Fields{}).Error(rr)
-		Renderer.HTML(w, http.StatusInternalServerError, "error", rr)
+		new := errors.NewErrWithCause(err, "failed to render template")
+		Logger.WithFields(log.Fields{
+			"template": name,
+			"model": m,
+			"trace": new.StackTrace(),
+		}).Error(new)
+		Renderer.HTML(w, http.StatusInternalServerError, "error", new)
 	}
 	return err
 
