@@ -117,7 +117,7 @@ func loadAPPerson(a models.Account) *Person {
 	p.Score = a.Score
 	if a.IsValid() && a.HasMetadata() && a.Metadata.Key != nil && a.Metadata.Key.Public != nil {
 		p.PublicKey = PublicKey{
-			Id:           ap.ObjectID(fmt.Sprintf("%s#main-key", p.ID)),
+			ID:           ap.ObjectID(fmt.Sprintf("%s#main-key", p.ID)),
 			Owner:        ap.IRI(p.ID),
 			PublicKeyPem: fmt.Sprintf("-----BEGIN PUBLIC KEY-----\n%s\n-----END PUBLIC KEY-----", base64.StdEncoding.EncodeToString(a.Metadata.Key.Public)),
 		}
