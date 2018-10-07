@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"context"
+	"crypto"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -31,6 +32,12 @@ var Config repository
 
 type repository struct {
 	BaseUrl string
+	Current Person
+	CurrentKey crypto.PrivateKey
+}
+
+func (r repository) sign(req *http.Request) error {
+	return SignRequest(req, r.Current, r.CurrentKey)
 }
 
 func (r repository) Head(url string) (resp *http.Response, err error) {
@@ -42,11 +49,18 @@ func (r repository) Get(url string) (resp *http.Response, err error) {
 }
 
 func (r repository) Post(url, contentType string, body io.Reader) (resp *http.Response, err error) {
-	return http.Post(url, contentType, body)
+	req, err := http.NewRequest(http.MethodPost, url, body)
+	r.sign(req)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", contentType)
+	return http.DefaultClient.Do(req)
 }
 
 func (r repository) Put(url, contentType string, body io.Reader) (resp *http.Response, err error) {
 	req, err := http.NewRequest(http.MethodPut, url, body)
+	r.sign(req)
 	if err != nil {
 		return nil, err
 	}
@@ -56,6 +70,7 @@ func (r repository) Put(url, contentType string, body io.Reader) (resp *http.Res
 
 func (r repository) Delete(url, contentType string, body io.Reader) (resp *http.Response, err error) {
 	req, err := http.NewRequest(http.MethodDelete, url, body)
+	r.sign(req)
 	if err != nil {
 		return nil, err
 	}

@@ -1,13 +1,16 @@
 package api
 
 import (
+	"crypto"
 	"fmt"
+	httpsig "github.com/spacemonkeygo/httpsig"
 	"github.com/buger/jsonparser"
 	ap "github.com/mariusor/activitypub.go/activitypub"
+	"net/http"
 )
 
 type PublicKey struct {
-	Id           ap.ObjectID     `jsonld:"id,omitempty"`
+	ID           ap.ObjectID     `jsonld:"id,omitempty"`
 	Owner        ap.ObjectOrLink `jsonld:"owner,omitempty"`
 	PublicKeyPem string          `jsonld:"publicKeyPem,omitempty"`
 }
@@ -174,4 +177,11 @@ func (o *OrderedCollection) UnmarshalJSON(data []byte) error {
 
 	*o = OrderedCollection(col)
 	return nil
+}
+
+type SignFunc func(r *http.Request) error
+
+func SignRequest(r *http.Request, p Person, key crypto.PrivateKey) error {
+	// Signature: keyId="https://my-example.com/actor#main-key",headers="(request-target) host date",signature="..."
+	return httpsig.NewSigner(string(p.PublicKey.ID), key, httpsig.RSASHA256, nil).Sign(r)
 }

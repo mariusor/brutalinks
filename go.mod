@@ -28,6 +28,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/shurcooL/sanitized_anchor_name v0.0.0-20170918181015-86672fcb3f95 // indirect
 	github.com/sirupsen/logrus v1.0.6
+	github.com/spacemonkeygo/httpsig v0.0.0-20180701154948-c76789e3b41d
 	github.com/stretchr/testify v1.2.2 // indirect
 	github.com/unrolled/render v0.0.0-20171102162132-65450fb6b2d3
 	gitlab.com/golang-commonmark/html v0.0.0-20180912085939-e512ef1a6b8f // indirect
