@@ -16,7 +16,7 @@ import (
 
 func loadItems(c context.Context, filter models.LoadItemsFilter) (itemListingModel, error) {
 	m := itemListingModel{}
-	val := c.Value(RepositoryCtxtKey)
+	val := c.Value(models.RepositoryCtxtKey)
 	itemLoader, ok := val.(models.CanLoadItems)
 	if !ok {
 		err := errors.Errorf("could not load item repository from Context")

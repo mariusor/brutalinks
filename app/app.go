@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/mariusor/littr.go/app/models"
 	"net/http"
 	"os"
 	"os/signal"
@@ -16,6 +17,11 @@ import (
 
 const defaultHost = "localhost"
 const defaultPort = 3000
+
+const (
+	Anonymous = "anonymous"
+	AnonymousHash = models.Hash("77b7b7215e8d78452dc40da9efbb65fdc918c757844387aa0f88143762495c6b")
+)
 
 var listenHost string
 var listenPort int64

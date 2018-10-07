@@ -22,7 +22,6 @@ import (
 	mark "gitlab.com/golang-commonmark/markdown"
 )
 
-const RepositoryCtxtKey = "__repository"
 const (
 	sessionName = "_s"
 	templateDir = "templates/"
@@ -30,17 +29,12 @@ const (
 
 var Logger log.FieldLogger
 var SessionStore sessions.Store
-var ShowItemData = false
-
-var CurrentAccount *models.Account
 var Renderer *render.Render
 
-const (
-	anonymous = "anonymous"
-	anonymousHash = models.Hash("77b7b7215e8d78452dc40da9efbb65fdc918c757844387aa0f88143762495c6b")
-)
+var ShowItemData = false
+var CurrentAccount *models.Account
 
-var defaultAccount = models.Account{Handle: anonymous, Hash: anonymousHash}
+var defaultAccount = models.Account{Handle: app.Anonymous, Hash: app.AnonymousHash}
 
 type flashType string
 

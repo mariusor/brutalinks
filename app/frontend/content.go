@@ -99,7 +99,7 @@ func ShowItem(w http.ResponseWriter, r *http.Request) {
 	ShowItemData = true
 
 	m := contentModel{InvertedTheme: isInverted(r)}
-	val := r.Context().Value(RepositoryCtxtKey)
+	val := r.Context().Value(models.RepositoryCtxtKey)
 	itemLoader, ok := val.(models.CanLoadItems)
 	if !ok {
 		Logger.WithFields(log.Fields{}).Errorf("could not load item repository from Context")
@@ -185,7 +185,7 @@ func genitive(name string) string {
 func HandleVoting(w http.ResponseWriter, r *http.Request) {
 	hash := chi.URLParam(r, "hash")
 
-	val := r.Context().Value(RepositoryCtxtKey)
+	val := r.Context().Value(models.RepositoryCtxtKey)
 	itemLoader, ok := val.(models.CanLoadItems)
 	if !ok {
 		Logger.WithFields(log.Fields{}).Errorf("could not load item repository from Context")
@@ -209,6 +209,11 @@ func HandleVoting(w http.ResponseWriter, r *http.Request) {
 	url := ItemPermaLink(p)
 
 	if CurrentAccount.IsLogged() {
+		//auth, ok := (val).(models.CanAuthenticate)
+		//if ok {
+		//	(auth).SetAccount(CurrentAccount)
+		//	fmt.Printf("%v", auth)
+		//}
 		voter, ok := val.(models.CanSaveVotes)
 		backUrl := r.Header.Get("Referer")
 		if !strings.Contains(backUrl, url) && strings.Contains(backUrl, app.Instance.BaseUrl()) {
@@ -231,7 +236,7 @@ func HandleVoting(w http.ResponseWriter, r *http.Request) {
 			}).Error(err)
 		}
 	} else {
-		AddFlashMessage(Error, fmt.Sprintf("unable to add vote as an %s user", anonymous), r, w)
+		AddFlashMessage(Error, fmt.Sprintf("unable to add vote as an %s user", CurrentAccount.Handle), r, w)
 	}
 	Redirect(w, r, url, http.StatusFound)
 }

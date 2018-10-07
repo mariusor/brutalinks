@@ -97,7 +97,7 @@ func nayLink(i models.Item) string {
 func HandleIndex(w http.ResponseWriter, r *http.Request) {
 	m := indexModel{Title: "Index", InvertedTheme: isInverted(r)}
 
-	val := r.Context().Value(RepositoryCtxtKey)
+	val := r.Context().Value(models.RepositoryCtxtKey)
 	itemLoader, ok := val.(models.CanLoadItems)
 	if !ok {
 		Logger.WithFields(log.Fields{}).Errorf("could not load item repository from Context")

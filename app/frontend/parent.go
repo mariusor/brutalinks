@@ -11,7 +11,7 @@ import (
 
 // HandleItemRedirect serves /item/{hash} request
 func HandleItemRedirect(w http.ResponseWriter, r *http.Request) {
-	val := r.Context().Value(RepositoryCtxtKey)
+	val := r.Context().Value(models.RepositoryCtxtKey)
 	itemLoader, ok := val.(models.CanLoadItems)
 	if !ok {
 		Logger.WithFields(log.Fields{}).Errorf("could not load item repository from Context")
