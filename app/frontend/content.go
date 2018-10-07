@@ -211,7 +211,7 @@ func HandleVoting(w http.ResponseWriter, r *http.Request) {
 	if CurrentAccount.IsLogged() {
 		voter, ok := val.(models.CanSaveVotes)
 		backUrl := r.Header.Get("Referer")
-		if strings.Contains(backUrl, app.Instance.BaseUrl()) {
+		if !strings.Contains(backUrl, url) && strings.Contains(backUrl, app.Instance.BaseUrl()) {
 			url = fmt.Sprintf("%s#item-%s", backUrl, p.Hash)
 		}
 		if !ok {
