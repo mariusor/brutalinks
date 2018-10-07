@@ -107,7 +107,7 @@ func init() {
 	api.Config.BaseUrl = os.Getenv("LISTEN")
 }
 
-func serveFile(st string) func(w http.ResponseWriter, r *http.Request) {
+func serveFiles(st string) func (w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		path := filepath.Clean(chi.URLParam(r, "path"))
 		fullPath := filepath.Join(st, path)
@@ -240,8 +240,8 @@ func main() {
 		http.ServeFile(w, r, filepath.Join(assets, "favicon.ico"))
 	}))
 
-	r.Get("/css/{path}", serveFile(filepath.Join(assets, "css")))
-	r.Get("/js/{path}", serveFile(filepath.Join(assets, "js")))
+	r.Get("/css/{path}", serveFiles(filepath.Join(assets, "css")))
+	r.Get("/js/{path}", serveFiles(filepath.Join(assets, "js")))
 
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		frontend.HandleError(w, r, http.StatusNotFound, errors.Errorf("%s not found", r.RequestURI))
