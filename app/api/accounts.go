@@ -376,7 +376,7 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 
 // GET /api/accounts/verify_credentials
 func HandleVerifyCredentials(w http.ResponseWriter, r *http.Request) {
-	acct := frontend.CurrentAccount
+	acct := CurrentAccount
 	if acct == nil || len(acct.Handle) == 0 {
 		HandleError(w, r, http.StatusNotFound, errors.Errorf("account not found"))
 		return

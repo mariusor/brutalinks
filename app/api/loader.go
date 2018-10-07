@@ -6,6 +6,7 @@ import (
 	"crypto"
 	"crypto/x509"
 	"fmt"
+	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/app/frontend"
 	"io"
 	"io/ioutil"
@@ -34,10 +35,35 @@ var Config repository
 
 type repository struct {
 	BaseUrl string
+	Account *models.Account
 }
 
+func (r *repository) SetAccount(a *models.Account) {
+	r.Account = a
+}
+
+func (r repository) req(method string, url string, body io.Reader) (*http.Request, error) {
+	req, err := http.NewRequest(method, url, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("User-Agent", fmt.Sprintf("%s-%s", app.Instance.HostName, app.Instance.Version))
+	err = r.sign(req)
+	if err != nil {
+		new := errors.NewErrWithCause(err, "unable to sign request")
+		Logger.WithFields(log.Fields{
+			"account": CurrentAccount.Handle,
+			"url": req.URL,
+			"method": req.Method,
+		}).Warn(new)
+	}
+	return req, nil
+}
 func (r repository) sign(req *http.Request) error {
-	k := frontend.CurrentAccount.Metadata.Key
+	if r.Account == nil || r.Account == frontend.AnonymousAccount() {
+		return nil
+	}
+	k := r.Account.Metadata.Key
 	var prv crypto.PrivateKey
 	var err error
 	if k.ID == "id-rsa" {
@@ -54,58 +80,47 @@ func (r repository) sign(req *http.Request) error {
 		return err
 	}
 
-	p := *loadAPPerson(*frontend.CurrentAccount)
+	p := *loadAPPerson(*r.Account)
 
 	return SignRequest(req, p, prv)
 }
 
 func (r repository) Head(url string) (resp *http.Response, err error) {
-	return http.Head(url)
-}
-
-func (r repository) Get(url string) (resp *http.Response, err error) {
-	return http.Get(url)
-}
-
-func (r repository) Post(url, contentType string, body io.Reader) (resp *http.Response, err error) {
-	req, err := http.NewRequest(http.MethodPost, url, body)
+	req, err := r.req(http.MethodHead, url, nil)
 	if err != nil {
 		return nil, err
 	}
-	err = r.sign(req)
+	return http.DefaultClient.Do(req)
+}
+
+func (r repository) Get(url string) (resp *http.Response, err error) {
+	req, err := r.req(http.MethodGet, url, nil)
 	if err != nil {
-		new := errors.NewErrWithCause(err, "unable to sign request")
-		Logger.WithFields(log.Fields{
-			"account": frontend.CurrentAccount.Handle,
-			"url": req.URL,
-			"method": req.Method,
-		}).Warn(new)
+		return nil, err
+	}
+	return http.DefaultClient.Do(req)
+}
+
+func (r repository) Post(url, contentType string, body io.Reader) (resp *http.Response, err error) {
+	req, err := r.req(http.MethodPost, url, body)
+	if err != nil {
+		return nil, err
 	}
 	req.Header.Set("Content-Type", contentType)
 	return http.DefaultClient.Do(req)
 }
 
 func (r repository) Put(url, contentType string, body io.Reader) (resp *http.Response, err error) {
-	req, err := http.NewRequest(http.MethodPut, url, body)
+	req, err := r.req(http.MethodPut, url, body)
 	if err != nil {
 		return nil, err
-	}
-	err = r.sign(req)
-	if err != nil {
-		new := errors.NewErrWithCause(err, "unable to sign request")
-		Logger.WithFields(log.Fields{
-			"account": frontend.CurrentAccount.Handle,
-			"url": req.URL,
-			"method": req.Method,
-		}).Warn(new)
 	}
 	req.Header.Set("Content-Type", contentType)
 	return http.DefaultClient.Do(req)
 }
 
 func (r repository) Delete(url, contentType string, body io.Reader) (resp *http.Response, err error) {
-	req, err := http.NewRequest(http.MethodDelete, url, body)
-	r.sign(req)
+	req, err := r.req(http.MethodDelete, url, body)
 	if err != nil {
 		return nil, err
 	}

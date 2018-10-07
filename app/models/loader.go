@@ -222,6 +222,10 @@ func (f LoadAccountsFilter) GetWhereClauses() ([]string, []interface{}) {
 	return wheres, whereValues
 }
 
+type CanAuthenticate interface {
+	SetAccount(a *Account)
+}
+
 type CanSaveItems interface {
 	SaveItem(it Item) (Item, error)
 }

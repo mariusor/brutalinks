@@ -140,6 +140,8 @@ func main() {
 
 	// API
 	r.With(db.Repository).Route("/api", func(r chi.Router) {
+		r.Use(api.VerifyHttpSignature)
+
 		r.Route("/accounts", func(r chi.Router) {
 			r.With(api.LoadFiltersCtxt).Get("/", api.HandleAccountsCollection)
 

@@ -3,9 +3,9 @@ package api
 import (
 	"crypto"
 	"fmt"
-	httpsig "github.com/spacemonkeygo/httpsig"
 	"github.com/buger/jsonparser"
 	ap "github.com/mariusor/activitypub.go/activitypub"
+	"github.com/spacemonkeygo/httpsig"
 	"net/http"
 )
 
@@ -182,6 +182,8 @@ func (o *OrderedCollection) UnmarshalJSON(data []byte) error {
 type SignFunc func(r *http.Request) error
 
 func SignRequest(r *http.Request, p Person, key crypto.PrivateKey) error {
-	// Signature: keyId="https://my-example.com/actor#main-key",headers="(request-target) host date",signature="..."
-	return httpsig.NewSigner(string(p.PublicKey.ID), key, httpsig.RSASHA256, nil).Sign(r)
+	hdrs := []string{"(request-target)", "host", "test", "date"}
+
+	return httpsig.NewSigner(string(p.PublicKey.ID), key, httpsig.RSASHA256, hdrs).
+		Sign(r)
 }

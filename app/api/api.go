@@ -1,9 +1,14 @@
 package api
 
 import (
+	"crypto"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"github.com/mariusor/littr.go/app"
+	"github.com/mariusor/littr.go/app/db"
+	"github.com/mariusor/littr.go/app/frontend"
+	"github.com/spacemonkeygo/httpsig"
 	"net/http"
 	"net/url"
 	"os"
@@ -27,6 +32,8 @@ var Logger log.FieldLogger
 var BaseURL string
 var AccountsURL string
 var OutboxURL string
+
+var CurrentAccount *models.Account
 
 const NotFound = 404
 const InternalError = 500
@@ -55,7 +62,10 @@ func init() {
 
 	AccountsURL = BaseURL + "/accounts"
 	OutboxURL = BaseURL + "/outbox"
-
+	if CurrentAccount == nil {
+		CurrentAccount = frontend.AnonymousAccount()
+	}
+	CurrentAccount.Metadata = nil
 	Logger = log.StandardLogger()
 }
 
@@ -215,4 +225,87 @@ func HandleError(w http.ResponseWriter, r *http.Request, code int, errs ...error
 	j, _ := json.Marshal(res)
 	w.Header().Del("Cookie")
 	w.Write(j)
+}
+
+type keyLoader struct {
+	acc models.Account
+}
+
+func (k keyLoader) GetKey(id string) interface{} {
+	// keyId="http://littr.git/api/accounts/e33c4ff5#main-key"
+	var err error
+
+	u, err := url.Parse(id)
+	if err != nil {
+		return err
+	}
+	if u.Fragment != "main-key" {
+		// invalid generated public key id
+		return errors.Errorf("invalid key")
+	}
+	hash := path.Base(u.Path)
+	k.acc, err = db.Config.LoadAccount(models.LoadAccountsFilter{Key: []string{hash}})
+	if err != nil {
+		return err
+	}
+
+	var pub crypto.PublicKey
+	pub, err = x509.ParsePKIXPublicKey(k.acc.Metadata.Key.Public)
+	if err != nil {
+		return err
+	}
+	return pub
+}
+
+func VerifyHttpSignature(next http.Handler) http.Handler {
+	getter := keyLoader{}
+
+	realm := app.Instance.HostName
+	v := httpsig.NewVerifier(getter)
+	v.SetRequiredHeaders([]string{"(request-target)", "host", "date"})
+	var challengeParams []string
+	if realm != "" {
+		challengeParams = append(challengeParams, fmt.Sprintf("realm=%q", realm))
+	}
+	if headers := v.RequiredHeaders(); len(headers) > 0 {
+		challengeParams = append(challengeParams, fmt.Sprintf("headers=%q", strings.Join(headers, " ")))
+	}
+
+	challenge := "Signature"
+	if len(challengeParams) > 0 {
+		challenge += fmt.Sprintf(" %s", strings.Join(challengeParams, ", "))
+	}
+
+	fn := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header["Authorization"] == nil {
+			CurrentAccount = frontend.AnonymousAccount()
+		} else {
+			// only verify http-signature if present
+			err := v.Verify(r)
+			if err != nil {
+				w.Header()["WWW-Authenticate"] = []string{challenge}
+				HandleError(w, r, http.StatusUnauthorized, err)
+				return
+			} else {
+				CurrentAccount = &getter.acc
+				Logger.WithFields(log.Fields{
+					"handle": CurrentAccount.Handle,
+					"hash":   CurrentAccount.Hash,
+					"email":  CurrentAccount.Email,
+				}).Infof("loaded account from http signature header ")
+			}
+		}
+		next.ServeHTTP(w, r)
+	})
+	return http.HandlerFunc(fn)
+}
+
+func ShowHeaders(next http.Handler) http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		for name, val := range r.Header {
+			Logger.Infof("%s: %s", name, val)
+		}
+		next.ServeHTTP(w, r)
+	}
+	return http.HandlerFunc(fn)
 }
