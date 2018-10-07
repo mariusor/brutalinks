@@ -2,6 +2,7 @@ package frontend
 
 import (
 	"fmt"
+	"github.com/mariusor/littr.go/app"
 	"net/http"
 	"strings"
 
@@ -205,9 +206,14 @@ func HandleVoting(w http.ResponseWriter, r *http.Request) {
 	case Nay:
 		multiplier = -1
 	}
+	url := permaLink(p)
 
 	if CurrentAccount.IsLogged() {
 		voter, ok := val.(models.CanSaveVotes)
+		backUrl := r.Header.Get("Referer")
+		if strings.Contains(backUrl, app.Instance.BaseUrl()) {
+			url = fmt.Sprintf("%s#item-%s", backUrl, p.Hash)
+		}
 		if !ok {
 			Logger.WithFields(log.Fields{}).Errorf("could not load vote repository from Context")
 			return
@@ -227,5 +233,5 @@ func HandleVoting(w http.ResponseWriter, r *http.Request) {
 	} else {
 		AddFlashMessage(Error, fmt.Sprintf("unable to add vote as an %s user", anonymous), r, w)
 	}
-	Redirect(w, r, permaLink(p), http.StatusFound)
+	Redirect(w, r, url, http.StatusFound)
 }
