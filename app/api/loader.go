@@ -564,7 +564,7 @@ func (r repository) SaveVote(v models.Vote) (models.Vote, error) {
 		Logger.WithFields(log.Fields{}).Error(err)
 		return v, err
 	}
-	if resp.StatusCode == http.StatusOK {
+	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusCreated{
 		return loadFromAPLike(act)
 	}
 	if resp.StatusCode == http.StatusNotFound {
