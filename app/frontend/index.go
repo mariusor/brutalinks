@@ -2,6 +2,7 @@ package frontend
 
 import (
 	"fmt"
+	"github.com/mariusor/littr.go/app"
 	"net/http"
 	"os"
 
@@ -65,12 +66,19 @@ func opLink(c models.Item) string {
 	return ""
 }
 
-func ItemPermaLink(c models.Item) string {
+func AccountPermaLink(a models.Account) string {
 	handle := "anonymous"
-	if c.SubmittedBy != nil {
-		handle = c.SubmittedBy.Handle
+	if len(a.Hash) > 0 {
+		handle = a.Handle
 	}
-	return fmt.Sprintf("/~%s/%s", handle, c.Hash)
+	return fmt.Sprintf("%s/~%s", app.Instance.BaseUrl(), handle)
+}
+
+func ItemPermaLink(c models.Item) string {
+	if c.SubmittedBy == nil {
+		return fmt.Sprintf("/item/%s", c.Hash)
+	}
+	return fmt.Sprintf("%s/%s", AccountPermaLink(*c.SubmittedBy), c.Hash)
 }
 
 func scoreLink(i models.Item, dir string) string {
