@@ -2,9 +2,10 @@ package frontend
 
 import (
 	"fmt"
-	"github.com/mariusor/littr.go/app"
 	"net/http"
 	"strings"
+
+	"github.com/mariusor/littr.go/app"
 
 	"github.com/juju/errors"
 	"github.com/mariusor/littr.go/app/models"
@@ -209,11 +210,10 @@ func HandleVoting(w http.ResponseWriter, r *http.Request) {
 	url := ItemPermaLink(p)
 
 	if CurrentAccount.IsLogged() {
-		//auth, ok := (val).(models.CanAuthenticate)
-		//if ok {
-		//	(auth).SetAccount(CurrentAccount)
-		//	fmt.Printf("%v", auth)
-		//}
+		auth, ok := val.(models.CanAuthenticate)
+		if ok {
+			auth.SetAccount(CurrentAccount)
+		}
 		voter, ok := val.(models.CanSaveVotes)
 		backUrl := r.Header.Get("Referer")
 		if !strings.Contains(backUrl, url) && strings.Contains(backUrl, app.Instance.BaseUrl()) {

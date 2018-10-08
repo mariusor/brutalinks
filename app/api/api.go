@@ -5,16 +5,17 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
-	"github.com/mariusor/littr.go/app"
-	"github.com/mariusor/littr.go/app/db"
-	"github.com/mariusor/littr.go/app/frontend"
-	"github.com/spacemonkeygo/httpsig"
 	"net/http"
 	"net/url"
 	"os"
 	"path"
 	"reflect"
 	"strings"
+
+	"github.com/mariusor/littr.go/app"
+	"github.com/mariusor/littr.go/app/db"
+	"github.com/mariusor/littr.go/app/frontend"
+	"github.com/spacemonkeygo/httpsig"
 
 	"github.com/juju/errors"
 	ap "github.com/mariusor/activitypub.go/activitypub"
@@ -231,7 +232,7 @@ type keyLoader struct {
 	acc models.Account
 }
 
-func (k keyLoader) GetKey(id string) interface{} {
+func (k *keyLoader) GetKey(id string) interface{} {
 	// keyId="http://littr.git/api/accounts/e33c4ff5#main-key"
 	var err error
 
@@ -261,7 +262,7 @@ func VerifyHttpSignature(next http.Handler) http.Handler {
 	getter := keyLoader{}
 
 	realm := app.Instance.HostName
-	v := httpsig.NewVerifier(getter)
+	v := httpsig.NewVerifier(&getter)
 	v.SetRequiredHeaders([]string{"(request-target)", "host", "date"})
 	var challengeParams []string
 	if realm != "" {

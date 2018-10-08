@@ -6,13 +6,14 @@ import (
 	"crypto"
 	"crypto/x509"
 	"fmt"
-	"github.com/mariusor/littr.go/app"
-	"github.com/mariusor/littr.go/app/frontend"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"path"
 	"strings"
+
+	"github.com/mariusor/littr.go/app"
+	"github.com/mariusor/littr.go/app/frontend"
 
 	"github.com/mariusor/qstring"
 
@@ -53,8 +54,8 @@ func (r repository) req(method string, url string, body io.Reader) (*http.Reques
 		new := errors.NewErrWithCause(err, "unable to sign request")
 		Logger.WithFields(log.Fields{
 			"account": CurrentAccount.Handle,
-			"url": req.URL,
-			"method": req.Method,
+			"url":     req.URL,
+			"method":  req.Method,
 		}).Warn(new)
 	}
 	return req, nil
@@ -131,7 +132,7 @@ func (r repository) Delete(url, contentType string, body io.Reader) (resp *http.
 // Repository middleware
 func Repository(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		ctx := context.WithValue(r.Context(), models.RepositoryCtxtKey, Config)
+		ctx := context.WithValue(r.Context(), models.RepositoryCtxtKey, &Config)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	}
 	return http.HandlerFunc(fn)
@@ -492,7 +493,7 @@ func ItemCollectionCtxt(next http.Handler) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
-func (r repository) LoadItem(f models.LoadItemsFilter) (models.Item, error) {
+func (r *repository) LoadItem(f models.LoadItemsFilter) (models.Item, error) {
 	var art Article
 	var it models.Item
 	var err error
@@ -530,7 +531,7 @@ func (r repository) LoadItem(f models.LoadItemsFilter) (models.Item, error) {
 	return it, err
 }
 
-func (r repository) LoadItems(f models.LoadItemsFilter) (models.ItemCollection, error) {
+func (r *repository) LoadItems(f models.LoadItemsFilter) (models.ItemCollection, error) {
 	qs := ""
 	if q, err := qstring.MarshalString(&f); err == nil {
 		qs = fmt.Sprintf("?%s", q)
@@ -571,7 +572,7 @@ func (r repository) LoadItems(f models.LoadItemsFilter) (models.ItemCollection, 
 	return items, nil
 }
 
-func (r repository) SaveVote(v models.Vote) (models.Vote, error) {
+func (r *repository) SaveVote(v models.Vote) (models.Vote, error) {
 	//body := nil
 	url := fmt.Sprintf("http://%s/api/accounts/%s/liked/%s", r.BaseUrl, v.SubmittedBy.Hash, v.Item.Hash)
 
@@ -614,7 +615,7 @@ func (r repository) SaveVote(v models.Vote) (models.Vote, error) {
 		Logger.WithFields(log.Fields{}).Error(err)
 		return v, err
 	}
-	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusCreated{
+	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusCreated {
 		return loadFromAPLike(act)
 	}
 	if resp.StatusCode == http.StatusNotFound {
@@ -626,7 +627,7 @@ func (r repository) SaveVote(v models.Vote) (models.Vote, error) {
 	return models.Vote{}, errors.Errorf("unknown error, received status %d", resp.StatusCode)
 }
 
-func (r repository) LoadVotes(f models.LoadVotesFilter) (models.VoteCollection, error) {
+func (r *repository) LoadVotes(f models.LoadVotesFilter) (models.VoteCollection, error) {
 	var qs string
 	var err error
 	if qs, err = qstring.MarshalString(&f); err != nil {
@@ -685,7 +686,7 @@ func (r repository) LoadVotes(f models.LoadVotesFilter) (models.VoteCollection, 
 	return items, nil
 }
 
-func (r repository) LoadVote(f models.LoadVotesFilter) (models.Vote, error) {
+func (r *repository) LoadVote(f models.LoadVotesFilter) (models.Vote, error) {
 	if len(f.ItemKey) == 0 {
 		return models.Vote{}, errors.New("invalid item hash")
 	}
@@ -720,7 +721,7 @@ func (r repository) LoadVote(f models.LoadVotesFilter) (models.Vote, error) {
 	return loadFromAPLike(like)
 }
 
-func (r repository) SaveItem(it models.Item) (models.Item, error) {
+func (r *repository) SaveItem(it models.Item) (models.Item, error) {
 	doUpd := false
 	art := loadAPItem(it)
 	actor := loadAPPerson(*it.SubmittedBy)
@@ -785,7 +786,7 @@ func (r repository) SaveItem(it models.Item) (models.Item, error) {
 	return models.Item{}, errors.Errorf("unknown error, received status %d", resp.StatusCode)
 }
 
-func (r repository) LoadAccounts(f models.LoadAccountsFilter) (models.AccountCollection, error) {
+func (r *repository) LoadAccounts(f models.LoadAccountsFilter) (models.AccountCollection, error) {
 	var qs string
 	var err error
 	if qs, err = qstring.MarshalString(&f); err != nil {
@@ -823,7 +824,7 @@ func (r repository) LoadAccounts(f models.LoadAccountsFilter) (models.AccountCol
 	return nil, errors.Errorf("not implemented")
 }
 
-func (r repository) LoadAccount(f models.LoadAccountsFilter) (models.Account, error) {
+func (r *repository) LoadAccount(f models.LoadAccountsFilter) (models.Account, error) {
 	p := Person{}
 
 	if len(f.Handle) == 0 {
@@ -850,6 +851,6 @@ func (r repository) LoadAccount(f models.LoadAccountsFilter) (models.Account, er
 	return loadFromAPPerson(p)
 }
 
-func (r repository) SaveAccount(a models.Account) (models.Account, error) {
+func (r *repository) SaveAccount(a models.Account) (models.Account, error) {
 	return db.Config.SaveAccount(a)
 }

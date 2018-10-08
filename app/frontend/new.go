@@ -77,11 +77,12 @@ func HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	val := r.Context().Value(models.RepositoryCtxtKey)
-	//auth, ok := (val).(models.CanAuthenticate)
-	//if ok {
-	//	(auth).SetAccount(CurrentAccount)
-	//	fmt.Printf("%v", auth)
-	//}
+	if CurrentAccount.IsLogged() {
+		auth, ok := val.(models.CanAuthenticate)
+		if ok {
+			auth.SetAccount(CurrentAccount)
+		}
+	}
 	itemSaver, ok := val.(models.CanSaveItems)
 	if !ok {
 		Logger.WithFields(log.Fields{}).Errorf("could not load item repository from Context")
