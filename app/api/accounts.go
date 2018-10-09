@@ -3,9 +3,10 @@ package api
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/mariusor/littr.go/app"
 	"net/http"
 	"strings"
+
+	"github.com/mariusor/littr.go/app"
 
 	"github.com/mariusor/littr.go/app/frontend"
 
@@ -376,13 +377,12 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 
 // GET /api/accounts/verify_credentials
 func HandleVerifyCredentials(w http.ResponseWriter, r *http.Request) {
-	acct := CurrentAccount
-	if acct == nil || len(acct.Handle) == 0 {
+	acct, ok := models.ContextCurrentAccount(r.Context())
+	if !ok {
 		HandleError(w, r, http.StatusNotFound, errors.Errorf("account not found"))
 		return
 	}
-	val := r.Context().Value(models.RepositoryCtxtKey)
-	AcctLoader, ok := val.(models.CanLoadAccounts)
+	AcctLoader, ok := models.ContextAccountLoader(r.Context())
 	if !ok {
 		Logger.WithFields(log.Fields{}).Errorf("could not load account repository from Context")
 	}

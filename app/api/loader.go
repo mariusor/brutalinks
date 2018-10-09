@@ -43,7 +43,7 @@ func (r *repository) SetAccount(a *models.Account) {
 	r.Account = a
 }
 
-func (r repository) req(method string, url string, body io.Reader) (*http.Request, error) {
+func (r *repository) req(method string, url string, body io.Reader) (*http.Request, error) {
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
 		return nil, err
@@ -53,14 +53,15 @@ func (r repository) req(method string, url string, body io.Reader) (*http.Reques
 	if err != nil {
 		new := errors.NewErrWithCause(err, "unable to sign request")
 		Logger.WithFields(log.Fields{
-			"account": CurrentAccount.Handle,
+			"account": r.Account.Handle,
 			"url":     req.URL,
 			"method":  req.Method,
 		}).Warn(new)
 	}
 	return req, nil
 }
-func (r repository) sign(req *http.Request) error {
+
+func (r *repository) sign(req *http.Request) error {
 	if r.Account == nil || r.Account == frontend.AnonymousAccount() {
 		return nil
 	}
@@ -102,7 +103,7 @@ func (r repository) Get(url string) (resp *http.Response, err error) {
 	return http.DefaultClient.Do(req)
 }
 
-func (r repository) Post(url, contentType string, body io.Reader) (resp *http.Response, err error) {
+func (r *repository) Post(url, contentType string, body io.Reader) (resp *http.Response, err error) {
 	req, err := r.req(http.MethodPost, url, body)
 	if err != nil {
 		return nil, err

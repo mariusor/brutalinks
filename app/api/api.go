@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"crypto"
 	"crypto/x509"
 	"encoding/json"
@@ -34,8 +35,6 @@ var BaseURL string
 var AccountsURL string
 var OutboxURL string
 
-var CurrentAccount *models.Account
-
 const NotFound = 404
 const InternalError = 500
 
@@ -63,10 +62,6 @@ func init() {
 
 	AccountsURL = BaseURL + "/accounts"
 	OutboxURL = BaseURL + "/outbox"
-	if CurrentAccount == nil {
-		CurrentAccount = frontend.AnonymousAccount()
-	}
-	CurrentAccount.Metadata = nil
 	Logger = log.StandardLogger()
 }
 
@@ -278,25 +273,23 @@ func VerifyHttpSignature(next http.Handler) http.Handler {
 	}
 
 	fn := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Header["Authorization"] == nil {
-			CurrentAccount = frontend.AnonymousAccount()
-		} else {
+		var acct = frontend.AnonymousAccount()
+		if r.Header["Authorization"] != nil {
 			// only verify http-signature if present
-			err := v.Verify(r)
-			if err != nil {
+			if err := v.Verify(r); err != nil {
 				w.Header()["WWW-Authenticate"] = []string{challenge}
 				HandleError(w, r, http.StatusUnauthorized, err)
 				return
 			} else {
-				CurrentAccount = &getter.acc
+				acct = &getter.acc
 				Logger.WithFields(log.Fields{
-					"handle": CurrentAccount.Handle,
-					"hash":   CurrentAccount.Hash,
-					"email":  CurrentAccount.Email,
-				}).Infof("loaded account from http signature header ")
+					"handle": acct.Handle,
+					"hash":   acct.Hash,
+				}).Debugf("loaded account from http signature header saved to context")
 			}
 		}
-		next.ServeHTTP(w, r)
+		ctx := context.WithValue(r.Context(), models.AccountCtxtKey, acct)
+		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 	return http.HandlerFunc(fn)
 }
