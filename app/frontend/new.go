@@ -78,21 +78,22 @@ func HandleSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	val := r.Context().Value(models.RepositoryCtxtKey)
-	acc, ok := models.ContextCurrentAccount(r.Context())
-	if auth, ok := models.ContextAuthenticated(r.Context()); ok && acc.IsLogged() {
+	acc, accOk := models.ContextCurrentAccount(r.Context())
+	auth, authOk := models.ContextAuthenticated(r.Context())
+	if authOk && accOk && acc.IsLogged() {
 		auth.WithAccount(acc)
 	}
-	itemSaver, ok := val.(models.CanSaveItems)
-	if !ok {
+
+	if repo, ok := models.ContextItemSaver(r.Context()); !ok {
 		Logger.WithFields(log.Fields{}).Errorf("could not load item repository from Context")
 		return
-	}
-	p, err = itemSaver.SaveItem(p)
-	if err != nil {
-		Logger.WithFields(log.Fields{}).Errorf("unable to save item: %s", err)
-		HandleError(w, r, http.StatusInternalServerError, err)
-		return
+	} else {
+		p, err = repo.SaveItem(p)
+		if err != nil {
+			Logger.WithFields(log.Fields{}).Errorf("unable to save item: %s", err)
+			HandleError(w, r, http.StatusInternalServerError, err)
+			return
+		}
 	}
 	//AddVote(p, 1, p.AttributedTo.Hash)
 	Redirect(w, r, ItemPermaLink(p), http.StatusSeeOther)
