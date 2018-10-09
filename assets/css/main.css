@@ -98,7 +98,7 @@ table {
 }
 @media (min-width: 768px) {
     :root {
-        font-size: 1.6vw;
+        font-size: 1.9vw;
     }
     h6.domain {
         display: inline;
@@ -106,7 +106,7 @@ table {
 }
 @media (min-width: 992px) {
     :root {
-        font-size: 1.2vw;
+        font-size: 1.4vw;
     }
     h6.domain {
         display: inline;
@@ -347,7 +347,7 @@ ol {
     padding-left: 0;
 }
 ol li {
-    margin-bottom: .9rem;
+    margin-bottom: .3rem;
 }
 .item {
     display: grid;
