@@ -298,6 +298,7 @@ func ContextCurrentAccount(ctx context.Context) (*Account, bool) {
 			"handle": a.Handle,
 			"hash":   a.Hash,
 		}).Debugf("loaded account from context")
+		return a, true
 	}
 	return nil, false
 }
@@ -312,4 +313,22 @@ func ContextAccountLoader(ctx context.Context) (CanLoadAccounts, bool) {
 	ctxVal := ctx.Value(RepositoryCtxtKey)
 	l, ok := ctxVal.(CanLoadAccounts)
 	return l, ok
+}
+
+func ContextItemSaver(ctx context.Context) (CanSaveItems, bool) {
+	ctxVal := ctx.Value(RepositoryCtxtKey)
+	s, ok := ctxVal.(CanSaveItems)
+	return s, ok
+}
+
+func ContextAccountSaver(ctx context.Context) (CanSaveAccounts, bool) {
+	ctxVal := ctx.Value(RepositoryCtxtKey)
+	s, ok := ctxVal.(CanSaveAccounts)
+	return s, ok
+}
+
+func ContextVoteSaver(ctx context.Context) (CanSaveVotes, bool) {
+	ctxVal := ctx.Value(RepositoryCtxtKey)
+	s, ok := ctxVal.(CanSaveVotes)
+	return s, ok
 }
