@@ -4,22 +4,23 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/mariusor/littr.go/app/models"
 	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"time"
+
+	"github.com/mariusor/littr.go/app/models"
 
 	log "github.com/sirupsen/logrus"
 )
-
 
 const defaultHost = "localhost"
 const defaultPort = 3000
 
 const (
-	Anonymous = "anonymous"
+	Anonymous     = "anonymous"
 	AnonymousHash = models.Hash("77b7b7215e8d78452dc40da9efbb65fdc918c757844387aa0f88143762495c6b")
 )
 
@@ -39,7 +40,7 @@ var validEnvTypes = []EnvType{
 }
 
 type Application struct {
-	Version		string
+	Version     string
 	Env         EnvType
 	HostName    string
 	Port        int64
