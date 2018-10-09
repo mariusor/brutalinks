@@ -16,8 +16,7 @@ import (
 
 func loadItems(c context.Context, filter models.LoadItemsFilter) (itemListingModel, error) {
 	m := itemListingModel{}
-	val := c.Value(models.RepositoryCtxtKey)
-	itemLoader, ok := val.(models.CanLoadItems)
+	itemLoader, ok := models.ContextItemLoader(c)
 	if !ok {
 		err := errors.Errorf("could not load item repository from Context")
 		return m, err
@@ -28,11 +27,12 @@ func loadItems(c context.Context, filter models.LoadItemsFilter) (itemListingMod
 	}
 	m.Items = loadComments(contentItems)
 
-	if CurrentAccount.IsLogged() {
-		votesLoader, ok := val.(models.CanLoadVotes)
+	acc, ok := models.ContextCurrentAccount(c)
+	if acc.IsLogged() {
+		votesLoader, ok := models.ContextVoteLoader(c)
 		if ok {
-			CurrentAccount.Votes, err = votesLoader.LoadVotes(models.LoadVotesFilter{
-				AttributedTo: []models.Hash{CurrentAccount.Hash},
+			acc.Votes, err = votesLoader.LoadVotes(models.LoadVotesFilter{
+				AttributedTo: []models.Hash{acc.Hash},
 				ItemKey:      m.Items.getItemsHashes(),
 				MaxItems:     MaxContentItems,
 			})

@@ -100,8 +100,7 @@ func ShowItem(w http.ResponseWriter, r *http.Request) {
 	ShowItemData = true
 
 	m := contentModel{InvertedTheme: isInverted(r)}
-	val := r.Context().Value(models.RepositoryCtxtKey)
-	itemLoader, ok := val.(models.CanLoadItems)
+	itemLoader, ok := models.ContextItemLoader(r.Context())
 	if !ok {
 		Logger.WithFields(log.Fields{}).Errorf("could not load item repository from Context")
 		return
@@ -146,11 +145,12 @@ func ShowItem(w http.ResponseWriter, r *http.Request) {
 	ReparentComments(allComments)
 	AddLevelComments(allComments)
 
-	if CurrentAccount.IsLogged() {
-		votesLoader, ok := val.(models.CanLoadVotes)
+	acc, ok := models.ContextCurrentAccount(r.Context())
+	if ok && acc.IsLogged() {
+		votesLoader, ok := models.ContextVoteLoader(r.Context())
 		if ok {
-			CurrentAccount.Votes, err = votesLoader.LoadVotes(models.LoadVotesFilter{
-				AttributedTo: []models.Hash{CurrentAccount.Hash},
+			acc.Votes, err = votesLoader.LoadVotes(models.LoadVotesFilter{
+				AttributedTo: []models.Hash{acc.Hash},
 				ItemKey:      allComments.getItemsHashes(),
 				MaxItems:     MaxContentItems,
 			})
@@ -209,10 +209,10 @@ func HandleVoting(w http.ResponseWriter, r *http.Request) {
 	}
 	url := ItemPermaLink(p)
 
-	if CurrentAccount.IsLogged() {
-		auth, ok := val.(models.CanAuthenticate)
-		if ok {
-			auth.SetAccount(CurrentAccount)
+	acc, ok := models.ContextCurrentAccount(r.Context())
+	if acc.IsLogged() {
+		if auth, ok := val.(models.Authenticated); ok {
+			auth.WithAccount(acc)
 		}
 		voter, ok := val.(models.CanSaveVotes)
 		backUrl := r.Header.Get("Referer")
@@ -224,7 +224,7 @@ func HandleVoting(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		v := models.Vote{
-			SubmittedBy: CurrentAccount,
+			SubmittedBy: acc,
 			Item:        &p,
 			Weight:      multiplier * models.ScoreMultiplier,
 		}
@@ -236,7 +236,7 @@ func HandleVoting(w http.ResponseWriter, r *http.Request) {
 			}).Error(err)
 		}
 	} else {
-		AddFlashMessage(Error, fmt.Sprintf("unable to add vote as an %s user", CurrentAccount.Handle), r, w)
+		AddFlashMessage(Error, fmt.Sprintf("unable to add vote as an %s user", acc.Handle), r, w)
 	}
 	Redirect(w, r, url, http.StatusFound)
 }

@@ -2,9 +2,10 @@ package frontend
 
 import (
 	"fmt"
-	"github.com/mariusor/littr.go/app"
 	"net/http"
 	"os"
+
+	"github.com/mariusor/littr.go/app"
 
 	"github.com/mariusor/littr.go/app/models"
 	log "github.com/sirupsen/logrus"
@@ -116,15 +117,16 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 	ShowItemData = false
 	m.Items = loadComments(items)
 
-	if CurrentAccount.IsLogged() {
+	acct, ok := models.ContextCurrentAccount(r.Context())
+	if acct.IsLogged() {
 		votesLoader, ok := val.(models.CanLoadVotes)
 		if ok {
 			filters := models.LoadVotesFilter{
-				AttributedTo: []models.Hash{CurrentAccount.Hash},
+				AttributedTo: []models.Hash{acct.Hash},
 				ItemKey:      m.Items.getItemsHashes(),
 				MaxItems:     MaxContentItems,
 			}
-			CurrentAccount.Votes, err = votesLoader.LoadVotes(filters)
+			acct.Votes, err = votesLoader.LoadVotes(filters)
 			if err != nil {
 				Logger.WithFields(log.Fields{}).Error(err)
 			}

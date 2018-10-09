@@ -39,7 +39,9 @@ func ContentFromRequest(r *http.Request) (models.Item, error) {
 	if len(dat) > 0 {
 		i.Data = dat
 	}
-	i.SubmittedBy = CurrentAccount
+
+	acc, _ := models.ContextCurrentAccount(r.Context())
+	i.SubmittedBy = acc
 	i.MimeType = detectMimeType(i.Data)
 	if !i.IsLink() {
 		i.MimeType = r.PostFormValue("mime-type")
@@ -77,11 +79,9 @@ func HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	val := r.Context().Value(models.RepositoryCtxtKey)
-	if CurrentAccount.IsLogged() {
-		auth, ok := val.(models.CanAuthenticate)
-		if ok {
-			auth.SetAccount(CurrentAccount)
-		}
+	acc, ok := models.ContextCurrentAccount(r.Context())
+	if auth, ok := models.ContextAuthenticated(r.Context()); ok && acc.IsLogged() {
+		auth.WithAccount(acc)
 	}
 	itemSaver, ok := val.(models.CanSaveItems)
 	if !ok {

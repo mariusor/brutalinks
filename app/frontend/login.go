@@ -51,13 +51,11 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	s := GetSession(r)
 	s.Values[SessionUserKey] = sessionAccount{
 		Handle: a.Handle,
-		Hash: []byte(a.Hash),
+		Hash:   []byte(a.Hash),
 	}
-	CurrentAccount = &a
-	AddFlashMessage(Success, "Login successful", r, w)
 
+	AddFlashMessage(Success, "Login successful", r, w)
 	Redirect(w, r, "/", http.StatusSeeOther)
-	return
 }
 
 // ShowLogin serves GET /login requests
@@ -72,8 +70,6 @@ func ShowLogin(w http.ResponseWriter, r *http.Request) {
 
 // HandleLogout serves /logout requests
 func HandleLogout(w http.ResponseWriter, r *http.Request) {
-	CurrentAccount = AnonymousAccount()
-
 	s := GetSession(r)
 	s.Values[SessionUserKey] = nil
 	SessionStore.Save(r, w, s)
