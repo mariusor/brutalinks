@@ -39,7 +39,7 @@ type repository struct {
 	Account *models.Account
 }
 
-func (r *repository) SetAccount(a *models.Account) {
+func (r *repository) WithAccount(a *models.Account) {
 	r.Account = a
 }
 
