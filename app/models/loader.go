@@ -1,13 +1,21 @@
 package models
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
-const RepositoryCtxtKey = "__repository"
-const FilterCtxtKey = "__filter"
+var Logger log.FieldLogger
+
+const (
+	AccountCtxtKey    = "__acct"
+	RepositoryCtxtKey = "__repository"
+	FilterCtxtKey     = "__filter"
+)
 
 type MatchType int
 type ItemType string
@@ -25,6 +33,10 @@ const (
 	TypeLike    = VoteType("like")
 	ContextNil  = "0"
 )
+
+func init() {
+	Logger = log.StandardLogger()
+}
 
 type LoadVotesFilter struct {
 	ItemKey              []string   `qstring:"hash,omitempty"`
@@ -222,8 +234,8 @@ func (f LoadAccountsFilter) GetWhereClauses() ([]string, []interface{}) {
 	return wheres, whereValues
 }
 
-type CanAuthenticate interface {
-	SetAccount(a *Account)
+type Authenticated interface {
+	WithAccount(a *Account)
 }
 
 type CanSaveItems interface {
@@ -265,4 +277,39 @@ type CanLoadAccounts interface {
 
 type CanSaveAccounts interface {
 	SaveAccount(a Account) (Account, error)
+}
+
+func ContextVoteLoader(ctx context.Context) (CanLoadVotes, bool) {
+	ctxVal := ctx.Value(RepositoryCtxtKey)
+	l, ok := ctxVal.(CanLoadVotes)
+	return l, ok
+}
+
+func ContextItemLoader(ctx context.Context) (CanLoadItems, bool) {
+	ctxVal := ctx.Value(RepositoryCtxtKey)
+	l, ok := ctxVal.(CanLoadItems)
+	return l, ok
+}
+
+func ContextCurrentAccount(ctx context.Context) (*Account, bool) {
+	ctxVal := ctx.Value(AccountCtxtKey)
+	if a, ok := ctxVal.(*Account); ok {
+		Logger.WithFields(log.Fields{
+			"handle": a.Handle,
+			"hash":   a.Hash,
+		}).Debugf("loaded account from context")
+	}
+	return nil, false
+}
+
+func ContextAuthenticated(ctx context.Context) (Authenticated, bool) {
+	ctxVal := ctx.Value(RepositoryCtxtKey)
+	a, ok := ctxVal.(Authenticated)
+	return a, ok
+}
+
+func ContextAccountLoader(ctx context.Context) (CanLoadAccounts, bool) {
+	ctxVal := ctx.Value(RepositoryCtxtKey)
+	l, ok := ctxVal.(CanLoadAccounts)
+	return l, ok
 }
