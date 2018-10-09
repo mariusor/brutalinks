@@ -133,9 +133,8 @@ func UpdateItem(w http.ResponseWriter, r *http.Request) {
 	switch col {
 	case "outbox":
 		it := loadItem(body)
-		ctxt := r.Context().Value(models.RepositoryCtxtKey)
-		if repository, ok := ctxt.(models.CanSaveItems); ok {
-			newIt, err := repository.SaveItem(it)
+		if repo, ok := models.ContextItemSaver(r.Context()); ok {
+			newIt, err := repo.SaveItem(it)
 			if err != nil {
 				Logger.WithFields(log.Fields{"saveItem": it.SubmittedBy.Hash}).Error(err)
 				HandleError(w, r, http.StatusInternalServerError, err)
@@ -153,9 +152,8 @@ func UpdateItem(w http.ResponseWriter, r *http.Request) {
 		}
 	case "liked":
 		v := loadVote(body)
-		ctxt := r.Context().Value(models.RepositoryCtxtKey)
-		if repository, ok := ctxt.(models.CanSaveVotes); ok {
-			newVot, err := repository.SaveVote(v)
+		if repo, ok := models.ContextVoteSaver(r.Context()); ok {
+			newVot, err := repo.SaveVote(v)
 			if err != nil {
 				Logger.WithFields(log.Fields{"saveVote": v.SubmittedBy.Hash}).Error(err)
 				HandleError(w, r, http.StatusInternalServerError, err)
