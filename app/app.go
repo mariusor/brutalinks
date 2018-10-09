@@ -66,6 +66,11 @@ func validEnv(s EnvType) bool {
 	return false
 }
 
+func (a Application) Name() string {
+	parts := strings.Split(a.HostName, ".")
+	return strings.Join(parts, " ")
+}
+
 func (a *Application) listen() string {
 	if len(a.Listen) > 0 {
 		return a.Listen
