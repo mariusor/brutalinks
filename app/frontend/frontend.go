@@ -1,22 +1,25 @@
 package frontend
 
 import (
+	"context"
 	"encoding/gob"
 	"fmt"
-	"github.com/mariusor/littr.go/app"
-	"github.com/mariusor/littr.go/app/db"
 	"html/template"
 	"math"
 	"net/http"
 	"os"
 	"strings"
 
+	"github.com/unrolled/render"
+
+	"github.com/mariusor/littr.go/app"
+	"github.com/mariusor/littr.go/app/db"
+
 	"github.com/go-chi/chi"
 	"github.com/gorilla/sessions"
 	"github.com/juju/errors"
 	"github.com/mariusor/littr.go/app/models"
 	log "github.com/sirupsen/logrus"
-	"github.com/unrolled/render"
 	"golang.org/x/oauth2"
 
 	mark "gitlab.com/golang-commonmark/markdown"
@@ -32,9 +35,10 @@ var SessionStore sessions.Store
 var Renderer *render.Render
 
 var ShowItemData = false
-var CurrentAccount *models.Account
 
 var defaultAccount = models.Account{Handle: app.Anonymous, Hash: app.AnonymousHash}
+
+var CurrentAccount = &defaultAccount
 
 type flashType string
 
@@ -80,13 +84,11 @@ func init() {
 		Layout:     "layout",
 		Extensions: []string{".html"},
 		Funcs: []template.FuncMap{{
-			"isInverted":   isInverted,
-			"sluggify":     sluggify,
-			"title":        func(t []byte) string { return string(t) },
-			"getProviders": getAuthProviders,
-			"CurrentAccount": func() *models.Account {
-				return CurrentAccount
-			},
+			"isInverted":        isInverted,
+			"sluggify":          sluggify,
+			"title":             func(t []byte) string { return string(t) },
+			"getProviders":      getAuthProviders,
+			"CurrentAccount":    func() *models.Account { return CurrentAccount },
 			"LoadFlashMessages": loadFlashMessages,
 			"Mod10":             func(lvl uint8) float64 { return math.Mod(float64(lvl), float64(10)) },
 			"ShowText":          func() bool { return ShowItemData },
@@ -102,6 +104,7 @@ func init() {
 			"YayLink":           yayLink,
 			"NayLink":           nayLink,
 			"version":           func() string { return app.Instance.Version },
+			"Name":              func() template.HTML { return appName(app.Instance) },
 		}},
 		Delims:         render.Delims{Left: "{{", Right: "}}"},
 		Charset:        "UTF-8",
@@ -126,10 +129,6 @@ func init() {
 	gob.Register(sessionAccount{})
 	gob.Register(Flash{})
 
-	if CurrentAccount == nil {
-		CurrentAccount = AnonymousAccount()
-	}
-	CurrentAccount.Metadata = nil
 	Logger = log.StandardLogger()
 }
 
@@ -191,14 +190,38 @@ func scoreFmt(s int64) string {
 	return fmt.Sprintf("%3.1f%s", score, units)
 }
 
+func appName(app app.Application) template.HTML {
+	parts := strings.Split(app.Name(), " ")
+
+	name := strings.Builder{}
+	name.WriteString("<strong>")
+	name.WriteString(parts[0])
+	name.WriteString("</strong>")
+
+	for i, p := range parts {
+		if i == 0 {
+			continue
+		}
+		name.WriteString(" <small>")
+		name.WriteString(p)
+	}
+	for i := range parts {
+		if i == 0 {
+			continue
+		}
+		name.WriteString("</small>")
+	}
+	return template.HTML(name.String())
+}
+
 func Redirect(w http.ResponseWriter, r *http.Request, url string, status int) error {
 	err := sessions.Save(r, w)
 	if err != nil {
 		new := errors.NewErrWithCause(err, "failed to save session before redirect")
 		Logger.WithFields(log.Fields{
 			"status": status,
-			"url": url,
-			"trace": new.StackTrace(),
+			"url":    url,
+			"trace":  new.StackTrace(),
 		}).Error(new)
 	}
 	http.Redirect(w, r, url, status)
@@ -212,8 +235,8 @@ func RenderTemplate(r *http.Request, w http.ResponseWriter, name string, m inter
 		new := errors.NewErrWithCause(err, "failed to save session before rendering template")
 		Logger.WithFields(log.Fields{
 			"template": name,
-			"model": m,
-			"trace": new.StackTrace(),
+			"model":    m,
+			"trace":    new.StackTrace(),
 		}).Error(new)
 	}
 	err = Renderer.HTML(w, http.StatusOK, name, m)
@@ -221,8 +244,8 @@ func RenderTemplate(r *http.Request, w http.ResponseWriter, name string, m inter
 		new := errors.NewErrWithCause(err, "failed to render template")
 		Logger.WithFields(log.Fields{
 			"template": name,
-			"model": m,
-			"trace": new.StackTrace(),
+			"model":    m,
+			"trace":    new.StackTrace(),
 		}).Error(new)
 		Renderer.HTML(w, http.StatusInternalServerError, "error", new)
 	}
@@ -350,28 +373,27 @@ func isInverted(r *http.Request) bool {
 	return false
 }
 
-func loadCurrentAccount(s *sessions.Session) {
-	CurrentAccount = AnonymousAccount()
+func loadCurrentAccount(s *sessions.Session) models.Account {
 	// load the current account from the session or setting it to anonymous
 	if raw, ok := s.Values[SessionUserKey]; ok {
-		if raw != nil {
-			a := raw.(sessionAccount)
-			acc, err := db.Config.LoadAccount(models.LoadAccountsFilter{Handle: []string{a.Handle}})
-			if err != nil {
+		if a, ok := raw.(sessionAccount); ok {
+			if acc, err := db.Config.LoadAccount(models.LoadAccountsFilter{Handle: []string{a.Handle}}); err == nil {
 				Logger.WithFields(log.Fields{
-					"handle": a.Handle,
-					"hash": a.Hash,
-				}).Error(err)
-				return
+					"handle": acc.Handle,
+					"hash":   acc.Hash,
+				}).Debugf("loaded account from session")
+				return acc
+			} else {
+				if err != nil {
+					Logger.WithFields(log.Fields{
+						"handle": a.Handle,
+						"hash":   a.Hash,
+					}).Warn(err)
+				}
 			}
-			CurrentAccount = &acc
-			Logger.WithFields(log.Fields{
-				"handle": CurrentAccount.Handle,
-				"hash":   CurrentAccount.Hash,
-				"email":  CurrentAccount.Email,
-			}).Infof("loaded account from session")
 		}
 	}
+	return defaultAccount
 }
 
 func loadSessionFlashMessages(s *sessions.Session) {
@@ -389,13 +411,17 @@ func loadSessionFlashMessages(s *sessions.Session) {
 	}
 }
 
-func LoadSessionData(next http.Handler) http.Handler {
+func LoadSession(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		s := GetSession(r)
 		loadSessionFlashMessages(s)
 
-		loadCurrentAccount(s)
-		next.ServeHTTP(w, r)
+		acc := loadCurrentAccount(s)
+		ctx := context.WithValue(r.Context(), models.AccountCtxtKey, &acc)
+
+		CurrentAccount = &acc
+
+		next.ServeHTTP(w, r.WithContext(ctx))
 	}
 	return http.HandlerFunc(fn)
 }

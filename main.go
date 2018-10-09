@@ -65,7 +65,7 @@ func init() {
 	api.Config.BaseUrl = os.Getenv("LISTEN")
 }
 
-func serveFiles(st string) func (w http.ResponseWriter, r *http.Request) {
+func serveFiles(st string) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		path := filepath.Clean(chi.URLParam(r, "path"))
 		fullPath := filepath.Join(st, path)
@@ -94,7 +94,7 @@ func main() {
 
 	// Frontend
 	r.With(api.Repository).Route("/", func(r chi.Router) {
-		r.Use(frontend.LoadSessionData)
+		r.Use(frontend.LoadSession)
 		r.Use(middleware.GetHead)
 		r.Use(middleware.RedirectSlashes)
 
@@ -145,17 +145,17 @@ func main() {
 		r.Route("/accounts", func(r chi.Router) {
 			r.With(api.LoadFiltersCtxt).Get("/", api.HandleAccountsCollection)
 
-			r.With(frontend.LoadSessionData).Get("/accounts/verify_credentials", api.HandleVerifyCredentials)
+			r.With(frontend.LoadSession).Get("/accounts/verify_credentials", api.HandleVerifyCredentials)
 			r.Route("/{handle}", func(r chi.Router) {
 				r.Use(api.AccountCtxt)
 
 				r.Get("/", api.HandleAccount)
 				r.Route("/{collection}", func(r chi.Router) {
 					r.With(api.LoadFiltersCtxt, api.ItemCollectionCtxt).Get("/", api.HandleCollection)
-					r.With(api.LoadFiltersCtxt).Post("/", api.UpdateItem)
+					r.With(api.LoadFiltersCtxt, api.ShowHeaders).Post("/", api.UpdateItem)
 					r.Route("/{hash}", func(r chi.Router) {
 						r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/", api.HandleCollectionItem)
-						r.With(api.LoadFiltersCtxt).Put("/", api.UpdateItem)
+						r.With(api.LoadFiltersCtxt, api.ShowHeaders).Put("/", api.UpdateItem)
 
 						r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/replies", api.HandleItemReplies)
 					})
