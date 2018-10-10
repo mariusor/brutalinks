@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/mariusor/littr.go/app/models"
+
 	"github.com/mariusor/littr.go/app"
 
 	"github.com/jmoiron/sqlx"
@@ -22,6 +24,8 @@ import (
 	"github.com/mariusor/littr.go/app/frontend"
 	log "github.com/sirupsen/logrus"
 )
+
+var Logger log.FieldLogger
 
 func init() {
 	app.Instance = app.New()
@@ -57,9 +61,11 @@ func init() {
 		log.SetLevel(log.DebugLevel)
 	}
 
-	logger := log.StandardLogger()
-	middleware.DefaultLogger = middleware.RequestLogger(&middleware.DefaultLogFormatter{Logger: logger})
-	api.Logger = logger
+	Logger = log.StandardLogger()
+	api.Logger = Logger.WithField("package", "api")
+	models.Logger = Logger.WithField("package", "models")
+	db.Logger = Logger.WithField("package", "db")
+	frontend.Logger = Logger.WithField("package", "frontend")
 
 	db.Config.DB = con
 	api.Config.BaseUrl = os.Getenv("LISTEN")
@@ -74,7 +80,7 @@ func serveFiles(st string) func(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func Logger(next http.Handler) http.Handler {
+func ReqLogger(next http.Handler) http.Handler {
 	return middleware.DefaultLogger(next)
 }
 
@@ -86,7 +92,8 @@ func main() {
 	// Routes
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
-	r.Use(Logger)
+	r.Use(ReqLogger)
+	//r.Use(api.ShowHeaders)
 
 	if app.Instance.Env == app.PROD {
 		r.Use(middleware.Recoverer)
@@ -152,10 +159,10 @@ func main() {
 				r.Get("/", api.HandleAccount)
 				r.Route("/{collection}", func(r chi.Router) {
 					r.With(api.LoadFiltersCtxt, api.ItemCollectionCtxt).Get("/", api.HandleCollection)
-					r.With(api.LoadFiltersCtxt, api.ShowHeaders).Post("/", api.UpdateItem)
+					r.With(api.LoadFiltersCtxt).Post("/", api.UpdateItem)
 					r.Route("/{hash}", func(r chi.Router) {
 						r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/", api.HandleCollectionItem)
-						r.With(api.LoadFiltersCtxt, api.ShowHeaders).Put("/", api.UpdateItem)
+						r.With(api.LoadFiltersCtxt).Put("/", api.UpdateItem)
 
 						r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/replies", api.HandleItemReplies)
 					})
