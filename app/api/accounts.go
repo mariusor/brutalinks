@@ -173,6 +173,10 @@ func HandleAccountsCollection(w http.ResponseWriter, r *http.Request) {
 					p.Liked = ap.IRI(BuildCollectionID(acct, p.Liked))
 					col.Append(p)
 				}
+				if len(accounts) > 0 {
+					fpUrl := string(*col.GetID()) + "?page=1"
+					col.First = ap.IRI(fpUrl)
+				}
 				data, err = json.WithContext(GetContext()).Marshal(col)
 			} else {
 				Logger.WithFields(log.Fields{"trace": errors.Trace(err)}).Error(err)
@@ -332,6 +336,10 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 		col := ap.OutboxNew()
 		col.ID = BuildCollectionID(a, col)
 		_, err = loadAPCollection(col, &items)
+		if len(items) > 0 {
+			fpUrl := string(*col.GetID()) + "?page=1"
+			col.First = ap.IRI(fpUrl)
+		}
 		p.Outbox = col
 		data, err = json.WithContext(GetContext()).Marshal(p.Outbox)
 	case "liked":
@@ -346,6 +354,10 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 		liked := ap.LikedNew()
 		liked.ID = BuildCollectionID(a, liked)
 		_, err = loadAPLiked(liked, votes)
+		if len(votes) > 0 {
+			fpUrl := string(*liked.GetID()) + "?page=1"
+			liked.First = ap.IRI(fpUrl)
+		}
 		p.Liked = liked
 		data, err = json.WithContext(GetContext()).Marshal(p.Liked)
 	case "replies":
