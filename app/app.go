@@ -12,9 +12,10 @@ import (
 	"time"
 
 	"github.com/mariusor/littr.go/app/models"
-
 	log "github.com/sirupsen/logrus"
 )
+
+var Logger log.FieldLogger
 
 const defaultHost = "localhost"
 const defaultPort = 3000
@@ -50,6 +51,12 @@ type Application struct {
 }
 
 var Instance Application
+
+func init() {
+	if Logger == nil {
+		Logger = log.StandardLogger()
+	}
+}
 
 func New() Application {
 	app := Application{HostName: listenHost, Port: listenPort}
@@ -114,8 +121,8 @@ func loadEnv(l *Application) (bool, error) {
 }
 
 func (a *Application) Run(m http.Handler, wait time.Duration) {
-	log.WithFields(log.Fields{}).Infof("starting debug level %q", log.GetLevel().String())
-	log.WithFields(log.Fields{}).Infof("listening on %s", a.listen())
+	Logger.WithFields(log.Fields{}).Infof("starting debug level %q", log.GetLevel().String())
+	Logger.WithFields(log.Fields{}).Infof("listening on %s", a.listen())
 
 	srv := &http.Server{
 		Addr: a.listen(),
@@ -129,7 +136,7 @@ func (a *Application) Run(m http.Handler, wait time.Duration) {
 	// Run our server in a goroutine so that it doesn't block.
 	go func() {
 		if err := srv.ListenAndServe(); err != nil {
-			log.WithFields(log.Fields{}).Error(err)
+			Logger.WithFields(log.Fields{}).Error(err)
 			os.Exit(1)
 		}
 	}()
@@ -151,6 +158,6 @@ func (a *Application) Run(m http.Handler, wait time.Duration) {
 	// Optionally, you could run srv.Shutdown in a goroutine and block on
 	// <-ctx.Done() if your application should wait for other services
 	// to finalize based on context cancellation.
-	log.WithFields(log.Fields{}).Infof("shutting down")
+	Logger.WithFields(log.Fields{}).Infof("shutting down")
 	os.Exit(0)
 }

@@ -62,7 +62,9 @@ func init() {
 
 	AccountsURL = BaseURL + "/accounts"
 	OutboxURL = BaseURL + "/outbox"
-	Logger = log.StandardLogger()
+	if Logger == nil {
+		Logger = log.StandardLogger()
+	}
 }
 
 func getHashFromAP(obj ap.ObjectOrLink) models.Hash {

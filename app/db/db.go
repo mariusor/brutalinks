@@ -23,7 +23,9 @@ type config struct {
 }
 
 func init() {
-	Logger = log.StandardLogger()
+	if Logger == nil {
+		Logger = log.StandardLogger()
+	}
 }
 
 // I think we can move from using the exported Config package variable

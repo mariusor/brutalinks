@@ -35,7 +35,9 @@ const (
 )
 
 func init() {
-	Logger = log.StandardLogger()
+	if Logger == nil {
+		Logger = log.StandardLogger()
+	}
 }
 
 type LoadVotesFilter struct {

@@ -129,7 +129,9 @@ func init() {
 	gob.Register(sessionAccount{})
 	gob.Register(Flash{})
 
-	Logger = log.StandardLogger()
+	if Logger == nil {
+		Logger = log.StandardLogger()
+	}
 }
 
 func AnonymousAccount() *models.Account {
