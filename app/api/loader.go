@@ -725,7 +725,14 @@ func (r *repository) LoadVote(f models.LoadVotesFilter) (models.Vote, error) {
 func (r *repository) SaveItem(it models.Item) (models.Item, error) {
 	doUpd := false
 	art := loadAPItem(it)
-	actor := loadAPPerson(*it.SubmittedBy)
+	// need to test if it.SubmittedBy matches r.Account and that the signature is valid
+	signedBy := r.Account
+	var actor *Person
+	if signedBy.Hash == it.SubmittedBy.Hash {
+		actor = loadAPPerson(*it.SubmittedBy)
+	} else {
+		actor = loadAPPerson(*frontend.AnonymousAccount())
+	}
 
 	var body []byte
 	var err error
