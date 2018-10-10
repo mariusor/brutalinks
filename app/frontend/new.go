@@ -95,6 +95,21 @@ func HandleSubmit(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	//AddVote(p, 1, p.AttributedTo.Hash)
+	if voter, ok := models.ContextVoteSaver(r.Context()); !ok {
+		Logger.WithFields(log.Fields{}).Errorf("could not load item repository from Context")
+	} else {
+		v := models.Vote{
+			SubmittedBy: acc,
+			Item:        &p,
+			Weight:      1 * models.ScoreMultiplier,
+		}
+		if _, err := voter.SaveVote(v); err != nil {
+			Logger.WithFields(log.Fields{
+				"hash":   v.Item.Hash,
+				"author": v.SubmittedBy.Handle,
+				"weight": v.Weight,
+			}).Error(err)
+		}
+	}
 	Redirect(w, r, ItemPermaLink(p), http.StatusSeeOther)
 }
