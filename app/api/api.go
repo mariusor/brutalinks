@@ -20,6 +20,7 @@ import (
 
 	"github.com/juju/errors"
 	ap "github.com/mariusor/activitypub.go/activitypub"
+	as "github.com/mariusor/activitypub.go/activitystreams"
 	j "github.com/mariusor/activitypub.go/jsonld"
 	"github.com/mariusor/littr.go/app/models"
 	log "github.com/sirupsen/logrus"
@@ -67,17 +68,17 @@ func init() {
 	}
 }
 
-func getHashFromAP(obj ap.ObjectOrLink) models.Hash {
+func getHashFromAP(obj as.ObjectOrLink) models.Hash {
 	var h models.Hash
 	if obj.IsLink() {
-		h = models.Hash(path.Base(string(obj.(ap.IRI))))
+		h = models.Hash(path.Base(string(obj.(as.IRI))))
 	} else {
 		h = getHash(obj.GetID())
 	}
 	return h
 }
 
-func getHash(i *ap.ObjectID) models.Hash {
+func getHash(i *as.ObjectID) models.Hash {
 	if i == nil {
 		return ""
 	}
@@ -85,11 +86,11 @@ func getHash(i *ap.ObjectID) models.Hash {
 	return models.Hash(s[len(s)-1])
 }
 
-func getAccountHandle(o ap.ObjectOrLink) string {
+func getAccountHandle(o as.ObjectOrLink) string {
 	if o == nil {
 		return ""
 	}
-	i := o.(ap.IRI)
+	i := o.(as.IRI)
 	s := strings.Split(string(i), "/")
 	return s[len(s)-1]
 }
@@ -100,51 +101,51 @@ func Errorf(c int, m string, args ...interface{}) *Error {
 
 func GetContext() j.Context {
 	return j.Context{
-		{IRI: j.IRI(ap.ActivityBaseURI)},
+		{IRI: j.IRI(as.ActivityBaseURI)},
 		{IRI: j.IRI("https://w3id.org/security/v1")},
 		{j.Term("score"), j.IRI(fmt.Sprintf("%sns/#score", app.Instance.BaseUrl()))},
 	}
 }
 
-func BuildActorID(a models.Account) ap.ObjectID {
-	return ap.ObjectID(fmt.Sprintf("%s/%s", AccountsURL, url.PathEscape(a.Handle)))
+func BuildActorID(a models.Account) as.ObjectID {
+	return as.ObjectID(fmt.Sprintf("%s/%s", AccountsURL, url.PathEscape(a.Handle)))
 }
-func BuildActorHashID(a models.Account) ap.ObjectID {
-	return ap.ObjectID(fmt.Sprintf("%s/%s", AccountsURL, url.PathEscape(a.Hash.String())))
+func BuildActorHashID(a models.Account) as.ObjectID {
+	return as.ObjectID(fmt.Sprintf("%s/%s", AccountsURL, url.PathEscape(a.Hash.String())))
 }
 
-func BuildCollectionID(a models.Account, o ap.Item) ap.ObjectID {
+func BuildCollectionID(a models.Account, o as.Item) as.ObjectID {
 	if len(a.Handle) > 0 {
-		return ap.ObjectID(fmt.Sprintf("%s/%s/%s", AccountsURL, url.PathEscape(a.Handle), getObjectType(o)))
+		return as.ObjectID(fmt.Sprintf("%s/%s/%s", AccountsURL, url.PathEscape(a.Handle), getObjectType(o)))
 	}
-	return ap.ObjectID(fmt.Sprintf("%s/%s", BaseURL, getObjectType(o)))
+	return as.ObjectID(fmt.Sprintf("%s/%s", BaseURL, getObjectType(o)))
 }
 
-func BuildRepliesCollectionID(i ap.Item) ap.ObjectID {
-	return ap.ObjectID(fmt.Sprintf("%s/replies", *i.GetID()))
+func BuildRepliesCollectionID(i as.Item) as.ObjectID {
+	return as.ObjectID(fmt.Sprintf("%s/replies", *i.GetID()))
 }
 
-func BuildObjectIDFromItem(i models.Item) (ap.ObjectID, bool) {
+func BuildObjectIDFromItem(i models.Item) (as.ObjectID, bool) {
 	if len(i.Hash) == 0 {
-		return ap.ObjectID(""), false
+		return as.ObjectID(""), false
 	}
 	if i.SubmittedBy != nil {
 		handle := i.SubmittedBy.Handle
-		return ap.ObjectID(fmt.Sprintf("%s/%s/outbox/%s", AccountsURL, url.PathEscape(handle), url.PathEscape(i.Hash.String()))), true
+		return as.ObjectID(fmt.Sprintf("%s/%s/outbox/%s", AccountsURL, url.PathEscape(handle), url.PathEscape(i.Hash.String()))), true
 	} else {
-		return ap.ObjectID(fmt.Sprintf("%s/outbox/%s", BaseURL, url.PathEscape(i.Hash.String()))), true
+		return as.ObjectID(fmt.Sprintf("%s/outbox/%s", BaseURL, url.PathEscape(i.Hash.String()))), true
 	}
 }
 
-func BuildObjectIDFromVote(v models.Vote) ap.ObjectID {
+func BuildObjectIDFromVote(v models.Vote) as.ObjectID {
 	att := "liked"
 	//if v.Weight < 0 {
 	//	att = "disliked"
 	//}
-	return ap.ObjectID(fmt.Sprintf("%s/%s/%s/%s", AccountsURL, url.PathEscape(v.SubmittedBy.Handle), att, url.PathEscape(v.Item.Hash.String())))
+	return as.ObjectID(fmt.Sprintf("%s/%s/%s/%s", AccountsURL, url.PathEscape(v.SubmittedBy.Handle), att, url.PathEscape(v.Item.Hash.String())))
 }
 
-func getObjectType(el ap.Item) string {
+func getObjectType(el as.Item) string {
 	if el == nil {
 		return ""
 	}
@@ -156,7 +157,7 @@ func getObjectType(el ap.Item) string {
 		typeInboxStream     = reflect.TypeOf(ap.InboxStream{})
 		typeLiked           = reflect.TypeOf(ap.Liked{})
 		typeLikedCollection = reflect.TypeOf(ap.LikedCollection{})
-		typePerson          = reflect.TypeOf(ap.Person{})
+		typePerson          = reflect.TypeOf(as.Person{})
 		typeLocalPerson     = reflect.TypeOf(Person{})
 	)
 	typ := reflect.TypeOf(el)
@@ -179,7 +180,7 @@ func getObjectType(el ap.Item) string {
 	case typeLikedCollection:
 		label = "liked"
 	case typePerson:
-		o := val.Interface().(ap.Person)
+		o := val.Interface().(as.Person)
 		for _, n := range o.Name {
 			label = n.Value
 			break

@@ -13,53 +13,58 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/juju/errors"
 	ap "github.com/mariusor/activitypub.go/activitypub"
+	as "github.com/mariusor/activitypub.go/activitystreams"
 	json "github.com/mariusor/activitypub.go/jsonld"
 	"github.com/mariusor/littr.go/app/models"
 	log "github.com/sirupsen/logrus"
 )
 
-func getObjectID(s string) ap.ObjectID {
-	return ap.ObjectID(fmt.Sprintf("%s/%s", AccountsURL, s))
+func getObjectID(s string) as.ObjectID {
+	return as.ObjectID(fmt.Sprintf("%s/%s", AccountsURL, s))
 }
 
-func apAccountID(a models.Account) ap.ObjectID {
+func apAccountID(a models.Account) as.ObjectID {
 	if len(a.Hash) >= 8 {
-		return ap.ObjectID(fmt.Sprintf("%s/%s", AccountsURL, a.Hash.String()))
+		return as.ObjectID(fmt.Sprintf("%s/%s", AccountsURL, a.Hash.String()))
 	}
-	return ap.ObjectID(fmt.Sprintf("%s/anonymous", AccountsURL))
+	return as.ObjectID(fmt.Sprintf("%s/anonymous", AccountsURL))
 }
 
-func loadAPLike(vote models.Vote) ap.ObjectOrLink {
+func loadAPLike(vote models.Vote) as.ObjectOrLink {
 	if vote.Weight == 0 {
 		return nil
 	}
 	id, _ := BuildObjectIDFromItem(*vote.Item)
 	lID := BuildObjectIDFromVote(vote)
-	whomArt := ap.IRI(BuildActorHashID(*vote.SubmittedBy))
+	whomArt := as.IRI(BuildActorHashID(*vote.SubmittedBy))
 	if vote.Weight > 0 {
-		l := ap.LikeNew(lID, ap.IRI(id))
+		l := as.LikeNew(lID, as.IRI(id))
 		l.AttributedTo = whomArt
 		return *l
 	} else {
-		l := ap.DislikeNew(lID, ap.IRI(id))
+		l := as.DislikeNew(lID, as.IRI(id))
 		l.AttributedTo = whomArt
 		return *l
 	}
 }
 
-func loadAPItem(item models.Item) ap.Item {
+func loadAPItem(item models.Item) as.Item {
 	o := Article{}
-	o.Name = make(ap.NaturalLanguageValue, 0)
-	o.Content = make(ap.NaturalLanguageValue, 0)
+	o.Name = make(as.NaturalLanguageValue, 0)
+	o.Content = make(as.NaturalLanguageValue, 0)
 	if id, ok := BuildObjectIDFromItem(item); ok {
 		o.ID = id
 	}
-	o.URL = ap.IRI(frontend.ItemPermaLink(item))
-	o.Type = ap.ArticleType
+	o.URL = as.IRI(frontend.ItemPermaLink(item))
+	if item.MimeType == models.MimeTypeURL {
+		o.Type = as.PageType
+	} else {
+		o.Type = as.NoteType
+	}
 	o.Published = item.SubmittedAt
 	o.Updated = item.UpdatedAt
-	o.MediaType = ap.MimeType(item.MimeType)
-	o.Generator = ap.IRI(app.Instance.BaseUrl())
+	o.MediaType = as.MimeType(item.MimeType)
+	o.Generator = as.IRI(app.Instance.BaseUrl())
 	o.Score = item.Score / models.ScoreMultiplier
 	if item.Title != "" {
 		o.Name.Set("en", string(item.Title))
@@ -68,24 +73,24 @@ func loadAPItem(item models.Item) ap.Item {
 		o.Content.Set("en", string(item.Data))
 	}
 	if item.SubmittedBy != nil {
-		o.AttributedTo = ap.IRI(BuildActorID(*item.SubmittedBy))
+		o.AttributedTo = as.IRI(BuildActorID(*item.SubmittedBy))
 	}
 	if item.Parent != nil {
 		id, _ := BuildObjectIDFromItem(*item.Parent)
-		o.InReplyTo = ap.IRI(id)
+		o.InReplyTo = as.IRI(id)
 	}
 	if item.OP != nil {
 		id, _ := BuildObjectIDFromItem(*item.OP)
-		o.Context = ap.IRI(id)
+		o.Context = as.IRI(id)
 	}
 	return o
 }
 
 func loadAPPerson(a models.Account) *Person {
 	p := Person{}
-	p.Type = ap.PersonType
-	p.Name = ap.NaturalLanguageValueNew()
-	p.PreferredUsername = ap.NaturalLanguageValueNew()
+	p.Type = as.PersonType
+	p.Name = as.NaturalLanguageValueNew()
+	p.PreferredUsername = as.NaturalLanguageValueNew()
 
 	if len(a.Hash) >= 8 {
 		p.ID = apAccountID(a)
@@ -97,33 +102,33 @@ func loadAPPerson(a models.Account) *Person {
 	out := ap.OutboxNew()
 	out.ID = BuildCollectionID(a, p.Outbox)
 	if len(a.Handle) > 0 {
-		out.AttributedTo = ap.URI(p.ID)
+		out.AttributedTo = as.URI(p.ID)
 	}
 	p.Outbox = out
-	//in := ap.InboxNew()
+	//in := as.InboxNew()
 	//p.Inbox = in
 	//in.ID = BuildCollectionID(a, p.Inbox)
 
 	liked := ap.LikedNew()
 	liked.ID = BuildCollectionID(a, p.Liked)
 	if len(a.Handle) > 0 {
-		liked.AttributedTo = ap.URI(p.ID)
+		liked.AttributedTo = as.URI(p.ID)
 	}
 	p.Liked = liked
 
-	p.URL = ap.IRI(frontend.AccountPermaLink(a))
+	p.URL = as.IRI(frontend.AccountPermaLink(a))
 	p.Score = a.Score
 	if a.IsValid() && a.HasMetadata() && a.Metadata.Key != nil && a.Metadata.Key.Public != nil {
 		p.PublicKey = PublicKey{
-			ID:           ap.ObjectID(fmt.Sprintf("%s#main-key", p.ID)),
-			Owner:        ap.IRI(p.ID),
+			ID:           as.ObjectID(fmt.Sprintf("%s#main-key", p.ID)),
+			Owner:        as.IRI(p.ID),
 			PublicKeyPem: fmt.Sprintf("-----BEGIN PUBLIC KEY-----\n%s\n-----END PUBLIC KEY-----", base64.StdEncoding.EncodeToString(a.Metadata.Key.Public)),
 		}
 	}
 	return &p
 }
 
-func loadAPLiked(o ap.CollectionInterface, votes models.VoteCollection) (ap.CollectionInterface, error) {
+func loadAPLiked(o as.CollectionInterface, votes models.VoteCollection) (as.CollectionInterface, error) {
 	if votes == nil || len(votes) == 0 {
 		return nil, errors.Errorf("empty collection %T", o)
 	}
@@ -138,7 +143,7 @@ func loadAPLiked(o ap.CollectionInterface, votes models.VoteCollection) (ap.Coll
 	return o, nil
 }
 
-func loadAPCollection(o ap.CollectionInterface, items *models.ItemCollection) (ap.CollectionInterface, error) {
+func loadAPCollection(o as.CollectionInterface, items *models.ItemCollection) (as.CollectionInterface, error) {
 	if items == nil || len(*items) == 0 {
 		return nil, errors.Errorf("empty collection %T", o)
 	}
@@ -165,17 +170,17 @@ func HandleAccountsCollection(w http.ResponseWriter, r *http.Request) {
 			var accounts models.AccountCollection
 			var err error
 
-			col := ap.CollectionNew(ap.ObjectID(AccountsURL))
+			col := as.CollectionNew(as.ObjectID(AccountsURL))
 			if accounts, err = service.LoadAccounts(filter); err == nil {
 				for _, acct := range accounts {
 					p := loadAPPerson(acct)
-					p.Outbox = ap.IRI(BuildCollectionID(acct, p.Outbox))
-					p.Liked = ap.IRI(BuildCollectionID(acct, p.Liked))
+					p.Outbox = as.IRI(BuildCollectionID(acct, p.Outbox))
+					p.Liked = as.IRI(BuildCollectionID(acct, p.Liked))
 					col.Append(p)
 				}
 				if len(accounts) > 0 {
 					fpUrl := string(*col.GetID()) + "?page=1"
-					col.First = ap.IRI(fpUrl)
+					col.First = as.IRI(fpUrl)
 				}
 				data, err = json.WithContext(GetContext()).Marshal(col)
 			} else {
@@ -197,8 +202,8 @@ func HandleAccount(w http.ResponseWriter, r *http.Request) {
 	//	Logger.WithFields(log.Fields{}).Errorf("could not load Account from Context")
 	//}
 	p := loadAPPerson(a)
-	p.Outbox = ap.IRI(BuildCollectionID(a, p.Outbox))
-	p.Liked = ap.IRI(BuildCollectionID(a, p.Liked))
+	p.Outbox = as.IRI(BuildCollectionID(a, p.Outbox))
+	p.Liked = as.IRI(BuildCollectionID(a, p.Liked))
 
 	j, err := json.WithContext(GetContext()).Marshal(p)
 	if err != nil {
@@ -222,7 +227,7 @@ func HandleCollectionItem(w http.ResponseWriter, r *http.Request) {
 
 	val := r.Context().Value(ItemCtxtKey)
 	collection := chi.URLParam(r, "collection")
-	var el ap.ObjectOrLink
+	var el as.ObjectOrLink
 	switch strings.ToLower(collection) {
 	case "inbox":
 	case "outbox":
@@ -248,7 +253,7 @@ func HandleCollectionItem(w http.ResponseWriter, r *http.Request) {
 			}
 			if len(replies) > 0 {
 				if o, ok := el.(Article); ok {
-					o.Replies = ap.IRI(BuildRepliesCollectionID(o))
+					o.Replies = as.IRI(BuildRepliesCollectionID(o))
 					el = o
 				}
 			}
@@ -292,7 +297,7 @@ func HandleItemReplies(w http.ResponseWriter, r *http.Request) {
 			}
 
 			p, _ := el.(Article)
-			col := ap.CollectionNew(BuildRepliesCollectionID(p))
+			col := as.CollectionNew(BuildRepliesCollectionID(p))
 			if replies, err := service.LoadItems(filter); err == nil {
 				_, err = loadAPCollection(col, &replies)
 				data, err = json.WithContext(GetContext()).Marshal(p.Replies)
@@ -338,7 +343,7 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 		_, err = loadAPCollection(col, &items)
 		if len(items) > 0 {
 			fpUrl := string(*col.GetID()) + "?page=1"
-			col.First = ap.IRI(fpUrl)
+			col.First = as.IRI(fpUrl)
 		}
 		p.Outbox = col
 		data, err = json.WithContext(GetContext()).Marshal(p.Outbox)
@@ -356,7 +361,7 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 		_, err = loadAPLiked(liked, votes)
 		if len(votes) > 0 {
 			fpUrl := string(*liked.GetID()) + "?page=1"
-			liked.First = ap.IRI(fpUrl)
+			liked.First = as.IRI(fpUrl)
 		}
 		p.Liked = liked
 		data, err = json.WithContext(GetContext()).Marshal(p.Liked)
@@ -366,10 +371,14 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 			log.Errorf("could not load Replies from Context")
 			return
 		}
-		replies := OrderedCollectionNew(ap.ObjectID(""))
+		replies := OrderedCollectionNew(as.ObjectID(""))
 		replies.ID = BuildCollectionID(a, replies)
 		_, err = loadAPCollection(replies, &items)
 		p.Replies = replies
+		if len(items) > 0 {
+			fpUrl := string(*replies.GetID()) + "?page=1"
+			replies.First = as.IRI(fpUrl)
+		}
 		data, err = json.WithContext(GetContext()).Marshal(p.Outbox)
 	default:
 		err = errors.Errorf("collection not found")

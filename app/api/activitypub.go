@@ -3,15 +3,16 @@ package api
 import (
 	"crypto"
 	"fmt"
-	"github.com/buger/jsonparser"
-	ap "github.com/mariusor/activitypub.go/activitypub"
-	"github.com/spacemonkeygo/httpsig"
 	"net/http"
+
+	"github.com/buger/jsonparser"
+	as "github.com/mariusor/activitypub.go/activitystreams"
+	"github.com/spacemonkeygo/httpsig"
 )
 
 type PublicKey struct {
-	ID           ap.ObjectID     `jsonld:"id,omitempty"`
-	Owner        ap.ObjectOrLink `jsonld:"owner,omitempty"`
+	ID           as.ObjectID     `jsonld:"id,omitempty"`
+	Owner        as.ObjectOrLink `jsonld:"owner,omitempty"`
 	PublicKeyPem string          `jsonld:"publicKeyPem,omitempty"`
 }
 
@@ -19,7 +20,7 @@ type PublicKey struct {
 //    github.com/mariusor/activitypub.go/activitypub/actors.go#Actor
 // We need it here in order to be able to add to it our Score property
 type Person struct {
-	ap.Person
+	as.Person
 	PublicKey PublicKey `jsonld:"publicKey,omitempty"`
 	// Score is our own custom property for which we needed to extend the existing AP one
 	Score int64 `jsonld:"score"`
@@ -29,21 +30,21 @@ type Person struct {
 //    github.com/mariusor/activitypub.go/activitypub/objects.go#Object
 // We need it here in order to be able to add to it our Score property
 type Article struct {
-	ap.Object
+	as.Object
 	Score int64 `jsonld:"score"`
 }
 
 // OrderedCollection it should be identical to:
 //    github.com/mariusor/activitypub.go/activitypub/collections.go#OrderedCollection
 // We need it here in order to be able to implement our own UnmarshalJSON() method
-type OrderedCollection ap.OrderedCollection
+type OrderedCollection as.OrderedCollection
 
-func (p Person) GetID() *ap.ObjectID {
-	id := ap.ObjectID(p.ID)
+func (p Person) GetID() *as.ObjectID {
+	id := as.ObjectID(p.ID)
 	return &id
 }
-func (p Person) GetType() ap.ActivityVocabularyType {
-	return ap.ActivityVocabularyType(p.Type)
+func (p Person) GetType() as.ActivityVocabularyType {
+	return as.ActivityVocabularyType(p.Type)
 }
 func (p Person) IsLink() bool {
 	return false
@@ -52,12 +53,12 @@ func (p Person) IsObject() bool {
 	return true
 }
 
-func (a Article) GetID() *ap.ObjectID {
-	id := ap.ObjectID(a.ID)
+func (a Article) GetID() *as.ObjectID {
+	id := as.ObjectID(a.ID)
 	return &id
 }
-func (a Article) GetType() ap.ActivityVocabularyType {
-	return ap.ActivityVocabularyType(a.Type)
+func (a Article) GetType() as.ActivityVocabularyType {
+	return as.ActivityVocabularyType(a.Type)
 }
 func (a Article) IsLink() bool {
 	return false
@@ -69,7 +70,7 @@ func (a Article) IsObject() bool {
 
 // UnmarshalJSON
 func (a *Article) UnmarshalJSON(data []byte) error {
-	it := ap.Object{}
+	it := as.Object{}
 	err := it.UnmarshalJSON(data)
 	if err != nil {
 		return err
@@ -85,7 +86,7 @@ func (a *Article) UnmarshalJSON(data []byte) error {
 
 // UnmarshalJSON
 func (p *Person) UnmarshalJSON(data []byte) error {
-	app := ap.Person{}
+	app := as.Person{}
 	err := app.UnmarshalJSON(data)
 	if err != nil {
 		return err
@@ -100,13 +101,13 @@ func (p *Person) UnmarshalJSON(data []byte) error {
 }
 
 // CollectionNew initializes a new Collection
-func OrderedCollectionNew(id ap.ObjectID) *OrderedCollection {
-	o := OrderedCollection(*ap.OrderedCollectionNew(id))
+func OrderedCollectionNew(id as.ObjectID) *OrderedCollection {
+	o := OrderedCollection(*as.OrderedCollectionNew(id))
 	return &o
 }
 
 // GetType returns the OrderedCollection's type
-func (o OrderedCollection) GetType() ap.ActivityVocabularyType {
+func (o OrderedCollection) GetType() as.ActivityVocabularyType {
 	return o.Type
 }
 
@@ -116,7 +117,7 @@ func (o OrderedCollection) IsLink() bool {
 }
 
 // GetID returns the ObjectID corresponding to the OrderedCollection
-func (o OrderedCollection) GetID() *ap.ObjectID {
+func (o OrderedCollection) GetID() *as.ObjectID {
 	return &o.ID
 }
 
@@ -124,13 +125,14 @@ func (o OrderedCollection) GetID() *ap.ObjectID {
 func (o OrderedCollection) IsObject() bool {
 	return true
 }
+
 // Collection returns the underlying Collection type
-func (o *OrderedCollection) Collection() ap.CollectionInterface {
+func (o *OrderedCollection) Collection() as.CollectionInterface {
 	return o
 }
 
 // Append adds an element to an OrderedCollection
-func (o *OrderedCollection) Append(ob ap.Item) error {
+func (o *OrderedCollection) Append(ob as.Item) error {
 	o.OrderedItems = append(o.OrderedItems, ob)
 	o.TotalItems++
 	return nil
@@ -138,36 +140,36 @@ func (o *OrderedCollection) Append(ob ap.Item) error {
 
 // UnmarshalJSON
 func (o *OrderedCollection) UnmarshalJSON(data []byte) error {
-	col := ap.OrderedCollection{}
+	col := as.OrderedCollection{}
 	err := col.UnmarshalJSON(data)
 	if err != nil {
 		return err
 	}
 
-	items := make(ap.ItemCollection, col.TotalItems)
+	items := make(as.ItemCollection, col.TotalItems)
 	for i, it := range col.OrderedItems {
-		var a ap.ObjectOrLink
+		var a as.ObjectOrLink
 		switch it.GetType() {
-		case ap.ArticleType:
+		case as.ArticleType:
 			art := &Article{}
 			if data, _, _, err := jsonparser.Get(data, "orderedItems", fmt.Sprintf("[%d]", i)); err == nil {
 				art.UnmarshalJSON(data)
 			}
 			if context, err := jsonparser.GetString(data, "orderedItems", fmt.Sprintf("[%d]", i), "context"); err == nil {
-				art.Context = ap.IRI(context)
+				art.Context = as.IRI(context)
 			}
 			a = art
-		case ap.LikeType:
+		case as.LikeType:
 			fallthrough
-		case ap.DislikeType:
+		case as.DislikeType:
 			fallthrough
-		case ap.ActivityType:
-			act := &ap.Activity{}
+		case as.ActivityType:
+			act := &as.Activity{}
 			if data, _, _, err := jsonparser.Get(data, "orderedItems", fmt.Sprintf("[%d]", i)); err == nil {
 				act.UnmarshalJSON(data)
 			}
 			if context, err := jsonparser.GetString(data, "orderedItems", fmt.Sprintf("[%d]", i), "context"); err == nil {
-				act.Context = ap.IRI(context)
+				act.Context = as.IRI(context)
 			}
 			a = act
 		}

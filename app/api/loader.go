@@ -21,6 +21,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/juju/errors"
 	ap "github.com/mariusor/activitypub.go/activitypub"
+	as "github.com/mariusor/activitypub.go/activitystreams"
 	j "github.com/mariusor/activitypub.go/jsonld"
 	"github.com/mariusor/littr.go/app/db"
 	"github.com/mariusor/littr.go/app/models"
@@ -240,9 +241,9 @@ func jsonUnescape(s string) string {
 	return string(out)
 }
 
-func loadFromAPObject(ob ap.Object) (models.Item, error) {
-	title := jsonUnescape(ap.NaturalLanguageValue(ob.Name).First())
-	content := jsonUnescape(ap.NaturalLanguageValue(ob.Content).First())
+func loadFromAPObject(ob as.Object) (models.Item, error) {
+	title := jsonUnescape(as.NaturalLanguageValue(ob.Name).First())
+	content := jsonUnescape(as.NaturalLanguageValue(ob.Content).First())
 
 	c := models.Item{
 		Hash:        getHashFromAP(ob),
@@ -255,14 +256,14 @@ func loadFromAPObject(ob ap.Object) (models.Item, error) {
 		},
 	}
 	r := ob.InReplyTo
-	if p, ok := r.(ap.IRI); ok {
+	if p, ok := r.(as.IRI); ok {
 		c.Parent = &models.Item{
 			Hash: models.Hash(getAccountHandle(p)),
 		}
 	}
 	if ob.Context != ob.InReplyTo {
 		op := ob.Context
-		if p, ok := op.(ap.IRI); ok {
+		if p, ok := op.(as.IRI); ok {
 			c.OP = &models.Item{
 				Hash: models.Hash(getAccountHandle(p)),
 			}
@@ -271,7 +272,7 @@ func loadFromAPObject(ob ap.Object) (models.Item, error) {
 	return c, nil
 }
 
-func loadFromAPItem(it ap.Item) (models.Item, error) {
+func loadFromAPItem(it as.Item) (models.Item, error) {
 	if it.IsLink() {
 		return models.Item{}, errors.New("unable to load from IRI")
 	}
@@ -281,10 +282,10 @@ func loadFromAPItem(it ap.Item) (models.Item, error) {
 	if art, ok := it.(Article); ok {
 		return loadFromAPArticle(art)
 	}
-	if ob, ok := it.(*ap.Object); ok {
+	if ob, ok := it.(*as.Object); ok {
 		return loadFromAPObject(*ob)
 	}
-	if ob, ok := it.(ap.Object); ok {
+	if ob, ok := it.(as.Object); ok {
 		return loadFromAPObject(ob)
 	}
 	return models.Item{}, errors.New("invalid object type")
@@ -296,7 +297,7 @@ func loadFromAPArticle(a Article) (models.Item, error) {
 	return it, err
 }
 
-func loadFromAPLike(l ap.Activity) (models.Vote, error) {
+func loadFromAPLike(l as.Activity) (models.Vote, error) {
 	v := models.Vote{
 		Flags: 0,
 	}
@@ -312,17 +313,17 @@ func loadFromAPLike(l ap.Activity) (models.Vote, error) {
 	}
 	//CreatedAt: nil,
 	//UpdatedAt: nil,
-	if l.Type == ap.LikeType {
+	if l.Type == as.LikeType {
 		v.Weight = 1
 	}
-	if l.Type == ap.DislikeType {
+	if l.Type == as.DislikeType {
 		v.Weight = -1
 	}
 	return v, nil
 }
 
 func loadFromAPPerson(p Person) (models.Account, error) {
-	name := jsonUnescape(ap.NaturalLanguageValue(p.Name).First())
+	name := jsonUnescape(as.NaturalLanguageValue(p.Name).First())
 	a := models.Account{
 		Hash:   getHashFromAP(p),
 		Handle: name,
@@ -545,7 +546,7 @@ func (r *repository) LoadItems(f models.LoadItemsFilter) (models.ItemCollection,
 		Logger.WithFields(log.Fields{}).Error(err)
 		return nil, err
 	}
-	col := OrderedCollectionNew(ap.ObjectID(url))
+	col := OrderedCollectionNew(as.ObjectID(url))
 	if resp != nil {
 		if resp.StatusCode != http.StatusOK {
 			err := fmt.Errorf("unable to load from the API")
@@ -593,18 +594,18 @@ func (r *repository) SaveVote(v models.Vote) (models.Vote, error) {
 	//}
 	p := loadAPPerson(*v.SubmittedBy)
 	o := loadAPItem(*v.Item)
-	id := ap.ObjectID(url)
+	id := as.ObjectID(url)
 	var body []byte
 	var err error
-	var act ap.Activity
+	var act as.Activity
 	if v.Weight > 0 {
-		like := ap.LikeActivityNew(id, ap.IRI(p.ID), ap.IRI(*o.GetID()))
+		like := ap.LikeActivityNew(id, as.IRI(p.ID), as.IRI(*o.GetID()))
 		body, err = j.Marshal(like)
-		act = ap.Activity(*like.Activity)
+		act = as.Activity(*like.Activity)
 	} else {
-		like := ap.DislikeActivityNew(id, ap.IRI(p.ID), ap.IRI(*o.GetID()))
+		like := ap.DislikeActivityNew(id, as.IRI(p.ID), as.IRI(*o.GetID()))
 		body, err = j.Marshal(like)
-		act = ap.Activity(*like.Activity)
+		act = as.Activity(*like.Activity)
 	}
 	if err != nil {
 		log.Error(err)
@@ -658,7 +659,7 @@ func (r *repository) LoadVotes(f models.LoadVotesFilter) (models.VoteCollection,
 	defer resp.Body.Close()
 	var body []byte
 
-	col := OrderedCollectionNew(ap.ObjectID(url))
+	col := OrderedCollectionNew(as.ObjectID(url))
 	if body, err = ioutil.ReadAll(resp.Body); err != nil {
 		return nil, err
 	}
@@ -667,17 +668,17 @@ func (r *repository) LoadVotes(f models.LoadVotesFilter) (models.VoteCollection,
 	}
 	items = make(models.VoteCollection, col.TotalItems)
 	for _, it := range col.OrderedItems {
-		if like, ok := it.(*ap.Like); ok {
-			vot, _ := loadFromAPLike(ap.Activity(*like))
+		if like, ok := it.(*as.Like); ok {
+			vot, _ := loadFromAPLike(as.Activity(*like))
 			items[vot.Item.Hash] = vot
 			continue
 		}
-		if like, ok := it.(*ap.Dislike); ok {
-			vot, _ := loadFromAPLike(ap.Activity(*like))
+		if like, ok := it.(*as.Dislike); ok {
+			vot, _ := loadFromAPLike(as.Activity(*like))
 			items[vot.Item.Hash] = vot
 			continue
 		}
-		if act, ok := it.(*ap.Activity); ok {
+		if act, ok := it.(*as.Activity); ok {
 			vot, _ := loadFromAPLike(*act)
 			items[vot.Item.Hash] = vot
 			continue
@@ -714,7 +715,7 @@ func (r *repository) LoadVote(f models.LoadVotesFilter) (models.Vote, error) {
 		return models.Vote{}, err
 	}
 
-	var like ap.Activity
+	var like as.Activity
 	if err := j.Unmarshal(body, &like); err != nil {
 		Logger.WithFields(log.Fields{}).Error(err)
 		return models.Vote{}, err
@@ -737,13 +738,13 @@ func (r *repository) SaveItem(it models.Item) (models.Item, error) {
 	var body []byte
 	var err error
 	if len(*art.GetID()) == 0 {
-		id := ap.ObjectID("")
-		create := ap.CreateActivityNew(id, ap.IRI(*actor.GetID()), art)
+		id := as.ObjectID("")
+		create := ap.CreateActivityNew(id, as.IRI(*actor.GetID()), art)
 		body, err = j.Marshal(create)
 	} else {
 		id := art.GetID()
 		doUpd = true
-		update := ap.UpdateActivityNew(*id, ap.IRI(*actor.GetID()), art)
+		update := ap.UpdateActivityNew(*id, as.IRI(*actor.GetID()), art)
 		body, err = j.Marshal(update)
 	}
 

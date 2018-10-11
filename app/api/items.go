@@ -13,6 +13,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	ap "github.com/mariusor/activitypub.go/activitypub"
+	as "github.com/mariusor/activitypub.go/activitystreams"
 	j "github.com/mariusor/activitypub.go/jsonld"
 )
 
@@ -29,7 +30,7 @@ func loadVote(body []byte) models.Vote {
 	var accountHash models.Hash
 	if actor.IsLink() {
 		// just the ObjectID
-		accountHash = models.Hash(path.Base(string(actor.(ap.IRI))))
+		accountHash = models.Hash(path.Base(string(actor.(as.IRI))))
 	}
 	if actor.IsObject() {
 		// full Actor struct
@@ -38,7 +39,7 @@ func loadVote(body []byte) models.Vote {
 	var itemHash string
 	if ob.IsLink() {
 		// just the ObjectID
-		itemHash = path.Base(string(ob.(ap.IRI)))
+		itemHash = path.Base(string(ob.(as.IRI)))
 	}
 	if ob.IsObject() {
 		// full Object struct
@@ -52,10 +53,10 @@ func loadVote(body []byte) models.Vote {
 			Hash: models.Hash(itemHash),
 		},
 	}
-	if act.Activity.GetType() == ap.LikeType {
+	if act.Activity.GetType() == as.LikeType {
 		v.Weight = 1
 	}
-	if act.Activity.GetType() == ap.DislikeType {
+	if act.Activity.GetType() == as.DislikeType {
 		v.Weight = -1
 	}
 
@@ -78,15 +79,15 @@ func loadItem(body []byte) models.Item {
 	}
 	if ob.IsObject() {
 		// full Object struct
-		obj, ok := act.Activity.Object.(*ap.Object)
+		obj, ok := act.Activity.Object.(*as.Object)
 		if !ok {
 			Logger.Errorf("invalid object in %T activity", act)
 		} else {
 			if len(obj.ID) > 0 {
 				it.Hash = models.Hash(path.Base(string(obj.ID)))
 			}
-			title := jsonUnescape(ap.NaturalLanguageValue(obj.Name).First())
-			content := jsonUnescape(ap.NaturalLanguageValue(obj.Content).First())
+			title := jsonUnescape(as.NaturalLanguageValue(obj.Name).First())
+			content := jsonUnescape(as.NaturalLanguageValue(obj.Content).First())
 
 			it.Data = content
 			it.Title = title
