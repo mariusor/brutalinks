@@ -3,9 +3,12 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/mariusor/littr.go/app"
 	"net/http"
 	"strings"
+
+	"github.com/mariusor/littr.go/app/frontend"
+
+	"github.com/mariusor/littr.go/app"
 
 	"github.com/juju/errors"
 
@@ -81,19 +84,26 @@ func HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 
 	wf := webfinger{
 		Aliases: []string{
-			fmt.Sprintf("%s/api/accounts/%s", app.Instance.BaseUrl(), a.Handle),
+			fmt.Sprintf("%s/%s", AccountsURL, a.Handle),
+			fmt.Sprintf("%s/%s", AccountsURL, a.Hash),
 		},
 		Subject: typ + ":" + res,
 		Links: []link{
 			{
 				Rel:  "self",
 				Type: "application/activity+json",
-				Href: fmt.Sprintf("%s/api/accounts/%s", app.Instance.BaseUrl(), a.Hash),
+				Href: fmt.Sprintf("%s/%s", AccountsURL, a.Hash),
 			},
-			//{
-			//	Rel:  "http://webfinger.net/rel/profile-page",
-			//	Href: fmt.Sprintf("%s/api/accounts/%s", app.Instance.BaseUrl(), a.Hash),
-			//},
+			{
+				Rel:  "http://webfinger.net/rel/profile-page",
+				Type: "application/activity+json",
+				Href: fmt.Sprintf("%s/%s", AccountsURL, a.Hash),
+			},
+			{
+				Rel:  "http://webfinger.net/rel/profile-page",
+				Type: "text/html",
+				Href: frontend.AccountPermaLink(a),
+			},
 		},
 	}
 
