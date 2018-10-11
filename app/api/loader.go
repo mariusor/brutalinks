@@ -273,6 +273,9 @@ func loadFromAPObject(ob as.Object) (models.Item, error) {
 }
 
 func loadFromAPItem(it as.Item) (models.Item, error) {
+	if it == nil {
+		return models.Item{}, errors.New("nil item received")
+	}
 	if it.IsLink() {
 		return models.Item{}, errors.New("unable to load from IRI")
 	}
@@ -498,72 +501,82 @@ func ItemCollectionCtxt(next http.Handler) http.Handler {
 func (r *repository) LoadItem(f models.LoadItemsFilter) (models.Item, error) {
 	var art Article
 	var it models.Item
-	var err error
 
 	f.MaxItems = 1
 	f.AttributedTo = nil
 	hashes := f.Key
 	f.Key = nil
-	qs := ""
 
+	var qs string
 	if q, err := qstring.MarshalString(&f); err == nil {
 		qs = fmt.Sprintf("?%s", q)
 	}
-	url := fmt.Sprintf("http://%s/api/outbox/%s%s", r.BaseUrl, hashes[0], qs)
-	resp, err := r.Get(url)
-	if err != nil {
+	url := fmt.Sprintf("%s/outbox/%s%s", r.BaseUrl, hashes[0], qs)
+
+	var err error
+	var resp *http.Response
+	if resp, err = r.Get(url); err != nil {
 		Logger.WithFields(log.Fields{}).Error(err)
 		return it, err
 	}
-	if resp != nil {
-		if resp.StatusCode != http.StatusOK {
-			err := fmt.Errorf("unable to load from the API")
-			Logger.WithFields(log.Fields{}).Error(err)
-			return it, err
-		}
-		defer resp.Body.Close()
-
-		if body, err := ioutil.ReadAll(resp.Body); err == nil {
-			if err := j.Unmarshal(body, &art); err == nil {
-				return loadFromAPItem(art)
-			}
-		}
+	if resp == nil {
+		err := fmt.Errorf("nil response from the repository")
+		Logger.WithFields(log.Fields{}).Error(err)
+		return it, err
 	}
-	Logger.WithFields(log.Fields{}).Error(err)
-	return it, err
+	if resp.StatusCode != http.StatusOK {
+		err := fmt.Errorf("unable to load from the API")
+		Logger.WithFields(log.Fields{}).Error(err)
+		return it, err
+	}
+	defer resp.Body.Close()
+	var body []byte
+
+	if body, err = ioutil.ReadAll(resp.Body); err != nil {
+		Logger.WithFields(log.Fields{}).Error(err)
+		return it, err
+	}
+	if err := j.Unmarshal(body, &art); err != nil {
+		Logger.WithFields(log.Fields{}).Error(err)
+		return it, err
+	}
+	return loadFromAPItem(art)
 }
 
 func (r *repository) LoadItems(f models.LoadItemsFilter) (models.ItemCollection, error) {
-	qs := ""
+	var qs string
 	if q, err := qstring.MarshalString(&f); err == nil {
 		qs = fmt.Sprintf("?%s", q)
 	}
+	url := fmt.Sprintf("%s/outbox%s", r.BaseUrl, qs)
 
 	var err error
-	url := fmt.Sprintf("http://%s/api/outbox", r.BaseUrl)
-	resp, err := r.Get(fmt.Sprintf("%s%s", url, qs))
-	if err != nil {
+	var resp *http.Response
+	if resp, err = r.Get(url); err != nil {
+		Logger.WithFields(log.Fields{}).Error(err)
+		return nil, err
+	}
+	if resp == nil {
+		err := fmt.Errorf("nil response from the repository")
+		Logger.WithFields(log.Fields{}).Error(err)
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		err := fmt.Errorf("unable to load from the API")
+		Logger.WithFields(log.Fields{}).Error(err)
+		return nil, err
+	}
+	defer resp.Body.Close()
+	var body []byte
+
+	if body, err = ioutil.ReadAll(resp.Body); err != nil {
 		Logger.WithFields(log.Fields{}).Error(err)
 		return nil, err
 	}
 	col := OrderedCollectionNew(as.ObjectID(url))
-	if resp != nil {
-		if resp.StatusCode != http.StatusOK {
-			err := fmt.Errorf("unable to load from the API")
-			Logger.WithFields(log.Fields{}).Error(err)
-			return nil, err
-		}
-		defer resp.Body.Close()
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			Logger.WithFields(log.Fields{}).Error(err)
-			return nil, err
-		}
-		err = j.Unmarshal(body, &col)
-		if err != nil {
-			Logger.WithFields(log.Fields{}).Error(err)
-			return nil, err
-		}
+	if err = j.Unmarshal(body, &col); err != nil {
+		Logger.WithFields(log.Fields{}).Error(err)
+		return nil, err
 	}
 
 	items := make(models.ItemCollection, col.TotalItems)
@@ -576,7 +589,7 @@ func (r *repository) LoadItems(f models.LoadItemsFilter) (models.ItemCollection,
 
 func (r *repository) SaveVote(v models.Vote) (models.Vote, error) {
 	//body := nil
-	url := fmt.Sprintf("http://%s/api/accounts/%s/liked/%s", r.BaseUrl, v.SubmittedBy.Hash, v.Item.Hash)
+	url := fmt.Sprintf("%s/accounts/%s/liked/%s", r.BaseUrl, v.SubmittedBy.Hash, v.Item.Hash)
 
 	// first step is to verify if vote already exists:
 	//resp, err := r.Head(url)
@@ -631,17 +644,14 @@ func (r *repository) SaveVote(v models.Vote) (models.Vote, error) {
 
 func (r *repository) LoadVotes(f models.LoadVotesFilter) (models.VoteCollection, error) {
 	var qs string
+	if q, err := qstring.MarshalString(&f); err == nil {
+		qs = fmt.Sprintf("?%s", q)
+	}
+
 	var err error
-	if qs, err = qstring.MarshalString(&f); err != nil {
-		Logger.WithFields(log.Fields{}).Error(err)
-		return nil, err
-	}
-	if len(qs) > 0 {
-		qs = "?" + qs
-	}
 	var resp *http.Response
-	url := fmt.Sprintf("http://%s/api/liked", r.BaseUrl)
-	if resp, err = r.Get(fmt.Sprintf("%s%s", url, qs)); err != nil {
+	url := fmt.Sprintf("%s/liked%s", r.BaseUrl, qs)
+	if resp, err = r.Get(url); err != nil {
 		Logger.WithFields(log.Fields{}).Error(err)
 		return nil, err
 	}
@@ -695,17 +705,23 @@ func (r *repository) LoadVote(f models.LoadVotesFilter) (models.Vote, error) {
 
 	itemHash := f.ItemKey[0]
 	f.ItemKey = nil
-	url := fmt.Sprintf("http://%s/api/liked/%s", r.BaseUrl, itemHash)
-	resp, err := r.Get(url)
-	if err != nil {
+	url := fmt.Sprintf("%s/liked/%s", r.BaseUrl, itemHash)
+
+	var err error
+	var resp *http.Response
+	if resp, err = r.Get(url); err != nil {
 		Logger.WithFields(log.Fields{}).Error(err)
 		return models.Vote{}, err
 	}
 	if resp == nil {
-		return models.Vote{}, errors.New("invalid response received")
+		err := errors.New("nil response from the repository")
+		Logger.WithFields(log.Fields{}).Error(err)
+		return models.Vote{}, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return models.Vote{}, errors.New("unable to load from the API")
+		err := fmt.Errorf("unable to load from the API")
+		Logger.WithFields(log.Fields{}).Error(err)
+		return models.Vote{}, err
 	}
 	defer resp.Body.Close()
 
@@ -757,22 +773,15 @@ func (r *repository) SaveItem(it models.Item) (models.Item, error) {
 		url := string(*art.GetID())
 		resp, err = r.Put(url, "application/json+activity", bytes.NewReader(body))
 	} else {
-		url := fmt.Sprintf("http://%s/api/accounts/%s/outbox", r.BaseUrl, it.SubmittedBy.Hash)
+		url := fmt.Sprintf("%s/accounts/%s/outbox", r.BaseUrl, it.SubmittedBy.Hash)
 		resp, err = r.Post(url, "application/json+activity", bytes.NewReader(body))
 	}
 	if err != nil {
 		Logger.WithFields(log.Fields{}).Error(err)
 		return it, err
 	}
-	if resp.StatusCode == http.StatusCreated {
-		newLoc := resp.Header.Get("Location")
-		hash := path.Base(newLoc)
-		filt := models.LoadItemsFilter{
-			Key: []string{hash},
-		}
-		return r.LoadItem(filt)
-	}
-	if resp.StatusCode == http.StatusOK {
+	switch resp.StatusCode {
+	case http.StatusOK:
 		if a, ok := art.(Article); ok {
 			return loadFromAPItem(a)
 		} else {
@@ -782,38 +791,39 @@ func (r *repository) SaveItem(it models.Item) (models.Item, error) {
 			}
 			return r.LoadItem(filt)
 		}
-	}
-	if resp.StatusCode == http.StatusNotFound {
+	case http.StatusCreated:
+		newLoc := resp.Header.Get("Location")
+		hash := path.Base(newLoc)
+		filt := models.LoadItemsFilter{
+			Key: []string{hash},
+		}
+		return r.LoadItem(filt)
+	case http.StatusNotFound:
 		return models.Item{}, errors.Errorf("%s", resp.Status)
-	}
-	if resp.StatusCode == http.StatusMethodNotAllowed {
+	case http.StatusMethodNotAllowed:
 		return models.Item{}, errors.Errorf("%s", resp.Status)
-	}
-	if resp.StatusCode == http.StatusInternalServerError {
+	case http.StatusInternalServerError:
 		return models.Item{}, errors.Errorf("unable to save item %s", resp.Status)
+	default:
+		return models.Item{}, errors.Errorf("unknown error, received status %d", resp.StatusCode)
 	}
-	return models.Item{}, errors.Errorf("unknown error, received status %d", resp.StatusCode)
 }
 
 func (r *repository) LoadAccounts(f models.LoadAccountsFilter) (models.AccountCollection, error) {
 	var qs string
+	if q, err := qstring.MarshalString(&f); err == nil {
+		qs = fmt.Sprintf("?%s", q)
+	}
+	url := fmt.Sprintf("%s/accounts?%s", r.BaseUrl, qs)
+
 	var err error
-	if qs, err = qstring.MarshalString(&f); err != nil {
-		Logger.WithFields(log.Fields{}).Error(err)
-		return nil, err
-	}
-	if len(qs) > 0 {
-		qs = "?" + qs
-	}
-
-	accounts := make(models.AccountCollection, 0)
 	var resp *http.Response
-
-	if resp, err = r.Get(fmt.Sprintf("http://%s/api/accounts?%s", r.BaseUrl, qs)); err != nil {
+	if resp, err = r.Get(url); err != nil {
 		Logger.WithFields(log.Fields{}).Error(err)
 		return nil, err
 	}
 	if resp == nil {
+		err := fmt.Errorf("nil response from the repository")
 		Logger.WithFields(log.Fields{}).Error(err)
 		return nil, err
 	}
@@ -825,12 +835,24 @@ func (r *repository) LoadAccounts(f models.LoadAccountsFilter) (models.AccountCo
 	defer resp.Body.Close()
 	var body []byte
 	if body, err = ioutil.ReadAll(resp.Body); err != nil {
+		Logger.WithFields(log.Fields{}).Error(err)
 		return nil, err
 	}
-	if err = j.Unmarshal(body, &accounts); err != nil {
+	col := OrderedCollectionNew(as.ObjectID(url))
+	if err = j.Unmarshal(body, &col); err != nil {
+		Logger.WithFields(log.Fields{}).Error(err)
 		return nil, err
 	}
-	return nil, errors.Errorf("not implemented")
+	accounts := make(models.AccountCollection, 0)
+	for k, it := range col.OrderedItems {
+		var p Person
+		var ok bool
+		if p, ok = it.(Person); !ok {
+			continue
+		}
+		accounts[k], _ = loadFromAPPerson(p)
+	}
+	return accounts, nil
 }
 
 func (r *repository) LoadAccount(f models.LoadAccountsFilter) (models.Account, error) {
@@ -840,7 +862,7 @@ func (r *repository) LoadAccount(f models.LoadAccountsFilter) (models.Account, e
 		return models.Account{}, errors.New("invalid account handle")
 	}
 	handle := f.Handle[0]
-	resp, err := r.Get(fmt.Sprintf("http://%s/api/accounts/%s", r.BaseUrl, handle))
+	resp, err := r.Get(fmt.Sprintf("%s/accounts/%s", r.BaseUrl, handle))
 	if err != nil {
 		Logger.WithFields(log.Fields{}).Error(err)
 		return models.Account{}, err

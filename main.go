@@ -68,7 +68,6 @@ func init() {
 	frontend.Logger = Logger.WithField("package", "frontend")
 
 	db.Config.DB = con
-	api.Config.BaseUrl = os.Getenv("LISTEN")
 }
 
 func serveFiles(st string) func(w http.ResponseWriter, r *http.Request) {
