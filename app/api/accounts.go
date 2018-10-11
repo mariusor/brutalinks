@@ -92,6 +92,19 @@ func loadAPPerson(a models.Account) *Person {
 	p.Name = as.NaturalLanguageValueNew()
 	p.PreferredUsername = as.NaturalLanguageValueNew()
 
+	if a.Metadata != nil {
+		if a.Metadata.Blurb != nil && len(a.Metadata.Blurb) > 0 {
+			p.Summary = as.NaturalLanguageValueNew()
+			p.Summary.Set(as.NilLangRef, string(a.Metadata.Blurb))
+		}
+		if a.Metadata.Avatar.Path != nil && len(a.Metadata.Avatar.Path) > 0 {
+			avatar := as.ObjectNew(as.ImageType)
+			avatar.MediaType = as.MimeType(a.Metadata.Avatar.MimeType)
+			avatar.URL = as.IRI(a.Metadata.Avatar.Path)
+			p.Icon = avatar
+		}
+	}
+
 	if len(a.Hash) >= 8 {
 		p.ID = apAccountID(a)
 	}

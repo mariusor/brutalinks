@@ -14,11 +14,18 @@ type SSHKey struct {
 	Public  []byte `json:"pub,omitempty"`
 }
 
+type ImageMetadata struct {
+	Path     []byte `json:"path,omitempty"`
+	MimeType string `json:"mimeType,omitempty"`
+}
+
 type AccountMetadata struct {
-	Password []byte  `json:"pw,omitempty"`
-	Provider string  `json:"provider,omitempty"`
-	Salt     []byte  `json:"salt,omitempty"`
-	Key      *SSHKey `json:"key,omitempty"`
+	Password []byte        `json:"pw,omitempty"`
+	Provider string        `json:"provider,omitempty"`
+	Salt     []byte        `json:"salt,omitempty"`
+	Key      *SSHKey       `json:"key,omitempty"`
+	Blurb    []byte        `json:"blurb,omitempty"`
+	Avatar   ImageMetadata `json:"avatar,omitempty"`
 }
 
 type AccountCollection []Account
@@ -32,7 +39,7 @@ type Account struct {
 	UpdatedAt time.Time        `json:"-"`
 	Flags     FlagBits         `json:"flags,omitempty"`
 	Metadata  *AccountMetadata `json:"-"`
-	Votes     map[Hash]Vote    `json:"votes,omitempty"`
+	Votes     VoteCollection   `json:"votes,omitempty"`
 }
 
 type Hash string
