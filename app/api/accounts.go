@@ -182,8 +182,9 @@ func HandleAccountsCollection(w http.ResponseWriter, r *http.Request) {
 			if accounts, err = service.LoadAccounts(filter); err == nil {
 				for _, acct := range accounts {
 					p := loadAPPerson(acct)
-					p.Outbox = as.IRI(BuildCollectionID(acct, p.Outbox))
-					p.Liked = as.IRI(BuildCollectionID(acct, p.Liked))
+					p.Inbox = p.Inbox.GetLink()
+					p.Outbox = p.Outbox.GetLink()
+					p.Liked = p.Liked.GetLink()
 					col.Append(p)
 				}
 				if len(accounts) > 0 {
@@ -355,7 +356,7 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		col := ap.OutboxNew()
-		col.ID = BuildCollectionID(a, col)
+		col.ID = BuildCollectionID(a, new(ap.Outbox))
 		_, err = loadAPCollection(col, &items)
 		if len(items) > 0 {
 			fpUrl := string(*col.GetID()) + "?page=1"
@@ -373,7 +374,7 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 			Logger.WithFields(log.Fields{}).Error(err)
 		}
 		liked := ap.LikedNew()
-		liked.ID = BuildCollectionID(a, liked)
+		liked.ID = BuildCollectionID(a, new(ap.Likes))
 		_, err = loadAPLiked(liked, votes)
 		if len(votes) > 0 {
 			fpUrl := string(*liked.GetID()) + "?page=1"
@@ -388,12 +389,12 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		replies := OrderedCollectionNew(as.ObjectID(""))
-		replies.ID = BuildCollectionID(a, replies)
+		replies.ID = BuildRepliesCollectionID(p)
 		_, err = loadAPCollection(replies, &items)
 		p.Replies = replies
 		if len(items) > 0 {
-			fpUrl := string(*replies.GetID()) + "?page=1"
-			replies.First = as.IRI(fpUrl)
+			fpUrl := replies.GetLink() + "?page=1"
+			replies.First = fpUrl
 		}
 		data, err = json.WithContext(GetContext()).Marshal(p.Outbox)
 	default:
