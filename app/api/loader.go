@@ -581,7 +581,10 @@ func (r *repository) LoadItems(f models.LoadItemsFilter) (models.ItemCollection,
 
 	items := make(models.ItemCollection, col.TotalItems)
 	for k, it := range col.OrderedItems {
-		items[k], _ = loadFromAPItem(it)
+		items[k], err = loadFromAPItem(it)
+		if err != nil {
+			Logger.WithFields(log.Fields{}).Error(err)
+		}
 	}
 
 	return items, nil
