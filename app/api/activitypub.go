@@ -162,7 +162,9 @@ func (o *OrderedCollection) UnmarshalJSON(data []byte) error {
 		var a as.ObjectOrLink
 		switch it.GetType() {
 		case as.ArticleType:
+			fallthrough
 		case as.NoteType:
+			fallthrough
 		case as.PageType:
 			art := &Article{}
 			if data, _, _, err := jsonparser.Get(data, "orderedItems", fmt.Sprintf("[%d]", i)); err == nil {
