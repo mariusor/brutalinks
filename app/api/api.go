@@ -11,7 +11,6 @@ import (
 	"net/url"
 	"os"
 	"path"
-	"reflect"
 	"strings"
 
 	"github.com/mariusor/littr.go/app"
@@ -113,6 +112,7 @@ func GetContext() j.Context {
 func BuildActorID(a models.Account) as.ObjectID {
 	return as.ObjectID(fmt.Sprintf("%s/%s", AccountsURL, url.PathEscape(a.Handle)))
 }
+
 func BuildActorHashID(a models.Account) as.ObjectID {
 	return as.ObjectID(fmt.Sprintf("%s/%s", AccountsURL, url.PathEscape(a.Hash.String())))
 }
@@ -152,44 +152,48 @@ func getObjectType(el as.Item) string {
 	if el == nil {
 		return ""
 	}
-	var (
-		label               = ""
-		typeOutbox          = reflect.TypeOf(ap.Outbox{})
-		typeOutboxStream    = reflect.TypeOf(ap.OutboxStream{})
-		typeInbox           = reflect.TypeOf(ap.Inbox{})
-		typeInboxStream     = reflect.TypeOf(ap.InboxStream{})
-		typeLiked           = reflect.TypeOf(ap.Liked{})
-		typeLikedCollection = reflect.TypeOf(ap.LikedCollection{})
-		typePerson          = reflect.TypeOf(as.Person{})
-		typeLocalPerson     = reflect.TypeOf(Person{})
-	)
-	typ := reflect.TypeOf(el)
-	val := reflect.ValueOf(el)
-	if typ.Kind() == reflect.Ptr {
-		typ = typ.Elem()
-		val = val.Elem()
-	}
-	switch typ {
-	case typeOutbox:
-		fallthrough
-	case typeOutboxStream:
+	var label = ""
+	switch el.(type) {
+	case *ap.Outbox:
 		label = "outbox"
-	case typeInbox:
-		fallthrough
-	case typeInboxStream:
+	case ap.Outbox:
+		label = "outbox"
+	case *ap.Inbox:
 		label = "inbox"
-	case typeLiked:
-		fallthrough
-	case typeLikedCollection:
+	case ap.Inbox:
+		label = "inbox"
+	case ap.Liked:
 		label = "liked"
-	case typePerson:
-		o := val.Interface().(as.Person)
+	case *ap.Liked:
+		label = "liked"
+	case ap.Followers:
+		label = "followers"
+	case *ap.Followers:
+		label = "followers"
+	case ap.Following:
+		label = "following"
+	case *ap.Following:
+		label = "following"
+	case as.Person:
+		o := el.(as.Person)
 		for _, n := range o.Name {
 			label = n.Value
 			break
 		}
-	case typeLocalPerson:
-		o := val.Interface().(Person)
+	case *as.Person:
+		o := el.(*as.Person)
+		for _, n := range o.Name {
+			label = n.Value
+			break
+		}
+	case Person:
+		o := el.(Person)
+		for _, n := range o.Name {
+			label = n.Value
+			break
+		}
+	case *Person:
+		o := el.(*Person)
 		for _, n := range o.Name {
 			label = n.Value
 			break

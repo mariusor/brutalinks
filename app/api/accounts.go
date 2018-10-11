@@ -100,20 +100,29 @@ func loadAPPerson(a models.Account) *Person {
 	p.PreferredUsername.Set("en", a.Handle)
 
 	out := ap.OutboxNew()
-	out.ID = BuildCollectionID(a, p.Outbox)
-	if len(a.Handle) > 0 {
-		out.AttributedTo = as.URI(p.ID)
-	}
+	out.ID = BuildCollectionID(a, new(ap.Outbox))
+	//if len(a.Handle) > 0 {
+	//	out.AttributedTo = as.URI(p.ID)
+	//}
 	p.Outbox = out
-	//in := as.InboxNew()
-	//p.Inbox = in
-	//in.ID = BuildCollectionID(a, p.Inbox)
+
+	in := ap.InboxNew()
+	in.ID = BuildCollectionID(a, new(ap.Inbox))
+	p.Inbox = in
+
+	followers := ap.Followers{}
+	followers.ID = BuildCollectionID(a, new(ap.Followers))
+	p.Followers = followers
+
+	following := ap.Following{}
+	following.ID = BuildCollectionID(a, new(ap.Following))
+	p.Following = following
 
 	liked := ap.LikedNew()
-	liked.ID = BuildCollectionID(a, p.Liked)
-	if len(a.Handle) > 0 {
-		liked.AttributedTo = as.URI(p.ID)
-	}
+	liked.ID = BuildCollectionID(a, new(ap.Liked))
+	//if len(a.Handle) > 0 {
+	//	liked.AttributedTo = as.URI(p.ID)
+	//}
 	p.Liked = liked
 
 	p.URL = as.IRI(frontend.AccountPermaLink(a))
@@ -202,8 +211,16 @@ func HandleAccount(w http.ResponseWriter, r *http.Request) {
 	//	Logger.WithFields(log.Fields{}).Errorf("could not load Account from Context")
 	//}
 	p := loadAPPerson(a)
-	p.Outbox = as.IRI(BuildCollectionID(a, p.Outbox))
-	p.Liked = as.IRI(BuildCollectionID(a, p.Liked))
+	p.Outbox = as.IRI(*p.Outbox.GetID())
+	p.Liked = as.IRI(*p.Liked.GetID())
+	p.Inbox = as.IRI(*p.Inbox.GetID())
+	p.Followers = as.IRI(*p.Followers.GetID())
+	p.Following = as.IRI(*p.Following.GetID())
+
+	p.Endpoints = as.Endpoints{SharedInbox: as.IRI(fmt.Sprintf("%s/api/inbox", app.Instance.BaseURL))}
+
+	p.Summary = make(as.NaturalLanguageValue, 1)
+	p.Summary[0] = as.LangRefValue{Ref: as.NilLangRef, Value: fmt.Sprintf("test account from %s", app.Instance.HostName)}
 
 	j, err := json.WithContext(GetContext()).Marshal(p)
 	if err != nil {
