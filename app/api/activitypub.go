@@ -146,11 +146,12 @@ func (o *OrderedCollection) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	items := make(as.ItemCollection, col.TotalItems)
 	for i, it := range col.OrderedItems {
 		var a as.ObjectOrLink
 		switch it.GetType() {
 		case as.ArticleType:
+		case as.NoteType:
+		case as.PageType:
 			art := &Article{}
 			if data, _, _, err := jsonparser.Get(data, "orderedItems", fmt.Sprintf("[%d]", i)); err == nil {
 				art.UnmarshalJSON(data)
@@ -173,9 +174,11 @@ func (o *OrderedCollection) UnmarshalJSON(data []byte) error {
 			}
 			a = act
 		}
-		items[i] = a
+		if a == nil {
+			continue
+		}
+		col.Append(a)
 	}
-	col.OrderedItems = items
 
 	*o = OrderedCollection(col)
 	return nil
