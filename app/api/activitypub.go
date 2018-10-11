@@ -46,6 +46,9 @@ func (p Person) GetID() *as.ObjectID {
 func (p Person) GetType() as.ActivityVocabularyType {
 	return as.ActivityVocabularyType(p.Type)
 }
+func (p Person) GetLink() as.IRI {
+	return as.IRI(p.ID)
+}
 func (p Person) IsLink() bool {
 	return false
 }
@@ -56,6 +59,9 @@ func (p Person) IsObject() bool {
 func (a Article) GetID() *as.ObjectID {
 	id := as.ObjectID(a.ID)
 	return &id
+}
+func (a Article) GetLink() as.IRI {
+	return as.IRI(a.ID)
 }
 func (a Article) GetType() as.ActivityVocabularyType {
 	return as.ActivityVocabularyType(a.Type)
