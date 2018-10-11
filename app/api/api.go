@@ -54,15 +54,13 @@ type Error struct {
 func init() {
 	https := os.Getenv("HTTPS") != ""
 	host := os.Getenv("HOSTNAME")
-	listen := os.Getenv("LISTEN")
 
 	if https {
 		BaseURL = fmt.Sprintf("https://%s/api", host)
-		Config.BaseUrl = fmt.Sprintf("https://%s/api", listen)
 	} else {
 		BaseURL = fmt.Sprintf("http://%s/api", host)
-		Config.BaseUrl = fmt.Sprintf("http://%s/api", listen)
 	}
+	Config.BaseUrl = BaseURL
 
 	AccountsURL = BaseURL + "/accounts"
 	OutboxURL = BaseURL + "/outbox"
