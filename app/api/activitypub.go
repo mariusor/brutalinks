@@ -146,6 +146,7 @@ func (o *OrderedCollection) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
+	var items = make(as.ItemCollection, 0)
 	for i, it := range col.OrderedItems {
 		var a as.ObjectOrLink
 		switch it.GetType() {
@@ -177,10 +178,12 @@ func (o *OrderedCollection) UnmarshalJSON(data []byte) error {
 		if a == nil {
 			continue
 		}
-		col.Append(a)
+		items = append(items, a)
 	}
 
 	*o = OrderedCollection(col)
+	o.OrderedItems = items
+	o.TotalItems = uint(len(items))
 	return nil
 }
 

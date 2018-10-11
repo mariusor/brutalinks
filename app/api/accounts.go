@@ -208,9 +208,6 @@ func HandleAccount(w http.ResponseWriter, r *http.Request) {
 	}
 	p.Endpoints = as.Endpoints{SharedInbox: as.IRI(fmt.Sprintf("%s/api/inbox", app.Instance.BaseURL))}
 
-	p.Summary = make(as.NaturalLanguageValue, 1)
-	p.Summary[0] = as.LangRefValue{Ref: as.NilLangRef, Value: fmt.Sprintf("test account from %s", app.Instance.HostName)}
-
 	j, err := json.WithContext(GetContext()).Marshal(p)
 	if err != nil {
 		Logger.WithFields(log.Fields{"trace": errors.Trace(err)}).Error(err)
