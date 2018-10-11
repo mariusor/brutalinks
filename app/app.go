@@ -44,6 +44,7 @@ type Application struct {
 	Version     string
 	Env         EnvType
 	HostName    string
+	BaseURL     string
 	Port        int64
 	Listen      string
 	Db          *sql.DB
@@ -89,10 +90,6 @@ func (a *Application) listen() string {
 	return fmt.Sprintf("%s%s", a.HostName, port)
 }
 
-func (a *Application) BaseUrl() string {
-	return fmt.Sprintf("http://%s", a.HostName)
-}
-
 func loadEnv(l *Application) (bool, error) {
 	l.SessionKeys[0] = []byte(os.Getenv("SESS_AUTH_KEY"))
 	l.SessionKeys[1] = []byte(os.Getenv("SESS_ENC_KEY"))
@@ -114,6 +111,13 @@ func loadEnv(l *Application) (bool, error) {
 		listenHost = defaultHost
 	}
 	l.HostName = listenHost
+	https := os.Getenv("HTTPS") != ""
+	if https {
+		l.BaseURL = fmt.Sprintf("https://%s", listenHost)
+	} else {
+		l.BaseURL = fmt.Sprintf("http://%s", listenHost)
+	}
+
 	l.Port = listenPort
 	l.Listen = listenOn
 

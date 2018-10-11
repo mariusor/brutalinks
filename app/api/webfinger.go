@@ -37,7 +37,7 @@ func HandleHostMeta(w http.ResponseWriter, r *http.Request) {
 			{
 				Rel:      "lrdd",
 				Type:     "application/xrd+json",
-				Template: fmt.Sprintf("%s/.well-known/webfinger?resource={uri}", app.Instance.BaseUrl()),
+				Template: fmt.Sprintf("%s/.well-known/webfinger?resource={uri}", app.Instance.BaseURL),
 			},
 		},
 	}

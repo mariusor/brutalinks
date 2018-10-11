@@ -72,7 +72,7 @@ func AccountPermaLink(a models.Account) string {
 	if len(a.Hash) > 0 {
 		handle = a.Handle
 	}
-	return fmt.Sprintf("%s/~%s", app.Instance.BaseUrl(), handle)
+	return fmt.Sprintf("%s/~%s", app.Instance.BaseURL, handle)
 }
 
 func ItemPermaLink(c models.Item) string {

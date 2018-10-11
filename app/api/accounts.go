@@ -64,7 +64,7 @@ func loadAPItem(item models.Item) as.Item {
 	o.Published = item.SubmittedAt
 	o.Updated = item.UpdatedAt
 	o.MediaType = as.MimeType(item.MimeType)
-	o.Generator = as.IRI(app.Instance.BaseUrl())
+	o.Generator = as.IRI(app.Instance.BaseURL)
 	o.Score = item.Score / models.ScoreMultiplier
 	if item.Title != "" {
 		o.Name.Set("en", string(item.Title))
