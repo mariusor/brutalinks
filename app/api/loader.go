@@ -612,11 +612,11 @@ func (r *repository) SaveVote(v models.Vote) (models.Vote, error) {
 	var err error
 	var act as.Activity
 	if v.Weight > 0 {
-		like := ap.LikeActivityNew(id, as.IRI(p.ID), as.IRI(*o.GetID()))
+		like := ap.LikeActivityNew(id, p.GetLink(), o.GetLink())
 		body, err = j.Marshal(like)
 		act = as.Activity(*like.Activity)
 	} else {
-		like := ap.DislikeActivityNew(id, as.IRI(p.ID), as.IRI(*o.GetID()))
+		like := ap.DislikeActivityNew(id, p.GetLink(), o.GetLink())
 		body, err = j.Marshal(like)
 		act = as.Activity(*like.Activity)
 	}
@@ -755,12 +755,12 @@ func (r *repository) SaveItem(it models.Item) (models.Item, error) {
 	var err error
 	if len(*art.GetID()) == 0 {
 		id := as.ObjectID("")
-		create := ap.CreateActivityNew(id, as.IRI(*actor.GetID()), art)
+		create := ap.CreateActivityNew(id, actor.GetLink(), art)
 		body, err = j.Marshal(create)
 	} else {
 		id := art.GetID()
 		doUpd = true
-		update := ap.UpdateActivityNew(*id, as.IRI(*actor.GetID()), art)
+		update := ap.UpdateActivityNew(*id, actor.GetLink(), art)
 		body, err = j.Marshal(update)
 	}
 

@@ -111,6 +111,11 @@ func (o OrderedCollection) GetType() as.ActivityVocabularyType {
 	return o.Type
 }
 
+// GetLink returns the IRI of the OrderedCollection object
+func (o OrderedCollection) GetLink() as.IRI {
+	return as.IRI(o.ID)
+}
+
 // IsLink returns false for an OrderedCollection object
 func (o OrderedCollection) IsLink() bool {
 	return false

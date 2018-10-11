@@ -211,13 +211,13 @@ func HandleAccount(w http.ResponseWriter, r *http.Request) {
 	//}
 	p := loadAPPerson(a)
 	if p.Outbox != nil {
-		p.Outbox = as.IRI(*p.Outbox.GetID())
+		p.Outbox = p.Outbox.GetLink()
 	}
 	if p.Liked != nil {
-		p.Liked = as.IRI(*p.Liked.GetID())
+		p.Liked = p.Liked.GetLink()
 	}
 	if p.Inbox != nil {
-		p.Inbox = as.IRI(*p.Inbox.GetID())
+		p.Inbox = p.Inbox.GetLink()
 	}
 	p.Endpoints = as.Endpoints{SharedInbox: as.IRI(fmt.Sprintf("%s/api/inbox", app.Instance.BaseURL))}
 
