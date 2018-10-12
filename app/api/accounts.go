@@ -48,6 +48,24 @@ func loadAPLike(vote models.Vote) as.ObjectOrLink {
 	}
 }
 
+func loadAPActivity(it models.Item, acc models.Account) as.Activity {
+	a := loadAPPerson(acc)
+	ob := loadAPItem(it)
+
+	act := as.Activity{
+		Type:      as.CreateType,
+		ID:        as.ObjectID(fmt.Sprintf("%s/activity", *ob.GetID())),
+		Published: it.SubmittedAt,
+		To:        as.ItemCollection{as.IRI("https://www.w3.org/ns/activitystreams#Public")},
+		//CC:        as.ItemCollection{nil},
+	}
+
+	act.Object = ob
+	act.Actor = a.GetLink()
+
+	return act
+}
+
 func loadAPItem(item models.Item) as.Item {
 	o := Article{}
 	o.Name = make(as.NaturalLanguageValue, 0)
@@ -151,12 +169,12 @@ func loadAPLiked(o as.CollectionInterface, votes models.VoteCollection) (as.Coll
 	return o, nil
 }
 
-func loadAPCollection(o as.CollectionInterface, items *models.ItemCollection) (as.CollectionInterface, error) {
+func loadAPCollection(o as.CollectionInterface, items *models.ItemCollection, acc models.Account) (as.CollectionInterface, error) {
 	if items == nil || len(*items) == 0 {
 		return nil, errors.Errorf("empty collection %T", o)
 	}
 	for _, item := range *items {
-		o.Append(loadAPItem(item))
+		o.Append(loadAPActivity(item, acc))
 	}
 
 	return o, nil
@@ -298,6 +316,9 @@ func HandleCollectionItem(w http.ResponseWriter, r *http.Request) {
 func HandleItemReplies(w http.ResponseWriter, r *http.Request) {
 	var ok bool
 
+	val := r.Context().Value(AccountCtxtKey)
+	a, _ := val.(models.Account)
+
 	var it models.Item
 	item := r.Context().Value(ItemCtxtKey)
 	var data []byte
@@ -316,7 +337,7 @@ func HandleItemReplies(w http.ResponseWriter, r *http.Request) {
 			p, _ := el.(Article)
 			col := as.CollectionNew(BuildRepliesCollectionID(p))
 			if replies, err := service.LoadItems(filter); err == nil {
-				_, err = loadAPCollection(col, &replies)
+				_, err = loadAPCollection(col, &replies, a)
 				data, err = json.WithContext(GetContext()).Marshal(p.Replies)
 			} else {
 				Logger.WithFields(log.Fields{}).Error(err)
@@ -357,7 +378,7 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 		}
 		col := ap.OutboxNew()
 		col.ID = BuildCollectionID(a, new(ap.Outbox))
-		_, err = loadAPCollection(col, &items)
+		_, err = loadAPCollection(col, &items, a)
 		if len(items) > 0 {
 			fpUrl := string(*col.GetID()) + "?page=1"
 			col.First = as.IRI(fpUrl)
@@ -390,7 +411,7 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 		}
 		replies := OrderedCollectionNew(as.ObjectID(""))
 		replies.ID = BuildRepliesCollectionID(p)
-		_, err = loadAPCollection(replies, &items)
+		_, err = loadAPCollection(replies, &items, a)
 		p.Replies = replies
 		if len(items) > 0 {
 			fpUrl := replies.GetLink() + "?page=1"
