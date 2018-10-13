@@ -18,14 +18,14 @@ import (
 )
 
 func loadVote(body []byte) models.Vote {
-	act := ap.LikeActivity{}
+	act := Activity{}
 
 	if err := j.Unmarshal(body, &act); err != nil {
 		Logger.WithFields(log.Fields{}).Errorf("json-ld unmarshal error: %s", err)
 	}
 
-	actor := act.Activity.Actor
-	ob := act.Activity.Object
+	actor := act.Actor
+	ob := act.Object
 
 	var accountHash models.Hash
 	if actor.IsLink() {
@@ -53,10 +53,10 @@ func loadVote(body []byte) models.Vote {
 			Hash: models.Hash(itemHash),
 		},
 	}
-	if act.Activity.GetType() == as.LikeType {
+	if act.GetType() == as.LikeType {
 		v.Weight = 1
 	}
-	if act.Activity.GetType() == as.DislikeType {
+	if act.GetType() == as.DislikeType {
 		v.Weight = -1
 	}
 

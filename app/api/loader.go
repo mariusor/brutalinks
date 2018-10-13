@@ -271,6 +271,24 @@ func loadFromAPObject(ob as.Object) (models.Item, error) {
 	}
 	return c, nil
 }
+func loadFromAPCreate(act Activity) (models.Item, error) {
+	return loadFromAPItem(act.Object)
+}
+
+func loadFromAPActivity(it as.Item) (interface{}, error) {
+	if !as.ValidActivityType(it.GetType()) {
+		return models.Item{}, errors.Errorf("invalid object type received %s", it.GetType())
+	}
+	switch it.GetType() {
+	case as.CreateType:
+		return loadFromAPCreate(*it.(*Activity))
+	case as.LikeType:
+		fallthrough
+	case as.DislikeType:
+		return loadFromAPLike(*it.(*Activity))
+	}
+	return models.Item{}, errors.Errorf("not implemented for type %s", it.GetType())
+}
 
 func loadFromAPItem(it as.Item) (models.Item, error) {
 	if it == nil {
@@ -300,7 +318,7 @@ func loadFromAPArticle(a Article) (models.Item, error) {
 	return it, err
 }
 
-func loadFromAPLike(l as.Activity) (models.Vote, error) {
+func loadFromAPLike(l Activity) (models.Vote, error) {
 	v := models.Vote{
 		Flags: 0,
 	}
@@ -581,10 +599,16 @@ func (r *repository) LoadItems(f models.LoadItemsFilter) (models.ItemCollection,
 
 	items := make(models.ItemCollection, col.TotalItems)
 	for k, it := range col.OrderedItems {
-		items[k], err = loadFromAPItem(it)
+		obj, err := loadFromAPActivity(it)
 		if err != nil {
 			Logger.WithFields(log.Fields{}).Error(err)
+			continue
 		}
+		if art, ok := obj.(models.Item); ok {
+			items[k] = art
+			continue
+		}
+		Logger.WithFields(log.Fields{}).Error(errors.Errorf("received invalid object "))
 	}
 
 	return items, nil
@@ -613,16 +637,17 @@ func (r *repository) SaveVote(v models.Vote) (models.Vote, error) {
 	id := as.ObjectID(url)
 	var body []byte
 	var err error
-	var act as.Activity
+	var act Activity
+	act.ID = id
+	act.Actor = p.GetLink()
+	act.Object = o.GetLink()
+
 	if v.Weight > 0 {
-		like := ap.LikeActivityNew(id, p.GetLink(), o.GetLink())
-		body, err = j.Marshal(like)
-		act = as.Activity(*like.Activity)
+		act.Type = as.LikeType
 	} else {
-		like := ap.DislikeActivityNew(id, p.GetLink(), o.GetLink())
-		body, err = j.Marshal(like)
-		act = as.Activity(*like.Activity)
+		act.Type = as.DislikeType
 	}
+	body, err = j.Marshal(act)
 	if err != nil {
 		log.Error(err)
 		return v, err
@@ -681,22 +706,16 @@ func (r *repository) LoadVotes(f models.LoadVotesFilter) (models.VoteCollection,
 	}
 	items = make(models.VoteCollection, col.TotalItems)
 	for _, it := range col.OrderedItems {
-		if like, ok := it.(*as.Like); ok {
-			vot, _ := loadFromAPLike(as.Activity(*like))
+		obj, err := loadFromAPActivity(it)
+		if err != nil {
+			Logger.WithFields(log.Fields{}).Error(err)
+			continue
+		}
+		if vot, ok := obj.(models.Vote); ok {
 			items[vot.Item.Hash] = vot
 			continue
 		}
-		if like, ok := it.(*as.Dislike); ok {
-			vot, _ := loadFromAPLike(as.Activity(*like))
-			items[vot.Item.Hash] = vot
-			continue
-		}
-		if act, ok := it.(*as.Activity); ok {
-			vot, _ := loadFromAPLike(*act)
-			items[vot.Item.Hash] = vot
-			continue
-		}
-		Logger.WithFields(log.Fields{}).Errorf("unable to load Activity from %T", it)
+		Logger.WithFields(log.Fields{}).Error(errors.Errorf("received invalid object "))
 	}
 	return items, nil
 }
@@ -734,7 +753,7 @@ func (r *repository) LoadVote(f models.LoadVotesFilter) (models.Vote, error) {
 		return models.Vote{}, err
 	}
 
-	var like as.Activity
+	var like Activity
 	if err := j.Unmarshal(body, &like); err != nil {
 		Logger.WithFields(log.Fields{}).Error(err)
 		return models.Vote{}, err
@@ -797,10 +816,10 @@ func (r *repository) SaveItem(it models.Item) (models.Item, error) {
 	case http.StatusCreated:
 		newLoc := resp.Header.Get("Location")
 		hash := path.Base(newLoc)
-		filt := models.LoadItemsFilter{
+		f := models.LoadItemsFilter{
 			Key: []string{hash},
 		}
-		return r.LoadItem(filt)
+		return r.LoadItem(f)
 	case http.StatusNotFound:
 		return models.Item{}, errors.Errorf("%s", resp.Status)
 	case http.StatusMethodNotAllowed:

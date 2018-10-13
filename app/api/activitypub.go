@@ -35,9 +35,14 @@ type Article struct {
 }
 
 // OrderedCollection it should be identical to:
-//    github.com/mariusor/activitypub.go/activitypub/collections.go#OrderedCollection
+//    github.com/mariusor/activitypub.go/activitystreams/collections.go#OrderedCollection
 // We need it here in order to be able to implement our own UnmarshalJSON() method
 type OrderedCollection as.OrderedCollection
+
+// Activity it should be identical to:
+//    github.com/mariusor/activitypub.go/activitystreams/activity.go#Activity
+// We need it here in order to be able to implement our own UnmarshalJSON() method
+type Activity as.Activity
 
 func (p Person) GetID() *as.ObjectID {
 	id := as.ObjectID(p.ID)
@@ -52,6 +57,7 @@ func (p Person) GetLink() as.IRI {
 func (p Person) IsLink() bool {
 	return false
 }
+
 func (p Person) IsObject() bool {
 	return true
 }
@@ -60,12 +66,14 @@ func (a Article) GetID() *as.ObjectID {
 	id := as.ObjectID(a.ID)
 	return &id
 }
+
 func (a Article) GetLink() as.IRI {
 	return as.IRI(a.ID)
 }
 func (a Article) GetType() as.ActivityVocabularyType {
 	return as.ActivityVocabularyType(a.Type)
 }
+
 func (a Article) IsLink() bool {
 	return false
 }
@@ -160,12 +168,16 @@ func (o *OrderedCollection) UnmarshalJSON(data []byte) error {
 	var items = make(as.ItemCollection, 0)
 	for i, it := range col.OrderedItems {
 		var a as.ObjectOrLink
-		switch it.GetType() {
-		case as.ArticleType:
-			fallthrough
-		case as.NoteType:
-			fallthrough
-		case as.PageType:
+		if as.ValidActivityType(it.GetType()) {
+			act := &Activity{}
+			if data, _, _, err := jsonparser.Get(data, "orderedItems", fmt.Sprintf("[%d]", i)); err == nil {
+				act.UnmarshalJSON(data)
+			}
+			if context, err := jsonparser.GetString(data, "orderedItems", fmt.Sprintf("[%d]", i), "context"); err == nil {
+				act.Context = as.IRI(context)
+			}
+			a = act
+		} else if as.ValidObjectType(it.GetType()) {
 			art := &Article{}
 			if data, _, _, err := jsonparser.Get(data, "orderedItems", fmt.Sprintf("[%d]", i)); err == nil {
 				art.UnmarshalJSON(data)
@@ -174,19 +186,6 @@ func (o *OrderedCollection) UnmarshalJSON(data []byte) error {
 				art.Context = as.IRI(context)
 			}
 			a = art
-		case as.LikeType:
-			fallthrough
-		case as.DislikeType:
-			fallthrough
-		case as.ActivityType:
-			act := &as.Activity{}
-			if data, _, _, err := jsonparser.Get(data, "orderedItems", fmt.Sprintf("[%d]", i)); err == nil {
-				act.UnmarshalJSON(data)
-			}
-			if context, err := jsonparser.GetString(data, "orderedItems", fmt.Sprintf("[%d]", i), "context"); err == nil {
-				act.Context = as.IRI(context)
-			}
-			a = act
 		}
 		if a == nil {
 			continue
@@ -197,6 +196,47 @@ func (o *OrderedCollection) UnmarshalJSON(data []byte) error {
 	*o = OrderedCollection(col)
 	o.OrderedItems = items
 	o.TotalItems = uint(len(items))
+	return nil
+}
+
+func (a Activity) GetID() *as.ObjectID {
+	id := as.ObjectID(a.ID)
+	return &id
+}
+
+func (a Activity) GetLink() as.IRI {
+	return as.IRI(a.ID)
+}
+func (a Activity) GetType() as.ActivityVocabularyType {
+	return as.ActivityVocabularyType(a.Type)
+}
+
+func (a Activity) IsLink() bool {
+	return false
+}
+
+func (a Activity) IsObject() bool {
+	return true
+}
+
+// UnmarshalJSON
+func (a *Activity) UnmarshalJSON(data []byte) error {
+	it := as.Activity{}
+	err := it.UnmarshalJSON(data)
+	if err != nil {
+		return err
+	}
+	*a = Activity(it)
+	if _, err := jsonparser.GetString(data, "object", "type"); err == nil {
+		// when we have a type try to
+		// convert objects to local articles
+		obj := Article{}
+		if data, _, _, err := jsonparser.Get(data, "object"); err == nil {
+			obj.UnmarshalJSON(data)
+			a.Object = obj
+		}
+	}
+
 	return nil
 }
 
