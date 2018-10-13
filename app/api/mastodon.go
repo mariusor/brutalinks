@@ -78,3 +78,20 @@ func ShowPeers(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write(data)
 }
+
+type activity struct {
+	Week int `json:"week"`
+	Statuses int `json:"statuses"`
+	Logins int `json:"logins"`
+	Registration int `json:"registrations"`
+}
+// GET /api/v1/instance/activity
+// In order to be compatible with Mastodon
+func ShowActivity(w http.ResponseWriter, r *http.Request) {
+	em := []activity{}
+	data, _ := json.Marshal(em)
+	w.Header().Del("Cookie")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	w.Write(data)
+}
