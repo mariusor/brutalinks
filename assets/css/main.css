@@ -375,7 +375,7 @@ ol li {
 }
 ol.comments {
     margin-top: -1px;
-    padding: 1.5vmin 0 0 1.5vmin;
+    padding: .8rem 0 0 1.5rem;
     /*border-radius: 0 0 0 .4rem;*/
 }
 ol.comments.lvl-0 {
@@ -496,10 +496,14 @@ ol.comments li {
 #content .meta {
     padding: 0 0 0 5ex;
 }
-details[open] {}
-details:not([open]) {
+.comments .item {
+    margin-left: -.75rem;
 }
-details {}
+details[open] {}
+details:not([open]) {}
+details {
+    margin-bottom: 1rem;
+}
 summary:focus {
     outline: none;
 }

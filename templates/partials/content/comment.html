@@ -3,11 +3,14 @@
 {{- template "partials/item" . -}}
 </section>
 {{- if $count -}}
-
-<details{{ if lt .Level 3 }} open{{end}}>
-    <summary class="lvl-{{ .Level | Mod10  }}"><span>{{/* if lt .Level 3 }} hide{{else}} show{{end*/}} {{if $count }}{{$count}} child{{if $count | ne 1 }}ren{{end}}{{end}}</span></summary>
+{{ if gt $count 1}}
+<details {{ if lt .Level 3 }} open{{end}}>
+    <summary class="lvl-{{ .Level | Mod10  }}"><span>{{$count}} child{{if $count | ne 1 }}ren{{end}}</span></summary>
+{{ end }}
 {{ template "partials/content/comments" . }}
 {{- end -}}
 {{- if $count -}}
+{{ if gt $count 1}}
 </details>
-{{end }}
+{{ end }}
+{{ end }}
