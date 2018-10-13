@@ -53,9 +53,9 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 		Handle: a.Handle,
 		Hash:   []byte(a.Hash),
 	}
-
+	backUrl := "/"
 	AddFlashMessage(Success, "Login successful", r, w)
-	Redirect(w, r, "/", http.StatusSeeOther)
+	Redirect(w, r, backUrl, http.StatusSeeOther)
 }
 
 // ShowLogin serves GET /login requests
@@ -71,8 +71,14 @@ func ShowLogin(w http.ResponseWriter, r *http.Request) {
 // HandleLogout serves /logout requests
 func HandleLogout(w http.ResponseWriter, r *http.Request) {
 	s := GetSession(r)
+
+	backUrl := "/"
+	if r.Header.Get("Referer") != "" {
+		backUrl = r.Header.Get("Referer")
+	}
+
 	s.Values[SessionUserKey] = nil
 	SessionStore.Save(r, w, s)
 	w.Header().Del("Cookie")
-	Redirect(w, r, "/", http.StatusSeeOther)
+	Redirect(w, r, backUrl, http.StatusSeeOther)
 }
