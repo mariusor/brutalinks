@@ -11,9 +11,9 @@ import (
 )
 
 type stats struct {
-	DomainCount int16 `json:"domain_count"`
-	UserCount int16 `json:"user_count"`
-	StatusCount int16 `json:"status_count"`
+	DomainCount int `json:"domain_count"`
+	UserCount int `json:"user_count"`
+	StatusCount int `json:"status_count"`
 }
 
 type desc struct {
@@ -22,7 +22,7 @@ type desc struct {
 	Stats stats `json:"stats"`
 	Thumbnail string `json:"thumbnail,omitempty"`
 	Title string `json:"title"`
-	Lang []string `json:"lang"`
+	Lang []string `json:"languages"`
 	Uri string `json:"uri"`
 	Urls []string `json:"urls,omitempty"`
 	Version string `json:"version"`
@@ -54,8 +54,8 @@ func ShowInstance(w http.ResponseWriter, r *http.Request) {
 		Lang: []string{"en"},
 		Stats: stats{
 			DomainCount: 1,
-			UserCount: int16(len(u)),
-			StatusCount: int16(len(i)),
+			UserCount: len(u),
+			StatusCount: len(i),
 		},
 		Uri: app.Instance.BaseURL,
 		Version: fmt.Sprintf("2.5.0 compatible (littr.me %s)", app.Instance.Version),
