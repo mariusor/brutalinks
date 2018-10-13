@@ -295,12 +295,16 @@ func HandleCollectionItem(w http.ResponseWriter, r *http.Request) {
 		}
 	case "liked":
 		if v, ok := val.(models.Vote); !ok {
-			Logger.WithFields(log.Fields{}).Errorf("could not load Vote from Context")
+			err := errors.Errorf("could not load Vote from Context")
+			HandleError(w, r, http.StatusInternalServerError,  err)
+			return
 		} else {
 			el = loadAPLike(v)
 		}
 	default:
-		Logger.WithFields(log.Fields{}).Error(errors.Errorf("collection not found"))
+		err := errors.Errorf("collection not found")
+		HandleError(w, r, http.StatusNotFound, err)
+		return
 	}
 
 	data, err = json.WithContext(GetContext()).Marshal(el)
