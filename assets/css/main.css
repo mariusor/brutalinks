@@ -329,15 +329,12 @@ h6.domain {
 }
 .data p {}
 .data pre {
-    color: unset;
-    line-height: 2rem;
+    line-height: 1.3rem;
 }
-.data code {
-    white-space: pre;
-    color: unset;
-}
+.data code {}
 .data p:first-of-type {
     margin-top: 0;
+    text-indent: 0;
 }
 .items article pre code {}
 .inverted .items article pre {}
@@ -351,7 +348,7 @@ ol li {
 }
 .item {
     display: grid;
-    grid-template-columns: 2.4rem 11fr;
+    grid-template-columns: 1.2rem 11fr;
     /*grid-template-rows: minmax(0px, 11fr);*/
     grid-template-rows: max-content;
     grid-template-areas:
@@ -366,6 +363,7 @@ ol li {
 /*}*/
 .item .data {
     grid-area: main;
+    padding-left: .6rem;
 }
 .item footer::before {
     content: '\2012';
@@ -375,7 +373,7 @@ ol li {
 }
 ol.comments {
     margin-top: -1px;
-    padding: .8rem 0 0 1.5rem;
+    padding: .6rem 0 0 1.2rem;
     /*border-radius: 0 0 0 .4rem;*/
 }
 ol.comments.lvl-0 {
@@ -393,9 +391,9 @@ ol.comments li {
 .item .score {
     /*display: none !important;*/
     text-align: center;
-    max-width: 2em;
+    max-width: 1.2em;
     padding: 0;
-    margin-left: -2px;
+    margin-left: 2px;
 }
 .item .score a,
 .item .score data {
@@ -458,9 +456,11 @@ ol.comments li {
     /*color: mediumpurple;*/
 /*}*/
 .meta {
-    clear:both;
+    clear: both;
     font-size: .8em;
     opacity: .6;
+    padding-left: .6rem;
+    margin: .3rem 0;
 }
 /*.meta:hover,*/
 /*.meta:active {*/
@@ -497,12 +497,12 @@ ol.comments li {
     padding: 0 0 0 5ex;
 }
 .comments .item {
-    margin-left: -.75rem;
+    margin-left: -.6rem;
 }
 details[open] {}
 details:not([open]) {}
 details {
-    margin-bottom: 1rem;
+    margin-bottom: .6rem;
 }
 summary:focus {
     outline: none;
@@ -515,8 +515,8 @@ details:not([open]) > summary {}
 details > summary::before {}
 details > summary {
     font-size: 0.7rem;
-    display: inline;
-    margin-top: 1rem;
+    /*display: inline;*/
+    margin-top: .6rem;
     padding: .3rem 0 .3rem .3rem;
     /*border-radius: .3rem 0 0 .3rem;*/
 }
@@ -560,7 +560,6 @@ details > summary::-webkit-details-marker {
     border-color: #3a3a3aaa;
 }
 .data {
-    margin-bottom: .3rem;
     max-width: 960px;
 }
 .comments .data,
