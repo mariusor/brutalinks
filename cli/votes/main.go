@@ -69,14 +69,15 @@ func main() {
 		panic(err)
 	}
 
+	sql := `update "%s" set score = $1 where id = $2;`
 	for _, score := range scores {
-		var upd string
+		var col string
 		if score.Type == models.ScoreItem {
-			upd = `update "content_items" set score = $1 where id = $2;`
+			col = `content_items`
 		} else {
-			upd = `update "accounts" set score = $1 where id = $2;`
+			col = `accounts`
 		}
-		_, err := db.Config.DB.Exec(upd, score.Score, score.ID)
+		_, err := db.Config.DB.Exec(fmt.Sprintf(sql, col), score.Score, score.ID)
 		if err != nil {
 			panic(err)
 		}
