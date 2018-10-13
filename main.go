@@ -169,6 +169,7 @@ func main() {
 			})
 		})
 
+		r.Get("/v1/instance", api.ShowInstance)
 		r.Route("/{collection}", func(r chi.Router) {
 			r.Use(api.ServiceCtxt)
 
