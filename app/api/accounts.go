@@ -49,7 +49,7 @@ func loadAPLike(vote models.Vote) as.ObjectOrLink {
 }
 
 func loadAPActivity(it models.Item, acc models.Account) as.Activity {
-	a := loadAPPerson(acc)
+	a := loadAPPerson(*it.SubmittedBy)
 	ob := loadAPItem(it)
 
 	act := as.Activity{
