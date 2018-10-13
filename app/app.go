@@ -165,3 +165,13 @@ func (a *Application) Run(m http.Handler, wait time.Duration) {
 	Logger.WithFields(log.Fields{}).Infof("shutting down")
 	os.Exit(0)
 }
+
+func ShowHeaders(next http.Handler) http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		for name, val := range r.Header {
+			Logger.Infof("%s: %s", name, val)
+		}
+		next.ServeHTTP(w, r)
+	}
+	return http.HandlerFunc(fn)
+}

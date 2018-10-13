@@ -303,13 +303,3 @@ func VerifyHttpSignature(next http.Handler) http.Handler {
 	})
 	return http.HandlerFunc(fn)
 }
-
-func ShowHeaders(next http.Handler) http.Handler {
-	fn := func(w http.ResponseWriter, r *http.Request) {
-		for name, val := range r.Header {
-			Logger.Infof("%s: %s", name, val)
-		}
-		next.ServeHTTP(w, r)
-	}
-	return http.HandlerFunc(fn)
-}
