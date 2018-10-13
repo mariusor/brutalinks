@@ -57,11 +57,22 @@ func ShowInstance(w http.ResponseWriter, r *http.Request) {
 			UserCount: len(u),
 			StatusCount: len(i),
 		},
-		Uri: app.Instance.BaseURL,
+		Uri: app.Instance.HostName,
 		Version: fmt.Sprintf("2.5.0 compatible (littr.me %s)", app.Instance.Version),
 	}
 	data, err := json.Marshal(desc)
 	ifErr(err)
+	w.Header().Del("Cookie")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	w.Write(data)
+}
+
+// GET /api/v1/instance/peers
+// In order to be compatible with Mastodon
+func ShowPeers(w http.ResponseWriter, r *http.Request) {
+	em := []string{app.Instance.HostName}
+	data, _ := json.Marshal(em)
 	w.Header().Del("Cookie")
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(http.StatusOK)

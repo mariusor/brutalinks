@@ -169,7 +169,10 @@ func main() {
 			})
 		})
 
+		// Mastodon compatible end-points
 		r.Get("/v1/instance", api.ShowInstance)
+		r.Get("/v1/instance/peers", api.ShowPeers)
+
 		r.Route("/{collection}", func(r chi.Router) {
 			r.Use(api.ServiceCtxt)
 
