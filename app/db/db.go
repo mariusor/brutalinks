@@ -274,18 +274,21 @@ func loadScoresForItems(db *sqlx.DB, since time.Duration, key string) ([]models.
 		var submitted time.Time
 		var key []byte
 		err = rows.Scan(&i, &key, &submitted, &ups, &downs)
-
+		dumb := func(ups, downs int64) int64 {
+			return ups - downs
+		}
 		now := time.Now()
 		reddit := int64(models.Reddit(ups, downs, now.Sub(submitted)))
 		wilson := int64(models.Wilson(ups, downs))
 		hacker := int64(models.Hacker(ups-downs, now.Sub(submitted)))
-		Logger.WithFields(log.Fields{}).Infof("Votes[%s]: UPS[%d] DOWNS[%d] - new score R%d:W%d:H%d", key[0:8], ups, downs, reddit, wilson, hacker)
+		dumbScore := dumb(ups, downs)
+		Logger.WithFields(log.Fields{}).Infof("Votes[%s]: UPS[%d] DOWNS[%d] - new score R%d:W%d:H%d:D%d", key[0:8], ups, downs, reddit, wilson, hacker, dumbScore)
 		new := models.Score{
 			ID:        i,
 			Key:       key,
 			Submitted: submitted,
-			Type:      models.ScoreAccount,
-			Score:     wilson,
+			Type:      models.ScoreItem,
+			Score:     dumbScore,
 		}
 		scores = append(scores, new)
 	}
@@ -327,17 +330,21 @@ group by "accounts"."id", "accounts"."key" order by "accounts"."id";`,
 		var handle string
 		err = rows.Scan(&i, &handle, &key, &submitted, &ups, &downs)
 
+		dumb := func(ups, downs int64) int64 {
+			return ups - downs
+		}
 		now := time.Now()
 		reddit := int64(models.Reddit(ups, downs, now.Sub(submitted)))
 		wilson := int64(models.Wilson(ups, downs))
 		hacker := int64(models.Hacker(ups-downs, now.Sub(submitted)))
-		Logger.WithFields(log.Fields{}).Infof("Votes[%s]: UPS[%d] DOWNS[%d] - new score R%d:W%d:H%d", handle, ups, downs, reddit, wilson, hacker)
+		dumbScore := dumb(ups, downs)
+		Logger.WithFields(log.Fields{}).Infof("Votes[%s]: UPS[%d] DOWNS[%d] - new score R%d:W%d:H%d:D%d", handle, ups, downs, reddit, wilson, hacker, dumbScore)
 		new := models.Score{
 			ID:        i,
 			Key:       key,
 			Submitted: submitted,
 			Type:      models.ScoreAccount,
-			Score:     wilson,
+			Score:     dumbScore,
 		}
 		scores = append(scores, new)
 	}
