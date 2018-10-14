@@ -348,7 +348,7 @@ ol li {
 }
 .item {
     display: grid;
-    grid-template-columns: 1.2rem 11fr;
+    grid-template-columns: 1.4rem 11fr;
     /*grid-template-rows: minmax(0px, 11fr);*/
     grid-template-rows: max-content;
     grid-template-areas:
@@ -391,7 +391,7 @@ ol.comments li {
 .item .score {
     /*display: none !important;*/
     text-align: center;
-    max-width: 1.2em;
+    max-width: 1.4em;
     padding: 0;
     margin-left: 2px;
 }
@@ -401,7 +401,7 @@ ol.comments li {
     margin: auto;
 }
 .item .score data {
-    font-size:.6em;
+    font-size: .52em;
     /*line-height: 1.8rem;*/
     margin: 5px auto 3px auto;
 }
