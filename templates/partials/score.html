@@ -2,6 +2,6 @@
 {{ $vote := $account.VotedOn . }}
 <aside class="score" data-score="{{if .Deleted}}-1{{else}}{{ .Score | ScoreFmt }}{{end}}" data-hash="{{.Hash}}">
     <a {{if $account.IsLogged }}href="{{ . | YayLink}}" {{end}}class="yay{{if $vote | IsYay }} ed{{end}}" data-action="yay" data-hash="{{.Hash}}" rel="nofollow"></a>
-    <data>{{if .Deleted}}&#9851;{{else}}{{ .Score | ScoreFmt }}{{end}}</data>
+    <data {{if not .Deleted}}{{if gt .Score 999}} title="{{.Score | NumberFmt }}"{{end}}{{end}}>{{if .Deleted}}&#9851;{{else}}{{ .Score | ScoreFmt }}{{end}}</data>
     <a {{if $account.IsLogged }}href="{{ . | NayLink}}" {{end}}class="nay{{if $vote | IsNay }} ed{{end}}" data-action="nay" data-hash="{{.Hash}}" rel="nofollow"></a>
 </aside>

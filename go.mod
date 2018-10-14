@@ -41,7 +41,7 @@ require (
 	golang.org/x/oauth2 v0.0.0-20180620175406-ef147856a6dd
 	golang.org/x/sync v0.0.0-20180314180146-1d60e4601c6f // indirect
 	golang.org/x/sys v0.0.0-20180727230415-bd9dbc187b6e // indirect
-	golang.org/x/text v0.3.0 // indirect
+	golang.org/x/text v0.3.0
 	google.golang.org/appengine v1.1.0
 	gopkg.in/airbrake/gobrake.v2 v2.0.9 // indirect
 	gopkg.in/fsnotify.v1 v1.4.7 // indirect

@@ -11,7 +11,8 @@ import (
 	"strings"
 
 	"github.com/unrolled/render"
-
+	"golang.org/x/text/language"
+	"golang.org/x/text/message"
 	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/app/db"
 
@@ -101,6 +102,9 @@ func init() {
 			"IsYay":             isYay,
 			"IsNay":             isNay,
 			"ScoreFmt":          scoreFmt,
+			"NumberFmt":		func(i int64) string {
+				return message.NewPrinter(language.English).Sprintf("%d", i)
+			},
 			"YayLink":           yayLink,
 			"NayLink":           nayLink,
 			"version":           func() string { return app.Instance.Version },
@@ -156,12 +160,12 @@ func GetSession(r *http.Request) *sessions.Session {
 }
 
 const (
-	ScoreMaxK = 10000.0
-	ScoreMaxM = 10000000.0
-	ScoreMaxB = 10000000000.0
+	ScoreMaxK = 1000.0
+	ScoreMaxM = 1000000.0
+	ScoreMaxB = 1000000000.0
 )
 
-func scoreFmt(s int64) string {
+func scoreFmt(s int64) template.HTML {
 	score := 0.0
 	units := ""
 	base := float64(s)
@@ -171,7 +175,7 @@ func scoreFmt(s int64) string {
 	dB := math.Ceil(math.Log10(math.Abs(ScoreMaxB)))
 	if d < dK {
 		score = math.Ceil(base)
-		return fmt.Sprintf("%d", int(score))
+		return template.HTML(fmt.Sprintf("%d", int(score)))
 	} else if d < dM {
 		score = base / ScoreMaxK
 		units = "K"
@@ -186,10 +190,10 @@ func scoreFmt(s int64) string {
 		if base < 0 {
 			sign = "-"
 		}
-		return fmt.Sprintf("%s%s", sign, "∞")
+		return template.HTML(fmt.Sprintf("<strong>%s%s</strong>", sign, "∞"))
 	}
 
-	return fmt.Sprintf("%3.1f%s", score, units)
+	return template.HTML(fmt.Sprintf("%3.1f%s", score, units))
 }
 
 func appName(app app.Application) template.HTML {
