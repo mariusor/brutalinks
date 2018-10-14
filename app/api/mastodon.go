@@ -44,7 +44,6 @@ func ShowInstance(w http.ResponseWriter, r *http.Request) {
 
 	data, err := json.Marshal(Desc)
 	ifErr(err)
-	w.Header().Del("Cookie")
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	w.Write(data)
@@ -55,7 +54,6 @@ func ShowInstance(w http.ResponseWriter, r *http.Request) {
 func ShowPeers(w http.ResponseWriter, r *http.Request) {
 	em := []string{app.Instance.HostName}
 	data, _ := json.Marshal(em)
-	w.Header().Del("Cookie")
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	w.Write(data)
@@ -73,7 +71,6 @@ type activity struct {
 func ShowActivity(w http.ResponseWriter, r *http.Request) {
 	em := []activity{}
 	data, _ := json.Marshal(em)
-	w.Header().Del("Cookie")
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	w.Write(data)

@@ -193,3 +193,12 @@ func ShowHeaders(next http.Handler) http.Handler {
 	}
 	return http.HandlerFunc(fn)
 }
+
+func StripCookies(next http.Handler) http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Del("Set-Cookie")
+		r.Header.Del("Cookie")
+		next.ServeHTTP(w, r)
+	}
+	return http.HandlerFunc(fn)
+}

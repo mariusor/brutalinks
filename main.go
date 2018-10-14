@@ -74,7 +74,6 @@ func serveFiles(st string) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		path := filepath.Clean(chi.URLParam(r, "path"))
 		fullPath := filepath.Join(st, path)
-		w.Header().Del("Cookie")
 		http.ServeFile(w, r, fullPath)
 	}
 }
@@ -149,6 +148,7 @@ func main() {
 	// API
 	r.With(db.Repository).Route("/api", func(r chi.Router) {
 		r.Use(api.VerifyHttpSignature)
+		r.Use(app.StripCookies)
 
 		r.Route("/accounts", func(r chi.Router) {
 			r.With(api.LoadFiltersCtxt).Get("/", api.HandleAccountsCollection)
@@ -202,19 +202,17 @@ func main() {
 
 	workDir, _ := os.Getwd()
 	assets := filepath.Join(workDir, "assets")
+
 	// static
-	r.Get("/ns", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	r.With(app.StripCookies).Get("/ns", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json+ld")
-		w.Header().Del("Cookie")
 		http.ServeFile(w, r, filepath.Join(assets, "ns.json"))
 	}))
-	r.Get("/favicon.ico", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Del("Cookie")
+	r.With(app.StripCookies).Get("/favicon.ico", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, filepath.Join(assets, "favicon.ico"))
 	}))
-
-	r.Get("/css/{path}", serveFiles(filepath.Join(assets, "css")))
-	r.Get("/js/{path}", serveFiles(filepath.Join(assets, "js")))
+	r.With(app.StripCookies).Get("/css/{path}", serveFiles(filepath.Join(assets, "css")))
+	r.With(app.StripCookies).Get("/js/{path}", serveFiles(filepath.Join(assets, "js")))
 
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		frontend.HandleError(w, r, http.StatusNotFound, errors.Errorf("%s not found", r.RequestURI))

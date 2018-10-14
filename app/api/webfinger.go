@@ -43,7 +43,6 @@ func HandleHostMeta(w http.ResponseWriter, r *http.Request) {
 	}
 	dat, _ := json.Marshal(hm)
 
-	w.Header().Del("Cookie")
 	w.Header().Set("Content-Type", "application/jrd+json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(dat)
@@ -108,7 +107,6 @@ func HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 	}
 
 	dat, _ := json.Marshal(wf)
-	w.Header().Del("Cookie")
 	w.Header().Set("Content-Type", "application/jrd+json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(dat)

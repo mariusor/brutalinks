@@ -79,6 +79,7 @@ func HandleLogout(w http.ResponseWriter, r *http.Request) {
 
 	s.Values[SessionUserKey] = nil
 	SessionStore.Save(r, w, s)
+
 	w.Header().Del("Cookie")
 	Redirect(w, r, backUrl, http.StatusSeeOther)
 }
