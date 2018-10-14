@@ -47,7 +47,7 @@ type Stats struct {
 }
 
 type Desc struct {
-	Description []byte   `json:"description"`
+	Description string   `json:"description"`
 	Email       string   `json:"email"`
 	Stats       Stats    `json:"Stats"`
 	Thumbnail   string   `json:"thumbnail,omitempty"`

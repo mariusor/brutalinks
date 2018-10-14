@@ -59,7 +59,7 @@ func html(i models.Item) template.HTML {
 	return template.HTML(string(i.Data))
 }
 
-func markdown(data []byte) template.HTML {
+func markdown(data string) template.HTML {
 	md := mark.New(
 		mark.HTML(true),
 		mark.Tables(true),
@@ -69,7 +69,7 @@ func markdown(data []byte) template.HTML {
 		mark.XHTMLOutput(false),
 	)
 
-	h := md.RenderToString(data)
+	h := md.RenderToString([]byte(data))
 	return template.HTML(h)
 }
 

@@ -12,7 +12,7 @@ import (
 
 var Desc = app.Desc{
 	Title:       "litter dot me",
-	Description: []byte("Littr.me is a link aggregator similar to reddit or hacker news"),
+	Description: "Littr.me is a link aggregator similar to reddit or hacker news",
 	Email:       "system@littr.me",
 	Lang:        []string{"en"},
 }
