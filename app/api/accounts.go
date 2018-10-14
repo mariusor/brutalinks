@@ -57,7 +57,7 @@ func loadAPActivity(it models.Item, acc models.Account) as.Activity {
 		ID:        as.ObjectID(fmt.Sprintf("%s/activity", *ob.GetID())),
 		Published: it.SubmittedAt,
 		To:        as.ItemCollection{as.IRI("https://www.w3.org/ns/activitystreams#Public")},
-		//CC:        as.ItemCollection{nil},
+		CC:        as.ItemCollection{as.IRI(BuildGlobalOutboxID())},
 	}
 
 	act.Object = ob

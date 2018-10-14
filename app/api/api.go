@@ -109,6 +109,10 @@ func GetContext() j.Context {
 	}
 }
 
+func BuildGlobalOutboxID() as.ObjectID {
+	return as.ObjectID(fmt.Sprintf("%s/outbox", BaseURL))
+}
+
 func BuildActorID(a models.Account) as.ObjectID {
 	return as.ObjectID(fmt.Sprintf("%s/%s", AccountsURL, url.PathEscape(a.Handle)))
 }
