@@ -10,11 +10,11 @@ import (
 	"os"
 	"strings"
 
+	"github.com/mariusor/littr.go/app"
+	"github.com/mariusor/littr.go/app/db"
 	"github.com/unrolled/render"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
-	"github.com/mariusor/littr.go/app"
-	"github.com/mariusor/littr.go/app/db"
 
 	"github.com/go-chi/chi"
 	"github.com/gorilla/sessions"
@@ -102,9 +102,8 @@ func init() {
 			"IsYay":             isYay,
 			"IsNay":             isNay,
 			"ScoreFmt":          scoreFmt,
-			"NumberFmt":		func(i int64) string {
-				return message.NewPrinter(language.English).Sprintf("%d", i)
-			},
+			"NumberFmt":         func(i int64) string { return NumberFormat("%d", i) },
+			"ScoreClass":        scoreClass,
 			"YayLink":           yayLink,
 			"NayLink":           nayLink,
 			"version":           func() string { return app.Instance.Version },
@@ -165,7 +164,7 @@ const (
 	ScoreMaxB = 1000000000.0
 )
 
-func scoreFmt(s int64) template.HTML {
+func loadScoreFormat(s int64) (string, string) {
 	score := 0.0
 	units := ""
 	base := float64(s)
@@ -175,7 +174,7 @@ func scoreFmt(s int64) template.HTML {
 	dB := math.Ceil(math.Log10(math.Abs(ScoreMaxB)))
 	if d < dK {
 		score = math.Ceil(base)
-		return template.HTML(fmt.Sprintf("%d", int(score)))
+		return NumberFormat("%d", int(score)), ""
 	} else if d < dM {
 		score = base / ScoreMaxK
 		units = "K"
@@ -188,12 +187,32 @@ func scoreFmt(s int64) template.HTML {
 	} else {
 		sign := ""
 		if base < 0 {
-			sign = "-"
+			sign = "&ndash;"
 		}
-		return template.HTML(fmt.Sprintf("<strong>%s%s</strong>", sign, "∞"))
+		return fmt.Sprintf("%s%s", sign, "∞"), "inf"
 	}
 
-	return template.HTML(fmt.Sprintf("%3.1f%s", score, units))
+	return NumberFormat("%3.1f", score), units
+}
+
+func NumberFormat(fmtVerb string, el ...interface{}) string {
+	return message.NewPrinter(language.English).Sprintf(fmtVerb, el...)
+}
+
+func scoreClass(s int64) string {
+	_, class := loadScoreFormat(s)
+	if class == "" {
+		class = "H"
+	}
+	return class
+}
+
+func scoreFmt(s int64) string {
+	score, units := loadScoreFormat(s)
+	if units == "inf" {
+		units = ""
+	}
+	return fmt.Sprintf("%s%s", score, units)
 }
 
 func appName(app app.Application) template.HTML {
