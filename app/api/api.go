@@ -52,10 +52,9 @@ type Error struct {
 }
 
 func init() {
-	https := os.Getenv("HTTPS") != ""
 	host := os.Getenv("HOSTNAME")
 
-	if https {
+	if app.Instance.Secure {
 		BaseURL = fmt.Sprintf("https://%s/api", host)
 	} else {
 		BaseURL = fmt.Sprintf("http://%s/api", host)

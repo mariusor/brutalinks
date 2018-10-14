@@ -66,12 +66,15 @@ type Application struct {
 	Port        int64
 	Listen      string
 	Db          *sql.DB
+	Secure      bool
 	SessionKeys [2][]byte
 }
 
 var Instance Application
 
 func init() {
+	Instance = New()
+
 	if Logger == nil {
 		Logger = log.StandardLogger()
 	}
@@ -129,12 +132,12 @@ func loadEnv(l *Application) (bool, error) {
 		listenHost = defaultHost
 	}
 	l.HostName = listenHost
-	https := os.Getenv("HTTPS") != ""
-	if https {
+	if l.Secure {
 		l.BaseURL = fmt.Sprintf("https://%s", listenHost)
 	} else {
 		l.BaseURL = fmt.Sprintf("http://%s", listenHost)
 	}
+	l.Secure = os.Getenv("HTTPS") != ""
 
 	l.Port = listenPort
 	l.Listen = listenOn
