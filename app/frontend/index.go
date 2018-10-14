@@ -35,6 +35,11 @@ type indexModel struct {
 	User          *models.Account
 }
 
+type aboutModel struct {
+	Title         string
+	InvertedTheme bool
+}
+
 func getAuthProviders() map[string]string {
 	p := make(map[string]string)
 	if os.Getenv("GITHUB_KEY") != "" {
@@ -137,4 +142,12 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	RenderTemplate(r, w, "listing", m)
+}
+
+
+// HandleAbout serves /about request
+// It's something Mastodon compatible servers should show
+func HandleAbout(w http.ResponseWriter, r *http.Request) {
+	m := aboutModel{Title: "About", InvertedTheme: isInverted(r)}
+	RenderTemplate(r, w, "about", m)
 }

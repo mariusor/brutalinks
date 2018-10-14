@@ -106,6 +106,8 @@ func main() {
 
 		r.Get("/", frontend.HandleIndex)
 
+		r.Get("/about", frontend.HandleAbout)
+
 		r.Get("/submit", frontend.ShowSubmit)
 		r.Post("/submit", frontend.HandleSubmit)
 
