@@ -17,7 +17,7 @@ type itemListingModel struct {
 }
 
 type sessionAccount struct {
-	Hash []byte
+	Hash   []byte
 	Handle string
 }
 

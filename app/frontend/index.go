@@ -168,6 +168,5 @@ func HandleAbout(w http.ResponseWriter, r *http.Request) {
 	io.ReadFull(f, data)
 	m.Desc.Description = string(bytes.Trim(data, "\x00"))
 
-
 	RenderTemplate(r, w, "about", m)
 }

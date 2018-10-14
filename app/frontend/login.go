@@ -48,13 +48,18 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s := GetSession(r)
-	s.Values[SessionUserKey] = sessionAccount{
-		Handle: a.Handle,
-		Hash:   []byte(a.Hash),
+	if s, err := sessionStore.Get(r, sessionName); err == nil {
+		s.Values[SessionUserKey] = sessionAccount{
+			Handle: a.Handle,
+			Hash:   []byte(a.Hash),
+		}
+		s.Save(r, w)
+	} else {
+		Logger.WithFields(log.Fields{}).Error(err)
 	}
+
 	backUrl := "/"
-	AddFlashMessage(Success, "Login successful", r, w)
+	addFlashMessage(Success, "Login successful", r)
 	Redirect(w, r, backUrl, http.StatusSeeOther)
 }
 
@@ -70,16 +75,14 @@ func ShowLogin(w http.ResponseWriter, r *http.Request) {
 
 // HandleLogout serves /logout requests
 func HandleLogout(w http.ResponseWriter, r *http.Request) {
-	s := GetSession(r)
-
+	if s, err := sessionStore.Get(r, sessionName); err != nil {
+		Logger.WithFields(log.Fields{}).Error(err)
+	} else {
+		s.Values[SessionUserKey] = nil
+	}
 	backUrl := "/"
 	if r.Header.Get("Referer") != "" {
 		backUrl = r.Header.Get("Referer")
 	}
-
-	s.Values[SessionUserKey] = nil
-	SessionStore.Save(r, w, s)
-
-	w.Header().Del("Cookie")
 	Redirect(w, r, backUrl, http.StatusSeeOther)
 }

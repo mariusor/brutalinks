@@ -58,13 +58,7 @@ func ContentFromRequest(r *http.Request) (models.Item, error) {
 
 // ShowSubmit serves GET /submit request
 func ShowSubmit(w http.ResponseWriter, r *http.Request) {
-	m := newModel{Title: "New submission", InvertedTheme: isInverted(r)}
-	err := SessionStore.Save(r, w, GetSession(r))
-	if err != nil {
-		Logger.WithFields(log.Fields{}).Error(err)
-	}
-
-	RenderTemplate(r, w, "new", m)
+	RenderTemplate(r, w, "new", newModel{Title: "New submission", InvertedTheme: isInverted(r)})
 }
 
 // HandleSubmit handles POST /submit requests

@@ -234,7 +234,7 @@ func HandleVoting(w http.ResponseWriter, r *http.Request) {
 			}).Error(err)
 		}
 	} else {
-		AddFlashMessage(Error, fmt.Sprintf("unable to add vote as an %s user", acc.Handle), r, w)
+		addFlashMessage(Error, fmt.Sprintf("unable to add vote as an %s user", acc.Handle), r)
 	}
 	Redirect(w, r, url, http.StatusFound)
 }
