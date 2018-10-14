@@ -240,8 +240,8 @@ func appName(app app.Application) template.HTML {
 }
 
 func Redirect(w http.ResponseWriter, r *http.Request, url string, status int) error {
-	err := sessions.Save(r, w)
-	if err != nil {
+	var err error
+	if err = SessionStore.Save(r, w, GetSession(r)); err != nil {
 		new := errors.NewErrWithCause(err, "failed to save session before redirect")
 		Logger.WithFields(log.Fields{
 			"status": status,
@@ -255,8 +255,7 @@ func Redirect(w http.ResponseWriter, r *http.Request, url string, status int) er
 
 func RenderTemplate(r *http.Request, w http.ResponseWriter, name string, m interface{}) error {
 	var err error
-	err = sessions.Save(r, w)
-	if err != nil {
+	if err = SessionStore.Save(r, w, GetSession(r)); err != nil {
 		new := errors.NewErrWithCause(err, "failed to save session before rendering template")
 		Logger.WithFields(log.Fields{
 			"template": name,
@@ -264,8 +263,7 @@ func RenderTemplate(r *http.Request, w http.ResponseWriter, name string, m inter
 			"trace":    new.StackTrace(),
 		}).Error(new)
 	}
-	err = Renderer.HTML(w, http.StatusOK, name, m)
-	if err != nil {
+	if err = Renderer.HTML(w, http.StatusOK, name, m); err != nil {
 		new := errors.NewErrWithCause(err, "failed to render template")
 		Logger.WithFields(log.Fields{
 			"template": name,
