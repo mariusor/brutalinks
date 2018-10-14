@@ -8,33 +8,24 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/mariusor/littr.go/app/models"
-
-	"github.com/mariusor/littr.go/app"
-
 	"github.com/jmoiron/sqlx"
 	"github.com/mariusor/littr.go/app/db"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
-	"github.com/gorilla/sessions"
 	"github.com/juju/errors"
 	_ "github.com/lib/pq"
+
+	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/app/api"
 	"github.com/mariusor/littr.go/app/frontend"
+	"github.com/mariusor/littr.go/app/models"
 	log "github.com/sirupsen/logrus"
 )
 
 var Logger log.FieldLogger
 
 func init() {
-	app.Instance = app.New()
-
-	s := sessions.NewCookieStore(app.Instance.SessionKeys[0], app.Instance.SessionKeys[1])
-	s.Options.Domain = app.Instance.HostName
-	s.Options.Path = "/"
-	frontend.SessionStore = s
-
 	dbPw := os.Getenv("DB_PASSWORD")
 	dbName := os.Getenv("DB_NAME")
 	dbUser := os.Getenv("DB_USER")
@@ -60,7 +51,6 @@ func init() {
 		log.SetOutput(os.Stdout)
 		log.SetLevel(log.DebugLevel)
 	}
-
 	Logger = log.StandardLogger()
 	api.Logger = Logger.WithField("package", "api")
 	models.Logger = Logger.WithField("package", "models")
