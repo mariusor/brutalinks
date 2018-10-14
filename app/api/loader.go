@@ -272,7 +272,9 @@ func loadFromAPObject(ob as.Object) (models.Item, error) {
 	return c, nil
 }
 func loadFromAPCreate(act Activity) (models.Item, error) {
-	return loadFromAPItem(act.Object)
+	it, err := loadFromAPItem(act.Object)
+	it.SubmittedBy.Hash = getHashFromIRI(act.Actor.GetLink())
+	return it, err
 }
 
 func loadFromAPActivity(it as.Item) (interface{}, error) {

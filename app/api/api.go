@@ -75,16 +75,24 @@ func getHashFromAP(obj as.ObjectOrLink) models.Hash {
 	if obj.IsLink() {
 		h = models.Hash(path.Base(string(obj.(as.IRI))))
 	} else {
-		h = getHash(obj.GetID())
+		h = getHashFromID(obj.GetID())
 	}
 	return h
 }
 
-func getHash(i *as.ObjectID) models.Hash {
+func getHashFromID(i *as.ObjectID) models.Hash {
 	if i == nil {
 		return ""
 	}
 	s := strings.Split(string(*i), "/")
+	return models.Hash(s[len(s)-1])
+}
+
+func getHashFromIRI(i as.IRI) models.Hash {
+	if len(i) == 0 {
+		return ""
+	}
+	s := strings.Split(string(i), "/")
 	return models.Hash(s[len(s)-1])
 }
 
