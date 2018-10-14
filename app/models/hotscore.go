@@ -8,6 +8,7 @@ import (
 // represents the statistical confidence
 //var StatisticalConfidence = 1.0 => ~69%, 1.96 => ~95% (default)
 var StatisticalConfidence = 1.94
+
 // represents how fast elapsed hours affect the order of an item
 var HNGravity = 1.2
 

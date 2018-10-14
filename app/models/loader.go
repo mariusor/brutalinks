@@ -209,7 +209,7 @@ FROM "content_items" WHERE "key" ~* $%d) AND "%s"."path" IS NOT NULL)`, it, coun
 			whereValues = append(whereValues, interface{}(FlagsDeleted))
 			counter++
 		}
-		wheres = append(wheres,  fmt.Sprintf("(%s)", strings.Join(delWhere, " OR ")))
+		wheres = append(wheres, fmt.Sprintf("(%s)", strings.Join(delWhere, " OR ")))
 	}
 	return wheres, whereValues
 }

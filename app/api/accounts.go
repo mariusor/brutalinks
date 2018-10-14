@@ -295,7 +295,7 @@ func HandleCollectionItem(w http.ResponseWriter, r *http.Request) {
 	case "liked":
 		if v, ok := val.(models.Vote); !ok {
 			err := errors.Errorf("could not load Vote from Context")
-			HandleError(w, r, http.StatusInternalServerError,  err)
+			HandleError(w, r, http.StatusInternalServerError, err)
 			return
 		} else {
 			el = loadAPLike(v)
@@ -333,7 +333,7 @@ func HandleItemReplies(w http.ResponseWriter, r *http.Request) {
 		if service, ok := val.(models.CanLoadItems); ok {
 			filter := models.LoadItemsFilter{
 				InReplyTo: []string{it.Hash.String()},
-				Deleted: []bool{ false, },
+				Deleted:   []bool{false},
 				MaxItems:  MaxContentItems,
 			}
 
