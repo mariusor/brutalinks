@@ -335,6 +335,7 @@ func HandleItemReplies(w http.ResponseWriter, r *http.Request) {
 		if service, ok := val.(models.CanLoadItems); ok {
 			filter := models.LoadItemsFilter{
 				InReplyTo: []string{it.Hash.String()},
+				Deleted: []bool{ false, },
 				MaxItems:  MaxContentItems,
 			}
 

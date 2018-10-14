@@ -60,7 +60,7 @@ type LoadItemsFilter struct {
 	SubmittedAtMatchType MatchType `qstring:"submittedAtMatchType,omitempty"`
 	Content              string    `qstring:"content,omitempty"`
 	ContentMatchType     MatchType `qstring:"contentMatchType,omitempty"`
-	Deleted              bool      `qstring:"deleted,omitempty"`
+	Deleted              []bool    `qstring:"deleted,omitempty"`
 	Page                 int       `qstring:"page,omitempty"`
 	MaxItems             int       `qstring:"maxItems,omitempty"`
 }
@@ -196,16 +196,21 @@ FROM "content_items" WHERE "key" ~* $%d) AND "%s"."path" IS NOT NULL)`, it, coun
 		}
 		wheres = append(wheres, fmt.Sprintf("(%s)", strings.Join(mediaWhere, " OR ")))
 	}
-	var eqOp string
-	if filter.Deleted {
-		eqOp = "="
-	} else {
-		eqOp = "!="
+	if len(filter.Deleted) > 0 {
+		delWhere := make([]string, 0)
+		for _, del := range filter.Deleted {
+			var eqOp string
+			if del {
+				eqOp = "="
+			} else {
+				eqOp = "!="
+			}
+			delWhere = append(delWhere, fmt.Sprintf(`"%s"."flags" & $%d::bit(8) %s $%d::bit(8)`, it, counter, eqOp, counter))
+			whereValues = append(whereValues, interface{}(FlagsDeleted))
+			counter++
+		}
+		wheres = append(wheres,  fmt.Sprintf("(%s)", strings.Join(delWhere, " OR ")))
 	}
-	whereDeleted := fmt.Sprintf(`"%s"."flags" & $%d::bit(8) %s $%d::bit(8)`, it, counter, eqOp, counter)
-	whereValues = append(whereValues, interface{}(FlagsDeleted))
-	counter++
-	wheres = append(wheres, fmt.Sprintf("%s", whereDeleted))
 	return wheres, whereValues
 }
 

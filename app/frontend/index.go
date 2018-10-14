@@ -107,6 +107,7 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 	items, err := itemLoader.LoadItems(models.LoadItemsFilter{
 		Context:  []string{"0"},
 		MaxItems: MaxContentItems,
+		Deleted: []bool{ false, },
 	})
 	if err != nil {
 		Logger.WithFields(log.Fields{}).Error(err)
