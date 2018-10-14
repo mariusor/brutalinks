@@ -61,7 +61,7 @@ func (a Account) HasMetadata() bool {
 }
 
 func (a Account) IsValid() bool {
-	return len(a.Handle) > 0
+	return len(a.Handle) > 0 || len(a.Hash) > 0
 }
 
 type Deletable interface {

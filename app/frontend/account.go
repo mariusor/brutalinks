@@ -2,10 +2,10 @@ package frontend
 
 import (
 	"fmt"
+	"github.com/juju/errors"
 	"net/http"
 
 	"github.com/go-chi/chi"
-	"github.com/juju/errors"
 	"github.com/mariusor/littr.go/app/models"
 )
 
