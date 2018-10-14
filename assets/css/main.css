@@ -477,6 +477,11 @@ ol.comments li {
 .meta time {
     text-decoration: underline dotted;
 }
+.meta time::before {
+    content: "\f017";
+    font-family: IconFont;
+    padding-right: .4rem;
+}
 .submission {
     padding: .2em 0 0 1.9em;
 }
@@ -668,11 +673,6 @@ hr {
 }
 .inverted hr {
     border-color: Window;
-}
-time::before {
-    content: "\f017  ";
-    font-family: IconFont;
-    font-size: 0.7em;
 }
 fieldset {
     padding: 1rem;
