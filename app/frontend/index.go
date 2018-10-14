@@ -69,7 +69,7 @@ func opLink(c models.Item) string {
 
 func AccountPermaLink(a models.Account) string {
 	handle := "anonymous"
-	if len(a.Hash) > 0 {
+	if len(a.Handle) > 0 {
 		handle = a.Handle
 	}
 	return fmt.Sprintf("%s/~%s", app.Instance.BaseURL, handle)
