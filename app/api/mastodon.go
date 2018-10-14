@@ -28,6 +28,13 @@ type desc struct {
 	Version string `json:"version"`
 }
 
+var Desc = desc {
+	Title: "litter dot me",
+	Description: "Littr.me is a link aggregator similar to reddit or hacker news",
+	Email: "system@littr.me",
+	Lang: []string{"en"},
+}
+
 // GET /api/v1/instance
 // In order to be compatible with Mastodon
 func ShowInstance(w http.ResponseWriter, r *http.Request) {
@@ -46,21 +53,15 @@ func ShowInstance(w http.ResponseWriter, r *http.Request) {
 		MaxItems: math.MaxInt64,
 	})
 	ifErr(err)
-
-	desc := desc {
-		Title: "litter dot me",
-		Description: "Littr.me is a link aggregator similar to reddit or hacker news",
-		Email: "system@littr.me",
-		Lang: []string{"en"},
-		Stats: stats{
-			DomainCount: 1,
-			UserCount: len(u),
-			StatusCount: len(i),
-		},
-		Uri: app.Instance.HostName,
-		Version: fmt.Sprintf("2.5.0 compatible (littr.me %s)", app.Instance.Version),
+	Desc.Stats = stats{
+		DomainCount: 1,
+		UserCount: len(u),
+		StatusCount: len(i),
 	}
-	data, err := json.Marshal(desc)
+	Desc.Uri = app.Instance.HostName
+	Desc.Version = fmt.Sprintf("2.5.0 compatible (littr.me %s)", app.Instance.Version)
+
+	data, err := json.Marshal(Desc)
 	ifErr(err)
 	w.Header().Del("Cookie")
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
