@@ -8,6 +8,8 @@ import (
 // represents the statistical confidence
 //var StatisticalConfidence = 1.0 => ~69%, 1.96 => ~95% (default)
 var StatisticalConfidence = 1.94
+// represents how fast elapsed hours affect the order of an item
+var HNGravity = 1.2
 
 // wilson score interval sort
 // http://www.evanmiller.org/how-not-to-sort-by-average-rating.html
@@ -29,9 +31,8 @@ func Wilson(ups, downs int64) float64 {
 // hackernews' hot sort
 // http://amix.dk/blog/post/19574
 func Hacker(votes int64, date time.Duration) float64 {
-	gravity := 1.8
 	hoursAge := date.Hours()
-	return float64(votes-1) / math.Pow(hoursAge+2, gravity)
+	return float64(votes-1) / math.Pow(hoursAge+2, HNGravity)
 }
 
 // reddit's hot sort

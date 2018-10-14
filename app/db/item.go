@@ -238,7 +238,6 @@ func loadItems(db *sqlx.DB, f models.LoadItemsFilter) (models.ItemCollection, er
 	}
 	// use hacker-news sort algorithm
 	// (votes - 1) / pow((item_hour_age+2), gravity)
-	gravity := 1.8
 	sel := fmt.Sprintf(`select 
 		"item"."id" as "item_id",
 		"item"."key" as "item_key",
@@ -262,7 +261,9 @@ func loadItems(db *sqlx.DB, f models.LoadItemsFilter) (models.ItemCollection, er
 		from "content_items" as "item"
 			left join "accounts" as "author" on "author"."id" = "item"."submitted_by" 
 		where %s 
-	order by (("item"."score" - 1) / ((extract(epoch from age(current_timestamp, "item"."submitted_at")) / 3600.00) ^ %f)) desc limit %d`, fullWhere, gravity, f.MaxItems)
+	order by 
+		(("item"."score" - 1) / ((extract(epoch from age(current_timestamp, "item"."submitted_at")) / 3600.00) ^ %f))
+	desc limit %d`, fullWhere, models.HNGravity, f.MaxItems)
 
 	agg := make([]itemsView, 0)
 	if err := db.Select(&agg, sel, whereValues...); err != nil {
