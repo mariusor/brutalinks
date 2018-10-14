@@ -432,13 +432,6 @@ func LoadSession(next http.Handler) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
-func AuthCheck(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		s := GetSession(r)
-		Logger.WithFields(log.Fields{}).Debugf("%#v", s.Values)
-	})
-}
-
 func AddFlashMessage(typ flashType, msg string, r *http.Request, w http.ResponseWriter) {
 	s := GetSession(r)
 	n := Flash{typ, msg}

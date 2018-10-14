@@ -34,9 +34,7 @@ type contentModel struct {
 func loadComments(items []models.Item) comments {
 	var comments = make([]*comment, len(items))
 	for k, item := range items {
-		//l := loadItem(item)
-		com := comment{Item: item /*Path: item.Path, FullPath: item.FullPath*/}
-
+		com := comment{Item: item}
 		comments[k] = &com
 	}
 	return comments
