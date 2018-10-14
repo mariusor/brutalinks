@@ -120,7 +120,7 @@ func ShowItem(w http.ResponseWriter, r *http.Request) {
 		HandleError(w, r, http.StatusNotFound, err)
 		return
 	}
-	m.Content = comment{Item: i /*Path: i.Path, FullPath: i.FullPath*/}
+	m.Content = comment{Item: i}
 	if i.Data == "" {
 		HandleError(w, r, http.StatusNotFound, errors.Errorf("not found"))
 		return

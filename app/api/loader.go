@@ -531,7 +531,7 @@ func (r *repository) LoadItem(f models.LoadItemsFilter) (models.Item, error) {
 	if q, err := qstring.MarshalString(&f); err == nil {
 		qs = fmt.Sprintf("?%s", q)
 	}
-	url := fmt.Sprintf("%s/outbox/%s%s", r.BaseUrl, hashes[0], qs)
+	url := fmt.Sprintf("%s/outbox/%s/object%s", r.BaseUrl, hashes[0], qs)
 
 	var err error
 	var resp *http.Response
@@ -766,13 +766,11 @@ func (r *repository) LoadVote(f models.LoadVotesFilter) (models.Vote, error) {
 func (r *repository) SaveItem(it models.Item) (models.Item, error) {
 	doUpd := false
 	art := loadAPItem(it)
-	// need to test if it.SubmittedBy matches r.Account and that the signature is valid
-	signedBy := r.Account
-	var actor *Person
-	if signedBy.Hash == it.SubmittedBy.Hash {
+
+	actor := loadAPPerson(*frontend.AnonymousAccount())
+	if r.Account != nil && r.Account.Hash == it.SubmittedBy.Hash {
+		// need to test if it.SubmittedBy matches r.Account and that the signature is valid
 		actor = loadAPPerson(*it.SubmittedBy)
-	} else {
-		actor = loadAPPerson(*frontend.AnonymousAccount())
 	}
 
 	var body []byte

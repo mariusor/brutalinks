@@ -152,10 +152,14 @@ func main() {
 					r.With(api.LoadFiltersCtxt, api.ItemCollectionCtxt).Get("/", api.HandleCollection)
 					r.With(api.LoadFiltersCtxt).Post("/", api.UpdateItem)
 					r.Route("/{hash}", func(r chi.Router) {
-						r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/", api.HandleCollectionItem)
-						r.With(api.LoadFiltersCtxt).Put("/", api.UpdateItem)
+						// this should update the activity
+						r.With(api.LoadFiltersCtxt, api.ItemCtxt).Put("/", api.UpdateItem)
+						r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/", api.HandleCollectionActivity)
+						r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/object", api.HandleCollectionActivityObject)
+						// this should update the item
+						r.With(api.LoadFiltersCtxt, api.ItemCtxt).Put("/object", api.UpdateItem)
 
-						r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/replies", api.HandleItemReplies)
+						r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/object/replies", api.HandleCollectionActivityObjectReplies)
 					})
 				})
 			})
@@ -170,8 +174,9 @@ func main() {
 			r.Use(api.ServiceCtxt)
 
 			r.With(api.LoadFiltersCtxt, api.ItemCollectionCtxt).Get("/", api.HandleCollection)
-			r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/{hash}", api.HandleCollectionItem)
-			r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/{hash}/replies", api.HandleItemReplies)
+			r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/{hash}", api.HandleCollectionActivity)
+			r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/{hash}/object", api.HandleCollectionActivityObject)
+			r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/{hash}/object/replies", api.HandleCollectionActivityObjectReplies)
 		})
 		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 			api.HandleError(w, r, http.StatusNotFound, errors.Errorf("%s not found", r.RequestURI))

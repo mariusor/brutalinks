@@ -84,7 +84,13 @@ func getHashFromID(i *as.ObjectID) models.Hash {
 		return ""
 	}
 	s := strings.Split(string(*i), "/")
-	return models.Hash(s[len(s)-1])
+	var hash string
+	if s[len(s)-1] == "object" {
+		hash = s[len(s)-2]
+	} else {
+		hash = s[len(s)-1]
+	}
+	return models.Hash(hash)
 }
 
 func getHashFromIRI(i as.IRI) models.Hash {
@@ -92,7 +98,14 @@ func getHashFromIRI(i as.IRI) models.Hash {
 		return ""
 	}
 	s := strings.Split(string(i), "/")
-	return models.Hash(s[len(s)-1])
+	var hash string
+	if s[len(s)-1] == "object" {
+		hash = s[len(s)-2]
+	} else {
+		hash = s[len(s)-1]
+	}
+
+	return models.Hash(hash)
 }
 
 func getAccountHandle(o as.ObjectOrLink) string {
@@ -145,9 +158,9 @@ func BuildObjectIDFromItem(i models.Item) (as.ObjectID, bool) {
 	}
 	if i.SubmittedBy != nil {
 		handle := i.SubmittedBy.Handle
-		return as.ObjectID(fmt.Sprintf("%s/%s/outbox/%s", AccountsURL, url.PathEscape(handle), url.PathEscape(i.Hash.String()))), true
+		return as.ObjectID(fmt.Sprintf("%s/%s/outbox/%s/object", AccountsURL, url.PathEscape(handle), url.PathEscape(i.Hash.String()))), true
 	} else {
-		return as.ObjectID(fmt.Sprintf("%s/outbox/%s", BaseURL, url.PathEscape(i.Hash.String()))), true
+		return as.ObjectID(fmt.Sprintf("%s/outbox/%s/object", BaseURL, url.PathEscape(i.Hash.String()))), true
 	}
 }
 
