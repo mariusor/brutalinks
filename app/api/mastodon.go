@@ -10,35 +10,17 @@ import (
 	"net/http"
 )
 
-type stats struct {
-	DomainCount int `json:"domain_count"`
-	UserCount int `json:"user_count"`
-	StatusCount int `json:"status_count"`
-}
-
-type desc struct {
-	Description string `json:"description"`
-	Email string `json:"email"`
-	Stats stats `json:"stats"`
-	Thumbnail string `json:"thumbnail,omitempty"`
-	Title string `json:"title"`
-	Lang []string `json:"languages"`
-	Uri string `json:"uri"`
-	Urls []string `json:"urls,omitempty"`
-	Version string `json:"version"`
-}
-
-var Desc = desc {
-	Title: "litter dot me",
-	Description: "Littr.me is a link aggregator similar to reddit or hacker news",
-	Email: "system@littr.me",
-	Lang: []string{"en"},
+var Desc = app.Desc{
+	Title:       "litter dot me",
+	Description: []byte("Littr.me is a link aggregator similar to reddit or hacker news"),
+	Email:       "system@littr.me",
+	Lang:        []string{"en"},
 }
 
 // GET /api/v1/instance
 // In order to be compatible with Mastodon
 func ShowInstance(w http.ResponseWriter, r *http.Request) {
-	ifErr := func (err... error) {
+	ifErr := func(err ...error) {
 		if err != nil && len(err) > 0 && err[0] != nil {
 			HandleError(w, r, http.StatusInternalServerError, err...)
 			return
@@ -53,11 +35,10 @@ func ShowInstance(w http.ResponseWriter, r *http.Request) {
 		MaxItems: math.MaxInt64,
 	})
 	ifErr(err)
-	Desc.Stats = stats{
-		DomainCount: 1,
-		UserCount: len(u),
-		StatusCount: len(i),
-	}
+
+	Desc.Stats.DomainCount = 1
+	Desc.Stats.UserCount = len(u)
+	Desc.Stats.StatusCount = len(i)
 	Desc.Uri = app.Instance.HostName
 	Desc.Version = fmt.Sprintf("2.5.0 compatible (littr.me %s)", app.Instance.Version)
 
@@ -81,11 +62,12 @@ func ShowPeers(w http.ResponseWriter, r *http.Request) {
 }
 
 type activity struct {
-	Week int `json:"week"`
-	Statuses int `json:"statuses"`
-	Logins int `json:"logins"`
+	Week         int `json:"week"`
+	Statuses     int `json:"statuses"`
+	Logins       int `json:"logins"`
 	Registration int `json:"registrations"`
 }
+
 // GET /api/v1/instance/activity
 // In order to be compatible with Mastodon
 func ShowActivity(w http.ResponseWriter, r *http.Request) {

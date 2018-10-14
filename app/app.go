@@ -40,6 +40,24 @@ var validEnvTypes = []EnvType{
 	PROD,
 }
 
+type Stats struct {
+	DomainCount int `json:"domain_count"`
+	UserCount   int `json:"user_count"`
+	StatusCount int `json:"status_count"`
+}
+
+type Desc struct {
+	Description []byte   `json:"description"`
+	Email       string   `json:"email"`
+	Stats       Stats    `json:"Stats"`
+	Thumbnail   string   `json:"thumbnail,omitempty"`
+	Title       string   `json:"title"`
+	Lang        []string `json:"languages"`
+	Uri         string   `json:"uri"`
+	Urls        []string `json:"urls,omitempty"`
+	Version     string   `json:"version"`
+}
+
 type Application struct {
 	Version     string
 	Env         EnvType

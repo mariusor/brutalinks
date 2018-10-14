@@ -691,3 +691,13 @@ form label {
     min-height: 1.8rem;
     line-height: 1.8rem;
 }
+.about main article {
+    line-height: 2rem;
+    max-width: 960px;
+}
+.about main article h1 {
+    display: none;
+}
+.about main article p {
+    padding-top: .8rem;
+}

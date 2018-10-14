@@ -1,7 +1,9 @@
 package frontend
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 
@@ -38,6 +40,7 @@ type indexModel struct {
 type aboutModel struct {
 	Title         string
 	InvertedTheme bool
+	Desc          app.Desc
 }
 
 func getAuthProviders() map[string]string {
@@ -112,7 +115,7 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 	items, err := itemLoader.LoadItems(models.LoadItemsFilter{
 		Context:  []string{"0"},
 		MaxItems: MaxContentItems,
-		Deleted: []bool{ false, },
+		Deleted:  []bool{false},
 	})
 	if err != nil {
 		Logger.WithFields(log.Fields{}).Error(err)
@@ -144,10 +147,27 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 	RenderTemplate(r, w, "listing", m)
 }
 
-
 // HandleAbout serves /about request
 // It's something Mastodon compatible servers should show
 func HandleAbout(w http.ResponseWriter, r *http.Request) {
+	ifErr := func(err ...error) {
+		if err != nil && len(err) > 0 && err[0] != nil {
+			HandleError(w, r, http.StatusInternalServerError, err...)
+			return
+		}
+	}
+
 	m := aboutModel{Title: "About", InvertedTheme: isInverted(r)}
+	f, err := os.Open("./README.md")
+	ifErr(err)
+
+	st, err := f.Stat()
+	ifErr(err)
+
+	data := make([]byte, st.Size())
+	io.ReadFull(f, data)
+	m.Desc.Description = bytes.Trim(data, "\x00")
+
+
 	RenderTemplate(r, w, "about", m)
 }

@@ -4,7 +4,7 @@
 {{if ShowText}}
 {{- if eq .MimeType "text/html" -}}{{- .Item | HTML -}}{{- end -}}
 {{- if eq .MimeType "text/plain" -}}{{- .Item | Text -}}{{end}}
-{{- if eq .MimeType "text/markdown" -}}{{- .Item | Markdown -}}{{- end -}}
+{{- if eq .MimeType "text/markdown" -}}{{- .Item.Data | Markdown -}}{{- end -}}
 {{end}}
 {{- end -}}
 </article>
