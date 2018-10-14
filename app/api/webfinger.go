@@ -84,8 +84,8 @@ func HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 
 	wf := webfinger{
 		Aliases: []string{
-			fmt.Sprintf("%s/%s", AccountsURL, a.Handle),
 			fmt.Sprintf("%s/%s", AccountsURL, a.Hash),
+			fmt.Sprintf("%s/%s", AccountsURL, a.Handle),
 		},
 		Subject: typ + ":" + res,
 		Links: []link{
