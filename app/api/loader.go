@@ -618,28 +618,21 @@ func (r *repository) LoadItems(f models.LoadItemsFilter) (models.ItemCollection,
 }
 
 func (r *repository) SaveVote(v models.Vote) (models.Vote, error) {
-	//body := nil
 	url := fmt.Sprintf("%s/accounts/%s/liked/%s", r.BaseUrl, v.SubmittedBy.Hash, v.Item.Hash)
 
+	var err error
+	var exists *http.Response
 	// first step is to verify if vote already exists:
-	//resp, err := r.Head(url)
-	//if err != nil {
-	//	Logger.WithFields(log.Fields{}).Error(err)
-	//	return v, err
-	//}
-	//if resp.StatusCode == http.StatusOK {
-	//	// found a vote, needs updating
-	//	exists = true
-	//}
-	//if resp.StatusCode == http.StatusNotFound {
-	//	// found a vote, needs updating
-	//	exists = false
-	//}
+	if exists, err = r.Head(url); err != nil {
+		Logger.WithFields(log.Fields{
+			"url": url,
+		}).Error(err)
+		return v, err
+	}
 	p := loadAPPerson(*v.SubmittedBy)
 	o := loadAPItem(*v.Item)
 	id := as.ObjectID(url)
-	var body []byte
-	var err error
+
 	var act Activity
 	act.ID = id
 	act.Actor = p.GetLink()
@@ -650,13 +643,29 @@ func (r *repository) SaveVote(v models.Vote) (models.Vote, error) {
 	} else {
 		act.Type = as.DislikeType
 	}
-	body, err = j.Marshal(act)
-	if err != nil {
+
+	var body []byte
+	if body, err = j.Marshal(act); err != nil {
 		log.Error(err)
 		return v, err
 	}
 
-	resp, err := r.Put(url, "application/json+activity", bytes.NewReader(body))
+	var resp *http.Response
+	if exists.StatusCode == http.StatusOK {
+		// previously found a vote, needs updating
+		resp, err = r.Put(url, "application/json+activity", bytes.NewReader(body))
+	} else if exists.StatusCode == http.StatusNotFound {
+		// previously didn't fund a vote, needs adding
+		resp, err = r.Post(url, "application/json+activity", bytes.NewReader(body))
+	} else {
+		err = errors.New("received unexpected http response")
+		Logger.WithFields(log.Fields{
+			"url":           url,
+			"response_code": exists.StatusCode,
+		}).Error(err)
+		return v, err
+	}
+
 	if err != nil {
 		Logger.WithFields(log.Fields{}).Error(err)
 		return v, err
@@ -665,7 +674,7 @@ func (r *repository) SaveVote(v models.Vote) (models.Vote, error) {
 		return loadFromAPLike(act)
 	}
 	if resp.StatusCode == http.StatusNotFound {
-		return models.Vote{}, errors.Errorf("not found")
+		return models.Vote{}, errors.Errorf("vote not found")
 	}
 	if resp.StatusCode == http.StatusInternalServerError {
 		return models.Vote{}, errors.Errorf("unable to save vote")

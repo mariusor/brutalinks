@@ -155,8 +155,10 @@ func main() {
 					r.With(api.LoadFiltersCtxt, api.ItemCollectionCtxt).Get("/", api.HandleCollection)
 					r.With(api.LoadFiltersCtxt).Post("/", api.UpdateItem)
 					r.Route("/{hash}", func(r chi.Router) {
+						r.Use(middleware.GetHead)
 						// this should update the activity
 						r.With(api.LoadFiltersCtxt, api.ItemCtxt).Put("/", api.UpdateItem)
+						r.With(api.LoadFiltersCtxt).Post("/", api.UpdateItem)
 						r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/", api.HandleCollectionActivity)
 						r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/object", api.HandleCollectionActivityObject)
 						// this should update the item
