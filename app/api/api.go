@@ -72,7 +72,14 @@ func init() {
 func getHashFromAP(obj as.ObjectOrLink) models.Hash {
 	var h models.Hash
 	if obj.IsLink() {
-		h = models.Hash(path.Base(string(obj.(as.IRI))))
+		s := strings.Split(string(obj.(as.IRI)), "/")
+		var hash string
+		if s[len(s)-1] == "object" {
+			hash = s[len(s)-2]
+		} else {
+			hash = s[len(s)-1]
+		}
+		h = models.Hash(path.Base(hash))
 	} else {
 		h = getHashFromID(obj.GetID())
 	}
