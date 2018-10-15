@@ -27,30 +27,12 @@ func loadVote(body []byte) models.Vote {
 	actor := act.Actor
 	ob := act.Object
 
-	var accountHash models.Hash
-	if actor.IsLink() {
-		// just the ObjectID
-		accountHash = models.Hash(path.Base(string(actor.(as.IRI))))
-	}
-	if actor.IsObject() {
-		// full Actor struct
-		accountHash = models.Hash(path.Base(string(*actor.GetID())))
-	}
-	var itemHash string
-	if ob.IsLink() {
-		// just the ObjectID
-		itemHash = path.Base(string(ob.(as.IRI)))
-	}
-	if ob.IsObject() {
-		// full Object struct
-		itemHash = path.Base(string(*ob.GetID()))
-	}
 	v := models.Vote{
 		SubmittedBy: &models.Account{
-			Hash: accountHash,
+			Hash: getHashFromAP(actor),
 		},
 		Item: &models.Item{
-			Hash: models.Hash(itemHash),
+			Hash: getHashFromAP(ob),
 		},
 	}
 	if act.GetType() == as.LikeType {

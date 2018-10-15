@@ -222,19 +222,19 @@ func saveVote(db *sqlx.DB, vot models.Vote) (models.Vote, error) {
 	var vID int64
 	var oldWeight int64
 	var submittedAt time.Time
-	{
-		rows, err := db.Query(sel, vot.SubmittedBy.Hash, vot.Item.Hash)
+
+	var err error
+	rows, err := db.Query(sel, vot.SubmittedBy.Hash, vot.Item.Hash)
+	if err != nil {
+		return vot, err
+	}
+	for rows.Next() {
+		err = rows.Scan(&vID, &userID, &oldWeight, &submittedAt)
 		if err != nil {
 			return vot, err
 		}
-		for rows.Next() {
-			err = rows.Scan(&vID, &userID, &oldWeight, &submittedAt)
-			if err != nil {
-				return vot, err
-			}
-		}
-		vot.SubmittedAt = submittedAt
 	}
+	vot.SubmittedAt = submittedAt
 
 	v := Vote{}
 	var q string
@@ -263,17 +263,26 @@ func saveVote(db *sqlx.DB, vot models.Vote) (models.Vote, error) {
 		return vot, err
 	}
 	if rows, _ := res.RowsAffected(); rows == 0 {
-		return vot, errors.Errorf("content not found")
+		err = errors.Errorf("item corresponding to vote not found")
 	}
 	if rows, _ := res.RowsAffected(); rows > 1 {
-		return vot, errors.Errorf("content collision")
+		err = errors.Errorf("item collision for vote")
 	}
-	log.WithFields(log.Fields{
-		"hash":      vot.Item.Hash,
-		"oldWeight": oldWeight,
-		"newWeight": vot.Weight,
-		"voter":     vot.SubmittedBy.Hash,
-	}).Infof("vote updated successfully")
+	if err == nil {
+		log.WithFields(log.Fields{
+			"hash":      vot.Item.Hash,
+			"oldWeight": oldWeight,
+			"newWeight": vot.Weight,
+			"voter":     vot.SubmittedBy.Hash,
+		}).Infof("vote updated successfully")
+	} else {
+		log.WithFields(log.Fields{
+			"hash":      vot.Item.Hash,
+			"oldWeight": oldWeight,
+			"newWeight": vot.Weight,
+			"voter":     vot.SubmittedBy.Hash,
+		}).Error(err)
+	}
 
-	return vot, nil
+	return vot, err
 }
