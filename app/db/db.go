@@ -195,8 +195,11 @@ func (c config) LoadVote(f models.LoadVotesFilter) (models.Vote, error) {
 	if err != nil {
 		return models.Vote{}, err
 	}
-	v, err := votes.First()
-	return *v, err
+	if v, err := votes.First(); err == nil {
+		return *v, nil
+	} else {
+		return models.Vote{}, err
+	}
 }
 
 func (c config) SaveVote(v models.Vote) (models.Vote, error) {
