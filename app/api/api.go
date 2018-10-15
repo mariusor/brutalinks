@@ -318,8 +318,16 @@ func VerifyHttpSignature(next http.Handler) http.Handler {
 			// only verify http-signature if present
 			if err := v.Verify(r); err != nil {
 				w.Header()["WWW-Authenticate"] = []string{challenge}
-				HandleError(w, r, http.StatusUnauthorized, err)
-				return
+				Logger.WithFields(log.Fields{
+					"handle": acct.Handle,
+					"hash":   acct.Hash,
+					"header": fmt.Sprintf("%q", r.Header),
+				}).Warningf("invalid www signature")
+				// TODO(marius): here we need to implement some outside logic, as to we want to allow non-signed
+				//   requests on some urls, but not on others - probably another handler to check for Anonymous
+				//   would suffice.
+				//HandleError(w, r, http.StatusUnauthorized, err)
+				//return
 			} else {
 				acct = &getter.acc
 				Logger.WithFields(log.Fields{
