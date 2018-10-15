@@ -52,11 +52,12 @@ func (r *repository) req(method string, url string, body io.Reader) (*http.Reque
 	req.Header.Set("User-Agent", fmt.Sprintf("%s-%s", app.Instance.HostName, app.Instance.Version))
 	err = r.sign(req)
 	if err != nil {
-		new := errors.NewErrWithCause(err, "unable to sign request")
+		new := errors.Errorf("unable to sign request")
 		Logger.WithFields(log.Fields{
-			"account": r.Account.Handle,
-			"url":     req.URL,
-			"method":  req.Method,
+			"account":  r.Account.Handle,
+			"url":      req.URL,
+			"method":   req.Method,
+			"previous": err.Error(),
 		}).Warn(new)
 	}
 	return req, nil

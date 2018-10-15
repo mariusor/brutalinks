@@ -269,11 +269,12 @@ func RenderTemplate(r *http.Request, w http.ResponseWriter, name string, m inter
 		}).Error(err)
 	}
 	if err = Renderer.HTML(w, http.StatusOK, name, m); err != nil {
-		new := errors.NewErrWithCause(err, "failed to render template")
+		new := errors.NewErr("failed to render template")
 		Logger.WithFields(log.Fields{
 			"template": name,
 			"model":    fmt.Sprintf("%#v", m),
 			"trace":    new.StackTrace(),
+			"previous": err.Error(),
 		}).Error(new)
 		Renderer.HTML(w, http.StatusInternalServerError, "error", new)
 	}

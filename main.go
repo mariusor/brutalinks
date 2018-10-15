@@ -34,10 +34,13 @@ func init() {
 	connStr := fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable", dbHost, dbUser, dbPw, dbName)
 	con, err := sqlx.Open("postgres", connStr)
 	if err != nil {
+		new := errors.NewErr("failed to connect to the database")
 		log.WithFields(log.Fields{
-			"dbName": dbName,
-			"dbUser": dbUser,
-		}).Error(errors.NewErrWithCause(err, "failed to connect to the database"))
+			"dbName":   dbName,
+			"dbUser":   dbUser,
+			"previous": err.Error(),
+			"trace":    new.StackTrace(),
+		}).Error(new)
 	}
 
 	if app.Instance.Env == app.PROD {
