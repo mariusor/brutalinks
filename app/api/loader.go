@@ -259,14 +259,14 @@ func loadFromAPObject(ob as.Object) (models.Item, error) {
 	r := ob.InReplyTo
 	if p, ok := r.(as.IRI); ok {
 		c.Parent = &models.Item{
-			Hash: models.Hash(getAccountHandle(p)),
+			Hash: getHashFromAP(p),
 		}
 	}
 	if ob.Context != ob.InReplyTo {
 		op := ob.Context
 		if p, ok := op.(as.IRI); ok {
 			c.OP = &models.Item{
-				Hash: models.Hash(getAccountHandle(p)),
+				Hash: getHashFromAP(p),
 			}
 		}
 	}
@@ -274,7 +274,7 @@ func loadFromAPObject(ob as.Object) (models.Item, error) {
 }
 func loadFromAPCreate(act Activity) (models.Item, error) {
 	it, err := loadFromAPItem(act.Object)
-	it.SubmittedBy.Hash = getHashFromIRI(act.Actor.GetLink())
+	it.SubmittedBy.Hash = getHashFromAP(act.Actor)
 	return it, err
 }
 
