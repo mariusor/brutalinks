@@ -15,6 +15,7 @@ import (
 	ap "github.com/mariusor/activitypub.go/activitypub"
 	as "github.com/mariusor/activitypub.go/activitystreams"
 	json "github.com/mariusor/activitypub.go/jsonld"
+	localap "github.com/mariusor/littr.go/app/activitypub"
 	"github.com/mariusor/littr.go/app/models"
 	log "github.com/sirupsen/logrus"
 )
@@ -69,7 +70,7 @@ func loadAPActivity(it models.Item) as.Activity {
 }
 
 func loadAPItem(item models.Item) as.Item {
-	o := Article{}
+	o := localap.Article{}
 	o.Name = make(as.NaturalLanguageValue, 0)
 	o.Content = make(as.NaturalLanguageValue, 0)
 	if id, ok := BuildObjectIDFromItem(item); ok {
@@ -106,8 +107,8 @@ func loadAPItem(item models.Item) as.Item {
 	return o
 }
 
-func loadAPPerson(a models.Account) *Person {
-	p := Person{}
+func loadAPPerson(a models.Account) *localap.Person {
+	p := localap.Person{}
 	p.Type = as.PersonType
 	p.Name = as.NaturalLanguageValueNew()
 	p.PreferredUsername = as.NaturalLanguageValueNew()
@@ -147,7 +148,7 @@ func loadAPPerson(a models.Account) *Person {
 	p.URL = as.IRI(frontend.AccountPermaLink(a))
 	p.Score = a.Score
 	if a.IsValid() && a.HasMetadata() && a.Metadata.Key != nil && a.Metadata.Key.Public != nil {
-		p.PublicKey = PublicKey{
+		p.PublicKey = localap.PublicKey{
 			ID:           as.ObjectID(fmt.Sprintf("%s#main-key", p.ID)),
 			Owner:        as.IRI(p.ID),
 			PublicKeyPem: fmt.Sprintf("-----BEGIN PUBLIC KEY-----\n%s\n-----END PUBLIC KEY-----", base64.StdEncoding.EncodeToString(a.Metadata.Key.Public)),
@@ -332,7 +333,7 @@ func HandleCollectionActivityObject(w http.ResponseWriter, r *http.Request) {
 				Logger.WithFields(log.Fields{"trace": errors.Trace(err)}).Error(err)
 			}
 			if len(replies) > 0 {
-				if o, ok := el.(Article); ok {
+				if o, ok := el.(localap.Article); ok {
 					o.Replies = as.IRI(BuildRepliesCollectionID(o))
 					el = o
 				}
@@ -380,7 +381,7 @@ func HandleCollectionActivityObjectReplies(w http.ResponseWriter, r *http.Reques
 				MaxItems:  MaxContentItems,
 			}
 
-			p, _ := el.(Article)
+			p, _ := el.(localap.Article)
 			col := as.CollectionNew(BuildRepliesCollectionID(p))
 			if replies, err := service.LoadItems(filter); err == nil {
 				_, err = loadAPCollection(col, &replies)
@@ -454,7 +455,7 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 			log.Errorf("could not load Replies from Context")
 			return
 		}
-		replies := OrderedCollectionNew(as.ObjectID(""))
+		replies := localap.OrderedCollectionNew(as.ObjectID(""))
 		replies.ID = BuildRepliesCollectionID(p)
 		_, err = loadAPCollection(replies, &items)
 		p.Replies = replies

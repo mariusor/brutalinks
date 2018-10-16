@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/mariusor/littr.go/app"
+	localap "github.com/mariusor/littr.go/app/activitypub"
 	"github.com/mariusor/littr.go/app/db"
 	"github.com/mariusor/littr.go/app/frontend"
 	"github.com/spacemonkeygo/httpsig"
@@ -67,61 +68,6 @@ func init() {
 	if Logger == nil {
 		Logger = log.StandardLogger()
 	}
-}
-
-func getHashFromAP(obj as.ObjectOrLink) models.Hash {
-	var h models.Hash
-	if obj.IsLink() {
-		s := strings.Split(string(obj.(as.IRI)), "/")
-		var hash string
-		if s[len(s)-1] == "object" {
-			hash = s[len(s)-2]
-		} else {
-			hash = s[len(s)-1]
-		}
-		h = models.Hash(path.Base(hash))
-	} else {
-		h = getHashFromID(obj.GetID())
-	}
-	return h
-}
-
-func getHashFromID(i *as.ObjectID) models.Hash {
-	if i == nil {
-		return ""
-	}
-	s := strings.Split(string(*i), "/")
-	var hash string
-	if s[len(s)-1] == "object" {
-		hash = s[len(s)-2]
-	} else {
-		hash = s[len(s)-1]
-	}
-	return models.Hash(hash)
-}
-
-func getHashFromIRI(i as.IRI) models.Hash {
-	if len(i) == 0 {
-		return ""
-	}
-	s := strings.Split(string(i), "/")
-	var hash string
-	if s[len(s)-1] == "object" {
-		hash = s[len(s)-2]
-	} else {
-		hash = s[len(s)-1]
-	}
-
-	return models.Hash(hash)
-}
-
-func getAccountHandle(o as.ObjectOrLink) string {
-	if o == nil {
-		return ""
-	}
-	i := o.(as.IRI)
-	s := strings.Split(string(i), "/")
-	return s[len(s)-1]
 }
 
 func Errorf(c int, m string, args ...interface{}) *Error {
@@ -217,14 +163,14 @@ func getObjectType(el as.Item) string {
 			label = n.Value
 			break
 		}
-	case Person:
-		o := el.(Person)
+	case localap.Person:
+		o := el.(localap.Person)
 		for _, n := range o.Name {
 			label = n.Value
 			break
 		}
-	case *Person:
-		o := el.(*Person)
+	case *localap.Person:
+		o := el.(*localap.Person)
 		for _, n := range o.Name {
 			label = n.Value
 			break

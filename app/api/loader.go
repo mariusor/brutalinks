@@ -12,7 +12,10 @@ import (
 	"path"
 	"strings"
 
+	"github.com/spacemonkeygo/httpsig"
+
 	"github.com/mariusor/littr.go/app"
+	ap "github.com/mariusor/littr.go/app/activitypub"
 	"github.com/mariusor/littr.go/app/frontend"
 
 	"github.com/mariusor/qstring"
@@ -20,7 +23,6 @@ import (
 	"github.com/buger/jsonparser"
 	"github.com/go-chi/chi"
 	"github.com/juju/errors"
-	ap "github.com/mariusor/activitypub.go/activitypub"
 	as "github.com/mariusor/activitypub.go/activitystreams"
 	j "github.com/mariusor/activitypub.go/jsonld"
 	"github.com/mariusor/littr.go/app/db"
@@ -245,131 +247,6 @@ func jsonUnescape(s string) string {
 	return string(out)
 }
 
-func loadFromAPObject(ob as.Object) (models.Item, error) {
-	title := jsonUnescape(as.NaturalLanguageValue(ob.Name).First())
-	content := jsonUnescape(as.NaturalLanguageValue(ob.Content).First())
-
-	c := models.Item{
-		Hash:        getHashFromAP(ob),
-		Title:       title,
-		MimeType:    string(ob.MediaType),
-		Data:        content,
-		SubmittedAt: ob.Published,
-		SubmittedBy: &models.Account{
-			Handle: getAccountHandle(ob.AttributedTo),
-		},
-	}
-	r := ob.InReplyTo
-	if p, ok := r.(as.IRI); ok {
-		c.Parent = &models.Item{
-			Hash: getHashFromAP(p),
-		}
-	}
-	if ob.Context != ob.InReplyTo {
-		op := ob.Context
-		if p, ok := op.(as.IRI); ok {
-			c.OP = &models.Item{
-				Hash: getHashFromAP(p),
-			}
-		}
-	}
-	return c, nil
-}
-func loadFromAPCreate(act Activity) (models.Item, error) {
-	it, err := loadFromAPItem(act.Object)
-	it.SubmittedBy.Hash = getHashFromAP(act.Actor)
-	return it, err
-}
-
-func loadFromAPActivity(it as.Item) (interface{}, error) {
-	if !as.ValidActivityType(it.GetType()) {
-		return models.Item{}, errors.Errorf("invalid object type received %s", it.GetType())
-	}
-	switch it.GetType() {
-	case as.CreateType:
-		return loadFromAPCreate(*it.(*Activity))
-	case as.LikeType:
-		fallthrough
-	case as.DislikeType:
-		return loadFromAPLike(*it.(*Activity))
-	}
-	return models.Item{}, errors.Errorf("not implemented for type %s", it.GetType())
-}
-
-func loadFromAPItem(it as.Item) (models.Item, error) {
-	if it == nil {
-		return models.Item{}, errors.New("nil item received")
-	}
-	if it.IsLink() {
-		return models.Item{}, errors.New("unable to load from IRI")
-	}
-	if art, ok := it.(*Article); ok {
-		return loadFromAPArticle(*art)
-	}
-	if art, ok := it.(Article); ok {
-		return loadFromAPArticle(art)
-	}
-	if ob, ok := it.(*as.Object); ok {
-		return loadFromAPObject(*ob)
-	}
-	if ob, ok := it.(as.Object); ok {
-		return loadFromAPObject(ob)
-	}
-	return models.Item{}, errors.New("invalid object type")
-}
-
-func loadFromAPArticle(a Article) (models.Item, error) {
-	it, err := loadFromAPObject(a.Object)
-	it.Score = a.Score
-	return it, err
-}
-
-func loadFromAPLike(l Activity) (models.Vote, error) {
-	v := models.Vote{
-		Flags: 0,
-	}
-	if l.Object != nil {
-		v.Item = &models.Item{
-			Hash: getHashFromAP(l.Object),
-		}
-	}
-	if l.AttributedTo != nil {
-		v.SubmittedBy = &models.Account{
-			Hash: getHashFromAP(l.AttributedTo),
-		}
-	}
-	//CreatedAt: nil,
-	//UpdatedAt: nil,
-	if l.Type == as.LikeType {
-		v.Weight = 1
-	}
-	if l.Type == as.DislikeType {
-		v.Weight = -1
-	}
-	return v, nil
-}
-
-func loadFromAPPerson(p Person) (models.Account, error) {
-	name := jsonUnescape(as.NaturalLanguageValue(p.Name).First())
-	a := models.Account{
-		Hash:   getHashFromAP(p),
-		Handle: name,
-		Email:  "",
-		Metadata: &models.AccountMetadata{
-			Key: &models.SSHKey{
-				ID:     "",
-				Public: []byte(p.PublicKey.PublicKeyPem),
-			},
-		},
-		Score: p.Score,
-		//CreatedAt: nil,
-		//UpdatedAt: nil,
-		Flags: models.FlagsNone,
-		Votes: nil,
-	}
-	return a, nil
-}
-
 func loadPersonFiltersFromReq(r *http.Request) models.LoadAccountsFilter {
 	filters := models.LoadAccountsFilter{
 		MaxItems: MaxContentItems,
@@ -523,7 +400,7 @@ func ItemCollectionCtxt(next http.Handler) http.Handler {
 }
 
 func (r *repository) LoadItem(f models.LoadItemsFilter) (models.Item, error) {
-	var art Article
+	var art ap.Article
 	var it models.Item
 
 	f.MaxItems = 1
@@ -564,7 +441,8 @@ func (r *repository) LoadItem(f models.LoadItemsFilter) (models.Item, error) {
 		Logger.WithFields(log.Fields{}).Error(err)
 		return it, err
 	}
-	return loadFromAPItem(art)
+	err = it.FromActivityPubObject(art)
+	return it, err
 }
 
 func (r *repository) LoadItems(f models.LoadItemsFilter) (models.ItemCollection, error) {
@@ -597,7 +475,7 @@ func (r *repository) LoadItems(f models.LoadItemsFilter) (models.ItemCollection,
 		Logger.WithFields(log.Fields{}).Error(err)
 		return nil, err
 	}
-	col := OrderedCollectionNew(as.ObjectID(url))
+	col := ap.OrderedCollectionNew(as.ObjectID(url))
 	if err = j.Unmarshal(body, &col); err != nil {
 		Logger.WithFields(log.Fields{}).Error(err)
 		return nil, err
@@ -605,16 +483,12 @@ func (r *repository) LoadItems(f models.LoadItemsFilter) (models.ItemCollection,
 
 	items := make(models.ItemCollection, col.TotalItems)
 	for k, it := range col.OrderedItems {
-		obj, err := loadFromAPActivity(it)
-		if err != nil {
+		i := models.Item{}
+		if err := i.FromActivityPubObject(it); err != nil {
 			Logger.WithFields(log.Fields{}).Error(err)
 			continue
 		}
-		if art, ok := obj.(models.Item); ok {
-			items[k] = art
-			continue
-		}
-		Logger.WithFields(log.Fields{}).Error(errors.Errorf("received invalid object "))
+		items[k] = i
 	}
 
 	return items, nil
@@ -636,7 +510,7 @@ func (r *repository) SaveVote(v models.Vote) (models.Vote, error) {
 	o := loadAPItem(*v.Item)
 	id := as.ObjectID(url)
 
-	var act Activity
+	var act ap.Activity
 	act.ID = id
 	act.Actor = p.GetLink()
 	act.Object = o.GetLink()
@@ -674,15 +548,16 @@ func (r *repository) SaveVote(v models.Vote) (models.Vote, error) {
 		return v, err
 	}
 	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusCreated {
-		return loadFromAPLike(act)
+		err := v.FromActivityPubObject(act)
+		return v, err
 	}
 	if resp.StatusCode == http.StatusNotFound {
-		return models.Vote{}, errors.Errorf("vote not found")
+		return v, errors.Errorf("vote not found")
 	}
 	if resp.StatusCode == http.StatusInternalServerError {
-		return models.Vote{}, errors.Errorf("unable to save vote")
+		return v, errors.Errorf("unable to save vote")
 	}
-	return models.Vote{}, errors.Errorf("unknown error, received status %d", resp.StatusCode)
+	return v, errors.Errorf("unknown error, received status %d", resp.StatusCode)
 }
 
 func (r *repository) LoadVotes(f models.LoadVotesFilter) (models.VoteCollection, error) {
@@ -712,7 +587,7 @@ func (r *repository) LoadVotes(f models.LoadVotesFilter) (models.VoteCollection,
 	defer resp.Body.Close()
 	var body []byte
 
-	col := OrderedCollectionNew(as.ObjectID(url))
+	col := ap.OrderedCollectionNew(as.ObjectID(url))
 	if body, err = ioutil.ReadAll(resp.Body); err != nil {
 		return nil, err
 	}
@@ -721,16 +596,12 @@ func (r *repository) LoadVotes(f models.LoadVotesFilter) (models.VoteCollection,
 	}
 	items = make(models.VoteCollection, col.TotalItems)
 	for _, it := range col.OrderedItems {
-		obj, err := loadFromAPActivity(it)
-		if err != nil {
+		vot := models.Vote{}
+		if err := vot.FromActivityPubObject(it); err != nil {
 			Logger.WithFields(log.Fields{}).Error(err)
 			continue
 		}
-		if vot, ok := obj.(models.Vote); ok {
-			items[vot.Item.Hash] = vot
-			continue
-		}
-		Logger.WithFields(log.Fields{}).Error(errors.Errorf("received invalid object "))
+		items[vot.Item.Hash] = vot
 	}
 	return items, nil
 }
@@ -740,6 +611,7 @@ func (r *repository) LoadVote(f models.LoadVotesFilter) (models.Vote, error) {
 		return models.Vote{}, errors.New("invalid item hash")
 	}
 
+	v := models.Vote{}
 	itemHash := f.ItemKey[0]
 	f.ItemKey = nil
 	url := fmt.Sprintf("%s/liked/%s", r.BaseUrl, itemHash)
@@ -748,32 +620,33 @@ func (r *repository) LoadVote(f models.LoadVotesFilter) (models.Vote, error) {
 	var resp *http.Response
 	if resp, err = r.Get(url); err != nil {
 		Logger.WithFields(log.Fields{}).Error(err)
-		return models.Vote{}, err
+		return v, err
 	}
 	if resp == nil {
 		err := errors.New("nil response from the repository")
 		Logger.WithFields(log.Fields{}).Error(err)
-		return models.Vote{}, err
+		return v, err
 	}
 	if resp.StatusCode != http.StatusOK {
 		err := fmt.Errorf("unable to load from the API")
 		Logger.WithFields(log.Fields{}).Error(err)
-		return models.Vote{}, err
+		return v, err
 	}
 	defer resp.Body.Close()
 
 	var body []byte
 	if body, err = ioutil.ReadAll(resp.Body); err != nil {
 		Logger.WithFields(log.Fields{}).Error(err)
-		return models.Vote{}, err
+		return v, err
 	}
 
-	var like Activity
+	var like ap.Activity
 	if err := j.Unmarshal(body, &like); err != nil {
 		Logger.WithFields(log.Fields{}).Error(err)
-		return models.Vote{}, err
+		return v, err
 	}
-	return loadFromAPLike(like)
+	err = v.FromActivityPubObject(like)
+	return v, err
 }
 
 func (r *repository) SaveItem(it models.Item) (models.Item, error) {
@@ -790,12 +663,14 @@ func (r *repository) SaveItem(it models.Item) (models.Item, error) {
 	var err error
 	if len(*art.GetID()) == 0 {
 		id := as.ObjectID("")
-		create := ap.CreateActivityNew(id, actor.GetLink(), art)
+		create := as.CreateNew(id, art)
+		create.Object = actor.GetLink()
 		body, err = j.Marshal(create)
 	} else {
 		id := art.GetID()
 		doUpd = true
-		update := ap.UpdateActivityNew(*id, actor.GetLink(), art)
+		update := as.UpdateNew(*id, art)
+		update.Object = actor.GetLink()
 		body, err = j.Marshal(update)
 	}
 
@@ -817,8 +692,9 @@ func (r *repository) SaveItem(it models.Item) (models.Item, error) {
 	}
 	switch resp.StatusCode {
 	case http.StatusOK:
-		if a, ok := art.(Article); ok {
-			return loadFromAPItem(a)
+		if a, ok := art.(ap.Article); ok {
+			err := it.FromActivityPubObject(a)
+			return it, err
 		} else {
 			hash := path.Base(string(*a.GetID()))
 			filt := models.LoadItemsFilter{
@@ -873,50 +749,65 @@ func (r *repository) LoadAccounts(f models.LoadAccountsFilter) (models.AccountCo
 		Logger.WithFields(log.Fields{}).Error(err)
 		return nil, err
 	}
-	col := OrderedCollectionNew(as.ObjectID(url))
+	col := ap.OrderedCollectionNew(as.ObjectID(url))
 	if err = j.Unmarshal(body, &col); err != nil {
 		Logger.WithFields(log.Fields{}).Error(err)
 		return nil, err
 	}
 	accounts := make(models.AccountCollection, 0)
 	for k, it := range col.OrderedItems {
-		var p Person
-		var ok bool
-		if p, ok = it.(Person); !ok {
+		acc := models.Account{}
+		if err := acc.FromActivityPubObject(it); err != nil {
+			Logger.WithFields(log.Fields{
+				"type": fmt.Sprintf("%T", it),
+			}).Warn(err)
 			continue
 		}
-		accounts[k], _ = loadFromAPPerson(p)
+		accounts[k] = acc
 	}
 	return accounts, nil
 }
 
 func (r *repository) LoadAccount(f models.LoadAccountsFilter) (models.Account, error) {
-	p := Person{}
+	acc := models.Account{}
 
 	if len(f.Handle) == 0 {
-		return models.Account{}, errors.New("invalid account handle")
+		return acc, errors.New("invalid account handle")
 	}
 	handle := f.Handle[0]
 	resp, err := r.Get(fmt.Sprintf("%s/accounts/%s", r.BaseUrl, handle))
 	if err != nil {
 		Logger.WithFields(log.Fields{}).Error(err)
-		return models.Account{}, err
+		return acc, err
 	}
+	p := ap.Person{}
 	if resp != nil {
 		defer resp.Body.Close()
 
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			return models.Account{}, err
+			return acc, err
 		}
+
 		err = j.Unmarshal(body, &p)
 		if err != nil {
-			return models.Account{}, err
+			return acc, err
 		}
 	}
-	return loadFromAPPerson(p)
+
+	err = acc.FromActivityPubObject(p)
+	return acc, err
 }
 
 func (r *repository) SaveAccount(a models.Account) (models.Account, error) {
 	return db.Config.SaveAccount(a)
+}
+
+type SignFunc func(r *http.Request) error
+
+func SignRequest(r *http.Request, p ap.Person, key crypto.PrivateKey) error {
+	hdrs := []string{"(request-target)", "host", "test", "date"}
+
+	return httpsig.NewSigner(string(p.PublicKey.ID), key, httpsig.RSASHA256, hdrs).
+		Sign(r)
 }

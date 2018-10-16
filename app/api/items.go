@@ -4,95 +4,16 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"path"
 
 	"github.com/go-chi/chi"
 
+	ap "github.com/mariusor/littr.go/app/activitypub"
 	"github.com/mariusor/littr.go/app/models"
 
 	log "github.com/sirupsen/logrus"
 
-	ap "github.com/mariusor/activitypub.go/activitypub"
-	as "github.com/mariusor/activitypub.go/activitystreams"
 	j "github.com/mariusor/activitypub.go/jsonld"
 )
-
-func loadVote(body []byte) models.Vote {
-	act := Activity{}
-
-	if err := j.Unmarshal(body, &act); err != nil {
-		Logger.WithFields(log.Fields{}).Errorf("json-ld unmarshal error: %s", err)
-	}
-
-	actor := act.Actor
-	ob := act.Object
-
-	v := models.Vote{
-		SubmittedBy: &models.Account{
-			Hash: getHashFromAP(actor),
-		},
-		Item: &models.Item{
-			Hash: getHashFromAP(ob),
-		},
-	}
-	if act.GetType() == as.LikeType {
-		v.Weight = 1
-	}
-	if act.GetType() == as.DislikeType {
-		v.Weight = -1
-	}
-
-	return v
-}
-
-func loadItem(body []byte) models.Item {
-	act := ap.CreateActivity{}
-
-	if err := j.Unmarshal(body, &act); err != nil {
-		Logger.WithFields(log.Fields{}).Errorf("json-ld unmarshal error: %s", err)
-	}
-
-	actor := act.Activity.Actor
-	ob := act.Activity.Object
-	it := models.Item{
-		SubmittedBy: &models.Account{
-			Hash: getHashFromAP(actor),
-		},
-	}
-	if ob.IsObject() {
-		// full Object struct
-		obj, ok := act.Activity.Object.(*as.Object)
-		if !ok {
-			Logger.Errorf("invalid object in %T activity", act)
-		} else {
-			if len(obj.ID) > 0 {
-				it.Hash = models.Hash(path.Base(string(obj.ID)))
-			}
-			title := jsonUnescape(as.NaturalLanguageValue(obj.Name).First())
-			content := jsonUnescape(as.NaturalLanguageValue(obj.Content).First())
-
-			it.Data = content
-			it.Title = title
-			it.MimeType = string(obj.MediaType)
-			if obj.Context != nil {
-				it.OP = &models.Item{
-					Hash: getHashFromAP(obj.Context),
-				}
-			}
-			if obj.InReplyTo != nil {
-				it.Parent = &models.Item{
-					Hash: getHashFromAP(obj.InReplyTo),
-				}
-			}
-		}
-	}
-	it.SubmittedBy = &models.Account{
-		Hash: getHashFromAP(actor),
-	}
-	it.Hash = getHashFromAP(ob)
-
-	return it
-}
 
 // POST /api - not implemented yet - but we should have all information in the CreateActivity body
 // PUT /api/accounts/{handle}/{collection}/{item_hash}
@@ -115,7 +36,18 @@ func UpdateItem(w http.ResponseWriter, r *http.Request) {
 	col := chi.URLParam(r, "collection")
 	switch col {
 	case "outbox":
-		it := loadItem(body)
+		act := ap.Activity{}
+		if err := j.Unmarshal(body, &act); err != nil {
+			Logger.WithFields(log.Fields{}).Errorf("json-ld unmarshal error: %s", err)
+			HandleError(w, r, http.StatusInternalServerError, err)
+			return
+		}
+		it := models.Item{}
+		if err := it.FromActivityPubObject(act); err != nil {
+			Logger.WithFields(log.Fields{}).Errorf("json-ld unmarshal error: %s", err)
+			HandleError(w, r, http.StatusInternalServerError, err)
+			return
+		}
 		if repo, ok := models.ContextItemSaver(r.Context()); ok {
 			newIt, err := repo.SaveItem(it)
 			if err != nil {
@@ -134,7 +66,18 @@ func UpdateItem(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	case "liked":
-		v := loadVote(body)
+		act := ap.Activity{}
+		if err := j.Unmarshal(body, &act); err != nil {
+			Logger.WithFields(log.Fields{}).Errorf("json-ld unmarshal error: %s", err)
+			HandleError(w, r, http.StatusInternalServerError, err)
+			return
+		}
+		v := models.Vote{}
+		if err := v.FromActivityPubObject(act); err != nil {
+			Logger.WithFields(log.Fields{}).Errorf("json-ld unmarshal error: %s", err)
+			HandleError(w, r, http.StatusInternalServerError, err)
+			return
+		}
 		if repo, ok := models.ContextVoteSaver(r.Context()); ok {
 			newVot, err := repo.SaveVote(v)
 			if err != nil {

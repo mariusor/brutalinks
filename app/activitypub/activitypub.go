@@ -1,13 +1,10 @@
-package api
+package activitypub
 
 import (
-	"crypto"
 	"fmt"
-	"net/http"
 
 	"github.com/buger/jsonparser"
 	as "github.com/mariusor/activitypub.go/activitystreams"
-	"github.com/spacemonkeygo/httpsig"
 )
 
 type PublicKey struct {
@@ -238,13 +235,4 @@ func (a *Activity) UnmarshalJSON(data []byte) error {
 	}
 
 	return nil
-}
-
-type SignFunc func(r *http.Request) error
-
-func SignRequest(r *http.Request, p Person, key crypto.PrivateKey) error {
-	hdrs := []string{"(request-target)", "host", "test", "date"}
-
-	return httpsig.NewSigner(string(p.PublicKey.ID), key, httpsig.RSASHA256, hdrs).
-		Sign(r)
 }
