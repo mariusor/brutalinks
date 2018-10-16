@@ -204,15 +204,15 @@ body > header h1 a:before {
     content: "\f014";
     font-family: IconFont;
     /*font-weight: 400;*/
-    margin-right: .4em;
+    margin-right: .4rem;
 }
 body > main {
-    margin-top: 1em;
+    margin-top: 1rem;
     grid-area: main;
 }
 body > footer {
     grid-area: footer;
-    font-size: 0.7em;
+    font-size: 0.7rem;
 }
 a:visited {
     color: rebeccapurple;
@@ -278,11 +278,6 @@ ol.hide-text article.data {
 }
 .hide-text li.item {
     min-height: 3.3rem;
-}
-article {
-    min-height: 1.3rem;
-    /*padding-bottom: 1.2rem;*/
-    line-height: 1.35rem;
 }
 .hide-text article header {
     margin-bottom: 0px;
@@ -354,8 +349,9 @@ ol li {
 .item {
     display: grid;
     grid-template-columns: 1.4rem 11fr;
-    /*grid-template-rows: minmax(0px, 11fr);*/
-    grid-template-rows: max-content;
+    /*grid-template-rows: minmax(3rem, min-content) auto;*/
+    /*grid-template-rows: max-content;*/
+    /*align-items: center;*/
     grid-template-areas:
             "sidebar main"
             "sidebar footer"
@@ -367,11 +363,11 @@ ol li {
     /*grid-area: header;*/
 /*}*/
 .item .data {
+    line-height: 1.35rem;
     grid-area: main;
     padding-left: .6rem;
-    min-height: 2.8rem;
+    min-height: 3.2em;
     display: grid;
-    vertical-align: middle;
     align-items: center;
 }
 .item footer::before {
@@ -400,7 +396,7 @@ ol.comments li {
 .item .score {
     /*display: none !important;*/
     text-align: center;
-    max-width: 1.4em;
+    max-width: 1.2rem;
     padding: 0;
     margin-left: 2px;
 }
@@ -505,7 +501,7 @@ ol.comments li {
     padding: .2em 0 0 1.9em;
 }
 .comment {
-    font-size: .96rem;
+    font-size: .96em;
 }
 .deleted {
     line-height: 2rem;
