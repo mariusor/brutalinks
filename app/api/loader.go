@@ -68,6 +68,9 @@ func (r *repository) sign(req *http.Request) error {
 		return nil
 	}
 	k := r.Account.Metadata.Key
+	if k == nil {
+		return nil
+	}
 	var prv crypto.PrivateKey
 	var err error
 	if k.ID == "id-rsa" {
