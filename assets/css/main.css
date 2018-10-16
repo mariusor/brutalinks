@@ -364,6 +364,9 @@ ol li {
 .item .data {
     grid-area: main;
     padding-left: .6rem;
+    min-height: 2.8rem;
+    display: flex;
+    align-items: center;
 }
 .item footer::before {
     content: '\2012';
