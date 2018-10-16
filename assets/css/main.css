@@ -512,7 +512,7 @@ ol.comments li {
     padding: 0 0 0 5ex;
 }
 .comments .item {
-    margin-left: -.6rem;
+    margin-left: -.7rem;
 }
 details[open] {}
 details:not([open]) {}
@@ -531,7 +531,7 @@ details > summary::before {}
 details > summary {
     font-size: 0.7rem;
     /*display: inline;*/
-    margin-top: .6rem;
+    /*margin-top: .6rem;*/
     padding: .3rem 0 .3rem .3rem;
     /*border-radius: .3rem 0 0 .3rem;*/
 }
