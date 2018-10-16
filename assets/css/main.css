@@ -157,12 +157,6 @@ table {
 :root {
     height: 100%;
 }
-p {
-    text-indent: .4rem;
-    padding-bottom: .2rem;
-    word-break: break-word;
-    hyphens: auto;
-}
 body {
     background: Window;
     color: WindowText;
@@ -327,14 +321,25 @@ h6.domain {
 .domain a {
     text-decoration: none;
 }
-.data p {}
+.data p {
+    text-indent: .6rem;
+    word-break: break-word;
+    hyphens: auto;
+}
+.data p + p {
+    padding-top: .6rem;
+}
 .data pre {
     line-height: 1.3rem;
 }
 .data code {}
 .data p:first-of-type {
     margin-top: 0;
-    text-indent: 0;
+    /*text-indent: 0;*/
+}
+.data p:first-of-type::first-letter {
+    font-weight: normal;
+    font-size: 110%;
 }
 .items article pre code {}
 .inverted .items article pre {}
@@ -365,7 +370,8 @@ ol li {
     grid-area: main;
     padding-left: .6rem;
     min-height: 2.8rem;
-    display: flex;
+    display: grid;
+    vertical-align: middle;
     align-items: center;
 }
 .item footer::before {
