@@ -725,7 +725,7 @@ func (r *repository) LoadAccounts(f models.LoadAccountsFilter) (models.AccountCo
 	if q, err := qstring.MarshalString(&f); err == nil {
 		qs = fmt.Sprintf("?%s", q)
 	}
-	url := fmt.Sprintf("%s/accounts?%s", r.BaseUrl, qs)
+	url := fmt.Sprintf("%s/accounts%s", r.BaseUrl, qs)
 
 	var err error
 	var resp *http.Response
@@ -749,13 +749,13 @@ func (r *repository) LoadAccounts(f models.LoadAccountsFilter) (models.AccountCo
 		Logger.WithFields(log.Fields{}).Error(err)
 		return nil, err
 	}
-	col := ap.OrderedCollectionNew(as.ObjectID(url))
+	col := ap.CollectionNew(as.ObjectID(url))
 	if err = j.Unmarshal(body, &col); err != nil {
 		Logger.WithFields(log.Fields{}).Error(err)
 		return nil, err
 	}
 	accounts := make(models.AccountCollection, 0)
-	for k, it := range col.OrderedItems {
+	for _, it := range col.Items {
 		acc := models.Account{}
 		if err := acc.FromActivityPubItem(it); err != nil {
 			Logger.WithFields(log.Fields{
@@ -763,40 +763,22 @@ func (r *repository) LoadAccounts(f models.LoadAccountsFilter) (models.AccountCo
 			}).Warn(err)
 			continue
 		}
-		accounts[k] = acc
+		accounts = append(accounts, acc)
 	}
 	return accounts, nil
 }
 
 func (r *repository) LoadAccount(f models.LoadAccountsFilter) (models.Account, error) {
-	acc := models.Account{}
-
-	if len(f.Handle) == 0 {
-		return acc, errors.New("invalid account handle")
+	var accounts models.AccountCollection
+	var err error
+	if accounts, err = r.LoadAccounts(f); err != nil {
+		return models.Account{}, err
 	}
-	handle := f.Handle[0]
-	resp, err := r.Get(fmt.Sprintf("%s/accounts/%s", r.BaseUrl, handle))
-	if err != nil {
-		Logger.WithFields(log.Fields{}).Error(err)
-		return acc, err
+	var ac *models.Account
+	if ac, err = accounts.First(); err != nil {
+		return models.Account{}, err
 	}
-	p := ap.Person{}
-	if resp != nil {
-		defer resp.Body.Close()
-
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return acc, err
-		}
-
-		err = j.Unmarshal(body, &p)
-		if err != nil {
-			return acc, err
-		}
-	}
-
-	err = acc.FromActivityPubItem(p)
-	return acc, err
+	return *ac, nil
 }
 
 func (r *repository) SaveAccount(a models.Account) (models.Account, error) {

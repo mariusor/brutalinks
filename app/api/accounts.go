@@ -96,7 +96,9 @@ func loadAPItem(item models.Item) as.Item {
 		o.Content.Set("en", string(item.Data))
 	}
 	if item.SubmittedBy != nil {
-		o.AttributedTo = as.IRI(BuildActorID(*item.SubmittedBy))
+		id := BuildActorID(*item.SubmittedBy)
+		handle := strings.Replace(string(id), item.SubmittedBy.Hash.String(), item.SubmittedBy.Handle, 1)
+		o.AttributedTo = as.IRI(handle)
 	}
 	if item.Parent != nil {
 		id, _ := BuildObjectIDFromItem(*item.Parent)
@@ -229,10 +231,12 @@ func HandleAccountsCollection(w http.ResponseWriter, r *http.Request) {
 // GET /api/accounts/:handle
 func HandleAccount(w http.ResponseWriter, r *http.Request) {
 	val := r.Context().Value(AccountCtxtKey)
-	a, _ := val.(models.Account)
-	//if !ok {
-	//	Logger.WithFields(log.Fields{}).Errorf("could not load Account from Context")
-	//}
+
+	var ok bool
+	var a models.Account
+	if a, ok = val.(models.Account); !ok {
+		Logger.WithFields(log.Fields{}).Errorf("could not load Account from Context")
+	}
 	p := loadAPPerson(a)
 	if p.Outbox != nil {
 		p.Outbox = p.Outbox.GetLink()
