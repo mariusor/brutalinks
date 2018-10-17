@@ -84,7 +84,7 @@ func main() {
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
 	r.Use(ReqLogger)
-	//r.Use(api.ShowHeaders)
+	//r.Use(app.ShowHeaders)
 
 	if app.Instance.Env == app.PROD {
 		r.Use(middleware.Recoverer)
@@ -142,6 +142,7 @@ func main() {
 	r.With(db.Repository).Route("/api", func(r chi.Router) {
 		r.Use(api.VerifyHttpSignature)
 		r.Use(app.StripCookies)
+		//r.Use(middleware.GetHead)
 
 		r.Route("/accounts", func(r chi.Router) {
 			r.With(api.LoadFiltersCtxt).Get("/", api.HandleAccountsCollection)
