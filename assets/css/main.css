@@ -168,9 +168,9 @@ body {
     grid-template-areas: "header" "main" "footer";
 }
 p {
-    text-indent: .6rem;
+    /*text-indent: -.6rem;*/
     word-break: break-word;
-    hyphens: auto;
+    /*hyphens: auto;*/
 }
 p + p {
     padding-top: .6rem;
@@ -703,30 +703,39 @@ form label {
     min-height: 1.8rem;
     line-height: 1.8rem;
 }
+.about main,
+.error main {
+    margin: 0 auto;
+    display: flex;
+    justify-content: center;
+    line-height: 3em;
+    max-width: 960px;
+}
 .error main {
     font-size: 2em;
-    line-height: 3em;
-    display: flex;
+    max-height: 480px;
     align-items: center;
-    justify-content:center;
-    max-height: 360px;
-    text-align: center;
 }
-.error main section {
-    opacity: .65;
-}
-body.error > header {
+.error > header,
+.about > header {
     display: none;
 }
 .error main section,
-.about main article {
+.about main section {
+    opacity: .65;
     margin-top: 1em;
     line-height: 2em;
 }
-.about main article {
-    line-height: 2rem;
-    max-width: 960px;
+.about main section {
+    padding: 0 1rem;
 }
-.about main article h1 {
-    display: none;
+.error main section h1 {
+    font-size: 1.2em;
+    margin-bottom: 1rem;
+    text-align: center;
+}
+.about main section h1 {
+    font-size: 2em;
+    text-align: center;
+    margin-bottom: 1em;
 }
