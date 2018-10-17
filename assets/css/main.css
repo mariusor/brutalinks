@@ -167,6 +167,14 @@ body {
     grid-template-rows: 2rem 1fr 2rem;
     grid-template-areas: "header" "main" "footer";
 }
+p {
+    text-indent: .6rem;
+    word-break: break-word;
+    hyphens: auto;
+}
+p + p {
+    padding-top: .6rem;
+}
 body > header {
     display: grid;
     grid-template-columns: 6fr 3fr;
@@ -316,14 +324,6 @@ h6.domain {
 .domain a {
     text-decoration: none;
 }
-.data p {
-    text-indent: .6rem;
-    word-break: break-word;
-    hyphens: auto;
-}
-.data p + p {
-    padding-top: .6rem;
-}
 .data pre {
     line-height: 1.3rem;
 }
@@ -399,7 +399,14 @@ ol.comments li {
     max-width: 1.2rem;
     padding: 0;
     margin-left: 2px;
+    /*max-height: 1rem;*/
+    /*overflow: hidden;*/
 }
+/*.item .score:hover,*/
+/*.item .score:active {*/
+    /*max-height: 4rem;*/
+    /*overflow: visible;*/
+/*}*/
 .item .score a,
 .item .score data {
     display: block;
