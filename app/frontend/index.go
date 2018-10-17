@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	MaxContentItems = 200
+	MaxContentItems = 50
 )
 
 func isYay(v *models.Vote) bool {
