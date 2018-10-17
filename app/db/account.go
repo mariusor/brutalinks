@@ -36,9 +36,14 @@ func loadAccounts(db *sqlx.DB, f models.LoadAccountsFilter) (models.AccountColle
 	} else {
 		fullWhere = " true"
 	}
+	var offset string
+	if f.Page > 0 {
+		offset = fmt.Sprintf(" OFFSEt %d", f.MaxItems*f.Page)
+	}
+
 	sel := fmt.Sprintf(`select 
 		"id", "key", "handle", "email", "score", "created_at", "updated_at", "metadata", "flags"
-	from "accounts" where %s`, fullWhere)
+	from "accounts" where %s LIMIT %d%s`, fullWhere, f.MaxItems, offset)
 
 	type AccountCollection []Account
 	agg := make(AccountCollection, 0)

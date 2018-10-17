@@ -58,10 +58,15 @@ func (a Account) Votes() VoteCollection {
 	return nil
 }
 
-func loadVotes(db *sqlx.DB, filter models.LoadVotesFilter) (models.VoteCollection, error) {
-	wheres, whereValues := filter.GetWhereClauses()
+func loadVotes(db *sqlx.DB, f models.LoadVotesFilter) (models.VoteCollection, error) {
+	wheres, whereValues := f.GetWhereClauses()
 
 	fullWhere := fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(wheres, " AND ")))
+
+	var offset string
+	if f.Page > 0 {
+		offset = fmt.Sprintf(" OFFSEt %d", f.MaxItems*f.Page)
+	}
 	selC := fmt.Sprintf(`select
 		"vote"."id" as "vote_id",
 		"vote"."weight" as "vote_weight",
@@ -97,7 +102,7 @@ func loadVotes(db *sqlx.DB, filter models.LoadVotesFilter) (models.VoteCollectio
 		inner join "accounts" as "voter" on "voter"."id" = "vote"."submitted_by"
 		inner join "content_items" as "item" on "item"."id" = "vote"."item_id" 
 		inner join "accounts" as "author" on "item"."submitted_by" = "author"."id"
-where %s order by "vote"."submitted_at" desc limit %d`, fullWhere, filter.MaxItems)
+where %s order by "vote"."submitted_at" desc limit %d%s`, fullWhere, f.MaxItems, offset)
 	agg := make([]votesView, 0)
 	udb := db.Unsafe()
 	if err := udb.Select(&agg, selC, whereValues...); err != nil {

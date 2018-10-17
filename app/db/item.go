@@ -236,6 +236,10 @@ func loadItems(db *sqlx.DB, f models.LoadItemsFilter) (models.ItemCollection, er
 	} else {
 		fullWhere = fmt.Sprintf("(%s)", strings.Join(wheres, " AND "))
 	}
+	var offset string
+	if f.Page > 0 {
+		offset = fmt.Sprintf(" OFFSEt %d", f.MaxItems*f.Page)
+	}
 	// use hacker-news sort algorithm
 	// (votes - 1) / pow((item_hour_age+2), gravity)
 	sel := fmt.Sprintf(`select 
@@ -263,7 +267,7 @@ func loadItems(db *sqlx.DB, f models.LoadItemsFilter) (models.ItemCollection, er
 		where %s 
 	order by 
 		(("item"."score" - 1) / ((extract(epoch from age(current_timestamp, "item"."submitted_at")) / 3600.00) ^ %f))
-	desc limit %d`, fullWhere, models.HNGravity, f.MaxItems)
+	desc limit %d%s`, fullWhere, models.HNGravity, f.MaxItems, offset)
 
 	agg := make([]itemsView, 0)
 	if err := db.Select(&agg, sel, whereValues...); err != nil {
