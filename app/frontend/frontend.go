@@ -458,7 +458,7 @@ func LoadSession(next http.Handler) http.Handler {
 }
 
 func addFlashMessage(typ flashType, msg string, r *http.Request) {
-	s, _ := sessionStore.Get(r, sessionName)
+	//s, _ := sessionStore.Get(r, sessionName)
 	n := Flash{typ, msg}
 
 	exists := false
@@ -469,7 +469,7 @@ func addFlashMessage(typ flashType, msg string, r *http.Request) {
 		}
 	}
 	if !exists {
-		s.AddFlash(n)
+		//s.AddFlash(n)
 	}
 }
 
