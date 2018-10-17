@@ -36,6 +36,11 @@ type Article struct {
 // We need it here in order to be able to implement our own UnmarshalJSON() method
 type OrderedCollection as.OrderedCollection
 
+// Ordered it should be identical to:
+//    github.com/mariusor/activitypub.go/activitystreams/collections.go#Collection
+// We need it here in order to be able to implement our own UnmarshalJSON() method
+type Collection as.Collection
+
 // Activity it should be identical to:
 //    github.com/mariusor/activitypub.go/activitystreams/activity.go#Activity
 // We need it here in order to be able to implement our own UnmarshalJSON() method
@@ -175,14 +180,33 @@ func (o *OrderedCollection) UnmarshalJSON(data []byte) error {
 			}
 			a = act
 		} else if as.ValidObjectType(it.GetType()) {
-			art := &Article{}
-			if data, _, _, err := jsonparser.Get(data, "orderedItems", fmt.Sprintf("[%d]", i)); err == nil {
-				art.UnmarshalJSON(data)
+			switch it.GetType() {
+			case as.ArticleType:
+				fallthrough
+			case as.NoteType:
+				fallthrough
+			case as.PageType:
+				fallthrough
+			case as.DocumentType:
+				art := &Article{}
+
+				if data, _, _, err := jsonparser.Get(data, "items", fmt.Sprintf("[%d]", i)); err == nil {
+					art.UnmarshalJSON(data)
+				}
+				if context, err := jsonparser.GetString(data, "items", fmt.Sprintf("[%d]", i), "context"); err == nil {
+					art.Context = as.IRI(context)
+				}
+				a = art
+			case as.PersonType:
+				p := &Person{}
+				if data, _, _, err := jsonparser.Get(data, "items", fmt.Sprintf("[%d]", i)); err == nil {
+					p.UnmarshalJSON(data)
+				}
+				if context, err := jsonparser.GetString(data, "items", fmt.Sprintf("[%d]", i), "context"); err == nil {
+					p.Context = as.IRI(context)
+				}
+				a = p
 			}
-			if context, err := jsonparser.GetString(data, "orderedItems", fmt.Sprintf("[%d]", i), "context"); err == nil {
-				art.Context = as.IRI(context)
-			}
-			a = art
 		}
 		if a == nil {
 			continue
@@ -192,6 +216,110 @@ func (o *OrderedCollection) UnmarshalJSON(data []byte) error {
 
 	*o = OrderedCollection(col)
 	o.OrderedItems = items
+	o.TotalItems = uint(len(items))
+	return nil
+}
+
+// CollectionNew initializes a new Collection
+func CollectionNew(id as.ObjectID) *Collection {
+	o := Collection(*as.CollectionNew(id))
+	return &o
+}
+
+// GetType returns the Collection's type
+func (o Collection) GetType() as.ActivityVocabularyType {
+	return o.Type
+}
+
+// GetLink returns the IRI of the Collection object
+func (o Collection) GetLink() as.IRI {
+	return as.IRI(o.ID)
+}
+
+// IsLink returns false for an Collection object
+func (o Collection) IsLink() bool {
+	return false
+}
+
+// GetID returns the ObjectID corresponding to the Collection
+func (o Collection) GetID() *as.ObjectID {
+	return &o.ID
+}
+
+// IsObject returns true for am Collection object
+func (o Collection) IsObject() bool {
+	return true
+}
+
+// Collection returns the underlying Collection type
+func (o *Collection) Collection() as.CollectionInterface {
+	return o
+}
+
+// Append adds an element to an Collection
+func (o *Collection) Append(ob as.Item) error {
+	o.Items = append(o.Items, ob)
+	o.TotalItems++
+	return nil
+}
+
+// UnmarshalJSON
+func (o *Collection) UnmarshalJSON(data []byte) error {
+	col := as.Collection{}
+	err := col.UnmarshalJSON(data)
+	if err != nil {
+		return err
+	}
+
+	var items = make(as.ItemCollection, 0)
+	for i, it := range col.Items {
+		var a as.ObjectOrLink
+		if as.ValidActivityType(it.GetType()) {
+			act := &Activity{}
+			if data, _, _, err := jsonparser.Get(data, "items", fmt.Sprintf("[%d]", i)); err == nil {
+				act.UnmarshalJSON(data)
+			}
+			if context, err := jsonparser.GetString(data, "items", fmt.Sprintf("[%d]", i), "context"); err == nil {
+				act.Context = as.IRI(context)
+			}
+			a = act
+		} else if as.ValidObjectType(it.GetType()) {
+			switch it.GetType() {
+			case as.ArticleType:
+				fallthrough
+			case as.NoteType:
+				fallthrough
+			case as.PageType:
+				fallthrough
+			case as.DocumentType:
+				art := &Article{}
+
+				if data, _, _, err := jsonparser.Get(data, "items", fmt.Sprintf("[%d]", i)); err == nil {
+					art.UnmarshalJSON(data)
+				}
+				if context, err := jsonparser.GetString(data, "items", fmt.Sprintf("[%d]", i), "context"); err == nil {
+					art.Context = as.IRI(context)
+				}
+				a = art
+			case as.PersonType:
+				p := &Person{}
+				if data, _, _, err := jsonparser.Get(data, "items", fmt.Sprintf("[%d]", i)); err == nil {
+					p.UnmarshalJSON(data)
+				}
+				if context, err := jsonparser.GetString(data, "items", fmt.Sprintf("[%d]", i), "context"); err == nil {
+					p.Context = as.IRI(context)
+				}
+				a = p
+			}
+		}
+		if a == nil {
+			continue
+		}
+		items = append(items, a)
+	}
+
+	*o = Collection(col)
+	o.Items = items
 	o.TotalItems = uint(len(items))
 	return nil
 }
