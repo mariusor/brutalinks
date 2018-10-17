@@ -110,13 +110,16 @@ func (i *Item) FromActivityPubItem(it as.Item) error {
 				}
 			}
 
-			par := Item{}
-			par.FromActivityPubItem(a.InReplyTo)
-			i.Parent = &par
-
-			op := Item{}
-			op.FromActivityPubItem(a.Context)
-			i.OP = &op
+			if a.InReplyTo != nil {
+				par := Item{}
+				par.FromActivityPubItem(a.InReplyTo)
+				i.Parent = &par
+			}
+			if a.Context != nil {
+				op := Item{}
+				op.FromActivityPubItem(a.Context)
+				i.OP = &op
+			}
 		}
 	default:
 		return errors.New("invalid object type")
