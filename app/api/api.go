@@ -28,7 +28,7 @@ import (
 )
 
 const (
-	MaxContentItems = 200
+	MaxContentItems = 50
 )
 
 var Logger log.FieldLogger
