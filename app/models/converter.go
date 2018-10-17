@@ -14,22 +14,28 @@ import (
 )
 
 type Converter interface {
-	FromActivityPubObject(ob as.Item) error
+	FromActivityPubItem(ob as.Item) error
 }
 
-func (a *Account) FromActivityPubObject(it as.Item) error {
+func (h *Hash) FromActivityPubItem(it as.Item) error {
+	*h = getHashFromAP(it.GetLink())
+	return nil
+}
+
+func (a *Account) FromActivityPubItem(it as.Item) error {
 	if it == nil {
 		return errors.New("nil item received")
 	}
 	if it.IsLink() {
-		return errors.New("unable to load from IRI")
+		a.Hash.FromActivityPubItem(it.GetLink())
+		return nil
 	}
 	switch it.GetType() {
 	case as.CreateType:
 		fallthrough
 	case as.UpdateType:
 		if act, ok := it.(*ap.Activity); ok {
-			return a.FromActivityPubObject(act.Actor)
+			return a.FromActivityPubItem(act.Actor)
 		}
 	case as.PersonType:
 		if p, ok := it.(*ap.Person); ok {
@@ -53,12 +59,13 @@ func (a *Account) FromActivityPubObject(it as.Item) error {
 	return nil
 }
 
-func (i *Item) FromActivityPubObject(it as.Item) error {
+func (i *Item) FromActivityPubItem(it as.Item) error {
 	if it == nil {
 		return errors.New("nil item received")
 	}
 	if it.IsLink() {
-		return errors.New("unable to load from IRI")
+		i.Hash.FromActivityPubItem(it.GetLink())
+		return nil
 	}
 	switch it.GetType() {
 	case as.CreateType:
@@ -67,7 +74,10 @@ func (i *Item) FromActivityPubObject(it as.Item) error {
 		fallthrough
 	case as.ActivityType:
 		if act, ok := it.(*ap.Activity); ok {
-			return i.FromActivityPubObject(act.Object)
+			return i.FromActivityPubItem(act.Object)
+		}
+		if act, ok := it.(ap.Activity); ok {
+			return i.FromActivityPubItem(act.Object)
 		}
 	case as.ArticleType:
 		fallthrough
@@ -88,7 +98,7 @@ func (i *Item) FromActivityPubObject(it as.Item) error {
 			i.Data = content
 			i.SubmittedAt = a.Published
 			i.SubmittedBy = &Account{
-				Handle: getAccountHandle(a.AttributedTo),
+				Hash: getHashFromAP(a.AttributedTo),
 			}
 			r := a.InReplyTo
 			if p, ok := r.(as.IRI); ok {
@@ -104,7 +114,6 @@ func (i *Item) FromActivityPubObject(it as.Item) error {
 					}
 				}
 			}
-			i.Flags = FlagsNone
 		}
 	default:
 		return errors.New("invalid object type")
@@ -113,7 +122,7 @@ func (i *Item) FromActivityPubObject(it as.Item) error {
 	return nil
 }
 
-func (v *Vote) FromActivityPubObject(it as.Item) error {
+func (v *Vote) FromActivityPubItem(it as.Item) error {
 	if it == nil {
 		return errors.New("nil item received")
 	}
@@ -124,17 +133,33 @@ func (v *Vote) FromActivityPubObject(it as.Item) error {
 	case as.LikeType:
 		fallthrough
 	case as.DislikeType:
+		if act, ok := it.(ap.Activity); ok {
+			on := Item{}
+			on.FromActivityPubItem(act.Object)
+			v.Item = &on
+
+			er := Account{}
+			er.FromActivityPubItem(act.Actor)
+			v.SubmittedBy = &er
+
+			v.SubmittedAt = act.Published
+			v.UpdatedAt = act.Updated
+			if act.Type == as.LikeType {
+				v.Weight = 1
+			}
+			if act.Type == as.DislikeType {
+				v.Weight = -1
+			}
+		}
 		if act, ok := it.(*ap.Activity); ok {
-			if act.Object != nil {
-				v.Item = &Item{
-					Hash: getHashFromAP(act.Object),
-				}
-			}
-			if act.AttributedTo != nil {
-				v.SubmittedBy = &Account{
-					Hash: getHashFromAP(act.AttributedTo),
-				}
-			}
+			on := Item{}
+			on.FromActivityPubItem(act.Object)
+			v.Item = &on
+
+			er := Account{}
+			er.FromActivityPubItem(act.Actor)
+			v.SubmittedBy = &er
+
 			v.SubmittedAt = act.Published
 			v.UpdatedAt = act.Updated
 			if act.Type == as.LikeType {
@@ -147,15 +172,6 @@ func (v *Vote) FromActivityPubObject(it as.Item) error {
 	}
 
 	return nil
-}
-
-func getAccountHandle(o as.Item) string {
-	if o == nil {
-		return ""
-	}
-	i := o.(as.IRI)
-	s := strings.Split(string(i), "/")
-	return s[len(s)-1]
 }
 
 func getHashFromAP(obj as.Item) Hash {

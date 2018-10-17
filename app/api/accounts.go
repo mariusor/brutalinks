@@ -76,7 +76,9 @@ func loadAPItem(item models.Item) as.Item {
 	if id, ok := BuildObjectIDFromItem(item); ok {
 		o.ID = id
 	}
-	o.URL = as.IRI(frontend.ItemPermaLink(item))
+	if len(item.Hash) > 0 {
+		o.URL = as.IRI(frontend.ItemPermaLink(item))
+	}
 	if item.MimeType == models.MimeTypeURL {
 		o.Type = as.PageType
 	} else {

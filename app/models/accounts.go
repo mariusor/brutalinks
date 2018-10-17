@@ -44,16 +44,16 @@ type Account struct {
 
 type Hash string
 
-func (a Hash) String() string {
-	if len(a) > 8 {
-		return string(a[0:8])
+func (h Hash) String() string {
+	if len(h) > 8 {
+		return string(h[0:8])
 	} else {
-		return string(a)
+		return string(h)
 	}
 }
 
-func (a Hash) MarshalText() ([]byte, error) {
-	return []byte(a[0:8]), nil
+func (h Hash) MarshalText() ([]byte, error) {
+	return []byte(h[0:8]), nil
 }
 
 func (a Account) HasMetadata() bool {

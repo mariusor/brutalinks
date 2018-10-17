@@ -87,7 +87,7 @@ func BuildGlobalOutboxID() as.ObjectID {
 }
 
 func BuildActorID(a models.Account) as.ObjectID {
-	return as.ObjectID(fmt.Sprintf("%s/%s", AccountsURL, url.PathEscape(a.Handle)))
+	return as.ObjectID(fmt.Sprintf("%s/%s", AccountsURL, url.PathEscape(a.Hash.String())))
 }
 
 func BuildActorHashID(a models.Account) as.ObjectID {
@@ -96,7 +96,7 @@ func BuildActorHashID(a models.Account) as.ObjectID {
 
 func BuildCollectionID(a models.Account, o as.Item) as.ObjectID {
 	if len(a.Handle) > 0 {
-		return as.ObjectID(fmt.Sprintf("%s/%s/%s", AccountsURL, url.PathEscape(a.Handle), getObjectType(o)))
+		return as.ObjectID(fmt.Sprintf("%s/%s/%s", AccountsURL, url.PathEscape(a.Hash.String()), getObjectType(o)))
 	}
 	return as.ObjectID(fmt.Sprintf("%s/%s", BaseURL, getObjectType(o)))
 }
@@ -110,8 +110,8 @@ func BuildObjectIDFromItem(i models.Item) (as.ObjectID, bool) {
 		return as.ObjectID(""), false
 	}
 	if i.SubmittedBy != nil {
-		handle := i.SubmittedBy.Handle
-		return as.ObjectID(fmt.Sprintf("%s/%s/outbox/%s/object", AccountsURL, url.PathEscape(handle), url.PathEscape(i.Hash.String()))), true
+		hash := i.SubmittedBy.Hash
+		return as.ObjectID(fmt.Sprintf("%s/%s/outbox/%s/object", AccountsURL, url.PathEscape(hash.String()), url.PathEscape(i.Hash.String()))), true
 	} else {
 		return as.ObjectID(fmt.Sprintf("%s/outbox/%s/object", BaseURL, url.PathEscape(i.Hash.String()))), true
 	}

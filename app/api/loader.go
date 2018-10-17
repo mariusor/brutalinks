@@ -441,7 +441,7 @@ func (r *repository) LoadItem(f models.LoadItemsFilter) (models.Item, error) {
 		Logger.WithFields(log.Fields{}).Error(err)
 		return it, err
 	}
-	err = it.FromActivityPubObject(art)
+	err = it.FromActivityPubItem(art)
 	return it, err
 }
 
@@ -484,7 +484,7 @@ func (r *repository) LoadItems(f models.LoadItemsFilter) (models.ItemCollection,
 	items := make(models.ItemCollection, col.TotalItems)
 	for k, it := range col.OrderedItems {
 		i := models.Item{}
-		if err := i.FromActivityPubObject(it); err != nil {
+		if err := i.FromActivityPubItem(it); err != nil {
 			Logger.WithFields(log.Fields{}).Error(err)
 			continue
 		}
@@ -548,7 +548,7 @@ func (r *repository) SaveVote(v models.Vote) (models.Vote, error) {
 		return v, err
 	}
 	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusCreated {
-		err := v.FromActivityPubObject(act)
+		err := v.FromActivityPubItem(act)
 		return v, err
 	}
 	if resp.StatusCode == http.StatusNotFound {
@@ -597,7 +597,7 @@ func (r *repository) LoadVotes(f models.LoadVotesFilter) (models.VoteCollection,
 	items = make(models.VoteCollection, col.TotalItems)
 	for _, it := range col.OrderedItems {
 		vot := models.Vote{}
-		if err := vot.FromActivityPubObject(it); err != nil {
+		if err := vot.FromActivityPubItem(it); err != nil {
 			Logger.WithFields(log.Fields{}).Error(err)
 			continue
 		}
@@ -645,7 +645,7 @@ func (r *repository) LoadVote(f models.LoadVotesFilter) (models.Vote, error) {
 		Logger.WithFields(log.Fields{}).Error(err)
 		return v, err
 	}
-	err = v.FromActivityPubObject(like)
+	err = v.FromActivityPubItem(like)
 	return v, err
 }
 
@@ -664,13 +664,13 @@ func (r *repository) SaveItem(it models.Item) (models.Item, error) {
 	if len(*art.GetID()) == 0 {
 		id := as.ObjectID("")
 		create := as.CreateNew(id, art)
-		create.Object = actor.GetLink()
+		create.Actor = actor.GetLink()
 		body, err = j.Marshal(create)
 	} else {
 		id := art.GetID()
 		doUpd = true
 		update := as.UpdateNew(*id, art)
-		update.Object = actor.GetLink()
+		update.Actor = actor.GetLink()
 		body, err = j.Marshal(update)
 	}
 
@@ -693,7 +693,7 @@ func (r *repository) SaveItem(it models.Item) (models.Item, error) {
 	switch resp.StatusCode {
 	case http.StatusOK:
 		if a, ok := art.(ap.Article); ok {
-			err := it.FromActivityPubObject(a)
+			err := it.FromActivityPubItem(a)
 			return it, err
 		} else {
 			hash := path.Base(string(*a.GetID()))
@@ -710,11 +710,11 @@ func (r *repository) SaveItem(it models.Item) (models.Item, error) {
 		}
 		return r.LoadItem(f)
 	case http.StatusNotFound:
-		return models.Item{}, errors.Errorf("%s", resp.Status)
+		return it, errors.Errorf("%s", resp.Status)
 	case http.StatusMethodNotAllowed:
-		return models.Item{}, errors.Errorf("%s", resp.Status)
+		return it, errors.Errorf("%s", resp.Status)
 	case http.StatusInternalServerError:
-		return models.Item{}, errors.Errorf("unable to save item %s", resp.Status)
+		return it, errors.Errorf("unable to save item %s", resp.Status)
 	default:
 		return models.Item{}, errors.Errorf("unknown error, received status %d", resp.StatusCode)
 	}
@@ -757,7 +757,7 @@ func (r *repository) LoadAccounts(f models.LoadAccountsFilter) (models.AccountCo
 	accounts := make(models.AccountCollection, 0)
 	for k, it := range col.OrderedItems {
 		acc := models.Account{}
-		if err := acc.FromActivityPubObject(it); err != nil {
+		if err := acc.FromActivityPubItem(it); err != nil {
 			Logger.WithFields(log.Fields{
 				"type": fmt.Sprintf("%T", it),
 			}).Warn(err)
@@ -795,7 +795,7 @@ func (r *repository) LoadAccount(f models.LoadAccountsFilter) (models.Account, e
 		}
 	}
 
-	err = acc.FromActivityPubObject(p)
+	err = acc.FromActivityPubItem(p)
 	return acc, err
 }
 

@@ -43,7 +43,7 @@ func UpdateItem(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		it := models.Item{}
-		if err := it.FromActivityPubObject(act); err != nil {
+		if err := it.FromActivityPubItem(act); err != nil {
 			Logger.WithFields(log.Fields{}).Errorf("json-ld unmarshal error: %s", err)
 			HandleError(w, r, http.StatusInternalServerError, err)
 			return
@@ -51,7 +51,10 @@ func UpdateItem(w http.ResponseWriter, r *http.Request) {
 		if repo, ok := models.ContextItemSaver(r.Context()); ok {
 			newIt, err := repo.SaveItem(it)
 			if err != nil {
-				Logger.WithFields(log.Fields{"saveItem": it.SubmittedBy.Hash}).Error(err)
+				Logger.WithFields(log.Fields{
+					"item":    it.Hash,
+					"account": it.SubmittedBy.Hash,
+				}).Error(err)
 				HandleError(w, r, http.StatusInternalServerError, err)
 				return
 			}
@@ -73,7 +76,7 @@ func UpdateItem(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		v := models.Vote{}
-		if err := v.FromActivityPubObject(act); err != nil {
+		if err := v.FromActivityPubItem(act); err != nil {
 			Logger.WithFields(log.Fields{}).Errorf("json-ld unmarshal error: %s", err)
 			HandleError(w, r, http.StatusInternalServerError, err)
 			return

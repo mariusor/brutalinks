@@ -153,10 +153,10 @@ func saveItem(db *sqlx.DB, it models.Item) (models.Item, error) {
 
 	res, err := db.Exec(ins, params...)
 	if err != nil {
-		return models.Item{}, err
+		return it, err
 	} else {
 		if rows, _ := res.RowsAffected(); rows == 0 {
-			return models.Item{}, errors.Errorf("could not save item %q", i.Key.Hash())
+			return it, errors.Errorf("could not save item %q", i.Key.Hash())
 		}
 	}
 
