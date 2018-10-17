@@ -196,6 +196,7 @@ func HandleAccountsCollection(w http.ResponseWriter, r *http.Request) {
 	f := r.Context().Value(models.FilterCtxtKey)
 	if filter, ok = f.(models.LoadAccountsFilter); !ok {
 		Logger.WithFields(log.Fields{}).Errorf("could not load filter from Context")
+		HandleError(w, r, http.StatusNotFound, errors.New("not found"))
 		return
 	} else {
 		val := r.Context().Value(models.RepositoryCtxtKey)
@@ -219,6 +220,8 @@ func HandleAccountsCollection(w http.ResponseWriter, r *http.Request) {
 				data, err = json.WithContext(GetContext()).Marshal(col)
 			} else {
 				Logger.WithFields(log.Fields{"trace": errors.Trace(err)}).Error(err)
+				HandleError(w, r, http.StatusNotFound, err)
+				return
 			}
 		}
 	}
