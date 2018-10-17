@@ -97,23 +97,26 @@ func (i *Item) FromActivityPubItem(it as.Item) error {
 			i.MimeType = string(a.MediaType)
 			i.Data = content
 			i.SubmittedAt = a.Published
-			i.SubmittedBy = &Account{
-				Hash: getHashFromAP(a.AttributedTo),
-			}
-			r := a.InReplyTo
-			if p, ok := r.(as.IRI); ok {
-				i.Parent = &Item{
-					Hash: getHashFromAP(p),
-				}
-			}
-			if a.Context != a.InReplyTo {
-				op := a.Context
-				if p, ok := op.(as.IRI); ok {
-					i.OP = &Item{
-						Hash: getHashFromAP(p),
+
+			if a.AttributedTo != nil {
+				if a.AttributedTo.IsObject() {
+					auth := Account{}
+					auth.FromActivityPubItem(a.AttributedTo)
+					i.SubmittedBy = &auth
+				} else {
+					i.SubmittedBy = &Account{
+						Handle: getAccountHandle(a.AttributedTo.GetLink()),
 					}
 				}
 			}
+
+			par := Item{}
+			par.FromActivityPubItem(a.InReplyTo)
+			i.Parent = &par
+
+			op := Item{}
+			op.FromActivityPubItem(a.Context)
+			i.OP = &op
 		}
 	default:
 		return errors.New("invalid object type")
@@ -183,6 +186,15 @@ func getHashFromAP(obj as.Item) Hash {
 		hash = s[len(s)-1]
 	}
 	return Hash(path.Base(hash))
+}
+
+func getAccountHandle(o as.Item) string {
+	if o == nil {
+		return ""
+	}
+	i := o.(as.IRI)
+	s := strings.Split(string(i), "/")
+	return s[len(s)-1]
 }
 
 func jsonUnescape(s string) string {
