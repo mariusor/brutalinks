@@ -15,9 +15,9 @@ while what is relevant gets buried.
 <!--From the an old member's perspective it's the "eternal September" effect.--> 
 
 This is why the main component which will be missing in this implementation is the concept of using 
-the same instance for merging multiple interest groups. As this concept is no longer present, 
-being replaced by the different instances themselves, every community will be able to create one of their own 
-and enforce (or not) own moderation rules and topic preferences.
+the same instance for merging multiple interest groups and replacing it with the different instances themselves.
+This way every community will be able to create one of their own  and enforce (or not) 
+their own moderation rules and topic preferences.
 
 At the same time, through the federation mechanism between instances, the users can subscribe to other
 streams and will receive updates from them. As a plus, due to the interoperability that ActivityPub brings,
