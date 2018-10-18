@@ -2,8 +2,10 @@ package frontend
 
 import (
 	"fmt"
-	"github.com/juju/errors"
 	"net/http"
+	"strconv"
+
+	"github.com/juju/errors"
 
 	"github.com/go-chi/chi"
 	"github.com/mariusor/littr.go/app/models"
@@ -12,6 +14,8 @@ import (
 type itemListingModel struct {
 	Title         string
 	InvertedTheme bool
+	NextPage      int
+	PrevPage      int
 	User          *models.Account
 	Items         comments
 }
@@ -41,15 +45,29 @@ func ShowAccount(w http.ResponseWriter, r *http.Request) {
 		HandleError(w, r, http.StatusNotFound, errors.Errorf("account %s not found", handle))
 		return
 	}
+
+	page := 1
+	if p, err := strconv.Atoi(r.URL.Query().Get("page")); err == nil {
+		page = p
+		if page <= 0 {
+			page = 1
+		}
+	}
 	filter := models.LoadItemsFilter{
 		AttributedTo: []models.Hash{a.Hash},
+		Page:         page,
 		MaxItems:     MaxContentItems,
 	}
 	if m, err := loadItems(r.Context(), filter); err == nil {
 		m.Title = fmt.Sprintf("%s submissions", genitive(a.Handle))
 		m.User = &a
 		m.InvertedTheme = isInverted(r)
-
+		if len(m.Items) >= MaxContentItems {
+			m.NextPage = page + 1
+		}
+		if page > 1 {
+			m.PrevPage = page - 1
+		}
 		ShowItemData = true
 
 		RenderTemplate(r, w, "listing", m)

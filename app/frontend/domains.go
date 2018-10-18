@@ -2,6 +2,7 @@ package frontend
 
 import (
 	"net/http"
+	"strconv"
 
 	log "github.com/sirupsen/logrus"
 
@@ -16,6 +17,7 @@ import (
 
 func loadItems(c context.Context, filter models.LoadItemsFilter) (itemListingModel, error) {
 	m := itemListingModel{}
+
 	itemLoader, ok := models.ContextItemLoader(c)
 	if !ok {
 		err := errors.Errorf("could not load item repository from Context")
@@ -49,11 +51,18 @@ func loadItems(c context.Context, filter models.LoadItemsFilter) (itemListingMod
 // HandleDomains serves /domains/{domain} request
 func HandleDomains(w http.ResponseWriter, r *http.Request) {
 	domain := chi.URLParam(r, "domain")
-
+	page := 1
+	if p, err := strconv.Atoi(r.URL.Query().Get("page")); err == nil {
+		page = p
+		if page <= 0 {
+			page = 1
+		}
+	}
 	filter := models.LoadItemsFilter{
 		Content:          fmt.Sprintf("http[s]?://%s", domain),
 		ContentMatchType: models.MatchFuzzy,
 		MediaType:        []string{models.MimeTypeURL},
+		Page:             page,
 		MaxItems:         MaxContentItems,
 	}
 	if m, err := loadItems(r.Context(), filter); err == nil {
@@ -61,7 +70,12 @@ func HandleDomains(w http.ResponseWriter, r *http.Request) {
 		m.InvertedTheme = isInverted(r)
 
 		ShowItemData = false
-
+		if len(m.Items) >= MaxContentItems {
+			m.NextPage = page + 1
+		}
+		if page > 1 {
+			m.PrevPage = page - 1
+		}
 		RenderTemplate(r, w, "listing", m)
 	} else {
 		HandleError(w, r, http.StatusInternalServerError, err)

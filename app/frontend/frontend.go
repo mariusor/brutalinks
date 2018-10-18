@@ -104,6 +104,7 @@ func init() {
 			"ScoreClass":        scoreClass,
 			"YayLink":           yayLink,
 			"NayLink":           nayLink,
+			"PageLink":          pageLink,
 			"version":           func() string { return app.Instance.Version },
 			"Name":              func() template.HTML { return appName(app.Instance) },
 		}},

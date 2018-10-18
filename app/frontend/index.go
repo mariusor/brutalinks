@@ -3,9 +3,11 @@ package frontend
 import (
 	"bytes"
 	"fmt"
+	"html/template"
 	"io"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/mariusor/littr.go/app"
 
@@ -28,13 +30,6 @@ func isNay(v *models.Vote) bool {
 type AccountMetadata struct {
 	password string
 	salt     string
-}
-
-type indexModel struct {
-	Title         string
-	InvertedTheme bool
-	Items         comments
-	User          *models.Account
 }
 
 type aboutModel struct {
@@ -102,10 +97,25 @@ func nayLink(i models.Item) string {
 	return scoreLink(i, "nay")
 }
 
+func pageLink(p int) template.HTML {
+	//if p > 1 {
+	return template.HTML(fmt.Sprintf("?page=%d", p))
+	//} else {
+	//	return template.HTML("")
+	//}
+}
+
 // HandleIndex serves / request
 func HandleIndex(w http.ResponseWriter, r *http.Request) {
-	m := indexModel{Title: "Index", InvertedTheme: isInverted(r)}
+	m := itemListingModel{Title: "Index", InvertedTheme: isInverted(r)}
 
+	page := 1
+	if p, err := strconv.Atoi(r.URL.Query().Get("page")); err == nil {
+		page = p
+		if page <= 0 {
+			page = 1
+		}
+	}
 	val := r.Context().Value(models.RepositoryCtxtKey)
 	itemLoader, ok := val.(models.CanLoadItems)
 	if !ok {
@@ -114,6 +124,7 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 	}
 	items, err := itemLoader.LoadItems(models.LoadItemsFilter{
 		Context:  []string{"0"},
+		Page:     page,
 		MaxItems: MaxContentItems,
 		Deleted:  []bool{false},
 	})
@@ -125,7 +136,12 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 
 	ShowItemData = false
 	m.Items = loadComments(items)
-
+	if len(items) >= MaxContentItems {
+		m.NextPage = page + 1
+	}
+	if page > 1 {
+		m.PrevPage = page - 1
+	}
 	acct, ok := models.ContextCurrentAccount(r.Context())
 	if acct.IsLogged() {
 		votesLoader, ok := val.(models.CanLoadVotes)
