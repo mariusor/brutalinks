@@ -65,7 +65,7 @@ func loadVotes(db *sqlx.DB, f models.LoadVotesFilter) (models.VoteCollection, er
 
 	var offset string
 	if f.Page > 0 {
-		offset = fmt.Sprintf(" OFFSEt %d", f.MaxItems*f.Page)
+		offset = fmt.Sprintf(" OFFSEt %d", f.MaxItems*(f.Page-1))
 	}
 	selC := fmt.Sprintf(`select
 		"vote"."id" as "vote_id",
