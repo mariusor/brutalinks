@@ -31,12 +31,12 @@ type Article struct {
 	Score int64 `jsonld:"score"`
 }
 
-// OrderedCollection it should be identical to:
+// OrderedCollection should be identical to:
 //    github.com/mariusor/activitypub.go/activitystreams/collections.go#OrderedCollection
 // We need it here in order to be able to implement our own UnmarshalJSON() method
 type OrderedCollection as.OrderedCollection
 
-// Ordered it should be identical to:
+// Collection should be identical to:
 //    github.com/mariusor/activitypub.go/activitystreams/collections.go#Collection
 // We need it here in order to be able to implement our own UnmarshalJSON() method
 type Collection as.Collection

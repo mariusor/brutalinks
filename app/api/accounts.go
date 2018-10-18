@@ -87,7 +87,7 @@ func loadAPItem(item models.Item) as.Item {
 	o.Published = item.SubmittedAt
 	o.Updated = item.UpdatedAt
 	o.MediaType = as.MimeType(item.MimeType)
-	o.Generator = as.IRI(app.Instance.BaseURL)
+	//o.Generator = as.IRI(app.Instance.BaseURL)
 	o.Score = item.Score / models.ScoreMultiplier
 	if item.Title != "" {
 		o.Name.Set("en", string(item.Title))
@@ -413,14 +413,18 @@ func HandleCollectionActivityObjectReplies(w http.ResponseWriter, r *http.Reques
 func HandleCollection(w http.ResponseWriter, r *http.Request) {
 	var data []byte
 	var err error
+	var p *localap.Person
+
 	val := r.Context().Value(AccountCtxtKey)
 	a, _ := val.(models.Account)
 	//if !ok {
 	//	Logger.WithFields(log.Fields{}).WithFields(log.Fields{}).Errorf("could not load Account from Context")
 	//}
-	p := loadAPPerson(a)
-
+	p = loadAPPerson(a)
 	typ := chi.URLParam(r, "collection")
+	filters := r.Context().Value(models.FilterCtxtKey)
+
+	f, _ := filters.(models.LoadItemsFilter)
 
 	collection := r.Context().Value(CollectionCtxtKey)
 	switch strings.ToLower(typ) {
@@ -434,11 +438,21 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 		col := ap.OutboxNew()
 		col.ID = BuildCollectionID(a, new(ap.Outbox))
 		_, err = loadAPCollection(col, &items)
-		if len(items) > 0 {
-			fpUrl := string(*col.GetID()) + "?page=1"
-			col.First = as.IRI(fpUrl)
-		}
 		p.Outbox = col
+		if len(items) > 0 {
+			url := fmt.Sprintf("%s?page=%d", string(*col.GetID()), f.Page)
+			col.First = as.IRI(strings.Replace(url, fmt.Sprintf("page=%d", f.Page), fmt.Sprintf("page=%d", 1), 1))
+			if f.Page > 0 {
+				oc := as.OrderedCollection(*col)
+				page := as.OrderedCollectionPageNew(&oc)
+				page.ID = as.ObjectID(url)
+				page.Next = as.IRI(strings.Replace(url, fmt.Sprintf("page=%d", f.Page), fmt.Sprintf("page=%d", f.Page+1), 1))
+				if f.Page > 1 {
+					page.Prev = as.IRI(strings.Replace(url, fmt.Sprintf("page=%d", f.Page), fmt.Sprintf("page=%d", f.Page-1), 1))
+				}
+				p.Outbox = page
+			}
+		}
 		data, err = json.WithContext(GetContext()).Marshal(p.Outbox)
 	case "liked":
 		votes, ok := collection.(models.VoteCollection)
@@ -452,11 +466,21 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 		liked := ap.LikedNew()
 		liked.ID = BuildCollectionID(a, new(ap.Likes))
 		_, err = loadAPLiked(liked, votes)
-		if len(votes) > 0 {
-			fpUrl := string(*liked.GetID()) + "?page=1"
-			liked.First = as.IRI(fpUrl)
-		}
 		p.Liked = liked
+		if len(votes) > 0 {
+			url := fmt.Sprintf("%s?page=%d", string(*liked.GetID()), f.Page)
+			liked.First = as.IRI(strings.Replace(url, fmt.Sprintf("page=%d", f.Page), fmt.Sprintf("page=%d", 1), 1))
+			if f.Page > 0 {
+				oc := as.OrderedCollection(*liked)
+				page := as.OrderedCollectionPageNew(&oc)
+				page.ID = as.ObjectID(url)
+				page.Next = as.IRI(strings.Replace(url, fmt.Sprintf("page=%d", f.Page), fmt.Sprintf("page=%d", f.Page+1), 1))
+				if f.Page > 1 {
+					page.Prev = as.IRI(strings.Replace(url, fmt.Sprintf("page=%d", f.Page), fmt.Sprintf("page=%d", f.Page-1), 1))
+				}
+				p.Liked = page
+			}
+		}
 		data, err = json.WithContext(GetContext()).Marshal(p.Liked)
 	case "replies":
 		items, ok := collection.(models.ItemCollection)
