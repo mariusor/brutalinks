@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/mariusor/littr.go/app/models"
@@ -146,8 +147,8 @@ func loadEnv(l *Application) (bool, error) {
 }
 
 func (a *Application) Run(m http.Handler, wait time.Duration) {
-	Logger.WithFields(log.Fields{}).Infof("starting debug level %q", log.GetLevel().String())
-	Logger.WithFields(log.Fields{}).Infof("listening on %s", a.listen())
+	Logger.WithFields(log.Fields{}).Infof("Starting debug level %q", log.GetLevel().String())
+	Logger.WithFields(log.Fields{}).Infof("Listening on %s", a.listen())
 
 	srv := &http.Server{
 		Addr: a.listen(),
@@ -166,25 +167,49 @@ func (a *Application) Run(m http.Handler, wait time.Duration) {
 		}
 	}()
 
-	c := make(chan os.Signal, 1)
-	// We'll accept graceful shutdowns when quit via SIGINT (Ctrl+C)
-	// SIGKILL, SIGQUIT or SIGTERM (Ctrl+/) will not be caught.
-	signal.Notify(c, os.Interrupt)
-	// Block until we receive our signal.
-	<-c
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGHUP, syscall.SIGINT,
+		syscall.SIGTERM, syscall.SIGQUIT)
+
+	exitChan := make(chan int)
+	go func() {
+		for {
+			s := <-sigChan
+			switch s {
+			case syscall.SIGHUP:
+				Logger.Info("SIGHUP received, reloading configuration")
+				loadEnv(a)
+			// kill -SIGINT XXXX or Ctrl+c
+			case syscall.SIGINT:
+				Logger.Info("SIGING received, stopping")
+			// kill -SIGTERM XXXX
+			case syscall.SIGTERM:
+				Logger.Info("SIGITERM received, force stopping")
+				exitChan <- 0
+			// kill -SIGQUIT XXXX
+			case syscall.SIGQUIT:
+				Logger.Info("SIGQUIT received, force stopping with core-dump")
+				exitChan <- 0
+			default:
+				Logger.Info("Unknown signal %d.", s)
+			}
+		}
+	}()
+	code := <-exitChan
 
 	// Create a deadline to wait for.
 	ctx, cancel := context.WithTimeout(context.Background(), wait)
 	log.RegisterExitHandler(cancel)
 	defer cancel()
+
 	// Doesn't block if no connections, but will otherwise wait
 	// until the timeout deadline.
 	srv.Shutdown(ctx)
 	// Optionally, you could run srv.Shutdown in a goroutine and block on
 	// <-ctx.Done() if your application should wait for other services
 	// to finalize based on context cancellation.
-	Logger.WithFields(log.Fields{}).Infof("shutting down")
-	os.Exit(0)
+	Logger.WithFields(log.Fields{}).Infof("Shutting down")
+	os.Exit(code)
 }
 
 func ShowHeaders(next http.Handler) http.Handler {
