@@ -181,7 +181,8 @@ func (a *Application) Run(m http.Handler, wait time.Duration) {
 				loadEnv(a)
 			// kill -SIGINT XXXX or Ctrl+c
 			case syscall.SIGINT:
-				Logger.Info("SIGING received, stopping")
+				Logger.Info("SIGINT received, stopping")
+				exitChan <- 0
 			// kill -SIGTERM XXXX
 			case syscall.SIGTERM:
 				Logger.Info("SIGITERM received, force stopping")
