@@ -7,7 +7,7 @@ export VERSION=unknown
 
 GO := go
 BUILD := $(GO) build -a -ldflags '-extldflags "-static"'
-SOURCES := $(wildcard ./app/*/*.go)
+APPSOURCES := $(wildcard ./app/*.go ./app/*/*.go)
 
 ifeq ($(ENV),)
 	ENV := dev
@@ -23,19 +23,19 @@ export VERSION = $(shell git describe --tags)
 endif
 
 app: bin/app
-bin/app: main.go $(SOURCES)
+bin/app: go.mod main.go $(APPSOURCES)
 	$(BUILD) -tags $(ENV) -o $@ ./main.go
 
 bootstrap: bin/bootstrap
-bin/bootstrap: cli/bootstrap/main.go
+bin/bootstrap: go.mod cli/bootstrap/main.go $(APPSOURCES)
 	$(BUILD) -tags $(ENV) -o $@ cli/bootstrap/main.go
 
 votes: bin/votes
-bin/votes: cli/votes/main.go
+bin/votes: go.mod cli/votes/main.go $(APPSOURCES)
 	$(BUILD) -tags $(ENV) -o $@ cli/votes/main.go
 
 keys: bin/keys
-bin/keys: cli/keys/main.go
+bin/keys: go.mod cli/keys/main.go $(APPSOURCES)
 	$(BUILD) -tags $(ENV) -o $@ cli/keys/main.go
 
 cli: bootstrap votes keys
