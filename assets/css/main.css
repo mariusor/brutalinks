@@ -750,9 +750,9 @@ a[rel=next]::after {
 i.icon {
     font-style: normal;
 }
-.icon {
-    margin-left: .5rem;
-}
+/*.icon {*/
+    /*margin-left: .2rem;*/
+/*}*/
 .icon::before {
     margin-right: .3rem;
 }
