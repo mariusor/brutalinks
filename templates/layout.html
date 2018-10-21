@@ -4,7 +4,6 @@
 {{- template "partials/head" . -}}
 </head>
 <body class="{{current}}{{ if .InvertedTheme }} inverted{{end}}">
-{{- template "partials/flash" -}}
 <header>{{ template "partials/header" . }}</header>
 <main>
 {{ yield -}}
@@ -12,5 +11,6 @@
 <footer>
 {{- template "partials/footer" . -}}
 </footer>
+{{- template "partials/flash" -}}
 </body>
 </html>

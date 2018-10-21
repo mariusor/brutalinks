@@ -1,11 +1,11 @@
 <section id="items">
 {{- template "partials/items" .Items -}}
 </section>
-<nav>
+<nav class="pagination">
 {{if gt .PrevPage 0 }}
-    <a href="{{ .PrevPage | PageLink }}">prev</a>
+    <a href="{{ .PrevPage | PageLink }}" rel="prev">prev</a>
 {{end}}
 {{if gt .NextPage 0 }}
-    <a href="{{.NextPage | PageLink }}">next</a>
+    <a href="{{.NextPage | PageLink }}" rel="next">next</a>
 {{end}}
 </nav>
