@@ -7,7 +7,7 @@ html, body, div, span, applet, object, iframe,
 h1, h2, h3, h4, h5, h6, p, blockquote, pre,
 abbr, acronym, address, big, cite, code,
 del, dfn, em, img, ins, kbd, q, s, samp,
-small, strike, strong, sub, sup, tt, var,
+small, strike, strong, /*sub, sup,*/ tt, var,
 b, u, i, center, a, summary, details,
 dl, dt, dd, ol, ul, li,
 fieldset, form, label, legend,
@@ -37,18 +37,6 @@ ol, ul {
 blockquote, q {
     quotes: none;
 }
-.local-icon::before {
-    /*content: "\f2ed";*/
-    content: "\f014";
-    font-family: IconFont;
-}
-i.github-icon {
-    font-style: normal;
-}
-.github-icon::before {
-    content:"\f09b";
-    font-family: IconFont;
-}
 blockquote:before, blockquote:after,
 q:before, q:after {
     content: '';
@@ -72,9 +60,21 @@ table {
     font-style:normal;
 }
 /* font awesome */
-@media (max-width: 480px) {
+@media (min-width: 120px) {
     :root {
         font-size: 3.6vw;
+    }
+    body > header {
+        grid-template-columns: 14ex 65% 0;
+    }
+    body > header menu#sections li a {
+        font-size: 0;
+    }
+    body > header menu#sections li a::before {
+        font-size: .9rem;
+    }
+    body > header menu#top {
+        display: none;
     }
     h6.domain {
         display: none;
@@ -84,40 +84,37 @@ table {
     :root {
         font-size: 2.8vw;
     }
-    h6.domain {
-        display: none;
-    }
 }
 @media (min-width: 576px) {
     :root {
         font-size: 2.2vw;
     }
+    body > header menu {
+        padding-top: .6em;
+    }
+    body > header menu#sections li a {
+        font-size: unset;
+    }
+    body > header menu#top {
+        display: unset;
+    }
     h6.domain {
-        display: none;
+        display: inline;
     }
 }
 @media (min-width: 768px) {
     :root {
         font-size: 1.9vw;
     }
-    h6.domain {
-        display: inline;
-    }
 }
 @media (min-width: 992px) {
     :root {
         font-size: 1.4vw;
     }
-    h6.domain {
-        display: inline;
-    }
 }
 @media (min-width: 1050px) {
     :root {
         font-size: 1.1vw;
-    }
-    h6.domain {
-        display: inline;
     }
 }
 @media (min-width: 1200px) {
@@ -132,16 +129,10 @@ table {
     :root {
         font-size: .9vw;
     }
-    h6.domain {
-        display: inline;
-    }
 }
 @media (min-width: 1700px) {
     :root {
         font-size: .95vw;
-    }
-    h6.domain {
-        display: inline;
     }
 }
 @media (min-width: 1800px) {
@@ -175,52 +166,8 @@ p {
 p + p {
     padding-top: .6rem;
 }
-body > header {
-    display: grid;
-    grid-template-columns: 6fr 3fr;
-    grid-template-rows: 1fr;
-    grid-area: header;
-    grid-template-areas: "main" "aside";
-    margin: .5rem 0 0 0;
-}
-body > header h1 {
-    font-size: 1.6em;
-    font-weight: lighter;
-    grid-area: main;
-}
-body > header menu {
-    text-align: right;
-}
-body > header menu a,
-body > header menu a:visited,
-body > header menu a:active
-{
-    text-decoration: none;
-}
-body > header h1 a,
-body > header h1 a:hover,
-body > header h1 a:visited,
-body > header h1 a:active
-{
-    color: WindowText;
-    text-decoration: none;
-}
-body > header h1 a:before {
-    /*content: "♻";*/
-    /*content: "\f1b8";*/
-    /*content: "\f2ed";*/
-    content: "\f014";
-    font-family: IconFont;
-    /*font-weight: 400;*/
-    margin-right: .4rem;
-}
-body > main {
-    margin-top: 1rem;
-    grid-area: main;
-}
-body > footer {
-    grid-area: footer;
-    font-size: 0.7rem;
+menu li {
+    display: inline-block;
 }
 a:visited {
     color: rebeccapurple;
@@ -250,6 +197,64 @@ body.inverted > header h1 a:visited,
 body.inverted > header h1 a:focus
 {
     color: Window;
+}
+body > header {
+    display: grid;
+    grid-template-columns: 14ex 3fr 2fr;
+    /*grid-template-rows: 1fr;*/
+    grid-area: header;
+    margin: .5rem 0 0 0;
+}
+body > header h1 {
+    font-size: 1.6em;
+    font-weight: lighter;
+}
+body > header menu {
+    padding-top: .6em;
+}
+body > header menu#sections {}
+body > header menu#top {
+    text-align: right;
+}
+body > header menu a,
+body > header menu a:visited,
+body > header menu a:active
+{
+    text-decoration: none;
+}
+body > header h1 a,
+body > header h1 a:hover,
+body > header h1 a:visited,
+body > header h1 a:active
+{
+    color: WindowText;
+    text-decoration: none;
+}
+body > header h1 a:before {
+    content: "\f014";
+    font-family: IconFont;
+    /*font-weight: 400;*/
+    margin-right: .4rem;
+}
+menu#top li:first-child::before,
+menu#bottom li:first-child::before {
+    content: "";
+}
+menu#top li::before,
+menu#bottom li::before {
+    content: " | ";
+}
+menu#top {
+    font-size: .8rem;
+    text-align: right;
+}
+body > main {
+    margin-top: 1rem;
+    grid-area: main;
+}
+body > footer {
+    grid-area: footer;
+    font-size: 0.7rem;
 }
 .item h1,
 .item h2,
@@ -664,20 +669,6 @@ a.to-op:before {
     font-family: IconFont;
     font-weight: 900;
 }
-menu#top {
-    font-size: .8rem;
-}
-menu#top li {
-    display:inline-block;
-}
-menu#top li:first-child::before,
-menu#bottom li:first-child::before {
-    content: "";
-}
-menu#top li::before,
-menu#bottom li::before {
-    content: " | ";
-}
 .new-acct-details {
     display: block;
     float: right;
@@ -739,4 +730,49 @@ form label {
     font-size: 2em;
     text-align: center;
     margin-bottom: 1em;
+}
+.pagination {}
+a[rel=prev]::before {
+    content: '\f100';
+    font-family: IconFont;
+    margin-right: .2rem;
+}
+a[rel=next]::after {
+    content: '\f101';
+    font-family: IconFont;
+    margin-left: .2rem;
+}
+i.icon {
+    font-style: normal;
+}
+.icon {
+    margin-left: .5rem;
+}
+.icon::before {
+    margin-right: .3rem;
+}
+.code.icon::before {
+    content: "\f121";
+    font-family: IconFont;
+}
+.local.icon::before {
+    content: "\f015";
+    font-family: IconFont;
+}
+.followed.icon::before {
+    content: "\f005";
+    font-family: IconFont;
+}
+.fed.icon::before {
+    content: "\f2f2";
+    font-family: IconFont;
+}
+.littr.icon::before {
+    /*content: "\f2ed";*/
+    content: "\f014";
+    font-family: IconFont;
+}
+.github.icon::before {
+    content:"\f09b";
+    font-family: IconFont;
 }

@@ -1,12 +1,11 @@
+<h1><a href="/" title="littr.me" alt="littr.me">{{ Name }}</a></h1>
+<menu id="sections">
+    <li><a class="local icon" href="/local">/local</a></li>
+    <li><a class="fed icon" href="/federated">/federated</a></li>
+    <li><a class="followed icon" href="/followed">/followed</a></li>
+</menu>
 {{- $account := CurrentAccount -}}
 {{- $providers := getProviders}}
-<h1 class="col">{{- /* <!--<a href="/" title="littr.me" alt="littr.me" class="far fa-trash-alt"></a><strong>littering:</strong>
-{{- if $account -}} <span class="by">{{$account.Handle}}</span>{{- else -}}
-{{- if .Title -}}
-{{ .Title }}
-{{- else -}} allowed{{- end -}}
-{{- end -}}  --> */ -}}
-<a href="/" title="littr.me" alt="littr.me">{{ Name }}</a></h1>
 <menu id="top">
     <li class=""><a id="top-invert" title="Turn {{if .InvertedTheme }}on{{else}}off{{end}} the light" href="/#invert"></a></li>
 {{ if $account.IsLogged }}
@@ -15,9 +14,9 @@
 {{end -}}
     <li class=""><a href="/submit">Add</a></li>
 {{- if not $account.IsLogged }}
-    <li class="auth-local"><a href="/login" title="Local auth" class="auth local-icon"></a></li>
+    <li class="auth-local"><a href="/login" title="Local auth" class="auth littr icon"></a></li>
 {{range $key, $value := $providers}}
-    <li class=""><a href="/auth/{{$key}}" title="{{$value}} auth" class="auth {{$key}}-icon"></a></li>
+    <li class=""><a href="/auth/{{$key}}" title="{{$value}} auth" class="auth {{$key}} icon"></a></li>
 {{- end -}}
 {{- end -}}
 </menu>

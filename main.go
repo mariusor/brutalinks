@@ -97,6 +97,9 @@ func main() {
 		r.Use(middleware.RedirectSlashes)
 
 		r.Get("/", frontend.HandleIndex)
+		r.Get("/local", frontend.HandleIndex)
+		r.Get("/federated", frontend.HandleIndex)
+		r.Get("/followed", frontend.HandleIndex)
 
 		r.Get("/about", frontend.HandleAbout)
 

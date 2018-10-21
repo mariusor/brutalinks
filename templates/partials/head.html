@@ -1,7 +1,13 @@
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>{{.Title}}</title>
+{{- if gt .PrevPage 0 }}
+<link href="{{ .PrevPage | PageLink }}" rel="next" rel="prefetch" />
+{{end -}}
+{{- if gt .NextPage 0 }}
+<link href="{{.NextPage | PageLink }}" rel="prev" />
+{{end -}}
 <link href="/css/main.css" rel="stylesheet" />
 <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/js-cookie@2/src/js.cookie.min.js" crossorigin="anonymous"></script>
 <script src="/js/main.js" type="text/javascript"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
