@@ -200,8 +200,7 @@ body.inverted > header h1 a:focus
 }
 body > header {
     display: grid;
-    grid-template-columns: 14ex 3fr 2fr;
-    /*grid-template-rows: 1fr;*/
+    grid-template-columns: 9rem 3fr 2fr;
     grid-area: header;
     margin: .5rem 0 0 0;
 }
@@ -243,6 +242,12 @@ menu#bottom li:first-child::before {
 menu#top li::before,
 menu#bottom li::before {
     content: " | ";
+}
+menu#bottom li.version::before {
+    content: "";
+}
+menu#bottom i::before {
+    margin: unset;
 }
 menu#top {
     font-size: .8rem;

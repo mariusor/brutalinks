@@ -8,6 +8,7 @@ import (
 	"math"
 	"net/http"
 	"os"
+	"path"
 	"strings"
 
 	"github.com/mariusor/littr.go/app"
@@ -35,6 +36,7 @@ var sessionStore sessions.Store
 var defaultAccount = models.Account{Handle: app.Anonymous, Hash: app.AnonymousHash}
 
 var Logger log.FieldLogger
+
 //var Renderer *render.Render
 var CurrentAccount = &defaultAccount
 var ShowItemData = false
@@ -110,9 +112,9 @@ func Renderer(next http.Handler) http.Handler {
 				"YayLink":           yayLink,
 				"NayLink":           nayLink,
 				"PageLink":          pageLink,
-				"version":           func() string { return app.Instance.Version },
-				"Name":              func() template.HTML { return appName(app.Instance) },
-				"Menu":              func() []template.HTML { return headerMenu(app.Instance, r) },
+				"App":               func() app.Application { return app.Instance },
+				"Name":              appName,
+				"Menu":              func() []template.HTML { return headerMenu(r) },
 			}},
 			Delims:         render.Delims{Left: "{{", Right: "}}"},
 			Charset:        "UTF-8",
@@ -226,12 +228,17 @@ func scoreFmt(s int64) string {
 	return fmt.Sprintf("%s%s", score, units)
 }
 
-func headerMenu(app app.Application, r *http.Request) []template.HTML {
+func headerMenu(r *http.Request) []template.HTML {
 	sections := []string{"self", "federated", "followed"}
-	ret := make([]template.HTML, len(sections))
+	ret := make([]template.HTML, 0)
 	for _, s := range sections {
-		ret = append(ret, template.HTML(fmt.Sprintf(`<a class="%s icon" href="/%s">/%s</a>`, s, s, s)))
+		if path.Base(r.URL.Path) == s {
+			ret = append(ret, template.HTML(fmt.Sprintf(`<span class="%s icon" href="/%s">/%s</span>`, s, s, s)))
+		} else {
+			ret = append(ret, template.HTML(fmt.Sprintf(`<a class="%s icon" href="/%s">/%s</a>`, s, s, s)))
+		}
 	}
+
 	return ret
 }
 
@@ -239,9 +246,6 @@ func appName(app app.Application) template.HTML {
 	parts := strings.Split(app.Name(), " ")
 
 	name := strings.Builder{}
-	//name.WriteString("<small>")
-	//name.WriteString(section)
-	//name.WriteString("</small>")
 
 	name.WriteString("<strong>")
 	name.WriteString(parts[0])
@@ -255,6 +259,7 @@ func appName(app app.Application) template.HTML {
 		name.WriteString(p)
 		name.WriteString("</small>")
 	}
+
 	return template.HTML(name.String())
 }
 
