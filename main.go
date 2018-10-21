@@ -94,12 +94,10 @@ func main() {
 	r.With(api.Repository).Route("/", func(r chi.Router) {
 		r.Use(frontend.LoadSession)
 		r.Use(middleware.GetHead)
-		r.Use(middleware.RedirectSlashes)
+		r.Use(frontend.Renderer)
+		//r.Use(middleware.RedirectSlashes)
 
 		r.Get("/", frontend.HandleIndex)
-		r.Get("/local", frontend.HandleIndex)
-		r.Get("/federated", frontend.HandleIndex)
-		r.Get("/followed", frontend.HandleIndex)
 
 		r.Get("/about", frontend.HandleAbout)
 
@@ -109,7 +107,6 @@ func main() {
 		r.Get("/register", frontend.ShowRegister)
 		r.Post("/register", frontend.HandleRegister)
 
-		//r.With(Item).Get("/~{handle}/{hash}", frontend.ShowItem)
 		r.Route("/~{handle}", func(r chi.Router) {
 			r.Get("/", frontend.ShowAccount)
 			r.Get("/{hash}", frontend.ShowItem)
@@ -129,6 +126,10 @@ func main() {
 		r.Get("/logout", frontend.HandleLogout)
 		r.Get("/login", frontend.ShowLogin)
 		r.Post("/login", frontend.HandleLogin)
+
+		r.Get("/self", frontend.HandleIndex)
+		r.Get("/federated", frontend.HandleIndex)
+		r.Get("/followed", frontend.HandleIndex)
 
 		r.Get("/auth/{provider}", frontend.HandleAuth)
 		r.Get("/auth/{provider}/callback", frontend.HandleCallback)

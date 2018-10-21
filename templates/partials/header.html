@@ -1,8 +1,8 @@
 <h1><a href="/" title="littr.me" alt="littr.me">{{ Name }}</a></h1>
 <menu id="sections">
-    <li><a class="local icon" href="/local">/local</a></li>
-    <li><a class="fed icon" href="/federated">/federated</a></li>
-    <li><a class="followed icon" href="/followed">/followed</a></li>
+    {{ range $key, $value := Menu }}
+        <li>{{$value}}</li>
+    {{ end}}
 </menu>
 {{- $account := CurrentAccount -}}
 {{- $providers := getProviders}}

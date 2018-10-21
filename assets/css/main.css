@@ -755,7 +755,7 @@ i.icon {
     content: "\f121";
     font-family: IconFont;
 }
-.local.icon::before {
+.self.icon::before {
     content: "\f015";
     font-family: IconFont;
 }
@@ -763,7 +763,7 @@ i.icon {
     content: "\f005";
     font-family: IconFont;
 }
-.fed.icon::before {
+.federated.icon::before {
     content: "\f2f2";
     font-family: IconFont;
 }

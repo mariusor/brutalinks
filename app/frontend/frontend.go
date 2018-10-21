@@ -35,7 +35,7 @@ var sessionStore sessions.Store
 var defaultAccount = models.Account{Handle: app.Anonymous, Hash: app.AnonymousHash}
 
 var Logger log.FieldLogger
-var Renderer *render.Render
+//var Renderer *render.Render
 var CurrentAccount = &defaultAccount
 var ShowItemData = false
 
@@ -75,59 +75,71 @@ func text(i models.Item) string {
 	return string(i.Data)
 }
 
-func init() {
-	Renderer = render.New(render.Options{
-		Directory:  templateDir,
-		Asset:      nil,
-		AssetNames: nil,
-		Layout:     "layout",
-		Extensions: []string{".html"},
-		Funcs: []template.FuncMap{{
-			"isInverted":        isInverted,
-			"sluggify":          sluggify,
-			"title":             func(t []byte) string { return string(t) },
-			"getProviders":      getAuthProviders,
-			"CurrentAccount":    func() *models.Account { return CurrentAccount },
-			"LoadFlashMessages": loadFlashMessages,
-			"Mod10":             func(lvl uint8) float64 { return math.Mod(float64(lvl), float64(10)) },
-			"ShowText":          func() bool { return ShowItemData },
-			"HTML":              html,
-			"Text":              text,
-			"Markdown":          markdown,
-			"PermaLink":         ItemPermaLink,
-			"ParentLink":        parentLink,
-			"OPLink":            opLink,
-			"IsYay":             isYay,
-			"IsNay":             isNay,
-			"ScoreFmt":          scoreFmt,
-			"NumberFmt":         func(i int64) string { return NumberFormat("%d", i) },
-			"ScoreClass":        scoreClass,
-			"YayLink":           yayLink,
-			"NayLink":           nayLink,
-			"PageLink":          pageLink,
-			"version":           func() string { return app.Instance.Version },
-			"Name":              func() template.HTML { return appName(app.Instance) },
-		}},
-		Delims:         render.Delims{Left: "{{", Right: "}}"},
-		Charset:        "UTF-8",
-		DisableCharset: false,
-		//IndentJSON: false,
-		//IndentXML: false,
-		//PrefixJSON: []byte(""),
-		//PrefixXML: []byte(""),
-		BinaryContentType: "application/octet-stream",
-		HTMLContentType:   "text/html",
-		//JSONContentType: "application/json",
-		//JSONPContentType: "application/javascript",
-		//TextContentType: "text/plain",
-		//XMLContentType: "application/xhtml+xml",
-		IsDevelopment: true,
-		//UnEscapeHTML: false,
-		//StreamingJSON: false,
-		//RequirePartials: false,
-		DisableHTTPErrorRendering: false,
-	})
+const RendererCtxtKey = "__renderer"
 
+func Renderer(next http.Handler) http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		renderer := render.New(render.Options{
+			Directory:  templateDir,
+			Asset:      nil,
+			AssetNames: nil,
+			Layout:     "layout",
+			Extensions: []string{".html"},
+			Funcs: []template.FuncMap{{
+				//"urlParam":          func(s string) string { return chi.URLParam(r, s) },
+				//"get":               func(s string) string { return r.URL.Query().Get(s) },
+				"isInverted":        isInverted,
+				"sluggify":          sluggify,
+				"title":             func(t []byte) string { return string(t) },
+				"getProviders":      getAuthProviders,
+				"CurrentAccount":    func() *models.Account { return CurrentAccount },
+				"LoadFlashMessages": loadFlashMessages,
+				"Mod10":             func(lvl uint8) float64 { return math.Mod(float64(lvl), float64(10)) },
+				"ShowText":          func() bool { return ShowItemData },
+				"HTML":              html,
+				"Text":              text,
+				"Markdown":          markdown,
+				"PermaLink":         ItemPermaLink,
+				"ParentLink":        parentLink,
+				"OPLink":            opLink,
+				"IsYay":             isYay,
+				"IsNay":             isNay,
+				"ScoreFmt":          scoreFmt,
+				"NumberFmt":         func(i int64) string { return NumberFormat("%d", i) },
+				"ScoreClass":        scoreClass,
+				"YayLink":           yayLink,
+				"NayLink":           nayLink,
+				"PageLink":          pageLink,
+				"version":           func() string { return app.Instance.Version },
+				"Name":              func() template.HTML { return appName(app.Instance) },
+				"Menu":              func() []template.HTML { return headerMenu(app.Instance, r) },
+			}},
+			Delims:         render.Delims{Left: "{{", Right: "}}"},
+			Charset:        "UTF-8",
+			DisableCharset: false,
+			//IndentJSON: false,
+			//IndentXML: false,
+			//PrefixJSON: []byte(""),
+			//PrefixXML: []byte(""),
+			BinaryContentType: "application/octet-stream",
+			HTMLContentType:   "text/html",
+			//JSONContentType: "application/json",
+			//JSONPContentType: "application/javascript",
+			//TextContentType: "text/plain",
+			//XMLContentType: "application/xhtml+xml",
+			IsDevelopment: true,
+			//UnEscapeHTML: false,
+			//StreamingJSON: false,
+			//RequirePartials: false,
+			DisableHTTPErrorRendering: false,
+		})
+		ctx := context.WithValue(r.Context(), RendererCtxtKey, renderer)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	}
+	return http.HandlerFunc(fn)
+}
+
+func init() {
 	gob.Register(sessionAccount{})
 	gob.Register(Flash{})
 
@@ -214,10 +226,23 @@ func scoreFmt(s int64) string {
 	return fmt.Sprintf("%s%s", score, units)
 }
 
+func headerMenu(app app.Application, r *http.Request) []template.HTML {
+	sections := []string{"self", "federated", "followed"}
+	ret := make([]template.HTML, len(sections))
+	for _, s := range sections {
+		ret = append(ret, template.HTML(fmt.Sprintf(`<a class="%s icon" href="/%s">/%s</a>`, s, s, s)))
+	}
+	return ret
+}
+
 func appName(app app.Application) template.HTML {
 	parts := strings.Split(app.Name(), " ")
 
 	name := strings.Builder{}
+	//name.WriteString("<small>")
+	//name.WriteString(section)
+	//name.WriteString("</small>")
+
 	name.WriteString("<strong>")
 	name.WriteString(parts[0])
 	name.WriteString("</strong>")
@@ -228,11 +253,6 @@ func appName(app app.Application) template.HTML {
 		}
 		name.WriteString(" <small>")
 		name.WriteString(p)
-	}
-	for i := range parts {
-		if i == 0 {
-			continue
-		}
 		name.WriteString("</small>")
 	}
 	return template.HTML(name.String())
@@ -269,7 +289,13 @@ func RenderTemplate(r *http.Request, w http.ResponseWriter, name string, m inter
 			"model":    fmt.Sprintf("%#v", m),
 		}).Error(err)
 	}
-	if err = Renderer.HTML(w, http.StatusOK, name, m); err != nil {
+	renderer, ok := r.Context().Value(RendererCtxtKey).(*render.Render)
+	if !ok {
+		err = errors.New("unable to load renderer")
+		Logger.WithFields(log.Fields{}).Error(err)
+		return err
+	}
+	if err = renderer.HTML(w, http.StatusOK, name, m); err != nil {
 		new := errors.NewErr("failed to render template")
 		Logger.WithFields(log.Fields{
 			"template": name,
@@ -277,7 +303,7 @@ func RenderTemplate(r *http.Request, w http.ResponseWriter, name string, m inter
 			"trace":    new.StackTrace(),
 			"previous": err.Error(),
 		}).Error(new)
-		Renderer.HTML(w, http.StatusInternalServerError, "error", new)
+		renderer.HTML(w, http.StatusInternalServerError, "error", new)
 	}
 	return err
 }
