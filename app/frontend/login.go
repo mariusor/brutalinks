@@ -59,7 +59,7 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	backUrl := "/"
-	addFlashMessage(Success, "Login successful", r)
+	//addFlashMessage(Success, "Login successful", r)
 	Redirect(w, r, backUrl, http.StatusSeeOther)
 }
 

@@ -349,7 +349,7 @@ func HandleCallback(w http.ResponseWriter, r *http.Request) {
 	s.Values["provider"] = provider
 	s.Values["code"] = code
 	s.Values["state"] = state
-	addFlashMessage(Success, fmt.Sprintf("Login successful with %s", provider), r)
+	//addFlashMessage(Success, fmt.Sprintf("Login successful with %s", provider), r)
 
 	err = sessionStore.Save(r, w, s)
 	if err != nil {
