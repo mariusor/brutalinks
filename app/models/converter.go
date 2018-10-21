@@ -74,10 +74,14 @@ func (i *Item) FromActivityPubItem(it as.Item) error {
 		fallthrough
 	case as.ActivityType:
 		if act, ok := it.(*ap.Activity); ok {
-			return i.FromActivityPubItem(act.Object)
+			err := i.FromActivityPubItem(act.Object)
+			i.SubmittedBy.FromActivityPubItem(act.Actor)
+			return err
 		}
 		if act, ok := it.(ap.Activity); ok {
-			return i.FromActivityPubItem(act.Object)
+			err := i.FromActivityPubItem(act.Object)
+			i.SubmittedBy.FromActivityPubItem(act.Actor)
+			return err
 		}
 	case as.ArticleType:
 		fallthrough
