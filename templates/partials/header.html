@@ -1,8 +1,8 @@
 <h1><a href="/" title="{{ App.HostName }}" alt="{{ App.HostName }}" class="icon littr">{{ App | Name }}</a></h1>
 <menu id="sections">
-    {{ range $key, $value := Menu }}
+    {{ range $key, $value := Menu -}}
         <li>{{$value}}</li>
-    {{ end}}
+    {{ end -}}
 </menu>
 {{- $account := CurrentAccount -}}
 {{- $providers := getProviders}}
