@@ -7,6 +7,7 @@ import (
 	as "github.com/mariusor/activitypub.go/activitystreams"
 )
 
+// PublicKey holds the ActivityPub compatible public key data
 type PublicKey struct {
 	ID           as.ObjectID     `jsonld:"id,omitempty"`
 	Owner        as.ObjectOrLink `jsonld:"owner,omitempty"`
@@ -46,6 +47,7 @@ type Collection as.Collection
 // We need it here in order to be able to implement our own UnmarshalJSON() method
 type Activity as.Activity
 
+// GetID returns the ObjectID pointer of current Person instance
 func (p Person) GetID() *as.ObjectID {
 	id := as.ObjectID(p.ID)
 	return &id
@@ -64,27 +66,32 @@ func (p Person) IsObject() bool {
 	return true
 }
 
+// GetID returns the ObjectID pointer of current Article instance
 func (a Article) GetID() *as.ObjectID {
 	id := as.ObjectID(a.ID)
 	return &id
 }
-
+// GetLink returns the IRI of the Article object
 func (a Article) GetLink() as.IRI {
 	return as.IRI(a.ID)
 }
+
+// GetType returns the current Article object's type
 func (a Article) GetType() as.ActivityVocabularyType {
 	return as.ActivityVocabularyType(a.Type)
 }
 
+// IsLink returns false for an Article object
 func (a Article) IsLink() bool {
 	return false
 }
 
+// IsObject returns true for an Article object
 func (a Article) IsObject() bool {
 	return true
 }
 
-// UnmarshalJSON
+// UnmarshalJSON tries to load json data to Article object
 func (a *Article) UnmarshalJSON(data []byte) error {
 	it := as.Object{}
 	err := it.UnmarshalJSON(data)
@@ -100,7 +107,7 @@ func (a *Article) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// UnmarshalJSON
+// UnmarshalJSON tries to load json data to Person object
 func (p *Person) UnmarshalJSON(data []byte) error {
 	app := as.Person{}
 	err := app.UnmarshalJSON(data)
@@ -159,7 +166,7 @@ func (o *OrderedCollection) Append(ob as.Item) error {
 	return nil
 }
 
-// UnmarshalJSON
+// UnmarshalJSON tries to load json data to OrderedCollection o
 func (o *OrderedCollection) UnmarshalJSON(data []byte) error {
 	col := as.OrderedCollection{}
 	err := col.UnmarshalJSON(data)
@@ -227,44 +234,44 @@ func CollectionNew(id as.ObjectID) *Collection {
 }
 
 // GetType returns the Collection's type
-func (o Collection) GetType() as.ActivityVocabularyType {
-	return o.Type
+func (c Collection) GetType() as.ActivityVocabularyType {
+	return c.Type
 }
 
 // GetLink returns the IRI of the Collection object
-func (o Collection) GetLink() as.IRI {
-	return as.IRI(o.ID)
+func (c Collection) GetLink() as.IRI {
+	return as.IRI(c.ID)
 }
 
 // IsLink returns false for an Collection object
-func (o Collection) IsLink() bool {
+func (c Collection) IsLink() bool {
 	return false
 }
 
 // GetID returns the ObjectID corresponding to the Collection
-func (o Collection) GetID() *as.ObjectID {
-	return &o.ID
+func (c Collection) GetID() *as.ObjectID {
+	return &c.ID
 }
 
 // IsObject returns true for am Collection object
-func (o Collection) IsObject() bool {
+func (c Collection) IsObject() bool {
 	return true
 }
 
 // Collection returns the underlying Collection type
-func (o *Collection) Collection() as.CollectionInterface {
-	return o
+func (c *Collection) Collection() as.CollectionInterface {
+	return c
 }
 
 // Append adds an element to an Collection
-func (o *Collection) Append(ob as.Item) error {
-	o.Items = append(o.Items, ob)
-	o.TotalItems++
+func (c *Collection) Append(ob as.Item) error {
+	c.Items = append(c.Items, ob)
+	c.TotalItems++
 	return nil
 }
 
-// UnmarshalJSON
-func (o *Collection) UnmarshalJSON(data []byte) error {
+// UnmarshalJSON tries to load json data to Collection c
+func (c *Collection) UnmarshalJSON(data []byte) error {
 	col := as.Collection{}
 	err := col.UnmarshalJSON(data)
 	if err != nil {
@@ -318,28 +325,34 @@ func (o *Collection) UnmarshalJSON(data []byte) error {
 		items = append(items, a)
 	}
 
-	*o = Collection(col)
-	o.Items = items
-	o.TotalItems = uint(len(items))
+	*c = Collection(col)
+	c.Items = items
+	c.TotalItems = uint(len(items))
 	return nil
 }
 
+// GetID returns the ObjectID pointer of current Activity instance
 func (a Activity) GetID() *as.ObjectID {
 	id := as.ObjectID(a.ID)
 	return &id
 }
 
+// GetLink returns the IRI of the Activity object
 func (a Activity) GetLink() as.IRI {
 	return as.IRI(a.ID)
 }
+
+// GetType returns the current Activity's type
 func (a Activity) GetType() as.ActivityVocabularyType {
 	return as.ActivityVocabularyType(a.Type)
 }
 
+// IsLink returns false for an Activity object
 func (a Activity) IsLink() bool {
 	return false
 }
 
+// IsObject returns true for an Activity object
 func (a Activity) IsObject() bool {
 	return true
 }

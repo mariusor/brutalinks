@@ -16,13 +16,16 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// Logger is the package default logger instance
 var Logger log.FieldLogger
 
 const defaultHost = "localhost"
 const defaultPort = 3000
 
 const (
-	Anonymous     = "anonymous"
+	// Anonymous label
+	Anonymous = "anonymous"
+	// AnonymousHash is the sha hash for the anonymous account
 	AnonymousHash = models.Hash("77b7b7215e8d78452dc40da9efbb65fdc918c757844387aa0f88143762495c6b")
 )
 
@@ -30,10 +33,16 @@ var listenHost string
 var listenPort int64
 var listenOn string
 
+// EnvType type alias
 type EnvType string
 
+// DEV environment
 const DEV EnvType = "dev"
+
+// PROD environment
 const PROD EnvType = "prod"
+
+// QA environment
 const QA EnvType = "qa"
 
 var validEnvTypes = []EnvType{
@@ -41,12 +50,14 @@ var validEnvTypes = []EnvType{
 	PROD,
 }
 
+// Stats holds data for keeping compatibility with Mastodon instances
 type Stats struct {
 	DomainCount int `json:"domain_count"`
 	UserCount   int `json:"user_count"`
 	StatusCount int `json:"status_count"`
 }
 
+// Desc holds data for keeping compatibility with Mastodon instances
 type Desc struct {
 	Description string   `json:"description"`
 	Email       string   `json:"email"`
@@ -54,11 +65,12 @@ type Desc struct {
 	Thumbnail   string   `json:"thumbnail,omitempty"`
 	Title       string   `json:"title"`
 	Lang        []string `json:"languages"`
-	Uri         string   `json:"uri"`
+	URI         string   `json:"uri"`
 	Urls        []string `json:"urls,omitempty"`
 	Version     string   `json:"version"`
 }
 
+// Application is the global state of our application
 type Application struct {
 	Version     string
 	Env         EnvType
@@ -71,6 +83,7 @@ type Application struct {
 	SessionKeys [2][]byte
 }
 
+// Instance is the default instance of our application
 var Instance Application
 
 func init() {
@@ -81,6 +94,7 @@ func init() {
 	}
 }
 
+// New instantiates a new Application
 func New() Application {
 	app := Application{HostName: listenHost, Port: listenPort}
 	loadEnv(&app)
@@ -96,6 +110,7 @@ func validEnv(s EnvType) bool {
 	return false
 }
 
+// Name formats the name of the current Application
 func (a Application) Name() string {
 	parts := strings.Split(a.HostName, ".")
 	return strings.Join(parts, " ")
@@ -146,6 +161,7 @@ func loadEnv(l *Application) (bool, error) {
 	return true, nil
 }
 
+// Run is the wrapper for starting the web-server and handling signals
 func (a *Application) Run(m http.Handler, wait time.Duration) {
 	Logger.WithFields(log.Fields{}).Infof("Starting debug level %q", log.GetLevel().String())
 	Logger.WithFields(log.Fields{}).Infof("Listening on %s", a.listen())
@@ -213,6 +229,7 @@ func (a *Application) Run(m http.Handler, wait time.Duration) {
 	os.Exit(code)
 }
 
+// ShowHeaders is a middleware for logging headers for a request
 func ShowHeaders(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		for name, val := range r.Header {
@@ -223,6 +240,7 @@ func ShowHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
+// StripCookies is a middleware for removing Header and SetCookie headers
 func StripCookies(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Del("Set-Cookie")

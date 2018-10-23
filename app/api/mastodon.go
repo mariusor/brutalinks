@@ -39,7 +39,7 @@ func ShowInstance(w http.ResponseWriter, r *http.Request) {
 	Desc.Stats.DomainCount = 1
 	Desc.Stats.UserCount = len(u)
 	Desc.Stats.StatusCount = len(i)
-	Desc.Uri = app.Instance.HostName
+	Desc.URI = app.Instance.HostName
 	Desc.Version = fmt.Sprintf("2.5.0 compatible (littr.me %s)", app.Instance.Version)
 
 	data, err := json.Marshal(Desc)
