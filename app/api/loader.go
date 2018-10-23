@@ -364,13 +364,13 @@ func ItemCollectionCtxt(next http.Handler) http.Handler {
 			loader, ok := val.(models.CanLoadItems)
 			if !ok {
 				Logger.WithFields(log.Fields{}).Errorf("could not load item repository from Context")
-				HandleError(w, r, http.StatusInternalServerError, err)
+				next.ServeHTTP(w, r)
 				return
 			}
 			items, err = loader.LoadItems(filters)
 			if err != nil {
 				Logger.WithFields(log.Fields{}).Error(err)
-				HandleError(w, r, http.StatusNotFound, err)
+				next.ServeHTTP(w, r)
 				return
 			}
 		}
@@ -382,13 +382,13 @@ func ItemCollectionCtxt(next http.Handler) http.Handler {
 			loader, ok := val.(models.CanLoadVotes)
 			if !ok {
 				Logger.WithFields(log.Fields{}).Errorf("could not load vote repository from Context")
-				HandleError(w, r, http.StatusInternalServerError, err)
+				next.ServeHTTP(w, r)
 				return
 			}
 			items, err = loader.LoadVotes(filters)
 			if err != nil {
 				Logger.WithFields(log.Fields{}).Error(err)
-				HandleError(w, r, http.StatusNotFound, err)
+				next.ServeHTTP(w, r)
 				return
 			}
 		}
