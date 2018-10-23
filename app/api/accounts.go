@@ -21,14 +21,14 @@ import (
 )
 
 func getObjectID(s string) as.ObjectID {
-	return as.ObjectID(fmt.Sprintf("%s/%s", AccountsURL, s))
+	return as.ObjectID(fmt.Sprintf("%s/%s", ActorsURL, s))
 }
 
 func apAccountID(a models.Account) as.ObjectID {
 	if len(a.Hash) >= 8 {
-		return as.ObjectID(fmt.Sprintf("%s/%s", AccountsURL, a.Hash.String()))
+		return as.ObjectID(fmt.Sprintf("%s/%s", ActorsURL, a.Hash.String()))
 	}
-	return as.ObjectID(fmt.Sprintf("%s/anonymous", AccountsURL))
+	return as.ObjectID(fmt.Sprintf("%s/anonymous", ActorsURL))
 }
 
 func loadAPLike(vote models.Vote) as.ObjectOrLink {
@@ -187,8 +187,9 @@ func loadAPCollection(o as.CollectionInterface, items *models.ItemCollection) (a
 	return o, nil
 }
 
-// GET /api/accounts?filters
-func HandleAccountsCollection(w http.ResponseWriter, r *http.Request) {
+// HandleActorsCollection is the http handler for the actors collection
+// GET /api/actors?filters
+func HandleActorsCollection(w http.ResponseWriter, r *http.Request) {
 	var ok bool
 	var filter models.LoadAccountsFilter
 	var data []byte
@@ -204,7 +205,7 @@ func HandleAccountsCollection(w http.ResponseWriter, r *http.Request) {
 			var accounts models.AccountCollection
 			var err error
 
-			col := as.CollectionNew(as.ObjectID(AccountsURL))
+			col := as.CollectionNew(as.ObjectID(ActorsURL))
 			if accounts, err = service.LoadAccounts(filter); err == nil {
 				for _, acct := range accounts {
 					p := loadAPPerson(acct)
@@ -231,8 +232,8 @@ func HandleAccountsCollection(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-// GET /api/accounts/:handle
-func HandleAccount(w http.ResponseWriter, r *http.Request) {
+// GET /api/actors/:handle
+func HandleActor(w http.ResponseWriter, r *http.Request) {
 	val := r.Context().Value(AccountCtxtKey)
 
 	var ok bool
@@ -265,7 +266,7 @@ func HandleAccount(w http.ResponseWriter, r *http.Request) {
 	w.Write(j)
 }
 
-// GET /api/accounts/:handle/:collection/:hash
+// GET /api/actors/:handle/:collection/:hash
 // GET /api/:collection/:hash
 func HandleCollectionActivity(w http.ResponseWriter, r *http.Request) {
 	var data []byte
@@ -297,7 +298,7 @@ func HandleCollectionActivity(w http.ResponseWriter, r *http.Request) {
 			el = loadAPLike(v)
 		}
 	default:
-		err := errors.Errorf("collection not found")
+		err := errors.Errorf("collection %s not found", collection)
 		HandleError(w, r, http.StatusNotFound, err)
 		return
 	}
@@ -309,7 +310,7 @@ func HandleCollectionActivity(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-// GET /api/accounts/:handle/:collection/:hash/object
+// GET /api/actors/:handle/:collection/:hash/object
 // GET /api/:collection/:hash/object
 func HandleCollectionActivityObject(w http.ResponseWriter, r *http.Request) {
 	var data []byte
@@ -357,7 +358,7 @@ func HandleCollectionActivityObject(w http.ResponseWriter, r *http.Request) {
 			el = loadAPLike(v)
 		}
 	default:
-		err := errors.Errorf("collection not found")
+		err := errors.Errorf("collection %s not found", collection)
 		HandleError(w, r, http.StatusNotFound, err)
 		return
 	}
@@ -369,7 +370,7 @@ func HandleCollectionActivityObject(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-// GET /api/accounts/:handle/:collection/:hash/replies
+// GET /api/actors/:handle/:collection/:hash/replies
 // GET /api/:collection/:hash/replies
 func HandleCollectionActivityObjectReplies(w http.ResponseWriter, r *http.Request) {
 	var ok bool
@@ -408,7 +409,7 @@ func HandleCollectionActivityObjectReplies(w http.ResponseWriter, r *http.Reques
 	w.Write(data)
 }
 
-// GET /api/accounts/:handle/:collection
+// GET /api/actors/:handle/:collection
 // GET /api/:collection
 func HandleCollection(w http.ResponseWriter, r *http.Request) {
 	var data []byte
@@ -498,7 +499,7 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 		}
 		data, err = json.WithContext(GetContext()).Marshal(p.Outbox)
 	default:
-		err = errors.Errorf("collection not found")
+		err = errors.Errorf("collection %s not found", typ)
 	}
 
 	if err != nil {
@@ -512,7 +513,7 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-// GET /api/accounts/verify_credentials
+// GET /api/actors/verify_credentials
 func HandleVerifyCredentials(w http.ResponseWriter, r *http.Request) {
 	acct, ok := models.ContextCurrentAccount(r.Context())
 	if !ok {

@@ -16,7 +16,7 @@ import (
 )
 
 // POST /api - not implemented yet - but we should have all information in the CreateActivity body
-// PUT /api/accounts/{handle}/{collection}/{item_hash}
+// PUT /api/actors/{handle}/{collection}/{item_hash}
 func UpdateItem(w http.ResponseWriter, r *http.Request) {
 	// verify signature header:
 	// Signature: keyId="https://my-example.com/actor#main-key",headers="(request-target) host date",signature="..."
@@ -62,7 +62,7 @@ func UpdateItem(w http.ResponseWriter, r *http.Request) {
 				// we need to make a difference between created vote and updated vote
 				// created - http.StatusCreated
 				status = http.StatusCreated
-				location = fmt.Sprintf("/api/accounts/%s/%s/%s", newIt.SubmittedBy.Handle, col, newIt.Hash)
+				location = fmt.Sprintf("/api/actors/%s/%s/%s", newIt.SubmittedBy.Handle, col, newIt.Hash)
 			} else {
 				// updated - http.StatusOK
 				status = http.StatusOK
@@ -92,7 +92,7 @@ func UpdateItem(w http.ResponseWriter, r *http.Request) {
 				// we need to make a difference between created vote and updated vote
 				// created - http.StatusCreated
 				status = http.StatusCreated
-				location = fmt.Sprintf("/api/accounts/%s/%s/%s", newVot.SubmittedBy.Handle, col, newVot.Item.Hash)
+				location = fmt.Sprintf("/api/actors/%s/%s/%s", newVot.SubmittedBy.Handle, col, newVot.Item.Hash)
 			} else {
 				// updated - http.StatusOK
 				status = http.StatusOK

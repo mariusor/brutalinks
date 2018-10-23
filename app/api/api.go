@@ -34,7 +34,7 @@ const (
 var Logger log.FieldLogger
 
 var BaseURL string
-var AccountsURL string
+var ActorsURL string
 var OutboxURL string
 
 const NotFound = 404
@@ -63,7 +63,7 @@ func init() {
 	Config.BaseUrl = BaseURL
 
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	AccountsURL = BaseURL + "/accounts"
+	ActorsURL = BaseURL + "/actors"
 	OutboxURL = BaseURL + "/outbox"
 	if Logger == nil {
 		Logger = log.StandardLogger()
@@ -87,16 +87,16 @@ func BuildGlobalOutboxID() as.ObjectID {
 }
 
 func BuildActorID(a models.Account) as.ObjectID {
-	return as.ObjectID(fmt.Sprintf("%s/%s", AccountsURL, url.PathEscape(a.Hash.String())))
+	return as.ObjectID(fmt.Sprintf("%s/%s", ActorsURL, url.PathEscape(a.Hash.String())))
 }
 
 func BuildActorHashID(a models.Account) as.ObjectID {
-	return as.ObjectID(fmt.Sprintf("%s/%s", AccountsURL, url.PathEscape(a.Hash.String())))
+	return as.ObjectID(fmt.Sprintf("%s/%s", ActorsURL, url.PathEscape(a.Hash.String())))
 }
 
 func BuildCollectionID(a models.Account, o as.Item) as.ObjectID {
 	if len(a.Handle) > 0 {
-		return as.ObjectID(fmt.Sprintf("%s/%s/%s", AccountsURL, url.PathEscape(a.Hash.String()), getObjectType(o)))
+		return as.ObjectID(fmt.Sprintf("%s/%s/%s", ActorsURL, url.PathEscape(a.Hash.String()), getObjectType(o)))
 	}
 	return as.ObjectID(fmt.Sprintf("%s/%s", BaseURL, getObjectType(o)))
 }
@@ -111,7 +111,7 @@ func BuildObjectIDFromItem(i models.Item) (as.ObjectID, bool) {
 	}
 	if i.SubmittedBy != nil {
 		hash := i.SubmittedBy.Hash
-		return as.ObjectID(fmt.Sprintf("%s/%s/outbox/%s/object", AccountsURL, url.PathEscape(hash.String()), url.PathEscape(i.Hash.String()))), true
+		return as.ObjectID(fmt.Sprintf("%s/%s/outbox/%s/object", ActorsURL, url.PathEscape(hash.String()), url.PathEscape(i.Hash.String()))), true
 	} else {
 		return as.ObjectID(fmt.Sprintf("%s/outbox/%s/object", BaseURL, url.PathEscape(i.Hash.String()))), true
 	}
@@ -122,7 +122,7 @@ func BuildObjectIDFromVote(v models.Vote) as.ObjectID {
 	//if v.Weight < 0 {
 	//	att = "disliked"
 	//}
-	return as.ObjectID(fmt.Sprintf("%s/%s/%s/%s", AccountsURL, url.PathEscape(v.SubmittedBy.Handle), att, url.PathEscape(v.Item.Hash.String())))
+	return as.ObjectID(fmt.Sprintf("%s/%s/%s/%s", ActorsURL, url.PathEscape(v.SubmittedBy.Handle), att, url.PathEscape(v.Item.Hash.String())))
 }
 
 func getObjectType(el as.Item) string {
@@ -217,7 +217,7 @@ type keyLoader struct {
 }
 
 func (k *keyLoader) GetKey(id string) interface{} {
-	// keyId="http://littr.git/api/accounts/e33c4ff5#main-key"
+	// keyId="http://littr.git/api/actors/e33c4ff5#main-key"
 	var err error
 
 	u, err := url.Parse(id)

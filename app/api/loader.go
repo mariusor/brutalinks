@@ -495,7 +495,7 @@ func (r *repository) LoadItems(f models.LoadItemsFilter) (models.ItemCollection,
 }
 
 func (r *repository) SaveVote(v models.Vote) (models.Vote, error) {
-	url := fmt.Sprintf("%s/accounts/%s/liked/%s", r.BaseUrl, v.SubmittedBy.Hash, v.Item.Hash)
+	url := fmt.Sprintf("%s/actors/%s/liked/%s", r.BaseUrl, v.SubmittedBy.Hash, v.Item.Hash)
 
 	var err error
 	var exists *http.Response
@@ -683,7 +683,7 @@ func (r *repository) SaveItem(it models.Item) (models.Item, error) {
 		url := string(*art.GetID())
 		resp, err = r.Put(url, "application/json+activity", bytes.NewReader(body))
 	} else {
-		url := fmt.Sprintf("%s/accounts/%s/outbox", r.BaseUrl, it.SubmittedBy.Hash)
+		url := fmt.Sprintf("%s/actors/%s/outbox", r.BaseUrl, it.SubmittedBy.Hash)
 		resp, err = r.Post(url, "application/json+activity", bytes.NewReader(body))
 	}
 	if err != nil {
@@ -725,7 +725,7 @@ func (r *repository) LoadAccounts(f models.LoadAccountsFilter) (models.AccountCo
 	if q, err := qstring.MarshalString(&f); err == nil {
 		qs = fmt.Sprintf("?%s", q)
 	}
-	url := fmt.Sprintf("%s/accounts%s", r.BaseUrl, qs)
+	url := fmt.Sprintf("%s/actors%s", r.BaseUrl, qs)
 
 	var err error
 	var resp *http.Response

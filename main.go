@@ -148,14 +148,14 @@ func main() {
 		r.Use(app.StripCookies)
 		//r.Use(middleware.GetHead)
 
-		r.Route("/accounts", func(r chi.Router) {
-			r.With(api.LoadFiltersCtxt).Get("/", api.HandleAccountsCollection)
+		r.Route("/actors", func(r chi.Router) {
+			r.With(api.LoadFiltersCtxt).Get("/", api.HandleActorsCollection)
 
-			r.With(frontend.LoadSession).Get("/accounts/verify_credentials", api.HandleVerifyCredentials)
+			r.With(frontend.LoadSession).Get("/actors/verify_credentials", api.HandleVerifyCredentials)
 			r.Route("/{handle}", func(r chi.Router) {
 				r.Use(api.AccountCtxt)
 
-				r.Get("/", api.HandleAccount)
+				r.Get("/", api.HandleActor)
 				r.Route("/{collection}", func(r chi.Router) {
 					r.With(api.LoadFiltersCtxt, api.ItemCollectionCtxt).Get("/", api.HandleCollection)
 					r.With(api.LoadFiltersCtxt).Post("/", api.UpdateItem)

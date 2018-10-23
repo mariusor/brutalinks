@@ -83,20 +83,20 @@ func HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 
 	wf := webfinger{
 		Aliases: []string{
-			fmt.Sprintf("%s/%s", AccountsURL, a.Hash),
-			fmt.Sprintf("%s/%s", AccountsURL, a.Handle),
+			fmt.Sprintf("%s/%s", ActorsURL, a.Hash),
+			fmt.Sprintf("%s/%s", ActorsURL, a.Handle),
 		},
 		Subject: typ + ":" + res,
 		Links: []link{
 			{
 				Rel:  "self",
 				Type: "application/activity+json",
-				Href: fmt.Sprintf("%s/%s", AccountsURL, a.Hash),
+				Href: fmt.Sprintf("%s/%s", ActorsURL, a.Hash),
 			},
 			{
 				Rel:  "http://webfinger.net/rel/profile-page",
 				Type: "application/activity+json",
-				Href: fmt.Sprintf("%s/%s", AccountsURL, a.Hash),
+				Href: fmt.Sprintf("%s/%s", ActorsURL, a.Hash),
 			},
 			{
 				Rel:  "http://webfinger.net/rel/profile-page",
