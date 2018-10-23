@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/app/db"
@@ -77,6 +78,66 @@ func text(i models.Item) string {
 	return string(i.Data)
 }
 
+func RelTimeLabel(old time.Time) string {
+	//return humanize.RelTime(old, time.Now(), "ago", "in the future")
+	td := time.Now().Sub(old)
+	pluralize := func(d float64, unit string) string {
+		if math.Round(d) != 1 {
+			if unit == "century" {
+				unit = "centurie"
+			}
+			return unit + "s"
+		}
+		return unit
+	}
+	val := 0.0
+	unit := ""
+	when := "ago"
+
+	hours := math.Abs(td.Hours())
+	minutes := math.Abs(td.Minutes())
+	seconds := math.Abs(td.Seconds())
+
+	if td.Seconds() < 0 {
+		// we're in the future
+		when = "in the future"
+	}
+	if seconds < 30 {
+		return "now"
+	}
+	if hours < 1 {
+		if minutes < 1 {
+			val = math.Mod(seconds, 60)
+			unit = "second"
+		} else {
+			val = math.Mod(minutes, 60)
+			unit = "minute"
+		}
+	} else if hours < 24 {
+		val = hours
+		unit = "hour"
+	} else if hours < 168 {
+		val = hours / 24
+		unit = "day"
+	} else if hours < 672 {
+		val = hours / 168
+		unit = "week"
+	} else if hours < 8760 {
+		val = hours / 672
+		unit = "month"
+	} else if hours < 87600 {
+		val = hours / 8760
+		unit = "year"
+	} else if hours < 876000 {
+		val = hours / 87600
+		unit = "decade"
+	} else {
+		val = hours / 876000
+		unit = "century"
+	}
+	return fmt.Sprintf("%.0f %s %s", val, pluralize(val, unit), when)
+}
+
 const RendererCtxtKey = "__renderer"
 
 func Renderer(next http.Handler) http.Handler {
@@ -108,6 +169,9 @@ func Renderer(next http.Handler) http.Handler {
 				"IsNay":             isNay,
 				"ScoreFmt":          scoreFmt,
 				"NumberFmt":         func(i int64) string { return NumberFormat("%d", i) },
+				"TimeFmt":           RelTimeLabel,
+				//"ScoreFmt":          func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
+				//"NumberFmt":         func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
 				"ScoreClass":        scoreClass,
 				"YayLink":           yayLink,
 				"NayLink":           nayLink,
