@@ -144,10 +144,13 @@ func main() {
 
 	// API
 	r.With(db.Repository).Route("/api", func(r chi.Router) {
+		//r.Use(middleware.GetHead)
 		r.Use(api.VerifyHttpSignature)
 		r.Use(app.StripCookies)
-		//r.Use(middleware.GetHead)
 
+		r.Route("/service", func(r chi.Router) {
+			r.With(api.LoadFiltersCtxt).Get("/", api.HandleService)
+		})
 		r.Route("/actors", func(r chi.Router) {
 			r.With(api.LoadFiltersCtxt).Get("/", api.HandleActorsCollection)
 
