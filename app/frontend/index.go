@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"net/http"
 	"os"
+	"path"
 	"strconv"
 
 	"github.com/mariusor/littr.go/app"
@@ -115,18 +116,35 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 			page = 1
 		}
 	}
+
+
+	filter := models.LoadItemsFilter{
+		Context:  []string{"0"},
+		Page:     page,
+		MaxItems: MaxContentItems,
+		Deleted:  []bool{false},
+	}
+
+	base := path.Base(r.URL.Path)
+	switch base {
+	case "self":
+		Logger.Infof("Showing self posts %s", base)
+	case "federated":
+		Logger.Infof("Showing federated posts %s", base)
+		filter.Federated = []bool{true}
+	case "followed":
+		Logger.Infof("Showing posts followde by ", CurrentAccount.Hash)
+		filter.FollowedBy = []string{CurrentAccount.Hash.String()}
+	default:
+	}
+
 	val := r.Context().Value(models.RepositoryCtxtKey)
 	itemLoader, ok := val.(models.CanLoadItems)
 	if !ok {
 		Logger.WithFields(log.Fields{}).Errorf("could not load item repository from Context")
 		return
 	}
-	items, err := itemLoader.LoadItems(models.LoadItemsFilter{
-		Context:  []string{"0"},
-		Page:     page,
-		MaxItems: MaxContentItems,
-		Deleted:  []bool{false},
-	})
+	items, err := itemLoader.LoadItems(filter)
 	if err != nil {
 		Logger.WithFields(log.Fields{}).Error(err)
 		HandleError(w, r, http.StatusNotFound, err)

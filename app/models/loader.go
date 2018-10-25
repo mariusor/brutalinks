@@ -72,12 +72,13 @@ type LoadItemsFilter struct {
 	SubmittedAtMatchType MatchType `qstring:"submittedAtMatchType,omitempty"`
 	Content              string    `qstring:"content,omitempty"`
 	ContentMatchType     MatchType `qstring:"contentMatchType,omitempty"`
-	Local                bool      `qstring:"local,omitempty"`
-	Followed             bool      `qstring:"followed,omitempty"`
-	Federated            bool      `qstring:"federated,omitempty"`
-	Deleted              []bool    `qstring:"deleted,omitempty"`
-	Page                 int       `qstring:"page,omitempty"`
-	MaxItems             int       `qstring:"maxItems,omitempty"`
+	// Federated shows if the item was generated locally or is coming from an external peer
+	Federated  []bool `qstring:"federated,omitempty"`
+	// FollowedBy is the hash or handle of the user of which we should show the list of items that were commented on or liked
+	FollowedBy []string `qstring:"followedBy,omitempty"`
+	Deleted    []bool   `qstring:"deleted,omitempty"`
+	Page       int      `qstring:"page,omitempty"`
+	MaxItems   int      `qstring:"maxItems,omitempty"`
 }
 
 type LoadAccountsFilter struct {
@@ -226,6 +227,29 @@ FROM "content_items" WHERE "key" ~* $%d) AND "%s"."path" IS NOT NULL)`, it, coun
 		}
 		wheres = append(wheres, fmt.Sprintf("(%s)", strings.Join(delWhere, " OR ")))
 	}
+	if len(filter.FollowedBy) > 0 {
+		keyWhere := make([]string, 0)
+		for _, hash := range filter.FollowedBy {
+			keyWhere = append(keyWhere, fmt.Sprintf(`"%s"."id" in (SELECT "votes"."item_id" FROM "votes" WHERE "votes"."submitted_by" = (SELECT "id" FROM "accounts" where "key" ~* $%d OR "handle" = $%d) AND "votes"."weight" != 0)
+			OR
+"%s"."key" IN (SELECT subpath("path", 0, 1)::varchar FROM "content_items" WHERE "submitted_by" = (SELECT "id" FROM "accounts" where "key" ~* $%d OR "handle" = $%d) AND nlevel("path") > 1)`, it, counter, counter, it, counter, counter))
+			whereValues = append(whereValues, interface{}(hash))
+			counter++
+		}
+		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(keyWhere, " OR "))))
+	}
+	if len(filter.Federated) > 0 {
+		// TODO(marius): we need to create a separate table to hold federation info
+		Logger.Warn("Federated query not yet implemented")
+		keyWhere := make([]string, 0)
+		//for _, fed := range filter.Federated {
+			keyWhere = append(keyWhere, fmt.Sprintf("$%d", counter))
+			whereValues = append(whereValues, interface{}(false))
+			counter++
+		//}
+		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(keyWhere, " OR "))))
+	}
+
 	return wheres, whereValues
 }
 

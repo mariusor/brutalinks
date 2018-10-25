@@ -238,7 +238,7 @@ func loadItems(db *sqlx.DB, f models.LoadItemsFilter) (models.ItemCollection, er
 	}
 	var offset string
 	if f.Page > 0 {
-		offset = fmt.Sprintf(" OFFSEt %d", f.MaxItems*(f.Page-1))
+		offset = fmt.Sprintf(" OFFSET %d", f.MaxItems*(f.Page-1))
 	}
 	// use hacker-news sort algorithm
 	// (votes - 1) / pow((item_hour_age+2), gravity)
