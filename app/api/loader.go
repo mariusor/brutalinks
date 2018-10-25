@@ -412,7 +412,7 @@ func (r *repository) LoadItem(f models.LoadItemsFilter) (models.Item, error) {
 	if q, err := qstring.MarshalString(&f); err == nil {
 		qs = fmt.Sprintf("?%s", q)
 	}
-	url := fmt.Sprintf("%s/outbox/%s/object%s", r.BaseUrl, hashes[0], qs)
+	url := fmt.Sprintf("%s/self/outbox/%s/object%s", r.BaseUrl, hashes[0], qs)
 
 	var err error
 	var resp *http.Response
@@ -450,7 +450,7 @@ func (r *repository) LoadItems(f models.LoadItemsFilter) (models.ItemCollection,
 	if q, err := qstring.MarshalString(&f); err == nil {
 		qs = fmt.Sprintf("?%s", q)
 	}
-	url := fmt.Sprintf("%s/outbox%s", r.BaseUrl, qs)
+	url := fmt.Sprintf("%s/self/outbox%s", r.BaseUrl, qs)
 
 	var err error
 	var resp *http.Response
@@ -568,7 +568,7 @@ func (r *repository) LoadVotes(f models.LoadVotesFilter) (models.VoteCollection,
 
 	var err error
 	var resp *http.Response
-	url := fmt.Sprintf("%s/liked%s", r.BaseUrl, qs)
+	url := fmt.Sprintf("%s/self/liked%s", r.BaseUrl, qs)
 	if resp, err = r.Get(url); err != nil {
 		Logger.WithFields(log.Fields{}).Error(err)
 		return nil, err
