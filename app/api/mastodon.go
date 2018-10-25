@@ -10,13 +10,6 @@ import (
 	"net/http"
 )
 
-var Desc = app.Desc{
-	Title:       "litter dot me",
-	Description: "Littr.me is a link aggregator similar to reddit or hacker news",
-	Email:       "system@littr.me",
-	Lang:        []string{"en"},
-}
-
 // GET /api/v1/instance
 // In order to be compatible with Mastodon
 func ShowInstance(w http.ResponseWriter, r *http.Request) {
@@ -27,6 +20,9 @@ func ShowInstance(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	inf, err := db.Config.LoadInfo()
+	ifErr(err)
+
 	u, err := db.Config.LoadAccounts(models.LoadAccountsFilter{
 		MaxItems: math.MaxInt64,
 	})
@@ -36,13 +32,19 @@ func ShowInstance(w http.ResponseWriter, r *http.Request) {
 	})
 	ifErr(err)
 
-	Desc.Stats.DomainCount = 1
-	Desc.Stats.UserCount = len(u)
-	Desc.Stats.StatusCount = len(i)
-	Desc.URI = app.Instance.HostName
-	Desc.Version = fmt.Sprintf("2.5.0 compatible (littr.me %s)", app.Instance.Version)
+	d := app.Desc{}
+	d.Stats.DomainCount = 1
+	d.Stats.UserCount = len(u)
+	d.Stats.StatusCount = len(i)
+	d.URI = inf.URI
+	d.Title = inf.Title
+	d.Email = inf.Email
+	d.Lang = inf.Languages
+	d.Thumbnail = inf.Thumbnail
+	d.Description = inf.Summary
+	d.Version = fmt.Sprintf("2.5.0 compatible (%s %s)", app.Instance.HostName, inf.Version)
 
-	data, err := json.Marshal(Desc)
+	data, err := json.Marshal(d)
 	ifErr(err)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
@@ -66,10 +68,11 @@ type activity struct {
 	Registration int `json:"registrations"`
 }
 
+// ShowActivity
 // GET /api/v1/instance/activity
 // In order to be compatible with Mastodon
 func ShowActivity(w http.ResponseWriter, r *http.Request) {
-	em := []activity{}
+	em := make([]activity, 0)
 	data, _ := json.Marshal(em)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(http.StatusOK)

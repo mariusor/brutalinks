@@ -793,3 +793,51 @@ func SignRequest(r *http.Request, p ap.Person, key crypto.PrivateKey) error {
 	return httpsig.NewSigner(string(p.PublicKey.ID), key, httpsig.RSASHA256, hdrs).
 		Sign(r)
 }
+
+func (r *repository) LoadInfo() (models.Info, error) {
+	inf := models.Info{}
+
+	url := fmt.Sprintf("%s/self", r.BaseUrl)
+	var err error
+	var resp *http.Response
+	if resp, err = r.Get(url); err != nil {
+		Logger.WithFields(log.Fields{}).Error(err)
+		return inf, err
+	}
+	if resp == nil {
+		err := fmt.Errorf("nil response from the repository")
+		Logger.WithFields(log.Fields{}).Error(err)
+		return inf, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		err := fmt.Errorf("unable to load from the API")
+		Logger.WithFields(log.Fields{}).Error(err)
+		return inf, err
+	}
+	defer resp.Body.Close()
+	var body []byte
+	if body, err = ioutil.ReadAll(resp.Body); err != nil {
+		Logger.WithFields(log.Fields{}).Error(err)
+		return inf, err
+	}
+	if body, err = ioutil.ReadAll(resp.Body); err != nil {
+		Logger.WithFields(log.Fields{}).Error(err)
+		return inf, err
+	}
+
+	s := as.Service{}
+	if err = j.Unmarshal(body, &s); err != nil {
+		Logger.WithFields(log.Fields{}).Error(err)
+		return inf, err
+	}
+
+	inf.Title = s.Name.First()
+	inf.Summary = s.Summary.First()
+	inf.Description = s.Content.First()
+	inf.Languages = []string{"en"}
+
+	inf.Email = fmt.Sprintf("%s@%s", "system", app.Instance.HostName)
+	inf.Version = app.Instance.Version
+
+	return inf, nil
+}

@@ -148,8 +148,16 @@ func main() {
 		r.Use(api.VerifyHttpSignature)
 		r.Use(app.StripCookies)
 
-		r.Route("/service", func(r chi.Router) {
+		r.Route("/self", func(r chi.Router) {
 			r.With(api.LoadFiltersCtxt).Get("/", api.HandleService)
+			r.Route("/{collection}", func(r chi.Router) {
+				r.Use(api.ServiceCtxt)
+
+				r.With(api.LoadFiltersCtxt, api.ItemCollectionCtxt).Get("/", api.HandleCollection)
+				r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/{hash}", api.HandleCollectionActivity)
+				r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/{hash}/object", api.HandleCollectionActivityObject)
+				r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/{hash}/object/replies", api.HandleCollectionActivityObjectReplies)
+			})
 		})
 		r.Route("/actors", func(r chi.Router) {
 			r.With(api.LoadFiltersCtxt).Get("/", api.HandleActorsCollection)
@@ -183,14 +191,6 @@ func main() {
 		r.Get("/v1/instance/peers", api.ShowPeers)
 		r.Get("/v1/instance/activity", api.ShowActivity)
 
-		r.Route("/{collection}", func(r chi.Router) {
-			r.Use(api.ServiceCtxt)
-
-			r.With(api.LoadFiltersCtxt, api.ItemCollectionCtxt).Get("/", api.HandleCollection)
-			r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/{hash}", api.HandleCollectionActivity)
-			r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/{hash}/object", api.HandleCollectionActivityObject)
-			r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/{hash}/object/replies", api.HandleCollectionActivityObjectReplies)
-		})
 		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 			api.HandleError(w, r, http.StatusNotFound, errors.Errorf("%s not found", r.RequestURI))
 		})

@@ -60,7 +60,7 @@ func html(i models.Item) template.HTML {
 	return template.HTML(string(i.Data))
 }
 
-func markdown(data string) template.HTML {
+func Markdown(data string) template.HTML {
 	md := mark.New(
 		mark.HTML(true),
 		mark.Tables(true),
@@ -161,7 +161,7 @@ func Renderer(next http.Handler) http.Handler {
 				"ShowText":          func() bool { return ShowItemData },
 				"HTML":              html,
 				"Text":              text,
-				"Markdown":          markdown,
+				"Markdown":          Markdown,
 				"PermaLink":         ItemPermaLink,
 				"ParentLink":        parentLink,
 				"OPLink":            opLink,

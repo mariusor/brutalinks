@@ -251,7 +251,7 @@ func HandleActor(w http.ResponseWriter, r *http.Request) {
 	if p.Inbox != nil {
 		p.Inbox = p.Inbox.GetLink()
 	}
-	p.Endpoints = as.Endpoints{SharedInbox: as.IRI(fmt.Sprintf("%s/api/inbox", app.Instance.BaseURL))}
+	p.Endpoints = as.Endpoints{SharedInbox: as.IRI(fmt.Sprintf("%s/api/self/inbox", app.Instance.BaseURL))}
 
 	j, err := json.WithContext(GetContext()).Marshal(p)
 	if err != nil {

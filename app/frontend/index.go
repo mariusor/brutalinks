@@ -1,10 +1,9 @@
 package frontend
 
 import (
-	"bytes"
 	"fmt"
+	"github.com/mariusor/littr.go/app/db"
 	"html/template"
-	"io"
 	"net/http"
 	"os"
 	"strconv"
@@ -166,23 +165,13 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 // HandleAbout serves /about request
 // It's something Mastodon compatible servers should show
 func HandleAbout(w http.ResponseWriter, r *http.Request) {
-	ifErr := func(err ...error) {
-		if err != nil && len(err) > 0 && err[0] != nil {
-			HandleError(w, r, http.StatusInternalServerError, err...)
-			return
-		}
-	}
-
 	m := aboutModel{Title: "About", InvertedTheme: isInverted(r)}
-	f, err := os.Open("./README.md")
-	ifErr(err)
-
-	st, err := f.Stat()
-	ifErr(err)
-
-	data := make([]byte, st.Size())
-	io.ReadFull(f, data)
-	m.Desc.Description = string(bytes.Trim(data, "\x00"))
+	f, err := db.Config.LoadInfo()
+	if err != nil {
+		HandleError(w, r, http.StatusInternalServerError, err)
+		return
+	}
+	m.Desc.Description = f.Description
 
 	RenderTemplate(r, w, "about", m)
 }

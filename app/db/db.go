@@ -1,12 +1,16 @@
 package db
 
 import (
+	"bytes"
 	"context"
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
+	"github.com/mariusor/littr.go/app"
+	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -352,4 +356,25 @@ group by "accounts"."id", "accounts"."key" order by "accounts"."id";`,
 		scores = append(scores, new)
 	}
 	return scores, nil
+}
+
+// LoadInfo this method is here to keep compatibility with the repository interfaces
+// but in the long term we might want to store some of this information in the db
+func (c config) LoadInfo() (models.Info, error) {
+	inf := models.Info{
+		Title: app.Instance.Name(),
+		Summary: "Littr.me is a federated link aggregator similar to reddit or hacker news.",
+		Email: "system@littr.me",
+		URI: app.Instance.BaseURL,
+		Version: app.Instance.Version,
+	}
+
+	if f, err := os.Open("./README.md"); err == nil {
+		st, _ := f.Stat()
+		rme := make([]byte, st.Size())
+		io.ReadFull(f, rme)
+		inf.Description = string(bytes.Trim(rme, "\x00"))
+	}
+
+	return inf, nil
 }

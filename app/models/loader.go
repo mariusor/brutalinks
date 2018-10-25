@@ -40,6 +40,18 @@ func init() {
 	}
 }
 
+type Info struct {
+	Title       string   `json:"title"`
+	Email       string   `json:"email"`
+	Summary     string   `json:"summary"`
+	Description string   `json:"description"`
+	Thumbnail   string   `json:"thumbnail,omitempty"`
+	Languages   []string `json:"languages"`
+	URI         string   `json:"uri"`
+	Urls        []string `json:"urls,omitempty"`
+	Version     string   `json:"version"`
+}
+
 type LoadVotesFilter struct {
 	ItemKey              []string   `qstring:"hash,omitempty"`
 	Type                 []VoteType `qstring:"type,omitempty"`
@@ -60,6 +72,9 @@ type LoadItemsFilter struct {
 	SubmittedAtMatchType MatchType `qstring:"submittedAtMatchType,omitempty"`
 	Content              string    `qstring:"content,omitempty"`
 	ContentMatchType     MatchType `qstring:"contentMatchType,omitempty"`
+	Local                bool      `qstring:"local,omitempty"`
+	Followed             bool      `qstring:"followed,omitempty"`
+	Federated            bool      `qstring:"federated,omitempty"`
 	Deleted              []bool    `qstring:"deleted,omitempty"`
 	Page                 int       `qstring:"page,omitempty"`
 	MaxItems             int       `qstring:"maxItems,omitempty"`
@@ -257,6 +272,10 @@ type CanLoadItems interface {
 type CanLoadVotes interface {
 	LoadVotes(f LoadVotesFilter) (VoteCollection, error)
 	LoadVote(f LoadVotesFilter) (Vote, error)
+}
+
+type CanLoadInfo interface {
+	LoadInfo() (Info, error)
 }
 
 type CanSaveVotes interface {
