@@ -31,18 +31,6 @@ func init() {
 	dbUser := os.Getenv("DB_USER")
 	dbHost := os.Getenv("DB_HOST")
 
-	connStr := fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable", dbHost, dbUser, dbPw, dbName)
-	con, err := sqlx.Open("postgres", connStr)
-	if err != nil {
-		new := errors.NewErr("failed to connect to the database")
-		log.WithFields(log.Fields{
-			"dbName":   dbName,
-			"dbUser":   dbUser,
-			"previous": err.Error(),
-			"trace":    new.StackTrace(),
-		}).Error(new)
-	}
-
 	if app.Instance.Env == app.PROD {
 		log.SetLevel(log.WarnLevel)
 	} else {
@@ -59,6 +47,18 @@ func init() {
 	models.Logger = Logger.WithField("package", "models")
 	db.Logger = Logger.WithField("package", "db")
 	frontend.Logger = Logger.WithField("package", "frontend")
+
+	connStr := fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable", dbHost, dbUser, dbPw, dbName)
+	con, err := sqlx.Open("postgres", connStr)
+	if err != nil {
+		new := errors.NewErr("failed to connect to the database")
+		log.WithFields(log.Fields{
+			"dbName":   dbName,
+			"dbUser":   dbUser,
+			"previous": err.Error(),
+			"trace":    new.StackTrace(),
+		}).Error(new)
+	}
 
 	db.Config.DB = con
 }

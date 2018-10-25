@@ -61,7 +61,7 @@ type Stats struct {
 type Desc struct {
 	Description string   `json:"description"`
 	Email       string   `json:"email"`
-	Stats       Stats    `json:"Stats"`
+	Stats       Stats    `json:"stats"`
 	Thumbnail   string   `json:"thumbnail,omitempty"`
 	Title       string   `json:"title"`
 	Lang        []string `json:"languages"`
