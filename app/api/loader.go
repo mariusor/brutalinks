@@ -258,6 +258,32 @@ func loadPersonFiltersFromReq(r *http.Request) models.LoadAccountsFilter {
 	return filters
 }
 
+func loadInboxFilterFromReq(r *http.Request) models.LoadItemsFilter {
+	filters := models.LoadItemsFilter{
+		MaxItems: MaxContentItems,
+	}
+
+	if err := qstring.Unmarshal(r.URL.Query(), &filters); err != nil {
+		return filters
+	}
+	handle := chi.URLParam(r, "handle")
+	if handle != "" {
+		old := filters.FollowedBy
+		filters.FollowedBy = nil
+		filters.FollowedBy = append(filters.FollowedBy, handle)
+		filters.FollowedBy = append(filters.FollowedBy, old...)
+	}
+	hash := chi.URLParam(r, "hash")
+	if hash != "" {
+		old := filters.Key
+		filters.Key = nil
+		filters.Key = append(filters.Key, hash)
+		filters.Key = append(filters.Key, old...)
+	}
+
+	return filters
+}
+
 func loadOutboxFilterFromReq(r *http.Request) models.LoadItemsFilter {
 	filters := models.LoadItemsFilter{
 		MaxItems: MaxContentItems,
@@ -337,6 +363,7 @@ func LoadFiltersCtxt(next http.Handler) http.Handler {
 		case "outbox":
 			filters = loadOutboxFilterFromReq(r)
 		case "inbox":
+			filters = loadInboxFilterFromReq(r)
 		case "":
 			filters = loadPersonFiltersFromReq(r)
 		}
@@ -356,6 +383,24 @@ func ItemCollectionCtxt(next http.Handler) http.Handler {
 		val := r.Context().Value(models.RepositoryCtxtKey)
 
 		var items interface{}
+		if col == "inbox" {
+			filters, ok := f.(models.LoadItemsFilter)
+			if !ok {
+				Logger.WithFields(log.Fields{}).Errorf("could not load item filters from Context")
+			}
+			loader, ok := val.(models.CanLoadItems)
+			if !ok {
+				Logger.WithFields(log.Fields{}).Errorf("could not load item repository from Context")
+				next.ServeHTTP(w, r)
+				return
+			}
+			items, err = loader.LoadItems(filters)
+			if err != nil {
+				Logger.WithFields(log.Fields{}).Error(err)
+				next.ServeHTTP(w, r)
+				return
+			}
+		}
 		if col == "outbox" {
 			filters, ok := f.(models.LoadItemsFilter)
 			if !ok {
@@ -450,7 +495,25 @@ func (r *repository) LoadItems(f models.LoadItemsFilter) (models.ItemCollection,
 	if q, err := qstring.MarshalString(&f); err == nil {
 		qs = fmt.Sprintf("?%s", q)
 	}
-	url := fmt.Sprintf("%s/self/outbox%s", r.BaseUrl, qs)
+
+	target := "self"
+	c := "outbox"
+	if len(f.FollowedBy) > 0 {
+		for _, foll := range f.FollowedBy {
+			target = fmt.Sprintf("actors/%s", foll)
+			c = "inbox"
+			break
+		}
+	}
+
+	if len(f.Federated) > 0 {
+		for _, fed := range f.Federated {
+			if fed {
+				c = "inbox"
+			}
+		}
+	}
+	url := fmt.Sprintf("%s/%s/%s%s", r.BaseUrl, target, c, qs)
 
 	var err error
 	var resp *http.Response

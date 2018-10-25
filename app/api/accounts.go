@@ -430,6 +430,30 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 	collection := r.Context().Value(CollectionCtxtKey)
 	switch strings.ToLower(typ) {
 	case "inbox":
+		items, ok := collection.(models.ItemCollection)
+		if !ok {
+			Logger.WithFields(log.Fields{}).Errorf("could not load Items from Context")
+			return
+		}
+		col := ap.InboxNew()
+		col.ID = BuildCollectionID(a, new(ap.Inbox))
+		_, err = loadAPCollection(col, &items)
+		p.Inbox = col
+		if len(items) > 0 {
+			url := fmt.Sprintf("%s?page=%d", string(*col.GetID()), f.Page)
+			col.First = as.IRI(strings.Replace(url, fmt.Sprintf("page=%d", f.Page), fmt.Sprintf("page=%d", 1), 1))
+			if f.Page > 0 {
+				oc := as.OrderedCollection(*col)
+				page := as.OrderedCollectionPageNew(&oc)
+				page.ID = as.ObjectID(url)
+				page.Next = as.IRI(strings.Replace(url, fmt.Sprintf("page=%d", f.Page), fmt.Sprintf("page=%d", f.Page+1), 1))
+				if f.Page > 1 {
+					page.Prev = as.IRI(strings.Replace(url, fmt.Sprintf("page=%d", f.Page), fmt.Sprintf("page=%d", f.Page-1), 1))
+				}
+				p.Inbox = page
+			}
+		}
+		data, err = json.WithContext(GetContext()).Marshal(p.Inbox)
 	case "outbox":
 		items, ok := collection.(models.ItemCollection)
 		if !ok {

@@ -117,7 +117,6 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-
 	filter := models.LoadItemsFilter{
 		Context:  []string{"0"},
 		Page:     page,
