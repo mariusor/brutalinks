@@ -193,9 +193,9 @@ func HandleError(w http.ResponseWriter, r *http.Request, code int, errs ...error
 	w.WriteHeader(code)
 
 	type error struct {
-		Code    int    `json:"code,omitempty"`
-		Message string `json:"message"`
-		Trace []string `json:"trace,omitempty"`
+		Code    int      `json:"code,omitempty"`
+		Message string   `json:"message"`
+		Trace   []string `json:"trace,omitempty"`
 	}
 	type eresp struct {
 		Status int     `json:"status,omitempty"`
@@ -217,13 +217,15 @@ func HandleError(w http.ResponseWriter, r *http.Request, code int, errs ...error
 			msg = fmt.Sprintf("InvalidUnmarshalError: Type[%v]\n", e.Type)
 		case *errors.Err:
 			msg = fmt.Sprintf("%v", e)
-			trace = e.StackTrace()
+			if app.Instance.Env == app.DEV {
+				trace = e.StackTrace()
+			}
 		default:
 			msg = e.Error()
 		}
 		e := error{
 			Message: msg,
-			Trace: trace,
+			Trace:   trace,
 		}
 		Logger.WithFields(log.Fields{}).Error(err)
 		res.Errors = append(res.Errors, e)
