@@ -31,14 +31,20 @@ const (
 	MaxContentItems = 50
 )
 
+type InternalError struct {
+}
+
+type UserError struct {
+}
+
 var Logger log.FieldLogger
 
 var BaseURL string
 var ActorsURL string
 var OutboxURL string
 
-const NotFound = 404
-const InternalError = 500
+const NotFoundStatus = 404
+const InternalErrorStatus = 500
 
 type Field struct {
 	Name  string `json:"name"`
@@ -181,18 +187,18 @@ func getObjectType(el as.Item) string {
 
 func HandleError(w http.ResponseWriter, r *http.Request, code int, errs ...error) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.Header().Set("Cache-Control", " no-store, must-revalidate")
-	w.Header().Set("Pragma", " no-cache")
-	w.Header().Set("Expires", " 0")
-	//w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("Cache-Control", "no-store, must-revalidate")
+	w.Header().Set("Pragma", "no-cache")
+	w.Header().Set("Expires", "0")
 	w.WriteHeader(code)
 
 	type error struct {
-		Code    int    `json:"code"`
+		Code    int    `json:"code,omitempty"`
 		Message string `json:"message"`
+		Trace []string `json:"trace,omitempty"`
 	}
 	type eresp struct {
-		Status int     `json:"status"`
+		Status int     `json:"status,omitempty"`
 		Errors []error `json:"errors"`
 	}
 
@@ -200,9 +206,24 @@ func HandleError(w http.ResponseWriter, r *http.Request, code int, errs ...error
 		Status: code,
 		Errors: []error{},
 	}
+
 	for _, err := range errs {
+		var msg string
+		var trace []string
+		switch e := err.(type) {
+		case *json.UnmarshalTypeError:
+			msg = fmt.Sprintf("UnmarshalTypeError: Value[%s] Type[%v]\n", e.Value, e.Type)
+		case *json.InvalidUnmarshalError:
+			msg = fmt.Sprintf("InvalidUnmarshalError: Type[%v]\n", e.Type)
+		case *errors.Err:
+			msg = fmt.Sprintf("%v", e)
+			trace = e.StackTrace()
+		default:
+			msg = e.Error()
+		}
 		e := error{
-			Message: err.Error(),
+			Message: msg,
+			Trace: trace,
 		}
 		Logger.WithFields(log.Fields{}).Error(err)
 		res.Errors = append(res.Errors, e)
@@ -248,6 +269,7 @@ func VerifyHttpSignature(next http.Handler) http.Handler {
 	realm := app.Instance.HostName
 	v := httpsig.NewVerifier(&getter)
 	v.SetRequiredHeaders([]string{"(request-target)", "host", "date"})
+
 	var challengeParams []string
 	if realm != "" {
 		challengeParams = append(challengeParams, fmt.Sprintf("realm=%q", realm))
@@ -266,12 +288,12 @@ func VerifyHttpSignature(next http.Handler) http.Handler {
 		if r.Header["Authorization"] != nil {
 			// only verify http-signature if present
 			if err := v.Verify(r); err != nil {
-				w.Header()["WWW-Authenticate"] = []string{challenge}
+				w.Header().Add("WWW-Authenticate", challenge)
 				Logger.WithFields(log.Fields{
 					"handle": acct.Handle,
 					"hash":   acct.Hash,
 					"header": fmt.Sprintf("%q", r.Header),
-				}).Warningf("invalid www signature")
+				}).Warningf("invalid HTTP signature")
 				// TODO(marius): here we need to implement some outside logic, as to we want to allow non-signed
 				//   requests on some urls, but not on others - probably another handler to check for Anonymous
 				//   would suffice.
@@ -282,7 +304,7 @@ func VerifyHttpSignature(next http.Handler) http.Handler {
 				Logger.WithFields(log.Fields{
 					"handle": acct.Handle,
 					"hash":   acct.Hash,
-				}).Debugf("loaded account from http signature header saved to context")
+				}).Debugf("loaded account from HTTP signature header saved to context")
 			}
 		}
 		ctx := context.WithValue(r.Context(), models.AccountCtxtKey, acct)
