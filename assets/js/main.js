@@ -17,10 +17,8 @@ $(document).ready(function() {
         let isInverted = Cookies.get("inverted") || false;
         $("body").toggleClass("inverted");
         if (isInverted) {
-            $("#top-invert").attr("title", "Turn off the light")
             Cookies.remove("inverted");
         } else {
-            $("#top-invert").attr("title", "Turn on the light")
             Cookies.set("inverted", true);
         }
         e.preventDefault();

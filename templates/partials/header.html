@@ -7,7 +7,7 @@
 {{- $account := CurrentAccount -}}
 {{- $providers := getProviders}}
 <menu id="top">
-    <li class=""><a id="top-invert" title="Turn {{if .InvertedTheme }}on{{else}}off{{end}} the light" href="/#invert"></a></li>
+    <li class=""><a id="top-invert" title="Invert colours" href="/#invert"></a></li>
 {{- if $account.IsLogged }}
     <li class="acct">{{$account.Handle}} <span class="score">{{$account.Score | ScoreFmt}}</span></li>
     <li class=""><a href="/logout">Sign out</a></li>
