@@ -112,8 +112,6 @@ func init() {
 func New() Application {
 	app := Application{HostName: listenHost, Port: listenPort, Config: config{}}
 	loadEnv(&app)
-	app.Config.VotingEnabled = true
-	app.Config.DownvotingEnabled = true
 	return app
 }
 
