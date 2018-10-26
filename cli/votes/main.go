@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/mariusor/littr.go/app/cli"
 	"os"
 	"time"
 
@@ -11,8 +12,6 @@ import (
 	"github.com/mariusor/littr.go/app/db"
 
 	log "github.com/sirupsen/logrus"
-
-	"github.com/mariusor/littr.go/app/models"
 
 	_ "github.com/lib/pq"
 )
@@ -33,6 +32,13 @@ func init() {
 	}
 }
 
+func e(err error) {
+	if err != nil {
+		log.Error(err)
+		os.Exit(1)
+	}
+}
+
 func main() {
 	var key string
 	var handle string
@@ -46,40 +52,6 @@ func main() {
 	flag.DurationVar(&since, "since", defaultSince, "the content key to update votes for, default is 90h")
 	flag.Parse()
 
-	var err error
-	// recount all votes for content items
-	var scores []models.Score
-	if accounts {
-		which := ""
-		val := ""
-		if handle != "" || key != "" {
-			if len(handle) > 0 {
-				which = "handle"
-				val = handle
-			} else {
-				which = "key"
-				val = key
-			}
-		}
-		scores, err = db.LoadScoresForAccounts(since, which, val)
-	} else if items {
-		scores, err = db.LoadScoresForItems(since, key)
-	}
-	if err != nil {
-		panic(err)
-	}
-
-	sql := `update "%s" set score = $1 where id = $2;`
-	for _, score := range scores {
-		var col string
-		if score.Type == models.ScoreItem {
-			col = `content_items`
-		} else {
-			col = `accounts`
-		}
-		_, err := db.Config.DB.Exec(fmt.Sprintf(sql, col), score.Score, score.ID)
-		if err != nil {
-			panic(err)
-		}
-	}
+	err := cli.UpdateScores(key, handle, since, items, accounts)
+	e(err)
 }
