@@ -40,16 +40,13 @@ func init() {
 	}
 
 	app.Instance = app.New()
-	frontend.InitSessionStore(app.Instance)
-	//processing.InitQueues(app.Instance)
+	db.Init(&app.Instance)
+	frontend.InitSessionStore(&app.Instance)
 
 	api.Logger = Logger.WithField("package", "api")
 	models.Logger = Logger.WithField("package", "models")
 	db.Logger = Logger.WithField("package", "db")
 	frontend.Logger = Logger.WithField("package", "frontend")
-	//processing.Logger = Logger.WithField("package", "processing")
-
-	db.Config.DB = app.Instance.Db
 }
 
 func serveFiles(st string) func(w http.ResponseWriter, r *http.Request) {

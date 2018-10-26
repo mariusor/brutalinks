@@ -127,12 +127,15 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 	base := path.Base(r.URL.Path)
 	switch base {
 	case "self":
-		Logger.Infof("Showing self posts", base)
+		Logger.Debugf("showing self posts")
 	case "federated":
-		Logger.Infof("Showing federated posts %s", base)
+		Logger.Debugf("showing federated posts")
 		filter.Federated = []bool{true}
 	case "followed":
-		Logger.Infof("Showing posts followed by %s", CurrentAccount.Hash)
+		Logger.WithFields(log.Fields{
+			"handle": CurrentAccount.Handle,
+			"hash": CurrentAccount.Hash,
+		}).Debugf("showing followed posts")
 		filter.FollowedBy = []string{CurrentAccount.Hash.String()}
 	default:
 	}

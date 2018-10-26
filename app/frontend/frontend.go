@@ -141,7 +141,7 @@ func RelTimeLabel(old time.Time) string {
 const RendererCtxtKey = "__renderer"
 
 // InitSessionStore initializes the session store if we have encryption key settings in the env variables
-func InitSessionStore(app app.Application) error {
+func InitSessionStore(app *app.Application) error {
 	if len(app.SessionKeys) > 0 {
 		s := sessions.NewCookieStore(app.SessionKeys...)
 		s.Options.Domain = app.HostName
@@ -153,6 +153,7 @@ func InitSessionStore(app app.Application) error {
 	} else {
 		err := errors.New("no session encryption configuration, unable to use sessions")
 		Logger.Warning(err)
+		app.Config.SessionsEnabled = false
 		return err
 	}
 	return nil

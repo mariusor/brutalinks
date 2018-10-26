@@ -3,9 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
-	"github.com/adjust/redismq"
 	"github.com/go-chi/chi/middleware"
-	"github.com/jmoiron/sqlx"
 	"github.com/juju/errors"
 	"net/http"
 	"os"
@@ -54,11 +52,20 @@ var validEnvTypes = []EnvType{
 	PROD,
 }
 
+type backendConfig struct {
+	Enabled bool
+	Host    string
+	Port    string
+	User    string
+	Pw      string
+	Name    string
+}
+
 type config struct {
 	Env                 EnvType
-	DbBackendEnabled    bool
-	ESBackendEnabled    bool
-	RedisBackendEnabled bool
+	DB                  backendConfig
+	ES                  backendConfig
+	Redis               backendConfig
 	SessionsEnabled     bool
 	VotingEnabled       bool
 	DownvotingEnabled   bool
@@ -92,8 +99,6 @@ type Application struct {
 	BaseURL     string
 	Port        int64
 	Listen      string
-	Db          *sqlx.DB
-	Queues      map[string]*redismq.Queue
 	Secure      bool
 	SessionKeys [][]byte
 	Config      config
@@ -177,53 +182,15 @@ func loadEnv(l *Application) (bool, error) {
 	l.Port = listenPort
 	l.Listen = listenOn
 
-	dbHost := os.Getenv("DB_HOST")
-	if len(dbHost) > 0 {
-		dbPw := os.Getenv("DB_PASSWORD")
-		dbName := os.Getenv("DB_NAME")
-		dbUser := os.Getenv("DB_USER")
+	l.Config.DB.Host = os.Getenv("DB_HOST")
+	l.Config.DB.Pw = os.Getenv("DB_PASSWORD")
+	l.Config.DB.Name = os.Getenv("DB_NAME")
+	l.Config.DB.Port = os.Getenv("DB_Port")
+	l.Config.DB.User = os.Getenv("DB_USER")
 
-		connStr := fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable", dbHost, dbUser, dbPw, dbName)
-
-		db, err := sqlx.Open("postgres", connStr)
-		if err != nil {
-			new := errors.NewErr("failed to connect to the database")
-			log.WithFields(log.Fields{
-				"dbName":   dbName,
-				"dbUser":   dbUser,
-				"previous": err.Error(),
-				"trace":    new.StackTrace(),
-			}).Error(new)
-			return false, err
-		}
-		l.Db = db
-		l.Config.DbBackendEnabled = true
-	} else {
-		return false, errors.New("no database connection configuration, unable to continue")
-	}
-
-	redisHost := os.Getenv("REDIS_HOST")
-	if len(redisHost) > 0 {
-		redisPort := os.Getenv("REDIS_PORT")
-		redisPw := os.Getenv("REDIS_PASSWORD")
-		redisDb := 0
-		name := "queue"
-		red := redismq.CreateQueue(redisHost, redisPort, redisPw, int64(redisDb), name)
-		if red == nil {
-			new := errors.NewErr("failed to connect to redis")
-
-			log.WithFields(log.Fields{
-				"redisHost": redisHost,
-				"redisPort": redisPort,
-				"redisDb":   redisDb,
-				"name":      name,
-				"trace":     new.StackTrace(),
-			}).Error(new)
-			return false, &new
-		}
-		l.Queues[name] = red
-		l.Config.RedisBackendEnabled = true
-	}
+	l.Config.Redis.Host = os.Getenv("REDIS_HOST")
+	l.Config.Redis.Port = os.Getenv("REDIS_PORT")
+	l.Config.Redis.Pw = os.Getenv("REDIS_PASSWORD")
 
 	l.Config.VotingEnabled = os.Getenv("DISABLE_VOTING") == ""
 	l.Config.DownvotingEnabled = os.Getenv("DISABLE_DOWNVOTING") == ""
@@ -331,7 +298,7 @@ type handler func(http.Handler) http.Handler
 func NeedsDBBackend(fn errorHandler) handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
-			if !Instance.Config.DbBackendEnabled {
+			if !Instance.Config.DB.Enabled {
 				fn(w, r, http.StatusInternalServerError, errors.New("db backend is disabled, can not continue"))
 				return
 			}

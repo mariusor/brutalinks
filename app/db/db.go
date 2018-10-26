@@ -32,6 +32,31 @@ func init() {
 	}
 }
 
+func Init(app *app.Application) error {
+	if app.Config.DB.Port == "" {
+		app.Config.DB.Port = "5432"
+	}
+	connStr := fmt.Sprintf("host=%s user=%s password=%s port=%s dbname=%s sslmode=disable",
+		app.Config.DB.Host, app.Config.DB.User, app.Config.DB.Pw, app.Config.DB.Port, app.Config.DB.Name)
+
+	var err error
+	Config.DB, err = sqlx.Open("postgres", connStr)
+	if err == nil {
+		app.Config.DB.Enabled = true
+	} else {
+		new := errors.NewErr("failed to connect to the database")
+		log.WithFields(log.Fields{
+			"dbHost":   app.Config.DB.Host,
+			"dbPort":   app.Config.DB.Port,
+			"dbName":   app.Config.DB.Name,
+			"dbUser":   app.Config.DB.User,
+			"previous": err,
+			"trace":    new.StackTrace(),
+		}).Error(new)
+	}
+	return err
+}
+
 // I think we can move from using the exported Config package variable
 // to an unexported one. First we need to decouple the DB config from the repository struct to a config struct
 var Config config
