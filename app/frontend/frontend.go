@@ -190,16 +190,13 @@ func Renderer(next http.Handler) http.Handler {
 				"TimeFmt":           RelTimeLabel,
 				//"ScoreFmt":          func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
 				//"NumberFmt":         func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
-				"ScoreClass":        scoreClass,
-				"YayLink":           yayLink,
-				"NayLink":           nayLink,
-				"PageLink":          pageLink,
-				"App":               func() app.Application { return app.Instance },
-				"Name":              appName,
-				"Menu":              func() []template.HTML { return headerMenu(r) },
-				"SessionEnabled":    func() bool { return app.Instance.Config.SessionsEnabled },
-				"VotingEnabled":     func() bool { return app.Instance.Config.VotingEnabled },
-				"DownvotingEnabled": func() bool { return  app.Instance.Config.DownvotingEnabled },
+				"ScoreClass": scoreClass,
+				"YayLink":    yayLink,
+				"NayLink":    nayLink,
+				"PageLink":   pageLink,
+				"App":        func() app.Application { return app.Instance },
+				"Name":       appName,
+				"Menu":       func() []template.HTML { return headerMenu(r) },
 			}},
 			Delims:         render.Delims{Left: "{{", Right: "}}"},
 			Charset:        "UTF-8",
@@ -574,10 +571,6 @@ func LoadSession(next http.Handler) http.Handler {
 		} else {
 			loadSessionFlashMessages(s)
 			acc = loadCurrentAccount(s)
-			Logger.WithFields(log.Fields{
-				"handle": acc.Handle,
-				"hash":   acc.Hash,
-			}).Debugf("loaded account from session")
 		}
 		ctx := context.WithValue(r.Context(), models.AccountCtxtKey, &acc)
 

@@ -13,7 +13,7 @@
     <li class=""><a href="/logout">Sign out</a></li>
 {{- end}}
     <li class=""><a href="/submit">Add</a></li>
-{{- if SessionEnabled }}
+{{- if App.Config.SessionsEnabled }}
 {{- if not $account.IsLogged }}
     <li class="auth-local"><a href="/login" title="Local auth" class="auth littr icon"></a></li>
 {{- range $key, $value := $providers}}
