@@ -404,7 +404,7 @@ ol.comments li {
 }
 .item .score {
     display: grid;
-    padding: 0;
+    grid-auto-rows: 1.2rem;
 }
 /*.item .score:hover,*/
 /*.item .score:active {*/
@@ -413,14 +413,13 @@ ol.comments li {
 /*}*/
 .item .score a {
     display: block;
-    align-self: center;
     justify-self: center;
+    align-self: center;
 }
 .item .score data {
     justify-self: center;
     align-self: center;
     font-size: .6em;
-    padding-top: 3px;
 }
 .item .score data.inf {
     font-weight: bold;
