@@ -2,8 +2,11 @@ package app
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
+	"github.com/adjust/redismq"
+	"github.com/go-chi/chi/middleware"
+	"github.com/jmoiron/sqlx"
+	"github.com/juju/errors"
 	"net/http"
 	"os"
 	"os/signal"
@@ -12,6 +15,7 @@ import (
 	"syscall"
 	"time"
 
+	_ "github.com/jmoiron/sqlx"
 	"github.com/mariusor/littr.go/app/models"
 	log "github.com/sirupsen/logrus"
 )
@@ -50,6 +54,17 @@ var validEnvTypes = []EnvType{
 	PROD,
 }
 
+type config struct {
+	Env                 EnvType
+	DbBackendEnabled    bool
+	ESBackendEnabled    bool
+	RedisBackendEnabled bool
+	SessionsEnabled     bool
+	VotingEnabled       bool
+	DownvotingEnabled   bool
+	UserCreatingEnabled bool
+}
+
 // Stats holds data for keeping compatibility with Mastodon instances
 type Stats struct {
 	DomainCount int `json:"domain_count"`
@@ -73,22 +88,21 @@ type Desc struct {
 // Application is the global state of our application
 type Application struct {
 	Version     string
-	Env         EnvType
 	HostName    string
 	BaseURL     string
 	Port        int64
 	Listen      string
-	Db          *sql.DB
+	Db          *sqlx.DB
+	Queues      map[string]*redismq.Queue
 	Secure      bool
-	SessionKeys [2][]byte
+	SessionKeys [][]byte
+	Config      config
 }
 
 // Instance is the default instance of our application
 var Instance Application
 
 func init() {
-	Instance = New()
-
 	if Logger == nil {
 		Logger = log.StandardLogger()
 	}
@@ -96,8 +110,10 @@ func init() {
 
 // New instantiates a new Application
 func New() Application {
-	app := Application{HostName: listenHost, Port: listenPort}
+	app := Application{HostName: listenHost, Port: listenPort, Config: config{}}
 	loadEnv(&app)
+	app.Config.VotingEnabled = true
+	app.Config.DownvotingEnabled = true
 	return app
 }
 
@@ -128,8 +144,13 @@ func (a *Application) listen() string {
 }
 
 func loadEnv(l *Application) (bool, error) {
-	l.SessionKeys[0] = []byte(os.Getenv("SESS_AUTH_KEY"))
-	l.SessionKeys[1] = []byte(os.Getenv("SESS_ENC_KEY"))
+	if authKey := []byte(os.Getenv("SESS_AUTH_KEY")); authKey != nil {
+		l.SessionKeys = append(l.SessionKeys, authKey)
+		l.Config.SessionsEnabled = true
+	}
+	if encKey := []byte(os.Getenv("SESS_ENC_KEY")); encKey != nil {
+		l.SessionKeys = append(l.SessionKeys, encKey)
+	}
 
 	listenHost = os.Getenv("HOSTNAME")
 	listenPort, _ = strconv.ParseInt(os.Getenv("PORT"), 10, 64)
@@ -140,7 +161,7 @@ func loadEnv(l *Application) (bool, error) {
 	if !validEnv(env) {
 		env = DEV
 	}
-	Instance.Env = env
+	Instance.Config.Env = env
 	if listenPort == 0 {
 		listenPort = defaultPort
 	}
@@ -157,6 +178,54 @@ func loadEnv(l *Application) (bool, error) {
 
 	l.Port = listenPort
 	l.Listen = listenOn
+
+	dbHost := os.Getenv("DB_HOST")
+	if len(dbHost) > 0 {
+		dbPw := os.Getenv("DB_PASSWORD")
+		dbName := os.Getenv("DB_NAME")
+		dbUser := os.Getenv("DB_USER")
+
+		connStr := fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable", dbHost, dbUser, dbPw, dbName)
+
+		db, err := sqlx.Open("postgres", connStr)
+		if err != nil {
+			new := errors.NewErr("failed to connect to the database")
+			log.WithFields(log.Fields{
+				"dbName":   dbName,
+				"dbUser":   dbUser,
+				"previous": err.Error(),
+				"trace":    new.StackTrace(),
+			}).Error(new)
+			return false, err
+		}
+		l.Db = db
+		l.Config.DbBackendEnabled = true
+	} else {
+		return false, errors.New("no database connection configuration, unable to continue")
+	}
+
+	redisHost := os.Getenv("REDIS_HOST")
+	if len(redisHost) > 0 {
+		redisPort := os.Getenv("REDIS_PORT")
+		redisPw := os.Getenv("REDIS_PASSWORD")
+		redisDb := 0
+		name := "queue"
+		red := redismq.CreateQueue(redisHost, redisPort, redisPw, int64(redisDb), name)
+		if red == nil {
+			new := errors.NewErr("failed to connect to redis")
+
+			log.WithFields(log.Fields{
+				"redisHost": redisHost,
+				"redisPort": redisPort,
+				"redisDb":   redisDb,
+				"name":      name,
+				"trace":     new.StackTrace(),
+			}).Error(new)
+			return false, &new
+		}
+		l.Queues[name] = red
+		l.Config.RedisBackendEnabled = true
+	}
 
 	return true, nil
 }
@@ -248,4 +317,24 @@ func StripCookies(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	}
 	return http.HandlerFunc(fn)
+}
+
+func ReqLogger(next http.Handler) http.Handler {
+	return middleware.DefaultLogger(next)
+}
+
+type errorHandler func(http.ResponseWriter, *http.Request, int, ...error)
+type handler func(http.Handler) http.Handler
+
+func NeedsDBBackend(fn errorHandler) handler {
+	return func(next http.Handler) http.Handler {
+		fn := func(w http.ResponseWriter, r *http.Request) {
+			if !Instance.Config.DbBackendEnabled {
+				fn(w, r, http.StatusInternalServerError, errors.New("db backend is disabled, can not continue"))
+				return
+			}
+			next.ServeHTTP(w, r)
+		}
+		return http.HandlerFunc(fn)
+	}
 }

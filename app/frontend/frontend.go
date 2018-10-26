@@ -140,6 +140,24 @@ func RelTimeLabel(old time.Time) string {
 
 const RendererCtxtKey = "__renderer"
 
+// InitSessionStore initializes the session store if we have encryption key settings in the env variables
+func InitSessionStore(app app.Application) error {
+	if len(app.SessionKeys) > 0 {
+		s := sessions.NewCookieStore(app.SessionKeys...)
+		s.Options.Domain = app.HostName
+		s.Options.Path = "/"
+		s.Options.HttpOnly = true
+		s.Options.Secure = app.Secure
+
+		sessionStore = s
+	} else {
+		err := errors.New("no session encryption configuration, unable to use sessions")
+		Logger.Warning(err)
+		return err
+	}
+	return nil
+}
+
 func Renderer(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		renderer := render.New(render.Options{
@@ -179,6 +197,9 @@ func Renderer(next http.Handler) http.Handler {
 				"App":               func() app.Application { return app.Instance },
 				"Name":              appName,
 				"Menu":              func() []template.HTML { return headerMenu(r) },
+				"SessionEnabled":    func() bool { return app.Instance.Config.SessionsEnabled },
+				"VotingEnabled":     func() bool { return app.Instance.Config.VotingEnabled },
+				"DownvotingEnabled": func() bool { return  app.Instance.Config.DownvotingEnabled },
 			}},
 			Delims:         render.Delims{Left: "{{", Right: "}}"},
 			Charset:        "UTF-8",
@@ -208,14 +229,6 @@ func Renderer(next http.Handler) http.Handler {
 func init() {
 	gob.Register(sessionAccount{})
 	gob.Register(Flash{})
-
-	s := sessions.NewCookieStore(app.Instance.SessionKeys[0], app.Instance.SessionKeys[1])
-	s.Options.Domain = app.Instance.HostName
-	s.Options.Path = "/"
-	s.Options.HttpOnly = true
-	s.Options.Secure = app.Instance.Secure
-
-	sessionStore = s
 
 	if Logger == nil {
 		Logger = log.StandardLogger()
@@ -544,6 +557,12 @@ func loadSessionFlashMessages(s *sessions.Session) {
 func LoadSession(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		acc := defaultAccount
+		if !app.Instance.Config.SessionsEnabled {
+			err := errors.New("session store disabled")
+			Logger.Warn(err)
+			next.ServeHTTP(w, r)
+			return
+		}
 		if sessionStore == nil {
 			err := errors.New("missing session store, unable to load session")
 			Logger.Warn(err)
@@ -588,4 +607,15 @@ func loadFlashMessages() []Flash {
 	f := FlashData
 	FlashData = nil
 	return f
+}
+
+func NeedsSessions(next http.Handler) http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		if !app.Instance.Config.SessionsEnabled {
+			HandleError(w, r, http.StatusNotFound, errors.New("sessions are disabled"))
+			return
+		}
+		next.ServeHTTP(w, r)
+	}
+	return http.HandlerFunc(fn)
 }

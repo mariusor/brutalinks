@@ -217,7 +217,7 @@ func HandleError(w http.ResponseWriter, r *http.Request, code int, errs ...error
 			msg = fmt.Sprintf("InvalidUnmarshalError: Type[%v]\n", e.Type)
 		case *errors.Err:
 			msg = fmt.Sprintf("%v", e)
-			if app.Instance.Env == app.DEV {
+			if app.Instance.Config.Env == app.DEV {
 				trace = e.StackTrace()
 			}
 		default:
@@ -306,7 +306,7 @@ func VerifyHttpSignature(next http.Handler) http.Handler {
 				Logger.WithFields(log.Fields{
 					"handle": acct.Handle,
 					"hash":   acct.Hash,
-				}).Debugf("loaded account from HTTP signature header saved to context")
+				}).Debugf("loaded account from HTTP signature header")
 			}
 		}
 		ctx := context.WithValue(r.Context(), models.AccountCtxtKey, acct)

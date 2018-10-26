@@ -2,13 +2,12 @@ package main
 
 import (
 	"flag"
-	"fmt"
+	"github.com/mariusor/littr.go/app/processing"
 	"net/http"
 	"os"
 	"path/filepath"
 	"time"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/mariusor/littr.go/app/db"
 
 	"github.com/go-chi/chi"
@@ -26,12 +25,10 @@ import (
 var Logger log.FieldLogger
 
 func init() {
-	dbPw := os.Getenv("DB_PASSWORD")
-	dbName := os.Getenv("DB_NAME")
-	dbUser := os.Getenv("DB_USER")
-	dbHost := os.Getenv("DB_HOST")
+	Logger = log.StandardLogger()
+	app.Logger = Logger.WithField("package", "app")
 
-	if app.Instance.Env == app.PROD {
+	if app.Instance.Config.Env == app.PROD {
 		log.SetLevel(log.WarnLevel)
 	} else {
 		log.SetFormatter(&log.TextFormatter{
@@ -42,25 +39,18 @@ func init() {
 		log.SetOutput(os.Stdout)
 		log.SetLevel(log.DebugLevel)
 	}
-	Logger = log.StandardLogger()
+
+	app.Instance = app.New()
+	frontend.InitSessionStore(app.Instance)
+	//processing.InitQueues(app.Instance)
+
 	api.Logger = Logger.WithField("package", "api")
 	models.Logger = Logger.WithField("package", "models")
 	db.Logger = Logger.WithField("package", "db")
 	frontend.Logger = Logger.WithField("package", "frontend")
+	processing.Logger = Logger.WithField("package", "processing")
 
-	connStr := fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable", dbHost, dbUser, dbPw, dbName)
-	con, err := sqlx.Open("postgres", connStr)
-	if err != nil {
-		new := errors.NewErr("failed to connect to the database")
-		log.WithFields(log.Fields{
-			"dbName":   dbName,
-			"dbUser":   dbUser,
-			"previous": err.Error(),
-			"trace":    new.StackTrace(),
-		}).Error(new)
-	}
-
-	db.Config.DB = con
+	db.Config.DB = app.Instance.Db
 }
 
 func serveFiles(st string) func(w http.ResponseWriter, r *http.Request) {
@@ -71,10 +61,6 @@ func serveFiles(st string) func(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func ReqLogger(next http.Handler) http.Handler {
-	return middleware.DefaultLogger(next)
-}
-
 func main() {
 	var wait time.Duration
 	flag.DurationVar(&wait, "graceful-timeout", time.Second*15, "the duration for which the server gracefully wait for existing connections to finish - e.g. 15s or 1m")
@@ -83,10 +69,10 @@ func main() {
 	// Routes
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
-	r.Use(ReqLogger)
+	r.Use(app.ReqLogger)
 	//r.Use(app.ShowHeaders)
 
-	if app.Instance.Env == app.PROD {
+	if app.Instance.Config.Env == app.PROD {
 		r.Use(middleware.Recoverer)
 	}
 
@@ -95,6 +81,7 @@ func main() {
 		r.Use(frontend.LoadSession)
 		r.Use(middleware.GetHead)
 		r.Use(frontend.Renderer)
+		r.Use(app.NeedsDBBackend(frontend.HandleError))
 		//r.Use(middleware.RedirectSlashes)
 
 		r.Get("/", frontend.HandleIndex)
@@ -123,16 +110,16 @@ func main() {
 
 		r.Get("/domains/{domain}", frontend.HandleDomains)
 
-		r.Get("/logout", frontend.HandleLogout)
-		r.Get("/login", frontend.ShowLogin)
-		r.Post("/login", frontend.HandleLogin)
+		r.With(frontend.NeedsSessions).Get("/logout", frontend.HandleLogout)
+		r.With(frontend.NeedsSessions).Get("/login", frontend.ShowLogin)
+		r.With(frontend.NeedsSessions).Post("/login", frontend.HandleLogin)
 
 		r.Get("/self", frontend.HandleIndex)
 		r.Get("/federated", frontend.HandleIndex)
 		r.Get("/followed", frontend.HandleIndex)
 
-		r.Get("/auth/{provider}", frontend.HandleAuth)
-		r.Get("/auth/{provider}/callback", frontend.HandleCallback)
+		r.With(frontend.NeedsSessions).Get("/auth/{provider}", frontend.HandleAuth)
+		r.With(frontend.NeedsSessions).Get("/auth/{provider}/callback", frontend.HandleCallback)
 
 		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 			frontend.HandleError(w, r, http.StatusNotFound, errors.Errorf("%q not found", r.RequestURI))
@@ -147,6 +134,7 @@ func main() {
 		//r.Use(middleware.GetHead)
 		r.Use(api.VerifyHttpSignature)
 		r.Use(app.StripCookies)
+		r.Use(app.NeedsDBBackend(api.HandleError))
 
 		r.Route("/self", func(r chi.Router) {
 			r.With(api.LoadFiltersCtxt).Get("/", api.HandleService)
@@ -201,6 +189,8 @@ func main() {
 
 	// Web-Finger
 	r.With(db.Repository).Route("/.well-known", func(r chi.Router) {
+		r.Use(app.NeedsDBBackend(api.HandleError))
+
 		r.Get("/webfinger", api.HandleWebFinger)
 		r.Get("/host-meta", api.HandleHostMeta)
 		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
