@@ -343,14 +343,8 @@ func ContextItemLoader(ctx context.Context) (CanLoadItems, bool) {
 
 func ContextCurrentAccount(ctx context.Context) (*Account, bool) {
 	ctxVal := ctx.Value(AccountCtxtKey)
-	if a, ok := ctxVal.(*Account); ok {
-		Logger.WithFields(log.Fields{
-			"handle": a.Handle,
-			"hash":   a.Hash,
-		}).Debugf("loaded account from context")
-		return a, true
-	}
-	return nil, false
+	a, ok := ctxVal.(*Account)
+	return a, ok
 }
 
 func ContextAuthenticated(ctx context.Context) (Authenticated, bool) {

@@ -330,6 +330,11 @@ func appName(app app.Application) template.HTML {
 func saveSession(w http.ResponseWriter, r *http.Request) error {
 	var err error
 	var s *sessions.Session
+	if sessionStore == nil {
+		err := errors.New("missing session store, unable to save session")
+		Logger.Warn(err)
+		return err
+	}
 	if s, err = sessionStore.Get(r, sessionName); err != nil {
 		return errors.Errorf("failed to load session before redirect: %s", err)
 	}
@@ -539,11 +544,21 @@ func loadSessionFlashMessages(s *sessions.Session) {
 func LoadSession(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		acc := defaultAccount
+		if sessionStore == nil {
+			err := errors.New("missing session store, unable to load session")
+			Logger.Warn(err)
+			next.ServeHTTP(w, r)
+			return
+		}
 		if s, err := sessionStore.Get(r, sessionName); err != nil {
 			Logger.WithFields(log.Fields{}).Error(err)
 		} else {
 			loadSessionFlashMessages(s)
 			acc = loadCurrentAccount(s)
+			Logger.WithFields(log.Fields{
+				"handle": acc.Handle,
+				"hash":   acc.Hash,
+			}).Debugf("loaded account from session")
 		}
 		ctx := context.WithValue(r.Context(), models.AccountCtxtKey, &acc)
 
