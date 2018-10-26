@@ -227,6 +227,10 @@ func loadEnv(l *Application) (bool, error) {
 		l.Config.RedisBackendEnabled = true
 	}
 
+	l.Config.VotingEnabled = os.Getenv("DISABLE_VOTING") == ""
+	l.Config.DownvotingEnabled = os.Getenv("DISABLE_DOWNVOTING") == ""
+	l.Config.SessionsEnabled = os.Getenv("DISABLE_SESSIONS") == ""
+
 	return true, nil
 }
 
