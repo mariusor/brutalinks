@@ -367,6 +367,7 @@ ol li {
 }
 .item aside.score {
     grid-area: sidebar;
+
 }
 /*.item header {*/
     /*grid-area: header;*/
@@ -377,7 +378,6 @@ ol li {
     padding-left: 1ex;
     min-height: 1.4em;
     display: grid;
-    /*align-items: center;*/
 }
 .item footer::before {
     content: '\2012';
@@ -403,26 +403,24 @@ ol.comments li {
     content: "]";
 }
 .item .score {
-    /*display: none !important;*/
-    text-align: center;
-    /*max-width: min-content;*/
+    display: grid;
     padding: 0;
-    /*max-height: 1rem;*/
-    /*overflow: hidden;*/
 }
 /*.item .score:hover,*/
 /*.item .score:active {*/
     /*max-height: 4rem;*/
     /*overflow: visible;*/
 /*}*/
-.item .score a,
-.item .score data {
+.item .score a {
     display: block;
-    margin: auto;
+    align-self: center;
+    justify-self: center;
 }
 .item .score data {
+    justify-self: center;
+    align-self: center;
     font-size: .6em;
-    margin: 2px auto auto auto;
+    padding-top: 3px;
 }
 .item .score data.inf {
     font-weight: bold;
