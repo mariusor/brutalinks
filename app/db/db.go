@@ -363,7 +363,7 @@ group by "accounts"."id", "accounts"."key" order by "accounts"."id";`,
 func (c config) LoadInfo() (models.Info, error) {
 	inf := models.Info{
 		Title: app.Instance.Name(),
-		Summary: "Littr.me is a federated link aggregator similar to reddit or hacker news.",
+		Summary: "Link aggregator inspired by reddit and hacker news using ActivityPub federation.",
 		Email: "system@littr.me",
 		URI: app.Instance.BaseURL,
 		Version: app.Instance.Version,
