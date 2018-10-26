@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"github.com/mariusor/littr.go/app/processing"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -48,7 +47,7 @@ func init() {
 	models.Logger = Logger.WithField("package", "models")
 	db.Logger = Logger.WithField("package", "db")
 	frontend.Logger = Logger.WithField("package", "frontend")
-	processing.Logger = Logger.WithField("package", "processing")
+	//processing.Logger = Logger.WithField("package", "processing")
 
 	db.Config.DB = app.Instance.Db
 }
