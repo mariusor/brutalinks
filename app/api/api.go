@@ -89,7 +89,7 @@ func GetContext() j.Context {
 }
 
 func BuildGlobalOutboxID() as.ObjectID {
-	return as.ObjectID(fmt.Sprintf("%s/outbox", BaseURL))
+	return as.ObjectID(fmt.Sprintf("%s/self/outbox", BaseURL))
 }
 
 func BuildActorID(a models.Account) as.ObjectID {
@@ -119,15 +119,12 @@ func BuildObjectIDFromItem(i models.Item) (as.ObjectID, bool) {
 		hash := i.SubmittedBy.Hash
 		return as.ObjectID(fmt.Sprintf("%s/%s/outbox/%s/object", ActorsURL, url.PathEscape(hash.String()), url.PathEscape(i.Hash.String()))), true
 	} else {
-		return as.ObjectID(fmt.Sprintf("%s/outbox/%s/object", BaseURL, url.PathEscape(i.Hash.String()))), true
+		return as.ObjectID(fmt.Sprintf("%s/self/outbox/%s/object", BaseURL, url.PathEscape(i.Hash.String()))), true
 	}
 }
 
 func BuildObjectIDFromVote(v models.Vote) as.ObjectID {
 	att := "liked"
-	//if v.Weight < 0 {
-	//	att = "disliked"
-	//}
 	return as.ObjectID(fmt.Sprintf("%s/%s/%s/%s", ActorsURL, url.PathEscape(v.SubmittedBy.Handle), att, url.PathEscape(v.Item.Hash.String())))
 }
 
@@ -221,7 +218,11 @@ func HandleError(w http.ResponseWriter, r *http.Request, code int, errs ...error
 				trace = e.StackTrace()
 			}
 		default:
-			msg = e.Error()
+			if err != nil {
+				msg = e.Error()
+			} else {
+				msg = "oops, unknown error"
+			}
 		}
 		e := error{
 			Message: msg,

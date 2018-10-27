@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func UpdateScores( key string, handle string,  since time.Duration,  items bool, accounts bool) error {
+func UpdateScores(key string, handle string,  since time.Duration,  items bool, accounts bool) error {
 	var err error
 	// recount all votes for content items
 	var scores []models.Score
