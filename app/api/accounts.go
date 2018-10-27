@@ -73,28 +73,39 @@ func loadAPActivity(it models.Item) as.Activity {
 func loadAPItem(item models.Item) as.Item {
 	o := localap.Article{}
 	o.Name = make(as.NaturalLanguageValue, 0)
-	o.Content = make(as.NaturalLanguageValue, 0)
 	if id, ok := BuildObjectIDFromItem(item); ok {
 		o.ID = id
 	}
-	if len(item.Hash) > 0 {
-		o.URL = as.IRI(frontend.ItemPermaLink(item))
-	}
+
 	if item.MimeType == models.MimeTypeURL {
 		o.Type = as.PageType
+		o.URL = as.IRI(item.Data)
 	} else {
-		o.Type = as.NoteType
+		wordCount := strings.Count(item.Data, " ") +
+			strings.Count(item.Data, "\t") +
+			strings.Count(item.Data, "\n") +
+			strings.Count(item.Data, "\r\n")
+		if wordCount > 300 {
+			o.Type = as.ArticleType
+		} else {
+			o.Type = as.NoteType
+		}
+		if len(item.Hash) > 0 {
+			o.URL = as.IRI(frontend.ItemPermaLink(item))
+		}
+		o.MediaType = as.MimeType(item.MimeType)
+		o.Content = make(as.NaturalLanguageValue, 0)
+		if item.Data != "" {
+			o.Content.Set("en", string(item.Data))
+		}
 	}
 	o.Published = item.SubmittedAt
 	o.Updated = item.UpdatedAt
-	o.MediaType = as.MimeType(item.MimeType)
+
 	//o.Generator = as.IRI(app.Instance.BaseURL)
 	o.Score = item.Score / models.ScoreMultiplier
 	if item.Title != "" {
 		o.Name.Set("en", string(item.Title))
-	}
-	if item.Data != "" {
-		o.Content.Set("en", string(item.Data))
 	}
 	if item.SubmittedBy != nil {
 		id := BuildActorID(*item.SubmittedBy)
