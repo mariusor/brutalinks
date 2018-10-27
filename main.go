@@ -138,9 +138,11 @@ func main() {
 				r.Use(api.ServiceCtxt)
 
 				r.With(api.LoadFiltersCtxt, api.ItemCollectionCtxt).Get("/", api.HandleCollection)
-				r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/{hash}", api.HandleCollectionActivity)
-				r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/{hash}/object", api.HandleCollectionActivityObject)
-				r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/{hash}/object/replies", api.HandleCollectionActivityObjectReplies)
+				r.Route("/{hash}", func(r chi.Router) {
+					r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/", api.HandleCollectionActivity)
+					r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/object", api.HandleCollectionActivityObject)
+					r.With(api.LoadFiltersCtxt, api.ItemCollectionCtxt).Get("/object/replies", api.HandleCollection)
+				})
 			})
 		})
 		r.Route("/actors", func(r chi.Router) {
@@ -163,8 +165,7 @@ func main() {
 						r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/object", api.HandleCollectionActivityObject)
 						// this should update the item
 						r.With(api.LoadFiltersCtxt, api.ItemCtxt).Put("/object", api.UpdateItem)
-
-						r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/object/replies", api.HandleCollectionActivityObjectReplies)
+						r.With(api.LoadFiltersCtxt, api.ItemCtxt, api.ItemCollectionCtxt).Get("/object/replies", api.HandleCollection)
 					})
 				})
 			})

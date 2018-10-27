@@ -258,6 +258,20 @@ func loadPersonFiltersFromReq(r *http.Request) models.LoadAccountsFilter {
 	return filters
 }
 
+func loadRepliesFilterFromReq(r *http.Request) models.LoadItemsFilter {
+	filters := models.LoadItemsFilter{
+		MaxItems: MaxContentItems,
+	}
+	if err := qstring.Unmarshal(r.URL.Query(), &filters); err != nil {
+		return filters
+	}
+	hash := chi.URLParam(r, "hash")
+
+	filters.InReplyTo = []string{hash}
+
+	return filters
+}
+
 func loadInboxFilterFromReq(r *http.Request) models.LoadItemsFilter {
 	filters := models.LoadItemsFilter{
 		MaxItems: MaxContentItems,
@@ -353,7 +367,7 @@ func loadLikedFilterFromReq(r *http.Request) models.LoadVotesFilter {
 
 func LoadFiltersCtxt(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		col := chi.URLParam(r, "collection")
+		col := getCollectionFromReq(r)
 		var filters interface{}
 		switch col {
 		case "disliked":
@@ -364,6 +378,8 @@ func LoadFiltersCtxt(next http.Handler) http.Handler {
 			filters = loadOutboxFilterFromReq(r)
 		case "inbox":
 			filters = loadInboxFilterFromReq(r)
+		case "replies":
+			filters = loadRepliesFilterFromReq(r)
 		case "":
 			filters = loadPersonFiltersFromReq(r)
 		}
@@ -376,8 +392,8 @@ func LoadFiltersCtxt(next http.Handler) http.Handler {
 
 func ItemCollectionCtxt(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		col := chi.URLParam(r, "collection")
 		var err error
+		col := getCollectionFromReq(r)
 
 		f := r.Context().Value(models.FilterCtxtKey)
 		val := r.Context().Value(models.RepositoryCtxtKey)
@@ -387,6 +403,8 @@ func ItemCollectionCtxt(next http.Handler) http.Handler {
 			filters, ok := f.(models.LoadItemsFilter)
 			if !ok {
 				Logger.WithFields(log.Fields{}).Errorf("could not load item filters from Context")
+				next.ServeHTTP(w, r)
+				return
 			}
 			loader, ok := val.(models.CanLoadItems)
 			if !ok {
@@ -405,6 +423,8 @@ func ItemCollectionCtxt(next http.Handler) http.Handler {
 			filters, ok := f.(models.LoadItemsFilter)
 			if !ok {
 				Logger.WithFields(log.Fields{}).Errorf("could not load item filters from Context")
+				next.ServeHTTP(w, r)
+				return
 			}
 			loader, ok := val.(models.CanLoadItems)
 			if !ok {
@@ -423,6 +443,8 @@ func ItemCollectionCtxt(next http.Handler) http.Handler {
 			filters, ok := f.(models.LoadVotesFilter)
 			if !ok {
 				Logger.WithFields(log.Fields{}).Errorf("could not load votes filters from Context")
+				next.ServeHTTP(w, r)
+				return
 			}
 			loader, ok := val.(models.CanLoadVotes)
 			if !ok {
@@ -431,6 +453,26 @@ func ItemCollectionCtxt(next http.Handler) http.Handler {
 				return
 			}
 			items, err = loader.LoadVotes(filters)
+			if err != nil {
+				Logger.WithFields(log.Fields{}).Error(err)
+				next.ServeHTTP(w, r)
+				return
+			}
+		}
+		if col == "replies" {
+			filters, ok := f.(models.LoadItemsFilter)
+			if !ok {
+				Logger.WithFields(log.Fields{}).Errorf("could not load item filters from Context")
+				next.ServeHTTP(w, r)
+				return
+			}
+			loader, ok := val.(models.CanLoadItems)
+			if !ok {
+				Logger.WithFields(log.Fields{}).Errorf("could not load item repository from Context")
+				next.ServeHTTP(w, r)
+				return
+			}
+			items, err = loader.LoadItems(filters)
 			if err != nil {
 				Logger.WithFields(log.Fields{}).Error(err)
 				next.ServeHTTP(w, r)

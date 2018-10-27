@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
+	"path"
 	"strings"
 
 	"github.com/mariusor/littr.go/app"
@@ -266,6 +267,14 @@ func HandleActor(w http.ResponseWriter, r *http.Request) {
 	w.Write(j)
 }
 
+func getCollectionFromReq( r *http.Request) string {
+	collection := chi.URLParam(r, "collection")
+	if path.Base(r.URL.Path) == "replies" {
+		collection = "replies"
+	}
+	return collection
+}
+
 // GET /api/actors/:handle/:collection/:hash
 // GET /api/:collection/:hash
 func HandleCollectionActivity(w http.ResponseWriter, r *http.Request) {
@@ -273,14 +282,17 @@ func HandleCollectionActivity(w http.ResponseWriter, r *http.Request) {
 	var err error
 
 	val := r.Context().Value(ItemCtxtKey)
-	collection := chi.URLParam(r, "collection")
+	collection := getCollectionFromReq(r)
 	var el as.ObjectOrLink
 	switch strings.ToLower(collection) {
+	case "replies":
+		fallthrough
 	case "inbox":
+		fallthrough
 	case "outbox":
 		item, ok := val.(models.Item)
 		if !ok {
-			Logger.WithFields(log.Fields{}).Errorf("could not load Item from Context")
+			err := errors.New("could not load Item from Context")
 			HandleError(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -321,6 +333,7 @@ func HandleCollectionActivityObject(w http.ResponseWriter, r *http.Request) {
 	var el as.ObjectOrLink
 	switch strings.ToLower(collection) {
 	case "inbox":
+	case "replies":
 	case "outbox":
 		i, ok := val.(models.Item)
 		if !ok {
@@ -370,59 +383,17 @@ func HandleCollectionActivityObject(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-// GET /api/actors/:handle/:collection/:hash/replies
-// GET /api/:collection/:hash/replies
-func HandleCollectionActivityObjectReplies(w http.ResponseWriter, r *http.Request) {
-	var ok bool
-
-	var it models.Item
-	item := r.Context().Value(ItemCtxtKey)
-	var data []byte
-	if it, ok = item.(models.Item); !ok {
-		Logger.WithFields(log.Fields{}).Errorf("could not load Item from Context")
-		return
-	} else {
-		val := r.Context().Value(models.RepositoryCtxtKey)
-		el := loadAPItem(it)
-		if service, ok := val.(models.CanLoadItems); ok {
-			filter := models.LoadItemsFilter{
-				InReplyTo: []string{it.Hash.String()},
-				Deleted:   []bool{false},
-				MaxItems:  MaxContentItems,
-			}
-
-			p, _ := el.(localap.Article)
-			col := as.CollectionNew(BuildRepliesCollectionID(p))
-			if replies, err := service.LoadItems(filter); err == nil {
-				_, err = loadAPCollection(col, &replies)
-				data, err = json.WithContext(GetContext()).Marshal(p.Replies)
-			} else {
-				Logger.WithFields(log.Fields{}).Error(err)
-			}
-			p.Replies = col
-		}
-	}
-
-	w.Header().Set("Content-Type", "application/activity+json; charset=utf-8")
-	//w.Header().Set("X-Content-Type-Options", "nosniff")
-	w.WriteHeader(http.StatusOK)
-	w.Write(data)
-}
-
+// GET /api/self/:collection
 // GET /api/actors/:handle/:collection
-// GET /api/:collection
+// GET /api/self/:collection/:hash/replies
+// GET /api/actors/:handle/:collection/:hash/replies
 func HandleCollection(w http.ResponseWriter, r *http.Request) {
 	var data []byte
 	var err error
-	var p *localap.Person
 
 	val := r.Context().Value(AccountCtxtKey)
 	a, _ := val.(models.Account)
-	//if !ok {
-	//	Logger.WithFields(log.Fields{}).WithFields(log.Fields{}).Errorf("could not load Account from Context")
-	//}
-	p = loadAPPerson(a)
-	typ := chi.URLParam(r, "collection")
+	typ := getCollectionFromReq(r)
 	filters := r.Context().Value(models.FilterCtxtKey)
 
 	f, _ := filters.(models.LoadItemsFilter)
@@ -432,13 +403,14 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 	case "inbox":
 		items, ok := collection.(models.ItemCollection)
 		if !ok {
-			Logger.WithFields(log.Fields{}).Errorf("could not load Items from Context")
+			err := errors.New("could not load Items from Context")
+			Logger.WithFields(log.Fields{}).Error(err)
+			HandleError(w, r, http.StatusNotFound, err)
 			return
 		}
 		col := ap.InboxNew()
 		col.ID = BuildCollectionID(a, new(ap.Inbox))
 		_, err = loadAPCollection(col, &items)
-		p.Inbox = col
 		if len(items) > 0 {
 			url := fmt.Sprintf("%s?page=%d", string(*col.GetID()), f.Page)
 			col.First = as.IRI(strings.Replace(url, fmt.Sprintf("page=%d", f.Page), fmt.Sprintf("page=%d", 1), 1))
@@ -450,20 +422,20 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 				if f.Page > 1 {
 					page.Prev = as.IRI(strings.Replace(url, fmt.Sprintf("page=%d", f.Page), fmt.Sprintf("page=%d", f.Page-1), 1))
 				}
-				p.Inbox = page
 			}
 		}
-		data, err = json.WithContext(GetContext()).Marshal(p.Inbox)
+		data, err = json.WithContext(GetContext()).Marshal(col)
 	case "outbox":
 		items, ok := collection.(models.ItemCollection)
 		if !ok {
-			Logger.WithFields(log.Fields{}).Errorf("could not load Items from Context")
+			err := errors.New("could not load Items from Context")
+			Logger.WithFields(log.Fields{}).Error(err)
+			HandleError(w, r, http.StatusNotFound, err)
 			return
 		}
 		col := ap.OutboxNew()
 		col.ID = BuildCollectionID(a, new(ap.Outbox))
 		_, err = loadAPCollection(col, &items)
-		p.Outbox = col
 		if len(items) > 0 {
 			url := fmt.Sprintf("%s?page=%d", string(*col.GetID()), f.Page)
 			col.First = as.IRI(strings.Replace(url, fmt.Sprintf("page=%d", f.Page), fmt.Sprintf("page=%d", 1), 1))
@@ -475,14 +447,15 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 				if f.Page > 1 {
 					page.Prev = as.IRI(strings.Replace(url, fmt.Sprintf("page=%d", f.Page), fmt.Sprintf("page=%d", f.Page-1), 1))
 				}
-				p.Outbox = page
 			}
 		}
-		data, err = json.WithContext(GetContext()).Marshal(p.Outbox)
+		data, err = json.WithContext(GetContext()).Marshal(col)
 	case "liked":
 		votes, ok := collection.(models.VoteCollection)
 		if !ok {
-			Logger.WithFields(log.Fields{}).Errorf("could not load Votes from Context")
+			err := errors.New("could not load Votes from Context")
+			Logger.WithFields(log.Fields{}).Error(err)
+			HandleError(w, r, http.StatusNotFound, err)
 			return
 		}
 		if err != nil {
@@ -491,7 +464,6 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 		liked := ap.LikedNew()
 		liked.ID = BuildCollectionID(a, new(ap.Likes))
 		_, err = loadAPLiked(liked, votes)
-		p.Liked = liked
 		if len(votes) > 0 {
 			url := fmt.Sprintf("%s?page=%d", string(*liked.GetID()), f.Page)
 			liked.First = as.IRI(strings.Replace(url, fmt.Sprintf("page=%d", f.Page), fmt.Sprintf("page=%d", 1), 1))
@@ -503,25 +475,39 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 				if f.Page > 1 {
 					page.Prev = as.IRI(strings.Replace(url, fmt.Sprintf("page=%d", f.Page), fmt.Sprintf("page=%d", f.Page-1), 1))
 				}
-				p.Liked = page
 			}
 		}
-		data, err = json.WithContext(GetContext()).Marshal(p.Liked)
+		data, err = json.WithContext(GetContext()).Marshal(liked)
 	case "replies":
+		it, ok := r.Context().Value(ItemCtxtKey).(models.Item)
+		var art as.Item
+		if ok {
+			art = loadAPItem(it)
+		}
 		items, ok := collection.(models.ItemCollection)
 		if !ok {
-			log.Errorf("could not load Replies from Context")
+			err := errors.New("could not load Replies from Context")
+			Logger.WithFields(log.Fields{}).Error(err)
+			HandleError(w, r, http.StatusNotFound, err)
 			return
 		}
 		replies := localap.OrderedCollectionNew(as.ObjectID(""))
-		replies.ID = BuildRepliesCollectionID(p)
+		replies.ID = BuildRepliesCollectionID(art)
 		_, err = loadAPCollection(replies, &items)
-		p.Replies = replies
 		if len(items) > 0 {
-			fpUrl := replies.GetLink() + "?page=1"
-			replies.First = fpUrl
+			url := fmt.Sprintf("%s?page=%d", string(*replies.GetID()), f.Page)
+			replies.First = as.IRI(strings.Replace(url, fmt.Sprintf("page=%d", f.Page), fmt.Sprintf("page=%d", 1), 1))
+			if f.Page > 0 {
+				oc := as.OrderedCollection(*replies)
+				page := as.OrderedCollectionPageNew(&oc)
+				page.ID = as.ObjectID(url)
+				page.Next = as.IRI(strings.Replace(url, fmt.Sprintf("page=%d", f.Page), fmt.Sprintf("page=%d", f.Page+1), 1))
+				if f.Page > 1 {
+					page.Prev = as.IRI(strings.Replace(url, fmt.Sprintf("page=%d", f.Page), fmt.Sprintf("page=%d", f.Page-1), 1))
+				}
+			}
 		}
-		data, err = json.WithContext(GetContext()).Marshal(p.Outbox)
+		data, err = json.WithContext(GetContext()).Marshal(replies)
 	default:
 		err = errors.Errorf("collection %s not found", typ)
 	}
