@@ -99,7 +99,12 @@ func (i *Item) FromActivityPubItem(it as.Item) error {
 			i.Hash = getHashFromAP(a)
 			i.Title = title
 			i.MimeType = string(a.MediaType)
-			i.Data = content
+			if a.Type == as.PageType {
+				i.Data = string(a.URL.GetLink())
+				i.MimeType = MimeTypeURL
+			} else {
+				i.Data = content
+			}
 			i.SubmittedAt = a.Published
 
 			if a.AttributedTo != nil {
