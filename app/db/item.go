@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/mmcloughlin/meow"
 	"strings"
 	"time"
 
@@ -15,18 +14,18 @@ import (
 )
 
 type Item struct {
-	ID          int64     `db:"id,auto"`
-	Key         Key       `db:"key,size(32)"`
-	Title       []byte    `db:"title"`
-	MimeType    string    `db:"mime_type"`
-	Data        []byte    `db:"data"`
-	Score       int64     `db:"score"`
-	SubmittedAt time.Time `db:"submitted_at"`
-	SubmittedBy int64     `db:"submitted_by"`
-	UpdatedAt   time.Time `db:"updated_at"`
-	Flags       FlagBits  `db:"flags"`
-	Metadata    Metadata  `db:"metadata"`
-	Path        []byte    `db:"path"`
+	ID          int64      `db:"id,auto"`
+	Key         models.Key `db:"key,size(32)"`
+	Title       []byte     `db:"title"`
+	MimeType    string     `db:"mime_type"`
+	Data        []byte     `db:"data"`
+	Score       int64      `db:"score"`
+	SubmittedAt time.Time  `db:"submitted_at"`
+	SubmittedBy int64      `db:"submitted_by"`
+	UpdatedAt   time.Time  `db:"updated_at"`
+	Flags       FlagBits   `db:"flags"`
+	Metadata    Metadata   `db:"metadata"`
+	Path        []byte     `db:"path"`
 	FullPath    []byte
 	author      *Account
 }
@@ -39,9 +38,9 @@ func ItemFlags(f FlagBits) models.FlagBits {
 	return VoteFlags(f)
 }
 
-func getAncestorKey(path []byte, cnt int) (Key, bool) {
+func getAncestorKey(path []byte, cnt int) (models.Key, bool) {
 	if path == nil {
-		return Key{}, false
+		return models.Key{}, false
 	}
 	elem := bytes.Split(path, []byte("."))
 	l := len(elem)
@@ -50,17 +49,17 @@ func getAncestorKey(path []byte, cnt int) (Key, bool) {
 	}
 	ls := elem[l-cnt]
 	if len(ls) == 32 {
-		var k Key
+		var k models.Key
 		i := copy(k[:], ls[0:32])
 		return k, i == 32
 	}
-	return Key{}, false
+	return models.Key{}, false
 }
 
-func GetParentKey(i Item) (Key, bool) {
+func GetParentKey(i Item) (models.Key, bool) {
 	return getAncestorKey(i.Path, 1)
 }
-func GetOPKey(i Item) (Key, bool) {
+func GetOPKey(i Item) (models.Key, bool) {
 	return getAncestorKey(i.Path, -1)
 }
 
@@ -99,21 +98,6 @@ func (i Item) Model() models.Item {
 
 type ItemCollection []Item
 
-func genKey(i Item) Key {
-	data := i.Data
-	now := i.UpdatedAt
-	if now.IsZero() {
-		now = time.Now()
-	}
-	data = append(data, []byte(fmt.Sprintf("%d", now.UnixNano()))...)
-	data = append(data, []byte(i.Path)...)
-	data = append(data, []byte(fmt.Sprintf("%d", i.SubmittedBy))...)
-
-	i.Key.FromString(fmt.Sprintf("%x", meow.Checksum(777, data)))
-	//i.Key.FromString(fmt.Sprintf("%x", sha256.Sum256(data)))
-	return i.Key
-}
-
 func saveItem(db *sqlx.DB, it models.Item) (models.Item, error) {
 	i := Item{
 		Score:    it.Score,
@@ -130,7 +114,7 @@ func saveItem(db *sqlx.DB, it models.Item) (models.Item, error) {
 	}
 
 	if i.Key == [32]byte{} {
-		i.Key = genKey(i)
+		i.Key = models.GenKey(i.Path, []byte(it.SubmittedBy.Handle), i.Data)
 	}
 	var params = make([]interface{}, 0)
 	params = append(params, i.Key.Bytes())
@@ -171,7 +155,7 @@ func saveItem(db *sqlx.DB, it models.Item) (models.Item, error) {
 
 type itemsView struct {
 	ItemID          int64     `db:"item_id,"auto"`
-	ItemKey         Key       `db:"item_key,size(32)"`
+	ItemKey         models.Key       `db:"item_key,size(32)"`
 	Title           []byte    `db:"item_title"`
 	MimeType        string    `db:"item_mime_type"`
 	Data            []byte    `db:"item_data"`
@@ -183,7 +167,7 @@ type itemsView struct {
 	ItemMetadata    Metadata  `db:"item_metadata"`
 	Path            []byte    `db:"item_path"`
 	AuthorID        int64     `db:"author_id,auto"`
-	AuthorKey       Key       `db:"author_key,size(32)"`
+	AuthorKey       models.Key       `db:"author_key,size(32)"`
 	AuthorEmail     []byte    `db:"author_email"`
 	AuthorHandle    string    `db:"author_handle"`
 	AuthorScore     int64     `db:"author_score"`

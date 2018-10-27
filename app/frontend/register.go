@@ -53,7 +53,7 @@ func AccountFromRequest(r *http.Request) (*models.Account, []error) {
 	a.CreatedAt = now
 	a.UpdatedAt = now
 
-	a.Hash = models.Hash(models.GenKey(a.Handle).String())
+	a.Hash = models.Hash(models.GenKey([]byte(a.Handle)).String())
 	salt := securecookie.GenerateRandomKey(8)
 	saltedpw := []byte(pw)
 	saltedpw = append(saltedpw, salt...)

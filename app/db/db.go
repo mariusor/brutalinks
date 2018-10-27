@@ -9,9 +9,7 @@ import (
 	"github.com/mariusor/littr.go/app"
 	"io"
 	"net/http"
-	"net/url"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/mariusor/littr.go/app/models"
@@ -72,48 +70,9 @@ func Repository(next http.Handler) http.Handler {
 }
 
 type (
-	Key      [32]byte
 	FlagBits [8]byte
 	Metadata types.JSONText
 )
-
-func (k Key) Hash() models.Hash {
-	return models.Hash(k[0:10])
-}
-func (k Key) String() string {
-	return string(k[0:32])
-}
-func (k Key) Bytes() []byte {
-	return []byte(k[0:32])
-}
-
-func (k *Key) FromBytes(s []byte) error {
-	var err error
-	if len(s) > 32 {
-		err = errors.Errorf("incoming byte array %q longer than expected ", s)
-	}
-	if len(s) < 32 {
-		err = errors.Errorf("incoming byte array %q longer than expected ", s)
-	}
-	for i := range s {
-		k[i] = s[i]
-	}
-	return err
-}
-
-func (k *Key) FromString(s string) error {
-	var err error
-	if len(s) > 32 {
-		err = errors.Errorf("incoming string %q longer than expected ", s)
-	}
-	if len(s) < 32 {
-		err = errors.Errorf("incoming string %q longer than expected ", s)
-	}
-	for i := range s {
-		k[i] = s[i]
-	}
-	return err
-}
 
 func (m Metadata) MarshalJSON() ([]byte, error) {
 	return types.JSONText(m).MarshalJSON()
@@ -179,39 +138,6 @@ func (f *FlagBits) Scan(src interface{}) error {
 		return errors.Errorf("bad %T type assertion when loading %T", v, f)
 	}
 	return nil
-}
-
-// Value implements the driver.Valuer interface,
-// and turns the Key into a bitfield (BIT(8)) storage.
-func (k Key) Value() (driver.Value, error) {
-	if len(k) > 0 {
-		return k.Bytes(), nil
-	}
-	return []byte{0}, nil
-}
-
-// Scan implements the sql.Scanner interface,
-// and turns the bitfield incoming from DB into a Key
-func (k *Key) Scan(src interface{}) error {
-	if v, ok := src.([]byte); ok {
-		k.FromBytes(v)
-	} else {
-		return errors.Errorf("bad []byte type assertion when loading %T", k)
-	}
-
-	return nil
-}
-
-func trimHash(s string) string {
-	h, err := url.PathUnescape(s)
-	if err != nil {
-		return ""
-	}
-	h = strings.TrimSpace(h)
-	if len(h) == 0 {
-		return ""
-	}
-	return h
 }
 
 func (c config) LoadVotes(f models.LoadVotesFilter) (models.VoteCollection, error) {

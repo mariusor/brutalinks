@@ -16,7 +16,7 @@ insert into accounts (id, key, handle, email) values (
 
 -- name: add-item-about
 insert into content_items (key, mime_type, title, data, submitted_by) values (
-    '738e6ef3a756a56a906ecd3409270631',
+    '162edb32c80d0e6dd3114fbb59d6273b',
     'text/html',
     'about littr.me',
     '<p>' ||

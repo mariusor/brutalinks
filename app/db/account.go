@@ -16,15 +16,15 @@ import (
 var Logger log.FieldLogger
 
 type Account struct {
-	Id        int64     `db:"id,auto"`
-	Key       Key       `db:"key,size(32)"`
-	Email     []byte    `db:"email"`
-	Handle    string    `db:"handle"`
-	Score     int64     `db:"score"`
-	CreatedAt time.Time `db:"created_at"`
-	UpdatedAt time.Time `db:"updated_at"`
-	Flags     FlagBits  `db:"flags"`
-	Metadata  Metadata  `db:"metadata"`
+	Id        int64      `db:"id,auto"`
+	Key       models.Key `db:"key,size(32)"`
+	Email     []byte     `db:"email"`
+	Handle    string     `db:"handle"`
+	Score     int64      `db:"score"`
+	CreatedAt time.Time  `db:"created_at"`
+	UpdatedAt time.Time  `db:"updated_at"`
+	Flags     FlagBits   `db:"flags"`
+	Metadata  Metadata   `db:"metadata"`
 }
 
 func loadAccounts(db *sqlx.DB, f models.LoadAccountsFilter) (models.AccountCollection, error) {

@@ -1,7 +1,6 @@
 package models
 
 import (
-	"crypto/sha256"
 	"fmt"
 	"time"
 
@@ -81,17 +80,6 @@ func (a *Account) VotedOn(i Item) *Vote {
 
 func (a Account) GetLink() string {
 	return fmt.Sprintf("/~%s", a.Handle)
-}
-
-func GenKey(handle string) Key {
-	data := []byte(handle)
-	//now := a.UpdatedAt
-	//if now.IsZero() {
-	//	now = time.Now()
-	//}
-	k := Key{}
-	k.FromString(fmt.Sprintf("%x", sha256.Sum256(data)))
-	return k
 }
 
 func (a *Account) IsLogged() bool {

@@ -1,7 +1,11 @@
 package models
 
 import (
+	"database/sql/driver"
+	"fmt"
 	"github.com/juju/errors"
+	"github.com/mmcloughlin/meow"
+	"strings"
 )
 
 type FlagBits uint8
@@ -20,6 +24,9 @@ func (k Key) String() string {
 }
 func (k Key) Bytes() []byte {
 	return []byte(k[0:32])
+}
+func (k Key) Hash() Hash {
+	return Hash(k[0:10])
 }
 
 func (k *Key) FromBytes(s []byte) error {
@@ -49,8 +56,44 @@ func (k *Key) FromString(s string) error {
 	return err
 }
 
+// Value implements the driver.Valuer interface,
+// and turns the Key into a bitfield (BIT(8)) storage.
+func (k Key) Value() (driver.Value, error) {
+	if len(k) > 0 {
+		return k.Bytes(), nil
+	}
+	return []byte{0}, nil
+}
+
+// Scan implements the sql.Scanner interface,
+// and turns the bitfield incoming from DB into a Key
+func (k *Key) Scan(src interface{}) error {
+	if v, ok := src.([]byte); ok {
+		k.FromBytes(v)
+	} else {
+		return errors.Errorf("bad []byte type assertion when loading %T", k)
+	}
+
+	return nil
+}
 func (f *FlagBits) FromInt64() error {
 	return nil
 }
 
 type ItemCollection []Item
+
+func GenKey(elems... []byte) Key {
+	lim := []byte("##")
+
+	buf := strings.Builder{}
+	for i, el := range elems {
+		buf.Write(el)
+		if i < len(elems) - 1 {
+			buf.Write(lim)
+		}
+	}
+
+	var k Key
+	k.FromString(fmt.Sprintf("%x", meow.Checksum(777, []byte(buf.String()))))
+	return k
+}
