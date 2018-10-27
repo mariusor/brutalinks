@@ -206,6 +206,9 @@ func main() {
 	r.With(app.StripCookies).Get("/favicon.ico", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, filepath.Join(assets, "favicon.ico"))
 	}))
+	r.With(app.StripCookies).Get("/robots.txt", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, filepath.Join(assets, "robots.txt"))
+	}))
 	r.With(app.StripCookies).Get("/css/{path}", serveFiles(filepath.Join(assets, "css")))
 	r.With(app.StripCookies).Get("/js/{path}", serveFiles(filepath.Join(assets, "js")))
 
