@@ -178,7 +178,7 @@ FROM "content_items" WHERE "key" ~* $%d) AND "%s"."path" IS NOT NULL)`, it, coun
 			if len(hash) == 0 {
 				continue
 			}
-			whereColumns = append(whereColumns, fmt.Sprintf(`("%s"."path" <@ (SELECT
+			whereColumns = append(whereColumns, fmt.Sprintf(`("%s"."path" = (SELECT
 CASE WHEN "path" IS NULL THEN "key"::ltree ELSE ltree_addltree("path", "key"::ltree) END
 FROM "content_items" WHERE "key" ~* $%d) AND "%s"."path" IS NOT NULL)`, it, counter, it))
 			whereValues = append(whereValues, interface{}(hash))
