@@ -121,7 +121,7 @@ func ShowItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	m.Content = comment{Item: i}
-	if i.Data == "" {
+	if len(i.Data) + len(i.Title) == 0 {
 		HandleError(w, r, http.StatusNotFound, errors.Errorf("not found"))
 		return
 	}
