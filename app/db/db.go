@@ -72,7 +72,7 @@ func Repository(next http.Handler) http.Handler {
 }
 
 type (
-	Key      [64]byte
+	Key      [32]byte
 	FlagBits [8]byte
 	Metadata types.JSONText
 )
@@ -81,18 +81,18 @@ func (k Key) Hash() models.Hash {
 	return models.Hash(k[0:10])
 }
 func (k Key) String() string {
-	return string(k[0:64])
+	return string(k[0:32])
 }
 func (k Key) Bytes() []byte {
-	return []byte(k[0:64])
+	return []byte(k[0:32])
 }
 
 func (k *Key) FromBytes(s []byte) error {
 	var err error
-	if len(s) > 64 {
+	if len(s) > 32 {
 		err = errors.Errorf("incoming byte array %q longer than expected ", s)
 	}
-	if len(s) < 64 {
+	if len(s) < 32 {
 		err = errors.Errorf("incoming byte array %q longer than expected ", s)
 	}
 	for i := range s {
@@ -103,10 +103,10 @@ func (k *Key) FromBytes(s []byte) error {
 
 func (k *Key) FromString(s string) error {
 	var err error
-	if len(s) > 64 {
+	if len(s) > 32 {
 		err = errors.Errorf("incoming string %q longer than expected ", s)
 	}
-	if len(s) < 64 {
+	if len(s) < 32 {
 		err = errors.Errorf("incoming string %q longer than expected ", s)
 	}
 	for i := range s {

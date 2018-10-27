@@ -17,7 +17,7 @@ var Logger log.FieldLogger
 
 type Account struct {
 	Id        int64     `db:"id,auto"`
-	Key       Key       `db:"key,size(64)"`
+	Key       Key       `db:"key,size(32)"`
 	Email     []byte    `db:"email"`
 	Handle    string    `db:"handle"`
 	Score     int64     `db:"score"`

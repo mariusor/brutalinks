@@ -6,7 +6,7 @@ drop table if exists votes;
 -- name: create-accounts
 create table accounts (
   id serial primary key,
-  key char(64) unique,
+  key char(32) unique,
   handle varchar,
   email varchar unique,
   score bigint default 0,
@@ -19,7 +19,7 @@ create table accounts (
 -- name: create-items
 create table content_items (
   id serial primary key,
-  key char(64) unique,
+  key char(32) unique,
   mime_type varchar default NULL,
   title varchar default NULL,
   data text default NULL,

@@ -125,7 +125,7 @@ type votesView struct {
 	Weight          int       `db:"vote_weight"`
 	VoteFlags       FlagBits  `db:"vote_flags"`
 	ItemID          int64     `db:"item_id,"auto"`
-	ItemKey         Key       `db:"item_key,size(64)"`
+	ItemKey         Key       `db:"item_key,size(32)"`
 	Title           []byte    `db:"item_title"`
 	MimeType        string    `db:"item_mime_type"`
 	Data            []byte    `db:"item_data"`
@@ -137,7 +137,7 @@ type votesView struct {
 	ItemMetadata    Metadata  `db:"item_metadata"`
 	Path            []byte    `db:"item_path"`
 	VoterID         int64     `db:"voter_id,auto"`
-	VoterKey        Key       `db:"voter_key,size(64)"`
+	VoterKey        Key       `db:"voter_key,size(32)"`
 	VoterEmail      []byte    `db:"voter_email"`
 	VoterHandle     string    `db:"voter_handle"`
 	VoterScore      int64     `db:"voter_score"`
@@ -146,7 +146,7 @@ type votesView struct {
 	VoterFlags      FlagBits  `db:"voter_flags"`
 	VoterMetadata   Metadata  `db:"voter_metadata"`
 	AuthorID        int64     `db:"author_id,auto"`
-	AuthorKey       Key       `db:"author_key,size(64)"`
+	AuthorKey       Key       `db:"author_key,size(32)"`
 	AuthorEmail     []byte    `db:"author_email"`
 	AuthorHandle    string    `db:"author_handle"`
 	AuthorScore     int64     `db:"author_score"`

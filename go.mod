@@ -24,6 +24,7 @@ require (
 	github.com/mariusor/activitypub.go v0.0.0-20181018181918-c1f61e3a35ed
 	github.com/mariusor/qstring v0.0.0-20180919140350-29d781f85f0f
 	github.com/mattn/go-sqlite3 v1.9.0 // indirect
+	github.com/mmcloughlin/meow v0.0.0-20181027071415-3edf85781f46
 	github.com/onsi/ginkgo v1.6.0 // indirect
 	github.com/onsi/gomega v1.4.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect

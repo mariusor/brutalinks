@@ -2,9 +2,9 @@ package db
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"github.com/mmcloughlin/meow"
 	"strings"
 	"time"
 
@@ -16,7 +16,7 @@ import (
 
 type Item struct {
 	ID          int64     `db:"id,auto"`
-	Key         Key       `db:"key,size(64)"`
+	Key         Key       `db:"key,size(32)"`
 	Title       []byte    `db:"title"`
 	MimeType    string    `db:"mime_type"`
 	Data        []byte    `db:"data"`
@@ -49,10 +49,10 @@ func getAncestorKey(path []byte, cnt int) (Key, bool) {
 		cnt = l
 	}
 	ls := elem[l-cnt]
-	if len(ls) == 64 {
+	if len(ls) == 32 {
 		var k Key
-		i := copy(k[:], ls[0:64])
-		return k, i == 64
+		i := copy(k[:], ls[0:32])
+		return k, i == 32
 	}
 	return Key{}, false
 }
@@ -109,7 +109,8 @@ func genKey(i Item) Key {
 	data = append(data, []byte(i.Path)...)
 	data = append(data, []byte(fmt.Sprintf("%d", i.SubmittedBy))...)
 
-	i.Key.FromString(fmt.Sprintf("%x", sha256.Sum256(data)))
+	i.Key.FromString(fmt.Sprintf("%x", meow.Checksum(777, data)))
+	//i.Key.FromString(fmt.Sprintf("%x", sha256.Sum256(data)))
 	return i.Key
 }
 
@@ -128,7 +129,7 @@ func saveItem(db *sqlx.DB, it models.Item) (models.Item, error) {
 		i.Flags = f
 	}
 
-	if i.Key == [64]byte{} {
+	if i.Key == [32]byte{} {
 		i.Key = genKey(i)
 	}
 	var params = make([]interface{}, 0)
@@ -170,7 +171,7 @@ func saveItem(db *sqlx.DB, it models.Item) (models.Item, error) {
 
 type itemsView struct {
 	ItemID          int64     `db:"item_id,"auto"`
-	ItemKey         Key       `db:"item_key,size(64)"`
+	ItemKey         Key       `db:"item_key,size(32)"`
 	Title           []byte    `db:"item_title"`
 	MimeType        string    `db:"item_mime_type"`
 	Data            []byte    `db:"item_data"`
@@ -182,7 +183,7 @@ type itemsView struct {
 	ItemMetadata    Metadata  `db:"item_metadata"`
 	Path            []byte    `db:"item_path"`
 	AuthorID        int64     `db:"author_id,auto"`
-	AuthorKey       Key       `db:"author_key,size(64)"`
+	AuthorKey       Key       `db:"author_key,size(32)"`
 	AuthorEmail     []byte    `db:"author_email"`
 	AuthorHandle    string    `db:"author_handle"`
 	AuthorScore     int64     `db:"author_score"`
