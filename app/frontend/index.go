@@ -149,8 +149,6 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 	items, err := itemLoader.LoadItems(filter)
 	if err != nil {
 		Logger.WithFields(log.Fields{}).Error(err)
-		HandleError(w, r, http.StatusNotFound, err)
-		return
 	}
 
 	ShowItemData = false
@@ -174,7 +172,6 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				Logger.WithFields(log.Fields{}).Error(err)
 			}
-
 		} else {
 			Logger.WithFields(log.Fields{}).Errorf("could not load vote repository from Context")
 		}
