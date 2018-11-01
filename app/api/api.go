@@ -84,7 +84,7 @@ func GetContext() j.Context {
 	return j.Context{
 		{IRI: j.IRI(as.ActivityBaseURI)},
 		{IRI: j.IRI("https://w3id.org/security/v1")},
-		{j.Term("score"), j.IRI(fmt.Sprintf("%s/ns/#score", app.Instance.BaseURL))},
+		{j.Term("score"), j.IRI(fmt.Sprintf("%s/ns#score", app.Instance.BaseURL))},
 	}
 }
 
