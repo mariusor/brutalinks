@@ -358,7 +358,7 @@ ol li {
 }
 .item {
     display: grid;
-    grid-template-columns: 2em 11fr;
+    grid-template-columns: 2.1em 11fr;
     /*grid-template-rows: minmax(1.4rem, max-content) auto;*/
     /*align-items: center;*/
     grid-template-areas:
@@ -385,10 +385,16 @@ ol li {
 .item footer {
     grid-area: footer;
 }
-ol.comments {
+summary + ol.comments {
     margin-top: -1px;
-    padding: .6rem 0 0 1.4em;
+}
+ol.comments {
+    margin-top: .3em;
+    padding: 0 0 0 1.4em;
     /*border-radius: 0 0 0 .4rem;*/
+}
+.comments li {
+    padding: .1rem 0;
 }
 ol.comments.lvl-0 {
     /*border-radius: .4rem 0 0 .4rem;*/
@@ -534,14 +540,14 @@ ol.comments li {
 details[open] {}
 details:not([open]) {}
 details {
-    margin-bottom: .6rem;
+    margin: .3em 0 .6em 0;
 }
 summary:focus {
     outline: none;
 }
 details[open] > summary {
     padding: .3rem 0 0 .3rem;
-    /*border-radius: .3rem 0 0 0;*/
+    /*border-radius: .4rem 0 0 0;*/
 }
 details:not([open]) > summary {}
 details > summary::before {}
@@ -550,7 +556,7 @@ details > summary {
     /*display: inline;*/
     /*margin-top: .6rem;*/
     padding: .3rem 0 .3rem .3rem;
-    /*border-radius: .3rem 0 0 .3rem;*/
+    /*border-radius: 0 0 0 .4rem;*/
 }
 details > summary span {
     opacity: .6;

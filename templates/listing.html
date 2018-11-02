@@ -1,5 +1,4 @@
 {{- if .Items | len -}}
-<section id="items">
 {{- template "partials/items" .Items -}}
 <nav class="pagination">
 {{if gt .PrevPage 0 }}
@@ -9,7 +8,6 @@
     View more: <a href="{{.NextPage | PageLink }}" rel="next">next</a>
 {{end}}
 </nav>
-</section>
 {{- else -}}
 <section>Nothing here... yet.</section>
 {{- end -}}
