@@ -28,7 +28,7 @@ const (
 	// Anonymous label
 	Anonymous = "anonymous"
 	// AnonymousHash is the sha hash for the anonymous account
-	AnonymousHash = models.Hash("77b7b7215e8d78452dc40da9efbb65fdc918c757844387aa0f88143762495c6b")
+	AnonymousHash = models.Hash("eacff9ddf379bd9fc8274c5a9f4cae08")
 )
 
 var listenHost string
@@ -50,6 +50,7 @@ const QA EnvType = "qa"
 var validEnvTypes = []EnvType{
 	DEV,
 	PROD,
+	QA,
 }
 
 type backendConfig struct {
