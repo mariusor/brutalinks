@@ -3,7 +3,7 @@ module github.com/mariusor/littr.go
 require (
 	github.com/Masterminds/squirrel v0.0.0-20180830200806-ba9c5a05a8f4
 	github.com/adjust/redismq v0.0.0-20170113163246-e2a56d9bb404
-	github.com/buger/jsonparser v0.0.0-20180910192245-6acdf747ae99
+	github.com/buger/jsonparser v0.0.0-20181023193515-52c6e1462ebd
 	github.com/davecgh/go-spew v1.1.0 // indirect
 	github.com/eknkc/amber v0.0.0-20171010120322-cdade1c07385 // indirect
 	github.com/fsnotify/fsnotify v1.4.7 // indirect
@@ -21,7 +21,7 @@ require (
 	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
 	github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 // indirect
 	github.com/lib/pq v0.0.0-20180523175426-90697d60dd84
-	github.com/mariusor/activitypub.go v0.0.0-20181018181918-c1f61e3a35ed
+	github.com/mariusor/activitypub.go v0.0.0-20181105170502-974ac4b91e56
 	github.com/mariusor/qstring v0.0.0-20180919140350-29d781f85f0f
 	github.com/mattn/go-sqlite3 v1.9.0 // indirect
 	github.com/mmcloughlin/meow v0.0.0-20181027071415-3edf85781f46
