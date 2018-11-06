@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
-	"github.com/mariusor/littr.go/app/models"
 	"github.com/mariusor/littr.go/app/processing"
 	"net/http"
 	"os"
@@ -77,7 +76,7 @@ func main() {
 	}
 
 	api.Logger = Logger.WithField("package", "api")
-	models.Logger = Logger.WithField("package", "models")
+	app.Logger = Logger.WithField("package", "app")
 	db.Logger = Logger.WithField("package", "db")
 	frontend.Logger = Logger.WithField("package", "frontend")
 	processing.Logger = Logger.WithField("package", "processing")

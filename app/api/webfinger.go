@@ -12,7 +12,6 @@ import (
 
 	"github.com/juju/errors"
 
-	"github.com/mariusor/littr.go/app/models"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -65,15 +64,15 @@ func HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 
 	handle := strings.Replace(res, fmt.Sprintf("@%s", app.Instance.HostName), "", 1)
 
-	val := r.Context().Value(models.RepositoryCtxtKey)
-	AcctLoader, ok := val.(models.CanLoadAccounts)
+	val := r.Context().Value(app.RepositoryCtxtKey)
+	AcctLoader, ok := val.(app.CanLoadAccounts)
 	if !ok {
 		err := errors.New("could not load account repository from Context")
 		Logger.WithFields(log.Fields{}).Error(err)
 		HandleError(w, r, http.StatusInternalServerError, err)
 		return
 	}
-	a, err := AcctLoader.LoadAccount(models.LoadAccountsFilter{Handle: []string{handle}})
+	a, err := AcctLoader.LoadAccount(app.LoadAccountsFilter{Handle: []string{handle}})
 	if err != nil {
 		err := errors.New("resource not found")
 		Logger.WithFields(log.Fields{}).Error(err)

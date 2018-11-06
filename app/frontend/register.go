@@ -1,6 +1,7 @@
 package frontend
 
 import (
+	"github.com/mariusor/littr.go/app"
 	"net/http"
 	"time"
 
@@ -12,7 +13,6 @@ import (
 
 	"github.com/gorilla/securecookie"
 	"github.com/mariusor/littr.go/app/db"
-	"github.com/mariusor/littr.go/app/models"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -20,15 +20,15 @@ type registerModel struct {
 	Title         string
 	InvertedTheme bool
 	Terms         template.HTML
-	Account       models.Account
+	Account       app.Account
 }
 
-func AccountFromRequest(r *http.Request) (*models.Account, []error) {
+func AccountFromRequest(r *http.Request) (*app.Account, []error) {
 	if r.Method != http.MethodPost {
 		return nil, []error{errors.Errorf("invalid http method type")}
 	}
 	errs := make([]error, 0)
-	a := models.Account{}
+	a := app.Account{}
 	pw := r.PostFormValue("pw")
 	pwConfirm := r.PostFormValue("pw-confirm")
 	if pw != pwConfirm {
@@ -53,7 +53,7 @@ func AccountFromRequest(r *http.Request) (*models.Account, []error) {
 	a.CreatedAt = now
 	a.UpdatedAt = now
 
-	a.Hash = models.Hash(models.GenKey([]byte(a.Handle)).String())
+	a.Hash = app.Hash(app.GenKey([]byte(a.Handle)).String())
 	salt := securecookie.GenerateRandomKey(8)
 	saltedpw := []byte(pw)
 	saltedpw = append(saltedpw, salt...)
@@ -62,7 +62,7 @@ func AccountFromRequest(r *http.Request) (*models.Account, []error) {
 	if err != nil {
 		Logger.WithFields(log.Fields{}).Error(err)
 	}
-	a.Metadata = &models.AccountMetadata{
+	a.Metadata = &app.AccountMetadata{
 		Salt:     salt,
 		Password: savpw,
 	}

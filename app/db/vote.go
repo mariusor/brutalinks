@@ -2,17 +2,17 @@ package db
 
 import (
 	"fmt"
+	"github.com/mariusor/littr.go/app"
 	"math"
 	"strings"
 	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/juju/errors"
-	"github.com/mariusor/littr.go/app/models"
 	log "github.com/sirupsen/logrus"
 )
 
-type VoteCollection map[models.Key]Vote
+type VoteCollection map[app.Key]Vote
 
 type Vote struct {
 	Id          int64     `db:"id"`
@@ -33,18 +33,18 @@ func (v Vote) Item() *Item {
 	return v.item
 }
 
-func VoteFlags(f FlagBits) models.FlagBits {
+func VoteFlags(f FlagBits) app.FlagBits {
 	var ab uint8
 	for _, b := range f {
 		ab = ab & uint8(b)
 	}
-	return models.FlagBits(ab)
+	return app.FlagBits(ab)
 }
 
-func (v Vote) Model() models.Vote {
+func (v Vote) Model() app.Vote {
 	it := v.Item().Model()
 	voter := v.Voter().Model()
-	return models.Vote{
+	return app.Vote{
 		Item:        &it,
 		Weight:      v.Weight,
 		UpdatedAt:   v.UpdatedAt,
@@ -58,7 +58,7 @@ func (a Account) Votes() VoteCollection {
 	return nil
 }
 
-func loadVotes(db *sqlx.DB, f models.LoadVotesFilter) (models.VoteCollection, error) {
+func loadVotes(db *sqlx.DB, f app.LoadVotesFilter) (app.VoteCollection, error) {
 	wheres, whereValues := f.GetWhereClauses()
 
 	fullWhere := fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(wheres, " AND ")))
@@ -108,7 +108,7 @@ where %s order by "vote"."submitted_at" desc limit %d%s`, fullWhere, f.MaxItems,
 	if err := udb.Select(&agg, selC, whereValues...); err != nil {
 		return nil, err
 	}
-	votes := make(models.VoteCollection, len(agg))
+	votes := make(app.VoteCollection, len(agg))
 	for _, vv := range agg {
 		i := vv.item().Model()
 		v := vv.vote().Model()
@@ -125,7 +125,7 @@ type votesView struct {
 	Weight          int        `db:"vote_weight"`
 	VoteFlags       FlagBits   `db:"vote_flags"`
 	ItemID          int64      `db:"item_id,"auto"`
-	ItemKey         models.Key `db:"item_key,size(32)"`
+	ItemKey         app.Key `db:"item_key,size(32)"`
 	Title           []byte     `db:"item_title"`
 	MimeType        string     `db:"item_mime_type"`
 	Data            []byte     `db:"item_data"`
@@ -137,7 +137,7 @@ type votesView struct {
 	ItemMetadata    Metadata   `db:"item_metadata"`
 	Path            []byte     `db:"item_path"`
 	VoterID         int64      `db:"voter_id,auto"`
-	VoterKey        models.Key `db:"voter_key,size(32)"`
+	VoterKey        app.Key `db:"voter_key,size(32)"`
 	VoterEmail      []byte     `db:"voter_email"`
 	VoterHandle     string     `db:"voter_handle"`
 	VoterScore      int64      `db:"voter_score"`
@@ -146,7 +146,7 @@ type votesView struct {
 	VoterFlags      FlagBits   `db:"voter_flags"`
 	VoterMetadata   Metadata   `db:"voter_metadata"`
 	AuthorID        int64      `db:"author_id,auto"`
-	AuthorKey       models.Key `db:"author_key,size(32)"`
+	AuthorKey       app.Key `db:"author_key,size(32)"`
 	AuthorEmail     []byte     `db:"author_email"`
 	AuthorHandle    string     `db:"author_handle"`
 	AuthorScore     int64      `db:"author_score"`
@@ -219,7 +219,7 @@ func (v votesView) item() Item {
 	}
 }
 
-func saveVote(db *sqlx.DB, vot models.Vote) (models.Vote, error) {
+func saveVote(db *sqlx.DB, vot app.Vote) (app.Vote, error) {
 	var sel string
 	sel = `select "votes"."id", "accounts"."id", "votes"."weight", "votes"."submitted_at" from "votes" inner join "accounts" on "accounts"."id" = "votes"."submitted_by" 
 			where "accounts"."key" ~* $1 and "votes"."item_id" = (select "id" from "content_items" where "key" ~* $2);`
@@ -254,9 +254,9 @@ func saveVote(db *sqlx.DB, vot models.Vote) (models.Vote, error) {
 		q = `insert into "votes" ("weight", "flags", "item_id", "submitted_by") values ($1, $2::bit(8), (select "id" from "content_items" where "key" ~* $3), (select "id" from "accounts" where "key" ~* $4))`
 	}
 	v.Flags.Scan(vot.Flags)
-	v.Weight = int(vot.Weight * models.ScoreMultiplier)
+	v.Weight = int(vot.Weight * app.ScoreMultiplier)
 
-	res, err := db.Exec(q, v.Weight, models.FlagsNone, vot.Item.Hash, vot.SubmittedBy.Hash)
+	res, err := db.Exec(q, v.Weight, app.FlagsNone, vot.Item.Hash, vot.SubmittedBy.Hash)
 	if err != nil {
 		return vot, err
 	}

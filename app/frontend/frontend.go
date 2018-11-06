@@ -21,7 +21,6 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/gorilla/sessions"
 	"github.com/juju/errors"
-	"github.com/mariusor/littr.go/app/models"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 
@@ -34,7 +33,7 @@ const (
 )
 
 var sessionStore sessions.Store
-var defaultAccount = models.Account{Handle: app.Anonymous, Hash: app.AnonymousHash}
+var defaultAccount = app.Account{Handle: app.Anonymous, Hash: app.AnonymousHash}
 
 var Logger log.FieldLogger
 
@@ -56,7 +55,7 @@ type flash struct {
 	Msg  string
 }
 
-func html(i models.Item) template.HTML {
+func html(i app.Item) template.HTML {
 	return template.HTML(string(i.Data))
 }
 
@@ -74,7 +73,7 @@ func Markdown(data string) template.HTML {
 	return template.HTML(h)
 }
 
-func text(i models.Item) string {
+func text(i app.Item) string {
 	return string(i.Data)
 }
 
@@ -181,7 +180,7 @@ func Renderer(next http.Handler) http.Handler {
 				"sluggify":          sluggify,
 				"title":             func(t []byte) string { return string(t) },
 				"getProviders":      getAuthProviders,
-				"CurrentAccount":    func() *models.Account { return CurrentAccount },
+				"CurrentAccount":    func() *app.Account { return CurrentAccount },
 				"LoadFlashMessages": loadFlashMessages,
 				"Mod10":             func(lvl uint8) float64 { return math.Mod(float64(lvl), float64(10)) },
 				"ShowText":          func() bool { return ShowItemData },
@@ -231,7 +230,7 @@ func Renderer(next http.Handler) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
-func AnonymousAccount() *models.Account {
+func AnonymousAccount() *app.Account {
 	return &defaultAccount
 }
 
@@ -511,11 +510,11 @@ func isInverted(r *http.Request) bool {
 	return false
 }
 
-func loadCurrentAccount(s *sessions.Session) models.Account {
+func loadCurrentAccount(s *sessions.Session) app.Account {
 	// load the current account from the session or setting it to anonymous
 	if raw, ok := s.Values[SessionUserKey]; ok {
 		if a, ok := raw.(sessionAccount); ok {
-			if acc, err := db.Config.LoadAccount(models.LoadAccountsFilter{Handle: []string{a.Handle}}); err == nil {
+			if acc, err := db.Config.LoadAccount(app.LoadAccountsFilter{Handle: []string{a.Handle}}); err == nil {
 				Logger.WithFields(log.Fields{
 					"handle": acc.Handle,
 					"hash":   acc.Hash,
@@ -571,7 +570,7 @@ func LoadSession(next http.Handler) http.Handler {
 			loadSessionFlashMessages(s)
 			acc = loadCurrentAccount(s)
 		}
-		ctx := context.WithValue(r.Context(), models.AccountCtxtKey, &acc)
+		ctx := context.WithValue(r.Context(), app.AccountCtxtKey, &acc)
 
 		CurrentAccount = &acc
 		next.ServeHTTP(w, r.WithContext(ctx))

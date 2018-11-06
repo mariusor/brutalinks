@@ -3,12 +3,12 @@ package db
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/mariusor/littr.go/app"
 	"strings"
 	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/juju/errors"
-	"github.com/mariusor/littr.go/app/models"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -19,7 +19,7 @@ var Logger log.FieldLogger
 // Account represents the db model that we are using
 type Account struct {
 	Id        int64      `db:"id,auto"`
-	Key       models.Key `db:"key,size(32)"`
+	Key       app.Key `db:"key,size(32)"`
 	Email     []byte     `db:"email"`
 	Handle    string     `db:"handle"`
 	Score     int64      `db:"score"`
@@ -29,7 +29,7 @@ type Account struct {
 	Metadata  Metadata   `db:"metadata"`
 }
 
-func UpdateAccount(db *sqlx.DB, a models.Account) (models.Account, error) {
+func UpdateAccount(db *sqlx.DB, a app.Account) (app.Account, error) {
 	jMetadata, err := json.Marshal(a.Metadata)
 	if err != nil {
 		return a, err
@@ -47,7 +47,7 @@ func UpdateAccount(db *sqlx.DB, a models.Account) (models.Account, error) {
 	return a, nil
 }
 
-func loadAccounts(db *sqlx.DB, f models.LoadAccountsFilter) (models.AccountCollection, error) {
+func loadAccounts(db *sqlx.DB, f app.LoadAccountsFilter) (app.AccountCollection, error) {
 	wheres, whereValues := f.GetWhereClauses()
 
 	var fullWhere string
@@ -70,14 +70,14 @@ func loadAccounts(db *sqlx.DB, f models.LoadAccountsFilter) (models.AccountColle
 	if err := db.Select(&agg, sel, whereValues...); err != nil {
 		return nil, err
 	}
-	accounts := make(models.AccountCollection, len(agg))
+	accounts := make(app.AccountCollection, len(agg))
 	for k, acc := range agg {
 		accounts[k] = acc.Model()
 	}
 	return accounts, nil
 }
 
-func saveAccount(db *sqlx.DB, a models.Account) (models.Account, error) {
+func saveAccount(db *sqlx.DB, a app.Account) (app.Account, error) {
 	jMetadata, err := json.Marshal(a.Metadata)
 	if err != nil {
 		Logger.WithFields(log.Fields{}).Error(err)

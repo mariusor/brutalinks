@@ -17,7 +17,6 @@ import (
 	as "github.com/mariusor/activitypub.go/activitystreams"
 	json "github.com/mariusor/activitypub.go/jsonld"
 	localap "github.com/mariusor/littr.go/app/activitypub"
-	"github.com/mariusor/littr.go/app/models"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -25,14 +24,14 @@ func getObjectID(s string) as.ObjectID {
 	return as.ObjectID(fmt.Sprintf("%s/%s", ActorsURL, s))
 }
 
-func apAccountID(a models.Account) as.ObjectID {
+func apAccountID(a app.Account) as.ObjectID {
 	if len(a.Hash) >= 8 {
 		return as.ObjectID(fmt.Sprintf("%s/%s", ActorsURL, a.Hash.String()))
 	}
 	return as.ObjectID(fmt.Sprintf("%s/anonymous", ActorsURL))
 }
 
-func loadAPLike(vote models.Vote) as.ObjectOrLink {
+func loadAPLike(vote app.Vote) as.ObjectOrLink {
 	if vote.Weight == 0 {
 		return nil
 	}
@@ -50,7 +49,7 @@ func loadAPLike(vote models.Vote) as.ObjectOrLink {
 	}
 }
 
-func loadAPActivity(it models.Item) as.Activity {
+func loadAPActivity(it app.Item) as.Activity {
 	a := loadAPPerson(*it.SubmittedBy)
 	ob := loadAPItem(it)
 
@@ -70,14 +69,14 @@ func loadAPActivity(it models.Item) as.Activity {
 	return act
 }
 
-func loadAPItem(item models.Item) as.Item {
+func loadAPItem(item app.Item) as.Item {
 	o := localap.Article{}
 	o.Name = make(as.NaturalLanguageValue, 0)
 	if id, ok := BuildObjectIDFromItem(item); ok {
 		o.ID = id
 	}
 
-	if item.MimeType == models.MimeTypeURL {
+	if item.MimeType == app.MimeTypeURL {
 		o.Type = as.PageType
 		o.URL = as.IRI(item.Data)
 	} else {
@@ -103,7 +102,7 @@ func loadAPItem(item models.Item) as.Item {
 	o.Updated = item.UpdatedAt
 
 	//o.Generator = as.IRI(app.Instance.BaseURL)
-	o.Score = item.Score / models.ScoreMultiplier
+	o.Score = item.Score / app.ScoreMultiplier
 	if item.Title != "" {
 		o.Name.Set("en", string(item.Title))
 	}
@@ -123,7 +122,7 @@ func loadAPItem(item models.Item) as.Item {
 	return o
 }
 
-func loadAPPerson(a models.Account) *localap.Person {
+func loadAPPerson(a app.Account) *localap.Person {
 	p := localap.Person{}
 	p.Type = as.PersonType
 	p.Name = as.NaturalLanguageValueNew()
@@ -173,7 +172,7 @@ func loadAPPerson(a models.Account) *localap.Person {
 	return &p
 }
 
-func loadAPLiked(o as.CollectionInterface, votes models.VoteCollection) (as.CollectionInterface, error) {
+func loadAPLiked(o as.CollectionInterface, votes app.VoteCollection) (as.CollectionInterface, error) {
 	if votes == nil || len(votes) == 0 {
 		return nil, errors.Errorf("empty collection %T", o)
 	}
@@ -188,7 +187,7 @@ func loadAPLiked(o as.CollectionInterface, votes models.VoteCollection) (as.Coll
 	return o, nil
 }
 
-func loadAPCollection(o as.CollectionInterface, items *models.ItemCollection) (as.CollectionInterface, error) {
+func loadAPCollection(o as.CollectionInterface, items *app.ItemCollection) (as.CollectionInterface, error) {
 	if items == nil || len(*items) == 0 {
 		return nil, errors.Errorf("empty collection %T", o)
 	}
@@ -203,18 +202,18 @@ func loadAPCollection(o as.CollectionInterface, items *models.ItemCollection) (a
 // GET /api/actors?filters
 func HandleActorsCollection(w http.ResponseWriter, r *http.Request) {
 	var ok bool
-	var filter models.LoadAccountsFilter
+	var filter app.LoadAccountsFilter
 	var data []byte
 
-	f := r.Context().Value(models.FilterCtxtKey)
-	if filter, ok = f.(models.LoadAccountsFilter); !ok {
+	f := r.Context().Value(app.FilterCtxtKey)
+	if filter, ok = f.(app.LoadAccountsFilter); !ok {
 		Logger.WithFields(log.Fields{}).Errorf("could not load filter from Context")
 		HandleError(w, r, http.StatusNotFound, errors.New("not found"))
 		return
 	} else {
-		val := r.Context().Value(models.RepositoryCtxtKey)
-		if service, ok := val.(models.CanLoadAccounts); ok {
-			var accounts models.AccountCollection
+		val := r.Context().Value(app.RepositoryCtxtKey)
+		if service, ok := val.(app.CanLoadAccounts); ok {
+			var accounts app.AccountCollection
 			var err error
 
 			col := as.CollectionNew(as.ObjectID(ActorsURL))
@@ -249,8 +248,8 @@ func HandleActor(w http.ResponseWriter, r *http.Request) {
 	val := r.Context().Value(AccountCtxtKey)
 
 	var ok bool
-	var a models.Account
-	if a, ok = val.(models.Account); !ok {
+	var a app.Account
+	if a, ok = val.(app.Account); !ok {
 		Logger.WithFields(log.Fields{}).Errorf("could not load Account from Context")
 	}
 	p := loadAPPerson(a)
@@ -301,7 +300,7 @@ func HandleCollectionActivity(w http.ResponseWriter, r *http.Request) {
 	case "inbox":
 		fallthrough
 	case "outbox":
-		item, ok := val.(models.Item)
+		item, ok := val.(app.Item)
 		if !ok {
 			err := errors.New("could not load Item from Context")
 			HandleError(w, r, http.StatusInternalServerError, err)
@@ -313,7 +312,7 @@ func HandleCollectionActivity(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	case "liked":
-		if v, ok := val.(models.Vote); !ok {
+		if v, ok := val.(app.Vote); !ok {
 			err := errors.Errorf("could not load Vote from Context")
 			HandleError(w, r, http.StatusInternalServerError, err)
 			return
@@ -346,7 +345,7 @@ func HandleCollectionActivityObject(w http.ResponseWriter, r *http.Request) {
 	case "inbox":
 	case "replies":
 	case "outbox":
-		i, ok := val.(models.Item)
+		i, ok := val.(app.Item)
 		if !ok {
 			Logger.WithFields(log.Fields{}).Errorf("could not load Item from Context")
 			HandleError(w, r, http.StatusInternalServerError, err)
@@ -357,9 +356,9 @@ func HandleCollectionActivityObject(w http.ResponseWriter, r *http.Request) {
 			HandleError(w, r, http.StatusNotFound, err)
 			return
 		}
-		val := r.Context().Value(models.RepositoryCtxtKey)
-		if service, ok := val.(models.CanLoadItems); ok && len(i.Hash) > 0 {
-			replies, err := service.LoadItems(models.LoadItemsFilter{
+		val := r.Context().Value(app.RepositoryCtxtKey)
+		if service, ok := val.(app.CanLoadItems); ok && len(i.Hash) > 0 {
+			replies, err := service.LoadItems(app.LoadItemsFilter{
 				InReplyTo: []string{i.Hash.String()},
 				MaxItems:  MaxContentItems,
 			})
@@ -374,7 +373,7 @@ func HandleCollectionActivityObject(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	case "liked":
-		if v, ok := val.(models.Vote); !ok {
+		if v, ok := val.(app.Vote); !ok {
 			err := errors.Errorf("could not load Vote from Context")
 			HandleError(w, r, http.StatusInternalServerError, err)
 			return
@@ -403,16 +402,16 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 	var err error
 
 	val := r.Context().Value(AccountCtxtKey)
-	a, _ := val.(models.Account)
+	a, _ := val.(app.Account)
 	typ := getCollectionFromReq(r)
-	filters := r.Context().Value(models.FilterCtxtKey)
+	filters := r.Context().Value(app.FilterCtxtKey)
 
-	f, _ := filters.(models.LoadItemsFilter)
+	f, _ := filters.(app.LoadItemsFilter)
 
 	collection := r.Context().Value(CollectionCtxtKey)
 	switch strings.ToLower(typ) {
 	case "inbox":
-		items, ok := collection.(models.ItemCollection)
+		items, ok := collection.(app.ItemCollection)
 		if !ok {
 			err := errors.New("could not load Items from Context")
 			Logger.WithFields(log.Fields{}).Error(err)
@@ -437,7 +436,7 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 		}
 		data, err = json.WithContext(GetContext()).Marshal(col)
 	case "outbox":
-		items, ok := collection.(models.ItemCollection)
+		items, ok := collection.(app.ItemCollection)
 		if !ok {
 			err := errors.New("could not load Items from Context")
 			Logger.WithFields(log.Fields{}).Error(err)
@@ -462,7 +461,7 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 		}
 		data, err = json.WithContext(GetContext()).Marshal(col)
 	case "liked":
-		votes, ok := collection.(models.VoteCollection)
+		votes, ok := collection.(app.VoteCollection)
 		if !ok {
 			err := errors.New("could not load Votes from Context")
 			Logger.WithFields(log.Fields{}).Error(err)
@@ -490,12 +489,12 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 		}
 		data, err = json.WithContext(GetContext()).Marshal(liked)
 	case "replies":
-		it, ok := r.Context().Value(ItemCtxtKey).(models.Item)
+		it, ok := r.Context().Value(ItemCtxtKey).(app.Item)
 		var art as.Item
 		if ok {
 			art = loadAPItem(it)
 		}
-		items, ok := collection.(models.ItemCollection)
+		items, ok := collection.(app.ItemCollection)
 		if !ok {
 			err := errors.New("could not load Replies from Context")
 			Logger.WithFields(log.Fields{}).Error(err)
@@ -536,16 +535,16 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 
 // GET /api/actors/verify_credentials
 func HandleVerifyCredentials(w http.ResponseWriter, r *http.Request) {
-	acct, ok := models.ContextCurrentAccount(r.Context())
+	acct, ok := app.ContextCurrentAccount(r.Context())
 	if !ok {
 		HandleError(w, r, http.StatusNotFound, errors.Errorf("account not found"))
 		return
 	}
-	AcctLoader, ok := models.ContextAccountLoader(r.Context())
+	AcctLoader, ok := app.ContextAccountLoader(r.Context())
 	if !ok {
 		Logger.WithFields(log.Fields{}).Errorf("could not load account repository from Context")
 	}
-	a, err := AcctLoader.LoadAccount(models.LoadAccountsFilter{Handle: []string{acct.Handle}, MaxItems: 1})
+	a, err := AcctLoader.LoadAccount(app.LoadAccountsFilter{Handle: []string{acct.Handle}, MaxItems: 1})
 	if err != nil {
 		Logger.WithFields(log.Fields{}).Error(err)
 		HandleError(w, r, http.StatusNotFound, err)

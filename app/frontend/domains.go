@@ -1,12 +1,11 @@
 package frontend
 
 import (
+	"github.com/mariusor/littr.go/app"
 	"net/http"
 	"strconv"
 
 	log "github.com/sirupsen/logrus"
-
-	"github.com/mariusor/littr.go/app/models"
 
 	"context"
 	"fmt"
@@ -15,10 +14,10 @@ import (
 	"github.com/juju/errors"
 )
 
-func loadItems(c context.Context, filter models.LoadItemsFilter) (itemListingModel, error) {
+func loadItems(c context.Context, filter app.LoadItemsFilter) (itemListingModel, error) {
 	m := itemListingModel{}
 
-	itemLoader, ok := models.ContextItemLoader(c)
+	itemLoader, ok := app.ContextItemLoader(c)
 	if !ok {
 		err := errors.Errorf("could not load item repository from Context")
 		return m, err
@@ -29,12 +28,12 @@ func loadItems(c context.Context, filter models.LoadItemsFilter) (itemListingMod
 	}
 	m.Items = loadComments(contentItems)
 
-	acc, ok := models.ContextCurrentAccount(c)
+	acc, ok := app.ContextCurrentAccount(c)
 	if acc.IsLogged() {
-		votesLoader, ok := models.ContextVoteLoader(c)
+		votesLoader, ok := app.ContextVoteLoader(c)
 		if ok {
-			acc.Votes, err = votesLoader.LoadVotes(models.LoadVotesFilter{
-				AttributedTo: []models.Hash{acc.Hash},
+			acc.Votes, err = votesLoader.LoadVotes(app.LoadVotesFilter{
+				AttributedTo: []app.Hash{acc.Hash},
 				ItemKey:      m.Items.getItemsHashes(),
 				MaxItems:     MaxContentItems,
 			})
@@ -58,10 +57,10 @@ func HandleDomains(w http.ResponseWriter, r *http.Request) {
 			page = 1
 		}
 	}
-	filter := models.LoadItemsFilter{
+	filter := app.LoadItemsFilter{
 		Content:          fmt.Sprintf("http[s]?://%s", domain),
-		ContentMatchType: models.MatchFuzzy,
-		MediaType:        []string{models.MimeTypeURL},
+		ContentMatchType: app.MatchFuzzy,
+		MediaType:        []string{app.MimeTypeURL},
 		Page:             page,
 		MaxItems:         MaxContentItems,
 	}

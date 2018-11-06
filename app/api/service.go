@@ -6,7 +6,6 @@ import (
 	json "github.com/mariusor/activitypub.go/jsonld"
 	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/app/frontend"
-	"github.com/mariusor/littr.go/app/models"
 	"net/http"
 )
 
@@ -17,11 +16,11 @@ func HandleService(w http.ResponseWriter, r *http.Request) {
 
 	id := app.Instance.BaseURL + "/api/self"
 
-	rr := r.Context().Value(models.RepositoryCtxtKey)
+	rr := r.Context().Value(app.RepositoryCtxtKey)
 
 	var err error
-	var inf models.Info
-	if repo, ok := rr.(models.CanLoadInfo); ok {
+	var inf app.Info
+	if repo, ok := rr.(app.CanLoadInfo); ok {
 		if inf, err = repo.LoadInfo(); err != nil {
 			HandleError(w, r, http.StatusInternalServerError, err)
 			return

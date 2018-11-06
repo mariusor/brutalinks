@@ -2,13 +2,13 @@ package api
 
 import (
 	"fmt"
+	"github.com/mariusor/littr.go/app"
 	"io/ioutil"
 	"net/http"
 
 	"github.com/go-chi/chi"
 
 	ap "github.com/mariusor/littr.go/app/activitypub"
-	"github.com/mariusor/littr.go/app/models"
 
 	log "github.com/sirupsen/logrus"
 
@@ -42,13 +42,13 @@ func UpdateItem(w http.ResponseWriter, r *http.Request) {
 			HandleError(w, r, http.StatusInternalServerError, err)
 			return
 		}
-		it := models.Item{}
+		it := app.Item{}
 		if err := it.FromActivityPubItem(act); err != nil {
 			Logger.WithFields(log.Fields{}).Errorf("json-ld unmarshal error: %s", err)
 			HandleError(w, r, http.StatusInternalServerError, err)
 			return
 		}
-		if repo, ok := models.ContextItemSaver(r.Context()); ok {
+		if repo, ok := app.ContextItemSaver(r.Context()); ok {
 			newIt, err := repo.SaveItem(it)
 			if err != nil {
 				Logger.WithFields(log.Fields{
@@ -75,13 +75,13 @@ func UpdateItem(w http.ResponseWriter, r *http.Request) {
 			HandleError(w, r, http.StatusInternalServerError, err)
 			return
 		}
-		v := models.Vote{}
+		v := app.Vote{}
 		if err := v.FromActivityPubItem(act); err != nil {
 			Logger.WithFields(log.Fields{}).Errorf("json-ld unmarshal error: %s", err)
 			HandleError(w, r, http.StatusInternalServerError, err)
 			return
 		}
-		if repo, ok := models.ContextVoteSaver(r.Context()); ok {
+		if repo, ok := app.ContextVoteSaver(r.Context()); ok {
 			newVot, err := repo.SaveVote(v)
 			if err != nil {
 				Logger.WithFields(log.Fields{"saveVote": v.SubmittedBy.Hash}).Error(err)

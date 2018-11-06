@@ -4,18 +4,17 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/mariusor/littr.go/app"
 	"strings"
 	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/juju/errors"
-
-	"github.com/mariusor/littr.go/app/models"
 )
 
 type Item struct {
 	ID          int64      `db:"id,auto"`
-	Key         models.Key `db:"key,size(32)"`
+	Key         app.Key `db:"key,size(32)"`
 	Title       []byte     `db:"title"`
 	MimeType    string     `db:"mime_type"`
 	Data        []byte     `db:"data"`
@@ -34,13 +33,13 @@ func (i Item) Author() *Account {
 	return i.author
 }
 
-func ItemFlags(f FlagBits) models.FlagBits {
+func ItemFlags(f FlagBits) app.FlagBits {
 	return VoteFlags(f)
 }
 
-func getAncestorKey(path []byte, cnt int) (models.Key, bool) {
+func getAncestorKey(path []byte, cnt int) (app.Key, bool) {
 	if path == nil {
-		return models.Key{}, false
+		return app.Key{}, false
 	}
 	elem := bytes.Split(path, []byte("."))
 	l := len(elem)
@@ -49,23 +48,23 @@ func getAncestorKey(path []byte, cnt int) (models.Key, bool) {
 	}
 	ls := elem[l-cnt]
 	if len(ls) == 32 {
-		var k models.Key
+		var k app.Key
 		i := copy(k[:], ls[0:32])
 		return k, i == 32
 	}
-	return models.Key{}, false
+	return app.Key{}, false
 }
 
-func GetParentKey(i Item) (models.Key, bool) {
+func GetParentKey(i Item) (app.Key, bool) {
 	return getAncestorKey(i.Path, 1)
 }
-func GetOPKey(i Item) (models.Key, bool) {
+func GetOPKey(i Item) (app.Key, bool) {
 	return getAncestorKey(i.Path, -1)
 }
 
-func (i Item) Model() models.Item {
+func (i Item) Model() app.Item {
 	a := i.Author().Model()
-	res := models.Item{
+	res := app.Item{
 		MimeType:    i.MimeType,
 		SubmittedAt: i.SubmittedAt,
 		SubmittedBy: &a,
@@ -84,11 +83,11 @@ func (i Item) Model() models.Item {
 		res.FullPath = append(res.FullPath, i.Key.Bytes()...)
 	}
 	if pKey, ok := GetParentKey(i); ok {
-		res.Parent = &models.Item{
+		res.Parent = &app.Item{
 			Hash: pKey.Hash(),
 		}
 		if opKey, ok := GetOPKey(i); ok && pKey != opKey {
-			res.OP = &models.Item{
+			res.OP = &app.Item{
 				Hash: opKey.Hash(),
 			}
 		}
@@ -98,7 +97,7 @@ func (i Item) Model() models.Item {
 
 type ItemCollection []Item
 
-func saveItem(db *sqlx.DB, it models.Item) (models.Item, error) {
+func saveItem(db *sqlx.DB, it app.Item) (app.Item, error) {
 	i := Item{
 		Score:    it.Score,
 		MimeType: it.MimeType,
@@ -114,7 +113,7 @@ func saveItem(db *sqlx.DB, it models.Item) (models.Item, error) {
 	}
 
 	if i.Key == [32]byte{} {
-		i.Key = models.GenKey(i.Path, []byte(it.SubmittedBy.Handle), i.Data)
+		i.Key = app.GenKey(i.Path, []byte(it.SubmittedBy.Handle), i.Data)
 	}
 	var params = make([]interface{}, 0)
 	params = append(params, i.Key.Bytes())
@@ -145,17 +144,17 @@ func saveItem(db *sqlx.DB, it models.Item) (models.Item, error) {
 		}
 	}
 
-	col, err := loadItems(db, models.LoadItemsFilter{Key: []string{i.Key.String()}, MaxItems: 1})
+	col, err := loadItems(db, app.LoadItemsFilter{Key: []string{i.Key.String()}, MaxItems: 1})
 	if len(col) > 0 {
 		return col[0], err
 	} else {
-		return models.Item{}, err
+		return app.Item{}, err
 	}
 }
 
 type itemsView struct {
 	ItemID          int64     `db:"item_id,"auto"`
-	ItemKey         models.Key       `db:"item_key,size(32)"`
+	ItemKey         app.Key       `db:"item_key,size(32)"`
 	Title           []byte    `db:"item_title"`
 	MimeType        string    `db:"item_mime_type"`
 	Data            []byte    `db:"item_data"`
@@ -167,7 +166,7 @@ type itemsView struct {
 	ItemMetadata    Metadata  `db:"item_metadata"`
 	Path            []byte    `db:"item_path"`
 	AuthorID        int64     `db:"author_id,auto"`
-	AuthorKey       models.Key       `db:"author_key,size(32)"`
+	AuthorKey       app.Key       `db:"author_key,size(32)"`
 	AuthorEmail     []byte    `db:"author_email"`
 	AuthorHandle    string    `db:"author_handle"`
 	AuthorScore     int64     `db:"author_score"`
@@ -210,7 +209,7 @@ func (i itemsView) item() Item {
 	}
 }
 
-func loadItems(db *sqlx.DB, f models.LoadItemsFilter) (models.ItemCollection, error) {
+func loadItems(db *sqlx.DB, f app.LoadItemsFilter) (app.ItemCollection, error) {
 	wheres, whereValues := f.GetWhereClauses("item", "author")
 	var fullWhere string
 
@@ -252,13 +251,13 @@ func loadItems(db *sqlx.DB, f models.LoadItemsFilter) (models.ItemCollection, er
 		where %s 
 	order by 
 		(("item"."score" - 1) / ((extract(epoch from age(current_timestamp, "item"."submitted_at")) / 3600.00) ^ %f))
-	desc limit %d%s`, fullWhere, models.HNGravity, f.MaxItems, offset)
+	desc limit %d%s`, fullWhere, app.HNGravity, f.MaxItems, offset)
 
 	agg := make([]itemsView, 0)
 	if err := db.Select(&agg, sel, whereValues...); err != nil {
 		return nil, err
 	}
-	items := make(models.ItemCollection, len(agg))
+	items := make(app.ItemCollection, len(agg))
 	for k, it := range agg {
 		i := it.item().Model()
 		items[k] = i

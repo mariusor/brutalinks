@@ -26,7 +26,6 @@ import (
 	as "github.com/mariusor/activitypub.go/activitystreams"
 	j "github.com/mariusor/activitypub.go/jsonld"
 	"github.com/mariusor/littr.go/app/db"
-	"github.com/mariusor/littr.go/app/models"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -39,10 +38,10 @@ var Config repository
 
 type repository struct {
 	BaseUrl string
-	Account *models.Account
+	Account *app.Account
 }
 
-func (r *repository) WithAccount(a *models.Account) {
+func (r *repository) WithAccount(a *app.Account) {
 	r.Account = a
 }
 
@@ -140,7 +139,7 @@ func (r repository) Delete(url, contentType string, body io.Reader) (resp *http.
 // Repository middleware
 func Repository(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		ctx := context.WithValue(r.Context(), models.RepositoryCtxtKey, &Config)
+		ctx := context.WithValue(r.Context(), app.RepositoryCtxtKey, &Config)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	}
 	return http.HandlerFunc(fn)
@@ -156,19 +155,19 @@ func ServiceCtxt(next http.Handler) http.Handler {
 func AccountCtxt(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		handle := chi.URLParam(r, "handle")
-		val := r.Context().Value(models.RepositoryCtxtKey)
-		AcctLoader, ok := val.(models.CanLoadAccounts)
+		val := r.Context().Value(app.RepositoryCtxtKey)
+		AcctLoader, ok := val.(app.CanLoadAccounts)
 		if !ok {
 			Logger.WithFields(log.Fields{}).Errorf("could not load account repository from Context")
 		}
-		a, err := AcctLoader.LoadAccount(models.LoadAccountsFilter{Handle: []string{handle}})
+		a, err := AcctLoader.LoadAccount(app.LoadAccountsFilter{Handle: []string{handle}})
 		if err == nil {
 			// we redirect to the Hash based account URL
 			url := strings.Replace(r.RequestURI, a.Handle, a.Hash.String(), 1)
 			http.Redirect(w, r, url, http.StatusSeeOther)
 			return
 		} else {
-			a, err := AcctLoader.LoadAccount(models.LoadAccountsFilter{Key: []string{handle}})
+			a, err := AcctLoader.LoadAccount(app.LoadAccountsFilter{Key: []string{handle}})
 			if err != nil {
 				log.Error(err)
 				HandleError(w, r, http.StatusNotFound, err)
@@ -189,17 +188,17 @@ func ItemCtxt(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		col := chi.URLParam(r, "collection")
 
-		f := r.Context().Value(models.FilterCtxtKey)
-		val := r.Context().Value(models.RepositoryCtxtKey)
+		f := r.Context().Value(app.FilterCtxtKey)
+		val := r.Context().Value(app.RepositoryCtxtKey)
 
 		var err error
 		var i interface{}
 		if col == "outbox" {
-			filters, ok := f.(models.LoadItemsFilter)
+			filters, ok := f.(app.LoadItemsFilter)
 			if !ok {
 				Logger.WithFields(log.Fields{}).Errorf("could not load item filter from Context")
 			}
-			loader, ok := val.(models.CanLoadItems)
+			loader, ok := val.(app.CanLoadItems)
 			if !ok {
 				Logger.WithFields(log.Fields{}).Errorf("could not load item repository from Context")
 				HandleError(w, r, http.StatusInternalServerError, err)
@@ -213,11 +212,11 @@ func ItemCtxt(next http.Handler) http.Handler {
 			}
 		}
 		if col == "liked" {
-			filters, ok := f.(models.LoadVotesFilter)
+			filters, ok := f.(app.LoadVotesFilter)
 			if !ok {
 				Logger.WithFields(log.Fields{}).Errorf("could not load vote filter from Context")
 			}
-			loader, ok := val.(models.CanLoadVotes)
+			loader, ok := val.(app.CanLoadVotes)
 			if !ok {
 				Logger.WithFields(log.Fields{}).Errorf("could not load vote repository from Context")
 				HandleError(w, r, http.StatusInternalServerError, err)
@@ -247,8 +246,8 @@ func jsonUnescape(s string) string {
 	return string(out)
 }
 
-func loadPersonFiltersFromReq(r *http.Request) models.LoadAccountsFilter {
-	filters := models.LoadAccountsFilter{
+func loadPersonFiltersFromReq(r *http.Request) app.LoadAccountsFilter {
+	filters := app.LoadAccountsFilter{
 		MaxItems: MaxContentItems,
 	}
 
@@ -258,8 +257,8 @@ func loadPersonFiltersFromReq(r *http.Request) models.LoadAccountsFilter {
 	return filters
 }
 
-func loadRepliesFilterFromReq(r *http.Request) models.LoadItemsFilter {
-	filters := models.LoadItemsFilter{
+func loadRepliesFilterFromReq(r *http.Request) app.LoadItemsFilter {
+	filters := app.LoadItemsFilter{
 		MaxItems: MaxContentItems,
 	}
 	if err := qstring.Unmarshal(r.URL.Query(), &filters); err != nil {
@@ -272,8 +271,8 @@ func loadRepliesFilterFromReq(r *http.Request) models.LoadItemsFilter {
 	return filters
 }
 
-func loadInboxFilterFromReq(r *http.Request) models.LoadItemsFilter {
-	filters := models.LoadItemsFilter{
+func loadInboxFilterFromReq(r *http.Request) app.LoadItemsFilter {
+	filters := app.LoadItemsFilter{
 		MaxItems: MaxContentItems,
 	}
 
@@ -298,8 +297,8 @@ func loadInboxFilterFromReq(r *http.Request) models.LoadItemsFilter {
 	return filters
 }
 
-func loadOutboxFilterFromReq(r *http.Request) models.LoadItemsFilter {
-	filters := models.LoadItemsFilter{
+func loadOutboxFilterFromReq(r *http.Request) app.LoadItemsFilter {
+	filters := app.LoadItemsFilter{
 		MaxItems: MaxContentItems,
 	}
 
@@ -310,7 +309,7 @@ func loadOutboxFilterFromReq(r *http.Request) models.LoadItemsFilter {
 	if handle != "" {
 		old := filters.AttributedTo
 		filters.AttributedTo = nil
-		filters.AttributedTo = append(filters.AttributedTo, models.Hash(handle))
+		filters.AttributedTo = append(filters.AttributedTo, app.Hash(handle))
 		filters.AttributedTo = append(filters.AttributedTo, old...)
 	}
 	hash := chi.URLParam(r, "hash")
@@ -322,7 +321,7 @@ func loadOutboxFilterFromReq(r *http.Request) models.LoadItemsFilter {
 	}
 
 	//val := r.Context().Value(AccountCtxtKey)
-	//a, ok := val.(models.Account)
+	//a, ok := val.(app.Account)
 	//if ok {
 	//	filters.AttributedTo = []string{a.Hash}
 	//}
@@ -330,8 +329,8 @@ func loadOutboxFilterFromReq(r *http.Request) models.LoadItemsFilter {
 	return filters
 }
 
-func loadLikedFilterFromReq(r *http.Request) models.LoadVotesFilter {
-	filters := models.LoadVotesFilter{}
+func loadLikedFilterFromReq(r *http.Request) app.LoadVotesFilter {
+	filters := app.LoadVotesFilter{}
 	if err := qstring.Unmarshal(r.URL.Query(), &filters); err != nil {
 		return filters
 	}
@@ -340,7 +339,7 @@ func loadLikedFilterFromReq(r *http.Request) models.LoadVotesFilter {
 	if handle != "" {
 		old := filters.AttributedTo
 		filters.AttributedTo = nil
-		filters.AttributedTo = append(filters.AttributedTo, models.Hash(handle))
+		filters.AttributedTo = append(filters.AttributedTo, app.Hash(handle))
 		filters.AttributedTo = append(filters.AttributedTo, old...)
 	}
 	hash := chi.URLParam(r, "hash")
@@ -351,9 +350,9 @@ func loadLikedFilterFromReq(r *http.Request) models.LoadVotesFilter {
 		filters.ItemKey = append(filters.ItemKey, old...)
 	}
 	val := r.Context().Value(AccountCtxtKey)
-	a, ok := val.(models.Account)
+	a, ok := val.(app.Account)
 	if ok {
-		filters.AttributedTo = []models.Hash{a.Hash}
+		filters.AttributedTo = []app.Hash{a.Hash}
 	}
 	if filters.MaxItems == 0 {
 		if len(filters.ItemKey) > 0 {
@@ -384,7 +383,7 @@ func LoadFiltersCtxt(next http.Handler) http.Handler {
 			filters = loadPersonFiltersFromReq(r)
 		}
 
-		ctx := context.WithValue(r.Context(), models.FilterCtxtKey, filters)
+		ctx := context.WithValue(r.Context(), app.FilterCtxtKey, filters)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	}
 	return http.HandlerFunc(fn)
@@ -395,18 +394,18 @@ func ItemCollectionCtxt(next http.Handler) http.Handler {
 		var err error
 		col := getCollectionFromReq(r)
 
-		f := r.Context().Value(models.FilterCtxtKey)
-		val := r.Context().Value(models.RepositoryCtxtKey)
+		f := r.Context().Value(app.FilterCtxtKey)
+		val := r.Context().Value(app.RepositoryCtxtKey)
 
 		var items interface{}
 		if col == "inbox" {
-			filters, ok := f.(models.LoadItemsFilter)
+			filters, ok := f.(app.LoadItemsFilter)
 			if !ok {
 				Logger.WithFields(log.Fields{}).Errorf("could not load item filters from Context")
 				next.ServeHTTP(w, r)
 				return
 			}
-			loader, ok := val.(models.CanLoadItems)
+			loader, ok := val.(app.CanLoadItems)
 			if !ok {
 				Logger.WithFields(log.Fields{}).Errorf("could not load item repository from Context")
 				next.ServeHTTP(w, r)
@@ -420,13 +419,13 @@ func ItemCollectionCtxt(next http.Handler) http.Handler {
 			}
 		}
 		if col == "outbox" {
-			filters, ok := f.(models.LoadItemsFilter)
+			filters, ok := f.(app.LoadItemsFilter)
 			if !ok {
 				Logger.WithFields(log.Fields{}).Errorf("could not load item filters from Context")
 				next.ServeHTTP(w, r)
 				return
 			}
-			loader, ok := val.(models.CanLoadItems)
+			loader, ok := val.(app.CanLoadItems)
 			if !ok {
 				Logger.WithFields(log.Fields{}).Errorf("could not load item repository from Context")
 				next.ServeHTTP(w, r)
@@ -440,13 +439,13 @@ func ItemCollectionCtxt(next http.Handler) http.Handler {
 			}
 		}
 		if col == "liked" {
-			filters, ok := f.(models.LoadVotesFilter)
+			filters, ok := f.(app.LoadVotesFilter)
 			if !ok {
 				Logger.WithFields(log.Fields{}).Errorf("could not load votes filters from Context")
 				next.ServeHTTP(w, r)
 				return
 			}
-			loader, ok := val.(models.CanLoadVotes)
+			loader, ok := val.(app.CanLoadVotes)
 			if !ok {
 				Logger.WithFields(log.Fields{}).Errorf("could not load vote repository from Context")
 				next.ServeHTTP(w, r)
@@ -460,13 +459,13 @@ func ItemCollectionCtxt(next http.Handler) http.Handler {
 			}
 		}
 		if col == "replies" {
-			filters, ok := f.(models.LoadItemsFilter)
+			filters, ok := f.(app.LoadItemsFilter)
 			if !ok {
 				Logger.WithFields(log.Fields{}).Errorf("could not load item filters from Context")
 				next.ServeHTTP(w, r)
 				return
 			}
-			loader, ok := val.(models.CanLoadItems)
+			loader, ok := val.(app.CanLoadItems)
 			if !ok {
 				Logger.WithFields(log.Fields{}).Errorf("could not load item repository from Context")
 				next.ServeHTTP(w, r)
@@ -486,9 +485,9 @@ func ItemCollectionCtxt(next http.Handler) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
-func (r *repository) LoadItem(f models.LoadItemsFilter) (models.Item, error) {
+func (r *repository) LoadItem(f app.LoadItemsFilter) (app.Item, error) {
 	var art ap.Article
-	var it models.Item
+	var it app.Item
 
 	f.MaxItems = 1
 	f.AttributedTo = nil
@@ -532,7 +531,7 @@ func (r *repository) LoadItem(f models.LoadItemsFilter) (models.Item, error) {
 	return it, err
 }
 
-func (r *repository) LoadItems(f models.LoadItemsFilter) (models.ItemCollection, error) {
+func (r *repository) LoadItems(f app.LoadItemsFilter) (app.ItemCollection, error) {
 	var qs string
 	if q, err := qstring.MarshalString(&f); err == nil {
 		qs = fmt.Sprintf("?%s", q)
@@ -586,9 +585,9 @@ func (r *repository) LoadItems(f models.LoadItemsFilter) (models.ItemCollection,
 		return nil, err
 	}
 
-	items := make(models.ItemCollection, col.TotalItems)
+	items := make(app.ItemCollection, col.TotalItems)
 	for k, it := range col.OrderedItems {
-		i := models.Item{}
+		i := app.Item{}
 		if err := i.FromActivityPubItem(it); err != nil {
 			Logger.WithFields(log.Fields{}).Error(err)
 			continue
@@ -599,7 +598,7 @@ func (r *repository) LoadItems(f models.LoadItemsFilter) (models.ItemCollection,
 	return items, nil
 }
 
-func (r *repository) SaveVote(v models.Vote) (models.Vote, error) {
+func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 	url := fmt.Sprintf("%s/actors/%s/liked/%s", r.BaseUrl, v.SubmittedBy.Hash, v.Item.Hash)
 
 	var err error
@@ -665,7 +664,7 @@ func (r *repository) SaveVote(v models.Vote) (models.Vote, error) {
 	return v, errors.Errorf("unknown error, received status %d", resp.StatusCode)
 }
 
-func (r *repository) LoadVotes(f models.LoadVotesFilter) (models.VoteCollection, error) {
+func (r *repository) LoadVotes(f app.LoadVotesFilter) (app.VoteCollection, error) {
 	var qs string
 	if q, err := qstring.MarshalString(&f); err == nil {
 		qs = fmt.Sprintf("?%s", q)
@@ -688,7 +687,7 @@ func (r *repository) LoadVotes(f models.LoadVotesFilter) (models.VoteCollection,
 		return nil, err
 	}
 
-	var items models.VoteCollection
+	var items app.VoteCollection
 	defer resp.Body.Close()
 	var body []byte
 
@@ -699,9 +698,9 @@ func (r *repository) LoadVotes(f models.LoadVotesFilter) (models.VoteCollection,
 	if err := j.Unmarshal(body, &col); err != nil {
 		return nil, err
 	}
-	items = make(models.VoteCollection, col.TotalItems)
+	items = make(app.VoteCollection, col.TotalItems)
 	for _, it := range col.OrderedItems {
-		vot := models.Vote{}
+		vot := app.Vote{}
 		if err := vot.FromActivityPubItem(it); err != nil {
 			Logger.WithFields(log.Fields{}).Error(err)
 			continue
@@ -711,12 +710,12 @@ func (r *repository) LoadVotes(f models.LoadVotesFilter) (models.VoteCollection,
 	return items, nil
 }
 
-func (r *repository) LoadVote(f models.LoadVotesFilter) (models.Vote, error) {
+func (r *repository) LoadVote(f app.LoadVotesFilter) (app.Vote, error) {
 	if len(f.ItemKey) == 0 {
-		return models.Vote{}, errors.New("invalid item hash")
+		return app.Vote{}, errors.New("invalid item hash")
 	}
 
-	v := models.Vote{}
+	v := app.Vote{}
 	itemHash := f.ItemKey[0]
 	f.ItemKey = nil
 	url := fmt.Sprintf("%s/liked/%s", r.BaseUrl, itemHash)
@@ -754,7 +753,7 @@ func (r *repository) LoadVote(f models.LoadVotesFilter) (models.Vote, error) {
 	return v, err
 }
 
-func (r *repository) SaveItem(it models.Item) (models.Item, error) {
+func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 	doUpd := false
 	art := loadAPItem(it)
 
@@ -802,7 +801,7 @@ func (r *repository) SaveItem(it models.Item) (models.Item, error) {
 			return it, err
 		} else {
 			hash := path.Base(string(*a.GetID()))
-			filt := models.LoadItemsFilter{
+			filt := app.LoadItemsFilter{
 				Key: []string{hash},
 			}
 			return r.LoadItem(filt)
@@ -810,7 +809,7 @@ func (r *repository) SaveItem(it models.Item) (models.Item, error) {
 	case http.StatusCreated:
 		newLoc := resp.Header.Get("Location")
 		hash := path.Base(newLoc)
-		f := models.LoadItemsFilter{
+		f := app.LoadItemsFilter{
 			Key: []string{hash},
 		}
 		return r.LoadItem(f)
@@ -821,11 +820,11 @@ func (r *repository) SaveItem(it models.Item) (models.Item, error) {
 	case http.StatusInternalServerError:
 		return it, errors.Errorf("unable to save item %s", resp.Status)
 	default:
-		return models.Item{}, errors.Errorf("unknown error, received status %d", resp.StatusCode)
+		return app.Item{}, errors.Errorf("unknown error, received status %d", resp.StatusCode)
 	}
 }
 
-func (r *repository) LoadAccounts(f models.LoadAccountsFilter) (models.AccountCollection, error) {
+func (r *repository) LoadAccounts(f app.LoadAccountsFilter) (app.AccountCollection, error) {
 	var qs string
 	if q, err := qstring.MarshalString(&f); err == nil {
 		qs = fmt.Sprintf("?%s", q)
@@ -859,9 +858,9 @@ func (r *repository) LoadAccounts(f models.LoadAccountsFilter) (models.AccountCo
 		Logger.WithFields(log.Fields{}).Error(err)
 		return nil, err
 	}
-	accounts := make(models.AccountCollection, 0)
+	accounts := make(app.AccountCollection, 0)
 	for _, it := range col.Items {
-		acc := models.Account{}
+		acc := app.Account{}
 		if err := acc.FromActivityPubItem(it); err != nil {
 			Logger.WithFields(log.Fields{
 				"type": fmt.Sprintf("%T", it),
@@ -873,20 +872,20 @@ func (r *repository) LoadAccounts(f models.LoadAccountsFilter) (models.AccountCo
 	return accounts, nil
 }
 
-func (r *repository) LoadAccount(f models.LoadAccountsFilter) (models.Account, error) {
-	var accounts models.AccountCollection
+func (r *repository) LoadAccount(f app.LoadAccountsFilter) (app.Account, error) {
+	var accounts app.AccountCollection
 	var err error
 	if accounts, err = r.LoadAccounts(f); err != nil {
-		return models.Account{}, err
+		return app.Account{}, err
 	}
-	var ac *models.Account
+	var ac *app.Account
 	if ac, err = accounts.First(); err != nil {
-		return models.Account{}, err
+		return app.Account{}, err
 	}
 	return *ac, nil
 }
 
-func (r *repository) SaveAccount(a models.Account) (models.Account, error) {
+func (r *repository) SaveAccount(a app.Account) (app.Account, error) {
 	return db.Config.SaveAccount(a)
 }
 
@@ -899,8 +898,8 @@ func SignRequest(r *http.Request, p ap.Person, key crypto.PrivateKey) error {
 		Sign(r)
 }
 
-func (r *repository) LoadInfo() (models.Info, error) {
-	inf := models.Info{}
+func (r *repository) LoadInfo() (app.Info, error) {
+	inf := app.Info{}
 
 	url := fmt.Sprintf("%s/self", r.BaseUrl)
 	var err error

@@ -11,7 +11,6 @@ import (
 
 	"github.com/mariusor/littr.go/app"
 
-	"github.com/mariusor/littr.go/app/models"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -19,11 +18,11 @@ const (
 	MaxContentItems = 50
 )
 
-func isYay(v *models.Vote) bool {
+func isYay(v *app.Vote) bool {
 	return v != nil && v.Weight > 0
 }
 
-func isNay(v *models.Vote) bool {
+func isNay(v *app.Vote) bool {
 	return v != nil && v.Weight < 0
 }
 
@@ -56,21 +55,21 @@ func getAuthProviders() map[string]string {
 	return p
 }
 
-func parentLink(c models.Item) string {
+func parentLink(c app.Item) string {
 	if c.Parent != nil {
 		return fmt.Sprintf("/item/%s", c.Parent.Hash)
 	}
 	return ""
 }
 
-func opLink(c models.Item) string {
+func opLink(c app.Item) string {
 	if c.OP != nil {
 		return fmt.Sprintf("/item/%s", c.OP.Hash)
 	}
 	return ""
 }
 
-func AccountPermaLink(a models.Account) string {
+func AccountPermaLink(a app.Account) string {
 	handle := "anonymous"
 	if len(a.Handle) > 0 {
 		handle = a.Handle
@@ -78,22 +77,22 @@ func AccountPermaLink(a models.Account) string {
 	return fmt.Sprintf("%s/~%s", app.Instance.BaseURL, handle)
 }
 
-func ItemPermaLink(c models.Item) string {
+func ItemPermaLink(c app.Item) string {
 	if c.SubmittedBy == nil {
 		return fmt.Sprintf("/item/%s", c.Hash)
 	}
 	return fmt.Sprintf("%s/%s", AccountPermaLink(*c.SubmittedBy), c.Hash)
 }
 
-func scoreLink(i models.Item, dir string) string {
+func scoreLink(i app.Item, dir string) string {
 	return fmt.Sprintf("%s/%s", ItemPermaLink(i), dir)
 }
 
-func yayLink(i models.Item) string {
+func yayLink(i app.Item) string {
 	return scoreLink(i, "yay")
 }
 
-func nayLink(i models.Item) string {
+func nayLink(i app.Item) string {
 	return scoreLink(i, "nay")
 }
 
@@ -117,7 +116,7 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	filter := models.LoadItemsFilter{
+	filter := app.LoadItemsFilter{
 		Context:  []string{"0"},
 		Page:     page,
 		MaxItems: MaxContentItems,
@@ -140,8 +139,8 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 	default:
 	}
 
-	val := r.Context().Value(models.RepositoryCtxtKey)
-	itemLoader, ok := val.(models.CanLoadItems)
+	val := r.Context().Value(app.RepositoryCtxtKey)
+	itemLoader, ok := val.(app.CanLoadItems)
 	if !ok {
 		Logger.WithFields(log.Fields{}).Errorf("could not load item repository from Context")
 		return
@@ -159,12 +158,12 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 	if page > 1 {
 		m.PrevPage = page - 1
 	}
-	acct, ok := models.ContextCurrentAccount(r.Context())
+	acct, ok := app.ContextCurrentAccount(r.Context())
 	if acct.IsLogged() {
-		votesLoader, ok := val.(models.CanLoadVotes)
+		votesLoader, ok := val.(app.CanLoadVotes)
 		if ok {
-			filters := models.LoadVotesFilter{
-				AttributedTo: []models.Hash{acct.Hash},
+			filters := app.LoadVotesFilter{
+				AttributedTo: []app.Hash{acct.Hash},
 				ItemKey:      m.Items.getItemsHashes(),
 				MaxItems:     MaxContentItems,
 			}

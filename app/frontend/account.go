@@ -2,13 +2,13 @@ package frontend
 
 import (
 	"fmt"
+	"github.com/mariusor/littr.go/app"
 	"net/http"
 	"strconv"
 
 	"github.com/juju/errors"
 
 	"github.com/go-chi/chi"
-	"github.com/mariusor/littr.go/app/models"
 )
 
 type itemListingModel struct {
@@ -16,7 +16,7 @@ type itemListingModel struct {
 	InvertedTheme bool
 	NextPage      int
 	PrevPage      int
-	User          *models.Account
+	User          *app.Account
 	Items         comments
 }
 
@@ -29,14 +29,14 @@ type sessionAccount struct {
 func ShowAccount(w http.ResponseWriter, r *http.Request) {
 	handle := chi.URLParam(r, "handle")
 
-	val := r.Context().Value(models.RepositoryCtxtKey)
-	accountLoader, ok := val.(models.CanLoadAccounts)
+	val := r.Context().Value(app.RepositoryCtxtKey)
+	accountLoader, ok := val.(app.CanLoadAccounts)
 	if !ok {
 		Logger.Errorf("could not load account repository from Context")
 		return
 	}
 	var err error
-	a, err := accountLoader.LoadAccount(models.LoadAccountsFilter{Handle: []string{handle}})
+	a, err := accountLoader.LoadAccount(app.LoadAccountsFilter{Handle: []string{handle}})
 	if err != nil {
 		HandleError(w, r, http.StatusNotFound, err)
 		return
@@ -53,8 +53,8 @@ func ShowAccount(w http.ResponseWriter, r *http.Request) {
 			page = 1
 		}
 	}
-	filter := models.LoadItemsFilter{
-		AttributedTo: []models.Hash{a.Hash},
+	filter := app.LoadItemsFilter{
+		AttributedTo: []app.Hash{a.Hash},
 		Page:         page,
 		MaxItems:     MaxContentItems,
 	}

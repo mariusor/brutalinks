@@ -21,7 +21,6 @@ import (
 	ap "github.com/mariusor/activitypub.go/activitypub"
 	as "github.com/mariusor/activitypub.go/activitystreams"
 	j "github.com/mariusor/activitypub.go/jsonld"
-	"github.com/mariusor/littr.go/app/models"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -72,15 +71,15 @@ func BuildGlobalOutboxID() as.ObjectID {
 	return as.ObjectID(fmt.Sprintf("%s/self/outbox", BaseURL))
 }
 
-func BuildActorID(a models.Account) as.ObjectID {
+func BuildActorID(a app.Account) as.ObjectID {
 	return as.ObjectID(fmt.Sprintf("%s/%s", ActorsURL, url.PathEscape(a.Hash.String())))
 }
 
-func BuildActorHashID(a models.Account) as.ObjectID {
+func BuildActorHashID(a app.Account) as.ObjectID {
 	return as.ObjectID(fmt.Sprintf("%s/%s", ActorsURL, url.PathEscape(a.Hash.String())))
 }
 
-func BuildCollectionID(a models.Account, o as.Item) as.ObjectID {
+func BuildCollectionID(a app.Account, o as.Item) as.ObjectID {
 	if len(a.Handle) > 0 {
 		return as.ObjectID(fmt.Sprintf("%s/%s/%s", ActorsURL, url.PathEscape(a.Hash.String()), getObjectType(o)))
 	}
@@ -91,7 +90,7 @@ func BuildRepliesCollectionID(i as.Item) as.ObjectID {
 	return as.ObjectID(fmt.Sprintf("%s/replies", *i.GetID()))
 }
 
-func BuildObjectIDFromItem(i models.Item) (as.ObjectID, bool) {
+func BuildObjectIDFromItem(i app.Item) (as.ObjectID, bool) {
 	if len(i.Hash) == 0 {
 		return as.ObjectID(""), false
 	}
@@ -103,7 +102,7 @@ func BuildObjectIDFromItem(i models.Item) (as.ObjectID, bool) {
 	}
 }
 
-func BuildObjectIDFromVote(v models.Vote) as.ObjectID {
+func BuildObjectIDFromVote(v app.Vote) as.ObjectID {
 	att := "liked"
 	return as.ObjectID(fmt.Sprintf("%s/%s/%s/%s", ActorsURL, url.PathEscape(v.SubmittedBy.Handle), att, url.PathEscape(v.Item.Hash.String())))
 }
@@ -217,7 +216,7 @@ func HandleError(w http.ResponseWriter, r *http.Request, code int, errs ...error
 }
 
 type keyLoader struct {
-	acc models.Account
+	acc app.Account
 }
 
 func (k *keyLoader) GetKey(id string) interface{} {
@@ -233,7 +232,7 @@ func (k *keyLoader) GetKey(id string) interface{} {
 		return errors.Errorf("invalid key")
 	}
 	hash := path.Base(u.Path)
-	k.acc, err = db.Config.LoadAccount(models.LoadAccountsFilter{Key: []string{hash}})
+	k.acc, err = db.Config.LoadAccount(app.LoadAccountsFilter{Key: []string{hash}})
 	if err != nil {
 		return err
 	}
@@ -290,7 +289,7 @@ func VerifyHttpSignature(next http.Handler) http.Handler {
 				}).Debugf("loaded account from HTTP signature header")
 			}
 		}
-		ctx := context.WithValue(r.Context(), models.AccountCtxtKey, acct)
+		ctx := context.WithValue(r.Context(), app.AccountCtxtKey, acct)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 	return http.HandlerFunc(fn)

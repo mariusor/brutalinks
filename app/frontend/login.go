@@ -1,6 +1,7 @@
 package frontend
 
 import (
+	"github.com/mariusor/littr.go/app"
 	"net/http"
 
 	"github.com/mariusor/littr.go/app/db"
@@ -8,7 +9,6 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/juju/errors"
-	"github.com/mariusor/littr.go/app/models"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -17,14 +17,14 @@ const SessionUserKey = "__current_acct"
 type loginModel struct {
 	Title         string
 	InvertedTheme bool
-	Account       models.Account
+	Account       app.Account
 }
 
 // ShowLogin handles POST /login requests
 func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	pw := r.PostFormValue("pw")
 	handle := r.PostFormValue("handle")
-	a, err := db.Config.LoadAccount(models.LoadAccountsFilter{Handle: []string{handle}})
+	a, err := db.Config.LoadAccount(app.LoadAccountsFilter{Handle: []string{handle}})
 	if err != nil {
 		Logger.WithFields(log.Fields{}).Error(err)
 		HandleError(w, r, http.StatusForbidden, errors.Errorf("handle or password are wrong"))
@@ -65,7 +65,7 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 // ShowLogin serves GET /login requests
 func ShowLogin(w http.ResponseWriter, r *http.Request) {
-	a := models.Account{}
+	a := app.Account{}
 
 	m := loginModel{Title: "Login", InvertedTheme: isInverted(r)}
 	m.Account = a

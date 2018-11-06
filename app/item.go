@@ -1,4 +1,4 @@
-package models
+package app
 
 import (
 	"strings"

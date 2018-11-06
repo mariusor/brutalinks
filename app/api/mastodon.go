@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/app/db"
-	"github.com/mariusor/littr.go/app/models"
 	"math"
 	"net/http"
 )
@@ -23,11 +22,11 @@ func ShowInstance(w http.ResponseWriter, r *http.Request) {
 	inf, err := db.Config.LoadInfo()
 	ifErr(err)
 
-	u, err := db.Config.LoadAccounts(models.LoadAccountsFilter{
+	u, err := db.Config.LoadAccounts(app.LoadAccountsFilter{
 		MaxItems: math.MaxInt64,
 	})
 	ifErr(err)
-	i, err := db.Config.LoadItems(models.LoadItemsFilter{
+	i, err := db.Config.LoadItems(app.LoadItemsFilter{
 		MaxItems: math.MaxInt64,
 	})
 	ifErr(err)

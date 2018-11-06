@@ -1,4 +1,4 @@
-package models
+package app
 
 import (
 	"context"
@@ -8,8 +8,6 @@ import (
 
 	log "github.com/sirupsen/logrus"
 )
-
-var Logger log.FieldLogger
 
 const (
 	AccountCtxtKey    = "__acct"

@@ -14,7 +14,6 @@ import (
 	"time"
 
 	_ "github.com/jmoiron/sqlx"
-	"github.com/mariusor/littr.go/app/models"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -28,7 +27,7 @@ const (
 	// Anonymous label
 	Anonymous = "anonymous"
 	// AnonymousHash is the sha hash for the anonymous account
-	AnonymousHash = models.Hash("eacff9ddf379bd9fc8274c5a9f4cae08")
+	AnonymousHash = Hash("eacff9ddf379bd9fc8274c5a9f4cae08")
 )
 
 var listenHost string

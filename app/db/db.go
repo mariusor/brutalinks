@@ -12,7 +12,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/mariusor/littr.go/app/models"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/jmoiron/sqlx"
@@ -57,7 +56,7 @@ var Config config
 func Repository(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		newCtx := context.WithValue(ctx, models.RepositoryCtxtKey, Config)
+		newCtx := context.WithValue(ctx, app.RepositoryCtxtKey, Config)
 		next.ServeHTTP(w, r.WithContext(newCtx))
 	}
 	return http.HandlerFunc(fn)
@@ -83,24 +82,24 @@ func (m *Metadata) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func AccountFlags(f FlagBits) models.FlagBits {
+func AccountFlags(f FlagBits) app.FlagBits {
 	return VoteFlags(f)
 }
 
-func ItemMetadata(m Metadata) models.ItemMetadata {
-	return models.ItemMetadata(m)
+func ItemMetadata(m Metadata) app.ItemMetadata {
+	return app.ItemMetadata(m)
 }
 
-func AccountMetadata(m Metadata) models.AccountMetadata {
-	am := models.AccountMetadata{}
+func AccountMetadata(m Metadata) app.AccountMetadata {
+	am := app.AccountMetadata{}
 	json.Unmarshal([]byte(m), &am)
 	return am
 }
 
-func (a Account) Model() models.Account {
+func (a Account) Model() app.Account {
 	m := AccountMetadata(a.Metadata)
 	f := AccountFlags(a.Flags)
-	return models.Account{
+	return app.Account{
 		Hash:      a.Key.Hash(),
 		Email:     string(a.Email),
 		Handle:    a.Handle,
@@ -134,74 +133,74 @@ func (f *FlagBits) Scan(src interface{}) error {
 	return nil
 }
 
-func (c config) LoadVotes(f models.LoadVotesFilter) (models.VoteCollection, error) {
+func (c config) LoadVotes(f app.LoadVotesFilter) (app.VoteCollection, error) {
 	return loadVotes(c.DB, f)
 }
 
-func (c config) LoadVote(f models.LoadVotesFilter) (models.Vote, error) {
+func (c config) LoadVote(f app.LoadVotesFilter) (app.Vote, error) {
 	f.MaxItems = 1
 	votes, err := loadVotes(c.DB, f)
 	if err != nil {
-		return models.Vote{}, err
+		return app.Vote{}, err
 	}
 	if v, err := votes.First(); err == nil {
 		return *v, nil
 	} else {
-		return models.Vote{}, err
+		return app.Vote{}, err
 	}
 }
 
-func (c config) SaveVote(v models.Vote) (models.Vote, error) {
+func (c config) SaveVote(v app.Vote) (app.Vote, error) {
 	return saveVote(c.DB, v)
 }
 
-func (c config) SaveItem(it models.Item) (models.Item, error) {
+func (c config) SaveItem(it app.Item) (app.Item, error) {
 	return saveItem(c.DB, it)
 }
 
-func (c config) LoadItem(f models.LoadItemsFilter) (models.Item, error) {
+func (c config) LoadItem(f app.LoadItemsFilter) (app.Item, error) {
 	f.MaxItems = 1
 	items, err := loadItems(c.DB, f)
 	if err != nil {
-		return models.Item{}, err
+		return app.Item{}, err
 	}
 	if i, err := items.First(); err == nil {
 		return *i, nil
 	} else {
-		return models.Item{}, err
+		return app.Item{}, err
 	}
 }
 
-func (c config) LoadItems(f models.LoadItemsFilter) (models.ItemCollection, error) {
+func (c config) LoadItems(f app.LoadItemsFilter) (app.ItemCollection, error) {
 	return loadItems(c.DB, f)
 }
 
-func (c config) LoadAccount(f models.LoadAccountsFilter) (models.Account, error) {
+func (c config) LoadAccount(f app.LoadAccountsFilter) (app.Account, error) {
 	f.MaxItems = 1
 	accounts, err := loadAccounts(c.DB, f)
 	if err != nil {
-		return models.Account{}, err
+		return app.Account{}, err
 	}
 	if a, err := accounts.First(); err == nil {
 		return *a, nil
 	} else {
-		return models.Account{}, err
+		return app.Account{}, err
 	}
 }
 
-func (c config) LoadAccounts(f models.LoadAccountsFilter) (models.AccountCollection, error) {
+func (c config) LoadAccounts(f app.LoadAccountsFilter) (app.AccountCollection, error) {
 	return loadAccounts(c.DB, f)
 }
 
-func (c config) SaveAccount(a models.Account) (models.Account, error) {
+func (c config) SaveAccount(a app.Account) (app.Account, error) {
 	return saveAccount(c.DB, a)
 }
 
-func LoadScoresForItems(since time.Duration, key string) ([]models.Score, error) {
+func LoadScoresForItems(since time.Duration, key string) ([]app.Score, error) {
 	return loadScoresForItems(Config.DB, since, key)
 }
 
-func loadScoresForItems(db *sqlx.DB, since time.Duration, key string) ([]models.Score, error) {
+func loadScoresForItems(db *sqlx.DB, since time.Duration, key string) ([]app.Score, error) {
 	par := make([]interface{}, 0)
 	par = append(par, interface{}(since.Hours()))
 	dumb := func(ups, downs int64) int64 {
@@ -222,7 +221,7 @@ func loadScoresForItems(db *sqlx.DB, since time.Duration, key string) ([]models.
 	if err != nil {
 		return nil, err
 	}
-	scores := make([]models.Score, 0)
+	scores := make([]app.Score, 0)
 	for rows.Next() {
 		var i, ups, downs int64
 		var submitted time.Time
@@ -230,16 +229,16 @@ func loadScoresForItems(db *sqlx.DB, since time.Duration, key string) ([]models.
 		err = rows.Scan(&i, &key, &submitted, &ups, &downs)
 
 		now := time.Now()
-		reddit := int64(models.Reddit(ups, downs, now.Sub(submitted)))
-		wilson := int64(models.Wilson(ups, downs))
-		hacker := int64(models.Hacker(ups-downs, now.Sub(submitted)))
+		reddit := int64(app.Reddit(ups, downs, now.Sub(submitted)))
+		wilson := int64(app.Wilson(ups, downs))
+		hacker := int64(app.Hacker(ups-downs, now.Sub(submitted)))
 		dumbScore := dumb(ups, downs)
 		Logger.WithFields(log.Fields{}).Infof("Votes[%s]: UPS[%d] DOWNS[%d] - new score R%d:W%d:H%d:D%d", key[0:8], ups, downs, reddit, wilson, hacker, dumbScore)
-		new := models.Score{
+		new := app.Score{
 			ID:        i,
 			Key:       key,
 			Submitted: submitted,
-			Type:      models.ScoreItem,
+			Type:      app.ScoreItem,
 			Score:     dumbScore,
 		}
 		scores = append(scores, new)
@@ -247,11 +246,11 @@ func loadScoresForItems(db *sqlx.DB, since time.Duration, key string) ([]models.
 	return scores, nil
 }
 
-func LoadScoresForAccounts(since time.Duration, col string, val string) ([]models.Score, error) {
+func LoadScoresForAccounts(since time.Duration, col string, val string) ([]app.Score, error) {
 	return loadScoresForAccounts(Config.DB, since, col, val)
 }
 
-func loadScoresForAccounts(db *sqlx.DB, since time.Duration, col string, val string) ([]models.Score, error) {
+func loadScoresForAccounts(db *sqlx.DB, since time.Duration, col string, val string) ([]app.Score, error) {
 	par := make([]interface{}, 0)
 	par = append(par, interface{}(since.Hours()))
 	dumb := func(ups, downs int64) int64 {
@@ -276,7 +275,7 @@ group by "accounts"."id", "accounts"."key" order by "accounts"."id";`,
 		return nil, err
 	}
 
-	scores := make([]models.Score, 0)
+	scores := make([]app.Score, 0)
 	for rows.Next() {
 		var i, ups, downs int64
 		var submitted time.Time
@@ -285,16 +284,16 @@ group by "accounts"."id", "accounts"."key" order by "accounts"."id";`,
 		err = rows.Scan(&i, &handle, &key, &submitted, &ups, &downs)
 
 		now := time.Now()
-		reddit := int64(models.Reddit(ups, downs, now.Sub(submitted)))
-		wilson := int64(models.Wilson(ups, downs))
-		hacker := int64(models.Hacker(ups-downs, now.Sub(submitted)))
+		reddit := int64(app.Reddit(ups, downs, now.Sub(submitted)))
+		wilson := int64(app.Wilson(ups, downs))
+		hacker := int64(app.Hacker(ups-downs, now.Sub(submitted)))
 		dumbScore := dumb(ups, downs)
 		Logger.WithFields(log.Fields{}).Infof("Votes[%s]: UPS[%d] DOWNS[%d] - new score R%d:W%d:H%d:D%d", handle, ups, downs, reddit, wilson, hacker, dumbScore)
-		new := models.Score{
+		new := app.Score{
 			ID:        i,
 			Key:       key,
 			Submitted: submitted,
-			Type:      models.ScoreAccount,
+			Type:      app.ScoreAccount,
 			Score:     dumbScore,
 		}
 		scores = append(scores, new)
@@ -304,8 +303,8 @@ group by "accounts"."id", "accounts"."key" order by "accounts"."id";`,
 
 // LoadInfo this method is here to keep compatibility with the repository interfaces
 // but in the long term we might want to store some of this information in the db
-func (c config) LoadInfo() (models.Info, error) {
-	inf := models.Info{
+func (c config) LoadInfo() (app.Info, error) {
+	inf := app.Info{
 		Title: app.Instance.Name(),
 		Summary: "Link aggregator inspired by reddit and hacker news using ActivityPub federation.",
 		Email: "system@littr.me",

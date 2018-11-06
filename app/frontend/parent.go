@@ -1,9 +1,8 @@
 package frontend
 
 import (
+	"github.com/mariusor/littr.go/app"
 	"net/http"
-
-	"github.com/mariusor/littr.go/app/models"
 
 	"github.com/go-chi/chi"
 	log "github.com/sirupsen/logrus"
@@ -11,13 +10,13 @@ import (
 
 // HandleItemRedirect serves /item/{hash} request
 func HandleItemRedirect(w http.ResponseWriter, r *http.Request) {
-	val := r.Context().Value(models.RepositoryCtxtKey)
-	itemLoader, ok := val.(models.CanLoadItems)
+	val := r.Context().Value(app.RepositoryCtxtKey)
+	itemLoader, ok := val.(app.CanLoadItems)
 	if !ok {
 		Logger.WithFields(log.Fields{}).Errorf("could not load item repository from Context")
 		return
 	}
-	p, err := itemLoader.LoadItem(models.LoadItemsFilter{
+	p, err := itemLoader.LoadItem(app.LoadItemsFilter{
 		Key:      []string{chi.URLParam(r, "hash")},
 		MaxItems: 1,
 	})

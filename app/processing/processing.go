@@ -9,7 +9,6 @@ import (
 	as "github.com/mariusor/activitypub.go/activitystreams"
 	"github.com/mariusor/activitypub.go/jsonld"
 	"github.com/mariusor/littr.go/app"
-	"github.com/mariusor/littr.go/app/models"
 	log "github.com/sirupsen/logrus"
 	"reflect"
 )
@@ -38,7 +37,7 @@ var _exSSH = Message{
 	Actions: []interface{}{
 		SSHKey{
 			Type: "id-rsa",
-			Hash: models.Hash("system"),
+			Hash: app.Hash("system"),
 			Seed: 666,
 		},
 	},
@@ -50,11 +49,11 @@ var _exVoteAccount = Message{
 	Actions: []interface{}{
 		ScoreUpdate{
 			Type: TypeAccount,
-			Hash: models.Hash("29fc2269252dd76fa7e4b6d193f51a3f3cd21fdf30e44f34ec138d7e803cf0c3"), // system
+			Hash: app.Hash("29fc2269252dd76fa7e4b6d193f51a3f3cd21fdf30e44f34ec138d7e803cf0c3"), // system
 		},
 		ScoreUpdate{
 			Type: TypeAccount,
-			Hash: models.Hash("77b7b7215e8d78452dc40da9efbb65fdc918c757844387aa0f88143762495c6b"), // anonymous
+			Hash: app.Hash("77b7b7215e8d78452dc40da9efbb65fdc918c757844387aa0f88143762495c6b"), // anonymous
 		},
 	},
 }
@@ -65,7 +64,7 @@ var _exVoteItem = Message{
 	Actions: []interface{}{
 		ScoreUpdate{
 			Type: TypeItem,
-			Hash: models.Hash("cb615f8863b197b86a08354911b93c0fc3d365061a83bb6482f8ac67c871d192"), // about littr.me
+			Hash: app.Hash("cb615f8863b197b86a08354911b93c0fc3d365061a83bb6482f8ac67c871d192"), // about littr.me
 		},
 	},
 }
@@ -108,10 +107,10 @@ var _exProcessOutgoingInboxAction = Message{
 	Priority: PriorityHigh,
 	Actions: []interface{}{
 		APProcess{
-			Actor: models.Account{
+			Actor: app.Account{
 				Hash: "29fc2269252dd76fa7e4b6d193f51a3f3cd21fdf30e44f34ec138d7e803cf0c3",
-				Metadata: &models.AccountMetadata{
-					Key: &models.SSHKey{
+				Metadata: &app.AccountMetadata{
+					Key: &app.SSHKey{
 						Private: []byte{0x0},
 					},
 				},
@@ -141,17 +140,17 @@ var _exProcessOutgoingInboxAction = Message{
 type SSHKey struct {
 	Type string      `json:"type"`
 	Seed int64       `json:"seed"`
-	Hash models.Hash `json:"hash"`
+	Hash app.Hash `json:"hash"`
 }
 
 type ScoreUpdate struct {
 	Type EntityType  `json:"type"`
-	Hash models.Hash `json:"hash"`
+	Hash app.Hash `json:"hash"`
 }
 
 type APProcess struct {
 	Activity as.Item        `json:"activity"`
-	Actor    models.Account `json:"actor"`
+	Actor    app.Account `json:"actor"`
 }
 
 // Action can be a procedural operation, which doesn't need a Target

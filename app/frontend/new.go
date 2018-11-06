@@ -2,35 +2,35 @@ package frontend
 
 import (
 	"bytes"
+	"github.com/mariusor/littr.go/app"
 	"net/http"
 	"net/url"
 	"time"
 
 	"github.com/juju/errors"
-	"github.com/mariusor/littr.go/app/models"
 	log "github.com/sirupsen/logrus"
 )
 
 type newModel struct {
 	Title         string
 	InvertedTheme bool
-	Content       models.Item
+	Content       app.Item
 }
 
 func detectMimeType(data string) string {
 	u, err := url.ParseRequestURI(data)
 	if err == nil && u != nil && !bytes.ContainsRune([]byte(data), '\n') {
-		return models.MimeTypeURL
+		return app.MimeTypeURL
 	}
 	return "text/plain"
 }
 
-func ContentFromRequest(r *http.Request) (models.Item, error) {
+func ContentFromRequest(r *http.Request) (app.Item, error) {
 	if r.Method != http.MethodPost {
-		return models.Item{}, errors.Errorf("invalid http method type")
+		return app.Item{}, errors.Errorf("invalid http method type")
 	}
 
-	i := models.Item{}
+	i := app.Item{}
 	tit := r.PostFormValue("title")
 	if len(tit) > 0 {
 		i.Title = tit
@@ -40,7 +40,7 @@ func ContentFromRequest(r *http.Request) (models.Item, error) {
 		i.Data = dat
 	}
 
-	acc, _ := models.ContextCurrentAccount(r.Context())
+	acc, _ := app.ContextCurrentAccount(r.Context())
 	i.SubmittedBy = acc
 	i.MimeType = detectMimeType(i.Data)
 	if !i.IsLink() {
@@ -52,7 +52,7 @@ func ContentFromRequest(r *http.Request) (models.Item, error) {
 		i.UpdatedAt = now
 	}
 	parent := r.PostFormValue("parent")
-	i.Parent = &models.Item{Hash: models.Hash(parent)}
+	i.Parent = &app.Item{Hash: app.Hash(parent)}
 	return i, nil
 }
 
@@ -72,13 +72,13 @@ func HandleSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	acc, accOk := models.ContextCurrentAccount(r.Context())
-	auth, authOk := models.ContextAuthenticated(r.Context())
+	acc, accOk := app.ContextCurrentAccount(r.Context())
+	auth, authOk := app.ContextAuthenticated(r.Context())
 	if authOk && accOk && acc.IsLogged() {
 		auth.WithAccount(acc)
 	}
 
-	if repo, ok := models.ContextItemSaver(r.Context()); !ok {
+	if repo, ok := app.ContextItemSaver(r.Context()); !ok {
 		Logger.WithFields(log.Fields{}).Errorf("could not load item repository from Context")
 		return
 	} else {
@@ -89,13 +89,13 @@ func HandleSubmit(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	if voter, ok := models.ContextVoteSaver(r.Context()); !ok {
+	if voter, ok := app.ContextVoteSaver(r.Context()); !ok {
 		Logger.WithFields(log.Fields{}).Errorf("could not load item repository from Context")
 	} else {
-		v := models.Vote{
+		v := app.Vote{
 			SubmittedBy: acc,
 			Item:        &p,
-			Weight:      1 * models.ScoreMultiplier,
+			Weight:      1 * app.ScoreMultiplier,
 		}
 		if _, err := voter.SaveVote(v); err != nil {
 			Logger.WithFields(log.Fields{

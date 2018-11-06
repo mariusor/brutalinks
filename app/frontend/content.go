@@ -8,7 +8,6 @@ import (
 	"github.com/mariusor/littr.go/app"
 
 	"github.com/juju/errors"
-	"github.com/mariusor/littr.go/app/models"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/go-chi/chi"
@@ -19,7 +18,7 @@ const Nay = "nay"
 
 type comments []*comment
 type comment struct {
-	models.Item
+	app.Item
 	Level    uint8
 	Children comments
 	Parent   *comment
@@ -31,7 +30,7 @@ type contentModel struct {
 	Content       comment
 }
 
-func loadComments(items []models.Item) comments {
+func loadComments(items []app.Item) comments {
 	var comments = make([]*comment, len(items))
 	for k, item := range items {
 		com := comment{Item: item}
@@ -40,8 +39,8 @@ func loadComments(items []models.Item) comments {
 	return comments
 }
 
-func (c comments) getItems() models.ItemCollection {
-	var items = make(models.ItemCollection, len(c))
+func (c comments) getItems() app.ItemCollection {
+	var items = make(app.ItemCollection, len(c))
 	for k, com := range c {
 		items[k] = com.Item
 	}
@@ -94,25 +93,25 @@ func ReparentComments(allComments []*comment) {
 // ShowItem serves /{year}/{month}/{day}/{hash} request
 // ShowItem serves /~{handle}/{hash} request
 func ShowItem(w http.ResponseWriter, r *http.Request) {
-	items := make([]models.Item, 0)
+	items := make([]app.Item, 0)
 	ShowItemData = true
 
 	m := contentModel{InvertedTheme: isInverted(r)}
-	itemLoader, ok := models.ContextItemLoader(r.Context())
+	itemLoader, ok := app.ContextItemLoader(r.Context())
 	if !ok {
 		Logger.WithFields(log.Fields{}).Errorf("could not load item repository from Context")
 		return
 	}
 	handle := chi.URLParam(r, "handle")
-	//acctLoader, ok := val.(models.CanLoadAccounts)
+	//acctLoader, ok := val.(app.CanLoadAccounts)
 	//if !ok {
 	//	Logger.WithFields(log.Fields{}).Errorf("could not load account repository from Context")
 	//}
-	//act, err := acctLoader.LoadAccount(models.LoadAccountFilter{Handle: handle})
+	//act, err := acctLoader.LoadAccount(app.LoadAccountFilter{Handle: handle})
 
 	hash := chi.URLParam(r, "hash")
-	i, err := itemLoader.LoadItem(models.LoadItemsFilter{
-		AttributedTo: []models.Hash{models.Hash(handle)},
+	i, err := itemLoader.LoadItem(app.LoadItemsFilter{
+		AttributedTo: []app.Hash{app.Hash(handle)},
 		Key:          []string{hash},
 	})
 	if err != nil {
@@ -129,7 +128,7 @@ func ShowItem(w http.ResponseWriter, r *http.Request) {
 	allComments := make(comments, 1)
 	allComments[0] = &m.Content
 
-	contentItems, err := itemLoader.LoadItems(models.LoadItemsFilter{
+	contentItems, err := itemLoader.LoadItems(app.LoadItemsFilter{
 		Context:  []string{m.Content.Hash.String()},
 		MaxItems: MaxContentItems,
 	})
@@ -143,12 +142,12 @@ func ShowItem(w http.ResponseWriter, r *http.Request) {
 	ReparentComments(allComments)
 	AddLevelComments(allComments)
 
-	acc, ok := models.ContextCurrentAccount(r.Context())
+	acc, ok := app.ContextCurrentAccount(r.Context())
 	if ok && acc.IsLogged() {
-		votesLoader, ok := models.ContextVoteLoader(r.Context())
+		votesLoader, ok := app.ContextVoteLoader(r.Context())
 		if ok {
-			acc.Votes, err = votesLoader.LoadVotes(models.LoadVotesFilter{
-				AttributedTo: []models.Hash{acc.Hash},
+			acc.Votes, err = votesLoader.LoadVotes(app.LoadVotesFilter{
+				AttributedTo: []app.Hash{acc.Hash},
 				ItemKey:      allComments.getItemsHashes(),
 				MaxItems:     MaxContentItems,
 			})
@@ -184,14 +183,14 @@ func genitive(name string) string {
 func HandleVoting(w http.ResponseWriter, r *http.Request) {
 	hash := chi.URLParam(r, "hash")
 
-	val := r.Context().Value(models.RepositoryCtxtKey)
-	itemLoader, ok := val.(models.CanLoadItems)
+	val := r.Context().Value(app.RepositoryCtxtKey)
+	itemLoader, ok := val.(app.CanLoadItems)
 	if !ok {
 		Logger.WithFields(log.Fields{}).Errorf("could not load item repository from Context")
 		return
 	}
 
-	p, err := itemLoader.LoadItem(models.LoadItemsFilter{Key: []string{hash}})
+	p, err := itemLoader.LoadItem(app.LoadItemsFilter{Key: []string{hash}})
 	if err != nil {
 		Logger.WithFields(log.Fields{}).Error(err)
 		HandleError(w, r, http.StatusNotFound, err)
@@ -207,12 +206,12 @@ func HandleVoting(w http.ResponseWriter, r *http.Request) {
 	}
 	url := ItemPermaLink(p)
 
-	acc, ok := models.ContextCurrentAccount(r.Context())
+	acc, ok := app.ContextCurrentAccount(r.Context())
 	if acc.IsLogged() {
-		if auth, ok := val.(models.Authenticated); ok {
+		if auth, ok := val.(app.Authenticated); ok {
 			auth.WithAccount(acc)
 		}
-		voter, ok := val.(models.CanSaveVotes)
+		voter, ok := val.(app.CanSaveVotes)
 		backUrl := r.Header.Get("Referer")
 		if !strings.Contains(backUrl, url) && strings.Contains(backUrl, app.Instance.BaseURL) {
 			url = fmt.Sprintf("%s#item-%s", backUrl, p.Hash)
@@ -221,10 +220,10 @@ func HandleVoting(w http.ResponseWriter, r *http.Request) {
 			Logger.WithFields(log.Fields{}).Errorf("could not load vote repository from Context")
 			return
 		}
-		v := models.Vote{
+		v := app.Vote{
 			SubmittedBy: acc,
 			Item:        &p,
-			Weight:      multiplier * models.ScoreMultiplier,
+			Weight:      multiplier * app.ScoreMultiplier,
 		}
 		if _, err := voter.SaveVote(v); err != nil {
 			Logger.WithFields(log.Fields{
