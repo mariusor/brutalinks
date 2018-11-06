@@ -1,7 +1,10 @@
 package main
 
 import (
+	"crypto/tls"
 	"flag"
+	"fmt"
+	"github.com/mariusor/littr.go/app/models"
 	"github.com/mariusor/littr.go/app/processing"
 	"net/http"
 	"os"
@@ -18,13 +21,24 @@ import (
 	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/app/api"
 	"github.com/mariusor/littr.go/app/frontend"
-	"github.com/mariusor/littr.go/app/models"
 	log "github.com/sirupsen/logrus"
 )
 
 var Logger log.FieldLogger
 
-func init() {
+func serveFiles(st string) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		path := filepath.Clean(chi.URLParam(r, "path"))
+		fullPath := filepath.Join(st, path)
+		http.ServeFile(w, r, fullPath)
+	}
+}
+
+func main() {
+	var wait time.Duration
+	flag.DurationVar(&wait, "graceful-timeout", time.Second*15, "the duration for which the server gracefully wait for existing connections to finish - e.g. 15s or 1m")
+	flag.Parse()
+
 	Logger = log.StandardLogger()
 	app.Logger = Logger.WithField("package", "app")
 
@@ -42,28 +56,31 @@ func init() {
 
 	app.Instance = app.New()
 	db.Init(&app.Instance)
-	frontend.InitSessionStore(&app.Instance)
+	frontend.Init(&app.Instance)
 	processing.InitQueues(&app.Instance)
+
+	// api
+	host := os.Getenv("HOSTNAME")
+	if app.Instance.Secure {
+		api.BaseURL = fmt.Sprintf("https://%s/api", host)
+	} else {
+		api.BaseURL = fmt.Sprintf("http://%s/api", host)
+	}
+	api.Config.BaseUrl = api.BaseURL
+
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	api.ActorsURL = api.BaseURL + "/actors"
+	api.OutboxURL = api.BaseURL + "/outbox"
+
+	if Logger == nil {
+		Logger = log.StandardLogger()
+	}
 
 	api.Logger = Logger.WithField("package", "api")
 	models.Logger = Logger.WithField("package", "models")
 	db.Logger = Logger.WithField("package", "db")
 	frontend.Logger = Logger.WithField("package", "frontend")
 	processing.Logger = Logger.WithField("package", "processing")
-}
-
-func serveFiles(st string) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		path := filepath.Clean(chi.URLParam(r, "path"))
-		fullPath := filepath.Join(st, path)
-		http.ServeFile(w, r, fullPath)
-	}
-}
-
-func main() {
-	var wait time.Duration
-	flag.DurationVar(&wait, "graceful-timeout", time.Second*15, "the duration for which the server gracefully wait for existing connections to finish - e.g. 15s or 1m")
-	flag.Parse()
 
 	// Routes
 	r := chi.NewRouter()

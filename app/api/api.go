@@ -3,13 +3,11 @@ package api
 import (
 	"context"
 	"crypto"
-	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
-	"os"
 	"path"
 	"strings"
 
@@ -56,24 +54,6 @@ type Fields []Field
 type Error struct {
 	Code  int
 	Error error
-}
-
-func init() {
-	host := os.Getenv("HOSTNAME")
-
-	if app.Instance.Secure {
-		BaseURL = fmt.Sprintf("https://%s/api", host)
-	} else {
-		BaseURL = fmt.Sprintf("http://%s/api", host)
-	}
-	Config.BaseUrl = BaseURL
-
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	ActorsURL = BaseURL + "/actors"
-	OutboxURL = BaseURL + "/outbox"
-	if Logger == nil {
-		Logger = log.StandardLogger()
-	}
 }
 
 func Errorf(c int, m string, args ...interface{}) *Error {

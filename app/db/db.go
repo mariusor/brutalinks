@@ -24,12 +24,6 @@ type config struct {
 	DB *sqlx.DB
 }
 
-func init() {
-	if Logger == nil {
-		Logger = log.StandardLogger()
-	}
-}
-
 func Init(app *app.Application) error {
 	if app.Config.DB.Port == "" {
 		app.Config.DB.Port = "5432"

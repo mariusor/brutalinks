@@ -51,7 +51,7 @@ const (
 	Error   flashType = "error"
 )
 
-type Flash struct {
+type flash struct {
 	Type flashType
 	Msg  string
 }
@@ -140,6 +140,13 @@ func RelTimeLabel(old time.Time) string {
 
 const RendererCtxtKey = "__renderer"
 
+func Init(app *app.Application) error {
+	// frontend
+	gob.Register(sessionAccount{})
+	gob.Register(flash{})
+	return InitSessionStore(app)
+}
+
 // InitSessionStore initializes the session store if we have encryption key settings in the env variables
 func InitSessionStore(app *app.Application) error {
 	if len(app.SessionKeys) > 0 {
@@ -224,20 +231,11 @@ func Renderer(next http.Handler) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
-func init() {
-	gob.Register(sessionAccount{})
-	gob.Register(Flash{})
-
-	if Logger == nil {
-		Logger = log.StandardLogger()
-	}
-}
-
 func AnonymousAccount() *models.Account {
 	return &defaultAccount
 }
 
-var FlashData = make([]Flash, 0)
+var flashData = make([]flash, 0)
 
 type errorModel struct {
 	Status        int
@@ -537,18 +535,18 @@ func loadCurrentAccount(s *sessions.Session) models.Account {
 }
 
 func loadSessionFlashMessages(s *sessions.Session) {
-	FlashData = FlashData[:0]
+	flashData = flashData[:0]
 	flashes := s.Flashes()
-	// setting the local FlashData value
+	// setting the local flashData value
 	for _, int := range flashes {
 		if int == nil {
 			continue
 		}
-		f, ok := int.(Flash)
+		f, ok := int.(flash)
 		if !ok {
 			Logger.WithFields(log.Fields{}).Error(errors.NewErr("unable to read flash struct from %T %#v", int, int))
 		}
-		FlashData = append(FlashData, f)
+		flashData = append(flashData, f)
 	}
 }
 
@@ -583,10 +581,10 @@ func LoadSession(next http.Handler) http.Handler {
 
 func addFlashMessage(typ flashType, msg string, r *http.Request) {
 	//s, _ := sessionStore.Get(r, sessionName)
-	n := Flash{typ, msg}
+	n := flash{typ, msg}
 
 	exists := false
-	for _, f := range FlashData {
+	for _, f := range flashData {
 		if f == n {
 			exists = true
 			break
@@ -597,9 +595,9 @@ func addFlashMessage(typ flashType, msg string, r *http.Request) {
 	}
 }
 
-func loadFlashMessages() []Flash {
-	f := FlashData
-	FlashData = nil
+func loadFlashMessages() []flash {
+	f := flashData
+	flashData = nil
 	return f
 }
 

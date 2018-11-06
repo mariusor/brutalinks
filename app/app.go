@@ -102,16 +102,11 @@ type Application struct {
 	Secure      bool
 	SessionKeys [][]byte
 	Config      config
+	SeedVal     int64
 }
 
 // Instance is the default instance of our application
 var Instance Application
-
-func init() {
-	if Logger == nil {
-		Logger = log.StandardLogger()
-	}
-}
 
 // New instantiates a new Application
 func New() Application {
@@ -154,33 +149,37 @@ func loadEnv(l *Application) (bool, error) {
 	if encKey := []byte(os.Getenv("SESS_ENC_KEY")); encKey != nil {
 		l.SessionKeys = append(l.SessionKeys, encKey)
 	}
+	var err error
 
-	listenHost = os.Getenv("HOSTNAME")
-	listenPort, _ = strconv.ParseInt(os.Getenv("PORT"), 10, 64)
-	listenOn = os.Getenv("LISTEN")
-
-	l.Version = os.Getenv("VERSION")
-	env := EnvType(os.Getenv("ENV"))
-	if !validEnv(env) {
-		env = DEV
+	if l.HostName = os.Getenv("HOSTNAME"); l.HostName == "" {
+		l.HostName = defaultHost
 	}
-	Instance.Config.Env = env
-	if listenPort == 0 {
-		listenPort = defaultPort
+	if l.Port, err = strconv.ParseInt(os.Getenv("PORT"), 10, 64); err != nil {
+		l.Port = defaultPort
 	}
-	if listenHost == "" {
-		listenHost = defaultHost
+	if l.HostName = os.Getenv("HOSTNAME"); l.HostName == "" {
+		l.HostName = defaultHost
 	}
-	l.HostName = listenHost
+	if l.Listen = os.Getenv("LISTEN"); l.Listen == "" {
+		l.Listen = fmt.Sprintf("%s:%d", l.HostName, l.Port)
+	}
+	if l.SeedVal, err = strconv.ParseInt(os.Getenv("SEED"), 10, 64); err != nil {
+		l.SeedVal = 666
+	}
+	if l.Version = os.Getenv("VERSION"); l.Version != "" {
+		l.Version = "HEAD"
+	}
+	if l.Secure, err = strconv.ParseBool(os.Getenv("HTTPS")); err != nil {
+		l.Secure = false
+	}
 	if l.Secure {
-		l.BaseURL = fmt.Sprintf("https://%s", listenHost)
+		l.BaseURL = fmt.Sprintf("https://%s", l.HostName)
 	} else {
-		l.BaseURL = fmt.Sprintf("http://%s", listenHost)
+		l.BaseURL = fmt.Sprintf("http://%s", l.HostName)
 	}
-	l.Secure = os.Getenv("HTTPS") != ""
-
-	l.Port = listenPort
-	l.Listen = listenOn
+	if l.Config.Env = EnvType(os.Getenv("ENV")); !validEnv(l.Config.Env) {
+		l.Config.Env = DEV
+	}
 
 	l.Config.DB.Host = os.Getenv("DB_HOST")
 	l.Config.DB.Pw = os.Getenv("DB_PASSWORD")
