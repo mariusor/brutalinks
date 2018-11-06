@@ -13,8 +13,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// Logger is a local log instance
 var Logger log.FieldLogger
 
+// Account represents the db model that we are using
 type Account struct {
 	Id        int64      `db:"id,auto"`
 	Key       models.Key `db:"key,size(32)"`
@@ -25,6 +27,24 @@ type Account struct {
 	UpdatedAt time.Time  `db:"updated_at"`
 	Flags     FlagBits   `db:"flags"`
 	Metadata  Metadata   `db:"metadata"`
+}
+
+func UpdateAccount(db *sqlx.DB, a models.Account) (models.Account, error) {
+	jMetadata, err := json.Marshal(a.Metadata)
+	if err != nil {
+		return a, err
+	}
+	upd := `UPDATE "accounts" SET "score" = $1, "updated_at" = $2, "flags" = $3::bit(8), "metadata" = $4 where "key" ~* $5;`
+
+	if res, err := db.Exec(upd, a.Score, a.UpdatedAt, a.Flags, jMetadata, a.Hash); err == nil {
+		if rows, _ := res.RowsAffected(); rows == 0 {
+			return a, errors.Errorf("could not update account %s:%q", a.Handle, a.Hash)
+		}
+	} else {
+		return a, err
+	}
+
+	return a, nil
 }
 
 func loadAccounts(db *sqlx.DB, f models.LoadAccountsFilter) (models.AccountCollection, error) {
@@ -82,23 +102,5 @@ func saveAccount(db *sqlx.DB, a models.Account) (models.Account, error) {
 	} else {
 		return a, err
 	}
-	return a, nil
-}
-
-func UpdateAccount(db *sqlx.DB, a models.Account) (models.Account, error) {
-	jMetadata, err := json.Marshal(a.Metadata)
-	if err != nil {
-		return a, err
-	}
-	upd := `UPDATE "accounts" SET "score" = $1, "updated_at" = $2, "flags" = $3::bit(8), "metadata" = $4 where "key" ~* $5;`
-
-	if res, err := db.Exec(upd, a.Score, a.UpdatedAt, a.Flags, jMetadata, a.Hash); err == nil {
-		if rows, _ := res.RowsAffected(); rows == 0 {
-			return a, errors.Errorf("could not update account %s:%q", a.Handle, a.Hash)
-		}
-	} else {
-		return a, err
-	}
-
 	return a, nil
 }

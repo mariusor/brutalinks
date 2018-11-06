@@ -204,7 +204,9 @@ func LoadScoresForItems(since time.Duration, key string) ([]models.Score, error)
 func loadScoresForItems(db *sqlx.DB, since time.Duration, key string) ([]models.Score, error) {
 	par := make([]interface{}, 0)
 	par = append(par, interface{}(since.Hours()))
-
+	dumb := func(ups, downs int64) int64 {
+		return ups - downs
+	}
 	keyClause := ""
 	if len(key) > 0 {
 		keyClause = ` and "content_items"."key" ~* $2`
@@ -226,9 +228,7 @@ func loadScoresForItems(db *sqlx.DB, since time.Duration, key string) ([]models.
 		var submitted time.Time
 		var key []byte
 		err = rows.Scan(&i, &key, &submitted, &ups, &downs)
-		dumb := func(ups, downs int64) int64 {
-			return ups - downs
-		}
+
 		now := time.Now()
 		reddit := int64(models.Reddit(ups, downs, now.Sub(submitted)))
 		wilson := int64(models.Wilson(ups, downs))
@@ -254,7 +254,9 @@ func LoadScoresForAccounts(since time.Duration, col string, val string) ([]model
 func loadScoresForAccounts(db *sqlx.DB, since time.Duration, col string, val string) ([]models.Score, error) {
 	par := make([]interface{}, 0)
 	par = append(par, interface{}(since.Hours()))
-
+	dumb := func(ups, downs int64) int64 {
+		return ups - downs
+	}
 	keyClause := ""
 	if len(val) > 0 && len(col) > 0 {
 		keyClause = fmt.Sprintf(` and "content_items"."%s" ~* $2`, col)
@@ -282,9 +284,6 @@ group by "accounts"."id", "accounts"."key" order by "accounts"."id";`,
 		var handle string
 		err = rows.Scan(&i, &handle, &key, &submitted, &ups, &downs)
 
-		dumb := func(ups, downs int64) int64 {
-			return ups - downs
-		}
 		now := time.Now()
 		reddit := int64(models.Reddit(ups, downs, now.Sub(submitted)))
 		wilson := int64(models.Wilson(ups, downs))
