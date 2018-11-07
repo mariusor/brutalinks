@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi"
-	log "github.com/sirupsen/logrus"
 )
 
 // HandleItemRedirect serves /item/{hash} request
@@ -13,7 +12,7 @@ func HandleItemRedirect(w http.ResponseWriter, r *http.Request) {
 	val := r.Context().Value(app.RepositoryCtxtKey)
 	itemLoader, ok := val.(app.CanLoadItems)
 	if !ok {
-		Logger.WithFields(log.Fields{}).Errorf("could not load item repository from Context")
+		Logger.Error("could not load item repository from Context")
 		return
 	}
 	p, err := itemLoader.LoadItem(app.LoadItemsFilter{

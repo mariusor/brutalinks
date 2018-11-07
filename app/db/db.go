@@ -12,7 +12,7 @@ import (
 	"os"
 	"time"
 
-	log "github.com/sirupsen/logrus"
+	log "github.com/inconshreveable/log15"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/jmoiron/sqlx/types"
@@ -36,14 +36,14 @@ func Init(app *app.Application) error {
 		app.Config.DB.Enabled = true
 	} else {
 		new := errors.NewErr("failed to connect to the database")
-		log.WithFields(log.Fields{
+		log.Error(new.Error(), log.Ctx{
 			"dbHost":   app.Config.DB.Host,
 			"dbPort":   app.Config.DB.Port,
 			"dbName":   app.Config.DB.Name,
 			"dbUser":   app.Config.DB.User,
 			"previous": err,
 			"trace":    new.StackTrace(),
-		}).Error(new)
+		})
 	}
 	return err
 }
@@ -233,7 +233,7 @@ func loadScoresForItems(db *sqlx.DB, since time.Duration, key string) ([]app.Sco
 		wilson := int64(app.Wilson(ups, downs))
 		hacker := int64(app.Hacker(ups-downs, now.Sub(submitted)))
 		dumbScore := dumb(ups, downs)
-		Logger.WithFields(log.Fields{}).Infof("Votes[%s]: UPS[%d] DOWNS[%d] - new score R%d:W%d:H%d:D%d", key[0:8], ups, downs, reddit, wilson, hacker, dumbScore)
+		Logger.Info("new score", log.Ctx{"key": key[0:8], "ups": ups, "downs":downs, "reddit": reddit, "wilson": wilson, "hn": hacker, "dumb": dumbScore})
 		new := app.Score{
 			ID:        i,
 			Key:       key,
@@ -288,7 +288,7 @@ group by "accounts"."id", "accounts"."key" order by "accounts"."id";`,
 		wilson := int64(app.Wilson(ups, downs))
 		hacker := int64(app.Hacker(ups-downs, now.Sub(submitted)))
 		dumbScore := dumb(ups, downs)
-		Logger.WithFields(log.Fields{}).Infof("Votes[%s]: UPS[%d] DOWNS[%d] - new score R%d:W%d:H%d:D%d", handle, ups, downs, reddit, wilson, hacker, dumbScore)
+		Logger.Info("new score", log.Ctx{"handle": handle, "ups": ups, "downs":downs, "reddit": reddit, "wilson": wilson, "hn": hacker, "dumb": dumbScore})
 		new := app.Score{
 			ID:        i,
 			Key:       key,

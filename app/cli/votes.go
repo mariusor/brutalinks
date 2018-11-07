@@ -2,15 +2,15 @@ package cli
 
 import (
 	"fmt"
+	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/app/db"
-	"github.com/mariusor/littr.go/app/models"
 	"time"
 )
 
 func UpdateScores(key string, handle string,  since time.Duration,  items bool, accounts bool) error {
 	var err error
 	// recount all votes for content items
-	var scores []models.Score
+	var scores []app.Score
 	if accounts {
 		which := ""
 		val := ""
@@ -34,7 +34,7 @@ func UpdateScores(key string, handle string,  since time.Duration,  items bool, 
 	sql := `update "%s" set score = $1 where id = $2;`
 	for _, score := range scores {
 		var col string
-		if score.Type == models.ScoreItem {
+		if score.Type == app.ScoreItem {
 			col = `content_items`
 		} else {
 			col = `accounts`

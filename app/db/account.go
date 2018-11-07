@@ -10,11 +10,11 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/juju/errors"
 
-	log "github.com/sirupsen/logrus"
+	log "github.com/inconshreveable/log15"
 )
 
 // Logger is a local log instance
-var Logger log.FieldLogger
+var Logger log.Logger
 
 // Account represents the db model that we are using
 type Account struct {
@@ -80,7 +80,7 @@ func loadAccounts(db *sqlx.DB, f app.LoadAccountsFilter) (app.AccountCollection,
 func saveAccount(db *sqlx.DB, a app.Account) (app.Account, error) {
 	jMetadata, err := json.Marshal(a.Metadata)
 	if err != nil {
-		Logger.WithFields(log.Fields{}).Error(err)
+		Logger.Error(err.Error())
 	}
 
 	var em interface{}

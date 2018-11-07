@@ -6,7 +6,7 @@ import (
 
 	"github.com/mariusor/littr.go/app/db"
 
-	log "github.com/sirupsen/logrus"
+	log "github.com/inconshreveable/log15"
 
 	"github.com/juju/errors"
 	"golang.org/x/crypto/bcrypt"
@@ -26,24 +26,24 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	handle := r.PostFormValue("handle")
 	a, err := db.Config.LoadAccount(app.LoadAccountsFilter{Handle: []string{handle}})
 	if err != nil {
-		Logger.WithFields(log.Fields{}).Error(err)
+		Logger.Error(err.Error())
 		HandleError(w, r, http.StatusForbidden, errors.Errorf("handle or password are wrong"))
 		return
 	}
 	m := a.Metadata
 	if m != nil {
-		Logger.WithFields(log.Fields{}).Infof("Loaded pw: %q, salt: %q", m.Password, m.Salt)
+		Logger.Info("Loaded password", log.Ctx{"pw": string(m.Password), "salt": m.Salt})
 		salt := m.Salt
 		saltyPw := []byte(pw)
 		saltyPw = append(saltyPw, salt...)
-		err = bcrypt.CompareHashAndPassword([]byte(m.Password), saltyPw)
+		err = bcrypt.CompareHashAndPassword(m.Password, saltyPw)
 	} else {
-		log.Print(err)
+		log.Info(err.Error())
 		HandleError(w, r, http.StatusForbidden, errors.Errorf("invalid account metadata"))
 		return
 	}
 	if err != nil {
-		Logger.WithFields(log.Fields{}).Error(err)
+		Logger.Error(err.Error())
 		HandleError(w, r, http.StatusForbidden, errors.Errorf("handle or password are wrong"))
 		return
 	}
@@ -55,7 +55,7 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 		}
 		s.Save(r, w)
 	} else {
-		Logger.WithFields(log.Fields{}).Error(err)
+		Logger.Error(err.Error())
 	}
 
 	backUrl := "/"
@@ -76,7 +76,7 @@ func ShowLogin(w http.ResponseWriter, r *http.Request) {
 // HandleLogout serves /logout requests
 func HandleLogout(w http.ResponseWriter, r *http.Request) {
 	if s, err := sessionStore.Get(r, sessionName); err != nil {
-		Logger.WithFields(log.Fields{}).Error(err)
+		Logger.Error(err.Error())
 	} else {
 		s.Values[SessionUserKey] = nil
 	}

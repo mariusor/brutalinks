@@ -20,10 +20,10 @@ import (
 	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/app/api"
 	"github.com/mariusor/littr.go/app/frontend"
-	log "github.com/sirupsen/logrus"
+	log "github.com/inconshreveable/log15"
 )
 
-var Logger log.FieldLogger
+var Logger log.Logger
 
 func serveFiles(st string) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -38,19 +38,28 @@ func main() {
 	flag.DurationVar(&wait, "graceful-timeout", time.Second*15, "the duration for which the server gracefully wait for existing connections to finish - e.g. 15s or 1m")
 	flag.Parse()
 
-	Logger = log.StandardLogger()
-	app.Logger = Logger.WithField("package", "app")
-
+	Logger = log.New(log.Ctx{"package": "main"})
+	// flexible configuration
 	if app.Instance.Config.Env == app.PROD {
-		log.SetLevel(log.WarnLevel)
+		Logger.SetHandler(
+			log.LvlFilterHandler(
+				log.LvlWarn,
+				log.StreamHandler(os.Stderr, log.LogfmtFormat()),
+			),
+		)
 	} else {
-		log.SetFormatter(&log.TextFormatter{
-			DisableColors:          false,
-			DisableLevelTruncation: true,
-			ForceColors:            true,
-		})
-		log.SetOutput(os.Stdout)
-		log.SetLevel(log.DebugLevel)
+		Logger.SetHandler(
+			log.MultiHandler(
+				log.LvlFilterHandler(
+					log.LvlWarn,
+					log.StreamHandler(os.Stderr, log.LogfmtFormat()),
+				),
+				log.LvlFilterHandler(
+					log.LvlDebug,
+					log.StreamHandler(os.Stdout, log.LogfmtFormat()),
+				),
+			),
+		)
 	}
 
 	app.Instance = app.New()
@@ -71,15 +80,11 @@ func main() {
 	api.ActorsURL = api.BaseURL + "/actors"
 	api.OutboxURL = api.BaseURL + "/outbox"
 
-	if Logger == nil {
-		Logger = log.StandardLogger()
-	}
-
-	api.Logger = Logger.WithField("package", "api")
-	app.Logger = Logger.WithField("package", "app")
-	db.Logger = Logger.WithField("package", "db")
-	frontend.Logger = Logger.WithField("package", "frontend")
-	processing.Logger = Logger.WithField("package", "processing")
+	api.Logger = Logger.New(log.Ctx{"package": "api"})
+	app.Logger = Logger.New(log.Ctx{"package": "app"})
+	db.Logger = Logger.New(log.Ctx{"package": "db"})
+	frontend.Logger = Logger.New(log.Ctx{"package": "frontend"})
+	processing.Logger = Logger.New(log.Ctx{"package": "processing"})
 
 	// Routes
 	r := chi.NewRouter()

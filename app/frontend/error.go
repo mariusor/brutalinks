@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/juju/errors"
-	log "github.com/sirupsen/logrus"
+	log "github.com/inconshreveable/log15"
 )
 
 // HandleError serves failed requests
@@ -20,7 +20,7 @@ func HandleError(w http.ResponseWriter, r *http.Request, status int, errs ...err
 
 	for _, err := range errs {
 		if err != nil {
-			Logger.WithFields(log.Fields{"trace": errors.ErrorStack(err)}).Errorf("Err: %s", err)
+			Logger.Error(err.Error(), log.Ctx{"trace": errors.ErrorStack(err)})
 		}
 	}
 

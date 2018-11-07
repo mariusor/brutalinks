@@ -7,9 +7,8 @@ import (
 	"os"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
-
 	"github.com/gchaincl/dotsql"
+	log "github.com/inconshreveable/log15"
 	"github.com/juju/errors"
 	_ "github.com/lib/pq"
 )
@@ -29,7 +28,7 @@ func dbConnection(dbHost string, dbUser string, dbPw string, dbName string) (*sq
 
 func er(err errors.Err) bool {
 	if err.Underlying() != nil {
-		fields := make(log.Fields)
+		fields := make(log.Ctx)
 		f, l := err.Location()
 		if f != "" {
 			fields["file"] = f
@@ -41,7 +40,7 @@ func er(err errors.Err) bool {
 		if len(s) > 0 {
 			fields["trace"] = s
 		}
-		log.WithFields(fields).Errorf("%s", err.Message())
+		log.Error(err.Message(), fields)
 		return true
 	}
 
@@ -54,13 +53,13 @@ func main() {
 	var dbHost string
 	var seed bool
 
-	log.SetFormatter(&log.TextFormatter{
-		DisableColors:          false,
-		DisableLevelTruncation: true,
-		ForceColors:            true,
-	})
-	log.SetOutput(os.Stdout)
-	log.SetLevel(log.DebugLevel)
+	//log.SetFormatter(&log.TextFormatter{
+	//	DisableColors:          false,
+	//	DisableLevelTruncation: true,
+	//	ForceColors:            true,
+	//})
+	//log.SetOutput(os.Stdout)
+	//log.SetLevel(log.DebugLevel)
 
 	flag.StringVar(&dbRootUser, "user", "", "the admin user for the database")
 	flag.StringVar(&dbRootPw, "pw", "", "the admin pass for the database")

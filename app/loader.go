@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"strings"
 	"time"
-
-	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -31,12 +29,6 @@ const (
 	TypeLike    = VoteType("like")
 	ContextNil  = "0"
 )
-
-func init() {
-	if Logger == nil {
-		Logger = log.StandardLogger()
-	}
-}
 
 type Info struct {
 	Title       string   `json:"title"`

@@ -11,7 +11,7 @@ import (
 
 	"github.com/mariusor/littr.go/app/db"
 
-	log "github.com/sirupsen/logrus"
+	log "github.com/inconshreveable/log15"
 
 	_ "github.com/lib/pq"
 )
@@ -28,13 +28,13 @@ func init() {
 
 	db.Config.DB, err = sqlx.Connect("postgres", connStr)
 	if err != nil {
-		log.WithFields(log.Fields{}).Error(err)
+		log.Error(err.Error())
 	}
 }
 
 func e(err error) {
 	if err != nil {
-		log.Error(err)
+		log.Error(err.Error())
 		os.Exit(1)
 	}
 }

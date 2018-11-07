@@ -11,8 +11,6 @@ import (
 	"github.com/mariusor/littr.go/app"
 
 	"github.com/juju/errors"
-
-	log "github.com/sirupsen/logrus"
 )
 
 type link struct {
@@ -68,14 +66,14 @@ func HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 	AcctLoader, ok := val.(app.CanLoadAccounts)
 	if !ok {
 		err := errors.New("could not load account repository from Context")
-		Logger.WithFields(log.Fields{}).Error(err)
+		Logger.Error(err.Error())
 		HandleError(w, r, http.StatusInternalServerError, err)
 		return
 	}
 	a, err := AcctLoader.LoadAccount(app.LoadAccountsFilter{Handle: []string{handle}})
 	if err != nil {
 		err := errors.New("resource not found")
-		Logger.WithFields(log.Fields{}).Error(err)
+		Logger.Error(err.Error())
 		HandleError(w, r, http.StatusNotFound, err)
 		return
 	}

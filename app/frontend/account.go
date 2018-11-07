@@ -32,7 +32,7 @@ func ShowAccount(w http.ResponseWriter, r *http.Request) {
 	val := r.Context().Value(app.RepositoryCtxtKey)
 	accountLoader, ok := val.(app.CanLoadAccounts)
 	if !ok {
-		Logger.Errorf("could not load account repository from Context")
+		Logger.Error("could not load account repository from Context")
 		return
 	}
 	var err error

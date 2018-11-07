@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/juju/errors"
-	log "github.com/sirupsen/logrus"
+	log "github.com/inconshreveable/log15"
 )
 
 type newModel struct {
@@ -67,7 +67,7 @@ func ShowSubmit(w http.ResponseWriter, r *http.Request) {
 func HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	p, err := ContentFromRequest(r)
 	if err != nil {
-		Logger.WithFields(log.Fields{}).Errorf("wrong http method: %s", err)
+		Logger.Error("wrong http method", log.Ctx{"prev": err})
 		HandleError(w, r, http.StatusMethodNotAllowed, err)
 		return
 	}
@@ -79,18 +79,18 @@ func HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if repo, ok := app.ContextItemSaver(r.Context()); !ok {
-		Logger.WithFields(log.Fields{}).Errorf("could not load item repository from Context")
+		Logger.Error("could not load item repository from Context")
 		return
 	} else {
 		p, err = repo.SaveItem(p)
 		if err != nil {
-			Logger.WithFields(log.Fields{}).Errorf("unable to save item: %s", err)
+			Logger.Error("unable to save item", log.Ctx{"prev": err})
 			HandleError(w, r, http.StatusInternalServerError, err)
 			return
 		}
 	}
 	if voter, ok := app.ContextVoteSaver(r.Context()); !ok {
-		Logger.WithFields(log.Fields{}).Errorf("could not load item repository from Context")
+		Logger.Error("could not load item repository from Context")
 	} else {
 		v := app.Vote{
 			SubmittedBy: acc,
@@ -98,11 +98,11 @@ func HandleSubmit(w http.ResponseWriter, r *http.Request) {
 			Weight:      1 * app.ScoreMultiplier,
 		}
 		if _, err := voter.SaveVote(v); err != nil {
-			Logger.WithFields(log.Fields{
+			Logger.Error(err.Error(), log.Ctx{
 				"hash":   v.Item.Hash,
 				"author": v.SubmittedBy.Handle,
 				"weight": v.Weight,
-			}).Error(err)
+			})
 		}
 	}
 	Redirect(w, r, ItemPermaLink(p), http.StatusSeeOther)

@@ -20,8 +20,8 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/gorilla/sessions"
+	log "github.com/inconshreveable/log15"
 	"github.com/juju/errors"
-	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 
 	mark "gitlab.com/golang-commonmark/markdown"
@@ -35,7 +35,7 @@ const (
 var sessionStore sessions.Store
 var defaultAccount = app.Account{Handle: app.Anonymous, Hash: app.AnonymousHash}
 
-var Logger log.FieldLogger
+var Logger log.Logger
 
 //var Renderer *render.Render
 var CurrentAccount = &defaultAccount
@@ -158,7 +158,7 @@ func InitSessionStore(app *app.Application) error {
 		sessionStore = s
 	} else {
 		err := errors.New("no session encryption configuration, unable to use sessions")
-		Logger.Warning(err)
+		Logger.Warn(err.Error())
 		app.Config.SessionsEnabled = false
 		return err
 	}
@@ -340,7 +340,7 @@ func saveSession(w http.ResponseWriter, r *http.Request) error {
 	var s *sessions.Session
 	if sessionStore == nil {
 		err := errors.New("missing session store, unable to save session")
-		Logger.Warn(err)
+		Logger.Warn(err.Error())
 		return err
 	}
 	if s, err = sessionStore.Get(r, sessionName); err != nil {
@@ -354,10 +354,10 @@ func saveSession(w http.ResponseWriter, r *http.Request) error {
 
 func Redirect(w http.ResponseWriter, r *http.Request, url string, status int) {
 	if err := saveSession(w, r); err != nil {
-		Logger.WithFields(log.Fields{
+		Logger.Error(err.Error(), log.Ctx{
 			"status": status,
 			"url":    url,
-		}).Error(err)
+		})
 	}
 
 	http.Redirect(w, r, url, status)
@@ -366,25 +366,25 @@ func Redirect(w http.ResponseWriter, r *http.Request, url string, status int) {
 func RenderTemplate(r *http.Request, w http.ResponseWriter, name string, m interface{}) error {
 	var err error
 	if err = saveSession(w, r); err != nil {
-		Logger.WithFields(log.Fields{
+		Logger.Error(err.Error(), log.Ctx{
 			"template": name,
 			"model":    fmt.Sprintf("%#v", m),
-		}).Error(err)
+		})
 	}
 	renderer, ok := r.Context().Value(RendererCtxtKey).(*render.Render)
 	if !ok {
 		err = errors.New("unable to load renderer")
-		Logger.WithFields(log.Fields{}).Error(err)
+		Logger.Error(err.Error())
 		return err
 	}
 	if err = renderer.HTML(w, http.StatusOK, name, m); err != nil {
 		new := errors.NewErr("failed to render template")
-		Logger.WithFields(log.Fields{
+		Logger.Error(new.Error(), log.Ctx{
 			"template": name,
 			"model":    fmt.Sprintf("%#v", m),
 			"trace":    new.StackTrace(),
 			"previous": err.Error(),
-		}).Error(new)
+		})
 		renderer.HTML(w, http.StatusInternalServerError, "error", new)
 	}
 	return err
@@ -420,7 +420,7 @@ func HandleCallback(w http.ResponseWriter, r *http.Request) {
 
 	s, err := sessionStore.Get(r, sessionName)
 	if err != nil {
-		Logger.WithFields(log.Fields{}).Infof("ERROR %s", err)
+		Logger.Info(err.Error())
 	}
 
 	s.Values["provider"] = provider
@@ -430,7 +430,7 @@ func HandleCallback(w http.ResponseWriter, r *http.Request) {
 
 	err = sessionStore.Save(r, w, s)
 	if err != nil {
-		Logger.WithFields(log.Fields{}).Info(err)
+		Logger.Info(err.Error())
 	}
 	Redirect(w, r, "/", http.StatusFound)
 }
@@ -441,7 +441,7 @@ func HandleAuth(w http.ResponseWriter, r *http.Request) {
 
 	indexUrl := "/"
 	if os.Getenv(strings.ToUpper(provider)+"_KEY") == "" {
-		Logger.WithFields(log.Fields{}).Infof("Provider %s has no credentials set", provider)
+		Logger.Info("Provider has no credentials set", log.Ctx{"provider": provider})
 		Redirect(w, r, indexUrl, http.StatusPermanentRedirect)
 		return
 	}
@@ -492,7 +492,7 @@ func HandleAuth(w http.ResponseWriter, r *http.Request) {
 	default:
 		s, err := sessionStore.Get(r, sessionName)
 		if err != nil {
-			Logger.WithFields(log.Fields{}).Infof("ERROR %s", err)
+			Logger.Info(err.Error())
 		}
 		s.AddFlash("Missing oauth provider")
 		Redirect(w, r, indexUrl, http.StatusPermanentRedirect)
@@ -515,17 +515,17 @@ func loadCurrentAccount(s *sessions.Session) app.Account {
 	if raw, ok := s.Values[SessionUserKey]; ok {
 		if a, ok := raw.(sessionAccount); ok {
 			if acc, err := db.Config.LoadAccount(app.LoadAccountsFilter{Handle: []string{a.Handle}}); err == nil {
-				Logger.WithFields(log.Fields{
+				Logger.Debug("loaded account from session", log.Ctx{
 					"handle": acc.Handle,
 					"hash":   acc.Hash,
-				}).Debugf("loaded account from session")
+				})
 				return acc
 			} else {
 				if err != nil {
-					Logger.WithFields(log.Fields{
+					Logger.Warn(err.Error(), log.Ctx{
 						"handle": a.Handle,
 						"hash":   a.Hash,
-					}).Warn(err)
+					})
 				}
 			}
 		}
@@ -543,7 +543,10 @@ func loadSessionFlashMessages(s *sessions.Session) {
 		}
 		f, ok := int.(flash)
 		if !ok {
-			Logger.WithFields(log.Fields{}).Error(errors.NewErr("unable to read flash struct from %T %#v", int, int))
+			Logger.Error("unable to read flash struct", log.Ctx{
+				"type": fmt.Sprintf("%T", int),
+				"val": fmt.Sprintf("%#v", int),
+			})
 		}
 		flashData = append(flashData, f)
 	}
@@ -554,18 +557,18 @@ func LoadSession(next http.Handler) http.Handler {
 		acc := defaultAccount
 		if !app.Instance.Config.SessionsEnabled {
 			err := errors.New("session store disabled")
-			Logger.Warn(err)
+			Logger.Warn(err.Error())
 			next.ServeHTTP(w, r)
 			return
 		}
 		if sessionStore == nil {
 			err := errors.New("missing session store, unable to load session")
-			Logger.Warn(err)
+			Logger.Warn(err.Error())
 			next.ServeHTTP(w, r)
 			return
 		}
 		if s, err := sessionStore.Get(r, sessionName); err != nil {
-			Logger.WithFields(log.Fields{}).Error(err)
+			Logger.Error(err.Error())
 		} else {
 			loadSessionFlashMessages(s)
 			acc = loadCurrentAccount(s)

@@ -9,11 +9,11 @@ import (
 	as "github.com/mariusor/activitypub.go/activitystreams"
 	"github.com/mariusor/activitypub.go/jsonld"
 	"github.com/mariusor/littr.go/app"
-	log "github.com/sirupsen/logrus"
+	log "github.com/inconshreveable/log15"
 	"reflect"
 )
 
-var Logger log.FieldLogger
+var Logger log.Logger
 
 type (
 	EntityType string
@@ -185,13 +185,13 @@ func InitQueues(app *app.Application) error {
 	} else {
 		new := errors.NewErr("failed to connect to redis")
 
-		log.WithFields(log.Fields{
+		log.Error(new.Error(), log.Ctx{
 			"redisHost": app.Config.Redis.Host,
 			"redisPort": app.Config.Redis.Port,
 			"redisDb":   redisDb,
 			"name":      name,
 			"trace":     new.StackTrace(),
-		}).Error(new)
+		})
 		return &new
 	}
 	return nil
@@ -223,35 +223,36 @@ func AddMessage(msg Message) (int, int, error) {
 			data, err = jsonld.Marshal(o.Activity)
 		}
 		if err != nil {
-			Logger.WithFields(log.Fields{
+			Logger.Warn(err.Error(), log.Ctx{
 				"queue":    which,
 				"item":     i,
 				"msg_cnt":  len(msg.Actions),
 				"act_type": reflect.TypeOf(p).Name(),
-			}).Warn(err)
+			})
 			erred++
 			continue
 		}
 		if err := DefaultQueue.Put(string(data)); err == nil {
 			processed++
-			Logger.WithFields(log.Fields{
+			Logger.Info("added new msg in queue", log.Ctx{
 				"queue":    which,
 				"item":     i,
 				"msg_cnt":  len(msg.Actions),
 				"processed_cnt":  processed,
 				"err_cnt":  erred,
 				"act_type": reflect.TypeOf(p).Name(),
-			}).Infof("added new msg in queue %s", data)
+				"data": data,
+			})
 		} else {
 			erred++
-			Logger.WithFields(log.Fields{
+			Logger.Warn(err.Error(), log.Ctx{
 				"queue":    which,
 				"item":     i,
 				"msg_cnt":  len(msg.Actions),
 				"processed_cnt":  processed,
 				"err_cnt":  erred,
 				"act_type": reflect.TypeOf(p).Name(),
-			}).Warn(err)
+			})
 		}
 	}
 	return processed, erred, nil

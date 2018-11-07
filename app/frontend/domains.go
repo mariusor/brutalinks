@@ -5,8 +5,6 @@ import (
 	"net/http"
 	"strconv"
 
-	log "github.com/sirupsen/logrus"
-
 	"context"
 	"fmt"
 
@@ -38,10 +36,10 @@ func loadItems(c context.Context, filter app.LoadItemsFilter) (itemListingModel,
 				MaxItems:     MaxContentItems,
 			})
 			if err != nil {
-				Logger.WithFields(log.Fields{}).Error(err)
+				Logger.Error(err.Error())
 			}
 		} else {
-			Logger.WithFields(log.Fields{}).Errorf("could not load vote repository from Context")
+			Logger.Error("could not load vote repository from Context")
 		}
 	}
 	return m, nil

@@ -8,7 +8,6 @@ import (
 
 	"github.com/buger/jsonparser"
 	"github.com/juju/errors"
-	log "github.com/sirupsen/logrus"
 
 	as "github.com/mariusor/activitypub.go/activitystreams"
 )
@@ -213,7 +212,7 @@ func jsonUnescape(s string) string {
 	var out []byte
 	var err error
 	if out, err = jsonparser.Unescape([]byte(s), nil); err != nil {
-		Logger.WithFields(log.Fields{}).Error(err)
+		Logger.Error(err.Error())
 		return s
 	}
 	return string(out)

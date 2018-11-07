@@ -17,7 +17,7 @@ import (
 	as "github.com/mariusor/activitypub.go/activitystreams"
 	json "github.com/mariusor/activitypub.go/jsonld"
 	localap "github.com/mariusor/littr.go/app/activitypub"
-	log "github.com/sirupsen/logrus"
+	log "github.com/inconshreveable/log15"
 )
 
 func getObjectID(s string) as.ObjectID {
@@ -207,7 +207,7 @@ func HandleActorsCollection(w http.ResponseWriter, r *http.Request) {
 
 	f := r.Context().Value(app.FilterCtxtKey)
 	if filter, ok = f.(app.LoadAccountsFilter); !ok {
-		Logger.WithFields(log.Fields{}).Errorf("could not load filter from Context")
+		Logger.Error("could not load filter from Context")
 		HandleError(w, r, http.StatusNotFound, errors.New("not found"))
 		return
 	} else {
@@ -231,7 +231,7 @@ func HandleActorsCollection(w http.ResponseWriter, r *http.Request) {
 				}
 				data, err = json.WithContext(GetContext()).Marshal(col)
 			} else {
-				Logger.WithFields(log.Fields{"trace": errors.Trace(err)}).Error(err)
+				Logger.Error(err.Error(), log.Ctx{"err": err, "trace": errors.Trace(err)})
 				HandleError(w, r, http.StatusNotFound, err)
 				return
 			}
@@ -250,7 +250,7 @@ func HandleActor(w http.ResponseWriter, r *http.Request) {
 	var ok bool
 	var a app.Account
 	if a, ok = val.(app.Account); !ok {
-		Logger.WithFields(log.Fields{}).Errorf("could not load Account from Context")
+		Logger.Error("could not load Account from Context")
 	}
 	p := loadAPPerson(a)
 	if p.Outbox != nil {
@@ -266,7 +266,7 @@ func HandleActor(w http.ResponseWriter, r *http.Request) {
 
 	j, err := json.WithContext(GetContext()).Marshal(p)
 	if err != nil {
-		Logger.WithFields(log.Fields{"trace": errors.Trace(err)}).Error(err)
+		Logger.Error(err.Error(), log.Ctx{"trace": errors.Trace(err)})
 		HandleError(w, r, http.StatusInternalServerError, err)
 		return
 	}
@@ -347,7 +347,7 @@ func HandleCollectionActivityObject(w http.ResponseWriter, r *http.Request) {
 	case "outbox":
 		i, ok := val.(app.Item)
 		if !ok {
-			Logger.WithFields(log.Fields{}).Errorf("could not load Item from Context")
+			Logger.Error("could not load Item from Context")
 			HandleError(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -363,7 +363,7 @@ func HandleCollectionActivityObject(w http.ResponseWriter, r *http.Request) {
 				MaxItems:  MaxContentItems,
 			})
 			if err != nil {
-				Logger.WithFields(log.Fields{"trace": errors.Trace(err)}).Error(err)
+				Logger.Error(err.Error(), log.Ctx{"trace": errors.Trace(err)})
 			}
 			if len(replies) > 0 {
 				if o, ok := el.(localap.Article); ok {
@@ -414,7 +414,7 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 		items, ok := collection.(app.ItemCollection)
 		if !ok {
 			err := errors.New("could not load Items from Context")
-			Logger.WithFields(log.Fields{}).Error(err)
+			Logger.Error(err.Error())
 			HandleError(w, r, http.StatusNotFound, err)
 			return
 		}
@@ -439,7 +439,7 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 		items, ok := collection.(app.ItemCollection)
 		if !ok {
 			err := errors.New("could not load Items from Context")
-			Logger.WithFields(log.Fields{}).Error(err)
+			Logger.Error(err.Error())
 			HandleError(w, r, http.StatusNotFound, err)
 			return
 		}
@@ -464,12 +464,12 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 		votes, ok := collection.(app.VoteCollection)
 		if !ok {
 			err := errors.New("could not load Votes from Context")
-			Logger.WithFields(log.Fields{}).Error(err)
+			Logger.Error(err.Error())
 			HandleError(w, r, http.StatusNotFound, err)
 			return
 		}
 		if err != nil {
-			Logger.WithFields(log.Fields{}).Error(err)
+			Logger.Error(err.Error())
 		}
 		liked := ap.LikedNew()
 		liked.ID = BuildCollectionID(a, new(ap.Likes))
@@ -497,7 +497,7 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 		items, ok := collection.(app.ItemCollection)
 		if !ok {
 			err := errors.New("could not load Replies from Context")
-			Logger.WithFields(log.Fields{}).Error(err)
+			Logger.Error(err.Error())
 			HandleError(w, r, http.StatusNotFound, err)
 			return
 		}
@@ -542,11 +542,11 @@ func HandleVerifyCredentials(w http.ResponseWriter, r *http.Request) {
 	}
 	AcctLoader, ok := app.ContextAccountLoader(r.Context())
 	if !ok {
-		Logger.WithFields(log.Fields{}).Errorf("could not load account repository from Context")
+		Logger.Error("could not load account repository from Context")
 	}
 	a, err := AcctLoader.LoadAccount(app.LoadAccountsFilter{Handle: []string{acct.Handle}, MaxItems: 1})
 	if err != nil {
-		Logger.WithFields(log.Fields{}).Error(err)
+		Logger.Error(err.Error())
 		HandleError(w, r, http.StatusNotFound, err)
 		return
 	}

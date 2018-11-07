@@ -14,11 +14,11 @@ import (
 	"time"
 
 	_ "github.com/jmoiron/sqlx"
-	log "github.com/sirupsen/logrus"
+	log "github.com/inconshreveable/log15"
 )
 
 // Logger is the package default logger instance
-var Logger log.FieldLogger
+var Logger log.Logger
 
 const defaultHost = "localhost"
 const defaultPort = 3000
@@ -200,9 +200,8 @@ func loadEnv(l *Application) (bool, error) {
 
 // Run is the wrapper for starting the web-server and handling signals
 func (a *Application) Run(m http.Handler, wait time.Duration) {
-	Logger.WithFields(log.Fields{}).Infof("Starting debug level %q", log.GetLevel().String())
-	Logger.WithFields(log.Fields{}).Infof("Listening on %s", a.listen())
-
+	//Logger.Info("Starting debug level %q", log.GetLevel().String())
+	Logger.Info("Started", log.Ctx{"listen": a.listen()})
 	srv := &http.Server{
 		Addr: a.listen(),
 		// Good practice to set timeouts to avoid Slowloris attacks.
@@ -215,7 +214,7 @@ func (a *Application) Run(m http.Handler, wait time.Duration) {
 	// Run our server in a goroutine so that it doesn't block.
 	go func() {
 		if err := srv.ListenAndServe(); err != nil {
-			Logger.WithFields(log.Fields{}).Error(err)
+			Logger.Error(err.Error())
 			os.Exit(1)
 		}
 	}()
@@ -253,7 +252,7 @@ func (a *Application) Run(m http.Handler, wait time.Duration) {
 
 	// Create a deadline to wait for.
 	ctx, cancel := context.WithTimeout(context.Background(), wait)
-	log.RegisterExitHandler(cancel)
+	//log.RegisterExitHandler(cancel)
 	defer cancel()
 
 	// Doesn't block if no connections, but will otherwise wait
@@ -262,7 +261,7 @@ func (a *Application) Run(m http.Handler, wait time.Duration) {
 	// Optionally, you could run srv.Shutdown in a goroutine and block on
 	// <-ctx.Done() if your application should wait for other services
 	// to finalize based on context cancellation.
-	Logger.WithFields(log.Fields{}).Infof("Shutting down")
+	Logger.Info("Shutting down")
 	os.Exit(code)
 }
 
@@ -270,7 +269,7 @@ func (a *Application) Run(m http.Handler, wait time.Duration) {
 func ShowHeaders(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		for name, val := range r.Header {
-			Logger.Infof("%s: %s", name, val)
+			Logger.Info("", log.Ctx{name: val})
 		}
 		next.ServeHTTP(w, r)
 	}

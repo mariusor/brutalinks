@@ -6,10 +6,10 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/base64"
+	log "github.com/inconshreveable/log15"
 	"github.com/juju/errors"
+	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/app/db"
-	"github.com/mariusor/littr.go/app/models"
-	log "github.com/sirupsen/logrus"
 	"math/rand"
 )
 
@@ -22,7 +22,7 @@ func GenSSHKey(handle string, seed int64, kType string) error {
 		}
 	}
 	loader := db.Config
-	filter := models.LoadAccountsFilter{}
+	filter := app.LoadAccountsFilter{}
 	if len(handle) != 0 {
 		filter.Handle = []string{handle}
 	} else {
@@ -100,7 +100,7 @@ func GenSSHKey(handle string, seed int64, kType string) error {
 				continue
 			}
 		}
-		acct.Metadata.Key = &models.SSHKey{
+		acct.Metadata.Key = &app.SSHKey{
 			ID:      "id-" + kType,
 			Public:  pub,
 			Private: priv,

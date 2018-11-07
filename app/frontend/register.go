@@ -5,8 +5,6 @@ import (
 	"net/http"
 	"time"
 
-	log "github.com/sirupsen/logrus"
-
 	"html/template"
 
 	"github.com/juju/errors"
@@ -60,7 +58,7 @@ func AccountFromRequest(r *http.Request) (*app.Account, []error) {
 
 	savpw, err := bcrypt.GenerateFromPassword(saltedpw, 14)
 	if err != nil {
-		Logger.WithFields(log.Fields{}).Error(err)
+		Logger.Error(err.Error())
 	}
 	a.Metadata = &app.AccountMetadata{
 		Salt:     salt,
@@ -68,9 +66,9 @@ func AccountFromRequest(r *http.Request) (*app.Account, []error) {
 	}
 
 	a, err = db.Config.SaveAccount(a)
-	Logger.WithFields(log.Fields{}).Warnf("using hardcoded db.Config.SaveAccount")
+	Logger.Warn("using hardcoded db.Config.SaveAccount")
 	if err != nil {
-		Logger.WithFields(log.Fields{}).Error(err)
+		Logger.Error(err.Error())
 		return nil, []error{err}
 	}
 	return &a, nil

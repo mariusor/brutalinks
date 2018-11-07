@@ -9,9 +9,8 @@ import (
 	"path"
 	"strconv"
 
+	log "github.com/inconshreveable/log15"
 	"github.com/mariusor/littr.go/app"
-
-	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -126,15 +125,15 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 	base := path.Base(r.URL.Path)
 	switch base {
 	case "self":
-		Logger.Debugf("showing self posts")
+		Logger.Debug("showing self posts")
 	case "federated":
-		Logger.Debugf("showing federated posts")
+		Logger.Debug("showing federated posts")
 		filter.Federated = []bool{true}
 	case "followed":
-		Logger.WithFields(log.Fields{
+		Logger.Debug("showing followed posts", log.Ctx{
 			"handle": CurrentAccount.Handle,
-			"hash": CurrentAccount.Hash,
-		}).Debugf("showing followed posts")
+			"hash":   CurrentAccount.Hash,
+		})
 		filter.FollowedBy = []string{CurrentAccount.Hash.String()}
 	default:
 	}
@@ -142,12 +141,12 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 	val := r.Context().Value(app.RepositoryCtxtKey)
 	itemLoader, ok := val.(app.CanLoadItems)
 	if !ok {
-		Logger.WithFields(log.Fields{}).Errorf("could not load item repository from Context")
+		Logger.Error("could not load item repository from Context")
 		return
 	}
 	items, err := itemLoader.LoadItems(filter)
 	if err != nil {
-		Logger.WithFields(log.Fields{}).Error(err)
+		Logger.Error(err.Error())
 	}
 
 	ShowItemData = false
@@ -169,10 +168,10 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 			}
 			acct.Votes, err = votesLoader.LoadVotes(filters)
 			if err != nil {
-				Logger.WithFields(log.Fields{}).Error(err)
+				Logger.Error(err.Error())
 			}
 		} else {
-			Logger.WithFields(log.Fields{}).Errorf("could not load vote repository from Context")
+			Logger.Error("could not load vote repository from Context")
 		}
 	}
 	RenderTemplate(r, w, "listing", m)
