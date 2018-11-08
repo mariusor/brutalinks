@@ -3,12 +3,12 @@ package frontend
 import (
 	"bytes"
 	"github.com/mariusor/littr.go/app"
+	"github.com/mariusor/littr.go/app/log"
 	"net/http"
 	"net/url"
 	"time"
 
 	"github.com/juju/errors"
-	log "github.com/inconshreveable/log15"
 )
 
 type newModel struct {
@@ -67,7 +67,9 @@ func ShowSubmit(w http.ResponseWriter, r *http.Request) {
 func HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	p, err := ContentFromRequest(r)
 	if err != nil {
-		Logger.Error("wrong http method", log.Ctx{"prev": err})
+		Logger.WithContext(log.Ctx{
+			"prev": err,
+		}).Error("wrong http method")
 		HandleError(w, r, http.StatusMethodNotAllowed, err)
 		return
 	}
@@ -84,7 +86,9 @@ func HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	} else {
 		p, err = repo.SaveItem(p)
 		if err != nil {
-			Logger.Error("unable to save item", log.Ctx{"prev": err})
+			Logger.WithContext(log.Ctx{
+				"prev": err,
+			}).Error("unable to save item")
 			HandleError(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -98,11 +102,11 @@ func HandleSubmit(w http.ResponseWriter, r *http.Request) {
 			Weight:      1 * app.ScoreMultiplier,
 		}
 		if _, err := voter.SaveVote(v); err != nil {
-			Logger.Error(err.Error(), log.Ctx{
+			Logger.WithContext(log.Ctx{
 				"hash":   v.Item.Hash,
 				"author": v.SubmittedBy.Handle,
 				"weight": v.Weight,
-			})
+			}).Error(err.Error())
 		}
 	}
 	Redirect(w, r, ItemPermaLink(p), http.StatusSeeOther)

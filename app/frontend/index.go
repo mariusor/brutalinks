@@ -3,13 +3,13 @@ package frontend
 import (
 	"fmt"
 	"github.com/mariusor/littr.go/app/db"
+	"github.com/mariusor/littr.go/app/log"
 	"html/template"
 	"net/http"
 	"os"
 	"path"
 	"strconv"
 
-	log "github.com/inconshreveable/log15"
 	"github.com/mariusor/littr.go/app"
 )
 
@@ -130,10 +130,10 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 		Logger.Debug("showing federated posts")
 		filter.Federated = []bool{true}
 	case "followed":
-		Logger.Debug("showing followed posts", log.Ctx{
+		Logger.WithContext(log.Ctx{
 			"handle": CurrentAccount.Handle,
 			"hash":   CurrentAccount.Hash,
-		})
+		}).Debug("showing followed posts")
 		filter.FollowedBy = []string{CurrentAccount.Hash.String()}
 	default:
 	}

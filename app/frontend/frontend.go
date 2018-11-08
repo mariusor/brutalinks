@@ -20,8 +20,8 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/gorilla/sessions"
-	log "github.com/inconshreveable/log15"
 	"github.com/juju/errors"
+	"github.com/mariusor/littr.go/app/log"
 	"golang.org/x/oauth2"
 
 	mark "gitlab.com/golang-commonmark/markdown"
@@ -354,10 +354,10 @@ func saveSession(w http.ResponseWriter, r *http.Request) error {
 
 func Redirect(w http.ResponseWriter, r *http.Request, url string, status int) {
 	if err := saveSession(w, r); err != nil {
-		Logger.Error(err.Error(), log.Ctx{
+		Logger.WithContext(log.Ctx{
 			"status": status,
 			"url":    url,
-		})
+		}).Error(err.Error())
 	}
 
 	http.Redirect(w, r, url, status)
@@ -366,10 +366,10 @@ func Redirect(w http.ResponseWriter, r *http.Request, url string, status int) {
 func RenderTemplate(r *http.Request, w http.ResponseWriter, name string, m interface{}) error {
 	var err error
 	if err = saveSession(w, r); err != nil {
-		Logger.Error(err.Error(), log.Ctx{
+		Logger.WithContext(log.Ctx{
 			"template": name,
 			"model":    fmt.Sprintf("%#v", m),
-		})
+		}).Error(err.Error())
 	}
 	renderer, ok := r.Context().Value(RendererCtxtKey).(*render.Render)
 	if !ok {
@@ -379,12 +379,12 @@ func RenderTemplate(r *http.Request, w http.ResponseWriter, name string, m inter
 	}
 	if err = renderer.HTML(w, http.StatusOK, name, m); err != nil {
 		new := errors.NewErr("failed to render template")
-		Logger.Error(new.Error(), log.Ctx{
+		Logger.WithContext(log.Ctx{
 			"template": name,
 			"model":    fmt.Sprintf("%#v", m),
 			"trace":    new.StackTrace(),
 			"previous": err.Error(),
-		})
+		}).Error(new.Error())
 		renderer.HTML(w, http.StatusInternalServerError, "error", new)
 	}
 	return err
@@ -441,7 +441,9 @@ func HandleAuth(w http.ResponseWriter, r *http.Request) {
 
 	indexUrl := "/"
 	if os.Getenv(strings.ToUpper(provider)+"_KEY") == "" {
-		Logger.Info("Provider has no credentials set", log.Ctx{"provider": provider})
+		Logger.WithContext(log.Ctx{
+			"provider": provider,
+		}).Info("Provider has no credentials set")
 		Redirect(w, r, indexUrl, http.StatusPermanentRedirect)
 		return
 	}
@@ -515,17 +517,17 @@ func loadCurrentAccount(s *sessions.Session) app.Account {
 	if raw, ok := s.Values[SessionUserKey]; ok {
 		if a, ok := raw.(sessionAccount); ok {
 			if acc, err := db.Config.LoadAccount(app.LoadAccountsFilter{Handle: []string{a.Handle}}); err == nil {
-				Logger.Debug("loaded account from session", log.Ctx{
+				Logger.WithContext(log.Ctx{
 					"handle": acc.Handle,
 					"hash":   acc.Hash,
-				})
+				}).Debug("loaded account from session")
 				return acc
 			} else {
 				if err != nil {
-					Logger.Warn(err.Error(), log.Ctx{
+					Logger.WithContext(log.Ctx{
 						"handle": a.Handle,
 						"hash":   a.Hash,
-					})
+					}).Warn(err.Error())
 				}
 			}
 		}
@@ -543,10 +545,10 @@ func loadSessionFlashMessages(s *sessions.Session) {
 		}
 		f, ok := int.(flash)
 		if !ok {
-			Logger.Error("unable to read flash struct", log.Ctx{
+			Logger.WithContext(log.Ctx{
 				"type": fmt.Sprintf("%T", int),
-				"val": fmt.Sprintf("%#v", int),
-			})
+				"val":  fmt.Sprintf("%#v", int),
+			}).Error("unable to read flash struct")
 		}
 		flashData = append(flashData, f)
 	}

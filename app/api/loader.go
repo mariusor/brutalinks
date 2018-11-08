@@ -26,7 +26,7 @@ import (
 	as "github.com/mariusor/activitypub.go/activitystreams"
 	j "github.com/mariusor/activitypub.go/jsonld"
 	"github.com/mariusor/littr.go/app/db"
-	log "github.com/inconshreveable/log15"
+	"github.com/mariusor/littr.go/app/log"
 )
 
 const AccountCtxtKey = "__acct"
@@ -54,12 +54,12 @@ func (r *repository) req(method string, url string, body io.Reader) (*http.Reque
 	err = r.sign(req)
 	if err != nil {
 		new := errors.Errorf("unable to sign request")
-		Logger.Warn(new.Error(), log.Ctx{
+		Logger.WithContext(log.Ctx{
 			"account":  r.Account.Handle,
 			"url":      req.URL,
 			"method":   req.Method,
 			"previous": err.Error(),
-		})
+		}).Warn(new.Error())
 	}
 	return req, nil
 }
@@ -169,7 +169,7 @@ func AccountCtxt(next http.Handler) http.Handler {
 		} else {
 			a, err := AcctLoader.LoadAccount(app.LoadAccountsFilter{Key: []string{handle}})
 			if err != nil {
-				log.Error(err.Error())
+				Logger.Error(err.Error())
 				HandleError(w, r, http.StatusNotFound, err)
 				return
 			}
@@ -605,9 +605,11 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 	var exists *http.Response
 	// first step is to verify if vote already exists:
 	if exists, err = r.Head(url); err != nil {
-		Logger.Error(err.Error(), log.Ctx{
-			"url": url,
-		})
+		Logger.WithContext(log.Ctx{
+			"url":   url,
+			"err":   err,
+			"trace": errors.Trace(err),
+		}).Error(err.Error())
 		return v, err
 	}
 	p := loadAPPerson(*v.SubmittedBy)
@@ -640,10 +642,11 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 		resp, err = r.Post(url, "application/json+activity", bytes.NewReader(body))
 	} else {
 		err = errors.New("received unexpected http response")
-		Logger.Error(err.Error(), log.Ctx{
+		Logger.WithContext(log.Ctx{
 			"url":           url,
 			"response_code": exists.StatusCode,
-		})
+			"trace":         errors.Trace(err),
+		}).Error(err.Error())
 		return v, err
 	}
 
@@ -779,7 +782,10 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 	}
 
 	if err != nil {
-		Logger.Error(err.Error(), log.Ctx{"item": it.Hash})
+		Logger.WithContext(log.Ctx{
+			"item":  it.Hash,
+			"trace": errors.Trace(err),
+		}).Error(err.Error())
 		return it, err
 	}
 	var resp *http.Response
@@ -862,9 +868,10 @@ func (r *repository) LoadAccounts(f app.LoadAccountsFilter) (app.AccountCollecti
 	for _, it := range col.Items {
 		acc := app.Account{}
 		if err := acc.FromActivityPubItem(it); err != nil {
-			Logger.Warn(err.Error(), log.Ctx{
-				"type": fmt.Sprintf("%T", it),
-			})
+			Logger.WithContext(log.Ctx{
+				"type":  fmt.Sprintf("%T", it),
+				"trace": errors.Trace(err),
+			}).Warn(err.Error())
 			continue
 		}
 		accounts = append(accounts, acc)

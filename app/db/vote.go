@@ -3,14 +3,13 @@ package db
 import (
 	"fmt"
 	"github.com/mariusor/littr.go/app"
+	"github.com/mariusor/littr.go/app/log"
 	"math"
 	"strings"
 	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/juju/errors"
-
-	log "github.com/inconshreveable/log15"
 )
 
 type VoteCollection map[app.Key]Vote
@@ -277,21 +276,21 @@ func saveVote(db *sqlx.DB, vot app.Vote) (app.Vote, error) {
 		err = errors.Errorf("item collision for vote")
 	}
 	if err == nil {
-		log.Info("vote updated successfully", log.Ctx{
+		Logger.WithContext(log.Ctx{
 			"hash":      vot.Item.Hash,
 			"updated":   updated,
 			"oldWeight": oldWeight,
 			"newWeight": vot.Weight,
 			"voter":     vot.SubmittedBy.Hash,
-		})
+		}).Info("vote updated successfully")
 	} else {
-		log.Error(err.Error(), log.Ctx{
+		Logger.WithContext(log.Ctx{
 			"hash":      vot.Item.Hash,
 			"updated":   updated,
 			"oldWeight": oldWeight,
 			"newWeight": vot.Weight,
 			"voter":     vot.SubmittedBy.Hash,
-		})
+		}).Error(err.Error())
 	}
 
 	return vot, err

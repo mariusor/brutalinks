@@ -2,10 +2,9 @@ package frontend
 
 import (
 	"fmt"
-	"net/http"
-
 	"github.com/juju/errors"
-	log "github.com/inconshreveable/log15"
+	"github.com/mariusor/littr.go/app/log"
+	"net/http"
 )
 
 // HandleError serves failed requests
@@ -20,7 +19,9 @@ func HandleError(w http.ResponseWriter, r *http.Request, status int, errs ...err
 
 	for _, err := range errs {
 		if err != nil {
-			Logger.Error(err.Error(), log.Ctx{"trace": errors.ErrorStack(err)})
+			Logger.WithContext(log.Ctx{
+				"trace": errors.ErrorStack(err),
+			}).Error(err.Error())
 		}
 	}
 

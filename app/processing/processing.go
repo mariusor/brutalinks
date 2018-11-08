@@ -9,7 +9,7 @@ import (
 	as "github.com/mariusor/activitypub.go/activitystreams"
 	"github.com/mariusor/activitypub.go/jsonld"
 	"github.com/mariusor/littr.go/app"
-	log "github.com/inconshreveable/log15"
+	"github.com/mariusor/littr.go/app/log"
 	"reflect"
 )
 
@@ -138,18 +138,18 @@ var _exProcessOutgoingInboxAction = Message{
 
 // SSHKey parameters
 type SSHKey struct {
-	Type string      `json:"type"`
-	Seed int64       `json:"seed"`
+	Type string   `json:"type"`
+	Seed int64    `json:"seed"`
 	Hash app.Hash `json:"hash"`
 }
 
 type ScoreUpdate struct {
-	Type EntityType  `json:"type"`
-	Hash app.Hash `json:"hash"`
+	Type EntityType `json:"type"`
+	Hash app.Hash   `json:"hash"`
 }
 
 type APProcess struct {
-	Activity as.Item        `json:"activity"`
+	Activity as.Item     `json:"activity"`
 	Actor    app.Account `json:"actor"`
 }
 
@@ -185,13 +185,13 @@ func InitQueues(app *app.Application) error {
 	} else {
 		new := errors.NewErr("failed to connect to redis")
 
-		log.Error(new.Error(), log.Ctx{
+		app.Logger.WithContext(log.Ctx{
 			"redisHost": app.Config.Redis.Host,
 			"redisPort": app.Config.Redis.Port,
 			"redisDb":   redisDb,
 			"name":      name,
 			"trace":     new.StackTrace(),
-		})
+		}).Error(new.Error())
 		return &new
 	}
 	return nil
@@ -223,36 +223,36 @@ func AddMessage(msg Message) (int, int, error) {
 			data, err = jsonld.Marshal(o.Activity)
 		}
 		if err != nil {
-			Logger.Warn(err.Error(), log.Ctx{
+			Logger.WithContext(log.Ctx{
 				"queue":    which,
 				"item":     i,
 				"msg_cnt":  len(msg.Actions),
 				"act_type": reflect.TypeOf(p).Name(),
-			})
+			}).Warn(err.Error())
 			erred++
 			continue
 		}
 		if err := DefaultQueue.Put(string(data)); err == nil {
 			processed++
-			Logger.Info("added new msg in queue", log.Ctx{
-				"queue":    which,
-				"item":     i,
-				"msg_cnt":  len(msg.Actions),
-				"processed_cnt":  processed,
-				"err_cnt":  erred,
-				"act_type": reflect.TypeOf(p).Name(),
-				"data": data,
-			})
+			Logger.WithContext(log.Ctx{
+				"queue":         which,
+				"item":          i,
+				"msg_cnt":       len(msg.Actions),
+				"processed_cnt": processed,
+				"err_cnt":       erred,
+				"act_type":      reflect.TypeOf(p).Name(),
+				"data":          data,
+			}).Info("added new msg in queue")
 		} else {
 			erred++
-			Logger.Warn(err.Error(), log.Ctx{
-				"queue":    which,
-				"item":     i,
-				"msg_cnt":  len(msg.Actions),
-				"processed_cnt":  processed,
-				"err_cnt":  erred,
-				"act_type": reflect.TypeOf(p).Name(),
-			})
+			Logger.WithContext(log.Ctx{
+				"queue":         which,
+				"item":          i,
+				"msg_cnt":       len(msg.Actions),
+				"processed_cnt": processed,
+				"err_cnt":       erred,
+				"act_type":      reflect.TypeOf(p).Name(),
+			}).Warn(err.Error())
 		}
 	}
 	return processed, erred, nil
@@ -264,7 +264,7 @@ func ProcessMessages(count int) (int, int, error) {
 		return 0, count, err
 	}
 
-	for i:= 0; i < count; i++ {
+	for i := 0; i < count; i++ {
 		pkg, err := consumer.Get()
 		if err != nil {
 			return 0, count, err

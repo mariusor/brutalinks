@@ -2,15 +2,15 @@ package api
 
 import (
 	"fmt"
+	"github.com/juju/errors"
 	"github.com/mariusor/littr.go/app"
+	"github.com/mariusor/littr.go/app/log"
 	"io/ioutil"
 	"net/http"
 
 	"github.com/go-chi/chi"
 
 	ap "github.com/mariusor/littr.go/app/activitypub"
-
-	log "github.com/inconshreveable/log15"
 
 	j "github.com/mariusor/activitypub.go/jsonld"
 )
@@ -27,7 +27,10 @@ func UpdateItem(w http.ResponseWriter, r *http.Request) {
 	status := http.StatusInternalServerError
 
 	if body, err = ioutil.ReadAll(r.Body); err != nil {
-		Logger.Error("request body read error", log.Ctx{"err": err})
+		Logger.WithContext(log.Ctx{
+			"err":   err,
+			"trace": errors.Trace(err),
+		}).Error("request body read error")
 		HandleError(w, r, http.StatusInternalServerError, err)
 		return
 	}
@@ -38,23 +41,31 @@ func UpdateItem(w http.ResponseWriter, r *http.Request) {
 	case "outbox":
 		act := ap.Activity{}
 		if err := j.Unmarshal(body, &act); err != nil {
-			Logger.Error("json-ld unmarshal error", log.Ctx{"err": err})
+			Logger.WithContext(log.Ctx{
+				"err":   err,
+				"trace": errors.Trace(err),
+			}).Error("json-ld unmarshal error")
 			HandleError(w, r, http.StatusInternalServerError, err)
 			return
 		}
 		it := app.Item{}
 		if err := it.FromActivityPubItem(act); err != nil {
-			Logger.Error("json-ld unmarshal error", log.Ctx{"err": err})
+			Logger.WithContext(log.Ctx{
+				"err":   err,
+				"trace": errors.Trace(err),
+			}).Error("json-ld unmarshal error")
 			HandleError(w, r, http.StatusInternalServerError, err)
 			return
 		}
 		if repo, ok := app.ContextItemSaver(r.Context()); ok {
 			newIt, err := repo.SaveItem(it)
 			if err != nil {
-				Logger.Error(err.Error(), log.Ctx{
+				Logger.WithContext(log.Ctx{
+					"err":     err,
+					"trace":   errors.Trace(err),
 					"item":    it.Hash,
 					"account": it.SubmittedBy.Hash,
-				})
+				}).Error(err.Error())
 				HandleError(w, r, http.StatusInternalServerError, err)
 				return
 			}
@@ -71,20 +82,30 @@ func UpdateItem(w http.ResponseWriter, r *http.Request) {
 	case "liked":
 		act := ap.Activity{}
 		if err := j.Unmarshal(body, &act); err != nil {
-			Logger.Error("json-ld unmarshal error", log.Ctx{"err": err})
+			Logger.WithContext(log.Ctx{
+				"err":   err,
+				"trace": errors.Trace(err),
+			}).Error("json-ld unmarshal error")
 			HandleError(w, r, http.StatusInternalServerError, err)
 			return
 		}
 		v := app.Vote{}
 		if err := v.FromActivityPubItem(act); err != nil {
-			Logger.Error("json-ld unmarshal error", log.Ctx{"err": err})
+			Logger.WithContext(log.Ctx{
+				"err":   err,
+				"trace": errors.Trace(err),
+			}).Error("json-ld unmarshal error")
 			HandleError(w, r, http.StatusInternalServerError, err)
 			return
 		}
 		if repo, ok := app.ContextVoteSaver(r.Context()); ok {
 			newVot, err := repo.SaveVote(v)
 			if err != nil {
-				Logger.Error(err.Error(), log.Ctx{"saveVote": v.SubmittedBy.Hash})
+				Logger.WithContext(log.Ctx{
+					"err":      err,
+					"trace":    errors.Trace(err),
+					"saveVote": v.SubmittedBy.Hash,
+				}).Error(err.Error())
 				HandleError(w, r, http.StatusInternalServerError, err)
 				return
 			}

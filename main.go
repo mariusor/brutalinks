@@ -20,10 +20,8 @@ import (
 	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/app/api"
 	"github.com/mariusor/littr.go/app/frontend"
-	log "github.com/inconshreveable/log15"
+	"github.com/mariusor/littr.go/app/log"
 )
-
-var Logger log.Logger
 
 func serveFiles(st string) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -37,32 +35,8 @@ func main() {
 	var wait time.Duration
 	flag.DurationVar(&wait, "graceful-timeout", time.Second*15, "the duration for which the server gracefully wait for existing connections to finish - e.g. 15s or 1m")
 	flag.Parse()
-
-	Logger = log.New(log.Ctx{"package": "main"})
-	// flexible configuration
-	if app.Instance.Config.Env == app.PROD {
-		Logger.SetHandler(
-			log.LvlFilterHandler(
-				log.LvlWarn,
-				log.StreamHandler(os.Stderr, log.LogfmtFormat()),
-			),
-		)
-	} else {
-		Logger.SetHandler(
-			log.MultiHandler(
-				log.LvlFilterHandler(
-					log.LvlWarn,
-					log.StreamHandler(os.Stderr, log.LogfmtFormat()),
-				),
-				log.LvlFilterHandler(
-					log.LvlDebug,
-					log.StreamHandler(os.Stdout, log.LogfmtFormat()),
-				),
-			),
-		)
-	}
-
 	app.Instance = app.New()
+
 	db.Init(&app.Instance)
 	frontend.Init(&app.Instance)
 	processing.InitQueues(&app.Instance)
@@ -80,11 +54,11 @@ func main() {
 	api.ActorsURL = api.BaseURL + "/actors"
 	api.OutboxURL = api.BaseURL + "/outbox"
 
-	api.Logger = Logger.New(log.Ctx{"package": "api"})
-	app.Logger = Logger.New(log.Ctx{"package": "app"})
-	db.Logger = Logger.New(log.Ctx{"package": "db"})
-	frontend.Logger = Logger.New(log.Ctx{"package": "frontend"})
-	processing.Logger = Logger.New(log.Ctx{"package": "processing"})
+	api.Logger = app.Instance.Logger.WithContext(log.Ctx{"package": "api"})
+	app.Logger = app.Instance.Logger.WithContext(log.Ctx{"package": "app"})
+	db.Logger = app.Instance.Logger.WithContext(log.Ctx{"package": "db"})
+	frontend.Logger = app.Instance.Logger.WithContext(log.Ctx{"package": "frontend"})
+	processing.Logger = app.Instance.Logger.WithContext(log.Ctx{"package": "processing"})
 
 	// Routes
 	r := chi.NewRouter()

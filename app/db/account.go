@@ -10,7 +10,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/juju/errors"
 
-	log "github.com/inconshreveable/log15"
+	"github.com/mariusor/littr.go/app/log"
 )
 
 // Logger is a local log instance

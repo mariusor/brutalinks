@@ -17,7 +17,7 @@ import (
 	as "github.com/mariusor/activitypub.go/activitystreams"
 	json "github.com/mariusor/activitypub.go/jsonld"
 	localap "github.com/mariusor/littr.go/app/activitypub"
-	log "github.com/inconshreveable/log15"
+	"github.com/mariusor/littr.go/app/log"
 )
 
 func getObjectID(s string) as.ObjectID {
@@ -231,7 +231,10 @@ func HandleActorsCollection(w http.ResponseWriter, r *http.Request) {
 				}
 				data, err = json.WithContext(GetContext()).Marshal(col)
 			} else {
-				Logger.Error(err.Error(), log.Ctx{"err": err, "trace": errors.Trace(err)})
+				Logger.WithContext(log.Ctx{
+					"err": err,
+					"trace": errors.Trace(err),
+				}).Error(err.Error())
 				HandleError(w, r, http.StatusNotFound, err)
 				return
 			}
@@ -266,7 +269,9 @@ func HandleActor(w http.ResponseWriter, r *http.Request) {
 
 	j, err := json.WithContext(GetContext()).Marshal(p)
 	if err != nil {
-		Logger.Error(err.Error(), log.Ctx{"trace": errors.Trace(err)})
+		Logger.WithContext(log.Ctx{
+			"trace": errors.Trace(err),
+		}).Error(err.Error())
 		HandleError(w, r, http.StatusInternalServerError, err)
 		return
 	}
@@ -363,7 +368,9 @@ func HandleCollectionActivityObject(w http.ResponseWriter, r *http.Request) {
 				MaxItems:  MaxContentItems,
 			})
 			if err != nil {
-				Logger.Error(err.Error(), log.Ctx{"trace": errors.Trace(err)})
+				Logger.WithContext( log.Ctx{
+					"trace": errors.Trace(err),
+				}).Error(err.Error())
 			}
 			if len(replies) > 0 {
 				if o, ok := el.(localap.Article); ok {

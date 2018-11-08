@@ -2,15 +2,14 @@ package frontend
 
 import (
 	"fmt"
+	"github.com/mariusor/littr.go/app/log"
 	"net/http"
 	"strings"
 
 	"github.com/mariusor/littr.go/app"
 
-	"github.com/juju/errors"
-	log "github.com/inconshreveable/log15"
-
 	"github.com/go-chi/chi"
+	"github.com/juju/errors"
 )
 
 const Yay = "yay"
@@ -226,11 +225,11 @@ func HandleVoting(w http.ResponseWriter, r *http.Request) {
 			Weight:      multiplier * app.ScoreMultiplier,
 		}
 		if _, err := voter.SaveVote(v); err != nil {
-			Logger.Error(err.Error(), log.Ctx{
+			Logger.WithContext(log.Ctx{
 				"hash":   v.Item.Hash,
 				"author": v.SubmittedBy.Handle,
 				"weight": v.Weight,
-			})
+			}).Error(err.Error())
 		}
 	} else {
 		addFlashMessage(Error, fmt.Sprintf("unable to add vote as an %s user", acc.Handle), r)

@@ -14,7 +14,7 @@ import (
 	"time"
 
 	_ "github.com/jmoiron/sqlx"
-	log "github.com/inconshreveable/log15"
+	"github.com/mariusor/littr.go/app/log"
 )
 
 // Logger is the package default logger instance
@@ -102,6 +102,7 @@ type Application struct {
 	Secure      bool
 	SessionKeys [][]byte
 	Config      config
+	Logger      log.Logger
 	SeedVal     int64
 }
 
@@ -195,13 +196,18 @@ func loadEnv(l *Application) (bool, error) {
 	l.Config.DownvotingEnabled = os.Getenv("DISABLE_DOWNVOTING") == ""
 	l.Config.SessionsEnabled = os.Getenv("DISABLE_SESSIONS") == ""
 
+	if l.Config.Env == PROD {
+		l.Logger = log.Prod()
+	} else {
+		l.Logger = log.Dev()
+	}
+
 	return true, nil
 }
 
 // Run is the wrapper for starting the web-server and handling signals
 func (a *Application) Run(m http.Handler, wait time.Duration) {
-	//Logger.Info("Starting debug level %q", log.GetLevel().String())
-	Logger.Info("Started", log.Ctx{"listen": a.listen()})
+	a.Logger.WithContext(log.Ctx{"listen": a.listen()}).Info("Started")
 	srv := &http.Server{
 		Addr: a.listen(),
 		// Good practice to set timeouts to avoid Slowloris attacks.
@@ -214,7 +220,7 @@ func (a *Application) Run(m http.Handler, wait time.Duration) {
 	// Run our server in a goroutine so that it doesn't block.
 	go func() {
 		if err := srv.ListenAndServe(); err != nil {
-			Logger.Error(err.Error())
+			a.Logger.Error(err.Error())
 			os.Exit(1)
 		}
 	}()
@@ -229,22 +235,22 @@ func (a *Application) Run(m http.Handler, wait time.Duration) {
 			s := <-sigChan
 			switch s {
 			case syscall.SIGHUP:
-				Logger.Info("SIGHUP received, reloading configuration")
+				a.Logger.Info("SIGHUP received, reloading configuration")
 				loadEnv(a)
 			// kill -SIGINT XXXX or Ctrl+c
 			case syscall.SIGINT:
-				Logger.Info("SIGINT received, stopping")
+				a.Logger.Info("SIGINT received, stopping")
 				exitChan <- 0
 			// kill -SIGTERM XXXX
 			case syscall.SIGTERM:
-				Logger.Info("SIGITERM received, force stopping")
+				a.Logger.Info("SIGITERM received, force stopping")
 				exitChan <- 0
 			// kill -SIGQUIT XXXX
 			case syscall.SIGQUIT:
-				Logger.Info("SIGQUIT received, force stopping with core-dump")
+				a.Logger.Info("SIGQUIT received, force stopping with core-dump")
 				exitChan <- 0
 			default:
-				Logger.Info("Unknown signal %d.", s)
+				a.Logger.WithContext(log.Ctx{"signal": s}).Info("Unknown signal")
 			}
 		}
 	}()
@@ -261,7 +267,7 @@ func (a *Application) Run(m http.Handler, wait time.Duration) {
 	// Optionally, you could run srv.Shutdown in a goroutine and block on
 	// <-ctx.Done() if your application should wait for other services
 	// to finalize based on context cancellation.
-	Logger.Info("Shutting down")
+	a.Logger.Info("Shutting down")
 	os.Exit(code)
 }
 
@@ -269,7 +275,7 @@ func (a *Application) Run(m http.Handler, wait time.Duration) {
 func ShowHeaders(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		for name, val := range r.Header {
-			Logger.Info("", log.Ctx{name: val})
+			Logger.WithContext(log.Ctx{name: val}).Info("")
 		}
 		next.ServeHTTP(w, r)
 	}

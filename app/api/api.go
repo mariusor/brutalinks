@@ -15,13 +15,13 @@ import (
 	localap "github.com/mariusor/littr.go/app/activitypub"
 	"github.com/mariusor/littr.go/app/db"
 	"github.com/mariusor/littr.go/app/frontend"
+	"github.com/mariusor/littr.go/app/log"
 	"github.com/spacemonkeygo/httpsig"
 
 	"github.com/juju/errors"
 	ap "github.com/mariusor/activitypub.go/activitypub"
 	as "github.com/mariusor/activitypub.go/activitystreams"
 	j "github.com/mariusor/activitypub.go/jsonld"
-	log "github.com/inconshreveable/log15"
 )
 
 const (
@@ -271,11 +271,11 @@ func VerifyHttpSignature(next http.Handler) http.Handler {
 			// only verify http-signature if present
 			if err := v.Verify(r); err != nil {
 				w.Header().Add("WWW-Authenticate", challenge)
-				Logger.Warn("invalid HTTP signature", log.Ctx{
+				Logger.WithContext(log.Ctx{
 					"handle": acct.Handle,
 					"hash":   acct.Hash,
 					"header": fmt.Sprintf("%q", r.Header),
-				})
+				}).Warn("invalid HTTP signature")
 				// TODO(marius): here we need to implement some outside logic, as to we want to allow non-signed
 				//   requests on some urls, but not on others - probably another handler to check for Anonymous
 				//   would suffice.
@@ -283,10 +283,10 @@ func VerifyHttpSignature(next http.Handler) http.Handler {
 				//return
 			} else {
 				acct = &getter.acc
-				Logger.Debug("loaded account from HTTP signature header", log.Ctx{
+				Logger.WithContext(log.Ctx{
 					"handle": acct.Handle,
 					"hash":   acct.Hash,
-				})
+				}).Debug("loaded account from HTTP signature header")
 			}
 		}
 		ctx := context.WithValue(r.Context(), app.AccountCtxtKey, acct)

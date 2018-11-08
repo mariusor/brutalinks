@@ -6,10 +6,10 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/base64"
-	log "github.com/inconshreveable/log15"
 	"github.com/juju/errors"
 	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/app/db"
+	"github.com/mariusor/littr.go/app/log"
 	"math/rand"
 )
 
@@ -27,7 +27,7 @@ func GenSSHKey(handle string, seed int64, kType string) error {
 		filter.Handle = []string{handle}
 	} else {
 		hashes := make([]string, 0)
-		log.Info("No account handle, generating for all")
+		Logger.Info("No account handle, generating for all")
 
 		sel := `select "key" from "accounts" where "id" != $1 AND "metadata"#>'{key}' is null;`
 		rows, err := loader.DB.Query(sel, 0)
@@ -44,7 +44,7 @@ func GenSSHKey(handle string, seed int64, kType string) error {
 			hashes = append(hashes, hash)
 		}
 		if len(hashes) == 0 {
-			log.WithFields(log.Fields{}).Warn("Nothing to do")
+			Logger.Warn("Nothing to do")
 			return nil
 		}
 		filter.Key = hashes
@@ -60,8 +60,7 @@ func GenSSHKey(handle string, seed int64, kType string) error {
 
 	for _, acct := range accts {
 		if acct.Metadata.Key != nil {
-			log.WithFields(log.Fields{}).
-				Warnf("Existing Key for %s:%s//%d", acct.Handle, acct.Hash.String(), len(acct.Hash))
+			Logger.Warnf("Existing Key for %s:%s//%d", acct.Handle, acct.Hash.String(), len(acct.Hash))
 			continue
 		}
 		var pub, priv []byte
@@ -69,34 +68,34 @@ func GenSSHKey(handle string, seed int64, kType string) error {
 			var privKey *ecdsa.PrivateKey
 			privKey, err = ecdsa.GenerateKey(elliptic.P224(), r)
 			if err != nil {
-				log.Error(err)
+				Logger.Error(err)
 				continue
 			}
 			pub, err = x509.MarshalPKIXPublicKey(&privKey.PublicKey)
 			if err != nil {
-				log.Error(err)
+				Logger.Error(err)
 				continue
 			}
 			priv, err = x509.MarshalECPrivateKey(privKey)
 			if err != nil {
-				log.Error(err)
+				Logger.Error(err)
 				continue
 			}
 		} else {
 			var privKey *rsa.PrivateKey
 			privKey, err = rsa.GenerateKey(r, 2048)
 			if err != nil {
-				log.Error(err)
+				Logger.Error(err)
 				continue
 			}
 			pub, err = x509.MarshalPKIXPublicKey(&privKey.PublicKey)
 			if err != nil {
-				log.Error(err)
+				Logger.Error(err)
 				continue
 			}
 			priv, err = x509.MarshalPKCS8PrivateKey(privKey)
 			if err != nil {
-				log.Error(err)
+				Logger.Error(err)
 				continue
 			}
 		}
@@ -107,7 +106,7 @@ func GenSSHKey(handle string, seed int64, kType string) error {
 		}
 		s, err := db.UpdateAccount(db.Config.DB, acct)
 		if err != nil {
-			log.Error(err)
+			Logger.Error(err)
 			continue
 		}
 		log.WithFields(log.Fields{}).
