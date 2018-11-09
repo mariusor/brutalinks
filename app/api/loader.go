@@ -507,12 +507,12 @@ func (r *repository) LoadItem(f app.LoadItemsFilter) (app.Item, error) {
 		return it, err
 	}
 	if resp == nil {
-		err := fmt.Errorf("nil response from the repository")
+		err := errors.New("nil response from the repository")
 		Logger.Error(err.Error())
 		return it, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		err := fmt.Errorf("unable to load from the API")
+		err := errors.New("unable to load from the API")
 		Logger.Error(err.Error())
 		return it, err
 	}
@@ -568,7 +568,7 @@ func (r *repository) LoadItems(f app.LoadItemsFilter) (app.ItemCollection, error
 		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		err := fmt.Errorf("unable to load from the API")
+		err := errors.New("unable to load from the API")
 		Logger.Error(err.Error())
 		return nil, err
 	}
@@ -685,7 +685,7 @@ func (r *repository) LoadVotes(f app.LoadVotesFilter) (app.VoteCollection, error
 		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		err := fmt.Errorf("unable to load from the API")
+		err := errors.New("unable to load from the API")
 		Logger.Error(err.Error())
 		return nil, err
 	}
@@ -735,7 +735,7 @@ func (r *repository) LoadVote(f app.LoadVotesFilter) (app.Vote, error) {
 		return v, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		err := fmt.Errorf("unable to load from the API")
+		err := errors.New("unable to load from the API")
 		Logger.Error(err.Error())
 		return v, err
 	}
@@ -849,7 +849,7 @@ func (r *repository) LoadAccounts(f app.LoadAccountsFilter) (app.AccountCollecti
 		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		err := fmt.Errorf("unable to load from the API")
+		err := errors.New("unable to load from the API")
 		Logger.Error(err.Error())
 		return nil, err
 	}
@@ -921,7 +921,7 @@ func (r *repository) LoadInfo() (app.Info, error) {
 		return inf, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		err := fmt.Errorf("unable to load from the API")
+		err := errors.New("unable to load from the API")
 		Logger.Error(err.Error())
 		return inf, err
 	}
