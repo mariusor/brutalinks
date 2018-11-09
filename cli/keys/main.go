@@ -3,36 +3,14 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/jmoiron/sqlx"
 	"github.com/mariusor/littr.go/app/cmd"
+	"github.com/mariusor/littr.go/app/db"
+	"github.com/mariusor/littr.go/app/log"
 	"os"
 
-	"github.com/jmoiron/sqlx"
-
-	"github.com/mariusor/littr.go/app/db"
-
 	_ "github.com/lib/pq"
-	log "github.com/inconshreveable/log15"
 )
-
-func init() {
-	dbPw := os.Getenv("DB_PASSWORD")
-	dbName := os.Getenv("DB_NAME")
-	dbUser := os.Getenv("DB_USER")
-
-	var err error
-	connStr := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable", dbUser, dbPw, dbName)
-	db.Config.DB, err = sqlx.Open("postgres", connStr)
-	if err != nil {
-		log.Error(err.Error())
-	}
-}
-
-func e(err error) {
-	if err != nil {
-		log.Error(err.Error())
-		os.Exit(1)
-	}
-}
 
 func main() {
 	var handle string
@@ -43,6 +21,19 @@ func main() {
 	flag.Int64Var(&seed, "seed", 0, "the seed used for the random number generator in key creation")
 	flag.Parse()
 
-	err := cmd.GenSSHKey(handle, seed, kType)
-	e(err)
+	dbPw := os.Getenv("DB_PASSWORD")
+	dbName := os.Getenv("DB_NAME")
+	dbUser := os.Getenv("DB_USER")
+
+	var err error
+	connStr := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable", dbUser, dbPw, dbName)
+	db.Config.DB, err = sqlx.Open("postgres", connStr)
+
+	cmd.Logger = log.Dev()
+	if err != nil {
+		cmd.Logger.Error(err.Error())
+	}
+
+	err = cmd.GenSSHKey(handle, seed, kType)
+	cmd.E(err)
 }
