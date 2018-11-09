@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/mariusor/littr.go/app/cli"
+	"github.com/mariusor/littr.go/app/cmd"
 	"os"
 	"time"
 
@@ -52,6 +52,6 @@ func main() {
 	flag.DurationVar(&since, "since", defaultSince, "the content key to update votes for, default is 90h")
 	flag.Parse()
 
-	err := cli.UpdateScores(key, handle, since, items, accounts)
+	err := cmd.UpdateScores(key, handle, since, items, accounts)
 	e(err)
 }

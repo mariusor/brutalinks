@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/mariusor/littr.go/app/cli"
+	"github.com/mariusor/littr.go/app/cmd"
 	"os"
 
 	"github.com/jmoiron/sqlx"
@@ -43,6 +43,6 @@ func main() {
 	flag.Int64Var(&seed, "seed", 0, "the seed used for the random number generator in key creation")
 	flag.Parse()
 
-	err := cli.GenSSHKey(handle, seed, kType)
+	err := cmd.GenSSHKey(handle, seed, kType)
 	e(err)
 }
