@@ -54,11 +54,11 @@ func main() {
 	api.ActorsURL = api.BaseURL + "/actors"
 	api.OutboxURL = api.BaseURL + "/outbox"
 
-	api.Logger = app.Instance.Logger.WithContext(log.Ctx{"package": "api"})
-	app.Logger = app.Instance.Logger.WithContext(log.Ctx{"package": "app"})
-	db.Logger = app.Instance.Logger.WithContext(log.Ctx{"package": "db"})
-	frontend.Logger = app.Instance.Logger.WithContext(log.Ctx{"package": "frontend"})
-	processing.Logger = app.Instance.Logger.WithContext(log.Ctx{"package": "processing"})
+	api.Logger = app.Instance.Logger.New(log.Ctx{"package": "api"})
+	app.Logger = app.Instance.Logger.New(log.Ctx{"package": "app"})
+	db.Logger = app.Instance.Logger.New(log.Ctx{"package": "db"})
+	frontend.Logger = app.Instance.Logger.New(log.Ctx{"package": "frontend"})
+	processing.Logger = app.Instance.Logger.New(log.Ctx{"package": "processing"})
 
 	// Routes
 	r := chi.NewRouter()
