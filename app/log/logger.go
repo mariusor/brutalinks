@@ -57,7 +57,7 @@ func Prod() Logger {
 	l.l.SetHandler(
 		log15.LvlFilterHandler(
 			log15.LvlWarn,
-			log15.StreamHandler(os.Stderr, log15.LogfmtFormat()),
+			log15.StreamHandler(os.Stderr, log15.TerminalFormat()),
 		),
 	)
 
