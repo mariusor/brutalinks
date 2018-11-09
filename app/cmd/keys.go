@@ -6,6 +6,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/base64"
+	"fmt"
 	"github.com/juju/errors"
 	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/app/db"
@@ -60,7 +61,10 @@ func GenSSHKey(handle string, seed int64, kType string) error {
 
 	for _, acct := range accts {
 		if acct.Metadata.Key != nil {
-			Logger.Warnf("Existing Key for %s:%s//%d", acct.Handle, acct.Hash.String(), len(acct.Hash))
+			Logger.WithContext(log.Ctx{
+				"handle": acct.Handle,
+				"hash": acct.Hash.String(),
+			}).Warnf("Existing Key")
 			continue
 		}
 		var pub, priv []byte
@@ -68,34 +72,34 @@ func GenSSHKey(handle string, seed int64, kType string) error {
 			var privKey *ecdsa.PrivateKey
 			privKey, err = ecdsa.GenerateKey(elliptic.P224(), r)
 			if err != nil {
-				Logger.Error(err)
+				Logger.Error(err.Error())
 				continue
 			}
 			pub, err = x509.MarshalPKIXPublicKey(&privKey.PublicKey)
 			if err != nil {
-				Logger.Error(err)
+				Logger.Error(err.Error())
 				continue
 			}
 			priv, err = x509.MarshalECPrivateKey(privKey)
 			if err != nil {
-				Logger.Error(err)
+				Logger.Error(err.Error())
 				continue
 			}
 		} else {
 			var privKey *rsa.PrivateKey
 			privKey, err = rsa.GenerateKey(r, 2048)
 			if err != nil {
-				Logger.Error(err)
+				Logger.Error(err.Error())
 				continue
 			}
 			pub, err = x509.MarshalPKIXPublicKey(&privKey.PublicKey)
 			if err != nil {
-				Logger.Error(err)
+				Logger.Error(err.Error())
 				continue
 			}
 			priv, err = x509.MarshalPKCS8PrivateKey(privKey)
 			if err != nil {
-				Logger.Error(err)
+				Logger.Error(err.Error())
 				continue
 			}
 		}
@@ -106,11 +110,16 @@ func GenSSHKey(handle string, seed int64, kType string) error {
 		}
 		s, err := db.UpdateAccount(db.Config.DB, acct)
 		if err != nil {
-			Logger.Error(err)
+			Logger.Error(err.Error())
 			continue
 		}
-		log.WithFields(log.Fields{}).
-			Infof("Updated Key for %s:%s//%d - %s:%s", s.Handle, s.Hash[0:8], len(s.Hash), s.Metadata.Key.ID, base64.StdEncoding.EncodeToString(s.Metadata.Key.Public))
+		enc := base64.StdEncoding.EncodeToString(s.Metadata.Key.Public)
+		Logger.WithContext(log.Ctx{
+			"handle": acct.Handle,
+			"hash": acct.Hash.String(),
+			"key-id": s.Metadata.Key.ID,
+			"pub": fmt.Sprintf("%s...%s", enc[0:10], enc[len(enc)-5:5]),
+		}).Infof("Updated Key")
 	}
 	return err
 }
