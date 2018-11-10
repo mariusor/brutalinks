@@ -254,9 +254,9 @@ func loadScoreFormat(s int64) (string, string) {
 	units := ""
 	base := float64(s)
 	d := math.Ceil(math.Log10(math.Abs(base)))
-	dK := math.Ceil(math.Log10(math.Abs(ScoreMaxK)))
-	dM := math.Ceil(math.Log10(math.Abs(ScoreMaxM)))
-	dB := math.Ceil(math.Log10(math.Abs(ScoreMaxB)))
+	dK := 4.0 // math.Ceil(math.Log10(math.Abs(ScoreMaxK))) + 1
+	dM := 7.0 // math.Ceil(math.Log10(math.Abs(ScoreMaxM))) + 1
+	dB := 10.0 // math.Ceil(math.Log10(math.Abs(ScoreMaxB))) + 1
 	if d < dK {
 		score = math.Ceil(base)
 		return NumberFormat("%d", int(score)), ""
