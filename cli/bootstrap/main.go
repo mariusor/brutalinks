@@ -56,8 +56,8 @@ func main() {
 	if len(dbRootUser) != 0 {
 		dbRootName := "postgres"
 		rootDB, err := dbConnection(dbHost, dbRootUser, dbRootPw, dbRootName)
-		rr := errors.NewErrWithCause(err, "connection failed")
-		if cmd.E(&rr) {
+		rr := errors.Annotate(err, "connection failed")
+		if cmd.E(rr) {
 			os.Exit(1)
 		}
 
@@ -67,81 +67,66 @@ func main() {
 		dot, err = dotsql.LoadFromFile("./db/create_role.sql")
 		s1, _ := dot.Raw("create-role-with-pass")
 		_, err = rootDB.Exec(fmt.Sprintf(s1, dbUser, strings.Trim(dbPw, "'")))
-		r1 := errors.NewErrWithCause(err, "query: %s", s1)
-		cmd.E(&r1)
+		cmd.E(errors.Annotatef(err, "query: %s", s1))
 
 		s2, _ := dot.Raw("create-db-for-role")
 		_, err = rootDB.Exec(fmt.Sprintf(s2, dbName, dbUser))
-		r2 := errors.NewErrWithCause(err, "query: %s", s2)
-		cmd.E(&r2)
+		cmd.E(errors.Annotatef(err, "query: %s", s2))
 
 		// root user, but our new created db
 		db, err := dbConnection(dbHost, dbRootUser, dbRootPw, dbName)
-		r := errors.NewErrWithCause(err, "connection failed")
-		if cmd.E(&r) {
+		if cmd.E( errors.Annotate(err, "connection failed")) {
 			os.Exit(1)
 		}
 		defer db.Close()
 		dot, err = dotsql.LoadFromFile("./db/extensions.sql")
 		_, err = dot.Exec(db, "extension-pgcrypto")
 		s1, _ = dot.Raw("extension-pgcrypto")
-		rs1 := errors.NewErrWithCause(err, "query: %s", s1)
-		cmd.E(&rs1)
+		cmd.E(errors.Annotatef(err, "query: %s", s1))
 		_, err = dot.Exec(db, "extension-ltree")
 		s2, _ = dot.Raw("extension-ltree")
-		rs2 := errors.NewErrWithCause(err, "query: %s", s2)
-		cmd.E(&rs2)
+		cmd.E(errors.Annotatef(err, "query: %s", s2))
 	}
 
 	// newly created user in newly created database
 	db, err := dbConnection(dbHost, dbUser, dbPw, dbName)
-	r := errors.NewErrWithCause(err, "connection failed")
-	if cmd.E(&r) {
+	if cmd.E(errors.Annotate(err, "connection failed")) {
 		os.Exit(1)
 	}
 	defer db.Close()
 	// create new role and db with root user in root database
 	dot, err = dotsql.LoadFromFile("./db/init.sql")
-	ri := errors.NewErrWithCause(err, "unable to load file")
-	cmd.E(&ri)
+	cmd.E(errors.Annotate(err, "unable to load file"))
 	drop, _ := dot.Raw("drop-tables")
 	_, err = db.Exec(fmt.Sprintf(drop))
-	rd := errors.NewErrWithCause(err, "query: %s", drop)
-	cmd.E(&rd)
+	cmd.E(errors.Annotatef(err, "query: %s", drop))
 
 	accounts, _ := dot.Raw("create-accounts")
 	_, err = db.Exec(fmt.Sprintf(accounts))
-	ra := errors.NewErrWithCause(err, "query: %s", accounts)
-	cmd.E(&ra)
+	cmd.E(errors.Annotatef(err, "query: %s", accounts))
 
 	items, _ := dot.Raw("create-items")
 	_, err = db.Exec(fmt.Sprintf(items))
-	rci := errors.NewErrWithCause(err, "query: %s", items)
-	cmd.E(&rci)
+	cmd.E(errors.Annotatef(err, "query: %s", items))
 
 	votes, _ := dot.Raw("create-votes")
 	_, err = db.Exec(fmt.Sprintf(votes))
-	rcv := errors.NewErrWithCause(err, "query: %s", votes)
-	cmd.E(&rcv)
+	cmd.E(errors.Annotatef(err, "query: %s", votes))
 
 	if seed {
 		dot, err = dotsql.LoadFromFile("./db/seed.sql")
-		rs := errors.NewErrWithCause(err, "unable to load file")
-		cmd.E(&rs)
+		cmd.E(errors.Annotate(err, "unable to load file"))
 
 		sysAcct, _ := dot.Raw("add-account-system")
 		_, err = db.Exec(fmt.Sprintf(sysAcct))
-		racsys := errors.NewErrWithCause(err, "query: %s", sysAcct)
-		cmd.E(&racsys)
+		cmd.E(errors.Annotatef(err, "query: %s", sysAcct))
 
 		anonAcct, _ := dot.Raw("add-account-anonymous")
 		_, err = db.Exec(fmt.Sprintf(anonAcct))
-		raccan := errors.NewErrWithCause(err, "query: %s", anonAcct)
-		cmd.E(&raccan)
+		cmd.E(errors.Annotatef(err, "query: %s", anonAcct))
 
 		itemAbout, _ := dot.Raw("add-item-about")
 		_, err = db.Exec(fmt.Sprintf(itemAbout))
-		ria := errors.NewErrWithCause(err, "query: %s", itemAbout)
-		cmd.E(&ria)
+		cmd.E(errors.Annotatef(err, "query: %s", itemAbout))
 	}
 }

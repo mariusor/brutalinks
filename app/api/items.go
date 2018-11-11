@@ -18,9 +18,6 @@ import (
 // POST /api - not implemented yet - but we should have all information in the CreateActivity body
 // PUT /api/actors/{handle}/{collection}/{item_hash}
 func UpdateItem(w http.ResponseWriter, r *http.Request) {
-	// verify signature header:
-	// Signature: keyId="https://my-example.com/actor#main-key",headers="(request-target) host date",signature="..."
-
 	var body []byte
 	var err error
 	defer r.Body.Close()
@@ -29,7 +26,7 @@ func UpdateItem(w http.ResponseWriter, r *http.Request) {
 	if body, err = ioutil.ReadAll(r.Body); err != nil {
 		Logger.WithContext(log.Ctx{
 			"err":   err,
-			"trace": errors.Trace(err),
+			"trace": errors.Details(err),
 		}).Error("request body read error")
 		HandleError(w, r, http.StatusInternalServerError, err)
 		return
@@ -43,7 +40,7 @@ func UpdateItem(w http.ResponseWriter, r *http.Request) {
 		if err := j.Unmarshal(body, &act); err != nil {
 			Logger.WithContext(log.Ctx{
 				"err":   err,
-				"trace": errors.Trace(err),
+				"trace": errors.Details(err),
 			}).Error("json-ld unmarshal error")
 			HandleError(w, r, http.StatusInternalServerError, err)
 			return
@@ -52,7 +49,7 @@ func UpdateItem(w http.ResponseWriter, r *http.Request) {
 		if err := it.FromActivityPubItem(act); err != nil {
 			Logger.WithContext(log.Ctx{
 				"err":   err,
-				"trace": errors.Trace(err),
+				"trace": errors.Details(err),
 			}).Error("json-ld unmarshal error")
 			HandleError(w, r, http.StatusInternalServerError, err)
 			return
@@ -62,7 +59,7 @@ func UpdateItem(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				Logger.WithContext(log.Ctx{
 					"err":     err,
-					"trace":   errors.Trace(err),
+					"trace":   errors.Details(err),
 					"item":    it.Hash,
 					"account": it.SubmittedBy.Hash,
 				}).Error(err.Error())
@@ -84,7 +81,7 @@ func UpdateItem(w http.ResponseWriter, r *http.Request) {
 		if err := j.Unmarshal(body, &act); err != nil {
 			Logger.WithContext(log.Ctx{
 				"err":   err,
-				"trace": errors.Trace(err),
+				"trace": errors.Details(err),
 			}).Error("json-ld unmarshal error")
 			HandleError(w, r, http.StatusInternalServerError, err)
 			return
@@ -93,7 +90,7 @@ func UpdateItem(w http.ResponseWriter, r *http.Request) {
 		if err := v.FromActivityPubItem(act); err != nil {
 			Logger.WithContext(log.Ctx{
 				"err":   err,
-				"trace": errors.Trace(err),
+				"trace": errors.Details(err),
 			}).Error("json-ld unmarshal error")
 			HandleError(w, r, http.StatusInternalServerError, err)
 			return
@@ -103,7 +100,7 @@ func UpdateItem(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				Logger.WithContext(log.Ctx{
 					"err":      err,
-					"trace":    errors.Trace(err),
+					"trace":    errors.Details(err),
 					"saveVote": v.SubmittedBy.Hash,
 				}).Error(err.Error())
 				HandleError(w, r, http.StatusInternalServerError, err)

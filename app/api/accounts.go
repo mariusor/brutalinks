@@ -233,7 +233,7 @@ func HandleActorsCollection(w http.ResponseWriter, r *http.Request) {
 			} else {
 				Logger.WithContext(log.Ctx{
 					"err": err,
-					"trace": errors.Trace(err),
+					"trace": errors.Details(err),
 				}).Error(err.Error())
 				HandleError(w, r, http.StatusNotFound, err)
 				return
@@ -270,7 +270,7 @@ func HandleActor(w http.ResponseWriter, r *http.Request) {
 	j, err := json.WithContext(GetContext()).Marshal(p)
 	if err != nil {
 		Logger.WithContext(log.Ctx{
-			"trace": errors.Trace(err),
+			"trace": errors.Details(err),
 		}).Error(err.Error())
 		HandleError(w, r, http.StatusInternalServerError, err)
 		return
@@ -369,7 +369,7 @@ func HandleCollectionActivityObject(w http.ResponseWriter, r *http.Request) {
 			})
 			if err != nil {
 				Logger.WithContext( log.Ctx{
-					"trace": errors.Trace(err),
+					"trace": errors.Details(err),
 				}).Error(err.Error())
 			}
 			if len(replies) > 0 {

@@ -608,7 +608,7 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 		Logger.WithContext(log.Ctx{
 			"url":   url,
 			"err":   err,
-			"trace": errors.Trace(err),
+			"trace": errors.Details(err),
 		}).Error(err.Error())
 		return v, err
 	}
@@ -645,7 +645,7 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 		Logger.WithContext(log.Ctx{
 			"url":           url,
 			"response_code": exists.StatusCode,
-			"trace":         errors.Trace(err),
+			"trace":         errors.Details(err),
 		}).Error(err.Error())
 		return v, err
 	}
@@ -784,7 +784,7 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 	if err != nil {
 		Logger.WithContext(log.Ctx{
 			"item":  it.Hash,
-			"trace": errors.Trace(err),
+			"trace": errors.Details(err),
 		}).Error(err.Error())
 		return it, err
 	}
@@ -870,7 +870,7 @@ func (r *repository) LoadAccounts(f app.LoadAccountsFilter) (app.AccountCollecti
 		if err := acc.FromActivityPubItem(it); err != nil {
 			Logger.WithContext(log.Ctx{
 				"type":  fmt.Sprintf("%T", it),
-				"trace": errors.Trace(err),
+				"trace": errors.Details(err),
 			}).Warn(err.Error())
 			continue
 		}
