@@ -70,7 +70,7 @@ func ShowAccount(w http.ResponseWriter, r *http.Request) {
 		}
 		ShowItemData = true
 
-		RenderTemplate(r, w, "listing", m)
+		RenderTemplate(r, w, "user", m)
 	} else {
 		HandleError(w, r, http.StatusInternalServerError, err)
 	}

@@ -52,10 +52,6 @@ func (i Item) GetDomain() string {
 	return strings.Split(i.Data, "/")[2]
 }
 
-func (i Item) ISODate() string {
-	return i.SubmittedAt.Format("2006-01-02T15:04:05.000-07:00")
-}
-
 func (i Item) IsSelf() bool {
 	mimeComponents := strings.Split(i.MimeType, "/")
 	return mimeComponents[0] == "text"

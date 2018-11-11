@@ -77,7 +77,13 @@ func text(i app.Item) string {
 	return string(i.Data)
 }
 
-func RelTimeLabel(old time.Time) string {
+// ISOTimeFmt returns ISO formatted time value
+func ISOTimeFmt(t time.Time) string {
+	return t.Format("2006-01-02T15:04:05.000-07:00")
+}
+
+// RelTimeFmt returns human readable relative time format
+func RelTimeFmt(old time.Time) string {
 	//return humanize.RelTime(old, time.Now(), "ago", "in the future")
 	td := time.Now().Sub(old)
 	pluralize := func(d float64, unit string) string {
@@ -194,7 +200,8 @@ func Renderer(next http.Handler) http.Handler {
 				"IsNay":             isNay,
 				"ScoreFmt":          scoreFmt,
 				"NumberFmt":         func(i int64) string { return NumberFormat("%d", i) },
-				"TimeFmt":           RelTimeLabel,
+				"TimeFmt":           RelTimeFmt,
+				"ISOTimeFmt":        ISOTimeFmt,
 				//"ScoreFmt":          func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
 				//"NumberFmt":         func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
 				"ScoreClass": scoreClass,
@@ -254,8 +261,8 @@ func loadScoreFormat(s int64) (string, string) {
 	units := ""
 	base := float64(s)
 	d := math.Ceil(math.Log10(math.Abs(base)))
-	dK := 4.0 // math.Ceil(math.Log10(math.Abs(ScoreMaxK))) + 1
-	dM := 7.0 // math.Ceil(math.Log10(math.Abs(ScoreMaxM))) + 1
+	dK := 4.0  // math.Ceil(math.Log10(math.Abs(ScoreMaxK))) + 1
+	dM := 7.0  // math.Ceil(math.Log10(math.Abs(ScoreMaxM))) + 1
 	dB := 10.0 // math.Ceil(math.Log10(math.Abs(ScoreMaxB))) + 1
 	if d < dK {
 		score = math.Ceil(base)
@@ -381,7 +388,7 @@ func RenderTemplate(r *http.Request, w http.ResponseWriter, name string, m inter
 		new := errors.NewErr("failed to render template")
 		Logger.WithContext(log.Ctx{
 			"template": name,
-			"model":    fmt.Sprintf("%#v", m),
+			"model":    fmt.Sprintf("%T", m),
 			"trace":    new.StackTrace(),
 			"previous": err.Error(),
 		}).Error(new.Error())

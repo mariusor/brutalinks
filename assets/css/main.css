@@ -784,3 +784,7 @@ i.icon {
     content:"\f09b";
     font-family: IconFont;
 }
+.acct-info {
+    float: right;
+}
+

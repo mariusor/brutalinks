@@ -1,7 +1,7 @@
 {{- $count := .Children | len -}}
 {{- $it := .Item -}}
 <footer class="meta col">
-    submitted <time datetime="{{ $it.ISODate | html }}" title="{{ $it.ISODate }}">{{ $it.SubmittedAt | TimeFmt }}</time>
+    submitted <time datetime="{{ $it.SubmittedAt | ISOTimeFmt | html }}" title="{{ $it.SubmittedAt | ISOTimeFmt }}">{{ $it.SubmittedAt | TimeFmt }}</time>
     {{- if $it.SubmittedBy.Handle }} by <a class="by" href="/~{{ $it.SubmittedBy.Handle }}">{{ $it.SubmittedBy.Handle }}</a>{{end}}
     <menu class="meta-items">
         <li><a href="{{$it | PermaLink }}" class="to-item" alt="permalink" title="Permalink{{if .Item.Title}}: {{$it.Title }}{{end}}"></a></li>
