@@ -2,15 +2,14 @@ package frontend
 
 import (
 	"fmt"
+	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/app/db"
 	"github.com/mariusor/littr.go/app/log"
+	"github.com/mariusor/qstring"
 	"html/template"
 	"net/http"
 	"os"
 	"path"
-	"strconv"
-
-	"github.com/mariusor/littr.go/app"
 )
 
 const (
@@ -107,19 +106,14 @@ func pageLink(p int) template.HTML {
 func HandleIndex(w http.ResponseWriter, r *http.Request) {
 	m := itemListingModel{Title: "Index", InvertedTheme: isInverted(r)}
 
-	page := 1
-	if p, err := strconv.Atoi(r.URL.Query().Get("page")); err == nil {
-		page = p
-		if page <= 0 {
-			page = 1
-		}
-	}
-
 	filter := app.LoadItemsFilter{
 		Context:  []string{"0"},
-		Page:     page,
 		MaxItems: MaxContentItems,
 		Deleted:  []bool{false},
+		Page:     1,
+	}
+	if err := qstring.Unmarshal(r.URL.Query(), &filter); err != nil {
+		Logger.Debug("unable to load url parameters")
 	}
 
 	base := path.Base(r.URL.Path)
@@ -152,10 +146,10 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 	ShowItemData = false
 	m.Items = loadComments(items)
 	if len(items) >= MaxContentItems {
-		m.NextPage = page + 1
+		m.NextPage = filter.Page + 1
 	}
-	if page > 1 {
-		m.PrevPage = page - 1
+	if filter.Page > 1 {
+		m.PrevPage = filter.Page - 1
 	}
 	acct, ok := app.ContextCurrentAccount(r.Context())
 	if acct.IsLogged() {

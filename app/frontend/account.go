@@ -2,11 +2,10 @@ package frontend
 
 import (
 	"fmt"
-	"github.com/mariusor/littr.go/app"
-	"net/http"
-	"strconv"
-
 	"github.com/juju/errors"
+	"github.com/mariusor/littr.go/app"
+	"github.com/mariusor/qstring"
+	"net/http"
 
 	"github.com/go-chi/chi"
 )
@@ -46,27 +45,23 @@ func ShowAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	page := 1
-	if p, err := strconv.Atoi(r.URL.Query().Get("page")); err == nil {
-		page = p
-		if page <= 0 {
-			page = 1
-		}
-	}
 	filter := app.LoadItemsFilter{
 		AttributedTo: []app.Hash{a.Hash},
-		Page:         page,
 		MaxItems:     MaxContentItems,
+		Page:         1,
+	}
+	if err := qstring.Unmarshal(r.URL.Query(), &filter); err != nil {
+		Logger.Debug("unable to load url parameters")
 	}
 	if m, err := loadItems(r.Context(), filter); err == nil {
 		m.Title = fmt.Sprintf("%s submissions", genitive(a.Handle))
 		m.User = &a
 		m.InvertedTheme = isInverted(r)
 		if len(m.Items) >= MaxContentItems {
-			m.NextPage = page + 1
+			m.NextPage = filter.Page + 1
 		}
-		if page > 1 {
-			m.PrevPage = page - 1
+		if filter.Page > 1 {
+			m.PrevPage = filter.Page - 1
 		}
 		ShowItemData = true
 
