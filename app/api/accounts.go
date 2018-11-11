@@ -539,39 +539,3 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write(data)
 }
-
-// GET /api/actors/verify_credentials
-func HandleVerifyCredentials(w http.ResponseWriter, r *http.Request) {
-	acct, ok := app.ContextCurrentAccount(r.Context())
-	if !ok {
-		HandleError(w, r, http.StatusNotFound, errors.Errorf("account not found"))
-		return
-	}
-	AcctLoader, ok := app.ContextAccountLoader(r.Context())
-	if !ok {
-		Logger.Error("could not load account repository from Context")
-	}
-	a, err := AcctLoader.LoadAccount(app.LoadAccountsFilter{Handle: []string{acct.Handle}, MaxItems: 1})
-	if err != nil {
-		Logger.Error(err.Error())
-		HandleError(w, r, http.StatusNotFound, err)
-		return
-	}
-	if a.Handle == "" {
-		HandleError(w, r, http.StatusNotFound, errors.Errorf("account not found"))
-		return
-	}
-
-	p := loadAPPerson(a)
-
-	j, err := json.WithContext(GetContext()).Marshal(p)
-	if err != nil {
-		HandleError(w, r, http.StatusInternalServerError, err)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/activity+json; charset=utf-8")
-	//w.Header().Set("X-Content-Type-Options", "nosniff")
-	w.WriteHeader(http.StatusOK)
-	w.Write(j)
-}

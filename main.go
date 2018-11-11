@@ -136,6 +136,7 @@ func main() {
 				r.Use(api.ServiceCtxt)
 
 				r.With(api.LoadFiltersCtxt, api.ItemCollectionCtxt).Get("/", api.HandleCollection)
+				r.With(api.LoadFiltersCtxt, api.ItemCollectionCtxt).Post("/", api.AddToCollection)
 				r.Route("/{hash}", func(r chi.Router) {
 					r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/", api.HandleCollectionActivity)
 					r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/object", api.HandleCollectionActivityObject)
@@ -146,7 +147,6 @@ func main() {
 		r.Route("/actors", func(r chi.Router) {
 			r.With(api.LoadFiltersCtxt).Get("/", api.HandleActorsCollection)
 
-			r.With(frontend.LoadSession).Get("/actors/verify_credentials", api.HandleVerifyCredentials)
 			r.Route("/{handle}", func(r chi.Router) {
 				r.Use(api.AccountCtxt)
 
