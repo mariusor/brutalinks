@@ -207,7 +207,11 @@ func loadEnv(l *Application) (bool, error) {
 
 // Run is the wrapper for starting the web-server and handling signals
 func (a *Application) Run(m http.Handler, wait time.Duration) {
-	a.Logger.WithContext(log.Ctx{"listen": a.listen()}).Info("Started")
+	a.Logger.WithContext(log.Ctx{
+		"listen": a.listen(),
+		"host": a.HostName,
+		"env": a.Config.Env,
+	}).Info("Started")
 	srv := &http.Server{
 		Addr: a.listen(),
 		// Good practice to set timeouts to avoid Slowloris attacks.
