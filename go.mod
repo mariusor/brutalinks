@@ -3,7 +3,6 @@ module github.com/mariusor/littr.go
 require (
 	github.com/adjust/redismq v0.0.0-20170113163246-e2a56d9bb404
 	github.com/buger/jsonparser v0.0.0-20181023193515-52c6e1462ebd
-	github.com/dyninc/qstring v0.0.0-20160719172318-ab5840a88e81 // indirect
 	github.com/eknkc/amber v0.0.0-20171010120322-cdade1c07385 // indirect
 	github.com/fsnotify/fsnotify v1.4.7 // indirect
 	github.com/garyburd/redigo v2.0.0+incompatible // indirect
