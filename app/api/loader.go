@@ -29,10 +29,6 @@ import (
 	"github.com/mariusor/littr.go/app/log"
 )
 
-const AccountCtxtKey = "__acct"
-const CollectionCtxtKey = "__collection"
-const ItemCtxtKey = "__item"
-
 // Config is used to retrieve information from the database
 var Config repository
 
@@ -177,7 +173,7 @@ func AccountCtxt(next http.Handler) http.Handler {
 				HandleError(w, r, http.StatusNotFound, errors.Errorf("account not found"))
 				return
 			}
-			ctx := context.WithValue(r.Context(), AccountCtxtKey, a)
+			ctx := context.WithValue(r.Context(), app.AccountCtxtKey, a)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		}
 	}
@@ -230,7 +226,7 @@ func ItemCtxt(next http.Handler) http.Handler {
 			}
 		}
 
-		ctx := context.WithValue(r.Context(), ItemCtxtKey, i)
+		ctx := context.WithValue(r.Context(), app.ItemCtxtKey, i)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	}
 	return http.HandlerFunc(fn)
@@ -349,7 +345,7 @@ func loadLikedFilterFromReq(r *http.Request) app.LoadVotesFilter {
 		filters.ItemKey = append(filters.ItemKey, hash)
 		filters.ItemKey = append(filters.ItemKey, old...)
 	}
-	val := r.Context().Value(AccountCtxtKey)
+	val := r.Context().Value(app.AccountCtxtKey)
 	a, ok := val.(app.Account)
 	if ok {
 		filters.AttributedTo = []app.Hash{a.Hash}
@@ -479,7 +475,7 @@ func ItemCollectionCtxt(next http.Handler) http.Handler {
 			}
 		}
 
-		ctx := context.WithValue(r.Context(), CollectionCtxtKey, items)
+		ctx := context.WithValue(r.Context(), app.CollectionCtxtKey, items)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	}
 	return http.HandlerFunc(fn)
@@ -791,10 +787,10 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 	var resp *http.Response
 	if doUpd {
 		url := string(*art.GetID())
-		resp, err = r.Put(url, "application/json+activity", bytes.NewReader(body))
+		resp, err = r.Put(url, "application/activity+json", bytes.NewReader(body))
 	} else {
 		url := fmt.Sprintf("%s/actors/%s/outbox", r.BaseUrl, it.SubmittedBy.Hash)
-		resp, err = r.Post(url, "application/json+activity", bytes.NewReader(body))
+		resp, err = r.Post(url, "application/activity+json", bytes.NewReader(body))
 	}
 	if err != nil {
 		Logger.Error(err.Error())

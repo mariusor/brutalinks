@@ -270,7 +270,7 @@ func HandleActorsCollection(w http.ResponseWriter, r *http.Request) {
 
 // GET /api/actors/:handle
 func HandleActor(w http.ResponseWriter, r *http.Request) {
-	val := r.Context().Value(AccountCtxtKey)
+	val := r.Context().Value(app.AccountCtxtKey)
 
 	var ok bool
 	var a app.Account
@@ -318,7 +318,7 @@ func HandleCollectionActivity(w http.ResponseWriter, r *http.Request) {
 	var data []byte
 	var err error
 
-	val := r.Context().Value(ItemCtxtKey)
+	val := r.Context().Value(app.ItemCtxtKey)
 	collection := getCollectionFromReq(r)
 	var el as.ObjectOrLink
 	switch strings.ToLower(collection) {
@@ -365,7 +365,7 @@ func HandleCollectionActivityObject(w http.ResponseWriter, r *http.Request) {
 	var data []byte
 	var err error
 
-	val := r.Context().Value(ItemCtxtKey)
+	val := r.Context().Value(app.ItemCtxtKey)
 	collection := chi.URLParam(r, "collection")
 	var el as.ObjectOrLink
 	switch strings.ToLower(collection) {
@@ -430,14 +430,14 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 	var data []byte
 	var err error
 
-	val := r.Context().Value(AccountCtxtKey)
+	val := r.Context().Value(app.AccountCtxtKey)
 	a, _ := val.(app.Account)
 	typ := getCollectionFromReq(r)
 	filters := r.Context().Value(app.FilterCtxtKey)
 
 	f, _ := filters.(app.LoadItemsFilter)
 
-	collection := r.Context().Value(CollectionCtxtKey)
+	collection := r.Context().Value(app.CollectionCtxtKey)
 	switch strings.ToLower(typ) {
 	case "inbox":
 		items, ok := collection.(app.ItemCollection)
@@ -518,7 +518,7 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 		}
 		data, err = json.WithContext(GetContext()).Marshal(liked)
 	case "replies":
-		it, ok := r.Context().Value(ItemCtxtKey).(app.Item)
+		it, ok := r.Context().Value(app.ItemCtxtKey).(app.Item)
 		var art as.Item
 		if ok {
 			art = loadAPItem(it)

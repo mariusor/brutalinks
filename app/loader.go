@@ -7,10 +7,15 @@ import (
 	"time"
 )
 
-const (
-	AccountCtxtKey    = "__acct"
-	RepositoryCtxtKey = "__repository"
-	FilterCtxtKey     = "__filter"
+type CtxtKey string
+
+var (
+	AccountCtxtKey    CtxtKey = "__acct"
+	RepositoryCtxtKey CtxtKey = "__repository"
+	FilterCtxtKey     CtxtKey = "__filter"
+
+	CollectionCtxtKey CtxtKey = "__collection"
+	ItemCtxtKey       CtxtKey = "__item"
 )
 
 type MatchType int
@@ -63,7 +68,7 @@ type LoadItemsFilter struct {
 	Content              string    `qstring:"content,omitempty"`
 	ContentMatchType     MatchType `qstring:"contentMatchType,omitempty"`
 	// Federated shows if the item was generated locally or is coming from an external peer
-	Federated  []bool `qstring:"federated,omitempty"`
+	Federated []bool `qstring:"federated,omitempty"`
 	// FollowedBy is the hash or handle of the user of which we should show the list of items that were commented on or liked
 	FollowedBy []string `qstring:"followedBy,omitempty"`
 	Deleted    []bool   `qstring:"deleted,omitempty"`
@@ -233,9 +238,9 @@ FROM "content_items" WHERE "key" ~* $%d) AND "%s"."path" IS NOT NULL)`, it, coun
 		Logger.Warn("Federated query not yet implemented")
 		keyWhere := make([]string, 0)
 		//for _, fed := range filter.Federated {
-			keyWhere = append(keyWhere, fmt.Sprintf("$%d", counter))
-			whereValues = append(whereValues, interface{}(false))
-			counter++
+		keyWhere = append(keyWhere, fmt.Sprintf("$%d", counter))
+		whereValues = append(whereValues, interface{}(false))
+		counter++
 		//}
 		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(keyWhere, " OR "))))
 	}
