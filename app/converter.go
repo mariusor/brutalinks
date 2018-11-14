@@ -132,29 +132,14 @@ func (i *Item) FromActivityPubItem(it as.Item) error {
 				i.Metadata = &ItemMetadata{}
 				i.Metadata.Tags = make(TagCollection,0)
 				i.Metadata.Mentions = make(TagCollection,0)
-				for _, t := range a.Tag {
-					if t.IsLink() {
-						u := string(t.GetLink())
-						// we have a link
-						i.Metadata.Tags = append(i.Metadata.Tags, Tag{
-							URL: u,
-							Name: path.Base(u),
-						})
-					}
-					if t.IsObject () {
-						if ob, ok := t.(as.Object); ok {
-							u := string(t.GetLink())
-							// we have a link
-							lt := Tag{
-								URL:  u,
-								Name: ob.Name.First(),
-							}
-							if lt.Name[0] == '#' {
-								i.Metadata.Tags = append(i.Metadata.Tags, lt)
-							} else {
-								i.Metadata.Mentions = append(i.Metadata.Mentions, lt)
-							}
-						}
+
+				tags := TagCollection{}
+				tags.FromActivityPubItem(a.Tag)
+				for _, t := range tags {
+					if t.Name[0] == '#' {
+						i.Metadata.Tags = append(i.Metadata.Tags, t)
+					} else {
+						i.Metadata.Mentions = append(i.Metadata.Mentions, t)
 					}
 				}
  			}
@@ -246,4 +231,31 @@ func jsonUnescape(s string) string {
 		return s
 	}
 	return string(out)
+}
+
+func (i *TagCollection) FromActivityPubItem(it as.ItemCollection) error {
+	if it == nil || len(it) == 0 {
+		return errors.New("empty collection")
+	}
+	for _, t := range it {
+		if t.IsObject () {
+			if ob, ok := t.(*as.Object); ok {
+				u := string(t.GetLink())
+				// we have a link
+				lt := Tag{
+					URL:  u,
+					Name: ob.Name.First(),
+				}
+				*i  = append(*i, lt)
+			}
+		} else if t.IsLink() {
+			u := string(t.GetLink())
+			// we have a link
+			*i = append(*i, Tag{
+				URL: u,
+				Name: path.Base(u),
+			})
+		}
+	}
+	return nil
 }
