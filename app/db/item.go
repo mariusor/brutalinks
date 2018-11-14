@@ -64,11 +64,12 @@ func GetOPKey(i Item) (app.Key, bool) {
 
 func (i Item) Model() app.Item {
 	a := i.Author().Model()
+	am, _ :=  ItemMetadata(i.Metadata)
 	res := app.Item{
 		MimeType:    i.MimeType,
 		SubmittedAt: i.SubmittedAt,
 		SubmittedBy: &a,
-		Metadata:    ItemMetadata(i.Metadata),
+		Metadata:    &am,
 		Hash:        i.Key.Hash(),
 		Flags:       ItemFlags(i.Flags),
 		Path:        i.Path,
@@ -119,20 +120,21 @@ func saveItem(db *sqlx.DB, it app.Item) (app.Item, error) {
 	params = append(params, i.Key.Bytes())
 	params = append(params, i.Title)
 	params = append(params, i.Data)
+	params = append(params, i.Metadata)
 	params = append(params, i.MimeType)
 	params = append(params, it.SubmittedBy.Hash)
 
 	var ins string
 	if it.Parent != nil && len(it.Parent.Hash) > 0 {
-		ins = `insert into "content_items" ("key", "title", "data", "mime_type", "submitted_by", "path") 
+		ins = `insert into "content_items" ("key", "title", "data", "metadata", "mime_type", "submitted_by", "path") 
 		values(
-			$1, $2, $3, $4, (select "id" from "accounts" where "key" ~* $5), (select (case when "path" is not null then concat("path", '.', "key") else "key" end) 
-				as "parent_path" from "content_items" where key ~* $6)::ltree
+			$1, $2, $3, $4, $5, (select "id" from "accounts" where "key" ~* $6), (select (case when "path" is not null then concat("path", '.', "key") else "key" end) 
+				as "parent_path" from "content_items" where key ~* $7)::ltree
 		)`
 		params = append(params, it.Parent.Hash)
 	} else {
-		ins = `insert into "content_items" ("key", "title", "data", "mime_type", "submitted_by") 
-		values($1, $2, $3, $4, (select "id" from "accounts" where "key" ~* $5))`
+		ins = `insert into "content_items" ("key", "title", "data", "metadata", "mime_type", "submitted_by") 
+		values($1, $2, $3, $4, $5, (select "id" from "accounts" where "key" ~* $6))`
 	}
 
 	res, err := db.Exec(ins, params...)

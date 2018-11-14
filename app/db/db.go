@@ -85,8 +85,10 @@ func AccountFlags(f FlagBits) app.FlagBits {
 	return VoteFlags(f)
 }
 
-func ItemMetadata(m Metadata) app.ItemMetadata {
-	return app.ItemMetadata(m)
+func ItemMetadata(m Metadata) (app.ItemMetadata, error) {
+	am := app.ItemMetadata{}
+	err := json.Unmarshal(m, &am)
+	return am, err
 }
 
 func AccountMetadata(m Metadata) app.AccountMetadata {

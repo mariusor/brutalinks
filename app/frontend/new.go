@@ -2,10 +2,12 @@ package frontend
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/app/log"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/juju/errors"
@@ -23,6 +25,42 @@ func detectMimeType(data string) string {
 		return app.MimeTypeURL
 	}
 	return "text/plain"
+}
+
+func loadTags(data string) (app.TagCollection, app.TagCollection) {
+	if !strings.ContainsAny(data, "#@") {
+		return nil, nil
+	}
+	tags := make(app.TagCollection, 0)
+	mentions := make(app.TagCollection, 0)
+	l := len(data)
+	for i := 0; i < l; i++ {
+		byt := data[i:]
+		st := strings.IndexAny(byt, "#@")
+		if st >= l {
+			break
+		}
+		if st != -1 {
+			t := app.Tag{}
+			en := strings.IndexAny(byt[st:], " \t\r\n")
+			if en == -1 {
+				en = len(byt) - st
+			}
+			t.Name = byt[st:st+en]
+			if  t.Name[0] == '#' {
+				t.URL = fmt.Sprintf("%s/tags/%s", app.Instance.HostName, t.Name[1:])
+				tags = append(tags, t)
+			}
+			if  t.Name[0] == '@' {
+				t.URL = fmt.Sprintf("%s/~%s", app.Instance.HostName, t.Name[1:])
+				mentions = append(mentions, t)
+			}
+
+			i = i+st+en
+		}
+	}
+
+	return tags, mentions
 }
 
 func ContentFromRequest(r *http.Request) (app.Item, error) {
@@ -43,6 +81,8 @@ func ContentFromRequest(r *http.Request) (app.Item, error) {
 	acc, _ := app.ContextCurrentAccount(r.Context())
 	i.SubmittedBy = acc
 	i.MimeType = detectMimeType(i.Data)
+	i.Metadata = &app.ItemMetadata{}
+	i.Metadata.Tags, i.Metadata.Mentions = loadTags(i.Data)
 	if !i.IsLink() {
 		i.MimeType = r.PostFormValue("mime-type")
 	}

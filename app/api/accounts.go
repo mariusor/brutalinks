@@ -119,6 +119,28 @@ func loadAPItem(item app.Item) as.Item {
 		id, _ := BuildObjectIDFromItem(*item.OP)
 		o.Context = as.IRI(id)
 	}
+	if item.Metadata != nil {
+		m := item.Metadata
+		if m.Mentions != nil || m.Tags != nil {
+			o.Tag = make(as.ItemCollection, 0)
+			for _, men := range m.Mentions {
+				t := as.Object{
+					ID: as.ObjectID(men.URL),
+					Type: as.MentionType,
+					Name: as.NaturalLanguageValue{{Ref:as.NilLangRef, Value: men.Name}},
+				}
+				o.Tag.Append(t)
+			}
+			for _, tag := range m.Tags {
+				t := as.Object{
+					ID: as.ObjectID(tag.URL),
+					Name: as.NaturalLanguageValue{{Ref:as.NilLangRef, Value: tag.Name}},
+				}
+				o.Tag.Append(t)
+			}
+		}
+	}
+
 	return o
 }
 

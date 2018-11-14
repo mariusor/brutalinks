@@ -3,6 +3,7 @@ module github.com/mariusor/littr.go
 require (
 	github.com/adjust/redismq v0.0.0-20170113163246-e2a56d9bb404
 	github.com/buger/jsonparser v0.0.0-20181023193515-52c6e1462ebd
+	github.com/dyninc/qstring v0.0.0-20160719172318-ab5840a88e81 // indirect
 	github.com/eknkc/amber v0.0.0-20171010120322-cdade1c07385 // indirect
 	github.com/fsnotify/fsnotify v1.4.7 // indirect
 	github.com/garyburd/redigo v2.0.0+incompatible // indirect
@@ -21,7 +22,7 @@ require (
 	github.com/juju/loggo v0.0.0-20180524022052-584905176618 // indirect
 	github.com/juju/testing v0.0.0-20180517134105-72703b1e95eb // indirect
 	github.com/lib/pq v0.0.0-20180523175426-90697d60dd84
-	github.com/mariusor/activitypub.go v0.0.0-20181110213706-9860c7cec8ef
+	github.com/mariusor/activitypub.go v0.0.0-20181114115224-c53d21a18e76
 	github.com/mariusor/qstring v0.0.0-20180919140350-29d781f85f0f
 	github.com/mattn/go-colorable v0.0.9 // indirect
 	github.com/mattn/go-isatty v0.0.4 // indirect
