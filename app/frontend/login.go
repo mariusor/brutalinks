@@ -1,12 +1,11 @@
 package frontend
 
 import (
+	"fmt"
 	"github.com/mariusor/littr.go/app"
-	"net/http"
-	"strings"
-
 	"github.com/mariusor/littr.go/app/db"
 	"github.com/mariusor/littr.go/app/log"
+	"net/http"
 
 	"github.com/juju/errors"
 	"golang.org/x/crypto/bcrypt"
@@ -32,15 +31,9 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	m := a.Metadata
 	if m != nil {
-		pb := strings.Builder{}
-		pb.Write(m.Password[0:2])
-		for i := 0; i < len(m.Password) - 5;i++ {
-			pb.WriteByte('*')
-		}
-		pb.Write(m.Password[len(m.Password)-3:3])
 		Logger.WithContext( log.Ctx{
-			"pw":   pb.String(),
-			"salt": m.Salt,
+			"pw":   fmt.Sprintf("%2x", m.Password),
+			"salt": fmt.Sprintf("%2x", m.Salt),
 		}).Info("Loaded password")
 		salt := m.Salt
 		saltyPw := []byte(pw)
