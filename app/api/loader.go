@@ -317,12 +317,6 @@ func loadOutboxFilterFromReq(r *http.Request) app.LoadItemsFilter {
 		filters.Key = append(filters.Key, old...)
 	}
 
-	//val := r.Context().Value(AccountCtxtKey)
-	//a, ok := val.(app.Account)
-	//if ok {
-	//	filters.AttributedTo = []string{a.Hash}
-	//}
-
 	return filters
 }
 

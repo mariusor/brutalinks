@@ -12,7 +12,7 @@ import (
 	"github.com/juju/errors"
 )
 
-func loadItems(c context.Context, filter app.LoadItemsFilter, acc app.Account, l log.Logger) (itemListingModel, error) {
+func loadItems(c context.Context, filter app.LoadItemsFilter, acc *app.Account, l log.Logger) (itemListingModel, error) {
 	m := itemListingModel{}
 
 	itemLoader, ok := app.ContextItemLoader(c)
@@ -57,7 +57,7 @@ func (h *handler) HandleDomains(w http.ResponseWriter, r *http.Request) {
 	if err := qstring.Unmarshal(r.URL.Query(), &filter); err != nil {
 		h.logger.Debug("unable to load url parameters")
 	}
-	if m, err := loadItems(r.Context(), filter, h.account, h.logger); err == nil {
+	if m, err := loadItems(r.Context(), filter, &h.account, h.logger); err == nil {
 		m.Title = fmt.Sprintf("Submissions from %s", domain)
 		m.InvertedTheme = isInverted(r)
 

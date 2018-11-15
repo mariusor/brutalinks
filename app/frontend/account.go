@@ -26,7 +26,7 @@ type sessionAccount struct {
 
 // ShowAccount serves /~handler request
 func (h *handler) ShowAccount(w http.ResponseWriter, r *http.Request) {
-	handle := chi.URLParam(r, "handler")
+	handle := chi.URLParam(r, "handle")
 
 	val := r.Context().Value(app.RepositoryCtxtKey)
 	accountLoader, ok := val.(app.CanLoadAccounts)
@@ -53,7 +53,7 @@ func (h *handler) ShowAccount(w http.ResponseWriter, r *http.Request) {
 	if err := qstring.Unmarshal(r.URL.Query(), &filter); err != nil {
 		h.logger.Debug("unable to load url parameters")
 	}
-	if m, err := loadItems(r.Context(), filter, h.account, h.logger); err == nil {
+	if m, err := loadItems(r.Context(), filter, &h.account, h.logger); err == nil {
 		m.Title = fmt.Sprintf("%s submissions", genitive(a.Handle))
 		m.User = &a
 		m.InvertedTheme = isInverted(r)

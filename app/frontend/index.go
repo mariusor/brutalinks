@@ -104,8 +104,6 @@ func pageLink(p int) template.HTML {
 
 // HandleIndex serves / request
 func (h *handler) HandleIndex(w http.ResponseWriter, r *http.Request) {
-	m := itemListingModel{Title: "Index", InvertedTheme: isInverted(r)}
-
 	filter := app.LoadItemsFilter{
 		Context:  []string{"0"},
 		MaxItems: MaxContentItems,
@@ -131,44 +129,21 @@ func (h *handler) HandleIndex(w http.ResponseWriter, r *http.Request) {
 		filter.FollowedBy = []string{h.account.Hash.String()}
 	default:
 	}
+	if m, err := loadItems(r.Context(), filter, &h.account, h.logger); err == nil {
+		m.Title = "Index"
+		m.InvertedTheme = isInverted(r)
 
-	val := r.Context().Value(app.RepositoryCtxtKey)
-	itemLoader, ok := val.(app.CanLoadItems)
-	if !ok {
-		h.logger.Error("could not load item repository from Context")
-		return
-	}
-	items, err := itemLoader.LoadItems(filter)
-	if err != nil {
-		h.logger.Error(err.Error())
-	}
-
-	h.showItemData = false
-	m.Items = loadComments(items)
-	if len(items) >= MaxContentItems {
-		m.NextPage = filter.Page + 1
-	}
-	if filter.Page > 1 {
-		m.PrevPage = filter.Page - 1
-	}
-	acct := h.account
-	if acct.IsLogged() {
-		votesLoader, ok := val.(app.CanLoadVotes)
-		if ok {
-			filters := app.LoadVotesFilter{
-				AttributedTo: []app.Hash{acct.Hash},
-				ItemKey:      m.Items.getItemsHashes(),
-				MaxItems:     MaxContentItems,
-			}
-			acct.Votes, err = votesLoader.LoadVotes(filters)
-			if err != nil {
-				h.logger.Error(err.Error())
-			}
-		} else {
-			h.logger.Error("could not load vote repository from Context")
+		h.showItemData = false
+		if len(m.Items) >= MaxContentItems {
+			m.NextPage = filter.Page + 1
 		}
+		if filter.Page > 1 {
+			m.PrevPage = filter.Page - 1
+		}
+		h.RenderTemplate(r, w, "listing", m)
+	} else {
+		h.HandleError(w, r, http.StatusInternalServerError, err)
 	}
-	h.RenderTemplate(r, w, "listing", m)
 }
 
 // HandleAbout serves /about request

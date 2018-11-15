@@ -154,13 +154,7 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 		h.logger.Error("could not load item repository from Context")
 		return
 	}
-	handle := chi.URLParam(r, "handler")
-	//acctLoader, ok := val.(app.CanLoadAccounts)
-	//if !ok {
-	//	h.logger.Error("could not load account repository from Context")
-	//}
-	//act, err := acctLoader.LoadAccount(app.LoadAccountFilter{Handle: handler})
-
+	handle := chi.URLParam(r, "handle")
 	hash := chi.URLParam(r, "hash")
 	i, err := itemLoader.LoadItem(app.LoadItemsFilter{
 		AttributedTo: []app.Hash{app.Hash(handle)},
@@ -195,12 +189,11 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 	reparentComments(allComments)
 	addLevelComments(allComments)
 
-	acc := h.account
-	if ok && acc.IsLogged() {
+	if ok && h.account.IsLogged() {
 		votesLoader, ok := app.ContextVoteLoader(r.Context())
 		if ok {
-			acc.Votes, err = votesLoader.LoadVotes(app.LoadVotesFilter{
-				AttributedTo: []app.Hash{acc.Hash},
+			h.account.Votes, err = votesLoader.LoadVotes(app.LoadVotesFilter{
+				AttributedTo: []app.Hash{h.account.Hash},
 				ItemKey:      allComments.getItemsHashes(),
 				MaxItems:     MaxContentItems,
 			})
