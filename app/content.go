@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"github.com/juju/errors"
 	"github.com/mmcloughlin/meow"
+	"html/template"
 	"strings"
+
+	mark "gitlab.com/golang-commonmark/markdown"
 )
 
 type FlagBits uint8
@@ -97,4 +100,18 @@ func GenKey(elems ...[]byte) Key {
 	var k Key
 	k.FromString(fmt.Sprintf("%x", meow.Checksum(777, []byte(buf.String()))))
 	return k
+}
+
+func Markdown(data string) template.HTML {
+	md := mark.New(
+		mark.HTML(true),
+		mark.Tables(true),
+		mark.Linkify(false),
+		mark.Breaks(false),
+		mark.Typographer(true),
+		mark.XHTMLOutput(false),
+	)
+
+	h := md.RenderToString([]byte(data))
+	return template.HTML(h)
 }

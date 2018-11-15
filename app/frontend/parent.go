@@ -8,11 +8,11 @@ import (
 )
 
 // HandleItemRedirect serves /item/{hash} request
-func HandleItemRedirect(w http.ResponseWriter, r *http.Request) {
+func (h *handler) HandleItemRedirect(w http.ResponseWriter, r *http.Request) {
 	val := r.Context().Value(app.RepositoryCtxtKey)
 	itemLoader, ok := val.(app.CanLoadItems)
 	if !ok {
-		Logger.Error("could not load item repository from Context")
+		h.logger.Error("could not load item repository from Context")
 		return
 	}
 	p, err := itemLoader.LoadItem(app.LoadItemsFilter{
@@ -20,9 +20,9 @@ func HandleItemRedirect(w http.ResponseWriter, r *http.Request) {
 		MaxItems: 1,
 	})
 	if err != nil {
-		HandleError(w, r, http.StatusInternalServerError, err)
+		h.HandleError(w, r, http.StatusInternalServerError, err)
 		return
 	}
 	url := ItemPermaLink(p)
-	Redirect(w, r, url, http.StatusMovedPermanently)
+	h.Redirect(w, r, url, http.StatusMovedPermanently)
 }

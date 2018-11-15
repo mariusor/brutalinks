@@ -38,7 +38,16 @@ func main() {
 	app.Instance = app.New()
 
 	db.Init(&app.Instance)
-	frontend.Init(&app.Instance)
+	front, err := frontend.Init(frontend.Config{
+		Logger:      app.Instance.Logger,
+		SessionKeys: app.Instance.SessionKeys,
+		Secure:      app.Instance.Secure,
+		BaseURL:     app.Instance.BaseURL,
+		HostName:    app.Instance.HostName,
+	})
+	if err != nil {
+		app.Instance.Logger.Warn(err.Error())
+	}
 	processing.InitQueues(&app.Instance)
 
 	// api
@@ -57,7 +66,6 @@ func main() {
 	api.Logger = app.Instance.Logger.New(log.Ctx{"package": "api"})
 	app.Logger = app.Instance.Logger.New(log.Ctx{"package": "app"})
 	db.Logger = app.Instance.Logger.New(log.Ctx{"package": "db"})
-	frontend.Logger = app.Instance.Logger.New(log.Ctx{"package": "frontend"})
 	processing.Logger = app.Instance.Logger.New(log.Ctx{"package": "processing"})
 
 	// Routes
@@ -72,54 +80,53 @@ func main() {
 
 	// Frontend
 	r.With(api.Repository).Route("/", func(r chi.Router) {
-		r.Use(frontend.LoadSession)
+		r.Use(front.LoadSession)
 		r.Use(middleware.GetHead)
-		r.Use(frontend.Renderer)
-		r.Use(app.NeedsDBBackend(frontend.HandleError))
+		r.Use(app.NeedsDBBackend(front.HandleError))
 		//r.Use(middleware.RedirectSlashes)
 
-		r.Get("/", frontend.HandleIndex)
+		r.Get("/", front.HandleIndex)
 
-		r.Get("/about", frontend.HandleAbout)
+		r.Get("/about", front.HandleAbout)
 
-		r.Get("/submit", frontend.ShowSubmit)
-		r.Post("/submit", frontend.HandleSubmit)
+		r.Get("/submit", front.ShowSubmit)
+		r.Post("/submit", front.HandleSubmit)
 
-		r.Get("/register", frontend.ShowRegister)
-		r.Post("/register", frontend.HandleRegister)
+		r.Get("/register", front.ShowRegister)
+		r.Post("/register", front.HandleRegister)
 
 		r.Route("/~{handle}", func(r chi.Router) {
-			r.Get("/", frontend.ShowAccount)
-			r.Get("/{hash}", frontend.ShowItem)
-			r.Post("/{hash}", frontend.HandleSubmit)
-			r.Get("/{hash}/{direction}", frontend.HandleVoting)
+			r.Get("/", front.ShowAccount)
+			r.Get("/{hash}", front.ShowItem)
+			r.Post("/{hash}", front.HandleSubmit)
+			r.Get("/{hash}/{direction}", front.HandleVoting)
 		})
 
 		//r.Get("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/", frontend.HandleDate)
-		r.Get("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}", frontend.ShowItem)
-		r.Get("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}/{direction}", frontend.HandleVoting)
-		r.Post("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}", frontend.HandleSubmit)
+		r.Get("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}", front.ShowItem)
+		r.Get("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}/{direction}", front.HandleVoting)
+		r.Post("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}", front.HandleSubmit)
 
-		r.Get("/item/{hash}", frontend.HandleItemRedirect)
+		r.Get("/item/{hash}", front.HandleItemRedirect)
 
-		r.Get("/domains/{domain}", frontend.HandleDomains)
+		r.Get("/domains/{domain}", front.HandleDomains)
 
-		r.With(frontend.NeedsSessions).Get("/logout", frontend.HandleLogout)
-		r.With(frontend.NeedsSessions).Get("/login", frontend.ShowLogin)
-		r.With(frontend.NeedsSessions).Post("/login", frontend.HandleLogin)
+		r.With(front.NeedsSessions).Get("/logout", front.HandleLogout)
+		r.With(front.NeedsSessions).Get("/login", front.ShowLogin)
+		r.With(front.NeedsSessions).Post("/login", front.HandleLogin)
 
-		r.Get("/self", frontend.HandleIndex)
-		r.Get("/federated", frontend.HandleIndex)
-		r.Get("/followed", frontend.HandleIndex)
+		r.Get("/self", front.HandleIndex)
+		r.Get("/federated", front.HandleIndex)
+		r.Get("/followed", front.HandleIndex)
 
-		r.With(frontend.NeedsSessions).Get("/auth/{provider}", frontend.HandleAuth)
-		r.With(frontend.NeedsSessions).Get("/auth/{provider}/callback", frontend.HandleCallback)
+		r.With(front.NeedsSessions).Get("/auth/{provider}", front.HandleAuth)
+		r.With(front.NeedsSessions).Get("/auth/{provider}/callback", front.HandleCallback)
 
 		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
-			frontend.HandleError(w, r, http.StatusNotFound, errors.Errorf("%q not found", r.RequestURI))
+			front.HandleError(w, r, http.StatusNotFound, errors.Errorf("%q not found", r.RequestURI))
 		})
 		r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
-			frontend.HandleError(w, r, http.StatusMethodNotAllowed, errors.Errorf("invalid %q request", r.Method))
+			front.HandleError(w, r, http.StatusMethodNotAllowed, errors.Errorf("invalid %q request", r.Method))
 		})
 	})
 
@@ -211,10 +218,10 @@ func main() {
 	r.With(app.StripCookies).Get("/js/{path}", serveFiles(filepath.Join(assets, "js")))
 
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
-		frontend.HandleError(w, r, http.StatusNotFound, errors.Errorf("%s not found", r.RequestURI))
+		front.HandleError(w, r, http.StatusNotFound, errors.Errorf("%s not found", r.RequestURI))
 	})
 	r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
-		frontend.HandleError(w, r, http.StatusMethodNotAllowed, errors.Errorf("%s not allowed", r.Method))
+		front.HandleError(w, r, http.StatusMethodNotAllowed, errors.Errorf("%s not allowed", r.Method))
 	})
 
 	app.Instance.Run(r, wait)

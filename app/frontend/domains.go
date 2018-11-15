@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/mariusor/littr.go/app"
+	"github.com/mariusor/littr.go/app/log"
 	"github.com/mariusor/qstring"
 	"net/http"
 
@@ -11,7 +12,7 @@ import (
 	"github.com/juju/errors"
 )
 
-func loadItems(c context.Context, filter app.LoadItemsFilter) (itemListingModel, error) {
+func loadItems(c context.Context, filter app.LoadItemsFilter, acc app.Account, l log.Logger) (itemListingModel, error) {
 	m := itemListingModel{}
 
 	itemLoader, ok := app.ContextItemLoader(c)
@@ -25,7 +26,6 @@ func loadItems(c context.Context, filter app.LoadItemsFilter) (itemListingModel,
 	}
 	m.Items = loadComments(contentItems)
 
-	acc, ok := app.ContextCurrentAccount(c)
 	if acc.IsLogged() {
 		votesLoader, ok := app.ContextVoteLoader(c)
 		if ok {
@@ -35,17 +35,17 @@ func loadItems(c context.Context, filter app.LoadItemsFilter) (itemListingModel,
 				MaxItems:     MaxContentItems,
 			})
 			if err != nil {
-				Logger.Error(err.Error())
+				l.Error(err.Error())
 			}
 		} else {
-			Logger.Error("could not load vote repository from Context")
+			l.Error("could not load vote repository from Context")
 		}
 	}
 	return m, nil
 }
 
 // HandleDomains serves /domains/{domain} request
-func HandleDomains(w http.ResponseWriter, r *http.Request) {
+func (h *handler) HandleDomains(w http.ResponseWriter, r *http.Request) {
 	domain := chi.URLParam(r, "domain")
 	filter := app.LoadItemsFilter{
 		Content:          fmt.Sprintf("http[s]?://%s", domain),
@@ -55,21 +55,21 @@ func HandleDomains(w http.ResponseWriter, r *http.Request) {
 		Page:             1,
 	}
 	if err := qstring.Unmarshal(r.URL.Query(), &filter); err != nil {
-		Logger.Debug("unable to load url parameters")
+		h.logger.Debug("unable to load url parameters")
 	}
-	if m, err := loadItems(r.Context(), filter); err == nil {
+	if m, err := loadItems(r.Context(), filter, h.account, h.logger); err == nil {
 		m.Title = fmt.Sprintf("Submissions from %s", domain)
 		m.InvertedTheme = isInverted(r)
 
-		ShowItemData = false
+		h.showItemData = false
 		if len(m.Items) >= MaxContentItems {
 			m.NextPage = filter.Page + 1
 		}
 		if filter.Page > 1 {
 			m.PrevPage = filter.Page - 1
 		}
-		RenderTemplate(r, w, "listing", m)
+		h.RenderTemplate(r, w, "listing", m)
 	} else {
-		HandleError(w, r, http.StatusInternalServerError, err)
+		h.HandleError(w, r, http.StatusInternalServerError, err)
 	}
 }

@@ -46,7 +46,7 @@ func loadTags(data string) (app.TagCollection, app.TagCollection) {
 			if en == -1 {
 				en = len(byt) - st
 			}
-			t.Name = byt[st:st+en]
+			t.Name = byt[st : st+en]
 			if t.Name[0] == '#' {
 				t.URL = fmt.Sprintf("%s/tags/%s", app.Instance.BaseURL, t.Name[1:])
 				tags = append(tags, t)
@@ -56,14 +56,14 @@ func loadTags(data string) (app.TagCollection, app.TagCollection) {
 				mentions = append(mentions, t)
 			}
 
-			i = i+st+en
+			i = i + st + en
 		}
 	}
 
 	return tags, mentions
 }
 
-func ContentFromRequest(r *http.Request) (app.Item, error) {
+func ContentFromRequest(r *http.Request, acc app.Account) (app.Item, error) {
 	if r.Method != http.MethodPost {
 		return app.Item{}, errors.Errorf("invalid http method type")
 	}
@@ -78,8 +78,7 @@ func ContentFromRequest(r *http.Request) (app.Item, error) {
 		i.Data = dat
 	}
 
-	acc, _ := app.ContextCurrentAccount(r.Context())
-	i.SubmittedBy = acc
+	i.SubmittedBy = &acc
 	i.MimeType = detectMimeType(i.Data)
 	i.Metadata = &app.ItemMetadata{}
 	i.Metadata.Tags, i.Metadata.Mentions = loadTags(i.Data)
@@ -97,57 +96,57 @@ func ContentFromRequest(r *http.Request) (app.Item, error) {
 }
 
 // ShowSubmit serves GET /submit request
-func ShowSubmit(w http.ResponseWriter, r *http.Request) {
-	RenderTemplate(r, w, "new", newModel{Title: "New submission", InvertedTheme: isInverted(r)})
+func (h *handler) ShowSubmit(w http.ResponseWriter, r *http.Request) {
+	h.RenderTemplate(r, w, "new", newModel{Title: "New submission", InvertedTheme: isInverted(r)})
 }
 
 // HandleSubmit handles POST /submit requests
-// HandleSubmit handles POST /~handle/hash requests
+// HandleSubmit handles POST /~handler/hash requests
 // HandleSubmit handles POST /year/month/day/hash requests
-func HandleSubmit(w http.ResponseWriter, r *http.Request) {
-	p, err := ContentFromRequest(r)
+func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
+	p, err := ContentFromRequest(r, h.account)
 	if err != nil {
-		Logger.WithContext(log.Ctx{
+		h.logger.WithContext(log.Ctx{
 			"prev": err,
 		}).Error("wrong http method")
-		HandleError(w, r, http.StatusMethodNotAllowed, err)
+		h.HandleError(w, r, http.StatusMethodNotAllowed, err)
 		return
 	}
 
-	acc, accOk := app.ContextCurrentAccount(r.Context())
+	acc := h.account
 	auth, authOk := app.ContextAuthenticated(r.Context())
-	if authOk && accOk && acc.IsLogged() {
-		auth.WithAccount(acc)
+	if authOk && acc.IsLogged() {
+		auth.WithAccount(&acc)
 	}
 
 	if repo, ok := app.ContextItemSaver(r.Context()); !ok {
-		Logger.Error("could not load item repository from Context")
+		h.logger.Error("could not load item repository from Context")
 		return
 	} else {
 		p, err = repo.SaveItem(p)
 		if err != nil {
-			Logger.WithContext(log.Ctx{
+			h.logger.WithContext(log.Ctx{
 				"prev": err,
 			}).Error("unable to save item")
-			HandleError(w, r, http.StatusInternalServerError, err)
+			h.HandleError(w, r, http.StatusInternalServerError, err)
 			return
 		}
 	}
 	if voter, ok := app.ContextVoteSaver(r.Context()); !ok {
-		Logger.Error("could not load item repository from Context")
+		h.logger.Error("could not load item repository from Context")
 	} else {
 		v := app.Vote{
-			SubmittedBy: acc,
+			SubmittedBy: &acc,
 			Item:        &p,
 			Weight:      1 * app.ScoreMultiplier,
 		}
 		if _, err := voter.SaveVote(v); err != nil {
-			Logger.WithContext(log.Ctx{
+			h.logger.WithContext(log.Ctx{
 				"hash":   v.Item.Hash,
 				"author": v.SubmittedBy.Handle,
 				"weight": v.Weight,
 			}).Error(err.Error())
 		}
 	}
-	Redirect(w, r, ItemPermaLink(p), http.StatusSeeOther)
+	h.Redirect(w, r, ItemPermaLink(p), http.StatusSeeOther)
 }

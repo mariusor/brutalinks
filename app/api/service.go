@@ -5,7 +5,6 @@ import (
 	as "github.com/mariusor/activitypub.go/activitystreams"
 	json "github.com/mariusor/activitypub.go/jsonld"
 	"github.com/mariusor/littr.go/app"
-	"github.com/mariusor/littr.go/app/frontend"
 	"net/http"
 )
 
@@ -35,7 +34,7 @@ func HandleService(w http.ResponseWriter, r *http.Request) {
 	us.Outbox = as.IRI(fmt.Sprintf("%s/outbox", id))
 	//us.Summary.Set(as.NilLangRef, "This is a link aggregator similar to hacker news and reddit")
 	us.Summary.Set(as.NilLangRef, inf.Summary)
-	us.Content.Set(as.NilLangRef, string(frontend.Markdown(inf.Description)))
+	us.Content.Set(as.NilLangRef, string(app.Markdown(inf.Description)))
 
 	us.AttributedTo = as.IRI("https://github.com/mariusor")
 	data, _ := json.Marshal(us)

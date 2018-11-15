@@ -61,9 +61,10 @@ func (r *repository) req(method string, url string, body io.Reader) (*http.Reque
 }
 
 func (r *repository) sign(req *http.Request) error {
-	if r.Account == nil || r.Account == frontend.AnonymousAccount() {
+	if r.Account == nil || r.Account.Hash == frontend.AnonymousAccount().Hash {
 		return nil
 	}
+
 	k := r.Account.Metadata.Key
 	if k == nil {
 		return nil
@@ -756,7 +757,7 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 	doUpd := false
 	art := loadAPItem(it)
 
-	actor := loadAPPerson(*frontend.AnonymousAccount())
+	actor := loadAPPerson(frontend.AnonymousAccount())
 	if r.Account != nil && r.Account.Hash == it.SubmittedBy.Hash {
 		// need to test if it.SubmittedBy matches r.Account and that the signature is valid
 		actor = loadAPPerson(*it.SubmittedBy)

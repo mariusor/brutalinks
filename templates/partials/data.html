@@ -2,8 +2,8 @@
 {{- template "partials/title" . -}}
 {{- if .Item.IsSelf -}}
 {{if ShowText}}
-{{- if eq .MimeType "text/html" -}}{{- .Item | HTML -}}{{- end -}}
-{{- if eq .MimeType "text/plain" -}}{{- .Item | Text -}}{{end}}
+{{- if eq .MimeType "text/html" -}}{{- .Item.Data | HTML -}}{{- end -}}
+{{- if eq .MimeType "text/plain" -}}{{- .Item.Data | Text -}}{{end}}
 {{- if eq .MimeType "text/markdown" -}}{{- .Item.Data | Markdown -}}{{- end -}}
 {{end}}
 {{- end -}}

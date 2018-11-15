@@ -69,7 +69,7 @@ type Deletable interface {
 	UnDelete()
 }
 
-func (a *Account) VotedOn(i Item) *Vote {
+func (a Account) VotedOn(i Item) *Vote {
 	for key, v := range a.Votes {
 		if key == i.Hash {
 			return &v
@@ -82,8 +82,8 @@ func (a Account) GetLink() string {
 	return fmt.Sprintf("/~%s", a.Handle)
 }
 
-func (a *Account) IsLogged() bool {
-	return a != nil && (!a.CreatedAt.IsZero())
+func (a Account) IsLogged() bool {
+	return !a.CreatedAt.IsZero()
 }
 
 func (a AccountCollection) First() (*Account, error) {

@@ -2,6 +2,7 @@ package frontend
 
 import (
 	"github.com/mariusor/littr.go/app"
+	"github.com/mariusor/littr.go/app/log"
 	"net/http"
 	"time"
 
@@ -21,7 +22,7 @@ type registerModel struct {
 	Account       app.Account
 }
 
-func AccountFromRequest(r *http.Request) (*app.Account, []error) {
+func accountFromRequest(r *http.Request, l log.Logger) (*app.Account, []error) {
 	if r.Method != http.MethodPost {
 		return nil, []error{errors.Errorf("invalid http method type")}
 	}
@@ -43,7 +44,7 @@ func AccountFromRequest(r *http.Request) (*app.Account, []error) {
 	if len(errs) > 0 {
 		return nil, errs
 	}
-	handle := r.PostFormValue("handle")
+	handle := r.PostFormValue("handler")
 	if handle != "" {
 		a.Handle = handle
 	}
@@ -58,7 +59,7 @@ func AccountFromRequest(r *http.Request) (*app.Account, []error) {
 
 	savpw, err := bcrypt.GenerateFromPassword(saltedpw, 14)
 	if err != nil {
-		Logger.Error(err.Error())
+		l.Error(err.Error())
 	}
 	a.Metadata = &app.AccountMetadata{
 		Salt:     salt,
@@ -66,31 +67,31 @@ func AccountFromRequest(r *http.Request) (*app.Account, []error) {
 	}
 
 	a, err = db.Config.SaveAccount(a)
-	Logger.Warn("using hardcoded db.Config.SaveAccount")
+	l.Warn("using hardcoded db.Config.SaveAccount")
 	if err != nil {
-		Logger.Error(err.Error())
+		l.Error(err.Error())
 		return nil, []error{err}
 	}
 	return &a, nil
 }
 
 // ShowRegister serves GET /register requests
-func ShowRegister(w http.ResponseWriter, r *http.Request) {
+func (h *handler) ShowRegister(w http.ResponseWriter, r *http.Request) {
 	m := registerModel{InvertedTheme: isInverted(r)}
 	m.Terms = `<p>We try to follow <q><cite>Wheaton's Law</cite></q>:<br/>` +
 		`<blockquote>Don't be a dick!</blockquote></p>`
 
-	RenderTemplate(r, w, "register", m)
+	h.RenderTemplate(r, w, "register", m)
 }
 
 // HandleRegister handles POST /register requests
-func HandleRegister(w http.ResponseWriter, r *http.Request) {
-	a, errs := AccountFromRequest(r)
+func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
+	a, errs := accountFromRequest(r, h.logger)
 
 	if len(errs) > 0 {
-		HandleError(w, r, http.StatusInternalServerError, errs...)
+		h.HandleError(w, r, http.StatusInternalServerError, errs...)
 		return
 	}
-	Redirect(w, r, a.GetLink(), http.StatusSeeOther)
+	h.Redirect(w, r, a.GetLink(), http.StatusSeeOther)
 	return
 }

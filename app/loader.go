@@ -336,12 +336,6 @@ func ContextItemLoader(ctx context.Context) (CanLoadItems, bool) {
 	return l, ok
 }
 
-func ContextCurrentAccount(ctx context.Context) (*Account, bool) {
-	ctxVal := ctx.Value(AccountCtxtKey)
-	a, ok := ctxVal.(*Account)
-	return a, ok
-}
-
 func ContextAuthenticated(ctx context.Context) (Authenticated, bool) {
 	ctxVal := ctx.Value(RepositoryCtxtKey)
 	a, ok := ctxVal.(Authenticated)

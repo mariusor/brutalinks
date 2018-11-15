@@ -1,7 +1,6 @@
 package frontend
 
 import (
-	"context"
 	"encoding/gob"
 	"fmt"
 	"html/template"
@@ -23,8 +22,6 @@ import (
 	"github.com/juju/errors"
 	"github.com/mariusor/littr.go/app/log"
 	"golang.org/x/oauth2"
-
-	mark "gitlab.com/golang-commonmark/markdown"
 )
 
 const (
@@ -32,14 +29,14 @@ const (
 	templateDir = "templates/"
 )
 
-var sessionStore sessions.Store
+type handler struct {
+	session      sessions.Store
+	account      app.Account
+	logger       log.Logger
+	showItemData bool
+}
+
 var defaultAccount = app.Account{Handle: app.Anonymous, Hash: app.AnonymousHash}
-
-var Logger log.Logger
-
-//var Renderer *render.Render
-var CurrentAccount = &defaultAccount
-var ShowItemData = false
 
 type flashType string
 
@@ -55,35 +52,19 @@ type flash struct {
 	Msg  string
 }
 
-func html(i app.Item) template.HTML {
-	return template.HTML(string(i.Data))
+func html(data string) template.HTML {
+	return template.HTML(data)
 }
 
-func Markdown(data string) template.HTML {
-	md := mark.New(
-		mark.HTML(true),
-		mark.Tables(true),
-		mark.Linkify(false),
-		mark.Breaks(false),
-		mark.Typographer(true),
-		mark.XHTMLOutput(false),
-	)
-
-	h := md.RenderToString([]byte(data))
-	return template.HTML(h)
+func text(data string) string {
+	return string(data)
 }
 
-func text(i app.Item) string {
-	return string(i.Data)
-}
-
-// ISOTimeFmt returns ISO formatted time value
-func ISOTimeFmt(t time.Time) string {
+func isoTimeFmt(t time.Time) string {
 	return t.Format("2006-01-02T15:04:05.000-07:00")
 }
 
-// RelTimeFmt returns human readable relative time format
-func RelTimeFmt(old time.Time) string {
+func relTimeFmt(old time.Time) string {
 	//return humanize.RelTime(old, time.Now(), "ago", "in the future")
 	td := time.Now().Sub(old)
 	pluralize := func(d float64, unit string) string {
@@ -143,102 +124,56 @@ func RelTimeFmt(old time.Time) string {
 	return fmt.Sprintf("%.0f %s %s", val, pluralize(val, unit), when)
 }
 
-const RendererCtxtKey = "__renderer"
+type Config struct {
+	Version     string
+	BaseURL     string
+	HostName    string
+	Secure      bool
+	SessionKeys [][]byte
+	Logger      log.Logger
+}
 
-func Init(app *app.Application) error {
+func Init(c Config) (handler, error) {
 	// frontend
 	gob.Register(sessionAccount{})
 	gob.Register(flash{})
-	return InitSessionStore(app)
+
+	var err error
+
+	h := handler{
+		account: defaultAccount,
+	}
+	if c.Logger != nil {
+		h.logger = c.Logger
+	}
+	h.session, err = InitSessionStore(c)
+
+	return h, err
 }
 
 // InitSessionStore initializes the session store if we have encryption key settings in the env variables
-func InitSessionStore(app *app.Application) error {
-	if len(app.SessionKeys) > 0 {
-		s := sessions.NewCookieStore(app.SessionKeys...)
-		s.Options.Domain = app.HostName
-		s.Options.Path = "/"
-		s.Options.HttpOnly = true
-		s.Options.Secure = app.Secure
-
-		sessionStore = s
+func InitSessionStore(c Config) (sessions.Store, error) {
+	var s sessions.Store
+	if len(c.SessionKeys) > 0 {
+		ss := sessions.NewCookieStore(c.SessionKeys...)
+		//s.Options.Domain = c.HostName
+		ss.Options.Path = "/"
+		ss.Options.HttpOnly = true
+		ss.Options.Secure = c.Secure
+		s = ss
 	} else {
 		err := errors.New("no session encryption configuration, unable to use sessions")
-		Logger.Warn(err.Error())
-		app.Config.SessionsEnabled = false
-		return err
+		if c.Logger != nil {
+			c.Logger.Warn(err.Error())
+		}
+		//app.Config.SessionsEnabled = false
+		return nil, err
 	}
-	return nil
+	return s, nil
 }
 
-func Renderer(next http.Handler) http.Handler {
-	fn := func(w http.ResponseWriter, r *http.Request) {
-		renderer := render.New(render.Options{
-			Directory:  templateDir,
-			Asset:      nil,
-			AssetNames: nil,
-			Layout:     "layout",
-			Extensions: []string{".html"},
-			Funcs: []template.FuncMap{{
-				//"urlParam":          func(s string) string { return chi.URLParam(r, s) },
-				//"get":               func(s string) string { return r.URL.Query().Get(s) },
-				"isInverted":        isInverted,
-				"sluggify":          sluggify,
-				"title":             func(t []byte) string { return string(t) },
-				"getProviders":      getAuthProviders,
-				"CurrentAccount":    func() *app.Account { return CurrentAccount },
-				"LoadFlashMessages": loadFlashMessages,
-				"Mod10":             func(lvl uint8) float64 { return math.Mod(float64(lvl), float64(10)) },
-				"ShowText":          func() bool { return ShowItemData },
-				"HTML":              html,
-				"Text":              text,
-				"Markdown":          Markdown,
-				"PermaLink":         ItemPermaLink,
-				"ParentLink":        parentLink,
-				"OPLink":            opLink,
-				"IsYay":             isYay,
-				"IsNay":             isNay,
-				"ScoreFmt":          scoreFmt,
-				"NumberFmt":         func(i int64) string { return NumberFormat("%d", i) },
-				"TimeFmt":           RelTimeFmt,
-				"ISOTimeFmt":        ISOTimeFmt,
-				//"ScoreFmt":          func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
-				//"NumberFmt":         func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
-				"ScoreClass": scoreClass,
-				"YayLink":    yayLink,
-				"NayLink":    nayLink,
-				"PageLink":   pageLink,
-				"App":        func() app.Application { return app.Instance },
-				"Name":       appName,
-				"Menu":       func() []template.HTML { return headerMenu(r) },
-			}},
-			Delims:         render.Delims{Left: "{{", Right: "}}"},
-			Charset:        "UTF-8",
-			DisableCharset: false,
-			//IndentJSON: false,
-			//IndentXML: false,
-			//PrefixJSON: []byte(""),
-			//PrefixXML: []byte(""),
-			BinaryContentType: "application/octet-stream",
-			HTMLContentType:   "text/html",
-			//JSONContentType: "application/json",
-			//JSONPContentType: "application/javascript",
-			//TextContentType: "text/plain",
-			//XMLContentType: "application/xhtml+xml",
-			IsDevelopment: true,
-			//UnEscapeHTML: false,
-			//StreamingJSON: false,
-			//RequirePartials: false,
-			DisableHTTPErrorRendering: false,
-		})
-		ctx := context.WithValue(r.Context(), RendererCtxtKey, renderer)
-		next.ServeHTTP(w, r.WithContext(ctx))
-	}
-	return http.HandlerFunc(fn)
-}
-
-func AnonymousAccount() *app.Account {
-	return &defaultAccount
+func AnonymousAccount() app.Account {
+	return defaultAccount
 }
 
 var flashData = make([]flash, 0)
@@ -266,7 +201,7 @@ func loadScoreFormat(s int64) (string, string) {
 	dB := 10.0 // math.Ceil(math.Log10(math.Abs(ScoreMaxB))) + 1
 	if d < dK {
 		score = math.Ceil(base)
-		return NumberFormat("%d", int(score)), ""
+		return numberFormat("%d", int(score)), ""
 	} else if d < dM {
 		score = base / ScoreMaxK
 		units = "K"
@@ -284,10 +219,10 @@ func loadScoreFormat(s int64) (string, string) {
 		return fmt.Sprintf("%s%s", sign, "∞"), "inf"
 	}
 
-	return NumberFormat("%3.1f", score), units
+	return numberFormat("%3.1f", score), units
 }
 
-func NumberFormat(fmtVerb string, el ...interface{}) string {
+func numberFormat(fmtVerb string, el ...interface{}) string {
 	return message.NewPrinter(language.English).Sprintf(fmtVerb, el...)
 }
 
@@ -342,26 +277,25 @@ func appName(app app.Application) template.HTML {
 	return template.HTML(name.String())
 }
 
-func saveSession(w http.ResponseWriter, r *http.Request) error {
+func (h handler) saveSession(w http.ResponseWriter, r *http.Request) error {
 	var err error
 	var s *sessions.Session
-	if sessionStore == nil {
+	if h.session == nil {
 		err := errors.New("missing session store, unable to save session")
-		Logger.Warn(err.Error())
 		return err
 	}
-	if s, err = sessionStore.Get(r, sessionName); err != nil {
+	if s, err = h.session.Get(r, sessionName); err != nil {
 		return errors.Errorf("failed to load session before redirect: %s", err)
 	}
-	if err := sessionStore.Save(r, w, s); err != nil {
+	if err := h.session.Save(r, w, s); err != nil {
 		return errors.Errorf("failed to save session before redirect: %s", err)
 	}
 	return nil
 }
 
-func Redirect(w http.ResponseWriter, r *http.Request, url string, status int) {
-	if err := saveSession(w, r); err != nil {
-		Logger.WithContext(log.Ctx{
+func (h handler) Redirect(w http.ResponseWriter, r *http.Request, url string, status int) {
+	if err := h.saveSession(w, r); err != nil {
+		h.logger.WithContext(log.Ctx{
 			"status": status,
 			"url":    url,
 		}).Error(err.Error())
@@ -370,41 +304,81 @@ func Redirect(w http.ResponseWriter, r *http.Request, url string, status int) {
 	http.Redirect(w, r, url, status)
 }
 
-func RenderTemplate(r *http.Request, w http.ResponseWriter, name string, m interface{}) error {
+func (h handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name string, m interface{}) error {
 	var err error
-	if err = saveSession(w, r); err != nil {
-		Logger.WithContext(log.Ctx{
+	if err = h.saveSession(w, r); err != nil {
+		h.logger.WithContext(log.Ctx{
 			"template": name,
 			"model":    fmt.Sprintf("%#v", m),
 		}).Error(err.Error())
 	}
-	renderer, ok := r.Context().Value(RendererCtxtKey).(*render.Render)
-	if !ok {
-		err = errors.New("unable to load renderer")
-		Logger.Error(err.Error())
-		return err
-	}
-	if err = renderer.HTML(w, http.StatusOK, name, m); err != nil {
+	ren := render.New(render.Options{
+		Directory:  templateDir,
+		Layout:     "layout",
+		Extensions: []string{".html"},
+		Funcs: []template.FuncMap{{
+			//"urlParam":          func(s string) string { return chi.URLParam(r, s) },
+			//"get":               func(s string) string { return r.URL.Query().Get(s) },
+			"isInverted":        isInverted,
+			"sluggify":          sluggify,
+			"title":             func(t []byte) string { return string(t) },
+			"getProviders":      getAuthProviders,
+			"CurrentAccount":    func() app.Account { return h.account },
+			"LoadFlashMessages": loadFlashMessages,
+			"Mod10":             func(lvl uint8) float64 { return math.Mod(float64(lvl), float64(10)) },
+			"ShowText":          func() bool { return h.showItemData },
+			"HTML":              html,
+			"Text":              text,
+			"Markdown":          app.Markdown,
+			"PermaLink":         ItemPermaLink,
+			"ParentLink":        parentLink,
+			"OPLink":            opLink,
+			"IsYay":             isYay,
+			"IsNay":             isNay,
+			"ScoreFmt":          scoreFmt,
+			"NumberFmt":         func(i int64) string { return numberFormat("%d", i) },
+			"TimeFmt":           relTimeFmt,
+			"ISOTimeFmt":        isoTimeFmt,
+			"ScoreClass":        scoreClass,
+			"YayLink":           yayLink,
+			"NayLink":           nayLink,
+			"PageLink":          pageLink,
+			"App":               func() app.Application { return app.Instance },
+			"Name":              appName,
+			"Menu":              func() []template.HTML { return headerMenu(r) },
+			//"ScoreFmt":          func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
+			//"NumberFmt":         func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
+		}},
+		Delims:                    render.Delims{Left: "{{", Right: "}}"},
+		Charset:                   "UTF-8",
+		DisableCharset:            false,
+		BinaryContentType:         "application/octet-stream",
+		HTMLContentType:           "text/html",
+		IsDevelopment:             true,
+		DisableHTTPErrorRendering: false,
+	})
+
+	if err = ren.HTML(w, http.StatusOK, name, m); err != nil {
 		new := errors.NewErr("failed to render template")
-		Logger.WithContext(log.Ctx{
+		h.logger.WithContext(log.Ctx{
 			"template": name,
 			"model":    fmt.Sprintf("%T", m),
 			"trace":    new.StackTrace(),
 			"previous": err.Error(),
 		}).Error(new.Error())
-		renderer.HTML(w, http.StatusInternalServerError, "error", new)
+		ren.HTML(w, http.StatusInternalServerError, "error", new)
 	}
 	return err
 }
 
 // handleAdmin serves /admin request
-func HandleAdmin(w http.ResponseWriter, _ *http.Request) {
+func (h handler) HandleAdmin(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(200)
 	w.Write([]byte("done!!!"))
 }
 
 // handleMain serves /auth/{provider}/callback request
-func HandleCallback(w http.ResponseWriter, r *http.Request) {
+func (h handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	provider := chi.URLParam(r, "provider")
 	providerErr := q["error"]
@@ -415,19 +389,19 @@ func HandleCallback(w http.ResponseWriter, r *http.Request) {
 		for _, errDesc := range errDescriptions {
 			errs = append(errs, errors.Errorf(errDesc))
 		}
-		HandleError(w, r, http.StatusForbidden, errs...)
+		h.HandleError(w, r, http.StatusForbidden, errs...)
 		return
 	}
 	code := q["code"]
 	state := q["state"]
 	if code == nil {
-		HandleError(w, r, http.StatusForbidden, errors.Errorf("%s error: Empty authentication token", provider))
+		h.HandleError(w, r, http.StatusForbidden, errors.Errorf("%s error: Empty authentication token", provider))
 		return
 	}
 
-	s, err := sessionStore.Get(r, sessionName)
+	s, err := h.session.Get(r, sessionName)
 	if err != nil {
-		Logger.Info(err.Error())
+		h.logger.Info(err.Error())
 	}
 
 	s.Values["provider"] = provider
@@ -435,23 +409,23 @@ func HandleCallback(w http.ResponseWriter, r *http.Request) {
 	s.Values["state"] = state
 	//addFlashMessage(Success, fmt.Sprintf("Login successful with %s", provider), r)
 
-	err = sessionStore.Save(r, w, s)
+	err = h.session.Save(r, w, s)
 	if err != nil {
-		Logger.Info(err.Error())
+		h.logger.Info(err.Error())
 	}
-	Redirect(w, r, "/", http.StatusFound)
+	h.Redirect(w, r, "/", http.StatusFound)
 }
 
 // handleMain serves /auth/{provider}/callback request
-func HandleAuth(w http.ResponseWriter, r *http.Request) {
+func (h handler) HandleAuth(w http.ResponseWriter, r *http.Request) {
 	provider := chi.URLParam(r, "provider")
 
 	indexUrl := "/"
 	if os.Getenv(strings.ToUpper(provider)+"_KEY") == "" {
-		Logger.WithContext(log.Ctx{
+		h.logger.WithContext(log.Ctx{
 			"provider": provider,
 		}).Info("Provider has no credentials set")
-		Redirect(w, r, indexUrl, http.StatusPermanentRedirect)
+		h.Redirect(w, r, indexUrl, http.StatusPermanentRedirect)
 		return
 	}
 	url := fmt.Sprintf("%s/auth/%s/callback", "", provider)
@@ -499,14 +473,14 @@ func HandleAuth(w http.ResponseWriter, r *http.Request) {
 			RedirectURL: url,
 		}
 	default:
-		s, err := sessionStore.Get(r, sessionName)
+		s, err := h.session.Get(r, sessionName)
 		if err != nil {
-			Logger.Info(err.Error())
+			h.logger.Info(err.Error())
 		}
 		s.AddFlash("Missing oauth provider")
-		Redirect(w, r, indexUrl, http.StatusPermanentRedirect)
+		h.Redirect(w, r, indexUrl, http.StatusPermanentRedirect)
 	}
-	Redirect(w, r, config.AuthCodeURL("state", oauth2.AccessTypeOnline), http.StatusFound)
+	h.Redirect(w, r, config.AuthCodeURL("state", oauth2.AccessTypeOnline), http.StatusFound)
 }
 
 func isInverted(r *http.Request) bool {
@@ -519,21 +493,21 @@ func isInverted(r *http.Request) bool {
 	return false
 }
 
-func loadCurrentAccount(s *sessions.Session) app.Account {
+func loadCurrentAccount(s *sessions.Session, l log.Logger) app.Account {
 	// load the current account from the session or setting it to anonymous
 	if raw, ok := s.Values[SessionUserKey]; ok {
 		if a, ok := raw.(sessionAccount); ok {
 			if acc, err := db.Config.LoadAccount(app.LoadAccountsFilter{Handle: []string{a.Handle}}); err == nil {
-				Logger.WithContext(log.Ctx{
-					"handle": acc.Handle,
-					"hash":   acc.Hash.String(),
+				l.WithContext(log.Ctx{
+					"handler": acc.Handle,
+					"hash":    acc.Hash.String(),
 				}).Debug("loaded account from session")
 				return acc
 			} else {
 				if err != nil {
-					Logger.WithContext(log.Ctx{
-						"handle": a.Handle,
-						"hash":   string(a.Hash),
+					l.WithContext(log.Ctx{
+						"handler": a.Handle,
+						"hash":    string(a.Hash),
 					}).Warn(err.Error())
 				}
 			}
@@ -542,7 +516,7 @@ func loadCurrentAccount(s *sessions.Session) app.Account {
 	return defaultAccount
 }
 
-func loadSessionFlashMessages(s *sessions.Session) {
+func loadSessionFlashMessages(s *sessions.Session, l log.Logger) {
 	flashData = flashData[:0]
 	flashes := s.Flashes()
 	// setting the local flashData value
@@ -552,7 +526,7 @@ func loadSessionFlashMessages(s *sessions.Session) {
 		}
 		f, ok := int.(flash)
 		if !ok {
-			Logger.WithContext(log.Ctx{
+			l.WithContext(log.Ctx{
 				"type": fmt.Sprintf("%T", int),
 				"val":  fmt.Sprintf("%#v", int),
 			}).Error("unable to read flash struct")
@@ -561,37 +535,33 @@ func loadSessionFlashMessages(s *sessions.Session) {
 	}
 }
 
-func LoadSession(next http.Handler) http.Handler {
+func (h *handler) LoadSession(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		acc := defaultAccount
 		if !app.Instance.Config.SessionsEnabled {
 			err := errors.New("session store disabled")
-			Logger.Warn(err.Error())
+			h.logger.Warn(err.Error())
 			next.ServeHTTP(w, r)
 			return
 		}
-		if sessionStore == nil {
+		if h.session == nil {
 			err := errors.New("missing session store, unable to load session")
-			Logger.Warn(err.Error())
+			h.logger.Warn(err.Error())
 			next.ServeHTTP(w, r)
 			return
 		}
-		if s, err := sessionStore.Get(r, sessionName); err != nil {
-			Logger.Error(err.Error())
+		if s, err := h.session.Get(r, sessionName); err != nil {
+			h.logger.Error(err.Error())
 		} else {
-			loadSessionFlashMessages(s)
-			acc = loadCurrentAccount(s)
+			h.account = loadCurrentAccount(s, h.logger)
+			loadSessionFlashMessages(s, h.logger)
 		}
-		ctx := context.WithValue(r.Context(), app.AccountCtxtKey, &acc)
-
-		CurrentAccount = &acc
-		next.ServeHTTP(w, r.WithContext(ctx))
+		next.ServeHTTP(w, r)
 	}
 	return http.HandlerFunc(fn)
 }
 
 func addFlashMessage(typ flashType, msg string, r *http.Request) {
-	//s, _ := sessionStore.Get(r, sessionName)
+	//s, _ := h.session.Get(r, sessionName)
 	n := flash{typ, msg}
 
 	exists := false
@@ -612,10 +582,10 @@ func loadFlashMessages() []flash {
 	return f
 }
 
-func NeedsSessions(next http.Handler) http.Handler {
+func (h handler) NeedsSessions(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		if !app.Instance.Config.SessionsEnabled {
-			HandleError(w, r, http.StatusNotFound, errors.New("sessions are disabled"))
+			h.HandleError(w, r, http.StatusNotFound, errors.New("sessions are disabled"))
 			return
 		}
 		next.ServeHTTP(w, r)

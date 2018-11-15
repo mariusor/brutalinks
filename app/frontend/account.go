@@ -24,24 +24,24 @@ type sessionAccount struct {
 	Handle string
 }
 
-// ShowAccount serves /~handle request
-func ShowAccount(w http.ResponseWriter, r *http.Request) {
-	handle := chi.URLParam(r, "handle")
+// ShowAccount serves /~handler request
+func (h *handler) ShowAccount(w http.ResponseWriter, r *http.Request) {
+	handle := chi.URLParam(r, "handler")
 
 	val := r.Context().Value(app.RepositoryCtxtKey)
 	accountLoader, ok := val.(app.CanLoadAccounts)
 	if !ok {
-		Logger.Error("could not load account repository from Context")
+		h.logger.Error("could not load account repository from Context")
 		return
 	}
 	var err error
 	a, err := accountLoader.LoadAccount(app.LoadAccountsFilter{Handle: []string{handle}})
 	if err != nil {
-		HandleError(w, r, http.StatusNotFound, err)
+		h.HandleError(w, r, http.StatusNotFound, err)
 		return
 	}
 	if !a.IsValid() {
-		HandleError(w, r, http.StatusNotFound, errors.Errorf("account %s not found", handle))
+		h.HandleError(w, r, http.StatusNotFound, errors.Errorf("account %s not found", handle))
 		return
 	}
 
@@ -51,9 +51,9 @@ func ShowAccount(w http.ResponseWriter, r *http.Request) {
 		Page:         1,
 	}
 	if err := qstring.Unmarshal(r.URL.Query(), &filter); err != nil {
-		Logger.Debug("unable to load url parameters")
+		h.logger.Debug("unable to load url parameters")
 	}
-	if m, err := loadItems(r.Context(), filter); err == nil {
+	if m, err := loadItems(r.Context(), filter, h.account, h.logger); err == nil {
 		m.Title = fmt.Sprintf("%s submissions", genitive(a.Handle))
 		m.User = &a
 		m.InvertedTheme = isInverted(r)
@@ -63,10 +63,10 @@ func ShowAccount(w http.ResponseWriter, r *http.Request) {
 		if filter.Page > 1 {
 			m.PrevPage = filter.Page - 1
 		}
-		ShowItemData = true
+		h.showItemData = true
 
-		RenderTemplate(r, w, "user", m)
+		h.RenderTemplate(r, w, "user", m)
 	} else {
-		HandleError(w, r, http.StatusInternalServerError, err)
+		h.HandleError(w, r, http.StatusInternalServerError, err)
 	}
 }

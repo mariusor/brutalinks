@@ -84,7 +84,7 @@ func mimeTypeTagReplace(m string, t app.Tag) string {
 }
 
 func replaceTags(comments comments) {
-	inRange := func (n string, nn []string) bool {
+	inRange := func(n string, nn []string) bool {
 		for _, ts := range nn {
 			if ts == n {
 				return true
@@ -142,24 +142,24 @@ func reparentComments(allComments []*comment) {
 	}
 }
 
+// ShowItem serves /~{handler}/{hash} request
 // ShowItem serves /{year}/{month}/{day}/{hash} request
-// ShowItem serves /~{handle}/{hash} request
-func ShowItem(w http.ResponseWriter, r *http.Request) {
+func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 	items := make([]app.Item, 0)
-	ShowItemData = true
+	h.showItemData = true
 
 	m := contentModel{InvertedTheme: isInverted(r)}
 	itemLoader, ok := app.ContextItemLoader(r.Context())
 	if !ok {
-		Logger.Error("could not load item repository from Context")
+		h.logger.Error("could not load item repository from Context")
 		return
 	}
-	handle := chi.URLParam(r, "handle")
+	handle := chi.URLParam(r, "handler")
 	//acctLoader, ok := val.(app.CanLoadAccounts)
 	//if !ok {
-	//	Logger.Error("could not load account repository from Context")
+	//	h.logger.Error("could not load account repository from Context")
 	//}
-	//act, err := acctLoader.LoadAccount(app.LoadAccountFilter{Handle: handle})
+	//act, err := acctLoader.LoadAccount(app.LoadAccountFilter{Handle: handler})
 
 	hash := chi.URLParam(r, "hash")
 	i, err := itemLoader.LoadItem(app.LoadItemsFilter{
@@ -167,13 +167,13 @@ func ShowItem(w http.ResponseWriter, r *http.Request) {
 		Key:          []string{hash},
 	})
 	if err != nil {
-		Logger.Error(err.Error())
-		HandleError(w, r, http.StatusNotFound, err)
+		h.logger.Error(err.Error())
+		h.HandleError(w, r, http.StatusNotFound, err)
 		return
 	}
 	m.Content = comment{Item: i}
 	if len(i.Data)+len(i.Title) == 0 {
-		HandleError(w, r, http.StatusNotFound, errors.Errorf("not found"))
+		h.HandleError(w, r, http.StatusNotFound, errors.Errorf("not found"))
 		return
 	}
 	items = append(items, i)
@@ -185,8 +185,8 @@ func ShowItem(w http.ResponseWriter, r *http.Request) {
 		MaxItems: MaxContentItems,
 	})
 	if err != nil {
-		Logger.Error(err.Error())
-		HandleError(w, r, http.StatusNotFound, err)
+		h.logger.Error(err.Error())
+		h.HandleError(w, r, http.StatusNotFound, err)
 		return
 	}
 	allComments = append(allComments, loadComments(contentItems)...)
@@ -195,7 +195,7 @@ func ShowItem(w http.ResponseWriter, r *http.Request) {
 	reparentComments(allComments)
 	addLevelComments(allComments)
 
-	acc, ok := app.ContextCurrentAccount(r.Context())
+	acc := h.account
 	if ok && acc.IsLogged() {
 		votesLoader, ok := app.ContextVoteLoader(r.Context())
 		if ok {
@@ -205,19 +205,19 @@ func ShowItem(w http.ResponseWriter, r *http.Request) {
 				MaxItems:     MaxContentItems,
 			})
 			if err != nil {
-				Logger.Error(err.Error())
+				h.logger.Error(err.Error())
 			}
 		} else {
-			Logger.Error("could not load vote repository from Context")
+			h.logger.Error("could not load vote repository from Context")
 		}
 	}
 	if len(m.Title) > 0 {
 		m.Title = fmt.Sprintf("%s", i.Title)
 	} else {
-		// FIXME(marius): we lost the handle of the account
+		// FIXME(marius): we lost the handler of the account
 		m.Title = fmt.Sprintf("%s comment", genitive(m.Content.SubmittedBy.Handle))
 	}
-	RenderTemplate(r, w, "content", m)
+	h.RenderTemplate(r, w, "content", m)
 }
 
 func genitive(name string) string {
@@ -232,21 +232,21 @@ func genitive(name string) string {
 }
 
 // HandleVoting serves /{year}/{month}/{day}/{hash}/{direction} request
-// HandleVoting serves /~{handle}/{direction} request
-func HandleVoting(w http.ResponseWriter, r *http.Request) {
+// HandleVoting serves /~{handler}/{direction} request
+func (h *handler) HandleVoting(w http.ResponseWriter, r *http.Request) {
 	hash := chi.URLParam(r, "hash")
 
 	val := r.Context().Value(app.RepositoryCtxtKey)
 	itemLoader, ok := val.(app.CanLoadItems)
 	if !ok {
-		Logger.Error("could not load item repository from Context")
+		h.logger.Error("could not load item repository from Context")
 		return
 	}
 
 	p, err := itemLoader.LoadItem(app.LoadItemsFilter{Key: []string{hash}})
 	if err != nil {
-		Logger.Error(err.Error())
-		HandleError(w, r, http.StatusNotFound, err)
+		h.logger.Error(err.Error())
+		h.HandleError(w, r, http.StatusNotFound, err)
 		return
 	}
 
@@ -259,10 +259,10 @@ func HandleVoting(w http.ResponseWriter, r *http.Request) {
 	}
 	url := ItemPermaLink(p)
 
-	acc, ok := app.ContextCurrentAccount(r.Context())
+	acc := h.account
 	if acc.IsLogged() {
 		if auth, ok := val.(app.Authenticated); ok {
-			auth.WithAccount(acc)
+			auth.WithAccount(&acc)
 		}
 		voter, ok := val.(app.CanSaveVotes)
 		backUrl := r.Header.Get("Referer")
@@ -270,16 +270,16 @@ func HandleVoting(w http.ResponseWriter, r *http.Request) {
 			url = fmt.Sprintf("%s#item-%s", backUrl, p.Hash)
 		}
 		if !ok {
-			Logger.Error("could not load vote repository from Context")
+			h.logger.Error("could not load vote repository from Context")
 			return
 		}
 		v := app.Vote{
-			SubmittedBy: acc,
+			SubmittedBy: &acc,
 			Item:        &p,
 			Weight:      multiplier * app.ScoreMultiplier,
 		}
 		if _, err := voter.SaveVote(v); err != nil {
-			Logger.WithContext(log.Ctx{
+			h.logger.WithContext(log.Ctx{
 				"hash":   v.Item.Hash,
 				"author": v.SubmittedBy.Handle,
 				"weight": v.Weight,
@@ -288,5 +288,5 @@ func HandleVoting(w http.ResponseWriter, r *http.Request) {
 	} else {
 		addFlashMessage(Error, fmt.Sprintf("unable to add vote as an %s user", acc.Handle), r)
 	}
-	Redirect(w, r, url, http.StatusFound)
+	h.Redirect(w, r, url, http.StatusFound)
 }

@@ -20,18 +20,18 @@ type loginModel struct {
 }
 
 // ShowLogin handles POST /login requests
-func HandleLogin(w http.ResponseWriter, r *http.Request) {
+func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	pw := r.PostFormValue("pw")
-	handle := r.PostFormValue("handle")
+	handle := r.PostFormValue("handler")
 	a, err := db.Config.LoadAccount(app.LoadAccountsFilter{Handle: []string{handle}})
 	if err != nil {
-		Logger.Error(err.Error())
-		HandleError(w, r, http.StatusForbidden, errors.Errorf("handle or password are wrong"))
+		h.logger.Error(err.Error())
+		h.HandleError(w, r, http.StatusForbidden, errors.Errorf("handler or password are wrong"))
 		return
 	}
 	m := a.Metadata
 	if m != nil {
-		Logger.WithContext( log.Ctx{
+		h.logger.WithContext(log.Ctx{
 			"pw":   fmt.Sprintf("%2x", m.Password),
 			"salt": fmt.Sprintf("%2x", m.Salt),
 		}).Info("Loaded password")
@@ -40,45 +40,45 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 		saltyPw = append(saltyPw, salt...)
 		err = bcrypt.CompareHashAndPassword(m.Password, saltyPw)
 	} else {
-		Logger.Info(err.Error())
-		HandleError(w, r, http.StatusForbidden, errors.Errorf("invalid account metadata"))
+		h.logger.Info(err.Error())
+		h.HandleError(w, r, http.StatusForbidden, errors.Errorf("invalid account metadata"))
 		return
 	}
 	if err != nil {
-		Logger.Error(err.Error())
-		HandleError(w, r, http.StatusForbidden, errors.Errorf("handle or password are wrong"))
+		h.logger.Error(err.Error())
+		h.HandleError(w, r, http.StatusForbidden, errors.Errorf("handler or password are wrong"))
 		return
 	}
 
-	if s, err := sessionStore.Get(r, sessionName); err == nil {
+	if s, err := h.session.Get(r, sessionName); err == nil {
 		s.Values[SessionUserKey] = sessionAccount{
 			Handle: a.Handle,
 			Hash:   []byte(a.Hash),
 		}
 		s.Save(r, w)
 	} else {
-		Logger.Error(err.Error())
+		h.logger.Error(err.Error())
 	}
 
 	backUrl := "/"
 	//addFlashMessage(Success, "Login successful", r)
-	Redirect(w, r, backUrl, http.StatusSeeOther)
+	h.Redirect(w, r, backUrl, http.StatusSeeOther)
 }
 
 // ShowLogin serves GET /login requests
-func ShowLogin(w http.ResponseWriter, r *http.Request) {
+func (h *handler) ShowLogin(w http.ResponseWriter, r *http.Request) {
 	a := app.Account{}
 
 	m := loginModel{Title: "Login", InvertedTheme: isInverted(r)}
 	m.Account = a
 
-	RenderTemplate(r, w, "login", m)
+	h.RenderTemplate(r, w, "login", m)
 }
 
 // HandleLogout serves /logout requests
-func HandleLogout(w http.ResponseWriter, r *http.Request) {
-	if s, err := sessionStore.Get(r, sessionName); err != nil {
-		Logger.Error(err.Error())
+func (h *handler) HandleLogout(w http.ResponseWriter, r *http.Request) {
+	if s, err := h.session.Get(r, sessionName); err != nil {
+		h.logger.Error(err.Error())
 	} else {
 		s.Values[SessionUserKey] = nil
 	}
@@ -86,5 +86,5 @@ func HandleLogout(w http.ResponseWriter, r *http.Request) {
 	if r.Header.Get("Referer") != "" {
 		backUrl = r.Header.Get("Referer")
 	}
-	Redirect(w, r, backUrl, http.StatusSeeOther)
+	h.Redirect(w, r, backUrl, http.StatusSeeOther)
 }

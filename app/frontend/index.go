@@ -103,7 +103,7 @@ func pageLink(p int) template.HTML {
 }
 
 // HandleIndex serves / request
-func HandleIndex(w http.ResponseWriter, r *http.Request) {
+func (h *handler) HandleIndex(w http.ResponseWriter, r *http.Request) {
 	m := itemListingModel{Title: "Index", InvertedTheme: isInverted(r)}
 
 	filter := app.LoadItemsFilter{
@@ -113,37 +113,37 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 		Page:     1,
 	}
 	if err := qstring.Unmarshal(r.URL.Query(), &filter); err != nil {
-		Logger.Debug("unable to load url parameters")
+		h.logger.Debug("unable to load url parameters")
 	}
 
 	base := path.Base(r.URL.Path)
 	switch base {
 	case "self":
-		Logger.Debug("showing self posts")
+		h.logger.Debug("showing self posts")
 	case "federated":
-		Logger.Debug("showing federated posts")
+		h.logger.Debug("showing federated posts")
 		filter.Federated = []bool{true}
 	case "followed":
-		Logger.WithContext(log.Ctx{
-			"handle": CurrentAccount.Handle,
-			"hash":   CurrentAccount.Hash,
+		h.logger.WithContext(log.Ctx{
+			"handler": h.account.Handle,
+			"hash":    h.account.Hash,
 		}).Debug("showing followed posts")
-		filter.FollowedBy = []string{CurrentAccount.Hash.String()}
+		filter.FollowedBy = []string{h.account.Hash.String()}
 	default:
 	}
 
 	val := r.Context().Value(app.RepositoryCtxtKey)
 	itemLoader, ok := val.(app.CanLoadItems)
 	if !ok {
-		Logger.Error("could not load item repository from Context")
+		h.logger.Error("could not load item repository from Context")
 		return
 	}
 	items, err := itemLoader.LoadItems(filter)
 	if err != nil {
-		Logger.Error(err.Error())
+		h.logger.Error(err.Error())
 	}
 
-	ShowItemData = false
+	h.showItemData = false
 	m.Items = loadComments(items)
 	if len(items) >= MaxContentItems {
 		m.NextPage = filter.Page + 1
@@ -151,7 +151,7 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 	if filter.Page > 1 {
 		m.PrevPage = filter.Page - 1
 	}
-	acct, ok := app.ContextCurrentAccount(r.Context())
+	acct := h.account
 	if acct.IsLogged() {
 		votesLoader, ok := val.(app.CanLoadVotes)
 		if ok {
@@ -162,25 +162,25 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 			}
 			acct.Votes, err = votesLoader.LoadVotes(filters)
 			if err != nil {
-				Logger.Error(err.Error())
+				h.logger.Error(err.Error())
 			}
 		} else {
-			Logger.Error("could not load vote repository from Context")
+			h.logger.Error("could not load vote repository from Context")
 		}
 	}
-	RenderTemplate(r, w, "listing", m)
+	h.RenderTemplate(r, w, "listing", m)
 }
 
 // HandleAbout serves /about request
 // It's something Mastodon compatible servers should show
-func HandleAbout(w http.ResponseWriter, r *http.Request) {
+func (h *handler) HandleAbout(w http.ResponseWriter, r *http.Request) {
 	m := aboutModel{Title: "About", InvertedTheme: isInverted(r)}
 	f, err := db.Config.LoadInfo()
 	if err != nil {
-		HandleError(w, r, http.StatusInternalServerError, err)
+		h.HandleError(w, r, http.StatusInternalServerError, err)
 		return
 	}
 	m.Desc.Description = f.Description
 
-	RenderTemplate(r, w, "about", m)
+	h.RenderTemplate(r, w, "about", m)
 }
