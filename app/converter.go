@@ -238,23 +238,23 @@ func (i *TagCollection) FromActivityPubItem(it as.ItemCollection) error {
 		return errors.New("empty collection")
 	}
 	for _, t := range it {
-		if t.IsObject () {
-			if ob, ok := t.(*as.Object); ok {
-				u := string(t.GetLink())
-				// we have a link
-				lt := Tag{
-					URL:  u,
-					Name: ob.Name.First(),
-				}
-				*i  = append(*i, lt)
-			}
-		} else if t.IsLink() {
-			u := string(t.GetLink())
+		if m, ok := t.(*as.Mention); ok {
+			u := string(*t.GetID())
 			// we have a link
-			*i = append(*i, Tag{
-				URL: u,
-				Name: path.Base(u),
-			})
+			lt := Tag{
+				URL:  u,
+				Name: m.Name.First(),
+			}
+			*i  = append(*i, lt)
+		}
+		if ob, ok := t.(*as.Object); ok {
+			u := string(*t.GetID())
+			// we have a link
+			lt := Tag{
+				URL:  u,
+				Name: ob.Name.First(),
+			}
+			*i  = append(*i, lt)
 		}
 	}
 	return nil

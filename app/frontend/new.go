@@ -28,7 +28,7 @@ func detectMimeType(data string) string {
 }
 
 func loadTags(data string) (app.TagCollection, app.TagCollection) {
-	if !strings.ContainsAny(data, "#@") {
+	if !strings.ContainsAny(data, "#@~") {
 		return nil, nil
 	}
 	tags := make(app.TagCollection, 0)
@@ -36,23 +36,23 @@ func loadTags(data string) (app.TagCollection, app.TagCollection) {
 	l := len(data)
 	for i := 0; i < l; i++ {
 		byt := data[i:]
-		st := strings.IndexAny(byt, "#@")
+		st := strings.IndexAny(byt, "#@~")
 		if st >= l {
 			break
 		}
 		if st != -1 {
 			t := app.Tag{}
-			en := strings.IndexAny(byt[st:], " \t\r\n")
+			en := strings.IndexAny(byt[st:], " \t\r\n,.:;!?")
 			if en == -1 {
 				en = len(byt) - st
 			}
 			t.Name = byt[st:st+en]
-			if  t.Name[0] == '#' {
-				t.URL = fmt.Sprintf("%s/tags/%s", app.Instance.HostName, t.Name[1:])
+			if t.Name[0] == '#' {
+				t.URL = fmt.Sprintf("%s/tags/%s", app.Instance.BaseURL, t.Name[1:])
 				tags = append(tags, t)
 			}
-			if  t.Name[0] == '@' {
-				t.URL = fmt.Sprintf("%s/~%s", app.Instance.HostName, t.Name[1:])
+			if t.Name[0] == '@' || t.Name[0] == '~' {
+				t.URL = fmt.Sprintf("%s/~%s", app.Instance.BaseURL, t.Name[1:])
 				mentions = append(mentions, t)
 			}
 

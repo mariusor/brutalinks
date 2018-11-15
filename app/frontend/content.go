@@ -61,18 +61,71 @@ func sluggify(s string) string {
 	return strings.Replace(s, "/", "-", -1)
 }
 
-func AddLevelComments(comments comments) {
+func mimeTypeTagReplace(m string, t app.Tag) string {
+	r := t.Name
+	switch m {
+	case "text/markdown":
+		if t.Name[0] == '#' {
+			r = fmt.Sprintf("[&#35;%s](%s)", t.Name[1:], t.URL)
+		}
+		if t.Name[0] == '@' || t.Name[0] == '~' {
+			r = fmt.Sprintf("[&#126;%s](%s)", t.Name[1:], t.URL)
+		}
+	case "text/html":
+		if t.Name[0] == '#' {
+			r = fmt.Sprintf("<a href='%s'>&#35;%s</a>", t.URL, t.Name[1:])
+		}
+		if t.Name[0] == '@' || t.Name[0] == '~' {
+			r = fmt.Sprintf("<a href='%s'>&#126;%s<a/>", t.URL, t.Name[1:])
+		}
+	}
+
+	return r
+}
+
+func replaceTags(comments comments) {
+	inRange := func (n string, nn []string) bool {
+		for _, ts := range nn {
+			if ts == n {
+				return true
+			}
+		}
+		return false
+	}
 	for _, cur := range comments {
-		if len(cur.Children) > 0 {
-			for _, child := range cur.Children {
-				child.Level = cur.Level + 1
-				AddLevelComments(cur.Children)
+		names := make([]string, 0)
+		if cur.Metadata != nil && cur.Metadata.Tags != nil {
+			for _, t := range cur.Metadata.Tags {
+				if inRange(t.Name, names) {
+					continue
+				}
+				r := mimeTypeTagReplace(cur.MimeType, t)
+				cur.Data = strings.Replace(cur.Data, t.Name, r, -1)
+				names = append(names, t.Name)
+			}
+			for _, t := range cur.Metadata.Mentions {
+				if inRange(t.Name, names) {
+					continue
+				}
+				r := mimeTypeTagReplace(cur.MimeType, t)
+				cur.Data = strings.Replace(cur.Data, t.Name, r, -1)
 			}
 		}
 	}
 }
 
-func ReparentComments(allComments []*comment) {
+func addLevelComments(comments comments) {
+	for _, cur := range comments {
+		if len(cur.Children) > 0 {
+			for _, child := range cur.Children {
+				child.Level = cur.Level + 1
+				addLevelComments(cur.Children)
+			}
+		}
+	}
+}
+
+func reparentComments(allComments []*comment) {
 	parFn := func(t []*comment, cur comment) *comment {
 		for _, n := range t {
 			if cur.Item.Parent != nil && cur.Item.Parent.Hash == n.Hash {
@@ -119,7 +172,7 @@ func ShowItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	m.Content = comment{Item: i}
-	if len(i.Data) + len(i.Title) == 0 {
+	if len(i.Data)+len(i.Title) == 0 {
 		HandleError(w, r, http.StatusNotFound, errors.Errorf("not found"))
 		return
 	}
@@ -138,8 +191,9 @@ func ShowItem(w http.ResponseWriter, r *http.Request) {
 	}
 	allComments = append(allComments, loadComments(contentItems)...)
 
-	ReparentComments(allComments)
-	AddLevelComments(allComments)
+	replaceTags(allComments)
+	reparentComments(allComments)
+	addLevelComments(allComments)
 
 	acc, ok := app.ContextCurrentAccount(r.Context())
 	if ok && acc.IsLogged() {

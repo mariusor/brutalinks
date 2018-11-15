@@ -15,6 +15,7 @@ const (
 
 	FlagsNone = FlagBits(0)
 )
+
 const MimeTypeURL = "application/url"
 
 type Key [32]byte
@@ -82,13 +83,13 @@ func (f *FlagBits) FromInt64() error {
 
 type ItemCollection []Item
 
-func GenKey(elems... []byte) Key {
+func GenKey(elems ...[]byte) Key {
 	lim := []byte("##")
 
 	buf := strings.Builder{}
 	for i, el := range elems {
 		buf.Write(el)
-		if i < len(elems) - 1 {
+		if i < len(elems)-1 {
 			buf.Write(lim)
 		}
 	}

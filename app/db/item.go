@@ -101,7 +101,7 @@ type ItemCollection []Item
 func saveItem(db *sqlx.DB, it app.Item) (app.Item, error) {
 	i := Item{
 		Score:    it.Score,
-		MimeType: it.MimeType,
+		MimeType: string(it.MimeType),
 		Data:     []byte(it.Data),
 		Title:    []byte(it.Title),
 	}
@@ -139,7 +139,7 @@ func saveItem(db *sqlx.DB, it app.Item) (app.Item, error) {
 
 	res, err := db.Exec(ins, params...)
 	if err != nil {
-		return it, err
+		return it, errors.Annotate(err, "db error")
 	} else {
 		if rows, _ := res.RowsAffected(); rows == 0 {
 			return it, errors.Errorf("could not save item %q", i.Key.Hash())
