@@ -98,27 +98,27 @@ func (l *logger) WithContext(ctx ...interface{}) Logger {
 }
 
 func (l logger) Debug(msg string) {
-	l.l.Debug(msg , l.context()...)
+	l.l.Debug(msg, l.context()...)
 }
 
 func (l logger) Debugf(msg string, p ...interface{}) {
-	l.l.Debug(fmt.Sprintf(msg, p...) , l.context()...)
+	l.l.Debug(fmt.Sprintf(msg, p...), l.context()...)
 }
 
 func (l logger) Info(msg string) {
-	l.l.Info(msg , l.context()...)
+	l.l.Info(msg, l.context()...)
 }
 
 func (l logger) Infof(msg string, p ...interface{}) {
-	l.l.Info(fmt.Sprintf(msg, p...) , l.context()...)
+	l.l.Info(fmt.Sprintf(msg, p...), l.context()...)
 }
 
 func (l logger) Warn(msg string) {
-	l.l.Warn(msg , l.context()...)
+	l.l.Warn(msg, l.context()...)
 }
 
 func (l logger) Warnf(msg string, p ...interface{}) {
-	l.l.Warn(fmt.Sprintf(msg, p...) , l.context()...)
+	l.l.Warn(fmt.Sprintf(msg, p...), l.context()...)
 }
 
 func (l logger) Error(msg string) {
@@ -126,13 +126,13 @@ func (l logger) Error(msg string) {
 }
 
 func (l logger) Errorf(msg string, p ...interface{}) {
-	l.l.Error(fmt.Sprintf(msg, p...) , l.context()...)
+	l.l.Error(fmt.Sprintf(msg, p...), l.context()...)
 }
 
 func (l logger) Crit(msg string) {
-	l.l.Crit(msg , l.context()...)
+	l.l.Crit(msg, l.context()...)
 }
 
 func (l logger) Critf(msg string, p ...interface{}) {
-	l.l.Crit(fmt.Sprintf(msg, p...) , l.context()...)
+	l.l.Crit(fmt.Sprintf(msg, p...), l.context()...)
 }

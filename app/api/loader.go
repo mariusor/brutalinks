@@ -791,6 +791,7 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 		resp, err = r.Put(url, "application/activity+json", bytes.NewReader(body))
 	} else {
 		url := fmt.Sprintf("%s/actors/%s/outbox", r.BaseUrl, it.SubmittedBy.Hash)
+		//url := fmt.Sprintf("%s/self/outbox", r.BaseUrl)
 		resp, err = r.Post(url, "application/activity+json", bytes.NewReader(body))
 	}
 	if err != nil {

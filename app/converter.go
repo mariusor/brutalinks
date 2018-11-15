@@ -130,8 +130,8 @@ func (i *Item) FromActivityPubItem(it as.Item) error {
 			}
 			if a.Tag != nil && len(a.Tag) > 0 {
 				i.Metadata = &ItemMetadata{}
-				i.Metadata.Tags = make(TagCollection,0)
-				i.Metadata.Mentions = make(TagCollection,0)
+				i.Metadata.Tags = make(TagCollection, 0)
+				i.Metadata.Mentions = make(TagCollection, 0)
 
 				tags := TagCollection{}
 				tags.FromActivityPubItem(a.Tag)
@@ -142,7 +142,7 @@ func (i *Item) FromActivityPubItem(it as.Item) error {
 						i.Metadata.Mentions = append(i.Metadata.Mentions, t)
 					}
 				}
- 			}
+			}
 		}
 	default:
 		return errors.New("invalid object type")
@@ -245,7 +245,7 @@ func (i *TagCollection) FromActivityPubItem(it as.ItemCollection) error {
 				URL:  u,
 				Name: m.Name.First(),
 			}
-			*i  = append(*i, lt)
+			*i = append(*i, lt)
 		}
 		if ob, ok := t.(*as.Object); ok {
 			u := string(*t.GetID())
@@ -254,7 +254,7 @@ func (i *TagCollection) FromActivityPubItem(it as.ItemCollection) error {
 				URL:  u,
 				Name: ob.Name.First(),
 			}
-			*i  = append(*i, lt)
+			*i = append(*i, lt)
 		}
 	}
 	return nil

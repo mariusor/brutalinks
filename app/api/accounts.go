@@ -125,16 +125,16 @@ func loadAPItem(item app.Item) as.Item {
 			o.Tag = make(as.ItemCollection, 0)
 			for _, men := range m.Mentions {
 				t := as.Object{
-					ID: as.ObjectID(men.URL),
+					ID:   as.ObjectID(men.URL),
 					Type: as.MentionType,
-					Name: as.NaturalLanguageValue{{Ref:as.NilLangRef, Value: men.Name}},
+					Name: as.NaturalLanguageValue{{Ref: as.NilLangRef, Value: men.Name}},
 				}
 				o.Tag.Append(t)
 			}
 			for _, tag := range m.Tags {
 				t := as.Object{
-					ID: as.ObjectID(tag.URL),
-					Name: as.NaturalLanguageValue{{Ref:as.NilLangRef, Value: tag.Name}},
+					ID:   as.ObjectID(tag.URL),
+					Name: as.NaturalLanguageValue{{Ref: as.NilLangRef, Value: tag.Name}},
 				}
 				o.Tag.Append(t)
 			}
@@ -254,7 +254,7 @@ func HandleActorsCollection(w http.ResponseWriter, r *http.Request) {
 				data, err = json.WithContext(GetContext()).Marshal(col)
 			} else {
 				Logger.WithContext(log.Ctx{
-					"err": err,
+					"err":   err,
 					"trace": errors.Details(err),
 				}).Error(err.Error())
 				HandleError(w, r, http.StatusNotFound, err)
@@ -304,7 +304,7 @@ func HandleActor(w http.ResponseWriter, r *http.Request) {
 	w.Write(j)
 }
 
-func getCollectionFromReq( r *http.Request) string {
+func getCollectionFromReq(r *http.Request) string {
 	collection := chi.URLParam(r, "collection")
 	if path.Base(r.URL.Path) == "replies" {
 		collection = "replies"
@@ -390,7 +390,7 @@ func HandleCollectionActivityObject(w http.ResponseWriter, r *http.Request) {
 				MaxItems:  MaxContentItems,
 			})
 			if err != nil {
-				Logger.WithContext( log.Ctx{
+				Logger.WithContext(log.Ctx{
 					"trace": errors.Details(err),
 				}).Error(err.Error())
 			}

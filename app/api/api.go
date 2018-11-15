@@ -282,7 +282,7 @@ func VerifyHttpSignature(next http.Handler) http.Handler {
 				//HandleError(w, r, http.StatusUnauthorized, err)
 				//return
 			} else {
-				acct = &getter.acc
+				acct = getter.acc
 				Logger.WithContext(log.Ctx{
 					"handle": acct.Handle,
 					"hash":   acct.Hash,

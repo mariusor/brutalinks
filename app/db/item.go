@@ -13,18 +13,18 @@ import (
 )
 
 type Item struct {
-	ID          int64      `db:"id,auto"`
-	Key         app.Key `db:"key,size(32)"`
-	Title       []byte     `db:"title"`
-	MimeType    string     `db:"mime_type"`
-	Data        []byte     `db:"data"`
-	Score       int64      `db:"score"`
-	SubmittedAt time.Time  `db:"submitted_at"`
-	SubmittedBy int64      `db:"submitted_by"`
-	UpdatedAt   time.Time  `db:"updated_at"`
-	Flags       FlagBits   `db:"flags"`
-	Metadata    Metadata   `db:"metadata"`
-	Path        []byte     `db:"path"`
+	ID          int64     `db:"id,auto"`
+	Key         app.Key   `db:"key,size(32)"`
+	Title       []byte    `db:"title"`
+	MimeType    string    `db:"mime_type"`
+	Data        []byte    `db:"data"`
+	Score       int64     `db:"score"`
+	SubmittedAt time.Time `db:"submitted_at"`
+	SubmittedBy int64     `db:"submitted_by"`
+	UpdatedAt   time.Time `db:"updated_at"`
+	Flags       FlagBits  `db:"flags"`
+	Metadata    Metadata  `db:"metadata"`
+	Path        []byte    `db:"path"`
 	FullPath    []byte
 	author      *Account
 }
@@ -64,7 +64,7 @@ func GetOPKey(i Item) (app.Key, bool) {
 
 func (i Item) Model() app.Item {
 	a := i.Author().Model()
-	am, _ :=  ItemMetadata(i.Metadata)
+	am, _ := ItemMetadata(i.Metadata)
 	res := app.Item{
 		MimeType:    i.MimeType,
 		SubmittedAt: i.SubmittedAt,
@@ -156,7 +156,7 @@ func saveItem(db *sqlx.DB, it app.Item) (app.Item, error) {
 
 type itemsView struct {
 	ItemID          int64     `db:"item_id,"auto"`
-	ItemKey         app.Key       `db:"item_key,size(32)"`
+	ItemKey         app.Key   `db:"item_key,size(32)"`
 	Title           []byte    `db:"item_title"`
 	MimeType        string    `db:"item_mime_type"`
 	Data            []byte    `db:"item_data"`
@@ -168,7 +168,7 @@ type itemsView struct {
 	ItemMetadata    Metadata  `db:"item_metadata"`
 	Path            []byte    `db:"item_path"`
 	AuthorID        int64     `db:"author_id,auto"`
-	AuthorKey       app.Key       `db:"author_key,size(32)"`
+	AuthorKey       app.Key   `db:"author_key,size(32)"`
 	AuthorEmail     []byte    `db:"author_email"`
 	AuthorHandle    string    `db:"author_handle"`
 	AuthorScore     int64     `db:"author_score"`

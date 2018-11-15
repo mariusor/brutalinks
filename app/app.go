@@ -209,8 +209,8 @@ func loadEnv(l *Application) (bool, error) {
 func (a *Application) Run(m http.Handler, wait time.Duration) {
 	a.Logger.WithContext(log.Ctx{
 		"listen": a.listen(),
-		"host": a.HostName,
-		"env": a.Config.Env,
+		"host":   a.HostName,
+		"env":    a.Config.Env,
 	}).Info("Started")
 	srv := &http.Server{
 		Addr: a.listen(),

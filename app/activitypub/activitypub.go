@@ -71,6 +71,7 @@ func (a Article) GetID() *as.ObjectID {
 	id := as.ObjectID(a.ID)
 	return &id
 }
+
 // GetLink returns the IRI of the Article object
 func (a Article) GetLink() as.IRI {
 	return as.IRI(a.ID)

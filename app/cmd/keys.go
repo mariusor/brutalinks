@@ -63,7 +63,7 @@ func GenSSHKey(handle string, seed int64, kType string) error {
 		if acct.Metadata.Key != nil {
 			Logger.WithContext(log.Ctx{
 				"handle": acct.Handle,
-				"hash": acct.Hash.String(),
+				"hash":   acct.Hash.String(),
 			}).Warnf("Existing Key")
 			continue
 		}
@@ -116,9 +116,9 @@ func GenSSHKey(handle string, seed int64, kType string) error {
 		enc := base64.StdEncoding.EncodeToString(s.Metadata.Key.Public)
 		Logger.WithContext(log.Ctx{
 			"handle": acct.Handle,
-			"hash": acct.Hash.String(),
+			"hash":   acct.Hash.String(),
 			"key-id": s.Metadata.Key.ID,
-			"pub": fmt.Sprintf("%s...%s", enc[0:10], enc[len(enc)-5:5]),
+			"pub":    fmt.Sprintf("%s...%s", enc[0:10], enc[len(enc)-5:5]),
 		}).Infof("Updated Key")
 	}
 	return err

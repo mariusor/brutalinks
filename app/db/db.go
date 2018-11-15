@@ -235,13 +235,13 @@ func loadScoresForItems(db *sqlx.DB, since time.Duration, key string) ([]app.Sco
 		hacker := int64(app.Hacker(ups-downs, now.Sub(submitted)))
 		dumbScore := dumb(ups, downs)
 		Logger.WithContext(log.Ctx{
-			"key": key[0:8],
-			"ups": ups,
-			"downs":downs,
+			"key":    key[0:8],
+			"ups":    ups,
+			"downs":  downs,
 			"reddit": reddit,
 			"wilson": wilson,
-			"hn": hacker,
-			"dumb": dumbScore,
+			"hn":     hacker,
+			"dumb":   dumbScore,
 		}).Info("new score")
 		new := app.Score{
 			ID:        i,
@@ -299,12 +299,12 @@ group by "accounts"."id", "accounts"."key" order by "accounts"."id";`,
 		dumbScore := dumb(ups, downs)
 		Logger.WithContext(log.Ctx{
 			"handle": handle,
-			"ups": ups,
-				"downs":downs,
-				"reddit": reddit,
-				"wilson": wilson,
-				"hn": hacker,
-				"dumb": dumbScore,
+			"ups":    ups,
+			"downs":  downs,
+			"reddit": reddit,
+			"wilson": wilson,
+			"hn":     hacker,
+			"dumb":   dumbScore,
 		}).Info("new score")
 		new := app.Score{
 			ID:        i,
@@ -322,10 +322,10 @@ group by "accounts"."id", "accounts"."key" order by "accounts"."id";`,
 // but in the long term we might want to store some of this information in the db
 func (c config) LoadInfo() (app.Info, error) {
 	inf := app.Info{
-		Title: app.Instance.Name(),
+		Title:   app.Instance.Name(),
 		Summary: "Link aggregator inspired by reddit and hacker news using ActivityPub federation.",
-		Email: "system@littr.me",
-		URI: app.Instance.BaseURL,
+		Email:   "system@littr.me",
+		URI:     app.Instance.BaseURL,
 		Version: app.Instance.Version,
 	}
 

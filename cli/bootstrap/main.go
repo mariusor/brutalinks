@@ -75,7 +75,7 @@ func main() {
 
 		// root user, but our new created db
 		db, err := dbConnection(dbHost, dbRootUser, dbRootPw, dbName)
-		if cmd.E( errors.Annotate(err, "connection failed")) {
+		if cmd.E(errors.Annotate(err, "connection failed")) {
 			os.Exit(1)
 		}
 		defer db.Close()

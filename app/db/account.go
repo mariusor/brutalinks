@@ -18,15 +18,15 @@ var Logger log.Logger
 
 // Account represents the db model that we are using
 type Account struct {
-	Id        int64      `db:"id,auto"`
-	Key       app.Key `db:"key,size(32)"`
-	Email     []byte     `db:"email"`
-	Handle    string     `db:"handle"`
-	Score     int64      `db:"score"`
-	CreatedAt time.Time  `db:"created_at"`
-	UpdatedAt time.Time  `db:"updated_at"`
-	Flags     FlagBits   `db:"flags"`
-	Metadata  Metadata   `db:"metadata"`
+	Id        int64     `db:"id,auto"`
+	Key       app.Key   `db:"key,size(32)"`
+	Email     []byte    `db:"email"`
+	Handle    string    `db:"handle"`
+	Score     int64     `db:"score"`
+	CreatedAt time.Time `db:"created_at"`
+	UpdatedAt time.Time `db:"updated_at"`
+	Flags     FlagBits  `db:"flags"`
+	Metadata  Metadata  `db:"metadata"`
 }
 
 func UpdateAccount(db *sqlx.DB, a app.Account) (app.Account, error) {
