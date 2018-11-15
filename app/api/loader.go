@@ -346,11 +346,6 @@ func loadLikedFilterFromReq(r *http.Request) app.LoadVotesFilter {
 		filters.ItemKey = append(filters.ItemKey, hash)
 		filters.ItemKey = append(filters.ItemKey, old...)
 	}
-	val := r.Context().Value(app.AccountCtxtKey)
-	a, ok := val.(app.Account)
-	if ok {
-		filters.AttributedTo = []app.Hash{a.Hash}
-	}
 	if filters.MaxItems == 0 {
 		if len(filters.ItemKey) > 0 {
 			filters.MaxItems = 1

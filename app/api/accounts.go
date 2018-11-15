@@ -430,14 +430,14 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 	var data []byte
 	var err error
 
-	val := r.Context().Value(app.AccountCtxtKey)
-	a, _ := val.(app.Account)
 	typ := getCollectionFromReq(r)
 	filters := r.Context().Value(app.FilterCtxtKey)
 
+	colId := as.ObjectID(fmt.Sprintf("%s%s", app.Instance.BaseURL, r.URL.Path))
 	f, _ := filters.(app.LoadItemsFilter)
 
 	collection := r.Context().Value(app.CollectionCtxtKey)
+
 	switch strings.ToLower(typ) {
 	case "inbox":
 		items, ok := collection.(app.ItemCollection)
@@ -448,7 +448,7 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		col := ap.InboxNew()
-		col.ID = BuildCollectionID(a, new(ap.Inbox))
+		col.ID = colId
 		_, err = loadAPCollection(col, &items)
 		if len(items) > 0 {
 			url := fmt.Sprintf("%s?page=%d", string(*col.GetID()), f.Page)
@@ -473,7 +473,7 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		col := ap.OutboxNew()
-		col.ID = BuildCollectionID(a, new(ap.Outbox))
+		col.ID = colId
 		_, err = loadAPCollection(col, &items)
 		if len(items) > 0 {
 			url := fmt.Sprintf("%s?page=%d", string(*col.GetID()), f.Page)
@@ -501,7 +501,7 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 			Logger.Error(err.Error())
 		}
 		liked := ap.LikedNew()
-		liked.ID = BuildCollectionID(a, new(ap.Likes))
+		liked.ID = colId
 		_, err = loadAPLiked(liked, votes)
 		if len(votes) > 0 {
 			url := fmt.Sprintf("%s?page=%d", string(*liked.GetID()), f.Page)
@@ -518,11 +518,6 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 		}
 		data, err = json.WithContext(GetContext()).Marshal(liked)
 	case "replies":
-		it, ok := r.Context().Value(app.ItemCtxtKey).(app.Item)
-		var art as.Item
-		if ok {
-			art = loadAPItem(it)
-		}
 		items, ok := collection.(app.ItemCollection)
 		if !ok {
 			err := errors.New("could not load Replies from Context")
@@ -531,7 +526,7 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		replies := localap.OrderedCollectionNew(as.ObjectID(""))
-		replies.ID = BuildRepliesCollectionID(art)
+		replies.ID = colId
 		_, err = loadAPCollection(replies, &items)
 		if len(items) > 0 {
 			url := fmt.Sprintf("%s?page=%d", string(*replies.GetID()), f.Page)
