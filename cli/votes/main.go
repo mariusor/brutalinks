@@ -34,6 +34,7 @@ func main() {
 
 	var err error
 	cmd.Logger = log.Dev()
+	db.Logger = cmd.Logger
 	if err != nil {
 		cmd.Logger.Error(err.Error())
 	}

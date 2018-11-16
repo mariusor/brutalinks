@@ -12,6 +12,9 @@ func E(errs ...error) bool {
 		return true
 	}
 	for _, e := range errs {
+		if e == nil {
+			continue
+		}
 		fields := make(log.Ctx)
 		var msg string
 		switch err := e.(type) {

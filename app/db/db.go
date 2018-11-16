@@ -235,7 +235,7 @@ func loadScoresForItems(db *sqlx.DB, since time.Duration, key string) ([]app.Sco
 		hacker := int64(app.Hacker(ups-downs, now.Sub(submitted)))
 		dumbScore := dumb(ups, downs)
 		Logger.WithContext(log.Ctx{
-			"key":    key[0:8],
+			"key":    string(key[0:8]),
 			"ups":    ups,
 			"downs":  downs,
 			"reddit": reddit,
