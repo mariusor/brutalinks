@@ -123,7 +123,7 @@ func (h *handler) HandleIndex(w http.ResponseWriter, r *http.Request) {
 		filter.Federated = []bool{true}
 	case "followed":
 		h.logger.WithContext(log.Ctx{
-			"handler": h.account.Handle,
+			"handle": h.account.Handle,
 			"hash":    h.account.Hash,
 		}).Debug("showing followed posts")
 		filter.FollowedBy = []string{h.account.Hash.String()}

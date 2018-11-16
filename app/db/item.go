@@ -105,9 +105,7 @@ func saveItem(db *sqlx.DB, it app.Item) (app.Item, error) {
 		Data:     []byte(it.Data),
 		Title:    []byte(it.Title),
 	}
-	if it.Metadata != nil {
-		i.Metadata, _ = json.Marshal(it.Metadata)
-	}
+	i.Metadata, _ = json.Marshal(it.Metadata)
 	f := FlagBits{}
 	if err := f.Scan(it.Flags); err == nil {
 		i.Flags = f

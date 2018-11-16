@@ -22,7 +22,7 @@ type loginModel struct {
 // ShowLogin handles POST /login requests
 func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	pw := r.PostFormValue("pw")
-	handle := r.PostFormValue("handler")
+	handle := r.PostFormValue("handle")
 	a, err := db.Config.LoadAccount(app.LoadAccountsFilter{Handle: []string{handle}})
 	if err != nil {
 		h.logger.Error(err.Error())

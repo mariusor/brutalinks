@@ -44,7 +44,7 @@ func accountFromRequest(r *http.Request, l log.Logger) (*app.Account, []error) {
 	if len(errs) > 0 {
 		return nil, errs
 	}
-	handle := r.PostFormValue("handler")
+	handle := r.PostFormValue("handle")
 	if handle != "" {
 		a.Handle = handle
 	}

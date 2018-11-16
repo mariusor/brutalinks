@@ -499,14 +499,14 @@ func loadCurrentAccount(s *sessions.Session, l log.Logger) app.Account {
 		if a, ok := raw.(sessionAccount); ok {
 			if acc, err := db.Config.LoadAccount(app.LoadAccountsFilter{Handle: []string{a.Handle}}); err == nil {
 				l.WithContext(log.Ctx{
-					"handler": acc.Handle,
+					"handle": acc.Handle,
 					"hash":    acc.Hash.String(),
 				}).Debug("loaded account from session")
 				return acc
 			} else {
 				if err != nil {
 					l.WithContext(log.Ctx{
-						"handler": a.Handle,
+						"handle": a.Handle,
 						"hash":    string(a.Hash),
 					}).Warn(err.Error())
 				}
