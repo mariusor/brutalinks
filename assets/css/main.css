@@ -507,6 +507,18 @@ ol.comments li {
     content: "~";
     font-weight: 900;
 }
+.mention:before {
+    content: "@";
+    font-family: IconFont;
+    opacity: 0.8;
+    font-weight: 900;
+}
+.tag:before {
+    content: "#";
+    font-family: IconFont;
+    opacity: 0.8;
+    font-weight: 900;
+}
 .meta time {
     text-decoration: underline dotted;
 }

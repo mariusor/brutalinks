@@ -62,25 +62,16 @@ func sluggify(s string) string {
 }
 
 func mimeTypeTagReplace(m string, t app.Tag) string {
-	r := t.Name
-	switch m {
-	case "text/markdown":
-		if t.Name[0] == '#' {
-			r = fmt.Sprintf("[&#35;%s](%s)", t.Name[1:], t.URL)
-		}
-		if t.Name[0] == '@' || t.Name[0] == '~' {
-			r = fmt.Sprintf("[&#126;%s](%s)", t.Name[1:], t.URL)
-		}
-	case "text/html":
-		if t.Name[0] == '#' {
-			r = fmt.Sprintf("<a href='%s'>&#35;%s</a>", t.URL, t.Name[1:])
-		}
-		if t.Name[0] == '@' || t.Name[0] == '~' {
-			r = fmt.Sprintf("<a href='%s'>&#126;%s<a/>", t.URL, t.Name[1:])
-		}
+	var cls string
+
+	if t.Name[0] == '#' {
+		cls = "tag"
+	}
+	if t.Name[0] == '@' || t.Name[0] == '~' {
+		cls = "mention"
 	}
 
-	return r
+	return fmt.Sprintf("<a href='%s' class='%s'>%s</a>", t.URL, cls, t.Name[1:])
 }
 
 func replaceTags(comments comments) {
