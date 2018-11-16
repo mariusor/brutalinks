@@ -34,7 +34,7 @@ import (
 type repository struct {
 	BaseURL string
 	Account *app.Account
-	logger log.Logger
+	logger  log.Logger
 }
 
 func (r *repository) WithAccount(a *app.Account) {
@@ -136,7 +136,7 @@ func (r repository) Delete(url, contentType string, body io.Reader) (resp *http.
 }
 
 // Repository middleware
-func (h handler)Repository(next http.Handler) http.Handler {
+func (h handler) Repository(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		ctx := context.WithValue(r.Context(), app.RepositoryCtxtKey, h.repo)
 		next.ServeHTTP(w, r.WithContext(ctx))
@@ -151,7 +151,7 @@ func ServiceCtxt(next http.Handler) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
-func (h handler)AccountCtxt(next http.Handler) http.Handler {
+func (h handler) AccountCtxt(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		handle := chi.URLParam(r, "handle")
 		val := r.Context().Value(app.RepositoryCtxtKey)
@@ -183,7 +183,7 @@ func (h handler)AccountCtxt(next http.Handler) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
-func (h handler)ItemCtxt(next http.Handler) http.Handler {
+func (h handler) ItemCtxt(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		col := chi.URLParam(r, "collection")
 
@@ -367,7 +367,7 @@ func LoadFiltersCtxt(next http.Handler) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
-func (h handler)ItemCollectionCtxt(next http.Handler) http.Handler {
+func (h handler) ItemCollectionCtxt(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		var err error
 		col := getCollectionFromReq(r)
@@ -536,18 +536,24 @@ func (r *repository) LoadItems(f app.LoadItemsFilter) (app.ItemCollection, error
 
 	var err error
 	var resp *http.Response
+	ctx := log.Ctx{
+		"url": url,
+	}
 	if resp, err = r.Get(url); err != nil {
-		r.logger.Error(err.Error())
+		r.logger.WithContext(ctx).Error(err.Error())
 		return nil, err
 	}
+
+	ctx["code"] = resp.StatusCode
+	ctx["status"] = resp.Status
 	if resp == nil {
 		err := fmt.Errorf("nil response from the repository")
-		r.logger.Error(err.Error())
+		r.logger.WithContext(ctx).Error(err.Error())
 		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
 		err := errors.New("unable to load from the API")
-		r.logger.Error(err.Error())
+		r.logger.WithContext(ctx).Error(err.Error())
 		return nil, err
 	}
 	defer resp.Body.Close()
