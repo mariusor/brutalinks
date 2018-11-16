@@ -110,6 +110,7 @@ func main() {
 		r.Get("/item/{hash}", front.HandleItemRedirect)
 
 		r.Get("/domains/{domain}", front.HandleDomains)
+		r.Get("/tags/{tag}", front.HandleTags)
 
 		r.With(front.NeedsSessions).Get("/logout", front.HandleLogout)
 		r.With(front.NeedsSessions).Get("/login", front.ShowLogin)

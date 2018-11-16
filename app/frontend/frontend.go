@@ -592,3 +592,41 @@ func (h handler) NeedsSessions(next http.Handler) http.Handler {
 	}
 	return http.HandlerFunc(fn)
 }
+
+// HandleAbout serves /about request
+// It's something Mastodon compatible servers should show
+func (h *handler) HandleAbout(w http.ResponseWriter, r *http.Request) {
+	m := aboutModel{Title: "About", InvertedTheme: isInverted(r)}
+	f, err := db.Config.LoadInfo()
+	if err != nil {
+		h.HandleError(w, r, http.StatusInternalServerError, err)
+		return
+	}
+	m.Desc.Description = f.Description
+
+	h.RenderTemplate(r, w, "about", m)
+}
+
+// HandleError serves failed requests
+func (h *handler) HandleError(w http.ResponseWriter, r *http.Request, status int, errs ...error) {
+	d := errorModel{
+		Status:        status,
+		Title:         fmt.Sprintf("Error %d", status),
+		InvertedTheme: isInverted(r),
+		Errors:        errs,
+	}
+	w.WriteHeader(status)
+
+	for _, err := range errs {
+		if err != nil {
+			h.logger.WithContext(log.Ctx{
+				"trace": errors.ErrorStack(err),
+			}).Error(err.Error())
+		}
+	}
+
+	w.Header().Set("Cache-Control", " no-store, must-revalidate")
+	w.Header().Set("Pragma", " no-cache")
+	w.Header().Set("Expires", " 0")
+	h.RenderTemplate(r, w, "error", d)
+}
