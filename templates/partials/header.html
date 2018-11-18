@@ -1,4 +1,4 @@
-<h1><a href="/" title="{{ App.HostName }}" alt="{{ App.HostName }}" class="icon littr">{{ App | Name }}</a></h1>
+<h1><a href="/" title="{{ App.HostName }}" alt="{{ App.HostName }}" class="">{{ icon "trash" }}{{ App | Name }}</a></h1>
 <menu id="sections">
 {{- range $key, $value := Menu }}
         <li>{{$value}}</li>
@@ -7,17 +7,17 @@
 {{- $account := CurrentAccount -}}
 {{- $providers := getProviders}}
 <menu id="top">
-    <li class=""><a id="top-invert" title="Invert colours" href="/#invert"></a></li>
+    <li class=""><a id="top-invert" title="Invert colours" href="/#invert">{{ icon "adjust" }}</a></li>
 {{- if $account.IsLogged }}
     <li class="acct">{{$account.Handle}} <span class="score">{{$account.Score | ScoreFmt}}</span></li>
-    <li class=""><a href="/logout">Sign out</a></li>
+    <li class=""><a href="/logout">Log out</a></li>
 {{- end}}
     <li class=""><a href="/submit">Add</a></li>
 {{- if App.Config.SessionsEnabled }}
 {{- if not $account.IsLogged }}
-    <li class="auth-local"><a href="/login" title="Local auth" class="auth littr icon"></a></li>
+    <li class="auth-local"><a href="/login" title="Local auth" class="auth littr">Log in</a></li>
 {{- range $key, $value := $providers}}
-    <li class=""><a href="/auth/{{$key}}" title="{{$value}} auth" class="auth {{$key}} icon"></a></li>
+    <li class=""><a href="/auth/{{$key}}" title="{{$value}} auth" class="auth">{{ icon $key }}</a></li>
 {{ end -}}
 {{- end }}
 {{- end }}
