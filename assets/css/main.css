@@ -52,7 +52,7 @@ table {
     font-weight:400;
     font-style:normal;
 }
-@media (min-width: 120px) {
+@media (min-width: 240px) {
     :root {
         font-size: 3.6vw;
     }
@@ -482,8 +482,10 @@ ol.comments li {
     width: .9rem;
     height: .9rem;
 }
-.score a .icon-plus {
-    vertical-align: top;
+.score a .icon-plus,
+.score a .icon-minus
+{
+    vertical-align: baseline;
 }
 .score a[href].yay:active svg path,
 .score a[href].yay.ed svg path,
