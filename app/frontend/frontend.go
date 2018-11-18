@@ -409,6 +409,9 @@ func (h handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name str
 		}).Error(new.Error())
 		ren.HTML(w, http.StatusInternalServerError, "error", new)
 	}
+	if app.Instance.Config.Env == app.DEV {
+		w.Header().Add("Cache-Control", "no-cache")
+	}
 	return err
 }
 
