@@ -1,6 +1,8 @@
 package frontend
 
 import (
+	"bufio"
+	"bytes"
 	"encoding/gob"
 	"fmt"
 	"html/template"
@@ -8,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -58,6 +61,43 @@ func html(data string) template.HTML {
 
 func text(data string) string {
 	return string(data)
+}
+
+func icon(icon string, c ...string) template.HTML {
+	file := filepath.Clean(icon) + ".svg"
+
+	buf := svg(file)
+	cls := make([]string, 0)
+	cls = append(cls, c...)
+
+	extraCls := fmt.Sprintf(`<svg class="icon icon-%s %s"`, icon, strings.Join(cls, " "))
+	buf = bytes.Replace(buf, []byte("<svg "), []byte(extraCls), -1)
+
+	return template.HTML(buf)
+}
+
+func svg(p string) []byte {
+	file := filepath.Clean(p)
+	svgPath := filepath.Join(templateDir, "icons")
+	fullPath := filepath.Join(svgPath, file)
+
+	//	icon := file[0:len(file)-len(filepath.Ext(file))]
+
+	f, err := os.Open(fullPath)
+	if err != nil {
+		return []byte{0}
+	}
+	defer f.Close()
+
+	r := bufio.NewReader(f)
+	b := bytes.Buffer{}
+	_, err = r.WriteTo(&b)
+	if err != nil {
+		return []byte{0}
+	}
+
+	buf := b.Bytes()
+	return buf
 }
 
 func isoTimeFmt(t time.Time) string {
@@ -346,6 +386,7 @@ func (h handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name str
 			"App":               func() app.Application { return app.Instance },
 			"Name":              appName,
 			"Menu":              func() []template.HTML { return headerMenu(r) },
+			"icon":              icon,
 			//"ScoreFmt":          func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
 			//"NumberFmt":         func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
 		}},
@@ -500,14 +541,14 @@ func loadCurrentAccount(s *sessions.Session, l log.Logger) app.Account {
 			if acc, err := db.Config.LoadAccount(app.LoadAccountsFilter{Handle: []string{a.Handle}}); err == nil {
 				l.WithContext(log.Ctx{
 					"handle": acc.Handle,
-					"hash":    acc.Hash.String(),
+					"hash":   acc.Hash.String(),
 				}).Debug("loaded account from session")
 				return acc
 			} else {
 				if err != nil {
 					l.WithContext(log.Ctx{
 						"handle": a.Handle,
-						"hash":    string(a.Hash),
+						"hash":   string(a.Hash),
 					}).Warn(err.Error())
 				}
 			}
