@@ -6,8 +6,6 @@ import (
 	"net/http"
 	"time"
 
-	"html/template"
-
 	"github.com/juju/errors"
 
 	"github.com/gorilla/securecookie"
@@ -18,7 +16,6 @@ import (
 type registerModel struct {
 	Title         string
 	InvertedTheme bool
-	Terms         template.HTML
 	Account       app.Account
 }
 
@@ -78,8 +75,6 @@ func accountFromRequest(r *http.Request, l log.Logger) (*app.Account, []error) {
 // ShowRegister serves GET /register requests
 func (h *handler) ShowRegister(w http.ResponseWriter, r *http.Request) {
 	m := registerModel{InvertedTheme: isInverted(r)}
-	m.Terms = `<p>We try to follow <q><cite>Wheaton's Law</cite></q>:<br/>` +
-		`<blockquote>Don't be a dick!</blockquote></p>`
 
 	h.RenderTemplate(r, w, "register", m)
 }

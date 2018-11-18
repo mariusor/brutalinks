@@ -694,6 +694,7 @@ a.to-op:before {
     float: right;
     width: 50%;
     text-align: center;
+    font-size: .85em;
 }
 .details-agree {
     font-size: .8em;
