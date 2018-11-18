@@ -399,6 +399,9 @@ func (h handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name str
 		DisableHTTPErrorRendering: false,
 	})
 
+	if app.Instance.Config.Env == app.DEV {
+		w.Header().Set("Cache-Control", "no-cache")
+	}
 	if err = ren.HTML(w, http.StatusOK, name, m); err != nil {
 		new := errors.NewErr("failed to render template")
 		h.logger.WithContext(log.Ctx{
@@ -408,9 +411,6 @@ func (h handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name str
 			"previous": err.Error(),
 		}).Error(new.Error())
 		ren.HTML(w, http.StatusInternalServerError, "error", new)
-	}
-	if app.Instance.Config.Env == app.DEV {
-		w.Header().Add("Cache-Control", "no-cache")
 	}
 	return err
 }
