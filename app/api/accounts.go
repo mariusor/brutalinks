@@ -222,15 +222,15 @@ func loadAPCollection(o as.CollectionInterface, items *app.ItemCollection) (as.C
 
 // HandleActorsCollection is the http handler for the actors collection
 // GET /api/actors?filters
-func HandleActorsCollection(w http.ResponseWriter, r *http.Request) {
+func (h handler)HandleActorsCollection(w http.ResponseWriter, r *http.Request) {
 	var ok bool
 	var filter app.LoadAccountsFilter
 	var data []byte
 
 	f := r.Context().Value(app.FilterCtxtKey)
 	if filter, ok = f.(app.LoadAccountsFilter); !ok {
-		Logger.Error("could not load filter from Context")
-		HandleError(w, r, http.StatusNotFound, errors.New("not found"))
+		h.logger.Error("could not load filter from Context")
+		h.HandleError(w, r, http.StatusNotFound, errors.New("not found"))
 		return
 	} else {
 		val := r.Context().Value(app.RepositoryCtxtKey)
@@ -253,11 +253,11 @@ func HandleActorsCollection(w http.ResponseWriter, r *http.Request) {
 				}
 				data, err = json.WithContext(GetContext()).Marshal(col)
 			} else {
-				Logger.WithContext(log.Ctx{
+				h.logger.WithContext(log.Ctx{
 					"err":   err,
 					"trace": errors.Details(err),
 				}).Error(err.Error())
-				HandleError(w, r, http.StatusNotFound, err)
+				h.HandleError(w, r, http.StatusNotFound, err)
 				return
 			}
 		}
@@ -269,13 +269,13 @@ func HandleActorsCollection(w http.ResponseWriter, r *http.Request) {
 }
 
 // GET /api/actors/:handle
-func HandleActor(w http.ResponseWriter, r *http.Request) {
+func (h handler)HandleActor(w http.ResponseWriter, r *http.Request) {
 	val := r.Context().Value(app.AccountCtxtKey)
 
 	var ok bool
 	var a app.Account
 	if a, ok = val.(app.Account); !ok {
-		Logger.Error("could not load Account from Context")
+		h.logger.Error("could not load Account from Context")
 	}
 	p := loadAPPerson(a)
 	if p.Outbox != nil {
@@ -291,10 +291,10 @@ func HandleActor(w http.ResponseWriter, r *http.Request) {
 
 	j, err := json.WithContext(GetContext()).Marshal(p)
 	if err != nil {
-		Logger.WithContext(log.Ctx{
+		h.logger.WithContext(log.Ctx{
 			"trace": errors.Details(err),
 		}).Error(err.Error())
-		HandleError(w, r, http.StatusInternalServerError, err)
+		h.HandleError(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -314,7 +314,7 @@ func getCollectionFromReq(r *http.Request) string {
 
 // GET /api/actors/:handle/:collection/:hash
 // GET /api/:collection/:hash
-func HandleCollectionActivity(w http.ResponseWriter, r *http.Request) {
+func (h handler)HandleCollectionActivity(w http.ResponseWriter, r *http.Request) {
 	var data []byte
 	var err error
 
@@ -330,25 +330,25 @@ func HandleCollectionActivity(w http.ResponseWriter, r *http.Request) {
 		item, ok := val.(app.Item)
 		if !ok {
 			err := errors.New("could not load Item from Context")
-			HandleError(w, r, http.StatusInternalServerError, err)
+			h.HandleError(w, r, http.StatusInternalServerError, err)
 			return
 		}
 		el = loadAPActivity(item)
 		if err != nil {
-			HandleError(w, r, http.StatusNotFound, err)
+			h.HandleError(w, r, http.StatusNotFound, err)
 			return
 		}
 	case "liked":
 		if v, ok := val.(app.Vote); !ok {
 			err := errors.Errorf("could not load Vote from Context")
-			HandleError(w, r, http.StatusInternalServerError, err)
+			h.HandleError(w, r, http.StatusInternalServerError, err)
 			return
 		} else {
 			el = loadAPLike(v)
 		}
 	default:
 		err := errors.Errorf("collection %s not found", collection)
-		HandleError(w, r, http.StatusNotFound, err)
+		h.HandleError(w, r, http.StatusNotFound, err)
 		return
 	}
 
@@ -361,7 +361,7 @@ func HandleCollectionActivity(w http.ResponseWriter, r *http.Request) {
 
 // GET /api/actors/:handle/:collection/:hash/object
 // GET /api/:collection/:hash/object
-func HandleCollectionActivityObject(w http.ResponseWriter, r *http.Request) {
+func (h handler)HandleCollectionActivityObject(w http.ResponseWriter, r *http.Request) {
 	var data []byte
 	var err error
 
@@ -374,13 +374,13 @@ func HandleCollectionActivityObject(w http.ResponseWriter, r *http.Request) {
 	case "outbox":
 		i, ok := val.(app.Item)
 		if !ok {
-			Logger.Error("could not load Item from Context")
-			HandleError(w, r, http.StatusInternalServerError, err)
+			h.logger.Error("could not load Item from Context")
+			h.HandleError(w, r, http.StatusInternalServerError, err)
 			return
 		}
 		el = loadAPItem(i)
 		if err != nil {
-			HandleError(w, r, http.StatusNotFound, err)
+			h.HandleError(w, r, http.StatusNotFound, err)
 			return
 		}
 		val := r.Context().Value(app.RepositoryCtxtKey)
@@ -390,7 +390,7 @@ func HandleCollectionActivityObject(w http.ResponseWriter, r *http.Request) {
 				MaxItems:  MaxContentItems,
 			})
 			if err != nil {
-				Logger.WithContext(log.Ctx{
+				h.logger.WithContext(log.Ctx{
 					"trace": errors.Details(err),
 				}).Error(err.Error())
 			}
@@ -404,14 +404,14 @@ func HandleCollectionActivityObject(w http.ResponseWriter, r *http.Request) {
 	case "liked":
 		if v, ok := val.(app.Vote); !ok {
 			err := errors.Errorf("could not load Vote from Context")
-			HandleError(w, r, http.StatusInternalServerError, err)
+			h.HandleError(w, r, http.StatusInternalServerError, err)
 			return
 		} else {
 			el = loadAPLike(v)
 		}
 	default:
 		err := errors.Errorf("collection %s not found", collection)
-		HandleError(w, r, http.StatusNotFound, err)
+		h.HandleError(w, r, http.StatusNotFound, err)
 		return
 	}
 
@@ -426,7 +426,7 @@ func HandleCollectionActivityObject(w http.ResponseWriter, r *http.Request) {
 // GET /api/actors/:handle/:collection
 // GET /api/self/:collection/:hash/replies
 // GET /api/actors/:handle/:collection/:hash/replies
-func HandleCollection(w http.ResponseWriter, r *http.Request) {
+func (h handler)HandleCollection(w http.ResponseWriter, r *http.Request) {
 	var data []byte
 	var err error
 
@@ -443,8 +443,8 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 		items, ok := collection.(app.ItemCollection)
 		if !ok {
 			err := errors.New("could not load Items from Context")
-			Logger.Error(err.Error())
-			HandleError(w, r, http.StatusNotFound, err)
+			h.logger.Error(err.Error())
+			h.HandleError(w, r, http.StatusNotFound, err)
 			return
 		}
 		col := ap.InboxNew()
@@ -468,8 +468,8 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 		items, ok := collection.(app.ItemCollection)
 		if !ok {
 			err := errors.New("could not load Items from Context")
-			Logger.Error(err.Error())
-			HandleError(w, r, http.StatusNotFound, err)
+			h.logger.Error(err.Error())
+			h.HandleError(w, r, http.StatusNotFound, err)
 			return
 		}
 		col := ap.OutboxNew()
@@ -493,12 +493,12 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 		votes, ok := collection.(app.VoteCollection)
 		if !ok {
 			err := errors.New("could not load Votes from Context")
-			Logger.Error(err.Error())
-			HandleError(w, r, http.StatusNotFound, err)
+			h.logger.Error(err.Error())
+			h.HandleError(w, r, http.StatusNotFound, err)
 			return
 		}
 		if err != nil {
-			Logger.Error(err.Error())
+			h.logger.Error(err.Error())
 		}
 		liked := ap.LikedNew()
 		liked.ID = colId
@@ -521,8 +521,8 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 		items, ok := collection.(app.ItemCollection)
 		if !ok {
 			err := errors.New("could not load Replies from Context")
-			Logger.Error(err.Error())
-			HandleError(w, r, http.StatusNotFound, err)
+			h.logger.Error(err.Error())
+			h.HandleError(w, r, http.StatusNotFound, err)
 			return
 		}
 		replies := localap.OrderedCollectionNew(as.ObjectID(""))
@@ -547,7 +547,7 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err != nil {
-		HandleError(w, r, http.StatusInternalServerError, err)
+		h.HandleError(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -555,4 +555,14 @@ func HandleCollection(w http.ResponseWriter, r *http.Request) {
 	//w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(http.StatusOK)
 	w.Write(data)
+}
+
+func (h handler)AddToCollection(w http.ResponseWriter, r *http.Request) {
+	//typ := getCollectionFromReq(r)
+	//filters := r.Context().Value(app.FilterCtxtKey)
+	//collection := r.Context().Value(app.CollectionCtxtKey)
+	//switch strings.ToLower(typ) {
+	//case "inbox":
+	//}
+	h.HandleError(w, r, http.StatusNotImplemented, errors.New("not implemented"))
 }

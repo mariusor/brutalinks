@@ -10,7 +10,7 @@ import (
 
 // HandleService
 // GET /api/self
-func HandleService(w http.ResponseWriter, r *http.Request) {
+func (h handler)HandleService(w http.ResponseWriter, r *http.Request) {
 	us := as.Service{}
 
 	id := app.Instance.BaseURL + "/api/self"
@@ -21,7 +21,7 @@ func HandleService(w http.ResponseWriter, r *http.Request) {
 	var inf app.Info
 	if repo, ok := rr.(app.CanLoadInfo); ok {
 		if inf, err = repo.LoadInfo(); err != nil {
-			HandleError(w, r, http.StatusInternalServerError, err)
+			h.HandleError(w, r, http.StatusInternalServerError, err)
 			return
 		}
 	}

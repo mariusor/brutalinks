@@ -34,11 +34,29 @@ type InternalError struct {
 type UserError struct {
 }
 
-var Logger log.Logger
+type handler struct{
+	repo *repository
+	logger log.Logger
+}
+type Config struct {
+	Logger log.Logger
+	BaseURL string
+}
+
+func Init(c Config) handler {
+	BaseURL = c.BaseURL
+	ActorsURL = c.BaseURL + "/actors"
+	return handler{
+		repo: &repository {
+			BaseURL: c.BaseURL,
+			logger: c.Logger,
+		},
+		logger: c.Logger,
+	}
+}
 
 var BaseURL string
 var ActorsURL string
-var OutboxURL string
 
 const NotFoundStatus = 404
 const InternalErrorStatus = 500
@@ -161,7 +179,7 @@ func getObjectType(el as.Item) string {
 	return label
 }
 
-func HandleError(w http.ResponseWriter, r *http.Request, code int, errs ...error) {
+func (h handler)HandleError(w http.ResponseWriter, r *http.Request, code int, errs ...error) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store, must-revalidate")
 	w.Header().Set("Pragma", "no-cache")
@@ -207,7 +225,7 @@ func HandleError(w http.ResponseWriter, r *http.Request, code int, errs ...error
 			Message: msg,
 			Trace:   trace,
 		}
-		Logger.Error(err.Error())
+		h.logger.Error(err.Error())
 		res.Errors = append(res.Errors, e)
 	}
 
@@ -245,7 +263,7 @@ func (k *keyLoader) GetKey(id string) interface{} {
 	return pub
 }
 
-func VerifyHttpSignature(next http.Handler) http.Handler {
+func (h handler)VerifyHttpSignature(next http.Handler) http.Handler {
 	getter := keyLoader{}
 
 	realm := app.Instance.HostName
@@ -271,7 +289,7 @@ func VerifyHttpSignature(next http.Handler) http.Handler {
 			// only verify http-signature if present
 			if err := v.Verify(r); err != nil {
 				w.Header().Add("WWW-Authenticate", challenge)
-				Logger.WithContext(log.Ctx{
+				h.logger.WithContext(log.Ctx{
 					"handle": acct.Handle,
 					"hash":   acct.Hash,
 					"header": fmt.Sprintf("%q", r.Header),
@@ -283,7 +301,7 @@ func VerifyHttpSignature(next http.Handler) http.Handler {
 				//return
 			} else {
 				acct = getter.acc
-				Logger.WithContext(log.Ctx{
+				h.logger.WithContext(log.Ctx{
 					"handle": acct.Handle,
 					"hash":   acct.Hash,
 				}).Debug("loaded account from HTTP signature header")

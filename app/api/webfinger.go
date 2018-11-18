@@ -28,7 +28,6 @@ type webfinger struct {
 
 // HandleHostMeta serves /.well-known/host-meta
 func HandleHostMeta(w http.ResponseWriter, r *http.Request) {
-
 	hm := webfinger{
 		Links: []link{
 			{
@@ -46,7 +45,7 @@ func HandleHostMeta(w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleWebFinger serves /.well-known/webfinger/ request
-func HandleWebFinger(w http.ResponseWriter, r *http.Request) {
+func (h handler)HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 	typ, res := func(ar []string) (string, string) {
 		if len(ar) != 2 {
 			return "", ""
@@ -66,15 +65,15 @@ func HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 	AcctLoader, ok := val.(app.CanLoadAccounts)
 	if !ok {
 		err := errors.New("could not load account repository from Context")
-		Logger.Error(err.Error())
-		HandleError(w, r, http.StatusInternalServerError, err)
+		h.logger.Error(err.Error())
+		h.HandleError(w, r, http.StatusInternalServerError, err)
 		return
 	}
 	a, err := AcctLoader.LoadAccount(app.LoadAccountsFilter{Handle: []string{handle}})
 	if err != nil {
 		err := errors.New("resource not found")
-		Logger.Error(err.Error())
-		HandleError(w, r, http.StatusNotFound, err)
+		h.logger.Error(err.Error())
+		h.HandleError(w, r, http.StatusNotFound, err)
 		return
 	}
 

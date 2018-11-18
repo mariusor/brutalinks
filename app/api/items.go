@@ -17,18 +17,18 @@ import (
 
 // POST /api - not implemented yet - but we should have all information in the CreateActivity body
 // PUT /api/actors/{handle}/{collection}/{item_hash}
-func UpdateItem(w http.ResponseWriter, r *http.Request) {
+func (h handler)UpdateItem(w http.ResponseWriter, r *http.Request) {
 	var body []byte
 	var err error
 	defer r.Body.Close()
 	status := http.StatusInternalServerError
 
 	if body, err = ioutil.ReadAll(r.Body); err != nil {
-		Logger.WithContext(log.Ctx{
+		h.logger.WithContext(log.Ctx{
 			"err":   err,
 			"trace": errors.Details(err),
 		}).Error("request body read error")
-		HandleError(w, r, http.StatusInternalServerError, err)
+		h.HandleError(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -38,32 +38,32 @@ func UpdateItem(w http.ResponseWriter, r *http.Request) {
 	case "outbox":
 		act := ap.Activity{}
 		if err := j.Unmarshal(body, &act); err != nil {
-			Logger.WithContext(log.Ctx{
+			h.logger.WithContext(log.Ctx{
 				"err":   err,
 				"trace": errors.Details(err),
 			}).Error("json-ld unmarshal error")
-			HandleError(w, r, http.StatusInternalServerError, err)
+			h.HandleError(w, r, http.StatusInternalServerError, err)
 			return
 		}
 		it := app.Item{}
 		if err := it.FromActivityPubItem(act); err != nil {
-			Logger.WithContext(log.Ctx{
+			h.logger.WithContext(log.Ctx{
 				"err":   err,
 				"trace": errors.Details(err),
 			}).Error("json-ld unmarshal error")
-			HandleError(w, r, http.StatusInternalServerError, err)
+			h.HandleError(w, r, http.StatusInternalServerError, err)
 			return
 		}
 		if repo, ok := app.ContextItemSaver(r.Context()); ok {
 			newIt, err := repo.SaveItem(it)
 			if err != nil {
-				Logger.WithContext(log.Ctx{
+				h.logger.WithContext(log.Ctx{
 					"err":     err,
 					"trace":   errors.Details(err),
 					"item":    it.Hash,
 					"account": it.SubmittedBy.Hash,
 				}).Error(err.Error())
-				HandleError(w, r, http.StatusInternalServerError, err)
+				h.HandleError(w, r, http.StatusInternalServerError, err)
 				return
 			}
 			if newIt.UpdatedAt.IsZero() {
@@ -79,31 +79,31 @@ func UpdateItem(w http.ResponseWriter, r *http.Request) {
 	case "liked":
 		act := ap.Activity{}
 		if err := j.Unmarshal(body, &act); err != nil {
-			Logger.WithContext(log.Ctx{
+			h.logger.WithContext(log.Ctx{
 				"err":   err,
 				"trace": errors.Details(err),
 			}).Error("json-ld unmarshal error")
-			HandleError(w, r, http.StatusInternalServerError, err)
+			h.HandleError(w, r, http.StatusInternalServerError, err)
 			return
 		}
 		v := app.Vote{}
 		if err := v.FromActivityPubItem(act); err != nil {
-			Logger.WithContext(log.Ctx{
+			h.logger.WithContext(log.Ctx{
 				"err":   err,
 				"trace": errors.Details(err),
 			}).Error("json-ld unmarshal error")
-			HandleError(w, r, http.StatusInternalServerError, err)
+			h.HandleError(w, r, http.StatusInternalServerError, err)
 			return
 		}
 		if repo, ok := app.ContextVoteSaver(r.Context()); ok {
 			newVot, err := repo.SaveVote(v)
 			if err != nil {
-				Logger.WithContext(log.Ctx{
+				h.logger.WithContext(log.Ctx{
 					"err":      err,
 					"trace":    errors.Details(err),
 					"saveVote": v.SubmittedBy.Hash,
 				}).Error(err.Error())
-				HandleError(w, r, http.StatusInternalServerError, err)
+				h.HandleError(w, r, http.StatusInternalServerError, err)
 				return
 			}
 			if newVot.UpdatedAt.IsZero() {

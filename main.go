@@ -39,7 +39,7 @@ func main() {
 
 	db.Init(&app.Instance)
 	front, err := frontend.Init(frontend.Config{
-		Logger:      app.Instance.Logger,
+		Logger:      app.Instance.Logger.New(log.Ctx{"package": "frontend"}),
 		SessionKeys: app.Instance.SessionKeys,
 		Secure:      app.Instance.Secure,
 		BaseURL:     app.Instance.BaseURL,
@@ -48,22 +48,24 @@ func main() {
 	if err != nil {
 		app.Instance.Logger.Warn(err.Error())
 	}
-	processing.InitQueues(&app.Instance)
-
 	// api
 	host := os.Getenv("HOSTNAME")
+	var apiURL string
 	if app.Instance.Secure {
-		api.BaseURL = fmt.Sprintf("https://%s/api", host)
+		apiURL = fmt.Sprintf("https://%s/api", host)
 	} else {
-		api.BaseURL = fmt.Sprintf("http://%s/api", host)
+		apiURL = fmt.Sprintf("http://%s/api", host)
 	}
-	api.Config.BaseUrl = api.BaseURL
+	a := api.Init(api.Config{
+		Logger:      app.Instance.Logger.New(log.Ctx{"package": "api"}),
+		BaseURL: apiURL,
+	})
+	//api.Config.BaseUrl = api.BaseURL
+
+	processing.InitQueues(&app.Instance)
 
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	api.ActorsURL = api.BaseURL + "/actors"
-	api.OutboxURL = api.BaseURL + "/outbox"
 
-	api.Logger = app.Instance.Logger.New(log.Ctx{"package": "api"})
 	app.Logger = app.Instance.Logger.New(log.Ctx{"package": "app"})
 	db.Logger = app.Instance.Logger.New(log.Ctx{"package": "db"})
 	processing.Logger = app.Instance.Logger.New(log.Ctx{"package": "processing"})
@@ -79,7 +81,7 @@ func main() {
 	}
 
 	// Frontend
-	r.With(api.Repository).Route("/", func(r chi.Router) {
+	r.With(a.Repository).Route("/", func(r chi.Router) {
 		r.Use(front.LoadSession)
 		r.Use(middleware.GetHead)
 		r.Use(app.NeedsDBBackend(front.HandleError))
@@ -134,70 +136,70 @@ func main() {
 	// API
 	r.With(db.Repository).Route("/api", func(r chi.Router) {
 		//r.Use(middleware.GetHead)
-		r.Use(api.VerifyHttpSignature)
+		r.Use(a.VerifyHttpSignature)
 		r.Use(app.StripCookies)
-		r.Use(app.NeedsDBBackend(api.HandleError))
+		r.Use(app.NeedsDBBackend(a.HandleError))
 
 		r.Route("/self", func(r chi.Router) {
-			r.With(api.LoadFiltersCtxt).Get("/", api.HandleService)
+			r.With(api.LoadFiltersCtxt).Get("/", a.HandleService)
 			r.Route("/{collection}", func(r chi.Router) {
 				r.Use(api.ServiceCtxt)
 
-				r.With(api.LoadFiltersCtxt, api.ItemCollectionCtxt).Get("/", api.HandleCollection)
+				r.With(api.LoadFiltersCtxt, a.ItemCollectionCtxt).Get("/", a.HandleCollection)
 				//r.With(api.LoadFiltersCtxt, api.ItemCollectionCtxt).Post("/", api.AddToCollection)
 				r.Route("/{hash}", func(r chi.Router) {
-					r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/", api.HandleCollectionActivity)
-					r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/object", api.HandleCollectionActivityObject)
-					r.With(api.LoadFiltersCtxt, api.ItemCollectionCtxt).Get("/object/replies", api.HandleCollection)
+					r.With(api.LoadFiltersCtxt, a.ItemCtxt).Get("/", a.HandleCollectionActivity)
+					r.With(api.LoadFiltersCtxt, a.ItemCtxt).Get("/object", a.HandleCollectionActivityObject)
+					r.With(api.LoadFiltersCtxt, a.ItemCollectionCtxt).Get("/object/replies", a.HandleCollection)
 				})
 			})
 		})
 		r.Route("/actors", func(r chi.Router) {
-			r.With(api.LoadFiltersCtxt).Get("/", api.HandleActorsCollection)
+			r.With(api.LoadFiltersCtxt).Get("/", a.HandleActorsCollection)
 
 			r.Route("/{handle}", func(r chi.Router) {
-				r.Use(api.AccountCtxt)
+				r.Use(a.AccountCtxt)
 
-				r.Get("/", api.HandleActor)
+				r.Get("/", a.HandleActor)
 				r.Route("/{collection}", func(r chi.Router) {
-					r.With(api.LoadFiltersCtxt, api.ItemCollectionCtxt).Get("/", api.HandleCollection)
-					r.With(api.LoadFiltersCtxt).Post("/", api.UpdateItem)
+					r.With(api.LoadFiltersCtxt, a.ItemCollectionCtxt).Get("/", a.HandleCollection)
+					r.With(api.LoadFiltersCtxt).Post("/", a.UpdateItem)
 					r.Route("/{hash}", func(r chi.Router) {
 						r.Use(middleware.GetHead)
 						// this should update the activity
-						r.With(api.LoadFiltersCtxt, api.ItemCtxt).Put("/", api.UpdateItem)
-						r.With(api.LoadFiltersCtxt).Post("/", api.UpdateItem)
-						r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/", api.HandleCollectionActivity)
-						r.With(api.LoadFiltersCtxt, api.ItemCtxt).Get("/object", api.HandleCollectionActivityObject)
+						r.With(api.LoadFiltersCtxt, a.ItemCtxt).Put("/", a.UpdateItem)
+						r.With(api.LoadFiltersCtxt).Post("/", a.UpdateItem)
+						r.With(api.LoadFiltersCtxt, a.ItemCtxt).Get("/", a.HandleCollectionActivity)
+						r.With(api.LoadFiltersCtxt, a.ItemCtxt).Get("/object", a.HandleCollectionActivityObject)
 						// this should update the item
-						r.With(api.LoadFiltersCtxt, api.ItemCtxt).Put("/object", api.UpdateItem)
-						r.With(api.LoadFiltersCtxt, api.ItemCtxt, api.ItemCollectionCtxt).Get("/object/replies", api.HandleCollection)
+						r.With(api.LoadFiltersCtxt, a.ItemCtxt).Put("/object", a.UpdateItem)
+						r.With(api.LoadFiltersCtxt, a.ItemCtxt, a.ItemCollectionCtxt).Get("/object/replies", a.HandleCollection)
 					})
 				})
 			})
 		})
 
 		// Mastodon compatible end-points
-		r.Get("/v1/instance", api.ShowInstance)
+		r.Get("/v1/instance", a.ShowInstance)
 		r.Get("/v1/instance/peers", api.ShowPeers)
 		r.Get("/v1/instance/activity", api.ShowActivity)
 
 		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
-			api.HandleError(w, r, http.StatusNotFound, errors.Errorf("%s not found", r.RequestURI))
+			a.HandleError(w, r, http.StatusNotFound, errors.Errorf("%s not found", r.RequestURI))
 		})
 		r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
-			api.HandleError(w, r, http.StatusMethodNotAllowed, errors.Errorf("invalid %s request", r.Method))
+			a.HandleError(w, r, http.StatusMethodNotAllowed, errors.Errorf("invalid %s request", r.Method))
 		})
 	})
 
 	// Web-Finger
 	r.With(db.Repository).Route("/.well-known", func(r chi.Router) {
-		r.Use(app.NeedsDBBackend(api.HandleError))
+		r.Use(app.NeedsDBBackend(a.HandleError))
 
-		r.Get("/webfinger", api.HandleWebFinger)
+		r.Get("/webfinger", a.HandleWebFinger)
 		r.Get("/host-meta", api.HandleHostMeta)
 		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
-			api.HandleError(w, r, http.StatusNotFound, errors.Errorf("%s not found", r.RequestURI))
+			a.HandleError(w, r, http.StatusNotFound, errors.Errorf("%s not found", r.RequestURI))
 		})
 	})
 
