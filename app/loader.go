@@ -67,13 +67,13 @@ type LoadItemsFilter struct {
 	SubmittedAtMatchType MatchType `qstring:"submittedAtMatchType,omitempty"`
 	Content              string    `qstring:"content,omitempty"`
 	ContentMatchType     MatchType `qstring:"contentMatchType,omitempty"`
+	Deleted              []bool    `qstring:"deleted,omitempty"`
+	Page                 int       `qstring:"page,omitempty"`
+	MaxItems             int       `qstring:"maxItems,omitempty"`
 	// Federated shows if the item was generated locally or is coming from an external peer
 	Federated []bool `qstring:"federated,omitempty"`
 	// FollowedBy is the hash or handle of the user of which we should show the list of items that were commented on or liked
 	FollowedBy []string `qstring:"followedBy,omitempty"`
-	Deleted    []bool   `qstring:"deleted,omitempty"`
-	Page       int      `qstring:"page,omitempty"`
-	MaxItems   int      `qstring:"maxItems,omitempty"`
 }
 
 type LoadAccountsFilter struct {
