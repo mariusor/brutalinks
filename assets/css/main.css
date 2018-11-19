@@ -263,6 +263,12 @@ svg.icon {
     height: 1em;
     width: auto;
 }
+svg.icon path {
+    fill: WindowText;
+}
+.inverted svg.icon path {
+    fill: WindowFrame;
+}
 svg.icon-activitypub {
     vertical-align: bottom;
     margin-right: .2em;
