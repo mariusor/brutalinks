@@ -48,11 +48,8 @@ table {
     body > header {
         grid-template-columns: 14ex 65% 0;
     }
-    body > header menu#sections li a {
+    body > header menu#sections li a span {
         font-size: 0;
-    }
-    body > header menu#sections li a::before {
-        font-size: .9rem;
     }
     body > header menu#top {
         display: none;
@@ -73,12 +70,8 @@ table {
     body > header menu {
         padding-top: .6em;
     }
-    body > header menu#sections li a {
-        font-size: 0;
-        width: 1em;
-    }
-    body > header menu#sections li a svg {
-        font-size: inherit;
+    body > header menu#sections li a span {
+        font-size: unset;
     }
     body > header menu#top {
         display: unset;
@@ -267,10 +260,6 @@ svg.icon path {
 .inverted svg.icon path {
     fill: WindowFrame;
 }
-svg.icon-activitypub {
-    vertical-align: bottom;
-    margin-right: .2em;
-}
 svg:not(:root) {
     overflow: visible;
 }
@@ -299,6 +288,16 @@ menu#bottom i::before {
 menu#top {
     font-size: .8rem;
     text-align: right;
+}
+menu#sections li {
+    margin-right: .4em;
+}
+menu#sections li a svg {
+    height: .8rem;
+}
+menu#sections a svg.icon-activitypub {
+    vertical-align: -1px;
+    margin-right: .2em;
 }
 body > main {
     margin-top: 1rem;
