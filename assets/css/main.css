@@ -74,7 +74,8 @@ table {
         padding-top: .6em;
     }
     body > header menu#sections li a {
-        font-size: unset;
+        font-size: 0;
+        width: 1em;
     }
     body > header menu#sections li a svg {
         font-size: inherit;
@@ -184,22 +185,19 @@ a:not([href]) {
 .inverted a[href] svg path {
     fill: dodgerblue;
 }
-.inverted a[href]:active svg path {
-    fill: red;
-}
 .inverted a[href]:visited svg path {
     fill: mediumpurple;
 }
 a[href] svg path {
     fill: blue;
 }
-a[href]:active svg path {
+a[href]:active svg.icon path {
     fill: red;
 }
 a[href]:visited svg path {
     fill: rebeccapurple;
 }
-a:not([href]) svg path {
+a:not([href]) svg.icon path {
     fill: WindowText;
 }
 .inverted a:not([href]) svg path {
@@ -497,14 +495,16 @@ ol.comments li {
 svg.icon-adjust {
     vertical-align: bottom;
 }
-.inverted a[href] .icon-adjust path {
+.inverted a[href] .icon-adjust path,
+.inverted a svg.icon.icon-trash path,
+.inverted a:active svg.icon.icon-trash path
+{
     fill: WindowFrame;
 }
-a[href] .icon-adjust path {
+a[href] .icon-adjust path,
+a svg.icon.icon-trash path,
+a:active svg.icon.icon-trash path {
     fill: WindowText;
-}
-#top .icon-trash {
-    fill: #1e347b;
 }
 .score a:not([href]) {
     opacity: .2;
@@ -522,10 +522,10 @@ a[href] .icon-adjust path {
 .inverted .score a.nay.ed svg path {
     fill: mediumpurple;
 }
-.score a.yay:active svg path,
-.score a.nay:active svg path,
-.inverted .score a.yay:active svg path,
-.inverted .score a.nay:active svg path
+.score a[href].yay:active svg path,
+.score a[href].nay:active svg path,
+.inverted .score a[href].yay:active svg path,
+.inverted .score a[href].nay:active svg path
 {
     fill: red;
 }

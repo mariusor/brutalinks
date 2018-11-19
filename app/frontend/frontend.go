@@ -67,6 +67,9 @@ func icon(icon string, c ...string) template.HTML {
 	file := filepath.Clean(icon) + ".svg"
 
 	buf := svg(file)
+	if buf == nil {
+		return template.HTML(buf)
+	}
 	cls := make([]string, 0)
 	cls = append(cls, c...)
 
@@ -84,8 +87,6 @@ func svg(p string) []byte {
 	svgPath := filepath.Join(templateDir, "icons")
 	fullPath := filepath.Join(svgPath, file)
 
-	//	icon := file[0:len(file)-len(filepath.Ext(file))]
-
 	f, err := os.Open(fullPath)
 	if err != nil {
 		return []byte{0}
@@ -99,8 +100,7 @@ func svg(p string) []byte {
 		return []byte{0}
 	}
 
-	buf := b.Bytes()
-	return buf
+	return b.Bytes()
 }
 
 func isoTimeFmt(t time.Time) string {
