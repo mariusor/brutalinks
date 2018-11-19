@@ -73,6 +73,9 @@ func icon(icon string, c ...string) template.HTML {
 	extraCls := fmt.Sprintf(`<svg class="icon icon-%s %s"`, icon, strings.Join(cls, " "))
 	buf = bytes.Replace(buf, []byte("<svg "), []byte(extraCls), -1)
 
+	buf = bytes.Replace(buf, []byte("</svg>"), []byte(`<![CDATA[ Fork Awesome 1.1.5 · A fork of Font Awesome, originally created by Dave Gandy` +
+		`Fork Awesome is licensed under SIL OFL 1.1 · Code is licensed under MIT License · Documentation is licensed under CC BY 3.0 ]]></svg>`), -1)
+
 	return template.HTML(buf)
 }
 
