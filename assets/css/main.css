@@ -161,6 +161,9 @@ p + p {
 menu li {
     display: inline-block;
 }
+a {
+    color: blue;
+}
 a:visited {
     color: rebeccapurple;
 }
@@ -183,6 +186,30 @@ a:active {
 .inverted .score a {
     color: unset;
 }
+.inverted a[href] svg path {
+    fill: dodgerblue;
+}
+.inverted a[href]:active svg path {
+    fill: red;
+}
+.inverted a[href]:visited svg path {
+    fill: mediumpurple;
+}
+a[href] svg path {
+    fill: blue;
+}
+a[href]:active svg path {
+    fill: red;
+}
+a[href]:visited svg path {
+    fill: rebeccapurple;
+}
+a:not([href]) svg path {
+    fill: WindowText;
+}
+.inverted a:not([href]) svg path {
+    fill: WindowFrame;
+}
 body.inverted > header h1 a,
 body.inverted > header h1 a:active,
 body.inverted > header h1 a:visited,
@@ -202,6 +229,12 @@ body > header h1 {
 }
 body > header h1 small {
     opacity: 0.5;
+}
+body > header h1 a[href] svg.icon path {
+    fill: WindowText;
+}
+body.inverted > header h1 a[href] svg.icon path {
+    fill: WindowFrame;
 }
 body > header menu {
     padding-top: .6em;
@@ -231,12 +264,6 @@ svg {
     height: 100%;
     width: auto;
 }
-svg.icon {
-    fill: WindowText;
-}
-.inverted svg.icon {
-    fill: WindowFrame;
-}
 svg:not(:root) {
     overflow: visible;
 }
@@ -248,13 +275,6 @@ body > header h1 .icon-trash {
     width: 1.6rem;
     vertical-align: baseline;
 }
-
-/*body > header h1 a:before {*/
-    /*content: "\f014";*/
-    /*font-family: IconFont;*/
-    /*!*font-weight: 400;*!*/
-    /*margin-right: .4rem;*/
-/*}*/
 menu#top li:first-child::before,
 menu#bottom li:first-child::before {
     content: "";
@@ -466,10 +486,10 @@ ol.comments li {
     width: .8rem;
     height: .8rem;
 }
-.inverted .icon-adjust path {
+.inverted a[href] .icon-adjust path {
     fill: WindowFrame;
 }
-.icon-adjust path {
+a[href] .icon-adjust path {
     fill: WindowText;
 }
 #top .icon-trash {
@@ -481,19 +501,22 @@ ol.comments li {
 .score a svg.icon {
     width: .9rem;
     height: .9rem;
-}
-.score a .icon-plus,
-.score a .icon-minus
-{
     vertical-align: baseline;
 }
-.score a[href].yay:active svg path,
-.score a[href].yay.ed svg path,
-.score a[href].nay:active svg path,
-.score a[href].nay.ed  svg path {
-    color: mediumpurple;
+.score a.yay.ed svg path,
+.score a.nay.ed svg path {
+    fill: rebeccapurple;
+}
+.inverted .score a.yay.ed svg path,
+.inverted .score a.nay.ed svg path {
     fill: mediumpurple;
-    /*text-shadow: black 1px 1px 10px;*/
+}
+.score a.yay:active svg path,
+.score a.nay:active svg path,
+.inverted .score a.yay:active svg path,
+.inverted .score a.nay:active svg path
+{
+    fill: red;
 }
 .meta {
     clear: both;
