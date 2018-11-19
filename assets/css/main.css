@@ -149,6 +149,10 @@ menu li {
 }
 a {
     color: blue;
+    text-decoration: none;
+}
+a:hover {
+    text-decoration: underline;
 }
 a:visited {
     color: rebeccapurple;
@@ -228,12 +232,6 @@ body > header menu {
 body > header menu#sections {}
 body > header menu#top {
     text-align: right;
-}
-body > header menu a,
-body > header menu a:visited,
-body > header menu a:active
-{
-    text-decoration: none;
 }
 body > header h1 a,
 body > header h1 a:hover,
@@ -377,9 +375,6 @@ h6.domain {
     font-weight: 800;
     font-size: .78em;
 }
-.domain a {
-    text-decoration: none;
-}
 .data pre {
     line-height: 1.3rem;
 }
@@ -479,12 +474,7 @@ ol.comments li {
     font-weight: lighter;
     font-size: .5rem;
 }
-.score a:hover,
-.score a:focus {
-    text-decoration: none;
-}
 .score a {
-    text-decoration: none;
     font-size: 1.1em;
     color: WindowText;
 }
@@ -492,7 +482,7 @@ ol.comments li {
     height: .8rem;
 }
 svg.icon-adjust {
-    vertical-align: bottom;
+    vertical-align: -1px;
 }
 .inverted a[href] .icon-adjust path,
 .inverted a svg.icon.icon-trash path,
@@ -535,10 +525,6 @@ a:active svg.icon.icon-trash path {
     padding-left: 1ex;
     margin: .2rem 0;
 }
-/*.meta:hover,*/
-/*.meta:active {*/
-    /*opacity: 1;*/
-/*}*/
 .meta a {
     text-decoration: none;
     font-weight: 900;
