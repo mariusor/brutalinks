@@ -282,15 +282,33 @@ func scoreFmt(s int64) string {
 	return fmt.Sprintf("%s%s", score, units)
 }
 
-func headerMenu(r *http.Request) []template.HTML {
+type headerEl struct {
+	IsCurrent bool
+	Icon string
+	Name string
+	URL string
+}
+
+func headerMenu(r *http.Request) []headerEl {
 	sections := []string{"self", "federated", "followed"}
-	ret := make([]template.HTML, 0)
+	ret := make([]headerEl, 0)
 	for _, s := range sections {
-		if path.Base(r.URL.Path) == s {
-			ret = append(ret, template.HTML(fmt.Sprintf(`<span class="%s icon" href="/%s">/%s</span>`, s, s, s)))
-		} else {
-			ret = append(ret, template.HTML(fmt.Sprintf(`<a class="%s icon" href="/%s">/%s</a>`, s, s, s)))
+		el := headerEl{
+			Name: s,
+			URL: fmt.Sprintf("%s/%s", app.Instance.BaseURL, s),
 		}
+		if path.Base(r.URL.Path) == s {
+			el.IsCurrent = true
+		}
+		switch s {
+		case "self":
+			el.Icon = "home"
+		case "federated":
+			el.Icon = "activitypub"
+		case "followed":
+			el.Icon = "star"
+		}
+		ret = append(ret, el)
 	}
 
 	return ret
@@ -385,7 +403,7 @@ func (h handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name str
 			"PageLink":          pageLink,
 			"App":               func() app.Application { return app.Instance },
 			"Name":              appName,
-			"Menu":              func() []template.HTML { return headerMenu(r) },
+			"Menu":              func() []headerEl { return headerMenu(r) },
 			"icon":              icon,
 			//"ScoreFmt":          func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
 			//"NumberFmt":         func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },

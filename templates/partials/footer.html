@@ -1,7 +1,7 @@
 <menu id="bottom">
     <li class="licence">Licensed under <a href="https://github.com/mariusor/littr.go/blob/master/LICENSE">MIT</a></li>
-    <li class="repo">Source code: <a alt="Github repository" title="Get code" href="https://github.com/mariusor/littr.go"><i class="github icon" alt></i></a></li>
-    {{if App.Version }}<li class="version"><a alt="Version" title="Version" href="https://github.com/mariusor/littr.go/commits/{{App.Version}}"><i class="code icon"></i> {{App.Version}}</a></li>{{end}}
+    <li class="repo">Source code: <a alt="Github repository" title="Get code" href="https://github.com/mariusor/littr.go">{{ icon "github" }}</a></li>
+    {{if App.Version }}<li class="version"><a alt="Version" title="Version" href="https://github.com/mariusor/littr.go/commits/{{App.Version}}">{{ icon "code" }} {{App.Version}}</a></li>{{end}}
 </menu>
 {{- $account := CurrentAccount -}}
 {{/*<script type="application/json" id="flashMessages">{{LoadFlashMessages}}</script>*/}}

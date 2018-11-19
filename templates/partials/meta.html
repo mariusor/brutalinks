@@ -1,13 +1,13 @@
 {{- $count := .Children | len -}}
 {{- $it := .Item -}}
 <footer class="meta col">
-    submitted <time datetime="{{ $it.SubmittedAt | ISOTimeFmt | html }}" title="{{ $it.SubmittedAt | ISOTimeFmt }}">{{ $it.SubmittedAt | TimeFmt }}</time>
+    submitted <time datetime="{{ $it.SubmittedAt | ISOTimeFmt | html }}" title="{{ $it.SubmittedAt | ISOTimeFmt }}">{{ icon "clock-o" }}{{ $it.SubmittedAt | TimeFmt }}</time>
     {{- if $it.SubmittedBy.Handle }} by <a class="by" href="/~{{ $it.SubmittedBy.Handle }}">{{ $it.SubmittedBy.Handle }}</a>{{end}}
     <menu class="meta-items">
-        <li><a href="{{$it | PermaLink }}" class="to-item" alt="permalink" title="Permalink{{if .Item.Title}}: {{$it.Title }}{{end}}"></a></li>
+        <li><a href="{{$it | PermaLink }}" class="to-item" alt="permalink" title="Permalink{{if .Item.Title}}: {{$it.Title }}{{end}}">{{icon "paragraph"}}</a></li>
         {{- if not $it.IsTop -}}
-        {{if $it.Parent }}<li><a href="{{$it | ParentLink}}" class="to-parent" alt="parent" title="Parent"></a></li>{{end}}
-        {{if $it.OP }}<li><a href="{{$it | OPLink}}" class="to-op" alt="op" title="Original Post"></a></li>{{end}}
+        {{if $it.Parent }}<li><a href="{{$it | ParentLink}}" class="to-parent" alt="parent" title="Parent">{{icon "angle-up"}}</a></li>{{end}}
+        {{if $it.OP }}<li><a href="{{$it | OPLink}}" class="to-op" alt="op" title="Original Post">{{icon "angle-double-up"}}</a></li>{{end}}
         {{- end -}}
     </menu>
 </footer>

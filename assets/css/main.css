@@ -41,17 +41,6 @@ table {
     border-collapse: collapse;
     border-spacing: 0;
 }
-@font-face {
-    font-family: IconFont;
-    src: url(https://cdn.jsdelivr.net/npm/fork-awesome@1.1.3/fonts/forkawesome-webfont.eot?v=1.1.3);
-    src: url(https://cdn.jsdelivr.net/npm/fork-awesome@1.1.3/fonts/forkawesome-webfont.eot?#iefix&v=1.1.3) format('embedded-opentype'),
-    url(https://cdn.jsdelivr.net/npm/fork-awesome@1.1.3/fonts/forkawesome-webfont.woff2?v=1.1.3) format('woff2'),
-    url(https://cdn.jsdelivr.net/npm/fork-awesome@1.1.3/fonts/forkawesome-webfont.woff?v=1.1.3) format('woff'),
-    url(https://cdn.jsdelivr.net/npm/fork-awesome@1.1.3/fonts/forkawesome-webfont.ttf?v=1.1.3) format('truetype'),
-    url(https://cdn.jsdelivr.net/npm/fork-awesome@1.1.3/fonts/forkawesome-webfont.svg?v=1.1.3#forkawesomeregular) format('svg');
-    font-weight:400;
-    font-style:normal;
-}
 @media (min-width: 240px) {
     :root {
         font-size: 3.6vw;
@@ -86,6 +75,9 @@ table {
     }
     body > header menu#sections li a {
         font-size: unset;
+    }
+    body > header menu#sections li a svg {
+        font-size: inherit;
     }
     body > header menu#top {
         display: unset;
@@ -170,6 +162,9 @@ a:visited {
 a:active {
     color: red;
 }
+a:not([href]) {
+    color: WindowText;
+}
 .inverted {
     color: Window !important;
     background-color: WindowText !important;
@@ -183,8 +178,8 @@ a:active {
 .inverted a:active {
     color: red;
 }
-.inverted .score a {
-    color: unset;
+.inverted a:not([href]) {
+    color: WindowFrame;
 }
 .inverted a[href] svg path {
     fill: dodgerblue;
@@ -258,11 +253,19 @@ body > header h1 a:active
     text-decoration: none;
 }
 .icon {
-   vertical-align: bottom;
+    vertical-align: central;
 }
 svg {
     height: 100%;
     width: auto;
+}
+svg.icon {
+    height: 1em;
+    width: auto;
+}
+svg.icon-activitypub {
+    vertical-align: bottom;
+    margin-right: .2em;
 }
 svg:not(:root) {
     overflow: visible;
@@ -483,8 +486,10 @@ ol.comments li {
     color: WindowText;
 }
 #top .icon {
-    width: .8rem;
     height: .8rem;
+}
+svg.icon-adjust {
+    vertical-align: bottom;
 }
 .inverted a[href] .icon-adjust path {
     fill: WindowFrame;
@@ -539,23 +544,20 @@ a[href] .icon-adjust path {
 }
 .mention:before {
     content: "@";
-    font-family: IconFont;
     opacity: 0.8;
     font-weight: 900;
 }
 .tag:before {
     content: "#";
-    font-family: IconFont;
     opacity: 0.8;
     font-weight: 900;
 }
 .meta time {
     text-decoration: underline dotted;
 }
-.meta time::before {
-    content: "\f017";
-    font-family: IconFont;
-    padding-right: .4rem;
+.meta .icon-clock-o {
+    height: .75em;
+    width: auto;
 }
 .submission {
     padding: .2em 0 0 1.9em;
@@ -697,27 +699,14 @@ menu.meta-items:after {
     content: "]";
     padding-left: .1em;
 }
-menu.meta-items a::before {
-    font-weight: 900;
-    padding: 0 .2rem;
-}
-a.to-item:before {
-    content: "¶";
-    font-family: IconFont;
-    font-weight: 800;
+menu.meta-items svg {
+    height: .8em;
+    width: auto;
+    vertical-align: top;
 }
 .comments a.to-parent,
 .comments a.to-op {
     display: none;
-}
-a.to-parent:before {
-    content: "\2303";
-    font-weight: 800;
-}
-a.to-op:before {
-    content: "\f102";
-    font-family: IconFont;
-    font-weight: 900;
 }
 .new-acct-details {
     display: block;
@@ -783,45 +772,6 @@ form label {
     margin-bottom: 1em;
 }
 .pagination {}
-a[rel=prev]::before {
-    content: '\f100';
-    font-family: IconFont;
-    margin-right: .2rem;
-}
-a[rel=next]::after {
-    content: '\f101';
-    font-family: IconFont;
-    margin-left: .2rem;
-}
-i.icon {
-    font-style: normal;
-}
-/*.icon {*/
-    /*margin-left: .2rem;*/
-/*}*/
-.icon::before {
-    margin-right: .3rem;
-}
-.code.icon::before {
-    content: "\f121";
-    font-family: IconFont;
-}
-.self.icon::before {
-    content: "\f015";
-    font-family: IconFont;
-}
-.followed.icon::before {
-    content: "\f005";
-    font-family: IconFont;
-}
-.federated.icon::before {
-    content: "\f2f2";
-    font-family: IconFont;
-}
-.github.icon::before {
-    content:"\f09b";
-    font-family: IconFont;
-}
 .acct-info {
     float: right;
 }

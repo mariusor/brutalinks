@@ -4,10 +4,10 @@
 <nav class="pagination">
 View more:
 {{ if gt .PrevPage 0 -}}
-    <a href="{{ .PrevPage | PageLink }}" rel="prev">prev</a>
+    <a href="{{ .PrevPage | PageLink }}" rel="prev">{{icon "angle-double-left"}} prev</a>
 {{- end -}}
 {{ if gt .NextPage 0 -}}
-    <a href="{{.NextPage | PageLink }}" rel="next">next</a>
+    <a href="{{.NextPage | PageLink }}" rel="next">next {{icon "angle-double-right"}}</a>
 {{- end}}
 </nav>
 {{ end -}}
