@@ -200,6 +200,18 @@ a:not([href]) svg.icon path {
 .inverted a:not([href]) svg path {
     fill: WindowFrame;
 }
+.icon.hmirror {
+    transform: rotateX(180deg);
+}
+.icon.vmirror {
+    transform: rotateY(180deg);
+}
+.icon.hmirror.vmirror {
+    transform: rotateY(180deg) rotateX(180deg);
+}
+.icon.icon-reply {
+    font-size: .8em;
+}
 body.inverted > header h1 a,
 body.inverted > header h1 a:active,
 body.inverted > header h1 a:visited,
