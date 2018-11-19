@@ -772,7 +772,9 @@ form label {
     margin-bottom: 1em;
 }
 .pagination {}
+.pagination .icon {
+    font-size: .8em;
+}
 .acct-info {
     float: right;
 }
-
