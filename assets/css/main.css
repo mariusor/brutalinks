@@ -744,6 +744,10 @@ form label {
     min-height: 1.8rem;
     line-height: 1.8rem;
 }
+form label.mime-type {
+    font-size: .8em;
+    float: right;
+}
 .about main,
 .error main {
     margin: 0 auto;

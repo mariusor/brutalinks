@@ -9,6 +9,11 @@
         <input type="hidden" name="parent" id="submit-parent" value="{{.Content.Hash}}"/>
     {{- end -}}
         <input type="hidden" name="mime-type" id="submit-mime-type" value="text/markdown"/>
-        <button type="submit">{{ if not .Content.Hash }}Submit {{icon "reply" "vmirror"}}{{else}}Reply {{icon "reply" "hmirror" }}{{end}}</button>
+        <button type="submit">{{ if not .Content.Hash }}Submit {{icon "reply" "v-mirror"}}{{else}}Reply {{icon "reply" "h-mirror" }}{{end}}</button>
+        {{/* }}
+        <label class="mime-type" title="text/markdown"><input type="radio" name="mime_type" value="text/markdown" checked="checked"/> self</label>
+        <label class="mime-type" title="text/html"><input type="radio" name="mime_type" value="text/html"/> html</label>
+        {{ if not .Content.Hash }}<label class="mime-type" title="application/url"><input type="radio" name="mime_type" value="application/url"/> url</label>{{end}}
+        {{ */}}
     </fieldset>
 </form>
