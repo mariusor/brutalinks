@@ -200,17 +200,23 @@ a:not([href]) svg.icon path {
 .inverted a:not([href]) svg path {
     fill: WindowFrame;
 }
-.icon.hmirror {
+.icon.h-mirror {
     transform: rotateX(180deg);
 }
-.icon.vmirror {
+.icon.v-mirror {
     transform: rotateY(180deg);
 }
-.icon.hmirror.vmirror {
+.icon.h-mirror.v-mirror {
     transform: rotateY(180deg) rotateX(180deg);
 }
 .icon.icon-reply {
     font-size: .8em;
+}
+button svg.icon.icon-reply {
+    height: .9em;
+}
+button svg.icon.icon-reply path {
+    fill: WindowText;
 }
 body.inverted > header h1 a,
 body.inverted > header h1 a:active,
