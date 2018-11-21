@@ -21,6 +21,7 @@ const (
 
 const MimeTypeURL = "application/url"
 const MimeTypeHTML = "text/html"
+const MimeTypeMarkdown = "text/markdown"
 
 type Key [32]byte
 
