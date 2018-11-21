@@ -202,6 +202,9 @@ func (h handler)HandleError(w http.ResponseWriter, r *http.Request, code int, er
 	}
 
 	for _, err := range errs {
+		if err == nil {
+			continue
+		}
 		var msg string
 		var trace []string
 		switch e := err.(type) {
@@ -215,11 +218,7 @@ func (h handler)HandleError(w http.ResponseWriter, r *http.Request, code int, er
 				trace = e.StackTrace()
 			}
 		default:
-			if err != nil {
-				msg = e.Error()
-			} else {
-				msg = "oops, unknown error"
-			}
+			msg = e.Error()
 		}
 		e := error{
 			Message: msg,
