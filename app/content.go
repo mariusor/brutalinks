@@ -20,6 +20,7 @@ const (
 )
 
 const MimeTypeURL = "application/url"
+const MimeTypeHTML = "text/html"
 
 type Key [32]byte
 

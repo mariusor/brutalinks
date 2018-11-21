@@ -5,6 +5,7 @@ import (
 
 	"github.com/buger/jsonparser"
 	as "github.com/mariusor/activitypub.go/activitystreams"
+	ap "github.com/mariusor/activitypub.go/activitypub"
 )
 
 // PublicKey holds the ActivityPub compatible public key data
@@ -28,7 +29,7 @@ type Person struct {
 //    github.com/mariusor/activitypub.go/activitypub/objects.go#Object
 // We need it here in order to be able to add to it our Score property
 type Article struct {
-	as.Object
+	ap.Object
 	Score int64 `jsonld:"score"`
 }
 
@@ -94,7 +95,7 @@ func (a Article) IsObject() bool {
 
 // UnmarshalJSON tries to load json data to Article object
 func (a *Article) UnmarshalJSON(data []byte) error {
-	it := as.Object{}
+	it := ap.Object{}
 	err := it.UnmarshalJSON(data)
 	if err != nil {
 		return err

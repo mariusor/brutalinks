@@ -92,10 +92,12 @@ func loadAPItem(item app.Item) as.Item {
 		if len(item.Hash) > 0 {
 			o.URL = as.IRI(frontend.ItemPermaLink(item))
 		}
-		o.MediaType = as.MimeType(item.MimeType)
-		o.Content = make(as.NaturalLanguageValue, 0)
+		o.Object.Source.MediaType = as.MimeType(item.MimeType)
+		o.MediaType = as.MimeType(app.MimeTypeHTML)
+		o.Source.Content = make(as.NaturalLanguageValue, 0)
 		if item.Data != "" {
-			o.Content.Set("en", string(item.Data))
+			o.Source.Content.Set("en", string(item.Data))
+			o.Content.Set("en", string(app.Markdown(string(item.Data))))
 		}
 	}
 	o.Published = item.SubmittedAt
