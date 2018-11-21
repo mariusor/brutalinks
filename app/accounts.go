@@ -19,12 +19,15 @@ type ImageMetadata struct {
 }
 
 type AccountMetadata struct {
-	Password []byte        `json:"pw,omitempty"`
-	Provider string        `json:"provider,omitempty"`
-	Salt     []byte        `json:"salt,omitempty"`
-	Key      *SSHKey       `json:"key,omitempty"`
-	Blurb    []byte        `json:"blurb,omitempty"`
-	Avatar   ImageMetadata `json:"avatar,omitempty"`
+	Password  []byte        `json:"pw,omitempty"`
+	Provider  string        `json:"provider,omitempty"`
+	Salt      []byte        `json:"salt,omitempty"`
+	Key       *SSHKey       `json:"key,omitempty"`
+	Blurb     []byte        `json:"blurb,omitempty"`
+	Avatar    ImageMetadata `json:"avatar,omitempty"`
+	ID        string        `json:"id,omitempty"`
+	InboxIRI  string        `json:"inbox,omitempty"`
+	OutboxIRI string        `json:"outbox,omitempty"`
 }
 
 type AccountCollection []Account
@@ -41,8 +44,10 @@ type Account struct {
 	Votes     VoteCollection   `json:"votes,omitempty"`
 }
 
+// Hash
 type Hash string
 
+// String
 func (h Hash) String() string {
 	if len(h) > 8 {
 		return string(h[0:8])
@@ -51,12 +56,19 @@ func (h Hash) String() string {
 	}
 }
 
+// MarshalText
 func (h Hash) MarshalText() ([]byte, error) {
 	return []byte(h[0:8]), nil
 }
 
+// HasMetadata
 func (a Account) HasMetadata() bool {
 	return a.Metadata != nil
+}
+
+// HasPublicKey
+func (a Account) HasPublicKey() bool {
+	return a.HasMetadata() && a.Metadata.Key != nil && a.Metadata.Key.Public != nil
 }
 
 func (a Account) IsValid() bool {
