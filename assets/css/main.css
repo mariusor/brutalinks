@@ -182,11 +182,11 @@ a:not([href]) {
 .inverted a[href] svg path {
     fill: dodgerblue;
 }
-.inverted a[href]:visited svg path {
-    fill: mediumpurple;
-}
 a[href] svg path {
     fill: blue;
+}
+.inverted a[href]:visited svg path {
+    fill: mediumpurple;
 }
 a[href]:active svg.icon path {
     fill: red;
@@ -520,6 +520,12 @@ a:active svg.icon.icon-trash path {
     width: .9rem;
     height: .9rem;
     vertical-align: baseline;
+}
+.inverted .score  a:visited[href] svg path {
+    fill: dodgerblue;
+}
+.score a:visited[href] svg path {
+    fill: blue;
 }
 .score a.yay.ed svg path,
 .score a.nay.ed svg path {
