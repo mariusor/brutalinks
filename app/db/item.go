@@ -148,7 +148,7 @@ func saveItem(db *sqlx.DB, it app.Item) (app.Item, error) {
 	if len(col) > 0 {
 		return col[0], err
 	} else {
-		return app.Item{}, err
+		return app.Item{}, errors.Annotatef(err, "db query error")
 	}
 }
 
@@ -255,7 +255,7 @@ func loadItems(db *sqlx.DB, f app.LoadItemsFilter) (app.ItemCollection, error) {
 
 	agg := make([]itemsView, 0)
 	if err := db.Select(&agg, sel, whereValues...); err != nil {
-		return nil, err
+		return nil, errors.Annotatef(err, "db query error")
 	}
 	items := make(app.ItemCollection, len(agg))
 	for k, it := range agg {

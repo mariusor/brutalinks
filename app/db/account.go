@@ -41,7 +41,7 @@ func UpdateAccount(db *sqlx.DB, a app.Account) (app.Account, error) {
 			return a, errors.Errorf("could not update account %s:%q", a.Handle, a.Hash)
 		}
 	} else {
-		return a, err
+		return a, errors.Annotatef(err, "db query error")
 	}
 
 	return a, nil
@@ -49,12 +49,14 @@ func UpdateAccount(db *sqlx.DB, a app.Account) (app.Account, error) {
 
 func loadAccounts(db *sqlx.DB, f app.LoadAccountsFilter) (app.AccountCollection, error) {
 	wheres, whereValues := f.GetWhereClauses()
-
 	var fullWhere string
-	if len(wheres) > 0 {
-		fullWhere = fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(wheres, " AND ")))
-	} else {
+
+	if len(wheres) == 0 {
 		fullWhere = " true"
+	} else if len(wheres) == 1 {
+		fullWhere = fmt.Sprintf("%s", wheres[0])
+	} else {
+		fullWhere = fmt.Sprintf("(%s)", strings.Join(wheres, " AND "))
 	}
 	var offset string
 	if f.Page > 0 {
@@ -68,7 +70,7 @@ func loadAccounts(db *sqlx.DB, f app.LoadAccountsFilter) (app.AccountCollection,
 	type AccountCollection []Account
 	agg := make(AccountCollection, 0)
 	if err := db.Select(&agg, sel, whereValues...); err != nil {
-		return nil, err
+		return nil, errors.Annotatef(err, "db query error")
 	}
 	accounts := make(app.AccountCollection, len(agg))
 	for k, acc := range agg {
@@ -100,7 +102,7 @@ func saveAccount(db *sqlx.DB, a app.Account) (app.Account, error) {
 			return a, errors.Errorf("could not insert account %s:%q", a.Handle, a.Hash)
 		}
 	} else {
-		return a, err
+		return a, errors.Annotatef(err, "db query error")
 	}
 	return a, nil
 }
