@@ -58,7 +58,7 @@ func loadAccounts(db *sqlx.DB, f app.LoadAccountsFilter) (app.AccountCollection,
 	}
 	var offset string
 	if f.Page > 0 {
-		offset = fmt.Sprintf(" OFFSEt %d", f.MaxItems*f.Page)
+		offset = fmt.Sprintf(" OFFSET %d", f.MaxItems*f.Page)
 	}
 
 	sel := fmt.Sprintf(`select 
