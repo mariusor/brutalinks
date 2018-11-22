@@ -9,7 +9,7 @@
         <input type="hidden" name="parent" id="submit-parent" value="{{.Content.Hash}}"/>
     {{- end -}}
         <input type="hidden" name="mime-type" id="submit-mime-type" value="text/markdown"/>
-        <button type="submit">{{ if not .Content.Hash }}Submit {{icon "reply" "v-mirror"}}{{else}}Reply {{icon "reply" "h-mirror" }}{{end}}</button>
+        <button type="submit">{{ if not .Content.Hash }}{{icon "reply" "h-mirror" "v-mirror"}} Submit{{else}}Reply {{icon "reply" "h-mirror" }}{{end}}</button>
         {{/* }}
         <label class="mime-type" title="text/markdown"><input type="radio" name="mime_type" value="text/markdown" checked="checked"/> self</label>
         <label class="mime-type" title="text/html"><input type="radio" name="mime_type" value="text/html"/> html</label>
