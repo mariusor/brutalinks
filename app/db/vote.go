@@ -60,12 +60,19 @@ func (a Account) Votes() VoteCollection {
 
 func loadVotes(db *sqlx.DB, f app.LoadVotesFilter) (app.VoteCollection, error) {
 	wheres, whereValues := f.GetWhereClauses()
+	var fullWhere string
 
-	fullWhere := fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(wheres, " AND ")))
+	if len(wheres) == 0 {
+		fullWhere = " true"
+	} else if len(wheres) == 1 {
+		fullWhere = fmt.Sprintf("%s", wheres[0])
+	} else {
+		fullWhere = fmt.Sprintf("(%s)", strings.Join(wheres, " AND "))
+	}
 
 	var offset string
 	if f.Page > 0 {
-		offset = fmt.Sprintf(" OFFSEt %d", f.MaxItems*(f.Page-1))
+		offset = fmt.Sprintf(" OFFSET %d", f.MaxItems*(f.Page-1))
 	}
 	selC := fmt.Sprintf(`select
 		"vote"."id" as "vote_id",
@@ -106,7 +113,7 @@ where %s order by "vote"."submitted_at" desc limit %d%s`, fullWhere, f.MaxItems,
 	agg := make([]votesView, 0)
 	udb := db.Unsafe()
 	if err := udb.Select(&agg, selC, whereValues...); err != nil {
-		return nil, err
+		return nil, errors.Annotatef(err, "db query error")
 	}
 	votes := make(app.VoteCollection, len(agg))
 	for _, vv := range agg {
