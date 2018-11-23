@@ -465,7 +465,9 @@ func (h handler)HandleCollection(w http.ResponseWriter, r *http.Request) {
 			col.First = as.IRI(strings.Replace(url, fmt.Sprintf("page=%d", f.Page), fmt.Sprintf("page=%d", 1), 1))
 			if f.Page > 0 {
 				page.ID = as.ObjectID(url)
-				page.Next = as.IRI(strings.Replace(url, fmt.Sprintf("page=%d", f.Page), fmt.Sprintf("page=%d", f.Page+1), 1))
+				if len(items) == f.MaxItems {
+					page.Next = as.IRI(strings.Replace(url, fmt.Sprintf("page=%d", f.Page), fmt.Sprintf("page=%d", f.Page+1), 1))
+				}
 				if f.Page > 1 {
 					page.Prev = as.IRI(strings.Replace(url, fmt.Sprintf("page=%d", f.Page), fmt.Sprintf("page=%d", f.Page-1), 1))
 				}
@@ -494,7 +496,9 @@ func (h handler)HandleCollection(w http.ResponseWriter, r *http.Request) {
 			col.First = as.IRI(strings.Replace(url, fmt.Sprintf("page=%d", f.Page), fmt.Sprintf("page=%d", 1), 1))
 			if f.Page > 0 {
 				page.ID = as.ObjectID(url)
-				page.Next = as.IRI(strings.Replace(url, fmt.Sprintf("page=%d", f.Page), fmt.Sprintf("page=%d", f.Page+1), 1))
+				if len(items) == f.MaxItems {
+					page.Next = as.IRI(strings.Replace(url, fmt.Sprintf("page=%d", f.Page), fmt.Sprintf("page=%d", f.Page+1), 1))
+				}
 				if f.Page > 1 {
 					page.Prev = as.IRI(strings.Replace(url, fmt.Sprintf("page=%d", f.Page), fmt.Sprintf("page=%d", f.Page-1), 1))
 				}
@@ -526,7 +530,9 @@ func (h handler)HandleCollection(w http.ResponseWriter, r *http.Request) {
 			liked.First = as.IRI(strings.Replace(url, fmt.Sprintf("page=%d", f.Page), fmt.Sprintf("page=%d", 1), 1))
 			if f.Page > 0 {
 				page.ID = as.ObjectID(url)
-				page.Next = as.IRI(strings.Replace(url, fmt.Sprintf("page=%d", f.Page), fmt.Sprintf("page=%d", f.Page+1), 1))
+				if len(votes) == f.MaxItems {
+					page.Next = as.IRI(strings.Replace(url, fmt.Sprintf("page=%d", f.Page), fmt.Sprintf("page=%d", f.Page+1), 1))
+				}
 				if f.Page > 1 {
 					page.Prev = as.IRI(strings.Replace(url, fmt.Sprintf("page=%d", f.Page), fmt.Sprintf("page=%d", f.Page-1), 1))
 				}
