@@ -450,7 +450,7 @@ func (h handler)HandleCollection(w http.ResponseWriter, r *http.Request) {
 	case "inbox":
 		items, ok := collection.(app.ItemCollection)
 		if !ok {
-			err := errors.New("could not load Items from Context")
+			err := errors.NotFoundf("could not load Items from Context")
 			h.logger.Error(err.Error())
 			h.HandleError(w, r, http.StatusNotFound, err)
 			return
@@ -458,12 +458,12 @@ func (h handler)HandleCollection(w http.ResponseWriter, r *http.Request) {
 		col := ap.InboxNew()
 		col.ID = colId
 		_, err = loadAPCollection(col, &items)
+		oc := as.OrderedCollection(*col)
+		page := as.OrderedCollectionPageNew(&oc)
 		if len(items) > 0 {
 			url := fmt.Sprintf("%s?page=%d", string(*col.GetID()), f.Page)
 			col.First = as.IRI(strings.Replace(url, fmt.Sprintf("page=%d", f.Page), fmt.Sprintf("page=%d", 1), 1))
 			if f.Page > 0 {
-				oc := as.OrderedCollection(*col)
-				page := as.OrderedCollectionPageNew(&oc)
 				page.ID = as.ObjectID(url)
 				page.Next = as.IRI(strings.Replace(url, fmt.Sprintf("page=%d", f.Page), fmt.Sprintf("page=%d", f.Page+1), 1))
 				if f.Page > 1 {
@@ -471,11 +471,15 @@ func (h handler)HandleCollection(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
-		data, err = json.WithContext(GetContext()).Marshal(col)
+		if f.Page > 0 {
+			data, err = json.WithContext(GetContext()).Marshal(page)
+		} else {
+			data, err = json.WithContext(GetContext()).Marshal(col)
+		}
 	case "outbox":
 		items, ok := collection.(app.ItemCollection)
 		if !ok {
-			err := errors.New("could not load Items from Context")
+			err := errors.NotFoundf("could not load Items from Context")
 			h.logger.Error(err.Error())
 			h.HandleError(w, r, http.StatusNotFound, err)
 			return
@@ -483,12 +487,12 @@ func (h handler)HandleCollection(w http.ResponseWriter, r *http.Request) {
 		col := ap.OutboxNew()
 		col.ID = colId
 		_, err = loadAPCollection(col, &items)
+		oc := as.OrderedCollection(*col)
+		page := as.OrderedCollectionPageNew(&oc)
 		if len(items) > 0 {
 			url := fmt.Sprintf("%s?page=%d", string(*col.GetID()), f.Page)
 			col.First = as.IRI(strings.Replace(url, fmt.Sprintf("page=%d", f.Page), fmt.Sprintf("page=%d", 1), 1))
 			if f.Page > 0 {
-				oc := as.OrderedCollection(*col)
-				page := as.OrderedCollectionPageNew(&oc)
 				page.ID = as.ObjectID(url)
 				page.Next = as.IRI(strings.Replace(url, fmt.Sprintf("page=%d", f.Page), fmt.Sprintf("page=%d", f.Page+1), 1))
 				if f.Page > 1 {
@@ -496,11 +500,15 @@ func (h handler)HandleCollection(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
-		data, err = json.WithContext(GetContext()).Marshal(col)
+		if f.Page > 0 {
+			data, err = json.WithContext(GetContext()).Marshal(page)
+		} else {
+			data, err = json.WithContext(GetContext()).Marshal(col)
+		}
 	case "liked":
 		votes, ok := collection.(app.VoteCollection)
 		if !ok {
-			err := errors.New("could not load Votes from Context")
+			err := errors.NotFoundf("could not load Votes from Context")
 			h.logger.Error(err.Error())
 			h.HandleError(w, r, http.StatusNotFound, err)
 			return
@@ -511,12 +519,12 @@ func (h handler)HandleCollection(w http.ResponseWriter, r *http.Request) {
 		liked := ap.LikedNew()
 		liked.ID = colId
 		_, err = loadAPLiked(liked, votes)
+		oc := as.OrderedCollection(*liked)
+		page := as.OrderedCollectionPageNew(&oc)
 		if len(votes) > 0 {
 			url := fmt.Sprintf("%s?page=%d", string(*liked.GetID()), f.Page)
 			liked.First = as.IRI(strings.Replace(url, fmt.Sprintf("page=%d", f.Page), fmt.Sprintf("page=%d", 1), 1))
 			if f.Page > 0 {
-				oc := as.OrderedCollection(*liked)
-				page := as.OrderedCollectionPageNew(&oc)
 				page.ID = as.ObjectID(url)
 				page.Next = as.IRI(strings.Replace(url, fmt.Sprintf("page=%d", f.Page), fmt.Sprintf("page=%d", f.Page+1), 1))
 				if f.Page > 1 {
@@ -524,7 +532,11 @@ func (h handler)HandleCollection(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
-		data, err = json.WithContext(GetContext()).Marshal(liked)
+		if f.Page > 0 {
+			data, err = json.WithContext(GetContext()).Marshal(page)
+		} else {
+			data, err = json.WithContext(GetContext()).Marshal(liked)
+		}
 	case "replies":
 		items, ok := collection.(app.ItemCollection)
 		if !ok {
