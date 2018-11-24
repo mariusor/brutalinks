@@ -719,13 +719,6 @@ menu.meta-items svg {
 .comments a.to-op {
     display: none;
 }
-.new-acct-details {
-    display: block;
-    float: right;
-    width: 50%;
-    text-align: center;
-    font-size: .85em;
-}
 .details-agree {
     font-size: .8em;
 }
