@@ -179,25 +179,25 @@ a:not([href]) {
 .inverted a:not([href]) {
     color: WindowFrame;
 }
-.inverted a[href] svg path {
+.inverted a[href] svg {
     fill: dodgerblue;
 }
-a[href] svg path {
+a[href] svg  {
     fill: blue;
 }
-.inverted a[href]:visited svg path {
+.inverted a[href]:visited svg {
     fill: mediumpurple;
 }
-a[href]:active svg.icon path {
+a[href]:active svg.icon {
     fill: red;
 }
-a[href]:visited svg path {
+a[href]:visited svg {
     fill: rebeccapurple;
 }
-a:not([href]) svg.icon path {
+a:not([href]) svg.icon {
     fill: WindowText;
 }
-.inverted a:not([href]) svg path {
+.inverted a:not([href]) svg {
     fill: WindowFrame;
 }
 .icon.h-mirror {
@@ -216,9 +216,10 @@ button svg.icon.icon-reply,
 button svg.icon.icon-sign-in
 {
     height: .9em;
+    width: .9em;
 }
-button svg.icon.icon-reply path,
-button svg.icon.icon-sign-in path {
+button svg.icon.icon-reply,
+button svg.icon.icon-sign-in {
     fill: WindowText;
 }
 body.inverted > header h1 a,
@@ -241,10 +242,10 @@ body > header h1 {
 body > header h1 small {
     opacity: 0.5;
 }
-body > header h1 a[href] svg.icon path {
+body > header h1 a[href] svg.icon {
     fill: WindowText;
 }
-body.inverted > header h1 a[href] svg.icon path {
+body.inverted > header h1 a[href] svg.icon {
     fill: WindowFrame;
 }
 body > header menu {
@@ -267,22 +268,13 @@ body > header h1 a:active
 .icon {
     vertical-align: central;
 }
-svg {
-    height: 100%;
-    width: auto;
-}
 svg.icon {
     height: 1em;
-    width: auto;
-}
-svg.icon path {
+    width: 1em;
     fill: WindowText;
 }
-.inverted svg.icon path {
+.inverted svg.icon {
     fill: WindowFrame;
-}
-svg:not(:root) {
-    overflow: visible;
 }
 body > header {
     padding-left: .35rem;
@@ -290,7 +282,7 @@ body > header {
 body > header h1 .icon-trash {
     height: 1.6rem;
     width: 1.6rem;
-    vertical-align: baseline;
+    vertical-align: -1px;
 }
 menu.inline li:first-child::before {
     content: "";
@@ -312,11 +304,14 @@ menu.sections li {
     margin-right: .4em;
 }
 menu.sections li a svg {
-    height: .8rem;
+    height: 1.1rem;
+    width: 1.1rem;
+    vertical-align: bottom;
 }
-menu.sections a svg.icon-activitypub {
-    vertical-align: -1px;
-    margin-right: .2em;
+menu.sections li a svg.icon-activitypub {
+    height: 1.2rem;
+    width: 1.2rem;
+    margin-bottom: -1px;
 }
 body > main {
     margin-top: 1rem;
@@ -365,9 +360,6 @@ ol.hide-text article.data {
 .hide-text article header {
     margin-bottom: 0px;
 }
-/*.hide-text .score {*/
-    /*height: 3.4rem;*/
-/*}*/
 article > section {
     width: 100%;
 }
@@ -505,43 +497,50 @@ ol.comments li {
 svg.icon-adjust {
     vertical-align: -1px;
 }
-.inverted a[href] svg.icon-adjust path,
-.inverted a svg.icon.icon-trash path,
-.inverted a:active svg.icon.icon-trash path
+.inverted a svg.icon.icon-adjust,
+.inverted a:active svg.icon.icon-adjust,
+.inverted a svg.icon.icon-trash,
+.inverted a:active svg.icon.icon-trash
 {
     fill: WindowFrame;
 }
-a[href] svg.icon-adjust path,
-a svg.icon.icon-trash path,
-a:active svg.icon.icon-trash path {
+a svg.icon.icon-adjust,
+a:active svg.icon.icon-adjust,
+a svg.icon.icon-trash,
+a:active svg.icon.icon-trash {
     fill: WindowText;
 }
 .score a:not([href]) {
     opacity: .2;
 }
 .score a svg.icon {
-    width: .9rem;
-    height: .9rem;
-    vertical-align: baseline;
+    width: .9em;
+    height: .9em;
 }
-.inverted .score  a:visited[href] svg path {
+.score a.yay svg {
+    vertical-align: 2px;
+}
+.score a.nay svg {
+    vertical-align: 4px;
+}
+.inverted .score a:visited[href] svg {
     fill: dodgerblue;
 }
-.score a:visited[href] svg path {
+.score a:visited[href] svg {
     fill: blue;
 }
-.score a.yay.ed svg path,
-.score a.nay.ed svg path {
+.score a.yay.ed svg,
+.score a.nay.ed svg {
     fill: rebeccapurple;
 }
-.inverted .score a.yay.ed svg path,
-.inverted .score a.nay.ed svg path {
+.inverted .score a.yay.ed svg,
+.inverted .score a.nay.ed svg {
     fill: mediumpurple;
 }
-.score a[href].yay:active svg path,
-.score a[href].nay:active svg path,
-.inverted .score a[href].yay:active svg path,
-.inverted .score a[href].nay:active svg path
+.score a[href].yay:active svg,
+.score a[href].nay:active svg,
+.inverted .score a[href].yay:active svg,
+.inverted .score a[href].nay:active svg
 {
     fill: red;
 }
@@ -556,14 +555,17 @@ a:active svg.icon.icon-trash path {
     text-decoration: none;
     font-weight: 900;
 }
+.meta time .icon-clock-o {
+    margin-right: .2em;
+    height: .9em;
+    width: .9em;
+}
 .by:before {
     content: "~";
-    font-weight: 900;
 }
 .mention:before {
     content: "@";
     opacity: 0.8;
-    font-weight: 900;
 }
 .tag:before {
     content: "#";
@@ -572,10 +574,6 @@ a:active svg.icon.icon-trash path {
 }
 .meta time {
     text-decoration: underline dotted;
-}
-.meta .icon-clock-o {
-    height: .75em;
-    width: auto;
 }
 .submission {
     padding: .2em 0 0 1.9em;
@@ -714,7 +712,7 @@ menu.meta-items:after {
 }
 menu.meta-items svg {
     height: .9em;
-    width: auto;
+    width: .9em;
     vertical-align: top;
 }
 .comments a.to-parent,

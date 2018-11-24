@@ -30,6 +30,7 @@ import (
 const (
 	sessionName = "_s"
 	templateDir = "templates/"
+	assetsDir   = "assets/"
 )
 
 type handler struct {
@@ -64,28 +65,19 @@ func text(data string) string {
 }
 
 func icon(icon string, c ...string) template.HTML {
-	file := filepath.Clean(icon) + ".svg"
-
-	buf := svg(file)
-	if buf == nil {
-		return template.HTML(buf)
-	}
 	cls := make([]string, 0)
 	cls = append(cls, c...)
 
-	extraCls := fmt.Sprintf(`<svg class="icon icon-%s %s"`, icon, strings.Join(cls, " "))
-	buf = bytes.Replace(buf, []byte("<svg "), []byte(extraCls), -1)
-
-	buf = bytes.Replace(buf, []byte("</svg>"), []byte(`<![CDATA[ Fork Awesome 1.1.5 · A fork of Font Awesome, originally created by Dave Gandy` +
-		`Fork Awesome is licensed under SIL OFL 1.1 · Code is licensed under MIT License · Documentation is licensed under CC BY 3.0 ]]></svg>`), -1)
+	buf := fmt.Sprintf(`<svg class="icon icon-%s %s">
+	<use xlink:href="#icon-%s" />
+</svg>`, icon, strings.Join(cls, " "), icon)
 
 	return template.HTML(buf)
 }
 
-func svg(p string) []byte {
+func asset(p string) []byte {
 	file := filepath.Clean(p)
-	svgPath := filepath.Join(templateDir, "icons")
-	fullPath := filepath.Join(svgPath, file)
+	fullPath := filepath.Join(assetsDir, file)
 
 	f, err := os.Open(fullPath)
 	if err != nil {
@@ -287,9 +279,9 @@ func scoreFmt(s int64) string {
 
 type headerEl struct {
 	IsCurrent bool
-	Icon string
-	Name string
-	URL string
+	Icon      string
+	Name      string
+	URL       string
 }
 
 func headerMenu(r *http.Request) []headerEl {
@@ -298,7 +290,7 @@ func headerMenu(r *http.Request) []headerEl {
 	for _, s := range sections {
 		el := headerEl{
 			Name: s,
-			URL: fmt.Sprintf("%s/%s", app.Instance.BaseURL, s),
+			URL:  fmt.Sprintf("%s/%s", app.Instance.BaseURL, s),
 		}
 		if path.Base(r.URL.Path) == s {
 			el.IsCurrent = true
@@ -408,6 +400,7 @@ func (h handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name str
 			"Name":              appName,
 			"Menu":              func() []headerEl { return headerMenu(r) },
 			"icon":              icon,
+			"asset":             func(p string) template.HTML { return template.HTML(asset(p)) },
 			//"ScoreFmt":          func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
 			//"NumberFmt":         func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
 		}},

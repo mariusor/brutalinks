@@ -116,6 +116,10 @@ func New() Application {
 	return app
 }
 
+type Cacheable interface{
+	GetAge() int
+}
+
 func validEnv(s EnvType) bool {
 	for _, k := range validEnvTypes {
 		if k == s {
