@@ -212,10 +212,13 @@ a:not([href]) svg.icon path {
 .icon.icon-reply {
     font-size: .8em;
 }
-button svg.icon.icon-reply {
+button svg.icon.icon-reply,
+button svg.icon.icon-sign-in
+{
     height: .9em;
 }
-button svg.icon.icon-reply path {
+button svg.icon.icon-reply path,
+button svg.icon.icon-sign-in path {
     fill: WindowText;
 }
 body.inverted > header h1 a,
@@ -502,13 +505,13 @@ ol.comments li {
 svg.icon-adjust {
     vertical-align: -1px;
 }
-.inverted a[href] .icon-adjust path,
+.inverted a[href] svg.icon-adjust path,
 .inverted a svg.icon.icon-trash path,
 .inverted a:active svg.icon.icon-trash path
 {
     fill: WindowFrame;
 }
-a[href] .icon-adjust path,
+a[href] svg.icon-adjust path,
 a svg.icon.icon-trash path,
 a:active svg.icon.icon-trash path {
     fill: WindowText;
@@ -769,7 +772,7 @@ form label.mime-type {
 .error main section,
 .about main section {
     opacity: .65;
-    margin-top: 1em;
+    margin-: 1em;
     line-height: 2em;
 }
 .about main section {
