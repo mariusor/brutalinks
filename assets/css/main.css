@@ -46,12 +46,12 @@ table {
         font-size: 3.6vw;
     }
     body > header {
-        grid-template-columns: 14ex 65% 0;
+        grid-template-columns: auto auto 0;
     }
-    body > header menu#sections li a span {
+    body > header .sections li a span {
         font-size: 0;
     }
-    body > header menu#top {
+    body > header .top {
         display: none;
     }
     h6.domain {
@@ -70,10 +70,10 @@ table {
     body > header menu {
         padding-top: .6em;
     }
-    body > header menu#sections li a span {
+    body > header .sections li a span {
         font-size: unset;
     }
-    body > header menu#top {
+    body > header .top {
         display: unset;
     }
     h6.domain {
@@ -227,7 +227,7 @@ body.inverted > header h1 a:focus
 }
 body > header {
     display: grid;
-    grid-template-columns: 9rem 3fr 2fr;
+    grid-template-columns: auto auto 5fr;
     grid-area: header;
     margin: .5rem 0 0 0;
 }
@@ -247,8 +247,10 @@ body.inverted > header h1 a[href] svg.icon path {
 body > header menu {
     padding-top: .6em;
 }
-body > header menu#sections {}
-body > header menu#top {
+header .sections {
+    margin-left: 1rem;
+}
+header .top {
     text-align: right;
 }
 body > header h1 a,
@@ -287,31 +289,29 @@ body > header h1 .icon-trash {
     width: 1.6rem;
     vertical-align: baseline;
 }
-menu#top li:first-child::before,
-menu#bottom li:first-child::before {
+menu.inline li:first-child::before {
     content: "";
 }
-menu#top li::before,
-menu#bottom li::before {
+menu.inline li::before {
     content: " | ";
 }
-menu#bottom li.version::before {
+menu.bottom li.version::before {
     content: "";
 }
-menu#bottom i::before {
+menu.bottom i::before {
     margin: unset;
 }
-menu#top {
+menu.top {
     font-size: .8rem;
     text-align: right;
 }
-menu#sections li {
+menu.sections li {
     margin-right: .4em;
 }
-menu#sections li a svg {
+menu.sections li a svg {
     height: .8rem;
 }
-menu#sections a svg.icon-activitypub {
+menu.sections a svg.icon-activitypub {
     vertical-align: -1px;
     margin-right: .2em;
 }
@@ -496,7 +496,7 @@ ol.comments li {
     font-size: 1.1em;
     color: WindowText;
 }
-#top .icon {
+.top .icon {
     height: .8rem;
 }
 svg.icon-adjust {
@@ -698,13 +698,8 @@ menu.meta-items {
     text-align: center;
     padding-left: 1em;
 }
-menu#bottom {
+menu.bottom {
     float:right;
-}
-menu.meta-items li,
-menu#bottom li {
-    display: inline;
-    margin: 0;
 }
 menu.meta-items:before {
     content: " [";
@@ -715,7 +710,7 @@ menu.meta-items:after {
     padding-left: .1em;
 }
 menu.meta-items svg {
-    height: .8em;
+    height: .9em;
     width: auto;
     vertical-align: top;
 }
@@ -767,8 +762,8 @@ form label.mime-type {
     max-height: 480px;
     align-items: center;
 }
-.error > header,
-.about > header {
+.error>header menu,
+.about>header {
     display: none;
 }
 .error main section,
