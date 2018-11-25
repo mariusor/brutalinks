@@ -1,6 +1,7 @@
 module github.com/mariusor/littr.go
 
 require (
+	github.com/PuerkitoBio/goquery v1.5.0 // indirect
 	github.com/adjust/redismq v0.0.0-20170113163246-e2a56d9bb404
 	github.com/buger/jsonparser v0.0.0-20181023193515-52c6e1462ebd
 	github.com/dyninc/qstring v0.0.0-20160719172318-ab5840a88e81 // indirect
@@ -28,6 +29,8 @@ require (
 	github.com/mattn/go-isatty v0.0.4 // indirect
 	github.com/mattn/go-sqlite3 v1.9.0 // indirect
 	github.com/matttproud/gocheck v0.0.0-20130118152435-ecced547db7c // indirect
+	github.com/mmcdole/gofeed v1.0.0-beta2
+	github.com/mmcdole/goxpp v0.0.0-20181012175147-0068e33feabf // indirect
 	github.com/mmcloughlin/meow v0.0.0-20181027071415-3edf85781f46
 	github.com/onsi/ginkgo v1.6.0 // indirect
 	github.com/onsi/gomega v1.4.1 // indirect
@@ -42,7 +45,6 @@ require (
 	gitlab.com/golang-commonmark/puny v0.0.0-20180912090636-2cd490539afe // indirect
 	gitlab.com/opennota/wd v0.0.0-20180912061657-c5d65f63c638 // indirect
 	golang.org/x/crypto v0.0.0-20180904163835-0709b304e793
-	golang.org/x/net v0.0.0-20180718182112-8887df42c721 // indirect
 	golang.org/x/oauth2 v0.0.0-20180620175406-ef147856a6dd
 	golang.org/x/sync v0.0.0-20180314180146-1d60e4601c6f // indirect
 	golang.org/x/sys v0.0.0-20181106135930-3a76605856fd // indirect

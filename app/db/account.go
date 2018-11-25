@@ -84,11 +84,18 @@ func saveAccount(db *sqlx.DB, a app.Account) (app.Account, error) {
 	if err != nil {
 		Logger.Error(err.Error())
 	}
+	acct := Account{
+		Handle: a.Handle,
+		Key: app.GenKey([]byte(a.Handle)),
+		Score: a.Score,
+		Metadata: jMetadata,
+		CreatedAt: a.CreatedAt,
+		UpdatedAt: a.UpdatedAt,
+	}
+	acct.Flags.Scan(a.Flags)
 
-	var em interface{}
-	if len(a.Email) == 0 {
-		em = interface{}(nil)
-	} else {
+	em := interface{}(nil)
+	if len(a.Email) > 0 {
 		em = interface{}(a.Email)
 	}
 
@@ -97,12 +104,14 @@ func saveAccount(db *sqlx.DB, a app.Account) (app.Account, error) {
 	ON CONFLICT("key") DO UPDATE	
 		SET "score" = $4, "updated_at" = $6, "flags" = $7::bit(8), "metadata" = $8	
 	`
-	if res, err := db.Exec(ins, a.Hash, a.Handle, em, a.Score, a.CreatedAt, a.UpdatedAt, a.Flags, jMetadata); err == nil {
+	if res, err := db.Exec(ins, acct.Key, acct.Handle, em, acct.Score, acct.CreatedAt, acct.UpdatedAt, a.Flags, acct.Metadata); err == nil {
 		if rows, _ := res.RowsAffected(); rows == 0 {
-			return a, errors.Errorf("could not insert account %s:%q", a.Handle, a.Hash)
+			return a, errors.Errorf("could not insert account %s:%q", acct.Handle, acct.Key)
 		}
 	} else {
 		return a, errors.Annotatef(err, "db query error")
 	}
+
+	a.Hash = acct.Key.Hash()
 	return a, nil
 }
