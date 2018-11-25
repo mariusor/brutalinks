@@ -26,6 +26,7 @@ type AccountMetadata struct {
 	Blurb     []byte        `json:"blurb,omitempty"`
 	Avatar    ImageMetadata `json:"avatar,omitempty"`
 	ID        string        `json:"id,omitempty"`
+	URL       string        `json:"url,omitempty"`
 	InboxIRI  string        `json:"inbox,omitempty"`
 	OutboxIRI string        `json:"outbox,omitempty"`
 }
