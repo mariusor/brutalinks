@@ -280,9 +280,9 @@ body > header {
     padding-left: .35rem;
 }
 body > header h1 .icon-trash {
-    height: 1.6rem;
-    width: 1.6rem;
-    vertical-align: -1px;
+    height: 1.8rem;
+    width: 1.8rem;
+    vertical-align: -2px;
 }
 menu.inline li:first-child::before {
     content: "";
