@@ -1,6 +1,6 @@
 # Littr.me
 
-This is a new attempt at the social link aggregator paradigm.
+This project represents a new attempt at the social link aggregator paradigm.
 
 It leverages the [ActivityPub](https://www.w3.org/TR/activitypub) web specification for social networking
 and uses federation to prevent some of the problems that exist currently in similar communities.
@@ -22,3 +22,21 @@ their own moderation rules and topic preferences.
 At the same time, through the federation mechanism between instances, the users can subscribe to other
 streams and will receive updates from them. As a plus, due to the interoperability that ActivityPub brings,
 they are not only limited to link aggregators, but can also interact with other AP capable services.
+
+# Installing
+
+## Pre-requisites
+
+The basic requirements for running littr.go locally are a postgresql server (version 9.5 or newer)
+and a go environment (version 1.11 or newer). 
+
+    $ go get github.com/mariusor/littr.go
+    $ cp .env.example .env
+    $ $EDITOR .env
+
+In the `.env` file you can set-up the connection to the postgresql database and various other knobs and switches
+to configure the application.
+
+## Running 
+
+    $ make run
