@@ -49,7 +49,6 @@ func accountFromRequest(r *http.Request, l log.Logger) (*app.Account, []error) {
 	a.CreatedAt = now
 	a.UpdatedAt = now
 
-	a.Hash = app.Hash(app.GenKey([]byte(a.Handle)).String())
 	salt := securecookie.GenerateRandomKey(8)
 	saltedpw := []byte(pw)
 	saltedpw = append(saltedpw, salt...)
