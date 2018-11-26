@@ -50,6 +50,7 @@ table {
     }
     body > header .sections li a span {
         font-size: 0;
+        display: none;
     }
     body > header .top {
         display: none;
@@ -72,6 +73,7 @@ table {
     }
     body > header .sections li a span {
         font-size: unset;
+        display: unset;
     }
     body > header .top {
         display: unset;
@@ -143,9 +145,6 @@ p {
 }
 p + p {
     padding-top: .6rem;
-}
-menu li {
-    display: inline-block;
 }
 a {
     color: blue;
@@ -284,24 +283,24 @@ body > header h1 .icon-trash {
     width: 1.8rem;
     vertical-align: -2px;
 }
-menu.inline li:first-child::before {
-    content: "";
+menu.inline li {
+    display: inline-block;
+    /*margin-left: .4em;*/
+}
+menu.inline li:first-child::before,
+menu.inline li.no-sep::before {
+    content: unset;
 }
 menu.inline li::before {
-    content: " | ";
-}
-menu.bottom li.version::before {
-    content: "";
-}
-menu.bottom i::before {
-    margin: unset;
+    content: "|";
+    padding-right: .4em;
 }
 menu.top {
     font-size: .8rem;
     text-align: right;
 }
-menu.sections li {
-    margin-right: .4em;
+menu.sections li::before {
+    content: unset;
 }
 menu.sections li a svg {
     height: 1.1rem;
@@ -493,9 +492,6 @@ ol.comments li {
 }
 .top .icon {
     height: .8rem;
-}
-svg.icon-adjust {
-    vertical-align: -1px;
 }
 .inverted a svg.icon.icon-adjust,
 .inverted a:active svg.icon.icon-adjust,
@@ -695,30 +691,35 @@ details > summary::-webkit-details-marker {
 #login label {}
 menu.meta-items {
     display: inline;
-    margin: 0;
     text-align: center;
-    padding-left: 1em;
+}
+menu.meta-items li {
+    padding-right: .4em;
+}
+menu.meta-items li::before {
+    content: unset;
 }
 menu.bottom {
     float:right;
 }
 menu.meta-items:before {
-    content: " [";
-    padding-right: .1em;
+    content: "[";
+    padding-right: .4em;
 }
 menu.meta-items:after {
     content: "]";
-    padding-left: .1em;
 }
 menu.meta-items svg {
     height: .9em;
     width: .9em;
     vertical-align: top;
 }
+/*
 .comments a.to-parent,
 .comments a.to-op {
     display: none;
 }
+*/
 .details-agree {
     font-size: .8em;
 }
@@ -779,10 +780,18 @@ form label.mime-type {
     text-align: center;
     margin-bottom: 1em;
 }
-.pagination {}
+.pagination li {
+    margin-left: .4rem;
+}
 .pagination .icon {
     font-size: .8em;
 }
 .acct-info {
     float: right;
+}
+svg.icon-adjust {
+    vertical-align: -2px;
+}
+.icon-github, .icon-code {
+    vertical-align: -1px;
 }
