@@ -101,8 +101,10 @@ func loadAPItem(item app.Item) as.Item {
 				o.Source.Content.Set("en", string(item.Data))
 				o.Content.Set("en", string(app.Markdown(string(item.Data))))
 			}
+		case app.MimeTypeText:
+			fallthrough
 		case app.MimeTypeHTML:
-			o.MediaType = as.MimeType(app.MimeTypeHTML)
+			o.MediaType = as.MimeType(item.MimeType)
 			o.Content.Set("en", string(item.Data))
 		}
 	}
