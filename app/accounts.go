@@ -83,8 +83,11 @@ type Deletable interface {
 }
 
 func (a Account) VotedOn(i Item) *Vote {
-	for key, v := range a.Votes {
-		if key == i.Hash {
+	for _, v := range a.Votes {
+		if v.Item == nil {
+			continue
+		}
+		if v.Item.Hash == i.Hash {
 			return &v
 		}
 	}
