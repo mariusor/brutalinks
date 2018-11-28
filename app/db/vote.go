@@ -116,10 +116,9 @@ where %s order by "vote"."submitted_at" desc limit %d%s`, fullWhere, f.MaxItems,
 		return nil, errors.Annotatef(err, "db query error")
 	}
 	votes := make(app.VoteCollection, len(agg))
-	for _, vv := range agg {
-		i := vv.item().Model()
+	for k, vv := range agg {
 		v := vv.vote().Model()
-		votes[i.Hash] = v
+		votes[k] = v
 	}
 	return votes, nil
 }

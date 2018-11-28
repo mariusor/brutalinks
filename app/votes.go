@@ -15,7 +15,7 @@ const (
 	ScoreMaxB       = 10000000000.0
 )
 
-type VoteCollection map[Hash]Vote
+type VoteCollection []Vote
 
 type Vote struct {
 	SubmittedBy *Account  `json:"submittedBy"`

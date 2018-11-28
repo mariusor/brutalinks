@@ -686,13 +686,13 @@ func (r *repository) LoadVotes(f app.LoadVotesFilter) (app.VoteCollection, error
 		return nil, err
 	}
 	items = make(app.VoteCollection, col.TotalItems)
-	for _, it := range col.OrderedItems {
+	for k, it := range col.OrderedItems {
 		vot := app.Vote{}
-		if err := vot.FromActivityPubItem(it); err != nil {
-			r.logger.Error(err.Error())
+		if err := vot.FromActivityPub(it); err != nil {
+			r.logger.Warn(err.Error())
 			continue
 		}
-		items[vot.Item.Hash] = vot
+		items[k] = vot
 	}
 	return items, nil
 }
