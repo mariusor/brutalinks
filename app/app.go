@@ -304,14 +304,14 @@ func ReqLogger(next http.Handler) http.Handler {
 	return middleware.DefaultLogger(next)
 }
 
-type errorHandler func(http.ResponseWriter, *http.Request, int, ...error)
+type errorHandler func(http.ResponseWriter, *http.Request, ...error)
 type handler func(http.Handler) http.Handler
 
 func NeedsDBBackend(fn errorHandler) handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			if !Instance.Config.DB.Enabled {
-				fn(w, r, http.StatusInternalServerError, errors.New("db backend is disabled, can not continue"))
+				fn(w, r, errors.NotValidf("db backend is disabled, can not continue"))
 				return
 			}
 			next.ServeHTTP(w, r)

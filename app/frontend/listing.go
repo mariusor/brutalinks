@@ -145,7 +145,7 @@ func (h *handler) HandleIndex(w http.ResponseWriter, r *http.Request) {
 		}
 		h.RenderTemplate(r, w, "listing", m)
 	} else {
-		h.HandleError(w, r, http.StatusInternalServerError, err)
+		h.HandleError(w, r, errors.NewNotValid(err, "oops!"))
 	}
 }
 
@@ -206,7 +206,7 @@ func (h *handler) HandleTags(w http.ResponseWriter, r *http.Request) {
 		}
 		h.RenderTemplate(r, w, "listing", m)
 	} else {
-		h.HandleError(w, r, http.StatusInternalServerError, err)
+		h.HandleError(w, r, errors.NewNotValid(err, "oops!"))
 	}
 }
 
@@ -236,6 +236,6 @@ func (h *handler) HandleDomains(w http.ResponseWriter, r *http.Request) {
 		}
 		h.RenderTemplate(r, w, "listing", m)
 	} else {
-		h.HandleError(w, r, http.StatusInternalServerError, err)
+		h.HandleError(w, r, errors.NewNotValid(err, "oops!"))
 	}
 }

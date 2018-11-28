@@ -273,5 +273,5 @@ func ProcessMessages(count int) (int, int, error) {
 		fmt.Println(pkg.Payload)
 	}
 
-	return count, 0, errors.Errorf("not implemented")
+	return count, 0, errors.NotImplementedf("not implemented")
 }

@@ -240,7 +240,7 @@ func (h handler)HandleActorsCollection(w http.ResponseWriter, r *http.Request) {
 	f := r.Context().Value(app.FilterCtxtKey)
 	if filter, ok = f.(app.LoadAccountsFilter); !ok {
 		h.logger.Error("could not load filter from Context")
-		h.HandleError(w, r, http.StatusNotFound, errors.New("not found"))
+		h.HandleError(w, r, errors.NotFoundf("not found"))
 		return
 	} else {
 		val := r.Context().Value(app.RepositoryCtxtKey)
@@ -267,7 +267,7 @@ func (h handler)HandleActorsCollection(w http.ResponseWriter, r *http.Request) {
 					"err":   err,
 					"trace": errors.Details(err),
 				}).Error(err.Error())
-				h.HandleError(w, r, http.StatusNotFound, err)
+				h.HandleError(w, r, errors.NewNotFound(err, "not found"))
 				return
 			}
 		}
@@ -304,7 +304,7 @@ func (h handler)HandleActor(w http.ResponseWriter, r *http.Request) {
 		h.logger.WithContext(log.Ctx{
 			"trace": errors.Details(err),
 		}).Error(err.Error())
-		h.HandleError(w, r, http.StatusInternalServerError, err)
+		h.HandleError(w, r, errors.NewNotValid(err, "unable to marshall ap object"))
 		return
 	}
 
@@ -340,25 +340,25 @@ func (h handler)HandleCollectionActivity(w http.ResponseWriter, r *http.Request)
 		item, ok := val.(app.Item)
 		if !ok {
 			err := errors.New("could not load Item from Context")
-			h.HandleError(w, r, http.StatusInternalServerError, err)
+			h.HandleError(w, r, errors.NewNotFound(err, "not found"))
 			return
 		}
 		el = loadAPActivity(item)
 		if err != nil {
-			h.HandleError(w, r, http.StatusNotFound, err)
+			h.HandleError(w, r, errors.NewNotFound(err, "not found"))
 			return
 		}
 	case "liked":
 		if v, ok := val.(app.Vote); !ok {
 			err := errors.Errorf("could not load Vote from Context")
-			h.HandleError(w, r, http.StatusInternalServerError, err)
+			h.HandleError(w, r, errors.NewNotValid(err, "not found"))
 			return
 		} else {
 			el = loadAPLike(v)
 		}
 	default:
 		err := errors.Errorf("collection %s not found", collection)
-		h.HandleError(w, r, http.StatusNotFound, err)
+		h.HandleError(w, r, errors.NewNotFound(err, "not found"))
 		return
 	}
 
@@ -385,12 +385,12 @@ func (h handler)HandleCollectionActivityObject(w http.ResponseWriter, r *http.Re
 		i, ok := val.(app.Item)
 		if !ok {
 			h.logger.Error("could not load Item from Context")
-			h.HandleError(w, r, http.StatusInternalServerError, err)
+			h.HandleError(w, r, errors.NewNotValid(err, "not found"))
 			return
 		}
 		el = loadAPItem(i)
 		if err != nil {
-			h.HandleError(w, r, http.StatusNotFound, err)
+			h.HandleError(w, r, errors.NewNotFound(err, "not found"))
 			return
 		}
 		val := r.Context().Value(app.RepositoryCtxtKey)
@@ -414,14 +414,14 @@ func (h handler)HandleCollectionActivityObject(w http.ResponseWriter, r *http.Re
 	case "liked":
 		if v, ok := val.(app.Vote); !ok {
 			err := errors.Errorf("could not load Vote from Context")
-			h.HandleError(w, r, http.StatusInternalServerError, err)
+			h.HandleError(w, r, errors.NewNotValid(err, "not found"))
 			return
 		} else {
 			el = loadAPLike(v)
 		}
 	default:
 		err := errors.Errorf("collection %s not found", collection)
-		h.HandleError(w, r, http.StatusNotFound, err)
+		h.HandleError(w, r, errors.NewNotFound(err, "not found"))
 		return
 	}
 
@@ -454,7 +454,7 @@ func (h handler)HandleCollection(w http.ResponseWriter, r *http.Request) {
 		if !ok {
 			err := errors.NotFoundf("could not load Items from Context")
 			h.logger.Error(err.Error())
-			h.HandleError(w, r, http.StatusNotFound, err)
+			h.HandleError(w, r, errors.NewNotFound(err, "not found"))
 			return
 		}
 		col := ap.InboxNew()
@@ -485,7 +485,7 @@ func (h handler)HandleCollection(w http.ResponseWriter, r *http.Request) {
 		if !ok {
 			err := errors.NotFoundf("could not load Items from Context")
 			h.logger.Error(err.Error())
-			h.HandleError(w, r, http.StatusNotFound, err)
+			h.HandleError(w, r, errors.NewNotFound(err, "not found"))
 			return
 		}
 		col := ap.OutboxNew()
@@ -516,7 +516,7 @@ func (h handler)HandleCollection(w http.ResponseWriter, r *http.Request) {
 		if !ok {
 			err := errors.NotFoundf("could not load Votes from Context")
 			h.logger.Error(err.Error())
-			h.HandleError(w, r, http.StatusNotFound, err)
+			h.HandleError(w, r, errors.NewNotFound(err, "not found"))
 			return
 		}
 		if err != nil {
@@ -550,7 +550,7 @@ func (h handler)HandleCollection(w http.ResponseWriter, r *http.Request) {
 		if !ok {
 			err := errors.New("could not load Replies from Context")
 			h.logger.Error(err.Error())
-			h.HandleError(w, r, http.StatusNotFound, err)
+			h.HandleError(w, r, errors.NewNotFound(err, "not found"))
 			return
 		}
 		replies := localap.OrderedCollectionNew(as.ObjectID(""))
@@ -575,7 +575,7 @@ func (h handler)HandleCollection(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err != nil {
-		h.HandleError(w, r, http.StatusInternalServerError, err)
+		h.HandleError(w, r, errors.NewNotValid(err, "not found"))
 		return
 	}
 

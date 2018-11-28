@@ -153,12 +153,12 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		h.logger.Error(err.Error())
-		h.HandleError(w, r, http.StatusNotFound, err)
+		h.HandleError(w, r, errors.NewNotFound(err, "not found"))
 		return
 	}
 	m.Content = comment{Item: i}
 	if len(i.Data)+len(i.Title) == 0 {
-		h.HandleError(w, r, http.StatusNotFound, errors.Errorf("not found"))
+		h.HandleError(w, r, errors.NotFoundf("not found"))
 		return
 	}
 	items = append(items, i)
@@ -171,7 +171,7 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		h.logger.Error(err.Error())
-		h.HandleError(w, r, http.StatusNotFound, err)
+		h.HandleError(w, r, errors.NewNotFound(err, "not found"))
 		return
 	}
 	allComments = append(allComments, loadComments(contentItems)...)
@@ -230,7 +230,7 @@ func (h *handler) HandleVoting(w http.ResponseWriter, r *http.Request) {
 	p, err := itemLoader.LoadItem(app.LoadItemsFilter{Key: []string{hash}})
 	if err != nil {
 		h.logger.Error(err.Error())
-		h.HandleError(w, r, http.StatusNotFound, err)
+		h.HandleError(w, r, errors.NewNotFound(err, "not found"))
 		return
 	}
 

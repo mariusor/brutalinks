@@ -447,13 +447,13 @@ func (h handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
 		for _, errDesc := range errDescriptions {
 			errs = append(errs, errors.Errorf(errDesc))
 		}
-		h.HandleError(w, r, http.StatusForbidden, errs...)
+		h.HandleError(w, r, errs...)
 		return
 	}
 	code := q["code"]
 	state := q["state"]
 	if code == nil {
-		h.HandleError(w, r, http.StatusForbidden, errors.Errorf("%s error: Empty authentication token", provider))
+		h.HandleError(w, r, errors.Forbiddenf("%s error: Empty authentication token", provider))
 		return
 	}
 
@@ -643,7 +643,7 @@ func loadFlashMessages() []flash {
 func (h handler) NeedsSessions(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		if !app.Instance.Config.SessionsEnabled {
-			h.HandleError(w, r, http.StatusNotFound, errors.New("sessions are disabled"))
+			h.HandleError(w, r,errors.NotFoundf("sessions are disabled"))
 			return
 		}
 		next.ServeHTTP(w, r)
@@ -657,7 +657,7 @@ func (h *handler) HandleAbout(w http.ResponseWriter, r *http.Request) {
 	m := aboutModel{Title: "About", InvertedTheme: isInverted(r)}
 	f, err := db.Config.LoadInfo()
 	if err != nil {
-		h.HandleError(w, r, http.StatusInternalServerError, err)
+		h.HandleError(w, r, errors.NewNotValid(err, "oops!"))
 		return
 	}
 	m.Desc.Description = f.Description
@@ -665,24 +665,57 @@ func (h *handler) HandleAbout(w http.ResponseWriter, r *http.Request) {
 	h.RenderTemplate(r, w, "about", m)
 }
 
+func httpErrorResponse(e error) int {
+	if errors.IsBadRequest(e) {
+		return http.StatusBadRequest
+	}
+	if errors.IsForbidden(e) {
+		return http.StatusForbidden
+	}
+	if errors.IsNotSupported(e) {
+		return http.StatusHTTPVersionNotSupported
+	}
+	if errors.IsMethodNotAllowed(e) {
+		return http.StatusMethodNotAllowed
+	}
+	if errors.IsNotFound(e) {
+		return http.StatusNotFound
+	}
+	if errors.IsNotImplemented(e) {
+		return http.StatusNotImplemented
+	}
+	if errors.IsUnauthorized(e) {
+		return http.StatusUnauthorized
+	}
+	if errors.IsTimeout(e) {
+		return http.StatusGatewayTimeout
+	}
+	if errors.IsNotValid(e) {
+		return http.StatusInternalServerError
+	}
+	return http.StatusInternalServerError
+}
+
 // HandleError serves failed requests
-func (h *handler) HandleError(w http.ResponseWriter, r *http.Request, status int, errs ...error) {
+func (h *handler) HandleError(w http.ResponseWriter, r *http.Request, errs ...error) {
 	d := errorModel{
-		Status:        status,
-		Title:         fmt.Sprintf("Error %d", status),
 		InvertedTheme: isInverted(r),
 		Errors:        errs,
 	}
-	w.WriteHeader(status)
 
+	status := http.StatusInternalServerError
 	for _, err := range errs {
 		if err != nil {
 			h.logger.WithContext(log.Ctx{
 				"trace": errors.ErrorStack(err),
 			}).Error(err.Error())
 		}
+		status = httpErrorResponse(err)
 	}
 
+	d.Title = fmt.Sprintf("Error %d", status)
+	d.Status = status
+	w.WriteHeader(status)
 	w.Header().Set("Cache-Control", " no-store, must-revalidate")
 	w.Header().Set("Pragma", " no-cache")
 	w.Header().Set("Expires", " 0")

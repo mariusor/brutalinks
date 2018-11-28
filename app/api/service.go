@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"github.com/juju/errors"
 	as "github.com/mariusor/activitypub.go/activitystreams"
 	json "github.com/mariusor/activitypub.go/jsonld"
 	"github.com/mariusor/littr.go/app"
@@ -21,7 +22,7 @@ func (h handler)HandleService(w http.ResponseWriter, r *http.Request) {
 	var inf app.Info
 	if repo, ok := rr.(app.CanLoadInfo); ok {
 		if inf, err = repo.LoadInfo(); err != nil {
-			h.HandleError(w, r, http.StatusInternalServerError, err)
+			h.HandleError(w, r, errors.NewNotValid(err, "ooops!"))
 			return
 		}
 	}

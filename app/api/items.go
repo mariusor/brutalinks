@@ -28,7 +28,7 @@ func (h handler)UpdateItem(w http.ResponseWriter, r *http.Request) {
 			"err":   err,
 			"trace": errors.Details(err),
 		}).Error("request body read error")
-		h.HandleError(w, r, http.StatusInternalServerError, err)
+		h.HandleError(w, r, errors.NewNotValid(err, "not found"))
 		return
 	}
 
@@ -42,16 +42,16 @@ func (h handler)UpdateItem(w http.ResponseWriter, r *http.Request) {
 				"err":   err,
 				"trace": errors.Details(err),
 			}).Error("json-ld unmarshal error")
-			h.HandleError(w, r, http.StatusInternalServerError, err)
+			h.HandleError(w, r, errors.NewNotValid(err, "not found"))
 			return
 		}
 		it := app.Item{}
-		if err := it.FromActivityPubItem(act); err != nil {
+		if err := it.FromActivityPub(act); err != nil {
 			h.logger.WithContext(log.Ctx{
 				"err":   err,
 				"trace": errors.Details(err),
 			}).Error("json-ld unmarshal error")
-			h.HandleError(w, r, http.StatusInternalServerError, err)
+			h.HandleError(w, r, errors.NewNotValid(err, "not found"))
 			return
 		}
 		if repo, ok := app.ContextItemSaver(r.Context()); ok {
@@ -63,7 +63,7 @@ func (h handler)UpdateItem(w http.ResponseWriter, r *http.Request) {
 					"item":    it.Hash,
 					"account": it.SubmittedBy.Hash,
 				}).Error(err.Error())
-				h.HandleError(w, r, http.StatusInternalServerError, err)
+				h.HandleError(w, r, errors.NewNotValid(err, "not found"))
 				return
 			}
 			if newIt.UpdatedAt.IsZero() {
@@ -83,16 +83,16 @@ func (h handler)UpdateItem(w http.ResponseWriter, r *http.Request) {
 				"err":   err,
 				"trace": errors.Details(err),
 			}).Error("json-ld unmarshal error")
-			h.HandleError(w, r, http.StatusInternalServerError, err)
+			h.HandleError(w, r, errors.NewNotValid(err, "not found"))
 			return
 		}
 		v := app.Vote{}
-		if err := v.FromActivityPubItem(act); err != nil {
+		if err := v.FromActivityPub(act); err != nil {
 			h.logger.WithContext(log.Ctx{
 				"err":   err,
 				"trace": errors.Details(err),
 			}).Error("json-ld unmarshal error")
-			h.HandleError(w, r, http.StatusInternalServerError, err)
+			h.HandleError(w, r, errors.NewNotValid(err, "not found"))
 			return
 		}
 		if repo, ok := app.ContextVoteSaver(r.Context()); ok {
@@ -103,7 +103,7 @@ func (h handler)UpdateItem(w http.ResponseWriter, r *http.Request) {
 					"trace":    errors.Details(err),
 					"saveVote": v.SubmittedBy.Hash,
 				}).Error(err.Error())
-				h.HandleError(w, r, http.StatusInternalServerError, err)
+				h.HandleError(w, r, errors.NewNotValid(err, "not found"))
 				return
 			}
 			if newVot.UpdatedAt.IsZero() {

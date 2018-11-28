@@ -169,11 +169,11 @@ func (h handler) AccountCtxt(next http.Handler) http.Handler {
 			a, err := AcctLoader.LoadAccount(app.LoadAccountsFilter{Key: []string{handle}})
 			if err != nil {
 				h.logger.Error(err.Error())
-				h.HandleError(w, r, http.StatusNotFound, err)
+				h.HandleError(w, r, errors.NewNotFound(err, "not found"))
 				return
 			}
 			if a.Handle == "" && len(a.Hash) == 0 {
-				h.HandleError(w, r, http.StatusNotFound, errors.Errorf("account not found"))
+				h.HandleError(w, r, errors.NotFoundf("account not found"))
 				return
 			}
 			ctx := context.WithValue(r.Context(), app.AccountCtxtKey, a)
@@ -200,13 +200,13 @@ func (h handler) ItemCtxt(next http.Handler) http.Handler {
 			loader, ok := val.(app.CanLoadItems)
 			if !ok {
 				h.logger.Error("could not load item repository from Context")
-				h.HandleError(w, r, http.StatusInternalServerError, err)
+				h.HandleError(w, r, errors.NewNotValid(err, "not found"))
 				return
 			}
 			i, err = loader.LoadItem(filters)
 			if err != nil {
 				h.logger.Error(err.Error())
-				h.HandleError(w, r, http.StatusNotFound, err)
+				h.HandleError(w, r,  errors.NewNotFound(err, "not found"))
 				return
 			}
 		}
@@ -218,13 +218,13 @@ func (h handler) ItemCtxt(next http.Handler) http.Handler {
 			loader, ok := val.(app.CanLoadVotes)
 			if !ok {
 				h.logger.Error("could not load vote repository from Context")
-				h.HandleError(w, r, http.StatusInternalServerError, err)
+				h.HandleError(w, r, errors.NewNotValid(err, "not found"))
 				return
 			}
 			i, err = loader.LoadVote(filters)
 			if err != nil {
 				h.logger.Error(err.Error())
-				h.HandleError(w, r, http.StatusNotFound, err)
+				h.HandleError(w, r, errors.NewNotFound(err, "not found"))
 				return
 			}
 		}

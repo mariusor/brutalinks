@@ -26,7 +26,7 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	a, err := db.Config.LoadAccount(app.LoadAccountsFilter{Handle: []string{handle}})
 	if err != nil {
 		h.logger.Error(err.Error())
-		h.HandleError(w, r, http.StatusForbidden, errors.Errorf("handler or password are wrong"))
+		h.HandleError(w, r, errors.Forbiddenf("handler or password are wrong"))
 		return
 	}
 	m := a.Metadata
@@ -41,12 +41,12 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		err = bcrypt.CompareHashAndPassword(m.Password, saltyPw)
 	} else {
 		h.logger.Info(err.Error())
-		h.HandleError(w, r, http.StatusForbidden, errors.Errorf("invalid account metadata"))
+		h.HandleError(w, r, errors.Forbiddenf("invalid account metadata"))
 		return
 	}
 	if err != nil {
 		h.logger.Error(err.Error())
-		h.HandleError(w, r, http.StatusForbidden, errors.Errorf("handler or password are wrong"))
+		h.HandleError(w, r, errors.Forbiddenf("handler or password are wrong"))
 		return
 	}
 

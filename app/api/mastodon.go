@@ -14,7 +14,7 @@ import (
 func (h handler)ShowInstance(w http.ResponseWriter, r *http.Request) {
 	ifErr := func(err ...error) {
 		if err != nil && len(err) > 0 && err[0] != nil {
-			h.HandleError(w, r, http.StatusInternalServerError, err...)
+			h.HandleError(w, r,  err...)
 			return
 		}
 	}

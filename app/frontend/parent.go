@@ -1,6 +1,7 @@
 package frontend
 
 import (
+	"github.com/juju/errors"
 	"github.com/mariusor/littr.go/app"
 	"net/http"
 
@@ -20,7 +21,7 @@ func (h *handler) HandleItemRedirect(w http.ResponseWriter, r *http.Request) {
 		MaxItems: 1,
 	})
 	if err != nil {
-		h.HandleError(w, r, http.StatusInternalServerError, err)
+		h.HandleError(w, r, errors.NewNotValid(err, "oops!"))
 		return
 	}
 	url := ItemPermaLink(p)

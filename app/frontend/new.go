@@ -109,7 +109,7 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 		h.logger.WithContext(log.Ctx{
 			"prev": err,
 		}).Error("wrong http method")
-		h.HandleError(w, r, http.StatusMethodNotAllowed, err)
+		h.HandleError(w, r, errors.NewMethodNotAllowed(err, ""))
 		return
 	}
 
@@ -128,7 +128,7 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 			h.logger.WithContext(log.Ctx{
 				"prev": err,
 			}).Error("unable to save item")
-			h.HandleError(w, r, http.StatusInternalServerError, err)
+			h.HandleError(w, r, errors.NewNotValid(err, "oops!"))
 			return
 		}
 	}

@@ -64,16 +64,16 @@ func (h handler)HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 	val := r.Context().Value(app.RepositoryCtxtKey)
 	AcctLoader, ok := val.(app.CanLoadAccounts)
 	if !ok {
-		err := errors.New("could not load account repository from Context")
+		err := errors.NotValidf("could not load account repository from Context")
 		h.logger.Error(err.Error())
-		h.HandleError(w, r, http.StatusInternalServerError, err)
+		h.HandleError(w, r, err)
 		return
 	}
 	a, err := AcctLoader.LoadAccount(app.LoadAccountsFilter{Handle: []string{handle}})
 	if err != nil {
-		err := errors.New("resource not found")
+		err := errors.NotFoundf("resource not found")
 		h.logger.Error(err.Error())
-		h.HandleError(w, r, http.StatusNotFound, err)
+		h.HandleError(w, r, err)
 		return
 	}
 

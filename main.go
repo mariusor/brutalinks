@@ -126,10 +126,10 @@ func main() {
 		r.With(front.NeedsSessions).Get("/auth/{provider}/callback", front.HandleCallback)
 
 		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
-			front.HandleError(w, r, http.StatusNotFound, errors.Errorf("%q not found", r.RequestURI))
+			front.HandleError(w, r,errors.NotFoundf("%q not found", r.RequestURI))
 		})
 		r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
-			front.HandleError(w, r, http.StatusMethodNotAllowed, errors.Errorf("invalid %q request", r.Method))
+			front.HandleError(w, r, errors.MethodNotAllowedf("invalid %q request", r.Method))
 		})
 	})
 
@@ -146,7 +146,7 @@ func main() {
 				r.Use(api.ServiceCtxt)
 
 				r.With(api.LoadFiltersCtxt, a.ItemCollectionCtxt).Get("/", a.HandleCollection)
-				//r.With(api.LoadFiltersCtxt, api.ItemCollectionCtxt).Post("/", api.AddToCollection)
+				r.With(api.LoadFiltersCtxt, a.LoadActivity).Post("/", a.AddToCollection)
 				r.Route("/{hash}", func(r chi.Router) {
 					r.With(api.LoadFiltersCtxt, a.ItemCtxt).Get("/", a.HandleCollectionActivity)
 					r.With(api.LoadFiltersCtxt, a.ItemCtxt).Get("/object", a.HandleCollectionActivityObject)
@@ -185,10 +185,10 @@ func main() {
 		r.Get("/v1/instance/activity", api.ShowActivity)
 
 		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
-			a.HandleError(w, r, http.StatusNotFound, errors.Errorf("%s not found", r.RequestURI))
+			a.HandleError(w, r, errors.NotFoundf("%s not found", r.RequestURI))
 		})
 		r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
-			a.HandleError(w, r, http.StatusMethodNotAllowed, errors.Errorf("invalid %s request", r.Method))
+			a.HandleError(w, r, errors.MethodNotAllowedf("invalid %s request", r.Method))
 		})
 	})
 
@@ -199,7 +199,7 @@ func main() {
 		r.Get("/webfinger", a.HandleWebFinger)
 		r.Get("/host-meta", api.HandleHostMeta)
 		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
-			a.HandleError(w, r, http.StatusNotFound, errors.Errorf("%s not found", r.RequestURI))
+			a.HandleError(w, r, errors.NotFoundf("%s not found", r.RequestURI))
 		})
 	})
 
@@ -221,10 +221,10 @@ func main() {
 	r.With(app.StripCookies).Get("/js/{path}", serveFiles(filepath.Join(assets, "js")))
 
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
-		front.HandleError(w, r, http.StatusNotFound, errors.Errorf("%s not found", r.RequestURI))
+		front.HandleError(w, r, errors.NotFoundf("%s not found", r.RequestURI))
 	})
 	r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
-		front.HandleError(w, r, http.StatusMethodNotAllowed, errors.Errorf("%s not allowed", r.Method))
+		front.HandleError(w, r, errors.MethodNotAllowedf("%s not allowed", r.Method))
 	})
 
 	app.Instance.Run(r, wait)

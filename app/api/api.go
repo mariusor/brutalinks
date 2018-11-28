@@ -38,6 +38,7 @@ type handler struct{
 	repo *repository
 	logger log.Logger
 }
+
 type Config struct {
 	Logger log.Logger
 	BaseURL string
@@ -179,12 +180,42 @@ func getObjectType(el as.Item) string {
 	return label
 }
 
-func (h handler)HandleError(w http.ResponseWriter, r *http.Request, code int, errs ...error) {
+func httpErrorResponse(e error) int {
+	if errors.IsBadRequest(e) {
+		return http.StatusBadRequest
+	}
+	if errors.IsForbidden(e) {
+		return http.StatusForbidden
+	}
+	if errors.IsNotSupported(e) {
+		return http.StatusHTTPVersionNotSupported
+	}
+	if errors.IsMethodNotAllowed(e) {
+		return http.StatusMethodNotAllowed
+	}
+	if errors.IsNotFound(e) {
+		return http.StatusNotFound
+	}
+	if errors.IsNotImplemented(e) {
+		return http.StatusNotImplemented
+	}
+	if errors.IsUnauthorized(e) {
+		return http.StatusUnauthorized
+	}
+	if errors.IsTimeout(e) {
+		return http.StatusGatewayTimeout
+	}
+	if errors.IsNotValid(e) {
+		return http.StatusInternalServerError
+	}
+	return http.StatusInternalServerError
+}
+
+func (h handler)HandleError(w http.ResponseWriter, r *http.Request, errs ...error) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store, must-revalidate")
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Expires", "0")
-	w.WriteHeader(code)
 
 	type error struct {
 		Code    int      `json:"code,omitempty"`
@@ -196,11 +227,11 @@ func (h handler)HandleError(w http.ResponseWriter, r *http.Request, code int, er
 		Errors []error `json:"errors"`
 	}
 
-	res := eresp{
-		Status: code,
+	res := eresp {
 		Errors: []error{},
 	}
 
+	code := http.StatusInternalServerError
 	for _, err := range errs {
 		if err == nil {
 			continue
@@ -226,9 +257,12 @@ func (h handler)HandleError(w http.ResponseWriter, r *http.Request, code int, er
 		}
 		h.logger.Error(err.Error())
 		res.Errors = append(res.Errors, e)
+		code = httpErrorResponse(err)
 	}
+	res.Status = code
 
 	j, _ := json.Marshal(res)
+	w.WriteHeader(code)
 	w.Write(j)
 }
 
