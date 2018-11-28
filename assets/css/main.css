@@ -789,7 +789,7 @@ form label.mime-type {
 .acct-info {
     float: right;
 }
-svg.icon-adjust {
+svg.icon-adjust, .icon-clock-o {
     vertical-align: -2px;
 }
 .icon-github, .icon-code {
