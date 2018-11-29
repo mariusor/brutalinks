@@ -232,7 +232,7 @@ func loadAPCollection(o as.CollectionInterface, items *app.ItemCollection) (as.C
 
 // HandleActorsCollection is the http handler for the actors collection
 // GET /api/actors?filters
-func (h handler)HandleActorsCollection(w http.ResponseWriter, r *http.Request) {
+func (h handler) HandleActorsCollection(w http.ResponseWriter, r *http.Request) {
 	var ok bool
 	var filter app.LoadAccountsFilter
 	var data []byte
@@ -279,7 +279,7 @@ func (h handler)HandleActorsCollection(w http.ResponseWriter, r *http.Request) {
 }
 
 // GET /api/actors/:handle
-func (h handler)HandleActor(w http.ResponseWriter, r *http.Request) {
+func (h handler) HandleActor(w http.ResponseWriter, r *http.Request) {
 	val := r.Context().Value(app.AccountCtxtKey)
 
 	var ok bool
@@ -324,7 +324,7 @@ func getCollectionFromReq(r *http.Request) string {
 
 // GET /api/actors/:handle/:collection/:hash
 // GET /api/:collection/:hash
-func (h handler)HandleCollectionActivity(w http.ResponseWriter, r *http.Request) {
+func (h handler) HandleCollectionActivity(w http.ResponseWriter, r *http.Request) {
 	var data []byte
 	var err error
 
@@ -371,7 +371,7 @@ func (h handler)HandleCollectionActivity(w http.ResponseWriter, r *http.Request)
 
 // GET /api/actors/:handle/:collection/:hash/object
 // GET /api/:collection/:hash/object
-func (h handler)HandleCollectionActivityObject(w http.ResponseWriter, r *http.Request) {
+func (h handler) HandleCollectionActivityObject(w http.ResponseWriter, r *http.Request) {
 	var data []byte
 	var err error
 
@@ -436,7 +436,7 @@ func (h handler)HandleCollectionActivityObject(w http.ResponseWriter, r *http.Re
 // GET /api/actors/:handle/:collection
 // GET /api/self/:collection/:hash/replies
 // GET /api/actors/:handle/:collection/:hash/replies
-func (h handler)HandleCollection(w http.ResponseWriter, r *http.Request) {
+func (h handler) HandleCollection(w http.ResponseWriter, r *http.Request) {
 	var data []byte
 	var err error
 

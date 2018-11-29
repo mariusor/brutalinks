@@ -52,7 +52,7 @@ func PoachFeed(u string, since time.Duration) error {
 					Logger.WithContext(log.Ctx{
 						"key":    acct.Hash.String(),
 						"handle": acct.Handle,
-						"err" : err.Error(),
+						"err":    err.Error(),
 					}).Error("unable to save new account")
 				}
 			}
@@ -72,7 +72,7 @@ func PoachFeed(u string, since time.Duration) error {
 			Logger.WithContext(log.Ctx{
 				"title": item.Title,
 				"data":  item.Data,
-				"err" : err.Error(),
+				"err":   err.Error(),
 			}).Errorf("unable to save new item")
 		}
 	}
