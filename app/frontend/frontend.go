@@ -357,6 +357,10 @@ func (h handler) Redirect(w http.ResponseWriter, r *http.Request, url string, st
 	http.Redirect(w, r, url, status)
 }
 
+func sameHash(s1 string, s2 string) bool {
+	return path.Base(s1) == path.Base(s2)
+}
+
 func (h handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name string, m interface{}) error {
 	var err error
 	if err = h.saveSession(w, r); err != nil {
@@ -401,6 +405,8 @@ func (h handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name str
 			"Menu":              func() []headerEl { return headerMenu(r) },
 			"icon":              icon,
 			"asset":             func(p string) template.HTML { return template.HTML(asset(p)) },
+			"req":               func() *http.Request { return r },
+			"sameHash":          sameHash,
 			//"ScoreFmt":          func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
 			//"NumberFmt":         func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
 		}},
@@ -643,7 +649,7 @@ func loadFlashMessages() []flash {
 func (h handler) NeedsSessions(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		if !app.Instance.Config.SessionsEnabled {
-			h.HandleError(w, r,errors.NotFoundf("sessions are disabled"))
+			h.HandleError(w, r, errors.NotFoundf("sessions are disabled"))
 			return
 		}
 		next.ServeHTTP(w, r)
