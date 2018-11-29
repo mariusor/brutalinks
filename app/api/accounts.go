@@ -592,5 +592,5 @@ func (h handler)AddToCollection(w http.ResponseWriter, r *http.Request) {
 	//switch strings.ToLower(typ) {
 	//case "inbox":
 	//}
-	h.HandleError(w, r, http.StatusNotImplemented, errors.New("not implemented"))
+	h.HandleError(w, r, errors.NotImplementedf("not implemented"))
 }
