@@ -52,6 +52,14 @@ table {
     body > header .top {
         display: none;
     }
+    .sections li a svg.icon.icon-activitypub {
+        height: 1.35em;
+        width: 2.2em;
+    }
+    .sections li a svg {
+        height: 1.35em;
+        width: 1.35em;
+    }
     h6.domain {
         display: none;
     }
@@ -82,7 +90,7 @@ table {
         display: inline;
     }
     body > header .sections li a span {
-        font-size: .9rem;
+        font-size: .9em;
     }
 }
 @media (min-width: 768px) {
@@ -237,7 +245,7 @@ body.inverted > header h1 a:focus
 }
 body > header {
     display: grid;
-    grid-template-columns: auto auto 5fr;
+    grid-template-columns: auto auto 6fr;
     grid-area: header;
     margin: .5rem 0 0 0;
 }
@@ -310,10 +318,12 @@ body > header h1 .icon-trash {
 .sections li::before {
     content: unset;
 }
+.sections li a svg {
+    vertical-align: text-top;
+}
 .sections li a svg.icon-activitypub {
-    height: 1.15em;
-    width: 1.15em;
-    vertical-align: bottom;
+    width:  1.2em;
+    margin-left: .2em;
 }
 body > main {
     margin-top: 1rem;
@@ -401,6 +411,9 @@ h6.domain {
 .data p:first-of-type::first-letter {
     font-weight: normal;
     font-size: 110%;
+}
+.items > li {
+    margin-bottom: .2em;
 }
 .items article pre code {}
 .inverted .items article pre {}
@@ -534,11 +547,9 @@ a:active svg.icon.icon-trash {
     fill: red;
 }
 .meta {
-    clear: both;
     font-size: .85em;
     opacity: .6;
     padding-left: 1ex;
-    margin: .2rem 0;
 }
 .meta a {
     text-decoration: none;
@@ -702,8 +713,12 @@ details > summary::-webkit-details-marker {
 .meta-items:after {
     content: "]";
 }
-.comments a.to-parent svg,
-.comments a.to-op svg {
+a.to-item svg {
+    height: .9em;
+    width: .9em;
+}
+a.to-parent svg,
+a.to-op svg {
     height: 1.2em;
     width: 1.1em;
 }
