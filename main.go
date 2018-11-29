@@ -146,7 +146,7 @@ func main() {
 				r.Use(api.ServiceCtxt)
 
 				r.With(api.LoadFiltersCtxt, a.ItemCollectionCtxt).Get("/", a.HandleCollection)
-				r.With(api.LoadFiltersCtxt, a.LoadActivity).Post("/", a.AddToCollection)
+				//r.With(api.LoadFiltersCtxt, a.LoadActivity).Post("/", a.AddToCollection)
 				r.Route("/{hash}", func(r chi.Router) {
 					r.With(api.LoadFiltersCtxt, a.ItemCtxt).Get("/", a.HandleCollectionActivity)
 					r.With(api.LoadFiltersCtxt, a.ItemCtxt).Get("/object", a.HandleCollectionActivityObject)
