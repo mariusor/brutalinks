@@ -1,7 +1,7 @@
 {{- if .Items | len -}}
 {{- template "partials/items" .Items -}}
 {{if or (gt .PrevPage 0) (gt .NextPage 0) }}
-<menu class="pagination inline">
+<nav class="pagination"><ul class="inline">
     <li>View more:</li>
 {{ if gt .PrevPage 0 -}}
     <li class="no-sep"><a href="{{ .PrevPage | PageLink }}" rel="prev">{{icon "angle-double-left"}} prev</a></li>
@@ -9,7 +9,7 @@
 {{ if gt .NextPage 0 -}}
     <li class="no-sep"><a href="{{.NextPage | PageLink }}" rel="next">next {{icon "angle-double-right"}}</a></li>
 {{- end}}
-</menu>
+</ul></nav>
 {{ end -}}
 {{- else -}}
 <section>Nothing here... yet.</section>
