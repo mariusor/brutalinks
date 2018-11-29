@@ -387,6 +387,7 @@ func (h handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name str
 			"HTML":              html,
 			"Text":              text,
 			"Markdown":          app.Markdown,
+			"AccountPermaLink":  AccountPermaLink,
 			"PermaLink":         ItemPermaLink,
 			"ParentLink":        parentLink,
 			"OPLink":            opLink,
