@@ -84,7 +84,7 @@ table {
 }
 @media (min-width: 768px) {
     :root {
-        font-size: 1.9vw;
+        font-size: 2vw;
     }
 }
 @media (min-width: 992px) {
@@ -94,7 +94,7 @@ table {
 }
 @media (min-width: 1050px) {
     :root {
-        font-size: 1.1vw;
+        font-size: 1.3vw;
     }
 }
 @media (min-width: 1200px) {
@@ -107,22 +107,22 @@ table {
 }
 @media (min-width: 1500px) {
     :root {
-        font-size: .9vw;
+        font-size: 1vw;
     }
 }
 @media (min-width: 1700px) {
     :root {
-        font-size: .95vw;
+        font-size: 1.05vw;
     }
 }
 @media (min-width: 1800px) {
     :root {
-        font-size: .75vw;
+        font-size: .8vw;
     }
 }
 @media (min-width: 2200px) {
     :root {
-        font-size: .7vw;
+        font-size: .75vw;
     }
 }
 :root {
@@ -239,7 +239,7 @@ body > header h1 {
     font-weight: lighter;
 }
 body > header h1 small {
-    opacity: 0.5;
+    opacity: 0.7;
 }
 body > header h1 a[href] svg.icon {
     fill: WindowText;
@@ -266,11 +266,6 @@ body > header h1 a:active
 }
 .icon {
     vertical-align: central;
-}
-svg.icon {
-    height: 1em;
-    width: 1em;
-    fill: WindowText;
 }
 .inverted svg.icon {
     fill: WindowFrame;
@@ -372,7 +367,7 @@ article > header h1 {
 }
 h6.domain {
     font-weight: 200;
-    font-size: .8em;
+    font-size: .85em;
     /*margin-left: 5ex;*/
 }
 .domain:before {
@@ -542,13 +537,16 @@ a:active svg.icon.icon-trash {
 }
 .meta {
     clear: both;
-    font-size: .8em;
+    font-size: .85em;
     opacity: .6;
     padding-left: 1ex;
     margin: .2rem 0;
 }
 .meta a {
     text-decoration: none;
+}
+.meta a.to-item::before {
+    content: '¶';
     font-weight: 900;
 }
 .meta time .icon-clock-o {
@@ -730,12 +728,14 @@ details > summary::-webkit-details-marker {
     position: relative;
     top: 3px;
 }
-hr {
-    border-color: WindowText;
-}
-.inverted hr {
-    border-color: Window;
-}
+/*hr {*/
+    /*!*border-color: WindowText;*!*/
+    /*border-style: inherit;*/
+/*}*/
+/*.inverted hr {*/
+    /*!*border-color: Window;*!*/
+    /*border-style: inherit;*/
+/*}*/
 fieldset {
     padding: 1rem;
 }
