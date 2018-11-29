@@ -164,17 +164,17 @@ p {
 p + p {
     padding-top: .6rem;
 }
-a {
+a[href] {
     color: blue;
     text-decoration: none;
 }
-a:hover {
+a[href]:hover {
     text-decoration: underline;
 }
-a:visited {
+a[href]:visited {
     color: rebeccapurple;
 }
-a:active {
+a[href]:active {
     color: red;
 }
 a:not([href]) {
@@ -272,9 +272,9 @@ header .top {
     text-align: right;
 }
 body > header h1 a,
-body > header h1 a:hover,
-body > header h1 a:visited,
-body > header h1 a:active
+body > header h1 a[href]:hover,
+body > header h1 a[href]:visited,
+body > header h1 a[href]:active
 {
     color: WindowText;
     text-decoration: none;
