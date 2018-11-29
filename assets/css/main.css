@@ -209,17 +209,14 @@ a:not([href]) svg.icon {
 .inverted a:not([href]) svg {
     fill: WindowFrame;
 }
-.icon.h-mirror {
+.h-mirror {
     transform: rotateX(180deg);
 }
-.icon.v-mirror {
+.v-mirror {
     transform: rotateY(180deg);
 }
-.icon.h-mirror.v-mirror {
+.h-mirror.v-mirror {
     transform: rotateY(180deg) rotateX(180deg);
-}
-.icon.icon-reply {
-    font-size: .8em;
 }
 button svg.icon.icon-reply,
 button svg.icon.icon-sign-in
@@ -275,7 +272,7 @@ body > header h1 a:active
     text-decoration: none;
 }
 .icon {
-    vertical-align: central;
+    vertical-align: middle;
 }
 .inverted svg.icon {
     fill: WindowFrame;
@@ -284,9 +281,12 @@ body > header {
     padding-left: .35rem;
 }
 body > header h1 .icon-trash {
-    height: 1.8rem;
-    width: 1.8rem;
-    vertical-align: -2px;
+    height: 1.2em;
+    width: 1.2em;
+    vertical-align: baseline;
+}
+.inline {
+    display: inline;
 }
 .inline li {
     display: inline-block;
@@ -297,7 +297,7 @@ body > header h1 .icon-trash {
     content: unset;
 }
 .inline li::before {
-    content: "|";
+    content: "\a78f";
     padding-right: .4em;
 }
 .top {
@@ -311,13 +311,13 @@ body > header h1 .icon-trash {
     content: unset;
 }
 .sections li a svg {
-    height: 1.1rem;
-    width: 1.1rem;
+    /*height: 1.1rem;*/
+    /*width: 1.1rem;*/
     vertical-align: bottom;
 }
 .sections li a svg.icon-activitypub {
-    height: 1.2rem;
-    width: 1.2rem;
+    height: 1.15em;
+    width: 1.15em;
     margin-bottom: -1px;
 }
 body > main {
@@ -493,7 +493,7 @@ ol.comments li {
     color: WindowText;
 }
 .top .icon {
-    height: .8rem;
+    /*height: .8rem;*/
 }
 .inverted a svg.icon.icon-adjust,
 .inverted a:active svg.icon.icon-adjust,
@@ -510,10 +510,6 @@ a:active svg.icon.icon-trash {
 }
 .score a:not([href]) {
     opacity: .2;
-}
-.score a svg.icon {
-    width: .9em;
-    height: .9em;
 }
 .score a.yay svg {
     vertical-align: 2px;
@@ -554,8 +550,6 @@ a:active svg.icon.icon-trash {
 }
 .meta time .icon-clock-o {
     margin-right: .2em;
-    height: .9em;
-    width: .9em;
 }
 .by:before {
     content: "~";
@@ -713,41 +707,15 @@ details > summary::-webkit-details-marker {
 .meta-items:after {
     content: "]";
 }
-.meta-items svg {
-    height: .9em;
-    width: .9em;
-    vertical-align: top;
-}
 .comments a.to-item svg {
-    height: 1em;
-    width: 1em;
+    vertical-align: bottom;
 }
 .comments a.to-parent svg,
-.comments a.to-op svg{
+.comments a.to-op svg {
     height: 1.2em;
     width: 1.1em;
+    vertical-align: baseline;
 }
-/*
-.comments a.to-parent,
-.comments a.to-op {
-    display: none;
-}
-.meta a.to-op::before {
-    content: '\21ea';
-    font-size: 1.2em;
-    font-weight: 900;
-}
-.meta a.to-parent::before {
-    content: '\27bc';
-    font-size: 1.2em;
-    font-weight: 900;
-}
-.meta a.to-item::before {
-    content: '¶';
-    font-size: 1em;
-    font-weight: 900;
-}
-*/
 .details-agree {
     font-size: .8em;
 }
