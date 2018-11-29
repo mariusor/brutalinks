@@ -505,7 +505,7 @@ func (r *repository) LoadItem(f app.LoadItemsFilter) (app.Item, error) {
 		r.logger.Error(err.Error())
 		return it, err
 	}
-	err = it.FromActivityPubItem(art)
+	err = it.FromActivityPub(art)
 	return it, err
 }
 
@@ -572,7 +572,7 @@ func (r *repository) LoadItems(f app.LoadItemsFilter) (app.ItemCollection, error
 	items := make(app.ItemCollection, col.TotalItems)
 	for k, it := range col.OrderedItems {
 		i := app.Item{}
-		if err := i.FromActivityPubItem(it); err != nil {
+		if err := i.FromActivityPub(it); err != nil {
 			r.logger.Error(err.Error())
 			continue
 		}
@@ -639,7 +639,7 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 		return v, err
 	}
 	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusCreated {
-		err := v.FromActivityPubItem(act)
+		err := v.FromActivityPub(act)
 		return v, err
 	}
 	if resp.StatusCode == http.StatusNotFound {
@@ -736,7 +736,7 @@ func (r *repository) LoadVote(f app.LoadVotesFilter) (app.Vote, error) {
 		r.logger.Error(err.Error())
 		return v, err
 	}
-	err = v.FromActivityPubItem(like)
+	err = v.FromActivityPub(like)
 	return v, err
 }
 
@@ -788,7 +788,7 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 	switch resp.StatusCode {
 	case http.StatusOK:
 		if a, ok := art.(ap.Article); ok {
-			err := it.FromActivityPubItem(a)
+			err := it.FromActivityPub(a)
 			return it, err
 		} else {
 			hash := path.Base(string(*a.GetID()))
@@ -852,7 +852,7 @@ func (r *repository) LoadAccounts(f app.LoadAccountsFilter) (app.AccountCollecti
 	accounts := make(app.AccountCollection, 0)
 	for _, it := range col.Items {
 		acc := app.Account{}
-		if err := acc.FromActivityPubItem(it); err != nil {
+		if err := acc.FromActivityPub(it); err != nil {
 			r.logger.WithContext(log.Ctx{
 				"type":  fmt.Sprintf("%T", it),
 				"trace": errors.Details(err),

@@ -13,20 +13,20 @@ import (
 )
 
 type Converter interface {
-	FromActivityPubItem(ob as.Item) error
+	FromActivityPub(ob as.Item) error
 }
 
-func (h *Hash) FromActivityPubItem(it as.Item) error {
+func (h *Hash) FromActivityPub(it as.Item) error {
 	*h = getHashFromAP(it.GetLink())
 	return nil
 }
 
-func (a *Account) FromActivityPubItem(it as.Item) error {
+func (a *Account) FromActivityPub(it as.Item) error {
 	if it == nil {
 		return errors.New("nil item received")
 	}
 	if it.IsLink() {
-		a.Hash.FromActivityPubItem(it.GetLink())
+		a.Hash.FromActivityPub(it.GetLink())
 		return nil
 	}
 	switch it.GetType() {
@@ -34,7 +34,7 @@ func (a *Account) FromActivityPubItem(it as.Item) error {
 		fallthrough
 	case as.UpdateType:
 		if act, ok := it.(*ap.Activity); ok {
-			return a.FromActivityPubItem(act.Actor)
+			return a.FromActivityPub(act.Actor)
 		}
 	case as.PersonType:
 		if p, ok := it.(*ap.Person); ok {
@@ -58,12 +58,12 @@ func (a *Account) FromActivityPubItem(it as.Item) error {
 	return nil
 }
 
-func (i *Item) FromActivityPubItem(it as.Item) error {
+func (i *Item) FromActivityPub(it as.Item) error {
 	if it == nil {
 		return errors.New("nil item received")
 	}
 	if it.IsLink() {
-		i.Hash.FromActivityPubItem(it.GetLink())
+		i.Hash.FromActivityPub(it.GetLink())
 		return nil
 	}
 	switch it.GetType() {
@@ -73,13 +73,13 @@ func (i *Item) FromActivityPubItem(it as.Item) error {
 		fallthrough
 	case as.ActivityType:
 		if act, ok := it.(*ap.Activity); ok {
-			err := i.FromActivityPubItem(act.Object)
-			i.SubmittedBy.FromActivityPubItem(act.Actor)
+			err := i.FromActivityPub(act.Object)
+			i.SubmittedBy.FromActivityPub(act.Actor)
 			return err
 		}
 		if act, ok := it.(ap.Activity); ok {
-			err := i.FromActivityPubItem(act.Object)
-			i.SubmittedBy.FromActivityPubItem(act.Actor)
+			err := i.FromActivityPub(act.Object)
+			i.SubmittedBy.FromActivityPub(act.Actor)
 			return err
 		}
 	case as.ArticleType:
@@ -109,7 +109,7 @@ func (i *Item) FromActivityPubItem(it as.Item) error {
 			if a.AttributedTo != nil {
 				if a.AttributedTo.IsObject() {
 					auth := Account{}
-					auth.FromActivityPubItem(a.AttributedTo)
+					auth.FromActivityPub(a.AttributedTo)
 					i.SubmittedBy = &auth
 				} else {
 					i.SubmittedBy = &Account{
@@ -120,12 +120,12 @@ func (i *Item) FromActivityPubItem(it as.Item) error {
 
 			if a.InReplyTo != nil {
 				par := Item{}
-				par.FromActivityPubItem(a.InReplyTo)
+				par.FromActivityPub(a.InReplyTo)
 				i.Parent = &par
 			}
 			if a.Context != nil {
 				op := Item{}
-				op.FromActivityPubItem(a.Context)
+				op.FromActivityPub(a.Context)
 				i.OP = &op
 			}
 			if a.Tag != nil && len(a.Tag) > 0 {
@@ -134,7 +134,7 @@ func (i *Item) FromActivityPubItem(it as.Item) error {
 				i.Metadata.Mentions = make(TagCollection, 0)
 
 				tags := TagCollection{}
-				tags.FromActivityPubItem(a.Tag)
+				tags.FromActivityPub(a.Tag)
 				for _, t := range tags {
 					if t.Name[0] == '#' {
 						i.Metadata.Tags = append(i.Metadata.Tags, t)
@@ -151,7 +151,7 @@ func (i *Item) FromActivityPubItem(it as.Item) error {
 	return nil
 }
 
-func (v *Vote) FromActivityPubItem(it as.Item) error {
+func (v *Vote) FromActivityPub(it as.Item) error {
 	if it == nil {
 		return errors.New("nil item received")
 	}
@@ -164,11 +164,11 @@ func (v *Vote) FromActivityPubItem(it as.Item) error {
 	case as.DislikeType:
 		if act, ok := it.(ap.Activity); ok {
 			on := Item{}
-			on.FromActivityPubItem(act.Object)
+			on.FromActivityPub(act.Object)
 			v.Item = &on
 
 			er := Account{}
-			er.FromActivityPubItem(act.Actor)
+			er.FromActivityPub(act.Actor)
 			v.SubmittedBy = &er
 
 			v.SubmittedAt = act.Published
@@ -182,11 +182,11 @@ func (v *Vote) FromActivityPubItem(it as.Item) error {
 		}
 		if act, ok := it.(*ap.Activity); ok {
 			on := Item{}
-			on.FromActivityPubItem(act.Object)
+			on.FromActivityPub(act.Object)
 			v.Item = &on
 
 			er := Account{}
-			er.FromActivityPubItem(act.Actor)
+			er.FromActivityPub(act.Actor)
 			v.SubmittedBy = &er
 
 			v.SubmittedAt = act.Published
@@ -233,7 +233,7 @@ func jsonUnescape(s string) string {
 	return string(out)
 }
 
-func (i *TagCollection) FromActivityPubItem(it as.ItemCollection) error {
+func (i *TagCollection) FromActivityPub(it as.ItemCollection) error {
 	if it == nil || len(it) == 0 {
 		return errors.New("empty collection")
 	}
