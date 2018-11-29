@@ -283,7 +283,7 @@ body > header {
 body > header h1 .icon-trash {
     height: 1.2em;
     width: 1.2em;
-    vertical-align: baseline;
+    vertical-align: bottom;
 }
 .inline {
     display: inline;
