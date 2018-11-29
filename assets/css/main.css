@@ -310,15 +310,10 @@ body > header h1 .icon-trash {
 .sections li::before {
     content: unset;
 }
-.sections li a svg {
-    /*height: 1.1rem;*/
-    /*width: 1.1rem;*/
-    vertical-align: bottom;
-}
 .sections li a svg.icon-activitypub {
     height: 1.15em;
     width: 1.15em;
-    margin-bottom: -1px;
+    vertical-align: bottom;
 }
 body > main {
     margin-top: 1rem;
@@ -707,14 +702,10 @@ details > summary::-webkit-details-marker {
 .meta-items:after {
     content: "]";
 }
-.comments a.to-item svg {
-    vertical-align: bottom;
-}
 .comments a.to-parent svg,
 .comments a.to-op svg {
     height: 1.2em;
     width: 1.1em;
-    vertical-align: baseline;
 }
 .details-agree {
     font-size: .8em;
