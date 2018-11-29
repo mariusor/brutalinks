@@ -1,6 +1,6 @@
 <form method="post">
     <fieldset {{ if .Content.Hash }}data-reply="{{.Content.Hash }}"{{end}}>
-        <label for="submit-title">{{ if not .Content.Hash }}New{{else}}Comment{{ end }}: </label><br/>
+        <label for="submit-data">{{ if not .Content.Hash }}New{{else}}Comment{{ end }}: </label><br/>
         <textarea name="data" id="submit-data" cols="80" rows="5" required></textarea><br/>
     {{- if not .Content.Hash -}}
         <label for="submit-title">Title: </label><br/>
