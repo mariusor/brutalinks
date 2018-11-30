@@ -236,12 +236,20 @@ button svg.icon.icon-reply,
 button svg.icon.icon-sign-in {
     fill: WindowText;
 }
-body.inverted > header h1 a,
-body.inverted > header h1 a:active,
-body.inverted > header h1 a:visited,
-body.inverted > header h1 a:focus
+.inverted h1.logo a,
+.inverted h1.logo a:hover,
+.inverted h1.logo a:active,
+.inverted h1.logo a:visited
 {
     color: Window;
+}
+h1.logo a,
+h1.logo a:hover,
+h1.logo a:visited,
+h1.logo a:active
+{
+    color: WindowText;
+    text-decoration: none;
 }
 body > header {
     display: grid;
@@ -256,10 +264,10 @@ body > header h1 {
 body > header h1 small {
     opacity: 0.7;
 }
-body > header h1 a[href] svg.icon {
+body > header h1 a svg.icon {
     fill: WindowText;
 }
-body.inverted > header h1 a[href] svg.icon {
+body.inverted > header h1 a svg.icon {
     fill: WindowFrame;
 }
 body > header nav {
@@ -270,14 +278,6 @@ header .sections {
 }
 header .top {
     text-align: right;
-}
-body > header h1 a,
-body > header h1 a[href]:hover,
-body > header h1 a[href]:visited,
-body > header h1 a[href]:active
-{
-    color: WindowText;
-    text-decoration: none;
 }
 .icon {
     vertical-align: middle;
@@ -433,7 +433,6 @@ ol {
 }
 .item aside.score {
     grid-area: sidebar;
-
 }
 .item .data {
     line-height: 1.62em;
@@ -473,35 +472,33 @@ ol.comments li {
 }
 .item .score {
     display: grid;
-    grid-auto-rows: 1.2rem;
+    grid-auto-rows: 1.4em;
 }
 .item .score a {
-    display: block;
     justify-self: center;
     align-self: center;
+}
+.score a.nay {
+    margin-top: -4px;
 }
 .item .score data {
     justify-self: center;
     align-self: center;
-    font-size: .6em;
+    font-size: .7em;
 }
 .item .score data.inf {
     font-weight: bold;
-    font-size: .9rem;
+    font-size: 1.3em;
 }
 .item .score data.K,
 .item .score data.M,
 .item .score data.B
 {
     font-weight: lighter;
-    font-size: .5rem;
+    font-size: .6em;
 }
 .score a {
-    font-size: 1.1em;
     color: WindowText;
-}
-.top .icon {
-    /*height: .8rem;*/
 }
 .inverted a svg.icon.icon-adjust,
 .inverted a:active svg.icon.icon-adjust,
@@ -517,13 +514,7 @@ a:active svg.icon.icon-trash {
     fill: WindowText;
 }
 .score a:not([href]) {
-    opacity: .2;
-}
-.score a.yay svg {
-    vertical-align: 2px;
-}
-.score a.nay svg {
-    vertical-align: 4px;
+    opacity: .3;
 }
 .inverted .score a:visited[href] svg {
     fill: dodgerblue;
@@ -714,13 +705,7 @@ details > summary::-webkit-details-marker {
     content: "]";
 }
 a.to-item svg {
-    height: .9em;
-    width: .9em;
-}
-a.to-parent svg,
-a.to-op svg {
-    height: 1.2em;
-    width: 1.1em;
+    width: .8em;
 }
 .details-agree {
     font-size: .8em;
