@@ -15,7 +15,6 @@ import (
 
 type newModel struct {
 	Title         string
-	InvertedTheme bool
 	Content       app.Item
 }
 
@@ -97,7 +96,7 @@ func ContentFromRequest(r *http.Request, acc app.Account) (app.Item, error) {
 
 // ShowSubmit serves GET /submit request
 func (h *handler) ShowSubmit(w http.ResponseWriter, r *http.Request) {
-	h.RenderTemplate(r, w, "new", newModel{Title: "New submission", InvertedTheme: isInverted(r)})
+	h.RenderTemplate(r, w, "new", newModel{Title: "New submission"})
 }
 
 // HandleSubmit handles POST /submit requests

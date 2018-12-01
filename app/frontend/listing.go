@@ -34,7 +34,6 @@ type AccountMetadata struct {
 
 type aboutModel struct {
 	Title         string
-	InvertedTheme bool
 	Desc          app.Desc
 }
 
@@ -127,14 +126,13 @@ func (h *handler) HandleIndex(w http.ResponseWriter, r *http.Request) {
 	case "followed":
 		h.logger.WithContext(log.Ctx{
 			"handle": h.account.Handle,
-			"hash":    h.account.Hash,
+			"hash":   h.account.Hash,
 		}).Debug("showing followed posts")
 		filter.FollowedBy = []string{h.account.Hash.String()}
 	default:
 	}
 	if m, err := loadItems(r.Context(), filter, &h.account, h.logger); err == nil {
 		m.Title = "Index"
-		m.InvertedTheme = isInverted(r)
 
 		h.showItemData = false
 		if len(m.Items) >= MaxContentItems {
@@ -195,7 +193,6 @@ func (h *handler) HandleTags(w http.ResponseWriter, r *http.Request) {
 	}
 	if m, err := loadItems(r.Context(), filter, &h.account, h.logger); err == nil {
 		m.Title = fmt.Sprintf("Submissions tagged as #%s", tag)
-		m.InvertedTheme = isInverted(r)
 
 		h.showItemData = true
 		if len(m.Items) >= MaxContentItems {
@@ -225,7 +222,6 @@ func (h *handler) HandleDomains(w http.ResponseWriter, r *http.Request) {
 	}
 	if m, err := loadItems(r.Context(), filter, &h.account, h.logger); err == nil {
 		m.Title = fmt.Sprintf("Submissions from %s", domain)
-		m.InvertedTheme = isInverted(r)
 
 		h.showItemData = false
 		if len(m.Items) >= MaxContentItems {

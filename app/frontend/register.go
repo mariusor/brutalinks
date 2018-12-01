@@ -15,7 +15,6 @@ import (
 
 type registerModel struct {
 	Title         string
-	InvertedTheme bool
 	Account       app.Account
 }
 
@@ -73,7 +72,7 @@ func accountFromRequest(r *http.Request, l log.Logger) (*app.Account, []error) {
 
 // ShowRegister serves GET /register requests
 func (h *handler) ShowRegister(w http.ResponseWriter, r *http.Request) {
-	m := registerModel{InvertedTheme: isInverted(r)}
+	m := registerModel{}
 
 	h.RenderTemplate(r, w, "register", m)
 }

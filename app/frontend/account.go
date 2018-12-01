@@ -12,7 +12,6 @@ import (
 
 type itemListingModel struct {
 	Title         string
-	InvertedTheme bool
 	NextPage      int
 	PrevPage      int
 	User          *app.Account
@@ -56,7 +55,6 @@ func (h *handler) ShowAccount(w http.ResponseWriter, r *http.Request) {
 	if m, err := loadItems(r.Context(), filter, &h.account, h.logger); err == nil {
 		m.Title = fmt.Sprintf("%s submissions", genitive(a.Handle))
 		m.User = &a
-		m.InvertedTheme = isInverted(r)
 		if len(m.Items) >= MaxContentItems {
 			m.NextPage = filter.Page + 1
 		}

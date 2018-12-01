@@ -3,7 +3,7 @@
 <head>
 {{- template "partials/head" . -}}
 </head>
-<body class="{{current}}{{ if .InvertedTheme }} inverted{{end}}">
+<body class="{{current}}{{ if isInverted }} inverted{{end}}">
 <header>{{ template "partials/header" . }}</header>
 <main>
 {{ yield -}}

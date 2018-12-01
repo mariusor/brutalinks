@@ -25,7 +25,6 @@ type comment struct {
 
 type contentModel struct {
 	Title         string
-	InvertedTheme bool
 	Content       comment
 }
 
@@ -139,7 +138,7 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 	items := make([]app.Item, 0)
 	h.showItemData = true
 
-	m := contentModel{InvertedTheme: isInverted(r)}
+	m := contentModel{}
 	itemLoader, ok := app.ContextItemLoader(r.Context())
 	if !ok {
 		h.logger.Error("could not load item repository from Context")

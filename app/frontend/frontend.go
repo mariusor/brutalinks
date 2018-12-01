@@ -216,7 +216,6 @@ var flashData = make([]flash, 0)
 type errorModel struct {
 	Status        int
 	Title         string
-	InvertedTheme bool
 	Errors        []error
 }
 
@@ -376,7 +375,7 @@ func (h handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name str
 		Funcs: []template.FuncMap{{
 			//"urlParam":          func(s string) string { return chi.URLParam(r, s) },
 			//"get":               func(s string) string { return r.URL.Query().Get(s) },
-			"isInverted":        isInverted,
+			"isInverted":        func () bool { return isInverted(r) },
 			"sluggify":          sluggify,
 			"title":             func(t []byte) string { return string(t) },
 			"getProviders":      getAuthProviders,
@@ -661,7 +660,7 @@ func (h handler) NeedsSessions(next http.Handler) http.Handler {
 // HandleAbout serves /about request
 // It's something Mastodon compatible servers should show
 func (h *handler) HandleAbout(w http.ResponseWriter, r *http.Request) {
-	m := aboutModel{Title: "About", InvertedTheme: isInverted(r)}
+	m := aboutModel{Title: "About"}
 	f, err := db.Config.LoadInfo()
 	if err != nil {
 		h.HandleError(w, r, errors.NewNotValid(err, "oops!"))
@@ -706,7 +705,6 @@ func httpErrorResponse(e error) int {
 // HandleError serves failed requests
 func (h *handler) HandleError(w http.ResponseWriter, r *http.Request, errs ...error) {
 	d := errorModel{
-		InvertedTheme: isInverted(r),
 		Errors:        errs,
 	}
 
