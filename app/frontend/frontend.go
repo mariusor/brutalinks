@@ -34,10 +34,9 @@ const (
 )
 
 type handler struct {
-	session      sessions.Store
-	account      app.Account
-	logger       log.Logger
-	showItemData bool
+	session  sessions.Store
+	account  app.Account
+	logger   log.Logger
 }
 
 var defaultAccount = app.Account{Handle: app.Anonymous, Hash: app.AnonymousHash}
@@ -382,7 +381,10 @@ func (h handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name str
 			"CurrentAccount":    func() app.Account { return h.account },
 			"LoadFlashMessages": loadFlashMessages,
 			"Mod10":             func(lvl uint8) float64 { return math.Mod(float64(lvl), float64(10)) },
-			"ShowText":          func() bool { return h.showItemData },
+			"ShowText":          func() bool {
+				mm, ok := m.(itemListingModel)
+				return !ok || !mm.HideText
+			},
 			"HTML":              html,
 			"Text":              text,
 			"Markdown":          app.Markdown,

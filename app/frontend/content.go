@@ -136,7 +136,6 @@ func reparentComments(allComments []*comment) {
 // ShowItem serves /{year}/{month}/{day}/{hash} request
 func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 	items := make([]app.Item, 0)
-	h.showItemData = true
 
 	m := contentModel{}
 	itemLoader, ok := app.ContextItemLoader(r.Context())

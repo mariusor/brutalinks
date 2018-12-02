@@ -16,6 +16,7 @@ type itemListingModel struct {
 	PrevPage      int
 	User          *app.Account
 	Items         comments
+	HideText      bool
 }
 
 type sessionAccount struct {
@@ -61,7 +62,6 @@ func (h *handler) ShowAccount(w http.ResponseWriter, r *http.Request) {
 		if filter.Page > 1 {
 			m.PrevPage = filter.Page - 1
 		}
-		h.showItemData = true
 
 		h.RenderTemplate(r, w, "user", m)
 	} else {
