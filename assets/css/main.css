@@ -76,7 +76,7 @@ table {
 }
 @media (min-width: 480px) {
     :root {
-        font-size: 2.8vw;
+        font-size: 2.6vw;
     }
     body > header .top {
         display: unset;
@@ -95,7 +95,7 @@ table {
 }
 @media (min-width: 768px) {
     :root {
-        font-size: 2vw;
+        font-size: 1.3vw;
     }
     body > header .top {
         display: unset;
@@ -105,19 +105,24 @@ table {
         display: unset;
     }
 }
-@media (min-width: 992px) {
+@media (min-width: 860px) {
     :root {
-        font-size: 1.4vw;
+        font-size: 1.35vw;
     }
 }
-@media (min-width: 1050px) {
+@media (min-width: 948px) {
     :root {
         font-size: 1.3vw;
     }
 }
-@media (min-width: 1200px) {
+@media (min-width: 1050px) {
     :root {
         font-size: 1.2vw;
+    }
+}
+@media (min-width: 1200px) {
+    :root {
+        font-size: 1vw;
     }
     h6.domain {
         display: inline;
@@ -125,7 +130,7 @@ table {
 }
 @media (min-width: 1500px) {
     :root {
-        font-size: 1vw;
+        font-size: .9vw;
     }
 }
 @media (min-width: 1700px) {
@@ -152,7 +157,6 @@ body {
     min-height: 100%;
     display: grid;
     padding: 0 .5rem 0 .5rem;
-    /*grid-gap: .5rem;*/
     grid-template-rows: 2rem 1fr 2rem;
     grid-template-areas: "header" "main" "footer";
 }
@@ -774,5 +778,9 @@ svg.icon-adjust, .icon-clock-o {
     vertical-align: -2px;
 }
 .icon-github, .icon-code {
-    vertical-align: -1px;
+    vertical-align: middle;
+}
+.icon-angle-double-left,
+.icon-angle-double-right {
+    vertical-align: baseline;
 }
