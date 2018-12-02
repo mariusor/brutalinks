@@ -37,7 +37,10 @@ func PoachFeed(u string, since time.Duration) error {
 		if l.Author.Name != "" {
 			acct = app.Account{}
 			if baseURL != "" {
-				acct.Handle = fmt.Sprintf("%s/~%s", baseURL, l.Author.Name)
+				acct.Handle = l.Author.Name
+				acct.Metadata = &app.AccountMetadata{
+					URL: fmt.Sprintf("%s/~%s", baseURL, l.Author.Name),
+				}
 			}
 			if l.Author.Email != "" {
 				acct.Email = l.Author.Email
