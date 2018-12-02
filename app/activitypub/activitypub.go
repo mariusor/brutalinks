@@ -379,3 +379,12 @@ func (a *Activity) UnmarshalJSON(data []byte) error {
 
 	return nil
 }
+// UnmarshalJSON tries to detect the type of the object in the json data and then outputs a matching
+// ActivityStreams object, if possible
+func UnmarshalJSON(data []byte) (as.Item, error) {
+	i, err := as.UnmarshalJSON(data)
+	switch i.GetType() {
+	case as.PersonType:
+	}
+	return i, err
+}

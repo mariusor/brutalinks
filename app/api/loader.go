@@ -6,7 +6,6 @@ import (
 	"crypto"
 	"crypto/x509"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"path"
@@ -28,41 +27,27 @@ import (
 	"github.com/mariusor/littr.go/app/log"
 )
 
-// Config is used to retrieve information from the database
-//var Config repository
-
 type repository struct {
 	BaseURL string
 	Account *app.Account
 	logger  log.Logger
+	client ap.Client
 }
 
-func (r *repository) WithAccount(a *app.Account) {
+func New(c Config) repository {
+	return repository{
+		BaseURL: c.BaseURL,
+		logger: c.Logger,
+		client: ap.NewClient(ap.Config{
+			Logger: c.Logger,
+			UserAgent: fmt.Sprintf("%s-%s", app.Instance.HostName, app.Instance.Version),
+		}),
+	}
+}
+
+func (r *repository) WithAccount(a *app.Account) error {
 	r.Account = a
-}
 
-func (r *repository) req(method string, url string, body io.Reader) (*http.Request, error) {
-	req, err := http.NewRequest(method, url, body)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("User-Agent", fmt.Sprintf("%s-%s", app.Instance.HostName, app.Instance.Version))
-	err = r.sign(req)
-	if err != nil {
-		new := errors.Errorf("unable to sign request")
-		r.logger.WithContext(log.Ctx{
-			"account":  r.Account.Handle,
-			"url":      req.URL,
-			"method":   req.Method,
-			"previous": err.Error(),
-		}).Warn(new.Error())
-
-		return req, new
-	}
-	return req, nil
-}
-
-func (r *repository) sign(req *http.Request) error {
 	if r.Account == nil || r.Account.Hash == frontend.AnonymousAccount().Hash {
 		return nil
 	}
@@ -88,51 +73,7 @@ func (r *repository) sign(req *http.Request) error {
 	}
 
 	p := *loadAPPerson(*r.Account)
-
-	return SignRequest(req, p, prv)
-}
-
-func (r repository) Head(url string) (resp *http.Response, err error) {
-	req, err := r.req(http.MethodHead, url, nil)
-	if err != nil {
-		return nil, err
-	}
-	return http.DefaultClient.Do(req)
-}
-
-func (r repository) Get(url string) (resp *http.Response, err error) {
-	req, err := r.req(http.MethodGet, url, nil)
-	if err != nil {
-		return nil, err
-	}
-	return http.DefaultClient.Do(req)
-}
-
-func (r *repository) Post(url, contentType string, body io.Reader) (resp *http.Response, err error) {
-	req, err := r.req(http.MethodPost, url, body)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", contentType)
-	return http.DefaultClient.Do(req)
-}
-
-func (r repository) Put(url, contentType string, body io.Reader) (resp *http.Response, err error) {
-	req, err := r.req(http.MethodPut, url, body)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", contentType)
-	return http.DefaultClient.Do(req)
-}
-
-func (r repository) Delete(url, contentType string, body io.Reader) (resp *http.Response, err error) {
-	req, err := r.req(http.MethodDelete, url, body)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", contentType)
-	return http.DefaultClient.Do(req)
+	return r.client.WithSigner(getSigner(p.PublicKey.ID, prv))
 }
 
 // Repository middleware
@@ -480,7 +421,7 @@ func (r *repository) LoadItem(f app.LoadItemsFilter) (app.Item, error) {
 
 	var err error
 	var resp *http.Response
-	if resp, err = r.Get(url); err != nil {
+	if resp, err = r.client.Get(url); err != nil {
 		r.logger.Error(err.Error())
 		return it, err
 	}
@@ -539,7 +480,7 @@ func (r *repository) LoadItems(f app.LoadItemsFilter) (app.ItemCollection, error
 	ctx := log.Ctx{
 		"url": url,
 	}
-	if resp, err = r.Get(url); err != nil {
+	if resp, err = r.client.Get(url); err != nil {
 		r.logger.WithContext(ctx).Error(err.Error())
 		return nil, err
 	}
@@ -588,7 +529,7 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 	var err error
 	var exists *http.Response
 	// first step is to verify if vote already exists:
-	if exists, err = r.Head(url); err != nil {
+	if exists, err = r.client.Head(url); err != nil {
 		r.logger.WithContext(log.Ctx{
 			"url":   url,
 			"err":   err,
@@ -620,10 +561,10 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 	var resp *http.Response
 	if exists.StatusCode == http.StatusOK {
 		// previously found a vote, needs updating
-		resp, err = r.Put(url, "application/json+activity", bytes.NewReader(body))
+		resp, err = r.client.Put(url, "application/json+activity", bytes.NewReader(body))
 	} else if exists.StatusCode == http.StatusNotFound {
 		// previously didn't fund a vote, needs adding
-		resp, err = r.Post(url, "application/json+activity", bytes.NewReader(body))
+		resp, err = r.client.Post(url, "application/json+activity", bytes.NewReader(body))
 	} else {
 		err = errors.New("received unexpected http response")
 		r.logger.WithContext(log.Ctx{
@@ -660,7 +601,7 @@ func (r *repository) LoadVotes(f app.LoadVotesFilter) (app.VoteCollection, error
 	var err error
 	var resp *http.Response
 	url := fmt.Sprintf("%s/self/liked%s", r.BaseURL, qs)
-	if resp, err = r.Get(url); err != nil {
+	if resp, err = r.client.Get(url); err != nil {
 		r.logger.Error(err.Error())
 		return nil, err
 	}
@@ -709,7 +650,7 @@ func (r *repository) LoadVote(f app.LoadVotesFilter) (app.Vote, error) {
 
 	var err error
 	var resp *http.Response
-	if resp, err = r.Get(url); err != nil {
+	if resp, err = r.client.Get(url); err != nil {
 		r.logger.Error(err.Error())
 		return v, err
 	}
@@ -775,11 +716,11 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 	var resp *http.Response
 	if doUpd {
 		url := string(*art.GetID())
-		resp, err = r.Put(url, "application/activity+json", bytes.NewReader(body))
+		resp, err = r.client.Put(url, "application/activity+json", bytes.NewReader(body))
 	} else {
 		url := fmt.Sprintf("%s/actors/%s/outbox", r.BaseURL, it.SubmittedBy.Hash)
 		//url := fmt.Sprintf("%s/self/outbox", r.BaseURL)
-		resp, err = r.Post(url, "application/activity+json", bytes.NewReader(body))
+		resp, err = r.client.Post(url, "application/activity+json", bytes.NewReader(body))
 	}
 	if err != nil {
 		r.logger.Error(err.Error())
@@ -824,7 +765,7 @@ func (r *repository) LoadAccounts(f app.LoadAccountsFilter) (app.AccountCollecti
 
 	var err error
 	var resp *http.Response
-	if resp, err = r.Get(url); err != nil {
+	if resp, err = r.client.Get(url); err != nil {
 		r.logger.Error(err.Error())
 		return nil, err
 	}
@@ -883,11 +824,9 @@ func (r *repository) SaveAccount(a app.Account) (app.Account, error) {
 
 type SignFunc func(r *http.Request) error
 
-func SignRequest(r *http.Request, p ap.Person, key crypto.PrivateKey) error {
+func getSigner(pubKeyID as.ObjectID, key crypto.PrivateKey) *httpsig.Signer {
 	hdrs := []string{"(request-target)", "host", "test", "date"}
-
-	return httpsig.NewSigner(string(p.PublicKey.ID), key, httpsig.RSASHA256, hdrs).
-		Sign(r)
+	return httpsig.NewSigner(string(pubKeyID), key, httpsig.RSASHA256, hdrs)
 }
 
 func (r *repository) LoadInfo() (app.Info, error) {
@@ -896,7 +835,7 @@ func (r *repository) LoadInfo() (app.Info, error) {
 	url := fmt.Sprintf("%s/self", r.BaseURL)
 	var err error
 	var resp *http.Response
-	if resp, err = r.Get(url); err != nil {
+	if resp, err = r.client.Get(url); err != nil {
 		r.logger.Error(err.Error())
 		return inf, err
 	}

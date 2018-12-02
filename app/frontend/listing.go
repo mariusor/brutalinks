@@ -69,7 +69,7 @@ func opLink(c app.Item) string {
 	return ""
 }
 
-func AccountPermaLink(a app.Account) string {
+func localPermaLink(a app.Account) string {
 	handle := "anonymous"
 	if len(a.Handle) > 0 {
 		handle = a.Handle
@@ -77,11 +77,20 @@ func AccountPermaLink(a app.Account) string {
 	return fmt.Sprintf("%s/~%s", app.Instance.BaseURL, handle)
 }
 
+// AccountPermaLink
+func AccountPermaLink(a app.Account) string {
+	if a.HasMetadata() && len(a.Metadata.URL) > 0 {
+		return a.Metadata.URL
+	}
+	return localPermaLink(a)
+}
+
+// ItemPermaLink
 func ItemPermaLink(c app.Item) string {
 	if c.SubmittedBy == nil {
 		return fmt.Sprintf("/item/%s", c.Hash)
 	}
-	return fmt.Sprintf("%s/%s", AccountPermaLink(*c.SubmittedBy), c.Hash)
+	return fmt.Sprintf("%s/%s", localPermaLink(*c.SubmittedBy), c.Hash)
 }
 
 func scoreLink(i app.Item, dir string) string {
@@ -97,11 +106,11 @@ func nayLink(i app.Item) string {
 }
 
 func pageLink(p int) template.HTML {
-	//if p > 1 {
-	return template.HTML(fmt.Sprintf("?page=%d", p))
-	//} else {
-	//	return template.HTML("")
-	//}
+	if p > 1 {
+		return template.HTML(fmt.Sprintf("?page=%d", p))
+	} else {
+		return template.HTML("")
+	}
 }
 
 // HandleIndex serves / request

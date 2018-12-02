@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"github.com/mariusor/littr.go/app/activitypub"
 	"strings"
 	"time"
 )
@@ -30,6 +31,7 @@ const (
 )
 
 const (
+	TypeUndo    = VoteType("undo")
 	TypeDislike = VoteType("dislike")
 	TypeLike    = VoteType("like")
 	ContextNil  = "0"
@@ -82,6 +84,11 @@ type LoadAccountsFilter struct {
 	Deleted  bool     `qstring:"deleted,omitempty"`
 	Page     int      `qstring:"page,omitempty"`
 	MaxItems int      `qstring:"maxItems,omitempty"`
+	InboxIRI string   `qstring:"federated,omitempty"`
+}
+
+func (v VoteType) String() string {
+	return strings.ToLower(string(v))
 }
 
 func (f LoadVotesFilter) GetWhereClauses() ([]string, []interface{}) {
@@ -100,17 +107,24 @@ func (f LoadVotesFilter) GetWhereClauses() ([]string, []interface{}) {
 	if len(f.Type) > 0 {
 		whereColumns := make([]string, 0)
 		for _, typ := range f.Type {
-			if typ == TypeLike {
+			switch strings.ToLower(string(typ)) {
+			case string(TypeLike):
 				whereColumns = append(whereColumns, fmt.Sprintf(`"votes"."weight" > $%d`, counter))
 				whereValues = append(whereValues, interface{}(0))
-			}
-			if typ == TypeDislike {
+				counter++
+			case string(TypeDislike):
 				whereColumns = append(whereColumns, fmt.Sprintf(`"votes"."weight" < $%d`, counter))
 				whereValues = append(whereValues, interface{}(0))
+				counter++
+			case string(TypeUndo):
+				whereColumns = append(whereColumns, fmt.Sprintf(`"votes"."weight" = $%d`, counter))
+				whereValues = append(whereValues, interface{}(0))
+				counter++
 			}
-			counter++
 		}
-		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
+		if len(wheres) > 0 && len(wheres) < 3 {
+			wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
+		}
 	}
 	if len(f.ItemKey) > 0 {
 		whereColumns := make([]string, 0)
@@ -271,6 +285,11 @@ func (f LoadAccountsFilter) GetWhereClauses() ([]string, []interface{}) {
 		}
 		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
 	}
+	if len(f.InboxIRI) > 0 {
+		wheres = append(wheres, fmt.Sprintf(`"accounts"."metadata"->>'inbox' ~* $%d`, counter))
+		whereValues = append(whereValues, interface{}(f.InboxIRI))
+		counter++
+	}
 
 	return wheres, whereValues
 }
@@ -364,4 +383,10 @@ func ContextVoteSaver(ctx context.Context) (CanSaveVotes, bool) {
 	ctxVal := ctx.Value(RepositoryCtxtKey)
 	s, ok := ctxVal.(CanSaveVotes)
 	return s, ok
+}
+
+func ContextActivity(ctx context.Context) (activitypub.Activity, bool) {
+	ctxVal := ctx.Value(ItemCtxtKey)
+	a, ok := ctxVal.(activitypub.Activity)
+	return a, ok
 }

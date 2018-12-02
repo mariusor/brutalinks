@@ -81,7 +81,9 @@ var _exProcessIncomingInboxAction = Message{
 	Actions: []interface{}{
 		APProcess{
 			Activity: as.Activity{
-				Type:  as.CreateType,
+				Parent: as.Parent{
+					Type: as.CreateType,
+				},
 				Actor: as.IRI("https://external.example.com/accounts/jane_doe"),
 				Object: &as.Object{
 					ID:        as.ObjectID("https://external.example.com/accounts/jane_doe/outbox/special-note-identifier-123"),
@@ -116,7 +118,9 @@ var _exProcessOutgoingInboxAction = Message{
 				},
 			},
 			Activity: as.Activity{
-				Type:  as.CreateType,
+				Parent: as.Parent{
+					Type: as.CreateType,
+				},
 				Actor: as.IRI("https://littr.git/api/actors/system"),
 				Object: &as.Object{
 					Type:      as.NoteType,

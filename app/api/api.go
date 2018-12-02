@@ -270,6 +270,10 @@ type keyLoader struct {
 	acc app.Account
 }
 
+func loadFederatedActor(id as.IRI) (as.Actor, error) {
+	return as.Actor{}, errors.NotImplementedf("federated actors loading is not implemented")
+}
+
 func (k *keyLoader) GetKey(id string) interface{} {
 	// keyId="http://littr.git/api/actors/e33c4ff5#main-key"
 	var err error
@@ -282,10 +286,20 @@ func (k *keyLoader) GetKey(id string) interface{} {
 		// invalid generated public key id
 		return errors.Errorf("invalid key")
 	}
-	hash := path.Base(u.Path)
-	k.acc, err = db.Config.LoadAccount(app.LoadAccountsFilter{Key: []string{hash}})
-	if err != nil {
-		return err
+
+	if err := validateLocalIRI(as.IRI(u.Host)); err == nil {
+		hash := path.Base(u.Path)
+		k.acc, err = db.Config.LoadAccount(app.LoadAccountsFilter{Key: []string{hash}})
+		if err != nil {
+			return errors.Annotatef(err, "unable to find local account matching key id %s", id)
+		}
+	} else {
+		// @todo(queue_support): this needs to be moved to using queues
+		actor, err := loadFederatedActor(as.IRI(u.RequestURI()))
+		if err != nil {
+			return errors.Annotatef(err, "unable to load federated account matching key id %s", id)
+		}
+		k.acc.FromActivityPub(actor)
 	}
 
 	var pub crypto.PublicKey
@@ -325,7 +339,7 @@ func (h handler)VerifyHttpSignature(next http.Handler) http.Handler {
 				h.logger.WithContext(log.Ctx{
 					"handle": acct.Handle,
 					"hash":   acct.Hash,
-					"header": fmt.Sprintf("%q", r.Header),
+					"header": fmt.Sprintf("%v", r.Header["Authorize"]),
 				}).Warn("invalid HTTP signature")
 				// TODO(marius): here we need to implement some outside logic, as to we want to allow non-signed
 				//   requests on some urls, but not on others - probably another handler to check for Anonymous

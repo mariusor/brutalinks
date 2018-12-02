@@ -26,7 +26,11 @@ func (a *Account) FromActivityPub(it as.Item) error {
 		return errors.New("nil item received")
 	}
 	if it.IsLink() {
-		a.Hash.FromActivityPub(it.GetLink())
+		iri := it.GetLink()
+		a.Hash.FromActivityPub(iri)
+		a.Metadata = &AccountMetadata{
+			ID: iri.String(),
+		}
 		return nil
 	}
 	switch it.GetType() {
@@ -50,6 +54,13 @@ func (a *Account) FromActivityPub(it as.Item) error {
 			a.Handle = name
 			a.Email = ""
 			a.Flags = FlagsNone
+			if len(p.ID) > 0 {
+				iri := p.GetLink()
+				a.Metadata = &AccountMetadata{
+					ID:  iri.String(),
+					URL: p.URL.GetLink().String(),
+				}
+			}
 		}
 	default:
 		return errors.New("invalid object type")
