@@ -200,27 +200,6 @@ a:not([href]) {
 .inverted a:not([href]) {
     color: WindowFrame;
 }
-.inverted a[href] svg {
-    fill: dodgerblue;
-}
-a[href] svg  {
-    fill: blue;
-}
-.inverted a[href]:visited svg {
-    fill: mediumpurple;
-}
-a[href]:active svg.icon {
-    fill: red;
-}
-a[href]:visited svg {
-    fill: rebeccapurple;
-}
-a:not([href]) svg.icon {
-    fill: WindowText;
-}
-.inverted a:not([href]) svg {
-    fill: WindowFrame;
-}
 .h-mirror {
     transform: rotateX(180deg);
 }
@@ -235,10 +214,6 @@ button svg.icon.icon-sign-in
 {
     height: .9em;
     width: .9em;
-}
-button svg.icon.icon-reply,
-button svg.icon.icon-sign-in {
-    fill: WindowText;
 }
 .inverted h1.logo a,
 .inverted h1.logo a:hover,
@@ -268,12 +243,6 @@ body > header h1 {
 body > header h1 small {
     opacity: 0.7;
 }
-body > header h1 a svg.icon {
-    fill: WindowText;
-}
-body.inverted > header h1 a svg.icon {
-    fill: WindowFrame;
-}
 body > header nav {
     padding-top: .6em;
 }
@@ -285,9 +254,6 @@ header .top {
 }
 .icon {
     vertical-align: middle;
-}
-.inverted svg.icon {
-    fill: WindowFrame;
 }
 body > header {
     padding-left: .35rem;
@@ -501,30 +467,8 @@ ol.comments li {
     font-weight: lighter;
     font-size: .6em;
 }
-.score a {
-    color: WindowText;
-}
-.inverted a svg.icon.icon-adjust,
-.inverted a:active svg.icon.icon-adjust,
-.inverted a svg.icon.icon-trash,
-.inverted a:active svg.icon.icon-trash
-{
-    fill: WindowFrame;
-}
-a svg.icon.icon-adjust,
-a:active svg.icon.icon-adjust,
-a svg.icon.icon-trash,
-a:active svg.icon.icon-trash {
-    fill: WindowText;
-}
 .score a:not([href]) {
     opacity: .3;
-}
-.inverted .score a:visited[href] svg {
-    fill: dodgerblue;
-}
-.score a:visited[href] svg {
-    fill: blue;
 }
 .score a.yay.ed svg,
 .score a.nay.ed svg {
@@ -534,10 +478,14 @@ a:active svg.icon.icon-trash {
 .inverted .score a.nay.ed svg {
     fill: mediumpurple;
 }
+.score a:visited svg {
+    fill: blue;
+}
+.inverted .score a:visited {
+    fill: dodgerblue;
+}
 .score a[href].yay:active svg,
-.score a[href].nay:active svg,
-.inverted .score a[href].yay:active svg,
-.inverted .score a[href].nay:active svg
+.score a[href].nay:active svg
 {
     fill: red;
 }
