@@ -4,6 +4,8 @@ require (
 	github.com/PuerkitoBio/goquery v1.5.0 // indirect
 	github.com/adjust/redismq v0.0.0-20170113163246-e2a56d9bb404
 	github.com/buger/jsonparser v0.0.0-20181023193515-52c6e1462ebd
+	github.com/captncraig/cors v0.0.0-20180620154129-376d45073b49 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dyninc/qstring v0.0.0-20160719172318-ab5840a88e81 // indirect
 	github.com/eknkc/amber v0.0.0-20171010120322-cdade1c07385 // indirect
 	github.com/fsnotify/fsnotify v1.4.7 // indirect
@@ -34,10 +36,14 @@ require (
 	github.com/mmcloughlin/meow v0.0.0-20181027071415-3edf85781f46
 	github.com/onsi/ginkgo v1.6.0 // indirect
 	github.com/onsi/gomega v1.4.1 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/russross/blackfriday v2.0.0+incompatible // indirect
 	github.com/shurcooL/sanitized_anchor_name v0.0.0-20170918181015-86672fcb3f95 // indirect
 	github.com/spacemonkeygo/httpsig v0.0.0-20180701154948-c76789e3b41d
+	github.com/stretchr/testify v1.2.2 // indirect
 	github.com/unrolled/render v0.0.0-20171102162132-65450fb6b2d3
+	github.com/writeas/go-nodeinfo v0.0.0-20180809171410-91102b12f3e1
+	github.com/writeas/go-webfinger v0.0.0-20180816143508-824606d41058 // indirect
 	gitlab.com/golang-commonmark/html v0.0.0-20180912085939-e512ef1a6b8f // indirect
 	gitlab.com/golang-commonmark/linkify v0.0.0-20180914052436-e7556e2d0743 // indirect
 	gitlab.com/golang-commonmark/markdown v0.0.0-20180916053358-4976918e34cf

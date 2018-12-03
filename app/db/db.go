@@ -1,16 +1,13 @@
 package db
 
 import (
-	"bytes"
 	"context"
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
 	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/app/log"
-	"io"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -321,20 +318,5 @@ group by "accounts"."id", "accounts"."key" order by "accounts"."id";`,
 // LoadInfo this method is here to keep compatibility with the repository interfaces
 // but in the long term we might want to store some of this information in the db
 func (c config) LoadInfo() (app.Info, error) {
-	inf := app.Info{
-		Title:   app.Instance.Name(),
-		Summary: "Link aggregator inspired by reddit and hacker news using ActivityPub federation.",
-		Email:   "system@littr.me",
-		URI:     app.Instance.BaseURL,
-		Version: app.Instance.Version,
-	}
-
-	if f, err := os.Open("./README.md"); err == nil {
-		st, _ := f.Stat()
-		rme := make([]byte, st.Size())
-		io.ReadFull(f, rme)
-		inf.Description = string(bytes.Trim(rme, "\x00"))
-	}
-
-	return inf, nil
+	return app.Instance.NodeInfo(), nil
 }

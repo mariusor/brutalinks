@@ -4,13 +4,13 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
+	"github.com/mariusor/littr.go/app/db"
 	"github.com/mariusor/littr.go/app/processing"
+	"github.com/writeas/go-nodeinfo"
 	"net/http"
 	"os"
 	"path/filepath"
 	"time"
-
-	"github.com/mariusor/littr.go/app/db"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
@@ -80,6 +80,28 @@ func main() {
 		r.Use(middleware.Recoverer)
 	}
 
+	cfg := nodeinfo.Config{
+		BaseURL: api.BaseURL,
+		InfoURL: "/nodeinfo",
+
+		Metadata: nodeinfo.Metadata{
+			NodeName:        app.Instance.NodeInfo().Title,
+			NodeDescription: app.Instance.NodeInfo().Summary,
+			Private:         false,
+		},
+		Protocols: []nodeinfo.NodeProtocol{
+			nodeinfo.ProtocolActivityPub,
+		},
+		Services: nodeinfo.Services{
+			Inbound: []nodeinfo.NodeService{},
+			Outbound: []nodeinfo.NodeService{},
+		},
+		Software: nodeinfo.SoftwareInfo{
+			Name:    app.Instance.NodeInfo().Title,
+			Version: app.Instance.NodeInfo().Version,
+		},
+	}
+	ni := nodeinfo.NewService(cfg, api.NodeInfoResolver{})
 	// Frontend
 	r.With(a.Repository).Route("/", func(r chi.Router) {
 		r.Use(front.LoadSession)
@@ -184,6 +206,8 @@ func main() {
 		r.Get("/v1/instance/peers", api.ShowPeers)
 		r.Get("/v1/instance/activity", api.ShowActivity)
 
+		r.Get(cfg.InfoURL, ni.NodeInfo)
+
 		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 			a.HandleError(w, r, errors.NotFoundf("%s not found", r.RequestURI))
 		})
@@ -198,6 +222,7 @@ func main() {
 
 		r.Get("/webfinger", a.HandleWebFinger)
 		r.Get("/host-meta", api.HandleHostMeta)
+		r.Get("/nodeinfo", ni.NodeInfoDiscover)
 		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 			a.HandleError(w, r, errors.NotFoundf("%s not found", r.RequestURI))
 		})

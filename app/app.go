@@ -1,10 +1,12 @@
 package app
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"github.com/go-chi/chi/middleware"
 	"github.com/juju/errors"
+	"io"
 	"net/http"
 	"os"
 	"os/signal"
@@ -133,6 +135,25 @@ func validEnv(s EnvType) bool {
 func (a Application) Name() string {
 	parts := strings.Split(a.HostName, ".")
 	return strings.Join(parts, " ")
+}
+
+// Name formats the name of the current Application
+func (a Application) NodeInfo() Info {
+	inf := Info{
+		Title:   a.Name(),
+		Summary: "Link aggregator inspired by reddit and hacker news using ActivityPub federation.",
+		Email:   "system@littr.me",
+		URI:     a.BaseURL,
+		Version: a.Version,
+	}
+
+	if f, err := os.Open("./README.md"); err == nil {
+		st, _ := f.Stat()
+		rme := make([]byte, st.Size())
+		io.ReadFull(f, rme)
+		inf.Description = string(bytes.Trim(rme, "\x00"))
+	}
+	return inf
 }
 
 func (a *Application) listen() string {

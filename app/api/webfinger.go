@@ -20,7 +20,7 @@ type link struct {
 	Template string `json:"template,omitempty"`
 }
 
-type webfinger struct {
+type node struct {
 	Subject string   `json:"subject"`
 	Aliases []string `json:"aliases"`
 	Links   []link   `json:"links"`
@@ -28,12 +28,12 @@ type webfinger struct {
 
 // HandleHostMeta serves /.well-known/host-meta
 func HandleHostMeta(w http.ResponseWriter, r *http.Request) {
-	hm := webfinger{
+	hm := node{
 		Links: []link{
 			{
 				Rel:      "lrdd",
 				Type:     "application/xrd+json",
-				Template: fmt.Sprintf("%s/.well-known/webfinger?resource={uri}", app.Instance.BaseURL),
+				Template: fmt.Sprintf("%s/.well-known/node?resource={uri}", app.Instance.BaseURL),
 			},
 		},
 	}
@@ -77,7 +77,7 @@ func (h handler)HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	wf := webfinger{
+	wf := node{
 		Aliases: []string{
 			fmt.Sprintf("%s/%s", ActorsURL, a.Hash),
 			fmt.Sprintf("%s/%s", ActorsURL, a.Handle),

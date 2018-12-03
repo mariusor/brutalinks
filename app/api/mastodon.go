@@ -5,10 +5,38 @@ import (
 	"fmt"
 	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/app/db"
+	"github.com/writeas/go-nodeinfo"
 	"math"
 	"net/http"
 )
 
+type NodeInfoResolver struct{}
+
+func (r NodeInfoResolver) IsOpenRegistration() (bool, error) {
+	return false, nil
+}
+
+func (r NodeInfoResolver) Usage() (nodeinfo.Usage, error) {
+	//inf, err := db.Config.LoadInfo()
+	//ifErr(err)
+
+	us, _ := db.Config.LoadAccounts(app.LoadAccountsFilter{
+		MaxItems: math.MaxInt64,
+	})
+	//ifErr(err)
+	i, _ := db.Config.LoadItems(app.LoadItemsFilter{
+		MaxItems: math.MaxInt64,
+	})
+	//ifErr(err)
+
+	u := nodeinfo.Usage{
+		Users: nodeinfo.UsageUsers{
+			Total: len(us),
+		},
+		LocalPosts: len(i),
+	}
+	return u, nil
+}
 // GET /api/v1/instance
 // In order to be compatible with Mastodon
 func (h handler)ShowInstance(w http.ResponseWriter, r *http.Request) {
@@ -41,7 +69,7 @@ func (h handler)ShowInstance(w http.ResponseWriter, r *http.Request) {
 	d.Lang = inf.Languages
 	d.Thumbnail = inf.Thumbnail
 	d.Description = inf.Summary
-	d.Version = fmt.Sprintf("2.5.0 compatible (%s %s)", app.Instance.HostName, inf.Version)
+	d.Version = fmt.Sprintf("%s %s", app.Instance.HostName, inf.Version)
 
 	data, err := json.Marshal(d)
 	ifErr(err)
