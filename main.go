@@ -57,7 +57,7 @@ func main() {
 		apiURL = fmt.Sprintf("http://%s/api", host)
 	}
 	a := api.Init(api.Config{
-		Logger:      app.Instance.Logger.New(log.Ctx{"package": "api"}),
+		Logger:  app.Instance.Logger.New(log.Ctx{"package": "api"}),
 		BaseURL: apiURL,
 	})
 	//api.Config.BaseUrl = api.BaseURL
@@ -88,12 +88,17 @@ func main() {
 			NodeName:        app.Instance.NodeInfo().Title,
 			NodeDescription: app.Instance.NodeInfo().Summary,
 			Private:         false,
+			Software: nodeinfo.SoftwareMeta{
+				GitHub:   "https://github.com/mariusor/littr.go",
+				HomePage: "https://littr.me",
+				Follow:   "mariusor@mastodon.xyz",
+			},
 		},
 		Protocols: []nodeinfo.NodeProtocol{
 			nodeinfo.ProtocolActivityPub,
 		},
 		Services: nodeinfo.Services{
-			Inbound: []nodeinfo.NodeService{},
+			Inbound:  []nodeinfo.NodeService{},
 			Outbound: []nodeinfo.NodeService{},
 		},
 		Software: nodeinfo.SoftwareInfo{
@@ -148,7 +153,7 @@ func main() {
 		r.With(front.NeedsSessions).Get("/auth/{provider}/callback", front.HandleCallback)
 
 		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
-			front.HandleError(w, r,errors.NotFoundf("%q not found", r.RequestURI))
+			front.HandleError(w, r, errors.NotFoundf("%q not found", r.RequestURI))
 		})
 		r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
 			front.HandleError(w, r, errors.MethodNotAllowedf("invalid %q request", r.Method))
@@ -168,7 +173,7 @@ func main() {
 				r.Use(api.ServiceCtxt)
 
 				r.With(api.LoadFiltersCtxt, a.ItemCollectionCtxt).Get("/", a.HandleCollection)
-				//r.With(api.LoadFiltersCtxt, a.LoadActivity).Post("/", a.AddToCollection)
+				r.With(api.LoadFiltersCtxt, a.LoadActivity).Post("/", a.AddToCollection)
 				r.Route("/{hash}", func(r chi.Router) {
 					r.With(api.LoadFiltersCtxt, a.ItemCtxt).Get("/", a.HandleCollectionActivity)
 					r.With(api.LoadFiltersCtxt, a.ItemCtxt).Get("/object", a.HandleCollectionActivityObject)
@@ -238,6 +243,9 @@ func main() {
 	}))
 	r.With(app.StripCookies).Get("/favicon.ico", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, filepath.Join(assets, "favicon.ico"))
+	}))
+	r.With(app.StripCookies).Get("/icons.svg", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, filepath.Join(assets, "icons.svg"))
 	}))
 	r.With(app.StripCookies).Get("/robots.txt", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, filepath.Join(assets, "robots.txt"))
