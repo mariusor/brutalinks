@@ -80,6 +80,9 @@ a[href]:hover {
 a[href]:visited {
     color: var(--main-linkvisited-color);
 }
+a[href]:visited svg.icon {
+    fill: var(--main-linkvisited-color);
+}
 a[href]:active {
     color: var(--main-linkactive-color);
 }
@@ -103,6 +106,9 @@ button svg.icon.icon-sign-in
 }
 h1.logo a {
     color: var(--main-fg-color) !important;
+}
+h1.logo a svg.icon {
+    fill: var(--main-fg-color) !important;
 }
 h1.logo a:hover {
     text-decoration: none;
