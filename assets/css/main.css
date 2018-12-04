@@ -65,9 +65,7 @@ body {
     grid-gap: .5rem;
 }
 p {
-    /*text-indent: -.6rem;*/
     word-break: break-word;
-    /*hyphens: auto;*/
 }
 p + p {
     padding-top: .6rem;
@@ -105,6 +103,8 @@ button svg.icon.icon-sign-in
 }
 h1.logo a {
     color: var(--main-fg-color) !important;
+}
+h1.logo a:hover {
     text-decoration: none;
 }
 body > header {
@@ -125,6 +125,9 @@ body > header nav {
 }
 header .sections {
     margin-left: 1rem;
+}
+.error header .top {
+    display: none;
 }
 header .top {
     align-self: end;
