@@ -109,7 +109,7 @@ h1.logo a:hover {
 }
 body > header {
     display: grid;
-    grid-template-columns: auto auto 6fr;
+    grid-template-columns: auto auto 5fr;
     grid-area: header;
     margin: .5rem 0 0 0;
 }
@@ -130,7 +130,7 @@ header .sections {
     display: none;
 }
 header .top {
-    align-self: end;
+    text-align: right;
 }
 .icon {
     vertical-align: middle;
@@ -597,9 +597,6 @@ svg.icon-adjust, .icon-clock-o {
     vertical-align: baseline;
 }
 @media (max-width: 576px) {
-    body > header {
-        grid-template-columns: auto auto 0;
-    }
     body > header .sections li a span {
         font-size: 0;
         display: none;
@@ -633,13 +630,13 @@ svg.icon-adjust, .icon-clock-o {
     :root {
         font-size: 2.6vw;
     }
-    body > header .top {
-        display: unset;
-    }
 }
 @media (min-width: 576px) {
     :root {
         font-size: 2.4vw;
+    }
+    body > header .top {
+        display: unset;
     }
     h6.domain {
         display: inline;
