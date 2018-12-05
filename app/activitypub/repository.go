@@ -41,7 +41,7 @@ func (c *Client) LoadActor(id as.IRI) (Person, error) {
 	a := Person{}
 
 	var resp *http.Response
-	if resp, err = c.Get(string(id)); err != nil {
+	if resp, err = c.Get(id.String()); err != nil {
 		c.logger.Error(err.Error())
 		return a, err
 	}
@@ -51,8 +51,11 @@ func (c *Client) LoadActor(id as.IRI) (Person, error) {
 		return a, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		err := errors.New("unable to load from the API")
-		c.logger.Error(err.Error())
+		err := errors.New("unable to load from the AP end point")
+		c.logger.WithContext(log.Ctx{
+			"iri": id,
+			"signed": c.signer != nil,
+		} ).Error(err.Error())
 		return a, err
 	}
 	defer resp.Body.Close()

@@ -34,8 +34,8 @@ type repository struct {
 	client ap.Client
 }
 
-func New(c Config) repository {
-	return repository{
+func New(c Config) *repository {
+	return &repository{
 		BaseURL: c.BaseURL,
 		logger: c.Logger,
 		client: ap.NewClient(ap.Config{

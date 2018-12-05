@@ -47,13 +47,11 @@ type Config struct {
 func Init(c Config) handler {
 	BaseURL = c.BaseURL
 	ActorsURL = c.BaseURL + "/actors"
-	return handler{
-		repo: &repository {
-			BaseURL: c.BaseURL,
-			logger: c.Logger,
-		},
+	h := handler{
 		logger: c.Logger,
 	}
+	h.repo = New(c)
+	return h
 }
 
 var BaseURL string
