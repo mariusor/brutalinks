@@ -778,8 +778,9 @@ func validateInboxActivity(a localap.Activity, c localap.Client) (localap.Activi
 		as.CreateType,
 		as.LikeType,
 		as.DislikeType,
-		//as.UndoType, // @todo(marius): not implemented
-		//as.FollowType, // @todo(marius): not implemented
+		as.DeleteType, // @todo(marius): not implemented
+		as.UndoType, // @todo(marius): not implemented
+		as.FollowType, // @todo(marius): not implemented
 	}
 	if err := validateItemType(a.GetType(), validTypes); err != nil {
 		return a, errors.NewNotValid(err, "failed to validate activity type for inbox collection")
