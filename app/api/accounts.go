@@ -782,7 +782,7 @@ func validateInboxActivity(a localap.Activity, c localap.Client) (localap.Activi
 		//as.FollowType, // @todo(marius): not implemented
 	}
 	if err := validateItemType(a.GetType(), validTypes); err != nil {
-		return a, errors.Annotate(err, "failed to validate activity type for inbox collection")
+		return a, errors.NewNotValid(err, "failed to validate activity type for inbox collection")
 	}
 	if p, err := validateActor(a.Actor, false); err != nil {
 		if e, ok := err.(actorMissingError); ok {
@@ -792,24 +792,24 @@ func validateInboxActivity(a localap.Activity, c localap.Client) (localap.Activi
 			// @todo make the current client accessible here
 			if !act.IsObject() {
 				if act, err = c.LoadActor(act.GetLink()); err != nil {
-					return a, errors.Annotatef(err, "failed to load remote actor %s", act.GetLink())
+					return a, errors.NewNotFound(err, fmt.Sprintf("failed to load remote actor %s", act.GetLink()))
 				}
 			}
 			if err = acc.FromActivityPub(act); err != nil {
-				return a, errors.Annotatef(err, "failed to load account from remote actor %s", act.GetLink())
+				return a, errors.NewNotFound(err, fmt.Sprintf("failed to load account from remote actor %s", act.GetLink()))
 			}
 			if acc, err  = db.Config.SaveAccount(acc); err != nil {
-				return a, errors.Annotatef(err, "failed to save local account for remote actor %s", act.GetLink())
+				return a, errors.NewNotFound(err, fmt.Sprintf("failed to save local account for remote actor %s", act.GetLink()))
 			}
 			a.Actor = act
 		} else {
-			return a, errors.Annotate(err, "failed to validate actor for inbox collection")
+			return a, errors.NewNotFound(err, "failed to validate actor for inbox collection")
 		}
 	} else {
 		a.Actor = p
 	}
 	if o, err := validateObject(a.Object, a.GetType()); err != nil {
-		return a, errors.Annotate(err, "failed to validate object for inbox collection")
+		return a, errors.NewNotValid(err, "failed to validate object for inbox collection")
 	} else {
 		a.Object = o
 	}
@@ -889,7 +889,7 @@ func (h handler) AddToCollection(w http.ResponseWriter, r *http.Request) {
 			"err":   err,
 			"trace": errors.Details(err),
 		}).Error("activity validation error")
-		h.HandleError(w, r, errors.NewNotValid(err, "not found"))
+		h.HandleError(w, r, err)
 		return
 	}
 

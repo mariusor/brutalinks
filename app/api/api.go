@@ -206,7 +206,10 @@ func httpErrorResponse(e error) int {
 		return http.StatusGatewayTimeout
 	}
 	if errors.IsNotValid(e) {
-		return http.StatusInternalServerError
+		return http.StatusNotAcceptable
+	}
+	if errors.IsMethodNotAllowed(e) {
+		return http.StatusMethodNotAllowed
 	}
 	return http.StatusInternalServerError
 }
