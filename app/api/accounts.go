@@ -650,13 +650,15 @@ func isActorMissingErr (err error) bool {
 
 
 func validateActor(a as.Item, shouldBeLocal bool) (as.Item, error) {
+	p := localap.Person{}
+
 	acct := app.Account{}
 	acct.FromActivityPub(a)
 
 	var err error
 	isLocalActor := true
 	aHost := ""
-	p := localap.Person{}
+
 	if err = validateLocalIRI(a.GetLink()); err != nil {
 		if shouldBeLocal {
 			return p, errors.Annotate(err, "actor should have local resolvable IRI")
@@ -785,6 +787,17 @@ func validateInboxActivity(a localap.Activity, c localap.Client) (localap.Activi
 	if err := validateItemType(a.GetType(), validTypes); err != nil {
 		return a, errors.NewNotValid(err, "failed to validate activity type for inbox collection")
 	}
+
+	// @todo(marius): add a proper method of loading blocked instances
+	blockedInstances := []string {
+		"mastodon.social",
+	}
+	for _, block := range blockedInstances {
+		if strings.Contains(a.Actor.GetLink().String(), block) {
+			return a, errors.MethodNotAllowedf("unable to reply to request")
+		}
+	}
+
 	if p, err := validateActor(a.Actor, false); err != nil {
 		if e, ok := err.(actorMissingError); ok {
 			acc := app.Account{}
