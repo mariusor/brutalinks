@@ -256,7 +256,6 @@ func (h handler)HandleError(w http.ResponseWriter, r *http.Request, errs ...erro
 			Message: msg,
 			Trace:   trace,
 		}
-		h.logger.Error(err.Error())
 		res.Errors = append(res.Errors, e)
 		code = httpErrorResponse(err)
 	}

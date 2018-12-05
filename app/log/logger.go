@@ -2,7 +2,7 @@ package log
 
 import (
 	"fmt"
-	"github.com/inconshreveable/log15"
+	"github.com/sirupsen/logrus"
 	"os"
 )
 
@@ -24,61 +24,50 @@ type Logger interface {
 	Critf(string, ...interface{})
 }
 
-type Ctx log15.Ctx
+type Ctx logrus.Fields
 
 type logger struct {
-	l   log15.Logger
+	l   logrus.FieldLogger
 	ctx Ctx
 }
 
 func Dev() Logger {
 	l := logger{}
-	l.l = log15.New()
-	l.l.SetHandler(
-		log15.MultiHandler(
-			log15.LvlFilterHandler(
-				log15.LvlWarn,
-				log15.StreamHandler(os.Stderr, log15.TerminalFormat()),
-			),
-			log15.LvlFilterHandler(
-				log15.LvlDebug,
-				log15.StreamHandler(os.Stdout, log15.TerminalFormat()),
-			),
-		),
-	)
+	l.l = logrus.New()
 
+	logrus.SetFormatter(&logrus.TextFormatter{
+		QuoteEmptyFields:true,
+		FullTimestamp: true,
+	})
+	logrus.SetReportCaller(true)
+	logrus.SetOutput(os.Stderr)
+	logrus.SetLevel(logrus.DebugLevel)
 	return &l
 }
 
 func Prod() Logger {
 	l := logger{}
-	l.l = log15.New()
+	l.l = logrus.New()
 
-	l.l.SetHandler(
-		log15.LvlFilterHandler(
-			log15.LvlWarn,
-			log15.StreamHandler(os.Stderr, log15.TerminalFormat()),
-		),
-	)
+	logrus.SetFormatter(&logrus.TextFormatter{})
+	logrus.SetOutput(os.Stdout)
+	logrus.SetLevel(logrus.WarnLevel)
 
 	return &l
 }
 
-func (l logger) context() []interface{} {
-	c := make(log15.Ctx, len(l.ctx))
+func (l logger) context()  logrus.Fields {
+	c := make(logrus.Fields, len(l.ctx))
 
 	for k, v := range l.ctx {
 		c[k] = v
 	}
 
-	return []interface{}{interface{}(c)}
+	return c
 }
 
 func (l logger) New(c ...interface{}) Logger {
-	ll := l
-	ll.WithContext(c)
-
-	return &ll
+	return l.WithContext(c)
 }
 
 func (l *logger) WithContext(ctx ...interface{}) Logger {
@@ -98,41 +87,41 @@ func (l *logger) WithContext(ctx ...interface{}) Logger {
 }
 
 func (l logger) Debug(msg string) {
-	l.l.Debug(msg, l.context()...)
+	l.l.WithFields(l.context()).Debug(msg)
 }
 
 func (l logger) Debugf(msg string, p ...interface{}) {
-	l.l.Debug(fmt.Sprintf(msg, p...), l.context()...)
+	l.l.WithFields(l.context()).Debug(fmt.Sprintf(msg, p...))
 }
 
 func (l logger) Info(msg string) {
-	l.l.Info(msg, l.context()...)
+	l.l.WithFields(l.context()).Info(msg)
 }
 
 func (l logger) Infof(msg string, p ...interface{}) {
-	l.l.Info(fmt.Sprintf(msg, p...), l.context()...)
+	l.l.WithFields(l.context()).Info(fmt.Sprintf(msg, p...))
 }
 
 func (l logger) Warn(msg string) {
-	l.l.Warn(msg, l.context()...)
+	l.l.WithFields(l.context()).Warn(msg)
 }
 
 func (l logger) Warnf(msg string, p ...interface{}) {
-	l.l.Warn(fmt.Sprintf(msg, p...), l.context()...)
+	l.l.WithFields(l.context()).Warn(fmt.Sprintf(msg, p...))
 }
 
 func (l logger) Error(msg string) {
-	l.l.Error(msg, l.context()...)
+	l.l.WithFields(l.context()).Error(msg)
 }
 
 func (l logger) Errorf(msg string, p ...interface{}) {
-	l.l.Error(fmt.Sprintf(msg, p...), l.context()...)
+	l.l.WithFields(l.context()).Error(fmt.Sprintf(msg, p...))
 }
 
 func (l logger) Crit(msg string) {
-	l.l.Crit(msg, l.context()...)
+	l.l.WithFields(l.context()).Fatal(msg)
 }
 
 func (l logger) Critf(msg string, p ...interface{}) {
-	l.l.Crit(fmt.Sprintf(msg, p...), l.context()...)
+	l.l.WithFields(l.context()).Fatal(fmt.Sprintf(msg, p...))
 }

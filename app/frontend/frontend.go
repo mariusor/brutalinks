@@ -711,11 +711,6 @@ func (h *handler) HandleError(w http.ResponseWriter, r *http.Request, errs ...er
 
 	status := http.StatusInternalServerError
 	for _, err := range errs {
-		if err != nil {
-			h.logger.WithContext(log.Ctx{
-				"trace": errors.ErrorStack(err),
-			}).Error(err.Error())
-		}
 		status = httpErrorResponse(err)
 	}
 
