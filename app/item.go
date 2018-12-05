@@ -28,19 +28,19 @@ type Identifiable interface {
 }
 
 type Item struct {
-	Hash        Hash          `json:"key"`
-	Title       string        `json:"title"`
-	MimeType    string        `json:"mimeType"`
-	Data        string        `json:"data"`
-	Score       int64         `json:"score"`
-	SubmittedAt time.Time     `json:"createdAt"`
-	SubmittedBy *Account      `json:"submittedBy"`
+	Hash        Hash          `json:"hash"`
+	Title       string        `json:"-"`
+	MimeType    string        `json:"-"`
+	Data        string        `json:"-"`
+	Score       int64         `json:"-"`
+	SubmittedAt time.Time     `json:"-"`
+	SubmittedBy *Account      `json:"-"`
 	UpdatedAt   time.Time     `json:"-"`
 	Flags       FlagBits      `json:"-"`
 	Path        []byte        `json:"-"`
 	FullPath    []byte        `json:"-"`
 	Metadata    *ItemMetadata `json:"-"`
-	IsTop       bool          `json:"isTop"`
+	IsTop       bool          `json:"-"`
 	Parent      *Item         `json:"-"`
 	OP          *Item         `json:"-"`
 }

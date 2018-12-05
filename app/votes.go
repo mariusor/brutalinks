@@ -18,11 +18,11 @@ const (
 type VoteCollection []Vote
 
 type Vote struct {
-	SubmittedBy *Account  `json:"submittedBy"`
+	SubmittedBy *Account  `json:"-"`
 	SubmittedAt time.Time `json:"-"`
 	UpdatedAt   time.Time `json:"-"`
 	Weight      int       `json:"weight"`
-	Item        *Item     `json:"-"`
+	Item        *Item     `json:"on"`
 	Flags       FlagBits  `json:"-"`
 }
 
