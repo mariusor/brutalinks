@@ -882,6 +882,10 @@ func (h handler) AddToCollection(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil {
 		h.logger.WithContext(log.Ctx{
+			"actor": a.Actor.GetLink(),
+			"object": a.Object.GetLink(),
+			"from": r.RemoteAddr,
+			"headers": r.Header,
 			"err":   err,
 			"trace": errors.Details(err),
 		}).Error("activity validation error")
