@@ -88,14 +88,14 @@ func ItemMetadata(m Metadata) (app.ItemMetadata, error) {
 	return am, err
 }
 
-func AccountMetadata(m Metadata) app.AccountMetadata {
+func AccountMetadata(m Metadata) (app.AccountMetadata, error) {
 	am := app.AccountMetadata{}
-	json.Unmarshal([]byte(m), &am)
-	return am
+	err := json.Unmarshal(m, &am)
+	return am, err
 }
 
 func (a Account) Model() app.Account {
-	m := AccountMetadata(a.Metadata)
+	m, _ := AccountMetadata(a.Metadata)
 	f := AccountFlags(a.Flags)
 	return app.Account{
 		Hash:      a.Key.Hash(),
