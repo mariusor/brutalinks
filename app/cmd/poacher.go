@@ -89,6 +89,18 @@ func PoachFeed(u string, since time.Duration) error {
 				"err":   err.Error(),
 			}).Errorf("unable to save new item")
 		}
+		v := app.Vote{
+			SubmittedBy: &acct,
+			Item:        &item,
+			Weight:      1 * app.ScoreMultiplier,
+		}
+		if _, err := db.Config.SaveVote(v); err != nil {
+			Logger.WithContext(log.Ctx{
+				"hash":   v.Item.Hash,
+				"author": v.SubmittedBy.Handle,
+				"weight": v.Weight,
+			}).Error(err.Error())
+		}
 	}
 	return nil
 }
