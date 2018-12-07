@@ -38,18 +38,21 @@ func PoachFeed(u string, since time.Duration) error {
 			acct = app.Account{}
 			if baseURL != "" {
 				acct.Handle = l.Author.Name
+				// @TODO(marius): this needs to have different logic based on
+				//        feed source
 				acct.Metadata = &app.AccountMetadata{
-					URL: fmt.Sprintf("%s/~%s", baseURL, l.Author.Name),
+					WebFinger: fmt.Sprintf("%s@%s", l.Author.Name, feedURL.Host),
+					URL:       fmt.Sprintf("%s://%s/~%s", feedURL.Scheme, feedURL.Host, l.Author.Name),
 				}
 			}
 			if l.Author.Email != "" {
 				acct.Email = l.Author.Email
 			}
-			_, err = db.Config.LoadAccount(app.LoadAccountsFilter{
+			if existing, err := db.Config.LoadAccount(app.LoadAccountsFilter{
 				Handle: []string{acct.Handle},
-			})
-			if err != nil {
+			}); err != nil {
 				acct.CreatedAt = time.Now()
+				acct.UpdatedAt = acct.CreatedAt
 				acct, err = db.Config.SaveAccount(acct)
 				if err != nil {
 					Logger.WithContext(log.Ctx{
@@ -58,6 +61,14 @@ func PoachFeed(u string, since time.Duration) error {
 						"err":    err.Error(),
 					}).Error("unable to save new account")
 				}
+				if len(acct.Handle) == 0 {
+					Logger.WithContext(log.Ctx{
+						"key":    acct.Hash.String(),
+						"handle": acct.Handle,
+					}).Error("unable to save new account")
+				}
+			} else {
+				acct = existing
 			}
 			if err != nil || acct.Handle == "" {
 				acct = sys
