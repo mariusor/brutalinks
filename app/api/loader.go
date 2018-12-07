@@ -479,12 +479,13 @@ func (r *repository) loadItemsAuthors(items ...app.Item) (app.ItemCollection, er
 		return nil, errors.Annotatef(err, "unable to load items authors")
 	}
 	for k, it := range items {
-		for _, a := range authors {
-			if it.SubmittedBy.Hash == a.Hash || it.SubmittedBy.Handle == a.Handle {
-				it.SubmittedBy = &a
+		for _, auth := range authors {
+			if it.SubmittedBy.Hash == auth.Hash || it.SubmittedBy.Handle == auth.Handle {
+				it.SubmittedBy = &auth
+				break
 			}
-			col[k] = it
 		}
+		col[k] = it
 	}
 	return col, nil
 }
