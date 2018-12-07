@@ -80,6 +80,10 @@ func loadAccounts(db *sqlx.DB, f app.LoadAccountsFilter) (app.AccountCollection,
 }
 
 func saveAccount(db *sqlx.DB, a app.Account) (app.Account, error) {
+	if len(a.Handle) == 0 {
+		return a, errors.Errorf("invalid account to save")
+	}
+
 	jMetadata, err := json.Marshal(a.Metadata)
 	if err != nil {
 		Logger.Error(err.Error())
@@ -92,6 +96,7 @@ func saveAccount(db *sqlx.DB, a app.Account) (app.Account, error) {
 		CreatedAt: a.CreatedAt,
 		UpdatedAt: a.UpdatedAt,
 	}
+
 	acct.Flags.Scan(a.Flags)
 
 	em := interface{}(nil)
