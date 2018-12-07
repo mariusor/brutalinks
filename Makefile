@@ -38,11 +38,11 @@ keys: bin/keys
 bin/keys: go.mod cli/keys/main.go $(APPSOURCES)
 	$(BUILD) -tags $(ENV) -o $@ cli/keys/main.go
 
-poacher: bin/poacher
-bin/poacher: go.mod cli/poacher/main.go $(APPSOURCES)
-	$(BUILD) -tags $(ENV) -o $@ cli/poacher/main.go
+poach: bin/poach
+bin/poach: go.mod cli/poach/main.go $(APPSOURCES)
+	$(BUILD) -tags $(ENV) -o $@ cli/poach/main.go
 
-cli: bootstrap votes keys poacher
+cli: bootstrap votes keys poach
 
 clean:
 	$(RM) bin/*
