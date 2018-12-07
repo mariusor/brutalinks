@@ -22,6 +22,8 @@ type Logger interface {
 	Warnf(string, ...interface{})
 	Errorf(string, ...interface{})
 	Critf(string, ...interface{})
+
+	Print(...interface{})
 }
 
 type Ctx logrus.Fields
@@ -124,4 +126,11 @@ func (l logger) Crit(msg string) {
 
 func (l logger) Critf(msg string, p ...interface{}) {
 	l.l.WithFields(l.context()).Fatal(fmt.Sprintf(msg, p...))
+}
+
+func (l logger) Print(i ...interface{}) {
+	if i == nil || len(i) != 1 {
+		return
+	}
+	l.Infof(i[0].(string))
 }

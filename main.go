@@ -70,6 +70,9 @@ func main() {
 	db.Logger = app.Instance.Logger.New(log.Ctx{"package": "db"})
 	processing.Logger = app.Instance.Logger.New(log.Ctx{"package": "processing"})
 
+	middleware.DefaultLogger = middleware.RequestLogger(&middleware.DefaultLogFormatter{
+		Logger: app.Logger,
+	})
 	// Routes
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
