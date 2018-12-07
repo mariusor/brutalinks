@@ -28,16 +28,15 @@ func main() {
 	var err error
 	cmd.Logger = log.Dev()
 	db.Logger = cmd.Logger
-	if err != nil {
-		cmd.Logger.Error(err.Error())
-	}
 
 	connStr := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable", dbUser, dbPw, dbName)
-	db.Config.DB, err = sqlx.Connect("postgres", connStr)
-	if err != nil {
-		cmd.Logger.Error(err.Error())
+	if db.Config.DB, err = sqlx.Connect("postgres", connStr); err != nil {
+		cmd.E(err)
+		os.Exit(1)
 	}
 
 	err = cmd.PoachFeed(url, since)
-	cmd.E(err)
+	if !cmd.E(err) {
+		os.Exit(1)
+	}
 }

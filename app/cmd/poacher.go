@@ -24,19 +24,15 @@ func PoachFeed(u string, since time.Duration) error {
 		return errors.Annotatef(err, "failed to fetch rss feed %s", u)
 	}
 
-	baseURL := ""
 	feedURL, _ := url.ParseRequestURI(u)
 	if doc.Link != "" {
 		feedURL, err = url.ParseRequestURI(doc.Link)
-	}
-	if err == nil {
-		baseURL = feedURL.Host
 	}
 	for _, l := range doc.Items {
 		acct := sys
 		if l.Author.Name != "" {
 			acct = app.Account{}
-			if baseURL != "" {
+			if feedURL.Host != "" {
 				acct.Handle = l.Author.Name
 				// @TODO(marius): this needs to have different logic based on
 				//        feed source
@@ -81,6 +77,9 @@ func PoachFeed(u string, since time.Duration) error {
 			Title:       l.Title,
 			MimeType:    app.MimeTypeURL,
 		}
+		if l.UpdatedParsed != nil {
+			item.UpdatedAt = *l.UpdatedParsed
+		}
 		item, err = db.Config.SaveItem(item)
 		if err != nil {
 			Logger.WithContext(log.Ctx{
@@ -88,6 +87,7 @@ func PoachFeed(u string, since time.Duration) error {
 				"data":  item.Data,
 				"err":   err.Error(),
 			}).Errorf("unable to save new item")
+			continue
 		}
 		v := app.Vote{
 			SubmittedBy: &acct,
