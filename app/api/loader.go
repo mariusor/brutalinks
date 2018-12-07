@@ -31,15 +31,15 @@ type repository struct {
 	BaseURL string
 	Account *app.Account
 	logger  log.Logger
-	client ap.Client
+	client  ap.Client
 }
 
 func New(c Config) *repository {
 	return &repository{
 		BaseURL: c.BaseURL,
-		logger: c.Logger,
+		logger:  c.Logger,
 		client: ap.NewClient(ap.Config{
-			Logger: c.Logger,
+			Logger:    c.Logger,
 			UserAgent: fmt.Sprintf("%s-%s", app.Instance.HostName, app.Instance.Version),
 		}),
 	}
@@ -147,7 +147,7 @@ func (h handler) ItemCtxt(next http.Handler) http.Handler {
 			i, err = loader.LoadItem(filters)
 			if err != nil {
 				h.logger.Error(err.Error())
-				h.HandleError(w, r,  errors.NewNotFound(err, "not found"))
+				h.HandleError(w, r, errors.NewNotFound(err, "not found"))
 				return
 			}
 		}
@@ -447,7 +447,46 @@ func (r *repository) LoadItem(f app.LoadItemsFilter) (app.Item, error) {
 		return it, err
 	}
 	err = it.FromActivityPub(art)
+	if err == nil {
+		var items app.ItemCollection
+		items, err = r.loadItemsAuthors(it)
+		if len(items) > 0 {
+			it = items[0]
+		}
+	}
 	return it, err
+}
+
+func (r *repository) loadItemsAuthors(items ...app.Item) (app.ItemCollection, error) {
+	if len(items) == 0 {
+		return app.ItemCollection{}, nil
+	}
+
+	fActors := app.LoadAccountsFilter{}
+	for _, it := range items {
+		if len(it.SubmittedBy.Hash) > 0 {
+			fActors.Key = append(fActors.Key, it.SubmittedBy.Hash.String())
+		} else if len(it.SubmittedBy.Handle) > 0 {
+			fActors.Handle = append(fActors.Handle, it.SubmittedBy.Handle)
+		}
+	}
+	if len(fActors.Key)+len(fActors.Handle) == 0 {
+		return nil, errors.Errorf("unable to load items authors")
+	}
+	col := make(app.ItemCollection, len(items))
+	authors, err := r.LoadAccounts(fActors)
+	if err != nil {
+		return nil, errors.Annotatef(err, "unable to load items authors")
+	}
+	for k, it := range items {
+		for _, a := range authors {
+			if it.SubmittedBy.Hash == a.Hash || it.SubmittedBy.Handle == a.Handle {
+				it.SubmittedBy = &a
+			}
+			col[k] = it
+		}
+	}
+	return col, nil
 }
 
 func (r *repository) LoadItems(f app.LoadItemsFilter) (app.ItemCollection, error) {
@@ -519,8 +558,7 @@ func (r *repository) LoadItems(f app.LoadItemsFilter) (app.ItemCollection, error
 		}
 		items[k] = i
 	}
-
-	return items, nil
+	return r.loadItemsAuthors(items...)
 }
 
 func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
