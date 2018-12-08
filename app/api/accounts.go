@@ -6,6 +6,7 @@ import (
 	"github.com/mariusor/littr.go/app/db"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"path"
 	"strings"
 
@@ -622,17 +623,10 @@ func validateLocalIRI(i as.IRI) error {
 }
 
 func host(u string) string {
-	pprot := strings.Index(u, "://")
-	if pprot < 0 {
-		return ""
-	} else {
-		pprot += 3
+	if pu, err := url.ParseRequestURI(u); err == nil {
+		return pu.Host
 	}
-	ppath := strings.Index(u[pprot:], "/")
-	if ppath > 0 && pprot+ppath < len(u) {
-		return u[pprot : pprot+ppath]
-	}
-	return u[pprot:]
+	return ""
 }
 
 type actorMissingError struct {
@@ -643,11 +637,11 @@ type actorMissingError struct {
 func (a actorMissingError) Error() string {
 	return fmt.Sprintf("received actor hash does not exist on local instance %s", a.actor.GetLink())
 }
-func isActorMissingErr (err error) bool {
+
+func isActorMissingErr(err error) bool {
 	_, ok := err.(*actorMissingError)
 	return ok
 }
-
 
 func validateActor(a as.Item, shouldBeLocal bool) (as.Item, error) {
 	p := localap.Person{}
@@ -658,6 +652,10 @@ func validateActor(a as.Item, shouldBeLocal bool) (as.Item, error) {
 	var err error
 	isLocalActor := true
 	aHost := ""
+
+	if err = validateIRIBelongsToBlackListedInstance(a.GetLink()); err != nil {
+		return p, errors.NewMethodNotAllowed(err, "actor belongs to blocked instance")
+	}
 
 	if err = validateLocalIRI(a.GetLink()); err != nil {
 		if shouldBeLocal {
@@ -716,6 +714,11 @@ func validateItemType(typ as.ActivityVocabularyType, validTypes []as.ActivityVoc
 
 func validateObject(a as.Item, activityType as.ActivityVocabularyType) (as.Item, error) {
 	var err error
+
+	if err = validateIRIBelongsToBlackListedInstance(a.GetLink()); err != nil {
+		return nil, errors.Annotate(err, "object belongs to blocked instance")
+	}
+
 	switch activityType {
 	// @todo(marius) implement per activityType
 	case as.CreateType:
@@ -775,31 +778,74 @@ func validateObject(a as.Item, activityType as.ActivityVocabularyType) (as.Item,
 	return a, nil
 }
 
+func validateIRIBelongsToBlackListedInstance(iri as.IRI) error {
+	// @todo(marius): add a proper method of loading blocked instances
+	blockedInstances := []string{
+		"mastodon.social",
+	}
+	for _, block := range blockedInstances {
+		if strings.Contains(iri.String(), block) {
+			return errors.NotValidf("%s", iri)
+		}
+	}
+	return nil
+}
+
+func validateRecipients(a localap.Activity) error {
+	a.RecipientsDeduplication()
+
+	checkCollection := func(base string, col ...as.Item) bool {
+		if len(base) == 0 {
+			return true
+		}
+		if col == nil || len(col) == 0 {
+			return false
+		}
+		if col != nil && len(col) > 0 {
+			for _, tgt := range col {
+				tgtUrl := tgt.GetLink().String()
+				if strings.Contains(tgtUrl, base) {
+					return true
+				}
+			}
+		}
+		return false
+	}
+
+	// @todo(marius): handle https://www.w3.org/ns/activitystreams#Public targets
+	lT := host(app.Instance.BaseURL)
+	valid := checkCollection(lT, a.To...) ||
+		checkCollection(lT, a.CC...) ||
+		checkCollection(lT, a.Bto...) ||
+		checkCollection(lT, a.BCC...) ||
+		checkCollection(lT, a.Actor)
+
+	if !valid {
+		return errors.NotValidf("local instance can not be found in the recipients list")
+	}
+
+	return nil
+}
+
 func validateInboxActivity(a localap.Activity, c localap.Client) (localap.Activity, error) {
 	var validTypes = []as.ActivityVocabularyType{
 		as.CreateType,
 		as.LikeType,
 		as.DislikeType,
 		as.DeleteType, // @todo(marius): not implemented
-		as.UndoType, // @todo(marius): not implemented
+		as.UndoType,   // @todo(marius): not implemented
 		as.FollowType, // @todo(marius): not implemented
 	}
 	if err := validateItemType(a.GetType(), validTypes); err != nil {
 		return a, errors.NewNotValid(err, "failed to validate activity type for inbox collection")
 	}
-
-	// @todo(marius): add a proper method of loading blocked instances
-	blockedInstances := []string {
-		"mastodon.social",
+	if err := validateRecipients(a); err != nil {
+		return a, errors.NewNotValid(err, "invalid audience for activity")
 	}
-	for _, block := range blockedInstances {
-		if strings.Contains(a.Actor.GetLink().String(), block) {
-			return a, errors.MethodNotAllowedf("unable to reply to request")
-		}
-	}
-
 	if p, err := validateActor(a.Actor, false); err != nil {
-		if e, ok := err.(actorMissingError); ok {
+		if errors.IsMethodNotAllowed(err) {
+			return a, err
+		} else if e, ok := err.(actorMissingError); ok {
 			acc := app.Account{}
 			act := e.actor
 			// @fixme :needs_queueing:
@@ -812,7 +858,7 @@ func validateInboxActivity(a localap.Activity, c localap.Client) (localap.Activi
 			if err = acc.FromActivityPub(act); err != nil {
 				return a, errors.NewNotFound(err, fmt.Sprintf("failed to load account from remote actor %s", act.GetLink()))
 			}
-			if acc, err  = db.Config.SaveAccount(acc); err != nil {
+			if acc, err = db.Config.SaveAccount(acc); err != nil {
 				return a, errors.NewNotFound(err, fmt.Sprintf("failed to save local account for remote actor %s", act.GetLink()))
 			}
 			a.Actor = act
@@ -896,12 +942,12 @@ func (h handler) AddToCollection(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil {
 		h.logger.WithContext(log.Ctx{
-			"actor": a.Actor.GetLink(),
-			"object": a.Object.GetLink(),
-			"from": r.RemoteAddr,
+			"actor":   a.Actor.GetLink(),
+			"object":  a.Object.GetLink(),
+			"from":    r.RemoteAddr,
 			"headers": r.Header,
-			"err":   err,
-			"trace": errors.Details(err),
+			"err":     err,
+			"trace":   errors.Details(err),
 		}).Error("activity validation error")
 		h.HandleError(w, r, err)
 		return

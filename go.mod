@@ -22,13 +22,13 @@ require (
 	github.com/juju/loggo v0.0.0-20180524022052-584905176618 // indirect
 	github.com/juju/testing v0.0.0-20180517134105-72703b1e95eb // indirect
 	github.com/lib/pq v0.0.0-20180523175426-90697d60dd84
-	github.com/mariusor/activitypub.go v0.0.0-20181202155040-e9ef1a6ff51c
+	github.com/mariusor/activitypub.go v0.0.0-20181208144521-7f9c695d13d7
 	github.com/mariusor/qstring v0.0.0-20180919140350-29d781f85f0f
 	github.com/mattn/go-sqlite3 v1.9.0 // indirect
 	github.com/matttproud/gocheck v0.0.0-20130118152435-ecced547db7c // indirect
 	github.com/mmcdole/gofeed v1.0.0-beta2
 	github.com/mmcdole/goxpp v0.0.0-20181012175147-0068e33feabf // indirect
-	github.com/mmcloughlin/meow v0.0.0-20181027071415-3edf85781f46
+	github.com/mmcloughlin/meow v0.0.0-20181112033425-871e50784daf
 	github.com/onsi/ginkgo v1.6.0 // indirect
 	github.com/onsi/gomega v1.4.1 // indirect
 	github.com/pkg/errors v0.8.0 // indirect

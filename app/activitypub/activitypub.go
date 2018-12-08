@@ -388,3 +388,8 @@ func UnmarshalJSON(data []byte) (as.Item, error) {
 	}
 	return i, err
 }
+
+func (a *Activity) RecipientsDeduplication() {
+	b := as.Activity(*a)
+	b.RecipientsDeduplication()
+}
