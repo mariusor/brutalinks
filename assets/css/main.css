@@ -275,9 +275,6 @@ h6.domain {
     font-weight: normal;
     font-size: 110%;
 }
-.items > li {
-    margin-bottom: .2em;
-}
 .items article pre code {}
 .inverted .items article pre {}
 .inverted .items article pre code {}
@@ -309,6 +306,7 @@ ol {
 }
 .item footer {
     grid-area: footer;
+    margin-bottom: 1em;
 }
 summary + ol.comments {
     margin-top: -1px;
