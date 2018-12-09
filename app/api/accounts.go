@@ -78,11 +78,10 @@ func loadAPActivity(it app.Item) as.Activity {
 
 func loadAPItem(item app.Item) as.Item {
 	o := localap.Article{}
-	o.Name = make(as.NaturalLanguageValue, 0)
+
 	if id, ok := BuildObjectIDFromItem(item); ok {
 		o.ID = id
 	}
-
 	if item.MimeType == app.MimeTypeURL {
 		o.Type = as.PageType
 		o.URL = as.IRI(item.Data)
@@ -96,10 +95,11 @@ func loadAPItem(item app.Item) as.Item {
 		} else {
 			o.Type = as.NoteType
 		}
+
 		if len(item.Hash) > 0 {
 			o.URL = as.IRI(frontend.ItemPermaLink(item))
 		}
-
+		o.Name = make(as.NaturalLanguageValue, 0)
 		switch item.MimeType {
 		case app.MimeTypeMarkdown:
 			o.Object.Source.MediaType = as.MimeType(item.MimeType)
@@ -115,8 +115,20 @@ func loadAPItem(item app.Item) as.Item {
 			o.Content.Set("en", string(item.Data))
 		}
 	}
+
 	o.Published = item.SubmittedAt
 	o.Updated = item.UpdatedAt
+
+	if item.Deleted() {
+		return as.Tombstone{
+			Parent: as.Object{
+				ID: o.ID,
+				Type: as.TombstoneType,
+			},
+			FormerType: o.Type,
+			Deleted: o.Updated,
+		}
+	}
 
 	//o.Generator = as.IRI(app.Instance.BaseURL)
 	o.Score = item.Score / app.ScoreMultiplier

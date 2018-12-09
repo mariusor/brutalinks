@@ -22,6 +22,9 @@ func (h *Hash) FromActivityPub(it as.Item) error {
 }
 
 func (a *Account) FromActivityPub(it as.Item) error {
+	if a == nil {
+		return nil
+	}
 	if it == nil {
 		return errors.New("nil item received")
 	}
@@ -154,6 +157,13 @@ func (i *Item) FromActivityPub(it as.Item) error {
 					}
 				}
 			}
+		}
+	case as.TombstoneType:
+		i.Hash = getHashFromAP(it.GetLink())
+		i.Flags = FlagsDeleted
+		i.SubmittedBy = &Account{
+			Handle: Anonymous,
+			Hash:   AnonymousHash,
 		}
 	default:
 		return errors.New("invalid object type")
