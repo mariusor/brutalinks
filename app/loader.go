@@ -232,8 +232,8 @@ FROM "content_items" WHERE "key" ~* $%d) AND "%s"."path" IS NOT NULL)`, it, coun
 			} else {
 				eqOp = "!="
 			}
-			delWhere = append(delWhere, fmt.Sprintf(`"%s"."flags" & $%d::bit(8) %s $%d::bit(8)`, it, counter, eqOp, counter))
-			whereValues = append(whereValues, interface{}(FlagsDeleted))
+			delWhere = append(delWhere, fmt.Sprintf(`"%s"."flags" & 1::bit(8) %s 1::bit(8)`, it, eqOp))
+			//whereValues = append(whereValues, FlagsDeleted)
 			counter++
 		}
 		wheres = append(wheres, fmt.Sprintf("(%s)", strings.Join(delWhere, " OR ")))
