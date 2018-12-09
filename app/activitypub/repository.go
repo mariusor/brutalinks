@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/juju/errors"
 	as "github.com/mariusor/activitypub.go/activitystreams"
-	j "github.com/mariusor/activitypub.go/jsonld"
 	"github.com/mariusor/littr.go/app/log"
 	"github.com/spacemonkeygo/httpsig"
 	"io"
@@ -35,10 +34,10 @@ func (c *Client) WithSigner(s *httpsig.Signer) error {
 	return nil
 }
 
-func (c *Client) LoadActor(id as.IRI) (Person, error) {
+func (c *Client) LoadObject(id as.IRI) (as.Item, error) {
 	var err error
 
-	a := Person{}
+	var a as.Item
 
 	var resp *http.Response
 	if resp, err = c.Get(id.String()); err != nil {
@@ -64,12 +63,8 @@ func (c *Client) LoadActor(id as.IRI) (Person, error) {
 		c.logger.Error(err.Error())
 		return a, err
 	}
-	if err = j.Unmarshal(body, &a); err != nil {
-		c.logger.Error(err.Error())
-		return a, err
-	}
 
-	return a, nil
+	return as.UnmarshalJSON(body)
 }
 
 func (c *Client) sign(req *http.Request) error {
