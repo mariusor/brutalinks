@@ -3,7 +3,9 @@ package app
 import (
 	"context"
 	"fmt"
+	"github.com/dyninc/qstring"
 	"github.com/mariusor/littr.go/app/activitypub"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -49,6 +51,19 @@ type Info struct {
 	Version     string   `json:"version"`
 }
 
+type Filterable interface {
+	GetWhereClauses() ([]string, []interface{})
+}
+
+type Paginator interface {
+	QueryString() string
+	BasePage() Paginator
+	CurrentPage() Paginator
+	NextPage() Paginator
+	PrevPage() Paginator
+	FirstPage() Paginator
+}
+
 type LoadVotesFilter struct {
 	ItemKey              []string   `qstring:"hash,omitempty"`
 	Type                 []VoteType `qstring:"type,omitempty"`
@@ -76,7 +91,9 @@ type LoadItemsFilter struct {
 	// Federated shows if the item was generated locally or is coming from an external peer
 	Federated []bool `qstring:"federated,omitempty"`
 	// FollowedBy is the hash or handle of the user of which we should show the list of items that were commented on or liked
-	FollowedBy []string `qstring:"followedBy,omitempty"`
+	FollowedBy   []string `qstring:"followedBy,omitempty"`
+	contentAlias string
+	authorAlias  string
 }
 
 type LoadAccountsFilter struct {
@@ -93,6 +110,22 @@ func (v VoteType) String() string {
 	return strings.ToLower(string(v))
 }
 
+func query(f Filterable) string {
+	res := ""
+
+	var u url.Values
+	var err error
+	if u, err = qstring.Marshal(f); err != nil {
+		return ""
+	}
+
+	if len(u) > 0 {
+		res = "?" + u.Encode()
+	}
+	return res
+}
+
+// @todo(marius) the GetWhereClauses methods should be moved to the db package into a different format
 func (f LoadVotesFilter) GetWhereClauses() ([]string, []interface{}) {
 	wheres := make([]string, 0)
 	whereValues := make([]interface{}, 0)
@@ -144,22 +177,66 @@ func (f LoadVotesFilter) GetWhereClauses() ([]string, []interface{}) {
 	return wheres, whereValues
 }
 
-func (filter LoadItemsFilter) GetWhereClauses(it string, acc string) ([]string, []interface{}) {
+func (f *LoadVotesFilter) QueryString() string {
+	f.MaxItems = 0
+	f.Page = 0
+	return query(f)
+}
+func (f *LoadVotesFilter) BasePage() Paginator {
+	f.MaxItems = 0
+	f.Page = 0
+	return f
+}
+func (f *LoadVotesFilter) CurrentPage() Paginator {
+	return f
+}
+func (f *LoadVotesFilter) NextPage() Paginator {
+	f.Page += 1
+	return f
+}
+func (f *LoadVotesFilter) PrevPage() Paginator {
+	f.Page -= 1
+	return f
+}
+func (f *LoadVotesFilter) FirstPage() Paginator {
+	f.Page = 1
+	return f
+}
+
+// @todo(marius) the WithContentAlias methods should be moved to the db package into a different format
+//   as we can see here, the aliases show that
+func (f *LoadItemsFilter) WithAuthorAlias(s string) *LoadItemsFilter {
+	f.authorAlias = s
+	return f
+}
+
+// @todo(marius) the WithContentAlias methods should be moved to the db package into a different format
+//   as we can see here, the aliases show that
+func (f *LoadItemsFilter) WithContentAlias(s string) *LoadItemsFilter {
+	f.contentAlias = s
+	return f
+}
+
+// @todo(marius) the GetWhereClauses methods should be moved to the db package into a different format
+func (f LoadItemsFilter) GetWhereClauses() ([]string, []interface{}) {
 	wheres := make([]string, 0)
 	whereValues := make([]interface{}, 0)
+
+	it := f.contentAlias
+	acc := f.authorAlias
 	counter := 1
-	if len(filter.Key) > 0 {
+	if len(f.Key) > 0 {
 		keyWhere := make([]string, 0)
-		for _, hash := range filter.Key {
+		for _, hash := range f.Key {
 			keyWhere = append(keyWhere, fmt.Sprintf(`"%s"."key" ~* $%d`, it, counter))
 			whereValues = append(whereValues, interface{}(hash))
 			counter++
 		}
 		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(keyWhere, " OR "))))
 	}
-	if len(filter.AttributedTo) > 0 {
+	if len(f.AttributedTo) > 0 {
 		attrWhere := make([]string, 0)
-		for _, v := range filter.AttributedTo {
+		for _, v := range f.AttributedTo {
 			attrWhere = append(attrWhere, fmt.Sprintf(`"%s"."key" ~* $%d`, acc, counter))
 			attrWhere = append(attrWhere, fmt.Sprintf(`"%s"."handle" = $%d`, acc, counter))
 			whereValues = append(whereValues, interface{}(v))
@@ -167,10 +244,10 @@ func (filter LoadItemsFilter) GetWhereClauses(it string, acc string) ([]string, 
 		}
 		wheres = append(wheres, fmt.Sprintf("(%s)", strings.Join(attrWhere, " OR ")))
 	}
-	if len(filter.Context) > 0 {
+	if len(f.Context) > 0 {
 		// Context filters are hashes belonging to a top element
 		ctxtWhere := make([]string, 0)
-		for _, ctxtHash := range filter.Context {
+		for _, ctxtHash := range f.Context {
 			if ctxtHash == ContextNil || ctxtHash == "" {
 				ctxtWhere = append(ctxtWhere, fmt.Sprintf(`"%s"."path" is NULL OR nlevel("%s"."path") = 0`, it, it))
 				break
@@ -183,9 +260,9 @@ FROM "content_items" WHERE "key" ~* $%d) AND "%s"."path" IS NOT NULL)`, it, coun
 		}
 		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(ctxtWhere, " OR "))))
 	}
-	if len(filter.InReplyTo) > 0 {
+	if len(f.InReplyTo) > 0 {
 		whereColumns := make([]string, 0)
-		for _, hash := range filter.InReplyTo {
+		for _, hash := range f.InReplyTo {
 			if len(hash) == 0 {
 				continue
 			}
@@ -197,35 +274,35 @@ FROM "content_items" WHERE "key" ~* $%d) AND "%s"."path" IS NOT NULL)`, it, coun
 		}
 		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
 	}
-	if len(filter.Content) > 0 {
+	if len(f.Content) > 0 {
 		contentWhere := make([]string, 0)
 		var operator string
-		if filter.ContentMatchType == MatchFuzzy {
+		if f.ContentMatchType == MatchFuzzy {
 			operator = "~"
 		}
-		if filter.ContentMatchType == MatchEquals {
+		if f.ContentMatchType == MatchEquals {
 			operator = "="
 		}
 		contentWhere = append(contentWhere, fmt.Sprintf(`"%s"."title" %s $%d`, it, operator, counter))
-		whereValues = append(whereValues, interface{}(filter.Content))
+		whereValues = append(whereValues, interface{}(f.Content))
 		counter++
 		contentWhere = append(contentWhere, fmt.Sprintf(`"%s"."data" %s $%d`, it, operator, counter))
-		whereValues = append(whereValues, interface{}(filter.Content))
+		whereValues = append(whereValues, interface{}(f.Content))
 		counter++
 		wheres = append(wheres, fmt.Sprintf("(%s)", strings.Join(contentWhere, " OR ")))
 	}
-	if len(filter.MediaType) > 0 {
+	if len(f.MediaType) > 0 {
 		mediaWhere := make([]string, 0)
-		for _, v := range filter.MediaType {
+		for _, v := range f.MediaType {
 			mediaWhere = append(mediaWhere, fmt.Sprintf(`"%s"."mime_type" = $%d`, it, counter))
 			whereValues = append(whereValues, interface{}(v))
 			counter++
 		}
 		wheres = append(wheres, fmt.Sprintf("(%s)", strings.Join(mediaWhere, " OR ")))
 	}
-	if len(filter.Deleted) > 0 {
+	if len(f.Deleted) > 0 {
 		delWhere := make([]string, 0)
-		for _, del := range filter.Deleted {
+		for _, del := range f.Deleted {
 			var eqOp string
 			if del {
 				eqOp = "="
@@ -238,9 +315,9 @@ FROM "content_items" WHERE "key" ~* $%d) AND "%s"."path" IS NOT NULL)`, it, coun
 		}
 		wheres = append(wheres, fmt.Sprintf("(%s)", strings.Join(delWhere, " OR ")))
 	}
-	if len(filter.FollowedBy) > 0 {
+	if len(f.FollowedBy) > 0 {
 		keyWhere := make([]string, 0)
-		for _, hash := range filter.FollowedBy {
+		for _, hash := range f.FollowedBy {
 			keyWhere = append(keyWhere, fmt.Sprintf(`"%s"."id" in (SELECT "votes"."item_id" FROM "votes" WHERE "votes"."submitted_by" = (SELECT "id" FROM "accounts" where "key" ~* $%d OR "handle" = $%d) AND "votes"."weight" != 0)
 			OR
 "%s"."key" IN (SELECT subpath("path", 0, 1)::varchar FROM "content_items" WHERE "submitted_by" = (SELECT "id" FROM "accounts" where "key" ~* $%d OR "handle" = $%d) AND nlevel("path") > 1)`, it, counter, counter, it, counter, counter))
@@ -249,26 +326,45 @@ FROM "content_items" WHERE "key" ~* $%d) AND "%s"."path" IS NOT NULL)`, it, coun
 		}
 		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(keyWhere, " OR "))))
 	}
-	if len(filter.Federated) > 0 {
-		// TODO(marius): we need to create a separate table to hold federation info
-		Logger.Warn("Federated query not yet implemented")
-		keyWhere := make([]string, 0)
-		//for _, fed := range filter.Federated {
-		keyWhere = append(keyWhere, fmt.Sprintf("$%d", counter))
-		whereValues = append(whereValues, interface{}(false))
-		counter++
-		//}
-		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(keyWhere, " OR "))))
+	if len(f.Federated) > 0 {
+		wheres = append(wheres, fmt.Sprintf(`"%s"."metadata"->>'id' IS NOT NULL`, it))
 	}
-	if len(filter.IRI) > 0 {
-		wheres = append(wheres, fmt.Sprintf(`"%s"."metadata"->>'id' ~* $%d`,it, counter))
-		whereValues = append(whereValues, interface{}(filter.IRI))
+	if len(f.IRI) > 0 {
+		wheres = append(wheres, fmt.Sprintf(`"%s"."metadata"->>'id' ~* $%d`, it, counter))
+		whereValues = append(whereValues, interface{}(f.IRI))
 		counter++
 	}
 
 	return wheres, whereValues
 }
 
+func (f *LoadItemsFilter) QueryString() string {
+	f.MaxItems = 0
+	f.Page = 0
+	return query(f)
+}
+func (f *LoadItemsFilter) BasePage() Paginator {
+	f.MaxItems = 0
+	f.Page = 0
+	return f
+}
+func (f *LoadItemsFilter) CurrentPage() Paginator {
+	return f
+}
+func (f *LoadItemsFilter) NextPage() Paginator {
+	f.Page += 1
+	return f
+}
+func (f *LoadItemsFilter) PrevPage() Paginator {
+	f.Page -= 1
+	return f
+}
+func (f *LoadItemsFilter) FirstPage() Paginator {
+	f.Page = 1
+	return f
+}
+
+// @todo(marius) the GetWhereClauses methods should be moved to the db package into a different format
 func (f LoadAccountsFilter) GetWhereClauses() ([]string, []interface{}) {
 	wheres := make([]string, 0)
 	whereValues := make([]interface{}, 0)
@@ -304,6 +400,29 @@ func (f LoadAccountsFilter) GetWhereClauses() ([]string, []interface{}) {
 	}
 
 	return wheres, whereValues
+}
+func (f *LoadAccountsFilter) QueryString() string {
+	return query(f)
+}
+func (f *LoadAccountsFilter) BasePage() Paginator {
+	f.MaxItems = 0
+	f.Page = 0
+	return f
+}
+func (f *LoadAccountsFilter) CurrentPage() Paginator {
+	return f
+}
+func (f *LoadAccountsFilter) NextPage() Paginator {
+	f.Page += 1
+	return f
+}
+func (f *LoadAccountsFilter) PrevPage() Paginator {
+	f.Page -= 1
+	return f
+}
+func (f *LoadAccountsFilter) FirstPage() Paginator {
+	f.Page = 1
+	return f
 }
 
 type Authenticated interface {
