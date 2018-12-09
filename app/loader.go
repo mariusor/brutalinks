@@ -355,6 +355,18 @@ type CanSaveAccounts interface {
 	SaveAccount(a Account) (Account, error)
 }
 
+type CanLoad interface {
+	CanLoadItems
+	CanLoadAccounts
+	CanLoadVotes
+}
+
+type CanSave interface {
+	CanSaveItems
+	CanSaveAccounts
+	CanSaveVotes
+}
+
 func ContextVoteLoader(ctx context.Context) (CanLoadVotes, bool) {
 	ctxVal := ctx.Value(RepositoryCtxtKey)
 	l, ok := ctxVal.(CanLoadVotes)
@@ -371,6 +383,18 @@ func ContextAuthenticated(ctx context.Context) (Authenticated, bool) {
 	ctxVal := ctx.Value(RepositoryCtxtKey)
 	a, ok := ctxVal.(Authenticated)
 	return a, ok
+}
+
+func ContextLoader(ctx context.Context) (CanLoad, bool) {
+	ctxVal := ctx.Value(RepositoryCtxtKey)
+	l, ok := ctxVal.(CanLoad)
+	return l, ok
+}
+
+func ContextSaver(ctx context.Context) (CanSave, bool) {
+	ctxVal := ctx.Value(RepositoryCtxtKey)
+	s, ok := ctxVal.(CanSave)
+	return s, ok
 }
 
 func ContextAccountLoader(ctx context.Context) (CanLoadAccounts, bool) {
