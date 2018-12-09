@@ -34,9 +34,9 @@ const (
 )
 
 type handler struct {
-	session  sessions.Store
-	account  app.Account
-	logger   log.Logger
+	session sessions.Store
+	account app.Account
+	logger  log.Logger
 }
 
 var defaultAccount = app.Account{Handle: app.Anonymous, Hash: app.AnonymousHash}
@@ -212,9 +212,9 @@ func AnonymousAccount() app.Account {
 var flashData = make([]flash, 0)
 
 type errorModel struct {
-	Status        int
-	Title         string
-	Errors        []error
+	Status int
+	Title  string
+	Errors []error
 }
 
 const (
@@ -373,41 +373,41 @@ func (h handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name str
 		Funcs: []template.FuncMap{{
 			//"urlParam":          func(s string) string { return chi.URLParam(r, s) },
 			//"get":               func(s string) string { return r.URL.Query().Get(s) },
-			"isInverted":        func () bool { return isInverted(r) },
+			"isInverted":        func() bool { return isInverted(r) },
 			"sluggify":          sluggify,
 			"title":             func(t []byte) string { return string(t) },
 			"getProviders":      getAuthProviders,
 			"CurrentAccount":    func() app.Account { return h.account },
 			"LoadFlashMessages": loadFlashMessages,
 			"Mod10":             func(lvl uint8) float64 { return math.Mod(float64(lvl), float64(10)) },
-			"ShowText":          func() bool {
+			"ShowText": func() bool {
 				mm, ok := m.(itemListingModel)
 				return !ok || !mm.HideText
 			},
-			"HTML":              html,
-			"Text":              text,
-			"Markdown":          app.Markdown,
-			"AccountPermaLink":  AccountPermaLink,
-			"PermaLink":         ItemPermaLink,
-			"ParentLink":        parentLink,
-			"OPLink":            opLink,
-			"IsYay":             isYay,
-			"IsNay":             isNay,
-			"ScoreFmt":          scoreFmt,
-			"NumberFmt":         func(i int64) string { return numberFormat("%d", i) },
-			"TimeFmt":           relTimeFmt,
-			"ISOTimeFmt":        isoTimeFmt,
-			"ScoreClass":        scoreClass,
-			"YayLink":           yayLink,
-			"NayLink":           nayLink,
-			"PageLink":          pageLink,
-			"App":               func() app.Application { return app.Instance },
-			"Name":              appName,
-			"Menu":              func() []headerEl { return headerMenu(r) },
-			"icon":              icon,
-			"asset":             func(p string) template.HTML { return template.HTML(asset(p)) },
-			"req":               func() *http.Request { return r },
-			"sameHash":          sameHash,
+			"HTML":             html,
+			"Text":             text,
+			"Markdown":         app.Markdown,
+			"AccountPermaLink": AccountPermaLink,
+			"PermaLink":        ItemPermaLink,
+			"ParentLink":       parentLink,
+			"OPLink":           opLink,
+			"IsYay":            isYay,
+			"IsNay":            isNay,
+			"ScoreFmt":         scoreFmt,
+			"NumberFmt":        func(i int64) string { return numberFormat("%d", i) },
+			"TimeFmt":          relTimeFmt,
+			"ISOTimeFmt":       isoTimeFmt,
+			"ScoreClass":       scoreClass,
+			"YayLink":          yayLink,
+			"NayLink":          nayLink,
+			"PageLink":         pageLink,
+			"App":              func() app.Application { return app.Instance },
+			"Name":             appName,
+			"Menu":             func() []headerEl { return headerMenu(r) },
+			"icon":             icon,
+			"asset":            func(p string) template.HTML { return template.HTML(asset(p)) },
+			"req":              func() *http.Request { return r },
+			"sameHash":         sameHash,
 			//"ScoreFmt":          func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
 			//"NumberFmt":         func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
 		}},
@@ -706,7 +706,7 @@ func httpErrorResponse(e error) int {
 // HandleError serves failed requests
 func (h *handler) HandleError(w http.ResponseWriter, r *http.Request, errs ...error) {
 	d := errorModel{
-		Errors:        errs,
+		Errors: errs,
 	}
 
 	status := http.StatusInternalServerError
