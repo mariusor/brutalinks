@@ -1,6 +1,7 @@
 package app
 
 import (
+	"net/url"
 	"path"
 	"strings"
 
@@ -43,8 +44,11 @@ func (a *Account) FromActivityPub(it as.Item) error {
 		if act, ok := it.(*ap.Activity); ok {
 			return a.FromActivityPub(act.Actor)
 		}
+		if act, ok := it.(ap.Activity); ok {
+			return a.FromActivityPub(act.Actor)
+		}
 	case as.PersonType:
-		if p, ok := it.(*ap.Person); ok {
+		loadFromPerson := func(a *Account, p ap.Person) error {
 			a.Score = p.Score
 			a.Metadata = &AccountMetadata{
 				Key: &SSHKey{
@@ -64,6 +68,19 @@ func (a *Account) FromActivityPub(it as.Item) error {
 					URL: p.URL.GetLink().String(),
 				}
 			}
+			return nil
+		}
+		if p, ok := it.(*as.Person); ok {
+			loadFromPerson(a, ap.Person{Person: *p})
+		}
+		if p, ok := it.(as.Person); ok {
+			loadFromPerson(a, ap.Person{Person: p})
+		}
+		if p, ok := it.(*ap.Person); ok {
+			loadFromPerson(a, *p)
+		}
+		if p, ok := it.(ap.Person); ok {
+			loadFromPerson(a, p)
 		}
 	default:
 		return errors.New("invalid object type")
@@ -223,16 +240,30 @@ func (v *Vote) FromActivityPub(it as.Item) error {
 
 	return nil
 }
+func host(u string) string {
+	if pu, err := url.ParseRequestURI(u); err == nil {
+		return pu.Host
+	}
+	return ""
+}
 
 func getHashFromAP(obj as.Item) Hash {
-	s := strings.Split(obj.GetLink().String(), "/")
+	iri := obj.GetLink()
+	//if !strings.Contains(host(iri.String()), host(Instance.BaseURL)) {
+	//	return ""
+	//}
+	s := strings.Split(iri.String(), "/")
 	var hash string
 	if s[len(s)-1] == "object" {
 		hash = s[len(s)-2]
 	} else {
 		hash = s[len(s)-1]
 	}
-	return Hash(path.Base(hash))
+	h := path.Base(hash)
+	if h == "." {
+		h = ""
+	}
+	return Hash(h)
 }
 
 func getAccountHandle(o as.Item) string {
