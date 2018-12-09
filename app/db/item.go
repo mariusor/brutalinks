@@ -141,6 +141,8 @@ func saveItem(db *sqlx.DB, it app.Item) (app.Item, error) {
 	} else {
 		if rows, _ := res.RowsAffected(); rows == 0 {
 			return it, errors.Errorf("could not save item %q", i.Key.Hash())
+		} else {
+			Logger.Infof("%d", rows)
 		}
 	}
 
@@ -210,7 +212,7 @@ func (i itemsView) item() Item {
 }
 
 func loadItems(db *sqlx.DB, f app.LoadItemsFilter) (app.ItemCollection, error) {
-	wheres, whereValues := f.GetWhereClauses("item", "author")
+	wheres, whereValues := f.WithAuthorAlias("author").WithContentAlias("item").GetWhereClauses()
 	var fullWhere string
 
 	if len(wheres) == 0 {
@@ -254,13 +256,13 @@ func loadItems(db *sqlx.DB, f app.LoadItemsFilter) (app.ItemCollection, error) {
 	desc limit %d%s`, fullWhere, app.HNGravity, f.MaxItems, offset)
 
 	agg := make([]itemsView, 0)
+	items := make(app.ItemCollection, 0)
 	if err := db.Select(&agg, sel, whereValues...); err != nil {
-		return nil, errors.Annotatef(err, "db query error")
+		return items, errors.Annotatef(err, "db query error")
 	}
-	items := make(app.ItemCollection, len(agg))
-	for k, it := range agg {
+	for _, it := range agg {
 		i := it.item().Model()
-		items[k] = i
+		items = append (items, i)
 	}
 	return items, nil
 }

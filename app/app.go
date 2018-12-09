@@ -108,6 +108,8 @@ type Application struct {
 	SeedVal     int64
 }
 
+type Collection interface {}
+
 // Instance is the default instance of our application
 var Instance Application
 

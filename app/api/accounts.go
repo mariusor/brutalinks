@@ -3,7 +3,6 @@ package api
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/mariusor/littr.go/app/db"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -23,6 +22,11 @@ import (
 	localap "github.com/mariusor/littr.go/app/activitypub"
 	"github.com/mariusor/littr.go/app/log"
 )
+
+type objectID struct {
+	baseURL string
+	query   url.Values
+}
 
 func getObjectID(s string) as.ObjectID {
 	return as.ObjectID(fmt.Sprintf("%s/%s", ActorsURL, s))
@@ -122,11 +126,11 @@ func loadAPItem(item app.Item) as.Item {
 	if item.Deleted() {
 		return as.Tombstone{
 			Parent: as.Object{
-				ID: o.ID,
+				ID:   o.ID,
 				Type: as.TombstoneType,
 			},
 			FormerType: o.Type,
-			Deleted: o.Updated,
+			Deleted:    o.Updated,
 		}
 	}
 
@@ -170,7 +174,7 @@ func loadAPItem(item app.Item) as.Item {
 		}
 	}
 
-	return o
+	return &o
 }
 
 func loadAPPerson(a app.Account) *localap.Person {
@@ -225,25 +229,10 @@ func loadAPPerson(a app.Account) *localap.Person {
 
 func loadAPLiked(o as.CollectionInterface, votes app.VoteCollection) (as.CollectionInterface, error) {
 	if votes == nil || len(votes) == 0 {
-		return nil, errors.Errorf("empty collection %T", o)
+		return nil, nil
 	}
 	for _, vote := range votes {
-		el := loadAPLike(vote)
-
-		if el != nil {
-			o.Append(el)
-		}
-	}
-
-	return o, nil
-}
-
-func loadAPCollection(o as.CollectionInterface, items *app.ItemCollection) (as.CollectionInterface, error) {
-	if items == nil || len(*items) == 0 {
-		return nil, errors.Errorf("empty collection %T", o)
-	}
-	for _, item := range *items {
-		o.Append(loadAPActivity(item))
+		o.Append(loadAPLike(vote))
 	}
 
 	return o, nil
@@ -253,11 +242,11 @@ func loadAPCollection(o as.CollectionInterface, items *app.ItemCollection) (as.C
 // GET /api/actors?filters
 func (h handler) HandleActorsCollection(w http.ResponseWriter, r *http.Request) {
 	var ok bool
-	var filter app.LoadAccountsFilter
+	var filter *app.LoadAccountsFilter
 	var data []byte
 
 	f := r.Context().Value(app.FilterCtxtKey)
-	if filter, ok = f.(app.LoadAccountsFilter); !ok {
+	if filter, ok = f.(*app.LoadAccountsFilter); !ok {
 		h.logger.Error("could not load filter from Context")
 		h.HandleError(w, r, errors.NotFoundf("not found"))
 		return
@@ -268,7 +257,7 @@ func (h handler) HandleActorsCollection(w http.ResponseWriter, r *http.Request) 
 			var err error
 
 			col := as.CollectionNew(as.ObjectID(ActorsURL))
-			if accounts, err = service.LoadAccounts(filter); err == nil {
+			if accounts, err = service.LoadAccounts(*filter); err == nil {
 				for _, acct := range accounts {
 					p := loadAPPerson(acct)
 					p.Inbox = p.Inbox.GetLink()
@@ -295,6 +284,17 @@ func (h handler) HandleActorsCollection(w http.ResponseWriter, r *http.Request) 
 	//w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(http.StatusOK)
 	w.Write(data)
+}
+
+func loadAPCollection(o as.CollectionInterface, items app.ItemCollection) (as.CollectionInterface, error) {
+	if items == nil || len(items) == 0 {
+		return nil, nil
+	}
+	for _, item := range items {
+		o.Append(loadAPActivity(item))
+	}
+
+	return o, nil
 }
 
 // GET /api/actors/:handle
@@ -408,10 +408,6 @@ func (h handler) HandleCollectionActivityObject(w http.ResponseWriter, r *http.R
 			return
 		}
 		el = loadAPItem(i)
-		if err != nil {
-			h.HandleError(w, r, errors.NewNotFound(err, "not found"))
-			return
-		}
 		val := r.Context().Value(app.RepositoryCtxtKey)
 		if service, ok := val.(app.CanLoadItems); ok && len(i.Hash) > 0 {
 			replies, err := service.LoadItems(app.LoadItemsFilter{
@@ -451,6 +447,70 @@ func (h handler) HandleCollectionActivityObject(w http.ResponseWriter, r *http.R
 	w.Write(data)
 }
 
+func loadCollection (items app.Collection, typ string, filters app.Paginator, path string) (as.Item, error) {
+	getURL := func (filters app.Paginator) string {
+		return fmt.Sprintf("%s%s%s", app.Instance.BaseURL, path, filters.QueryString())
+	}
+
+	oc := as.OrderedCollection{}
+	oc.ID = as.ObjectID(getURL(filters.BasePage()))
+
+	var haveItems bool
+	var moreItems bool
+	var lessItems bool
+
+	switch typ {
+	case "inbox":
+		fallthrough
+	case "replies":
+		fallthrough
+	case "outbox":
+		if col, ok := items.(app.ItemCollection); ok {
+			if _, err := loadAPCollection(&oc, col); err != nil {
+				return nil, err
+			}
+			f, _ := filters.(*app.LoadItemsFilter)
+			haveItems = len(col) > 0
+			moreItems = len(col) == f.MaxItems
+			lessItems = f.Page > 1
+		} else {
+			return nil, errors.Errorf("could not load items")
+		}
+	case "liked":
+		if col, ok := items.(app.VoteCollection); ok {
+			if _, err := loadAPLiked(&oc, col); err != nil {
+				return nil, err
+			}
+			f, _ := filters.(*app.LoadVotesFilter)
+
+			moreItems = len(col) == f.MaxItems
+			lessItems = f.Page > 1
+		} else {
+			return nil, errors.Errorf("could not load items")
+		}
+	}
+	firstURL := getURL(filters.FirstPage())
+	curURL := getURL(filters.CurrentPage())
+	prevURL := getURL(filters.PrevPage())
+	nextURL := getURL(filters.NextPage())
+
+	if haveItems {
+		page := as.OrderedCollectionPageNew(&oc)
+
+		oc.First = as.IRI(firstURL)
+		page.ID = as.ObjectID(curURL)
+		if moreItems {
+			page.Next = as.IRI(nextURL)
+		}
+		if lessItems {
+			page.Prev = as.IRI(prevURL)
+		}
+		return page, nil
+	}
+
+	return oc, nil
+}
+
 // GET /api/self/:collection
 // GET /api/actors/:handle/:collection
 // GET /api/self/:collection/:hash/replies
@@ -458,148 +518,29 @@ func (h handler) HandleCollectionActivityObject(w http.ResponseWriter, r *http.R
 func (h handler) HandleCollection(w http.ResponseWriter, r *http.Request) {
 	var data []byte
 	var err error
+	var page as.Item
 
 	typ := getCollectionFromReq(r)
-	filters := r.Context().Value(app.FilterCtxtKey)
-
-	colId := as.ObjectID(fmt.Sprintf("%s%s", app.Instance.BaseURL, r.URL.Path))
-	f, _ := filters.(app.LoadItemsFilter)
 
 	collection := r.Context().Value(app.CollectionCtxtKey)
 
-	switch strings.ToLower(typ) {
-	case "inbox":
-		items, ok := collection.(app.ItemCollection)
-		if !ok {
-			err := errors.NotFoundf("could not load Items from Context")
-			h.logger.Error(err.Error())
-			h.HandleError(w, r, errors.NewNotFound(err, "not found"))
-			return
-		}
-		col := ap.InboxNew()
-		col.ID = colId
-		_, err = loadAPCollection(col, &items)
-		oc := as.OrderedCollection(*col)
-		page := as.OrderedCollectionPageNew(&oc)
-		if len(items) > 0 {
-			url := fmt.Sprintf("%s?page=%d", string(*col.GetID()), f.Page)
-			col.First = as.IRI(strings.Replace(url, fmt.Sprintf("page=%d", f.Page), fmt.Sprintf("page=%d", 1), 1))
-			if f.Page > 0 {
-				page.ID = as.ObjectID(url)
-				if len(items) == f.MaxItems {
-					page.Next = as.IRI(strings.Replace(url, fmt.Sprintf("page=%d", f.Page), fmt.Sprintf("page=%d", f.Page+1), 1))
-				}
-				if f.Page > 1 {
-					page.Prev = as.IRI(strings.Replace(url, fmt.Sprintf("page=%d", f.Page), fmt.Sprintf("page=%d", f.Page-1), 1))
-				}
-			}
-		}
-		if f.Page > 0 {
-			data, err = json.WithContext(GetContext()).Marshal(page)
-		} else {
-			data, err = json.WithContext(GetContext()).Marshal(col)
-		}
-	case "outbox":
-		items, ok := collection.(app.ItemCollection)
-		if !ok {
-			err := errors.NotFoundf("could not load Items from Context")
-			h.logger.Error(err.Error())
-			h.HandleError(w, r, errors.NewNotFound(err, "not found"))
-			return
-		}
-		col := ap.OutboxNew()
-		col.ID = colId
-		_, err = loadAPCollection(col, &items)
-		oc := as.OrderedCollection(*col)
-		page := as.OrderedCollectionPageNew(&oc)
-		if len(items) > 0 {
-			url := fmt.Sprintf("%s?page=%d", string(*col.GetID()), f.Page)
-			col.First = as.IRI(strings.Replace(url, fmt.Sprintf("page=%d", f.Page), fmt.Sprintf("page=%d", 1), 1))
-			if f.Page > 0 {
-				page.ID = as.ObjectID(url)
-				if len(items) == f.MaxItems {
-					page.Next = as.IRI(strings.Replace(url, fmt.Sprintf("page=%d", f.Page), fmt.Sprintf("page=%d", f.Page+1), 1))
-				}
-				if f.Page > 1 {
-					page.Prev = as.IRI(strings.Replace(url, fmt.Sprintf("page=%d", f.Page), fmt.Sprintf("page=%d", f.Page-1), 1))
-				}
-			}
-		}
-		if f.Page > 0 {
-			data, err = json.WithContext(GetContext()).Marshal(page)
-		} else {
-			data, err = json.WithContext(GetContext()).Marshal(col)
-		}
-	case "liked":
-		votes, ok := collection.(app.VoteCollection)
-		if !ok {
-			err := errors.NotFoundf("could not load Votes from Context")
-			h.logger.Error(err.Error())
-			h.HandleError(w, r, errors.NewNotFound(err, "not found"))
-			return
-		}
-		if err != nil {
-			h.logger.Error(err.Error())
-		}
-		liked := ap.LikedNew()
-		liked.ID = colId
-		_, err = loadAPLiked(liked, votes)
-		oc := as.OrderedCollection(*liked)
-		page := as.OrderedCollectionPageNew(&oc)
-		if len(votes) > 0 {
-			url := fmt.Sprintf("%s?page=%d", string(*liked.GetID()), f.Page)
-			liked.First = as.IRI(strings.Replace(url, fmt.Sprintf("page=%d", f.Page), fmt.Sprintf("page=%d", 1), 1))
-			if f.Page > 0 {
-				page.ID = as.ObjectID(url)
-				if len(votes) == f.MaxItems {
-					page.Next = as.IRI(strings.Replace(url, fmt.Sprintf("page=%d", f.Page), fmt.Sprintf("page=%d", f.Page+1), 1))
-				}
-				if f.Page > 1 {
-					page.Prev = as.IRI(strings.Replace(url, fmt.Sprintf("page=%d", f.Page), fmt.Sprintf("page=%d", f.Page-1), 1))
-				}
-			}
-		}
-		if f.Page > 0 {
-			data, err = json.WithContext(GetContext()).Marshal(page)
-		} else {
-			data, err = json.WithContext(GetContext()).Marshal(liked)
-		}
-	case "replies":
-		items, ok := collection.(app.ItemCollection)
-		if !ok {
-			err := errors.New("could not load Replies from Context")
-			h.logger.Error(err.Error())
-			h.HandleError(w, r, errors.NewNotFound(err, "not found"))
-			return
-		}
-		replies := localap.OrderedCollectionNew(as.ObjectID(""))
-		replies.ID = colId
-		_, err = loadAPCollection(replies, &items)
-		if len(items) > 0 {
-			url := fmt.Sprintf("%s?page=%d", string(*replies.GetID()), f.Page)
-			replies.First = as.IRI(strings.Replace(url, fmt.Sprintf("page=%d", f.Page), fmt.Sprintf("page=%d", 1), 1))
-			if f.Page > 0 {
-				oc := as.OrderedCollection(*replies)
-				page := as.OrderedCollectionPageNew(&oc)
-				page.ID = as.ObjectID(url)
-				page.Next = as.IRI(strings.Replace(url, fmt.Sprintf("page=%d", f.Page), fmt.Sprintf("page=%d", f.Page+1), 1))
-				if f.Page > 1 {
-					page.Prev = as.IRI(strings.Replace(url, fmt.Sprintf("page=%d", f.Page), fmt.Sprintf("page=%d", f.Page-1), 1))
-				}
-			}
-		}
-		data, err = json.WithContext(GetContext()).Marshal(replies)
-	default:
-		err = errors.Errorf("collection %s not found", typ)
+	filters := r.Context().Value(app.FilterCtxtKey)
+	f, _ := filters.(app.Paginator)
+	page, err = loadCollection(collection, typ, f, r.URL.Path)
+	if err != nil {
+		h.logger.Error(err.Error())
+		h.HandleError(w, r, errors.NewNotFound(err, fmt.Sprintf("%T", page)))
+		return
 	}
 
+	data, err = json.WithContext(GetContext()).Marshal(page)
 	if err != nil {
-		h.HandleError(w, r, errors.NewNotValid(err, "not found"))
+		h.logger.Error(err.Error())
+		h.HandleError(w, r, errors.NewNotValid(err, "unable to marshal collection"))
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/activity+json; charset=utf-8")
-	//w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(http.StatusOK)
 	w.Write(data)
 }
@@ -628,6 +569,10 @@ func (h handler) LoadActivity(next http.Handler) http.Handler {
 }
 
 func validateLocalIRI(i as.IRI) error {
+	if len(i) == 0 {
+		// empty IRI is valid(ish)
+		return nil
+	}
 	if !strings.Contains(host(i.String()), host(app.Instance.BaseURL)) {
 		return errors.Errorf("not local IRI %s", i)
 	}
@@ -646,69 +591,70 @@ type actorMissingError struct {
 	actor as.Item
 }
 
+type objectMissingError struct {
+	err    error
+	object as.Item
+}
+
+type activityError struct {
+	actor  error
+	object error
+	other  []error
+}
+
 func (a actorMissingError) Error() string {
 	return fmt.Sprintf("received actor hash does not exist on local instance %s", a.actor.GetLink())
 }
 
-func isActorMissingErr(err error) bool {
-	_, ok := err.(*actorMissingError)
-	return ok
+func (a objectMissingError) Error() string {
+	return fmt.Sprintf("received object hash does not exist on local instance %s", a.object.GetLink())
 }
 
-func validateActor(a as.Item, shouldBeLocal bool) (as.Item, error) {
+func (a activityError) Error() string {
+	return fmt.Sprintf("received activity is missing %s %s", a.actor.Error(), a.object.Error())
+}
+
+func validateActor(a as.Item, repo app.CanLoadAccounts) (as.Item, error) {
 	p := localap.Person{}
 
-	acct := app.Account{}
-	acct.FromActivityPub(a)
-
 	var err error
-	isLocalActor := true
-	aHost := ""
-
 	if err = validateIRIBelongsToBlackListedInstance(a.GetLink()); err != nil {
 		return p, errors.NewMethodNotAllowed(err, "actor belongs to blocked instance")
 	}
 
+	isLocalActor := true
+	aHost := ""
 	if err = validateLocalIRI(a.GetLink()); err != nil {
-		if shouldBeLocal {
-			return p, errors.Annotate(err, "actor should have local resolvable IRI")
-		}
 		aHost = host(a.GetLink().String())
 		isLocalActor = false
 	}
 
+	acct := app.Account{}
+	acct.FromActivityPub(a)
+
 	if len(acct.Hash)+len(acct.Handle) == 0 {
-		return p, errors.Errorf("unable to load a valid actor identifier from IRI %s", acct.GetLink())
+		return p, errors.Errorf("unable to load a valid actor identifier from IRI %s", a.GetLink())
 	} else {
+		f := app.LoadAccountsFilter{}
 		if len(acct.Hash) == 0 && len(acct.Handle) > 0 {
-			f := app.LoadAccountsFilter{}
 			if !isLocalActor {
 				f.InboxIRI = a.GetLink().String()
-				f.Handle = []string{acct.Handle + "@" + aHost}
+				f.Email = []string{acct.Handle + "@" + aHost}
 			} else {
 				f.Handle = []string{acct.Handle}
 			}
-			acct, err = db.Config.LoadAccount(f)
-			if err != nil {
-				return p, err
-			}
 		}
 		if len(acct.Handle) == 0 && len(acct.Hash) > 0 {
-			f := app.LoadAccountsFilter{}
 			if !isLocalActor {
 				f.InboxIRI = a.GetLink().String()
-				f.Handle = []string{string(acct.Hash) + "@" + aHost}
+				f.Email = []string{string(acct.Hash) + "@" + aHost}
 			} else {
-				f.Handle = []string{string(acct.Hash)}
-			}
-			acct, err = db.Config.LoadAccount(f)
-			if err != nil {
 				f.Key = []string{string(acct.Hash)}
-				acct, err = db.Config.LoadAccount(f)
 			}
-			if err != nil {
-				return p, actorMissingError{err: err, actor: a}
-			}
+		}
+		acct, err = repo.LoadAccount(f)
+		if err != nil {
+			return p, actorMissingError{err: err, actor: a}
 		}
 		p = *loadAPPerson(acct)
 	}
@@ -724,70 +670,107 @@ func validateItemType(typ as.ActivityVocabularyType, validTypes []as.ActivityVoc
 	return errors.Errorf("object type %s is not valid for current context", typ)
 }
 
-func validateObject(a as.Item, activityType as.ActivityVocabularyType) (as.Item, error) {
-	var err error
-
-	if err = validateIRIBelongsToBlackListedInstance(a.GetLink()); err != nil {
-		return nil, errors.Annotate(err, "object belongs to blocked instance")
-	}
-
-	switch activityType {
-	// @todo(marius) implement per activityType
+func getValidObjectTypes(typ as.ActivityVocabularyType) []as.ActivityVocabularyType {
+	switch typ {
+	case as.UpdateType:
+		fallthrough
 	case as.CreateType:
-		validTypes := []as.ActivityVocabularyType{
+		fallthrough
+	case as.UndoType:
+		fallthrough
+	case as.LikeType:
+		fallthrough
+	case as.DislikeType:
+		// these are the locally supported ActivityStreams Object types
+		return []as.ActivityVocabularyType{
 			as.NoteType,
 			as.ArticleType,
 			as.DocumentType,
 			as.PageType,
 		}
-		if err := validateItemType(a.GetType(), validTypes); err != nil {
-			return a, errors.Annotatef(err, "failed to validate object for %s activity", activityType)
-		}
-		// @todo(marius): implement create/edit/delete
-		cont := app.Item{}
-		cont.FromActivityPub(a)
-		if len(cont.Hash) > 0 {
-			cont, err = db.Config.LoadItem(app.LoadItemsFilter{
-				Key: []string{string(cont.Hash)},
-			})
-			if err == nil {
-				a = loadAPItem(cont)
-			}
-		}
-	case as.LikeType:
-		fallthrough
-	case as.DislikeType:
-		// @todo(marius): implement like/dislike/undo
-		//       we can like only these local items
-		validTypes := []as.ActivityVocabularyType{
-			as.LikeType,
-			as.DislikeType,
-			//as.UndoType,
-		}
-		if err := validateItemType(a.GetType(), validTypes); err != nil {
-			return a, errors.Annotatef(err, "failed to validate object for %s activity", activityType)
-		}
-		vot := app.Vote{}
-		vot.FromActivityPub(a)
-		if len(vot.Item.Hash) > 0 {
-			vot, err = db.Config.LoadVote(app.LoadVotesFilter{
-				ItemKey: []string{string(vot.Item.Hash)},
-			})
-			if err == nil {
-				a = loadAPLike(vot)
-			}
-		}
-		oID := a.GetID()
-		if len(*oID) == 0 {
-			return a, errors.Errorf("%sed object needs to be local and have a valid ID", activityType)
-		}
-		if err := validateLocalIRI(a.GetLink()); err != nil {
-			return a, errors.Annotatef(err, "%sed object should have local resolvable IRI", activityType)
-		}
-	default:
-		return a, errors.Annotatef(err, "%s unknown activity type", activityType)
 	}
-	return a, nil
+	return nil
+}
+
+func validateObject(a as.Item, repo app.CanLoadItems, activityType as.ActivityVocabularyType) (as.Item, error) {
+	var o as.Item
+
+	var err error
+	if err = validateIRIBelongsToBlackListedInstance(a.GetLink()); err != nil {
+		return nil, errors.NewMethodNotAllowed(err, "object belongs to blocked instance")
+	}
+
+	isLocalObject := true
+	if err := validateLocalIRI(a.GetLink()); err != nil {
+		isLocalObject = false
+	}
+
+	cont := app.Item{}
+	cont.FromActivityPub(a)
+
+	if err = validateItemType(a.GetType(), getValidObjectTypes(activityType)); err != nil {
+		return a, errors.NewNotValid(err, fmt.Sprintf("failed to validate object for %s activity", activityType))
+	}
+
+	if len(cont.Hash) == 0 {
+		return o, objectMissingError{err: err, object: a}
+		//return o, errors.Errorf("unable to load a valid object identifier from IRI %s", a.GetLink())
+	} else {
+		f := app.LoadItemsFilter{}
+		if len(cont.Hash) > 0 {
+			if !isLocalObject {
+				f.IRI = a.GetLink().String()
+			}
+			f.Key = []string{cont.Hash.String()}
+		}
+		cont, err = repo.LoadItem(f)
+		if err != nil {
+			return o, objectMissingError{err: err, object: a}
+		}
+		o = loadAPItem(cont)
+	}
+	return o, nil
+	// @todo(marius): see what this was about
+	//switch activityType {
+	//case as.UpdateType:
+	//	fallthrough
+	//case as.CreateType:
+	//	// @todo(marius): implement create/edit/delete
+	//	cont := app.Item{}
+	//	cont.FromActivityPub(a)
+	//	if len(cont.Hash) > 0 {
+	//		cont, err = db.Config.LoadItem(app.LoadItemsFilter{
+	//			Key: []string{string(cont.Hash)},
+	//		})
+	//		if err == nil {
+	//			a = loadAPItem(cont)
+	//		}
+	//	}
+	//case as.UndoType:
+	//	fallthrough
+	//case as.LikeType:
+	//	fallthrough
+	//case as.DislikeType:
+	//	vot := app.Vote{}
+	//	vot.FromActivityPub(a)
+	//	if len(vot.Item.Hash) > 0 {
+	//		vot, err = db.Config.LoadVote(app.LoadVotesFilter{
+	//			ItemKey: []string{string(vot.Item.Hash)},
+	//		})
+	//		if err == nil {
+	//			a = loadAPLike(vot)
+	//		}
+	//	}
+	//	oID := a.GetID()
+	//	if len(*oID) == 0 {
+	//		return a, errors.Errorf("%sed object needs to be local and have a valid ID", activityType)
+	//	}
+	//	if err := validateLocalIRI(a.GetLink()); err != nil {
+	//		return a, errors.Annotatef(err, "%sed object should have local resolvable IRI", activityType)
+	//	}
+	//default:
+	//	return a, errors.Annotatef(err, "%s unknown activity type", activityType)
+	//}
 }
 
 func validateIRIBelongsToBlackListedInstance(iri as.IRI) error {
@@ -839,70 +822,70 @@ func validateRecipients(a localap.Activity) error {
 	return nil
 }
 
-func validateInboxActivity(a localap.Activity, c localap.Client) (localap.Activity, error) {
+func validateInboxActivityType(typ as.ActivityVocabularyType) error {
 	var validTypes = []as.ActivityVocabularyType{
 		as.CreateType,
 		as.LikeType,
 		as.DislikeType,
-		as.DeleteType, // @todo(marius): not implemented
-		as.UndoType,   // @todo(marius): not implemented
-		as.FollowType, // @todo(marius): not implemented
+		//as.UpdateType, // @todo(marius): not implemented
+		//as.DeleteType, // @todo(marius): not implemented
+		//as.UndoType,   // @todo(marius): not implemented
+		//as.FollowType, // @todo(marius): not implemented
 	}
-	if err := validateItemType(a.GetType(), validTypes); err != nil {
+	if err := validateItemType(typ, validTypes); err != nil {
+		return errors.NewNotValid(err, "failed to validate activity type for inbox collection")
+	}
+	return nil
+}
+
+func validateInboxActivity(a localap.Activity, repo app.CanLoad) (localap.Activity, error) {
+	if err := validateInboxActivityType(a.GetType()); err != nil {
 		return a, errors.NewNotValid(err, "failed to validate activity type for inbox collection")
 	}
 	if err := validateRecipients(a); err != nil {
 		return a, errors.NewNotValid(err, "invalid audience for activity")
 	}
-	if p, err := validateActor(a.Actor, false); err != nil {
-		if errors.IsMethodNotAllowed(err) {
-			return a, err
-		} else if e, ok := err.(actorMissingError); ok {
-			acc := app.Account{}
-			act := e.actor
-			// @fixme :needs_queueing:
-			// @todo make the current client accessible here
-			if !act.IsObject() {
-				if act, err = c.LoadActor(act.GetLink()); err != nil {
-					return a, errors.NewNotFound(err, fmt.Sprintf("failed to load remote actor %s", act.GetLink()))
-				}
-			}
-			if err = acc.FromActivityPub(act); err != nil {
-				return a, errors.NewNotFound(err, fmt.Sprintf("failed to load account from remote actor %s", act.GetLink()))
-			}
-			if acc, err = db.Config.SaveAccount(acc); err != nil {
-				return a, errors.NewNotFound(err, fmt.Sprintf("failed to save local account for remote actor %s", act.GetLink()))
-			}
-			a.Actor = act
-		} else {
-			return a, errors.NewNotFound(err, "failed to validate actor for inbox collection")
-		}
-	} else {
-		a.Actor = p
-	}
-	if o, err := validateObject(a.Object, a.GetType()); err != nil {
-		return a, errors.NewNotValid(err, "failed to validate object for inbox collection")
+	aErr := activityError{}
+	if o, err := validateObject(a.Object, repo, a.GetType()); err != nil {
+		aErr.object = err
 	} else {
 		a.Object = o
 	}
-	return a, nil
+	if p, err := validateActor(a.Actor, repo); err != nil {
+		aErr.actor = err
+	} else {
+		a.Actor = p
+	}
+
+	var err error
+	if aErr.object != nil || aErr.actor != nil {
+		err = aErr
+	}
+	return a, err
 }
 
-func validateOutboxActivity(a localap.Activity) (localap.Activity, error) {
+func validateOutboxActivityType(typ as.ActivityVocabularyType) error {
 	var validTypes = []as.ActivityVocabularyType{
 		as.CreateType,
 		//as.UpdateType, // @todo(marius): not implemented
 		//as.DeleteType, // @todo(marius): not implemented
 	}
-	if err := validateItemType(a.GetType(), validTypes); err != nil {
+	if err := validateItemType(typ, validTypes); err != nil {
+		return errors.Annotate(err, "failed to validate activity type for outbox collection")
+	}
+	return nil
+}
+
+func validateOutboxActivity(a localap.Activity, repo app.CanLoadAccounts) (localap.Activity, error) {
+	if err := validateOutboxActivityType(a.GetType()); err != nil {
 		return a, errors.Annotate(err, "failed to validate activity type for outbox collection")
 	}
-	if p, err := validateActor(a.Actor, true); err != nil {
+	if p, err := validateActor(a.Actor, repo); err != nil {
 		return a, errors.Annotate(err, "failed to validate actor for outbox collection")
 	} else {
 		a.Actor = p
 	}
-	if o, err := validateObject(a.Object, a.GetType()); err != nil {
+	if o, err := validateObject(a.Object, repo.(app.CanLoadItems), a.GetType()); err != nil {
 		return a, errors.Annotate(err, "failed to validate object for outbox collection")
 	} else {
 		a.Object = o
@@ -910,21 +893,28 @@ func validateOutboxActivity(a localap.Activity) (localap.Activity, error) {
 	return a, nil
 }
 
-func validateLikedActivity(a localap.Activity) (localap.Activity, error) {
+func validateLikedActivityType(typ as.ActivityVocabularyType) error {
 	var validTypes = []as.ActivityVocabularyType{
 		as.LikeType,
 		as.DislikeType,
 		//as.UndoType, // @todo(marius): not implemented yet
 	}
-	if err := validateItemType(a.GetType(), validTypes); err != nil {
+	if err := validateItemType(typ, validTypes); err != nil {
+		return errors.Annotate(err, "failed to validate activity type for outbox collection")
+	}
+	return nil
+}
+
+func validateLikedActivity(a localap.Activity, repo app.CanLoad) (localap.Activity, error) {
+	if err := validateLikedActivityType(a.GetType()); err != nil {
 		return a, errors.Annotate(err, "failed to validate activity type for liked collection")
 	}
-	if p, err := validateActor(a.Actor, true); err != nil {
+	if p, err := validateActor(a.Actor, repo); err != nil {
 		return a, errors.Annotate(err, "failed to validate actor for liked collection")
 	} else {
 		a.Actor = p
 	}
-	if o, err := validateObject(a.Object, a.GetType()); err != nil {
+	if o, err := validateObject(a.Object, repo.(app.CanLoadItems), a.GetType()); err != nil {
 		return a, errors.Annotate(err, "failed to validate object for liked collection")
 	} else {
 		a.Object = o
@@ -937,18 +927,110 @@ func (h handler) AddToCollection(w http.ResponseWriter, r *http.Request) {
 
 	a, _ := app.ContextActivity(r.Context())
 
+	notFound := func(err error) {
+		h.logger.WithContext(log.Ctx{
+			"actor":   a.Actor.GetLink(),
+			"object":  a.Object.GetLink(),
+			"from":    r.RemoteAddr,
+			"headers": r.Header,
+			"err":     err,
+			"trace":   errors.Details(err),
+		}).Error("activity validation error")
+		h.HandleError(w, r, err)
+	}
+
 	var err error
+	status := http.StatusNotImplemented
+	var location string
+	repo, _ := app.ContextLoader(r.Context())
 	switch strings.ToLower(typ) {
 	case "inbox":
-		if a, err = validateInboxActivity(a, h.repo.client); err != nil {
-			//
+		actorNeedsSaving := false
+		objectNeedsSaving := false
+		var actor as.Item
+		var object as.Item
+		it := app.Item{}
+		acc := app.Account{}
+		if a, err = validateInboxActivity(a, repo); err != nil {
+			if e, ok := err.(activityError); ok {
+				if eact, ok := e.actor.(actorMissingError); ok {
+					actorNeedsSaving = true
+					actor = eact.actor
+				}
+				if eobj, ok := e.object.(objectMissingError); ok {
+					objectNeedsSaving = true
+					object = eobj.object
+				}
+			} else {
+				notFound(err)
+				return
+			}
+		}
+
+		if actorNeedsSaving || objectNeedsSaving {
+			var ok bool
+			var repo app.CanSave
+			if repo, ok = app.ContextSaver(r.Context()); !ok {
+				notFound(errors.NotValidf("unable get persistence repository"))
+				return
+			}
+			if actorNeedsSaving && actor != nil {
+				// @todo(marius): move this to its own function
+				if !actor.IsObject() {
+					actor, err = h.repo.client.LoadObject(actor.GetLink())
+					if err != nil || !actor.IsObject() {
+						notFound(errors.NewNotFound(err, fmt.Sprintf("failed to load remote actor %s", actor.GetLink())))
+						return
+					}
+				}
+				// @fixme :needs_queueing:
+				if err = acc.FromActivityPub(actor); err != nil {
+					notFound(errors.NewNotFound(err, fmt.Sprintf("failed to load account from remote actor %s", actor.GetLink())))
+					return
+				}
+				if acc, err = repo.SaveAccount(acc); err != nil {
+					notFound(errors.NewNotFound(err, fmt.Sprintf("failed to save local account for remote actor")))
+					return
+				}
+				a.Actor = actor
+			}
+
+			if objectNeedsSaving && object != nil {
+				// @todo(marius): move this to its own function
+				if !object.IsObject() {
+					if object, err = h.repo.client.LoadObject(object.GetLink()); err != nil {
+						notFound(errors.NewNotFound(err, fmt.Sprintf("failed to load remote object %s", object.GetLink())))
+						return
+					}
+				}
+				// @fixme :needs_queueing:
+				if err = it.FromActivityPub(object); err != nil {
+					notFound(errors.NewNotFound(err, fmt.Sprintf("failed to load account from remote actor %s", actor.GetLink())))
+					return
+				}
+				it.SubmittedBy = &acc
+				if it, err = repo.SaveItem(it); err != nil {
+					notFound(errors.NewNotFound(err, fmt.Sprintf("failed to load account from remote object %s", object.GetLink())))
+					return
+				}
+
+				if it.UpdatedAt.IsZero() {
+					// we need to make a difference between created vote and updated vote
+					// created - http.StatusCreated
+					status = http.StatusCreated
+					location = fmt.Sprintf("/api/actors/%s/%s/%s", it.SubmittedBy.Handle, typ, it.Hash)
+				} else {
+					// updated - http.StatusOK
+					status = http.StatusOK
+				}
+			}
 		}
 	case "outbox":
-		if a, err = validateOutboxActivity(a); err != nil {
+		if a, err = validateOutboxActivity(a, repo); err != nil {
 			//
 		}
 	case "liked":
-		if a, err = validateLikedActivity(a); err != nil {
+		if a, err = validateLikedActivity(a, repo); err != nil {
 			//
 		}
 	}
@@ -965,31 +1047,15 @@ func (h handler) AddToCollection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	it := app.Item{}
-	if err := it.FromActivityPub(a); err != nil {
-		h.logger.WithContext(log.Ctx{
-			"err":   err,
-			"trace": errors.Details(err),
-		}).Error("json-ld unmarshal error")
-		h.HandleError(w, r, errors.NewNotValid(err, "not found"))
-		return
+	w.Header().Add("Content-Type", "application/activity+json; charset=utf-8")
+	if status == http.StatusCreated {
+		w.Header().Add("Location", location)
 	}
-	h.logger.WithContext(log.Ctx{
-		"collection": typ,
-		"activity":   a.Type,
-	})
-
-	j, err := json.WithContext(GetContext()).Marshal(a)
-	if err != nil {
-		h.logger.WithContext(log.Ctx{
-			"trace": errors.Details(err),
-		}).Error(err.Error())
-		h.HandleError(w, r, errors.NewNotValid(err, "not found"))
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/activity+json")
+	w.WriteHeader(status)
 	//w.Header().Set("X-Content-Type-Options", "nosniff")
-	w.WriteHeader(http.StatusOK)
-	w.Write(j)
+	if status >= 400 {
+		w.Write([]byte(`{"status": "nok"}`))
+	} else {
+		w.Write([]byte(`{"status": "ok"}`))
+	}
 }

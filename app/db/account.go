@@ -112,6 +112,8 @@ func saveAccount(db *sqlx.DB, a app.Account) (app.Account, error) {
 	if res, err := db.Exec(ins, acct.Key, acct.Handle, em, acct.Score, acct.CreatedAt, acct.UpdatedAt, a.Flags, acct.Metadata); err == nil {
 		if rows, _ := res.RowsAffected(); rows == 0 {
 			return a, errors.Errorf("could not insert account %s:%q", acct.Handle, acct.Key)
+		} else {
+			Logger.Infof("%d", rows)
 		}
 	} else {
 		return a, errors.Annotatef(err, "db query error")
