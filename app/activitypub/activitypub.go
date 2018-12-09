@@ -2,6 +2,7 @@ package activitypub
 
 import (
 	"fmt"
+	"github.com/mariusor/activitypub.go/jsonld"
 
 	"github.com/buger/jsonparser"
 	as "github.com/mariusor/activitypub.go/activitystreams"
@@ -385,6 +386,20 @@ func UnmarshalJSON(data []byte) (as.Item, error) {
 	i, err := as.UnmarshalJSON(data)
 	switch i.GetType() {
 	case as.PersonType:
+		i = Person{}
+		jsonld.Unmarshal(data, &i)
+	case as.ArticleType:
+		i = Article{}
+		jsonld.Unmarshal(data, &i)
+	case as.CollectionType:
+		i = Collection{}
+		jsonld.Unmarshal(data, &i)
+	case as.OrderedCollectionType:
+		i = OrderedCollection{}
+		jsonld.Unmarshal(data, &i)
+	case as.ActivityType:
+		i = Activity{}
+		jsonld.Unmarshal(data, &i)
 	}
 	return i, err
 }
