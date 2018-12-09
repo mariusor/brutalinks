@@ -176,38 +176,38 @@ func (h handler) ItemCtxt(next http.Handler) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
-func loadPersonFiltersFromReq(r *http.Request) app.LoadAccountsFilter {
+func loadPersonFiltersFromReq(r *http.Request) *app.LoadAccountsFilter {
 	filters := app.LoadAccountsFilter{
 		MaxItems: MaxContentItems,
 	}
 
 	if err := qstring.Unmarshal(r.URL.Query(), &filters); err != nil {
-		return filters
+		return &filters
 	}
-	return filters
+	return &filters
 }
 
-func loadRepliesFilterFromReq(r *http.Request) app.LoadItemsFilter {
+func loadRepliesFilterFromReq(r *http.Request) *app.LoadItemsFilter {
 	filters := app.LoadItemsFilter{
 		MaxItems: MaxContentItems,
 	}
 	if err := qstring.Unmarshal(r.URL.Query(), &filters); err != nil {
-		return filters
+		return &filters
 	}
 	hash := chi.URLParam(r, "hash")
 
 	filters.InReplyTo = []string{hash}
 
-	return filters
+	return &filters
 }
 
-func loadInboxFilterFromReq(r *http.Request) app.LoadItemsFilter {
+func loadInboxFilterFromReq(r *http.Request) *app.LoadItemsFilter {
 	filters := app.LoadItemsFilter{
 		MaxItems: MaxContentItems,
 	}
 
 	if err := qstring.Unmarshal(r.URL.Query(), &filters); err != nil {
-		return filters
+		return &filters
 	}
 	handle := chi.URLParam(r, "handle")
 	if handle != "" {
@@ -224,16 +224,16 @@ func loadInboxFilterFromReq(r *http.Request) app.LoadItemsFilter {
 		filters.Key = append(filters.Key, old...)
 	}
 
-	return filters
+	return &filters
 }
 
-func loadOutboxFilterFromReq(r *http.Request) app.LoadItemsFilter {
+func loadOutboxFilterFromReq(r *http.Request) *app.LoadItemsFilter {
 	filters := app.LoadItemsFilter{
 		MaxItems: MaxContentItems,
 	}
 
 	if err := qstring.Unmarshal(r.URL.Query(), &filters); err != nil {
-		return filters
+		return &filters
 	}
 	handle := chi.URLParam(r, "handle")
 	if handle != "" {
@@ -250,13 +250,13 @@ func loadOutboxFilterFromReq(r *http.Request) app.LoadItemsFilter {
 		filters.Key = append(filters.Key, old...)
 	}
 
-	return filters
+	return &filters
 }
 
-func loadLikedFilterFromReq(r *http.Request) app.LoadVotesFilter {
+func loadLikedFilterFromReq(r *http.Request) *app.LoadVotesFilter {
 	filters := app.LoadVotesFilter{}
 	if err := qstring.Unmarshal(r.URL.Query(), &filters); err != nil {
-		return filters
+		return &filters
 	}
 
 	handle := chi.URLParam(r, "handle")
@@ -280,13 +280,13 @@ func loadLikedFilterFromReq(r *http.Request) app.LoadVotesFilter {
 			filters.MaxItems = MaxContentItems
 		}
 	}
-	return filters
+	return &filters
 }
 
 func LoadFiltersCtxt(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		col := getCollectionFromReq(r)
-		var filters interface{}
+		var filters app.Paginator
 		switch col {
 		case "disliked":
 			fallthrough
@@ -317,8 +317,13 @@ func (h handler) ItemCollectionCtxt(next http.Handler) http.Handler {
 		val := r.Context().Value(app.RepositoryCtxtKey)
 
 		var items interface{}
-		if col == "inbox" {
-			filters, ok := f.(app.LoadItemsFilter)
+		switch col {
+		case "inbox":
+			fallthrough
+		case "outbox":
+			fallthrough
+		case "replies":
+			filters, ok := f.(*app.LoadItemsFilter)
 			if !ok {
 				h.logger.Error("could not load item filters from Context")
 				next.ServeHTTP(w, r)
@@ -330,35 +335,14 @@ func (h handler) ItemCollectionCtxt(next http.Handler) http.Handler {
 				next.ServeHTTP(w, r)
 				return
 			}
-			items, err = loader.LoadItems(filters)
+			items, err = loader.LoadItems(*filters)
 			if err != nil {
 				h.logger.Error(err.Error())
 				next.ServeHTTP(w, r)
 				return
 			}
-		}
-		if col == "outbox" {
-			filters, ok := f.(app.LoadItemsFilter)
-			if !ok {
-				h.logger.Error("could not load item filters from Context")
-				next.ServeHTTP(w, r)
-				return
-			}
-			loader, ok := val.(app.CanLoadItems)
-			if !ok {
-				h.logger.Error("could not load item repository from Context")
-				next.ServeHTTP(w, r)
-				return
-			}
-			items, err = loader.LoadItems(filters)
-			if err != nil {
-				h.logger.Error(err.Error())
-				next.ServeHTTP(w, r)
-				return
-			}
-		}
-		if col == "liked" {
-			filters, ok := f.(app.LoadVotesFilter)
+		case "liked":
+			filters, ok := f.(*app.LoadVotesFilter)
 			if !ok {
 				h.logger.Error("could not load votes filters from Context")
 				next.ServeHTTP(w, r)
@@ -370,27 +354,7 @@ func (h handler) ItemCollectionCtxt(next http.Handler) http.Handler {
 				next.ServeHTTP(w, r)
 				return
 			}
-			items, err = loader.LoadVotes(filters)
-			if err != nil {
-				h.logger.Error(err.Error())
-				next.ServeHTTP(w, r)
-				return
-			}
-		}
-		if col == "replies" {
-			filters, ok := f.(app.LoadItemsFilter)
-			if !ok {
-				h.logger.Error("could not load item filters from Context")
-				next.ServeHTTP(w, r)
-				return
-			}
-			loader, ok := val.(app.CanLoadItems)
-			if !ok {
-				h.logger.Error("could not load item repository from Context")
-				next.ServeHTTP(w, r)
-				return
-			}
-			items, err = loader.LoadItems(filters)
+			items, err = loader.LoadVotes(*filters)
 			if err != nil {
 				h.logger.Error(err.Error())
 				next.ServeHTTP(w, r)
@@ -767,16 +731,8 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 	}
 	switch resp.StatusCode {
 	case http.StatusOK:
-		if a, ok := art.(ap.Article); ok {
-			err := it.FromActivityPub(a)
-			return it, err
-		} else {
-			hash := path.Base(string(*a.GetID()))
-			filt := app.LoadItemsFilter{
-				Key: []string{hash},
-			}
-			return r.LoadItem(filt)
-		}
+		err := it.FromActivityPub(art)
+		return it, err
 	case http.StatusCreated:
 		newLoc := resp.Header.Get("Location")
 		hash := path.Base(newLoc)
