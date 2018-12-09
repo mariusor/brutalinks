@@ -27,7 +27,6 @@ type AccountMetadata struct {
 	Avatar    ImageMetadata `json:"avatar,omitempty"`
 	ID        string        `json:"id,omitempty"`
 	URL       string        `json:"url,omitempty"`
-	WebFinger string        `json:"webFinger,omitempty"`
 	InboxIRI  string        `json:"inbox,omitempty"`
 	OutboxIRI string        `json:"outbox,omitempty"`
 }

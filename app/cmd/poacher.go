@@ -36,8 +36,8 @@ func PoachFeed(u string, since time.Duration) error {
 				acct.Handle = l.Author.Name
 				// @TODO(marius): this needs to have different logic based on
 				//        feed source
+				acct.Email = fmt.Sprintf("%s@%s", l.Author.Name, feedURL.Host)
 				acct.Metadata = &app.AccountMetadata{
-					WebFinger: fmt.Sprintf("%s@%s", l.Author.Name, feedURL.Host),
 					URL:       fmt.Sprintf("%s://%s/~%s", feedURL.Scheme, feedURL.Host, l.Author.Name),
 				}
 			}
