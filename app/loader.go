@@ -72,6 +72,7 @@ type LoadItemsFilter struct {
 	Deleted              []bool    `qstring:"deleted,omitempty"`
 	Page                 int       `qstring:"page,omitempty"`
 	MaxItems             int       `qstring:"maxItems,omitempty"`
+	IRI                  string    `qstring:"id,omitempty"`
 	// Federated shows if the item was generated locally or is coming from an external peer
 	Federated []bool `qstring:"federated,omitempty"`
 	// FollowedBy is the hash or handle of the user of which we should show the list of items that were commented on or liked
@@ -81,6 +82,7 @@ type LoadItemsFilter struct {
 type LoadAccountsFilter struct {
 	Key      []string `qstring:"hash,omitempty"`
 	Handle   []string `qstring:"handle,omitempty"`
+	Email    []string `qstring:"email,omitempty"`
 	Deleted  bool     `qstring:"deleted,omitempty"`
 	Page     int      `qstring:"page,omitempty"`
 	MaxItems int      `qstring:"maxItems,omitempty"`
@@ -258,6 +260,11 @@ FROM "content_items" WHERE "key" ~* $%d) AND "%s"."path" IS NOT NULL)`, it, coun
 		//}
 		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(keyWhere, " OR "))))
 	}
+	if len(filter.IRI) > 0 {
+		wheres = append(wheres, fmt.Sprintf(`"%s"."metadata"->>'id' ~* $%d`,it, counter))
+		whereValues = append(whereValues, interface{}(filter.IRI))
+		counter++
+	}
 
 	return wheres, whereValues
 }
@@ -284,6 +291,11 @@ func (f LoadAccountsFilter) GetWhereClauses() ([]string, []interface{}) {
 			counter++
 		}
 		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
+	}
+	if len(f.Email) > 0 {
+		wheres = append(wheres, fmt.Sprintf(`"accounts"."email"  ~* $%d`, counter))
+		whereValues = append(whereValues, interface{}(f.Email))
+		counter++
 	}
 	if len(f.InboxIRI) > 0 {
 		wheres = append(wheres, fmt.Sprintf(`"accounts"."metadata"->>'inbox' ~* $%d`, counter))
