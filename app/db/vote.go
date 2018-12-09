@@ -36,7 +36,7 @@ func (v Vote) Item() *Item {
 func VoteFlags(f FlagBits) app.FlagBits {
 	var ab uint8
 	for _, b := range f {
-		ab = ab & uint8(b)
+		ab = ab | uint8(b)
 	}
 	return app.FlagBits(ab)
 }

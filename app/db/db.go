@@ -123,7 +123,7 @@ func (f FlagBits) Value() (driver.Value, error) {
 func (f *FlagBits) Scan(src interface{}) error {
 	if v, ok := src.([]byte); ok {
 		for j, bit := range v {
-			f[j] = uint8(bit - 0x40)
+			f[j] = uint8(bit - 0x30)
 		}
 	} else {
 		return errors.Errorf("bad %T type assertion when loading %T", v, f)
