@@ -306,7 +306,7 @@ ol {
 }
 .item footer {
     grid-area: footer;
-    margin-bottom: 1em;
+    margin: .5em 0 1em 0;
 }
 summary + ol.comments {
     margin-top: -1px;
