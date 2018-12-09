@@ -11,12 +11,12 @@ import (
 )
 
 type itemListingModel struct {
-	Title         string
-	NextPage      int
-	PrevPage      int
-	User          *app.Account
-	Items         comments
-	HideText      bool
+	Title    string
+	NextPage int
+	PrevPage int
+	User     *app.Account
+	Items    comments
+	HideText bool
 }
 
 type sessionAccount struct {
@@ -41,7 +41,7 @@ func (h *handler) ShowAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !a.IsValid() {
-		h.HandleError(w, r,errors.NotFoundf("account %s not found", handle))
+		h.HandleError(w, r, errors.NotFoundf("account %s not found", handle))
 		return
 	}
 
