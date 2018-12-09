@@ -134,7 +134,7 @@ func (h handler) ItemCtxt(next http.Handler) http.Handler {
 		var err error
 		var i interface{}
 		if col == "outbox" {
-			filters, ok := f.(app.LoadItemsFilter)
+			filters, ok := f.(*app.LoadItemsFilter)
 			if !ok {
 				h.logger.Error("could not load item filter from Context")
 			}
@@ -144,7 +144,7 @@ func (h handler) ItemCtxt(next http.Handler) http.Handler {
 				h.HandleError(w, r, errors.NewNotValid(err, "not found"))
 				return
 			}
-			i, err = loader.LoadItem(filters)
+			i, err = loader.LoadItem(*filters)
 			if err != nil {
 				h.logger.Error(err.Error())
 				h.HandleError(w, r, errors.NewNotFound(err, "not found"))
@@ -152,7 +152,7 @@ func (h handler) ItemCtxt(next http.Handler) http.Handler {
 			}
 		}
 		if col == "liked" {
-			filters, ok := f.(app.LoadVotesFilter)
+			filters, ok := f.(*app.LoadVotesFilter)
 			if !ok {
 				h.logger.Error("could not load vote filter from Context")
 			}
@@ -162,7 +162,7 @@ func (h handler) ItemCtxt(next http.Handler) http.Handler {
 				h.HandleError(w, r, errors.NewNotValid(err, "not found"))
 				return
 			}
-			i, err = loader.LoadVote(filters)
+			i, err = loader.LoadVote(*filters)
 			if err != nil {
 				h.logger.Error(err.Error())
 				h.HandleError(w, r, errors.NewNotFound(err, "not found"))
