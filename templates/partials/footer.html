@@ -14,7 +14,7 @@
 {{ end -}}
 <nav class="bottom"><ul class="inline">
     <li class="repo">Source code: <a title="The code" href="https://github.com/mariusor/littr.go">{{ icon "github" }}</a></li>
-    {{if App.Version }}<li class="version no-sep"><a alt="Version" title="Version" href="https://github.com/mariusor/littr.go/commits/{{App.Version}}">{{ icon "code" }} {{App.Version}}</a></li>{{end}}
+    {{if App.Version }}<li class="version no-sep"><a title="Version" href="https://github.com/mariusor/littr.go/commits/{{App.Version}}">{{ icon "code" }} {{App.Version}}</a></li>{{end}}
     <li class="licence">Licensed under <a href="https://github.com/mariusor/littr.go/blob/master/LICENSE">MIT</a></li>
 </ul></nav>
 {{- $account := CurrentAccount -}}
