@@ -308,6 +308,9 @@ ol {
     grid-area: footer;
     margin: .5em 0 1em 0;
 }
+ol li:last-child .item footer {
+    margin-bottom: 0;
+}
 summary + ol.comments {
     margin-top: -1px;
 }
