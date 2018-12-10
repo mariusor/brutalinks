@@ -4,10 +4,10 @@
     submitted <time datetime="{{ $it.SubmittedAt | ISOTimeFmt | html }}" title="{{ $it.SubmittedAt | ISOTimeFmt }}">{{ icon "clock-o" }}{{ $it.SubmittedAt | TimeFmt }}</time>
     {{- if $it.SubmittedBy.Handle }} by <a class="by" href="{{ $it.SubmittedBy | AccountPermaLink }}">{{ $it.SubmittedBy.Handle }}</a>{{end}}
     <nav class="meta-items"><ul class="inline">
-        <li><a href="{{$it | PermaLink }}" class="to-item" alt="{{if .Item.Title}}{{$it.Title }}{{end}}" title="Permalink{{if .Item.Title}}: {{$it.Title }}{{end}}">{{ icon "paragraph" }}</a></li>
+        <li><a href="{{$it | PermaLink }}" class="to-item" title="Permalink{{if .Item.Title}}: {{$it.Title }}{{end}}">{{ icon "paragraph" }}</a></li>
         {{- if not $it.IsTop -}}
-        {{if and $it.Parent (not (sameHash req.URL.Path (ParentLink $it))) }}<li><a href="{{$it | ParentLink }}" class="to-parent" alt="parent" title="Parent">{{icon "angle-up"}}</a></li>{{end}}
-        {{if and $it.OP (not (sameHash req.URL.Path (OPLink $it))) }}<li><a href="{{$it | OPLink }}" class="to-op" alt="op" title="Original Post">{{icon "angle-double-up"}}</a></li>{{end}}
+        {{if and $it.Parent (not (sameHash req.URL.Path (ParentLink $it))) }}<li><a href="{{$it | ParentLink }}" class="to-parent" title="Parent">{{icon "angle-up"}}</a></li>{{end}}
+        {{if and $it.OP (not (sameHash req.URL.Path (OPLink $it))) }}<li><a href="{{$it | OPLink }}" class="to-op" title="TopPost">{{icon "angle-double-up"}}</a></li>{{end}}
         {{- end -}}
     </ul></nav>
 </footer>
