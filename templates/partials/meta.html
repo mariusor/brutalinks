@@ -6,16 +6,19 @@
     {{- if $it.SubmittedBy.Handle }} by <a class="by" href="{{ $it.SubmittedBy | AccountPermaLink }}">{{ $it.SubmittedBy.Handle }}</a>{{end}}
     <nav class="meta-items"><ul class="inline">
         <li><a href="{{$it | PermaLink }}" class="to-item" title="Permalink{{if .Item.Title}}: {{$it.Title }}{{end}}">{{ icon "paragraph" }}</a></li>
-        {{- if not $it.IsTop -}}
-        {{if and $it.Parent (not (sameHash req.URL.Path (ParentLink $it))) }}<li><a href="{{$it | ParentLink }}" class="to-parent" title="Parent">{{icon "angle-up"}}</a></li>{{end}}
-        {{if and $it.OP (not (sameHash req.URL.Path (OPLink $it))) }}<li><a href="{{$it | OPLink }}" class="to-op" title="TopPost">{{icon "angle-double-up"}}</a></li>{{end}}
-        {{- end -}}
-{{/*}}
-        {{- if eq $it.SubmittedBy.Hash.String $account.Hash.String }}
+{{- if not $it.IsTop -}}
+        {{if and $it.Parent (not (sameBase req.URL.Path (ParentLink $it))) }}<li><a href="{{$it | ParentLink }}" class="to-parent" title="Parent">{{icon "angle-up"}}</a></li>{{end}}
+        {{if and $it.OP (not (sameBase req.URL.Path (OPLink $it))) }}<li><a href="{{$it | OPLink }}" class="to-op" title="TopPost">{{icon "angle-double-up"}}</a></li>{{end}}
+{{- end -}}
+{{ if ne $account.Handle "anonymous "}}
+        {{- if and false (sameHash $it.SubmittedBy.Hash $account.Hash) }}
+{{- /*
+ @todo(marius) :link_generation: this needs a generic way of creating links
+*/ -}}
         <li><a href="{{$it | PermaLink }}/edit" title="Edit{{if .Item.Title}}: {{$it.Title }}{{end}}">{{ icon "sign-in"}}</a></li>
         <li><a href="{{$it | PermaLink }}/rm" title="Delete{{if .Item.Title}}: {{$it.Title }}{{end}}">{{ icon "trash-o"}}</a></li>
         {{- end -}}
         <li><a href="{{$it | PermaLink }}/bad" title="Report{{if .Item.Title}}: {{$it.Title }}{{end}}">{{ icon "star"}}</a></li>
-{{*/}}
+{{end}}
     </ul></nav>
 </footer>

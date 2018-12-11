@@ -354,8 +354,27 @@ func (h handler) Redirect(w http.ResponseWriter, r *http.Request, url string, st
 	http.Redirect(w, r, url, status)
 }
 
-func sameHash(s1 string, s2 string) bool {
+func sameBasePath(s1 string, s2 string) bool {
 	return path.Base(s1) == path.Base(s2)
+}
+
+func showText(m interface{}) func() bool {
+	return func() bool {
+		mm, ok := m.(itemListingModel)
+		return !ok || !mm.HideText
+	}
+}
+
+func sameHash(h1 app.Hash, h2 app.Hash) bool {
+	var s1, s2 string
+	if len(h1) > len(h2) {
+		s1 = string(h1)
+		s2 = string(h2)
+	} else {
+		s1 = string(h2)
+		s2 = string(h1)
+	}
+	return strings.Contains(s1, s2)
 }
 
 func (h handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name string, m interface{}) error {
@@ -380,34 +399,32 @@ func (h handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name str
 			"CurrentAccount":    func() app.Account { return h.account },
 			"LoadFlashMessages": loadFlashMessages,
 			"Mod10":             func(lvl uint8) float64 { return math.Mod(float64(lvl), float64(10)) },
-			"ShowText": func() bool {
-				mm, ok := m.(itemListingModel)
-				return !ok || !mm.HideText
-			},
-			"HTML":             html,
-			"Text":             text,
-			"Markdown":         app.Markdown,
-			"AccountPermaLink": AccountPermaLink,
-			"PermaLink":        ItemPermaLink,
-			"ParentLink":       parentLink,
-			"OPLink":           opLink,
-			"IsYay":            isYay,
-			"IsNay":            isNay,
-			"ScoreFmt":         scoreFmt,
-			"NumberFmt":        func(i int64) string { return numberFormat("%d", i) },
-			"TimeFmt":          relTimeFmt,
-			"ISOTimeFmt":       isoTimeFmt,
-			"ScoreClass":       scoreClass,
-			"YayLink":          yayLink,
-			"NayLink":          nayLink,
-			"PageLink":         pageLink,
-			"App":              func() app.Application { return app.Instance },
-			"Name":             appName,
-			"Menu":             func() []headerEl { return headerMenu(r) },
-			"icon":             icon,
-			"asset":            func(p string) template.HTML { return template.HTML(asset(p)) },
-			"req":              func() *http.Request { return r },
-			"sameHash":         sameHash,
+			"ShowText":          showText(m),
+			"HTML":              html,
+			"Text":              text,
+			"Markdown":          app.Markdown,
+			"AccountPermaLink":  AccountPermaLink,
+			"PermaLink":         ItemPermaLink,
+			"ParentLink":        parentLink,
+			"OPLink":            opLink,
+			"IsYay":             isYay,
+			"IsNay":             isNay,
+			"ScoreFmt":          scoreFmt,
+			"NumberFmt":         func(i int64) string { return numberFormat("%d", i) },
+			"TimeFmt":           relTimeFmt,
+			"ISOTimeFmt":        isoTimeFmt,
+			"ScoreClass":        scoreClass,
+			"YayLink":           yayLink,
+			"NayLink":           nayLink,
+			"PageLink":          pageLink,
+			"App":               func() app.Application { return app.Instance },
+			"Name":              appName,
+			"Menu":              func() []headerEl { return headerMenu(r) },
+			"icon":              icon,
+			"asset":             func(p string) template.HTML { return template.HTML(asset(p)) },
+			"req":               func() *http.Request { return r },
+			"sameBase":          sameBasePath,
+			"sameHash":          sameHash,
 			//"ScoreFmt":          func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
 			//"NumberFmt":         func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
 		}},
