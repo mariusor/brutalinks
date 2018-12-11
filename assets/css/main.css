@@ -29,16 +29,6 @@ footer, header, hgroup, menu, nav, section {
     --main-linkvisited-color: rebeccapurple;
     --main-linkactive-color: red;
 }
-:root .inverted {
-    --main-bg-color: WindowText;
-    --main-fg-color: Window;
-    --main-link-color: dodgerblue;
-    --main-linkvisited-color: mediumpurple;
-    --main-linkactive-color: red;
-}
-:root {
-    height: 100%;
-}
 body {
     font-family: sans;
     line-height: 1;
@@ -243,25 +233,27 @@ article > section {
     /*max-height: 2rem;*/
     /*margin-bottom: .1rem;*/
 /*}*/
-article > header h1 {
+article > header h2 {
     display: inline;
 }
-h6.domain {
+aside.domain {
     font-weight: 200;
     font-size: .85em;
-    /*margin-left: 5ex;*/
+    padding-bottom: 1px;
 }
 .domain:before {
-    content: "( ";
+    margin-right: .3em;
+    content: "(";
 }
 .domain:after {
-    content: " )";
+    margin-left: .3em;
+    content: ")";
 }
 .domain a:after {
-    margin-right: .15em;
-    content: "://";
-    font-weight: 800;
-    font-size: .78em;
+    margin-right: .2em;
+    content: ":/";
+    font-weight: 900;
+    font-size: .9em;
 }
 .data pre {
     line-height: 1.3rem;
@@ -521,18 +513,22 @@ details > summary::-webkit-details-marker {
     display: inline;
 }
 .meta-items li {
-    padding-right: .4em;
+    padding-right: .3em;
+}
+.meta-items:last-child li {
+    padding-right: 0;
 }
 .meta-items li::before {
     content: unset;
 }
 .meta-items:before {
-    content: "[";
-    padding-right: .4em;
+    content: "-";
+    margin-right: .3em;
 }
-.meta-items:after {
-    content: "]";
-}
+/*.meta-items:after {*/
+    /*content: "]";*/
+    /*margin-left: .3em;*/
+/*}*/
 a.to-item svg {
     width: .8em;
 }
@@ -619,7 +615,7 @@ svg.icon-adjust, .icon-clock-o {
         height: 1.35em;
         width: 1.35em;
     }
-    h6.domain {
+    aside.domain {
         display: none;
     }
 }
@@ -645,7 +641,7 @@ svg.icon-adjust, .icon-clock-o {
     body > header .top {
         display: unset;
     }
-    h6.domain {
+    aside.domain {
         display: inline;
     }
     body > header .sections li a span {
@@ -683,7 +679,7 @@ svg.icon-adjust, .icon-clock-o {
     :root {
         font-size: 1vw;
     }
-    h6.domain {
+    aside.domain {
         display: inline;
     }
 }

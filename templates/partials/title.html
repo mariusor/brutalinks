@@ -1,12 +1,12 @@
 {{- if .Item.Title -}}
 <header>
-<h1 data-hash="{{.Hash}}" class="title">
+<h2 data-hash="{{.Hash}}" class="title">
 {{- if .IsLink -}}
 <a class="titles" data-hash="{{.Hash}}" href="{{.Data | printf "%s"}}">{{- .Title -}}</a>
 {{- else -}}{{- .Title -}}{{- end -}}
-</h1>
-<h6 class="domain">
-{{- if .IsLink -}}<a title="From {{.GetDomain}}" href=/domains/{{.GetDomain}}></a>{{- .GetDomain -}}{{- else -}} self {{- end -}}
-</h6>
+</h2>
+<aside class="domain">
+{{- if .IsLink -}}<a title="From {{.GetDomain}}" href=/d/{{.GetDomain}}></a>{{- .GetDomain -}}{{- else -}} self {{- end -}}
+</aside>
 </header>
 {{- end -}}
