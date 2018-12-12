@@ -134,10 +134,13 @@ header .top {
 body > header {
     margin-left: -.15rem;
 }
-body > header h1 .icon-trash {
-    height: 1.2em;
-    width: 1.2em;
+body > header h1.logo .icon {
+    height: 1.12em;
+    width: .9em;
     vertical-align: bottom;
+}
+body > header h1.logo .icon.icon-l {
+    width: .5em;
 }
 .inline {
     display: inline;

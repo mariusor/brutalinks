@@ -311,8 +311,10 @@ func appName(app app.Application) template.HTML {
 
 	name := strings.Builder{}
 
+	initial := parts[0][0:1]
 	name.WriteString("<strong>")
-	name.WriteString(parts[0])
+	name.WriteString(string(icon(initial)))
+	name.WriteString(parts[0][1:])
 	name.WriteString("</strong>")
 
 	for i, p := range parts {

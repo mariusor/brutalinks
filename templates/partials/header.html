@@ -1,4 +1,4 @@
-<h1 class="logo"><a href="/" title="{{ App.HostName }}">{{ icon "trash" }}{{ App | Name }}</a></h1>
+<h1 class="logo"><a href="/" title="{{ App.HostName }}">{{ App | Name }}</a></h1>
 <nav class="sections"><ul class="inline">
 {{- range $key, $value := Menu }}
     {{ if $value.IsCurrent }}
