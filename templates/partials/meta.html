@@ -10,8 +10,8 @@
         {{if and $it.Parent (not (sameBase req.URL.Path (ParentLink $it))) }}<li><a href="{{$it | ParentLink }}" class="to-parent" title="Parent">{{icon "angle-up"}}</a></li>{{end}}
         {{if and $it.OP (not (sameBase req.URL.Path (OPLink $it))) }}<li><a href="{{$it | OPLink }}" class="to-op" title="TopPost">{{icon "angle-double-up"}}</a></li>{{end}}
 {{- end -}}
-{{ if ne $account.Handle "anonymous "}}
-        {{- if and false (sameHash $it.SubmittedBy.Hash $account.Hash) }}
+{{ if ne $account.Handle "anonymous"}}
+        {{- if (sameHash $it.SubmittedBy.Hash $account.Hash) }}
 {{- /*
  @todo(marius) :link_generation: this needs a generic way of creating links
 */ -}}
