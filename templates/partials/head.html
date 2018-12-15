@@ -10,11 +10,19 @@
 {{end}}
 <link rel="stylesheet" href="/css/main.css" />
 <style>
-:root {
+body {
     --main-bg-color: Window;
     --main-fg-color: WindowText;
     --main-link-color: blue;
     --main-linkvisited-color: rebeccapurple;
+    --main-linkactive-color: red;
+    height: 100%;
+}
+body.inverted {
+    --main-bg-color: WindowText;
+    --main-fg-color: Window;
+    --main-link-color: dodgerblue;
+    --main-linkvisited-color: mediumpurple;
     --main-linkactive-color: red;
     height: 100%;
 }
