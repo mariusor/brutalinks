@@ -14,7 +14,7 @@ $(document).ready(function() {
 
     $("#top-invert").click(function(e) {
         let isInverted = Cookies.get("inverted") || false;
-        $("body").toggleClass("inverted");
+        $("html").toggleClass("inverted");
         if (isInverted) {
             Cookies.remove("inverted");
         } else {
