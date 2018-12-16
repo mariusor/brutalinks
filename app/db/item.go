@@ -116,7 +116,7 @@ func saveItem(db *sqlx.DB, it app.Item) (app.Item, error) {
 	var err error
 	var query string
 	if len(it.Hash) == 0 {
-		i.Key = app.GenKey(i.Path, []byte(it.SubmittedBy.Handle), i.Data)
+		i.Key = app.GenKey(i.Path, []byte(it.Title), i.Data, []byte(it.SubmittedBy.Handle))
 		params = append(params, i.Key)
 		params = append(params, i.Title)
 		params = append(params, i.Data)
@@ -136,7 +136,6 @@ func saveItem(db *sqlx.DB, it app.Item) (app.Item, error) {
 			query = `insert into "content_items" ("key", "title", "data", "metadata", "mime_type", "flags", "submitted_by") 
 		values($1, $2, $3, $4, $5, $6::bit(8), (select "id" from "accounts" where "key" ~* $7));'`
 		}
-		res, err = db.Exec(query, params...)
 	} else {
 		params = append(params, i.Title)
 		params = append(params, i.Data)
