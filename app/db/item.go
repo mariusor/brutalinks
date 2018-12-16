@@ -2,6 +2,7 @@ package db
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"github.com/mariusor/littr.go/app"
@@ -98,6 +99,8 @@ func (i Item) Model() app.Item {
 
 type ItemCollection []Item
 
+var nilKey = [32]byte{}
+
 func saveItem(db *sqlx.DB, it app.Item) (app.Item, error) {
 	i := Item{
 		Score:    it.Score,
@@ -106,36 +109,47 @@ func saveItem(db *sqlx.DB, it app.Item) (app.Item, error) {
 		Title:    []byte(it.Title),
 	}
 	i.Metadata, _ = json.Marshal(it.Metadata)
-	f := FlagBits{}
-	if err := f.Scan(it.Flags); err == nil {
-		i.Flags = f
-	}
-
-	if i.Key == [32]byte{} {
-		i.Key = app.GenKey(i.Path, []byte(it.SubmittedBy.Handle), i.Data)
-	}
+	i.Flags.Scan(it.Flags)
 	var params = make([]interface{}, 0)
-	params = append(params, i.Key.Bytes())
-	params = append(params, i.Title)
-	params = append(params, i.Data)
-	params = append(params, i.Metadata)
-	params = append(params, i.MimeType)
-	params = append(params, it.SubmittedBy.Hash)
 
-	var ins string
-	if it.Parent != nil && len(it.Parent.Hash) > 0 {
-		ins = `insert into "content_items" ("key", "title", "data", "metadata", "mime_type", "submitted_by", "path") 
+	var res sql.Result
+	var err error
+	var query string
+	if len(it.Hash) == 0 {
+		i.Key = app.GenKey(i.Path, []byte(it.SubmittedBy.Handle), i.Data)
+		params = append(params, i.Key)
+		params = append(params, i.Title)
+		params = append(params, i.Data)
+		params = append(params, i.Metadata)
+		params = append(params, i.MimeType)
+		params = append(params, i.Flags)
+		params = append(params, it.SubmittedBy.Hash)
+
+		if it.Parent != nil && len(it.Parent.Hash) > 0 {
+			query = `insert into "content_items" ("key", "title", "data", "metadata", "mime_type", "flags", "submitted_by", "path") 
 		values(
-			$1, $2, $3, $4, $5, (select "id" from "accounts" where "key" ~* $6), (select (case when "path" is not null then concat("path", '.', "key") else "key" end) 
-				as "parent_path" from "content_items" where key ~* $7)::ltree
-		)`
-		params = append(params, it.Parent.Hash)
+			$1, $2, $3, $4, $5, $6::bit(8), (select "id" from "accounts" where "key" ~* $7), (select (case when "path" is not null then concat("path", '.', "key") else "key" end) 
+				as "parent_path" from "content_items" where key ~* $8)::ltree
+		);`
+			params = append(params, it.Parent.Hash)
+		} else {
+			query = `insert into "content_items" ("key", "title", "data", "metadata", "mime_type", "flags", "submitted_by") 
+		values($1, $2, $3, $4, $5, $6::bit(8), (select "id" from "accounts" where "key" ~* $7));'`
+		}
+		res, err = db.Exec(query, params...)
 	} else {
-		ins = `insert into "content_items" ("key", "title", "data", "metadata", "mime_type", "submitted_by") 
-		values($1, $2, $3, $4, $5, (select "id" from "accounts" where "key" ~* $6))`
-	}
+		params = append(params, i.Title)
+		params = append(params, i.Data)
+		params = append(params, i.Metadata)
+		params = append(params, i.MimeType)
+		params = append(params, i.Flags)
+		params = append(params, time.Now())
+		params = append(params, it.Hash)
 
-	res, err := db.Exec(ins, params...)
+		query = `UPDATE "content_items" SET "title" = $1, "data" = $2, "metadata" = $3, "mime_type" = $4,
+			"flags" = $5::bit(8), "updated_at" = $6 WHERE "key" ~* $7;`
+	}
+	res, err = db.Exec(query, params...)
 	if err != nil {
 		return it, errors.Annotate(err, "db error")
 	} else {
