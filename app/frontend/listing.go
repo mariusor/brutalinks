@@ -57,14 +57,16 @@ func getAuthProviders() map[string]string {
 
 func parentLink(c app.Item) string {
 	if c.Parent != nil {
-		return fmt.Sprintf("/item/%s", c.Parent.Hash)
+		// @todo(marius) :link_generation:
+		return fmt.Sprintf("/i/%s", c.Parent.Hash)
 	}
 	return ""
 }
 
 func opLink(c app.Item) string {
 	if c.OP != nil {
-		return fmt.Sprintf("/item/%s", c.OP.Hash)
+		// @todo(marius) :link_generation:
+		return fmt.Sprintf("/i/%s", c.OP.Hash)
 	}
 	return ""
 }
@@ -74,6 +76,7 @@ func localPermaLink(a app.Account) string {
 	if len(a.Handle) > 0 {
 		handle = a.Handle
 	}
+	// @todo(marius) :link_generation:
 	return fmt.Sprintf("%s/~%s", app.Instance.BaseURL, handle)
 }
 
@@ -88,12 +91,14 @@ func AccountPermaLink(a app.Account) string {
 // ItemPermaLink
 func ItemPermaLink(c app.Item) string {
 	if c.SubmittedBy == nil {
-		return fmt.Sprintf("/item/%s", c.Hash)
+		// @todo(marius) :link_generation:
+		return fmt.Sprintf("/i/%s", c.Hash)
 	}
 	return fmt.Sprintf("%s/%s", localPermaLink(*c.SubmittedBy), c.Hash)
 }
 
 func scoreLink(i app.Item, dir string) string {
+	// @todo(marius) :link_generation:
 	return fmt.Sprintf("%s/%s", ItemPermaLink(i), dir)
 }
 

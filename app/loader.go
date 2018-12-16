@@ -426,7 +426,7 @@ func (f *LoadAccountsFilter) FirstPage() Paginator {
 }
 
 type Authenticated interface {
-	WithAccount(a *Account)
+	WithAccount(a *Account) error
 }
 
 type CanSaveItems interface {

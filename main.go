@@ -129,20 +129,32 @@ func main() {
 
 		r.Route("/~{handle}", func(r chi.Router) {
 			r.Get("/", front.ShowAccount)
-			r.Get("/{hash}", front.ShowItem)
-			r.Post("/{hash}", front.HandleSubmit)
-			r.Get("/{hash}/{direction}", front.HandleVoting)
+
+			r.Route("/{hash}", func(r chi.Router) {
+				r.Get("/", front.ShowItem)
+				r.Post("/", front.HandleSubmit)
+				r.Get("/edit", front.ShowItem)
+				r.Post("/edit", front.HandleSubmit)
+				r.Get("/rm", front.HandleDelete)
+				r.Get("/bad", front.ShowReport)
+				r.Post("/bad", front.HandleReport)
+				r.Get("/yay", front.HandleVoting)
+				r.Get("/nay", front.HandleVoting)
+			})
 		})
 
 		//r.Get("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/", frontend.HandleDate)
-		r.Get("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}", front.ShowItem)
-		r.Get("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}/{direction}", front.HandleVoting)
-		r.Post("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}", front.HandleSubmit)
+		//r.Get("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}", front.ShowItem)
+		//r.Get("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}/{direction}", front.HandleVoting)
+		//r.Post("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}", front.HandleSubmit)
 
-		r.Get("/item/{hash}", front.HandleItemRedirect)
+		// @todo(marius) :link_generation:
+		r.Get("/i/{hash}", front.HandleItemRedirect)
 
-		r.Get("/domains/{domain}", front.HandleDomains)
-		r.Get("/tags/{tag}", front.HandleTags)
+		// @todo(marius) :link_generation:
+		r.Get("/d/{domain}", front.HandleDomains)
+		// @todo(marius) :link_generation:
+		r.Get("/t/{tag}", front.HandleTags)
 
 		r.With(front.NeedsSessions).Get("/logout", front.HandleLogout)
 		r.With(front.NeedsSessions).Get("/login", front.ShowLogin)

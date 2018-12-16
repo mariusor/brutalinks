@@ -13,11 +13,6 @@ import (
 	"github.com/juju/errors"
 )
 
-type newModel struct {
-	Title         string
-	Content       app.Item
-}
-
 func detectMimeType(data string) string {
 	u, err := url.ParseRequestURI(data)
 	if err == nil && u != nil && !bytes.ContainsRune([]byte(data), '\n') {
@@ -47,7 +42,8 @@ func loadTags(data string) (app.TagCollection, app.TagCollection) {
 			}
 			t.Name = byt[st : st+en]
 			if t.Name[0] == '#' {
-				t.URL = fmt.Sprintf("%s/tags/%s", app.Instance.BaseURL, t.Name[1:])
+				// @todo(marius) :link_generation: make the tag links be generated from the corresponding route
+				t.URL = fmt.Sprintf("%s/t/%s", app.Instance.BaseURL, t.Name[1:])
 				tags = append(tags, t)
 			}
 			if t.Name[0] == '@' || t.Name[0] == '~' {
@@ -96,12 +92,14 @@ func ContentFromRequest(r *http.Request, acc app.Account) (app.Item, error) {
 
 // ShowSubmit serves GET /submit request
 func (h *handler) ShowSubmit(w http.ResponseWriter, r *http.Request) {
-	h.RenderTemplate(r, w, "new", newModel{Title: "New submission"})
+	h.RenderTemplate(r, w, "new", contentModel{Title: "New submission"})
 }
 
 // HandleSubmit handles POST /submit requests
 // HandleSubmit handles POST /~handler/hash requests
 // HandleSubmit handles POST /year/month/day/hash requests
+// HandleSubmit handles POST /~handler/hash/edit requests
+// HandleSubmit handles POST /year/month/day/hash/edit requests
 func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	p, err := ContentFromRequest(r, h.account)
 	if err != nil {

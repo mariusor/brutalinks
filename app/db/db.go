@@ -16,7 +16,8 @@ import (
 )
 
 type config struct {
-	DB *sqlx.DB
+	Account *app.Account
+	DB      *sqlx.DB
 }
 
 func Init(app *app.Application) error {
@@ -129,6 +130,12 @@ func (f *FlagBits) Scan(src interface{}) error {
 		return errors.Errorf("bad %T type assertion when loading %T", v, f)
 	}
 	return nil
+}
+
+func (c config) WithAccount(a *app.Account) error {
+	c.Account = a
+	// @todo(marius): implement this
+	return errors.NotImplementedf("db.Config.WithAccount")
 }
 
 func (c config) LoadVotes(f app.LoadVotesFilter) (app.VoteCollection, error) {

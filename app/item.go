@@ -27,6 +27,15 @@ type Identifiable interface {
 	Id() int64
 }
 
+type data struct {
+	Source string
+	Processed string
+}
+
+func (d data) String() string {
+	return d.Processed
+}
+
 type Item struct {
 	Hash        Hash          `json:"hash"`
 	Title       string        `json:"-"`

@@ -379,6 +379,17 @@ func sameHash(h1 app.Hash, h2 app.Hash) bool {
 	return strings.Contains(s1, s2)
 }
 
+
+// buildLink("name", someVar1, anotherVar2) :: /path/of/name/{var1}/{var2} -> /path/of/name/someVar1/someVar2
+func buildLink(routes chi.Routes, name string, par ...interface{}) string {
+	for _, r := range routes.Routes() {
+		if strings.Contains(r.Pattern, name) {
+
+		}
+	}
+	return "/"
+}
+
 func (h handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name string, m interface{}) error {
 	var err error
 	if err = h.saveSession(w, r); err != nil {

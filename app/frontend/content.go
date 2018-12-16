@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/mariusor/littr.go/app/log"
 	"net/http"
+	"path"
 	"strings"
 
 	"github.com/mariusor/littr.go/app"
@@ -12,6 +13,9 @@ import (
 	"github.com/juju/errors"
 )
 
+const Edit = "edit"
+const Delete = "rm"
+const Report = "bad"
 const Yay = "yay"
 const Nay = "nay"
 
@@ -19,13 +23,14 @@ type comments []*comment
 type comment struct {
 	app.Item
 	Level    uint8
+	Edit     bool
 	Children comments
 	Parent   *comment
 }
 
 type contentModel struct {
-	Title         string
-	Content       comment
+	Title   string
+	Content comment
 }
 
 func loadComments(items []app.Item) comments {
@@ -132,8 +137,10 @@ func reparentComments(allComments []*comment) {
 	}
 }
 
-// ShowItem serves /~{handler}/{hash} request
+// ShowItem serves /~{handle}/{hash} request
+// ShowItem serves /~{handle}/{hash}/edit request
 // ShowItem serves /{year}/{month}/{day}/{hash} request
+// ShowItem serves /{year}/{month}/{day}/{hash}/edit request
 func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 	items := make([]app.Item, 0)
 
@@ -145,6 +152,7 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 	}
 	handle := chi.URLParam(r, "handle")
 	hash := chi.URLParam(r, "hash")
+
 	i, err := itemLoader.LoadItem(app.LoadItemsFilter{
 		AttributedTo: []app.Hash{app.Hash(handle)},
 		Key:          []string{hash},
@@ -159,6 +167,17 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 		h.HandleError(w, r, errors.NotFoundf("not found"))
 		return
 	}
+	url := r.URL
+	maybeEdit := path.Base(url.Path)
+
+	if maybeEdit != hash && maybeEdit == Edit {
+		if !sameHash(m.Content.SubmittedBy.Hash, h.account.Hash) {
+			url.Path = path.Dir(url.Path)
+			h.Redirect(w, r, url.RequestURI(), http.StatusFound)
+		}
+		m.Content.Edit = true
+	}
+
 	items = append(items, i)
 	allComments := make(comments, 1)
 	allComments[0] = &m.Content
@@ -213,8 +232,29 @@ func genitive(name string) string {
 	return name + "'"
 }
 
+// HandleDelete serves /{year}/{month}/{day}/{hash}/Delete POST request
+// HandleDelete serves /~{handle}/Delete request
+func (h *handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
+	m := contentModel{}
+	h.RenderTemplate(r, w, "new", m)
+}
+
+// HandleReport serves /{year}/{month}/{day}/{hash}/Report POST request
+// HandleReport serves /~{handle}/Report request
+func (h *handler) HandleReport(w http.ResponseWriter, r *http.Request) {
+	m := contentModel{}
+	h.RenderTemplate(r, w, "new", m)
+}
+
+// ShowReport serves /{year}/{month}/{day}/{hash}/Report GET request
+// ShowReport serves /~{handle}/Report request
+func (h *handler) ShowReport(w http.ResponseWriter, r *http.Request) {
+	m := contentModel{}
+	h.RenderTemplate(r, w, "new", m)
+}
+
 // HandleVoting serves /{year}/{month}/{day}/{hash}/{direction} request
-// HandleVoting serves /~{handler}/{direction} request
+// HandleVoting serves /~{handle}/{direction} request
 func (h *handler) HandleVoting(w http.ResponseWriter, r *http.Request) {
 	hash := chi.URLParam(r, "hash")
 
@@ -232,8 +272,9 @@ func (h *handler) HandleVoting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	direction := path.Base(r.URL.Path)
 	multiplier := 0
-	switch chi.URLParam(r, "direction") {
+	switch direction {
 	case Yay:
 		multiplier = 1
 	case Nay:
