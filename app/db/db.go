@@ -113,20 +113,35 @@ func (a Account) Model() app.Account {
 // Value implements the driver.Valuer interface,
 // and turns the FlagBits into a bitfield (BIT(8)) storage.
 func (f FlagBits) Value() (driver.Value, error) {
-	if len(f) > 0 {
-		return []byte(f[0:8]), nil
+	l := len(f)
+	if l > 0 {
+		var val string
+		for _, b := range f {
+			if b == 1 {
+				val += "1"
+			} else {
+				val += "0"
+			}
+		}
+		return val, nil
 	}
-	return []byte{0}, nil
+	return 0, nil
 }
 
 // Scan implements the sql.Scanner interface,
 // and turns the bitfield incoming from DB into a FlagBits
 func (f *FlagBits) Scan(src interface{}) error {
-	if v, ok := src.([]byte); ok {
+	switch v := src.(type) {
+	case []byte:
 		for j, bit := range v {
 			f[j] = uint8(bit - 0x30)
 		}
-	} else {
+	case app.FlagBits:
+		for j := range f {
+			bv := v >> uint(len(f)-j-1)
+			f[j] = uint8(bv)
+		}
+	default:
 		return errors.Errorf("bad %T type assertion when loading %T", v, f)
 	}
 	return nil
