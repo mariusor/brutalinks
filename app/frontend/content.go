@@ -2,6 +2,7 @@ package frontend
 
 import (
 	"fmt"
+	"github.com/mariusor/littr.go/app/db"
 	"github.com/mariusor/littr.go/app/log"
 	"net/http"
 	"path"
@@ -174,6 +175,7 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 		if !sameHash(m.Content.SubmittedBy.Hash, h.account.Hash) {
 			url.Path = path.Dir(url.Path)
 			h.Redirect(w, r, url.RequestURI(), http.StatusFound)
+			return
 		}
 		m.Content.Edit = true
 	}
@@ -235,8 +237,28 @@ func genitive(name string) string {
 // HandleDelete serves /{year}/{month}/{day}/{hash}/Delete POST request
 // HandleDelete serves /~{handle}/Delete request
 func (h *handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
-	m := contentModel{}
-	h.RenderTemplate(r, w, "new", m)
+	hash := chi.URLParam(r, "hash")
+
+	val := r.Context().Value(app.RepositoryCtxtKey)
+	itemLoader, ok := val.(app.CanLoadItems)
+	if !ok {
+		h.logger.Error("could not load item repository from Context")
+		return
+	}
+	p, err := itemLoader.LoadItem(app.LoadItemsFilter{Key: []string{hash}})
+	if err != nil {
+		h.logger.Error(err.Error())
+		h.HandleError(w, r, errors.NewNotFound(err, "not found"))
+		return
+	}
+
+	url := ItemPermaLink(p)
+	p.Delete()
+	if _, err = db.Config.SaveItem(p); err != nil {
+		addFlashMessage(Error, fmt.Sprintf("unable to add vote as an %s user", h.account.Handle), r)
+	}
+
+	h.Redirect(w, r, url, http.StatusFound)
 }
 
 // HandleReport serves /{year}/{month}/{day}/{hash}/Report POST request

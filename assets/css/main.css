@@ -84,6 +84,10 @@ a:not([href]) {
 .h-mirror.v-mirror {
     transform: rotateY(180deg) rotateX(180deg);
 }
+svg.icon.icon-eraser {
+    width: 1.4em;
+    margin-left: -.2em;
+}
 button svg.icon.icon-reply,
 button svg.icon.icon-sign-in
 {

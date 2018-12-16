@@ -133,13 +133,16 @@ func main() {
 			r.Route("/{hash}", func(r chi.Router) {
 				r.Get("/", front.ShowItem)
 				r.Post("/", front.HandleSubmit)
-				r.Get("/edit", front.ShowItem)
-				r.Post("/edit", front.HandleSubmit)
-				r.Get("/rm", front.HandleDelete)
-				r.Get("/bad", front.ShowReport)
-				r.Post("/bad", front.HandleReport)
+
 				r.Get("/yay", front.HandleVoting)
 				r.Get("/nay", front.HandleVoting)
+
+				r.Get("/bad", front.ShowReport)
+				r.Post("/bad", front.HandleReport)
+
+				r.With(front.ValidatePermissions()).Get("/edit", front.ShowItem)
+				r.With(front.ValidatePermissions()).Post("/edit", front.HandleSubmit)
+				r.With(front.ValidatePermissions()).Get("/rm", front.HandleDelete)
 			})
 		})
 
