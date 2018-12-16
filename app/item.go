@@ -28,7 +28,7 @@ type Identifiable interface {
 }
 
 type data struct {
-	Source string
+	Source    string
 	Processed string
 }
 
@@ -58,12 +58,16 @@ func (i Item) Deleted() bool {
 	return (i.Flags & FlagsDeleted) == FlagsDeleted
 }
 
+// UnDelete remove the deleted flag from an item
 func (i Item) UnDelete() {
 	i.Flags ^= FlagsDeleted
 }
+
+// Delete add the deleted flag on an item
 func (i *Item) Delete() {
-	i.Flags &= FlagsDeleted
+	i.Flags |= FlagsDeleted
 }
+
 func (i Item) IsLink() bool {
 	return i.MimeType == MimeTypeURL
 }
