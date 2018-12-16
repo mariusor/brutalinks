@@ -4,7 +4,7 @@
 </section>
 {{- end -}}
 {{- if not .Content.Item.Deleted -}}
-<section id="reply">{{template "partials/new/submit" . }}</section>
+<section id="reply">{{template "partials/content/edit" . }}</section>
 {{- end -}}
 <hr />
 {{- if .Content.Children | len -}}
