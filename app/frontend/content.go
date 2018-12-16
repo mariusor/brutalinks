@@ -163,7 +163,7 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	m.Content = comment{Item: i}
-	if len(i.Data)+len(i.Title) == 0 {
+	if !i.Deleted() && len(i.Data)+len(i.Title) == 0 {
 		h.HandleError(w, r, errors.NotFoundf("not found"))
 		return
 	}
