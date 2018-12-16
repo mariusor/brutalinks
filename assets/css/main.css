@@ -508,7 +508,7 @@ details > summary::-webkit-details-marker {
 .meta-items li::before {
     content: unset;
 }
-.meta-items:before {
+.meta-items ul:before {
     content: "-";
     margin-right: .3em;
 }
