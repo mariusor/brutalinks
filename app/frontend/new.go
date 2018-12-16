@@ -3,10 +3,12 @@ package frontend
 import (
 	"bytes"
 	"fmt"
+	"github.com/go-chi/chi"
 	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/app/log"
 	"net/http"
 	"net/url"
+	"path"
 	"strings"
 	"time"
 
@@ -93,6 +95,49 @@ func ContentFromRequest(r *http.Request, acc app.Account) (app.Item, error) {
 // ShowSubmit serves GET /submit request
 func (h *handler) ShowSubmit(w http.ResponseWriter, r *http.Request) {
 	h.RenderTemplate(r, w, "new", contentModel{Title: "New submission"})
+}
+
+func (h *handler) ValidatePermissions(actions ...string) func (http.Handler) http.Handler {
+	if len(actions) == 0 {
+		return h.ValidateItemAuthor
+	}
+	// @todo(marius): implement permission logic
+	return func(next http.Handler) http.Handler {
+		fn := func(w http.ResponseWriter, r *http.Request) {
+			next.ServeHTTP(w, r)
+		}
+		return http.HandlerFunc(fn)
+	}
+}
+
+func (h *handler) ValidateItemAuthor(next http.Handler) http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		acc := h.account
+		hash := chi.URLParam(r, "hash")
+		url := r.URL
+		action := path.Base(url.Path)
+		if len(hash) > 0 && action != hash {
+			val := r.Context().Value(app.RepositoryCtxtKey)
+			itemLoader, ok := val.(app.CanLoadItems)
+			if !ok {
+				h.logger.Error("could not load item repository from Context")
+				return
+			}
+			m, err := itemLoader.LoadItem(app.LoadItemsFilter{Key: []string{hash}})
+			if err != nil {
+				h.logger.Error(err.Error())
+				h.HandleError(w, r, errors.NewNotFound(err, "item"))
+				return
+			}
+			if !sameHash(m.SubmittedBy.Hash, acc.Hash) {
+				url.Path = path.Dir(url.Path)
+				h.Redirect(w, r, url.RequestURI(), http.StatusTemporaryRedirect)
+				return
+			}
+			next.ServeHTTP(w, r)
+		}
+	}
+	return http.HandlerFunc(fn)
 }
 
 // HandleSubmit handles POST /submit requests
