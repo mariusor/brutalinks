@@ -22,7 +22,7 @@ require (
 	github.com/juju/loggo v0.0.0-20180524022052-584905176618 // indirect
 	github.com/juju/testing v0.0.0-20180517134105-72703b1e95eb // indirect
 	github.com/lib/pq v0.0.0-20180523175426-90697d60dd84
-	github.com/mariusor/activitypub.go v0.0.0-20181209130650-88e637fb3f6d
+	github.com/mariusor/activitypub.go v0.0.0-20181216121919-a955ef13ec01
 	github.com/mariusor/qstring v0.0.0-20180919140350-29d781f85f0f
 	github.com/mattn/go-sqlite3 v1.9.0 // indirect
 	github.com/matttproud/gocheck v0.0.0-20130118152435-ecced547db7c // indirect

@@ -124,11 +124,17 @@ func (i *Item) FromActivityPub(it as.Item) error {
 			i.Score = a.Score
 			i.Hash = getHashFromAP(a)
 			title := jsonUnescape(as.NaturalLanguageValue(a.Name).First())
-			content := jsonUnescape(as.NaturalLanguageValue(a.Content).First())
 
+			var content string
+			if len(a.Source.Content)+len(a.Source.MediaType) > 0 {
+				content = jsonUnescape(as.NaturalLanguageValue(a.Source.Content).First())
+				i.MimeType = string(a.Source.MediaType)
+			} else {
+				content = jsonUnescape(as.NaturalLanguageValue(a.Content).First())
+				i.MimeType = string(a.MediaType)
+			}
 			i.Hash = getHashFromAP(a)
 			i.Title = title
-			i.MimeType = string(a.MediaType)
 			if a.Type == as.PageType {
 				i.Data = string(a.URL.GetLink())
 				i.MimeType = MimeTypeURL
