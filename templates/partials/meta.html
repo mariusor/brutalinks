@@ -14,7 +14,7 @@
 {{- /*
             <li><a href="{{$it | PermaLink }}/edit" title="Edit{{if .Item.Title}}: {{$it.Title }}{{end}}">{{ icon "edit"}}</a></li>
 */ -}}
-            <li><a href="{{$it | PermaLink }}/rm" title="Delete{{if .Item.Title}}: {{$it.Title }}{{end}}">{{ icon "eraser"}}</a></li>
+            <li><a href="{{$it | PermaLink }}/rm" class="rm" data-hash="{{ .Item.Hash }}" title="Delete{{if .Item.Title}}: {{$it.Title }}{{end}}">{{ icon "eraser"}}</a></li>
         </ul>
         <ul class="inline">
 {{ end }}

@@ -23,4 +23,26 @@ $(document).ready(function() {
         e.preventDefault();
         e.stopPropagation();
     });
+
+    $("a.rm").click(function(e) {
+        e.stopPropagation();
+        e.preventDefault();
+
+        $(".rm-confirm").remove();
+
+        let el = $(e.delegateTarget);
+        let hash = el.data("hash");
+
+        let yesId = "yes-" + hash
+        let noId = "no-" + hash
+
+        el.after('<span class="rm-confirm">Confirm: <a href="#'+yesId+'" id="'+yesId+'">yes</a> <a href="#'+noId+'" id="'+noId+'">no</a></span>');
+        $("a#" + yesId).click(function () {
+            window.location = el.attr("href");
+        });
+        $("a#" + noId).click(function () {
+            $(".rm-confirm").remove();
+        });
+    });
+
 });
