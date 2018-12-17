@@ -42,6 +42,9 @@ func loadTags(data string) (app.TagCollection, app.TagCollection) {
 			if en == -1 {
 				en = len(byt) - st
 			}
+			if en == 1 {
+				continue
+			}
 			t.Name = byt[st : st+en]
 			if t.Name[0] == '#' {
 				// @todo(marius) :link_generation: make the tag links be generated from the corresponding route
