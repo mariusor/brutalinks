@@ -345,14 +345,26 @@ ol.comments li {
 .score a:not([href]) {
     opacity: .3;
 }
-.score a[href].ed {
+.score a[href].ed svg
+{
+    fill: var(--main-linkvisited-color) !important;
+}
+.score a[href].ed
+{
     color: var(--main-linkvisited-color) !important;
+}
+.score a[href].ed svg
+{
+    fill: var(--main-linkvisited-color);
+}
+.score a[href]:visited svg {
+    fill: var(--main-link-color);
 }
 .score a[href]:visited {
     color: var(--main-link-color);
 }
-.score a[href]:active {
-    color:  var(--main-linkactive-color) !important;
+.score a[href]:active svg {
+    fill:  var(--main-linkactive-color);
 }
 .meta {
     font-size: .85em;
