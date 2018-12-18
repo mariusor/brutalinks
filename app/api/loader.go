@@ -686,6 +686,7 @@ func (r *repository) LoadVote(f app.LoadVotesFilter) (app.Vote, error) {
 
 func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 	doUpd := false
+	doDel := false
 	art := loadAPItem(it)
 
 	actor := loadAPPerson(frontend.AnonymousAccount())
@@ -696,17 +697,32 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 
 	var body []byte
 	var err error
-	if len(*art.GetID()) == 0 {
-		id := as.ObjectID("")
-		create := as.CreateNew(id, art)
-		create.Actor = actor.GetLink()
-		body, err = j.Marshal(create)
-	} else {
+	if it.Deleted() {
+		if len(*art.GetID()) == 0 {
+			r.logger.WithContext(log.Ctx{
+				"item":  it.Hash,
+				"trace": errors.Details(err),
+			}).Error(err.Error())
+			return it, errors.NotFoundf("item hash is empty, can not delete")
+		}
 		id := art.GetID()
-		doUpd = true
-		update := as.UpdateNew(*id, art)
-		update.Actor = actor.GetLink()
-		body, err = j.Marshal(update)
+		doDel = true
+		delete := as.DeleteNew(*id, art)
+		delete.Actor = actor.GetLink()
+		body, err = j.Marshal(delete)
+	} else {
+		if len(*art.GetID()) == 0 {
+			id := as.ObjectID("")
+			create := as.CreateNew(id, art)
+			create.Actor = actor.GetLink()
+			body, err = j.Marshal(create)
+		} else {
+			id := art.GetID()
+			doUpd = true
+			update := as.UpdateNew(*id, art)
+			update.Actor = actor.GetLink()
+			body, err = j.Marshal(update)
+		}
 	}
 
 	if err != nil {
@@ -717,7 +733,7 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 		return it, err
 	}
 	var resp *http.Response
-	if doUpd {
+	if doUpd || doDel {
 		url := string(*art.GetID())
 		resp, err = r.client.Put(url, "application/activity+json", bytes.NewReader(body))
 	} else {
@@ -734,6 +750,13 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 		err := it.FromActivityPub(art)
 		return it, err
 	case http.StatusCreated:
+		newLoc := resp.Header.Get("Location")
+		hash := path.Base(newLoc)
+		f := app.LoadItemsFilter{
+			Key: []string{hash},
+		}
+		return r.LoadItem(f)
+	case http.StatusGone:
 		newLoc := resp.Header.Get("Location")
 		hash := path.Base(newLoc)
 		f := app.LoadItemsFilter{

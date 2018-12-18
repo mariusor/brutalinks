@@ -98,6 +98,19 @@ func (i *Item) FromActivityPub(it as.Item) error {
 		return nil
 	}
 	switch it.GetType() {
+	case as.DeleteType:
+		if act, ok := it.(*ap.Activity); ok {
+			err := i.FromActivityPub(act.Object)
+			i.SubmittedBy.FromActivityPub(act.Actor)
+			i.Delete()
+			return err
+		}
+		if act, ok := it.(ap.Activity); ok {
+			err := i.FromActivityPub(act.Object)
+			i.SubmittedBy.FromActivityPub(act.Actor)
+			i.Delete()
+			return err
+		}
 	case as.CreateType:
 		fallthrough
 	case as.UpdateType:
