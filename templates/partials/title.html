@@ -6,7 +6,7 @@
 {{- else -}}{{- .Title -}}{{- end -}}
 </h2>
 <aside class="domain">
-<a title="{{- if .IsLink -}}All links from {{.GetDomain}}{{- else -}}All local links{{- end -}}" href="{{- if .IsLink -}}/d/{{.GetDomain}}{{- else -}} /self {{- end -}}">{{- if .IsLink -}}{{.GetDomain}}{{- else -}} self {{- end -}}</a>
+<a title="{{- if .IsLink -}}All items from {{.GetDomain}}{{- else -}}Text only items{{- end -}}" href="/d{{- if .IsLink -}}/{{.GetDomain}}{{- end -}}">{{- if .IsLink -}}{{.GetDomain}}{{- else -}} text {{- end -}}</a>
 </aside>
 </header>
 {{- end -}}

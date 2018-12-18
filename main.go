@@ -155,6 +155,8 @@ func main() {
 		r.Get("/i/{hash}", front.HandleItemRedirect)
 
 		// @todo(marius) :link_generation:
+		r.Get("/d", front.HandleDomains)
+		r.Get("/d/", front.HandleDomains)
 		r.Get("/d/{domain}", front.HandleDomains)
 		// @todo(marius) :link_generation:
 		r.Get("/t/{tag}", front.HandleTags)

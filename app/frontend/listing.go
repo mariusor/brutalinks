@@ -33,8 +33,8 @@ type AccountMetadata struct {
 }
 
 type aboutModel struct {
-	Title         string
-	Desc          app.Desc
+	Title string
+	Desc  app.Desc
 }
 
 func getAuthProviders() map[string]string {
@@ -223,12 +223,18 @@ func (h *handler) HandleTags(w http.ResponseWriter, r *http.Request) {
 // HandleDomains serves /domains/{domain} request
 func (h *handler) HandleDomains(w http.ResponseWriter, r *http.Request) {
 	domain := chi.URLParam(r, "domain")
+
 	filter := app.LoadItemsFilter{
-		Content:          fmt.Sprintf("http[s]?://%s", domain),
-		ContentMatchType: app.MatchFuzzy,
-		MediaType:        []string{app.MimeTypeURL},
-		MaxItems:         MaxContentItems,
-		Page:             1,
+		Context: []string{"0"},
+		MaxItems: MaxContentItems,
+		Page:     1,
+	}
+	if len(domain) > 0 {
+		filter.Content = fmt.Sprintf("http[s]?://%s", domain)
+		filter.ContentMatchType = app.MatchFuzzy
+		filter.MediaType = []string{app.MimeTypeURL}
+	} else {
+		filter.MediaType = []string{app.MimeTypeMarkdown, app.MimeTypeText, app.MimeTypeHTML}
 	}
 	if err := qstring.Unmarshal(r.URL.Query(), &filter); err != nil {
 		h.logger.Debug("unable to load url parameters")
