@@ -36,7 +36,7 @@ $(document).ready(function() {
         let yesId = "yes-" + hash
         let noId = "no-" + hash
 
-        el.after('<span class="rm-confirm">Confirm: <a href="#'+yesId+'" id="'+yesId+'">yes</a> <a href="#'+noId+'" id="'+noId+'">no</a></span>');
+        el.after('<span class="rm-confirm">Remove? <a href="#'+yesId+'" id="'+yesId+'">yes</a> <a href="#'+noId+'" id="'+noId+'">no</a></span>');
         $("a#" + yesId).click(function () {
             window.location = el.attr("href");
         });
