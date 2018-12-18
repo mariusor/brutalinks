@@ -149,13 +149,15 @@ body > header h1.logo .icon.icon-l {
     display: inline-block;
     /*margin-left: .4em;*/
 }
-.inline li:first-child::before,
-.inline li.no-sep::before {
+.sections .inline li::after,
+.meta-items .inline li::after,
+.inline li:last-child::after,
+.inline li.no-sep::after {
     content: unset;
 }
-.inline li::before {
+.inline li::after {
     content: "\a78f";
-    padding-right: .4em;
+    padding-left: .4em;
 }
 .top {
     text-align: right;
@@ -164,15 +166,12 @@ body > header h1.logo .icon.icon-l {
     padding-top: .2rem;
     font-size: .8rem;
 }
-.sections li::before {
-    content: unset;
-}
 .sections li a svg {
     vertical-align: text-top;
 }
 .sections li a svg.icon-activitypub {
-    width:  1.2em;
-    margin-left: .2em;
+    width:  1.2rem;
+    margin-left: .2rem;
 }
 body > main {
     grid-area: main;
@@ -505,17 +504,10 @@ details > summary::-webkit-details-marker {
 .meta-items:last-child li {
     padding-right: 0;
 }
-.meta-items li::before {
-    content: unset;
-}
 .meta-items ul:before {
     content: "-";
     margin-right: .3em;
 }
-/*.meta-items:after {*/
-    /*content: "]";*/
-    /*margin-left: .3em;*/
-/*}*/
 a.to-item svg {
     width: .8em;
 }
@@ -590,37 +582,73 @@ svg.icon.icon-adjust {
 .icon-angle-double-right {
     vertical-align: baseline;
 }
+@media (max-width: 767px) {
+    body > header .top span.score {
+        display: none;
+    }
+    body > header .top li:first-child,
+    body > header .top li:nth-child(2)
+    {
+        display: none;
+    }
+}
 @media (max-width: 576px) {
-    body > header .sections li a span {
-        font-size: 0;
-        display: none;
-    }
-    body > header .top {
-        display: none;
-    }
     .sections li a svg.icon.icon-activitypub {
-        height: 1.35em;
-        width: 2.2em;
+        height: 1rem;
+        width: 1.3rem;
     }
     .sections li a svg {
-        height: 1.35em;
-        width: 1.35em;
+        height: 1rem;
+        width: 1rem;
     }
     aside.domain {
         display: none;
     }
 }
 @media (max-width: 330px) {
+    .sections li a svg.icon.icon-activitypub {
+        height: 1rem;
+        width: 1.3rem;
+    }
+    .sections li a svg {
+        height: 1rem;
+        width: 1rem;
+    }
+    .sections li {
+        font-size: 0;
+        overflow: hidden;
+    }
+    body > header .top {
+        display: none;
+    }
     :root {
         font-size: 3.8vw;
     }
 }
 @media (min-width: 330px) {
+    .sections li a svg.icon.icon-activitypub {
+        height: 1rem;
+        width: 1.3rem;
+    }
+    .sections li a svg {
+        height: 1rem;
+        width: 1rem;
+    }
+    .sections li {
+        font-size: 0;
+        overflow: hidden;
+    }
+    body > header .top {
+        display: none;
+    }
     :root {
         font-size: 3.6vw;
     }
 }
 @media (min-width: 480px) {
+    body > header .top {
+        display: unset;
+    }
     :root {
         font-size: 2.6vw;
     }
@@ -629,46 +657,56 @@ svg.icon.icon-adjust {
     :root {
         font-size: 2.4vw;
     }
-    body > header .top {
-        display: unset;
-    }
     aside.domain {
         display: inline;
     }
-    body > header .sections li a span {
-        font-size: .9em;
+    .sections li {
+        font-size: unset;
+    }
+}
+@media (min-width: 640px) {
+    :root {
+        font-size: 2vw;
     }
 }
 @media (min-width: 768px) {
     :root {
-        font-size: 1.3vw;
+        font-size: 2vw;
     }
     body > header .top {
         display: unset;
     }
-    body > header .sections li a span {
+    body > header .sections li a {
         font-size: unset;
+        display: unset;
+    }
+    body > header .top span.score {
+        display: unset;
+    }
+    body > header .top li:first-child,
+    body > header .top li:nth-child(2)
+    {
         display: unset;
     }
 }
 @media (min-width: 860px) {
     :root {
-        font-size: 1.35vw;
+        font-size: 1.8vw;
     }
 }
 @media (min-width: 948px) {
     :root {
-        font-size: 1.3vw;
+        font-size: 1.6vw;
     }
 }
 @media (min-width: 1050px) {
     :root {
-        font-size: 1.2vw;
+        font-size: 1.4vw;
     }
 }
 @media (min-width: 1200px) {
     :root {
-        font-size: 1vw;
+        font-size: 1.16vw;
     }
     aside.domain {
         display: inline;
@@ -686,7 +724,7 @@ svg.icon.icon-adjust {
 }
 @media (min-width: 1800px) {
     :root {
-        font-size: .8vw;
+        font-size: .86vw;
     }
 }
 @media (min-width: 2200px) {
