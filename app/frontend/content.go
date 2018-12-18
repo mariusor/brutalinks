@@ -253,6 +253,10 @@ func (h *handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	url := ItemPermaLink(p)
+	backUrl := r.Header.Get("Referer")
+	if !strings.Contains(backUrl, url) && strings.Contains(backUrl, app.Instance.BaseURL) {
+		url = fmt.Sprintf("%s#item-%s", backUrl, p.Hash)
+	}
 	p.Delete()
 	if _, err = db.Config.SaveItem(p); err != nil {
 		addFlashMessage(Error, fmt.Sprintf("unable to add vote as an %s user", h.account.Handle), r)
