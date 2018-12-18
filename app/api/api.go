@@ -287,7 +287,7 @@ func (k *keyLoader) GetKey(id string) interface{} {
 		return errors.Errorf("invalid key")
 	}
 
-	if err := validateLocalIRI(as.IRI(u.Host)); err == nil {
+	if err := validateLocalIRI(as.IRI(id)); err == nil {
 		hash := path.Base(u.Path)
 		k.acc, err = db.Config.LoadAccount(app.LoadAccountsFilter{Key: []string{hash}})
 		if err != nil {
@@ -339,7 +339,9 @@ func (h handler)VerifyHttpSignature(next http.Handler) http.Handler {
 				h.logger.WithContext(log.Ctx{
 					"handle": acct.Handle,
 					"hash":   acct.Hash,
-					"header": fmt.Sprintf("%v", r.Header["Authorize"]),
+					//"auth": fmt.Sprintf("%v", r.Header["Authorization"]),
+					"req": fmt.Sprintf("%s:%s", r.Method, r.URL.RequestURI()),
+					"err": err,
 				}).Warn("invalid HTTP signature")
 				// TODO(marius): here we need to implement some outside logic, as to we want to allow non-signed
 				//   requests on some urls, but not on others - probably another handler to check for Anonymous

@@ -573,7 +573,10 @@ func validateLocalIRI(i as.IRI) error {
 		// empty IRI is valid(ish)
 		return nil
 	}
-	if !strings.Contains(host(i.String()), host(app.Instance.BaseURL)) {
+	if app.Instance.HostName == i.String() {
+		return nil
+	}
+	if !strings.Contains(host(i.String()), app.Instance.HostName) {
 		return errors.Errorf("not local IRI %s", i)
 	}
 	return nil
@@ -583,7 +586,7 @@ func host(u string) string {
 	if pu, err := url.ParseRequestURI(u); err == nil {
 		return pu.Host
 	}
-	return ""
+	return u
 }
 
 type actorMissingError struct {
