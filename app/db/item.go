@@ -115,6 +115,7 @@ func saveItem(db *sqlx.DB, it app.Item) (app.Item, error) {
 	var res sql.Result
 	var err error
 	var query string
+	var hash string
 	if len(it.Hash) == 0 {
 		i.Key = app.GenKey(i.Path, []byte(it.Title), i.Data, []byte(it.SubmittedBy.Handle))
 		params = append(params, i.Key)
@@ -134,8 +135,9 @@ func saveItem(db *sqlx.DB, it app.Item) (app.Item, error) {
 			params = append(params, it.Parent.Hash)
 		} else {
 			query = `insert into "content_items" ("key", "title", "data", "metadata", "mime_type", "flags", "submitted_by") 
-		values($1, $2, $3, $4, $5, $6::bit(8), (select "id" from "accounts" where "key" ~* $7));'`
+		values($1, $2, $3, $4, $5, $6::bit(8), (select "id" from "accounts" where "key" ~* $7));`
 		}
+		hash = i.Key.String()
 	} else {
 		params = append(params, i.Title)
 		params = append(params, i.Data)
@@ -147,6 +149,7 @@ func saveItem(db *sqlx.DB, it app.Item) (app.Item, error) {
 
 		query = `UPDATE "content_items" SET "title" = $1, "data" = $2, "metadata" = $3, "mime_type" = $4,
 			"flags" = $5::bit(8), "updated_at" = $6 WHERE "key" ~* $7;`
+		hash = string(it.Hash)
 	}
 	res, err = db.Exec(query, params...)
 	if err != nil {
@@ -159,7 +162,7 @@ func saveItem(db *sqlx.DB, it app.Item) (app.Item, error) {
 		}
 	}
 
-	col, err := loadItems(db, app.LoadItemsFilter{Key: []string{i.Key.String()}, MaxItems: 1})
+	col, err := loadItems(db, app.LoadItemsFilter{Key: []string{hash}, MaxItems: 1})
 	if len(col) > 0 {
 		return col[0], err
 	} else {
