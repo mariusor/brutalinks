@@ -91,7 +91,13 @@ func ContentFromRequest(r *http.Request, acc app.Account) (app.Item, error) {
 		i.UpdatedAt = now
 	}
 	parent := r.PostFormValue("parent")
-	i.Parent = &app.Item{Hash: app.Hash(parent)}
+	if len(parent) > 0 {
+		i.Parent = &app.Item{Hash: app.Hash(parent)}
+	}
+	hash := r.PostFormValue("hash")
+	if len(hash) > 0 {
+		i.Hash = app.Hash(hash)
+	}
 	return i, nil
 }
 

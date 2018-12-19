@@ -227,6 +227,9 @@ ol.hide-text article.data {
 .hide-text article header {
     margin-bottom: 0px;
 }
+article hr {
+    width: 100%;
+}
 article > section {
     width: 100%;
 }
@@ -341,6 +344,9 @@ ol.comments li {
 {
     font-weight: lighter;
     font-size: .6em;
+}
+.score .icon-recycle {
+    opacity: .6;
 }
 .score a:not([href]) {
     opacity: .3;
