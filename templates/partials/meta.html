@@ -2,7 +2,7 @@
 {{- $it := .Item -}}
 {{- $account := CurrentAccount -}}
 <footer class="meta col">
-    submitted <time datetime="{{ $it.SubmittedAt | ISOTimeFmt | html }}" title="{{ $it.SubmittedAt | ISOTimeFmt }}">{{ icon "clock-o" }}{{ $it.SubmittedAt | TimeFmt }}</time>
+submitted {{ if not .Deleted -}} <time datetime="{{ $it.SubmittedAt | ISOTimeFmt | html }}" title="{{ $it.SubmittedAt | ISOTimeFmt }}">{{ icon "clock-o" }}{{ $it.SubmittedAt | TimeFmt }}</time>{{- end -}}
     {{- if $it.SubmittedBy.Handle }} by <a class="by" href="{{ $it.SubmittedBy | AccountPermaLink }}">{{ $it.SubmittedBy.Handle }}</a>{{end}}
     <nav class="meta-items">
         <ul class="inline">
@@ -11,10 +11,12 @@
 {{- /*
 @todo(marius) :link_generation: this needs a generic way of creating links
 */ -}}
-{{- /*
             <li><a href="{{$it | PermaLink }}/edit" title="Edit{{if .Item.Title}}: {{$it.Title }}{{end}}">{{ icon "edit"}}</a></li>
-*/ -}}
-            <li><a href="{{$it | PermaLink }}/rm" class="rm" data-hash="{{ .Item.Hash }}" title="Delete{{if .Item.Title}}: {{$it.Title }}{{end}}">{{ icon "eraser"}}</a></li>
+{{- if not .Deleted }}
+            <li><a href="{{$it | PermaLink }}/rm" class="rm" data-hash="{{ .Item.Hash }}" title="Remove{{if .Item.Title}}: {{$it.Title }}{{end}}">{{ icon "eraser"}}</a></li>
+{{ else -}}
+            <li><a href="{{$it | PermaLink }}/undo" class="undo" data-hash="{{ .Item.Hash }}" title="Recover item">{{ icon "asterisk"}}</a></li>
+{{ end -}}
         </ul>
         <ul class="inline">
 {{ end }}
