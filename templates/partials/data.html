@@ -1,5 +1,5 @@
 {{- if .Item.Deleted -}}
-<del class="deleted titles" data-hash="{{.Hash}}">deleted</del>
+<del class="titles" data-hash="{{.Hash}}">deleted</del>
 {{- else -}}
 <article class="data{{if ShowText}} {{ .Item.MimeType | sluggify }}{{if not .Item.Title}} comment{{end}}{{- end -}}">
 {{- template "partials/title" . -}}

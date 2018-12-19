@@ -345,6 +345,9 @@ ol.comments li {
 .score a:not([href]) {
     opacity: .3;
 }
+.deleted {
+    opacity: .7;
+}
 .score a[href].ed svg
 {
     fill: var(--main-linkvisited-color) !important;
@@ -395,11 +398,11 @@ ol.comments li {
 .comment {
     font-size: .96em;
 }
-.deleted {
+.item del {
     line-height: 2rem;
     padding-left: 2ex;
     letter-spacing: 0.3ex;
-    font-weight: 200;
+    font-weight: 100;
 }
 .domains {
     font-size: 0.9em;
