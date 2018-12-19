@@ -38,7 +38,7 @@ func loadTags(data string) (app.TagCollection, app.TagCollection) {
 		}
 		if st != -1 {
 			t := app.Tag{}
-			en := strings.IndexAny(byt[st:], " \t\r\n,.:;!?")
+			en := strings.IndexAny(byt[st:], " \t\r\n'\"<>,.:;!?")
 			if en == -1 {
 				en = len(byt) - st
 			}
