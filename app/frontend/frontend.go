@@ -415,6 +415,7 @@ func (h handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name str
 			"ShowText":          showText(m),
 			"HTML":              html,
 			"Text":              text,
+			"replaceTags":       replaceTagsInItem,
 			"Markdown":          app.Markdown,
 			"AccountPermaLink":  AccountPermaLink,
 			"PermaLink":         ItemPermaLink,

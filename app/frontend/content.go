@@ -78,34 +78,46 @@ func mimeTypeTagReplace(m string, t app.Tag) string {
 	return fmt.Sprintf("<a href='%s' class='%s'>%s</a>", t.URL, cls, t.Name[1:])
 }
 
-func replaceTags(comments comments) {
-	inRange := func(n string, nn []string) bool {
-		for _, ts := range nn {
-			if ts == n {
-				return true
-			}
+func inRange(n string, nn []string) bool {
+	for _, ts := range nn {
+		if ts == n {
+			return true
 		}
-		return false
 	}
-	for _, cur := range comments {
-		names := make([]string, 0)
-		if cur.Metadata != nil && cur.Metadata.Tags != nil {
-			for _, t := range cur.Metadata.Tags {
-				if inRange(t.Name, names) {
-					continue
-				}
-				r := mimeTypeTagReplace(cur.MimeType, t)
-				cur.Data = strings.Replace(cur.Data, t.Name, r, -1)
-				names = append(names, t.Name)
+	return false
+}
+
+func replaceTagsInItem(cur app.Item) string {
+	dat := cur.Data
+	if cur.Metadata == nil {
+		return dat
+	}
+	names := make([]string, 0)
+	if cur.Metadata.Tags != nil {
+		for _, t := range cur.Metadata.Tags {
+			if inRange(t.Name, names) {
+				continue
 			}
-			for _, t := range cur.Metadata.Mentions {
-				if inRange(t.Name, names) {
-					continue
-				}
-				r := mimeTypeTagReplace(cur.MimeType, t)
-				cur.Data = strings.Replace(cur.Data, t.Name, r, -1)
-			}
+			r := mimeTypeTagReplace(cur.MimeType, t)
+			dat = strings.Replace(dat, t.Name, r, -1)
+			names = append(names, t.Name)
 		}
+	}
+	if cur.Metadata.Mentions != nil {
+		for _, t := range cur.Metadata.Mentions {
+			if inRange(t.Name, names) {
+				continue
+			}
+			r := mimeTypeTagReplace(cur.MimeType, t)
+			dat = strings.Replace(dat, t.Name, r, -1)
+		}
+	}
+	return dat
+}
+
+func replaceTags(comments comments) {
+	for _, cur := range comments {
+		cur.Data = replaceTagsInItem(cur.Item)
 	}
 }
 
@@ -194,7 +206,7 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 	}
 	allComments = append(allComments, loadComments(contentItems)...)
 
-	replaceTags(allComments)
+	//replaceTags(allComments)
 	reparentComments(allComments)
 	addLevelComments(allComments)
 

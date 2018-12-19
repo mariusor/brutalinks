@@ -1,10 +1,14 @@
+{{- if .Item.Deleted -}}
+<del class="deleted titles" data-hash="{{.Hash}}">deleted</del>
+{{- else -}}
 <article class="data{{if ShowText}} {{ .Item.MimeType | sluggify }}{{if not .Item.Title}} comment{{end}}{{- end -}}">
 {{- template "partials/title" . -}}
 {{- if .Item.IsSelf -}}
 {{if ShowText}}
-{{- if eq .MimeType "text/html" -}}{{- .Item.Data | HTML -}}{{- end -}}
+{{- if eq .MimeType "text/html" -}}{{- replaceTags .Item | HTML -}}{{- end -}}
 {{- if eq .MimeType "text/plain" -}}{{- .Item.Data | Text -}}{{end}}
-{{- if eq .MimeType "text/markdown" -}}{{- .Item.Data | Markdown -}}{{- end -}}
+{{- if eq .MimeType "text/markdown" -}}{{- replaceTags .Item | Markdown -}}{{- end -}}
 {{end}}
 {{- end -}}
 </article>
+{{- end -}}
