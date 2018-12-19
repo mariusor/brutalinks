@@ -224,22 +224,22 @@ var maxVotePeriod, _ = time.ParseDuration("4444h")
 
 func loadScoresForItems(db *sqlx.DB, since time.Duration, key string) ([]app.Score, error) {
 	par := make([]interface{}, 0)
-	par = append(par, interface{}(since.Hours()))
 	dumb := func(ups, downs int64) int64 {
 		return ups - downs
 	}
 	keyClause := ""
 	if len(key) > 0 {
-		keyClause = ` and "content_items"."key" ~* $2`
+		keyClause = `AND "content_items"."key" ~* $1`
 		par = append(par, interface{}(key))
 	}
 	q := fmt.Sprintf(`select "item_id", "content_items"."key", max("content_items"."submitted_at"),
 		sum(CASE WHEN "weight" > 0 THEN "weight" ELSE 0 END) AS "ups",
 		sum(CASE WHEN "weight" < 0 THEN abs("weight") ELSE 0 END) AS "downs"
 		FROM "votes" INNER JOIN "content_items" ON "content_items"."id" = "item_id"
-		WHERE current_timestamp - "votes"."submitted_at" < ($1 * INTERVAL '%.3f seconds')%s AND 
-	"content_items"."submitted_at" < NOW() - INTERVAL '%.3f hours' GROUP BY "item_id", "key" ORDER BY "item_id";`,
-		since.Seconds(), keyClause, maxVotePeriod.Hours())
+		WHERE "content_items"."submitted_at" >= current_timestamp - INTERVAL '%.3f hours'  
+	AND "votes"."submitted_at" >= current_timestamp - INTERVAL '%.3f hours' %s 
+	GROUP BY "item_id", "key" ORDER BY "item_id";`,
+		since.Hours(), maxVotePeriod.Hours(), keyClause)
 	rows, err := db.Query(q, par...)
 	if err != nil {
 		return nil, err
