@@ -80,6 +80,7 @@ func (c *Client) req(method string, url string, body io.Reader) (*http.Request, 
 		return nil, err
 	}
 	req.Header.Set("User-Agent", c.ua)
+	req.Header.Set("Cache-Control", "no-cache")
 	err = c.sign(req)
 	if err != nil {
 		new := errors.Errorf("unable to sign request")
