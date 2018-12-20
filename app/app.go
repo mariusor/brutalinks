@@ -194,7 +194,7 @@ func loadEnv(l *Application) (bool, error) {
 	if l.SeedVal, err = strconv.ParseInt(os.Getenv("SEED"), 10, 64); err != nil {
 		l.SeedVal = 666
 	}
-	if l.Version = os.Getenv("VERSION"); l.Version != "" {
+	if l.Version = os.Getenv("VERSION"); l.Version == "" {
 		l.Version = "HEAD"
 	}
 	if l.Secure, err = strconv.ParseBool(os.Getenv("HTTPS")); err != nil {
@@ -316,9 +316,10 @@ func ShowHeaders(next http.Handler) http.Handler {
 // StripCookies is a middleware for removing Header and SetCookie headers
 func StripCookies(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Del("Set-Cookie")
-		r.Header.Del("Cookie")
 		next.ServeHTTP(w, r)
+
+		w.Header().Del("Set-Cookie")
+		w.Header().Set("Cache-Control", "no-cache")
 	}
 	return http.HandlerFunc(fn)
 }
