@@ -248,7 +248,7 @@ func (h handler) HandleActorsCollection(w http.ResponseWriter, r *http.Request) 
 	f := r.Context().Value(app.FilterCtxtKey)
 	if filter, ok = f.(*app.LoadAccountsFilter); !ok {
 		h.logger.Error("could not load filter from Context")
-		h.HandleError(w, r, errors.NotFoundf("not found"))
+		h.HandleError(w, r, errors.NotValidf("%T", filter))
 		return
 	} else {
 		val := r.Context().Value(app.RepositoryCtxtKey)

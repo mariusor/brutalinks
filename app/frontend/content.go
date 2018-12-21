@@ -171,12 +171,12 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		h.logger.Error(err.Error())
-		h.HandleError(w, r, errors.NewNotFound(err, "not found"))
+		h.HandleError(w, r, errors.NewNotFound(err, "Item"))
 		return
 	}
 	m.Content = comment{Item: i}
 	if !i.Deleted() && len(i.Data)+len(i.Title) == 0 {
-		h.HandleError(w, r, errors.NotFoundf("not found"))
+		h.HandleError(w, r, errors.NotFoundf("Item"))
 		return
 	}
 	url := r.URL
