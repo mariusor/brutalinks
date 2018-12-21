@@ -197,11 +197,14 @@ func loadItems(c context.Context, filter app.LoadItemsFilter, acc *app.Account, 
 func (h *handler) HandleTags(w http.ResponseWriter, r *http.Request) {
 	tag := chi.URLParam(r, "tag")
 	filter := app.LoadItemsFilter{
-		Content:          fmt.Sprintf("#%s", tag),
-		ContentMatchType: app.MatchFuzzy,
-		MaxItems:         MaxContentItems,
-		Page:             1,
+		MaxItems: MaxContentItems,
+		Page:     1,
 	}
+	if len(tag) == 0 {
+		h.HandleError(w, r, errors.BadRequestf("missing tag", tag))
+	}
+	filter.Content = "#" + tag
+	filter.ContentMatchType = app.MatchFuzzy
 	if err := qstring.Unmarshal(r.URL.Query(), &filter); err != nil {
 		h.logger.Debug("unable to load url parameters")
 	}
@@ -225,7 +228,7 @@ func (h *handler) HandleDomains(w http.ResponseWriter, r *http.Request) {
 	domain := chi.URLParam(r, "domain")
 
 	filter := app.LoadItemsFilter{
-		Context: []string{"0"},
+		Context:  []string{"0"},
 		MaxItems: MaxContentItems,
 		Page:     1,
 	}
