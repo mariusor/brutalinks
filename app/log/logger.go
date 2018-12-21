@@ -39,11 +39,11 @@ func Dev() Logger {
 
 	logrus.SetFormatter(&logrus.TextFormatter{
 		QuoteEmptyFields:true,
-		FullTimestamp: true,
+		FullTimestamp: false,
 	})
 	logrus.SetReportCaller(true)
 	logrus.SetOutput(os.Stderr)
-	logrus.SetLevel(logrus.DebugLevel)
+	logrus.SetLevel(logrus.TraceLevel)
 	return &l
 }
 
