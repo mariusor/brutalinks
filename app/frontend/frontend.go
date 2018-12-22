@@ -379,6 +379,22 @@ func sameHash(h1 app.Hash, h2 app.Hash) bool {
 	return strings.Contains(s1, s2)
 }
 
+func fmtPubKey(pub []byte) string {
+	s := strings.Builder{}
+	eolIdx := 0
+	for _, b := range pub {
+		if b == '\n' {
+			eolIdx = 0
+		}
+		if eolIdx > 0 && eolIdx % 65 == 0 {
+			s.WriteByte('\n')
+			eolIdx = 1
+		}
+		s.WriteByte(b)
+		eolIdx++
+	}
+	return s.String()
+}
 
 // buildLink("name", someVar1, anotherVar2) :: /path/of/name/{var1}/{var2} -> /path/of/name/someVar1/someVar2
 func buildLink(routes chi.Routes, name string, par ...interface{}) string {
@@ -439,6 +455,7 @@ func (h handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name str
 			"req":               func() *http.Request { return r },
 			"sameBase":          sameBasePath,
 			"sameHash":          sameHash,
+			"fmtPubKey":         fmtPubKey,
 			//"ScoreFmt":          func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
 			//"NumberFmt":         func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
 		}},

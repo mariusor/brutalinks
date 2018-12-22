@@ -2,7 +2,7 @@
     <h2><span class="by">{{.User.Handle}}</span></h2>
     <section>Score: <span title="{{.User.Score | NumberFmt }}" class="score {{- .User.Score | ScoreClass -}}">{{ .User.Score | ScoreFmt}}</span></section>
     {{- if .User.HasPublicKey }}
-    <section class="pub-key">PublicKey : {{.User.Metadata.Key.Public}}</section>
+    <section class="pub-key">PublicKey : <pre>{{.User.Metadata.Key.Public | fmtPubKey }}</pre></section>
     {{ end -}}
     {{- if not .User.CreatedAt.IsZero }}
     <section class="joined">Joined date : <time datetime="{{ .User.CreatedAt | ISOTimeFmt | html }}" title="{{ .User.CreatedAt | ISOTimeFmt }}">{{ .User.CreatedAt | TimeFmt }}</time></section>

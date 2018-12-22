@@ -5,8 +5,8 @@ import (
 	"github.com/mariusor/activitypub.go/jsonld"
 
 	"github.com/buger/jsonparser"
-	as "github.com/mariusor/activitypub.go/activitystreams"
 	ap "github.com/mariusor/activitypub.go/activitypub"
+	as "github.com/mariusor/activitypub.go/activitystreams"
 )
 
 // PublicKey holds the ActivityPub compatible public key data
@@ -110,6 +110,25 @@ func (a *Article) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+func (p *PublicKey) UnmarshalJSON(data []byte) error {
+	if id, err := jsonparser.GetString(data, "id"); err == nil {
+		p.ID = as.ObjectID(id)
+	} else {
+		return err
+	}
+	if o, err := jsonparser.GetString(data, "owner"); err == nil {
+		p.Owner = as.IRI(o)
+	} else {
+		return err
+	}
+	if pub, err := jsonparser.GetString(data, "publicKeyPem"); err == nil {
+		p.PublicKeyPem = pub
+	} else {
+		return err
+	}
+	return nil
+}
+
 // UnmarshalJSON tries to load json data to Person object
 func (p *Person) UnmarshalJSON(data []byte) error {
 	app := as.Person{}
@@ -121,6 +140,9 @@ func (p *Person) UnmarshalJSON(data []byte) error {
 	p.Person = app
 	if score, err := jsonparser.GetInt(data, "score"); err == nil {
 		p.Score = score
+	}
+	if pubData, _, _, err := jsonparser.Get(data, "publicKey"); err == nil {
+		p.PublicKey.UnmarshalJSON(pubData)
 	}
 
 	return nil
@@ -380,6 +402,7 @@ func (a *Activity) UnmarshalJSON(data []byte) error {
 
 	return nil
 }
+
 // UnmarshalJSON tries to detect the type of the object in the json data and then outputs a matching
 // ActivityStreams object, if possible
 func UnmarshalJSON(data []byte) (as.Item, error) {

@@ -63,10 +63,8 @@ func (a *Account) FromActivityPub(it as.Item) error {
 			a.Flags = FlagsNone
 			if len(p.ID) > 0 {
 				iri := p.GetLink()
-				a.Metadata = &AccountMetadata{
-					ID:  iri.String(),
-					URL: p.URL.GetLink().String(),
-				}
+				a.Metadata.ID = iri.String()
+				a.Metadata.URL = p.URL.GetLink().String()
 			}
 			return nil
 		}
