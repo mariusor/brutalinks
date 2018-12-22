@@ -14,8 +14,8 @@ import (
 const SessionUserKey = "__current_acct"
 
 type loginModel struct {
-	Title         string
-	Account       app.Account
+	Title   string
+	Account app.Account
 }
 
 // ShowLogin handles POST /login requests
@@ -25,7 +25,7 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	a, err := db.Config.LoadAccount(app.LoadAccountsFilter{Handle: []string{handle}})
 	if err != nil {
 		h.logger.Error(err.Error())
-		h.HandleError(w, r, errors.Forbiddenf("handler or password are wrong"))
+		h.HandleError(w, r, errors.Forbiddenf("Wrong handle or password"))
 		return
 	}
 	m := a.Metadata
@@ -45,7 +45,7 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil {
 		h.logger.Error(err.Error())
-		h.HandleError(w, r, errors.Forbiddenf("handler or password are wrong"))
+		h.HandleError(w, r, errors.Forbiddenf("Wrong handle or password"))
 		return
 	}
 
