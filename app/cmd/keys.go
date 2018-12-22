@@ -14,6 +14,24 @@ import (
 	"math/rand"
 )
 
+func accountNeedsKeyWithLog(acct app.Account, logger log.Logger ) bool {
+	if len(acct.Metadata.ID) > 0 {
+		logger.WithContext(log.Ctx{
+			"handle": acct.Handle,
+			"hash":   acct.Hash.String(),
+		}).Infof("Federated account, skipping")
+		return false
+	}
+	if acct.Metadata.Key != nil {
+		logger.WithContext(log.Ctx{
+			"handle": acct.Handle,
+			"hash":   acct.Hash.String(),
+		}).Infof("Existing Key")
+		return false
+	}
+	return true
+}
+
 func GenSSHKey(handle string, seed int64, kType string) error {
 	var err error
 	if seed == 0 {
@@ -60,11 +78,7 @@ func GenSSHKey(handle string, seed int64, kType string) error {
 	r := rand.New(rand.NewSource(seed))
 
 	for _, acct := range accts {
-		if acct.Metadata.Key != nil {
-			Logger.WithContext(log.Ctx{
-				"handle": acct.Handle,
-				"hash":   acct.Hash.String(),
-			}).Warnf("Existing Key")
+		if !accountNeedsKeyWithLog(acct, Logger) {
 			continue
 		}
 		var pub, priv []byte
@@ -87,8 +101,7 @@ func GenSSHKey(handle string, seed int64, kType string) error {
 			}
 		} else {
 			var privKey *rsa.PrivateKey
-			privKey, err = rsa.GenerateKey(r, 2048)
-			if err != nil {
+			if privKey, err = rsa.GenerateKey(r, 2048); err != nil {
 				Logger.Error(err.Error())
 				continue
 			}
@@ -113,13 +126,16 @@ func GenSSHKey(handle string, seed int64, kType string) error {
 			Logger.Error(err.Error())
 			continue
 		}
-		enc := base64.StdEncoding.EncodeToString(s.Metadata.Key.Public)
-		Logger.WithContext(log.Ctx{
+		ctx := log.Ctx{
 			"handle": acct.Handle,
 			"hash":   acct.Hash.String(),
-			"key-id": s.Metadata.Key.ID,
-			"pub":    fmt.Sprintf("%s...%s", enc[0:10], enc[len(enc)-5:5]),
-		}).Infof("Updated Key")
+		}
+		if len(s.Metadata.Key.Public) > 0 {
+			enc := base64.StdEncoding.EncodeToString(acct.Metadata.Key.Public)
+			ctx["key-id"] = acct.Metadata.Key.ID
+			ctx["pub"] = fmt.Sprintf("%s...", enc[0:10])
+		}
+		Logger.WithContext(ctx).Infof("Updated Key")
 	}
 	return err
 }
