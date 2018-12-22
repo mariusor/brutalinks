@@ -373,7 +373,6 @@ func (r *repository) LoadItem(f app.LoadItemsFilter) (app.Item, error) {
 	var it app.Item
 
 	f.MaxItems = 1
-	f.AttributedTo = nil
 	hashes := f.Key
 	f.Key = nil
 
