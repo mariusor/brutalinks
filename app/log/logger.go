@@ -42,7 +42,7 @@ func Dev() Logger {
 		FullTimestamp: false,
 	})
 	logrus.SetReportCaller(true)
-	logrus.SetOutput(os.Stderr)
+	logrus.SetOutput(os.Stdout)
 	logrus.SetLevel(logrus.TraceLevel)
 	return &l
 }
