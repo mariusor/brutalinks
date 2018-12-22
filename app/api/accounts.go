@@ -576,7 +576,7 @@ func validateLocalIRI(i as.IRI) error {
 	if app.Instance.HostName == i.String() {
 		return nil
 	}
-	if !strings.Contains(host(i.String()), app.Instance.HostName) {
+	if !app.HostIsLocal(i.String()) {
 		return errors.Errorf("not local IRI %s", i)
 	}
 	return nil

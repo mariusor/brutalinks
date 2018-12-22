@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"net/url"
 	"path"
 	"strings"
@@ -65,6 +66,7 @@ func (a *Account) FromActivityPub(it as.Item) error {
 				iri := p.GetLink()
 				a.Metadata.ID = iri.String()
 				a.Metadata.URL = p.URL.GetLink().String()
+				a.Email = fmt.Sprintf("%s@%s", name, host(a.Metadata.URL))
 			}
 			return nil
 		}
@@ -257,6 +259,11 @@ func (v *Vote) FromActivityPub(it as.Item) error {
 
 	return nil
 }
+
+func HostIsLocal(s string) bool {
+	return strings.Contains(host(s), Instance.HostName)
+}
+
 func host(u string) string {
 	if pu, err := url.ParseRequestURI(u); err == nil {
 		return pu.Host

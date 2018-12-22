@@ -67,9 +67,14 @@ func (a Account) HasMetadata() bool {
 	return a.Metadata != nil
 }
 
+// IsLocal
+func (a Account) IsLocal() bool {
+	return !a.HasMetadata() || HostIsLocal(a.Metadata.ID)
+}
+
 // HasPublicKey
 func (a Account) HasPublicKey() bool {
-	return a.HasMetadata() && a.Metadata.Key != nil && a.Metadata.Key.Public != nil
+	return a.HasMetadata() && a.Metadata.Key != nil && len(a.Metadata.Key.Public) > 0
 }
 
 func (a Account) IsValid() bool {

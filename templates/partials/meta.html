@@ -3,7 +3,7 @@
 {{- $account := CurrentAccount -}}
 <footer class="meta col">
 submitted {{ if not .Deleted -}} <time datetime="{{ $it.SubmittedAt | ISOTimeFmt | html }}" title="{{ $it.SubmittedAt | ISOTimeFmt }}">{{ icon "clock-o" }}{{ $it.SubmittedAt | TimeFmt }}</time>{{- end -}}
-    {{- if $it.SubmittedBy.Handle }} by <a class="by" href="{{ $it.SubmittedBy | AccountPermaLink }}">{{ $it.SubmittedBy.Handle }}</a>{{end}}
+    {{- if $it.SubmittedBy.Handle }} by <a class="by" href="{{ $it.SubmittedBy | AccountPermaLink }}">{{ $it.SubmittedBy | ShowAccountHandle }}</a>{{end}}
     <nav class="meta-items">
         <ul class="inline">
 {{- if ne $account.Handle "anonymous" -}}

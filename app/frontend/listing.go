@@ -80,6 +80,14 @@ func localPermaLink(a app.Account) string {
 	return fmt.Sprintf("%s/~%s", app.Instance.BaseURL, handle)
 }
 
+// ShowAccountHandle
+func ShowAccountHandle(a app.Account) string {
+	if !a.IsLocal() && len(a.Email) > 0 {
+		return a.Email
+	}
+	return a.Handle
+}
+
 // AccountPermaLink
 func AccountPermaLink(a app.Account) string {
 	if a.HasMetadata() && len(a.Metadata.URL) > 0 {
