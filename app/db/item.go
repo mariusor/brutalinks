@@ -129,13 +129,13 @@ func saveItem(db *sqlx.DB, it app.Item) (app.Item, error) {
 		if it.Parent != nil && len(it.Parent.Hash) > 0 {
 			query = `insert into "content_items" ("key", "title", "data", "metadata", "mime_type", "flags", "submitted_by", "path") 
 		values(
-			$1, $2, $3, $4, $5, $6::bit(8), (select "id" from "accounts" where "key" ~* $7), (select (case when "path" is not null then concat("path", '.', "key") else "key" end) 
+			$1, $2, $3, $4, $5, $6::bit(8), (select "id" from "accounts" where "key" ~* $7 or "handle" = $7), (select (case when "path" is not null then concat("path", '.', "key") else "key" end) 
 				as "parent_path" from "content_items" where key ~* $8)::ltree
 		);`
 			params = append(params, it.Parent.Hash)
 		} else {
 			query = `insert into "content_items" ("key", "title", "data", "metadata", "mime_type", "flags", "submitted_by") 
-		values($1, $2, $3, $4, $5, $6::bit(8), (select "id" from "accounts" where "key" ~* $7));`
+		values($1, $2, $3, $4, $5, $6::bit(8), (select "id" from "accounts" where "key" ~* $7 or "handle" = $7));`
 		}
 		hash = i.Key.String()
 	} else {
