@@ -166,7 +166,7 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 	hash := chi.URLParam(r, "hash")
 
 	i, err := itemLoader.LoadItem(app.LoadItemsFilter{
-		AttributedTo: []app.Hash{app.Hash(handle)},
+		AttributedTo: app.Hashes{app.Hash(handle)},
 		Key:          []string{hash},
 	})
 	if err != nil {

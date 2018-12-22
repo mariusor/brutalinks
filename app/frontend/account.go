@@ -46,7 +46,7 @@ func (h *handler) ShowAccount(w http.ResponseWriter, r *http.Request) {
 	}
 
 	filter := app.LoadItemsFilter{
-		AttributedTo: []app.Hash{a.Hash},
+		AttributedTo: app.Hashes{a.Hash},
 		MaxItems:     MaxContentItems,
 		Page:         1,
 	}

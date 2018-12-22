@@ -64,20 +64,39 @@ type Paginator interface {
 	FirstPage() Paginator
 }
 
+type VoteTypes []VoteType
+type Hashes []Hash
+
+func (vt VoteTypes) String() string {
+	str := make([]string, len(vt))
+	for i := range vt {
+		str[i] = string(vt[i])
+	}
+	return strings.Join(str, ", ")
+}
+
+func (h Hashes) String() string {
+	str := make([]string, len(h))
+	for i := range h {
+		str[i] = string(h[i])
+	}
+	return strings.Join(str, ", ")
+}
+
 type LoadVotesFilter struct {
-	ItemKey              []string   `qstring:"hash,omitempty"`
-	Type                 []VoteType `qstring:"type,omitempty"`
-	AttributedTo         []Hash     `qstring:"attributedTo,omitempty"`
-	SubmittedAt          time.Time  `qstring:"submittedAt,omitempty"`
-	SubmittedAtMatchType MatchType  `qstring:"submittedAtMatchType,omitempty"`
-	Page                 int        `qstring:"page,omitempty"`
-	MaxItems             int        `qstring:"maxItems,omitempty"`
+	ItemKey              []string  `qstring:"hash,omitempty"`
+	Type                 VoteTypes `qstring:"type,omitempty"`
+	AttributedTo         []Hash    `qstring:"attributedTo,omitempty"`
+	SubmittedAt          time.Time `qstring:"submittedAt,omitempty"`
+	SubmittedAtMatchType MatchType `qstring:"submittedAtMatchType,omitempty"`
+	Page                 int       `qstring:"page,omitempty"`
+	MaxItems             int       `qstring:"maxItems,omitempty"`
 }
 
 type LoadItemsFilter struct {
 	Key                  []string  `qstring:"hash,omitempty"`
 	MediaType            []string  `qstring:"mediaType,omitempty"`
-	AttributedTo         []Hash    `qstring:"attributedTo,omitempty"`
+	AttributedTo         Hashes    `qstring:"attributedTo,omitempty"`
 	InReplyTo            []string  `qstring:"inReplyTo,omitempty"`
 	Context              []string  `qstring:"context,omitempty"`
 	SubmittedAt          time.Time `qstring:"submittedAt,omitempty"`
