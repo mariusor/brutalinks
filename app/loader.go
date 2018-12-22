@@ -401,7 +401,7 @@ func (f LoadAccountsFilter) GetWhereClauses() ([]string, []interface{}) {
 	if len(f.Handle) > 0 {
 		whereColumns := make([]string, 0)
 		for _, handle := range f.Handle {
-			whereColumns = append(whereColumns, fmt.Sprintf(`"accounts"."handle" ~* $%d`, counter))
+			whereColumns = append(whereColumns, fmt.Sprintf(`"accounts"."handle" = $%d`, counter))
 			whereValues = append(whereValues, interface{}(handle))
 			counter++
 		}
