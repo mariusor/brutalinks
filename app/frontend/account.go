@@ -37,11 +37,11 @@ func (h *handler) ShowAccount(w http.ResponseWriter, r *http.Request) {
 	var err error
 	a, err := accountLoader.LoadAccount(app.LoadAccountsFilter{Handle: []string{handle}})
 	if err != nil {
-		h.HandleError(w, r, errors.NewNotFound(err, "not found"))
+		h.HandleError(w, r, err)
 		return
 	}
 	if !a.IsValid() {
-		h.HandleError(w, r, errors.NotFoundf("account %s not found", handle))
+		h.HandleError(w, r, errors.NotFoundf("account %q not found", handle))
 		return
 	}
 

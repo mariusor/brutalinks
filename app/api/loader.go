@@ -103,14 +103,14 @@ func (h handler) AccountCtxt(next http.Handler) http.Handler {
 		a, err := AcctLoader.LoadAccount(app.LoadAccountsFilter{Handle: []string{handle}})
 		if err == nil {
 			// we redirect to the Hash based account URL
-			url := strings.Replace(r.RequestURI, a.Handle, a.Hash.String(), 1)
+			url := strings.Replace(r.RequestURI, handle, a.Hash.String(), 1)
 			http.Redirect(w, r, url, http.StatusSeeOther)
 			return
 		} else {
 			a, err := AcctLoader.LoadAccount(app.LoadAccountsFilter{Key: []string{handle}})
 			if err != nil {
 				h.logger.Error(err.Error())
-				h.HandleError(w, r, errors.NewNotFound(err, "not found"))
+				h.HandleError(w, r, err)
 				return
 			}
 			if a.Handle == "" && len(a.Hash) == 0 {
@@ -389,7 +389,7 @@ func (r *repository) LoadItem(f app.LoadItemsFilter) (app.Item, error) {
 		return it, err
 	}
 	if resp == nil {
-		err := errors.New("nil response from the repository")
+		err := errors.New("empty response from the repository")
 		r.logger.Error(err.Error())
 		return it, err
 	}
@@ -830,7 +830,14 @@ func (r *repository) LoadAccount(f app.LoadAccountsFilter) (app.Account, error) 
 	}
 	var ac *app.Account
 	if ac, err = accounts.First(); err != nil {
-		return app.Account{}, err
+		var id string
+		if len(f.Key) > 0 {
+			id = f.Key[0]
+		}
+		if len(f.Handle) > 0 {
+			id = f.Handle[0]
+		}
+		return app.Account{}, errors.NotFoundf("account %q", id)
 	}
 	return *ac, nil
 }

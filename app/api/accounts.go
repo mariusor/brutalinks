@@ -275,7 +275,7 @@ func (h handler) HandleActorsCollection(w http.ResponseWriter, r *http.Request) 
 					"err":   err,
 					"trace": errors.Details(err),
 				}).Error(err.Error())
-				h.HandleError(w, r, errors.NewNotFound(err, "not found"))
+				h.HandleError(w, r, err)
 				return
 			}
 		}

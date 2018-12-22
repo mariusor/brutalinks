@@ -170,15 +170,25 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 		Key:          []string{hash},
 	})
 	if err != nil {
-		h.logger.Error(err.Error())
-		h.HandleError(w, r, errors.NewNotFound(err, "Item"))
+		h.logger.WithContext(log.Ctx{
+			"handle": handle,
+			"hash": hash,
+		}).Error(err.Error())
+		h.HandleError(w, r, errors.NotFoundf("Item %q", hash))
+		return
+	}
+	if !i.Deleted() && len(i.Data)+len(i.Title) == 0 {
+		h.logger.WithContext(log.Ctx{
+			"handle": handle,
+			"hash": hash,
+			"title": i.Title,
+			"content": i.Data[0:12],
+			"content_len": len(i.Data),
+		}).Warn("Item deleted or empty")
+		h.HandleError(w, r, errors.NotFoundf("Item %q", hash))
 		return
 	}
 	m.Content = comment{Item: i}
-	if !i.Deleted() && len(i.Data)+len(i.Title) == 0 {
-		h.HandleError(w, r, errors.NotFoundf("Item"))
-		return
-	}
 	url := r.URL
 	maybeEdit := path.Base(url.Path)
 
@@ -201,7 +211,7 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		h.logger.Error(err.Error())
-		h.HandleError(w, r, errors.NewNotFound(err, "not found"))
+		h.HandleError(w, r, errors.NewNotFound(err, errors.ErrorStack(err)))
 		return
 	}
 	allComments = append(allComments, loadComments(contentItems)...)

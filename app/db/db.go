@@ -187,7 +187,7 @@ func (c config) LoadItem(f app.LoadItemsFilter) (app.Item, error) {
 	if i, err := items.First(); err == nil {
 		return *i, nil
 	} else {
-		return app.Item{}, err
+		return app.Item{}, errors.NotFoundf("item %s", f.Key)
 	}
 }
 
@@ -204,7 +204,7 @@ func (c config) LoadAccount(f app.LoadAccountsFilter) (app.Account, error) {
 	if a, err := accounts.First(); err == nil {
 		return *a, nil
 	} else {
-		return app.Account{}, err
+		return app.Account{}, errors.NotFoundf("account %s", f.Key)
 	}
 }
 
