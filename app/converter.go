@@ -60,13 +60,14 @@ func (a *Account) FromActivityPub(it as.Item) error {
 			name := jsonUnescape(as.NaturalLanguageValue(p.Name).First())
 			a.Hash = getHashFromAP(p)
 			a.Handle = name
-			a.Email = ""
 			a.Flags = FlagsNone
 			if len(p.ID) > 0 {
 				iri := p.GetLink()
 				a.Metadata.ID = iri.String()
 				a.Metadata.URL = p.URL.GetLink().String()
-				a.Email = fmt.Sprintf("%s@%s", name, host(a.Metadata.URL))
+			}
+			if !a.IsLocal() {
+				a.Handle = fmt.Sprintf("%s@%s", name, host(a.Metadata.URL))
 			}
 			return nil
 		}
