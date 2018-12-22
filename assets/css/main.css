@@ -66,12 +66,6 @@ a[href]:hover {
 a[href]:visited {
     color: var(--main-linkvisited-color);
 }
-a[href]:visited svg.icon {
-    fill: var(--main-linkvisited-color);
-}
-a[href]:active {
-    color: var(--main-linkactive-color);
-}
 a:not([href]) {
     color: var(--main-fg-color);
 }
@@ -94,11 +88,10 @@ button svg.icon.icon-sign-in
     height: .9em;
     width: .9em;
 }
-h1.logo a {
-    color: var(--main-fg-color) !important;
-}
-h1.logo a svg.icon {
-    fill: var(--main-fg-color) !important;
+h1.logo a,
+h1.logo a:visited
+{
+    color: var(--main-fg-color);
 }
 h1.logo a:hover {
     text-decoration: none;
@@ -353,27 +346,6 @@ ol.comments li {
 }
 .deleted {
     opacity: .7;
-}
-.score a[href].ed svg
-{
-    fill: var(--main-linkvisited-color) !important;
-}
-.score a[href].ed
-{
-    color: var(--main-linkvisited-color) !important;
-}
-.score a[href].ed svg
-{
-    fill: var(--main-linkvisited-color);
-}
-.score a[href]:visited svg {
-    fill: var(--main-link-color);
-}
-.score a[href]:visited {
-    color: var(--main-link-color);
-}
-.score a[href]:active svg {
-    fill:  var(--main-linkactive-color);
 }
 .meta {
     font-size: .85em;
