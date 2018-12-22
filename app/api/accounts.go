@@ -995,7 +995,8 @@ func (h handler) AddToCollection(w http.ResponseWriter, r *http.Request) {
 					notFound(errors.NewNotFound(err, fmt.Sprintf("failed to save local account for remote actor")))
 					return
 				}
-				a.Actor = actor
+
+				a.Actor = loadAPPerson(acc)
 			}
 
 			if objectNeedsSaving && object != nil {
@@ -1007,11 +1008,10 @@ func (h handler) AddToCollection(w http.ResponseWriter, r *http.Request) {
 					}
 				}
 				// @fixme :needs_queueing:
-				if err = it.FromActivityPub(object); err != nil {
+				if err = it.FromActivityPub(a); err != nil {
 					notFound(errors.NewNotFound(err, fmt.Sprintf("failed to load account from remote actor %s", actor.GetLink())))
 					return
 				}
-				it.SubmittedBy = &acc
 				if it, err = repo.SaveItem(it); err != nil {
 					notFound(errors.NewNotFound(err, fmt.Sprintf("failed to load account from remote object %s", object.GetLink())))
 					return
