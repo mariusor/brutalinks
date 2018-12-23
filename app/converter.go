@@ -69,6 +69,14 @@ func (a *Account) FromActivityPub(it as.Item) error {
 			if !a.IsLocal() {
 				a.Handle = fmt.Sprintf("%s@%s", name, host(a.Metadata.URL))
 			}
+			if a.IsLocal() {
+				if !p.Published.IsZero() {
+					a.CreatedAt = p.Published
+				}
+				if !p.Updated.IsZero() {
+					a.UpdatedAt = p.Updated
+				}
+			}
 			return nil
 		}
 		if p, ok := it.(*as.Person); ok {

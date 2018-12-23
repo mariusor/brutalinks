@@ -215,6 +215,13 @@ func loadAPPerson(a app.Account) *localap.Person {
 	liked.ID = BuildCollectionID(a, new(ap.Liked))
 	p.Liked = liked
 
+	if !a.CreatedAt.IsZero() {
+		p.Published = a.CreatedAt
+	}
+	if !a.UpdatedAt.IsZero() {
+		p.Updated = a.UpdatedAt
+	}
+
 	p.URL = as.IRI(frontend.AccountPermaLink(a))
 	p.Score = a.Score
 	if a.IsValid() && a.HasMetadata() && a.Metadata.Key != nil && a.Metadata.Key.Public != nil {
