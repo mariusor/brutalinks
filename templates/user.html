@@ -1,14 +1,14 @@
 <section class="acct acct-info">
-    <h2>{{- if .User.HasAvatar }}<img src="{{.User.Metadata.Avatar.URI}}" alt="{{.User.Handle}}"/>{{ end -}}
-    <span class="by">{{.User.Handle}}</span></h2>
-    <section>Score: <span title="{{.User.Score | NumberFmt }}" class="score {{- .User.Score | ScoreClass -}}">{{ .User.Score | ScoreFmt}}</span></section>
+    <h2>{{- if .User.HasAvatar }}<img src="{{.User.Metadata.Avatar.URI}}" alt="{{.User.Handle}}" class="avatar" />{{ end -}}
+        <span class="by">{{.User.Handle}}</span></h2>
+{{- if not .User.CreatedAt.IsZero }}
+        <section class="join">Joined <time datetime="{{ .User.CreatedAt | ISOTimeFmt | html }}" title="{{ .User.CreatedAt | ISOTimeFmt }}">{{ .User.CreatedAt | TimeFmt }}</time></section>
+{{ end -}}
+        <section>Score <data title="{{.User.Score | NumberFmt }}" class="score {{- .User.Score | ScoreClass -}}">{{ .User.Score | ScoreFmt}}</data></section>
 {{ if CurrentAccount.IsLogged }}
-    {{- if not .User.CreatedAt.IsZero }}
-        <section class="joined">Join date: <time datetime="{{ .User.CreatedAt | ISOTimeFmt | html }}" title="{{ .User.CreatedAt | ISOTimeFmt }}">{{ .User.CreatedAt | TimeFmt }}</time></section>
-    {{ end -}}
     {{- if .User.HasPublicKey }}
-    <section class="pub-key">PublicKey : <pre>{{.User.Metadata.Key.Public | fmtPubKey }}</pre></section>
+        <section class="pub-key">PublicKey<br/><pre>{{.User.Metadata.Key.Public | fmtPubKey }}</pre></section>
     {{ end -}}
-{{ end }}
+{{- end }}
 </section>
 {{ template "listing" . }}
