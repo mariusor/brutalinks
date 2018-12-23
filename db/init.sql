@@ -2,10 +2,11 @@
 drop table if exists content_items;
 drop table if exists accounts;
 drop table if exists votes;
+drop table if exists instances;
 
 -- name: create-accounts
 create table accounts (
-  id serial primary key,
+  id serial constraint accounts_pk primary key,
   key char(32) unique,
   handle varchar,
   email varchar unique,
@@ -18,7 +19,7 @@ create table accounts (
 
 -- name: create-items
 create table content_items (
-  id serial primary key,
+  id serial constraint content_items_pk primary key,
   key char(32) unique,
   mime_type varchar default NULL,
   title varchar default NULL,
@@ -34,7 +35,7 @@ create table content_items (
 
 -- name: create-votes
 create table votes (
-  id serial primary key,
+  id serial constraint votes_pk primary key,
   submitted_by int references accounts(id),
   submitted_at timestamp default current_timestamp,
   updated_at timestamp default current_timestamp,
@@ -42,4 +43,16 @@ create table votes (
   weight int,
   flags bit(8) default 0::bit(8),
   constraint unique_vote_submitted_item unique (submitted_by, item_id)
+);
+
+-- name: create-instances
+create table instances
+(
+  id serial constraint instances_pk primary key,
+  name varchar not null,
+  description text,
+  url varchar unique not null,
+  inbox varchar unique,
+  metadata jsonb default '{}',
+  flags bit(8) default 0::bit(8)
 );

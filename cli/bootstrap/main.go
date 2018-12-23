@@ -113,6 +113,10 @@ func main() {
 	_, err = db.Exec(fmt.Sprintf(votes))
 	cmd.E(errors.Annotatef(err, "query: %s", votes))
 
+	instances, _ := dot.Raw("create-instances")
+	_, err = db.Exec(fmt.Sprintf(instances))
+	cmd.E(errors.Annotatef(err, "query: %s", instances))
+
 	if seed {
 		dot, err = dotsql.LoadFromFile("./db/seed.sql")
 		cmd.E(errors.Annotate(err, "unable to load file"))
@@ -128,5 +132,9 @@ func main() {
 		itemAbout, _ := dot.Raw("add-item-about")
 		_, err = db.Exec(fmt.Sprintf(itemAbout))
 		cmd.E(errors.Annotatef(err, "query: %s", itemAbout))
+
+		localInst, _ := dot.Raw("add-local-instance")
+		_, err = db.Exec(fmt.Sprintf(localInst))
+		cmd.E(errors.Annotatef(err, "query: %s", localInst))
 	}
 }
