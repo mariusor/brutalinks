@@ -14,7 +14,7 @@ type SSHKey struct {
 }
 
 type ImageMetadata struct {
-	Path     []byte `json:"path,omitempty"`
+	URI      string `json:"uri,omitempty"`
 	MimeType string `json:"mimeType,omitempty"`
 }
 
@@ -112,8 +112,13 @@ func (a Account) GetLink() string {
 	return fmt.Sprintf("/~%s", a.Handle)
 }
 
+// IsLogged should show if current user was loaded from a session
 func (a Account) IsLogged() bool {
 	return !a.CreatedAt.IsZero()
+}
+
+func (a Account) HasAvatar() bool {
+	return a.HasMetadata() && len(a.Metadata.Avatar.URI) > 0
 }
 
 func (a AccountCollection) First() (*Account, error) {

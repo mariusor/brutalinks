@@ -1,5 +1,6 @@
 <section class="acct acct-info">
-    <h2><span class="by">{{.User.Handle}}</span></h2>
+    <h2>{{- if .User.HasAvatar }}<img src="{{.User.Metadata.Avatar.URI}}" alt="{{.User.Handle}}"/>{{ end -}}
+    <span class="by">{{.User.Handle}}</span></h2>
     <section>Score: <span title="{{.User.Score | NumberFmt }}" class="score {{- .User.Score | ScoreClass -}}">{{ .User.Score | ScoreFmt}}</span></section>
 {{ if CurrentAccount.IsLogged }}
     {{- if not .User.CreatedAt.IsZero }}

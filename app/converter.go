@@ -66,6 +66,18 @@ func (a *Account) FromActivityPub(it as.Item) error {
 				a.Metadata.ID = iri.String()
 				a.Metadata.URL = p.URL.GetLink().String()
 			}
+			if p.Icon != nil {
+				if p.Icon.IsObject() {
+					if ic, ok := p.Icon.(*as.Object); ok {
+						a.Metadata.Avatar.MimeType = string(ic.MediaType)
+						a.Metadata.Avatar.URI = ic.URL.GetLink().String()
+					}
+					if ic, ok := p.Icon.(as.Object); ok {
+						a.Metadata.Avatar.MimeType = string(ic.MediaType)
+						a.Metadata.Avatar.URI = ic.URL.GetLink().String()
+					}
+				}
+			}
 			if !a.IsLocal() {
 				a.Handle = fmt.Sprintf("%s@%s", name, host(a.Metadata.URL))
 			}

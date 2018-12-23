@@ -183,15 +183,15 @@ func loadAPPerson(a app.Account) *localap.Person {
 	p.Name = as.NaturalLanguageValueNew()
 	p.PreferredUsername = as.NaturalLanguageValueNew()
 
-	if a.Metadata != nil {
+	if a.HasMetadata() {
 		if a.Metadata.Blurb != nil && len(a.Metadata.Blurb) > 0 {
 			p.Summary = as.NaturalLanguageValueNew()
 			p.Summary.Set(as.NilLangRef, string(a.Metadata.Blurb))
 		}
-		if a.Metadata.Avatar.Path != nil && len(a.Metadata.Avatar.Path) > 0 {
+		if len(a.Metadata.Avatar.URI) > 0 {
 			avatar := as.ObjectNew(as.ImageType)
 			avatar.MediaType = as.MimeType(a.Metadata.Avatar.MimeType)
-			avatar.URL = as.IRI(a.Metadata.Avatar.Path)
+			avatar.URL = as.IRI(a.Metadata.Avatar.URI)
 			p.Icon = avatar
 		}
 	}
