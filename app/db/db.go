@@ -220,7 +220,7 @@ func LoadScoresForItems(since time.Duration, key string) ([]app.Score, error) {
 	return loadScoresForItems(Config.DB, since, key)
 }
 
-var maxVotePeriod, _ = time.ParseDuration("4444h")
+var maxVotePeriod, _ = time.ParseDuration("44444h")
 
 func loadScoresForItems(db *sqlx.DB, since time.Duration, key string) ([]app.Score, error) {
 	par := make([]interface{}, 0)
@@ -236,10 +236,9 @@ func loadScoresForItems(db *sqlx.DB, since time.Duration, key string) ([]app.Sco
 		sum(CASE WHEN "weight" > 0 THEN "weight" ELSE 0 END) AS "ups",
 		sum(CASE WHEN "weight" < 0 THEN abs("weight") ELSE 0 END) AS "downs"
 		FROM "votes" INNER JOIN "items" ON "items"."id" = "item_id"
-		WHERE "items"."submitted_at" >= current_timestamp - INTERVAL '%.3f hours'  
-	AND "votes"."submitted_at" >= current_timestamp - INTERVAL '%.3f hours' %s 
+		WHERE "votes"."updated_at" >= current_timestamp - INTERVAL '%.3f hours' %s 
 	GROUP BY "item_id", "key" ORDER BY "item_id";`,
-		since.Hours(), maxVotePeriod.Hours(), keyClause)
+		since.Hours(), keyClause)
 	rows, err := db.Query(q, par...)
 	if err != nil {
 		return nil, err
@@ -283,24 +282,23 @@ func LoadScoresForAccounts(since time.Duration, col string, val string) ([]app.S
 
 func loadScoresForAccounts(db *sqlx.DB, since time.Duration, col string, val string) ([]app.Score, error) {
 	par := make([]interface{}, 0)
-	par = append(par, interface{}(since.Hours()))
 	dumb := func(ups, downs int64) int64 {
 		return ups - downs
 	}
 	keyClause := ""
 	if len(val) > 0 && len(col) > 0 {
-		keyClause = fmt.Sprintf(` and "items"."%s" ~* $2`, col)
+		keyClause = fmt.Sprintf(` and "items"."%s" ~* $1`, col)
 		par = append(par, interface{}(val))
 	}
-	q := fmt.Sprintf(`select "accounts"."id", "accounts"."handle", "accounts"."key", max("items"."submitted_at"),
-       sum(CASE WHEN "weight" > 0 THEN "weight" ELSE 0 END) AS "ups",
-       sum(CASE WHEN "weight" < 0 THEN abs("weight") ELSE 0 END) AS "downs"
-from "votes"
-       inner join "items" on "items"."id" = "item_id"
-       inner join "accounts" on "items"."submitted_by" = "accounts"."id"
-where current_timestamp - "items"."submitted_at" < ($1 * INTERVAL '1 hour')%s
-group by "accounts"."id", "accounts"."key" order by "accounts"."id";`,
-		keyClause)
+	q := fmt.Sprintf(`SELECT "accounts"."id", "accounts"."handle", "accounts"."key", max("items"."submitted_at"),
+       SUM(CASE WHEN "weight" > 0 THEN "weight" ELSE 0 END) AS "ups",
+       SUM(CASE WHEN "weight" < 0 THEN abs("weight") ELSE 0 END) AS "downs"
+FROM "votes"
+       INNER JOIN "items" ON "items"."id" = "item_id"
+       INNER JOIN "accounts" ON "items"."submitted_by" = "accounts"."id"
+WHERE "votes"."updated_at" >= current_timestamp - INTERVAL '%.3f hours' %s 
+GROUP BY "accounts"."id", "accounts"."key" ORDER BY "accounts"."id";`,
+		since.Hours(), keyClause)
 	rows, err := db.Query(q, par...)
 	if err != nil {
 		return nil, err
