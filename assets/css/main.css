@@ -343,6 +343,12 @@ ol.comments li {
 .score a:not([href]) {
     opacity: .3;
 }
+.item .score a[href].ed {
+    color: var(--main-linkvisited-color);
+}
+.score a[href]:visited {
+    color: var(--main-link-color);
+}
 .deleted {
     opacity: .7;
 }
