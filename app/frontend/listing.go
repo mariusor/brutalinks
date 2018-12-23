@@ -119,7 +119,7 @@ func nayLink(i app.Item) string {
 }
 
 func pageLink(p int) template.HTML {
-	if p > 1 {
+	if p >= 1 {
 		return template.HTML(fmt.Sprintf("?page=%d", p))
 	} else {
 		return template.HTML("")
