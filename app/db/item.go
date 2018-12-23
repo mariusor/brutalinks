@@ -127,14 +127,14 @@ func saveItem(db *sqlx.DB, it app.Item) (app.Item, error) {
 		params = append(params, it.SubmittedBy.Hash)
 
 		if it.Parent != nil && len(it.Parent.Hash) > 0 {
-			query = `insert into "content_items" ("key", "title", "data", "metadata", "mime_type", "flags", "submitted_by", "path") 
+			query = `insert into "items" ("key", "title", "data", "metadata", "mime_type", "flags", "submitted_by", "path") 
 		values(
 			$1, $2, $3, $4, $5, $6::bit(8), (select "id" from "accounts" where "key" ~* $7 or "handle" = $7), (select (case when "path" is not null then concat("path", '.', "key") else "key" end) 
-				as "parent_path" from "content_items" where key ~* $8)::ltree
+				as "parent_path" from "items" where key ~* $8)::ltree
 		);`
 			params = append(params, it.Parent.Hash)
 		} else {
-			query = `insert into "content_items" ("key", "title", "data", "metadata", "mime_type", "flags", "submitted_by") 
+			query = `insert into "items" ("key", "title", "data", "metadata", "mime_type", "flags", "submitted_by") 
 		values($1, $2, $3, $4, $5, $6::bit(8), (select "id" from "accounts" where "key" ~* $7 or "handle" = $7));`
 		}
 		hash = i.Key.String()
@@ -147,7 +147,7 @@ func saveItem(db *sqlx.DB, it app.Item) (app.Item, error) {
 		params = append(params, time.Now())
 		params = append(params, it.Hash)
 
-		query = `UPDATE "content_items" SET "title" = $1, "data" = $2, "metadata" = $3, "mime_type" = $4,
+		query = `UPDATE "items" SET "title" = $1, "data" = $2, "metadata" = $3, "mime_type" = $4,
 			"flags" = $5::bit(8), "updated_at" = $6 WHERE "key" ~* $7;`
 		hash = string(it.Hash)
 	}
@@ -264,7 +264,7 @@ func loadItems(db *sqlx.DB, f app.LoadItemsFilter) (app.ItemCollection, error) {
 		"author"."created_at" as "author_created_at",
 		"author"."metadata" as "author_metadata",
 		"author"."flags" as "author_flags"
-		from "content_items" as "item"
+		from "items" as "item"
 			left join "accounts" as "author" on "author"."id" = "item"."submitted_by" 
 		where %s 
 	order by 

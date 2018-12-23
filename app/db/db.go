@@ -229,14 +229,14 @@ func loadScoresForItems(db *sqlx.DB, since time.Duration, key string) ([]app.Sco
 	}
 	keyClause := ""
 	if len(key) > 0 {
-		keyClause = `AND "content_items"."key" ~* $1`
+		keyClause = `AND "items"."key" ~* $1`
 		par = append(par, interface{}(key))
 	}
-	q := fmt.Sprintf(`select "item_id", "content_items"."key", max("content_items"."submitted_at"),
+	q := fmt.Sprintf(`select "item_id", "items"."key", max("items"."submitted_at"),
 		sum(CASE WHEN "weight" > 0 THEN "weight" ELSE 0 END) AS "ups",
 		sum(CASE WHEN "weight" < 0 THEN abs("weight") ELSE 0 END) AS "downs"
-		FROM "votes" INNER JOIN "content_items" ON "content_items"."id" = "item_id"
-		WHERE "content_items"."submitted_at" >= current_timestamp - INTERVAL '%.3f hours'  
+		FROM "votes" INNER JOIN "items" ON "items"."id" = "item_id"
+		WHERE "items"."submitted_at" >= current_timestamp - INTERVAL '%.3f hours'  
 	AND "votes"."submitted_at" >= current_timestamp - INTERVAL '%.3f hours' %s 
 	GROUP BY "item_id", "key" ORDER BY "item_id";`,
 		since.Hours(), maxVotePeriod.Hours(), keyClause)
@@ -289,16 +289,16 @@ func loadScoresForAccounts(db *sqlx.DB, since time.Duration, col string, val str
 	}
 	keyClause := ""
 	if len(val) > 0 && len(col) > 0 {
-		keyClause = fmt.Sprintf(` and "content_items"."%s" ~* $2`, col)
+		keyClause = fmt.Sprintf(` and "items"."%s" ~* $2`, col)
 		par = append(par, interface{}(val))
 	}
-	q := fmt.Sprintf(`select "accounts"."id", "accounts"."handle", "accounts"."key", max("content_items"."submitted_at"),
+	q := fmt.Sprintf(`select "accounts"."id", "accounts"."handle", "accounts"."key", max("items"."submitted_at"),
        sum(CASE WHEN "weight" > 0 THEN "weight" ELSE 0 END) AS "ups",
        sum(CASE WHEN "weight" < 0 THEN abs("weight") ELSE 0 END) AS "downs"
 from "votes"
-       inner join "content_items" on "content_items"."id" = "item_id"
-       inner join "accounts" on "content_items"."submitted_by" = "accounts"."id"
-where current_timestamp - "content_items"."submitted_at" < ($1 * INTERVAL '1 hour')%s
+       inner join "items" on "items"."id" = "item_id"
+       inner join "accounts" on "items"."submitted_by" = "accounts"."id"
+where current_timestamp - "items"."submitted_at" < ($1 * INTERVAL '1 hour')%s
 group by "accounts"."id", "accounts"."key" order by "accounts"."id";`,
 		keyClause)
 	rows, err := db.Query(q, par...)

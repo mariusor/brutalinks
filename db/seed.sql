@@ -25,7 +25,7 @@ INSERT INTO "accounts" ("id", "key", "handle", "email", "score", "created_at", "
 );
 
 -- name: add-item-about
-INSERT INTO "content_items" ("id", "key", "mime_type", "title", "data", "submitted_by", "score", "submitted_at", "updated_at", "path", "metadata", "flags") VALUES (
+INSERT INTO "items" ("id", "key", "mime_type", "title", "data", "submitted_by", "score", "submitted_at", "updated_at", "path", "metadata", "flags") VALUES (
     DEFAULT,
     '162edb32c80d0e6dd3114fbb59d6273b',
     'text/html',

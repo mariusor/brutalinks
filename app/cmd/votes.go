@@ -35,7 +35,7 @@ func UpdateScores(key string, handle string, since time.Duration, items bool, ac
 	for _, score := range scores {
 		var col string
 		if score.Type == app.ScoreItem {
-			col = `content_items`
+			col = `items`
 		} else {
 			col = `accounts`
 		}

@@ -107,7 +107,7 @@ func loadVotes(db *sqlx.DB, f app.LoadVotesFilter) (app.VoteCollection, error) {
 		"author"."flags" as "author_flags"
 	from "votes" as "vote"
 		inner join "accounts" as "voter" on "voter"."id" = "vote"."submitted_by"
-		inner join "content_items" as "item" on "item"."id" = "vote"."item_id" 
+		inner join "items" as "item" on "item"."id" = "vote"."item_id" 
 		inner join "accounts" as "author" on "item"."submitted_by" = "author"."id"
 where %s order by "vote"."submitted_at" desc limit %d%s`, fullWhere, f.MaxItems, offset)
 	agg := make([]votesView, 0)
@@ -228,7 +228,7 @@ func (v votesView) item() Item {
 func saveVote(db *sqlx.DB, vot app.Vote) (app.Vote, error) {
 	var sel string
 	sel = `select "votes"."id", "accounts"."id", "votes"."weight", "votes"."submitted_at" from "votes" inner join "accounts" on "accounts"."id" = "votes"."submitted_by" 
-			where "accounts"."key" ~* $1 and "votes"."item_id" = (select "id" from "content_items" where "key" ~* $2);`
+			where "accounts"."key" ~* $1 and "votes"."item_id" = (select "id" from "items" where "key" ~* $2);`
 	var userID int64
 	var vID int64
 	var oldWeight int64
@@ -254,10 +254,10 @@ func saveVote(db *sqlx.DB, vot app.Vote) (app.Vote, error) {
 		if vot.Weight != 0 && oldWeight != 0 && math.Signbit(float64(oldWeight)) == math.Signbit(float64(vot.Weight)) {
 			vot.Weight = 0
 		}
-		q = `update "votes" set "updated_at" = now(), "weight" = $1, "flags" = $2::bit(8) where "item_id" = (select "id" from "content_items" where "key" ~* $3) and "submitted_by" = (select "id" from "accounts" where "key" ~* $4);`
+		q = `update "votes" set "updated_at" = now(), "weight" = $1, "flags" = $2::bit(8) where "item_id" = (select "id" from "items" where "key" ~* $3) and "submitted_by" = (select "id" from "accounts" where "key" ~* $4);`
 		updated = true
 	} else {
-		q = `insert into "votes" ("weight", "flags", "item_id", "submitted_by") values ($1, $2::bit(8), (select "id" from "content_items" where "key" ~* $3), (select "id" from "accounts" where "key" ~* $4))`
+		q = `insert into "votes" ("weight", "flags", "item_id", "submitted_by") values ($1, $2::bit(8), (select "id" from "items" where "key" ~* $3), (select "id" from "accounts" where "key" ~* $4))`
 	}
 	v.Flags.Scan(vot.Flags)
 	v.Weight = int(vot.Weight * app.ScoreMultiplier)
@@ -270,7 +270,7 @@ func saveVote(db *sqlx.DB, vot app.Vote) (app.Vote, error) {
 		return vot, errors.Errorf("scoring failed %s", err)
 	}
 
-	upd := `update "content_items" set score = score - $1 + $2 where "id" = (select "id" from "content_items" where "key" ~* $3)`
+	upd := `update "items" set score = score - $1 + $2 where "id" = (select "id" from "items" where "key" ~* $3)`
 	res, err = db.Exec(upd, v.Weight, v.Weight, vot.Item.Hash)
 	if err != nil {
 		return vot, err

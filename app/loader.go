@@ -273,7 +273,7 @@ func (f LoadItemsFilter) GetWhereClauses() ([]string, []interface{}) {
 			}
 			ctxtWhere = append(ctxtWhere, fmt.Sprintf(`("%s"."path" <@ (SELECT
 CASE WHEN "path" IS NULL THEN "key"::ltree ELSE ltree_addltree("path", "key"::ltree) END
-FROM "content_items" WHERE "key" ~* $%d) AND "%s"."path" IS NOT NULL)`, it, counter, it))
+FROM "items" WHERE "key" ~* $%d) AND "%s"."path" IS NOT NULL)`, it, counter, it))
 			whereValues = append(whereValues, interface{}(ctxtHash))
 			counter++
 		}
@@ -287,7 +287,7 @@ FROM "content_items" WHERE "key" ~* $%d) AND "%s"."path" IS NOT NULL)`, it, coun
 			}
 			whereColumns = append(whereColumns, fmt.Sprintf(`("%s"."path" = (SELECT
 CASE WHEN "path" IS NULL THEN "key"::ltree ELSE ltree_addltree("path", "key"::ltree) END
-FROM "content_items" WHERE "key" ~* $%d) AND "%s"."path" IS NOT NULL)`, it, counter, it))
+FROM "items" WHERE "key" ~* $%d) AND "%s"."path" IS NOT NULL)`, it, counter, it))
 			whereValues = append(whereValues, interface{}(hash))
 			counter++
 		}
@@ -339,7 +339,7 @@ FROM "content_items" WHERE "key" ~* $%d) AND "%s"."path" IS NOT NULL)`, it, coun
 		for _, hash := range f.FollowedBy {
 			keyWhere = append(keyWhere, fmt.Sprintf(`"%s"."id" in (SELECT "votes"."item_id" FROM "votes" WHERE "votes"."submitted_by" = (SELECT "id" FROM "accounts" where "key" ~* $%d OR "handle" = $%d) AND "votes"."weight" != 0)
 			OR
-"%s"."key" IN (SELECT subpath("path", 0, 1)::varchar FROM "content_items" WHERE "submitted_by" = (SELECT "id" FROM "accounts" where "key" ~* $%d OR "handle" = $%d) AND nlevel("path") > 1)`, it, counter, counter, it, counter, counter))
+"%s"."key" IN (SELECT subpath("path", 0, 1)::varchar FROM "items" WHERE "submitted_by" = (SELECT "id" FROM "accounts" where "key" ~* $%d OR "handle" = $%d) AND nlevel("path") > 1)`, it, counter, counter, it, counter, counter))
 			whereValues = append(whereValues, interface{}(hash))
 			counter++
 		}
@@ -444,6 +444,13 @@ func (f *LoadAccountsFilter) FirstPage() Paginator {
 	return f
 }
 
+type Repository interface {
+	CanLoadAccounts
+	CanLoadItems
+	CanLoadInfo
+	CanLoadVotes
+}
+
 type Authenticated interface {
 	WithAccount(a *Account) error
 }
@@ -480,7 +487,7 @@ type CanSaveVotes interface {
 	// messaging queue. Details of this queue to be established (strongest possibility is Redis PubSub)
 	// The cli/votes/main.go script would be responsible with waiting on the queue for these messages
 	// and updating the new score and all models dependent on it.
-	//   content_items and accounts tables, corresponding ES documents, etc
+	//   items and accounts tables, corresponding ES documents, etc
 	SaveVote(v Vote) (Vote, error)
 }
 

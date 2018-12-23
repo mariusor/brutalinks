@@ -1,5 +1,5 @@
 -- name: drop-tables
-drop table if exists content_items;
+drop table if exists items;
 drop table if exists accounts;
 drop table if exists votes;
 drop table if exists instances;
@@ -18,8 +18,8 @@ create table accounts (
 );
 
 -- name: create-items
-create table content_items (
-  id serial constraint content_items_pk primary key,
+create table items (
+  id serial constraint items_pk primary key,
   key char(32) unique,
   mime_type varchar default NULL,
   title varchar default NULL,
@@ -39,7 +39,7 @@ create table votes (
   submitted_by int references accounts(id),
   submitted_at timestamp default current_timestamp,
   updated_at timestamp default current_timestamp,
-  item_id  int references content_items(id),
+  item_id  int references items(id),
   weight int,
   flags bit(8) default 0::bit(8),
   constraint unique_vote_submitted_item unique (submitted_by, item_id)
