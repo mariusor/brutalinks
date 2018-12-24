@@ -82,7 +82,7 @@ func localPermaLink(a app.Account) string {
 
 // ShowAccountHandle
 func ShowAccountHandle(a app.Account) string {
-	if !a.IsLocal() && len(a.Email) > 0 {
+	if a.IsFederated() && len(a.Email) > 0 {
 		return a.Email
 	}
 	return a.Handle
@@ -97,12 +97,15 @@ func AccountPermaLink(a app.Account) string {
 }
 
 // ItemPermaLink
-func ItemPermaLink(c app.Item) string {
-	if c.SubmittedBy == nil {
-		// @todo(marius) :link_generation:
-		return fmt.Sprintf("/i/%s", c.Hash)
+func ItemPermaLink(i app.Item) string {
+	if !i.IsLink() && i.HasMetadata() && len(i.Metadata.URL) > 0 {
+		return i.Metadata.URL
 	}
-	return fmt.Sprintf("%s/%s", localPermaLink(*c.SubmittedBy), c.Hash)
+	if i.SubmittedBy == nil {
+		// @todo(marius) :link_generation:
+		return fmt.Sprintf("/i/%s", i.Hash)
+	}
+	return fmt.Sprintf("%s/%s", localPermaLink(*i.SubmittedBy), i.Hash)
 }
 
 func scoreLink(i app.Item, dir string) string {

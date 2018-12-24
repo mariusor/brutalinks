@@ -123,6 +123,11 @@ func (i Item) HasMetadata() bool {
 	return i.Metadata != nil
 }
 
+// IsFederated
+func (i Item) IsFederated() bool {
+	return !i.IsLocal()
+}
+
 // IsLocal
 func (i Item) IsLocal() bool {
 	if !i.HasMetadata() {

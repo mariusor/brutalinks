@@ -67,6 +67,11 @@ func (a Account) HasMetadata() bool {
 	return a.Metadata != nil
 }
 
+// IsFederated
+func (a Account) IsFederated() bool {
+	return !a.IsLocal()
+}
+
 // IsLocal
 func (a Account) IsLocal() bool {
 	if !a.HasMetadata() {

@@ -78,7 +78,7 @@ func (a *Account) FromActivityPub(it as.Item) error {
 					}
 				}
 			}
-			if !a.IsLocal() {
+			if a.IsFederated() {
 				a.Handle = fmt.Sprintf("%s@%s", name, host(a.Metadata.URL))
 			}
 			if a.IsLocal() {
