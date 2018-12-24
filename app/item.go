@@ -15,12 +15,13 @@ type Tag struct {
 type TagCollection []Tag
 
 type ItemMetadata struct {
-	Tags     TagCollection `json:"tags,omitempty"`
-	Mentions TagCollection `json:"mentions,omitempty"`
-	ID       []byte        `json:"id,omitempty"`
-	Replies  []byte        `json:"replies,omitempty"`
-	Author   []byte        `json:"author,omitempty"`
-	Avatar   ImageMetadata `json:"avatar,omitempty"`
+	Tags       TagCollection `json:"tags,omitempty"`
+	Mentions   TagCollection `json:"mentions,omitempty"`
+	ID         string        `json:"id,omitempty"`
+	URL        string        `json:"url,omitempty"`
+	RepliesURI string        `json:"replies,omitempty"`
+	AuthorURI  string        `json:"author,omitempty"`
+	Icon       ImageMetadata `json:"icon,omitempty"`
 }
 
 type Identifiable interface {

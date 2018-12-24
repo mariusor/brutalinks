@@ -24,7 +24,7 @@ type AccountMetadata struct {
 	Salt      []byte        `json:"salt,omitempty"`
 	Key       *SSHKey       `json:"key,omitempty"`
 	Blurb     []byte        `json:"blurb,omitempty"`
-	Avatar    ImageMetadata `json:"avatar,omitempty"`
+	Icon      ImageMetadata `json:"icon,omitempty"`
 	ID        string        `json:"id,omitempty"`
 	URL       string        `json:"url,omitempty"`
 	InboxIRI  string        `json:"inbox,omitempty"`
@@ -118,7 +118,7 @@ func (a Account) IsLogged() bool {
 }
 
 func (a Account) HasAvatar() bool {
-	return a.HasMetadata() && len(a.Metadata.Avatar.URI) > 0
+	return a.HasMetadata() && len(a.Metadata.Icon.URI) > 0
 }
 
 func (a AccountCollection) First() (*Account, error) {

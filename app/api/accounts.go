@@ -188,10 +188,10 @@ func loadAPPerson(a app.Account) *localap.Person {
 			p.Summary = as.NaturalLanguageValueNew()
 			p.Summary.Set(as.NilLangRef, string(a.Metadata.Blurb))
 		}
-		if len(a.Metadata.Avatar.URI) > 0 {
+		if len(a.Metadata.Icon.URI) > 0 {
 			avatar := as.ObjectNew(as.ImageType)
-			avatar.MediaType = as.MimeType(a.Metadata.Avatar.MimeType)
-			avatar.URL = as.IRI(a.Metadata.Avatar.URI)
+			avatar.MediaType = as.MimeType(a.Metadata.Icon.MimeType)
+			avatar.URL = as.IRI(a.Metadata.Icon.URI)
 			p.Icon = avatar
 		}
 	}

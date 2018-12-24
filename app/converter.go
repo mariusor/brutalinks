@@ -69,12 +69,12 @@ func (a *Account) FromActivityPub(it as.Item) error {
 			if p.Icon != nil {
 				if p.Icon.IsObject() {
 					if ic, ok := p.Icon.(*as.Object); ok {
-						a.Metadata.Avatar.MimeType = string(ic.MediaType)
-						a.Metadata.Avatar.URI = ic.URL.GetLink().String()
+						a.Metadata.Icon.MimeType = string(ic.MediaType)
+						a.Metadata.Icon.URI = ic.URL.GetLink().String()
 					}
 					if ic, ok := p.Icon.(as.Object); ok {
-						a.Metadata.Avatar.MimeType = string(ic.MediaType)
-						a.Metadata.Avatar.URI = ic.URL.GetLink().String()
+						a.Metadata.Icon.MimeType = string(ic.MediaType)
+						a.Metadata.Icon.URI = ic.URL.GetLink().String()
 					}
 				}
 			}
