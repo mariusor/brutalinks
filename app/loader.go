@@ -169,19 +169,15 @@ func (f LoadVotesFilter) GetWhereClauses() ([]string, []interface{}) {
 			switch strings.ToLower(string(typ)) {
 			case string(TypeLike):
 				whereColumns = append(whereColumns, fmt.Sprintf(`"votes"."weight" > $%d`, counter))
-				whereValues = append(whereValues, interface{}(0))
-				counter++
 			case string(TypeDislike):
 				whereColumns = append(whereColumns, fmt.Sprintf(`"votes"."weight" < $%d`, counter))
-				whereValues = append(whereValues, interface{}(0))
-				counter++
 			case string(TypeUndo):
 				whereColumns = append(whereColumns, fmt.Sprintf(`"votes"."weight" = $%d`, counter))
-				whereValues = append(whereValues, interface{}(0))
-				counter++
 			}
+			whereValues = append(whereValues, interface{}(0))
+			counter++
 		}
-		if len(wheres) > 0 && len(wheres) < 3 {
+		if len(whereColumns) > 0 && len(whereColumns) < 3 {
 			wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
 		}
 	}
