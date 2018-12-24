@@ -86,7 +86,7 @@ func ContentFromRequest(r *http.Request, acc app.Account) (app.Item, error) {
 		i.MimeType = app.MimeType(r.PostFormValue("mime-type"))
 	}
 	if len(i.Data) > 0 {
-		now := time.Now()
+		now := time.Now().UTC()
 		i.SubmittedAt = now
 		i.UpdatedAt = now
 	}

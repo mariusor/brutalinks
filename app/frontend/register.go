@@ -44,7 +44,7 @@ func accountFromRequest(r *http.Request, l log.Logger) (*app.Account, []error) {
 	if handle != "" {
 		a.Handle = handle
 	}
-	now := time.Now()
+	now := time.Now().UTC()
 	a.CreatedAt = now
 	a.UpdatedAt = now
 

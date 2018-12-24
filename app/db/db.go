@@ -250,7 +250,7 @@ func loadScoresForItems(db *sqlx.DB, since time.Duration, key string) ([]app.Sco
 		var key []byte
 		err = rows.Scan(&i, &key, &submitted, &ups, &downs)
 
-		now := time.Now()
+		now := time.Now().UTC()
 		reddit := int64(app.Reddit(ups, downs, now.Sub(submitted)))
 		wilson := int64(app.Wilson(ups, downs))
 		hacker := int64(app.Hacker(ups-downs, now.Sub(submitted)))
@@ -312,7 +312,7 @@ GROUP BY "accounts"."id", "accounts"."key" ORDER BY "accounts"."id";`,
 		var handle string
 		err = rows.Scan(&i, &handle, &key, &submitted, &ups, &downs)
 
-		now := time.Now()
+		now := time.Now().UTC()
 		reddit := int64(app.Reddit(ups, downs, now.Sub(submitted)))
 		wilson := int64(app.Wilson(ups, downs))
 		hacker := int64(app.Hacker(ups-downs, now.Sub(submitted)))

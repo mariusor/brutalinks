@@ -112,15 +112,16 @@ func saveItem(db *sqlx.DB, it app.Item) (app.Item, error) {
 	i.Flags.Scan(it.Flags)
 	var params = make([]interface{}, 0)
 
+	now := time.Now().UTC()
 	if !it.SubmittedAt.IsZero() {
 		i.SubmittedAt = it.SubmittedAt
 	} else {
-		i.SubmittedAt = time.Now()
+		i.SubmittedAt = now
 	}
 	if !it.UpdatedAt.IsZero() {
 		i.UpdatedAt = it.UpdatedAt
 	} else {
-		i.UpdatedAt = time.Now()
+		i.UpdatedAt = now
 	}
 
 	var res sql.Result
@@ -157,7 +158,7 @@ func saveItem(db *sqlx.DB, it app.Item) (app.Item, error) {
 		params = append(params, i.Metadata)
 		params = append(params, i.MimeType)
 		params = append(params, i.Flags)
-		params = append(params, time.Now())
+		params = append(params, now)
 		params = append(params, it.Hash)
 
 		query = `UPDATE "items" SET "title" = $1, "data" = $2, "metadata" = $3, "mime_type" = $4,

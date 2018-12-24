@@ -98,8 +98,7 @@ func isoTimeFmt(t time.Time) string {
 }
 
 func relTimeFmt(old time.Time) string {
-	//return humanize.RelTime(old, time.Now(), "ago", "in the future")
-	td := time.Now().Sub(old)
+	td := time.Now().UTC().Sub(old)
 	pluralize := func(d float64, unit string) string {
 		if math.Round(d) != 1 {
 			if unit == "century" {
