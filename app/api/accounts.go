@@ -718,10 +718,14 @@ func validateObject(a as.Item, repo app.CanLoadItems, activityType as.ActivityVo
 	cont := app.Item{}
 	cont.FromActivityPub(a)
 
+	if a.IsLink() {
+		// we need to dereference the object
+		return o, objectMissingError{err: err, object: a}
+	}
+
 	if err = validateItemType(a.GetType(), getValidObjectTypes(activityType)); err != nil {
 		return a, errors.NewNotValid(err, fmt.Sprintf("failed to validate object for %s activity", activityType))
 	}
-
 	if len(cont.Hash) == 0 {
 		return o, objectMissingError{err: err, object: a}
 		//return o, errors.Errorf("unable to load a valid object identifier from IRI %s", a.GetLink())
@@ -1012,6 +1016,8 @@ func (h handler) AddToCollection(w http.ResponseWriter, r *http.Request) {
 					if object, err = h.repo.client.LoadObject(object.GetLink()); err != nil {
 						notFound(errors.NewNotFound(err, fmt.Sprintf("failed to load remote object %s", object.GetLink())))
 						return
+					} else {
+						a.Object = object
 					}
 				}
 				// @fixme :needs_queueing:
@@ -1020,7 +1026,7 @@ func (h handler) AddToCollection(w http.ResponseWriter, r *http.Request) {
 					return
 				}
 				if it, err = repo.SaveItem(it); err != nil {
-					notFound(errors.NewNotFound(err, fmt.Sprintf("failed to load account from remote object %s", object.GetLink())))
+					notFound(errors.NewNotFound(err, fmt.Sprintf("failed to save remote object %s", object.GetLink())))
 					return
 				}
 

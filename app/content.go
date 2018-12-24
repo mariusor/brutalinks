@@ -118,3 +118,21 @@ func Markdown(data string) template.HTML {
 	h := md.RenderToString([]byte(data))
 	return template.HTML(h)
 }
+// HasMetadata
+func (i Item) HasMetadata() bool {
+	return i.Metadata != nil
+}
+
+// IsLocal
+func (i Item) IsLocal() bool {
+	if !i.HasMetadata() {
+		return true
+	}
+	if len(i.Metadata.ID) > 0 {
+		return HostIsLocal(i.Metadata.ID)
+	}
+	if len(i.Metadata.URL) > 0 {
+		return HostIsLocal(i.Metadata.URL)
+	}
+	return true
+}

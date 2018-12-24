@@ -57,8 +57,8 @@ func (a *Account) FromActivityPub(it as.Item) error {
 					Public: []byte(p.PublicKey.PublicKeyPem),
 				},
 			}
-			name := jsonUnescape(as.NaturalLanguageValue(p.Name).First())
-			a.Hash = getHashFromAP(p)
+			name := jsonUnescape(p.Name.First())
+
 			a.Handle = name
 			a.Flags = FlagsNone
 			if len(p.ID) > 0 {
@@ -82,6 +82,7 @@ func (a *Account) FromActivityPub(it as.Item) error {
 				a.Handle = fmt.Sprintf("%s@%s", name, host(a.Metadata.URL))
 			}
 			if a.IsLocal() {
+				a.Hash = getHashFromAP(p)
 				if !p.Published.IsZero() {
 					a.CreatedAt = p.Published
 				}
@@ -154,28 +155,24 @@ func (i *Item) FromActivityPub(it as.Item) error {
 	case as.DocumentType:
 		fallthrough
 	case as.PageType:
-		if a, ok := it.(ap.Article); ok {
-			i.Score = a.Score
-			i.Hash = getHashFromAP(a)
-			title := jsonUnescape(as.NaturalLanguageValue(a.Name).First())
+		loadFromAPObject := func(i *Item, a as.Object) error {
+			title := jsonUnescape(a.Name.First())
 
-			var content string
-			if len(a.Source.Content)+len(a.Source.MediaType) > 0 {
-				content = jsonUnescape(as.NaturalLanguageValue(a.Source.Content).First())
-				i.MimeType = string(a.Source.MediaType)
-			} else {
-				content = jsonUnescape(as.NaturalLanguageValue(a.Content).First())
-				i.MimeType = string(a.MediaType)
-			}
-			i.Hash = getHashFromAP(a)
 			i.Title = title
 			if a.Type == as.PageType {
 				i.Data = string(a.URL.GetLink())
 				i.MimeType = MimeTypeURL
 			} else {
-				i.Data = content
+				i.MimeType = string(a.MediaType)
+				i.Data = jsonUnescape(a.Content.First())
 			}
-			i.SubmittedAt = a.Published
+			if !a.Published.IsZero() {
+				i.SubmittedAt = a.Published
+			}
+			if !a.Updated.IsZero() {
+				i.UpdatedAt = a.Updated
+			}
+			i.Metadata = &ItemMetadata{}
 
 			if a.AttributedTo != nil {
 				if a.AttributedTo.IsObject() {
@@ -188,7 +185,26 @@ func (i *Item) FromActivityPub(it as.Item) error {
 					}
 				}
 			}
-
+			if len(a.ID) > 0 {
+				iri := a.GetLink()
+				i.Metadata.ID =  iri.String()
+				i.Metadata.URL = a.URL.GetLink().String()
+			}
+			if a.Icon != nil {
+				if a.Icon.IsObject() {
+					if ic, ok := a.Icon.(*as.Object); ok {
+						i.Metadata.Icon.MimeType = string(ic.MediaType)
+						i.Metadata.Icon.URI = ic.URL.GetLink().String()
+					}
+					if ic, ok := a.Icon.(as.Object); ok {
+						i.Metadata.Icon.MimeType = string(ic.MediaType)
+						i.Metadata.Icon.URI = ic.URL.GetLink().String()
+					}
+				}
+			}
+			if i.IsLocal() {
+				i.Hash = getHashFromAP(a)
+			}
 			if a.InReplyTo != nil {
 				par := Item{}
 				par.FromActivityPub(a.InReplyTo)
@@ -200,7 +216,6 @@ func (i *Item) FromActivityPub(it as.Item) error {
 				i.OP = &op
 			}
 			if a.Tag != nil && len(a.Tag) > 0 {
-				i.Metadata = &ItemMetadata{}
 				i.Metadata.Tags = make(TagCollection, 0)
 				i.Metadata.Mentions = make(TagCollection, 0)
 
@@ -214,13 +229,42 @@ func (i *Item) FromActivityPub(it as.Item) error {
 					}
 				}
 			}
+			return nil
+		}
+		loadFromArticle := func(i *Item, a ap.Article) error {
+			loadFromAPObject(i, a.Object.Object)
+			i.Score = a.Score
+			if len(a.Source.Content)+len(a.Source.MediaType) > 0 {
+				i.Data = jsonUnescape(a.Source.Content.First())
+				i.MimeType = string(a.Source.MediaType)
+			}
+			return nil
+		}
+		if a, ok := it.(ap.Article); ok {
+			loadFromArticle(i, a)
+		}
+		if a, ok := it.(*ap.Article); ok {
+			loadFromArticle(i, *a)
+		}
+		if o, ok := it.(as.Object); ok {
+			loadFromAPObject(i, o)
+		}
+		if o, ok := it.(*as.Object); ok {
+			loadFromAPObject(i, *o)
 		}
 	case as.TombstoneType:
-		i.Hash = getHashFromAP(it.GetLink())
+		id := it.GetLink()
+
+		if len(id) > 0 {
+			i.Metadata.ID = id.String()
+		}
 		i.Flags = FlagsDeleted
 		i.SubmittedBy = &Account{
 			Handle: Anonymous,
 			Hash:   AnonymousHash,
+		}
+		if i.IsLocal() {
+			i.Hash = getHashFromAP(id)
 		}
 	default:
 		return errors.New("invalid object type")
