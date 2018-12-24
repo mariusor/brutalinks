@@ -40,7 +40,7 @@ func (d data) String() string {
 type Item struct {
 	Hash        Hash          `json:"hash"`
 	Title       string        `json:"-"`
-	MimeType    string        `json:"-"`
+	MimeType    MimeType      `json:"-"`
 	Data        string        `json:"-"`
 	Score       int64         `json:"-"`
 	SubmittedAt time.Time     `json:"-"`
@@ -81,7 +81,7 @@ func (i Item) GetDomain() string {
 }
 
 func (i Item) IsSelf() bool {
-	mimeComponents := strings.Split(i.MimeType, "/")
+	mimeComponents := strings.Split(string(i.MimeType), "/")
 	return mimeComponents[0] == "text"
 }
 

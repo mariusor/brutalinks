@@ -163,7 +163,7 @@ func (i *Item) FromActivityPub(it as.Item) error {
 				i.Data = string(a.URL.GetLink())
 				i.MimeType = MimeTypeURL
 			} else {
-				i.MimeType = string(a.MediaType)
+				i.MimeType = MimeType(a.MediaType)
 				i.Data = jsonUnescape(a.Content.First())
 			}
 			if !a.Published.IsZero() {
@@ -236,7 +236,7 @@ func (i *Item) FromActivityPub(it as.Item) error {
 			i.Score = a.Score
 			if len(a.Source.Content)+len(a.Source.MediaType) > 0 {
 				i.Data = jsonUnescape(a.Source.Content.First())
-				i.MimeType = string(a.Source.MediaType)
+				i.MimeType = MimeType(a.Source.MediaType)
 			}
 			return nil
 		}

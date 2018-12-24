@@ -67,7 +67,7 @@ func (i Item) Model() app.Item {
 	a := i.Author().Model()
 	am, _ := ItemMetadata(i.Metadata)
 	res := app.Item{
-		MimeType:    i.MimeType,
+		MimeType:    app.MimeType(i.MimeType),
 		SubmittedAt: i.SubmittedAt,
 		SubmittedBy: &a,
 		Metadata:    &am,

@@ -19,10 +19,10 @@ const (
 	FlagsNone = FlagBits(0)
 )
 
-const MimeTypeURL = "application/url"
-const MimeTypeHTML = "text/html"
-const MimeTypeMarkdown = "text/markdown"
-const MimeTypeText = "text/plain"
+const MimeTypeURL = MimeType("application/url")
+const MimeTypeHTML = MimeType("text/html")
+const MimeTypeMarkdown = MimeType("text/markdown")
+const MimeTypeText = MimeType("text/plain")
 
 type Key [32]byte
 

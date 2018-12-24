@@ -15,7 +15,7 @@ import (
 	"github.com/juju/errors"
 )
 
-func detectMimeType(data string) string {
+func detectMimeType(data string) app.MimeType {
 	u, err := url.ParseRequestURI(data)
 	if err == nil && u != nil && !bytes.ContainsRune([]byte(data), '\n') {
 		return app.MimeTypeURL
@@ -83,7 +83,7 @@ func ContentFromRequest(r *http.Request, acc app.Account) (app.Item, error) {
 	i.Metadata = &app.ItemMetadata{}
 	i.Metadata.Tags, i.Metadata.Mentions = loadTags(i.Data)
 	if !i.IsLink() {
-		i.MimeType = r.PostFormValue("mime-type")
+		i.MimeType = app.MimeType(r.PostFormValue("mime-type"))
 	}
 	if len(i.Data) > 0 {
 		now := time.Now()

@@ -58,14 +58,14 @@ func (c comments) getItemsHashes() []string {
 	return items
 }
 
-func sluggify(s string) string {
+func sluggify(s app.MimeType) string {
 	if s == "" {
-		return s
+		return ""
 	}
-	return strings.Replace(s, "/", "-", -1)
+	return strings.Replace(string(s), "/", "-", -1)
 }
 
-func mimeTypeTagReplace(m string, t app.Tag) string {
+func mimeTypeTagReplace(m app.MimeType, t app.Tag) string {
 	var cls string
 
 	if t.Name[0] == '#' {

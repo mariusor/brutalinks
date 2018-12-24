@@ -24,6 +24,7 @@ var (
 type MatchType int
 type ItemType string
 type VoteType string
+type MimeType string
 
 const (
 	MatchEquals = MatchType(1 << iota)
@@ -94,16 +95,16 @@ type LoadVotesFilter struct {
 }
 
 type LoadItemsFilter struct {
-	Key                  []string  `qstring:"hash,omitempty"`
-	MediaType            []string  `qstring:"mediaType,omitempty"`
-	AttributedTo         Hashes    `qstring:"attributedTo,omitempty"`
-	InReplyTo            []string  `qstring:"inReplyTo,omitempty"`
-	Context              []string  `qstring:"context,omitempty"`
-	SubmittedAt          time.Time `qstring:"submittedAt,omitempty"`
-	SubmittedAtMatchType MatchType `qstring:"submittedAtMatchType,omitempty"`
-	Content              string    `qstring:"content,omitempty"`
-	ContentMatchType     MatchType `qstring:"contentMatchType,omitempty"`
-	Deleted              []bool    `qstring:"deleted,omitempty"`
+	Key                  []string   `qstring:"hash,omitempty"`
+	MediaType            []MimeType `qstring:"mediaType,omitempty"`
+	AttributedTo         Hashes     `qstring:"attributedTo,omitempty"`
+	InReplyTo            []string   `qstring:"inReplyTo,omitempty"`
+	Context              []string   `qstring:"context,omitempty"`
+	SubmittedAt          time.Time  `qstring:"submittedAt,omitempty"`
+	SubmittedAtMatchType MatchType  `qstring:"submittedAtMatchType,omitempty"`
+	Content              string     `qstring:"content,omitempty"`
+	ContentMatchType     MatchType  `qstring:"contentMatchType,omitempty"`
+	Deleted              []bool     `qstring:"deleted,omitempty"`
 	Page                 int       `qstring:"page,omitempty"`
 	MaxItems             int       `qstring:"maxItems,omitempty"`
 	IRI                  string    `qstring:"id,omitempty"`
@@ -128,6 +129,10 @@ type LoadAccountsFilter struct {
 func (v VoteType) String() string {
 	return strings.ToLower(string(v))
 }
+
+//func (m MimeType) String() string {
+//	return url.QueryEscape(strings.ToLower(string(m)))
+//}
 
 func query(f Filterable) string {
 	res := ""
