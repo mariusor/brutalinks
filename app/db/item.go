@@ -112,6 +112,17 @@ func saveItem(db *sqlx.DB, it app.Item) (app.Item, error) {
 	i.Flags.Scan(it.Flags)
 	var params = make([]interface{}, 0)
 
+	if !it.SubmittedAt.IsZero() {
+		i.SubmittedAt = it.SubmittedAt
+	} else {
+		i.SubmittedAt = time.Now()
+	}
+	if !it.UpdatedAt.IsZero() {
+		i.UpdatedAt = it.UpdatedAt
+	} else {
+		i.UpdatedAt = time.Now()
+	}
+
 	var res sql.Result
 	var err error
 	var query string
@@ -123,19 +134,21 @@ func saveItem(db *sqlx.DB, it app.Item) (app.Item, error) {
 		params = append(params, i.Data)
 		params = append(params, i.Metadata)
 		params = append(params, i.MimeType)
+		params = append(params, i.SubmittedAt)
+		params = append(params, i.UpdatedAt)
 		params = append(params, i.Flags)
 		params = append(params, it.SubmittedBy.Hash)
 
 		if it.Parent != nil && len(it.Parent.Hash) > 0 {
-			query = `insert into "items" ("key", "title", "data", "metadata", "mime_type", "flags", "submitted_by", "path") 
+			query = `insert into "items" ("key", "title", "data", "metadata", "mime_type", "submitted_at", "updated_at", "flags", "submitted_by", "path") 
 		values(
-			$1, $2, $3, $4, $5, $6::bit(8), (select "id" from "accounts" where "key" ~* $7 or "handle" = $7), (select (case when "path" is not null then concat("path", '.', "key") else "key" end) 
-				as "parent_path" from "items" where key ~* $8)::ltree
+			$1, $2, $3, $4, $5, $6, $7, $8::bit(8), (select "id" from "accounts" where "key" ~* $9 or "handle" = $9), (select (case when "path" is not null then concat("path", '.', "key") else "key" end) 
+				as "parent_path" from "items" where key ~* $10)::ltree
 		);`
 			params = append(params, it.Parent.Hash)
 		} else {
-			query = `insert into "items" ("key", "title", "data", "metadata", "mime_type", "flags", "submitted_by") 
-		values($1, $2, $3, $4, $5, $6::bit(8), (select "id" from "accounts" where "key" ~* $7 or "handle" = $7));`
+			query = `insert into "items" ("key", "title", "data", "metadata", "mime_type", "submitted_at", "updated_at", "flags", "submitted_by") 
+		values($1, $2, $3, $4, $5, $6, $7, $8::bit(8), (select "id" from "accounts" where "key" ~* $9 or "handle" = $9));`
 		}
 		hash = i.Key.String()
 	} else {

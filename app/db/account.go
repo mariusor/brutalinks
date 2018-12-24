@@ -93,8 +93,17 @@ func saveAccount(db *sqlx.DB, a app.Account) (app.Account, error) {
 		Key: app.GenKey([]byte(a.Handle)),
 		Score: a.Score,
 		Metadata: jMetadata,
-		CreatedAt: a.CreatedAt,
-		UpdatedAt: a.UpdatedAt,
+	}
+
+	if !a.CreatedAt.IsZero() {
+		acct.CreatedAt = a.CreatedAt
+	} else {
+		acct.CreatedAt = time.Now()
+	}
+	if !a.UpdatedAt.IsZero() {
+		acct.UpdatedAt = a.UpdatedAt
+	} else {
+		acct.UpdatedAt = time.Now()
 	}
 
 	acct.Flags.Scan(a.Flags)
