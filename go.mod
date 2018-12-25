@@ -32,7 +32,6 @@ require (
 	github.com/onsi/ginkgo v1.6.0 // indirect
 	github.com/onsi/gomega v1.4.1 // indirect
 	github.com/pkg/errors v0.8.0 // indirect
-	github.com/russross/blackfriday v2.0.0+incompatible // indirect
 	github.com/shurcooL/sanitized_anchor_name v0.0.0-20170918181015-86672fcb3f95 // indirect
 	github.com/sirupsen/logrus v1.2.0
 	github.com/spacemonkeygo/httpsig v0.0.0-20180701154948-c76789e3b41d
