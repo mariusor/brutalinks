@@ -991,7 +991,7 @@ func (h handler) AddToCollection(w http.ResponseWriter, r *http.Request) {
 			if actorNeedsSaving && actor != nil {
 				// @todo(marius): move this to its own function
 				if !actor.IsObject() {
-					actor, err = h.repo.client.LoadObject(actor.GetLink())
+					actor, err = h.repo.client.LoadIRI(actor.GetLink())
 					if err != nil || !actor.IsObject() {
 						notFound(errors.NewNotFound(err, fmt.Sprintf("failed to load remote actor %s", actor.GetLink())))
 						return
@@ -1013,7 +1013,7 @@ func (h handler) AddToCollection(w http.ResponseWriter, r *http.Request) {
 			if objectNeedsSaving && object != nil {
 				// @todo(marius): move this to its own function
 				if !object.IsObject() {
-					if object, err = h.repo.client.LoadObject(object.GetLink()); err != nil {
+					if object, err = h.repo.client.LoadIRI(object.GetLink()); err != nil {
 						notFound(errors.NewNotFound(err, fmt.Sprintf("failed to load remote object %s", object.GetLink())))
 						return
 					} else {

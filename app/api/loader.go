@@ -13,8 +13,8 @@ import (
 
 	"github.com/spacemonkeygo/httpsig"
 
+	cl "github.com/mariusor/activitypub.go/client"
 	"github.com/mariusor/littr.go/app"
-	ap "github.com/mariusor/littr.go/app/activitypub"
 	"github.com/mariusor/littr.go/app/frontend"
 
 	"github.com/mariusor/qstring"
@@ -22,6 +22,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/juju/errors"
 	as "github.com/mariusor/activitypub.go/activitystreams"
+	ap "github.com/mariusor/littr.go/app/activitypub"
 	j "github.com/mariusor/activitypub.go/jsonld"
 	"github.com/mariusor/littr.go/app/db"
 	"github.com/mariusor/littr.go/app/log"
@@ -31,17 +32,17 @@ type repository struct {
 	BaseURL string
 	Account *app.Account
 	logger  log.Logger
-	client  ap.Client
+	client  cl.HttpClient
 }
 
 func New(c Config) *repository {
+	cl.UserAgent = fmt.Sprintf("%s-%s", app.Instance.HostName, app.Instance.Version)
+	cl.ErrorLogger = func (el ...interface{}) { c.Logger.Errorf("%s", el...) }
+	cl.InfoLogger = func (el ...interface{}) { c.Logger.Infof("%s", el...) }
 	return &repository{
 		BaseURL: c.BaseURL,
 		logger:  c.Logger,
-		client: ap.NewClient(ap.Config{
-			Logger:    c.Logger,
-			UserAgent: fmt.Sprintf("%s-%s", app.Instance.HostName, app.Instance.Version),
-		}),
+		client: cl.NewClient(),
 	}
 }
 
@@ -73,7 +74,10 @@ func (r *repository) WithAccount(a *app.Account) error {
 	}
 
 	p := *loadAPPerson(*r.Account)
-	return r.client.WithSigner(getSigner(p.PublicKey.ID, prv))
+	s := getSigner(p.PublicKey.ID, prv)
+	cl.Sign = s.Sign
+
+	return nil
 }
 
 // Repository middleware
