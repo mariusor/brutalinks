@@ -866,6 +866,9 @@ func validateInboxActivity(a localap.Activity, repo app.CanLoad) (localap.Activi
 		a.Object = o
 	}
 	if p, err := validateActor(a.Actor, repo); err != nil {
+		if errors.IsMethodNotAllowed(err) {
+			return a, err
+		}
 		aErr.actor = err
 	} else {
 		a.Actor = p
