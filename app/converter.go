@@ -256,7 +256,9 @@ func (i *Item) FromActivityPub(it as.Item) error {
 		id := it.GetLink()
 
 		if len(id) > 0 {
-			i.Metadata.ID = id.String()
+			i.Metadata = &ItemMetadata{
+				ID: id.String(),
+			}
 		}
 		i.Flags = FlagsDeleted
 		i.SubmittedBy = &Account{
