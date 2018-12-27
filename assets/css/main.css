@@ -149,7 +149,7 @@ body > header h1.logo .icon.icon-l {
     content: unset;
 }
 .inline li::after {
-    content: "\00b7";
+    content: "\22c5";
     padding-left: .4em;
 }
 .top {
