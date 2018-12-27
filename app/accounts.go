@@ -122,10 +122,12 @@ func (a Account) IsLogged() bool {
 	return !a.CreatedAt.IsZero()
 }
 
-func (a Account) HasAvatar() bool {
+// HasIcon
+func (a Account) HasIcon() bool {
 	return a.HasMetadata() && len(a.Metadata.Icon.URI) > 0
 }
 
+// First
 func (a AccountCollection) First() (*Account, error) {
 	for _, act := range a {
 		return &act, nil

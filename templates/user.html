@@ -1,5 +1,5 @@
 <section class="acct acct-info">
-    <h2>{{- if .User.HasAvatar }}<img src="{{.User.Metadata.Avatar.URI}}" alt="{{.User.Handle}}" class="avatar" />{{ end -}}
+    <h2>{{- if .User.HasIcon }}<img src="{{.User.Metadata.Icon.URI}}" alt="{{.User.Handle}}" class="avatar" />{{ end -}}
         <span class="by">{{.User.Handle}}</span></h2>
 {{- if not .User.CreatedAt.IsZero }}
         <section class="join">Joined <time datetime="{{ .User.CreatedAt | ISOTimeFmt | html }}" title="{{ .User.CreatedAt | ISOTimeFmt }}">{{ .User.CreatedAt | TimeFmt }}</time></section>
