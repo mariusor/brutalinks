@@ -58,6 +58,7 @@ func (a *Account) FromActivityPub(it as.Item) error {
 				},
 			}
 			name := jsonUnescape(p.Name.First())
+			pName := jsonUnescape(p.PreferredUsername.First())
 
 			a.Handle = name
 			a.Flags = FlagsNone
@@ -79,7 +80,10 @@ func (a *Account) FromActivityPub(it as.Item) error {
 				}
 			}
 			if a.IsFederated() {
-				a.Handle = fmt.Sprintf("%s@%s", name, host(a.Metadata.URL))
+				if pName == "" {
+					pName = name
+				}
+				a.Handle = fmt.Sprintf("%s@%s", pName, host(a.Metadata.URL))
 			}
 			if a.IsLocal() {
 				a.Hash = getHashFromAP(p)
@@ -105,7 +109,7 @@ func (a *Account) FromActivityPub(it as.Item) error {
 			loadFromPerson(a, p)
 		}
 	default:
-		return errors.New("invalid object type")
+		return errors.New("invalid actor type")
 	}
 
 	return nil
@@ -158,12 +162,17 @@ func (i *Item) FromActivityPub(it as.Item) error {
 		loadFromAPObject := func(i *Item, a as.Object) error {
 			title := jsonUnescape(a.Name.First())
 
-			i.Title = title
+			if len(title) > 0 {
+				i.Title = title
+			}
+			i.MimeType = MimeTypeHTML
 			if a.Type == as.PageType {
 				i.Data = string(a.URL.GetLink())
 				i.MimeType = MimeTypeURL
 			} else {
-				i.MimeType = MimeType(a.MediaType)
+				if len(a.MediaType) > 0 {
+					i.MimeType = MimeType(a.MediaType)
+				}
 				i.Data = jsonUnescape(a.Content.First())
 			}
 			if !a.Published.IsZero() {
