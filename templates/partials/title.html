@@ -8,5 +8,7 @@
 <aside class="domain">
 <a title="{{- if .IsLink -}}All items from {{.GetDomain}}{{- else -}}Text only items{{- end -}}" href="/d{{- if .IsLink -}}/{{.GetDomain}}{{- end -}}">{{- if .IsLink -}}{{.GetDomain}}{{- else -}} text {{- end -}}</a>
 </aside>
+{{- if .Item.IsFederated -}}
+{{- end -}}
 </header>
 {{- end -}}
