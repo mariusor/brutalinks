@@ -63,6 +63,7 @@ type Paginator interface {
 	NextPage() Paginator
 	PrevPage() Paginator
 	FirstPage() Paginator
+	CurrentIndex() int
 }
 
 type VoteTypes []VoteType
@@ -105,9 +106,9 @@ type LoadItemsFilter struct {
 	Content              string     `qstring:"content,omitempty"`
 	ContentMatchType     MatchType  `qstring:"contentMatchType,omitempty"`
 	Deleted              []bool     `qstring:"deleted,omitempty"`
-	Page                 int       `qstring:"page,omitempty"`
-	MaxItems             int       `qstring:"maxItems,omitempty"`
-	IRI                  string    `qstring:"id,omitempty"`
+	Page                 int        `qstring:"page,omitempty"`
+	MaxItems             int        `qstring:"maxItems,omitempty"`
+	IRI                  string     `qstring:"id,omitempty"`
 	// Federated shows if the item was generated locally or is coming from an external peer
 	Federated []bool `qstring:"federated,omitempty"`
 	// FollowedBy is the hash or handle of the user of which we should show the list of items that were commented on or liked
@@ -197,30 +198,50 @@ func (f LoadVotesFilter) GetWhereClauses() ([]string, []interface{}) {
 	return wheres, whereValues
 }
 
+func copyVotesFilters(a *LoadVotesFilter, b LoadVotesFilter) {
+	a.ItemKey = b.ItemKey
+	a.Type = b.Type
+	a.AttributedTo = b.AttributedTo
+	a.SubmittedAt = b.SubmittedAt
+	a.SubmittedAtMatchType = b.SubmittedAtMatchType
+	a.Page = b.Page
+	a.MaxItems = b.MaxItems
+}
+
 func (f *LoadVotesFilter) QueryString() string {
-	f.MaxItems = 0
-	f.Page = 0
 	return query(f)
 }
+
 func (f *LoadVotesFilter) BasePage() Paginator {
-	f.MaxItems = 0
-	f.Page = 0
-	return f
+	b := &LoadVotesFilter{}
+	copyVotesFilters(b, *f)
+	b.MaxItems = 0
+	b.Page = 0
+	return b
 }
 func (f *LoadVotesFilter) CurrentPage() Paginator {
 	return f
 }
 func (f *LoadVotesFilter) NextPage() Paginator {
-	f.Page += 1
-	return f
+	b := &LoadVotesFilter{}
+	copyVotesFilters(b, *f)
+	b.Page += 1
+	return b
 }
 func (f *LoadVotesFilter) PrevPage() Paginator {
-	f.Page -= 1
-	return f
+	b := &LoadVotesFilter{}
+	copyVotesFilters(b, *f)
+	b.Page -= 1
+	return b
 }
 func (f *LoadVotesFilter) FirstPage() Paginator {
+	b := &LoadVotesFilter{}
+	copyVotesFilters(b, *f)
 	f.Page = 1
 	return f
+}
+func (f *LoadVotesFilter) CurrentIndex() int {
+	return f.Page
 }
 
 // @todo(marius) the WithContentAlias methods should be moved to the db package into a different format
@@ -357,31 +378,61 @@ FROM "items" WHERE "key" ~* $%d) AND "%s"."path" IS NOT NULL)`, it, counter, it)
 
 	return wheres, whereValues
 }
+func copyItemsFilters(a *LoadItemsFilter, b LoadItemsFilter) {
+	a.Key = b.Key
+	a.MediaType = 	b.MediaType
+	a.AttributedTo = b.AttributedTo
+	a.InReplyTo = b.InReplyTo
+	a.Context = b.Context
+	a.SubmittedAt = b.SubmittedAt
+	a.SubmittedAtMatchType = b.SubmittedAtMatchType
+	a.Content = b.Content
+	a.ContentMatchType = b.ContentMatchType
+	a.Deleted = b.Deleted
+	a.Page = b.Page
+	a.MaxItems = b.MaxItems
+	a.IRI = b.IRI
+	a.Deleted = b.Deleted
+	a.Page = b.Page
+	a.MaxItems = b.MaxItems
+	a.FollowedBy = b.FollowedBy
+	a.contentAlias = b.contentAlias
+	a.authorAlias = b.authorAlias
+}
 
 func (f *LoadItemsFilter) QueryString() string {
-	f.MaxItems = 0
-	f.Page = 0
 	return query(f)
 }
 func (f *LoadItemsFilter) BasePage() Paginator {
-	f.MaxItems = 0
-	f.Page = 0
-	return f
+	b := &LoadItemsFilter{}
+	copyItemsFilters(b, *f)
+	b.MaxItems = 0
+	b.Page = 0
+	return b
 }
 func (f *LoadItemsFilter) CurrentPage() Paginator {
 	return f
 }
 func (f *LoadItemsFilter) NextPage() Paginator {
-	f.Page += 1
-	return f
+	b := &LoadItemsFilter{}
+	copyItemsFilters(b, *f)
+	b.Page += 1
+	return b
 }
 func (f *LoadItemsFilter) PrevPage() Paginator {
-	f.Page -= 1
-	return f
+	b := &LoadItemsFilter{}
+	copyItemsFilters(b, *f)
+	b.Page -= 1
+	return b
 }
 func (f *LoadItemsFilter) FirstPage() Paginator {
-	f.Page = 1
-	return f
+	b := &LoadItemsFilter{}
+	copyItemsFilters(b, *f)
+	b.Page = 1
+	return b
+}
+func (f *LoadItemsFilter) CurrentIndex() int {
+	return f.Page
 }
 
 // @todo(marius) the GetWhereClauses methods should be moved to the db package into a different format
@@ -421,28 +472,50 @@ func (f LoadAccountsFilter) GetWhereClauses() ([]string, []interface{}) {
 
 	return wheres, whereValues
 }
+
+func copyAccountFilters(a *LoadAccountsFilter, b LoadAccountsFilter) {
+	a.Key = b.Key
+	a.Handle = b.Handle
+	a.Email = b.Email
+	a.Deleted = b.Deleted
+	a.Page = b.Page
+	a.MaxItems = b.MaxItems
+	a.InboxIRI = b.InboxIRI
+}
+
 func (f *LoadAccountsFilter) QueryString() string {
 	return query(f)
 }
 func (f *LoadAccountsFilter) BasePage() Paginator {
-	f.MaxItems = 0
-	f.Page = 0
-	return f
+	b := &LoadAccountsFilter{}
+	copyAccountFilters(b, *f)
+	b.MaxItems = 0
+	b.Page = 0
+	return b
 }
 func (f *LoadAccountsFilter) CurrentPage() Paginator {
 	return f
 }
 func (f *LoadAccountsFilter) NextPage() Paginator {
-	f.Page += 1
-	return f
+	b := &LoadAccountsFilter{}
+	copyAccountFilters(b, *f)
+	b.Page += 1
+	return b
 }
 func (f *LoadAccountsFilter) PrevPage() Paginator {
-	f.Page -= 1
-	return f
+	b := &LoadAccountsFilter{}
+	copyAccountFilters(b, *f)
+	b.Page -= 1
+	return b
 }
 func (f *LoadAccountsFilter) FirstPage() Paginator {
-	f.Page = 1
-	return f
+	b := &LoadAccountsFilter{}
+	copyAccountFilters(b, *f)
+	b.Page = 1
+	return b
+}
+func (f *LoadAccountsFilter) CurrentIndex() int {
+	return f.Page
 }
 
 type Repository interface {
