@@ -500,16 +500,13 @@ func loadCollection (items app.Collection, typ string, filters app.Paginator, pa
 			return nil, errors.Errorf("could not load items")
 		}
 	}
-	firstURL := getURL(filters.FirstPage())
-	oc.First = as.IRI(firstURL)
 
-	if haveItems && curIndex >= 1 {
+	if haveItems {
 		curURL := getURL(filters.CurrentPage())
 		prevURL := getURL(filters.PrevPage())
 		nextURL := getURL(filters.NextPage())
 
 		page := as.OrderedCollectionPageNew(&oc)
-
 		page.ID = as.ObjectID(curURL)
 		if moreItems {
 			page.Next = as.IRI(nextURL)
@@ -517,7 +514,13 @@ func loadCollection (items app.Collection, typ string, filters app.Paginator, pa
 		if lessItems {
 			page.Prev = as.IRI(prevURL)
 		}
-		return page, nil
+
+		if curIndex >= 1 {
+			return page, nil
+		} else {
+			oc.First = page
+			oc.OrderedItems = nil
+		}
 	}
 
 	return oc, nil
