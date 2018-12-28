@@ -205,6 +205,31 @@ func loadRepliesFilterFromReq(r *http.Request) *app.LoadItemsFilter {
 	return &filters
 }
 
+func stringsUnique (a []string) []string {
+	u := make([]string, 0, len(a))
+	m := make(map[string]bool)
+
+	for _, val := range a {
+		if _, ok := m[val]; !ok {
+			m[val] = true
+			u = append(u, val)
+		}
+	}
+	return u
+}
+func hashesUnique (a app.Hashes) app.Hashes {
+	u := make([]app.Hash, 0, len(a))
+	m := make(map[app.Hash]bool)
+
+	for _, val := range a {
+		if _, ok := m[val]; !ok {
+			m[val] = true
+			u = append(u, val)
+		}
+	}
+	return u
+}
+
 func loadInboxFilterFromReq(r *http.Request) *app.LoadItemsFilter {
 	filters := app.LoadItemsFilter{
 		MaxItems: MaxContentItems,
@@ -219,6 +244,7 @@ func loadInboxFilterFromReq(r *http.Request) *app.LoadItemsFilter {
 		filters.FollowedBy = nil
 		filters.FollowedBy = append(filters.FollowedBy, handle)
 		filters.FollowedBy = append(filters.FollowedBy, old...)
+		filters.FollowedBy = stringsUnique(filters.FollowedBy)
 	}
 	hash := chi.URLParam(r, "hash")
 	if hash != "" {
@@ -226,6 +252,7 @@ func loadInboxFilterFromReq(r *http.Request) *app.LoadItemsFilter {
 		filters.Key = nil
 		filters.Key = append(filters.Key, hash)
 		filters.Key = append(filters.Key, old...)
+		filters.Key = stringsUnique(filters.Key)
 	}
 
 	return &filters
@@ -245,6 +272,7 @@ func loadOutboxFilterFromReq(r *http.Request) *app.LoadItemsFilter {
 		filters.AttributedTo = nil
 		filters.AttributedTo = append(filters.AttributedTo, app.Hash(handle))
 		filters.AttributedTo = append(filters.AttributedTo, old...)
+		filters.AttributedTo = hashesUnique(filters.AttributedTo)
 	}
 	hash := chi.URLParam(r, "hash")
 	if hash != "" {
@@ -252,6 +280,7 @@ func loadOutboxFilterFromReq(r *http.Request) *app.LoadItemsFilter {
 		filters.Key = nil
 		filters.Key = append(filters.Key, hash)
 		filters.Key = append(filters.Key, old...)
+		filters.Key = stringsUnique(filters.Key)
 	}
 
 	return &filters
@@ -269,6 +298,7 @@ func loadLikedFilterFromReq(r *http.Request) *app.LoadVotesFilter {
 		filters.AttributedTo = nil
 		filters.AttributedTo = append(filters.AttributedTo, app.Hash(handle))
 		filters.AttributedTo = append(filters.AttributedTo, old...)
+		filters.AttributedTo = hashesUnique(filters.AttributedTo)
 	}
 	hash := chi.URLParam(r, "hash")
 	if hash != "" {
@@ -276,6 +306,7 @@ func loadLikedFilterFromReq(r *http.Request) *app.LoadVotesFilter {
 		filters.ItemKey = nil
 		filters.ItemKey = append(filters.ItemKey, hash)
 		filters.ItemKey = append(filters.ItemKey, old...)
+		filters.ItemKey = stringsUnique(filters.ItemKey)
 	}
 	if filters.MaxItems == 0 {
 		if len(filters.ItemKey) > 0 {
