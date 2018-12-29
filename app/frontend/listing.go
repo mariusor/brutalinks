@@ -71,7 +71,7 @@ func opLink(c app.Item) string {
 	return ""
 }
 
-func localPermaLink(a app.Account) string {
+func AccountLocalLink(a app.Account) string {
 	handle := "anonymous"
 	if len(a.Handle) > 0 {
 		handle = a.Handle
@@ -93,7 +93,7 @@ func AccountPermaLink(a app.Account) string {
 	if a.HasMetadata() && len(a.Metadata.URL) > 0 {
 		return a.Metadata.URL
 	}
-	return localPermaLink(a)
+	return AccountLocalLink(a)
 }
 
 // ItemPermaLink
@@ -101,11 +101,16 @@ func ItemPermaLink(i app.Item) string {
 	if !i.IsLink() && i.HasMetadata() && len(i.Metadata.URL) > 0 {
 		return i.Metadata.URL
 	}
+	return ItemLocalLink(i)
+}
+
+// ItemLocalLink
+func ItemLocalLink(i app.Item) string {
 	if i.SubmittedBy == nil {
 		// @todo(marius) :link_generation:
 		return fmt.Sprintf("/i/%s", i.Hash)
 	}
-	return fmt.Sprintf("%s/%s", localPermaLink(*i.SubmittedBy), i.Hash)
+	return fmt.Sprintf("%s/%s", AccountLocalLink(*i.SubmittedBy), i.Hash)
 }
 
 func scoreLink(i app.Item, dir string) string {

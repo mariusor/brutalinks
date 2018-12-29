@@ -432,9 +432,19 @@ func (h handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name str
 			"Text":              text,
 			"replaceTags":       replaceTagsInItem,
 			"Markdown":          app.Markdown,
-			"AccountPermaLink":  AccountPermaLink,
+			"AccountPermaLink":  func (a app.Account) string {
+				if name == "content" {
+					return AccountPermaLink(a)
+				}
+				return AccountLocalLink(a)
+			},
 			"ShowAccountHandle": ShowAccountHandle,
-			"PermaLink":         ItemPermaLink,
+			"PermaLink":         func (i app.Item) string {
+				if name == "content" {
+					return ItemPermaLink(i)
+				}
+				return ItemLocalLink(i)
+			},
 			"ParentLink":        parentLink,
 			"OPLink":            opLink,
 			"IsYay":             isYay,
