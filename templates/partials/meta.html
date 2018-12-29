@@ -12,23 +12,21 @@ submitted {{ if not .Deleted -}} <time datetime="{{ $it.SubmittedAt | ISOTimeFmt
 @todo(marius) :link_generation: this needs a generic way of creating links
 */ -}}
 {{- if not .Deleted }}
-            <li><a href="{{$it | PermaLink }}/edit" title="Edit{{if .Item.Title}}: {{$it.Title }}{{end}}">{{ icon "edit"}}</a></li>
-            <li><a href="{{$it | PermaLink }}/rm" class="rm" data-hash="{{ .Item.Hash }}" title="Remove{{if .Item.Title}}: {{$it.Title }}{{end}}">{{ icon "eraser"}}</a></li>
+            <li><a href="{{$it | ItemLocalLink }}/edit" title="Edit{{if .Item.Title}}: {{$it.Title }}{{end}}">{{ icon "edit"}}</a></li>
+            <li><a href="{{$it | ItemLocalLink }}/rm" class="rm" data-hash="{{ .Item.Hash }}" title="Remove{{if .Item.Title}}: {{$it.Title }}{{end}}">{{ icon "eraser"}}</a></li>
 {{ else -}}
-            <li><a href="{{$it | PermaLink }}/undo" class="undo" data-hash="{{ .Item.Hash }}" title="Recover item">{{ icon "recycle"}}</a></li>
+            <li><a href="{{$it | ItemLocalLink }}/undo" class="undo" data-hash="{{ .Item.Hash }}" title="Recover item">{{ icon "recycle"}}</a></li>
 {{ end -}}
-        </ul>
-        <ul class="inline">
 {{ end }}
 {{- /*
         <li><a href="{{$it | PermaLink }}/bad" title="Report{{if .Item.Title}}: {{$it.Title }}{{end}}">{{ icon "star"}}</a></li>
 */ -}}
 {{- end -}}
-        <li><a href="{{$it | PermaLink }}" class="to-item" title="Permalink{{if .Item.Title}}: {{$it.Title }}{{end}}">{{ icon "paragraph" }}</a></li>
 {{- if not $it.IsTop -}}
         {{if and $it.Parent (not (sameBase req.URL.Path (ParentLink $it))) }}<li><a href="{{$it | ParentLink }}" class="to-parent" title="Parent">{{icon "angle-up"}}</a></li>{{end}}
         {{if and $it.OP (not (sameBase req.URL.Path (OPLink $it))) }}<li><a href="{{$it | OPLink }}" class="to-op" title="TopPost">{{icon "angle-double-up"}}</a></li>{{end}}
 {{- end -}}
-    </ul>
+        {{if or (not $it.IsTop) (not .IsLink) }}<li><a href="{{$it | ItemLocalLink }}" class="to-item" title="Reply to{{if .Item.Title}}: {{$it.Title }}{{end}}">{{ icon "reply" "h-mirror" }}</a></li>{{ end }}
+        </ul>
     </nav>
 </footer>
