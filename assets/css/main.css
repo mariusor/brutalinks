@@ -4,7 +4,7 @@ h1, h2, h3, h4, h5, h6, p, blockquote, pre,
 abbr, acronym, address, big, cite, code,
 del, dfn, em, img, ins, kbd, q, s, samp,
 small, strike, strong, tt, var,
-b, u, i, center, a, summary, details,
+b, u, i, center, a, details,
 dl, dt, dd, ol, ul, li,
 fieldset, form, label, legend,
 table, caption, tbody, tfoot, thead, tr, th, td,
@@ -397,34 +397,34 @@ ol.comments li {
 .comments .item {
     margin-left: -.8em;
 }
-details[open] {}
-details:not([open]) {}
-details {
+.comments details[open] {}
+.comments details:not([open]) {}
+.comments details {
     margin: .3em 0 .6em 0;
 }
 summary:focus {
     outline: none;
 }
-details[open] > summary {
+.comments details[open] > summary {
     padding: .3rem 0 0 .3rem;
     /*border-radius: .4rem 0 0 0;*/
 }
-details:not([open]) > summary {}
-details > summary::before {}
-details > summary {
+.comments details:not([open]) > summary {}
+.comments details > summary::before {}
+.comments details > summary {
     font-size: 0.7rem;
     /*display: inline;*/
     /*margin-top: .6rem;*/
     padding: .3rem 0 .3rem .3rem;
     /*border-radius: 0 0 0 .4rem;*/
 }
-details > summary span {
+.comments details > summary span {
     opacity: .6;
 }
-details > summary::-webkit-details-marker {
+.comments details > summary::-webkit-details-marker {
     opacity: .3;
 }
-.comments, summary {
+.comments, .comments summary {
     border-left: 1px solid;
 }
 .lvl-9 {

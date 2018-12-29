@@ -7,7 +7,7 @@
         <section>Score <data title="{{.User.Score | NumberFmt }}" class="score {{- .User.Score | ScoreClass -}}">{{ .User.Score | ScoreFmt}}</data></section>
 {{ if CurrentAccount.IsLogged }}
     {{- if .User.HasPublicKey }}
-        <section class="pub-key">PublicKey<br/><pre>{{.User.Metadata.Key.Public | fmtPubKey }}</pre></section>
+        <section class="pub-key"><details><summary>PublicKey</summary><pre>{{.User.Metadata.Key.Public | fmtPubKey }}</pre></details></section>
     {{ end -}}
 {{- end }}
 </section>
