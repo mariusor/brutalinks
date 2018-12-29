@@ -179,7 +179,7 @@ func (f LoadVotesFilter) GetWhereClauses() ([]string, []interface{}) {
 			counter++
 		}
 		if len(whereColumns) > 0 && len(whereColumns) < 3 {
-			wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
+			wheres = append(wheres, fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR ")))
 		}
 	}
 	if len(f.ItemKey) > 0 {
@@ -193,7 +193,7 @@ func (f LoadVotesFilter) GetWhereClauses() ([]string, []interface{}) {
 			whereValues = append(whereValues, interface{}(h))
 			counter++
 		}
-		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
+		wheres = append(wheres, fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR ")))
 	}
 	return wheres, whereValues
 }
@@ -273,7 +273,7 @@ func (f LoadItemsFilter) GetWhereClauses() ([]string, []interface{}) {
 			whereValues = append(whereValues, interface{}(hash))
 			counter++
 		}
-		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(keyWhere, " OR "))))
+		wheres = append(wheres, fmt.Sprintf("(%s)", strings.Join(keyWhere, " OR ")))
 	}
 	if len(f.AttributedTo) > 0 {
 		attrWhere := make([]string, 0)
@@ -299,7 +299,7 @@ FROM "items" WHERE "key" ~* $%d) AND "%s"."path" IS NOT NULL)`, it, counter, it)
 			whereValues = append(whereValues, interface{}(ctxtHash))
 			counter++
 		}
-		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(ctxtWhere, " OR "))))
+		wheres = append(wheres, fmt.Sprintf("(%s)", strings.Join(ctxtWhere, " OR ")))
 	}
 	if len(f.InReplyTo) > 0 {
 		whereColumns := make([]string, 0)
@@ -313,7 +313,7 @@ FROM "items" WHERE "key" ~* $%d) AND "%s"."path" IS NOT NULL)`, it, counter, it)
 			whereValues = append(whereValues, interface{}(hash))
 			counter++
 		}
-		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
+		wheres = append(wheres, fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR ")))
 	}
 	if len(f.Content) > 0 {
 		contentWhere := make([]string, 0)
@@ -365,10 +365,18 @@ FROM "items" WHERE "key" ~* $%d) AND "%s"."path" IS NOT NULL)`, it, counter, it)
 			whereValues = append(whereValues, interface{}(hash))
 			counter++
 		}
-		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(keyWhere, " OR "))))
+		wheres = append(wheres, fmt.Sprintf("(%s)", strings.Join(keyWhere, " OR ")))
 	}
-	if len(f.Federated) > 0 {
-		wheres = append(wheres, fmt.Sprintf(`"%s"."metadata"->>'id' IS NOT NULL`, it))
+	if len(f.Federated) > 0 && len(f.Federated) < 2 {
+		for _, fed := range f.Federated {
+			fWheres := make([]string, 0)
+			if fed {
+				fWheres = append(fWheres, fmt.Sprintf(`"%s"."metadata"->>'id' IS NOT NULL`, it))
+			} else {
+				fWheres = append(fWheres, fmt.Sprintf(`"%s"."metadata"->>'id' IS NULL`, it))
+			}
+			wheres = append(wheres, fmt.Sprintf("(%s)", strings.Join(fWheres, " OR ")))
+		}
 	}
 	if len(f.IRI) > 0 {
 		wheres = append(wheres, fmt.Sprintf(`"%s"."metadata"->>'id' ~* $%d`, it, counter))
@@ -448,7 +456,7 @@ func (f LoadAccountsFilter) GetWhereClauses() ([]string, []interface{}) {
 			whereValues = append(whereValues, interface{}(hash))
 			counter++
 		}
-		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
+		wheres = append(wheres, fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR ")))
 	}
 	if len(f.Handle) > 0 {
 		whereColumns := make([]string, 0)
@@ -457,7 +465,7 @@ func (f LoadAccountsFilter) GetWhereClauses() ([]string, []interface{}) {
 			whereValues = append(whereValues, interface{}(handle))
 			counter++
 		}
-		wheres = append(wheres, fmt.Sprintf(fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR "))))
+		wheres = append(wheres, fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR ")))
 	}
 	if len(f.Email) > 0 {
 		wheres = append(wheres, fmt.Sprintf(`"accounts"."email"  ~* $%d`, counter))
