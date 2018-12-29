@@ -97,17 +97,26 @@ func isoTimeFmt(t time.Time) string {
 	return t.Format("2006-01-02T15:04:05.000-07:00")
 }
 
+func pluralize(d float64, unit string) string {
+	l := len(unit)
+	cons := func(c byte) bool {
+		cons := []byte{'b', 'c', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'm', 'n', 'p', 'q', 'r', 's', 't', 'v', 'w', 'y', 'z'}
+		for _, cc := range cons {
+			if c == cc { return true }
+		}
+		return false
+	}
+	if math.Round(d) != 1 {
+		if cons(unit[l-2]) && unit[l-1] == 'y' {
+			unit = unit[:l-1] + "ie"
+		}
+		return unit + "s"
+	}
+	return unit
+}
+
 func relTimeFmt(old time.Time) string {
 	td := time.Now().UTC().Sub(old)
-	pluralize := func(d float64, unit string) string {
-		if math.Round(d) != 1 {
-			if unit == "century" {
-				unit = "centurie"
-			}
-			return unit + "s"
-		}
-		return unit
-	}
 	val := 0.0
 	unit := ""
 	when := "ago"
@@ -385,7 +394,7 @@ func fmtPubKey(pub []byte) string {
 		if b == '\n' {
 			eolIdx = 0
 		}
-		if eolIdx > 0 && eolIdx % 65 == 0 {
+		if eolIdx > 0 && eolIdx%65 == 0 {
 			s.WriteByte('\n')
 			eolIdx = 1
 		}
@@ -432,19 +441,11 @@ func (h handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name str
 			"Text":              text,
 			"replaceTags":       replaceTagsInItem,
 			"Markdown":          app.Markdown,
-			"AccountPermaLink":  func (a app.Account) string {
-				if name == "content" {
-					return AccountPermaLink(a)
-				}
-				return AccountLocalLink(a)
-			},
+			"AccountLocalLink":  AccountLocalLink,
+			"AccountPermaLink":  AccountPermaLink,
 			"ShowAccountHandle": ShowAccountHandle,
-			"PermaLink":         func (i app.Item) string {
-				if name == "content" {
-					return ItemPermaLink(i)
-				}
-				return ItemLocalLink(i)
-			},
+			"ItemLocalLink":     ItemLocalLink,
+			"ItemPermaLink":     ItemPermaLink,
 			"ParentLink":        parentLink,
 			"OPLink":            opLink,
 			"IsYay":             isYay,
@@ -466,6 +467,7 @@ func (h handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name str
 			"sameBase":          sameBasePath,
 			"sameHash":          sameHash,
 			"fmtPubKey":         fmtPubKey,
+			"pluralize":         func(s string, cnt int) string { return pluralize(float64(cnt), s) },
 			//"ScoreFmt":          func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
 			//"NumberFmt":         func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
 		}},
