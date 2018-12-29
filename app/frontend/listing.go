@@ -139,6 +139,7 @@ func (h *handler) HandleIndex(w http.ResponseWriter, r *http.Request) {
 	filter := app.LoadItemsFilter{
 		Context:  []string{"0"},
 		MaxItems: MaxContentItems,
+		Federated: []bool{false},
 		Deleted:  []bool{false},
 		Page:     1,
 	}
