@@ -499,9 +499,8 @@ summary:focus {
 .meta-items:last-child li {
     padding-right: 0;
 }
-.meta-items ul:before {
-    content: "-";
-    margin-right: .3em;
+h2.title .to-item {
+    margin-left: .3em;
 }
 a.to-item svg {
     width: .8em;

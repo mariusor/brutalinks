@@ -3,7 +3,7 @@
 <h2 data-hash="{{.Hash}}" class="title">
 {{- if .IsLink -}}
 <a class="titles" data-hash="{{.Hash}}" href="{{.Data | printf "%s"}}">{{- .Title -}}</a>
-{{- else -}}{{- .Title -}}{{- end -}}
+{{- else -}}{{- .Title -}} <a href="{{ .Item | ItemPermaLink }}" class="to-item" title="Permalink{{if .Item.Title}}: {{.Title }}{{end}}">{{ icon "paragraph" }}</a>{{- end -}}
 </h2>
 <aside class="domain">
 <a title="{{- if .IsLink -}}All items from {{.GetDomain}}{{- else -}}Text only items{{- end -}}" href="/d{{- if .IsLink -}}/{{.GetDomain}}{{- end -}}">{{- if .IsLink -}}{{.GetDomain}}{{- else -}} text {{- end -}}</a>
