@@ -46,11 +46,14 @@ const (
 )
 
 type Score struct {
-	ID        int64
-	Key       []byte
-	Score     int64
-	Submitted time.Time
-	Type      ScoreType
+	ID          int64
+	Max         int64
+	Ups         int64
+	Downs       int64
+	Key         Key
+	Score       int64
+	SubmittedAt time.Time
+	Type        ScoreType
 }
 
 func (v VoteCollection) First() (*Vote, error) {

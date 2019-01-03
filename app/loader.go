@@ -154,11 +154,11 @@ func query(f Filterable) string {
 func (f LoadVotesFilter) GetWhereClauses() ([]string, []interface{}) {
 	wheres := make([]string, 0)
 	whereValues := make([]interface{}, 0)
-	counter := 1
+	counter := 0
 	if len(f.AttributedTo) > 0 {
 		whereColumns := make([]string, 0)
 		for _, v := range f.AttributedTo {
-			whereColumns = append(whereColumns, fmt.Sprintf(`"voter"."key" ~* $%d`, counter))
+			whereColumns = append(whereColumns, fmt.Sprintf(`"voter"."key" ~* ?%d`, counter))
 			whereValues = append(whereValues, interface{}(v))
 			counter++
 		}
@@ -169,11 +169,11 @@ func (f LoadVotesFilter) GetWhereClauses() ([]string, []interface{}) {
 		for _, typ := range f.Type {
 			switch strings.ToLower(string(typ)) {
 			case string(TypeLike):
-				whereColumns = append(whereColumns, fmt.Sprintf(`"votes"."weight" > $%d`, counter))
+				whereColumns = append(whereColumns, fmt.Sprintf(`"votes"."weight" > ?%d`, counter))
 			case string(TypeDislike):
-				whereColumns = append(whereColumns, fmt.Sprintf(`"votes"."weight" < $%d`, counter))
+				whereColumns = append(whereColumns, fmt.Sprintf(`"votes"."weight" < ?%d`, counter))
 			case string(TypeUndo):
-				whereColumns = append(whereColumns, fmt.Sprintf(`"votes"."weight" = $%d`, counter))
+				whereColumns = append(whereColumns, fmt.Sprintf(`"votes"."weight" = ?%d`, counter))
 			}
 			whereValues = append(whereValues, interface{}(0))
 			counter++
@@ -189,7 +189,7 @@ func (f LoadVotesFilter) GetWhereClauses() ([]string, []interface{}) {
 			if len(h) == 0 {
 				continue
 			}
-			whereColumns = append(whereColumns, fmt.Sprintf(`"item"."key" ~* $%d`, counter))
+			whereColumns = append(whereColumns, fmt.Sprintf(`"item"."key" ~* ?%d`, counter))
 			whereValues = append(whereValues, interface{}(h))
 			counter++
 		}
@@ -265,11 +265,11 @@ func (f LoadItemsFilter) GetWhereClauses() ([]string, []interface{}) {
 
 	it := f.contentAlias
 	acc := f.authorAlias
-	counter := 1
+	counter := 0
 	if len(f.Key) > 0 {
 		keyWhere := make([]string, 0)
 		for _, hash := range f.Key {
-			keyWhere = append(keyWhere, fmt.Sprintf(`"%s"."key" ~* $%d`, it, counter))
+			keyWhere = append(keyWhere, fmt.Sprintf(`"%s"."key" ~* ?%d`, it, counter))
 			whereValues = append(whereValues, interface{}(hash))
 			counter++
 		}
@@ -278,8 +278,8 @@ func (f LoadItemsFilter) GetWhereClauses() ([]string, []interface{}) {
 	if len(f.AttributedTo) > 0 {
 		attrWhere := make([]string, 0)
 		for _, v := range f.AttributedTo {
-			attrWhere = append(attrWhere, fmt.Sprintf(`"%s"."key" ~* $%d`, acc, counter))
-			attrWhere = append(attrWhere, fmt.Sprintf(`"%s"."handle" = $%d`, acc, counter))
+			attrWhere = append(attrWhere, fmt.Sprintf(`"%s"."key" ~* ?%d`, acc, counter))
+			attrWhere = append(attrWhere, fmt.Sprintf(`"%s"."handle" = ?%d`, acc, counter))
 			whereValues = append(whereValues, interface{}(v))
 			counter++
 		}
@@ -295,7 +295,7 @@ func (f LoadItemsFilter) GetWhereClauses() ([]string, []interface{}) {
 			}
 			ctxtWhere = append(ctxtWhere, fmt.Sprintf(`("%s"."path" <@ (SELECT
 CASE WHEN "path" IS NULL THEN "key"::ltree ELSE ltree_addltree("path", "key"::ltree) END
-FROM "items" WHERE "key" ~* $%d) AND "%s"."path" IS NOT NULL)`, it, counter, it))
+FROM "items" WHERE "key" ~* ?%d) AND "%s"."path" IS NOT NULL)`, it, counter, it))
 			whereValues = append(whereValues, interface{}(ctxtHash))
 			counter++
 		}
@@ -309,7 +309,7 @@ FROM "items" WHERE "key" ~* $%d) AND "%s"."path" IS NOT NULL)`, it, counter, it)
 			}
 			whereColumns = append(whereColumns, fmt.Sprintf(`("%s"."path" = (SELECT
 CASE WHEN "path" IS NULL THEN "key"::ltree ELSE ltree_addltree("path", "key"::ltree) END
-FROM "items" WHERE "key" ~* $%d) AND "%s"."path" IS NOT NULL)`, it, counter, it))
+FROM "items" WHERE "key" ~* ?%d) AND "%s"."path" IS NOT NULL)`, it, counter, it))
 			whereValues = append(whereValues, interface{}(hash))
 			counter++
 		}
@@ -324,10 +324,10 @@ FROM "items" WHERE "key" ~* $%d) AND "%s"."path" IS NOT NULL)`, it, counter, it)
 		if f.ContentMatchType == MatchEquals {
 			operator = "="
 		}
-		contentWhere = append(contentWhere, fmt.Sprintf(`"%s"."title" %s $%d`, it, operator, counter))
+		contentWhere = append(contentWhere, fmt.Sprintf(`"%s"."title" %s ?%d`, it, operator, counter))
 		whereValues = append(whereValues, interface{}(f.Content))
 		counter++
-		contentWhere = append(contentWhere, fmt.Sprintf(`"%s"."data" %s $%d`, it, operator, counter))
+		contentWhere = append(contentWhere, fmt.Sprintf(`"%s"."data" %s ?%d`, it, operator, counter))
 		whereValues = append(whereValues, interface{}(f.Content))
 		counter++
 		wheres = append(wheres, fmt.Sprintf("(%s)", strings.Join(contentWhere, " OR ")))
@@ -335,7 +335,7 @@ FROM "items" WHERE "key" ~* $%d) AND "%s"."path" IS NOT NULL)`, it, counter, it)
 	if len(f.MediaType) > 0 {
 		mediaWhere := make([]string, 0)
 		for _, v := range f.MediaType {
-			mediaWhere = append(mediaWhere, fmt.Sprintf(`"%s"."mime_type" = $%d`, it, counter))
+			mediaWhere = append(mediaWhere, fmt.Sprintf(`"%s"."mime_type" = ?%d`, it, counter))
 			whereValues = append(whereValues, interface{}(v))
 			counter++
 		}
@@ -359,9 +359,9 @@ FROM "items" WHERE "key" ~* $%d) AND "%s"."path" IS NOT NULL)`, it, counter, it)
 	if len(f.FollowedBy) > 0 {
 		keyWhere := make([]string, 0)
 		for _, hash := range f.FollowedBy {
-			keyWhere = append(keyWhere, fmt.Sprintf(`"%s"."id" in (SELECT "votes"."item_id" FROM "votes" WHERE "votes"."submitted_by" = (SELECT "id" FROM "accounts" where "key" ~* $%d OR "handle" = $%d) AND "votes"."weight" != 0)
+			keyWhere = append(keyWhere, fmt.Sprintf(`"%s"."id" in (SELECT "votes"."item_id" FROM "votes" WHERE "votes"."submitted_by" = (SELECT "id" FROM "accounts" where "key" ~* ?%d OR "handle" = ?%d) AND "votes"."weight" != 0)
 			OR
-"%s"."key" IN (SELECT subpath("path", 0, 1)::varchar FROM "items" WHERE "submitted_by" = (SELECT "id" FROM "accounts" where "key" ~* $%d OR "handle" = $%d) AND nlevel("path") > 1)`, it, counter, counter, it, counter, counter))
+"%s"."key" IN (SELECT subpath("path", 0, 1)::varchar FROM "items" WHERE "submitted_by" = (SELECT "id" FROM "accounts" where "key" ~* ?%d OR "handle" = ?%d) AND nlevel("path") > 1)`, it, counter, counter, it, counter, counter))
 			whereValues = append(whereValues, interface{}(hash))
 			counter++
 		}
@@ -379,7 +379,7 @@ FROM "items" WHERE "key" ~* $%d) AND "%s"."path" IS NOT NULL)`, it, counter, it)
 		}
 	}
 	if len(f.IRI) > 0 {
-		wheres = append(wheres, fmt.Sprintf(`"%s"."metadata"->>'id' ~* $%d`, it, counter))
+		wheres = append(wheres, fmt.Sprintf(`"%s"."metadata"->>'id' ~* ?%d`, it, counter))
 		whereValues = append(whereValues, interface{}(f.IRI))
 		counter++
 	}
@@ -447,12 +447,12 @@ func (f *LoadItemsFilter) CurrentIndex() int {
 func (f LoadAccountsFilter) GetWhereClauses() ([]string, []interface{}) {
 	wheres := make([]string, 0)
 	whereValues := make([]interface{}, 0)
-	counter := 1
+	counter := 0
 
 	if len(f.Key) > 0 {
 		whereColumns := make([]string, 0)
 		for _, hash := range f.Key {
-			whereColumns = append(whereColumns, fmt.Sprintf(`"accounts"."key" ~* $%d`, counter))
+			whereColumns = append(whereColumns, fmt.Sprintf(`"accounts"."key" ~* ?%d`, counter))
 			whereValues = append(whereValues, interface{}(hash))
 			counter++
 		}
@@ -461,19 +461,19 @@ func (f LoadAccountsFilter) GetWhereClauses() ([]string, []interface{}) {
 	if len(f.Handle) > 0 {
 		whereColumns := make([]string, 0)
 		for _, handle := range f.Handle {
-			whereColumns = append(whereColumns, fmt.Sprintf(`"accounts"."handle" = $%d`, counter))
+			whereColumns = append(whereColumns, fmt.Sprintf(`"accounts"."handle" = ?%d`, counter))
 			whereValues = append(whereValues, interface{}(handle))
 			counter++
 		}
 		wheres = append(wheres, fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR ")))
 	}
 	if len(f.Email) > 0 {
-		wheres = append(wheres, fmt.Sprintf(`"accounts"."email"  ~* $%d`, counter))
+		wheres = append(wheres, fmt.Sprintf(`"accounts"."email"  ~* ?%d`, counter))
 		whereValues = append(whereValues, interface{}(f.Email))
 		counter++
 	}
 	if len(f.InboxIRI) > 0 {
-		wheres = append(wheres, fmt.Sprintf(`"accounts"."metadata"->>'inbox' ~* $%d`, counter))
+		wheres = append(wheres, fmt.Sprintf(`"accounts"."metadata"->>'inbox' ~* ?%d`, counter))
 		whereValues = append(whereValues, interface{}(f.InboxIRI))
 		counter++
 	}

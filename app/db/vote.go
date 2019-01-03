@@ -1,14 +1,15 @@
 package db
 
 import (
+	"database/sql"
 	"fmt"
+	"github.com/go-pg/pg"
 	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/app/log"
 	"math"
 	"strings"
 	"time"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/juju/errors"
 )
 
@@ -58,7 +59,7 @@ func (a Account) Votes() VoteCollection {
 	return nil
 }
 
-func loadVotes(db *sqlx.DB, f app.LoadVotesFilter) (app.VoteCollection, error) {
+func loadVotes(db *pg.DB, f app.LoadVotesFilter) (app.VoteCollection, error) {
 	wheres, whereValues := f.GetWhereClauses()
 	var fullWhere string
 
@@ -111,9 +112,8 @@ func loadVotes(db *sqlx.DB, f app.LoadVotesFilter) (app.VoteCollection, error) {
 		inner join "accounts" as "author" on "item"."submitted_by" = "author"."id"
 where %s order by "vote"."submitted_at" desc limit %d%s`, fullWhere, f.MaxItems, offset)
 	agg := make([]votesView, 0)
-	udb := db.Unsafe()
-	if err := udb.Select(&agg, selC, whereValues...); err != nil {
-		return nil, errors.Annotatef(err, "db query error")
+	if _, err := db.Query(&agg, selC, whereValues...); err != nil {
+		return nil, errors.Annotatef(err, "DB query error")
 	}
 	votes := make(app.VoteCollection, len(agg))
 	for k, vv := range agg {
@@ -124,47 +124,47 @@ where %s order by "vote"."submitted_at" desc limit %d%s`, fullWhere, f.MaxItems,
 }
 
 type votesView struct {
-	VoteID          int64     `sql:"vote_id"`
-	VoteSubmittedBy int64     `sql:"vote_submitted_by"`
-	VoteSubmittedAt time.Time `sql:"vote_submitted_at"`
-	VoteUpdatedAt   time.Time `sql:"vote_updated_at"`
-	Weight          int       `sql:"vote_weight"`
-	VoteFlags       FlagBits  `sql:"vote_flags"`
-	ItemID          int64     `sql:"item_id,"auto"`
-	ItemKey         app.Key   `sql:"item_key,size(32)"`
-	Title           []byte    `sql:"item_title"`
-	MimeType        string    `sql:"item_mime_type"`
-	Data            []byte    `sql:"item_data"`
-	ItemScore       int64     `sql:"item_score"`
-	ItemSubmittedAt time.Time `sql:"item_submitted_at"`
-	ItemSubmittedBy int64     `sql:"item_submitted_by"`
-	ItemUpdatedAt   time.Time `sql:"item_updated_at"`
-	ItemFlags       FlagBits  `sql:"item_flags"`
-	ItemMetadata    Metadata  `sql:"item_metadata"`
-	Path            []byte    `sql:"item_path"`
-	VoterID         int64     `sql:"voter_id,auto"`
-	VoterKey        app.Key   `sql:"voter_key,size(32)"`
-	VoterEmail      []byte    `sql:"voter_email"`
-	VoterHandle     string    `sql:"voter_handle"`
-	VoterScore      int64     `sql:"voter_score"`
-	VoterCreatedAt  time.Time `sql:"voter_created_at"`
-	VoterUpdatedAt  time.Time `sql:"voter_updated_at"`
-	VoterFlags      FlagBits  `sql:"voter_flags"`
-	VoterMetadata   Metadata  `sql:"voter_metadata"`
-	AuthorID        int64     `sql:"author_id,auto"`
-	AuthorKey       app.Key   `sql:"author_key,size(32)"`
-	AuthorEmail     []byte    `sql:"author_email"`
-	AuthorHandle    string    `sql:"author_handle"`
-	AuthorScore     int64     `sql:"author_score"`
-	AuthorCreatedAt time.Time `sql:"author_created_at"`
-	AuthorUpdatedAt time.Time `sql:"author_updated_at"`
-	AuthorFlags     FlagBits  `sql:"author_flags"`
-	AuthorMetadata  Metadata  `sql:"author_metadata"`
+	VoteID          int64               `sql:"vote_id"`
+	VoteSubmittedBy int64               `sql:"vote_submitted_by"`
+	VoteSubmittedAt time.Time           `sql:"vote_submitted_at"`
+	VoteUpdatedAt   time.Time           `sql:"vote_updated_at"`
+	Weight          int                 `sql:"vote_weight"`
+	VoteFlags       FlagBits            `sql:"vote_flags"`
+	ItemID          int64               `sql:"item_id,auto"`
+	ItemKey         app.Key             `sql:"item_key,size(32)"`
+	Title           sql.NullString      `sql:"item_title"`
+	MimeType        string              `sql:"item_mime_type"`
+	Data            sql.NullString      `sql:"item_data"`
+	ItemScore       int64               `sql:"item_score"`
+	ItemSubmittedAt time.Time           `sql:"item_submitted_at"`
+	ItemSubmittedBy int64               `sql:"item_submitted_by"`
+	ItemUpdatedAt   time.Time           `sql:"item_updated_at"`
+	ItemFlags       FlagBits            `sql:"item_flags"`
+	ItemMetadata    app.ItemMetadata    `sql:"item_metadata"`
+	Path            Path                `sql:"item_path"`
+	VoterID         int64               `sql:"voter_id,auto"`
+	VoterKey        app.Key             `sql:"voter_key,size(32)"`
+	VoterEmail      string              `sql:"voter_email"`
+	VoterHandle     string              `sql:"voter_handle"`
+	VoterScore      int64               `sql:"voter_score"`
+	VoterCreatedAt  time.Time           `sql:"voter_created_at"`
+	VoterUpdatedAt  time.Time           `sql:"voter_updated_at"`
+	VoterFlags      FlagBits            `sql:"voter_flags"`
+	VoterMetadata   app.AccountMetadata `sql:"voter_metadata"`
+	AuthorID        int64               `sql:"author_id,auto"`
+	AuthorKey       app.Key             `sql:"author_key,size(32)"`
+	AuthorEmail     string              `sql:"author_email"`
+	AuthorHandle    string              `sql:"author_handle"`
+	AuthorScore     int64               `sql:"author_score"`
+	AuthorCreatedAt time.Time           `sql:"author_created_at"`
+	AuthorUpdatedAt time.Time           `sql:"author_updated_at"`
+	AuthorFlags     FlagBits            `sql:"author_flags"`
+	AuthorMetadata  app.AccountMetadata `sql:"author_metadata"`
 }
 
 func (v votesView) author() Account {
 	return Account{
-		Id:        v.AuthorID,
+		ID:        v.AuthorID,
 		Email:     v.AuthorEmail,
 		Handle:    v.AuthorHandle,
 		Key:       v.AuthorKey,
@@ -178,7 +178,7 @@ func (v votesView) author() Account {
 
 func (v votesView) voter() Account {
 	return Account{
-		Id:        v.VoterID,
+		ID:        v.VoterID,
 		Email:     v.VoterEmail,
 		Handle:    v.VoterHandle,
 		Key:       v.VoterKey,
@@ -225,25 +225,20 @@ func (v votesView) item() Item {
 	}
 }
 
-func saveVote(db *sqlx.DB, vot app.Vote) (app.Vote, error) {
+func saveVote(db *pg.DB, vot app.Vote) (app.Vote, error) {
 	var sel string
-	sel = `select "votes"."id", "accounts"."id", "votes"."weight", "votes"."submitted_at" from "votes" inner join "accounts" on "accounts"."id" = "votes"."submitted_by" 
-			where "accounts"."key" ~* $1 and "votes"."item_id" = (select "id" from "items" where "key" ~* $2);`
-	var userID int64
+	sel = `SELECT "votes"."id", "accounts"."id", "votes"."weight", "votes"."submitted_at" FROM "votes" 
+	INNER JOIN "accounts" ON "accounts"."id" = "votes"."submitted_by" 
+			WHERE "accounts"."key" ~* ?0 AND "votes"."item_id" = (SELECT "id" FROM "items" WHERE "key" ~* ?1);`
+
 	var vID int64
 	var oldWeight int64
 	var submittedAt time.Time
 
+	votes := make(VoteCollection, 0)
 	var err error
-	rows, err := db.Query(sel, vot.SubmittedBy.Hash, vot.Item.Hash)
-	if err != nil {
+	if _, err := db.Query(&votes, sel, vot.SubmittedBy.Hash, vot.Item.Hash); err != nil {
 		return vot, err
-	}
-	for rows.Next() {
-		err = rows.Scan(&vID, &userID, &oldWeight, &submittedAt)
-		if err != nil {
-			return vot, err
-		}
 	}
 	vot.SubmittedAt = submittedAt
 
@@ -254,10 +249,10 @@ func saveVote(db *sqlx.DB, vot app.Vote) (app.Vote, error) {
 		if vot.Weight != 0 && oldWeight != 0 && math.Signbit(float64(oldWeight)) == math.Signbit(float64(vot.Weight)) {
 			vot.Weight = 0
 		}
-		q = `update "votes" set "updated_at" = now(), "weight" = $1, "flags" = $2::bit(8) where "item_id" = (select "id" from "items" where "key" ~* $3) and "submitted_by" = (select "id" from "accounts" where "key" ~* $4);`
+		q = `update "votes" set "updated_at" = now(), "weight" = ?0, "flags" = ?1::bit(8) where "item_id" = (select "id" from "items" where "key" ~* ?2) and "submitted_by" = (select "id" from "accounts" where "key" ~* ?3);`
 		updated = true
 	} else {
-		q = `insert into "votes" ("weight", "flags", "item_id", "submitted_by") values ($1, $2::bit(8), (select "id" from "items" where "key" ~* $3), (select "id" from "accounts" where "key" ~* $4))`
+		q = `insert into "votes" ("weight", "flags", "item_id", "submitted_by") values (?0, ?1::bit(8), (select "id" from "items" where "key" ~* ?2), (select "id" from "accounts" where "key" ~* ?3))`
 	}
 	v.Flags.Scan(vot.Flags)
 	v.Weight = int(vot.Weight * app.ScoreMultiplier)
@@ -266,19 +261,19 @@ func saveVote(db *sqlx.DB, vot app.Vote) (app.Vote, error) {
 	if err != nil {
 		return vot, err
 	}
-	if rows, err := res.RowsAffected(); rows == 0 || err != nil {
+	if rows := res.RowsAffected(); rows == 0 || err != nil {
 		return vot, errors.Errorf("scoring failed %s", err)
 	}
 
-	upd := `update "items" set score = score - $1 + $2 where "id" = (select "id" from "items" where "key" ~* $3)`
+	upd := `update "items" set score = score - ?0 + ?1 where "id" = (select "id" from "items" where "key" ~* ?2)`
 	res, err = db.Exec(upd, v.Weight, v.Weight, vot.Item.Hash)
 	if err != nil {
 		return vot, err
 	}
-	if rows, _ := res.RowsAffected(); rows == 0 {
+	if rows := res.RowsAffected(); rows == 0 {
 		err = errors.Errorf("item corresponding to vote not found")
 	}
-	if rows, _ := res.RowsAffected(); rows > 1 {
+	if rows := res.RowsAffected(); rows > 1 {
 		err = errors.Errorf("item collision for vote")
 	}
 	if err == nil {

@@ -63,17 +63,15 @@ func (k *Key) FromString(s string) error {
 	return err
 }
 
-// Value implements the driver.Valuer interface,
-// and turns the Key into a bitfield (BIT(8)) storage.
+// Value implements the driver.Valuer interface
 func (k Key) Value() (driver.Value, error) {
 	if len(k) > 0 {
-		return k.Bytes(), nil
+		return k.String(), nil
 	}
-	return []byte{0}, nil
+	return nil, nil
 }
 
-// Scan implements the sql.Scanner interface,
-// and turns the bitfield incoming from DB into a Key
+// Scan implements the sql.Scanner interface
 func (k *Key) Scan(src interface{}) error {
 	if v, ok := src.([]byte); ok {
 		k.FromBytes(v)

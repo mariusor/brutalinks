@@ -2,33 +2,35 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"database/sql/driver"
-	"encoding/json"
 	"fmt"
 	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/app/log"
 	"net/http"
 	"time"
 
-	"github.com/jmoiron/sqlx"
-	"github.com/jmoiron/sqlx/types"
+	"github.com/go-pg/pg"
 	"github.com/juju/errors"
 )
 
 type config struct {
 	Account *app.Account
-	DB      *sqlx.DB
+	DB      *pg.DB
 }
 
 func Init(app *app.Application) error {
 	if app.Config.DB.Port == "" {
 		app.Config.DB.Port = "5432"
 	}
-	connStr := fmt.Sprintf("host=%s user=%s password=%s port=%s dbname=%s sslmode=disable",
-		app.Config.DB.Host, app.Config.DB.User, app.Config.DB.Pw, app.Config.DB.Port, app.Config.DB.Name)
 
 	var err error
-	Config.DB, err = sqlx.Open("postgres", connStr)
+	Config.DB = pg.Connect(&pg.Options{
+		Addr:     fmt.Sprintf("%s:%s", app.Config.DB.Host, app.Config.DB.Port),
+		User:     app.Config.DB.User,
+		Password: app.Config.DB.Pw,
+		Database: app.Config.DB.Name,
+	})
 	if err == nil {
 		app.Config.DB.Enabled = true
 	} else {
@@ -61,42 +63,15 @@ func Repository(next http.Handler) http.Handler {
 
 type (
 	FlagBits [8]byte
-	Metadata types.JSONText
+	Path     []byte
 )
-
-func (m Metadata) MarshalJSON() ([]byte, error) {
-	return types.JSONText(m).MarshalJSON()
-}
-
-func (m *Metadata) UnmarshalJSON(data []byte) error {
-	j := &types.JSONText{}
-	err := j.UnmarshalJSON(data)
-	if err != nil {
-		return err
-	}
-
-	*m = Metadata(*j)
-	return nil
-}
 
 func AccountFlags(f FlagBits) app.FlagBits {
 	return VoteFlags(f)
 }
 
-func ItemMetadata(m Metadata) (app.ItemMetadata, error) {
-	am := app.ItemMetadata{}
-	err := json.Unmarshal(m, &am)
-	return am, err
-}
-
-func AccountMetadata(m Metadata) (app.AccountMetadata, error) {
-	am := app.AccountMetadata{}
-	err := json.Unmarshal(m, &am)
-	return am, err
-}
-
 func (a Account) Model() app.Account {
-	m, _ := AccountMetadata(a.Metadata)
+	m := a.Metadata
 	f := AccountFlags(a.Flags)
 	return app.Account{
 		Hash:      a.Key.Hash(),
@@ -147,10 +122,26 @@ func (f *FlagBits) Scan(src interface{}) error {
 	return nil
 }
 
+// Value implements the driver.Valuer interface
+func (p Path) Value() (driver.Value, error) {
+	return driver.Value(p), nil
+}
+
+// Scan implements the sql.Scanner interface,
+func (p *Path) Scan(src interface{}) error {
+	s := sql.NullString{}
+	err := s.Scan(src)
+	if s.Valid {
+		*p = Path(s.String)
+	} else {
+		*p = nil
+	}
+	return err
+}
 func (c config) WithAccount(a *app.Account) error {
 	c.Account = a
 	// @todo(marius): implement this
-	return errors.NotImplementedf("db.Config.WithAccount")
+	return errors.NotImplementedf("DB.Config.WithAccount")
 }
 
 func (c config) LoadVotes(f app.LoadVotesFilter) (app.VoteCollection, error) {
@@ -222,56 +213,49 @@ func LoadScoresForItems(since time.Duration, key string) ([]app.Score, error) {
 
 var maxVotePeriod, _ = time.ParseDuration("44444h")
 
-func loadScoresForItems(db *sqlx.DB, since time.Duration, key string) ([]app.Score, error) {
+func loadScoresForItems(db *pg.DB, since time.Duration, key string) ([]app.Score, error) {
 	par := make([]interface{}, 0)
 	dumb := func(ups, downs int64) int64 {
 		return ups - downs
 	}
 	keyClause := ""
 	if len(key) > 0 {
-		keyClause = `AND "items"."key" ~* $1`
+		keyClause = `AND "items"."key" ~* ?0`
 		par = append(par, interface{}(key))
 	}
-	q := fmt.Sprintf(`select "item_id", "items"."key", max("items"."submitted_at"),
+	scores := make([]app.Score, 0)
+	q := fmt.Sprintf(`select "items"."id", "items"."key", max("items"."submitted_at") as "submitted_at",
 		sum(CASE WHEN "weight" > 0 THEN "weight" ELSE 0 END) AS "ups",
 		sum(CASE WHEN "weight" < 0 THEN abs("weight") ELSE 0 END) AS "downs"
-		FROM "votes" INNER JOIN "items" ON "items"."id" = "item_id"
+		FROM "votes" INNER JOIN "items" ON "items"."id" = "votes"."item_id"
 		WHERE "votes"."updated_at" >= current_timestamp - INTERVAL '%.3f hours' %s 
-	GROUP BY "item_id", "key" ORDER BY "item_id";`,
+	GROUP BY "items"."id", "key" ORDER BY "items"."id";`,
 		since.Hours(), keyClause)
-	rows, err := db.Query(q, par...)
-	if err != nil {
+	if _, err := db.Query(&scores, q, par...); err != nil {
 		return nil, err
-	}
-	scores := make([]app.Score, 0)
-	for rows.Next() {
-		var i, ups, downs int64
-		var submitted time.Time
-		var key []byte
-		err = rows.Scan(&i, &key, &submitted, &ups, &downs)
+	} else {
+		for _, score := range scores {
+			var submitted time.Time
 
-		now := time.Now().UTC()
-		reddit := int64(app.Reddit(ups, downs, now.Sub(submitted)))
-		wilson := int64(app.Wilson(ups, downs))
-		hacker := int64(app.Hacker(ups-downs, now.Sub(submitted)))
-		dumbScore := dumb(ups, downs)
-		Logger.WithContext(log.Ctx{
-			"key":    string(key[0:8]),
-			"ups":    ups,
-			"downs":  downs,
-			"reddit": reddit,
-			"wilson": wilson,
-			"hn":     hacker,
-			"dumb":   dumbScore,
-		}).Info("new score")
-		new := app.Score{
-			ID:        i,
-			Key:       key,
-			Submitted: submitted,
-			Type:      app.ScoreItem,
-			Score:     dumbScore,
+			now := time.Now().UTC()
+			reddit := int64(app.Reddit(score.Ups, score.Downs, now.Sub(submitted)))
+			wilson := int64(app.Wilson(score.Ups, score.Downs))
+			hacker := int64(app.Hacker(score.Ups-score.Downs, now.Sub(submitted)))
+			dumbScore := dumb(score.Ups, score.Downs)
+			Logger.WithContext(log.Ctx{
+				"key":    score.Key.String(),
+				"ups":    score.Ups,
+				"downs":  score.Downs,
+				"reddit": reddit,
+				"wilson": wilson,
+				"hn":     hacker,
+				"dumb":   dumbScore,
+			}).Info("new score")
+
+			score.Type = app.ScoreItem
+			score.Score = dumbScore
+			score.SubmittedAt = now
 		}
-		scores = append(scores, new)
 	}
 	return scores, nil
 }
@@ -280,17 +264,18 @@ func LoadScoresForAccounts(since time.Duration, col string, val string) ([]app.S
 	return loadScoresForAccounts(Config.DB, since, col, val)
 }
 
-func loadScoresForAccounts(db *sqlx.DB, since time.Duration, col string, val string) ([]app.Score, error) {
+func loadScoresForAccounts(db *pg.DB, since time.Duration, col string, val string) ([]app.Score, error) {
 	par := make([]interface{}, 0)
 	dumb := func(ups, downs int64) int64 {
 		return ups - downs
 	}
 	keyClause := ""
 	if len(val) > 0 && len(col) > 0 {
-		keyClause = fmt.Sprintf(` and "items"."%s" ~* $1`, col)
+		keyClause = fmt.Sprintf(` and "items"."%s" ~* ?0`, col)
 		par = append(par, interface{}(val))
 	}
-	q := fmt.Sprintf(`SELECT "accounts"."id", "accounts"."handle", "accounts"."key", max("items"."submitted_at"),
+	scores := make([]app.Score, 0)
+	q := fmt.Sprintf(`SELECT "accounts"."id", "accounts"."key", max("items"."submitted_at") as "submitted_at",
        SUM(CASE WHEN "weight" > 0 THEN "weight" ELSE 0 END) AS "ups",
        SUM(CASE WHEN "weight" < 0 THEN abs("weight") ELSE 0 END) AS "downs"
 FROM "votes"
@@ -299,47 +284,37 @@ FROM "votes"
 WHERE "votes"."updated_at" >= current_timestamp - INTERVAL '%.3f hours' %s 
 GROUP BY "accounts"."id", "accounts"."key" ORDER BY "accounts"."id";`,
 		since.Hours(), keyClause)
-	rows, err := db.Query(q, par...)
-	if err != nil {
+	if _, err := db.Query(&scores, q, par...); err != nil {
 		return nil, err
-	}
+	} else {
+		for _, score := range scores {
+			var submitted time.Time
 
-	scores := make([]app.Score, 0)
-	for rows.Next() {
-		var i, ups, downs int64
-		var submitted time.Time
-		var key []byte
-		var handle string
-		err = rows.Scan(&i, &handle, &key, &submitted, &ups, &downs)
+			now := time.Now().UTC()
+			reddit := int64(app.Reddit(score.Ups, score.Downs, now.Sub(submitted)))
+			wilson := int64(app.Wilson(score.Ups, score.Downs))
+			hacker := int64(app.Hacker(score.Ups-score.Downs, now.Sub(submitted)))
+			dumbScore := dumb(score.Ups, score.Downs)
+			Logger.WithContext(log.Ctx{
+				"key":    score.Key.String(),
+				"ups":    score.Ups,
+				"downs":  score.Downs,
+				"reddit": reddit,
+				"wilson": wilson,
+				"hn":     hacker,
+				"dumb":   dumbScore,
+			}).Info("new score")
 
-		now := time.Now().UTC()
-		reddit := int64(app.Reddit(ups, downs, now.Sub(submitted)))
-		wilson := int64(app.Wilson(ups, downs))
-		hacker := int64(app.Hacker(ups-downs, now.Sub(submitted)))
-		dumbScore := dumb(ups, downs)
-		Logger.WithContext(log.Ctx{
-			"handle": handle,
-			"ups":    ups,
-			"downs":  downs,
-			"reddit": reddit,
-			"wilson": wilson,
-			"hn":     hacker,
-			"dumb":   dumbScore,
-		}).Info("new score")
-		new := app.Score{
-			ID:        i,
-			Key:       key,
-			Submitted: submitted,
-			Type:      app.ScoreAccount,
-			Score:     dumbScore,
+			score.Type = app.ScoreAccount
+			score.Score = dumbScore
+			score.SubmittedAt = now
 		}
-		scores = append(scores, new)
 	}
 	return scores, nil
 }
 
 // LoadInfo this method is here to keep compatibility with the repository interfaces
-// but in the long term we might want to store some of this information in the db
+// but in the long term we might want to store some of this information in the DB
 func (c config) LoadInfo() (app.Info, error) {
 	return app.Instance.NodeInfo(), nil
 }

@@ -2,8 +2,7 @@ package main
 
 import (
 	"flag"
-	"fmt"
-	"github.com/jmoiron/sqlx"
+	"github.com/go-pg/pg"
 	"github.com/mariusor/littr.go/app/cmd"
 	"github.com/mariusor/littr.go/app/db"
 	"github.com/mariusor/littr.go/app/log"
@@ -29,11 +28,11 @@ func main() {
 	cmd.Logger = log.Dev()
 	db.Logger = cmd.Logger
 
-	connStr := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable", dbUser, dbPw, dbName)
-	if db.Config.DB, err = sqlx.Connect("postgres", connStr); err != nil {
-		cmd.E(err)
-		os.Exit(1)
-	}
+	db.Config.DB = pg.Connect(&pg.Options{
+		User:     dbUser,
+		Password: dbPw,
+		Database: dbName,
+	})
 
 	err = cmd.PoachFeed(url, since)
 	if !cmd.E(err) {

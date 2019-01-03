@@ -15,7 +15,6 @@ import (
 	"syscall"
 	"time"
 
-	_ "github.com/jmoiron/sqlx"
 	"github.com/mariusor/littr.go/app/log"
 )
 

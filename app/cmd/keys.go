@@ -48,26 +48,23 @@ func GenSSHKey(handle string, seed int64, kType string) error {
 		hashes := make([]string, 0)
 		Logger.Info("No account handle, generating for all")
 
-		sel := `select "key" from "accounts" where "id" != $1 AND "metadata"#>'{key}' is null;`
-		rows, err := loader.DB.Query(sel, 0)
-		if err != nil {
+		keys := make([]app.Key, 0)
+		sel := `SELECT "key" FROM "accounts" WHERE "id" != ?0 AND "metadata"#>'{id}' IS NULL AND "metadata"#>'{key}' IS null;`
+		if _, err := loader.DB.Query(&keys, sel, 0); err != nil {
 			return err
+		} else {
+			if len(keys) == 0 {
+				Logger.Warn("Nothing to do")
+				return nil
+			} else {
+				for _, key := range keys {
+					hashes = append(hashes, key.String())
+				}
+			}
+			filter.Key = hashes
+			filter.MaxItems = len(hashes)
 		}
 
-		for rows.Next() {
-			var hash string
-			err := rows.Scan(&hash)
-			if err != nil {
-				return err
-			}
-			hashes = append(hashes, hash)
-		}
-		if len(hashes) == 0 {
-			Logger.Warn("Nothing to do")
-			return nil
-		}
-		filter.Key = hashes
-		filter.MaxItems = len(hashes)
 	}
 
 	accts, err := loader.LoadAccounts(filter)
@@ -133,7 +130,7 @@ func GenSSHKey(handle string, seed int64, kType string) error {
 		if len(s.Metadata.Key.Public) > 0 {
 			enc := base64.StdEncoding.EncodeToString(acct.Metadata.Key.Public)
 			ctx["key-id"] = acct.Metadata.Key.ID
-			ctx["pub"] = fmt.Sprintf("%s...", enc[0:10])
+			ctx["pub"] = fmt.Sprintf("%s...", enc[0:65])
 		}
 		Logger.WithContext(ctx).Infof("Updated Key")
 	}

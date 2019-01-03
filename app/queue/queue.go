@@ -2,7 +2,7 @@ package queue
 
 import (
 	"fmt"
-	"github.com/jmoiron/sqlx"
+	"github.com/go-pg/pg"
 	"github.com/mariusor/littr.go/app"
 )
 
@@ -13,28 +13,27 @@ const (
 	Redis
 )
 
-type pg struct {
-	db *sqlx.DB
+type pgQueue struct {
+	db *pg.DB
 }
 
-func initPg(app app.Application) pg {
+func initPg(app app.Application) pgQueue {
 	if app.Config.DB.Port == "" {
 		app.Config.DB.Port = "5432"
 	}
 
-	connStr := fmt.Sprintf("host=%s user=%s password=%s port=%s dbname=%s sslmode=disable",
-		app.Config.DB.Host, app.Config.DB.User, app.Config.DB.Pw, app.Config.DB.Port, app.Config.DB.Name)
-
-	q := pg{}
-	if db, err := sqlx.Open("postgres", connStr); err == nil {
-		q.db = db
-	}
-	return q
+	db := pg.Connect(&pg.Options{
+		Addr:     fmt.Sprintf("%s:%s", app.Config.DB.Host, app.Config.DB.Port),
+		User:     app.Config.DB.User,
+		Password: app.Config.DB.Pw,
+		Database: app.Config.DB.Name,
+	})
+	return pgQueue{db: db}
 }
 
 type Repository struct {
 	Type Backend
-	Backend pg
+	Backend pgQueue
 }
 
 func New(app app.Application, typ Backend) Repository {

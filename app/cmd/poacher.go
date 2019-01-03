@@ -38,7 +38,7 @@ func PoachFeed(u string, since time.Duration) error {
 				//        feed source
 				acct.Email = fmt.Sprintf("%s@%s", l.Author.Name, feedURL.Host)
 				acct.Metadata = &app.AccountMetadata{
-					URL:       fmt.Sprintf("%s://%s/~%s", feedURL.Scheme, feedURL.Host, l.Author.Name),
+					URL: fmt.Sprintf("%s://%s/~%s", feedURL.Scheme, feedURL.Host, l.Author.Name),
 				}
 			}
 			if l.Author.Email != "" {
@@ -76,6 +76,7 @@ func PoachFeed(u string, since time.Duration) error {
 			SubmittedBy: &acct,
 			Title:       l.Title,
 			MimeType:    app.MimeTypeURL,
+			Metadata:    &app.ItemMetadata{},
 		}
 		if l.UpdatedParsed != nil {
 			item.UpdatedAt = *l.UpdatedParsed

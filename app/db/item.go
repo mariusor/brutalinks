@@ -3,30 +3,30 @@ package db
 import (
 	"bytes"
 	"database/sql"
-	"encoding/json"
 	"fmt"
+	"github.com/go-pg/pg"
 	"github.com/mariusor/littr.go/app"
+	"github.com/mariusor/littr.go/app/log"
 	"strings"
 	"time"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/juju/errors"
 )
 
 type Item struct {
-	ID          int64     `db:"id,auto"`
-	Key         app.Key   `db:"key,size(32)"`
-	Title       []byte    `db:"title"`
-	MimeType    string    `db:"mime_type"`
-	Data        []byte    `db:"data"`
-	Score       int64     `db:"score"`
-	SubmittedAt time.Time `db:"submitted_at"`
-	SubmittedBy int64     `db:"submitted_by"`
-	UpdatedAt   time.Time `db:"updated_at"`
-	Flags       FlagBits  `db:"flags"`
-	Metadata    Metadata  `db:"metadata"`
-	Path        []byte    `db:"path"`
-	FullPath    []byte
+	ID          int64            `sql:"id,auto"`
+	Key         app.Key          `sql:"key,size(32)"`
+	Title       sql.NullString   `sql:"title"`
+	MimeType    string           `sql:"mime_type"`
+	Data        sql.NullString   `sql:"data"`
+	Score       int64            `sql:"score"`
+	SubmittedAt time.Time        `sql:"submitted_at"`
+	SubmittedBy int64            `sql:"submitted_by"`
+	UpdatedAt   time.Time        `sql:"updated_at"`
+	Flags       FlagBits         `sql:"flags"`
+	Metadata    app.ItemMetadata `sql:"metadata"`
+	Path        Path             `sql:"path"`
+	FullPath    Path
 	author      *Account
 }
 
@@ -38,8 +38,8 @@ func ItemFlags(f FlagBits) app.FlagBits {
 	return VoteFlags(f)
 }
 
-func getAncestorKey(path []byte, cnt int) (app.Key, bool) {
-	if path == nil {
+func getAncestorKey(path Path, cnt int) (app.Key, bool) {
+	if len(path) == 0 {
 		return app.Key{}, false
 	}
 	elem := bytes.Split(path, []byte("."))
@@ -65,7 +65,7 @@ func GetOPKey(i Item) (app.Key, bool) {
 
 func (i Item) Model() app.Item {
 	a := i.Author().Model()
-	am, _ := ItemMetadata(i.Metadata)
+	am := i.Metadata
 	res := app.Item{
 		MimeType:    app.MimeType(i.MimeType),
 		SubmittedAt: i.SubmittedAt,
@@ -74,8 +74,8 @@ func (i Item) Model() app.Item {
 		Hash:        i.Key.Hash(),
 		Flags:       ItemFlags(i.Flags),
 		Path:        i.Path,
-		Data:        string(i.Data),
-		Title:       string(i.Title),
+		Data:        i.Data.String,
+		Title:       i.Title.String,
 		Score:       i.Score,
 		UpdatedAt:   i.UpdatedAt,
 		IsTop:       len(i.Path) == 0,
@@ -101,14 +101,45 @@ type ItemCollection []Item
 
 var nilKey = [32]byte{}
 
-func saveItem(db *sqlx.DB, it app.Item) (app.Item, error) {
+type itemSaveError struct {
+	item Item
+	err  error
+}
+
+func (i itemSaveError) ItemCtx() log.Ctx {
+	return log.Ctx{
+		"ID":          i.item.ID,
+		"Key":         i.item.Key,
+		"Title":       i.item.Title,
+		"MimeType":    i.item.MimeType,
+		"Data":        i.item.Data,
+		"Score":       i.item.Score,
+		"SubmittedAt": i.item.SubmittedAt,
+		"SubmittedBy": i.item.SubmittedBy,
+		"UpdatedAt":   i.item.UpdatedAt,
+		"Flags":       i.item.Flags,
+		"Metadata":    i.item.Metadata,
+		"Path":        i.item.Path,
+	}
+}
+
+func (i itemSaveError) Error() string {
+	return fmt.Sprintf("%s", i.err)
+}
+
+func saveItem(db *pg.DB, it app.Item) (app.Item, error) {
 	i := Item{
 		Score:    it.Score,
 		MimeType: string(it.MimeType),
-		Data:     []byte(it.Data),
-		Title:    []byte(it.Title),
 	}
-	i.Metadata, _ = json.Marshal(it.Metadata)
+	if len(it.Data) > 0 {
+		i.Data.Scan(it.Data)
+	}
+	if len(it.Title) > 0 {
+		i.Title.Scan(it.Title)
+	}
+
+	i.Metadata = *it.Metadata
 	i.Flags.Scan(it.Flags)
 	var params = make([]interface{}, 0)
 
@@ -124,12 +155,15 @@ func saveItem(db *sqlx.DB, it app.Item) (app.Item, error) {
 		i.UpdatedAt = now
 	}
 
-	var res sql.Result
+	var res pg.Result
 	var err error
 	var query string
 	var hash string
 	if len(it.Hash) == 0 {
-		i.Key = app.GenKey(i.Path, []byte(it.Title), i.Data, []byte(it.SubmittedBy.Handle))
+		i.Key = app.GenKey(i.Path, []byte(it.Title), []byte(i.Data.String), []byte(it.SubmittedBy.Handle))
+
+		aKey := app.Key{}
+		aKey.FromString(it.SubmittedBy.Hash.String())
 		params = append(params, i.Key)
 		params = append(params, i.Title)
 		params = append(params, i.Data)
@@ -138,79 +172,79 @@ func saveItem(db *sqlx.DB, it app.Item) (app.Item, error) {
 		params = append(params, i.SubmittedAt)
 		params = append(params, i.UpdatedAt)
 		params = append(params, i.Flags)
-		params = append(params, it.SubmittedBy.Hash)
+		params = append(params, aKey)
 
 		if it.Parent != nil && len(it.Parent.Hash) > 0 {
 			query = `insert into "items" ("key", "title", "data", "metadata", "mime_type", "submitted_at", "updated_at", "flags", "submitted_by", "path") 
 		values(
-			$1, $2, $3, $4, $5, $6, $7, $8::bit(8), (select "id" from "accounts" where "key" ~* $9 or "handle" = $9), (select (case when "path" is not null then concat("path", '.', "key") else "key" end) 
-				as "parent_path" from "items" where key ~* $10)::ltree
+			?0, ?1, ?2, ?3, ?4, ?5, ?6, ?7::bit(8), (select "id" from "accounts" where "key" ~* ?8 or "handle" = ?8), (select (case when "path" is not null then concat("path", '.', "key") else "key" end) 
+				as "parent_path" from "items" where key ~* ?9)::ltree
 		);`
 			params = append(params, it.Parent.Hash)
 		} else {
 			query = `insert into "items" ("key", "title", "data", "metadata", "mime_type", "submitted_at", "updated_at", "flags", "submitted_by") 
-		values($1, $2, $3, $4, $5, $6, $7, $8::bit(8), (select "id" from "accounts" where "key" ~* $9 or "handle" = $9));`
+		values(?0, ?1, ?2, ?3, ?4, ?5, ?6, ?7::bit(8), (select "id" from "accounts" where "key" ~* ?8 or "handle" = ?8));`
 		}
 		hash = i.Key.String()
 	} else {
+		i.Key.FromString(it.Hash.String())
+
 		params = append(params, i.Title)
 		params = append(params, i.Data)
 		params = append(params, i.Metadata)
 		params = append(params, i.MimeType)
 		params = append(params, i.Flags)
 		params = append(params, now)
-		params = append(params, it.Hash)
+		params = append(params, i.Key)
 
-		query = `UPDATE "items" SET "title" = $1, "data" = $2, "metadata" = $3, "mime_type" = $4,
-			"flags" = $5::bit(8), "updated_at" = $6 WHERE "key" ~* $7;`
-		hash = string(it.Hash)
+		query = `UPDATE "items" SET "title" = ?0, "data" = ?1, "metadata" = ?2, "mime_type" = ?3,
+			"flags" = ?4::bit(8), "updated_at" = ?5 WHERE "key" ~* ?6;`
+		hash = i.Key.String()
 	}
-	res, err = db.Exec(query, params...)
+	res, err = db.Query(i, query, params...)
 	if err != nil {
-		return it, errors.Annotate(err, "db error")
+		return it, &itemSaveError{err: errors.Annotate(err, "item save error"), item: i}
 	} else {
-		if rows, _ := res.RowsAffected(); rows == 0 {
-			return it, errors.Errorf("could not save item %q", i.Key.Hash())
-		} else {
-			Logger.Infof("%d", rows)
+		if rows := res.RowsAffected(); rows == 0 {
+			return it, &itemSaveError{err: errors.Errorf("could not save item %q", i.Key.Hash()), item: i}
 		}
 	}
 
 	col, err := loadItems(db, app.LoadItemsFilter{Key: []string{hash}, MaxItems: 1})
 	if len(col) > 0 {
-		return col[0], err
+		return col[0], nil
 	} else {
-		return app.Item{}, errors.Annotatef(err, "db query error")
+		return app.Item{}, &itemSaveError{err: errors.Annotate(err, "item save error"), item: i}
 	}
 }
 
 type itemsView struct {
-	ItemID          int64     `db:"item_id,"auto"`
-	ItemKey         app.Key   `db:"item_key,size(32)"`
-	Title           []byte    `db:"item_title"`
-	MimeType        string    `db:"item_mime_type"`
-	Data            []byte    `db:"item_data"`
-	ItemScore       int64     `db:"item_score"`
-	ItemSubmittedAt time.Time `db:"item_submitted_at"`
-	ItemSubmittedBy int64     `db:"item_submitted_by"`
-	ItemUpdatedAt   time.Time `db:"item_updated_at"`
-	ItemFlags       FlagBits  `db:"item_flags"`
-	ItemMetadata    Metadata  `db:"item_metadata"`
-	Path            []byte    `db:"item_path"`
-	AuthorID        int64     `db:"author_id,auto"`
-	AuthorKey       app.Key   `db:"author_key,size(32)"`
-	AuthorEmail     []byte    `db:"author_email"`
-	AuthorHandle    string    `db:"author_handle"`
-	AuthorScore     int64     `db:"author_score"`
-	AuthorCreatedAt time.Time `db:"author_created_at"`
-	AuthorUpdatedAt time.Time `db:"author_updated_at"`
-	AuthorFlags     FlagBits  `db:"author_flags"`
-	AuthorMetadata  Metadata  `db:"author_metadata"`
+	ItemID          int64               `sql:"item_id,"auto"`
+	ItemKey         app.Key             `sql:"item_key,size(32)"`
+	Title           sql.NullString      `sql:"item_title"`
+	MimeType        string              `sql:"item_mime_type"`
+	Data            sql.NullString      `sql:"item_data"`
+	ItemScore       int64               `sql:"item_score"`
+	ItemSubmittedAt time.Time           `sql:"item_submitted_at"`
+	ItemSubmittedBy int64               `sql:"item_submitted_by"`
+	ItemUpdatedAt   time.Time           `sql:"item_updated_at"`
+	ItemFlags       FlagBits            `sql:"item_flags"`
+	ItemMetadata    app.ItemMetadata    `sql:"item_metadata"`
+	Path            Path                `sql:"item_path"`
+	AuthorID        int64               `sql:"author_id,auto"`
+	AuthorKey       app.Key             `sql:"author_key,size(32)"`
+	AuthorEmail     string              `sql:"author_email"`
+	AuthorHandle    string              `sql:"author_handle"`
+	AuthorScore     int64               `sql:"author_score"`
+	AuthorCreatedAt time.Time           `sql:"author_created_at"`
+	AuthorUpdatedAt time.Time           `sql:"author_updated_at"`
+	AuthorFlags     FlagBits            `sql:"author_flags"`
+	AuthorMetadata  app.AccountMetadata `sql:"author_metadata"`
 }
 
 func (i itemsView) author() Account {
 	return Account{
-		Id:        i.AuthorID,
+		ID:        i.AuthorID,
 		Email:     i.AuthorEmail,
 		Handle:    i.AuthorHandle,
 		Key:       i.AuthorKey,
@@ -241,7 +275,7 @@ func (i itemsView) item() Item {
 	}
 }
 
-func loadItems(db *sqlx.DB, f app.LoadItemsFilter) (app.ItemCollection, error) {
+func loadItems(db *pg.DB, f app.LoadItemsFilter) (app.ItemCollection, error) {
 	wheres, whereValues := f.WithAuthorAlias("author").WithContentAlias("item").GetWhereClauses()
 	var fullWhere string
 
@@ -287,12 +321,12 @@ func loadItems(db *sqlx.DB, f app.LoadItemsFilter) (app.ItemCollection, error) {
 
 	agg := make([]itemsView, 0)
 	items := make(app.ItemCollection, 0)
-	if err := db.Select(&agg, sel, whereValues...); err != nil {
-		return items, errors.Annotatef(err, "db query error")
+	if _, err := db.Query(&agg, sel, whereValues...); err != nil {
+		return items, errors.Annotatef(err, "DB query error")
 	}
 	for _, it := range agg {
 		i := it.item().Model()
-		items = append (items, i)
+		items = append(items, i)
 	}
 	return items, nil
 }
