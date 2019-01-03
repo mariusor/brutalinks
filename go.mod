@@ -12,7 +12,6 @@ require (
 	github.com/gchaincl/dotsql v0.1.0
 	github.com/go-chi/chi v0.0.0-20171222161133-e83ac2304db3
 	github.com/go-pg/pg v7.1.1+incompatible
-	github.com/go-sql-driver/mysql v1.4.0 // indirect
 	github.com/golang/protobuf v1.1.0 // indirect
 	github.com/gomodule/redigo v2.0.0+incompatible // indirect
 	github.com/gorilla/securecookie v1.1.1
@@ -25,7 +24,6 @@ require (
 	github.com/lib/pq v0.0.0-20180523175426-90697d60dd84
 	github.com/mariusor/activitypub.go v0.0.0-20181226175943-4bd3a14ffae6
 	github.com/mariusor/qstring v0.0.0-20180919140350-29d781f85f0f
-	github.com/mattn/go-sqlite3 v1.9.0 // indirect
 	github.com/matttproud/gocheck v0.0.0-20130118152435-ecced547db7c // indirect
 	github.com/mmcdole/gofeed v1.0.0-beta2
 	github.com/mmcdole/goxpp v0.0.0-20181012175147-0068e33feabf // indirect
@@ -33,6 +31,7 @@ require (
 	github.com/onsi/ginkgo v1.6.0 // indirect
 	github.com/onsi/gomega v1.4.1 // indirect
 	github.com/pkg/errors v0.8.0 // indirect
+	github.com/russross/blackfriday v2.0.0+incompatible // indirect
 	github.com/shurcooL/sanitized_anchor_name v0.0.0-20170918181015-86672fcb3f95 // indirect
 	github.com/sirupsen/logrus v1.2.0
 	github.com/spacemonkeygo/httpsig v0.0.0-20180701154948-c76789e3b41d
