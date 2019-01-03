@@ -503,7 +503,8 @@ h2.title .to-item {
     margin-left: .3em;
 }
 a.to-item svg {
-    width: .8em;
+    width: .78em;
+    vertical-align: -3px;
 }
 .details-agree {
     font-size: .8em;
