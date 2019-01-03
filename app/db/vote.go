@@ -15,13 +15,13 @@ import (
 type VoteCollection map[app.Key]Vote
 
 type Vote struct {
-	Id          int64     `db:"id"`
-	SubmittedBy int64     `db:"submitted_by"`
-	SubmittedAt time.Time `db:"submitted_at"`
-	UpdatedAt   time.Time `db:"updated_at"`
-	ItemId      int64     `db:"item_id"`
-	Weight      int       `db:"weight"`
-	Flags       FlagBits  `db:"flags"`
+	Id          int64     `sql:"id"`
+	SubmittedBy int64     `sql:"submitted_by"`
+	SubmittedAt time.Time `sql:"submitted_at"`
+	UpdatedAt   time.Time `sql:"updated_at"`
+	ItemId      int64     `sql:"item_id"`
+	Weight      int       `sql:"weight"`
+	Flags       FlagBits  `sql:"flags"`
 	item        *Item
 	voter       *Account
 }
@@ -124,42 +124,42 @@ where %s order by "vote"."submitted_at" desc limit %d%s`, fullWhere, f.MaxItems,
 }
 
 type votesView struct {
-	VoteID          int64     `db:"vote_id"`
-	VoteSubmittedBy int64     `db:"vote_submitted_by"`
-	VoteSubmittedAt time.Time `db:"vote_submitted_at"`
-	VoteUpdatedAt   time.Time `db:"vote_updated_at"`
-	Weight          int       `db:"vote_weight"`
-	VoteFlags       FlagBits  `db:"vote_flags"`
-	ItemID          int64     `db:"item_id,"auto"`
-	ItemKey         app.Key   `db:"item_key,size(32)"`
-	Title           []byte    `db:"item_title"`
-	MimeType        string    `db:"item_mime_type"`
-	Data            []byte    `db:"item_data"`
-	ItemScore       int64     `db:"item_score"`
-	ItemSubmittedAt time.Time `db:"item_submitted_at"`
-	ItemSubmittedBy int64     `db:"item_submitted_by"`
-	ItemUpdatedAt   time.Time `db:"item_updated_at"`
-	ItemFlags       FlagBits  `db:"item_flags"`
-	ItemMetadata    Metadata  `db:"item_metadata"`
-	Path            []byte    `db:"item_path"`
-	VoterID         int64     `db:"voter_id,auto"`
-	VoterKey        app.Key   `db:"voter_key,size(32)"`
-	VoterEmail      []byte    `db:"voter_email"`
-	VoterHandle     string    `db:"voter_handle"`
-	VoterScore      int64     `db:"voter_score"`
-	VoterCreatedAt  time.Time `db:"voter_created_at"`
-	VoterUpdatedAt  time.Time `db:"voter_updated_at"`
-	VoterFlags      FlagBits  `db:"voter_flags"`
-	VoterMetadata   Metadata  `db:"voter_metadata"`
-	AuthorID        int64     `db:"author_id,auto"`
-	AuthorKey       app.Key   `db:"author_key,size(32)"`
-	AuthorEmail     []byte    `db:"author_email"`
-	AuthorHandle    string    `db:"author_handle"`
-	AuthorScore     int64     `db:"author_score"`
-	AuthorCreatedAt time.Time `db:"author_created_at"`
-	AuthorUpdatedAt time.Time `db:"author_updated_at"`
-	AuthorFlags     FlagBits  `db:"author_flags"`
-	AuthorMetadata  Metadata  `db:"author_metadata"`
+	VoteID          int64     `sql:"vote_id"`
+	VoteSubmittedBy int64     `sql:"vote_submitted_by"`
+	VoteSubmittedAt time.Time `sql:"vote_submitted_at"`
+	VoteUpdatedAt   time.Time `sql:"vote_updated_at"`
+	Weight          int       `sql:"vote_weight"`
+	VoteFlags       FlagBits  `sql:"vote_flags"`
+	ItemID          int64     `sql:"item_id,"auto"`
+	ItemKey         app.Key   `sql:"item_key,size(32)"`
+	Title           []byte    `sql:"item_title"`
+	MimeType        string    `sql:"item_mime_type"`
+	Data            []byte    `sql:"item_data"`
+	ItemScore       int64     `sql:"item_score"`
+	ItemSubmittedAt time.Time `sql:"item_submitted_at"`
+	ItemSubmittedBy int64     `sql:"item_submitted_by"`
+	ItemUpdatedAt   time.Time `sql:"item_updated_at"`
+	ItemFlags       FlagBits  `sql:"item_flags"`
+	ItemMetadata    Metadata  `sql:"item_metadata"`
+	Path            []byte    `sql:"item_path"`
+	VoterID         int64     `sql:"voter_id,auto"`
+	VoterKey        app.Key   `sql:"voter_key,size(32)"`
+	VoterEmail      []byte    `sql:"voter_email"`
+	VoterHandle     string    `sql:"voter_handle"`
+	VoterScore      int64     `sql:"voter_score"`
+	VoterCreatedAt  time.Time `sql:"voter_created_at"`
+	VoterUpdatedAt  time.Time `sql:"voter_updated_at"`
+	VoterFlags      FlagBits  `sql:"voter_flags"`
+	VoterMetadata   Metadata  `sql:"voter_metadata"`
+	AuthorID        int64     `sql:"author_id,auto"`
+	AuthorKey       app.Key   `sql:"author_key,size(32)"`
+	AuthorEmail     []byte    `sql:"author_email"`
+	AuthorHandle    string    `sql:"author_handle"`
+	AuthorScore     int64     `sql:"author_score"`
+	AuthorCreatedAt time.Time `sql:"author_created_at"`
+	AuthorUpdatedAt time.Time `sql:"author_updated_at"`
+	AuthorFlags     FlagBits  `sql:"author_flags"`
+	AuthorMetadata  Metadata  `sql:"author_metadata"`
 }
 
 func (v votesView) author() Account {
