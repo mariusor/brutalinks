@@ -237,8 +237,8 @@ func (f *LoadVotesFilter) PrevPage() Paginator {
 func (f *LoadVotesFilter) FirstPage() Paginator {
 	b := &LoadVotesFilter{}
 	copyVotesFilters(b, *f)
-	f.Page = 1
-	return f
+	b.Page = 1
+	return b
 }
 func (f *LoadVotesFilter) CurrentIndex() int {
 	return f.Page
