@@ -42,6 +42,26 @@ func UpdateAccount(db *pg.DB, a app.Account) (app.Account, error) {
 	return a, nil
 }
 
+func countAccounts(db *pg.DB, f app.LoadAccountsFilter) (uint, error) {
+	wheres, whereValues := f.GetWhereClauses()
+	var fullWhere string
+
+	if len(wheres) == 0 {
+		fullWhere = " true"
+	} else if len(wheres) == 1 {
+		fullWhere = fmt.Sprintf("%s", wheres[0])
+	} else {
+		fullWhere = fmt.Sprintf("(%s)", strings.Join(wheres, " AND "))
+	}
+
+	selC := fmt.Sprintf(`select count(*) from "accounts" where %s`, fullWhere)
+	var count uint
+	if _, err := db.Query(&count, selC, whereValues...); err != nil {
+		return 0, errors.Annotatef(err, "DB query error")
+	}
+	return count, nil
+}
+
 func loadAccounts(db *pg.DB, f app.LoadAccountsFilter) (app.AccountCollection, error) {
 	wheres, whereValues := f.GetWhereClauses()
 	var fullWhere string

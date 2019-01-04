@@ -76,8 +76,8 @@ type config struct {
 // Stats holds data for keeping compatibility with Mastodon instances
 type Stats struct {
 	DomainCount int `json:"domain_count"`
-	UserCount   int `json:"user_count"`
-	StatusCount int `json:"status_count"`
+	UserCount   uint `json:"user_count"`
+	StatusCount uint `json:"status_count"`
 }
 
 // Desc holds data for keeping compatibility with Mastodon instances

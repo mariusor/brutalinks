@@ -20,11 +20,11 @@ func (r NodeInfoResolver) Usage() (nodeinfo.Usage, error) {
 	//inf, err := db.Config.LoadInfo()
 	//ifErr(err)
 
-	us, _ := db.Config.LoadAccounts(app.LoadAccountsFilter{
+	us, _, _:= db.Config.LoadAccounts(app.LoadAccountsFilter{
 		MaxItems: math.MaxInt64,
 	})
 	//ifErr(err)
-	i, _ := db.Config.LoadItems(app.LoadItemsFilter{
+	i, _, _ := db.Config.LoadItems(app.LoadItemsFilter{
 		MaxItems: math.MaxInt64,
 	})
 	//ifErr(err)
@@ -50,19 +50,15 @@ func (h handler)ShowInstance(w http.ResponseWriter, r *http.Request) {
 	inf, err := db.Config.LoadInfo()
 	ifErr(err)
 
-	u, err := db.Config.LoadAccounts(app.LoadAccountsFilter{
-		MaxItems: math.MaxInt64,
-	})
+	_, uCount, err := db.Config.LoadAccounts(app.LoadAccountsFilter{})
 	ifErr(err)
-	i, err := db.Config.LoadItems(app.LoadItemsFilter{
-		MaxItems: math.MaxInt64,
-	})
+	_, iCount, err := db.Config.LoadItems(app.LoadItemsFilter{})
 	ifErr(err)
 
 	d := app.Desc{}
 	d.Stats.DomainCount = 1
-	d.Stats.UserCount = len(u)
-	d.Stats.StatusCount = len(i)
+	d.Stats.UserCount = uCount
+	d.Stats.StatusCount = iCount
 	d.URI = inf.URI
 	d.Title = inf.Title
 	d.Email = inf.Email

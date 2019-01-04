@@ -59,6 +59,30 @@ func (a Account) Votes() VoteCollection {
 	return nil
 }
 
+func countVotes(db *pg.DB, f app.LoadVotesFilter) (uint, error) {
+	wheres, whereValues := f.GetWhereClauses()
+	var fullWhere string
+
+	if len(wheres) == 0 {
+		fullWhere = " true"
+	} else if len(wheres) == 1 {
+		fullWhere = fmt.Sprintf("%s", wheres[0])
+	} else {
+		fullWhere = fmt.Sprintf("(%s)", strings.Join(wheres, " AND "))
+	}
+
+	selC := fmt.Sprintf(`select count(*) from "votes" as "vote"
+		inner join "accounts" as "voter" on "voter"."id" = "vote"."submitted_by"
+		inner join "items" as "item" on "item"."id" = "vote"."item_id" 
+		inner join "accounts" as "author" on "item"."submitted_by" = "author"."id"
+		where %s`, fullWhere)
+	var count uint
+	if _, err := db.Query(&count, selC, whereValues...); err != nil {
+		return 0, errors.Annotatef(err, "DB query error")
+	}
+	return count, nil
+}
+
 func loadVotes(db *pg.DB, f app.LoadVotesFilter) (app.VoteCollection, error) {
 	wheres, whereValues := f.GetWhereClauses()
 	var fullWhere string

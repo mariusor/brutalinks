@@ -17,8 +17,9 @@ var (
 	RepositoryCtxtKey CtxtKey = "__repository"
 	FilterCtxtKey     CtxtKey = "__filter"
 
-	CollectionCtxtKey CtxtKey = "__collection"
-	ItemCtxtKey       CtxtKey = "__item"
+	CollectionCtxtKey      CtxtKey = "__collection"
+	CollectionCountCtxtKey CtxtKey = "__collection_count"
+	ItemCtxtKey            CtxtKey = "__item"
 )
 
 type MatchType int
@@ -169,11 +170,11 @@ func (f LoadVotesFilter) GetWhereClauses() ([]string, []interface{}) {
 		for _, typ := range f.Type {
 			switch strings.ToLower(string(typ)) {
 			case string(TypeLike):
-				whereColumns = append(whereColumns, fmt.Sprintf(`"votes"."weight" > ?%d`, counter))
+				whereColumns = append(whereColumns, fmt.Sprintf(`"vote"."weight" > ?%d`, counter))
 			case string(TypeDislike):
-				whereColumns = append(whereColumns, fmt.Sprintf(`"votes"."weight" < ?%d`, counter))
+				whereColumns = append(whereColumns, fmt.Sprintf(`"vote"."weight" < ?%d`, counter))
 			case string(TypeUndo):
-				whereColumns = append(whereColumns, fmt.Sprintf(`"votes"."weight" = ?%d`, counter))
+				whereColumns = append(whereColumns, fmt.Sprintf(`"vote"."weight" = ?%d`, counter))
 			}
 			whereValues = append(whereValues, interface{}(0))
 			counter++
@@ -388,7 +389,7 @@ FROM "items" WHERE "key" ~* ?%d) AND "%s"."path" IS NOT NULL)`, it, counter, it)
 }
 func copyItemsFilters(a *LoadItemsFilter, b LoadItemsFilter) {
 	a.Key = b.Key
-	a.MediaType = 	b.MediaType
+	a.MediaType = b.MediaType
 	a.AttributedTo = b.AttributedTo
 	a.InReplyTo = b.InReplyTo
 	a.Context = b.Context
@@ -543,11 +544,11 @@ type CanSaveItems interface {
 
 type CanLoadItems interface {
 	LoadItem(f LoadItemsFilter) (Item, error)
-	LoadItems(f LoadItemsFilter) (ItemCollection, error)
+	LoadItems(f LoadItemsFilter) (ItemCollection, uint, error)
 }
 
 type CanLoadVotes interface {
-	LoadVotes(f LoadVotesFilter) (VoteCollection, error)
+	LoadVotes(f LoadVotesFilter) (VoteCollection, uint, error)
 	LoadVote(f LoadVotesFilter) (Vote, error)
 }
 
@@ -575,7 +576,7 @@ type CanSaveVotes interface {
 
 type CanLoadAccounts interface {
 	LoadAccount(f LoadAccountsFilter) (Account, error)
-	LoadAccounts(f LoadAccountsFilter) (AccountCollection, error)
+	LoadAccounts(f LoadAccountsFilter) (AccountCollection, uint, error)
 }
 
 type CanSaveAccounts interface {

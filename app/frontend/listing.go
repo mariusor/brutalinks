@@ -186,7 +186,7 @@ func loadItems(c context.Context, filter app.LoadItemsFilter, acc *app.Account, 
 		err := errors.Errorf("could not load item repository from Context")
 		return m, err
 	}
-	contentItems, err := itemLoader.LoadItems(filter)
+	contentItems, _, err := itemLoader.LoadItems(filter)
 	if err != nil {
 		return m, err
 	}
@@ -195,7 +195,7 @@ func loadItems(c context.Context, filter app.LoadItemsFilter, acc *app.Account, 
 	if acc.IsLogged() {
 		votesLoader, ok := app.ContextVoteLoader(c)
 		if ok {
-			acc.Votes, err = votesLoader.LoadVotes(app.LoadVotesFilter{
+			acc.Votes, _, err = votesLoader.LoadVotes(app.LoadVotesFilter{
 				AttributedTo: []app.Hash{acc.Hash},
 				ItemKey:      m.Items.getItemsHashes(),
 				MaxItems:     MaxContentItems,

@@ -144,8 +144,16 @@ func (c config) WithAccount(a *app.Account) error {
 	return errors.NotImplementedf("DB.Config.WithAccount")
 }
 
-func (c config) LoadVotes(f app.LoadVotesFilter) (app.VoteCollection, error) {
-	return loadVotes(c.DB, f)
+func (c config) LoadVotes(f app.LoadVotesFilter) (app.VoteCollection, uint, error) {
+	var count uint = 0
+	var err error
+	var votes app.VoteCollection
+
+	if votes, err = loadVotes(c.DB, f); err == nil {
+		count, err = countVotes(c.DB, f)
+		return votes, count, err
+	}
+	return votes, count, err
 }
 
 func (c config) LoadVote(f app.LoadVotesFilter) (app.Vote, error) {
@@ -182,8 +190,16 @@ func (c config) LoadItem(f app.LoadItemsFilter) (app.Item, error) {
 	}
 }
 
-func (c config) LoadItems(f app.LoadItemsFilter) (app.ItemCollection, error) {
-	return loadItems(c.DB, f)
+func (c config) LoadItems(f app.LoadItemsFilter) (app.ItemCollection, uint, error) {
+	var count uint = 0
+	var err error
+	var items app.ItemCollection
+
+	if items, err = loadItems(c.DB, f); err == nil {
+		count, err = countItems(c.DB, f)
+		return items, count, err
+	}
+	return items, count, err
 }
 
 func (c config) LoadAccount(f app.LoadAccountsFilter) (app.Account, error) {
@@ -199,8 +215,16 @@ func (c config) LoadAccount(f app.LoadAccountsFilter) (app.Account, error) {
 	}
 }
 
-func (c config) LoadAccounts(f app.LoadAccountsFilter) (app.AccountCollection, error) {
-	return loadAccounts(c.DB, f)
+func (c config) LoadAccounts(f app.LoadAccountsFilter) (app.AccountCollection, uint, error) {
+	var count uint = 0
+	var err error
+	var accounts app.AccountCollection
+
+	if accounts, err = loadAccounts(c.DB, f); err == nil {
+		count, err = countAccounts(c.DB, f)
+		return accounts, count, err
+	}
+	return accounts, count, err
 }
 
 func (c config) SaveAccount(a app.Account) (app.Account, error) {

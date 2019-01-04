@@ -205,7 +205,7 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 	allComments := make(comments, 1)
 	allComments[0] = &m.Content
 
-	contentItems, err := itemLoader.LoadItems(app.LoadItemsFilter{
+	contentItems, _, err := itemLoader.LoadItems(app.LoadItemsFilter{
 		Context:  []string{m.Content.Hash.String()},
 		MaxItems: MaxContentItems,
 	})
@@ -223,7 +223,7 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 	if ok && h.account.IsLogged() {
 		votesLoader, ok := app.ContextVoteLoader(r.Context())
 		if ok {
-			h.account.Votes, err = votesLoader.LoadVotes(app.LoadVotesFilter{
+			h.account.Votes, _, err = votesLoader.LoadVotes(app.LoadVotesFilter{
 				AttributedTo: []app.Hash{h.account.Hash},
 				ItemKey:      allComments.getItemsHashes(),
 				MaxItems:     MaxContentItems,

@@ -346,6 +346,7 @@ func LoadFiltersCtxt(next http.Handler) http.Handler {
 func (h handler) ItemCollectionCtxt(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		var err error
+		var count uint
 		col := getCollectionFromReq(r)
 
 		f := r.Context().Value(app.FilterCtxtKey)
@@ -370,7 +371,7 @@ func (h handler) ItemCollectionCtxt(next http.Handler) http.Handler {
 				next.ServeHTTP(w, r)
 				return
 			}
-			items, err = loader.LoadItems(*filters)
+			items, count, err = loader.LoadItems(*filters)
 			if err != nil {
 				h.logger.Error(err.Error())
 				next.ServeHTTP(w, r)
@@ -389,7 +390,7 @@ func (h handler) ItemCollectionCtxt(next http.Handler) http.Handler {
 				next.ServeHTTP(w, r)
 				return
 			}
-			items, err = loader.LoadVotes(*filters)
+			items, count, err = loader.LoadVotes(*filters)
 			if err != nil {
 				h.logger.Error(err.Error())
 				next.ServeHTTP(w, r)
@@ -398,6 +399,7 @@ func (h handler) ItemCollectionCtxt(next http.Handler) http.Handler {
 		}
 
 		ctx := context.WithValue(r.Context(), app.CollectionCtxtKey, items)
+		ctx = context.WithValue(ctx, app.CollectionCountCtxtKey, count)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	}
 	return http.HandlerFunc(fn)
@@ -472,7 +474,7 @@ func (r *repository) loadItemsAuthors(items ...app.Item) (app.ItemCollection, er
 		return nil, errors.Errorf("unable to load items authors")
 	}
 	col := make(app.ItemCollection, len(items))
-	authors, err := r.LoadAccounts(fActors)
+	authors, _, err := r.LoadAccounts(fActors)
 	if err != nil {
 		return nil, errors.Annotatef(err, "unable to load items authors")
 	}
@@ -488,7 +490,7 @@ func (r *repository) loadItemsAuthors(items ...app.Item) (app.ItemCollection, er
 	return col, nil
 }
 
-func (r *repository) LoadItems(f app.LoadItemsFilter) (app.ItemCollection, error) {
+func (r *repository) LoadItems(f app.LoadItemsFilter) (app.ItemCollection, uint, error) {
 	var qs string
 	if q, err := qstring.MarshalString(&f); err == nil {
 		qs = fmt.Sprintf("?%s", q)
@@ -520,7 +522,7 @@ func (r *repository) LoadItems(f app.LoadItemsFilter) (app.ItemCollection, error
 	}
 	if resp, err = r.client.Get(url); err != nil {
 		r.logger.WithContext(ctx).Error(err.Error())
-		return nil, err
+		return nil, 0, err
 	}
 
 	ctx["code"] = resp.StatusCode
@@ -528,36 +530,38 @@ func (r *repository) LoadItems(f app.LoadItemsFilter) (app.ItemCollection, error
 	if resp == nil {
 		err := fmt.Errorf("nil response from the repository")
 		r.logger.WithContext(ctx).Error(err.Error())
-		return nil, err
+		return nil, 0, err
 	}
 	if resp.StatusCode != http.StatusOK {
 		err := errors.New("unable to load from the API")
 		r.logger.WithContext(ctx).Error(err.Error())
-		return nil, err
+		return nil, 0, err
 	}
 	defer resp.Body.Close()
 	var body []byte
 
 	if body, err = ioutil.ReadAll(resp.Body); err != nil {
 		r.logger.Error(err.Error())
-		return nil, err
+		return nil, 0, err
 	}
 	col := ap.OrderedCollectionNew(as.ObjectID(url))
 	if err = j.Unmarshal(body, &col); err != nil {
 		r.logger.Error(err.Error())
-		return nil, err
+		return nil, 0, err
 	}
 
-	items := make(app.ItemCollection, col.TotalItems)
-	for k, it := range col.OrderedItems {
+	count := col.TotalItems
+	items := make(app.ItemCollection,0 )
+	for _, it := range col.OrderedItems {
 		i := app.Item{}
 		if err := i.FromActivityPub(it); err != nil {
 			r.logger.Error(err.Error())
 			continue
 		}
-		items[k] = i
+		items = append(items, i)
 	}
-	return r.loadItemsAuthors(items...)
+	res, err := r.loadItemsAuthors(items...)
+	return res, count, err
 }
 
 func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
@@ -629,7 +633,7 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 	return v, errors.Errorf("unknown error, received status %d", resp.StatusCode)
 }
 
-func (r *repository) LoadVotes(f app.LoadVotesFilter) (app.VoteCollection, error) {
+func (r *repository) LoadVotes(f app.LoadVotesFilter) (app.VoteCollection, uint, error) {
 	var qs string
 	if q, err := qstring.MarshalString(&f); err == nil {
 		qs = fmt.Sprintf("?%s", q)
@@ -640,39 +644,40 @@ func (r *repository) LoadVotes(f app.LoadVotesFilter) (app.VoteCollection, error
 	url := fmt.Sprintf("%s/self/liked%s", r.BaseURL, qs)
 	if resp, err = r.client.Get(url); err != nil {
 		r.logger.Error(err.Error())
-		return nil, err
+		return nil, 0, err
 	}
 	if resp == nil {
 		r.logger.Error(err.Error())
-		return nil, err
+		return nil, 0, err
 	}
 	if resp.StatusCode != http.StatusOK {
 		err := errors.New("unable to load from the API")
 		r.logger.Error(err.Error())
-		return nil, err
+		return nil, 0, err
 	}
 
-	var items app.VoteCollection
+	var votes app.VoteCollection
 	defer resp.Body.Close()
 	var body []byte
 
 	col := ap.OrderedCollectionNew(as.ObjectID(url))
 	if body, err = ioutil.ReadAll(resp.Body); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	if err := j.Unmarshal(body, &col); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	items = make(app.VoteCollection, col.TotalItems)
-	for k, it := range col.OrderedItems {
+	count := col.TotalItems
+	votes = make(app.VoteCollection, 0)
+	for _, it := range col.OrderedItems {
 		vot := app.Vote{}
 		if err := vot.FromActivityPub(it); err != nil {
 			r.logger.Warn(err.Error())
 			continue
 		}
-		items[k] = vot
+		votes = append(votes, vot)
 	}
-	return items, nil
+	return votes, count, nil
 }
 
 func (r *repository) LoadVote(f app.LoadVotesFilter) (app.Vote, error) {
@@ -808,7 +813,7 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 	}
 }
 
-func (r *repository) LoadAccounts(f app.LoadAccountsFilter) (app.AccountCollection, error) {
+func (r *repository) LoadAccounts(f app.LoadAccountsFilter) (app.AccountCollection, uint, error) {
 	var qs string
 	if q, err := qstring.MarshalString(&f); err == nil {
 		qs = fmt.Sprintf("?%s", q)
@@ -819,28 +824,28 @@ func (r *repository) LoadAccounts(f app.LoadAccountsFilter) (app.AccountCollecti
 	var resp *http.Response
 	if resp, err = r.client.Get(url); err != nil {
 		r.logger.Error(err.Error())
-		return nil, err
+		return nil, 0, err
 	}
 	if resp == nil {
 		err := fmt.Errorf("nil response from the repository")
 		r.logger.Error(err.Error())
-		return nil, err
+		return nil, 0, err
 	}
 	if resp.StatusCode != http.StatusOK {
 		err := errors.New("unable to load from the API")
 		r.logger.Error(err.Error())
-		return nil, err
+		return nil, 0, err
 	}
 	defer resp.Body.Close()
 	var body []byte
 	if body, err = ioutil.ReadAll(resp.Body); err != nil {
 		r.logger.Error(err.Error())
-		return nil, err
+		return nil, 0, err
 	}
 	col := ap.CollectionNew(as.ObjectID(url))
 	if err = j.Unmarshal(body, &col); err != nil {
 		r.logger.Error(err.Error())
-		return nil, err
+		return nil, 0, err
 	}
 	accounts := make(app.AccountCollection, 0)
 	for _, it := range col.Items {
@@ -854,13 +859,13 @@ func (r *repository) LoadAccounts(f app.LoadAccountsFilter) (app.AccountCollecti
 		}
 		accounts = append(accounts, acc)
 	}
-	return accounts, nil
+	return accounts, col.TotalItems, nil
 }
 
 func (r *repository) LoadAccount(f app.LoadAccountsFilter) (app.Account, error) {
 	var accounts app.AccountCollection
 	var err error
-	if accounts, err = r.LoadAccounts(f); err != nil {
+	if accounts, _, err = r.LoadAccounts(f); err != nil {
 		return app.Account{}, err
 	}
 	var ac *app.Account

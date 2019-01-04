@@ -262,9 +262,10 @@ func (h handler) HandleActorsCollection(w http.ResponseWriter, r *http.Request) 
 		if service, ok := val.(app.CanLoadAccounts); ok {
 			var accounts app.AccountCollection
 			var err error
+			var count uint
 
 			col := as.CollectionNew(as.ObjectID(ActorsURL))
-			if accounts, err = service.LoadAccounts(*filter); err == nil {
+			if accounts, count, err = service.LoadAccounts(*filter); err == nil {
 				for _, acct := range accounts {
 					p := loadAPPerson(acct)
 					p.Inbox = p.Inbox.GetLink()
@@ -276,6 +277,7 @@ func (h handler) HandleActorsCollection(w http.ResponseWriter, r *http.Request) 
 					fpUrl := string(*col.GetID()) + "?page=1"
 					col.First = as.IRI(fpUrl)
 				}
+				col.TotalItems = count
 				data, err = json.WithContext(GetContext()).Marshal(col)
 			} else {
 				h.logger.WithContext(log.Ctx{
@@ -417,7 +419,7 @@ func (h handler) HandleCollectionActivityObject(w http.ResponseWriter, r *http.R
 		el = loadAPItem(i)
 		val := r.Context().Value(app.RepositoryCtxtKey)
 		if service, ok := val.(app.CanLoadItems); ok && len(i.Hash) > 0 {
-			replies, err := service.LoadItems(app.LoadItemsFilter{
+			replies, _, err := service.LoadItems(app.LoadItemsFilter{
 				InReplyTo: []string{i.Hash.String()},
 				MaxItems:  MaxContentItems,
 			})
@@ -454,7 +456,7 @@ func (h handler) HandleCollectionActivityObject(w http.ResponseWriter, r *http.R
 	w.Write(data)
 }
 
-func loadCollection (items app.Collection, typ string, filters app.Paginator, path string) (as.Item, error) {
+func loadCollection (items app.Collection, count uint, typ string, filters app.Paginator, path string) (as.Item, error) {
 	getURL := func (f app.Paginator) string {
 		return fmt.Sprintf("%s%s%s", app.Instance.BaseURL, path, f.QueryString())
 	}
@@ -480,7 +482,7 @@ func loadCollection (items app.Collection, typ string, filters app.Paginator, pa
 			}
 			f, _ := filters.(*app.LoadItemsFilter)
 			haveItems = len(col) > 0
-			moreItems = len(col) == f.MaxItems
+			moreItems = len(col) < int(count)
 			lessItems = f.Page > 1
 			curIndex = f.Page
 		} else {
@@ -492,8 +494,8 @@ func loadCollection (items app.Collection, typ string, filters app.Paginator, pa
 				return nil, err
 			}
 			f, _ := filters.(*app.LoadVotesFilter)
-
-			moreItems = len(col) == f.MaxItems
+			haveItems = len(col) > 0
+			moreItems = len(col) < int(count)
 			lessItems = f.Page > 1
 			curIndex = f.Page
 		} else {
@@ -517,9 +519,11 @@ func loadCollection (items app.Collection, typ string, filters app.Paginator, pa
 		if lessItems {
 			page.Prev = as.IRI(prevURL)
 		}
+		page.TotalItems = count
 		return page, nil
 	}
 
+	oc.TotalItems = count
 	return oc, nil
 }
 
@@ -535,10 +539,11 @@ func (h handler) HandleCollection(w http.ResponseWriter, r *http.Request) {
 	typ := getCollectionFromReq(r)
 
 	collection := r.Context().Value(app.CollectionCtxtKey)
+	count, _ := r.Context().Value(app.CollectionCountCtxtKey).(uint)
 
 	filters := r.Context().Value(app.FilterCtxtKey)
 	f, _ := filters.(app.Paginator)
-	page, err = loadCollection(collection, typ, f, r.URL.Path)
+	page, err = loadCollection(collection, count, typ, f, r.URL.Path)
 	if err != nil {
 		h.logger.Error(err.Error())
 		h.HandleError(w, r, errors.NewNotFound(err, fmt.Sprintf("%T", page)))

@@ -275,6 +275,28 @@ func (i itemsView) item() Item {
 	}
 }
 
+func countItems(db *pg.DB, f app.LoadItemsFilter) (uint, error) {
+	wheres, whereValues := f.WithAuthorAlias("author").WithContentAlias("item").GetWhereClauses()
+	var fullWhere string
+
+	if len(wheres) == 0 {
+		fullWhere = " true"
+	} else if len(wheres) == 1 {
+		fullWhere = fmt.Sprintf("%s", wheres[0])
+	} else {
+		fullWhere = fmt.Sprintf("(%s)", strings.Join(wheres, " AND "))
+	}
+
+	selC := fmt.Sprintf(`select count(*) from "items" as "item"
+			left join "accounts" as "author" on "author"."id" = "item"."submitted_by" 
+		where %s`, fullWhere)
+	var count uint
+	if _, err := db.Query(&count, selC, whereValues...); err != nil {
+		return 0, errors.Annotatef(err, "DB query error")
+	}
+	return count, nil
+}
+
 func loadItems(db *pg.DB, f app.LoadItemsFilter) (app.ItemCollection, error) {
 	wheres, whereValues := f.WithAuthorAlias("author").WithContentAlias("item").GetWhereClauses()
 	var fullWhere string
