@@ -504,7 +504,8 @@ h2.title .to-item {
 }
 a.to-item svg {
     width: .78em;
-    vertical-align: -3px;
+    height: .78em;
+    vertical-align: baseline;
 }
 .details-agree {
     font-size: .8em;
