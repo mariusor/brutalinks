@@ -456,8 +456,8 @@ func (h handler) HandleCollectionActivityObject(w http.ResponseWriter, r *http.R
 	w.Write(data)
 }
 
-func loadCollection (items app.Collection, count uint, typ string, filters app.Paginator, path string) (as.Item, error) {
-	getURL := func (f app.Paginator) string {
+func loadCollection(items app.Collection, count uint, typ string, filters app.Paginator, path string) (as.Item, error) {
+	getURL := func(f app.Paginator) string {
 		return fmt.Sprintf("%s%s%s", app.Instance.BaseURL, path, f.QueryString())
 	}
 
@@ -482,7 +482,7 @@ func loadCollection (items app.Collection, count uint, typ string, filters app.P
 			}
 			f, _ := filters.(*app.LoadItemsFilter)
 			haveItems = len(col) > 0
-			moreItems = len(col) < int(count)
+			moreItems = int(count) > (f.Page * f.MaxItems)
 			lessItems = f.Page > 1
 			curIndex = f.Page
 		} else {
@@ -495,7 +495,7 @@ func loadCollection (items app.Collection, count uint, typ string, filters app.P
 			}
 			f, _ := filters.(*app.LoadVotesFilter)
 			haveItems = len(col) > 0
-			moreItems = len(col) < int(count)
+			moreItems = int(count) > (f.Page * f.MaxItems)
 			lessItems = f.Page > 1
 			curIndex = f.Page
 		} else {
