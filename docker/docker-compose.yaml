@@ -1,15 +1,15 @@
 version: "3"
 services:
 
-  postgres:
+  db:
     env_file: ./.env
     image: postgres:10-alpine
     volumes:
       - /tmp/postgres:/var/lib/postgresql/data
-#    environment:
-#      POSTGRES_USER: ${DB_USER}
-#      POSTGRES_PASSWORD: ${DB_PASSWORD}
-#      POSTGRES_DATABASE: ${DB_NAME}
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DATABASE: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
 ### Uncomment to enable DB persistence
 #    command: postgres -c log_connections=on -c logging_collector=on -c log_destination=stderr -c log_directory=/var/log/postgresql
 
@@ -28,7 +28,7 @@ services:
 ##    volumes:
 ##      - ./elasticsearch:/usr/share/elasticsearch/data
 
-  load_balancer:
+  lb:
     env_file: ./.env
     build:
       context: varnish
@@ -40,12 +40,12 @@ services:
       - 80:80
       - 6081:6081
     depends_on:
-    - application
+    - app
     environment:
-      - VARNISH_BACKEND_ADDRESS=application
+      - VARNISH_BACKEND_ADDRESS=app
       - VARNISH_BACKEND_PORT=${LISTEN}
 
-  ssl_terminator:
+  ssl:
     env_file: ./.env
     build:
       context: hitch
@@ -58,16 +58,16 @@ services:
     volumes:
       - ./littr.git.pem:/etc/ssl/hitch/littr.pem
     depends_on:
-      - load_balancer
+      - lb
     environment:
-      - HITCH_BACKEND_ADDRESS=load_balancer
+      - HITCH_BACKEND_ADDRESS=lb
       - HITCH_BACKEND_PORT=6081
 
   bootstrap:
     env_file: ./.env
     image: bootstrap:${ENV}
     depends_on:
-      - postgres
+      - db
     build:
       context: bootstrap
       dockerfile: ./Dockerfile
@@ -76,14 +76,15 @@ services:
           DB_NAME: ${DB_NAME}
           DB_USER: ${DB_USER}
           DB_PASSWORD: ${DB_PASSWORD}
+          POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
 
-  application:
+  app:
     env_file: ./.env
     image: web_app:${ENV}
     depends_on:
-      - postgres
+      - db
 #      - bootstrap
-#      - ssl_terminator
+#      - ssl
 #      - redis
     build:
       context: app

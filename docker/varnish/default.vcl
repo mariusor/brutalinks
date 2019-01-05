@@ -1,7 +1,7 @@
 vcl 4.0;
 import std;
 backend default {
-    .host = "application";
+    .host = "app";
     .port = "3000";
 }
 
