@@ -124,9 +124,6 @@ header .top {
 .icon {
     vertical-align: middle;
 }
-body > header {
-    margin-left: -.15rem;
-}
 body > header h1.logo .icon {
     height: 1.12em;
     width: .9em;
@@ -231,7 +228,6 @@ article > header h2 {
 }
 aside.domain {
     font-size: .85em;
-    padding-bottom: 1px;
 }
 .domain:before {
     content: "(";
@@ -241,6 +237,8 @@ aside.domain {
 }
 .data pre {
     line-height: 1.3rem;
+    overflow: auto;
+    max-width: 100%;
 }
 .data code {}
 .data p:first-of-type {
@@ -563,6 +561,20 @@ form label.mime-type {
 }
 .acct-info {
     float: right;
+}
+.pub-key details[open] {
+}
+.pub-key details[open] pre {
+    max-width: 65ex;
+    font-size: .8em;
+    right: .5em;
+    padding: .2em;
+    text-align: justify;
+    overflow: hidden;
+    position: fixed;
+    background: var(--main-bg-color);
+    z-index: 100;
+    box-shadow: 0 0 2px -2px var(--main-fg-color);
 }
 .acct-info section {
     margin-top: 1em;
