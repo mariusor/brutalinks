@@ -49,12 +49,14 @@ func main() {
 		app.Instance.Logger.Warn(err.Error())
 	}
 	// api
+	apiURL := os.Getenv("API_URL")
 	host := os.Getenv("HOSTNAME")
-	var apiURL string
-	if app.Instance.Secure {
-		apiURL = fmt.Sprintf("https://%s/api", host)
-	} else {
-		apiURL = fmt.Sprintf("http://%s/api", host)
+	if apiURL == "" {
+		if app.Instance.Secure {
+			apiURL = fmt.Sprintf("https://%s/api", host)
+		} else {
+			apiURL = fmt.Sprintf("http://%s/api", host)
+		}
 	}
 	a := api.Init(api.Config{
 		Logger:  app.Instance.Logger.New(log.Ctx{"package": "api"}),
