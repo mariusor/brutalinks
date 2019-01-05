@@ -3,8 +3,8 @@ package app
 import (
 	"context"
 	"fmt"
-	"github.com/dyninc/qstring"
 	"github.com/mariusor/littr.go/app/activitypub"
+	"github.com/mariusor/qstring"
 	"net/url"
 	"strings"
 	"time"
