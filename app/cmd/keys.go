@@ -67,7 +67,7 @@ func GenSSHKey(handle string, seed int64, kType string) error {
 
 	}
 
-	accts, err := loader.LoadAccounts(filter)
+	accts, _, err := loader.LoadAccounts(filter)
 	if err != nil {
 		return err
 	}
