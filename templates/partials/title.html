@@ -7,7 +7,7 @@
 </h2>
 {{- $domain := .GetDomain -}}
 <aside class="domain">
-<a title="{{- if .IsLink -}}All items from {{$domain}}{{- else -}}Text only items{{- end -}}" href="/d{{- if .IsLink -}}/{{$domain}}{{- end -}}">{{- if .IsLink -}}{{$domain}}{{- else -}} text {{- end -}}</a>
+<a title="{{- if .IsLink -}}All items from {{$domain}}{{- else -}}Discussions only{{- end -}}" href="/d{{- if .IsLink -}}/{{$domain}}{{- end -}}">{{- if .IsLink -}}{{$domain}}{{- else -}} discussion {{- end -}}</a>
 </aside>
 {{- if .Item.IsFederated -}}
 {{- end -}}
