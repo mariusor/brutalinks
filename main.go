@@ -62,7 +62,7 @@ func main() {
 		Logger:  app.Instance.Logger.New(log.Ctx{"package": "api"}),
 		BaseURL: apiURL,
 	})
-	//api.Config.BaseUrl = api.BaseURL
+	app.Instance.APIURL = apiURL
 
 	processing.InitQueues(&app.Instance)
 

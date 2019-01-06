@@ -75,7 +75,7 @@ type config struct {
 
 // Stats holds data for keeping compatibility with Mastodon instances
 type Stats struct {
-	DomainCount int `json:"domain_count"`
+	DomainCount int  `json:"domain_count"`
 	UserCount   uint `json:"user_count"`
 	StatusCount uint `json:"status_count"`
 }
@@ -97,6 +97,7 @@ type Desc struct {
 type Application struct {
 	Version     string
 	HostName    string
+	APIURL      string
 	BaseURL     string
 	Port        int64
 	Listen      string
@@ -107,7 +108,7 @@ type Application struct {
 	SeedVal     int64
 }
 
-type Collection interface {}
+type Collection interface{}
 
 // Instance is the default instance of our application
 var Instance Application
@@ -119,7 +120,7 @@ func New() Application {
 	return app
 }
 
-type Cacheable interface{
+type Cacheable interface {
 	GetAge() int
 }
 
