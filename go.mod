@@ -2,19 +2,16 @@ module github.com/mariusor/littr.go
 
 require (
 	github.com/PuerkitoBio/goquery v1.5.0 // indirect
-	github.com/adjust/redismq v0.0.0-20170113163246-e2a56d9bb404
 	github.com/buger/jsonparser v0.0.0-20181023193515-52c6e1462ebd
 	github.com/captncraig/cors v0.0.0-20180620154129-376d45073b49 // indirect
 	github.com/dyninc/qstring v0.0.0-20160719172318-ab5840a88e81 // indirect
 	github.com/eknkc/amber v0.0.0-20171010120322-cdade1c07385 // indirect
 	github.com/fsnotify/fsnotify v1.4.7 // indirect
-	github.com/garyburd/redigo v2.0.0+incompatible // indirect
 	github.com/gchaincl/dotsql v0.1.0
 	github.com/go-ap/activitypub.go v0.0.0-20190107135419-281b73cbc23d
 	github.com/go-chi/chi v0.0.0-20171222161133-e83ac2304db3
 	github.com/go-pg/pg v7.1.1+incompatible
 	github.com/golang/protobuf v1.1.0 // indirect
-	github.com/gomodule/redigo v2.0.0+incompatible // indirect
 	github.com/gorilla/securecookie v1.1.1
 	github.com/gorilla/sessions v1.1.1
 	github.com/hpcloud/tail v1.0.0 // indirect
@@ -24,7 +21,6 @@ require (
 	github.com/juju/testing v0.0.0-20180517134105-72703b1e95eb // indirect
 	github.com/lib/pq v0.0.0-20180523175426-90697d60dd84
 	github.com/mariusor/qstring v0.0.0-20180919140350-29d781f85f0f
-	github.com/matttproud/gocheck v0.0.0-20130118152435-ecced547db7c // indirect
 	github.com/mmcdole/gofeed v1.0.0-beta2
 	github.com/mmcdole/goxpp v0.0.0-20181012175147-0068e33feabf // indirect
 	github.com/mmcloughlin/meow v0.0.0-20181112033425-871e50784daf
@@ -46,14 +42,12 @@ require (
 	gitlab.com/opennota/wd v0.0.0-20180912061657-c5d65f63c638 // indirect
 	golang.org/x/crypto v0.0.0-20180910181607-0e37d006457b
 	golang.org/x/oauth2 v0.0.0-20180620175406-ef147856a6dd
-	golang.org/x/sync v0.0.0-20180314180146-1d60e4601c6f // indirect
+	golang.org/x/sync v0.0.0-20181221193216-37e7f081c4d4 // indirect
 	golang.org/x/sys v0.0.0-20181106135930-3a76605856fd // indirect
 	golang.org/x/text v0.3.0
 	google.golang.org/appengine v1.1.0 // indirect
-	gopkg.in/bsm/ratelimit.v1 v1.0.0-20160220154919-db14e161995a // indirect
 	gopkg.in/fsnotify.v1 v1.4.7 // indirect
 	gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce // indirect
-	gopkg.in/redis.v3 v3.6.4 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v2 v2.2.1 // indirect
 	mellium.im/sasl v0.2.1 // indirect

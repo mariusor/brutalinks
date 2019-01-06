@@ -2,15 +2,11 @@
 package processing
 
 import (
-	"encoding/json"
-	"fmt"
-	"github.com/adjust/redismq"
 	"github.com/juju/errors"
 	as "github.com/go-ap/activitypub.go/activitystreams"
 	"github.com/go-ap/activitypub.go/jsonld"
 	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/app/log"
-	"reflect"
 )
 
 var Logger log.Logger
@@ -178,12 +174,12 @@ type Message struct {
 	Actions  []interface{} `json:"actions"`
 }
 
-var DefaultQueue *redismq.Queue
+var DefaultQueue interface{} //*redismq.Queue
 
 func InitQueues(app *app.Application) error {
 	redisDb := 0
 	name := "low"
-	DefaultQueue = redismq.CreateQueue(app.Config.Redis.Host, app.Config.Redis.Port, app.Config.Redis.Pw, int64(redisDb), name)
+	//DefaultQueue = redismq.CreateQueue(app.Config.Redis.Host, app.Config.Redis.Port, app.Config.Redis.Pw, int64(redisDb), name)
 	if DefaultQueue != nil {
 		app.Config.Redis.Enabled = true
 	} else {
@@ -202,80 +198,80 @@ func InitQueues(app *app.Application) error {
 }
 
 func AddMessage(msg Message) (int, int, error) {
-	var which string
-	if msg.Priority == PriorityHigh {
-		which = "high"
-	}
-	if msg.Priority == PriorityLow {
-		which = "low"
-	}
-	if DefaultQueue == nil {
-		return 0, 0, errors.Errorf("invalid queue name %s", which)
-	}
-
-	processed := 0
-	erred := 0
-	for i, p := range msg.Actions {
-		var data []byte
-		var err error
-		switch o := p.(type) {
-		case SSHKey:
-			data, err = json.Marshal(o)
-		case ScoreUpdate:
-			data, err = json.Marshal(o)
-		case APProcess:
-			data, err = jsonld.Marshal(o.Activity)
-		}
-		if err != nil {
-			Logger.WithContext(log.Ctx{
-				"queue":    which,
-				"item":     i,
-				"msg_cnt":  len(msg.Actions),
-				"act_type": reflect.TypeOf(p).Name(),
-			}).Warn(err.Error())
-			erred++
-			continue
-		}
-		if err := DefaultQueue.Put(string(data)); err == nil {
-			processed++
-			Logger.WithContext(log.Ctx{
-				"queue":         which,
-				"item":          i,
-				"msg_cnt":       len(msg.Actions),
-				"processed_cnt": processed,
-				"err_cnt":       erred,
-				"act_type":      reflect.TypeOf(p).Name(),
-				"data":          data,
-			}).Info("added new msg in queue")
-		} else {
-			erred++
-			Logger.WithContext(log.Ctx{
-				"queue":         which,
-				"item":          i,
-				"msg_cnt":       len(msg.Actions),
-				"processed_cnt": processed,
-				"err_cnt":       erred,
-				"act_type":      reflect.TypeOf(p).Name(),
-			}).Warn(err.Error())
-		}
-	}
-	return processed, erred, nil
+	//var which string
+	//if msg.Priority == PriorityHigh {
+	//	which = "high"
+	//}
+	//if msg.Priority == PriorityLow {
+	//	which = "low"
+	//}
+	//if DefaultQueue == nil {
+	//	return 0, 0, errors.Errorf("invalid queue name %s", which)
+	//}
+	//
+	//processed := 0
+	//erred := 0
+	//for i, p := range msg.Actions {
+	//	var data []byte
+	//	var err error
+	//	switch o := p.(type) {
+	//	case SSHKey:
+	//		data, err = json.Marshal(o)
+	//	case ScoreUpdate:
+	//		data, err = json.Marshal(o)
+	//	case APProcess:
+	//		data, err = jsonld.Marshal(o.Activity)
+	//	}
+	//	if err != nil {
+	//		Logger.WithContext(log.Ctx{
+	//			"queue":    which,
+	//			"item":     i,
+	//			"msg_cnt":  len(msg.Actions),
+	//			"act_type": reflect.TypeOf(p).Name(),
+	//		}).Warn(err.Error())
+	//		erred++
+	//		continue
+	//	}
+	//	if err := DefaultQueue.Put(string(data)); err == nil {
+	//		processed++
+	//		Logger.WithContext(log.Ctx{
+	//			"queue":         which,
+	//			"item":          i,
+	//			"msg_cnt":       len(msg.Actions),
+	//			"processed_cnt": processed,
+	//			"err_cnt":       erred,
+	//			"act_type":      reflect.TypeOf(p).Name(),
+	//			"data":          data,
+	//		}).Info("added new msg in queue")
+	//	} else {
+	//		erred++
+	//		Logger.WithContext(log.Ctx{
+	//			"queue":         which,
+	//			"item":          i,
+	//			"msg_cnt":       len(msg.Actions),
+	//			"processed_cnt": processed,
+	//			"err_cnt":       erred,
+	//			"act_type":      reflect.TypeOf(p).Name(),
+	//		}).Warn(err.Error())
+	//	}
+	//}
+	return 0, 0, nil
 }
 
 func ProcessMessages(count int) (int, int, error) {
-	consumer, err := DefaultQueue.AddConsumer("consumer")
-	if err != nil {
-		return 0, count, err
-	}
-
-	for i := 0; i < count; i++ {
-		pkg, err := consumer.Get()
-		if err != nil {
-			return 0, count, err
-		}
-
-		fmt.Println(pkg.Payload)
-	}
-
+	//consumer, err := DefaultQueue.AddConsumer("consumer")
+	//if err != nil {
+	//	return 0, count, err
+	//}
+	//
+	//for i := 0; i < count; i++ {
+	//	pkg, err := consumer.Get()
+	//	if err != nil {
+	//		return 0, count, err
+	//	}
+	//
+	//	fmt.Println(pkg.Payload)
+	//}
+	//
 	return count, 0, errors.NotImplementedf("not implemented")
 }
