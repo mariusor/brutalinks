@@ -2,9 +2,8 @@
 package processing
 
 import (
-	"github.com/juju/errors"
 	as "github.com/go-ap/activitypub.go/activitystreams"
-	"github.com/go-ap/activitypub.go/jsonld"
+	"github.com/juju/errors"
 	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/app/log"
 )
