@@ -16,9 +16,9 @@ import (
 	"context"
 	"github.com/go-chi/chi"
 	"github.com/juju/errors"
-	ap "github.com/mariusor/activitypub.go/activitypub"
-	as "github.com/mariusor/activitypub.go/activitystreams"
-	json "github.com/mariusor/activitypub.go/jsonld"
+	ap "github.com/go-ap/activitypub.go/activitypub"
+	as "github.com/go-ap/activitypub.go/activitystreams"
+	json "github.com/go-ap/activitypub.go/jsonld"
 	localap "github.com/mariusor/littr.go/app/activitypub"
 	"github.com/mariusor/littr.go/app/log"
 )
@@ -1019,7 +1019,6 @@ func (h handler) AddToCollection(w http.ResponseWriter, r *http.Request) {
 					notFound(errors.NewNotFound(err, fmt.Sprintf("failed to save local account for remote actor")))
 					return
 				}
-
 				a.Actor = loadAPPerson(acc)
 			}
 

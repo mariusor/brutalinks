@@ -11,7 +11,7 @@ import (
 	"github.com/buger/jsonparser"
 	"github.com/juju/errors"
 
-	as "github.com/mariusor/activitypub.go/activitystreams"
+	as "github.com/go-ap/activitypub.go/activitystreams"
 )
 
 type Converter interface {

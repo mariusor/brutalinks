@@ -12,7 +12,7 @@ import (
 
 	ap "github.com/mariusor/littr.go/app/activitypub"
 
-	j "github.com/mariusor/activitypub.go/jsonld"
+	j "github.com/go-ap/activitypub.go/jsonld"
 )
 
 // POST /api - not implemented yet - but we should have all information in the CreateActivity body

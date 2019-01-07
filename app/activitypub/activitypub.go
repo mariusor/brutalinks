@@ -2,11 +2,11 @@ package activitypub
 
 import (
 	"fmt"
-	"github.com/mariusor/activitypub.go/jsonld"
+	"github.com/go-ap/activitypub.go/jsonld"
 
 	"github.com/buger/jsonparser"
-	ap "github.com/mariusor/activitypub.go/activitypub"
-	as "github.com/mariusor/activitypub.go/activitystreams"
+	ap "github.com/go-ap/activitypub.go/activitypub"
+	as "github.com/go-ap/activitypub.go/activitystreams"
 )
 
 // PublicKey holds the ActivityPub compatible public key data
@@ -17,7 +17,7 @@ type PublicKey struct {
 }
 
 // Person it should be identical to:
-//    github.com/mariusor/activitypub.go/activitypub/actors.go#Actor
+//    github.com/go-ap/activitypub.go/activitypub/actors.go#Actor
 // We need it here in order to be able to add to it our Score property
 type Person struct {
 	as.Person
@@ -27,7 +27,7 @@ type Person struct {
 }
 
 // Article it should be identical to:
-//    github.com/mariusor/activitypub.go/activitypub/objects.go#Object
+//    github.com/go-ap/activitypub.go/activitypub/objects.go#Object
 // We need it here in order to be able to add to it our Score property
 type Article struct {
 	ap.Object
@@ -35,17 +35,17 @@ type Article struct {
 }
 
 // OrderedCollection should be identical to:
-//    github.com/mariusor/activitypub.go/activitystreams/collections.go#OrderedCollection
+//    github.com/go-ap/activitypub.go/activitystreams/collections.go#OrderedCollection
 // We need it here in order to be able to implement our own UnmarshalJSON() method
 type OrderedCollection as.OrderedCollection
 
 // Collection should be identical to:
-//    github.com/mariusor/activitypub.go/activitystreams/collections.go#Collection
+//    github.com/go-ap/activitypub.go/activitystreams/collections.go#Collection
 // We need it here in order to be able to implement our own UnmarshalJSON() method
 type Collection as.Collection
 
 // Activity it should be identical to:
-//    github.com/mariusor/activitypub.go/activitystreams/activity.go#Activity
+//    github.com/go-ap/activitypub.go/activitystreams/activity.go#Activity
 // We need it here in order to be able to implement our own UnmarshalJSON() method
 type Activity as.Activity
 

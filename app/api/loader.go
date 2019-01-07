@@ -13,7 +13,7 @@ import (
 
 	"github.com/spacemonkeygo/httpsig"
 
-	cl "github.com/mariusor/activitypub.go/client"
+	cl "github.com/go-ap/activitypub.go/client"
 	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/app/frontend"
 
@@ -21,9 +21,9 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/juju/errors"
-	as "github.com/mariusor/activitypub.go/activitystreams"
+	as "github.com/go-ap/activitypub.go/activitystreams"
 	ap "github.com/mariusor/littr.go/app/activitypub"
-	j "github.com/mariusor/activitypub.go/jsonld"
+	j "github.com/go-ap/activitypub.go/jsonld"
 	"github.com/mariusor/littr.go/app/db"
 	"github.com/mariusor/littr.go/app/log"
 )

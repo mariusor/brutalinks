@@ -3,8 +3,8 @@ package api
 import (
 	"fmt"
 	"github.com/juju/errors"
-	as "github.com/mariusor/activitypub.go/activitystreams"
-	json "github.com/mariusor/activitypub.go/jsonld"
+	as "github.com/go-ap/activitypub.go/activitystreams"
+	json "github.com/go-ap/activitypub.go/jsonld"
 	"github.com/mariusor/littr.go/app"
 	"net/http"
 )
