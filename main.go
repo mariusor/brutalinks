@@ -9,7 +9,6 @@ import (
 	"github.com/writeas/go-nodeinfo"
 	"net/http"
 	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/go-chi/chi"
@@ -22,14 +21,6 @@ import (
 	"github.com/mariusor/littr.go/app/frontend"
 	"github.com/mariusor/littr.go/app/log"
 )
-
-func serveFiles(st string) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		path := filepath.Clean(chi.URLParam(r, "path"))
-		fullPath := filepath.Join(st, path)
-		http.ServeFile(w, r, fullPath)
-	}
-}
 
 func main() {
 	var wait time.Duration
@@ -84,6 +75,11 @@ func main() {
 	if app.Instance.Config.Env == app.PROD {
 		r.Use(middleware.Recoverer)
 	}
+	// Frontend
+	r.With(a.Repository).Route("/", front.Routes())
+
+	// API
+	r.With(db.Repository).Route("/api", a.Routes())
 
 	cfg := nodeinfo.Config{
 		BaseURL: api.BaseURL,
@@ -111,142 +107,12 @@ func main() {
 			Version: app.Instance.NodeInfo().Version,
 		},
 	}
-	ni := nodeinfo.NewService(cfg, api.NodeInfoResolver{})
-	// Frontend
-	r.With(a.Repository).Route("/", func(r chi.Router) {
-		r.Use(front.LoadSession)
-		r.Use(middleware.GetHead)
-		r.Use(app.NeedsDBBackend(front.HandleError))
-		//r.Use(middleware.RedirectSlashes)
-
-		r.Get("/", front.HandleIndex)
-
-		r.Get("/about", front.HandleAbout)
-
-		r.Get("/submit", front.ShowSubmit)
-		r.Post("/submit", front.HandleSubmit)
-
-		r.Get("/register", front.ShowRegister)
-		r.Post("/register", front.HandleRegister)
-
-		r.Route("/~{handle}", func(r chi.Router) {
-			r.Get("/", front.ShowAccount)
-
-			r.Route("/{hash}", func(r chi.Router) {
-				r.Get("/", front.ShowItem)
-				r.Post("/", front.HandleSubmit)
-
-				r.Get("/yay", front.HandleVoting)
-				r.Get("/nay", front.HandleVoting)
-
-				r.Get("/bad", front.ShowReport)
-				r.Post("/bad", front.HandleReport)
-
-				r.With(front.ValidatePermissions()).Get("/edit", front.ShowItem)
-				r.With(front.ValidatePermissions()).Post("/edit", front.HandleSubmit)
-				r.With(front.ValidatePermissions()).Get("/rm", front.HandleDelete)
-			})
-		})
-
-		//r.Get("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/", frontend.HandleDate)
-		//r.Get("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}", front.ShowItem)
-		//r.Get("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}/{direction}", front.HandleVoting)
-		//r.Post("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}", front.HandleSubmit)
-
-		// @todo(marius) :link_generation:
-		r.Get("/i/{hash}", front.HandleItemRedirect)
-
-		// @todo(marius) :link_generation:
-		r.Get("/d", front.HandleDomains)
-		r.Get("/d/", front.HandleDomains)
-		r.Get("/d/{domain}", front.HandleDomains)
-		// @todo(marius) :link_generation:
-		r.Get("/t/{tag}", front.HandleTags)
-
-		r.With(front.NeedsSessions).Get("/logout", front.HandleLogout)
-		r.With(front.NeedsSessions).Get("/login", front.ShowLogin)
-		r.With(front.NeedsSessions).Post("/login", front.HandleLogin)
-
-		r.Get("/self", front.HandleIndex)
-		r.Get("/federated", front.HandleIndex)
-		r.Get("/followed", front.HandleIndex)
-
-		r.With(front.NeedsSessions).Get("/auth/{provider}", front.HandleAuth)
-		r.With(front.NeedsSessions).Get("/auth/{provider}/callback", front.HandleCallback)
-
-		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
-			front.HandleError(w, r, errors.NotFoundf("%q", r.RequestURI))
-		})
-		r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
-			front.HandleError(w, r, errors.MethodNotAllowedf("invalid %q request", r.Method))
-		})
-	})
-
-	// API
-	r.With(db.Repository).Route("/api", func(r chi.Router) {
-		//r.Use(middleware.GetHead)
-		r.Use(a.VerifyHttpSignature)
-		r.Use(app.StripCookies)
-		r.Use(app.NeedsDBBackend(a.HandleError))
-
-		r.Route("/self", func(r chi.Router) {
-			r.With(api.LoadFiltersCtxt).Get("/", a.HandleService)
-			r.Route("/{collection}", func(r chi.Router) {
-				r.Use(api.ServiceCtxt)
-
-				r.With(api.LoadFiltersCtxt, a.ItemCollectionCtxt).Get("/", a.HandleCollection)
-				r.With(api.LoadFiltersCtxt, a.LoadActivity).Post("/", a.AddToCollection)
-				r.Route("/{hash}", func(r chi.Router) {
-					r.With(api.LoadFiltersCtxt, a.ItemCtxt).Get("/", a.HandleCollectionActivity)
-					r.With(api.LoadFiltersCtxt, a.ItemCtxt).Get("/object", a.HandleCollectionActivityObject)
-					r.With(api.LoadFiltersCtxt, a.ItemCollectionCtxt).Get("/object/replies", a.HandleCollection)
-				})
-			})
-		})
-		r.Route("/actors", func(r chi.Router) {
-			r.With(api.LoadFiltersCtxt).Get("/", a.HandleActorsCollection)
-
-			r.Route("/{handle}", func(r chi.Router) {
-				r.Use(a.AccountCtxt)
-
-				r.Get("/", a.HandleActor)
-				r.Route("/{collection}", func(r chi.Router) {
-					r.With(api.LoadFiltersCtxt, a.ItemCollectionCtxt).Get("/", a.HandleCollection)
-					r.With(api.LoadFiltersCtxt).Post("/", a.UpdateItem)
-					r.Route("/{hash}", func(r chi.Router) {
-						r.Use(middleware.GetHead)
-						// this should update the activity
-						r.With(api.LoadFiltersCtxt, a.ItemCtxt).Put("/", a.UpdateItem)
-						r.With(api.LoadFiltersCtxt).Post("/", a.UpdateItem)
-						r.With(api.LoadFiltersCtxt, a.ItemCtxt).Get("/", a.HandleCollectionActivity)
-						r.With(api.LoadFiltersCtxt, a.ItemCtxt).Get("/object", a.HandleCollectionActivityObject)
-						// this should update the item
-						r.With(api.LoadFiltersCtxt, a.ItemCtxt).Put("/object", a.UpdateItem)
-						r.With(api.LoadFiltersCtxt, a.ItemCtxt, a.ItemCollectionCtxt).Get("/object/replies", a.HandleCollection)
-					})
-				})
-			})
-		})
-
-		// Mastodon compatible end-points
-		r.Get("/v1/instance", a.ShowInstance)
-		r.Get("/v1/instance/peers", api.ShowPeers)
-		r.Get("/v1/instance/activity", api.ShowActivity)
-
-		r.Get(cfg.InfoURL, ni.NodeInfo)
-
-		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
-			a.HandleError(w, r, errors.NotFoundf("%s", r.RequestURI))
-		})
-		r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
-			a.HandleError(w, r, errors.MethodNotAllowedf("invalid %s request", r.Method))
-		})
-	})
 
 	// Web-Finger
 	r.With(db.Repository).Route("/.well-known", func(r chi.Router) {
 		r.Use(app.NeedsDBBackend(a.HandleError))
 
+		ni := nodeinfo.NewService(cfg, api.NodeInfoResolver{})
 		r.Get("/webfinger", a.HandleWebFinger)
 		r.Get("/host-meta", api.HandleHostMeta)
 		r.Get("/nodeinfo", ni.NodeInfoDiscover)
@@ -254,26 +120,6 @@ func main() {
 			a.HandleError(w, r, errors.NotFoundf("%s", r.RequestURI))
 		})
 	})
-
-	workDir, _ := os.Getwd()
-	assets := filepath.Join(workDir, "assets")
-
-	// static
-	r.With(app.StripCookies).Get("/ns", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json+ld")
-		http.ServeFile(w, r, filepath.Join(assets, "ns.json"))
-	}))
-	r.With(app.StripCookies).Get("/favicon.ico", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, filepath.Join(assets, "favicon.ico"))
-	}))
-	r.With(app.StripCookies).Get("/icons.svg", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, filepath.Join(assets, "icons.svg"))
-	}))
-	r.With(app.StripCookies).Get("/robots.txt", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, filepath.Join(assets, "robots.txt"))
-	}))
-	r.With(app.StripCookies).Get("/css/{path}", serveFiles(filepath.Join(assets, "css")))
-	r.With(app.StripCookies).Get("/js/{path}", serveFiles(filepath.Join(assets, "js")))
 
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		front.HandleError(w, r, errors.NotFoundf("%s", r.RequestURI))
