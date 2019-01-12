@@ -17,7 +17,7 @@ func (h *handler) HandleItemRedirect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	p, err := itemLoader.LoadItem(app.LoadItemsFilter{
-		Key:      []string{chi.URLParam(r, "hash")},
+		Key:      app.Hashes{app.Hash(chi.URLParam(r, "hash"))},
 		MaxItems: 1,
 	})
 	if err != nil {

@@ -50,10 +50,10 @@ func (c comments) getItems() app.ItemCollection {
 	return items
 }
 
-func (c comments) getItemsHashes() []string {
-	var items = make([]string, len(c))
+func (c comments) getItemsHashes() app.Hashes {
+	var items = make(app.Hashes, len(c))
 	for k, com := range c {
-		items[k] = com.Item.Hash.String()
+		items[k] = com.Item.Hash
 	}
 	return items
 }
@@ -167,7 +167,7 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 
 	i, err := itemLoader.LoadItem(app.LoadItemsFilter{
 		AttributedTo: app.Hashes{app.Hash(handle)},
-		Key:          []string{hash},
+		Key:          app.Hashes{app.Hash(hash)},
 	})
 	if err != nil {
 		h.logger.WithContext(log.Ctx{
@@ -266,7 +266,7 @@ func (h *handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 		h.logger.Error("could not load item repository from Context")
 		return
 	}
-	p, err := itemLoader.LoadItem(app.LoadItemsFilter{Key: []string{hash}})
+	p, err := itemLoader.LoadItem(app.LoadItemsFilter{Key: app.Hashes{app.Hash(hash)}})
 	if err != nil {
 		h.logger.Error(err.Error())
 		h.HandleError(w, r, errors.NewNotFound(err, "not found"))
@@ -314,7 +314,7 @@ func (h *handler) HandleVoting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	p, err := itemLoader.LoadItem(app.LoadItemsFilter{Key: []string{hash}})
+	p, err := itemLoader.LoadItem(app.LoadItemsFilter{Key: app.Hashes{app.Hash(hash)}})
 	if err != nil {
 		h.logger.Error(err.Error())
 		h.HandleError(w, r, errors.NewNotFound(err, "not found"))

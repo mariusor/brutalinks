@@ -158,7 +158,7 @@ func saveItem(db *pg.DB, it app.Item) (app.Item, error) {
 	var res pg.Result
 	var err error
 	var query string
-	var hash string
+	var hash app.Hash
 	if len(it.Hash) == 0 {
 		i.Key = app.GenKey(i.Path, []byte(it.Title), []byte(i.Data.String), []byte(it.SubmittedBy.Handle))
 
@@ -185,7 +185,7 @@ func saveItem(db *pg.DB, it app.Item) (app.Item, error) {
 			query = `insert into "items" ("key", "title", "data", "metadata", "mime_type", "submitted_at", "updated_at", "flags", "submitted_by") 
 		values(?0, ?1, ?2, ?3, ?4, ?5, ?6, ?7::bit(8), (select "id" from "accounts" where "key" ~* ?8 or "handle" = ?8));`
 		}
-		hash = i.Key.String()
+		hash = i.Key.Hash()
 	} else {
 		i.Key.FromString(it.Hash.String())
 
@@ -199,7 +199,7 @@ func saveItem(db *pg.DB, it app.Item) (app.Item, error) {
 
 		query = `UPDATE "items" SET "title" = ?0, "data" = ?1, "metadata" = ?2, "mime_type" = ?3,
 			"flags" = ?4::bit(8), "updated_at" = ?5 WHERE "key" ~* ?6;`
-		hash = i.Key.String()
+		hash = i.Key.Hash()
 	}
 	res, err = db.Query(i, query, params...)
 	if err != nil {
@@ -210,7 +210,7 @@ func saveItem(db *pg.DB, it app.Item) (app.Item, error) {
 		}
 	}
 
-	col, err := loadItems(db, app.LoadItemsFilter{Key: []string{hash}, MaxItems: 1})
+	col, err := loadItems(db, app.LoadItemsFilter{Key: app.Hashes{hash}, MaxItems: 1})
 	if len(col) > 0 {
 		return col[0], nil
 	} else {

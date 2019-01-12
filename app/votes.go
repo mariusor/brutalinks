@@ -26,8 +26,8 @@ type Vote struct {
 	Flags       FlagBits  `json:"-"`
 }
 
-func trimHash(s string) string {
-	h, err := url.PathUnescape(s)
+func trimHash(s Hash) Hash {
+	h, err := url.PathUnescape(string(s))
 	if err != nil {
 		return ""
 	}
@@ -35,7 +35,7 @@ func trimHash(s string) string {
 	if len(h) == 0 {
 		return ""
 	}
-	return h
+	return Hash(h)
 }
 
 type ScoreType int

@@ -37,8 +37,8 @@ type repository struct {
 
 func New(c Config) *repository {
 	cl.UserAgent = fmt.Sprintf("%s-%s", app.Instance.HostName, app.Instance.Version)
-	cl.ErrorLogger = func (el ...interface{}) { c.Logger.Errorf("%s", el...) }
-	cl.InfoLogger = func (el ...interface{}) { c.Logger.Infof("%s", el...) }
+	cl.ErrorLogger = func (el ...interface{}) { c.Logger.Errorf("%v", el) }
+	cl.InfoLogger = func (el ...interface{}) { c.Logger.Infof("%v", el) }
 	return &repository{
 		BaseURL: c.BaseURL,
 		logger:  c.Logger,
@@ -111,7 +111,7 @@ func (h handler) AccountCtxt(next http.Handler) http.Handler {
 			http.Redirect(w, r, url, http.StatusSeeOther)
 			return
 		} else {
-			a, err := AcctLoader.LoadAccount(app.LoadAccountsFilter{Key: []string{handle}})
+			a, err := AcctLoader.LoadAccount(app.LoadAccountsFilter{Key: app.Hashes{app.Hash(handle)}})
 			if err != nil {
 				h.logger.Error(err.Error())
 				h.HandleError(w, r, err)
@@ -246,13 +246,13 @@ func loadInboxFilterFromReq(r *http.Request) *app.LoadItemsFilter {
 		filters.FollowedBy = append(filters.FollowedBy, old...)
 		filters.FollowedBy = stringsUnique(filters.FollowedBy)
 	}
-	hash := chi.URLParam(r, "hash")
+	hash := app.Hash(chi.URLParam(r, "hash"))
 	if hash != "" {
 		old := filters.Key
 		filters.Key = nil
 		filters.Key = append(filters.Key, hash)
 		filters.Key = append(filters.Key, old...)
-		filters.Key = stringsUnique(filters.Key)
+		filters.Key = hashesUnique(filters.Key)
 	}
 
 	return &filters
@@ -278,9 +278,9 @@ func loadOutboxFilterFromReq(r *http.Request) *app.LoadItemsFilter {
 	if hash != "" {
 		old := filters.Key
 		filters.Key = nil
-		filters.Key = append(filters.Key, hash)
+		filters.Key = append(filters.Key, app.Hash(hash))
 		filters.Key = append(filters.Key, old...)
-		filters.Key = stringsUnique(filters.Key)
+		filters.Key = hashesUnique(filters.Key)
 	}
 
 	return &filters
@@ -304,9 +304,9 @@ func loadLikedFilterFromReq(r *http.Request) *app.LoadVotesFilter {
 	if hash != "" {
 		old := filters.ItemKey
 		filters.ItemKey = nil
-		filters.ItemKey = append(filters.ItemKey, hash)
+		filters.ItemKey = append(filters.ItemKey, app.Hash(hash))
 		filters.ItemKey = append(filters.ItemKey, old...)
-		filters.ItemKey = stringsUnique(filters.ItemKey)
+		filters.ItemKey = hashesUnique(filters.ItemKey)
 	}
 	if filters.MaxItems == 0 {
 		if len(filters.ItemKey) > 0 {
@@ -465,11 +465,12 @@ func (r *repository) loadItemsAuthors(items ...app.Item) (app.ItemCollection, er
 	fActors := app.LoadAccountsFilter{}
 	for _, it := range items {
 		if len(it.SubmittedBy.Hash) > 0 {
-			fActors.Key = append(fActors.Key, it.SubmittedBy.Hash.String())
+			fActors.Key = append(fActors.Key, it.SubmittedBy.Hash)
 		} else if len(it.SubmittedBy.Handle) > 0 {
 			fActors.Handle = append(fActors.Handle, it.SubmittedBy.Handle)
 		}
 	}
+	fActors.Key = hashesUnique(fActors.Key)
 	if len(fActors.Key)+len(fActors.Handle) == 0 {
 		return nil, errors.Errorf("unable to load items authors")
 	}
@@ -792,14 +793,14 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 		newLoc := resp.Header.Get("Location")
 		hash := path.Base(newLoc)
 		f := app.LoadItemsFilter{
-			Key: []string{hash},
+			Key: app.Hashes{app.Hash(hash)},
 		}
 		return r.LoadItem(f)
 	case http.StatusGone:
 		newLoc := resp.Header.Get("Location")
 		hash := path.Base(newLoc)
 		f := app.LoadItemsFilter{
-			Key: []string{hash},
+			Key: app.Hashes{app.Hash(hash)},
 		}
 		return r.LoadItem(f)
 	case http.StatusNotFound:
@@ -872,7 +873,7 @@ func (r *repository) LoadAccount(f app.LoadAccountsFilter) (app.Account, error) 
 	if ac, err = accounts.First(); err != nil {
 		var id string
 		if len(f.Key) > 0 {
-			id = f.Key[0]
+			id = f.Key[0].String()
 		}
 		if len(f.Handle) > 0 {
 			id = f.Handle[0]

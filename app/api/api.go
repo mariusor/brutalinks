@@ -289,7 +289,7 @@ func (k *keyLoader) GetKey(id string) interface{} {
 
 	if err := validateLocalIRI(as.IRI(id)); err == nil {
 		hash := path.Base(u.Path)
-		k.acc, err = db.Config.LoadAccount(app.LoadAccountsFilter{Key: []string{hash}})
+		k.acc, err = db.Config.LoadAccount(app.LoadAccountsFilter{Key: app.Hashes{app.Hash(hash)}})
 		if err != nil {
 			return errors.Annotatef(err, "unable to find local account matching key id %s", id)
 		}

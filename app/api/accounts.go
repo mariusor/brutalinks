@@ -669,7 +669,7 @@ func validateActor(a as.Item, repo app.CanLoadAccounts) (as.Item, error) {
 				f.InboxIRI = a.GetLink().String()
 				f.Email = []string{string(acct.Hash) + "@" + aHost}
 			} else {
-				f.Key = []string{string(acct.Hash)}
+				f.Key = app.Hashes{acct.Hash}
 			}
 		}
 		acct, err = repo.LoadAccount(f)
@@ -745,7 +745,7 @@ func validateObject(a as.Item, repo app.CanLoadItems, activityType as.ActivityVo
 			if !isLocalObject {
 				f.IRI = a.GetLink().String()
 			}
-			f.Key = []string{cont.Hash.String()}
+			f.Key = app.Hashes{cont.Hash}
 		}
 		cont, err = repo.LoadItem(f)
 		if err != nil {

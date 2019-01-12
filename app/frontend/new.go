@@ -132,7 +132,7 @@ func (h *handler) ValidateItemAuthor(next http.Handler) http.Handler {
 				h.logger.Error("could not load item repository from Context")
 				return
 			}
-			m, err := itemLoader.LoadItem(app.LoadItemsFilter{Key: []string{hash}})
+			m, err := itemLoader.LoadItem(app.LoadItemsFilter{Key: app.Hashes{app.Hash(hash)}})
 			if err != nil {
 				h.logger.Error(err.Error())
 				h.HandleError(w, r, errors.NewNotFound(err, "item"))
