@@ -1,0 +1,9 @@
+image: alpine
+packages:
+  - go
+sources:
+  - https://github.com/mariusor/littr.go
+tasks:
+  - build: |
+      cd littr.go
+      GO111MODULE=on go test ./...
