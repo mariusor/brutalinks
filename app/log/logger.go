@@ -35,7 +35,6 @@ type logger struct {
 
 func Dev() Logger {
 	l := logger{}
-	l.l = logrus.New()
 
 	logrus.SetFormatter(&logrus.TextFormatter{
 		QuoteEmptyFields:true,
@@ -44,17 +43,19 @@ func Dev() Logger {
 	logrus.SetReportCaller(true)
 	logrus.SetOutput(os.Stdout)
 	logrus.SetLevel(logrus.TraceLevel)
+
+	l.l = logrus.StandardLogger()
 	return &l
 }
 
 func Prod() Logger {
 	l := logger{}
-	l.l = logrus.New()
 
 	logrus.SetFormatter(&logrus.TextFormatter{})
 	logrus.SetOutput(os.Stdout)
 	logrus.SetLevel(logrus.WarnLevel)
 
+	l.l = logrus.StandardLogger()
 	return &l
 }
 
