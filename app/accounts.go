@@ -59,7 +59,10 @@ func (h Hash) String() string {
 
 // MarshalText
 func (h Hash) MarshalText() ([]byte, error) {
-	return []byte(h[0:8]), nil
+	if len(h) > 8 {
+		return []byte(h[0:8]), nil
+	}
+	return []byte(h), nil
 }
 
 // HasMetadata
