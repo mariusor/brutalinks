@@ -11,6 +11,7 @@ func E(errs ...error) bool {
 	if len(errs) == 0 {
 		return true
 	}
+	result := true
 	for _, e := range errs {
 		if e == nil {
 			continue
@@ -37,6 +38,8 @@ func E(errs ...error) bool {
 			msg = err.Error()
 		}
 		Logger.WithContext(fields).Error(msg)
+		result = false
 	}
-	return false
+
+	return result
 }
