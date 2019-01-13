@@ -45,7 +45,7 @@ func GenSSHKey(handle string, seed int64, kType string) error {
 	if len(handle) != 0 {
 		filter.Handle = []string{handle}
 	} else {
-		hashes := make([]string, 0)
+		hashes := make(app.Hashes, 0)
 		Logger.Info("No account handle, generating for all")
 
 		keys := make([]app.Key, 0)
@@ -58,7 +58,7 @@ func GenSSHKey(handle string, seed int64, kType string) error {
 				return nil
 			} else {
 				for _, key := range keys {
-					hashes = append(hashes, key.String())
+					hashes = append(hashes, key.Hash())
 				}
 			}
 			filter.Key = hashes
