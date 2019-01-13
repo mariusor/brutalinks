@@ -8,6 +8,7 @@ import (
 	"github.com/mariusor/littr.go/app/log"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/gchaincl/dotsql"
 	"github.com/juju/errors"
@@ -16,8 +17,10 @@ import (
 
 func dbConnection(dbHost string, dbUser string, dbPw string, dbName string) (*sql.DB, error) {
 	if dbUser == "" && dbPw == "" {
-		r := errors.NewErr("missing user and/or pw")
-		cmd.E(&r)
+		err := errors.Forbiddenf("missing user and/or pw")
+		if !cmd.E(err) {
+			os.Exit(1)
+		}
 	}
 
 	var pw string
@@ -25,7 +28,27 @@ func dbConnection(dbHost string, dbUser string, dbPw string, dbName string) (*sq
 		pw = fmt.Sprintf(" password=%s", dbPw)
 	}
 	connStr := fmt.Sprintf("host=%s user=%s%s dbname=%s sslmode=disable", dbHost, dbUser, pw, dbName)
-	return sql.Open("postgres", connStr)
+	db, err := sql.Open("postgres", connStr)
+	if err == nil {
+		quit := make(chan bool)
+		sl, _ := time.ParseDuration("50ms")
+		ticker := time.NewTicker(5 * sl)
+		go func(c *sql.DB) {
+			for {
+				select {
+				case <-ticker.C:
+					// do stuff
+					if c.Ping() == nil {
+						quit <- true
+					}
+				case <-quit:
+					ticker.Stop()
+					return
+				}
+			}
+		}(db)
+	}
+	return nil, err
 }
 
 func main() {
@@ -37,7 +60,6 @@ func main() {
 	var err error
 
 	cmd.Logger = log.Dev()
-	cmd.E(err)
 
 	flag.StringVar(&dbRootUser, "user", "", "the admin user for the database")
 	flag.StringVar(&dbRootPw, "pw", "", "the admin pass for the database")
@@ -57,7 +79,7 @@ func main() {
 		dbRootName := "postgres"
 		rootDB, err := dbConnection(dbHost, dbRootUser, dbRootPw, dbRootName)
 		rr := errors.Annotate(err, "connection failed")
-		if cmd.E(rr) {
+		if !cmd.E(rr) {
 			os.Exit(1)
 		}
 
@@ -75,7 +97,7 @@ func main() {
 
 		// root user, but our new created db
 		db, err := dbConnection(dbHost, dbRootUser, dbRootPw, dbName)
-		if cmd.E(errors.Annotate(err, "connection failed")) {
+		if !cmd.E(errors.Annotate(err, "connection failed")) {
 			os.Exit(1)
 		}
 		defer db.Close()
@@ -90,7 +112,7 @@ func main() {
 
 	// newly created user in newly created database
 	db, err := dbConnection(dbHost, dbUser, dbPw, dbName)
-	if cmd.E(errors.Annotate(err, "connection failed")) {
+	if !cmd.E(err) {
 		os.Exit(1)
 	}
 	defer db.Close()
