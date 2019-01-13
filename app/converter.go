@@ -60,6 +60,7 @@ func (a *Account) FromActivityPub(it as.Item) error {
 			name := jsonUnescape(p.Name.First())
 			pName := jsonUnescape(p.PreferredUsername.First())
 
+			a.Hash.FromActivityPub(p)
 			a.Handle = name
 			a.Flags = FlagsNone
 			if len(p.ID) > 0 {
@@ -85,14 +86,11 @@ func (a *Account) FromActivityPub(it as.Item) error {
 				}
 				a.Handle = fmt.Sprintf("%s@%s", pName, host(a.Metadata.URL))
 			}
-			if a.IsLocal() {
-				a.Hash = getHashFromAP(p)
-				if !p.Published.IsZero() {
-					a.CreatedAt = p.Published
-				}
-				if !p.Updated.IsZero() {
-					a.UpdatedAt = p.Updated
-				}
+			if !p.Published.IsZero() {
+				a.CreatedAt = p.Published
+			}
+			if !p.Updated.IsZero() {
+				a.UpdatedAt = p.Updated
 			}
 			return nil
 		}
@@ -159,9 +157,10 @@ func (i *Item) FromActivityPub(it as.Item) error {
 	case as.DocumentType:
 		fallthrough
 	case as.PageType:
-		loadFromAPObject := func(i *Item, a as.Object) error {
+		loadFromASObject := func(i *Item, a as.Object) error {
 			title := jsonUnescape(a.Name.First())
 
+			i.Hash.FromActivityPub(a)
 			if len(title) > 0 {
 				i.Title = title
 			}
@@ -184,19 +183,13 @@ func (i *Item) FromActivityPub(it as.Item) error {
 			i.Metadata = &ItemMetadata{}
 
 			if a.AttributedTo != nil {
-				if a.AttributedTo.IsObject() {
-					auth := Account{}
-					auth.FromActivityPub(a.AttributedTo)
-					i.SubmittedBy = &auth
-				} else {
-					i.SubmittedBy = &Account{
-						Handle: getAccountHandle(a.AttributedTo.GetLink()),
-					}
-				}
+				auth := Account{}
+				auth.FromActivityPub(a.AttributedTo)
+				i.SubmittedBy = &auth
 			}
 			if len(a.ID) > 0 {
 				iri := a.GetLink()
-				i.Metadata.ID =  iri.String()
+				i.Metadata.ID = iri.String()
 				i.Metadata.URL = a.URL.GetLink().String()
 			}
 			if a.Icon != nil {
@@ -210,9 +203,6 @@ func (i *Item) FromActivityPub(it as.Item) error {
 						i.Metadata.Icon.URI = ic.URL.GetLink().String()
 					}
 				}
-			}
-			if i.IsLocal() {
-				i.Hash = getHashFromAP(a)
 			}
 			if a.InReplyTo != nil {
 				par := Item{}
@@ -241,29 +231,30 @@ func (i *Item) FromActivityPub(it as.Item) error {
 			return nil
 		}
 		loadFromArticle := func(i *Item, a ap.Article) error {
-			loadFromAPObject(i, a.Object.Object)
+			err := loadFromASObject(i, a.Object.Object)
 			i.Score = a.Score
 			if len(a.Source.Content)+len(a.Source.MediaType) > 0 {
 				i.Data = jsonUnescape(a.Source.Content.First())
 				i.MimeType = MimeType(a.Source.MediaType)
 			}
-			return nil
+			return err
 		}
 		if a, ok := it.(ap.Article); ok {
-			loadFromArticle(i, a)
+			return loadFromArticle(i, a)
 		}
 		if a, ok := it.(*ap.Article); ok {
-			loadFromArticle(i, *a)
+			return loadFromArticle(i, *a)
 		}
 		if o, ok := it.(as.Object); ok {
-			loadFromAPObject(i, o)
+			return loadFromASObject(i, o)
 		}
 		if o, ok := it.(*as.Object); ok {
-			loadFromAPObject(i, *o)
+			return loadFromASObject(i, *o)
 		}
 	case as.TombstoneType:
 		id := it.GetLink()
 
+		i.Hash.FromActivityPub(id)
 		if len(id) > 0 {
 			i.Metadata = &ItemMetadata{
 				ID: id.String(),
@@ -273,9 +264,6 @@ func (i *Item) FromActivityPub(it as.Item) error {
 		i.SubmittedBy = &Account{
 			Handle: Anonymous,
 			Hash:   AnonymousHash,
-		}
-		if i.IsLocal() {
-			i.Hash = getHashFromAP(id)
 		}
 	default:
 		return errors.New("invalid object type")

@@ -141,8 +141,7 @@ func loadAPItem(item app.Item) as.Item {
 	}
 	if item.SubmittedBy != nil {
 		id := BuildActorID(*item.SubmittedBy)
-		handle := strings.Replace(string(id), item.SubmittedBy.Hash.String(), item.SubmittedBy.Handle, 1)
-		o.AttributedTo = as.IRI(handle)
+		o.AttributedTo = as.IRI(id)
 	}
 	if item.Parent != nil {
 		id, _ := BuildObjectIDFromItem(*item.Parent)

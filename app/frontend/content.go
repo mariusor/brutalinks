@@ -157,16 +157,24 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 	items := make([]app.Item, 0)
 
 	m := contentModel{}
-	itemLoader, ok := app.ContextItemLoader(r.Context())
+	acctLoader, ok := app.ContextAccountLoader(r.Context())
 	if !ok {
 		h.logger.Error("could not load item repository from Context")
 		return
 	}
 	handle := chi.URLParam(r, "handle")
-	hash := chi.URLParam(r, "hash")
+	auth, err := acctLoader.LoadAccount(app.LoadAccountsFilter{
+		Handle: []string{handle},
+	})
+	itemLoader, ok := app.ContextItemLoader(r.Context())
+	if !ok {
+		h.logger.Error("could not load item repository from Context")
+		return
+	}
 
+	hash := chi.URLParam(r, "hash")
 	i, err := itemLoader.LoadItem(app.LoadItemsFilter{
-		AttributedTo: app.Hashes{app.Hash(handle)},
+		AttributedTo: app.Hashes{auth.Hash},
 		Key:          app.Hashes{app.Hash(hash)},
 	})
 	if err != nil {
