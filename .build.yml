@@ -6,4 +6,7 @@ sources:
 tasks:
   - build: |
       cd littr.go
-      GO111MODULE=on go test ./...
+      export GO111MODULE=on
+      cp .env.example .env
+      make test
+      make all

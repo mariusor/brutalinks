@@ -7,6 +7,7 @@ export VERSION=unknown
 
 GO := go
 BUILD := $(GO) build -a -ldflags '-extldflags "-static"'
+TEST := $(GO) test
 APPSOURCES := $(wildcard ./app/*.go ./app/*/*.go)
 
 ifeq ($(ENV),)
@@ -67,3 +68,7 @@ image: app assets
 
 compose: app assets
 	cd docker && $(MAKE) $@
+
+.PHONY: test
+test:
+	$(TEST) -v ./...
