@@ -228,6 +228,7 @@ article > header h2 {
 }
 aside.domain {
     font-size: .85em;
+    margin-left: .4em;
 }
 .domain:before {
     content: "(";
@@ -498,7 +499,7 @@ summary:focus {
     padding-right: 0;
 }
 h2.title .to-item {
-    margin-left: .3em;
+    margin-left: .4em;
 }
 a.to-item svg {
     width: .78em;
