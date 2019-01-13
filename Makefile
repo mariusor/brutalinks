@@ -63,10 +63,10 @@ assets: app cli
 cert:
 	cd docker && $(MAKE) $@
 
-image: app assets
+image: all assets
 	cd docker && $(MAKE) $@
 
-compose: app assets
+compose: all assets
 	cd docker && $(MAKE) $@
 
 .PHONY: test
