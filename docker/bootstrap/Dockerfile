@@ -14,9 +14,10 @@ ENV POSTGRES_PASSWORD $POSTGRES_PASSWORD
 
 RUN apt update -yqq && apt install -yqq postgresql-client
 
-ADD ./wait-for-db.sh /bin/wait-for-db.sh
 ADD ./bin/bootstrap /bin/bootstrap
 ADD ./db /db
 
-CMD ["/bin/wait-for-db.sh", "db", "/bin/bootstrap", "-user", "postgres", "-seed"]
+WORKDIR /
+
+CMD ["/bin/bootstrap", "-user", "postgres", "-seed"]
 
