@@ -182,15 +182,16 @@ func InitQueues(app *app.Application) error {
 	if DefaultQueue != nil {
 		app.Config.Redis.Enabled = true
 	} else {
-		new := errors.NewErr("failed to connect to redis")
-
-		app.Logger.WithContext(log.Ctx{
-			"redisHost": app.Config.Redis.Host,
-			"redisPort": app.Config.Redis.Port,
-			"redisDb":   redisDb,
-			"name":      name,
-			"trace":     new.StackTrace(),
-		}).Error(new.Error())
+		new := errors.NewErr("unable to connect to redis")
+		if len(app.Config.Redis.Host) > 0 {
+			app.Logger.WithContext(log.Ctx{
+				"redisHost": app.Config.Redis.Host,
+				"redisPort": app.Config.Redis.Port,
+				"redisDb":   redisDb,
+				"name":      name,
+				"trace":     new.StackTrace(),
+			}).Error(new.Error())
+		}
 		return &new
 	}
 	return nil

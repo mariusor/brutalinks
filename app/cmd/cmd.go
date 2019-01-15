@@ -20,18 +20,19 @@ func E(errs ...error) bool {
 		var msg string
 		switch err := e.(type) {
 		case *errors.Err:
-			if err.Underlying() != nil {
-				f, l := err.Location()
-				if f != "" {
-					fields["file"] = f
-				}
-				if l != 0 {
-					fields["line"] = l
-				}
-				s := err.StackTrace()
-				if len(s) > 0 {
-					fields["trace"] = s
-				}
+			if err.Underlying() == nil {
+				continue
+			}
+			f, l := err.Location()
+			if f != "" {
+				fields["file"] = f
+			}
+			if l != 0 {
+				fields["line"] = l
+			}
+			s := err.StackTrace()
+			if len(s) > 0 {
+				fields["trace"] = s
 			}
 			msg = err.Error()
 		default:

@@ -18,5 +18,5 @@ ADD ./wait-for-db.sh /bin/wait-for-db.sh
 ADD ./bin/bootstrap /bin/bootstrap
 ADD ./db /db
 
-CMD ["/bin/wait-for-db.sh", "db", "/bin/bootstrap", "-user", "postgres", "-pw", "echo ${POSTGRES_PASSWORD}", "-seed"]
+CMD ["/bin/wait-for-db.sh", "db", "/bin/bootstrap", "-user", "postgres", "-seed"]
 

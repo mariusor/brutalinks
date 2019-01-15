@@ -17,7 +17,7 @@ import (
 
 func dbConnection(dbHost string, dbUser string, dbPw string, dbName string) (*sql.DB, error) {
 	if dbUser == "" && dbPw == "" {
-		err := errors.Forbiddenf("missing user and/or pw")
+		err := errors.NewErr("missing user and/or pw")
 		if !cmd.E(err) {
 			os.Exit(1)
 		}
@@ -82,6 +82,9 @@ func main() {
 		if !cmd.E(rr) {
 			os.Exit(1)
 		}
+		if err := rootDB.Ping(); cmd.E(err) {
+			os.Exit(1)
+		}
 
 		defer rootDB.Close()
 
@@ -100,6 +103,10 @@ func main() {
 		if !cmd.E(errors.Annotate(err, "connection failed")) {
 			os.Exit(1)
 		}
+		if err := db.Ping(); cmd.E(err) {
+			os.Exit(1)
+		}
+
 		defer db.Close()
 		dot, err = dotsql.LoadFromFile("./db/extensions.sql")
 		_, err = dot.Exec(db, "extension-pgcrypto")

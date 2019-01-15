@@ -29,16 +29,17 @@ type Logger interface {
 type Ctx logrus.Fields
 
 type logger struct {
-	l   logrus.FieldLogger
-	ctx Ctx
+	l      logrus.FieldLogger
+	ctx    Ctx
+	oldCtx Ctx
 }
 
 func Dev() Logger {
 	l := logger{}
 
 	logrus.SetFormatter(&logrus.TextFormatter{
-		QuoteEmptyFields:true,
-		FullTimestamp: false,
+		QuoteEmptyFields: true,
+		FullTimestamp:    false,
 	})
 	logrus.SetReportCaller(true)
 	logrus.SetOutput(os.Stdout)
@@ -59,7 +60,7 @@ func Prod() Logger {
 	return &l
 }
 
-func (l logger) context()  logrus.Fields {
+func (l logger) context() logrus.Fields {
 	c := make(logrus.Fields, len(l.ctx))
 
 	for k, v := range l.ctx {
@@ -73,7 +74,16 @@ func (l logger) New(c ...interface{}) Logger {
 	return l.WithContext(c)
 }
 
+func copyCtx(ctx Ctx) Ctx {
+	res := make(Ctx, len(ctx))
+	for k, c := range ctx {
+		res[k] = c
+	}
+	return res
+}
+
 func (l *logger) WithContext(ctx ...interface{}) Logger {
+	l.oldCtx = copyCtx(l.ctx)
 	if l.ctx == nil {
 		l.ctx = make(Ctx, 0)
 	}
@@ -91,42 +101,62 @@ func (l *logger) WithContext(ctx ...interface{}) Logger {
 
 func (l logger) Debug(msg string) {
 	l.l.WithFields(l.context()).Debug(msg)
+	l.ctx = copyCtx(l.oldCtx)
+	l.oldCtx = nil
 }
 
 func (l logger) Debugf(msg string, p ...interface{}) {
 	l.l.WithFields(l.context()).Debug(fmt.Sprintf(msg, p...))
+	l.ctx = copyCtx(l.oldCtx)
+	l.oldCtx = nil
 }
 
 func (l logger) Info(msg string) {
 	l.l.WithFields(l.context()).Info(msg)
+	l.ctx = copyCtx(l.oldCtx)
+	l.oldCtx = nil
 }
 
 func (l logger) Infof(msg string, p ...interface{}) {
 	l.l.WithFields(l.context()).Info(fmt.Sprintf(msg, p...))
+	l.ctx = copyCtx(l.oldCtx)
+	l.oldCtx = nil
 }
 
 func (l logger) Warn(msg string) {
 	l.l.WithFields(l.context()).Warn(msg)
+	l.ctx = copyCtx(l.oldCtx)
+	l.oldCtx = nil
 }
 
 func (l logger) Warnf(msg string, p ...interface{}) {
 	l.l.WithFields(l.context()).Warn(fmt.Sprintf(msg, p...))
+	l.ctx = copyCtx(l.oldCtx)
+	l.oldCtx = nil
 }
 
 func (l logger) Error(msg string) {
 	l.l.WithFields(l.context()).Error(msg)
+	l.ctx = copyCtx(l.oldCtx)
+	l.oldCtx = nil
 }
 
 func (l logger) Errorf(msg string, p ...interface{}) {
 	l.l.WithFields(l.context()).Error(fmt.Sprintf(msg, p...))
+	l.ctx = copyCtx(l.oldCtx)
+	l.oldCtx = nil
 }
 
 func (l logger) Crit(msg string) {
 	l.l.WithFields(l.context()).Fatal(msg)
+	l.ctx = copyCtx(l.oldCtx)
+	l.oldCtx = nil
 }
 
 func (l logger) Critf(msg string, p ...interface{}) {
 	l.l.WithFields(l.context()).Fatal(fmt.Sprintf(msg, p...))
+	l.ctx = copyCtx(l.oldCtx)
+	l.oldCtx = nil
 }
 
 func (l logger) Print(i ...interface{}) {
@@ -134,4 +164,6 @@ func (l logger) Print(i ...interface{}) {
 		return
 	}
 	l.Infof(i[0].(string))
+	l.ctx = copyCtx(l.oldCtx)
+	l.oldCtx = nil
 }
