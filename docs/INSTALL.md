@@ -49,6 +49,9 @@ Go to the littr.go working directory and copy your `.env` file to the docker fol
 
     $ cp .env ./docker/
 
+In the `docker/.env` file we need to modify the `DB_HOST` value to match the name of the postgres container from the 
+[docker/docker-compose.yaml](../docker/docker-compose.yaml). The default is `db`.
+
 Then, as a user in the docker group, just run:
 
     $ make compose
