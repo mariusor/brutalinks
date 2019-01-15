@@ -40,3 +40,15 @@ such as ansible, puppet, etc. Patches welcome.
 Running the application in development mode is as simple as: 
 
     $ make run
+
+# Docker
+
+Running with docker is really easy. 
+
+Go to the littr.go working directory and copy your `.env` file to the docker folder:
+
+    $ cp .env ./docker/
+
+Then, as a user in the docker group, just run:
+
+    $ make compose
