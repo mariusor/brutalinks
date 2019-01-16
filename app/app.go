@@ -114,8 +114,8 @@ type Collection interface{}
 var Instance Application
 
 // New instantiates a new Application
-func New() Application {
-	app := Application{HostName: listenHost, Port: listenPort, Config: config{}}
+func New(ver string) Application {
+	app := Application{HostName: listenHost, Port: listenPort, Version: ver, Config: config{}}
 	loadEnv(&app)
 	return app
 }
@@ -193,9 +193,6 @@ func loadEnv(l *Application) (bool, error) {
 	}
 	if l.SeedVal, err = strconv.ParseInt(os.Getenv("SEED"), 10, 64); err != nil {
 		l.SeedVal = 666
-	}
-	if l.Version = os.Getenv("VERSION"); l.Version == "" {
-		l.Version = "HEAD"
 	}
 	if l.Secure, err = strconv.ParseBool(os.Getenv("HTTPS")); err != nil {
 		l.Secure = false

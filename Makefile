@@ -4,9 +4,7 @@ export CGO_ENABLED=0
 export GOOS=linux
 export GOARCH=amd64
 export VERSION=unknown
-
 GO := go
-BUILD := $(GO) build -a -ldflags '-extldflags "-static"'
 TEST := $(GO) test
 APPSOURCES := $(wildcard ./app/*.go ./app/*/*.go)
 
@@ -14,14 +12,16 @@ ifeq ($(ENV),)
 	ENV := dev
 endif
 
-all: app cli
-
 ifeq ($(shell git describe --always > /dev/null 2>&1 ; echo $$?), 0)
 export VERSION = $(shell git describe --always)
 endif
 ifeq ($(shell git describe --tags > /dev/null 2>&1 ; echo $$?), 0)
 export VERSION = $(shell git describe --tags)
 endif
+
+BUILD := $(GO) build -a -ldflags '-X main.version=$(VERSION) -extldflags "-static"'
+
+all: app cli
 
 app: bin/app
 bin/app: go.mod main.go $(APPSOURCES)
