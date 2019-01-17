@@ -38,7 +38,7 @@ func (h handler)HandleService(w http.ResponseWriter, r *http.Request) {
 	us.Content.Set(as.NilLangRef, string(app.Markdown(inf.Description)))
 
 	us.AttributedTo = as.IRI("https://github.com/mariusor")
-	data, _ := json.Marshal(us)
+	data, _ := json.WithContext(GetContext()).Marshal(us)
 	w.Header().Set("Content-Type", "application/activity+json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(data)
