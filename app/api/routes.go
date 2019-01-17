@@ -71,7 +71,7 @@ func (h handler)Routes() func(chi.Router) {
 				Software: nodeinfo.SoftwareMeta{
 					GitHub:   "https://github.com/mariusor/littr.go",
 					HomePage: "https://littr.me",
-					Follow:   "mariusor@mastodon.xyz",
+					Follow:   "mariusor@metalhead.club",
 				},
 			},
 			Protocols: []nodeinfo.NodeProtocol{
