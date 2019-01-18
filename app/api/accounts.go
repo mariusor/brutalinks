@@ -42,7 +42,7 @@ func apAccountID(a app.Account) as.ObjectID {
 func loadAPLike(vote app.Vote) as.ObjectOrLink {
 	id, _ := BuildObjectIDFromItem(*vote.Item)
 	lID := BuildObjectIDFromVote(vote)
-	whomArt := as.IRI(BuildActorHashID(*vote.SubmittedBy))
+	whomArt := as.IRI(BuildActorID(*vote.SubmittedBy))
 	if vote.Weight == 0 {
 		l := as.UndoNew(lID, as.IRI(id))
 		l.AttributedTo = whomArt
@@ -80,6 +80,10 @@ func loadAPActivity(it app.Item) as.Activity {
 	return act
 }
 
+func itemURL(item app.Item) as.IRI {
+	return as.IRI(fmt.Sprintf("%s%s", app.Instance.BaseURL, frontend.ItemPermaLink(item)))
+}
+
 func loadAPItem(item app.Item) as.Item {
 	o := localap.Article{}
 
@@ -101,7 +105,7 @@ func loadAPItem(item app.Item) as.Item {
 		}
 
 		if len(item.Hash) > 0 {
-			o.URL = as.IRI(frontend.ItemPermaLink(item))
+			o.URL = itemURL(item)
 		}
 		o.Name = make(as.NaturalLanguageValue, 0)
 		switch item.MimeType {
@@ -175,7 +179,9 @@ func loadAPItem(item app.Item) as.Item {
 
 	return &o
 }
-
+func accountURL(acc app.Account) as.IRI {
+	return as.IRI(fmt.Sprintf("%s%s", app.Instance.BaseURL, frontend.AccountPermaLink(acc)))
+}
 func loadAPPerson(a app.Account) *localap.Person {
 	p := localap.Person{}
 	p.Type = as.PersonType
@@ -221,7 +227,7 @@ func loadAPPerson(a app.Account) *localap.Person {
 		p.Updated = a.UpdatedAt
 	}
 
-	p.URL = as.IRI(frontend.AccountPermaLink(a))
+	p.URL = accountURL(a)
 	p.Score = a.Score
 	if a.IsValid() && a.HasMetadata() && a.Metadata.Key != nil && a.Metadata.Key.Public != nil {
 		p.PublicKey = localap.PublicKey{

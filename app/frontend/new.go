@@ -48,11 +48,11 @@ func loadTags(data string) (app.TagCollection, app.TagCollection) {
 			t.Name = byt[st : st+en]
 			if t.Name[0] == '#' {
 				// @todo(marius) :link_generation: make the tag links be generated from the corresponding route
-				t.URL = fmt.Sprintf("%s/t/%s", app.Instance.BaseURL, t.Name[1:])
+				t.URL = fmt.Sprintf("/t/%s", t.Name[1:])
 				tags = append(tags, t)
 			}
 			if t.Name[0] == '@' || t.Name[0] == '~' {
-				t.URL = fmt.Sprintf("%s/~%s", app.Instance.BaseURL, t.Name[1:])
+				t.URL = fmt.Sprintf("/~%s", t.Name[1:])
 				mentions = append(mentions, t)
 			}
 

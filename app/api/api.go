@@ -92,10 +92,6 @@ func BuildActorID(a app.Account) as.ObjectID {
 	return as.ObjectID(fmt.Sprintf("%s/%s", ActorsURL, url.PathEscape(a.Hash.String())))
 }
 
-func BuildActorHashID(a app.Account) as.ObjectID {
-	return as.ObjectID(fmt.Sprintf("%s/%s", ActorsURL, url.PathEscape(a.Hash.String())))
-}
-
 func BuildCollectionID(a app.Account, o as.Item) as.ObjectID {
 	if len(a.Handle) > 0 {
 		return as.ObjectID(fmt.Sprintf("%s/%s/%s", ActorsURL, url.PathEscape(a.Hash.String()), getObjectType(o)))

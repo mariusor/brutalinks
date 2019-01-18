@@ -6,8 +6,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/mariusor/littr.go/app/frontend"
-
 	"github.com/mariusor/littr.go/app"
 
 	"github.com/juju/errors"
@@ -79,7 +77,7 @@ func (h handler)HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 
 	wf := node{
 		Aliases: []string{
-			fmt.Sprintf("%s/%s", ActorsURL, a.Hash),
+			string(BuildActorID(a)),
 			fmt.Sprintf("%s/%s", ActorsURL, a.Handle),
 		},
 		Subject: typ + ":" + res,
@@ -87,17 +85,17 @@ func (h handler)HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 			{
 				Rel:  "self",
 				Type: "application/activity+json",
-				Href: fmt.Sprintf("%s/%s", ActorsURL, a.Hash),
+				Href: string(BuildActorID(a)),
 			},
 			{
 				Rel:  "http://webfinger.net/rel/profile-page",
 				Type: "application/activity+json",
-				Href: fmt.Sprintf("%s/%s", ActorsURL, a.Hash),
+				Href: string(BuildActorID(a)),
 			},
 			{
 				Rel:  "http://webfinger.net/rel/profile-page",
 				Type: "text/html",
-				Href: frontend.AccountPermaLink(a),
+				Href: accountURL(a).String(),
 			},
 		},
 	}

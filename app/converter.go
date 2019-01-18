@@ -59,6 +59,9 @@ func (a *Account) FromActivityPub(it as.Item) error {
 			}
 			name := jsonUnescape(p.Name.First())
 			pName := jsonUnescape(p.PreferredUsername.First())
+			if pName == "" {
+				pName = name
+			}
 
 			a.Hash.FromActivityPub(p)
 			a.Handle = name
@@ -81,10 +84,9 @@ func (a *Account) FromActivityPub(it as.Item) error {
 				}
 			}
 			if a.IsFederated() {
-				if pName == "" {
-					pName = name
-				}
-				a.Handle = fmt.Sprintf("%s@%s", pName, host(a.Metadata.URL))
+				// @TODO(marius): this returns false positives when API_URL is set and different than
+				host := host(a.Metadata.URL)
+				a.Handle = fmt.Sprintf("%s@%s", pName, host)
 			}
 			if !p.Published.IsZero() {
 				a.CreatedAt = p.Published
@@ -325,7 +327,7 @@ func (v *Vote) FromActivityPub(it as.Item) error {
 }
 
 func HostIsLocal(s string) bool {
-	return strings.Contains(host(s), Instance.HostName)
+	return strings.Contains(host(s), Instance.HostName) ||  strings.Contains(host(s), host(Instance.APIURL))
 }
 
 func host(u string) string {
@@ -337,9 +339,6 @@ func host(u string) string {
 
 func getHashFromAP(obj as.Item) Hash {
 	iri := obj.GetLink()
-	//if !strings.Contains(host(iri.String()), host(Instance.BaseURL)) {
-	//	return ""
-	//}
 	s := strings.Split(iri.String(), "/")
 	var hash string
 	if s[len(s)-1] == "object" {
@@ -353,15 +352,15 @@ func getHashFromAP(obj as.Item) Hash {
 	}
 	return Hash(h)
 }
-
-func getAccountHandle(o as.Item) string {
-	if o == nil {
-		return ""
-	}
-	i := o.(as.IRI)
-	s := strings.Split(string(i), "/")
-	return s[len(s)-1]
-}
+//
+//func getAccountHandle(o as.Item) string {
+//	if o == nil {
+//		return ""
+//	}
+//	i := o.(as.IRI)
+//	s := strings.Split(string(i), "/")
+//	return s[len(s)-1]
+//}
 
 func jsonUnescape(s string) string {
 	var out []byte

@@ -117,7 +117,10 @@ func (a Account) VotedOn(i Item) *Vote {
 }
 
 func (a Account) GetLink() string {
-	return fmt.Sprintf("/~%s", a.Handle)
+	if a.IsLocal() {
+		return fmt.Sprintf("/~%s", a.Handle)
+	}
+	return a.Metadata.URL
 }
 
 // IsLogged should show if current user was loaded from a session

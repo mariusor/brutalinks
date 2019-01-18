@@ -77,14 +77,20 @@ func AccountLocalLink(a app.Account) string {
 		handle = a.Handle
 	}
 	// @todo(marius) :link_generation:
-	return fmt.Sprintf("%s/~%s", app.Instance.BaseURL, handle)
+	return fmt.Sprintf("/~%s", handle)
 }
 
 // ShowAccountHandle
 func ShowAccountHandle(a app.Account) string {
-	if a.IsFederated() && len(a.Email) > 0 {
-		return a.Email
-	}
+	//if strings.Contains(a.Handle, "@") {
+	//	// @TODO(marius): simplify this at a higher level in the stack, see Account::FromActivityPub
+	//	if parts := strings.SplitAfter(a.Handle, "@"); len(parts) > 1 {
+	//		if strings.Contains(parts[1], app.Instance.HostName) {
+	//			handle := parts[0]
+	//			a.Handle = handle[:len(handle)-1]
+	//		}
+	//	}
+	//}
 	return a.Handle
 }
 

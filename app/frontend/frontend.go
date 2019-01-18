@@ -295,7 +295,7 @@ func headerMenu(r *http.Request) []headerEl {
 	for _, s := range sections {
 		el := headerEl{
 			Name: s,
-			URL:  fmt.Sprintf("%s/%s", app.Instance.BaseURL, s),
+			URL:  fmt.Sprintf("/%s", s),
 		}
 		if path.Base(r.URL.Path) == s {
 			el.IsCurrent = true
