@@ -21,9 +21,6 @@ import (
 // Logger is the package default logger instance
 var Logger log.Logger
 
-const defaultHost = "localhost"
-const defaultPort = 3000
-
 const (
 	// Anonymous label
 	Anonymous = "anonymous"
@@ -99,7 +96,7 @@ type Application struct {
 	HostName    string
 	APIURL      string
 	BaseURL     string
-	Port        int64
+	Port        int
 	Listen      string
 	Secure      bool
 	SessionKeys [][]byte
@@ -114,8 +111,8 @@ type Collection interface{}
 var Instance Application
 
 // New instantiates a new Application
-func New(ver string) Application {
-	app := Application{HostName: listenHost, Port: listenPort, Version: ver, Config: config{}}
+func New(host string, port int, ver string) Application {
+	app := Application{HostName: host, Port: port, Version: ver, Config: config{}}
 	loadEnv(&app)
 	return app
 }
@@ -179,15 +176,6 @@ func loadEnv(l *Application) (bool, error) {
 	}
 	var err error
 
-	if l.HostName = os.Getenv("HOSTNAME"); l.HostName == "" {
-		l.HostName = defaultHost
-	}
-	if l.Port, err = strconv.ParseInt(os.Getenv("PORT"), 10, 64); err != nil {
-		l.Port = defaultPort
-	}
-	if l.HostName = os.Getenv("HOSTNAME"); l.HostName == "" {
-		l.HostName = defaultHost
-	}
 	if l.Listen = os.Getenv("LISTEN"); l.Listen == "" {
 		l.Listen = fmt.Sprintf("%s:%d", l.HostName, l.Port)
 	}

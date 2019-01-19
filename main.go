@@ -24,11 +24,21 @@ import (
 
 var version = "HEAD"
 
+const defaultHost = "localhost"
+const defaultPort = 3000
+const defaultTimeout =  time.Second*15
+
 func main() {
 	var wait time.Duration
-	flag.DurationVar(&wait, "graceful-timeout", time.Second*15, "the duration for which the server gracefully wait for existing connections to finish - e.g. 15s or 1m")
+	var port int
+	var host string
+
+	flag.DurationVar(&wait, "graceful-timeout", defaultTimeout, "the duration for which the server gracefully wait for existing connections to finish - e.g. 15s or 1m")
+	flag.IntVar(&port, "port", defaultPort, "the port on which we should listen on")
+	flag.StringVar(&host, "host", defaultHost, "the host on which we should listen on")
 	flag.Parse()
-	app.Instance = app.New(version)
+
+	app.Instance = app.New(host, port, version)
 
 	db.Init(&app.Instance)
 	front, err := frontend.Init(frontend.Config{
@@ -43,7 +53,6 @@ func main() {
 	}
 	// api
 	apiURL := os.Getenv("API_URL")
-	host := os.Getenv("HOSTNAME")
 	if apiURL == "" {
 		if app.Instance.Secure {
 			apiURL = fmt.Sprintf("https://%s/api", host)
