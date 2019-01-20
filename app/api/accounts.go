@@ -14,11 +14,11 @@ import (
 	"github.com/mariusor/littr.go/app/frontend"
 
 	"context"
-	"github.com/go-chi/chi"
-	"github.com/juju/errors"
 	ap "github.com/go-ap/activitypub.go/activitypub"
 	as "github.com/go-ap/activitypub.go/activitystreams"
 	json "github.com/go-ap/activitypub.go/jsonld"
+	"github.com/go-chi/chi"
+	"github.com/juju/errors"
 	localap "github.com/mariusor/littr.go/app/activitypub"
 	"github.com/mariusor/littr.go/app/log"
 )
@@ -627,6 +627,30 @@ type activityError struct {
 	other  []error
 }
 
+type validator struct {
+	r app.Repository
+}
+
+func (v validator) Validate(ep as.IRI, obj as.Item) (bool, localap.ValidationErrors) {
+	var res bool
+	var errs localap.ValidationErrors
+	switch obj.GetType() {
+	case as.ActorType:
+		if _, err := validateActor(obj, v.r); err != nil {
+			errs.Add(err)
+		} else {
+			res = true
+		}
+	case as.ObjectType:
+		if _, err := validateObject(obj, v.r, ""); err != nil {
+			errs.Add(err)
+		} else {
+			res = true
+		}
+	}
+	return res, errs
+}
+
 func (a actorMissingError) Error() string {
 	return fmt.Sprintf("received actor hash does not exist on local instance %s", a.actor.GetLink())
 }
@@ -643,6 +667,9 @@ func validateActor(a as.Item, repo app.CanLoadAccounts) (as.Item, error) {
 	p := localap.Person{}
 
 	var err error
+	if err = validateIRIIsBlocked(a.GetLink()); err != nil {
+		return nil, errors.NewMethodNotAllowed(err, "object is blocked")
+	}
 	if err = validateIRIBelongsToBlackListedInstance(a.GetLink()); err != nil {
 		return p, errors.NewMethodNotAllowed(err, "actor belongs to blocked instance")
 	}
@@ -717,10 +744,13 @@ func getValidObjectTypes(typ as.ActivityVocabularyType) []as.ActivityVocabularyT
 	return nil
 }
 
-func validateObject(a as.Item, repo app.CanLoadItems, activityType as.ActivityVocabularyType) (as.Item, error) {
+func validateObject(a as.Item, repo app.CanLoadItems, typ as.ActivityVocabularyType) (as.Item, error) {
 	var o as.Item
 
 	var err error
+	if err = validateIRIIsBlocked(a.GetLink()); err != nil {
+		return nil, errors.NewMethodNotAllowed(err, "object is blocked")
+	}
 	if err = validateIRIBelongsToBlackListedInstance(a.GetLink()); err != nil {
 		return nil, errors.NewMethodNotAllowed(err, "object belongs to blocked instance")
 	}
@@ -738,8 +768,8 @@ func validateObject(a as.Item, repo app.CanLoadItems, activityType as.ActivityVo
 		return o, objectMissingError{err: err, object: a}
 	}
 
-	if err = validateItemType(a.GetType(), getValidObjectTypes(activityType)); err != nil {
-		return a, errors.NewNotValid(err, fmt.Sprintf("failed to validate object for %s activity", activityType))
+	if err = validateItemType(a.GetType(), getValidObjectTypes(typ)); err != nil {
+		return a, errors.NewNotValid(err, fmt.Sprintf("failed to validate object for %s activity", typ))
 	}
 	if len(cont.Hash) == 0 {
 		return o, objectMissingError{err: err, object: a}
@@ -760,7 +790,7 @@ func validateObject(a as.Item, repo app.CanLoadItems, activityType as.ActivityVo
 	}
 	return o, nil
 	// @todo(marius): see what this was about
-	//switch activityType {
+	//switch typ {
 	//case as.UpdateType:
 	//	fallthrough
 	//case as.CreateType:
@@ -792,13 +822,13 @@ func validateObject(a as.Item, repo app.CanLoadItems, activityType as.ActivityVo
 	//	}
 	//	oID := a.GetID()
 	//	if len(*oID) == 0 {
-	//		return a, errors.Errorf("%sed object needs to be local and have a valid ID", activityType)
+	//		return a, errors.Errorf("%sed object needs to be local and have a valid ID", typ)
 	//	}
 	//	if err := validateLocalIRI(a.GetLink()); err != nil {
-	//		return a, errors.Annotatef(err, "%sed object should have local resolvable IRI", activityType)
+	//		return a, errors.Annotatef(err, "%sed object should have local resolvable IRI", typ)
 	//	}
 	//default:
-	//	return a, errors.Annotatef(err, "%s unknown activity type", activityType)
+	//	return a, errors.Annotatef(err, "%s unknown activity type", typ)
 	//}
 }
 
@@ -807,8 +837,27 @@ func validateIRIBelongsToBlackListedInstance(iri as.IRI) error {
 	blockedInstances := []string{
 		"mastodon.social",
 	}
-	for _, block := range blockedInstances {
-		if strings.Contains(iri.String(), block) {
+	for _, blocked := range blockedInstances {
+		if strings.Contains(iri.String(), blocked) {
+			return errors.NotValidf("%s", iri)
+		}
+	}
+	return nil
+}
+
+
+func validateIRIIsBlocked(iri as.IRI) error {
+	// @todo(marius): add a proper method of loading blocked IRIs
+	blockedIRIs := []string{
+		"https://example.com/actors/jonathan.doe",
+	}
+	u, err := url.Parse(iri.String())
+	if err != nil {
+		return nil
+	}
+	u.Path = path.Clean(u.Path)
+	for _, blocked := range blockedIRIs {
+		if u.String() == blocked {
 			return errors.NotValidf("%s", iri)
 		}
 	}
