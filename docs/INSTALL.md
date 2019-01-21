@@ -24,16 +24,10 @@ to log-in without a password when connecting from localhost.
     DB_NAME=littr-dev
     DB_USER=littr-dev
     DB_PASSWORD=super-secret-secret-password
+    POSTGRESS_PASSWORD=RootPW-also-secret
 
     $ make bootstrap 
     $ ./run.sh bin/bootstrap -user postgres
-
-Obs: If the admin user requires a password, for now it's required to be passed in the bootstrap command 
-as the `-pw super-secret-secret-password` parameter. Yes, I know that is not very secure, but  the whole 
-bootstrap is designed for lazy people such as myself. 
-
-Security minded people might want to bring up the database manually or using a dedicated tool, 
-such as ansible, puppet, etc. Patches welcome.
 
 ## Running 
 

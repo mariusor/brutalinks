@@ -8,7 +8,6 @@ import (
 	"github.com/mariusor/littr.go/app/log"
 	"net"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/gchaincl/dotsql"
@@ -31,7 +30,6 @@ func dbConnection(dbHost string, dbUser string, dbPw string, dbName string) (*sq
 	connStr := fmt.Sprintf("host=%s user=%s%s dbname=%s sslmode=disable", dbHost, dbUser, pw, dbName)
 	db, err := sql.Open("postgres", connStr)
 	if err == nil {
-		//ticker := time.NewTicker(500 * time.Millisecond)
 		cnt := 0
 		for {
 			if err := db.Ping(); err == nil {
@@ -60,7 +58,6 @@ func dbConnection(dbHost string, dbUser string, dbPw string, dbName string) (*sq
 
 func main() {
 	var dbRootUser string
-	var dbRootPw string
 	var dbHost string
 	var seed bool
 
@@ -69,11 +66,11 @@ func main() {
 	cmd.Logger = log.Dev()
 
 	flag.StringVar(&dbRootUser, "user", "", "the admin user for the database")
-	flag.StringVar(&dbRootPw, "pw", "", "the admin pass for the database")
 	flag.StringVar(&dbHost, "host", "", "the db host")
 	flag.BoolVar(&seed, "seed", false, "seed database with data")
 	flag.Parse()
 
+	dbRootPw := os.Getenv("POSTGRES_PASSWORD")
 	dbPw := os.Getenv("DB_PASSWORD")
 	dbUser := os.Getenv("DB_USER")
 	dbName := os.Getenv("DB_NAME")
@@ -98,13 +95,15 @@ func main() {
 		os.Exit(1)
 	}
 	s1, _ := dot.Raw("create-role-with-pass")
-	_, err = rootDB.Exec(fmt.Sprintf(s1, dbUser, strings.Trim(dbPw, "'")))
-	if !cmd.E(errors.Annotatef(err, "query: %s", s1)) {
+	role := fmt.Sprintf(s1, dbUser, "%s")
+	_, err = rootDB.Exec(fmt.Sprintf(role, dbPw))
+	if !cmd.E(errors.Annotatef(err, "query: %s", role)) {
 		os.Exit(1)
 	}
 
 	s2, _ := dot.Raw("create-db-for-role")
-	_, err = rootDB.Exec(fmt.Sprintf(s2, dbName, dbUser))
+	creatDb := fmt.Sprintf(s2, dbName, dbUser)
+	_, err = rootDB.Exec(creatDb)
 	if !cmd.E(errors.Annotatef(err, "query: %s", s2)) {
 		os.Exit(1)
 	}
