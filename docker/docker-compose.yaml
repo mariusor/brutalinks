@@ -98,6 +98,8 @@ services:
       context: app
       dockerfile: ./Dockerfile
       args:
-          ENV: ${ENV}
-          LISTEN: ${LISTEN}
-          HOSTNAME: ${HOSTNAME}
+        ENV: ${ENV}
+        LISTEN: ${LISTEN}
+        HOSTNAME: ${HOSTNAME}
+        PORT: 40001
+    command: app -host ${HOSTNAME} -port 40001
