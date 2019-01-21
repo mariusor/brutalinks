@@ -3,9 +3,14 @@ package cmd
 import (
 	"github.com/juju/errors"
 	"github.com/mariusor/littr.go/app/log"
+	"reflect"
 )
 
 var Logger log.Logger
+
+func IsNil(c interface{}) bool {
+	return c == nil || (reflect.ValueOf(c).Kind() == reflect.Ptr && reflect.ValueOf(c).IsNil())
+}
 
 func E(errs ...error) bool {
 	if len(errs) == 0 {
@@ -20,7 +25,7 @@ func E(errs ...error) bool {
 		var msg string
 		switch err := e.(type) {
 		case *errors.Err:
-			if err.Underlying() == nil {
+			if IsNil(err.Underlying()) {
 				continue
 			}
 			f, l := err.Location()
