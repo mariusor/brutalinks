@@ -11,7 +11,7 @@ services:
       POSTGRES_DATABASE: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
 ### Uncomment to enable DB persistence
-#    command: postgres -c log_connections=on -c logging_collector=on -c log_destination=stderr -c log_directory=/var/log/postgresql
+    command: postgres -c log_connections=on -c logging_collector=on -c log_destination=stderr
 
 #  redis:
 #    restart: always
@@ -39,6 +39,8 @@ services:
     ports:
       - 80:80
       - 6081:6081
+    links:
+    - app
     depends_on:
     - app
     environment:
@@ -58,7 +60,9 @@ services:
     volumes:
       - ./littr.git.pem:/etc/ssl/hitch/littr.pem
     depends_on:
-      - lb
+    - lb
+    links:
+    - lb
     environment:
       - HITCH_BACKEND_ADDRESS=lb
       - HITCH_BACKEND_PORT=6081
@@ -67,16 +71,18 @@ services:
     env_file: ./.env
     image: bootstrap:${ENV}
     depends_on:
-      - db
+    - db
+    links:
+    - db
     build:
       context: bootstrap
       dockerfile: ./Dockerfile
-      args:
-          DB_HOST: ${DB_HOST}
-          DB_NAME: ${DB_NAME}
-          DB_USER: ${DB_USER}
-          DB_PASSWORD: ${DB_PASSWORD}
-          POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    environment:
+      DB_HOST: ${DB_HOST}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
 
   app:
     env_file: ./.env
@@ -86,6 +92,8 @@ services:
 #      - bootstrap
 #      - ssl
 #      - redis
+    links:
+    - db
     build:
       context: app
       dockerfile: ./Dockerfile
