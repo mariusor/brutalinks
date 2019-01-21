@@ -292,7 +292,7 @@ ol.comments {
     /*border-radius: 0 0 0 .4rem;*/
 }
 .comments > li {
-    padding: .1rem 0;
+    padding: .7rem 0 0 0;
 }
 ol.comments.lvl-0 {
     /*border-radius: .4rem 0 0 .4rem;*/
