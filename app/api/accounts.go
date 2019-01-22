@@ -14,9 +14,9 @@ import (
 	"github.com/mariusor/littr.go/app/frontend"
 
 	"context"
-	ap "github.com/go-ap/activitypub.go/activitypub"
-	as "github.com/go-ap/activitypub.go/activitystreams"
-	json "github.com/go-ap/activitypub.go/jsonld"
+	ap "github.com/go-ap/activitypub"
+	as "github.com/go-ap/activitystreams"
+	json "github.com/go-ap/jsonld"
 	"github.com/go-chi/chi"
 	"github.com/juju/errors"
 	localap "github.com/mariusor/littr.go/app/activitypub"

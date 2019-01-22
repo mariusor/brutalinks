@@ -19,9 +19,9 @@ import (
 	"github.com/spacemonkeygo/httpsig"
 
 	"github.com/juju/errors"
-	ap "github.com/go-ap/activitypub.go/activitypub"
-	as "github.com/go-ap/activitypub.go/activitystreams"
-	j "github.com/go-ap/activitypub.go/jsonld"
+	ap "github.com/go-ap/activitypub"
+	as "github.com/go-ap/activitystreams"
+	j "github.com/go-ap/jsonld"
 )
 
 const (

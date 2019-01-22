@@ -2,7 +2,7 @@
 package processing
 
 import (
-	as "github.com/go-ap/activitypub.go/activitystreams"
+	as "github.com/go-ap/activitystreams"
 	"github.com/juju/errors"
 	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/app/log"
