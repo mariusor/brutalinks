@@ -5,7 +5,7 @@ require (
 	github.com/buger/jsonparser v0.0.0-20181023193515-52c6e1462ebd
 	github.com/captncraig/cors v0.0.0-20180620154129-376d45073b49 // indirect
 	github.com/gchaincl/dotsql v0.1.0
-	github.com/go-ap/activitypub.go v0.0.0-20190112124300-2c56aa99b821
+	github.com/go-ap/activitypub.go v0.0.0-20190122135414-4961f0699647
 	github.com/go-chi/chi v0.0.0-20171222161133-e83ac2304db3
 	github.com/go-pg/pg v7.1.1+incompatible
 	github.com/gorilla/securecookie v1.1.1

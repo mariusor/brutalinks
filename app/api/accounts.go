@@ -631,9 +631,9 @@ type validator struct {
 	r app.Repository
 }
 
-func (v validator) Validate(ep as.IRI, obj as.Item) (bool, localap.ValidationErrors) {
+func (v validator) Validate(ep as.IRI, obj as.Item) (bool, ap.ValidationErrors) {
 	var res bool
-	var errs localap.ValidationErrors
+	var errs ap.ValidationErrors
 	switch obj.GetType() {
 	case as.ActorType:
 		if _, err := validateActor(obj, v.r); err != nil {
