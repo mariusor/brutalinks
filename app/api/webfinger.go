@@ -43,7 +43,7 @@ func HandleHostMeta(w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleWebFinger serves /.well-known/webfinger/ request
-func (h handler)HandleWebFinger(w http.ResponseWriter, r *http.Request) {
+func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 	typ, res := func(ar []string) (string, string) {
 		if len(ar) != 2 {
 			return "", ""
@@ -52,36 +52,77 @@ func (h handler)HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 	}(strings.Split(r.URL.Query()["resource"][0], ":"))
 
 	if typ == "" || res == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("{}"))
+		h.HandleError(w, r, errors.BadRequestf("invalid resource"))
 		return
 	}
 
-	handle := strings.Replace(res, fmt.Sprintf("@%s", app.Instance.HostName), "", 1)
+	handle := res
+	aElem := strings.Split(res, "@")
+	if len(aElem) > 0 {
+		handle = aElem[0]
+		addr := aElem[1]
+		if addr != app.Instance.HostName {
+			h.HandleError(w, r, errors.NotFoundf("trying to find non-local account"))
+			return
+		}
+	}
 
+	wf := node{}
 	val := r.Context().Value(app.RepositoryCtxtKey)
-	AcctLoader, ok := val.(app.CanLoadAccounts)
-	if !ok {
-		err := errors.NotValidf("could not load account repository from Context")
-		h.logger.Error(err.Error())
-		h.HandleError(w, r, err)
-		return
-	}
-	a, err := AcctLoader.LoadAccount(app.LoadAccountsFilter{Handle: []string{handle}})
-	if err != nil {
-		err := errors.NotFoundf("resource not found")
-		h.logger.Error(err.Error())
-		h.HandleError(w, r, err)
-		return
-	}
+	if handle == "self" {
+		var err error
+		var inf app.Info
+		if repo, ok := val.(app.CanLoadInfo); ok {
+			if inf, err = repo.LoadInfo(); err != nil {
+				h.HandleError(w, r, errors.NewNotValid(err, "ooops!"))
+				return
+			}
+		}
 
-	wf := node{
-		Aliases: []string{
+		id := app.Instance.BaseURL + "/api/self"
+		wf.Aliases = []string{
+			string(id),
+		}
+		wf.Subject = inf.URI
+		wf.Links = []link{
+			{
+				Rel:  "self",
+				Type: "application/activity+json",
+				Href: string(id),
+			},
+			{
+				Rel:  "service",
+				Type: "application/activity+json",
+				Href: string(id),
+			},
+			{
+				Rel:  "service",
+				Type: "text/html",
+				Href: inf.URI,
+			},
+		}
+	} else {
+		AcctLoader, ok := val.(app.CanLoadAccounts)
+		if !ok {
+			err := errors.NotValidf("could not load account repository from Context")
+			h.logger.Error(err.Error())
+			h.HandleError(w, r, err)
+			return
+		}
+		a, err := AcctLoader.LoadAccount(app.LoadAccountsFilter{Handle: []string{handle}})
+		if err != nil {
+			err := errors.NotFoundf("resource not found")
+			h.logger.Error(err.Error())
+			h.HandleError(w, r, err)
+			return
+		}
+
+		wf.Aliases = []string{
 			string(BuildActorID(a)),
 			fmt.Sprintf("%s/%s", ActorsURL, a.Handle),
-		},
-		Subject: typ + ":" + res,
-		Links: []link{
+		}
+		wf.Subject = typ + ":" + res
+		wf.Links = []link{
 			{
 				Rel:  "self",
 				Type: "application/activity+json",
@@ -97,7 +138,7 @@ func (h handler)HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 				Type: "text/html",
 				Href: accountURL(a).String(),
 			},
-		},
+		}
 	}
 
 	dat, _ := json.Marshal(wf)
