@@ -50,7 +50,7 @@ clean:
 	cd docker && $(MAKE) $@
 
 run: app
-	@./bin/app
+	@./bin/app -host $(HOSTNAME)
 
 assets: app cli
 	mkdir -p docker/{app,bootstrap}/bin
