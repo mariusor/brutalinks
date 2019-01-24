@@ -363,7 +363,7 @@ ol.comments li {
     content: "~";
 }
 .mention:before {
-    content: "@";
+    content: "~";
     opacity: 0.8;
 }
 .tag:before {
