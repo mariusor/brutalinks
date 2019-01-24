@@ -423,6 +423,8 @@ func (h handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name str
 			"model":    fmt.Sprintf("%#v", m),
 		}).Error(err.Error())
 	}
+
+	nodeInfo, err := getNodeInfo(r)
 	ren := render.New(render.Options{
 		Directory:  templateDir,
 		Layout:     "layout",
@@ -460,7 +462,7 @@ func (h handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name str
 			"NayLink":           nayLink,
 			"PageLink":          pageLink,
 			"Config":            func() app.Config { return app.Instance.Config },
-			"Info":              func() app.Info { i, _ := getNodeInfo(r); return i },
+			"Info":              func() app.Info { return nodeInfo },
 			"Name":              appName,
 			"Menu":              func() []headerEl { return headerMenu(r) },
 			"icon":              icon,
