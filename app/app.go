@@ -59,7 +59,7 @@ type backendConfig struct {
 	Name    string
 }
 
-type config struct {
+type Config struct {
 	Env                 EnvType
 	DB                  backendConfig
 	ES                  backendConfig
@@ -100,7 +100,7 @@ type Application struct {
 	Listen      string
 	Secure      bool
 	SessionKeys [][]byte
-	Config      config
+	Config      Config
 	Logger      log.Logger
 	SeedVal     int64
 }
@@ -112,7 +112,7 @@ var Instance Application
 
 // New instantiates a new Application
 func New(host string, port int, ver string) Application {
-	app := Application{HostName: host, Port: port, Version: ver, Config: config{}}
+	app := Application{HostName: host, Port: port, Version: ver, Config: Config{}}
 	loadEnv(&app)
 	return app
 }

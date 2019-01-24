@@ -649,6 +649,12 @@ func ContextVoteSaver(ctx context.Context) (CanSaveVotes, bool) {
 	return s, ok
 }
 
+func ContextNodeInfoLoader(ctx context.Context) (CanLoadInfo, bool) {
+	ctxVal := ctx.Value(RepositoryCtxtKey)
+	a, ok := ctxVal.(CanLoadInfo)
+	return a, ok
+}
+
 func ContextActivity(ctx context.Context) (activitypub.Activity, bool) {
 	ctxVal := ctx.Value(ItemCtxtKey)
 	a, ok := ctxVal.(activitypub.Activity)

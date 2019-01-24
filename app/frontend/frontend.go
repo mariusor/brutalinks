@@ -102,7 +102,9 @@ func pluralize(d float64, unit string) string {
 	cons := func(c byte) bool {
 		cons := []byte{'b', 'c', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'm', 'n', 'p', 'q', 'r', 's', 't', 'v', 'w', 'y', 'z'}
 		for _, cc := range cons {
-			if c == cc { return true }
+			if c == cc {
+				return true
+			}
 		}
 		return false
 	}
@@ -314,9 +316,8 @@ func headerMenu(r *http.Request) []headerEl {
 	return ret
 }
 
-func appName(app app.Application) template.HTML {
-	parts := strings.Split(app.Name(), " ")
-
+func appName(n string) template.HTML {
+	parts := strings.Split(n, " ")
 	name := strings.Builder{}
 
 	initial := parts[0][0:1]
@@ -458,7 +459,8 @@ func (h handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name str
 			"YayLink":           yayLink,
 			"NayLink":           nayLink,
 			"PageLink":          pageLink,
-			"App":               func() app.Application { return app.Instance },
+			"Config":            func() app.Config { return app.Instance.Config },
+			"Info":              func() app.Info { i, _ := getNodeInfo(r); return i },
 			"Name":              appName,
 			"Menu":              func() []headerEl { return headerMenu(r) },
 			"icon":              icon,
@@ -781,4 +783,15 @@ func (h *handler) HandleError(w http.ResponseWriter, r *http.Request, errs ...er
 	w.Header().Set("Pragma", " no-cache")
 	w.Header().Set("Expires", " 0")
 	h.RenderTemplate(r, w, "error", d)
+}
+
+func getNodeInfo(req *http.Request) (app.Info, error) {
+	c := req.Context()
+	nodeInfoLoader, ok := app.ContextNodeInfoLoader(c)
+	if !ok {
+		err := errors.Errorf("could not load item repository from Context")
+		return app.Info{}, err
+	}
+
+	return nodeInfoLoader.LoadInfo()
 }

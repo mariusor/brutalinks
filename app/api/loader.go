@@ -6,6 +6,7 @@ import (
 	"crypto"
 	"crypto/x509"
 	"fmt"
+	"github.com/writeas/go-nodeinfo"
 	"io/ioutil"
 	"net/http"
 	"path"
@@ -19,11 +20,11 @@ import (
 
 	"github.com/mariusor/qstring"
 
+	as "github.com/go-ap/activitystreams"
+	j "github.com/go-ap/jsonld"
 	"github.com/go-chi/chi"
 	"github.com/juju/errors"
-	as "github.com/go-ap/activitystreams"
 	ap "github.com/mariusor/littr.go/app/activitypub"
-	j "github.com/go-ap/jsonld"
 	"github.com/mariusor/littr.go/app/db"
 	"github.com/mariusor/littr.go/app/log"
 )
@@ -37,12 +38,12 @@ type repository struct {
 
 func New(c Config) *repository {
 	cl.UserAgent = fmt.Sprintf("%s-%s", app.Instance.HostName, app.Instance.Version)
-	cl.ErrorLogger = func (el ...interface{}) { c.Logger.Errorf("%v", el) }
-	cl.InfoLogger = func (el ...interface{}) { c.Logger.Infof("%v", el) }
+	cl.ErrorLogger = func(el ...interface{}) { c.Logger.Errorf("%v", el) }
+	cl.InfoLogger = func(el ...interface{}) { c.Logger.Infof("%v", el) }
 	return &repository{
 		BaseURL: c.BaseURL,
 		logger:  c.Logger,
-		client: cl.NewClient(),
+		client:  cl.NewClient(),
 	}
 }
 
@@ -205,7 +206,7 @@ func loadRepliesFilterFromReq(r *http.Request) *app.LoadItemsFilter {
 	return &filters
 }
 
-func stringsUnique (a []string) []string {
+func stringsUnique(a []string) []string {
 	u := make([]string, 0, len(a))
 	m := make(map[string]bool)
 
@@ -217,7 +218,7 @@ func stringsUnique (a []string) []string {
 	}
 	return u
 }
-func hashesUnique (a app.Hashes) app.Hashes {
+func hashesUnique(a app.Hashes) app.Hashes {
 	u := make([]app.Hash, 0, len(a))
 	m := make(map[app.Hash]bool)
 
@@ -552,7 +553,7 @@ func (r *repository) LoadItems(f app.LoadItemsFilter) (app.ItemCollection, uint,
 	}
 
 	count := col.TotalItems
-	items := make(app.ItemCollection,0 )
+	items := make(app.ItemCollection, 0)
 	for _, it := range col.OrderedItems {
 		i := app.Item{}
 		if err := i.FromActivityPub(it); err != nil {
@@ -894,50 +895,65 @@ func getSigner(pubKeyID as.ObjectID, key crypto.PrivateKey) *httpsig.Signer {
 	return httpsig.NewSigner(string(pubKeyID), key, httpsig.RSASHA256, hdrs)
 }
 
-func (r *repository) LoadInfo() (app.Info, error) {
-	inf := app.Info{}
-
-	url := fmt.Sprintf("%s/self", r.BaseURL)
+func loadURL(r *repository, url string) ([]byte, error) {
 	var err error
 	var resp *http.Response
 	if resp, err = r.client.Get(url); err != nil {
 		r.logger.Error(err.Error())
-		return inf, err
+		return nil, err
 	}
 	if resp == nil {
 		err := fmt.Errorf("nil response from the repository")
 		r.logger.Error(err.Error())
-		return inf, err
+		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
 		err := errors.New("unable to load from the API")
 		r.logger.Error(err.Error())
-		return inf, err
+		return nil, err
 	}
 	defer resp.Body.Close()
 	var body []byte
 	if body, err = ioutil.ReadAll(resp.Body); err != nil {
 		r.logger.Error(err.Error())
-		return inf, err
+		return nil, err
 	}
-	if body, err = ioutil.ReadAll(resp.Body); err != nil {
+	return body, nil
+}
+
+func (r *repository) LoadInfo() (app.Info, error) {
+	inf := app.Info{}
+	var err error
+	var body []byte
+
+	url := fmt.Sprintf("%s/self", r.BaseURL)
+	if body, err = loadURL(r, url); err != nil {
 		r.logger.Error(err.Error())
 		return inf, err
 	}
-
 	s := as.Service{}
 	if err = j.Unmarshal(body, &s); err != nil {
 		r.logger.Error(err.Error())
 		return inf, err
 	}
+	// supplement information with what we have in /api/nodeinfo
+	url = fmt.Sprintf("%s/nodeinfo", r.BaseURL)
+	if body, err = loadURL(r, url); err != nil {
+		r.logger.Error(err.Error())
+		return inf, err
+	}
+	ni := nodeinfo.NodeInfo{}
+	if err = j.Unmarshal(body, &ni); err != nil {
+		r.logger.Error(err.Error())
+		return inf, err
+	}
 
-	inf.Title = s.Name.First()
+	inf.Title = ni.Software.Name
 	inf.Summary = s.Summary.First()
-	inf.Description = s.Content.First()
+	inf.Description = ni.Metadata.NodeDescription
 	inf.Languages = []string{"en"}
-
+	inf.Version = ni.Software.Version
 	inf.Email = fmt.Sprintf("%s@%s", "system", app.Instance.HostName)
-	inf.Version = app.Instance.Version
 
 	return inf, nil
 }
