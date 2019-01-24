@@ -44,12 +44,17 @@ func HandleHostMeta(w http.ResponseWriter, r *http.Request) {
 
 // HandleWebFinger serves /.well-known/webfinger/ request
 func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
-	typ, res := func(ar []string) (string, string) {
+	typ, res := func(res string) (string, string) {
+		split := ":"
+		if strings.Contains(res, "://") {
+			split = "://"
+		}
+		ar := strings.Split(res, split)
 		if len(ar) != 2 {
 			return "", ""
 		}
 		return ar[0], ar[1]
-	}(strings.Split(r.URL.Query()["resource"][0], ":"))
+	}(r.URL.Query()["resource"][0])
 
 	if typ == "" || res == "" {
 		h.HandleError(w, r, errors.BadRequestf("invalid resource"))
@@ -57,14 +62,20 @@ func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 	}
 
 	handle := res
-	aElem := strings.Split(res, "@")
-	if len(aElem) > 0 {
-		handle = aElem[0]
-		addr := aElem[1]
-		if addr != app.Instance.HostName {
-			h.HandleError(w, r, errors.NotFoundf("trying to find non-local account"))
-			return
+	var addr string
+	if typ == "acct" {
+		aElem := strings.Split(res, "@")
+		if len(aElem) > 1 {
+			handle = aElem[0]
+			addr = aElem[1]
 		}
+	} else if typ == "http" || typ == "https" {
+		handle = "self"
+		addr = res
+	}
+	if addr != app.Instance.HostName {
+		h.HandleError(w, r, errors.NotFoundf("trying to find non-local account"))
+		return
 	}
 
 	wf := node{}
