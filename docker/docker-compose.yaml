@@ -5,7 +5,7 @@ services:
     env_file: ./.env
     image: postgres:10-alpine
     volumes:
-      - /tmp/postgres:/var/lib/postgresql/data
+    - /tmp/postgres:/var/lib/postgresql/data
     environment:
       POSTGRES_USER: postgres
       POSTGRES_DATABASE: postgres
@@ -37,15 +37,15 @@ services:
         LISTEN: ${LISTEN}
         HOSTNAME: ${HOSTNAME}
     ports:
-      - 80:80
-      - 6081:6081
+    - 80:80
+    - 6081:6081
     links:
     - app
     depends_on:
     - app
     environment:
-      - VARNISH_BACKEND_ADDRESS=app
-      - VARNISH_BACKEND_PORT=${LISTEN}
+    - VARNISH_BACKEND_ADDRESS=app
+    - VARNISH_BACKEND_PORT=${LISTEN}
 
   ssl:
     env_file: ./.env
@@ -56,16 +56,16 @@ services:
         LISTEN: ${LISTEN}
         HOSTNAME: ${HOSTNAME}
     ports:
-      - 443:443
+    - 443:443
     volumes:
-      - ./littr.git.pem:/etc/ssl/hitch/littr.pem
+    - ./littr.git.pem:/etc/ssl/hitch/littr.pem
     depends_on:
     - lb
     links:
     - lb
     environment:
-      - HITCH_BACKEND_ADDRESS=lb
-      - HITCH_BACKEND_PORT=6081
+    - HITCH_BACKEND_ADDRESS=lb
+    - HITCH_BACKEND_PORT=6081
 
   bootstrap:
     env_file: ./.env
@@ -88,7 +88,7 @@ services:
     env_file: ./.env
     image: web_app:${ENV}
     depends_on:
-      - db
+    - db
 #      - bootstrap
 #      - ssl
 #      - redis
@@ -102,4 +102,4 @@ services:
         LISTEN: ${LISTEN}
         HOSTNAME: ${HOSTNAME}
         PORT: 40001
-    command: app -host ${HOSTNAME} -port 40001
+    command: app -host ${HOSTNAME} -port 3000
