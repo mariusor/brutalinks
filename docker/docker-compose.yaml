@@ -1,6 +1,5 @@
 version: "3"
 services:
-
   db:
     env_file: ./.env
     image: postgres:10-alpine
@@ -16,17 +15,20 @@ services:
 #  redis:
 #    restart: always
 #    image: redis:4.0-alpine
-### Uncomment to enable REDIS persistence
+#    ports:
+#    - 6379:6379
+#### Uncomment to enable REDIS persistence
 #    volumes:
-#      - ./redis:/data
+#    - /tmp/redis:/data
+#
 #  es:
 #    restart: always
 #    image: docker.elastic.co/elasticsearch/elasticsearch-oss:6.1.3
 #    environment:
-#      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+#    - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
 #### Uncomment to enable ES persistence
-##    volumes:
-##      - ./elasticsearch:/usr/share/elasticsearch/data
+#    volumes:
+#    - /tmp/es:/usr/share/elasticsearch/data
 
   lb:
     env_file: ./.env
@@ -91,9 +93,10 @@ services:
     - db
 #      - bootstrap
 #      - ssl
-#      - redis
     links:
     - db
+#    - redis
+#    - es
     build:
       context: app
       dockerfile: ./Dockerfile
