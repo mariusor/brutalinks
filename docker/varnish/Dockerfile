@@ -1,4 +1,4 @@
-FROM alpine:3.8
+FROM alpine:edge
 
 ENV VARNISH_BACKEND_PORT 80
 
