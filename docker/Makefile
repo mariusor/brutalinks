@@ -14,7 +14,4 @@ clean:
 cert: $(HOSTNAME).pem
 
 images: cert
-	docker-compose build
-
-imagesrun: images
-	docker-compose start
+	docker-compose up --build

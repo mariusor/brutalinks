@@ -52,14 +52,6 @@ clean:
 run: app
 	@./bin/app -host $(HOSTNAME)
 
-assets: app cli
-	mkdir -p docker/{app,bootstrap}/bin
-	cp bin/app docker/app/bin/
-	cp bin/bootstrap docker/bootstrap/bin/
-	cp -r templates docker/app
-	cp -r assets docker/app
-	cp -r db docker/bootstrap
-
 cert:
 	cd docker && $(MAKE) $@
 
@@ -68,9 +60,6 @@ imagebuilder:
 	docker build -t littr/builder:$(ENV) . -f docker/Dockerfile.build
 
 images:
-	cd docker && $(MAKE) $@
-
-imagesrun:
 	cd docker && $(MAKE) $@
 
 .PHONY: test
