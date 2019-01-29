@@ -90,6 +90,19 @@ services:
       args:
         ENV: ${ENV}
 
+  tasks:
+    env_file: ./.env
+    image: littr/tasks:${ENV}
+    depends_on:
+    - app
+    links:
+    - db
+    build:
+      context: .
+      dockerfile: ./tasks/Dockerfile
+      args:
+        ENV: ${ENV}
+
   app:
     env_file: ./.env
     image: littr/app:${ENV}
