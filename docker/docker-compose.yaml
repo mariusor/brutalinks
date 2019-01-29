@@ -8,7 +8,6 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_DATABASE: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
 ### Uncomment to enable DB persistence
     command: postgres -c log_connections=on -c logging_collector=on -c log_destination=stderr
 
@@ -32,6 +31,7 @@ services:
 
   lb:
     env_file: ./.env
+    image: littr/lb:${ENV}
     build:
       context: varnish
       dockerfile: ./Dockerfile
@@ -39,8 +39,8 @@ services:
         LISTEN: ${LISTEN}
         HOSTNAME: ${HOSTNAME}
     ports:
-    - 80:80
-    - 6081:6081
+      - 3000:80
+      - 6081:6081
     links:
     - app
     depends_on:
@@ -51,6 +51,7 @@ services:
 
   ssl:
     env_file: ./.env
+    image: littr/ssl:${ENV}
     build:
       context: hitch
       dockerfile: ./Dockerfile
@@ -69,26 +70,29 @@ services:
     - HITCH_BACKEND_ADDRESS=lb
     - HITCH_BACKEND_PORT=6081
 
+  builder:
+    env_file: ./.env
+    image: littr/builder:${ENV}
+    build:
+      context: ../
+      dockerfile: ./docker/Dockerfile.build
+
   bootstrap:
     env_file: ./.env
-    image: bootstrap:${ENV}
+    image: littr/bootstrap:${ENV}
     depends_on:
     - db
     links:
     - db
     build:
-      context: bootstrap
-      dockerfile: ./Dockerfile
-    environment:
-      DB_HOST: ${DB_HOST}
-      DB_NAME: ${DB_NAME}
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      context: .
+      dockerfile: ./bootstrap/Dockerfile
+      args:
+        ENV: ${ENV}
 
   app:
     env_file: ./.env
-    image: web_app:${ENV}
+    image: littr/app:${ENV}
     depends_on:
     - db
 #      - bootstrap
@@ -98,8 +102,8 @@ services:
 #    - redis
 #    - es
     build:
-      context: app
-      dockerfile: ./Dockerfile
+      context: .
+      dockerfile: ./app/Dockerfile
       args:
         ENV: ${ENV}
         LISTEN: ${LISTEN}

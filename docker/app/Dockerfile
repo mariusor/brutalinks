@@ -1,9 +1,10 @@
-FROM scratch
+ARG ENV
+FROM littr/builder:${ENV} as builder
+FROM gcr.io/distroless/base
 
 ARG HOSTNAME
 ARG LISTEN
 ARG PORT
-ARG ENV
 
 EXPOSE $LISTEN
 
@@ -11,9 +12,9 @@ ENV HOSTNAME $HOSTNAME
 ENV LISTEN $LISTEN
 ENV ENV $ENV
 
-ADD ./bin/app /bin/app
-ADD ./assets /assets
-ADD ./templates ./templates
+COPY --from=builder /go/src/app/bin/app /bin/app
+COPY --from=builder /go/src/app/assets /assets
+COPY --from=builder /go/src/app/templates ./templates
 
 CMD ["/bin/app"]
 

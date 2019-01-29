@@ -1,5 +1,8 @@
-FROM scratch
+ARG ENV
+FROM littr/builder:${ENV} as builder
+FROM gcr.io/distroless/base
 
+ARG ENV
 ARG DB_HOST
 ARG DB_NAME
 ARG DB_USER
@@ -12,10 +15,10 @@ ENV DB_USER $DB_USER
 ENV DB_PASSWORD $DB_PASSWORD
 ENV POSTGRES_PASSWORD $POSTGRES_PASSWORD
 
-ADD ./bin/bootstrap /bin/bootstrap
-ADD ./db /db
+COPY --from=builder /go/src/app/bin/bootstrap /bootstrap
+COPY --from=builder /go/src/app/db /db
 
 WORKDIR /
 
-CMD ["/bin/bootstrap", "-user", "postgres", "-seed"]
+CMD ["/bootstrap", "-user", "postgres", "-seed"]
 

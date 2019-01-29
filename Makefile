@@ -63,10 +63,14 @@ assets: app cli
 cert:
 	cd docker && $(MAKE) $@
 
-image: all assets
+.PHONY: imagebuilder
+imagebuilder:
+	docker build -t littr/builder:$(ENV) . -f docker/Dockerfile.build
+
+images:
 	cd docker && $(MAKE) $@
 
-compose: all assets
+imagesrun:
 	cd docker && $(MAKE) $@
 
 .PHONY: test

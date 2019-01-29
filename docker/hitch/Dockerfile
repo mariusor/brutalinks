@@ -3,8 +3,6 @@ FROM alpine:3.8
 ARG HITCH_VERSION=1.4.8
 ARG HITCH_CHECKSUM=d52ba690d90c25bbfca73f5e0ed427738366dac12faf46fb5834e497cc2d1ac3
 
-#USER hitch:hitch
-
 RUN echo "http://dl-3.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories
 RUN apk update && \
     apk upgrade
@@ -34,4 +32,5 @@ VOLUME ["/etc/ssl/hitch/littr.pem"]
 
 EXPOSE 443
 
+USER hitch:hitch
 CMD ["hitch", "--workers=2", "--config=/etc/hitch/hitch.conf"]

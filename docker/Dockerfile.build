@@ -1,0 +1,10 @@
+# Start by building the application.
+FROM golang:1.11
+
+ARG ENV
+
+WORKDIR /go/src/app
+COPY ./ ./
+
+RUN GO111MODULE=on go mod download || true
+RUN GO111MODULE=on make all
