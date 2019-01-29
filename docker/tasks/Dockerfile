@@ -1,20 +1,13 @@
 ARG ENV
 FROM littr/builder:${ENV} as builder
-FROM gcr.io/distroless/base
+FROM alpine:edge
 
-ARG HOSTNAME
-ARG LISTEN
-ARG ENV
-
-EXPOSE $LISTEN
-
-ENV HOSTNAME $HOSTNAME
-ENV LISTEN $LISTEN
-ENV ENV $ENV
-
-COPY --from=builder /go/src/app/bin/bootstrap /
+#COPY --from=builder /go/src/app/bin/bootstrap /
 COPY --from=builder /go/src/app/bin/keys /
 COPY --from=builder /go/src/app/bin/votes /
 
-CMD ["/votes"]
+RUN echo '*/10  *  *  *  *   /keys -seed `shuf -i 1-100 -n 1`' > /etc/crontabs/root
+RUN echo '*     *  *  *  *   /votes -items' >> /etc/crontabs/root
+RUN echo '*/2   *  *  *  *   /votes -accounts' >> /etc/crontabs/root
 
+CMD ["crond", "-d4", "-f"]
