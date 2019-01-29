@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/go-chi/chi"
 	"github.com/mariusor/littr.go/app"
-	"github.com/mariusor/littr.go/app/log"
 	"net/http"
 	"net/url"
 	"path"
@@ -106,7 +105,7 @@ func (h *handler) ShowSubmit(w http.ResponseWriter, r *http.Request) {
 	h.RenderTemplate(r, w, "new", contentModel{Title: "New submission"})
 }
 
-func (h *handler) ValidatePermissions(actions ...string) func (http.Handler) http.Handler {
+func (h *handler) ValidatePermissions(actions ...string) func(http.Handler) http.Handler {
 	if len(actions) == 0 {
 		return h.ValidateItemAuthor
 	}
@@ -147,57 +146,4 @@ func (h *handler) ValidateItemAuthor(next http.Handler) http.Handler {
 		}
 	}
 	return http.HandlerFunc(fn)
-}
-
-// HandleSubmit handles POST /submit requests
-// HandleSubmit handles POST /~handler/hash requests
-// HandleSubmit handles POST /year/month/day/hash requests
-// HandleSubmit handles POST /~handler/hash/edit requests
-// HandleSubmit handles POST /year/month/day/hash/edit requests
-func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
-	p, err := ContentFromRequest(r, h.account)
-	if err != nil {
-		h.logger.WithContext(log.Ctx{
-			"prev": err,
-		}).Error("wrong http method")
-		h.HandleError(w, r, errors.NewMethodNotAllowed(err, ""))
-		return
-	}
-
-	acc := h.account
-	auth, authOk := app.ContextAuthenticated(r.Context())
-	if authOk && acc.IsLogged() {
-		auth.WithAccount(&acc)
-	}
-
-	if repo, ok := app.ContextItemSaver(r.Context()); !ok {
-		h.logger.Error("could not load item repository from Context")
-		return
-	} else {
-		p, err = repo.SaveItem(p)
-		if err != nil {
-			h.logger.WithContext(log.Ctx{
-				"prev": err,
-			}).Error("unable to save item")
-			h.HandleError(w, r, errors.NewNotValid(err, "oops!"))
-			return
-		}
-	}
-	if voter, ok := app.ContextVoteSaver(r.Context()); !ok {
-		h.logger.Error("could not load item repository from Context")
-	} else {
-		v := app.Vote{
-			SubmittedBy: &acc,
-			Item:        &p,
-			Weight:      1 * app.ScoreMultiplier,
-		}
-		if _, err := voter.SaveVote(v); err != nil {
-			h.logger.WithContext(log.Ctx{
-				"hash":   v.Item.Hash,
-				"author": v.SubmittedBy.Handle,
-				"weight": v.Weight,
-			}).Error(err.Error())
-		}
-	}
-	h.Redirect(w, r, ItemPermaLink(p), http.StatusSeeOther)
 }

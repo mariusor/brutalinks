@@ -180,17 +180,17 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.logger.WithContext(log.Ctx{
 			"handle": handle,
-			"hash": hash,
+			"hash":   hash,
 		}).Error(err.Error())
 		h.HandleError(w, r, errors.NotFoundf("Item %q", hash))
 		return
 	}
 	if !i.Deleted() && len(i.Data)+len(i.Title) == 0 {
 		h.logger.WithContext(log.Ctx{
-			"handle": handle,
-			"hash": hash,
-			"title": i.Title,
-			"content": i.Data[0:12],
+			"handle":      handle,
+			"hash":        hash,
+			"title":       i.Title,
+			"content":     i.Data[0:12],
 			"content_len": len(i.Data),
 		}).Warn("Item deleted or empty")
 		h.HandleError(w, r, errors.NotFoundf("Item %q", hash))
@@ -252,6 +252,71 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 	h.RenderTemplate(r, w, "content", m)
 }
 
+// HandleSubmit handles POST /submit requests
+// HandleSubmit handles POST /~handler/hash requests
+// HandleSubmit handles POST /year/month/day/hash requests
+// HandleSubmit handles POST /~handler/hash/edit requests
+// HandleSubmit handles POST /year/month/day/hash/edit requests
+func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
+	n, err := ContentFromRequest(r, h.account)
+	if err != nil {
+		h.logger.WithContext(log.Ctx{
+			"prev": err,
+		}).Error("wrong http method")
+		h.HandleError(w, r, errors.NewMethodNotAllowed(err, ""))
+		return
+	}
+
+	acc := h.account
+	auth, authOk := app.ContextAuthenticated(r.Context())
+	if authOk && acc.IsLogged() {
+		auth.WithAccount(&acc)
+	}
+	val := r.Context().Value(app.RepositoryCtxtKey)
+	itemLoader, ok := val.(app.CanLoadItems)
+	if !ok {
+		h.logger.Error("could not load item repository from Context")
+		return
+	}
+
+	if len(n.Hash) > 0 {
+		if p, err := itemLoader.LoadItem(app.LoadItemsFilter{Key: app.Hashes{n.Hash}}); err == nil {
+			n.Title = p.Title
+		}
+	}
+
+	if repo, ok := app.ContextItemSaver(r.Context()); !ok {
+		h.logger.Error("could not load item repository from Context")
+		return
+	} else {
+		n, err = repo.SaveItem(n)
+		if err != nil {
+			h.logger.WithContext(log.Ctx{
+				"prev": err,
+			}).Error("unable to save item")
+			h.HandleError(w, r, errors.NewNotValid(err, "oops!"))
+			return
+		}
+	}
+	if voter, ok := app.ContextVoteSaver(r.Context()); !ok {
+		h.logger.Error("could not load item repository from Context")
+	} else {
+		v := app.Vote{
+			SubmittedBy: &acc,
+			Item:        &n,
+			Weight:      1 * app.ScoreMultiplier,
+		}
+		if _, err := voter.SaveVote(v); err != nil {
+			h.logger.WithContext(log.Ctx{
+				"hash":   v.Item.Hash,
+				"author": v.SubmittedBy.Handle,
+				"weight": v.Weight,
+			}).Error(err.Error())
+		}
+	}
+	h.Redirect(w, r, ItemPermaLink(n), http.StatusSeeOther)
+}
+
 func genitive(name string) string {
 	l := len(name)
 	if l == 0 {
@@ -263,8 +328,8 @@ func genitive(name string) string {
 	return name + "'"
 }
 
-// HandleDelete serves /{year}/{month}/{day}/{hash}/Delete POST request
-// HandleDelete serves /~{handle}/Delete request
+// HandleDelete serves /{year}/{month}/{day}/{hash}/rm POST request
+// HandleDelete serves /~{handle}/rm GET request
 func (h *handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 	hash := chi.URLParam(r, "hash")
 
@@ -296,8 +361,8 @@ func (h *handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 	h.Redirect(w, r, url, http.StatusFound)
 }
 
-// HandleReport serves /{year}/{month}/{day}/{hash}/Report POST request
-// HandleReport serves /~{handle}/Report request
+// HandleReport serves /{year}/{month}/{day}/{hash}/report POST request
+// HandleReport serves /~{handle}/report request
 func (h *handler) HandleReport(w http.ResponseWriter, r *http.Request) {
 	m := contentModel{}
 	h.RenderTemplate(r, w, "new", m)
