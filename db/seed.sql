@@ -46,10 +46,10 @@ INSERT INTO "items" ("id", "key", "mime_type", "title", "data", "submitted_by", 
 -- name: add-local-instance
 INSERT INTO "instances" ("id", "name", "description", "url", "inbox", "metadata", "flags") VALUES (
   0,
-  'littr.me DEV',
+  'Local instance - DEV',
   'Link aggregator inspired by Reddit and HackerNews using ActivityPub federation.',
-  'http://littr.git',
-  'http://littr.git/api/self/inbox',
+  'http://%s',
+  'http://%s/api/self/inbox',
   DEFAULT,
   DEFAULT
 );
@@ -60,7 +60,7 @@ INSERT INTO "instances" ("id", "name", "description", "url", "inbox", "metadata"
   'littr.me',
   DEFAULT,
   'https://littr.me',
-  'http://littr.me/api/self/inbox',
+  'https://littr.me/api/self/inbox',
   DEFAULT,
   DEFAULT
 );

@@ -178,8 +178,9 @@ func main() {
 		_, err = db.Exec(fmt.Sprintf(itemAbout))
 		cmd.E(errors.Annotatef(err, "query: %s", itemAbout))
 
+		hostname := os.Getenv("HOSTNAME")
 		localInst, _ := dot.Raw("add-local-instance")
-		_, err = db.Exec(fmt.Sprintf(localInst))
+		_, err = db.Exec(fmt.Sprintf(localInst, hostname, hostname))
 		cmd.E(errors.Annotatef(err, "query: %s", localInst))
 	}
 }
