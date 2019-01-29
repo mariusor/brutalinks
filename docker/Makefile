@@ -13,5 +13,9 @@ clean:
 
 cert: $(HOSTNAME).pem
 
-images: cert
+.PHONY: imagebuilder
+imagebuilder:
+	docker build -t littr/builder:$(ENV) .. -f Dockerfile.build
+
+images: cert imagebuilder
 	docker-compose up --build

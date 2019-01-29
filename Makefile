@@ -55,10 +55,6 @@ run: app
 cert:
 	cd docker && $(MAKE) $@
 
-.PHONY: imagebuilder
-imagebuilder:
-	docker build -t littr/builder:$(ENV) . -f docker/Dockerfile.build
-
 images:
 	cd docker && $(MAKE) $@
 

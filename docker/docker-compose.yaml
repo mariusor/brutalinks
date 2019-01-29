@@ -70,13 +70,6 @@ services:
     - HITCH_BACKEND_ADDRESS=lb
     - HITCH_BACKEND_PORT=6081
 
-  builder:
-    env_file: ./.env
-    image: littr/builder:${ENV}
-    build:
-      context: ../
-      dockerfile: ./docker/Dockerfile.build
-
   bootstrap:
     env_file: ./.env
     image: littr/bootstrap:${ENV}
