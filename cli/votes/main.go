@@ -30,22 +30,20 @@ func main() {
 	dbPw := os.Getenv("DB_PASSWORD")
 	dbName := os.Getenv("DB_NAME")
 	dbUser := os.Getenv("DB_USER")
+	dbHost := os.Getenv("DB_HOST")
 
 	var err error
 	cmd.Logger = log.Dev()
 	db.Logger = cmd.Logger
-	if err != nil {
-		cmd.Logger.Error(err.Error())
-	}
+	cmd.E(err)
 
 	db.Config.DB = pg.Connect(&pg.Options{
 		User:     dbUser,
 		Password: dbPw,
 		Database: dbName,
+		Addr: dbHost+":5432",
 	})
-	if err != nil {
-		cmd.Logger.Error(err.Error())
-	}
+	cmd.E(err)
 
 	err = cmd.UpdateScores(key, handle, since, items, accounts)
 	cmd.E(err)
