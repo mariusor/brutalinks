@@ -319,29 +319,34 @@ func loadLikedFilterFromReq(r *http.Request) *app.LoadVotesFilter {
 	return &filters
 }
 
-func LoadFiltersCtxt(next http.Handler) http.Handler {
-	fn := func(w http.ResponseWriter, r *http.Request) {
-		col := getCollectionFromReq(r)
-		var filters app.Paginator
-		switch col {
-		case "disliked":
-			fallthrough
-		case "liked":
-			filters = loadLikedFilterFromReq(r)
-		case "outbox":
-			filters = loadOutboxFilterFromReq(r)
-		case "inbox":
-			filters = loadInboxFilterFromReq(r)
-		case "replies":
-			filters = loadRepliesFilterFromReq(r)
-		case "":
-			filters = loadPersonFiltersFromReq(r)
-		}
+func LoadFiltersCtxt(eh app.ErrorHandler) app.Handler {
+	return func(next http.Handler) http.Handler {
+		fn := func(w http.ResponseWriter, r *http.Request) {
+			col := getCollectionFromReq(r)
+			var filters app.Paginator
+			switch col {
+			case "disliked":
+				fallthrough
+			case "liked":
+				filters = loadLikedFilterFromReq(r)
+			case "outbox":
+				filters = loadOutboxFilterFromReq(r)
+			case "inbox":
+				filters = loadInboxFilterFromReq(r)
+			case "replies":
+				filters = loadRepliesFilterFromReq(r)
+			case "":
+				filters = loadPersonFiltersFromReq(r)
+			default:
+				eh(w, r, errors.NotValidf("collection %s", col))
+				return
+			}
 
-		ctx := context.WithValue(r.Context(), app.FilterCtxtKey, filters)
-		next.ServeHTTP(w, r.WithContext(ctx))
+			ctx := context.WithValue(r.Context(), app.FilterCtxtKey, filters)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		}
+		return http.HandlerFunc(fn)
 	}
-	return http.HandlerFunc(fn)
 }
 
 func (h handler) ItemCollectionCtxt(next http.Handler) http.Handler {

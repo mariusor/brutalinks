@@ -463,17 +463,28 @@ func (h handler) HandleCollectionActivityObject(w http.ResponseWriter, r *http.R
 
 func loadCollection(items app.Collection, count uint, typ string, filters app.Paginator, path string) (as.Item, error) {
 	getURL := func(f app.Paginator) string {
-		return fmt.Sprintf("%s%s%s", app.Instance.BaseURL, path, f.QueryString())
+		qs := ""
+		if f != nil {
+			 qs = f.QueryString()
+		}
+		return fmt.Sprintf("%s%s%s", app.Instance.BaseURL, path, qs)
+	}
+
+	var haveItems, moreItems, lessItems bool
+	var bp, fp, cp, pp, np app.Paginator
+
+	if filters != nil {
+		bp = filters.BasePage()
+		fp = filters.FirstPage()
+		cp = filters.CurrentPage()
+		pp = filters.PrevPage()
+		np = filters.NextPage()
 	}
 
 	curIndex := 0
 	oc := as.OrderedCollection{}
-	oc.ID = as.ObjectID(getURL(filters.BasePage()))
+	oc.ID = as.ObjectID(getURL(bp))
 	oc.Type = as.OrderedCollectionType
-
-	var haveItems bool
-	var moreItems bool
-	var lessItems bool
 
 	switch typ {
 	case "inbox":
@@ -507,13 +518,13 @@ func loadCollection(items app.Collection, count uint, typ string, filters app.Pa
 			return nil, errors.Errorf("could not load items")
 		}
 	}
-	firstURL := getURL(filters.FirstPage())
+	firstURL := getURL(fp)
 	oc.First = as.IRI(firstURL)
 
 	if haveItems && curIndex >= 1 {
-		curURL := getURL(filters.CurrentPage())
-		prevURL := getURL(filters.PrevPage())
-		nextURL := getURL(filters.NextPage())
+		curURL := getURL(cp)
+		prevURL := getURL(pp)
+		nextURL := getURL(np)
 
 		page := as.OrderedCollectionPageNew(&oc)
 

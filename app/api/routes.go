@@ -17,39 +17,39 @@ func (h handler)Routes() func(chi.Router) {
 		r.Use(app.NeedsDBBackend(h.HandleError))
 
 		r.Route("/self", func(r chi.Router) {
-			r.With(LoadFiltersCtxt).Get("/", h.HandleService)
+			r.With(LoadFiltersCtxt(h.HandleError)).Get("/", h.HandleService)
 			r.Route("/{collection}", func(r chi.Router) {
 				r.Use(ServiceCtxt)
 
-				r.With(LoadFiltersCtxt, h.ItemCollectionCtxt).Get("/", h.HandleCollection)
-				r.With(LoadFiltersCtxt, h.LoadActivity).Post("/", h.AddToCollection)
+				r.With(LoadFiltersCtxt(h.HandleError), h.ItemCollectionCtxt).Get("/", h.HandleCollection)
+				r.With(LoadFiltersCtxt(h.HandleError), h.LoadActivity).Post("/", h.AddToCollection)
 				r.Route("/{hash}", func(r chi.Router) {
-					r.With(LoadFiltersCtxt, h.ItemCtxt).Get("/", h.HandleCollectionActivity)
-					r.With(LoadFiltersCtxt, h.ItemCtxt).Get("/object", h.HandleCollectionActivityObject)
-					r.With(LoadFiltersCtxt, h.ItemCollectionCtxt).Get("/object/replies", h.HandleCollection)
+					r.With(LoadFiltersCtxt(h.HandleError), h.ItemCtxt).Get("/", h.HandleCollectionActivity)
+					r.With(LoadFiltersCtxt(h.HandleError), h.ItemCtxt).Get("/object", h.HandleCollectionActivityObject)
+					r.With(LoadFiltersCtxt(h.HandleError), h.ItemCollectionCtxt).Get("/object/replies", h.HandleCollection)
 				})
 			})
 		})
 		r.Route("/actors", func(r chi.Router) {
-			r.With(LoadFiltersCtxt).Get("/", h.HandleActorsCollection)
+			r.With(LoadFiltersCtxt(h.HandleError)).Get("/", h.HandleActorsCollection)
 
 			r.Route("/{handle}", func(r chi.Router) {
 				r.Use(h.AccountCtxt)
 
 				r.Get("/", h.HandleActor)
 				r.Route("/{collection}", func(r chi.Router) {
-					r.With(LoadFiltersCtxt, h.ItemCollectionCtxt).Get("/", h.HandleCollection)
-					r.With(LoadFiltersCtxt).Post("/", h.UpdateItem)
+					r.With(LoadFiltersCtxt(h.HandleError), h.ItemCollectionCtxt).Get("/", h.HandleCollection)
+					r.With(LoadFiltersCtxt(h.HandleError)).Post("/", h.UpdateItem)
 					r.Route("/{hash}", func(r chi.Router) {
 						r.Use(middleware.GetHead)
 						// this should update the activity
-						r.With(LoadFiltersCtxt, h.ItemCtxt).Put("/", h.UpdateItem)
-						r.With(LoadFiltersCtxt).Post("/", h.UpdateItem)
-						r.With(LoadFiltersCtxt, h.ItemCtxt).Get("/", h.HandleCollectionActivity)
-						r.With(LoadFiltersCtxt, h.ItemCtxt).Get("/object", h.HandleCollectionActivityObject)
+						r.With(LoadFiltersCtxt(h.HandleError), h.ItemCtxt).Put("/", h.UpdateItem)
+						r.With(LoadFiltersCtxt(h.HandleError)).Post("/", h.UpdateItem)
+						r.With(LoadFiltersCtxt(h.HandleError), h.ItemCtxt).Get("/", h.HandleCollectionActivity)
+						r.With(LoadFiltersCtxt(h.HandleError), h.ItemCtxt).Get("/object", h.HandleCollectionActivityObject)
 						// this should update the item
-						r.With(LoadFiltersCtxt, h.ItemCtxt).Put("/object", h.UpdateItem)
-						r.With(LoadFiltersCtxt, h.ItemCtxt, h.ItemCollectionCtxt).Get("/object/replies", h.HandleCollection)
+						r.With(LoadFiltersCtxt(h.HandleError), h.ItemCtxt).Put("/object", h.UpdateItem)
+						r.With(LoadFiltersCtxt(h.HandleError), h.ItemCtxt, h.ItemCollectionCtxt).Get("/object/replies", h.HandleCollection)
 					})
 				})
 			})
