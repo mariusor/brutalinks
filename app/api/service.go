@@ -2,17 +2,18 @@ package api
 
 import (
 	"fmt"
-	"github.com/juju/errors"
+	ap "github.com/go-ap/activitypub"
 	as "github.com/go-ap/activitystreams"
 	json "github.com/go-ap/jsonld"
+	"github.com/juju/errors"
 	"github.com/mariusor/littr.go/app"
 	"net/http"
 )
 
 // HandleService
 // GET /api/self
-func (h handler)HandleService(w http.ResponseWriter, r *http.Request) {
-	us := as.Service{}
+func (h handler) HandleService(w http.ResponseWriter, r *http.Request) {
+	us := ap.Service{}
 
 	id := app.Instance.BaseURL + "/api/self"
 

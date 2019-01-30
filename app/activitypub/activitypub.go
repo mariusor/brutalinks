@@ -20,7 +20,7 @@ type PublicKey struct {
 //    github.com/go-ap/activitypub/actors.go#Actor
 // We need it here in order to be able to add to it our Score property
 type Person struct {
-	as.Person
+	ap.Person
 	PublicKey PublicKey `jsonld:"publicKey,omitempty"`
 	// Score is our own custom property for which we needed to extend the existing AP one
 	Score int64 `jsonld:"score"`
@@ -131,7 +131,7 @@ func (p *PublicKey) UnmarshalJSON(data []byte) error {
 
 // UnmarshalJSON tries to load json data to Person object
 func (p *Person) UnmarshalJSON(data []byte) error {
-	app := as.Person{}
+	app := ap.Person{}
 	err := app.UnmarshalJSON(data)
 	if err != nil {
 		return err

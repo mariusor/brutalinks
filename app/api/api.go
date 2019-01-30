@@ -18,10 +18,10 @@ import (
 	"github.com/mariusor/littr.go/app/log"
 	"github.com/spacemonkeygo/httpsig"
 
-	"github.com/juju/errors"
 	ap "github.com/go-ap/activitypub"
 	as "github.com/go-ap/activitystreams"
 	j "github.com/go-ap/jsonld"
+	"github.com/juju/errors"
 )
 
 const (
@@ -34,13 +34,13 @@ type InternalError struct {
 type UserError struct {
 }
 
-type handler struct{
-	repo *repository
+type handler struct {
+	repo   *repository
 	logger log.Logger
 }
 
 type Config struct {
-	Logger log.Logger
+	Logger  log.Logger
 	BaseURL string
 }
 
@@ -208,7 +208,7 @@ func httpErrorResponse(e error) int {
 	return http.StatusInternalServerError
 }
 
-func (h handler)HandleError(w http.ResponseWriter, r *http.Request, errs ...error) {
+func (h handler) HandleError(w http.ResponseWriter, r *http.Request, errs ...error) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store, must-revalidate")
 	w.Header().Set("Pragma", "no-cache")
@@ -224,7 +224,7 @@ func (h handler)HandleError(w http.ResponseWriter, r *http.Request, errs ...erro
 		Errors []error `json:"errors"`
 	}
 
-	res := eresp {
+	res := eresp{
 		Errors: []error{},
 	}
 
@@ -266,8 +266,8 @@ type keyLoader struct {
 	acc app.Account
 }
 
-func loadFederatedActor(id as.IRI) (as.Actor, error) {
-	return as.Actor{}, errors.NotImplementedf("federated actors loading is not implemented")
+func loadFederatedActor(id as.IRI) (ap.Actor, error) {
+	return ap.Actor{}, errors.NotImplementedf("federated actors loading is not implemented")
 }
 
 func (k *keyLoader) GetKey(id string) interface{} {
@@ -306,7 +306,7 @@ func (k *keyLoader) GetKey(id string) interface{} {
 	return pub
 }
 
-func (h handler)VerifyHttpSignature(next http.Handler) http.Handler {
+func (h handler) VerifyHttpSignature(next http.Handler) http.Handler {
 	getter := keyLoader{}
 
 	realm := app.Instance.HostName

@@ -96,12 +96,12 @@ func (a *Account) FromActivityPub(it as.Item) error {
 			}
 			return nil
 		}
-		if p, ok := it.(*as.Person); ok {
-			loadFromPerson(a, ap.Person{Person: *p})
-		}
-		if p, ok := it.(as.Person); ok {
-			loadFromPerson(a, ap.Person{Person: p})
-		}
+		//if p, ok := it.(*ap.Person); ok {
+		//	loadFromPerson(a, ap.Person{Person: *p})
+		//}
+		//if p, ok := it.(ap.Person); ok {
+		//	loadFromPerson(a, ap.Person{Person: p})
+		//}
 		if p, ok := it.(*ap.Person); ok {
 			loadFromPerson(a, *p)
 		}
@@ -233,7 +233,7 @@ func (i *Item) FromActivityPub(it as.Item) error {
 			return nil
 		}
 		loadFromArticle := func(i *Item, a ap.Article) error {
-			err := loadFromASObject(i, a.Object.Object)
+			err := loadFromASObject(i, a.Object.Parent)
 			i.Score = a.Score
 			if len(a.Source.Content)+len(a.Source.MediaType) > 0 {
 				i.Data = jsonUnescape(a.Source.Content.First())
@@ -327,7 +327,7 @@ func (v *Vote) FromActivityPub(it as.Item) error {
 }
 
 func HostIsLocal(s string) bool {
-	return strings.Contains(host(s), Instance.HostName) ||  strings.Contains(host(s), host(Instance.APIURL))
+	return strings.Contains(host(s), Instance.HostName) || strings.Contains(host(s), host(Instance.APIURL))
 }
 
 func host(u string) string {
@@ -352,6 +352,7 @@ func getHashFromAP(obj as.Item) Hash {
 	}
 	return Hash(h)
 }
+
 //
 //func getAccountHandle(o as.Item) string {
 //	if o == nil {

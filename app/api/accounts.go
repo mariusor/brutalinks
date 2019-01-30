@@ -330,7 +330,7 @@ func (h handler) HandleActor(w http.ResponseWriter, r *http.Request) {
 	if p.Inbox != nil {
 		p.Inbox = p.Inbox.GetLink()
 	}
-	p.Endpoints = as.Endpoints{SharedInbox: as.IRI(fmt.Sprintf("%s/api/self/inbox", app.Instance.BaseURL))}
+	p.Endpoints = ap.Endpoints{SharedInbox: as.IRI(fmt.Sprintf("%s/api/self/inbox", app.Instance.BaseURL))}
 
 	j, err := json.WithContext(GetContext()).Marshal(p)
 	if err != nil {
@@ -465,7 +465,7 @@ func loadCollection(items app.Collection, count uint, typ string, filters app.Pa
 	getURL := func(f app.Paginator) string {
 		qs := ""
 		if f != nil {
-			 qs = f.QueryString()
+			qs = f.QueryString()
 		}
 		return fmt.Sprintf("%s%s%s", app.Instance.BaseURL, path, qs)
 	}
@@ -855,7 +855,6 @@ func validateIRIBelongsToBlackListedInstance(iri as.IRI) error {
 	}
 	return nil
 }
-
 
 func validateIRIIsBlocked(iri as.IRI) error {
 	// @todo(marius): add a proper method of loading blocked IRIs
