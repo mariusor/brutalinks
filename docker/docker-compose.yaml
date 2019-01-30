@@ -60,8 +60,6 @@ services:
         HOSTNAME: ${HOSTNAME}
     ports:
     - 443:443
-    volumes:
-    - ./littr.git.pem:/etc/ssl/hitch/littr.pem
     depends_on:
     - lb
     links:
