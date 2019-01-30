@@ -1,8 +1,9 @@
 .env
+.env.dev
 .idea/
 *.orig
 go.sum
 bin/*
-docker/bin
-docker/assets
-docker/templates
+*.pem
+*.crt
+*.key
