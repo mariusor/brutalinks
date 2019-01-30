@@ -17,5 +17,5 @@ cert: $(HOSTNAME).pem
 imagebuilder:
 	docker build -t littr/builder:$(ENV) .. -f Dockerfile.build
 
-images: cert imagebuilder
+images: imagebuilder
 	docker-compose up --build
