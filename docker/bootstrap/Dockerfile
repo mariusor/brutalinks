@@ -1,5 +1,6 @@
 ARG ENV
-FROM littr/builder:${ENV} as builder
+ARG HOSTNAME
+FROM ${HOSTNAME}/builder:${ENV} as builder
 FROM gcr.io/distroless/base
 
 ARG ENV

@@ -5,17 +5,13 @@ $(HOSTNAME).pem:
 	cat $(HOSTNAME).key $(HOSTNAME).crt > $(HOSTNAME).pem
 
 clean:
-	$(RM) -rf ./{bin,templates,assets}
-	$(RM) -rf ./{app,bootstrap}/bin
-	$(RM) -rf app/{templates,assets}
-	$(RM) -rf bootstrap/db
 	$(RM) $(HOSTNAME).{key,crt,pem}
 
 cert: $(HOSTNAME).pem
 
 .PHONY: imagebuilder
 imagebuilder:
-	docker build -t littr/builder:$(ENV) .. -f Dockerfile.build
+	docker build -t $(HOSTNAME)/builder:$(ENV) .. -f Dockerfile.build
 
 images: imagebuilder
 	docker-compose up --build

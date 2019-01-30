@@ -31,7 +31,7 @@ services:
 
   lb:
     env_file: ./.env
-    image: littr/lb:${ENV}
+    image: ${HOSTNAME}/lb:${ENV}
     build:
       context: varnish
       dockerfile: ./Dockerfile
@@ -51,7 +51,7 @@ services:
 
   ssl:
     env_file: ./.env
-    image: littr/ssl:${ENV}
+    image: ${HOSTNAME}/ssl:${ENV}
     build:
       context: hitch
       dockerfile: ./Dockerfile
@@ -72,7 +72,7 @@ services:
 
   bootstrap:
     env_file: ./.env
-    image: littr/bootstrap:${ENV}
+    image: ${HOSTNAME}/bootstrap:${ENV}
     depends_on:
     - db
     links:
@@ -82,10 +82,11 @@ services:
       dockerfile: ./bootstrap/Dockerfile
       args:
         ENV: ${ENV}
+        HOSTNAME: ${HOSTNAME}
 
   tasks:
     env_file: ./.env
-    image: littr/tasks:${ENV}
+    image: ${HOSTNAME}/tasks:${ENV}
     depends_on:
     - app
     links:
@@ -95,10 +96,11 @@ services:
       dockerfile: ./tasks/Dockerfile
       args:
         ENV: ${ENV}
+        HOSTNAME: ${HOSTNAME}
 
   app:
     env_file: ./.env
-    image: littr/app:${ENV}
+    image: ${HOSTNAME}/app:${ENV}
     depends_on:
     - db
 #      - bootstrap

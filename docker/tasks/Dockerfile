@@ -1,5 +1,6 @@
 ARG ENV
-FROM littr/builder:${ENV} as builder
+ARG HOSTNAME
+FROM ${HOSTNAME}/builder:${ENV} as builder
 FROM alpine:edge
 
 #COPY --from=builder /go/src/app/bin/bootstrap /
