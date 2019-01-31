@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"github.com/go-pg/pg"
 	"github.com/juju/errors"
 	"github.com/mariusor/littr.go/app/log"
+	"os"
 	"reflect"
 )
 
@@ -48,4 +50,18 @@ func E(errs ...error) bool {
 	}
 
 	return result
+}
+
+func PGConfigFromENV() *pg.Options {
+	dbPw := os.Getenv("DB_PASSWORD")
+	dbName := os.Getenv("DB_NAME")
+	dbUser := os.Getenv("DB_USER")
+	dbHost := os.Getenv("DB_HOST")
+
+	return &pg.Options{
+		User:     dbUser,
+		Password: dbPw,
+		Database: dbName,
+		Addr: dbHost+":5432",
+	}
 }

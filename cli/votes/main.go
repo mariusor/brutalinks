@@ -6,7 +6,6 @@ import (
 	"github.com/mariusor/littr.go/app/cmd"
 	"github.com/mariusor/littr.go/app/db"
 	"github.com/mariusor/littr.go/app/log"
-	"os"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -27,22 +26,12 @@ func main() {
 	flag.DurationVar(&since, "since", defaultSince, "the content key to update votes for, default is 90h")
 	flag.Parse()
 
-	dbPw := os.Getenv("DB_PASSWORD")
-	dbName := os.Getenv("DB_NAME")
-	dbUser := os.Getenv("DB_USER")
-	dbHost := os.Getenv("DB_HOST")
-
 	var err error
 	cmd.Logger = log.Dev()
 	db.Logger = cmd.Logger
 	cmd.E(err)
 
-	db.Config.DB = pg.Connect(&pg.Options{
-		User:     dbUser,
-		Password: dbPw,
-		Database: dbName,
-		Addr: dbHost+":5432",
-	})
+	db.Config.DB = pg.Connect(cmd.PGConfigFromENV())
 	cmd.E(err)
 
 	err = cmd.UpdateScores(key, handle, since, items, accounts)
