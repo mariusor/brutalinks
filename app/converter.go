@@ -96,12 +96,6 @@ func (a *Account) FromActivityPub(it as.Item) error {
 			}
 			return nil
 		}
-		//if p, ok := it.(*ap.Person); ok {
-		//	loadFromPerson(a, ap.Person{Person: *p})
-		//}
-		//if p, ok := it.(ap.Person); ok {
-		//	loadFromPerson(a, ap.Person{Person: p})
-		//}
 		if p, ok := it.(*ap.Person); ok {
 			loadFromPerson(a, *p)
 		}

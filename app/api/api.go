@@ -266,8 +266,8 @@ type keyLoader struct {
 	acc app.Account
 }
 
-func loadFederatedActor(id as.IRI) (ap.Actor, error) {
-	return ap.Actor{}, errors.NotImplementedf("federated actors loading is not implemented")
+func loadFederatedActor(id as.IRI) (as.Actor, error) {
+	return as.Object{}, errors.NotImplementedf("federated actors loading is not implemented")
 }
 
 func (k *keyLoader) GetKey(id string) interface{} {
