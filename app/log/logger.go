@@ -41,7 +41,6 @@ func Dev() Logger {
 		QuoteEmptyFields: true,
 		FullTimestamp:    false,
 	})
-	logrus.SetReportCaller(true)
 	logrus.SetOutput(os.Stdout)
 	logrus.SetLevel(logrus.TraceLevel)
 
