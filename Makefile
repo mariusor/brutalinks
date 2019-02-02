@@ -43,7 +43,11 @@ poach: bin/poach
 bin/poach: go.mod cli/poach/main.go $(APPSOURCES)
 	$(BUILD) -tags $(ENV) -o $@ cli/poach/main.go
 
-cli: bootstrap votes keys poach
+fetcher: bin/fetcher
+bin/fetcher: go.mod cli/fetcher/main.go $(APPSOURCES)
+	$(BUILD) -tags $(ENV) -o $@ cli/fetcher/main.go
+
+cli: bootstrap votes keys poach fetcher
 
 clean:
 	$(RM) bin/*

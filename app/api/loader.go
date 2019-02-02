@@ -820,6 +820,10 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 	}
 }
 
+func (r *repository) Get(u string) (*http.Response, error) {
+	return r.client.Get(u)
+}
+
 func (r *repository) LoadAccounts(f app.LoadAccountsFilter) (app.AccountCollection, uint, error) {
 	var qs string
 	if q, err := qstring.MarshalString(&f); err == nil {
