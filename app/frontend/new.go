@@ -44,15 +44,35 @@ func loadTags(data string) (app.TagCollection, app.TagCollection) {
 			if en == 1 {
 				continue
 			}
-			t.Name = byt[st : st+en]
-			if t.Name[0] == '#' {
-				// @todo(marius) :link_generation: make the tag links be generated from the corresponding route
-				t.URL = fmt.Sprintf("/t/%s", t.Name[1:])
-				tags = append(tags, t)
+			isFed := false
+			name := byt[st : st+en]
+			if strings.Contains(name, "@") {
+				en += strings.IndexAny(byt[en:], " \t\r\n'\"<>,:;!?")
+				name = byt[st : st+en]
+				isFed = true
 			}
-			if t.Name[0] == '@' || t.Name[0] == '~' {
-				t.URL = fmt.Sprintf("/~%s", t.Name[1:])
-				mentions = append(mentions, t)
+			t.Name = name
+			if isFed {
+				atP := strings.IndexAny(name[1:], "@")
+				if name[0] == '#' {
+					// @todo(marius) :link_generation: make the tag links be generated from the corresponding route
+					t.URL = fmt.Sprintf("https://%s/t/%s", name[atP+2:], name[1:atP+1])
+					tags = append(tags, t)
+				}
+				if name[0] == '@' || name[0] == '~' {
+					t.URL = fmt.Sprintf("https://%s/~%s", name[atP+2:], name[1:atP+1])
+					mentions = append(mentions, t)
+				}
+			} else {
+				if name[0] == '#' {
+					// @todo(marius) :link_generation: make the tag links be generated from the corresponding route
+					t.URL = fmt.Sprintf("/t/%s", t.Name[1:])
+					tags = append(tags, t)
+				}
+				if name[0] == '@' || name[0] == '~' {
+					t.URL = fmt.Sprintf("/~%s", name[1:])
+					mentions = append(mentions, t)
+				}
 			}
 
 			i = i + st + en
