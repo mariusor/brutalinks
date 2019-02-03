@@ -81,7 +81,7 @@ func loadAPActivity(it app.Item) as.Activity {
 }
 
 func itemURL(item app.Item) as.IRI {
-	return as.IRI(fmt.Sprintf("%s%s", app.Instance.BaseURL, frontend.ItemPermaLink(item)))
+	return as.IRI(frontend.ItemPermaLink(item))
 }
 
 func loadAPItem(item app.Item) as.Item {
