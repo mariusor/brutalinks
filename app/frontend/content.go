@@ -144,7 +144,19 @@ func reparentComments(allComments []*comment) {
 
 	for _, cur := range allComments {
 		if par := parFn(allComments, *cur); par != nil {
+			cur.Parent = par
 			par.Children = append(par.Children, cur)
+		}
+	}
+
+	// Append remaining non parented elements to parent element - these should be deleted
+	for i, cur := range allComments {
+		if i == 0 {
+			continue
+		}
+		if cur.Parent == nil {
+			cur.Parent = allComments[0]
+			cur.Parent.Children = append(cur.Parent.Children, cur)
 		}
 	}
 }
