@@ -1,4 +1,4 @@
-{{- if  not .Content.Edit -}}
+{{- if not .Content.Edit -}}
 <section class="{{if .Content.Deleted }}deleted {{end}}item op" id="i-{{.Content.Hash}}" data-hash="{{.Content.Hash}}">
 {{ template "partials/item" .Content }}
 </section>
