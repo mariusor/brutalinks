@@ -783,7 +783,11 @@ func validateObject(a as.Item, repo app.CanLoadItems, typ as.ActivityVocabularyT
 		return a, errors.NewNotValid(err, fmt.Sprintf("failed to validate object for %s activity", typ))
 	}
 	if len(cont.Hash) == 0 {
-		return o, objectMissingError{err: err, object: a}
+		if typ != as.CreateType {
+			return o, objectMissingError{err: err, object: a}
+		} else {
+			return o, nil
+		}
 		//return o, errors.Errorf("unable to load a valid object identifier from IRI %s", a.GetLink())
 	} else {
 		f := app.LoadItemsFilter{}
