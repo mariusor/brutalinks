@@ -1,4 +1,4 @@
-{{ if eq current "listing" }}
+{{ if CanPaginate . }}
 {{if or (gt .PrevPage 0) (gt .NextPage 0) }}
 <nav class="pagination">
     View more:

@@ -132,6 +132,11 @@ func nayLink(i app.Item) string {
 	return scoreLink(i, "nay")
 }
 
+func canPaginate(m interface{}) bool {
+	_, ok := m.(Paginator)
+	return ok
+}
+
 func pageLink(p int) template.HTML {
 	if p >= 1 {
 		return template.HTML(fmt.Sprintf("?page=%d", p))
@@ -173,10 +178,10 @@ func (h *handler) HandleIndex(w http.ResponseWriter, r *http.Request) {
 
 		m.HideText = true
 		if len(m.Items) >= MaxContentItems {
-			m.NextPage = filter.Page + 1
+			m.nextPage = filter.Page + 1
 		}
 		if filter.Page > 1 {
-			m.PrevPage = filter.Page - 1
+			m.prevPage = filter.Page - 1
 		}
 		h.RenderTemplate(r, w, "listing", m)
 	} else {
@@ -235,10 +240,10 @@ func (h *handler) HandleTags(w http.ResponseWriter, r *http.Request) {
 		m.Title = fmt.Sprintf("Submissions tagged as #%s", tag)
 
 		if len(m.Items) >= MaxContentItems {
-			m.NextPage = filter.Page + 1
+			m.nextPage = filter.Page + 1
 		}
 		if filter.Page > 1 {
-			m.PrevPage = filter.Page - 1
+			m.prevPage = filter.Page - 1
 		}
 		h.RenderTemplate(r, w, "listing", m)
 	} else {
@@ -270,10 +275,10 @@ func (h *handler) HandleDomains(w http.ResponseWriter, r *http.Request) {
 
 		m.HideText = true
 		if len(m.Items) >= MaxContentItems {
-			m.NextPage = filter.Page + 1
+			m.nextPage = filter.Page + 1
 		}
 		if filter.Page > 1 {
-			m.PrevPage = filter.Page - 1
+			m.prevPage = filter.Page - 1
 		}
 		h.RenderTemplate(r, w, "listing", m)
 	} else {

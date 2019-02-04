@@ -461,6 +461,7 @@ func (h handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name str
 			"YayLink":           yayLink,
 			"NayLink":           nayLink,
 			"PageLink":          pageLink,
+			"CanPaginate":       canPaginate,
 			"Config":            func() app.Config { return app.Instance.Config },
 			"Info":              func() app.Info { return nodeInfo },
 			"Name":              appName,

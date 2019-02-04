@@ -10,13 +10,26 @@ import (
 	"github.com/go-chi/chi"
 )
 
+type Paginator interface  {
+	NextPage() int
+	PrevPage() int
+}
+
 type itemListingModel struct {
 	Title    string
-	NextPage int
-	PrevPage int
 	User     *app.Account
 	Items    comments
 	HideText bool
+	nextPage int
+	prevPage int
+}
+
+func(i itemListingModel) NextPage() int {
+	return i.nextPage
+}
+
+func(i itemListingModel) PrevPage() int {
+	return i.prevPage
 }
 
 type sessionAccount struct {
@@ -56,11 +69,12 @@ func (h *handler) ShowAccount(w http.ResponseWriter, r *http.Request) {
 	if m, err := loadItems(r.Context(), filter, &h.account, h.logger); err == nil {
 		m.Title = fmt.Sprintf("%s submissions", genitive(a.Handle))
 		m.User = &a
+
 		if len(m.Items) >= MaxContentItems {
-			m.NextPage = filter.Page + 1
+			m.nextPage = filter.Page + 1
 		}
 		if filter.Page > 1 {
-			m.PrevPage = filter.Page - 1
+			m.prevPage = filter.Page - 1
 		}
 
 		h.RenderTemplate(r, w, "user", m)
