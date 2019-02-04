@@ -674,6 +674,13 @@ func (a activityError) Error() string {
 	return fmt.Sprintf("received activity is missing %s %s", a.actor.Error(), a.object.Error())
 }
 
+func validateLocalActor(a as.Item, repo app.CanLoadAccounts) (as.Item, error) {
+	var err error
+	if err = validateLocalIRI(a.GetLink()); err == nil {
+		return validateActor(a, repo)
+	}
+	return a, errors.NewMethodNotAllowed(err, "actor")
+}
 func validateActor(a as.Item, repo app.CanLoadAccounts) (as.Item, error) {
 	p := localap.Person{}
 
@@ -786,7 +793,7 @@ func validateObject(a as.Item, repo app.CanLoadItems, typ as.ActivityVocabularyT
 		if typ != as.CreateType {
 			return o, objectMissingError{err: err, object: a}
 		} else {
-			return o, nil
+			return a, nil
 		}
 		//return o, errors.Errorf("unable to load a valid object identifier from IRI %s", a.GetLink())
 	} else {
@@ -975,7 +982,7 @@ func validateOutboxActivity(a localap.Activity, repo app.CanLoadAccounts) (local
 	if err := validateOutboxActivityType(a.GetType()); err != nil {
 		return a, errors.Annotate(err, "failed to validate activity type for outbox collection")
 	}
-	if p, err := validateActor(a.Actor, repo); err != nil {
+	if p, err := validateLocalActor(a.Actor, repo); err != nil {
 		return a, errors.Annotate(err, "failed to validate actor for outbox collection")
 	} else {
 		a.Actor = p
@@ -1019,8 +1026,9 @@ func validateLikedActivity(a localap.Activity, repo app.CanLoad) (localap.Activi
 
 func (h handler) AddToCollection(w http.ResponseWriter, r *http.Request) {
 	typ := getCollectionFromReq(r)
-
 	a, _ := app.ContextActivity(r.Context())
+
+	col := as.IRI(r.URL.String())
 
 	notFound := func(err error) {
 		h.logger.WithContext(log.Ctx{
@@ -1122,8 +1130,42 @@ func (h handler) AddToCollection(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	case "outbox":
+		// here we're missing a way to store the specific collection IRI we've received the activity to
 		if a, err = validateOutboxActivity(a, repo); err != nil {
 			//
+		}
+		if a.GetType() == as.CreateType {
+			it := app.Item{}
+			if err := it.FromActivityPub(a); err != nil {
+				h.logger.WithContext(log.Ctx{
+					"err":   err,
+					"trace": errors.Details(err),
+				}).Error("json-ld unmarshal error")
+				h.HandleError(w, r, errors.NewNotValid(err, "not found"))
+				return
+			}
+			if repo, ok := app.ContextItemSaver(r.Context()); ok {
+				newIt, err := repo.SaveItem(it)
+				if err != nil {
+					h.logger.WithContext(log.Ctx{
+						"err":     err,
+						"trace":   errors.Details(err),
+						"item":    it.Hash,
+						"account": it.SubmittedBy.Hash,
+					}).Error(err.Error())
+					h.HandleError(w, r, errors.NewNotValid(err, "not found"))
+					return
+				}
+				if newIt.UpdatedAt.IsZero() {
+					// we need to make a difference between created vote and updated vote
+					// created - http.StatusCreated
+					status = http.StatusCreated
+					location = fmt.Sprintf("/api/actors/%s/%s/%s", newIt.SubmittedBy.Handle, col, newIt.Hash)
+				} else {
+					// updated - http.StatusOK
+					status = http.StatusOK
+				}
+			}
 		}
 	case "liked":
 		if a, err = validateLikedActivity(a, repo); err != nil {
