@@ -229,7 +229,9 @@ func (i *Item) FromActivityPub(it as.Item) error {
 		loadFromArticle := func(i *Item, a ap.Article) error {
 			err := loadFromASObject(i, a.Object.Parent)
 			i.Score = a.Score
-			if len(a.Source.Content)+len(a.Source.MediaType) > 0 {
+			// TODO(marius): here we seem to have a bug, when Source.Content is nil when it shouldn't
+			//    to repro, I used some copy/pasted comments from console javascript
+			if len(a.Source.Content) > 0 && len(a.Source.MediaType) > 0 {
 				i.Data = jsonUnescape(a.Source.Content.First())
 				i.MimeType = MimeType(a.Source.MediaType)
 			}
