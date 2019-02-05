@@ -177,7 +177,7 @@ func (h *handler) HandleIndex(w http.ResponseWriter, r *http.Request) {
 		m.Title = "Index"
 
 		m.HideText = true
-		if len(m.Items) >= MaxContentItems {
+		if len(m.Items) >= filter.MaxItems {
 			m.nextPage = filter.Page + 1
 		}
 		if filter.Page > 1 {
@@ -239,7 +239,7 @@ func (h *handler) HandleTags(w http.ResponseWriter, r *http.Request) {
 	if m, err := loadItems(r.Context(), filter, &h.account, h.logger); err == nil {
 		m.Title = fmt.Sprintf("Submissions tagged as #%s", tag)
 
-		if len(m.Items) >= MaxContentItems {
+		if len(m.Items) >= filter.MaxItems {
 			m.nextPage = filter.Page + 1
 		}
 		if filter.Page > 1 {
@@ -274,7 +274,7 @@ func (h *handler) HandleDomains(w http.ResponseWriter, r *http.Request) {
 		m.Title = fmt.Sprintf("Submissions from %s", domain)
 
 		m.HideText = true
-		if len(m.Items) >= MaxContentItems {
+		if len(m.Items) >= filter.MaxItems {
 			m.nextPage = filter.Page + 1
 		}
 		if filter.Page > 1 {

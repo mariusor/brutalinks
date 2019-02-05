@@ -70,7 +70,7 @@ func (h *handler) ShowAccount(w http.ResponseWriter, r *http.Request) {
 		m.Title = fmt.Sprintf("%s submissions", genitive(a.Handle))
 		m.User = &a
 
-		if len(m.Items) >= MaxContentItems {
+		if len(m.Items) >= filter.MaxItems {
 			m.nextPage = filter.Page + 1
 		}
 		if filter.Page > 1 {
