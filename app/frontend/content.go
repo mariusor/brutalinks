@@ -3,6 +3,7 @@ package frontend
 import (
 	"fmt"
 	"github.com/mariusor/littr.go/app/log"
+	"github.com/mariusor/qstring"
 	"math"
 	"net/http"
 	"path"
@@ -32,6 +33,16 @@ type comment struct {
 type contentModel struct {
 	Title   string
 	Content comment
+	nextPage int
+	prevPage int
+}
+
+func(c contentModel) NextPage() int {
+	return c.nextPage
+}
+
+func(c contentModel) PrevPage() int {
+	return c.prevPage
 }
 
 func loadComments(items []app.Item) comments {
@@ -227,10 +238,21 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 	allComments := make(comments, 1)
 	allComments[0] = &m.Content
 
-	contentItems, _, err := itemLoader.LoadItems(app.LoadItemsFilter{
-		Context:  []string{m.Content.Hash.String()},
+	filter := app.LoadItemsFilter{
 		MaxItems: MaxContentItems,
-	})
+		Page:     1,
+	}
+	if err := qstring.Unmarshal(r.URL.Query(), &filter); err != nil {
+		h.logger.Debug("unable to load url parameters")
+	}
+	filter.Context = []string{m.Content.Hash.String()}
+	contentItems, _, err := itemLoader.LoadItems(filter)
+	if len(contentItems) >= filter.MaxItems {
+		m.nextPage = filter.Page + 1
+	}
+	if filter.Page > 1 {
+		m.prevPage = filter.Page - 1
+	}
 	if err != nil {
 		h.logger.Error(err.Error())
 		h.HandleError(w, r, errors.NewNotFound(err, errors.ErrorStack(err)))
@@ -257,6 +279,7 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 			h.logger.Error("could not load vote repository from Context")
 		}
 	}
+
 	if len(m.Title) > 0 {
 		m.Title = fmt.Sprintf("%s", i.Title)
 	} else {
