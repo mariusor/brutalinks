@@ -317,6 +317,9 @@ func headerMenu(r *http.Request) []headerEl {
 }
 
 func appName(n string) template.HTML {
+	if n == "" {
+		return template.HTML(n)
+	}
 	parts := strings.Split(n, " ")
 	name := strings.Builder{}
 

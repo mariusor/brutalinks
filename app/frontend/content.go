@@ -3,6 +3,7 @@ package frontend
 import (
 	"fmt"
 	"github.com/mariusor/littr.go/app/log"
+	"math"
 	"net/http"
 	"path"
 	"strings"
@@ -149,7 +150,7 @@ func reparentComments(allComments []*comment) {
 		}
 	}
 
-	// Append remaining non parented elements to parent element - these should be deleted
+	// Append remaining non parented elements to parent element
 	for i, cur := range allComments {
 		if i == 0 {
 			continue
@@ -198,11 +199,12 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !i.Deleted() && len(i.Data)+len(i.Title) == 0 {
+		datLen := int(math.Min(12.0, float64(len(i.Data))))
 		h.logger.WithContext(log.Ctx{
 			"handle":      handle,
 			"hash":        hash,
 			"title":       i.Title,
-			"content":     i.Data[0:12],
+			"content":     i.Data[0:datLen],
 			"content_len": len(i.Data),
 		}).Warn("Item deleted or empty")
 		h.HandleError(w, r, errors.NotFoundf("Item %q", hash))
