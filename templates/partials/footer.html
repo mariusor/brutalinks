@@ -1,5 +1,5 @@
-{{ if CanPaginate . }}
-{{if or (gt .PrevPage 0) (gt .NextPage 0) }}
+{{- if CanPaginate . -}}
+{{if or (gt .PrevPage 0) (gt .NextPage 0) -}}
 <nav class="pagination">
     View more:
     <ul class="inline">
@@ -10,7 +10,7 @@
             <li><a href="{{.NextPage | PageLink }}" rel="next">next {{icon "angle-double-right"}}</a></li>
         {{- end}}
     </ul></nav>
-{{ end -}}
+{{- end -}}
 {{ end -}}
 <nav class="bottom"><ul class="inline">
 {{ $version := Info.Version}}
