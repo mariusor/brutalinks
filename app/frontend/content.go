@@ -241,6 +241,7 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 	filter := app.LoadItemsFilter{
 		MaxItems: MaxContentItems,
 		Page:     1,
+		Depth:    10,
 	}
 	if err := qstring.Unmarshal(r.URL.Query(), &filter); err != nil {
 		h.logger.Debug("unable to load url parameters")

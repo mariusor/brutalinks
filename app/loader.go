@@ -110,6 +110,7 @@ type LoadItemsFilter struct {
 	Page                 int        `qstring:"page,omitempty"`
 	MaxItems             int        `qstring:"maxItems,omitempty"`
 	IRI                  string     `qstring:"id,omitempty"`
+	Depth                int        `qstring:"depth,omitempty"`
 	// Federated shows if the item was generated locally or is coming from an external peer
 	Federated []bool `qstring:"federated,omitempty"`
 	// FollowedBy is the hash or handle of the user of which we should show the list of items that were commented on or liked
@@ -297,6 +298,10 @@ func (f LoadItemsFilter) GetWhereClauses() ([]string, []interface{}) {
 			ctxtWhere = append(ctxtWhere, fmt.Sprintf(`("%s"."path" <@ (SELECT
 CASE WHEN "path" IS NULL THEN "key"::ltree ELSE ltree_addltree("path", "key"::ltree) END
 FROM "items" WHERE "key" ~* ?%d) AND "%s"."path" IS NOT NULL)`, it, counter, it))
+			if f.Depth > 0 {
+				wheres = append(wheres, fmt.Sprintf(`nlevel("%s"."path") <= (SELECT CASE WHEN "path" IS NULL THEN 0 ELSE nlevel("path")::INT END FROM "items" WHERE "key" ~* ?%d) + %d`, it, counter, f.Depth))
+				f.Depth = 0
+			}
 			whereValues = append(whereValues, interface{}(ctxtHash))
 			counter++
 		}
@@ -311,6 +316,10 @@ FROM "items" WHERE "key" ~* ?%d) AND "%s"."path" IS NOT NULL)`, it, counter, it)
 			whereColumns = append(whereColumns, fmt.Sprintf(`("%s"."path" = (SELECT
 CASE WHEN "path" IS NULL THEN "key"::ltree ELSE ltree_addltree("path", "key"::ltree) END
 FROM "items" WHERE "key" ~* ?%d) AND "%s"."path" IS NOT NULL)`, it, counter, it))
+			if f.Depth > 0 {
+				wheres = append(wheres, fmt.Sprintf(`nlevel("%s"."path") <= (SELECT CASE WHEN "path" IS NULL THEN 0 ELSE nlevel("path")::INT END FROM "items" WHERE "key" ~* ?%d) + %d`, it, counter, f.Depth))
+				f.Depth = 0
+			}
 			whereValues = append(whereValues, interface{}(hash))
 			counter++
 		}
@@ -384,7 +393,10 @@ FROM "items" WHERE "key" ~* ?%d) AND "%s"."path" IS NOT NULL)`, it, counter, it)
 		whereValues = append(whereValues, interface{}(f.IRI))
 		counter++
 	}
-
+	if f.Depth > 0 {
+		wheres = append(wheres, fmt.Sprintf(`nlevel("%s"."path") <= ?%d`, it, counter))
+		whereValues = append(whereValues, interface{}(f.Depth))
+	}
 	return wheres, whereValues
 }
 func copyItemsFilters(a *LoadItemsFilter, b LoadItemsFilter) {
