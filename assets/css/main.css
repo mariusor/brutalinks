@@ -406,7 +406,7 @@ summary:focus {
 }
 .comments details[open] > summary {
     padding: .3rem 0 0 .3rem;
-    /*border-radius: .4rem 0 0 0;*/
+    margin-bottom: 1px;
 }
 .comments details:not([open]) > summary {}
 .comments details > summary::before {}
@@ -424,7 +424,8 @@ summary:focus {
     opacity: .3;
 }
 .comments, .comments summary {
-    border-left: 1px solid;
+    border-left-width: 1px;
+    border-left-style: solid;
 }
 .lvl-9 {
     border-color: #ebebebaa;
