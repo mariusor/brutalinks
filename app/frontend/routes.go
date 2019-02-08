@@ -98,9 +98,6 @@ func (h *handler)Routes() func(chi.Router) {
 		}))
 		r.With(app.StripCookies).Get("/css/{path}", serveFiles(filepath.Join(assets, "css")))
 		r.With(app.StripCookies).Get("/js/{path}", serveFiles(filepath.Join(assets, "js")))
-		r.Get("/example", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			http.ServeFile(w, r, filepath.Join(workDir, "example.html"))
-		}))
 	}
 }
 
