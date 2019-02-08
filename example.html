@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>example javascript cookie</title>
+    <style>
+        :root {
+            --main-bg-color: Window;
+            --main-fg-color: WindowText;
+            --main-link-color: blue;
+            --main-linkvisited-color: rebeccapurple;
+            --main-linkactive-color: red;
+        }
+        :root.inverted {
+            --main-bg-color: WindowText;
+            --main-fg-color: Window;
+            --main-link-color: dodgerblue;
+            --main-linkvisited-color: mediumpurple;
+            --main-linkactive-color: red;
+        }
+        body {
+            background-color: var(--main-bg-color);
+            color: var(--main-fg-color);
+        }
+        a[href] {
+            color: var(--main-link-color);
+        }
+        a[href]:visited {
+            color: var(--main-linkvisited-color);
+        }
+        a:not([href]) {
+            color: var(--main-fg-color);
+        }
+        svg.icon { height: 1em; width: 1em; fill: currentColor; vertical-align: -3px; }
+    </style>
+</head>
+<body>
+<a id="top-invert" title="Invert colours" href="#invert">invert <svg class="icon icon-adjust "><use xlink:href="#icon-adjust" /></svg></a><br/>
+<h1>Lorem Ipsum</h1>
+<h4>"Neque porro quisquam est qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit..."</h4>
+<h5>"No hay nadie que ame el dolor mismo, que lo busque, lo encuentre y lo quiera, simplemente porque es el dolor."</h5>
+<hr />
+<p>
+    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec elementum neque quis est facilisis laoreet. Proin imperdiet semper pellentesque. Ut non enim nec odio mattis molestie et quis magna. Nulla augue eros, ornare vel felis id, bibendum lacinia sapien. Nam ante erat, dapibus eu purus a, gravida maximus augue. Etiam nec metus eu ligula accumsan congue a non urna. Nullam ex nisl, mollis nec euismod facilisis, varius interdum elit. Morbi mollis pretium ultrices. Curabitur aliquam maximus felis, non pretium metus ullamcorper id. Mauris auctor feugiat consequat. Nullam nec egestas nisl, id fermentum libero. Proin ut nisl iaculis lectus elementum tempor. Nam condimentum pulvinar tincidunt. Fusce auctor ac orci eu suscipit.
+</p>
+<p>
+    Maecenas finibus vestibulum libero a efficitur. Curabitur id malesuada mi. Quisque pharetra venenatis est, vitae vestibulum nisl pretium a. Praesent luctus cursus nisl eu auctor. Phasellus eget ornare libero. Sed eros arcu, interdum non tortor egestas, sollicitudin mollis massa. Duis laoreet fermentum arcu, in euismod nulla suscipit varius. Aliquam posuere eu mi in convallis. Integer pellentesque, dolor eget tincidunt iaculis, nisi purus hendrerit massa, non faucibus urna odio sed neque. Sed nunc arcu, auctor ac accumsan placerat, suscipit a mi. Mauris ac faucibus ligula. Curabitur elementum porta mauris.
+</p>
+<p>
+    Aenean aliquam velit eu nunc commodo pharetra. Sed sollicitudin rutrum vehicula. Maecenas pellentesque mi ex, sed aliquam dolor mollis at. Nullam pretium et dolor imperdiet semper. Mauris lacinia ornare risus ac egestas. Donec faucibus nisl a enim rhoncus rhoncus. Donec quis ex cursus, bibendum dolor non, ultricies lectus. Quisque turpis ligula, feugiat et condimentum nec, convallis tristique dolor. Vivamus aliquam aliquam dictum. Suspendisse potenti. Nulla pretium neque in leo posuere finibus. Pellentesque ac mi eros.
+</p>
+<p>
+    Nullam porttitor, risus vel gravida ultricies, justo nulla hendrerit lorem, eu vehicula velit felis sed libero. Curabitur sit amet fermentum tellus. Nulla ullamcorper aliquam justo, in sodales massa porttitor auctor. Phasellus a euismod dolor. Nullam fringilla, lorem eu tristique euismod, nibh ligula ornare eros, varius luctus justo mi consequat tellus. Morbi non leo eu risus rutrum tristique. Cras feugiat turpis a porta ullamcorper. Pellentesque et elementum metus.
+</p>
+<p>
+    Mauris malesuada convallis ipsum nec pharetra. Donec semper est velit, ac bibendum odio gravida non. In sed mollis odio. Duis at lobortis elit. Fusce nunc sapien, posuere at elementum in, feugiat sit amet lectus. Suspendisse vel hendrerit odio. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras eu leo sodales, eleifend dui nec, hendrerit mi. Nullam pretium malesuada nisl, sed placerat orci. Aliquam ac lorem quis lectus volutpat placerat quis nec dui. Etiam maximus commodo nulla, at volutpat justo scelerisque eget. Praesent a tempus turpis. Aliquam nec augue a ex tincidunt varius et non metus. Suspendisse accumsan lacinia nunc, ut pulvinar turpis vulputate nec.
+</p>
+<hr />
+<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" display="none">
+    <symbol viewBox="0 0 1536 1792" id="icon-adjust">
+        <path d="M768 1440V352c-300 0-544 244-544 544s244 544 544 544zm768-544c0 424-344 768-768 768S0 1320 0 896s344-768 768-768 768 344 768 768z" /> </symbol>
+</svg>
+<script>
+// add matches
+this.Element && function(ElProt) {
+    ElProt.matchesSelector = ElProt.matchesSelector ||
+        ElProt.mozMatchesSelector ||
+        ElProt.msMatchesSelector ||
+        ElProt.oMatchesSelector ||
+        ElProt.webkitMatchesSelector ||
+        function (selector) {
+            let node = this, nodes = (node.parentNode || node.document).querySelectorAll(selector), i = -1;
+            while (nodes[++i] && nodes[i] != node);
+            return !!nodes[i];
+        };
+    ElProt.matches = ElProt.matches || ElProt.matchesSelector;
+}(Element.prototype);
+// closest polyfill
+this.Element && function(ElementPrototype) {
+    ElementPrototype.closest = ElementPrototype.closest ||
+        function(selector) {
+            let el = this;
+            while (el.matches && !el.matches(selector)) el = el.parentNode;
+            return el.matches ? el : null;
+        }
+}(Element.prototype);
+// helper for enabling IE 8 event bindings
+let addEvent = function (el, type, handler) {
+    if (el.attachEvent) el.attachEvent('on'+type, handler); else el.addEventListener(type, handler);
+};
+// Cookie
+let getCookie = function (name) {
+    let v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
+    return v ? v[2] : null;
+};
+let setCookie = function (name, value, days=1000) {
+    let d = new Date;
+    d.setTime(d.getTime() + 24*60*60*1000*days);
+    document.cookie = name + "=" + value + ";path=/;expires=" + d.toGMTString();
+};
+let deleteCookie = function (name) { setCookie(name, '', -1); };
+// Document.Ready
+let OnReady = function(fn) {
+    // in case the document is already rendered
+    if (document.readyState != 'loading') {
+        fn.call();
+    } else if (document.addEventListener) {
+        // modern browsers
+        document.addEventListener('DOMContentLoaded', fn);
+    }
+};
+// pretend we're jquery
+let $ = function (selector, context) {
+    return (context || document).querySelectorAll(selector);
+};
+// Doing the work
+OnReady( function() {
+    let isInverted = function(){ return getCookie("inverted") == "true" || false };
+    if (isInverted()) {
+        $("html")[0].classList.add("inverted");
+    } else {
+        $("html")[0].classList.remove("inverted");
+    }
+    addEvent($("#top-invert")[0], "click", function(e) {
+        if (isInverted()) {
+            $("html")[0].classList.remove("inverted");
+            deleteCookie("inverted");
+        } else {
+            $("html")[0].classList.add("inverted");
+            setCookie("inverted", true);
+        }
+        e.preventDefault();
+        e.stopPropagation();
+    });
+});
+</script>
+</body>
+</html>
