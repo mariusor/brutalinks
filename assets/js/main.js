@@ -1,72 +1,16 @@
-// add matches
-this.Element && function(ElProt) {
-    ElProt.matchesSelector = ElProt.matchesSelector ||
-        ElProt.mozMatchesSelector ||
-        ElProt.msMatchesSelector ||
-        ElProt.oMatchesSelector ||
-        ElProt.webkitMatchesSelector ||
-        function (selector) {
-            let node = this, nodes = (node.parentNode || node.document).querySelectorAll(selector), i = -1;
-            while (nodes[++i] && nodes[i] != node);
-            return !!nodes[i];
-        };
-    ElProt.matches = ElProt.matches || ElProt.matchesSelector;
-}(Element.prototype);
-// closest polyfill
-this.Element && function(ElementPrototype) {
-    ElementPrototype.closest = ElementPrototype.closest ||
-    function(selector) {
-        let el = this;
-        while (el.matches && !el.matches(selector)) el = el.parentNode;
-        return el.matches ? el : null;
-    }
-}(Element.prototype);
-// helper for enabling IE 8 event bindings
-let addEvent = function (el, type, handler) {
-    if (el.attachEvent) el.attachEvent('on'+type, handler); else el.addEventListener(type, handler);
-};
-let removeEvent = function (el, type, handler) {
-    if (el.detachEvent) el.detachEvent('on'+type, handler); else el.removeEventListener(type, handler);
-};
-// Cookie
-let getCookie = function (name) {
-    let v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
-    return v ? v[2] : null;
-};
-let setCookie = function (name, value, days=1000) {
-    let d = new Date;
-    d.setTime(d.getTime() + 24*60*60*1000*days);
-    document.cookie = name + "=" + value + ";path=/;expires=" + d.toGMTString();
-};
-let deleteCookie = function (name) { setCookie(name, '', -1); };
-// Document.Ready
-let OnReady = function(fn) {
-    // in case the document is already rendered
-    if (document.readyState != 'loading') {
-        fn.call();
-    } else if (document.addEventListener) {
-        // modern browsers
-        document.addEventListener('DOMContentLoaded', fn);
-    }
-};
-// pretend we're jquery
-let $ = function (selector, context) {
-    console.debug(selector, context);
-    return (context || document).querySelectorAll(selector);
-};
+this.Element&&function(a){a.matchesSelector=a.matchesSelector||a.mozMatchesSelector||a.msMatchesSelector||a.oMatchesSelector||a.webkitMatchesSelector||function(b){let c=this,e=(c.parentNode||c.document).querySelectorAll(b),f=-1;for(;e[++f]&&e[f]!=c;);return!!e[f]},a.matches=a.matches||a.matchesSelector}(Element.prototype),this.Element&&function(a){a.closest=a.closest||function(b){let c=this;for(;c.matches&&!c.matches(b);)c=c.parentNode;return c.matches?c:null}}(Element.prototype);let addEvent=function(a,b,c){a.attachEvent?a.attachEvent('on'+b,c):a.addEventListener(b,c)},removeEvent=function(a,b,c){a.detachEvent?a.detachEvent('on'+b,c):a.removeEventListener(b,c)},getCookie=function(a){let b=document.cookie.match('(^|;) ?'+a+'=([^;]*)(;|$)');return b?b[2]:null},setCookie=function(a,b,c=1e3){let e=new Date;e.setTime(e.getTime()+86400000*c),document.cookie=a+'='+b+';path=/;expires='+e.toGMTString()},deleteCookie=function(a){setCookie(a,'',-1)},OnReady=function(a){'loading'==document.readyState?document.addEventListener&&document.addEventListener('DOMContentLoaded',a):a.call()},$=function(a,b){return console.debug(a,b),(b||document).querySelectorAll(a)};
 // Doing the work
 OnReady( function() {
     // let _User = JSON.parse($("#currentUser").html());
     //console.debug(_User);
+    let isInverted =  getCookie("inverted") == "true" || false;
 
-    let isInverted = getCookie("inverted") || false;
-    if (isInverted) {
-        $("body")[0].classList.add("inverted");
+    if (isInverted()) {
+        $("html")[0].classList.add("inverted");
     } else {
-        $("body")[0].classList.remove("inverted");
+        $("html")[0].classList.remove("inverted");
     }
     addEvent($("#top-invert")[0], "click", function(e) {
-        let isInverted = getCookie("inverted") || false;
         if (isInverted) {
             $("html")[0].classList.remove("inverted");
             deleteCookie("inverted");
