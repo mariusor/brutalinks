@@ -3,19 +3,19 @@ this.Element&&function(a){a.matchesSelector=a.matchesSelector||a.mozMatchesSelec
 OnReady( function() {
     // let _User = JSON.parse($("#currentUser").html());
     //console.debug(_User);
-    let isInverted =  getCookie("inverted") == "true" || false;
-
+    let isInverted = function () { return getCookie("inverted") == "true" || false; };
+    let root = $("html")[0];
     if (isInverted()) {
-        $("html")[0].classList.add("inverted");
+        root.classList.add("inverted");
     } else {
-        $("html")[0].classList.remove("inverted");
+        root.classList.remove("inverted");
     }
     addEvent($("#top-invert")[0], "click", function(e) {
-        if (isInverted) {
-            $("html")[0].classList.remove("inverted");
+        if (isInverted()) {
+            root.classList.remove("inverted");
             deleteCookie("inverted");
         } else {
-            $("html")[0].classList.add("inverted");
+            root.classList.add("inverted");
             setCookie("inverted", true);
         }
         e.preventDefault();
