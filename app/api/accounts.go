@@ -20,7 +20,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/juju/errors"
 	localap "github.com/mariusor/littr.go/app/activitypub"
-	"github.com/mariusor/littr.go/app/log"
+	"github.com/mariusor/littr.go/internal/log"
 )
 
 type objectID struct {

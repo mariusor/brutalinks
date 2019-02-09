@@ -2,7 +2,7 @@ package frontend
 
 import (
 	"fmt"
-	"github.com/mariusor/littr.go/app/log"
+	"github.com/mariusor/littr.go/internal/log"
 	"github.com/mariusor/qstring"
 	"math"
 	"net/http"

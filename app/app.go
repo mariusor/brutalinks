@@ -15,7 +15,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/mariusor/littr.go/app/log"
+	"github.com/mariusor/littr.go/internal/log"
 )
 
 // Logger is the package default logger instance

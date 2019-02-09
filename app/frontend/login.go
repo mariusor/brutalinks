@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/app/db"
-	"github.com/mariusor/littr.go/app/log"
+	"github.com/mariusor/littr.go/internal/log"
 	"net/http"
 
 	"github.com/juju/errors"

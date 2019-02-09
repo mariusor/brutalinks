@@ -6,7 +6,7 @@ import (
 	"database/sql/driver"
 	"fmt"
 	"github.com/mariusor/littr.go/app"
-	"github.com/mariusor/littr.go/app/log"
+	"github.com/mariusor/littr.go/internal/log"
 	"net/http"
 	"time"
 

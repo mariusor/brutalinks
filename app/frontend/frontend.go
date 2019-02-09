@@ -23,7 +23,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/gorilla/sessions"
 	"github.com/juju/errors"
-	"github.com/mariusor/littr.go/app/log"
+	"github.com/mariusor/littr.go/internal/log"
 	"golang.org/x/oauth2"
 )
 

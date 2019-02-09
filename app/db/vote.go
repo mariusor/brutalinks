@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/go-pg/pg"
 	"github.com/mariusor/littr.go/app"
-	"github.com/mariusor/littr.go/app/log"
+	"github.com/mariusor/littr.go/internal/log"
 	"math"
 	"strings"
 	"time"

@@ -3,7 +3,7 @@ package cmd
 import (
 	"github.com/go-pg/pg"
 	"github.com/juju/errors"
-	"github.com/mariusor/littr.go/app/log"
+	"github.com/mariusor/littr.go/internal/log"
 	"os"
 	"reflect"
 )

@@ -19,7 +19,7 @@ import (
 	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/app/api"
 	"github.com/mariusor/littr.go/app/frontend"
-	"github.com/mariusor/littr.go/app/log"
+	"github.com/mariusor/littr.go/internal/log"
 )
 
 var version = "HEAD"

@@ -5,7 +5,7 @@ import (
 	as "github.com/go-ap/activitystreams"
 	"github.com/juju/errors"
 	"github.com/mariusor/littr.go/app"
-	"github.com/mariusor/littr.go/app/log"
+	"github.com/mariusor/littr.go/internal/log"
 )
 
 var Logger log.Logger

@@ -9,7 +9,7 @@ import (
 
 	"github.com/juju/errors"
 
-	"github.com/mariusor/littr.go/app/log"
+	"github.com/mariusor/littr.go/internal/log"
 )
 
 // Logger is a local log instance

@@ -15,7 +15,7 @@ import (
 	localap "github.com/mariusor/littr.go/app/activitypub"
 	"github.com/mariusor/littr.go/app/db"
 	"github.com/mariusor/littr.go/app/frontend"
-	"github.com/mariusor/littr.go/app/log"
+	"github.com/mariusor/littr.go/internal/log"
 	"github.com/spacemonkeygo/httpsig"
 
 	ap "github.com/go-ap/activitypub"

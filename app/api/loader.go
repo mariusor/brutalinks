@@ -26,7 +26,7 @@ import (
 	"github.com/juju/errors"
 	ap "github.com/mariusor/littr.go/app/activitypub"
 	"github.com/mariusor/littr.go/app/db"
-	"github.com/mariusor/littr.go/app/log"
+	"github.com/mariusor/littr.go/internal/log"
 )
 
 type repository struct {
