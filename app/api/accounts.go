@@ -758,6 +758,15 @@ func getValidObjectTypes(typ as.ActivityVocabularyType) []as.ActivityVocabularyT
 			as.DocumentType,
 			as.PageType,
 		}
+	case as.DeleteType:
+		return []as.ActivityVocabularyType{
+			as.NoteType,
+			as.ArticleType,
+			as.DocumentType,
+			as.PageType,
+			// not sure if we need the other types
+			as.TombstoneType,
+		}
 	}
 	return nil
 }
@@ -782,34 +791,28 @@ func validateObject(a as.Item, repo app.CanLoadItems, typ as.ActivityVocabularyT
 	cont.FromActivityPub(a)
 
 	if a.IsLink() {
-		// we need to dereference the object
-		return o, objectMissingError{err: err, object: a}
+		if !isLocalObject {
+			// we need to dereference the object
+			return o, objectMissingError{err: err, object: a}
+		}
+	} else {
+		if err = validateItemType(a.GetType(), getValidObjectTypes(typ)); err != nil {
+			return a, errors.NewNotValid(err, fmt.Sprintf("failed to validate object for %s activity", typ))
+		}
 	}
 
-	if err = validateItemType(a.GetType(), getValidObjectTypes(typ)); err != nil {
-		return a, errors.NewNotValid(err, fmt.Sprintf("failed to validate object for %s activity", typ))
-	}
-	if len(cont.Hash) == 0 {
-		if typ != as.CreateType {
-			return o, objectMissingError{err: err, object: a}
-		} else {
-			return a, nil
-		}
-		//return o, errors.Errorf("unable to load a valid object identifier from IRI %s", a.GetLink())
-	} else {
-		f := app.LoadItemsFilter{}
+	switch typ {
+	case as.CreateType:
 		if len(cont.Hash) > 0 {
-			if !isLocalObject {
-				f.IRI = a.GetLink().String()
-			}
-			f.Key = app.Hashes{cont.Hash}
+			// dunno if this is an error
 		}
-		cont, err = repo.LoadItem(f)
-		if err != nil {
+	case as.UpdateType:
+		if len(cont.Hash) == 0 {
 			return o, objectMissingError{err: err, object: a}
 		}
-		o = loadAPItem(cont)
 	}
+
+	o = loadAPItem(cont)
 	return o, nil
 	// @todo(marius): see what this was about
 	//switch typ {
@@ -969,8 +972,11 @@ func validateInboxActivity(a localap.Activity, repo app.CanLoad) (localap.Activi
 func validateOutboxActivityType(typ as.ActivityVocabularyType) error {
 	var validTypes = []as.ActivityVocabularyType{
 		as.CreateType,
-		//as.UpdateType, // @todo(marius): not implemented
-		//as.DeleteType, // @todo(marius): not implemented
+		as.UpdateType,
+		as.LikeType,
+		as.DislikeType,
+		as.DeleteType,
+		//as.UndoType, // @todo(marius): not implemented yet
 	}
 	if err := validateItemType(typ, validTypes); err != nil {
 		return errors.Annotate(err, "failed to validate activity type for outbox collection")
@@ -989,35 +995,6 @@ func validateOutboxActivity(a localap.Activity, repo app.CanLoadAccounts) (local
 	}
 	if o, err := validateObject(a.Object, repo.(app.CanLoadItems), a.GetType()); err != nil {
 		return a, errors.Annotate(err, "failed to validate object for outbox collection")
-	} else {
-		a.Object = o
-	}
-	return a, nil
-}
-
-func validateLikedActivityType(typ as.ActivityVocabularyType) error {
-	var validTypes = []as.ActivityVocabularyType{
-		as.LikeType,
-		as.DislikeType,
-		//as.UndoType, // @todo(marius): not implemented yet
-	}
-	if err := validateItemType(typ, validTypes); err != nil {
-		return errors.Annotate(err, "failed to validate activity type for outbox collection")
-	}
-	return nil
-}
-
-func validateLikedActivity(a localap.Activity, repo app.CanLoad) (localap.Activity, error) {
-	if err := validateLikedActivityType(a.GetType()); err != nil {
-		return a, errors.Annotate(err, "failed to validate activity type for liked collection")
-	}
-	if p, err := validateActor(a.Actor, repo); err != nil {
-		return a, errors.Annotate(err, "failed to validate actor for liked collection")
-	} else {
-		a.Actor = p
-	}
-	if o, err := validateObject(a.Object, repo.(app.CanLoadItems), a.GetType()); err != nil {
-		return a, errors.Annotate(err, "failed to validate object for liked collection")
 	} else {
 		a.Object = o
 	}
@@ -1132,9 +1109,16 @@ func (h handler) AddToCollection(w http.ResponseWriter, r *http.Request) {
 	case "outbox":
 		// here we're missing a way to store the specific collection IRI we've received the activity to
 		if a, err = validateOutboxActivity(a, repo); err != nil {
-			//
+			h.HandleError(w, r, err)
+			return
 		}
-		if a.GetType() == as.CreateType {
+
+		switch a.GetType() {
+		case as.DeleteType:
+			fallthrough
+		case as.UpdateType:
+			fallthrough
+		case as.CreateType:
 			it := app.Item{}
 			if err := it.FromActivityPub(a); err != nil {
 				h.logger.WithContext(log.Ctx{
@@ -1166,10 +1150,39 @@ func (h handler) AddToCollection(w http.ResponseWriter, r *http.Request) {
 					status = http.StatusOK
 				}
 			}
-		}
-	case "liked":
-		if a, err = validateLikedActivity(a, repo); err != nil {
-			//
+		case as.DislikeType:
+			fallthrough
+		case as.LikeType:
+			v := app.Vote{}
+			if err := v.FromActivityPub(a); err != nil {
+				h.logger.WithContext(log.Ctx{
+					"err":   err,
+					"trace": errors.Details(err),
+				}).Error("json-ld unmarshal error")
+				h.HandleError(w, r, errors.NewNotValid(err, "not found"))
+				return
+			}
+			if repo, ok := app.ContextVoteSaver(r.Context()); ok {
+				newVot, err := repo.SaveVote(v)
+				if err != nil {
+					h.logger.WithContext(log.Ctx{
+						"err":      err,
+						"trace":    errors.Details(err),
+						"saveVote": v.SubmittedBy.Hash,
+					}).Error(err.Error())
+					h.HandleError(w, r, errors.NewNotValid(err, "not found"))
+					return
+				}
+				if newVot.UpdatedAt.IsZero() {
+					// we need to make a difference between created vote and updated vote
+					// created - http.StatusCreated
+					status = http.StatusCreated
+					location = fmt.Sprintf("/api/actors/%s/%s/%s", newVot.SubmittedBy.Handle, col, newVot.Item.Hash)
+				} else {
+					// updated - http.StatusOK
+					status = http.StatusOK
+				}
+			}
 		}
 	}
 	if err != nil {

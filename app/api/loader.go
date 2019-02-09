@@ -572,7 +572,7 @@ func (r *repository) LoadItems(f app.LoadItemsFilter) (app.ItemCollection, uint,
 }
 
 func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
-	url := fmt.Sprintf("%s/actors/%s/liked/%s", r.BaseURL, v.SubmittedBy.Hash, v.Item.Hash)
+	url := fmt.Sprintf("%s/actors/%s/outbox/%s", r.BaseURL, v.SubmittedBy.Hash, v.Item.Hash)
 
 	var err error
 	var exists *http.Response
@@ -731,8 +731,6 @@ func (r *repository) LoadVote(f app.LoadVotesFilter) (app.Vote, error) {
 }
 
 func (r *repository) SaveItem(it app.Item) (app.Item, error) {
-	doUpd := false
-	doDel := false
 	art := loadAPItem(it)
 
 	actor := loadAPPerson(frontend.AnonymousAccount())
@@ -752,7 +750,6 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 			return it, errors.NotFoundf("item hash is empty, can not delete")
 		}
 		id := art.GetID()
-		doDel = true
 		delete := as.DeleteNew(*id, art)
 		delete.Actor = actor.GetLink()
 		body, err = j.Marshal(delete)
@@ -764,7 +761,6 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 			body, err = j.Marshal(create)
 		} else {
 			id := art.GetID()
-			doUpd = true
 			update := as.UpdateNew(*id, art)
 			update.Actor = actor.GetLink()
 			body, err = j.Marshal(update)
@@ -779,14 +775,8 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 		return it, err
 	}
 	var resp *http.Response
-	if doUpd || doDel {
-		url := string(*art.GetID())
-		resp, err = r.client.Put(url, "application/activity+json", bytes.NewReader(body))
-	} else {
-		url := fmt.Sprintf("%s/actors/%s/outbox", r.BaseURL, it.SubmittedBy.Hash)
-		//url := fmt.Sprintf("%s/self/outbox", r.BaseURL)
-		resp, err = r.client.Post(url, "application/activity+json", bytes.NewReader(body))
-	}
+	url := fmt.Sprintf("%s/actors/%s/outbox", r.BaseURL, it.SubmittedBy.Hash)
+	resp, err = r.client.Post(url, "application/activity+json", bytes.NewReader(body))
 	if err != nil {
 		r.logger.Error(err.Error())
 		return it, err
