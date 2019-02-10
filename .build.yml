@@ -2,17 +2,18 @@ image: archlinux
 packages:
   - go
   - postgresql
+  - sudo
 sources:
   - https://github.com/mariusor/littr.go
 tasks:
+  - postgres: |
+      sudo -u postgres -- initdb --locale en_US.UTF-8 -E UTF8 -D /var/lib/postgres/data
+      sudo systemctl start postgresql.service
   - build: |
       cd littr.go
       export GO111MODULE=on
       cp .env.example .env
       make all
-  - postgres: |
-      su - postgres -c "initdb --locale en_US.UTF-8 -E UTF8 -D /var/lib/postgres/data"
-      systemctl start postgresql.service
   - tests: |
       cd littr.go
       export GO111MODULE=on
