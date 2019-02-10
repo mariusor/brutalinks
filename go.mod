@@ -33,5 +33,6 @@ require (
 	golang.org/x/net v0.0.0-20190110044637-be1c187aa6c6 // indirect
 	golang.org/x/oauth2 v0.0.0-20180620175406-ef147856a6dd
 	golang.org/x/text v0.3.0
+	golang.org/x/xerrors v0.0.0-20190208160001-334af843aad9
 	mellium.im/sasl v0.2.1 // indirect
 )

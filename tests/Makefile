@@ -1,0 +1,26 @@
+include .env
+export
+
+export BUILD_TIME=$(date %s)
+export CGO_ENABLED=0
+export VERSION=(unknown)
+GO := go
+TEST := $(GO) test -v
+
+.PHONY: tests
+tests: run integration
+
+integration: integration_test.go
+	$(TEST) integration_test.go
+	@pkill -f "../bin/app -host $(HOSTNAME)"
+
+.PHONY: run
+run: bootstrap
+	@../bin/app -host $(HOSTNAME) -port $(subst :,,$(LISTEN)) &
+
+bootstrap:
+	@psql -h $(DB_HOST) -U postgres  -c "DROP DATABASE IF EXISTS $(DB_NAME)"
+	@psql -h $(DB_HOST) -U postgres  -c "DROP ROLE IF EXISTS $(DB_USER)"
+	@cp -r ../db ./
+	../bin/bootstrap -user postgres -seed
+	@rm -rf ./db

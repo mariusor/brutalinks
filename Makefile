@@ -62,6 +62,7 @@ cert:
 images:
 	cd docker && $(MAKE) $@
 
-.PHONY: test
-test:
-	$(TEST) -v ./...
+.PHONY: tests
+tests:
+	$(TEST) ./...
+	cd tests && $(MAKE) $@
