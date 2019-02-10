@@ -8,5 +8,5 @@ tasks:
       cd littr.go
       export GO111MODULE=on
       cp .env.example .env
-      make test
       make all
+      make tests
