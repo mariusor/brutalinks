@@ -18,5 +18,4 @@ tasks:
       make all
   - tests: |
       cd littr.go
-      set -a && source $(pwd)/tests/.env.tests
       make tests
