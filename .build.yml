@@ -17,5 +17,5 @@ tasks:
       cp .env.example .env
       make all
   - tests: |
-      cd littr.go/tests
+      cd littr.go
       make tests
