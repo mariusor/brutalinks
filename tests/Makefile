@@ -1,6 +1,5 @@
 include .env.tests
 export
-
 export BUILD_TIME=$(date %s)
 export CGO_ENABLED=0
 GO := go
@@ -8,6 +7,7 @@ TEST := $(GO) test -v
 
 .PHONY: tests
 tests: run integration
+	env
 
 integration: integration_test.go
 	$(TEST) integration_test.go
