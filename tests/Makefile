@@ -5,9 +5,12 @@ export CGO_ENABLED=0
 GO := go
 TEST := $(GO) test -v
 
+.PHONY: env
+env:
+	env
+
 .PHONY: tests
 tests: run integration
-	env
 
 integration: integration_test.go
 	$(TEST) integration_test.go
