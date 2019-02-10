@@ -39,7 +39,7 @@ type handler struct {
 	logger  log.Logger
 }
 
-var defaultAccount = app.Account{Handle: app.Anonymous, Hash: app.AnonymousHash}
+var defaultAccount = app.AnonymousAccount
 
 type flashType string
 

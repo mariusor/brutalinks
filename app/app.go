@@ -28,6 +28,8 @@ const (
 	AnonymousHash = Hash("eacff9ddf379bd9fc8274c5a9f4cae08")
 )
 
+var AnonymousAccount = Account{Handle: Anonymous, Hash: AnonymousHash}
+
 var listenHost string
 var listenPort int64
 var listenOn string

@@ -117,6 +117,106 @@ func (i *Item) FromActivityPub(it as.Item) error {
 		i.Hash.FromActivityPub(it.GetLink())
 		return nil
 	}
+
+	articleFn := func (a *Item, fnAs func(i *Item, a as.Object) error, fnAp func(i *Item, a ap.Article) error) error {
+		if a, ok := it.(ap.Article); ok {
+			return fnAp(i, a)
+		}
+		if a, ok := it.(*ap.Article); ok {
+			return fnAp(i, *a)
+		}
+		if o, ok := it.(as.Object); ok {
+			return fnAs(i, o)
+		}
+		if o, ok := it.(*as.Object); ok {
+			return fnAs(i, *o)
+		}
+		return nil
+	}
+	loadFromASObject := func(i *Item, a as.Object) error {
+		title := jsonUnescape(a.Name.First())
+
+		i.Hash.FromActivityPub(a)
+		if len(title) > 0 {
+			i.Title = title
+		}
+		i.MimeType = MimeTypeHTML
+		if a.Type == as.PageType {
+			i.Data = string(a.URL.GetLink())
+			i.MimeType = MimeTypeURL
+		} else {
+			if len(a.MediaType) > 0 {
+				i.MimeType = MimeType(a.MediaType)
+			}
+			i.Data = jsonUnescape(a.Content.First())
+		}
+		if !a.Published.IsZero() {
+			i.SubmittedAt = a.Published
+		}
+		if !a.Updated.IsZero() {
+			i.UpdatedAt = a.Updated
+		}
+		i.Metadata = &ItemMetadata{}
+
+		if a.AttributedTo != nil {
+			auth := Account{}
+			auth.FromActivityPub(a.AttributedTo)
+			i.SubmittedBy = &auth
+		}
+		if len(a.ID) > 0 {
+			iri := a.GetLink()
+			i.Metadata.ID = iri.String()
+			i.Metadata.URL = a.URL.GetLink().String()
+		}
+		if a.Icon != nil {
+			if a.Icon.IsObject() {
+				if ic, ok := a.Icon.(*as.Object); ok {
+					i.Metadata.Icon.MimeType = string(ic.MediaType)
+					i.Metadata.Icon.URI = ic.URL.GetLink().String()
+				}
+				if ic, ok := a.Icon.(as.Object); ok {
+					i.Metadata.Icon.MimeType = string(ic.MediaType)
+					i.Metadata.Icon.URI = ic.URL.GetLink().String()
+				}
+			}
+		}
+		if a.InReplyTo != nil {
+			par := Item{}
+			par.FromActivityPub(a.InReplyTo)
+			i.Parent = &par
+		}
+		if a.Context != nil {
+			op := Item{}
+			op.FromActivityPub(a.Context)
+			i.OP = &op
+		}
+		if a.Tag != nil && len(a.Tag) > 0 {
+			i.Metadata.Tags = make(TagCollection, 0)
+			i.Metadata.Mentions = make(TagCollection, 0)
+
+			tags := TagCollection{}
+			tags.FromActivityPub(a.Tag)
+			for _, t := range tags {
+				if t.Name[0] == '#' {
+					i.Metadata.Tags = append(i.Metadata.Tags, t)
+				} else {
+					i.Metadata.Mentions = append(i.Metadata.Mentions, t)
+				}
+			}
+		}
+		return nil
+	}
+	loadFromArticle := func(i *Item, a ap.Article) error {
+		err := loadFromASObject(i, a.Object.Parent)
+		i.Score = a.Score
+		// TODO(marius): here we seem to have a bug, when Source.Content is nil when it shouldn't
+		//    to repro, I used some copy/pasted comments from console javascript
+		if len(a.Source.Content) > 0 && len(a.Source.MediaType) > 0 {
+			i.Data = jsonUnescape(a.Source.Content.First())
+			i.MimeType = MimeType(a.Source.MediaType)
+		}
+		return err
+	}
 	switch it.GetType() {
 	case as.DeleteType:
 		if act, ok := it.(*ap.Activity); ok {
@@ -153,53 +253,29 @@ func (i *Item) FromActivityPub(it as.Item) error {
 	case as.DocumentType:
 		fallthrough
 	case as.PageType:
-		loadFromASObject := func(i *Item, a as.Object) error {
-			title := jsonUnescape(a.Name.First())
-
-			i.Hash.FromActivityPub(a)
-			if len(title) > 0 {
-				i.Title = title
+		return articleFn(i, loadFromASObject, loadFromArticle)
+	case as.TombstoneType:
+		id := it.GetLink()
+		i.Hash.FromActivityPub(id)
+		if len(id) > 0 {
+			i.Metadata = &ItemMetadata{
+				ID: id.String(),
 			}
-			i.MimeType = MimeTypeHTML
-			if a.Type == as.PageType {
-				i.Data = string(a.URL.GetLink())
-				i.MimeType = MimeTypeURL
-			} else {
-				if len(a.MediaType) > 0 {
-					i.MimeType = MimeType(a.MediaType)
-				}
-				i.Data = jsonUnescape(a.Content.First())
+		}
+		loadFromASObject :=func(i *Item, o as.Object) error {
+			if o.InReplyTo != nil {
+				par := Item{}
+				par.FromActivityPub(o.InReplyTo)
+				i.Parent = &par
 			}
-			if !a.Published.IsZero() {
-				i.SubmittedAt = a.Published
+			if o.Context != nil {
+				op := Item{}
+				op.FromActivityPub(o.Context)
+				i.OP = &op
 			}
-			if !a.Updated.IsZero() {
-				i.UpdatedAt = a.Updated
-			}
-			i.Metadata = &ItemMetadata{}
-
-			if a.AttributedTo != nil {
-				auth := Account{}
-				auth.FromActivityPub(a.AttributedTo)
-				i.SubmittedBy = &auth
-			}
-			if len(a.ID) > 0 {
-				iri := a.GetLink()
-				i.Metadata.ID = iri.String()
-				i.Metadata.URL = a.URL.GetLink().String()
-			}
-			if a.Icon != nil {
-				if a.Icon.IsObject() {
-					if ic, ok := a.Icon.(*as.Object); ok {
-						i.Metadata.Icon.MimeType = string(ic.MediaType)
-						i.Metadata.Icon.URI = ic.URL.GetLink().String()
-					}
-					if ic, ok := a.Icon.(as.Object); ok {
-						i.Metadata.Icon.MimeType = string(ic.MediaType)
-						i.Metadata.Icon.URI = ic.URL.GetLink().String()
-					}
-				}
-			}
+			return nil
+		}
+		loadFromArticle := func(i *Item, a ap.Article) error {
 			if a.InReplyTo != nil {
 				par := Item{}
 				par.FromActivityPub(a.InReplyTo)
@@ -210,59 +286,12 @@ func (i *Item) FromActivityPub(it as.Item) error {
 				op.FromActivityPub(a.Context)
 				i.OP = &op
 			}
-			if a.Tag != nil && len(a.Tag) > 0 {
-				i.Metadata.Tags = make(TagCollection, 0)
-				i.Metadata.Mentions = make(TagCollection, 0)
-
-				tags := TagCollection{}
-				tags.FromActivityPub(a.Tag)
-				for _, t := range tags {
-					if t.Name[0] == '#' {
-						i.Metadata.Tags = append(i.Metadata.Tags, t)
-					} else {
-						i.Metadata.Mentions = append(i.Metadata.Mentions, t)
-					}
-				}
-			}
 			return nil
 		}
-		loadFromArticle := func(i *Item, a ap.Article) error {
-			err := loadFromASObject(i, a.Object.Parent)
-			i.Score = a.Score
-			// TODO(marius): here we seem to have a bug, when Source.Content is nil when it shouldn't
-			//    to repro, I used some copy/pasted comments from console javascript
-			if len(a.Source.Content) > 0 && len(a.Source.MediaType) > 0 {
-				i.Data = jsonUnescape(a.Source.Content.First())
-				i.MimeType = MimeType(a.Source.MediaType)
-			}
-			return err
-		}
-		if a, ok := it.(ap.Article); ok {
-			return loadFromArticle(i, a)
-		}
-		if a, ok := it.(*ap.Article); ok {
-			return loadFromArticle(i, *a)
-		}
-		if o, ok := it.(as.Object); ok {
-			return loadFromASObject(i, o)
-		}
-		if o, ok := it.(*as.Object); ok {
-			return loadFromASObject(i, *o)
-		}
-	case as.TombstoneType:
-		id := it.GetLink()
+		articleFn(i, loadFromASObject, loadFromArticle)
 
-		i.Hash.FromActivityPub(id)
-		if len(id) > 0 {
-			i.Metadata = &ItemMetadata{
-				ID: id.String(),
-			}
-		}
 		i.Flags = FlagsDeleted
-		i.SubmittedBy = &Account{
-			Handle: Anonymous,
-			Hash:   AnonymousHash,
-		}
+		i.SubmittedBy = &AnonymousAccount
 	default:
 		return errors.New("invalid object type")
 	}

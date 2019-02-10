@@ -76,7 +76,11 @@ func loadAPActivity(it app.Item) as.Activity {
 
 	act.Object = ob
 	act.Actor = a.GetLink()
-
+	switch ob.GetType() {
+	case as.TombstoneType:
+		act.Type = as.DeleteType
+		act.Actor = as.IRI(BuildActorID(app.AnonymousAccount))
+	}
 	return act
 }
 
@@ -128,7 +132,7 @@ func loadAPItem(item app.Item) as.Item {
 	o.Updated = item.UpdatedAt
 
 	if item.Deleted() {
-		return as.Tombstone{
+		del := as.Tombstone{
 			Parent: as.Object{
 				ID:   o.ID,
 				Type: as.TombstoneType,
@@ -136,6 +140,14 @@ func loadAPItem(item app.Item) as.Item {
 			FormerType: o.Type,
 			Deleted:    o.Updated,
 		}
+		if par, ok := BuildObjectIDFromItem(*item.Parent); ok {
+			del.InReplyTo = as.IRI(par)
+		}
+		if op, ok := BuildObjectIDFromItem(*item.OP); ok {
+			del.Context = as.IRI(op)
+		}
+
+		return del
 	}
 
 	//o.Generator = as.IRI(app.Instance.BaseURL)
