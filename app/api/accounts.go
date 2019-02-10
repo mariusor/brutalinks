@@ -140,11 +140,15 @@ func loadAPItem(item app.Item) as.Item {
 			FormerType: o.Type,
 			Deleted:    o.Updated,
 		}
-		if par, ok := BuildObjectIDFromItem(*item.Parent); ok {
-			del.InReplyTo = as.IRI(par)
+		if item.Parent != nil {
+			if par, ok := BuildObjectIDFromItem(*item.Parent); ok {
+				del.InReplyTo = as.IRI(par)
+			}
 		}
-		if op, ok := BuildObjectIDFromItem(*item.OP); ok {
-			del.Context = as.IRI(op)
+		if item.OP != nil {
+			if op, ok := BuildObjectIDFromItem(*item.OP); ok {
+				del.Context = as.IRI(op)
+			}
 		}
 
 		return del
