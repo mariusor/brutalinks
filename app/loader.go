@@ -87,9 +87,9 @@ func (h Hashes) String() string {
 }
 
 type LoadVotesFilter struct {
-	ItemKey              []Hash    `qstring:"hash,omitempty"`
+	ItemKey              Hashes    `qstring:"hash,omitempty"`
 	Type                 VoteTypes `qstring:"type,omitempty"`
-	AttributedTo         []Hash    `qstring:"attributedTo,omitempty"`
+	AttributedTo         Hashes    `qstring:"attributedTo,omitempty"`
 	SubmittedAt          time.Time `qstring:"submittedAt,omitempty"`
 	SubmittedAtMatchType MatchType `qstring:"submittedAtMatchType,omitempty"`
 	Page                 int       `qstring:"page,omitempty"`
@@ -97,7 +97,7 @@ type LoadVotesFilter struct {
 }
 
 type LoadItemsFilter struct {
-	Key                  []Hash     `qstring:"hash,omitempty"`
+	Key                  Hashes     `qstring:"hash,omitempty"`
 	MediaType            []MimeType `qstring:"mediaType,omitempty"`
 	AttributedTo         []Hash     `qstring:"attributedTo,omitempty"`
 	InReplyTo            []string   `qstring:"inReplyTo,omitempty"`
