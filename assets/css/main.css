@@ -315,13 +315,16 @@ ol.comments li {
     align-self: center;
 }
 .score a.nay {
-    margin-bottom: .6em;
+    margin-bottom: .5em;
 }
 .item .score data {
     justify-self: center;
     align-self: center;
     font-size: .7em;
-    padding-right: .15em;
+}
+.item .score data svg {
+    margin-right: .1em;
+    margin-bottom: .1em;
 }
 .item .score data.inf {
     font-weight: bold;

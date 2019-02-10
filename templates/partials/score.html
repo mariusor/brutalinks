@@ -2,6 +2,8 @@
 {{ $vote := $account.VotedOn . }}
 <aside class="score" data-score="{{if .Deleted}}-1{{else}}{{ .Score | ScoreFmt }}{{end}}" data-hash="{{.Hash}}">
     {{ if Config.VotingEnabled }}<a {{if and (not .Deleted) $account.IsLogged }}href="{{ . | YayLink}}" {{end}}class="yay{{if $vote | IsYay }} ed{{end}}" data-action="yay" data-hash="{{.Hash}}" rel="nofollow" title="yay">{{ icon "plus" }}</a>{{ end }}
-    <data class="{{- .Score | ScoreClass -}}" {{if not .Deleted}} title="{{.Score | NumberFmt }}" value="{{.Score | NumberFmt }}"{{end}}>{{if .Deleted}}{{ icon "recycle" }}{{else}}{{ .Score | ScoreFmt }}{{end}}</data>
+    <data {{if not .Deleted}}class="{{- .Score | ScoreClass -}}" title="{{.Score | NumberFmt }}" value="{{.Score | NumberFmt }}"{{end}}>
+        {{if .Deleted}}{{ icon "recycle" }}{{else}}{{ .Score | ScoreFmt }}{{end}}
+    </data>
     {{ if Config.VotingEnabled }}{{ if Config.DownvotingEnabled }}<a {{if and (not .Deleted) $account.IsLogged }}href="{{ . | NayLink}}" {{end}}class="nay{{if $vote | IsNay }} ed{{end}}" data-action="nay" data-hash="{{.Hash}}" rel="nofollow" title="nay">{{ icon "minus" }}</a>{{ end }}{{ end }}
 </aside>
