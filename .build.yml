@@ -5,16 +5,17 @@ packages:
   - sudo
 sources:
   - https://github.com/mariusor/littr.go
+environment:
+  GO111MODULE: 'on'
 tasks:
-  - postgres: |
+  - setup: |
       sudo -u postgres -- initdb --locale en_US.UTF-8 -E UTF8 -D /var/lib/postgres/data
       sudo systemctl start postgresql.service
+      cd littr.go && go mod download
   - build: |
       cd littr.go
-      export GO111MODULE=on
       cp .env.example .env
       make all
   - tests: |
       cd littr.go
-      export GO111MODULE=on
       make tests
