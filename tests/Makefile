@@ -3,7 +3,6 @@ export
 
 export BUILD_TIME=$(date %s)
 export CGO_ENABLED=0
-export VERSION=(unknown)
 GO := go
 TEST := $(GO) test -v
 
