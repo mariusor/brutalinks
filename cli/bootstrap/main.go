@@ -15,7 +15,35 @@ import (
 	_ "github.com/lib/pq"
 )
 
+func pingDb(db *sql.DB) (*sql.DB, error) {
+	cnt := 0
+	for {
+		if err := db.Ping(); err == nil {
+			if cnt > 0 {
+				fmt.Printf("\n")
+			}
+			return db, nil
+		} else {
+			if t, ok := err.(*net.OpError); ok {
+				cnt++
+				if cnt%10 == 0 {
+					fmt.Printf(".")
+				}
+				if cnt%720 == 0 {
+					fmt.Printf("\n")
+				}
+				time.Sleep(100 * time.Millisecond)
+			} else {
+				return db, t
+			}
+		}
+		return db, nil
+	}
+	return db, nil
+}
+
 func dbConnection(dbHost string, dbUser string, dbPw string, dbName string) (*sql.DB, error) {
+	fmt.Printf("Connecting to %s@%s//%s\n", dbUser, dbHost, dbName)
 	if dbUser == "" && dbPw == "" {
 		err := errors.Forbiddenf("missing user and/or pw")
 		if !cmd.E(err) {
@@ -30,28 +58,7 @@ func dbConnection(dbHost string, dbUser string, dbPw string, dbName string) (*sq
 	connStr := fmt.Sprintf("host=%s user=%s%s dbname=%s sslmode=disable", dbHost, dbUser, pw, dbName)
 	db, err := sql.Open("postgres", connStr)
 	if err == nil {
-		cnt := 0
-		for {
-			if err := db.Ping(); err == nil {
-				if cnt > 0 {
-					fmt.Printf("\n")
-				}
-				return db, nil
-			} else {
-				if t, ok := err.(*net.OpError); ok {
-					cnt++
-					if cnt%10 == 0 {
-						fmt.Printf(".")
-					}
-					if cnt == (720-22) || cnt%720 == 0 {
-						fmt.Printf("\n")
-					}
-					time.Sleep(100 * time.Millisecond)
-				} else {
-					return db, t
-				}
-			}
-		}
+		return pingDb(db)
 	}
 	return nil, err
 }
