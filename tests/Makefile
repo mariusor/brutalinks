@@ -5,10 +5,6 @@ export CGO_ENABLED=0
 GO := go
 TEST := $(GO) test -v
 
-.PHONY: env
-env:
-	env
-
 .PHONY: tests
 tests: run integration
 
@@ -17,7 +13,7 @@ integration: integration_test.go
 	@pkill -f "../bin/app -host $(HOSTNAME)"
 
 .PHONY: run
-run: bootstrap
+run:
 	@../bin/app -host $(HOSTNAME) -port $(subst :,,$(LISTEN)) &
 
 bootstrap:
