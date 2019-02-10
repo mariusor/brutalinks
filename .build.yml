@@ -1,6 +1,7 @@
 image: archlinux
 packages:
   - go
+  - postgresql
 sources:
   - https://github.com/mariusor/littr.go
 tasks:
@@ -9,4 +10,7 @@ tasks:
       export GO111MODULE=on
       cp .env.example .env
       make all
+  - tests: |
+      cd littr.go
+      export GO111MODULE=on
       make tests
