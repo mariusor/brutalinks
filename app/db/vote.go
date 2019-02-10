@@ -21,7 +21,7 @@ type Vote struct {
 	SubmittedAt time.Time `sql:"submitted_at"`
 	UpdatedAt   time.Time `sql:"updated_at"`
 	ItemId      int64     `sql:"item_id"`
-	Weight      int       `sql:"Weight"`
+	Weight      int       `sql:"weight"`
 	Flags       FlagBits  `sql:"flags"`
 	item        *Item
 	voter       *Account
@@ -101,7 +101,7 @@ func loadVotes(db *pg.DB, f app.LoadVotesFilter) (app.VoteCollection, error) {
 	}
 	selC := fmt.Sprintf(`select
 		"vote"."id" as "vote_id",
-		"vote"."Weight" as "vote_weight",
+		"vote"."weight" as "vote_weight",
 		"vote"."submitted_at" as "vote_submitted_at",
 		"vote"."flags" as "vote_flags",
 		"item"."id" as "item_id",
