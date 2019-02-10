@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"github.com/mariusor/littr.go/app/api"
-	"github.com/mariusor/littr.go/app/log"
+	"github.com/mariusor/littr.go/internal/log"
 	"github.com/go-ap/activitystreams"
 	"io/ioutil"
 	"net/http"

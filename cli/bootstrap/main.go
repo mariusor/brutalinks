@@ -5,7 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/mariusor/littr.go/app/cmd"
-	"github.com/mariusor/littr.go/app/log"
+	"github.com/mariusor/littr.go/internal/log"
 	"net"
 	"os"
 	"time"
@@ -40,10 +40,10 @@ func dbConnection(dbHost string, dbUser string, dbPw string, dbName string) (*sq
 			} else {
 				if t, ok := err.(*net.OpError); ok {
 					cnt++
-					if cnt % 10 == 0 {
+					if cnt%10 == 0 {
 						fmt.Printf(".")
 					}
-					if cnt == (720 - 22) || cnt % 720 == 0 {
+					if cnt == (720-22) || cnt%720 == 0 {
 						fmt.Printf("\n")
 					}
 					time.Sleep(100 * time.Millisecond)
@@ -125,7 +125,7 @@ func main() {
 		os.Exit(1)
 	}
 	_, err = dot.Exec(db, "extension-ltree")
-	s2, _ =  dot.Raw("extension-ltree")
+	s2, _ = dot.Raw("extension-ltree")
 	if !cmd.E(errors.Annotatef(err, "query: %s", s2)) {
 		os.Exit(1)
 	}

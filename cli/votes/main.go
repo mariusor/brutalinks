@@ -5,7 +5,7 @@ import (
 	"github.com/go-pg/pg"
 	"github.com/mariusor/littr.go/app/cmd"
 	"github.com/mariusor/littr.go/app/db"
-	"github.com/mariusor/littr.go/app/log"
+	"github.com/mariusor/littr.go/internal/log"
 	"time"
 
 	_ "github.com/lib/pq"
