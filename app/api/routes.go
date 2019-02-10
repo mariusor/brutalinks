@@ -22,13 +22,14 @@ func (h handler) Routes() func(chi.Router) {
 				r.Use(ServiceCtxt)
 
 				r.With(LoadFiltersCtxt(h.HandleError), h.ItemCollectionCtxt).Get("/", h.HandleCollection)
-				r.With(LoadFiltersCtxt(h.HandleError), h.LoadActivity).Post("/", h.AddToCollection)
 				r.Route("/{hash}", func(r chi.Router) {
 					r.With(LoadFiltersCtxt(h.HandleError), h.ItemCtxt).Get("/", h.HandleCollectionActivity)
 					r.With(LoadFiltersCtxt(h.HandleError), h.ItemCtxt).Get("/object", h.HandleCollectionActivityObject)
 					r.With(LoadFiltersCtxt(h.HandleError), h.ItemCollectionCtxt).Get("/object/replies", h.HandleCollection)
 				})
 			})
+			r.With(LoadFiltersCtxt(h.HandleError), h.LoadActivity).Post("/outbox", h.ClientRequest)
+			r.With(LoadFiltersCtxt(h.HandleError), h.LoadActivity).Post("/inbox", h.ServerRequest)
 		})
 		r.Route("/actors", func(r chi.Router) {
 			r.With(LoadFiltersCtxt(h.HandleError)).Get("/", h.HandleActorsCollection)
@@ -39,18 +40,17 @@ func (h handler) Routes() func(chi.Router) {
 				r.Get("/", h.HandleActor)
 				r.Route("/{collection}", func(r chi.Router) {
 					r.With(LoadFiltersCtxt(h.HandleError), h.ItemCollectionCtxt).Get("/", h.HandleCollection)
-					r.With(LoadFiltersCtxt(h.HandleError), h.LoadActivity).Post("/", h.AddToCollection)
 					r.Route("/{hash}", func(r chi.Router) {
 						r.Use(middleware.GetHead)
 						// this should update the activity
-						r.With(LoadFiltersCtxt(h.HandleError), h.LoadActivity).Put("/", h.AddToCollection)
-						r.With(LoadFiltersCtxt(h.HandleError), h.LoadActivity).Post("/", h.AddToCollection)
 						r.With(LoadFiltersCtxt(h.HandleError), h.ItemCtxt).Get("/", h.HandleCollectionActivity)
 						r.With(LoadFiltersCtxt(h.HandleError), h.ItemCtxt).Get("/object", h.HandleCollectionActivityObject)
 						// this should update the item
 						r.With(LoadFiltersCtxt(h.HandleError), h.ItemCtxt, h.ItemCollectionCtxt).Get("/object/replies", h.HandleCollection)
 					})
 				})
+				r.With(LoadFiltersCtxt(h.HandleError), h.LoadActivity).Post("/outbox", h.ClientRequest)
+				r.With(LoadFiltersCtxt(h.HandleError), h.LoadActivity).Post("/inbox", h.ServerRequest)
 			})
 		})
 

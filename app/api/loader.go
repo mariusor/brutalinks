@@ -319,12 +319,33 @@ func loadLikedFilterFromReq(r *http.Request) *app.LoadVotesFilter {
 	return &filters
 }
 
+var validCollectionNames = []string{
+	"actors",
+	"disliked",
+	"liked",
+	"outbox",
+	"inbox",
+	"replies",
+	"followed",
+	"following",
+}
+func isValidCollectionName (s string) bool {
+	for _, valid := range validCollectionNames {
+		if valid == s {
+			return true
+		}
+	}
+	return false
+}
+
 func LoadFiltersCtxt(eh app.ErrorHandler) app.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			col := getCollectionFromReq(r)
 			var filters app.Paginator
 			switch col {
+			case "actors":
+				filters = loadPersonFiltersFromReq(r)
 			case "disliked":
 				fallthrough
 			case "liked":
@@ -336,7 +357,6 @@ func LoadFiltersCtxt(eh app.ErrorHandler) app.Handler {
 			case "replies":
 				filters = loadRepliesFilterFromReq(r)
 			case "":
-				filters = loadPersonFiltersFromReq(r)
 			default:
 				eh(w, r, errors.NotValidf("collection %s", col))
 				return
@@ -607,12 +627,13 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 	}
 
 	var resp *http.Response
+	outbox := fmt.Sprintf("%s/actors/%s/outbox", r.BaseURL, v.SubmittedBy.Hash)
 	if exists.StatusCode == http.StatusOK {
 		// previously found a vote, needs updating
-		resp, err = r.client.Put(url, "application/json+activity", bytes.NewReader(body))
+		resp, err = r.client.Post(outbox, "application/json+activity", bytes.NewReader(body))
 	} else if exists.StatusCode == http.StatusNotFound {
 		// previously didn't fund a vote, needs adding
-		resp, err = r.client.Post(url, "application/json+activity", bytes.NewReader(body))
+		resp, err = r.client.Post(outbox, "application/json+activity", bytes.NewReader(body))
 	} else {
 		err = errors.New("received unexpected http response")
 		r.logger.WithContext(log.Ctx{
