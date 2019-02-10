@@ -1,4 +1,4 @@
-include .env
+include .env.tests
 export
 
 export BUILD_TIME=$(date %s)
