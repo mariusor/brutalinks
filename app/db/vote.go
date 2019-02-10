@@ -21,7 +21,7 @@ type Vote struct {
 	SubmittedAt time.Time `sql:"submitted_at"`
 	UpdatedAt   time.Time `sql:"updated_at"`
 	ItemId      int64     `sql:"item_id"`
-	Weight      int       `sql:"weight"`
+	Weight      int       `sql:"Weight"`
 	Flags       FlagBits  `sql:"flags"`
 	item        *Item
 	voter       *Account
@@ -101,7 +101,7 @@ func loadVotes(db *pg.DB, f app.LoadVotesFilter) (app.VoteCollection, error) {
 	}
 	selC := fmt.Sprintf(`select
 		"vote"."id" as "vote_id",
-		"vote"."weight" as "vote_weight",
+		"vote"."Weight" as "vote_weight",
 		"vote"."submitted_at" as "vote_submitted_at",
 		"vote"."flags" as "vote_flags",
 		"item"."id" as "item_id",
@@ -250,27 +250,25 @@ func (v votesView) item() Item {
 }
 
 func saveVote(db *pg.DB, vot app.Vote) (app.Vote, error) {
-	var sel string
-	sel = `SELECT "votes"."id", "accounts"."id", "votes"."weight", "votes"."submitted_at" FROM "votes" 
-	INNER JOIN "accounts" ON "accounts"."id" = "votes"."submitted_by" 
-			WHERE "accounts"."key" ~* ?0 AND "votes"."item_id" = (SELECT "id" FROM "items" WHERE "key" ~* ?1);`
-
-	var vID int64
-	var oldWeight int64
-	var submittedAt time.Time
-
-	votes := make(VoteCollection, 0)
 	var err error
-	if _, err := db.Query(&votes, sel, vot.SubmittedBy.Hash, vot.Item.Hash); err != nil {
+	sel := `SELECT "votes"."id" as "vote_id", "accounts"."id" as "account_id", "votes"."weight" FROM "votes"
+	INNER JOIN "accounts" ON "accounts"."id" = "votes"."submitted_by"
+	WHERE "accounts"."key" ~* ?0 AND "votes"."item_id" = (SELECT "id" FROM "items" WHERE "key" ~* ?1);`
+
+	old := struct {
+		VoteId    int64 `sql:vote_id`
+		AccountId int64 `sql:account_id`
+		Weight    int64 `sql:weight`
+	}{}
+	if _, err := db.QueryOne(&old, sel, vot.SubmittedBy.Hash, vot.Item.Hash); err != nil {
 		return vot, err
 	}
-	vot.SubmittedAt = submittedAt
 
 	v := Vote{}
 	var q string
 	var updated bool
-	if vID != 0 {
-		if vot.Weight != 0 && oldWeight != 0 && math.Signbit(float64(oldWeight)) == math.Signbit(float64(vot.Weight)) {
+	if old.VoteId != 0 {
+		if vot.Weight != 0 && old.Weight != 0 && math.Signbit(float64(old.Weight)) == math.Signbit(float64(vot.Weight)) {
 			vot.Weight = 0
 		}
 		q = `update "votes" set "updated_at" = now(), "weight" = ?0, "flags" = ?1::bit(8) where "item_id" = (select "id" from "items" where "key" ~* ?2) and "submitted_by" = (select "id" from "accounts" where "key" ~* ?3);`
@@ -304,7 +302,7 @@ func saveVote(db *pg.DB, vot app.Vote) (app.Vote, error) {
 		Logger.WithContext(log.Ctx{
 			"hash":      vot.Item.Hash,
 			"updated":   updated,
-			"oldWeight": oldWeight,
+			"oldWeight": old.Weight,
 			"newWeight": vot.Weight,
 			"voter":     vot.SubmittedBy.Hash,
 		}).Info("vote updated successfully")
@@ -312,7 +310,7 @@ func saveVote(db *pg.DB, vot app.Vote) (app.Vote, error) {
 		Logger.WithContext(log.Ctx{
 			"hash":      vot.Item.Hash,
 			"updated":   updated,
-			"oldWeight": oldWeight,
+			"oldWeight": old.Weight,
 			"newWeight": vot.Weight,
 			"voter":     vot.SubmittedBy.Hash,
 		}).Error(err.Error())
