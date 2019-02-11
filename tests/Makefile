@@ -4,15 +4,19 @@ export CGO_ENABLED=0
 GO := go
 TEST := $(GO) test -v
 
-.PHONY: tests bootstrap run integration
+.PHONY: tests bootstrap run integration killapp
 
 tests: bootstrap run integration
 
 integration:
 	$(TEST) integration_test.go
-	@pkill -f "../bin/app -host $(HOSTNAME)"
+	$(MAKE) killapp
 
-run:
+killapp:
+	@-pkill -f "../bin/app -host $(HOSTNAME)"
+	@([ $$? -eq 0 ]) || true
+
+run: killapp
 	@../bin/app -host $(HOSTNAME) -port $(subst :,,$(LISTEN)) &
 
 bootstrap:
