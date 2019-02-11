@@ -15,7 +15,7 @@ tasks:
   - show_env: |
       set +x
       go version
-      make --version
+      make --version | head -n1
       $(readlink -f /proc/$$/exe) --version
       pg_ctl --version
   - build: |
