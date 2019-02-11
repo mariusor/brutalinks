@@ -6,7 +6,7 @@ GO := go
 TEST := $(GO) test -v
 
 .PHONY: tests
-tests: run integration
+tests: bootstrap run integration
 
 integration: integration_test.go
 	$(TEST) integration_test.go

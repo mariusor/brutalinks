@@ -65,5 +65,4 @@ images:
 .PHONY: tests
 tests:
 	$(TEST) ./...
-	cd tests && $(MAKE) bootstrap
 	cd tests && $(MAKE) $@
