@@ -9,7 +9,7 @@ TEST := $(GO) test -v
 tests: bootstrap run integration
 
 integration:
-	$(TEST) integration_test.go
+	$(TEST) ./...
 	$(MAKE) killapp
 
 killapp:
