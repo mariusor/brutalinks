@@ -21,6 +21,8 @@ endif
 
 BUILD := $(GO) build -a -ldflags '-X main.version=$(VERSION) -extldflags "-static"'
 
+.PHONY: all cli run clean cert images tests
+
 all: app cli
 
 app: bin/app
@@ -49,20 +51,19 @@ bin/fetcher: go.mod cli/fetcher/main.go $(APPSOURCES)
 
 cli: bootstrap votes keys poach fetcher
 
-clean:
-	$(RM) bin/*
-	cd docker && $(MAKE) $@
-
 run: app
 	@./bin/app -host $(HOSTNAME)
 
+clean:
+	$(RM) bin/*
+	$(MAKE) -C docker $@
+
 cert:
-	cd docker && $(MAKE) $@
+	$(MAKE) -C docker $@
 
 images:
-	cd docker && $(MAKE) $@
+	$(MAKE) -C docker $@
 
-.PHONY: tests
 tests:
-	$(TEST) ./...
-	cd tests && $(MAKE) $@
+	$(TEST) ./{app,cli,internal}/...
+	$(MAKE) -C tests $@

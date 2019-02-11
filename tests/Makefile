@@ -1,18 +1,17 @@
 include .env.tests
 export
-export BUILD_TIME=$(date %s)
 export CGO_ENABLED=0
 GO := go
 TEST := $(GO) test -v
 
-.PHONY: tests
+.PHONY: tests bootstrap run integration
+
 tests: bootstrap run integration
 
-integration: integration_test.go
+integration:
 	$(TEST) integration_test.go
 	@pkill -f "../bin/app -host $(HOSTNAME)"
 
-.PHONY: run
 run:
 	@../bin/app -host $(HOSTNAME) -port $(subst :,,$(LISTEN)) &
 
