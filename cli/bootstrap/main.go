@@ -15,8 +15,9 @@ import (
 	_ "github.com/lib/pq"
 )
 
-func pingDb(db *sql.DB) (*sql.DB, error) {
+func waitForDb(db *sql.DB, d time.Duration) (*sql.DB, error) {
 	cnt := 0
+	st := time.Now()
 	for {
 		if err := db.Ping(); err == nil {
 			if cnt > 0 {
@@ -35,6 +36,9 @@ func pingDb(db *sql.DB) (*sql.DB, error) {
 				time.Sleep(100 * time.Millisecond)
 			} else {
 				return db, t
+			}
+			if time.Since(st) > d {
+				return db, errors.NotFoundf("No response for %d s, giving up.", d.Seconds())
 			}
 		}
 		return db, nil
@@ -58,7 +62,7 @@ func dbConnection(dbHost string, dbUser string, dbPw string, dbName string) (*sq
 	connStr := fmt.Sprintf("host=%s user=%s%s dbname=%s sslmode=disable", dbHost, dbUser, pw, dbName)
 	db, err := sql.Open("postgres", connStr)
 	if err == nil {
-		return pingDb(db)
+		return waitForDb(db, time.Second*30)
 	}
 	return nil, err
 }
