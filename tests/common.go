@@ -1,6 +1,9 @@
 package tests
 
-import "testing"
+import (
+	"runtime/debug"
+	"testing"
+)
 
 // UserAgent value that the client uses when performing requests
 var UserAgent = "test-go-http-client"
@@ -13,7 +16,7 @@ func errIfNot(t *testing.T) assertFn {
 	return func(v bool, msg string, args ...interface{}) {
 		if !v {
 			t.Errorf(msg, args...)
-			panic(nil)
+			t.Errorf("\n%s\n", debug.Stack())
 		}
 	}
 }
