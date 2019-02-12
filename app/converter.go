@@ -118,7 +118,7 @@ func (i *Item) FromActivityPub(it as.Item) error {
 		return nil
 	}
 
-	articleFn := func (a *Item, fnAs func(i *Item, a as.Object) error, fnAp func(i *Item, a ap.Article) error) error {
+	articleFn := func(a *Item, fnAs func(i *Item, a as.Object) error, fnAp func(i *Item, a ap.Article) error) error {
 		if a, ok := it.(ap.Article); ok {
 			return fnAp(i, a)
 		}
@@ -262,7 +262,7 @@ func (i *Item) FromActivityPub(it as.Item) error {
 				ID: id.String(),
 			}
 		}
-		loadFromASObject :=func(i *Item, o as.Object) error {
+		loadFromASObject := func(i *Item, o as.Object) error {
 			if o.InReplyTo != nil {
 				par := Item{}
 				par.FromActivityPub(o.InReplyTo)

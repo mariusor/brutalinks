@@ -2,15 +2,15 @@ package main
 
 import (
 	"flag"
+	"github.com/go-ap/activitystreams"
 	"github.com/mariusor/littr.go/app/api"
 	"github.com/mariusor/littr.go/internal/log"
-	"github.com/go-ap/activitystreams"
 	"io/ioutil"
 	"net/http"
 	"os"
 )
 
-func validContentType (c ...string) bool {
+func validContentType(c ...string) bool {
 	for _, ct := range c {
 		switch ct {
 		case "application/json":
@@ -38,7 +38,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	r := api.New(api.Config{Logger:log})
+	r := api.New(api.Config{Logger: log})
 	log.Infof("fetching %s", url)
 
 	var resp *http.Response

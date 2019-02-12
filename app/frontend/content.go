@@ -31,17 +31,17 @@ type comment struct {
 }
 
 type contentModel struct {
-	Title   string
-	Content comment
+	Title    string
+	Content  comment
 	nextPage int
 	prevPage int
 }
 
-func(c contentModel) NextPage() int {
+func (c contentModel) NextPage() int {
 	return c.nextPage
 }
 
-func(c contentModel) PrevPage() int {
+func (c contentModel) PrevPage() int {
 	return c.prevPage
 }
 

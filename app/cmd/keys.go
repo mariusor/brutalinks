@@ -14,7 +14,7 @@ import (
 	"math/rand"
 )
 
-func accountNeedsKeyWithLog(acct app.Account, logger log.Logger ) bool {
+func accountNeedsKeyWithLog(acct app.Account, logger log.Logger) bool {
 	if len(acct.Metadata.ID) > 0 {
 		logger.WithContext(log.Ctx{
 			"handle": acct.Handle,

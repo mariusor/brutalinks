@@ -14,8 +14,8 @@ import (
 )
 
 type registerModel struct {
-	Title         string
-	Account       app.Account
+	Title   string
+	Account app.Account
 }
 
 func accountFromRequest(r *http.Request, l log.Logger) (*app.Account, []error) {

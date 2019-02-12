@@ -116,6 +116,7 @@ func Markdown(data string) template.HTML {
 	h := md.RenderToString([]byte(data))
 	return template.HTML(h)
 }
+
 // HasMetadata
 func (i Item) HasMetadata() bool {
 	return i.Metadata != nil

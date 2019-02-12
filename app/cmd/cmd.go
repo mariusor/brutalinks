@@ -62,6 +62,6 @@ func PGConfigFromENV() *pg.Options {
 		User:     dbUser,
 		Password: dbPw,
 		Database: dbName,
-		Addr: dbHost+":5432",
+		Addr:     dbHost + ":5432",
 	}
 }

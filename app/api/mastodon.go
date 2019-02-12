@@ -20,7 +20,7 @@ func (r NodeInfoResolver) Usage() (nodeinfo.Usage, error) {
 	//inf, err := db.Config.LoadInfo()
 	//ifErr(err)
 
-	us, _, _:= db.Config.LoadAccounts(app.LoadAccountsFilter{
+	us, _, _ := db.Config.LoadAccounts(app.LoadAccountsFilter{
 		MaxItems: math.MaxInt64,
 	})
 	//ifErr(err)
@@ -37,12 +37,13 @@ func (r NodeInfoResolver) Usage() (nodeinfo.Usage, error) {
 	}
 	return u, nil
 }
+
 // GET /api/v1/instance
 // In order to be compatible with Mastodon
-func (h handler)ShowInstance(w http.ResponseWriter, r *http.Request) {
+func (h handler) ShowInstance(w http.ResponseWriter, r *http.Request) {
 	ifErr := func(err ...error) {
 		if err != nil && len(err) > 0 && err[0] != nil {
-			h.HandleError(w, r,  err...)
+			h.HandleError(w, r, err...)
 			return
 		}
 	}

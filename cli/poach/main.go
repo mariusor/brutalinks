@@ -13,6 +13,7 @@ import (
 )
 
 var defaultSince, _ = time.ParseDuration("24h")
+
 func main() {
 	var url string
 	var since time.Duration

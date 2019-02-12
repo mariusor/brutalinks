@@ -329,7 +329,8 @@ var validCollectionNames = []string{
 	"followed",
 	"following",
 }
-func isValidCollectionName (s string) bool {
+
+func isValidCollectionName(s string) bool {
 	for _, valid := range validCollectionNames {
 		if valid == s {
 			return true

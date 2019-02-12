@@ -10,7 +10,7 @@ import (
 	"github.com/go-chi/chi"
 )
 
-type Paginator interface  {
+type Paginator interface {
 	NextPage() int
 	PrevPage() int
 }
@@ -24,11 +24,11 @@ type itemListingModel struct {
 	prevPage int
 }
 
-func(i itemListingModel) NextPage() int {
+func (i itemListingModel) NextPage() int {
 	return i.nextPage
 }
 
-func(i itemListingModel) PrevPage() int {
+func (i itemListingModel) PrevPage() int {
 	return i.prevPage
 }
 

@@ -26,7 +26,7 @@ var version = "HEAD"
 
 const defaultHost = "localhost"
 const defaultPort = 3000
-const defaultTimeout =  time.Second*15
+const defaultTimeout = time.Second * 15
 
 func main() {
 	var wait time.Duration

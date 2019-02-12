@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 )
 
-func (h *handler)Routes() func(chi.Router) {
+func (h *handler) Routes() func(chi.Router) {
 	return func(r chi.Router) {
 		r.Use(h.LoadSession)
 		r.Use(middleware.GetHead)

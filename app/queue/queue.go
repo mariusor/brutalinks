@@ -32,14 +32,13 @@ func initPg(app app.Application) pgQueue {
 }
 
 type Repository struct {
-	Type Backend
+	Type    Backend
 	Backend pgQueue
 }
 
 func New(app app.Application, typ Backend) Repository {
 	return Repository{
-		Type: typ,
+		Type:    typ,
 		Backend: initPg(app),
 	}
 }
-
