@@ -22,3 +22,8 @@ their own moderation rules and topic preferences.
 At the same time, through the federation mechanism between instances, the users can subscribe to other
 streams and will receive updates from them. As a plus, due to the interoperability that ActivityPub brings,
 they are not only limited to link aggregators, but can also interact with other AP capable services.
+
+___
+
+[![MIT Licensed](https://img.shields.io/github/license/mariusor/littr.go.svg)](https://raw.githubusercontent.com/mariusor/littr.go/master/LICENSE)
+[![Builds status](https://builds.sr.ht/~mariusor/littr.go.svg)](https://builds.sr.ht/~mariusor/littr.go?)
