@@ -90,7 +90,7 @@ func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		id := app.Instance.BaseURL + "/api/self"
+		id := h.repo.BaseURL + "self"
 		wf.Aliases = []string{
 			string(id),
 		}

@@ -35,10 +35,10 @@ func Test_GETNodeInfo(t *testing.T) {
 	apiURL := os.Getenv("API_URL")
 	host := os.Getenv("HOSTNAME")
 
-	testId := fmt.Sprintf("http://%s/api/self", host)
+	testId := fmt.Sprintf("%s/self", apiURL)
 	testUrl := fmt.Sprintf("http://%s", host)
-	testOutbox := fmt.Sprintf("%s/api/self/outbox", testUrl)
-	testInbox := fmt.Sprintf("%s/api/self/inbox", testUrl)
+	testOutbox := fmt.Sprintf("%s/outbox", testId)
+	testInbox := fmt.Sprintf("%s/inbox", testId)
 	testAuthor := "https://github.com/mariusor"
 
 	assertTrue := errIfNotTrue(t)

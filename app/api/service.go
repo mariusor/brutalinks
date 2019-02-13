@@ -15,8 +15,7 @@ import (
 func (h handler) HandleService(w http.ResponseWriter, r *http.Request) {
 	us := ap.Service{}
 
-	id := app.Instance.BaseURL + "/api/self"
-
+	id := fmt.Sprintf("%s/self", h.repo.BaseURL)
 	rr := r.Context().Value(app.RepositoryCtxtKey)
 
 	var err error

@@ -285,7 +285,8 @@ func (h handler) HandleActorsCollection(w http.ResponseWriter, r *http.Request) 
 			var err error
 			var count uint
 
-			col := as.CollectionNew(as.ObjectID(ActorsURL))
+			baseId := as.ObjectID(ActorsURL)
+			col := as.CollectionNew(baseId)
 			if accounts, count, err = service.LoadAccounts(*filter); err == nil {
 				for _, acct := range accounts {
 					p := loadAPPerson(acct)
@@ -346,7 +347,7 @@ func (h handler) HandleActor(w http.ResponseWriter, r *http.Request) {
 	if p.Inbox != nil {
 		p.Inbox = p.Inbox.GetLink()
 	}
-	p.Endpoints = ap.Endpoints{SharedInbox: as.IRI(fmt.Sprintf("%s/api/self/inbox", app.Instance.BaseURL))}
+	p.Endpoints = ap.Endpoints{SharedInbox: as.IRI(fmt.Sprintf("%s/api/self/inbox", h.repo.BaseURL))}
 
 	j, err := json.WithContext(GetContext()).Marshal(p)
 	if err != nil {
@@ -481,13 +482,13 @@ func (h handler) HandleCollectionActivityObject(w http.ResponseWriter, r *http.R
 	w.Write(data)
 }
 
-func loadCollection(items app.Collection, count uint, typ string, filters app.Paginator, path string) (as.Item, error) {
+func loadCollection(items app.Collection, count uint, typ string, filters app.Paginator, baseUrl string) (as.Item, error) {
 	getURL := func(f app.Paginator) string {
 		qs := ""
 		if f != nil {
 			qs = f.QueryString()
 		}
-		return fmt.Sprintf("%s%s%s", app.Instance.BaseURL, path, qs)
+		return fmt.Sprintf("%s%s", baseUrl, qs)
 	}
 
 	var haveItems, moreItems, lessItems bool
@@ -574,12 +575,13 @@ func (h handler) HandleCollection(w http.ResponseWriter, r *http.Request) {
 
 	typ := getCollectionFromReq(r)
 
-	collection := r.Context().Value(app.CollectionCtxtKey)
+	items := r.Context().Value(app.CollectionCtxtKey)
 	count, _ := r.Context().Value(app.CollectionCountCtxtKey).(uint)
 
 	filters := r.Context().Value(app.FilterCtxtKey)
 	f, _ := filters.(app.Paginator)
-	page, err = loadCollection(collection, count, typ, f, r.URL.Path)
+	baseURL := fmt.Sprintf("%s%s", h.repo.BaseURL, strings.Replace(r.URL.Path, "/api", "", 1))
+	page, err = loadCollection(items, count, typ, f, baseURL)
 	if err != nil {
 		h.logger.Error(err.Error())
 		h.HandleError(w, r, errors.NewNotFound(err, fmt.Sprintf("%T", page)))

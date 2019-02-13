@@ -11,10 +11,9 @@ import (
 
 func Test_GETOutbox(t *testing.T) {
 	apiURL := os.Getenv("API_URL")
-	host := os.Getenv("HOSTNAME")
 
-	testId := fmt.Sprintf("http://%s/api/self/outbox", host)
-	testFirstId := fmt.Sprintf("http://%s/api/self/outbox?maxItems=50&page=1", host)
+	testId := fmt.Sprintf("%s/self/outbox", apiURL)
+	testFirstId := fmt.Sprintf("%s/self/outbox?maxItems=50&page=1", apiURL)
 
 	assertTrue := errIfNotTrue(t)
 
@@ -47,10 +46,9 @@ func Test_GETOutbox(t *testing.T) {
 
 func Test_GETInbox(t *testing.T) {
 	apiURL := os.Getenv("API_URL")
-	host := os.Getenv("HOSTNAME")
 
-	testId := fmt.Sprintf("http://%s/api/self/inbox", host)
-	testFirstId := fmt.Sprintf("http://%s/api/self/inbox?maxItems=50&page=1", host)
+	testId := fmt.Sprintf("%s/self/inbox", apiURL)
+	testFirstId := fmt.Sprintf("%s/self/inbox?maxItems=50&page=1", apiURL)
 
 	assertTrue := errIfNotTrue(t)
 
