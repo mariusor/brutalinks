@@ -64,6 +64,6 @@ cert:
 images:
 	$(MAKE) -C docker $@
 
-tests:
+tests: app bootstrap
 	$(TEST) ./{app,cli,internal}/...
-	$(MAKE) -C tests $@
+	$(MAKE) -C tests $@ || $(MAKE) -C tests killapp killdb
