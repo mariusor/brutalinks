@@ -41,7 +41,7 @@ func Test_GETNodeInfo(t *testing.T) {
 	testInbox := fmt.Sprintf("%s/api/self/inbox", testUrl)
 	testAuthor := "https://github.com/mariusor"
 
-	assertTrue := errIfNot(t)
+	assertTrue := errIfNotTrue(t)
 
 	url := fmt.Sprintf("%s/self", apiURL)
 	var b []byte

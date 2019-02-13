@@ -16,7 +16,7 @@ func Test_GETActorsCollection(t *testing.T) {
 	testId := fmt.Sprintf("%s/actors", apiURL)
 	testFirstId := fmt.Sprintf("%s/actors?page=1", apiURL)
 
-	assertTrue := errIfNot(t)
+	assertTrue := errIfNotTrue(t)
 
 	url := fmt.Sprintf("%s/actors", apiURL)
 	var b []byte

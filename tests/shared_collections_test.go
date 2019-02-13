@@ -16,7 +16,7 @@ func Test_GETOutbox(t *testing.T) {
 	testId := fmt.Sprintf("http://%s/api/self/outbox", host)
 	testFirstId := fmt.Sprintf("http://%s/api/self/outbox?maxItems=50&page=1", host)
 
-	assertTrue := errIfNot(t)
+	assertTrue := errIfNotTrue(t)
 
 	url := fmt.Sprintf("%s/self/outbox", apiURL)
 	var b []byte
@@ -52,7 +52,7 @@ func Test_GETInbox(t *testing.T) {
 	testId := fmt.Sprintf("http://%s/api/self/inbox", host)
 	testFirstId := fmt.Sprintf("http://%s/api/self/inbox?maxItems=50&page=1", host)
 
-	assertTrue := errIfNot(t)
+	assertTrue := errIfNotTrue(t)
 
 	url := fmt.Sprintf("%s/self/inbox", apiURL)
 	var b []byte
