@@ -20,9 +20,15 @@ func Test_GETNodeInfo(t *testing.T) {
 	assertObject(test, objectVal{
 		id: fmt.Sprintf("%s/self", apiURL),
 		typ: string(as.ServiceType),
+		name: "127 0 0 3",
+		summary: "Link aggregator inspired by reddit and hacker news using ActivityPub federation.",
 		url: fmt.Sprintf("http://%s", host),
-		inboxIRI: fmt.Sprintf("%s/self/inbox", apiURL),
-		outboxIRI: fmt.Sprintf("%s/self/outbox", apiURL),
+		inbox: &collectionVal{
+			id: fmt.Sprintf("%s/self/inbox", apiURL),
+		},
+		outbox:  &collectionVal{
+			id: fmt.Sprintf("%s/self/outbox", apiURL),
+		},
 		author: "https://github.com/mariusor",
 	})
 }
