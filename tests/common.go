@@ -19,7 +19,7 @@ var HeaderAccept = `application/ld+json; profile="https://www.w3.org/ns/activity
 type assertFn func(v bool, msg string, args ...interface{})
 type errFn func(format string, args ...interface{})
 
-func errorf(t *testing.T) func(msg string, args ...interface{}) {
+func errorf(t *testing.T) errFn {
 	return func(msg string, args ...interface{}) {
 		t.Errorf(msg, args...)
 		t.Fatalf("\n%s\n", debug.Stack())
@@ -42,8 +42,15 @@ type collectionVal struct {
 }
 
 type objectVal struct {
-	id  string
-	typ string
+	id        string
+	typ       string
+	name      string
+	url       string
+	author    string
+	inboxIRI  string
+	outboxIRI string
+	act       *objectVal
+	obj       *objectVal
 }
 type requestAssertFn func(iri string) map[string]interface{}
 
@@ -76,9 +83,30 @@ func errOnObjectProperties(t *testing.T) objectPropertiesAssertFn {
 	assertMapKey := errOnMapProp(t)
 	return func(ob map[string]interface{}, tVal objectVal) {
 		assertMapKey(ob, "id", tVal.id)
-		assertMapKey(ob, "type", tVal.typ)
+		if tVal.typ != "" {
+			assertMapKey(ob, "type", tVal.typ)
+		}
+		if tVal.name != "" {
+			assertMapKey(ob, "name", tVal.name)
+		}
+		if tVal.url != "" {
+			assertMapKey(ob, "url", tVal.url)
+		}
+		if tVal.inboxIRI != "" {
+			assertMapKey(ob, "inbox", tVal.inboxIRI)
+		}
+		if tVal.author != "" {
+			assertMapKey(ob, "attributedTo", tVal.author)
+		}
+		if tVal.act != nil {
+			assertMapKey(ob, "actor", tVal.act)
+		}
+		if tVal.obj != nil {
+			assertMapKey(ob, "object", tVal.obj)
+		}
 	}
 }
+
 func errOnCollectionProperties(t *testing.T) collectionPropertiesAssertFn {
 	assertTrue := errIfNotTrue(t)
 	assertMapKey := errOnMapProp(t)
@@ -111,7 +139,7 @@ func errOnCollectionProperties(t *testing.T) collectionPropertiesAssertFn {
 			"Invalid item count for collection %s %d, expected %d", itemsKey, len(items), tVal.itemCount,
 		)
 		if len(tVal.items) > 0 {
-			foundItem:
+		foundItem:
 			for iri, testIt := range tVal.items {
 				for _, it := range items {
 					act, ok := it.(map[string]interface{})
@@ -150,7 +178,7 @@ func errOnGetRequest(t *testing.T) requestAssertFn {
 		assertTrue(resp.StatusCode == http.StatusOK, "Error: invalid HTTP response %d, expected %d", resp.StatusCode, http.StatusOK)
 
 		b, err = ioutil.ReadAll(resp.Body)
-		assertTrue(err == nil,"Error: invalid HTTP body! Read %d bytes %s", len(b), b)
+		assertTrue(err == nil, "Error: invalid HTTP body! Read %d bytes %s", len(b), b)
 
 		res := make(map[string]interface{})
 		err = json.Unmarshal(b, &res)
