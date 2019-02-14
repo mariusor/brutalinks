@@ -217,33 +217,57 @@ func loadAPPerson(a app.Account) *ap.Person {
 		}
 	}
 
-	if len(a.Hash) >= 8 {
-		p.ID = apAccountID(a)
-	}
-
-	p.Name.Set("en", a.Handle)
 	p.PreferredUsername.Set("en", a.Handle)
 
-	out := goap.OutboxNew()
-	out.ID = BuildCollectionID(a, new(goap.Outbox))
-	p.Outbox = out
+	if a.IsFederated() {
+		p.ID = as.ObjectID(a.Metadata.ID)
+		p.Name.Set("en", a.Metadata.Name)
+		if len(a.Metadata.InboxIRI) > 0 {
+			p.Inbox = as.IRI(a.Metadata.InboxIRI)
+		}
+		if len(a.Metadata.OutboxIRI) > 0 {
+			p.Outbox = as.IRI(a.Metadata.OutboxIRI)
+		}
+		if len(a.Metadata.LikedIRI) > 0 {
+			p.Liked = as.IRI(a.Metadata.LikedIRI)
+		}
+		if len(a.Metadata.FollowersIRI) > 0 {
+			p.Followers = as.IRI(a.Metadata.FollowersIRI)
+		}
+		if len(a.Metadata.FollowingIRI) > 0 {
+			p.Following = as.IRI(a.Metadata.FollowingIRI)
+		}
+		if len(a.Metadata.URL) > 0 {
+			p.URL = as.IRI(a.Metadata.URL)
+		}
+	} else {
+		p.Name.Set("en", a.Handle)
+		if len(a.Hash) >= 8 {
+			p.ID = apAccountID(a)
+		}
 
-	in := goap.InboxNew()
-	in.ID = BuildCollectionID(a, new(goap.Inbox))
-	p.Inbox = in
+		out := goap.OutboxNew()
+		out.ID = BuildCollectionID(a, new(goap.Outbox))
+		p.Outbox = out
 
-	liked := goap.LikedNew()
-	liked.ID = BuildCollectionID(a, new(goap.Liked))
-	p.Liked = liked
+		in := goap.InboxNew()
+		in.ID = BuildCollectionID(a, new(goap.Inbox))
+		p.Inbox = in
 
-	if !a.CreatedAt.IsZero() {
-		p.Published = a.CreatedAt
+		liked := goap.LikedNew()
+		liked.ID = BuildCollectionID(a, new(goap.Liked))
+		p.Liked = liked
+
+		p.URL = accountURL(a)
+
+		if !a.CreatedAt.IsZero() {
+			p.Published = a.CreatedAt
+		}
+		if !a.UpdatedAt.IsZero() {
+			p.Updated = a.UpdatedAt
+		}
 	}
-	if !a.UpdatedAt.IsZero() {
-		p.Updated = a.UpdatedAt
-	}
 
-	p.URL = accountURL(a)
 	p.Score = a.Score
 	if a.IsValid() && a.HasMetadata() && a.Metadata.Key != nil && a.Metadata.Key.Public != nil {
 		p.PublicKey = ap.PublicKey{
@@ -290,9 +314,15 @@ func (h handler) HandleActorsCollection(w http.ResponseWriter, r *http.Request) 
 			if accounts, count, err = service.LoadAccounts(*filter); err == nil {
 				for _, acct := range accounts {
 					p := loadAPPerson(acct)
-					p.Inbox = p.Inbox.GetLink()
-					p.Outbox = p.Outbox.GetLink()
-					p.Liked = p.Liked.GetLink()
+					if p.Inbox != nil && p.Inbox.IsObject() {
+						p.Inbox = p.Inbox.GetLink()
+					}
+					if p.Outbox != nil && p.Outbox.IsObject() {
+						p.Outbox = p.Outbox.GetLink()
+					}
+					if p.Liked != nil && p.Liked.IsObject() {
+						p.Liked = p.Liked.GetLink()
+					}
 					col.Append(p)
 				}
 				if len(accounts) > 0 {

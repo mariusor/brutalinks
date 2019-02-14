@@ -63,7 +63,7 @@ func (a *Account) FromActivityPub(it as.Item) error {
 	loadFromObject := func(a *Account, p as.Object) error {
 		name := jsonUnescape(p.Name.First())
 		a.Hash.FromActivityPub(p)
-		//a.Handle = name
+		a.Handle = name
 		a.Flags = FlagsNone
 		if a.Metadata == nil {
 			a.Metadata = &AccountMetadata{}
@@ -72,6 +72,9 @@ func (a *Account) FromActivityPub(it as.Item) error {
 			iri := p.GetLink()
 			a.Metadata.ID = iri.String()
 			a.Metadata.URL = p.URL.GetLink().String()
+			if !HostIsLocal(a.Metadata.ID) {
+				a.Metadata.Name = name
+			}
 		}
 		if p.Icon != nil {
 			if p.Icon.IsObject() {
@@ -88,7 +91,7 @@ func (a *Account) FromActivityPub(it as.Item) error {
 		if a.IsFederated() {
 			// @TODO(marius): this returns false positives when API_URL is set and different than
 			host := host(a.Metadata.URL)
-			a.Email = fmt.Sprintf("%s@%s", name, host)
+			a.Email = fmt.Sprintf("%s@%s", a.Handle, host)
 		}
 
 		if !p.Published.IsZero() {
@@ -109,6 +112,25 @@ func (a *Account) FromActivityPub(it as.Item) error {
 		}
 		if a.IsFederated() {
 			a.Handle = pName
+			if len(a.Metadata.URL) > 0 {
+				host := host(a.Metadata.URL)
+				a.Email = fmt.Sprintf("%s@%s", a.Handle, host)
+			}
+			if p.Inbox != nil {
+				a.Metadata.InboxIRI = p.Inbox.GetLink().String()
+			}
+			if p.Outbox != nil {
+				a.Metadata.OutboxIRI = p.Outbox.GetLink().String()
+			}
+			if p.Followers != nil {
+				a.Metadata.FollowersIRI = p.Followers.GetLink().String()
+			}
+			if p.Following != nil {
+				a.Metadata.FollowingIRI = p.Following.GetLink().String()
+			}
+			if p.Liked != nil {
+				a.Metadata.LikedIRI = p.Liked.GetLink().String()
+			}
 		}
 		return nil
 	}
