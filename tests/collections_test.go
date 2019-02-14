@@ -18,6 +18,8 @@ var testPairs = collectionTestPairs{
 		typ: string(as.CollectionType),
 		first: &collectionVal{
 			id: fmt.Sprintf("%s/actors?page=1", apiURL),
+			// TODO(marius): fix actors collection pages
+			//typ: string(as.CollectionPageType),
 		},
 		itemCount: 2,
 		items: map[string]objectVal{
@@ -29,12 +31,15 @@ var testPairs = collectionTestPairs{
 				url:               fmt.Sprintf("http://%s/~anonymous", host),
 				inbox: &collectionVal{
 					id: fmt.Sprintf("%s/actors/eacff9dd/inbox", apiURL),
+					typ: string(as.OrderedCollectionPageType),
 				},
 				outbox: &collectionVal{
 					id: fmt.Sprintf("%s/actors/eacff9dd/outbox", apiURL),
+					typ: string(as.OrderedCollectionPageType),
 				},
 				liked: &collectionVal{
 					id: fmt.Sprintf("%s/actors/eacff9dd/liked", apiURL),
+					typ: string(as.OrderedCollectionPageType),
 				},
 				score: 0,
 			},
@@ -46,16 +51,29 @@ var testPairs = collectionTestPairs{
 				url:               fmt.Sprintf("http://%s/~system", host),
 				inbox: &collectionVal{
 					id: fmt.Sprintf("%s/actors/dc6f5f5b/inbox", apiURL),
+					typ: string(as.OrderedCollectionType),
 				},
 				outbox: &collectionVal{
 					id: fmt.Sprintf("%s/actors/dc6f5f5b/outbox", apiURL),
+					typ: string(as.OrderedCollectionType),
 				},
 				liked: &collectionVal{
 					id: fmt.Sprintf("%s/actors/dc6f5f5b/liked", apiURL),
+					typ: string(as.OrderedCollectionType),
 				},
 				score: 0,
 			},
 		},
+	},
+	fmt.Sprintf("%s/self/inbox", apiURL): {
+		id:  fmt.Sprintf("%s/self/inbox", apiURL),
+		typ: string(as.OrderedCollectionType),
+		first: &collectionVal{
+			id: fmt.Sprintf("%s/self/inbox?maxItems=50&page=1", apiURL),
+		},
+		// TODO(marius): We need to fix the criteria for populating the inbox to
+		//     verifying if the actor that submitted the activity is local or not
+		itemCount: 1, // TODO(marius) :FIX_INBOX: this should be 0
 	},
 	fmt.Sprintf("%s/self/outbox", apiURL): {
 		id:  fmt.Sprintf("%s/self/outbox", apiURL),
@@ -83,14 +101,6 @@ var testPairs = collectionTestPairs{
 				},
 			},
 		},
-	},
-	fmt.Sprintf("%s/self/inbox", apiURL): {
-		id:  fmt.Sprintf("%s/self/inbox", apiURL),
-		typ: string(as.OrderedCollectionType),
-		first: &collectionVal{
-			id: fmt.Sprintf("%s/self/inbox?maxItems=50&page=1", apiURL),
-		},
-		itemCount: 1,
 	},
 }
 

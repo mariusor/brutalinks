@@ -6,7 +6,6 @@ import (
 	as "github.com/go-ap/activitystreams"
 	"io/ioutil"
 	"net/http"
-	"reflect"
 	"runtime/debug"
 	"testing"
 )
@@ -20,8 +19,8 @@ type errFn func(format string, args ...interface{})
 
 func errorf(t *testing.T) errFn {
 	return func(msg string, args ...interface{}) {
+		msg = fmt.Sprintf("%s\n------- Stack -------\n%s\n", msg, debug.Stack())
 		t.Errorf(msg, args...)
-		t.Fatalf("\n%s\n", debug.Stack())
 	}
 }
 
@@ -34,14 +33,14 @@ func errIfNotTrue(t *testing.T) assertFn {
 }
 
 type collectionVal struct {
-	id         string
-	typ        string
-	itemCount  int64
-	first      *collectionVal
-	next       *collectionVal
-	last       *collectionVal
-	current    *collectionVal
-	items      map[string]objectVal
+	id        string
+	typ       string
+	itemCount int64
+	first     *collectionVal
+	next      *collectionVal
+	last      *collectionVal
+	current   *collectionVal
+	items     map[string]objectVal
 }
 
 type objectVal struct {
@@ -80,6 +79,8 @@ func errOnMapProp(t *testing.T) mapFieldAssertFn {
 			assertTrue(okA, "Unable to convert %#v to %T type, Received %#v:(%T)", val, v, val, val)
 			assertTrue(int64(v) == tt, "Invalid %s, %d expected %d", key, int64(v), tt)
 		case string, []byte:
+			// the case when the mock test value is a string, but corresponds to an object in the json
+			// so we need to verify the json's object id against our mock value
 			v1, okA := val.(string)
 			v2, okB := val.(map[string]interface{})
 			assertTrue(okA || okB, "Unable to convert %#v to %T or %T types, Received %#v:(%T)", val, v1, v2, val, val)
@@ -90,6 +91,8 @@ func errOnMapProp(t *testing.T) mapFieldAssertFn {
 				errOnMapProp(t)(v2, "id", tt)
 			}
 		case *objectVal:
+			// this is the case where the mock value is a pointer to objectVal (so we can dereference against it's id)
+			// and check the subsequent properties
 			if tt != nil {
 				v1, okA := val.(string)
 				v2, okB := val.(map[string]interface{})
@@ -102,6 +105,8 @@ func errOnMapProp(t *testing.T) mapFieldAssertFn {
 				}
 			}
 		case *collectionVal:
+			// this is the case where the mock value is a pointer to collectionVal (so we can dereference against it's id)
+			// and check the subsequent properties
 			if tt != nil {
 				assertTrue(tt != nil, "NIL pointer received as test val %#v(%T)", tt, tt)
 				v1, okA := val.(string)
@@ -115,7 +120,7 @@ func errOnMapProp(t *testing.T) mapFieldAssertFn {
 				}
 			}
 		default:
-			assertTrue(reflect.DeepEqual(val, t), "default Invalid %s, %#v expected %#v", key, val, t)
+			assertTrue(false, "UNKNOWN check for %s, %#v expected %#v", key, val, t)
 		}
 	}
 }
@@ -124,6 +129,7 @@ func errOnObjectProperties(t *testing.T) objectPropertiesAssertFn {
 	assertMapKey := errOnMapProp(t)
 	return func(ob map[string]interface{}, tVal objectVal) {
 		assertMapKey(ob, "id", tVal.id)
+
 		if tVal.typ != "" {
 			assertMapKey(ob, "type", tVal.typ)
 		}
@@ -143,19 +149,19 @@ func errOnObjectProperties(t *testing.T) objectPropertiesAssertFn {
 			assertMapKey(ob, "attributedTo", tVal.author)
 		}
 		if tVal.inbox != nil {
-			assertMapKey(ob, "inbox", tVal.inbox.id)
+			assertMapKey(ob, "inbox", tVal.inbox)
 		}
 		if tVal.outbox != nil {
-			assertMapKey(ob, "outbox", tVal.outbox.id)
+			assertMapKey(ob, "outbox", tVal.outbox)
 		}
 		if tVal.liked != nil {
-			assertMapKey(ob, "liked", tVal.liked.id)
+			assertMapKey(ob, "liked", tVal.liked)
 		}
 		if tVal.act != nil {
-			assertMapKey(ob, "actor", tVal.act.id)
+			assertMapKey(ob, "actor", tVal.act)
 		}
 		if tVal.obj != nil {
-			assertMapKey(ob, "object", tVal.obj.id)
+			assertMapKey(ob, "object", tVal.obj)
 		}
 	}
 }
@@ -178,36 +184,65 @@ func errOnCollectionProperties(t *testing.T) collectionPropertiesAssertFn {
 			}
 			return "orderedItems"
 		}(tVal.typ)
-		assertMapKey(ob, "first", tVal.first)
-		assertMapKey(ob, "totalItems", tVal.itemCount)
+		if tVal.first != nil {
+			assertMapKey(ob, "first", tVal.first)
+			if tVal.first.typ != "" {
+				derefCol := assertReq(tVal.first.id)
+				errOnCollectionProperties(t)(derefCol, *tVal.first)
+			}
+		}
+		if tVal.next != nil {
+			assertMapKey(ob, "next", tVal.next)
+			if tVal.next.typ != "" {
+				derefCol := assertReq(tVal.next.id)
+				errOnCollectionProperties(t)(derefCol, *tVal.next)
+			}
+		}
+		if tVal.current != nil {
+			assertMapKey(ob, "current", tVal.current)
+			if tVal.current.typ != "" {
+				derefCol := assertReq(tVal.current.id)
+				errOnCollectionProperties(t)(derefCol, *tVal.current)
+			}
+		}
+		if tVal.last != nil {
+			assertMapKey(ob, "last", tVal.last)
+			if tVal.last.typ != "" {
+				derefCol := assertReq(tVal.last.id)
+				errOnCollectionProperties(t)(derefCol, *tVal.last)
+			}
+		}
+		if tVal.itemCount != 0 {
+			assertMapKey(ob, "totalItems", tVal.itemCount)
 
-		val, ok := ob[itemsKey]
-		assertTrue(ok, "Could not load %s property of item: %#v", itemsKey, ob)
-		items, ok := val.([]interface{})
-		assertTrue(ok, "Invalid property %s %#v, expected %T", itemsKey, val, items)
-		assertTrue(len(items) == int(ob["totalItems"].(float64)),
-			"Invalid item count for collection %s %d, expected %d", itemsKey, len(items), tVal.itemCount,
-		)
-		if len(tVal.items) > 0 {
-		foundItem:
-			for iri, testIt := range tVal.items {
-				for _, it := range items {
-					act, ok := it.(map[string]interface{})
-					assertTrue(ok, "Unable to convert %#v to %T type, Received %#v:(%T)", it, act, it, it)
-					itId, ok := act["id"]
-					assertTrue(ok, "Could not load id property of item: %#v", act)
-					itIRI, ok := itId.(string)
-					assertTrue(ok, "Unable to convert %#v to %T type, Received %#v:(%T)", itId, itIRI, val, val)
-					if itIRI == iri {
-						t.Run(iri, func(t *testing.T) {
-							assertObjectProperties(act, testIt)
-							derefAct := assertReq(itIRI)
-							assertObjectProperties(derefAct, testIt)
-						})
-						continue foundItem
+			val, ok := ob[itemsKey]
+			assertTrue(ok, "Could not load %s property of item: %#v", itemsKey, ob)
+			items, ok := val.([]interface{})
+			assertTrue(ok, "Invalid property %s %#v, expected %T", itemsKey, val, items)
+			assertTrue(len(items) == int(ob["totalItems"].(float64)),
+				"Invalid item count for collection %s %d, expected %d", itemsKey, len(items), tVal.itemCount,
+			)
+			if len(tVal.items) > 0 {
+			foundItem:
+				for iri, testIt := range tVal.items {
+					for _, it := range items {
+						act, ok := it.(map[string]interface{})
+						assertTrue(ok, "Unable to convert %#v to %T type, Received %#v:(%T)", it, act, it, it)
+						itId, ok := act["id"]
+						assertTrue(ok, "Could not load id property of item: %#v", act)
+						itIRI, ok := itId.(string)
+						assertTrue(ok, "Unable to convert %#v to %T type, Received %#v:(%T)", itId, itIRI, val, val)
+						if itIRI == iri {
+							t.Run(iri, func(t *testing.T) {
+								assertObjectProperties(act, testIt)
+								derefAct := assertReq(itIRI)
+								assertObjectProperties(derefAct, testIt)
+							})
+							continue foundItem
+						}
 					}
+					errorf(t)("Unable to find %s in the %s collection %#v", iri, itemsKey, items)
 				}
-				errorf(t)("Unable to find %s in the %s collection %#v", iri, itemsKey, items)
 			}
 		}
 	}
