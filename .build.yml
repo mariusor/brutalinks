@@ -12,12 +12,12 @@ tasks:
       sudo -u postgres -- initdb --locale en_US.UTF-8 -E UTF8 -D /var/lib/postgres/data
       sudo systemctl start postgresql.service
       cd littr.go && go mod download
-  - show_env: |
+  - versions: |
       set +x
-      go version
-      make --version | head -n1
-      $(readlink -f /proc/$$/exe) --version
+      $(readlink -f /proc/$$/exe) --version | head -n1
       pg_ctl --version
+      make --version | head -n1
+      go version
   - build: |
       cd littr.go
       cp tests/.env.tests .env
