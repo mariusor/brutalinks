@@ -381,9 +381,11 @@ FROM "items" WHERE "key" ~* ?%d) AND "%s"."path" IS NOT NULL)`, it, counter, it)
 		for _, fed := range f.Federated {
 			fWheres := make([]string, 0)
 			if fed {
-				fWheres = append(fWheres, fmt.Sprintf(`"%s"."metadata"->>'id' IS NOT NULL`, it))
+				// TODO(marius) "attributedTo" should be more than not null,
+				//              it shouldn't contain the current instance's base URL
+				fWheres = append(fWheres, fmt.Sprintf(`"%s"."metadata"->>'attributedTo' IS NOT NULL`, it))
 			} else {
-				fWheres = append(fWheres, fmt.Sprintf(`"%s"."metadata"->>'id' IS NULL`, it))
+				fWheres = append(fWheres, fmt.Sprintf(`"%s"."metadata"->>'attributedTo' IS NULL`, it))
 			}
 			wheres = append(wheres, fmt.Sprintf("(%s)", strings.Join(fWheres, " OR ")))
 		}
