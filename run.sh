@@ -1,7 +1,7 @@
 #!/bin/bash
 
 set -a
-. .env
+. .env || exit 1
 set +a
 
 if [[ -x "$1" ]]; then
