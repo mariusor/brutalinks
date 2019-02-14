@@ -120,10 +120,12 @@ func (a *Account) FromActivityPub(it as.Item) error {
 		if a.Metadata == nil {
 			a.Metadata = &AccountMetadata{}
 		}
-		a.Metadata.Key = &SSHKey{
-			ID: "id-rsa",
-			Public: []byte(p.PublicKey.PublicKeyPem),
-		}
+		// TODO(marius): this needs some further processing before saving
+		//  ideally building a real ssh.PubKey
+		//a.Metadata.Key = &SSHKey{
+		//	ID: "id-rsa",
+		//	Public: []byte(p.PublicKey.PublicKeyPem),
+		//}
 		return nil
 	}
 	switch it.GetType() {
