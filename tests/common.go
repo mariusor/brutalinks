@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	as "github.com/go-ap/activitystreams"
-	"golang.org/x/xerrors"
-	"io"
 	"io/ioutil"
 	"net/http"
+	"path"
+	"reflect"
 	"runtime/debug"
 	"testing"
 )
@@ -19,84 +19,155 @@ var HeaderAccept = `application/ld+json; profile="https://www.w3.org/ns/activity
 type assertFn func(v bool, msg string, args ...interface{})
 type errFn func(format string, args ...interface{})
 
-func execReq(url string, met string, body io.Reader) ([]byte, error) {
-	req, err := http.NewRequest(met, url, body)
-	req.Header.Set("User-Agent", fmt.Sprintf("-%s", UserAgent))
-	req.Header.Set("Accept", HeaderAccept)
-	req.Header.Set("Cache-Control", "no-cache")
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, err
+func errorf(t *testing.T) func(msg string, args ...interface{}) {
+	return func(msg string, args ...interface{}) {
+		t.Errorf(msg, args...)
+		t.Fatalf("\n%s\n", debug.Stack())
 	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, xerrors.Errorf("Error: invalid HTTP response %d, expected %d", resp.StatusCode, http.StatusOK)
-	}
-	b := make([]byte, 0)
-	if b, err = ioutil.ReadAll(resp.Body); err != nil {
-		return nil, xerrors.Errorf("Error: invalid HTTP body! Read %d bytes %s", len(b), b)
-	}
-	return b, nil
 }
 
 func errIfNotTrue(t *testing.T) assertFn {
 	return func(v bool, msg string, args ...interface{}) {
 		if !v {
-			t.Errorf(msg, args...)
-			t.Fatalf("\n%s\n", debug.Stack())
+			errorf(t)(msg, args...)
 		}
 	}
 }
 
 type collectionVal struct {
-	iri       string
+	id        string
 	typ       string
 	itemCount int64
+	items     map[string]objectVal
 }
-type collectionAssert func(iri string, testPair collectionVal)
 
-func errOnCollection(t *testing.T) collectionAssert {
+type objectVal struct {
+	id  string
+	typ string
+}
+type requestAssertFn func(iri string) map[string]interface{}
+
+type collectionAssertFn func(iri string, testVal collectionVal)
+type collectionPropertiesAssertFn func(ob map[string]interface{}, testVal collectionVal)
+type objectPropertiesAssertFn func(ob map[string]interface{}, testVal objectVal)
+type mapFieldAssertFn func(ob map[string]interface{}, key string, testVal interface{})
+
+func errOnMapProp(t *testing.T) mapFieldAssertFn {
+	assertTrue := errIfNotTrue(t)
+	return func(ob map[string]interface{}, key string, tVal interface{}) {
+		val, ok := ob[key]
+		assertTrue(ok, "Could not load %s property of item: %#v", key, ob)
+
+		switch t := tVal.(type) {
+		case int64, int32, int16, int8:
+			v, okA := val.(float64)
+			assertTrue(okA, "Unable to convert to %T type, Received %v:%T", v, val, val)
+			assertTrue(int64(v) == t, "Invalid %s, %d expected %d", key, int64(v), t)
+		case string, []byte:
+			v := val.(string)
+			assertTrue(v == t, "Invalid %s, %s expected %s", key, v, t)
+		default:
+			assertTrue(reflect.DeepEqual(val, t), "default Invalid %s, %#v expected %#v", key, val, t)
+		}
+	}
+}
+
+func errOnObjectProperties(t *testing.T) objectPropertiesAssertFn {
+	assertMapKey := errOnMapProp(t)
+	return func(ob map[string]interface{}, tVal objectVal) {
+		assertMapKey(ob, "id", tVal.id)
+		assertMapKey(ob, "type", tVal.typ)
+	}
+}
+func errOnCollectionProperties(t *testing.T) collectionPropertiesAssertFn {
+	assertTrue := errIfNotTrue(t)
+	assertMapKey := errOnMapProp(t)
+	assertObjectProperties := errOnObjectProperties(t)
+
+	return func(ob map[string]interface{}, tVal collectionVal) {
+		assertObjectProperties(ob, objectVal{
+			id:  tVal.id,
+			typ: tVal.typ,
+		})
+
+		var testFirstId string
+		var itemsKey string
+		if tVal.typ == string(as.CollectionType) {
+			testFirstId = fmt.Sprintf("%s?page=1", tVal.id)
+			itemsKey = "items"
+		}
+		if tVal.typ == string(as.OrderedCollectionType) {
+			testFirstId = fmt.Sprintf("%s?maxItems=50&page=1", tVal.id)
+			itemsKey = "orderedItems"
+		}
+		assertMapKey(ob, "first", testFirstId)
+		assertMapKey(ob, "totalItems", tVal.itemCount)
+
+		val, ok := ob[itemsKey]
+		assertTrue(ok, "Could not load %s property of item: %#v", itemsKey, ob)
+		items, ok := val.([]interface{})
+		assertTrue(ok, "Invalid property %s %#v, expected %T", itemsKey, val, items)
+		assertTrue(len(items) == int(ob["totalItems"].(float64)),
+			"Invalid item count for collection %s %d, expected %d", itemsKey, len(items), tVal.itemCount,
+		)
+		if len(tVal.items) > 0 {
+			foundItem:
+			for iri, testIt := range tVal.items {
+				for _, it := range items {
+					act, ok := it.(map[string]interface{})
+					assertTrue(ok, "Unable to convert to %T type, Received %v:%T", act, it, it)
+					itId, ok := act["id"]
+					assertTrue(ok, "Could not load id property of item: %#v", act)
+					if itId == iri {
+						t.Run(path.Base(iri), func(t *testing.T) {
+							assertObjectProperties(act, testIt)
+						})
+						continue foundItem
+					}
+				}
+				errorf(t)("Unable to find %s in the %s collection %#v", iri, itemsKey, items)
+			}
+		}
+	}
+}
+
+func errOnGetRequest(t *testing.T) requestAssertFn {
 	assertTrue := errIfNotTrue(t)
 
-	return func(iri string, testPair collectionVal) {
-		var testFirstId string
-		if testPair.typ == string(as.CollectionType) {
-			testFirstId = fmt.Sprintf("%s?page=1", testPair.iri)
-		}
-		if testPair.typ == string(as.OrderedCollectionType) {
-			testFirstId = fmt.Sprintf("%s?maxItems=50&page=1", testPair.iri)
-		}
+	return func(iri string) map[string]interface{} {
+		b := make([]byte, 0)
 
-		var b []byte
 		var err error
-		b, err = execReq(iri, http.MethodGet, nil)
-		assertTrue(err == nil, "Error %s", err)
+		req, err := http.NewRequest(http.MethodGet, iri, nil)
+		assertTrue(err == nil, "Error: unable to create request: %s", err)
 
-		test := make(map[string]interface{})
-		err = json.Unmarshal(b, &test)
-		assertTrue(err == nil, "Error unmarshal: %s", err)
+		req.Header.Set("User-Agent", fmt.Sprintf("-%s", UserAgent))
+		req.Header.Set("Accept", HeaderAccept)
+		req.Header.Set("Cache-Control", "no-cache")
+		resp, err := http.DefaultClient.Do(req)
 
-		for key, val := range test {
-			if key == "id" {
-				assertTrue(val == testPair.iri, "Invalid id, %s expected %s", val, testPair.iri)
-			}
-			if key == "type" {
-				assertTrue(val == testPair.typ, "Invalid type, %s expected %s", val, testPair.typ)
-			}
-			if key == "totalItems" {
-				v, ok := val.(float64)
-				assertTrue(ok, "Unable to convert to %T type. Expected float value %v:%T", v, val, val)
-				assertTrue(int64(v) == testPair.itemCount, "Invalid totalItems, %d expected %d", int64(v), testPair.itemCount)
-			}
-			if key == "first" {
-				assertTrue(val == testFirstId, "Invalid first collection page id, %s expected %s", val, testFirstId)
-			}
-			if key == "items" {
-				items, ok := val.([]interface{})
-				assertTrue(ok, "Invalid collection items %#v, expected %T", val, items)
-				assertTrue(len(items) == int(test["totalItems"].(float64)),
-					"Invalid item count for collection %d, expected %d", len(items), testPair.itemCount,
-				)
-			}
-		}
+		assertTrue(err == nil, "Error: request failed: %s", err)
+		assertTrue(resp.StatusCode == http.StatusOK, "Error: invalid HTTP response %d, expected %d", resp.StatusCode, http.StatusOK)
+
+		b, err = ioutil.ReadAll(resp.Body)
+		assertTrue(err == nil,"Error: invalid HTTP body! Read %d bytes %s", len(b), b)
+
+		res := make(map[string]interface{})
+		err = json.Unmarshal(b, &res)
+		assertTrue(err == nil, "Error: unmarshal failed: %s", err)
+
+		return res
+	}
+}
+
+func errOnCollection(t *testing.T) collectionAssertFn {
+	assertReq := errOnGetRequest(t)
+	assertCollectionProperties := errOnCollectionProperties(t)
+
+	return func(iri string, tVal collectionVal) {
+		assertCollectionProperties(
+			assertReq(iri),
+			tVal,
+		)
 	}
 }

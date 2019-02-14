@@ -1,15 +1,16 @@
 package tests
 
 import (
-	"encoding/json"
 	"fmt"
 	as "github.com/go-ap/activitystreams"
-	"net/http"
 	"os"
 	"testing"
 )
 
 func Test_GETNodeInfo(t *testing.T) {
+	assertReq := errOnGetRequest(t)
+	assertMapKey := errOnMapProp(t)
+
 	apiURL := os.Getenv("API_URL")
 	host := os.Getenv("HOSTNAME")
 
@@ -19,38 +20,13 @@ func Test_GETNodeInfo(t *testing.T) {
 	testInbox := fmt.Sprintf("%s/inbox", testId)
 	testAuthor := "https://github.com/mariusor"
 
-	assertTrue := errIfNotTrue(t)
-
 	url := fmt.Sprintf("%s/self", apiURL)
-	var b []byte
-	var err error
+	test := assertReq(url)
 
-	b, err = execReq(url, http.MethodGet, nil)
-	assertTrue(err == nil, "Error %s", err)
-
-	test := make(map[string]interface{})
-
-	err = json.Unmarshal(b, &test)
-	assertTrue(err == nil, "Error unmarshal: %s", err)
-
-	for key, val := range test {
-		if key == "id" {
-			assertTrue(val == testId, "Invalid id, %s expected %s", val, testId)
-		}
-		if key == "type" {
-			assertTrue(val == string(as.ServiceType), "Invalid type, %s expected %s", val, as.ServiceType)
-		}
-		if key == "url" {
-			assertTrue(val == testUrl, "Invalid url, %s expected %s", val, testUrl)
-		}
-		if key == "outbox" {
-			assertTrue(val == testOutbox, "Invalid outbox url, %s expected %s", val, testOutbox)
-		}
-		if key == "inbox" {
-			assertTrue(val == testInbox, "Invalid inbox url, %s expected %s", val, testInbox)
-		}
-		if key == "attributedTo" {
-			assertTrue(val == testAuthor, "Invalid author, %s expected %s", val, testAuthor)
-		}
-	}
+	assertMapKey(test, "id", testId)
+	assertMapKey(test, "type", string(as.ServiceType))
+	assertMapKey(test, "url", testUrl)
+	assertMapKey(test, "outbox", testOutbox)
+	assertMapKey(test, "inbox", testInbox)
+	assertMapKey(test, "attributedTo", testAuthor)
 }
