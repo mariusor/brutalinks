@@ -11,6 +11,7 @@ import (
 	"github.com/buger/jsonparser"
 	"github.com/juju/errors"
 
+	goap "github.com/go-ap/activitypub"
 	as "github.com/go-ap/activitystreams"
 )
 
@@ -38,6 +39,93 @@ func (a *Account) FromActivityPub(it as.Item) error {
 		}
 		return nil
 	}
+	personFn := func(a *Account, fnAs func(a *Account, p as.Object) error, fnAp func(a *Account, p goap.Person) error, fnLocal func(a *Account, p ap.Person) error) error {
+		if pp, ok := it.(ap.Person); ok {
+			return fnLocal(a, pp)
+		}
+		if pp, ok := it.(*ap.Person); ok {
+			return fnLocal(a, *pp)
+		}
+		if pp, ok := it.(goap.Person); ok {
+			return fnAp(a, pp)
+		}
+		if pp, ok := it.(*goap.Person); ok {
+			return fnAp(a, *pp)
+		}
+		if pp, ok := it.(as.Object); ok {
+			return fnAs(a, pp)
+		}
+		if pp, ok := it.(*as.Object); ok {
+			return fnAs(a, *pp)
+		}
+		return nil
+	}
+	loadFromObject := func(a *Account, p as.Object) error {
+		name := jsonUnescape(p.Name.First())
+		a.Hash.FromActivityPub(p)
+		//a.Handle = name
+		a.Flags = FlagsNone
+		if a.Metadata == nil {
+			a.Metadata = &AccountMetadata{}
+		}
+		if len(p.ID) > 0 {
+			iri := p.GetLink()
+			a.Metadata.ID = iri.String()
+			a.Metadata.URL = p.URL.GetLink().String()
+		}
+		if p.Icon != nil {
+			if p.Icon.IsObject() {
+				if ic, ok := p.Icon.(*as.Object); ok {
+					a.Metadata.Icon.MimeType = string(ic.MediaType)
+					a.Metadata.Icon.URI = ic.URL.GetLink().String()
+				}
+				if ic, ok := p.Icon.(as.Object); ok {
+					a.Metadata.Icon.MimeType = string(ic.MediaType)
+					a.Metadata.Icon.URI = ic.URL.GetLink().String()
+				}
+			}
+		}
+		if a.IsFederated() {
+			// @TODO(marius): this returns false positives when API_URL is set and different than
+			host := host(a.Metadata.URL)
+			a.Email = fmt.Sprintf("%s@%s", name, host)
+		}
+
+		if !p.Published.IsZero() {
+			a.CreatedAt = p.Published
+		}
+		if !p.Updated.IsZero() {
+			a.UpdatedAt = p.Updated
+		}
+		return nil
+	}
+	loadFromPerson := func(a *Account, p goap.Person) error {
+		if err := loadFromObject(a, p.Parent); err != nil {
+			return err
+		}
+		pName := jsonUnescape(p.PreferredUsername.First())
+		if pName == "" {
+			pName = p.Name.First()
+		}
+		if a.IsFederated() {
+			a.Handle = pName
+		}
+		return nil
+	}
+	loadFromLocal := func(a *Account, p ap.Person) error {
+		if err := loadFromPerson(a, p.Person); err != nil {
+			return err
+		}
+		a.Score = p.Score
+		if a.Metadata == nil {
+			a.Metadata = &AccountMetadata{}
+		}
+		a.Metadata.Key = &SSHKey{
+			ID: "id-rsa",
+			Public: []byte(p.PublicKey.PublicKeyPem),
+		}
+		return nil
+	}
 	switch it.GetType() {
 	case as.CreateType:
 		fallthrough
@@ -48,60 +136,16 @@ func (a *Account) FromActivityPub(it as.Item) error {
 		if act, ok := it.(ap.Activity); ok {
 			return a.FromActivityPub(act.Actor)
 		}
+	case as.ServiceType:
+		fallthrough
+	case as.GroupType:
+		fallthrough
+	case as.ApplicationType:
+		fallthrough
+	case as.OrganizationType:
+		fallthrough
 	case as.PersonType:
-		loadFromPerson := func(a *Account, p ap.Person) error {
-			a.Score = p.Score
-			a.Metadata = &AccountMetadata{
-				Key: &SSHKey{
-					ID:     "",
-					Public: []byte(p.PublicKey.PublicKeyPem),
-				},
-			}
-			name := jsonUnescape(p.Name.First())
-			pName := jsonUnescape(p.PreferredUsername.First())
-			if pName == "" {
-				pName = name
-			}
-
-			a.Hash.FromActivityPub(p)
-			a.Handle = name
-			a.Flags = FlagsNone
-			if len(p.ID) > 0 {
-				iri := p.GetLink()
-				a.Metadata.ID = iri.String()
-				a.Metadata.URL = p.URL.GetLink().String()
-			}
-			if p.Icon != nil {
-				if p.Icon.IsObject() {
-					if ic, ok := p.Icon.(*as.Object); ok {
-						a.Metadata.Icon.MimeType = string(ic.MediaType)
-						a.Metadata.Icon.URI = ic.URL.GetLink().String()
-					}
-					if ic, ok := p.Icon.(as.Object); ok {
-						a.Metadata.Icon.MimeType = string(ic.MediaType)
-						a.Metadata.Icon.URI = ic.URL.GetLink().String()
-					}
-				}
-			}
-			if a.IsFederated() {
-				// @TODO(marius): this returns false positives when API_URL is set and different than
-				host := host(a.Metadata.URL)
-				a.Handle = fmt.Sprintf("%s@%s", pName, host)
-			}
-			if !p.Published.IsZero() {
-				a.CreatedAt = p.Published
-			}
-			if !p.Updated.IsZero() {
-				a.UpdatedAt = p.Updated
-			}
-			return nil
-		}
-		if p, ok := it.(*ap.Person); ok {
-			loadFromPerson(a, *p)
-		}
-		if p, ok := it.(ap.Person); ok {
-			loadFromPerson(a, p)
-		}
+		personFn(a, loadFromObject, loadFromPerson, loadFromLocal)
 	default:
 		return errors.New("invalid actor type")
 	}
@@ -116,6 +160,9 @@ func (i *Item) FromActivityPub(it as.Item) error {
 	if it.IsLink() {
 		i.Hash.FromActivityPub(it.GetLink())
 		return nil
+	}
+	if i.SubmittedBy == nil {
+		i.SubmittedBy = &Account{}
 	}
 
 	articleFn := func(a *Item, fnAs func(i *Item, a as.Object) error, fnAp func(i *Item, a ap.Article) error) error {
@@ -133,7 +180,7 @@ func (i *Item) FromActivityPub(it as.Item) error {
 		}
 		return nil
 	}
-	loadFromASObject := func(i *Item, a as.Object) error {
+	loadFromObject := func(i *Item, a as.Object) error {
 		title := jsonUnescape(a.Name.First())
 
 		i.Hash.FromActivityPub(a)
@@ -156,12 +203,15 @@ func (i *Item) FromActivityPub(it as.Item) error {
 		if !a.Updated.IsZero() {
 			i.UpdatedAt = a.Updated
 		}
-		i.Metadata = &ItemMetadata{}
+		if i.Metadata == nil {
+			i.Metadata = &ItemMetadata{}
+		}
 
 		if a.AttributedTo != nil {
 			auth := Account{}
 			auth.FromActivityPub(a.AttributedTo)
 			i.SubmittedBy = &auth
+			i.Metadata.AuthorURI = a.AttributedTo.GetLink().String()
 		}
 		if len(a.ID) > 0 {
 			iri := a.GetLink()
@@ -207,7 +257,7 @@ func (i *Item) FromActivityPub(it as.Item) error {
 		return nil
 	}
 	loadFromArticle := func(i *Item, a ap.Article) error {
-		err := loadFromASObject(i, a.Object.Parent)
+		err := loadFromObject(i, a.Object.Parent)
 		i.Score = a.Score
 		// TODO(marius): here we seem to have a bug, when Source.Content is nil when it shouldn't
 		//    to repro, I used some copy/pasted comments from console javascript
@@ -221,13 +271,11 @@ func (i *Item) FromActivityPub(it as.Item) error {
 	case as.DeleteType:
 		if act, ok := it.(*ap.Activity); ok {
 			err := i.FromActivityPub(act.Object)
-			i.SubmittedBy.FromActivityPub(act.Actor)
 			i.Delete()
 			return err
 		}
 		if act, ok := it.(ap.Activity); ok {
 			err := i.FromActivityPub(act.Object)
-			i.SubmittedBy.FromActivityPub(act.Actor)
 			i.Delete()
 			return err
 		}
@@ -239,11 +287,13 @@ func (i *Item) FromActivityPub(it as.Item) error {
 		if act, ok := it.(*ap.Activity); ok {
 			err := i.FromActivityPub(act.Object)
 			i.SubmittedBy.FromActivityPub(act.Actor)
+			i.Metadata.AuthorURI = act.Actor.GetLink().String()
 			return err
 		}
 		if act, ok := it.(ap.Activity); ok {
 			err := i.FromActivityPub(act.Object)
 			i.SubmittedBy.FromActivityPub(act.Actor)
+			i.Metadata.AuthorURI = act.Actor.GetLink().String()
 			return err
 		}
 	case as.ArticleType:
@@ -253,14 +303,15 @@ func (i *Item) FromActivityPub(it as.Item) error {
 	case as.DocumentType:
 		fallthrough
 	case as.PageType:
-		return articleFn(i, loadFromASObject, loadFromArticle)
+		return articleFn(i, loadFromObject, loadFromArticle)
 	case as.TombstoneType:
 		id := it.GetLink()
 		i.Hash.FromActivityPub(id)
+		if i.Metadata == nil {
+			i.Metadata = &ItemMetadata{}
+		}
 		if len(id) > 0 {
-			i.Metadata = &ItemMetadata{
-				ID: id.String(),
-			}
+			i.Metadata.ID = id.String()
 		}
 		loadFromASObject := func(i *Item, o as.Object) error {
 			if o.InReplyTo != nil {

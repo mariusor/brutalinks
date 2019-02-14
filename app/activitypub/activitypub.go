@@ -132,8 +132,7 @@ func (p *PublicKey) UnmarshalJSON(data []byte) error {
 // UnmarshalJSON tries to load json data to Person object
 func (p *Person) UnmarshalJSON(data []byte) error {
 	app := ap.Person{}
-	err := app.UnmarshalJSON(data)
-	if err != nil {
+	if err := app.UnmarshalJSON(data); err != nil {
 		return err
 	}
 
@@ -229,6 +228,14 @@ func (o *OrderedCollection) UnmarshalJSON(data []byte) error {
 					art.Context = as.IRI(context)
 				}
 				a = art
+			case as.ServiceType:
+				fallthrough
+			case as.GroupType:
+				fallthrough
+			case as.ApplicationType:
+				fallthrough
+			case as.OrganizationType:
+				fallthrough
 			case as.PersonType:
 				p := &Person{}
 				if data, _, _, err := jsonparser.Get(data, "items", fmt.Sprintf("[%d]", i)); err == nil {
@@ -333,6 +340,14 @@ func (c *Collection) UnmarshalJSON(data []byte) error {
 					art.Context = as.IRI(context)
 				}
 				a = art
+			case as.ServiceType:
+				fallthrough
+			case as.GroupType:
+				fallthrough
+			case as.ApplicationType:
+				fallthrough
+			case as.OrganizationType:
+				fallthrough
 			case as.PersonType:
 				p := &Person{}
 				if data, _, _, err := jsonparser.Get(data, "items", fmt.Sprintf("[%d]", i)); err == nil {
@@ -430,4 +445,39 @@ func UnmarshalJSON(data []byte) (as.Item, error) {
 func (a *Activity) RecipientsDeduplication() {
 	b := as.Activity(*a)
 	b.RecipientsDeduplication()
+}
+
+func JSONGetItemByType (typ as.ActivityVocabularyType) (as.Item, error) {
+	var ret as.Item
+	var err error
+
+	switch typ {
+	case as.CollectionType:
+		ret = &Collection{}
+		o := ret.(*Collection)
+		o.Type = typ
+	case as.OrderedCollectionType:
+		ret = &OrderedCollection{}
+		o := ret.(*OrderedCollection)
+		o.Type = typ
+	case as.DocumentType:
+		fallthrough
+	case as.NoteType:
+		fallthrough
+	case as.PageType:
+		fallthrough
+	case as.ArticleType:
+		ret = &Article{}
+		o := ret.(*Article)
+		o.Type = typ
+	case as.ActorType:
+		fallthrough
+	case as.PersonType:
+		ret = &Person{}
+		o := ret.(*Person)
+		o.Type = typ
+	default:
+		return as.JSONGetItemByType(typ)
+	}
+	return ret, err
 }

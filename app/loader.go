@@ -126,7 +126,8 @@ type LoadAccountsFilter struct {
 	Deleted  bool     `qstring:"deleted,omitempty"`
 	Page     int      `qstring:"page,omitempty"`
 	MaxItems int      `qstring:"maxItems,omitempty"`
-	InboxIRI string   `qstring:"federated,omitempty"`
+	IRI      string   `qstring:"id,omitempty"`
+	InboxIRI string   `qstring:"inbox,omitempty"`
 }
 
 func (v VoteType) String() string {
@@ -492,6 +493,11 @@ func (f LoadAccountsFilter) GetWhereClauses() ([]string, []interface{}) {
 		whereValues = append(whereValues, interface{}(f.InboxIRI))
 		counter++
 	}
+	if len(f.IRI) > 0 {
+		wheres = append(wheres, fmt.Sprintf(`"accounts"."metadata"->>'id' ~* ?%d`, counter))
+		whereValues = append(whereValues, interface{}(f.IRI))
+		counter++
+	}
 
 	return wheres, whereValues
 }
@@ -504,6 +510,7 @@ func copyAccountFilters(a *LoadAccountsFilter, b LoadAccountsFilter) {
 	a.Page = b.Page
 	a.MaxItems = b.MaxItems
 	a.InboxIRI = b.InboxIRI
+	a.IRI = b.IRI
 }
 
 func (f *LoadAccountsFilter) QueryString() string {

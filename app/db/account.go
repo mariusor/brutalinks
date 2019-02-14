@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/go-pg/pg"
 	"github.com/mariusor/littr.go/app"
+	"net/url"
 	"strings"
 	"time"
 
@@ -101,9 +102,14 @@ func saveAccount(db *pg.DB, a app.Account) (app.Account, error) {
 
 	acct := Account{
 		Handle:   a.Handle,
-		Key:      app.GenKey([]byte(a.Handle)),
 		Score:    a.Score,
 		Metadata: *a.Metadata,
+	}
+	if a.IsFederated() {
+		acct.Key = app.GenKey([]byte(a.Metadata.ID))
+	} else {
+		acct.Key = app.GenKey([]byte(a.Handle))
+		a.Metadata.ID = fmt.Sprintf("%s/actors/%s", app.Instance.APIURL, url.PathEscape(acct.Key.String()))
 	}
 
 	if !a.CreatedAt.IsZero() {

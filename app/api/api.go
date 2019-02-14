@@ -12,13 +12,13 @@ import (
 	"strings"
 
 	"github.com/mariusor/littr.go/app"
-	localap "github.com/mariusor/littr.go/app/activitypub"
+	ap "github.com/mariusor/littr.go/app/activitypub"
 	"github.com/mariusor/littr.go/app/db"
 	"github.com/mariusor/littr.go/app/frontend"
 	"github.com/mariusor/littr.go/internal/log"
 	"github.com/spacemonkeygo/httpsig"
 
-	ap "github.com/go-ap/activitypub"
+	goap "github.com/go-ap/activitypub"
 	as "github.com/go-ap/activitystreams"
 	j "github.com/go-ap/jsonld"
 	"github.com/juju/errors"
@@ -35,8 +35,9 @@ type UserError struct {
 }
 
 type handler struct {
-	repo   *repository
-	logger log.Logger
+	repo    *repository
+	logger  log.Logger
+	//errorFn app.ErrorHandler
 }
 
 type Config struct {
@@ -45,12 +46,15 @@ type Config struct {
 }
 
 func Init(c Config) handler {
+	as.ItemTyperFunc = ap.JSONGetItemByType
 	BaseURL = c.BaseURL
+
 	ActorsURL = c.BaseURL + "/actors"
 	h := handler{
 		logger: c.Logger,
 	}
 	h.repo = New(c)
+	//h.errorFn = h.HandleError
 	return h
 }
 
@@ -92,6 +96,10 @@ func BuildActorID(a app.Account) as.ObjectID {
 	return as.ObjectID(fmt.Sprintf("%s/%s", ActorsURL, url.PathEscape(a.Hash.String())))
 }
 
+func BuildServiceCollectionID(o as.Item) as.ObjectID {
+	return as.ObjectID(fmt.Sprintf("%s/%s", BaseURL, getObjectType(o)))
+}
+
 func BuildCollectionID(a app.Account, o as.Item) as.ObjectID {
 	if len(a.Handle) > 0 {
 		return as.ObjectID(fmt.Sprintf("%s/%s/%s", ActorsURL, url.PathEscape(a.Hash.String()), getObjectType(o)))
@@ -126,49 +134,41 @@ func getObjectType(el as.Item) string {
 	}
 	var label = ""
 	switch el.(type) {
-	case *ap.Outbox:
+	case *goap.Outbox:
 		label = "outbox"
-	case ap.Outbox:
+	case goap.Outbox:
 		label = "outbox"
-	case *ap.Inbox:
+	case *goap.Inbox:
 		label = "inbox"
-	case ap.Inbox:
+	case goap.Inbox:
 		label = "inbox"
-	case ap.Liked:
+	case goap.Liked:
 		label = "liked"
-	case *ap.Liked:
+	case *goap.Liked:
 		label = "liked"
-	case ap.Followers:
+	case goap.Followers:
 		label = "followers"
-	case *ap.Followers:
+	case *goap.Followers:
 		label = "followers"
-	case ap.Following:
+	case goap.Following:
 		label = "following"
-	case *ap.Following:
+	case *goap.Following:
 		label = "following"
 	case as.Person:
-		o := el.(as.Person)
-		for _, n := range o.Name {
-			label = n.Value
-			break
+		if o, ok := el.(as.Person); ok {
+			label = o.Name.First()
 		}
 	case *as.Person:
-		o := el.(*as.Person)
-		for _, n := range o.Name {
-			label = n.Value
-			break
+		if o, ok := el.(*as.Person); ok {
+			label = o.Name.First()
 		}
-	case localap.Person:
-		o := el.(localap.Person)
-		for _, n := range o.Name {
-			label = n.Value
-			break
+	case ap.Person:
+		if o, ok := el.(ap.Person); ok {
+			label = o.Name.First()
 		}
-	case *localap.Person:
-		o := el.(*localap.Person)
-		for _, n := range o.Name {
-			label = n.Value
-			break
+	case *ap.Person:
+		if o, ok := el.(*ap.Person); ok {
+			label = o.Name.First()
 		}
 	}
 	return label

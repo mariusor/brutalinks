@@ -14,12 +14,12 @@ import (
 	"github.com/mariusor/littr.go/app/frontend"
 
 	"context"
-	ap "github.com/go-ap/activitypub"
+	goap "github.com/go-ap/activitypub"
 	as "github.com/go-ap/activitystreams"
 	json "github.com/go-ap/jsonld"
 	"github.com/go-chi/chi"
 	"github.com/juju/errors"
-	localap "github.com/mariusor/littr.go/app/activitypub"
+	ap "github.com/mariusor/littr.go/app/activitypub"
 	"github.com/mariusor/littr.go/internal/log"
 )
 
@@ -89,7 +89,7 @@ func itemURL(item app.Item) as.IRI {
 }
 
 func loadAPItem(item app.Item) as.Item {
-	o := localap.Article{}
+	o := ap.Article{}
 
 	if id, ok := BuildObjectIDFromItem(item); ok {
 		o.ID = id
@@ -198,8 +198,8 @@ func loadAPItem(item app.Item) as.Item {
 func accountURL(acc app.Account) as.IRI {
 	return as.IRI(fmt.Sprintf("%s%s", app.Instance.BaseURL, frontend.AccountPermaLink(acc)))
 }
-func loadAPPerson(a app.Account) *localap.Person {
-	p := localap.Person{}
+func loadAPPerson(a app.Account) *ap.Person {
+	p := ap.Person{}
 	p.Type = as.PersonType
 	p.Name = as.NaturalLanguageValueNew()
 	p.PreferredUsername = as.NaturalLanguageValueNew()
@@ -224,16 +224,16 @@ func loadAPPerson(a app.Account) *localap.Person {
 	p.Name.Set("en", a.Handle)
 	p.PreferredUsername.Set("en", a.Handle)
 
-	out := ap.OutboxNew()
-	out.ID = BuildCollectionID(a, new(ap.Outbox))
+	out := goap.OutboxNew()
+	out.ID = BuildCollectionID(a, new(goap.Outbox))
 	p.Outbox = out
 
-	in := ap.InboxNew()
-	in.ID = BuildCollectionID(a, new(ap.Inbox))
+	in := goap.InboxNew()
+	in.ID = BuildCollectionID(a, new(goap.Inbox))
 	p.Inbox = in
 
-	liked := ap.LikedNew()
-	liked.ID = BuildCollectionID(a, new(ap.Liked))
+	liked := goap.LikedNew()
+	liked.ID = BuildCollectionID(a, new(goap.Liked))
 	p.Liked = liked
 
 	if !a.CreatedAt.IsZero() {
@@ -246,7 +246,7 @@ func loadAPPerson(a app.Account) *localap.Person {
 	p.URL = accountURL(a)
 	p.Score = a.Score
 	if a.IsValid() && a.HasMetadata() && a.Metadata.Key != nil && a.Metadata.Key.Public != nil {
-		p.PublicKey = localap.PublicKey{
+		p.PublicKey = ap.PublicKey{
 			ID:           as.ObjectID(fmt.Sprintf("%s#main-key", p.ID)),
 			Owner:        as.IRI(p.ID),
 			PublicKeyPem: fmt.Sprintf("-----BEGIN PUBLIC KEY-----\n%s\n-----END PUBLIC KEY-----", base64.StdEncoding.EncodeToString(a.Metadata.Key.Public)),
@@ -347,14 +347,14 @@ func (h handler) HandleActor(w http.ResponseWriter, r *http.Request) {
 	if p.Inbox != nil {
 		p.Inbox = p.Inbox.GetLink()
 	}
-	p.Endpoints = ap.Endpoints{SharedInbox: as.IRI(fmt.Sprintf("%s/api/self/inbox", h.repo.BaseURL))}
+	p.Endpoints = goap.Endpoints{SharedInbox: as.IRI(fmt.Sprintf("%s/api/self/inbox", h.repo.BaseURL))}
 
 	j, err := json.WithContext(GetContext()).Marshal(p)
 	if err != nil {
 		h.logger.WithContext(log.Ctx{
 			"trace": errors.Details(err),
 		}).Error(err.Error())
-		h.HandleError(w, r, errors.NewNotValid(err, "unable to marshall ap object"))
+		h.HandleError(w, r, errors.NewNotValid(err, "unable to marshall goap object"))
 		return
 	}
 
@@ -455,7 +455,7 @@ func (h handler) HandleCollectionActivityObject(w http.ResponseWriter, r *http.R
 				}).Error(err.Error())
 			}
 			if len(replies) > 0 {
-				if o, ok := el.(localap.Article); ok {
+				if o, ok := el.(ap.Article); ok {
 					o.Replies = as.IRI(BuildRepliesCollectionID(o))
 					el = o
 				}
@@ -606,7 +606,7 @@ func (h handler) LoadActivity(next http.Handler) http.Handler {
 			h.HandleError(w, r, errors.MethodNotAllowedf("invalid %s request", r.Method))
 			return
 		}
-		a := localap.Activity{}
+		a := ap.Activity{}
 		if body, err := ioutil.ReadAll(r.Body); err != nil {
 			h.logger.WithContext(log.Ctx{
 				"err":   err,
@@ -664,9 +664,9 @@ type validator struct {
 	r app.Repository
 }
 
-func (v validator) Validate(ep as.IRI, obj as.Item) (bool, ap.ValidationErrors) {
+func (v validator) Validate(ep as.IRI, obj as.Item) (bool, goap.ValidationErrors) {
 	var res bool
-	var errs ap.ValidationErrors
+	var errs goap.ValidationErrors
 	switch obj.GetType() {
 	case as.ActorType:
 		if _, err := validateActor(obj, v.r); err != nil {
@@ -703,8 +703,9 @@ func validateLocalActor(a as.Item, repo app.CanLoadAccounts) (as.Item, error) {
 	}
 	return a, errors.NewMethodNotAllowed(err, "actor")
 }
+
 func validateActor(a as.Item, repo app.CanLoadAccounts) (as.Item, error) {
-	p := localap.Person{}
+	p := ap.Person{}
 
 	var err error
 	if err = validateIRIIsBlocked(a.GetLink()); err != nil {
@@ -715,9 +716,7 @@ func validateActor(a as.Item, repo app.CanLoadAccounts) (as.Item, error) {
 	}
 
 	isLocalActor := true
-	aHost := ""
 	if err = validateLocalIRI(a.GetLink()); err != nil {
-		aHost = host(a.GetLink().String())
 		isLocalActor = false
 	}
 
@@ -730,16 +729,14 @@ func validateActor(a as.Item, repo app.CanLoadAccounts) (as.Item, error) {
 		f := app.LoadAccountsFilter{}
 		if len(acct.Hash) == 0 && len(acct.Handle) > 0 {
 			if !isLocalActor {
-				f.InboxIRI = a.GetLink().String()
-				f.Email = []string{acct.Handle + "@" + aHost}
+				f.IRI = a.GetLink().String()
 			} else {
 				f.Handle = []string{acct.Handle}
 			}
 		}
 		if len(acct.Handle) == 0 && len(acct.Hash) > 0 {
 			if !isLocalActor {
-				f.InboxIRI = a.GetLink().String()
-				f.Email = []string{string(acct.Hash) + "@" + aHost}
+				f.IRI = a.GetLink().String()
 			} else {
 				f.Key = app.Hashes{acct.Hash}
 			}
@@ -910,7 +907,7 @@ func validateIRIIsBlocked(iri as.IRI) error {
 	return nil
 }
 
-func validateRecipients(a localap.Activity) error {
+func validateRecipients(a ap.Activity) error {
 	a.RecipientsDeduplication()
 
 	checkCollection := func(base string, col ...as.Item) bool {
@@ -937,7 +934,9 @@ func validateRecipients(a localap.Activity) error {
 		checkCollection(lT, a.CC...) ||
 		checkCollection(lT, a.Bto...) ||
 		checkCollection(lT, a.BCC...) ||
-		checkCollection(lT, a.Actor)
+		checkCollection(lT, a.Actor) ||
+		checkCollection(lT, a.InReplyTo) ||
+		checkCollection(lT, a.Context)
 
 	if !valid {
 		return errors.NotValidf("local instance can not be found in the recipients list")
@@ -962,7 +961,7 @@ func validateInboxActivityType(typ as.ActivityVocabularyType) error {
 	return nil
 }
 
-func validateInboxActivity(a localap.Activity, repo app.CanLoad) (localap.Activity, error) {
+func validateInboxActivity(a ap.Activity, repo app.CanLoad) (ap.Activity, error) {
 	if err := validateInboxActivityType(a.GetType()); err != nil {
 		return a, errors.NewNotValid(err, "failed to validate activity type for inbox collection")
 	}
@@ -970,11 +969,6 @@ func validateInboxActivity(a localap.Activity, repo app.CanLoad) (localap.Activi
 		return a, errors.NewNotValid(err, "invalid audience for activity")
 	}
 	aErr := activityError{}
-	if o, err := validateObject(a.Object, repo, a.GetType()); err != nil {
-		aErr.object = err
-	} else {
-		a.Object = o
-	}
 	if p, err := validateActor(a.Actor, repo); err != nil {
 		if errors.IsMethodNotAllowed(err) {
 			return a, err
@@ -982,6 +976,11 @@ func validateInboxActivity(a localap.Activity, repo app.CanLoad) (localap.Activi
 		aErr.actor = err
 	} else {
 		a.Actor = p
+	}
+	if o, err := validateObject(a.Object, repo, a.GetType()); err != nil {
+		aErr.object = err
+	} else {
+		a.Object = o
 	}
 
 	var err error
@@ -1006,7 +1005,7 @@ func validateOutboxActivityType(typ as.ActivityVocabularyType) error {
 	return nil
 }
 
-func validateOutboxActivity(a localap.Activity, repo app.CanLoadAccounts) (localap.Activity, error) {
+func validateOutboxActivity(a ap.Activity, repo app.CanLoadAccounts) (ap.Activity, error) {
 	if err := validateOutboxActivityType(a.GetType()); err != nil {
 		return a, errors.Annotate(err, "failed to validate activity type for outbox collection")
 	}
@@ -1158,7 +1157,6 @@ func (h handler) ServerRequest(w http.ResponseWriter, r *http.Request) {
 	var location string
 	repo, _ := app.ContextLoader(r.Context())
 	actorNeedsSaving := false
-	objectNeedsSaving := false
 	var actor as.Item
 	var object as.Item
 	it := app.Item{}
@@ -1169,19 +1167,18 @@ func (h handler) ServerRequest(w http.ResponseWriter, r *http.Request) {
 				actorNeedsSaving = true
 				actor = eact.actor
 			}
-			if eobj, ok := e.object.(objectMissingError); ok {
-				objectNeedsSaving = true
-				object = eobj.object
-			}
+			//if eobj, ok := e.object.(objectMissingError); ok {
+			//	object = eobj.object
+			//}
 		} else {
 			notFound(err)
 			return
 		}
 	}
 
-	if actorNeedsSaving || objectNeedsSaving {
+	if actorNeedsSaving {
 		var ok bool
-		var repo app.CanSave
+		var repo app.CanSaveAccounts
 		if repo, ok = app.ContextSaver(r.Context()); !ok {
 			notFound(errors.NotValidf("unable get persistence repository"))
 			return
@@ -1189,8 +1186,7 @@ func (h handler) ServerRequest(w http.ResponseWriter, r *http.Request) {
 		if actorNeedsSaving && actor != nil {
 			// @todo(marius): move this to its own function
 			if !actor.IsObject() {
-				actor, err = h.repo.client.LoadIRI(actor.GetLink())
-				if err != nil || !actor.IsObject() {
+				if actor, err = h.repo.client.LoadIRI(actor.GetLink()); err != nil || !actor.IsObject() {
 					notFound(errors.NewNotFound(err, fmt.Sprintf("failed to load remote actor %s", actor.GetLink())))
 					return
 				}
@@ -1206,40 +1202,49 @@ func (h handler) ServerRequest(w http.ResponseWriter, r *http.Request) {
 			}
 			a.Actor = loadAPPerson(acc)
 		}
-
-		if objectNeedsSaving && object != nil {
-			// @todo(marius): move this to its own function
-			if !object.IsObject() {
-				if object, err = h.repo.client.LoadIRI(object.GetLink()); err != nil {
-					notFound(errors.NewNotFound(err, fmt.Sprintf("failed to load remote object %s", object.GetLink())))
-					return
-				} else {
-					a.Object = object
-				}
-			}
-			// @fixme :needs_queueing:
-			if err = it.FromActivityPub(a); err != nil {
-				notFound(errors.NewNotFound(err, fmt.Sprintf("failed to load account from remote actor %s", actor.GetLink())))
+	}
+	if a.Object != nil {
+		var repo app.CanSaveItems
+		var ok bool
+		if repo, ok = app.ContextSaver(r.Context()); !ok {
+			notFound(errors.NotValidf("unable get persistence repository"))
+			return
+		}
+		object = a.Object
+		// @todo(marius): move this to its own function
+		if !object.IsObject() {
+			if object, err = h.repo.client.LoadIRI(object.GetLink()); err != nil {
+				notFound(errors.NewNotFound(err, fmt.Sprintf("failed to load remote object %s", object.GetLink())))
 				return
-			}
-			if it, err = repo.SaveItem(it); err != nil {
-				notFound(errors.NewNotFound(err, fmt.Sprintf("failed to save remote object %s", object.GetLink())))
-				return
-			}
-
-			if it.UpdatedAt.IsZero() {
-				// we need to make a difference between created vote and updated vote
-				// created - http.StatusCreated
-				status = http.StatusCreated
-				// TODO(marius): since the spec considers the inbox to be just a submission end-point, we probably
-				//   want the location to be to an outbox collection
-				location = fmt.Sprintf("/api/actors/%s/%s/%s", it.SubmittedBy.Handle, "outbox", it.Hash)
 			} else {
-				// updated - http.StatusOK
-				status = http.StatusOK
+				a.Object = object
 			}
 		}
+		// @fixme :needs_queueing:
+		if err = it.FromActivityPub(a); err != nil {
+			notFound(errors.NewNotFound(err, fmt.Sprintf("failed to load account from remote actor %s", actor.GetLink())))
+			return
+		}
+		if it, err = repo.SaveItem(it); err != nil {
+			notFound(errors.NewNotFound(err, fmt.Sprintf("failed to save remote object %s", object.GetLink())))
+			return
+		}
+
+		if it.UpdatedAt.IsZero() {
+			// we need to make a difference between created vote and updated vote
+			// created - http.StatusCreated
+			status = http.StatusCreated
+			// TODO(marius): since the spec considers the inbox to be just a submission end-point, we probably
+			//   want the location to be to an outbox collection
+			if newId, ok := BuildObjectIDFromItem(it); ok {
+				location = string(newId)
+			}
+		} else {
+			// updated - http.StatusOK
+			status = http.StatusOK
+		}
 	}
+
 
 	if err != nil {
 		h.logger.WithContext(log.Ctx{
