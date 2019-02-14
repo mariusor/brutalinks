@@ -315,8 +315,9 @@ func ReqLogger(next http.Handler) http.Handler {
 	return middleware.DefaultLogger(next)
 }
 
-type ErrorHandler func(http.ResponseWriter, *http.Request, ...error)
 type Handler func(http.Handler) http.Handler
+type ErrorHandler func(http.ResponseWriter, *http.Request, ...error)
+type ErrorHandlerFn func (eh ErrorHandler) Handler
 
 func NeedsDBBackend(eh ErrorHandler) Handler {
 	return func(next http.Handler) http.Handler {

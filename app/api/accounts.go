@@ -242,9 +242,6 @@ func loadAPPerson(a app.Account) *ap.Person {
 		}
 	} else {
 		p.Name.Set("en", a.Handle)
-		if len(a.Hash) >= 8 {
-			p.ID = apAccountID(a)
-		}
 
 		out := goap.OutboxNew()
 		out.ID = BuildCollectionID(a, new(goap.Outbox))
@@ -266,6 +263,9 @@ func loadAPPerson(a app.Account) *ap.Person {
 		if !a.UpdatedAt.IsZero() {
 			p.Updated = a.UpdatedAt
 		}
+	}
+	if len(a.Hash) >= 8 {
+		p.ID = apAccountID(a)
 	}
 
 	p.Score = a.Score

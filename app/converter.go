@@ -108,10 +108,10 @@ func (a *Account) FromActivityPub(it as.Item) error {
 		}
 		pName := jsonUnescape(p.PreferredUsername.First())
 		if pName == "" {
-			pName = p.Name.First()
+			pName = jsonUnescape(p.Name.First())
 		}
+		a.Handle = pName
 		if a.IsFederated() {
-			a.Handle = pName
 			if len(a.Metadata.URL) > 0 {
 				host := host(a.Metadata.URL)
 				a.Email = fmt.Sprintf("%s@%s", a.Handle, host)
