@@ -14,24 +14,6 @@ import (
 var UserAgent = "test-go-http-client"
 var HeaderAccept = `application/ld+json; profile="https://www.w3.org/ns/activitystreams"`
 
-type assertFn func(v bool, msg string, args ...interface{})
-type errFn func(format string, args ...interface{})
-
-func errorf(t *testing.T) errFn {
-	return func(msg string, args ...interface{}) {
-		msg = fmt.Sprintf("%s\n------- Stack -------\n%s\n", msg, debug.Stack())
-		t.Errorf(msg, args...)
-	}
-}
-
-func errIfNotTrue(t *testing.T) assertFn {
-	return func(v bool, msg string, args ...interface{}) {
-		if !v {
-			errorf(t)(msg, args...)
-		}
-	}
-}
-
 type collectionVal struct {
 	id        string
 	typ       string
@@ -60,12 +42,29 @@ type objectVal struct {
 	act               *objectVal
 	obj               *objectVal
 }
-type requestAssertFn func(iri string) map[string]interface{}
 
+type assertFn func(v bool, msg string, args ...interface{})
+type errFn func(format string, args ...interface{})
+type requestAssertFn func(iri string) map[string]interface{}
 type collectionAssertFn func(iri string, testVal collectionVal)
 type collectionPropertiesAssertFn func(ob map[string]interface{}, testVal collectionVal)
 type objectPropertiesAssertFn func(ob map[string]interface{}, testVal objectVal)
 type mapFieldAssertFn func(ob map[string]interface{}, key string, testVal interface{})
+
+func errorf(t *testing.T) errFn {
+	return func(msg string, args ...interface{}) {
+		msg = fmt.Sprintf("%s\n------- Stack -------\n%s\n", msg, debug.Stack())
+		t.Errorf(msg, args...)
+	}
+}
+
+func errIfNotTrue(t *testing.T) assertFn {
+	return func(v bool, msg string, args ...interface{}) {
+		if !v {
+			errorf(t)(msg, args...)
+		}
+	}
+}
 
 func errOnMapProp(t *testing.T) mapFieldAssertFn {
 	assertTrue := errIfNotTrue(t)
@@ -127,6 +126,7 @@ func errOnMapProp(t *testing.T) mapFieldAssertFn {
 
 func errOnObjectProperties(t *testing.T) objectPropertiesAssertFn {
 	assertMapKey := errOnMapProp(t)
+	assertReq := errOnGetRequest(t)
 	return func(ob map[string]interface{}, tVal objectVal) {
 		assertMapKey(ob, "id", tVal.id)
 
@@ -150,18 +150,38 @@ func errOnObjectProperties(t *testing.T) objectPropertiesAssertFn {
 		}
 		if tVal.inbox != nil {
 			assertMapKey(ob, "inbox", tVal.inbox)
+			if tVal.inbox.typ != "" {
+				derefCol := assertReq(tVal.inbox.id)
+				errOnCollectionProperties(t)(derefCol, *tVal.inbox)
+			}
 		}
 		if tVal.outbox != nil {
 			assertMapKey(ob, "outbox", tVal.outbox)
+			if tVal.outbox.typ != "" {
+				derefCol := assertReq(tVal.outbox.id)
+				errOnCollectionProperties(t)(derefCol, *tVal.outbox)
+			}
 		}
 		if tVal.liked != nil {
 			assertMapKey(ob, "liked", tVal.liked)
+			if tVal.liked.typ != "" {
+				derefCol := assertReq(tVal.liked.id)
+				errOnCollectionProperties(t)(derefCol, *tVal.liked)
+			}
 		}
 		if tVal.act != nil {
 			assertMapKey(ob, "actor", tVal.act)
+			if tVal.act.typ != "" {
+				derefAct := assertReq(tVal.act.id)
+				errOnObjectProperties(t)(derefAct, *tVal.act)
+			}
 		}
 		if tVal.obj != nil {
 			assertMapKey(ob, "object", tVal.obj)
+			if tVal.obj.id != "" {
+				derefObj := assertReq(tVal.obj.id)
+				errOnObjectProperties(t)(derefObj, *tVal.obj)
+			}
 		}
 	}
 }
