@@ -593,7 +593,7 @@ func (r *repository) LoadItems(f app.LoadItemsFilter) (app.ItemCollection, uint,
 }
 
 func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
-	url := fmt.Sprintf("%s/actors/%s/outbox/%s", r.BaseURL, v.SubmittedBy.Hash, v.Item.Hash)
+	url := fmt.Sprintf("%s/actors/%s/outbox/%s", r.BaseURL, v.Item.SubmittedBy.Hash, v.Item.Hash)
 
 	var err error
 	var exists *http.Response
@@ -628,7 +628,7 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 	}
 
 	var resp *http.Response
-	outbox := fmt.Sprintf("%s/actors/%s/outbox", r.BaseURL, v.SubmittedBy.Hash)
+	outbox := fmt.Sprintf("%s/actors/%s/outbox", r.BaseURL, v.Item.SubmittedBy.Hash)
 	if exists.StatusCode == http.StatusOK {
 		// previously found a vote, needs updating
 		resp, err = r.client.Post(outbox, "application/json+activity", bytes.NewReader(body))

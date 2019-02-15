@@ -256,18 +256,16 @@ func saveVote(db *pg.DB, vot app.Vote) (app.Vote, error) {
 	WHERE "accounts"."key" ~* ?0 AND "votes"."item_id" = (SELECT "id" FROM "items" WHERE "key" ~* ?1);`
 
 	old := struct {
-		VoteId    int64 `sql:vote_id`
-		AccountId int64 `sql:account_id`
-		Weight    int64 `sql:weight`
+		VoteID    int64 `sql:"vote_id"`
+		AccountID int64 `sql:"account_id"`
+		Weight    int64 `sql:"weight"`
 	}{}
-	if _, err := db.QueryOne(&old, sel, vot.SubmittedBy.Hash, vot.Item.Hash); err != nil {
-		return vot, err
-	}
+	db.QueryOne(&old, sel, vot.SubmittedBy.Hash, vot.Item.Hash)
 
 	v := Vote{}
 	var q string
 	var updated bool
-	if old.VoteId != 0 {
+	if old.VoteID != 0 {
 		if vot.Weight != 0 && old.Weight != 0 && math.Signbit(float64(old.Weight)) == math.Signbit(float64(vot.Weight)) {
 			vot.Weight = 0
 		}
