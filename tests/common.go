@@ -52,6 +52,7 @@ type assertFn func(v bool, msg string, args ...interface{})
 type errFn func(format string, args ...interface{})
 type requestAssertFn func(iri string, met string, b io.Reader) map[string]interface{}
 type requestGetAssertFn func(iri string) map[string]interface{}
+type requestPostAssertFn func(iri string, b io.Reader) map[string]interface{}
 type collectionAssertFn func(iri string, testVal collectionVal)
 type collectionPropertiesAssertFn func(ob map[string]interface{}, testVal collectionVal)
 type objectPropertiesAssertFn func(ob map[string]interface{}, testVal objectVal)
@@ -295,7 +296,8 @@ func errOnRequest(t *testing.T) requestAssertFn {
 
 		assertTrue(err == nil, "Error: request failed: %s", err)
 		b, err = ioutil.ReadAll(resp.Body)
-		assertTrue(resp.StatusCode == http.StatusOK, "Error: invalid HTTP response %d, expected %d\n%s", resp.StatusCode, http.StatusOK, b)
+		assertTrue(resp.StatusCode == http.StatusOK,
+			"Error: invalid HTTP response %d, expected %d\nResponse\n%v\n%s", resp.StatusCode, http.StatusOK, resp.Header, b)
 		assertTrue(err == nil, "Error: invalid HTTP body! Read %d bytes %s", len(b), b)
 
 		res := make(map[string]interface{})
@@ -307,12 +309,12 @@ func errOnRequest(t *testing.T) requestAssertFn {
 }
 
 func errOnCollection(t *testing.T) collectionAssertFn {
-	assertReq := errOnGetRequest(t)
+	assertGetReq := errOnGetRequest(t)
 	assertCollectionProperties := errOnCollectionProperties(t)
 
 	return func(iri string, tVal collectionVal) {
 		assertCollectionProperties(
-			assertReq(iri),
+			assertGetReq(iri),
 			tVal,
 		)
 	}

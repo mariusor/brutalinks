@@ -1063,8 +1063,6 @@ func validateOutboxActivity(a ap.Activity, repo app.CanLoadAccounts) (ap.Activit
 func (h handler) ClientRequest(w http.ResponseWriter, r *http.Request) {
 	a, _ := app.ContextActivity(r.Context())
 
-	col := as.IRI(r.URL.String())
-
 	var err error
 	status := http.StatusNotImplemented
 	var location string
@@ -1107,7 +1105,7 @@ func (h handler) ClientRequest(w http.ResponseWriter, r *http.Request) {
 				// we need to make a difference between created vote and updated vote
 				// created - http.StatusCreated
 				status = http.StatusCreated
-				location = fmt.Sprintf("/api/actors/%s/%s/%s", newIt.SubmittedBy.Handle, col, newIt.Hash)
+				location = fmt.Sprintf("%s/actors/%s/outbox/%s", h.repo.BaseURL, newIt.SubmittedBy.Handle, newIt.Hash)
 			} else {
 				// updated - http.StatusOK
 				status = http.StatusOK
@@ -1140,7 +1138,7 @@ func (h handler) ClientRequest(w http.ResponseWriter, r *http.Request) {
 				// we need to make a difference between created vote and updated vote
 				// created - http.StatusCreated
 				status = http.StatusCreated
-				location = fmt.Sprintf("/api/actors/%s/%s/%s", newVot.SubmittedBy.Handle, col, newVot.Item.Hash)
+				location = fmt.Sprintf("%s/actors/%s/liked/%s",  h.repo.BaseURL, newVot.SubmittedBy.Hash, newVot.Item.Hash)
 			} else {
 				// updated - http.StatusOK
 				status = http.StatusOK
