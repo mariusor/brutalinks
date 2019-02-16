@@ -632,20 +632,28 @@ func (h handler) HandleCollection(w http.ResponseWriter, r *http.Request) {
 
 func (h handler) LoadActivity(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodGet {
-			h.HandleError(w, r, errors.MethodNotAllowedf("invalid %s request", r.Method))
-			return
-		}
-		a := ap.Activity{}
-		if body, err := ioutil.ReadAll(r.Body); err != nil {
+		errFn := func (err error) {
 			h.logger.WithContext(log.Ctx{
 				"err":   err,
 				"trace": errors.Details(err),
-			}).Error("request body read error")
-			h.HandleError(w, r, errors.NewNotValid(err, "not found"))
+			}).Error("Activity load error")
+			h.HandleError(w, r, err)
+			return
+		}
+		if r.Method == http.MethodGet {
+			errFn(errors.MethodNotAllowedf("invalid %s request", r.Method))
+			return
+		}
+
+		a := ap.Activity{}
+		if body, err := ioutil.ReadAll(r.Body); err != nil || len(body) == 0 {
+			errFn(errors.NewNotValid(err, "unable to read request body"))
 			return
 		} else {
-			json.Unmarshal(body, &a)
+			if err := json.Unmarshal(body, &a); err != nil {
+				errFn(errors.NewNotValid(err, "unable to unmarshal JSON request"))
+				return
+			}
 		}
 		ctx := context.WithValue(r.Context(), app.ItemCtxtKey, a)
 		next.ServeHTTP(w, r.WithContext(ctx))
