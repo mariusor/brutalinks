@@ -248,9 +248,9 @@ func loadScoresForItems(db *pg.DB, since time.Duration, key string) ([]app.Score
 		par = append(par, interface{}(key))
 	}
 	scores := make([]app.Score, 0)
-	q := fmt.Sprintf(`select "items"."id", "items"."key", max("items"."submitted_at") as "submitted_at",
-		sum(CASE WHEN "weight" > 0 THEN "weight" ELSE 0 END) AS "ups",
-		sum(CASE WHEN "weight" < 0 THEN abs("weight") ELSE 0 END) AS "downs"
+	q := fmt.Sprintf(`SELECT "items"."id", "items"."key", MAX("items"."submitted_at") AS "submitted_at",
+		SUM(CASE WHEN "weight" > 0 THEN "weight" ELSE 0 END) AS "ups",
+		SUM(CASE WHEN "weight" < 0 THEN abs("weight") ELSE 0 END) AS "downs"
 		FROM "votes" INNER JOIN "items" ON "items"."id" = "votes"."item_id"
 		WHERE "votes"."updated_at" >= current_timestamp - INTERVAL '%.3f hours' %s 
 	GROUP BY "items"."id", "key" ORDER BY "items"."id";`,
@@ -258,7 +258,7 @@ func loadScoresForItems(db *pg.DB, since time.Duration, key string) ([]app.Score
 	if _, err := db.Query(&scores, q, par...); err != nil {
 		return nil, err
 	} else {
-		for _, score := range scores {
+		for k, score := range scores {
 			var submitted time.Time
 
 			now := time.Now().UTC()
@@ -279,6 +279,7 @@ func loadScoresForItems(db *pg.DB, since time.Duration, key string) ([]app.Score
 			score.Type = app.ScoreItem
 			score.Score = dumbScore
 			score.SubmittedAt = now
+			scores[k] = score
 		}
 	}
 	return scores, nil

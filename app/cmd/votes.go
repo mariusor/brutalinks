@@ -31,7 +31,7 @@ func UpdateScores(key string, handle string, since time.Duration, items bool, ac
 		return err
 	}
 
-	sql := `update "%s" set score = ?0 where id = ?1;`
+	sql := `UPDATE "%s" SET "score" = ?0 WHERE "id" = ?1;`
 	for _, score := range scores {
 		var col string
 		if score.Type == app.ScoreItem {

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/go-pg/pg"
 	"github.com/mariusor/littr.go/app"
-	"github.com/mariusor/littr.go/internal/log"
 	"math"
 	"strings"
 	"time"
@@ -71,11 +70,11 @@ func countVotes(db *pg.DB, f app.LoadVotesFilter) (uint, error) {
 		fullWhere = fmt.Sprintf("(%s)", strings.Join(wheres, " AND "))
 	}
 
-	selC := fmt.Sprintf(`select count(*) from "votes" as "vote"
-		inner join "accounts" as "voter" on "voter"."id" = "vote"."submitted_by"
-		inner join "items" as "item" on "item"."id" = "vote"."item_id" 
-		inner join "accounts" as "author" on "item"."submitted_by" = "author"."id"
-		where %s`, fullWhere)
+	selC := fmt.Sprintf(`SELECT COUNT(*) FROM "votes" AS "vote"
+		INNER JOIN "accounts" AS "voter" ON "voter"."id" = "vote"."submitted_by"
+		INNER JOIN "items" AS "item" ON "item"."id" = "vote"."item_id" 
+		inner join "accounts" AS "author" ON "item"."submitted_by" = "author"."id"
+		WHERE %s`, fullWhere)
 	var count uint
 	if _, err := db.Query(&count, selC, whereValues...); err != nil {
 		return 0, errors.Annotatef(err, "DB query error")
@@ -264,15 +263,13 @@ func saveVote(db *pg.DB, vot app.Vote) (app.Vote, error) {
 
 	v := Vote{}
 	var q string
-	var updated bool
 	if old.VoteID != 0 {
 		if vot.Weight != 0 && old.Weight != 0 && math.Signbit(float64(old.Weight)) == math.Signbit(float64(vot.Weight)) {
 			vot.Weight = 0
 		}
-		q = `update "votes" set "updated_at" = now(), "weight" = ?0, "flags" = ?1::bit(8) where "item_id" = (select "id" from "items" where "key" ~* ?2) and "submitted_by" = (select "id" from "accounts" where "key" ~* ?3);`
-		updated = true
+		q = `UPDATE "votes" SET "updated_at" = now(), "weight" = ?0, "flags" = ?1::bit(8) WHERE "item_id" = (SELECT "id" FROM "items" WHERE "key" ~* ?2) AND "submitted_by" = (SELECT "id" FROM "accounts" WHERE "key" ~* ?3);`
 	} else {
-		q = `insert into "votes" ("weight", "flags", "item_id", "submitted_by") values (?0, ?1::bit(8), (select "id" from "items" where "key" ~* ?2), (select "id" from "accounts" where "key" ~* ?3))`
+		q = `INSERT INTO "votes" ("weight", "flags", "item_id", "submitted_by") VALUES (?0, ?1::bit(8), (SELECT "id" FROM "items" WHERE "key" ~* ?2), (SELECT "id" FROM "accounts" WHERE "key" ~* ?3))`
 	}
 	v.Flags.Scan(vot.Flags)
 	v.Weight = int(vot.Weight * app.ScoreMultiplier)
@@ -285,33 +282,16 @@ func saveVote(db *pg.DB, vot app.Vote) (app.Vote, error) {
 		return vot, errors.Errorf("scoring failed %s", err)
 	}
 
-	upd := `update "items" set score = score - ?0 + ?1 where "id" = (select "id" from "items" where "key" ~* ?2)`
-	res, err = db.Exec(upd, v.Weight, v.Weight, vot.Item.Hash)
-	if err != nil {
-		return vot, err
-	}
-	if rows := res.RowsAffected(); rows == 0 {
-		err = errors.Errorf("item corresponding to vote not found")
-	}
-	if rows := res.RowsAffected(); rows > 1 {
-		err = errors.Errorf("item collision for vote")
-	}
-	if err == nil {
-		Logger.WithContext(log.Ctx{
-			"hash":      vot.Item.Hash,
-			"updated":   updated,
-			"oldWeight": old.Weight,
-			"newWeight": vot.Weight,
-			"voter":     vot.SubmittedBy.Hash,
-		}).Info("vote updated successfully")
+	// TODO(marius): :needs_queueing:
+	if scores, err := loadScoresForItems(db, time.Now().Sub(vot.Item.SubmittedAt), vot.Item.Hash.String()); err != nil {
+		return vot, errors.Errorf("calculating item score failed %s", err)
 	} else {
-		Logger.WithContext(log.Ctx{
-			"hash":      vot.Item.Hash,
-			"updated":   updated,
-			"oldWeight": old.Weight,
-			"newWeight": vot.Weight,
-			"voter":     vot.SubmittedBy.Hash,
-		}).Error(err.Error())
+		sql := `UPDATE "items" SET "score" = ?0 WHERE "id" = ?1;`
+		for _, score := range scores {
+			if _, err := db.Query(score, sql, score.Score, score.ID); err != nil {
+				return vot, err
+			}
+		}
 	}
 
 	return vot, err
