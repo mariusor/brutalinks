@@ -3,12 +3,8 @@ package tests
 import (
 	"fmt"
 	as "github.com/go-ap/activitystreams"
-	"os"
 	"testing"
 )
-
-var apiURL = os.Getenv("API_URL")
-var host = os.Getenv("HOSTNAME")
 
 type collectionTestPairs map[string]collectionVal
 
@@ -79,7 +75,7 @@ var testPairs = collectionTestPairs{
 		},
 		// TODO(marius): We need to fix the criteria for populating the inbox to
 		//     verifying if the actor that submitted the activity is local or not
-		itemCount: 1, // TODO(marius) :FIX_INBOX: this should be 0
+		itemCount: 1, // TODO(marius): :FIX_INBOX: this should be 0
 	},
 	fmt.Sprintf("%s/self/liked", apiURL): {
 		id:  fmt.Sprintf("%s/self/liked", apiURL),

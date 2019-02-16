@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	as "github.com/go-ap/activitystreams"
+	"io"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"runtime/debug"
 	"testing"
 )
@@ -43,9 +45,13 @@ type objectVal struct {
 	obj               *objectVal
 }
 
+var apiURL = os.Getenv("API_URL")
+var host = os.Getenv("HOSTNAME")
+
 type assertFn func(v bool, msg string, args ...interface{})
 type errFn func(format string, args ...interface{})
-type requestAssertFn func(iri string) map[string]interface{}
+type requestAssertFn func(iri string, met string, b io.Reader) map[string]interface{}
+type requestGetAssertFn func(iri string) map[string]interface{}
 type collectionAssertFn func(iri string, testVal collectionVal)
 type collectionPropertiesAssertFn func(ob map[string]interface{}, testVal collectionVal)
 type objectPropertiesAssertFn func(ob map[string]interface{}, testVal objectVal)
@@ -268,14 +274,18 @@ func errOnCollectionProperties(t *testing.T) collectionPropertiesAssertFn {
 	}
 }
 
-func errOnGetRequest(t *testing.T) requestAssertFn {
+func errOnGetRequest(t *testing.T) requestGetAssertFn {
+	return func(iri string) map[string]interface{} { return errOnRequest(t)(iri, http.MethodGet, nil) }
+}
+
+func errOnRequest(t *testing.T) requestAssertFn {
 	assertTrue := errIfNotTrue(t)
 
-	return func(iri string) map[string]interface{} {
+	return func(iri string, method string, body io.Reader) map[string]interface{} {
 		b := make([]byte, 0)
 
 		var err error
-		req, err := http.NewRequest(http.MethodGet, iri, nil)
+		req, err := http.NewRequest(method, iri, body)
 		assertTrue(err == nil, "Error: unable to create request: %s", err)
 
 		req.Header.Set("User-Agent", fmt.Sprintf("-%s", UserAgent))
@@ -284,9 +294,8 @@ func errOnGetRequest(t *testing.T) requestAssertFn {
 		resp, err := http.DefaultClient.Do(req)
 
 		assertTrue(err == nil, "Error: request failed: %s", err)
-		assertTrue(resp.StatusCode == http.StatusOK, "Error: invalid HTTP response %d, expected %d", resp.StatusCode, http.StatusOK)
-
 		b, err = ioutil.ReadAll(resp.Body)
+		assertTrue(resp.StatusCode == http.StatusOK, "Error: invalid HTTP response %d, expected %d\n%s", resp.StatusCode, http.StatusOK, b)
 		assertTrue(err == nil, "Error: invalid HTTP body! Read %d bytes %s", len(b), b)
 
 		res := make(map[string]interface{})
