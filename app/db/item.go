@@ -175,15 +175,15 @@ func saveItem(db *pg.DB, it app.Item) (app.Item, error) {
 		params = append(params, aKey)
 
 		if it.Parent != nil && len(it.Parent.Hash) > 0 {
-			query = `insert into "items" ("key", "title", "data", "metadata", "mime_type", "submitted_at", "updated_at", "flags", "submitted_by", "path") 
-		values(
-			?0, ?1, ?2, ?3, ?4, ?5, ?6, ?7::bit(8), (select "id" from "accounts" where "key" ~* ?8 or "handle" = ?8), (select (case when "path" is not null then concat("path", '.', "key") else "key" end) 
-				as "parent_path" from "items" where key ~* ?9)::ltree
+			query = `INSERT INTO "items" ("key", "title", "data", "metadata", "mime_type", "submitted_at", "updated_at", "flags", "submitted_by", "path") 
+		VALUES(
+			?0, ?1, ?2, ?3, ?4, ?5, ?6, ?7::bit(8), (SELECT "id" FROM "accounts" WHERE "key" ~* ?8 OR "handle" = ?8), (SELECT (CASE WHEN "path" IS NOT NULL THEN concat("path", '.', "key") ELSE "key" END) 
+				AS "parent_path" FROM "items" WHERE key ~* ?9)::ltree
 		);`
 			params = append(params, it.Parent.Hash)
 		} else {
-			query = `insert into "items" ("key", "title", "data", "metadata", "mime_type", "submitted_at", "updated_at", "flags", "submitted_by") 
-		values(?0, ?1, ?2, ?3, ?4, ?5, ?6, ?7::bit(8), (select "id" from "accounts" where "key" ~* ?8 or "handle" = ?8));`
+			query = `INSERT INTO "items" ("key", "title", "data", "metadata", "mime_type", "submitted_at", "updated_at", "flags", "submitted_by") 
+		VALUES(?0, ?1, ?2, ?3, ?4, ?5, ?6, ?7::bit(8), (select "id" FROM "accounts" WHERE "key" ~* ?8 OR "handle" = ?8));`
 		}
 		hash = i.Key.Hash()
 	} else {
