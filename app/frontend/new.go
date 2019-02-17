@@ -46,12 +46,12 @@ func loadTags(data string) (app.TagCollection, app.TagCollection) {
 		isFed := false
 		name := byt[st : st+en]
 		if strings.Contains(name, "@") {
-			eot := strings.IndexAny(byt[en:], " \t\r\n'\"<>,:;!?")
-			if eot < 0 {
-				continue
-			}
-			en += eot
-			name = byt[st : st+en]
+			//eot := strings.IndexAny(byt[en:], " \t\r\n'\"<>,:;!?")
+			//if eot < 0 {
+			//	continue
+			//}
+			//en += eot
+			//name = byt[st : st+en]
 			isFed = true
 		}
 		t.Name = name
