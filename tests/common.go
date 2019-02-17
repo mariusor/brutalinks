@@ -1,20 +1,28 @@
 package tests
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	as "github.com/go-ap/activitystreams"
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"runtime/debug"
+	"strings"
 	"testing"
 )
 
 // UserAgent value that the client uses when performing requests
 var UserAgent = "test-go-http-client"
 var HeaderAccept = `application/ld+json; profile="https://www.w3.org/ns/activitystreams"`
+
+type postVal struct {
+	body string
+	res objectVal
+}
 
 type collectionVal struct {
 	id        string
@@ -135,8 +143,9 @@ func errOnObjectProperties(t *testing.T) objectPropertiesAssertFn {
 	assertMapKey := errOnMapProp(t)
 	assertReq := errOnGetRequest(t)
 	return func(ob map[string]interface{}, tVal objectVal) {
-		assertMapKey(ob, "id", tVal.id)
-
+		if tVal.id != "" {
+			assertMapKey(ob, "id", tVal.id)
+		}
 		if tVal.typ != "" {
 			assertMapKey(ob, "type", tVal.typ)
 		}
@@ -251,7 +260,8 @@ func errOnCollectionProperties(t *testing.T) collectionPropertiesAssertFn {
 			)
 			if len(tVal.items) > 0 {
 			foundItem:
-				for iri, testIt := range tVal.items {
+				for k, testIt := range tVal.items {
+					iri := fmt.Sprintf("%s/%s", apiURL, k)
 					for _, it := range items {
 						act, ok := it.(map[string]interface{})
 						assertTrue(ok, "Unable to convert %#v to %T type, Received %#v:(%T)", it, act, it, it)
@@ -260,7 +270,7 @@ func errOnCollectionProperties(t *testing.T) collectionPropertiesAssertFn {
 						itIRI, ok := itId.(string)
 						assertTrue(ok, "Unable to convert %#v to %T type, Received %#v:(%T)", itId, itIRI, val, val)
 						if itIRI == iri {
-							t.Run(iri, func(t *testing.T) {
+							t.Run(k, func(t *testing.T) {
 								assertObjectProperties(act, testIt)
 								derefAct := assertReq(itIRI)
 								assertObjectProperties(derefAct, testIt)
@@ -317,5 +327,53 @@ func errOnCollection(t *testing.T) collectionAssertFn {
 			assertGetReq(iri),
 			tVal,
 		)
+	}
+}
+
+func errOnPostRequest(t *testing.T) func(postVal) {
+	assertTrue := errIfNotTrue(t)
+	assertGetRequest := errOnGetRequest(t)
+	assertObjectProperties := errOnObjectProperties(t)
+
+	return func(test postVal) {
+		outbox := fmt.Sprintf("%s/self/outbox", apiURL)
+
+		body := []byte(test.body)
+		b := make([]byte, 0)
+
+		var err error
+		req, err := http.NewRequest(http.MethodPost, outbox, bytes.NewReader(body))
+		assertTrue(err == nil, "Error: unable to create request: %s", err)
+
+		req.Header.Set("User-Agent", fmt.Sprintf("-%s", UserAgent))
+		req.Header.Set("Accept", HeaderAccept)
+		req.Header.Set("Cache-Control", "no-cache")
+		resp, err := http.DefaultClient.Do(req)
+
+		assertTrue(err == nil, "Error: request failed: %s", err)
+		b, err = ioutil.ReadAll(resp.Body)
+		assertTrue(resp.StatusCode == http.StatusCreated,
+			"Error: invalid HTTP response %d, expected %d\nResponse\n%v\n%s", resp.StatusCode, http.StatusCreated, resp.Header, b)
+		assertTrue(err == nil, "Error: invalid HTTP body! Read %d bytes %s", len(b), b)
+
+		location, ok := resp.Header["Location"]
+		assertTrue(ok, "Server didn't respond with a Location header even though it confirmed the Like was created")
+		assertTrue(len(location) == 1, "Server responded with multiple Location headers which is not expected")
+
+		newObj, err := url.Parse(location[0])
+		newObjURL := newObj.String()
+		assertTrue(err == nil, "Location header holds invalid URL %s", newObjURL)
+		assertTrue(strings.Contains(newObjURL, apiURL), "Location header holds invalid URL %s, expected to contain %s", newObjURL, apiURL)
+
+		if test.res.id == "" {
+			test.res.id = newObjURL
+		}
+
+		res := make(map[string]interface{})
+		err = json.Unmarshal(b, &res)
+		assertTrue(err == nil, "Error: unmarshal failed: %s", err)
+
+		saved := assertGetRequest(newObjURL)
+		assertObjectProperties(saved, test.res)
 	}
 }

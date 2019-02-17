@@ -6,10 +6,11 @@ import (
 	"testing"
 )
 
-type collectionTestPairs map[string]collectionVal
+type getTest map[string]collectionVal
+type postTest map[string]postVal
 
-var testPairs = collectionTestPairs{
-	fmt.Sprintf("%s/actors", apiURL): {
+var defaultCollectionTestPairs = getTest{
+	"actors": {
 		id:  fmt.Sprintf("%s/actors", apiURL),
 		typ: string(as.CollectionType),
 		first: &collectionVal{
@@ -19,7 +20,7 @@ var testPairs = collectionTestPairs{
 		},
 		itemCount: 2,
 		items: map[string]objectVal{
-			fmt.Sprintf("%s/actors/eacff9dd", apiURL): {
+			"actors/eacff9dd": {
 				id:                fmt.Sprintf("%s/actors/eacff9dd", apiURL),
 				typ:               string(as.PersonType),
 				name:              "anonymous",
@@ -42,7 +43,7 @@ var testPairs = collectionTestPairs{
 				},
 				score: 0,
 			},
-			fmt.Sprintf("%s/actors/dc6f5f5b", apiURL): {
+			"actors/dc6f5f5b": {
 				id:                fmt.Sprintf("%s/actors/dc6f5f5b", apiURL),
 				typ:               string(as.PersonType),
 				name:              "system",
@@ -67,7 +68,7 @@ var testPairs = collectionTestPairs{
 			},
 		},
 	},
-	fmt.Sprintf("%s/self/inbox", apiURL): {
+	"self/inbox": {
 		id:  fmt.Sprintf("%s/self/inbox", apiURL),
 		typ: string(as.OrderedCollectionType),
 		first: &collectionVal{
@@ -77,7 +78,7 @@ var testPairs = collectionTestPairs{
 		//     verifying if the actor that submitted the activity is local or not
 		itemCount: 1, // TODO(marius): :FIX_INBOX: this should be 0
 	},
-	fmt.Sprintf("%s/self/liked", apiURL): {
+	"self/liked": {
 		id:  fmt.Sprintf("%s/self/liked", apiURL),
 		typ: string(as.OrderedCollectionType),
 		first: &collectionVal{
@@ -85,7 +86,7 @@ var testPairs = collectionTestPairs{
 		},
 		itemCount: 0,
 	},
-	fmt.Sprintf("%s/self/outbox", apiURL): {
+	"self/outbox": {
 		id:  fmt.Sprintf("%s/self/outbox", apiURL),
 		typ: string(as.OrderedCollectionType),
 		first: &collectionVal{
@@ -93,7 +94,7 @@ var testPairs = collectionTestPairs{
 		},
 		itemCount: 1,
 		items: map[string]objectVal{
-			fmt.Sprintf("%s/actors/dc6f5f5b/outbox/162edb32", apiURL): {
+			"actors/dc6f5f5b/outbox/162edb32": {
 				id:  fmt.Sprintf("%s/actors/dc6f5f5b/outbox/162edb32", apiURL),
 				typ: string(as.CreateType),
 				act: &objectVal{
@@ -114,12 +115,60 @@ var testPairs = collectionTestPairs{
 	},
 }
 
-func Test_GETCollections(t *testing.T) {
-	assertCollection := errOnCollection(t)
+var c2sTestPairs = postTest{
+	"Like": {
+		body: fmt.Sprintf(`{
+    "type": "Like",
+    "actor": "%s/actors/dc6f5f5b",
+    "object": "%s/actors/dc6f5f5b/outbox/162edb32/object"
+}`, apiURL, apiURL),
+		res: objectVal{
+			id: fmt.Sprintf("%s/actors/dc6f5f5b/liked/162edb32", apiURL),
+			typ: string(as.LikeType),
+			obj: &objectVal{author: fmt.Sprintf("%s/actors/dc6f5f5b", apiURL),
+				id: fmt.Sprintf("%s/actors/dc6f5f5b/outbox/162edb32/object", apiURL),
+			},
+		},
+	},
+	"Create": {
+		body: fmt.Sprintf(`{
+  "type": "Create",
+  "actor": "%s/actors/dc6f5f5b",
+  "to": ["%s/self/outbox"],
+  "object": {
+    "type": "Note",
+    "inReplyTo": "%s/actors/dc6f5f5b/outbox/162edb32",
+    "content": "<p>Hello world!</p>"
+  }
+}`, apiURL, apiURL, apiURL),
+		res: objectVal{
+			typ: string(as.CreateType),
+			obj: &objectVal{
+				author: fmt.Sprintf("%s/actors/dc6f5f5b", apiURL),
+				typ: string(as.NoteType),
+				content: "<p>Hello world!</p>",
+			},
+		},
+	},
+}
 
-	for k, col := range testPairs {
+var s2sTestPairs = postTest{}
+
+func Test_GET(t *testing.T) {
+	assertCollection := errOnCollection(t)
+	for k, col := range defaultCollectionTestPairs {
 		t.Run(k, func(t *testing.T) {
-			assertCollection(k, col)
+			assertCollection(fmt.Sprintf("%s/%s", apiURL, k), col)
+		})
+	}
+
+}
+
+func Test_POST_Outbox(t *testing.T) {
+	assertPost := errOnPostRequest(t)
+	for typ, test := range c2sTestPairs {
+		t.Run("Activity_"+typ, func(t *testing.T) {
+			assertPost(test)
 		})
 	}
 }

@@ -125,7 +125,7 @@ func BuildObjectIDFromItem(i app.Item) (as.ObjectID, bool) {
 
 func BuildObjectIDFromVote(v app.Vote) as.ObjectID {
 	att := "liked"
-	return as.ObjectID(fmt.Sprintf("%s/%s/%s/%s", ActorsURL, url.PathEscape(v.SubmittedBy.Handle), att, url.PathEscape(v.Item.Hash.String())))
+	return as.ObjectID(fmt.Sprintf("%s/%s/%s/%s", ActorsURL, url.PathEscape(v.SubmittedBy.Hash.String()), att, url.PathEscape(v.Item.Hash.String())))
 }
 
 func getObjectType(el as.Item) string {

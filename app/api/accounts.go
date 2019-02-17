@@ -1105,7 +1105,7 @@ func (h handler) ClientRequest(w http.ResponseWriter, r *http.Request) {
 				// we need to make a difference between created vote and updated vote
 				// created - http.StatusCreated
 				status = http.StatusCreated
-				location = fmt.Sprintf("%s/actors/%s/outbox/%s", h.repo.BaseURL, newIt.SubmittedBy.Handle, newIt.Hash)
+				location = fmt.Sprintf("%s/actors/%s/outbox/%s", h.repo.BaseURL, newIt.SubmittedBy.Hash, newIt.Hash)
 			} else {
 				// updated - http.StatusOK
 				status = http.StatusOK
