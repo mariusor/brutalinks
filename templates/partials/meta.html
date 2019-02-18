@@ -14,12 +14,14 @@ submitted {{ if not .Deleted -}} <time datetime="{{ $it.SubmittedAt | ISOTimeFmt
 {{- if not .Deleted }}
             <li><a href="{{$it | ItemLocalLink }}/edit" title="Edit{{if .Item.Title}}: {{$it.Title }}{{end}}">{{ icon "edit"}}</a></li>
             <li><a href="{{$it | ItemLocalLink }}/rm" class="rm" data-hash="{{ .Item.Hash }}" title="Remove{{if .Item.Title}}: {{$it.Title }}{{end}}">{{ icon "eraser"}}</a></li>
+{{- /*
 {{ else -}}
             <li><a href="{{$it | ItemLocalLink }}/undo" class="undo" data-hash="{{ .Item.Hash }}" title="Recover item">{{ icon "recycle"}}</a></li>
+*/ -}}
 {{ end -}}
 {{ end }}
 {{- /*
-        <li><a href="{{$it | PermaLink }}/bad" title="Report{{if .Item.Title}}: {{$it.Title }}{{end}}">{{ icon "star"}}</a></li>
+            <li><a href="{{$it | PermaLink }}/bad" title="Report{{if .Item.Title}}: {{$it.Title }}{{end}}">{{ icon "star"}}</a></li>
 */ -}}
 {{- end -}}
 {{- if not $it.IsTop -}}
@@ -27,6 +29,7 @@ submitted {{ if not .Deleted -}} <time datetime="{{ $it.SubmittedAt | ISOTimeFmt
         {{if and $it.OP (not (sameBase req.URL.Path (OPLink $it))) }}<li><a href="{{$it | OPLink }}" class="to-op" title="TopPost">{{icon "angle-double-up"}}</a></li>{{end}}
 {{- end -}}
         {{if or (not $it.IsTop) (not .IsLink) }}<li><a href="{{$it | ItemLocalLink }}" class="to-item" title="Reply to{{if .Item.Title}}: {{$it.Title }}{{end}}">{{ icon "reply" "h-mirror" }}</a></li>{{ end }}
+        {{if $it.IsFederated }}<!-- <li>This shit federated, yo!</li> -->{{ end }}
         </ul>
     </nav>
 </footer>
