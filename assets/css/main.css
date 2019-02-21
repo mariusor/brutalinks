@@ -168,13 +168,22 @@ body > main {
 }
 body > footer {
     grid-area: footer;
-    display: grid;
-    grid-template-columns: minmax(auto, 100%) auto;
     padding-bottom: 1em;
 }
+footer nav.bottom::before {
+    content: "Ω";
+}
+footer nav.bottom:hover::before {
+    content: "";
+}
+footer nav.bottom:hover {
+    width: auto;
+}
 footer nav.bottom {
-    align-self: self-end;
-    text-align: right;
+    width: 1em;
+    height: 1em;
+    overflow: hidden;
+    float: right;
     padding-top: .3rem;
     font-size: .7rem;
 }
