@@ -111,7 +111,7 @@ func loadAPItem(item app.Item) as.Item {
 		if len(item.Hash) > 0 {
 			o.URL = itemURL(item)
 		}
-		o.Name = make(as.NaturalLanguageValue, 0)
+		o.Name = make(as.NaturalLanguageValues, 0)
 		switch item.MimeType {
 		case app.MimeTypeMarkdown:
 			o.Object.Source.MediaType = as.MimeType(item.MimeType)
@@ -179,14 +179,14 @@ func loadAPItem(item app.Item) as.Item {
 				t := as.Object{
 					ID:   as.ObjectID(men.URL),
 					Type: as.MentionType,
-					Name: as.NaturalLanguageValue{{Ref: as.NilLangRef, Value: men.Name}},
+					Name: as.NaturalLanguageValues{{Ref: as.NilLangRef, Value: men.Name}},
 				}
 				o.Tag.Append(t)
 			}
 			for _, tag := range m.Tags {
 				t := as.Object{
 					ID:   as.ObjectID(tag.URL),
-					Name: as.NaturalLanguageValue{{Ref: as.NilLangRef, Value: tag.Name}},
+					Name: as.NaturalLanguageValues{{Ref: as.NilLangRef, Value: tag.Name}},
 				}
 				o.Tag.Append(t)
 			}
@@ -201,12 +201,12 @@ func accountURL(acc app.Account) as.IRI {
 func loadAPPerson(a app.Account) *ap.Person {
 	p := ap.Person{}
 	p.Type = as.PersonType
-	p.Name = as.NaturalLanguageValueNew()
-	p.PreferredUsername = as.NaturalLanguageValueNew()
+	p.Name = as.NaturalLanguageValuesNew()
+	p.PreferredUsername = as.NaturalLanguageValuesNew()
 
 	if a.HasMetadata() {
 		if a.Metadata.Blurb != nil && len(a.Metadata.Blurb) > 0 {
-			p.Summary = as.NaturalLanguageValueNew()
+			p.Summary = as.NaturalLanguageValuesNew()
 			p.Summary.Set(as.NilLangRef, string(a.Metadata.Blurb))
 		}
 		if len(a.Metadata.Icon.URI) > 0 {

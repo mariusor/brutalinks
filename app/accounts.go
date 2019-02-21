@@ -93,15 +93,17 @@ func (a Account) IsLocal() bool {
 	return true
 }
 
-// HasPublicKey
+// HasPublicKey returns if current account had a public ssh key generated
 func (a Account) HasPublicKey() bool {
 	return a.HasMetadata() && a.Metadata.Key != nil && len(a.Metadata.Key.Public) > 0
 }
 
+// IsValid returns if the current account has a handle or a hash with length greater than 0
 func (a Account) IsValid() bool {
 	return len(a.Handle) > 0 || len(a.Hash) > 0
 }
 
+// Deletable
 type Deletable interface {
 	Deleted() bool
 	Delete()
