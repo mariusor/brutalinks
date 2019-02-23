@@ -2,7 +2,7 @@
 <ol class="comments lvl-{{ .Level | Mod10 }}" data-parent="{{ .Hash }}" id="c-{{.Hash}}">
 {{- range $key, $value := .Children }}
     <li data-index="{{$key}}" class="comment" data-hash="{{.Hash}}" id="item-{{.Hash}}">
-        {{- template "partials/content/comment" $value }}
+        {{ template "partials/content/comment" $value }}
     </li>
 {{end -}}
 </ol>

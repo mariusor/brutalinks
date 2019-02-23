@@ -506,10 +506,8 @@ summary:focus {
     text-align: center;
 }
 .meta-items li {
-    padding-right: .3em;
-}
-.meta-items:last-child li {
-    padding-right: 0;
+    padding-left: .25rem;
+    opacity: .8;
 }
 h2.title .to-item {
     margin-left: .4em;

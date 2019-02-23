@@ -6,11 +6,11 @@
         <label for="submit-title">Title: </label><br/>
         <textarea name="title" id="submit-title" rows="2" required>{{- if .Content.Edit -}}{{- .Content.Title -}}{{- end -}}</textarea><br/>
 {{ end -}}
-{{ if .Content.Hash -}}
-{{- if .Content.Edit }}
-            <input type="hidden" name="hash" id="submit-self" value="{{ .Content.Hash }}"/>
-{{ else -}}
-            <input type="hidden" name="parent" id="submit-parent" value="{{ .Content.Hash }}"/>
+{{- if .Content.Hash -}}
+{{- if .Content.Edit -}}
+        <input type="hidden" name="hash" id="submit-self" value="{{ .Content.Hash }}"/>
+{{- else }}
+        <input type="hidden" name="parent" id="submit-parent" value="{{ .Content.Hash }}"/>
 {{- end -}}
 {{- end }}
         <input type="hidden" name="mime-type" id="submit-mime-type" value="text/markdown"/>
