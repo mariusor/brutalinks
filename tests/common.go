@@ -21,7 +21,7 @@ var HeaderAccept = `application/ld+json; profile="https://www.w3.org/ns/activity
 
 type postVal struct {
 	body string
-	res objectVal
+	res  objectVal
 }
 
 type collectionVal struct {

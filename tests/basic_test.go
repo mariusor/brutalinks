@@ -123,7 +123,7 @@ var c2sTestPairs = postTest{
     "object": "%s/actors/dc6f5f5b/outbox/162edb32/object"
 }`, apiURL, apiURL),
 		res: objectVal{
-			id: fmt.Sprintf("%s/actors/dc6f5f5b/liked/162edb32", apiURL),
+			id:  fmt.Sprintf("%s/actors/dc6f5f5b/liked/162edb32", apiURL),
 			typ: string(as.LikeType),
 			obj: &objectVal{author: fmt.Sprintf("%s/actors/dc6f5f5b", apiURL),
 				id: fmt.Sprintf("%s/actors/dc6f5f5b/outbox/162edb32/object", apiURL),
@@ -144,8 +144,8 @@ var c2sTestPairs = postTest{
 		res: objectVal{
 			typ: string(as.CreateType),
 			obj: &objectVal{
-				author: fmt.Sprintf("%s/actors/dc6f5f5b", apiURL),
-				typ: string(as.NoteType),
+				author:  fmt.Sprintf("%s/actors/dc6f5f5b", apiURL),
+				typ:     string(as.NoteType),
 				content: "<p>Hello world!</p>",
 			},
 		},
@@ -158,6 +158,7 @@ func Test_GET(t *testing.T) {
 	assertCollection := errOnCollection(t)
 	for k, col := range defaultCollectionTestPairs {
 		t.Run(k, func(t *testing.T) {
+			t.Parallel()
 			assertCollection(fmt.Sprintf("%s/%s", apiURL, k), col)
 		})
 	}
