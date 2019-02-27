@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/go-pg/pg"
-	"github.com/juju/errors"
+	"github.com/mariusor/littr.go/internal/errors"
 )
 
 type config struct {
@@ -34,14 +34,14 @@ func Init(app *app.Application) error {
 	if err == nil {
 		app.Config.DB.Enabled = true
 	} else {
-		new := errors.NewErr("failed to connect to the database")
+		new := errors.New("failed to connect to the database")
 		app.Logger.WithContext(log.Ctx{
 			"dbHost":   app.Config.DB.Host,
 			"dbPort":   app.Config.DB.Port,
 			"dbName":   app.Config.DB.Name,
 			"dbUser":   app.Config.DB.User,
 			"previous": err,
-			"trace":    new.StackTrace(),
+			//"trace":    new.StackTrace(),
 		}).Error(new.Error())
 	}
 	return err

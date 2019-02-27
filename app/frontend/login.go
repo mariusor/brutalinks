@@ -7,7 +7,7 @@ import (
 	"github.com/mariusor/littr.go/internal/log"
 	"net/http"
 
-	"github.com/juju/errors"
+	"github.com/mariusor/littr.go/internal/errors"
 	"golang.org/x/crypto/bcrypt"
 )
 

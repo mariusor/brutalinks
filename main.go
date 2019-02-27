@@ -13,7 +13,7 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
-	"github.com/juju/errors"
+	"github.com/mariusor/littr.go/internal/errors"
 	_ "github.com/lib/pq"
 
 	"github.com/mariusor/littr.go/app"

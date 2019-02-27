@@ -12,7 +12,7 @@ import (
 	"github.com/mariusor/littr.go/app"
 
 	"github.com/go-chi/chi"
-	"github.com/juju/errors"
+	"github.com/mariusor/littr.go/internal/errors"
 )
 
 const Edit = "edit"
@@ -256,7 +256,7 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil {
 		h.logger.Error(err.Error())
-		h.HandleError(w, r, errors.NewNotFound(err, errors.ErrorStack(err)))
+		h.HandleError(w, r, errors.NewNotFound(err, ""/*, errors.ErrorStack(err)*/))
 		return
 	}
 	allComments = append(allComments, loadComments(contentItems)...)

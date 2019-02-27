@@ -3,7 +3,7 @@ package queue
 import (
 	"database/sql"
 	"github.com/go-pg/pg"
-	"github.com/juju/errors"
+	"github.com/mariusor/littr.go/internal/errors"
 	"github.com/mariusor/littr.go/app"
 )
 

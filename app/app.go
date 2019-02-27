@@ -5,7 +5,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/go-chi/chi/middleware"
-	"github.com/juju/errors"
+	"github.com/mariusor/littr.go/internal/errors"
 	"io"
 	"net/http"
 	"os"

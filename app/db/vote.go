@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/juju/errors"
+	"github.com/mariusor/littr.go/internal/errors"
 )
 
 type VoteCollection map[app.Key]Vote

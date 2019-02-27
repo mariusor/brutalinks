@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/juju/errors"
+	"github.com/mariusor/littr.go/internal/errors"
 )
 
 func detectMimeType(data string) app.MimeType {

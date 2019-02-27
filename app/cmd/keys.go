@@ -7,7 +7,7 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"fmt"
-	"github.com/juju/errors"
+	"github.com/mariusor/littr.go/internal/errors"
 	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/app/db"
 	"github.com/mariusor/littr.go/internal/log"

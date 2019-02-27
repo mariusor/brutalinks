@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/gchaincl/dotsql"
-	"github.com/juju/errors"
+	"github.com/mariusor/littr.go/internal/errors"
 	_ "github.com/lib/pq"
 )
 

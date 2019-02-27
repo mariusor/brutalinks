@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/juju/errors"
+	"github.com/mariusor/littr.go/internal/errors"
 
 	"github.com/mariusor/littr.go/internal/log"
 )

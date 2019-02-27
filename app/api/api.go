@@ -15,13 +15,14 @@ import (
 	ap "github.com/mariusor/littr.go/app/activitypub"
 	"github.com/mariusor/littr.go/app/db"
 	"github.com/mariusor/littr.go/app/frontend"
+	"github.com/mariusor/littr.go/internal/errors"
 	"github.com/mariusor/littr.go/internal/log"
 	"github.com/spacemonkeygo/httpsig"
 
 	goap "github.com/go-ap/activitypub"
 	as "github.com/go-ap/activitystreams"
 	j "github.com/go-ap/jsonld"
-	"github.com/juju/errors"
+	juju "github.com/juju/errors"
 )
 
 const (
@@ -240,7 +241,7 @@ func (h handler) HandleError(w http.ResponseWriter, r *http.Request, errs ...err
 			msg = fmt.Sprintf("UnmarshalTypeError: Value[%s] Type[%v]\n", e.Value, e.Type)
 		case *json.InvalidUnmarshalError:
 			msg = fmt.Sprintf("InvalidUnmarshalError: Type[%v]\n", e.Type)
-		case *errors.Err:
+		case *juju.Err:
 			msg = fmt.Sprintf("%v", e)
 			if app.Instance.Config.Env == app.DEV {
 				trace = e.StackTrace()

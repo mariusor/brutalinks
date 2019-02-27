@@ -22,7 +22,7 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/gorilla/sessions"
-	"github.com/juju/errors"
+	"github.com/mariusor/littr.go/internal/errors"
 	"github.com/mariusor/littr.go/internal/log"
 	"golang.org/x/oauth2"
 )
@@ -492,11 +492,11 @@ func (h handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name str
 		w.Header().Set("Cache-Control", "no-store")
 	}
 	if err = ren.HTML(w, http.StatusOK, name, m); err != nil {
-		new := errors.NewErr("failed to render template")
+		new := errors.New("failed to render template")
 		h.logger.WithContext(log.Ctx{
 			"template": name,
 			"model":    fmt.Sprintf("%T", m),
-			"trace":    new.StackTrace(),
+			//"trace":    new.StackTrace(),
 			"previous": err.Error(),
 		}).Error(new.Error())
 		ren.HTML(w, http.StatusInternalServerError, "error", new)

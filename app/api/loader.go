@@ -23,7 +23,7 @@ import (
 	as "github.com/go-ap/activitystreams"
 	j "github.com/go-ap/jsonld"
 	"github.com/go-chi/chi"
-	"github.com/juju/errors"
+	"github.com/mariusor/littr.go/internal/errors"
 	ap "github.com/mariusor/littr.go/app/activitypub"
 	"github.com/mariusor/littr.go/app/db"
 	"github.com/mariusor/littr.go/internal/log"

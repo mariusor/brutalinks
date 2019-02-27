@@ -3,7 +3,7 @@ package api
 import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
-	"github.com/juju/errors"
+	"github.com/mariusor/littr.go/internal/errors"
 	"github.com/mariusor/littr.go/app"
 	"github.com/writeas/go-nodeinfo"
 	"net/http"

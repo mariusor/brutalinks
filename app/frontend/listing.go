@@ -12,7 +12,7 @@ import (
 	"path"
 
 	"github.com/go-chi/chi"
-	"github.com/juju/errors"
+	"github.com/mariusor/littr.go/internal/errors"
 )
 
 const (

@@ -3,7 +3,7 @@ package app
 import (
 	"database/sql/driver"
 	"fmt"
-	"github.com/juju/errors"
+	"github.com/mariusor/littr.go/internal/errors"
 	"github.com/mmcloughlin/meow"
 	"html/template"
 	"strings"

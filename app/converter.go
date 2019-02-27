@@ -9,7 +9,7 @@ import (
 	ap "github.com/mariusor/littr.go/app/activitypub"
 
 	"github.com/buger/jsonparser"
-	"github.com/juju/errors"
+	"github.com/mariusor/littr.go/internal/errors"
 
 	goap "github.com/go-ap/activitypub"
 	as "github.com/go-ap/activitystreams"
