@@ -7,7 +7,8 @@ import (
 type Error juju.Err
 
 func (e Error) Error() string {
-	return juju.Err(e).Error()
+	j := juju.Err(e)
+	return (&j).Error()
 }
 
 func (e Error) Unwrap() error {
