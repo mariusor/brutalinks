@@ -33,7 +33,11 @@ submitted {{ if not .Deleted -}} <time datetime="{{ $it.SubmittedAt | ISOTimeFmt
 {{end -}}
 {{- end -}}
 {{- if or (not $it.IsTop) (not .IsLink) }}
+{{ if $it.Deleted }}
+            <li><a href="{{$it | ItemLocalLink }}" class="to-item" title="Show deleted">{{/* icon "reply" "h-mirror" */}}show</a></li>
+{{else}}
             <li><a href="{{$it | ItemLocalLink }}" class="to-item" title="Reply to{{if .Item.Title}}: {{$it.Title }}{{end}}">{{/* icon "reply" "h-mirror" */}}reply</a></li>
+{{ end -}}
 {{ end -}}
 {{- if $it.IsFederated }}<!-- <li>This shit federated, yo!</li> -->{{ end }}
         </ul>
