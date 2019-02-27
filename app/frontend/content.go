@@ -197,10 +197,14 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	hash := chi.URLParam(r, "hash")
-	i, err := itemLoader.LoadItem(app.LoadItemsFilter{
-		AttributedTo: app.Hashes{auth.Hash},
+	f := app.LoadItemsFilter{
 		Key:          app.Hashes{app.Hash(hash)},
-	})
+	}
+	if auth.Hash.String() != app.AnonymousHash.String() {
+		f.AttributedTo = app.Hashes{auth.Hash}
+	}
+	i, err := itemLoader.LoadItem(f)
+
 	if err != nil {
 		h.logger.WithContext(log.Ctx{
 			"handle": handle,
