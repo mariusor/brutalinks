@@ -6,12 +6,13 @@ TEST := $(GO) test -v
 
 .PHONY: tests bootstrap run integration killapp killdb
 
-tests: bootstrap run integration
+tests:
+	@$(MAKE) bootstrap
+	@$(MAKE) run
+	@$(MAKE) integration
 
 integration:
 	$(TEST) ./...
-	@$(MAKE) killapp
-	@$(MAKE) killdb
 
 killdb:
 	@-psql -h $(DB_HOST) -U postgres -c "REVOKE CONNECT ON DATABASE $(DB_NAME) FROM public;" &> /dev/null
