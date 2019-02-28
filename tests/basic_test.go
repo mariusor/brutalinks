@@ -104,7 +104,7 @@ var defaultCollectionTestPairs = getTest{
 					id:        fmt.Sprintf("%s/actors/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object", apiURL),
 					typ:       string(as.NoteType),
 					name:      "about littr.me",
-					url:       "/~system/162edb32c80d0e6dd3114fbb59d6273b",
+					url:       "/~system/162edb32c8",
 					content:   "<p>This is a new attempt at the social news aggregator paradigm.<br/>It's based on the ActivityPub web specification and as such tries to leverage federation to prevent some of the pitfalls found in similar existing communities.</p>",
 					mediaType: "text/html",
 					author:    fmt.Sprintf("%s/actors/dc6f5f5bf55bc1073715c98c69fa7ca8", apiURL),
