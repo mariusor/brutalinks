@@ -114,9 +114,9 @@ func ItemPermaLink(i app.Item) string {
 func ItemLocalLink(i app.Item) string {
 	if i.SubmittedBy == nil {
 		// @todo(marius) :link_generation:
-		return fmt.Sprintf("/i/%s", i.Hash)
+		return fmt.Sprintf("/i/%s", i.Hash.Short())
 	}
-	return fmt.Sprintf("%s/%s", AccountLocalLink(*i.SubmittedBy), i.Hash)
+	return fmt.Sprintf("%s/%s", AccountLocalLink(*i.SubmittedBy), i.Hash.Short())
 }
 
 func scoreLink(i app.Item, dir string) string {

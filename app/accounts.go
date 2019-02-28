@@ -49,11 +49,19 @@ type Account struct {
 	Votes     VoteCollection   `json:"votes,omitempty"`
 }
 
-// Hash
+// Hash is a local type for string, it should hold a [32]byte array actually
 type Hash string
 
-// String
+// String returns the hash as a string
 func (h Hash) String() string {
+	return string(h)
+}
+
+// Short returns a minimal valuable string value
+func (h Hash) Short() string {
+	if len(h) > 10 {
+		return string(h[0:10])
+	}
 	return string(h)
 }
 
