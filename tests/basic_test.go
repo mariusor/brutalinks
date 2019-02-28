@@ -125,7 +125,36 @@ var c2sTestPairs = postTest{
 		res: objectVal{
 			id:  fmt.Sprintf("%s/actors/dc6f5f5bf55bc1073715c98c69fa7ca8/liked/162edb32c80d0e6dd3114fbb59d6273b", apiURL),
 			typ: string(as.LikeType),
-			obj: &objectVal{author: fmt.Sprintf("%s/actors/dc6f5f5bf55bc1073715c98c69fa7ca8", apiURL),
+			obj: &objectVal{
+				id: fmt.Sprintf("%s/actors/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object", apiURL),
+				author: fmt.Sprintf("%s/actors/dc6f5f5bf55bc1073715c98c69fa7ca8", apiURL),
+			},
+		},
+	},
+	"Dislike": {
+		body: fmt.Sprintf(`{
+    "type": "Dislike",
+    "actor": "%s/actors/dc6f5f5bf55bc1073715c98c69fa7ca8",
+    "object": "%s/actors/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object"
+}`, apiURL, apiURL),
+		res: objectVal{
+			id:  fmt.Sprintf("%s/actors/dc6f5f5bf55bc1073715c98c69fa7ca8/liked/162edb32c80d0e6dd3114fbb59d6273b", apiURL),
+			typ: string(as.DislikeType),
+			obj: &objectVal{
+				id: fmt.Sprintf("%s/actors/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object", apiURL),
+			},
+		},
+	},
+	"Dislike#2": {
+		body: fmt.Sprintf(`{
+    "type": "Dislike",
+    "actor": "%s/actors/dc6f5f5bf55bc1073715c98c69fa7ca8",
+    "object": "%s/actors/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object"
+}`, apiURL, apiURL),
+		res: objectVal{
+			id:  fmt.Sprintf("%s/actors/dc6f5f5bf55bc1073715c98c69fa7ca8/liked/162edb32c80d0e6dd3114fbb59d6273b", apiURL),
+			typ: string(as.UndoType),
+			obj: &objectVal{
 				id: fmt.Sprintf("%s/actors/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object", apiURL),
 			},
 		},
@@ -147,6 +176,20 @@ var c2sTestPairs = postTest{
 				author:  fmt.Sprintf("%s/actors/dc6f5f5bf55bc1073715c98c69fa7ca8", apiURL),
 				typ:     string(as.NoteType),
 				content: "<p>Hello world!</p>",
+			},
+		},
+	},
+	"Delete": {
+		body: fmt.Sprintf(`{
+  "type": "Delete",
+  "actor": "%s/actors/dc6f5f5bf55bc1073715c98c69fa7ca8",
+  "to": ["%s/self/outbox"],
+  "object": "%s/actors/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b"
+}`, apiURL, apiURL, apiURL),
+		res: objectVal{
+			typ: string(as.DeleteType),
+			obj: &objectVal{
+				typ: string(as.TombstoneType),
 			},
 		},
 	},

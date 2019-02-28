@@ -69,6 +69,9 @@ type mapFieldAssertFn func(ob map[string]interface{}, key string, testVal interf
 func errorf(t *testing.T) errFn {
 	return func(msg string, args ...interface{}) {
 		msg = fmt.Sprintf("%s\n------- Stack -------\n%s\n", msg, debug.Stack())
+		if args == nil || len(args) == 0 {
+			return
+		}
 		t.Errorf(msg, args...)
 	}
 }
@@ -357,8 +360,11 @@ func errOnPostRequest(t *testing.T) func(postVal) {
 		assertTrue(err == nil, "Error: invalid HTTP body! Read %d bytes %s", len(b), b)
 
 		location, ok := resp.Header["Location"]
+		if !ok {
+			return
+		}
 		assertTrue(ok, "Server didn't respond with a Location header even though it confirmed the Like was created")
-		assertTrue(len(location) == 1, "Server responded with multiple Location headers which is not expected")
+		assertTrue(len(location) == 1, "Server responded with %d Location headers which is not expected", len(location))
 
 		newObj, err := url.Parse(location[0])
 		newObjURL := newObj.String()
