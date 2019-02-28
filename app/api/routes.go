@@ -54,11 +54,6 @@ func (h handler) Routes() func(chi.Router) {
 			})
 		})
 
-		// Mastodon compatible end-points
-		r.Get("/v1/instance", h.ShowInstance)
-		r.Get("/v1/instance/peers", ShowPeers)
-		r.Get("/v1/instance/activity", ShowActivity)
-
 		cfg := nodeinfo.Config{
 			BaseURL: BaseURL,
 			InfoURL: "/nodeinfo",

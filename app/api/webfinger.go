@@ -3,6 +3,9 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/mariusor/littr.go/app/db"
+	"github.com/writeas/go-nodeinfo"
+	"math"
 	"net/http"
 	"strings"
 
@@ -22,6 +25,34 @@ type node struct {
 	Subject string   `json:"subject"`
 	Aliases []string `json:"aliases"`
 	Links   []link   `json:"links"`
+}
+
+type NodeInfoResolver struct{}
+
+func (r NodeInfoResolver) IsOpenRegistration() (bool, error) {
+	return false, nil
+}
+
+func (r NodeInfoResolver) Usage() (nodeinfo.Usage, error) {
+	//inf, err := db.Config.LoadInfo()
+	//ifErr(err)
+
+	us, _, _ := db.Config.LoadAccounts(app.LoadAccountsFilter{
+		MaxItems: math.MaxInt64,
+	})
+	//ifErr(err)
+	i, _, _ := db.Config.LoadItems(app.LoadItemsFilter{
+		MaxItems: math.MaxInt64,
+	})
+	//ifErr(err)
+
+	u := nodeinfo.Usage{
+		Users: nodeinfo.UsageUsers{
+			Total: len(us),
+		},
+		LocalPosts: len(i),
+	}
+	return u, nil
 }
 
 // HandleHostMeta serves /.well-known/host-meta
