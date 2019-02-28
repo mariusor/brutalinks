@@ -170,22 +170,22 @@ body > footer {
     grid-area: footer;
     padding-bottom: 1em;
 }
+footer nav.bottom {
+    overflow: hidden;
+    float: right;
+    font-size: .7rem;
+}
 footer nav.bottom::before {
     content: "Ω";
 }
 footer nav.bottom:hover::before {
     content: "";
 }
-footer nav.bottom:hover {
-    width: auto;
+footer nav.bottom ul {
+    display: none;
 }
-footer nav.bottom {
-    width: 1em;
-    height: 1em;
-    overflow: hidden;
-    float: right;
-    padding-top: .3rem;
-    font-size: .7rem;
+footer nav.bottom:hover ul {
+    display: unset;
 }
 .item h1,
 .item h2,
