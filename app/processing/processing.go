@@ -173,15 +173,16 @@ type Message struct {
 	Actions  []interface{} `json:"actions"`
 }
 
-var DefaultQueue interface{} //*redismq.Queue
+var DefaultQueue interface{} = nil//*redismq.Queue
 
 func InitQueues(app *app.Application) error {
 	redisDb := 0
 	name := "low"
+	if !app.Config.Redis.Enabled {
+		return nil
+	}
 	//DefaultQueue = redismq.CreateQueue(app.Config.Redis.Host, app.Config.Redis.Port, app.Config.Redis.Pw, int64(redisDb), name)
-	if DefaultQueue != nil {
-		app.Config.Redis.Enabled = true
-	} else {
+	if DefaultQueue == nil {
 		new := errors.New("unable to connect to redis")
 		if len(app.Config.Redis.Host) > 0 {
 			app.Logger.WithContext(log.Ctx{
