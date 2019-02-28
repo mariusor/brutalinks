@@ -26,6 +26,8 @@ type Person struct {
 	Score int64 `jsonld:"score"`
 }
 
+type Service = Person
+
 // Article it should be identical to:
 //    github.com/go-ap/activitypub/objects.go#Object
 // We need it here in order to be able to add to it our Score property

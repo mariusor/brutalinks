@@ -2,11 +2,11 @@ package api
 
 import (
 	"fmt"
-	ap "github.com/go-ap/activitypub"
 	as "github.com/go-ap/activitystreams"
 	json "github.com/go-ap/jsonld"
-	"github.com/mariusor/littr.go/internal/errors"
 	"github.com/mariusor/littr.go/app"
+	ap "github.com/mariusor/littr.go/app/activitypub"
+	"github.com/mariusor/littr.go/internal/errors"
 	"net/http"
 )
 
