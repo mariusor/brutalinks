@@ -33,7 +33,7 @@ func (k Key) Bytes() []byte {
 	return []byte(k[0:32])
 }
 func (k Key) Hash() Hash {
-	return Hash(k[0:10])
+	return Hash(k[0:32])
 }
 
 func (k *Key) FromBytes(s []byte) error {
@@ -87,13 +87,13 @@ func (f *FlagBits) FromInt64() error {
 
 type ItemCollection []Item
 
-func GenKey(elems ...[]byte) Key {
+func GenKey(el ...[]byte) Key {
 	lim := []byte("##")
 
 	buf := strings.Builder{}
-	for i, el := range elems {
-		buf.Write(el)
-		if i < len(elems)-1 {
+	for i, l := range el {
+		buf.Write(l)
+		if i < len(el)-1 {
 			buf.Write(lim)
 		}
 	}

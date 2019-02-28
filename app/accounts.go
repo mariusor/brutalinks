@@ -54,18 +54,11 @@ type Hash string
 
 // String
 func (h Hash) String() string {
-	if len(h) > 8 {
-		return string(h[0:8])
-	} else {
-		return string(h)
-	}
+	return string(h)
 }
 
 // MarshalText
 func (h Hash) MarshalText() ([]byte, error) {
-	if len(h) > 8 {
-		return []byte(h[0:8]), nil
-	}
 	return []byte(h), nil
 }
 
