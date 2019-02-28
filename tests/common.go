@@ -167,29 +167,29 @@ func errOnObjectProperties(t *testing.T) objectPropertiesAssertFn {
 		if tVal.inbox != nil {
 			assertMapKey(ob, "inbox", tVal.inbox)
 			if tVal.inbox.typ != "" {
-				derefCol := assertReq(tVal.inbox.id)
-				errOnCollectionProperties(t)(derefCol, *tVal.inbox)
+				dCol := assertReq(tVal.inbox.id)
+				errOnCollectionProperties(t)(dCol, *tVal.inbox)
 			}
 		}
 		if tVal.outbox != nil {
 			assertMapKey(ob, "outbox", tVal.outbox)
 			if tVal.outbox.typ != "" {
-				derefCol := assertReq(tVal.outbox.id)
-				errOnCollectionProperties(t)(derefCol, *tVal.outbox)
+				dCol := assertReq(tVal.outbox.id)
+				errOnCollectionProperties(t)(dCol, *tVal.outbox)
 			}
 		}
 		if tVal.liked != nil {
 			assertMapKey(ob, "liked", tVal.liked)
 			if tVal.liked.typ != "" {
-				derefCol := assertReq(tVal.liked.id)
-				errOnCollectionProperties(t)(derefCol, *tVal.liked)
+				dCol := assertReq(tVal.liked.id)
+				errOnCollectionProperties(t)(dCol, *tVal.liked)
 			}
 		}
 		if tVal.act != nil {
 			assertMapKey(ob, "actor", tVal.act)
 			if tVal.act.typ != "" {
-				derefAct := assertReq(tVal.act.id)
-				errOnObjectProperties(t)(derefAct, *tVal.act)
+				dAct := assertReq(tVal.act.id)
+				errOnObjectProperties(t)(dAct, *tVal.act)
 			}
 		}
 		if tVal.obj != nil {
@@ -237,8 +237,8 @@ func errOnCollectionProperties(t *testing.T) collectionPropertiesAssertFn {
 		if tVal.current != nil {
 			assertMapKey(ob, "current", tVal.current)
 			if tVal.current.typ != "" {
-				derefCol := assertReq(tVal.current.id)
-				errOnCollectionProperties(t)(derefCol, *tVal.current)
+				dCol := assertReq(tVal.current.id)
+				errOnCollectionProperties(t)(dCol, *tVal.current)
 			}
 		}
 		if tVal.last != nil {
@@ -269,11 +269,11 @@ func errOnCollectionProperties(t *testing.T) collectionPropertiesAssertFn {
 						assertTrue(ok, "Could not load id property of item: %#v", act)
 						itIRI, ok := itId.(string)
 						assertTrue(ok, "Unable to convert %#v to %T type, Received %#v:(%T)", itId, itIRI, val, val)
-						if itIRI == iri {
+						if strings.EqualFold(itIRI, iri) {
 							t.Run(k, func(t *testing.T) {
 								assertObjectProperties(act, testIt)
-								derefAct := assertReq(itIRI)
-								assertObjectProperties(derefAct, testIt)
+								dAct := assertReq(itIRI)
+								assertObjectProperties(dAct, testIt)
 							})
 							continue foundItem
 						}
