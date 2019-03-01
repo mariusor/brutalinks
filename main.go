@@ -13,8 +13,8 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
-	"github.com/mariusor/littr.go/internal/errors"
 	_ "github.com/lib/pq"
+	"github.com/mariusor/littr.go/internal/errors"
 
 	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/app/api"
@@ -52,18 +52,20 @@ func main() {
 		app.Instance.Logger.Warn(err.Error())
 	}
 	// api
-	apiURL := os.Getenv("API_URL")
-	if apiURL == "" {
-		if app.Instance.Secure {
-			apiURL = fmt.Sprintf("https://%s/api", host)
-		} else {
-			apiURL = fmt.Sprintf("http://%s/api", host)
-		}
+	apiListenUrl := ""
+	if app.Instance.Secure {
+		apiListenUrl = fmt.Sprintf("https://%s/api", host)
+	} else {
+		apiListenUrl = fmt.Sprintf("http://%s/api", host)
 	}
 	a := api.Init(api.Config{
 		Logger:  app.Instance.Logger.New(log.Ctx{"package": "api"}),
-		BaseURL: apiURL,
+		BaseURL: apiListenUrl,
 	})
+	apiURL := os.Getenv("API_URL")
+	if apiURL == "" {
+		apiURL = apiListenUrl
+	}
 	app.Instance.APIURL = apiURL
 
 	processing.InitQueues(&app.Instance)
