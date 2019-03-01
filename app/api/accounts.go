@@ -377,7 +377,7 @@ func (h handler) HandleActor(w http.ResponseWriter, r *http.Request) {
 	if p.Inbox != nil {
 		p.Inbox = p.Inbox.GetLink()
 	}
-	p.Endpoints = goap.Endpoints{SharedInbox: as.IRI(fmt.Sprintf("%s/api/self/inbox", h.repo.BaseURL))}
+	p.Endpoints = goap.Endpoints{SharedInbox: as.IRI(fmt.Sprintf("%s/self/inbox", h.repo.BaseURL))}
 
 	j, err := json.WithContext(GetContext()).Marshal(p)
 	if err != nil {
@@ -440,6 +440,7 @@ func (h handler) HandleCollectionActivity(w http.ResponseWriter, r *http.Request
 		} else {
 			el = loadAPLike(v)
 		}
+	case "following":
 	default:
 		err := errors.Errorf("collection %s not found", collection)
 		h.HandleError(w, r, errors.NewNotFound(err, "not found"))
@@ -499,6 +500,7 @@ func (h handler) HandleCollectionActivityObject(w http.ResponseWriter, r *http.R
 		} else {
 			el = loadAPLike(v)
 		}
+	case "following":
 	default:
 		err := errors.Errorf("collection %s not found", collection)
 		h.HandleError(w, r, errors.NewNotFound(err, "not found"))

@@ -50,7 +50,7 @@ func Init(c Config) handler {
 	as.ItemTyperFunc = ap.JSONGetItemByType
 	BaseURL = c.BaseURL
 
-	ActorsURL = c.BaseURL + "/actors"
+	ActorsURL = fmt.Sprintf("%s/self/following", c.BaseURL)
 	h := handler{
 		logger: c.Logger,
 	}

@@ -90,7 +90,7 @@ func (h handler) Repository(next http.Handler) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
-func ServiceCtxt(next http.Handler) http.Handler {
+func (h handler) ServiceCtxt(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		next.ServeHTTP(w, r)
 	}
@@ -321,7 +321,6 @@ func loadLikedFilterFromReq(r *http.Request) *app.LoadVotesFilter {
 
 var validCollectionNames = []string{
 	"actors",
-	"disliked",
 	"liked",
 	"outbox",
 	"inbox",
@@ -345,10 +344,10 @@ func LoadFiltersCtxt(eh app.ErrorHandler) app.Handler {
 			col := getCollectionFromReq(r)
 			var filters app.Paginator
 			switch col {
+			case "following":
+				fallthrough
 			case "actors":
 				filters = loadPersonFiltersFromReq(r)
-			case "disliked":
-				fallthrough
 			case "liked":
 				filters = loadLikedFilterFromReq(r)
 			case "outbox":
@@ -841,7 +840,7 @@ func (r *repository) LoadAccounts(f app.LoadAccountsFilter) (app.AccountCollecti
 	if q, err := qstring.MarshalString(&f); err == nil {
 		qs = fmt.Sprintf("?%s", q)
 	}
-	url := fmt.Sprintf("%s/actors%s", r.BaseURL, qs)
+	url := fmt.Sprintf("%s/%s", ActorsURL, qs)
 
 	var err error
 	var resp *http.Response
