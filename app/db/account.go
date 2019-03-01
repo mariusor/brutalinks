@@ -109,7 +109,7 @@ func saveAccount(db *pg.DB, a app.Account) (app.Account, error) {
 		acct.Key = app.GenKey([]byte(a.Metadata.ID))
 	} else {
 		acct.Key = app.GenKey([]byte(a.Handle))
-		a.Metadata.ID = fmt.Sprintf("%s/actors/%s", app.Instance.APIURL, url.PathEscape(acct.Key.String()))
+		a.Metadata.ID = fmt.Sprintf("%s/self/following/%s", app.Instance.APIURL, url.PathEscape(acct.Key.String()))
 	}
 
 	if !a.CreatedAt.IsZero() {

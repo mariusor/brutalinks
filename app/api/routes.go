@@ -22,9 +22,7 @@ func (h handler) Routes() func(chi.Router) {
 		r.Route("/{handle}", func(r chi.Router) {
 			r.Use(h.AccountCtxt)
 			r.Get("/", h.HandleActor)
-			r.Route("/inbox", collectionRouter)
-			r.Route("/outbox", collectionRouter)
-			r.Route("/liked", collectionRouter)
+			r.Route("/{collection}", collectionRouter)
 			r.With(LoadFiltersCtxt(h.HandleError), h.LoadActivity).Post("/outbox", h.ClientRequest)
 			r.With(LoadFiltersCtxt(h.HandleError), h.LoadActivity).Post("/inbox", h.ServerRequest)
 		})
@@ -40,9 +38,7 @@ func (h handler) Routes() func(chi.Router) {
 
 			r.With(LoadFiltersCtxt(h.HandleError)).Get("/", h.HandleService)
 			r.Route("/following", actorsRouter)
-			r.Route("/outbox", collectionRouter)
-			r.Route("/inbox", collectionRouter)
-			r.Route("/liked", collectionRouter)
+			r.Route("/{collection}", collectionRouter)
 			r.With(LoadFiltersCtxt(h.HandleError), h.LoadActivity).Post("/outbox", h.ClientRequest)
 			r.With(LoadFiltersCtxt(h.HandleError), h.LoadActivity).Post("/inbox", h.ServerRequest)
 		})

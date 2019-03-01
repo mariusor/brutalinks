@@ -20,7 +20,7 @@ var defaultCollectionTestPairs = getTest{
 		},
 		itemCount: 2,
 		items: map[string]objectVal{
-			"actors/eacff9ddf379bd9fc8274c5a9f4cae08": {
+			"self/following/eacff9ddf379bd9fc8274c5a9f4cae08": {
 				id:                fmt.Sprintf("%s/self/following/eacff9ddf379bd9fc8274c5a9f4cae08", apiURL),
 				typ:               string(as.PersonType),
 				name:              "anonymous",
@@ -43,7 +43,7 @@ var defaultCollectionTestPairs = getTest{
 				},
 				score: 0,
 			},
-			"actors/dc6f5f5bf55bc1073715c98c69fa7ca8": {
+			"self/following/dc6f5f5bf55bc1073715c98c69fa7ca8": {
 				id:                fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8", apiURL),
 				typ:               string(as.PersonType),
 				name:              "system",
@@ -94,7 +94,7 @@ var defaultCollectionTestPairs = getTest{
 		},
 		itemCount: 1,
 		items: map[string]objectVal{
-			"actors/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b": {
+			"self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b": {
 				id:  fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b", apiURL),
 				typ: string(as.CreateType),
 				act: &objectVal{
@@ -205,7 +205,6 @@ func Test_GET(t *testing.T) {
 			assertCollection(fmt.Sprintf("%s/%s", apiURL, k), col)
 		})
 	}
-
 }
 
 func Test_POST_Outbox(t *testing.T) {

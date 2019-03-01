@@ -43,7 +43,6 @@ func main() {
 	db.Init(&app.Instance)
 	front, err := frontend.Init(frontend.Config{
 		Logger:      app.Instance.Logger.New(log.Ctx{"package": "frontend"}),
-		SessionKeys: app.Instance.SessionKeys,
 		Secure:      app.Instance.Secure,
 		BaseURL:     app.Instance.BaseURL,
 		HostName:    app.Instance.HostName,
@@ -52,15 +51,14 @@ func main() {
 		app.Instance.Logger.Warn(err.Error())
 	}
 	// api
-	apiListenUrl := fmt.Sprintf("%s/api", app.Instance.BaseURL)
-	a := api.Init(api.Config{
-		Logger:  app.Instance.Logger.New(log.Ctx{"package": "api"}),
-		BaseURL: apiListenUrl,
-	})
 	apiURL := os.Getenv("API_URL")
 	if apiURL == "" {
-		apiURL = apiListenUrl
+		apiURL = fmt.Sprintf("%s", app.Instance.BaseURL)
 	}
+	a := api.Init(api.Config{
+		Logger:  app.Instance.Logger.New(log.Ctx{"package": "api"}),
+		BaseURL: apiURL,
+	})
 	app.Instance.APIURL = apiURL
 
 	processing.InitQueues(&app.Instance)

@@ -291,7 +291,7 @@ func loadAPLiked(o as.CollectionInterface, votes app.VoteCollection) (as.Collect
 }
 
 // HandleActorsCollection is the http handler for the actors collection
-// GET /api/actors?filters
+// GET /api/self/following?filters
 func (h handler) HandleActorsCollection(w http.ResponseWriter, r *http.Request) {
 	var ok bool
 	var filter *app.LoadAccountsFilter
@@ -358,7 +358,7 @@ func loadAPCollection(o as.CollectionInterface, items app.ItemCollection) (as.Co
 	return o, nil
 }
 
-// GET /api/actors/:handle
+// GET /api/self/following/:handle
 func (h handler) HandleActor(w http.ResponseWriter, r *http.Request) {
 	val := r.Context().Value(app.AccountCtxtKey)
 
@@ -406,7 +406,7 @@ func getCollectionFromReq(r *http.Request) string {
 	return collection
 }
 
-// GET /api/actors/:handle/:collection/:hash
+// GET /api/self/following/:handle/:collection/:hash
 // GET /api/:collection/:hash
 func (h handler) HandleCollectionActivity(w http.ResponseWriter, r *http.Request) {
 	var data []byte
@@ -454,14 +454,14 @@ func (h handler) HandleCollectionActivity(w http.ResponseWriter, r *http.Request
 	w.Write(data)
 }
 
-// GET /api/actors/:handle/:collection/:hash/object
+// GET /api/self/following/:handle/:collection/:hash/object
 // GET /api/:collection/:hash/object
 func (h handler) HandleCollectionActivityObject(w http.ResponseWriter, r *http.Request) {
 	var data []byte
 	var err error
 
 	val := r.Context().Value(app.ItemCtxtKey)
-	collection := chi.URLParam(r, "collection")
+	collection := getCollectionFromReq(r)
 	var el as.ObjectOrLink
 	switch strings.ToLower(collection) {
 	case "inbox":
@@ -597,9 +597,9 @@ func loadCollection(items app.Collection, count uint, typ string, filters app.Pa
 }
 
 // GET /api/self/:collection
-// GET /api/actors/:handle/:collection
+// GET /api/self/following/:handle/:collection
 // GET /api/self/:collection/:hash/replies
-// GET /api/actors/:handle/:collection/:hash/replies
+// GET /api/self/following/:handle/:collection/:hash/replies
 func (h handler) HandleCollection(w http.ResponseWriter, r *http.Request) {
 	var data []byte
 	var err error
@@ -1107,7 +1107,7 @@ func (h handler) ClientRequest(w http.ResponseWriter, r *http.Request) {
 				// we need to make a difference between created vote and updated vote
 				// created - http.StatusCreated
 				status = http.StatusCreated
-				location = fmt.Sprintf("%s/actors/%s/outbox/%s", h.repo.BaseURL, newIt.SubmittedBy.Hash, newIt.Hash)
+				location = fmt.Sprintf("%s/self/following/%s/outbox/%s", h.repo.BaseURL, newIt.SubmittedBy.Hash, newIt.Hash)
 			} else {
 				// updated - http.StatusOK
 				status = http.StatusOK
@@ -1140,7 +1140,7 @@ func (h handler) ClientRequest(w http.ResponseWriter, r *http.Request) {
 				// we need to make a difference between created vote and updated vote
 				// created - http.StatusCreated
 				status = http.StatusCreated
-				location = fmt.Sprintf("%s/actors/%s/liked/%s",  h.repo.BaseURL, newVot.SubmittedBy.Hash, newVot.Item.Hash)
+				location = fmt.Sprintf("%s/self/following/%s/liked/%s",  h.repo.BaseURL, newVot.SubmittedBy.Hash, newVot.Item.Hash)
 			} else {
 				// updated - http.StatusOK
 				status = http.StatusOK

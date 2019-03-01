@@ -272,7 +272,6 @@ func loadFederatedActor(id as.IRI) (as.Actor, error) {
 }
 
 func (k *keyLoader) GetKey(id string) interface{} {
-	// keyId="http://littr.git/api/actors/e33c4ff5#main-key"
 	var err error
 
 	u, err := url.Parse(id)

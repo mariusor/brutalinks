@@ -35,6 +35,7 @@ const (
 
 type handler struct {
 	session sessions.Store
+	sessionKeys [][]byte
 	account app.Account
 	logger  log.Logger
 }
@@ -185,6 +186,7 @@ func Init(c Config) (handler, error) {
 
 	h := handler{
 		account: defaultAccount,
+		sessionKeys: loadEnvSessionKeys(),
 	}
 	if c.Logger != nil {
 		h.logger = c.Logger
@@ -769,6 +771,17 @@ func httpErrorResponse(e error) int {
 		return http.StatusInternalServerError
 	}
 	return http.StatusInternalServerError
+}
+
+func loadEnvSessionKeys () [][]byte {
+	keys := make([][]byte, 0)
+	if authKey := []byte(os.Getenv("SESS_AUTH_KEY")); authKey != nil {
+		keys = append(keys, authKey)
+	}
+	if encKey := []byte(os.Getenv("SESS_ENC_KEY")); encKey != nil {
+		keys = append(keys, encKey)
+	}
+	return keys
 }
 
 // HandleError serves failed requests

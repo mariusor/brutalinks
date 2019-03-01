@@ -99,9 +99,8 @@ type Application struct {
 	APIURL      string
 	BaseURL     string
 	Port        int
-	Listen      string
+	listen      string
 	Secure      bool
-	SessionKeys [][]byte
 	Config      Config
 	Logger      log.Logger
 	SeedVal     int64
@@ -157,9 +156,9 @@ func (a Application) NodeInfo() Info {
 	return inf
 }
 
-func (a *Application) listen() string {
-	if len(a.Listen) > 0 {
-		return a.Listen
+func (a *Application) Listen() string {
+	if len(a.listen) > 0 {
+		return a.listen
 	}
 	var port string
 	if a.Port != 0 {
@@ -169,17 +168,10 @@ func (a *Application) listen() string {
 }
 
 func loadEnv(l *Application) (bool, error) {
-	if authKey := []byte(os.Getenv("SESS_AUTH_KEY")); authKey != nil {
-		l.SessionKeys = append(l.SessionKeys, authKey)
-		l.Config.SessionsEnabled = true
-	}
-	if encKey := []byte(os.Getenv("SESS_ENC_KEY")); encKey != nil {
-		l.SessionKeys = append(l.SessionKeys, encKey)
-	}
 	var err error
 
-	if l.Listen = os.Getenv("LISTEN"); l.Listen == "" {
-		l.Listen = fmt.Sprintf("%s:%d", l.HostName, l.Port)
+	if l.listen = os.Getenv("LISTEN"); l.listen == "" {
+		l.listen = fmt.Sprintf("%s:%d", l.HostName, l.Port)
 	}
 	if l.SeedVal, err = strconv.ParseInt(os.Getenv("SEED"), 10, 64); err != nil {
 		l.SeedVal = 666
@@ -222,12 +214,12 @@ func loadEnv(l *Application) (bool, error) {
 // Run is the wrapper for starting the web-server and handling signals
 func (a *Application) Run(m http.Handler, wait time.Duration) {
 	a.Logger.WithContext(log.Ctx{
-		"listen": a.listen(),
+		"Listen": a.Listen(),
 		"host":   a.HostName,
 		"env":    a.Config.Env,
 	}).Info("Started")
 	srv := &http.Server{
-		Addr: a.listen(),
+		Addr: a.Listen(),
 		// Good practice to set timeouts to avoid Slowloris attacks.
 		WriteTimeout: time.Second * 15,
 		ReadTimeout:  time.Second * 15,
