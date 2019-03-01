@@ -52,12 +52,7 @@ func main() {
 		app.Instance.Logger.Warn(err.Error())
 	}
 	// api
-	apiListenUrl := ""
-	if app.Instance.Secure {
-		apiListenUrl = fmt.Sprintf("https://%s/api", host)
-	} else {
-		apiListenUrl = fmt.Sprintf("http://%s/api", host)
-	}
+	apiListenUrl := fmt.Sprintf("%s/api", app.Instance.BaseURL)
 	a := api.Init(api.Config{
 		Logger:  app.Instance.Logger.New(log.Ctx{"package": "api"}),
 		BaseURL: apiListenUrl,
