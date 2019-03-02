@@ -11,6 +11,7 @@ import (
 	"path"
 	"strings"
 
+	juju "github.com/juju/errors"
 	"github.com/mariusor/littr.go/app"
 	ap "github.com/mariusor/littr.go/app/activitypub"
 	"github.com/mariusor/littr.go/app/db"
@@ -22,7 +23,6 @@ import (
 	goap "github.com/go-ap/activitypub"
 	as "github.com/go-ap/activitystreams"
 	j "github.com/go-ap/jsonld"
-	juju "github.com/juju/errors"
 )
 
 const (
@@ -36,8 +36,8 @@ type UserError struct {
 }
 
 type handler struct {
-	repo    *repository
-	logger  log.Logger
+	repo   *repository
+	logger log.Logger
 	//errorFn app.ErrorHandler
 }
 
@@ -209,57 +209,104 @@ func httpErrorResponse(e error) int {
 	return http.StatusInternalServerError
 }
 
+type e struct {
+	Code     int      `json:"code,omitempty"`
+	Message  string   `json:"message"`
+	Trace    []string `json:"trace,omitempty"`
+	Location string   `json:"location,omitempty"`
+}
+
+func httpError(err error) e {
+	var msg string
+	var loc string
+	var trace []string
+
+	if errors.IsBadRequest(err) {
+		err = juju.Cause(err)
+	}
+	if errors.IsForbidden(err) {
+		err = juju.Cause(err)
+	}
+	if errors.IsNotSupported(err) {
+		err = juju.Cause(err)
+	}
+	if errors.IsMethodNotAllowed(err) {
+		err = juju.Cause(err)
+	}
+	if errors.IsNotFound(err) {
+		err = juju.Cause(err)
+	}
+	if errors.IsNotImplemented(err) {
+		err = juju.Cause(err)
+	}
+	if errors.IsUnauthorized(err) {
+		err = juju.Cause(err)
+	}
+	if errors.IsTimeout(err) {
+		err = juju.Cause(err)
+	}
+	if errors.IsNotValid(err) {
+		err = juju.Cause(err)
+	}
+	if errors.IsMethodNotAllowed(err) {
+		err = juju.Cause(err)
+	}
+	switch e := juju.Cause(err).(type) {
+	case *json.UnmarshalTypeError:
+		msg = fmt.Sprintf("%T: Value[%s] Type[%v]\n", e, e.Value, e.Type)
+	case *json.InvalidUnmarshalError:
+		msg = fmt.Sprintf("%T: Type[%v]\n", e, e.Type)
+	case *juju.Err:
+		msg = fmt.Sprintf("%s", e.Error())
+		if app.Instance.Config.Env == app.DEV {
+			trace = e.StackTrace()
+			f, l := e.Location()
+			if len(f) > 0 {
+				loc = fmt.Sprintf("%s:%d", f, l)
+			}
+		}
+	default:
+		msg = e.Error()
+	}
+	return e {
+		Message: msg,
+		Trace:   trace,
+		Location: loc,
+		Code:    httpErrorResponse(err),
+	}
+}
+
 func (h handler) HandleError(w http.ResponseWriter, r *http.Request, errs ...error) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store, must-revalidate")
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Expires", "0")
 
-	type error struct {
-		Code    int      `json:"code,omitempty"`
-		Message string   `json:"message"`
-		Trace   []string `json:"trace,omitempty"`
-	}
 	type eresp struct {
-		Status int     `json:"status,omitempty"`
-		Errors []error `json:"errors"`
+		Status int `json:"status,omitempty"`
+		Errors []e `json:"errors"`
 	}
-
 	res := eresp{
-		Errors: []error{},
+		Errors: []e{},
 	}
 
-	code := http.StatusInternalServerError
 	for _, err := range errs {
 		if err == nil {
 			continue
 		}
-		var msg string
-		var trace []string
-		switch e := err.(type) {
-		case *json.UnmarshalTypeError:
-			msg = fmt.Sprintf("UnmarshalTypeError: Value[%s] Type[%v]\n", e.Value, e.Type)
-		case *json.InvalidUnmarshalError:
-			msg = fmt.Sprintf("InvalidUnmarshalError: Type[%v]\n", e.Type)
-		case *juju.Err:
-			msg = fmt.Sprintf("%v", e)
-			if app.Instance.Config.Env == app.DEV {
-				trace = e.StackTrace()
-			}
-		default:
-			msg = e.Error()
+		e := httpError(err)
+		if res.Status < e.Code {
+			res.Status = e.Code
 		}
-		e := error{
-			Message: msg,
-			Trace:   trace,
-		}
+		e.Code = 0
 		res.Errors = append(res.Errors, e)
-		code = httpErrorResponse(err)
 	}
-	res.Status = code
+	if res.Status == 0 {
+		res.Status = http.StatusInternalServerError
+	}
 
 	j, _ := json.Marshal(res)
-	w.WriteHeader(code)
+	w.WriteHeader(res.Status)
 	w.Write(j)
 }
 

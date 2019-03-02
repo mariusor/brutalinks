@@ -899,7 +899,7 @@ func (r *repository) LoadAccount(f app.LoadAccountsFilter) (app.Account, error) 
 		if len(f.Handle) > 0 {
 			id = f.Handle[0]
 		}
-		return app.Account{}, errors.NotFoundf("account %q", id)
+		return app.Account{}, errors.NotFoundf("account %s", id)
 	}
 	return *ac, nil
 }

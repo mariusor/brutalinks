@@ -555,7 +555,7 @@ func loadCollection(items app.Collection, count uint, typ string, filters app.Pa
 			lessItems = f.Page > 1
 			curIndex = f.Page
 		} else {
-			return nil, errors.Errorf("could not load items")
+			return nil, errors.New("could not load items")
 		}
 	case "liked":
 		if col, ok := items.(app.VoteCollection); ok {
@@ -568,7 +568,7 @@ func loadCollection(items app.Collection, count uint, typ string, filters app.Pa
 			lessItems = f.Page > 1
 			curIndex = f.Page
 		} else {
-			return nil, errors.Errorf("could not load items")
+			return nil, errors.New("could not load items")
 		}
 	}
 	firstURL := getURL(fp)
@@ -609,6 +609,10 @@ func (h handler) HandleCollection(w http.ResponseWriter, r *http.Request) {
 
 	items := r.Context().Value(app.CollectionCtxtKey)
 	count, _ := r.Context().Value(app.CollectionCountCtxtKey).(uint)
+	if count  == 0 {
+		h.HandleError(w, r, errors.NewNotFound(err, "no items"))
+		return
+	}
 
 	filters := r.Context().Value(app.FilterCtxtKey)
 	f, _ := filters.(app.Paginator)
@@ -616,7 +620,7 @@ func (h handler) HandleCollection(w http.ResponseWriter, r *http.Request) {
 	page, err = loadCollection(items, count, typ, f, baseURL)
 	if err != nil {
 		h.logger.Error(err.Error())
-		h.HandleError(w, r, errors.NewNotFound(err, fmt.Sprintf("%T", page)))
+		h.HandleError(w, r, errors.NewNotFound(err, fmt.Sprintf("%s", typ)))
 		return
 	}
 

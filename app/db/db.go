@@ -203,6 +203,9 @@ func (c config) LoadItems(f app.LoadItemsFilter) (app.ItemCollection, uint, erro
 }
 
 func (c config) LoadAccount(f app.LoadAccountsFilter) (app.Account, error) {
+	if len(f.Key) == 0 {
+		return app.Account{}, errors.NotValidf("invalid search, missing account hash")
+	}
 	f.MaxItems = 1
 	accounts, err := loadAccounts(c.DB, f)
 	if err != nil {
@@ -211,7 +214,7 @@ func (c config) LoadAccount(f app.LoadAccountsFilter) (app.Account, error) {
 	if a, err := accounts.First(); err == nil {
 		return *a, nil
 	} else {
-		return app.Account{}, errors.NotFoundf("account %s", f.Key)
+		return app.Account{}, errors.NotFoundf("account %s", f.Key[0])
 	}
 }
 
