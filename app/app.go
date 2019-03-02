@@ -124,7 +124,7 @@ type Cacheable interface {
 
 func validEnv(s EnvType) bool {
 	for _, k := range validEnvTypes {
-		if k == s {
+		if strings.ToLower(string(k)) == strings.ToLower(string(s)) {
 			return true
 		}
 	}
