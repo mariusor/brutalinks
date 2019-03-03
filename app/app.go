@@ -192,7 +192,7 @@ func loadEnv(l *Application) (bool, error) {
 	var err error
 
 	if !validEnv(l.Config.Env) {
-		l.Config.Env = EnvType(os.Getenv("ENV"))
+		l.Config.Env = EnvType(strings.ToLower(os.Getenv("ENV")))
 	}
 	if !validEnv(l.Config.Env) {
 		l.Config.Env = DEV
