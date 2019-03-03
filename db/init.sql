@@ -1,14 +1,20 @@
 -- name: drop-tables
+DROP TABLE IF EXISTS votes CASCADE;
 DROP TABLE IF EXISTS items CASCADE;
 DROP TABLE IF EXISTS accounts CASCADE;
-DROP TABLE IF EXISTS votes CASCADE;
 DROP TABLE IF EXISTS instances CASCADE;
+DROP TABLE IF EXISTS objects CASCADE;
+DROP TABLE IF EXISTS activities CASCADE;
+DROP TABLE IF EXISTS actors CASCADE;
 
 -- name: truncate-tables
+TRUNCATE votes RESTART IDENTITY CASCADE;
 TRUNCATE accounts RESTART IDENTITY CASCADE;
 TRUNCATE items RESTART IDENTITY CASCADE;
-TRUNCATE votes RESTART IDENTITY CASCADE;
 TRUNCATE instances RESTART IDENTITY CASCADE;
+TRUNCATE objects RESTART IDENTITY CASCADE;
+TRUNCATE activities RESTART IDENTITY CASCADE;
+TRUNCATE actors RESTART IDENTITY CASCADE;
 
 -- name: create-accounts
 create table accounts (
@@ -67,8 +73,8 @@ create table instances
 -- this
 create table actors (
   "id" serial not null constraint actors_pkey primary key,
-  "account_id" int default NULL, -- the account for this actor
   "key" char(32) constraint actors_key_key unique,
+  "account_id" int default NULL, -- the account for this actor
   "type" varchar, -- maybe enum
   "pub_id" varchar, -- the activitypub Object ID (APIURL/self/following/{key})
   "url" varchar, -- frontend reachable url
@@ -92,11 +98,11 @@ create table actors (
 -- this is used to store the Activtities we're receiving in outboxes and inboxes
 create table activities (
   "id" serial not null constraint activities_pkey primary key,
+  "key" char(32) constraint activities_key_key unique,
   "pub_id" varchar, -- the activitypub Object ID
   "actor_id" int default NULL, -- the actor id, if this is a local activity
   "account_id" int default NULL, -- the account id, if this is a local actor
   "actor" varchar, -- the IRI of local or remote actor
-  "key" char(32) constraint activities_key_key unique,
   "object_id" int default NULL, -- the object id if it's a local object
   "item_id" int default NULL, -- the item id if it's a local object
   "object" varchar, -- the IRI of the local or remote object
@@ -108,7 +114,7 @@ create table activities (
 -- this is used to store Note/Article objects that correspond to elements in the items table
 create table objects (
   "id" serial not null constraint objects_pkey primary key,
-  "key" char(32) constraint actors_key_key unique,
+  "key" char(32) constraint objects_key_key unique,
   "pub_id" varchar, -- the activitypub Object ID
   "type" varchar, -- maybe enum
   "url" varchar,
