@@ -3,6 +3,9 @@ package tests
 import (
 	"fmt"
 	as "github.com/go-ap/activitystreams"
+	"github.com/go-pg/pg"
+	"github.com/mariusor/littr.go/app/cmd"
+	"os"
 	"testing"
 )
 
@@ -10,7 +13,7 @@ type getTest map[string]collectionVal
 type postTest map[string]postVal
 
 var defaultCollectionTestPairs = getTest{
-	"actors": {
+	"self/following": {
 		id:  fmt.Sprintf("%s/self/following", apiURL),
 		typ: string(as.CollectionType),
 		first: &collectionVal{
@@ -126,7 +129,7 @@ var c2sTestPairs = postTest{
 			id:  fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/liked/162edb32c80d0e6dd3114fbb59d6273b", apiURL),
 			typ: string(as.LikeType),
 			obj: &objectVal{
-				id: fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object", apiURL),
+				id:     fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object", apiURL),
 				author: fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8", apiURL),
 			},
 		},
@@ -140,20 +143,6 @@ var c2sTestPairs = postTest{
 		res: objectVal{
 			id:  fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/liked/162edb32c80d0e6dd3114fbb59d6273b", apiURL),
 			typ: string(as.DislikeType),
-			obj: &objectVal{
-				id: fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object", apiURL),
-			},
-		},
-	},
-	"Dislike#2": {
-		body: fmt.Sprintf(`{
-    "type": "Dislike",
-    "actor": "%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8",
-    "object": "%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object"
-}`, apiURL, apiURL),
-		res: objectVal{
-			id:  fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/liked/162edb32c80d0e6dd3114fbb59d6273b", apiURL),
-			typ: string(as.UndoType),
 			obj: &objectVal{
 				id: fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object", apiURL),
 			},
@@ -197,11 +186,43 @@ var c2sTestPairs = postTest{
 
 var s2sTestPairs = postTest{}
 
+func init() {
+	cmd.DestroyDB(r, o.User, o.Database);
+	if err := cmd.CreateDatabase(o, r); err != nil {
+		panic(err)
+	}
+}
+
+var (
+	hostname   = os.Getenv("HOSTNAME")
+	dbRootPw   = os.Getenv("POSTGRES_PASSWORD")
+	dbRootUser = "postgres"
+	dbRootName = "postgres"
+	o          = cmd.PGConfigFromENV()
+	r          = &pg.Options{
+		User:     dbRootUser,
+		Password: dbRootPw,
+		Database: dbRootName,
+		Addr:     o.Addr,
+	}
+)
+
+func resetDB(t *testing.T) {
+	t.Helper()
+	t.Log("Resetting DB")
+	if err := cmd.BootstrapDB(o); err != nil {
+		t.Fatal(err)
+	}
+	if err := cmd.SeedDB(o, hostname); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func Test_GET(t *testing.T) {
 	assertCollection := errOnCollection(t)
+	resetDB(t)
 	for k, col := range defaultCollectionTestPairs {
 		t.Run(k, func(t *testing.T) {
-			t.Parallel()
 			assertCollection(fmt.Sprintf("%s/%s", apiURL, k), col)
 		})
 	}
@@ -210,6 +231,7 @@ func Test_GET(t *testing.T) {
 func Test_POST_Outbox(t *testing.T) {
 	assertPost := errOnPostRequest(t)
 	for typ, test := range c2sTestPairs {
+		resetDB(t)
 		t.Run("Activity_"+typ, func(t *testing.T) {
 			assertPost(test)
 		})

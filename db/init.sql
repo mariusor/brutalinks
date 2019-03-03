@@ -1,8 +1,14 @@
 -- name: drop-tables
-drop table if exists items;
-drop table if exists accounts;
-drop table if exists votes;
-drop table if exists instances;
+DROP TABLE IF EXISTS items CASCADE;
+DROP TABLE IF EXISTS accounts CASCADE;
+DROP TABLE IF EXISTS votes CASCADE;
+DROP TABLE IF EXISTS instances CASCADE;
+
+-- name: truncate-tables
+TRUNCATE accounts RESTART IDENTITY CASCADE;
+TRUNCATE items RESTART IDENTITY CASCADE;
+TRUNCATE votes RESTART IDENTITY CASCADE;
+TRUNCATE instances RESTART IDENTITY CASCADE;
 
 -- name: create-accounts
 create table accounts (

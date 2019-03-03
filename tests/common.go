@@ -73,6 +73,7 @@ func errorf(t *testing.T) errFn {
 			return
 		}
 		t.Errorf(msg, args...)
+		t.FailNow()
 	}
 }
 
@@ -307,7 +308,8 @@ func errOnRequest(t *testing.T) requestAssertFn {
 		req.Header.Set("Cache-Control", "no-cache")
 		resp, err := http.DefaultClient.Do(req)
 
-		assertTrue(err == nil, "Error: request failed: %s", err)
+		assertTrue(err == nil, "Error: request %s failed: %s", iri, err)
+		assertTrue(resp != nil, "Error: response is nil: %s", err)
 		b, err = ioutil.ReadAll(resp.Body)
 		assertTrue(resp.StatusCode == http.StatusOK,
 			"Error: invalid HTTP response %d, expected %d\nResponse\n%v\n%s", resp.StatusCode, http.StatusOK, resp.Header, b)

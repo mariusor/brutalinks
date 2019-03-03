@@ -609,10 +609,13 @@ func (h handler) HandleCollection(w http.ResponseWriter, r *http.Request) {
 
 	items := r.Context().Value(app.CollectionCtxtKey)
 	count, _ := r.Context().Value(app.CollectionCountCtxtKey).(uint)
-	if count  == 0 {
-		h.HandleError(w, r, errors.NewNotFound(err, "no items"))
-		return
-	}
+	// TODO(marius): this breaks some tests that expect 0 total items collections in the response
+	//   I need to decide if 0 count is an error or not and use the same logic when handling
+	//   loadCollection() below
+	//if count  == 0 {
+	//	h.HandleError(w, r, errors.NewNotFound(err, "no items"))
+	//	return
+	//}
 
 	filters := r.Context().Value(app.FilterCtxtKey)
 	f, _ := filters.(app.Paginator)
