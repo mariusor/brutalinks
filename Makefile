@@ -1,5 +1,3 @@
-include .env
-export
 export CGO_ENABLED=0
 export GOOS=linux
 export GOARCH=amd64
@@ -52,7 +50,7 @@ bin/fetcher: go.mod cli/fetcher/main.go $(APPSOURCES)
 cli: bootstrap votes keys poach fetcher
 
 run: app
-	@./bin/app -host $(HOSTNAME)
+	@./bin/app
 
 clean:
 	$(RM) bin/*
