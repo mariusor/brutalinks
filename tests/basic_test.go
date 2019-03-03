@@ -3,10 +3,7 @@ package tests
 import (
 	"fmt"
 	as "github.com/go-ap/activitystreams"
-	"github.com/go-pg/pg"
-	"github.com/mariusor/littr.go/app/cmd"
 	"net/http"
-	"os"
 	"testing"
 )
 
@@ -83,8 +80,8 @@ var defaultCollectionTestPairs = getTest{
 		itemCount: 1, // TODO(marius): :FIX_INBOX: this should be 0
 	},
 	"self/liked": {
-		id:  fmt.Sprintf("%s/self/liked", apiURL),
-		typ: string(as.OrderedCollectionType),
+		id:        fmt.Sprintf("%s/self/liked", apiURL),
+		typ:       string(as.OrderedCollectionType),
 		itemCount: 0,
 	},
 	"self/outbox": {
@@ -291,38 +288,6 @@ var c2sTestPairs = postTest{
 }
 
 var s2sTestPairs = postTest{}
-
-func init() {
-	cmd.DestroyDB(r, o.User, o.Database)
-	if err := cmd.CreateDatabase(o, r); err != nil {
-		panic(err)
-	}
-}
-
-var (
-	hostname   = os.Getenv("HOSTNAME")
-	dbRootPw   = os.Getenv("POSTGRES_PASSWORD")
-	dbRootUser = "postgres"
-	dbRootName = "postgres"
-	o          = cmd.PGConfigFromENV()
-	r          = &pg.Options{
-		User:     dbRootUser,
-		Password: dbRootPw,
-		Database: dbRootName,
-		Addr:     o.Addr,
-	}
-)
-
-func resetDB(t *testing.T) {
-	t.Helper()
-	t.Log("Resetting DB")
-	if err := cmd.BootstrapDB(o); err != nil {
-		t.Fatal(err)
-	}
-	if err := cmd.SeedDB(o, hostname); err != nil {
-		t.Fatal(err)
-	}
-}
 
 func Test_GET(t *testing.T) {
 	assertCollection := errOnCollection(t)

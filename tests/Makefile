@@ -1,5 +1,3 @@
-include .env.tests
-export
 export CGO_ENABLED=0
 GO := go
 TEST := $(GO) test -v
@@ -10,13 +8,15 @@ tests:
 	@cp -r ../db ./
 	@$(MAKE) integration
 	@$(RM) -rf ./db
+	@$(RM) -rf ./app
 
 integration: run
 	$(TEST) ./...
 
 killapp:
-	@-pkill -f "../bin/app -host $(HOSTNAME)" &> /dev/null
-	@([ $$? -eq 0 ]) || true
+	@-pkill -f "./bin/app -env test" &> /dev/null
+	@-([ $$? -eq 0 ]) || true
 
 run: killapp
-	@../bin/app -host $(HOSTNAME) -port $(subst :,,$(LISTEN)) &> /dev/null &
+	@cp -rf ../bin/app ./
+	@./app -env test &> /dev/null &

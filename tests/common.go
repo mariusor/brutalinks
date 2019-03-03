@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	as "github.com/go-ap/activitystreams"
+	"github.com/go-pg/pg"
+	_ "github.com/joho/godotenv/autoload"
+	"github.com/mariusor/littr.go/app/cmd"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -20,25 +23,20 @@ var UserAgent = "test-go-http-client"
 var HeaderAccept = `application/ld+json; profile="https://www.w3.org/ns/activitystreams"`
 
 type testReq struct {
-	met string
+	met     string
 	headers http.Header
-	body string
+	body    string
 }
 
 type testRes struct {
 	code int
-	val objectVal
+	val  objectVal
 	body string
 }
 
 type postTestVal struct {
 	req testReq
 	res testRes
-}
-
-type postVal struct {
-	body string
-	res  objectVal
 }
 
 type collectionVal struct {
@@ -70,8 +68,44 @@ type objectVal struct {
 	obj               *objectVal
 }
 
-var apiURL = os.Getenv("API_URL")
-var host = os.Getenv("HOSTNAME")
+var (
+	apiURL = os.Getenv("API_URL")
+	host   = os.Getenv("HOSTNAME")
+	o      *pg.Options
+	r      *pg.Options
+)
+
+func init() {
+	dbRootPw := os.Getenv("POSTGRES_PASSWORD")
+	dbRootUser := "postgres"
+	dbRootName := "postgres"
+	o = cmd.PGConfigFromENV()
+	r = &pg.Options{
+		User:     dbRootUser,
+		Password: dbRootPw,
+		Database: dbRootName,
+		Addr:     o.Addr,
+	}
+	if errs := cmd.DestroyDB(r, o.User, o.Database); len(errs) > 0 {
+		fmt.Printf("%v\n", errs)
+	}
+	if err := cmd.CreateDatabase(o, r); err != nil {
+		panic(err)
+	}
+}
+
+func resetDB(t *testing.T) {
+	h := os.Getenv("HOSTNAME")
+
+	t.Helper()
+	t.Logf("Resetting DB")
+	if err := cmd.BootstrapDB(o); err != nil {
+		t.Fatal(err)
+	}
+	if err := cmd.SeedDB(o, h); err != nil {
+		t.Fatal(err)
+	}
+}
 
 type assertFn func(v bool, msg string, args ...interface{})
 type errFn func(format string, args ...interface{})
