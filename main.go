@@ -22,7 +22,6 @@ import (
 
 var version = "HEAD"
 
-const defaultHost = "localhost"
 const defaultPort = 3000
 const defaultTimeout = time.Second * 15
 
@@ -55,8 +54,7 @@ func main() {
 		Logger:  app.Instance.Logger.New(log.Ctx{"package": "api"}),
 		BaseURL: app.Instance.APIURL,
 	})
-
-	processing.InitQueues(&app.Instance)
+	//processing.InitQueues(&app.Instance)
 
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 
