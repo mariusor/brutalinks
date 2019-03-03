@@ -19,6 +19,23 @@ import (
 var UserAgent = "test-go-http-client"
 var HeaderAccept = `application/ld+json; profile="https://www.w3.org/ns/activitystreams"`
 
+type testReq struct {
+	met string
+	headers http.Header
+	body string
+}
+
+type testRes struct {
+	code int
+	val objectVal
+	body string
+}
+
+type postTestVal struct {
+	req testReq
+	res testRes
+}
+
 type postVal struct {
 	body string
 	res  objectVal
@@ -335,30 +352,40 @@ func errOnCollection(t *testing.T) collectionAssertFn {
 	}
 }
 
-func errOnPostRequest(t *testing.T) func(postVal) {
+func errOnPostRequest(t *testing.T) func(postTestVal) {
 	assertTrue := errIfNotTrue(t)
 	assertGetRequest := errOnGetRequest(t)
 	assertObjectProperties := errOnObjectProperties(t)
 
-	return func(test postVal) {
-		outbox := fmt.Sprintf("%s/self/outbox", apiURL)
+	return func(test postTestVal) {
+		if len(test.req.headers) == 0 {
+			test.req.headers = make(http.Header, 0)
+			test.req.headers.Set("User-Agent", fmt.Sprintf("-%s", UserAgent))
+			test.req.headers.Set("Accept", HeaderAccept)
+			test.req.headers.Set("Cache-Control", "no-cache")
+		}
+		if test.req.met == "" {
+			test.req.met = http.MethodPost
+		}
+		if test.res.code == 0 {
+			test.res.code = http.StatusCreated
+		}
 
-		body := []byte(test.body)
+		outbox := fmt.Sprintf("%s/self/outbox", apiURL)
+		body := []byte(test.req.body)
 		b := make([]byte, 0)
 
 		var err error
-		req, err := http.NewRequest(http.MethodPost, outbox, bytes.NewReader(body))
+		req, err := http.NewRequest(test.req.met, outbox, bytes.NewReader(body))
 		assertTrue(err == nil, "Error: unable to create request: %s", err)
 
-		req.Header.Set("User-Agent", fmt.Sprintf("-%s", UserAgent))
-		req.Header.Set("Accept", HeaderAccept)
-		req.Header.Set("Cache-Control", "no-cache")
+		req.Header = test.req.headers
 		resp, err := http.DefaultClient.Do(req)
 
 		assertTrue(err == nil, "Error: request failed: %s", err)
 		b, err = ioutil.ReadAll(resp.Body)
-		assertTrue(resp.StatusCode == http.StatusCreated,
-			"Error: invalid HTTP response %d, expected %d\nResponse\n%v\n%s", resp.StatusCode, http.StatusCreated, resp.Header, b)
+		assertTrue(resp.StatusCode == test.res.code,
+			"Error: invalid HTTP response %d, expected %d\nResponse\n%v\n%s", resp.StatusCode, test.res.code, resp.Header, b)
 		assertTrue(err == nil, "Error: invalid HTTP body! Read %d bytes %s", len(b), b)
 
 		location, ok := resp.Header["Location"]
@@ -373,8 +400,8 @@ func errOnPostRequest(t *testing.T) func(postVal) {
 		assertTrue(err == nil, "Location header holds invalid URL %s", newObjURL)
 		assertTrue(strings.Contains(newObjURL, apiURL), "Location header holds invalid URL %s, expected to contain %s", newObjURL, apiURL)
 
-		if test.res.id == "" {
-			test.res.id = newObjURL
+		if test.res.val.id == "" {
+			test.res.val.id = newObjURL
 		}
 
 		res := make(map[string]interface{})
@@ -382,6 +409,6 @@ func errOnPostRequest(t *testing.T) func(postVal) {
 		assertTrue(err == nil, "Error: unmarshal failed: %s", err)
 
 		saved := assertGetRequest(newObjURL)
-		assertObjectProperties(saved, test.res)
+		assertObjectProperties(saved, test.res.val)
 	}
 }

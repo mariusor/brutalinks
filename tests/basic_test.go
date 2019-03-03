@@ -5,12 +5,13 @@ import (
 	as "github.com/go-ap/activitystreams"
 	"github.com/go-pg/pg"
 	"github.com/mariusor/littr.go/app/cmd"
+	"net/http"
 	"os"
 	"testing"
 )
 
 type getTest map[string]collectionVal
-type postTest map[string]postVal
+type postTest map[string]postTestVal
 
 var defaultCollectionTestPairs = getTest{
 	"self/following": {
@@ -120,36 +121,47 @@ var defaultCollectionTestPairs = getTest{
 
 var c2sTestPairs = postTest{
 	"Like": {
-		body: fmt.Sprintf(`{
+		req: testReq{
+			body: fmt.Sprintf(`{
     "type": "Like",
     "actor": "%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8",
     "object": "%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object"
 }`, apiURL, apiURL),
-		res: objectVal{
-			id:  fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/liked/162edb32c80d0e6dd3114fbb59d6273b", apiURL),
-			typ: string(as.LikeType),
-			obj: &objectVal{
-				id:     fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object", apiURL),
-				author: fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8", apiURL),
+		},
+		res: testRes{
+			code: http.StatusCreated,
+			val : objectVal{
+				id:  fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/liked/162edb32c80d0e6dd3114fbb59d6273b", apiURL),
+				typ: string(as.LikeType),
+				obj: &objectVal{
+					id:     fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object", apiURL),
+					author: fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8", apiURL),
+				},
 			},
 		},
 	},
 	"Dislike": {
-		body: fmt.Sprintf(`{
+		req: testReq{
+			body: fmt.Sprintf(`{
     "type": "Dislike",
     "actor": "%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8",
     "object": "%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object"
 }`, apiURL, apiURL),
-		res: objectVal{
-			id:  fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/liked/162edb32c80d0e6dd3114fbb59d6273b", apiURL),
-			typ: string(as.DislikeType),
-			obj: &objectVal{
-				id: fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object", apiURL),
+		},
+		res: testRes{
+			code: http.StatusCreated,
+			val: objectVal{
+				id:  fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/liked/162edb32c80d0e6dd3114fbb59d6273b", apiURL),
+				typ: string(as.DislikeType),
+				obj: &objectVal{
+					id: fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object", apiURL),
+				},
 			},
 		},
 	},
 	"Create": {
-		body: fmt.Sprintf(`{
+		req: testReq{
+			body: fmt.Sprintf(`{
   "type": "Create",
   "actor": "%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8",
   "to": ["%s/self/outbox"],
@@ -159,26 +171,35 @@ var c2sTestPairs = postTest{
     "content": "<p>Hello world!</p>"
   }
 }`, apiURL, apiURL, apiURL),
-		res: objectVal{
-			typ: string(as.CreateType),
-			obj: &objectVal{
-				author:  fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8", apiURL),
-				typ:     string(as.NoteType),
-				content: "<p>Hello world!</p>",
+		},
+		res: testRes{
+			code: http.StatusCreated,
+			val : objectVal{
+				typ: string(as.CreateType),
+				obj: &objectVal{
+					author:  fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8", apiURL),
+					typ:     string(as.NoteType),
+					content: "<p>Hello world!</p>",
+				},
 			},
 		},
 	},
 	"Delete": {
-		body: fmt.Sprintf(`{
+		req: testReq{
+			body: fmt.Sprintf(`{
   "type": "Delete",
   "actor": "%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8",
   "to": ["%s/self/outbox"],
   "object": "%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b"
 }`, apiURL, apiURL, apiURL),
-		res: objectVal{
-			typ: string(as.DeleteType),
-			obj: &objectVal{
-				typ: string(as.TombstoneType),
+		},
+		res: testRes{
+			code: http.StatusCreated,
+			val: objectVal{
+				typ: string(as.DeleteType),
+				obj: &objectVal{
+					typ: string(as.TombstoneType),
+				},
 			},
 		},
 	},
