@@ -64,6 +64,6 @@ cert:
 images:
 	$(MAKE) -C docker $@
 
-tests: app bootstrap
+tests: app
 	$(TEST) ./{app,cli,internal}/...
 	$(MAKE) -C tests $@
