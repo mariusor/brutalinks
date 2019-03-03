@@ -198,8 +198,8 @@ func loadEnv(l *Application) (bool, error) {
 		l.Config.Env = DEV
 	}
 	configs := []string{
-		".env",
 		fmt.Sprintf(".env.%s", l.Config.Env),
+		".env",
 	}
 	if l.Config.Env == PROD {
 		l.Logger = log.Prod()
