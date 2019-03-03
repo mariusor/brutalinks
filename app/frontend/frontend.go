@@ -309,6 +309,7 @@ func scoreFmt(s int64) string {
 type headerEl struct {
 	IsCurrent bool
 	Icon      string
+	Auth      bool
 	Name      string
 	URL       string
 }
@@ -331,6 +332,7 @@ func headerMenu(r *http.Request) []headerEl {
 			el.Icon = "activitypub"
 		case "followed":
 			el.Icon = "star"
+			el.Auth = true
 		}
 		ret = append(ret, el)
 	}
