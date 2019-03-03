@@ -168,12 +168,13 @@ func relTimeFmt(old time.Time) string {
 }
 
 type Config struct {
-	Version     string
-	BaseURL     string
-	HostName    string
-	Secure      bool
-	SessionKeys [][]byte
-	Logger      log.Logger
+	Version        string
+	BaseURL        string
+	HostName       string
+	Secure         bool
+	SessionKeys    [][]byte
+	SessionBackend string
+	Logger         log.Logger
 }
 
 func Init(c Config) (handler, error) {
@@ -190,6 +191,10 @@ func Init(c Config) (handler, error) {
 		h.logger = c.Logger
 	}
 
+	if c.SessionBackend = os.Getenv("SESS_BACKEND"); c.SessionBackend == "" {
+		c.SessionBackend = "cookie"
+	}
+
 	c.SessionKeys = loadEnvSessionKeys()
 	h.session, err = InitSessionStore(c)
 
@@ -200,12 +205,27 @@ func Init(c Config) (handler, error) {
 func InitSessionStore(c Config) (sessions.Store, error) {
 	var s sessions.Store
 	if len(c.SessionKeys) > 0 {
-		ss := sessions.NewCookieStore(c.SessionKeys...)
-		//s.Options.Domain = c.HostName
-		ss.Options.Path = "/"
-		ss.Options.HttpOnly = true
-		ss.Options.Secure = c.Secure
-		s = ss
+		switch c.SessionBackend {
+		case "file":
+			sessDir := fmt.Sprintf("%s/%s", os.TempDir(), c.HostName)
+			if err := os.Mkdir(sessDir, 0700) ; err != nil {
+				c.Logger.WithContext(log.Ctx{
+					"folder": sessDir,
+					"err": err,
+				}).Error("unable to create folder")
+			}
+			ss := sessions.NewFilesystemStore(sessDir, c.SessionKeys...)
+			s = ss
+		case "cookie":
+			fallthrough
+		default:
+			ss := sessions.NewCookieStore(c.SessionKeys...)
+			ss.Options.Domain = c.HostName
+			ss.Options.Path = "/"
+			ss.Options.HttpOnly = true
+			ss.Options.Secure = c.Secure
+			s = ss
+		}
 	} else {
 		err := errors.New("no session encryption configuration, unable to use sessions")
 		if c.Logger != nil {
@@ -772,7 +792,7 @@ func httpErrorResponse(e error) int {
 	return http.StatusInternalServerError
 }
 
-func loadEnvSessionKeys () [][]byte {
+func loadEnvSessionKeys() [][]byte {
 	keys := make([][]byte, 0)
 	if authKey := []byte(os.Getenv("SESS_AUTH_KEY")); authKey != nil {
 		keys = append(keys, authKey)
