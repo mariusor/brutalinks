@@ -130,7 +130,10 @@ type Cacheable interface {
 }
 
 func validEnv(env EnvType) bool {
-	s := strings.ToUpper(string(env))
+	if len(env) == 0 {
+		return false
+	}
+	s := strings.ToLower(string(env))
 	for _, k := range validEnvTypes {
 		if strings.Contains(s, string(k)) {
 			return true
