@@ -32,7 +32,7 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	m := a.Metadata
 	if m != nil {
 		h.logger.WithContext(log.Ctx{
-			"pw":   fmt.Sprintf("%2x", m.Password),
+			"pw":   fmt.Sprintf("%s", m.Password),
 			"salt": fmt.Sprintf("%2x", m.Salt),
 		}).Info("Loaded password")
 		salt := m.Salt
