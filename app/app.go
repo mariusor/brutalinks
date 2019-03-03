@@ -198,8 +198,8 @@ func loadEnv(l *Application) (bool, error) {
 		l.Config.Env = DEV
 	}
 	configs := []string{
-		fmt.Sprintf(".env.%s", l.Config.Env),
 		".env",
+		fmt.Sprintf(".env.%s", l.Config.Env),
 	}
 	if l.Config.Env == PROD {
 		l.Logger = log.Prod()
@@ -207,8 +207,10 @@ func loadEnv(l *Application) (bool, error) {
 		l.Logger = log.Dev()
 	}
 
-	if err := godotenv.Overload(configs...); err != nil {
-		l.Logger.Warnf("%s", err)
+	for _, f := range configs {
+		if err := godotenv.Overload(f); err != nil {
+			l.Logger.Warnf("%s", err)
+		}
 	}
 
 	if l.HostName == "" {
