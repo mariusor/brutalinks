@@ -32,13 +32,15 @@ func main() {
 	var wait time.Duration
 	var port int
 	var host string
+	var env string
 
 	flag.DurationVar(&wait, "graceful-timeout", defaultTimeout, "the duration for which the server gracefully wait for existing connections to finish - e.g. 15s or 1m")
 	flag.IntVar(&port, "port", defaultPort, "the port on which we should listen on")
 	flag.StringVar(&host, "host", defaultHost, "the host on which we should listen on")
+	flag.StringVar(&env, "env", string(app.DEV), "the environment type")
 	flag.Parse()
 
-	app.Instance = app.New(host, port, version)
+	app.Instance = app.New(host, port, app.EnvType(env), version)
 
 	db.Init(&app.Instance)
 	front, err := frontend.Init(frontend.Config{

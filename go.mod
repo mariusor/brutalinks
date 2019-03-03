@@ -13,6 +13,7 @@ require (
 	github.com/gorilla/securecookie v1.1.1
 	github.com/gorilla/sessions v1.1.1
 	github.com/jinzhu/inflection v0.0.0-20180308033659-04140366298a // indirect
+	github.com/joho/godotenv v1.3.0
 	github.com/juju/errors v0.0.0-20180726005433-812b06ada177
 	github.com/lib/pq v0.0.0-20180523175426-90697d60dd84
 	github.com/mariusor/qstring v0.0.0-20180919140350-29d781f85f0f

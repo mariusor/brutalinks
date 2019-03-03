@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/go-chi/chi/middleware"
+	"github.com/joho/godotenv"
 	"github.com/mariusor/littr.go/internal/errors"
 	"io"
 	"net/http"
@@ -94,16 +95,16 @@ type Desc struct {
 
 // Application is the global state of our application
 type Application struct {
-	Version     string
-	HostName    string
-	APIURL      string
-	BaseURL     string
-	Port        int
-	listen      string
-	Secure      bool
-	Config      Config
-	Logger      log.Logger
-	SeedVal     int64
+	Version  string
+	HostName string
+	APIURL   string
+	BaseURL  string
+	Port     int
+	listen   string
+	Secure   bool
+	Config   Config
+	Logger   log.Logger
+	SeedVal  int64
 }
 
 type Collection interface{}
@@ -112,8 +113,8 @@ type Collection interface{}
 var Instance Application
 
 // New instantiates a new Application
-func New(host string, port int, ver string) Application {
-	app := Application{HostName: host, Port: port, Version: ver, Config: Config{}}
+func New(host string, port int, env EnvType, ver string) Application {
+	app := Application{HostName: host, Port: port, Version: ver, Config: Config{ Env: env}}
 	loadEnv(&app)
 	return app
 }
@@ -170,6 +171,26 @@ func (a *Application) Listen() string {
 func loadEnv(l *Application) (bool, error) {
 	var err error
 
+	if !validEnv(l.Config.Env) {
+		l.Config.Env = EnvType(os.Getenv("ENV"))
+	}
+	if !validEnv(l.Config.Env) {
+		l.Config.Env = DEV
+	}
+	configs := []string{
+		".env",
+		fmt.Sprintf(".env.%s", l.Config.Env),
+	}
+	if l.Config.Env == PROD {
+		l.Logger = log.Prod()
+	} else {
+		l.Logger = log.Dev()
+	}
+
+	if err := godotenv.Overload(configs...); err != nil {
+		l.Logger.Warnf("%s", err)
+	}
+
 	if l.listen = os.Getenv("LISTEN"); l.listen == "" {
 		l.listen = fmt.Sprintf("%s:%d", l.HostName, l.Port)
 	}
@@ -183,9 +204,6 @@ func loadEnv(l *Application) (bool, error) {
 		l.BaseURL = fmt.Sprintf("https://%s", l.HostName)
 	} else {
 		l.BaseURL = fmt.Sprintf("http://%s", l.HostName)
-	}
-	if l.Config.Env = EnvType(os.Getenv("ENV")); !validEnv(l.Config.Env) {
-		l.Config.Env = DEV
 	}
 
 	l.Config.DB.Host = os.Getenv("DB_HOST")
@@ -201,12 +219,6 @@ func loadEnv(l *Application) (bool, error) {
 	l.Config.VotingEnabled = os.Getenv("DISABLE_VOTING") == ""
 	l.Config.DownvotingEnabled = os.Getenv("DISABLE_DOWNVOTING") == ""
 	l.Config.SessionsEnabled = os.Getenv("DISABLE_SESSIONS") == ""
-
-	if l.Config.Env == PROD {
-		l.Logger = log.Prod()
-	} else {
-		l.Logger = log.Dev()
-	}
 
 	return true, nil
 }
@@ -309,7 +321,7 @@ func ReqLogger(next http.Handler) http.Handler {
 
 type Handler func(http.Handler) http.Handler
 type ErrorHandler func(http.ResponseWriter, *http.Request, ...error)
-type ErrorHandlerFn func (eh ErrorHandler) Handler
+type ErrorHandlerFn func(eh ErrorHandler) Handler
 
 func NeedsDBBackend(eh ErrorHandler) Handler {
 	return func(next http.Handler) http.Handler {
