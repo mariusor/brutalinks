@@ -525,16 +525,8 @@ func loadCollection(items app.Collection, count uint, typ string, filters app.Pa
 
 	var haveItems, moreItems, lessItems bool
 	var bp, fp, cp, pp, np app.Paginator
-
-	if filters != nil {
-		bp = filters.BasePage()
-		fp = filters.FirstPage()
-		cp = filters.CurrentPage()
-		pp = filters.PrevPage()
-		np = filters.NextPage()
-	}
-
 	curIndex := 0
+
 	oc := as.OrderedCollection{}
 	oc.ID = as.ObjectID(getURL(bp))
 	oc.Type = as.OrderedCollectionType
@@ -550,6 +542,9 @@ func loadCollection(items app.Collection, count uint, typ string, filters app.Pa
 				return nil, err
 			}
 			f, _ := filters.(*app.LoadItemsFilter)
+			if len(f.AttributedTo) == 1 {
+				f.AttributedTo = nil
+			}
 			haveItems = len(col) > 0
 			moreItems = int(count) > (f.Page * f.MaxItems)
 			lessItems = f.Page > 1
@@ -563,6 +558,9 @@ func loadCollection(items app.Collection, count uint, typ string, filters app.Pa
 				return nil, err
 			}
 			f, _ := filters.(*app.LoadVotesFilter)
+			if len(f.AttributedTo) == 1 {
+				f.AttributedTo = nil
+			}
 			haveItems = len(col) > 0
 			moreItems = int(count) > (f.Page * f.MaxItems)
 			lessItems = f.Page > 1
@@ -571,25 +569,35 @@ func loadCollection(items app.Collection, count uint, typ string, filters app.Pa
 			return nil, errors.New("could not load items")
 		}
 	}
-	firstURL := getURL(fp)
-	oc.First = as.IRI(firstURL)
+	if filters != nil {
+		bp = filters.BasePage()
+		fp = filters.FirstPage()
+		cp = filters.CurrentPage()
+		pp = filters.PrevPage()
+		np = filters.NextPage()
+	}
 
-	if haveItems && curIndex >= 1 {
-		curURL := getURL(cp)
-		prevURL := getURL(pp)
-		nextURL := getURL(np)
+	if haveItems {
+		firstURL := getURL(fp)
+		oc.First = as.IRI(firstURL)
 
-		page := as.OrderedCollectionPageNew(&oc)
+		if curIndex >= 1 {
+			curURL := getURL(cp)
+			prevURL := getURL(pp)
+			nextURL := getURL(np)
 
-		page.ID = as.ObjectID(curURL)
-		if moreItems {
-			page.Next = as.IRI(nextURL)
+			page := as.OrderedCollectionPageNew(&oc)
+
+			page.ID = as.ObjectID(curURL)
+			if moreItems {
+				page.Next = as.IRI(nextURL)
+			}
+			if lessItems {
+				page.Prev = as.IRI(prevURL)
+			}
+			page.TotalItems = count
+			return page, nil
 		}
-		if lessItems {
-			page.Prev = as.IRI(prevURL)
-		}
-		page.TotalItems = count
-		return page, nil
 	}
 
 	oc.TotalItems = count
@@ -621,11 +629,11 @@ func (h handler) HandleCollection(w http.ResponseWriter, r *http.Request) {
 	f, _ := filters.(app.Paginator)
 	baseURL := fmt.Sprintf("%s%s", h.repo.BaseURL, strings.Replace(r.URL.Path, "/api", "", 1))
 	page, err = loadCollection(items, count, typ, f, baseURL)
-	if err != nil {
-		h.logger.Error(err.Error())
-		h.HandleError(w, r, errors.NewNotFound(err, fmt.Sprintf("%s", typ)))
-		return
-	}
+	//if err != nil {
+	//	h.logger.Error(err.Error())
+	//	h.HandleError(w, r, errors.NewNotFound(err, fmt.Sprintf("%s", typ)))
+	//	return
+	//}
 
 	data, err = json.WithContext(GetContext()).Marshal(page)
 	if err != nil {

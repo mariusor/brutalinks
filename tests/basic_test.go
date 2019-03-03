@@ -56,17 +56,17 @@ var defaultCollectionTestPairs = getTest{
 				inbox: &collectionVal{
 					id: fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/inbox", apiURL),
 					// TODO(marius): Fix different page id when dereferenced vs. in parent collection
-					//typ: string(as.OrderedCollectionType),
+					typ: string(as.OrderedCollectionType),
 				},
 				outbox: &collectionVal{
 					id: fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox", apiURL),
 					// TODO(marius): Fix different page id when dereferenced vs. in parent collection
-					//typ: string(as.OrderedCollectionType),
+					typ: string(as.OrderedCollectionType),
 				},
 				liked: &collectionVal{
 					id: fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/liked", apiURL),
 					// TODO(marius): Fix different page id when dereferenced vs. in parent collection
-					//typ: string(as.OrderedCollectionType),
+					typ: string(as.OrderedCollectionType),
 				},
 				score: 0,
 			},
@@ -85,9 +85,6 @@ var defaultCollectionTestPairs = getTest{
 	"self/liked": {
 		id:  fmt.Sprintf("%s/self/liked", apiURL),
 		typ: string(as.OrderedCollectionType),
-		first: &collectionVal{
-			id: fmt.Sprintf("%s/self/liked?maxItems=50&page=1", apiURL),
-		},
 		itemCount: 0,
 	},
 	"self/outbox": {
