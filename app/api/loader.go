@@ -38,8 +38,8 @@ type repository struct {
 
 func New(c Config) *repository {
 	cl.UserAgent = fmt.Sprintf("%s-%s", app.Instance.HostName, app.Instance.Version)
-	cl.ErrorLogger = func(el ...interface{}) { c.Logger.Errorf("%v", el) }
-	cl.InfoLogger = func(el ...interface{}) { c.Logger.Infof("%v", el) }
+	cl.ErrorLogger = func(el ...interface{}) { c.Logger.WithContext(log.Ctx{"client": "api"}).Errorf("%v", el) }
+	cl.InfoLogger = func(el ...interface{}) { c.Logger.WithContext(log.Ctx{"client": "api"}).Debugf("%v", el) }
 	return &repository{
 		BaseURL: c.BaseURL,
 		logger:  c.Logger,

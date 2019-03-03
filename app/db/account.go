@@ -138,7 +138,7 @@ func saveAccount(db *pg.DB, a app.Account) (app.Account, error) {
 		if rows := res.RowsAffected(); rows == 0 {
 			return a, errors.Errorf("could not insert account %s:%q", acct.Handle, acct.Key)
 		} else {
-			Logger.Infof("%d", rows)
+			Logger.WithContext(log.Ctx{"rows": rows, "key": acct.Key}).Debugf("saved %s account", acct.Handle)
 		}
 	} else {
 		return a, errors.Annotatef(err, "DB query error")

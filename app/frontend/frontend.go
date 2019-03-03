@@ -536,7 +536,7 @@ func (h handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
 
 	s, err := h.session.Get(r, sessionName)
 	if err != nil {
-		h.logger.Info(err.Error())
+		h.logger.Debugf(err.Error())
 	}
 
 	s.Values["provider"] = provider
@@ -544,9 +544,8 @@ func (h handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
 	s.Values["state"] = state
 	//addFlashMessage(Success, fmt.Sprintf("Login successful with %s", provider), r)
 
-	err = h.session.Save(r, w, s)
-	if err != nil {
-		h.logger.Info(err.Error())
+	if err := h.session.Save(r, w, s); err != nil {
+		h.logger.Debugf(err.Error())
 	}
 	h.Redirect(w, r, "/", http.StatusFound)
 }
@@ -610,7 +609,7 @@ func (h handler) HandleAuth(w http.ResponseWriter, r *http.Request) {
 	default:
 		s, err := h.session.Get(r, sessionName)
 		if err != nil {
-			h.logger.Info(err.Error())
+			h.logger.Debugf(err.Error())
 		}
 		s.AddFlash("Missing oauth provider")
 		h.Redirect(w, r, indexUrl, http.StatusPermanentRedirect)

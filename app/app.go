@@ -329,7 +329,7 @@ func (a *Application) Run(m http.Handler, wait time.Duration) {
 func ShowHeaders(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		for name, val := range r.Header {
-			Logger.WithContext(log.Ctx{name: val}).Info("")
+			Logger.WithContext(log.Ctx{name: val}).Debug("")
 		}
 		next.ServeHTTP(w, r)
 	}
