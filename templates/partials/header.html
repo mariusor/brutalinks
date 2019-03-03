@@ -3,12 +3,12 @@
 <nav class="sections">
     <ul class="inline">
 {{- range $key, $value := Menu -}}
-{{- if $value.IsCurrent -}}
+{{- if $value.IsCurrent }}
         <li><a>{{ icon $value.Icon }} /{{$value.Name}}</a></li>
-{{- else -}}
+{{- else }}
 {{- if or (and $value.Auth $account.IsLogged) (not $value.Auth) }}
         <li><a href="{{$value.URL}}">{{ icon $value.Icon }} /{{$value.Name}}</a></li>
-{{- end -}}
+{{- end }}
 {{- end }}
 {{- end }}
     </ul>
