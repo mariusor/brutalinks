@@ -35,7 +35,6 @@ const (
 
 type handler struct {
 	session sessions.Store
-	sessionKeys [][]byte
 	account app.Account
 	logger  log.Logger
 }
@@ -186,11 +185,12 @@ func Init(c Config) (handler, error) {
 
 	h := handler{
 		account: defaultAccount,
-		sessionKeys: loadEnvSessionKeys(),
 	}
 	if c.Logger != nil {
 		h.logger = c.Logger
 	}
+
+	c.SessionKeys = loadEnvSessionKeys()
 	h.session, err = InitSessionStore(c)
 
 	return h, err
