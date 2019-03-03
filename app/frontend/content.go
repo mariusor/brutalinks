@@ -396,7 +396,7 @@ func (h *handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 	p.Delete()
 	if sav, ok := app.ContextItemSaver(r.Context()); ok {
 		if _, err = sav.SaveItem(p); err != nil {
-			addFlashMessage(Error, fmt.Sprintf("unable to add vote as an %s user", h.account.Handle), r)
+			h.addFlashMessage(Error, fmt.Sprintf("unable to add vote as an %s user", h.account.Handle), r)
 		}
 	}
 
@@ -473,7 +473,7 @@ func (h *handler) HandleVoting(w http.ResponseWriter, r *http.Request) {
 			}).Error(err.Error())
 		}
 	} else {
-		addFlashMessage(Error, fmt.Sprintf("unable to add vote as an %s user", acc.Handle), r)
+		h.addFlashMessage(Error, fmt.Sprintf("unable to add vote as an %s user", acc.Handle), r)
 	}
 	h.Redirect(w, r, url, http.StatusFound)
 }

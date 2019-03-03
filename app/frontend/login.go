@@ -40,12 +40,12 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		saltyPw = append(saltyPw, salt...)
 		err = bcrypt.CompareHashAndPassword(m.Password, saltyPw)
 	} else {
-		h.logger.Info(err.Error())
 		h.HandleError(w, r, errors.Forbiddenf("invalid account metadata"))
 		return
 	}
 	if err != nil {
 		h.logger.Error(err.Error())
+		h.addFlashMessage(Error, "Login failed", r)
 		h.HandleError(w, r, errors.Forbiddenf("Wrong handle or password"))
 		return
 	}
@@ -58,10 +58,11 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		s.Save(r, w)
 	} else {
 		h.logger.Error(err.Error())
+		return
 	}
 
 	backUrl := "/"
-	//addFlashMessage(Success, "Login successful", r)
+	h.addFlashMessage(Success, "Login successful", r)
 	h.Redirect(w, r, backUrl, http.StatusSeeOther)
 }
 
