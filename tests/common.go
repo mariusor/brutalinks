@@ -352,63 +352,65 @@ func errOnCollection(t *testing.T) collectionAssertFn {
 	}
 }
 
-func errOnPostRequest(t *testing.T) func(postTestVal) {
+func errOnPostRequest(t *testing.T) func([]postTestVal) {
 	assertTrue := errIfNotTrue(t)
 	assertGetRequest := errOnGetRequest(t)
 	assertObjectProperties := errOnObjectProperties(t)
 
-	return func(test postTestVal) {
-		if len(test.req.headers) == 0 {
-			test.req.headers = make(http.Header, 0)
-			test.req.headers.Set("User-Agent", fmt.Sprintf("-%s", UserAgent))
-			test.req.headers.Set("Accept", HeaderAccept)
-			test.req.headers.Set("Cache-Control", "no-cache")
+	return func(tests []postTestVal) {
+		for _, test := range tests {
+			if len(test.req.headers) == 0 {
+				test.req.headers = make(http.Header, 0)
+				test.req.headers.Set("User-Agent", fmt.Sprintf("-%s", UserAgent))
+				test.req.headers.Set("Accept", HeaderAccept)
+				test.req.headers.Set("Cache-Control", "no-cache")
+			}
+			if test.req.met == "" {
+				test.req.met = http.MethodPost
+			}
+			if test.res.code == 0 {
+				test.res.code = http.StatusCreated
+			}
+
+			outbox := fmt.Sprintf("%s/self/outbox", apiURL)
+			body := []byte(test.req.body)
+			b := make([]byte, 0)
+
+			var err error
+			req, err := http.NewRequest(test.req.met, outbox, bytes.NewReader(body))
+			assertTrue(err == nil, "Error: unable to create request: %s", err)
+
+			req.Header = test.req.headers
+			resp, err := http.DefaultClient.Do(req)
+
+			assertTrue(err == nil, "Error: request failed: %s", err)
+			b, err = ioutil.ReadAll(resp.Body)
+			assertTrue(resp.StatusCode == test.res.code,
+				"Error: invalid HTTP response %d, expected %d\nResponse\n%v\n%s", resp.StatusCode, test.res.code, resp.Header, b)
+			assertTrue(err == nil, "Error: invalid HTTP body! Read %d bytes %s", len(b), b)
+
+			location, ok := resp.Header["Location"]
+			if !ok {
+				return
+			}
+			assertTrue(ok, "Server didn't respond with a Location header even though it confirmed the Like was created")
+			assertTrue(len(location) == 1, "Server responded with %d Location headers which is not expected", len(location))
+
+			newObj, err := url.Parse(location[0])
+			newObjURL := newObj.String()
+			assertTrue(err == nil, "Location header holds invalid URL %s", newObjURL)
+			assertTrue(strings.Contains(newObjURL, apiURL), "Location header holds invalid URL %s, expected to contain %s", newObjURL, apiURL)
+
+			if test.res.val.id == "" {
+				test.res.val.id = newObjURL
+			}
+
+			res := make(map[string]interface{})
+			err = json.Unmarshal(b, &res)
+			assertTrue(err == nil, "Error: unmarshal failed: %s", err)
+
+			saved := assertGetRequest(newObjURL)
+			assertObjectProperties(saved, test.res.val)
 		}
-		if test.req.met == "" {
-			test.req.met = http.MethodPost
-		}
-		if test.res.code == 0 {
-			test.res.code = http.StatusCreated
-		}
-
-		outbox := fmt.Sprintf("%s/self/outbox", apiURL)
-		body := []byte(test.req.body)
-		b := make([]byte, 0)
-
-		var err error
-		req, err := http.NewRequest(test.req.met, outbox, bytes.NewReader(body))
-		assertTrue(err == nil, "Error: unable to create request: %s", err)
-
-		req.Header = test.req.headers
-		resp, err := http.DefaultClient.Do(req)
-
-		assertTrue(err == nil, "Error: request failed: %s", err)
-		b, err = ioutil.ReadAll(resp.Body)
-		assertTrue(resp.StatusCode == test.res.code,
-			"Error: invalid HTTP response %d, expected %d\nResponse\n%v\n%s", resp.StatusCode, test.res.code, resp.Header, b)
-		assertTrue(err == nil, "Error: invalid HTTP body! Read %d bytes %s", len(b), b)
-
-		location, ok := resp.Header["Location"]
-		if !ok {
-			return
-		}
-		assertTrue(ok, "Server didn't respond with a Location header even though it confirmed the Like was created")
-		assertTrue(len(location) == 1, "Server responded with %d Location headers which is not expected", len(location))
-
-		newObj, err := url.Parse(location[0])
-		newObjURL := newObj.String()
-		assertTrue(err == nil, "Location header holds invalid URL %s", newObjURL)
-		assertTrue(strings.Contains(newObjURL, apiURL), "Location header holds invalid URL %s, expected to contain %s", newObjURL, apiURL)
-
-		if test.res.val.id == "" {
-			test.res.val.id = newObjURL
-		}
-
-		res := make(map[string]interface{})
-		err = json.Unmarshal(b, &res)
-		assertTrue(err == nil, "Error: unmarshal failed: %s", err)
-
-		saved := assertGetRequest(newObjURL)
-		assertObjectProperties(saved, test.res.val)
 	}
 }

@@ -11,7 +11,7 @@ import (
 )
 
 type getTest map[string]collectionVal
-type postTest map[string]postTestVal
+type postTest map[string][]postTestVal
 
 var defaultCollectionTestPairs = getTest{
 	"self/following": {
@@ -120,7 +120,7 @@ var defaultCollectionTestPairs = getTest{
 }
 
 var c2sTestPairs = postTest{
-	"Like": {
+	"Like": {{
 		req: testReq{
 			body: fmt.Sprintf(`{
     "type": "Like",
@@ -130,7 +130,7 @@ var c2sTestPairs = postTest{
 		},
 		res: testRes{
 			code: http.StatusCreated,
-			val : objectVal{
+			val: objectVal{
 				id:  fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/liked/162edb32c80d0e6dd3114fbb59d6273b", apiURL),
 				typ: string(as.LikeType),
 				obj: &objectVal{
@@ -139,8 +139,8 @@ var c2sTestPairs = postTest{
 				},
 			},
 		},
-	},
-	"Dislike": {
+	}},
+	"Dislike": {{
 		req: testReq{
 			body: fmt.Sprintf(`{
     "type": "Dislike",
@@ -158,8 +158,88 @@ var c2sTestPairs = postTest{
 				},
 			},
 		},
+	}},
+	"UndoDislike": {
+		{
+			req: testReq{
+				body: fmt.Sprintf(`{
+    "type": "Dislike",
+    "actor": "%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8",
+    "object": "%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object"
+}`, apiURL, apiURL),
+			},
+			res: testRes{
+				code: http.StatusCreated,
+				val: objectVal{
+					id:  fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/liked/162edb32c80d0e6dd3114fbb59d6273b", apiURL),
+					typ: string(as.DislikeType),
+					obj: &objectVal{
+						id: fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object", apiURL),
+					},
+				},
+			},
+		},
+		{
+			req: testReq{
+				body: fmt.Sprintf(`{
+    "type": "Dislike",
+    "actor": "%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8",
+    "object": "%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object"
+}`, apiURL, apiURL),
+			},
+			res: testRes{
+				code: http.StatusCreated,
+				val: objectVal{
+					id:  fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/liked/162edb32c80d0e6dd3114fbb59d6273b", apiURL),
+					typ: string(as.UndoType),
+					obj: &objectVal{
+						id: fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object", apiURL),
+					},
+				},
+			},
+		},
 	},
-	"Create": {
+	"UndoLike": {
+		{
+			req: testReq{
+				body: fmt.Sprintf(`{
+    "type": "Like",
+    "actor": "%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8",
+    "object": "%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object"
+}`, apiURL, apiURL),
+			},
+			res: testRes{
+				code: http.StatusCreated,
+				val: objectVal{
+					id:  fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/liked/162edb32c80d0e6dd3114fbb59d6273b", apiURL),
+					typ: string(as.LikeType),
+					obj: &objectVal{
+						id: fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object", apiURL),
+					},
+				},
+			},
+		},
+		{
+			req: testReq{
+				body: fmt.Sprintf(`{
+    "type": "Like",
+    "actor": "%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8",
+    "object": "%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object"
+}`, apiURL, apiURL),
+			},
+			res: testRes{
+				code: http.StatusCreated,
+				val: objectVal{
+					id:  fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/liked/162edb32c80d0e6dd3114fbb59d6273b", apiURL),
+					typ: string(as.UndoType),
+					obj: &objectVal{
+						id: fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object", apiURL),
+					},
+				},
+			},
+		},
+	},
+	"Create": {{
 		req: testReq{
 			body: fmt.Sprintf(`{
   "type": "Create",
@@ -174,7 +254,7 @@ var c2sTestPairs = postTest{
 		},
 		res: testRes{
 			code: http.StatusCreated,
-			val : objectVal{
+			val: objectVal{
 				typ: string(as.CreateType),
 				obj: &objectVal{
 					author:  fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8", apiURL),
@@ -183,8 +263,8 @@ var c2sTestPairs = postTest{
 				},
 			},
 		},
-	},
-	"Delete": {
+	}},
+	"Delete": {{
 		req: testReq{
 			body: fmt.Sprintf(`{
   "type": "Delete",
@@ -202,13 +282,13 @@ var c2sTestPairs = postTest{
 				},
 			},
 		},
-	},
+	}},
 }
 
 var s2sTestPairs = postTest{}
 
 func init() {
-	cmd.DestroyDB(r, o.User, o.Database);
+	cmd.DestroyDB(r, o.User, o.Database)
 	if err := cmd.CreateDatabase(o, r); err != nil {
 		panic(err)
 	}
