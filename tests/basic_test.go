@@ -119,6 +119,7 @@ var defaultCollectionTestPairs = getTest{
 var c2sTestPairs = postTest{
 	"Like": {{
 		req: testReq{
+			met: http.MethodPost,
 			body: fmt.Sprintf(`{
     "type": "Like",
     "actor": "%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8",
@@ -139,6 +140,7 @@ var c2sTestPairs = postTest{
 	}},
 	"Dislike": {{
 		req: testReq{
+			met: http.MethodPost,
 			body: fmt.Sprintf(`{
     "type": "Dislike",
     "actor": "%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8",
@@ -159,6 +161,7 @@ var c2sTestPairs = postTest{
 	"UndoDislike": {
 		{
 			req: testReq{
+				met: http.MethodPost,
 				body: fmt.Sprintf(`{
     "type": "Dislike",
     "actor": "%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8",
@@ -178,6 +181,7 @@ var c2sTestPairs = postTest{
 		},
 		{
 			req: testReq{
+				met: http.MethodPost,
 				body: fmt.Sprintf(`{
     "type": "Dislike",
     "actor": "%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8",
@@ -199,6 +203,7 @@ var c2sTestPairs = postTest{
 	"UndoLike": {
 		{
 			req: testReq{
+				met: http.MethodPost,
 				body: fmt.Sprintf(`{
     "type": "Like",
     "actor": "%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8",
@@ -218,6 +223,7 @@ var c2sTestPairs = postTest{
 		},
 		{
 			req: testReq{
+				met: http.MethodPost,
 				body: fmt.Sprintf(`{
     "type": "Like",
     "actor": "%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8",
@@ -238,6 +244,7 @@ var c2sTestPairs = postTest{
 	},
 	"Create": {{
 		req: testReq{
+			met: http.MethodPost,
 			body: fmt.Sprintf(`{
   "type": "Create",
   "actor": "%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8",
@@ -263,6 +270,7 @@ var c2sTestPairs = postTest{
 	}},
 	"Delete": {{
 		req: testReq{
+			met: http.MethodPost,
 			body: fmt.Sprintf(`{
   "type": "Delete",
   "actor": "%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8",
@@ -321,6 +329,7 @@ func Test_GET(t *testing.T) {
 	resetDB(t)
 	for k, col := range defaultCollectionTestPairs {
 		t.Run(k, func(t *testing.T) {
+			t.Parallel()
 			assertCollection(fmt.Sprintf("%s/%s", apiURL, k), col)
 		})
 	}
@@ -329,8 +338,8 @@ func Test_GET(t *testing.T) {
 func Test_POST_Outbox(t *testing.T) {
 	assertPost := errOnPostRequest(t)
 	for typ, test := range c2sTestPairs {
-		resetDB(t)
 		t.Run("Activity_"+typ, func(t *testing.T) {
+			resetDB(t)
 			assertPost(test)
 		})
 	}
