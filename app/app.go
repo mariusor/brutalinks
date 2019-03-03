@@ -35,6 +35,8 @@ var listenHost string
 var listenPort int64
 var listenOn string
 
+const DefaultHost = "localhost"
+
 // EnvType type alias
 type EnvType string
 
@@ -47,10 +49,14 @@ const PROD EnvType = "prod"
 // QA environment
 const QA EnvType = "qa"
 
+// testing environment
+const TEST EnvType = "test"
+
 var validEnvTypes = []EnvType{
 	DEV,
 	PROD,
 	QA,
+	TEST,
 }
 
 type backendConfig struct {
@@ -123,13 +129,24 @@ type Cacheable interface {
 	GetAge() int
 }
 
-func validEnv(s EnvType) bool {
+func validEnv(env EnvType) bool {
+	s := strings.ToUpper(string(env))
 	for _, k := range validEnvTypes {
-		if strings.ToLower(string(k)) == strings.ToLower(string(s)) {
+		if strings.Contains(s, string(k)) {
 			return true
 		}
 	}
 	return false
+}
+
+func (e EnvType) IsProd() bool {
+	return  strings.Contains(string(e), string(PROD))
+}
+func (e EnvType) IsQA() bool {
+	return  strings.Contains(string(e), string(QA))
+}
+func (e EnvType) IsTest() bool {
+	return  strings.Contains(string(e), string(TEST))
 }
 
 // Name formats the name of the current Application
@@ -191,6 +208,12 @@ func loadEnv(l *Application) (bool, error) {
 		l.Logger.Warnf("%s", err)
 	}
 
+	if l.HostName == "" {
+		l.HostName = os.Getenv("HOSTNAME")
+		if l.HostName == "" {
+			l.HostName = DefaultHost
+		}
+	}
 	if l.listen = os.Getenv("LISTEN"); l.listen == "" {
 		l.listen = fmt.Sprintf("%s:%d", l.HostName, l.Port)
 	}
@@ -226,7 +249,7 @@ func loadEnv(l *Application) (bool, error) {
 // Run is the wrapper for starting the web-server and handling signals
 func (a *Application) Run(m http.Handler, wait time.Duration) {
 	a.Logger.WithContext(log.Ctx{
-		"Listen": a.Listen(),
+		"listen": a.Listen(),
 		"host":   a.HostName,
 		"env":    a.Config.Env,
 	}).Info("Started")
