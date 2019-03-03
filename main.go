@@ -3,12 +3,10 @@ package main
 import (
 	"crypto/tls"
 	"flag"
-	"fmt"
 	"github.com/mariusor/littr.go/app/db"
 	"github.com/mariusor/littr.go/app/processing"
 	"github.com/writeas/go-nodeinfo"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/go-chi/chi"
@@ -52,16 +50,11 @@ func main() {
 	if err != nil {
 		app.Instance.Logger.Warn(err.Error())
 	}
-	// api
-	apiURL := os.Getenv("API_URL")
-	if apiURL == "" {
-		apiURL = fmt.Sprintf("%s", app.Instance.BaseURL)
-	}
+
 	a := api.Init(api.Config{
 		Logger:  app.Instance.Logger.New(log.Ctx{"package": "api"}),
-		BaseURL: apiURL,
+		BaseURL: app.Instance.APIURL,
 	})
-	app.Instance.APIURL = apiURL
 
 	processing.InitQueues(&app.Instance)
 

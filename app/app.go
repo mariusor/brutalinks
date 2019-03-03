@@ -120,7 +120,7 @@ var Instance Application
 
 // New instantiates a new Application
 func New(host string, port int, env EnvType, ver string) Application {
-	app := Application{HostName: host, Port: port, Version: ver, Config: Config{ Env: env}}
+	app := Application{HostName: host, Port: port, Version: ver, Config: Config{Env: env}}
 	loadEnv(&app)
 	return app
 }
@@ -143,13 +143,13 @@ func validEnv(env EnvType) bool {
 }
 
 func (e EnvType) IsProd() bool {
-	return  strings.Contains(string(e), string(PROD))
+	return strings.Contains(string(e), string(PROD))
 }
 func (e EnvType) IsQA() bool {
-	return  strings.Contains(string(e), string(QA))
+	return strings.Contains(string(e), string(QA))
 }
 func (e EnvType) IsTest() bool {
-	return  strings.Contains(string(e), string(TEST))
+	return strings.Contains(string(e), string(TEST))
 }
 
 // Name formats the name of the current Application
@@ -248,6 +248,10 @@ func loadEnv(l *Application) (bool, error) {
 	l.Config.DownvotingEnabled = os.Getenv("DISABLE_DOWNVOTING") == ""
 	l.Config.SessionsEnabled = os.Getenv("DISABLE_SESSIONS") == ""
 
+	l.APIURL = os.Getenv("API_URL")
+	if l.APIURL == "" {
+		l.APIURL = fmt.Sprintf("%s/api", l.BaseURL)
+	}
 	return true, nil
 }
 
