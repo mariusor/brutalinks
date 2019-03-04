@@ -123,7 +123,7 @@ type LoadAccountsFilter struct {
 	Key      []Hash   `qstring:"hash,omitempty"`
 	Handle   []string `qstring:"handle,omitempty"`
 	Email    []string `qstring:"email,omitempty"`
-	Deleted  bool     `qstring:"deleted,omitempty"`
+	Deleted  []bool   `qstring:"deleted,omitempty"`
 	Page     int      `qstring:"page,omitempty"`
 	MaxItems int      `qstring:"maxItems,omitempty"`
 	IRI      string   `qstring:"id,omitempty"`
@@ -362,8 +362,6 @@ FROM "items" WHERE "key" ~* ?%d) AND "%s"."path" IS NOT NULL)`, it, counter, it)
 				eqOp = "!="
 			}
 			delWhere = append(delWhere, fmt.Sprintf(`"%s"."flags" & 1::bit(8) %s 1::bit(8)`, it, eqOp))
-			//whereValues = append(whereValues, FlagsDeleted)
-			//counter++
 		}
 		wheres = append(wheres, fmt.Sprintf("(%s)", strings.Join(delWhere, " OR ")))
 	}
@@ -497,6 +495,19 @@ func (f LoadAccountsFilter) GetWhereClauses() ([]string, []interface{}) {
 		wheres = append(wheres, fmt.Sprintf(`"accounts"."metadata"->>'id' ~* ?%d`, counter))
 		whereValues = append(whereValues, interface{}(f.IRI))
 		counter++
+	}
+	if len(f.Deleted) > 0 {
+		delWhere := make([]string, 0)
+		for _, del := range f.Deleted {
+			var eqOp string
+			if del {
+				eqOp = "="
+			} else {
+				eqOp = "!="
+			}
+			delWhere = append(delWhere, fmt.Sprintf(`"flags" & 1::bit(8) %s 1::bit(8)`, eqOp))
+		}
+		wheres = append(wheres, fmt.Sprintf("(%s)", strings.Join(delWhere, " OR ")))
 	}
 
 	return wheres, whereValues
