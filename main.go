@@ -80,33 +80,7 @@ func main() {
 	// API
 	r.With(db.Repository).Route("/api", a.Routes())
 
-	cfg := nodeinfo.Config{
-		BaseURL: api.BaseURL,
-		InfoURL: "/nodeinfo",
-
-		Metadata: nodeinfo.Metadata{
-			NodeName:        app.Instance.NodeInfo().Title,
-			NodeDescription: app.Instance.NodeInfo().Summary,
-			Private:         false,
-			Software: nodeinfo.SoftwareMeta{
-				GitHub:   "https://github.com/mariusor/littr.go",
-				HomePage: "https://littr.me",
-				Follow:   "mariusor@metalhead.club",
-			},
-		},
-		Protocols: []nodeinfo.NodeProtocol{
-			nodeinfo.ProtocolActivityPub,
-		},
-		Services: nodeinfo.Services{
-			Inbound:  []nodeinfo.NodeService{},
-			Outbound: []nodeinfo.NodeService{},
-		},
-		Software: nodeinfo.SoftwareInfo{
-			Name:    app.Instance.NodeInfo().Title,
-			Version: app.Instance.NodeInfo().Version,
-		},
-	}
-
+	cfg := api.NodeInfoConfig()
 	// Web-Finger
 	r.With(db.Repository).Route("/.well-known", func(r chi.Router) {
 		r.Use(app.NeedsDBBackend(a.HandleError))

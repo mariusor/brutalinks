@@ -47,33 +47,7 @@ func (h handler) Routes() func(chi.Router) {
 			r.With(LoadFiltersCtxt(h.HandleError)).Group(apGroup)
 		})
 
-		cfg := nodeinfo.Config{
-			BaseURL: BaseURL,
-			InfoURL: "/nodeinfo",
-
-			Metadata: nodeinfo.Metadata{
-				NodeName:        app.Instance.NodeInfo().Title,
-				NodeDescription: app.Instance.NodeInfo().Summary,
-				Private:         false,
-				Software: nodeinfo.SoftwareMeta{
-					GitHub:   "https://github.com/mariusor/littr.go",
-					HomePage: "https://littr.me",
-					Follow:   "mariusor@metalhead.club",
-				},
-			},
-			Protocols: []nodeinfo.NodeProtocol{
-				nodeinfo.ProtocolActivityPub,
-			},
-			Services: nodeinfo.Services{
-				Inbound:  []nodeinfo.NodeService{},
-				Outbound: []nodeinfo.NodeService{},
-			},
-			Software: nodeinfo.SoftwareInfo{
-				Name:    app.Instance.NodeInfo().Title,
-				Version: app.Instance.NodeInfo().Version,
-			},
-		}
-
+		cfg := NodeInfoConfig()
 		ni := nodeinfo.NewService(cfg, NodeInfoResolver{})
 		r.Get(cfg.InfoURL, ni.NodeInfo)
 

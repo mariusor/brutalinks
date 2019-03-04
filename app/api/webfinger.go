@@ -34,25 +34,60 @@ func (r NodeInfoResolver) IsOpenRegistration() (bool, error) {
 }
 
 func (r NodeInfoResolver) Usage() (nodeinfo.Usage, error) {
-	//inf, err := db.Config.LoadInfo()
-	//ifErr(err)
-
 	us, _, _ := db.Config.LoadAccounts(app.LoadAccountsFilter{
 		MaxItems: math.MaxInt64,
+		//IRI:  app.Instance.APIURL,
+		Deleted:  []bool {false},
 	})
-	//ifErr(err)
-	i, _, _ := db.Config.LoadItems(app.LoadItemsFilter{
+
+	posts, _, _ := db.Config.LoadItems(app.LoadItemsFilter{
+		MaxItems: math.MaxInt64,
+		Deleted: []bool{ false },
+		Context: []string { "0" },
+	})
+	all, _, _ := db.Config.LoadItems(app.LoadItemsFilter{
+		Deleted: []bool{ false },
 		MaxItems: math.MaxInt64,
 	})
-	//ifErr(err)
 
 	u := nodeinfo.Usage{
 		Users: nodeinfo.UsageUsers{
 			Total: len(us),
 		},
-		LocalPosts: len(i),
+		LocalComments: len(all)-len(posts),
+		LocalPosts: len(posts),
 	}
 	return u, nil
+}
+
+
+func NodeInfoConfig() nodeinfo.Config {
+	return nodeinfo.Config{
+		BaseURL: BaseURL,
+		InfoURL: "/nodeinfo",
+
+		Metadata: nodeinfo.Metadata{
+			NodeName:        app.Instance.NodeInfo().Title,
+			NodeDescription: app.Instance.NodeInfo().Summary,
+			Private:         false,
+			Software: nodeinfo.SoftwareMeta{
+				GitHub:   "https://github.com/mariusor/littr.go",
+				HomePage: "https://littr.me",
+				Follow:   "mariusor@metalhead.club",
+			},
+		},
+		Protocols: []nodeinfo.NodeProtocol{
+			nodeinfo.ProtocolActivityPub,
+		},
+		Services: nodeinfo.Services{
+			Inbound:  []nodeinfo.NodeService{},
+			Outbound: []nodeinfo.NodeService{},
+		},
+		Software: nodeinfo.SoftwareInfo{
+			Name:    app.Instance.NodeInfo().Title,
+			Version: app.Instance.NodeInfo().Version,
+		},
+	}
 }
 
 // HandleHostMeta serves /.well-known/host-meta
