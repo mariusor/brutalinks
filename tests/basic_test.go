@@ -124,7 +124,7 @@ var c2sTestPairs = postTest{
 }`, apiURL, apiURL),
 		},
 		res: testRes{
-			code: http.StatusUnauthorized,
+			code: http.StatusForbidden,
 		},
 	}},
 	"AnonymousDislike": {{
@@ -137,7 +137,7 @@ var c2sTestPairs = postTest{
 }`, apiURL, apiURL),
 		},
 		res: testRes{
-			code: http.StatusUnauthorized,
+			code: http.StatusForbidden,
 		},
 	}},
 	"AnonymousCreate": {{
@@ -155,7 +155,7 @@ var c2sTestPairs = postTest{
 }`, apiURL, apiURL, apiURL),
 		},
 		res: testRes{
-			code: http.StatusUnauthorized,
+			code: http.StatusForbidden,
 		},
 	}},
 	"AnonymousDelete": {{
@@ -169,7 +169,7 @@ var c2sTestPairs = postTest{
 }`, apiURL, apiURL, apiURL),
 		},
 		res: testRes{
-			code: http.StatusUnauthorized,
+			code: http.StatusForbidden,
 		},
 	}},
 }
