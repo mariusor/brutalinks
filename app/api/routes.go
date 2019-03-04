@@ -2,6 +2,7 @@ package api
 
 import (
 	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/middleware"
 	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/internal/errors"
 	"github.com/writeas/go-nodeinfo"
@@ -34,7 +35,7 @@ func (h handler) Routes() func(chi.Router) {
 		r.Use(app.NeedsDBBackend(h.HandleError))
 
 		r.Route("/self", func(r chi.Router) {
-			r.Use(h.ServiceCtxt)
+			r.Use(h.ServiceCtxt, middleware.GetHead)
 
 			r.With(LoadFiltersCtxt(h.HandleError)).Get("/", h.HandleService)
 			r.Route("/following", actorsRouter)
