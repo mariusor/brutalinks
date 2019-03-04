@@ -14,7 +14,7 @@ integration: run
 	$(TEST) ./...
 
 killapp:
-	@-pkill -f "./bin/app -env test" &> /dev/null
+	@-pkill -f './app -env test' &> /dev/null
 	@-([ $$? -eq 0 ]) || true
 
 run: killapp
