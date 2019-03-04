@@ -208,11 +208,13 @@ func InitSessionStore(c Config) (sessions.Store, error) {
 		switch c.SessionBackend {
 		case "file":
 			sessDir := fmt.Sprintf("%s/%s", os.TempDir(), c.HostName)
-			if err := os.Mkdir(sessDir, 0700) ; err != nil {
-				c.Logger.WithContext(log.Ctx{
-					"folder": sessDir,
-					"err": err,
-				}).Error("unable to create folder")
+			if _, err := os.Stat(sessDir); os.IsNotExist(err) {
+				if err := os.Mkdir(sessDir, 0700) ; err != nil {
+					c.Logger.WithContext(log.Ctx{
+						"folder": sessDir,
+						"err": err,
+					}).Error("unable to create folder")
+				}
 			}
 			ss := sessions.NewFilesystemStore(sessDir, c.SessionKeys...)
 			s = ss
