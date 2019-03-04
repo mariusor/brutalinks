@@ -78,11 +78,15 @@ func NewNotImplemented(e error, s string) error {
 func BadRequestf(s string, args ...interface{}) error {
 	return juju.BadRequestf(s, args...)
 }
-
 func NewBadRequest(e error, s string) error {
 	return juju.NewBadRequest(e, s)
 }
-
+func Unauthorizedf(s string, args ...interface{}) error {
+	return juju.Unauthorizedf(s, args...)
+}
+func NewUnauthorized(e error, s string) error {
+	return juju.NewUnauthorized(e, s)
+}
 func IsBadRequest(e error) bool {
 	return juju.IsBadRequest(e)
 }
