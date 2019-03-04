@@ -10,12 +10,17 @@ import (
 )
 
 func (h handler) Routes() func(chi.Router) {
+	apGroup := func(r chi.Router) {
+		r.With(h.VerifyHttpSignature(NotAnonymous, LocalAccount), h.LoadActivity).Post("/outbox", h.ClientRequest)
+		r.With(h.LoadActivity).Post("/inbox", h.ServerRequest)
+	}
 	collectionRouter := func(r chi.Router) {
-		r.With(LoadFiltersCtxt(h.HandleError), h.ItemCollectionCtxt).Get("/", h.HandleCollection)
+		r.Use(LoadFiltersCtxt(h.HandleError), )
+		r.With(h.ItemCollectionCtxt).Get("/", h.HandleCollection)
 		r.Route("/{hash}", func(r chi.Router) {
-			r.With(LoadFiltersCtxt(h.HandleError), h.ItemCtxt).Get("/", h.HandleCollectionActivity)
-			r.With(LoadFiltersCtxt(h.HandleError), h.ItemCtxt).Get("/object", h.HandleCollectionActivityObject)
-			r.With(LoadFiltersCtxt(h.HandleError), h.ItemCollectionCtxt).Get("/object/replies", h.HandleCollection)
+			r.With(h.ItemCtxt).Get("/", h.HandleCollectionActivity)
+			r.With(h.ItemCtxt).Get("/object", h.HandleCollectionActivityObject)
+			r.With(h.ItemCollectionCtxt).Get("/object/replies", h.HandleCollection)
 		})
 	}
 	actorsRouter := func (r chi.Router) {
@@ -24,24 +29,22 @@ func (h handler) Routes() func(chi.Router) {
 			r.Use(h.AccountCtxt)
 			r.Get("/", h.HandleActor)
 			r.Route("/{collection}", collectionRouter)
-			r.With(LoadFiltersCtxt(h.HandleError), h.LoadActivity).Post("/outbox", h.ClientRequest)
-			r.With(LoadFiltersCtxt(h.HandleError), h.LoadActivity).Post("/inbox", h.ServerRequest)
+			r.With(LoadFiltersCtxt(h.HandleError)).Group(apGroup)
 		})
 	}
 	return func(r chi.Router) {
-		//r.Use(middleware.GetHead)
-		r.Use(h.VerifyHttpSignature)
+		r.Use(middleware.GetHead)
+		r.Use(h.VerifyHttpSignature(None))
 		r.Use(app.StripCookies)
 		r.Use(app.NeedsDBBackend(h.HandleError))
 
 		r.Route("/self", func(r chi.Router) {
-			r.Use(h.ServiceCtxt, middleware.GetHead)
+			r.Use(h.ServiceCtxt)
 
 			r.With(LoadFiltersCtxt(h.HandleError)).Get("/", h.HandleService)
 			r.Route("/following", actorsRouter)
 			r.Route("/{collection}", collectionRouter)
-			r.With(LoadFiltersCtxt(h.HandleError), h.LoadActivity).Post("/outbox", h.ClientRequest)
-			r.With(LoadFiltersCtxt(h.HandleError), h.LoadActivity).Post("/inbox", h.ServerRequest)
+			r.With(LoadFiltersCtxt(h.HandleError)).Group(apGroup)
 		})
 
 		cfg := nodeinfo.Config{

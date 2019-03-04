@@ -114,7 +114,7 @@ var defaultCollectionTestPairs = getTest{
 }
 
 var c2sTestPairs = postTest{
-	"Like": {{
+	"AnonymousLike": {{
 		req: testReq{
 			met: http.MethodPost,
 			body: fmt.Sprintf(`{
@@ -124,18 +124,10 @@ var c2sTestPairs = postTest{
 }`, apiURL, apiURL),
 		},
 		res: testRes{
-			code: http.StatusCreated,
-			val: objectVal{
-				id:  fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/liked/162edb32c80d0e6dd3114fbb59d6273b", apiURL),
-				typ: string(as.LikeType),
-				obj: &objectVal{
-					id:     fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object", apiURL),
-					author: fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8", apiURL),
-				},
-			},
+			code: http.StatusUnauthorized,
 		},
 	}},
-	"Dislike": {{
+	"AnonymousDislike": {{
 		req: testReq{
 			met: http.MethodPost,
 			body: fmt.Sprintf(`{
@@ -145,101 +137,10 @@ var c2sTestPairs = postTest{
 }`, apiURL, apiURL),
 		},
 		res: testRes{
-			code: http.StatusCreated,
-			val: objectVal{
-				id:  fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/liked/162edb32c80d0e6dd3114fbb59d6273b", apiURL),
-				typ: string(as.DislikeType),
-				obj: &objectVal{
-					id: fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object", apiURL),
-				},
-			},
+			code: http.StatusUnauthorized,
 		},
 	}},
-	"UndoDislike": {
-		{
-			req: testReq{
-				met: http.MethodPost,
-				body: fmt.Sprintf(`{
-    "type": "Dislike",
-    "actor": "%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8",
-    "object": "%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object"
-}`, apiURL, apiURL),
-			},
-			res: testRes{
-				code: http.StatusCreated,
-				val: objectVal{
-					id:  fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/liked/162edb32c80d0e6dd3114fbb59d6273b", apiURL),
-					typ: string(as.DislikeType),
-					obj: &objectVal{
-						id: fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object", apiURL),
-					},
-				},
-			},
-		},
-		{
-			req: testReq{
-				met: http.MethodPost,
-				body: fmt.Sprintf(`{
-    "type": "Dislike",
-    "actor": "%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8",
-    "object": "%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object"
-}`, apiURL, apiURL),
-			},
-			res: testRes{
-				code: http.StatusCreated,
-				val: objectVal{
-					id:  fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/liked/162edb32c80d0e6dd3114fbb59d6273b", apiURL),
-					typ: string(as.UndoType),
-					obj: &objectVal{
-						id: fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object", apiURL),
-					},
-				},
-			},
-		},
-	},
-	"UndoLike": {
-		{
-			req: testReq{
-				met: http.MethodPost,
-				body: fmt.Sprintf(`{
-    "type": "Like",
-    "actor": "%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8",
-    "object": "%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object"
-}`, apiURL, apiURL),
-			},
-			res: testRes{
-				code: http.StatusCreated,
-				val: objectVal{
-					id:  fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/liked/162edb32c80d0e6dd3114fbb59d6273b", apiURL),
-					typ: string(as.LikeType),
-					obj: &objectVal{
-						id: fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object", apiURL),
-					},
-				},
-			},
-		},
-		{
-			req: testReq{
-				met: http.MethodPost,
-				body: fmt.Sprintf(`{
-    "type": "Like",
-    "actor": "%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8",
-    "object": "%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object"
-}`, apiURL, apiURL),
-			},
-			res: testRes{
-				code: http.StatusCreated,
-				val: objectVal{
-					id:  fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/liked/162edb32c80d0e6dd3114fbb59d6273b", apiURL),
-					typ: string(as.UndoType),
-					obj: &objectVal{
-						id: fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object", apiURL),
-					},
-				},
-			},
-		},
-	},
-	"Create": {{
+	"AnonymousCreate": {{
 		req: testReq{
 			met: http.MethodPost,
 			body: fmt.Sprintf(`{
@@ -254,18 +155,10 @@ var c2sTestPairs = postTest{
 }`, apiURL, apiURL, apiURL),
 		},
 		res: testRes{
-			code: http.StatusCreated,
-			val: objectVal{
-				typ: string(as.CreateType),
-				obj: &objectVal{
-					author:  fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8", apiURL),
-					typ:     string(as.NoteType),
-					content: "<p>Hello world!</p>",
-				},
-			},
+			code: http.StatusUnauthorized,
 		},
 	}},
-	"Delete": {{
+	"AnonymousDelete": {{
 		req: testReq{
 			met: http.MethodPost,
 			body: fmt.Sprintf(`{
@@ -276,13 +169,7 @@ var c2sTestPairs = postTest{
 }`, apiURL, apiURL, apiURL),
 		},
 		res: testRes{
-			code: http.StatusCreated,
-			val: objectVal{
-				typ: string(as.DeleteType),
-				obj: &objectVal{
-					typ: string(as.TombstoneType),
-				},
-			},
+			code: http.StatusUnauthorized,
 		},
 	}},
 }

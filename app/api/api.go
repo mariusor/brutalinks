@@ -268,11 +268,11 @@ func httpError(err error) e {
 	default:
 		msg = e.Error()
 	}
-	return e {
-		Message: msg,
-		Trace:   trace,
+	return e{
+		Message:  msg,
+		Trace:    trace,
 		Location: loc,
-		Code:    httpErrorResponse(err),
+		Code:     httpErrorResponse(err),
 	}
 }
 
@@ -311,7 +311,14 @@ func (h handler) HandleError(w http.ResponseWriter, r *http.Request, errs ...err
 }
 
 type keyLoader struct {
-	acc app.Account
+	acc   app.Account
+	LogFn func(string, ...interface{})
+}
+
+func (k keyLoader) log(s string, p ...interface{}) {
+	if k.LogFn != nil {
+		k.LogFn(s, p...)
+	}
 }
 
 func loadFederatedActor(id as.IRI) (as.Actor, error) {
@@ -327,37 +334,42 @@ func (k *keyLoader) GetKey(id string) interface{} {
 	}
 	if u.Fragment != "main-key" {
 		// invalid generated public key id
-		return errors.Errorf("invalid key")
+		k.log("missing key")
+		return nil
 	}
 
 	if err := validateLocalIRI(as.IRI(id)); err == nil {
 		hash := path.Base(u.Path)
 		k.acc, err = db.Config.LoadAccount(app.LoadAccountsFilter{Key: app.Hashes{app.Hash(hash)}})
 		if err != nil {
-			return errors.Annotatef(err, "unable to find local account matching key id %s", id)
+			k.log("unable to find local account matching key id %s", id)
+			return nil
 		}
 	} else {
 		// @todo(queue_support): this needs to be moved to using queues
 		actor, err := loadFederatedActor(as.IRI(u.RequestURI()))
 		if err != nil {
-			return errors.Annotatef(err, "unable to load federated account matching key id %s", id)
+			k.log( "unable to load federated account matching key id %s", id)
+			return nil
 		}
-		k.acc.FromActivityPub(actor)
+		if err := k.acc.FromActivityPub(actor); err != nil {
+			k.log("failed to load account: %s", err)
+			return nil
+		}
 	}
 
 	var pub crypto.PublicKey
 	pub, err = x509.ParsePKIXPublicKey(k.acc.Metadata.Key.Public)
 	if err != nil {
-		return err
+		k.log("x509 error %s", err)
+		return nil
 	}
 	return pub
 }
 
-func (h handler) VerifyHttpSignature(next http.Handler) http.Handler {
-	getter := keyLoader{}
-
+func httpSignatureVerifier(getter *keyLoader) (*httpsig.Verifier, string) {
 	realm := app.Instance.HostName
-	v := httpsig.NewVerifier(&getter)
+	v := httpsig.NewVerifier(getter)
 	v.SetRequiredHeaders([]string{"(request-target)", "host", "date"})
 
 	var challengeParams []string
@@ -372,35 +384,78 @@ func (h handler) VerifyHttpSignature(next http.Handler) http.Handler {
 	if len(challengeParams) > 0 {
 		challenge += fmt.Sprintf(" %s", strings.Join(challengeParams, ", "))
 	}
+	return v, challenge
+}
 
-	fn := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var acct = frontend.AnonymousAccount()
-		if r.Header["Authorization"] != nil {
-			// only verify http-signature if present
-			if err := v.Verify(r); err != nil {
-				w.Header().Add("WWW-Authenticate", challenge)
-				h.logger.WithContext(log.Ctx{
-					"handle": acct.Handle,
-					"hash":   acct.Hash,
-					//"auth": fmt.Sprintf("%v", r.Header["Authorization"]),
-					"req": fmt.Sprintf("%s:%s", r.Method, r.URL.RequestURI()),
-					"err": err,
-				}).Warn("invalid HTTP signature")
-				// TODO(marius): here we need to implement some outside logic, as to we want to allow non-signed
-				//   requests on some urls, but not on others - probably another handler to check for Anonymous
-				//   would suffice.
-				//HandleError(w, r, http.StatusUnauthorized, err)
-				//return
-			} else {
-				acct = getter.acc
-				h.logger.WithContext(log.Ctx{
-					"handle": acct.Handle,
-					"hash":   acct.Hash,
-				}).Debug("loaded account from HTTP signature header")
-			}
+func (h handler) loadAccountFromHttpSig(w http.ResponseWriter, r *http.Request) (app.Account, error) {
+	getter := keyLoader{ acc: app.AnonymousAccount }
+	getter.LogFn = h.logger.WithContext(log.Ctx{"from": "getter"}).Debugf
+
+	v, challenge := httpSignatureVerifier(&getter)
+	var acct = frontend.AnonymousAccount()
+	if r.Header["Authorization"] != nil {
+		// only verify http-signature if present
+		if err := v.Verify(r); err != nil {
+			w.Header().Add("WWW-Authenticate", challenge)
+			h.logger.WithContext(log.Ctx{
+				"handle": acct.Handle,
+				"hash":   acct.Hash,
+				"auth":   r.Header.Get("Authorization"),
+				"req":    fmt.Sprintf("%s:%s", r.Method, r.URL.RequestURI()),
+				"err":    err,
+			}).Warn("invalid HTTP signature")
+			// TODO(marius): here we need to implement some outside logic, as to we want to allow non-signed
+			//   requests on some urls, but not on others - probably another handler to check for Anonymous
+			//   would suffice.
+			return getter.acc, err
+		} else {
+			acct = getter.acc
+			h.logger.WithContext(log.Ctx{
+				"handle": acct.Handle,
+				"hash":   acct.Hash,
+			}).Debug("loaded account from HTTP-sig header")
 		}
-		ctx := context.WithValue(r.Context(), app.AccountCtxtKey, acct)
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
-	return http.HandlerFunc(fn)
+	}
+	return getter.acc, nil
+}
+
+type verifierFn func(a app.Account) error
+
+func None(a app.Account) error {
+	return nil
+}
+
+func NotAnonymous(a app.Account) error {
+	if a.Hash == app.AnonymousHash && a.IsLocal() {
+		return errors.Forbiddenf("forbidden for %s actor", a.Handle)
+	}
+	return nil
+}
+
+func LocalAccount(a app.Account) error {
+	if !a.IsLocal() {
+		return errors.NotFoundf("%s is not a local actor", a.Handle)
+	}
+	return nil
+}
+
+func (h handler) VerifyHttpSignature(fns ...verifierFn) app.Handler {
+	return func(next http.Handler) http.Handler {
+		fn := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			acct, e := h.loadAccountFromHttpSig(w, r)
+			if e != nil {
+				h.HandleError(w, r, errors.NewForbidden(e, fmt.Sprintf("forbidden for %s actor", acct.Handle)))
+				return
+			}
+			for _, f := range fns {
+				if err := f(acct); err != nil {
+					h.HandleError(w, r, err)
+					return
+				}
+			}
+			ctx := context.WithValue(r.Context(), app.AccountCtxtKey, acct)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+		return http.HandlerFunc(fn)
+	}
 }
