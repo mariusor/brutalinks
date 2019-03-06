@@ -132,6 +132,30 @@ func CleanDB(o *pg.Options) error {
 	return nil
 }
 
+func SeedTestData(o *pg.Options, seed map[string][]interface{}) error {
+	dot, err := dotsql.LoadFromFile("./db/seed-test.sql")
+	if err != nil {
+		return errors.Annotatef(err, "unable to load file")
+	}
+	db, err := dbConnection(o)
+	if err != nil {
+		return errors.Annotatef(err, "unable to connect to DB")
+	}
+	defer db.Close()
+
+	for l, data := range seed {
+		sql, err := dot.Raw("test-" + l)
+		if err != nil {
+			return err
+		}
+		if _, err := db.Exec(sql, data...); err != nil {
+			return errors.Annotatef(err, "query: %s", sql)
+		}
+	}
+
+	return nil
+}
+
 func SeedDB(o *pg.Options, hostname string) error {
 	dot, err := dotsql.LoadFromFile("./db/seed.sql")
 	if err != nil {

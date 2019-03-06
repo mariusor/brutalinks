@@ -112,8 +112,29 @@ var defaultCollectionTestPairs = getTest{
 		},
 	},
 }
-
 var c2sTestPairs = postTest{
+	"Like": {{
+		req: testReq{
+			met: http.MethodPost,
+			account: &defaultTestAccount,
+			body: fmt.Sprintf(`{
+   "type": "Like",
+   "actor": "%s/self/following/%s",
+   "object": "%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object"
+}`, apiURL, testActorHash, apiURL),
+		},
+		res: testRes{
+			code: http.StatusCreated,
+			val: objectVal{
+				id:  fmt.Sprintf("%s/self/following/%s/liked/162edb32c80d0e6dd3114fbb59d6273b", apiURL, testActorHash),
+				typ: string(as.LikeType),
+				obj: &objectVal{
+					id:     fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object", apiURL),
+					author: fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8", apiURL),
+				},
+			},
+		},
+	}},
 	"AnonymousLike": {{
 		req: testReq{
 			met: http.MethodPost,
@@ -125,6 +146,27 @@ var c2sTestPairs = postTest{
 		},
 		res: testRes{
 			code: http.StatusForbidden,
+		},
+	}},
+	"Dislike": {{
+		req: testReq{
+			met: http.MethodPost,
+			account: &defaultTestAccount,
+			body: fmt.Sprintf(`{
+   "type": "Dislike",
+   "actor": "%s/self/following/%s",
+   "object": "%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object"
+}`, apiURL, testActorHash, apiURL),
+		},
+		res: testRes{
+			code: http.StatusCreated,
+			val: objectVal{
+				id:  fmt.Sprintf("%s/self/following/%s/liked/162edb32c80d0e6dd3114fbb59d6273b", apiURL, testActorHash),
+				typ: string(as.DislikeType),
+				obj: &objectVal{
+					id: fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object", apiURL),
+				},
+			},
 		},
 	}},
 	"AnonymousDislike": {{
@@ -140,22 +182,158 @@ var c2sTestPairs = postTest{
 			code: http.StatusForbidden,
 		},
 	}},
+	"UndoDislike": {
+		{
+			req: testReq{
+				met: http.MethodPost,
+				account: &defaultTestAccount,
+				body: fmt.Sprintf(`{
+   "type": "Dislike",
+   "actor": "%s/self/following/%s",
+   "object": "%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object"
+}`, apiURL, testActorHash, apiURL),
+			},
+			res: testRes{
+				code: http.StatusCreated,
+				val: objectVal{
+					id:  fmt.Sprintf("%s/self/following/%s/liked/162edb32c80d0e6dd3114fbb59d6273b", apiURL, testActorHash),
+					typ: string(as.DislikeType),
+					obj: &objectVal{
+						id: fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object", apiURL),
+					},
+				},
+			},
+		},
+		{
+			req: testReq{
+				met: http.MethodPost,
+				account: &defaultTestAccount,
+				body: fmt.Sprintf(`{
+   "type": "Dislike",
+   "actor": "%s/self/following/%s",
+   "object": "%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object"
+}`, apiURL, testActorHash, apiURL),
+			},
+			res: testRes{
+				code: http.StatusCreated,
+				val: objectVal{
+					id:  fmt.Sprintf("%s/self/following/%s/liked/162edb32c80d0e6dd3114fbb59d6273b", apiURL, testActorHash),
+					typ: string(as.UndoType),
+					obj: &objectVal{
+						id: fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object", apiURL),
+					},
+				},
+			},
+		},
+	},
+	"UndoLike": {
+		{
+			req: testReq{
+				met: http.MethodPost,
+				account: &defaultTestAccount,
+				body: fmt.Sprintf(`{
+   "type": "Like",
+   "actor": "%s/self/following/%s",
+   "object": "%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object"
+}`, apiURL, testActorHash, apiURL),
+			},
+			res: testRes{
+				code: http.StatusCreated,
+				val: objectVal{
+					id:  fmt.Sprintf("%s/self/following/%s/liked/162edb32c80d0e6dd3114fbb59d6273b", apiURL, testActorHash),
+					typ: string(as.LikeType),
+					obj: &objectVal{
+						id: fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object", apiURL),
+					},
+				},
+			},
+		},
+		{
+			req: testReq{
+				met: http.MethodPost,
+				account: &defaultTestAccount,
+				body: fmt.Sprintf(`{
+   "type": "Like",
+   "actor": "%s/self/following/%s",
+   "object": "%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object"
+}`, apiURL, testActorHash, apiURL),
+			},
+			res: testRes{
+				code: http.StatusCreated,
+				val: objectVal{
+					id:  fmt.Sprintf("%s/self/following/%s/liked/162edb32c80d0e6dd3114fbb59d6273b", apiURL, testActorHash),
+					typ: string(as.UndoType),
+					obj: &objectVal{
+						id: fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object", apiURL),
+					},
+				},
+			},
+		},
+	},
+	"Create": {{
+		req: testReq{
+			met: http.MethodPost,
+			account: &defaultTestAccount,
+			body: fmt.Sprintf(`{
+ "type": "Create",
+ "actor": "%s/self/following/%s",
+ "to": ["%s/self/outbox"],
+ "object": {
+   "type": "Note",
+   "inReplyTo": "%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b",
+   "content": "<p>Hello world!</p>"
+ }
+}`, apiURL, testActorHash, apiURL, apiURL),
+		},
+		res: testRes{
+			code: http.StatusCreated,
+			val: objectVal{
+				typ: string(as.CreateType),
+				obj: &objectVal{
+					author:  fmt.Sprintf("%s/self/following/%s", apiURL, testActorHash),
+					typ:     string(as.NoteType),
+					content: "<p>Hello world!</p>",
+				},
+			},
+		},
+	}},
 	"AnonymousCreate": {{
 		req: testReq{
 			met: http.MethodPost,
 			body: fmt.Sprintf(`{
   "type": "Create",
-  "actor": "%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8",
+  "actor": "%s/self/following/%s",
   "to": ["%s/self/outbox"],
   "object": {
     "type": "Note",
     "inReplyTo": "%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b",
     "content": "<p>Hello world!</p>"
   }
-}`, apiURL, apiURL, apiURL),
+}`, apiURL, testActorHash, apiURL, apiURL),
 		},
 		res: testRes{
 			code: http.StatusForbidden,
+		},
+	}},
+	"Delete": {{
+		req: testReq{
+			met: http.MethodPost,
+			account: &defaultTestAccount,
+			body: fmt.Sprintf(`{
+ "type": "Delete",
+ "actor": "%s/self/following/%s",
+ "to": ["%s/self/outbox"],
+ "object": "%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b"
+}`, apiURL, testActorHash, apiURL, apiURL),
+		},
+		res: testRes{
+			code: http.StatusCreated,
+			val: objectVal{
+				typ: string(as.DeleteType),
+				obj: &objectVal{
+					typ: string(as.TombstoneType),
+				},
+			},
 		},
 	}},
 	"AnonymousDelete": {{

@@ -2,29 +2,43 @@ package tests
 
 import (
 	"bytes"
+	"crypto"
+	"crypto/rsa"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	as "github.com/go-ap/activitystreams"
 	"github.com/go-pg/pg"
 	_ "github.com/joho/godotenv/autoload"
+	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/app/cmd"
+	"github.com/spacemonkeygo/httpsig"
 	"io"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"os"
 	"runtime/debug"
 	"strings"
 	"testing"
+	"time"
 )
 
 // UserAgent value that the client uses when performing requests
 var UserAgent = "test-go-http-client"
 var HeaderAccept = `application/ld+json; profile="https://www.w3.org/ns/activitystreams"`
 
+type testAccount struct {
+	id         string
+	publicKey  crypto.PublicKey
+	privateKey crypto.PrivateKey
+}
+
 type testReq struct {
 	met     string
 	headers http.Header
+	account *testAccount
 	body    string
 }
 
@@ -94,6 +108,35 @@ func init() {
 	}
 }
 
+const testActorHash = "f00f00f00f00f00f00f00f00f00f6667"
+
+var rnd = rand.New(rand.NewSource(6667))
+var key, _ = rsa.GenerateKey(rnd, 512)
+var prv, _ = x509.MarshalPKCS8PrivateKey(key)
+var pub, _ = x509.MarshalPKIXPublicKey(&key.PublicKey)
+var meta = app.AccountMetadata{
+	ID: fmt.Sprintf("%s/self/following/%s", apiURL, testActorHash),
+	Key: &app.SSHKey{
+		ID:      fmt.Sprintf("%s/self/following/%s#main-key", apiURL, testActorHash),
+		Public:  pub,
+		Private: prv,
+	},
+}
+var defaultTestAccount = testAccount{
+	id:         meta.ID,
+	publicKey: key.Public(),
+	privateKey: key,
+}
+var jm, _ = json.Marshal(meta)
+var data = map[string][]interface{}{
+	"accounts": {
+		interface{}(testActorHash),
+		interface{}("johndoe"),
+		interface{}(fmt.Sprintf("jd@%s", host)),
+		interface{}(string(jm)),
+	},
+}
+
 func resetDB(t *testing.T) {
 	h := os.Getenv("HOSTNAME")
 
@@ -103,6 +146,9 @@ func resetDB(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err := cmd.SeedDB(o, h); err != nil {
+		t.Fatal(err)
+	}
+	if err := cmd.SeedTestData(o, data); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -386,6 +432,7 @@ func errOnCollection(t *testing.T) collectionAssertFn {
 	}
 }
 
+var signHdrs = []string{"(request-target)", "host", "date"}
 func errOnPostRequest(t *testing.T) func([]postTestVal) {
 	assertTrue := errIfNotTrue(t)
 	assertGetRequest := errOnGetRequest(t)
@@ -415,6 +462,13 @@ func errOnPostRequest(t *testing.T) func([]postTestVal) {
 			assertTrue(err == nil, "Error: unable to create request: %s", err)
 
 			req.Header = test.req.headers
+			if test.req.account != nil {
+				req.Header.Add("Date", time.Now().Format(http.TimeFormat))
+				keyId := fmt.Sprintf("%s#main-key", test.req.account.id)
+				s := httpsig.NewSigner(keyId, test.req.account.privateKey, httpsig.RSASHA256, signHdrs)
+				err := s.Sign(req)
+				assertTrue(err == nil, "Error: unable to sign request: %s", err)
+			}
 			resp, err := http.DefaultClient.Do(req)
 
 			assertTrue(err == nil, "Error: request failed: %s", err)
