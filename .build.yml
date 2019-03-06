@@ -2,6 +2,7 @@ image: archlinux
 packages:
   - go
   - postgresql
+  - docker
 sources:
   - https://github.com/mariusor/littr.go
 environment:
@@ -11,10 +12,12 @@ tasks:
       set +x
       sudo -u postgres -- initdb --locale en_US.UTF-8 -E UTF8 -D /var/lib/postgres/data
       sudo systemctl start postgresql.service
+      sudo systemctl start docker.service
       cd littr.go && go mod download
   - versions: |
       set +x
       $(readlink -f /proc/$$/exe) --version | head -n1
+      docker --version
       pg_ctl --version
       make --version | head -n1
       go version
@@ -24,3 +27,6 @@ tasks:
   - tests: |
       cd littr.go
       make -s tests
+  - docker: |
+      cd littr.go
+      make -s images
