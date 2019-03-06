@@ -1,8 +1,9 @@
 <!DOCTYPE html>
-<html lang="en" class="{{ if isInverted }} inverted{{end}}">
+<html lang="en" class="{{ if isInverted }}inverted{{end}}">
 <head>
 {{- template "partials/head" . -}}
 </head>
+{{- $account := CurrentAccount -}}
 <body class="{{current}}">
 <header>{{ template "partials/header" . }}</header>
 <main>
@@ -11,8 +12,9 @@
 <footer>
 {{- template "partials/footer" . -}}
 </footer>
-{{- template "partials/flash" -}}
 {{- asset "icons.svg" -}}
+<script type="application/json" id="currentUser">{{$account}}</script>
+<script type="application/json" id="flashMessages">{{LoadFlashMessages}}</script>
 <script src="/js/main.js"></script>
 </body>
 </html>

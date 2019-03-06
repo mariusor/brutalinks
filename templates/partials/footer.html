@@ -18,6 +18,3 @@
     {{if $version }}<li class="version no-sep"><a title="Version" href="https://github.com/mariusor/littr.go/commits/{{$version}}">{{ icon "code" }} {{$version}}</a></li>{{end}}
     <li class="licence">Licensed under <a href="https://github.com/mariusor/littr.go/blob/master/LICENSE">MIT</a></li>
 </ul></nav>
-{{- $account := CurrentAccount -}}
-{{/*<script type="application/json" id="flashMessages">{{LoadFlashMessages}}</script>*/}}
-<script type="application/json" id="currentUser">{{$account}}</script>

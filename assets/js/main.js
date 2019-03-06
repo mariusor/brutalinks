@@ -4,6 +4,8 @@ OnReady( function() {
     // let _User = JSON.parse($("#currentUser").html());
     //console.debug(_User);
     let isInverted = function () { return getCookie("inverted") == "true" || false; };
+    let haveModals = function() { return (typeof  document.createElement('dialog').showModal === "function"); };
+
     let root = $("html")[0];
     if (isInverted()) {
         root.classList.add("inverted");
@@ -39,7 +41,7 @@ OnReady( function() {
 
             let conf = document.createElement('span');
             conf.classList.add("rm-confirm");
-            conf.innerHTML = 'Remove? <a href="#'+yesId+'" id="'+yesId+'">yes</a> <a href="#'+noId+'" id="'+noId+'">no</a>';
+            conf.innerHTML = ' <a href="#'+yesId+'" id="'+yesId+'">yes</a> <a href="#'+noId+'" id="'+noId+'">no</a>';
             el.after(conf);
             addEvent($("a#" + yesId)[0], "click", function (e) {
                 window.location = el.getAttribute("href");
@@ -54,4 +56,17 @@ OnReady( function() {
             });
         });
     });
+
+    if (haveModals()) {
+        $("button.close").forEach(function (close) {
+            addEvent(close, "click", function(e) {
+                e.stopPropagation();
+                e.preventDefault();
+                let el = e.target.closest("dialog");
+                el.close();
+            });
+        });
+    } else {
+
+    }
 });
