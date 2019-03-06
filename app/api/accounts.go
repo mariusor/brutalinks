@@ -1090,6 +1090,13 @@ func (h handler) ClientRequest(w http.ResponseWriter, r *http.Request) {
 		h.HandleError(w, r, err)
 		return
 	}
+	// validate if http-signature matches the current Activity.Actor
+	if account, ok := app.ContextAccount(r.Context()); ok {
+		if a.Actor.GetLink() != loadAPPerson(account).GetLink() {
+			h.HandleError(w, r, errors.NewNotValid(nil, "The authorized key does not match the activity actor"))
+			return
+		}
+	}
 
 	switch a.GetType() {
 	case as.DeleteType:

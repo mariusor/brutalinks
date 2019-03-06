@@ -692,3 +692,9 @@ func ContextActivity(ctx context.Context) (activitypub.Activity, bool) {
 	a, ok := ctxVal.(activitypub.Activity)
 	return a, ok
 }
+
+func ContextAccount(ctx context.Context) (Account, bool) {
+	ctxVal := ctx.Value(AccountCtxtKey)
+	a, ok := ctxVal.(Account)
+	return a, ok
+}

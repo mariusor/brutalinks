@@ -911,7 +911,7 @@ func (r *repository) SaveAccount(a app.Account) (app.Account, error) {
 type SignFunc func(r *http.Request) error
 
 func getSigner(pubKeyID as.ObjectID, key crypto.PrivateKey) *httpsig.Signer {
-	hdrs := []string{"(request-target)", "host", "test", "date"}
+	hdrs := []string{"(request-target)", "host", "date"}
 	return httpsig.NewSigner(string(pubKeyID), key, httpsig.RSASHA256, hdrs)
 }
 
