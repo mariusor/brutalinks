@@ -8,15 +8,13 @@ tests:
 	@cp -r ../db ./
 	@$(MAKE) integration
 	@$(RM) -rf ./db
-	@$(RM) -rf ./app
 
 integration: run
 	$(TEST) ./...
 
 killapp:
-	@-pkill -f './app -env test' &> /dev/null
+	@-pkill -f '../bin/app -env test' &> /dev/null
 	@-([ $$? -eq 0 ]) || true
 
 run: killapp
-	@cp -rf ../bin/app ./
-	@./app -env test &> /dev/null &
+	@../bin/app -env test &> /dev/null &
