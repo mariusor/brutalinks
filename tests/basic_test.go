@@ -356,7 +356,7 @@ var s2sTestPairs = postTest{}
 
 func Test_GET(t *testing.T) {
 	assertCollection := errOnCollection(t)
-	resetDB(t)
+	resetDB(t, false)
 	for k, col := range defaultCollectionTestPairs {
 		t.Run(k, func(t *testing.T) {
 			t.Parallel()
@@ -369,7 +369,7 @@ func Test_POST_Outbox(t *testing.T) {
 	assertPost := errOnPostRequest(t)
 	for typ, test := range c2sTestPairs {
 		t.Run("Activity_"+typ, func(t *testing.T) {
-			resetDB(t)
+			resetDB(t, true)
 			assertPost(test)
 		})
 	}

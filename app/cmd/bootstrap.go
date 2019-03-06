@@ -133,7 +133,7 @@ func CleanDB(o *pg.Options) error {
 }
 
 func SeedTestData(o *pg.Options, seed map[string][]interface{}) error {
-	dot, err := dotsql.LoadFromFile("./db/seed-test.sql")
+	dot, err := dotsql.LoadFromFile("./db/seed-parametrized.sql")
 	if err != nil {
 		return errors.Annotatef(err, "unable to load file")
 	}

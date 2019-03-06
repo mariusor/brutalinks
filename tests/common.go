@@ -137,7 +137,7 @@ var data = map[string][]interface{}{
 	},
 }
 
-func resetDB(t *testing.T) {
+func resetDB(t *testing.T, testData bool) {
 	h := os.Getenv("HOSTNAME")
 
 	t.Helper()
@@ -148,8 +148,10 @@ func resetDB(t *testing.T) {
 	if err := cmd.SeedDB(o, h); err != nil {
 		t.Fatal(err)
 	}
-	if err := cmd.SeedTestData(o, data); err != nil {
-		t.Fatal(err)
+	if testData {
+		if err := cmd.SeedTestData(o, data); err != nil {
+			t.Fatal(err)
+		}
 	}
 }
 
