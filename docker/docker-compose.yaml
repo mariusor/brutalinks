@@ -10,7 +10,6 @@ services:
       POSTGRES_DATABASE: postgres
 ### Uncomment to enable DB persistence
     command: postgres -c log_connections=on -c logging_collector=on -c log_destination=stderr
-
 #  redis:
 #    restart: always
 #    image: redis:4.0-alpine
@@ -28,7 +27,6 @@ services:
 #### Uncomment to enable ES persistence
 #    volumes:
 #    - /tmp/es:/usr/share/elasticsearch/data
-
   lb:
     env_file: ./.env
     image: ${HOSTNAME}/lb:${ENV}
@@ -39,7 +37,7 @@ services:
         LISTEN: ${LISTEN}
         HOSTNAME: ${HOSTNAME}
     ports:
-      - 3000:80
+      - 80:80
       - 6081:6081
     links:
     - app
@@ -48,7 +46,6 @@ services:
     environment:
     - VARNISH_BACKEND_ADDRESS=app
     - VARNISH_BACKEND_PORT=${LISTEN}
-
   ssl:
     env_file: ./.env
     image: ${HOSTNAME}/ssl:${ENV}
@@ -67,7 +64,6 @@ services:
     environment:
     - HITCH_BACKEND_ADDRESS=lb
     - HITCH_BACKEND_PORT=6081
-
   bootstrap:
     env_file: ./.env
     image: ${HOSTNAME}/bootstrap:${ENV}
@@ -81,12 +77,11 @@ services:
       args:
         ENV: ${ENV}
         HOSTNAME: ${HOSTNAME}
-
   tasks:
     env_file: ./.env
     image: ${HOSTNAME}/tasks:${ENV}
     depends_on:
-    - app
+    - db
     links:
     - db
     build:
@@ -101,8 +96,8 @@ services:
     image: ${HOSTNAME}/app:${ENV}
     depends_on:
     - db
-#      - bootstrap
-#      - ssl
+#    - bootstrap
+#    - ssl
     links:
     - db
 #    - redis
@@ -114,5 +109,7 @@ services:
         ENV: ${ENV}
         LISTEN: ${LISTEN}
         HOSTNAME: ${HOSTNAME}
-        PORT: 40001
-    command: app -host ${HOSTNAME} -port 3000
+        PORT: ${PORT}
+    command: app -host ${HOSTNAME} -port 3000 -env ${ENV}
+    ports:
+      - 3000:3000

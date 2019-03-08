@@ -1,9 +1,14 @@
-FROM golang:1.11
+FROM golang:1.12
 
 ARG ENV
+ARG PWD
+
+ENV GO111MODULE=on
+
+#MNT $(PWD):/go/src/app
 
 WORKDIR /go/src/app
 COPY ./ ./
 
-RUN GO111MODULE=on go mod download || true
-RUN GO111MODULE=on make all
+RUN go mod download || true
+RUN make all

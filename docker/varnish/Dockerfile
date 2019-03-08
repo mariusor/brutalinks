@@ -1,6 +1,10 @@
 FROM alpine:edge
 
-ENV VARNISH_BACKEND_PORT 80
+ARG VARNISH_BACKEND_ADRESS
+ARG VARNISH_BACKEND_PORT=80
+
+ENV VARNISH_BACKEND_ADRESS $VARNISH_BACKEND_ADRESS
+ENV VARNISH_BACKEND_PORT ${VARNISH_BACKEND_PORT}
 
 RUN echo "http://dl-3.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories
 RUN apk update && \

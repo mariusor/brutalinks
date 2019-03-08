@@ -60,9 +60,9 @@ sub vcl_backend_response {
     }
 
     if (    bereq.url ~ "^/assets/" ||
-#	    bereq.url ~ "^/api/" ||
-	    bereq.url ~ "^/favicon.ico" ||
-	    bereq.url ~ "^/robots.txt"
+#        bereq.url ~ "^/api/" ||
+        bereq.url ~ "^/favicon.ico" ||
+        bereq.url ~ "^/robots.txt"
     ) {
         unset beresp.http.Set-Cookie;
     }
