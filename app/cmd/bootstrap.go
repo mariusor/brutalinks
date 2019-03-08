@@ -8,6 +8,7 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/mariusor/littr.go/internal/errors"
 	"net"
+	"sort"
 	"strings"
 	"time"
 )
@@ -132,57 +133,128 @@ func CleanDB(o *pg.Options) error {
 	return nil
 }
 
-func SeedTestData(o *pg.Options, seed map[string][]interface{}) error {
+func SeedTestData(o *pg.Options, seed map[string][][]interface{}) []error {
 	dot, err := dotsql.LoadFromFile("./db/seed-parametrized.sql")
 	if err != nil {
-		return errors.Annotatef(err, "unable to load file")
+		return []error{errors.Annotatef(err, "unable to load file")}
 	}
 	db, err := dbConnection(o)
 	if err != nil {
-		return errors.Annotatef(err, "unable to connect to DB")
+		return []error{errors.Annotatef(err, "unable to connect to DB")}
 	}
 	defer db.Close()
 
-	for l, data := range seed {
-		sql, err := dot.Raw("test-" + l)
+	keys := make([]string,0)
+	for l := range seed {
+		keys = append(keys, l)
+	}
+	sort.Strings(keys)
+	errs := make([]error, 0)
+	for _, l := range keys {
+		name := "test-" + l
+		sql, err := dot.Raw(name)
 		if err != nil {
-			return err
+			errs = append(errs, err)
 		}
-		if _, err := db.Exec(sql, data...); err != nil {
-			return errors.Annotatef(err, "query: %s", sql)
+		for _, item := range seed[l] {
+			if _, err := db.Exec(sql, item...); err != nil {
+				errs = append(errs, errors.Annotatef(err, "query: %s", sql))
+			}
 		}
 	}
-
-	return nil
+	if len(errs) == 0 {
+		return nil
+	}
+	return errs
 }
 
 func SeedDB(o *pg.Options, hostname string) error {
-	dot, err := dotsql.LoadFromFile("./db/seed.sql")
-	if err != nil {
-		return errors.Annotatef(err, "unable to load file")
-	}
 	db, err := dbConnection(o)
 	if err != nil {
 		return errors.Annotatef(err, "unable to connect to DB")
 	}
 	defer db.Close()
 
-	sysAcct, _ := dot.Raw("add-account-system")
-	if _, err := db.Exec(fmt.Sprintf(sysAcct)); err != nil {
-		return errors.Annotatef(err, "query: %s", sysAcct)
+	data :=  map[string][][]interface{}{
+		"accounts": {
+			{
+				// id
+				interface{}(-1),
+				// key
+				interface{}("dc6f5f5bf55bc1073715c98c69fa7ca8"),
+				// handle
+				interface{}("system"),
+				// email
+				interface{}("system@localhost"),
+				// metadata
+				interface{}("{}"),
+			},
+			{
+				// id
+				interface{}(0),
+				// key
+				interface{}("eacff9ddf379bd9fc8274c5a9f4cae08"),
+				// handle
+				interface{}("anonymous"),
+				// email
+				interface{}("anonymous@localhost"),
+				// metadata
+				interface{}("{}"),
+			},
+		},
+		"items": {
+			{
+				// key
+				interface{}("162edb32c80d0e6dd3114fbb59d6273b"),
+				// mime_type
+				interface{}("text/html"),
+				// title
+				interface{}("about littr.me"),
+				// data
+				interface{}(`<p>This is a new attempt at the social news aggregator paradigm.<br/> 
+				It's based on the ActivityPub web specification and as such tries to leverage federation to prevent some of the pitfalls found in similar existing communities.</p>`),
+				// submitted_by
+				interface{}(-1),
+				// path
+				interface{}(nil),
+				// metadata
+				interface{}("{}"),
+			},
+		},
+		"votes": {},
+		"instances": {
+			{
+				// id
+				interface{}(0),
+				// name
+				interface{}("Local instance - DEV"),
+				// description
+				interface{}("Link aggregator inspired by Reddit and HackerNews using ActivityPub federation."),
+				// url
+				interface{}(fmt.Sprintf("http://%s", hostname)),
+				// inbox
+				interface{}("/api/self/inbox"),
+				// metadata
+				interface{}("{}"),
+			},
+			{
+				// id
+				interface{}(1),
+				// name
+				interface{}("littr.me"),
+				// description
+				interface{}(""),
+				// url
+				interface{}("https://littr.me"),
+				// inbox
+				interface{}("/api/self/inbox"),
+				// metadata
+				interface{}("{}"),
+			},
+		},
 	}
-	anonAcct, _ := dot.Raw("add-account-anonymous")
-	if _, err := db.Exec(fmt.Sprintf(anonAcct)); err != nil {
-		return errors.Annotatef(err, "query: %s", anonAcct)
-	}
-	itemAbout, _ := dot.Raw("add-item-about")
-	if _, err := db.Exec(fmt.Sprintf(itemAbout)); err != nil {
-		return errors.Annotatef(err, "query: %s", itemAbout)
-	}
-	localInst, _ := dot.Raw("add-local-instance")
-	if _, err := db.Exec(fmt.Sprintf(localInst, hostname, hostname)); err != nil {
-		return errors.Annotatef(err, "query: %s", localInst)
-	}
+
+	SeedTestData(o, data)
 	return nil
 }
 
@@ -193,6 +265,7 @@ func CreateDatabase(o *pg.Options, r *pg.Options) error {
 	}
 	defer rootDB.Close()
 	{
+		DestroyDB(r, o.User, o.Database)
 		// create new role and db with root user in root database
 		dot, err := dotsql.LoadFromFile("./db/create_role.sql")
 		if err != nil {
@@ -268,6 +341,20 @@ func BootstrapDB(o *pg.Options) error {
 	instances, _ := dot.Raw("create-instances")
 	if _, err = db.Exec(instances); err != nil {
 		return errors.Annotatef(err, "query: %s", instances)
+	}
+	if false {
+		objects, _ := dot.Raw("create-activitypub-objects")
+		if _, err = db.Exec(objects); err != nil {
+			return errors.Annotatef(err, "query: %s", objects)
+		}
+		actors, _ := dot.Raw("create-activitypub-actors")
+		if _, err = db.Exec(actors); err != nil {
+			return errors.Annotatef(err, "query: %s", actors)
+		}
+		activities, _ := dot.Raw("create-activitypub-activities")
+		if _, err = db.Exec(activities); err != nil {
+			return errors.Annotatef(err, "query: %s", activities)
+		}
 	}
 
 	return nil

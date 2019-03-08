@@ -1,28 +1,59 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
+	"fmt"
 	"github.com/go-pg/pg"
+	_ "github.com/joho/godotenv/autoload"
+	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/app/cmd"
 	"github.com/mariusor/littr.go/internal/log"
 	"os"
 )
 
+func getTestAccount(hostname string) []interface{} {
+	const testActorHash = "f00f00f00f00f00f00f00f00f00f6667"
+	const prv = "MIHDAgEAMA0GCSqGSIb3DQEBAQUABIGuMIGrAgEAAiEArZw0fx8IYdu7Z3TLW9csFwP1j90IFs43mrGq6u+hc9ECAwEAAQIgBGBPonSxzWWwj6cOCT6fSdqTsi9iLU/oUQQ7R4sAZlECEQDEGQ3cCXkYx4Nn4YDMeDwPAhEA4qSaUiOzFKSiq62OWvTyHwIRAKiQXNCLOBQr1HIkbsHUjNMCEBIgzF8pj9dk28YTmcFYuk0CEQCLwespMQNDWxjh+03J4LgU"
+	const pub = "MDwwDQYJKoZIhvcNAQEBBQADKwAwKAIhAK2cNH8fCGHbu2d0y1vXLBcD9Y/dCBbON5qxqurvoXPRAgMBAAE="
+	var meta = app.AccountMetadata{
+		ID: fmt.Sprintf("%s/api/self/following/%s", hostname, testActorHash),
+		Key: &app.SSHKey{
+			ID:      fmt.Sprintf("%s/api/self/following/%s#main-key", hostname, testActorHash),
+			Public:  []byte(pub),
+			Private: []byte(prv),
+		},
+	}
+	var jm, _ = json.Marshal(meta)
+	return []interface{}{
+		interface{}(666),
+		interface{}(testActorHash),
+		interface{}("johndoe"),
+		interface{}(fmt.Sprintf("jd@%s", hostname)),
+		interface{}(string(jm)),
+	}
+}
+
 func main() {
 	var dbRootUser string
 	var dbHost string
 	var seed bool
+	var testing bool
 
 	cmd.Logger = log.Dev()
 
 	flag.StringVar(&dbRootUser, "user", "", "the admin user for the database")
 	flag.StringVar(&dbHost, "host", "", "the db host")
 	flag.BoolVar(&seed, "seed", false, "seed database with data")
+	flag.BoolVar(&testing, "testing", false, "seed database with testing data")
 	flag.Parse()
 
 	dbRootPw := os.Getenv("POSTGRES_PASSWORD")
 	if len(dbRootUser) == 0 {
 		dbRootUser = "postgres"
+	}
+	if dbHost == "" {
+		dbHost = os.Getenv("DB_HOST")
 	}
 	dbRootName := "postgres"
 	hostname := os.Getenv("HOSTNAME")
@@ -38,6 +69,15 @@ func main() {
 	cmd.E(cmd.CreateDatabase(o, r))
 	cmd.E(cmd.BootstrapDB(o))
 	if seed {
- 		cmd.E(cmd.SeedDB(o, hostname))
+		cmd.SeedDB(o, hostname)
+	}
+	if testing {
+		var data = map[string][][]interface{}{
+			"accounts": {
+				getTestAccount(hostname),
+			},
+		}
+
+		cmd.E(cmd.SeedTestData(o, data)...)
 	}
 }

@@ -115,7 +115,7 @@ var defaultCollectionTestPairs = getTest{
 var c2sTestPairs = postTest{
 	"Like": {{
 		req: testReq{
-			met: http.MethodPost,
+			met:     http.MethodPost,
 			account: &defaultTestAccount,
 			body: fmt.Sprintf(`{
    "type": "Like",
@@ -150,7 +150,7 @@ var c2sTestPairs = postTest{
 	}},
 	"Dislike": {{
 		req: testReq{
-			met: http.MethodPost,
+			met:     http.MethodPost,
 			account: &defaultTestAccount,
 			body: fmt.Sprintf(`{
    "type": "Dislike",
@@ -185,7 +185,7 @@ var c2sTestPairs = postTest{
 	"UndoDislike": {
 		{
 			req: testReq{
-				met: http.MethodPost,
+				met:     http.MethodPost,
 				account: &defaultTestAccount,
 				body: fmt.Sprintf(`{
    "type": "Dislike",
@@ -206,7 +206,7 @@ var c2sTestPairs = postTest{
 		},
 		{
 			req: testReq{
-				met: http.MethodPost,
+				met:     http.MethodPost,
 				account: &defaultTestAccount,
 				body: fmt.Sprintf(`{
    "type": "Dislike",
@@ -229,7 +229,7 @@ var c2sTestPairs = postTest{
 	"UndoLike": {
 		{
 			req: testReq{
-				met: http.MethodPost,
+				met:     http.MethodPost,
 				account: &defaultTestAccount,
 				body: fmt.Sprintf(`{
    "type": "Like",
@@ -250,7 +250,7 @@ var c2sTestPairs = postTest{
 		},
 		{
 			req: testReq{
-				met: http.MethodPost,
+				met:     http.MethodPost,
 				account: &defaultTestAccount,
 				body: fmt.Sprintf(`{
    "type": "Like",
@@ -272,7 +272,7 @@ var c2sTestPairs = postTest{
 	},
 	"Create": {{
 		req: testReq{
-			met: http.MethodPost,
+			met:     http.MethodPost,
 			account: &defaultTestAccount,
 			body: fmt.Sprintf(`{
  "type": "Create",
@@ -317,7 +317,7 @@ var c2sTestPairs = postTest{
 	}},
 	"Delete": {{
 		req: testReq{
-			met: http.MethodPost,
+			met:     http.MethodPost,
 			account: &defaultTestAccount,
 			body: fmt.Sprintf(`{
  "type": "Delete",

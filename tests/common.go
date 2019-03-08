@@ -109,7 +109,6 @@ func init() {
 }
 
 const testActorHash = "f00f00f00f00f00f00f00f00f00f6667"
-
 var rnd = rand.New(rand.NewSource(6667))
 var key, _ = rsa.GenerateKey(rnd, 512)
 var prv, _ = x509.MarshalPKCS8PrivateKey(key)
@@ -124,16 +123,19 @@ var meta = app.AccountMetadata{
 }
 var defaultTestAccount = testAccount{
 	id:         meta.ID,
-	publicKey: key.Public(),
+	publicKey:  key.Public(),
 	privateKey: key,
 }
 var jm, _ = json.Marshal(meta)
-var data = map[string][]interface{}{
+var data = map[string][][]interface{}{
 	"accounts": {
-		interface{}(testActorHash),
-		interface{}("johndoe"),
-		interface{}(fmt.Sprintf("jd@%s", host)),
-		interface{}(string(jm)),
+		{
+			interface{}(666),
+			interface{}(testActorHash),
+			interface{}("johndoe"),
+			interface{}(fmt.Sprintf("jd@%s", host)),
+			interface{}(string(jm)),
+		},
 	},
 }
 
@@ -435,6 +437,7 @@ func errOnCollection(t *testing.T) collectionAssertFn {
 }
 
 var signHdrs = []string{"(request-target)", "host", "date"}
+
 func errOnPostRequest(t *testing.T) func([]postTestVal) {
 	assertTrue := errIfNotTrue(t)
 	assertGetRequest := errOnGetRequest(t)
