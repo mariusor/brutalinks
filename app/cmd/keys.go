@@ -7,9 +7,9 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"fmt"
-	"github.com/mariusor/littr.go/internal/errors"
 	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/app/db"
+	"github.com/mariusor/littr.go/internal/errors"
 	"github.com/mariusor/littr.go/internal/log"
 	"math/rand"
 )
@@ -52,19 +52,16 @@ func GenSSHKey(handle string, seed int64, kType string) error {
 		sel := `SELECT "key" FROM "accounts" WHERE "id" != ?0 AND "metadata"#>'{id}' IS NULL AND "metadata"#>'{key}' IS null;`
 		if _, err := loader.DB.Query(&keys, sel, 0); err != nil {
 			return err
-		} else {
-			if len(keys) == 0 {
-				Logger.Warn("Nothing to do")
-				return nil
-			} else {
-				for _, key := range keys {
-					hashes = append(hashes, key.Hash())
-				}
-			}
-			filter.Key = hashes
-			filter.MaxItems = len(hashes)
 		}
-
+		if len(keys) == 0 {
+			Logger.Warn("Nothing to do")
+			return nil
+		}
+		for _, key := range keys {
+			hashes = append(hashes, key.Hash())
+		}
+		filter.Key = hashes
+		filter.MaxItems = len(hashes)
 	}
 
 	accts, _, err := loader.LoadAccounts(filter)
