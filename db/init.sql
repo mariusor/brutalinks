@@ -62,15 +62,14 @@ create table instances
 (
   id serial constraint instances_pk primary key,
   name varchar not null,
-  description text,
-  url varchar unique not null,
-  inbox varchar unique,
+  description text default NULL,
+  url varchar not null constraint instances_url_key unique,
+  inbox varchar,
   metadata jsonb default '{}',
   flags bit(8) default 0::bit(8)
 );
 
 -- name: create-activitypub-actors
--- this
 create table actors (
   "id" serial not null constraint actors_pkey primary key,
   "key" char(32) constraint actors_key_key unique,
@@ -94,8 +93,8 @@ create table actors (
   "following" varchar
 );
 
--- name: create-activitypub-activities
 -- this is used to store the Activtities we're receiving in outboxes and inboxes
+-- name: create-activitypub-activities
 create table activities (
   "id" serial not null constraint activities_pkey primary key,
   "key" char(32) constraint activities_key_key unique,
@@ -110,8 +109,8 @@ create table activities (
   "audience" jsonb -- the [to, cc, bto, bcc fields]
 );
 
--- name: create-activitypub-objects
 -- this is used to store Note/Article objects that correspond to elements in the items table
+-- name: create-activitypub-objects
 create table objects (
   "id" serial not null constraint objects_pkey primary key,
   "key" char(32) constraint objects_key_key unique,
