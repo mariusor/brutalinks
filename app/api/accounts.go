@@ -1090,8 +1090,9 @@ func (h handler) ClientRequest(w http.ResponseWriter, r *http.Request) {
 		h.HandleError(w, r, err)
 		return
 	}
-	// validate if http-signature matches the current Activity.Actor
-	if account, ok := app.ContextAccount(r.Context()); ok {
+	if h.acc != nil {
+		// validate if http-signature matches the current Activity.Actor
+		account := *h.acc
 		if a.Actor.GetLink() != loadAPPerson(account).GetLink() {
 			h.HandleError(w, r, errors.NewNotValid(nil, "The authorized key does not match the activity actor"))
 			return
@@ -1197,8 +1198,6 @@ func (h handler) ClientRequest(w http.ResponseWriter, r *http.Request) {
 
 func (h handler) ServerRequest(w http.ResponseWriter, r *http.Request) {
 	a, _ := app.ContextActivity(r.Context())
-
-	//col := as.IRI(r.URL.String())
 
 	notFound := func(err error) {
 		h.logger.WithContext(log.Ctx{

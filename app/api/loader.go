@@ -98,6 +98,7 @@ func (h handler) ServiceCtxt(next http.Handler) http.Handler {
 }
 
 func (h handler) AccountCtxt(next http.Handler) http.Handler {
+	// loads the account based on handler url param
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		handle := chi.URLParam(r, "handle")
 		val := r.Context().Value(app.RepositoryCtxtKey)

@@ -1,7 +1,6 @@
 package api
 
 import (
-	"context"
 	"crypto"
 	"crypto/x509"
 	"encoding/json"
@@ -36,9 +35,9 @@ type UserError struct {
 }
 
 type handler struct {
+	acc    *app.Account
 	repo   *repository
 	logger log.Logger
-	//errorFn app.ErrorHandler
 }
 
 type Config struct {
@@ -55,7 +54,6 @@ func Init(c Config) handler {
 		logger: c.Logger,
 	}
 	h.repo = New(c)
-	//h.errorFn = h.HandleError
 	return h
 }
 
@@ -349,7 +347,7 @@ func (k *keyLoader) GetKey(id string) interface{} {
 		// @todo(queue_support): this needs to be moved to using queues
 		actor, err := loadFederatedActor(as.IRI(u.RequestURI()))
 		if err != nil {
-			k.log( "unable to load federated account matching key id %s", id)
+			k.log("unable to load federated account matching key id %s", id)
 			return nil
 		}
 		if err := k.acc.FromActivityPub(actor); err != nil {
@@ -388,7 +386,7 @@ func httpSignatureVerifier(getter *keyLoader) (*httpsig.Verifier, string) {
 }
 
 func (h handler) loadAccountFromHttpSig(w http.ResponseWriter, r *http.Request) (app.Account, error) {
-	getter := keyLoader{ acc: app.AnonymousAccount }
+	getter := keyLoader{acc: app.AnonymousAccount}
 	getter.LogFn = h.logger.WithContext(log.Ctx{"from": "getter"}).Debugf
 
 	v, challenge := httpSignatureVerifier(&getter)
@@ -453,8 +451,8 @@ func (h handler) VerifyHttpSignature(fns ...verifierFn) app.Handler {
 					return
 				}
 			}
-			ctx := context.WithValue(r.Context(), app.AccountCtxtKey, acct)
-			next.ServeHTTP(w, r.WithContext(ctx))
+			h.acc = &acct
+			next.ServeHTTP(w, r)
 		})
 		return http.HandlerFunc(fn)
 	}
