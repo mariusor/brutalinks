@@ -827,6 +827,8 @@ func (h *handler) HandleError(w http.ResponseWriter, r *http.Request, errs ...er
 	h.RenderTemplate(r, w, "error", d)
 }
 
+var nodeInfo *app.Info = nil
+
 func getNodeInfo(req *http.Request) (app.Info, error) {
 	c := req.Context()
 	nodeInfoLoader, ok := app.ContextNodeInfoLoader(c)
@@ -835,5 +837,11 @@ func getNodeInfo(req *http.Request) (app.Info, error) {
 		return app.Info{}, err
 	}
 
-	return nodeInfoLoader.LoadInfo()
+	var err error
+	if nodeInfo == nil {
+		var ni app.Info
+		ni, err = nodeInfoLoader.LoadInfo()
+		nodeInfo = &ni
+	}
+	return *nodeInfo, err
 }
