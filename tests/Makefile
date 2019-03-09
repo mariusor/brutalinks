@@ -8,6 +8,7 @@ tests:
 	@cp -r ../db ./
 	@$(MAKE) integration
 	@$(RM) -rf ./db
+	@$(MAKE) killapp
 
 integration: run
 	$(TEST) ./...
