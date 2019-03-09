@@ -48,9 +48,9 @@ var Tests = testPairs{
 					first: &objectVal{
 						id: fmt.Sprintf("%s/self/following?page=1", apiURL),
 						// TODO(marius): fix actors collection pages
-						typ: string(as.CollectionPageType),
+						//typ: string(as.CollectionPageType),
 					},
-					itemCount: 2,
+					itemCount: 3,
 					items: map[string]objectVal{
 						"self/following/eacff9ddf379bd9fc8274c5a9f4cae08": {
 							id:                fmt.Sprintf("%s/self/following/eacff9ddf379bd9fc8274c5a9f4cae08", apiURL),
@@ -95,6 +95,29 @@ var Tests = testPairs{
 								id: fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/liked", apiURL),
 								// TODO(marius): Fix different page id when dereferenced vs. in parent collection
 								typ: string(as.OrderedCollectionType),
+							},
+							score: 0,
+						},
+						fmt.Sprintf("self/following/%s", testActorHash): {
+							id:                fmt.Sprintf("%s/self/following/%s", apiURL, testActorHash),
+							typ:               string(as.PersonType),
+							name:              "johndoe",
+							preferredUsername: "johndoe",
+							url:               fmt.Sprintf("http://%s/~johndoe", host),
+							inbox: &objectVal{
+								id: fmt.Sprintf("%s/self/following/%s/inbox", apiURL, testActorHash),
+								// TODO(marius): Fix different page id when dereferenced vs. in parent collection
+								//typ: string(as.OrderedCollectionPageType),
+							},
+							outbox: &objectVal{
+								id: fmt.Sprintf("%s/self/following/%s/outbox", apiURL, testActorHash),
+								// TODO(marius): Fix different page id when dereferenced vs. in parent collection
+								//typ: string(as.OrderedCollectionPageType),
+							},
+							liked: &objectVal{
+								id: fmt.Sprintf("%s/self/following/%s/liked", apiURL, testActorHash),
+								// TODO(marius): Fix different page id when dereferenced vs. in parent collection
+								//typ: string(as.OrderedCollectionPageType),
 							},
 							score: 0,
 						},

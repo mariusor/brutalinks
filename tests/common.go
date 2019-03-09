@@ -185,9 +185,6 @@ func errIfNotTrue(t *testing.T) assertFn {
 func errOnMapProp(t *testing.T) mapFieldAssertFn {
 	assertTrue := errIfNotTrue(t)
 	return func(ob map[string]interface{}, key string, tVal interface{}) {
-		if ob == nil {
-			return
-		}
 		t.Run(key, func(t *testing.T) {
 			val, ok := ob[key]
 			errIfNotTrue(t)(ok, "Could not load %s property of item: %#v", key, ob)
@@ -279,6 +276,13 @@ func errOnObjectProperties(t *testing.T) objectPropertiesAssertFn {
 				errOnObjectProperties(t)(dCol, *tVal.liked)
 			}
 		}
+		if tVal.following != nil {
+			assertMapKey(ob, "following", tVal.following)
+			if tVal.following.typ != "" {
+				dCol := assertReq(tVal.following.id)
+				errOnObjectProperties(t)(dCol, *tVal.following)
+			}
+		}
 		if tVal.act != nil {
 			assertMapKey(ob, "actor", tVal.act)
 			if tVal.act.typ != "" {
@@ -293,15 +297,9 @@ func errOnObjectProperties(t *testing.T) objectPropertiesAssertFn {
 				errOnObjectProperties(t)(derefObj, *tVal.obj)
 			}
 		}
-		if tVal.typ != string(as.CollectionType) && tVal.typ != string(as.OrderedCollectionType) {
+		if tVal.typ != string(as.CollectionType) && tVal.typ != string(as.OrderedCollectionType) && tVal.typ != string(as.CollectionPageType) && tVal.typ != string(as.OrderedCollectionPageType) {
 			return
 		}
-		itemsKey := func(typ string) string {
-			if typ == string(as.CollectionType) {
-				return "items"
-			}
-			return "orderedItems"
-		}(tVal.typ)
 		if tVal.first != nil {
 			assertMapKey(ob, "first", tVal.first)
 			if tVal.first.typ != "" {
@@ -332,15 +330,20 @@ func errOnObjectProperties(t *testing.T) objectPropertiesAssertFn {
 		}
 		if tVal.itemCount != 0 {
 			assertMapKey(ob, "totalItems", tVal.itemCount)
-
-			val, ok := ob[itemsKey]
-			assertTrue(ok, "Could not load %s property of item: %#v", itemsKey, ob)
-			items, ok := val.([]interface{})
-			assertTrue(ok, "Invalid property %s %#v, expected %T", itemsKey, val, items)
-			assertTrue(len(items) == int(ob["totalItems"].(float64)),
-				"Invalid item count for collection %s %d, expected %d", itemsKey, len(items), tVal.itemCount,
-			)
+			itemsKey := func(typ string) string {
+				if typ == string(as.CollectionType) {
+					return "items"
+				}
+				return "orderedItems"
+			}(tVal.typ)
 			if len(tVal.items) > 0 {
+				val, ok := ob[itemsKey]
+				assertTrue(ok, "Could not load %s property of collection: %#v\n\n%#v\n\n", itemsKey, ob, tVal.items)
+				items, ok := val.([]interface{})
+				assertTrue(ok, "Invalid property %s %#v, expected %T", itemsKey, val, items)
+				assertTrue(len(items) == int(ob["totalItems"].(float64)),
+					"Invalid item count for collection %s %d, expected %d", itemsKey, len(items), tVal.itemCount,
+				)
 			foundItem:
 				for k, testIt := range tVal.items {
 					iri := fmt.Sprintf("%s/%s", apiURL, k)
@@ -402,12 +405,11 @@ func errOnRequest(t *testing.T) func(testPair) map[string]interface{} {
 			test.res.code = http.StatusCreated
 		}
 
-		outbox := fmt.Sprintf(test.req.url)
 		body := []byte(test.req.body)
 		b := make([]byte, 0)
 
 		var err error
-		req, err := http.NewRequest(test.req.met, outbox, bytes.NewReader(body))
+		req, err := http.NewRequest(test.req.met, test.req.url, bytes.NewReader(body))
 		assertTrue(err == nil, "Error: unable to create request: %s", err)
 
 		req.Header = test.req.headers
@@ -421,33 +423,39 @@ func errOnRequest(t *testing.T) func(testPair) map[string]interface{} {
 		resp, err := http.DefaultClient.Do(req)
 
 		assertTrue(err == nil, "Error: request failed: %s", err)
-		b, err = ioutil.ReadAll(resp.Body)
 		assertTrue(resp.StatusCode == test.res.code,
 			"Error: invalid HTTP response %d, expected %d\nResponse\n%v\n%s", resp.StatusCode, test.res.code, resp.Header, b)
+
+		b, err = ioutil.ReadAll(resp.Body)
 		assertTrue(err == nil, "Error: invalid HTTP body! Read %d bytes %s", len(b), b)
+		if test.req.met != http.MethodGet {
+			location, ok := resp.Header["Location"]
+			if !ok {
+				return nil
+			}
+			assertTrue(ok, "Server didn't respond with a Location header even though it confirmed the Like was created")
+			assertTrue(len(location) == 1, "Server responded with %d Location headers which is not expected", len(location))
 
-		location, ok := resp.Header["Location"]
-		if !ok {
-			return nil
-		}
-		assertTrue(ok, "Server didn't respond with a Location header even though it confirmed the Like was created")
-		assertTrue(len(location) == 1, "Server responded with %d Location headers which is not expected", len(location))
+			newObj, err := url.Parse(location[0])
+			newObjURL := newObj.String()
+			assertTrue(err == nil, "Location header holds invalid URL %s", newObjURL)
+			assertTrue(strings.Contains(newObjURL, apiURL), "Location header holds invalid URL %s, expected to contain %s", newObjURL, apiURL)
 
-		newObj, err := url.Parse(location[0])
-		newObjURL := newObj.String()
-		assertTrue(err == nil, "Location header holds invalid URL %s", newObjURL)
-		assertTrue(strings.Contains(newObjURL, apiURL), "Location header holds invalid URL %s, expected to contain %s", newObjURL, apiURL)
-
-		if test.res.val.id == "" {
-			test.res.val.id = newObjURL
+			if test.res.val.id == "" {
+				test.res.val.id = newObjURL
+			}
 		}
 
 		res := make(map[string]interface{})
 		err = json.Unmarshal(b, &res)
 		assertTrue(err == nil, "Error: unmarshal failed: %s", err)
 
-		saved := assertGetRequest(newObjURL)
-		assertObjectProperties(saved, test.res.val)
+		if test.res.val.id != "" {
+			saved := assertGetRequest(test.res.val.id)
+			if test.res.val.typ != "" {
+				assertObjectProperties(saved, test.res.val)
+			}
+		}
 
 		return res
 	}
