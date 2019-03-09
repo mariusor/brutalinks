@@ -8,7 +8,7 @@ import (
 )
 
 var Tests = testPairs{
-	"load": {
+	"C2S_Load": {
 		{
 			req: testReq{
 				met: http.MethodGet,
@@ -27,6 +27,9 @@ var Tests = testPairs{
 					},
 					outbox:  &objectVal{
 						id: fmt.Sprintf("%s/self/outbox", apiURL),
+					},
+					following:  &objectVal{
+						id: fmt.Sprintf("%s/self/following", apiURL),
 					},
 					author: "https://github.com/mariusor",
 				},
@@ -169,7 +172,7 @@ var Tests = testPairs{
 			},
 		},
 	},
-	"Like": {{
+	"C2S_Like": {{
 		req: testReq{
 			met:     http.MethodPost,
 			url:     outboxURL,
@@ -192,7 +195,7 @@ var Tests = testPairs{
 			},
 		},
 	}},
-	"AnonymousLike": {{
+	"C2S_AnonymousLike": {{
 		req: testReq{
 			met: http.MethodPost,
 			url:     outboxURL,
@@ -206,7 +209,7 @@ var Tests = testPairs{
 			code: http.StatusForbidden,
 		},
 	}},
-	"Dislike": {{
+	"C2S_Dislike": {{
 		req: testReq{
 			met:     http.MethodPost,
 			url:     outboxURL,
@@ -228,7 +231,7 @@ var Tests = testPairs{
 			},
 		},
 	}},
-	"AnonymousDislike": {{
+	"C2S_AnonymousDislike": {{
 		req: testReq{
 			met: http.MethodPost,
 			url:     outboxURL,
@@ -242,7 +245,7 @@ var Tests = testPairs{
 			code: http.StatusForbidden,
 		},
 	}},
-	"UndoDislike": {
+	"C2S_UndoDislike": {
 		{
 			req: testReq{
 				met:     http.MethodPost,
@@ -288,7 +291,7 @@ var Tests = testPairs{
 			},
 		},
 	},
-	"UndoLike": {
+	"C2S_UndoLike": {
 		{
 			req: testReq{
 				met:     http.MethodPost,
@@ -334,7 +337,7 @@ var Tests = testPairs{
 			},
 		},
 	},
-	"Create": {{
+	"C2S_Create": {{
 		req: testReq{
 			met:     http.MethodPost,
 			url:     outboxURL,
@@ -362,7 +365,7 @@ var Tests = testPairs{
 			},
 		},
 	}},
-	"AnonymousCreate": {{
+	"C2S_AnonymousCreate": {{
 		req: testReq{
 			met: http.MethodPost,
 			url:     outboxURL,
@@ -381,7 +384,7 @@ var Tests = testPairs{
 			code: http.StatusForbidden,
 		},
 	}},
-	"Delete": {{
+	"C2S_Delete": {{
 		req: testReq{
 			met:     http.MethodPost,
 			url:     outboxURL,
@@ -403,7 +406,7 @@ var Tests = testPairs{
 			},
 		},
 	}},
-	"AnonymousDelete": {{
+	"C2S_AnonymousDelete": {{
 		req: testReq{
 			met: http.MethodPost,
 			url:     outboxURL,
@@ -421,10 +424,10 @@ var Tests = testPairs{
 }
 
 func Test_Integration(t *testing.T) {
-	for _, tests := range Tests {
+	for typ, tests := range Tests {
 		resetDB(t, true)
 		for _, test := range tests {
-			lbl := fmt.Sprintf("%s:%s", test.req.met, test.req.url)
+			lbl := fmt.Sprintf("%s:%s:%s:%s", typ, test.req.met, test.res.val.typ, test.req.url)
 			t.Run(lbl, func(t *testing.T){
 				errOnRequest(t)(test)
 			})

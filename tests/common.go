@@ -68,6 +68,7 @@ type objectVal struct {
 	author            string
 	inbox             *objectVal
 	outbox            *objectVal
+	following         *objectVal
 	liked             *objectVal
 	act               *objectVal
 	obj               *objectVal
@@ -142,9 +143,9 @@ func resetDB(t *testing.T, testData bool) {
 	h := os.Getenv("HOSTNAME")
 
 	t.Helper()
-	t.Logf("Resetting DB")
+	//t.Logf("Resetting DB")
 	if err := cmd.BootstrapDB(o); err != nil {
-		t.Fatal(err)
+		t.Log(err)
 	}
 	if err := cmd.SeedDB(o, h); err != nil {
 		t.Fatal(err)
