@@ -41,7 +41,7 @@ OnReady( function() {
 
             let conf = document.createElement('span');
             conf.classList.add("rm-confirm");
-            conf.innerHTML = ' <a href="#'+yesId+'" id="'+yesId+'">yes</a> <a href="#'+noId+'" id="'+noId+'">no</a>';
+            conf.innerHTML = ': <a href="#'+yesId+'" id="'+yesId+'">yes</a> / <a href="#'+noId+'" id="'+noId+'">no</a>';
             el.after(conf);
             addEvent($("a#" + yesId)[0], "click", function (e) {
                 window.location = el.getAttribute("href");
