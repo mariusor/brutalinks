@@ -34,6 +34,7 @@ func (h handler) HandleService(w http.ResponseWriter, r *http.Request) {
 	us.Inbox = as.IRI(fmt.Sprintf("%s/inbox", id))
 	us.Outbox = as.IRI(fmt.Sprintf("%s/outbox", id))
 	us.Following = as.IRI(fmt.Sprintf("%s/following", id))
+	us.Liked = as.IRI(fmt.Sprintf("%s/liked", id))
 	//us.Summary.Set(as.NilLangRef, "This is a link aggregator similar to hacker news and reddit")
 	us.Summary.Set(as.NilLangRef, inf.Summary)
 	us.Content.Set(as.NilLangRef, string(app.Markdown(inf.Description)))
