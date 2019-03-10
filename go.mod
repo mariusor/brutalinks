@@ -6,7 +6,7 @@ require (
 	github.com/captncraig/cors v0.0.0-20180620154129-376d45073b49 // indirect
 	github.com/gchaincl/dotsql v0.1.0
 	github.com/go-ap/activitypub v0.0.0-20190306111740-11b29a30968f
-	github.com/go-ap/activitystreams v0.0.0-20190306111705-2a794fbd6a34
+	github.com/go-ap/activitystreams v0.0.0-20190310091131-a516ad03a5be
 	github.com/go-ap/jsonld v0.0.0-20190306111347-fbb94302fe92
 	github.com/go-chi/chi v0.0.0-20171222161133-e83ac2304db3
 	github.com/go-pg/pg v7.1.1+incompatible
