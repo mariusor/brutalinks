@@ -119,6 +119,14 @@ type LoadItemsFilter struct {
 	authorAlias  string
 }
 
+type Filters struct {
+	LoadAccountsFilter
+	LoadItemsFilter
+	LoadVotesFilter
+	Page     int      `qstring:"page,omitempty"`
+	MaxItems int      `qstring:"maxItems,omitempty"`
+}
+
 type LoadAccountsFilter struct {
 	Key      []Hash   `qstring:"hash,omitempty"`
 	Handle   []string `qstring:"handle,omitempty"`
@@ -457,7 +465,59 @@ func (f *LoadItemsFilter) CurrentIndex() int {
 	return f.Page
 }
 
-// @todo(marius) the GetWhereClauses methods should be moved to the db package into a different format
+func (f *Filters) QueryString() string {
+	return query(f)
+}
+func (f *Filters) BasePage() Paginator {
+	b := &Filters{}
+	copyFilters(b, *f)
+	b.MaxItems = 0
+	b.Page = 0
+	return b
+}
+func (f *Filters) CurrentPage() Paginator {
+	return f
+}
+func (f *Filters) NextPage() Paginator {
+	b := &Filters{}
+	copyFilters(b, *f)
+	b.Page += 1
+	return b
+}
+func (f *Filters) PrevPage() Paginator {
+	b := &Filters{}
+	copyAccountFilters(&b.LoadAccountsFilter, f.LoadAccountsFilter)
+	copyItemsFilters(&b.LoadItemsFilter, f.LoadItemsFilter)
+	b.Page -= 1
+	return b
+}
+func (f *Filters) FirstPage() Paginator {
+	b := &Filters{}
+	copyFilters(b, *f)
+	b.Page = 1
+	return b
+}
+func (f *Filters) CurrentIndex() int {
+	return f.Page
+}
+// @TODO(marius) the GetWhereClauses methods should be moved to the db package into a different format
+func (f Filters) GetWhereClauses() ([]string, []interface{}) {
+	var clauses []string
+	var values []interface{}
+
+	iCl, iVal := f.LoadItemsFilter.GetWhereClauses()
+	clauses = append(clauses, iCl...)
+	values = append(values, iVal...)
+	aCl, aVal := f.LoadAccountsFilter.GetWhereClauses()
+	clauses = append(clauses, aCl...)
+	values = append(values, aVal...)
+	vCl, vVal := f.LoadVotesFilter.GetWhereClauses()
+	clauses = append(clauses, vCl...)
+	values = append(values, vVal...)
+	return clauses, values
+}
+
+// @TODO(marius) the GetWhereClauses methods should be moved to the db package into a different format
 func (f LoadAccountsFilter) GetWhereClauses() ([]string, []interface{}) {
 	wheres := make([]string, 0)
 	whereValues := make([]interface{}, 0)
@@ -511,6 +571,12 @@ func (f LoadAccountsFilter) GetWhereClauses() ([]string, []interface{}) {
 	}
 
 	return wheres, whereValues
+}
+
+func copyFilters(a *Filters, b Filters) {
+	copyAccountFilters(&a.LoadAccountsFilter, b.LoadAccountsFilter)
+	copyItemsFilters(&a.LoadItemsFilter, b.LoadItemsFilter)
+	copyVotesFilters(&a.LoadVotesFilter, b.LoadVotesFilter)
 }
 
 func copyAccountFilters(a *LoadAccountsFilter, b LoadAccountsFilter) {

@@ -15,11 +15,11 @@ func (h handler) Routes() func(chi.Router) {
 		r.With(h.LoadActivity).Post("/inbox", h.ServerRequest)
 	}
 	collectionRouter := func(r chi.Router) {
-		r.Use(LoadFiltersCtxt(h.HandleError), )
+		r.Use(LoadFiltersCtxt(h.HandleError))
 		r.With(h.ItemCollectionCtxt).Get("/", h.HandleCollection)
 		r.Route("/{hash}", func(r chi.Router) {
 			r.With(h.ItemCtxt).Get("/", h.HandleCollectionActivity)
-			r.With(h.ItemCtxt).Get("/object", h.HandleCollectionActivityObject)
+			r.With(LoadFiltersCtxt(h.HandleError), h.ItemCtxt).Get("/object", h.HandleCollectionActivityObject)
 			r.With(h.ItemCollectionCtxt).Get("/object/replies", h.HandleCollection)
 		})
 	}

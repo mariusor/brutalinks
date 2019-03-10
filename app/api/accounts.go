@@ -477,6 +477,10 @@ func loadCollection(items app.Collection, count uint, typ string, filters app.Pa
 	oc.ID = as.ObjectID(getURL(bp))
 	oc.Type = as.OrderedCollectionType
 
+	f, _ := filters.(*app.Filters)
+	if len(f.LoadItemsFilter.AttributedTo) == 1 {
+		f.LoadItemsFilter.AttributedTo = nil
+	}
 	switch typ {
 	case "inbox":
 		fallthrough
@@ -486,10 +490,6 @@ func loadCollection(items app.Collection, count uint, typ string, filters app.Pa
 		if col, ok := items.(app.ItemCollection); ok {
 			if _, err := loadAPItemCollection(&oc, col); err != nil {
 				return nil, err
-			}
-			f, _ := filters.(*app.LoadItemsFilter)
-			if len(f.AttributedTo) == 1 {
-				f.AttributedTo = nil
 			}
 			haveItems = len(col) > 0
 			moreItems = int(count) > (f.Page * f.MaxItems)
@@ -503,9 +503,8 @@ func loadCollection(items app.Collection, count uint, typ string, filters app.Pa
 			if _, err := loadAPLiked(&oc, col); err != nil {
 				return nil, err
 			}
-			f, _ := filters.(*app.LoadVotesFilter)
-			if len(f.AttributedTo) == 1 {
-				f.AttributedTo = nil
+			if len(f.LoadVotesFilter.AttributedTo) == 1 {
+				f.LoadVotesFilter.AttributedTo = nil
 			}
 			haveItems = len(col) > 0
 			moreItems = int(count) > (f.Page * f.MaxItems)
@@ -521,7 +520,6 @@ func loadCollection(items app.Collection, count uint, typ string, filters app.Pa
 			if _, err := loadAPAccountCollection(&oc, col); err != nil {
 				return nil, err
 			}
-			f, _ := filters.(*app.LoadAccountsFilter)
 			haveItems = len(col) > 0
 			moreItems = int(count) > (f.Page * f.MaxItems)
 			lessItems = f.Page > 1

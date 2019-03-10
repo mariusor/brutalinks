@@ -139,18 +139,18 @@ func (h handler) ItemCtxt(next http.Handler) http.Handler {
 
 		var err error
 		var i interface{}
+		filters, ok := f.(*app.Filters)
+		if !ok {
+			h.logger.Error("could not load item filter from Context")
+		}
 		if col == "outbox" {
-			filters, ok := f.(*app.LoadItemsFilter)
-			if !ok {
-				h.logger.Error("could not load item filter from Context")
-			}
 			loader, ok := val.(app.CanLoadItems)
 			if !ok {
 				h.logger.Error("could not load item repository from Context")
 				h.HandleError(w, r, errors.NewNotValid(err, "not found"))
 				return
 			}
-			i, err = loader.LoadItem(*filters)
+			i, err = loader.LoadItem(filters.LoadItemsFilter)
 			if err != nil {
 				h.logger.Error(err.Error())
 				h.HandleError(w, r, errors.NewNotFound(err, "not found"))
@@ -158,17 +158,13 @@ func (h handler) ItemCtxt(next http.Handler) http.Handler {
 			}
 		}
 		if col == "liked" {
-			filters, ok := f.(*app.LoadVotesFilter)
-			if !ok {
-				h.logger.Error("could not load vote filter from Context")
-			}
 			loader, ok := val.(app.CanLoadVotes)
 			if !ok {
 				h.logger.Error("could not load vote repository from Context")
 				h.HandleError(w, r, errors.NewNotValid(err, "not found"))
 				return
 			}
-			i, err = loader.LoadVote(*filters)
+			i, err = loader.LoadVote(filters.LoadVotesFilter)
 			if err != nil {
 				h.logger.Error(err.Error())
 				h.HandleError(w, r, errors.NewNotFound(err, "not found"))
@@ -343,27 +339,28 @@ func LoadFiltersCtxt(eh app.ErrorHandler) app.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			col := getCollectionFromReq(r)
-			var filters app.Paginator
+			f := app.Filters{}
+
+			//var filters app.Paginator
 			switch col {
 			case "following":
 				fallthrough
 			case "actors":
-				filters = loadPersonFiltersFromReq(r)
+				f.LoadAccountsFilter = *loadPersonFiltersFromReq(r)
 			case "liked":
-				filters = loadLikedFilterFromReq(r)
+				f.LoadVotesFilter = *loadLikedFilterFromReq(r)
 			case "outbox":
-				filters = loadOutboxFilterFromReq(r)
+				f.LoadItemsFilter = *loadOutboxFilterFromReq(r)
 			case "inbox":
-				filters = loadInboxFilterFromReq(r)
+				f.LoadItemsFilter = *loadInboxFilterFromReq(r)
 			case "replies":
-				filters = loadRepliesFilterFromReq(r)
+				f.LoadItemsFilter = *loadRepliesFilterFromReq(r)
 			case "":
 			default:
 				eh(w, r, errors.NotValidf("collection %s", col))
 				return
 			}
-
-			ctx := context.WithValue(r.Context(), app.FilterCtxtKey, filters)
+			ctx := context.WithValue(r.Context(), app.FilterCtxtKey, &f)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		}
 		return http.HandlerFunc(fn)
@@ -379,22 +376,22 @@ func (h handler) ItemCollectionCtxt(next http.Handler) http.Handler {
 		f := r.Context().Value(app.FilterCtxtKey)
 		val := r.Context().Value(app.RepositoryCtxtKey)
 
+		filters, ok := f.(*app.Filters)
+		if !ok {
+			h.logger.Error("could not load account filters from Context")
+			next.ServeHTTP(w, r)
+			return
+		}
 		var items interface{}
 		switch col {
 		case "following":
-			filters, ok := f.(*app.LoadAccountsFilter)
-			if !ok {
-				h.logger.Error("could not load account filters from Context")
-				next.ServeHTTP(w, r)
-				return
-			}
 			loader, ok := val.(app.CanLoadAccounts)
 			if !ok {
 				h.logger.Error("could not load account repository from Context")
 				next.ServeHTTP(w, r)
 				return
 			}
-			items, count, err = loader.LoadAccounts(*filters)
+			items, count, err = loader.LoadAccounts(filters.LoadAccountsFilter)
 			if err != nil {
 				h.logger.Error(err.Error())
 				next.ServeHTTP(w, r)
@@ -405,38 +402,26 @@ func (h handler) ItemCollectionCtxt(next http.Handler) http.Handler {
 		case "outbox":
 			fallthrough
 		case "replies":
-			filters, ok := f.(*app.LoadItemsFilter)
-			if !ok {
-				h.logger.Error("could not load item filters from Context")
-				next.ServeHTTP(w, r)
-				return
-			}
 			loader, ok := val.(app.CanLoadItems)
 			if !ok {
 				h.logger.Error("could not load item repository from Context")
 				next.ServeHTTP(w, r)
 				return
 			}
-			items, count, err = loader.LoadItems(*filters)
+			items, count, err = loader.LoadItems(filters.LoadItemsFilter)
 			if err != nil {
 				h.logger.Error(err.Error())
 				next.ServeHTTP(w, r)
 				return
 			}
 		case "liked":
-			filters, ok := f.(*app.LoadVotesFilter)
-			if !ok {
-				h.logger.Error("could not load votes filters from Context")
-				next.ServeHTTP(w, r)
-				return
-			}
 			loader, ok := val.(app.CanLoadVotes)
 			if !ok {
 				h.logger.Error("could not load vote repository from Context")
 				next.ServeHTTP(w, r)
 				return
 			}
-			items, count, err = loader.LoadVotes(*filters)
+			items, count, err = loader.LoadVotes(filters.LoadVotesFilter)
 			if err != nil {
 				h.logger.Error(err.Error())
 				next.ServeHTTP(w, r)
