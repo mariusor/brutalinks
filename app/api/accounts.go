@@ -243,17 +243,9 @@ func loadAPPerson(a app.Account) *ap.Person {
 	} else {
 		p.Name.Set("en", a.Handle)
 
-		out := goap.OutboxNew()
-		out.ID = BuildCollectionID(a, new(goap.Outbox))
-		p.Outbox = out
-
-		in := goap.InboxNew()
-		in.ID = BuildCollectionID(a, new(goap.Inbox))
-		p.Inbox = in
-
-		liked := goap.LikedNew()
-		liked.ID = BuildCollectionID(a, new(goap.Liked))
-		p.Liked = liked
+		p.Outbox = as.IRI(BuildCollectionID(a, new(goap.Outbox)))
+		p.Inbox = as.IRI(BuildCollectionID(a, new(goap.Inbox)))
+		p.Liked = as.IRI(BuildCollectionID(a, new(goap.Liked)))
 
 		p.URL = accountURL(a)
 
@@ -290,69 +282,23 @@ func loadAPLiked(o as.CollectionInterface, votes app.VoteCollection) (as.Collect
 	return o, nil
 }
 
-// HandleActorsCollection is the http handler for the actors collection
-// GET /api/self/following?filters
-func (h handler) HandleActorsCollection(w http.ResponseWriter, r *http.Request) {
-	var ok bool
-	var filter *app.LoadAccountsFilter
-	var data []byte
-
-	f := r.Context().Value(app.FilterCtxtKey)
-	if filter, ok = f.(*app.LoadAccountsFilter); !ok {
-		h.logger.Error("could not load filter from Context")
-		h.HandleError(w, r, errors.NotValidf("%T", filter))
-		return
-	} else {
-		val := r.Context().Value(app.RepositoryCtxtKey)
-		if service, ok := val.(app.CanLoadAccounts); ok {
-			var accounts app.AccountCollection
-			var err error
-			var count uint
-
-			baseId := as.ObjectID(ActorsURL)
-			col := as.CollectionNew(baseId)
-			if accounts, count, err = service.LoadAccounts(*filter); err == nil {
-				for _, acct := range accounts {
-					p := loadAPPerson(acct)
-					if p.Inbox != nil && p.Inbox.IsObject() {
-						p.Inbox = p.Inbox.GetLink()
-					}
-					if p.Outbox != nil && p.Outbox.IsObject() {
-						p.Outbox = p.Outbox.GetLink()
-					}
-					if p.Liked != nil && p.Liked.IsObject() {
-						p.Liked = p.Liked.GetLink()
-					}
-					col.Append(p)
-				}
-				if len(accounts) > 0 {
-					fpUrl := string(*col.GetID()) + "?page=1"
-					col.First = as.IRI(fpUrl)
-				}
-				col.TotalItems = count
-				data, err = json.WithContext(GetContext()).Marshal(col)
-			} else {
-				h.logger.WithContext(log.Ctx{
-					"err":   err,
-					"trace": errors.Details(err),
-				}).Error(err.Error())
-				h.HandleError(w, r, err)
-				return
-			}
-		}
-	}
-	w.Header().Set("Content-Type", "application/activity+json; charset=utf-8")
-	//w.Header().Set("X-Content-Type-Options", "nosniff")
-	w.WriteHeader(http.StatusOK)
-	w.Write(data)
-}
-
-func loadAPCollection(o as.CollectionInterface, items app.ItemCollection) (as.CollectionInterface, error) {
+func loadAPItemCollection(o as.CollectionInterface, items app.ItemCollection) (as.CollectionInterface, error) {
 	if items == nil || len(items) == 0 {
 		return nil, nil
 	}
 	for _, item := range items {
 		o.Append(loadAPActivity(item))
+	}
+
+	return o, nil
+}
+
+func loadAPAccountCollection(o as.CollectionInterface, accounts app.AccountCollection) (as.CollectionInterface, error) {
+	if accounts == nil || len(accounts) == 0 {
+		return nil, nil
+	}
+	for _, acc := range accounts {
+		o.Append(loadAPPerson(acc))
 	}
 
 	return o, nil
@@ -538,7 +484,7 @@ func loadCollection(items app.Collection, count uint, typ string, filters app.Pa
 		fallthrough
 	case "outbox":
 		if col, ok := items.(app.ItemCollection); ok {
-			if _, err := loadAPCollection(&oc, col); err != nil {
+			if _, err := loadAPItemCollection(&oc, col); err != nil {
 				return nil, err
 			}
 			f, _ := filters.(*app.LoadItemsFilter)
@@ -561,6 +507,21 @@ func loadCollection(items app.Collection, count uint, typ string, filters app.Pa
 			if len(f.AttributedTo) == 1 {
 				f.AttributedTo = nil
 			}
+			haveItems = len(col) > 0
+			moreItems = int(count) > (f.Page * f.MaxItems)
+			lessItems = f.Page > 1
+			curIndex = f.Page
+		} else {
+			return nil, errors.New("could not load items")
+		}
+	case "followed":
+		fallthrough
+	case "following":
+		if col, ok := items.(app.AccountCollection); ok {
+			if _, err := loadAPAccountCollection(&oc, col); err != nil {
+				return nil, err
+			}
+			f, _ := filters.(*app.LoadAccountsFilter)
 			haveItems = len(col) > 0
 			moreItems = int(count) > (f.Page * f.MaxItems)
 			lessItems = f.Page > 1

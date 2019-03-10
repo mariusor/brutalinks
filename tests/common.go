@@ -297,7 +297,10 @@ func errOnObjectProperties(t *testing.T) objectPropertiesAssertFn {
 				errOnObjectProperties(t)(derefObj, *tVal.obj)
 			}
 		}
-		if tVal.typ != string(as.CollectionType) && tVal.typ != string(as.OrderedCollectionType) && tVal.typ != string(as.CollectionPageType) && tVal.typ != string(as.OrderedCollectionPageType) {
+		if tVal.typ != string(as.CollectionType) &&
+			tVal.typ != string(as.OrderedCollectionType) &&
+			tVal.typ != string(as.CollectionPageType) &&
+			tVal.typ != string(as.OrderedCollectionPageType) {
 			return
 		}
 		if tVal.first != nil {
@@ -355,7 +358,8 @@ func errOnObjectProperties(t *testing.T) objectPropertiesAssertFn {
 						itIRI, ok := itId.(string)
 						assertTrue(ok, "Unable to convert %#v to %T type, Received %#v:(%T)", itId, itIRI, val, val)
 						if strings.EqualFold(itIRI, iri) {
-							t.Run(k, func(t *testing.T) {
+							kk := strings.Replace(k, "self/", "", 1)
+							t.Run(kk, func(t *testing.T) {
 								errOnObjectProperties(t)(act, testIt)
 								dAct := assertReq(itIRI)
 								errOnObjectProperties(t)(dAct, testIt)
@@ -369,7 +373,7 @@ func errOnObjectProperties(t *testing.T) objectPropertiesAssertFn {
 		}
 	}
 }
-func errOnGetRequest(t *testing.T) func(string) map[string]interface{} {
+func errOnGetRequest(t *testing.T) requestGetAssertFn {
 	return func(iri string) map[string]interface{} {
 		tVal := testPair{
 			req: testReq{

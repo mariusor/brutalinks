@@ -240,10 +240,10 @@ func (o *OrderedCollection) UnmarshalJSON(data []byte) error {
 				fallthrough
 			case as.PersonType:
 				p := &Person{}
-				if data, _, _, err := jsonparser.Get(data, "items", fmt.Sprintf("[%d]", i)); err == nil {
+				if data, _, _, err := jsonparser.Get(data, "orderedItems", fmt.Sprintf("[%d]", i)); err == nil {
 					p.UnmarshalJSON(data)
 				}
-				if context, err := jsonparser.GetString(data, "items", fmt.Sprintf("[%d]", i), "context"); err == nil {
+				if context, err := jsonparser.GetString(data, "orderedItems", fmt.Sprintf("[%d]", i), "context"); err == nil {
 					p.Context = as.IRI(context)
 				}
 				a = p

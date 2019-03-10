@@ -381,6 +381,25 @@ func (h handler) ItemCollectionCtxt(next http.Handler) http.Handler {
 
 		var items interface{}
 		switch col {
+		case "following":
+			filters, ok := f.(*app.LoadAccountsFilter)
+			if !ok {
+				h.logger.Error("could not load account filters from Context")
+				next.ServeHTTP(w, r)
+				return
+			}
+			loader, ok := val.(app.CanLoadAccounts)
+			if !ok {
+				h.logger.Error("could not load account repository from Context")
+				next.ServeHTTP(w, r)
+				return
+			}
+			items, count, err = loader.LoadAccounts(*filters)
+			if err != nil {
+				h.logger.Error(err.Error())
+				next.ServeHTTP(w, r)
+				return
+			}
 		case "inbox":
 			fallthrough
 		case "outbox":
@@ -865,13 +884,13 @@ func (r *repository) LoadAccounts(f app.LoadAccountsFilter) (app.AccountCollecti
 		r.logger.Error(err.Error())
 		return nil, 0, err
 	}
-	col := ap.CollectionNew(as.ObjectID(url))
+	col := ap.OrderedCollectionNew(as.ObjectID(url))
 	if err = j.Unmarshal(body, &col); err != nil {
 		r.logger.Error(err.Error())
 		return nil, 0, err
 	}
 	accounts := make(app.AccountCollection, 0)
-	for _, it := range col.Items {
+	for _, it := range col.OrderedItems {
 		acc := app.Account{}
 		if err := acc.FromActivityPub(it); err != nil {
 			r.logger.WithContext(log.Ctx{
