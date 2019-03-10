@@ -341,14 +341,12 @@ func LoadFiltersCtxt(eh app.ErrorHandler) app.Handler {
 			col := getCollectionFromReq(r)
 			f := app.Filters{}
 
-			//var filters app.Paginator
+			f.LoadAccountsFilter = *loadPersonFiltersFromReq(r)
+			f.LoadVotesFilter = *loadLikedFilterFromReq(r)
 			switch col {
 			case "following":
-				fallthrough
 			case "actors":
-				f.LoadAccountsFilter = *loadPersonFiltersFromReq(r)
 			case "liked":
-				f.LoadVotesFilter = *loadLikedFilterFromReq(r)
 			case "outbox":
 				f.LoadItemsFilter = *loadOutboxFilterFromReq(r)
 			case "inbox":

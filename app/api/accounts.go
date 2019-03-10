@@ -18,8 +18,8 @@ import (
 	as "github.com/go-ap/activitystreams"
 	json "github.com/go-ap/jsonld"
 	"github.com/go-chi/chi"
-	"github.com/mariusor/littr.go/internal/errors"
 	ap "github.com/mariusor/littr.go/app/activitypub"
+	"github.com/mariusor/littr.go/internal/errors"
 	"github.com/mariusor/littr.go/internal/log"
 )
 
@@ -471,7 +471,6 @@ func loadCollection(items app.Collection, count uint, typ string, filters app.Pa
 
 	var haveItems, moreItems, lessItems bool
 	var bp, fp, cp, pp, np app.Paginator
-	curIndex := 0
 
 	oc := as.OrderedCollection{}
 	oc.ID = as.ObjectID(getURL(bp))
@@ -494,7 +493,6 @@ func loadCollection(items app.Collection, count uint, typ string, filters app.Pa
 			haveItems = len(col) > 0
 			moreItems = int(count) > (f.Page * f.MaxItems)
 			lessItems = f.Page > 1
-			curIndex = f.Page
 		} else {
 			return nil, errors.New("could not load items")
 		}
@@ -509,7 +507,6 @@ func loadCollection(items app.Collection, count uint, typ string, filters app.Pa
 			haveItems = len(col) > 0
 			moreItems = int(count) > (f.Page * f.MaxItems)
 			lessItems = f.Page > 1
-			curIndex = f.Page
 		} else {
 			return nil, errors.New("could not load items")
 		}
@@ -523,7 +520,6 @@ func loadCollection(items app.Collection, count uint, typ string, filters app.Pa
 			haveItems = len(col) > 0
 			moreItems = int(count) > (f.Page * f.MaxItems)
 			lessItems = f.Page > 1
-			curIndex = f.Page
 		} else {
 			return nil, errors.New("could not load items")
 		}
@@ -532,26 +528,25 @@ func loadCollection(items app.Collection, count uint, typ string, filters app.Pa
 		bp = filters.BasePage()
 		fp = filters.FirstPage()
 		cp = filters.CurrentPage()
-		pp = filters.PrevPage()
-		np = filters.NextPage()
 	}
 
 	if haveItems {
 		firstURL := getURL(fp)
 		oc.First = as.IRI(firstURL)
 
-		if curIndex >= 1 {
+		if f.Page >= 1 {
 			curURL := getURL(cp)
-			prevURL := getURL(pp)
-			nextURL := getURL(np)
-
 			page := as.OrderedCollectionPageNew(&oc)
-
 			page.ID = as.ObjectID(curURL)
+
 			if moreItems {
+				np = filters.NextPage()
+				nextURL := getURL(np)
 				page.Next = as.IRI(nextURL)
 			}
 			if lessItems {
+				pp = filters.PrevPage()
+				prevURL := getURL(pp)
 				page.Prev = as.IRI(prevURL)
 			}
 			page.TotalItems = count
@@ -608,7 +603,7 @@ func (h handler) HandleCollection(w http.ResponseWriter, r *http.Request) {
 
 func (h handler) LoadActivity(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		errFn := func (err error) {
+		errFn := func(err error) {
 			h.logger.WithContext(log.Ctx{
 				"err":   err,
 				"trace": errors.Details(err),
@@ -1122,7 +1117,7 @@ func (h handler) ClientRequest(w http.ResponseWriter, r *http.Request) {
 				// we need to make a difference between created vote and updated vote
 				// created - http.StatusCreated
 				status = http.StatusCreated
-				location = fmt.Sprintf("%s/self/following/%s/liked/%s",  h.repo.BaseURL, newVot.SubmittedBy.Hash, newVot.Item.Hash)
+				location = fmt.Sprintf("%s/self/following/%s/liked/%s", h.repo.BaseURL, newVot.SubmittedBy.Hash, newVot.Item.Hash)
 			} else {
 				// updated - http.StatusOK
 				status = http.StatusOK
@@ -1262,7 +1257,6 @@ func (h handler) ServerRequest(w http.ResponseWriter, r *http.Request) {
 			status = http.StatusOK
 		}
 	}
-
 
 	if err != nil {
 		h.logger.WithContext(log.Ctx{
