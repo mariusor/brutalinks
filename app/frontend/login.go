@@ -9,7 +9,6 @@ import (
 
 	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/app/db"
-	"github.com/mariusor/littr.go/internal/errors"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -24,14 +23,21 @@ type loginModel struct {
 func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	pw := r.PostFormValue("pw")
 	handle := r.PostFormValue("handle")
+
+	backUrl := "/"
 	a, err := db.Config.LoadAccount(app.LoadAccountsFilter{Handle: []string{handle}})
 	if err != nil {
 		h.logger.Error(err.Error())
-		h.HandleError(w, r, errors.Forbiddenf("Wrong handle or password"))
+		h.addFlashMessage(Error, "Login failed: wrong handle or password", r)
+		h.Redirect(w, r, backUrl, http.StatusSeeOther)
 		return
 	}
 	if a.Metadata == nil {
-		h.HandleError(w, r, errors.Forbiddenf("invalid account metadata"))
+		h.logger.WithContext(log.Ctx{
+			"handle": handle,
+		}).Error("invalid account metadata")
+		h.addFlashMessage(Error, "Login failed: wrong handle or password", r)
+		h.Redirect(w, r, backUrl, http.StatusSeeOther)
 		return
 	}
 	h.logger.WithContext(log.Ctx{
@@ -45,8 +51,8 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		h.logger.Error(err.Error())
-		h.addFlashMessage(Error, "Login failed", r)
-		h.HandleError(w, r, errors.Forbiddenf("Wrong handle or password"))
+		h.addFlashMessage(Error, "Login failed: wrong handle or password", r)
+		h.Redirect(w, r, backUrl, http.StatusSeeOther)
 		return
 	}
 	var s *sessions.Session
@@ -60,7 +66,8 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		}
 		http.SetCookie(w, &c)
 		h.logger.Error(err.Error())
-		h.HandleError(w, r, errors.BadRequestf("Unable to load session"))
+		h.addFlashMessage(Error, "Unable to load session", r)
+		h.Redirect(w, r, backUrl, http.StatusSeeOther)
 		return
 	}
 	s.Values[SessionUserKey] = sessionAccount{
@@ -69,7 +76,6 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	s.Save(r, w)
 
-	backUrl := "/"
 	h.addFlashMessage(Success, "Login successful", r)
 	h.Redirect(w, r, backUrl, http.StatusSeeOther)
 }
