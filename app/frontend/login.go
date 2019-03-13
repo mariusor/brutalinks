@@ -2,12 +2,13 @@ package frontend
 
 import (
 	"fmt"
+	"github.com/gorilla/sessions"
+	"github.com/mariusor/littr.go/internal/log"
 	"net/http"
+	"time"
 
 	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/app/db"
-	"github.com/mariusor/littr.go/internal/log"
-
 	"github.com/mariusor/littr.go/internal/errors"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -29,37 +30,44 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		h.HandleError(w, r, errors.Forbiddenf("Wrong handle or password"))
 		return
 	}
-	m := a.Metadata
-	if m != nil {
-		h.logger.WithContext(log.Ctx{
-			"pw":   fmt.Sprintf("%s", m.Password),
-			"salt": fmt.Sprintf("%2x", m.Salt),
-		}).Info("Loaded password")
-		salt := m.Salt
-		saltyPw := []byte(pw)
-		saltyPw = append(saltyPw, salt...)
-		err = bcrypt.CompareHashAndPassword(m.Password, saltyPw)
-	} else {
+	if a.Metadata == nil {
 		h.HandleError(w, r, errors.Forbiddenf("invalid account metadata"))
 		return
 	}
+	h.logger.WithContext(log.Ctx{
+		"pw":   fmt.Sprintf("%s", a.Metadata.Password),
+		"salt": fmt.Sprintf("%2x", a.Metadata.Salt),
+	}).Debug("Loaded password")
+	salt := a.Metadata.Salt
+	saltyPw := []byte(pw)
+	saltyPw = append(saltyPw, salt...)
+	err = bcrypt.CompareHashAndPassword(a.Metadata.Password, saltyPw)
+
 	if err != nil {
 		h.logger.Error(err.Error())
 		h.addFlashMessage(Error, "Login failed", r)
 		h.HandleError(w, r, errors.Forbiddenf("Wrong handle or password"))
 		return
 	}
-
-	if s, err := h.session.Get(r, sessionName); err == nil {
-		s.Values[SessionUserKey] = sessionAccount{
-			Handle: a.Handle,
-			Hash:   []byte(a.Hash),
+	var s *sessions.Session
+	if s, err = h.session.Get(r, sessionName); err != nil {
+		c := http.Cookie{
+			Name:    sessionName,
+			Value:    "",
+			Path:     "/",
+			Expires: time.Unix(0, 0),
+			HttpOnly: true,
 		}
-		s.Save(r, w)
-	} else {
+		http.SetCookie(w, &c)
 		h.logger.Error(err.Error())
+		h.HandleError(w, r, errors.BadRequestf("Unable to load session"))
 		return
 	}
+	s.Values[SessionUserKey] = sessionAccount{
+		Handle: a.Handle,
+		Hash:   []byte(a.Hash),
+	}
+	s.Save(r, w)
 
 	backUrl := "/"
 	h.addFlashMessage(Success, "Login successful", r)

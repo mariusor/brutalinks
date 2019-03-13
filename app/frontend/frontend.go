@@ -371,8 +371,7 @@ func (h handler) saveSession(w http.ResponseWriter, r *http.Request) error {
 	var err error
 	var s *sessions.Session
 	if h.session == nil {
-		err := errors.New("missing session store, unable to save session")
-		return err
+		return errors.New("missing session store, unable to save session")
 	}
 	if s, err = h.session.Get(r, sessionName); err != nil {
 		return errors.Errorf("failed to load session before redirect: %s", err)
