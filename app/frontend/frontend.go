@@ -247,13 +247,12 @@ type errorModel struct {
 	Errors []error
 }
 
-const (
-	ScoreMaxK = 1000.0
-	ScoreMaxM = 1000000.0
-	ScoreMaxB = 1000000000.0
-)
-
 func loadScoreFormat(s int64) (string, string) {
+	const (
+		ScoreMaxK = 1000.0
+		ScoreMaxM = 1000000.0
+		ScoreMaxB = 1000000000.0
+	)
 	score := 0.0
 	units := ""
 	base := float64(s)
