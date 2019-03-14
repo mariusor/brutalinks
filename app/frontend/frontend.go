@@ -239,10 +239,6 @@ func InitSessionStore(c Config) (sessions.Store, error) {
 	return s, nil
 }
 
-func AnonymousAccount() app.Account {
-	return defaultAccount
-}
-
 var flashData = make([]flash, 0)
 
 type errorModel struct {

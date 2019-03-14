@@ -14,7 +14,6 @@ import (
 	"github.com/mariusor/littr.go/app"
 	ap "github.com/mariusor/littr.go/app/activitypub"
 	"github.com/mariusor/littr.go/app/db"
-	"github.com/mariusor/littr.go/app/frontend"
 	"github.com/mariusor/littr.go/internal/errors"
 	"github.com/mariusor/littr.go/internal/log"
 	"github.com/spacemonkeygo/httpsig"
@@ -390,7 +389,7 @@ func (h handler) loadAccountFromHttpSig(w http.ResponseWriter, r *http.Request) 
 	getter.LogFn = h.logger.WithContext(log.Ctx{"from": "getter"}).Debugf
 
 	v, challenge := httpSignatureVerifier(&getter)
-	var acct = frontend.AnonymousAccount()
+	var acct = app.AnonymousAccount
 	if r.Header["Authorization"] != nil {
 		// only verify http-signature if present
 		if err := v.Verify(r); err != nil {

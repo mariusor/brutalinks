@@ -16,8 +16,6 @@ import (
 
 	cl "github.com/go-ap/activitypub/client"
 	"github.com/mariusor/littr.go/app"
-	"github.com/mariusor/littr.go/app/frontend"
-
 	"github.com/mariusor/qstring"
 
 	as "github.com/go-ap/activitystreams"
@@ -50,7 +48,7 @@ func New(c Config) *repository {
 func (r *repository) WithAccount(a *app.Account) error {
 	r.Account = a
 
-	if r.Account == nil || r.Account.Hash == frontend.AnonymousAccount().Hash {
+	if r.Account == nil || r.Account.Hash == app.AnonymousAccount.Hash {
 		return nil
 	}
 
@@ -757,7 +755,7 @@ func (r *repository) LoadVote(f app.LoadVotesFilter) (app.Vote, error) {
 func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 	art := loadAPItem(it)
 
-	actor := loadAPPerson(frontend.AnonymousAccount())
+	actor := loadAPPerson(app.AnonymousAccount)
 	if r.Account != nil && r.Account.Hash == it.SubmittedBy.Hash {
 		// need to test if it.SubmittedBy matches r.Account and that the signature is valid
 		actor = loadAPPerson(*it.SubmittedBy)
