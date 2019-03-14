@@ -1053,6 +1053,10 @@ func (h handler) ClientRequest(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	if repo, ok := app.ContextActivitySaver(r.Context()); ok == true {
+		repo.SaveActivity(a)
+	}
+
 	switch a.GetType() {
 	case as.DeleteType:
 		fallthrough

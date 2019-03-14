@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	as "github.com/go-ap/activitystreams"
 	"github.com/mariusor/littr.go/app/activitypub"
 	"github.com/mariusor/qstring"
 	"net/url"
@@ -123,8 +124,8 @@ type Filters struct {
 	LoadAccountsFilter
 	LoadItemsFilter
 	LoadVotesFilter
-	Page     int      `qstring:"page,omitempty"`
-	MaxItems int      `qstring:"maxItems,omitempty"`
+	Page     int `qstring:"page,omitempty"`
+	MaxItems int `qstring:"maxItems,omitempty"`
 }
 
 type LoadAccountsFilter struct {
@@ -500,6 +501,7 @@ func (f *Filters) FirstPage() Paginator {
 func (f *Filters) CurrentIndex() int {
 	return f.Page
 }
+
 // @TODO(marius) the GetWhereClauses methods should be moved to the db package into a different format
 func (f Filters) GetWhereClauses() ([]string, []interface{}) {
 	var clauses []string
@@ -681,6 +683,10 @@ type CanSaveAccounts interface {
 	SaveAccount(a Account) (Account, error)
 }
 
+type CanSaveActivity interface {
+	SaveActivity(a as.Item) (as.Item, error)
+}
+
 type CanLoad interface {
 	CanLoadItems
 	CanLoadAccounts
@@ -762,5 +768,11 @@ func ContextActivity(ctx context.Context) (activitypub.Activity, bool) {
 func ContextAccount(ctx context.Context) (Account, bool) {
 	ctxVal := ctx.Value(AccountCtxtKey)
 	a, ok := ctxVal.(Account)
+	return a, ok
+}
+
+func ContextActivitySaver(ctx context.Context) (CanSaveActivity, bool) {
+	ctxVal := ctx.Value(AccountCtxtKey)
+	a, ok := ctxVal.(CanSaveActivity)
 	return a, ok
 }
