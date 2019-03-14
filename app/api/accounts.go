@@ -1064,7 +1064,7 @@ func (h handler) ClientRequest(w http.ResponseWriter, r *http.Request) {
 			h.logger.WithContext(log.Ctx{
 				"err":   err,
 				"trace": errors.Details(err),
-			}).Error("json-ld unmarshal error")
+			}).Error("unable to load item from ActivityPub object")
 			h.HandleError(w, r, errors.NewNotValid(err, "not found"))
 			return
 		}
@@ -1098,7 +1098,7 @@ func (h handler) ClientRequest(w http.ResponseWriter, r *http.Request) {
 			h.logger.WithContext(log.Ctx{
 				"err":   err,
 				"trace": errors.Details(err),
-			}).Error("json-ld unmarshal error")
+			}).Error("unable to load vote from ActivityPub object")
 			h.HandleError(w, r, errors.NewNotValid(err, "not found"))
 			return
 		}
