@@ -35,7 +35,7 @@ const (
 )
 
 type handler struct {
-	env app.EnvType
+	conf Config
 	session sessions.Store
 	account app.Account
 	logger  log.Logger
@@ -200,7 +200,7 @@ func Init(c Config) (handler, error) {
 
 	c.SessionKeys = loadEnvSessionKeys()
 	h.session, err = InitSessionStore(c)
-	h.env = c.Env
+	h.conf = c
 
 	return h, err
 }
@@ -854,8 +854,8 @@ func (h handler) CSRF(next http.Handler) http.Handler {
 	opts := []csrf.Option{
 		csrf.CookieName("_csrf_t"),
 		csrf.FieldName("_csrf_t"),
-		csrf.Secure(h.env.IsProd()),
+		csrf.Secure(h.conf.Env.IsProd()),
 		csrf.ErrorHandler(h.ErrorHandler(errors.Forbiddenf("Invalid request token"))),
 	}
-	return csrf.Protect([]byte("12345678901234567890123456789012"), opts...)(next)
+	return csrf.Protect(h.conf.SessionKeys[0], opts...)(next)
 }
