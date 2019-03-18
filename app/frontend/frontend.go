@@ -30,6 +30,7 @@ import (
 
 const (
 	sessionName = "_s"
+	csrfName = "_c"
 	templateDir = "templates/"
 	assetsDir   = "assets/"
 )
@@ -851,8 +852,8 @@ func getNodeInfo(req *http.Request) (app.Info, error) {
 
 func (h handler) CSRF(next http.Handler) http.Handler {
 	opts := []csrf.Option{
-		csrf.CookieName("_csrf_t"),
-		csrf.FieldName("_csrf_t"),
+		csrf.CookieName(csrfName),
+		csrf.FieldName(csrfName),
 		csrf.Secure(h.conf.Env.IsProd()),
 		csrf.ErrorHandler(h.ErrorHandler(errors.Forbiddenf("Invalid request token"))),
 	}
