@@ -209,10 +209,10 @@ func InitSessionStore(c Config) (sessions.Store, error) {
 		case "file":
 			sessDir := fmt.Sprintf("%s/%s", os.TempDir(), c.HostName)
 			if _, err := os.Stat(sessDir); os.IsNotExist(err) {
-				if err := os.Mkdir(sessDir, 0700) ; err != nil {
+				if err := os.Mkdir(sessDir, 0700); err != nil {
 					c.Logger.WithContext(log.Ctx{
 						"folder": sessDir,
-						"err": err,
+						"err":    err,
 					}).Error("unable to create folder")
 				}
 			}
@@ -821,7 +821,7 @@ func (h *handler) HandleError(w http.ResponseWriter, r *http.Request, errs ...er
 	h.RenderTemplate(r, w, "error", d)
 }
 
-var nodeInfo *app.Info = nil
+var nodeInfo = app.Info{}
 
 func getNodeInfo(req *http.Request) (app.Info, error) {
 	c := req.Context()
@@ -832,10 +832,8 @@ func getNodeInfo(req *http.Request) (app.Info, error) {
 	}
 
 	var err error
-	if nodeInfo == nil {
-		var ni app.Info
-		ni, err = nodeInfoLoader.LoadInfo()
-		nodeInfo = &ni
+	if nodeInfo.Title == "" {
+		nodeInfo, err = nodeInfoLoader.LoadInfo()
 	}
-	return *nodeInfo, err
+	return nodeInfo, err
 }
