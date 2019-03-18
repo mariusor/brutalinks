@@ -24,8 +24,6 @@ func (h *handler) Routes() func(chi.Router) {
 		r.With(h.CSRF).Group(func (r chi.Router){
 			r.Get("/submit", h.ShowSubmit)
 			r.Post("/submit", h.HandleSubmit)
-		})
-		r.With(h.CSRF).Group(func (r chi.Router) {
 			r.Get("/register", h.ShowRegister)
 			r.Post("/register", h.HandleRegister)
 		})
@@ -34,18 +32,22 @@ func (h *handler) Routes() func(chi.Router) {
 			r.Get("/", h.ShowAccount)
 
 			r.Route("/{hash}", func(r chi.Router) {
+				r.Use(h.CSRF)
 				r.Get("/", h.ShowItem)
 				r.Post("/", h.HandleSubmit)
 
-				r.Get("/yay", h.HandleVoting)
-				r.Get("/nay", h.HandleVoting)
+				r.With(h.ValidatePermissions()).Group(func (r chi.Router) {
+					r.Get("/yay", h.HandleVoting)
+					r.Get("/nay", h.HandleVoting)
 
-				r.Get("/bad", h.ShowReport)
-				r.Post("/bad", h.HandleReport)
+					r.Get("/bad", h.ShowReport)
+					r.Post("/bad", h.HandleReport)
 
-				r.With(h.ValidatePermissions()).Get("/edit", h.ShowItem)
-				r.With(h.ValidatePermissions()).Post("/edit", h.HandleSubmit)
-				r.With(h.ValidatePermissions()).Get("/rm", h.HandleDelete)
+					r.Get("/edit", h.ShowItem)
+					r.Post("/edit", h.HandleSubmit)
+
+					r.Get("/rm", h.HandleDelete)
+				})
 			})
 		})
 

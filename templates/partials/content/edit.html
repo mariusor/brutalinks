@@ -5,9 +5,9 @@
 {{ if not .Content.Hash -}}
         <label for="submit-title">Title: </label><br/>
         <textarea name="title" id="submit-title" rows="2" required>{{- if .Content.Edit -}}{{- .Content.Title -}}{{- end -}}</textarea><br/>
-{{ end -}}
+{{- end -}}
 {{- if .Content.Hash -}}
-{{- if .Content.Edit -}}
+{{- if .Content.Edit }}
         <input type="hidden" name="hash" id="submit-self" value="{{ .Content.Hash }}"/>
 {{- else }}
         <input type="hidden" name="parent" id="submit-parent" value="{{ .Content.Hash }}"/>
