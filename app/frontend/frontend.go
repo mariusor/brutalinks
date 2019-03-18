@@ -30,13 +30,13 @@ import (
 
 const (
 	sessionName = "_s"
-	csrfName = "_c"
+	csrfName    = "_c"
 	templateDir = "templates/"
 	assetsDir   = "assets/"
 )
 
 type handler struct {
-	conf Config
+	conf    Config
 	session sessions.Store
 	account app.Account
 	logger  log.Logger
@@ -210,7 +210,7 @@ func Init(c Config) (handler, error) {
 func InitSessionStore(c Config) (sessions.Store, error) {
 	var s sessions.Store
 	if len(c.SessionKeys) == 0 {
-		err := errors.New("no session encryption configuration, unable to use sessions")
+		err := errors.NotImplementedf("no session encryption configuration, unable to use sessions")
 		if c.Logger != nil {
 			c.Logger.Warn(err.Error())
 		}
@@ -806,7 +806,7 @@ func loadEnvSessionKeys() [][]byte {
 	return keys
 }
 
-func (h *handler)ErrorHandler(errs ...error) http.Handler {
+func (h *handler) ErrorHandler(errs ...error) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		h.HandleErrors(w, r, errs...)
 	}
@@ -857,5 +857,14 @@ func (h handler) CSRF(next http.Handler) http.Handler {
 		csrf.Secure(h.conf.Env.IsProd()),
 		csrf.ErrorHandler(h.ErrorHandler(errors.Forbiddenf("Invalid request token"))),
 	}
-	return csrf.Protect(h.conf.SessionKeys[0], opts...)(next)
+	var authKey []byte
+	if len(h.conf.SessionKeys) > 0 {
+		authKey = h.conf.SessionKeys[0]
+	} else {
+		if h.conf.Env.IsProd() {
+			h.logger.Warnf("Invalid CSRF auth key")
+		}
+		authKey = []byte{0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1}
+	}
+	return csrf.Protect(authKey, opts...)(next)
 }
