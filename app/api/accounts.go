@@ -575,7 +575,7 @@ func (h handler) HandleCollection(w http.ResponseWriter, r *http.Request) {
 	//   I need to decide if 0 count is an error or not and use the same logic when handling
 	//   loadCollection() below
 	//if count  == 0 {
-	//	h.HandleError(w, r, errors.NewNotFound(err, "no items"))
+	//	h.HandleErrors(w, r, errors.NewNotFound(err, "no items"))
 	//	return
 	//}
 
@@ -585,7 +585,7 @@ func (h handler) HandleCollection(w http.ResponseWriter, r *http.Request) {
 	page, err = loadCollection(items, count, typ, f, baseURL)
 	//if err != nil {
 	//	h.logger.Error(err.Error())
-	//	h.HandleError(w, r, errors.NewNotFound(err, fmt.Sprintf("%s", typ)))
+	//	h.HandleErrors(w, r, errors.NewNotFound(err, fmt.Sprintf("%s", typ)))
 	//	return
 	//}
 

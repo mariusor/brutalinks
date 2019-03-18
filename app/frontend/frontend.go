@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
+	"github.com/gorilla/csrf"
 	"html/template"
 	"math"
 	"net/http"
@@ -34,6 +35,7 @@ const (
 )
 
 type handler struct {
+	env app.EnvType
 	session sessions.Store
 	account app.Account
 	logger  log.Logger
@@ -168,6 +170,7 @@ func relTimeFmt(old time.Time) string {
 }
 
 type Config struct {
+	Env            app.EnvType
 	Version        string
 	BaseURL        string
 	HostName       string
@@ -197,6 +200,7 @@ func Init(c Config) (handler, error) {
 
 	c.SessionKeys = loadEnvSessionKeys()
 	h.session, err = InitSessionStore(c)
+	h.env = c.Env
 
 	return h, err
 }
@@ -496,6 +500,7 @@ func (h handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name str
 			"sameHash":          sameHash,
 			"fmtPubKey":         fmtPubKey,
 			"pluralize":         func(s string, cnt int) string { return pluralize(float64(cnt), s) },
+			csrf.TemplateTag:    func() template.HTML { return csrf.TemplateField(r) },
 			//"ScoreFmt":          func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
 			//"NumberFmt":         func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
 		}},
@@ -542,13 +547,13 @@ func (h handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
 		for _, errDesc := range errDescriptions {
 			errs = append(errs, errors.Errorf(errDesc))
 		}
-		h.HandleError(w, r, errs...)
+		h.HandleErrors(w, r, errs...)
 		return
 	}
 	code := q["code"]
 	state := q["state"]
 	if code == nil {
-		h.HandleError(w, r, errors.Forbiddenf("%s error: Empty authentication token", provider))
+		h.HandleErrors(w, r, errors.Forbiddenf("%s error: Empty authentication token", provider))
 		return
 	}
 
@@ -737,7 +742,7 @@ func loadFlashMessages() []flash {
 func (h handler) NeedsSessions(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		if !app.Instance.Config.SessionsEnabled {
-			h.HandleError(w, r, errors.NotFoundf("sessions are disabled"))
+			h.HandleErrors(w, r, errors.NotFoundf("sessions are disabled"))
 			return
 		}
 		next.ServeHTTP(w, r)
@@ -751,7 +756,7 @@ func (h *handler) HandleAbout(w http.ResponseWriter, r *http.Request) {
 	m := aboutModel{Title: "About"}
 	f, err := db.Config.LoadInfo()
 	if err != nil {
-		h.HandleError(w, r, errors.NewNotValid(err, "oops!"))
+		h.HandleErrors(w, r, errors.NewNotValid(err, "oops!"))
 		return
 	}
 	m.Desc.Description = f.Description
@@ -801,8 +806,15 @@ func loadEnvSessionKeys() [][]byte {
 	return keys
 }
 
-// HandleError serves failed requests
-func (h *handler) HandleError(w http.ResponseWriter, r *http.Request, errs ...error) {
+func (h *handler)ErrorHandler(errs ...error) http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		h.HandleErrors(w, r, errs...)
+	}
+	return http.HandlerFunc(fn)
+}
+
+// HandleErrors serves failed requests
+func (h *handler) HandleErrors(w http.ResponseWriter, r *http.Request, errs ...error) {
 	d := errorModel{
 		Errors: errs,
 	}
@@ -836,4 +848,14 @@ func getNodeInfo(req *http.Request) (app.Info, error) {
 		nodeInfo, err = nodeInfoLoader.LoadInfo()
 	}
 	return nodeInfo, err
+}
+
+func (h handler) CSRF(next http.Handler) http.Handler {
+	opts := []csrf.Option{
+		csrf.CookieName("_csrf_t"),
+		csrf.FieldName("_csrf_t"),
+		csrf.Secure(h.env.IsProd()),
+		csrf.ErrorHandler(h.ErrorHandler(errors.Forbiddenf("Invalid request token"))),
+	}
+	return csrf.Protect([]byte("12345678901234567890123456789012"), opts...)(next)
 }

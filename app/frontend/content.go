@@ -210,7 +210,7 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 			"handle": handle,
 			"hash":   hash,
 		}).Error(err.Error())
-		h.HandleError(w, r, errors.NotFoundf("Item %q", hash))
+		h.HandleErrors(w, r, errors.NotFoundf("Item %q", hash))
 		return
 	}
 	if !i.Deleted() && len(i.Data)+len(i.Title) == 0 {
@@ -222,7 +222,7 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 			"content":     i.Data[0:datLen],
 			"content_len": len(i.Data),
 		}).Warn("Item deleted or empty")
-		h.HandleError(w, r, errors.NotFoundf("Item %q", hash))
+		h.HandleErrors(w, r, errors.NotFoundf("Item %q", hash))
 		return
 	}
 	m.Content = comment{Item: i}
@@ -260,7 +260,7 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil {
 		h.logger.Error(err.Error())
-		h.HandleError(w, r, errors.NewNotFound(err, ""/*, errors.ErrorStack(err)*/))
+		h.HandleErrors(w, r, errors.NewNotFound(err, "" /*, errors.ErrorStack(err)*/))
 		return
 	}
 	allComments = append(allComments, loadComments(contentItems)...)
@@ -305,7 +305,7 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 		h.logger.WithContext(log.Ctx{
 			"prev": err,
 		}).Error("wrong http method")
-		h.HandleError(w, r, errors.NewMethodNotAllowed(err, ""))
+		h.HandleErrors(w, r, errors.NewMethodNotAllowed(err, ""))
 		return
 	}
 
@@ -336,7 +336,7 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 			h.logger.WithContext(log.Ctx{
 				"prev": err,
 			}).Error("unable to save item")
-			h.HandleError(w, r, errors.NewNotValid(err, "oops!"))
+			h.HandleErrors(w, r, errors.NewNotValid(err, "oops!"))
 			return
 		}
 	}
@@ -384,7 +384,7 @@ func (h *handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 	p, err := itemLoader.LoadItem(app.LoadItemsFilter{Key: app.Hashes{app.Hash(hash)}})
 	if err != nil {
 		h.logger.Error(err.Error())
-		h.HandleError(w, r, errors.NewNotFound(err, "not found"))
+		h.HandleErrors(w, r, errors.NewNotFound(err, "not found"))
 		return
 	}
 
@@ -432,7 +432,7 @@ func (h *handler) HandleVoting(w http.ResponseWriter, r *http.Request) {
 	p, err := itemLoader.LoadItem(app.LoadItemsFilter{Key: app.Hashes{app.Hash(hash)}})
 	if err != nil {
 		h.logger.Error(err.Error())
-		h.HandleError(w, r, errors.NewNotFound(err, "not found"))
+		h.HandleErrors(w, r, errors.NewNotFound(err, "not found"))
 		return
 	}
 

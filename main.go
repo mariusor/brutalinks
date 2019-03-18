@@ -37,14 +37,16 @@ func main() {
 	flag.StringVar(&env, "env", "", "the environment type")
 	flag.Parse()
 
-	app.Instance = app.New(host, port, app.EnvType(env), version)
+	e := app.EnvType(env)
+	app.Instance = app.New(host, port, e, version)
 
 	db.Init(&app.Instance)
 	front, err := frontend.Init(frontend.Config{
-		Logger:      app.Instance.Logger.New(log.Ctx{"package": "frontend"}),
-		Secure:      app.Instance.Secure,
-		BaseURL:     app.Instance.BaseURL,
-		HostName:    app.Instance.HostName,
+		Env:      e,
+		Logger:   app.Instance.Logger.New(log.Ctx{"package": "frontend"}),
+		Secure:   app.Instance.Secure,
+		BaseURL:  app.Instance.BaseURL,
+		HostName: app.Instance.HostName,
 	})
 	if err != nil {
 		app.Instance.Logger.Warn(err.Error())
@@ -95,10 +97,10 @@ func main() {
 	})
 
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
-		front.HandleError(w, r, errors.NotFoundf("%s", r.RequestURI))
+		front.HandleErrors(w, r, errors.NotFoundf("%s", r.RequestURI))
 	})
 	r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
-		front.HandleError(w, r, errors.MethodNotAllowedf("%s not allowed", r.Method))
+		front.HandleErrors(w, r, errors.MethodNotAllowedf("%s not allowed", r.Method))
 	})
 
 	app.Instance.Run(r, wait)

@@ -185,7 +185,7 @@ func (h *handler) HandleIndex(w http.ResponseWriter, r *http.Request) {
 		}
 		h.RenderTemplate(r, w, "listing", m)
 	} else {
-		h.HandleError(w, r, errors.NewNotValid(err, "oops!"))
+		h.HandleErrors(w, r, errors.NewNotValid(err, "oops!"))
 	}
 }
 
@@ -229,7 +229,7 @@ func (h *handler) HandleTags(w http.ResponseWriter, r *http.Request) {
 		Page:     1,
 	}
 	if len(tag) == 0 {
-		h.HandleError(w, r, errors.BadRequestf("missing tag", tag))
+		h.HandleErrors(w, r, errors.BadRequestf("missing tag", tag))
 	}
 	filter.Content = "#" + tag
 	filter.ContentMatchType = app.MatchFuzzy
@@ -247,7 +247,7 @@ func (h *handler) HandleTags(w http.ResponseWriter, r *http.Request) {
 		}
 		h.RenderTemplate(r, w, "listing", m)
 	} else {
-		h.HandleError(w, r, errors.NewNotValid(err, "oops!"))
+		h.HandleErrors(w, r, errors.NewNotValid(err, "oops!"))
 	}
 }
 
@@ -282,6 +282,6 @@ func (h *handler) HandleDomains(w http.ResponseWriter, r *http.Request) {
 		}
 		h.RenderTemplate(r, w, "listing", m)
 	} else {
-		h.HandleError(w, r, errors.NewNotValid(err, "oops!"))
+		h.HandleErrors(w, r, errors.NewNotValid(err, "oops!"))
 	}
 }

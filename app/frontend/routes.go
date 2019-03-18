@@ -3,8 +3,8 @@ package frontend
 import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
-	"github.com/mariusor/littr.go/internal/errors"
 	"github.com/mariusor/littr.go/app"
+	"github.com/mariusor/littr.go/internal/errors"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -14,18 +14,21 @@ func (h *handler) Routes() func(chi.Router) {
 	return func(r chi.Router) {
 		r.Use(h.LoadSession)
 		r.Use(middleware.GetHead)
-		r.Use(app.NeedsDBBackend(h.HandleError))
+		r.Use(app.NeedsDBBackend(h.HandleErrors))
 		//r.Use(middleware.RedirectSlashes)
 
 		r.Get("/", h.HandleIndex)
 
 		r.Get("/about", h.HandleAbout)
 
-		r.Get("/submit", h.ShowSubmit)
-		r.Post("/submit", h.HandleSubmit)
-
-		r.Get("/register", h.ShowRegister)
-		r.Post("/register", h.HandleRegister)
+		r.With(h.CSRF).Group(func (r chi.Router){
+			r.Get("/submit", h.ShowSubmit)
+			r.Post("/submit", h.HandleSubmit)
+		})
+		r.With(h.CSRF).Group(func (r chi.Router) {
+			r.Get("/register", h.ShowRegister)
+			r.Post("/register", h.HandleRegister)
+		})
 
 		r.Route("/~{handle}", func(r chi.Router) {
 			r.Get("/", h.ShowAccount)
@@ -62,8 +65,10 @@ func (h *handler) Routes() func(chi.Router) {
 		r.Get("/t/{tag}", h.HandleTags)
 
 		r.With(h.NeedsSessions).Get("/logout", h.HandleLogout)
-		r.With(h.NeedsSessions).Get("/login", h.ShowLogin)
-		r.With(h.NeedsSessions).Post("/login", h.HandleLogin)
+		r.With(h.CSRF, h.NeedsSessions).Group(func (r chi.Router) {
+			r.Get("/login", h.ShowLogin)
+			r.Post("/login", h.HandleLogin)
+		})
 
 		r.Get("/self", h.HandleIndex)
 		r.Get("/federated", h.HandleIndex)
@@ -73,10 +78,10 @@ func (h *handler) Routes() func(chi.Router) {
 		r.With(h.NeedsSessions).Get("/auth/{provider}/callback", h.HandleCallback)
 
 		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
-			h.HandleError(w, r, errors.NotFoundf("%q", r.RequestURI))
+			h.HandleErrors(w, r, errors.NotFoundf("%q", r.RequestURI))
 		})
 		r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
-			h.HandleError(w, r, errors.MethodNotAllowedf("invalid %q request", r.Method))
+			h.HandleErrors(w, r, errors.MethodNotAllowedf("invalid %q request", r.Method))
 		})
 
 		workDir, _ := os.Getwd()

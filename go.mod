@@ -10,6 +10,7 @@ require (
 	github.com/go-ap/jsonld v0.0.0-20190306111347-fbb94302fe92
 	github.com/go-chi/chi v0.0.0-20171222161133-e83ac2304db3
 	github.com/go-pg/pg v7.1.1+incompatible
+	github.com/gorilla/csrf v1.5.1
 	github.com/gorilla/securecookie v1.1.1
 	github.com/gorilla/sessions v1.1.1
 	github.com/jinzhu/inflection v0.0.0-20180308033659-04140366298a // indirect

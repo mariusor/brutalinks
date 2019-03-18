@@ -159,7 +159,7 @@ func (h *handler) ValidateItemAuthor(next http.Handler) http.Handler {
 			m, err := itemLoader.LoadItem(app.LoadItemsFilter{Key: app.Hashes{app.Hash(hash)}})
 			if err != nil {
 				h.logger.Error(err.Error())
-				h.HandleError(w, r, errors.NewNotFound(err, "item"))
+				h.HandleErrors(w, r, errors.NewNotFound(err, "item"))
 				return
 			}
 			if !sameHash(m.SubmittedBy.Hash, acc.Hash) {

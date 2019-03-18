@@ -5,6 +5,7 @@
         <input name="handle" id="auth-handle" type="text" size="40" required/><br/>
         <label for="auth-pw">Password: </label><br/>
         <input name="pw" id="auth-pw" type="password" size="40" required/><br/>
+        {{ csrfField }}
         <button type="submit">{{ icon "sign-in" }} Log in</button>
     </fieldset>
 </form>

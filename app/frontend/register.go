@@ -82,7 +82,7 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	a, errs := accountFromRequest(r, h.logger)
 
 	if len(errs) > 0 {
-		h.HandleError(w, r, errs...)
+		h.HandleErrors(w, r, errs...)
 		return
 	}
 	h.Redirect(w, r, a.GetLink(), http.StatusSeeOther)

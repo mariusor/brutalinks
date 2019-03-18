@@ -7,6 +7,7 @@
         <input name="pw" id="new-acct-pw" type="password" minlength="8" size="40" required/><br/>
         <label for="new-acct-pw-confirm">Confirm password:</label><br/>
         <input name="pw-confirm" id="new-acct-pw-confirm" type="password" minlength="8" size="40" required/><br/>
+        {{ csrfField }}
         <button type="submit">Register</button>
         {{/*<label class="new-acct-details details-agree">
             <input type="checkbox" name="agree" id="new-acct-agree" value="y" />
