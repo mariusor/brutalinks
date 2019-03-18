@@ -208,37 +208,36 @@ func Init(c Config) (handler, error) {
 // InitSessionStore initializes the session store if we have encryption key settings in the env variables
 func InitSessionStore(c Config) (sessions.Store, error) {
 	var s sessions.Store
-	if len(c.SessionKeys) > 0 {
-		switch c.SessionBackend {
-		case "file":
-			sessDir := fmt.Sprintf("%s/%s", os.TempDir(), c.HostName)
-			if _, err := os.Stat(sessDir); os.IsNotExist(err) {
-				if err := os.Mkdir(sessDir, 0700); err != nil {
-					c.Logger.WithContext(log.Ctx{
-						"folder": sessDir,
-						"err":    err,
-					}).Error("unable to create folder")
-				}
-			}
-			ss := sessions.NewFilesystemStore(sessDir, c.SessionKeys...)
-			s = ss
-		case "cookie":
-			fallthrough
-		default:
-			ss := sessions.NewCookieStore(c.SessionKeys...)
-			ss.Options.Domain = c.HostName
-			ss.Options.Path = "/"
-			ss.Options.HttpOnly = true
-			ss.Options.Secure = c.Secure
-			s = ss
-		}
-	} else {
+	if len(c.SessionKeys) == 0 {
 		err := errors.New("no session encryption configuration, unable to use sessions")
 		if c.Logger != nil {
 			c.Logger.Warn(err.Error())
 		}
 		//app.Config.SessionsEnabled = false
 		return nil, err
+	}
+	switch c.SessionBackend {
+	case "file":
+		sessDir := fmt.Sprintf("%s/%s", os.TempDir(), c.HostName)
+		if _, err := os.Stat(sessDir); os.IsNotExist(err) {
+			if err := os.Mkdir(sessDir, 0700); err != nil {
+				c.Logger.WithContext(log.Ctx{
+					"folder": sessDir,
+					"err":    err,
+				}).Error("unable to create folder")
+			}
+		}
+		ss := sessions.NewFilesystemStore(sessDir, c.SessionKeys...)
+		s = ss
+	case "cookie":
+		fallthrough
+	default:
+		ss := sessions.NewCookieStore(c.SessionKeys...)
+		ss.Options.Domain = c.HostName
+		ss.Options.Path = "/"
+		ss.Options.HttpOnly = true
+		ss.Options.Secure = c.Secure
+		s = ss
 	}
 	return s, nil
 }
