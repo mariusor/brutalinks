@@ -26,6 +26,10 @@ const MimeTypeText = MimeType("text/plain")
 
 type Key [32]byte
 
+func (k Key) IsEmpty() bool {
+	return k == Key{}
+}
+
 func (k Key) String() string {
 	return string(k[0:32])
 }
