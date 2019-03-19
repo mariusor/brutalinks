@@ -69,6 +69,75 @@ create table instances
   flags bit(8) default 0::bit(8)
 );
 
+-- name: create-activitypub-type-enum
+CREATE TYPE "type" AS ENUM (
+  'Object',
+  'Link',
+  'Activity',
+  'IntransitiveActivity',
+  'Actor',
+  'Collection',
+  'OrderedCollection',
+  'CollectionPage',
+  'OrderedCollectionPage',
+  'Article',
+  'Audio',
+  'Document',
+  'Event',
+  'Image',
+  'Note',
+  'Page',
+  'Place',
+  'Profile',
+  'Relationship',
+  'Tombstone',
+  'Video',
+  'Mention',
+  'Application',
+  'Group',
+  'Organization',
+  'Person',
+  'Service',
+  'Accept',
+  'Add',
+  'Announce',
+  'Arrive',
+  'Block',
+  'Create',
+  'Delete',
+  'Dislike',
+  'Flag',
+  'Follow',
+  'Ignore',
+  'Invite',
+  'Join',
+  'Leave',
+  'Like',
+  'Listen',
+  'Move',
+  'Offer',
+  'Question',
+  'Reject',
+  'Read',
+  'Remove',
+  'TentativeReject',
+  'TentativeAccept',
+  'Travel',
+  'Undo',
+  'Update',
+  'View'
+  );
+
+-- name: create-activitypub-objects
+create table objects
+(
+  "id"  serial not null constraint objects_pkey primary key,
+  "key" char(32) constraint objects_key_key unique,
+  "iri" varchar constraint objects_iri_key unique,
+  "type" type,
+  "raw" jsonb
+);
+
 -- name: create-activitypub-actors
 create table actors (
   "id" serial not null constraint actors_pkey primary key,
