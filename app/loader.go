@@ -772,7 +772,7 @@ func ContextAccount(ctx context.Context) (Account, bool) {
 }
 
 func ContextActivitySaver(ctx context.Context) (CanSaveActivity, bool) {
-	ctxVal := ctx.Value(AccountCtxtKey)
+	ctxVal := ctx.Value(RepositoryCtxtKey)
 	a, ok := ctxVal.(CanSaveActivity)
 	return a, ok
 }
