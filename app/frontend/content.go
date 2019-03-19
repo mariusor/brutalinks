@@ -317,7 +317,7 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	val := r.Context().Value(app.RepositoryCtxtKey)
 	itemLoader, ok := val.(app.CanLoadItems)
 	if !ok {
-		h.logger.Error("could not load item repository from Context")
+		h.HandleErrors(w, r, errors.Errorf("could not load item repository from Context"))
 		return
 	}
 
