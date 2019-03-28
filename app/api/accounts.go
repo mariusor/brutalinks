@@ -1006,7 +1006,7 @@ func validateOutboxActivityType(typ as.ActivityVocabularyType) error {
 		as.LikeType,
 		as.DislikeType,
 		as.DeleteType,
-		//as.UndoType, // @todo(marius): not implemented yet
+		as.UndoType, // @todo(marius): not implemented yet
 	}
 	if err := validateItemType(typ, validTypes); err != nil {
 		return errors.Annotate(err, "failed to validate activity type for outbox collection")
@@ -1094,6 +1094,8 @@ func (h handler) ClientRequest(w http.ResponseWriter, r *http.Request) {
 				status = http.StatusOK
 			}
 		}
+	case as.UndoType:
+		fallthrough
 	case as.DislikeType:
 		fallthrough
 	case as.LikeType:
@@ -1128,6 +1130,7 @@ func (h handler) ClientRequest(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+
 	if err != nil {
 		h.logger.WithContext(log.Ctx{
 			"actor":   a.Actor.GetLink(),

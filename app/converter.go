@@ -20,7 +20,7 @@ type Converter interface {
 }
 
 func (h *Hash) FromActivityPub(it as.Item) error {
-	*h = getHashFromAP(it.GetLink())
+	*h = GetHashFromAP(it.GetLink())
 	return nil
 }
 
@@ -382,10 +382,12 @@ func (v *Vote) FromActivityPub(it as.Item) error {
 		return errors.New("unable to load from IRI")
 	}
 	switch it.GetType() {
+	case as.UndoType:
+		fallthrough
 	case as.LikeType:
 		fallthrough
 	case as.DislikeType:
-		if act, ok := it.(ap.Activity); ok {
+		fromAct := func (act ap.Activity, v *Vote) {
 			on := Item{}
 			on.FromActivityPub(act.Object)
 			v.Item = &on
@@ -401,25 +403,16 @@ func (v *Vote) FromActivityPub(it as.Item) error {
 			}
 			if act.Type == as.DislikeType {
 				v.Weight = -1
+			}
+			if act.Type == as.UndoType {
+				v.Weight = 0
 			}
 		}
+		if act, ok := it.(ap.Activity); ok {
+			fromAct(act, v)
+		}
 		if act, ok := it.(*ap.Activity); ok {
-			on := Item{}
-			on.FromActivityPub(act.Object)
-			v.Item = &on
-
-			er := Account{}
-			er.FromActivityPub(act.Actor)
-			v.SubmittedBy = &er
-
-			v.SubmittedAt = act.Published
-			v.UpdatedAt = act.Updated
-			if act.Type == as.LikeType {
-				v.Weight = 1
-			}
-			if act.Type == as.DislikeType {
-				v.Weight = -1
-			}
+			fromAct(*act, v)
 		}
 	}
 
@@ -437,7 +430,7 @@ func host(u string) string {
 	return ""
 }
 
-func getHashFromAP(obj as.Item) Hash {
+func GetHashFromAP(obj as.Item) Hash {
 	iri := obj.GetLink()
 	s := strings.Split(iri.String(), "/")
 	var hash string

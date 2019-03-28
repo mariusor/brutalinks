@@ -313,6 +313,52 @@ var Tests = testPairs{
 			},
 		},
 	},
+	"C2S_UndoLike#2": {
+		{
+			req: testReq{
+				met:     http.MethodPost,
+				url:     outboxURL,
+				account: &defaultTestAccount,
+				body: fmt.Sprintf(`{
+  "type": "Like",
+  "actor": "%s/self/following/%s",
+  "object": "%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object"
+}`, apiURL, testActorHash, apiURL),
+			},
+			res: testRes{
+				code: http.StatusCreated,
+				val: objectVal{
+					id:  fmt.Sprintf("%s/self/following/%s/liked/162edb32c80d0e6dd3114fbb59d6273b", apiURL, testActorHash),
+					typ: string(as.LikeType),
+					obj: &objectVal{
+						id: fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object", apiURL),
+					},
+				},
+			},
+		},
+		{
+			req: testReq{
+				met:     http.MethodPost,
+				url:     outboxURL,
+				account: &defaultTestAccount,
+				body: fmt.Sprintf(`{
+  "type": "Undo",
+  "actor": "%s/self/following/%s",
+  "object": "%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object"
+}`, apiURL, testActorHash, apiURL),
+			},
+			res: testRes{
+				code: http.StatusCreated,
+				val: objectVal{
+					id:  fmt.Sprintf("%s/self/following/%s/liked/162edb32c80d0e6dd3114fbb59d6273b", apiURL, testActorHash),
+					typ: string(as.UndoType),
+					obj: &objectVal{
+						id: fmt.Sprintf("%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b/object", apiURL),
+					},
+				},
+			},
+		},
+	},
 	"C2S_Create": {{
 		req: testReq{
 			met:     http.MethodPost,

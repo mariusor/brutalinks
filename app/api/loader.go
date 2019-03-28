@@ -593,18 +593,17 @@ func (r *repository) LoadItems(f app.LoadItemsFilter) (app.ItemCollection, uint,
 }
 
 func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
-	url := fmt.Sprintf("%s/self/following/%s/outbox/%s", r.BaseURL, v.Item.SubmittedBy.Hash, v.Item.Hash)
+	url := fmt.Sprintf("%s/self/following/%s/liked/%s", r.BaseURL, v.Item.SubmittedBy.Hash, v.Item.Hash)
 
 	var err error
-	var exists *http.Response
+	var exists as.Item
 	// first step is to verify if vote already exists:
-	if exists, err = r.client.Head(url); err != nil {
+	if exists, err = r.client.LoadIRI(as.IRI(url)); err != nil {
 		r.logger.WithContext(log.Ctx{
 			"url":   url,
 			"err":   err,
 			"trace": errors.Details(err),
-		}).Error(err.Error())
-		return v, err
+		}).Warn(err.Error())
 	}
 	p := loadAPPerson(*v.SubmittedBy)
 	o := loadAPItem(*v.Item)
@@ -614,11 +613,22 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 	act.ID = id
 	act.Actor = p.GetLink()
 	act.Object = o.GetLink()
+	act.Type = as.UndoType
 
-	if v.Weight > 0 {
-		act.Type = as.LikeType
+	if len(*exists.GetID()) > 0 {
+		if v.Weight > 0 && exists.GetType() != as.LikeType {
+			act.Type = as.LikeType
+		}
+		if v.Weight < 0 && exists.GetType() != as.DislikeType {
+			act.Type = as.DislikeType
+		}
 	} else {
-		act.Type = as.DislikeType
+		if v.Weight > 0 {
+			act.Type = as.LikeType
+		}
+		if v.Weight < 0 {
+			act.Type = as.DislikeType
+		}
 	}
 
 	var body []byte
@@ -629,23 +639,7 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 
 	var resp *http.Response
 	outbox := fmt.Sprintf("%s/self/following/%s/outbox", r.BaseURL, v.Item.SubmittedBy.Hash)
-	if exists.StatusCode == http.StatusOK {
-		// previously found a vote, needs updating
-		resp, err = r.client.Post(outbox, "application/json+activity", bytes.NewReader(body))
-	} else if exists.StatusCode == http.StatusNotFound {
-		// previously didn't fund a vote, needs adding
-		resp, err = r.client.Post(outbox, "application/json+activity", bytes.NewReader(body))
-	} else {
-		err = errors.New("received unexpected http response")
-		r.logger.WithContext(log.Ctx{
-			"url":           url,
-			"response_code": exists.StatusCode,
-			"trace":         errors.Details(err),
-		}).Error(err.Error())
-		return v, err
-	}
-
-	if err != nil {
+	if resp, err = r.client.Post(outbox, "application/json+activity", bytes.NewReader(body)); err != nil {
 		r.logger.Error(err.Error())
 		return v, err
 	}
