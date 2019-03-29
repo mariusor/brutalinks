@@ -479,16 +479,16 @@ func (r *repository) loadItemsAuthors(items ...app.Item) (app.ItemCollection, er
 		return app.ItemCollection{}, nil
 	}
 
-	fActors := app.LoadAccountsFilter{}
+	fActors := app.Filters{}
 	for _, it := range items {
 		if len(it.SubmittedBy.Hash) > 0 {
-			fActors.Key = append(fActors.Key, it.SubmittedBy.Hash)
+			fActors.LoadAccountsFilter.Key = append(fActors.LoadAccountsFilter.Key, it.SubmittedBy.Hash)
 		} else if len(it.SubmittedBy.Handle) > 0 {
 			fActors.Handle = append(fActors.Handle, it.SubmittedBy.Handle)
 		}
 	}
-	fActors.Key = hashesUnique(fActors.Key)
-	if len(fActors.Key)+len(fActors.Handle) == 0 {
+	fActors.LoadAccountsFilter.Key = hashesUnique(fActors.LoadAccountsFilter.Key)
+	if len(fActors.LoadAccountsFilter.Key)+len(fActors.Handle) == 0 {
 		return nil, errors.Errorf("unable to load items authors")
 	}
 	col := make(app.ItemCollection, len(items))
@@ -508,7 +508,7 @@ func (r *repository) loadItemsAuthors(items ...app.Item) (app.ItemCollection, er
 	return col, nil
 }
 
-func (r *repository) LoadItems(f app.LoadItemsFilter) (app.ItemCollection, uint, error) {
+func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) {
 	var qs string
 	if q, err := qstring.MarshalString(&f); err == nil {
 		qs = fmt.Sprintf("?%s", q)
@@ -646,7 +646,7 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 	return v, errors.Errorf("unknown error, received status %d", resp.StatusCode)
 }
 
-func (r *repository) LoadVotes(f app.LoadVotesFilter) (app.VoteCollection, uint, error) {
+func (r *repository) LoadVotes(f app.Filters) (app.VoteCollection, uint, error) {
 	var qs string
 	if q, err := qstring.MarshalString(&f); err == nil {
 		qs = fmt.Sprintf("?%s", q)
@@ -693,7 +693,7 @@ func (r *repository) LoadVotes(f app.LoadVotesFilter) (app.VoteCollection, uint,
 	return votes, count, nil
 }
 
-func (r *repository) LoadVote(f app.LoadVotesFilter) (app.Vote, error) {
+func (r *repository) LoadVote(f app.Filters) (app.Vote, error) {
 	if len(f.ItemKey) == 0 {
 		return app.Vote{}, errors.New("invalid item hash")
 	}
@@ -820,7 +820,7 @@ func (r *repository) Get(u string) (*http.Response, error) {
 	return r.client.Get(u)
 }
 
-func (r *repository) LoadAccounts(f app.LoadAccountsFilter) (app.AccountCollection, uint, error) {
+func (r *repository) LoadAccounts(f app.Filters) (app.AccountCollection, uint, error) {
 	var qs string
 	if q, err := qstring.MarshalString(&f); err == nil {
 		qs = fmt.Sprintf("?%s", q)
@@ -869,7 +869,7 @@ func (r *repository) LoadAccounts(f app.LoadAccountsFilter) (app.AccountCollecti
 	return accounts, col.TotalItems, nil
 }
 
-func (r *repository) LoadAccount(f app.LoadAccountsFilter) (app.Account, error) {
+func (r *repository) LoadAccount(f app.Filters) (app.Account, error) {
 	var accounts app.AccountCollection
 	var err error
 	if accounts, _, err = r.LoadAccounts(f); err != nil {
@@ -878,8 +878,8 @@ func (r *repository) LoadAccount(f app.LoadAccountsFilter) (app.Account, error) 
 	var ac *app.Account
 	if ac, err = accounts.First(); err != nil {
 		var id string
-		if len(f.Key) > 0 {
-			id = f.Key[0].String()
+		if len(f.LoadAccountsFilter.Key) > 0 {
+			id = f.LoadAccountsFilter.Key[0].String()
 		}
 		if len(f.Handle) > 0 {
 			id = f.Handle[0]

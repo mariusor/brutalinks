@@ -59,6 +59,8 @@ func (a Account) Votes() VoteCollection {
 }
 
 func countVotes(db *pg.DB, f app.Filters) (uint, error) {
+	f.LoadAccountsFilter = app.LoadAccountsFilter{}
+	f.LoadItemsFilter = app.LoadItemsFilter{}
 	wheres, whereValues := f.GetWhereClauses()
 	var fullWhere string
 
@@ -83,6 +85,8 @@ func countVotes(db *pg.DB, f app.Filters) (uint, error) {
 }
 
 func loadVotes(db *pg.DB, f app.Filters) (app.VoteCollection, error) {
+	f.LoadItemsFilter = app.LoadItemsFilter{}
+	f.LoadAccountsFilter = app.LoadAccountsFilter{}
 	wheres, whereValues := f.GetWhereClauses()
 	var fullWhere string
 
