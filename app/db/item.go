@@ -210,7 +210,7 @@ func saveItem(db *pg.DB, it app.Item) (app.Item, error) {
 		}
 	}
 
-	col, err := loadItems(db, app.LoadItemsFilter{Key: app.Hashes{hash}, MaxItems: 1})
+	col, err := loadItems(db, app.Filters{LoadItemsFilter: app.LoadItemsFilter{ Key: app.Hashes{hash}}, MaxItems: 1})
 	if len(col) > 0 {
 		return col[0], nil
 	} else {
@@ -275,7 +275,7 @@ func (i itemsView) item() Item {
 	}
 }
 
-func countItems(db *pg.DB, f app.LoadItemsFilter) (uint, error) {
+func countItems(db *pg.DB, f app.Filters) (uint, error) {
 	wheres, whereValues := f.WithAuthorAlias("author").WithContentAlias("item").GetWhereClauses()
 	var fullWhere string
 
@@ -297,7 +297,7 @@ func countItems(db *pg.DB, f app.LoadItemsFilter) (uint, error) {
 	return count, nil
 }
 
-func loadItems(db *pg.DB, f app.LoadItemsFilter) (app.ItemCollection, error) {
+func loadItems(db *pg.DB, f app.Filters) (app.ItemCollection, error) {
 	wheres, whereValues := f.WithAuthorAlias("author").WithContentAlias("item").GetWhereClauses()
 	var fullWhere string
 
@@ -307,10 +307,6 @@ func loadItems(db *pg.DB, f app.LoadItemsFilter) (app.ItemCollection, error) {
 		fullWhere = fmt.Sprintf("%s", wheres[0])
 	} else {
 		fullWhere = fmt.Sprintf("(%s)", strings.Join(wheres, " AND "))
-	}
-	var offset string
-	if f.Page > 0 {
-		offset = fmt.Sprintf(" OFFSET %d", f.MaxItems*(f.Page-1))
 	}
 	// use hacker-news sort algorithm
 	// (votes - 1) / pow((item_hour_age+2), gravity)
@@ -339,7 +335,7 @@ func loadItems(db *pg.DB, f app.LoadItemsFilter) (app.ItemCollection, error) {
 		where %s 
 	order by 
 		(("item"."score" - 1) / ((extract(epoch from age(current_timestamp, "item"."submitted_at")) / 3600.00) ^ %f))
-	desc limit %d%s`, fullWhere, app.HNGravity, f.MaxItems, offset)
+	desc%s`, fullWhere, app.HNGravity, f.GetLimit())
 
 	agg := make([]itemsView, 0)
 	items := make(app.ItemCollection, 0)

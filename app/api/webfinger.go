@@ -34,19 +34,25 @@ func (r NodeInfoResolver) IsOpenRegistration() (bool, error) {
 }
 
 func (r NodeInfoResolver) Usage() (nodeinfo.Usage, error) {
-	us, _, _ := db.Config.LoadAccounts(app.LoadAccountsFilter{
+	us, _, _ := db.Config.LoadAccounts(app.Filters{
+			LoadAccountsFilter: app.LoadAccountsFilter{
+			//IRI:  app.Instance.APIURL,
+			Deleted: []bool{false},
+		},
 		MaxItems: math.MaxInt64,
-		//IRI:  app.Instance.APIURL,
-		Deleted:  []bool {false},
 	})
 
-	posts, _, _ := db.Config.LoadItems(app.LoadItemsFilter{
+	posts, _, _ := db.Config.LoadItems(app.Filters{
+		LoadItemsFilter:app.LoadItemsFilter{
+			Deleted: []bool{false},
+			Context: []string{"0"},
+		},
 		MaxItems: math.MaxInt64,
-		Deleted: []bool{ false },
-		Context: []string { "0" },
 	})
-	all, _, _ := db.Config.LoadItems(app.LoadItemsFilter{
-		Deleted: []bool{ false },
+	all, _, _ := db.Config.LoadItems(app.Filters {
+		LoadItemsFilter: app.LoadItemsFilter{
+			Deleted: []bool{false},
+		},
 		MaxItems: math.MaxInt64,
 	})
 
@@ -186,7 +192,7 @@ func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 			h.HandleError(w, r, err)
 			return
 		}
-		a, err := AcctLoader.LoadAccount(app.LoadAccountsFilter{Handle: []string{handle}})
+		a, err := AcctLoader.LoadAccount(app.Filters{LoadAccountsFilter:app.LoadAccountsFilter{Handle: []string{handle}}})
 		if err != nil {
 			err := errors.NotFoundf("resource not found")
 			h.logger.Error(err.Error())

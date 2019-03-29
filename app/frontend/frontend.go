@@ -654,7 +654,7 @@ func loadCurrentAccount(s *sessions.Session, l log.Logger) app.Account {
 	// load the current account from the session or setting it to anonymous
 	if raw, ok := s.Values[SessionUserKey]; ok {
 		if a, ok := raw.(sessionAccount); ok {
-			if acc, err := db.Config.LoadAccount(app.LoadAccountsFilter{Handle: []string{a.Handle}}); err == nil {
+			if acc, err := db.Config.LoadAccount(app.Filters{LoadAccountsFilter: app.LoadAccountsFilter{Handle: []string{a.Handle}}}); err == nil {
 				l.WithContext(log.Ctx{
 					"handle": acc.Handle,
 					"hash":   acc.Hash.String(),

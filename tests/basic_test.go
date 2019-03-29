@@ -69,7 +69,10 @@ var Tests = testPairs{
 						typ: string(as.OrderedCollectionType),
 						first: &objectVal{
 							id: fmt.Sprintf("%s/self/following?maxItems=50&page=1", apiURL),
-							//typ: string(as.CollectionPageType),
+							typ: string(as.OrderedCollectionPageType),
+							partOf:  &objectVal{
+								id: fmt.Sprintf("%s/self/following", apiURL),
+							},
 						},
 						itemCount: 3,
 						items: map[string]objectVal{

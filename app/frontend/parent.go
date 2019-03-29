@@ -16,8 +16,10 @@ func (h *handler) HandleItemRedirect(w http.ResponseWriter, r *http.Request) {
 		h.logger.Error("could not load item repository from Context")
 		return
 	}
-	p, err := itemLoader.LoadItem(app.LoadItemsFilter{
-		Key:      app.Hashes{app.Hash(chi.URLParam(r, "hash"))},
+	p, err := itemLoader.LoadItem(app.Filters{
+		LoadItemsFilter:app.LoadItemsFilter{
+			Key: app.Hashes{app.Hash(chi.URLParam(r, "hash"))},
+		},
 		MaxItems: 1,
 	})
 	if err != nil {

@@ -44,9 +44,9 @@ func PoachFeed(u string, since time.Duration) error {
 			if l.Author.Email != "" {
 				acct.Email = l.Author.Email
 			}
-			if existing, err := db.Config.LoadAccount(app.LoadAccountsFilter{
+			if existing, err := db.Config.LoadAccount(app.Filters{LoadAccountsFilter: app.LoadAccountsFilter{
 				Handle: []string{acct.Handle},
-			}); err != nil {
+			}}); err != nil {
 				acct.CreatedAt = time.Now().UTC()
 				acct.UpdatedAt = acct.CreatedAt
 				acct, err = db.Config.SaveAccount(acct)

@@ -144,7 +144,7 @@ func (c config) WithAccount(a *app.Account) error {
 	return errors.NotImplementedf("DB.Config.WithAccount")
 }
 
-func (c config) LoadVotes(f app.LoadVotesFilter) (app.VoteCollection, uint, error) {
+func (c config) LoadVotes(f app.Filters) (app.VoteCollection, uint, error) {
 	var count uint = 0
 	var err error
 	var votes app.VoteCollection
@@ -156,7 +156,7 @@ func (c config) LoadVotes(f app.LoadVotesFilter) (app.VoteCollection, uint, erro
 	return votes, count, err
 }
 
-func (c config) LoadVote(f app.LoadVotesFilter) (app.Vote, error) {
+func (c config) LoadVote(f app.Filters) (app.Vote, error) {
 	f.MaxItems = 1
 	votes, err := loadVotes(c.DB, f)
 	if err != nil {
@@ -177,7 +177,7 @@ func (c config) SaveItem(it app.Item) (app.Item, error) {
 	return saveItem(c.DB, it)
 }
 
-func (c config) LoadItem(f app.LoadItemsFilter) (app.Item, error) {
+func (c config) LoadItem(f app.Filters) (app.Item, error) {
 	f.MaxItems = 1
 	items, err := loadItems(c.DB, f)
 	if err != nil {
@@ -186,11 +186,11 @@ func (c config) LoadItem(f app.LoadItemsFilter) (app.Item, error) {
 	if i, err := items.First(); err == nil {
 		return *i, nil
 	} else {
-		return app.Item{}, errors.NotFoundf("item %s", f.Key)
+		return app.Item{}, errors.NotFoundf("item %s", f.LoadItemsFilter.Key)
 	}
 }
 
-func (c config) LoadItems(f app.LoadItemsFilter) (app.ItemCollection, uint, error) {
+func (c config) LoadItems(f app.Filters) (app.ItemCollection, uint, error) {
 	var count uint = 0
 	var err error
 	var items app.ItemCollection
@@ -202,8 +202,8 @@ func (c config) LoadItems(f app.LoadItemsFilter) (app.ItemCollection, uint, erro
 	return items, count, err
 }
 
-func (c config) LoadAccount(f app.LoadAccountsFilter) (app.Account, error) {
-	if len(f.Key) + len(f.Handle) == 0 {
+func (c config) LoadAccount(f app.Filters) (app.Account, error) {
+	if len(f.LoadAccountsFilter.Key) + len(f.Handle) == 0 {
 		return app.Account{}, errors.NotValidf("invalid search, missing account identifier")
 	}
 	f.MaxItems = 1
@@ -218,14 +218,14 @@ func (c config) LoadAccount(f app.LoadAccountsFilter) (app.Account, error) {
 		if len(f.Handle) > 0 {
 			han = f.Handle[0]
 		}
-		if len(f.Key) > 0 {
-			han = string(f.Key[0])
+		if len(f.LoadAccountsFilter.Key) > 0 {
+			han = string(f.LoadAccountsFilter.Key[0])
 		}
 		return app.Account{}, errors.NotFoundf("account %s", han)
 	}
 }
 
-func (c config) LoadAccounts(f app.LoadAccountsFilter) (app.AccountCollection, uint, error) {
+func (c config) LoadAccounts(f app.Filters) (app.AccountCollection, uint, error) {
 	var count uint = 0
 	var err error
 	var accounts app.AccountCollection

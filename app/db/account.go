@@ -43,7 +43,7 @@ func UpdateAccount(db *pg.DB, a app.Account) (app.Account, error) {
 	return a, nil
 }
 
-func countAccounts(db *pg.DB, f app.LoadAccountsFilter) (uint, error) {
+func countAccounts(db *pg.DB, f app.Filters) (uint, error) {
 	wheres, whereValues := f.GetWhereClauses()
 	var fullWhere string
 
@@ -63,7 +63,7 @@ func countAccounts(db *pg.DB, f app.LoadAccountsFilter) (uint, error) {
 	return count, nil
 }
 
-func loadAccounts(db *pg.DB, f app.LoadAccountsFilter) (app.AccountCollection, error) {
+func loadAccounts(db *pg.DB, f app.Filters) (app.AccountCollection, error) {
 	wheres, whereValues := f.GetWhereClauses()
 	var fullWhere string
 
@@ -74,14 +74,10 @@ func loadAccounts(db *pg.DB, f app.LoadAccountsFilter) (app.AccountCollection, e
 	} else {
 		fullWhere = fmt.Sprintf("(%s)", strings.Join(wheres, " AND "))
 	}
-	var offset string
-	if f.Page > 0 {
-		offset = fmt.Sprintf(" OFFSET %d", f.MaxItems*f.Page)
-	}
 
 	sel := fmt.Sprintf(`select 
 		"id", "key", "handle", "email", "score", "created_at", "updated_at", "metadata", "flags"
-	from "accounts" where %s LIMIT %d%s`, fullWhere, f.MaxItems, offset)
+	from "accounts" where %s%s;`, fullWhere, f.GetLimit())
 
 	type AccountCollection []Account
 	agg := make(AccountCollection, 0)

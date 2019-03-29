@@ -147,12 +147,14 @@ func pageLink(p int) template.HTML {
 
 // HandleIndex serves / request
 func (h *handler) HandleIndex(w http.ResponseWriter, r *http.Request) {
-	filter := app.LoadItemsFilter{
-		Context:   []string{"0"},
-		MaxItems:  MaxContentItems,
-		Federated: []bool{false},
-		Deleted:   []bool{false},
+	filter := app.Filters{
+		LoadItemsFilter:app.LoadItemsFilter{
+			Context:   []string{"0"},
+			Federated: []bool{false},
+			Deleted:   []bool{false},
+		},
 		Page:      1,
+		MaxItems:  MaxContentItems,
 	}
 	if err := qstring.Unmarshal(r.URL.Query(), &filter); err != nil {
 		h.logger.Debug("unable to load url parameters")
@@ -189,7 +191,7 @@ func (h *handler) HandleIndex(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func loadItems(c context.Context, filter app.LoadItemsFilter, acc *app.Account, l log.Logger) (itemListingModel, error) {
+func loadItems(c context.Context, filter app.Filters, acc *app.Account, l log.Logger) (itemListingModel, error) {
 	m := itemListingModel{}
 
 	itemLoader, ok := app.ContextItemLoader(c)
@@ -206,9 +208,11 @@ func loadItems(c context.Context, filter app.LoadItemsFilter, acc *app.Account, 
 	if acc.IsLogged() {
 		votesLoader, ok := app.ContextVoteLoader(c)
 		if ok {
-			acc.Votes, _, err = votesLoader.LoadVotes(app.LoadVotesFilter{
-				AttributedTo: []app.Hash{acc.Hash},
-				ItemKey:      m.Items.getItemsHashes(),
+			acc.Votes, _, err = votesLoader.LoadVotes(app.Filters{
+				LoadVotesFilter: app.LoadVotesFilter{
+					AttributedTo: []app.Hash{acc.Hash},
+					ItemKey:      m.Items.getItemsHashes(),
+				},
 				MaxItems:     MaxContentItems,
 			})
 			if err != nil {
@@ -224,7 +228,7 @@ func loadItems(c context.Context, filter app.LoadItemsFilter, acc *app.Account, 
 // HandleDomains serves /tags/{domain} request
 func (h *handler) HandleTags(w http.ResponseWriter, r *http.Request) {
 	tag := chi.URLParam(r, "tag")
-	filter := app.LoadItemsFilter{
+	filter := app.Filters{
 		MaxItems: MaxContentItems,
 		Page:     1,
 	}
@@ -255,8 +259,10 @@ func (h *handler) HandleTags(w http.ResponseWriter, r *http.Request) {
 func (h *handler) HandleDomains(w http.ResponseWriter, r *http.Request) {
 	domain := chi.URLParam(r, "domain")
 
-	filter := app.LoadItemsFilter{
-		Context:  []string{"0"},
+	filter := app.Filters{
+		LoadItemsFilter: app.LoadItemsFilter{
+			Context:  []string{"0"},
+		},
 		MaxItems: MaxContentItems,
 		Page:     1,
 	}

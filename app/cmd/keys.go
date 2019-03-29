@@ -41,7 +41,7 @@ func GenSSHKey(handle string, seed int64, kType string) error {
 		}
 	}
 	loader := db.Config
-	filter := app.LoadAccountsFilter{}
+	filter := app.Filters{}
 	if len(handle) != 0 {
 		filter.Handle = []string{handle}
 	} else {
@@ -60,7 +60,7 @@ func GenSSHKey(handle string, seed int64, kType string) error {
 		for _, key := range keys {
 			hashes = append(hashes, key.Hash())
 		}
-		filter.Key = hashes
+		filter.LoadAccountsFilter.Key = hashes
 		filter.MaxItems = len(hashes)
 	}
 

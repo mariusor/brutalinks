@@ -25,7 +25,7 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	handle := r.PostFormValue("handle")
 
 	backUrl := "/"
-	a, err := db.Config.LoadAccount(app.LoadAccountsFilter{Handle: []string{handle}})
+	a, err := db.Config.LoadAccount(app.Filters{LoadAccountsFilter: app.LoadAccountsFilter{Handle: []string{handle}}})
 	if err != nil {
 		h.logger.Error(err.Error())
 		h.addFlashMessage(Error, "Login failed: wrong handle or password", r)

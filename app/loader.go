@@ -56,6 +56,7 @@ type Info struct {
 
 type Filterable interface {
 	GetWhereClauses() ([]string, []interface{})
+	GetLimit() string
 }
 
 type Paginator interface {
@@ -93,8 +94,6 @@ type LoadVotesFilter struct {
 	AttributedTo         []Hash    `qstring:"attributedTo,omitempty"`
 	SubmittedAt          time.Time `qstring:"submittedAt,omitempty"`
 	SubmittedAtMatchType MatchType `qstring:"submittedAtMatchType,omitempty"`
-	Page                 int       `qstring:"page,omitempty"`
-	MaxItems             int       `qstring:"maxItems,omitempty"`
 }
 
 type LoadItemsFilter struct {
@@ -108,8 +107,6 @@ type LoadItemsFilter struct {
 	Content              string     `qstring:"content,omitempty"`
 	ContentMatchType     MatchType  `qstring:"contentMatchType,omitempty"`
 	Deleted              []bool     `qstring:"deleted,omitempty"`
-	Page                 int        `qstring:"page,omitempty"`
-	MaxItems             int        `qstring:"maxItems,omitempty"`
 	IRI                  string     `qstring:"id,omitempty"`
 	Depth                int        `qstring:"depth,omitempty"`
 	// Federated shows if the item was generated locally or is coming from an external peer
@@ -133,8 +130,6 @@ type LoadAccountsFilter struct {
 	Handle   []string `qstring:"handle,omitempty"`
 	Email    []string `qstring:"email,omitempty"`
 	Deleted  []bool   `qstring:"deleted,omitempty"`
-	Page     int      `qstring:"page,omitempty"`
-	MaxItems int      `qstring:"maxItems,omitempty"`
 	IRI      string   `qstring:"id,omitempty"`
 	InboxIRI string   `qstring:"inbox,omitempty"`
 }
@@ -216,44 +211,6 @@ func copyVotesFilters(a *LoadVotesFilter, b LoadVotesFilter) {
 	a.AttributedTo = b.AttributedTo
 	a.SubmittedAt = b.SubmittedAt
 	a.SubmittedAtMatchType = b.SubmittedAtMatchType
-	a.Page = b.Page
-	a.MaxItems = b.MaxItems
-}
-
-func (f *LoadVotesFilter) QueryString() string {
-	return query(f)
-}
-
-func (f *LoadVotesFilter) BasePage() Paginator {
-	b := &LoadVotesFilter{}
-	copyVotesFilters(b, *f)
-	b.MaxItems = 0
-	b.Page = 0
-	return b
-}
-func (f *LoadVotesFilter) CurrentPage() Paginator {
-	return f
-}
-func (f *LoadVotesFilter) NextPage() Paginator {
-	b := &LoadVotesFilter{}
-	copyVotesFilters(b, *f)
-	b.Page += 1
-	return b
-}
-func (f *LoadVotesFilter) PrevPage() Paginator {
-	b := &LoadVotesFilter{}
-	copyVotesFilters(b, *f)
-	b.Page -= 1
-	return b
-}
-func (f *LoadVotesFilter) FirstPage() Paginator {
-	b := &LoadVotesFilter{}
-	copyVotesFilters(b, *f)
-	b.Page = 1
-	return b
-}
-func (f *LoadVotesFilter) CurrentIndex() int {
-	return f.Page
 }
 
 // @todo(marius) the WithContentAlias methods should be moved to the db package into a different format
@@ -420,62 +377,23 @@ func copyItemsFilters(a *LoadItemsFilter, b LoadItemsFilter) {
 	a.Content = b.Content
 	a.ContentMatchType = b.ContentMatchType
 	a.Deleted = b.Deleted
-	a.Page = b.Page
-	a.MaxItems = b.MaxItems
 	a.IRI = b.IRI
 	a.Deleted = b.Deleted
-	a.Page = b.Page
-	a.MaxItems = b.MaxItems
 	a.FollowedBy = b.FollowedBy
 	a.contentAlias = b.contentAlias
 	a.authorAlias = b.authorAlias
 }
 
-func (f *LoadItemsFilter) QueryString() string {
-	return query(f)
-}
-func (f *LoadItemsFilter) BasePage() Paginator {
-	b := &LoadItemsFilter{}
-	copyItemsFilters(b, *f)
-	b.MaxItems = 0
-	b.Page = 0
-	return b
-}
-func (f *LoadItemsFilter) CurrentPage() Paginator {
-	return f
-}
-func (f *LoadItemsFilter) NextPage() Paginator {
-	b := &LoadItemsFilter{}
-	copyItemsFilters(b, *f)
-	b.Page += 1
-	return b
-}
-func (f *LoadItemsFilter) PrevPage() Paginator {
-	b := &LoadItemsFilter{}
-	copyItemsFilters(b, *f)
-	b.Page -= 1
-	return b
-}
-func (f *LoadItemsFilter) FirstPage() Paginator {
-	b := &LoadItemsFilter{}
-	copyItemsFilters(b, *f)
-	b.Page = 1
-	return b
-}
-func (f *LoadItemsFilter) CurrentIndex() int {
-	return f.Page
-}
-
 func (f *Filters) QueryString() string {
 	return query(f)
 }
+
 func (f *Filters) BasePage() Paginator {
 	b := &Filters{}
 	copyFilters(b, *f)
-	b.MaxItems = 0
-	b.Page = 0
 	return b
 }
+
 func (f *Filters) CurrentPage() Paginator {
 	return f
 }
@@ -487,8 +405,7 @@ func (f *Filters) NextPage() Paginator {
 }
 func (f *Filters) PrevPage() Paginator {
 	b := &Filters{}
-	copyAccountFilters(&b.LoadAccountsFilter, f.LoadAccountsFilter)
-	copyItemsFilters(&b.LoadItemsFilter, f.LoadItemsFilter)
+	copyFilters(b, *f)
 	b.Page -= 1
 	return b
 }
@@ -500,6 +417,18 @@ func (f *Filters) FirstPage() Paginator {
 }
 func (f *Filters) CurrentIndex() int {
 	return f.Page
+}
+
+// @TODO(marius) the GetLimit methods should be moved to the db package into a different format
+func (f Filters) GetLimit() string {
+	if f.MaxItems == 0 {
+		return ""
+	}
+	limit := fmt.Sprintf("  LIMIT %d", f.MaxItems)
+	if f.Page > 1 {
+		limit = fmt.Sprintf("%s OFFSET %d", limit, f.MaxItems*(f.Page-1))
+	}
+	return limit
 }
 
 // @TODO(marius) the GetWhereClauses methods should be moved to the db package into a different format
@@ -579,6 +508,8 @@ func copyFilters(a *Filters, b Filters) {
 	copyAccountFilters(&a.LoadAccountsFilter, b.LoadAccountsFilter)
 	copyItemsFilters(&a.LoadItemsFilter, b.LoadItemsFilter)
 	copyVotesFilters(&a.LoadVotesFilter, b.LoadVotesFilter)
+	a.MaxItems = b.MaxItems
+	a.Page = b.Page
 }
 
 func copyAccountFilters(a *LoadAccountsFilter, b LoadAccountsFilter) {
@@ -586,45 +517,8 @@ func copyAccountFilters(a *LoadAccountsFilter, b LoadAccountsFilter) {
 	a.Handle = b.Handle
 	a.Email = b.Email
 	a.Deleted = b.Deleted
-	a.Page = b.Page
-	a.MaxItems = b.MaxItems
 	a.InboxIRI = b.InboxIRI
 	a.IRI = b.IRI
-}
-
-func (f *LoadAccountsFilter) QueryString() string {
-	return query(f)
-}
-func (f *LoadAccountsFilter) BasePage() Paginator {
-	b := &LoadAccountsFilter{}
-	copyAccountFilters(b, *f)
-	b.MaxItems = 0
-	b.Page = 0
-	return b
-}
-func (f *LoadAccountsFilter) CurrentPage() Paginator {
-	return f
-}
-func (f *LoadAccountsFilter) NextPage() Paginator {
-	b := &LoadAccountsFilter{}
-	copyAccountFilters(b, *f)
-	b.Page += 1
-	return b
-}
-func (f *LoadAccountsFilter) PrevPage() Paginator {
-	b := &LoadAccountsFilter{}
-	copyAccountFilters(b, *f)
-	b.Page -= 1
-	return b
-}
-func (f *LoadAccountsFilter) FirstPage() Paginator {
-	b := &LoadAccountsFilter{}
-	copyAccountFilters(b, *f)
-	b.Page = 1
-	return b
-}
-func (f *LoadAccountsFilter) CurrentIndex() int {
-	return f.Page
 }
 
 type Repository interface {
@@ -643,13 +537,13 @@ type CanSaveItems interface {
 }
 
 type CanLoadItems interface {
-	LoadItem(f LoadItemsFilter) (Item, error)
-	LoadItems(f LoadItemsFilter) (ItemCollection, uint, error)
+	LoadItem(f Filters) (Item, error)
+	LoadItems(f Filters) (ItemCollection, uint, error)
 }
 
 type CanLoadVotes interface {
-	LoadVotes(f LoadVotesFilter) (VoteCollection, uint, error)
-	LoadVote(f LoadVotesFilter) (Vote, error)
+	LoadVotes(f Filters) (VoteCollection, uint, error)
+	LoadVote(f Filters) (Vote, error)
 }
 
 type CanLoadInfo interface {
@@ -675,8 +569,8 @@ type CanSaveVotes interface {
 }
 
 type CanLoadAccounts interface {
-	LoadAccount(f LoadAccountsFilter) (Account, error)
-	LoadAccounts(f LoadAccountsFilter) (AccountCollection, uint, error)
+	LoadAccount(f Filters) (Account, error)
+	LoadAccounts(f Filters) (AccountCollection, uint, error)
 }
 
 type CanSaveAccounts interface {

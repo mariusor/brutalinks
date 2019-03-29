@@ -187,9 +187,9 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	handle := chi.URLParam(r, "handle")
-	auth, err := acctLoader.LoadAccount(app.LoadAccountsFilter{
+	auth, err := acctLoader.LoadAccount(app.Filters{ LoadAccountsFilter: app.LoadAccountsFilter{
 		Handle: []string{handle},
-	})
+	}})
 	itemLoader, ok := app.ContextItemLoader(r.Context())
 	if !ok {
 		h.logger.Error("could not load item repository from Context")
@@ -197,11 +197,13 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	hash := chi.URLParam(r, "hash")
-	f := app.LoadItemsFilter{
-		Key:          app.Hashes{app.Hash(hash)},
+	f := app.Filters{
+		LoadItemsFilter: app.LoadItemsFilter{
+			Key:          app.Hashes{app.Hash(hash)},
+		},
 	}
 	if auth.Hash.String() != app.AnonymousHash.String() {
-		f.AttributedTo = app.Hashes{auth.Hash}
+		f.LoadItemsFilter.AttributedTo = app.Hashes{auth.Hash}
 	}
 	i, err := itemLoader.LoadItem(f)
 
@@ -242,10 +244,12 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 	allComments := make(comments, 1)
 	allComments[0] = &m.Content
 
-	filter := app.LoadItemsFilter{
+	filter := app.Filters{
+		LoadItemsFilter: app.LoadItemsFilter{
+			Depth:    10,
+		},
 		MaxItems: MaxContentItems,
 		Page:     1,
-		Depth:    10,
 	}
 	if err := qstring.Unmarshal(r.URL.Query(), &filter); err != nil {
 		h.logger.Debug("unable to load url parameters")
@@ -272,9 +276,11 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 	if ok && h.account.IsLogged() {
 		votesLoader, ok := app.ContextVoteLoader(r.Context())
 		if ok {
-			h.account.Votes, _, err = votesLoader.LoadVotes(app.LoadVotesFilter{
-				AttributedTo: []app.Hash{h.account.Hash},
-				ItemKey:      allComments.getItemsHashes(),
+			h.account.Votes, _, err = votesLoader.LoadVotes(app.Filters{
+				LoadVotesFilter: app.LoadVotesFilter{
+					AttributedTo: []app.Hash{h.account.Hash},
+					ItemKey:      allComments.getItemsHashes(),
+				},
 				MaxItems:     MaxContentItems,
 			})
 			if err != nil {
@@ -322,7 +328,7 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(n.Hash) > 0 {
-		if p, err := itemLoader.LoadItem(app.LoadItemsFilter{Key: app.Hashes{n.Hash}}); err == nil {
+		if p, err := itemLoader.LoadItem(app.Filters{ LoadItemsFilter: app.LoadItemsFilter{Key: app.Hashes{n.Hash}}}); err == nil {
 			n.Title = p.Title
 		}
 	}
@@ -382,7 +388,7 @@ func (h *handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 		h.logger.Error("could not load item repository from Context")
 		return
 	}
-	p, err := itemLoader.LoadItem(app.LoadItemsFilter{Key: app.Hashes{app.Hash(hash)}})
+	p, err := itemLoader.LoadItem(app.Filters{ LoadItemsFilter: app.LoadItemsFilter{Key: app.Hashes{app.Hash(hash)}}})
 	if err != nil {
 		h.logger.Error(err.Error())
 		h.HandleErrors(w, r, errors.NewNotFound(err, "not found"))
@@ -430,7 +436,7 @@ func (h *handler) HandleVoting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	p, err := itemLoader.LoadItem(app.LoadItemsFilter{Key: app.Hashes{app.Hash(hash)}})
+	p, err := itemLoader.LoadItem(app.Filters{LoadItemsFilter: app.LoadItemsFilter{Key: app.Hashes{app.Hash(hash)}}})
 	if err != nil {
 		h.logger.Error(err.Error())
 		h.HandleErrors(w, r, errors.NewNotFound(err, "not found"))

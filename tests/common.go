@@ -66,6 +66,7 @@ type objectVal struct {
 	content           string
 	mediaType         string
 	author            string
+	partOf            *objectVal
 	inbox             *objectVal
 	outbox            *objectVal
 	following         *objectVal
@@ -329,6 +330,13 @@ func errOnObjectProperties(t *testing.T) objectPropertiesAssertFn {
 			if tVal.last.typ != "" {
 				derefCol := assertReq(tVal.last.id)
 				errOnObjectProperties(t)(derefCol, *tVal.last)
+			}
+		}
+		if tVal.partOf != nil {
+			assertMapKey(ob, "partOf", tVal.partOf)
+			if tVal.partOf.typ != "" {
+				derefCol := assertReq(tVal.partOf.id)
+				errOnObjectProperties(t)(derefCol, *tVal.partOf)
 			}
 		}
 		if tVal.itemCount != 0 {

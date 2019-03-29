@@ -104,14 +104,14 @@ func (h handler) AccountCtxt(next http.Handler) http.Handler {
 		if !ok {
 			h.logger.Error("could not load account repository from Context")
 		}
-		a, err := AcctLoader.LoadAccount(app.LoadAccountsFilter{Handle: []string{handle}})
+		a, err := AcctLoader.LoadAccount(app.Filters{LoadAccountsFilter: app.LoadAccountsFilter{Handle: []string{handle}}})
 		if err == nil {
 			// we redirect to the Hash based account URL
 			url := strings.Replace(r.RequestURI, handle, a.Hash.String(), 1)
 			http.Redirect(w, r, url, http.StatusSeeOther)
 			return
 		} else {
-			a, err := AcctLoader.LoadAccount(app.LoadAccountsFilter{Key: app.Hashes{app.Hash(handle)}})
+			a, err := AcctLoader.LoadAccount(app.Filters{ LoadAccountsFilter: app.LoadAccountsFilter{Key: app.Hashes{app.Hash(handle)}}})
 			if err != nil {
 				h.logger.Error(err.Error())
 				h.HandleError(w, r, err)
@@ -148,7 +148,7 @@ func (h handler) ItemCtxt(next http.Handler) http.Handler {
 				h.HandleError(w, r, errors.NewNotValid(err, "not found"))
 				return
 			}
-			i, err = loader.LoadItem(filters.LoadItemsFilter)
+			i, err = loader.LoadItem(*filters)
 			if err != nil {
 				h.logger.Error(err.Error())
 				h.HandleError(w, r, errors.NewNotFound(err, "not found"))
@@ -162,7 +162,7 @@ func (h handler) ItemCtxt(next http.Handler) http.Handler {
 				h.HandleError(w, r, errors.NewNotValid(err, "not found"))
 				return
 			}
-			i, err = loader.LoadVote(filters.LoadVotesFilter)
+			i, err = loader.LoadVote(*filters)
 			if err != nil {
 				h.logger.Error(err.Error())
 				h.HandleError(w, r, errors.NewNotFound(err, "not found"))
@@ -177,9 +177,7 @@ func (h handler) ItemCtxt(next http.Handler) http.Handler {
 }
 
 func loadPersonFiltersFromReq(r *http.Request) *app.LoadAccountsFilter {
-	filters := app.LoadAccountsFilter{
-		MaxItems: MaxContentItems,
-	}
+	filters := app.LoadAccountsFilter{}
 
 	if err := qstring.Unmarshal(r.URL.Query(), &filters); err != nil {
 		return &filters
@@ -188,9 +186,7 @@ func loadPersonFiltersFromReq(r *http.Request) *app.LoadAccountsFilter {
 }
 
 func loadRepliesFilterFromReq(r *http.Request) *app.LoadItemsFilter {
-	filters := app.LoadItemsFilter{
-		MaxItems: MaxContentItems,
-	}
+	filters := app.LoadItemsFilter{}
 	if err := qstring.Unmarshal(r.URL.Query(), &filters); err != nil {
 		return &filters
 	}
@@ -227,9 +223,7 @@ func hashesUnique(a app.Hashes) app.Hashes {
 }
 
 func loadInboxFilterFromReq(r *http.Request) *app.LoadItemsFilter {
-	filters := app.LoadItemsFilter{
-		MaxItems: MaxContentItems,
-	}
+	filters := app.LoadItemsFilter{}
 
 	if err := qstring.Unmarshal(r.URL.Query(), &filters); err != nil {
 		return &filters
@@ -255,9 +249,7 @@ func loadInboxFilterFromReq(r *http.Request) *app.LoadItemsFilter {
 }
 
 func loadOutboxFilterFromReq(r *http.Request) *app.LoadItemsFilter {
-	filters := app.LoadItemsFilter{
-		MaxItems: MaxContentItems,
-	}
+	filters := app.LoadItemsFilter{}
 
 	if err := qstring.Unmarshal(r.URL.Query(), &filters); err != nil {
 		return &filters
@@ -304,13 +296,6 @@ func loadLikedFilterFromReq(r *http.Request) *app.LoadVotesFilter {
 		filters.ItemKey = append(filters.ItemKey, old...)
 		filters.ItemKey = hashesUnique(filters.ItemKey)
 	}
-	if filters.MaxItems == 0 {
-		if len(filters.ItemKey) > 0 {
-			filters.MaxItems = 1
-		} else {
-			filters.MaxItems = MaxContentItems
-		}
-	}
 	return &filters
 }
 
@@ -338,6 +323,7 @@ func LoadFiltersCtxt(eh app.ErrorHandler) app.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			col := getCollectionFromReq(r)
 			f := app.Filters{}
+			qstring.Unmarshal(r.URL.Query(), &f)
 
 			f.LoadAccountsFilter = *loadPersonFiltersFromReq(r)
 			f.LoadVotesFilter = *loadLikedFilterFromReq(r)
@@ -356,6 +342,10 @@ func LoadFiltersCtxt(eh app.ErrorHandler) app.Handler {
 				eh(w, r, errors.NotValidf("collection %s", col))
 				return
 			}
+			if f.MaxItems == 0 {
+				f.MaxItems = MaxContentItems
+			}
+
 			ctx := context.WithValue(r.Context(), app.FilterCtxtKey, &f)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		}
@@ -387,7 +377,7 @@ func (h handler) ItemCollectionCtxt(next http.Handler) http.Handler {
 				next.ServeHTTP(w, r)
 				return
 			}
-			items, count, err = loader.LoadAccounts(filters.LoadAccountsFilter)
+			items, count, err = loader.LoadAccounts(*filters)
 			if err != nil {
 				h.logger.Error(err.Error())
 				next.ServeHTTP(w, r)
@@ -404,7 +394,7 @@ func (h handler) ItemCollectionCtxt(next http.Handler) http.Handler {
 				next.ServeHTTP(w, r)
 				return
 			}
-			items, count, err = loader.LoadItems(filters.LoadItemsFilter)
+			items, count, err = loader.LoadItems(*filters)
 			if err != nil {
 				h.logger.Error(err.Error())
 				next.ServeHTTP(w, r)
@@ -417,7 +407,7 @@ func (h handler) ItemCollectionCtxt(next http.Handler) http.Handler {
 				next.ServeHTTP(w, r)
 				return
 			}
-			items, count, err = loader.LoadVotes(filters.LoadVotesFilter)
+			items, count, err = loader.LoadVotes(*filters)
 			if err != nil {
 				h.logger.Error(err.Error())
 				next.ServeHTTP(w, r)
@@ -432,13 +422,13 @@ func (h handler) ItemCollectionCtxt(next http.Handler) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
-func (r *repository) LoadItem(f app.LoadItemsFilter) (app.Item, error) {
+func (r *repository) LoadItem(f app.Filters) (app.Item, error) {
 	var art ap.Article
 	var it app.Item
 
 	f.MaxItems = 1
-	hashes := f.Key
-	f.Key = nil
+	hashes := f.LoadItemsFilter.Key
+	f.LoadItemsFilter.Key = nil
 
 	var qs string
 	if q, err := qstring.MarshalString(&f); err == nil {
@@ -804,16 +794,16 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 	case http.StatusCreated:
 		newLoc := resp.Header.Get("Location")
 		hash := path.Base(newLoc)
-		f := app.LoadItemsFilter{
+		f := app.Filters{ LoadItemsFilter: app.LoadItemsFilter{
 			Key: app.Hashes{app.Hash(hash)},
-		}
+		}}
 		return r.LoadItem(f)
 	case http.StatusGone:
 		newLoc := resp.Header.Get("Location")
 		hash := path.Base(newLoc)
-		f := app.LoadItemsFilter{
+		f := app.Filters{LoadItemsFilter: app.LoadItemsFilter{
 			Key: app.Hashes{app.Hash(hash)},
-		}
+		}}
 		return r.LoadItem(f)
 	case http.StatusNotFound:
 		return it, errors.Errorf("%s", resp.Status)

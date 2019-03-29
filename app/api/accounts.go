@@ -271,7 +271,7 @@ func loadAPPerson(a app.Account) *ap.Person {
 	return &p
 }
 
-func loadAPLiked(o as.CollectionInterface, votes app.VoteCollection) (as.CollectionInterface, error) {
+func loadAPVoteCollection(o as.CollectionInterface, votes app.VoteCollection) (as.CollectionInterface, error) {
 	if votes == nil || len(votes) == 0 {
 		return nil, nil
 	}
@@ -422,8 +422,10 @@ func (h handler) HandleCollectionActivityObject(w http.ResponseWriter, r *http.R
 		el = loadAPItem(i)
 		val := r.Context().Value(app.RepositoryCtxtKey)
 		if service, ok := val.(app.CanLoadItems); ok && len(i.Hash) > 0 {
-			replies, _, err := service.LoadItems(app.LoadItemsFilter{
-				InReplyTo: []string{i.Hash.String()},
+			replies, _, err := service.LoadItems(app.Filters{
+				LoadItemsFilter:app.LoadItemsFilter{
+					InReplyTo: []string{i.Hash.String()},
+				},
 				MaxItems:  MaxContentItems,
 			})
 			if err != nil {
@@ -491,22 +493,18 @@ func loadCollection(items app.Collection, count uint, typ string, filters app.Pa
 				return nil, err
 			}
 			haveItems = len(col) > 0
-			moreItems = int(count) > (f.Page * f.MaxItems)
-			lessItems = f.Page > 1
 		} else {
 			return nil, errors.New("could not load items")
 		}
 	case "liked":
 		if col, ok := items.(app.VoteCollection); ok {
-			if _, err := loadAPLiked(&oc, col); err != nil {
+			if _, err := loadAPVoteCollection(&oc, col); err != nil {
 				return nil, err
 			}
 			if len(f.LoadVotesFilter.AttributedTo) == 1 {
 				f.LoadVotesFilter.AttributedTo = nil
 			}
 			haveItems = len(col) > 0
-			moreItems = int(count) > (f.Page * f.MaxItems)
-			lessItems = f.Page > 1
 		} else {
 			return nil, errors.New("could not load items")
 		}
@@ -518,12 +516,13 @@ func loadCollection(items app.Collection, count uint, typ string, filters app.Pa
 				return nil, err
 			}
 			haveItems = len(col) > 0
-			moreItems = int(count) > (f.Page * f.MaxItems)
-			lessItems = f.Page > 1
 		} else {
 			return nil, errors.New("could not load items")
 		}
 	}
+
+	moreItems = int(count) > ((f.Page + 1) * f.MaxItems)
+	lessItems = f.Page > 1
 	if filters != nil {
 		bp = filters.BasePage()
 		fp = filters.FirstPage()
@@ -571,23 +570,11 @@ func (h handler) HandleCollection(w http.ResponseWriter, r *http.Request) {
 
 	items := r.Context().Value(app.CollectionCtxtKey)
 	count, _ := r.Context().Value(app.CollectionCountCtxtKey).(uint)
-	// TODO(marius): this breaks some tests that expect 0 total items collections in the response
-	//   I need to decide if 0 count is an error or not and use the same logic when handling
-	//   loadCollection() below
-	//if count  == 0 {
-	//	h.HandleErrors(w, r, errors.NewNotFound(err, "no items"))
-	//	return
-	//}
 
 	filters := r.Context().Value(app.FilterCtxtKey)
 	f, _ := filters.(app.Paginator)
 	baseURL := fmt.Sprintf("%s%s", h.repo.BaseURL, strings.Replace(r.URL.Path, "/api", "", 1))
 	page, err = loadCollection(items, count, typ, f, baseURL)
-	//if err != nil {
-	//	h.logger.Error(err.Error())
-	//	h.HandleErrors(w, r, errors.NewNotFound(err, fmt.Sprintf("%s", typ)))
-	//	return
-	//}
 
 	data, err = json.WithContext(GetContext()).Marshal(page)
 	if err != nil {
@@ -735,19 +722,19 @@ func validateActor(a as.Item, repo app.CanLoadAccounts) (as.Item, error) {
 	if len(acct.Hash)+len(acct.Handle) == 0 {
 		return p, errors.Errorf("unable to load a valid actor identifier from IRI %s", a.GetLink())
 	} else {
-		f := app.LoadAccountsFilter{}
+		f := app.Filters{}
 		if len(acct.Hash) == 0 && len(acct.Handle) > 0 {
 			if !isLocalActor {
-				f.IRI = a.GetLink().String()
+				f.LoadAccountsFilter.IRI = a.GetLink().String()
 			} else {
 				f.Handle = []string{acct.Handle}
 			}
 		}
 		if len(acct.Handle) == 0 && len(acct.Hash) > 0 {
 			if !isLocalActor {
-				f.IRI = a.GetLink().String()
+				f.LoadAccountsFilter.IRI = a.GetLink().String()
 			} else {
-				f.Key = app.Hashes{acct.Hash}
+				f.LoadAccountsFilter.Key = app.Hashes{acct.Hash}
 			}
 		}
 		acct, err = repo.LoadAccount(f)

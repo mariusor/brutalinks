@@ -48,7 +48,7 @@ func (h *handler) ShowAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var err error
-	a, err := accountLoader.LoadAccount(app.LoadAccountsFilter{Handle: []string{handle}})
+	a, err := accountLoader.LoadAccount(app.Filters{ LoadAccountsFilter: app.LoadAccountsFilter{Handle: []string{handle}}})
 	if err != nil {
 		h.HandleErrors(w, r, err)
 		return
@@ -58,8 +58,10 @@ func (h *handler) ShowAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filter := app.LoadItemsFilter{
-		AttributedTo: app.Hashes{a.Hash},
+	filter := app.Filters{
+		LoadItemsFilter: app.LoadItemsFilter {
+			AttributedTo: app.Hashes{a.Hash},
+		},
 		MaxItems:     MaxContentItems,
 		Page:         1,
 	}

@@ -58,7 +58,7 @@ func (a Account) Votes() VoteCollection {
 	return nil
 }
 
-func countVotes(db *pg.DB, f app.LoadVotesFilter) (uint, error) {
+func countVotes(db *pg.DB, f app.Filters) (uint, error) {
 	wheres, whereValues := f.GetWhereClauses()
 	var fullWhere string
 
@@ -82,7 +82,7 @@ func countVotes(db *pg.DB, f app.LoadVotesFilter) (uint, error) {
 	return count, nil
 }
 
-func loadVotes(db *pg.DB, f app.LoadVotesFilter) (app.VoteCollection, error) {
+func loadVotes(db *pg.DB, f app.Filters) (app.VoteCollection, error) {
 	wheres, whereValues := f.GetWhereClauses()
 	var fullWhere string
 
@@ -94,10 +94,6 @@ func loadVotes(db *pg.DB, f app.LoadVotesFilter) (app.VoteCollection, error) {
 		fullWhere = fmt.Sprintf("(%s)", strings.Join(wheres, " AND "))
 	}
 
-	var offset string
-	if f.Page > 0 {
-		offset = fmt.Sprintf(" OFFSET %d", f.MaxItems*(f.Page-1))
-	}
 	selC := fmt.Sprintf(`select
 		"vote"."id" as "vote_id",
 		"vote"."weight" as "vote_weight",
@@ -133,7 +129,7 @@ func loadVotes(db *pg.DB, f app.LoadVotesFilter) (app.VoteCollection, error) {
 		inner join "accounts" as "voter" on "voter"."id" = "vote"."submitted_by"
 		inner join "items" as "item" on "item"."id" = "vote"."item_id" 
 		inner join "accounts" as "author" on "item"."submitted_by" = "author"."id"
-where %s order by "vote"."submitted_at" desc limit %d%s`, fullWhere, f.MaxItems, offset)
+where %s order by "vote"."submitted_at" desc%s`, fullWhere, f.GetLimit())
 	agg := make([]votesView, 0)
 	if _, err := db.Query(&agg, selC, whereValues...); err != nil {
 		return nil, errors.Annotatef(err, "DB query error")
