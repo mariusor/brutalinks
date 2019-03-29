@@ -44,6 +44,8 @@ func UpdateAccount(db *pg.DB, a app.Account) (app.Account, error) {
 }
 
 func countAccounts(db *pg.DB, f app.Filters) (uint, error) {
+	f.LoadItemsFilter = app.LoadItemsFilter{}
+	f.LoadVotesFilter = app.LoadVotesFilter{}
 	wheres, whereValues := f.GetWhereClauses()
 	var fullWhere string
 
@@ -64,6 +66,8 @@ func countAccounts(db *pg.DB, f app.Filters) (uint, error) {
 }
 
 func loadAccounts(db *pg.DB, f app.Filters) (app.AccountCollection, error) {
+	f.LoadItemsFilter = app.LoadItemsFilter{}
+	f.LoadVotesFilter = app.LoadVotesFilter{}
 	wheres, whereValues := f.GetWhereClauses()
 	var fullWhere string
 
