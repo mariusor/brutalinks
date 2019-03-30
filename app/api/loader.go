@@ -605,20 +605,11 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 	act.Object = o.GetLink()
 	act.Type = as.UndoType
 
-	if len(*exists.GetID()) > 0 {
-		if v.Weight > 0 && exists.GetType() != as.LikeType {
-			act.Type = as.LikeType
-		}
-		if v.Weight < 0 && exists.GetType() != as.DislikeType {
-			act.Type = as.DislikeType
-		}
-	} else {
-		if v.Weight > 0 {
-			act.Type = as.LikeType
-		}
-		if v.Weight < 0 {
-			act.Type = as.DislikeType
-		}
+	if v.Weight > 0 && (len(*exists.GetID()) == 0 || exists.GetType() != as.LikeType) {
+		act.Type = as.LikeType
+	}
+	if v.Weight < 0 && (len(*exists.GetID()) == 0 || exists.GetType() != as.DislikeType)  {
+		act.Type = as.DislikeType
 	}
 
 	var body []byte
