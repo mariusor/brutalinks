@@ -36,17 +36,19 @@ func (h *handler) Routes() func(chi.Router) {
 				r.Get("/", h.ShowItem)
 				r.Post("/", h.HandleSubmit)
 
-				r.With(h.ValidatePermissions()).Group(func (r chi.Router) {
+				r.Group(func (r chi.Router) {
+					r.Use(h.ValidateLoggedIn)
 					r.Get("/yay", h.HandleVoting)
 					r.Get("/nay", h.HandleVoting)
 
 					r.Get("/bad", h.ShowReport)
 					r.Post("/bad", h.HandleReport)
 
-					r.Get("/edit", h.ShowItem)
-					r.Post("/edit", h.HandleSubmit)
-
-					r.Get("/rm", h.HandleDelete)
+					r.With(h.ValidateItemAuthor).Group(func (r chi.Router) {
+						r.Get("/edit", h.ShowItem)
+						r.Post("/edit", h.HandleSubmit)
+						r.Get("/rm", h.HandleDelete)
+					})
 				})
 			})
 		})

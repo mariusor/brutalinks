@@ -143,6 +143,19 @@ func (h *handler) ValidatePermissions(actions ...string) func(http.Handler) http
 	}
 }
 
+func (h *handler) ValidateLoggedIn(next http.Handler) http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		if !h.account.IsLogged() {
+			e := "Please login to perform this action"
+			h.logger.Error(e)
+			h.HandleErrors(w, r, errors.Unauthorizedf(e))
+			return
+		}
+		next.ServeHTTP(w, r)
+	}
+	return http.HandlerFunc(fn)
+}
+
 func (h *handler) ValidateItemAuthor(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		acc := h.account
