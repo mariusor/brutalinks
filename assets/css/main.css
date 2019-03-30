@@ -508,6 +508,9 @@ summary:focus {
 .meta-items li {
     padding-left: .2rem;
 }
+h2.title .to-item::after {
+    content: '\00a7';
+}
 h2.title .to-item {
     margin-left: .4em;
 }
