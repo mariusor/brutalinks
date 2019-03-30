@@ -583,7 +583,7 @@ func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) 
 }
 
 func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
-	url := fmt.Sprintf("%s/self/following/%s/liked/%s", r.BaseURL, v.Item.SubmittedBy.Hash, v.Item.Hash)
+	url := fmt.Sprintf("%s/self/following/%s/liked/%s", r.BaseURL, v.SubmittedBy.Hash, v.Item.Hash)
 
 	var err error
 	var exists as.Item
