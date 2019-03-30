@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/go-chi/chi"
 	"github.com/mariusor/littr.go/internal/errors"
@@ -161,7 +162,7 @@ func (h *handler) HandleIndex(w http.ResponseWriter, r *http.Request) {
 	}
 
 	base := path.Base(r.URL.Path)
-	switch base {
+	switch strings.ToLower(base) {
 	case "self":
 		h.logger.Debug("showing self posts")
 	case "federated":

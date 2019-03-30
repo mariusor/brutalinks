@@ -411,7 +411,9 @@ func (h handler) HandleCollectionActivityObject(w http.ResponseWriter, r *http.R
 	var el as.ObjectOrLink
 	switch strings.ToLower(collection) {
 	case "inbox":
+		fallthrough
 	case "replies":
+		fallthrough
 	case "outbox":
 		i, ok := val.(app.Item)
 		if !ok {
@@ -449,6 +451,7 @@ func (h handler) HandleCollectionActivityObject(w http.ResponseWriter, r *http.R
 			el = loadAPLike(v)
 		}
 	case "following":
+		// skip
 	default:
 		err := errors.Errorf("collection %s not found", collection)
 		h.HandleError(w, r, errors.NewNotFound(err, "not found"))

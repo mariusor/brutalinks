@@ -141,7 +141,12 @@ func (h handler) ItemCtxt(next http.Handler) http.Handler {
 		if !ok {
 			h.logger.Error("could not load item filter from Context")
 		}
-		if col == "outbox" {
+		switch strings.ToLower(col) {
+		case "inbox":
+			fallthrough
+		case "replies":
+			fallthrough
+		case "outbox":
 			loader, ok := val.(app.CanLoadItems)
 			if !ok {
 				h.logger.Error("could not load item repository from Context")
@@ -154,8 +159,7 @@ func (h handler) ItemCtxt(next http.Handler) http.Handler {
 				h.HandleError(w, r, errors.NewNotFound(err, "not found"))
 				return
 			}
-		}
-		if col == "liked" {
+		case "liked":
 			loader, ok := val.(app.CanLoadVotes)
 			if !ok {
 				h.logger.Error("could not load vote repository from Context")
@@ -168,6 +172,12 @@ func (h handler) ItemCtxt(next http.Handler) http.Handler {
 				h.HandleError(w, r, errors.NewNotFound(err, "not found"))
 				return
 			}
+		case "following":
+			// skip
+		default:
+			err := errors.Errorf("collection %s not found", col)
+			h.HandleError(w, r, errors.NewNotFound(err, "not found"))
+			return
 		}
 
 		ctx := context.WithValue(r.Context(), app.ItemCtxtKey, i)
@@ -325,12 +335,11 @@ func LoadFiltersCtxt(eh app.ErrorHandler) app.Handler {
 			f := app.Filters{}
 			qstring.Unmarshal(r.URL.Query(), &f)
 
-			f.LoadAccountsFilter = *loadPersonFiltersFromReq(r)
-			f.LoadVotesFilter = *loadLikedFilterFromReq(r)
-			switch col {
+			switch strings.ToLower(col) {
 			case "following":
-			case "actors":
+				f.LoadAccountsFilter = *loadPersonFiltersFromReq(r)
 			case "liked":
+				f.LoadVotesFilter = *loadLikedFilterFromReq(r)
 			case "outbox":
 				f.LoadItemsFilter = *loadOutboxFilterFromReq(r)
 			case "inbox":
@@ -338,6 +347,7 @@ func LoadFiltersCtxt(eh app.ErrorHandler) app.Handler {
 			case "replies":
 				f.LoadItemsFilter = *loadRepliesFilterFromReq(r)
 			case "":
+				// skip
 			default:
 				eh(w, r, errors.NotValidf("collection %s", col))
 				return
@@ -369,7 +379,7 @@ func (h handler) ItemCollectionCtxt(next http.Handler) http.Handler {
 			return
 		}
 		var items interface{}
-		switch col {
+		switch strings.ToLower(col) {
 		case "following":
 			loader, ok := val.(app.CanLoadAccounts)
 			if !ok {

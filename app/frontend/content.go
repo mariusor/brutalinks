@@ -445,7 +445,7 @@ func (h *handler) HandleVoting(w http.ResponseWriter, r *http.Request) {
 
 	direction := path.Base(r.URL.Path)
 	multiplier := 0
-	switch direction {
+	switch strings.ToLower(direction) {
 	case Yay:
 		multiplier = 1
 	case Nay:

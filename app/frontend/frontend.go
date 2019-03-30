@@ -217,7 +217,7 @@ func InitSessionStore(c Config) (sessions.Store, error) {
 		//app.Config.SessionsEnabled = false
 		return nil, err
 	}
-	switch c.SessionBackend {
+	switch strings.ToLower(c.SessionBackend) {
 	case "file":
 		sessDir := fmt.Sprintf("%s/%s", os.TempDir(), c.HostName)
 		if _, err := os.Stat(sessDir); os.IsNotExist(err) {
@@ -326,7 +326,7 @@ func headerMenu(r *http.Request) []headerEl {
 		if path.Base(r.URL.Path) == s {
 			el.IsCurrent = true
 		}
-		switch s {
+		switch strings.ToLower(s) {
 		case "self":
 			el.Icon = "home"
 		case "federated":
@@ -588,7 +588,7 @@ func (h handler) HandleAuth(w http.ResponseWriter, r *http.Request) {
 	url := fmt.Sprintf("%s/auth/%s/callback", "", provider)
 
 	var config oauth2.Config
-	switch provider {
+	switch strings.ToLower(provider) {
 	case "github":
 		config = oauth2.Config{
 			ClientID:     os.Getenv("GITHUB_KEY"),
