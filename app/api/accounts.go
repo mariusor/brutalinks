@@ -1044,8 +1044,11 @@ func (h handler) ClientRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if repo, ok := app.ContextActivitySaver(r.Context()); ok == true {
-		i, _ := repo.SaveActivity(a, as.IRI(fmt.Sprintf("%s", r.URL.Path)))
-		a = i.(ap.Activity)
+		if i, err := repo.SaveActivity(a, as.IRI(fmt.Sprintf("%s", r.URL.Path))); err != nil {
+			h.logger.Errorf("Can't save client activity %s: %s", a.GetType(), err)
+		} else {
+			a = i.(ap.Activity)
+		}
 	}
 
 	switch a.GetType() {
@@ -1184,6 +1187,14 @@ func (h handler) ServerRequest(w http.ResponseWriter, r *http.Request) {
 		} else {
 			notFound(err)
 			return
+		}
+	}
+
+	if repo, ok := app.ContextActivitySaver(r.Context()); ok == true {
+		if i, err := repo.SaveActivity(a, as.IRI(fmt.Sprintf("%s", r.URL.Path))); err != nil {
+			h.logger.Errorf("Can't save server activity %s: %s", a.GetType(), err)
+		} else {
+			a = i.(ap.Activity)
 		}
 	}
 
