@@ -269,8 +269,8 @@ func loadAPPerson(a app.Account) *ap.Person {
 			PublicKeyPem: fmt.Sprintf("-----BEGIN PUBLIC KEY-----\n%s\n-----END PUBLIC KEY-----", base64.StdEncoding.EncodeToString(a.Metadata.Key.Public)),
 		}
 	}
-
-	p.Endpoints = goap.Endpoints {
+	p.Endpoints = goap.Endpoints{
+		SharedInbox: as.IRI(fmt.Sprintf("%s/self/inbox", BaseURL)),
 		OauthAuthorizationEndpoint: as.IRI(fmt.Sprintf("%s/oauth/authorize", BaseURL)),
 		OauthTokenEndpoint: as.IRI(fmt.Sprintf("%s/oauth/token", BaseURL)),
 	}
@@ -330,7 +330,6 @@ func (h handler) HandleActor(w http.ResponseWriter, r *http.Request) {
 	if p.Inbox != nil {
 		p.Inbox = p.Inbox.GetLink()
 	}
-	p.Endpoints = goap.Endpoints{SharedInbox: as.IRI(fmt.Sprintf("%s/self/inbox", h.repo.BaseURL))}
 
 	j, err := json.WithContext(GetContext()).Marshal(p)
 	if err != nil {
