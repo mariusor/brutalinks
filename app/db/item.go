@@ -127,6 +127,19 @@ func (i itemSaveError) Error() string {
 	return fmt.Sprintf("%s", i.err)
 }
 
+func keyComponents(it app.Item) [][]byte {
+	keyFrom := [][]byte{
+		it.Path,
+		[]byte(it.Title),
+		[]byte(it.Data),
+		[]byte(it.SubmittedBy.Handle),
+	}
+	if it.MimeType != app.MimeTypeURL {
+		keyFrom = append(keyFrom, []byte(it.UpdatedAt.String()))
+	}
+	return keyFrom
+}
+
 func saveItem(db *pg.DB, it app.Item) (app.Item, error) {
 	i := Item{
 		Score:    it.Score,
@@ -160,7 +173,7 @@ func saveItem(db *pg.DB, it app.Item) (app.Item, error) {
 	var query string
 	var hash app.Hash
 	if len(it.Hash) == 0 {
-		i.Key = app.GenKey(i.Path, []byte(it.Title), []byte(i.Data.String), []byte(it.SubmittedBy.Handle))
+		i.Key = app.GenKey(keyComponents(it)...)
 
 		aKey := app.Key{}
 		aKey.FromString(it.SubmittedBy.Hash.String())
@@ -210,7 +223,7 @@ func saveItem(db *pg.DB, it app.Item) (app.Item, error) {
 		}
 	}
 
-	col, err := loadItems(db, app.Filters{LoadItemsFilter: app.LoadItemsFilter{ Key: app.Hashes{hash}}, MaxItems: 1})
+	col, err := loadItems(db, app.Filters{LoadItemsFilter: app.LoadItemsFilter{Key: app.Hashes{hash}}, MaxItems: 1})
 	if len(col) > 0 {
 		return col[0], nil
 	} else {
