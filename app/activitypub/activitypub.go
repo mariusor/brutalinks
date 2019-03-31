@@ -2,11 +2,10 @@ package activitypub
 
 import (
 	"fmt"
-	"github.com/go-ap/jsonld"
-
 	"github.com/buger/jsonparser"
 	ap "github.com/go-ap/activitypub"
 	as "github.com/go-ap/activitystreams"
+	"github.com/go-ap/jsonld"
 )
 
 // PublicKey holds the ActivityPub compatible public key data
@@ -449,7 +448,7 @@ func (a *Activity) RecipientsDeduplication() {
 	b.RecipientsDeduplication()
 }
 
-func JSONGetItemByType (typ as.ActivityVocabularyType) (as.Item, error) {
+func JSONGetItemByType(typ as.ActivityVocabularyType) (as.Item, error) {
 	var ret as.Item
 	var err error
 

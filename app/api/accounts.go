@@ -198,6 +198,7 @@ func loadAPItem(item app.Item) as.Item {
 func accountURL(acc app.Account) as.IRI {
 	return as.IRI(fmt.Sprintf("%s%s", app.Instance.BaseURL, frontend.AccountPermaLink(acc)))
 }
+
 func loadAPPerson(a app.Account) *ap.Person {
 	p := ap.Person{}
 	p.Type = as.PersonType
@@ -268,6 +269,12 @@ func loadAPPerson(a app.Account) *ap.Person {
 			PublicKeyPem: fmt.Sprintf("-----BEGIN PUBLIC KEY-----\n%s\n-----END PUBLIC KEY-----", base64.StdEncoding.EncodeToString(a.Metadata.Key.Public)),
 		}
 	}
+
+	p.Endpoints = goap.Endpoints {
+		OauthAuthorizationEndpoint: as.IRI(fmt.Sprintf("%s/oauth/authorize", BaseURL)),
+		OauthTokenEndpoint: as.IRI(fmt.Sprintf("%s/oauth/token", BaseURL)),
+	}
+
 	return &p
 }
 
