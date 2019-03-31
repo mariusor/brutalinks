@@ -21,6 +21,8 @@ require (
 	github.com/mmcdole/gofeed v1.0.0-beta2
 	github.com/mmcdole/goxpp v0.0.0-20181012175147-0068e33feabf // indirect
 	github.com/mmcloughlin/meow v0.0.0-20181112033425-871e50784daf
+	github.com/openshift/osin v1.0.1
+	github.com/pborman/uuid v1.2.0 // indirect
 	github.com/sirupsen/logrus v1.2.0
 	github.com/spacemonkeygo/httpsig v0.0.0-20180701154948-c76789e3b41d
 	github.com/unrolled/render v0.0.0-20171102162132-65450fb6b2d3
