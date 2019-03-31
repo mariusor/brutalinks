@@ -269,10 +269,11 @@ func loadAPPerson(a app.Account) *ap.Person {
 			PublicKeyPem: fmt.Sprintf("-----BEGIN PUBLIC KEY-----\n%s\n-----END PUBLIC KEY-----", base64.StdEncoding.EncodeToString(a.Metadata.Key.Public)),
 		}
 	}
+	oauthURL := strings.Replace(BaseURL, "api", "oauth", 1)
 	p.Endpoints = goap.Endpoints{
 		SharedInbox: as.IRI(fmt.Sprintf("%s/self/inbox", BaseURL)),
-		OauthAuthorizationEndpoint: as.IRI(fmt.Sprintf("%s/oauth/authorize", BaseURL)),
-		OauthTokenEndpoint: as.IRI(fmt.Sprintf("%s/oauth/token", BaseURL)),
+		OauthAuthorizationEndpoint: as.IRI(fmt.Sprintf("%s/authorize", oauthURL)),
+		OauthTokenEndpoint: as.IRI(fmt.Sprintf("%s/token", oauthURL)),
 	}
 
 	return &p
