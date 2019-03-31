@@ -4,10 +4,15 @@ import (
 	"context"
 	"database/sql"
 	"database/sql/driver"
+	"encoding/json"
 	"fmt"
+	as "github.com/go-ap/activitystreams"
+	"github.com/go-ap/jsonld"
 	"github.com/mariusor/littr.go/app"
+	ap "github.com/mariusor/littr.go/app/activitypub"
 	"github.com/mariusor/littr.go/internal/log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/go-pg/pg"
@@ -239,6 +244,62 @@ func (c config) LoadAccounts(f app.Filters) (app.AccountCollection, uint, error)
 
 func (c config) SaveAccount(a app.Account) (app.Account, error) {
 	return saveAccount(c.DB, a)
+}
+
+func saveActivity(db *pg.DB, a as.Item, col as.IRI) (as.Item, error) {
+	type obj struct {
+		Id   int64
+		Key  app.Key
+		Type as.ActivityVocabularyType
+		IRI  string
+		Raw  json.RawMessage
+	}
+
+	iri := string(*a.GetID())
+	key := app.Key{}
+	if iri != "" {
+		if app.HostIsLocal(iri) {
+			pos := strings.LastIndex(iri, app.Instance.HostName) + len(app.Instance.HostName)
+			iri = iri[pos:]
+			// this should happen only for local IRIs
+			//key.FromString(string(app.GetHashFromAP(as.IRI(iri))))
+		}
+	}
+
+	o := obj{
+		Key: key,
+		IRI: iri,
+		Type: a.GetType(),
+	}
+	if raw, err := jsonld.Marshal(a); err != nil {
+		return a, err
+	} else {
+		o.Raw = raw
+		if o.Key.IsEmpty() {
+			o.Key = app.GenKey(raw)
+		}
+		if o.IRI == "" {
+			o.IRI = fmt.Sprintf("%s/%s", col, o.Key)
+		}
+	}
+
+	query := `INSERT INTO "objects" ("key", "type", "iri", "raw") 
+		VALUES(
+			?0, ?1, ?2, ?3
+	);`
+	if _, err := db.Exec(query, o.Key, o.Type, o.IRI, o.Raw); err != nil {
+		return a, err
+	}
+	if a.GetID() == nil {
+		ob := a.(ap.Activity)
+		ob.ID = as.ObjectID(o.IRI)
+		return ob, nil
+	}
+	return a, nil
+}
+
+func (c config) SaveActivity(a as.Item, col as.IRI) (as.Item, error) {
+	return saveActivity(c.DB, a, col)
 }
 
 func LoadScoresForItems(since time.Duration, key string) ([]app.Score, error) {

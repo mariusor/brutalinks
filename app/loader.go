@@ -578,7 +578,7 @@ type CanSaveAccounts interface {
 }
 
 type CanSaveActivity interface {
-	SaveActivity(a as.Item) (as.Item, error)
+	SaveActivity(as.Item, as.IRI) (as.Item, error)
 }
 
 type CanLoad interface {

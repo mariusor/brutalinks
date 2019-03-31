@@ -425,10 +425,10 @@ func (h handler) HandleCollectionActivityObject(w http.ResponseWriter, r *http.R
 		val := r.Context().Value(app.RepositoryCtxtKey)
 		if service, ok := val.(app.CanLoadItems); ok && len(i.Hash) > 0 {
 			replies, _, err := service.LoadItems(app.Filters{
-				LoadItemsFilter:app.LoadItemsFilter{
+				LoadItemsFilter: app.LoadItemsFilter{
 					InReplyTo: []string{i.Hash.String()},
 				},
-				MaxItems:  MaxContentItems,
+				MaxItems: MaxContentItems,
 			})
 			if err != nil {
 				h.logger.WithContext(log.Ctx{
@@ -1044,7 +1044,8 @@ func (h handler) ClientRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if repo, ok := app.ContextActivitySaver(r.Context()); ok == true {
-		repo.SaveActivity(a)
+		i, _ := repo.SaveActivity(a, as.IRI(fmt.Sprintf("%s", r.URL.Path)))
+		a = i.(ap.Activity)
 	}
 
 	switch a.GetType() {
