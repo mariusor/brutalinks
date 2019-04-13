@@ -403,10 +403,15 @@ func (h *handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 	if !strings.Contains(backUrl, url) && strings.Contains(backUrl, app.Instance.BaseURL) {
 		url = fmt.Sprintf("%s#item-%s", backUrl, p.Hash)
 	}
+	acc := h.account
+	auth, authOk := app.ContextAuthenticated(r.Context())
+	if authOk && acc.IsLogged() {
+		auth.WithAccount(&acc)
+	}
 	p.Delete()
 	if sav, ok := app.ContextItemSaver(r.Context()); ok {
 		if _, err = sav.SaveItem(p); err != nil {
-			h.addFlashMessage(Error, fmt.Sprintf("unable to add vote as an %s user", h.account.Handle), r)
+			h.addFlashMessage(Error, "unable to delete item as current user", r)
 		}
 	}
 
@@ -483,7 +488,7 @@ func (h *handler) HandleVoting(w http.ResponseWriter, r *http.Request) {
 			}).Error(err.Error())
 		}
 	} else {
-		h.addFlashMessage(Error, fmt.Sprintf("unable to add vote as an %s user", acc.Handle), r)
+		h.addFlashMessage(Error, "unable to vote as current user", r)
 	}
 	h.Redirect(w, r, url, http.StatusFound)
 }
