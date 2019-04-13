@@ -326,11 +326,12 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 		h.HandleErrors(w, r, errors.Errorf("could not load item repository from Context"))
 		return
 	}
-
+	saveVote := true
 	if len(n.Hash) > 0 {
 		if p, err := itemLoader.LoadItem(app.Filters{ LoadItemsFilter: app.LoadItemsFilter{Key: app.Hashes{n.Hash}}}); err == nil {
 			n.Title = p.Title
 		}
+		saveVote = false
 	}
 
 	var itemSaver app.CanSaveItems
@@ -347,21 +348,23 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var voteSaver app.CanSaveVotes
-	if voteSaver, ok = app.ContextVoteSaver(r.Context()); !ok {
-		h.logger.Error("could not load item repository from Context")
-	}
-	v := app.Vote{
-		SubmittedBy: &acc,
-		Item:        &n,
-		Weight:      1 * app.ScoreMultiplier,
-	}
-	if _, err := voteSaver.SaveVote(v); err != nil {
-		h.logger.WithContext(log.Ctx{
-			"hash":   v.Item.Hash,
-			"author": v.SubmittedBy.Handle,
-			"weight": v.Weight,
-		}).Error(err.Error())
+	if saveVote {
+		var voteSaver app.CanSaveVotes
+		if voteSaver, ok = app.ContextVoteSaver(r.Context()); !ok {
+			h.logger.Error("could not load item repository from Context")
+		}
+		v := app.Vote{
+			SubmittedBy: &acc,
+			Item:        &n,
+			Weight:      1 * app.ScoreMultiplier,
+		}
+		if _, err := voteSaver.SaveVote(v); err != nil {
+			h.logger.WithContext(log.Ctx{
+				"hash":   v.Item.Hash,
+				"author": v.SubmittedBy.Handle,
+				"weight": v.Weight,
+			}).Error(err.Error())
+		}
 	}
 	h.Redirect(w, r, ItemPermaLink(n), http.StatusSeeOther)
 }
