@@ -181,7 +181,7 @@ func SeedDB(o *pg.Options, hostname string) error {
 				// id
 				interface{}(-1),
 				// key
-				interface{}("dc6f5f5bf55bc1073715c98c69fa7ca8"),
+				interface{}("dc6f5f5bf55bc1073715c98c69fa7ca8"), // (meow.Checksum(app.RANDOM_SEED_SELECTED_BY_DICE_ROLL, []byte([]byte("system")))),
 				// handle
 				interface{}("system"),
 				// email
@@ -193,7 +193,7 @@ func SeedDB(o *pg.Options, hostname string) error {
 				// id
 				interface{}(0),
 				// key
-				interface{}("eacff9ddf379bd9fc8274c5a9f4cae08"),
+				interface{}("eacff9ddf379bd9fc8274c5a9f4cae08"), // (meow.Checksum(app.RANDOM_SEED_SELECTED_BY_DICE_ROLL, []byte("anonymous"))),
 				// handle
 				interface{}("anonymous"),
 				// email
@@ -303,6 +303,10 @@ func CreateDatabase(o *pg.Options, r *pg.Options) error {
 			s2, _ := dot.Raw("extension-ltree")
 			return errors.Annotatef(err, "query: %s", s2)
 		}
+		types, _ := dot.Raw("create-activitypub-types-enum")
+		if _, err = db.Exec(types); err != nil {
+			return errors.Annotatef(err, "query: %s", types)
+		}
 	}
 	return nil
 }
@@ -342,11 +346,13 @@ func BootstrapDB(o *pg.Options) error {
 	if _, err = db.Exec(instances); err != nil {
 		return errors.Annotatef(err, "query: %s", instances)
 	}
+
+	objects, _ := dot.Raw("create-activitypub-objects")
+	if _, err = db.Exec(objects); err != nil {
+		return errors.Annotatef(err, "query: %s", objects)
+	}
+
 	if false {
-		objects, _ := dot.Raw("create-activitypub-objects")
-		if _, err = db.Exec(objects); err != nil {
-			return errors.Annotatef(err, "query: %s", objects)
-		}
 		actors, _ := dot.Raw("create-activitypub-actors")
 		if _, err = db.Exec(actors); err != nil {
 			return errors.Annotatef(err, "query: %s", actors)
