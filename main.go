@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"flag"
 	"github.com/mariusor/littr.go/app/db"
-	"github.com/mariusor/littr.go/app/oauth"
 	"github.com/mariusor/littr.go/app/processing"
 	"github.com/writeas/go-nodeinfo"
 	"net/http"
@@ -69,11 +68,6 @@ func main() {
 		Logger: app.Logger,
 	})
 
-	o := oauth.Init(oauth.Config{
-		DB: app.Instance.Config.DB,
-		Logger: app.Logger,
-	})
-
 	// Routes
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
@@ -88,7 +82,6 @@ func main() {
 
 	// API
 	r.With(db.Repository).Route("/api", a.Routes())
-	r.Route("/oauth", o.Routes())
 
 	cfg := api.NodeInfoConfig()
 	// Web-Finger
