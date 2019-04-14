@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"github.com/gorilla/sessions"
 	"github.com/mariusor/littr.go/internal/log"
+	"golang.org/x/oauth2"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/mariusor/littr.go/app"
@@ -17,6 +19,7 @@ const SessionUserKey = "__current_acct"
 type loginModel struct {
 	Title   string
 	Account app.Account
+	OAuth   bool
 }
 
 // ShowLogin handles POST /login requests
@@ -24,11 +27,11 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	pw := r.PostFormValue("pw")
 	handle := r.PostFormValue("handle")
 
-	backUrl := "/"
+	backUrl := "/oauth/authorize"
 	a, err := db.Config.LoadAccount(app.Filters{LoadAccountsFilter: app.LoadAccountsFilter{Handle: []string{handle}}})
 	if err != nil {
 		h.logger.Error(err.Error())
-		h.addFlashMessage(Error, "Login failed: wrong handle or password", r)
+		h.addFlashMessage(Error, r, "Login failed: wrong handle or password")
 		h.Redirect(w, r, backUrl, http.StatusSeeOther)
 		return
 	}
@@ -36,7 +39,7 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		h.logger.WithContext(log.Ctx{
 			"handle": handle,
 		}).Error("invalid account metadata")
-		h.addFlashMessage(Error, "Login failed: wrong handle or password", r)
+		h.addFlashMessage(Error, r, "Login failed: wrong handle or password")
 		h.Redirect(w, r, backUrl, http.StatusSeeOther)
 		return
 	}
@@ -51,22 +54,22 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		h.logger.Error(err.Error())
-		h.addFlashMessage(Error, "Login failed: wrong handle or password", r)
+		h.addFlashMessage(Error, r, "Login failed: wrong handle or password")
 		h.Redirect(w, r, backUrl, http.StatusSeeOther)
 		return
 	}
 	var s *sessions.Session
 	if s, err = h.session.Get(r, sessionName); err != nil {
 		c := http.Cookie{
-			Name:    sessionName,
+			Name:     sessionName,
 			Value:    "",
 			Path:     "/",
-			Expires: time.Unix(0, 0),
+			Expires:  time.Unix(0, 0),
 			HttpOnly: true,
 		}
 		http.SetCookie(w, &c)
 		h.logger.Error(err.Error())
-		h.addFlashMessage(Error, "Unable to load session", r)
+		h.addFlashMessage(Error, r, "Unable to load session")
 		h.Redirect(w, r, backUrl, http.StatusSeeOther)
 		return
 	}
@@ -76,8 +79,16 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	s.Save(r, w)
 
-	h.addFlashMessage(Success, "Login successful", r)
-	h.Redirect(w, r, backUrl, http.StatusSeeOther)
+	config := oauth2.Config{
+		ClientID:     os.Getenv("OAUTH2_KEY"),
+		ClientSecret: os.Getenv("OAUTH2_SECRET"),
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  fmt.Sprintf("%s/oauth/authorize", h.conf.BaseURL),
+			TokenURL: fmt.Sprintf("%s/oauth/token", h.conf.BaseURL),
+		},
+		RedirectURL: fmt.Sprintf("%s/auth/local/callback", h.conf.BaseURL),
+	}
+	h.Redirect(w, r, config.AuthCodeURL("state", oauth2.AccessTypeOnline), http.StatusPermanentRedirect)
 }
 
 // ShowLogin serves GET /login requests

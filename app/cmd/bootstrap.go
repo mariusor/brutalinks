@@ -10,6 +10,7 @@ import (
 	"github.com/mariusor/littr.go/internal/errors"
 	"github.com/mmcloughlin/meow"
 	"net"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -259,8 +260,8 @@ func SeedDB(o *pg.Options, hostname string) error {
 			{
 				// id - hashed hostname
 				interface{}(fmt.Sprintf("%2x", meow.Checksum(app.RANDOM_SEED_SELECTED_BY_DICE_ROLL, []byte(hostname)))),
-				// secret - dunno what it's used for
-				interface{}("yuh4ckm3?!"),
+				// secret - local one
+				interface{}(os.Getenv("OAUTH2_SECRET")),
 				// extra
 				interface{}(nil),
 				// redirect_uri

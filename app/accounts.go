@@ -18,6 +18,12 @@ type ImageMetadata struct {
 	MimeType string `json:"mimeType,omitempty"`
 }
 
+type OAuth struct {
+	Provider string
+	Code     string
+	State    string
+}
+
 type AccountMetadata struct {
 	Password     []byte        `json:"pw,omitempty"`
 	Provider     string        `json:"provider,omitempty"`
@@ -33,6 +39,7 @@ type AccountMetadata struct {
 	LikedIRI     string        `json:"liked,omitempty"`
 	FollowersIRI string        `json:"followers,omitempty"`
 	FollowingIRI string        `json:"following,omitempty"`
+	OAuth        OAuth         `json:-`
 }
 
 type AccountCollection []Account

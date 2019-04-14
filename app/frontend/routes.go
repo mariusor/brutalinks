@@ -81,6 +81,15 @@ func (h *handler) Routes() func(chi.Router) {
 		r.With(h.NeedsSessions).Get("/auth/{provider}", h.HandleAuth)
 		r.With(h.NeedsSessions).Get("/auth/{provider}/callback", h.HandleCallback)
 
+		r.Route("/oauth", func(r chi.Router) {
+			r.Use(h.NeedsSessions)
+			// Authorization code endpoint
+			r.With(h.RedirectToLogin).Get("/authorize", h.Authorize)
+			r.With(h.RedirectToLogin).Post("/authorize", h.Authorize)
+			// Access token endpoint
+			r.Get("/token", h.Token)
+		})
+
 		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 			h.HandleErrors(w, r, errors.NotFoundf("%q", r.RequestURI))
 		})

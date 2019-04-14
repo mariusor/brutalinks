@@ -143,6 +143,17 @@ func (h *handler) ValidatePermissions(actions ...string) func(http.Handler) http
 	}
 }
 
+func (h *handler) RedirectToLogin(next http.Handler) http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		if !h.account.IsLogged() {
+			h.Redirect(w, r, "/login", 301)
+			return
+		}
+		next.ServeHTTP(w, r)
+	}
+	return http.HandlerFunc(fn)
+}
+
 func (h *handler) ValidateLoggedIn(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		if !h.account.IsLogged() {

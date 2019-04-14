@@ -411,7 +411,7 @@ func (h *handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 	p.Delete()
 	if sav, ok := app.ContextItemSaver(r.Context()); ok {
 		if _, err = sav.SaveItem(p); err != nil {
-			h.addFlashMessage(Error, "unable to delete item as current user", r)
+			h.addFlashMessage(Error, r, "unable to delete item as current user")
 		}
 	}
 
@@ -488,7 +488,7 @@ func (h *handler) HandleVoting(w http.ResponseWriter, r *http.Request) {
 			}).Error(err.Error())
 		}
 	} else {
-		h.addFlashMessage(Error, "unable to vote as current user", r)
+		h.addFlashMessage(Error, r, "unable to vote as current user")
 	}
 	h.Redirect(w, r, url, http.StatusFound)
 }

@@ -43,6 +43,7 @@ func main() {
 	db.Init(&app.Instance)
 	front, err := frontend.Init(frontend.Config{
 		Env:      e,
+		DB:       app.Instance.Config.DB,
 		Logger:   app.Instance.Logger.New(log.Ctx{"package": "frontend"}),
 		Secure:   app.Instance.Secure,
 		BaseURL:  app.Instance.BaseURL,

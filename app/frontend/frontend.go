@@ -3,9 +3,12 @@ package frontend
 import (
 	"bufio"
 	"bytes"
+	"database/sql"
 	"encoding/gob"
 	"fmt"
 	"github.com/gorilla/csrf"
+	"github.com/mariusor/littr.go/app/oauth"
+	"github.com/openshift/osin"
 	"html/template"
 	"math"
 	"net/http"
@@ -40,6 +43,7 @@ type handler struct {
 	session sessions.Store
 	account app.Account
 	logger  log.Logger
+	s       *osin.Server
 }
 
 var defaultAccount = app.AnonymousAccount
@@ -56,6 +60,14 @@ const (
 type flash struct {
 	Type flashType
 	Msg  string
+}
+
+type logger struct {
+	l log.Logger
+}
+
+func (l logger) Printf(format string, v ...interface{}) {
+	l.l.Infof(format, v...)
 }
 
 func html(data string) template.HTML {
@@ -171,6 +183,14 @@ func relTimeFmt(old time.Time) string {
 }
 
 type Config struct {
+	DB struct {
+		Enabled bool
+		Host    string
+		Port    string
+		User    string
+		Pw      string
+		Name    string
+	}
 	Env            app.EnvType
 	Version        string
 	BaseURL        string
@@ -202,7 +222,26 @@ func Init(c Config) (handler, error) {
 	c.SessionKeys = loadEnvSessionKeys()
 	h.session, err = InitSessionStore(c)
 	h.conf = c
+	config := osin.ServerConfig{
+		AuthorizationExpiration:   250,
+		AccessExpiration:          3600,
+		TokenType:                 "Bearer",
+		AllowedAuthorizeTypes:     osin.AllowedAuthorizeType{osin.CODE},
+		AllowedAccessTypes:        osin.AllowedAccessType{osin.AUTHORIZATION_CODE},
+		ErrorStatusCode:           403,
+		AllowClientSecretInParams: false,
+		AllowGetAccessRequest:     false,
+		RetainTokenAfterRefresh:   false,
+		//RequirePKCEForPublicClients: true,
+	}
+	url := fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable", c.DB.Host, c.DB.User, c.DB.Pw, c.DB.Name)
+	db, err := sql.Open("postgres", url)
 
+	if err == nil {
+		store := oauth.New(db, c.Logger)
+		h.s = osin.NewServer(&config, store)
+	}
+	h.s.Logger = logger{l: c.Logger}
 	return h, err
 }
 
@@ -366,7 +405,7 @@ func appName(n string) template.HTML {
 	return template.HTML(name.String())
 }
 
-func (h handler) saveSession(w http.ResponseWriter, r *http.Request) error {
+func (h *handler) saveSession(w http.ResponseWriter, r *http.Request) error {
 	var err error
 	var s *sessions.Session
 	if h.session == nil {
@@ -381,7 +420,7 @@ func (h handler) saveSession(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func (h handler) Redirect(w http.ResponseWriter, r *http.Request, url string, status int) {
+func (h *handler) Redirect(w http.ResponseWriter, r *http.Request, url string, status int) {
 	if err := h.saveSession(w, r); err != nil {
 		h.logger.WithContext(log.Ctx{
 			"status": status,
@@ -529,14 +568,15 @@ func (h handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name str
 	return err
 }
 
-// handleAdmin serves /admin request
+// HandleAdmin serves /admin request
 func (h handler) HandleAdmin(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(200)
 	w.Write([]byte("done!!!"))
 }
 
-// handleMain serves /auth/{provider}/callback request
-func (h handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
+// HandleCallback serves /auth/{provider}/callback request
+func (h *handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
+	// http://brutalinks.git/oauth/authorize?response_type=code&client_id=eaca4839ddf16cb4a5c4ca126db8de5c&redirect_uri=http%3A%2F%2Fbrutalinks.git%2Fauth%2Flocal%2Fcallback
 	q := r.URL.Query()
 	provider := chi.URLParam(r, "provider")
 	providerErr := q["error"]
@@ -550,42 +590,49 @@ func (h handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
 		h.HandleErrors(w, r, errs...)
 		return
 	}
-	code := q["code"]
-	state := q["state"]
-	if code == nil {
+	code := q.Get("code")
+	state := q.Get("state")
+	if len(code) == 0 {
 		h.HandleErrors(w, r, errors.Forbiddenf("%s error: Empty authentication token", provider))
 		return
 	}
 
-	s, err := h.session.Get(r, sessionName)
-	if err != nil {
-		h.logger.Debugf(err.Error())
+	var s *sessions.Session
+	var err error
+	if s, err = h.session.Get(r, sessionName); err != nil {
+		h.addFlashMessage(Warning, r, fmt.Sprintf("Unable to save session: %s", err))
+	}
+	s.Values[SessionUserKey] = sessionAccount{
+		Handle: h.account.Handle,
+		Hash:   []byte(h.account.Hash),
+		OAuth: app.OAuth{
+			Code:     code,
+			Provider: provider,
+			State:    state,
+		},
 	}
 
-	s.Values["provider"] = provider
-	s.Values["code"] = code
-	s.Values["state"] = state
-	//addFlashMessage(Success, fmt.Sprintf("Login successful with %s", provider), r)
-
-	if err := h.session.Save(r, w, s); err != nil {
-		h.logger.Debugf(err.Error())
+	if strings.ToLower(provider) != "local" {
+		h.addFlashMessage(Success, r, fmt.Sprintf("Login successful with %s", provider))
+	} else {
+		h.addFlashMessage(Success, r, "Login successful")
 	}
 	h.Redirect(w, r, "/", http.StatusFound)
 }
 
-// handleMain serves /auth/{provider}/callback request
-func (h handler) HandleAuth(w http.ResponseWriter, r *http.Request) {
+// HandleAuth serves /auth/{provider}/callback request
+func (h *handler) HandleAuth(w http.ResponseWriter, r *http.Request) {
 	provider := chi.URLParam(r, "provider")
 
 	indexUrl := "/"
-	if os.Getenv(strings.ToUpper(provider)+"_KEY") == "" {
+	if strings.ToLower(provider) != "local" && os.Getenv(strings.ToUpper(provider)+"_KEY") == "" {
 		h.logger.WithContext(log.Ctx{
 			"provider": provider,
 		}).Info("Provider has no credentials set")
 		h.Redirect(w, r, indexUrl, http.StatusPermanentRedirect)
 		return
 	}
-	url := fmt.Sprintf("%s/auth/%s/callback", "", provider)
+	url := fmt.Sprintf("%s/auth/%s/callback", h.conf.BaseURL, provider)
 
 	var config oauth2.Config
 	switch strings.ToLower(provider) {
@@ -629,6 +676,16 @@ func (h handler) HandleAuth(w http.ResponseWriter, r *http.Request) {
 			},
 			RedirectURL: url,
 		}
+	case "local":
+		config = oauth2.Config{
+			ClientID:     os.Getenv("OAUTH2_KEY"),
+			ClientSecret: os.Getenv("OAUTH2_SECRET"),
+			Endpoint: oauth2.Endpoint{
+				AuthURL:  fmt.Sprintf("%s/oauth/authorize", h.conf.BaseURL),
+				TokenURL: fmt.Sprintf("%s/oauth/token", h.conf.BaseURL),
+			},
+			RedirectURL: url,
+		}
 	default:
 		s, err := h.session.Get(r, sessionName)
 		if err != nil {
@@ -637,6 +694,8 @@ func (h handler) HandleAuth(w http.ResponseWriter, r *http.Request) {
 		s.AddFlash("Missing oauth provider")
 		h.Redirect(w, r, indexUrl, http.StatusPermanentRedirect)
 	}
+	// TODO(marius): generated _CSRF state value to check in h.HandleCallback
+	// redirURL := "http://brutalinks.git/oauth/authorize?access_type=online&client_id=eaca4839ddf16cb4a5c4ca126db8de5c&redirect_uri=http%3A%2F%2Fbrutalinks.git%2Fauth%2Flocal%2Fcallback&response_type=code&state=state"
 	h.Redirect(w, r, config.AuthCodeURL("state", oauth2.AccessTypeOnline), http.StatusFound)
 }
 
@@ -650,7 +709,7 @@ func isInverted(r *http.Request) bool {
 	return false
 }
 
-func loadCurrentAccount(s *sessions.Session, l log.Logger) app.Account {
+func loadCurrentAccountFromSession(s *sessions.Session, l log.Logger) app.Account {
 	// load the current account from the session or setting it to anonymous
 	if raw, ok := s.Values[SessionUserKey]; ok {
 		if a, ok := raw.(sessionAccount); ok {
@@ -659,6 +718,7 @@ func loadCurrentAccount(s *sessions.Session, l log.Logger) app.Account {
 					"handle": acc.Handle,
 					"hash":   acc.Hash.String(),
 				}).Debug("loaded account from session")
+				acc.Metadata.OAuth = a.OAuth
 				return acc
 			} else {
 				if err != nil {
@@ -673,7 +733,7 @@ func loadCurrentAccount(s *sessions.Session, l log.Logger) app.Account {
 	return defaultAccount
 }
 
-func loadSessionFlashMessages(s *sessions.Session, l log.Logger) {
+func loadFlashMessagesFromSession(s *sessions.Session, l log.Logger) {
 	flashData = flashData[:0]
 	flashes := s.Flashes()
 	// setting the local flashData value
@@ -709,27 +769,28 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 		if s, err := h.session.Get(r, sessionName); err != nil {
 			h.logger.Error(err.Error())
 		} else {
-			h.account = loadCurrentAccount(s, h.logger)
-			loadSessionFlashMessages(s, h.logger)
+			h.account = loadCurrentAccountFromSession(s, h.logger)
+			loadFlashMessagesFromSession(s, h.logger)
 		}
 		next.ServeHTTP(w, r)
 	}
 	return http.HandlerFunc(fn)
 }
 
-func (h handler) addFlashMessage(typ flashType, msg string, r *http.Request) {
+func (h handler) addFlashMessage(typ flashType, r *http.Request, msgs ...string) {
 	s, _ := h.session.Get(r, sessionName)
-	n := flash{typ, msg}
-
-	exists := false
-	for _, f := range flashData {
-		if f == n {
-			exists = true
-			break
+	for _, msg := range msgs {
+		n := flash{typ, msg}
+		exists := false
+		for _, f := range flashData {
+			if f == n {
+				exists = true
+				break
+			}
 		}
-	}
-	if !exists {
-		s.AddFlash(n)
+		if !exists {
+			s.AddFlash(n)
+		}
 	}
 }
 
