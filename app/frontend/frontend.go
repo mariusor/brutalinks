@@ -678,6 +678,7 @@ func GetOauth2Config(provider string, localBaseURL string) oauth2.Config {
 	default:
 		config = oauth2.Config{}
 	}
+	config.RedirectURL = fmt.Sprintf("%s/auth/%s/callback", localBaseURL, provider)
 	return config
 }
 
@@ -704,7 +705,6 @@ func (h *handler) HandleAuth(w http.ResponseWriter, r *http.Request) {
 		s.AddFlash("Missing oauth provider")
 		h.Redirect(w, r, indexUrl, http.StatusPermanentRedirect)
 	}
-	config.RedirectURL = fmt.Sprintf("%s/auth/%s/callback", h.conf.BaseURL, provider)
 	// redirURL := "http://brutalinks.git/oauth/authorize?access_type=online&client_id=eaca4839ddf16cb4a5c4ca126db8de5c&redirect_uri=http%3A%2F%2Fbrutalinks.git%2Fauth%2Flocal%2Fcallback&response_type=code&state=state"
 	h.Redirect(w, r, config.AuthCodeURL("state", oauth2.AccessTypeOnline), http.StatusFound)
 }

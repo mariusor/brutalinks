@@ -79,7 +79,6 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	s.Save(r, w)
 
 	config := GetOauth2Config("local", h.conf.BaseURL)
-	config.RedirectURL = fmt.Sprintf("%s/auth/local/callback", h.conf.BaseURL)
 	h.Redirect(w, r, config.AuthCodeURL("state", oauth2.AccessTypeOnline), http.StatusPermanentRedirect)
 }
 
