@@ -85,9 +85,9 @@ func (h *handler) Routes() func(chi.Router) {
 			r.Use(h.NeedsSessions)
 			// Authorization code endpoint
 			r.With(h.RedirectToLogin).Get("/authorize", h.Authorize)
-			r.With(h.RedirectToLogin).Post("/authorize", h.Authorize)
+			r.Post("/authorize", h.Authorize)
 			// Access token endpoint
-			r.Get("/token", h.Token)
+			r.Post("/token", h.Token)
 		})
 
 		r.NotFound(func(w http.ResponseWriter, r *http.Request) {

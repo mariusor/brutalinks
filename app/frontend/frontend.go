@@ -223,15 +223,15 @@ func Init(c Config) (handler, error) {
 	h.session, err = InitSessionStore(c)
 	h.conf = c
 	config := osin.ServerConfig{
-		AuthorizationExpiration:   250,
-		AccessExpiration:          3600,
+		AuthorizationExpiration:   86400,
+		AccessExpiration:          2678400,
 		TokenType:                 "Bearer",
 		AllowedAuthorizeTypes:     osin.AllowedAuthorizeType{osin.CODE},
 		AllowedAccessTypes:        osin.AllowedAccessType{osin.AUTHORIZATION_CODE},
 		ErrorStatusCode:           403,
 		AllowClientSecretInParams: false,
 		AllowGetAccessRequest:     false,
-		RetainTokenAfterRefresh:   false,
+		RetainTokenAfterRefresh:   true,
 		//RequirePKCEForPublicClients: true,
 	}
 	url := fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable", c.DB.Host, c.DB.User, c.DB.Pw, c.DB.Name)
@@ -612,12 +612,73 @@ func (h *handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
+	conf := GetOauth2Config(provider, h.conf.BaseURL)
+	tok, err := conf.Exchange(r.Context(), code)
+	if err != nil {
+		h.logger.Errorf("%s", err)
+	}
+	conf.Client(r.Context(), tok)
+
 	if strings.ToLower(provider) != "local" {
 		h.addFlashMessage(Success, r, fmt.Sprintf("Login successful with %s", provider))
 	} else {
 		h.addFlashMessage(Success, r, "Login successful")
 	}
 	h.Redirect(w, r, "/", http.StatusFound)
+}
+
+func GetOauth2Config(provider string, localBaseURL string) oauth2.Config {
+	var config oauth2.Config
+	switch strings.ToLower(provider) {
+	case "github":
+		config = oauth2.Config{
+			ClientID:     os.Getenv("GITHUB_KEY"),
+			ClientSecret: os.Getenv("GITHUB_SECRET"),
+			Endpoint: oauth2.Endpoint{
+				AuthURL:  "https://github.com/login/oauth/authorize",
+				TokenURL: "https://github.com/login/oauth/access_token",
+			},
+		}
+	case "gitlab":
+		config = oauth2.Config{
+			ClientID:     os.Getenv("GITLAB_KEY"),
+			ClientSecret: os.Getenv("GITLAB_SECRET"),
+			Endpoint: oauth2.Endpoint{
+				AuthURL:  "https://gitlab.com/login/oauth/authorize",
+				TokenURL: "https://gitlab.com/login/oauth/access_token",
+			},
+		}
+	case "facebook":
+		config = oauth2.Config{
+			ClientID:     os.Getenv("FACEBOOK_KEY"),
+			ClientSecret: os.Getenv("FACEBOOK_SECRET"),
+			Endpoint: oauth2.Endpoint{
+				AuthURL:  "https://graph.facebook.com/oauth/authorize",
+				TokenURL: "https://graph.facebook.com/oauth/access_token",
+			},
+		}
+	case "google":
+		config = oauth2.Config{
+			ClientID:     os.Getenv("GOOGLE_KEY"),
+			ClientSecret: os.Getenv("GOOGLE_SECRET"),
+			Endpoint: oauth2.Endpoint{
+				AuthURL:  "https://accounts.google.com/o/oauth2/auth", // access_type=offline
+				TokenURL: "https://accounts.google.com/o/oauth2/token",
+			},
+		}
+	case "local":
+		config = oauth2.Config{
+			ClientID:     os.Getenv("OAUTH2_KEY"),
+			ClientSecret: os.Getenv("OAUTH2_SECRET"),
+			Endpoint: oauth2.Endpoint{
+				AuthURL:  fmt.Sprintf("%s/oauth/authorize", localBaseURL),
+				TokenURL: fmt.Sprintf("%s/oauth/token", localBaseURL),
+			},
+		}
+	default:
+		config = oauth2.Config{}
+	}
+	return config
 }
 
 // HandleAuth serves /auth/{provider}/callback request
@@ -632,61 +693,10 @@ func (h *handler) HandleAuth(w http.ResponseWriter, r *http.Request) {
 		h.Redirect(w, r, indexUrl, http.StatusPermanentRedirect)
 		return
 	}
-	url := fmt.Sprintf("%s/auth/%s/callback", h.conf.BaseURL, provider)
 
-	var config oauth2.Config
-	switch strings.ToLower(provider) {
-	case "github":
-		config = oauth2.Config{
-			ClientID:     os.Getenv("GITHUB_KEY"),
-			ClientSecret: os.Getenv("GITHUB_SECRET"),
-			Endpoint: oauth2.Endpoint{
-				AuthURL:  "https://github.com/login/oauth/authorize",
-				TokenURL: "https://github.com/login/oauth/access_token",
-			},
-			RedirectURL: url,
-		}
-	case "gitlab":
-		config = oauth2.Config{
-			ClientID:     os.Getenv("GITLAB_KEY"),
-			ClientSecret: os.Getenv("GITLAB_SECRET"),
-			Endpoint: oauth2.Endpoint{
-				AuthURL:  "https://gitlab.com/login/oauth/authorize",
-				TokenURL: "https://gitlab.com/login/oauth/access_token",
-			},
-			RedirectURL: url,
-		}
-	case "facebook":
-		config = oauth2.Config{
-			ClientID:     os.Getenv("FACEBOOK_KEY"),
-			ClientSecret: os.Getenv("FACEBOOK_SECRET"),
-			Endpoint: oauth2.Endpoint{
-				AuthURL:  "https://graph.facebook.com/oauth/authorize",
-				TokenURL: "https://graph.facebook.com/oauth/access_token",
-			},
-			RedirectURL: url,
-		}
-	case "google":
-		config = oauth2.Config{
-			ClientID:     os.Getenv("GOOGLE_KEY"),
-			ClientSecret: os.Getenv("GOOGLE_SECRET"),
-			Endpoint: oauth2.Endpoint{
-				AuthURL:  "https://accounts.google.com/o/oauth2/auth", // access_type=offline
-				TokenURL: "https://accounts.google.com/o/oauth2/token",
-			},
-			RedirectURL: url,
-		}
-	case "local":
-		config = oauth2.Config{
-			ClientID:     os.Getenv("OAUTH2_KEY"),
-			ClientSecret: os.Getenv("OAUTH2_SECRET"),
-			Endpoint: oauth2.Endpoint{
-				AuthURL:  fmt.Sprintf("%s/oauth/authorize", h.conf.BaseURL),
-				TokenURL: fmt.Sprintf("%s/oauth/token", h.conf.BaseURL),
-			},
-			RedirectURL: url,
-		}
-	default:
+	// TODO(marius): generated _CSRF state value to check in h.HandleCallback
+	config := GetOauth2Config(provider, h.conf.BaseURL)
+	if len(config.ClientID) == 0 {
 		s, err := h.session.Get(r, sessionName)
 		if err != nil {
 			h.logger.Debugf(err.Error())
@@ -694,7 +704,7 @@ func (h *handler) HandleAuth(w http.ResponseWriter, r *http.Request) {
 		s.AddFlash("Missing oauth provider")
 		h.Redirect(w, r, indexUrl, http.StatusPermanentRedirect)
 	}
-	// TODO(marius): generated _CSRF state value to check in h.HandleCallback
+	config.RedirectURL = fmt.Sprintf("%s/auth/%s/callback", h.conf.BaseURL, provider)
 	// redirURL := "http://brutalinks.git/oauth/authorize?access_type=online&client_id=eaca4839ddf16cb4a5c4ca126db8de5c&redirect_uri=http%3A%2F%2Fbrutalinks.git%2Fauth%2Flocal%2Fcallback&response_type=code&state=state"
 	h.Redirect(w, r, config.AuthCodeURL("state", oauth2.AccessTypeOnline), http.StatusFound)
 }

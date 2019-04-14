@@ -6,7 +6,6 @@ import (
 	"github.com/mariusor/littr.go/internal/log"
 	"golang.org/x/oauth2"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/mariusor/littr.go/app"
@@ -79,15 +78,8 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	s.Save(r, w)
 
-	config := oauth2.Config{
-		ClientID:     os.Getenv("OAUTH2_KEY"),
-		ClientSecret: os.Getenv("OAUTH2_SECRET"),
-		Endpoint: oauth2.Endpoint{
-			AuthURL:  fmt.Sprintf("%s/oauth/authorize", h.conf.BaseURL),
-			TokenURL: fmt.Sprintf("%s/oauth/token", h.conf.BaseURL),
-		},
-		RedirectURL: fmt.Sprintf("%s/auth/local/callback", h.conf.BaseURL),
-	}
+	config := GetOauth2Config("local", h.conf.BaseURL)
+	config.RedirectURL = fmt.Sprintf("%s/auth/local/callback", h.conf.BaseURL)
 	h.Redirect(w, r, config.AuthCodeURL("state", oauth2.AccessTypeOnline), http.StatusPermanentRedirect)
 }
 
