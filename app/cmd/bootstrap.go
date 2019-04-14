@@ -6,7 +6,9 @@ import (
 	"github.com/gchaincl/dotsql"
 	"github.com/go-pg/pg"
 	_ "github.com/lib/pq"
+	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/internal/errors"
+	"github.com/mmcloughlin/meow"
 	"net"
 	"sort"
 	"strings"
@@ -250,6 +252,19 @@ func SeedDB(o *pg.Options, hostname string) error {
 				interface{}("/api/self/inbox"),
 				// metadata
 				interface{}("{}"),
+			},
+		},
+		"oauth-clients": {
+			// TODO(marius): should we need to add an entry for littr.me also ?
+			{
+				// id - hashed hostname
+				interface{}(fmt.Sprintf("%2x", meow.Checksum(app.RANDOM_SEED_SELECTED_BY_DICE_ROLL, []byte(hostname)))),
+				// secret - dunno what it's used for
+				interface{}("yuh4ckm3?!"),
+				// extra
+				interface{}(nil),
+				// redirect_uri
+				interface{}(fmt.Sprintf("http://%s/auth/local/callback", hostname)), // this should point to a frontend uri that can handle oauth
 			},
 		},
 	}

@@ -56,3 +56,13 @@ VALUES (
   $6,
   DEFAULT
 );
+
+-- name: test-client
+INSERT INTO "client"
+  ("id", "secret", "extra", "redirect_uri")
+VALUES (
+  $1,
+  $2,
+  $3,
+  $4
+);
