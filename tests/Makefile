@@ -2,13 +2,16 @@ export CGO_ENABLED=0
 GO := go
 TEST := $(GO) test -v
 
-.PHONY: tests run integration killapp
+.PHONY: test run integration killapp clean
 
-tests:
+clean:
+	@-$(RM) -f ./db
+
+test:
 	@cp -r ../db ./
 	@$(MAKE) integration
-	@$(RM) -rf ./db
-	@$(MAKE) killapp
+	@-$(MAKE) killapp
+	@-$(MAKE) clean
 
 integration: run
 	$(TEST) ./...

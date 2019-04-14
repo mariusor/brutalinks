@@ -5,7 +5,7 @@ $(HOSTNAME).pem:
 	cat $(HOSTNAME).key $(HOSTNAME).crt > $(HOSTNAME).pem
 
 clean:
-	$(RM) $(HOSTNAME).{key,crt,pem}
+	@-$(RM) $(HOSTNAME).{key,crt,pem}
 
 cert: $(HOSTNAME).pem
 

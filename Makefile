@@ -19,7 +19,7 @@ endif
 
 BUILD := $(GO) build -a -ldflags '-X main.version=$(VERSION) -extldflags "-static"'
 
-.PHONY: all cli run clean cert images tests
+.PHONY: all cli run clean cert images test
 
 all: app cli
 
@@ -53,8 +53,9 @@ run: app
 	@./bin/app
 
 clean:
-	$(RM) bin/*
+	-$(RM) bin/*
 	$(MAKE) -C docker $@
+	$(MAKE) -C tests $@
 
 cert:
 	$(MAKE) -C docker $@
@@ -62,6 +63,6 @@ cert:
 images:
 	$(MAKE) -C docker $@
 
-tests: app
+test: app
 	$(TEST) ./{app,cli,internal}/...
 	$(MAKE) -C tests $@
