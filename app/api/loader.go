@@ -6,7 +6,9 @@ import (
 	"crypto"
 	"crypto/x509"
 	"fmt"
+	"github.com/mariusor/littr.go/app/frontend"
 	"github.com/writeas/go-nodeinfo"
+	"golang.org/x/oauth2"
 	"io/ioutil"
 	"net/http"
 	"path"
@@ -45,7 +47,8 @@ func New(c Config) *repository {
 	}
 }
 
-func (r *repository) WithAccount(a *app.Account) error {
+func (r *repository) withAccountS2S(a *app.Account) error {
+	// TODO(marius): this needs to be added to the federated requests, which we currently don't support
 	r.Account = a
 
 	if r.Account == nil || r.Account.Hash == app.AnonymousAccount.Hash {
@@ -71,10 +74,44 @@ func (r *repository) WithAccount(a *app.Account) error {
 	if err != nil {
 		return err
 	}
-
 	p := *loadAPPerson(*r.Account)
 	s := getSigner(p.PublicKey.ID, prv)
 	r.client.SignFn(s.Sign)
+
+	return nil
+}
+
+type oAuth2Signer struct {
+	conf   oauth2.Config
+	tok    *oauth2.Token
+	code   string
+	logger log.Logger
+}
+
+func (o *oAuth2Signer) Sign(req *http.Request) error {
+	var err error
+	if o.tok, err = o.conf.Exchange(req.Context(), o.code); err == nil {
+		o.tok.SetAuthHeader(req)
+	} else {
+		// refresh maybe?
+		o.logger.Errorf("invalid token %#v", o.tok)
+	}
+	return err
+}
+
+func (r *repository) WithAccount(a *app.Account) error {
+	r.Account = a
+
+	if !a.IsLogged() || len(a.Metadata.OAuth.Code) == 0 {
+		return nil
+	}
+
+	o := oAuth2Signer{
+		conf: frontend.GetOauth2Config(r.Account.Metadata.OAuth.Provider, strings.Replace(r.BaseURL, "/api", "", 1)),
+		code: r.Account.Metadata.OAuth.Code,
+		logger: r.logger,
+	}
+	r.client.SignFn(o.Sign)
 
 	return nil
 }
@@ -111,7 +148,7 @@ func (h handler) AccountCtxt(next http.Handler) http.Handler {
 			http.Redirect(w, r, url, http.StatusSeeOther)
 			return
 		} else {
-			a, err := AcctLoader.LoadAccount(app.Filters{ LoadAccountsFilter: app.LoadAccountsFilter{Key: app.Hashes{app.Hash(handle)}}})
+			a, err := AcctLoader.LoadAccount(app.Filters{LoadAccountsFilter: app.LoadAccountsFilter{Key: app.Hashes{app.Hash(handle)}}})
 			if err != nil {
 				h.logger.Error(err.Error())
 				h.HandleError(w, r, err)
@@ -618,7 +655,7 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 	if v.Weight > 0 && (exists == nil || len(*exists.GetID()) == 0 || exists.GetType() != as.LikeType) {
 		act.Type = as.LikeType
 	}
-	if v.Weight < 0 && (exists == nil || len(*exists.GetID()) == 0 || exists.GetType() != as.DislikeType)  {
+	if v.Weight < 0 && (exists == nil || len(*exists.GetID()) == 0 || exists.GetType() != as.DislikeType) {
 		act.Type = as.DislikeType
 	}
 
@@ -795,7 +832,7 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 	case http.StatusCreated:
 		newLoc := resp.Header.Get("Location")
 		hash := path.Base(newLoc)
-		f := app.Filters{ LoadItemsFilter: app.LoadItemsFilter{
+		f := app.Filters{LoadItemsFilter: app.LoadItemsFilter{
 			Key: app.Hashes{app.Hash(hash)},
 		}}
 		return r.LoadItem(f)
