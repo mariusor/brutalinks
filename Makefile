@@ -3,11 +3,13 @@ export GOOS=linux
 export GOARCH=amd64
 export VERSION=(unknown)
 GO := go
-TEST := $(GO) test
-APPSOURCES := $(wildcard ./app/*.go ./app/*/*.go)
+ENV ?= dev
+LDFLAGS ?= -X main.version=$(VERSION)
+BUILDFLAGS ?= -a -ldflags '$(LDFLAGS)'
+APPSOURCES := $(wildcard ./app/*.go ./app/*/*.go) main.go
 
-ifeq ($(ENV),)
-	ENV := dev
+ifneq ($(ENV), dev)
+	LDFLAGS += -s -w -extldflags "-static"
 endif
 
 ifeq ($(shell git describe --always > /dev/null 2>&1 ; echo $$?), 0)
@@ -17,7 +19,8 @@ ifeq ($(shell git describe --tags > /dev/null 2>&1 ; echo $$?), 0)
 export VERSION = $(shell git describe --tags)
 endif
 
-BUILD := $(GO) build -a -ldflags '-X main.version=$(VERSION) -extldflags "-static"'
+BUILD := $(GO) build $(BUILDFLAGS)
+TEST := $(GO) test $(BUILDFLAGS)
 
 .PHONY: all cli run clean cert images test
 
