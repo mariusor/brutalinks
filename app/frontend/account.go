@@ -2,14 +2,15 @@ package frontend
 
 import (
 	"fmt"
-	"github.com/mariusor/littr.go/internal/errors"
 	"github.com/mariusor/littr.go/app"
+	"github.com/mariusor/littr.go/internal/errors"
 	"github.com/mariusor/qstring"
 	"net/http"
 
 	"github.com/go-chi/chi"
 )
 
+// Paginator is an interface for paginating collections
 type Paginator interface {
 	NextPage() int
 	PrevPage() int
@@ -49,7 +50,7 @@ func (h *handler) ShowAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var err error
-	a, err := accountLoader.LoadAccount(app.Filters{ LoadAccountsFilter: app.LoadAccountsFilter{Handle: []string{handle}}})
+	a, err := accountLoader.LoadAccount(app.Filters{LoadAccountsFilter: app.LoadAccountsFilter{Handle: []string{handle}}})
 	if err != nil {
 		h.HandleErrors(w, r, err)
 		return
@@ -60,11 +61,11 @@ func (h *handler) ShowAccount(w http.ResponseWriter, r *http.Request) {
 	}
 
 	filter := app.Filters{
-		LoadItemsFilter: app.LoadItemsFilter {
+		LoadItemsFilter: app.LoadItemsFilter{
 			AttributedTo: app.Hashes{a.Hash},
 		},
-		MaxItems:     MaxContentItems,
-		Page:         1,
+		MaxItems: MaxContentItems,
+		Page:     1,
 	}
 	if err := qstring.Unmarshal(r.URL.Query(), &filter); err != nil {
 		h.logger.Debug("unable to load url parameters")
