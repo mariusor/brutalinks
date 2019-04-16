@@ -682,12 +682,12 @@ func GetOauth2Config(provider string, localBaseURL string) oauth2.Config {
 	return config
 }
 
-// HandleAuth serves /auth/{provider}/callback request
+// HandleAuth serves /auth/{provider} request
 func (h *handler) HandleAuth(w http.ResponseWriter, r *http.Request) {
 	provider := chi.URLParam(r, "provider")
 
 	indexUrl := "/"
-	if strings.ToLower(provider) != "local" && os.Getenv(strings.ToUpper(provider)+"_KEY") == "" {
+	if strings.ToLower(provider) != "local" && os.Getenv("OAUTH2_KEY") == "" {
 		h.logger.WithContext(log.Ctx{
 			"provider": provider,
 		}).Info("Provider has no credentials set")
