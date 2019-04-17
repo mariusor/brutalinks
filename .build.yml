@@ -23,4 +23,4 @@ tasks:
       make all
   - tests: |
       cd littr.go
-      make -s tests
+      make test
