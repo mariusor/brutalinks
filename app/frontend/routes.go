@@ -12,15 +12,14 @@ import (
 
 func (h *handler) Routes() func(chi.Router) {
 	return func(r chi.Router) {
-		r.Use(h.LoadSession)
 		r.Use(middleware.GetHead)
+		r.Use(h.LoadSession)
 		r.Use(app.NeedsDBBackend(h.HandleErrors))
 		//r.Use(middleware.RedirectSlashes)
 
-		r.Get("/", h.HandleIndex)
-
 		r.Get("/about", h.HandleAbout)
 
+		r.Get("/", h.HandleIndex)
 		r.With(h.CSRF).Group(func (r chi.Router){
 			r.Get("/submit", h.ShowSubmit)
 			r.Post("/submit", h.HandleSubmit)
@@ -37,7 +36,7 @@ func (h *handler) Routes() func(chi.Router) {
 				r.Post("/", h.HandleSubmit)
 
 				r.Group(func (r chi.Router) {
-					r.Use(h.ValidateLoggedIn)
+					r.Use(h.ValidateLoggedIn(h.HandleErrors))
 					r.Get("/yay", h.HandleVoting)
 					r.Get("/nay", h.HandleVoting)
 
@@ -76,15 +75,18 @@ func (h *handler) Routes() func(chi.Router) {
 
 		r.Get("/self", h.HandleIndex)
 		r.Get("/federated", h.HandleIndex)
-		r.Get("/followed", h.HandleIndex)
+		r.With(h.NeedsSessions, h.ValidateLoggedIn(h.HandleErrors)).Get("/followed", h.HandleIndex)
 
-		r.With(h.NeedsSessions).Get("/auth/{provider}", h.HandleAuth)
-		r.With(h.NeedsSessions).Get("/auth/{provider}/callback", h.HandleCallback)
+		r.Route("/auth", func(r chi.Router) {
+			r.Use(h.NeedsSessions)
+			r.Get("/{provider}", h.HandleAuth)
+			r.Get("/{provider}/callback", h.HandleCallback)
+		})
 
 		r.Route("/oauth", func(r chi.Router) {
 			r.Use(h.NeedsSessions)
 			// Authorization code endpoint
-			r.With(h.RedirectToLogin).Get("/authorize", h.Authorize)
+			r.With(h.ValidateLoggedIn(h.RedirectToLogin)).Get("/authorize", h.Authorize)
 			r.Post("/authorize", h.Authorize)
 			// Access token endpoint
 			r.Post("/token", h.Token)

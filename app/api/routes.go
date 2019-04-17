@@ -11,8 +11,8 @@ import (
 
 func (h handler) Routes() func(chi.Router) {
 	apGroup := func(r chi.Router) {
-		r.With(h.VerifyHttpSignature(NotAnonymous, LocalAccount), h.LoadActivity).Post("/outbox", h.ClientRequest)
-		r.With(h.LoadActivity).Post("/inbox", h.ServerRequest)
+		r.With(h.VerifyAuthHeader(LocalAccount), h.LoadActivity).Post("/outbox", h.ClientRequest)
+		r.With(h.VerifyAuthHeader(NotAnonymous), h.LoadActivity).Post("/inbox", h.ServerRequest)
 	}
 	collectionRouter := func(r chi.Router) {
 		r.Use(LoadFiltersCtxt(h.HandleError))
@@ -34,7 +34,7 @@ func (h handler) Routes() func(chi.Router) {
 	}
 	return func(r chi.Router) {
 		r.Use(middleware.GetHead)
-		r.Use(h.VerifyHttpSignature(None))
+		r.Use(h.LoadAccountFromAuthHeader)
 		r.Use(app.StripCookies)
 		r.Use(app.NeedsDBBackend(h.HandleError))
 

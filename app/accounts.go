@@ -19,9 +19,13 @@ type ImageMetadata struct {
 }
 
 type OAuth struct {
-	Provider string
-	Code     string
-	State    string
+	Provider     string
+	Code         string
+	Token        string
+	RefreshToken string
+	TokenType    string
+	Expiry       time.Time
+	State        string
 }
 
 type AccountMetadata struct {
@@ -139,7 +143,7 @@ func (a Account) GetLink() string {
 
 // IsLogged should show if current user was loaded from a session
 func (a Account) IsLogged() bool {
-	return !a.CreatedAt.IsZero()
+	return !a.CreatedAt.IsZero() || a.Hash != AnonymousHash
 }
 
 // HasIcon

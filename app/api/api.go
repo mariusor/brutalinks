@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
+	"github.com/openshift/osin"
 	"net/http"
 	"net/url"
 	"path"
@@ -13,7 +14,6 @@ import (
 	juju "github.com/juju/errors"
 	"github.com/mariusor/littr.go/app"
 	ap "github.com/mariusor/littr.go/app/activitypub"
-	"github.com/mariusor/littr.go/app/db"
 	"github.com/mariusor/littr.go/internal/errors"
 	"github.com/mariusor/littr.go/internal/log"
 	"github.com/spacemonkeygo/httpsig"
@@ -36,11 +36,13 @@ type UserError struct {
 type handler struct {
 	acc    *app.Account
 	repo   *repository
+	s      *osin.Server
 	logger log.Logger
 }
 
 type Config struct {
 	Logger  log.Logger
+	OAuth2  *osin.Server
 	BaseURL string
 }
 
@@ -53,6 +55,7 @@ func Init(c Config) handler {
 		logger: c.Logger,
 	}
 	h.repo = New(c)
+	h.s = c.OAuth2
 	return h
 }
 
@@ -207,7 +210,7 @@ func httpErrorResponse(e error) int {
 }
 
 type e struct {
-	Code     int      `json:"code,omitempty"`
+	Code     int      `json:"authCode,omitempty"`
 	Message  string   `json:"message"`
 	Trace    []string `json:"trace,omitempty"`
 	Location string   `json:"location,omitempty"`
@@ -308,14 +311,44 @@ func (h handler) HandleError(w http.ResponseWriter, r *http.Request, errs ...err
 }
 
 type keyLoader struct {
+	logFn func(string, ...interface{})
+	realm string
 	acc   app.Account
-	LogFn func(string, ...interface{})
+	l     app.CanLoadAccounts
+}
+
+type oauthLoader struct {
+	logFn func(string, ...interface{})
+	acc   app.Account
+	s     *osin.Server
 }
 
 func (k keyLoader) log(s string, p ...interface{}) {
-	if k.LogFn != nil {
-		k.LogFn(s, p...)
+	if k.logFn != nil {
+		k.logFn(s, p...)
 	}
+}
+
+func (k oauthLoader) log(s string, p ...interface{}) {
+	if k.logFn != nil {
+		k.logFn(s, p...)
+	}
+}
+
+func (k *oauthLoader) Verify(r *http.Request) (error, string) {
+	bearer := osin.CheckBearerAuth(r)
+	dat, err := k.s.Storage.LoadAccess(bearer.Code)
+	if err != nil {
+		return err, ""
+	}
+	if b, ok := dat.UserData.(string); ok {
+		if err := json.Unmarshal([]byte(b), &k.acc); err != nil {
+			return err, ""
+		}
+	} else {
+		return errors.Unauthorizedf("unable to load from bearer"), ""
+	}
+	return nil, ""
 }
 
 func loadFederatedActor(id as.IRI) (as.Actor, error) {
@@ -337,7 +370,7 @@ func (k *keyLoader) GetKey(id string) interface{} {
 
 	if err := validateLocalIRI(as.IRI(id)); err == nil {
 		hash := path.Base(u.Path)
-		k.acc, err = db.Config.LoadAccount(app.Filters{LoadAccountsFilter: app.LoadAccountsFilter{Key: app.Hashes{app.Hash(hash)}}})
+		k.acc, err = k.l.LoadAccount(app.Filters{LoadAccountsFilter: app.LoadAccountsFilter{Key: app.Hashes{app.Hash(hash)}}})
 		if err != nil {
 			k.log("unable to find local account matching key id %s", id)
 			return nil
@@ -365,13 +398,12 @@ func (k *keyLoader) GetKey(id string) interface{} {
 }
 
 func httpSignatureVerifier(getter *keyLoader) (*httpsig.Verifier, string) {
-	realm := app.Instance.HostName
 	v := httpsig.NewVerifier(getter)
 	v.SetRequiredHeaders([]string{"(request-target)", "host", "date"})
 
 	var challengeParams []string
-	if realm != "" {
-		challengeParams = append(challengeParams, fmt.Sprintf("realm=%q", realm))
+	if getter.realm != "" {
+		challengeParams = append(challengeParams, fmt.Sprintf("realm=%q", getter.realm))
 	}
 	if headers := v.RequiredHeaders(); len(headers) > 0 {
 		challengeParams = append(challengeParams, fmt.Sprintf("headers=%q", strings.Join(headers, " ")))
@@ -384,75 +416,121 @@ func httpSignatureVerifier(getter *keyLoader) (*httpsig.Verifier, string) {
 	return v, challenge
 }
 
-func (h handler) loadAccountFromHttpSig(w http.ResponseWriter, r *http.Request) (app.Account, error) {
-	getter := keyLoader{acc: app.AnonymousAccount}
-	getter.LogFn = h.logger.WithContext(log.Ctx{"from": "getter"}).Debugf
-
-	v, challenge := httpSignatureVerifier(&getter)
+func (h handler) loadAccountFromAuthHeader(w http.ResponseWriter, r *http.Request) (app.Account, error) {
 	var acct = app.AnonymousAccount
-	if r.Header["Authorization"] != nil {
-		// only verify http-signature if present
-		if err := v.Verify(r); err != nil {
-			w.Header().Add("WWW-Authenticate", challenge)
+
+	if auth := r.Header.Get("Authorization");  auth != "" {
+		var err error
+		var challenge string
+		var method string
+		if strings.Contains(auth, "Bearer") {
+			// check OAuth2 bearer if present
+			method = "oauth2"
+			v := oauthLoader{acc: acct, s: h.s}
+			v.logFn = h.logger.WithContext(log.Ctx{"from": method}).Debugf
+			err, challenge = v.Verify(r)
+		}
+		if strings.Contains(auth, "Signature") {
+				if loader, ok := app.ContextAccountLoader(r.Context()); ok {
+					// only verify http-signature if present
+					getter := keyLoader{acc: acct, l: loader, realm: h.repo.BaseURL}
+					method = "httpSig"
+					getter.logFn = h.logger.WithContext(log.Ctx{"from": method}).Debugf
+
+					var v *httpsig.Verifier
+					v, challenge = httpSignatureVerifier(&getter)
+					err = v.Verify(r)
+					acct = getter.acc
+				}
+			}
+		if  err != nil {
+			if challenge != "" {
+				w.Header().Add("WWW-Authenticate", challenge)
+			}
 			h.logger.WithContext(log.Ctx{
 				"handle": acct.Handle,
 				"hash":   acct.Hash,
 				"auth":   r.Header.Get("Authorization"),
 				"req":    fmt.Sprintf("%s:%s", r.Method, r.URL.RequestURI()),
 				"err":    err,
-			}).Warn("invalid HTTP signature")
+			}).Warn("invalid HTTP Authorization")
 			// TODO(marius): here we need to implement some outside logic, as to we want to allow non-signed
 			//   requests on some urls, but not on others - probably another handler to check for Anonymous
 			//   would suffice.
-			return getter.acc, err
+			return acct, err
 		} else {
-			acct = getter.acc
 			h.logger.WithContext(log.Ctx{
+				"method": method,
 				"handle": acct.Handle,
 				"hash":   acct.Hash,
-			}).Debug("loaded account from HTTP-sig header")
+			}).Debug("loaded account from Authorization header")
 		}
 	}
-	return getter.acc, nil
+	return acct, nil
 }
 
-type verifierFn func(a app.Account) error
+type acctVerifierFn func(a *app.Account) error
 
-func None(a app.Account) error {
+func None(a *app.Account) error {
 	return nil
 }
 
-func NotAnonymous(a app.Account) error {
+func NotAnonymous(a *app.Account) error {
+	if a == nil {
+		return missingActor
+	}
 	if a.Hash == app.AnonymousHash && a.IsLocal() {
 		return errors.Forbiddenf("forbidden for %s actor", a.Handle)
 	}
 	return nil
 }
 
-func LocalAccount(a app.Account) error {
+var missingActor = errors.Forbiddenf("missing actor authentication")
+
+func LocalAccount(a *app.Account) error {
+	if a == nil {
+		return missingActor
+	}
 	if !a.IsLocal() {
 		return errors.NotFoundf("%s is not a local actor", a.Handle)
 	}
 	return nil
 }
 
-func (h handler) VerifyHttpSignature(fns ...verifierFn) app.Handler {
+type verifFn func (fns ...acctVerifierFn) app.Handler
+
+func (h handler) VerifyMultiple(fns ...verifFn) app.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			acct, e := h.loadAccountFromHttpSig(w, r)
-			if e != nil {
-				h.HandleError(w, r, errors.NewForbidden(e, fmt.Sprintf("forbidden for %s actor", acct.Handle)))
-				return
-			}
-			for _, f := range fns {
-				if err := f(acct); err != nil {
-					h.HandleError(w, r, err)
-					return
-				}
-			}
-			h.acc = &acct
 			next.ServeHTTP(w, r)
 		})
 		return http.HandlerFunc(fn)
 	}
+}
+
+func (h handler) VerifyAuthHeader(fns ...acctVerifierFn) app.Handler {
+	return func(next http.Handler) http.Handler {
+		fn := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			for _, f := range fns {
+				if err := f(h.acc); err != nil {
+					h.HandleError(w, r, err)
+					return
+				}
+			}
+			next.ServeHTTP(w, r)
+		})
+		return http.HandlerFunc(fn)
+	}
+}
+
+func (h handler) LoadAccountFromAuthHeader(next http.Handler) http.Handler {
+	fn := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if acct, err := h.loadAccountFromAuthHeader(w, r); err == nil {
+			h.acc = &acct
+		} else {
+			h.logger.Warnf("%s", err)
+		}
+		next.ServeHTTP(w, r)
+	})
+	return http.HandlerFunc(fn)
 }

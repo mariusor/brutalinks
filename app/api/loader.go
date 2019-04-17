@@ -82,21 +82,22 @@ func (r *repository) withAccountS2S(a *app.Account) error {
 }
 
 type oAuth2Signer struct {
-	conf   oauth2.Config
-	tok    *oauth2.Token
-	code   string
-	logger log.Logger
+	conf     oauth2.Config
+	tok      *oauth2.Token
+	authCode string
+	logger   log.Logger
 }
 
 func (o *oAuth2Signer) Sign(req *http.Request) error {
 	var err error
-	if o.tok, err = o.conf.Exchange(req.Context(), o.code); err == nil {
-		o.tok.SetAuthHeader(req)
-	} else {
-		// refresh maybe?
-		o.logger.Errorf("invalid token %#v", o.tok)
+	if o.tok == nil {
+		o.tok, err = o.conf.Exchange(req.Context(), o.authCode)
+		if err != nil {
+			return err
+		}
 	}
-	return err
+	o.tok.SetAuthHeader(req)
+	return nil
 }
 
 func (r *repository) WithAccount(a *app.Account) error {
@@ -107,9 +108,17 @@ func (r *repository) WithAccount(a *app.Account) error {
 	}
 
 	o := oAuth2Signer{
-		conf: frontend.GetOauth2Config(r.Account.Metadata.OAuth.Provider, strings.Replace(r.BaseURL, "/api", "", 1)),
-		code: r.Account.Metadata.OAuth.Code,
-		logger: r.logger,
+		conf:     frontend.GetOauth2Config(r.Account.Metadata.OAuth.Provider, strings.Replace(r.BaseURL, "/api", "", 1)),
+		authCode: r.Account.Metadata.OAuth.Code,
+		logger:   r.logger,
+	}
+	if len(a.Metadata.OAuth.Token) > 0 {
+		o.tok = &oauth2.Token{
+			AccessToken: a.Metadata.OAuth.Token,
+			TokenType: a.Metadata.OAuth.TokenType,
+			RefreshToken: a.Metadata.OAuth.RefreshToken,
+			Expiry: a.Metadata.OAuth.Expiry,
+		}
 	}
 	r.client.SignFn(o.Sign)
 
@@ -590,7 +599,7 @@ func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) 
 		return nil, 0, err
 	}
 
-	ctx["code"] = resp.StatusCode
+	ctx["authCode"] = resp.StatusCode
 	ctx["status"] = resp.Status
 	if resp == nil {
 		err := fmt.Errorf("nil response from the repository")

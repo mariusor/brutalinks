@@ -3,11 +3,9 @@ package frontend
 import (
 	"bufio"
 	"bytes"
-	"database/sql"
 	"encoding/gob"
 	"fmt"
 	"github.com/gorilla/csrf"
-	"github.com/mariusor/littr.go/app/oauth"
 	"github.com/openshift/osin"
 	"html/template"
 	"math"
@@ -60,14 +58,6 @@ const (
 type flash struct {
 	Type flashType
 	Msg  string
-}
-
-type logger struct {
-	l log.Logger
-}
-
-func (l logger) Printf(format string, v ...interface{}) {
-	l.l.Infof(format, v...)
 }
 
 func html(data string) template.HTML {
@@ -183,14 +173,6 @@ func relTimeFmt(old time.Time) string {
 }
 
 type Config struct {
-	DB struct {
-		Enabled bool
-		Host    string
-		Port    string
-		User    string
-		Pw      string
-		Name    string
-	}
 	Env            app.EnvType
 	Version        string
 	BaseURL        string
@@ -199,6 +181,7 @@ type Config struct {
 	SessionKeys    [][]byte
 	SessionBackend string
 	Logger         log.Logger
+	OAuth2         *osin.Server
 }
 
 func Init(c Config) (handler, error) {
@@ -222,26 +205,7 @@ func Init(c Config) (handler, error) {
 	c.SessionKeys = loadEnvSessionKeys()
 	h.session, err = InitSessionStore(c)
 	h.conf = c
-	config := osin.ServerConfig{
-		AuthorizationExpiration:   86400,
-		AccessExpiration:          2678400,
-		TokenType:                 "Bearer",
-		AllowedAuthorizeTypes:     osin.AllowedAuthorizeType{osin.CODE},
-		AllowedAccessTypes:        osin.AllowedAccessType{osin.AUTHORIZATION_CODE},
-		ErrorStatusCode:           403,
-		AllowClientSecretInParams: false,
-		AllowGetAccessRequest:     false,
-		RetainTokenAfterRefresh:   true,
-		//RequirePKCEForPublicClients: true,
-	}
-	url := fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable", c.DB.Host, c.DB.User, c.DB.Pw, c.DB.Name)
-	db, err := sql.Open("postgres", url)
-
-	if err == nil {
-		store := oauth.New(db, c.Logger)
-		h.s = osin.NewServer(&config, store)
-	}
-	h.s.Logger = logger{l: c.Logger}
+	h.s = c.OAuth2
 	return h, err
 }
 
@@ -576,7 +540,6 @@ func (h handler) HandleAdmin(w http.ResponseWriter, _ *http.Request) {
 
 // HandleCallback serves /auth/{provider}/callback request
 func (h *handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
-	// http://brutalinks.git/oauth/authorize?response_type=code&client_id=eaca4839ddf16cb4a5c4ca126db8de5c&redirect_uri=http%3A%2F%2Fbrutalinks.git%2Fauth%2Flocal%2Fcallback
 	q := r.URL.Query()
 	provider := chi.URLParam(r, "provider")
 	providerErr := q["error"]
@@ -597,28 +560,33 @@ func (h *handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var s *sessions.Session
-	var err error
-	if s, err = h.session.Get(r, sessionName); err != nil {
-		h.addFlashMessage(Warning, r, fmt.Sprintf("Unable to save session: %s", err))
-	}
-	s.Values[SessionUserKey] = sessionAccount{
-		Handle: h.account.Handle,
-		Hash:   []byte(h.account.Hash),
-		OAuth: app.OAuth{
-			Code:     code,
-			Provider: provider,
-			State:    state,
-		},
-	}
-
 	conf := GetOauth2Config(provider, h.conf.BaseURL)
 	tok, err := conf.Exchange(r.Context(), code)
 	if err != nil {
 		h.logger.Errorf("%s", err)
+		h.HandleErrors(w, r, err)
+		return
 	}
-	conf.Client(r.Context(), tok)
+	oauth := app.OAuth{
+		State:        state,
+		Code:         code,
+		Provider:     provider,
+		Token:        tok.AccessToken,
+		TokenType:    tok.TokenType,
+		RefreshToken: tok.RefreshToken,
+		Expiry:       tok.Expiry,
+	}
 
+	s, err := h.session.Get(r, sessionName)
+	if err != nil {
+		h.addFlashMessage(Warning, r, fmt.Sprintf("Unable to save session: %s", err))
+	}
+	h.account = loadCurrentAccountFromSession(s, h.logger)
+	s.Values[SessionUserKey] = sessionAccount{
+		Handle: h.account.Handle,
+		Hash:   []byte(h.account.Hash),
+		OAuth:  oauth,
+	}
 	if strings.ToLower(provider) != "local" {
 		h.addFlashMessage(Success, r, fmt.Sprintf("Login successful with %s", provider))
 	} else {
@@ -765,14 +733,11 @@ func loadFlashMessagesFromSession(s *sessions.Session, l log.Logger) {
 func (h *handler) LoadSession(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		if !app.Instance.Config.SessionsEnabled {
-			err := errors.New("session store disabled")
-			h.logger.Warn(err.Error())
 			next.ServeHTTP(w, r)
 			return
 		}
 		if h.session == nil {
-			err := errors.New("missing session store, unable to load session")
-			h.logger.Warn(err.Error())
+			h.logger.Warn("missing session store, unable to load session")
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -889,19 +854,35 @@ func (h *handler) HandleErrors(w http.ResponseWriter, r *http.Request, errs ...e
 	d := errorModel{
 		Errors: errs,
 	}
+	renderErrors := true
+	if r.Method == http.MethodPost {
+		renderErrors = false
+	}
 
 	status := http.StatusInternalServerError
 	for _, err := range errs {
-		status = httpErrorResponse(err)
+		if renderErrors {
+			status = httpErrorResponse(err)
+		} else {
+			h.addFlashMessage(Error, r, err.Error())
+		}
 	}
 
-	d.Title = fmt.Sprintf("Error %d", status)
-	d.Status = status
-	w.WriteHeader(status)
-	w.Header().Set("Cache-Control", " no-store, must-revalidate")
-	w.Header().Set("Pragma", " no-cache")
-	w.Header().Set("Expires", " 0")
-	h.RenderTemplate(r, w, "error", d)
+	if renderErrors {
+		d.Title = fmt.Sprintf("Error %d", status)
+		d.Status = status
+		w.WriteHeader(status)
+		w.Header().Set("Cache-Control", " no-store, must-revalidate")
+		w.Header().Set("Pragma", " no-cache")
+		w.Header().Set("Expires", " 0")
+		h.RenderTemplate(r, w, "error", d)
+	} else {
+		backURL := "/"
+		if refURLs, ok := r.Header["Referer"]; ok {
+			backURL = refURLs[0]
+		}
+		h.Redirect(w, r, backURL, http.StatusFound)
+	}
 }
 
 var nodeInfo = app.Info{}

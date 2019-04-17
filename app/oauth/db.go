@@ -9,6 +9,39 @@ import (
 	"time"
 )
 
+type logger struct {
+	l log.Logger
+}
+
+func (l logger) Printf(format string, v ...interface{}) {
+	l.l.Infof(format, v...)
+}
+
+func NewOAuth(Host, User, Pw, Name string, l log.Logger) (*osin.Server, error) {
+	url := fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable", Host, User, Pw, Name)
+	db, err := sql.Open("postgres", url)
+	if err != nil {
+		return nil, err
+	}
+
+	config := osin.ServerConfig{
+		AuthorizationExpiration:   86400,
+		AccessExpiration:          2678400,
+		TokenType:                 "Bearer",
+		AllowedAuthorizeTypes:     osin.AllowedAuthorizeType{osin.CODE},
+		AllowedAccessTypes:        osin.AllowedAccessType{osin.AUTHORIZATION_CODE},
+		ErrorStatusCode:           403,
+		AllowClientSecretInParams: false,
+		AllowGetAccessRequest:     false,
+		RetainTokenAfterRefresh:   true,
+		//RequirePKCEForPublicClients: true,
+	}
+	store := New(db, l)
+	s := osin.NewServer(&config, store)
+	s.Logger = logger{l: l}
+	return s, nil
+}
+
 // Storage implements interface "github.com/RangelReale/osin".Storage and interface "github.com/ory/osin-storage".Storage
 type Storage struct {
 	db *sql.DB
@@ -83,7 +116,7 @@ func (s *Storage) RemoveClient(id string) (err error) {
 		s.l.WithContext(log.Ctx{"id": id}).Error(err.Error())
 		return errors.Annotate(err, "")
 	}
-	s.l.WithContext(log.Ctx{ "id": id}).Infof("removed client")
+	s.l.WithContext(log.Ctx{"id": id}).Infof("removed client")
 	return nil
 }
 
@@ -120,10 +153,10 @@ func (s *Storage) LoadAuthorize(code string) (*osin.AuthorizeData, error) {
 	var extra string
 	var cid string
 	if err := s.db.QueryRow("SELECT client, code, expires_in, scope, redirect_uri, state, created_at, extra FROM authorize WHERE code=$1 LIMIT 1", code).Scan(&cid, &data.Code, &data.ExpiresIn, &data.Scope, &data.RedirectUri, &data.State, &data.CreatedAt, &extra); err == sql.ErrNoRows {
-		s.l.WithContext(log.Ctx{ "code": code}).Error(err.Error())
+		s.l.WithContext(log.Ctx{"code": code}).Error(err.Error())
 		return nil, errors.NotFoundf("")
 	} else if err != nil {
-		s.l.WithContext(log.Ctx{ "code": code}).Error(err.Error())
+		s.l.WithContext(log.Ctx{"code": code}).Error(err.Error())
 		return nil, errors.Annotate(err, "")
 	}
 	data.UserData = extra
@@ -134,7 +167,7 @@ func (s *Storage) LoadAuthorize(code string) (*osin.AuthorizeData, error) {
 	}
 
 	if data.ExpireAt().Before(time.Now()) {
-		s.l.WithContext(log.Ctx{ "code": code}).Error(err.Error())
+		s.l.WithContext(log.Ctx{"code": code}).Error(err.Error())
 		return nil, errors.Errorf("Token expired at %s.", data.ExpireAt().String())
 	}
 
@@ -145,10 +178,10 @@ func (s *Storage) LoadAuthorize(code string) (*osin.AuthorizeData, error) {
 // RemoveAuthorize revokes or deletes the authorization code.
 func (s *Storage) RemoveAuthorize(code string) (err error) {
 	if _, err = s.db.Exec("DELETE FROM authorize WHERE code=$1", code); err != nil {
-		s.l.WithContext(log.Ctx{ "code": code}).Error(err.Error())
+		s.l.WithContext(log.Ctx{"code": code}).Error(err.Error())
 		return errors.Annotate(err, "")
 	}
-	s.l.WithContext(log.Ctx{ "code": code}).Infof("removed authorization token")
+	s.l.WithContext(log.Ctx{"code": code}).Infof("removed authorization token")
 	return nil
 }
 
@@ -168,19 +201,19 @@ func (s *Storage) SaveAccess(data *osin.AccessData) (err error) {
 
 	extra, err := assertToString(data.UserData)
 	if err != nil {
-		s.l.WithContext(log.Ctx{ "id": data.Client.GetId()}).Error(err.Error())
+		s.l.WithContext(log.Ctx{"id": data.Client.GetId()}).Error(err.Error())
 		return err
 	}
 
 	tx, err := s.db.Begin()
 	if err != nil {
-		s.l.WithContext(log.Ctx{ "id": data.Client.GetId()}).Error(err.Error())
+		s.l.WithContext(log.Ctx{"id": data.Client.GetId()}).Error(err.Error())
 		return errors.Annotate(err, "")
 	}
 
 	if data.RefreshToken != "" {
 		if err := s.saveRefresh(tx, data.RefreshToken, data.AccessToken); err != nil {
-			s.l.WithContext(log.Ctx{ "id": data.Client.GetId()}).Error(err.Error())
+			s.l.WithContext(log.Ctx{"id": data.Client.GetId()}).Error(err.Error())
 			return err
 		}
 	}
@@ -192,15 +225,15 @@ func (s *Storage) SaveAccess(data *osin.AccessData) (err error) {
 	_, err = tx.Exec("INSERT INTO access (client, authorize, previous, access_token, refresh_token, expires_in, scope, redirect_uri, created_at, extra) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)", data.Client.GetId(), authorizeData.Code, prev, data.AccessToken, data.RefreshToken, data.ExpiresIn, data.Scope, data.RedirectUri, data.CreatedAt, extra)
 	if err != nil {
 		if rbe := tx.Rollback(); rbe != nil {
-			s.l.WithContext(log.Ctx{ "id": data.Client.GetId()}).Error(rbe.Error())
+			s.l.WithContext(log.Ctx{"id": data.Client.GetId()}).Error(rbe.Error())
 			return errors.Annotate(rbe, "")
 		}
-		s.l.WithContext(log.Ctx{ "id": data.Client.GetId()}).Error(err.Error())
+		s.l.WithContext(log.Ctx{"id": data.Client.GetId()}).Error(err.Error())
 		return errors.Annotate(err, "")
 	}
 
 	if err = tx.Commit(); err != nil {
-		s.l.WithContext(log.Ctx{ "id": data.Client.GetId()}).Error(err.Error())
+		s.l.WithContext(log.Ctx{"id": data.Client.GetId()}).Error(err.Error())
 		return errors.Annotate(err, "")
 	}
 
@@ -229,7 +262,7 @@ func (s *Storage) LoadAccess(code string) (*osin.AccessData, error) {
 		&result.CreatedAt,
 		&extra,
 	); err == sql.ErrNoRows {
-		s.l.WithContext(log.Ctx{ "code": code}).Error(err.Error())
+		s.l.WithContext(log.Ctx{"code": code}).Error(err.Error())
 		return nil, errors.NotFoundf("")
 	} else if err != nil {
 		return nil, errors.Annotate(err, "")
@@ -238,7 +271,7 @@ func (s *Storage) LoadAccess(code string) (*osin.AccessData, error) {
 	result.UserData = extra
 	client, err := s.GetClient(cid)
 	if err != nil {
-		s.l.WithContext(log.Ctx{ "code": code}).Error(err.Error())
+		s.l.WithContext(log.Ctx{"code": code}).Error(err.Error())
 		return nil, err
 	}
 
@@ -253,10 +286,10 @@ func (s *Storage) LoadAccess(code string) (*osin.AccessData, error) {
 func (s *Storage) RemoveAccess(code string) (err error) {
 	_, err = s.db.Exec("DELETE FROM access WHERE access_token=$1", code)
 	if err != nil {
-		s.l.WithContext(log.Ctx{ "code": code}).Error(err.Error())
+		s.l.WithContext(log.Ctx{"code": code}).Error(err.Error())
 		return errors.Annotate(err, "")
 	}
-	s.l.WithContext(log.Ctx{ "code": code}).Infof("removed access token")
+	s.l.WithContext(log.Ctx{"code": code}).Infof("removed access token")
 	return nil
 }
 
@@ -267,10 +300,10 @@ func (s *Storage) LoadRefresh(code string) (*osin.AccessData, error) {
 	row := s.db.QueryRow("SELECT access FROM refresh WHERE token=$1 LIMIT 1", code)
 	var access string
 	if err := row.Scan(&access); err == sql.ErrNoRows {
-		s.l.WithContext(log.Ctx{ "code": code}).Error(err.Error())
+		s.l.WithContext(log.Ctx{"code": code}).Error(err.Error())
 		return nil, errors.NotFoundf("")
 	} else if err != nil {
-		s.l.WithContext(log.Ctx{ "code": code}).Error(err.Error())
+		s.l.WithContext(log.Ctx{"code": code}).Error(err.Error())
 		return nil, errors.Annotate(err, "")
 	}
 	return s.LoadAccess(access)
@@ -280,10 +313,10 @@ func (s *Storage) LoadRefresh(code string) (*osin.AccessData, error) {
 func (s *Storage) RemoveRefresh(code string) error {
 	_, err := s.db.Exec("DELETE FROM refresh WHERE token=$1", code)
 	if err != nil {
-		s.l.WithContext(log.Ctx{ "code": code}).Error(err.Error())
+		s.l.WithContext(log.Ctx{"code": code}).Error(err.Error())
 		return errors.Annotate(err, "")
 	}
-	s.l.WithContext(log.Ctx{ "code": code}).Infof("removed refresh token")
+	s.l.WithContext(log.Ctx{"code": code}).Infof("removed refresh token")
 	return nil
 }
 
@@ -291,7 +324,7 @@ func (s *Storage) saveRefresh(tx *sql.Tx, refresh, access string) (err error) {
 	_, err = tx.Exec("INSERT INTO refresh (token, access) VALUES ($1, $2)", refresh, access)
 	if err != nil {
 		if rbe := tx.Rollback(); rbe != nil {
-			s.l.WithContext(log.Ctx{ "code": access}).Error(rbe.Error())
+			s.l.WithContext(log.Ctx{"code": access}).Error(rbe.Error())
 			return errors.Annotate(rbe, "")
 		}
 		return errors.Annotate(err, "")
@@ -306,6 +339,8 @@ func assertToString(in interface{}) (string, error) {
 		return "", nil
 	} else if data, ok = in.(string); ok {
 		return data, nil
+	} else if byt, ok := in.([]byte); ok {
+		return string(byt), nil
 	} else if str, ok := in.(fmt.Stringer); ok {
 		return str.String(), nil
 	}
