@@ -5,7 +5,7 @@ TEST := $(GO) test -v
 .PHONY: test run integration killapp clean
 
 clean:
-	@-$(RM) -f ./db
+	@-$(RM) -rf ./db
 
 test:
 	@cp -r ../db ./
