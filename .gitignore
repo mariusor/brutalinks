@@ -7,3 +7,4 @@ bin/*
 *.pem
 *.crt
 *.key
+tests/db
