@@ -431,18 +431,18 @@ func (h handler) loadAccountFromAuthHeader(w http.ResponseWriter, r *http.Reques
 			err, challenge = v.Verify(r)
 		}
 		if strings.Contains(auth, "Signature") {
-				if loader, ok := app.ContextAccountLoader(r.Context()); ok {
-					// only verify http-signature if present
-					getter := keyLoader{acc: acct, l: loader, realm: h.repo.BaseURL}
-					method = "httpSig"
-					getter.logFn = h.logger.WithContext(log.Ctx{"from": method}).Debugf
+			if loader, ok := app.ContextAccountLoader(r.Context()); ok {
+				// only verify http-signature if present
+				getter := keyLoader{acc: acct, l: loader, realm: h.repo.BaseURL}
+				method = "httpSig"
+				getter.logFn = h.logger.WithContext(log.Ctx{"from": method}).Debugf
 
-					var v *httpsig.Verifier
-					v, challenge = httpSignatureVerifier(&getter)
-					err = v.Verify(r)
-					acct = getter.acc
-				}
+				var v *httpsig.Verifier
+				v, challenge = httpSignatureVerifier(&getter)
+				err = v.Verify(r)
+				acct = getter.acc
 			}
+		}
 		if  err != nil {
 			if challenge != "" {
 				w.Header().Add("WWW-Authenticate", challenge)
