@@ -12,6 +12,7 @@ import (
 	"net"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -178,6 +179,20 @@ func SeedDB(o *pg.Options, hostname string) error {
 	}
 	defer db.Close()
 
+	https, _ := strconv.ParseBool(os.Getenv("HTTPS"))
+	scheme := "http"
+	if https {
+		scheme = "https"
+	}
+	url := fmt.Sprintf("%s://%s", scheme, hostname)
+	oauth2Key := os.Getenv("OAUTH2_KEY")
+	if oauth2Key == "" {
+		oauth2Key = fmt.Sprintf("%2x", meow.Checksum(app.RANDOM_SEED_SELECTED_BY_DICE_ROLL, []byte(url)))
+	}
+	oauth2Secret := os.Getenv("OAUTH2_SECRET")
+	if oauth2Secret == "" {
+		oauth2Secret = "yuh4ckm3?!"
+	}
 	data :=  map[string][][]interface{}{
 		"accounts": {
 			{
@@ -234,7 +249,7 @@ func SeedDB(o *pg.Options, hostname string) error {
 				// description
 				interface{}("Link aggregator inspired by Reddit and HackerNews using ActivityPub federation."),
 				// url
-				interface{}(fmt.Sprintf("http://%s", hostname)),
+				interface{}(url),
 				// inbox
 				interface{}("/api/self/inbox"),
 				// metadata
@@ -259,13 +274,13 @@ func SeedDB(o *pg.Options, hostname string) error {
 			// TODO(marius): should we need to add an entry for littr.me also ?
 			{
 				// id - hashed hostname
-				interface{}(fmt.Sprintf("%2x", meow.Checksum(app.RANDOM_SEED_SELECTED_BY_DICE_ROLL, []byte(hostname)))),
+				interface{}(oauth2Key),
 				// secret - local one
-				interface{}(os.Getenv("OAUTH2_SECRET")),
+				interface{}(oauth2Secret),
 				// extra
 				interface{}(nil),
 				// redirect_uri
-				interface{}(fmt.Sprintf("http://%s/auth/local/callback", hostname)), // this should point to a frontend uri that can handle oauth
+				interface{}(fmt.Sprintf("%s/auth/local/callback", url)), // this should point to a frontend uri that can handle oauth
 			},
 		},
 	}
@@ -365,6 +380,11 @@ func BootstrapDB(o *pg.Options) error {
 	objects, _ := dot.Raw("create-activitypub-objects")
 	if _, err = db.Exec(objects); err != nil {
 		return errors.Annotatef(err, "query: %s", objects)
+	}
+
+	oauth, _ := dot.Raw("create-oauth-storage")
+	if _, err = db.Exec(oauth); err != nil {
+		return errors.Annotatef(err, "queries: %s", oauth)
 	}
 
 	if false {

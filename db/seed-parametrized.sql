@@ -57,7 +57,7 @@ VALUES (
   DEFAULT
 );
 
--- name: test-client
+-- name: test-oauth-clients
 INSERT INTO "client"
   ("id", "secret", "extra", "redirect_uri")
 VALUES (
