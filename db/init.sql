@@ -77,6 +77,66 @@ create table instances
   flags bit(8) default 0::bit(8)
 );
 
+
+-- name: create-activitypub-types-enum
+CREATE TYPE "types" AS ENUM (
+  'Object',
+  'Link',
+  'Activity',
+  'IntransitiveActivity',
+  'Actor',
+  'Collection',
+  'OrderedCollection',
+  'CollectionPage',
+  'OrderedCollectionPage',
+  'Article',
+  'Audio',
+  'Document',
+  'Event',
+  'Image',
+  'Note',
+  'Page',
+  'Place',
+  'Profile',
+  'Relationship',
+  'Tombstone',
+  'Video',
+  'Mention',
+  'Application',
+  'Group',
+  'Organization',
+  'Person',
+  'Service',
+  'Accept',
+  'Add',
+  'Announce',
+  'Arrive',
+  'Block',
+  'Create',
+  'Delete',
+  'Dislike',
+  'Flag',
+  'Follow',
+  'Ignore',
+  'Invite',
+  'Join',
+  'Leave',
+  'Like',
+  'Listen',
+  'Move',
+  'Offer',
+  'Question',
+  'Reject',
+  'Read',
+  'Remove',
+  'TentativeReject',
+  'TentativeAccept',
+  'Travel',
+  'Undo',
+  'Update',
+  'View'
+  );
+
 -- name: create-activitypub-objects
 create table objects
 (

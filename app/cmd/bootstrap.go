@@ -319,10 +319,6 @@ func CreateDatabase(o *pg.Options, r *pg.Options) error {
 			s2, _ := dot.Raw("extension-ltree")
 			return errors.Annotatef(err, "query: %s", s2)
 		}
-		types, _ := dot.Raw("create-activitypub-types-enum")
-		if _, err = db.Exec(types); err != nil {
-			return errors.Annotatef(err, "query: %s", types)
-		}
 	}
 	return nil
 }
@@ -359,6 +355,11 @@ func BootstrapDB(o *pg.Options) error {
 	instances, _ := dot.Raw("create-instances")
 	if _, err = db.Exec(instances); err != nil {
 		return errors.Annotatef(err, "query: %s", instances)
+	}
+
+	types, _ := dot.Raw("create-activitypub-types-enum")
+	if _, err = db.Exec(types); err != nil {
+		return errors.Annotatef(err, "query: %s", types)
 	}
 
 	objects, _ := dot.Raw("create-activitypub-objects")
