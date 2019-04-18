@@ -242,9 +242,14 @@ func loadEnv(l *Application) (bool, error) {
 	l.Config.Redis.Port = os.Getenv("REDIS_PORT")
 	l.Config.Redis.Pw = os.Getenv("REDIS_PASSWORD")
 
-	l.Config.VotingEnabled, _ = strconv.ParseBool(os.Getenv("DISABLE_VOTING"))
-	l.Config.DownvotingEnabled, _ = strconv.ParseBool(os.Getenv("DISABLE_DOWNVOTING"))
-	l.Config.SessionsEnabled, _ = strconv.ParseBool(os.Getenv("DISABLE_SESSIONS"))
+	votingDisabled, _ := strconv.ParseBool(os.Getenv("DISABLE_VOTING"))
+	l.Config.VotingEnabled = !votingDisabled
+	downvotingDisabled, _ := strconv.ParseBool(os.Getenv("DISABLE_DOWNVOTING"))
+	l.Config.DownvotingEnabled = !downvotingDisabled
+	sessionsDisabled, _ := strconv.ParseBool(os.Getenv("DISABLE_SESSIONS"))
+	l.Config.SessionsEnabled = !sessionsDisabled
+	userCreationDisabled, _ := strconv.ParseBool(os.Getenv("DISABLE_USER_CREATION"))
+	l.Config.UserCreatingEnabled = !userCreationDisabled
 
 	l.APIURL = os.Getenv("API_URL")
 	if l.APIURL == "" {
