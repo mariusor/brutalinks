@@ -84,7 +84,6 @@ func main() {
 	// Routes
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
-	r.Use(app.ReqLogger)
 	//r.Use(app.ShowHeaders)
 
 	if app.Instance.Config.Env == app.PROD {

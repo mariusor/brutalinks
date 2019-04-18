@@ -15,6 +15,7 @@ func (h *handler) Routes() func(chi.Router) {
 		r.Use(middleware.GetHead)
 		r.Use(h.LoadSession)
 		r.Use(app.NeedsDBBackend(h.HandleErrors))
+		r.Use(app.ReqLogger(h.logger))
 		//r.Use(middleware.RedirectSlashes)
 
 		r.Get("/about", h.HandleAbout)

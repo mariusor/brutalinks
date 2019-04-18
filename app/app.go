@@ -345,8 +345,8 @@ func StripCookies(next http.Handler) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
-func ReqLogger(next http.Handler) http.Handler {
-	return middleware.DefaultLogger(next)
+func ReqLogger(f middleware.LogFormatter) Handler {
+	return middleware.RequestLogger(f)
 }
 
 type Handler func(http.Handler) http.Handler

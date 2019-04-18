@@ -2,7 +2,6 @@ package api
 
 import (
 	"github.com/go-chi/chi"
-	"github.com/go-chi/chi/middleware"
 	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/internal/errors"
 	"github.com/writeas/go-nodeinfo"
@@ -33,10 +32,10 @@ func (h handler) Routes() func(chi.Router) {
 		})
 	}
 	return func(r chi.Router) {
-		r.Use(middleware.GetHead)
-		r.Use(h.LoadAccountFromAuthHeader)
 		r.Use(app.StripCookies)
+		r.Use(h.LoadAccountFromAuthHeader)
 		r.Use(app.NeedsDBBackend(h.HandleError))
+		r.Use(app.ReqLogger(h.logger))
 
 		r.Route("/self", func(r chi.Router) {
 			r.Use(h.ServiceCtxt)

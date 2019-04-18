@@ -2,9 +2,12 @@ package log
 
 import (
 	"fmt"
+	"github.com/go-chi/chi/middleware"
 	"github.com/sirupsen/logrus"
+	"net/http"
 	"os"
 	"sync"
+	"time"
 )
 
 type Logger interface {
@@ -25,14 +28,16 @@ type Logger interface {
 	Critf(string, ...interface{})
 
 	Print(...interface{})
+
+	middleware.LogFormatter
 }
 
 type Ctx logrus.Fields
 
 type logger struct {
-	l      logrus.FieldLogger
-	ctx    Ctx
-	m      sync.RWMutex
+	l   logrus.FieldLogger
+	ctx Ctx
+	m   sync.RWMutex
 }
 
 func Dev() Logger {
@@ -109,7 +114,8 @@ func (l logger) Info(msg string) {
 	l.ctx = nil
 }
 
-func (l logger) Infof(msg string, p ...interface{}) {	l.ctx = nil
+func (l logger) Infof(msg string, p ...interface{}) {
+	l.ctx = nil
 	l.l.WithFields(l.context()).Info(fmt.Sprintf(msg, p...))
 	l.ctx = nil
 }
@@ -149,4 +155,49 @@ func (l logger) Print(i ...interface{}) {
 		return
 	}
 	l.Infof(i[0].(string))
+}
+
+type log struct {
+	c Ctx
+	l *logger
+}
+
+func (l log) Write(status, bytes int, elapsed time.Duration) {
+	l.c["duration"] = elapsed
+	l.c["length"] = bytes
+	l.c["status"] = status
+
+	if status == http.StatusOK {
+		l.l.WithContext(l.c).Debug("")
+	} else {
+		l.l.WithContext(l.c).Info("")
+	}
+}
+
+func (l log) Panic(v interface{}, stack []byte) {
+	l.c["stack"] = stack
+	l.c["v"] = v
+
+	l.l.WithContext(l.c).Crit("")
+}
+
+func (l logger) NewLogEntry(r *http.Request) middleware.LogEntry {
+	ll := log{
+		c: Ctx{
+			"met":   r.Method,
+			"host":  r.Host,
+			"uri":   r.RequestURI,
+			"proto": r.Proto,
+			"https": false,
+		},
+		l: &l,
+	}
+	reqID := middleware.GetReqID(r.Context())
+	if reqID != "" {
+		ll.c["id"] = reqID
+	}
+	if r.TLS != nil {
+		ll.c["https"] = true
+	}
+	return ll
 }
