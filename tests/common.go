@@ -5,6 +5,7 @@ import (
 	"crypto"
 	"crypto/rsa"
 	"crypto/x509"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	as "github.com/go-ap/activitystreams"
@@ -12,7 +13,9 @@ import (
 	_ "github.com/joho/godotenv/autoload"
 	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/app/cmd"
-	"github.com/spacemonkeygo/httpsig"
+	"github.com/mariusor/littr.go/app/oauth"
+	"github.com/mariusor/littr.go/internal/log"
+	"github.com/openshift/osin"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
@@ -32,6 +35,7 @@ type testPairs map[string][]testPair
 
 type testAccount struct {
 	id         string
+	Hash       string `json:"hash"`
 	publicKey  crypto.PublicKey
 	privateKey crypto.PrivateKey
 }
@@ -123,7 +127,8 @@ var meta = app.AccountMetadata{
 	},
 }
 var defaultTestAccount = testAccount{
-	id:         meta.ID,
+	id:         fmt.Sprintf("%s/self/following/%s", apiURL, testActorHash),
+	Hash:       testActorHash,
 	publicKey:  key.Public(),
 	privateKey: key,
 }
@@ -144,7 +149,7 @@ func resetDB(t *testing.T, testData bool) {
 	h := os.Getenv("HOSTNAME")
 
 	t.Helper()
-	//t.Logf("Resetting DB")
+	t.Logf("Resetting DB")
 	if err := cmd.BootstrapDB(o); err != nil {
 		t.Log(err)
 	}
@@ -154,6 +159,8 @@ func resetDB(t *testing.T, testData bool) {
 	if testData {
 		if err := cmd.SeedTestData(o, data); err != nil {
 			t.Fatal(err)
+		} else {
+			t.Logf("seeded database with test data")
 		}
 	}
 }
@@ -398,6 +405,88 @@ func errOnGetRequest(t *testing.T) requestGetAssertFn {
 
 var signHdrs = []string{"(request-target)", "host", "date"}
 
+func addOAuth2Auth(r *http.Request, a *testAccount) (string, bool) {
+	parts := strings.Split(o.Addr, ":")
+	pg := fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable", parts[0], o.User, o.Password, o.Database)
+	db, err := sql.Open("postgres", pg)
+	if err != nil {
+		return "", false
+	}
+
+	config := osin.ServerConfig{
+		AuthorizationExpiration:   86400,
+		AccessExpiration:          2678400,
+		TokenType:                 "Bearer",
+		AllowedAuthorizeTypes:     osin.AllowedAuthorizeType{osin.CODE},
+		AllowedAccessTypes:        osin.AllowedAccessType{osin.AUTHORIZATION_CODE},
+		ErrorStatusCode:           http.StatusForbidden,
+		AllowClientSecretInParams: true,
+		AllowGetAccessRequest:     false,
+		RetainTokenAfterRefresh:   true,
+		RedirectUriSeparator:      "\n",
+	}
+	s := osin.NewServer(&config, oauth.New(db, log.Dev()))
+
+	resp := s.NewResponse()
+	defer resp.Close()
+
+	v := url.Values{}
+	v.Add("request_uri", url.QueryEscape("http://127.0.0.3/auth/local/callback"))
+	v.Add("client_id", os.Getenv("OAUTH2_KEY"))
+	v.Add("response_type", "code")
+	dummyAuthReq, _ := http.NewRequest( http.MethodGet , "/oauth2/authorize", nil)
+	dummyAuthReq.URL.RawQuery = v.Encode()
+	ar := s.HandleAuthorizeRequest(resp, dummyAuthReq)
+	if ar == nil {
+		return "", false
+	}
+	b, _ := json.Marshal(defaultTestAccount)
+	ar.UserData = b
+	ar.Authorized = true
+	s.FinishAuthorizeRequest(resp, r, ar)
+	if d := resp.Output["code"]; d != nil {
+		cod, ok := d.(string)
+		if !ok {
+			return "", false
+		}
+		resp := s.NewResponse()
+		defer resp.Close()
+
+		key :=  os.Getenv("OAUTH2_KEY")
+		sec :=  os.Getenv("OAUTH2_SECRET")
+		v := url.Values{}
+		v.Add("request_uri", url.QueryEscape("http://127.0.0.3/auth/local/callback"))
+		v.Add("client_id", key)
+		v.Add("client_secret", sec)
+		v.Add("access_type", "online")
+		v.Add("grant_type", "authorization_code")
+		v.Add("state", "state")
+		v.Add("code", cod)
+		//"Basic ZWFjYTQ4MzlkZGYxNmNiNGE1YzRjYTEyNmRiOGRlNWM6eXVoNGNrbTMlM0YlMjE="
+		// "eaca4839ddf16cb4a5c4ca126db8de5c:yuh4ckm3%3F%21"
+		dummyAccessReq, _ := http.NewRequest(http.MethodPost , "/oauth/token", strings.NewReader(v.Encode()))
+		dummyAccessReq.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+		//dummyAccessReq.Header.Add("Authorization", "Basic " + base64.RawStdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", key, url.QueryEscape(sec)))))
+		//dummyAccessReq.Form = v
+		ar := s.HandleAccessRequest(resp, dummyAccessReq)
+		if ar == nil {
+			return "", false
+		}
+		ar.Authorized = true
+		b, _ := json.Marshal(a)
+		ar.UserData = b
+		s.FinishAccessRequest(resp, r, ar)
+
+		if cod := resp.Output["code"]; d != nil {
+			tok, ok := cod.(string)
+			r.Header.Add("Authorization", "Bearer " + tok)
+			return "", ok
+		}
+	}
+
+	return "", false
+}
+
 func errOnRequest(t *testing.T) func(testPair) map[string]interface{} {
 	assertTrue := errIfNotTrue(t)
 	assertGetRequest := errOnGetRequest(t)
@@ -430,9 +519,11 @@ func errOnRequest(t *testing.T) func(testPair) map[string]interface{} {
 		req.Header = test.req.headers
 		if test.req.account != nil {
 			req.Header.Add("Date", time.Now().Format(http.TimeFormat))
-			keyId := fmt.Sprintf("%s#main-key", test.req.account.id)
-			s := httpsig.NewSigner(keyId, test.req.account.privateKey, httpsig.RSASHA256, signHdrs)
-			err := s.Sign(req)
+			// TODO(marius): move this auth method to inbox requests
+			//keyId := fmt.Sprintf("%s#main-key", test.req.account.id)
+			//s := httpsig.NewSigner(keyId, test.req.account.privateKey, httpsig.RSASHA256, signHdrs)
+			//err := s.Sign(req)
+			addOAuth2Auth(req, test.req.account)
 			assertTrue(err == nil, "Error: unable to sign request: %s", err)
 		}
 		resp, err := http.DefaultClient.Do(req)
