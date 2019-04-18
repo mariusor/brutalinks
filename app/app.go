@@ -223,11 +223,9 @@ func loadEnv(l *Application) (bool, error) {
 		l.listen = fmt.Sprintf("%s:%d", l.HostName, l.Port)
 	}
 	if l.SeedVal, err = strconv.ParseInt(os.Getenv("SEED"), 10, 64); err != nil {
-		l.SeedVal = 666
+		l.SeedVal = RANDOM_SEED_SELECTED_BY_DICE_ROLL
 	}
-	if l.Secure, err = strconv.ParseBool(os.Getenv("HTTPS")); err != nil {
-		l.Secure = false
-	}
+	l.Secure, _ = strconv.ParseBool(os.Getenv("HTTPS"))
 	if l.Secure {
 		l.BaseURL = fmt.Sprintf("https://%s", l.HostName)
 	} else {
@@ -237,16 +235,16 @@ func loadEnv(l *Application) (bool, error) {
 	l.Config.DB.Host = os.Getenv("DB_HOST")
 	l.Config.DB.Pw = os.Getenv("DB_PASSWORD")
 	l.Config.DB.Name = os.Getenv("DB_NAME")
-	l.Config.DB.Port = os.Getenv("DB_Port")
+	l.Config.DB.Port = os.Getenv("DB_PORT")
 	l.Config.DB.User = os.Getenv("DB_USER")
 
 	l.Config.Redis.Host = os.Getenv("REDIS_HOST")
 	l.Config.Redis.Port = os.Getenv("REDIS_PORT")
 	l.Config.Redis.Pw = os.Getenv("REDIS_PASSWORD")
 
-	l.Config.VotingEnabled = os.Getenv("DISABLE_VOTING") == ""
-	l.Config.DownvotingEnabled = os.Getenv("DISABLE_DOWNVOTING") == ""
-	l.Config.SessionsEnabled = os.Getenv("DISABLE_SESSIONS") == ""
+	l.Config.VotingEnabled, _ = strconv.ParseBool(os.Getenv("DISABLE_VOTING"))
+	l.Config.DownvotingEnabled, _ = strconv.ParseBool(os.Getenv("DISABLE_DOWNVOTING"))
+	l.Config.SessionsEnabled, _ = strconv.ParseBool(os.Getenv("DISABLE_SESSIONS"))
 
 	l.APIURL = os.Getenv("API_URL")
 	if l.APIURL == "" {
