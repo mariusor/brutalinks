@@ -339,9 +339,7 @@ func BootstrapDB(o *pg.Options) error {
 		return errors.Annotatef(err, "unable to load file")
 	}
 	drop, _ := dot.Raw("drop-tables")
-	if _, err = db.Exec(drop); err != nil {
-		return errors.Annotatef(err, "query: %s", drop)
-	}
+	_, _ = db.Exec(drop)
 
 	accounts, _ := dot.Raw("create-accounts")
 	if _, err = db.Exec(accounts); err != nil {
