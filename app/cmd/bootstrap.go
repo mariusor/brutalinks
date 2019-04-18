@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/gchaincl/dotsql"
 	"github.com/go-pg/pg"
+	"github.com/lib/pq"
 	_ "github.com/lib/pq"
 	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/internal/errors"
@@ -290,13 +291,12 @@ func SeedDB(o *pg.Options, hostname string) error {
 }
 
 func CreateDatabase(o *pg.Options, r *pg.Options) error {
-	rootDB, err := dbConnection(r)
-	if err != nil {
-		return errors.Annotate(err, "connection failed")
-	}
-	defer rootDB.Close()
 	{
-		DestroyDB(r, o.User, o.Database)
+		rootDB, err := dbConnection(r)
+		if err != nil {
+			return errors.Annotate(err, "connection failed")
+		}
+		defer rootDB.Close()
 		// create new role and db with root user in root database
 		dot, err := dotsql.LoadFromFile("./db/create_role.sql")
 		if err != nil {
@@ -305,23 +305,27 @@ func CreateDatabase(o *pg.Options, r *pg.Options) error {
 		s1, _ := dot.Raw("create-role-with-pass")
 		role := fmt.Sprintf(s1, o.User, "%s")
 		if _, err := rootDB.Exec(fmt.Sprintf(role, o.Password)); err != nil {
-			return errors.Annotatef(err, "query: %s", role)
+			if pe, ok := err.(*pq.Error); !ok || pe.Code != "42710" {
+				return errors.Annotatef(err, "query: %s", role)
+			}
 		}
 
 		s2, _ := dot.Raw("create-db-for-role")
 		creatDb := fmt.Sprintf(s2, o.Database, o.User)
 		if _, err := rootDB.Exec(creatDb); err != nil {
-			return errors.Annotatef(err, "query: %s", s2)
+			if pe, ok := err.(*pq.Error); !ok || pe.Code != "42P04" {
+				return errors.Annotatef(err, "query: %s", s2)
+			}
 		}
 	}
-	// root user, but our new created db
-	r.Database = o.Database
-	db, err := dbConnection(r)
-	if err != nil {
-		return errors.Annotate(err, "connection failed")
-	}
-	defer db.Close()
 	{
+		// root user, but our new created db
+		r.Database = o.Database
+		db, err := dbConnection(r)
+		if err != nil {
+			return errors.Annotate(err, "connection failed")
+		}
+		defer db.Close()
 		dot, err := dotsql.LoadFromFile("./db/extensions.sql")
 		if err != nil {
 			return errors.Annotatef(err, "unable to load file")
@@ -374,7 +378,9 @@ func BootstrapDB(o *pg.Options) error {
 
 	types, _ := dot.Raw("create-activitypub-types-enum")
 	if _, err = db.Exec(types); err != nil {
-		return errors.Annotatef(err, "query: %s", types)
+		if pe, ok := err.(*pq.Error); !ok && pe.Code != "42710" {
+			return errors.Annotatef(err, "query: %s", types)
+		}
 	}
 
 	objects, _ := dot.Raw("create-activitypub-objects")
