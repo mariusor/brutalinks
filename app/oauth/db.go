@@ -6,6 +6,7 @@ import (
 	"github.com/mariusor/littr.go/internal/errors"
 	"github.com/mariusor/littr.go/internal/log"
 	"github.com/openshift/osin"
+	"net/http"
 	"time"
 )
 
@@ -30,10 +31,11 @@ func NewOAuth(Host, User, Pw, Name string, l log.Logger) (*osin.Server, error) {
 		TokenType:                 "Bearer",
 		AllowedAuthorizeTypes:     osin.AllowedAuthorizeType{osin.CODE},
 		AllowedAccessTypes:        osin.AllowedAccessType{osin.AUTHORIZATION_CODE},
-		ErrorStatusCode:           403,
+		ErrorStatusCode:           http.StatusForbidden,
 		AllowClientSecretInParams: false,
 		AllowGetAccessRequest:     false,
 		RetainTokenAfterRefresh:   true,
+		RedirectUriSeparator:      "\n",
 		//RequirePKCEForPublicClients: true,
 	}
 	store := New(db, l)
@@ -69,7 +71,7 @@ func (s *Storage) Close() {
 func (s *Storage) GetClient(id string) (osin.Client, error) {
 	row := s.db.QueryRow("SELECT id, secret, redirect_uri, extra FROM client WHERE id=$1", id)
 	var c osin.DefaultClient
-	var extra string
+	var extra []byte
 
 	if err := row.Scan(&c.Id, &c.Secret, &c.RedirectUri, &extra); err == sql.ErrNoRows {
 		return nil, errors.NotFoundf("")
