@@ -6,6 +6,10 @@ DROP TABLE IF EXISTS instances CASCADE;
 DROP TABLE IF EXISTS objects CASCADE;
 DROP TABLE IF EXISTS activities CASCADE;
 DROP TABLE IF EXISTS actors CASCADE;
+DROP TABLE IF EXISTS access CASCADE;
+DROP TABLE IF EXISTS authorize CASCADE;
+DROP TABLE IF EXISTS refresh CASCADE;
+DROP TABLE IF EXISTS client CASCADE;
 
 -- name: truncate-tables
 TRUNCATE votes RESTART IDENTITY CASCADE;
@@ -15,6 +19,10 @@ TRUNCATE instances RESTART IDENTITY CASCADE;
 TRUNCATE objects RESTART IDENTITY CASCADE;
 TRUNCATE activities RESTART IDENTITY CASCADE;
 TRUNCATE actors RESTART IDENTITY CASCADE;
+TRUNCATE access RESTART IDENTITY CASCADE;
+TRUNCATE authorize RESTART IDENTITY CASCADE;
+TRUNCATE refresh RESTART IDENTITY CASCADE;
+TRUNCATE client RESTART IDENTITY CASCADE;
 
 -- name: create-accounts
 create table accounts (
@@ -135,34 +143,34 @@ create table objects (
 -- oauth for osin
 -- name: create-oauth-storage
 CREATE TABLE IF NOT EXISTS client (
-   id text NOT NULL PRIMARY KEY,
-   secret text NOT NULL,
-   extra text NOT NULL,
-   redirect_uri text NOT NULL
+   id varchar NOT NULL PRIMARY KEY,
+   secret varchar NOT NULL,
+   extra jsonb DEFAULT NULL,
+   redirect_uri varchar NOT NULL
  );
 CREATE TABLE IF NOT EXISTS authorize (
-  client text NOT NULL,
-  code text NOT NULL PRIMARY KEY,
+  client varchar NOT NULL,
+  code varchar NOT NULL PRIMARY KEY,
   expires_in int NOT NULL,
-  scope text NOT NULL,
-  redirect_uri text NOT NULL,
-  state text NOT NULL,
-  extra text NOT NULL,
+  scope varchar NOT NULL,
+  redirect_uri varchar NOT NULL,
+  state varchar NOT NULL,
+  extra jsonb DEFAULT NULL,
   created_at timestamp with time zone NOT NULL
 );
 CREATE TABLE IF NOT EXISTS access (
-  client text NOT NULL,
-  authorize text NOT NULL,
-  previous text NOT NULL,
-  access_token text NOT NULL PRIMARY KEY,
-  refresh_token text NOT NULL,
+  client varchar NOT NULL,
+  authorize varchar NOT NULL,
+  previous varchar NOT NULL,
+  access_token varchar NOT NULL PRIMARY KEY,
+  refresh_token varchar NOT NULL,
   expires_in int NOT NULL,
-  scope text NOT NULL,
-  redirect_uri text NOT NULL,
-  extra text NOT NULL,
+  scope varchar NOT NULL,
+  redirect_uri varchar NOT NULL,
+  extra jsonb DEFAULT NULL,
   created_at timestamp with time zone NOT NULL
 );
 CREATE TABLE IF NOT EXISTS refresh (
-  token text NOT NULL PRIMARY KEY,
-  access text NOT NULL
+  token varchar NOT NULL PRIMARY KEY,
+  access varchar NOT NULL
 );
