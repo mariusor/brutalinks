@@ -5,7 +5,6 @@ import (
 	"flag"
 	"github.com/mariusor/littr.go/app/db"
 	"github.com/mariusor/littr.go/app/oauth"
-	"github.com/mariusor/littr.go/app/processing"
 	"github.com/writeas/go-nodeinfo"
 	"net/http"
 	"time"
@@ -42,6 +41,7 @@ func main() {
 	app.Instance = app.New(host, port, e, version)
 
 	db.Init(&app.Instance)
+	defer db.Config.DB.Close()
 	oauth2, err := oauth.NewOAuth(
 		app.Instance.Config.DB.Host,
 		app.Instance.Config.DB.User,
@@ -70,16 +70,12 @@ func main() {
 		OAuth2:  oauth2,
 	})
 	//processing.InitQueues(&app.Instance)
+	//processing.Logger = app.Instance.Logger.New(log.Ctx{"package": "processing"})
 
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 
 	app.Logger = app.Instance.Logger.New(log.Ctx{"package": "app"})
 	db.Logger = app.Instance.Logger.New(log.Ctx{"package": "db"})
-	processing.Logger = app.Instance.Logger.New(log.Ctx{"package": "processing"})
-
-	middleware.DefaultLogger = middleware.RequestLogger(&middleware.DefaultLogFormatter{
-		Logger: app.Logger,
-	})
 
 	// Routes
 	r := chi.NewRouter()
