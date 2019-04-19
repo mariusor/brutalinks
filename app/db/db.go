@@ -22,6 +22,7 @@ import (
 type config struct {
 	Account *app.Account
 	DB      *pg.DB
+	l       log.Logger
 }
 
 func Init(app *app.Application) error {
@@ -208,7 +209,7 @@ func (c config) LoadItems(f app.Filters) (app.ItemCollection, uint, error) {
 }
 
 func (c config) LoadAccount(f app.Filters) (app.Account, error) {
-	if len(f.LoadAccountsFilter.Key) + len(f.Handle) == 0 {
+	if len(f.LoadAccountsFilter.Key)+len(f.Handle) == 0 {
 		return app.Account{}, errors.NotValidf("invalid search, missing account identifier")
 	}
 	f.MaxItems = 1
@@ -267,8 +268,8 @@ func saveActivity(db *pg.DB, a as.Item, col as.IRI) (as.Item, error) {
 	}
 
 	o := obj{
-		Key: key,
-		IRI: iri,
+		Key:  key,
+		IRI:  iri,
 		Type: a.GetType(),
 	}
 	if raw, err := jsonld.Marshal(a); err != nil {
