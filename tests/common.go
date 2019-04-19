@@ -14,13 +14,16 @@ import (
 	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/app/cmd"
 	"github.com/mariusor/littr.go/app/oauth"
+	"github.com/mariusor/littr.go/internal/errors"
 	"github.com/mariusor/littr.go/internal/log"
 	"github.com/openshift/osin"
+	"github.com/spacemonkeygo/httpsig"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"runtime/debug"
 	"strings"
 	"testing"
@@ -405,12 +408,12 @@ func errOnGetRequest(t *testing.T) requestGetAssertFn {
 
 var signHdrs = []string{"(request-target)", "host", "date"}
 
-func addOAuth2Auth(r *http.Request, a *testAccount) (string, bool) {
+func addOAuth2Auth(r *http.Request, a *testAccount) error {
 	parts := strings.Split(o.Addr, ":")
 	pg := fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable", parts[0], o.User, o.Password, o.Database)
 	db, err := sql.Open("postgres", pg)
 	if err != nil {
-		return "", false
+		return err
 	}
 
 	config := osin.ServerConfig{
@@ -438,7 +441,7 @@ func addOAuth2Auth(r *http.Request, a *testAccount) (string, bool) {
 	dummyAuthReq.URL.RawQuery = v.Encode()
 	ar := s.HandleAuthorizeRequest(resp, dummyAuthReq)
 	if ar == nil {
-		return "", false
+		return errors.BadRequestf("invalid authorize req")
 	}
 	b, _ := json.Marshal(defaultTestAccount)
 	ar.UserData = b
@@ -447,7 +450,7 @@ func addOAuth2Auth(r *http.Request, a *testAccount) (string, bool) {
 	if d := resp.Output["code"]; d != nil {
 		cod, ok := d.(string)
 		if !ok {
-			return "", false
+			return errors.BadRequestf("unable to finish authorize req, bad response code %s", cod)
 		}
 		resp := s.NewResponse()
 		defer resp.Close()
@@ -462,15 +465,11 @@ func addOAuth2Auth(r *http.Request, a *testAccount) (string, bool) {
 		v.Add("grant_type", "authorization_code")
 		v.Add("state", "state")
 		v.Add("code", cod)
-		//"Basic ZWFjYTQ4MzlkZGYxNmNiNGE1YzRjYTEyNmRiOGRlNWM6eXVoNGNrbTMlM0YlMjE="
-		// "eaca4839ddf16cb4a5c4ca126db8de5c:yuh4ckm3%3F%21"
 		dummyAccessReq, _ := http.NewRequest(http.MethodPost , "/oauth/token", strings.NewReader(v.Encode()))
 		dummyAccessReq.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-		//dummyAccessReq.Header.Add("Authorization", "Basic " + base64.RawStdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", key, url.QueryEscape(sec)))))
-		//dummyAccessReq.Form = v
 		ar := s.HandleAccessRequest(resp, dummyAccessReq)
 		if ar == nil {
-			return "", false
+			return errors.BadRequestf("invalid access req")
 		}
 		ar.Authorized = true
 		b, _ := json.Marshal(a)
@@ -478,13 +477,14 @@ func addOAuth2Auth(r *http.Request, a *testAccount) (string, bool) {
 		s.FinishAccessRequest(resp, r, ar)
 
 		if cod := resp.Output["code"]; d != nil {
-			tok, ok := cod.(string)
-			r.Header.Add("Authorization", "Bearer " + tok)
-			return "", ok
+			if tok, ok := cod.(string); ok {
+				r.Header.Add("Authorization", "Bearer " + tok)
+				return nil
+			}
 		}
+		return errors.BadRequestf("unable to finish access req, bad response token %s", cod)
 	}
-
-	return "", false
+	return errors.New("unknown :D")
 }
 
 func errOnRequest(t *testing.T) func(testPair) map[string]interface{} {
@@ -519,18 +519,26 @@ func errOnRequest(t *testing.T) func(testPair) map[string]interface{} {
 		req.Header = test.req.headers
 		if test.req.account != nil {
 			req.Header.Add("Date", time.Now().Format(http.TimeFormat))
-			// TODO(marius): move this auth method to inbox requests
-			//keyId := fmt.Sprintf("%s#main-key", test.req.account.id)
-			//s := httpsig.NewSigner(keyId, test.req.account.privateKey, httpsig.RSASHA256, signHdrs)
-			//err := s.Sign(req)
-			addOAuth2Auth(req, test.req.account)
+			var err error
+			if path.Base(req.URL.Path) == "inbox" {
+				err = httpsig.NewSigner(
+					fmt.Sprintf("%s#main-key", test.req.account.id),
+					test.req.account.privateKey,
+					httpsig.RSASHA256,
+					signHdrs,
+				).Sign(req)
+			}
+			if path.Base(req.URL.Path) == "outbox" {
+				err = addOAuth2Auth(req, test.req.account)
+			}
 			assertTrue(err == nil, "Error: unable to sign request: %s", err)
 		}
 		resp, err := http.DefaultClient.Do(req)
 
 		assertTrue(err == nil, "Error: request failed: %s", err)
 		assertTrue(resp.StatusCode == test.res.code,
-			"Error: invalid HTTP response %d, expected %d\nResponse\n%v\n%s", resp.StatusCode, test.res.code, resp.Header, b)
+			"Error: invalid HTTP response %d, expected %d\nReq:[%s] %s\n%v\nResponse\n%v\n%s",
+			resp.StatusCode, test.res.code, req.Method, req.URL, req.Header, resp.Header, b)
 
 		b, err = ioutil.ReadAll(resp.Body)
 		assertTrue(err == nil, "Error: invalid HTTP body! Read %d bytes %s", len(b), b)
