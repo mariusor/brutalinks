@@ -90,25 +90,30 @@ func DestroyDB(r *pg.Options, dbUser, dbName string) []error {
 	defer rootDB.Close()
 
 	var errs = make([]error, 0)
-	revOnDb := "REVOKE CONNECT ON DATABASE %s FROM public;"
-	if _, err = rootDB.Exec(fmt.Sprintf(revOnDb, dbName)); err != nil {
+	revOnDb :=fmt.Sprintf( "REVOKE CONNECT ON DATABASE %s FROM public;", dbName)
+	if _, err = rootDB.Exec(revOnDb); err != nil {
 		errs = append(errs, errors.Annotatef(err, "query: %s", revOnDb))
 	}
-	reassignOnDb := "REASSIGN OWNED BY %s TO postgres;"
-	if _, err = rootDB.Exec(fmt.Sprintf(reassignOnDb, dbName)); err != nil {
+	reassignOnDb := fmt.Sprintf("REASSIGN OWNED BY %s TO postgres;", dbName)
+	if _, err = rootDB.Exec(reassignOnDb); err != nil {
 		errs = append(errs, errors.Annotatef(err, "query: %s", reassignOnDb))
 	}
-	dropOwned := "DROP OWNED BY %s CASCADE;" // needs to change db
-	if _, err = rootDB.Exec(fmt.Sprintf(dropOwned, dbUser)); err != nil {
+	//disconnect := "DISCONNECT ALL;"
+	//if _, err = rootDB.Exec(disconnect); err != nil {
+	//	errs = append(errs, errors.Annotatef(err, "query: %s", disconnect))
+	//}
+	dropOwned :=fmt.Sprintf( "DROP OWNED BY %s CASCADE;", dbUser)  // needs to change db
+	if _, err = rootDB.Exec(dropOwned); err != nil {
 		errs = append(errs, errors.Annotatef(err, "query: %s", dropOwned))
 	}
-	dropDb := "DROP DATABASE IF EXISTS %s;"
-	if _, err = rootDB.Exec(fmt.Sprintf(dropDb, dbName)); err != nil {
+	dropDb := fmt.Sprintf( "DROP DATABASE IF EXISTS %s;", dbName)
+	if _, err = rootDB.Exec(dropDb); err != nil {
 		errs = append(errs, errors.Annotatef(err, "query: %s", dropDb))
-	}
-	dropRole := "DROP ROLE IF EXISTS %s;"
-	if _, err = rootDB.Exec(fmt.Sprintf(dropRole, dbUser)); err != nil {
-		errs = append(errs, errors.Annotatef(err, "query: %s", dropRole))
+	} else {
+		dropRole := fmt.Sprintf("DROP ROLE IF EXISTS %s;", dbUser)
+		if _, err = rootDB.Exec(dropRole); err != nil {
+			errs = append(errs, errors.Annotatef(err, "query: %s", dropRole))
+		}
 	}
 	if len(errs) > 0 {
 		return errs
