@@ -176,9 +176,6 @@ func createDB() {
 		Database: dbRootName,
 		Addr:     o.Addr,
 	}
-	if errs := cmd.DestroyDB(r, o.User, o.Database); len(errs) > 0 {
-		fmt.Printf("%v\n", errs)
-	}
 	if err := cmd.CreateDatabase(o, r); err != nil {
 		panic(err)
 	}
