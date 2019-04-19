@@ -3,7 +3,9 @@ package tests
 import (
 	"fmt"
 	as "github.com/go-ap/activitystreams"
+	"github.com/mariusor/littr.go/app/cmd"
 	"net/http"
+	"os"
 	"testing"
 )
 
@@ -68,9 +70,9 @@ var Tests = testPairs{
 						id:  fmt.Sprintf("%s/self/following", apiURL),
 						typ: string(as.OrderedCollectionType),
 						first: &objectVal{
-							id: fmt.Sprintf("%s/self/following?maxItems=50&page=1", apiURL),
+							id:  fmt.Sprintf("%s/self/following?maxItems=50&page=1", apiURL),
 							typ: string(as.OrderedCollectionPageType),
-							partOf:  &objectVal{
+							partOf: &objectVal{
 								id: fmt.Sprintf("%s/self/following", apiURL),
 							},
 						},
@@ -458,4 +460,13 @@ func Test_Integration(t *testing.T) {
 			})
 		}
 	}
+}
+
+func TestMain(m *testing.M) {
+	createDB()
+	defer cmd.DestroyDB(r, o.User, o.Database)
+
+	go runAPP()
+
+	os.Exit(m.Run())
 }

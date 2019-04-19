@@ -9,10 +9,13 @@ import (
 	"encoding/json"
 	"fmt"
 	as "github.com/go-ap/activitystreams"
+	"github.com/go-chi/chi"
 	"github.com/go-pg/pg"
 	_ "github.com/joho/godotenv/autoload"
 	"github.com/mariusor/littr.go/app"
+	"github.com/mariusor/littr.go/app/api"
 	"github.com/mariusor/littr.go/app/cmd"
+	"github.com/mariusor/littr.go/app/db"
 	"github.com/mariusor/littr.go/app/oauth"
 	"github.com/mariusor/littr.go/internal/errors"
 	"github.com/mariusor/littr.go/internal/log"
@@ -95,28 +98,11 @@ var (
 	r      *pg.Options
 )
 
-func init() {
-	dbRootPw := os.Getenv("POSTGRES_PASSWORD")
-	dbRootUser := "postgres"
-	dbRootName := "postgres"
-	o = cmd.PGConfigFromENV()
-	r = &pg.Options{
-		User:     dbRootUser,
-		Password: dbRootPw,
-		Database: dbRootName,
-		Addr:     o.Addr,
-	}
-	if errs := cmd.DestroyDB(r, o.User, o.Database); len(errs) > 0 {
-		fmt.Printf("%v\n", errs)
-	}
-	if err := cmd.CreateDatabase(o, r); err != nil {
-		panic(err)
-	}
-}
-
 const testActorHash = "f00f00f00f00f00f00f00f00f00f6667"
 
 var outboxURL = fmt.Sprintf("%s/self/outbox", apiURL)
+var baseURL = strings.Replace(apiURL, "/api", "", 1)
+var callbackURL = fmt.Sprintf("%s/auth/local/callback", baseURL)
 var rnd = rand.New(rand.NewSource(6667))
 var key, _ = rsa.GenerateKey(rnd, 512)
 var prv, _ = x509.MarshalPKCS8PrivateKey(key)
@@ -148,22 +134,73 @@ var data = map[string][][]interface{}{
 	},
 }
 
-func resetDB(t *testing.T, testData bool) {
-	h := os.Getenv("HOSTNAME")
+func runAPP() {
+	e := app.EnvType(app.TEST)
+	app.Instance = app.New(host, 3001, e, "-git")
 
+	db.Init(&app.Instance)
+	defer db.Config.DB.Close()
+
+	oauth2, err := oauth.NewOAuth(
+		app.Instance.Config.DB.Host,
+		app.Instance.Config.DB.User,
+		app.Instance.Config.DB.Pw,
+		app.Instance.Config.DB.Name,
+		app.Instance.Logger.New(log.Ctx{"package": "oauth2"}),
+	)
+	if err != nil {
+		panic(err.Error())
+	}
+	a := api.Init(api.Config{
+		Logger:  app.Instance.Logger.New(log.Ctx{"package": "api"}),
+		BaseURL: app.Instance.APIURL,
+		OAuth2:  oauth2,
+	})
+
+	db.Logger = app.Instance.Logger.New(log.Ctx{"package": "db"})
+
+	r := chi.NewRouter()
+	r.With(db.Repository).Route("/api", a.Routes())
+	app.Instance.Run(r, 1)
+}
+
+func createDB() {
+	dbRootPw := os.Getenv("POSTGRES_PASSWORD")
+
+	dbRootUser := "postgres"
+	dbRootName := "postgres"
+	o = cmd.PGConfigFromENV()
+	r = &pg.Options{
+		User:     dbRootUser,
+		Password: dbRootPw,
+		Database: dbRootName,
+		Addr:     o.Addr,
+	}
+	if errs := cmd.DestroyDB(r, o.User, o.Database); len(errs) > 0 {
+		fmt.Printf("%v\n", errs)
+	}
+	if err := cmd.CreateDatabase(o, r); err != nil {
+		panic(err)
+	}
+	if err := cmd.BootstrapDB(o); err != nil {
+		panic(err)
+	}
+}
+
+func resetDB(t *testing.T, testData bool) {
 	t.Helper()
 	t.Logf("Resetting DB")
-	if err := cmd.BootstrapDB(o); err != nil {
+	if err := cmd.CleanDB(o); err != nil {
 		t.Log(err)
 	}
-	if err := cmd.SeedDB(o, h); err != nil {
+	if err := cmd.SeedDB(o, host); err != nil {
 		t.Fatal(err)
 	}
 	if testData {
 		if err := cmd.SeedTestData(o, data); err != nil {
 			t.Fatal(err)
 		} else {
-			t.Logf("seeded database with test data")
+			t.Logf("Seeded database with test data")
 		}
 	}
 }
@@ -408,12 +445,12 @@ func errOnGetRequest(t *testing.T) requestGetAssertFn {
 
 var signHdrs = []string{"(request-target)", "host", "date"}
 
-func addOAuth2Auth(r *http.Request, a *testAccount) error {
+func osinServer() (*osin.Server, error) {
 	parts := strings.Split(o.Addr, ":")
 	pg := fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable", parts[0], o.User, o.Password, o.Database)
 	db, err := sql.Open("postgres", pg)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	config := osin.ServerConfig{
@@ -425,11 +462,12 @@ func addOAuth2Auth(r *http.Request, a *testAccount) error {
 		ErrorStatusCode:           http.StatusForbidden,
 		AllowClientSecretInParams: true,
 		AllowGetAccessRequest:     false,
-		RetainTokenAfterRefresh:   true,
-		RedirectUriSeparator:      "\n",
+		RetainTokenAfterRefresh:   false,
 	}
-	s := osin.NewServer(&config, oauth.New(db, log.Dev()))
+	return osin.NewServer(&config, oauth.New(db, log.Dev())), nil
+}
 
+func osinAccess(s *osin.Server) (*osin.Response, error) {
 	resp := s.NewResponse()
 	defer resp.Close()
 
@@ -437,16 +475,25 @@ func addOAuth2Auth(r *http.Request, a *testAccount) error {
 	v.Add("request_uri", url.QueryEscape("http://127.0.0.3/auth/local/callback"))
 	v.Add("client_id", os.Getenv("OAUTH2_KEY"))
 	v.Add("response_type", "code")
-	dummyAuthReq, _ := http.NewRequest( http.MethodGet , "/oauth2/authorize", nil)
+	dummyAuthReq, _ := http.NewRequest(http.MethodGet, "/oauth2/authorize", nil)
 	dummyAuthReq.URL.RawQuery = v.Encode()
 	ar := s.HandleAuthorizeRequest(resp, dummyAuthReq)
 	if ar == nil {
-		return errors.BadRequestf("invalid authorize req")
+		return resp, errors.BadRequestf("invalid authorize req")
 	}
 	b, _ := json.Marshal(defaultTestAccount)
 	ar.UserData = b
 	ar.Authorized = true
-	s.FinishAuthorizeRequest(resp, r, ar)
+	s.FinishAuthorizeRequest(resp, dummyAuthReq, ar)
+
+	return resp, nil
+}
+
+func addOAuth2Auth(r *http.Request, a *testAccount, s *osin.Server) error {
+	resp, err := osinAccess(s)
+	if err != nil {
+		return err
+	}
 	if d := resp.Output["code"]; d != nil {
 		cod, ok := d.(string)
 		if !ok {
@@ -454,9 +501,8 @@ func addOAuth2Auth(r *http.Request, a *testAccount) error {
 		}
 		resp := s.NewResponse()
 		defer resp.Close()
-
-		key :=  os.Getenv("OAUTH2_KEY")
-		sec :=  os.Getenv("OAUTH2_SECRET")
+		key := os.Getenv("OAUTH2_KEY")
+		sec := os.Getenv("OAUTH2_SECRET")
 		v := url.Values{}
 		v.Add("request_uri", url.QueryEscape("http://127.0.0.3/auth/local/callback"))
 		v.Add("client_id", key)
@@ -465,8 +511,8 @@ func addOAuth2Auth(r *http.Request, a *testAccount) error {
 		v.Add("grant_type", "authorization_code")
 		v.Add("state", "state")
 		v.Add("code", cod)
-		dummyAccessReq, _ := http.NewRequest(http.MethodPost , "/oauth/token", strings.NewReader(v.Encode()))
-		dummyAccessReq.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+		dummyAccessReq, _ := http.NewRequest(http.MethodPost, "/oauth/token", strings.NewReader(v.Encode()))
+		dummyAccessReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		ar := s.HandleAccessRequest(resp, dummyAccessReq)
 		if ar == nil {
 			return errors.BadRequestf("invalid access req")
@@ -474,11 +520,14 @@ func addOAuth2Auth(r *http.Request, a *testAccount) error {
 		ar.Authorized = true
 		b, _ := json.Marshal(a)
 		ar.UserData = b
-		s.FinishAccessRequest(resp, r, ar)
+		ar.ForceAccessData = ar.AccessData
+		s.FinishAccessRequest(resp, dummyAccessReq, ar)
 
-		if cod := resp.Output["code"]; d != nil {
-			if tok, ok := cod.(string); ok {
-				r.Header.Add("Authorization", "Bearer " + tok)
+		if cod := resp.Output["access_token"]; d != nil {
+			tok, okK := cod.(string)
+			typ, okP := resp.Output["token_type"].(string)
+			if okK && okP {
+				r.Header.Set("Authorization", fmt.Sprintf("%s %s", typ, tok))
 				return nil
 			}
 		}
@@ -491,6 +540,11 @@ func errOnRequest(t *testing.T) func(testPair) map[string]interface{} {
 	assertTrue := errIfNotTrue(t)
 	assertGetRequest := errOnGetRequest(t)
 	assertObjectProperties := errOnObjectProperties(t)
+
+	oauthServ, err := osinServer()
+	if err != nil {
+		t.Errorf("%s", err)
+	}
 
 	return func(test testPair) map[string]interface{} {
 		if len(test.req.headers) == 0 {
@@ -518,7 +572,7 @@ func errOnRequest(t *testing.T) func(testPair) map[string]interface{} {
 
 		req.Header = test.req.headers
 		if test.req.account != nil {
-			req.Header.Add("Date", time.Now().Format(http.TimeFormat))
+			req.Header.Set("Date", time.Now().Format(http.TimeFormat))
 			var err error
 			if path.Base(req.URL.Path) == "inbox" {
 				err = httpsig.NewSigner(
@@ -529,7 +583,7 @@ func errOnRequest(t *testing.T) func(testPair) map[string]interface{} {
 				).Sign(req)
 			}
 			if path.Base(req.URL.Path) == "outbox" {
-				err = addOAuth2Auth(req, test.req.account)
+				err = addOAuth2Auth(req, test.req.account, oauthServ)
 			}
 			assertTrue(err == nil, "Error: unable to sign request: %s", err)
 		}
