@@ -15,7 +15,7 @@ type logger struct {
 }
 
 func (l logger) Printf(format string, v ...interface{}) {
-	l.l.Infof(format, v...)
+	l.l.Debugf(format, v...)
 }
 
 func NewOAuth(Host, User, Pw, Name string, l log.Logger) (*osin.Server, error) {
@@ -106,7 +106,7 @@ func (s *Storage) CreateClient(c osin.Client) error {
 	}
 
 	if _, err := s.db.Exec("INSERT INTO client (id, secret, redirect_uri, extra) VALUES ($1, $2, $3, $4)", c.GetId(), c.GetSecret(), c.GetRedirectUri(), data); err != nil {
-		s.l.WithContext(log.Ctx{"id": c.GetId(), "redirect_uri": c.GetRedirectUri()}).Infof("Added new client")
+		s.l.WithContext(log.Ctx{"id": c.GetId(), "redirect_uri": c.GetRedirectUri()}).Debugf("Added new client")
 		return errors.Annotate(err, "")
 	}
 	return nil
@@ -118,7 +118,7 @@ func (s *Storage) RemoveClient(id string) (err error) {
 		s.l.WithContext(log.Ctx{"id": id}).Error(err.Error())
 		return errors.Annotate(err, "")
 	}
-	s.l.WithContext(log.Ctx{"id": id}).Infof("removed client")
+	s.l.WithContext(log.Ctx{"id": id}).Debugf("removed client")
 	return nil
 }
 
@@ -183,7 +183,7 @@ func (s *Storage) RemoveAuthorize(code string) (err error) {
 		s.l.WithContext(log.Ctx{"code": code}).Error(err.Error())
 		return errors.Annotate(err, "")
 	}
-	s.l.WithContext(log.Ctx{"code": code}).Infof("removed authorization token")
+	s.l.WithContext(log.Ctx{"code": code}).Debugf("removed authorization token")
 	return nil
 }
 
@@ -291,7 +291,7 @@ func (s *Storage) RemoveAccess(code string) (err error) {
 		s.l.WithContext(log.Ctx{"code": code}).Error(err.Error())
 		return errors.Annotate(err, "")
 	}
-	s.l.WithContext(log.Ctx{"code": code}).Infof("removed access token")
+	s.l.WithContext(log.Ctx{"code": code}).Debugf("removed access token")
 	return nil
 }
 
@@ -318,7 +318,7 @@ func (s *Storage) RemoveRefresh(code string) error {
 		s.l.WithContext(log.Ctx{"code": code}).Error(err.Error())
 		return errors.Annotate(err, "")
 	}
-	s.l.WithContext(log.Ctx{"code": code}).Infof("removed refresh token")
+	s.l.WithContext(log.Ctx{"code": code}).Debugf("removed refresh token")
 	return nil
 }
 
