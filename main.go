@@ -72,18 +72,17 @@ func main() {
 	//processing.InitQueues(&app.Instance)
 	//processing.Logger = app.Instance.Logger.New(log.Ctx{"package": "processing"})
 
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-
 	app.Logger = app.Instance.Logger.New(log.Ctx{"package": "app"})
 	db.Logger = app.Instance.Logger.New(log.Ctx{"package": "db"})
 
 	// Routes
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
-	//r.Use(app.ShowHeaders)
 
 	if app.Instance.Config.Env == app.PROD {
 		r.Use(middleware.Recoverer)
+	} else {
+		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	}
 	// Frontend
 	r.With(a.Repository).Route("/", front.Routes())
