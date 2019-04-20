@@ -41,6 +41,7 @@ type testPairs map[string][]testPair
 
 type testAccount struct {
 	id         string
+	Handle     string `json:handle`
 	Hash       string `json:"hash"`
 	publicKey  crypto.PublicKey
 	privateKey crypto.PrivateKey
@@ -99,6 +100,7 @@ var (
 )
 
 const testActorHash = "f00f00f00f00f00f00f00f00f00f6667"
+const testActorHandle = "johndoe"
 
 var outboxURL = fmt.Sprintf("%s/self/outbox", apiURL)
 var baseURL = strings.Replace(apiURL, "/api", "", 1)
@@ -117,6 +119,7 @@ var meta = app.AccountMetadata{
 }
 var defaultTestAccount = testAccount{
 	id:         fmt.Sprintf("%s/self/following/%s", apiURL, testActorHash),
+	Handle:     testActorHandle,
 	Hash:       testActorHash,
 	publicKey:  key.Public(),
 	privateKey: key,
@@ -127,7 +130,7 @@ var data = map[string][][]interface{}{
 		{
 			interface{}(666),
 			interface{}(testActorHash),
-			interface{}("johndoe"),
+			interface{}(testActorHandle),
 			interface{}(fmt.Sprintf("jd@%s", host)),
 			interface{}(string(jm)),
 		},
