@@ -559,9 +559,6 @@ func errOnRequest(t *testing.T) func(testPair) map[string]interface{} {
 		if test.res.code == 0 {
 			test.res.code = http.StatusCreated
 		}
-		if test.req.account != nil {
-			t.Skipf("Let's skip authenticated requests for now")
-		}
 
 		body := []byte(test.req.body)
 		b := make([]byte, 0)
