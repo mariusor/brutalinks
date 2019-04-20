@@ -1028,7 +1028,7 @@ func validateOutboxActivity(a ap.Activity, repo app.CanLoadAccounts) (ap.Activit
 	return a, nil
 }
 
-func (h handler) ClientRequest(w http.ResponseWriter, r *http.Request) {
+func (h *handler) ClientRequest(w http.ResponseWriter, r *http.Request) {
 	a, _ := app.ContextActivity(r.Context())
 
 	var err error
@@ -1045,7 +1045,7 @@ func (h handler) ClientRequest(w http.ResponseWriter, r *http.Request) {
 		// validate if http-signature matches the current Activity.Actor
 		account := *h.acc
 		if a.Actor.GetLink() != loadAPPerson(account).GetLink() {
-			h.HandleError(w, r, errors.NewNotValid(nil, "The authorized key does not match the activity actor"))
+			h.HandleError(w, r, errors.Forbiddenf( "The activity actor is not authorized to add"))
 			return
 		}
 	}
@@ -1158,7 +1158,7 @@ func (h handler) ClientRequest(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h handler) ServerRequest(w http.ResponseWriter, r *http.Request) {
+func (h *handler) ServerRequest(w http.ResponseWriter, r *http.Request) {
 	a, _ := app.ContextActivity(r.Context())
 
 	notFound := func(err error) {

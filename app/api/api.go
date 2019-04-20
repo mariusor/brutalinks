@@ -429,6 +429,7 @@ func (h handler) loadAccountFromAuthHeader(w http.ResponseWriter, r *http.Reques
 			v := oauthLoader{acc: acct, s: h.s}
 			v.logFn = h.logger.WithContext(log.Ctx{"from": method}).Debugf
 			err, challenge = v.Verify(r)
+			acct = v.acc
 		}
 		if strings.Contains(auth, "Signature") {
 			if loader, ok := app.ContextAccountLoader(r.Context()); ok {
@@ -508,7 +509,7 @@ func (h handler) VerifyMultiple(fns ...verifFn) app.Handler {
 	}
 }
 
-func (h handler) VerifyAuthHeader(fns ...acctVerifierFn) app.Handler {
+func (h *handler) VerifyAuthHeader(fns ...acctVerifierFn) app.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			for _, f := range fns {
@@ -523,7 +524,7 @@ func (h handler) VerifyAuthHeader(fns ...acctVerifierFn) app.Handler {
 	}
 }
 
-func (h handler) LoadAccountFromAuthHeader(next http.Handler) http.Handler {
+func (h *handler) LoadAccountFromAuthHeader(next http.Handler) http.Handler {
 	fn := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if acct, err := h.loadAccountFromAuthHeader(w, r); err == nil {
 			h.acc = &acct
