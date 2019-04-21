@@ -102,6 +102,7 @@ var (
 const testActorHash = "f00f00f00f00f00f00f00f00f00f6667"
 const testActorHandle = "johndoe"
 
+var inboxURL = fmt.Sprintf("%s/self/inbox", apiURL)
 var outboxURL = fmt.Sprintf("%s/self/outbox", apiURL)
 var baseURL = strings.Replace(apiURL, "/api", "", 1)
 var callbackURL = fmt.Sprintf("%s/auth/local/callback", baseURL)
@@ -614,5 +615,17 @@ func errOnRequest(t *testing.T) func(testPair) map[string]interface{} {
 		}
 
 		return res
+	}
+}
+
+func testSuite(t *testing.T, pairs testPairs) {
+	for typ, tests := range pairs {
+		resetDB(t, true)
+		for _, test := range tests {
+			lbl := fmt.Sprintf("%s:%s:%s:%s", typ, test.req.met, test.res.val.typ, test.req.url)
+			t.Run(lbl, func(t *testing.T) {
+				errOnRequest(t)(test)
+			})
+		}
 	}
 }

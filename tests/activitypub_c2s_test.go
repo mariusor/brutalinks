@@ -3,13 +3,11 @@ package tests
 import (
 	"fmt"
 	as "github.com/go-ap/activitystreams"
-	"github.com/mariusor/littr.go/app/cmd"
 	"net/http"
-	"os"
 	"testing"
 )
 
-var Tests = testPairs{
+var C2STests = testPairs{
 	"C2S_Load": {
 		{
 			req: testReq{
@@ -450,23 +448,6 @@ var Tests = testPairs{
 	}},
 }
 
-func Test_Integration(t *testing.T) {
-	for typ, tests := range Tests {
-		resetDB(t, true)
-		for _, test := range tests {
-			lbl := fmt.Sprintf("%s:%s:%s:%s", typ, test.req.met, test.res.val.typ, test.req.url)
-			t.Run(lbl, func(t *testing.T) {
-				errOnRequest(t)(test)
-			})
-		}
-	}
-}
-
-func TestMain(m *testing.M) {
-	createDB()
-	defer cmd.DestroyDB(r, o.User, o.Database)
-
-	go runAPP()
-
-	os.Exit(m.Run())
+func Test_C2SRequests(t *testing.T) {
+	testSuite(t, C2STests)
 }
