@@ -171,14 +171,14 @@ func relTimeFmt(old time.Time) string {
 }
 
 type Config struct {
-	Env            app.EnvType
-	Version        string
-	BaseURL        string
-	HostName       string
-	Secure         bool
-	SessionKeys    [][]byte
-	SessionBackend string
-	Logger         log.Logger
+	Env             app.EnvType
+	Version         string
+	BaseURL         string
+	HostName        string
+	Secure          bool
+	SessionKeys     [][]byte
+	SessionsBackend string
+	Logger          log.Logger
 }
 
 func Init(c Config) (handler, error) {
@@ -195,8 +195,8 @@ func Init(c Config) (handler, error) {
 		h.logger = c.Logger
 	}
 
-	if c.SessionBackend = os.Getenv("SESSION_BACKEND"); c.SessionBackend == "" {
-		c.SessionBackend = "cookie"
+	if c.SessionsBackend = os.Getenv("SESSIONS_BACKEND"); c.SessionsBackend == "" {
+		c.SessionsBackend = "cookie"
 	}
 
 	c.SessionKeys = loadEnvSessionKeys()
@@ -216,7 +216,7 @@ func InitSessionStore(c Config) (sessions.Store, error) {
 		//app.Config.SessionsEnabled = false
 		return nil, err
 	}
-	switch strings.ToLower(c.SessionBackend) {
+	switch strings.ToLower(c.SessionsBackend) {
 	case "file":
 		sessDir := fmt.Sprintf("%s/%s", os.TempDir(), c.HostName)
 		if _, err := os.Stat(sessDir); os.IsNotExist(err) {
