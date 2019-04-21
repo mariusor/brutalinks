@@ -959,7 +959,7 @@ func validateInboxActivityType(typ as.ActivityVocabularyType) error {
 		//as.UpdateType, // @todo(marius): not implemented
 		//as.DeleteType, // @todo(marius): not implemented
 		//as.UndoType,   // @todo(marius): not implemented
-		//as.FollowType, // @todo(marius): not implemented
+		as.FollowType, // @todo(marius): not implemented
 	}
 	if err := validateItemType(typ, validTypes); err != nil {
 		return errors.NewNotValid(err, "failed to validate activity type for inbox collection")

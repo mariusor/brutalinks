@@ -6,17 +6,24 @@ import (
 	"testing"
 )
 
+var metalheadAcct = testAccount{
+	id:         "https://metalhead.club/users/mariusor",
+	Handle:     "mariusor",
+	publicKey:  key.Public(),
+	privateKey: key,
+}
+
 var S2STests = testPairs{
-	"Follow": {{
+	"Follow_SelfService": {{
 		req: testReq{
-			met: http.MethodPost,
-			url: inboxURL,
+			met:     http.MethodPost,
+			url:     inboxURL,
+			account: &metalheadAcct,
 			body: fmt.Sprintf(`{
  "type": "Follow",
- "actor": "%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8",
- "to": ["%s/self/inbox"],
- "object": "%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8/outbox/162edb32c80d0e6dd3114fbb59d6273b"
-}`, apiURL, apiURL, apiURL),
+ "actor": "https://metalhead.club/users/mariusor",
+ "to": ["%s/self"],
+}`, apiURL),
 		},
 		res: testRes{
 			code: http.StatusForbidden,
