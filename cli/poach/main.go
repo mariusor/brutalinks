@@ -26,7 +26,7 @@ func main() {
 	dbUser := os.Getenv("DB_USER")
 
 	var err error
-	cmd.Logger = log.Dev()
+	cmd.Logger = log.Dev(log.TraceLevel)
 	db.Logger = cmd.Logger
 
 	db.Config.DB = pg.Connect(&pg.Options{

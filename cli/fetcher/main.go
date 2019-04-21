@@ -31,7 +31,7 @@ func main() {
 	flag.StringVar(&url, "url", "", "the URL that we should fetch")
 	flag.Parse()
 	var err error
-	log := log.Dev()
+	log := log.Dev(log.TraceLevel)
 
 	if url == "" {
 		log.Error("you need to pass a url value to fetch")

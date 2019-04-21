@@ -40,7 +40,7 @@ func main() {
 	var seed bool
 	var testing bool
 
-	cmd.Logger = log.Dev()
+	cmd.Logger = log.Dev(log.TraceLevel)
 
 	flag.StringVar(&dbRootUser, "user", "", "the admin user for the database")
 	flag.StringVar(&dbHost, "host", "", "the db host")

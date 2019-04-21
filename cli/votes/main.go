@@ -27,7 +27,7 @@ func main() {
 	flag.Parse()
 
 	var err error
-	cmd.Logger = log.Dev()
+	cmd.Logger = log.Dev(log.TraceLevel)
 	db.Logger = cmd.Logger
 	cmd.E(err)
 
