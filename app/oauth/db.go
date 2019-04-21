@@ -74,7 +74,7 @@ func (s *Storage) GetClient(id string) (osin.Client, error) {
 	var extra []byte
 
 	if err := row.Scan(&c.Id, &c.Secret, &c.RedirectUri, &extra); err == sql.ErrNoRows {
-		return nil, errors.NotFoundf("")
+		return nil, errors.NewNotFound(err, "")
 	} else if err != nil {
 		return nil, errors.Annotate(err, "")
 	}
@@ -155,7 +155,6 @@ func (s *Storage) LoadAuthorize(code string) (*osin.AuthorizeData, error) {
 	var extra string
 	var cid string
 	if err := s.db.QueryRow("SELECT client, code, expires_in, scope, redirect_uri, state, created_at, extra FROM authorize WHERE code=$1 LIMIT 1", code).Scan(&cid, &data.Code, &data.ExpiresIn, &data.Scope, &data.RedirectUri, &data.State, &data.CreatedAt, &extra); err == sql.ErrNoRows {
-		s.l.WithContext(log.Ctx{"code": code}).Error(err.Error())
 		return nil, errors.NotFoundf("")
 	} else if err != nil {
 		s.l.WithContext(log.Ctx{"code": code}).Error(err.Error())
@@ -264,8 +263,7 @@ func (s *Storage) LoadAccess(code string) (*osin.AccessData, error) {
 		&result.CreatedAt,
 		&extra,
 	); err == sql.ErrNoRows {
-		s.l.WithContext(log.Ctx{"code": code}).Error(err.Error())
-		return nil, errors.NotFoundf("")
+		return nil, errors.NewNotFound(err, "")
 	} else if err != nil {
 		return nil, errors.Annotate(err, "")
 	}
@@ -302,8 +300,7 @@ func (s *Storage) LoadRefresh(code string) (*osin.AccessData, error) {
 	row := s.db.QueryRow("SELECT access FROM refresh WHERE token=$1 LIMIT 1", code)
 	var access string
 	if err := row.Scan(&access); err == sql.ErrNoRows {
-		s.l.WithContext(log.Ctx{"code": code}).Error(err.Error())
-		return nil, errors.NotFoundf("")
+		return nil, errors.NewNotFound(err, "")
 	} else if err != nil {
 		s.l.WithContext(log.Ctx{"code": code}).Error(err.Error())
 		return nil, errors.Annotate(err, "")
