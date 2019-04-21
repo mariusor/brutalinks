@@ -194,7 +194,7 @@ func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 		}
 		a, err := AcctLoader.LoadAccount(app.Filters{LoadAccountsFilter:app.LoadAccountsFilter{Handle: []string{handle}}})
 		if err != nil {
-			err := errors.NotFoundf("resource not found")
+			err := errors.NotFoundf("resource")
 			h.logger.Error(err.Error())
 			h.HandleError(w, r, err)
 			return
