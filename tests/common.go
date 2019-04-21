@@ -438,6 +438,8 @@ func osinServer() (*osin.Server, error) {
 	parts := strings.Split(o.Addr, ":")
 	pg := fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable", parts[0], o.User, o.Password, o.Database)
 	db, err := sql.Open("postgres", pg)
+	db.SetMaxIdleConns(3)
+	db.SetMaxOpenConns(5)
 	if err != nil {
 		return nil, err
 	}
