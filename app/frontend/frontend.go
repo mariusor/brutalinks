@@ -733,9 +733,13 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 			if h.sstor != nil {
 				s, err := h.sstor.Get(r, sessionName)
 				if err != nil {
-					s.Options.MaxAge = -1
-					err = s.Save(r, w)
 					h.logger.Error(err.Error())
+					if s != nil {
+						s.Options.MaxAge = -1
+						if err = s.Save(r, w); err != nil {
+							h.logger.Error(err.Error())
+						}
+					}
 				} else {
 					h.account = loadCurrentAccountFromSession(s, h.logger)
 				}
