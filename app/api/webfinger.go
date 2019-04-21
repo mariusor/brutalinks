@@ -162,7 +162,7 @@ func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		id := h.repo.BaseURL + "self"
+		id := h.repo.BaseURL + "/self"
 		wf.Aliases = []string{
 			string(id),
 		}
