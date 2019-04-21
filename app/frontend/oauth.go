@@ -2,6 +2,8 @@ package frontend
 
 import (
 	"encoding/json"
+	"github.com/mariusor/littr.go/app"
+	"github.com/mariusor/littr.go/app/oauth"
 	"github.com/openshift/osin"
 	"net/http"
 )
@@ -42,25 +44,40 @@ func redirectOrOutput (rs *osin.Response, w http.ResponseWriter, r *http.Request
 }
 
 func (h *handler) Authorize(w http.ResponseWriter, r *http.Request) {
-	resp := h.s.NewResponse()
+	s, _ := oauth.NewOAuth(
+		app.Instance.Config.DB.Host,
+		app.Instance.Config.DB.User,
+		app.Instance.Config.DB.Pw,
+		app.Instance.Config.DB.Name,
+		h.logger,
+	)
+
+	resp := s.NewResponse()
 	defer resp.Close()
 
-	if ar := h.s.HandleAuthorizeRequest(resp, r); ar != nil {
+	if ar := s.HandleAuthorizeRequest(resp, r); ar != nil {
 		if h.account.IsLogged() {
 			ar.Authorized = true
 			b, _ := json.Marshal(h.account)
 			ar.UserData = b
 		}
-		h.s.FinishAuthorizeRequest(resp, r, ar)
+		s.FinishAuthorizeRequest(resp, r, ar)
 	}
 	redirectOrOutput(resp, w, r, h)
 }
 
 func (h *handler) Token(w http.ResponseWriter, r *http.Request) {
-	resp := h.s.NewResponse()
+	s, _ := oauth.NewOAuth(
+		app.Instance.Config.DB.Host,
+		app.Instance.Config.DB.User,
+		app.Instance.Config.DB.Pw,
+		app.Instance.Config.DB.Name,
+		h.logger,
+	)
+	resp := s.NewResponse()
 	defer resp.Close()
 
-	if ar := h.s.HandleAccessRequest(resp, r); ar != nil {
+	if ar := s.HandleAccessRequest(resp, r); ar != nil {
 		if who, ok := ar.UserData.(string); ok {
 			if err := json.Unmarshal([]byte(who), &h.account); err == nil {
 				ar.Authorized = h.account.IsLogged()
@@ -68,7 +85,7 @@ func (h *handler) Token(w http.ResponseWriter, r *http.Request) {
 				h.logger.Errorf("%s", err)
 			}
 		}
-		h.s.FinishAccessRequest(resp, r, ar)
+		s.FinishAccessRequest(resp, r, ar)
 	}
 	redirectOrOutput(resp, w, r, h)
 }

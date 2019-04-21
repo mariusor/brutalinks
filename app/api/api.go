@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
+	"github.com/mariusor/littr.go/app/oauth"
 	"github.com/openshift/osin"
 	"net/http"
 	"net/url"
@@ -36,13 +37,11 @@ type UserError struct {
 type handler struct {
 	acc    *app.Account
 	repo   *repository
-	s      *osin.Server
 	logger log.Logger
 }
 
 type Config struct {
 	Logger  log.Logger
-	OAuth2  *osin.Server
 	BaseURL string
 }
 
@@ -55,7 +54,6 @@ func Init(c Config) handler {
 		logger: c.Logger,
 	}
 	h.repo = New(c)
-	h.s = c.OAuth2
 	return h
 }
 
@@ -416,7 +414,7 @@ func httpSignatureVerifier(getter *keyLoader) (*httpsig.Verifier, string) {
 	return v, challenge
 }
 
-func (h handler) loadAccountFromAuthHeader(w http.ResponseWriter, r *http.Request) (app.Account, error) {
+func (h *handler) loadAccountFromAuthHeader(w http.ResponseWriter, r *http.Request) (app.Account, error) {
 	var acct = app.AnonymousAccount
 
 	if auth := r.Header.Get("Authorization");  auth != "" {
@@ -426,7 +424,15 @@ func (h handler) loadAccountFromAuthHeader(w http.ResponseWriter, r *http.Reques
 		if strings.Contains(auth, "Bearer") {
 			// check OAuth2 bearer if present
 			method = "oauth2"
-			v := oauthLoader{acc: acct, s: h.s}
+			// TODO(marius): move this to a better place but outside the handler
+			s, _ := oauth.NewOAuth(
+				app.Instance.Config.DB.Host,
+				app.Instance.Config.DB.User,
+				app.Instance.Config.DB.Pw,
+				app.Instance.Config.DB.Name,
+				h.logger,
+			)
+			v := oauthLoader{acc: acct, s: s}
 			v.logFn = h.logger.WithContext(log.Ctx{"from": method}).Debugf
 			err, challenge = v.Verify(r)
 			acct = v.acc
@@ -467,6 +473,7 @@ func (h handler) loadAccountFromAuthHeader(w http.ResponseWriter, r *http.Reques
 			}).Debug("loaded account from Authorization header")
 		}
 	}
+	h.acc = &acct
 	return acct, nil
 }
 

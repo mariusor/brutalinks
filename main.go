@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"flag"
 	"github.com/mariusor/littr.go/app/db"
-	"github.com/mariusor/littr.go/app/oauth"
 	"github.com/writeas/go-nodeinfo"
 	"net/http"
 	"time"
@@ -42,19 +41,9 @@ func main() {
 
 	db.Init(&app.Instance)
 	defer db.Config.DB.Close()
-	oauth2, err := oauth.NewOAuth(
-		app.Instance.Config.DB.Host,
-		app.Instance.Config.DB.User,
-		app.Instance.Config.DB.Pw,
-		app.Instance.Config.DB.Name,
-		app.Instance.Logger.New(log.Ctx{"package": "oauth2"}),
-	)
-	if err != nil {
-		app.Instance.Logger.Warn(err.Error())
-	}
+
 	front, err := frontend.Init(frontend.Config{
 		Env:      e,
-		OAuth2:   oauth2,
 		Logger:   app.Instance.Logger.New(log.Ctx{"package": "frontend"}),
 		Secure:   app.Instance.Secure,
 		BaseURL:  app.Instance.BaseURL,
@@ -67,7 +56,6 @@ func main() {
 	a := api.Init(api.Config{
 		Logger:  app.Instance.Logger.New(log.Ctx{"package": "api"}),
 		BaseURL: app.Instance.APIURL,
-		OAuth2:  oauth2,
 	})
 	//processing.InitQueues(&app.Instance)
 	//processing.Logger = app.Instance.Logger.New(log.Ctx{"package": "processing"})

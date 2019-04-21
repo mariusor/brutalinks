@@ -2,15 +2,12 @@ package frontend
 
 import (
 	"fmt"
-	"github.com/gorilla/sessions"
-	"github.com/mariusor/littr.go/internal/log"
-	"golang.org/x/oauth2"
-	"net/http"
-	"time"
-
 	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/app/db"
+	"github.com/mariusor/littr.go/internal/log"
 	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/oauth2"
+	"net/http"
 )
 
 const SessionUserKey = "__current_acct"
@@ -57,26 +54,15 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		h.Redirect(w, r, backUrl, http.StatusSeeOther)
 		return
 	}
-	var s *sessions.Session
-	if s, err = h.session.Get(r, sessionName); err != nil {
-		c := http.Cookie{
-			Name:     sessionName,
-			Value:    "",
-			Path:     "/",
-			Expires:  time.Unix(0, 0),
-			HttpOnly: true,
-		}
-		http.SetCookie(w, &c)
-		h.logger.Error(err.Error())
-		h.addFlashMessage(Error, r, "Unable to load session")
-		h.Redirect(w, r, backUrl, http.StatusSeeOther)
-		return
-	}
+
+	s, _ := h.sstor.Get(r, sessionName)
 	s.Values[SessionUserKey] = sessionAccount{
 		Handle: a.Handle,
 		Hash:   []byte(a.Hash),
 	}
-	s.Save(r, w)
+	if err := s.Save(r, w); err != nil {
+		h.logger.Error(err.Error())
+	}
 
 	config := GetOauth2Config("local", h.conf.BaseURL)
 	h.Redirect(w, r, config.AuthCodeURL("state", oauth2.AccessTypeOnline), http.StatusPermanentRedirect)
@@ -94,11 +80,11 @@ func (h *handler) ShowLogin(w http.ResponseWriter, r *http.Request) {
 
 // HandleLogout serves /logout requests
 func (h *handler) HandleLogout(w http.ResponseWriter, r *http.Request) {
-	if s, err := h.session.Get(r, sessionName); err != nil {
+	s, err := h.sstor.Get(r, sessionName)
+	if err != nil {
 		h.logger.Error(err.Error())
-	} else {
-		s.Values[SessionUserKey] = nil
 	}
+	s.Values[SessionUserKey] = nil
 	backUrl := "/"
 	if r.Header.Get("Referer") != "" {
 		backUrl = r.Header.Get("Referer")

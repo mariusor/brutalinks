@@ -6,7 +6,6 @@ import (
 	"encoding/gob"
 	"fmt"
 	"github.com/gorilla/csrf"
-	"github.com/openshift/osin"
 	"html/template"
 	"math"
 	"net/http"
@@ -38,10 +37,9 @@ const (
 
 type handler struct {
 	conf    Config
-	session sessions.Store
+	sstor   sessions.Store
 	account app.Account
 	logger  log.Logger
-	s       *osin.Server
 }
 
 var defaultAccount = app.AnonymousAccount
@@ -181,7 +179,6 @@ type Config struct {
 	SessionKeys    [][]byte
 	SessionBackend string
 	Logger         log.Logger
-	OAuth2         *osin.Server
 }
 
 func Init(c Config) (handler, error) {
@@ -198,14 +195,13 @@ func Init(c Config) (handler, error) {
 		h.logger = c.Logger
 	}
 
-	if c.SessionBackend = os.Getenv("SESS_BACKEND"); c.SessionBackend == "" {
+	if c.SessionBackend = os.Getenv("SESSION_BACKEND"); c.SessionBackend == "" {
 		c.SessionBackend = "cookie"
 	}
 
 	c.SessionKeys = loadEnvSessionKeys()
-	h.session, err = InitSessionStore(c)
+	h.sstor, err = InitSessionStore(c)
 	h.conf = c
-	h.s = c.OAuth2
 	return h, err
 }
 
@@ -245,8 +241,6 @@ func InitSessionStore(c Config) (sessions.Store, error) {
 	}
 	return s, nil
 }
-
-var flashData = make([]flash, 0)
 
 type errorModel struct {
 	Status int
@@ -370,16 +364,20 @@ func appName(n string) template.HTML {
 }
 
 func (h *handler) saveSession(w http.ResponseWriter, r *http.Request) error {
-	var err error
-	var s *sessions.Session
-	if h.session == nil {
-		return errors.New("missing session store, unable to save session")
+	if h.sstor == nil {
+		err := errors.New("missing session store, unable to save session")
+		h.logger.Errorf("%s", err)
+		return err
 	}
-	if s, err = h.session.Get(r, sessionName); err != nil {
+	s, err := h.sstor.Get(r, sessionName)
+	if err != nil {
+		h.logger.Errorf("%s", err)
 		return errors.Errorf("failed to load session before redirect: %s", err)
 	}
-	if err := h.session.Save(r, w, s); err != nil {
-		return errors.Errorf("failed to save session before redirect: %s", err)
+	if err := h.sstor.Save(r, w, s); err != nil {
+		err :=errors.Errorf("failed to save session before redirect: %s", err)
+		h.logger.Errorf("%s", err)
+		return err
 	}
 	return nil
 }
@@ -445,14 +443,9 @@ func buildLink(routes chi.Routes, name string, par ...interface{}) string {
 	return "/"
 }
 
-func (h handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name string, m interface{}) error {
+func (h *handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name string, m interface{}) error {
 	var err error
-	if err = h.saveSession(w, r); err != nil {
-		h.logger.WithContext(log.Ctx{
-			"template": name,
-			"model":    fmt.Sprintf("%#v", m),
-		}).Error(err.Error())
-	}
+	s, _ := h.sstor.Get(r, sessionName)
 
 	nodeInfo, err := getNodeInfo(r)
 	ren := render.New(render.Options{
@@ -467,7 +460,7 @@ func (h handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name str
 			"title":             func(t []byte) string { return string(t) },
 			"getProviders":      getAuthProviders,
 			"CurrentAccount":    func() app.Account { return h.account },
-			"LoadFlashMessages": loadFlashMessages,
+			"LoadFlashMessages": loadFlashMessages(s),
 			"Mod10":             func(lvl uint8) float64 { return math.Mod(float64(lvl), float64(10)) },
 			"ShowText":          showText(m),
 			"HTML":              html,
@@ -529,6 +522,12 @@ func (h handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name str
 		}).Error(new.Error())
 		ren.HTML(w, http.StatusInternalServerError, "error", new)
 	}
+	if err = h.saveSession(w, r); err != nil {
+		h.logger.WithContext(log.Ctx{
+			"template": name,
+			"model":    fmt.Sprintf("%#v", m),
+		}).Error(err.Error())
+	}
 	return err
 }
 
@@ -577,10 +576,7 @@ func (h *handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
 		Expiry:       tok.Expiry,
 	}
 
-	s, err := h.session.Get(r, sessionName)
-	if err != nil {
-		h.addFlashMessage(Warning, r, fmt.Sprintf("Unable to save session: %s", err))
-	}
+	s, _ := h.sstor.Get(r, sessionName)
 	h.account = loadCurrentAccountFromSession(s, h.logger)
 	s.Values[SessionUserKey] = sessionAccount{
 		Handle: h.account.Handle,
@@ -666,7 +662,7 @@ func (h *handler) HandleAuth(w http.ResponseWriter, r *http.Request) {
 	// TODO(marius): generated _CSRF state value to check in h.HandleCallback
 	config := GetOauth2Config(provider, h.conf.BaseURL)
 	if len(config.ClientID) == 0 {
-		s, err := h.session.Get(r, sessionName)
+		s, err := h.sstor.Get(r, sessionName)
 		if err != nil {
 			h.logger.Debugf(err.Error())
 		}
@@ -711,68 +707,48 @@ func loadCurrentAccountFromSession(s *sessions.Session, l log.Logger) app.Accoun
 	return defaultAccount
 }
 
-func loadFlashMessagesFromSession(s *sessions.Session, l log.Logger) {
-	flashData = flashData[:0]
+func loadFlashMessages(s *sessions.Session) func() []flash  {
+	flashData := make([]flash, 0)
 	flashes := s.Flashes()
 	// setting the local flashData value
 	for _, int := range flashes {
 		if int == nil {
 			continue
 		}
-		f, ok := int.(flash)
-		if !ok {
-			l.WithContext(log.Ctx{
-				"type": fmt.Sprintf("%T", int),
-				"val":  fmt.Sprintf("%#v", int),
-			}).Error("unable to read flash struct")
+		if f, ok := int.(flash); ok {
+			flashData = append(flashData, f)
 		}
-		flashData = append(flashData, f)
 	}
+	return func() []flash { return flashData }
 }
 
 func (h *handler) LoadSession(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		if !app.Instance.Config.SessionsEnabled {
-			next.ServeHTTP(w, r)
-			return
-		}
-		if h.session == nil {
-			h.logger.Warn("missing session store, unable to load session")
-			next.ServeHTTP(w, r)
-			return
-		}
-		if s, err := h.session.Get(r, sessionName); err != nil {
-			h.logger.Error(err.Error())
-		} else {
-			h.account = loadCurrentAccountFromSession(s, h.logger)
-			loadFlashMessagesFromSession(s, h.logger)
+		if app.Instance.Config.SessionsEnabled {
+			if h.sstor != nil {
+				s, err := h.sstor.Get(r, sessionName)
+				if err != nil {
+					s.Options.MaxAge = -1
+					err = s.Save(r, w)
+					h.logger.Error(err.Error())
+				} else {
+					h.account = loadCurrentAccountFromSession(s, h.logger)
+				}
+			} else {
+				h.logger.Warn("missing session store, unable to load session")
+			}
 		}
 		next.ServeHTTP(w, r)
 	}
 	return http.HandlerFunc(fn)
 }
 
-func (h handler) addFlashMessage(typ flashType, r *http.Request, msgs ...string) {
-	s, _ := h.session.Get(r, sessionName)
+func (h *handler) addFlashMessage(typ flashType, r *http.Request, msgs ...string) {
+	s, _ := h.sstor.Get(r, sessionName)
 	for _, msg := range msgs {
 		n := flash{typ, msg}
-		exists := false
-		for _, f := range flashData {
-			if f == n {
-				exists = true
-				break
-			}
-		}
-		if !exists {
-			s.AddFlash(n)
-		}
+		s.AddFlash(n)
 	}
-}
-
-func loadFlashMessages() []flash {
-	f := flashData
-	flashData = nil
-	return f
 }
 
 func (h handler) NeedsSessions(next http.Handler) http.Handler {
