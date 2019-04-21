@@ -453,7 +453,7 @@ func osinServer() (*osin.Server, error) {
 		AllowGetAccessRequest:     false,
 		RetainTokenAfterRefresh:   false,
 	}
-	return osin.NewServer(&config, oauth.New(db, log.Dev())), nil
+	return osin.NewServer(&config, oauth.New(db, log.Dev(log.TraceLevel))), nil
 }
 
 func osinAccess(s *osin.Server) (*osin.Response, error) {

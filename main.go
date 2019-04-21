@@ -58,7 +58,7 @@ func main() {
 		BaseURL: app.Instance.APIURL,
 	})
 	//processing.InitQueues(&app.Instance)
-	//processing.Logger = app.Instance.Logger.New(log.Ctx{"package": "processing"})
+	//processing.Logger = app.Instance.Logger.Dev(log.Ctx{"package": "processing"})
 
 	app.Logger = app.Instance.Logger.New(log.Ctx{"package": "app"})
 	db.Logger = app.Instance.Logger.New(log.Ctx{"package": "db"})

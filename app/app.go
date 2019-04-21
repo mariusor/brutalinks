@@ -70,6 +70,7 @@ type backendConfig struct {
 
 type Config struct {
 	Env                 EnvType
+	LogLevel            log.Level
 	DB                  backendConfig
 	ES                  backendConfig
 	Redis               backendConfig
@@ -201,10 +202,25 @@ func loadEnv(l *Application) (bool, error) {
 		".env",
 		fmt.Sprintf(".env.%s", l.Config.Env),
 	}
+
+	lvl := os.Getenv("LOG_LEVEL")
+	switch strings.ToLower(lvl) {
+	case "trace":
+		l.Config.LogLevel = log.TraceLevel
+	case "debug":
+		l.Config.LogLevel = log.DebugLevel
+	default: fallthrough
+	case "info":
+		l.Config.LogLevel = log.InfoLevel
+	case "warn":
+		l.Config.LogLevel = log.WarnLevel
+	case "error":
+		l.Config.LogLevel = log.ErrorLevel
+	}
 	if l.Config.Env == PROD {
 		l.Logger = log.Prod()
 	} else {
-		l.Logger = log.Dev()
+		l.Logger = log.Dev(l.Config.LogLevel)
 	}
 
 	for _, f := range configs {
@@ -267,7 +283,6 @@ func (a *Application) Run(m http.Handler, wait time.Duration) {
 	}).Info("Started")
 	srv := &http.Server{
 		Addr: a.Listen(),
-		// Good practice to set timeouts to avoid Slowloris attacks.
 		WriteTimeout: time.Second * 15,
 		ReadTimeout:  time.Second * 15,
 		IdleTimeout:  time.Second * 60,

@@ -10,6 +10,18 @@ import (
 	"time"
 )
 
+type Level int8
+
+const (
+	PanicLevel Level = iota
+	FatalLevel
+	ErrorLevel
+	WarnLevel
+	InfoLevel
+	DebugLevel
+	TraceLevel
+)
+
 type Logger interface {
 	// Add ctx value pairs
 	WithContext(...interface{}) Logger
@@ -40,7 +52,7 @@ type logger struct {
 	m   sync.RWMutex
 }
 
-func Dev() Logger {
+func Dev(lvl Level) Logger {
 	l := logger{}
 
 	logrus.SetFormatter(&logrus.TextFormatter{
@@ -48,7 +60,7 @@ func Dev() Logger {
 		FullTimestamp:    false,
 	})
 	logrus.SetOutput(os.Stdout)
-	logrus.SetLevel(logrus.TraceLevel)
+	logrus.SetLevel(logrus.Level(lvl))
 
 	l.l = logrus.StandardLogger()
 	return &l
@@ -59,7 +71,7 @@ func Prod() Logger {
 
 	logrus.SetFormatter(&logrus.TextFormatter{})
 	logrus.SetOutput(os.Stdout)
-	logrus.SetLevel(logrus.WarnLevel)
+	logrus.SetLevel(logrus.Level(WarnLevel))
 
 	l.l = logrus.StandardLogger()
 	return &l

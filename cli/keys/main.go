@@ -17,7 +17,7 @@ func main() {
 	flag.Int64Var(&seed, "seed", 0, "the seed used for the random number generator in key creation")
 	flag.Parse()
 
-	cmd.Logger = log.Dev()
+	cmd.Logger = log.Dev(log.TraceLevel)
 	db.Config.DB = pg.Connect(cmd.PGConfigFromENV())
 
 	cmd.E(cmd.GenSSHKey(handle, seed, kType))
