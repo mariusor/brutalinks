@@ -138,9 +138,9 @@ var data = map[string][][]interface{}{
 	},
 }
 
-func runAPP() {
-	e := app.EnvType(app.TEST)
-	app.Instance = app.New(host, 3001, e, "-git")
+func runAPP(lvl log.Level) {
+	app.Instance = app.New(host, 3001, app.TEST, "-git")
+	app.Instance.Logger = log.Dev(lvl)
 
 	db.Init(&app.Instance)
 	defer db.Config.DB.Close()

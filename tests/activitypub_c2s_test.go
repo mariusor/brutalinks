@@ -8,7 +8,7 @@ import (
 )
 
 var C2STests = testPairs{
-	"C2S_Load": {
+	"Load": {
 		{
 			req: testReq{
 				met: http.MethodGet,
@@ -151,7 +151,7 @@ var C2STests = testPairs{
 			},
 		},
 	},
-	"C2S_Like": {{
+	"Like": {{
 		req: testReq{
 			met:     http.MethodPost,
 			url:     outboxURL,
@@ -174,7 +174,7 @@ var C2STests = testPairs{
 			},
 		},
 	}},
-	"C2S_AnonymousLike": {{
+	"AnonymousLike": {{
 		req: testReq{
 			met: http.MethodPost,
 			url: outboxURL,
@@ -188,7 +188,7 @@ var C2STests = testPairs{
 			code: http.StatusForbidden,
 		},
 	}},
-	"C2S_Dislike": {{
+	"Dislike": {{
 		req: testReq{
 			met:     http.MethodPost,
 			url:     outboxURL,
@@ -210,7 +210,7 @@ var C2STests = testPairs{
 			},
 		},
 	}},
-	"C2S_AnonymousDislike": {{
+	"AnonymousDislike": {{
 		req: testReq{
 			met: http.MethodPost,
 			url: outboxURL,
@@ -224,7 +224,7 @@ var C2STests = testPairs{
 			code: http.StatusForbidden,
 		},
 	}},
-	"C2S_UndoDislike": {
+	"UndoDislike": {
 		{
 			req: testReq{
 				met:     http.MethodPost,
@@ -270,7 +270,7 @@ var C2STests = testPairs{
 			},
 		},
 	},
-	"C2S_UndoLike": {
+	"UndoLike": {
 		{
 			req: testReq{
 				met:     http.MethodPost,
@@ -316,7 +316,7 @@ var C2STests = testPairs{
 			},
 		},
 	},
-	"C2S_UndoLike#2": {
+	"UndoLike#2": {
 		{
 			req: testReq{
 				met:     http.MethodPost,
@@ -362,7 +362,7 @@ var C2STests = testPairs{
 			},
 		},
 	},
-	"C2S_Create": {{
+	"Create": {{
 		req: testReq{
 			met:     http.MethodPost,
 			url:     outboxURL,
@@ -390,7 +390,7 @@ var C2STests = testPairs{
 			},
 		},
 	}},
-	"C2S_AnonymousCreate": {{
+	"AnonymousCreate": {{
 		req: testReq{
 			met: http.MethodPost,
 			url: outboxURL,
@@ -409,7 +409,7 @@ var C2STests = testPairs{
 			code: http.StatusForbidden,
 		},
 	}},
-	"C2S_Delete": {{
+	"Delete": {{
 		req: testReq{
 			met:     http.MethodPost,
 			url:     outboxURL,
@@ -431,7 +431,7 @@ var C2STests = testPairs{
 			},
 		},
 	}},
-	"C2S_AnonymousDelete": {{
+	"AnonymousDelete": {{
 		req: testReq{
 			met: http.MethodPost,
 			url: outboxURL,

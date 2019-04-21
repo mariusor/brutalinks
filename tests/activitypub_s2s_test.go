@@ -7,7 +7,7 @@ import (
 )
 
 var S2STests = testPairs{
-	"S2S_Follow": {{
+	"Follow": {{
 		req: testReq{
 			met: http.MethodPost,
 			url: inboxURL,
