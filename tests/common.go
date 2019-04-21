@@ -144,20 +144,9 @@ func runAPP() {
 	db.Init(&app.Instance)
 	defer db.Config.DB.Close()
 
-	oauth2, err := oauth.NewOAuth(
-		app.Instance.Config.DB.Host,
-		app.Instance.Config.DB.User,
-		app.Instance.Config.DB.Pw,
-		app.Instance.Config.DB.Name,
-		app.Instance.Logger.New(log.Ctx{"package": "oauth2"}),
-	)
-	if err != nil {
-		panic(err.Error())
-	}
 	a := api.Init(api.Config{
 		Logger:  app.Instance.Logger.New(log.Ctx{"package": "api"}),
 		BaseURL: app.Instance.APIURL,
-		OAuth2:  oauth2,
 	})
 
 	db.Logger = app.Instance.Logger.New(log.Ctx{"package": "db"})
