@@ -193,7 +193,7 @@ func SeedDB(o *pg.Options, hostname string) error {
 	url := fmt.Sprintf("%s://%s", scheme, hostname)
 	oauth2Key := os.Getenv("OAUTH2_KEY")
 	if oauth2Key == "" {
-		oauth2Key = fmt.Sprintf("%2x", meow.Checksum(app.RANDOM_SEED_SELECTED_BY_DICE_ROLL, []byte(url)))
+		oauth2Key = fmt.Sprintf("%2x", meow.Checksum(app.RandomSeedSelectedByDiceRoll, []byte(url)))
 	}
 	oauth2Secret := os.Getenv("OAUTH2_SECRET")
 	if oauth2Secret == "" {

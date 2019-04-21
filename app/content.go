@@ -23,7 +23,7 @@ const MimeTypeURL = MimeType("application/url")
 const MimeTypeHTML = MimeType("text/html")
 const MimeTypeMarkdown = MimeType("text/markdown")
 const MimeTypeText = MimeType("text/plain")
-const RANDOM_SEED_SELECTED_BY_DICE_ROLL = 777
+const RandomSeedSelectedByDiceRoll = 777
 
 type Key [32]byte
 
@@ -104,7 +104,7 @@ func GenKey(el ...[]byte) Key {
 	}
 
 	var k Key
-	k.FromString(fmt.Sprintf("%x", meow.Checksum(RANDOM_SEED_SELECTED_BY_DICE_ROLL, []byte(buf.String()))))
+	k.FromString(fmt.Sprintf("%x", meow.Checksum(RandomSeedSelectedByDiceRoll, []byte(buf.String()))))
 	return k
 }
 

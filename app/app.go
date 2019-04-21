@@ -239,7 +239,7 @@ func loadEnv(l *Application) (bool, error) {
 		l.listen = fmt.Sprintf("%s:%d", l.HostName, l.Port)
 	}
 	if l.SeedVal, err = strconv.ParseInt(os.Getenv("SEED"), 10, 64); err != nil {
-		l.SeedVal = RANDOM_SEED_SELECTED_BY_DICE_ROLL
+		l.SeedVal = RandomSeedSelectedByDiceRoll
 	}
 	l.Secure, _ = strconv.ParseBool(os.Getenv("HTTPS"))
 	if l.Secure {
