@@ -228,6 +228,10 @@ func InitSessionStore(c Config) (sessions.Store, error) {
 			}
 		}
 		ss := sessions.NewFilesystemStore(sessDir, c.SessionKeys...)
+		ss.Options.Domain = c.HostName
+		ss.Options.Path = "/"
+		ss.Options.HttpOnly = true
+		ss.Options.Secure = c.Secure
 		s = ss
 	case "cookie":
 		fallthrough
