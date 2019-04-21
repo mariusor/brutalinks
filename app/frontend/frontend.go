@@ -460,7 +460,7 @@ func (h *handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name st
 			"title":             func(t []byte) string { return string(t) },
 			"getProviders":      getAuthProviders,
 			"CurrentAccount":    func() app.Account { return h.account },
-			"LoadFlashMessages": loadFlashMessages(s),
+			"LoadFlashMessages": loadFlashMessages(r, w, s),
 			"Mod10":             func(lvl uint8) float64 { return math.Mod(float64(lvl), float64(10)) },
 			"ShowText":          showText(m),
 			"HTML":              html,
@@ -707,7 +707,7 @@ func loadCurrentAccountFromSession(s *sessions.Session, l log.Logger) app.Accoun
 	return defaultAccount
 }
 
-func loadFlashMessages(s *sessions.Session) func() []flash  {
+func loadFlashMessages(r *http.Request, w http.ResponseWriter, s *sessions.Session) func() []flash  {
 	flashData := make([]flash, 0)
 	flashes := s.Flashes()
 	// setting the local flashData value
@@ -719,6 +719,7 @@ func loadFlashMessages(s *sessions.Session) func() []flash  {
 			flashData = append(flashData, f)
 		}
 	}
+	s.Save(r, w)
 	return func() []flash { return flashData }
 }
 
