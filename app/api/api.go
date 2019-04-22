@@ -450,7 +450,7 @@ func (h *handler) loadAccountFromAuthHeader(w http.ResponseWriter, r *http.Reque
 	if auth := r.Header.Get("Authorization");  auth != "" {
 		var err error
 		var challenge string
-		var method string
+		method := "none"
 		if strings.Contains(auth, "Bearer") {
 			// check OAuth2 bearer if present
 			method = "oauth2"
@@ -498,7 +498,7 @@ func (h *handler) loadAccountFromAuthHeader(w http.ResponseWriter, r *http.Reque
 		} else {
 			// TODO(marius): Add actor's host to the logging
 			h.logger.WithContext(log.Ctx{
-				"method": method,
+				"auth": method,
 				"handle": acct.Handle,
 				"hash":   acct.Hash,
 			}).Debug("loaded account from Authorization header")
