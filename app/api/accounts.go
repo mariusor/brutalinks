@@ -990,6 +990,7 @@ func validateInboxActivityType(typ as.ActivityVocabularyType) error {
 }
 
 func validateInboxActivity(a ap.Activity, repo app.CanLoad) (ap.Activity, error) {
+	// TODO(marius): need to add a step to verify the Activity Actor against the one loaded from the Authorization header.
 	if err := validateInboxActivityType(a.GetType()); err != nil {
 		return a, errors.NewNotValid(err, "failed to validate activity type for inbox collection")
 	}
@@ -1215,7 +1216,7 @@ func (h *handler) ServerRequest(w http.ResponseWriter, r *http.Request) {
 				actor = eact.actor
 			}
 			//if eobj, ok := e.object.(objectMissingError); ok {
-			//	object = eobj.object
+			//	a.Object = eobj.object
 			//}
 		} else {
 			errFn(err, "")
@@ -1240,18 +1241,19 @@ func (h *handler) ServerRequest(w http.ResponseWriter, r *http.Request) {
 		}
 		if actorNeedsSaving && actor != nil {
 			// @todo(marius): move this to its own function
-			if !actor.IsObject() {
-				if actor, err = h.repo.client.LoadIRI(actor.GetLink()); err != nil || !actor.IsObject() {
-					errFn(errors.NewNotFound(err, fmt.Sprintf("failed to load remote actor %s", actor.GetLink())), "")
-					return
-				}
-			}
-			// @fixme :needs_queueing:
-			if err = acc.FromActivityPub(actor); err != nil {
-				errFn(errors.NewNotFound(err, fmt.Sprintf("failed to load account from remote actor %s", actor.GetLink())), "")
-				return
-			}
-			if acc, err = repo.SaveAccount(acc); err != nil {
+			//if !actor.IsObject() {
+			//	if actor, err = h.repo.client.LoadIRI(actor.GetLink()); err != nil || !actor.IsObject() {
+			//		errFn(errors.NewNotFound(err, fmt.Sprintf("failed to load remote actor %s", actor.GetLink())), "")
+			//		return
+			//	}
+			//	// @fixme :needs_queueing:
+			//	if err = acc.FromActivityPub(actor); err != nil {
+			//		errFn(errors.NewNotFound(err, fmt.Sprintf("failed to load account from remote actor %s", actor.GetLink())), "")
+			//		return
+			//	}
+			//}
+
+			if acc, err = repo.SaveAccount(*h.acc); err != nil {
 				errFn(errors.NewNotFound(err, fmt.Sprintf("failed to save local account for remote actor")), "")
 				return
 			}
@@ -1282,7 +1284,7 @@ func (h *handler) ServerRequest(w http.ResponseWriter, r *http.Request) {
 	//w.Header().Set("X-Content-Type-Options", "nosniff")
 	if status >= 400 {
 		w.Write([]byte(`{"status": "nok"}`))
-	} else {
+	} else if status < 300 {
 		w.Write([]byte(`{"status": "ok"}`))
 	}
 }
