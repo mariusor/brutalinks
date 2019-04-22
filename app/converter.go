@@ -1,6 +1,7 @@
 package app
 
 import (
+	"encoding/pem"
 	"fmt"
 	"net/url"
 	"path"
@@ -142,12 +143,12 @@ func (a *Account) FromActivityPub(it as.Item) error {
 		if a.Metadata == nil {
 			a.Metadata = &AccountMetadata{}
 		}
-		// TODO(marius): this needs some further processing before saving
-		//  ideally building a real ssh.PubKey
-		//a.Metadata.Key = &SSHKey{
-		//	ID: "id-rsa",
-		//	Public: []byte(p.PublicKey.PublicKeyPem),
-		//}
+		if block, _ := pem.Decode([]byte(p.PublicKey.PublicKeyPem)); block != nil {
+			a.Metadata.Key = &SSHKey{
+				Public: []byte(p.PublicKey.PublicKeyPem),
+			}
+		}
+
 		return nil
 	}
 	switch it.GetType() {
