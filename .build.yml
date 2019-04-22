@@ -26,6 +26,7 @@ tasks:
       make all
   - tests: |
       set +x
+      set -a
       source ~/.env.test
       cd littr.go
       make test
