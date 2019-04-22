@@ -939,8 +939,14 @@ func validateRecipients(a ap.Activity) error {
 		if col == nil || len(col) == 0 {
 			return false
 		}
+		if col != nil && len(col) == 1 && col[0] == nil {
+			return true
+		}
 		if col != nil && len(col) > 0 {
 			for _, tgt := range col {
+				if tgt == nil {
+					continue
+				}
 				tgtUrl := tgt.GetLink().String()
 				if strings.Contains(tgtUrl, base) {
 					return true
