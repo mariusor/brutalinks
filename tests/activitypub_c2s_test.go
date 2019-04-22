@@ -446,6 +446,21 @@ var C2STests = testPairs{
 			code: http.StatusForbidden,
 		},
 	}},
+	"Follow_SelfService": {{
+		req: testReq{
+			met:     http.MethodPost,
+			url:     inboxURL,
+			account: &littrAcct,
+			body: fmt.Sprintf(`{
+ "type": "Follow",
+ "actor": "%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8",
+ "to": ["%s/self"]
+}`, apiURL, apiURL),
+		},
+		res: testRes{
+			code: http.StatusAccepted,
+		},
+	}},
 }
 
 func Test_C2SRequests(t *testing.T) {

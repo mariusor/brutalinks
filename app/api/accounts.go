@@ -626,9 +626,9 @@ func (h handler) LoadActivity(next http.Handler) http.Handler {
 		// TODO(marius) Does this make any sense?
 		// When the object of the activity is nil, we can consider it to be the actor that the current
 		// Inbox/Outbox URL belongs to. This might not apply to all Activities.
-		if a.Object == nil && a.GetType() == as.FollowType {
-			a.Object = as.IRI(path.Dir(r.URL.String()))
-		}
+		//if a.Object == nil && a.GetType() == as.FollowType {
+		//	a.Object = as.IRI(path.Dir(r.URL.String()))
+		//}
 		ctx := context.WithValue(r.Context(), app.ItemCtxtKey, a)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	}
@@ -1044,6 +1044,87 @@ func validateOutboxActivity(a ap.Activity, repo app.CanLoadAccounts) (ap.Activit
 	return a, nil
 }
 
+func (h *handler) saveActivityContent(a ap.Activity, r *http.Request, w http.ResponseWriter) (int, string) {
+	status := http.StatusInternalServerError
+	var location string
+	switch a.GetType() {
+	case as.FollowType:
+		status = http.StatusAccepted
+	case as.DeleteType:
+		fallthrough
+	case as.UpdateType:
+		fallthrough
+	case as.CreateType:
+		it := app.Item{}
+		if err := it.FromActivityPub(a); err != nil {
+			h.logger.WithContext(log.Ctx{
+				"err":   err,
+				"trace": errors.Details(err),
+			}).Error("unable to load item from ActivityPub object")
+			h.HandleError(w, r, errors.NewNotValid(err, "not found"))
+			return http.StatusNotFound, ""
+		}
+		if repo, ok := app.ContextItemSaver(r.Context()); ok {
+			newIt, err := repo.SaveItem(it)
+			if err != nil {
+				h.logger.WithContext(log.Ctx{
+					"err":     err,
+					"trace":   errors.Details(err),
+					"item":    it.Hash,
+					"account": it.SubmittedBy.Hash,
+				}).Error(err.Error())
+				h.HandleError(w, r, errors.NewNotValid(err, "not found"))
+				return http.StatusNotFound, ""
+			}
+			if newIt.UpdatedAt.IsZero() {
+				// we need to make a difference between created vote and updated vote
+				// created - http.StatusCreated
+				status = http.StatusCreated
+				location = fmt.Sprintf("%s/self/following/%s/outbox/%s", h.repo.BaseURL, newIt.SubmittedBy.Hash, newIt.Hash)
+			} else {
+				// updated - http.StatusOK
+				status = http.StatusOK
+			}
+		}
+	case as.UndoType:
+		fallthrough
+	case as.DislikeType:
+		fallthrough
+	case as.LikeType:
+		v := app.Vote{}
+		if err := v.FromActivityPub(a); err != nil {
+			h.logger.WithContext(log.Ctx{
+				"err":   err,
+				"trace": errors.Details(err),
+			}).Error("unable to load vote from ActivityPub object")
+			h.HandleError(w, r, errors.NewNotValid(err, "not found"))
+			return http.StatusNotFound, ""
+		}
+		if repo, ok := app.ContextVoteSaver(r.Context()); ok {
+			newVot, err := repo.SaveVote(v)
+			if err != nil {
+				h.logger.WithContext(log.Ctx{
+					"err":      err,
+					"trace":    errors.Details(err),
+					"saveVote": v.SubmittedBy.Hash,
+				}).Error(err.Error())
+				h.HandleError(w, r, errors.NewNotValid(err, "not found"))
+				return http.StatusNotFound, ""
+			}
+			if newVot.UpdatedAt.IsZero() {
+				// we need to make a difference between created vote and updated vote
+				// created - http.StatusCreated
+				status = http.StatusCreated
+				location = fmt.Sprintf("%s/self/following/%s/liked/%s", h.repo.BaseURL, newVot.SubmittedBy.Hash, newVot.Item.Hash)
+			} else {
+				// updated - http.StatusOK
+				status = http.StatusOK
+			}
+		}
+	}
+	return status, location
+}
+
 func (h *handler) ClientRequest(w http.ResponseWriter, r *http.Request) {
 	a, _ := app.ContextActivity(r.Context())
 
@@ -1074,80 +1155,7 @@ func (h *handler) ClientRequest(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	switch a.GetType() {
-	case as.DeleteType:
-		fallthrough
-	case as.UpdateType:
-		fallthrough
-	case as.CreateType:
-		it := app.Item{}
-		if err := it.FromActivityPub(a); err != nil {
-			h.logger.WithContext(log.Ctx{
-				"err":   err,
-				"trace": errors.Details(err),
-			}).Error("unable to load item from ActivityPub object")
-			h.HandleError(w, r, errors.NewNotValid(err, "not found"))
-			return
-		}
-		if repo, ok := app.ContextItemSaver(r.Context()); ok {
-			newIt, err := repo.SaveItem(it)
-			if err != nil {
-				h.logger.WithContext(log.Ctx{
-					"err":     err,
-					"trace":   errors.Details(err),
-					"item":    it.Hash,
-					"account": it.SubmittedBy.Hash,
-				}).Error(err.Error())
-				h.HandleError(w, r, errors.NewNotValid(err, "not found"))
-				return
-			}
-			if newIt.UpdatedAt.IsZero() {
-				// we need to make a difference between created vote and updated vote
-				// created - http.StatusCreated
-				status = http.StatusCreated
-				location = fmt.Sprintf("%s/self/following/%s/outbox/%s", h.repo.BaseURL, newIt.SubmittedBy.Hash, newIt.Hash)
-			} else {
-				// updated - http.StatusOK
-				status = http.StatusOK
-			}
-		}
-	case as.UndoType:
-		fallthrough
-	case as.DislikeType:
-		fallthrough
-	case as.LikeType:
-		v := app.Vote{}
-		if err := v.FromActivityPub(a); err != nil {
-			h.logger.WithContext(log.Ctx{
-				"err":   err,
-				"trace": errors.Details(err),
-			}).Error("unable to load vote from ActivityPub object")
-			h.HandleError(w, r, errors.NewNotValid(err, "not found"))
-			return
-		}
-		if repo, ok := app.ContextVoteSaver(r.Context()); ok {
-			newVot, err := repo.SaveVote(v)
-			if err != nil {
-				h.logger.WithContext(log.Ctx{
-					"err":      err,
-					"trace":    errors.Details(err),
-					"saveVote": v.SubmittedBy.Hash,
-				}).Error(err.Error())
-				h.HandleError(w, r, errors.NewNotValid(err, "not found"))
-				return
-			}
-			if newVot.UpdatedAt.IsZero() {
-				// we need to make a difference between created vote and updated vote
-				// created - http.StatusCreated
-				status = http.StatusCreated
-				location = fmt.Sprintf("%s/self/following/%s/liked/%s", h.repo.BaseURL, newVot.SubmittedBy.Hash, newVot.Item.Hash)
-			} else {
-				// updated - http.StatusOK
-				status = http.StatusOK
-			}
-		}
-	}
-
+	status, location = h.saveActivityContent(a, r, w)
 	if err != nil {
 		h.logger.WithContext(log.Ctx{
 			"actor":   a.Actor.GetLink(),
@@ -1176,8 +1184,7 @@ func (h *handler) ClientRequest(w http.ResponseWriter, r *http.Request) {
 
 func (h *handler) ServerRequest(w http.ResponseWriter, r *http.Request) {
 	a, _ := app.ContextActivity(r.Context())
-
-	notFound := func(err error) {
+	errFn := func(err error, fmt string, it ...interface{}) {
 		h.logger.WithContext(log.Ctx{
 			"actor":   a.Actor.GetLink(),
 			"object":  a.Object.GetLink(),
@@ -1185,18 +1192,15 @@ func (h *handler) ServerRequest(w http.ResponseWriter, r *http.Request) {
 			"headers": r.Header,
 			"err":     err,
 			"trace":   errors.Details(err),
-		}).Error("activity validation error")
+		}).Errorf(fmt, it...)
 		h.HandleError(w, r, err)
 	}
-
 	var err error
 	status := http.StatusNotImplemented
 	var location string
 	repo, _ := app.ContextLoader(r.Context())
 	actorNeedsSaving := false
 	var actor as.Item
-	var object as.Item
-	it := app.Item{}
 	acc := app.Account{}
 	if a, err = validateInboxActivity(a, repo); err != nil {
 		if e, ok := err.(activityError); ok {
@@ -1208,7 +1212,7 @@ func (h *handler) ServerRequest(w http.ResponseWriter, r *http.Request) {
 			//	object = eobj.object
 			//}
 		} else {
-			notFound(err)
+			errFn(err, "")
 			return
 		}
 	}
@@ -1225,70 +1229,31 @@ func (h *handler) ServerRequest(w http.ResponseWriter, r *http.Request) {
 		var ok bool
 		var repo app.CanSaveAccounts
 		if repo, ok = app.ContextSaver(r.Context()); !ok {
-			notFound(errors.NotValidf("unable get persistence repository"))
+			errFn(errors.NotValidf("unable get persistence repository"), "")
 			return
 		}
 		if actorNeedsSaving && actor != nil {
 			// @todo(marius): move this to its own function
 			if !actor.IsObject() {
 				if actor, err = h.repo.client.LoadIRI(actor.GetLink()); err != nil || !actor.IsObject() {
-					notFound(errors.NewNotFound(err, fmt.Sprintf("failed to load remote actor %s", actor.GetLink())))
+					errFn(errors.NewNotFound(err, fmt.Sprintf("failed to load remote actor %s", actor.GetLink())), "")
 					return
 				}
 			}
 			// @fixme :needs_queueing:
 			if err = acc.FromActivityPub(actor); err != nil {
-				notFound(errors.NewNotFound(err, fmt.Sprintf("failed to load account from remote actor %s", actor.GetLink())))
+				errFn(errors.NewNotFound(err, fmt.Sprintf("failed to load account from remote actor %s", actor.GetLink())), "")
 				return
 			}
 			if acc, err = repo.SaveAccount(acc); err != nil {
-				notFound(errors.NewNotFound(err, fmt.Sprintf("failed to save local account for remote actor")))
+				errFn(errors.NewNotFound(err, fmt.Sprintf("failed to save local account for remote actor")), "")
 				return
 			}
 			a.Actor = loadAPPerson(acc)
 		}
 	}
-	if a.Object != nil {
-		var repo app.CanSaveItems
-		var ok bool
-		if repo, ok = app.ContextSaver(r.Context()); !ok {
-			notFound(errors.NotValidf("unable get persistence repository"))
-			return
-		}
-		object = a.Object
-		// @todo(marius): move this to its own function
-		if !object.IsObject() {
-			if object, err = h.repo.client.LoadIRI(object.GetLink()); err != nil {
-				notFound(errors.NewNotFound(err, fmt.Sprintf("failed to load remote object %s", object.GetLink())))
-				return
-			} else {
-				a.Object = object
-			}
-		}
-		// @fixme :needs_queueing:
-		if err = it.FromActivityPub(a); err != nil {
-			notFound(errors.NewNotFound(err, fmt.Sprintf("failed to load account from remote actor %s", actor.GetLink())))
-			return
-		}
-		if it, err = repo.SaveItem(it); err != nil {
-			notFound(errors.NewNotFound(err, fmt.Sprintf("failed to save remote object %s", object.GetLink())))
-			return
-		}
 
-		if it.UpdatedAt.IsZero() {
-			// we need to make a difference between created vote and updated vote
-			// created - http.StatusCreated
-			status = http.StatusCreated
-			// TODO(marius): since the spec considers the inbox to be just a submission end-point, we probably
-			//   want the location to be to an outbox collection
-			if newId, ok := BuildObjectIDFromItem(it); ok {
-				location = string(newId)
-			}
-		} else {
-			// updated - http.StatusOK
-			status = http.StatusOK
-		}
-	}
+	status, location = h.saveActivityContent(a, r, w)
 
 	if err != nil {
 		h.logger.WithContext(log.Ctx{
