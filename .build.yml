@@ -21,9 +21,11 @@ tasks:
       make --version | head -n1
       go version
   - build: |
+      set +x
       cd littr.go
       make all
   - tests: |
+      set +x
       source ~/.env.test
       cd littr.go
       make test
