@@ -7,7 +7,7 @@ sources:
 environment:
   GO111MODULE: 'on'
 secrets:
-  - e68e2569-3d8c-402b-8cc9-b4e75ee03048
+  - 32610757-76e9-4671-adf1-98163ca8b594
 tasks:
   - setup: |
       set +x
