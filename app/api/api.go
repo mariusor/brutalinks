@@ -411,7 +411,8 @@ func (k *keyLoader) GetKey(id string) interface{} {
 		k.log("missing SSH key for account %s", k.acc.Handle)
 		return nil
 	}
-	block, _ := pem.Decode([]byte(k.acc.Metadata.Key.Public))
+	pemmed := fmt.Sprintf("-----BEGIN PUBLIC KEY-----\n%s\n-----END PUBLIC KEY-----", k.acc.Metadata.Key.Public)
+	block, _ := pem.Decode([]byte(pemmed))
 	if block == nil {
 		k.log("failed to parse PEM block containing the public key")
 		return nil

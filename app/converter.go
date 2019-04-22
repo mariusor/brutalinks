@@ -1,6 +1,7 @@
 package app
 
 import (
+	"encoding/base64"
 	"encoding/pem"
 	"fmt"
 	"net/url"
@@ -144,8 +145,10 @@ func (a *Account) FromActivityPub(it as.Item) error {
 			a.Metadata = &AccountMetadata{}
 		}
 		if block, _ := pem.Decode([]byte(p.PublicKey.PublicKeyPem)); block != nil {
+			pub := make([]byte, base64.StdEncoding.EncodedLen(len(block.Bytes)))
+			base64.StdEncoding.Encode(pub, block.Bytes)
 			a.Metadata.Key = &SSHKey{
-				Public: []byte(p.PublicKey.PublicKeyPem),
+				Public: pub,
 			}
 		}
 
