@@ -271,9 +271,9 @@ func loadAPPerson(a app.Account) *ap.Person {
 	}
 	oauthURL := strings.Replace(BaseURL, "api", "oauth", 1)
 	p.Endpoints = goap.Endpoints{
-		SharedInbox: as.IRI(fmt.Sprintf("%s/self/inbox", BaseURL)),
+		SharedInbox:                as.IRI(fmt.Sprintf("%s/self/inbox", BaseURL)),
 		OauthAuthorizationEndpoint: as.IRI(fmt.Sprintf("%s/authorize", oauthURL)),
-		OauthTokenEndpoint: as.IRI(fmt.Sprintf("%s/token", oauthURL)),
+		OauthTokenEndpoint:         as.IRI(fmt.Sprintf("%s/token", oauthURL)),
 	}
 
 	return &p
@@ -623,22 +623,35 @@ func (h handler) LoadActivity(next http.Handler) http.Handler {
 				return
 			}
 		}
+		// TODO(marius) Does this make any sense?
+		// When the object of the activity is nil, we can consider it to be the actor that the current
+		// Inbox/Outbox URL belongs to. This might not apply to all Activities.
+		if a.Object == nil && a.GetType() == as.FollowType {
+			a.Object = as.IRI(path.Dir(r.URL.String()))
+		}
 		ctx := context.WithValue(r.Context(), app.ItemCtxtKey, a)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	}
 	return http.HandlerFunc(fn)
 }
 
+var notLocalIRI = UserError{msg: "Not a local IRI"}
+
 func validateLocalIRI(i as.IRI) error {
 	if len(i) == 0 {
 		// empty IRI is valid(ish)
+		return nil
+	}
+	if path.IsAbs(i.String()) {
 		return nil
 	}
 	if app.Instance.HostName == i.String() {
 		return nil
 	}
 	if !app.HostIsLocal(i.String()) {
-		return errors.Errorf("not local IRI %s", i)
+		e := notLocalIRI
+		e.ID = i
+		return e
 	}
 	return nil
 }
@@ -798,6 +811,9 @@ func getValidObjectTypes(typ as.ActivityVocabularyType) []as.ActivityVocabularyT
 
 func validateObject(a as.Item, repo app.CanLoadItems, typ as.ActivityVocabularyType) (as.Item, error) {
 	var o as.Item
+	if a == nil {
+		return a, nil
+	}
 
 	var err error
 	if err = validateIRIIsBlocked(a.GetLink()); err != nil {
@@ -1045,7 +1061,7 @@ func (h *handler) ClientRequest(w http.ResponseWriter, r *http.Request) {
 		// validate if http-signature matches the current Activity.Actor
 		account := *h.acc
 		if a.Actor.GetLink() != loadAPPerson(account).GetLink() {
-			h.HandleError(w, r, errors.Forbiddenf( "The activity actor is not authorized to add"))
+			h.HandleError(w, r, errors.Forbiddenf("The activity actor is not authorized to add"))
 			return
 		}
 	}

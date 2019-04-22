@@ -4,7 +4,9 @@ import (
 	"crypto"
 	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
+	"github.com/go-ap/activitypub/client"
 	"github.com/mariusor/littr.go/app/oauth"
 	"github.com/openshift/osin"
 	"net/http"
@@ -32,6 +34,12 @@ type InternalError struct {
 }
 
 type UserError struct {
+	ID as.IRI
+	msg string
+}
+
+func (u UserError) Error() string {
+	return fmt.Sprintf("%s %s", u.msg, u.ID)
 }
 
 type handler struct {
@@ -313,6 +321,7 @@ type keyLoader struct {
 	realm string
 	acc   app.Account
 	l     app.CanLoadAccounts
+	c     client.Client
 }
 
 type oauthLoader struct {
@@ -349,8 +358,15 @@ func (k *oauthLoader) Verify(r *http.Request) (error, string) {
 	return nil, ""
 }
 
-func loadFederatedActor(id as.IRI) (as.Actor, error) {
-	return as.Object{}, errors.NotImplementedf("federated actors loading is not implemented")
+func loadFederatedActor(c client.Client, id as.IRI) (as.Actor, error) {
+	it, err := c.LoadIRI(id)
+	if err != nil {
+		return ap.Person{}, err
+	}
+	if acct, ok := it.(*ap.Person); ok {
+		return acct, nil
+	}
+	return ap.Person{}, nil
 }
 
 func (k *keyLoader) GetKey(id string) interface{} {
@@ -375,7 +391,7 @@ func (k *keyLoader) GetKey(id string) interface{} {
 		}
 	} else {
 		// @todo(queue_support): this needs to be moved to using queues
-		actor, err := loadFederatedActor(as.IRI(u.RequestURI()))
+		actor, err := loadFederatedActor(k.c, as.IRI(id))
 		if err != nil {
 			k.log("unable to load federated account matching key id %s", id)
 			return nil
@@ -387,7 +403,20 @@ func (k *keyLoader) GetKey(id string) interface{} {
 	}
 
 	var pub crypto.PublicKey
-	pub, err = x509.ParsePKIXPublicKey(k.acc.Metadata.Key.Public)
+	if !k.acc.HasMetadata() {
+		k.log("missing metadata for account %s", k.acc.Handle)
+		return nil
+	}
+	if k.acc.Metadata.Key == nil {
+		k.log("missing SSH key for account %s", k.acc.Handle)
+		return nil
+	}
+	block, _ := pem.Decode([]byte(k.acc.Metadata.Key.Public))
+	if block == nil {
+		k.log("failed to parse PEM block containing the public key")
+		return nil
+	}
+	pub, err = x509.ParsePKIXPublicKey(block.Bytes)
 	if err != nil {
 		k.log("x509 error %s", err)
 		return nil
@@ -440,7 +469,7 @@ func (h *handler) loadAccountFromAuthHeader(w http.ResponseWriter, r *http.Reque
 		if strings.Contains(auth, "Signature") {
 			if loader, ok := app.ContextAccountLoader(r.Context()); ok {
 				// only verify http-signature if present
-				getter := keyLoader{acc: acct, l: loader, realm: h.repo.BaseURL}
+				getter := keyLoader{acc: acct, l: loader, realm: h.repo.BaseURL, c: h.repo.client}
 				method = "httpSig"
 				getter.logFn = h.logger.WithContext(log.Ctx{"from": method}).Debugf
 
@@ -466,6 +495,7 @@ func (h *handler) loadAccountFromAuthHeader(w http.ResponseWriter, r *http.Reque
 			//   would suffice.
 			return acct, err
 		} else {
+			// TODO(marius): Add actor's host to the logging
 			h.logger.WithContext(log.Ctx{
 				"method": method,
 				"handle": acct.Handle,
