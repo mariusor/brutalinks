@@ -106,7 +106,11 @@ func saveAccount(db *pg.DB, a app.Account) (app.Account, error) {
 		Metadata: *a.Metadata,
 	}
 	if a.IsFederated() {
-		acct.Key = app.GenKey([]byte(a.Metadata.ID))
+		if len(a.Hash) == 0 {
+			acct.Key = app.GenKey([]byte(a.Metadata.ID))
+		} else {
+			acct.Key.FromString(a.Hash.String())
+		}
 	} else {
 		acct.Key = app.GenKey([]byte(a.Handle))
 		a.Metadata.ID = fmt.Sprintf("%s/self/following/%s", app.Instance.APIURL, url.PathEscape(acct.Key.String()))
