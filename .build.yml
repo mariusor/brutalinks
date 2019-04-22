@@ -6,6 +6,8 @@ sources:
   - https://github.com/mariusor/littr.go
 environment:
   GO111MODULE: 'on'
+secrets:
+  - e68e2569-3d8c-402b-8cc9-b4e75ee03048
 tasks:
   - setup: |
       set +x
@@ -22,5 +24,6 @@ tasks:
       cd littr.go
       make all
   - tests: |
+      source ~/.env.test
       cd littr.go
       make test
