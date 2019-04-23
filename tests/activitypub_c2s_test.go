@@ -449,16 +449,17 @@ var C2STests = testPairs{
 	"Follow_SelfService": {{
 		req: testReq{
 			met:     http.MethodPost,
-			url:     inboxURL,
-			account: &littrAcct,
+			url:     outboxURL,
+			account: &defaultTestAccount,
 			body: fmt.Sprintf(`{
  "type": "Follow",
+ "object": "%s",
  "actor": "%s/self/following/dc6f5f5bf55bc1073715c98c69fa7ca8",
  "to": ["%s/self"]
-}`, apiURL, apiURL),
+}`, defaultTestAccount.id, apiURL, apiURL),
 		},
 		res: testRes{
-			code: http.StatusAccepted,
+			code: http.StatusInternalServerError,
 		},
 	}},
 }
