@@ -71,16 +71,27 @@ var S2STests = testPairs{
 
 func Test_S2SRequests(t *testing.T) {
 	var lpubblock, _ = pem.Decode([]byte("-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA6o5aCJjzpWRmdj27eGE+DIdC96zSTrPL6lnelZrCNSCcfMC9wZVhMwLLNlSCV1EURDMYs9fla7Hjfqqa706TC3EI6q2n1rPcLd4Cgvto6rA+luiXQGRNQmabXxVQBdn81oxRNv+M41g4ZhPkK7px5pHG+U6oU5uPu8m3fLqQpMjVHitiaou8ABRoLN6s5aAattMVULh/Ma33tqDDwt2+mDui44x9ge4dPrtP3koZZ+uiiLx+9hqG6Oaa8BrsujLrHHCLiwPaHmAacybLCjROvoJUB1mxGdHaaBoh87sb0sX7KmRDVVobkd3q8MI4zektj4N8GDoNUkukuh1mALrGjQIDAQAB\n-----END PUBLIC KEY-----"))
-	var lpub, _ = x509.ParsePKIXPublicKey(lpubblock.Bytes)
-	var prv64 = os.Getenv("TEST_PRIVATE_KEY")
-	var lprvblock, _ = pem.Decode([]byte("-----BEGIN PRIVATE KEY-----\n"+prv64+"\n-----END PRIVATE KEY-----"))
-	var lprv, _ = x509.ParsePKCS8PrivateKey(lprvblock.Bytes)
-
-	if os.Getenv("TEST_PRIVATE_KEY") == "" {
-		t.Skipf("Unable to load private key")
-	} else {
-		littrAcct.privateKey = lprv.(*rsa.PrivateKey)
-		littrAcct.publicKey =  lpub.(*rsa.PublicKey)
+	if lpubblock == nil {
+		t.Skipf("Unable to load public key")
 	}
+	var lpub, _ = x509.ParsePKIXPublicKey(lpubblock.Bytes)
+	if lpub == nil {
+		t.Skipf("Unable to load public key")
+	}
+	var prv64 = os.Getenv("TEST_PRIVATE_KEY")
+	if prv64 == "" {
+		t.Skipf("Unable to load private key from env")
+	}
+	var lprvblock, _ = pem.Decode([]byte("-----BEGIN PRIVATE KEY-----\n"+prv64+"\n-----END PRIVATE KEY-----"))
+	if lprvblock == nil {
+		t.Skipf("Unable to load private key")
+	}
+	var lprv, _ = x509.ParsePKCS8PrivateKey(lprvblock.Bytes)
+	if lprv == nil {
+		t.Skipf("Unable to load private key")
+	}
+
+	littrAcct.privateKey = lprv.(*rsa.PrivateKey)
+	littrAcct.publicKey =  lpub.(*rsa.PublicKey)
 	testSuite(t, S2STests)
 }
