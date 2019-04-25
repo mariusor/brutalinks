@@ -183,7 +183,13 @@ func (l *log) Write(status, bytes int, elapsed time.Duration) {
 	l.c["length"] = bytes
 	l.c["status"] = status
 
-	l.l.WithContext(l.c).Info("")
+	st := "OK"
+	fn := l.l.WithContext(l.c).Info
+	if status >= 400 {
+		st = "FAIL"
+		fn = l.l.WithContext(l.c).Warn
+	}
+	fn(st)
 }
 
 func (l *log) Panic(v interface{}, stack []byte) {
