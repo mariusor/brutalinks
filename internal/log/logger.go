@@ -183,11 +183,7 @@ func (l *log) Write(status, bytes int, elapsed time.Duration) {
 	l.c["length"] = bytes
 	l.c["status"] = status
 
-	if status == http.StatusOK {
-		l.l.WithContext(l.c).Debug("")
-	} else {
-		l.l.WithContext(l.c).Info("")
-	}
+	l.l.WithContext(l.c).Info("")
 }
 
 func (l *log) Panic(v interface{}, stack []byte) {
