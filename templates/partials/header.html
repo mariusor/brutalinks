@@ -16,7 +16,7 @@
 {{- $providers := getProviders -}}
 <nav class="top">
     <ul class="inline">
-        <li><a id="top-invert" title="Invert colours" href="#invert">{{ icon "adjust" }}</a></li>
+        <li><a id="top-invert" title="Invert colours" href="/#invert">{{ icon "adjust" }}</a></li>
 {{- if $account.IsLogged }}
         <li class="acct"><a class="by" href="{{ $account | AccountPermaLink }}">{{$account.Handle}}</a> <span class="score">{{$account.Score | ScoreFmt}}</span></li>
         <li class=""><a href="/logout">Log out</a></li>

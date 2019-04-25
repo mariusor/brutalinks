@@ -6,7 +6,6 @@ del, dfn, em, img, ins, kbd, q, s, samp,
 small, strike, strong, tt, var,
 b, u, i, center, a, details,
 dl, dt, dd, ol, ul, li,
-fieldset, form, label, legend,
 table, caption, tbody, tfoot, thead, tr, th, td,
 article, aside, canvas, details, embed,
 figure, figcaption, footer, header, hgroup,
@@ -486,13 +485,14 @@ summary:focus {
     white-space: normal;
     font-family: revert;
 }
-#reply, #new, #login {
-    max-width: 80ex;
+#new fieldset,
+#reply fieldset {
+    border: 0;
+    padding: 0;
+    margin: 0;
 }
-#reply fieldset legend,
-#new fieldset legend,
-#login fieldset legend {
-    padding: 0 2ex;
+#reply, #register, #new, #login {
+    max-width: 60ex;
 }
 #reply textarea,
 #new textarea {
@@ -501,6 +501,11 @@ summary:focus {
 #reply label,
 #new label,
 #login label {}
+#register form button,
+#login form button
+{
+    margin-top: .2em;
+}
 .meta-items {
     display: inline-block;
     text-align: center;
