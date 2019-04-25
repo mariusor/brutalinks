@@ -111,48 +111,48 @@ func (l *logger) WithContext(ctx ...interface{}) Logger {
 	return l
 }
 
-func (l logger) Debug(msg string) {
+func (l *logger) Debug(msg string) {
 	l.l.WithFields(l.context()).Debug(msg)
 	l.ctx = nil
 }
 
-func (l logger) Debugf(msg string, p ...interface{}) {
+func (l *logger) Debugf(msg string, p ...interface{}) {
 	l.l.WithFields(l.context()).Debug(fmt.Sprintf(msg, p...))
 	l.ctx = nil
 }
 
-func (l logger) Info(msg string) {
+func (l *logger) Info(msg string) {
 	l.l.WithFields(l.context()).Info(msg)
 	l.ctx = nil
 }
 
-func (l logger) Infof(msg string, p ...interface{}) {
+func (l *logger) Infof(msg string, p ...interface{}) {
 	l.ctx = nil
 	l.l.WithFields(l.context()).Info(fmt.Sprintf(msg, p...))
 	l.ctx = nil
 }
 
-func (l logger) Warn(msg string) {
+func (l *logger) Warn(msg string) {
 	l.l.WithFields(l.context()).Warn(msg)
 	l.ctx = nil
 }
 
-func (l logger) Warnf(msg string, p ...interface{}) {
+func (l *logger) Warnf(msg string, p ...interface{}) {
 	l.l.WithFields(l.context()).Warn(fmt.Sprintf(msg, p...))
 	l.ctx = nil
 }
 
-func (l logger) Error(msg string) {
+func (l *logger) Error(msg string) {
 	l.l.WithFields(l.context()).Error(msg)
 	l.ctx = nil
 }
 
-func (l logger) Errorf(msg string, p ...interface{}) {
+func (l *logger) Errorf(msg string, p ...interface{}) {
 	l.l.WithFields(l.context()).Error(fmt.Sprintf(msg, p...))
 	l.ctx = nil
 }
 
-func (l logger) Crit(msg string) {
+func (l *logger) Crit(msg string) {
 	l.l.WithFields(l.context()).Fatal(msg)
 	l.ctx = nil
 }
@@ -162,7 +162,7 @@ func (l logger) Critf(msg string, p ...interface{}) {
 	l.ctx = nil
 }
 
-func (l logger) Print(i ...interface{}) {
+func (l *logger) Print(i ...interface{}) {
 	if i == nil || len(i) != 1 {
 		return
 	}
@@ -171,10 +171,14 @@ func (l logger) Print(i ...interface{}) {
 
 type log struct {
 	c Ctx
+	m sync.RWMutex
 	l *logger
 }
 
-func (l log) Write(status, bytes int, elapsed time.Duration) {
+func (l *log) Write(status, bytes int, elapsed time.Duration) {
+	l.m.Lock()
+	defer l.m.Unlock()
+
 	l.c["duration"] = elapsed
 	l.c["length"] = bytes
 	l.c["status"] = status
@@ -186,14 +190,14 @@ func (l log) Write(status, bytes int, elapsed time.Duration) {
 	}
 }
 
-func (l log) Panic(v interface{}, stack []byte) {
+func (l *log) Panic(v interface{}, stack []byte) {
 	l.c["stack"] = stack
 	l.c["v"] = v
 
 	l.l.WithContext(l.c).Crit("")
 }
 
-func (l logger) NewLogEntry(r *http.Request) middleware.LogEntry {
+func (l *logger) NewLogEntry(r *http.Request) middleware.LogEntry {
 	ll := log{
 		c: Ctx{
 			"met":   r.Method,
@@ -202,14 +206,16 @@ func (l logger) NewLogEntry(r *http.Request) middleware.LogEntry {
 			"proto": r.Proto,
 			"https": false,
 		},
-		l: &l,
+		l: l,
 	}
 	reqID := middleware.GetReqID(r.Context())
+	l.m.Lock()
+	defer l.m.Unlock()
 	if reqID != "" {
 		ll.c["id"] = reqID
 	}
 	if r.TLS != nil {
 		ll.c["https"] = true
 	}
-	return ll
+	return &ll
 }
