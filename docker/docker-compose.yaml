@@ -111,5 +111,3 @@ services:
         HOSTNAME: ${HOSTNAME}
         PORT: ${PORT}
     command: app -host ${HOSTNAME} -port 3000 -env ${ENV}
-    ports:
-      - 3000:3000
