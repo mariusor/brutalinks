@@ -6,6 +6,7 @@ import (
 	"encoding/gob"
 	"fmt"
 	"github.com/gorilla/csrf"
+	"github.com/openshift/osin"
 	"html/template"
 	"math"
 	"net/http"
@@ -40,6 +41,7 @@ type handler struct {
 	sstor   sessions.Store
 	account app.Account
 	logger  log.Logger
+	os      *osin.Server
 }
 
 var defaultAccount = app.AnonymousAccount
@@ -179,6 +181,7 @@ type Config struct {
 	SessionKeys     [][]byte
 	SessionsBackend string
 	Logger          log.Logger
+	OAuthServer     *osin.Server
 }
 
 func Init(c Config) (handler, error) {
@@ -202,6 +205,7 @@ func Init(c Config) (handler, error) {
 	c.SessionKeys = loadEnvSessionKeys()
 	h.sstor, err = InitSessionStore(c)
 	h.conf = c
+	h.os = c.OAuthServer
 	return h, err
 }
 
@@ -379,7 +383,7 @@ func (h *handler) saveSession(w http.ResponseWriter, r *http.Request) error {
 		return errors.Errorf("failed to load session before redirect: %s", err)
 	}
 	if err := h.sstor.Save(r, w, s); err != nil {
-		err :=errors.Errorf("failed to save session before redirect: %s", err)
+		err := errors.Errorf("failed to save session before redirect: %s", err)
 		h.logger.Errorf("%s", err)
 		return err
 	}
@@ -711,7 +715,7 @@ func loadCurrentAccountFromSession(s *sessions.Session, l log.Logger) app.Accoun
 	return defaultAccount
 }
 
-func loadFlashMessages(r *http.Request, w http.ResponseWriter, s *sessions.Session) func() []flash  {
+func loadFlashMessages(r *http.Request, w http.ResponseWriter, s *sessions.Session) func() []flash {
 	flashData := make([]flash, 0)
 	flashes := s.Flashes()
 	// setting the local flashData value

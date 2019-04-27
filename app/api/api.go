@@ -7,7 +7,6 @@ import (
 	"encoding/pem"
 	"fmt"
 	"github.com/go-ap/activitypub/client"
-	"github.com/mariusor/littr.go/app/oauth"
 	"github.com/openshift/osin"
 	"net/http"
 	"net/url"
@@ -34,7 +33,7 @@ type InternalError struct {
 }
 
 type UserError struct {
-	ID as.IRI
+	ID  as.IRI
 	msg string
 }
 
@@ -46,11 +45,13 @@ type handler struct {
 	acc    *app.Account
 	repo   *repository
 	logger log.Logger
+	os     *osin.Server
 }
 
 type Config struct {
-	Logger  log.Logger
-	BaseURL string
+	Logger      log.Logger
+	BaseURL     string
+	OAuthServer *osin.Server
 }
 
 func Init(c Config) handler {
@@ -62,6 +63,7 @@ func Init(c Config) handler {
 		logger: c.Logger,
 	}
 	h.repo = New(c)
+	h.os = c.OAuthServer
 	return h
 }
 
@@ -447,7 +449,7 @@ func httpSignatureVerifier(getter *keyLoader) (*httpsig.Verifier, string) {
 func (h *handler) loadAccountFromAuthHeader(w http.ResponseWriter, r *http.Request) (app.Account, error) {
 	var acct = app.AnonymousAccount
 
-	if auth := r.Header.Get("Authorization");  auth != "" {
+	if auth := r.Header.Get("Authorization"); auth != "" {
 		var err error
 		var challenge string
 		method := "none"
@@ -455,13 +457,7 @@ func (h *handler) loadAccountFromAuthHeader(w http.ResponseWriter, r *http.Reque
 			// check OAuth2 bearer if present
 			method = "oauth2"
 			// TODO(marius): move this to a better place but outside the handler
-			s, _ := oauth.NewOAuth(
-				app.Instance.Config.DB.Host,
-				app.Instance.Config.DB.User,
-				app.Instance.Config.DB.Pw,
-				app.Instance.Config.DB.Name,
-				h.logger,
-			)
+			s := h.os
 			v := oauthLoader{acc: acct, s: s}
 			v.logFn = h.logger.WithContext(log.Ctx{"from": method}).Debugf
 			err, challenge = v.Verify(r)
@@ -480,7 +476,7 @@ func (h *handler) loadAccountFromAuthHeader(w http.ResponseWriter, r *http.Reque
 				acct = getter.acc
 			}
 		}
-		if  err != nil {
+		if err != nil {
 			if challenge != "" {
 				w.Header().Add("WWW-Authenticate", challenge)
 			}
@@ -498,7 +494,7 @@ func (h *handler) loadAccountFromAuthHeader(w http.ResponseWriter, r *http.Reque
 		} else {
 			// TODO(marius): Add actor's host to the logging
 			h.logger.WithContext(log.Ctx{
-				"auth": method,
+				"auth":   method,
 				"handle": acct.Handle,
 				"hash":   acct.Hash,
 			}).Debug("loaded account from Authorization header")
@@ -536,7 +532,7 @@ func LocalAccount(a *app.Account) error {
 	return nil
 }
 
-type verifFn func (fns ...acctVerifierFn) app.Handler
+type verifFn func(fns ...acctVerifierFn) app.Handler
 
 func (h handler) VerifyMultiple(fns ...verifFn) app.Handler {
 	return func(next http.Handler) http.Handler {

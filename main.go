@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"flag"
 	"github.com/mariusor/littr.go/app/db"
+	"github.com/mariusor/littr.go/app/oauth"
 	"github.com/writeas/go-nodeinfo"
 	"net/http"
 	"time"
@@ -42,20 +43,30 @@ func main() {
 	db.Init(&app.Instance)
 	defer db.Config.DB.Close()
 
+	os, err := oauth.NewOAuth(
+		db.Config.DB,
+		app.Instance.Logger.New(log.Ctx{"package": "oauth"}),
+	)
+	if err != nil {
+		app.Instance.Logger.Warn(err.Error())
+	}
+
 	front, err := frontend.Init(frontend.Config{
-		Env:      e,
-		Logger:   app.Instance.Logger.New(log.Ctx{"package": "frontend"}),
-		Secure:   app.Instance.Secure,
-		BaseURL:  app.Instance.BaseURL,
-		HostName: app.Instance.HostName,
+		Env:         e,
+		Logger:      app.Instance.Logger.New(log.Ctx{"package": "frontend"}),
+		Secure:      app.Instance.Secure,
+		BaseURL:     app.Instance.BaseURL,
+		HostName:    app.Instance.HostName,
+		OAuthServer: os,
 	})
 	if err != nil {
 		app.Instance.Logger.Warn(err.Error())
 	}
 
 	a := api.Init(api.Config{
-		Logger:  app.Instance.Logger.New(log.Ctx{"package": "api"}),
-		BaseURL: app.Instance.APIURL,
+		Logger:      app.Instance.Logger.New(log.Ctx{"package": "api"}),
+		BaseURL:     app.Instance.APIURL,
+		OAuthServer: os,
 	})
 	//processing.InitQueues(&app.Instance)
 	//processing.Logger = app.Instance.Logger.Dev(log.Ctx{"package": "processing"})
