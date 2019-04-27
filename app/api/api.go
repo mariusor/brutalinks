@@ -350,7 +350,7 @@ func (k *oauthLoader) Verify(r *http.Request) (error, string) {
 	if err != nil {
 		return err, ""
 	}
-	if b, ok := dat.UserData.(string); ok {
+	if b, ok := dat.UserData.(json.RawMessage); ok {
 		if err := json.Unmarshal([]byte(b), &k.acc); err != nil {
 			return err, ""
 		}
