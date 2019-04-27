@@ -5,7 +5,6 @@ import (
 	"crypto"
 	"crypto/rsa"
 	"crypto/x509"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	as "github.com/go-ap/activitystreams"
@@ -93,10 +92,10 @@ type objectVal struct {
 }
 
 var (
-	apiURL = os.Getenv("API_URL")
-	host   = os.Getenv("HOSTNAME")
-	o      *pg.Options
-	r      *pg.Options
+	apiURL    = os.Getenv("API_URL")
+	host      = os.Getenv("HOSTNAME")
+	o         *pg.Options
+	r         *pg.Options
 )
 
 const testActorHash = "f00f00f00f00f00f00f00f00f00f6667"
@@ -145,9 +144,11 @@ func runAPP(lvl log.Level) {
 	db.Init(&app.Instance)
 	defer db.Config.DB.Close()
 
+	oauth2, _ := osinServer(db.Config.DB)
 	a := api.Init(api.Config{
 		Logger:  app.Instance.Logger.New(log.Ctx{"package": "api"}),
 		BaseURL: app.Instance.APIURL,
+		OAuthServer: oauth2,
 	})
 
 	db.Logger = app.Instance.Logger.New(log.Ctx{"package": "db"})
@@ -435,16 +436,7 @@ func errOnGetRequest(t *testing.T) requestGetAssertFn {
 
 var signHdrs = []string{"(request-target)", "host", "date"}
 
-func osinServer() (*osin.Server, error) {
-	parts := strings.Split(o.Addr, ":")
-	pg := fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable", parts[0], o.User, o.Password, o.Database)
-	db, err := sql.Open("postgres", pg)
-	db.SetMaxIdleConns(3)
-	db.SetMaxOpenConns(5)
-	if err != nil {
-		return nil, err
-	}
-
+func osinServer(db *pg.DB) (*osin.Server, error) {
 	config := osin.ServerConfig{
 		AuthorizationExpiration:   86400,
 		AccessExpiration:          2678400,
@@ -533,11 +525,7 @@ func errOnRequest(t *testing.T) func(testPair) map[string]interface{} {
 	assertGetRequest := errOnGetRequest(t)
 	assertObjectProperties := errOnObjectProperties(t)
 
-	oauthServ, err := osinServer()
-	if err != nil {
-		t.Errorf("%s", err)
-	}
-
+	oauthServ, _ := osinServer(db.Config.DB)
 	return func(test testPair) map[string]interface{} {
 		if len(test.req.headers) == 0 {
 			test.req.headers = make(http.Header, 0)
