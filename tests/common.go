@@ -184,7 +184,7 @@ func resetDB(t *testing.T, testData bool) {
 	if err := cmd.CleanDB(o); err != nil {
 		t.Log(err)
 	}
-	if err := cmd.SeedDB(o, host); err != nil {
+	if err := cmd.SeedDB(o, host, ""); err != nil {
 		t.Fatal(err)
 	}
 	if testData {

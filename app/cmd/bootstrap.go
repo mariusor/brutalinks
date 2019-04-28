@@ -178,7 +178,7 @@ func SeedTestData(o *pg.Options, seed map[string][][]interface{}) []error {
 	return errs
 }
 
-func SeedDB(o *pg.Options, hostname string) error {
+func SeedDB(o *pg.Options, hostname string, oauthURL string) error {
 	db, err := dbConnection(o)
 	if err != nil {
 		return errors.Annotatef(err, "unable to connect to DB")
@@ -190,7 +190,10 @@ func SeedDB(o *pg.Options, hostname string) error {
 	if https {
 		scheme = "https"
 	}
-	url := fmt.Sprintf("%s://%s", scheme, hostname)
+	url := fmt.Sprintf("%s://%s/auth/local/callback", scheme, hostname)
+	if oauthURL != "" {
+		url = oauthURL
+	}
 	oauth2Key := os.Getenv("OAUTH2_KEY")
 	if oauth2Key == "" {
 		oauth2Key = fmt.Sprintf("%2x", meow.Checksum(app.RandomSeedSelectedByDiceRoll, []byte(url)))
@@ -286,7 +289,7 @@ func SeedDB(o *pg.Options, hostname string) error {
 				// extra
 				interface{}(nil),
 				// redirect_uri
-				interface{}(fmt.Sprintf("%s/auth/local/callback", url)), // this should point to a frontend uri that can handle oauth
+				interface{}(url), // this should point to a frontend uri that can handle oauth
 			},
 		},
 	}

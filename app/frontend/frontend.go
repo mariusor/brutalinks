@@ -650,7 +650,11 @@ func GetOauth2Config(provider string, localBaseURL string) oauth2.Config {
 	default:
 		config = oauth2.Config{}
 	}
-	config.RedirectURL = fmt.Sprintf("%s/auth/%s/callback", localBaseURL, provider)
+	url := os.Getenv("OAUTH2_URL")
+	if url == "" {
+		url = fmt.Sprintf("%s/auth/%s/callback", localBaseURL, provider)
+	}
+	config.RedirectURL = url
 	return config
 }
 

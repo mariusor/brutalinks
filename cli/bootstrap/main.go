@@ -57,6 +57,7 @@ func main() {
 	}
 	dbRootName := "postgres"
 	hostname := os.Getenv("HOSTNAME")
+	oauthURL := os.Getenv("OAUTH2_URL")
 
 	o := cmd.PGConfigFromENV()
 	r := &pg.Options{
@@ -69,7 +70,7 @@ func main() {
 	cmd.E(cmd.CreateDatabase(o, r))
 	cmd.E(cmd.BootstrapDB(o))
 	if seed {
-		cmd.SeedDB(o, hostname)
+		cmd.SeedDB(o, hostname, oauthURL)
 	}
 	if testing {
 		var data = map[string][][]interface{}{
