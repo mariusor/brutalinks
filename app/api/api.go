@@ -13,7 +13,6 @@ import (
 	"path"
 	"strings"
 
-	juju "github.com/juju/errors"
 	"github.com/mariusor/littr.go/app"
 	ap "github.com/mariusor/littr.go/app/activitypub"
 	"github.com/mariusor/littr.go/internal/errors"
@@ -183,107 +182,6 @@ func getObjectType(el as.Item) string {
 	return label
 }
 
-func httpErrorResponse(e error) int {
-	if errors.IsBadRequest(e) {
-		return http.StatusBadRequest
-	}
-	if errors.IsForbidden(e) {
-		return http.StatusForbidden
-	}
-	if errors.IsNotSupported(e) {
-		return http.StatusHTTPVersionNotSupported
-	}
-	if errors.IsMethodNotAllowed(e) {
-		return http.StatusMethodNotAllowed
-	}
-	if errors.IsNotFound(e) {
-		return http.StatusNotFound
-	}
-	if errors.IsNotImplemented(e) {
-		return http.StatusNotImplemented
-	}
-	if errors.IsUnauthorized(e) {
-		return http.StatusUnauthorized
-	}
-	if errors.IsTimeout(e) {
-		return http.StatusGatewayTimeout
-	}
-	if errors.IsNotValid(e) {
-		return http.StatusNotAcceptable
-	}
-	if errors.IsMethodNotAllowed(e) {
-		return http.StatusMethodNotAllowed
-	}
-	return http.StatusInternalServerError
-}
-
-type e struct {
-	Code     int      `json:"authCode,omitempty"`
-	Message  string   `json:"message"`
-	Trace    []string `json:"trace,omitempty"`
-	Location string   `json:"location,omitempty"`
-}
-
-func httpError(err error) e {
-	var msg string
-	var loc string
-	var trace []string
-
-	if errors.IsBadRequest(err) {
-		err = juju.Cause(err)
-	}
-	if errors.IsForbidden(err) {
-		err = juju.Cause(err)
-	}
-	if errors.IsNotSupported(err) {
-		err = juju.Cause(err)
-	}
-	if errors.IsMethodNotAllowed(err) {
-		err = juju.Cause(err)
-	}
-	if errors.IsNotFound(err) {
-		err = juju.Cause(err)
-	}
-	if errors.IsNotImplemented(err) {
-		err = juju.Cause(err)
-	}
-	if errors.IsUnauthorized(err) {
-		err = juju.Cause(err)
-	}
-	if errors.IsTimeout(err) {
-		err = juju.Cause(err)
-	}
-	if errors.IsNotValid(err) {
-		err = juju.Cause(err)
-	}
-	if errors.IsMethodNotAllowed(err) {
-		err = juju.Cause(err)
-	}
-	switch e := juju.Cause(err).(type) {
-	case *json.UnmarshalTypeError:
-		msg = fmt.Sprintf("%T: Value[%s] Type[%v]\n", e, e.Value, e.Type)
-	case *json.InvalidUnmarshalError:
-		msg = fmt.Sprintf("%T: Type[%v]\n", e, e.Type)
-	case *juju.Err:
-		msg = fmt.Sprintf("%s", e.Error())
-		if app.Instance.Config.Env == app.DEV {
-			trace = e.StackTrace()
-			f, l := e.Location()
-			if len(f) > 0 {
-				loc = fmt.Sprintf("%s:%d", f, l)
-			}
-		}
-	default:
-		msg = e.Error()
-	}
-	return e{
-		Message:  msg,
-		Trace:    trace,
-		Location: loc,
-		Code:     httpErrorResponse(err),
-	}
-}
-
 func (h handler) HandleError(w http.ResponseWriter, r *http.Request, errs ...error) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store, must-revalidate")
@@ -291,18 +189,18 @@ func (h handler) HandleError(w http.ResponseWriter, r *http.Request, errs ...err
 	w.Header().Set("Expires", "0")
 
 	type eresp struct {
-		Status int `json:"status,omitempty"`
-		Errors []e `json:"errors"`
+		Status int           `json:"status,omitempty"`
+		Errors []errors.Http `json:"errors"`
 	}
 	res := eresp{
-		Errors: []e{},
+		Errors: []errors.Http{},
 	}
 
 	for _, err := range errs {
 		if err == nil {
 			continue
 		}
-		e := httpError(err)
+		e := errors.HttpError(err)
 		if res.Status < e.Code {
 			res.Status = e.Code
 		}
