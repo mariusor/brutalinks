@@ -193,7 +193,8 @@ func loadEnv(l *Application) (bool, error) {
 	var err error
 
 	if !validEnv(l.Config.Env) {
-		l.Config.Env = EnvType(strings.ToLower(os.Getenv("ENV")))
+		env := os.Getenv("ENV")
+		l.Config.Env = EnvType(strings.ToLower(env))
 	}
 	if !validEnv(l.Config.Env) {
 		l.Config.Env = DEV
@@ -209,13 +210,14 @@ func loadEnv(l *Application) (bool, error) {
 		l.Config.LogLevel = log.TraceLevel
 	case "debug":
 		l.Config.LogLevel = log.DebugLevel
-	default: fallthrough
-	case "info":
-		l.Config.LogLevel = log.InfoLevel
 	case "warn":
 		l.Config.LogLevel = log.WarnLevel
 	case "error":
 		l.Config.LogLevel = log.ErrorLevel
+	case "info":
+		fallthrough
+	default:
+		l.Config.LogLevel = log.InfoLevel
 	}
 	if l.Config.Env == PROD {
 		l.Logger = log.Prod()
