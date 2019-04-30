@@ -123,11 +123,11 @@ func Errorf(s string, args ...interface{}) error {
 }
 
 func NotFoundf(s string, args ...interface{}) error {
-	return &notFound{wrap(nil, s, args...)}
+	return &notFound{wrap(nil, "not found "+s, args...)}
 }
 
 func NewNotFound(e error, s string, args ...interface{}) error {
-	return &notFound{wrap(e, s, args...)}
+	return &notFound{wrap(e, "not found "+s, args...)}
 }
 
 func MethodNotAllowedf(s string, args ...interface{}) error {
@@ -143,11 +143,11 @@ func NotValidf(s string, args ...interface{}) error {
 }
 
 func NewNotValid(e error, s string, args ...interface{}) error {
-	return &notValid{wrap(e, s, args...)}
+	return &notValid{wrap(e, "forbidden "+s, args...)}
 }
 
 func Forbiddenf(s string, args ...interface{}) error {
-	return &forbidden{wrap(nil, s, args...)}
+	return &forbidden{wrap(nil, "forbidden "+s, args...)}
 }
 
 func NewForbidden(e error, s string, args ...interface{}) error {
