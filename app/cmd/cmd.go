@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"github.com/go-pg/pg"
-	"github.com/juju/errors"
+	"github.com/mariusor/littr.go/internal/errors"
 	"github.com/mariusor/littr.go/internal/log"
 	"os"
 	"reflect"
@@ -27,7 +27,7 @@ func E(errs ...error) bool {
 		var msg string
 		switch err := e.(type) {
 		case *errors.Err:
-			if IsNil(err.Underlying()) {
+			if IsNil(err.Unwrap()) {
 				continue
 			}
 			f, l := err.Location()

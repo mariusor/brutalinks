@@ -41,7 +41,7 @@ func waitForDb(db *sql.DB, d time.Duration) (*sql.DB, error) {
 				return db, err
 			}
 			if time.Since(st) > d {
-				return db, errors.NotFoundf("No response for %d s, giving up.", d.Seconds())
+				return db, errors.NotFoundf("No response for %.2f s, giving up.", d.Seconds())
 			}
 		}
 		return db, nil

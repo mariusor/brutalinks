@@ -234,7 +234,7 @@ func (h *handler) HandleTags(w http.ResponseWriter, r *http.Request) {
 		Page:     1,
 	}
 	if len(tag) == 0 {
-		h.HandleErrors(w, r, errors.BadRequestf("missing tag", tag))
+		h.HandleErrors(w, r, errors.BadRequestf("missing tag"))
 	}
 	filter.Content = "#" + tag
 	filter.ContentMatchType = app.MatchFuzzy

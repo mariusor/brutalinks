@@ -3,66 +3,52 @@ package errors
 import (
 	"encoding/json"
 	"fmt"
-	juju "github.com/juju/errors"
+	"golang.org/x/xerrors"
 	"net/http"
 )
 
+var IncludeBacktrace = true
+
 type Http struct {
-	Code     int      `json:"authCode,omitempty"`
-	Message  string   `json:"message"`
-	Trace    []string `json:"trace,omitempty"`
-	Location string   `json:"location,omitempty"`
+	Code     int    `json:"authCode,omitempty"`
+	Message  string `json:"message"`
+	Trace    *Stack `json:"trace,omitempty"`
+	Location string `json:"location,omitempty"`
 }
 
 func HttpError(err error) Http {
 	var msg string
 	var loc string
-	var trace []string
+	var trace *Stack
 
-	if IsBadRequest(err) {
-		err = juju.Cause(err)
-	}
-	if IsForbidden(err) {
-		err = juju.Cause(err)
-	}
-	if IsNotSupported(err) {
-		err = juju.Cause(err)
-	}
-	if IsMethodNotAllowed(err) {
-		err = juju.Cause(err)
-	}
-	if IsNotFound(err) {
-		err = juju.Cause(err)
-	}
-	if IsNotImplemented(err) {
-		err = juju.Cause(err)
-	}
-	if IsUnauthorized(err) {
-		err = juju.Cause(err)
-	}
-	if IsTimeout(err) {
-		err = juju.Cause(err)
-	}
-	if IsNotValid(err) {
-		err = juju.Cause(err)
-	}
-	if IsMethodNotAllowed(err) {
-		err = juju.Cause(err)
-	}
-	switch e := juju.Cause(err).(type) {
+	switch e := err.(type) {
 	case *json.UnmarshalTypeError:
 		msg = fmt.Sprintf("%T: Value[%s] Type[%v]\n", e, e.Value, e.Type)
 	case *json.InvalidUnmarshalError:
 		msg = fmt.Sprintf("%T: Type[%v]\n", e, e.Type)
-	case *juju.Err:
+	case *Err:
 		msg = fmt.Sprintf("%s", e.Error())
-		trace = e.StackTrace()
-		f, l := e.Location()
-		if len(f) > 0 {
-			loc = fmt.Sprintf("%s:%d", f, l)
+		if IncludeBacktrace {
+			trace, _ = parseStack(e.t)
+			f := e.f
+			l := e.l
+			if len(f) > 0 {
+				loc = fmt.Sprintf("%s:%d", f, l)
+			}
 		}
 	default:
-		msg = e.Error()
+		local := Err{}
+		if ok := xerrors.As(err, &local); ok {
+			if IncludeBacktrace {
+				trace, _ = parseStack(local.t)
+				f := local.f
+				l := local.l
+				if len(f) > 0 {
+					loc = fmt.Sprintf("%s:%d", f, l)
+				}
+			}
+		}
+		msg = err.Error()
 	}
 	return Http{
 		Message:  msg,
@@ -71,7 +57,6 @@ func HttpError(err error) Http {
 		Code:     httpErrorResponse(err),
 	}
 }
-
 
 func httpErrorResponse(e error) int {
 	if IsBadRequest(e) {
