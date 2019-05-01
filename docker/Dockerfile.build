@@ -5,10 +5,12 @@ ARG PWD
 
 ENV GO111MODULE=on
 
-#MNT $(PWD):/go/src/app
+#VOLUME /go/src/app
 
 WORKDIR /go/src/app
 COPY ./ ./
 
 RUN go mod download || true
 RUN make all
+
+#CMD ["/bin/bash"]
