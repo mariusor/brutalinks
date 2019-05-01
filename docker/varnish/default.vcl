@@ -2,7 +2,7 @@ vcl 4.0;
 import std;
 backend default {
     .host = "app";
-    .port = "3000";
+    .port = "3003";
 }
 
 # ACL for IPs that are allowed to PURGE data from the cache
