@@ -11,8 +11,7 @@ cert: $(HOSTNAME).pem
 
 .PHONY: imagebuilder
 imagebuilder:
-	docker build -t $(HOSTNAME)/builder:$(ENV)  .. -f Dockerfile.build
-#	docker run -v $(PWD):/go/src/app $(HOSTNAME)/builder:$(ENV) "make all"
+	docker build --force-rm -t $(HOSTNAME)/builder:$(ENV)  .. -f Dockerfile.build
 
 images: imagebuilder
 	docker-compose up --build
