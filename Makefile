@@ -50,7 +50,7 @@ fetcher: bin/fetcher
 bin/fetcher: go.mod cli/fetcher/main.go $(APPSOURCES)
 	$(BUILD) -tags $(ENV) -o $@ cli/fetcher/main.go
 
-cli: bootstrap votes keys poach fetcher
+cli: bootstrap votes keys
 
 run: app
 	@./bin/app
@@ -59,9 +59,6 @@ clean:
 	-$(RM) bin/*
 	$(MAKE) -C docker $@
 	$(MAKE) -C tests $@
-
-cert:
-	$(MAKE) -C docker $@
 
 images:
 	$(MAKE) -C docker $@
