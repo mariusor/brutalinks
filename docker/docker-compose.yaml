@@ -38,7 +38,6 @@ services:
         HOSTNAME: ${HOSTNAME}
     ports:
       - 80:80
-      - 6081:6081
     links:
     - app
     depends_on:

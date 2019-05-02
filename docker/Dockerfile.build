@@ -4,6 +4,7 @@ ARG ENV
 ARG PWD
 
 ENV GO111MODULE=on
+ENV ENV=${ENV:-dev}
 
 #VOLUME /go/src/app
 
