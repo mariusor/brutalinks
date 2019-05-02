@@ -23,6 +23,7 @@ func TestMain(m *testing.M) {
 		godotenv.Overload(f)
 	}
 
+	cmd.Logger = log.Dev(log.WarnLevel)
 	createDB()
 	defer func() {
 		if clean {
