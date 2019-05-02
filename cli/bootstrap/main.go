@@ -35,10 +35,8 @@ func getTestAccount(hostname string) []interface{} {
 }
 
 func main() {
-	var dbRootUser string
-	var dbHost string
-	var seed bool
-	var testing bool
+	var dbRootUser, dbHost string
+	var seed, testing, overwrite bool
 
 	cmd.Logger = log.Dev(log.TraceLevel)
 
@@ -46,6 +44,7 @@ func main() {
 	flag.StringVar(&dbHost, "host", "", "the db host")
 	flag.BoolVar(&seed, "seed", false, "seed database with data")
 	flag.BoolVar(&testing, "testing", false, "seed database with testing data")
+	flag.BoolVar(&overwrite, "overwrite", false, "destroy database if exists and recreate")
 	flag.Parse()
 
 	dbRootPw := os.Getenv("POSTGRES_PASSWORD")
@@ -67,7 +66,14 @@ func main() {
 		Addr:     dbHost + ":5432",
 	}
 
-	cmd.E(cmd.CreateDatabase(o, r))
+	checkDb := cmd.CreateDatabase(o, r, overwrite)
+	if checkDb == cmd.ErrDbExists {
+		cmd.Logger.Warnf("WTF: %s\n", checkDb)
+		if !overwrite {
+			cmd.Logger.Infof("Exiting\n")
+			return
+		}
+	}
 	cmd.E(cmd.BootstrapDB(o))
 	if seed {
 		cmd.SeedDB(o, hostname, oauthURL)

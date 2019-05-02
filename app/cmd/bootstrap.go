@@ -19,23 +19,12 @@ import (
 )
 
 func waitForDb(db *sql.DB, d time.Duration) (*sql.DB, error) {
-	cnt := 0
 	st := time.Now()
 	for {
 		if err := db.Ping(); err == nil {
-			//if cnt > 0 {
-			//	fmt.Printf("\n")
-			//}
 			return db, nil
 		} else {
 			if _, ok := err.(*net.OpError); ok {
-				cnt++
-				//if cnt%10 == 0 {
-				//	fmt.Printf(".")
-				//}
-				//if cnt%720 == 0 {
-				//	fmt.Printf("\n")
-				//}
 				time.Sleep(100 * time.Millisecond)
 			} else {
 				return db, err
@@ -50,7 +39,7 @@ func waitForDb(db *sql.DB, d time.Duration) (*sql.DB, error) {
 }
 
 func dbConnection(o *pg.Options) (*sql.DB, error) {
-	//fmt.Printf("Connecting to %s@%s//%s\n", o.User, o.Addr, o.Database)
+	Logger.Debugf("Connecting to %s@%s//%s\n", o.User, o.Addr, o.Database)
 	if o.User == "" && o.Password == "" {
 		return nil, errors.Forbiddenf("missing user and/or pw")
 	}
@@ -76,10 +65,10 @@ func dbConnection(o *pg.Options) (*sql.DB, error) {
 	}
 	connStr := fmt.Sprintf("host=%s%s user=%s%s dbname=%s sslmode=disable", host, port, o.User, pw, o.Database)
 	db, err := sql.Open("postgres", connStr)
-	if err == nil {
-		return waitForDb(db, time.Second*30)
+	if err != nil {
+		return nil, err
 	}
-	return nil, err
+	return waitForDb(db, time.Second*30)
 }
 
 func DestroyDB(r *pg.Options, dbUser, dbName string) []error {
@@ -298,13 +287,23 @@ func SeedDB(o *pg.Options, hostname string, oauthURL string) error {
 	return nil
 }
 
-func CreateDatabase(o *pg.Options, r *pg.Options) error {
+var ErrDbExists = errors.Errorf("database exists")
+
+func CreateDatabase(o *pg.Options, r *pg.Options, overwrite bool) error {
 	{
 		rootDB, err := dbConnection(r)
 		if err != nil {
 			return errors.Annotate(err, "connection failed")
 		}
 		defer rootDB.Close()
+		if !overwrite {
+			// try to see if db exists
+			db, err := dbConnection(o)
+			defer db.Close()
+			if err == nil {
+				return ErrDbExists
+			}
+		}
 		// create new role and db with root user in root database
 		dot, err := dotsql.LoadFromFile("./db/create_role.sql")
 		if err != nil {

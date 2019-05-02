@@ -170,7 +170,7 @@ func createDB() {
 		Database: dbRootName,
 		Addr:     o.Addr,
 	}
-	if err := cmd.CreateDatabase(o, r); err != nil {
+	if err := cmd.CreateDatabase(o, r, true); err != nil {
 		panic(err)
 	}
 	if err := cmd.BootstrapDB(o); err != nil {
