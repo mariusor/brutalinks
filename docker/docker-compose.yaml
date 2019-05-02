@@ -4,11 +4,10 @@ services:
     env_file: ./.env
     image: postgres:10-alpine
     volumes:
-    - /tmp/postgres:/var/lib/postgresql/data
+    - /var/lib/postgresql/data
     environment:
       POSTGRES_USER: postgres
       POSTGRES_DATABASE: postgres
-### Uncomment to enable DB persistence
     command: postgres -c log_connections=on -c logging_collector=on -c log_destination=stderr
 #  redis:
 #    restart: always
