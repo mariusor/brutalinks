@@ -22,7 +22,7 @@ endif
 BUILD := $(GO) build $(BUILDFLAGS)
 TEST := $(GO) test $(BUILDFLAGS)
 
-.PHONY: all cli run clean cert images test
+.PHONY: all cli run clean images test
 
 all: app cli
 
