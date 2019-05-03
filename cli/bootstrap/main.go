@@ -68,9 +68,9 @@ func main() {
 
 	checkDb := cmd.CreateDatabase(o, r, overwrite)
 	if checkDb == cmd.ErrDbExists {
-		cmd.Logger.Warnf("WTF: %s\n", checkDb)
+		cmd.Logger.Warnf("WTF: %s", checkDb)
 		if !overwrite {
-			cmd.Logger.Infof("Exiting\n")
+			cmd.Logger.Infof("Exiting")
 			return
 		}
 	}

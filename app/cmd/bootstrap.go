@@ -39,7 +39,7 @@ func waitForDb(db *sql.DB, d time.Duration) (*sql.DB, error) {
 }
 
 func dbConnection(o *pg.Options) (*sql.DB, error) {
-	Logger.Debugf("Connecting to %s@%s//%s\n", o.User, o.Addr, o.Database)
+	Logger.Debugf("Connecting to %s@%s//%s", o.User, o.Addr, o.Database)
 	if o.User == "" && o.Password == "" {
 		return nil, errors.Forbiddenf("missing user and/or pw")
 	}
@@ -79,7 +79,7 @@ func DestroyDB(r *pg.Options, dbUser, dbName string) []error {
 	defer rootDB.Close()
 
 	var errs = make([]error, 0)
-	revOnDb :=fmt.Sprintf( "REVOKE CONNECT ON DATABASE %s FROM public;", dbName)
+	revOnDb := fmt.Sprintf("REVOKE CONNECT ON DATABASE %s FROM public;", dbName)
 	if _, err = rootDB.Exec(revOnDb); err != nil {
 		errs = append(errs, errors.Annotatef(err, "query: %s", revOnDb))
 	}
@@ -91,11 +91,11 @@ func DestroyDB(r *pg.Options, dbUser, dbName string) []error {
 	//if _, err = rootDB.Exec(disconnect); err != nil {
 	//	errs = append(errs, errors.Annotatef(err, "query: %s", disconnect))
 	//}
-	dropOwned :=fmt.Sprintf( "DROP OWNED BY %s CASCADE;", dbUser)  // needs to change db
+	dropOwned := fmt.Sprintf("DROP OWNED BY %s CASCADE;", dbUser) // needs to change db
 	if _, err = rootDB.Exec(dropOwned); err != nil {
 		errs = append(errs, errors.Annotatef(err, "query: %s", dropOwned))
 	}
-	dropDb := fmt.Sprintf( "DROP DATABASE IF EXISTS %s;", dbName)
+	dropDb := fmt.Sprintf("DROP DATABASE IF EXISTS %s;", dbName)
 	if _, err = rootDB.Exec(dropDb); err != nil {
 		errs = append(errs, errors.Annotatef(err, "query: %s", dropDb))
 	} else {
@@ -143,7 +143,7 @@ func SeedTestData(o *pg.Options, seed map[string][][]interface{}) []error {
 	}
 	defer db.Close()
 
-	keys := make([]string,0)
+	keys := make([]string, 0)
 	for l := range seed {
 		keys = append(keys, l)
 	}
@@ -191,7 +191,7 @@ func SeedDB(o *pg.Options, hostname string, oauthURL string) error {
 	if oauth2Secret == "" {
 		oauth2Secret = "yuh4ckm3?!"
 	}
-	data :=  map[string][][]interface{}{
+	data := map[string][][]interface{}{
 		"accounts": {
 			{
 				// id
