@@ -43,7 +43,7 @@ services:
     - app
     environment:
     - VARNISH_BACKEND_ADDRESS=app
-    - VARNISH_BACKEND_PORT=${LISTEN}
+    - VARNISH_BACKEND_PORT=${PORT}
   ssl:
     env_file: ./.env
     image: ${HOSTNAME}/ssl:${ENV}
@@ -62,6 +62,10 @@ services:
     environment:
     - HITCH_BACKEND_ADDRESS=lb
     - HITCH_BACKEND_PORT=6081
+    networks:
+      default:
+        aliases:
+          - ${HOSTNAME}
   bootstrap:
     env_file: ./.env
     image: ${HOSTNAME}/bootstrap:${ENV}
@@ -88,14 +92,11 @@ services:
       args:
         ENV: ${ENV}
         HOSTNAME: ${HOSTNAME}
-
   app:
     env_file: ./.env
     image: ${HOSTNAME}/app:${ENV}
     depends_on:
     - db
-#    - bootstrap
-#    - ssl
     links:
     - db
 #    - redis
@@ -107,5 +108,4 @@ services:
         ENV: ${ENV}
         LISTEN: ${LISTEN}
         HOSTNAME: ${HOSTNAME}
-        PORT: ${PORT}
-    command: app -host ${HOSTNAME} -port 3000 -env ${ENV}
+    command: app -host ${HOSTNAME} -port ${PORT} -env ${ENV}
