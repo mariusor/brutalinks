@@ -240,6 +240,9 @@ func InitSessionStore(c Config) (sessions.Store, error) {
 	case "cookie":
 		fallthrough
 	default:
+		if strings.ToLower(c.SessionsBackend) != "cookie" {
+			c.Logger.Warnf("Invalid session backend %q, falling back to cookie.", c.SessionsBackend)
+		}
 		ss := sessions.NewCookieStore(c.SessionKeys...)
 		ss.Options.Domain = c.HostName
 		ss.Options.Path = "/"
