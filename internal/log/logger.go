@@ -77,7 +77,7 @@ func Prod() Logger {
 	return &l
 }
 
-func (l *logger) context() logrus.Fields {
+func context(l *logger)  logrus.Fields {
 	l.m.RLock()
 	defer l.m.RUnlock()
 
@@ -112,53 +112,53 @@ func (l *logger) WithContext(ctx ...interface{}) Logger {
 }
 
 func (l *logger) Debug(msg string) {
-	l.l.WithFields(l.context()).Debug(msg)
+	l.l.WithFields(context(l)).Debug(msg)
 	l.ctx = nil
 }
 
 func (l *logger) Debugf(msg string, p ...interface{}) {
-	l.l.WithFields(l.context()).Debug(fmt.Sprintf(msg, p...))
+	l.l.WithFields(context(l)).Debug(fmt.Sprintf(msg, p...))
 	l.ctx = nil
 }
 
 func (l *logger) Info(msg string) {
-	l.l.WithFields(l.context()).Info(msg)
+	l.l.WithFields(context(l)).Info(msg)
 	l.ctx = nil
 }
 
 func (l *logger) Infof(msg string, p ...interface{}) {
 	l.ctx = nil
-	l.l.WithFields(l.context()).Info(fmt.Sprintf(msg, p...))
+	l.l.WithFields(context(l)).Info(fmt.Sprintf(msg, p...))
 	l.ctx = nil
 }
 
 func (l *logger) Warn(msg string) {
-	l.l.WithFields(l.context()).Warn(msg)
+	l.l.WithFields(context(l)).Warn(msg)
 	l.ctx = nil
 }
 
 func (l *logger) Warnf(msg string, p ...interface{}) {
-	l.l.WithFields(l.context()).Warn(fmt.Sprintf(msg, p...))
+	l.l.WithFields(context(l)).Warn(fmt.Sprintf(msg, p...))
 	l.ctx = nil
 }
 
 func (l *logger) Error(msg string) {
-	l.l.WithFields(l.context()).Error(msg)
+	l.l.WithFields(context(l)).Error(msg)
 	l.ctx = nil
 }
 
 func (l *logger) Errorf(msg string, p ...interface{}) {
-	l.l.WithFields(l.context()).Error(fmt.Sprintf(msg, p...))
+	l.l.WithFields(context(l)).Error(fmt.Sprintf(msg, p...))
 	l.ctx = nil
 }
 
 func (l *logger) Crit(msg string) {
-	l.l.WithFields(l.context()).Fatal(msg)
+	l.l.WithFields(context(l)).Fatal(msg)
 	l.ctx = nil
 }
 
-func (l logger) Critf(msg string, p ...interface{}) {
-	l.l.WithFields(l.context()).Fatal(fmt.Sprintf(msg, p...))
+func (l *logger) Critf(msg string, p ...interface{}) {
+	l.l.WithFields(context(l)).Fatal(fmt.Sprintf(msg, p...))
 	l.ctx = nil
 }
 
