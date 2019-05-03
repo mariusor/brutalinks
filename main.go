@@ -54,7 +54,7 @@ func main() {
 	}
 
 	front, err := frontend.Init(frontend.Config{
-		Env:         e,
+		Env:         app.Instance.Config.Env,
 		Logger:      app.Instance.Logger.New(log.Ctx{"package": "frontend"}),
 		Secure:      app.Instance.Secure,
 		BaseURL:     app.Instance.BaseURL,
