@@ -16,7 +16,7 @@ ENV ENV $ENV
 COPY --from=builder /go/src/app/bin/app /bin/app
 COPY --from=builder /go/src/app/assets /assets
 COPY --from=builder /go/src/app/templates ./templates
-COPY --from=builder /go/src/app/docker/.env* ./
+COPY .env* ./
 
 CMD ["/bin/app"]
 

@@ -1,6 +1,7 @@
 ARG ENV
 ARG HOSTNAME
 FROM ${HOSTNAME}/builder:${ENV} as builder
+
 FROM gcr.io/distroless/base
 
 ARG ENV
@@ -18,7 +19,7 @@ ENV POSTGRES_PASSWORD $POSTGRES_PASSWORD
 
 COPY --from=builder /go/src/app/bin/bootstrap /bootstrap
 COPY --from=builder /go/src/app/db /db
-COPY --from=builder /go/src/app/.env* /
+COPY .env* /
 
 WORKDIR /
 
