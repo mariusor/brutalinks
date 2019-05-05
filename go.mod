@@ -5,10 +5,10 @@ require (
 	github.com/buger/jsonparser v0.0.0-20181023193515-52c6e1462ebd
 	github.com/captncraig/cors v0.0.0-20180620154129-376d45073b49 // indirect
 	github.com/gchaincl/dotsql v0.1.0
-	github.com/go-ap/activitypub v0.0.0-20190414191238-5b5a51daed61
-	github.com/go-ap/activitystreams v0.0.0-20190310091131-a516ad03a5be
+	github.com/go-ap/activitypub v0.0.0-20190505073521-1c21b90a4034
+	github.com/go-ap/activitystreams v0.0.0-20190505073245-03fc2158a8bf
 	github.com/go-ap/jsonld v0.0.0-20190306111347-fbb94302fe92
-	github.com/go-chi/chi v0.0.0-20171222161133-e83ac2304db3
+	github.com/go-chi/chi v4.0.2+incompatible
 	github.com/go-pg/pg v7.1.1+incompatible
 	github.com/gorilla/csrf v1.5.1
 	github.com/gorilla/securecookie v1.1.1
