@@ -32,8 +32,8 @@ create table accounts (
   handle varchar,
   email varchar unique,
   score bigint default 0,
-  created_at timestamp default current_timestamp,
-  updated_at timestamp default current_timestamp,
+  created_at timestamptz default current_timestamp,
+  updated_at timestamptz default current_timestamp,
   metadata jsonb default '{}',
   flags bit(8) default 0::bit(8)
 );
@@ -48,8 +48,8 @@ create table items (
   score bigint default 0,
   path ltree default NULL,
   submitted_by int references accounts(id),
-  submitted_at timestamp default current_timestamp,
-  updated_at timestamp default current_timestamp,
+  submitted_at timestamptz default current_timestamp,
+  updated_at timestamptz default current_timestamp,
   metadata jsonb default '{}',
   flags bit(8) default 0::bit(8)
 );
@@ -58,8 +58,8 @@ create table items (
 create table votes (
   id serial constraint votes_pk primary key,
   submitted_by int references accounts(id),
-  submitted_at timestamp default current_timestamp,
-  updated_at timestamp default current_timestamp,
+  submitted_at timestamptz default current_timestamp,
+  updated_at timestamptz default current_timestamp,
   item_id  int references items(id),
   weight int,
   flags bit(8) default 0::bit(8),
@@ -158,8 +158,8 @@ create table actors (
   "url" varchar, -- frontend reachable url
   "name" varchar,
   "preferred_username" varchar,
-  "published" timestamp default CURRENT_TIMESTAMP,
-  "updated" timestamp default CURRENT_TIMESTAMP,
+  "published" timestamptz default CURRENT_TIMESTAMP,
+  "updated" timestamptz default CURRENT_TIMESTAMP,
   -- "inbox_id" int,
   "inbox" varchar,
   -- "outbox_id" int,
@@ -184,7 +184,7 @@ create table activities (
   "object_id" int default NULL, -- the object id if it's a local object
   "item_id" int default NULL, -- the item id if it's a local object
   "object" varchar, -- the IRI of the local or remote object
-  "published" timestamp default CURRENT_TIMESTAMP,
+  "published" timestamptz default CURRENT_TIMESTAMP,
   "audience" jsonb -- the [to, cc, bto, bcc fields]
 );
 
@@ -197,8 +197,8 @@ create table objects (
   "type" varchar, -- maybe enum
   "url" varchar,
   "name" varchar,
-  "published" timestamp default CURRENT_TIMESTAMP,
-  "updated" timestamp default CURRENT_TIMESTAMP
+  "published" timestamptz default CURRENT_TIMESTAMP,
+  "updated" timestamptz default CURRENT_TIMESTAMP
 );
 
 -- oauth for osin
@@ -217,7 +217,7 @@ CREATE TABLE IF NOT EXISTS authorize (
   redirect_uri varchar NOT NULL,
   state varchar NOT NULL,
   extra jsonb DEFAULT NULL,
-  created_at timestamp with time zone NOT NULL
+  created_at timestamptz default CURRENT_TIMESTAMP
 );
 CREATE TABLE IF NOT EXISTS access (
   client varchar NOT NULL,
@@ -229,7 +229,7 @@ CREATE TABLE IF NOT EXISTS access (
   scope varchar NOT NULL,
   redirect_uri varchar NOT NULL,
   extra jsonb DEFAULT NULL,
-  created_at timestamp with time zone NOT NULL
+  created_at timestamptz default CURRENT_TIMESTAMP
 );
 CREATE TABLE IF NOT EXISTS refresh (
   token varchar NOT NULL PRIMARY KEY,
