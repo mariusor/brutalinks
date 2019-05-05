@@ -21,7 +21,7 @@ func (h *handler) Routes() func(chi.Router) {
 		r.Get("/about", h.HandleAbout)
 
 		r.Get("/", h.HandleIndex)
-		r.With(h.CSRF).Group(func (r chi.Router){
+		r.With(h.CSRF).Group(func(r chi.Router) {
 			r.Get("/submit", h.ShowSubmit)
 			r.Post("/submit", h.HandleSubmit)
 			r.Get("/register", h.ShowRegister)
@@ -36,7 +36,7 @@ func (h *handler) Routes() func(chi.Router) {
 				r.Get("/", h.ShowItem)
 				r.Post("/", h.HandleSubmit)
 
-				r.Group(func (r chi.Router) {
+				r.Group(func(r chi.Router) {
 					r.Use(h.ValidateLoggedIn(h.HandleErrors))
 					r.Get("/yay", h.HandleVoting)
 					r.Get("/nay", h.HandleVoting)
@@ -44,7 +44,7 @@ func (h *handler) Routes() func(chi.Router) {
 					r.Get("/bad", h.ShowReport)
 					r.Post("/bad", h.HandleReport)
 
-					r.With(h.ValidateItemAuthor).Group(func (r chi.Router) {
+					r.With(h.ValidateItemAuthor).Group(func(r chi.Router) {
 						r.Get("/edit", h.ShowItem)
 						r.Post("/edit", h.HandleSubmit)
 						r.Get("/rm", h.HandleDelete)
@@ -69,7 +69,7 @@ func (h *handler) Routes() func(chi.Router) {
 		r.Get("/t/{tag}", h.HandleTags)
 
 		r.With(h.NeedsSessions).Get("/logout", h.HandleLogout)
-		r.With(h.CSRF, h.NeedsSessions).Group(func (r chi.Router) {
+		r.With(h.CSRF, h.NeedsSessions).Group(func(r chi.Router) {
 			r.Get("/login", h.ShowLogin)
 			r.Post("/login", h.HandleLogin)
 		})
@@ -105,7 +105,7 @@ func (h *handler) Routes() func(chi.Router) {
 
 		// static
 		r.With(app.StripCookies).Get("/ns", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Content-Type", "application/json+ld")
+			w.Header().Set("Content-Type", "application/ld+json")
 			http.ServeFile(w, r, filepath.Join(assets, "ns.json"))
 		}))
 		r.With(app.StripCookies).Get("/favicon.ico", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
