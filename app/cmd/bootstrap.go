@@ -181,7 +181,7 @@ func SeedDB(o *pg.Options, hostname string, oauthURL string) error {
 	}
 	url := fmt.Sprintf("%s://%s/auth/local/callback", scheme, hostname)
 	if oauthURL != "" {
-		url = oauthURL
+		url = "," + oauthURL
 	}
 	oauth2Key := os.Getenv("OAUTH2_KEY")
 	if oauth2Key == "" {
@@ -310,8 +310,8 @@ func CreateDatabase(o *pg.Options, r *pg.Options, overwrite bool) error {
 			return errors.Annotatef(err, "unable to load file")
 		}
 		s1, _ := dot.Raw("create-role-with-pass")
-		role := fmt.Sprintf(s1, o.User, "%s")
-		if _, err := rootDB.Exec(fmt.Sprintf(role, o.Password)); err != nil {
+		role := fmt.Sprintf(s1, o.User, o.Password)
+		if _, err := rootDB.Exec(role); err != nil {
 			if pe, ok := err.(*pq.Error); !ok || pe.Code != "42710" {
 				return errors.Annotatef(err, "query: %s", role)
 			}
