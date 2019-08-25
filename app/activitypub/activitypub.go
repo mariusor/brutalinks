@@ -6,6 +6,7 @@ import (
 	ap "github.com/go-ap/activitypub"
 	as "github.com/go-ap/activitystreams"
 	"github.com/go-ap/jsonld"
+	"strings"
 )
 
 // PublicKey holds the ActivityPub compatible public key data
@@ -202,7 +203,7 @@ func (o *OrderedCollection) UnmarshalJSON(data []byte) error {
 	var items = make(as.ItemCollection, 0)
 	for i, it := range col.OrderedItems {
 		var a as.ObjectOrLink
-		if as.ValidActivityType(it.GetType()) {
+		if as.ActivityTypes.Contains(it.GetType()) {
 			act := &Activity{}
 			if data, _, _, err := jsonparser.Get(data, "orderedItems", fmt.Sprintf("[%d]", i)); err == nil {
 				act.UnmarshalJSON(data)
@@ -211,7 +212,7 @@ func (o *OrderedCollection) UnmarshalJSON(data []byte) error {
 				act.Context = as.IRI(context)
 			}
 			a = act
-		} else if as.ValidObjectType(it.GetType()) {
+		} else if as.ObjectTypes.Contains(it.GetType()) {
 			switch it.GetType() {
 			case as.ArticleType:
 				fallthrough
@@ -258,6 +259,16 @@ func (o *OrderedCollection) UnmarshalJSON(data []byte) error {
 	o.OrderedItems = items
 	o.TotalItems = uint(len(items))
 	return nil
+}
+
+// Count
+func (o *OrderedCollection) Count() uint {
+	return 0
+}
+
+// Contains
+func (o *OrderedCollection) Contains(u as.IRI) bool {
+	return false
 }
 
 // CollectionNew initializes a new Collection
@@ -314,7 +325,7 @@ func (c *Collection) UnmarshalJSON(data []byte) error {
 	var items = make(as.ItemCollection, 0)
 	for i, it := range col.Items {
 		var a as.ObjectOrLink
-		if as.ValidActivityType(it.GetType()) {
+		if as.ActivityTypes.Contains(it.GetType()) {
 			act := &Activity{}
 			if data, _, _, err := jsonparser.Get(data, "items", fmt.Sprintf("[%d]", i)); err == nil {
 				act.UnmarshalJSON(data)
@@ -323,7 +334,7 @@ func (c *Collection) UnmarshalJSON(data []byte) error {
 				act.Context = as.IRI(context)
 			}
 			a = act
-		} else if as.ValidObjectType(it.GetType()) {
+		} else if as.ObjectTypes.Contains(it.GetType()) {
 			switch it.GetType() {
 			case as.ArticleType:
 				fallthrough
@@ -370,6 +381,16 @@ func (c *Collection) UnmarshalJSON(data []byte) error {
 	c.Items = items
 	c.TotalItems = uint(len(items))
 	return nil
+}
+
+// Count
+func (c *Collection) Count() uint {
+	return 0
+}
+
+// Contains
+func (c *Collection) Contains(u as.IRI) bool {
+	return false
 }
 
 // GetID returns the ObjectID pointer of current Activity instance
@@ -445,7 +466,7 @@ func UnmarshalJSON(data []byte) (as.Item, error) {
 
 func (a *Activity) RecipientsDeduplication() {
 	b := as.Activity(*a)
-	b.RecipientsDeduplication()
+	b.Recipients()
 }
 
 func JSONGetItemByType(typ as.ActivityVocabularyType) (as.Item, error) {

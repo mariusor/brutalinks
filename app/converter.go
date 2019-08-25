@@ -63,7 +63,7 @@ func (a *Account) FromActivityPub(it as.Item) error {
 		return nil
 	}
 	loadFromObject := func(a *Account, p as.Object) error {
-		name := jsonUnescape(p.Name.First())
+		name := jsonUnescape(p.Name.First().Value)
 		a.Hash.FromActivityPub(p)
 		a.Handle = name
 		a.Flags = FlagsNone
@@ -108,9 +108,9 @@ func (a *Account) FromActivityPub(it as.Item) error {
 		if err := loadFromObject(a, p.Parent); err != nil {
 			return err
 		}
-		pName := jsonUnescape(p.PreferredUsername.First())
+		pName := jsonUnescape(p.PreferredUsername.First().Value)
 		if pName == "" {
-			pName = jsonUnescape(p.Name.First())
+			pName = jsonUnescape(p.Name.First().Value)
 		}
 		a.Handle = pName
 		if a.IsFederated() {
@@ -209,7 +209,7 @@ func (i *Item) FromActivityPub(it as.Item) error {
 		return nil
 	}
 	loadFromObject := func(i *Item, a as.Object) error {
-		title := jsonUnescape(a.Name.First())
+		title := jsonUnescape(a.Name.First().Value)
 
 		i.Hash.FromActivityPub(a)
 		if len(title) > 0 {
@@ -223,7 +223,7 @@ func (i *Item) FromActivityPub(it as.Item) error {
 			if len(a.MediaType) > 0 {
 				i.MimeType = MimeType(a.MediaType)
 			}
-			i.Data = jsonUnescape(a.Content.First())
+			i.Data = jsonUnescape(a.Content.First().Value)
 		}
 		if !a.Published.IsZero() {
 			i.SubmittedAt = a.Published
@@ -290,7 +290,7 @@ func (i *Item) FromActivityPub(it as.Item) error {
 		// TODO(marius): here we seem to have a bug, when Source.Content is nil when it shouldn't
 		//    to repro, I used some copy/pasted comments from console javascript
 		if len(a.Source.Content) > 0 && len(a.Source.MediaType) > 0 {
-			i.Data = jsonUnescape(a.Source.Content.First())
+			i.Data = jsonUnescape(a.Source.Content.First().Value)
 			i.MimeType = MimeType(a.Source.MediaType)
 		}
 		return err
@@ -480,7 +480,7 @@ func (i *TagCollection) FromActivityPub(it as.ItemCollection) error {
 			// we have a link
 			lt := Tag{
 				URL:  u,
-				Name: m.Name.First(),
+				Name: m.Name.First().Value,
 			}
 			*i = append(*i, lt)
 		}
@@ -489,7 +489,7 @@ func (i *TagCollection) FromActivityPub(it as.ItemCollection) error {
 			// we have a link
 			lt := Tag{
 				URL:  u,
-				Name: ob.Name.First(),
+				Name: ob.Name.First().Value,
 			}
 			*i = append(*i, lt)
 		}

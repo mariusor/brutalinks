@@ -41,6 +41,7 @@ type handler struct {
 	sstor   sessions.Store
 	account app.Account
 	logger  log.Logger
+	storage *repository
 	os      *osin.Server
 }
 
@@ -206,6 +207,8 @@ func Init(c Config) (handler, error) {
 	h.sstor, err = InitSessionStore(c)
 	h.conf = c
 	h.os = c.OAuthServer
+
+	h.storage = NewRepository(c)
 	return h, err
 }
 

@@ -366,6 +366,7 @@ FROM "items" WHERE "key" ~* ?%d) AND "%s"."path" IS NOT NULL)`, it, counter, it)
 	}
 	return wheres, whereValues
 }
+
 func copyItemsFilters(a *LoadItemsFilter, b LoadItemsFilter) {
 	a.Key = b.Key
 	a.MediaType = b.MediaType
