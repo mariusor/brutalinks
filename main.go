@@ -86,10 +86,7 @@ func main() {
 		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	}
 	// Frontend
-	r.With(a.Repository).Route("/", front.Routes())
-
-	// API
-	r.With(db.Repository).Route("/api", a.Routes())
+	r.With(front.Repository).Route("/", front.Routes())
 
 	cfg := api.NodeInfoConfig()
 	// Web-Finger
