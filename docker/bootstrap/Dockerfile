@@ -23,5 +23,5 @@ COPY .env* /
 
 WORKDIR /
 
-CMD ["/bootstrap", "-user", "postgres", "-seed"]
+CMD ["/bootstrap", "-user", "postgres", "-seed", "-overwrite"]
 
