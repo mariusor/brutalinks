@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/mariusor/littr.go/internal/errors"
+	"github.com/go-ap/errors"
 	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/app/db"
 	"github.com/mariusor/littr.go/internal/log"

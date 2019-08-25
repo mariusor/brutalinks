@@ -3,7 +3,7 @@ package processing
 
 import (
 	as "github.com/go-ap/activitystreams"
-	"github.com/mariusor/littr.go/internal/errors"
+	"github.com/go-ap/errors"
 	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/internal/log"
 )
@@ -183,7 +183,7 @@ func InitQueues(app *app.Application) error {
 	}
 	//DefaultQueue = redismq.CreateQueue(app.Config.Redis.Host, app.Config.Redis.Port, app.Config.Redis.Pw, int64(redisDb), name)
 	if DefaultQueue == nil {
-		new := errors.New("unable to connect to redis")
+		new := errors.Newf("unable to connect to redis")
 		if len(app.Config.Redis.Host) > 0 {
 			app.Logger.WithContext(log.Ctx{
 				"redisHost": app.Config.Redis.Host,

@@ -11,7 +11,7 @@ import (
 	ap "github.com/mariusor/littr.go/app/activitypub"
 
 	"github.com/buger/jsonparser"
-	"github.com/mariusor/littr.go/internal/errors"
+	"github.com/go-ap/errors"
 
 	goap "github.com/go-ap/activitypub"
 	as "github.com/go-ap/activitystreams"
@@ -31,7 +31,7 @@ func (a *Account) FromActivityPub(it as.Item) error {
 		return nil
 	}
 	if it == nil {
-		return errors.New("nil item received")
+		return errors.Newf("nil item received")
 	}
 	if it.IsLink() {
 		iri := it.GetLink()
@@ -175,7 +175,7 @@ func (a *Account) FromActivityPub(it as.Item) error {
 	case as.PersonType:
 		personFn(a, loadFromObject, loadFromPerson, loadFromLocal)
 	default:
-		return errors.New("invalid actor type")
+		return errors.Newf("invalid actor type")
 	}
 
 	return nil
@@ -183,7 +183,7 @@ func (a *Account) FromActivityPub(it as.Item) error {
 
 func (i *Item) FromActivityPub(it as.Item) error {
 	if it == nil {
-		return errors.New("nil item received")
+		return errors.Newf("nil item received")
 	}
 	if it.IsLink() {
 		i.Hash.FromActivityPub(it.GetLink())
@@ -372,7 +372,7 @@ func (i *Item) FromActivityPub(it as.Item) error {
 		i.Flags = FlagsDeleted
 		i.SubmittedBy = &AnonymousAccount
 	default:
-		return errors.New("invalid object type")
+		return errors.Newf("invalid object type")
 	}
 
 	return nil
@@ -380,10 +380,10 @@ func (i *Item) FromActivityPub(it as.Item) error {
 
 func (v *Vote) FromActivityPub(it as.Item) error {
 	if it == nil {
-		return errors.New("nil item received")
+		return errors.Newf("nil item received")
 	}
 	if it.IsLink() {
-		return errors.New("unable to load from IRI")
+		return errors.Newf("unable to load from IRI")
 	}
 	switch it.GetType() {
 	case as.UndoType:
@@ -472,7 +472,7 @@ func jsonUnescape(s string) string {
 
 func (i *TagCollection) FromActivityPub(it as.ItemCollection) error {
 	if it == nil || len(it) == 0 {
-		return errors.New("empty collection")
+		return errors.Newf("empty collection")
 	}
 	for _, t := range it {
 		if m, ok := t.(*as.Mention); ok {

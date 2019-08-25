@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/mariusor/littr.go/internal/errors"
+	"github.com/go-ap/errors"
 )
 
 type SSHKey struct {

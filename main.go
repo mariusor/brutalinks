@@ -5,17 +5,15 @@ import (
 	"flag"
 	"github.com/mariusor/littr.go/app/db"
 	"github.com/mariusor/littr.go/app/oauth"
-	"github.com/writeas/go-nodeinfo"
 	"net/http"
 	"time"
 
+	"github.com/go-ap/errors"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	_ "github.com/lib/pq"
-	"github.com/mariusor/littr.go/internal/errors"
 
 	"github.com/mariusor/littr.go/app"
-	"github.com/mariusor/littr.go/app/api"
 	"github.com/mariusor/littr.go/app/frontend"
 	"github.com/mariusor/littr.go/internal/log"
 )
@@ -65,11 +63,6 @@ func main() {
 		app.Instance.Logger.Warn(err.Error())
 	}
 
-	a := api.Init(api.Config{
-		Logger:      app.Instance.Logger.New(log.Ctx{"package": "api"}),
-		BaseURL:     app.Instance.APIURL,
-		OAuthServer: os,
-	})
 	//processing.InitQueues(&app.Instance)
 	//processing.Logger = app.Instance.Logger.Dev(log.Ctx{"package": "processing"})
 
@@ -88,19 +81,19 @@ func main() {
 	// Frontend
 	r.With(front.Repository).Route("/", front.Routes())
 
-	cfg := api.NodeInfoConfig()
+/*	cfg := api.NodeInfoConfig()
 	// Web-Finger
 	r.With(db.Repository).Route("/.well-known", func(r chi.Router) {
 		r.Use(app.NeedsDBBackend(a.HandleError))
 
 		ni := nodeinfo.NewService(cfg, api.NodeInfoResolver{})
-		r.Get("/webfinger", a.HandleWebFinger)
+		//r.Get("/webfinger", a.HandleWebFinger)
 		r.Get("/host-meta", api.HandleHostMeta)
 		r.Get("/nodeinfo", ni.NodeInfoDiscover)
 		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 			a.HandleError(w, r, errors.NotFoundf("%s", r.RequestURI))
 		})
-	})
+	})*/
 
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		front.HandleErrors(w, r, errors.NotFoundf("%s", r.RequestURI))

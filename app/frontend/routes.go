@@ -4,7 +4,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/mariusor/littr.go/app"
-	"github.com/mariusor/littr.go/internal/errors"
+	"github.com/go-ap/errors"
 	"net/http"
 	"os"
 	"path/filepath"

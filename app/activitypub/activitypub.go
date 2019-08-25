@@ -6,7 +6,6 @@ import (
 	ap "github.com/go-ap/activitypub"
 	as "github.com/go-ap/activitystreams"
 	"github.com/go-ap/jsonld"
-	"strings"
 )
 
 // PublicKey holds the ActivityPub compatible public key data

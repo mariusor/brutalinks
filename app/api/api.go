@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/go-ap/activitypub/client"
 	"github.com/openshift/osin"
+	"golang.org/x/xerrors"
 	"net/http"
 	"net/url"
 	"path"
@@ -15,7 +16,7 @@ import (
 
 	"github.com/mariusor/littr.go/app"
 	ap "github.com/mariusor/littr.go/app/activitypub"
-	"github.com/mariusor/littr.go/internal/errors"
+	"github.com/go-ap/errors"
 	"github.com/mariusor/littr.go/internal/log"
 	"github.com/spacemonkeygo/httpsig"
 
@@ -164,19 +165,19 @@ func getObjectType(el as.Item) string {
 		label = "following"
 	case as.Person:
 		if o, ok := el.(as.Person); ok {
-			label = o.Name.First()
+			label = o.Name.First().Value
 		}
 	case *as.Person:
 		if o, ok := el.(*as.Person); ok {
-			label = o.Name.First()
+			label = o.Name.First().Value
 		}
 	case ap.Person:
 		if o, ok := el.(ap.Person); ok {
-			label = o.Name.First()
+			label = o.Name.First().Value
 		}
 	case *ap.Person:
 		if o, ok := el.(*ap.Person); ok {
-			label = o.Name.First()
+			label = o.Name.First().Value
 		}
 	}
 	return label
@@ -200,12 +201,14 @@ func (h handler) HandleError(w http.ResponseWriter, r *http.Request, errs ...err
 		if err == nil {
 			continue
 		}
-		e := errors.HttpError(err)
-		if res.Status < e.Code {
-			res.Status = e.Code
+		var e errors.Http
+		if xerrors.As(err, &e) {
+			if res.Status < e.Code {
+				res.Status = e.Code
+			}
+			e.Code = 0
+			res.Errors = append(res.Errors, e)
 		}
-		e.Code = 0
-		res.Errors = append(res.Errors, e)
 	}
 	if res.Status == 0 {
 		res.Status = http.StatusInternalServerError

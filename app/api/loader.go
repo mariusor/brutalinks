@@ -25,7 +25,7 @@ import (
 	"github.com/go-chi/chi"
 	ap "github.com/mariusor/littr.go/app/activitypub"
 	"github.com/mariusor/littr.go/app/db"
-	"github.com/mariusor/littr.go/internal/errors"
+	"github.com/go-ap/errors"
 	"github.com/mariusor/littr.go/internal/log"
 )
 
@@ -499,12 +499,12 @@ func (r *repository) LoadItem(f app.Filters) (app.Item, error) {
 		return it, err
 	}
 	if resp == nil {
-		err := errors.New("empty response from the repository")
+		err := errors.Newf("empty response from the repository")
 		r.logger.Error(err.Error())
 		return it, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		err := errors.New("unable to load from the API")
+		err := errors.Newf("unable to load from the API")
 		r.logger.Error(err.Error())
 		return it, err
 	}
@@ -607,7 +607,7 @@ func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) 
 		return nil, 0, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		err := errors.New("unable to load from the API")
+		err := errors.Newf("unable to load from the API")
 		r.logger.WithContext(ctx).Error(err.Error())
 		return nil, 0, err
 	}
@@ -648,7 +648,6 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 		r.logger.WithContext(log.Ctx{
 			"url":   url,
 			"err":   err,
-			"trace": errors.Details(err),
 		}).Warn(err.Error())
 	}
 	p := loadAPPerson(*v.SubmittedBy)
@@ -711,7 +710,7 @@ func (r *repository) LoadVotes(f app.Filters) (app.VoteCollection, uint, error) 
 		return nil, 0, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		err := errors.New("unable to load from the API")
+		err := errors.Newf("unable to load from the API")
 		r.logger.Error(err.Error())
 		return nil, 0, err
 	}
@@ -742,7 +741,7 @@ func (r *repository) LoadVotes(f app.Filters) (app.VoteCollection, uint, error) 
 
 func (r *repository) LoadVote(f app.Filters) (app.Vote, error) {
 	if len(f.ItemKey) == 0 {
-		return app.Vote{}, errors.New("invalid item hash")
+		return app.Vote{}, errors.Newf("invalid item hash")
 	}
 
 	v := app.Vote{}
@@ -757,12 +756,12 @@ func (r *repository) LoadVote(f app.Filters) (app.Vote, error) {
 		return v, err
 	}
 	if resp == nil {
-		err := errors.New("nil response from the repository")
+		err := errors.Newf("nil response from the repository")
 		r.logger.Error(err.Error())
 		return v, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		err := errors.New("unable to load from the API")
+		err := errors.Newf("unable to load from the API")
 		r.logger.Error(err.Error())
 		return v, err
 	}
@@ -798,7 +797,6 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 		if len(*art.GetID()) == 0 {
 			r.logger.WithContext(log.Ctx{
 				"item":  it.Hash,
-				"trace": errors.Details(err),
 			}).Error(err.Error())
 			return it, errors.NotFoundf("item hash is empty, can not delete")
 		}
@@ -823,7 +821,6 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 	if err != nil {
 		r.logger.WithContext(log.Ctx{
 			"item":  it.Hash,
-			"trace": errors.Details(err),
 		}).Error(err.Error())
 		return it, err
 	}
@@ -886,7 +883,7 @@ func (r *repository) LoadAccounts(f app.Filters) (app.AccountCollection, uint, e
 		return nil, 0, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		err := errors.New("unable to load from the API")
+		err := errors.Newf("unable to load from the API")
 		r.logger.Error(err.Error())
 		return nil, 0, err
 	}
@@ -907,7 +904,6 @@ func (r *repository) LoadAccounts(f app.Filters) (app.AccountCollection, uint, e
 		if err := acc.FromActivityPub(it); err != nil {
 			r.logger.WithContext(log.Ctx{
 				"type":  fmt.Sprintf("%T", it),
-				"trace": errors.Details(err),
 			}).Warn(err.Error())
 			continue
 		}
@@ -960,7 +956,7 @@ func loadURL(r *repository, url string) ([]byte, error) {
 		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		err := errors.New("unable to load from the API")
+		err := errors.Newf("unable to load from the API")
 		r.logger.Error(err.Error())
 		return nil, err
 	}
@@ -1001,7 +997,7 @@ func (r *repository) LoadInfo() (app.Info, error) {
 	}
 
 	inf.Title = ni.Software.Name
-	inf.Summary = s.Summary.First()
+	inf.Summary = s.Summary.First().Value
 	inf.Description = ni.Metadata.NodeDescription
 	inf.Languages = []string{"en"}
 	inf.Version = ni.Software.Version

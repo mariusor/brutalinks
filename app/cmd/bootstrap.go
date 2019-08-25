@@ -8,7 +8,7 @@ import (
 	"github.com/lib/pq"
 	_ "github.com/lib/pq"
 	"github.com/mariusor/littr.go/app"
-	"github.com/mariusor/littr.go/internal/errors"
+	"github.com/go-ap/errors"
 	"github.com/mmcloughlin/meow"
 	"net"
 	"os"
@@ -74,7 +74,7 @@ func dbConnection(o *pg.Options) (*sql.DB, error) {
 func DestroyDB(r *pg.Options, dbUser, dbName string) []error {
 	rootDB, err := dbConnection(r)
 	if err != nil {
-		return []error{errors.Annotate(err, "connection failed")}
+		return []error{errors.Annotatef(err, "connection failed")}
 	}
 	defer rootDB.Close()
 
@@ -293,7 +293,7 @@ func CreateDatabase(o *pg.Options, r *pg.Options, overwrite bool) error {
 	{
 		rootDB, err := dbConnection(r)
 		if err != nil {
-			return errors.Annotate(err, "connection failed")
+			return errors.Annotatef(err, "connection failed")
 		}
 		defer rootDB.Close()
 		if !overwrite {
@@ -330,7 +330,7 @@ func CreateDatabase(o *pg.Options, r *pg.Options, overwrite bool) error {
 		r.Database = o.Database
 		db, err := dbConnection(r)
 		if err != nil {
-			return errors.Annotate(err, "connection failed")
+			return errors.Annotatef(err, "connection failed")
 		}
 		defer db.Close()
 		dot, err := dotsql.LoadFromFile("./db/extensions.sql")

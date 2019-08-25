@@ -6,7 +6,7 @@ import (
 	json "github.com/go-ap/jsonld"
 	"github.com/mariusor/littr.go/app"
 	ap "github.com/mariusor/littr.go/app/activitypub"
-	"github.com/mariusor/littr.go/internal/errors"
+	"github.com/go-ap/errors"
 	"net/http"
 )
 

@@ -22,9 +22,9 @@ import (
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
 
+	"github.com/go-ap/errors"
 	"github.com/go-chi/chi"
 	"github.com/gorilla/sessions"
-	"github.com/mariusor/littr.go/internal/errors"
 	"github.com/mariusor/littr.go/internal/log"
 	"golang.org/x/oauth2"
 )
@@ -208,6 +208,7 @@ func Init(c Config) (handler, error) {
 	h.conf = c
 	h.os = c.OAuthServer
 
+	c.BaseURL = "http://fedbox.git"
 	h.storage = NewRepository(c)
 	return h, err
 }
@@ -379,7 +380,7 @@ func appName(n string) template.HTML {
 
 func (h *handler) saveSession(w http.ResponseWriter, r *http.Request) error {
 	if h.sstor == nil {
-		err := errors.New("missing session store, unable to save session")
+		err := errors.Newf("missing session store, unable to save session")
 		h.logger.Errorf("%s", err)
 		return err
 	}
@@ -527,7 +528,7 @@ func (h *handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name st
 		w.Header().Set("Cache-Control", "no-store")
 	}
 	if err = ren.HTML(w, http.StatusOK, name, m); err != nil {
-		new := errors.New("failed to render template")
+		new := errors.Newf("failed to render template")
 		h.logger.WithContext(log.Ctx{
 			"template": name,
 			"model":    fmt.Sprintf("%T", m),

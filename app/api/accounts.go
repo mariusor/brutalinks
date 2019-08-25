@@ -19,7 +19,7 @@ import (
 	json "github.com/go-ap/jsonld"
 	"github.com/go-chi/chi"
 	ap "github.com/mariusor/littr.go/app/activitypub"
-	"github.com/mariusor/littr.go/internal/errors"
+	"github.com/go-ap/errors"
 	"github.com/mariusor/littr.go/internal/log"
 )
 
@@ -270,7 +270,7 @@ func loadAPPerson(a app.Account) *ap.Person {
 		}
 	}
 	oauthURL := strings.Replace(BaseURL, "api", "oauth", 1)
-	p.Endpoints = goap.Endpoints{
+	p.Endpoints = &goap.Endpoints{
 		SharedInbox:                as.IRI(fmt.Sprintf("%s/self/inbox", BaseURL)),
 		OauthAuthorizationEndpoint: as.IRI(fmt.Sprintf("%s/authorize", oauthURL)),
 		OauthTokenEndpoint:         as.IRI(fmt.Sprintf("%s/token", oauthURL)),
@@ -334,9 +334,7 @@ func (h handler) HandleActor(w http.ResponseWriter, r *http.Request) {
 
 	j, err := json.WithContext(GetContext()).Marshal(p)
 	if err != nil {
-		h.logger.WithContext(log.Ctx{
-			"trace": errors.Details(err),
-		}).Error(err.Error())
+		h.logger.Error(err.Error())
 		h.HandleError(w, r, errors.NewNotValid(err, "unable to marshall goap object"))
 		return
 	}
@@ -376,7 +374,7 @@ func (h handler) HandleCollectionActivity(w http.ResponseWriter, r *http.Request
 	case "outbox":
 		item, ok := val.(app.Item)
 		if !ok {
-			err := errors.New("could not load Item from Context")
+			err := errors.Newf("could not load Item from Context")
 			h.HandleError(w, r, errors.NewNotFound(err, "not found"))
 			return
 		}
@@ -438,9 +436,7 @@ func (h handler) HandleCollectionActivityObject(w http.ResponseWriter, r *http.R
 				MaxItems: MaxContentItems,
 			})
 			if err != nil {
-				h.logger.WithContext(log.Ctx{
-					"trace": errors.Details(err),
-				}).Error(err.Error())
+				h.logger.Error(err.Error())
 			}
 			if len(replies) > 0 {
 				if o, ok := el.(ap.Article); ok {
@@ -504,7 +500,7 @@ func loadCollection(items app.Collection, count uint, typ string, filters app.Pa
 			}
 			haveItems = len(col) > 0
 		} else {
-			return nil, errors.New("could not load items")
+			return nil, errors.Newf("could not load items")
 		}
 	case "liked":
 		if col, ok := items.(app.VoteCollection); ok {
@@ -516,7 +512,7 @@ func loadCollection(items app.Collection, count uint, typ string, filters app.Pa
 			}
 			haveItems = len(col) > 0
 		} else {
-			return nil, errors.New("could not load items")
+			return nil, errors.Newf("could not load items")
 		}
 	case "followed":
 		fallthrough
@@ -527,7 +523,7 @@ func loadCollection(items app.Collection, count uint, typ string, filters app.Pa
 			}
 			haveItems = len(col) > 0
 		} else {
-			return nil, errors.New("could not load items")
+			return nil, errors.Newf("could not load items")
 		}
 	}
 
@@ -603,7 +599,6 @@ func (h handler) LoadActivity(next http.Handler) http.Handler {
 		errFn := func(err error) {
 			h.logger.WithContext(log.Ctx{
 				"err":   err,
-				"trace": errors.Details(err),
 			}).Error("Activity load error")
 			h.HandleError(w, r, err)
 			return
@@ -1029,22 +1024,22 @@ func validateOutboxActivityType(typ as.ActivityVocabularyType) error {
 		as.UndoType, // @todo(marius): not implemented yet
 	}
 	if err := validateItemType(typ, validTypes); err != nil {
-		return errors.Annotate(err, "failed to validate activity type for outbox collection")
+		return errors.Annotatef(err, "failed to validate activity type for outbox collection")
 	}
 	return nil
 }
 
 func validateOutboxActivity(a ap.Activity, repo app.CanLoadAccounts) (ap.Activity, error) {
 	if err := validateOutboxActivityType(a.GetType()); err != nil {
-		return a, errors.Annotate(err, "failed to validate activity type for outbox collection")
+		return a, errors.Annotatef(err, "failed to validate activity type for outbox collection")
 	}
 	if p, err := validateLocalActor(a.Actor, repo); err != nil {
-		return a, errors.Annotate(err, "failed to validate actor for outbox collection")
+		return a, errors.Annotatef(err, "failed to validate actor for outbox collection")
 	} else {
 		a.Actor = p
 	}
 	if o, err := validateObject(a.Object, repo.(app.CanLoadItems), a.GetType()); err != nil {
-		return a, errors.Annotate(err, "failed to validate object for outbox collection")
+		return a, errors.Annotatef(err, "failed to validate object for outbox collection")
 	} else {
 		a.Object = o
 	}
@@ -1066,7 +1061,6 @@ func (h *handler) saveActivityContent(a ap.Activity, r *http.Request, w http.Res
 		if err := it.FromActivityPub(a); err != nil {
 			h.logger.WithContext(log.Ctx{
 				"err":   err,
-				"trace": errors.Details(err),
 			}).Error("unable to load item from ActivityPub object")
 			h.HandleError(w, r, errors.NewNotValid(err, "not found"))
 			return http.StatusNotFound, ""
@@ -1076,7 +1070,6 @@ func (h *handler) saveActivityContent(a ap.Activity, r *http.Request, w http.Res
 			if err != nil {
 				h.logger.WithContext(log.Ctx{
 					"err":     err,
-					"trace":   errors.Details(err),
 					"item":    it.Hash,
 					"account": it.SubmittedBy.Hash,
 				}).Error(err.Error())
@@ -1102,7 +1095,6 @@ func (h *handler) saveActivityContent(a ap.Activity, r *http.Request, w http.Res
 		if err := v.FromActivityPub(a); err != nil {
 			h.logger.WithContext(log.Ctx{
 				"err":   err,
-				"trace": errors.Details(err),
 			}).Error("unable to load vote from ActivityPub object")
 			h.HandleError(w, r, errors.NewNotValid(err, "not found"))
 			return http.StatusNotFound, ""
@@ -1112,7 +1104,6 @@ func (h *handler) saveActivityContent(a ap.Activity, r *http.Request, w http.Res
 			if err != nil {
 				h.logger.WithContext(log.Ctx{
 					"err":      err,
-					"trace":    errors.Details(err),
 					"saveVote": v.SubmittedBy.Hash,
 				}).Error(err.Error())
 				h.HandleError(w, r, errors.NewNotValid(err, "not found"))
@@ -1170,7 +1161,6 @@ func (h *handler) ClientRequest(w http.ResponseWriter, r *http.Request) {
 			"from":    r.RemoteAddr,
 			"headers": r.Header,
 			"err":     err,
-			"trace":   errors.Details(err),
 		}).Error("activity validation error")
 		h.HandleError(w, r, err)
 		return
@@ -1198,7 +1188,6 @@ func (h *handler) ServerRequest(w http.ResponseWriter, r *http.Request) {
 			"from":    r.RemoteAddr,
 			"headers": r.Header,
 			"err":     err,
-			"trace":   errors.Details(err),
 		}).Errorf(fmt, it...)
 		h.HandleError(w, r, err)
 	}
@@ -1270,7 +1259,6 @@ func (h *handler) ServerRequest(w http.ResponseWriter, r *http.Request) {
 			"from":    r.RemoteAddr,
 			"headers": r.Header,
 			"err":     err,
-			"trace":   errors.Details(err),
 		}).Error("activity validation error")
 		h.HandleError(w, r, err)
 		return

@@ -16,7 +16,7 @@ import (
 	"github.com/mariusor/littr.go/app/cmd"
 	"github.com/mariusor/littr.go/app/db"
 	"github.com/mariusor/littr.go/app/oauth"
-	"github.com/mariusor/littr.go/internal/errors"
+	"github.com/go-ap/errors"
 	"github.com/mariusor/littr.go/internal/log"
 	"github.com/openshift/osin"
 	"github.com/spacemonkeygo/httpsig"
@@ -517,7 +517,7 @@ func addOAuth2Auth(r *http.Request, a *testAccount, s *osin.Server) error {
 		}
 		return errors.BadRequestf("unable to finish access req, bad response token %s", cod)
 	}
-	return errors.New("unknown :D")
+	return errors.Newf("unknown :D")
 }
 
 func errOnRequest(t *testing.T) func(testPair) map[string]interface{} {

@@ -11,7 +11,7 @@ import (
 
 	"github.com/mariusor/littr.go/app"
 
-	"github.com/mariusor/littr.go/internal/errors"
+	"github.com/go-ap/errors"
 )
 
 type link struct {

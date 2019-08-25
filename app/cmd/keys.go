@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/app/db"
-	"github.com/mariusor/littr.go/internal/errors"
+	"github.com/go-ap/errors"
 	"github.com/mariusor/littr.go/internal/log"
 	"math/rand"
 )
@@ -35,7 +35,7 @@ func accountNeedsKeyWithLog(acct app.Account, logger log.Logger) bool {
 func GenSSHKey(handle string, seed int64, kType string) error {
 	var err error
 	if seed == 0 {
-		err = errors.New("no seed value provided")
+		err = errors.Newf("no seed value provided")
 		if err != nil {
 			return err
 		}

@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mariusor/littr.go/internal/errors"
+	"github.com/go-ap/errors"
 )
 
 type Item struct {
@@ -216,7 +216,7 @@ func saveItem(db *pg.DB, it app.Item) (app.Item, error) {
 	}
 	res, err = db.Query(i, query, params...)
 	if err != nil {
-		return it, &itemSaveError{err: errors.Annotate(err, "item save error"), item: i}
+		return it, &itemSaveError{err: errors.Annotatef(err, "item save error"), item: i}
 	} else {
 		if rows := res.RowsAffected(); rows == 0 {
 			return it, &itemSaveError{err: errors.Errorf("could not save item %q", i.Key.Hash()), item: i}
@@ -227,7 +227,7 @@ func saveItem(db *pg.DB, it app.Item) (app.Item, error) {
 	if len(col) > 0 {
 		return col[0], nil
 	} else {
-		return app.Item{}, &itemSaveError{err: errors.Annotate(err, "item save error"), item: i}
+		return app.Item{}, &itemSaveError{err: errors.Annotatef(err, "item save error"), item: i}
 	}
 }
 

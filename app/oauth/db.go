@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-pg/pg"
-	"github.com/mariusor/littr.go/internal/errors"
+	"github.com/go-ap/errors"
 	"github.com/mariusor/littr.go/internal/log"
 	"github.com/openshift/osin"
 	"net/http"
@@ -99,7 +99,7 @@ func (s *Storage) UpdateClient(c osin.Client) error {
 
 	if _, err := s.db.Exec("UPDATE client SET (secret, redirect_uri, extra) = (?2, ?3, ?4) WHERE id=?1", c.GetId(), c.GetSecret(), c.GetRedirectUri(), data); err != nil {
 		s.l.WithContext(log.Ctx{"id": c.GetId(), "table": "client", "operation": "update"}).Error(err.Error())
-		return errors.Annotate(err, "")
+		return errors.Annotatef(err, "")
 	}
 	return nil
 }
@@ -114,7 +114,7 @@ func (s *Storage) CreateClient(c osin.Client) error {
 
 	if _, err := s.db.Exec("INSERT INTO client (id, secret, redirect_uri, extra) VALUES (?0, ?1, ?2, ?3)", c.GetId(), c.GetSecret(), c.GetRedirectUri(), data); err != nil {
 		s.l.WithContext(log.Ctx{"id": c.GetId(), "redirect_uri": c.GetRedirectUri(), "table": "client", "operation": "insert"}).Errorf(err.Error())
-		return errors.Annotate(err, "")
+		return errors.Annotatef(err, "")
 	}
 	return nil
 }
@@ -123,7 +123,7 @@ func (s *Storage) CreateClient(c osin.Client) error {
 func (s *Storage) RemoveClient(id string) (err error) {
 	if _, err = s.db.Exec("DELETE FROM client WHERE id=?", id); err != nil {
 		s.l.WithContext(log.Ctx{"id": id, "table": "client", "operation": "delete"}).Error(err.Error())
-		return errors.Annotate(err, "")
+		return errors.Annotatef(err, "")
 	}
 	s.l.WithContext(log.Ctx{"id": id}).Debugf("removed client")
 	return nil
@@ -151,7 +151,7 @@ func (s *Storage) SaveAuthorize(data *osin.AuthorizeData) (err error) {
 	if _, err = s.db.Query(nil, "INSERT INTO authorize (client, code, expires_in, scope, redirect_uri, state, created_at, extra) " +
 		"VALUES (?0, ?1, ?2, ?3, ?4, ?5, ?6, ?7)", params...); err != nil {
 		s.l.WithContext(log.Ctx{"id": data.Client.GetId(), "table": "authorize", "operation": "insert", "code": data.Code}).Error(err.Error())
-		return errors.Annotate(err, "")
+		return errors.Annotatef(err, "")
 	}
 	return nil
 }
@@ -179,7 +179,7 @@ func (s *Storage) LoadAuthorize(code string) (*osin.AuthorizeData, error) {
 		return nil, errors.NotFoundf("")
 	} else if err != nil {
 		s.l.WithContext(log.Ctx{"code": code, "table": "authorize", "operation": "select"}).Error(err.Error())
-		return nil, errors.Annotate(err, "")
+		return nil, errors.Annotatef(err, "")
 	}
 	data.Code = auth.Code
 	data.ExpiresIn = int32(auth.ExpiresIn)
@@ -207,7 +207,7 @@ func (s *Storage) LoadAuthorize(code string) (*osin.AuthorizeData, error) {
 func (s *Storage) RemoveAuthorize(code string) (err error) {
 	if _, err = s.db.Exec("DELETE FROM authorize WHERE code=?", code); err != nil {
 		s.l.WithContext(log.Ctx{"code": code, "table": "authorize", "operation": "delete"}).Error(err.Error())
-		return errors.Annotate(err, "")
+		return errors.Annotatef(err, "")
 	}
 	s.l.WithContext(log.Ctx{"code": code, }).Debugf("removed authorization token")
 	return nil
@@ -236,7 +236,7 @@ func (s *Storage) SaveAccess(data *osin.AccessData) (err error) {
 	tx, err := s.db.Begin()
 	if err != nil {
 		s.l.WithContext(log.Ctx{"id": data.Client.GetId()}).Error(err.Error())
-		return errors.Annotate(err, "")
+		return errors.Annotatef(err, "")
 	}
 
 	if data.RefreshToken != "" {
@@ -247,22 +247,22 @@ func (s *Storage) SaveAccess(data *osin.AccessData) (err error) {
 	}
 
 	if data.Client == nil {
-		return errors.New("data.Client must not be nil")
+		return errors.Newf("data.Client must not be nil")
 	}
 
 	_, err = tx.Exec("INSERT INTO access (client, authorize, previous, access_token, refresh_token, expires_in, scope, redirect_uri, created_at, extra) VALUES (?0, ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)", data.Client.GetId(), authorizeData.Code, prev, data.AccessToken, data.RefreshToken, data.ExpiresIn, data.Scope, data.RedirectUri, data.CreatedAt, extra)
 	if err != nil {
 		if rbe := tx.Rollback(); rbe != nil {
 			s.l.WithContext(log.Ctx{"id": data.Client.GetId()}).Error(rbe.Error())
-			return errors.Annotate(rbe, "")
+			return errors.Annotatef(rbe, "")
 		}
 		s.l.WithContext(log.Ctx{"id": data.Client.GetId()}).Error(err.Error())
-		return errors.Annotate(err, "")
+		return errors.Annotatef(err, "")
 	}
 
 	if err = tx.Commit(); err != nil {
 		s.l.WithContext(log.Ctx{"id": data.Client.GetId()}).Error(err.Error())
-		return errors.Annotate(err, "")
+		return errors.Annotatef(err, "")
 	}
 
 	return nil
@@ -294,7 +294,7 @@ func (s *Storage) LoadAccess(code string) (*osin.AccessData, error) {
 	if _, err := s.db.QueryOne(&acc, q, code); err == pg.ErrNoRows {
 		return nil, errors.NewNotFound(err, "")
 	} else if err != nil {
-		return nil, errors.Annotate(err, "")
+		return nil, errors.Annotatef(err, "")
 	}
 	result.AccessToken = acc.AccessToken
 	result.RefreshToken = acc.RefreshToken
@@ -321,7 +321,7 @@ func (s *Storage) RemoveAccess(code string) (err error) {
 	_, err = s.db.Exec("DELETE FROM access WHERE access_token=?", code)
 	if err != nil {
 		s.l.WithContext(log.Ctx{"code": code, "table": "access", "operation": "delete"}).Error(err.Error())
-		return errors.Annotate(err, "")
+		return errors.Annotatef(err, "")
 	}
 	s.l.WithContext(log.Ctx{"code": code}).Debugf("removed access token")
 	return nil
@@ -341,7 +341,7 @@ func (s *Storage) LoadRefresh(code string) (*osin.AccessData, error) {
 		return nil, errors.NewNotFound(err, "")
 	} else if err != nil {
 
-		return nil, errors.Annotate(err, "")
+		return nil, errors.Annotatef(err, "")
 	}
 	return s.LoadAccess(ref.Access)
 }
@@ -351,7 +351,7 @@ func (s *Storage) RemoveRefresh(code string) error {
 	_, err := s.db.Exec("DELETE FROM refresh WHERE token=?", code)
 	if err != nil {
 		s.l.WithContext(log.Ctx{"code": code, "table": "refresh", "operation": "delete"}).Error(err.Error())
-		return errors.Annotate(err, "")
+		return errors.Annotatef(err, "")
 	}
 	s.l.WithContext(log.Ctx{"code": code}).Debugf("removed refresh token")
 	return nil
@@ -362,9 +362,9 @@ func (s *Storage) saveRefresh(tx *pg.Tx, refresh, access string) (err error) {
 	if err != nil {
 		if rbe := tx.Rollback(); rbe != nil {
 			s.l.WithContext(log.Ctx{"code": access, "table": "refresh", "operation": "insert"}).Error(rbe.Error())
-			return errors.Annotate(rbe, "")
+			return errors.Annotatef(rbe, "")
 		}
-		return errors.Annotate(err, "")
+		return errors.Annotatef(err, "")
 	}
 	return nil
 }

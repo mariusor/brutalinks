@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/go-chi/chi/middleware"
 	"github.com/joho/godotenv"
-	"github.com/mariusor/littr.go/internal/errors"
+	"github.com/go-ap/errors"
 	"io"
 	"net/http"
 	"os"

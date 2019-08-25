@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/mariusor/littr.go/internal/errors"
+	"github.com/go-ap/errors"
 
 	"github.com/gorilla/securecookie"
 	"github.com/mariusor/littr.go/app/db"

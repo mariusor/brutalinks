@@ -13,7 +13,7 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi"
-	"github.com/mariusor/littr.go/internal/errors"
+	"github.com/go-ap/errors"
 )
 
 const (
