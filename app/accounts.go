@@ -70,9 +70,9 @@ func (h Hash) String() string {
 
 // Short returns a minimal valuable string value
 func (h Hash) Short() string {
-	if len(h) > 10 {
-		return string(h[0:10])
-	}
+	//if len(h) > 10 {
+	//	return string(h[0:10])
+	//}
 	return string(h)
 }
 
