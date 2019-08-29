@@ -138,7 +138,7 @@ func BuildActorID(a app.Account) as.ObjectID {
 }
 
 func loadAPItem(item app.Item) as.Item {
-	o := local.Article{}
+	o := local.Object{}
 
 	if id, ok := BuildObjectIDFromItem(item); ok {
 		o.ID = id
@@ -367,8 +367,7 @@ func (r *repository) withAccountS2S(a *app.Account) error {
 }
 
 func (r *repository) LoadItem(f app.Filters) (app.Item, error) {
-	var art local.Article
-	var it app.Item
+	var item app.Item
 
 	f.MaxItems = 1
 	hashes := f.LoadItemsFilter.Key
@@ -384,38 +383,44 @@ func (r *repository) LoadItem(f app.Filters) (app.Item, error) {
 	var resp *http.Response
 	if resp, err = r.client.Get(url); err != nil {
 		r.logger.Error(err.Error())
-		return it, err
+		return item, err
 	}
 	if resp == nil {
 		err := errors.Newf("empty response from the repository")
 		r.logger.Error(err.Error())
-		return it, err
+		return item, err
 	}
 	if resp.StatusCode != http.StatusOK {
 		err := errors.Newf("unable to load from the API")
 		r.logger.Error(err.Error())
-		return it, err
+		return item, err
 	}
 	defer resp.Body.Close()
 	var body []byte
 
 	if body, err = ioutil.ReadAll(resp.Body); err != nil {
 		r.logger.Error(err.Error())
-		return it, err
+		return item, err
 	}
-	if err := j.Unmarshal(body, &art); err != nil {
+
+	it, err := as.UnmarshalJSON(body)
+	if err != nil {
 		r.logger.Error(err.Error())
-		return it, err
+		return item, err
 	}
-	err = it.FromActivityPub(art)
-	if err == nil {
-		var items app.ItemCollection
-		items, err = r.loadItemsAuthors(it)
-		if len(items) > 0 {
-			it = items[0]
+	local.OnObject(it, func(art *local.Object) error {
+		err = item.FromActivityPub(art)
+		if err == nil {
+			var items app.ItemCollection
+			items, err = r.loadItemsAuthors(item)
+			if len(items) > 0 {
+				item = items[0]
+			}
 		}
-	}
-	return it, err
+		return nil
+	})
+
+	return item, err
 }
 
 func hashesUnique(a app.Hashes) app.Hashes {
@@ -687,12 +692,14 @@ func (r *repository) LoadVote(f app.Filters) (app.Vote, error) {
 		return v, err
 	}
 
-	var like as.Activity
-	if err := j.Unmarshal(body, &like); err != nil {
+	it, err := as.UnmarshalJSON(body)
+	if err != nil {
 		r.logger.Error(err.Error())
 		return v, err
 	}
-	err = v.FromActivityPub(like)
+	err = ap.OnActivity(it, func(like *as.Activity) error {
+		return  v.FromActivityPub(like)
+	})
 	return v, err
 }
 

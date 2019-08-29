@@ -5,73 +5,73 @@ import (
 	ap "github.com/go-ap/activitypub"
 	as "github.com/go-ap/activitystreams"
 	"github.com/go-ap/auth"
-	"github.com/go-ap/jsonld"
+	"github.com/go-ap/errors"
 )
 
-// Person it should be identical to:
-//    github.com/go-ap/activitypub/actors.go#Actor
+// Actor it should be identical to:
+//    github.com/go-ap/activitypub/actors.go#actor
 // We need it here in order to be able to add to it our Score property
-type Person struct {
+type Actor struct {
 	auth.Person
 	// Score is our own custom property for which we needed to extend the existing AP one
 	Score int64 `jsonld:"score"`
 }
 
-// Article it should be identical to:
+// Object it should be identical to:
 //    github.com/go-ap/activitypub/objects.go#Object
 // We need it here in order to be able to add to it our Score property
-type Article struct {
+type Object struct {
 	ap.Object
 	Score int64 `jsonld:"score"`
 }
 
-// GetID returns the ObjectID pointer of current Person instance
-func (p Person) GetID() *as.ObjectID {
-	id := as.ObjectID(p.ID)
+// GetID returns the ObjectID pointer of current Actor instance
+func (a Actor) GetID() *as.ObjectID {
+	id := a.ID
 	return &id
 }
-func (p Person) GetType() as.ActivityVocabularyType {
-	return as.ActivityVocabularyType(p.Type)
+func (a Actor) GetType() as.ActivityVocabularyType {
+	return a.Type
 }
-func (p Person) GetLink() as.IRI {
-	return as.IRI(p.ID)
+func (a Actor) GetLink() as.IRI {
+	return as.IRI(a.ID)
 }
-func (p Person) IsLink() bool {
+func (a Actor) IsLink() bool {
 	return false
 }
 
-func (p Person) IsObject() bool {
+func (a Actor) IsObject() bool {
 	return true
 }
 
-// GetID returns the ObjectID pointer of current Article instance
-func (a Article) GetID() *as.ObjectID {
+// GetID returns the ObjectID pointer of current Object instance
+func (a Object) GetID() *as.ObjectID {
 	id := as.ObjectID(a.ID)
 	return &id
 }
 
-// GetLink returns the IRI of the Article object
-func (a Article) GetLink() as.IRI {
+// GetLink returns the IRI of the Object object
+func (a Object) GetLink() as.IRI {
 	return as.IRI(a.ID)
 }
 
-// GetType returns the current Article object's type
-func (a Article) GetType() as.ActivityVocabularyType {
-	return as.ActivityVocabularyType(a.Type)
+// GetType returns the current Object object's type
+func (a Object) GetType() as.ActivityVocabularyType {
+	return a.Type
 }
 
-// IsLink returns false for an Article object
-func (a Article) IsLink() bool {
+// IsLink returns false for an Object object
+func (a Object) IsLink() bool {
 	return false
 }
 
-// IsObject returns true for an Article object
-func (a Article) IsObject() bool {
+// IsObject returns true for an Object object
+func (a Object) IsObject() bool {
 	return true
 }
 
-// UnmarshalJSON tries to load json data to Article object
-func (a *Article) UnmarshalJSON(data []byte) error {
+// UnmarshalJSON tries to load json data to Object object
+func (a *Object) UnmarshalJSON(data []byte) error {
 	ob := ap.Object{}
 	err := ob.UnmarshalJSON(data)
 	if err != nil {
@@ -86,68 +86,95 @@ func (a *Article) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// UnmarshalJSON tries to load json data to Person object
-func (p *Person) UnmarshalJSON(data []byte) error {
-	pers := auth.Person{}
-	if err := pers.UnmarshalJSON(data); err != nil {
+// UnmarshalJSON tries to load json data to Actor object
+func (a *Actor) UnmarshalJSON(data []byte) error {
+	p := auth.Person{}
+	if err := p.UnmarshalJSON(data); err != nil {
 		return err
 	}
 
-	p.Person = pers
+	a.Person = p
 	if score, err := jsonparser.GetInt(data, "score"); err == nil {
-		p.Score = score
+		a.Score = score
 	}
 
 	return nil
 }
 
-// UnmarshalJSON tries to detect the type of the object in the json data and then outputs a matching
-// ActivityStreams object, if possible
-func UnmarshalJSON(data []byte) (as.Item, error) {
-	i, err := as.UnmarshalJSON(data)
-	switch i.GetType() {
-	case as.PersonType:
-		i = Person{}
-		jsonld.Unmarshal(data, &i)
-	case as.ArticleType:
-		i = Article{}
-		jsonld.Unmarshal(data, &i)
-	}
-	return i, err
-}
-
+// JSONGetItemByType
 func JSONGetItemByType(typ as.ActivityVocabularyType) (as.Item, error) {
-	var ret as.Item
-	var err error
-
-	switch typ {
-	case as.DocumentType:
-		fallthrough
-	case as.NoteType:
-		fallthrough
-	case as.PageType:
-		fallthrough
-	case as.ArticleType:
-		ret = &Article{}
-		o := ret.(*Article)
-		o.Type = typ
-	case as.ApplicationType:
-		fallthrough
-	case as.GroupType:
-		fallthrough
-	case as.OrganizationType:
-		fallthrough
-	case as.ServiceType:
-		fallthrough
-	case as.ActorType:
-		fallthrough
-	case as.PersonType:
-		ret = &Person{}
-		o := ret.(*Person)
-		o.Type = typ
-	default:
-		return as.JSONGetItemByType(typ)
+	if as.ActorTypes.Contains(typ) {
+		act := &Actor{}
+		act.Type = typ
+		return act, nil
+	} else if as.ObjectTypes.Contains(typ) {
+		ob := &Object{}
+		ob.Type = typ
+		return ob, nil
 	}
-	return ret, err
+	return as.JSONGetItemByType(typ)
 }
 
+// ToObject
+func ToObject(it as.Item) (*Object, error) {
+	switch i := it.(type) {
+	case *Object:
+		return i, nil
+	case Object:
+		return &i, nil
+	default:
+		ob, err := as.ToObject(it)
+		if err != nil {
+			return nil, err
+		}
+		return &Object{
+			Object: ap.Object{
+				Parent: *ob,
+			},
+		}, nil
+	}
+	return nil, errors.Newf("unable to convert object")
+}
+
+type withObjectFn func(*Object) error
+
+// OnObject
+func OnObject(it as.Item, fn withObjectFn) error {
+	ob, err := ToObject(it)
+	if err != nil {
+		return err
+	}
+	return fn(ob)
+}
+
+// ToActor
+func ToActor(it as.Item) (*Actor, error) {
+	switch i := it.(type) {
+	case *Actor:
+		return i, nil
+	case Actor:
+		return &i, nil
+	default:
+		pers, err := ap.ToPerson(it)
+		if err != nil {
+			return nil, err
+		}
+		return &Actor{
+			Person: auth.Person{
+				Person: *pers,
+			},
+		}, nil
+	}
+	return nil, errors.Newf("unable to convert object")
+}
+
+type withPersonFn func(*Actor) error
+
+// OnActor
+func OnActor(it as.Item, fn withPersonFn) error {
+	ob, err := ToActor(it)
+	if err != nil {
+		return err
+	}
+	return fn(ob)
+}

@@ -41,11 +41,11 @@ func (a *Account) FromActivityPub(it as.Item) error {
 		}
 		return nil
 	}
-	personFn := func(a *Account, fnAs func(a *Account, p as.Object) error, fnAp func(a *Account, p goap.Person) error, fnLocal func(a *Account, p ap.Person) error) error {
-		if pp, ok := it.(ap.Person); ok {
+	personFn := func(a *Account, fnAs func(a *Account, p as.Object) error, fnAp func(a *Account, p goap.Person) error, fnLocal func(a *Account, p ap.Actor) error) error {
+		if pp, ok := it.(ap.Actor); ok {
 			return fnLocal(a, pp)
 		}
-		if pp, ok := it.(*ap.Person); ok {
+		if pp, ok := it.(*ap.Actor); ok {
 			return fnLocal(a, *pp)
 		}
 		if pp, ok := it.(goap.Person); ok {
@@ -138,7 +138,7 @@ func (a *Account) FromActivityPub(it as.Item) error {
 		}
 		return nil
 	}
-	loadFromLocal := func(a *Account, p ap.Person) error {
+	loadFromLocal := func(a *Account, p ap.Actor) error {
 		if err := loadFromPerson(a, p.Person.Person); err != nil {
 			return err
 		}
@@ -195,11 +195,11 @@ func (i *Item) FromActivityPub(it as.Item) error {
 		i.SubmittedBy = &Account{}
 	}
 
-	articleFn := func(a *Item, fnAs func(i *Item, a as.Object) error, fnAp func(i *Item, a ap.Article) error) error {
-		if a, ok := it.(ap.Article); ok {
+	articleFn := func(a *Item, fnAs func(i *Item, a as.Object) error, fnAp func(i *Item, a ap.Object) error) error {
+		if a, ok := it.(ap.Object); ok {
 			return fnAp(i, a)
 		}
-		if a, ok := it.(*ap.Article); ok {
+		if a, ok := it.(*ap.Object); ok {
 			return fnAp(i, *a)
 		}
 		if o, ok := it.(as.Object); ok {
@@ -288,7 +288,7 @@ func (i *Item) FromActivityPub(it as.Item) error {
 		}
 		return nil
 	}
-	loadFromArticle := func(i *Item, a ap.Article) error {
+	loadFromArticle := func(i *Item, a ap.Object) error {
 		err := loadFromObject(i, a.Object.Parent)
 		i.Score = a.Score
 		// TODO(marius): here we seem to have a bug, when Source.Content is nil when it shouldn't
@@ -358,7 +358,7 @@ func (i *Item) FromActivityPub(it as.Item) error {
 			}
 			return nil
 		}
-		loadFromArticle := func(i *Item, a ap.Article) error {
+		loadFromArticle := func(i *Item, a ap.Object) error {
 			if a.InReplyTo != nil {
 				par := Item{}
 				par.FromActivityPub(a.InReplyTo)
