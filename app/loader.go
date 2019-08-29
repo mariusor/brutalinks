@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	as "github.com/go-ap/activitystreams"
-	"github.com/mariusor/littr.go/app/activitypub"
 	"github.com/mariusor/qstring"
 	"net/url"
 	"strings"
@@ -127,7 +126,7 @@ type Filters struct {
 
 type LoadAccountsFilter struct {
 	Key      []Hash   `qstring:"hash,omitempty"`
-	Handle   []string `qstring:"handle,omitempty"`
+	Handle   []string `qstring:"name,omitempty"`
 	Email    []string `qstring:"email,omitempty"`
 	Deleted  []bool   `qstring:"deleted,omitempty"`
 	IRI      string   `qstring:"id,omitempty"`
@@ -651,12 +650,6 @@ func ContextVoteSaver(ctx context.Context) (CanSaveVotes, bool) {
 func ContextNodeInfoLoader(ctx context.Context) (CanLoadInfo, bool) {
 	ctxVal := ctx.Value(RepositoryCtxtKey)
 	a, ok := ctxVal.(CanLoadInfo)
-	return a, ok
-}
-
-func ContextActivity(ctx context.Context) (activitypub.Activity, bool) {
-	ctxVal := ctx.Value(ItemCtxtKey)
-	a, ok := ctxVal.(activitypub.Activity)
 	return a, ok
 }
 

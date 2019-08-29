@@ -50,29 +50,31 @@ func (h *handler) ShowAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var err error
-	a, err := accountLoader.LoadAccount(app.Filters{LoadAccountsFilter: app.LoadAccountsFilter{Handle: []string{handle}}})
+	accounts, cnt, err := accountLoader.LoadAccounts(app.Filters{LoadAccountsFilter: app.LoadAccountsFilter{Handle: []string{handle}}})
 	if err != nil {
 		h.HandleErrors(w, r, err)
 		return
 	}
-	if !a.IsValid() {
+	if cnt == 0 {
 		h.HandleErrors(w, r, errors.NotFoundf("account %q not found", handle))
 		return
 	}
 
 	filter := app.Filters{
-		LoadItemsFilter: app.LoadItemsFilter{
-			AttributedTo: app.Hashes{a.Hash},
-		},
+		LoadItemsFilter: app.LoadItemsFilter{},
 		MaxItems: MaxContentItems,
 		Page:     1,
 	}
+	for _, a := range accounts {
+		filter.LoadItemsFilter.AttributedTo = append(filter.LoadItemsFilter.AttributedTo, a.Hash)
+	}
+
 	if err := qstring.Unmarshal(r.URL.Query(), &filter); err != nil {
 		h.logger.Debug("unable to load url parameters")
 	}
 	if m, err := loadItems(r.Context(), filter, &h.account, h.logger); err == nil {
-		m.Title = fmt.Sprintf("%s submissions", genitive(a.Handle))
-		m.User = &a
+		m.Title = fmt.Sprintf("%s submissions", genitive(handle))
+		m.User, _ = accounts.First()
 
 		if len(m.Items) >= filter.MaxItems {
 			m.nextPage = filter.Page + 1

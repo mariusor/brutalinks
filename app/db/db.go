@@ -9,14 +9,13 @@ import (
 	as "github.com/go-ap/activitystreams"
 	"github.com/go-ap/jsonld"
 	"github.com/mariusor/littr.go/app"
-	ap "github.com/mariusor/littr.go/app/activitypub"
 	"github.com/mariusor/littr.go/internal/log"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/go-pg/pg"
 	"github.com/go-ap/errors"
+	"github.com/go-pg/pg"
 )
 
 type config struct {
@@ -292,7 +291,7 @@ func saveActivity(db *pg.DB, a as.Item, col as.IRI) (as.Item, error) {
 		return a, err
 	}
 	if a.GetID() == nil {
-		ob := a.(ap.Activity)
+		ob := a.(as.Activity)
 		ob.ID = as.ObjectID(o.IRI)
 		return ob, nil
 	}

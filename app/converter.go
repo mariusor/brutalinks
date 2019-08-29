@@ -73,7 +73,9 @@ func (a *Account) FromActivityPub(it as.Item) error {
 		if len(p.ID) > 0 {
 			iri := p.GetLink()
 			a.Metadata.ID = iri.String()
-			a.Metadata.URL = p.URL.GetLink().String()
+			if p.URL != nil {
+				a.Metadata.URL = p.URL.GetLink().String()
+			}
 			if !HostIsLocal(a.Metadata.ID) {
 				a.Metadata.Name = name
 			}
@@ -137,7 +139,7 @@ func (a *Account) FromActivityPub(it as.Item) error {
 		return nil
 	}
 	loadFromLocal := func(a *Account, p ap.Person) error {
-		if err := loadFromPerson(a, p.Person); err != nil {
+		if err := loadFromPerson(a, p.Person.Person); err != nil {
 			return err
 		}
 		a.Score = p.Score
@@ -158,10 +160,10 @@ func (a *Account) FromActivityPub(it as.Item) error {
 	case as.CreateType:
 		fallthrough
 	case as.UpdateType:
-		if act, ok := it.(*ap.Activity); ok {
+		if act, ok := it.(*as.Activity); ok {
 			return a.FromActivityPub(act.Actor)
 		}
-		if act, ok := it.(ap.Activity); ok {
+		if act, ok := it.(as.Activity); ok {
 			return a.FromActivityPub(act.Actor)
 		}
 	case as.ServiceType:
@@ -244,7 +246,9 @@ func (i *Item) FromActivityPub(it as.Item) error {
 		if len(a.ID) > 0 {
 			iri := a.GetLink()
 			i.Metadata.ID = iri.String()
-			i.Metadata.URL = a.URL.GetLink().String()
+			if a.URL != nil {
+				i.Metadata.URL = a.URL.GetLink().String()
+			}
 		}
 		if a.Icon != nil {
 			if a.Icon.IsObject() {
@@ -297,12 +301,12 @@ func (i *Item) FromActivityPub(it as.Item) error {
 	}
 	switch it.GetType() {
 	case as.DeleteType:
-		if act, ok := it.(*ap.Activity); ok {
+		if act, ok := it.(*as.Activity); ok {
 			err := i.FromActivityPub(act.Object)
 			i.Delete()
 			return err
 		}
-		if act, ok := it.(ap.Activity); ok {
+		if act, ok := it.(as.Activity); ok {
 			err := i.FromActivityPub(act.Object)
 			i.Delete()
 			return err
@@ -312,13 +316,13 @@ func (i *Item) FromActivityPub(it as.Item) error {
 	case as.UpdateType:
 		fallthrough
 	case as.ActivityType:
-		if act, ok := it.(*ap.Activity); ok {
+		if act, ok := it.(*as.Activity); ok {
 			err := i.FromActivityPub(act.Object)
 			i.SubmittedBy.FromActivityPub(act.Actor)
 			i.Metadata.AuthorURI = act.Actor.GetLink().String()
 			return err
 		}
-		if act, ok := it.(ap.Activity); ok {
+		if act, ok := it.(as.Activity); ok {
 			err := i.FromActivityPub(act.Object)
 			i.SubmittedBy.FromActivityPub(act.Actor)
 			i.Metadata.AuthorURI = act.Actor.GetLink().String()
@@ -372,7 +376,7 @@ func (i *Item) FromActivityPub(it as.Item) error {
 		i.Flags = FlagsDeleted
 		i.SubmittedBy = &AnonymousAccount
 	default:
-		return errors.Newf("invalid object type")
+		return errors.Newf("invalid object type %q", it.GetType())
 	}
 
 	return nil
@@ -391,7 +395,7 @@ func (v *Vote) FromActivityPub(it as.Item) error {
 	case as.LikeType:
 		fallthrough
 	case as.DislikeType:
-		fromAct := func (act ap.Activity, v *Vote) {
+		fromAct := func (act as.Activity, v *Vote) {
 			on := Item{}
 			on.FromActivityPub(act.Object)
 			v.Item = &on
@@ -412,10 +416,10 @@ func (v *Vote) FromActivityPub(it as.Item) error {
 				v.Weight = 0
 			}
 		}
-		if act, ok := it.(ap.Activity); ok {
+		if act, ok := it.(as.Activity); ok {
 			fromAct(act, v)
 		}
-		if act, ok := it.(*ap.Activity); ok {
+		if act, ok := it.(*as.Activity); ok {
 			fromAct(*act, v)
 		}
 	}

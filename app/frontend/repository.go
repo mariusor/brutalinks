@@ -43,6 +43,7 @@ func (h handler) Repository(next http.Handler) http.Handler {
 }
 
 func NewRepository(c Config) *repository {
+	as.ItemTyperFunc = local.JSONGetItemByType
 	cl.UserAgent = fmt.Sprintf("%s-%s", app.Instance.HostName, app.Instance.Version)
 	cl.ErrorLogger = func(el ...interface{}) { c.Logger.WithContext(log.Ctx{"client": "api"}).Errorf("%v", el) }
 	cl.InfoLogger = func(el ...interface{}) { c.Logger.WithContext(log.Ctx{"client": "api"}).Debugf("%v", el) }
@@ -106,8 +107,8 @@ func BuildCollectionID(a app.Account, o as.Item) as.ObjectID {
 	return as.ObjectID(fmt.Sprintf("%s/%s", BaseURL, getObjectType(o)))
 }
 
-var BaseURL = "http://api.littr.git"
-var ActorsURL = "http://api.littr.git/actors"
+var BaseURL = "http://fedbox.git"
+var ActorsURL = "http://fedbox.git/actors"
 
 func apAccountID(a app.Account) as.ObjectID {
 	if len(a.Hash) >= 8 {
@@ -373,11 +374,11 @@ func (r *repository) LoadItem(f app.Filters) (app.Item, error) {
 	hashes := f.LoadItemsFilter.Key
 	f.LoadItemsFilter.Key = nil
 
-	var qs string
-	if q, err := qstring.MarshalString(&f); err == nil {
-		qs = fmt.Sprintf("?%s", q)
-	}
-	url := fmt.Sprintf("%s/self/outbox/%s/object%s", r.BaseURL, hashes[0], qs)
+	//var qs string
+	//if q, err := qstring.MarshalString(&f); err == nil {
+	//	qs = fmt.Sprintf("?%s", q)
+	//}
+	url := fmt.Sprintf("%s/objects/%s", r.BaseURL, hashes[0])
 
 	var err error
 	var resp *http.Response
@@ -470,24 +471,20 @@ func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) 
 		qs = fmt.Sprintf("?%s", q)
 	}
 
-	target := "self"
-	c := "outbox"
+	target := "/"
+	c := "objects"
 	if len(f.FollowedBy) > 0 {
 		for _, foll := range f.FollowedBy {
-			target = fmt.Sprintf("self/following/%s", foll)
+			target = fmt.Sprintf("/following/%s", foll)
 			c = "inbox"
 			break
 		}
 	}
 
 	if len(f.Federated) > 0 {
-		for _, fed := range f.Federated {
-			if fed {
-				c = "inbox"
-			}
-		}
+		// TODO(marius): need to add to fedbox support for filtering by hostname
 	}
-	url := fmt.Sprintf("%s/%s/%s%s", r.BaseURL, target, c, qs)
+	url := fmt.Sprintf("%s%s/%s%s", r.BaseURL, target, c, qs)
 
 	var err error
 	var resp *http.Response
@@ -518,24 +515,29 @@ func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) 
 		r.logger.Error(err.Error())
 		return nil, 0, err
 	}
-	col := local.OrderedCollectionNew(as.ObjectID(url))
-	if err = j.Unmarshal(body, &col); err != nil {
+	it, err := as.UnmarshalJSON(body)
+	if err != nil {
 		r.logger.Error(err.Error())
 		return nil, 0, err
 	}
 
-	count := col.TotalItems
 	items := make(app.ItemCollection, 0)
-	for _, it := range col.OrderedItems {
-		i := app.Item{}
-		if err := i.FromActivityPub(it); err != nil {
-			r.logger.Error(err.Error())
-			continue
+	var count uint = 0
+	ap.OnOrderedCollection(it, func(col *as.OrderedCollection) error {
+		count = col.TotalItems
+		for _, it := range col.OrderedItems {
+			i := app.Item{}
+			if err := i.FromActivityPub(it); err != nil {
+				r.logger.Error(err.Error())
+				continue
+			}
+			items = append(items, i)
 		}
-		items = append(items, i)
-	}
-	res, err := r.loadItemsAuthors(items...)
-	return res, count, err
+		items, err = r.loadItemsAuthors(items...)
+		return err
+	})
+
+	return items, count, err
 }
 
 func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
@@ -554,7 +556,7 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 	o := loadAPItem(*v.Item)
 	id := as.ObjectID(url)
 
-	var act local.Activity
+	var act as.Activity
 	act.ID = id
 	act.Actor = p.GetLink()
 	act.Object = o.GetLink()
@@ -621,27 +623,33 @@ func (r *repository) LoadVotes(f app.Filters) (app.VoteCollection, uint, error) 
 		return nil, 0, err
 	}
 
-	var votes app.VoteCollection
 	defer resp.Body.Close()
 	var body []byte
-
-	col := local.OrderedCollectionNew(as.ObjectID(url))
 	if body, err = ioutil.ReadAll(resp.Body); err != nil {
+		r.logger.Error(err.Error())
 		return nil, 0, err
 	}
-	if err := j.Unmarshal(body, &col); err != nil {
+	it, err := as.UnmarshalJSON(body)
+	if err != nil {
+		r.logger.Error(err.Error())
 		return nil, 0, err
 	}
-	count := col.TotalItems
-	votes = make(app.VoteCollection, 0)
-	for _, it := range col.OrderedItems {
-		vot := app.Vote{}
-		if err := vot.FromActivityPub(it); err != nil {
-			r.logger.Warn(err.Error())
-			continue
+	votes := make(app.VoteCollection, 0)
+	var count uint = 0
+	ap.OnOrderedCollection(it, func(col *as.OrderedCollection) error {
+		count = col.TotalItems
+		for _, it := range col.OrderedItems {
+			vot := app.Vote{}
+			if err := vot.FromActivityPub(it); err != nil {
+				r.logger.WithContext(log.Ctx{
+					"type": fmt.Sprintf("%T", it),
+				}).Warn(err.Error())
+				continue
+			}
+			votes = append(votes, vot)
 		}
-		votes = append(votes, vot)
-	}
+		return err
+	})
 	return votes, count, nil
 }
 
@@ -679,7 +687,7 @@ func (r *repository) LoadVote(f app.Filters) (app.Vote, error) {
 		return v, err
 	}
 
-	var like local.Activity
+	var like as.Activity
 	if err := j.Unmarshal(body, &like); err != nil {
 		r.logger.Error(err.Error())
 		return v, err
@@ -799,23 +807,28 @@ func (r *repository) LoadAccounts(f app.Filters) (app.AccountCollection, uint, e
 		r.logger.Error(err.Error())
 		return nil, 0, err
 	}
-	col := local.OrderedCollectionNew(as.ObjectID(url))
-	if err = j.Unmarshal(body, &col); err != nil {
+	it, err := as.UnmarshalJSON(body)
+	if err != nil {
 		r.logger.Error(err.Error())
 		return nil, 0, err
 	}
 	accounts := make(app.AccountCollection, 0)
-	for _, it := range col.OrderedItems {
-		acc := app.Account{}
-		if err := acc.FromActivityPub(it); err != nil {
-			r.logger.WithContext(log.Ctx{
-				"type": fmt.Sprintf("%T", it),
-			}).Warn(err.Error())
-			continue
+	var count uint = 0
+	ap.OnOrderedCollection(it, func(col *as.OrderedCollection) error {
+		count = col.TotalItems
+		for _, it := range col.OrderedItems {
+			acc := app.Account{}
+			if err := acc.FromActivityPub(it); err != nil {
+				r.logger.WithContext(log.Ctx{
+					"type": fmt.Sprintf("%T", it),
+				}).Warn(err.Error())
+				continue
+			}
+			accounts = append(accounts, acc)
 		}
-		accounts = append(accounts, acc)
-	}
-	return accounts, col.TotalItems, nil
+		return err
+	})
+	return accounts, count, nil
 }
 
 func (r *repository) LoadAccount(f app.Filters) (app.Account, error) {
@@ -840,4 +853,9 @@ func (r *repository) LoadAccount(f app.Filters) (app.Account, error) {
 
 func (r *repository) SaveAccount(a app.Account) (app.Account, error) {
 	return db.Config.SaveAccount(a)
+}
+// LoadInfo this method is here to keep compatibility with the repository interfaces
+// but in the long term we might want to store some of this information in the DB
+func (r *repository) LoadInfo() (app.Info, error) {
+	return app.Instance.NodeInfo(), nil
 }
