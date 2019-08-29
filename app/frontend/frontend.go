@@ -182,7 +182,6 @@ type Config struct {
 	SessionKeys     [][]byte
 	SessionsBackend string
 	Logger          log.Logger
-	OAuthServer     *osin.Server
 }
 
 func Init(c Config) (handler, error) {
@@ -206,7 +205,6 @@ func Init(c Config) (handler, error) {
 	c.SessionKeys = loadEnvSessionKeys()
 	h.sstor, err = InitSessionStore(c)
 	h.conf = c
-	h.os = c.OAuthServer
 
 	c.BaseURL = "http://fedbox.git"
 	h.storage = NewRepository(c)
