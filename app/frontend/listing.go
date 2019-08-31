@@ -188,7 +188,7 @@ func (h *handler) HandleIndex(w http.ResponseWriter, r *http.Request) {
 		}
 		h.RenderTemplate(r, w, "listing", m)
 	} else {
-		h.HandleErrors(w, r, errors.NewNotValid(err, "oops!"))
+		h.HandleErrors(w, r, errors.NewNotValid(err, "Unable to load items!"))
 	}
 }
 
