@@ -41,6 +41,23 @@ func E(errs ...error) bool {
 			if len(s) > 0 {
 				fields["trace"] = s
 			}
+			wrapMessages := make([]string, 0)
+			wrapped := err.Unwrap()
+			for {
+				if wrapped == nil {
+					break
+				}
+				wrapMessages = append(wrapMessages, wrapped.Error())
+				if werr, ok := wrapped.(*errors.Err); ok {
+					wrapped = werr.Unwrap()
+				} else {
+					break
+				}
+			}
+			if len(wrapMessages) > 0 {
+				fields["wrapped"] = wrapMessages
+			}
+
 			msg = err.Error()
 		default:
 			msg = err.Error()
