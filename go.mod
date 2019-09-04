@@ -1,5 +1,7 @@
 module github.com/mariusor/littr.go
 
+go 1.13
+
 require (
 	github.com/PuerkitoBio/goquery v1.5.0 // indirect
 	github.com/buger/jsonparser v0.0.0-20181023193515-52c6e1462ebd
@@ -8,7 +10,7 @@ require (
 	github.com/go-ap/activitypub v0.0.0-20190829141911-75e0ad45ba46
 	github.com/go-ap/activitystreams v0.0.0-20190823194947-c9c6d2f72097
 	github.com/go-ap/auth v0.0.0-20190823201020-661348b47cad
-	github.com/go-ap/errors v0.0.0-20190823195320-22e781dd95d2
+	github.com/go-ap/errors v0.0.0-20190904113336-a616ddc7f681
 	github.com/go-ap/jsonld v0.0.0-20190822190548-bcb5efb3a38a
 	github.com/go-chi/chi v4.0.2+incompatible
 	github.com/go-pg/pg v7.1.1+incompatible
@@ -36,6 +38,5 @@ require (
 	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	golang.org/x/text v0.3.2
-	golang.org/x/xerrors v0.0.0-20190513163551-3ee3066db522
 	mellium.im/sasl v0.2.1 // indirect
 )
