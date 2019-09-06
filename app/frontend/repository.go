@@ -391,7 +391,7 @@ func (r *repository) LoadItem(f app.Filters) (app.Item, error) {
 		return item, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		err := errors.Newf("unable to load from the API")
+		err := errors.Newf("unable to load item from the API")
 		r.logger.Error(err.Error())
 		return item, err
 	}
@@ -509,7 +509,7 @@ func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) 
 		return nil, 0, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		err := errors.Newf("unable to load from the API")
+		err := errors.Newf("unable to load items from the API")
 		r.logger.WithContext(ctx).Error(err.Error())
 		return nil, 0, err
 	}
@@ -601,19 +601,18 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 
 func (r *repository) LoadVotes(f app.Filters) (app.VoteCollection, uint, error) {
 	var qs string
-	//f.Type = app.ActivityTypes{
-	//	app.TypeLike,
-	//	app.TypeDislike,
-	//	app.TypeUndo,
-	//}
+	f.Type = as.ActivityVocabularyTypes{
+		as.LikeType,
+		as.DislikeType,
+		as.UndoType,
+	}
 	if q, err := qstring.MarshalString(&f); err == nil {
 		qs = fmt.Sprintf("?%s", q)
 	}
 
 	var err error
 	var resp *http.Response
-	url := fmt.Sprintf("%s/self/liked%s", r.BaseURL, qs)
-	//url := fmt.Sprintf("%s/self/inbox%s", r.BaseURL, qs)
+	url := fmt.Sprintf("%s/activities%s", r.BaseURL, qs)
 	if resp, err = r.client.Get(url); err != nil {
 		r.logger.Error(err.Error())
 		return nil, 0, err
@@ -623,7 +622,7 @@ func (r *repository) LoadVotes(f app.Filters) (app.VoteCollection, uint, error) 
 		return nil, 0, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		err := errors.Newf("unable to load from the API")
+		err := errors.Newf("unable to load votes from the API")
 		r.logger.Error(err.Error())
 		return nil, 0, err
 	}
@@ -680,7 +679,7 @@ func (r *repository) LoadVote(f app.Filters) (app.Vote, error) {
 		return v, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		err := errors.Newf("unable to load from the API")
+		err := errors.Newf("unable to load vote from the API")
 		r.logger.Error(err.Error())
 		return v, err
 	}
@@ -804,7 +803,7 @@ func (r *repository) LoadAccounts(f app.Filters) (app.AccountCollection, uint, e
 		return nil, 0, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		err := errors.Newf("unable to load from the API")
+		err := errors.Newf("unable to load accounts from the API")
 		r.logger.Error(err.Error())
 		return nil, 0, err
 	}

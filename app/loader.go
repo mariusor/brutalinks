@@ -88,11 +88,11 @@ func (h Hashes) String() string {
 }
 
 type LoadVotesFilter struct {
-	ItemKey              []Hash    `qstring:"hash,omitempty"`
-	Type                 VoteTypes `qstring:"type,omitempty"`
-	AttributedTo         []Hash    `qstring:"attributedTo,omitempty"`
-	SubmittedAt          time.Time `qstring:"submittedAt,omitempty"`
-	SubmittedAtMatchType MatchType `qstring:"submittedAtMatchType,omitempty"`
+	ItemKey              []Hash                     `qstring:"object,omitempty"`
+	Type                 as.ActivityVocabularyTypes `qstring:"type,omitempty"`
+	AttributedTo         []Hash                     `qstring:"attributedTo,omitempty"`
+	SubmittedAt          time.Time                  `qstring:"submittedAt,omitempty"`
+	SubmittedAtMatchType MatchType                  `qstring:"submittedAtMatchType,omitempty"`
 }
 
 type LoadItemsFilter struct {
