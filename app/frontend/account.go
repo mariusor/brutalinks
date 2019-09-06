@@ -33,12 +33,6 @@ func (i itemListingModel) PrevPage() int {
 	return i.prevPage
 }
 
-type sessionAccount struct {
-	Hash   []byte
-	Handle string
-	Account app.Account
-}
-
 // ShowAccount serves /~handler request
 func (h *handler) ShowAccount(w http.ResponseWriter, r *http.Request) {
 	handle := chi.URLParam(r, "handle")

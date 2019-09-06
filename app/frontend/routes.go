@@ -80,7 +80,6 @@ func (h *handler) Routes() func(chi.Router) {
 
 		r.Route("/auth", func(r chi.Router) {
 			r.Use(h.NeedsSessions)
-			r.Get("/{provider}", h.HandleAuth)
 			r.Get("/{provider}/callback", h.HandleCallback)
 		})
 

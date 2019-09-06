@@ -185,7 +185,7 @@ type Config struct {
 
 func Init(c Config) (handler, error) {
 	// frontend
-	gob.Register(sessionAccount{})
+	gob.Register(app.Account{})
 	gob.Register(flash{})
 
 	var err error
@@ -592,11 +592,7 @@ func (h *handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
 
 	s, _ := h.sstor.Get(r, sessionName)
 	h.account = loadCurrentAccountFromSession(s, h.storage, h.logger)
-	s.Values[SessionUserKey] = sessionAccount{
-		Handle:  h.account.Handle,
-		Hash:    []byte(h.account.Hash),
-		Account: h.account,
-	}
+	s.Values[SessionUserKey] = h.account
 	if strings.ToLower(provider) != "local" {
 		h.addFlashMessage(Success, r, fmt.Sprintf("Login successful with %s", provider))
 	} else {
@@ -663,33 +659,6 @@ func GetOauth2Config(provider string, localBaseURL string) oauth2.Config {
 	return config
 }
 
-// HandleAuth serves /auth/{provider} request
-func (h *handler) HandleAuth(w http.ResponseWriter, r *http.Request) {
-	provider := chi.URLParam(r, "provider")
-
-	indexUrl := "/"
-	if strings.ToLower(provider) != "local" && os.Getenv("OAUTH2_KEY") == "" {
-		h.logger.WithContext(log.Ctx{
-			"provider": provider,
-		}).Info("Provider has no credentials set")
-		h.Redirect(w, r, indexUrl, http.StatusPermanentRedirect)
-		return
-	}
-
-	// TODO(marius): generated _CSRF state value to check in h.HandleCallback
-	config := GetOauth2Config(provider, h.conf.BaseURL)
-	if len(config.ClientID) == 0 {
-		s, err := h.sstor.Get(r, sessionName)
-		if err != nil {
-			h.logger.Debugf(err.Error())
-		}
-		s.AddFlash("Missing oauth provider")
-		h.Redirect(w, r, indexUrl, http.StatusPermanentRedirect)
-	}
-	// redirURL := "http://brutalinks.git/oauth/authorize?access_type=online&client_id=eaca4839ddf16cb4a5c4ca126db8de5c&redirect_uri=http%3A%2F%2Fbrutalinks.git%2Fauth%2Flocal%2Fcallback&response_type=code&state=state"
-	h.Redirect(w, r, config.AuthCodeURL("state", oauth2.AccessTypeOnline), http.StatusFound)
-}
-
 func isInverted(r *http.Request) bool {
 	cookies := r.Cookies()
 	for _, c := range cookies {
@@ -703,32 +672,32 @@ func isInverted(r *http.Request) bool {
 func loadCurrentAccountFromSession(s *sessions.Session, r *repository, l log.Logger) app.Account {
 	// load the current account from the session or setting it to anonymous
 	if raw, ok := s.Values[SessionUserKey]; ok {
-		if a, ok := raw.(sessionAccount); ok {
-			if a.Account.Hash == "" {
+		if a, ok := raw.(app.Account); ok {
+			if a.IsValid() {
 				var err error
-				a.Account, err = r.LoadAccount(app.Filters{
+				a, err = r.LoadAccount(app.Filters{
 					LoadAccountsFilter: app.LoadAccountsFilter{
 						Handle: []string{a.Handle},
-						Key:    []app.Hash{app.Hash(a.Hash)},
+						Key:    []app.Hash{a.Hash},
 					},
 				})
 				if err != nil {
 					l.WithContext(log.Ctx{
 						"handle": a.Handle,
-						"hash":   string(a.Hash),
+						"hash":   a.Hash,
 					}).Warn(err.Error())
 					return defaultAccount
 				}
 				l.WithContext(log.Ctx{
-					"handle": a.Account.Handle,
-					"hash":   a.Account.Hash.String(),
+					"handle": a.Handle,
+					"hash":   a.Hash,
 				}).Debug("loaded actor from remote server")
 			}
 			l.WithContext(log.Ctx{
-				"handle": a.Account.Handle,
-				"hash":   a.Account.Hash.String(),
+				"handle": a.Handle,
+				"hash":   a.Hash,
 			}).Debug("loaded account from session")
-			return a.Account
+			return a
 		}
 	}
 	return defaultAccount
