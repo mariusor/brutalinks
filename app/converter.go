@@ -92,7 +92,7 @@ func (a *Account) FromActivityPub(it as.Item) error {
 				}
 			}
 		}
-		if a.IsFederated() {
+		if a.Email == "" {
 			// @TODO(marius): this returns false positives when API_URL is set and different than
 			host := host(a.Metadata.URL)
 			a.Email = fmt.Sprintf("%s@%s", a.Handle, host)
