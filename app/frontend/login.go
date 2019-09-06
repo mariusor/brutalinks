@@ -3,11 +3,10 @@ package frontend
 import (
 	"fmt"
 	"github.com/mariusor/littr.go/app"
-	"github.com/mariusor/littr.go/app/db"
-	"github.com/mariusor/littr.go/internal/log"
-	"golang.org/x/crypto/bcrypt"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 	"net/http"
+	"os"
 )
 
 const SessionUserKey = "__current_acct"
@@ -22,50 +21,70 @@ type loginModel struct {
 func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	pw := r.PostFormValue("pw")
 	handle := r.PostFormValue("handle")
+	client := os.Getenv("OAUTH2_KEY")
+	clientSecret := os.Getenv("OAUTH2_SECRET")
+	state := r.PostFormValue("state")
 
-	backUrl := "/oauth/authorize"
-	a, err := db.Config.LoadAccount(app.Filters{LoadAccountsFilter: app.LoadAccountsFilter{Handle: []string{handle}}})
+	// Try to load actor from handle
+	acct, err := h.storage.LoadAccount(app.Filters{
+		LoadAccountsFilter: app.LoadAccountsFilter{
+			Handle:  []string{handle,},
+			Deleted: []bool{false,},
+		},
+	})
 	if err != nil {
-		h.logger.Error(err.Error())
-		h.addFlashMessage(Error, r, "Login failed: wrong handle or password")
-		h.Redirect(w, r, backUrl, http.StatusSeeOther)
-		return
-	}
-	if a.Metadata == nil {
-		h.logger.WithContext(log.Ctx{
+		h.logger.WithContext(logrus.Fields{
 			"handle": handle,
-		}).Error("invalid account metadata")
-		h.addFlashMessage(Error, r, "Login failed: wrong handle or password")
-		h.Redirect(w, r, backUrl, http.StatusSeeOther)
+			"client": client,
+			"state":  state,
+		}).Error(err.Error())
+		h.addFlashMessage(Error, r, fmt.Sprintf("Login failed: %s", err))
+		h.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
-	h.logger.WithContext(log.Ctx{
-		"pw":   fmt.Sprintf("%s", a.Metadata.Password),
-		"salt": fmt.Sprintf("%2x", a.Metadata.Salt),
-	}).Debug("Loaded password")
-	salt := a.Metadata.Salt
-	saltyPw := []byte(pw)
-	saltyPw = append(saltyPw, salt...)
-	err = bcrypt.CompareHashAndPassword(a.Metadata.Password, saltyPw)
+	h.account = acct
 
+	config := oauth2.Config{
+		ClientID:     client,
+		ClientSecret: clientSecret,
+		RedirectURL:  "http://littr.git/oauth/callback",
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  "http://fedbox.git/oauth/authorize",
+			TokenURL: "http://fedbox.git/oauth/token",
+		},
+	}
+	tok, err := config.PasswordCredentialsToken(r.Context(), handle, pw)
 	if err != nil {
-		h.logger.Error(err.Error())
-		h.addFlashMessage(Error, r, "Login failed: wrong handle or password")
-		h.Redirect(w, r, backUrl, http.StatusSeeOther)
+		h.logger.WithContext(logrus.Fields{
+			"handle": handle,
+			"client": client,
+			"state":  state,
+		}).Error(err.Error())
+		h.addFlashMessage(Error, r, fmt.Sprintf("Login failed: %s", err))
+		h.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
-
+	if tok == nil {
+		h.logger.WithContext(logrus.Fields{
+			"handle": handle,
+			"client": client,
+			"state":  state,
+		}).Errorf("nil token received")
+		h.addFlashMessage(Error, r, "Login failed: wrong handle or password")
+		h.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+	h.account.Metadata.OAuth.Provider = "fedbox.git"
+	h.account.Metadata.OAuth.Token = tok.AccessToken
+	h.account.Metadata.OAuth.TokenType = tok.TokenType
+	h.account.Metadata.OAuth.RefreshToken = tok.RefreshToken
 	s, _ := h.sstor.Get(r, sessionName)
 	s.Values[SessionUserKey] = sessionAccount{
-		Handle: a.Handle,
-		Hash:   []byte(a.Hash),
+		Handle:  h.account.Handle,
+		Hash:    []byte(h.account.Hash),
+		Account: h.account,
 	}
-	if err := s.Save(r, w); err != nil {
-		h.logger.Error(err.Error())
-	}
-
-	config := GetOauth2Config("local", h.conf.BaseURL)
-	h.Redirect(w, r, config.AuthCodeURL("state", oauth2.AccessTypeOnline), http.StatusPermanentRedirect)
+	h.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 // ShowLogin serves GET /login requests

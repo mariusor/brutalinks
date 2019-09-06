@@ -36,7 +36,7 @@ func (i itemListingModel) PrevPage() int {
 type sessionAccount struct {
 	Hash   []byte
 	Handle string
-	OAuth  app.OAuth
+	Account app.Account
 }
 
 // ShowAccount serves /~handler request

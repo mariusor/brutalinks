@@ -6,7 +6,6 @@ import (
 	"encoding/gob"
 	"fmt"
 	"github.com/gorilla/csrf"
-	"github.com/openshift/osin"
 	"html/template"
 	"math"
 	"net/http"
@@ -42,7 +41,6 @@ type handler struct {
 	account app.Account
 	logger  log.Logger
 	storage *repository
-	os      *osin.Server
 }
 
 var defaultAccount = app.AnonymousAccount
@@ -579,7 +577,10 @@ func (h *handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
 		h.HandleErrors(w, r, err)
 		return
 	}
-	oauth := app.OAuth{
+	if h.account.Metadata == nil {
+		h.account.Metadata = &app.AccountMetadata{}
+	}
+	h.account.Metadata.OAuth = app.OAuth{
 		State:        state,
 		Code:         code,
 		Provider:     provider,
@@ -590,11 +591,11 @@ func (h *handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s, _ := h.sstor.Get(r, sessionName)
-	h.account = loadCurrentAccountFromSession(s, h.logger)
+	h.account = loadCurrentAccountFromSession(s, h.storage, h.logger)
 	s.Values[SessionUserKey] = sessionAccount{
-		Handle: h.account.Handle,
-		Hash:   []byte(h.account.Hash),
-		OAuth:  oauth,
+		Handle:  h.account.Handle,
+		Hash:    []byte(h.account.Hash),
+		Account: h.account,
 	}
 	if strings.ToLower(provider) != "local" {
 		h.addFlashMessage(Success, r, fmt.Sprintf("Login successful with %s", provider))
@@ -700,25 +701,35 @@ func isInverted(r *http.Request) bool {
 	return false
 }
 
-func loadCurrentAccountFromSession(s *sessions.Session, l log.Logger) app.Account {
+func loadCurrentAccountFromSession(s *sessions.Session, r *repository, l log.Logger) app.Account {
 	// load the current account from the session or setting it to anonymous
 	if raw, ok := s.Values[SessionUserKey]; ok {
 		if a, ok := raw.(sessionAccount); ok {
-			if acc, err := db.Config.LoadAccount(app.Filters{LoadAccountsFilter: app.LoadAccountsFilter{Handle: []string{a.Handle}}}); err == nil {
-				l.WithContext(log.Ctx{
-					"handle": acc.Handle,
-					"hash":   acc.Hash.String(),
-				}).Debug("loaded account from session")
-				acc.Metadata.OAuth = a.OAuth
-				return acc
-			} else {
+			if a.Account.Hash == "" {
+				var err error
+				a.Account, err = r.LoadAccount(app.Filters{
+					LoadAccountsFilter: app.LoadAccountsFilter{
+						Handle: []string{a.Handle},
+						Key:    []app.Hash{app.Hash(a.Hash)},
+					},
+				})
 				if err != nil {
 					l.WithContext(log.Ctx{
 						"handle": a.Handle,
 						"hash":   string(a.Hash),
 					}).Warn(err.Error())
+					return defaultAccount
 				}
+				l.WithContext(log.Ctx{
+					"handle": a.Account.Handle,
+					"hash":   a.Account.Hash.String(),
+				}).Debug("loaded actor from remote server")
 			}
+			l.WithContext(log.Ctx{
+				"handle": a.Account.Handle,
+				"hash":   a.Account.Hash.String(),
+			}).Debug("loaded account from session")
+			return a.Account
 		}
 	}
 	return defaultAccount
@@ -754,7 +765,7 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 						}
 					}
 				} else {
-					h.account = loadCurrentAccountFromSession(s, h.logger)
+					h.account = loadCurrentAccountFromSession(s, h.storage, h.logger)
 				}
 			} else {
 				h.logger.Warn("missing session store, unable to load session")
