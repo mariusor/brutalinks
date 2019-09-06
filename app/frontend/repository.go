@@ -48,7 +48,7 @@ func NewRepository(c Config) *repository {
 	cl.ErrorLogger = func(el ...interface{}) { c.Logger.WithContext(log.Ctx{"client": "api"}).Errorf("%v", el) }
 	cl.InfoLogger = func(el ...interface{}) { c.Logger.WithContext(log.Ctx{"client": "api"}).Debugf("%v", el) }
 	return &repository{
-		BaseURL: c.BaseURL,
+		BaseURL: c.APIURL,
 		logger:  c.Logger,
 		client:  cl.NewClient(),
 	}

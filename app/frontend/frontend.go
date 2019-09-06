@@ -174,6 +174,7 @@ func relTimeFmt(old time.Time) string {
 type Config struct {
 	Env             app.EnvType
 	Version         string
+	APIURL          string
 	BaseURL         string
 	HostName        string
 	Secure          bool
@@ -204,7 +205,6 @@ func Init(c Config) (handler, error) {
 	h.sstor, err = InitSessionStore(c)
 	h.conf = c
 
-	c.BaseURL = "http://fedbox.git"
 	h.storage = NewRepository(c)
 	return h, err
 }
@@ -644,23 +644,22 @@ func GetOauth2Config(provider string, localBaseURL string) oauth2.Config {
 				TokenURL: "https://accounts.google.com/o/oauth2/token",
 			},
 		}
-	case "local":
+	case "fedbox":
+		fallthrough
+	default:
+		apiURL := os.Getenv("API_URL")
 		config = oauth2.Config{
 			ClientID:     os.Getenv("OAUTH2_KEY"),
 			ClientSecret: os.Getenv("OAUTH2_SECRET"),
 			Endpoint: oauth2.Endpoint{
-				AuthURL:  fmt.Sprintf("%s/oauth/authorize", localBaseURL),
-				TokenURL: fmt.Sprintf("%s/oauth/token", localBaseURL),
+				AuthURL:  fmt.Sprintf("%s/oauth/authorize", apiURL),
+				TokenURL: fmt.Sprintf("%s/oauth/token", apiURL),
 			},
 		}
-	default:
-		config = oauth2.Config{}
 	}
-	url := os.Getenv("OAUTH2_URL")
-	if url == "" {
-		url = fmt.Sprintf("%s/auth/%s/callback", localBaseURL, provider)
+	if config.RedirectURL = os.Getenv("OAUTH2_URL"); config.RedirectURL == "" {
+		config.RedirectURL = fmt.Sprintf("%s/auth/%s/callback", localBaseURL, provider)
 	}
-	config.RedirectURL = url
 	return config
 }
 

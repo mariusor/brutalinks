@@ -269,8 +269,7 @@ func loadEnv(l *Application) (bool, error) {
 	userCreationDisabled, _ := strconv.ParseBool(os.Getenv("DISABLE_USER_CREATION"))
 	l.Config.UserCreatingEnabled = !userCreationDisabled
 
-	l.APIURL = os.Getenv("API_URL")
-	if l.APIURL == "" {
+	if l.APIURL = os.Getenv("API_URL"); l.APIURL == "" {
 		l.APIURL = fmt.Sprintf("%s/api", l.BaseURL)
 	}
 	return true, nil

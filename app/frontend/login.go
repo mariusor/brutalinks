@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"github.com/mariusor/littr.go/app"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/oauth2"
 	"net/http"
-	"os"
 )
 
 const SessionUserKey = "__current_acct"
@@ -21,10 +19,9 @@ type loginModel struct {
 func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	pw := r.PostFormValue("pw")
 	handle := r.PostFormValue("handle")
-	client := os.Getenv("OAUTH2_KEY")
-	clientSecret := os.Getenv("OAUTH2_SECRET")
 	state := r.PostFormValue("state")
 
+	config := GetOauth2Config("fedbox", h.conf.BaseURL)
 	// Try to load actor from handle
 	acct, err := h.storage.LoadAccount(app.Filters{
 		LoadAccountsFilter: app.LoadAccountsFilter{
@@ -35,7 +32,7 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.logger.WithContext(logrus.Fields{
 			"handle": handle,
-			"client": client,
+			"client": config.ClientID,
 			"state":  state,
 		}).Error(err.Error())
 		h.addFlashMessage(Error, r, fmt.Sprintf("Login failed: %s", err))
@@ -44,20 +41,11 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	h.account = acct
 
-	config := oauth2.Config{
-		ClientID:     client,
-		ClientSecret: clientSecret,
-		RedirectURL:  "http://littr.git/oauth/callback",
-		Endpoint: oauth2.Endpoint{
-			AuthURL:  "http://fedbox.git/oauth/authorize",
-			TokenURL: "http://fedbox.git/oauth/token",
-		},
-	}
 	tok, err := config.PasswordCredentialsToken(r.Context(), handle, pw)
 	if err != nil {
 		h.logger.WithContext(logrus.Fields{
 			"handle": handle,
-			"client": client,
+			"client": config.ClientID,
 			"state":  state,
 		}).Error(err.Error())
 		h.addFlashMessage(Error, r, fmt.Sprintf("Login failed: %s", err))
@@ -67,7 +55,7 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	if tok == nil {
 		h.logger.WithContext(logrus.Fields{
 			"handle": handle,
-			"client": client,
+			"client": config.ClientID,
 			"state":  state,
 		}).Errorf("nil token received")
 		h.addFlashMessage(Error, r, "Login failed: wrong handle or password")

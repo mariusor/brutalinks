@@ -47,6 +47,7 @@ func main() {
 		Logger:      app.Instance.Logger.New(log.Ctx{"package": "frontend"}),
 		Secure:      app.Instance.Secure,
 		BaseURL:     app.Instance.BaseURL,
+		APIURL:      app.Instance.APIURL,
 		HostName:    app.Instance.HostName,
 	})
 	if err != nil {

@@ -180,6 +180,10 @@ func (a *Account) FromActivityPub(it as.Item) error {
 		return errors.Newf("invalid actor type")
 	}
 
+	if a.Metadata.URL == a.Metadata.ID {
+		a.Metadata.URL = ""
+	}
+
 	return nil
 }
 
@@ -395,7 +399,7 @@ func (v *Vote) FromActivityPub(it as.Item) error {
 	case as.LikeType:
 		fallthrough
 	case as.DislikeType:
-		fromAct := func (act as.Activity, v *Vote) {
+		fromAct := func(act as.Activity, v *Vote) {
 			on := Item{}
 			on.FromActivityPub(act.Object)
 			v.Item = &on
