@@ -332,6 +332,23 @@ func getSigner(pubKeyID as.ObjectID, key crypto.PrivateKey) *httpsig.Signer {
 	return httpsig.NewSigner(string(pubKeyID), key, httpsig.RSASHA256, hdrs)
 }
 
+func (r *repository) WithAccount(a *app.Account) error {
+	// TODO(marius): this needs to be added to the federated requests, which we currently don't support
+	if !a.IsValid() || !a.IsLogged() {
+		return nil
+	}
+	r.Account = a
+
+	r.client.SignFn(func(r *http.Request) error {
+		if a.Metadata.OAuth.Token == "" {
+			return nil
+		}
+		r.Header.Add("Authorization", "Bearer coFadMiZRFyvx9MkWC_S9w")//fmt.Sprintf("Bearer %s", a.Metadata.OAuth.Token))
+		return nil
+	})
+	return nil
+}
+
 func (r *repository) withAccountS2S(a *app.Account) error {
 	// TODO(marius): this needs to be added to the federated requests, which we currently don't support
 	r.Account = a
@@ -413,6 +430,7 @@ func (r *repository) LoadItem(f app.Filters) (app.Item, error) {
 		if err == nil {
 			var items app.ItemCollection
 			items, err = r.loadItemsAuthors(item)
+			items, err = r.loadItemsVotes(item)
 			if len(items) > 0 {
 				item = items[0]
 			}
@@ -434,6 +452,36 @@ func hashesUnique(a app.Hashes) app.Hashes {
 		}
 	}
 	return u
+}
+
+func (r *repository) loadItemsVotes(items ...app.Item) (app.ItemCollection, error) {
+	if len(items) == 0 {
+		return items, nil
+	}
+	fVotes := app.Filters{}
+	for _, it := range items {
+		fVotes.LoadVotesFilter.ItemKey = append(fVotes.LoadVotesFilter.ItemKey, it.Hash)
+	}
+	fVotes.LoadVotesFilter.ItemKey = hashesUnique(fVotes.LoadVotesFilter.ItemKey)
+	col := make(app.ItemCollection, len(items))
+	votes, _, err := r.LoadVotes(fVotes)
+	if err != nil {
+		return nil, errors.Annotatef(err, "unable to load items votes")
+	}
+	for k, it := range items {
+		for _, vot := range votes {
+			if vot.Item.Hash == it.Hash  {
+				if vot.Weight > 0 {
+					it.Score += vot.Weight
+				}
+				if vot.Weight < 0 {
+					it.Score -= vot.Weight
+				}
+			}
+		}
+		col[k] = it
+	}
+	return col, nil
 }
 
 func (r *repository) loadItemsAuthors(items ...app.Item) (app.ItemCollection, error) {
@@ -539,6 +587,7 @@ func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) 
 			items = append(items, i)
 		}
 		items, err = r.loadItemsAuthors(items...)
+		items, err = r.loadItemsVotes(items...)
 		return err
 	})
 
@@ -697,7 +746,7 @@ func (r *repository) LoadVote(f app.Filters) (app.Vote, error) {
 		return v, err
 	}
 	err = ap.OnActivity(it, func(like *as.Activity) error {
-		return  v.FromActivityPub(like)
+		return v.FromActivityPub(like)
 	})
 	return v, err
 }
@@ -860,6 +909,7 @@ func (r *repository) LoadAccount(f app.Filters) (app.Account, error) {
 func (r *repository) SaveAccount(a app.Account) (app.Account, error) {
 	return db.Config.SaveAccount(a)
 }
+
 // LoadInfo this method is here to keep compatibility with the repository interfaces
 // but in the long term we might want to store some of this information in the DB
 func (r *repository) LoadInfo() (app.Info, error) {

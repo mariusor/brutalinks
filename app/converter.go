@@ -420,12 +420,10 @@ func (v *Vote) FromActivityPub(it as.Item) error {
 				v.Weight = 0
 			}
 		}
-		if act, ok := it.(as.Activity); ok {
-			fromAct(act, v)
-		}
-		if act, ok := it.(*as.Activity); ok {
+		goap.OnActivity(it, func(act *as.Activity) error {
 			fromAct(*act, v)
-		}
+			return nil
+		})
 	}
 
 	return nil
