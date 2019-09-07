@@ -673,7 +673,7 @@ func loadCurrentAccountFromSession(s *sessions.Session, r *repository, l log.Log
 	// load the current account from the session or setting it to anonymous
 	if raw, ok := s.Values[SessionUserKey]; ok {
 		if a, ok := raw.(app.Account); ok {
-			if a.IsValid() {
+			if !a.IsValid() {
 				var err error
 				a, err = r.LoadAccount(app.Filters{
 					LoadAccountsFilter: app.LoadAccountsFilter{
@@ -697,6 +697,9 @@ func loadCurrentAccountFromSession(s *sessions.Session, r *repository, l log.Log
 				"handle": a.Handle,
 				"hash":   a.Hash,
 			}).Debug("loaded account from session")
+			if a.IsLogged() {
+				r.WithAccount(&a)
+			}
 			return a
 		}
 	}

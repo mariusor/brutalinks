@@ -194,7 +194,6 @@ func (h *handler) HandleIndex(w http.ResponseWriter, r *http.Request) {
 
 func loadItems(c context.Context, filter app.Filters, acc *app.Account, l log.Logger) (itemListingModel, error) {
 	m := itemListingModel{}
-
 	itemLoader, ok := app.ContextItemLoader(c)
 	if !ok {
 		err := errors.Errorf("could not load item repository from Context")
