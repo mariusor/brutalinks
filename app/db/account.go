@@ -22,7 +22,7 @@ type Account struct {
 	Key       app.Key             `sql:"key,size(32)"`
 	Email     string              `sql:"email"`
 	Handle    string              `sql:"handle"`
-	Score     int64               `sql:"score"`
+	Score     int                 `sql:"score"`
 	CreatedAt time.Time           `sql:"created_at"`
 	UpdatedAt time.Time           `sql:"updated_at"`
 	Flags     FlagBits            `sql:"flags"`

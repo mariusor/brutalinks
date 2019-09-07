@@ -259,7 +259,7 @@ type errorModel struct {
 	Errors []error
 }
 
-func loadScoreFormat(s int64) (string, string) {
+func loadScoreFormat(s int) (string, string) {
 	const (
 		ScoreMaxK = 1000.0
 		ScoreMaxM = 1000000.0
@@ -299,7 +299,7 @@ func numberFormat(fmtVerb string, el ...interface{}) string {
 	return message.NewPrinter(language.English).Sprintf(fmtVerb, el...)
 }
 
-func scoreClass(s int64) string {
+func scoreClass(s int) string {
 	_, class := loadScoreFormat(s)
 	if class == "" {
 		class = "H"
@@ -307,7 +307,7 @@ func scoreClass(s int64) string {
 	return class
 }
 
-func scoreFmt(s int64) string {
+func scoreFmt(s int) string {
 	score, units := loadScoreFormat(s)
 	if units == "inf" {
 		units = ""
@@ -488,7 +488,7 @@ func (h *handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name st
 			"IsYay":             isYay,
 			"IsNay":             isNay,
 			"ScoreFmt":          scoreFmt,
-			"NumberFmt":         func(i int64) string { return numberFormat("%d", i) },
+			"NumberFmt":         func(i int) string { return numberFormat("%d", i) },
 			"TimeFmt":           relTimeFmt,
 			"ISOTimeFmt":        isoTimeFmt,
 			"ScoreClass":        scoreClass,

@@ -14,7 +14,7 @@ import (
 type Actor struct {
 	auth.Person
 	// Score is our own custom property for which we needed to extend the existing AP one
-	Score int64 `jsonld:"score"`
+	Score int `jsonld:"score"`
 }
 
 // Object it should be identical to:
@@ -22,7 +22,7 @@ type Actor struct {
 // We need it here in order to be able to add to it our Score property
 type Object struct {
 	ap.Object
-	Score int64 `jsonld:"score"`
+	Score int `jsonld:"score"`
 }
 
 // GetID returns the ObjectID pointer of current Actor instance
@@ -80,7 +80,7 @@ func (a *Object) UnmarshalJSON(data []byte) error {
 
 	a.Object = ob
 	if score, err := jsonparser.GetInt(data, "score"); err == nil {
-		a.Score = score
+		a.Score = int(score)
 	}
 
 	return nil
@@ -95,7 +95,7 @@ func (a *Actor) UnmarshalJSON(data []byte) error {
 
 	a.Person = p
 	if score, err := jsonparser.GetInt(data, "score"); err == nil {
-		a.Score = score
+		a.Score = int(score)
 	}
 
 	return nil

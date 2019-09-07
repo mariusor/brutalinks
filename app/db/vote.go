@@ -158,7 +158,7 @@ type votesView struct {
 	Title           sql.NullString      `sql:"item_title"`
 	MimeType        string              `sql:"item_mime_type"`
 	Data            sql.NullString      `sql:"item_data"`
-	ItemScore       int64               `sql:"item_score"`
+	ItemScore       int                 `sql:"item_score"`
 	ItemSubmittedAt time.Time           `sql:"item_submitted_at"`
 	ItemSubmittedBy int64               `sql:"item_submitted_by"`
 	ItemUpdatedAt   time.Time           `sql:"item_updated_at"`
@@ -169,7 +169,7 @@ type votesView struct {
 	VoterKey        app.Key             `sql:"voter_key,size(32)"`
 	VoterEmail      string              `sql:"voter_email"`
 	VoterHandle     string              `sql:"voter_handle"`
-	VoterScore      int64               `sql:"voter_score"`
+	VoterScore      int                 `sql:"voter_score"`
 	VoterCreatedAt  time.Time           `sql:"voter_created_at"`
 	VoterUpdatedAt  time.Time           `sql:"voter_updated_at"`
 	VoterFlags      FlagBits            `sql:"voter_flags"`
@@ -178,7 +178,7 @@ type votesView struct {
 	AuthorKey       app.Key             `sql:"author_key,size(32)"`
 	AuthorEmail     string              `sql:"author_email"`
 	AuthorHandle    string              `sql:"author_handle"`
-	AuthorScore     int64               `sql:"author_score"`
+	AuthorScore     int                 `sql:"author_score"`
 	AuthorCreatedAt time.Time           `sql:"author_created_at"`
 	AuthorUpdatedAt time.Time           `sql:"author_updated_at"`
 	AuthorFlags     FlagBits            `sql:"author_flags"`

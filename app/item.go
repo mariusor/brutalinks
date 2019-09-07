@@ -42,7 +42,7 @@ type Item struct {
 	Title       string        `json:"-"`
 	MimeType    MimeType      `json:"-"`
 	Data        string        `json:"-"`
-	Score       int64         `json:"-"`
+	Score       int           `json:"-"`
 	SubmittedAt time.Time     `json:"-"`
 	SubmittedBy *Account      `json:"-"`
 	UpdatedAt   time.Time     `json:"-"`

@@ -19,7 +19,7 @@ type Item struct {
 	Title       sql.NullString   `sql:"title"`
 	MimeType    string           `sql:"mime_type"`
 	Data        sql.NullString   `sql:"data"`
-	Score       int64            `sql:"score"`
+	Score       int              `sql:"score"`
 	SubmittedAt time.Time        `sql:"submitted_at"`
 	SubmittedBy int64            `sql:"submitted_by"`
 	UpdatedAt   time.Time        `sql:"updated_at"`
@@ -237,7 +237,7 @@ type itemsView struct {
 	Title           sql.NullString      `sql:"item_title"`
 	MimeType        string              `sql:"item_mime_type"`
 	Data            sql.NullString      `sql:"item_data"`
-	ItemScore       int64               `sql:"item_score"`
+	ItemScore       int                 `sql:"item_score"`
 	ItemSubmittedAt time.Time           `sql:"item_submitted_at"`
 	ItemSubmittedBy int64               `sql:"item_submitted_by"`
 	ItemUpdatedAt   time.Time           `sql:"item_updated_at"`
@@ -248,7 +248,7 @@ type itemsView struct {
 	AuthorKey       app.Key             `sql:"author_key,size(32)"`
 	AuthorEmail     string              `sql:"author_email"`
 	AuthorHandle    string              `sql:"author_handle"`
-	AuthorScore     int64               `sql:"author_score"`
+	AuthorScore     int                 `sql:"author_score"`
 	AuthorCreatedAt time.Time           `sql:"author_created_at"`
 	AuthorUpdatedAt time.Time           `sql:"author_updated_at"`
 	AuthorFlags     FlagBits            `sql:"author_flags"`

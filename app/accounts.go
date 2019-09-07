@@ -51,7 +51,7 @@ type AccountCollection []Account
 type Account struct {
 	Email     string           `json:"email,omitempty"`
 	Hash      Hash             `json:"hash,omitempty"`
-	Score     int64            `json:"score,omitempty"`
+	Score     int              `json:"score,omitempty"`
 	Handle    string           `json:"handle,omitempty"`
 	CreatedAt time.Time        `json:"-"`
 	UpdatedAt time.Time        `json:"-"`
