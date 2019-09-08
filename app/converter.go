@@ -115,26 +115,24 @@ func (a *Account) FromActivityPub(it as.Item) error {
 			pName = jsonUnescape(p.Name.First().Value)
 		}
 		a.Handle = pName
-		if a.IsFederated() {
-			if len(a.Metadata.URL) > 0 {
-				host := host(a.Metadata.URL)
-				a.Email = fmt.Sprintf("%s@%s", a.Handle, host)
-			}
-			if p.Inbox != nil {
-				a.Metadata.InboxIRI = p.Inbox.GetLink().String()
-			}
-			if p.Outbox != nil {
-				a.Metadata.OutboxIRI = p.Outbox.GetLink().String()
-			}
-			if p.Followers != nil {
-				a.Metadata.FollowersIRI = p.Followers.GetLink().String()
-			}
-			if p.Following != nil {
-				a.Metadata.FollowingIRI = p.Following.GetLink().String()
-			}
-			if p.Liked != nil {
-				a.Metadata.LikedIRI = p.Liked.GetLink().String()
-			}
+		if len(a.Metadata.URL) > 0 {
+			host := host(a.Metadata.URL)
+			a.Email = fmt.Sprintf("%s@%s", a.Handle, host)
+		}
+		if p.Inbox != nil {
+			a.Metadata.InboxIRI = p.Inbox.GetLink().String()
+		}
+		if p.Outbox != nil {
+			a.Metadata.OutboxIRI = p.Outbox.GetLink().String()
+		}
+		if p.Followers != nil {
+			a.Metadata.FollowersIRI = p.Followers.GetLink().String()
+		}
+		if p.Following != nil {
+			a.Metadata.FollowingIRI = p.Following.GetLink().String()
+		}
+		if p.Liked != nil {
+			a.Metadata.LikedIRI = p.Liked.GetLink().String()
 		}
 		return nil
 	}
