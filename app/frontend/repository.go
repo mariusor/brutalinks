@@ -430,7 +430,7 @@ func (r *repository) LoadItem(f app.Filters) (app.Item, error) {
 		if err == nil {
 			var items app.ItemCollection
 			items, err = r.loadItemsAuthors(item)
-			items, err = r.loadItemsVotes(item)
+			items, err = r.loadItemsVotes(items...)
 			if len(items) > 0 {
 				item = items[0]
 			}
