@@ -470,7 +470,7 @@ func (r *repository) loadItemsVotes(items ...app.Item) (app.ItemCollection, erro
 	}
 	for k, it := range items {
 		for _, vot := range votes {
-			if vot.Item.Hash == it.Hash  {
+			if vot.Item.Hash == it.Hash {
 				if vot.Weight > 0 {
 					it.Score += vot.Weight
 				}
@@ -595,7 +595,7 @@ func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) 
 }
 
 func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
-	url := fmt.Sprintf("%s/self/following/%s/liked/%s", r.BaseURL, v.SubmittedBy.Hash, v.Item.Hash)
+	url := fmt.Sprintf("%s/%s", v.SubmittedBy.Metadata.LikedIRI, v.Item.Hash)
 
 	var err error
 	var exists as.Item
@@ -630,7 +630,7 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 	}
 
 	var resp *http.Response
-	outbox := fmt.Sprintf("%s/self/following/%s/outbox", r.BaseURL, v.Item.SubmittedBy.Hash)
+	outbox := fmt.Sprintf("%s", v.Item.SubmittedBy.Metadata.OutboxIRI)
 	if resp, err = r.client.Post(outbox, "application/json+activity", bytes.NewReader(body)); err != nil {
 		r.logger.Error(err.Error())
 		return v, err
@@ -794,8 +794,8 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 		return it, err
 	}
 	var resp *http.Response
-	url := fmt.Sprintf("%s/self/following/%s/outbox", r.BaseURL, it.SubmittedBy.Hash)
-	resp, err = r.client.Post(url, "application/activity+json", bytes.NewReader(body))
+	outbox := fmt.Sprintf("%s", it.SubmittedBy.Metadata.OutboxIRI)
+	resp, err = r.client.Post(outbox, "application/activity+json", bytes.NewReader(body))
 	if err != nil {
 		r.logger.Error(err.Error())
 		return it, err
