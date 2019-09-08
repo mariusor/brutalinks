@@ -343,7 +343,7 @@ func (r *repository) WithAccount(a *app.Account) error {
 		if a.Metadata.OAuth.Token == "" {
 			return nil
 		}
-		r.Header.Add("Authorization", "Bearer coFadMiZRFyvx9MkWC_S9w")//fmt.Sprintf("Bearer %s", a.Metadata.OAuth.Token))
+		r.Header.Add("Authorization", fmt.Sprintf("Bearer %s", a.Metadata.OAuth.Token))
 		return nil
 	})
 	return nil
