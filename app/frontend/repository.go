@@ -109,6 +109,7 @@ func BuildCollectionID(a app.Account, o as.Item) as.ObjectID {
 
 var BaseURL = "http://fedbox.git"
 var ActorsURL = "http://fedbox.git/actors"
+var ObjectsURL = "http://fedbox.git/objects"
 
 func apAccountID(a app.Account) as.ObjectID {
 	if len(a.Hash) >= 8 {
@@ -122,15 +123,10 @@ func accountURL(acc app.Account) as.IRI {
 }
 
 func BuildObjectIDFromItem(i app.Item) (as.ObjectID, bool) {
-	if len(i.Hash) == 0 {
-		return as.ObjectID(""), false
+	if i.Metadata != nil {
+		return as.ObjectID(i.Metadata.ID), true
 	}
-	if i.SubmittedBy != nil {
-		hash := i.SubmittedBy.Hash
-		return as.ObjectID(fmt.Sprintf("%s/%s/outbox/%s/object", ActorsURL, url.PathEscape(hash.String()), url.PathEscape(i.Hash.String()))), true
-	} else {
-		return as.ObjectID(fmt.Sprintf("%s/self/outbox/%s/object", BaseURL, url.PathEscape(i.Hash.String()))), true
-	}
+	return as.ObjectID(fmt.Sprintf("%s/%s", ObjectsURL, url.PathEscape(i.Hash.String()))), true
 }
 
 func BuildActorID(a app.Account) as.ObjectID {
@@ -177,6 +173,11 @@ func loadAPItem(item app.Item) as.Item {
 		}
 	}
 
+	// TODO(marius): add proper dynamic recipients to this
+	o.To = as.ItemCollection{
+		as.IRI("https://www.w3.org/ns/activitystreams#Public"),
+		as.IRI("http://fedbox.git"),
+	}
 	o.Published = item.SubmittedAt
 	o.Updated = item.UpdatedAt
 
@@ -213,12 +214,17 @@ func loadAPItem(item app.Item) as.Item {
 		o.AttributedTo = as.IRI(id)
 	}
 	if item.Parent != nil {
-		id, _ := BuildObjectIDFromItem(*item.Parent)
-		o.InReplyTo = as.IRI(id)
+		if id, ok := BuildObjectIDFromItem(*item.Parent); ok {
+			o.InReplyTo = as.IRI(id)
+		}
 	}
+	// TODO(marius): here we need to replace .Context to a second entry in the .InReplyTo property
+	//   and document this convention somewhere in the code:
+	//   "A second InReplyTo element represents the top post of a reply thread"
 	if item.OP != nil {
-		id, _ := BuildObjectIDFromItem(*item.OP)
-		o.Context = as.IRI(id)
+		if id, ok := BuildObjectIDFromItem(*item.OP); ok {
+			o.Context = as.IRI(id)
+		}
 	}
 	if item.Metadata != nil {
 		m := item.Metadata
