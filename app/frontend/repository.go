@@ -525,24 +525,35 @@ func (r *repository) loadItemsAuthors(items ...app.Item) (app.ItemCollection, er
 
 func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) {
 	var qs string
-	if q, err := qstring.MarshalString(&f); err == nil {
-		qs = fmt.Sprintf("?%s", q)
-	}
 
 	target := "/"
 	c := "objects"
 	if len(f.FollowedBy) > 0 {
+		// TODO(marius): make this work for multiple FollowedBy filters
 		for _, foll := range f.FollowedBy {
 			target = fmt.Sprintf("/following/%s", foll)
 			c = "inbox"
 			break
 		}
+		f.FollowedBy = f.FollowedBy[:0]
 	}
-
+	if len(f.Context) > 0 {
+		// TODO(marius): make this work for multiple Context filters
+		for _, ctxt := range f.Context {
+			if ctxt != "0" {
+				c = fmt.Sprintf("%s/%s/replies", c, ctxt)
+			}
+			break
+		}
+		f.Context = f.Context[:0]
+	}
 	if len(f.Federated) > 0 {
 		// TODO(marius): need to add to fedbox support for filtering by hostname
 	}
-	url := fmt.Sprintf("%s%s/%s%s", r.BaseURL, target, c, qs)
+	if q, err := qstring.MarshalString(&f); err == nil {
+		qs = fmt.Sprintf("?%s", q)
+	}
+	url := fmt.Sprintf("%s%s%s%s", r.BaseURL, target, c, qs)
 
 	var err error
 	var resp *http.Response
