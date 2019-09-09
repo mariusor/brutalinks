@@ -22,7 +22,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"path"
 	"strings"
 )
 
@@ -802,28 +801,33 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 	var resp *http.Response
 	outbox := fmt.Sprintf("%s", it.SubmittedBy.Metadata.OutboxIRI)
 	resp, err = r.client.Post(outbox, "application/activity+json", bytes.NewReader(body))
+
 	if err != nil {
 		r.logger.Error(err.Error())
 		return it, err
 	}
 	switch resp.StatusCode {
 	case http.StatusOK:
-		err := it.FromActivityPub(art)
-		return it, err
+		fallthrough
 	case http.StatusCreated:
-		newLoc := resp.Header.Get("Location")
-		hash := path.Base(newLoc)
-		f := app.Filters{LoadItemsFilter: app.LoadItemsFilter{
-			Key: app.Hashes{app.Hash(hash)},
-		}}
-		return r.LoadItem(f)
+		fallthrough
 	case http.StatusGone:
-		newLoc := resp.Header.Get("Location")
-		hash := path.Base(newLoc)
-		f := app.Filters{LoadItemsFilter: app.LoadItemsFilter{
-			Key: app.Hashes{app.Hash(hash)},
-		}}
-		return r.LoadItem(f)
+		if body, err = ioutil.ReadAll(resp.Body); err != nil {
+			r.logger.Error(err.Error())
+			return it, err
+		}
+
+		ap, err := as.UnmarshalJSON(body)
+		if err != nil {
+			r.logger.Error(err.Error())
+			return it, err
+		}
+		err = it.FromActivityPub(ap)
+		if err != nil {
+			r.logger.Error(err.Error())
+			return it, err
+		}
+		return it, err
 	case http.StatusNotFound:
 		return it, errors.Errorf("%s", resp.Status)
 	case http.StatusMethodNotAllowed:
