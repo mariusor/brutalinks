@@ -810,7 +810,10 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 		return it, err
 	}
 	var resp *http.Response
-	outbox := fmt.Sprintf("%s", it.SubmittedBy.Metadata.OutboxIRI)
+	outbox := fmt.Sprintf("%s/inbox", r.BaseURL)
+	if it.SubmittedBy.Metadata != nil {
+		outbox = fmt.Sprintf("%s", it.SubmittedBy.Metadata.OutboxIRI)
+	}
 	resp, err = r.client.Post(outbox, "application/activity+json", bytes.NewReader(body))
 
 	if err != nil {
@@ -838,11 +841,12 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 			r.logger.Error(err.Error())
 			return it, err
 		}
-		return it, err
+		items, err := r.loadItemsAuthors(it)
+		return items[0], err
 	case http.StatusNotFound:
-		return it, errors.Errorf("%s", resp.Status)
+		return it, errors.NotFoundf("%s", resp.Status)
 	case http.StatusMethodNotAllowed:
-		return it, errors.Errorf("%s", resp.Status)
+		return it, errors.MethodNotAllowedf("%s", resp.Status)
 	case http.StatusInternalServerError:
 		return it, errors.Errorf("unable to save item %s", resp.Status)
 	default:
