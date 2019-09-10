@@ -24,7 +24,6 @@ const Nay = "nay"
 type comments []*comment
 type comment struct {
 	app.Item
-	visited bool
 	Level    uint8
 	Edit     bool
 	Children comments
@@ -145,10 +144,6 @@ func contains(visited []app.Hash, h app.Hash) bool {
 func addLevelComments(comments comments) {
 	for _, cur := range comments {
 		if len(cur.Children) > 0 {
-			if cur.visited {
-				continue
-			}
-			cur.visited = true
 			for _, child := range cur.Children {
 				child.Level = cur.Level + 1
 				addLevelComments(cur.Children)
