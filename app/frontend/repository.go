@@ -122,6 +122,9 @@ func accountURL(acc app.Account) as.IRI {
 }
 
 func BuildObjectIDFromItem(i app.Item) (as.ObjectID, bool) {
+	if i.Hash == "" {
+		return "", false
+	}
 	if i.HasMetadata() && len(i.Metadata.ID) > 0 {
 		return as.ObjectID(i.Metadata.ID), true
 	}
@@ -559,8 +562,35 @@ func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) 
 			break
 		}
 	}
+	//if len(f.InReplyTo) > 0 {
+	//	// TODO(marius): make this work for multiple Context filters
+	//	for _, ctxt := range f.InReplyTo {
+	//		if ctxt != "0" {
+	//			c = fmt.Sprintf("%s/%s/replies", c, ctxt)
+	//			f.Context = f.Context[:0]
+	//		}
+	//		break
+	//	}
+	//}
 	if len(f.Federated) > 0 {
-		// TODO(marius): need to add to fedbox support for filtering by hostname
+		for _, fed := range f.Federated {
+			if !fed {
+				// TODO(marius): need to add to fedbox support for filtering by hostname
+				f.LoadItemsFilter.IRI = BaseURL
+				break
+			}
+		}
+	}
+	if len(f.LoadItemsFilter.Deleted) > 0 {
+		f.Type = as.ActivityVocabularyTypes{
+			as.ArticleType,
+			as.AudioType,
+			as.DocumentType,
+			as.ImageType,
+			as.NoteType,
+			as.PageType,
+			as.VideoType,
+		}
 	}
 	if q, err := qstring.MarshalString(&f); err == nil {
 		qs = fmt.Sprintf("?%s", q)
@@ -623,7 +653,7 @@ func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) 
 }
 
 func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
-	if v.SubmittedBy == nil ||v.SubmittedBy.Metadata == nil {
+	if v.SubmittedBy == nil || v.SubmittedBy.Metadata == nil {
 		return app.Vote{}, errors.Newf("Invalid submitter")
 	}
 	url := fmt.Sprintf("%s/%s", v.SubmittedBy.Metadata.LikedIRI, v.Item.Hash)
@@ -639,13 +669,16 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 	}
 	p := loadAPPerson(*v.SubmittedBy)
 	o := loadAPItem(*v.Item)
-	id := as.ObjectID(url)
+	//id := as.ObjectID(url)
 
-	var act as.Activity
-	act.ID = id
-	act.Actor = p.GetLink()
-	act.Object = o.GetLink()
-	act.Type = as.UndoType
+	act := as.Activity{
+		Parent: as.Object{
+			Type: as.UndoType,
+			To:   as.ItemCollection{as.PublicNS},
+		},
+		Actor:  p.GetLink(),
+		Object: o.GetLink(),
+	}
 
 	if v.Weight > 0 && (exists == nil || len(*exists.GetID()) == 0 || exists.GetType() != as.LikeType) {
 		act.Type = as.LikeType
@@ -662,7 +695,7 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 
 	var resp *http.Response
 	outbox := fmt.Sprintf("%s", v.Item.SubmittedBy.Metadata.OutboxIRI)
-	if resp, err = r.client.Post(outbox, "application/json+activity", bytes.NewReader(body)); err != nil {
+	if resp, err = r.client.Post(outbox, cl.ContentTypeActivityJson, bytes.NewReader(body)); err != nil {
 		r.logger.Error(err.Error())
 		return v, err
 	}
@@ -789,7 +822,7 @@ type _error struct {
 	Message string `jsonld:"message"`
 }
 
-func (r *repository)handlerErrorResponse(body []byte) error {
+func (r *repository) handlerErrorResponse(body []byte) error {
 	errs := _errors{}
 	if err := j.Unmarshal(body, &errs); err != nil {
 		r.logger.Errorf("Unable to unmarshall error response: %s", err.Error())
@@ -830,7 +863,7 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 
 	var body []byte
 	var err error
-	id := *art.GetID()
+	id := art.GetLink()
 	if it.Deleted() {
 		if len(id) == 0 {
 			r.logger.WithContext(log.Ctx{
@@ -841,10 +874,10 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 		delete := as.Delete{
 			Parent: as.Parent{
 				Type: as.DeleteType,
-				To: as.ItemCollection{as.PublicNS,},
+				To:   as.ItemCollection{as.PublicNS},
 			},
-			Actor: actor.GetLink(),
-			Object: art.GetLink(),
+			Actor:  actor.GetLink(),
+			Object: id,
 		}
 		body, err = j.Marshal(delete)
 	} else {
@@ -852,19 +885,20 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 			create := as.Create{
 				Parent: as.Parent{
 					Type: as.CreateType,
-					To: as.ItemCollection{as.PublicNS,},
+					To:   as.ItemCollection{as.PublicNS},
 				},
-				Actor: actor.GetLink(),
+				Actor:  actor.GetLink(),
+				Object: art,
 			}
 			body, err = j.Marshal(create)
 		} else {
 			update := as.Update{
 				Parent: as.Parent{
 					Type: as.UpdateType,
-					To: as.ItemCollection{as.PublicNS,},
+					To:   as.ItemCollection{as.PublicNS},
 				},
 				Object: art,
-				Actor: actor.GetLink(),
+				Actor:  actor.GetLink(),
 			}
 			body, err = j.Marshal(update)
 		}
@@ -881,7 +915,7 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 	if it.SubmittedBy.Metadata != nil {
 		outbox = fmt.Sprintf("%s", it.SubmittedBy.Metadata.OutboxIRI)
 	}
-	resp, err = r.client.Post(outbox, "application/activity+json", bytes.NewReader(body))
+	resp, err = r.client.Post(outbox, cl.ContentTypeActivityJson, bytes.NewReader(body))
 	if err != nil {
 		r.logger.Error(err.Error())
 		return it, err
