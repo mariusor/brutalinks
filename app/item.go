@@ -55,6 +55,10 @@ type Item struct {
 	OP          *Item         `json:"-"`
 }
 
+func (i *Item) IsValid() bool {
+	return i != nil && i.Hash != ""
+}
+
 func (i Item) Deleted() bool {
 	return (i.Flags & FlagsDeleted) == FlagsDeleted
 }

@@ -4,13 +4,11 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"fmt"
+	ap "github.com/mariusor/littr.go/app/activitypub"
 	"net/url"
 	"path"
 	"strings"
 
-	ap "github.com/mariusor/littr.go/app/activitypub"
-
-	"github.com/buger/jsonparser"
 	"github.com/go-ap/errors"
 
 	goap "github.com/go-ap/activitypub"
@@ -41,7 +39,7 @@ func (a *Account) FromActivityPub(it as.Item) error {
 		}
 		return nil
 	}
-	personFn := func(a *Account, fnAs func(a *Account, p as.Object) error, fnAp func(a *Account, p goap.Person) error, fnLocal func(a *Account, p ap.Actor) error) error {
+	personFn := func(a *Account, fnAo func(a *Account, p goap.Object) error, fnAs func(a *Account, p as.Object) error, fnAp func(a *Account, p goap.Person) error, fnLocal func(a *Account, p ap.Actor) error) error {
 		if pp, ok := it.(ap.Actor); ok {
 			return fnLocal(a, pp)
 		}
@@ -54,6 +52,12 @@ func (a *Account) FromActivityPub(it as.Item) error {
 		if pp, ok := it.(*goap.Person); ok {
 			return fnAp(a, *pp)
 		}
+		if pp, ok := it.(goap.Object); ok {
+			return fnAo(a, pp)
+		}
+		if pp, ok := it.(*goap.Object); ok {
+			return fnAo(a, *pp)
+		}
 		if pp, ok := it.(as.Object); ok {
 			return fnAs(a, pp)
 		}
@@ -63,7 +67,7 @@ func (a *Account) FromActivityPub(it as.Item) error {
 		return nil
 	}
 	loadFromObject := func(a *Account, p as.Object) error {
-		name := jsonUnescape(p.Name.First().Value)
+		name := p.Name.First().Value
 		a.Hash.FromActivityPub(p)
 		a.Handle = name
 		a.Flags = FlagsNone
@@ -82,14 +86,11 @@ func (a *Account) FromActivityPub(it as.Item) error {
 		}
 		if p.Icon != nil {
 			if p.Icon.IsObject() {
-				if ic, ok := p.Icon.(*as.Object); ok {
-					a.Metadata.Icon.MimeType = string(ic.MediaType)
-					a.Metadata.Icon.URI = ic.URL.GetLink().String()
-				}
-				if ic, ok := p.Icon.(as.Object); ok {
-					a.Metadata.Icon.MimeType = string(ic.MediaType)
-					a.Metadata.Icon.URI = ic.URL.GetLink().String()
-				}
+				ap.OnObject(p.Icon, func(o *ap.Object) error {
+					a.Metadata.Icon.MimeType = string(o.MediaType)
+					a.Metadata.Icon.URI = o.URL.GetLink().String()
+					return nil
+				})
 			}
 		}
 		if a.Email == "" {
@@ -106,13 +107,16 @@ func (a *Account) FromActivityPub(it as.Item) error {
 		}
 		return nil
 	}
+	loadFromAPObject := func(a *Account, p goap.Object) error {
+		return loadFromObject(a, p.Parent)
+	}
 	loadFromPerson := func(a *Account, p goap.Person) error {
-		if err := loadFromObject(a, p.Parent); err != nil {
+		if err := loadFromAPObject(a, p.Parent); err != nil {
 			return err
 		}
-		pName := jsonUnescape(p.PreferredUsername.First().Value)
+		pName := p.PreferredUsername.First().Value
 		if pName == "" {
-			pName = jsonUnescape(p.Name.First().Value)
+			pName = p.Name.First().Value
 		}
 		a.Handle = pName
 		if len(a.Metadata.URL) > 0 {
@@ -158,12 +162,9 @@ func (a *Account) FromActivityPub(it as.Item) error {
 	case as.CreateType:
 		fallthrough
 	case as.UpdateType:
-		if act, ok := it.(*as.Activity); ok {
+		return goap.OnActivity(it, func(act *as.Activity) error {
 			return a.FromActivityPub(act.Actor)
-		}
-		if act, ok := it.(as.Activity); ok {
-			return a.FromActivityPub(act.Actor)
-		}
+		})
 	case as.ServiceType:
 		fallthrough
 	case as.GroupType:
@@ -173,7 +174,7 @@ func (a *Account) FromActivityPub(it as.Item) error {
 	case as.OrganizationType:
 		fallthrough
 	case as.PersonType:
-		personFn(a, loadFromObject, loadFromPerson, loadFromLocal)
+		personFn(a, loadFromAPObject, loadFromObject, loadFromPerson, loadFromLocal)
 	default:
 		return errors.Newf("invalid actor type")
 	}
@@ -182,6 +183,127 @@ func (a *Account) FromActivityPub(it as.Item) error {
 		a.Metadata.URL = ""
 	}
 
+	return nil
+}
+
+func ToArticle (it as.Item) (*ap.Object, error) {
+	switch i := it.(type) {
+	case *ap.Object:
+		return i, nil
+	case ap.Object:
+		return &i, nil
+	default:
+		ob, err := goap.ToObject(it)
+		return &ap.Object{
+			Object: *ob,
+		}, err
+	}
+	return nil, errors.Newf("unable to convert Object")
+}
+
+type onArticleFn func(art *ap.Object) error
+func OnArticle(it as.Item, fn onArticleFn) error {
+	if !as.ObjectTypes.Contains(it.GetType()) {
+		return errors.Newf(fmt.Sprintf("%T[%s] can't be converted to Object", it, it.GetType()))
+	}
+	act, err  := ToArticle(it)
+	if err != nil {
+		return err
+	}
+	return fn(act)
+}
+
+func FromArticle (i *Item, a *ap.Object) error {
+	title := a.Name.First().Value
+
+	i.Hash.FromActivityPub(a)
+	if len(title) > 0 {
+		i.Title = title
+	}
+	i.MimeType = MimeTypeHTML
+	if a.Type == as.PageType {
+		i.Data = string(a.URL.GetLink())
+		i.MimeType = MimeTypeURL
+	} else {
+		if len(a.MediaType) > 0 {
+			i.MimeType = MimeType(a.MediaType)
+		}
+		i.Data = a.Content.First().Value
+	}
+	if !a.Published.IsZero() {
+		i.SubmittedAt = a.Published
+	}
+	if !a.Updated.IsZero() {
+		i.UpdatedAt = a.Updated
+	}
+	if i.Metadata == nil {
+		i.Metadata = &ItemMetadata{}
+	}
+
+	if a.AttributedTo != nil {
+		auth := Account{}
+		auth.FromActivityPub(a.AttributedTo)
+		i.SubmittedBy = &auth
+		i.Metadata.AuthorURI = a.AttributedTo.GetLink().String()
+	}
+	if len(a.ID) > 0 {
+		iri := a.GetLink()
+		i.Metadata.ID = iri.String()
+		if a.URL != nil {
+			i.Metadata.URL = a.URL.GetLink().String()
+		}
+	}
+	if a.Icon != nil {
+		if a.Icon.IsObject() {
+			if ic, ok := a.Icon.(*as.Object); ok {
+				i.Metadata.Icon.MimeType = string(ic.MediaType)
+				i.Metadata.Icon.URI = ic.URL.GetLink().String()
+			}
+			if ic, ok := a.Icon.(as.Object); ok {
+				i.Metadata.Icon.MimeType = string(ic.MediaType)
+				i.Metadata.Icon.URI = ic.URL.GetLink().String()
+			}
+		}
+	}
+	if a.Context != nil {
+		op := Item{}
+		op.FromActivityPub(a.Context)
+		i.OP = &op
+	}
+	if a.InReplyTo != nil {
+		if len(a.InReplyTo) >= 1 {
+			par := Item{}
+			par.FromActivityPub(a.InReplyTo[0])
+			i.Parent = &par
+		}
+		if len(a.InReplyTo) > 1 {
+			op := Item{}
+			op.FromActivityPub(a.InReplyTo[1])
+			i.OP = &op
+		}
+	}
+	// TODO(marius): here we seem to have a bug, when Source.Content is nil when it shouldn't
+	//    to repro, I used some copy/pasted comments from console javascript
+	if len(a.Source.Content) > 0 && len(a.Source.MediaType) > 0 {
+		i.Data = a.Source.Content.First().Value
+		i.MimeType = MimeType(a.Source.MediaType)
+	}
+	//if a.Tag != nil && len(a.Tag) > 0 {
+	//	i.Metadata.Tags = make(TagCollection, 0)
+	//	i.Metadata.Mentions = make(TagCollection, 0)
+	//
+	//	tags := TagCollection{}
+	//	tags.FromActivityPub(a.Tag)
+	//	for _, t := range tags {
+	//		if t.Name[0] == '#' {
+	//			i.Metadata.Tags = append(i.Metadata.Tags, t)
+	//		} else {
+	//			i.Metadata.Mentions = append(i.Metadata.Mentions, t)
+	//		}
+	//	}
+	//}
+
+	i.Score = a.Score
 	return nil
 }
 
@@ -197,139 +319,24 @@ func (i *Item) FromActivityPub(it as.Item) error {
 		i.SubmittedBy = &Account{}
 	}
 
-	articleFn := func(a *Item, fnAs func(i *Item, a as.Object) error, fnAp func(i *Item, a ap.Object) error) error {
-		if a, ok := it.(ap.Object); ok {
-			return fnAp(i, a)
-		}
-		if a, ok := it.(*ap.Object); ok {
-			return fnAp(i, *a)
-		}
-		if o, ok := it.(as.Object); ok {
-			return fnAs(i, o)
-		}
-		if o, ok := it.(*as.Object); ok {
-			return fnAs(i, *o)
-		}
-		return nil
-	}
-	loadFromObject := func(i *Item, a as.Object) error {
-		title := jsonUnescape(a.Name.First().Value)
-
-		i.Hash.FromActivityPub(a)
-		if len(title) > 0 {
-			i.Title = title
-		}
-		i.MimeType = MimeTypeHTML
-		if a.Type == as.PageType {
-			i.Data = string(a.URL.GetLink())
-			i.MimeType = MimeTypeURL
-		} else {
-			if len(a.MediaType) > 0 {
-				i.MimeType = MimeType(a.MediaType)
-			}
-			i.Data = jsonUnescape(a.Content.First().Value)
-		}
-		if !a.Published.IsZero() {
-			i.SubmittedAt = a.Published
-		}
-		if !a.Updated.IsZero() {
-			i.UpdatedAt = a.Updated
-		}
-		if i.Metadata == nil {
-			i.Metadata = &ItemMetadata{}
-		}
-
-		if a.AttributedTo != nil {
-			auth := Account{}
-			auth.FromActivityPub(a.AttributedTo)
-			i.SubmittedBy = &auth
-			i.Metadata.AuthorURI = a.AttributedTo.GetLink().String()
-		}
-		if len(a.ID) > 0 {
-			iri := a.GetLink()
-			i.Metadata.ID = iri.String()
-			if a.URL != nil {
-				i.Metadata.URL = a.URL.GetLink().String()
-			}
-		}
-		if a.Icon != nil {
-			if a.Icon.IsObject() {
-				if ic, ok := a.Icon.(*as.Object); ok {
-					i.Metadata.Icon.MimeType = string(ic.MediaType)
-					i.Metadata.Icon.URI = ic.URL.GetLink().String()
-				}
-				if ic, ok := a.Icon.(as.Object); ok {
-					i.Metadata.Icon.MimeType = string(ic.MediaType)
-					i.Metadata.Icon.URI = ic.URL.GetLink().String()
-				}
-			}
-		}
-		if a.InReplyTo != nil {
-			par := Item{}
-			par.FromActivityPub(a.InReplyTo)
-			i.Parent = &par
-		}
-		if a.Context != nil {
-			op := Item{}
-			op.FromActivityPub(a.Context)
-			i.OP = &op
-		}
-		if a.Tag != nil && len(a.Tag) > 0 {
-			i.Metadata.Tags = make(TagCollection, 0)
-			i.Metadata.Mentions = make(TagCollection, 0)
-
-			tags := TagCollection{}
-			tags.FromActivityPub(a.Tag)
-			for _, t := range tags {
-				if t.Name[0] == '#' {
-					i.Metadata.Tags = append(i.Metadata.Tags, t)
-				} else {
-					i.Metadata.Mentions = append(i.Metadata.Mentions, t)
-				}
-			}
-		}
-		return nil
-	}
-	loadFromArticle := func(i *Item, a ap.Object) error {
-		err := loadFromObject(i, a.Object.Parent)
-		i.Score = a.Score
-		// TODO(marius): here we seem to have a bug, when Source.Content is nil when it shouldn't
-		//    to repro, I used some copy/pasted comments from console javascript
-		if len(a.Source.Content) > 0 && len(a.Source.MediaType) > 0 {
-			i.Data = jsonUnescape(a.Source.Content.First().Value)
-			i.MimeType = MimeType(a.Source.MediaType)
-		}
-		return err
-	}
 	switch it.GetType() {
 	case as.DeleteType:
-		if act, ok := it.(*as.Activity); ok {
+		return goap.OnActivity(it, func(act *as.Activity) error {
 			err := i.FromActivityPub(act.Object)
 			i.Delete()
 			return err
-		}
-		if act, ok := it.(as.Activity); ok {
-			err := i.FromActivityPub(act.Object)
-			i.Delete()
-			return err
-		}
+		})
 	case as.CreateType:
 		fallthrough
 	case as.UpdateType:
 		fallthrough
 	case as.ActivityType:
-		if act, ok := it.(*as.Activity); ok {
+		return goap.OnActivity(it, func(act *as.Activity) error {
 			err := i.FromActivityPub(act.Object)
 			i.SubmittedBy.FromActivityPub(act.Actor)
 			i.Metadata.AuthorURI = act.Actor.GetLink().String()
 			return err
-		}
-		if act, ok := it.(as.Activity); ok {
-			err := i.FromActivityPub(act.Object)
-			i.SubmittedBy.FromActivityPub(act.Actor)
-			i.Metadata.AuthorURI = act.Actor.GetLink().String()
-			return err
-		}
+		})
 	case as.ArticleType:
 		fallthrough
 	case as.NoteType:
@@ -337,7 +344,9 @@ func (i *Item) FromActivityPub(it as.Item) error {
 	case as.DocumentType:
 		fallthrough
 	case as.PageType:
-		return articleFn(i, loadFromObject, loadFromArticle)
+		return OnArticle(it, func(a *ap.Object) error {
+			return FromArticle(i, a)
+		})
 	case as.TombstoneType:
 		id := it.GetLink()
 		i.Hash.FromActivityPub(id)
@@ -347,33 +356,26 @@ func (i *Item) FromActivityPub(it as.Item) error {
 		if len(id) > 0 {
 			i.Metadata.ID = id.String()
 		}
-		loadFromASObject := func(i *Item, o as.Object) error {
-			if o.InReplyTo != nil {
-				par := Item{}
-				par.FromActivityPub(o.InReplyTo)
-				i.Parent = &par
-			}
+		goap.OnObject(it, func(o *goap.Object) error {
 			if o.Context != nil {
 				op := Item{}
 				op.FromActivityPub(o.Context)
 				i.OP = &op
 			}
-			return nil
-		}
-		loadFromArticle := func(i *Item, a ap.Object) error {
-			if a.InReplyTo != nil {
-				par := Item{}
-				par.FromActivityPub(a.InReplyTo)
-				i.Parent = &par
+			if o.InReplyTo != nil {
+				if len(o.InReplyTo) >= 1 {
+					par := Item{}
+					par.FromActivityPub(o.InReplyTo[0])
+					i.Parent = &par
+				}
+				if len(o.InReplyTo) > 1 {
+					op := Item{}
+					op.FromActivityPub(o.InReplyTo[1])
+					i.OP = &op
+				}
 			}
-			if a.Context != nil {
-				op := Item{}
-				op.FromActivityPub(a.Context)
-				i.OP = &op
-			}
 			return nil
-		}
-		articleFn(i, loadFromASObject, loadFromArticle)
+		})
 
 		i.Flags = FlagsDeleted
 		i.SubmittedBy = &AnonymousAccount
@@ -463,16 +465,6 @@ func GetHashFromAP(obj as.Item) Hash {
 //	s := strings.Split(string(i), "/")
 //	return s[len(s)-1]
 //}
-
-func jsonUnescape(s string) string {
-	var out []byte
-	var err error
-	if out, err = jsonparser.Unescape([]byte(s), nil); err != nil {
-		Logger.Error(err.Error())
-		return s
-	}
-	return string(out)
-}
 
 func (i *TagCollection) FromActivityPub(it as.ItemCollection) error {
 	if it == nil || len(it) == 0 {

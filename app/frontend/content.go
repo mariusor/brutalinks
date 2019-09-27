@@ -277,6 +277,17 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 	}
 	allComments = append(allComments, loadComments(contentItems)...)
 
+	if i.Parent.IsValid() && i.Parent.SubmittedAt.IsZero() {
+		if p, err := itemLoader.LoadItem(app.Filters{ LoadItemsFilter: app.LoadItemsFilter{Key: app.Hashes{i.Parent.Hash}}}); err == nil {
+			i.Parent = &p
+			if p.OP != nil {
+				i.OP = p.OP
+			} else {
+				i.OP = &p
+			}
+		}
+	}
+
 	//replaceTags(allComments)
 	reparentComments(allComments)
 	addLevelComments(allComments)
@@ -334,6 +345,11 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 		h.HandleErrors(w, r, errors.Errorf("could not load item repository from Context"))
 		return
 	}
+	if n.Parent.IsValid() && n.Parent.SubmittedAt.IsZero() {
+		if p, err := itemLoader.LoadItem(app.Filters{ LoadItemsFilter: app.LoadItemsFilter{Key: app.Hashes{n.Parent.Hash}}}); err == nil {
+			n.Parent = &p
+		}
+	}
 	saveVote := true
 	if len(n.Hash) > 0 {
 		if p, err := itemLoader.LoadItem(app.Filters{ LoadItemsFilter: app.LoadItemsFilter{Key: app.Hashes{n.Hash}}}); err == nil {
@@ -352,7 +368,7 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 		h.logger.WithContext(log.Ctx{
 			"prev": err,
 		}).Error("unable to save item")
-		h.HandleErrors(w, r, errors.NewNotValid(err, "oops!"))
+		h.HandleErrors(w, r, err)
 		return
 	}
 

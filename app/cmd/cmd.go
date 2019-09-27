@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"github.com/go-pg/pg"
 	"github.com/go-ap/errors"
+	"github.com/go-pg/pg"
 	"github.com/mariusor/littr.go/internal/log"
 	"os"
 	"reflect"

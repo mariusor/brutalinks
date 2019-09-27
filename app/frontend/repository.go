@@ -122,7 +122,7 @@ func accountURL(acc app.Account) as.IRI {
 }
 
 func BuildObjectIDFromItem(i app.Item) (as.ObjectID, bool) {
-	if i.Metadata != nil {
+	if i.HasMetadata() && len(i.Metadata.ID) > 0 {
 		return as.ObjectID(i.Metadata.ID), true
 	}
 	return as.ObjectID(fmt.Sprintf("%s/%s", ObjectsURL, url.PathEscape(i.Hash.String()))), true
@@ -172,10 +172,10 @@ func loadAPItem(item app.Item) as.Item {
 		}
 	}
 
-	// TODO(marius): add proper dynamic recipients to this
+	// TODO(marius): add proper dynamic recipients to this based on some selector in the frontend
 	o.To = as.ItemCollection{
-		as.IRI("https://www.w3.org/ns/activitystreams#Public"),
-		as.IRI("http://fedbox.git"),
+		as.PublicNS,
+		as.IRI(BaseURL),
 	}
 	o.Published = item.SubmittedAt
 	o.Updated = item.UpdatedAt
@@ -189,14 +189,21 @@ func loadAPItem(item app.Item) as.Item {
 			FormerType: o.Type,
 			Deleted:    o.Updated,
 		}
-		if item.Parent != nil {
-			if par, ok := BuildObjectIDFromItem(*item.Parent); ok {
-				del.InReplyTo = as.IRI(par)
+		if item.Parent != nil || item.OP != nil {
+			repl := make(as.ItemCollection, 0)
+			if item.Parent != nil {
+				if par, ok := BuildObjectIDFromItem(*item.Parent); ok {
+					repl = append(repl, as.IRI(par))
+				}
 			}
-		}
-		if item.OP != nil {
-			if op, ok := BuildObjectIDFromItem(*item.OP); ok {
-				del.Context = as.IRI(op)
+			if item.OP != nil {
+				if op, ok := BuildObjectIDFromItem(*item.OP); ok {
+					del.Context = as.IRI(op)
+					repl = append(repl, as.IRI(op))
+				}
+			}
+			if len(repl) > 0 {
+				del.InReplyTo = repl
 			}
 		}
 
@@ -212,19 +219,24 @@ func loadAPItem(item app.Item) as.Item {
 		id := BuildActorID(*item.SubmittedBy)
 		o.AttributedTo = as.IRI(id)
 	}
-	if item.Parent != nil {
-		if id, ok := BuildObjectIDFromItem(*item.Parent); ok {
-			o.InReplyTo = as.IRI(id)
+	if item.Parent != nil || item.OP != nil {
+		repl := make(as.ItemCollection, 0)
+		if item.Parent != nil {
+			if par, ok := BuildObjectIDFromItem(*item.Parent); ok {
+				repl = append(repl, as.IRI(par))
+			}
+		}
+		if item.OP != nil {
+			if op, ok := BuildObjectIDFromItem(*item.OP); ok {
+				o.Context = as.IRI(op)
+				repl = append(repl, as.IRI(op))
+			}
+		}
+		if len(repl) > 0 {
+			o.InReplyTo = repl
 		}
 	}
-	// TODO(marius): here we need to replace .Context to a second entry in the .InReplyTo property
-	//   and document this convention somewhere in the code:
-	//   "A second InReplyTo element represents the top post of a reply thread"
-	if item.OP != nil {
-		if id, ok := BuildObjectIDFromItem(*item.OP); ok {
-			o.Context = as.IRI(id)
-		}
-	}
+
 	if item.Metadata != nil {
 		m := item.Metadata
 		if m.Mentions != nil || m.Tags != nil {
@@ -542,10 +554,10 @@ func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) 
 		for _, ctxt := range f.Context {
 			if ctxt != "0" {
 				c = fmt.Sprintf("%s/%s/replies", c, ctxt)
+				f.Context = f.Context[:0]
 			}
 			break
 		}
-		f.Context = f.Context[:0]
 	}
 	if len(f.Federated) > 0 {
 		// TODO(marius): need to add to fedbox support for filtering by hostname
@@ -611,6 +623,9 @@ func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) 
 }
 
 func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
+	if v.SubmittedBy == nil ||v.SubmittedBy.Metadata == nil {
+		return app.Vote{}, errors.Newf("Invalid submitter")
+	}
 	url := fmt.Sprintf("%s/%s", v.SubmittedBy.Metadata.LikedIRI, v.Item.Hash)
 
 	var err error
@@ -651,17 +666,15 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 		r.logger.Error(err.Error())
 		return v, err
 	}
+	if body, err = ioutil.ReadAll(resp.Body); err != nil {
+		r.logger.Error(err.Error())
+		return v, err
+	}
 	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusCreated {
 		err := v.FromActivityPub(act)
 		return v, err
 	}
-	if resp.StatusCode == http.StatusNotFound {
-		return v, errors.Errorf("vote not found")
-	}
-	if resp.StatusCode == http.StatusInternalServerError {
-		return v, errors.Errorf("unable to save vote")
-	}
-	return v, errors.Errorf("unknown error, received status %d", resp.StatusCode)
+	return v, r.handlerErrorResponse(body)
 }
 
 func (r *repository) LoadVotes(f app.Filters) (app.VoteCollection, uint, error) {
@@ -767,38 +780,92 @@ func (r *repository) LoadVote(f app.Filters) (app.Vote, error) {
 	return v, err
 }
 
+type _errors struct {
+	Errors []_error `jsonld:"errors"`
+}
+
+type _error struct {
+	Status  int    `jsonld:"status"`
+	Message string `jsonld:"message"`
+}
+
+func (r *repository)handlerErrorResponse(body []byte) error {
+	errs := _errors{}
+	if err := j.Unmarshal(body, &errs); err != nil {
+		r.logger.Errorf("Unable to unmarshall error response: %s", err.Error())
+		return nil
+	}
+	if len(errs.Errors) == 0 {
+		return nil
+	}
+	err := errs.Errors[0]
+	return errors.WrapWithStatus(err.Status, nil, err.Message)
+}
+
+func (r *repository) handleSuccessResponse(it app.Item, body []byte) (app.Item, error) {
+	ap, err := as.UnmarshalJSON(body)
+	if err != nil {
+		r.logger.Error(err.Error())
+		return it, err
+	}
+	err = it.FromActivityPub(ap)
+	if err != nil {
+		r.logger.Error(err.Error())
+		return it, err
+	}
+	items, err := r.loadItemsAuthors(it)
+	return items[0], err
+}
+
 func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 	art := loadAPItem(it)
 
-	actor := loadAPPerson(app.AnonymousAccount)
+	var actor *auth.Person
 	if r.Account != nil && r.Account.Hash == it.SubmittedBy.Hash {
-		// need to test if it.SubmittedBy matches r.Account and that the signature is valid
+		// TODO(marius): need to test if it.SubmittedBy matches r.Account and that the signature is valid
 		actor = loadAPPerson(*it.SubmittedBy)
+	} else {
+		actor = loadAPPerson(app.AnonymousAccount)
 	}
 
 	var body []byte
 	var err error
+	id := *art.GetID()
 	if it.Deleted() {
-		if len(*art.GetID()) == 0 {
+		if len(id) == 0 {
 			r.logger.WithContext(log.Ctx{
 				"item": it.Hash,
 			}).Error(err.Error())
 			return it, errors.NotFoundf("item hash is empty, can not delete")
 		}
-		id := art.GetID()
-		delete := as.DeleteNew(*id, art)
-		delete.Actor = actor.GetLink()
+		delete := as.Delete{
+			Parent: as.Parent{
+				Type: as.DeleteType,
+				To: as.ItemCollection{as.PublicNS,},
+			},
+			Actor: actor.GetLink(),
+			Object: art.GetLink(),
+		}
 		body, err = j.Marshal(delete)
 	} else {
-		if len(*art.GetID()) == 0 {
-			id := as.ObjectID("")
-			create := as.CreateNew(id, art)
-			create.Actor = actor.GetLink()
+		if len(id) == 0 {
+			create := as.Create{
+				Parent: as.Parent{
+					Type: as.CreateType,
+					To: as.ItemCollection{as.PublicNS,},
+				},
+				Actor: actor.GetLink(),
+			}
 			body, err = j.Marshal(create)
 		} else {
-			id := art.GetID()
-			update := as.UpdateNew(*id, art)
-			update.Actor = actor.GetLink()
+			update := as.Update{
+				Parent: as.Parent{
+					Type: as.UpdateType,
+					To: as.ItemCollection{as.PublicNS,},
+				},
+				Object: art,
+				Actor: actor.GetLink(),
+			}
 			body, err = j.Marshal(update)
 		}
 	}
@@ -815,43 +882,18 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 		outbox = fmt.Sprintf("%s", it.SubmittedBy.Metadata.OutboxIRI)
 	}
 	resp, err = r.client.Post(outbox, "application/activity+json", bytes.NewReader(body))
-
 	if err != nil {
 		r.logger.Error(err.Error())
 		return it, err
 	}
-	switch resp.StatusCode {
-	case http.StatusOK:
-		fallthrough
-	case http.StatusCreated:
-		fallthrough
-	case http.StatusGone:
-		if body, err = ioutil.ReadAll(resp.Body); err != nil {
-			r.logger.Error(err.Error())
-			return it, err
-		}
-
-		ap, err := as.UnmarshalJSON(body)
-		if err != nil {
-			r.logger.Error(err.Error())
-			return it, err
-		}
-		err = it.FromActivityPub(ap)
-		if err != nil {
-			r.logger.Error(err.Error())
-			return it, err
-		}
-		items, err := r.loadItemsAuthors(it)
-		return items[0], err
-	case http.StatusNotFound:
-		return it, errors.NotFoundf("%s", resp.Status)
-	case http.StatusMethodNotAllowed:
-		return it, errors.MethodNotAllowedf("%s", resp.Status)
-	case http.StatusInternalServerError:
-		return it, errors.Errorf("unable to save item %s", resp.Status)
-	default:
-		return app.Item{}, errors.Errorf("unknown error, received status %d", resp.StatusCode)
+	if body, err = ioutil.ReadAll(resp.Body); err != nil {
+		r.logger.Error(err.Error())
+		return it, err
 	}
+	if resp.StatusCode >= 400 {
+		return it, r.handlerErrorResponse(body)
+	}
+	return r.handleSuccessResponse(it, body)
 }
 
 func (r *repository) Get(u string) (*http.Response, error) {

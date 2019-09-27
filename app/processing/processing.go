@@ -83,7 +83,7 @@ var _exProcessIncomingInboxAction = Message{
 				Object: &as.Object{
 					ID:        as.ObjectID("https://external.example.com/accounts/jane_doe/outbox/special-note-identifier-123"),
 					Type:      as.NoteType,
-					InReplyTo: as.IRI("https://littr.git/api/self/following/system/outbox/7ca154ff"),
+					InReplyTo: as.ItemCollection{as.IRI("https://littr.git/api/self/following/system/outbox/7ca154ff")},
 					Content: as.NaturalLanguageValues{
 						as.LangRefValue{Ref: as.NilLangRef, Value: "<p>Hello world</p>"},
 					},
@@ -119,7 +119,7 @@ var _exProcessOutgoingInboxAction = Message{
 				Actor: as.IRI("https://littr.git/api/self/following/system"),
 				Object: &as.Object{
 					Type:      as.NoteType,
-					InReplyTo: as.IRI("https://external.example.com/accounts/jane_doe/outbox/special-note-identifier-123"),
+					InReplyTo: as.ItemCollection{as.IRI("https://external.example.com/accounts/jane_doe/outbox/special-note-identifier-123")},
 					Content: as.NaturalLanguageValues{
 						as.LangRefValue{Ref: as.NilLangRef, Value: "<p>The World says back: Hello Jane</p>"},
 					},
