@@ -105,11 +105,11 @@ type LoadItemsFilter struct {
 	SubmittedAtMatchType MatchType  `qstring:"submittedAtMatchType,omitempty"`
 	Content              string     `qstring:"content,omitempty"`
 	ContentMatchType     MatchType  `qstring:"contentMatchType,omitempty"`
-	Deleted              []bool     `qstring:"deleted,omitempty"`
+	Deleted              []bool     `qstring:"-"`
 	IRI                  string     `qstring:"id,omitempty"`
 	Depth                int        `qstring:"depth,omitempty"`
 	// Federated shows if the item was generated locally or is coming from an external peer
-	Federated []bool `qstring:"federated,omitempty"`
+	Federated []bool `qstring:"-"`
 	// FollowedBy is the hash or handle of the user of which we should show the list of items that were commented on or liked
 	FollowedBy   []string `qstring:"followedBy,omitempty"`
 	contentAlias string
