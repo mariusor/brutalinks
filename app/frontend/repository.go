@@ -652,20 +652,65 @@ func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) 
 	return items, count, err
 }
 
+func (r *repository) loadVotes(iri as.IRI) ([]app.Vote, error) {
+	likes, err := r.client.LoadIRI(iri)
+	// first step is to verify if vote already exists:
+	if err != nil {
+		return nil, err
+	}
+	allVotes := make([]app.Vote, 0)
+	err = ap.OnOrderedCollection(likes, func(col *as.OrderedCollection) error {
+		for _, like := range col.OrderedItems {
+			vote := app.Vote{}
+			vote.FromActivityPub(like)
+			allVotes = append(allVotes, vote)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	votes := make([]app.Vote, 0)
+	for _, vot := range allVotes {
+		skip := false
+		for i, cursor := range votes {
+			if vot.SubmittedBy.Hash == cursor.SubmittedBy.Hash {
+				votes[i].Weight += vot.Weight
+				skip = true
+				continue
+			}
+		}
+		if !skip {
+			votes = append(votes, vot)
+		}
+	}
+
+	return votes, nil
+}
+
 func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 	if v.SubmittedBy == nil || v.SubmittedBy.Metadata == nil {
-		return app.Vote{}, errors.Newf("Invalid submitter")
+		return app.Vote{}, errors.Newf("Invalid vote submitter")
 	}
-	url := fmt.Sprintf("%s/%s", v.SubmittedBy.Metadata.LikedIRI, v.Item.Hash)
+	if v.Item == nil || v.Item.Metadata == nil {
+		return app.Vote{}, errors.Newf("Invalid vote item")
+	}
+	url := fmt.Sprintf("%s/%s", v.Item.Metadata.ID, "likes")
 
-	var err error
-	var exists as.Item
+	itemVotes, err := r.loadVotes(as.IRI(url))
 	// first step is to verify if vote already exists:
-	if exists, err = r.client.LoadIRI(as.IRI(url)); err != nil {
+	if err != nil {
 		r.logger.WithContext(log.Ctx{
 			"url": url,
 			"err": err,
 		}).Warn(err.Error())
+	}
+	var exists app.Vote
+	for _, vot := range itemVotes {
+		if vot.SubmittedBy.Hash == v.SubmittedBy.Hash {
+			exists = vot
+			break
+		}
 	}
 	p := loadAPPerson(*v.SubmittedBy)
 	o := loadAPItem(*v.Item)
@@ -680,10 +725,10 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 		Object: o.GetLink(),
 	}
 
-	if v.Weight > 0 && (exists == nil || len(*exists.GetID()) == 0 || exists.GetType() != as.LikeType) {
+	if v.Weight > 0 && exists.Weight <= 0 {
 		act.Type = as.LikeType
 	}
-	if v.Weight < 0 && (exists == nil || len(*exists.GetID()) == 0 || exists.GetType() != as.DislikeType) {
+	if v.Weight < 0 && exists.Weight >= 0 {
 		act.Type = as.DislikeType
 	}
 
