@@ -20,6 +20,8 @@ type ItemMetadata struct {
 	ID         string        `json:"id,omitempty"`
 	URL        string        `json:"url,omitempty"`
 	RepliesURI string        `json:"replies,omitempty"`
+	LikesURI   string        `json:"likes,omitempty"`
+	SharesURI  string        `json:"shares,omitempty"`
 	AuthorURI  string        `json:"author,omitempty"`
 	Icon       ImageMetadata `json:"icon,omitempty"`
 }
