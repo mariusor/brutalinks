@@ -690,6 +690,13 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 	if v.Item == nil || v.Item.Metadata == nil {
 		return app.Vote{}, errors.Newf("Invalid vote item")
 	}
+	var p *auth.Person
+	if r.Account != nil && r.Account.Hash == v.SubmittedBy.Hash {
+		p = loadAPPerson(*v.SubmittedBy)
+	} else {
+		p = loadAPPerson(app.AnonymousAccount)
+	}
+
 	url := fmt.Sprintf("%s/%s", v.Item.Metadata.ID, "likes")
 
 	itemVotes, err := r.loadVotes(as.IRI(url))
@@ -707,7 +714,6 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 			break
 		}
 	}
-	p := loadAPPerson(*v.SubmittedBy)
 	o := loadAPItem(*v.Item)
 	//id := as.ObjectID(url)
 
@@ -734,8 +740,7 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 	}
 
 	var resp *http.Response
-	outbox := fmt.Sprintf("%s", v.Item.SubmittedBy.Metadata.OutboxIRI)
-	if resp, err = r.client.Post(outbox, cl.ContentTypeActivityJson, bytes.NewReader(body)); err != nil {
+	if resp, err = r.client.Post(p.Outbox.GetLink().String(), cl.ContentTypeActivityJson, bytes.NewReader(body)); err != nil {
 		r.logger.Error(err.Error())
 		return v, err
 	}
@@ -891,7 +896,6 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 
 	var actor *auth.Person
 	if r.Account != nil && r.Account.Hash == it.SubmittedBy.Hash {
-		// TODO(marius): need to test if it.SubmittedBy matches r.Account and that the signature is valid
 		actor = loadAPPerson(*it.SubmittedBy)
 	} else {
 		actor = loadAPPerson(app.AnonymousAccount)
@@ -947,11 +951,7 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 		return it, err
 	}
 	var resp *http.Response
-	outbox := fmt.Sprintf("%s/inbox", r.BaseURL)
-	if it.SubmittedBy.Metadata != nil {
-		outbox = fmt.Sprintf("%s", it.SubmittedBy.Metadata.OutboxIRI)
-	}
-	resp, err = r.client.Post(outbox, cl.ContentTypeActivityJson, bytes.NewReader(body))
+	resp, err = r.client.Post(actor.Outbox.GetLink().String(), cl.ContentTypeActivityJson, bytes.NewReader(body))
 	if err != nil {
 		r.logger.Error(err.Error())
 		return it, err
