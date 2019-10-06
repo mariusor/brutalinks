@@ -491,12 +491,7 @@ func (r *repository) loadItemsVotes(items ...app.Item) (app.ItemCollection, erro
 	for k, it := range items {
 		for _, vot := range votes {
 			if vot.Item.Hash == it.Hash {
-				if vot.Weight > 0 {
-					it.Score += vot.Weight
-				}
-				if vot.Weight < 0 {
-					it.Score -= vot.Weight
-				}
+				it.Score += vot.Weight
 			}
 		}
 		col[k] = it
