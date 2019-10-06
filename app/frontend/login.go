@@ -47,8 +47,9 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 			"handle": handle,
 			"client": config.ClientID,
 			"state":  state,
-		}).Error(err.Error())
-		h.addFlashMessage(Error, r, fmt.Sprintf("Login failed: %s", err))
+			"error": err,
+		}).Error("login failed")
+		h.addFlashMessage(Error, r, "Login failed: invalid username or password")
 		h.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
