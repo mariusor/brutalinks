@@ -509,7 +509,9 @@ func (h *handler) HandleVoting(w http.ResponseWriter, r *http.Request) {
 				"hash":   v.Item.Hash,
 				"author": v.SubmittedBy.Handle,
 				"weight": v.Weight,
-			}).Error(err.Error())
+				"error": err,
+			}).Error("Unable to save vote")
+			h.addFlashMessage(Error, r, err.Error())
 		}
 	} else {
 		h.addFlashMessage(Error, r, "unable to vote as current user")

@@ -854,12 +854,8 @@ func (r *repository) LoadVote(f app.Filters) (app.Vote, error) {
 }
 
 type _errors struct {
-	Errors []_error `jsonld:"errors"`
-}
-
-type _error struct {
-	Status  int    `jsonld:"status"`
-	Message string `jsonld:"message"`
+	Ctxt string `jsonld:"@context"`
+	Errors []errors.Http `jsonld:"errors"`
 }
 
 func (r *repository) handlerErrorResponse(body []byte) error {
@@ -872,7 +868,7 @@ func (r *repository) handlerErrorResponse(body []byte) error {
 		return nil
 	}
 	err := errs.Errors[0]
-	return errors.WrapWithStatus(err.Status, nil, err.Message)
+	return errors.WrapWithStatus(err.Code, nil, err.Message)
 }
 
 func (r *repository) handleSuccessResponse(it app.Item, body []byte) (app.Item, error) {
