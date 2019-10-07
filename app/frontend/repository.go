@@ -46,6 +46,11 @@ func NewRepository(c Config) *repository {
 	cl.UserAgent = fmt.Sprintf("%s-%s", app.Instance.HostName, app.Instance.Version)
 	cl.ErrorLogger = func(el ...interface{}) { c.Logger.WithContext(log.Ctx{"client": "api"}).Errorf("%v", el) }
 	cl.InfoLogger = func(el ...interface{}) { c.Logger.WithContext(log.Ctx{"client": "api"}).Debugf("%v", el) }
+
+	BaseURL = c.APIURL
+	ActorsURL = fmt.Sprintf("%s/actors", BaseURL)
+	ObjectsURL  = fmt.Sprintf("%s/objects", BaseURL)
+
 	return &repository{
 		BaseURL: c.APIURL,
 		logger:  c.Logger,
