@@ -58,11 +58,9 @@ run: app
 clean:
 	-$(RM) bin/*
 	$(MAKE) -C docker $@
-	$(MAKE) -C tests $@
 
 images:
 	$(MAKE) -C docker $@
 
 test: app
 	$(TEST) ./{app,cli,internal}/...
-	$(MAKE) -C tests $@
