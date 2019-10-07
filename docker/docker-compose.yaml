@@ -1,14 +1,5 @@
 version: "3"
 services:
-  db:
-    env_file: ./.env
-    image: postgres:10-alpine
-    volumes:
-    - /var/lib/postgresql/data
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_DATABASE: postgres
-    command: postgres -c log_connections=on -c logging_collector=on -c log_destination=stderr
 #  redis:
 #    restart: always
 #    image: redis:4.0-alpine
@@ -66,39 +57,11 @@ services:
       default:
         aliases:
           - ${HOSTNAME}
-  bootstrap:
-    env_file: ./.env
-    image: ${HOSTNAME}/bootstrap:${ENV}
-    depends_on:
-    - db
-    links:
-    - db
-    build:
-      context: .
-      dockerfile: ./bootstrap/Dockerfile
-      args:
-        ENV: ${ENV}
-        HOSTNAME: ${HOSTNAME}
-  tasks:
-    env_file: ./.env
-    image: ${HOSTNAME}/tasks:${ENV}
-    depends_on:
-    - db
-    links:
-    - db
-    build:
-      context: .
-      dockerfile: ./tasks/Dockerfile
-      args:
-        ENV: ${ENV}
-        HOSTNAME: ${HOSTNAME}
   app:
     env_file: ./.env
     image: ${HOSTNAME}/app:${ENV}
-    depends_on:
-    - db
-    links:
-    - db
+#    depends_on:
+#    links:
 #    - redis
 #    - es
     build:

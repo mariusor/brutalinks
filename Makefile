@@ -22,35 +22,13 @@ endif
 BUILD := $(GO) build $(BUILDFLAGS)
 TEST := $(GO) test $(BUILDFLAGS)
 
-.PHONY: all cli run clean images test
+.PHONY: all run clean images test
 
-all: app cli
+all: app
 
 app: bin/app
 bin/app: go.mod main.go $(APPSOURCES)
 	$(BUILD) -tags $(ENV) -o $@ ./main.go
-
-bootstrap: bin/bootstrap
-bin/bootstrap: go.mod cli/bootstrap/main.go $(APPSOURCES)
-	$(BUILD) -tags $(ENV) -o $@ cli/bootstrap/main.go
-
-votes: bin/votes
-bin/votes: go.mod cli/votes/main.go $(APPSOURCES)
-	$(BUILD) -tags $(ENV) -o $@ cli/votes/main.go
-
-keys: bin/keys
-bin/keys: go.mod cli/keys/main.go $(APPSOURCES)
-	$(BUILD) -tags $(ENV) -o $@ cli/keys/main.go
-
-poach: bin/poach
-bin/poach: go.mod cli/poach/main.go $(APPSOURCES)
-	$(BUILD) -tags $(ENV) -o $@ cli/poach/main.go
-
-fetcher: bin/fetcher
-bin/fetcher: go.mod cli/fetcher/main.go $(APPSOURCES)
-	$(BUILD) -tags $(ENV) -o $@ cli/fetcher/main.go
-
-cli: bootstrap votes keys
 
 run: app
 	@./bin/app
@@ -63,4 +41,4 @@ images:
 	$(MAKE) -C docker $@
 
 test: app
-	$(TEST) ./{app,cli,internal}/...
+	$(TEST) ./{app,internal}/...
