@@ -6,10 +6,10 @@ require (
 	github.com/PuerkitoBio/goquery v1.5.0 // indirect
 	github.com/buger/jsonparser v0.0.0-20181023193515-52c6e1462ebd
 	github.com/captncraig/cors v0.0.0-20180620154129-376d45073b49 // indirect
-	github.com/gchaincl/dotsql v0.1.0
-	github.com/go-ap/activitypub v0.0.0-20191004142926-16f08e747d52
-	github.com/go-ap/activitystreams v0.0.0-20191004142722-aa26e536d97c
-	github.com/go-ap/auth v0.0.0-20190927140906-5b52d79b3318
+	github.com/gchaincl/dotsql v1.0.0
+	github.com/go-ap/activitypub v0.0.0-20191007111210-89ca16b23d5f
+	github.com/go-ap/activitystreams v0.0.0-20191007111106-6e2d1b5aaf86
+	github.com/go-ap/auth v0.0.0-20191007113850-0f8ff4f84e95
 	github.com/go-ap/errors v0.0.0-20190912092905-f53d51859c48
 	github.com/go-ap/jsonld v0.0.0-20190909141304-ea10fe6e7916
 	github.com/go-chi/chi v4.0.2+incompatible
@@ -27,8 +27,8 @@ require (
 	github.com/openshift/osin v1.0.1
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spacemonkeygo/httpsig v0.0.0-20181218213338-2605ae379e47
-	github.com/unrolled/render v0.0.0-20171102162132-65450fb6b2d3
-	github.com/writeas/go-nodeinfo v0.0.0-20180809171410-91102b12f3e1 // indirect
+	github.com/unrolled/render v1.0.0
+	github.com/writeas/go-nodeinfo v0.0.0-20180809171410-91102b12f3e1
 	github.com/writeas/go-webfinger v0.0.0-20190106002315-85cf805c86d2 // indirect
 	gitlab.com/golang-commonmark/html v0.0.0-20180917080848-cfaf75183c4a // indirect
 	gitlab.com/golang-commonmark/linkify v0.0.0-20180917065525-c22b7bdb1179 // indirect
