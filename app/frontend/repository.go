@@ -767,13 +767,24 @@ func (r *repository) LoadVotes(f app.Filters) (app.VoteCollection, uint, error) 
 		as.DislikeType,
 		as.UndoType,
 	}
-	if q, err := qstring.MarshalString(&f); err == nil {
-		qs = fmt.Sprintf("?%s", q)
-	}
 
 	var err error
 	var resp *http.Response
-	url := fmt.Sprintf("%s/activities%s", r.BaseURL, qs)
+	var url string
+	if len(f.LoadVotesFilter.AttributedTo) == 1 {
+		attrTo := f.LoadVotesFilter.AttributedTo[0]
+		f.LoadVotesFilter.AttributedTo = nil
+		if q, err := qstring.MarshalString(&f); err == nil {
+			qs = fmt.Sprintf("?%s", q)
+		}
+		url = fmt.Sprintf("%s/actors/%s/outbox%s", r.BaseURL, attrTo, qs)
+	} else {
+		if q, err := qstring.MarshalString(&f); err == nil {
+			qs = fmt.Sprintf("?%s", q)
+		}
+		url = fmt.Sprintf("%s/inbox%s", r.BaseURL, qs)
+	}
+
 	if resp, err = r.client.Get(url); err != nil {
 		r.logger.Error(err.Error())
 		return nil, 0, err
@@ -864,7 +875,7 @@ func (r *repository) LoadVote(f app.Filters) (app.Vote, error) {
 }
 
 type _errors struct {
-	Ctxt string `jsonld:"@context"`
+	Ctxt   string        `jsonld:"@context"`
 	Errors []errors.Http `jsonld:"errors"`
 }
 
