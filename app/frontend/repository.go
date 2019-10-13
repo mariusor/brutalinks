@@ -719,23 +719,28 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 			break
 		}
 	}
-	o := loadAPItem(*v.Item)
-	//id := as.ObjectID(url)
 
+	o := loadAPItem(*v.Item)
+	var undoAct as.IRI
+	if v.Metadata != nil {
+		undoAct = as.IRI(v.Metadata.IRI)
+	}
 	act := as.Activity{
 		Parent: as.Object{
 			Type: as.UndoType,
-			To:   as.ItemCollection{as.PublicNS, as.IRI(BaseURL),},
+			To:   as.ItemCollection{as.PublicNS, as.IRI(BaseURL)},
 		},
 		Actor:  p.GetLink(),
-		Object: o.GetLink(),
+		Object: undoAct,
 	}
 
 	if v.Weight > 0 && exists.Weight <= 0 {
 		act.Type = as.LikeType
+		act.Object = o.GetLink()
 	}
 	if v.Weight < 0 && exists.Weight >= 0 {
 		act.Type = as.DislikeType
+		act.Object = o.GetLink()
 	}
 
 	var body []byte
@@ -810,8 +815,9 @@ func (r *repository) LoadVotes(f app.Filters) (app.VoteCollection, uint, error) 
 		r.logger.Error(err.Error())
 		return nil, 0, err
 	}
-	votes := make(app.VoteCollection, 0)
 	var count uint = 0
+	votes := make(app.VoteCollection, 0)
+	undos := make(app.VoteCollection, 0)
 	ap.OnOrderedCollection(it, func(col *as.OrderedCollection) error {
 		count = col.TotalItems
 		for _, it := range col.OrderedItems {
@@ -822,11 +828,39 @@ func (r *repository) LoadVotes(f app.Filters) (app.VoteCollection, uint, error) 
 				}).Warn(err.Error())
 				continue
 			}
-			votes = append(votes, vot)
+			if vot.Weight != 0 {
+				votes = append(votes, vot)
+			} else {
+				if vot.Metadata == nil || len(vot.Metadata.OriginalIRI) == 0 {
+					r.logger.Error("Zero vote without an original activity undone")
+					continue
+				}
+				undos = append(undos, vot)
+			}
+		}
+		for _, undo := range undos {
+			if undo.Metadata == nil || len(undo.Metadata.OriginalIRI) == 0 {
+				// error
+				continue
+			}
+			for i, vot := range votes {
+				if vot.Metadata == nil || len(vot.Metadata.IRI) == 0 {
+					// error
+					continue
+				}
+				if vot.Metadata.IRI == undo.Metadata.OriginalIRI {
+					votes = append(votes[:i], votes[i+1:]...)
+				}
+			}
 		}
 		return err
 	})
+
 	return votes, count, nil
+}
+
+func removeUndidVotes(votes []app.Vote) error {
+	return nil
 }
 
 func (r *repository) LoadVote(f app.Filters) (app.Vote, error) {
@@ -930,7 +964,7 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 		delete := as.Delete{
 			Parent: as.Parent{
 				Type: as.DeleteType,
-				To:   as.ItemCollection{as.PublicNS, as.IRI(BaseURL),},
+				To:   as.ItemCollection{as.PublicNS, as.IRI(BaseURL)},
 			},
 			Actor:  actor.GetLink(),
 			Object: id,
@@ -941,7 +975,7 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 			create := as.Create{
 				Parent: as.Parent{
 					Type: as.CreateType,
-					To:   as.ItemCollection{as.PublicNS, as.IRI(BaseURL),},
+					To:   as.ItemCollection{as.PublicNS, as.IRI(BaseURL)},
 				},
 				Actor:  actor.GetLink(),
 				Object: art,
@@ -951,7 +985,7 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 			update := as.Update{
 				Parent: as.Parent{
 					Type: as.UpdateType,
-					To:   as.ItemCollection{as.PublicNS, as.IRI(BaseURL),},
+					To:   as.ItemCollection{as.PublicNS, as.IRI(BaseURL)},
 				},
 				Object: art,
 				Actor:  actor.GetLink(),

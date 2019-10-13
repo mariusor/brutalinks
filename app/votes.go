@@ -17,13 +17,19 @@ const (
 
 type VoteCollection []Vote
 
+type VoteMetadata struct {
+	IRI         string `json:"-"`
+	OriginalIRI string `json:"-"`
+}
+
 type Vote struct {
-	SubmittedBy *Account  `json:"-"`
-	SubmittedAt time.Time `json:"-"`
-	UpdatedAt   time.Time `json:"-"`
-	Weight      int       `json:"weight"`
-	Item        *Item     `json:"on"`
-	Flags       FlagBits  `json:"-"`
+	SubmittedBy *Account      `json:"-"`
+	SubmittedAt time.Time     `json:"-"`
+	UpdatedAt   time.Time     `json:"-"`
+	Weight      int           `json:"weight"`
+	Item        *Item         `json:"on"`
+	Flags       FlagBits      `json:"-"`
+	Metadata    *VoteMetadata `json:"-"`
 }
 
 func trimHash(s Hash) Hash {

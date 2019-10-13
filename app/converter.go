@@ -410,6 +410,10 @@ func (v *Vote) FromActivityPub(it as.Item) error {
 
 			v.SubmittedAt = act.Published
 			v.UpdatedAt = act.Updated
+			v.Metadata = &VoteMetadata{
+				IRI: act.GetLink().String(),
+			}
+
 			if act.Type == as.LikeType {
 				v.Weight = 1
 			}
@@ -418,6 +422,7 @@ func (v *Vote) FromActivityPub(it as.Item) error {
 			}
 			if act.Type == as.UndoType {
 				v.Weight = 0
+				v.Metadata.OriginalIRI = act.Object.GetLink().String()
 			}
 		}
 		goap.OnActivity(it, func(act *as.Activity) error {
