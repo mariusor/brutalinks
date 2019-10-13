@@ -736,7 +736,10 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 						}
 					}
 				} else {
-					h.account = loadCurrentAccountFromSession(s, h.storage, h.logger)
+					acc := loadCurrentAccountFromSession(s, h.storage, h.logger)
+					if acc.Handle != h.account.Handle {
+						h.account = acc
+					}
 				}
 			} else {
 				h.logger.Warn("missing session store, unable to load session")
