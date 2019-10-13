@@ -49,7 +49,7 @@ func NewRepository(c Config) *repository {
 
 	BaseURL = c.APIURL
 	ActorsURL = fmt.Sprintf("%s/actors", BaseURL)
-	ObjectsURL  = fmt.Sprintf("%s/objects", BaseURL)
+	ObjectsURL = fmt.Sprintf("%s/objects", BaseURL)
 
 	return &repository{
 		BaseURL: c.APIURL,
@@ -725,7 +725,7 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 	act := as.Activity{
 		Parent: as.Object{
 			Type: as.UndoType,
-			To:   as.ItemCollection{as.PublicNS},
+			To:   as.ItemCollection{as.PublicNS, as.IRI(BaseURL),},
 		},
 		Actor:  p.GetLink(),
 		Object: o.GetLink(),
@@ -919,7 +919,7 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 		delete := as.Delete{
 			Parent: as.Parent{
 				Type: as.DeleteType,
-				To:   as.ItemCollection{as.PublicNS},
+				To:   as.ItemCollection{as.PublicNS, as.IRI(BaseURL),},
 			},
 			Actor:  actor.GetLink(),
 			Object: id,
@@ -930,7 +930,7 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 			create := as.Create{
 				Parent: as.Parent{
 					Type: as.CreateType,
-					To:   as.ItemCollection{as.PublicNS},
+					To:   as.ItemCollection{as.PublicNS, as.IRI(BaseURL),},
 				},
 				Actor:  actor.GetLink(),
 				Object: art,
@@ -940,7 +940,7 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 			update := as.Update{
 				Parent: as.Parent{
 					Type: as.UpdateType,
-					To:   as.ItemCollection{as.PublicNS},
+					To:   as.ItemCollection{as.PublicNS, as.IRI(BaseURL),},
 				},
 				Object: art,
 				Actor:  actor.GetLink(),
