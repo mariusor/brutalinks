@@ -334,6 +334,9 @@ func (i *Item) FromActivityPub(it as.Item) error {
 		return goap.OnActivity(it, func(act *as.Activity) error {
 			err := i.FromActivityPub(act.Object)
 			i.SubmittedBy.FromActivityPub(act.Actor)
+			if i.Metadata == nil {
+				i.Metadata = &ItemMetadata{}
+			}
 			i.Metadata.AuthorURI = act.Actor.GetLink().String()
 			return err
 		})
