@@ -546,7 +546,7 @@ func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) 
 	if len(f.FollowedBy) > 0 {
 		// TODO(marius): make this work for multiple FollowedBy filters
 		for _, foll := range f.FollowedBy {
-			target = fmt.Sprintf("/following/%s", foll)
+			target = fmt.Sprintf("/actors/%s/", foll)
 			c = "inbox"
 			break
 		}
