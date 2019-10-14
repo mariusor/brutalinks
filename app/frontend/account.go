@@ -53,6 +53,10 @@ func (h *handler) ShowAccount(w http.ResponseWriter, r *http.Request) {
 		h.HandleErrors(w, r, errors.NotFoundf("account %q not found", handle))
 		return
 	}
+	if cnt > 1 {
+		h.HandleErrors(w, r, errors.NotFoundf("too many %q accounts found", handle))
+		return
+	}
 
 	filter := app.Filters{
 		LoadItemsFilter: app.LoadItemsFilter{},
