@@ -734,6 +734,24 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 		Object: undoAct,
 	}
 
+	if exists.Metadata != nil {
+		// undo old vote
+		var body []byte
+		if body, err = j.Marshal(act); err != nil {
+			r.logger.Error(err.Error())
+		}
+		var resp *http.Response
+		if resp, err = r.client.Post(p.Outbox.GetLink().String(), cl.ContentTypeActivityJson, bytes.NewReader(body)); err != nil {
+			r.logger.Error(err.Error())
+		}
+		if body, err = ioutil.ReadAll(resp.Body); err != nil {
+			r.logger.Error(err.Error())
+		}
+		if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusCreated {
+			r.logger.Error("unable to undo previous vote")
+		}
+	}
+
 	if v.Weight > 0 && exists.Weight <= 0 {
 		act.Type = as.LikeType
 		act.Object = o.GetLink()
