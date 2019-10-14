@@ -107,6 +107,7 @@ type LoadItemsFilter struct {
 	ContentMatchType     MatchType  `qstring:"contentMatchType,omitempty"`
 	Deleted              []bool     `qstring:"-"` // used as an array to allow for it to be missing
 	IRI                  string     `qstring:"id,omitempty"`
+	URL                  string     `qstring:"url,omitempty"`
 	Depth                int        `qstring:"depth,omitempty"`
 	Federated            []bool     `qstring:"-"` // used as an array to allow for it to be missing
 	// FollowedBy is the hash or handle of the user of which we should show the list of items that were commented on or liked

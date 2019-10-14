@@ -3,6 +3,7 @@ package frontend
 import (
 	"context"
 	"fmt"
+	"github.com/go-ap/activitystreams"
 	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/internal/log"
 	"github.com/mariusor/qstring"
@@ -225,7 +226,7 @@ func loadItems(c context.Context, filter app.Filters, acc *app.Account, l log.Lo
 	return m, nil
 }
 
-// HandleDomains serves /tags/{domain} request
+// HandleTags serves /tags/{tag} request
 func (h *handler) HandleTags(w http.ResponseWriter, r *http.Request) {
 	tag := chi.URLParam(r, "tag")
 	filter := app.Filters{
@@ -267,9 +268,8 @@ func (h *handler) HandleDomains(w http.ResponseWriter, r *http.Request) {
 		Page:     1,
 	}
 	if len(domain) > 0 {
-		filter.Content = fmt.Sprintf("http[s]?://%s", domain)
-		filter.ContentMatchType = app.MatchFuzzy
-		filter.MediaType = []app.MimeType{app.MimeTypeURL}
+		filter.LoadItemsFilter.URL = domain
+		filter.Type = activitystreams.ActivityVocabularyTypes{activitystreams.PageType}
 	} else {
 		filter.MediaType = []app.MimeType{app.MimeTypeMarkdown, app.MimeTypeText, app.MimeTypeHTML}
 	}
