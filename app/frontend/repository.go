@@ -230,16 +230,23 @@ func loadAPItem(item app.Item) as.Item {
 	if item.Parent != nil || item.OP != nil {
 		repl := make(as.ItemCollection, 0)
 		if item.Parent != nil {
-			if par, ok := BuildObjectIDFromItem(*item.Parent); ok {
-				repl = append(repl, as.IRI(par))
+			p := item.Parent
+			for {
+				if p == nil {
+					break
+				}
+				if par, ok := BuildObjectIDFromItem(*p); ok {
+					repl = append(repl, as.IRI(par))
+				}
+				p = p.Parent
 			}
 		}
-		if item.OP != nil {
-			if op, ok := BuildObjectIDFromItem(*item.OP); ok {
-				o.Context = as.IRI(op)
-				repl = append(repl, as.IRI(op))
-			}
-		}
+		//if item.OP != nil {
+		//	if op, ok := BuildObjectIDFromItem(*item.OP); ok {
+		//		o.Context = as.IRI(op)
+		//		repl = append(repl, as.IRI(op))
+		//	}
+		//}
 		if len(repl) > 0 {
 			o.InReplyTo = repl
 		}
