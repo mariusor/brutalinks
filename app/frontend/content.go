@@ -1,6 +1,7 @@
 package frontend
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/mariusor/littr.go/internal/log"
 	"github.com/mariusor/qstring"
@@ -134,7 +135,7 @@ func replaceTags(comments comments) {
 }
 func contains(visited []app.Hash, h app.Hash) bool {
 	for _, chk := range visited {
-		if chk == h {
+		if bytes.Equal(chk, h) {
 			return true
 		}
 	}
@@ -155,7 +156,7 @@ func addLevelComments(comments comments) {
 func reparentComments(allComments []*comment) {
 	parFn := func(t []*comment, cur comment) *comment {
 		for _, n := range t {
-			if cur.Item.Parent != nil && cur.Item.Parent.Hash == n.Hash {
+			if cur.Item.Parent != nil && bytes.Equal(cur.Item.Parent.Hash, n.Hash) {
 				return n
 			}
 		}

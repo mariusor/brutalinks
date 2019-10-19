@@ -26,9 +26,9 @@ const (
 	// Anonymous label
 	Anonymous = "anonymous"
 	// AnonymousHash is the sha hash for the anonymous account
-	AnonymousHash = Hash("eacff9ddf379bd9fc8274c5a9f4cae08")
 )
 
+var AnonymousHash = Hash("eacff9ddf379bd9fc8274c5a9f4cae08")
 var AnonymousAccount = Account{Handle: Anonymous, Hash: AnonymousHash}
 
 var listenHost string

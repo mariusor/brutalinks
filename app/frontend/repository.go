@@ -127,7 +127,7 @@ func accountURL(acc app.Account) as.IRI {
 }
 
 func BuildObjectIDFromItem(i app.Item) (as.ObjectID, bool) {
-	if i.Hash == "" {
+	if len(i.Hash) == 0 {
 		return "", false
 	}
 	if i.HasMetadata() && len(i.Metadata.ID) > 0 {
@@ -241,12 +241,12 @@ func loadAPItem(item app.Item) as.Item {
 				p = p.Parent
 			}
 		}
-		//if item.OP != nil {
-		//	if op, ok := BuildObjectIDFromItem(*item.OP); ok {
-		//		o.Context = as.IRI(op)
-		//		repl = append(repl, as.IRI(op))
-		//	}
-		//}
+		if item.OP != nil {
+			if op, ok := BuildObjectIDFromItem(*item.OP); ok {
+				o.Context = as.IRI(op)
+				repl = append(repl, as.IRI(op))
+			}
+		}
 		if len(repl) > 0 {
 			o.InReplyTo = repl
 		}
@@ -385,7 +385,7 @@ func (r *repository) withAccountS2S(a *app.Account) error {
 	// TODO(marius): this needs to be added to the federated requests, which we currently don't support
 	r.Account = a
 
-	if r.Account == nil || r.Account.Hash == app.AnonymousAccount.Hash {
+	if r.Account == nil || bytes.Equal(r.Account.Hash, app.AnonymousAccount.Hash) {
 		return nil
 	}
 
@@ -475,11 +475,12 @@ func (r *repository) LoadItem(f app.Filters) (app.Item, error) {
 
 func hashesUnique(a app.Hashes) app.Hashes {
 	u := make([]app.Hash, 0, len(a))
-	m := make(map[app.Hash]bool)
+	m := make(map[string]bool)
 
 	for _, val := range a {
-		if _, ok := m[val]; !ok {
-			m[val] = true
+		k := val.String()
+		if _, ok := m[k]; !ok {
+			m[k] = true
 			u = append(u, val)
 		}
 	}
@@ -502,7 +503,7 @@ func (r *repository) loadItemsVotes(items ...app.Item) (app.ItemCollection, erro
 	}
 	for k, it := range items {
 		for _, vot := range votes {
-			if vot.Item.Hash == it.Hash {
+			if bytes.Equal(vot.Item.Hash, it.Hash) {
 				it.Score += vot.Weight
 			}
 		}
@@ -535,12 +536,12 @@ func (r *repository) loadItemsAuthors(items ...app.Item) (app.ItemCollection, er
 	}
 	for k, it := range items {
 		for _, auth := range authors {
-			if it.SubmittedBy.Hash == auth.Hash || it.SubmittedBy.Handle == auth.Handle {
+			if bytes.Equal(it.SubmittedBy.Hash, auth.Hash) || it.SubmittedBy.Handle == auth.Handle {
 				it.SubmittedBy = &auth
 				break
 			}
 			if it.UpdatedBy != nil {
-				if it.UpdatedBy.Hash == auth.Hash || it.UpdatedBy.Handle == auth.Handle {
+				if bytes.Equal(it.UpdatedBy.Hash, auth.Hash) || it.UpdatedBy.Handle == auth.Handle {
 					it.UpdatedBy = &auth
 					break
 				}
@@ -680,7 +681,7 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 		return app.Vote{}, errors.Newf("Invalid vote item")
 	}
 	var p *auth.Person
-	if r.Account != nil && r.Account.Hash == v.SubmittedBy.Hash {
+	if r.Account != nil && bytes.Equal(r.Account.Hash, v.SubmittedBy.Hash) {
 		p = loadAPPerson(*v.SubmittedBy)
 	} else {
 		p = loadAPPerson(app.AnonymousAccount)
@@ -698,7 +699,7 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 	}
 	var exists app.Vote
 	for _, vot := range itemVotes {
-		if vot.SubmittedBy.Hash == v.SubmittedBy.Hash {
+		if bytes.Equal(vot.SubmittedBy.Hash, v.SubmittedBy.Hash) {
 			exists = vot
 			break
 		}
@@ -789,7 +790,7 @@ func (r *repository) loadVotesCollection(iri as.IRI) ([]app.Vote, error) {
 	for _, vot := range allVotes {
 		skip := false
 		for i, cursor := range votes {
-			if vot.SubmittedBy.Hash == cursor.SubmittedBy.Hash {
+			if bytes.Equal(vot.SubmittedBy.Hash, cursor.SubmittedBy.Hash) {
 				votes[i].Weight += vot.Weight
 				skip = true
 				continue
@@ -983,7 +984,7 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 	art := loadAPItem(it)
 
 	var actor *auth.Person
-	if r.Account != nil && r.Account.Hash == it.SubmittedBy.Hash {
+	if r.Account != nil && bytes.Equal(r.Account.Hash, it.SubmittedBy.Hash) {
 		actor = loadAPPerson(*it.SubmittedBy)
 	} else {
 		actor = loadAPPerson(app.AnonymousAccount)

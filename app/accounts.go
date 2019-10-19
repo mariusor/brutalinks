@@ -1,7 +1,9 @@
 package app
 
 import (
+	"bytes"
 	"fmt"
+	"github.com/pborman/uuid"
 	"time"
 
 	"github.com/go-ap/errors"
@@ -61,7 +63,7 @@ type Account struct {
 }
 
 // Hash is a local type for string, it should hold a [32]byte array actually
-type Hash string
+type Hash uuid.UUID
 
 // String returns the hash as a string
 func (h Hash) String() string {
@@ -127,7 +129,7 @@ func (a Account) VotedOn(i Item) *Vote {
 		if v.Item == nil {
 			continue
 		}
-		if v.Item.Hash == i.Hash {
+		if bytes.Equal(v.Item.Hash, i.Hash) {
 			return &v
 		}
 	}
@@ -143,7 +145,7 @@ func (a Account) GetLink() string {
 
 // IsLogged should show if current user was loaded from a session
 func (a Account) IsLogged() bool {
-	return !a.CreatedAt.IsZero() || a.Hash != AnonymousHash
+	return !a.CreatedAt.IsZero() || !bytes.Equal(a.Hash, AnonymousHash)
 }
 
 // HasIcon

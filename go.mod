@@ -25,6 +25,7 @@ require (
 	github.com/mmcdole/goxpp v0.0.0-20181012175147-0068e33feabf // indirect
 	github.com/mmcloughlin/meow v0.0.0-20181112033425-871e50784daf
 	github.com/openshift/osin v1.0.1
+	github.com/pborman/uuid v1.2.0
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spacemonkeygo/httpsig v0.0.0-20181218213338-2605ae379e47
 	github.com/unrolled/render v1.0.0

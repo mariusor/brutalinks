@@ -35,11 +35,11 @@ type Vote struct {
 func trimHash(s Hash) Hash {
 	h, err := url.PathUnescape(string(s))
 	if err != nil {
-		return ""
+		return Hash("")
 	}
 	h = strings.TrimSpace(h)
 	if len(h) == 0 {
-		return ""
+		return Hash("")
 	}
 	return Hash(h)
 }
