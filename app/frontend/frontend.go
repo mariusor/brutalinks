@@ -499,6 +499,11 @@ func (h *handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name st
 			"NumberFmt":         func(i int) string { return numberFormat("%d", i) },
 			"TimeFmt":           relTimeFmt,
 			"ISOTimeFmt":        isoTimeFmt,
+			"ShowUpdate":        func(i app.Item) bool {
+				// TODO(marius): I have to find out why there's a difference between SubmittedAt and UpdatedAt
+				//  values coming from fedbox
+				return !(i.UpdatedAt.IsZero() ||  math.Abs(float64(i.SubmittedAt.Sub(i.UpdatedAt).Milliseconds())) < 20000.0)
+			},
 			"ScoreClass":        scoreClass,
 			"YayLink":           yayLink,
 			"NayLink":           nayLink,
