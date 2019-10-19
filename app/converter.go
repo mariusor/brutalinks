@@ -332,6 +332,11 @@ func (i *Item) FromActivityPub(it as.Item) error {
 		fallthrough
 	case as.ActivityType:
 		return goap.OnActivity(it, func(act *as.Activity) error {
+			// TODO(marius): this logic is probably broken if the activity is anything else except a Create
+			good := as.ActivityVocabularyTypes{as.CreateType, as.UpdateType}
+			if !good.Contains(act.Type) {
+				return errors.Newf("Invalid activity to load from %s", act.Type)
+			}
 			err := i.FromActivityPub(act.Object)
 			i.SubmittedBy.FromActivityPub(act.Actor)
 			if i.Metadata == nil {
