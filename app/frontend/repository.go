@@ -539,6 +539,12 @@ func (r *repository) loadItemsAuthors(items ...app.Item) (app.ItemCollection, er
 				it.SubmittedBy = &auth
 				break
 			}
+			if it.UpdatedBy != nil {
+				if it.UpdatedBy.Hash == auth.Hash || it.UpdatedBy.Handle == auth.Handle {
+					it.UpdatedBy = &auth
+					break
+				}
+			}
 		}
 		col[k] = it
 	}

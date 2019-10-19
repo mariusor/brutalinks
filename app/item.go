@@ -48,6 +48,7 @@ type Item struct {
 	SubmittedAt time.Time     `json:"-"`
 	SubmittedBy *Account      `json:"-"`
 	UpdatedAt   time.Time     `json:"-"`
+	UpdatedBy   *Account      `json:"-"`
 	Flags       FlagBits      `json:"-"`
 	Path        []byte        `json:"-"`
 	FullPath    []byte        `json:"-"`
