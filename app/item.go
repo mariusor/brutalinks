@@ -55,11 +55,21 @@ type Item struct {
 	Metadata    *ItemMetadata `json:"-"`
 	IsTop       bool          `json:"-"`
 	Parent      *Item         `json:"-"`
-	OP          *Item         `json:"-"`
 }
 
 func (i *Item) IsValid() bool {
 	return i != nil && len(i.Hash) > 0
+}
+
+func (i Item) OP() *Item {
+	op := i.Parent
+	for {
+		if op != nil {
+			op = op.Parent
+		}
+		break
+	}
+	return op
 }
 
 func (i Item) Deleted() bool {

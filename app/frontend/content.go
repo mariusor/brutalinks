@@ -281,11 +281,11 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 	if i.Parent.IsValid() && i.Parent.SubmittedAt.IsZero() {
 		if p, err := itemLoader.LoadItem(app.Filters{LoadItemsFilter: app.LoadItemsFilter{Key: app.Hashes{i.Parent.Hash}}}); err == nil {
 			i.Parent = &p
-			if p.OP != nil {
-				i.OP = p.OP
-			} else {
-				i.OP = &p
-			}
+			//if p.OP != nil {
+			//	i.OP = p.OP
+			//} else {
+			//	i.OP = &p
+			//}
 		}
 	}
 

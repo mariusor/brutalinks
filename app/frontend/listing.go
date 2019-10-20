@@ -66,9 +66,10 @@ func parentLink(c app.Item) string {
 }
 
 func opLink(c app.Item) string {
-	if c.OP != nil {
+	op := c.OP()
+	if op != nil {
 		// @todo(marius) :link_generation:
-		return fmt.Sprintf("/i/%s", c.OP.Hash)
+		return fmt.Sprintf("/i/%s", op.Hash)
 	}
 	return ""
 }

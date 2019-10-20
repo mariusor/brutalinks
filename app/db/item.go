@@ -88,11 +88,11 @@ func (i Item) Model() app.Item {
 		res.Parent = &app.Item{
 			Hash: pKey.Hash(),
 		}
-		if opKey, ok := GetOPKey(i); ok && pKey != opKey {
-			res.OP = &app.Item{
-				Hash: opKey.Hash(),
-			}
-		}
+		//if opKey, ok := GetOPKey(i); ok && pKey != opKey {
+		//	res.OP = &app.Item{
+		//		Hash: opKey.Hash(),
+		//	}
+		//}
 	}
 	return res
 }

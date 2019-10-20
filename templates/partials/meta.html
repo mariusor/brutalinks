@@ -28,7 +28,7 @@ submitted{{ if not .Deleted}}{{- if ShowUpdate $it }}<time class="updated-at" da
 {{- if and $it.Parent (not (sameBase req.URL.Path (ParentLink $it))) }}
             <li><a href="{{$it | ParentLink }}" class="to-parent" title="Parent">{{/*icon "angle-up"*/}}parent</a></li>
 {{end -}}
-{{- if and $it.OP (not (sameBase req.URL.Path (OPLink $it))) }}
+{{- if and $it.OP.IsValid (not (sameBase req.URL.Path (OPLink $it))) }}
             <li><a href="{{$it | OPLink }}" class="to-op" title="TopPost">{{/*icon "angle-double-up"*/}}top</a></li>
 {{end -}}
 {{- end -}}

@@ -266,20 +266,17 @@ func FromArticle (i *Item, a *ap.Object) error {
 		}
 	}
 	if a.Context != nil {
-		op := Item{}
-		op.FromActivityPub(a.Context)
-		i.OP = &op
+		//op := Item{}
+		//op.FromActivityPub(a.Context)
+		//i.OP = &op
 	}
-	if a.InReplyTo != nil {
-		if len(a.InReplyTo) >= 1 {
+	on := i
+	if len(a.InReplyTo) > 0 {
+		for _, parIRI := range a.InReplyTo {
 			par := Item{}
-			par.FromActivityPub(a.InReplyTo[0])
-			i.Parent = &par
-		}
-		if len(a.InReplyTo) > 1 {
-			op := Item{}
-			op.FromActivityPub(a.InReplyTo[1])
-			i.OP = &op
+			par.FromActivityPub(parIRI)
+			on.Parent = &par
+			on = &par
 		}
 	}
 	// TODO(marius): here we seem to have a bug, when Source.Content is nil when it shouldn't
@@ -366,20 +363,17 @@ func (i *Item) FromActivityPub(it as.Item) error {
 		}
 		goap.OnObject(it, func(o *goap.Object) error {
 			if o.Context != nil {
-				op := Item{}
-				op.FromActivityPub(o.Context)
-				i.OP = &op
+				//op := Item{}
+				//op.FromActivityPub(o.Context)
+				//i.OP = &op
 			}
-			if o.InReplyTo != nil {
-				if len(o.InReplyTo) >= 1 {
+			on := i
+			if len(o.InReplyTo) > 0 {
+				for _, parIRI := range o.InReplyTo {
 					par := Item{}
-					par.FromActivityPub(o.InReplyTo[0])
-					i.Parent = &par
-				}
-				if len(o.InReplyTo) > 1 {
-					op := Item{}
-					op.FromActivityPub(o.InReplyTo[1])
-					i.OP = &op
+					par.FromActivityPub(parIRI)
+					on.Parent = &par
+					on = &par
 				}
 			}
 			return nil
