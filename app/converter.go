@@ -275,12 +275,15 @@ func FromArticle (i *Item, a *ap.Object) error {
 			par := Item{}
 			par.FromActivityPub(a.InReplyTo[0])
 			i.Parent = &par
+			if i.OP == nil {
+				i.OP = &par
+			}
 		}
-		if len(a.InReplyTo) > 1 {
-			op := Item{}
-			op.FromActivityPub(a.InReplyTo[1])
-			i.OP = &op
-		}
+		//if len(a.InReplyTo) > 1 {
+		//	op := Item{}
+		//	op.FromActivityPub(a.InReplyTo[1])
+		//	i.OP = &op
+		//}
 	}
 	// TODO(marius): here we seem to have a bug, when Source.Content is nil when it shouldn't
 	//    to repro, I used some copy/pasted comments from console javascript
@@ -375,12 +378,15 @@ func (i *Item) FromActivityPub(it as.Item) error {
 					par := Item{}
 					par.FromActivityPub(o.InReplyTo[0])
 					i.Parent = &par
+					if i.OP == nil {
+						i.OP = &par
+					}
 				}
-				if len(o.InReplyTo) > 1 {
-					op := Item{}
-					op.FromActivityPub(o.InReplyTo[1])
-					i.OP = &op
-				}
+				//if len(o.InReplyTo) > 1 {
+				//	op := Item{}
+				//	op.FromActivityPub(o.InReplyTo[1])
+				//	i.OP = &op
+				//}
 			}
 			return nil
 		})
