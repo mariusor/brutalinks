@@ -15,7 +15,6 @@ import (
 	j "github.com/go-ap/jsonld"
 	"github.com/mariusor/littr.go/app"
 	local "github.com/mariusor/littr.go/app/activitypub"
-	"github.com/mariusor/littr.go/app/db"
 	"github.com/mariusor/littr.go/internal/log"
 	"github.com/mariusor/qstring"
 	"github.com/spacemonkeygo/httpsig"
@@ -23,6 +22,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 )
 
 type repository struct {
@@ -112,8 +112,8 @@ func BuildCollectionID(a app.Account, o as.Item) as.ObjectID {
 }
 
 var BaseURL = "http://fedbox.git"
-var ActorsURL = "http://fedbox.git/actors"
-var ObjectsURL = "http://fedbox.git/objects"
+var ActorsURL = fmt.Sprintf("%s/actors", BaseURL)
+var ObjectsURL = fmt.Sprintf("%s/objects", BaseURL)
 
 func apAccountID(a app.Account) as.ObjectID {
 	if len(a.Hash) >= 8 {
@@ -271,6 +271,23 @@ func loadAPItem(item app.Item) as.Item {
 	return &o
 }
 
+func anonymousPerson(url string) *auth.Person {
+	p := auth.Person{}
+	p.ID = as.ObjectID(as.PublicNS)
+	p.Type = as.PersonType
+
+	name := as.NaturalLanguageValues{
+		{as.NilLangRef, app.Anonymous},
+	}
+
+	p.Name = name
+	p.PreferredUsername = name
+
+	p.Inbox = as.IRI(fmt.Sprintf("%s/inbox", url))
+
+	return &p
+}
+
 func loadAPPerson(a app.Account) *auth.Person {
 	p := auth.Person{}
 	p.Type = as.PersonType
@@ -290,47 +307,55 @@ func loadAPPerson(a app.Account) *auth.Person {
 		}
 	}
 
-	p.PreferredUsername.Set("en", a.Handle)
+	p.PreferredUsername.Set(as.NilLangRef, a.Handle)
 
-	if a.IsFederated() {
-		p.ID = as.ObjectID(a.Metadata.ID)
-		p.Name.Set("en", a.Metadata.Name)
-		if len(a.Metadata.InboxIRI) > 0 {
-			p.Inbox = as.IRI(a.Metadata.InboxIRI)
-		}
-		if len(a.Metadata.OutboxIRI) > 0 {
-			p.Outbox = as.IRI(a.Metadata.OutboxIRI)
-		}
-		if len(a.Metadata.LikedIRI) > 0 {
-			p.Liked = as.IRI(a.Metadata.LikedIRI)
-		}
-		if len(a.Metadata.FollowersIRI) > 0 {
-			p.Followers = as.IRI(a.Metadata.FollowersIRI)
-		}
-		if len(a.Metadata.FollowingIRI) > 0 {
-			p.Following = as.IRI(a.Metadata.FollowingIRI)
-		}
-		if len(a.Metadata.URL) > 0 {
-			p.URL = as.IRI(a.Metadata.URL)
-		}
-	} else {
-		p.Name.Set("en", a.Handle)
+	if len(a.Hash) > 0 {
+		if a.IsFederated() {
+			p.ID = as.ObjectID(a.Metadata.ID)
+			p.Name.Set("en", a.Metadata.Name)
+			if len(a.Metadata.InboxIRI) > 0 {
+				p.Inbox = as.IRI(a.Metadata.InboxIRI)
+			}
+			if len(a.Metadata.OutboxIRI) > 0 {
+				p.Outbox = as.IRI(a.Metadata.OutboxIRI)
+			}
+			if len(a.Metadata.LikedIRI) > 0 {
+				p.Liked = as.IRI(a.Metadata.LikedIRI)
+			}
+			if len(a.Metadata.FollowersIRI) > 0 {
+				p.Followers = as.IRI(a.Metadata.FollowersIRI)
+			}
+			if len(a.Metadata.FollowingIRI) > 0 {
+				p.Following = as.IRI(a.Metadata.FollowingIRI)
+			}
+			if len(a.Metadata.URL) > 0 {
+				p.URL = as.IRI(a.Metadata.URL)
+			}
+		} else {
+			p.Name.Set("en", a.Handle)
 
-		p.Outbox = as.IRI(BuildCollectionID(a, new(ap.Outbox)))
-		p.Inbox = as.IRI(BuildCollectionID(a, new(ap.Inbox)))
-		p.Liked = as.IRI(BuildCollectionID(a, new(ap.Liked)))
+			p.Outbox = as.IRI(BuildCollectionID(a, new(ap.Outbox)))
+			p.Inbox = as.IRI(BuildCollectionID(a, new(ap.Inbox)))
+			p.Liked = as.IRI(BuildCollectionID(a, new(ap.Liked)))
 
-		p.URL = accountURL(a)
+			p.URL = accountURL(a)
 
-		if !a.CreatedAt.IsZero() {
-			p.Published = a.CreatedAt
+			if !a.CreatedAt.IsZero() {
+				p.Published = a.CreatedAt
+			}
+			if !a.UpdatedAt.IsZero() {
+				p.Updated = a.UpdatedAt
+			}
 		}
-		if !a.UpdatedAt.IsZero() {
-			p.Updated = a.UpdatedAt
+		if len(a.Hash) >= 8 {
+			p.ID = apAccountID(a)
 		}
-	}
-	if len(a.Hash) >= 8 {
-		p.ID = apAccountID(a)
+		oauthURL := strings.Replace(BaseURL, "api", "oauth", 1)
+		p.Endpoints = &ap.Endpoints{
+			SharedInbox:                as.IRI(fmt.Sprintf("%s/self/inbox", BaseURL)),
+			OauthAuthorizationEndpoint: as.IRI(fmt.Sprintf("%s/authorize", oauthURL)),
+			OauthTokenEndpoint:         as.IRI(fmt.Sprintf("%s/token", oauthURL)),
+		}
 	}
 
 	//p.Score = a.Score
@@ -341,13 +366,6 @@ func loadAPPerson(a app.Account) *auth.Person {
 			PublicKeyPem: fmt.Sprintf("-----BEGIN PUBLIC KEY-----\n%s\n-----END PUBLIC KEY-----", base64.StdEncoding.EncodeToString(a.Metadata.Key.Public)),
 		}
 	}
-	oauthURL := strings.Replace(BaseURL, "api", "oauth", 1)
-	p.Endpoints = &ap.Endpoints{
-		SharedInbox:                as.IRI(fmt.Sprintf("%s/self/inbox", BaseURL)),
-		OauthAuthorizationEndpoint: as.IRI(fmt.Sprintf("%s/authorize", oauthURL)),
-		OauthTokenEndpoint:         as.IRI(fmt.Sprintf("%s/token", oauthURL)),
-	}
-
 	return &p
 }
 
@@ -953,7 +971,7 @@ func (r *repository) handlerErrorResponse(body []byte) error {
 	return errors.WrapWithStatus(err.Code, nil, err.Message)
 }
 
-func (r *repository) handleSuccessResponse(it app.Item, body []byte) (app.Item, error) {
+func (r *repository) handleItemSaveSuccessResponse(it app.Item, body []byte) (app.Item, error) {
 	ap, err := as.UnmarshalJSON(body)
 	if err != nil {
 		r.logger.Error(err.Error())
@@ -1040,7 +1058,7 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 	if resp.StatusCode >= 400 {
 		return it, r.handlerErrorResponse(body)
 	}
-	return r.handleSuccessResponse(it, body)
+	return r.handleItemSaveSuccessResponse(it, body)
 }
 
 func (r *repository) Get(u string) (*http.Response, error) {
@@ -1121,7 +1139,99 @@ func (r *repository) LoadAccount(f app.Filters) (app.Account, error) {
 }
 
 func (r *repository) SaveAccount(a app.Account) (app.Account, error) {
-	return db.Config.SaveAccount(a)
+	p := loadAPPerson(a)
+	id := p.GetLink()
+
+	var author *auth.Person
+	var reqURL string
+	if r.Account != nil {
+		author = loadAPPerson(*r.Account)
+		reqURL = author.Outbox.GetLink().String()
+	} else {
+		author = anonymousPerson(r.BaseURL)
+		reqURL = author.Inbox.GetLink().String()
+	}
+
+	var body []byte
+	var err error
+	now := time.Now()
+	if a.Deleted() {
+		if len(id) == 0 {
+			r.logger.WithContext(log.Ctx{
+				"account": a.Hash,
+			}).Error(err.Error())
+			return a, errors.NotFoundf("item hash is empty, can not delete")
+		}
+		delete := as.Delete{
+			Parent: as.Parent{
+				Type: as.DeleteType,
+				To:   as.ItemCollection{as.PublicNS},
+				AttributedTo: author.GetLink(),
+				Updated: now,
+			},
+			Actor:  author.GetLink(),
+			Object: id,
+		}
+		body, err = j.Marshal(delete)
+	} else {
+		if len(id) == 0 {
+			p.To = as.ItemCollection{as.PublicNS}
+			create := as.Create{
+				Parent: as.Parent{
+					Type: as.CreateType,
+					To:   as.ItemCollection{as.PublicNS},
+					AttributedTo: author.GetLink(),
+					Published: now,
+					Updated: now,
+				},
+				Actor:  author.GetLink(),
+				Object: p,
+			}
+			body, err = j.Marshal(create)
+		} else {
+			update := as.Update{
+				Parent: as.Parent{
+					Type: as.UpdateType,
+					To:   as.ItemCollection{as.PublicNS},
+					AttributedTo: author.GetLink(),
+					Updated: now,
+				},
+				Object: p,
+				Actor:  author.GetLink(),
+			}
+			body, err = j.Marshal(update)
+		}
+	}
+	if err != nil {
+		r.logger.WithContext(log.Ctx{
+			"account": a.Hash,
+		}).Error(err.Error())
+		return a, err
+	}
+
+	var resp *http.Response
+	resp, err = r.client.Post(reqURL, cl.ContentTypeActivityJson, bytes.NewReader(body))
+	if err != nil {
+		r.logger.Error(err.Error())
+		return a, err
+	}
+	if body, err = ioutil.ReadAll(resp.Body); err != nil {
+		r.logger.Error(err.Error())
+		return a, err
+	}
+	if resp.StatusCode >= 400 {
+		return a, r.handlerErrorResponse(body)
+	}
+	ap, err := as.UnmarshalJSON(body)
+	if err != nil {
+		r.logger.Error(err.Error())
+		return a, err
+	}
+	err = a.FromActivityPub(ap)
+	if err != nil {
+		r.logger.Error(err.Error())
+	}
+	return a, err
 }
 
 // LoadInfo this method is here to keep compatibility with the repository interfaces
