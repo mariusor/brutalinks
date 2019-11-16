@@ -204,12 +204,12 @@ func loadAPItem(item app.Item) as.Item {
 					repl = append(repl, as.IRI(par))
 				}
 			}
-			//if item.OP != nil {
-			//	if op, ok := BuildObjectIDFromItem(*item.OP); ok {
-			//		del.Context = as.IRI(op)
-			//		repl = append(repl, as.IRI(op))
-			//	}
-			//}
+			if item.OP != nil {
+				if op, ok := BuildObjectIDFromItem(*item.OP); ok {
+					del.Context = as.IRI(op)
+					repl = append(repl, as.IRI(op))
+				}
+			}
 			if len(repl) > 0 {
 				del.InReplyTo = repl
 			}
@@ -241,12 +241,12 @@ func loadAPItem(item app.Item) as.Item {
 				p = p.Parent
 			}
 		}
-		//if item.OP != nil {
-		//	if op, ok := BuildObjectIDFromItem(*item.OP); ok {
-		//		o.Context = as.IRI(op)
-		//		repl = append(repl, as.IRI(op))
-		//	}
-		//}
+		if item.OP != nil {
+			if op, ok := BuildObjectIDFromItem(*item.OP); ok {
+				o.Context = as.IRI(op)
+				repl = append(repl, as.IRI(op))
+			}
+		}
 		if len(repl) > 0 {
 			o.InReplyTo = repl
 		}
@@ -463,7 +463,6 @@ func (r *repository) LoadItem(f app.Filters) (app.Item, error) {
 			var items app.ItemCollection
 			items, err = r.loadItemsAuthors(item)
 			items, err = r.loadItemsVotes(items...)
-			items, err = r.loadItemsParents(items...)
 			if len(items) > 0 {
 				item = items[0]
 			}
@@ -511,21 +510,6 @@ func (r *repository) loadItemsVotes(items ...app.Item) (app.ItemCollection, erro
 		col[k] = it
 	}
 	return col, nil
-}
-
-func (r *repository) loadItemsParents(items ...app.Item) (app.ItemCollection, error) {
-	if len(items) == 0 {
-		return app.ItemCollection{}, nil
-	}
-	fParents := app.Filters{}
-	for _, it := range items {
-		if len(it.SubmittedBy.Hash) > 0 {
-			fParents.LoadAccountsFilter.Key = append(fParents.LoadAccountsFilter.Key, it.SubmittedBy.Hash)
-		} else if len(it.SubmittedBy.Handle) > 0 {
-			fParents.Handle = append(fParents.Handle, it.SubmittedBy.Handle)
-		}
-	}
-	return nil, nil
 }
 
 func (r *repository) loadItemsAuthors(items ...app.Item) (app.ItemCollection, error) {

@@ -16,7 +16,7 @@ import (
 
 func detectMimeType(data string) app.MimeType {
 	u, err := url.ParseRequestURI(data)
-	if err == nil && (u != nil && u.Host != "") && !bytes.ContainsRune([]byte(data), '\n') {
+	if err == nil && u != nil && !bytes.ContainsRune([]byte(data), '\n') {
 		return app.MimeTypeURL
 	}
 	return "text/plain"
@@ -118,10 +118,10 @@ func ContentFromRequest(r *http.Request, acc app.Account) (app.Item, error) {
 	if len(parent) > 0 {
 		i.Parent = &app.Item{Hash: app.Hash(parent)}
 	}
-	//op := r.PostFormValue("op")
-	//if len(op) > 0 {
-	//	i.OP = &app.Item{Hash: app.Hash(op)}
-	//}
+	op := r.PostFormValue("op")
+	if len(op) > 0 {
+		i.OP = &app.Item{Hash: app.Hash(op)}
+	}
 	hash := r.PostFormValue("hash")
 	if len(hash) > 0 {
 		i.Hash = app.Hash(hash)
