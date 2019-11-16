@@ -763,6 +763,14 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
+func (h *handler) addFlashErrors(r *http.Request, errs ...error) {
+	msg := ""
+	for _, err := range errs {
+		msg += err.Error()
+	}
+	h.addFlashMessage(Error, r, msg)
+}
+
 func (h *handler) addFlashMessage(typ flashType, r *http.Request, msgs ...string) {
 	s, _ := h.sstor.Get(r, sessionName)
 	for _, msg := range msgs {
@@ -857,10 +865,13 @@ func (h *handler) HandleErrors(w http.ResponseWriter, r *http.Request, errs ...e
 
 	status := http.StatusInternalServerError
 	for _, err := range errs {
+		if err == nil {
+			continue
+		}
 		if renderErrors {
 			status = httpErrorResponse(err)
 		} else {
-			h.addFlashMessage(Error, r, err.Error())
+			h.addFlashErrors(r, err)
 		}
 	}
 
