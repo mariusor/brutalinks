@@ -197,7 +197,7 @@ func loadAPItem(item app.Item) as.Item {
 			FormerType: o.Type,
 			Deleted:    o.Updated,
 		}
-		if item.Parent != nil || item.OP() != nil {
+		if item.Parent != nil || item.OP != nil {
 			repl := make(as.ItemCollection, 0)
 			if item.Parent != nil {
 				if par, ok := BuildObjectIDFromItem(*item.Parent); ok {
@@ -459,11 +459,11 @@ func (r *repository) LoadItem(f app.Filters) (app.Item, error) {
 	}
 	local.OnObject(it, func(art *local.Object) error {
 		err = item.FromActivityPub(art)
-		r.loadItemParents(&item)
 		if err == nil {
 			var items app.ItemCollection
-			items, _ = r.loadItemsAuthors(item)
-			items, _ = r.loadItemsVotes(items...)
+			items, err = r.loadItemsAuthors(item)
+			items, err = r.loadItemsVotes(items...)
+			items, err = r.loadItemsParents(items...)
 			if len(items) > 0 {
 				item = items[0]
 			}
@@ -472,19 +472,6 @@ func (r *repository) LoadItem(f app.Filters) (app.Item, error) {
 	})
 
 	return item, err
-}
-
-func stringsUnique(s []string) []string {
-	u := make([]string, 0, len(s))
-	m := make(map[string]bool)
-
-	for _, val := range s {
-		if _, ok := m[val]; !ok {
-			m[val] = true
-			u = append(u, val)
-		}
-	}
-	return u
 }
 
 func hashesUnique(a app.Hashes) app.Hashes {
@@ -526,52 +513,19 @@ func (r *repository) loadItemsVotes(items ...app.Item) (app.ItemCollection, erro
 	return col, nil
 }
 
-func (r *repository) loadItemParents(it *app.Item) (*app.Item, error) {
-	if it == nil {
-		return nil, nil
+func (r *repository) loadItemsParents(items ...app.Item) (app.ItemCollection, error) {
+	if len(items) == 0 {
+		return app.ItemCollection{}, nil
 	}
 	fParents := app.Filters{}
-	p := it.Parent
-	for {
-		if p == nil {
-			break
-		}
-		fParents.InReplyTo = append(fParents.InReplyTo, p.Hash.String())
-		p = p.Parent
-	}
-	fParents.InReplyTo = stringsUnique(fParents.InReplyTo)
-	if len(fParents.InReplyTo)  == 0 {
-		return it, errors.Errorf("unable to load item parents")
-	}
-	parents, _, err := r.LoadItems(fParents)
-	if err != nil {
-		return it, errors.Annotatef(err, "unable to load items authors")
-	}
-	items, err := reparentItems(&parents)
-	if err != nil {
-		return it, errors.Annotatef(err, "unable to load items authors %#v", items)
-	}
-	return it, nil
-}
-
-func reparentItems (items *app.ItemCollection) (*app.ItemCollection, error) {
-	for _, cur := range *items {
-		p := cur.Parent
-		for {
-			if p == nil {
-				break
-			}
-			for tpos, t := range *items {
-				if bytes.Equal(p.Hash, t.Hash) {
-					cur.Parent = &t
-					*items = append((*items)[:tpos], (*items)[tpos+1:]...)
-				}
-			}
-			p = p.Parent
+	for _, it := range items {
+		if len(it.SubmittedBy.Hash) > 0 {
+			fParents.LoadAccountsFilter.Key = append(fParents.LoadAccountsFilter.Key, it.SubmittedBy.Hash)
+		} else if len(it.SubmittedBy.Handle) > 0 {
+			fParents.Handle = append(fParents.Handle, it.SubmittedBy.Handle)
 		}
 	}
-
-	return items, nil
+	return nil, nil
 }
 
 func (r *repository) loadItemsAuthors(items ...app.Item) (app.ItemCollection, error) {
