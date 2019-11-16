@@ -349,6 +349,9 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	if n.Parent.IsValid() && n.Parent.SubmittedAt.IsZero() {
 		if p, err := itemLoader.LoadItem(app.Filters{LoadItemsFilter: app.LoadItemsFilter{Key: app.Hashes{n.Parent.Hash}}}); err == nil {
 			n.Parent = &p
+			if p.OP != nil {
+				n.OP = p.OP
+			}
 		}
 	}
 	saveVote := true
