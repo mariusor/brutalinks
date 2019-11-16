@@ -153,6 +153,11 @@ func (a Account) HasIcon() bool {
 	return a.HasMetadata() && len(a.Metadata.Icon.URI) > 0
 }
 
+// Deleted
+func (a Account) Deleted() bool {
+	return (a.Flags & FlagsDeleted) == FlagsDeleted
+}
+
 // First
 func (a AccountCollection) First() (*Account, error) {
 	for _, act := range a {
