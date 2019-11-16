@@ -207,7 +207,7 @@ func loadAPItem(item app.Item) as.Item {
 			if item.OP != nil {
 				if op, ok := BuildObjectIDFromItem(*item.OP); ok {
 					del.Context = as.IRI(op)
-					repl = append(repl, as.IRI(op))
+					//repl = append(repl, as.IRI(op))
 				}
 			}
 			if len(repl) > 0 {
@@ -227,28 +227,22 @@ func loadAPItem(item app.Item) as.Item {
 		id := BuildActorID(*item.SubmittedBy)
 		o.AttributedTo = as.IRI(id)
 	}
-	if item.Parent != nil || item.OP != nil {
+	if item.Parent != nil {
 		repl := make(as.ItemCollection, 0)
 		if item.Parent != nil {
 			p := item.Parent
-			for {
-				if p == nil {
-					break
-				}
-				if par, ok := BuildObjectIDFromItem(*p); ok {
-					repl = append(repl, as.IRI(par))
-				}
-				p = p.Parent
-			}
-		}
-		if item.OP != nil {
-			if op, ok := BuildObjectIDFromItem(*item.OP); ok {
-				o.Context = as.IRI(op)
-				repl = append(repl, as.IRI(op))
+			if par, ok := BuildObjectIDFromItem(*p); ok {
+				repl = append(repl, as.IRI(par))
 			}
 		}
 		if len(repl) > 0 {
 			o.InReplyTo = repl
+		}
+	}
+	if item.OP != nil {
+		if op, ok := BuildObjectIDFromItem(*item.OP); ok {
+			o.Context = as.IRI(op)
+			//repl = append(repl, as.IRI(op))
 		}
 	}
 
@@ -566,16 +560,10 @@ func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) 
 		}
 		f.FollowedBy = f.FollowedBy[:0]
 	}
-	if len(f.Context) > 0 {
-		// TODO(marius): make this work for multiple Context filters
-		for _, ctxt := range f.Context {
-			if ctxt != "0" {
-				c = fmt.Sprintf("%s/%s/replies", c, ctxt)
-				f.Context = f.Context[:0]
-			}
-			break
-		}
-	}
+	//if len(f.Context) > 0 {
+	//	// TODO(marius): make this work for multiple Context filters
+	//	c = fmt.Sprintf("/outbox%s", qs)
+	//}
 	//if len(f.InReplyTo) > 0 {
 	//	// TODO(marius): make this work for multiple Context filters
 	//	for _, ctxt := range f.InReplyTo {
