@@ -176,7 +176,7 @@ func relTimeFmt(old time.Time) string {
 	case "minute":
 		return fmt.Sprintf("%.0f %s %s", val, pluralize(val, unit), when)
 	}
-	return fmt.Sprintf("%.2f %s %s", val, pluralize(val, unit), when)
+	return fmt.Sprintf("%.1f %s %s", val, pluralize(val, unit), when)
 }
 
 type Config struct {
