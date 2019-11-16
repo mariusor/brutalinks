@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/go-ap/errors"
 	"github.com/go-chi/chi/middleware"
 	"github.com/joho/godotenv"
-	"github.com/go-ap/errors"
 	"io"
 	"net/http"
 	"os"
@@ -28,7 +28,7 @@ const (
 	// AnonymousHash is the sha hash for the anonymous account
 )
 
-var AnonymousHash = Hash("eacff9ddf379bd9fc8274c5a9f4cae08")
+var AnonymousHash = Hash{}
 var AnonymousAccount = Account{Handle: Anonymous, Hash: AnonymousHash}
 
 var listenHost string
