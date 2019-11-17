@@ -1014,11 +1014,14 @@ func (r *repository) handleItemSaveSuccessResponse(it app.Item, body []byte) (ap
 func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 	art := loadAPItem(it)
 
-	var actor *auth.Person
-	if r.Account != nil && bytes.Equal(r.Account.Hash, it.SubmittedBy.Hash) {
-		actor = loadAPPerson(*it.SubmittedBy)
+	var author *auth.Person
+	var reqURL string
+	if r.Account != nil {
+		author = loadAPPerson(*r.Account)
+		reqURL = author.Outbox.GetLink().String()
 	} else {
-		actor = loadAPPerson(app.AnonymousAccount)
+		author = anonymousPerson(r.BaseURL)
+		reqURL = author.Inbox.GetLink().String()
 	}
 
 	var body []byte
@@ -1036,7 +1039,7 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 				Type: as.DeleteType,
 				To:   as.ItemCollection{as.PublicNS, as.IRI(BaseURL)},
 			},
-			Actor:  actor.GetLink(),
+			Actor:  author.GetLink(),
 			Object: id,
 		}
 		body, err = j.Marshal(delete)
@@ -1047,7 +1050,7 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 					Type: as.CreateType,
 					To:   as.ItemCollection{as.PublicNS, as.IRI(BaseURL)},
 				},
-				Actor:  actor.GetLink(),
+				Actor:  author.GetLink(),
 				Object: art,
 			}
 			body, err = j.Marshal(create)
@@ -1058,7 +1061,7 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 					To:   as.ItemCollection{as.PublicNS, as.IRI(BaseURL)},
 				},
 				Object: art,
-				Actor:  actor.GetLink(),
+				Actor:  author.GetLink(),
 			}
 			body, err = j.Marshal(update)
 		}
@@ -1071,7 +1074,7 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 		return it, err
 	}
 	var resp *http.Response
-	resp, err = r.client.Post(actor.Outbox.GetLink().String(), cl.ContentTypeActivityJson, bytes.NewReader(body))
+	resp, err = r.client.Post(reqURL, cl.ContentTypeActivityJson, bytes.NewReader(body))
 	if err != nil {
 		r.logger.Error(err.Error())
 		return it, err
