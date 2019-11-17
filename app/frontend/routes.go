@@ -5,7 +5,6 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/mariusor/littr.go/app"
-	"github.com/writeas/go-nodeinfo"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -110,21 +109,6 @@ func (h *handler) Routes() func(chi.Router) {
 		}))
 		r.With(app.StripCookies).Get("/css/{path}", serveFiles(filepath.Join(assets, "css")))
 		r.With(app.StripCookies).Get("/js/{path}", serveFiles(filepath.Join(assets, "js")))
-
-		cfg := NodeInfoConfig()
-		ni := nodeinfo.NewService(cfg, NodeInfoResolver{})
-		// Web-Finger
-		r.Route("/.well-known", func(r chi.Router) {
-			r.Use(app.NeedsDBBackend(h.HandleErrors))
-
-			r.Get("/webfinger", h.HandleWebFinger)
-			//r.Get("/host-meta", h.HandleHostMeta)
-			r.Get("/nodeinfo", ni.NodeInfoDiscover)
-			r.NotFound(func(w http.ResponseWriter, r *http.Request) {
-				h.HandleErrors(w, r, errors.NotFoundf("%s", r.RequestURI))
-			})
-		})
-		r.Get("/nodeinfo", ni.NodeInfo)
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"flag"
 	"github.com/mariusor/littr.go/app/db"
+	"github.com/writeas/go-nodeinfo"
 	"net/http"
 	"time"
 
@@ -69,22 +70,25 @@ func main() {
 	} else {
 		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	}
-	// Frontend
-	r.With(front.Repository).Route("/", front.Routes())
 
-/*	cfg := api.NodeInfoConfig()
+	// .well-known
+	cfg := frontend.NodeInfoConfig()
+	ni := nodeinfo.NewService(cfg, frontend.NodeInfoResolver{})
 	// Web-Finger
-	r.With(db.Repository).Route("/.well-known", func(r chi.Router) {
-		r.Use(app.NeedsDBBackend(a.HandleError))
+	r.Route("/.well-known", func(r chi.Router) {
+		r.Use(app.NeedsDBBackend(front.HandleErrors))
 
-		ni := nodeinfo.NewService(cfg, api.NodeInfoResolver{})
-		//r.Get("/webfinger", a.HandleWebFinger)
-		r.Get("/host-meta", api.HandleHostMeta)
+		r.Get("/webfinger", front.HandleWebFinger)
+		//r.Get("/host-meta", h.HandleHostMeta)
 		r.Get("/nodeinfo", ni.NodeInfoDiscover)
 		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
-			a.HandleError(w, r, errors.NotFoundf("%s", r.RequestURI))
+			errors.HandleError(errors.NotFoundf("%s", r.RequestURI)).ServeHTTP(w, r)
 		})
-	})*/
+	})
+	r.Get("/nodeinfo", ni.NodeInfo)
+
+	// Frontend
+	r.With(front.Repository).Route("/", front.Routes())
 
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		front.HandleErrors(w, r, errors.NotFoundf("%s", r.RequestURI))

@@ -118,7 +118,9 @@ func (h handler) HandleHostMeta(w http.ResponseWriter, r *http.Request) {
 
 // HandleWebFinger serves /.well-known/webfinger/
 func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
-	typ, res := func(res string) (string, string) {
+	res := r.URL.Query()["resource"][0]
+
+	typ, handle := func(res string) (string, string) {
 		split := ":"
 		if strings.Contains(res, "://") {
 			split = "://"
@@ -128,38 +130,37 @@ func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 			return "", ""
 		}
 		return ar[0], ar[1]
-	}(r.URL.Query()["resource"][0])
+	}(res)
 
-	if typ == "" || res == "" {
-		h.HandleErrors(w, r, errors.BadRequestf("invalid resource"))
+	if typ == "" || handle == "" {
+		errors.HandleError(errors.BadRequestf("invalid resource %s", res)).ServeHTTP(w, r)
 		return
 	}
 
-	handle := res
 	wf := node{}
 	if handle == "self" {
 		var err error
 		var inf app.Info
 		if inf, err = h.storage.LoadInfo(); err != nil {
-			h.HandleErrors(w, r, errors.NewNotValid(err, "ooops!"))
+			errors.HandleError(errors.NewNotValid(err, "ooops!")).ServeHTTP(w, r)
 			return
 		}
 
 		id := h.storage.BaseURL
 		wf.Aliases = []string{
-			string(id),
+			id,
 		}
 		wf.Subject = inf.URI
 		wf.Links = []link{
 			{
 				Rel:  "self",
 				Type: "application/activity+json",
-				Href: string(id),
+				Href: id,
 			},
 			{
 				Rel:  "service",
 				Type: "application/activity+json",
-				Href: string(id),
+				Href: id,
 			},
 			{
 				Rel:  "service",
@@ -170,9 +171,9 @@ func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 	} else {
 		a, err := h.storage.LoadAccount(app.Filters{LoadAccountsFilter: app.LoadAccountsFilter{Handle: []string{handle}}})
 		if err != nil {
-			err := errors.NotFoundf("resource")
+			err := errors.NotFoundf("resource not found %s", res)
 			h.logger.Error(err.Error())
-			h.HandleErrors(w, r, err)
+			errors.HandleError(err).ServeHTTP(w, r)
 			return
 		}
 
@@ -180,7 +181,7 @@ func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 			string(BuildActorID(a)),
 			fmt.Sprintf("%s/%s", ActorsURL, a.Handle),
 		}
-		wf.Subject = typ + ":" + res
+		wf.Subject = res
 		wf.Links = []link{
 			{
 				Rel:  "self",
