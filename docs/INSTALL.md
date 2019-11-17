@@ -2,50 +2,52 @@
 
 ## Pre-requisites
 
-The basic requirements for running [littr.go](https://github.com/mariusor/littr.go) locally are a PostgreSQL server 
-(version 9.5 or newer) with the `ltree` module, and a go dev environment 
-(version 1.11 or newer, as we require go modules support). 
+The basic requirement for running [littr.go](https://github.com/mariusor/littr.go) locally is a 
+go dev environment (version 1.11 or newer, as we require go modules support). 
 
-    $ git clone https://github.com/mariusor/littr.go
-    $ cd littr.go
-    $ cp .env.example .env
-    $ $EDITOR .env
+```sh
+$ git clone https://github.com/mariusor/littr.go
+$ cd littr.go
+```
 
-## Bootstrapping the database
+### Running fed::BOX
 
-The database is created using the `bootstrap` binary which uses the configuration settings in the `.env` 
-file created previously. 
+We are now using [fedbox](https://github.com/go-ap/fedbox) as an *ActivityPub* backend.
+Follow the project's [install instructions]((https://github.com/go-ap/fedbox/blob/master/doc/INSTALL.md)) to get the instance running. 
 
-The example below assumes a default PostgreSQL installation which allows the admin user 
-to log-in without a password when connecting from localhost.
+### Editing the configuration 
 
-    $ grep DB_ .env
-    DB_HOST=localhost
-    DB_NAME=littr-dev
-    DB_USER=littr-dev
-    DB_PASSWORD=super-secret-secret-password
-    POSTGRESS_PASSWORD=RootPW-also-secret
+```sh
+$ cp .env.example .env
+$ $EDITOR .env
+```
 
-    $ make bootstrap 
-    $ ./run.sh bin/bootstrap -user postgres
+You need to set `API_URL` environment variable to the fedbox url from the previous step.
 
 ## Running 
 
 Running the application in development mode is as simple as: 
 
-    $ make run
+```sh
+$ make run
+```
 
 # Docker
 
-Running with docker is really easy. 
+Running with docker is no longer fully supported, since the move to using fedbox. See #26. 
 
+<!--
 Go to the littr.go working directory and copy your `.env` file to the docker folder:
 
-    $ cp .env ./docker/
+```sh
+$ cp .env ./docker/
+```
 
 In the `docker/.env` file we need to modify the `DB_HOST` value to match the name of the postgres container from the 
 [docker/docker-compose.yaml](../docker/docker-compose.yaml). The default is `db`.
 
 Then, as a user in the docker group, just run:
-
-    $ make compose
+```sh
+$ make compose
+```
+-->
