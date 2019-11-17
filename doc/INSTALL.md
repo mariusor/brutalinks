@@ -34,7 +34,8 @@ $ make run
 
 # Docker
 
-Running with docker is no longer fully supported, since the move to using fedbox. See #26. 
+Running with docker is no longer fully supported, since the move to using fedbox. 
+See [#26](https://github.com/mariusor/littr.go/issues/26). 
 
 <!--
 Go to the littr.go working directory and copy your `.env` file to the docker folder:
