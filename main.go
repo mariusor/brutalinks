@@ -3,7 +3,6 @@ package main
 import (
 	"crypto/tls"
 	"flag"
-	"github.com/mariusor/littr.go/app/db"
 	"github.com/writeas/go-nodeinfo"
 	"net/http"
 	"time"
@@ -40,26 +39,20 @@ func main() {
 
 	errors.IncludeBacktrace = app.Instance.Config.Env == app.DEV
 
-	db.Init(&app.Instance)
-	defer db.Config.DB.Close()
-
-	front, err := frontend.Init(frontend.Config{
+	conf := frontend.Config{
 		Env:         app.Instance.Config.Env,
 		Logger:      app.Instance.Logger.New(log.Ctx{"package": "frontend"}),
 		Secure:      app.Instance.Secure,
 		BaseURL:     app.Instance.BaseURL,
 		APIURL:      app.Instance.APIURL,
 		HostName:    app.Instance.HostName,
-	})
+	}
+	front, err := frontend.Init(conf)
 	if err != nil {
 		app.Instance.Logger.Warn(err.Error())
 	}
 
-	//processing.InitQueues(&app.Instance)
-	//processing.Logger = app.Instance.Logger.Dev(log.Ctx{"package": "processing"})
-
 	app.Logger = app.Instance.Logger.New(log.Ctx{"package": "app"})
-	db.Logger = app.Instance.Logger.New(log.Ctx{"package": "db"})
 
 	// Routes
 	r := chi.NewRouter()
@@ -73,11 +66,9 @@ func main() {
 
 	// .well-known
 	cfg := frontend.NodeInfoConfig()
-	ni := nodeinfo.NewService(cfg, frontend.NodeInfoResolver{})
+	ni := nodeinfo.NewService(cfg, frontend.NodeInfoResolverNew(conf))
 	// Web-Finger
 	r.Route("/.well-known", func(r chi.Router) {
-		r.Use(app.NeedsDBBackend(front.HandleErrors))
-
 		r.Get("/webfinger", front.HandleWebFinger)
 		//r.Get("/host-meta", h.HandleHostMeta)
 		r.Get("/nodeinfo", ni.NodeInfoDiscover)

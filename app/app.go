@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/go-ap/errors"
 	"github.com/go-chi/chi/middleware"
 	"github.com/joho/godotenv"
 	"io"
@@ -373,16 +372,3 @@ func ReqLogger(f middleware.LogFormatter) Handler {
 type Handler func(http.Handler) http.Handler
 type ErrorHandler func(http.ResponseWriter, *http.Request, ...error)
 type ErrorHandlerFn func(eh ErrorHandler) Handler
-
-func NeedsDBBackend(eh ErrorHandler) Handler {
-	return func(next http.Handler) http.Handler {
-		fn := func(w http.ResponseWriter, r *http.Request) {
-			if !Instance.Config.DB.Enabled {
-				eh(w, r, errors.NotValidf("db backend is disabled, can not continue"))
-				return
-			}
-			next.ServeHTTP(w, r)
-		}
-		return http.HandlerFunc(fn)
-	}
-}

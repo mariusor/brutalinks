@@ -13,7 +13,6 @@ import (
 func (h *handler) Routes() func(chi.Router) {
 	return func(r chi.Router) {
 		r.Use(middleware.GetHead)
-		r.Use(app.NeedsDBBackend(h.HandleErrors))
 		r.Use(app.ReqLogger(h.logger))
 		r.Use(h.LoadSession)
 		//r.Use(middleware.RedirectSlashes)

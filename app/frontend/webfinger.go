@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
-	"github.com/mariusor/littr.go/app/db"
 	"github.com/writeas/go-nodeinfo"
 	"math"
 	"net/http"
@@ -28,14 +27,22 @@ type node struct {
 	Links   []link   `json:"links"`
 }
 
-type NodeInfoResolver struct{}
+type NodeInfoResolver struct{
+	storage app.Repository
+}
 
-func (r NodeInfoResolver) IsOpenRegistration() (bool, error) {
+func NodeInfoResolverNew(c Config) NodeInfoResolver {
+	return NodeInfoResolver{
+		storage: NewRepository(c),
+	}
+}
+
+func (n NodeInfoResolver) IsOpenRegistration() (bool, error) {
 	return false, nil
 }
 
-func (r NodeInfoResolver) Usage() (nodeinfo.Usage, error) {
-	us, _, _ := db.Config.LoadAccounts(app.Filters{
+func (n NodeInfoResolver) Usage() (nodeinfo.Usage, error) {
+	us, _, _ := n.storage.LoadAccounts(app.Filters{
 		LoadAccountsFilter: app.LoadAccountsFilter{
 			//IRI:  app.Instance.APIURL,
 			Deleted: []bool{false},
@@ -43,14 +50,14 @@ func (r NodeInfoResolver) Usage() (nodeinfo.Usage, error) {
 		MaxItems: math.MaxInt64,
 	})
 
-	posts, _, _ := db.Config.LoadItems(app.Filters{
+	posts, _, _ := n.storage.LoadItems(app.Filters{
 		LoadItemsFilter: app.LoadItemsFilter{
 			Deleted: []bool{false},
 			Context: []string{"0"},
 		},
 		MaxItems: math.MaxInt64,
 	})
-	all, _, _ := db.Config.LoadItems(app.Filters{
+	all, _, _ := n.storage.LoadItems(app.Filters{
 		LoadItemsFilter: app.LoadItemsFilter{
 			Deleted: []bool{false},
 		},

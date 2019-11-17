@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/mariusor/littr.go/app"
-	"github.com/mariusor/littr.go/app/db"
 	"github.com/unrolled/render"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
@@ -432,15 +431,7 @@ func showText(m interface{}) func() bool {
 }
 
 func sameHash(h1 app.Hash, h2 app.Hash) bool {
-	var s1, s2 string
-	if len(h1) > len(h2) {
-		s1 = string(h1)
-		s2 = string(h2)
-	} else {
-		s1 = string(h2)
-		s2 = string(h1)
-	}
-	return strings.Contains(s1, s2)
+	return bytes.Equal(h1, h2)
 }
 
 func fmtPubKey(pub []byte) string {
@@ -507,28 +498,28 @@ func (h *handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name st
 			"NumberFmt":         func(i int) string { return numberFormat("%d", i) },
 			"TimeFmt":           relTimeFmt,
 			"ISOTimeFmt":        isoTimeFmt,
-			"ShowUpdate":        func(i app.Item) bool {
+			"ShowUpdate": func(i app.Item) bool {
 				// TODO(marius): I have to find out why there's a difference between SubmittedAt and UpdatedAt
 				//  values coming from fedbox
-				return !(i.UpdatedAt.IsZero() ||  math.Abs(float64(i.SubmittedAt.Sub(i.UpdatedAt).Milliseconds())) < 20000.0)
+				return !(i.UpdatedAt.IsZero() || math.Abs(float64(i.SubmittedAt.Sub(i.UpdatedAt).Milliseconds())) < 20000.0)
 			},
-			"ScoreClass":        scoreClass,
-			"YayLink":           yayLink,
-			"NayLink":           nayLink,
-			"PageLink":          pageLink,
-			"CanPaginate":       canPaginate,
-			"Config":            func() app.Config { return app.Instance.Config },
-			"Info":              func() app.Info { return nodeInfo },
-			"Name":              appName,
-			"Menu":              func() []headerEl { return headerMenu(r) },
-			"icon":              icon,
-			"asset":             func(p string) template.HTML { return template.HTML(asset(p)) },
-			"req":               func() *http.Request { return r },
-			"sameBase":          sameBasePath,
-			"sameHash":          sameHash,
-			"fmtPubKey":         fmtPubKey,
-			"pluralize":         func(s string, cnt int) string { return pluralize(float64(cnt), s) },
-			csrf.TemplateTag:    func() template.HTML { return csrf.TemplateField(r) },
+			"ScoreClass":     scoreClass,
+			"YayLink":        yayLink,
+			"NayLink":        nayLink,
+			"PageLink":       pageLink,
+			"CanPaginate":    canPaginate,
+			"Config":         func() app.Config { return app.Instance.Config },
+			"Info":           func() app.Info { return nodeInfo },
+			"Name":           appName,
+			"Menu":           func() []headerEl { return headerMenu(r) },
+			"icon":           icon,
+			"asset":          func(p string) template.HTML { return template.HTML(asset(p)) },
+			"req":            func() *http.Request { return r },
+			"sameBase":       sameBasePath,
+			"sameHash":       sameHash,
+			"fmtPubKey":      fmtPubKey,
+			"pluralize":      func(s string, cnt int) string { return pluralize(float64(cnt), s) },
+			csrf.TemplateTag: func() template.HTML { return csrf.TemplateField(r) },
 			//"ScoreFmt":          func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
 			//"NumberFmt":         func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
 		}},
@@ -802,7 +793,7 @@ func (h handler) NeedsSessions(next http.Handler) http.Handler {
 // It's something Mastodon compatible servers should show
 func (h *handler) HandleAbout(w http.ResponseWriter, r *http.Request) {
 	m := aboutModel{Title: "About"}
-	f, err := db.Config.LoadInfo()
+	f, err := h.storage.LoadInfo()
 	if err != nil {
 		h.HandleErrors(w, r, errors.NewNotValid(err, "oops!"))
 		return
