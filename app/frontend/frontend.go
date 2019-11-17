@@ -3,10 +3,10 @@ package frontend
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/gob"
 	"fmt"
 	"github.com/gorilla/csrf"
-	"github.com/openshift/osin"
 	"html/template"
 	"math"
 	"net/http"
@@ -17,14 +17,13 @@ import (
 	"time"
 
 	"github.com/mariusor/littr.go/app"
-	"github.com/mariusor/littr.go/app/db"
 	"github.com/unrolled/render"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
 
+	"github.com/go-ap/errors"
 	"github.com/go-chi/chi"
 	"github.com/gorilla/sessions"
-	"github.com/mariusor/littr.go/internal/errors"
 	"github.com/mariusor/littr.go/internal/log"
 	"golang.org/x/oauth2"
 )
@@ -39,9 +38,8 @@ const (
 type handler struct {
 	conf    Config
 	sstor   sessions.Store
-	account app.Account
 	logger  log.Logger
-	os      *osin.Server
+	storage *repository
 }
 
 var defaultAccount = app.AnonymousAccount
@@ -169,31 +167,38 @@ func relTimeFmt(old time.Time) string {
 		val = hours / 876000
 		unit = "century"
 	}
-	return fmt.Sprintf("%.0f %s %s", val, pluralize(val, unit), when)
+	switch unit {
+	case "day":
+		fallthrough
+	case "hour":
+		fallthrough
+	case "minute":
+		return fmt.Sprintf("%.0f %s %s", val, pluralize(val, unit), when)
+	}
+	return fmt.Sprintf("%.1f %s %s", val, pluralize(val, unit), when)
 }
 
 type Config struct {
 	Env             app.EnvType
 	Version         string
+	APIURL          string
 	BaseURL         string
 	HostName        string
 	Secure          bool
 	SessionKeys     [][]byte
 	SessionsBackend string
 	Logger          log.Logger
-	OAuthServer     *osin.Server
 }
 
 func Init(c Config) (handler, error) {
 	// frontend
-	gob.Register(sessionAccount{})
+	gob.Register(app.Account{})
 	gob.Register(flash{})
 
 	var err error
 
-	h := handler{
-		account: defaultAccount,
-	}
+	h := handler{}
+
 	if c.Logger != nil {
 		h.logger = c.Logger
 	}
@@ -205,7 +210,8 @@ func Init(c Config) (handler, error) {
 	c.SessionKeys = loadEnvSessionKeys()
 	h.sstor, err = InitSessionStore(c)
 	h.conf = c
-	h.os = c.OAuthServer
+
+	h.storage = NewRepository(c)
 	return h, err
 }
 
@@ -259,7 +265,7 @@ type errorModel struct {
 	Errors []error
 }
 
-func loadScoreFormat(s int64) (string, string) {
+func loadScoreFormat(s int) (string, string) {
 	const (
 		ScoreMaxK = 1000.0
 		ScoreMaxM = 1000000.0
@@ -299,7 +305,7 @@ func numberFormat(fmtVerb string, el ...interface{}) string {
 	return message.NewPrinter(language.English).Sprintf(fmtVerb, el...)
 }
 
-func scoreClass(s int64) string {
+func scoreClass(s int) string {
 	_, class := loadScoreFormat(s)
 	if class == "" {
 		class = "H"
@@ -307,7 +313,7 @@ func scoreClass(s int64) string {
 	return class
 }
 
-func scoreFmt(s int64) string {
+func scoreFmt(s int) string {
 	score, units := loadScoreFormat(s)
 	if units == "inf" {
 		units = ""
@@ -374,9 +380,18 @@ func appName(n string) template.HTML {
 	return template.HTML(name.String())
 }
 
+func (h *handler) account(r *http.Request) *app.Account {
+	acct, ok := app.ContextAccount(r.Context())
+	if !ok || acct == nil {
+		h.logger.Error("could not load account repository from Context")
+		return &defaultAccount
+	}
+	return acct
+}
+
 func (h *handler) saveSession(w http.ResponseWriter, r *http.Request) error {
 	if h.sstor == nil {
-		err := errors.New("missing session store, unable to save session")
+		err := errors.Newf("missing session store, unable to save session")
 		h.logger.Errorf("%s", err)
 		return err
 	}
@@ -416,15 +431,7 @@ func showText(m interface{}) func() bool {
 }
 
 func sameHash(h1 app.Hash, h2 app.Hash) bool {
-	var s1, s2 string
-	if len(h1) > len(h2) {
-		s1 = string(h1)
-		s2 = string(h2)
-	} else {
-		s1 = string(h2)
-		s2 = string(h1)
-	}
-	return strings.Contains(s1, s2)
+	return bytes.Equal(h1, h2)
 }
 
 func fmtPubKey(pub []byte) string {
@@ -470,7 +477,7 @@ func (h *handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name st
 			"sluggify":          sluggify,
 			"title":             func(t []byte) string { return string(t) },
 			"getProviders":      getAuthProviders,
-			"CurrentAccount":    func() app.Account { return h.account },
+			"CurrentAccount":    func() *app.Account { return h.account(r) },
 			"LoadFlashMessages": loadFlashMessages(r, w, s),
 			"Mod10":             func(lvl uint8) float64 { return math.Mod(float64(lvl), float64(10)) },
 			"ShowText":          showText(m),
@@ -488,26 +495,31 @@ func (h *handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name st
 			"IsYay":             isYay,
 			"IsNay":             isNay,
 			"ScoreFmt":          scoreFmt,
-			"NumberFmt":         func(i int64) string { return numberFormat("%d", i) },
+			"NumberFmt":         func(i int) string { return numberFormat("%d", i) },
 			"TimeFmt":           relTimeFmt,
 			"ISOTimeFmt":        isoTimeFmt,
-			"ScoreClass":        scoreClass,
-			"YayLink":           yayLink,
-			"NayLink":           nayLink,
-			"PageLink":          pageLink,
-			"CanPaginate":       canPaginate,
-			"Config":            func() app.Config { return app.Instance.Config },
-			"Info":              func() app.Info { return nodeInfo },
-			"Name":              appName,
-			"Menu":              func() []headerEl { return headerMenu(r) },
-			"icon":              icon,
-			"asset":             func(p string) template.HTML { return template.HTML(asset(p)) },
-			"req":               func() *http.Request { return r },
-			"sameBase":          sameBasePath,
-			"sameHash":          sameHash,
-			"fmtPubKey":         fmtPubKey,
-			"pluralize":         func(s string, cnt int) string { return pluralize(float64(cnt), s) },
-			csrf.TemplateTag:    func() template.HTML { return csrf.TemplateField(r) },
+			"ShowUpdate": func(i app.Item) bool {
+				// TODO(marius): I have to find out why there's a difference between SubmittedAt and UpdatedAt
+				//  values coming from fedbox
+				return !(i.UpdatedAt.IsZero() || math.Abs(float64(i.SubmittedAt.Sub(i.UpdatedAt).Milliseconds())) < 20000.0)
+			},
+			"ScoreClass":     scoreClass,
+			"YayLink":        yayLink,
+			"NayLink":        nayLink,
+			"PageLink":       pageLink,
+			"CanPaginate":    canPaginate,
+			"Config":         func() app.Config { return app.Instance.Config },
+			"Info":           func() app.Info { return nodeInfo },
+			"Name":           appName,
+			"Menu":           func() []headerEl { return headerMenu(r) },
+			"icon":           icon,
+			"asset":          func(p string) template.HTML { return template.HTML(asset(p)) },
+			"req":            func() *http.Request { return r },
+			"sameBase":       sameBasePath,
+			"sameHash":       sameHash,
+			"fmtPubKey":      fmtPubKey,
+			"pluralize":      func(s string, cnt int) string { return pluralize(float64(cnt), s) },
+			csrf.TemplateTag: func() template.HTML { return csrf.TemplateField(r) },
 			//"ScoreFmt":          func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
 			//"NumberFmt":         func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
 		}},
@@ -524,7 +536,7 @@ func (h *handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name st
 		w.Header().Set("Cache-Control", "no-store")
 	}
 	if err = ren.HTML(w, http.StatusOK, name, m); err != nil {
-		new := errors.New("failed to render template")
+		new := errors.Newf("failed to render template")
 		h.logger.WithContext(log.Ctx{
 			"template": name,
 			"model":    fmt.Sprintf("%T", m),
@@ -577,7 +589,13 @@ func (h *handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
 		h.HandleErrors(w, r, err)
 		return
 	}
-	oauth := app.OAuth{
+
+	s, _ := h.sstor.Get(r, sessionName)
+	account := loadCurrentAccountFromSession(s, h.storage, h.logger)
+	if account.Metadata == nil {
+		account.Metadata = &app.AccountMetadata{}
+	}
+	account.Metadata.OAuth = app.OAuth{
 		State:        state,
 		Code:         code,
 		Provider:     provider,
@@ -587,13 +605,7 @@ func (h *handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
 		Expiry:       tok.Expiry,
 	}
 
-	s, _ := h.sstor.Get(r, sessionName)
-	h.account = loadCurrentAccountFromSession(s, h.logger)
-	s.Values[SessionUserKey] = sessionAccount{
-		Handle: h.account.Handle,
-		Hash:   []byte(h.account.Hash),
-		OAuth:  oauth,
-	}
+	s.Values[SessionUserKey] = account
 	if strings.ToLower(provider) != "local" {
 		h.addFlashMessage(Success, r, fmt.Sprintf("Login successful with %s", provider))
 	} else {
@@ -641,51 +653,23 @@ func GetOauth2Config(provider string, localBaseURL string) oauth2.Config {
 				TokenURL: "https://accounts.google.com/o/oauth2/token",
 			},
 		}
-	case "local":
+	case "fedbox":
+		fallthrough
+	default:
+		apiURL := os.Getenv("API_URL")
 		config = oauth2.Config{
 			ClientID:     os.Getenv("OAUTH2_KEY"),
 			ClientSecret: os.Getenv("OAUTH2_SECRET"),
 			Endpoint: oauth2.Endpoint{
-				AuthURL:  fmt.Sprintf("%s/oauth/authorize", localBaseURL),
-				TokenURL: fmt.Sprintf("%s/oauth/token", localBaseURL),
+				AuthURL:  fmt.Sprintf("%s/oauth/authorize", apiURL),
+				TokenURL: fmt.Sprintf("%s/oauth/token", apiURL),
 			},
 		}
-	default:
-		config = oauth2.Config{}
 	}
-	url := os.Getenv("OAUTH2_URL")
-	if url == "" {
-		url = fmt.Sprintf("%s/auth/%s/callback", localBaseURL, provider)
+	if config.RedirectURL = os.Getenv("OAUTH2_URL"); config.RedirectURL == "" {
+		config.RedirectURL = fmt.Sprintf("%s/auth/%s/callback", localBaseURL, provider)
 	}
-	config.RedirectURL = url
 	return config
-}
-
-// HandleAuth serves /auth/{provider} request
-func (h *handler) HandleAuth(w http.ResponseWriter, r *http.Request) {
-	provider := chi.URLParam(r, "provider")
-
-	indexUrl := "/"
-	if strings.ToLower(provider) != "local" && os.Getenv("OAUTH2_KEY") == "" {
-		h.logger.WithContext(log.Ctx{
-			"provider": provider,
-		}).Info("Provider has no credentials set")
-		h.Redirect(w, r, indexUrl, http.StatusPermanentRedirect)
-		return
-	}
-
-	// TODO(marius): generated _CSRF state value to check in h.HandleCallback
-	config := GetOauth2Config(provider, h.conf.BaseURL)
-	if len(config.ClientID) == 0 {
-		s, err := h.sstor.Get(r, sessionName)
-		if err != nil {
-			h.logger.Debugf(err.Error())
-		}
-		s.AddFlash("Missing oauth provider")
-		h.Redirect(w, r, indexUrl, http.StatusPermanentRedirect)
-	}
-	// redirURL := "http://brutalinks.git/oauth/authorize?access_type=online&client_id=eaca4839ddf16cb4a5c4ca126db8de5c&redirect_uri=http%3A%2F%2Fbrutalinks.git%2Fauth%2Flocal%2Fcallback&response_type=code&state=state"
-	h.Redirect(w, r, config.AuthCodeURL("state", oauth2.AccessTypeOnline), http.StatusFound)
 }
 
 func isInverted(r *http.Request) bool {
@@ -698,25 +682,38 @@ func isInverted(r *http.Request) bool {
 	return false
 }
 
-func loadCurrentAccountFromSession(s *sessions.Session, l log.Logger) app.Account {
+func loadCurrentAccountFromSession(s *sessions.Session, r *repository, l log.Logger) app.Account {
 	// load the current account from the session or setting it to anonymous
 	if raw, ok := s.Values[SessionUserKey]; ok {
-		if a, ok := raw.(sessionAccount); ok {
-			if acc, err := db.Config.LoadAccount(app.Filters{LoadAccountsFilter: app.LoadAccountsFilter{Handle: []string{a.Handle}}}); err == nil {
-				l.WithContext(log.Ctx{
-					"handle": acc.Handle,
-					"hash":   acc.Hash.String(),
-				}).Debug("loaded account from session")
-				acc.Metadata.OAuth = a.OAuth
-				return acc
-			} else {
+		if a, ok := raw.(app.Account); ok {
+			if !a.IsValid() {
+				var err error
+				a, err = r.LoadAccount(app.Filters{
+					LoadAccountsFilter: app.LoadAccountsFilter{
+						Handle: []string{a.Handle},
+						Key:    []app.Hash{a.Hash},
+					},
+				})
 				if err != nil {
 					l.WithContext(log.Ctx{
 						"handle": a.Handle,
-						"hash":   string(a.Hash),
+						"hash":   a.Hash,
 					}).Warn(err.Error())
+					return defaultAccount
 				}
+				l.WithContext(log.Ctx{
+					"handle": a.Handle,
+					"hash":   a.Hash,
+				}).Debug("loaded actor from remote server")
 			}
+			l.WithContext(log.Ctx{
+				"handle": a.Handle,
+				"hash":   a.Hash,
+			}).Debug("loaded account from session")
+			if a.IsLogged() {
+				r.WithAccount(&a)
+			}
+			return a
 		}
 	}
 	return defaultAccount
@@ -752,7 +749,9 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 						}
 					}
 				} else {
-					h.account = loadCurrentAccountFromSession(s, h.logger)
+					acc := loadCurrentAccountFromSession(s, h.storage, h.logger)
+					ctxt := context.WithValue(r.Context(), app.AccountCtxtKey, &acc)
+					r = r.WithContext(ctxt)
 				}
 			} else {
 				h.logger.Warn("missing session store, unable to load session")
@@ -761,6 +760,14 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	}
 	return http.HandlerFunc(fn)
+}
+
+func (h *handler) addFlashErrors(r *http.Request, errs ...error) {
+	msg := ""
+	for _, err := range errs {
+		msg += err.Error()
+	}
+	h.addFlashMessage(Error, r, msg)
 }
 
 func (h *handler) addFlashMessage(typ flashType, r *http.Request, msgs ...string) {
@@ -786,7 +793,7 @@ func (h handler) NeedsSessions(next http.Handler) http.Handler {
 // It's something Mastodon compatible servers should show
 func (h *handler) HandleAbout(w http.ResponseWriter, r *http.Request) {
 	m := aboutModel{Title: "About"}
-	f, err := db.Config.LoadInfo()
+	f, err := h.storage.LoadInfo()
 	if err != nil {
 		h.HandleErrors(w, r, errors.NewNotValid(err, "oops!"))
 		return
@@ -857,10 +864,13 @@ func (h *handler) HandleErrors(w http.ResponseWriter, r *http.Request, errs ...e
 
 	status := http.StatusInternalServerError
 	for _, err := range errs {
+		if err == nil {
+			continue
+		}
 		if renderErrors {
 			status = httpErrorResponse(err)
 		} else {
-			h.addFlashMessage(Error, r, err.Error())
+			h.addFlashErrors(r, err)
 		}
 	}
 

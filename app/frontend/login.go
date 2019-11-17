@@ -3,10 +3,7 @@ package frontend
 import (
 	"fmt"
 	"github.com/mariusor/littr.go/app"
-	"github.com/mariusor/littr.go/app/db"
-	"github.com/mariusor/littr.go/internal/log"
-	"golang.org/x/crypto/bcrypt"
-	"golang.org/x/oauth2"
+	"github.com/sirupsen/logrus"
 	"net/http"
 )
 
@@ -22,58 +19,64 @@ type loginModel struct {
 func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	pw := r.PostFormValue("pw")
 	handle := r.PostFormValue("handle")
+	state := r.PostFormValue("state")
 
-	backUrl := "/oauth/authorize"
-	a, err := db.Config.LoadAccount(app.Filters{LoadAccountsFilter: app.LoadAccountsFilter{Handle: []string{handle}}})
+	config := GetOauth2Config("fedbox", h.conf.BaseURL)
+	// Try to load actor from handle
+	acct, err := h.storage.LoadAccount(app.Filters{
+		LoadAccountsFilter: app.LoadAccountsFilter{
+			Handle:  []string{handle,},
+			Deleted: []bool{false,},
+		},
+	})
 	if err != nil {
-		h.logger.Error(err.Error())
-		h.addFlashMessage(Error, r, "Login failed: wrong handle or password")
-		h.Redirect(w, r, backUrl, http.StatusSeeOther)
-		return
-	}
-	if a.Metadata == nil {
-		h.logger.WithContext(log.Ctx{
+		h.logger.WithContext(logrus.Fields{
 			"handle": handle,
-		}).Error("invalid account metadata")
-		h.addFlashMessage(Error, r, "Login failed: wrong handle or password")
-		h.Redirect(w, r, backUrl, http.StatusSeeOther)
+			"client": config.ClientID,
+			"state":  state,
+		}).Error(err.Error())
+		h.addFlashMessage(Error, r, fmt.Sprintf("Login failed: %s", err))
+		h.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
-	h.logger.WithContext(log.Ctx{
-		"pw":   fmt.Sprintf("%s", a.Metadata.Password),
-		"salt": fmt.Sprintf("%2x", a.Metadata.Salt),
-	}).Debug("Loaded password")
-	salt := a.Metadata.Salt
-	saltyPw := []byte(pw)
-	saltyPw = append(saltyPw, salt...)
-	err = bcrypt.CompareHashAndPassword(a.Metadata.Password, saltyPw)
 
+	tok, err := config.PasswordCredentialsToken(r.Context(), handle, pw)
 	if err != nil {
-		h.logger.Error(err.Error())
-		h.addFlashMessage(Error, r, "Login failed: wrong handle or password")
-		h.Redirect(w, r, backUrl, http.StatusSeeOther)
+		h.logger.WithContext(logrus.Fields{
+			"handle": handle,
+			"client": config.ClientID,
+			"state":  state,
+			"error": err,
+		}).Error("login failed")
+		h.addFlashMessage(Error, r, "Login failed: invalid username or password")
+		h.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
-
+	if tok == nil {
+		h.logger.WithContext(logrus.Fields{
+			"handle": handle,
+			"client": config.ClientID,
+			"state":  state,
+		}).Errorf("nil token received")
+		h.addFlashMessage(Error, r, "Login failed: wrong handle or password")
+		h.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+	acct.Metadata.OAuth.Provider = "fedbox"
+	acct.Metadata.OAuth.Token = tok.AccessToken
+	acct.Metadata.OAuth.TokenType = tok.TokenType
+	acct.Metadata.OAuth.RefreshToken = tok.RefreshToken
 	s, _ := h.sstor.Get(r, sessionName)
-	s.Values[SessionUserKey] = sessionAccount{
-		Handle: a.Handle,
-		Hash:   []byte(a.Hash),
-	}
-	if err := s.Save(r, w); err != nil {
-		h.logger.Error(err.Error())
-	}
-
-	config := GetOauth2Config("local", h.conf.BaseURL)
-	h.Redirect(w, r, config.AuthCodeURL("state", oauth2.AccessTypeOnline), http.StatusPermanentRedirect)
+	s.Values[SessionUserKey] = acct
+	h.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 // ShowLogin serves GET /login requests
 func (h *handler) ShowLogin(w http.ResponseWriter, r *http.Request) {
-	a := app.Account{}
+	a := h.account(r)
 
 	m := loginModel{Title: "Login"}
-	m.Account = a
+	m.Account = *a
 
 	h.RenderTemplate(r, w, "login", m)
 }

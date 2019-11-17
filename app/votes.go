@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mariusor/littr.go/internal/errors"
+	"github.com/go-ap/errors"
 )
 
 const (
@@ -17,23 +17,29 @@ const (
 
 type VoteCollection []Vote
 
+type VoteMetadata struct {
+	IRI         string `json:"-"`
+	OriginalIRI string `json:"-"`
+}
+
 type Vote struct {
-	SubmittedBy *Account  `json:"-"`
-	SubmittedAt time.Time `json:"-"`
-	UpdatedAt   time.Time `json:"-"`
-	Weight      int       `json:"weight"`
-	Item        *Item     `json:"on"`
-	Flags       FlagBits  `json:"-"`
+	SubmittedBy *Account      `json:"-"`
+	SubmittedAt time.Time     `json:"-"`
+	UpdatedAt   time.Time     `json:"-"`
+	Weight      int           `json:"weight"`
+	Item        *Item         `json:"on"`
+	Flags       FlagBits      `json:"-"`
+	Metadata    *VoteMetadata `json:"-"`
 }
 
 func trimHash(s Hash) Hash {
 	h, err := url.PathUnescape(string(s))
 	if err != nil {
-		return ""
+		return Hash("")
 	}
 	h = strings.TrimSpace(h)
 	if len(h) == 0 {
-		return ""
+		return Hash("")
 	}
 	return Hash(h)
 }

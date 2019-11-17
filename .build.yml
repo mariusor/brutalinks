@@ -24,9 +24,9 @@ tasks:
       set +x
       cd littr.go
       make all
-  - tests: |
-      set +x
-      set -a
-      source ~/.env.test
-      cd littr.go
-      make test
+#  - tests: |
+#      set +x
+#      set -a
+#      source ~/.env.test
+#      cd littr.go
+#      make test

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	as "github.com/go-ap/activitystreams"
-	"github.com/mariusor/littr.go/app/activitypub"
 	"github.com/mariusor/qstring"
 	"net/url"
 	"strings"
@@ -89,11 +88,11 @@ func (h Hashes) String() string {
 }
 
 type LoadVotesFilter struct {
-	ItemKey              []Hash    `qstring:"hash,omitempty"`
-	Type                 VoteTypes `qstring:"type,omitempty"`
-	AttributedTo         []Hash    `qstring:"attributedTo,omitempty"`
-	SubmittedAt          time.Time `qstring:"submittedAt,omitempty"`
-	SubmittedAtMatchType MatchType `qstring:"submittedAtMatchType,omitempty"`
+	ItemKey              []Hash                     `qstring:"object,omitempty"`
+	Type                 as.ActivityVocabularyTypes `qstring:"type,omitempty"`
+	AttributedTo         []Hash                     `qstring:"attributedTo,omitempty"`
+	SubmittedAt          time.Time                  `qstring:"submittedAt,omitempty"`
+	SubmittedAtMatchType MatchType                  `qstring:"submittedAtMatchType,omitempty"`
 }
 
 type LoadItemsFilter struct {
@@ -106,11 +105,11 @@ type LoadItemsFilter struct {
 	SubmittedAtMatchType MatchType  `qstring:"submittedAtMatchType,omitempty"`
 	Content              string     `qstring:"content,omitempty"`
 	ContentMatchType     MatchType  `qstring:"contentMatchType,omitempty"`
-	Deleted              []bool     `qstring:"deleted,omitempty"`
+	Deleted              []bool     `qstring:"-"` // used as an array to allow for it to be missing
 	IRI                  string     `qstring:"id,omitempty"`
+	URL                  string     `qstring:"url,omitempty"`
 	Depth                int        `qstring:"depth,omitempty"`
-	// Federated shows if the item was generated locally or is coming from an external peer
-	Federated []bool `qstring:"federated,omitempty"`
+	Federated            []bool     `qstring:"-"` // used as an array to allow for it to be missing
 	// FollowedBy is the hash or handle of the user of which we should show the list of items that were commented on or liked
 	FollowedBy   []string `qstring:"followedBy,omitempty"`
 	contentAlias string
@@ -127,7 +126,7 @@ type Filters struct {
 
 type LoadAccountsFilter struct {
 	Key      []Hash   `qstring:"hash,omitempty"`
-	Handle   []string `qstring:"handle,omitempty"`
+	Handle   []string `qstring:"name,omitempty"`
 	Email    []string `qstring:"email,omitempty"`
 	Deleted  []bool   `qstring:"deleted,omitempty"`
 	IRI      string   `qstring:"id,omitempty"`
@@ -366,6 +365,7 @@ FROM "items" WHERE "key" ~* ?%d) AND "%s"."path" IS NOT NULL)`, it, counter, it)
 	}
 	return wheres, whereValues
 }
+
 func copyItemsFilters(a *LoadItemsFilter, b LoadItemsFilter) {
 	a.Key = b.Key
 	a.MediaType = b.MediaType
@@ -653,15 +653,9 @@ func ContextNodeInfoLoader(ctx context.Context) (CanLoadInfo, bool) {
 	return a, ok
 }
 
-func ContextActivity(ctx context.Context) (activitypub.Activity, bool) {
-	ctxVal := ctx.Value(ItemCtxtKey)
-	a, ok := ctxVal.(activitypub.Activity)
-	return a, ok
-}
-
-func ContextAccount(ctx context.Context) (Account, bool) {
+func ContextAccount(ctx context.Context) (*Account, bool) {
 	ctxVal := ctx.Value(AccountCtxtKey)
-	a, ok := ctxVal.(Account)
+	a, ok := ctxVal.(*Account)
 	return a, ok
 }
 

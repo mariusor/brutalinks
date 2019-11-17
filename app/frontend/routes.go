@@ -1,10 +1,10 @@
 package frontend
 
 import (
+	"github.com/go-ap/errors"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/mariusor/littr.go/app"
-	"github.com/mariusor/littr.go/internal/errors"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -13,9 +13,8 @@ import (
 func (h *handler) Routes() func(chi.Router) {
 	return func(r chi.Router) {
 		r.Use(middleware.GetHead)
-		r.Use(h.LoadSession)
-		r.Use(app.NeedsDBBackend(h.HandleErrors))
 		r.Use(app.ReqLogger(h.logger))
+		r.Use(h.LoadSession)
 		//r.Use(middleware.RedirectSlashes)
 
 		r.Get("/about", h.HandleAbout)
@@ -80,17 +79,7 @@ func (h *handler) Routes() func(chi.Router) {
 
 		r.Route("/auth", func(r chi.Router) {
 			r.Use(h.NeedsSessions)
-			r.Get("/{provider}", h.HandleAuth)
 			r.Get("/{provider}/callback", h.HandleCallback)
-		})
-
-		r.Route("/oauth", func(r chi.Router) {
-			r.Use(h.NeedsSessions)
-			// Authorization code endpoint
-			r.With(h.ValidateLoggedIn(h.RedirectToLogin)).Get("/authorize", h.Authorize)
-			r.Post("/authorize", h.Authorize)
-			// Access token endpoint
-			r.Post("/token", h.Token)
 		})
 
 		r.NotFound(func(w http.ResponseWriter, r *http.Request) {

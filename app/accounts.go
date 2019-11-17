@@ -1,10 +1,12 @@
 package app
 
 import (
+	"bytes"
 	"fmt"
+	"github.com/pborman/uuid"
 	"time"
 
-	"github.com/mariusor/littr.go/internal/errors"
+	"github.com/go-ap/errors"
 )
 
 type SSHKey struct {
@@ -51,7 +53,7 @@ type AccountCollection []Account
 type Account struct {
 	Email     string           `json:"email,omitempty"`
 	Hash      Hash             `json:"hash,omitempty"`
-	Score     int64            `json:"score,omitempty"`
+	Score     int              `json:"score,omitempty"`
 	Handle    string           `json:"handle,omitempty"`
 	CreatedAt time.Time        `json:"-"`
 	UpdatedAt time.Time        `json:"-"`
@@ -61,7 +63,7 @@ type Account struct {
 }
 
 // Hash is a local type for string, it should hold a [32]byte array actually
-type Hash string
+type Hash uuid.UUID
 
 // String returns the hash as a string
 func (h Hash) String() string {
@@ -70,9 +72,9 @@ func (h Hash) String() string {
 
 // Short returns a minimal valuable string value
 func (h Hash) Short() string {
-	if len(h) > 10 {
-		return string(h[0:10])
-	}
+	//if len(h) > 10 {
+	//	return string(h[0:10])
+	//}
 	return string(h)
 }
 
@@ -127,7 +129,7 @@ func (a Account) VotedOn(i Item) *Vote {
 		if v.Item == nil {
 			continue
 		}
-		if v.Item.Hash == i.Hash {
+		if bytes.Equal(v.Item.Hash, i.Hash) {
 			return &v
 		}
 	}
@@ -143,12 +145,17 @@ func (a Account) GetLink() string {
 
 // IsLogged should show if current user was loaded from a session
 func (a Account) IsLogged() bool {
-	return !a.CreatedAt.IsZero() || a.Hash != AnonymousHash
+	return !a.CreatedAt.IsZero() || !bytes.Equal(a.Hash, AnonymousHash)
 }
 
 // HasIcon
 func (a Account) HasIcon() bool {
 	return a.HasMetadata() && len(a.Metadata.Icon.URI) > 0
+}
+
+// Deleted
+func (a Account) Deleted() bool {
+	return (a.Flags & FlagsDeleted) == FlagsDeleted
 }
 
 // First
