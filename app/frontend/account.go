@@ -2,8 +2,8 @@ package frontend
 
 import (
 	"fmt"
-	"github.com/mariusor/littr.go/app"
 	"github.com/go-ap/errors"
+	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/qstring"
 	"net/http"
 
@@ -60,8 +60,8 @@ func (h *handler) ShowAccount(w http.ResponseWriter, r *http.Request) {
 
 	filter := app.Filters{
 		LoadItemsFilter: app.LoadItemsFilter{},
-		MaxItems: MaxContentItems,
-		Page:     1,
+		MaxItems:        MaxContentItems,
+		Page:            1,
 	}
 	for _, a := range accounts {
 		filter.LoadItemsFilter.AttributedTo = append(filter.LoadItemsFilter.AttributedTo, a.Hash)
