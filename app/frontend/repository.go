@@ -13,8 +13,8 @@ import (
 	"github.com/go-ap/auth"
 	"github.com/go-ap/errors"
 	j "github.com/go-ap/jsonld"
+	local "github.com/mariusor/littr.go/activitypub"
 	"github.com/mariusor/littr.go/app"
-	local "github.com/mariusor/littr.go/app/activitypub"
 	"github.com/mariusor/littr.go/internal/log"
 	"github.com/mariusor/qstring"
 	"github.com/spacemonkeygo/httpsig"
@@ -1196,10 +1196,10 @@ func (r *repository) SaveAccount(a app.Account) (app.Account, error) {
 		}
 		delete := as.Delete{
 			Parent: as.Parent{
-				Type: as.DeleteType,
-				To:   as.ItemCollection{as.PublicNS},
+				Type:         as.DeleteType,
+				To:           as.ItemCollection{as.PublicNS},
 				AttributedTo: author.GetLink(),
-				Updated: now,
+				Updated:      now,
 			},
 			Actor:  author.GetLink(),
 			Object: id,
@@ -1210,11 +1210,11 @@ func (r *repository) SaveAccount(a app.Account) (app.Account, error) {
 			p.To = as.ItemCollection{as.PublicNS}
 			create := as.Create{
 				Parent: as.Parent{
-					Type: as.CreateType,
-					To:   as.ItemCollection{as.PublicNS},
+					Type:         as.CreateType,
+					To:           as.ItemCollection{as.PublicNS},
 					AttributedTo: author.GetLink(),
-					Published: now,
-					Updated: now,
+					Published:    now,
+					Updated:      now,
 				},
 				Actor:  author.GetLink(),
 				Object: p,
@@ -1223,10 +1223,10 @@ func (r *repository) SaveAccount(a app.Account) (app.Account, error) {
 		} else {
 			update := as.Update{
 				Parent: as.Parent{
-					Type: as.UpdateType,
-					To:   as.ItemCollection{as.PublicNS},
+					Type:         as.UpdateType,
+					To:           as.ItemCollection{as.PublicNS},
 					AttributedTo: author.GetLink(),
-					Updated: now,
+					Updated:      now,
 				},
 				Object: p,
 				Actor:  author.GetLink(),

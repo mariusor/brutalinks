@@ -4,7 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"fmt"
-	ap "github.com/mariusor/littr.go/app/activitypub"
+	ap "github.com/mariusor/littr.go/activitypub"
 	"net/url"
 	"path"
 	"strings"
