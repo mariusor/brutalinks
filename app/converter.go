@@ -9,10 +9,9 @@ import (
 	"path"
 	"strings"
 
-	"github.com/go-ap/errors"
-
 	goap "github.com/go-ap/activitypub"
 	as "github.com/go-ap/activitystreams"
+	"github.com/go-ap/errors"
 )
 
 type Converter interface {
@@ -20,6 +19,10 @@ type Converter interface {
 }
 
 func (h *Hash) FromActivityPub(it as.Item) error {
+	if it.GetLink() == as.PublicNS {
+		*h = AnonymousHash
+		return nil
+	}
 	*h = GetHashFromAP(it.GetLink())
 	return nil
 }
@@ -33,6 +36,9 @@ func (a *Account) FromActivityPub(it as.Item) error {
 	}
 	if it.IsLink() {
 		iri := it.GetLink()
+		if iri == as.PublicNS {
+			*a = AnonymousAccount
+		}
 		a.Hash.FromActivityPub(iri)
 		a.Metadata = &AccountMetadata{
 			ID: iri.String(),
@@ -186,7 +192,7 @@ func (a *Account) FromActivityPub(it as.Item) error {
 	return nil
 }
 
-func ToArticle (it as.Item) (*ap.Object, error) {
+func ToArticle(it as.Item) (*ap.Object, error) {
 	switch i := it.(type) {
 	case *ap.Object:
 		return i, nil
@@ -202,18 +208,19 @@ func ToArticle (it as.Item) (*ap.Object, error) {
 }
 
 type onArticleFn func(art *ap.Object) error
+
 func OnArticle(it as.Item, fn onArticleFn) error {
 	if !as.ObjectTypes.Contains(it.GetType()) {
 		return errors.Newf(fmt.Sprintf("%T[%s] can't be converted to Object", it, it.GetType()))
 	}
-	act, err  := ToArticle(it)
+	act, err := ToArticle(it)
 	if err != nil {
 		return err
 	}
 	return fn(act)
 }
 
-func FromArticle (i *Item, a *ap.Object) error {
+func FromArticle(i *Item, a *ap.Object) error {
 	title := a.Name.First().Value
 
 	i.Hash.FromActivityPub(a)
@@ -318,9 +325,6 @@ func (i *Item) FromActivityPub(it as.Item) error {
 		i.Hash.FromActivityPub(it.GetLink())
 		return nil
 	}
-	if i.SubmittedBy == nil {
-		i.SubmittedBy = &Account{}
-	}
 
 	switch it.GetType() {
 	case as.DeleteType:
@@ -382,11 +386,6 @@ func (i *Item) FromActivityPub(it as.Item) error {
 						i.OP = &par
 					}
 				}
-				//if len(o.InReplyTo) > 1 {
-				//	op := Item{}
-				//	op.FromActivityPub(o.InReplyTo[1])
-				//	i.OP = &op
-				//}
 			}
 			return nil
 		})
@@ -474,16 +473,6 @@ func GetHashFromAP(obj as.Item) Hash {
 	}
 	return Hash(h)
 }
-
-//
-//func getAccountHandle(o as.Item) string {
-//	if o == nil {
-//		return ""
-//	}
-//	i := o.(as.IRI)
-//	s := strings.Split(string(i), "/")
-//	return s[len(s)-1]
-//}
 
 func (i *TagCollection) FromActivityPub(it as.ItemCollection) error {
 	if it == nil || len(it) == 0 {

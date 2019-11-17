@@ -556,7 +556,9 @@ func (r *repository) loadItemsAuthors(items ...app.Item) (app.ItemCollection, er
 
 	fActors := app.Filters{}
 	for _, it := range items {
-		if len(it.SubmittedBy.Hash) > 0 {
+		if len(it.SubmittedBy.Metadata.ID) > 0 {
+			fActors.LoadAccountsFilter.Key = append(fActors.LoadAccountsFilter.Key, app.Hash(it.SubmittedBy.Metadata.ID))
+		} else if len(it.SubmittedBy.Hash) > 0 {
 			fActors.LoadAccountsFilter.Key = append(fActors.LoadAccountsFilter.Key, it.SubmittedBy.Hash)
 		} else if len(it.SubmittedBy.Handle) > 0 {
 			fActors.Handle = append(fActors.Handle, it.SubmittedBy.Handle)
