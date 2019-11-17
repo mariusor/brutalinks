@@ -16,10 +16,10 @@ clean:
 	@-$(RM) $(HOSTNAME).{key,crt,pem}
 
 imagebuilder: ../go.mod $(APPSSOURCES)
-	docker build --force-rm --build-arg ENV=prod -t $(HOSTNAME)/builder:$(ENV)  .. -f Dockerfile.build
+	docker build -t $(HOSTNAME)/builder:$(ENV)  .. -f Dockerfile.build
 
-#build: imagebuilder
-#	docker run $(HOSTNAME)/builder:$(ENV)
+build: imagebuilder
+	docker run $(HOSTNAME)/builder:$(ENV)
 
 images: imagebuilder
 	docker-compose up --build

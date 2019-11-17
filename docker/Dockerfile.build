@@ -6,14 +6,15 @@ ARG PWD
 ENV GO111MODULE=on
 ENV ENV=${ENV:-dev}
 
-#VOLUME /go/src/app
-# master
-#RUN git clone https://github.com/mariusor/littr.go app
+WORKDIR /go/src/
+COPY ./ ./app/
+
+RUN git clone https://github.com/go-ap/fedbox.git
 
 WORKDIR /go/src/app
-COPY ./ ./
-
 RUN go mod download || true
 RUN make all
 
-#CMD ["make", "all"]
+WORKDIR /go/src/fedbox
+RUN go mod download || true
+RUN make all
