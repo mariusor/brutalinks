@@ -499,6 +499,31 @@ func hashesUnique(a app.Hashes) app.Hashes {
 	return u
 }
 
+func (r *repository) loadAccountsVotes(accounts ...app.Account) (app.AccountCollection, error) {
+	if len(accounts) == 0 {
+		return accounts, nil
+	}
+	fVotes := app.Filters{}
+	for _, account := range accounts {
+		fVotes.LoadVotesFilter.AttributedTo = append(fVotes.LoadVotesFilter.AttributedTo, account.Hash)
+	}
+	fVotes.LoadVotesFilter.AttributedTo = hashesUnique(fVotes.LoadVotesFilter.AttributedTo)
+	col := make(app.AccountCollection, len(accounts))
+	votes, _, err := r.LoadVotes(fVotes)
+	if err != nil {
+		return nil, errors.Annotatef(err, "unable to load accounts votes")
+	}
+	for k, ac := range accounts {
+		for _, vot := range votes {
+			if bytes.Equal(vot.SubmittedBy.Hash, ac.Hash) {
+				ac.Score += vot.Weight
+			}
+		}
+		col[k] = ac
+	}
+	return col, nil
+}
+
 func (r *repository) loadItemsVotes(items ...app.Item) (app.ItemCollection, error) {
 	if len(items) == 0 {
 		return items, nil
@@ -1113,6 +1138,7 @@ func (r *repository) LoadAccounts(f app.Filters) (app.AccountCollection, uint, e
 			}
 			accounts = append(accounts, acc)
 		}
+		accounts, err = r.loadAccountsVotes(accounts...)
 		return err
 	})
 	return accounts, count, nil
@@ -1124,6 +1150,7 @@ func (r *repository) LoadAccount(f app.Filters) (app.Account, error) {
 	if accounts, _, err = r.LoadAccounts(f); err != nil {
 		return app.Account{}, err
 	}
+
 	var ac *app.Account
 	if ac, err = accounts.First(); err != nil {
 		var id string
