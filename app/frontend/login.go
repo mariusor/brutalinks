@@ -39,7 +39,6 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		h.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
-	h.account = acct
 
 	tok, err := config.PasswordCredentialsToken(r.Context(), handle, pw)
 	if err != nil {
@@ -63,21 +62,21 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		h.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
-	h.account.Metadata.OAuth.Provider = "fedbox"
-	h.account.Metadata.OAuth.Token = tok.AccessToken
-	h.account.Metadata.OAuth.TokenType = tok.TokenType
-	h.account.Metadata.OAuth.RefreshToken = tok.RefreshToken
+	acct.Metadata.OAuth.Provider = "fedbox"
+	acct.Metadata.OAuth.Token = tok.AccessToken
+	acct.Metadata.OAuth.TokenType = tok.TokenType
+	acct.Metadata.OAuth.RefreshToken = tok.RefreshToken
 	s, _ := h.sstor.Get(r, sessionName)
-	s.Values[SessionUserKey] = h.account
+	s.Values[SessionUserKey] = acct
 	h.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 // ShowLogin serves GET /login requests
 func (h *handler) ShowLogin(w http.ResponseWriter, r *http.Request) {
-	a := app.Account{}
+	a := h.account(r)
 
 	m := loginModel{Title: "Login"}
-	m.Account = a
+	m.Account = *a
 
 	h.RenderTemplate(r, w, "login", m)
 }

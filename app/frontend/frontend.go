@@ -3,6 +3,7 @@ package frontend
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/gob"
 	"fmt"
 	"github.com/gorilla/csrf"
@@ -38,7 +39,6 @@ const (
 type handler struct {
 	conf    Config
 	sstor   sessions.Store
-	account app.Account
 	logger  log.Logger
 	storage *repository
 }
@@ -198,9 +198,8 @@ func Init(c Config) (handler, error) {
 
 	var err error
 
-	h := handler{
-		account: defaultAccount,
-	}
+	h := handler{}
+
 	if c.Logger != nil {
 		h.logger = c.Logger
 	}
@@ -382,6 +381,15 @@ func appName(n string) template.HTML {
 	return template.HTML(name.String())
 }
 
+func (h *handler) account(r *http.Request) *app.Account {
+	acct, ok := app.ContextAccount(r.Context())
+	if !ok || acct == nil {
+		h.logger.Error("could not load account repository from Context")
+		return &defaultAccount
+	}
+	return acct
+}
+
 func (h *handler) saveSession(w http.ResponseWriter, r *http.Request) error {
 	if h.sstor == nil {
 		err := errors.Newf("missing session store, unable to save session")
@@ -478,7 +486,7 @@ func (h *handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name st
 			"sluggify":          sluggify,
 			"title":             func(t []byte) string { return string(t) },
 			"getProviders":      getAuthProviders,
-			"CurrentAccount":    func() app.Account { return h.account },
+			"CurrentAccount":    func() *app.Account { return h.account(r) },
 			"LoadFlashMessages": loadFlashMessages(r, w, s),
 			"Mod10":             func(lvl uint8) float64 { return math.Mod(float64(lvl), float64(10)) },
 			"ShowText":          showText(m),
@@ -592,11 +600,11 @@ func (h *handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s, _ := h.sstor.Get(r, sessionName)
-	h.account = loadCurrentAccountFromSession(s, h.storage, h.logger)
-	if h.account.Metadata == nil {
-		h.account.Metadata = &app.AccountMetadata{}
+	account := loadCurrentAccountFromSession(s, h.storage, h.logger)
+	if account.Metadata == nil {
+		account.Metadata = &app.AccountMetadata{}
 	}
-	h.account.Metadata.OAuth = app.OAuth{
+	account.Metadata.OAuth = app.OAuth{
 		State:        state,
 		Code:         code,
 		Provider:     provider,
@@ -606,7 +614,7 @@ func (h *handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
 		Expiry:       tok.Expiry,
 	}
 
-	s.Values[SessionUserKey] = h.account
+	s.Values[SessionUserKey] = account
 	if strings.ToLower(provider) != "local" {
 		h.addFlashMessage(Success, r, fmt.Sprintf("Login successful with %s", provider))
 	} else {
@@ -738,7 +746,6 @@ func loadFlashMessages(r *http.Request, w http.ResponseWriter, s *sessions.Sessi
 
 func (h *handler) LoadSession(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		h.account = defaultAccount
 		if app.Instance.Config.SessionsEnabled {
 			if h.sstor != nil {
 				s, err := h.sstor.Get(r, sessionName)
@@ -752,9 +759,8 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 					}
 				} else {
 					acc := loadCurrentAccountFromSession(s, h.storage, h.logger)
-					if acc.Handle != h.account.Handle {
-						h.account = acc
-					}
+					ctxt := context.WithValue(r.Context(), app.AccountCtxtKey, &acc)
+					r = r.WithContext(ctxt)
 				}
 			} else {
 				h.logger.Warn("missing session store, unable to load session")

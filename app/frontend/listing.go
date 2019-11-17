@@ -162,6 +162,7 @@ func (h *handler) HandleIndex(w http.ResponseWriter, r *http.Request) {
 		h.logger.Debug("unable to load url parameters")
 	}
 
+	acct := h.account(r)
 	base := path.Base(r.URL.Path)
 	switch strings.ToLower(base) {
 	case "self":
@@ -171,13 +172,13 @@ func (h *handler) HandleIndex(w http.ResponseWriter, r *http.Request) {
 		filter.Federated = []bool{true}
 	case "followed":
 		h.logger.WithContext(log.Ctx{
-			"handle": h.account.Handle,
-			"hash":   h.account.Hash,
+			"handle": acct.Handle,
+			"hash":   acct.Hash,
 		}).Debug("showing followed posts")
-		filter.FollowedBy = []string{h.account.Hash.String()}
+		filter.FollowedBy = []string{acct.Hash.String()}
 	default:
 	}
-	if m, err := loadItems(r.Context(), filter, &h.account, h.logger); err == nil {
+	if m, err := loadItems(r.Context(), filter, acct, h.logger); err == nil {
 		m.Title = "Index"
 
 		m.HideText = true
@@ -233,6 +234,7 @@ func (h *handler) HandleTags(w http.ResponseWriter, r *http.Request) {
 		MaxItems: MaxContentItems,
 		Page:     1,
 	}
+	acct := h.account(r)
 	if len(tag) == 0 {
 		h.HandleErrors(w, r, errors.BadRequestf("missing tag"))
 	}
@@ -241,7 +243,7 @@ func (h *handler) HandleTags(w http.ResponseWriter, r *http.Request) {
 	if err := qstring.Unmarshal(r.URL.Query(), &filter); err != nil {
 		h.logger.Debug("unable to load url parameters")
 	}
-	if m, err := loadItems(r.Context(), filter, &h.account, h.logger); err == nil {
+	if m, err := loadItems(r.Context(), filter, acct, h.logger); err == nil {
 		m.Title = fmt.Sprintf("Submissions tagged as #%s", tag)
 
 		if len(m.Items) >= filter.MaxItems {
@@ -260,6 +262,7 @@ func (h *handler) HandleTags(w http.ResponseWriter, r *http.Request) {
 func (h *handler) HandleDomains(w http.ResponseWriter, r *http.Request) {
 	domain := chi.URLParam(r, "domain")
 
+	acct := h.account(r)
 	filter := app.Filters{
 		LoadItemsFilter: app.LoadItemsFilter{
 			Context: []string{"0"},
@@ -276,7 +279,7 @@ func (h *handler) HandleDomains(w http.ResponseWriter, r *http.Request) {
 	if err := qstring.Unmarshal(r.URL.Query(), &filter); err != nil {
 		h.logger.Debug("unable to load url parameters")
 	}
-	if m, err := loadItems(r.Context(), filter, &h.account, h.logger); err == nil {
+	if m, err := loadItems(r.Context(), filter, acct, h.logger); err == nil {
 		m.Title = fmt.Sprintf("Submissions from %s", domain)
 
 		m.HideText = true

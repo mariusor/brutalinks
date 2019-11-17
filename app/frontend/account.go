@@ -70,7 +70,7 @@ func (h *handler) ShowAccount(w http.ResponseWriter, r *http.Request) {
 	if err := qstring.Unmarshal(r.URL.Query(), &filter); err != nil {
 		h.logger.Debug("unable to load url parameters")
 	}
-	if m, err := loadItems(r.Context(), filter, &h.account, h.logger); err == nil {
+	if m, err := loadItems(r.Context(), filter, h.account(r), h.logger); err == nil {
 		m.Title = fmt.Sprintf("%s submissions", genitive(handle))
 		m.User, _ = accounts.First()
 

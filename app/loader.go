@@ -653,9 +653,9 @@ func ContextNodeInfoLoader(ctx context.Context) (CanLoadInfo, bool) {
 	return a, ok
 }
 
-func ContextAccount(ctx context.Context) (Account, bool) {
+func ContextAccount(ctx context.Context) (*Account, bool) {
 	ctxVal := ctx.Value(AccountCtxtKey)
-	a, ok := ctxVal.(Account)
+	a, ok := ctxVal.(*Account)
 	return a, ok
 }
 

@@ -240,8 +240,9 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 	url := r.URL
 	maybeEdit := path.Base(url.Path)
 
+	account := h.account(r)
 	if maybeEdit != hash && maybeEdit == Edit {
-		if !sameHash(m.Content.SubmittedBy.Hash, h.account.Hash) {
+		if !sameHash(m.Content.SubmittedBy.Hash, account.Hash) {
 			url.Path = path.Dir(url.Path)
 			h.Redirect(w, r, url.RequestURI(), http.StatusFound)
 			return
@@ -293,12 +294,12 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 	reparentComments(allComments)
 	addLevelComments(allComments)
 
-	if ok && h.account.IsLogged() {
+	if ok && account.IsLogged() {
 		votesLoader, ok := app.ContextVoteLoader(r.Context())
 		if ok {
-			h.account.Votes, _, err = votesLoader.LoadVotes(app.Filters{
+			account.Votes, _, err = votesLoader.LoadVotes(app.Filters{
 				LoadVotesFilter: app.LoadVotesFilter{
-					AttributedTo: []app.Hash{h.account.Hash},
+					AttributedTo: []app.Hash{account.Hash},
 					ItemKey:      allComments.getItemsHashes(),
 				},
 				MaxItems: MaxContentItems,
@@ -326,7 +327,8 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 // HandleSubmit handles POST /~handler/hash/edit requests
 // HandleSubmit handles POST /year/month/day/hash/edit requests
 func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
-	n, err := ContentFromRequest(r, h.account)
+	acc := h.account(r)
+	n, err := ContentFromRequest(r, *acc)
 	if err != nil {
 		h.logger.WithContext(log.Ctx{
 			"prev": err,
@@ -335,10 +337,9 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	acc := h.account
 	auth, authOk := app.ContextAuthenticated(r.Context())
 	if authOk && acc.IsLogged() {
-		auth.WithAccount(&acc)
+		auth.WithAccount(acc)
 	}
 	val := r.Context().Value(app.RepositoryCtxtKey)
 	itemLoader, ok := val.(app.CanLoadItems)
@@ -382,7 +383,7 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 			h.logger.Error("could not load item repository from Context")
 		}
 		v := app.Vote{
-			SubmittedBy: &acc,
+			SubmittedBy: acc,
 			Item:        &n,
 			Weight:      1 * app.ScoreMultiplier,
 		}
@@ -431,10 +432,10 @@ func (h *handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 	if !strings.Contains(backUrl, url) && strings.Contains(backUrl, app.Instance.BaseURL) {
 		url = fmt.Sprintf("%s#item-%s", backUrl, p.Hash)
 	}
-	acc := h.account
+	acc := h.account(r)
 	auth, authOk := app.ContextAuthenticated(r.Context())
 	if authOk && acc.IsLogged() {
-		auth.WithAccount(&acc)
+		auth.WithAccount(acc)
 	}
 	p.Delete()
 	if sav, ok := app.ContextItemSaver(r.Context()); ok {
@@ -489,10 +490,10 @@ func (h *handler) HandleVoting(w http.ResponseWriter, r *http.Request) {
 	}
 	url := ItemPermaLink(p)
 
-	acc := h.account
+	acc := h.account(r)
 	if acc.IsLogged() {
 		if auth, ok := val.(app.Authenticated); ok {
-			auth.WithAccount(&acc)
+			auth.WithAccount(acc)
 		}
 		voter, ok := val.(app.CanSaveVotes)
 		backUrl := r.Header.Get("Referer")
@@ -504,7 +505,7 @@ func (h *handler) HandleVoting(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		v := app.Vote{
-			SubmittedBy: &acc,
+			SubmittedBy: acc,
 			Item:        &p,
 			Weight:      multiplier * app.ScoreMultiplier,
 		}
