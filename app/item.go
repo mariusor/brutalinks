@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mariusor/littr.go/internal/errors"
+	"github.com/go-ap/errors"
 )
 
 type Tag struct {
@@ -20,6 +20,8 @@ type ItemMetadata struct {
 	ID         string        `json:"id,omitempty"`
 	URL        string        `json:"url,omitempty"`
 	RepliesURI string        `json:"replies,omitempty"`
+	LikesURI   string        `json:"likes,omitempty"`
+	SharesURI  string        `json:"shares,omitempty"`
 	AuthorURI  string        `json:"author,omitempty"`
 	Icon       ImageMetadata `json:"icon,omitempty"`
 }
@@ -42,10 +44,11 @@ type Item struct {
 	Title       string        `json:"-"`
 	MimeType    MimeType      `json:"-"`
 	Data        string        `json:"-"`
-	Score       int64         `json:"-"`
+	Score       int           `json:"-"`
 	SubmittedAt time.Time     `json:"-"`
 	SubmittedBy *Account      `json:"-"`
 	UpdatedAt   time.Time     `json:"-"`
+	UpdatedBy   *Account      `json:"-"`
 	Flags       FlagBits      `json:"-"`
 	Path        []byte        `json:"-"`
 	FullPath    []byte        `json:"-"`
@@ -53,6 +56,10 @@ type Item struct {
 	IsTop       bool          `json:"-"`
 	Parent      *Item         `json:"-"`
 	OP          *Item         `json:"-"`
+}
+
+func (i *Item) IsValid() bool {
+	return i != nil && len(i.Hash) > 0
 }
 
 func (i Item) Deleted() bool {

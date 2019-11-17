@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/go-chi/chi/middleware"
 	"github.com/joho/godotenv"
-	"github.com/mariusor/littr.go/internal/errors"
 	"io"
 	"net/http"
 	"os"
@@ -26,9 +25,9 @@ const (
 	// Anonymous label
 	Anonymous = "anonymous"
 	// AnonymousHash is the sha hash for the anonymous account
-	AnonymousHash = Hash("eacff9ddf379bd9fc8274c5a9f4cae08")
 )
 
+var AnonymousHash = Hash{}
 var AnonymousAccount = Account{Handle: Anonymous, Hash: AnonymousHash}
 
 var listenHost string
@@ -269,8 +268,7 @@ func loadEnv(l *Application) (bool, error) {
 	userCreationDisabled, _ := strconv.ParseBool(os.Getenv("DISABLE_USER_CREATION"))
 	l.Config.UserCreatingEnabled = !userCreationDisabled
 
-	l.APIURL = os.Getenv("API_URL")
-	if l.APIURL == "" {
+	if l.APIURL = os.Getenv("API_URL"); l.APIURL == "" {
 		l.APIURL = fmt.Sprintf("%s/api", l.BaseURL)
 	}
 	return true, nil
@@ -374,16 +372,3 @@ func ReqLogger(f middleware.LogFormatter) Handler {
 type Handler func(http.Handler) http.Handler
 type ErrorHandler func(http.ResponseWriter, *http.Request, ...error)
 type ErrorHandlerFn func(eh ErrorHandler) Handler
-
-func NeedsDBBackend(eh ErrorHandler) Handler {
-	return func(next http.Handler) http.Handler {
-		fn := func(w http.ResponseWriter, r *http.Request) {
-			if !Instance.Config.DB.Enabled {
-				eh(w, r, errors.NotValidf("db backend is disabled, can not continue"))
-				return
-			}
-			next.ServeHTTP(w, r)
-		}
-		return http.HandlerFunc(fn)
-	}
-}

@@ -1,16 +1,20 @@
 package frontend
 
 import (
+	"encoding/json"
+	"fmt"
+	"github.com/gorilla/csrf"
 	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/internal/log"
+	"github.com/openshift/osin"
+	"golang.org/x/oauth2"
+	"io/ioutil"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
-	"github.com/mariusor/littr.go/internal/errors"
-
-	"github.com/gorilla/securecookie"
-	"github.com/mariusor/littr.go/app/db"
-	"golang.org/x/crypto/bcrypt"
+	"github.com/go-ap/errors"
 )
 
 type registerModel struct {
@@ -18,16 +22,16 @@ type registerModel struct {
 	Account app.Account
 }
 
-func accountFromRequest(r *http.Request, l log.Logger) (*app.Account, []error) {
+func accountFromRequest(r *http.Request, l log.Logger) (*app.Account, error) {
 	if r.Method != http.MethodPost {
-		return nil, []error{errors.Errorf("invalid http method type")}
+		return nil, errors.Errorf("invalid http method type")
 	}
-	errs := make([]error, 0)
+
 	a := app.Account{}
 	pw := r.PostFormValue("pw")
 	pwConfirm := r.PostFormValue("pw-confirm")
 	if pw != pwConfirm {
-		errs = append(errs, errors.Errorf("the passwords don't match"))
+		return nil, errors.Errorf("the passwords don't match")
 	}
 
 	/*
@@ -36,10 +40,6 @@ func accountFromRequest(r *http.Request, l log.Logger) (*app.Account, []error) {
 			errs = append(errs, errors.Errorf("you must agree not to be a dick to other people"))
 		}
 	*/
-
-	if len(errs) > 0 {
-		return nil, errs
-	}
 	handle := r.PostFormValue("handle")
 	if handle != "" {
 		a.Handle = handle
@@ -48,25 +48,10 @@ func accountFromRequest(r *http.Request, l log.Logger) (*app.Account, []error) {
 	a.CreatedAt = now
 	a.UpdatedAt = now
 
-	salt := securecookie.GenerateRandomKey(8)
-	saltedpw := []byte(pw)
-	saltedpw = append(saltedpw, salt...)
-
-	savpw, err := bcrypt.GenerateFromPassword(saltedpw, 14)
-	if err != nil {
-		l.Error(err.Error())
-	}
 	a.Metadata = &app.AccountMetadata{
-		Salt:     salt,
-		Password: savpw,
+		Password: []byte(pw),
 	}
 
-	a, err = db.Config.SaveAccount(a)
-	l.Warn("using hardcoded db.Config.SaveAccount")
-	if err != nil {
-		l.Error(err.Error())
-		return nil, []error{err}
-	}
 	return &a, nil
 }
 
@@ -77,14 +62,87 @@ func (h *handler) ShowRegister(w http.ResponseWriter, r *http.Request) {
 	h.RenderTemplate(r, w, "register", m)
 }
 
+var scopeAnonymousUserCreate = "anonUserCreate"
+
 // HandleRegister handles POST /register requests
 func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
-	a, errs := accountFromRequest(r, h.logger)
-
-	if len(errs) > 0 {
-		h.HandleErrors(w, r, errs...)
+	a, err := accountFromRequest(r, h.logger)
+	if err != nil {
+		h.HandleErrors(w, r, err)
 		return
 	}
-	h.Redirect(w, r, a.GetLink(), http.StatusSeeOther)
+
+	maybeExists, err := h.storage.LoadAccount(app.Filters{
+		LoadAccountsFilter: app.LoadAccountsFilter{
+			Handle: []string{a.Handle},
+		},
+	})
+	notFound := errors.NotFoundf("")
+	if err != nil && !notFound.As(err) {
+		h.HandleErrors(w, r, errors.NewBadRequest(err, "unable to create"))
+		return
+	}
+	if maybeExists.IsValid() {
+		h.HandleErrors(w, r, errors.BadRequestf("unable to create new account: %s", a.Handle))
+		return
+	}
+
+	*a, err = h.storage.SaveAccount(*a)
+	if err != nil {
+		h.HandleErrors(w, r, err)
+		return
+	}
+	if !a.IsValid() || !a.HasMetadata() || a.Metadata.ID == "" {
+		h.HandleErrors(w, r, errors.Newf("unable to save actor"))
+		return
+	}
+
+	// TODO(marius): Start oauth2 authorize session
+	config := GetOauth2Config("fedbox", h.conf.BaseURL)
+	config.Scopes = []string{scopeAnonymousUserCreate}
+	param := oauth2.SetAuthURLParam("actor", a.Metadata.ID)
+	sessUrl := config.AuthCodeURL(csrf.Token(r), param)
+
+	res, err := http.Get(sessUrl)
+	if err != nil {
+		h.HandleErrors(w, r, err)
+		return
+	}
+
+	var body []byte
+	if body, err = ioutil.ReadAll(res.Body); err != nil {
+		h.HandleErrors(w, r, err)
+		return
+	}
+	d := osin.AuthorizeData{}
+	if err := json.Unmarshal(body, &d); err != nil {
+		h.HandleErrors(w, r, err)
+		return
+	}
+	// pos
+	pwChURL := fmt.Sprintf("%s/oauth/pw", h.storage.BaseURL)
+	u, _ := url.Parse(pwChURL)
+	q := u.Query()
+	q.Set("s", d.Code)
+	u.RawQuery = q.Encode()
+
+	form := url.Values{}
+	pw := r.PostFormValue("pw")
+	pwConfirm := r.PostFormValue("pw-confirm")
+
+	form.Add("pw", pw)
+	form.Add("pw-confirm", pwConfirm)
+
+	pwChRes, err := http.Post(u.String(), "application/x-www-form-urlencoded", strings.NewReader(form.Encode()))
+	if body, err = ioutil.ReadAll(pwChRes.Body); err != nil {
+		h.logger.Error(err.Error())
+		h.HandleErrors(w, r, err)
+		return
+	}
+	if pwChRes.StatusCode != http.StatusOK {
+		h.HandleErrors(w, r, h.storage.handlerErrorResponse(body))
+		return
+	}
+	h.Redirect(w, r, "/", http.StatusSeeOther)
 	return
 }

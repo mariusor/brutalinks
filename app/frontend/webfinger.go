@@ -1,9 +1,9 @@
-package api
+package frontend
 
 import (
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
-	"github.com/mariusor/littr.go/app/db"
 	"github.com/writeas/go-nodeinfo"
 	"math"
 	"net/http"
@@ -11,7 +11,7 @@ import (
 
 	"github.com/mariusor/littr.go/app"
 
-	"github.com/mariusor/littr.go/internal/errors"
+	"github.com/go-ap/errors"
 )
 
 type link struct {
@@ -27,29 +27,37 @@ type node struct {
 	Links   []link   `json:"links"`
 }
 
-type NodeInfoResolver struct{}
+type NodeInfoResolver struct{
+	storage app.Repository
+}
 
-func (r NodeInfoResolver) IsOpenRegistration() (bool, error) {
+func NodeInfoResolverNew(c Config) NodeInfoResolver {
+	return NodeInfoResolver{
+		storage: NewRepository(c),
+	}
+}
+
+func (n NodeInfoResolver) IsOpenRegistration() (bool, error) {
 	return false, nil
 }
 
-func (r NodeInfoResolver) Usage() (nodeinfo.Usage, error) {
-	us, _, _ := db.Config.LoadAccounts(app.Filters{
-			LoadAccountsFilter: app.LoadAccountsFilter{
+func (n NodeInfoResolver) Usage() (nodeinfo.Usage, error) {
+	us, _, _ := n.storage.LoadAccounts(app.Filters{
+		LoadAccountsFilter: app.LoadAccountsFilter{
 			//IRI:  app.Instance.APIURL,
 			Deleted: []bool{false},
 		},
 		MaxItems: math.MaxInt64,
 	})
 
-	posts, _, _ := db.Config.LoadItems(app.Filters{
-		LoadItemsFilter:app.LoadItemsFilter{
+	posts, _, _ := n.storage.LoadItems(app.Filters{
+		LoadItemsFilter: app.LoadItemsFilter{
 			Deleted: []bool{false},
 			Context: []string{"0"},
 		},
 		MaxItems: math.MaxInt64,
 	})
-	all, _, _ := db.Config.LoadItems(app.Filters {
+	all, _, _ := n.storage.LoadItems(app.Filters{
 		LoadItemsFilter: app.LoadItemsFilter{
 			Deleted: []bool{false},
 		},
@@ -60,16 +68,15 @@ func (r NodeInfoResolver) Usage() (nodeinfo.Usage, error) {
 		Users: nodeinfo.UsageUsers{
 			Total: len(us),
 		},
-		LocalComments: len(all)-len(posts),
-		LocalPosts: len(posts),
+		LocalComments: len(all) - len(posts),
+		LocalPosts:    len(posts),
 	}
 	return u, nil
 }
 
-
 func NodeInfoConfig() nodeinfo.Config {
 	return nodeinfo.Config{
-		BaseURL: BaseURL,
+		BaseURL: app.Instance.BaseURL,
 		InfoURL: "/nodeinfo",
 
 		Metadata: nodeinfo.Metadata{
@@ -85,10 +92,10 @@ func NodeInfoConfig() nodeinfo.Config {
 		Protocols: []nodeinfo.NodeProtocol{
 			nodeinfo.ProtocolActivityPub,
 		},
-		Services: nodeinfo.Services{
-			Inbound:  []nodeinfo.NodeService{},
-			Outbound: []nodeinfo.NodeService{},
-		},
+		//Services: nodeinfo.Services{
+		//	Inbound:  []nodeinfo.NodeService{},
+		//	Outbound: []nodeinfo.NodeService{},
+		//},
 		Software: nodeinfo.SoftwareInfo{
 			Name:    app.Instance.NodeInfo().Title,
 			Version: app.Instance.NodeInfo().Version,
@@ -97,17 +104,19 @@ func NodeInfoConfig() nodeinfo.Config {
 }
 
 // HandleHostMeta serves /.well-known/host-meta
-func HandleHostMeta(w http.ResponseWriter, r *http.Request) {
+func (h handler) HandleHostMeta(w http.ResponseWriter, r *http.Request) {
 	hm := node{
+		Subject: "",
+		Aliases: nil,
 		Links: []link{
 			{
 				Rel:      "lrdd",
 				Type:     "application/xrd+json",
-				Template: fmt.Sprintf("%s/.well-known/node?resource={uri}", app.Instance.BaseURL),
+				Template: fmt.Sprintf("%s/.well-known/node?resource={uri}", h.conf.BaseURL),
 			},
 		},
 	}
-	dat, _ := json.Marshal(hm)
+	dat, _ := xml.Marshal(hm)
 
 	w.Header().Set("Content-Type", "application/jrd+json")
 	w.WriteHeader(http.StatusOK)
@@ -116,7 +125,9 @@ func HandleHostMeta(w http.ResponseWriter, r *http.Request) {
 
 // HandleWebFinger serves /.well-known/webfinger/
 func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
-	typ, res := func(res string) (string, string) {
+	res := r.URL.Query()["resource"][0]
+
+	typ, handle := func(res string) (string, string) {
 		split := ":"
 		if strings.Contains(res, "://") {
 			split = "://"
@@ -126,57 +137,37 @@ func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 			return "", ""
 		}
 		return ar[0], ar[1]
-	}(r.URL.Query()["resource"][0])
+	}(res)
 
-	if typ == "" || res == "" {
-		h.HandleError(w, r, errors.BadRequestf("invalid resource"))
-		return
-	}
-
-	handle := res
-	var addr string
-	if typ == "acct" {
-		aElem := strings.Split(res, "@")
-		if len(aElem) > 1 {
-			handle = aElem[0]
-			addr = aElem[1]
-		}
-	} else if typ == "http" || typ == "https" {
-		handle = "self"
-		addr = res
-	}
-	if addr != app.Instance.HostName {
-		h.HandleError(w, r, errors.NotFoundf("trying to find non-local account"))
+	if typ == "" || handle == "" {
+		errors.HandleError(errors.BadRequestf("invalid resource %s", res)).ServeHTTP(w, r)
 		return
 	}
 
 	wf := node{}
-	val := r.Context().Value(app.RepositoryCtxtKey)
 	if handle == "self" {
 		var err error
 		var inf app.Info
-		if repo, ok := val.(app.CanLoadInfo); ok {
-			if inf, err = repo.LoadInfo(); err != nil {
-				h.HandleError(w, r, errors.NewNotValid(err, "ooops!"))
-				return
-			}
+		if inf, err = h.storage.LoadInfo(); err != nil {
+			errors.HandleError(errors.NewNotValid(err, "ooops!")).ServeHTTP(w, r)
+			return
 		}
 
-		id := h.repo.BaseURL + "/self"
+		id := h.storage.BaseURL
 		wf.Aliases = []string{
-			string(id),
+			id,
 		}
 		wf.Subject = inf.URI
 		wf.Links = []link{
 			{
 				Rel:  "self",
 				Type: "application/activity+json",
-				Href: string(id),
+				Href: id,
 			},
 			{
 				Rel:  "service",
 				Type: "application/activity+json",
-				Href: string(id),
+				Href: id,
 			},
 			{
 				Rel:  "service",
@@ -185,18 +176,11 @@ func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 			},
 		}
 	} else {
-		AcctLoader, ok := val.(app.CanLoadAccounts)
-		if !ok {
-			err := errors.NotValidf("could not load account repository from Context")
-			h.logger.Error(err.Error())
-			h.HandleError(w, r, err)
-			return
-		}
-		a, err := AcctLoader.LoadAccount(app.Filters{LoadAccountsFilter:app.LoadAccountsFilter{Handle: []string{handle}}})
+		a, err := h.storage.LoadAccount(app.Filters{LoadAccountsFilter: app.LoadAccountsFilter{Handle: []string{handle}}})
 		if err != nil {
-			err := errors.NotFoundf("resource")
+			err := errors.NotFoundf("resource not found %s", res)
 			h.logger.Error(err.Error())
-			h.HandleError(w, r, err)
+			errors.HandleError(err).ServeHTTP(w, r)
 			return
 		}
 
@@ -204,7 +188,7 @@ func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 			string(BuildActorID(a)),
 			fmt.Sprintf("%s/%s", ActorsURL, a.Handle),
 		}
-		wf.Subject = typ + ":" + res
+		wf.Subject = res
 		wf.Links = []link{
 			{
 				Rel:  "self",

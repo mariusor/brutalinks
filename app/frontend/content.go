@@ -1,6 +1,7 @@
 package frontend
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/mariusor/littr.go/internal/log"
 	"github.com/mariusor/qstring"
@@ -11,8 +12,8 @@ import (
 
 	"github.com/mariusor/littr.go/app"
 
+	"github.com/go-ap/errors"
 	"github.com/go-chi/chi"
-	"github.com/mariusor/littr.go/internal/errors"
 )
 
 const Edit = "edit"
@@ -132,6 +133,14 @@ func replaceTags(comments comments) {
 		cur.Data = replaceTagsInItem(cur.Item)
 	}
 }
+func contains(visited []app.Hash, h app.Hash) bool {
+	for _, chk := range visited {
+		if bytes.Equal(chk, h) {
+			return true
+		}
+	}
+	return false
+}
 
 func addLevelComments(comments comments) {
 	for _, cur := range comments {
@@ -147,7 +156,7 @@ func addLevelComments(comments comments) {
 func reparentComments(allComments []*comment) {
 	parFn := func(t []*comment, cur comment) *comment {
 		for _, n := range t {
-			if cur.Item.Parent != nil && cur.Item.Parent.Hash == n.Hash {
+			if cur.Item.Parent != nil && bytes.Equal(cur.Item.Parent.Hash, n.Hash) {
 				return n
 			}
 		}
@@ -187,7 +196,7 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	handle := chi.URLParam(r, "handle")
-	auth, err := acctLoader.LoadAccount(app.Filters{ LoadAccountsFilter: app.LoadAccountsFilter{
+	auth, err := acctLoader.LoadAccount(app.Filters{LoadAccountsFilter: app.LoadAccountsFilter{
 		Handle: []string{handle},
 	}})
 	itemLoader, ok := app.ContextItemLoader(r.Context())
@@ -199,7 +208,7 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 	hash := chi.URLParam(r, "hash")
 	f := app.Filters{
 		LoadItemsFilter: app.LoadItemsFilter{
-			Key:          app.Hashes{app.Hash(hash)},
+			Key: app.Hashes{app.Hash(hash)},
 		},
 	}
 	if auth.Hash.String() != app.AnonymousHash.String() {
@@ -231,8 +240,9 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 	url := r.URL
 	maybeEdit := path.Base(url.Path)
 
+	account := h.account(r)
 	if maybeEdit != hash && maybeEdit == Edit {
-		if !sameHash(m.Content.SubmittedBy.Hash, h.account.Hash) {
+		if !sameHash(m.Content.SubmittedBy.Hash, account.Hash) {
 			url.Path = path.Dir(url.Path)
 			h.Redirect(w, r, url.RequestURI(), http.StatusFound)
 			return
@@ -246,7 +256,7 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 
 	filter := app.Filters{
 		LoadItemsFilter: app.LoadItemsFilter{
-			Depth:    10,
+			Depth: 10,
 		},
 		MaxItems: MaxContentItems,
 		Page:     1,
@@ -269,19 +279,30 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 	}
 	allComments = append(allComments, loadComments(contentItems)...)
 
+	if i.Parent.IsValid() && i.Parent.SubmittedAt.IsZero() {
+		if p, err := itemLoader.LoadItem(app.Filters{LoadItemsFilter: app.LoadItemsFilter{Key: app.Hashes{i.Parent.Hash}}}); err == nil {
+			i.Parent = &p
+			if p.OP != nil {
+				i.OP = p.OP
+			} else {
+				i.OP = &p
+			}
+		}
+	}
+
 	//replaceTags(allComments)
 	reparentComments(allComments)
 	addLevelComments(allComments)
 
-	if ok && h.account.IsLogged() {
+	if ok && account.IsLogged() {
 		votesLoader, ok := app.ContextVoteLoader(r.Context())
 		if ok {
-			h.account.Votes, _, err = votesLoader.LoadVotes(app.Filters{
+			account.Votes, _, err = votesLoader.LoadVotes(app.Filters{
 				LoadVotesFilter: app.LoadVotesFilter{
-					AttributedTo: []app.Hash{h.account.Hash},
+					AttributedTo: []app.Hash{account.Hash},
 					ItemKey:      allComments.getItemsHashes(),
 				},
-				MaxItems:     MaxContentItems,
+				MaxItems: MaxContentItems,
 			})
 			if err != nil {
 				h.logger.Error(err.Error())
@@ -306,7 +327,8 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 // HandleSubmit handles POST /~handler/hash/edit requests
 // HandleSubmit handles POST /year/month/day/hash/edit requests
 func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
-	n, err := ContentFromRequest(r, h.account)
+	acc := h.account(r)
+	n, err := ContentFromRequest(r, *acc)
 	if err != nil {
 		h.logger.WithContext(log.Ctx{
 			"prev": err,
@@ -315,10 +337,9 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	acc := h.account
 	auth, authOk := app.ContextAuthenticated(r.Context())
 	if authOk && acc.IsLogged() {
-		auth.WithAccount(&acc)
+		auth.WithAccount(acc)
 	}
 	val := r.Context().Value(app.RepositoryCtxtKey)
 	itemLoader, ok := val.(app.CanLoadItems)
@@ -326,9 +347,17 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 		h.HandleErrors(w, r, errors.Errorf("could not load item repository from Context"))
 		return
 	}
+	if n.Parent.IsValid() && n.Parent.SubmittedAt.IsZero() {
+		if p, err := itemLoader.LoadItem(app.Filters{LoadItemsFilter: app.LoadItemsFilter{Key: app.Hashes{n.Parent.Hash}}}); err == nil {
+			n.Parent = &p
+			if p.OP != nil {
+				n.OP = p.OP
+			}
+		}
+	}
 	saveVote := true
 	if len(n.Hash) > 0 {
-		if p, err := itemLoader.LoadItem(app.Filters{ LoadItemsFilter: app.LoadItemsFilter{Key: app.Hashes{n.Hash}}}); err == nil {
+		if p, err := itemLoader.LoadItem(app.Filters{LoadItemsFilter: app.LoadItemsFilter{Key: app.Hashes{n.Hash}}}); err == nil {
 			n.Title = p.Title
 		}
 		saveVote = false
@@ -344,7 +373,7 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 		h.logger.WithContext(log.Ctx{
 			"prev": err,
 		}).Error("unable to save item")
-		h.HandleErrors(w, r, errors.NewNotValid(err, "oops!"))
+		h.HandleErrors(w, r, err)
 		return
 	}
 
@@ -354,7 +383,7 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 			h.logger.Error("could not load item repository from Context")
 		}
 		v := app.Vote{
-			SubmittedBy: &acc,
+			SubmittedBy: acc,
 			Item:        &n,
 			Weight:      1 * app.ScoreMultiplier,
 		}
@@ -391,7 +420,7 @@ func (h *handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 		h.logger.Error("could not load item repository from Context")
 		return
 	}
-	p, err := itemLoader.LoadItem(app.Filters{ LoadItemsFilter: app.LoadItemsFilter{Key: app.Hashes{app.Hash(hash)}}})
+	p, err := itemLoader.LoadItem(app.Filters{LoadItemsFilter: app.LoadItemsFilter{Key: app.Hashes{app.Hash(hash)}}})
 	if err != nil {
 		h.logger.Error(err.Error())
 		h.HandleErrors(w, r, errors.NewNotFound(err, "not found"))
@@ -403,10 +432,10 @@ func (h *handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 	if !strings.Contains(backUrl, url) && strings.Contains(backUrl, app.Instance.BaseURL) {
 		url = fmt.Sprintf("%s#item-%s", backUrl, p.Hash)
 	}
-	acc := h.account
+	acc := h.account(r)
 	auth, authOk := app.ContextAuthenticated(r.Context())
 	if authOk && acc.IsLogged() {
-		auth.WithAccount(&acc)
+		auth.WithAccount(acc)
 	}
 	p.Delete()
 	if sav, ok := app.ContextItemSaver(r.Context()); ok {
@@ -461,10 +490,10 @@ func (h *handler) HandleVoting(w http.ResponseWriter, r *http.Request) {
 	}
 	url := ItemPermaLink(p)
 
-	acc := h.account
+	acc := h.account(r)
 	if acc.IsLogged() {
 		if auth, ok := val.(app.Authenticated); ok {
-			auth.WithAccount(&acc)
+			auth.WithAccount(acc)
 		}
 		voter, ok := val.(app.CanSaveVotes)
 		backUrl := r.Header.Get("Referer")
@@ -476,16 +505,22 @@ func (h *handler) HandleVoting(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		v := app.Vote{
-			SubmittedBy: &acc,
+			SubmittedBy: acc,
 			Item:        &p,
 			Weight:      multiplier * app.ScoreMultiplier,
+		}
+		votedOn := acc.VotedOn(p)
+		if votedOn != nil {
+			v.Metadata = votedOn.Metadata
 		}
 		if _, err := voter.SaveVote(v); err != nil {
 			h.logger.WithContext(log.Ctx{
 				"hash":   v.Item.Hash,
 				"author": v.SubmittedBy.Handle,
 				"weight": v.Weight,
-			}).Error(err.Error())
+				"error":  err,
+			}).Error("Unable to save vote")
+			h.addFlashMessage(Error, r, err.Error())
 		}
 	} else {
 		h.addFlashMessage(Error, r, "unable to vote as current user")

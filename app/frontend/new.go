@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mariusor/littr.go/internal/errors"
+	"github.com/go-ap/errors"
 )
 
 func detectMimeType(data string) app.MimeType {
@@ -118,6 +118,10 @@ func ContentFromRequest(r *http.Request, acc app.Account) (app.Item, error) {
 	if len(parent) > 0 {
 		i.Parent = &app.Item{Hash: app.Hash(parent)}
 	}
+	op := r.PostFormValue("op")
+	if len(op) > 0 {
+		i.OP = &app.Item{Hash: app.Hash(op)}
+	}
 	hash := r.PostFormValue("hash")
 	if len(hash) > 0 {
 		i.Hash = app.Hash(hash)
@@ -150,7 +154,7 @@ func (h *handler) RedirectToLogin(w http.ResponseWriter, r *http.Request, errs .
 func (h *handler) ValidateLoggedIn(eh app.ErrorHandler) app.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
-			if !h.account.IsLogged() {
+			if !h.account(r).IsLogged() {
 				e := errors.Unauthorizedf("Please login to perform this action")
 				h.logger.Errorf("%s", e)
 				eh(w, r, e)
@@ -164,7 +168,7 @@ func (h *handler) ValidateLoggedIn(eh app.ErrorHandler) app.Handler {
 
 func (h *handler) ValidateItemAuthor(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		acc := h.account
+		acc := h.account(r)
 		hash := chi.URLParam(r, "hash")
 		url := r.URL
 		action := path.Base(url.Path)
