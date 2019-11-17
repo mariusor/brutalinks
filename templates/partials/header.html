@@ -20,11 +20,13 @@
 {{- if $account.IsLogged }}
         <li class="acct"><a class="by" href="{{ $account | AccountPermaLink }}">{{$account.Handle}}</a> <span class="score">{{$account.Score | ScoreFmt}}</span></li>
         <li class=""><a href="/logout">Log out</a></li>
+
 {{- end }}
         <li class=""><a href="/submit">Add</a></li>
 {{- if Config.SessionsEnabled }}
 {{- if not $account.IsLogged }}
-        <li class="auth-local"><a href="/login" title="Local auth" class="auth littr">Log in</a></li>
+        <li class="register-local"><a href="/register" title="Register a new account" class="register littr">Register</a></li>
+        <li class="auth-local"><a href="/login" title="Authentication" class="auth littr">Log in</a></li>
 {{- range $key, $value := $providers -}}
         <li class=""><a href="/auth/{{$key}}" title="{{$value}} auth" class="auth">{{ icon $key }}</a></li>
 {{ end -}}
