@@ -9,12 +9,13 @@ ENV ENV=${ENV:-dev}
 WORKDIR /go/src/
 COPY ./ ./app/
 
-RUN git clone https://github.com/go-ap/fedbox.git
+RUN git clone https://github.com/go-ap/fedbox.git fedbox
 
 WORKDIR /go/src/app
-RUN go mod download || true
-RUN make all
+RUN go mod download || true; \
+    make all
 
 WORKDIR /go/src/fedbox
-RUN go mod download || true
-RUN make all
+RUN go mod download || true; \
+    make all && \
+    ./bin/ctl bootstrap
