@@ -590,6 +590,9 @@ func (h *handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
 		h.HandleErrors(w, r, err)
 		return
 	}
+
+	s, _ := h.sstor.Get(r, sessionName)
+	h.account = loadCurrentAccountFromSession(s, h.storage, h.logger)
 	if h.account.Metadata == nil {
 		h.account.Metadata = &app.AccountMetadata{}
 	}
@@ -603,8 +606,6 @@ func (h *handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
 		Expiry:       tok.Expiry,
 	}
 
-	s, _ := h.sstor.Get(r, sessionName)
-	h.account = loadCurrentAccountFromSession(s, h.storage, h.logger)
 	s.Values[SessionUserKey] = h.account
 	if strings.ToLower(provider) != "local" {
 		h.addFlashMessage(Success, r, fmt.Sprintf("Login successful with %s", provider))
@@ -737,6 +738,7 @@ func loadFlashMessages(r *http.Request, w http.ResponseWriter, s *sessions.Sessi
 
 func (h *handler) LoadSession(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
+		h.account = defaultAccount
 		if app.Instance.Config.SessionsEnabled {
 			if h.sstor != nil {
 				s, err := h.sstor.Get(r, sessionName)
