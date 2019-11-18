@@ -83,7 +83,7 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if maybeExists.IsValid() {
-		h.HandleErrors(w, r, errors.BadRequestf("unable to create new account: %s", a.Handle))
+		h.HandleErrors(w, r, errors.BadRequestf("account %s already exists", a.Handle))
 		return
 	}
 
@@ -119,6 +119,12 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 		h.HandleErrors(w, r, err)
 		return
 	}
+
+	if d.Code == "" {
+		h.HandleErrors(w, r, errors.NotValidf("unable to get session token for setting the user's password"))
+		return
+	}
+
 	// pos
 	pwChURL := fmt.Sprintf("%s/oauth/pw", h.storage.BaseURL)
 	u, _ := url.Parse(pwChURL)
