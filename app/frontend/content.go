@@ -341,8 +341,7 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	if authOk && acc.IsLogged() {
 		auth.WithAccount(acc)
 	}
-	val := r.Context().Value(app.RepositoryCtxtKey)
-	itemLoader, ok := val.(app.CanLoadItems)
+	itemLoader, ok := app.ContextItemLoader(r.Context())
 	if !ok {
 		h.HandleErrors(w, r, errors.Errorf("could not load item repository from Context"))
 		return
