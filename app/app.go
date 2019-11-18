@@ -218,11 +218,7 @@ func loadEnv(l *Application) (bool, error) {
 	default:
 		l.Config.LogLevel = log.InfoLevel
 	}
-	if l.Config.Env == PROD {
-		l.Logger = log.Prod()
-	} else {
-		l.Logger = log.Dev(l.Config.LogLevel)
-	}
+	l.Logger = log.Dev(l.Config.LogLevel)
 
 	for _, f := range configs {
 		if err := godotenv.Overload(f); err != nil {
