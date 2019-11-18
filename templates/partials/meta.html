@@ -33,7 +33,7 @@ submitted{{ if not .Deleted}}{{- if ShowUpdate $it }}<time class="updated-at" da
 {{end -}}
 {{- end -}}
 {{- if or (not $it.IsTop) (not .IsLink) }}
-{{ if $it.Deleted }}
+{{ if or $it.Deleted (not (or CurrentAccount.IsLogged Config.AnonymousCommenting)) }}
             <li><a href="{{$it | ItemLocalLink }}" class="to-item" title="Show deleted">{{/* icon "reply" "h-mirror" */}}show</a></li>
 {{else}}
             <li><a href="{{$it | ItemLocalLink }}" class="to-item" title="Reply to{{if .Item.Title}}: {{$it.Title }}{{end}}">{{/* icon "reply" "h-mirror" */}}reply</a></li>

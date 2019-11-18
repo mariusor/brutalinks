@@ -73,6 +73,7 @@ type Config struct {
 	DB                  backendConfig
 	ES                  backendConfig
 	Redis               backendConfig
+	AnonymousCommenting bool
 	SessionsEnabled     bool
 	VotingEnabled       bool
 	DownvotingEnabled   bool
@@ -263,6 +264,7 @@ func loadEnv(l *Application) (bool, error) {
 	l.Config.SessionsEnabled = !sessionsDisabled
 	userCreationDisabled, _ := strconv.ParseBool(os.Getenv("DISABLE_USER_CREATION"))
 	l.Config.UserCreatingEnabled = !userCreationDisabled
+	l.Config.AnonymousCommenting, _ = strconv.ParseBool(os.Getenv("ANONYMOUS_COMMENTING"))
 
 	if l.APIURL = os.Getenv("API_URL"); l.APIURL == "" {
 		l.APIURL = fmt.Sprintf("%s/api", l.BaseURL)
@@ -278,7 +280,7 @@ func (a *Application) Run(m http.Handler, wait time.Duration) {
 		"env":    a.Config.Env,
 	}).Info("Started")
 	srv := &http.Server{
-		Addr: a.Listen(),
+		Addr:         a.Listen(),
 		WriteTimeout: time.Second * 15,
 		ReadTimeout:  time.Second * 15,
 		IdleTimeout:  time.Second * 60,

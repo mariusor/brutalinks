@@ -20,9 +20,10 @@
 {{- if $account.IsLogged }}
         <li class="acct"><a class="by" href="{{ $account | AccountPermaLink }}">{{$account.Handle}}</a> <span class="score">{{$account.Score | ScoreFmt}}</span></li>
         <li class=""><a href="/logout">Log out</a></li>
-
 {{- end }}
+{{- if or $account.IsLogged Config.AnonymousCommenting }}
         <li class=""><a href="/submit">Add</a></li>
+{{- end }}
 {{- if Config.SessionsEnabled }}
 {{- if not $account.IsLogged }}
 {{- if Config.UserCreatingEnabled }}
