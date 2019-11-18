@@ -732,6 +732,9 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 	}
 	var exists app.Vote
 	for _, vot := range itemVotes {
+		if vot.SubmittedBy == nil || v.SubmittedBy == nil {
+			continue
+		}
 		if bytes.Equal(vot.SubmittedBy.Hash, v.SubmittedBy.Hash) {
 			exists = vot
 			break
