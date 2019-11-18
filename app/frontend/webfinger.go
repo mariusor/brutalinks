@@ -176,6 +176,16 @@ func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 			},
 		}
 	} else {
+		if strings.Contains(handle, "@") {
+			handle, _ = func(s string) (string, string){
+				split := "@"
+				ar := strings.Split(s, split)
+				if len(ar) != 2 {
+					return "", ""
+				}
+				return ar[0], ar[1]
+			}(handle)
+		}
 		a, err := h.storage.LoadAccount(app.Filters{LoadAccountsFilter: app.LoadAccountsFilter{Handle: []string{handle}}})
 		if err != nil {
 			err := errors.NotFoundf("resource not found %s", res)
