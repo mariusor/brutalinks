@@ -137,6 +137,9 @@ func BuildObjectIDFromItem(i app.Item) (as.ObjectID, bool) {
 }
 
 func BuildActorID(a app.Account) as.ObjectID {
+	if a.Handle == app.Anonymous {
+		return as.ObjectID(as.PublicNS)
+	}
 	return as.ObjectID(fmt.Sprintf("%s/%s", ActorsURL, url.PathEscape(a.Hash.String())))
 }
 
@@ -556,7 +559,7 @@ func (r *repository) loadItemsAuthors(items ...app.Item) (app.ItemCollection, er
 
 	fActors := app.Filters{}
 	for _, it := range items {
-		if len(it.SubmittedBy.Metadata.ID) > 0 {
+		if it.SubmittedBy.HasMetadata() && len(it.SubmittedBy.Metadata.ID) > 0 {
 			fActors.LoadAccountsFilter.Key = append(fActors.LoadAccountsFilter.Key, app.Hash(it.SubmittedBy.Metadata.ID))
 		} else if len(it.SubmittedBy.Hash) > 0 {
 			fActors.LoadAccountsFilter.Key = append(fActors.LoadAccountsFilter.Key, it.SubmittedBy.Hash)
