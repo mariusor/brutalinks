@@ -27,7 +27,6 @@ import (
 
 type repository struct {
 	BaseURL string
-	Account *app.Account
 	logger  log.Logger
 	client  cl.HttpClient
 }
@@ -384,7 +383,6 @@ func (r *repository) WithAccount(a *app.Account) error {
 	if !a.IsValid() || !a.IsLogged() {
 		return nil
 	}
-	r.Account = a
 
 	r.client.SignFn(func(r *http.Request) error {
 		if a.Metadata.OAuth.Token == "" {
@@ -398,13 +396,12 @@ func (r *repository) WithAccount(a *app.Account) error {
 
 func (r *repository) withAccountS2S(a *app.Account) error {
 	// TODO(marius): this needs to be added to the federated requests, which we currently don't support
-	r.Account = a
 
-	if r.Account == nil || bytes.Equal(r.Account.Hash, app.AnonymousAccount.Hash) {
+	if !a.IsValid() || !a.IsLogged() {
 		return nil
 	}
 
-	k := r.Account.Metadata.Key
+	k := a.Metadata.Key
 	if k == nil {
 		return nil
 	}
@@ -423,7 +420,7 @@ func (r *repository) withAccountS2S(a *app.Account) error {
 	if err != nil {
 		return err
 	}
-	p := *loadAPPerson(*r.Account)
+	p := *loadAPPerson(*a)
 	s := getSigner(p.PublicKey.ID, prv)
 	r.client.SignFn(s.Sign)
 
@@ -717,7 +714,7 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 		return app.Vote{}, errors.Newf("Invalid vote item")
 	}
 	var p *auth.Person
-	if r.Account != nil && bytes.Equal(r.Account.Hash, v.SubmittedBy.Hash) {
+	if v.SubmittedBy != nil {
 		p = loadAPPerson(*v.SubmittedBy)
 	} else {
 		p = loadAPPerson(app.AnonymousAccount)
@@ -1024,8 +1021,8 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 
 	var author *auth.Person
 	var reqURL string
-	if r.Account != nil {
-		author = loadAPPerson(*r.Account)
+	if it.SubmittedBy.IsValid() && it.SubmittedBy.IsLogged() {
+		author = loadAPPerson(*it.SubmittedBy)
 		reqURL = author.Outbox.GetLink().String()
 	} else {
 		author = anonymousPerson(r.BaseURL)
@@ -1180,15 +1177,8 @@ func (r *repository) SaveAccount(a app.Account) (app.Account, error) {
 	p := loadAPPerson(a)
 	id := p.GetLink()
 
-	var author *auth.Person
-	var reqURL string
-	if r.Account != nil {
-		author = loadAPPerson(*r.Account)
-		reqURL = author.Outbox.GetLink().String()
-	} else {
-		author = anonymousPerson(r.BaseURL)
-		reqURL = author.Inbox.GetLink().String()
-	}
+	author := anonymousPerson(r.BaseURL)
+	reqURL := author.Inbox.GetLink().String()
 
 	var body []byte
 	var err error
