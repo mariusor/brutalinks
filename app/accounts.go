@@ -113,8 +113,8 @@ func (a Account) HasPublicKey() bool {
 }
 
 // IsValid returns if the current account has a handle or a hash with length greater than 0
-func (a Account) IsValid() bool {
-	return len(a.Handle) > 0 || len(a.Hash) > 0
+func (a *Account) IsValid() bool {
+	return a != nil && (len(a.Handle) > 0 || len(a.Hash) > 0)
 }
 
 // Deletable
