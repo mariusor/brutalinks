@@ -10,6 +10,7 @@ import (
 	"html/template"
 	"math"
 	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -666,7 +667,8 @@ func GetOauth2Config(provider string, localBaseURL string) oauth2.Config {
 			},
 		}
 	}
-	if config.RedirectURL = os.Getenv("OAUTH2_URL"); config.RedirectURL == "" {
+	confOauth2URL := os.Getenv("OAUTH2_URL")
+	if u, err := url.Parse(confOauth2URL); err != nil || u.Host == "" {
 		config.RedirectURL = fmt.Sprintf("%s/auth/%s/callback", localBaseURL, provider)
 	}
 	return config
