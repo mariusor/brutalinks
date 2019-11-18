@@ -23,8 +23,8 @@ func (h *handler) Routes() func(chi.Router) {
 		r.With(h.CSRF).Group(func(r chi.Router) {
 			r.Get("/submit", h.ShowSubmit)
 			r.Post("/submit", h.HandleSubmit)
-			r.Get("/register", h.ShowRegister)
-			r.Post("/register", h.HandleRegister)
+			r.With(checkUserCreatingEnabled).Get("/register", h.ShowRegister)
+			r.With(checkUserCreatingEnabled).Post("/register", h.HandleRegister)
 		})
 
 		r.Route("/~{handle}", func(r chi.Router) {

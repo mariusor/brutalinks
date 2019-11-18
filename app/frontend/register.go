@@ -55,6 +55,15 @@ func accountFromRequest(r *http.Request, l log.Logger) (*app.Account, error) {
 	return &a, nil
 }
 
+func checkUserCreatingEnabled(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !app.Instance.Config.UserCreatingEnabled {
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 // ShowRegister serves GET /register requests
 func (h *handler) ShowRegister(w http.ResponseWriter, r *http.Request) {
 	m := registerModel{}
