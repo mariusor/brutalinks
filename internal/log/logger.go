@@ -77,7 +77,7 @@ func Prod() Logger {
 	return &l
 }
 
-func context(l *logger)  logrus.Fields {
+func context(l *logger) logrus.Fields {
 	l.m.RLock()
 	defer l.m.RUnlock()
 

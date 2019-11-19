@@ -11,7 +11,7 @@ import (
 // Assets contains project assets.
 var Assets = statics{}
 
-type statics struct {}
+type statics struct{}
 
 func (s statics) Open(name string) (http.File, error) {
 	file := path.Base(name)
