@@ -56,6 +56,7 @@ type Account struct {
 	Score     int              `json:"score,omitempty"`
 	Handle    string           `json:"handle,omitempty"`
 	CreatedAt time.Time        `json:"-"`
+	CreatedBy *Account         `json:"-"`
 	UpdatedAt time.Time        `json:"-"`
 	Flags     FlagBits         `json:"flags,omitempty"`
 	Metadata  *AccountMetadata `json:"-"`

@@ -96,6 +96,7 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	a.CreatedBy = h.o
 	*a, err = h.storage.SaveAccount(*a)
 	if err != nil {
 		h.HandleErrors(w, r, err)

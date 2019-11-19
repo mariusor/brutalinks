@@ -1173,7 +1173,12 @@ func (r *repository) SaveAccount(a app.Account) (app.Account, error) {
 	p := loadAPPerson(a)
 	id := p.GetLink()
 
-	author := anonymousPerson(r.BaseURL)
+	var author *auth.Person
+	if a.CreatedBy.IsValid() {
+		author = loadAPPerson(*a.CreatedBy)
+	} else {
+		author = anonymousPerson(r.BaseURL)
+	}
 	reqURL := author.Inbox.GetLink().String()
 
 	var body []byte

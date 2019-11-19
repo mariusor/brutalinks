@@ -6,7 +6,9 @@ import (
 	"context"
 	"encoding/gob"
 	"fmt"
+	as "github.com/go-ap/activitystreams"
 	"github.com/gorilla/csrf"
+	localap "github.com/mariusor/littr.go/activitypub"
 	"html/template"
 	"math"
 	"net/http"
@@ -41,6 +43,7 @@ type handler struct {
 	sstor   sessions.Store
 	logger  log.Logger
 	storage *repository
+	o       *app.Account
 }
 
 var defaultAccount = app.AnonymousAccount
@@ -213,6 +216,18 @@ func Init(c Config) (handler, error) {
 	h.conf = c
 
 	h.storage = NewRepository(c)
+	key := os.Getenv("OAUTH2_KEY")
+	if len(key) > 0 {
+		oIRI := as.IRI(fmt.Sprintf("%s/actors/%s", h.storage.BaseURL, key))
+		oauthApp, err := h.storage.client.LoadIRI(oIRI)
+		if err == nil {
+			localap.OnActor(oauthApp, func(p *localap.Actor) error {
+				h.o = &app.Account{}
+				return h.o.FromActivityPub(p)
+			})
+		}
+	}
+
 	return h, err
 }
 
