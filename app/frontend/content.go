@@ -508,10 +508,6 @@ func (h *handler) HandleVoting(w http.ResponseWriter, r *http.Request) {
 			Item:        &p,
 			Weight:      multiplier * app.ScoreMultiplier,
 		}
-		votedOn := acc.VotedOn(p)
-		if votedOn != nil {
-			v.Metadata = votedOn.Metadata
-		}
 		if _, err := voter.SaveVote(v); err != nil {
 			h.logger.WithContext(log.Ctx{
 				"hash":   v.Item.Hash,

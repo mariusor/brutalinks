@@ -383,8 +383,10 @@ func appName(n string) template.HTML {
 
 func (h *handler) account(r *http.Request) *app.Account {
 	acct, ok := app.ContextAccount(r.Context())
-	if !ok || acct == nil {
+	if !ok {
 		h.logger.Error("could not load account repository from Context")
+	}
+	if acct == nil {
 		return &defaultAccount
 	}
 	return acct

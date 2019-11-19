@@ -707,21 +707,23 @@ func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) 
 }
 
 func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
-	if v.SubmittedBy == nil || v.SubmittedBy.Metadata == nil {
+	if !v.SubmittedBy.IsValid() || !v.SubmittedBy.HasMetadata() {
 		return app.Vote{}, errors.Newf("Invalid vote submitter")
 	}
-	if v.Item == nil || v.Item.Metadata == nil {
+	if !v.Item.IsValid() || !v.Item.HasMetadata() {
 		return app.Vote{}, errors.Newf("Invalid vote item")
 	}
 	var p *auth.Person
-	if v.SubmittedBy != nil {
+	var reqURL string
+	if v.SubmittedBy.IsValid() {
 		p = loadAPPerson(*v.SubmittedBy)
+		reqURL = p.Outbox.GetLink().String()
 	} else {
 		p = loadAPPerson(app.AnonymousAccount)
+		reqURL = p.Inbox.GetLink().String()
 	}
 
 	url := fmt.Sprintf("%s/%s", v.Item.Metadata.ID, "likes")
-
 	itemVotes, err := r.loadVotesCollection(as.IRI(url))
 	// first step is to verify if vote already exists:
 	if err != nil {
@@ -732,7 +734,7 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 	}
 	var exists app.Vote
 	for _, vot := range itemVotes {
-		if vot.SubmittedBy == nil || v.SubmittedBy == nil {
+		if !vot.SubmittedBy.IsValid() || !v.SubmittedBy.IsValid() {
 			continue
 		}
 		if bytes.Equal(vot.SubmittedBy.Hash, v.SubmittedBy.Hash) {
@@ -742,27 +744,23 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 	}
 
 	o := loadAPItem(*v.Item)
-	var undoAct as.IRI
-	if v.Metadata != nil {
-		undoAct = as.IRI(v.Metadata.IRI)
-	}
 	act := as.Activity{
 		Parent: as.Object{
 			Type: as.UndoType,
 			To:   as.ItemCollection{as.PublicNS, as.IRI(BaseURL)},
 		},
 		Actor:  p.GetLink(),
-		Object: undoAct,
 	}
 
-	if exists.Metadata != nil {
+	if exists.HasMetadata() {
+		act.Object = as.IRI(exists.Metadata.IRI)
 		// undo old vote
 		var body []byte
 		if body, err = j.Marshal(act); err != nil {
 			r.logger.Error(err.Error())
 		}
 		var resp *http.Response
-		if resp, err = r.client.Post(p.Outbox.GetLink().String(), cl.ContentTypeActivityJson, bytes.NewReader(body)); err != nil {
+		if resp, err = r.client.Post(reqURL, cl.ContentTypeActivityJson, bytes.NewReader(body)); err != nil {
 			r.logger.Error(err.Error())
 		}
 		if body, err = ioutil.ReadAll(resp.Body); err != nil {
@@ -789,7 +787,7 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 	}
 
 	var resp *http.Response
-	if resp, err = r.client.Post(p.Outbox.GetLink().String(), cl.ContentTypeActivityJson, bytes.NewReader(body)); err != nil {
+	if resp, err = r.client.Post(reqURL, cl.ContentTypeActivityJson, bytes.NewReader(body)); err != nil {
 		r.logger.Error(err.Error())
 		return v, err
 	}
