@@ -724,7 +724,7 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 	}
 
 	url := fmt.Sprintf("%s/%s", v.Item.Metadata.ID, "likes")
-	itemVotes, err := r.loadVotesCollection(as.IRI(url))
+	itemVotes, err := r.loadVotesCollection(as.IRI(url), as.IRI(v.SubmittedBy.Metadata.ID))
 	// first step is to verify if vote already exists:
 	if err != nil {
 		r.logger.WithContext(log.Ctx{
@@ -802,39 +802,37 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 	return v, r.handlerErrorResponse(body)
 }
 
-func (r *repository) loadVotesCollection(iri as.IRI) ([]app.Vote, error) {
+func (r *repository) loadVotesCollection(iri as.IRI, actors ...as.IRI) ([]app.Vote, error) {
+	cntActors := len(actors)
+	if cntActors > 0 {
+		attrTo := make([]app.Hash, cntActors)
+		for i, a := range actors {
+			attrTo[i] = app.Hash(a.String())
+		}
+		f := app.LoadVotesFilter{
+			AttributedTo: attrTo,
+		}
+		if q, err := qstring.MarshalString(&f); err == nil {
+			iri = as.IRI(fmt.Sprintf("%s?%s",iri, q))
+		}
+	}
 	likes, err := r.client.LoadIRI(iri)
 	// first step is to verify if vote already exists:
 	if err != nil {
 		return nil, err
 	}
-	allVotes := make([]app.Vote, 0)
+	votes := make([]app.Vote, 0)
 	err = ap.OnOrderedCollection(likes, func(col *as.OrderedCollection) error {
 		for _, like := range col.OrderedItems {
 			vote := app.Vote{}
 			vote.FromActivityPub(like)
-			allVotes = append(allVotes, vote)
+			votes = append(votes, vote)
 		}
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	votes := make([]app.Vote, 0)
-	for _, vot := range allVotes {
-		skip := false
-		for i, cursor := range votes {
-			if bytes.Equal(vot.SubmittedBy.Hash, cursor.SubmittedBy.Hash) {
-				votes[i].Weight += vot.Weight
-				skip = true
-				continue
-			}
-		}
-		if !skip {
-			votes = append(votes, vot)
-		}
-	}
-
 	return votes, nil
 }
 
