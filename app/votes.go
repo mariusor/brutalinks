@@ -32,6 +32,14 @@ type Vote struct {
 	Metadata    *VoteMetadata `json:"-"`
 }
 
+func (v Vote) HasMetadata() bool {
+	return v.Metadata != nil
+}
+
+func (v *Vote) IsValid() bool {
+	return v != nil && v.Item.IsValid()
+}
+
 func trimHash(s Hash) Hash {
 	h, err := url.PathUnescape(string(s))
 	if err != nil {
