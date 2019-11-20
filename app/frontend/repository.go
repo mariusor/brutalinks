@@ -185,6 +185,7 @@ func loadAPItem(item app.Item) as.Item {
 	// TODO(marius): add proper dynamic recipients to this based on some selector in the frontend
 	o.To = as.ItemCollection{
 		as.PublicNS,
+		// TODO(marius): move this to the BCC
 		as.IRI(BaseURL),
 	}
 	o.Published = item.SubmittedAt
@@ -240,11 +241,13 @@ func loadAPItem(item app.Item) as.Item {
 		if len(repl) > 0 {
 			o.InReplyTo = repl
 		}
+		if item.OP == nil {
+			item.OP = item.Parent
+		}
 	}
 	if item.OP != nil {
 		if op, ok := BuildObjectIDFromItem(*item.OP); ok {
 			o.Context = as.IRI(op)
-			//repl = append(repl, as.IRI(op))
 		}
 	}
 
