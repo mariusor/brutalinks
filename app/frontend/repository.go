@@ -362,7 +362,7 @@ func loadAPPerson(a app.Account) *auth.Person {
 		}
 		oauthURL := strings.Replace(BaseURL, "api", "oauth", 1)
 		p.Endpoints = &ap.Endpoints{
-			SharedInbox:                as.IRI(fmt.Sprintf("%s/self/inbox", BaseURL)),
+			SharedInbox:                as.IRI(fmt.Sprintf("%s/inbox", BaseURL)),
 			OauthAuthorizationEndpoint: as.IRI(fmt.Sprintf("%s/authorize", oauthURL)),
 			OauthTokenEndpoint:         as.IRI(fmt.Sprintf("%s/token", oauthURL)),
 		}
@@ -757,7 +757,7 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 			Type: as.UndoType,
 			To:   as.ItemCollection{as.PublicNS, as.IRI(BaseURL)},
 		},
-		Actor:  p.GetLink(),
+		Actor: p.GetLink(),
 	}
 
 	if exists.HasMetadata() {
@@ -821,7 +821,7 @@ func (r *repository) loadVotesCollection(iri as.IRI, actors ...as.IRI) ([]app.Vo
 			AttributedTo: attrTo,
 		}
 		if q, err := qstring.MarshalString(&f); err == nil {
-			iri = as.IRI(fmt.Sprintf("%s?%s",iri, q))
+			iri = as.IRI(fmt.Sprintf("%s?%s", iri, q))
 		}
 	}
 	likes, err := r.client.LoadIRI(iri)
@@ -1181,9 +1181,18 @@ func (r *repository) SaveAccount(a app.Account) (app.Account, error) {
 	p := loadAPPerson(a)
 	id := p.GetLink()
 
+	p.Generator = as.IRI(app.Instance.BaseURL)
+	p.Published = time.Now()
+	p.Updated = p.Published
+	p.URL = accountURL(a)
+
 	var author *auth.Person
 	if a.CreatedBy.IsValid() {
 		author = loadAPPerson(*a.CreatedBy)
+		if author.Endpoints != nil {
+			p.Endpoints = author.Endpoints
+		}
+		p.Generator = author.GetLink()
 	} else {
 		author = anonymousPerson(r.BaseURL)
 	}
