@@ -200,22 +200,23 @@ func loadAPItem(item app.Item) as.Item {
 			FormerType: o.Type,
 			Deleted:    o.Updated,
 		}
-		if item.Parent != nil || item.OP != nil {
-			repl := make(as.ItemCollection, 0)
-			if item.Parent != nil {
-				if par, ok := BuildObjectIDFromItem(*item.Parent); ok {
-					repl = append(repl, as.IRI(par))
+		repl := make(as.ItemCollection, 0)
+		if item.Parent != nil {
+			if par, ok := BuildObjectIDFromItem(*item.Parent); ok {
+				repl = append(repl, as.IRI(par))
+			}
+		}
+		if item.OP != nil {
+			if op, ok := BuildObjectIDFromItem(*item.OP); ok {
+				iri := as.IRI(op)
+				del.Context = iri
+				if !repl.Contains(iri) {
+					repl = append(repl, iri)
 				}
 			}
-			if item.OP != nil {
-				if op, ok := BuildObjectIDFromItem(*item.OP); ok {
-					del.Context = as.IRI(op)
-					//repl = append(repl, as.IRI(op))
-				}
-			}
-			if len(repl) > 0 {
-				del.InReplyTo = repl
-			}
+		}
+		if len(repl) > 0 {
+			del.InReplyTo = repl
 		}
 
 		return del
@@ -230,16 +231,13 @@ func loadAPItem(item app.Item) as.Item {
 		id := BuildActorID(*item.SubmittedBy)
 		o.AttributedTo = as.IRI(id)
 	}
+	repl := make(as.ItemCollection, 0)
 	if item.Parent != nil {
-		repl := make(as.ItemCollection, 0)
 		if item.Parent != nil {
 			p := item.Parent
 			if par, ok := BuildObjectIDFromItem(*p); ok {
 				repl = append(repl, as.IRI(par))
 			}
-		}
-		if len(repl) > 0 {
-			o.InReplyTo = repl
 		}
 		if item.OP == nil {
 			item.OP = item.Parent
@@ -247,8 +245,15 @@ func loadAPItem(item app.Item) as.Item {
 	}
 	if item.OP != nil {
 		if op, ok := BuildObjectIDFromItem(*item.OP); ok {
-			o.Context = as.IRI(op)
+			iri := as.IRI(op)
+			o.Context = iri
+			if !repl.Contains(iri) {
+				repl = append(repl, iri)
+			}
 		}
+	}
+	if len(repl) > 0 {
+		o.InReplyTo = repl
 	}
 
 	if item.Metadata != nil {
