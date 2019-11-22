@@ -45,6 +45,7 @@ func (a *Account) FromActivityPub(it as.Item) error {
 		}
 		return nil
 	}
+	// FIXME(marius): This whole thing needs to be changed to OnXX functions.
 	personFn := func(a *Account, fnAo func(a *Account, p goap.Object) error, fnAs func(a *Account, p as.Object) error, fnAp func(a *Account, p goap.Person) error, fnLocal func(a *Account, p ap.Actor) error) error {
 		if pp, ok := it.(ap.Actor); ok {
 			return fnLocal(a, pp)
@@ -57,6 +58,12 @@ func (a *Account) FromActivityPub(it as.Item) error {
 		}
 		if pp, ok := it.(*goap.Person); ok {
 			return fnAp(a, *pp)
+		}
+		if pp, ok := it.(ap.Object); ok {
+			return fnAo(a, pp.Object)
+		}
+		if pp, ok := it.(*ap.Object); ok {
+			return fnAo(a, pp.Object)
 		}
 		if pp, ok := it.(goap.Object); ok {
 			return fnAo(a, pp)
@@ -75,7 +82,9 @@ func (a *Account) FromActivityPub(it as.Item) error {
 	loadFromObject := func(a *Account, p as.Object) error {
 		name := p.Name.First().Value
 		a.Hash.FromActivityPub(p)
-		a.Handle = name
+		if len(name) > 0 {
+			a.Handle = name
+		}
 		a.Flags = FlagsNone
 		if a.Metadata == nil {
 			a.Metadata = &AccountMetadata{}
@@ -105,6 +114,10 @@ func (a *Account) FromActivityPub(it as.Item) error {
 			a.Email = fmt.Sprintf("%s@%s", a.Handle, host)
 		}
 
+		if it.GetType() == as.TombstoneType {
+			a.Handle = Anonymous
+			a.Flags = a.Flags & FlagsDeleted
+		}
 		if !p.Published.IsZero() {
 			a.CreatedAt = p.Published
 		}
@@ -179,13 +192,15 @@ func (a *Account) FromActivityPub(it as.Item) error {
 		fallthrough
 	case as.OrganizationType:
 		fallthrough
+	case as.TombstoneType:
+		fallthrough
 	case as.PersonType:
 		personFn(a, loadFromAPObject, loadFromObject, loadFromPerson, loadFromLocal)
 	default:
 		return errors.Newf("invalid actor type")
 	}
 
-	if a.Metadata.URL == a.Metadata.ID {
+	if a.HasMetadata() && a.Metadata.URL == a.Metadata.ID {
 		a.Metadata.URL = ""
 	}
 
