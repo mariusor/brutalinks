@@ -171,14 +171,14 @@ func loadAPItem(item app.Item) as.Item {
 			o.Object.Source.MediaType = as.MimeType(item.MimeType)
 			o.MediaType = as.MimeType(app.MimeTypeHTML)
 			if item.Data != "" {
-				o.Source.Content.Set("en", string(item.Data))
-				o.Content.Set("en", string(app.Markdown(string(item.Data))))
+				o.Source.Content.Set("en", item.Data)
+				o.Content.Set("en", string(app.Markdown(item.Data)))
 			}
 		case app.MimeTypeText:
 			fallthrough
 		case app.MimeTypeHTML:
 			o.MediaType = as.MimeType(item.MimeType)
-			o.Content.Set("en", string(item.Data))
+			o.Content.Set("en", item.Data)
 		}
 	}
 
@@ -442,10 +442,6 @@ func (r *repository) LoadItem(f app.Filters) (app.Item, error) {
 	hashes := f.LoadItemsFilter.Key
 	f.LoadItemsFilter.Key = nil
 
-	//var qs string
-	//if q, err := qstring.MarshalString(&f); err == nil {
-	//	qs = fmt.Sprintf("?%s", q)
-	//}
 	url := fmt.Sprintf("%s/objects/%s", r.BaseURL, hashes[0])
 
 	var err error
@@ -613,20 +609,6 @@ func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) 
 		}
 		f.FollowedBy = f.FollowedBy[:0]
 	}
-	//if len(f.Context) > 0 {
-	//	// TODO(marius): make this work for multiple Context filters
-	//	c = fmt.Sprintf("/outbox%s", qs)
-	//}
-	//if len(f.InReplyTo) > 0 {
-	//	// TODO(marius): make this work for multiple Context filters
-	//	for _, ctxt := range f.InReplyTo {
-	//		if ctxt != "0" {
-	//			c = fmt.Sprintf("%s/%s/replies", c, ctxt)
-	//			f.Context = f.Context[:0]
-	//		}
-	//		break
-	//	}
-	//}
 	if len(f.Federated) > 0 {
 		for _, fed := range f.Federated {
 			if !fed {
@@ -647,13 +629,6 @@ func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) 
 			as.VideoType,
 		}
 	}
-	//if len(f.LoadItemsFilter.AttributedTo) == 1 {
-	//	author := f.LoadItemsFilter.AttributedTo[0]
-	//	f.LoadItemsFilter.AttributedTo = f.LoadItemsFilter.AttributedTo[:0]
-	//	target = fmt.Sprintf("/actors/%s/", author.String())
-	//	c = "outbox"
-	//	f.Type = as.ActivityVocabularyTypes{as.CreateType}
-	//}
 	if q, err := qstring.MarshalString(&f); err == nil {
 		qs = fmt.Sprintf("?%s", q)
 	}
