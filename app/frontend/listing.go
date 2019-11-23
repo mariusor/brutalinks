@@ -175,7 +175,7 @@ func (h *handler) HandleIndex(w http.ResponseWriter, r *http.Request) {
 			"handle": acct.Handle,
 			"hash":   acct.Hash,
 		}).Debug("showing followed posts")
-		filter.FollowedBy = []string{acct.Hash.String()}
+		filter.FollowedBy = acct.Hash.String()
 	default:
 	}
 	if m, err := loadItems(r.Context(), filter, acct, h.logger); err == nil {

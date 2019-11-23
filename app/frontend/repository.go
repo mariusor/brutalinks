@@ -603,12 +603,12 @@ func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) 
 	c := "objects"
 	if len(f.FollowedBy) > 0 {
 		// TODO(marius): make this work for multiple FollowedBy filters
-		for _, foll := range f.FollowedBy {
-			target = fmt.Sprintf("/actors/%s/", foll)
-			c = "inbox"
-			break
-		}
-		f.FollowedBy = f.FollowedBy[:0]
+		target = fmt.Sprintf("/actors/%s/", f.FollowedBy)
+		c = "inbox"
+		f.FollowedBy = ""
+		f.LoadItemsFilter.IRI = ""
+		f.Federated = nil
+		f.InReplyTo = nil
 	}
 	if len(f.Federated) > 0 {
 		for _, fed := range f.Federated {
