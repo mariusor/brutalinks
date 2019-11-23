@@ -185,7 +185,7 @@ func (h *handler) ValidateItemAuthor(next http.Handler) http.Handler {
 				h.HandleErrors(w, r, errors.NewNotFound(err, "item"))
 				return
 			}
-			if !sameHash(m.SubmittedBy.Hash, acc.Hash) {
+			if !app.HashesEqual(m.SubmittedBy.Hash, acc.Hash) {
 				url.Path = path.Dir(url.Path)
 				h.Redirect(w, r, url.RequestURI(), http.StatusTemporaryRedirect)
 				return

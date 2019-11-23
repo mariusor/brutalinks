@@ -448,10 +448,6 @@ func showText(m interface{}) func() bool {
 	}
 }
 
-func sameHash(h1 app.Hash, h2 app.Hash) bool {
-	return bytes.Equal(h1, h2)
-}
-
 func fmtPubKey(pub []byte) string {
 	s := strings.Builder{}
 	eolIdx := 0
@@ -534,7 +530,7 @@ func (h *handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name st
 			"asset":          func(p string) template.HTML { return template.HTML(asset(p)) },
 			"req":            func() *http.Request { return r },
 			"sameBase":       sameBasePath,
-			"sameHash":       sameHash,
+			"sameHash":       app.HashesEqual,
 			"fmtPubKey":      fmtPubKey,
 			"pluralize":      func(s string, cnt int) string { return pluralize(float64(cnt), s) },
 			csrf.TemplateTag: func() template.HTML { return csrf.TemplateField(r) },
