@@ -126,7 +126,7 @@ func accountURL(acc app.Account) as.IRI {
 }
 
 func BuildObjectIDFromItem(i app.Item) (as.ObjectID, bool) {
-	if len(i.Hash) == 0 {
+	if !i.IsValid() {
 		return "", false
 	}
 	if i.HasMetadata() && len(i.Metadata.ID) > 0 {
@@ -136,8 +136,11 @@ func BuildObjectIDFromItem(i app.Item) (as.ObjectID, bool) {
 }
 
 func BuildActorID(a app.Account) as.ObjectID {
-	if a.Handle == app.Anonymous {
+	if !a.IsValid() {
 		return as.ObjectID(as.PublicNS)
+	}
+	if a.HasMetadata() && len(a.Metadata.ID) > 0  {
+		return as.ObjectID(a.Metadata.ID)
 	}
 	return as.ObjectID(fmt.Sprintf("%s/%s", ActorsURL, url.PathEscape(a.Hash.String())))
 }
@@ -183,11 +186,8 @@ func loadAPItem(item app.Item) as.Item {
 	}
 
 	// TODO(marius): add proper dynamic recipients to this based on some selector in the frontend
-	o.To = as.ItemCollection{
-		as.PublicNS,
-		// TODO(marius): move this to the BCC
-		as.IRI(BaseURL),
-	}
+	o.To = as.ItemCollection{as.PublicNS,}
+	o.BCC = as.ItemCollection{as.IRI(BaseURL),}
 	o.Published = item.SubmittedAt
 	o.Updated = item.UpdatedAt
 
@@ -238,6 +238,11 @@ func loadAPItem(item app.Item) as.Item {
 			if par, ok := BuildObjectIDFromItem(*p); ok {
 				repl = append(repl, as.IRI(par))
 			}
+			if p.SubmittedBy.IsValid() {
+				if pAuth := BuildActorID(*p.SubmittedBy); as.IRI(pAuth) != as.PublicNS {
+					o.To = append(o.To, as.IRI(pAuth))
+				}
+			}
 		}
 		if item.OP == nil {
 			item.OP = item.Parent
@@ -261,6 +266,7 @@ func loadAPItem(item app.Item) as.Item {
 		if m.Mentions != nil || m.Tags != nil {
 			o.Tag = make(as.ItemCollection, 0)
 			for _, men := range m.Mentions {
+				// todo(marius): retrieve object ids of each mention and add it to the CC of the object
 				t := as.Object{
 					ID:   as.ObjectID(men.URL),
 					Type: as.MentionType,
@@ -697,15 +703,8 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 	if !v.Item.IsValid() || !v.Item.HasMetadata() {
 		return app.Vote{}, errors.Newf("Invalid vote item")
 	}
-	var p *auth.Person
-	var reqURL string
-	if v.SubmittedBy.IsValid() {
-		p = loadAPPerson(*v.SubmittedBy)
-		reqURL = p.Outbox.GetLink().String()
-	} else {
-		p = loadAPPerson(app.AnonymousAccount)
-		reqURL = p.Inbox.GetLink().String()
-	}
+	author := loadAPPerson(*v.SubmittedBy)
+	reqURL := r.getAuthorRequestURL(v.SubmittedBy)
 
 	url := fmt.Sprintf("%s/%s", v.Item.Metadata.ID, "likes")
 	itemVotes, err := r.loadVotesCollection(as.IRI(url), as.IRI(v.SubmittedBy.Metadata.ID))
@@ -731,9 +730,10 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 	act := as.Activity{
 		Parent: as.Object{
 			Type: as.UndoType,
-			To:   as.ItemCollection{as.PublicNS, as.IRI(BaseURL)},
+			To:   as.ItemCollection{as.PublicNS},
+			BCC:  as.ItemCollection{as.IRI(BaseURL)},
 		},
-		Actor: p.GetLink(),
+		Actor: author.GetLink(),
 	}
 
 	if exists.HasMetadata() {
@@ -996,18 +996,32 @@ func (r *repository) handleItemSaveSuccessResponse(it app.Item, body []byte) (ap
 	return items[0], err
 }
 
-func (r *repository) SaveItem(it app.Item) (app.Item, error) {
-	art := loadAPItem(it)
-
-	var author *auth.Person
+func (r *repository) getAuthorRequestURL(a *app.Account) string {
 	var reqURL string
-	if it.SubmittedBy.IsValid() && it.SubmittedBy.IsLogged() {
-		author = loadAPPerson(*it.SubmittedBy)
-		reqURL = author.Outbox.GetLink().String()
+	if a.IsValid() && a.IsLogged() {
+		author := loadAPPerson(*a)
+		if a.IsLocal() {
+			reqURL = author.Outbox.GetLink().String()
+		} else {
+			reqURL = author.Inbox.GetLink().String()
+		}
 	} else {
-		author = anonymousPerson(r.BaseURL)
+		author := anonymousPerson(r.BaseURL)
 		reqURL = author.Inbox.GetLink().String()
 	}
+	return reqURL
+}
+
+func (r *repository) SaveItem(it app.Item) (app.Item, error) {
+	if !it.IsValid() || !it.HasMetadata() {
+		return app.Item{}, errors.Newf("Invalid item")
+	}
+	if !it.SubmittedBy.IsValid() || !it.SubmittedBy.HasMetadata() {
+		return app.Item{}, errors.Newf("Invalid item submitter")
+	}
+	art := loadAPItem(it)
+	author := loadAPPerson(*it.SubmittedBy)
+	reqURL := r.getAuthorRequestURL(it.SubmittedBy)
 
 	var body []byte
 	var err error
@@ -1022,7 +1036,8 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 		delete := as.Delete{
 			Parent: as.Parent{
 				Type: as.DeleteType,
-				To:   as.ItemCollection{as.PublicNS, as.IRI(BaseURL)},
+				To:   as.ItemCollection{as.PublicNS},
+				BCC:  as.ItemCollection{as.IRI(BaseURL)},
 			},
 			Actor:  author.GetLink(),
 			Object: id,
@@ -1030,10 +1045,12 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 		body, err = j.Marshal(delete)
 	} else {
 		if len(id) == 0 {
+
 			create := as.Create{
 				Parent: as.Parent{
 					Type: as.CreateType,
-					To:   as.ItemCollection{as.PublicNS, as.IRI(BaseURL)},
+					To:   as.ItemCollection{as.PublicNS},
+					BCC:  as.ItemCollection{as.IRI(BaseURL)},
 				},
 				Actor:  author.GetLink(),
 				Object: art,
@@ -1043,7 +1060,8 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 			update := as.Update{
 				Parent: as.Parent{
 					Type: as.UpdateType,
-					To:   as.ItemCollection{as.PublicNS, as.IRI(BaseURL)},
+					To:   as.ItemCollection{as.PublicNS},
+					BCC:  as.ItemCollection{as.IRI(BaseURL)},
 				},
 				Object: art,
 				Actor:  author.GetLink(),
@@ -1162,16 +1180,7 @@ func (r *repository) SaveAccount(a app.Account) (app.Account, error) {
 	p.Updated = p.Published
 	p.URL = accountURL(a)
 
-	var author *auth.Person
-	if a.CreatedBy.IsValid() {
-		author = loadAPPerson(*a.CreatedBy)
-		if author.Endpoints != nil {
-			p.Endpoints = author.Endpoints
-		}
-		p.Generator = author.GetLink()
-	} else {
-		author = anonymousPerson(r.BaseURL)
-	}
+	author := loadAPPerson(*a.CreatedBy)
 	reqURL := author.Inbox.GetLink().String()
 
 	var body []byte
@@ -1188,6 +1197,7 @@ func (r *repository) SaveAccount(a app.Account) (app.Account, error) {
 			Parent: as.Parent{
 				Type:         as.DeleteType,
 				To:           as.ItemCollection{as.PublicNS},
+				BCC:          as.ItemCollection{as.IRI(BaseURL)},
 				AttributedTo: author.GetLink(),
 				Updated:      now,
 			},
@@ -1198,10 +1208,12 @@ func (r *repository) SaveAccount(a app.Account) (app.Account, error) {
 	} else {
 		if len(id) == 0 {
 			p.To = as.ItemCollection{as.PublicNS}
+			p.BCC = as.ItemCollection{as.IRI(BaseURL)}
 			create := as.Create{
 				Parent: as.Parent{
 					Type:         as.CreateType,
 					To:           as.ItemCollection{as.PublicNS},
+					BCC:          as.ItemCollection{as.IRI(BaseURL)},
 					AttributedTo: author.GetLink(),
 					Published:    now,
 					Updated:      now,
@@ -1215,6 +1227,7 @@ func (r *repository) SaveAccount(a app.Account) (app.Account, error) {
 				Parent: as.Parent{
 					Type:         as.UpdateType,
 					To:           as.ItemCollection{as.PublicNS},
+					BCC:          as.ItemCollection{as.IRI(BaseURL)},
 					AttributedTo: author.GetLink(),
 					Updated:      now,
 				},
