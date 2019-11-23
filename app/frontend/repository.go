@@ -1013,9 +1013,6 @@ func (r *repository) getAuthorRequestURL(a *app.Account) string {
 }
 
 func (r *repository) SaveItem(it app.Item) (app.Item, error) {
-	if !it.IsValid() || !it.HasMetadata() {
-		return app.Item{}, errors.Newf("Invalid item")
-	}
 	if !it.SubmittedBy.IsValid() || !it.SubmittedBy.HasMetadata() {
 		return app.Item{}, errors.Newf("Invalid item submitter")
 	}
