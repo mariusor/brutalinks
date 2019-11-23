@@ -79,10 +79,19 @@ func (vt VoteTypes) String() string {
 	return strings.Join(str, ", ")
 }
 
+func (h Hashes) Contains(s Hash) bool {
+	for _, hh  := range h {
+		if HashesEqual(hh, s) {
+			return true
+		}
+	}
+	return false
+}
+
 func (h Hashes) String() string {
 	str := make([]string, len(h))
-	for i := range h {
-		str[i] = string(h[i])
+	for i, hh := range h {
+		str[i] = string(hh)
 	}
 	return strings.Join(str, ", ")
 }

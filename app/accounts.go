@@ -66,6 +66,10 @@ type Account struct {
 // Hash is a local type for string, it should hold a [32]byte array actually
 type Hash uuid.UUID
 
+func HashesEqual(h1, h2 Hash) bool {
+	return uuid.Equal(uuid.UUID(h1), uuid.UUID(h2))
+}
+
 // String returns the hash as a string
 func (h Hash) String() string {
 	return string(h)
@@ -81,7 +85,7 @@ func (h Hash) Short() string {
 
 // MarshalText
 func (h Hash) MarshalText() ([]byte, error) {
-	return []byte(h), nil
+	return h, nil
 }
 
 // HasMetadata

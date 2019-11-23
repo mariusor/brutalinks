@@ -55,6 +55,15 @@ func loadComments(items []app.Item) comments {
 	return comments
 }
 
+func (c comments) Contains(cc comment) bool {
+	for _, com := range c {
+		if app.HashesEqual(com.Hash, cc.Hash) {
+			return true
+		}
+	}
+	return false
+}
+
 func (c comments) getItems() app.ItemCollection {
 	var items = make(app.ItemCollection, len(c))
 	for k, com := range c {
@@ -133,6 +142,7 @@ func replaceTags(comments comments) {
 		cur.Data = replaceTagsInItem(cur.Item)
 	}
 }
+
 func contains(visited []app.Hash, h app.Hash) bool {
 	for _, chk := range visited {
 		if bytes.Equal(chk, h) {
@@ -142,42 +152,59 @@ func contains(visited []app.Hash, h app.Hash) bool {
 	return false
 }
 
-func addLevelComments(comments comments) {
-	for _, cur := range comments {
-		if len(cur.Children) > 0 {
-			for _, child := range cur.Children {
-				child.Level = cur.Level + 1
-				addLevelComments(cur.Children)
+func removeCurElementParentComments(com *comments) {
+	first := (*com)[0]
+	lvl := first.Level
+	keepComments := make(comments, 0)
+	for _, cur := range *com {
+		if cur.Level >= lvl {
+			keepComments = append(keepComments, cur)
+		}
+	}
+	*com = keepComments
+}
+
+func addLevelComments(allComments comments) {
+	leveled := make(app.Hashes, 0)
+	var setLevel func(comments)
+
+	setLevel = func(com comments) {
+		for _, cur := range com {
+			if leveled.Contains(cur.Hash) {
+				break
+			}
+			leveled = append(leveled, cur.Hash)
+			if len(cur.Children) > 0 {
+				for _, child := range cur.Children {
+					child.Level = cur.Level + 1
+					setLevel(cur.Children)
+				}
 			}
 		}
 	}
+	setLevel(allComments)
 }
 
 func reparentComments(allComments []*comment) {
 	parFn := func(t []*comment, cur comment) *comment {
 		for _, n := range t {
-			if cur.Item.Parent != nil && bytes.Equal(cur.Item.Parent.Hash, n.Hash) {
-				return n
+			if cur.Item.Parent.IsValid() {
+				if app.HashesEqual(cur.Item.Parent.Hash, n.Hash) {
+					return n
+				}
 			}
 		}
 		return nil
 	}
 
+	first := allComments[0]
 	for _, cur := range allComments {
 		if par := parFn(allComments, *cur); par != nil {
+			if app.HashesEqual(first.Hash, cur.Hash) {
+				continue
+			}
 			cur.Parent = par
 			par.Children = append(par.Children, cur)
-		}
-	}
-
-	// Append remaining non parented elements to parent element
-	for i, cur := range allComments {
-		if i == 0 {
-			continue
-		}
-		if cur.Parent == nil {
-			cur.Parent = allComments[0]
-			cur.Parent.Children = append(cur.Parent.Children, cur)
 		}
 	}
 }
@@ -211,7 +238,7 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 			Key: app.Hashes{app.Hash(hash)},
 		},
 	}
-	if auth.Hash.String() != app.AnonymousHash.String() {
+	if !app.HashesEqual(auth.Hash, app.AnonymousHash) {
 		f.LoadItemsFilter.AttributedTo = app.Hashes{auth.Hash}
 	}
 	i, err := itemLoader.LoadItem(f)
@@ -242,7 +269,7 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 
 	account := h.account(r)
 	if maybeEdit != hash && maybeEdit == Edit {
-		if !sameHash(m.Content.SubmittedBy.Hash, account.Hash) {
+		if !app.HashesEqual(m.Content.SubmittedBy.Hash, account.Hash) {
 			url.Path = path.Dir(url.Path)
 			h.Redirect(w, r, url.RequestURI(), http.StatusFound)
 			return
@@ -264,7 +291,15 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 	if err := qstring.Unmarshal(r.URL.Query(), &filter); err != nil {
 		h.logger.Debug("unable to load url parameters")
 	}
-	filter.Context = []string{m.Content.Hash.String()}
+
+	if i.OP.IsValid() {
+		if id, ok := BuildObjectIDFromItem(*i.OP); ok {
+			filter.Context = []string{string(id)}
+		}
+	}
+	if filter.Context == nil {
+		filter.Context = []string{m.Content.Hash.String()}
+	}
 	contentItems, _, err := itemLoader.LoadItems(filter)
 	if len(contentItems) >= filter.MaxItems {
 		m.nextPage = filter.Page + 1
@@ -293,6 +328,7 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 	//replaceTags(allComments)
 	reparentComments(allComments)
 	addLevelComments(allComments)
+	removeCurElementParentComments(&allComments)
 
 	if ok && account.IsLogged() {
 		votesLoader, ok := app.ContextVoteLoader(r.Context())
