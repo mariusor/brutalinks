@@ -2,6 +2,10 @@
 * When adding a new OAuth2 client from the command line, 
 we shouldn't allow password flow by default, but based on a parameter when creating it.
 * Fix @mentions and #tags parsing.
+* Audience improvements:
+    * Move local instance from To to BCC field
+    * Add the attributedTo of the item replied to, to the To field
+    * Add all @mentions to the CC field
 * ~~Going to a reply, doesn't load it's children.~~
 * ~~Registered actors are missing quite a lot of fields: `Published`, `Updated`, `Endpoints`, `Url`.~~
 * ~~All children objects should be added to the OP's replies collection.~~
