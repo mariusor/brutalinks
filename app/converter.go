@@ -313,20 +313,20 @@ func FromArticle(i *Item, a *ap.Object) error {
 		i.Data = a.Source.Content.First().Value
 		i.MimeType = MimeType(a.Source.MediaType)
 	}
-	//if a.Tag != nil && len(a.Tag) > 0 {
-	//	i.Metadata.Tags = make(TagCollection, 0)
-	//	i.Metadata.Mentions = make(TagCollection, 0)
-	//
-	//	tags := TagCollection{}
-	//	tags.FromActivityPub(a.Tag)
-	//	for _, t := range tags {
-	//		if t.Name[0] == '#' {
-	//			i.Metadata.Tags = append(i.Metadata.Tags, t)
-	//		} else {
-	//			i.Metadata.Mentions = append(i.Metadata.Mentions, t)
-	//		}
-	//	}
-	//}
+	if a.Tag != nil && len(a.Tag) > 0 {
+		i.Metadata.Tags = make(TagCollection, 0)
+		i.Metadata.Mentions = make(TagCollection, 0)
+
+		tags := TagCollection{}
+		tags.FromActivityPub(a.Tag)
+		for _, t := range tags {
+			if t.Name[0] == '#' {
+				i.Metadata.Tags = append(i.Metadata.Tags, t)
+			} else {
+				i.Metadata.Mentions = append(i.Metadata.Mentions, t)
+			}
+		}
+	}
 
 	i.Score = a.Score
 	return nil

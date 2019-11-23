@@ -271,6 +271,7 @@ func loadAPItem(item app.Item) as.Item {
 			for _, tag := range m.Tags {
 				t := as.Object{
 					ID:   as.ObjectID(tag.URL),
+					Type: as.ObjectType,
 					Name: as.NaturalLanguageValues{{Ref: as.NilLangRef, Value: tag.Name}},
 				}
 				o.Tag.Append(t)

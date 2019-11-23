@@ -206,7 +206,7 @@ func loadItems(c context.Context, filter app.Filters, acc *app.Account, l log.Lo
 		return m, err
 	}
 	m.Items = loadComments(contentItems)
-	replaceTags(m.Items)
+
 	if acc.IsLogged() {
 		votesLoader, ok := app.ContextVoteLoader(c)
 		if ok {

@@ -1,7 +1,6 @@
 package frontend
 
 import (
-	"bytes"
 	"fmt"
 	"github.com/mariusor/littr.go/internal/log"
 	"github.com/mariusor/qstring"
@@ -135,21 +134,6 @@ func replaceTagsInItem(cur app.Item) string {
 		}
 	}
 	return dat
-}
-
-func replaceTags(comments comments) {
-	for _, cur := range comments {
-		cur.Data = replaceTagsInItem(cur.Item)
-	}
-}
-
-func contains(visited []app.Hash, h app.Hash) bool {
-	for _, chk := range visited {
-		if bytes.Equal(chk, h) {
-			return true
-		}
-	}
-	return false
 }
 
 func removeCurElementParentComments(com *comments) {
@@ -325,7 +309,7 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	//replaceTags(allComments)
+
 	reparentComments(allComments)
 	addLevelComments(allComments)
 	removeCurElementParentComments(&allComments)

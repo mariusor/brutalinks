@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"regexp"
 	"strings"
 	"time"
 
@@ -28,62 +29,46 @@ func loadTags(data string) (app.TagCollection, app.TagCollection) {
 	}
 	tags := make(app.TagCollection, 0)
 	mentions := make(app.TagCollection, 0)
-	l := len(data)
-	for i := 0; i < l; i++ {
-		byt := data[i:]
-		st := strings.IndexAny(byt, "#@~")
-		if st < 0 || st >= l {
-			break
-		}
+	r := regexp.MustCompile(`(?:\A|\s)([#~@]\w[\w@.]+)`)
+
+	matches := r.FindAllSubmatch([]byte(data), -1)
+	for _, submatches := range matches {
+		match := submatches[1]
 		t := app.Tag{}
-		en := strings.IndexAny(byt[st:], " \t\r\n'\"<>,.:;!?")
-		if en < 0 {
-			en = len(byt) - st
-		}
-		if en == 1 {
-			continue
-		}
+		name := match
 		isFed := false
-		name := byt[st : st+en]
-		if strings.Contains(name, "@") {
-			//eot := strings.IndexAny(byt[en:], " \t\r\n'\"<>,:;!?")
-			//if eot < 0 {
-			//	continue
-			//}
-			//en += eot
-			//name = byt[st : st+en]
+		atP := bytes.LastIndex(name, []byte{'@'})
+		if atP > 0 {
 			isFed = true
 		}
-		t.Name = name
-		if isFed {
-			atP := strings.IndexAny(name[1:], "@")
-			if atP < 0 || atP+1 > len(name) {
-				continue
+
+		if name[0] == '@' || name[0] == '~' {
+			// mention
+			t.Name = string(name)
+			var host []byte
+			if isFed {
+				host = []byte(fmt.Sprintf("https://%s", name[atP+2:]))
+				name = name[:atP+1]
+			} else {
+				host = []byte(app.Instance.BaseURL)
 			}
-			if name[0] == '#' {
-				// @todo(marius) :link_generation: make the tag links be generated from the corresponding route
-				t.URL = fmt.Sprintf("https://%s/t/%s", name[atP+2:], name[1:atP+1])
-				tags = append(tags, t)
-			}
-			if name[0] == '@' || name[0] == '~' {
-				t.URL = fmt.Sprintf("https://%s/~%s", name[atP+2:], name[1:atP+1])
-				mentions = append(mentions, t)
-			}
-		} else {
-			if name[0] == '#' {
-				// @todo(marius) :link_generation: make the tag links be generated from the corresponding route
-				t.URL = fmt.Sprintf("/t/%s", t.Name[1:])
-				tags = append(tags, t)
-			}
-			if name[0] == '@' || name[0] == '~' {
-				t.URL = fmt.Sprintf("/~%s", name[1:])
-				mentions = append(mentions, t)
-			}
+			t.URL = fmt.Sprintf("%s/~%s", host, name[1:])
+			mentions = append(mentions, t)
 		}
-
-		i = i + st + en
+		if match[0] == '#' {
+			// @todo(marius) :link_generation: make the tag links be generated from the corresponding route
+			t.Name = string(name)
+			var host []byte
+			if isFed {
+				host = []byte(fmt.Sprintf("https://%s", name[atP+1:]))
+				name = name[:atP]
+			} else {
+				host = []byte(app.Instance.BaseURL)
+			}
+			t.URL = fmt.Sprintf("%s/t/%s", host, name[1:])
+			tags = append(tags, t)
+		}
 	}
-
 	return tags, mentions
 }
 
