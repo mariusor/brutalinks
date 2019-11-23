@@ -4,7 +4,7 @@
 </section>
 {{- if $count -}}
 {{- if gt $count 1 -}}
-<details {{ if lt .Level 3 }} open{{end}}>
+<details open>
     <summary class="lvl-{{ .Level | Mod10  }}"><span>{{$count}} child{{if $count | ne 1 }}ren{{end}}</span></summary>
 {{ end -}}
 {{- template "partials/content/comments" . -}}
