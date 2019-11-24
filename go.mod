@@ -8,9 +8,9 @@ require (
 	github.com/captncraig/cors v0.0.0-20180620154129-376d45073b49 // indirect
 	github.com/gchaincl/dotsql v1.0.0
 	github.com/go-ap/activitypub v0.0.0-20191114153600-6e7d4dc4ff5d
-	github.com/go-ap/activitystreams v0.0.0-20191123193616-a27ee75f6771
-	github.com/go-ap/auth v0.0.0-20191117113929-40fa0cfbb607
-	github.com/go-ap/errors v0.0.0-20191122202344-667d31712bb5
+	github.com/go-ap/activitystreams v0.0.0-20191124115651-95f184fb4ca6
+	github.com/go-ap/auth v0.0.0-20191124120137-cea914bde204
+	github.com/go-ap/errors v0.0.0-20191123201507-86232ca294a2
 	github.com/go-ap/jsonld v0.0.0-20191123195936-1e43eac08b0c
 	github.com/go-chi/chi v4.0.2+incompatible
 	github.com/go-pg/pg v7.1.1+incompatible
