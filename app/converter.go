@@ -252,12 +252,8 @@ func FromArticle(i *Item, a *ap.Object) error {
 		}
 		i.Data = a.Content.First().Value
 	}
-	if !a.Published.IsZero() {
-		i.SubmittedAt = a.Published
-	}
-	if !a.Updated.IsZero() {
-		i.UpdatedAt = a.Updated
-	}
+	i.SubmittedAt = a.Published
+	i.UpdatedAt = a.Updated
 	if i.Metadata == nil {
 		i.Metadata = &ItemMetadata{}
 	}
@@ -333,6 +329,7 @@ func FromArticle(i *Item, a *ap.Object) error {
 }
 
 func (i *Item) FromActivityPub(it as.Item) error {
+	// TODO(marius): see that we seem to have this functionality duplicated in the FromArticle() function
 	if it == nil {
 		return errors.Newf("nil item received")
 	}
@@ -405,6 +402,8 @@ func (i *Item) FromActivityPub(it as.Item) error {
 					}
 				}
 			}
+			i.SubmittedAt = o.Published
+			i.UpdatedAt = o.Updated
 			return nil
 		})
 
