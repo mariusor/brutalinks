@@ -139,7 +139,7 @@ func BuildActorID(a app.Account) as.ObjectID {
 	if !a.IsValid() {
 		return as.ObjectID(as.PublicNS)
 	}
-	if a.HasMetadata() && len(a.Metadata.ID) > 0  {
+	if a.HasMetadata() && len(a.Metadata.ID) > 0 {
 		return as.ObjectID(a.Metadata.ID)
 	}
 	return as.ObjectID(fmt.Sprintf("%s/%s", ActorsURL, url.PathEscape(a.Hash.String())))
@@ -186,8 +186,8 @@ func loadAPItem(item app.Item) as.Item {
 	}
 
 	// TODO(marius): add proper dynamic recipients to this based on some selector in the frontend
-	o.To = as.ItemCollection{as.PublicNS,}
-	o.BCC = as.ItemCollection{as.IRI(BaseURL),}
+	o.To = as.ItemCollection{as.PublicNS}
+	o.BCC = as.ItemCollection{as.IRI(BaseURL)}
 	o.Published = item.SubmittedAt
 	o.Updated = item.UpdatedAt
 
@@ -204,6 +204,9 @@ func loadAPItem(item app.Item) as.Item {
 		if item.Parent != nil {
 			if par, ok := BuildObjectIDFromItem(*item.Parent); ok {
 				repl = append(repl, as.IRI(par))
+			}
+			if item.OP == nil {
+				item.OP = item.Parent
 			}
 		}
 		if item.OP != nil {
@@ -233,19 +236,17 @@ func loadAPItem(item app.Item) as.Item {
 	}
 	repl := make(as.ItemCollection, 0)
 	if item.Parent != nil {
-		if item.Parent != nil {
-			p := item.Parent
-			if par, ok := BuildObjectIDFromItem(*p); ok {
-				repl = append(repl, as.IRI(par))
-			}
-			if p.SubmittedBy.IsValid() {
-				if pAuth := BuildActorID(*p.SubmittedBy); as.IRI(pAuth) != as.PublicNS {
-					o.To = append(o.To, as.IRI(pAuth))
-				}
+		p := item.Parent
+		if par, ok := BuildObjectIDFromItem(*p); ok {
+			repl = append(repl, as.IRI(par))
+		}
+		if p.SubmittedBy.IsValid() {
+			if pAuth := BuildActorID(*p.SubmittedBy); as.IRI(pAuth) != as.PublicNS {
+				o.To = append(o.To, as.IRI(pAuth))
 			}
 		}
 		if item.OP == nil {
-			item.OP = item.Parent
+			item.OP = p
 		}
 	}
 	if item.OP != nil {
@@ -547,7 +548,7 @@ func (r *repository) loadItemsVotes(items ...app.Item) (app.ItemCollection, erro
 	col := make(app.ItemCollection, len(items))
 	votes, _, err := r.LoadVotes(fVotes)
 	if err != nil {
-		return nil, errors.Annotatef(err, "unable to load items votes")
+		return items, errors.Annotatef(err, "unable to load items votes")
 	}
 	for k, it := range items {
 		for _, vot := range votes {
@@ -562,11 +563,14 @@ func (r *repository) loadItemsVotes(items ...app.Item) (app.ItemCollection, erro
 
 func (r *repository) loadItemsAuthors(items ...app.Item) (app.ItemCollection, error) {
 	if len(items) == 0 {
-		return app.ItemCollection{}, nil
+		return items, nil
 	}
 
 	fActors := app.Filters{}
 	for _, it := range items {
+		if !it.SubmittedBy.IsValid() {
+			continue
+		}
 		if it.SubmittedBy.HasMetadata() && len(it.SubmittedBy.Metadata.ID) > 0 {
 			fActors.LoadAccountsFilter.Key = append(fActors.LoadAccountsFilter.Key, app.Hash(it.SubmittedBy.Metadata.ID))
 		} else if len(it.SubmittedBy.Hash) > 0 {
@@ -577,12 +581,12 @@ func (r *repository) loadItemsAuthors(items ...app.Item) (app.ItemCollection, er
 	}
 	fActors.LoadAccountsFilter.Key = hashesUnique(fActors.LoadAccountsFilter.Key)
 	if len(fActors.LoadAccountsFilter.Key)+len(fActors.Handle) == 0 {
-		return nil, errors.Errorf("unable to load items authors")
+		return items, errors.Errorf("unable to load items authors")
 	}
 	col := make(app.ItemCollection, len(items))
 	authors, _, err := r.LoadAccounts(fActors)
 	if err != nil {
-		return nil, errors.Annotatef(err, "unable to load items authors")
+		return items, errors.Annotatef(err, "unable to load items authors")
 	}
 	for k, it := range items {
 		for _, auth := range authors {
@@ -615,6 +619,9 @@ func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) 
 		f.LoadItemsFilter.IRI = ""
 		f.Federated = nil
 		f.InReplyTo = nil
+		f.Type = as.ActivityVocabularyTypes{
+			as.CreateType,
+		}
 	}
 	if len(f.Federated) > 0 {
 		for _, fed := range f.Federated {
@@ -625,7 +632,7 @@ func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) 
 			}
 		}
 	}
-	if len(f.LoadItemsFilter.Deleted) > 0 {
+	if len(f.Type) == 0 && len(f.LoadItemsFilter.Deleted) > 0 {
 		f.Type = as.ActivityVocabularyTypes{
 			as.ArticleType,
 			as.AudioType,
@@ -688,10 +695,30 @@ func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) 
 			}
 			items = append(items, i)
 		}
-		items, err = r.loadItemsAuthors(items...)
-		items, err = r.loadItemsVotes(items...)
-		return err
+		return nil
 	})
+
+	// TODO(marius): move this somewhere more palatable
+	//  it's currently done like this when loading from collections of Activities that only contain the ID of the object
+	toLoad := make(app.Hashes, 0)
+	for _, i := range items {
+		if i.IsValid() && i.SubmittedAt.IsZero() {
+			toLoad = append(toLoad, app.Hash(i.Metadata.ID))
+		}
+	}
+	if len(toLoad) > 0 {
+		var lCnt uint
+		items, lCnt, err = r.LoadItems(app.Filters{
+			LoadItemsFilter: app.LoadItemsFilter{
+				Key: toLoad,
+			},
+		})
+		if err != nil {
+			return items, lCnt, errors.Annotatef(err, "Unable to load items")
+		}
+	}
+	items, err = r.loadItemsAuthors(items...)
+	items, err = r.loadItemsVotes(items...)
 
 	return items, count, err
 }
@@ -1042,7 +1069,6 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 		body, err = j.Marshal(delete)
 	} else {
 		if len(id) == 0 {
-
 			create := as.Create{
 				Parent: as.Parent{
 					Type: as.CreateType,
