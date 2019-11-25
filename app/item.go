@@ -59,7 +59,7 @@ type Item struct {
 }
 
 func (i *Item) IsValid() bool {
-	return i != nil && len(i.Hash) > 0
+	return i != nil && !i.SubmittedAt.IsZero() && len(i.Hash) > 0
 }
 
 func (i Item) Deleted() bool {
