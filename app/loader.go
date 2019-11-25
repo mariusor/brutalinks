@@ -105,7 +105,7 @@ type LoadVotesFilter struct {
 }
 
 type LoadItemsFilter struct {
-	Key                  []Hash     `qstring:"hash,omitempty"`
+	Key                  []Hash     `qstring:"iri,omitempty"`
 	MediaType            []MimeType `qstring:"mediaType,omitempty"`
 	AttributedTo         []Hash     `qstring:"attributedTo,omitempty"`
 	InReplyTo            []string   `qstring:"inReplyTo,omitempty"`
