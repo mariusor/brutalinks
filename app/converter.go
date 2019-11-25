@@ -338,6 +338,9 @@ func (i *Item) FromActivityPub(it as.Item) error {
 	}
 	if it.IsLink() {
 		i.Hash.FromActivityPub(it.GetLink())
+		i.Metadata = &ItemMetadata{
+			ID: it.GetLink().String(),
+		}
 		return nil
 	}
 
