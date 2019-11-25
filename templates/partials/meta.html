@@ -1,13 +1,12 @@
 {{- $count := .Children | len -}}
 {{- $it := .Item -}}
-{{- $account := CurrentAccount -}}
 <footer class="meta col">
 submitted{{ if not .Deleted}}{{- if ShowUpdate $it }}<time class="updated-at" datetime="{{ $it.UpdatedAt | ISOTimeFmt | html }}" title="updated at {{ $it.UpdatedAt | ISOTimeFmt }}"><sup>&#10033;</sup></time> {{- end }} <time class="submitted-at" datetime="{{ $it.SubmittedAt | ISOTimeFmt | html }}" title="{{ $it.SubmittedAt | ISOTimeFmt }}">{{ icon "clock-o" }}{{ $it.SubmittedAt | TimeFmt }}</time>{{- end -}}
-    {{- if $it.SubmittedBy.Handle }} by <a class="by" href="{{ $it.SubmittedBy | AccountPermaLink }}">{{ $it.SubmittedBy | ShowAccountHandle }}</a>{{end}}
+    {{- if $it.SubmittedBy.IsValid }} by <a class="by" href="{{ $it.SubmittedBy | AccountPermaLink }}">{{ $it.SubmittedBy | ShowAccountHandle }}</a>{{end}}
     <nav class="meta-items">
         <ul class="inline">
-{{- if ne $account.Handle "anonymous" -}}
-{{- if (sameHash $it.SubmittedBy.Hash $account.Hash) }}
+{{- if and CurrentAccount.IsValid $it.SubmittedBy.IsValid -}}
+{{- if (sameHash $it.SubmittedBy.Hash CurrentAccount.Hash) }}
 {{- /*
 @todo(marius) :link_generation: this needs a generic way of creating links
 */ -}}
