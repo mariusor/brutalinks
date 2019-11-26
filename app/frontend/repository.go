@@ -451,32 +451,7 @@ func (r *repository) LoadItem(f app.Filters) (app.Item, error) {
 	f.LoadItemsFilter.Key = nil
 
 	url := fmt.Sprintf("%s/objects/%s", r.BaseURL, hashes[0])
-
-	var err error
-	var resp *http.Response
-	if resp, err = r.client.Get(url); err != nil {
-		r.logger.Error(err.Error())
-		return item, err
-	}
-	if resp == nil {
-		err := errors.Newf("empty response from the repository")
-		r.logger.Error(err.Error())
-		return item, err
-	}
-	if resp.StatusCode != http.StatusOK {
-		err := errors.Newf("unable to load item from the API")
-		r.logger.Error(err.Error())
-		return item, err
-	}
-	defer resp.Body.Close()
-	var body []byte
-
-	if body, err = ioutil.ReadAll(resp.Body); err != nil {
-		r.logger.Error(err.Error())
-		return item, err
-	}
-
-	it, err := as.UnmarshalJSON(body)
+	it, err := r.client.LoadIRI(as.IRI(url))
 	if err != nil {
 		r.logger.Error(err.Error())
 		return item, err
@@ -648,38 +623,13 @@ func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) 
 	}
 	url := fmt.Sprintf("%s%s%s%s", r.BaseURL, target, c, qs)
 
-	var err error
-	var resp *http.Response
 	ctx := log.Ctx{
 		"url": url,
 	}
-	if resp, err = r.client.Get(url); err != nil {
-		r.logger.WithContext(ctx).Error(err.Error())
-		return nil, 0, err
-	}
 
-	ctx["authCode"] = resp.StatusCode
-	ctx["status"] = resp.Status
-	if resp == nil {
-		err := fmt.Errorf("nil response from the repository")
-		r.logger.WithContext(ctx).Error(err.Error())
-		return nil, 0, err
-	}
-	if resp.StatusCode != http.StatusOK {
-		err := errors.Newf("unable to load items from the API")
-		r.logger.WithContext(ctx).Error(err.Error())
-		return nil, 0, err
-	}
-	defer resp.Body.Close()
-	var body []byte
-
-	if body, err = ioutil.ReadAll(resp.Body); err != nil {
-		r.logger.Error(err.Error())
-		return nil, 0, err
-	}
-	it, err := as.UnmarshalJSON(body)
+	it, err := r.client.LoadIRI(as.IRI(url))
 	if err != nil {
-		r.logger.Error(err.Error())
+		r.logger.WithContext(ctx).Error(err.Error())
 		return nil, 0, err
 	}
 
@@ -707,15 +657,11 @@ func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) 
 		}
 	}
 	if len(toLoad) > 0 {
-		var lCnt uint
-		items, lCnt, err = r.LoadItems(app.Filters{
+		return r.LoadItems(app.Filters{
 			LoadItemsFilter: app.LoadItemsFilter{
 				Key: toLoad,
 			},
 		})
-		if err != nil {
-			return items, lCnt, errors.Annotatef(err, "Unable to load items")
-		}
 	}
 	items, err = r.loadItemsAuthors(items...)
 	items, err = r.loadItemsVotes(items...)
@@ -855,8 +801,6 @@ func (r *repository) LoadVotes(f app.Filters) (app.VoteCollection, uint, error) 
 		as.UndoType,
 	}
 
-	var err error
-	var resp *http.Response
 	var url string
 	if len(f.LoadVotesFilter.AttributedTo) == 1 {
 		attrTo := f.LoadVotesFilter.AttributedTo[0]
@@ -872,27 +816,7 @@ func (r *repository) LoadVotes(f app.Filters) (app.VoteCollection, uint, error) 
 		url = fmt.Sprintf("%s/inbox%s", r.BaseURL, qs)
 	}
 
-	if resp, err = r.client.Get(url); err != nil {
-		r.logger.Error(err.Error())
-		return nil, 0, err
-	}
-	if resp == nil {
-		r.logger.Error(err.Error())
-		return nil, 0, err
-	}
-	if resp.StatusCode != http.StatusOK {
-		err := errors.Newf("unable to load votes from the API")
-		r.logger.Error(err.Error())
-		return nil, 0, err
-	}
-
-	defer resp.Body.Close()
-	var body []byte
-	if body, err = ioutil.ReadAll(resp.Body); err != nil {
-		r.logger.Error(err.Error())
-		return nil, 0, err
-	}
-	it, err := as.UnmarshalJSON(body)
+	it, err := r.client.LoadIRI(as.IRI(url))
 	if err != nil {
 		r.logger.Error(err.Error())
 		return nil, 0, err
@@ -941,10 +865,6 @@ func (r *repository) LoadVotes(f app.Filters) (app.VoteCollection, uint, error) 
 	return votes, count, nil
 }
 
-func removeUndidVotes(votes []app.Vote) error {
-	return nil
-}
-
 func (r *repository) LoadVote(f app.Filters) (app.Vote, error) {
 	if len(f.ItemKey) == 0 {
 		return app.Vote{}, errors.Newf("invalid item hash")
@@ -955,31 +875,7 @@ func (r *repository) LoadVote(f app.Filters) (app.Vote, error) {
 	f.ItemKey = nil
 	url := fmt.Sprintf("%s/liked/%s", r.BaseURL, itemHash)
 
-	var err error
-	var resp *http.Response
-	if resp, err = r.client.Get(url); err != nil {
-		r.logger.Error(err.Error())
-		return v, err
-	}
-	if resp == nil {
-		err := errors.Newf("nil response from the repository")
-		r.logger.Error(err.Error())
-		return v, err
-	}
-	if resp.StatusCode != http.StatusOK {
-		err := errors.Newf("unable to load vote from the API")
-		r.logger.Error(err.Error())
-		return v, err
-	}
-	defer resp.Body.Close()
-
-	var body []byte
-	if body, err = ioutil.ReadAll(resp.Body); err != nil {
-		r.logger.Error(err.Error())
-		return v, err
-	}
-
-	it, err := as.UnmarshalJSON(body)
+	it, err := r.client.LoadIRI(as.IRI(url))
 	if err != nil {
 		r.logger.Error(err.Error())
 		return v, err
@@ -1115,10 +1011,6 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 	return r.handleItemSaveSuccessResponse(it, body)
 }
 
-func (r *repository) Get(u string) (*http.Response, error) {
-	return r.client.Get(u)
-}
-
 func (r *repository) LoadAccounts(f app.Filters) (app.AccountCollection, uint, error) {
 	var qs string
 	if q, err := qstring.MarshalString(&f); err == nil {
@@ -1126,29 +1018,7 @@ func (r *repository) LoadAccounts(f app.Filters) (app.AccountCollection, uint, e
 	}
 	url := fmt.Sprintf("%s/%s", ActorsURL, qs)
 
-	var err error
-	var resp *http.Response
-	if resp, err = r.client.Get(url); err != nil {
-		r.logger.Error(err.Error())
-		return nil, 0, err
-	}
-	if resp == nil {
-		err := fmt.Errorf("nil response from the repository")
-		r.logger.Error(err.Error())
-		return nil, 0, err
-	}
-	if resp.StatusCode != http.StatusOK {
-		err := errors.Newf("unable to load accounts from the API")
-		r.logger.Error(err.Error())
-		return nil, 0, err
-	}
-	defer resp.Body.Close()
-	var body []byte
-	if body, err = ioutil.ReadAll(resp.Body); err != nil {
-		r.logger.Error(err.Error())
-		return nil, 0, err
-	}
-	it, err := as.UnmarshalJSON(body)
+	it, err := r.client.LoadIRI(as.IRI(url))
 	if err != nil {
 		r.logger.Error(err.Error())
 		return nil, 0, err
