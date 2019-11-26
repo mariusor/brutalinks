@@ -652,7 +652,7 @@ func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) 
 	//  it's currently done like this when loading from collections of Activities that only contain the ID of the object
 	toLoad := make(app.Hashes, 0)
 	for _, i := range items {
-		if i.IsValid() && i.SubmittedAt.IsZero() {
+		if i.IsValid() && !i.Deleted() && i.SubmittedAt.IsZero() {
 			toLoad = append(toLoad, app.Hash(i.Metadata.ID))
 		}
 	}
