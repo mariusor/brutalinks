@@ -4,34 +4,34 @@ We have two types of endpoints that we can query on FedBOX:
 
 ## Object collections:
 
-The object collections in the ActivitypPub spec are: following, followers, liked.
-Additionally FedBOX supports `/actors` and `/objects` generic objects end-points.
+The object collections in the ActivitypPub spec are: `following`, `followers`, `liked`.
+Additionally FedBOX supports `/actors` and `/objects` root end-points.
 
 Supported filters:
 
-  * PublishedDate
-  * Type 
-  * To
-  * BCC
-  * Audience
-  * Generator[1]
-  * Url[2]
+  * *iri*: list of IRIs representing specific object ID's we want to load
+  * *publishedDate*: [*] timestamp and operator for timestamp
+  * *type*: list of Object types
+  * *to*: list of IRIs
+  * *cc*: list of IRIs
+  * *audience*: list of IRIs
+  * *generator*: list of IRIs, representing the Application actors that pushed the object
+  * *url*: list of URLs
 
-[1] Generator is not yet implemented in littr.go and it should contain the IRI of the C2S application that generated the Activity  
-[2] Url is not yet implemented in littr.go and it should probably contain a URL from the generator application  
+[*] Filter not yet implemented  
 
 ## Activity collections:
 
-The activity collections in the ActivitypPub spec are: outbox, inbox, likes, shares, replies.
-Additionally FedBOX supports `/activities` generic activities end-point.
+The activity collections in the ActivitypPub spec are: `outbox`, `inbox`, `likes`, `shares`, `replies`.
+Additionally FedBOX supports `/activities` root end-point.
 
 In order to get the full representation of the items, after loading one of these collections, their Object properties need to be dereferenced and loaded again.
 
 Besides the filters applicable to Object collections we have also:
 
-  * Actor IRI
-  * Object IRI
-  * Target IRI
+  * *actor*: list of IRIs
+  * *object* list of IRIs
+  * *target*: list of IRIs
 
 # The filtering
 
@@ -55,7 +55,6 @@ Loads FedBOX's service inbox `/inbox`
 ### Loading federated tab items
 
 Same as main page items, but the filtering should have the base IRI different than fedbox's host.[1]
-
 
 ### Loading followed items
 
