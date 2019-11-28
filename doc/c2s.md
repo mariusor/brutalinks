@@ -12,14 +12,14 @@ For fully populating a littr.me Item, we require the following information besid
 This means that for every items collection we are obtaining from fedbox, we must dereference and load all the `submittedBy` or `Actor` IRIs.
 This is done by loading the `/actors` end point with an IRI filter for all of the actor IRIs we want to dereference.
 
-eg: https://federated.id/actors?iri=https://federated.id/actors/{uuid1}&iri=https://federated.id/actors/{uuid2}
+eg: /actors?iri=https://federated.id/actors/{uuid1}&iri=https://federated.id/actors/{uuid2}
 
 * The item's votes data.
 
 This means that for every item collection, we must load all Like/Dislike/Undo Activities that have said item as an Object.
 This is done by loading the `/activities` end point with an Object filter for all the IRIs of the items.
 
-eg: https://federated.id/activities?type=Like&type=Dislike&type=Undo&object=https://federated.id/objects/{uuid1}&object=https://federated.id/object/{uuid2}
+eg: /activities?type=Like&type=Dislike&type=Undo&object=https://federated.id/objects/{uuid1}&object=https://federated.id/object/{uuid2}
 
 For getting the full information about a (logged in) user, we also need to load his votes. 
 
