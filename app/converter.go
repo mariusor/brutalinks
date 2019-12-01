@@ -289,9 +289,21 @@ func FromArticle(i *Item, a *ap.Object) error {
 		i.OP = &op
 	}
 	if a.InReplyTo != nil {
-		if len(a.InReplyTo) >= 1 {
+		if repl, ok := a.InReplyTo.(as.ItemCollection); ok {
+			if len(repl) >= 1 {
+				first := repl.First()
+				if first != nil {
+					par := Item{}
+					par.FromActivityPub(first)
+					i.Parent = &par
+					if i.OP == nil {
+						i.OP = &par
+					}
+				}
+			}
+		} else {
 			par := Item{}
-			par.FromActivityPub(a.InReplyTo[0])
+			par.FromActivityPub(a.InReplyTo)
 			i.Parent = &par
 			if i.OP == nil {
 				i.OP = &par
@@ -393,9 +405,19 @@ func (i *Item) FromActivityPub(it as.Item) error {
 				i.OP = &op
 			}
 			if o.InReplyTo != nil {
-				if len(o.InReplyTo) >= 1 {
+				if repl, ok := o.InReplyTo.(as.ItemCollection); ok {
+					first := repl.First()
+					if first != nil {
+						par := Item{}
+						par.FromActivityPub(first)
+						i.Parent = &par
+						if i.OP == nil {
+							i.OP = &par
+						}
+					}
+				} else {
 					par := Item{}
-					par.FromActivityPub(o.InReplyTo[0])
+					par.FromActivityPub(o.InReplyTo)
 					i.Parent = &par
 					if i.OP == nil {
 						i.OP = &par
