@@ -289,21 +289,23 @@ func loadAPItem(item app.Item) as.Item {
 	return &o
 }
 
-func anonymousPerson(url string) *auth.Person {
+func anonymousActor() *auth.Person {
 	p := auth.Person{}
 	p.ID = as.ObjectID(as.PublicNS)
 	p.Type = as.PersonType
-
-	name := as.NaturalLanguageValues{
+	p.Name = as.NaturalLanguageValues{
 		{as.NilLangRef, app.Anonymous},
 	}
-
-	p.Name = name
-	p.PreferredUsername = name
-
-	p.Inbox = as.IRI(fmt.Sprintf("%s/inbox", url))
-
+	p.PreferredUsername = as.NaturalLanguageValues{
+		{as.NilLangRef, app.Anonymous},
+	}
 	return &p
+}
+
+func anonymousPerson(url string) *auth.Person {
+	p := anonymousActor()
+	p.Inbox = as.IRI(fmt.Sprintf("%s/inbox", url))
+	return p
 }
 
 func loadAPPerson(a app.Account) *auth.Person {
@@ -386,8 +388,6 @@ func loadAPPerson(a app.Account) *auth.Person {
 	}
 	return &p
 }
-
-type SignFunc func(r *http.Request) error
 
 func getSigner(pubKeyID as.ObjectID, key crypto.PrivateKey) *httpsig.Signer {
 	hdrs := []string{"(request-target)", "host", "date"}

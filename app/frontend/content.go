@@ -24,6 +24,8 @@ const Nay = "nay"
 type comments []*comment
 type comment struct {
 	app.Item
+	// Voted shows if current logged account has Yayed(+1) or Nayed(-1) current Item
+	Voted    uint8
 	Level    uint8
 	Edit     bool
 	Children comments
