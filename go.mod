@@ -7,7 +7,7 @@ require (
 	github.com/buger/jsonparser v0.0.0-20181023193515-52c6e1462ebd
 	github.com/captncraig/cors v0.0.0-20180620154129-376d45073b49 // indirect
 	github.com/gchaincl/dotsql v1.0.0
-	github.com/go-ap/activitypub v0.0.0-20191204153438-4a6d2e2600d2
+	github.com/go-ap/activitypub v0.0.0-20191204183441-3d94dd494e1f
 	github.com/go-ap/auth v0.0.0-20191203201848-2f13635534de
 	github.com/go-ap/errors v0.0.0-20191127092628-088896cbdb2b
 	github.com/go-ap/handlers v0.0.0-20191203202112-d36c1efb2e74
