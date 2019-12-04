@@ -3,7 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
-	as "github.com/go-ap/activitystreams"
+	as "github.com/go-ap/activitypub"
 	"github.com/mariusor/qstring"
 	"net/url"
 	"strings"

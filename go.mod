@@ -7,11 +7,10 @@ require (
 	github.com/buger/jsonparser v0.0.0-20181023193515-52c6e1462ebd
 	github.com/captncraig/cors v0.0.0-20180620154129-376d45073b49 // indirect
 	github.com/gchaincl/dotsql v1.0.0
-	github.com/go-ap/activitypub v0.0.0-20191201184952-0ad2174ed095
-	github.com/go-ap/activitystreams v0.0.0-20191201184731-495abe28e08d
-	github.com/go-ap/auth v0.0.0-20191201190523-ca8721c75d8d
+	github.com/go-ap/activitypub v0.0.0-20191204153438-4a6d2e2600d2
+	github.com/go-ap/auth v0.0.0-20191203201848-2f13635534de
 	github.com/go-ap/errors v0.0.0-20191127092628-088896cbdb2b
-	github.com/go-ap/handlers v0.0.0-20191201190429-72a10e820d79
+	github.com/go-ap/handlers v0.0.0-20191203202112-d36c1efb2e74
 	github.com/go-ap/jsonld v0.0.0-20191123195936-1e43eac08b0c
 	github.com/go-chi/chi v4.0.2+incompatible
 	github.com/go-pg/pg v7.1.1+incompatible

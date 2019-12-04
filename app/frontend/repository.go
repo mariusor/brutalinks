@@ -9,9 +9,8 @@ import (
 	"fmt"
 	ap "github.com/go-ap/activitypub"
 	cl "github.com/go-ap/activitypub/client"
-	as "github.com/go-ap/activitystreams"
-	"github.com/go-ap/auth"
 	"github.com/go-ap/errors"
+	"github.com/go-ap/handlers"
 	j "github.com/go-ap/jsonld"
 	local "github.com/mariusor/littr.go/activitypub"
 	"github.com/mariusor/littr.go/app"
@@ -41,7 +40,7 @@ func (h handler) Repository(next http.Handler) http.Handler {
 }
 
 func NewRepository(c Config) *repository {
-	as.ItemTyperFunc = local.JSONGetItemByType
+	ap.ItemTyperFunc = local.JSONGetItemByType
 	cl.UserAgent = fmt.Sprintf("%s-%s", app.Instance.HostName, app.Instance.Version)
 	cl.ErrorLogger = func(el ...interface{}) { c.Logger.WithContext(log.Ctx{"client": "api"}).Errorf("%v", el) }
 	cl.InfoLogger = func(el ...interface{}) { c.Logger.WithContext(log.Ctx{"client": "api"}).Debugf("%v", el) }
@@ -57,40 +56,16 @@ func NewRepository(c Config) *repository {
 	}
 }
 
-func getObjectType(el as.Item) string {
+func getObjectType(el ap.Item) string {
 	if el == nil {
 		return ""
 	}
 	var label = ""
 	switch el.(type) {
-	case *ap.Outbox:
-		label = "outbox"
-	case ap.Outbox:
-		label = "outbox"
-	case *ap.Inbox:
-		label = "inbox"
-	case ap.Inbox:
-		label = "inbox"
-	case ap.Liked:
-		label = "liked"
-	case *ap.Liked:
-		label = "liked"
-	case ap.Followers:
-		label = "followers"
-	case *ap.Followers:
-		label = "followers"
-	case ap.Following:
-		label = "following"
-	case *ap.Following:
-		label = "following"
-	case as.Person:
-		if o, ok := el.(as.Person); ok {
-			label = o.Name.First().Value
-		}
-	case *as.Person:
-		if o, ok := el.(*as.Person); ok {
-			label = o.Name.First().Value
-		}
+	case *ap.OrderedCollection:
+		label = "collection"
+	case ap.OrderedCollection:
+		label = "collection"
 	case ap.Person:
 		if o, ok := el.(ap.Person); ok {
 			label = o.Name.First().Value
@@ -103,76 +78,76 @@ func getObjectType(el as.Item) string {
 	return label
 }
 
-func BuildCollectionID(a app.Account, o as.Item) as.ObjectID {
+func BuildCollectionID(a app.Account, o handlers.CollectionType) ap.ObjectID {
 	if len(a.Handle) > 0 {
-		return as.ObjectID(fmt.Sprintf("%s/%s/%s", ActorsURL, url.PathEscape(a.Hash.String()), getObjectType(o)))
+		return ap.ObjectID(fmt.Sprintf("%s/%s/%s", ActorsURL, url.PathEscape(a.Hash.String()), o))
 	}
-	return as.ObjectID(fmt.Sprintf("%s/%s", BaseURL, getObjectType(o)))
+	return ap.ObjectID(fmt.Sprintf("%s/%s", BaseURL, o))
 }
 
 var BaseURL = "http://fedbox.git"
 var ActorsURL = fmt.Sprintf("%s/actors", BaseURL)
 var ObjectsURL = fmt.Sprintf("%s/objects", BaseURL)
 
-func apAccountID(a app.Account) as.ObjectID {
+func apAccountID(a app.Account) ap.ObjectID {
 	if len(a.Hash) >= 8 {
-		return as.ObjectID(fmt.Sprintf("%s/%s", ActorsURL, a.Hash.String()))
+		return ap.ObjectID(fmt.Sprintf("%s/%s", ActorsURL, a.Hash.String()))
 	}
-	return as.ObjectID(fmt.Sprintf("%s/anonymous", ActorsURL))
+	return ap.ObjectID(fmt.Sprintf("%s/anonymous", ActorsURL))
 }
 
-func accountURL(acc app.Account) as.IRI {
-	return as.IRI(fmt.Sprintf("%s%s", app.Instance.BaseURL, AccountPermaLink(acc)))
+func accountURL(acc app.Account) ap.IRI {
+	return ap.IRI(fmt.Sprintf("%s%s", app.Instance.BaseURL, AccountPermaLink(acc)))
 }
 
-func BuildObjectIDFromItem(i app.Item) (as.ObjectID, bool) {
+func BuildObjectIDFromItem(i app.Item) (ap.ObjectID, bool) {
 	if !i.IsValid() {
 		return "", false
 	}
 	if i.HasMetadata() && len(i.Metadata.ID) > 0 {
-		return as.ObjectID(i.Metadata.ID), true
+		return ap.ObjectID(i.Metadata.ID), true
 	}
-	return as.ObjectID(fmt.Sprintf("%s/%s", ObjectsURL, url.PathEscape(i.Hash.String()))), true
+	return ap.ObjectID(fmt.Sprintf("%s/%s", ObjectsURL, url.PathEscape(i.Hash.String()))), true
 }
 
-func BuildActorID(a app.Account) as.ObjectID {
+func BuildActorID(a app.Account) ap.ObjectID {
 	if !a.IsValid() {
-		return as.ObjectID(as.PublicNS)
+		return ap.ObjectID(ap.PublicNS)
 	}
 	if a.HasMetadata() && len(a.Metadata.ID) > 0 {
-		return as.ObjectID(a.Metadata.ID)
+		return ap.ObjectID(a.Metadata.ID)
 	}
-	return as.ObjectID(fmt.Sprintf("%s/%s", ActorsURL, url.PathEscape(a.Hash.String())))
+	return ap.ObjectID(fmt.Sprintf("%s/%s", ActorsURL, url.PathEscape(a.Hash.String())))
 }
 
-func loadAPItem(item app.Item) as.Item {
+func loadAPItem(item app.Item) ap.Item {
 	o := local.Object{}
 
 	if id, ok := BuildObjectIDFromItem(item); ok {
 		o.ID = id
 	}
 	if item.MimeType == app.MimeTypeURL {
-		o.Type = as.PageType
-		o.URL = as.IRI(item.Data)
+		o.Type = ap.PageType
+		o.URL = ap.IRI(item.Data)
 	} else {
 		wordCount := strings.Count(item.Data, " ") +
 			strings.Count(item.Data, "\t") +
 			strings.Count(item.Data, "\n") +
 			strings.Count(item.Data, "\r\n")
 		if wordCount > 300 {
-			o.Type = as.ArticleType
+			o.Type = ap.ArticleType
 		} else {
-			o.Type = as.NoteType
+			o.Type = ap.NoteType
 		}
 
 		if len(item.Hash) > 0 {
-			o.URL = as.IRI(ItemPermaLink(item))
+			o.URL = ap.IRI(ItemPermaLink(item))
 		}
-		o.Name = make(as.NaturalLanguageValues, 0)
+		o.Name = make(ap.NaturalLanguageValues, 0)
 		switch item.MimeType {
 		case app.MimeTypeMarkdown:
-			o.Object.Source.MediaType = as.MimeType(item.MimeType)
-			o.MediaType = as.MimeType(app.MimeTypeHTML)
+			o.Object.Source.MediaType = ap.MimeType(item.MimeType)
+			o.MediaType = ap.MimeType(app.MimeTypeHTML)
 			if item.Data != "" {
 				o.Source.Content.Set("en", item.Data)
 				o.Content.Set("en", string(app.Markdown(item.Data)))
@@ -180,30 +155,28 @@ func loadAPItem(item app.Item) as.Item {
 		case app.MimeTypeText:
 			fallthrough
 		case app.MimeTypeHTML:
-			o.MediaType = as.MimeType(item.MimeType)
+			o.MediaType = ap.MimeType(item.MimeType)
 			o.Content.Set("en", item.Data)
 		}
 	}
 
 	// TODO(marius): add proper dynamic recipients to this based on some selector in the frontend
-	o.To = as.ItemCollection{as.PublicNS}
-	o.BCC = as.ItemCollection{as.IRI(BaseURL)}
+	o.To = ap.ItemCollection{ap.PublicNS}
+	o.BCC = ap.ItemCollection{ap.IRI(BaseURL)}
 	o.Published = item.SubmittedAt
 	o.Updated = item.UpdatedAt
 
 	if item.Deleted() {
-		del := as.Tombstone{
-			Parent: as.Object{
-				ID:   o.ID,
-				Type: as.TombstoneType,
-			},
+		del := ap.Tombstone{
+			ID:         o.ID,
+			Type:       ap.TombstoneType,
 			FormerType: o.Type,
 			Deleted:    o.Updated,
 		}
-		repl := make(as.ItemCollection, 0)
+		repl := make(ap.ItemCollection, 0)
 		if item.Parent != nil {
 			if par, ok := BuildObjectIDFromItem(*item.Parent); ok {
-				repl = append(repl, as.IRI(par))
+				repl = append(repl, ap.IRI(par))
 			}
 			if item.OP == nil {
 				item.OP = item.Parent
@@ -211,7 +184,7 @@ func loadAPItem(item app.Item) as.Item {
 		}
 		if item.OP != nil {
 			if op, ok := BuildObjectIDFromItem(*item.OP); ok {
-				iri := as.IRI(op)
+				iri := ap.IRI(op)
 				del.Context = iri
 				if !repl.Contains(iri) {
 					repl = append(repl, iri)
@@ -225,24 +198,24 @@ func loadAPItem(item app.Item) as.Item {
 		return del
 	}
 
-	//o.Generator = as.IRI(app.Instance.BaseURL)
+	//o.Generator = ap.IRI(app.Instance.BaseURL)
 	o.Score = item.Score / app.ScoreMultiplier
 	if item.Title != "" {
 		o.Name.Set("en", string(item.Title))
 	}
 	if item.SubmittedBy != nil {
 		id := BuildActorID(*item.SubmittedBy)
-		o.AttributedTo = as.IRI(id)
+		o.AttributedTo = ap.IRI(id)
 	}
-	repl := make(as.ItemCollection, 0)
+	repl := make(ap.ItemCollection, 0)
 	if item.Parent != nil {
 		p := item.Parent
 		if par, ok := BuildObjectIDFromItem(*p); ok {
-			repl = append(repl, as.IRI(par))
+			repl = append(repl, ap.IRI(par))
 		}
 		if p.SubmittedBy.IsValid() {
-			if pAuth := BuildActorID(*p.SubmittedBy); as.IRI(pAuth) != as.PublicNS {
-				o.To = append(o.To, as.IRI(pAuth))
+			if pAuth := BuildActorID(*p.SubmittedBy); ap.IRI(pAuth) != ap.PublicNS {
+				o.To = append(o.To, ap.IRI(pAuth))
 			}
 		}
 		if item.OP == nil {
@@ -251,7 +224,7 @@ func loadAPItem(item app.Item) as.Item {
 	}
 	if item.OP != nil {
 		if op, ok := BuildObjectIDFromItem(*item.OP); ok {
-			iri := as.IRI(op)
+			iri := ap.IRI(op)
 			o.Context = iri
 			if !repl.Contains(iri) {
 				repl = append(repl, iri)
@@ -265,21 +238,21 @@ func loadAPItem(item app.Item) as.Item {
 	if item.Metadata != nil {
 		m := item.Metadata
 		if m.Mentions != nil || m.Tags != nil {
-			o.Tag = make(as.ItemCollection, 0)
+			o.Tag = make(ap.ItemCollection, 0)
 			for _, men := range m.Mentions {
 				// todo(marius): retrieve object ids of each mention and add it to the CC of the object
-				t := as.Object{
-					ID:   as.ObjectID(men.URL),
-					Type: as.MentionType,
-					Name: as.NaturalLanguageValues{{Ref: as.NilLangRef, Value: men.Name}},
+				t := ap.Object{
+					ID:   ap.ObjectID(men.URL),
+					Type: ap.MentionType,
+					Name: ap.NaturalLanguageValues{{Ref: ap.NilLangRef, Value: men.Name}},
 				}
 				o.Tag.Append(t)
 			}
 			for _, tag := range m.Tags {
-				t := as.Object{
-					ID:   as.ObjectID(tag.URL),
-					Type: as.ObjectType,
-					Name: as.NaturalLanguageValues{{Ref: as.NilLangRef, Value: tag.Name}},
+				t := ap.Object{
+					ID:   ap.ObjectID(tag.URL),
+					Type: ap.ObjectType,
+					Name: ap.NaturalLanguageValues{{Ref: ap.NilLangRef, Value: tag.Name}},
 				}
 				o.Tag.Append(t)
 			}
@@ -289,74 +262,74 @@ func loadAPItem(item app.Item) as.Item {
 	return &o
 }
 
-func anonymousActor() *auth.Person {
-	p := auth.Person{}
-	p.ID = as.ObjectID(as.PublicNS)
-	p.Type = as.PersonType
-	p.Name = as.NaturalLanguageValues{
-		{as.NilLangRef, app.Anonymous},
+func anonymousActor() *ap.Actor {
+	p := ap.Actor{}
+	p.ID = ap.ObjectID(ap.PublicNS)
+	p.Type = ap.PersonType
+	p.Name = ap.NaturalLanguageValues{
+		{ap.NilLangRef, app.Anonymous},
 	}
-	p.PreferredUsername = as.NaturalLanguageValues{
-		{as.NilLangRef, app.Anonymous},
+	p.PreferredUsername = ap.NaturalLanguageValues{
+		{ap.NilLangRef, app.Anonymous},
 	}
 	return &p
 }
 
-func anonymousPerson(url string) *auth.Person {
+func anonymousPerson(url string) *ap.Actor {
 	p := anonymousActor()
-	p.Inbox = as.IRI(fmt.Sprintf("%s/inbox", url))
+	p.Inbox = ap.IRI(fmt.Sprintf("%s/inbox", url))
 	return p
 }
 
-func loadAPPerson(a app.Account) *auth.Person {
-	p := auth.Person{}
-	p.Type = as.PersonType
-	p.Name = as.NaturalLanguageValuesNew()
-	p.PreferredUsername = as.NaturalLanguageValuesNew()
+func loadAPPerson(a app.Account) *ap.Actor {
+	p := ap.Actor{}
+	p.Type = ap.PersonType
+	p.Name = ap.NaturalLanguageValuesNew()
+	p.PreferredUsername = ap.NaturalLanguageValuesNew()
 
 	if a.HasMetadata() {
 		if a.Metadata.Blurb != nil && len(a.Metadata.Blurb) > 0 {
-			p.Summary = as.NaturalLanguageValuesNew()
-			p.Summary.Set(as.NilLangRef, string(a.Metadata.Blurb))
+			p.Summary = ap.NaturalLanguageValuesNew()
+			p.Summary.Set(ap.NilLangRef, string(a.Metadata.Blurb))
 		}
 		if len(a.Metadata.Icon.URI) > 0 {
-			avatar := as.ObjectNew(as.ImageType)
-			avatar.MediaType = as.MimeType(a.Metadata.Icon.MimeType)
-			avatar.URL = as.IRI(a.Metadata.Icon.URI)
+			avatar := ap.ObjectNew(ap.ImageType)
+			avatar.MediaType = ap.MimeType(a.Metadata.Icon.MimeType)
+			avatar.URL = ap.IRI(a.Metadata.Icon.URI)
 			p.Icon = avatar
 		}
 	}
 
-	p.PreferredUsername.Set(as.NilLangRef, a.Handle)
+	p.PreferredUsername.Set(ap.NilLangRef, a.Handle)
 
 	if len(a.Hash) > 0 {
 		if a.IsFederated() {
-			p.ID = as.ObjectID(a.Metadata.ID)
+			p.ID = ap.ObjectID(a.Metadata.ID)
 			p.Name.Set("en", a.Metadata.Name)
 			if len(a.Metadata.InboxIRI) > 0 {
-				p.Inbox = as.IRI(a.Metadata.InboxIRI)
+				p.Inbox = ap.IRI(a.Metadata.InboxIRI)
 			}
 			if len(a.Metadata.OutboxIRI) > 0 {
-				p.Outbox = as.IRI(a.Metadata.OutboxIRI)
+				p.Outbox = ap.IRI(a.Metadata.OutboxIRI)
 			}
 			if len(a.Metadata.LikedIRI) > 0 {
-				p.Liked = as.IRI(a.Metadata.LikedIRI)
+				p.Liked = ap.IRI(a.Metadata.LikedIRI)
 			}
 			if len(a.Metadata.FollowersIRI) > 0 {
-				p.Followers = as.IRI(a.Metadata.FollowersIRI)
+				p.Followers = ap.IRI(a.Metadata.FollowersIRI)
 			}
 			if len(a.Metadata.FollowingIRI) > 0 {
-				p.Following = as.IRI(a.Metadata.FollowingIRI)
+				p.Following = ap.IRI(a.Metadata.FollowingIRI)
 			}
 			if len(a.Metadata.URL) > 0 {
-				p.URL = as.IRI(a.Metadata.URL)
+				p.URL = ap.IRI(a.Metadata.URL)
 			}
 		} else {
 			p.Name.Set("en", a.Handle)
 
-			p.Outbox = as.IRI(BuildCollectionID(a, new(ap.Outbox)))
-			p.Inbox = as.IRI(BuildCollectionID(a, new(ap.Inbox)))
-			p.Liked = as.IRI(BuildCollectionID(a, new(ap.Liked)))
+			p.Outbox = ap.IRI(BuildCollectionID(a, handlers.Outbox))
+			p.Inbox = ap.IRI(BuildCollectionID(a, handlers.Inbox))
+			p.Liked = ap.IRI(BuildCollectionID(a, handlers.Liked))
 
 			p.URL = accountURL(a)
 
@@ -372,24 +345,24 @@ func loadAPPerson(a app.Account) *auth.Person {
 		}
 		oauthURL := strings.Replace(BaseURL, "api", "oauth", 1)
 		p.Endpoints = &ap.Endpoints{
-			SharedInbox:                as.IRI(fmt.Sprintf("%s/inbox", BaseURL)),
-			OauthAuthorizationEndpoint: as.IRI(fmt.Sprintf("%s/authorize", oauthURL)),
-			OauthTokenEndpoint:         as.IRI(fmt.Sprintf("%s/token", oauthURL)),
+			SharedInbox:                ap.IRI(fmt.Sprintf("%s/inbox", BaseURL)),
+			OauthAuthorizationEndpoint: ap.IRI(fmt.Sprintf("%s/authorize", oauthURL)),
+			OauthTokenEndpoint:         ap.IRI(fmt.Sprintf("%s/token", oauthURL)),
 		}
 	}
 
 	//p.Score = a.Score
 	if a.IsValid() && a.HasMetadata() && a.Metadata.Key != nil && a.Metadata.Key.Public != nil {
-		p.PublicKey = auth.PublicKey{
-			ID:           as.ObjectID(fmt.Sprintf("%s#main-key", p.ID)),
-			Owner:        as.IRI(p.ID),
+		p.PublicKey = ap.PublicKey{
+			ID:           ap.ObjectID(fmt.Sprintf("%s#main-key", p.ID)),
+			Owner:        ap.IRI(p.ID),
 			PublicKeyPem: fmt.Sprintf("-----BEGIN PUBLIC KEY-----\n%s\n-----END PUBLIC KEY-----", base64.StdEncoding.EncodeToString(a.Metadata.Key.Public)),
 		}
 	}
 	return &p
 }
 
-func getSigner(pubKeyID as.ObjectID, key crypto.PrivateKey) *httpsig.Signer {
+func getSigner(pubKeyID ap.ObjectID, key crypto.PrivateKey) *httpsig.Signer {
 	hdrs := []string{"(request-target)", "host", "date"}
 	return httpsig.NewSigner(string(pubKeyID), key, httpsig.RSASHA256, hdrs)
 }
@@ -451,7 +424,7 @@ func (r *repository) LoadItem(f app.Filters) (app.Item, error) {
 	f.LoadItemsFilter.Key = nil
 
 	url := fmt.Sprintf("%s/objects/%s", r.BaseURL, hashes[0])
-	it, err := r.client.LoadIRI(as.IRI(url))
+	it, err := r.client.LoadIRI(ap.IRI(url))
 	if err != nil {
 		r.logger.Error(err.Error())
 		return item, err
@@ -498,7 +471,7 @@ func (r *repository) loadAccountsVotes(accounts ...app.Account) (app.AccountColl
 	col := make(app.AccountCollection, len(accounts))
 	votes, _, err := r.LoadVotes(fVotes)
 	if err != nil {
-		return nil, errors.Annotatef(err, "unable to load accounts votes")
+		return accounts, errors.Annotatef(err, "unable to load accounts votes")
 	}
 	for k, ac := range accounts {
 		for _, vot := range votes {
@@ -594,8 +567,8 @@ func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) 
 		f.LoadItemsFilter.IRI = ""
 		f.Federated = nil
 		f.InReplyTo = nil
-		f.Type = as.ActivityVocabularyTypes{
-			as.CreateType,
+		f.Type = ap.ActivityVocabularyTypes{
+			ap.CreateType,
 		}
 	}
 	if len(f.Federated) > 0 {
@@ -608,14 +581,14 @@ func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) 
 		}
 	}
 	if len(f.Type) == 0 && len(f.LoadItemsFilter.Deleted) > 0 {
-		f.Type = as.ActivityVocabularyTypes{
-			as.ArticleType,
-			as.AudioType,
-			as.DocumentType,
-			as.ImageType,
-			as.NoteType,
-			as.PageType,
-			as.VideoType,
+		f.Type = ap.ActivityVocabularyTypes{
+			ap.ArticleType,
+			ap.AudioType,
+			ap.DocumentType,
+			ap.ImageType,
+			ap.NoteType,
+			ap.PageType,
+			ap.VideoType,
 		}
 	}
 	if q, err := qstring.MarshalString(&f); err == nil {
@@ -627,7 +600,7 @@ func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) 
 		"url": url,
 	}
 
-	it, err := r.client.LoadIRI(as.IRI(url))
+	it, err := r.client.LoadIRI(ap.IRI(url))
 	if err != nil {
 		r.logger.WithContext(ctx).Error(err.Error())
 		return nil, 0, err
@@ -635,7 +608,7 @@ func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) 
 
 	items := make(app.ItemCollection, 0)
 	var count uint = 0
-	ap.OnOrderedCollection(it, func(col *as.OrderedCollection) error {
+	ap.OnOrderedCollection(it, func(col *ap.OrderedCollection) error {
 		count = col.TotalItems
 		for _, it := range col.OrderedItems {
 			i := app.Item{}
@@ -680,7 +653,7 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 	reqURL := r.getAuthorRequestURL(v.SubmittedBy)
 
 	url := fmt.Sprintf("%s/%s", v.Item.Metadata.ID, "likes")
-	itemVotes, err := r.loadVotesCollection(as.IRI(url), as.IRI(v.SubmittedBy.Metadata.ID))
+	itemVotes, err := r.loadVotesCollection(ap.IRI(url), ap.IRI(v.SubmittedBy.Metadata.ID))
 	// first step is to verify if vote already exists:
 	if err != nil {
 		r.logger.WithContext(log.Ctx{
@@ -700,17 +673,15 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 	}
 
 	o := loadAPItem(*v.Item)
-	act := as.Activity{
-		Parent: as.Object{
-			Type: as.UndoType,
-			To:   as.ItemCollection{as.PublicNS},
-			BCC:  as.ItemCollection{as.IRI(BaseURL)},
-		},
+	act := ap.Activity{
+		Type:  ap.UndoType,
+		To:    ap.ItemCollection{ap.PublicNS},
+		BCC:   ap.ItemCollection{ap.IRI(BaseURL)},
 		Actor: author.GetLink(),
 	}
 
 	if exists.HasMetadata() {
-		act.Object = as.IRI(exists.Metadata.IRI)
+		act.Object = ap.IRI(exists.Metadata.IRI)
 		// undo old vote
 		var body []byte
 		if body, err = j.Marshal(act); err != nil {
@@ -729,11 +700,11 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 	}
 
 	if v.Weight > 0 && exists.Weight <= 0 {
-		act.Type = as.LikeType
+		act.Type = ap.LikeType
 		act.Object = o.GetLink()
 	}
 	if v.Weight < 0 && exists.Weight >= 0 {
-		act.Type = as.DislikeType
+		act.Type = ap.DislikeType
 		act.Object = o.GetLink()
 	}
 
@@ -759,7 +730,7 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 	return v, r.handlerErrorResponse(body)
 }
 
-func (r *repository) loadVotesCollection(iri as.IRI, actors ...as.IRI) ([]app.Vote, error) {
+func (r *repository) loadVotesCollection(iri ap.IRI, actors ...ap.IRI) ([]app.Vote, error) {
 	cntActors := len(actors)
 	if cntActors > 0 {
 		attrTo := make([]app.Hash, cntActors)
@@ -770,7 +741,7 @@ func (r *repository) loadVotesCollection(iri as.IRI, actors ...as.IRI) ([]app.Vo
 			AttributedTo: attrTo,
 		}
 		if q, err := qstring.MarshalString(&f); err == nil {
-			iri = as.IRI(fmt.Sprintf("%s?%s", iri, q))
+			iri = ap.IRI(fmt.Sprintf("%s?%s", iri, q))
 		}
 	}
 	likes, err := r.client.LoadIRI(iri)
@@ -779,7 +750,7 @@ func (r *repository) loadVotesCollection(iri as.IRI, actors ...as.IRI) ([]app.Vo
 		return nil, err
 	}
 	votes := make([]app.Vote, 0)
-	err = ap.OnOrderedCollection(likes, func(col *as.OrderedCollection) error {
+	err = ap.OnOrderedCollection(likes, func(col *ap.OrderedCollection) error {
 		for _, like := range col.OrderedItems {
 			vote := app.Vote{}
 			vote.FromActivityPub(like)
@@ -795,10 +766,10 @@ func (r *repository) loadVotesCollection(iri as.IRI, actors ...as.IRI) ([]app.Vo
 
 func (r *repository) LoadVotes(f app.Filters) (app.VoteCollection, uint, error) {
 	var qs string
-	f.Type = as.ActivityVocabularyTypes{
-		as.LikeType,
-		as.DislikeType,
-		as.UndoType,
+	f.Type = ap.ActivityVocabularyTypes{
+		ap.LikeType,
+		ap.DislikeType,
+		ap.UndoType,
 	}
 
 	var url string
@@ -816,7 +787,7 @@ func (r *repository) LoadVotes(f app.Filters) (app.VoteCollection, uint, error) 
 		url = fmt.Sprintf("%s/inbox%s", r.BaseURL, qs)
 	}
 
-	it, err := r.client.LoadIRI(as.IRI(url))
+	it, err := r.client.LoadIRI(ap.IRI(url))
 	if err != nil {
 		r.logger.Error(err.Error())
 		return nil, 0, err
@@ -824,7 +795,7 @@ func (r *repository) LoadVotes(f app.Filters) (app.VoteCollection, uint, error) 
 	var count uint = 0
 	votes := make(app.VoteCollection, 0)
 	undos := make(app.VoteCollection, 0)
-	ap.OnOrderedCollection(it, func(col *as.OrderedCollection) error {
+	ap.OnOrderedCollection(it, func(col *ap.OrderedCollection) error {
 		count = col.TotalItems
 		for _, it := range col.OrderedItems {
 			vot := app.Vote{}
@@ -875,12 +846,12 @@ func (r *repository) LoadVote(f app.Filters) (app.Vote, error) {
 	f.ItemKey = nil
 	url := fmt.Sprintf("%s/liked/%s", r.BaseURL, itemHash)
 
-	it, err := r.client.LoadIRI(as.IRI(url))
+	it, err := r.client.LoadIRI(ap.IRI(url))
 	if err != nil {
 		r.logger.Error(err.Error())
 		return v, err
 	}
-	err = ap.OnActivity(it, func(like *as.Activity) error {
+	err = ap.OnActivity(it, func(like *ap.Activity) error {
 		return v.FromActivityPub(like)
 	})
 	return v, err
@@ -905,7 +876,7 @@ func (r *repository) handlerErrorResponse(body []byte) error {
 }
 
 func (r *repository) handleItemSaveSuccessResponse(it app.Item, body []byte) (app.Item, error) {
-	ap, err := as.UnmarshalJSON(body)
+	ap, err := ap.UnmarshalJSON(body)
 	if err != nil {
 		r.logger.Error(err.Error())
 		return it, err
@@ -953,35 +924,29 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 			}).Error(err.Error())
 			return it, errors.NotFoundf("item hash is empty, can not delete")
 		}
-		delete := as.Delete{
-			Parent: as.Parent{
-				Type: as.DeleteType,
-				To:   as.ItemCollection{as.PublicNS},
-				BCC:  as.ItemCollection{as.IRI(BaseURL)},
-			},
+		delete := ap.Delete{
+			Type:   ap.DeleteType,
+			To:     ap.ItemCollection{ap.PublicNS},
+			BCC:    ap.ItemCollection{ap.IRI(BaseURL)},
 			Actor:  author.GetLink(),
 			Object: id,
 		}
 		body, err = j.Marshal(delete)
 	} else {
 		if len(id) == 0 {
-			create := as.Create{
-				Parent: as.Parent{
-					Type: as.CreateType,
-					To:   as.ItemCollection{as.PublicNS},
-					BCC:  as.ItemCollection{as.IRI(BaseURL)},
-				},
+			create := ap.Create{
+				Type:   ap.CreateType,
+				To:     ap.ItemCollection{ap.PublicNS},
+				BCC:    ap.ItemCollection{ap.IRI(BaseURL)},
 				Actor:  author.GetLink(),
 				Object: art,
 			}
 			body, err = j.Marshal(create)
 		} else {
-			update := as.Update{
-				Parent: as.Parent{
-					Type: as.UpdateType,
-					To:   as.ItemCollection{as.PublicNS},
-					BCC:  as.ItemCollection{as.IRI(BaseURL)},
-				},
+			update := ap.Update{
+				Type:   ap.UpdateType,
+				To:     ap.ItemCollection{ap.PublicNS},
+				BCC:    ap.ItemCollection{ap.IRI(BaseURL)},
 				Object: art,
 				Actor:  author.GetLink(),
 			}
@@ -1018,17 +983,17 @@ func (r *repository) LoadAccounts(f app.Filters) (app.AccountCollection, uint, e
 	}
 	url := fmt.Sprintf("%s/%s", ActorsURL, qs)
 
-	it, err := r.client.LoadIRI(as.IRI(url))
+	it, err := r.client.LoadIRI(ap.IRI(url))
 	if err != nil {
 		r.logger.Error(err.Error())
 		return nil, 0, err
 	}
 	accounts := make(app.AccountCollection, 0)
 	var count uint = 0
-	ap.OnOrderedCollection(it, func(col *as.OrderedCollection) error {
+	ap.OnOrderedCollection(it, func(col *ap.OrderedCollection) error {
 		count = col.TotalItems
 		for _, it := range col.OrderedItems {
-			acc := app.Account{}
+			acc := app.Account{Metadata: &app.AccountMetadata{}}
 			if err := acc.FromActivityPub(it); err != nil {
 				r.logger.WithContext(log.Ctx{
 					"type": fmt.Sprintf("%T", it),
@@ -1047,7 +1012,7 @@ func (r *repository) LoadAccount(f app.Filters) (app.Account, error) {
 	var accounts app.AccountCollection
 	var err error
 	if accounts, _, err = r.LoadAccounts(f); err != nil {
-		return app.Account{}, err
+		return app.AnonymousAccount, err
 	}
 
 	var ac *app.Account
@@ -1059,7 +1024,7 @@ func (r *repository) LoadAccount(f app.Filters) (app.Account, error) {
 		if len(f.Handle) > 0 {
 			id = f.Handle[0]
 		}
-		return app.Account{}, errors.NotFoundf("account %s", id)
+		return app.AnonymousAccount, errors.NotFoundf("account %s", id)
 	}
 	return *ac, nil
 }
@@ -1068,7 +1033,7 @@ func (r *repository) SaveAccount(a app.Account) (app.Account, error) {
 	p := loadAPPerson(a)
 	id := p.GetLink()
 
-	p.Generator = as.IRI(app.Instance.BaseURL)
+	p.Generator = ap.IRI(app.Instance.BaseURL)
 	p.Published = time.Now()
 	p.Updated = p.Published
 	p.URL = accountURL(a)
@@ -1086,46 +1051,40 @@ func (r *repository) SaveAccount(a app.Account) (app.Account, error) {
 			}).Error(err.Error())
 			return a, errors.NotFoundf("item hash is empty, can not delete")
 		}
-		delete := as.Delete{
-			Parent: as.Parent{
-				Type:         as.DeleteType,
-				To:           as.ItemCollection{as.PublicNS},
-				BCC:          as.ItemCollection{as.IRI(BaseURL)},
-				AttributedTo: author.GetLink(),
-				Updated:      now,
-			},
-			Actor:  author.GetLink(),
-			Object: id,
+		delete := ap.Delete{
+			Type:         ap.DeleteType,
+			To:           ap.ItemCollection{ap.PublicNS},
+			BCC:          ap.ItemCollection{ap.IRI(BaseURL)},
+			AttributedTo: author.GetLink(),
+			Updated:      now,
+			Actor:        author.GetLink(),
+			Object:       id,
 		}
 		body, err = j.Marshal(delete)
 	} else {
 		if len(id) == 0 {
-			p.To = as.ItemCollection{as.PublicNS}
-			p.BCC = as.ItemCollection{as.IRI(BaseURL)}
-			create := as.Create{
-				Parent: as.Parent{
-					Type:         as.CreateType,
-					To:           as.ItemCollection{as.PublicNS},
-					BCC:          as.ItemCollection{as.IRI(BaseURL)},
-					AttributedTo: author.GetLink(),
-					Published:    now,
-					Updated:      now,
-				},
-				Actor:  author.GetLink(),
-				Object: p,
+			p.To = ap.ItemCollection{ap.PublicNS}
+			p.BCC = ap.ItemCollection{ap.IRI(BaseURL)}
+			create := ap.Create{
+				Type:         ap.CreateType,
+				To:           ap.ItemCollection{ap.PublicNS},
+				BCC:          ap.ItemCollection{ap.IRI(BaseURL)},
+				AttributedTo: author.GetLink(),
+				Published:    now,
+				Updated:      now,
+				Actor:        author.GetLink(),
+				Object:       p,
 			}
 			body, err = j.Marshal(create)
 		} else {
-			update := as.Update{
-				Parent: as.Parent{
-					Type:         as.UpdateType,
-					To:           as.ItemCollection{as.PublicNS},
-					BCC:          as.ItemCollection{as.IRI(BaseURL)},
-					AttributedTo: author.GetLink(),
-					Updated:      now,
-				},
-				Object: p,
-				Actor:  author.GetLink(),
+			update := ap.Update{
+				Type:         ap.UpdateType,
+				To:           ap.ItemCollection{ap.PublicNS},
+				BCC:          ap.ItemCollection{ap.IRI(BaseURL)},
+				AttributedTo: author.GetLink(),
+				Updated:      now,
+				Object:       p,
+				Actor:        author.GetLink(),
 			}
 			body, err = j.Marshal(update)
 		}
@@ -1150,7 +1109,7 @@ func (r *repository) SaveAccount(a app.Account) (app.Account, error) {
 	if resp.StatusCode >= 400 {
 		return a, r.handlerErrorResponse(body)
 	}
-	ap, err := as.UnmarshalJSON(body)
+	ap, err := ap.UnmarshalJSON(body)
 	if err != nil {
 		r.logger.Error(err.Error())
 		return a, err

@@ -6,7 +6,7 @@ import (
 	"context"
 	"encoding/gob"
 	"fmt"
-	as "github.com/go-ap/activitystreams"
+	as "github.com/go-ap/activitypub"
 	"github.com/gorilla/csrf"
 	localap "github.com/mariusor/littr.go/activitypub"
 	"html/template"

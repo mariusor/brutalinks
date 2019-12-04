@@ -27,7 +27,7 @@ func accountFromRequest(r *http.Request, l log.Logger) (*app.Account, error) {
 		return nil, errors.Errorf("invalid http method type")
 	}
 
-	a := app.Account{}
+	a := app.Account{Metadata: &app.AccountMetadata{}}
 	pw := r.PostFormValue("pw")
 	pwConfirm := r.PostFormValue("pw-confirm")
 	if pw != pwConfirm {

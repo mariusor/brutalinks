@@ -28,7 +28,7 @@ const (
 )
 
 var AnonymousHash = Hash{}
-var AnonymousAccount = Account{Handle: Anonymous, Hash: AnonymousHash}
+var AnonymousAccount = Account{Handle: Anonymous, Hash: AnonymousHash, Metadata: &AccountMetadata{}}
 
 var listenHost string
 var listenPort int64

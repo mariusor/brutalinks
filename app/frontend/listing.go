@@ -3,7 +3,7 @@ package frontend
 import (
 	"context"
 	"fmt"
-	"github.com/go-ap/activitystreams"
+	pub "github.com/go-ap/activitypub"
 	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/internal/log"
 	"github.com/mariusor/qstring"
@@ -272,7 +272,7 @@ func (h *handler) HandleDomains(w http.ResponseWriter, r *http.Request) {
 	}
 	if len(domain) > 0 {
 		filter.LoadItemsFilter.URL = domain
-		filter.Type = activitystreams.ActivityVocabularyTypes{activitystreams.PageType}
+		filter.Type = pub.ActivityVocabularyTypes{pub.PageType}
 	} else {
 		filter.MediaType = []app.MimeType{app.MimeTypeMarkdown, app.MimeTypeText, app.MimeTypeHTML}
 	}
