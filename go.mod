@@ -11,6 +11,7 @@ require (
 	github.com/go-ap/activitystreams v0.0.0-20191201184731-495abe28e08d
 	github.com/go-ap/auth v0.0.0-20191201190523-ca8721c75d8d
 	github.com/go-ap/errors v0.0.0-20191127092628-088896cbdb2b
+	github.com/go-ap/handlers v0.0.0-20191201190429-72a10e820d79
 	github.com/go-ap/jsonld v0.0.0-20191123195936-1e43eac08b0c
 	github.com/go-chi/chi v4.0.2+incompatible
 	github.com/go-pg/pg v7.1.1+incompatible
