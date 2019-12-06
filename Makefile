@@ -6,7 +6,7 @@ GO := go
 ENV ?= dev
 LDFLAGS ?= -X main.version=$(VERSION)
 BUILDFLAGS ?= -a -ldflags '$(LDFLAGS)'
-APPSOURCES := $(wildcard ./app/*.go ./app/*/*.go internal/*/*.go) main.go
+APPSOURCES := $(wildcard  ./activitypub/*.go ./app/*.go ./app/*/*.go internal/*/*.go) main.go
 
 ifneq ($(ENV), dev)
 	LDFLAGS += -s -w -extldflags "-static"
