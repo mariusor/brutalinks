@@ -2,7 +2,7 @@ package activitypub
 
 import (
 	"github.com/buger/jsonparser"
-	ap "github.com/go-ap/activitypub"
+	pub "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
 )
 
@@ -10,7 +10,7 @@ import (
 //    github.com/go-ap/activitypub/actors.go#actor
 // We need it here in order to be able to add to it our Score property
 type Actor struct {
-	ap.Actor
+	pub.Actor
 	// Score is our own custom property for which we needed to extend the existing AP one
 	Score int `jsonld:"score"`
 }
@@ -19,20 +19,20 @@ type Actor struct {
 //    github.com/go-ap/activitypub/objects.go#Object
 // We need it here in order to be able to add to it our Score property
 type Object struct {
-	ap.Object
+	pub.Object
 	Score int `jsonld:"score"`
 }
 
-// GetID returns the ObjectID pointer of current Actor instance
-func (a Actor) GetID() ap.ObjectID {
+// GetID returns the ID pointer of current Actor instance
+func (a Actor) GetID() pub.ID {
 	id := a.ID
 	return id
 }
-func (a Actor) GetType() ap.ActivityVocabularyType {
+func (a Actor) GetType() pub.ActivityVocabularyType {
 	return a.Type
 }
-func (a Actor) GetLink() ap.IRI {
-	return ap.IRI(a.ID)
+func (a Actor) GetLink() pub.IRI {
+	return pub.IRI(a.ID)
 }
 func (a Actor) IsLink() bool {
 	return false
@@ -42,18 +42,18 @@ func (a Actor) IsObject() bool {
 	return true
 }
 
-// GetID returns the ObjectID pointer of current Object instance
-func (a Object) GetID() ap.ObjectID {
+// GetID returns the ID pointer of current Object instance
+func (a Object) GetID() pub.ID {
 	return a.ID
 }
 
 // GetLink returns the IRI of the Object object
-func (a Object) GetLink() ap.IRI {
-	return ap.IRI(a.ID)
+func (a Object) GetLink() pub.IRI {
+	return pub.IRI(a.ID)
 }
 
 // GetType returns the current Object object's type
-func (a Object) GetType() ap.ActivityVocabularyType {
+func (a Object) GetType() pub.ActivityVocabularyType {
 	return a.Type
 }
 
@@ -69,7 +69,7 @@ func (a Object) IsObject() bool {
 
 // UnmarshalJSON tries to load json data to Object object
 func (a *Object) UnmarshalJSON(data []byte) error {
-	ob := ap.Object{}
+	ob := pub.Object{}
 	err := ob.UnmarshalJSON(data)
 	if err != nil {
 		return err
@@ -85,7 +85,7 @@ func (a *Object) UnmarshalJSON(data []byte) error {
 
 // UnmarshalJSON tries to load json data to Actor object
 func (a *Actor) UnmarshalJSON(data []byte) error {
-	p := ap.Actor{}
+	p := pub.Actor{}
 	if err := p.UnmarshalJSON(data); err != nil {
 		return err
 	}
@@ -99,28 +99,28 @@ func (a *Actor) UnmarshalJSON(data []byte) error {
 }
 
 // JSONGetItemByType
-func JSONGetItemByType(typ ap.ActivityVocabularyType) (ap.Item, error) {
-	if ap.ActorTypes.Contains(typ) {
+func JSONGetItemByType(typ pub.ActivityVocabularyType) (pub.Item, error) {
+	if pub.ActorTypes.Contains(typ) {
 		act := &Actor{}
 		act.Type = typ
 		return act, nil
-	} else if ap.ObjectTypes.Contains(typ) {
+	} else if pub.ObjectTypes.Contains(typ) {
 		ob := &Object{}
 		ob.Type = typ
 		return ob, nil
 	}
-	return ap.JSONGetItemByType(typ)
+	return pub.JSONGetItemByType(typ)
 }
 
 // ToObject
-func ToObject(it ap.Item) (*Object, error) {
+func ToObject(it pub.Item) (*Object, error) {
 	switch i := it.(type) {
 	case *Object:
 		return i, nil
 	case Object:
 		return &i, nil
 	default:
-		ob, err := ap.ToObject(it)
+		ob, err := pub.ToObject(it)
 		if err != nil {
 			return nil, err
 		}
@@ -134,7 +134,7 @@ func ToObject(it ap.Item) (*Object, error) {
 type withObjectFn func(*Object) error
 
 // OnObject
-func OnObject(it ap.Item, fn withObjectFn) error {
+func OnObject(it pub.Item, fn withObjectFn) error {
 	ob, err := ToObject(it)
 	if err != nil {
 		return err
@@ -143,14 +143,14 @@ func OnObject(it ap.Item, fn withObjectFn) error {
 }
 
 // ToActor
-func ToActor(it ap.Item) (*Actor, error) {
+func ToActor(it pub.Item) (*Actor, error) {
 	switch i := it.(type) {
 	case *Actor:
 		return i, nil
 	case Actor:
 		return &i, nil
 	default:
-		pers, err := ap.ToActor(it)
+		pers, err := pub.ToActor(it)
 		if err != nil {
 			return nil, err
 		}
@@ -164,7 +164,7 @@ func ToActor(it ap.Item) (*Actor, error) {
 type withPersonFn func(*Actor) error
 
 // OnActor
-func OnActor(it ap.Item, fn withPersonFn) error {
+func OnActor(it pub.Item, fn withPersonFn) error {
 	ob, err := ToActor(it)
 	if err != nil {
 		return err

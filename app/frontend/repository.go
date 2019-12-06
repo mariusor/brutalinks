@@ -7,7 +7,7 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"fmt"
-	ap "github.com/go-ap/activitypub"
+	pub "github.com/go-ap/activitypub"
 	cl "github.com/go-ap/activitypub/client"
 	"github.com/go-ap/errors"
 	"github.com/go-ap/handlers"
@@ -40,7 +40,7 @@ func (h handler) Repository(next http.Handler) http.Handler {
 }
 
 func NewRepository(c Config) *repository {
-	ap.ItemTyperFunc = local.JSONGetItemByType
+	pub.ItemTyperFunc = local.JSONGetItemByType
 	cl.UserAgent = fmt.Sprintf("%s-%s", app.Instance.HostName, app.Instance.Version)
 	cl.ErrorLogger = func(el ...interface{}) { c.Logger.WithContext(log.Ctx{"client": "api"}).Errorf("%v", el) }
 	cl.InfoLogger = func(el ...interface{}) { c.Logger.WithContext(log.Ctx{"client": "api"}).Debugf("%v", el) }
@@ -56,98 +56,98 @@ func NewRepository(c Config) *repository {
 	}
 }
 
-func getObjectType(el ap.Item) string {
+func getObjectType(el pub.Item) string {
 	if el == nil {
 		return ""
 	}
 	var label = ""
 	switch el.(type) {
-	case *ap.OrderedCollection:
+	case *pub.OrderedCollection:
 		label = "collection"
-	case ap.OrderedCollection:
+	case pub.OrderedCollection:
 		label = "collection"
-	case ap.Person:
-		if o, ok := el.(ap.Person); ok {
+	case pub.Person:
+		if o, ok := el.(pub.Person); ok {
 			label = o.Name.First().Value
 		}
-	case *ap.Person:
-		if o, ok := el.(*ap.Person); ok {
+	case *pub.Person:
+		if o, ok := el.(*pub.Person); ok {
 			label = o.Name.First().Value
 		}
 	}
 	return label
 }
 
-func BuildCollectionID(a app.Account, o handlers.CollectionType) ap.ObjectID {
+func BuildCollectionID(a app.Account, o handlers.CollectionType) pub.ID {
 	if len(a.Handle) > 0 {
-		return ap.ObjectID(fmt.Sprintf("%s/%s/%s", ActorsURL, url.PathEscape(a.Hash.String()), o))
+		return pub.ID(fmt.Sprintf("%s/%s/%s", ActorsURL, url.PathEscape(a.Hash.String()), o))
 	}
-	return ap.ObjectID(fmt.Sprintf("%s/%s", BaseURL, o))
+	return pub.ID(fmt.Sprintf("%s/%s", BaseURL, o))
 }
 
 var BaseURL = "http://fedbox.git"
 var ActorsURL = fmt.Sprintf("%s/actors", BaseURL)
 var ObjectsURL = fmt.Sprintf("%s/objects", BaseURL)
 
-func apAccountID(a app.Account) ap.ObjectID {
+func apAccountID(a app.Account) pub.ID {
 	if len(a.Hash) >= 8 {
-		return ap.ObjectID(fmt.Sprintf("%s/%s", ActorsURL, a.Hash.String()))
+		return pub.ID(fmt.Sprintf("%s/%s", ActorsURL, a.Hash.String()))
 	}
-	return ap.ObjectID(fmt.Sprintf("%s/anonymous", ActorsURL))
+	return pub.ID(fmt.Sprintf("%s/anonymous", ActorsURL))
 }
 
-func accountURL(acc app.Account) ap.IRI {
-	return ap.IRI(fmt.Sprintf("%s%s", app.Instance.BaseURL, AccountPermaLink(acc)))
+func accountURL(acc app.Account) pub.IRI {
+	return pub.IRI(fmt.Sprintf("%s%s", app.Instance.BaseURL, AccountPermaLink(acc)))
 }
 
-func BuildObjectIDFromItem(i app.Item) (ap.ObjectID, bool) {
+func BuildIDFromItem(i app.Item) (pub.ID, bool) {
 	if !i.IsValid() {
 		return "", false
 	}
 	if i.HasMetadata() && len(i.Metadata.ID) > 0 {
-		return ap.ObjectID(i.Metadata.ID), true
+		return pub.ID(i.Metadata.ID), true
 	}
-	return ap.ObjectID(fmt.Sprintf("%s/%s", ObjectsURL, url.PathEscape(i.Hash.String()))), true
+	return pub.ID(fmt.Sprintf("%s/%s", ObjectsURL, url.PathEscape(i.Hash.String()))), true
 }
 
-func BuildActorID(a app.Account) ap.ObjectID {
+func BuildActorID(a app.Account) pub.ID {
 	if !a.IsValid() {
-		return ap.ObjectID(ap.PublicNS)
+		return pub.ID(pub.PublicNS)
 	}
 	if a.HasMetadata() && len(a.Metadata.ID) > 0 {
-		return ap.ObjectID(a.Metadata.ID)
+		return pub.ID(a.Metadata.ID)
 	}
-	return ap.ObjectID(fmt.Sprintf("%s/%s", ActorsURL, url.PathEscape(a.Hash.String())))
+	return pub.ID(fmt.Sprintf("%s/%s", ActorsURL, url.PathEscape(a.Hash.String())))
 }
 
-func loadAPItem(item app.Item) ap.Item {
+func loadAPItem(item app.Item) pub.Item {
 	o := local.Object{}
 
-	if id, ok := BuildObjectIDFromItem(item); ok {
+	if id, ok := BuildIDFromItem(item); ok {
 		o.ID = id
 	}
 	if item.MimeType == app.MimeTypeURL {
-		o.Type = ap.PageType
-		o.URL = ap.IRI(item.Data)
+		o.Type = pub.PageType
+		o.URL = pub.IRI(item.Data)
 	} else {
 		wordCount := strings.Count(item.Data, " ") +
 			strings.Count(item.Data, "\t") +
 			strings.Count(item.Data, "\n") +
 			strings.Count(item.Data, "\r\n")
 		if wordCount > 300 {
-			o.Type = ap.ArticleType
+			o.Type = pub.ArticleType
 		} else {
-			o.Type = ap.NoteType
+			o.Type = pub.NoteType
 		}
 
 		if len(item.Hash) > 0 {
-			o.URL = ap.IRI(ItemPermaLink(item))
+			o.URL = pub.IRI(ItemPermaLink(item))
 		}
-		o.Name = make(ap.NaturalLanguageValues, 0)
+		o.Name = make(pub.NaturalLanguageValues, 0)
 		switch item.MimeType {
 		case app.MimeTypeMarkdown:
-			o.Object.Source.MediaType = ap.MimeType(item.MimeType)
-			o.MediaType = ap.MimeType(app.MimeTypeHTML)
+			o.Object.Source.MediaType = pub.MimeType(item.MimeType)
+			o.MediaType = pub.MimeType(app.MimeTypeHTML)
 			if item.Data != "" {
 				o.Source.Content.Set("en", item.Data)
 				o.Content.Set("en", string(app.Markdown(item.Data)))
@@ -155,36 +155,36 @@ func loadAPItem(item app.Item) ap.Item {
 		case app.MimeTypeText:
 			fallthrough
 		case app.MimeTypeHTML:
-			o.MediaType = ap.MimeType(item.MimeType)
+			o.MediaType = pub.MimeType(item.MimeType)
 			o.Content.Set("en", item.Data)
 		}
 	}
 
 	// TODO(marius): add proper dynamic recipients to this based on some selector in the frontend
-	o.To = ap.ItemCollection{ap.PublicNS}
-	o.BCC = ap.ItemCollection{ap.IRI(BaseURL)}
+	o.To = pub.ItemCollection{pub.PublicNS}
+	o.BCC = pub.ItemCollection{pub.IRI(BaseURL)}
 	o.Published = item.SubmittedAt
 	o.Updated = item.UpdatedAt
 
 	if item.Deleted() {
-		del := ap.Tombstone{
+		del := pub.Tombstone{
 			ID:         o.ID,
-			Type:       ap.TombstoneType,
+			Type:       pub.TombstoneType,
 			FormerType: o.Type,
 			Deleted:    o.Updated,
 		}
-		repl := make(ap.ItemCollection, 0)
+		repl := make(pub.ItemCollection, 0)
 		if item.Parent != nil {
-			if par, ok := BuildObjectIDFromItem(*item.Parent); ok {
-				repl = append(repl, ap.IRI(par))
+			if par, ok := BuildIDFromItem(*item.Parent); ok {
+				repl = append(repl, pub.IRI(par))
 			}
 			if item.OP == nil {
 				item.OP = item.Parent
 			}
 		}
 		if item.OP != nil {
-			if op, ok := BuildObjectIDFromItem(*item.OP); ok {
-				iri := ap.IRI(op)
+			if op, ok := BuildIDFromItem(*item.OP); ok {
+				iri := pub.IRI(op)
 				del.Context = iri
 				if !repl.Contains(iri) {
 					repl = append(repl, iri)
@@ -198,24 +198,24 @@ func loadAPItem(item app.Item) ap.Item {
 		return del
 	}
 
-	//o.Generator = ap.IRI(app.Instance.BaseURL)
+	//o.Generator = pub.IRI(app.Instance.BaseURL)
 	o.Score = item.Score / app.ScoreMultiplier
 	if item.Title != "" {
 		o.Name.Set("en", string(item.Title))
 	}
 	if item.SubmittedBy != nil {
 		id := BuildActorID(*item.SubmittedBy)
-		o.AttributedTo = ap.IRI(id)
+		o.AttributedTo = pub.IRI(id)
 	}
-	repl := make(ap.ItemCollection, 0)
+	repl := make(pub.ItemCollection, 0)
 	if item.Parent != nil {
 		p := item.Parent
-		if par, ok := BuildObjectIDFromItem(*p); ok {
-			repl = append(repl, ap.IRI(par))
+		if par, ok := BuildIDFromItem(*p); ok {
+			repl = append(repl, pub.IRI(par))
 		}
 		if p.SubmittedBy.IsValid() {
-			if pAuth := BuildActorID(*p.SubmittedBy); ap.IRI(pAuth) != ap.PublicNS {
-				o.To = append(o.To, ap.IRI(pAuth))
+			if pAuth := BuildActorID(*p.SubmittedBy); pub.IRI(pAuth) != pub.PublicNS {
+				o.To = append(o.To, pub.IRI(pAuth))
 			}
 		}
 		if item.OP == nil {
@@ -223,8 +223,8 @@ func loadAPItem(item app.Item) ap.Item {
 		}
 	}
 	if item.OP != nil {
-		if op, ok := BuildObjectIDFromItem(*item.OP); ok {
-			iri := ap.IRI(op)
+		if op, ok := BuildIDFromItem(*item.OP); ok {
+			iri := pub.IRI(op)
 			o.Context = iri
 			if !repl.Contains(iri) {
 				repl = append(repl, iri)
@@ -238,21 +238,21 @@ func loadAPItem(item app.Item) ap.Item {
 	if item.Metadata != nil {
 		m := item.Metadata
 		if m.Mentions != nil || m.Tags != nil {
-			o.Tag = make(ap.ItemCollection, 0)
+			o.Tag = make(pub.ItemCollection, 0)
 			for _, men := range m.Mentions {
 				// todo(marius): retrieve object ids of each mention and add it to the CC of the object
-				t := ap.Object{
-					ID:   ap.ObjectID(men.URL),
-					Type: ap.MentionType,
-					Name: ap.NaturalLanguageValues{{Ref: ap.NilLangRef, Value: men.Name}},
+				t := pub.Object{
+					ID:   pub.ID(men.URL),
+					Type: pub.MentionType,
+					Name: pub.NaturalLanguageValues{{Ref: pub.NilLangRef, Value: men.Name}},
 				}
 				o.Tag.Append(t)
 			}
 			for _, tag := range m.Tags {
-				t := ap.Object{
-					ID:   ap.ObjectID(tag.URL),
-					Type: ap.ObjectType,
-					Name: ap.NaturalLanguageValues{{Ref: ap.NilLangRef, Value: tag.Name}},
+				t := pub.Object{
+					ID:   pub.ID(tag.URL),
+					Type: pub.ObjectType,
+					Name: pub.NaturalLanguageValues{{Ref: pub.NilLangRef, Value: tag.Name}},
 				}
 				o.Tag.Append(t)
 			}
@@ -262,74 +262,74 @@ func loadAPItem(item app.Item) ap.Item {
 	return &o
 }
 
-func anonymousActor() *ap.Actor {
-	p := ap.Actor{}
-	p.ID = ap.ObjectID(ap.PublicNS)
-	p.Type = ap.PersonType
-	p.Name = ap.NaturalLanguageValues{
-		{ap.NilLangRef, app.Anonymous},
+func anonymousActor() *pub.Actor {
+	p := pub.Actor{}
+	p.ID = pub.ID(pub.PublicNS)
+	p.Type = pub.PersonType
+	p.Name = pub.NaturalLanguageValues{
+		{pub.NilLangRef, app.Anonymous},
 	}
-	p.PreferredUsername = ap.NaturalLanguageValues{
-		{ap.NilLangRef, app.Anonymous},
+	p.PreferredUsername = pub.NaturalLanguageValues{
+		{pub.NilLangRef, app.Anonymous},
 	}
 	return &p
 }
 
-func anonymousPerson(url string) *ap.Actor {
+func anonymousPerson(url string) *pub.Actor {
 	p := anonymousActor()
-	p.Inbox = ap.IRI(fmt.Sprintf("%s/inbox", url))
+	p.Inbox = pub.IRI(fmt.Sprintf("%s/inbox", url))
 	return p
 }
 
-func loadAPPerson(a app.Account) *ap.Actor {
-	p := ap.Actor{}
-	p.Type = ap.PersonType
-	p.Name = ap.NaturalLanguageValuesNew()
-	p.PreferredUsername = ap.NaturalLanguageValuesNew()
+func loadAPPerson(a app.Account) *pub.Actor {
+	p := pub.Actor{}
+	p.Type = pub.PersonType
+	p.Name = pub.NaturalLanguageValuesNew()
+	p.PreferredUsername = pub.NaturalLanguageValuesNew()
 
 	if a.HasMetadata() {
 		if a.Metadata.Blurb != nil && len(a.Metadata.Blurb) > 0 {
-			p.Summary = ap.NaturalLanguageValuesNew()
-			p.Summary.Set(ap.NilLangRef, string(a.Metadata.Blurb))
+			p.Summary = pub.NaturalLanguageValuesNew()
+			p.Summary.Set(pub.NilLangRef, string(a.Metadata.Blurb))
 		}
 		if len(a.Metadata.Icon.URI) > 0 {
-			avatar := ap.ObjectNew(ap.ImageType)
-			avatar.MediaType = ap.MimeType(a.Metadata.Icon.MimeType)
-			avatar.URL = ap.IRI(a.Metadata.Icon.URI)
+			avatar := pub.ObjectNew(pub.ImageType)
+			avatar.MediaType = pub.MimeType(a.Metadata.Icon.MimeType)
+			avatar.URL = pub.IRI(a.Metadata.Icon.URI)
 			p.Icon = avatar
 		}
 	}
 
-	p.PreferredUsername.Set(ap.NilLangRef, a.Handle)
+	p.PreferredUsername.Set(pub.NilLangRef, a.Handle)
 
 	if len(a.Hash) > 0 {
 		if a.IsFederated() {
-			p.ID = ap.ObjectID(a.Metadata.ID)
+			p.ID = pub.ID(a.Metadata.ID)
 			p.Name.Set("en", a.Metadata.Name)
 			if len(a.Metadata.InboxIRI) > 0 {
-				p.Inbox = ap.IRI(a.Metadata.InboxIRI)
+				p.Inbox = pub.IRI(a.Metadata.InboxIRI)
 			}
 			if len(a.Metadata.OutboxIRI) > 0 {
-				p.Outbox = ap.IRI(a.Metadata.OutboxIRI)
+				p.Outbox = pub.IRI(a.Metadata.OutboxIRI)
 			}
 			if len(a.Metadata.LikedIRI) > 0 {
-				p.Liked = ap.IRI(a.Metadata.LikedIRI)
+				p.Liked = pub.IRI(a.Metadata.LikedIRI)
 			}
 			if len(a.Metadata.FollowersIRI) > 0 {
-				p.Followers = ap.IRI(a.Metadata.FollowersIRI)
+				p.Followers = pub.IRI(a.Metadata.FollowersIRI)
 			}
 			if len(a.Metadata.FollowingIRI) > 0 {
-				p.Following = ap.IRI(a.Metadata.FollowingIRI)
+				p.Following = pub.IRI(a.Metadata.FollowingIRI)
 			}
 			if len(a.Metadata.URL) > 0 {
-				p.URL = ap.IRI(a.Metadata.URL)
+				p.URL = pub.IRI(a.Metadata.URL)
 			}
 		} else {
 			p.Name.Set("en", a.Handle)
 
-			p.Outbox = ap.IRI(BuildCollectionID(a, handlers.Outbox))
-			p.Inbox = ap.IRI(BuildCollectionID(a, handlers.Inbox))
-			p.Liked = ap.IRI(BuildCollectionID(a, handlers.Liked))
+			p.Outbox = pub.IRI(BuildCollectionID(a, handlers.Outbox))
+			p.Inbox = pub.IRI(BuildCollectionID(a, handlers.Inbox))
+			p.Liked = pub.IRI(BuildCollectionID(a, handlers.Liked))
 
 			p.URL = accountURL(a)
 
@@ -344,25 +344,25 @@ func loadAPPerson(a app.Account) *ap.Actor {
 			p.ID = apAccountID(a)
 		}
 		oauthURL := strings.Replace(BaseURL, "api", "oauth", 1)
-		p.Endpoints = &ap.Endpoints{
-			SharedInbox:                ap.IRI(fmt.Sprintf("%s/inbox", BaseURL)),
-			OauthAuthorizationEndpoint: ap.IRI(fmt.Sprintf("%s/authorize", oauthURL)),
-			OauthTokenEndpoint:         ap.IRI(fmt.Sprintf("%s/token", oauthURL)),
+		p.Endpoints = &pub.Endpoints{
+			SharedInbox:                pub.IRI(fmt.Sprintf("%s/inbox", BaseURL)),
+			OauthAuthorizationEndpoint: pub.IRI(fmt.Sprintf("%s/authorize", oauthURL)),
+			OauthTokenEndpoint:         pub.IRI(fmt.Sprintf("%s/token", oauthURL)),
 		}
 	}
 
 	//p.Score = a.Score
 	if a.IsValid() && a.HasMetadata() && a.Metadata.Key != nil && a.Metadata.Key.Public != nil {
-		p.PublicKey = ap.PublicKey{
-			ID:           ap.ObjectID(fmt.Sprintf("%s#main-key", p.ID)),
-			Owner:        ap.IRI(p.ID),
+		p.PublicKey = pub.PublicKey{
+			ID:           pub.ID(fmt.Sprintf("%s#main-key", p.ID)),
+			Owner:        pub.IRI(p.ID),
 			PublicKeyPem: fmt.Sprintf("-----BEGIN PUBLIC KEY-----\n%s\n-----END PUBLIC KEY-----", base64.StdEncoding.EncodeToString(a.Metadata.Key.Public)),
 		}
 	}
 	return &p
 }
 
-func getSigner(pubKeyID ap.ObjectID, key crypto.PrivateKey) *httpsig.Signer {
+func getSigner(pubKeyID pub.ID, key crypto.PrivateKey) *httpsig.Signer {
 	hdrs := []string{"(request-target)", "host", "date"}
 	return httpsig.NewSigner(string(pubKeyID), key, httpsig.RSASHA256, hdrs)
 }
@@ -424,7 +424,7 @@ func (r *repository) LoadItem(f app.Filters) (app.Item, error) {
 	f.LoadItemsFilter.Key = nil
 
 	url := fmt.Sprintf("%s/objects/%s", r.BaseURL, hashes[0])
-	it, err := r.client.LoadIRI(ap.IRI(url))
+	it, err := r.client.LoadIRI(pub.IRI(url))
 	if err != nil {
 		r.logger.Error(err.Error())
 		return item, err
@@ -567,8 +567,8 @@ func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) 
 		f.LoadItemsFilter.IRI = ""
 		f.Federated = nil
 		f.InReplyTo = nil
-		f.Type = ap.ActivityVocabularyTypes{
-			ap.CreateType,
+		f.Type = pub.ActivityVocabularyTypes{
+			pub.CreateType,
 		}
 	}
 	if len(f.Federated) > 0 {
@@ -581,14 +581,14 @@ func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) 
 		}
 	}
 	if len(f.Type) == 0 && len(f.LoadItemsFilter.Deleted) > 0 {
-		f.Type = ap.ActivityVocabularyTypes{
-			ap.ArticleType,
-			ap.AudioType,
-			ap.DocumentType,
-			ap.ImageType,
-			ap.NoteType,
-			ap.PageType,
-			ap.VideoType,
+		f.Type = pub.ActivityVocabularyTypes{
+			pub.ArticleType,
+			pub.AudioType,
+			pub.DocumentType,
+			pub.ImageType,
+			pub.NoteType,
+			pub.PageType,
+			pub.VideoType,
 		}
 	}
 	if q, err := qstring.MarshalString(&f); err == nil {
@@ -600,7 +600,7 @@ func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) 
 		"url": url,
 	}
 
-	it, err := r.client.LoadIRI(ap.IRI(url))
+	it, err := r.client.LoadIRI(pub.IRI(url))
 	if err != nil {
 		r.logger.WithContext(ctx).Error(err.Error())
 		return nil, 0, err
@@ -608,7 +608,7 @@ func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) 
 
 	items := make(app.ItemCollection, 0)
 	var count uint = 0
-	ap.OnOrderedCollection(it, func(col *ap.OrderedCollection) error {
+	pub.OnOrderedCollection(it, func(col *pub.OrderedCollection) error {
 		count = col.TotalItems
 		for _, it := range col.OrderedItems {
 			i := app.Item{}
@@ -653,7 +653,7 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 	reqURL := r.getAuthorRequestURL(v.SubmittedBy)
 
 	url := fmt.Sprintf("%s/%s", v.Item.Metadata.ID, "likes")
-	itemVotes, err := r.loadVotesCollection(ap.IRI(url), ap.IRI(v.SubmittedBy.Metadata.ID))
+	itemVotes, err := r.loadVotesCollection(pub.IRI(url), pub.IRI(v.SubmittedBy.Metadata.ID))
 	// first step is to verify if vote already exists:
 	if err != nil {
 		r.logger.WithContext(log.Ctx{
@@ -673,15 +673,15 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 	}
 
 	o := loadAPItem(*v.Item)
-	act := ap.Activity{
-		Type:  ap.UndoType,
-		To:    ap.ItemCollection{ap.PublicNS},
-		BCC:   ap.ItemCollection{ap.IRI(BaseURL)},
+	act := pub.Activity{
+		Type:  pub.UndoType,
+		To:    pub.ItemCollection{pub.PublicNS},
+		BCC:   pub.ItemCollection{pub.IRI(BaseURL)},
 		Actor: author.GetLink(),
 	}
 
 	if exists.HasMetadata() {
-		act.Object = ap.IRI(exists.Metadata.IRI)
+		act.Object = pub.IRI(exists.Metadata.IRI)
 		// undo old vote
 		var body []byte
 		if body, err = j.Marshal(act); err != nil {
@@ -700,11 +700,11 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 	}
 
 	if v.Weight > 0 && exists.Weight <= 0 {
-		act.Type = ap.LikeType
+		act.Type = pub.LikeType
 		act.Object = o.GetLink()
 	}
 	if v.Weight < 0 && exists.Weight >= 0 {
-		act.Type = ap.DislikeType
+		act.Type = pub.DislikeType
 		act.Object = o.GetLink()
 	}
 
@@ -730,7 +730,7 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 	return v, r.handlerErrorResponse(body)
 }
 
-func (r *repository) loadVotesCollection(iri ap.IRI, actors ...ap.IRI) ([]app.Vote, error) {
+func (r *repository) loadVotesCollection(iri pub.IRI, actors ...pub.IRI) ([]app.Vote, error) {
 	cntActors := len(actors)
 	if cntActors > 0 {
 		attrTo := make([]app.Hash, cntActors)
@@ -741,7 +741,7 @@ func (r *repository) loadVotesCollection(iri ap.IRI, actors ...ap.IRI) ([]app.Vo
 			AttributedTo: attrTo,
 		}
 		if q, err := qstring.MarshalString(&f); err == nil {
-			iri = ap.IRI(fmt.Sprintf("%s?%s", iri, q))
+			iri = pub.IRI(fmt.Sprintf("%s?%s", iri, q))
 		}
 	}
 	likes, err := r.client.LoadIRI(iri)
@@ -750,7 +750,7 @@ func (r *repository) loadVotesCollection(iri ap.IRI, actors ...ap.IRI) ([]app.Vo
 		return nil, err
 	}
 	votes := make([]app.Vote, 0)
-	err = ap.OnOrderedCollection(likes, func(col *ap.OrderedCollection) error {
+	err = pub.OnOrderedCollection(likes, func(col *pub.OrderedCollection) error {
 		for _, like := range col.OrderedItems {
 			vote := app.Vote{}
 			vote.FromActivityPub(like)
@@ -766,10 +766,10 @@ func (r *repository) loadVotesCollection(iri ap.IRI, actors ...ap.IRI) ([]app.Vo
 
 func (r *repository) LoadVotes(f app.Filters) (app.VoteCollection, uint, error) {
 	var qs string
-	f.Type = ap.ActivityVocabularyTypes{
-		ap.LikeType,
-		ap.DislikeType,
-		ap.UndoType,
+	f.Type = pub.ActivityVocabularyTypes{
+		pub.LikeType,
+		pub.DislikeType,
+		pub.UndoType,
 	}
 
 	var url string
@@ -787,7 +787,7 @@ func (r *repository) LoadVotes(f app.Filters) (app.VoteCollection, uint, error) 
 		url = fmt.Sprintf("%s/inbox%s", r.BaseURL, qs)
 	}
 
-	it, err := r.client.LoadIRI(ap.IRI(url))
+	it, err := r.client.LoadIRI(pub.IRI(url))
 	if err != nil {
 		r.logger.Error(err.Error())
 		return nil, 0, err
@@ -795,7 +795,7 @@ func (r *repository) LoadVotes(f app.Filters) (app.VoteCollection, uint, error) 
 	var count uint = 0
 	votes := make(app.VoteCollection, 0)
 	undos := make(app.VoteCollection, 0)
-	ap.OnOrderedCollection(it, func(col *ap.OrderedCollection) error {
+	pub.OnOrderedCollection(it, func(col *pub.OrderedCollection) error {
 		count = col.TotalItems
 		for _, it := range col.OrderedItems {
 			vot := app.Vote{}
@@ -846,12 +846,12 @@ func (r *repository) LoadVote(f app.Filters) (app.Vote, error) {
 	f.ItemKey = nil
 	url := fmt.Sprintf("%s/liked/%s", r.BaseURL, itemHash)
 
-	it, err := r.client.LoadIRI(ap.IRI(url))
+	it, err := r.client.LoadIRI(pub.IRI(url))
 	if err != nil {
 		r.logger.Error(err.Error())
 		return v, err
 	}
-	err = ap.OnActivity(it, func(like *ap.Activity) error {
+	err = pub.OnActivity(it, func(like *pub.Activity) error {
 		return v.FromActivityPub(like)
 	})
 	return v, err
@@ -876,7 +876,7 @@ func (r *repository) handlerErrorResponse(body []byte) error {
 }
 
 func (r *repository) handleItemSaveSuccessResponse(it app.Item, body []byte) (app.Item, error) {
-	ap, err := ap.UnmarshalJSON(body)
+	ap, err := pub.UnmarshalJSON(body)
 	if err != nil {
 		r.logger.Error(err.Error())
 		return it, err
@@ -924,29 +924,29 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 			}).Error(err.Error())
 			return it, errors.NotFoundf("item hash is empty, can not delete")
 		}
-		delete := ap.Delete{
-			Type:   ap.DeleteType,
-			To:     ap.ItemCollection{ap.PublicNS},
-			BCC:    ap.ItemCollection{ap.IRI(BaseURL)},
+		delete := pub.Delete{
+			Type:   pub.DeleteType,
+			To:     pub.ItemCollection{pub.PublicNS},
+			BCC:    pub.ItemCollection{pub.IRI(BaseURL)},
 			Actor:  author.GetLink(),
 			Object: id,
 		}
 		body, err = j.Marshal(delete)
 	} else {
 		if len(id) == 0 {
-			create := ap.Create{
-				Type:   ap.CreateType,
-				To:     ap.ItemCollection{ap.PublicNS},
-				BCC:    ap.ItemCollection{ap.IRI(BaseURL)},
+			create := pub.Create{
+				Type:   pub.CreateType,
+				To:     pub.ItemCollection{pub.PublicNS},
+				BCC:    pub.ItemCollection{pub.IRI(BaseURL)},
 				Actor:  author.GetLink(),
 				Object: art,
 			}
 			body, err = j.Marshal(create)
 		} else {
-			update := ap.Update{
-				Type:   ap.UpdateType,
-				To:     ap.ItemCollection{ap.PublicNS},
-				BCC:    ap.ItemCollection{ap.IRI(BaseURL)},
+			update := pub.Update{
+				Type:   pub.UpdateType,
+				To:     pub.ItemCollection{pub.PublicNS},
+				BCC:    pub.ItemCollection{pub.IRI(BaseURL)},
 				Object: art,
 				Actor:  author.GetLink(),
 			}
@@ -983,14 +983,14 @@ func (r *repository) LoadAccounts(f app.Filters) (app.AccountCollection, uint, e
 	}
 	url := fmt.Sprintf("%s/%s", ActorsURL, qs)
 
-	it, err := r.client.LoadIRI(ap.IRI(url))
+	it, err := r.client.LoadIRI(pub.IRI(url))
 	if err != nil {
 		r.logger.Error(err.Error())
 		return nil, 0, err
 	}
 	accounts := make(app.AccountCollection, 0)
 	var count uint = 0
-	ap.OnOrderedCollection(it, func(col *ap.OrderedCollection) error {
+	pub.OnOrderedCollection(it, func(col *pub.OrderedCollection) error {
 		count = col.TotalItems
 		for _, it := range col.OrderedItems {
 			acc := app.Account{Metadata: &app.AccountMetadata{}}
@@ -1033,7 +1033,7 @@ func (r *repository) SaveAccount(a app.Account) (app.Account, error) {
 	p := loadAPPerson(a)
 	id := p.GetLink()
 
-	p.Generator = ap.IRI(app.Instance.BaseURL)
+	p.Generator = pub.IRI(app.Instance.BaseURL)
 	p.Published = time.Now()
 	p.Updated = p.Published
 	p.URL = accountURL(a)
@@ -1051,10 +1051,10 @@ func (r *repository) SaveAccount(a app.Account) (app.Account, error) {
 			}).Error(err.Error())
 			return a, errors.NotFoundf("item hash is empty, can not delete")
 		}
-		delete := ap.Delete{
-			Type:         ap.DeleteType,
-			To:           ap.ItemCollection{ap.PublicNS},
-			BCC:          ap.ItemCollection{ap.IRI(BaseURL)},
+		delete := pub.Delete{
+			Type:         pub.DeleteType,
+			To:           pub.ItemCollection{pub.PublicNS},
+			BCC:          pub.ItemCollection{pub.IRI(BaseURL)},
 			AttributedTo: author.GetLink(),
 			Updated:      now,
 			Actor:        author.GetLink(),
@@ -1063,12 +1063,12 @@ func (r *repository) SaveAccount(a app.Account) (app.Account, error) {
 		body, err = j.Marshal(delete)
 	} else {
 		if len(id) == 0 {
-			p.To = ap.ItemCollection{ap.PublicNS}
-			p.BCC = ap.ItemCollection{ap.IRI(BaseURL)}
-			create := ap.Create{
-				Type:         ap.CreateType,
-				To:           ap.ItemCollection{ap.PublicNS},
-				BCC:          ap.ItemCollection{ap.IRI(BaseURL)},
+			p.To = pub.ItemCollection{pub.PublicNS}
+			p.BCC = pub.ItemCollection{pub.IRI(BaseURL)}
+			create := pub.Create{
+				Type:         pub.CreateType,
+				To:           pub.ItemCollection{pub.PublicNS},
+				BCC:          pub.ItemCollection{pub.IRI(BaseURL)},
 				AttributedTo: author.GetLink(),
 				Published:    now,
 				Updated:      now,
@@ -1077,10 +1077,10 @@ func (r *repository) SaveAccount(a app.Account) (app.Account, error) {
 			}
 			body, err = j.Marshal(create)
 		} else {
-			update := ap.Update{
-				Type:         ap.UpdateType,
-				To:           ap.ItemCollection{ap.PublicNS},
-				BCC:          ap.ItemCollection{ap.IRI(BaseURL)},
+			update := pub.Update{
+				Type:         pub.UpdateType,
+				To:           pub.ItemCollection{pub.PublicNS},
+				BCC:          pub.ItemCollection{pub.IRI(BaseURL)},
 				AttributedTo: author.GetLink(),
 				Updated:      now,
 				Object:       p,
@@ -1109,7 +1109,7 @@ func (r *repository) SaveAccount(a app.Account) (app.Account, error) {
 	if resp.StatusCode >= 400 {
 		return a, r.handlerErrorResponse(body)
 	}
-	ap, err := ap.UnmarshalJSON(body)
+	ap, err := pub.UnmarshalJSON(body)
 	if err != nil {
 		r.logger.Error(err.Error())
 		return a, err

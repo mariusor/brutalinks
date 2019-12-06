@@ -279,7 +279,7 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if i.OP.IsValid() {
-		if id, ok := BuildObjectIDFromItem(*i.OP); ok {
+		if id, ok := BuildIDFromItem(*i.OP); ok {
 			filter.Context = []string{string(id)}
 		}
 	}
@@ -310,7 +310,6 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-
 
 	reparentComments(allComments)
 	addLevelComments(allComments)
