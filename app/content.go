@@ -2,11 +2,8 @@ package app
 
 import (
 	"database/sql/driver"
-	"fmt"
 	"github.com/go-ap/errors"
-	"github.com/mmcloughlin/meow"
 	"html/template"
-	"strings"
 
 	mark "gitlab.com/golang-commonmark/markdown"
 )
@@ -91,22 +88,6 @@ func (f *FlagBits) FromInt64() error {
 }
 
 type ItemCollection []Item
-
-func GenKey(el ...[]byte) Key {
-	lim := []byte("##")
-
-	buf := strings.Builder{}
-	for i, l := range el {
-		buf.Write(l)
-		if i < len(el)-1 {
-			buf.Write(lim)
-		}
-	}
-
-	var k Key
-	k.FromString(fmt.Sprintf("%x", meow.Checksum(RandomSeedSelectedByDiceRoll, []byte(buf.String()))))
-	return k
-}
 
 func Markdown(data string) template.HTML {
 	md := mark.New(
