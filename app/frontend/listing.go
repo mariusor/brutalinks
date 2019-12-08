@@ -9,6 +9,7 @@ import (
 	"github.com/mariusor/qstring"
 	"html/template"
 	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"strings"
@@ -162,15 +163,21 @@ func (h *handler) HandleIndex(w http.ResponseWriter, r *http.Request) {
 		h.logger.Debug("unable to load url parameters")
 	}
 
+	baseURL, _ := url.Parse(h.conf.BaseURL)
+	title := fmt.Sprintf("%s: main page", baseURL.Host)
+
 	acct := h.account(r)
 	base := path.Base(r.URL.Path)
 	switch strings.ToLower(base) {
 	case "self":
+		title = fmt.Sprintf("%s: self", baseURL.Host)
 		h.logger.Debug("showing self posts")
 	case "federated":
+		title = fmt.Sprintf("%s: federated", baseURL.Host)
 		h.logger.Debug("showing federated posts")
 		filter.Federated = []bool{true}
 	case "followed":
+		title = fmt.Sprintf("%s: 2", baseURL.Host)
 		h.logger.WithContext(log.Ctx{
 			"handle": acct.Handle,
 			"hash":   acct.Hash,
@@ -179,7 +186,7 @@ func (h *handler) HandleIndex(w http.ResponseWriter, r *http.Request) {
 	default:
 	}
 	if m, err := loadItems(r.Context(), filter, acct, h.logger); err == nil {
-		m.Title = "Index"
+		m.Title = title
 
 		m.HideText = true
 		if len(m.Items) >= filter.MaxItems {
@@ -202,6 +209,7 @@ func loadItems(c context.Context, filter app.Filters, acc *app.Account, l log.Lo
 		return m, err
 	}
 	contentItems, _, err := itemLoader.LoadItems(filter)
+
 	if err != nil {
 		return m, err
 	}
@@ -243,8 +251,9 @@ func (h *handler) HandleTags(w http.ResponseWriter, r *http.Request) {
 	if err := qstring.Unmarshal(r.URL.Query(), &filter); err != nil {
 		h.logger.Debug("unable to load url parameters")
 	}
+	baseURL, _ := url.Parse(h.conf.BaseURL)
 	if m, err := loadItems(r.Context(), filter, acct, h.logger); err == nil {
-		m.Title = fmt.Sprintf("Submissions tagged as #%s", tag)
+		m.Title = fmt.Sprintf("%s: tagged as #%s", baseURL.Host, tag)
 
 		if len(m.Items) >= filter.MaxItems {
 			m.nextPage = filter.Page + 1
@@ -279,9 +288,9 @@ func (h *handler) HandleDomains(w http.ResponseWriter, r *http.Request) {
 	if err := qstring.Unmarshal(r.URL.Query(), &filter); err != nil {
 		h.logger.Debug("unable to load url parameters")
 	}
+	baseURL, _ := url.Parse(h.conf.BaseURL)
 	if m, err := loadItems(r.Context(), filter, acct, h.logger); err == nil {
-		m.Title = fmt.Sprintf("Submissions from %s", domain)
-
+		m.Title = fmt.Sprintf("%s: from %s", baseURL.Host, domain)
 		m.HideText = true
 		if len(m.Items) >= filter.MaxItems {
 			m.nextPage = filter.Page + 1
