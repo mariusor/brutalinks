@@ -571,13 +571,16 @@ func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) 
 			pub.CreateType,
 		}
 	}
+	filterLocal := false
 	if len(f.Federated) > 0 {
 		for _, fed := range f.Federated {
 			if !fed {
 				// TODO(marius): need to add to fedbox support for filtering by hostname
 				f.LoadItemsFilter.IRI = BaseURL
-				break
+			} else {
+				filterLocal = true
 			}
+			break
 		}
 	}
 	if len(f.Type) == 0 && len(f.LoadItemsFilter.Deleted) > 0 {
@@ -611,6 +614,12 @@ func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) 
 	pub.OnOrderedCollection(it, func(col *pub.OrderedCollection) error {
 		count = col.TotalItems
 		for _, it := range col.OrderedItems {
+			if filterLocal && it.GetLink().Contains(pub.IRI(r.BaseURL), false) {
+				continue
+			}
+			if !filterLocal && !it.GetLink().Contains(pub.IRI(r.BaseURL), false) {
+				continue
+			}
 			i := app.Item{}
 			if err := i.FromActivityPub(it); err != nil {
 				r.logger.Error(err.Error())
