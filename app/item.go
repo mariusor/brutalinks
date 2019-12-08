@@ -7,7 +7,11 @@ import (
 	"github.com/go-ap/errors"
 )
 
+const TagMention = "mention"
+const TagTag = "tag"
+
 type Tag struct {
+	Type string `json:"-"`
 	Name string `json:"name,omitempty"`
 	URL  string `json:"id,omitempty"`
 }

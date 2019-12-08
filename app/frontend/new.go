@@ -23,49 +23,48 @@ func detectMimeType(data string) app.MimeType {
 	return "text/plain"
 }
 
+func getTagFromBytes(d []byte) app.Tag {
+	var name, host []byte
+	t := app.Tag{}
+
+	if ind := bytes.LastIndex(d, []byte{'@'}); ind > 1 {
+		name = d[1:ind]
+		host = []byte(fmt.Sprintf("https://%s", d[ind+1:]))
+	} else {
+		name = d[1:]
+		host = []byte(app.Instance.BaseURL)
+	}
+	if d[0] == '@' || d[0] == '~' {
+		// mention
+		t.Type = app.TagMention
+		t.Name = string(name)
+		t.URL = fmt.Sprintf("%s/~%s", host, name)
+	}
+	if d[0] == '#' {
+		// @todo(marius) :link_generation: make the tag links be generated from the corresponding route
+		t.Type = app.TagTag
+		t.Name = string(name)
+		t.URL = fmt.Sprintf("%s/t/%s", host, name)
+	}
+	return t
+}
+
 func loadTags(data string) (app.TagCollection, app.TagCollection) {
 	if !strings.ContainsAny(data, "#@~") {
 		return nil, nil
 	}
 	tags := make(app.TagCollection, 0)
 	mentions := make(app.TagCollection, 0)
-	r := regexp.MustCompile(`(?:\A|\s)([#~@]\w[\w@.]+)`)
 
+	r := regexp.MustCompile(`(?:\A|\s)((?:[~@]\w+)(?:@\w+.\w+)?|(?:#\w{4,}))`)
 	matches := r.FindAllSubmatch([]byte(data), -1)
-	for _, submatches := range matches {
-		match := submatches[1]
-		t := app.Tag{}
-		name := match
-		isFed := false
-		atP := bytes.LastIndex(name, []byte{'@'})
-		if atP > 0 {
-			isFed = true
-		}
 
-		if name[0] == '@' || name[0] == '~' {
-			// mention
-			t.Name = string(name)
-			var host []byte
-			if isFed {
-				host = []byte(fmt.Sprintf("https://%s", name[atP+2:]))
-				name = name[:atP+1]
-			} else {
-				host = []byte(app.Instance.BaseURL)
-			}
-			t.URL = fmt.Sprintf("%s/~%s", host, name[1:])
+	for _, sub := range matches {
+		t := getTagFromBytes(sub[1])
+		if t.Type == app.TagMention {
 			mentions = append(mentions, t)
 		}
-		if match[0] == '#' {
-			// @todo(marius) :link_generation: make the tag links be generated from the corresponding route
-			t.Name = string(name)
-			var host []byte
-			if isFed {
-				host = []byte(fmt.Sprintf("https://%s", name[atP+1:]))
-				name = name[:atP]
-			} else {
-				host = []byte(app.Instance.BaseURL)
-			}
-			t.URL = fmt.Sprintf("%s/t/%s", host, name[1:])
+		if t.Type == app.TagTag {
 			tags = append(tags, t)
 		}
 	}
@@ -164,7 +163,7 @@ func (h *handler) ValidateItemAuthor(next http.Handler) http.Handler {
 				h.logger.Error("could not load item repository from Context")
 				return
 			}
-			m, err := itemLoader.LoadItem(app.Filters{ LoadItemsFilter: app.LoadItemsFilter{Key: app.Hashes{app.Hash(hash)}}})
+			m, err := itemLoader.LoadItem(app.Filters{LoadItemsFilter: app.LoadItemsFilter{Key: app.Hashes{app.Hash(hash)}}})
 			if err != nil {
 				h.logger.Error(err.Error())
 				h.HandleErrors(w, r, errors.NewNotFound(err, "item"))

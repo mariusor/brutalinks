@@ -6,6 +6,7 @@ import (
 	"github.com/mariusor/qstring"
 	"math"
 	"net/http"
+	"net/url"
 	"path"
 	"strings"
 
@@ -91,19 +92,19 @@ func sluggify(s app.MimeType) string {
 func mimeTypeTagReplace(m app.MimeType, t app.Tag) string {
 	var cls string
 
-	if t.Name[0] == '#' {
+	if t.Type == app.TagTag {
 		cls = "tag"
 	}
-	if t.Name[0] == '@' || t.Name[0] == '~' {
+	if t.Type == app.TagMention {
 		cls = "mention"
 	}
 
-	return fmt.Sprintf("<a href='%s' class='%s'>%s</a>", t.URL, cls, t.Name[1:])
+	return fmt.Sprintf("<a href='%s' class='%s'>%s</a>", t.URL, cls, t.Name)
 }
 
-func inRange(n string, nn []string) bool {
-	for _, ts := range nn {
-		if ts == n {
+func inRange(n string, nn map[string]string) bool {
+	for k := range nn {
+		if k == n {
 			return true
 		}
 	}
@@ -115,25 +116,38 @@ func replaceTagsInItem(cur app.Item) string {
 	if cur.Metadata == nil {
 		return dat
 	}
-	names := make([]string, 0)
+	replaces := make(map[string]string, 0)
 	if cur.Metadata.Tags != nil {
 		for _, t := range cur.Metadata.Tags {
-			if inRange(t.Name, names) {
+			name := fmt.Sprintf("#%s", t.Name)
+			if inRange(name, replaces) {
 				continue
 			}
-			r := mimeTypeTagReplace(cur.MimeType, t)
-			dat = strings.Replace(dat, t.Name, r, -1)
-			names = append(names, t.Name)
+			replaces[name] = mimeTypeTagReplace(cur.MimeType, t)
 		}
 	}
 	if cur.Metadata.Mentions != nil {
-		for _, t := range cur.Metadata.Mentions {
-			if inRange(t.Name, names) {
+		for idx, t := range cur.Metadata.Mentions {
+			lbl := fmt.Sprintf(":::MENTION_%d:::", idx)
+			if inRange(lbl, replaces) {
 				continue
 			}
-			r := mimeTypeTagReplace(cur.MimeType, t)
-			dat = strings.Replace(dat, t.Name, r, -1)
+			if u, err := url.Parse(t.URL); err == nil && len(u.Host) > 0 {
+				nameAtT := fmt.Sprintf("~%s@%s", t.Name, u.Host)
+				nameAtA := fmt.Sprintf("@%s@%s", t.Name, u.Host)
+				dat = strings.ReplaceAll(dat, nameAtT, lbl)
+				dat = strings.ReplaceAll(dat, nameAtA, lbl)
+			}
+			nameT := fmt.Sprintf("~%s", t.Name)
+			nameA := fmt.Sprintf("@%s", t.Name)
+			dat = strings.ReplaceAll(dat, nameT, lbl)
+			dat = strings.ReplaceAll(dat, nameA, lbl)
+			replaces[lbl] = mimeTypeTagReplace(cur.MimeType, t)
 		}
+	}
+
+	for to, repl := range replaces {
+		dat = strings.ReplaceAll(dat, to, repl)
 	}
 	return dat
 }

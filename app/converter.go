@@ -321,9 +321,10 @@ func FromArticle(i *Item, a *ap.Object) error {
 		tags := TagCollection{}
 		tags.FromActivityPub(a.Tag)
 		for _, t := range tags {
-			if t.Name[0] == '#' {
+			if t.Type == TagTag {
 				i.Metadata.Tags = append(i.Metadata.Tags, t)
-			} else {
+			}
+			if t.Type == TagMention {
 				i.Metadata.Mentions = append(i.Metadata.Mentions, t)
 			}
 		}
@@ -516,6 +517,7 @@ func (i *TagCollection) FromActivityPub(it goap.ItemCollection) error {
 			// we have a link
 			lt := Tag{
 				URL:  u,
+				Type: TagMention,
 				Name: m.Name.First().Value,
 			}
 			*i = append(*i, lt)
@@ -525,6 +527,7 @@ func (i *TagCollection) FromActivityPub(it goap.ItemCollection) error {
 			// we have a link
 			lt := Tag{
 				URL:  u,
+				Type: TagTag,
 				Name: ob.Name.First().Value,
 			}
 			*i = append(*i, lt)
