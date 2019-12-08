@@ -553,6 +553,11 @@ form label.mime-type {
 .about>header {
     display: none;
 }
+section#no-items {
+    opacity: .65;
+    margin-top: 1em;
+    margin-left: .4em;
+}
 .error main section,
 .about main section {
     opacity: .65;

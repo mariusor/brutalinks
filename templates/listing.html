@@ -1,5 +1,5 @@
 {{- if .Items | len -}}
 {{- template "partials/items" .Items -}}
 {{- else -}}
-<section>Nothing here... yet.</section>
+<section id="no-items"><p>There's only dust here.</p></section>
 {{- end -}}

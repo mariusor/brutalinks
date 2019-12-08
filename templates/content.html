@@ -10,5 +10,5 @@
 {{- if .Content.Children | len -}}
 {{ template "partials/content/comments" .Content }}
 {{- else -}}
-Nobody has any thoughts about this... yet.
+<section id="no-items"><p>There's only dust here.</p></section>
 {{- end -}}
