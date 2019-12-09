@@ -264,14 +264,13 @@ func loadAPItem(item app.Item) pub.Item {
 
 func anonymousActor() *pub.Actor {
 	p := pub.Actor{}
+	name := pub.NaturalLanguageValues{
+		{pub.NilLangRef, app.Anonymous},
+	}
 	p.ID = pub.ID(pub.PublicNS)
 	p.Type = pub.PersonType
-	p.Name = pub.NaturalLanguageValues{
-		{pub.NilLangRef, app.Anonymous},
-	}
-	p.PreferredUsername = pub.NaturalLanguageValues{
-		{pub.NilLangRef, app.Anonymous},
-	}
+	p.Name = name
+	p.PreferredUsername = name
 	return &p
 }
 
