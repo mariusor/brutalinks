@@ -177,7 +177,7 @@ func (h *handler) HandleIndex(w http.ResponseWriter, r *http.Request) {
 		h.logger.Debug("showing federated posts")
 		filter.Federated = []bool{true}
 	case "followed":
-		title = fmt.Sprintf("%s: 2", baseURL.Host)
+		title = fmt.Sprintf("%s: followed", baseURL.Host)
 		h.logger.WithContext(log.Ctx{
 			"handle": acct.Handle,
 			"hash":   acct.Hash,
