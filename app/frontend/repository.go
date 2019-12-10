@@ -8,7 +8,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	pub "github.com/go-ap/activitypub"
-	cl "github.com/go-ap/activitypub/client"
+	cl "github.com/go-ap/client"
 	"github.com/go-ap/errors"
 	"github.com/go-ap/handlers"
 	j "github.com/go-ap/jsonld"

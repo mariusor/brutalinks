@@ -6,6 +6,7 @@ require (
 	github.com/buger/jsonparser v0.0.0-20191204142016-1a29609e0929
 	github.com/captncraig/cors v0.0.0-20190703115713-e80254a89df1 // indirect
 	github.com/go-ap/activitypub v0.0.0-20191205181648-67aa065f9f6f
+	github.com/go-ap/client v0.0.0-20191210140833-4adf852965be
 	github.com/go-ap/errors v0.0.0-20191127092628-088896cbdb2b
 	github.com/go-ap/handlers v0.0.0-20191205181917-2fbaf94ad809
 	github.com/go-ap/jsonld v0.0.0-20191123195936-1e43eac08b0c
