@@ -750,6 +750,17 @@ func loadFlashMessages(r *http.Request, w http.ResponseWriter, s *sessions.Sessi
 	return func() []flash { return flashData }
 }
 
+func SetSecurityHeaders(next http.Handler) http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Security-Policy", "default-src 'self'")
+		w.Header().Set("X-Frame-Options", "DENY")
+		w.Header().Set("X-Xss-Protection", "1; mode=block")
+		w.Header().Set("Referrer-Policy", "same-origin")
+		next.ServeHTTP(w, r)
+	}
+	return http.HandlerFunc(fn)
+}
+
 func (h *handler) LoadSession(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		if app.Instance.Config.SessionsEnabled {

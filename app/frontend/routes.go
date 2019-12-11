@@ -15,6 +15,7 @@ func (h *handler) Routes() func(chi.Router) {
 		r.Use(middleware.GetHead)
 		r.Use(app.ReqLogger(h.logger))
 		r.Use(h.LoadSession)
+		r.Use(SetSecurityHeaders)
 		//r.Use(middleware.RedirectSlashes)
 
 		r.Get("/about", h.HandleAbout)
