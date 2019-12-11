@@ -160,9 +160,6 @@ func loadAPItem(item app.Item) pub.Item {
 		}
 	}
 
-	// TODO(marius): add proper dynamic recipients to this based on some selector in the frontend
-	o.To = pub.ItemCollection{pub.PublicNS}
-	o.BCC = pub.ItemCollection{pub.IRI(BaseURL)}
 	o.Published = item.SubmittedAt
 	o.Updated = item.UpdatedAt
 
@@ -234,9 +231,18 @@ func loadAPItem(item app.Item) pub.Item {
 	if len(repl) > 0 {
 		o.InReplyTo = repl
 	}
-
+	to := pub.ItemCollection{}
+	bcc := pub.ItemCollection{}
+	// TODO(marius): add proper dynamic recipients to this based on some selector in the frontend
+	if !item.Private() {
+		to = append(to, pub.PublicNS)
+		bcc = append(bcc, pub.ItemCollection{pub.IRI(BaseURL)})
+	}
 	if item.Metadata != nil {
 		m := item.Metadata
+		if len(m.To) > 0 {
+			to = append(to, pub.IRI(m.To))
+		}
 		if m.Mentions != nil || m.Tags != nil {
 			o.Tag = make(pub.ItemCollection, 0)
 			for _, men := range m.Mentions {
@@ -258,6 +264,8 @@ func loadAPItem(item app.Item) pub.Item {
 			}
 		}
 	}
+	o.To = to
+	o.BCC = bcc
 
 	return &o
 }
@@ -367,12 +375,11 @@ func getSigner(pubKeyID pub.ID, key crypto.PrivateKey) *httpsig.Signer {
 }
 
 func (r *repository) WithAccount(a *app.Account) error {
-	// TODO(marius): this needs to be added to the federated requests, which we currently don't support
-	if !a.IsValid() || !a.IsLogged() {
-		return nil
-	}
-
 	r.client.SignFn(func(r *http.Request) error {
+		// TODO(marius): this needs to be added to the federated requests, which we currently don't support
+		if !a.IsValid() || !a.IsLogged() {
+			return nil
+		}
 		if a.Metadata.OAuth.Token == "" {
 			return nil
 		}
@@ -384,7 +391,6 @@ func (r *repository) WithAccount(a *app.Account) error {
 
 func (r *repository) withAccountS2S(a *app.Account) error {
 	// TODO(marius): this needs to be added to the federated requests, which we currently don't support
-
 	if !a.IsValid() || !a.IsLogged() {
 		return nil
 	}
@@ -922,28 +928,38 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 	author := loadAPPerson(*it.SubmittedBy)
 	reqURL := r.getAuthorRequestURL(it.SubmittedBy)
 
+	to := pub.ItemCollection{}
+	cc := make(pub.ItemCollection, 0)
+
 	var body []byte
 	var err error
 	id := art.GetLink()
+	if !it.Private() {
+		to = append(to, pub.PublicNS)
+	}
 
-	CC := make(pub.ItemCollection, 0)
-	if it.HasMetadata() && len(it.Metadata.Mentions) > 0 {
-		names := make([]string, 0)
-		for _, m := range it.Metadata.Mentions {
-			names = append(names, m.Name)
+	if it.HasMetadata() {
+		if len(it.Metadata.To) > 0 {
+			to = append(to, pub.IRI(it.Metadata.To))
 		}
-		ff := app.Filters{
-			LoadAccountsFilter: app.LoadAccountsFilter{
-				Handle: names,
-			},
-		}
-		actors, _, err := r.LoadAccounts(ff)
-		if err != nil {
-			r.logger.WithContext(log.Ctx{"err": err}).Error("unable to load actors from mentions")
-		}
-		for _, actor := range actors {
-			if actor.HasMetadata() && len(actor.Metadata.ID) > 0 {
-				CC = append(CC, pub.IRI(actor.Metadata.ID))
+		if len(it.Metadata.Mentions) > 0 {
+			names := make([]string, 0)
+			for _, m := range it.Metadata.Mentions {
+				names = append(names, m.Name)
+			}
+			ff := app.Filters{
+				LoadAccountsFilter: app.LoadAccountsFilter{
+					Handle: names,
+				},
+			}
+			actors, _, err := r.LoadAccounts(ff)
+			if err != nil {
+				r.logger.WithContext(log.Ctx{"err": err}).Error("unable to load actors from mentions")
+			}
+			for _, actor := range actors {
+				if actor.HasMetadata() && len(actor.Metadata.ID) > 0 {
+					cc = append(cc, pub.IRI(actor.Metadata.ID))
+				}
 			}
 		}
 	}
@@ -957,8 +973,8 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 		}
 		delete := pub.Delete{
 			Type:   pub.DeleteType,
-			To:     pub.ItemCollection{pub.PublicNS},
-			CC:     CC,
+			To:     to,
+			CC:     cc,
 			BCC:    pub.ItemCollection{pub.IRI(BaseURL)},
 			Actor:  author.GetLink(),
 			Object: id,
@@ -968,8 +984,8 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 		if len(id) == 0 {
 			create := pub.Create{
 				Type:   pub.CreateType,
-				To:     pub.ItemCollection{pub.PublicNS},
-				CC:     CC,
+				To:     to,
+				CC:     cc,
 				BCC:    pub.ItemCollection{pub.IRI(BaseURL)},
 				Actor:  author.GetLink(),
 				Object: art,
@@ -978,8 +994,8 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 		} else {
 			update := pub.Update{
 				Type:   pub.UpdateType,
-				To:     pub.ItemCollection{pub.PublicNS},
-				CC:     CC,
+				To:     to,
+				CC:     cc,
 				BCC:    pub.ItemCollection{pub.IRI(BaseURL)},
 				Object: art,
 				Actor:  author.GetLink(),

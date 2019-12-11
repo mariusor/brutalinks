@@ -19,6 +19,7 @@ type Tag struct {
 type TagCollection []Tag
 
 type ItemMetadata struct {
+	To         string        `json:"to,omitempty"`
 	Tags       TagCollection `json:"tags,omitempty"`
 	Mentions   TagCollection `json:"mentions,omitempty"`
 	ID         string        `json:"id,omitempty"`
@@ -68,6 +69,10 @@ func (i *Item) IsValid() bool {
 
 func (i Item) Deleted() bool {
 	return (i.Flags & FlagsDeleted) == FlagsDeleted
+}
+
+func (i Item) Private() bool {
+	return (i.Flags & FlagsPrivate) == FlagsPrivate
 }
 
 // UnDelete remove the deleted flag from an item

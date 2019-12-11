@@ -12,6 +12,7 @@ type FlagBits uint8
 
 const (
 	FlagsDeleted = FlagBits(1 << iota)
+	FlagsPrivate
 
 	FlagsNone = FlagBits(0)
 )

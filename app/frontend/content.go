@@ -355,6 +355,82 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 	}
 	h.RenderTemplate(r, w, "content", m)
 }
+// HandleSubmit handles POST /~handle
+func (h *handler) HandlePrivateMessage(w http.ResponseWriter, r *http.Request) {
+	handle := chi.URLParam(r, "handle")
+	val := r.Context().Value(app.RepositoryCtxtKey)
+	accountLoader, ok := val.(app.CanLoadAccounts)
+	if !ok {
+		h.logger.Error("could not load account repository from Context")
+		return
+	}
+	var err error
+	accounts, cnt, err := accountLoader.LoadAccounts(app.Filters{LoadAccountsFilter: app.LoadAccountsFilter{Handle: []string{handle}}})
+	if err != nil {
+		h.HandleErrors(w, r, err)
+		return
+	}
+	if cnt == 0 {
+		h.HandleErrors(w, r, errors.NotFoundf("account %q not found", handle))
+		return
+	}
+	if cnt > 1 {
+		h.HandleErrors(w, r, errors.NotFoundf("too many %q accounts found", handle))
+		return
+	}
+	to, err := accounts.First()
+	if err != nil {
+		h.logger.WithContext(log.Ctx{
+			"prev": err,
+		}).Error("unable to load the account to which to send")
+		h.HandleErrors(w, r, errors.NewMethodNotAllowed(err, ""))
+		return
+	}
+
+	acc := h.account(r)
+	n, err := ContentFromRequest(r, *acc)
+	if err != nil {
+		h.logger.WithContext(log.Ctx{
+			"prev": err,
+		}).Error("wrong http method")
+		h.HandleErrors(w, r, errors.NewMethodNotAllowed(err, ""))
+		return
+	}
+
+	auth, _ := app.ContextAuthenticated(r.Context())
+	auth.WithAccount(acc)
+	itemLoader, ok := app.ContextItemLoader(r.Context())
+	if !ok {
+		h.HandleErrors(w, r, errors.Errorf("could not load item repository from Context"))
+		return
+	}
+	if n.Parent.IsValid() && n.Parent.SubmittedAt.IsZero() {
+		if p, err := itemLoader.LoadItem(app.Filters{LoadItemsFilter: app.LoadItemsFilter{Key: app.Hashes{n.Parent.Hash}}}); err == nil {
+			n.Parent = &p
+			if p.OP != nil {
+				n.OP = p.OP
+			}
+		}
+	}
+
+	n.Metadata.To = to.Metadata.ID
+	n.Flags |= app.FlagsPrivate
+	var itemSaver app.CanSaveItems
+	if itemSaver, ok = app.ContextItemSaver(r.Context()); !ok {
+		h.logger.Error("could not load item repository from Context")
+		return
+	}
+	n, err = itemSaver.SaveItem(n)
+	if err != nil {
+		h.logger.WithContext(log.Ctx{
+			"prev": err,
+		}).Error("unable to save item")
+		h.HandleErrors(w, r, err)
+		return
+	}
+
+	h.Redirect(w, r, ItemPermaLink(n), http.StatusSeeOther)
+}
 
 // HandleSubmit handles POST /submit requests
 // HandleSubmit handles POST /~handler/hash requests
@@ -372,10 +448,8 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	auth, authOk := app.ContextAuthenticated(r.Context())
-	if authOk && acc.IsLogged() {
-		auth.WithAccount(acc)
-	}
+	auth, _ := app.ContextAuthenticated(r.Context())
+	auth.WithAccount(acc)
 	itemLoader, ok := app.ContextItemLoader(r.Context())
 	if !ok {
 		h.HandleErrors(w, r, errors.Errorf("could not load item repository from Context"))
@@ -467,10 +541,8 @@ func (h *handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 		url = fmt.Sprintf("%s#item-%s", backUrl, p.Hash)
 	}
 	acc := h.account(r)
-	auth, authOk := app.ContextAuthenticated(r.Context())
-	if authOk && acc.IsLogged() {
-		auth.WithAccount(acc)
-	}
+	auth, _ := app.ContextAuthenticated(r.Context())
+	auth.WithAccount(acc)
 	p.Delete()
 	if sav, ok := app.ContextItemSaver(r.Context()); ok {
 		if _, err = sav.SaveItem(p); err != nil {
@@ -525,10 +597,10 @@ func (h *handler) HandleVoting(w http.ResponseWriter, r *http.Request) {
 	url := ItemPermaLink(p)
 
 	acc := h.account(r)
+	if auth, ok := val.(app.Authenticated); ok {
+		auth.WithAccount(acc)
+	}
 	if acc.IsLogged() {
-		if auth, ok := val.(app.Authenticated); ok {
-			auth.WithAccount(acc)
-		}
 		voter, ok := val.(app.CanSaveVotes)
 		backUrl := r.Header.Get("Referer")
 		if !strings.Contains(backUrl, url) && strings.Contains(backUrl, app.Instance.BaseURL) {
