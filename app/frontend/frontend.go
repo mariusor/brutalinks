@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/gob"
+	xerrors "errors"
 	"fmt"
 	as "github.com/go-ap/activitypub"
 	"github.com/gorilla/csrf"
@@ -210,6 +211,7 @@ func Init(c Config) (handler, error) {
 	if c.SessionsBackend = os.Getenv("SESSIONS_BACKEND"); c.SessionsBackend == "" {
 		c.SessionsBackend = "cookie"
 	}
+	c.SessionsBackend = strings.ToLower(c.SessionsBackend)
 
 	c.SessionKeys = loadEnvSessionKeys()
 	h.sstor, err = InitSessionStore(c)
@@ -399,7 +401,8 @@ func appName(n string) template.HTML {
 func (h *handler) account(r *http.Request) *app.Account {
 	acct, ok := app.ContextAccount(r.Context())
 	if !ok {
-		h.logger.Error("could not load account repository from Context")
+		h.logger.WithContext(log.Ctx{
+		}).Error("could not load account repository from Context")
 	}
 	if acct == nil {
 		return &defaultAccount
@@ -477,8 +480,9 @@ func buildLink(routes chi.Routes, name string, par ...interface{}) string {
 
 func (h *handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name string, m interface{}) error {
 	var err error
-	s, _ := h.sstor.Get(r, sessionName)
+	var ac *app.Account
 
+	s, _ := h.sstor.Get(r, sessionName)
 	nodeInfo, err := getNodeInfo(r)
 	ren := render.New(render.Options{
 		Directory:  templateDir,
@@ -487,11 +491,16 @@ func (h *handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name st
 		Funcs: []template.FuncMap{{
 			//"urlParam":          func(s string) string { return chi.URLParam(r, s) },
 			//"get":               func(s string) string { return r.URL.Query().Get(s) },
-			"isInverted":        func() bool { return isInverted(r) },
-			"sluggify":          sluggify,
-			"title":             func(t []byte) string { return string(t) },
-			"getProviders":      getAuthProviders,
-			"CurrentAccount":    func() *app.Account { return h.account(r) },
+			"isInverted":   func() bool { return isInverted(r) },
+			"sluggify":     sluggify,
+			"title":        func(t []byte) string { return string(t) },
+			"getProviders": getAuthProviders,
+			"CurrentAccount": func() *app.Account {
+				if ac == nil {
+					ac = h.account(r)
+				}
+				return ac
+			},
 			"LoadFlashMessages": loadFlashMessages(r, w, s),
 			"Mod10":             func(lvl uint8) float64 { return math.Mod(float64(lvl), float64(10)) },
 			"ShowText":          showText(m),
@@ -699,39 +708,42 @@ func isInverted(r *http.Request) bool {
 
 func loadCurrentAccountFromSession(s *sessions.Session, r *repository, l log.Logger) app.Account {
 	// load the current account from the session or setting it to anonymous
-	if raw, ok := s.Values[SessionUserKey]; ok {
-		if a, ok := raw.(app.Account); ok {
-			if !a.IsValid() {
-				var err error
-				a, err = r.LoadAccount(app.Filters{
-					LoadAccountsFilter: app.LoadAccountsFilter{
-						Handle: []string{a.Handle},
-						Key:    []app.Hash{a.Hash},
-					},
-				})
-				if err != nil {
-					l.WithContext(log.Ctx{
-						"handle": a.Handle,
-						"hash":   a.Hash,
-					}).Warn(err.Error())
-					return defaultAccount
-				}
-				l.WithContext(log.Ctx{
-					"handle": a.Handle,
-					"hash":   a.Hash,
-				}).Debug("loaded actor from remote server")
-			}
+	raw, ok := s.Values[SessionUserKey]
+	if !ok {
+		return defaultAccount
+	}
+	a, ok := raw.(app.Account)
+	if !ok {
+		return defaultAccount
+	}
+	if !a.IsValid() {
+		var err error
+		a, err = r.LoadAccount(app.Filters{
+			LoadAccountsFilter: app.LoadAccountsFilter{
+				Handle: []string{a.Handle},
+				Key:    []app.Hash{a.Hash},
+			},
+		})
+		if err != nil {
 			l.WithContext(log.Ctx{
 				"handle": a.Handle,
 				"hash":   a.Hash,
-			}).Debug("loaded account from session")
-			if a.IsLogged() {
-				r.WithAccount(&a)
-			}
-			return a
+			}).Warn(err.Error())
+			return defaultAccount
 		}
+		l.WithContext(log.Ctx{
+			"handle": a.Handle,
+			"hash":   a.Hash,
+		}).Debug("loaded actor from remote server")
 	}
-	return defaultAccount
+	l.WithContext(log.Ctx{
+		"handle": a.Handle,
+		"hash":   a.Hash,
+	}).Debug("loaded account from session")
+	if a.IsLogged() {
+		r.WithAccount(&a)
+	}
+	return a
 }
 
 func loadFlashMessages(r *http.Request, w http.ResponseWriter, s *sessions.Session) func() []flash {
@@ -762,26 +774,25 @@ func SetSecurityHeaders(next http.Handler) http.Handler {
 }
 
 func (h *handler) LoadSession(next http.Handler) http.Handler {
+	if !app.Instance.Config.SessionsEnabled {
+		return next
+	}
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		if app.Instance.Config.SessionsEnabled {
-			if h.sstor != nil {
-				s, err := h.sstor.Get(r, sessionName)
-				if err != nil {
-					h.logger.Error(err.Error())
-					if s != nil {
-						s.Options.MaxAge = -1
-						if err = s.Save(r, w); err != nil {
-							h.logger.Error(err.Error())
-						}
-					}
-				} else {
-					acc := loadCurrentAccountFromSession(s, h.storage, h.logger)
-					ctxt := context.WithValue(r.Context(), app.AccountCtxtKey, &acc)
-					r = r.WithContext(ctxt)
-				}
-			} else {
-				h.logger.Warn("missing session store, unable to load session")
+		if h.sstor == nil {
+			h.logger.Warn("missing session store, unable to load session")
+			return
+		}
+		if s, err := h.sstor.Get(r, sessionName); err != nil {
+			h.logger.WithContext(log.Ctx{
+				"err": err,
+			}).Error("unable to load session")
+			if xerrors.Is(err, new(os.PathError)) {
+				h.sstor.New(r, sessionName)
 			}
+		} else {
+			acc := loadCurrentAccountFromSession(s, h.storage, h.logger)
+			ctxt := context.WithValue(r.Context(), app.AccountCtxtKey, &acc)
+			r = r.WithContext(ctxt)
 		}
 		next.ServeHTTP(w, r)
 	}
