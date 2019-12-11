@@ -752,7 +752,7 @@ func loadFlashMessages(r *http.Request, w http.ResponseWriter, s *sessions.Sessi
 
 func SetSecurityHeaders(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Security-Policy", "default-src 'self'")
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline';")
 		w.Header().Set("X-Frame-Options", "DENY")
 		w.Header().Set("X-Xss-Protection", "1; mode=block")
 		w.Header().Set("Referrer-Policy", "same-origin")
