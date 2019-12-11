@@ -925,6 +925,29 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 	var body []byte
 	var err error
 	id := art.GetLink()
+
+	CC := make(pub.ItemCollection, 0)
+	if it.HasMetadata() && len(it.Metadata.Mentions) > 0 {
+		names := make([]string, 0)
+		for _, m := range it.Metadata.Mentions {
+			names = append(names, m.Name)
+		}
+		ff := app.Filters{
+			LoadAccountsFilter: app.LoadAccountsFilter{
+				Handle: names,
+			},
+		}
+		actors, _, err := r.LoadAccounts(ff)
+		if err != nil {
+			r.logger.WithContext(log.Ctx{"err": err}).Error("unable to load actors from mentions")
+		}
+		for _, actor := range actors {
+			if actor.HasMetadata() && len(actor.Metadata.ID) > 0 {
+				CC = append(CC, pub.IRI(actor.Metadata.ID))
+			}
+		}
+	}
+
 	if it.Deleted() {
 		if len(id) == 0 {
 			r.logger.WithContext(log.Ctx{
@@ -935,6 +958,7 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 		delete := pub.Delete{
 			Type:   pub.DeleteType,
 			To:     pub.ItemCollection{pub.PublicNS},
+			CC:     CC,
 			BCC:    pub.ItemCollection{pub.IRI(BaseURL)},
 			Actor:  author.GetLink(),
 			Object: id,
@@ -945,6 +969,7 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 			create := pub.Create{
 				Type:   pub.CreateType,
 				To:     pub.ItemCollection{pub.PublicNS},
+				CC:     CC,
 				BCC:    pub.ItemCollection{pub.IRI(BaseURL)},
 				Actor:  author.GetLink(),
 				Object: art,
@@ -954,6 +979,7 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 			update := pub.Update{
 				Type:   pub.UpdateType,
 				To:     pub.ItemCollection{pub.PublicNS},
+				CC:     CC,
 				BCC:    pub.ItemCollection{pub.IRI(BaseURL)},
 				Object: art,
 				Actor:  author.GetLink(),
