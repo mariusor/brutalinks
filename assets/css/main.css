@@ -492,7 +492,7 @@ summary:focus {
     margin: 0;
 }
 #reply, #register, #new, #login {
-    max-width: 60ex;
+    max-width: 30rem;
 }
 #reply textarea,
 #new textarea {
@@ -586,6 +586,9 @@ section#no-items {
 .acct-info {
     float: right;
 }
+.acct-info .private-message {
+    width: 30rem;
+}
 .pub-key details[open] {
 }
 .pub-key details[open] pre {
@@ -625,6 +628,9 @@ svg.icon.icon-adjust {
     body > header .top li:nth-child(2)
     {
         display: none;
+    }
+    .acct-info {
+        float: none;
     }
 }
 @media (max-width: 576px) {
