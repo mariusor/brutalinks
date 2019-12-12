@@ -1,6 +1,7 @@
 package app
 
 import (
+	"net/url"
 	"strings"
 	"time"
 
@@ -93,7 +94,11 @@ func (i Item) GetDomain() string {
 	if !i.IsLink() {
 		return ""
 	}
-	return strings.Split(i.Data, "/")[2]
+	u, err := url.Parse(i.Data)
+	if err == nil && len(u.Host) > 0 {
+		return u.Host
+	}
+	return "unknown"
 }
 
 func (i Item) IsSelf() bool {
