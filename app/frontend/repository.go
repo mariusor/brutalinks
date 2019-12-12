@@ -889,7 +889,7 @@ type _errors struct {
 func (r *repository) handlerErrorResponse(body []byte) error {
 	errs := _errors{}
 	if err := j.Unmarshal(body, &errs); err != nil {
-		r.logger.Errorf("Unable to unmarshall error response: %s", err.Error())
+		r.logger.Errorf("Unable to unmarshal error response: %s", err.Error())
 		return nil
 	}
 	if len(errs.Errors) == 0 {
@@ -945,10 +945,6 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 	var body []byte
 	var err error
 	id := art.GetLink()
-	if !it.Private() {
-		to = append(to, pub.PublicNS)
-		bcc = append(bcc, pub.ItemCollection{pub.IRI(BaseURL)})
-	}
 
 	if it.HasMetadata() {
 		if len(it.Metadata.To) > 0 {
@@ -974,6 +970,11 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 				}
 			}
 		}
+	}
+
+	if !it.Private() {
+		to = append(to, pub.PublicNS)
+		bcc = append(bcc, pub.ItemCollection{pub.IRI(BaseURL)})
 	}
 
 	if it.Deleted() {

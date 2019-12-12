@@ -86,11 +86,11 @@ func (i Item) Private() bool {
 	return (i.Flags & FlagsPrivate) == FlagsPrivate
 }
 
-func (i Item) MakePrivate() {
+func (i *Item) MakePrivate() {
 	i.Flags |= FlagsPrivate
 }
 
-func (i Item) MakePublic() {
+func (i *Item) MakePublic() {
 	i.Flags ^= FlagsPrivate
 }
 

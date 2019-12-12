@@ -10,10 +10,9 @@
         <section class="pub-key"><details><summary>PublicKey</summary><pre>{{.User.Metadata.Key.Public | fmtPubKey }}</pre></details></section>
     {{ end -}}
 {{- end }}
-    <details class="private-message">
+    <details id="private-message">
     <summary><span>Message user</span></summary>
-    {{ template "new" }}
+    {{template "partials/content/edit" }}
     </details>
 </section>
-
 {{ template "listing" . }}

@@ -76,7 +76,15 @@ func ContentFromRequest(r *http.Request, acc app.Account) (app.Item, error) {
 		return app.Item{}, errors.Errorf("invalid http method type")
 	}
 
+	var receiver *app.Account
+	var err error
 	i := app.Item{}
+	i.Metadata = &app.ItemMetadata{}
+	if receiver, err = accountFromRequestHandle(r); err == nil && chi.URLParam(r, "hash") == "" {
+		i.MakePrivate()
+		i.Metadata.To = receiver.Metadata.ID
+	}
+
 	tit := r.PostFormValue("title")
 	if len(tit) > 0 {
 		i.Title = tit
@@ -88,7 +96,7 @@ func ContentFromRequest(r *http.Request, acc app.Account) (app.Item, error) {
 
 	i.SubmittedBy = &acc
 	i.MimeType = detectMimeType(i.Data)
-	i.Metadata = &app.ItemMetadata{}
+
 	i.Metadata.Tags, i.Metadata.Mentions = loadTags(i.Data)
 	if !i.IsLink() {
 		i.MimeType = app.MimeType(r.PostFormValue("mime-type"))
