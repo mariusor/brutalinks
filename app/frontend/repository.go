@@ -375,15 +375,25 @@ func getSigner(pubKeyID pub.ID, key crypto.PrivateKey) *httpsig.Signer {
 }
 
 func (r *repository) WithAccount(a *app.Account) error {
-	r.client.SignFn(func(r *http.Request) error {
+	r.client.SignFn(func(req *http.Request) error {
 		// TODO(marius): this needs to be added to the federated requests, which we currently don't support
 		if !a.IsValid() || !a.IsLogged() {
-			return nil
+			e := errors.Newf("invalid account used for C2S authentication")
+			r.logger.WithContext(log.Ctx{
+				"handle": a.Handle,
+				"logged": a.IsLogged(),
+			}).Error(e.Error())
+			return e
 		}
 		if a.Metadata.OAuth.Token == "" {
-			return nil
+			e := errors.Newf("account has no OAuth2 token")
+			r.logger.WithContext(log.Ctx{
+				"handle": a.Handle,
+				"logged": a.IsLogged(),
+			}).Error(e.Error())
+			return e
 		}
-		r.Header.Add("Authorization", fmt.Sprintf("Bearer %s", a.Metadata.OAuth.Token))
+		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", a.Metadata.OAuth.Token))
 		return nil
 	})
 	return nil
@@ -930,12 +940,14 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 
 	to := pub.ItemCollection{}
 	cc := make(pub.ItemCollection, 0)
+	bcc := make(pub.ItemCollection, 0)
 
 	var body []byte
 	var err error
 	id := art.GetLink()
 	if !it.Private() {
 		to = append(to, pub.PublicNS)
+		bcc = append(bcc, pub.ItemCollection{pub.IRI(BaseURL)})
 	}
 
 	if it.HasMetadata() {
@@ -975,7 +987,7 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 			Type:   pub.DeleteType,
 			To:     to,
 			CC:     cc,
-			BCC:    pub.ItemCollection{pub.IRI(BaseURL)},
+			BCC:    bcc,
 			Actor:  author.GetLink(),
 			Object: id,
 		}
@@ -986,7 +998,7 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 				Type:   pub.CreateType,
 				To:     to,
 				CC:     cc,
-				BCC:    pub.ItemCollection{pub.IRI(BaseURL)},
+				BCC:    bcc,
 				Actor:  author.GetLink(),
 				Object: art,
 			}
@@ -996,7 +1008,7 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 				Type:   pub.UpdateType,
 				To:     to,
 				CC:     cc,
-				BCC:    pub.ItemCollection{pub.IRI(BaseURL)},
+				BCC:    bcc,
 				Object: art,
 				Actor:  author.GetLink(),
 			}

@@ -740,9 +740,6 @@ func loadCurrentAccountFromSession(s *sessions.Session, r *repository, l log.Log
 		"handle": a.Handle,
 		"hash":   a.Hash,
 	}).Debug("loaded account from session")
-	if a.IsLogged() {
-		r.WithAccount(&a)
-	}
 	return a
 }
 
@@ -782,17 +779,20 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 			h.logger.Warn("missing session store, unable to load session")
 			return
 		}
-		if s, err := h.sstor.Get(r, sessionName); err != nil {
+		s, err := h.sstor.Get(r, sessionName)
+		if err != nil {
 			h.logger.WithContext(log.Ctx{
 				"err": err,
 			}).Error("unable to load session")
 			if xerrors.Is(err, new(os.PathError)) {
 				h.sstor.New(r, sessionName)
 			}
-		} else {
-			acc := loadCurrentAccountFromSession(s, h.storage, h.logger)
-			ctxt := context.WithValue(r.Context(), app.AccountCtxtKey, &acc)
-			r = r.WithContext(ctxt)
+		}
+		acc := loadCurrentAccountFromSession(s, h.storage, h.logger)
+		ctxt := context.WithValue(r.Context(), app.AccountCtxtKey, &acc)
+		r = r.WithContext(ctxt)
+		if auth, ok := app.ContextAuthenticated(r.Context()); ok {
+			auth.WithAccount(&acc)
 		}
 		next.ServeHTTP(w, r)
 	}

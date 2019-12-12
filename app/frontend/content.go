@@ -397,8 +397,6 @@ func (h *handler) HandlePrivateMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	auth, _ := app.ContextAuthenticated(r.Context())
-	auth.WithAccount(acc)
 	itemLoader, ok := app.ContextItemLoader(r.Context())
 	if !ok {
 		h.HandleErrors(w, r, errors.Errorf("could not load item repository from Context"))
@@ -448,8 +446,6 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	auth, _ := app.ContextAuthenticated(r.Context())
-	auth.WithAccount(acc)
 	itemLoader, ok := app.ContextItemLoader(r.Context())
 	if !ok {
 		h.HandleErrors(w, r, errors.Errorf("could not load item repository from Context"))
@@ -540,9 +536,6 @@ func (h *handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 	if !strings.Contains(backUrl, url) && strings.Contains(backUrl, app.Instance.BaseURL) {
 		url = fmt.Sprintf("%s#item-%s", backUrl, p.Hash)
 	}
-	acc := h.account(r)
-	auth, _ := app.ContextAuthenticated(r.Context())
-	auth.WithAccount(acc)
 	p.Delete()
 	if sav, ok := app.ContextItemSaver(r.Context()); ok {
 		if _, err = sav.SaveItem(p); err != nil {
@@ -597,9 +590,6 @@ func (h *handler) HandleVoting(w http.ResponseWriter, r *http.Request) {
 	url := ItemPermaLink(p)
 
 	acc := h.account(r)
-	if auth, ok := val.(app.Authenticated); ok {
-		auth.WithAccount(acc)
-	}
 	if acc.IsLogged() {
 		voter, ok := val.(app.CanSaveVotes)
 		backUrl := r.Header.Get("Referer")
