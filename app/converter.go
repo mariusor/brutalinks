@@ -302,11 +302,6 @@ func FromArticle(i *Item, a *ap.Object) error {
 				i.OP = &par
 			}
 		}
-		//if len(a.InReplyTo) > 1 {
-		//	op := Item{}
-		//	op.FromActivityPub(a.InReplyTo[1])
-		//	i.OP = &op
-		//}
 	}
 	// TODO(marius): here we seem to have a bug, when Source.Content is nil when it shouldn't
 	//    to repro, I used some copy/pasted comments from console javascript
@@ -328,6 +323,13 @@ func FromArticle(i *Item, a *ap.Object) error {
 				i.Metadata.Mentions = append(i.Metadata.Mentions, t)
 			}
 		}
+	}
+	i.Flags |= FlagsPrivate
+	for _, rec := range a.To {
+		if rec == goap.PublicNS {
+			i.Flags ^= FlagsPrivate
+		}
+		i.Metadata.To = rec.GetLink().String()
 	}
 
 	i.Score = a.Score

@@ -72,10 +72,6 @@ func (i Item) Deleted() bool {
 	return (i.Flags & FlagsDeleted) == FlagsDeleted
 }
 
-func (i Item) Private() bool {
-	return (i.Flags & FlagsPrivate) == FlagsPrivate
-}
-
 // UnDelete remove the deleted flag from an item
 func (i Item) UnDelete() {
 	i.Flags ^= FlagsDeleted
@@ -84,6 +80,18 @@ func (i Item) UnDelete() {
 // Delete add the deleted flag on an item
 func (i *Item) Delete() {
 	i.Flags |= FlagsDeleted
+}
+
+func (i Item) Private() bool {
+	return (i.Flags & FlagsPrivate) == FlagsPrivate
+}
+
+func (i Item) MakePrivate() {
+	i.Flags |= FlagsPrivate
+}
+
+func (i Item) MakePublic() {
+	i.Flags ^= FlagsPrivate
 }
 
 func (i Item) IsLink() bool {

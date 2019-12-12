@@ -370,6 +370,9 @@ ol.comments li {
 .meta time .icon-clock-o {
     margin-right: .2em;
 }
+.icon.icon-lock {
+    transform: rotateX(180deg);
+}
 .by:before {
     content: "~";
 }
@@ -515,6 +518,9 @@ summary:focus {
 }
 h2.title .to-item::after {
     content: '\00a7';
+}
+.private h2.title .to-item::after {
+    content: none;
 }
 h2.title .to-item {
     margin-left: .4em;
