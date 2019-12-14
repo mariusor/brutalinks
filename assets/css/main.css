@@ -519,11 +519,17 @@ summary:focus {
 .meta-items li {
     padding-left: .2rem;
 }
+dl.recipients dt,
+dl.recipients dd {
+    opacity: .8;
+    display: inline;
+    font-size: .8rem;
+}
+dl.recipients dd {
+    margin-left: .2rem;
+}
 h2.title .to-item::after {
     content: '\00a7';
-}
-.private h2.title .to-item::after {
-    content: none;
 }
 h2.title .to-item {
     margin-left: .4em;

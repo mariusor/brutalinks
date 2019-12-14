@@ -32,11 +32,7 @@ submitted{{ if not .Deleted}}{{- if ShowUpdate $it }}<time class="updated-at" da
 {{end -}}
 {{- end -}}
 {{- if or (not $it.IsTop) (not .IsLink) }}
-{{ if or $it.Deleted (not (or CurrentAccount.IsLogged Config.AnonymousCommenting)) }}
-            <li><a href="{{$it | ItemLocalLink }}" class="to-item" title="Show deleted">{{/* icon "reply" "h-mirror" */}}show</a></li>
-{{else}}
-            <li><a href="{{$it | ItemLocalLink }}" class="to-item" title="Reply to{{if .Item.Title}}: {{$it.Title }}{{end}}">{{/* icon "reply" "h-mirror" */}}reply</a></li>
-{{ end -}}
+            <li><a href="{{$it | ItemLocalLink }}" class="to-item" title="Permalink{{if .Item.Title}}: {{$it.Title }}{{end}}">{{ if $it.Private }}{{icon "lock"}} {{ end -}}{{/* icon "reply" "h-mirror" */}}link</a></li>
 {{ end -}}
 {{- if $it.IsFederated }}<!-- <li>This shit federated, yo!</li> -->{{ end }}
         </ul>

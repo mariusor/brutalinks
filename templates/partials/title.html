@@ -6,19 +6,29 @@
 {{- else -}}
     {{- .Title -}}
 {{- end -}}
-{{- if .Private }}
-    <a href="{{ .Item | ItemPermaLink }}" class="to-item" title="Private{{if .Item.Title}}: {{.Title }}{{end}}">{{ icon "lock" }}</a>
-{{- else -}}
     <a href="{{ .Item | ItemPermaLink }}" class="to-item" title="Permalink{{if .Item.Title}}: {{.Title }}{{end}}"></a>
-{{- end -}}
 </h2>
-{{ if not .Private }}
+{{ if .Public }}
 {{- $domain := .GetDomain -}}
 <aside class="domain">
 <a title="{{- if .IsLink -}}All items from {{$domain}}{{- else -}}Discussions only{{- end -}}" href="/d{{- if .IsLink -}}/{{$domain}}{{- end -}}">{{- if .IsLink -}}{{$domain}}{{- else -}} discussion {{- end -}}</a>
 </aside>
-{{- if .Item.IsFederated -}}
-{{- end -}}
 {{- end -}}
 </header>
+{{- end -}}
+{{ if .Private }}
+<dl class="recipients">
+{{ if gt (len .Metadata.To) 0 -}}
+    <dt>To:</dt>
+    {{- range $it := .Metadata.To }}
+    <dd><a class="by" href="{{ $it | AccountPermaLink }}">{{ $it | ShowAccountHandle }}</a></dd>
+    {{ end -}}
+{{- end }}
+{{ if gt (len .Metadata.CC) 0 -}}
+    <dt>CC:</dt>
+    {{- range $it := .Metadata.CC }}
+    <dd><a class="by" href="{{ $it | AccountPermaLink }}">{{ $it | ShowAccountHandle }}</a></dd>
+    {{ end -}}
+{{- end }}
+</dl>
 {{- end -}}
