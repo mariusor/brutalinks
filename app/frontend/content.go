@@ -411,7 +411,7 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 		if n.Parent.Private() {
 			n.MakePrivate()
 			if len(n.Metadata.To) == 0 {
-				n.Metadata.To = n.Parent.SubmittedBy.Metadata.ID
+				n.Metadata.To = []*app.Account{n.Parent.SubmittedBy,}
 			}
 			saveVote = false
 		}

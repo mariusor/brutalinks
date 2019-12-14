@@ -3,6 +3,7 @@ package frontend
 import (
 	"bytes"
 	"fmt"
+	pub "github.com/go-ap/activitypub"
 	"github.com/go-chi/chi"
 	"github.com/mariusor/littr.go/app"
 	"net/http"
@@ -82,7 +83,9 @@ func ContentFromRequest(r *http.Request, acc app.Account) (app.Item, error) {
 	i.Metadata = &app.ItemMetadata{}
 	if receiver, err = accountFromRequestHandle(r); err == nil && chi.URLParam(r, "hash") == "" {
 		i.MakePrivate()
-		i.Metadata.To = receiver.Metadata.ID
+		to := app.Account{}
+		to.FromActivityPub(pub.IRI(receiver.Metadata.ID))
+		i.Metadata.To = []*app.Account{&to,}
 	}
 
 	tit := r.PostFormValue("title")

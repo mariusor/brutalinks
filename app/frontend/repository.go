@@ -233,6 +233,7 @@ func loadAPItem(item app.Item) pub.Item {
 	}
 	to := pub.ItemCollection{}
 	bcc := pub.ItemCollection{}
+	cc := pub.ItemCollection{}
 	// TODO(marius): add proper dynamic recipients to this based on some selector in the frontend
 	if !item.Private() {
 		to = append(to, pub.PublicNS)
@@ -241,7 +242,14 @@ func loadAPItem(item app.Item) pub.Item {
 	if item.Metadata != nil {
 		m := item.Metadata
 		if len(m.To) > 0 {
-			to = append(to, pub.IRI(m.To))
+			for _, rec := range m.To {
+				to = append(to, pub.IRI(rec.Metadata.ID))
+			}
+		}
+		if len(m.CC) > 0 {
+			for _, rec := range m.CC {
+				cc = append(cc, pub.IRI(rec.Metadata.ID))
+			}
 		}
 		if m.Mentions != nil || m.Tags != nil {
 			o.Tag = make(pub.ItemCollection, 0)
@@ -265,6 +273,7 @@ func loadAPItem(item app.Item) pub.Item {
 		}
 	}
 	o.To = to
+	o.CC = cc
 	o.BCC = bcc
 
 	return &o
@@ -531,9 +540,23 @@ func (r *repository) loadItemsAuthors(items ...app.Item) (app.ItemCollection, er
 
 	fActors := app.Filters{}
 	for _, it := range items {
+		if it.HasMetadata() {
+			// Adding an item's recipients list (To and CC) to the list of actors we want to load from the ActivityPub API
+			if len(it.Metadata.To) > 0 {
+				for _, to := range it.Metadata.To {
+					fActors.LoadAccountsFilter.Key = append(fActors.LoadAccountsFilter.Key, app.Hash(to.Metadata.ID))
+				}
+			}
+			if len(it.Metadata.CC) > 0 {
+				for _, cc := range it.Metadata.CC {
+					fActors.LoadAccountsFilter.Key = append(fActors.LoadAccountsFilter.Key, app.Hash(cc.Metadata.ID))
+				}
+			}
+		}
 		if !it.SubmittedBy.IsValid() {
 			continue
 		}
+		// Adding an item's author to the list of actors we want to load from the ActivityPub API
 		if it.SubmittedBy.HasMetadata() && len(it.SubmittedBy.Metadata.ID) > 0 {
 			fActors.LoadAccountsFilter.Key = append(fActors.LoadAccountsFilter.Key, app.Hash(it.SubmittedBy.Metadata.ID))
 		} else if len(it.SubmittedBy.Hash) > 0 {
@@ -552,15 +575,24 @@ func (r *repository) loadItemsAuthors(items ...app.Item) (app.ItemCollection, er
 		return items, errors.Annotatef(err, "unable to load items authors")
 	}
 	for k, it := range items {
-		for _, auth := range authors {
-			if bytes.Equal(it.SubmittedBy.Hash, auth.Hash) || it.SubmittedBy.Handle == auth.Handle {
-				it.SubmittedBy = &auth
-				break
+		for a, auth := range authors {
+			if accountsEqual(*it.SubmittedBy, auth) {
+				it.SubmittedBy = &(authors[a])
 			}
-			if it.UpdatedBy != nil {
-				if bytes.Equal(it.UpdatedBy.Hash, auth.Hash) || it.UpdatedBy.Handle == auth.Handle {
-					it.UpdatedBy = &auth
-					break
+			if it.UpdatedBy.IsValid() && accountsEqual(*it.UpdatedBy, auth) {
+				it.UpdatedBy = &(authors[a])
+			}
+			if !it.HasMetadata() {
+				continue
+			}
+			for i, to := range it.Metadata.To {
+				if accountsEqual(*to, auth) {
+					it.Metadata.To[i] = &(authors[a])
+				}
+			}
+			for i, cc := range it.Metadata.CC {
+				if accountsEqual(*cc, auth) {
+					it.Metadata.To[i] = &(authors[a])
 				}
 			}
 		}
@@ -569,7 +601,11 @@ func (r *repository) loadItemsAuthors(items ...app.Item) (app.ItemCollection, er
 	return col, nil
 }
 
-func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) {
+func accountsEqual(a1, a2 app.Account) bool {
+	return bytes.Equal(a1.Hash, a2.Hash) || (len(a1.Handle) + len(a2.Handle) > 0 && a1.Handle == a2.Handle)
+}
+
+	func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) {
 	var qs string
 
 	target := "/"
@@ -947,8 +983,16 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 	id := art.GetLink()
 
 	if it.HasMetadata() {
-		if len(it.Metadata.To) > 0 {
-			to = append(to, pub.IRI(it.Metadata.To))
+		m := it.Metadata
+		if len(m.To) > 0 {
+			for _, rec := range m.To {
+				to = append(to, pub.IRI(rec.Metadata.ID))
+			}
+		}
+		if len(m.CC) > 0 {
+			for _, rec := range m.CC {
+				cc = append(cc, pub.IRI(rec.Metadata.ID))
+			}
 		}
 		if len(it.Metadata.Mentions) > 0 {
 			names := make([]string, 0)

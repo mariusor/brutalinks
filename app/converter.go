@@ -324,13 +324,33 @@ func FromArticle(i *Item, a *ap.Object) error {
 			}
 		}
 	}
-	i.Flags |= FlagsPrivate
+	i.MakePrivate()
+	to := make([]*Account, 0)
 	for _, rec := range a.To {
 		if rec == goap.PublicNS {
-			i.Flags ^= FlagsPrivate
+			i.MakePublic()
+			continue
 		}
-		i.Metadata.To = rec.GetLink().String()
+		acc := Account{}
+		acc.FromActivityPub(rec)
+		if acc.IsValid() {
+			to = append(to, &acc)
+		}
 	}
+	i.Metadata.To = to
+	cc := make([]*Account, 0)
+	for _, rec := range a.CC {
+		if rec == goap.PublicNS {
+			i.MakePublic()
+			continue
+		}
+		acc := Account{}
+		acc.FromActivityPub(rec)
+		if acc.IsValid() {
+			to = append(cc, &acc)
+		}
+	}
+	i.Metadata.CC = cc
 
 	i.Score = a.Score
 	return nil
