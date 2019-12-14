@@ -16,6 +16,7 @@
 {{- end -}}
 </header>
 {{- end -}}
+{{ if .Private }}
 <dl class="recipients">
 {{ if gt (len .Metadata.To) 0 -}}
     <dt>To:</dt>
@@ -30,3 +31,4 @@
     {{ end -}}
 {{- end }}
 </dl>
+{{- end -}}
