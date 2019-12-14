@@ -592,7 +592,7 @@ func (r *repository) loadItemsAuthors(items ...app.Item) (app.ItemCollection, er
 			}
 			for i, cc := range it.Metadata.CC {
 				if accountsEqual(*cc, auth) {
-					it.Metadata.To[i] = &(authors[a])
+					it.Metadata.CC[i] = &(authors[a])
 				}
 			}
 		}

@@ -347,7 +347,7 @@ func FromArticle(i *Item, a *ap.Object) error {
 		acc := Account{}
 		acc.FromActivityPub(rec)
 		if acc.IsValid() {
-			to = append(cc, &acc)
+			cc = append(cc, &acc)
 		}
 	}
 	i.Metadata.CC = cc

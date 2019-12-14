@@ -20,7 +20,8 @@ type Tag struct {
 type TagCollection []Tag
 
 type ItemMetadata struct {
-	To         string        `json:"to,omitempty"`
+	To         []*Account        `json:"to,omitempty"`
+	CC         []*Account        `json:"to,omitempty"`
 	Tags       TagCollection `json:"tags,omitempty"`
 	Mentions   TagCollection `json:"mentions,omitempty"`
 	ID         string        `json:"id,omitempty"`
@@ -84,6 +85,10 @@ func (i *Item) Delete() {
 
 func (i Item) Private() bool {
 	return (i.Flags & FlagsPrivate) == FlagsPrivate
+}
+
+func (i Item) Public() bool {
+	return (i.Flags & FlagsPrivate) != FlagsPrivate
 }
 
 func (i *Item) MakePrivate() {
