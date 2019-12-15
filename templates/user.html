@@ -10,9 +10,11 @@
         <section class="pub-key"><details><summary>PublicKey</summary><pre>{{.User.Metadata.Key.Public | fmtPubKey }}</pre></details></section>
     {{ end -}}
 {{- end }}
+{{- if not (sameHash .User.Hash CurrentAccount.Hash) }}
     <details id="private-message">
     <summary><span>Message user</span></summary>
     {{template "partials/content/edit" }}
     </details>
+{{ end -}}
 </section>
 {{ template "listing" . }}
