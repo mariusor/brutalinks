@@ -1,3 +1,6 @@
-{{- template "partials/score" .Item -}}
-{{- template "partials/data" . -}}
-{{- template "partials/meta" . -}}
+{{ $it := .Item }}
+<section class="{{if $it.Deleted }}deleted {{end}}{{ if $it.Private }}private {{ end }}item{{ if not .Parent }} op{{end}}" id="i-{{$it.Hash}}" data-hash="{{$it.Hash}}">
+    {{- template "partials/score" $it -}}
+    {{- template "partials/data" . -}}
+    {{- template "partials/meta" . -}}
+</section>

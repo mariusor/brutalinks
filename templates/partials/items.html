@@ -1,6 +1,6 @@
 <ol class="items">
 {{- range $key, $value := . }}
-    <li data-index="{{$key}}" class="{{if .Deleted }}deleted {{end}}{{ if .Private }}private {{ end }}item" id="item-{{.Hash}}">
+    <li data-index="{{$key}}" data-hash="{{.Hash}}" id="item-{{.Hash}}">
     {{- template "partials/item" $value -}}
     </li>
 {{- end -}}

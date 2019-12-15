@@ -1,7 +1,5 @@
 {{- $count := .Children | len -}}
-<section class="item" data-hash="{{.Hash}}">
 {{- template "partials/item" . -}}
-</section>
 {{- if $count -}}
 {{- if gt $count 1 -}}
 <details open>
