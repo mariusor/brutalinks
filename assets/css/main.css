@@ -639,7 +639,6 @@ svg.icon.icon-adjust {
     body > header .top span.score {
         display: none;
     }
-    body > header .top li:first-child,
     body > header .top li:nth-child(2)
     {
         display: none;
