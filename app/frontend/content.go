@@ -407,11 +407,12 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
+		if len(n.Metadata.To) == 0 {
+			n.Metadata.To = make([]*app.Account, 0)
+		}
+		n.Metadata.To = append(n.Metadata.To, n.Parent.SubmittedBy)
 		if n.Parent.Private() {
 			n.MakePrivate()
-			if len(n.Metadata.To) == 0 {
-				n.Metadata.To = []*app.Account{n.Parent.SubmittedBy,}
-			}
 			saveVote = false
 		}
 	}
