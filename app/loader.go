@@ -134,7 +134,7 @@ type Filters struct {
 }
 
 type LoadAccountsFilter struct {
-	Key      []Hash   `qstring:"hash,omitempty"`
+	Key      []Hash   `qstring:"iri,omitempty"`
 	Handle   []string `qstring:"name,omitempty"`
 	Email    []string `qstring:"email,omitempty"`
 	Deleted  []bool   `qstring:"deleted,omitempty"`
