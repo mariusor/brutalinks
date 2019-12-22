@@ -1018,6 +1018,9 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 
 	if !it.Private() {
 		to = append(to, pub.PublicNS)
+		if it.Parent == nil && it.SubmittedBy.HasMetadata() && len(it.SubmittedBy.Metadata.FollowersIRI) > 0 {
+			cc = append(cc, pub.IRI(it.SubmittedBy.Metadata.FollowersIRI))
+		}
 		bcc = append(bcc, pub.ItemCollection{pub.IRI(BaseURL)})
 	}
 
