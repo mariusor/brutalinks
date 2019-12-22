@@ -40,7 +40,9 @@ func (h *handler) ShowAccount(w http.ResponseWriter, r *http.Request) {
 
 	accountLoader, ok := app.ContextAccountLoader(r.Context())
 	if !ok {
-		h.logger.Error("could not load account repository from Context")
+		err := errors.Errorf("could not load account repository from Context")
+		h.logger.Error(err.Error())
+		h.HandleErrors(w, r, err)
 		return
 	}
 	var err error
