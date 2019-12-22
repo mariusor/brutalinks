@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"fmt"
+	"github.com/go-ap/handlers"
 	ap "github.com/mariusor/littr.go/activitypub"
 	"net/url"
 	"path"
@@ -325,35 +326,53 @@ func FromArticle(i *Item, a *ap.Object) error {
 		}
 	}
 	i.MakePrivate()
-	to := make([]*Account, 0)
-	for _, rec := range a.To {
-		if rec == goap.PublicNS {
-			i.MakePublic()
-			continue
-		}
-		acc := Account{}
-		acc.FromActivityPub(rec)
-		if acc.IsValid() {
-			to = append(to, &acc)
-		}
+	isPublic := false
+	i.Metadata.To, isPublic = loadRecipientsFrom(a.To)
+	if isPublic {
+		i.MakePublic()
 	}
-	i.Metadata.To = to
-	cc := make([]*Account, 0)
-	for _, rec := range a.CC {
-		if rec == goap.PublicNS {
-			i.MakePublic()
-			continue
-		}
-		acc := Account{}
-		acc.FromActivityPub(rec)
-		if acc.IsValid() {
-			cc = append(cc, &acc)
-		}
+	i.Metadata.CC, isPublic = loadRecipientsFrom(a.CC)
+	if isPublic {
+		i.MakePublic()
 	}
-	i.Metadata.CC = cc
 
 	i.Score = a.Score
 	return nil
+}
+
+func loadRecipientsFrom(recipients goap.ItemCollection) ([]*Account, bool) {
+	result := make([]*Account, 0)
+	isPublic := false
+	for _, rec := range recipients {
+		recURL, err := rec.GetLink().URL()
+		if err != nil {
+			continue
+		}
+		if rec == goap.PublicNS {
+			isPublic = true
+			continue
+		}
+		maybeCol := path.Base(recURL.Path)
+		if handlers.ValidCollection(maybeCol) {
+			if handlers.CollectionType(maybeCol) != handlers.Followers && handlers.CollectionType(maybeCol) != handlers.Following {
+				// we don't know how to handle collections that don't contain actors
+				continue
+			}
+			acc := Account{
+				Metadata: &AccountMetadata{
+					ID:  rec.GetLink().String(),
+				},
+			}
+			result = append(result, &acc)
+		} else {
+			acc := Account{}
+			acc.FromActivityPub(rec)
+			if acc.IsValid() {
+				result = append(result, &acc)
+			}
+		}
+	}
+	return result, isPublic
 }
 
 func (i *Item) FromActivityPub(it goap.Item) error {
