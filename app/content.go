@@ -105,8 +105,8 @@ func Markdown(data string) template.HTML {
 }
 
 // HasMetadata
-func (i Item) HasMetadata() bool {
-	return i.Metadata != nil
+func (i *Item) HasMetadata() bool {
+	return i != nil && i.Metadata != nil
 }
 
 // IsFederated

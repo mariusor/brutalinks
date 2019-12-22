@@ -89,8 +89,8 @@ func (h Hash) MarshalText() ([]byte, error) {
 }
 
 // HasMetadata
-func (a Account) HasMetadata() bool {
-	return a.Metadata != nil
+func (a *Account) HasMetadata() bool {
+	return a != nil && a.Metadata != nil
 }
 
 // IsFederated
