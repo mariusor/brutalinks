@@ -791,7 +791,7 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 		acc := loadCurrentAccountFromSession(s, h.storage, h.logger)
 		ctxt := context.WithValue(r.Context(), app.AccountCtxtKey, &acc)
 		r = r.WithContext(ctxt)
-		if auth, ok := app.ContextAuthenticated(r.Context()); ok {
+		if auth, ok := app.ContextAuthenticated(r.Context()); ok && acc.IsLogged(){
 			auth.WithAccount(&acc)
 		}
 		next.ServeHTTP(w, r)
