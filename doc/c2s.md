@@ -57,6 +57,10 @@ Loads the outbox of the actor corresponding to the user: `/actors/{uuid}/outbox`
 
 Loads the liked end-point of the actor corresponding to the user: `/actors/{uuid}/liked`
 
+## Load a user's pending follows
+
+Loads the liked end-point of the actor corresponding to the user: `/actors/{uuid}/inbox?type=Follow`
+
 ## Loading an item's comments
 
 Loads the item's Context property (which can be it's top level item, or itself) and loads the `/objects/{uuid}/replies`
