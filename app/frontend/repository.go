@@ -231,9 +231,9 @@ func loadAPItem(item app.Item) pub.Item {
 	if len(repl) > 0 {
 		o.InReplyTo = repl
 	}
-	to := pub.ItemCollection{}
-	bcc := pub.ItemCollection{}
-	cc := pub.ItemCollection{}
+	to := make(pub.ItemCollection, 0)
+	bcc := make(pub.ItemCollection, 0)
+	cc := make(pub.ItemCollection, 0)
 	// TODO(marius): add proper dynamic recipients to this based on some selector in the frontend
 	if !item.Private() {
 		to = append(to, pub.PublicNS)
@@ -974,7 +974,7 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 	author := loadAPPerson(*it.SubmittedBy)
 	reqURL := r.getAuthorRequestURL(it.SubmittedBy)
 
-	to := pub.ItemCollection{}
+	to := make(pub.ItemCollection, 0)
 	cc := make(pub.ItemCollection, 0)
 	bcc := make(pub.ItemCollection, 0)
 
