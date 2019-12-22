@@ -38,8 +38,7 @@ func (i itemListingModel) PrevPage() int {
 func (h *handler) ShowAccount(w http.ResponseWriter, r *http.Request) {
 	handle := chi.URLParam(r, "handle")
 
-	val := r.Context().Value(app.RepositoryCtxtKey)
-	accountLoader, ok := val.(app.CanLoadAccounts)
+	accountLoader, ok := app.ContextAccountLoader(r.Context())
 	if !ok {
 		h.logger.Error("could not load account repository from Context")
 		return

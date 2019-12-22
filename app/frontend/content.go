@@ -358,8 +358,7 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 
 func accountFromRequestHandle(r *http.Request) (*app.Account, error) {
 	handle := chi.URLParam(r, "handle")
-	val := r.Context().Value(app.RepositoryCtxtKey)
-	accountLoader, ok := val.(app.CanLoadAccounts)
+	accountLoader, ok := app.ContextAccountLoader(r.Context())
 	if !ok {
 		return nil, errors.Newf("could not load account repository from Context")
 	}
