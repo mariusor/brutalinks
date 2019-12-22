@@ -401,10 +401,6 @@ func appName(n string) template.HTML {
 func (h *handler) account(r *http.Request) *app.Account {
 	acct, ok := app.ContextAccount(r.Context())
 	if !ok {
-		h.logger.WithContext(log.Ctx{
-		}).Error("could not load account repository from Context")
-	}
-	if acct == nil {
 		return &defaultAccount
 	}
 	return acct
@@ -716,26 +712,6 @@ func loadCurrentAccountFromSession(s *sessions.Session, r *repository, l log.Log
 	if !ok {
 		return defaultAccount
 	}
-	if !a.IsValid() {
-		var err error
-		a, err = r.LoadAccount(app.Filters{
-			LoadAccountsFilter: app.LoadAccountsFilter{
-				Handle: []string{a.Handle},
-				Key:    []app.Hash{a.Hash},
-			},
-		})
-		if err != nil {
-			l.WithContext(log.Ctx{
-				"handle": a.Handle,
-				"hash":   a.Hash,
-			}).Warn(err.Error())
-			return defaultAccount
-		}
-		l.WithContext(log.Ctx{
-			"handle": a.Handle,
-			"hash":   a.Hash,
-		}).Debug("loaded actor from remote server")
-	}
 	l.WithContext(log.Ctx{
 		"handle": a.Handle,
 		"hash":   a.Hash,
@@ -789,10 +765,26 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 			}
 		}
 		acc := loadCurrentAccountFromSession(s, h.storage, h.logger)
-		ctxt := context.WithValue(r.Context(), app.AccountCtxtKey, &acc)
-		r = r.WithContext(ctxt)
-		if auth, ok := app.ContextAuthenticated(r.Context()); ok && acc.IsLogged(){
-			auth.WithAccount(&acc)
+		m := acc.Metadata
+		if acc.IsLogged() {
+			acc, err = h.storage.LoadAccount(app.Filters{
+				LoadAccountsFilter: app.LoadAccountsFilter{
+					Handle: []string{acc.Handle},
+					Key:    []app.Hash{acc.Hash},
+				},
+			})
+			if err != nil {
+				h.logger.WithContext(log.Ctx{
+					"handle": acc.Handle,
+					"hash":   acc.Hash,
+				}).Warn(err.Error())
+			}
+			// ugly hack we need to not override OAuth2 metadata loaded at login
+			acc.Metadata = m
+			r = r.WithContext(context.WithValue(r.Context(), app.AccountCtxtKey, &acc))
+			if auth, ok := app.ContextAuthenticated(r.Context()); ok {
+				auth.WithAccount(&acc)
+			}
 		}
 		next.ServeHTTP(w, r)
 	}
