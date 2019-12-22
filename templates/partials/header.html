@@ -21,7 +21,7 @@
         <li class="acct"><a class="by" href="{{ $account | AccountPermaLink }}">{{$account.Handle}}</a> <span class="score">{{$account.Score | ScoreFmt}}</span></li>
         <li class=""><a href="/logout">Log out</a></li>
 {{- end }}
-{{- if or $account.IsLogged Config.AnonymousCommenting }}
+{{- if or $account.IsLogged Config.AnonymousCommentingEnabled }}
         <li class=""><a href="/submit">Add</a></li>
 {{- end }}
 {{- if Config.SessionsEnabled }}

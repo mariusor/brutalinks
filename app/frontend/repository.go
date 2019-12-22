@@ -1139,6 +1139,45 @@ func (r *repository) LoadAccount(f app.Filters) (app.Account, error) {
 	return *ac, nil
 }
 
+func (r *repository) FollowAccount(er, ed app.Account) error {
+	follower := loadAPPerson(er)
+	followed := loadAPPerson(ed)
+	reqURL := r.getAuthorRequestURL(&er)
+
+	to := make(pub.ItemCollection, 0)
+	bcc := make(pub.ItemCollection, 0)
+
+	//to = append(to, follower.GetLink())
+	to = append(to, pub.PublicNS)
+	bcc = append(bcc, pub.ItemCollection{pub.IRI(BaseURL)})
+
+	var body []byte
+	var err error
+
+	follow := pub.Follow{
+		Type:   pub.FollowType,
+		To:     to,
+		BCC:    bcc,
+		Object: followed.GetLink(),
+		Actor:  follower.GetLink(),
+	}
+	body, err = j.Marshal(follow)
+	var resp *http.Response
+	resp, err = r.client.Post(reqURL, cl.ContentTypeActivityJson, bytes.NewReader(body))
+	if err != nil {
+		r.logger.Error(err.Error())
+		return err
+	}
+	if body, err = ioutil.ReadAll(resp.Body); err != nil {
+		r.logger.Error(err.Error())
+		return err
+	}
+	if resp.StatusCode >= 400 {
+		return r.handlerErrorResponse(body)
+	}
+	return nil
+}
+
 func (r *repository) SaveAccount(a app.Account) (app.Account, error) {
 	p := loadAPPerson(a)
 	id := p.GetLink()

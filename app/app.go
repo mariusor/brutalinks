@@ -68,16 +68,17 @@ type backendConfig struct {
 }
 
 type Config struct {
-	Env                 EnvType
-	LogLevel            log.Level
-	DB                  backendConfig
-	ES                  backendConfig
-	Redis               backendConfig
-	AnonymousCommenting bool
-	SessionsEnabled     bool
-	VotingEnabled       bool
-	DownvotingEnabled   bool
-	UserCreatingEnabled bool
+	Env                        EnvType
+	LogLevel                   log.Level
+	DB                         backendConfig
+	ES                         backendConfig
+	Redis                      backendConfig
+	AnonymousCommentingEnabled bool
+	SessionsEnabled            bool
+	VotingEnabled              bool
+	DownvotingEnabled          bool
+	UserCreatingEnabled        bool
+	UserFollowingEnabled       bool
 }
 
 // Stats holds data for keeping compatibility with Mastodon instances
@@ -264,7 +265,10 @@ func loadEnv(l *Application) (bool, error) {
 	l.Config.SessionsEnabled = !sessionsDisabled
 	userCreationDisabled, _ := strconv.ParseBool(os.Getenv("DISABLE_USER_CREATION"))
 	l.Config.UserCreatingEnabled = !userCreationDisabled
-	l.Config.AnonymousCommenting, _ = strconv.ParseBool(os.Getenv("ANONYMOUS_COMMENTING"))
+	anonymousCommentingDisabled, _ := strconv.ParseBool(os.Getenv("DISABLE_ANONYMOUS_COMMENTING"))
+	l.Config.AnonymousCommentingEnabled = !anonymousCommentingDisabled
+	userFollowingDisabled, _ := strconv.ParseBool(os.Getenv("DISABLE_USER_FOLLOWING"))
+	l.Config.UserFollowingEnabled = !userFollowingDisabled
 
 	if l.APIURL = os.Getenv("API_URL"); l.APIURL == "" {
 		l.APIURL = fmt.Sprintf("%s/api", l.BaseURL)

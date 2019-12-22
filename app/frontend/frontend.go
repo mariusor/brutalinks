@@ -898,6 +898,11 @@ func (h *handler) HandleErrors(w http.ResponseWriter, r *http.Request, errs ...e
 	if r.Method == http.MethodPost {
 		renderErrors = false
 	}
+	backURL := "/"
+	if refURLs, ok := r.Header["Referer"]; ok {
+		backURL = refURLs[0]
+		renderErrors = false
+	}
 
 	status := http.StatusInternalServerError
 	for _, err := range errs {
@@ -920,10 +925,6 @@ func (h *handler) HandleErrors(w http.ResponseWriter, r *http.Request, errs ...e
 		w.Header().Set("Expires", " 0")
 		h.RenderTemplate(r, w, "error", d)
 	} else {
-		backURL := "/"
-		if refURLs, ok := r.Header["Referer"]; ok {
-			backURL = refURLs[0]
-		}
 		h.Redirect(w, r, backURL, http.StatusFound)
 	}
 }

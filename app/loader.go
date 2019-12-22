@@ -537,21 +537,21 @@ type Repository interface {
 }
 
 type Authenticated interface {
-	WithAccount(a *Account) error
+	WithAccount(*Account) error
 }
 
 type CanSaveItems interface {
-	SaveItem(it Item) (Item, error)
+	SaveItem(Item) (Item, error)
 }
 
 type CanLoadItems interface {
-	LoadItem(f Filters) (Item, error)
-	LoadItems(f Filters) (ItemCollection, uint, error)
+	LoadItem(Filters) (Item, error)
+	LoadItems(Filters) (ItemCollection, uint, error)
 }
 
 type CanLoadVotes interface {
-	LoadVotes(f Filters) (VoteCollection, uint, error)
-	LoadVote(f Filters) (Vote, error)
+	LoadVotes(Filters) (VoteCollection, uint, error)
+	LoadVote(Filters) (Vote, error)
 }
 
 type CanLoadInfo interface {
@@ -573,16 +573,17 @@ type CanSaveVotes interface {
 	// The cli/votes/main.go script would be responsible with waiting on the queue for these messages
 	// and updating the new score and all models dependent on it.
 	//   items and accounts tables, corresponding ES documents, etc
-	SaveVote(v Vote) (Vote, error)
+	SaveVote(Vote) (Vote, error)
 }
 
 type CanLoadAccounts interface {
-	LoadAccount(f Filters) (Account, error)
-	LoadAccounts(f Filters) (AccountCollection, uint, error)
+	LoadAccount(Filters) (Account, error)
+	LoadAccounts(Filters) (AccountCollection, uint, error)
 }
 
 type CanSaveAccounts interface {
-	SaveAccount(a Account) (Account, error)
+	SaveAccount(Account) (Account, error)
+	FollowAccount(follower Account, followed Account) error
 }
 
 type CanSaveActivity interface {
