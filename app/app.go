@@ -73,7 +73,6 @@ type Config struct {
 	DB                         backendConfig
 	ES                         backendConfig
 	Redis                      backendConfig
-	AnonymousCommentingEnabled bool
 	SessionsEnabled            bool
 	VotingEnabled              bool
 	DownvotingEnabled          bool
@@ -265,8 +264,6 @@ func loadEnv(l *Application) (bool, error) {
 	l.Config.SessionsEnabled = !sessionsDisabled
 	userCreationDisabled, _ := strconv.ParseBool(os.Getenv("DISABLE_USER_CREATION"))
 	l.Config.UserCreatingEnabled = !userCreationDisabled
-	anonymousCommentingDisabled, _ := strconv.ParseBool(os.Getenv("DISABLE_ANONYMOUS_COMMENTING"))
-	l.Config.AnonymousCommentingEnabled = !anonymousCommentingDisabled
 	userFollowingDisabled, _ := strconv.ParseBool(os.Getenv("DISABLE_USER_FOLLOWING"))
 	l.Config.UserFollowingEnabled = !userFollowingDisabled
 
