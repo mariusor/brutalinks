@@ -602,10 +602,10 @@ func (r *repository) loadItemsAuthors(items ...app.Item) (app.ItemCollection, er
 }
 
 func accountsEqual(a1, a2 app.Account) bool {
-	return bytes.Equal(a1.Hash, a2.Hash) || (len(a1.Handle) + len(a2.Handle) > 0 && a1.Handle == a2.Handle)
+	return bytes.Equal(a1.Hash, a2.Hash) || (len(a1.Handle)+len(a2.Handle) > 0 && a1.Handle == a2.Handle)
 }
 
-	func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) {
+func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) {
 	var qs string
 
 	target := "/"
