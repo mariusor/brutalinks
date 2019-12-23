@@ -623,6 +623,7 @@ func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) 
 		}
 	}
 	filterLocal := false
+	filterPrivate := false
 	if len(f.Federated) > 0 {
 		for _, fed := range f.Federated {
 			if !fed {
@@ -630,6 +631,14 @@ func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) 
 				f.LoadItemsFilter.IRI = BaseURL
 			} else {
 				filterLocal = true
+			}
+			break
+		}
+	}
+	if len(f.Private) > 0 {
+		for _, prv := range f.Private {
+			if !prv {
+				filterPrivate = true
 			}
 			break
 		}
@@ -674,6 +683,9 @@ func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) 
 			i := app.Item{}
 			if err := i.FromActivityPub(it); err != nil {
 				r.logger.Error(err.Error())
+				continue
+			}
+			if filterPrivate && i.Private() {
 				continue
 			}
 			items = append(items, i)

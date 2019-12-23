@@ -155,6 +155,7 @@ func (h *handler) HandleIndex(w http.ResponseWriter, r *http.Request) {
 			InReplyTo: []string{""},
 			Deleted:   []bool{false},
 			Federated: []bool{false},
+			Private:   []bool{false},
 		},
 		Page:     1,
 		MaxItems: MaxContentItems,
