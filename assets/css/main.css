@@ -52,7 +52,14 @@ body {
 p {
     word-break: break-word;
 }
-p + p {
+article dl,
+article ul,
+article ol {
+    margin-left: 1.3rem;
+}
+article p + p, article p + ul, article p + ol, article p + dl,
+article p + div, article p + h1, article p + h2, article p + h3, article p + h4, article p + h5, article p + h6,
+article p + blockquote, article p + pre {
     padding-top: .6rem;
 }
 a[href] {
