@@ -59,7 +59,9 @@ Loads the liked end-point of the actor corresponding to the user: `/actors/{uuid
 
 ## Load a user's pending follows
 
-Loads the liked end-point of the actor corresponding to the user: `/actors/{uuid}/inbox?type=Follow`
+Loads with filter type Follow from the inbox end-point of the actor corresponding to the user: `/actors/{uuid}/inbox?type=Follow`
+
+But we need to do remove all activities that have actors present in the in the `actors/{uuid}/followers` collection. 
 
 ## Loading an item's comments
 
