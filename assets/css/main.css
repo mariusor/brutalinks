@@ -89,14 +89,12 @@ svg.icon.icon-eraser {
     margin-left: -.2em;
 }
 button svg.icon.icon-reply,
-button svg.icon.icon-sign-in
-{
+button svg.icon.icon-sign-in {
     height: .9em;
     width: .9em;
 }
 h1.logo a,
-h1.logo a:visited
-{
+h1.logo a:visited {
     color: var(--main-fg-color);
 }
 h1.logo a:hover {
@@ -166,7 +164,7 @@ body > header h1.logo .icon.icon-l {
     vertical-align: text-top;
 }
 .sections li a svg.icon-activitypub {
-    width:  1.2rem;
+    width: 1.2rem;
     margin-left: .2rem;
 }
 body > main {
@@ -256,7 +254,8 @@ aside.domain {
     overflow: auto;
     max-width: 100%;
 }
-.data code {}
+.data code {
+}
 .data p:first-of-type {
     margin-top: 0;
     /*text-indent: 0;*/
@@ -274,9 +273,7 @@ ol {
     grid-template-columns: 1.6rem 11fr;
     grid-template-rows: minmax(max-content, 1.4rem) auto;
     /*align-items: center;*/
-    grid-template-areas:
-            "sidebar main"
-            "sidebar footer";
+    grid-template-areas: "sidebar main" "sidebar footer";
 }
 .item aside.score {
     grid-area: sidebar;
@@ -337,6 +334,9 @@ ol.comments li {
     align-self: center;
     font-size: .7em;
 }
+.item aside.score.disabled svg {
+    margin-top: 1em;
+}
 .item .score data svg {
     margin-right: .1em;
     margin-bottom: .1em;
@@ -349,8 +349,7 @@ ol.comments li {
 }
 .item .score data.K,
 .item .score data.M,
-.item .score data.B
-{
+.item .score data.B {
     font-weight: lighter;
     font-size: .6em;
 }
@@ -417,8 +416,10 @@ ol.comments li {
 .comments .item {
     margin-left: -.8em;
 }
-.comments details[open] {}
-.comments details:not([open]) {}
+.comments details[open] {
+}
+.comments details:not([open]) {
+}
 .comments details {
     margin: .3em 0 .6em 0;
 }
@@ -429,8 +430,10 @@ summary:focus {
     padding: .3rem 0 0 .3rem;
     margin-bottom: 1px;
 }
-.comments details:not([open]) > summary {}
-.comments details > summary::before {}
+.comments details:not([open]) > summary {
+}
+.comments details > summary::before {
+}
 .comments details > summary {
     font-size: 0.7rem;
     /*display: inline;*/
@@ -479,7 +482,7 @@ summary:focus {
     border-color: #3a3a3aaa;
 }
 /*.data {*/
-    /*max-width: 960px;*/
+/*max-width: 960px;*/
 /*}*/
 .comments .data,
 #content .data {
@@ -513,10 +516,10 @@ summary:focus {
 #private-message label,
 #reply label,
 #new label,
-#login label {}
+#login label {
+}
 #register form button,
-#login form button
-{
+#login form button {
     margin-top: .2em;
 }
 .meta-items {
@@ -571,8 +574,8 @@ form label.mime-type {
     max-height: 480px;
     align-items: center;
 }
-.error>header nav,
-.about>header {
+.error > header nav,
+.about > header {
     display: none;
 }
 section#no-items {
@@ -646,8 +649,7 @@ svg.icon.icon-adjust {
     body > header .top span.score {
         display: none;
     }
-    body > header .top li:nth-child(2)
-    {
+    body > header .top li:nth-child(2) {
         display: none;
     }
     .acct-info {
@@ -746,8 +748,7 @@ svg.icon.icon-adjust {
         display: unset;
     }
     body > header .top li:first-child,
-    body > header .top li:nth-child(2)
-    {
+    body > header .top li:nth-child(2) {
         display: unset;
     }
 }
