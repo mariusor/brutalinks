@@ -709,7 +709,9 @@ func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) 
 		})
 	}
 	items, err = r.loadItemsAuthors(items...)
-	items, err = r.loadItemsVotes(items...)
+	if app.Instance.Config.VotingEnabled {
+		items, err = r.loadItemsVotes(items...)
+	}
 
 	return items, count, err
 }
