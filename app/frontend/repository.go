@@ -12,7 +12,6 @@ import (
 	"github.com/go-ap/errors"
 	"github.com/go-ap/handlers"
 	j "github.com/go-ap/jsonld"
-	local "github.com/mariusor/littr.go/activitypub"
 	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/internal/log"
 	"github.com/mariusor/qstring"
@@ -40,7 +39,7 @@ func (h handler) Repository(next http.Handler) http.Handler {
 }
 
 func NewRepository(c Config) *repository {
-	pub.ItemTyperFunc = local.JSONGetItemByType
+	pub.ItemTyperFunc = pub.JSONGetItemByType
 	cl.UserAgent = fmt.Sprintf("%s-%s", app.Instance.HostName, app.Instance.Version)
 	cl.ErrorLogger = func(el ...interface{}) { c.Logger.WithContext(log.Ctx{"client": "api"}).Errorf("%v", el) }
 	cl.InfoLogger = func(el ...interface{}) { c.Logger.WithContext(log.Ctx{"client": "api"}).Debugf("%v", el) }
@@ -121,7 +120,7 @@ func BuildActorID(a app.Account) pub.ID {
 }
 
 func loadAPItem(item app.Item) pub.Item {
-	o := local.Object{}
+	o := pub.Object{}
 
 	if id, ok := BuildIDFromItem(item); ok {
 		o.ID = id
@@ -146,7 +145,7 @@ func loadAPItem(item app.Item) pub.Item {
 		o.Name = make(pub.NaturalLanguageValues, 0)
 		switch item.MimeType {
 		case app.MimeTypeMarkdown:
-			o.Object.Source.MediaType = pub.MimeType(item.MimeType)
+			o.Source.MediaType = pub.MimeType(item.MimeType)
 			o.MediaType = pub.MimeType(app.MimeTypeHTML)
 			if item.Data != "" {
 				o.Source.Content.Set("en", item.Data)
@@ -196,7 +195,6 @@ func loadAPItem(item app.Item) pub.Item {
 	}
 
 	//o.Generator = pub.IRI(app.Instance.BaseURL)
-	o.Score = item.Score / app.ScoreMultiplier
 	if item.Title != "" {
 		o.Name.Set("en", string(item.Title))
 	}
@@ -453,7 +451,7 @@ func (r *repository) LoadItem(f app.Filters) (app.Item, error) {
 		r.logger.Error(err.Error())
 		return item, err
 	}
-	local.OnObject(it, func(art *local.Object) error {
+	pub.OnObject(it, func(art *pub.Object) error {
 		err = item.FromActivityPub(art)
 		if err == nil {
 			var items app.ItemCollection

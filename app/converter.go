@@ -5,21 +5,20 @@ import (
 	"encoding/pem"
 	"fmt"
 	"github.com/go-ap/handlers"
-	ap "github.com/mariusor/littr.go/activitypub"
 	"net/url"
 	"path"
 	"strings"
 
-	goap "github.com/go-ap/activitypub"
+	pub "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
 )
 
 type Converter interface {
-	FromActivityPub(ob goap.Item) error
+	FromActivityPub(ob pub.Item) error
 }
 
-func (h *Hash) FromActivityPub(it goap.Item) error {
-	if it.GetLink() == goap.PublicNS {
+func (h *Hash) FromActivityPub(it pub.Item) error {
+	if it.GetLink() == pub.PublicNS {
 		*h = AnonymousHash
 		return nil
 	}
@@ -27,7 +26,7 @@ func (h *Hash) FromActivityPub(it goap.Item) error {
 	return nil
 }
 
-func (a *Account) FromActivityPub(it goap.Item) error {
+func (a *Account) FromActivityPub(it pub.Item) error {
 	if a == nil {
 		return nil
 	}
@@ -36,7 +35,7 @@ func (a *Account) FromActivityPub(it goap.Item) error {
 	}
 	if it.IsLink() {
 		iri := it.GetLink()
-		if iri == goap.PublicNS {
+		if iri == pub.PublicNS {
 			*a = AnonymousAccount
 		}
 		a.Hash.FromActivityPub(iri)
@@ -46,34 +45,16 @@ func (a *Account) FromActivityPub(it goap.Item) error {
 		return nil
 	}
 	// FIXME(marius): This whole thing needs to be changed to OnXX functions.
-	personFn := func(a *Account, fnAo func(a *Account, p goap.Object) error, fnAp func(a *Account, p goap.Person) error, fnLocal func(a *Account, p ap.Actor) error) error {
-		if pp, ok := it.(ap.Actor); ok {
-			return fnLocal(a, pp)
-		}
-		if pp, ok := it.(*ap.Actor); ok {
-			return fnLocal(a, *pp)
-		}
-		if pp, ok := it.(goap.Person); ok {
+	personFn := func(a *Account, fnAp func(a *Account, p pub.Person) error) error {
+		if pp, ok := it.(pub.Person); ok {
 			return fnAp(a, pp)
 		}
-		if pp, ok := it.(*goap.Person); ok {
+		if pp, ok := it.(*pub.Person); ok {
 			return fnAp(a, *pp)
-		}
-		if pp, ok := it.(ap.Object); ok {
-			return fnAo(a, pp.Object)
-		}
-		if pp, ok := it.(*ap.Object); ok {
-			return fnAo(a, pp.Object)
-		}
-		if pp, ok := it.(goap.Object); ok {
-			return fnAo(a, pp)
-		}
-		if pp, ok := it.(*goap.Object); ok {
-			return fnAo(a, *pp)
 		}
 		return nil
 	}
-	loadFromObject := func(a *Account, p goap.Object) error {
+	loadFromObject := func(a *Account, p pub.Object) error {
 		name := p.Name.First().Value
 		a.Hash.FromActivityPub(p)
 		if len(name) > 0 {
@@ -95,7 +76,7 @@ func (a *Account) FromActivityPub(it goap.Item) error {
 		}
 		if p.Icon != nil {
 			if p.Icon.IsObject() {
-				ap.OnObject(p.Icon, func(o *ap.Object) error {
+				pub.OnObject(p.Icon, func(o *pub.Object) error {
 					a.Metadata.Icon.MimeType = string(o.MediaType)
 					a.Metadata.Icon.URI = o.URL.GetLink().String()
 					return nil
@@ -108,7 +89,7 @@ func (a *Account) FromActivityPub(it goap.Item) error {
 			a.Email = fmt.Sprintf("%s@%s", a.Handle, host)
 		}
 
-		if it.GetType() == goap.TombstoneType {
+		if it.GetType() == pub.TombstoneType {
 			a.Handle = Anonymous
 			a.Flags = a.Flags & FlagsDeleted
 		}
@@ -120,8 +101,8 @@ func (a *Account) FromActivityPub(it goap.Item) error {
 		}
 		return nil
 	}
-	loadFromPerson := func(a *Account, p goap.Actor) error {
-		goap.OnObject(&p, func(o *goap.Object) error {
+	loadFromPerson := func(a *Account, p pub.Actor) error {
+		pub.OnObject(&p, func(o *pub.Object) error {
 			return loadFromObject(a, *o)
 		})
 		pName := p.PreferredUsername.First().Value
@@ -153,11 +134,10 @@ func (a *Account) FromActivityPub(it goap.Item) error {
 		}
 		return nil
 	}
-	loadFromLocal := func(a *Account, p ap.Actor) error {
-		if err := loadFromPerson(a, p.Actor); err != nil {
+	loadFromLocal := func(a *Account, p pub.Actor) error {
+		if err := loadFromPerson(a, p); err != nil {
 			return err
 		}
-		a.Score = p.Score
 		if a.Metadata == nil {
 			a.Metadata = &AccountMetadata{}
 		}
@@ -172,24 +152,24 @@ func (a *Account) FromActivityPub(it goap.Item) error {
 		return nil
 	}
 	switch it.GetType() {
-	case goap.CreateType:
+	case pub.CreateType:
 		fallthrough
-	case goap.UpdateType:
-		return goap.OnActivity(it, func(act *goap.Activity) error {
+	case pub.UpdateType:
+		return pub.OnActivity(it, func(act *pub.Activity) error {
 			return a.FromActivityPub(act.Actor)
 		})
-	case goap.ServiceType:
+	case pub.ServiceType:
 		fallthrough
-	case goap.GroupType:
+	case pub.GroupType:
 		fallthrough
-	case goap.ApplicationType:
+	case pub.ApplicationType:
 		fallthrough
-	case goap.OrganizationType:
+	case pub.OrganizationType:
 		fallthrough
-	case goap.TombstoneType:
+	case pub.TombstoneType:
 		fallthrough
-	case goap.PersonType:
-		personFn(a, loadFromObject, loadFromPerson, loadFromLocal)
+	case pub.PersonType:
+		personFn(a, loadFromLocal)
 	default:
 		return errors.Newf("invalid actor type")
 	}
@@ -201,35 +181,7 @@ func (a *Account) FromActivityPub(it goap.Item) error {
 	return nil
 }
 
-func ToArticle(it goap.Item) (*ap.Object, error) {
-	switch i := it.(type) {
-	case *ap.Object:
-		return i, nil
-	case ap.Object:
-		return &i, nil
-	default:
-		ob, err := goap.ToObject(it)
-		return &ap.Object{
-			Object: *ob,
-		}, err
-	}
-	return nil, errors.Newf("unable to convert Object")
-}
-
-type onArticleFn func(art *ap.Object) error
-
-func OnArticle(it goap.Item, fn onArticleFn) error {
-	if !goap.ObjectTypes.Contains(it.GetType()) {
-		return errors.Newf(fmt.Sprintf("%T[%s] can't be converted to Object", it, it.GetType()))
-	}
-	act, err := ToArticle(it)
-	if err != nil {
-		return err
-	}
-	return fn(act)
-}
-
-func FromArticle(i *Item, a *ap.Object) error {
+func FromArticle(i *Item, a *pub.Object) error {
 	title := a.Name.First().Value
 
 	i.Hash.FromActivityPub(a)
@@ -237,7 +189,7 @@ func FromArticle(i *Item, a *ap.Object) error {
 		i.Title = title
 	}
 	i.MimeType = MimeTypeHTML
-	if a.Type == goap.PageType {
+	if a.Type == pub.PageType {
 		i.Data = string(a.URL.GetLink())
 		i.MimeType = MimeTypeURL
 	} else {
@@ -267,11 +219,11 @@ func FromArticle(i *Item, a *ap.Object) error {
 	}
 	if a.Icon != nil {
 		if a.Icon.IsObject() {
-			if ic, ok := a.Icon.(*goap.Object); ok {
+			if ic, ok := a.Icon.(*pub.Object); ok {
 				i.Metadata.Icon.MimeType = string(ic.MediaType)
 				i.Metadata.Icon.URI = ic.URL.GetLink().String()
 			}
-			if ic, ok := a.Icon.(goap.Object); ok {
+			if ic, ok := a.Icon.(pub.Object); ok {
 				i.Metadata.Icon.MimeType = string(ic.MediaType)
 				i.Metadata.Icon.URI = ic.URL.GetLink().String()
 			}
@@ -283,7 +235,7 @@ func FromArticle(i *Item, a *ap.Object) error {
 		i.OP = &op
 	}
 	if a.InReplyTo != nil {
-		if repl, ok := a.InReplyTo.(goap.ItemCollection); ok {
+		if repl, ok := a.InReplyTo.(pub.ItemCollection); ok {
 			if len(repl) >= 1 {
 				first := repl.First()
 				if first != nil {
@@ -336,11 +288,10 @@ func FromArticle(i *Item, a *ap.Object) error {
 		i.MakePublic()
 	}
 
-	i.Score = a.Score
 	return nil
 }
 
-func loadRecipientsFrom(recipients goap.ItemCollection) ([]*Account, bool) {
+func loadRecipientsFrom(recipients pub.ItemCollection) ([]*Account, bool) {
 	result := make([]*Account, 0)
 	isPublic := false
 	for _, rec := range recipients {
@@ -348,7 +299,7 @@ func loadRecipientsFrom(recipients goap.ItemCollection) ([]*Account, bool) {
 		if err != nil {
 			continue
 		}
-		if rec == goap.PublicNS {
+		if rec == pub.PublicNS {
 			isPublic = true
 			continue
 		}
@@ -360,7 +311,7 @@ func loadRecipientsFrom(recipients goap.ItemCollection) ([]*Account, bool) {
 			}
 			acc := Account{
 				Metadata: &AccountMetadata{
-					ID:  rec.GetLink().String(),
+					ID: rec.GetLink().String(),
 				},
 			}
 			result = append(result, &acc)
@@ -375,7 +326,7 @@ func loadRecipientsFrom(recipients goap.ItemCollection) ([]*Account, bool) {
 	return result, isPublic
 }
 
-func (i *Item) FromActivityPub(it goap.Item) error {
+func (i *Item) FromActivityPub(it pub.Item) error {
 	// TODO(marius): see that we seem to have this functionality duplicated in the FromArticle() function
 	if it == nil {
 		return errors.Newf("nil item received")
@@ -389,20 +340,20 @@ func (i *Item) FromActivityPub(it goap.Item) error {
 	}
 
 	switch it.GetType() {
-	case goap.DeleteType:
-		return goap.OnActivity(it, func(act *goap.Activity) error {
+	case pub.DeleteType:
+		return pub.OnActivity(it, func(act *pub.Activity) error {
 			err := i.FromActivityPub(act.Object)
 			i.Delete()
 			return err
 		})
-	case goap.CreateType:
+	case pub.CreateType:
 		fallthrough
-	case goap.UpdateType:
+	case pub.UpdateType:
 		fallthrough
-	case goap.ActivityType:
-		return goap.OnActivity(it, func(act *goap.Activity) error {
+	case pub.ActivityType:
+		return pub.OnActivity(it, func(act *pub.Activity) error {
 			// TODO(marius): this logic is probably broken if the activity is anything else except a Create
-			good := goap.ActivityVocabularyTypes{goap.CreateType, goap.UpdateType}
+			good := pub.ActivityVocabularyTypes{pub.CreateType, pub.UpdateType}
 			if !good.Contains(act.Type) {
 				return errors.Newf("Invalid activity to load from %s", act.Type)
 			}
@@ -414,17 +365,17 @@ func (i *Item) FromActivityPub(it goap.Item) error {
 			i.Metadata.AuthorURI = act.Actor.GetLink().String()
 			return err
 		})
-	case goap.ArticleType:
+	case pub.ArticleType:
 		fallthrough
-	case goap.NoteType:
+	case pub.NoteType:
 		fallthrough
-	case goap.DocumentType:
+	case pub.DocumentType:
 		fallthrough
-	case goap.PageType:
-		return OnArticle(it, func(a *ap.Object) error {
+	case pub.PageType:
+		return pub.OnObject(it, func(a *pub.Object) error {
 			return FromArticle(i, a)
 		})
-	case goap.TombstoneType:
+	case pub.TombstoneType:
 		id := it.GetLink()
 		i.Hash.FromActivityPub(id)
 		if i.Metadata == nil {
@@ -433,14 +384,14 @@ func (i *Item) FromActivityPub(it goap.Item) error {
 		if len(id) > 0 {
 			i.Metadata.ID = id.String()
 		}
-		goap.OnObject(it, func(o *goap.Object) error {
+		pub.OnObject(it, func(o *pub.Object) error {
 			if o.Context != nil {
 				op := Item{}
 				op.FromActivityPub(o.Context)
 				i.OP = &op
 			}
 			if o.InReplyTo != nil {
-				if repl, ok := o.InReplyTo.(goap.ItemCollection); ok {
+				if repl, ok := o.InReplyTo.(pub.ItemCollection); ok {
 					first := repl.First()
 					if first != nil {
 						par := Item{}
@@ -473,7 +424,7 @@ func (i *Item) FromActivityPub(it goap.Item) error {
 	return nil
 }
 
-func (v *Vote) FromActivityPub(it goap.Item) error {
+func (v *Vote) FromActivityPub(it pub.Item) error {
 	if it == nil {
 		return errors.Newf("nil item received")
 	}
@@ -481,12 +432,12 @@ func (v *Vote) FromActivityPub(it goap.Item) error {
 		return errors.Newf("unable to load from IRI")
 	}
 	switch it.GetType() {
-	case goap.UndoType:
+	case pub.UndoType:
 		fallthrough
-	case goap.LikeType:
+	case pub.LikeType:
 		fallthrough
-	case goap.DislikeType:
-		fromAct := func(act goap.Activity, v *Vote) {
+	case pub.DislikeType:
+		fromAct := func(act pub.Activity, v *Vote) {
 			on := Item{}
 			on.FromActivityPub(act.Object)
 			v.Item = &on
@@ -501,18 +452,18 @@ func (v *Vote) FromActivityPub(it goap.Item) error {
 				IRI: act.GetLink().String(),
 			}
 
-			if act.Type == goap.LikeType {
+			if act.Type == pub.LikeType {
 				v.Weight = 1
 			}
-			if act.Type == goap.DislikeType {
+			if act.Type == pub.DislikeType {
 				v.Weight = -1
 			}
-			if act.Type == goap.UndoType {
+			if act.Type == pub.UndoType {
 				v.Weight = 0
 				v.Metadata.OriginalIRI = act.Object.GetLink().String()
 			}
 		}
-		goap.OnActivity(it, func(act *goap.Activity) error {
+		pub.OnActivity(it, func(act *pub.Activity) error {
 			fromAct(*act, v)
 			return nil
 		})
@@ -532,7 +483,7 @@ func host(u string) string {
 	return ""
 }
 
-func GetHashFromAP(obj goap.Item) Hash {
+func GetHashFromAP(obj pub.Item) Hash {
 	iri := obj.GetLink()
 	s := strings.Split(iri.String(), "/")
 	var hash string
@@ -548,12 +499,12 @@ func GetHashFromAP(obj goap.Item) Hash {
 	return Hash(h)
 }
 
-func (i *TagCollection) FromActivityPub(it goap.ItemCollection) error {
+func (i *TagCollection) FromActivityPub(it pub.ItemCollection) error {
 	if it == nil || len(it) == 0 {
 		return errors.Newf("empty collection")
 	}
 	for _, t := range it {
-		if m, ok := t.(*goap.Mention); ok {
+		if m, ok := t.(*pub.Mention); ok {
 			u := string(t.GetID())
 			// we have a link
 			lt := Tag{
@@ -563,7 +514,7 @@ func (i *TagCollection) FromActivityPub(it goap.ItemCollection) error {
 			}
 			*i = append(*i, lt)
 		}
-		if ob, ok := t.(*goap.Object); ok {
+		if ob, ok := t.(*pub.Object); ok {
 			u := string(t.GetID())
 			// we have a link
 			lt := Tag{

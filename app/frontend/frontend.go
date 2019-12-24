@@ -7,9 +7,8 @@ import (
 	"encoding/gob"
 	xerrors "errors"
 	"fmt"
-	as "github.com/go-ap/activitypub"
+	pub "github.com/go-ap/activitypub"
 	"github.com/gorilla/csrf"
-	localap "github.com/mariusor/littr.go/activitypub"
 	"html/template"
 	"math"
 	"net/http"
@@ -220,10 +219,10 @@ func Init(c Config) (handler, error) {
 	h.storage = NewRepository(c)
 	key := os.Getenv("OAUTH2_KEY")
 	if len(key) > 0 {
-		oIRI := as.IRI(fmt.Sprintf("%s/actors/%s", h.storage.BaseURL, key))
+		oIRI := pub.IRI(fmt.Sprintf("%s/actors/%s", h.storage.BaseURL, key))
 		oauthApp, err := h.storage.client.LoadIRI(oIRI)
 		if err == nil {
-			localap.OnActor(oauthApp, func(p *localap.Actor) error {
+			pub.OnActor(oauthApp, func(p *pub.Actor) error {
 				h.o = &app.Account{}
 				return h.o.FromActivityPub(p)
 			})
