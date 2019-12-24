@@ -202,6 +202,47 @@ func (h *handler) HandleIndex(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// HandleIndex serves / request
+func (h *handler) HandleInbox(w http.ResponseWriter, r *http.Request) {
+	filter := app.Filters{
+		LoadItemsFilter: app.LoadItemsFilter{
+			InReplyTo: []string{""},
+			Deleted:   []bool{false},
+			Federated: []bool{false},
+			Private:   []bool{false},
+		},
+		Page:     1,
+		MaxItems: MaxContentItems,
+	}
+	if err := qstring.Unmarshal(r.URL.Query(), &filter); err != nil {
+		h.logger.Debug("unable to load url parameters")
+	}
+
+	baseURL, _ := url.Parse(h.conf.BaseURL)
+	title := fmt.Sprintf("%s: main page", baseURL.Host)
+
+	acct := h.account(r)
+	title = fmt.Sprintf("%s: followed", baseURL.Host)
+	h.logger.WithContext(log.Ctx{
+		"handle": acct.Handle,
+		"hash":   acct.Hash,
+	}).Debug("showing followed posts")
+	filter.FollowedBy = acct.Hash.String()
+	if m, err := loadItems(r.Context(), filter, acct, h.logger); err == nil {
+		m.Title = title
+
+		m.HideText = true
+		if len(m.Items) >= filter.MaxItems {
+			m.nextPage = filter.Page + 1
+		}
+		if filter.Page > 1 {
+			m.prevPage = filter.Page - 1
+		}
+		h.RenderTemplate(r, w, "listing", m)
+	} else {
+		h.HandleErrors(w, r, errors.NewNotValid(err, "Unable to load items!"))
+	}
+}
 func loadItems(c context.Context, filter app.Filters, acc *app.Account, l log.Logger) (itemListingModel, error) {
 	m := itemListingModel{}
 	itemLoader, ok := app.ContextItemLoader(c)
