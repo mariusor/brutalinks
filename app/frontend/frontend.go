@@ -772,11 +772,28 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 					Key:    []app.Hash{acc.Hash},
 				},
 			})
+			ctx := log.Ctx{
+				"handle": acc.Handle,
+				"hash":   acc.Hash,
+			}
 			if err != nil {
-				h.logger.WithContext(log.Ctx{
-					"handle": acc.Handle,
-					"hash":   acc.Hash,
-				}).Warn(err.Error())
+				h.logger.WithContext(ctx).Warn(err.Error())
+			}
+			// TODO(marius): this needs to be moved to where we're handling all Inbox activities, not on page load
+			//acc, err = h.storage.loadAccountsFollowers(acc)
+			//if err != nil {
+			//	h.logger.WithContext(ctx).Warn(err.Error())
+			//}
+			//acc, err := h.storage.loadAccountsFollowRequests(acc)
+			//if err != nil {
+			//	h.logger.WithContext(ctx).Warn(err.Error())
+			//}
+			if len(acc.Pending) > 0 {
+				messages := make([]string, 0)
+				for _, pending := range acc.Pending {
+					messages = append(messages, fmt.Sprintf("Account %q wants to follow you", pending.Handle))
+				}
+				h.addFlashMessage(Info, r, messages...)
 			}
 			// ugly hack we need to not override OAuth2 metadata loaded at login
 			acc.Metadata = m
