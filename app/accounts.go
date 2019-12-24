@@ -51,16 +51,18 @@ type AccountMetadata struct {
 type AccountCollection []Account
 
 type Account struct {
-	Email     string           `json:"email,omitempty"`
-	Hash      Hash             `json:"hash,omitempty"`
-	Score     int              `json:"score,omitempty"`
-	Handle    string           `json:"handle,omitempty"`
-	CreatedAt time.Time        `json:"-"`
-	CreatedBy *Account         `json:"-"`
-	UpdatedAt time.Time        `json:"-"`
-	Flags     FlagBits         `json:"flags,omitempty"`
-	Metadata  *AccountMetadata `json:"-"`
-	Votes     VoteCollection   `json:"votes,omitempty"`
+	Email     string            `json:"email,omitempty"`
+	Hash      Hash              `json:"hash,omitempty"`
+	Score     int               `json:"score,omitempty"`
+	Handle    string            `json:"handle,omitempty"`
+	CreatedAt time.Time         `json:"-"`
+	CreatedBy *Account          `json:"-"`
+	UpdatedAt time.Time         `json:"-"`
+	Flags     FlagBits          `json:"flags,omitempty"`
+	Metadata  *AccountMetadata  `json:"-"`
+	Votes     VoteCollection    `json:"votes,omitempty"`
+	Followers AccountCollection `json:"followers,omitempty"`
+	Pending   AccountCollection `json:"pending,omitempty"`
 }
 
 // Hash is a local type for string, it should hold a [32]byte array actually

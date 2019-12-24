@@ -504,6 +504,130 @@ func (r *repository) loadAccountsVotes(accounts ...app.Account) (app.AccountColl
 	return col, nil
 }
 
+func accountInCollection(ac app.Account, col app.AccountCollection) bool {
+	for _, fol := range col {
+		if app.HashesEqual(fol.Hash, ac.Hash) {
+			return true
+		}
+	}
+	return false
+}
+
+func hashInCollection(h app.Hash, col app.AccountCollection) bool {
+	for _, fol := range col {
+		if app.HashesEqual(fol.Hash, h) {
+			return true
+		}
+	}
+	return false
+}
+
+func (r *repository) loadAccountsFollowRequests(acc app.Account) (app.Account, error) {
+	if !acc.HasMetadata() || len(acc.Metadata.FollowersIRI) == 0 {
+		return acc, nil
+	}
+
+	f := app.Filters{}
+	f.Type = []pub.ActivityVocabularyType{pub.FollowType}
+	qs := ""
+	if q, err := qstring.MarshalString(&f); err == nil {
+		qs = fmt.Sprintf("?%s", q)
+	}
+	url := fmt.Sprintf("%s%s", pub.IRI(acc.Metadata.InboxIRI), qs)
+	it, err := r.client.LoadIRI(pub.IRI(url))
+	if err != nil {
+		r.logger.Error(err.Error())
+		return acc, nil
+	}
+	if !pub.CollectionTypes.Contains(it.GetType()) {
+		return acc, nil
+	}
+	requesters := app.Filters{
+		LoadAccountsFilter: app.LoadAccountsFilter{
+			//IRI: ActorsURL,
+			Key: []app.Hash{},
+		},
+	}
+	pub.OnOrderedCollection(it, func(o *pub.OrderedCollection) error {
+		for _, req := range o.Collection() {
+			if req.GetType() != pub.FollowType {
+				continue
+			}
+			pub.OnActivity(req, func(a *pub.Activity) error {
+				requester := app.Account{}
+				requester.FromActivityPub(a.Actor)
+				if !accountInCollection(requester, acc.Followers) {
+					requesters.LoadAccountsFilter.Key = append(requesters.LoadAccountsFilter.Key, requester.Hash)
+				}
+				return nil
+			})
+		}
+		return nil
+	})
+	pending, _, err := r.LoadAccounts(requesters)
+	if err == nil {
+		acc.Pending = pending
+	}
+
+	return acc, nil
+}
+
+func (r *repository) loadAccountsFollowers(acc app.Account) (app.Account, error) {
+	if !acc.HasMetadata() || len(acc.Metadata.FollowersIRI) == 0 {
+		return acc, nil
+	}
+	it, err := r.client.LoadIRI(pub.IRI(acc.Metadata.FollowersIRI))
+	if err != nil {
+		r.logger.Error(err.Error())
+		return acc, nil
+	}
+	if !pub.CollectionTypes.Contains(it.GetType()) {
+		return acc, nil
+	}
+	pub.OnOrderedCollection(it, func(o *pub.OrderedCollection) error {
+		for _, fol := range o.Collection() {
+			if !pub.ActorTypes.Contains(fol.GetType()) {
+				continue
+			}
+			p := app.Account{}
+			p.FromActivityPub(fol)
+			if p.IsValid() {
+				acc.Followers = append(acc.Followers, )
+			}
+		}
+		return nil
+	})
+
+	return acc, nil
+}
+
+func (r *repository) loadItemsReplies(items ...app.Item) (app.ItemCollection, error) {
+	if len(items) == 0 {
+		return items, nil
+	}
+
+	repliesTo := make([]string, 0)
+	for _, it := range items {
+		if it.OP.IsValid() {
+			if id, ok := BuildIDFromItem(*it.OP); ok {
+				repliesTo = append(repliesTo, string(id))
+			}
+		}
+	}
+
+	var err error
+	if len(repliesTo) > 0 {
+		f := app.Filters{
+			LoadItemsFilter: app.LoadItemsFilter{
+				InReplyTo: repliesTo,
+			},
+		}
+		items, _, err = r.LoadItems(f)
+	}
+
+	return items, err
+}
+
 func (r *repository) loadItemsVotes(items ...app.Item) (app.ItemCollection, error) {
 	if len(items) == 0 {
 		return items, nil
