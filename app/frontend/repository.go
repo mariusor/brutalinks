@@ -526,7 +526,7 @@ func (r *repository) loadAccountsFollowers(acc app.Account) (app.Account, error)
 	if !acc.HasMetadata() || len(acc.Metadata.FollowersIRI) == 0 {
 		return acc, nil
 	}
-	it, err := r.fedbox.Followers(pub.IRI(acc.Metadata.FollowersIRI))
+	it, err := r.fedbox.Collection(pub.IRI(acc.Metadata.FollowersIRI))
 	if err != nil {
 		r.logger.Error(err.Error())
 		return acc, nil
