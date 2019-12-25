@@ -227,7 +227,8 @@ footer nav.bottom:hover ul {
 ol.hide-text article.data {
     display: none;
 }
-.hide-text li.item {
+.hide-text li.item,
+li .follow-request {
     min-height: 3.3rem;
 }
 .hide-text article header {
