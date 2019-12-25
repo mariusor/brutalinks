@@ -522,56 +522,6 @@ func hashInCollection(h app.Hash, col app.AccountCollection) bool {
 	return false
 }
 
-func (r *repository) loadAccountsFollowRequests(acc app.Account) (app.Account, error) {
-	if !acc.HasMetadata() || len(acc.Metadata.FollowersIRI) == 0 {
-		return acc, nil
-	}
-
-	f := app.Filters{}
-	f.Type = []pub.ActivityVocabularyType{pub.FollowType}
-	qs := ""
-	if q, err := qstring.MarshalString(&f); err == nil {
-		qs = fmt.Sprintf("?%s", q)
-	}
-	url := fmt.Sprintf("%s%s", pub.IRI(acc.Metadata.InboxIRI), qs)
-	it, err := r.fedbox.Inbox(pub.IRI(url))
-	if err != nil {
-		r.logger.Error(err.Error())
-		return acc, nil
-	}
-	if !pub.CollectionTypes.Contains(it.GetType()) {
-		return acc, nil
-	}
-	requesters := app.Filters{
-		LoadAccountsFilter: app.LoadAccountsFilter{
-			//IRI: ActorsURL,
-			Key: []app.Hash{},
-		},
-	}
-	pub.OnOrderedCollection(it, func(o *pub.OrderedCollection) error {
-		for _, req := range o.Collection() {
-			if req.GetType() != pub.FollowType {
-				continue
-			}
-			pub.OnActivity(req, func(a *pub.Activity) error {
-				requester := app.Account{}
-				requester.FromActivityPub(a.Actor)
-				if !accountInCollection(requester, acc.Followers) {
-					requesters.LoadAccountsFilter.Key = append(requesters.LoadAccountsFilter.Key, requester.Hash)
-				}
-				return nil
-			})
-		}
-		return nil
-	})
-	pending, _, err := r.LoadAccounts(requesters)
-	if err == nil {
-		acc.Pending = pending
-	}
-
-	return acc, nil
-}
-
 func (r *repository) loadAccountsFollowers(acc app.Account) (app.Account, error) {
 	if !acc.HasMetadata() || len(acc.Metadata.FollowersIRI) == 0 {
 		return acc, nil
@@ -651,6 +601,35 @@ func (r *repository) loadItemsVotes(items ...app.Item) (app.ItemCollection, erro
 		col[k] = it
 	}
 	return col, nil
+}
+
+func (r *repository) loadAuthors(items ...app.FollowRequest) ([]app.FollowRequest, error) {
+	if len(items) == 0 {
+		return items, nil
+	}
+	fActors := app.Filters{}
+	for _, it := range items {
+		if !it.SubmittedBy.IsValid() {
+			continue
+		}
+		fActors.LoadAccountsFilter.Key = append(fActors.LoadAccountsFilter.Key, it.SubmittedBy.Hash)
+	}
+	fActors.LoadAccountsFilter.Key = hashesUnique(fActors.LoadAccountsFilter.Key)
+	if len(fActors.LoadAccountsFilter.Key)+len(fActors.Handle) == 0 {
+		return items, errors.Errorf("unable to load items authors")
+	}
+	authors, _, err := r.LoadAccounts(fActors)
+	if err != nil {
+		return items, errors.Annotatef(err, "unable to load items authors")
+	}
+	for k, it := range items {
+		for i, auth := range authors {
+			if accountsEqual(*it.SubmittedBy, auth) {
+				items[k].SubmittedBy = &(authors[i])
+			}
+		}
+	}
+	return items, nil
 }
 
 func (r *repository) loadItemsAuthors(items ...app.Item) (app.ItemCollection, error) {
