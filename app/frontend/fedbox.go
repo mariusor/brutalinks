@@ -150,24 +150,26 @@ func shares(a pub.Item, f ...FilterFn) pub.IRI {
 func replies(a pub.Item, f ...FilterFn) pub.IRI {
 	return iri(a, handlers.Replies, f...)
 }
+
 func liked(a pub.Item, f ...FilterFn) pub.IRI {
 	return iri(a, handlers.Liked, f...)
 }
-func validateActor(actor pub.Item) error {
-	if actor == nil {
+
+func validateActor(a pub.Item) error {
+	if a == nil {
 		return errors.Errorf("Actor is nil")
 	}
-	if !pub.ActorTypes.Contains(actor.GetType()) {
-		return errors.Errorf("Invalid Actor type %s", actor.GetType())
+	if a.IsObject() && !pub.ActorTypes.Contains(a.GetType()) {
+		return errors.Errorf("Invalid Actor type %s", a.GetType())
 	}
 	return nil
 }
-func validateObject(object pub.Item) error {
-	if object == nil {
+func validateObject(o pub.Item) error {
+	if o == nil {
 		return errors.Errorf("Object is nil")
 	}
-	if !pub.ObjectTypes.Contains(object.GetType()) {
-		return errors.Errorf("Invalid Object type %s", object.GetType())
+	if o.IsObject() && !pub.ObjectTypes.Contains(o.GetType()) {
+		return errors.Errorf("Invalid Object type %s", o.GetType())
 	}
 	return nil
 }
