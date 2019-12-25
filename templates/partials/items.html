@@ -1,7 +1,12 @@
 <ol class="items">
 {{- range $key, $value := . }}
     <li data-index="{{$key}}" data-hash="{{.Hash}}" id="item-{{.Hash}}">
+{{- if IsComment . -}}
     {{- template "partials/item" $value -}}
+{{- end -}}
+{{- if IsFollowRequest . -}}
+    {{- template "partials/follow" $value -}}
+{{- end -}}
     </li>
 {{- end -}}
 </ol>

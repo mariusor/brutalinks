@@ -473,6 +473,18 @@ func buildLink(routes chi.Routes, name string, par ...interface{}) string {
 	return "/"
 }
 
+type RenderType int
+
+const (
+	Comment = iota
+	FollowRequest
+	Vote
+)
+
+type HasType interface {
+	Type() RenderType
+}
+
 func (h *handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name string, m interface{}) error {
 	var err error
 	var ac *app.Account
@@ -495,6 +507,15 @@ func (h *handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name st
 					ac = h.account(r)
 				}
 				return ac
+			},
+			"IsComment" : func (t HasType) bool {
+				return t.Type() == Comment
+			},
+			"IsFollowRequest" : func (t HasType) bool {
+				return t.Type() == FollowRequest
+			},
+			"IsVote" : func (t HasType) bool {
+				return t.Type() == Vote
 			},
 			"LoadFlashMessages": loadFlashMessages(r, w, s),
 			"Mod10":             func(lvl uint8) float64 { return math.Mod(float64(lvl), float64(10)) },
@@ -779,7 +800,7 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 			if err != nil {
 				h.logger.WithContext(ctx).Warn(err.Error())
 			}
-			// TODO(marius): this needs to be moved to where we're handling all Inbox activities, not on page load
+			//// TODO(marius): this needs to be moved to where we're handling all Inbox activities, not on page load
 			//acc, err = h.storage.loadAccountsFollowers(acc)
 			//if err != nil {
 			//	h.logger.WithContext(ctx).Warn(err.Error())

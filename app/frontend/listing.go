@@ -177,31 +177,34 @@ func (h *handler) HandleIndex(w http.ResponseWriter, r *http.Request) {
 		title = fmt.Sprintf("%s: federated", baseURL.Host)
 		h.logger.Debug("showing federated posts")
 		filter.Federated = []bool{true}
-	case "followed":
-		title = fmt.Sprintf("%s: followed", baseURL.Host)
-		h.logger.WithContext(log.Ctx{
-			"handle": acct.Handle,
-			"hash":   acct.Hash,
-		}).Debug("showing followed posts")
-		filter.FollowedBy = acct.Hash.String()
 	default:
 	}
-	if m, err := loadItems(r.Context(), filter, acct, h.logger); err == nil {
-		m.Title = title
-
-		m.HideText = true
-		if len(m.Items) >= filter.MaxItems {
-			m.nextPage = filter.Page + 1
-		}
-		if filter.Page > 1 {
-			m.prevPage = filter.Page - 1
-		}
-		h.RenderTemplate(r, w, "listing", m)
-	} else {
+	m := itemListingModel{}
+	m.Title = title
+	m.HideText = true
+	comments, err := loadItems(r.Context(), filter, acct, h.logger)
+	if err != nil {
 		h.HandleErrors(w, r, errors.NewNotValid(err, "Unable to load items!"))
 	}
+	for _, c := range comments {
+		m.Items = append(m.Items, c)
+	}
+	if len(comments) >= filter.MaxItems {
+		m.nextPage = filter.Page + 1
+	}
+	if filter.Page > 1 {
+		m.prevPage = filter.Page - 1
+	}
+	h.RenderTemplate(r, w, "listing", m)
 }
 
+type follow struct {
+	app.FollowRequest
+}
+
+func (f *follow) Type() RenderType {
+	return FollowRequest
+}
 // HandleIndex serves / request
 func (h *handler) HandleInbox(w http.ResponseWriter, r *http.Request) {
 	filter := app.Filters{
@@ -223,47 +226,66 @@ func (h *handler) HandleInbox(w http.ResponseWriter, r *http.Request) {
 
 	acct := h.account(r)
 	title = fmt.Sprintf("%s: followed", baseURL.Host)
-	h.logger.WithContext(log.Ctx{
-		"handle": acct.Handle,
-		"hash":   acct.Hash,
-	}).Debug("showing followed posts")
-	filter.FollowedBy = acct.Hash.String()
-	if m, err := loadItems(r.Context(), filter, acct, h.logger); err == nil {
-		m.Title = title
 
-		m.HideText = true
-		if len(m.Items) >= filter.MaxItems {
-			m.nextPage = filter.Page + 1
+	filter.FollowedBy = acct.Hash.String()
+	
+	m := itemListingModel{}
+	m.Title = title
+	m.HideText = true
+
+	followReq, err := h.storage.fedbox.Inbox(loadAPPerson(*acct), func() url.Values {
+		return url.Values{
+			"type": {
+				string(pub.FollowType),
+			},
 		}
-		if filter.Page > 1 {
-			m.prevPage = filter.Page - 1
+	})
+	if err == nil {
+		if len(followReq.Collection()) > 0 {
+			for _, fr := range followReq.Collection() {
+				f := app.FollowRequest{}
+				if err := f.FromActivityPub(fr); err == nil {
+					f := follow{f}
+					m.Items = append(m.Items, &f)
+				}
+			}
 		}
-		h.RenderTemplate(r, w, "listing", m)
-	} else {
+	}
+	comments, err := loadItems(r.Context(), filter, acct, h.logger)
+	if err != nil {
 		h.HandleErrors(w, r, errors.NewNotValid(err, "Unable to load items!"))
 	}
+	for _, c := range comments {
+		m.Items = append(m.Items, c)
+	}
+	if len(comments) >= filter.MaxItems {
+		m.nextPage = filter.Page + 1
+	}
+	if filter.Page > 1 {
+		m.prevPage = filter.Page - 1
+	}
+
+	h.RenderTemplate(r, w, "listing", m)
 }
-func loadItems(c context.Context, filter app.Filters, acc *app.Account, l log.Logger) (itemListingModel, error) {
-	m := itemListingModel{}
+func loadItems(c context.Context, filter app.Filters, acc *app.Account, l log.Logger) (comments, error) {
 	itemLoader, ok := app.ContextItemLoader(c)
 	if !ok {
 		err := errors.Errorf("could not load item repository from Context")
-		return m, err
+		return nil, err
 	}
 	contentItems, _, err := itemLoader.LoadItems(filter)
 
 	if err != nil {
-		return m, err
+		return nil, err
 	}
-	m.Items = loadComments(contentItems)
-
+	comments := loadComments(contentItems)
 	if acc.IsLogged() {
 		votesLoader, ok := app.ContextVoteLoader(c)
 		if ok {
 			acc.Votes, _, err = votesLoader.LoadVotes(app.Filters{
 				LoadVotesFilter: app.LoadVotesFilter{
 					AttributedTo: []app.Hash{acc.Hash},
-					ItemKey:      m.Items.getItemsHashes(),
+					ItemKey:      comments.getItemsHashes(),
 				},
 				MaxItems: MaxContentItems,
 			})
@@ -274,7 +296,7 @@ func loadItems(c context.Context, filter app.Filters, acc *app.Account, l log.Lo
 			l.Error("could not load vote repository from Context")
 		}
 	}
-	return m, nil
+	return comments, nil
 }
 
 // HandleTags serves /tags/{tag} request
@@ -294,19 +316,22 @@ func (h *handler) HandleTags(w http.ResponseWriter, r *http.Request) {
 		h.logger.Debug("unable to load url parameters")
 	}
 	baseURL, _ := url.Parse(h.conf.BaseURL)
-	if m, err := loadItems(r.Context(), filter, acct, h.logger); err == nil {
-		m.Title = fmt.Sprintf("%s: tagged as #%s", baseURL.Host, tag)
-
-		if len(m.Items) >= filter.MaxItems {
-			m.nextPage = filter.Page + 1
-		}
-		if filter.Page > 1 {
-			m.prevPage = filter.Page - 1
-		}
-		h.RenderTemplate(r, w, "listing", m)
-	} else {
+	m := itemListingModel{}
+	m.Title = fmt.Sprintf("%s: tagged as #%s", baseURL.Host, tag)
+	comments, err := loadItems(r.Context(), filter, acct, h.logger)
+	if err != nil {
 		h.HandleErrors(w, r, errors.NewNotValid(err, "oops!"))
 	}
+	for _, c := range comments {
+		m.Items = append(m.Items, c)
+	}
+	if len(comments) >= filter.MaxItems {
+		m.nextPage = filter.Page + 1
+	}
+	if filter.Page > 1 {
+		m.prevPage = filter.Page - 1
+	}
+	h.RenderTemplate(r, w, "listing", m)
 }
 
 // HandleDomains serves /domains/{domain} request
@@ -331,17 +356,21 @@ func (h *handler) HandleDomains(w http.ResponseWriter, r *http.Request) {
 		h.logger.Debug("unable to load url parameters")
 	}
 	baseURL, _ := url.Parse(h.conf.BaseURL)
-	if m, err := loadItems(r.Context(), filter, acct, h.logger); err == nil {
-		m.Title = fmt.Sprintf("%s: from %s", baseURL.Host, domain)
-		m.HideText = true
-		if len(m.Items) >= filter.MaxItems {
-			m.nextPage = filter.Page + 1
-		}
-		if filter.Page > 1 {
-			m.prevPage = filter.Page - 1
-		}
-		h.RenderTemplate(r, w, "listing", m)
-	} else {
+	m := itemListingModel{}
+	m.Title = fmt.Sprintf("%s: from %s", baseURL.Host, domain)
+	m.HideText = true
+	comments, err := loadItems(r.Context(), filter, acct, h.logger)
+	if err != nil {
 		h.HandleErrors(w, r, errors.NewNotValid(err, "oops!"))
 	}
+	for _, c := range comments {
+		m.Items = append(m.Items, c)
+	}
+	if len(comments) >= filter.MaxItems {
+		m.nextPage = filter.Page + 1
+	}
+	if filter.Page > 1 {
+		m.prevPage = filter.Page - 1
+	}
+	h.RenderTemplate(r, w, "listing", m)
 }
