@@ -205,6 +205,7 @@ type follow struct {
 func (f *follow) Type() RenderType {
 	return FollowRequest
 }
+
 // HandleIndex serves / request
 func (h *handler) HandleInbox(w http.ResponseWriter, r *http.Request) {
 	filter := app.Filters{
@@ -228,27 +229,33 @@ func (h *handler) HandleInbox(w http.ResponseWriter, r *http.Request) {
 	title = fmt.Sprintf("%s: followed", baseURL.Host)
 
 	filter.FollowedBy = acct.Hash.String()
-	
+
 	m := itemListingModel{}
 	m.Title = title
 	m.HideText = true
 
-	followReq, err := h.storage.fedbox.Inbox(loadAPPerson(*acct), func() url.Values {
+	curActor := loadAPPerson(*acct)
+	followReq, err := h.storage.fedbox.Inbox(curActor, func() url.Values {
 		return url.Values{
 			"type": {
 				string(pub.FollowType),
 			},
 		}
 	})
-	if err == nil {
-		if len(followReq.Collection()) > 0 {
-			for _, fr := range followReq.Collection() {
-				f := app.FollowRequest{}
-				if err := f.FromActivityPub(fr); err == nil {
-					f := follow{f}
-					m.Items = append(m.Items, &f)
+	if err == nil && len(followReq.Collection()) > 0 {
+		requests := make([]app.FollowRequest, 0)
+		for _, fr := range followReq.Collection() {
+			f := app.FollowRequest{}
+			if err := f.FromActivityPub(fr); err == nil {
+				if !accountInCollection(*f.SubmittedBy, acct.Followers) {
+					requests = append(requests, f)
 				}
 			}
+		}
+		requests, err = h.storage.loadAuthors(requests...)
+		for _, r := range requests {
+			f := follow{r}
+			m.Items = append(m.Items, &f)
 		}
 	}
 	comments, err := loadItems(r.Context(), filter, acct, h.logger)
