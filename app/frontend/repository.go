@@ -534,7 +534,7 @@ func (r *repository) loadAccountsFollowRequests(acc app.Account) (app.Account, e
 		qs = fmt.Sprintf("?%s", q)
 	}
 	url := fmt.Sprintf("%s%s", pub.IRI(acc.Metadata.InboxIRI), qs)
-	it, err := r.client.LoadIRI(pub.IRI(url))
+	it, err := r.fedbox.Inbox(pub.IRI(url))
 	if err != nil {
 		r.logger.Error(err.Error())
 		return acc, nil
@@ -576,7 +576,7 @@ func (r *repository) loadAccountsFollowers(acc app.Account) (app.Account, error)
 	if !acc.HasMetadata() || len(acc.Metadata.FollowersIRI) == 0 {
 		return acc, nil
 	}
-	it, err := r.client.LoadIRI(pub.IRI(acc.Metadata.FollowersIRI))
+	it, err := r.fedbox.Followers(pub.IRI(acc.Metadata.FollowersIRI))
 	if err != nil {
 		r.logger.Error(err.Error())
 		return acc, nil

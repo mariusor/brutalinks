@@ -33,6 +33,10 @@ type comment struct {
 	Parent   *comment
 }
 
+func (c *comment) Type() RenderType {
+	return Comment
+}
+
 type contentModel struct {
 	Title    string
 	Content  comment
@@ -49,12 +53,12 @@ func (c contentModel) PrevPage() int {
 }
 
 func loadComments(items []app.Item) comments {
-	var comments = make([]*comment, len(items))
+	var all = make(comments, len(items))
 	for k, item := range items {
 		com := comment{Item: item}
-		comments[k] = &com
+		all[k] = &com
 	}
-	return comments
+	return all
 }
 
 func (c comments) Contains(cc comment) bool {

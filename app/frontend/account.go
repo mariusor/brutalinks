@@ -18,12 +18,12 @@ type Paginator interface {
 }
 
 type itemListingModel struct {
-	Title    string
-	User     *app.Account
-	Items    comments
-	HideText bool
-	nextPage int
-	prevPage int
+	Title          string
+	User           *app.Account
+	Items          []HasType
+	HideText       bool
+	nextPage       int
+	prevPage       int
 }
 
 func (i itemListingModel) NextPage() int {
@@ -73,21 +73,24 @@ func (h *handler) ShowAccount(w http.ResponseWriter, r *http.Request) {
 		h.logger.Debug("unable to load url parameters")
 	}
 	baseURL, _ := url.Parse(h.conf.BaseURL)
-	if m, err := loadItems(r.Context(), filter, h.account(r), h.logger); err == nil {
-		m.Title = fmt.Sprintf("%s: %s submissions", baseURL.Host, genitive(handle))
-		m.User, _ = accounts.First()
+	m := itemListingModel{}
 
-		if len(m.Items) >= filter.MaxItems {
-			m.nextPage = filter.Page + 1
-		}
-		if filter.Page > 1 {
-			m.prevPage = filter.Page - 1
-		}
-
-		h.RenderTemplate(r, w, "user", m)
-	} else {
+	m.Title = fmt.Sprintf("%s: %s submissions", baseURL.Host, genitive(handle))
+	m.User, _ = accounts.First()
+	comments, err := loadItems(r.Context(), filter, h.account(r), h.logger)
+	if err != nil {
 		h.HandleErrors(w, r, errors.NewNotValid(err, "unable to load items"))
 	}
+	for _, com := range comments {
+		m.Items = append(m.Items, com)
+	}
+	if len(comments) >= filter.MaxItems {
+		m.nextPage = filter.Page + 1
+	}
+	if filter.Page > 1 {
+		m.prevPage = filter.Page - 1
+	}
+	h.RenderTemplate(r, w, "user", m)
 }
 
 func (h *handler) FollowAccount(w http.ResponseWriter, r *http.Request) {

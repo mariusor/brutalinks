@@ -78,7 +78,7 @@ func (h *handler) Routes() func(chi.Router) {
 
 		r.Get("/self", h.HandleIndex)
 		r.Get("/federated", h.HandleIndex)
-		r.With(h.NeedsSessions, h.ValidateLoggedIn(h.HandleErrors)).Get("/followed", h.HandleIndex)
+		r.With(h.NeedsSessions, h.ValidateLoggedIn(h.HandleErrors)).Get("/followed", h.HandleInbox)
 
 		r.Route("/auth", func(r chi.Router) {
 			r.Use(h.NeedsSessions)
