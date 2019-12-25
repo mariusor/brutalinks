@@ -8,7 +8,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	pub "github.com/go-ap/activitypub"
-	cl "github.com/go-ap/client"
 	"github.com/go-ap/errors"
 	"github.com/go-ap/handlers"
 	j "github.com/go-ap/jsonld"
@@ -16,7 +15,6 @@ import (
 	"github.com/mariusor/littr.go/internal/log"
 	"github.com/mariusor/qstring"
 	"github.com/spacemonkeygo/httpsig"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
@@ -26,7 +24,7 @@ import (
 type repository struct {
 	BaseURL string
 	logger  log.Logger
-	client  cl.HttpClient
+	fedbox  *fedbox
 }
 
 // Repository middleware
@@ -40,18 +38,21 @@ func (h handler) Repository(next http.Handler) http.Handler {
 
 func NewRepository(c Config) *repository {
 	pub.ItemTyperFunc = pub.JSONGetItemByType
-	cl.UserAgent = fmt.Sprintf("%s-%s", app.Instance.HostName, app.Instance.Version)
-	cl.ErrorLogger = func(el ...interface{}) { c.Logger.WithContext(log.Ctx{"client": "api"}).Errorf("%v", el) }
-	cl.InfoLogger = func(el ...interface{}) { c.Logger.WithContext(log.Ctx{"client": "api"}).Debugf("%v", el) }
 
 	BaseURL = c.APIURL
 	ActorsURL = fmt.Sprintf("%s/actors", BaseURL)
 	ObjectsURL = fmt.Sprintf("%s/objects", BaseURL)
 
+	infoFn := func(el ...interface{}) { c.Logger.WithContext(log.Ctx{"client": "api"}).Errorf("%v", el) }
+	errFn := func(el ...interface{}) { c.Logger.WithContext(log.Ctx{"client": "api"}).Debugf("%v", el) }
+	ua := fmt.Sprintf("%s-%s", app.Instance.HostName, app.Instance.Version)
+
+	f, _ := New(SetURL(BaseURL), SetInfoLogger(infoFn), SetErrorLogger(errFn), SetUA(ua))
+
 	return &repository{
 		BaseURL: c.APIURL,
 		logger:  c.Logger,
-		client:  cl.NewClient(),
+		fedbox:  f,
 	}
 }
 
@@ -382,7 +383,7 @@ func getSigner(pubKeyID pub.ID, key crypto.PrivateKey) *httpsig.Signer {
 }
 
 func (r *repository) WithAccount(a *app.Account) error {
-	r.client.SignFn(func(req *http.Request) error {
+	r.fedbox.SignFn(func(req *http.Request) error {
 		// TODO(marius): this needs to be added to the federated requests, which we currently don't support
 		if !a.IsValid() || !a.IsLogged() {
 			e := errors.Newf("invalid account used for C2S authentication")
@@ -433,7 +434,7 @@ func (r *repository) withAccountS2S(a *app.Account) error {
 	}
 	p := *loadAPPerson(*a)
 	s := getSigner(p.PublicKey.ID, prv)
-	r.client.SignFn(s.Sign)
+	r.fedbox.SignFn(s.Sign)
 
 	return nil
 }
@@ -446,23 +447,20 @@ func (r *repository) LoadItem(f app.Filters) (app.Item, error) {
 	f.LoadItemsFilter.Key = nil
 
 	url := fmt.Sprintf("%s/objects/%s", r.BaseURL, hashes[0])
-	it, err := r.client.LoadIRI(pub.IRI(url))
+	art, err := r.fedbox.Object(pub.IRI(url))
 	if err != nil {
 		r.logger.Error(err.Error())
 		return item, err
 	}
-	pub.OnObject(it, func(art *pub.Object) error {
-		err = item.FromActivityPub(art)
-		if err == nil {
-			var items app.ItemCollection
-			items, err = r.loadItemsAuthors(item)
-			items, err = r.loadItemsVotes(items...)
-			if len(items) > 0 {
-				item = items[0]
-			}
+	err = item.FromActivityPub(art)
+	if err == nil {
+		var items app.ItemCollection
+		items, err = r.loadItemsAuthors(item)
+		items, err = r.loadItemsVotes(items...)
+		if len(items) > 0 {
+			item = items[0]
 		}
-		return nil
-	})
+	}
 
 	return item, err
 }
@@ -661,7 +659,7 @@ func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) 
 		"url": url,
 	}
 
-	it, err := r.client.LoadIRI(pub.IRI(url))
+	it, err := r.fedbox.Collection(pub.IRI(url))
 	if err != nil {
 		r.logger.WithContext(ctx).Error(err.Error())
 		return nil, 0, err
@@ -722,7 +720,9 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 		return app.Vote{}, errors.Newf("Invalid vote item")
 	}
 	author := loadAPPerson(*v.SubmittedBy)
-	reqURL := r.getAuthorRequestURL(v.SubmittedBy)
+	if !accountValidForC2S(v.SubmittedBy) {
+		return v, errors.Unauthorizedf("invalid account %s", v.SubmittedBy.Handle)
+	}
 
 	url := fmt.Sprintf("%s/%s", v.Item.Metadata.ID, "likes")
 	itemVotes, err := r.loadVotesCollection(pub.IRI(url), pub.IRI(v.SubmittedBy.Metadata.ID))
@@ -754,20 +754,8 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 
 	if exists.HasMetadata() {
 		act.Object = pub.IRI(exists.Metadata.IRI)
-		// undo old vote
-		var body []byte
-		if body, err = j.Marshal(act); err != nil {
+		if _, _, err := r.fedbox.ToOutbox(act); err != nil {
 			r.logger.Error(err.Error())
-		}
-		var resp *http.Response
-		if resp, err = r.client.Post(reqURL, cl.ContentTypeActivityJson, bytes.NewReader(body)); err != nil {
-			r.logger.Error(err.Error())
-		}
-		if body, err = ioutil.ReadAll(resp.Body); err != nil {
-			r.logger.Error(err.Error())
-		}
-		if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusCreated {
-			r.logger.Error("unable to undo previous vote")
 		}
 	}
 
@@ -780,26 +768,13 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 		act.Object = o.GetLink()
 	}
 
-	var body []byte
-	if body, err = j.Marshal(act); err != nil {
+	_, _, err = r.fedbox.ToOutbox(act)
+	if err != nil {
 		r.logger.Error(err.Error())
 		return v, err
 	}
-
-	var resp *http.Response
-	if resp, err = r.client.Post(reqURL, cl.ContentTypeActivityJson, bytes.NewReader(body)); err != nil {
-		r.logger.Error(err.Error())
-		return v, err
-	}
-	if body, err = ioutil.ReadAll(resp.Body); err != nil {
-		r.logger.Error(err.Error())
-		return v, err
-	}
-	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusCreated {
-		err := v.FromActivityPub(act)
-		return v, err
-	}
-	return v, r.handlerErrorResponse(body)
+	err = v.FromActivityPub(act)
+	return v, err
 }
 
 func (r *repository) loadVotesCollection(iri pub.IRI, actors ...pub.IRI) ([]app.Vote, error) {
@@ -816,7 +791,7 @@ func (r *repository) loadVotesCollection(iri pub.IRI, actors ...pub.IRI) ([]app.
 			iri = pub.IRI(fmt.Sprintf("%s?%s", iri, q))
 		}
 	}
-	likes, err := r.client.LoadIRI(iri)
+	likes, err := r.fedbox.Collection(iri)
 	// first step is to verify if vote already exists:
 	if err != nil {
 		return nil, err
@@ -859,7 +834,7 @@ func (r *repository) LoadVotes(f app.Filters) (app.VoteCollection, uint, error) 
 		url = fmt.Sprintf("%s/inbox%s", r.BaseURL, qs)
 	}
 
-	it, err := r.client.LoadIRI(pub.IRI(url))
+	it, err := r.fedbox.Collection(pub.IRI(url))
 	if err != nil {
 		r.logger.Error(err.Error())
 		return nil, 0, err
@@ -918,14 +893,12 @@ func (r *repository) LoadVote(f app.Filters) (app.Vote, error) {
 	f.ItemKey = nil
 	url := fmt.Sprintf("%s/liked/%s", r.BaseURL, itemHash)
 
-	it, err := r.client.LoadIRI(pub.IRI(url))
+	like, err := r.fedbox.Activity(pub.IRI(url))
 	if err != nil {
 		r.logger.Error(err.Error())
 		return v, err
 	}
-	err = pub.OnActivity(it, func(like *pub.Activity) error {
-		return v.FromActivityPub(like)
-	})
+	err = v.FromActivityPub(like)
 	return v, err
 }
 
@@ -962,6 +935,10 @@ func (r *repository) handleItemSaveSuccessResponse(it app.Item, body []byte) (ap
 	return items[0], err
 }
 
+func accountValidForC2S(a *app.Account) bool {
+	return a.IsValid() && a.IsLogged()
+}
+
 func (r *repository) getAuthorRequestURL(a *app.Account) string {
 	var reqURL string
 	if a.IsValid() && a.IsLogged() {
@@ -984,13 +961,14 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 	}
 	art := loadAPItem(it)
 	author := loadAPPerson(*it.SubmittedBy)
-	reqURL := r.getAuthorRequestURL(it.SubmittedBy)
+	if !accountValidForC2S(it.SubmittedBy) {
+		return it, errors.Unauthorizedf("invalid account %s", it.SubmittedBy.Handle)
+	}
 
 	to := make(pub.ItemCollection, 0)
 	cc := make(pub.ItemCollection, 0)
 	bcc := make(pub.ItemCollection, 0)
 
-	var body []byte
 	var err error
 	id := art.GetLink()
 
@@ -1036,6 +1014,13 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 		bcc = append(bcc, pub.ItemCollection{pub.IRI(BaseURL)})
 	}
 
+	act := &pub.Activity{
+		To:     to,
+		CC:     cc,
+		BCC:    bcc,
+		Actor:  author.GetLink(),
+		Object: art,
+	}
 	if it.Deleted() {
 		if len(id) == 0 {
 			r.logger.WithContext(log.Ctx{
@@ -1043,59 +1028,27 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 			}).Error(err.Error())
 			return it, errors.NotFoundf("item hash is empty, can not delete")
 		}
-		delete := pub.Delete{
-			Type:   pub.DeleteType,
-			To:     to,
-			CC:     cc,
-			BCC:    bcc,
-			Actor:  author.GetLink(),
-			Object: id,
-		}
-		body, err = j.Marshal(delete)
+		act.Object = id
+		act.Type = pub.DeleteType
 	} else {
 		if len(id) == 0 {
-			create := pub.Create{
-				Type:   pub.CreateType,
-				To:     to,
-				CC:     cc,
-				BCC:    bcc,
-				Actor:  author.GetLink(),
-				Object: art,
-			}
-			body, err = j.Marshal(create)
+			act.Type = pub.CreateType
 		} else {
-			update := pub.Update{
-				Type:   pub.UpdateType,
-				To:     to,
-				CC:     cc,
-				BCC:    bcc,
-				Object: art,
-				Actor:  author.GetLink(),
-			}
-			body, err = j.Marshal(update)
+			act.Type = pub.UpdateType
 		}
 	}
-
-	if err != nil {
-		r.logger.WithContext(log.Ctx{
-			"item": it.Hash,
-		}).Error(err.Error())
-		return it, err
-	}
-	var resp *http.Response
-	resp, err = r.client.Post(reqURL, cl.ContentTypeActivityJson, bytes.NewReader(body))
+	_, ob, err := r.fedbox.ToOutbox(act)
 	if err != nil {
 		r.logger.Error(err.Error())
 		return it, err
 	}
-	if body, err = ioutil.ReadAll(resp.Body); err != nil {
+	err = it.FromActivityPub(ob)
+	if err != nil {
 		r.logger.Error(err.Error())
 		return it, err
 	}
-	if resp.StatusCode >= 400 {
-		return it, r.handlerErrorResponse(body)
-	}
-	return r.handleItemSaveSuccessResponse(it, body)
+	items, err := r.loadItemsAuthors(it)
+	return items[0], err
 }
 
 func (r *repository) LoadAccounts(f app.Filters) (app.AccountCollection, uint, error) {
@@ -1105,7 +1058,7 @@ func (r *repository) LoadAccounts(f app.Filters) (app.AccountCollection, uint, e
 	}
 	url := fmt.Sprintf("%s/%s", ActorsURL, qs)
 
-	it, err := r.client.LoadIRI(pub.IRI(url))
+	it, err := r.fedbox.Collection(pub.IRI(url))
 	if err != nil {
 		r.logger.Error(err.Error())
 		return nil, 0, err
@@ -1154,7 +1107,9 @@ func (r *repository) LoadAccount(f app.Filters) (app.Account, error) {
 func (r *repository) FollowAccount(er, ed app.Account) error {
 	follower := loadAPPerson(er)
 	followed := loadAPPerson(ed)
-	reqURL := r.getAuthorRequestURL(&er)
+	if !accountValidForC2S(&er) {
+		return errors.Unauthorizedf("invalid account %s", er.Handle)
+	}
 
 	to := make(pub.ItemCollection, 0)
 	bcc := make(pub.ItemCollection, 0)
@@ -1163,9 +1118,6 @@ func (r *repository) FollowAccount(er, ed app.Account) error {
 	to = append(to, pub.PublicNS)
 	bcc = append(bcc, pub.ItemCollection{pub.IRI(BaseURL)})
 
-	var body []byte
-	var err error
-
 	follow := pub.Follow{
 		Type:   pub.FollowType,
 		To:     to,
@@ -1173,19 +1125,10 @@ func (r *repository) FollowAccount(er, ed app.Account) error {
 		Object: followed.GetLink(),
 		Actor:  follower.GetLink(),
 	}
-	body, err = j.Marshal(follow)
-	var resp *http.Response
-	resp, err = r.client.Post(reqURL, cl.ContentTypeActivityJson, bytes.NewReader(body))
+	_, _, err := r.fedbox.ToOutbox(follow)
 	if err != nil {
 		r.logger.Error(err.Error())
 		return err
-	}
-	if body, err = ioutil.ReadAll(resp.Body); err != nil {
-		r.logger.Error(err.Error())
-		return err
-	}
-	if resp.StatusCode >= 400 {
-		return r.handlerErrorResponse(body)
 	}
 	return nil
 }
@@ -1200,11 +1143,17 @@ func (r *repository) SaveAccount(a app.Account) (app.Account, error) {
 	p.URL = accountURL(a)
 
 	author := loadAPPerson(*a.CreatedBy)
-	reqURL := author.Inbox.GetLink().String()
-
-	var body []byte
-	var err error
 	now := time.Now()
+
+	act := pub.Activity{
+		To:           pub.ItemCollection{pub.PublicNS},
+		BCC:          pub.ItemCollection{pub.IRI(BaseURL)},
+		AttributedTo: author.GetLink(),
+		Updated:      now,
+		Actor:        author.GetLink(),
+	}
+
+	var err error
 	if a.Deleted() {
 		if len(id) == 0 {
 			r.logger.WithContext(log.Ctx{
@@ -1212,66 +1161,21 @@ func (r *repository) SaveAccount(a app.Account) (app.Account, error) {
 			}).Error(err.Error())
 			return a, errors.NotFoundf("item hash is empty, can not delete")
 		}
-		delete := pub.Delete{
-			Type:         pub.DeleteType,
-			To:           pub.ItemCollection{pub.PublicNS},
-			BCC:          pub.ItemCollection{pub.IRI(BaseURL)},
-			AttributedTo: author.GetLink(),
-			Updated:      now,
-			Actor:        author.GetLink(),
-			Object:       id,
-		}
-		body, err = j.Marshal(delete)
+		act.Type = pub.DeleteType
+		act.Object = id
 	} else {
+		act.Object = p
+		p.To = pub.ItemCollection{pub.PublicNS}
+		p.BCC = pub.ItemCollection{pub.IRI(BaseURL)}
 		if len(id) == 0 {
-			p.To = pub.ItemCollection{pub.PublicNS}
-			p.BCC = pub.ItemCollection{pub.IRI(BaseURL)}
-			create := pub.Create{
-				Type:         pub.CreateType,
-				To:           pub.ItemCollection{pub.PublicNS},
-				BCC:          pub.ItemCollection{pub.IRI(BaseURL)},
-				AttributedTo: author.GetLink(),
-				Published:    now,
-				Updated:      now,
-				Actor:        author.GetLink(),
-				Object:       p,
-			}
-			body, err = j.Marshal(create)
+			act.Type = pub.CreateType
 		} else {
-			update := pub.Update{
-				Type:         pub.UpdateType,
-				To:           pub.ItemCollection{pub.PublicNS},
-				BCC:          pub.ItemCollection{pub.IRI(BaseURL)},
-				AttributedTo: author.GetLink(),
-				Updated:      now,
-				Object:       p,
-				Actor:        author.GetLink(),
-			}
-			body, err = j.Marshal(update)
+			act.Type = pub.UpdateType
 		}
-	}
-	if err != nil {
-		r.logger.WithContext(log.Ctx{
-			"account": a.Hash,
-		}).Error(err.Error())
-		return a, err
 	}
 
-	var resp *http.Response
-	resp, err = r.client.Post(reqURL, cl.ContentTypeActivityJson, bytes.NewReader(body))
-	if err != nil {
-		r.logger.Error(err.Error())
-		return a, err
-	}
-	if body, err = ioutil.ReadAll(resp.Body); err != nil {
-		r.logger.Error(err.Error())
-		return a, err
-	}
-	if resp.StatusCode >= 400 {
-		return a, r.handlerErrorResponse(body)
-	}
-	ap, err := pub.UnmarshalJSON(body)
-	if err != nil {
+	var ap pub.Item
+	if _, ap, err = r.fedbox.ToInbox(act); err != nil {
 		r.logger.Error(err.Error())
 		return a, err
 	}

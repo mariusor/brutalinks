@@ -220,7 +220,7 @@ func Init(c Config) (handler, error) {
 	key := os.Getenv("OAUTH2_KEY")
 	if len(key) > 0 {
 		oIRI := pub.IRI(fmt.Sprintf("%s/actors/%s", h.storage.BaseURL, key))
-		oauthApp, err := h.storage.client.LoadIRI(oIRI)
+		oauthApp, err := h.storage.fedbox.Actor(oIRI)
 		if err == nil {
 			pub.OnActor(oauthApp, func(p *pub.Actor) error {
 				h.o = &app.Account{}

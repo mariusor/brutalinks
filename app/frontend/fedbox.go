@@ -1,64 +1,104 @@
 package frontend
 
 import (
+	"bytes"
 	"fmt"
-	ap "github.com/go-ap/activitypub"
+	pub "github.com/go-ap/activitypub"
 	"github.com/go-ap/client"
 	"github.com/go-ap/errors"
 	"github.com/go-ap/handlers"
+	j "github.com/go-ap/jsonld"
+	"io/ioutil"
+	"net/http"
 	"net/url"
 )
-
-type FedboxConfig struct {
-	URL    string
-	LogFn  client.LogFn
-	ErrFn  client.LogFn
-	SignFn client.RequestSignFn
-}
 
 type fedbox struct {
 	baseURL *url.URL
 	client  client.HttpClient
-	logFn   client.LogFn
+	infoFn  client.LogFn
+	errFn   client.LogFn
 }
 
-func Fedbox(config FedboxConfig) (*fedbox, error) {
-	u, err := url.Parse(config.URL)
-	if err != nil {
-		return nil, err
+type OptionFn func(*fedbox) error
+
+func SetInfoLogger(logFn client.LogFn) OptionFn {
+	return func(f *fedbox) error {
+		f.infoFn = logFn
+		client.InfoLogger = logFn
+		return nil
+	}
+}
+func SetErrorLogger(logFn client.LogFn) OptionFn {
+	return func(f *fedbox) error {
+		f.errFn = logFn
+		client.ErrorLogger = logFn
+		return nil
+	}
+}
+func SetURL(s string) OptionFn {
+	return func(f *fedbox) error {
+		u, err := url.Parse(s)
+		if err != nil {
+			return err
+		}
+		f.baseURL = u
+		return nil
+	}
+}
+
+func SetSignFn(signer client.RequestSignFn) OptionFn {
+	return func(f *fedbox) error {
+		f.client.SignFn(signer)
+		return nil
+	}
+}
+
+func (f *fedbox) SignFn(signer client.RequestSignFn) {
+	f.client.SignFn(signer)
+}
+
+func SetUA(s string) OptionFn {
+	return func(f *fedbox) error {
+		client.UserAgent = s
+		return nil
+	}
+}
+
+func New(o ...OptionFn) (*fedbox, error) {
+	f := fedbox{}
+	f.client = client.NewClient()
+	for _, fn := range o {
+		if err := fn(&f); err != nil {
+			return nil, err
+		}
 	}
 
-	client.InfoLogger = config.LogFn
-	client.ErrorLogger = config.ErrFn
-
-	c := client.NewClient()
-	c.SignFn(config.SignFn)
-	return &fedbox{
-		baseURL: u,
-		client:  c,
-	}, nil
+	client.ErrorLogger = f.infoFn
+	client.InfoLogger = f.errFn
+	return &f, nil
 }
 
-func (f fedbox) collection(i ap.IRI) (ap.CollectionInterface, error) {
+func (f fedbox) collection(i pub.IRI) (pub.CollectionInterface, error) {
 	it, err := f.client.LoadIRI(i)
 	if err != nil {
 		return nil, errors.Annotatef(err, "Unable to load IRI: %s", i)
 	}
-	var col ap.CollectionInterface
+	var col pub.CollectionInterface
 	typ := it.GetType()
-	if !ap.CollectionTypes.Contains(it.GetType()) {
+	if !pub.CollectionTypes.Contains(it.GetType()) {
 		return nil, errors.Errorf("Response item type is not a valid collection: %s", typ)
 	}
 	var ok bool
 	switch typ {
-	case ap.CollectionType:
-		col, ok = it.(*ap.Collection)
-	case ap.CollectionPageType:
-		col, ok = it.(*ap.CollectionPage)
-	case ap.OrderedCollectionType:
-		col, ok = it.(*ap.OrderedCollection)
-	case ap.OrderedCollectionPageType:
-		col, ok = it.(*ap.OrderedCollectionPage)
+	case pub.CollectionType:
+		col, ok = it.(*pub.Collection)
+	case pub.CollectionPageType:
+		col, ok = it.(*pub.CollectionPage)
+	case pub.OrderedCollectionType:
+		col, ok = it.(*pub.OrderedCollection)
+	case pub.OrderedCollectionPageType:
+		col, ok = it.(*pub.OrderedCollectionPage)
 	}
 	if !ok {
 		return nil, errors.Errorf("Unable to convert item type %s to any of the collection types", typ)
@@ -66,7 +106,7 @@ func (f fedbox) collection(i ap.IRI) (ap.CollectionInterface, error) {
 	return col, nil
 }
 
-func (f fedbox) object(i ap.IRI) (ap.Item, error) {
+func (f fedbox) object(i pub.IRI) (pub.Item, error) {
 	return f.client.LoadIRI(i)
 }
 func rawFilterQuery(f ...FilterFn) string {
@@ -86,47 +126,47 @@ func rawFilterQuery(f ...FilterFn) string {
 
 	return "?" + q.Encode()
 }
-func iri(i ap.Item, col handlers.CollectionType, f ...FilterFn) ap.IRI {
-	return ap.IRI(fmt.Sprintf("%s/%s%s", i.GetLink(), col, rawFilterQuery(f...)))
+func iri(i pub.Item, col handlers.CollectionType, f ...FilterFn) pub.IRI {
+	return pub.IRI(fmt.Sprintf("%s/%s%s", i.GetLink(), col, rawFilterQuery(f...)))
 }
-func inbox(a ap.Item, f ...FilterFn) ap.IRI {
+func inbox(a pub.Item, f ...FilterFn) pub.IRI {
 	return iri(a, handlers.Inbox, f...)
 }
-func outbox(a ap.Item, f ...FilterFn) ap.IRI {
+func outbox(a pub.Item, f ...FilterFn) pub.IRI {
 	return iri(a, handlers.Outbox, f...)
 }
-func following(a ap.Item, f ...FilterFn) ap.IRI {
+func following(a pub.Item, f ...FilterFn) pub.IRI {
 	return iri(a, handlers.Following, f...)
 }
-func followers(a ap.Item, f ...FilterFn) ap.IRI {
+func followers(a pub.Item, f ...FilterFn) pub.IRI {
 	return iri(a, handlers.Followers, f...)
 }
-func likes(a ap.Item, f ...FilterFn) ap.IRI {
+func likes(a pub.Item, f ...FilterFn) pub.IRI {
 	return iri(a, handlers.Likes, f...)
 }
-func shares(a ap.Item, f ...FilterFn) ap.IRI {
+func shares(a pub.Item, f ...FilterFn) pub.IRI {
 	return iri(a, handlers.Shares, f...)
 }
-func replies(a ap.Item, f ...FilterFn) ap.IRI {
+func replies(a pub.Item, f ...FilterFn) pub.IRI {
 	return iri(a, handlers.Replies, f...)
 }
-func liked(a ap.Item, f ...FilterFn) ap.IRI {
+func liked(a pub.Item, f ...FilterFn) pub.IRI {
 	return iri(a, handlers.Liked, f...)
 }
-func validateActor(actor ap.Item) error {
+func validateActor(actor pub.Item) error {
 	if actor == nil {
 		return errors.Errorf("Actor is nil")
 	}
-	if !ap.ActorTypes.Contains(actor.GetType()) {
+	if !pub.ActorTypes.Contains(actor.GetType()) {
 		return errors.Errorf("Invalid Actor type %s", actor.GetType())
 	}
 	return nil
 }
-func validateObject(object ap.Item) error {
+func validateObject(object pub.Item) error {
 	if object == nil {
 		return errors.Errorf("Object is nil")
 	}
-	if !ap.ObjectTypes.Contains(object.GetType()) {
+	if !pub.ObjectTypes.Contains(object.GetType()) {
 		return errors.Errorf("Invalid Object type %s", object.GetType())
 	}
 	return nil
@@ -134,90 +174,153 @@ func validateObject(object ap.Item) error {
 
 type FilterFn func() url.Values
 
-func (f fedbox) Inbox(actor ap.Item, filters ...FilterFn) (ap.CollectionInterface, error) {
+func (f fedbox) Inbox(actor pub.Item, filters ...FilterFn) (pub.CollectionInterface, error) {
 	if err := validateActor(actor); err != nil {
 		return nil, err
 	}
 	return f.collection(inbox(actor, filters...))
 }
-func (f fedbox) Outbox(actor ap.Item, filters ...FilterFn) (ap.CollectionInterface, error) {
+func (f fedbox) Outbox(actor pub.Item, filters ...FilterFn) (pub.CollectionInterface, error) {
 	if err := validateActor(actor); err != nil {
 		return nil, err
 	}
 	return f.collection(outbox(actor, filters...))
 }
-func (f fedbox) Following(actor ap.Item, filters ...FilterFn) (ap.CollectionInterface, error) {
+func (f fedbox) Following(actor pub.Item, filters ...FilterFn) (pub.CollectionInterface, error) {
 	if err := validateActor(actor); err != nil {
 		return nil, err
 	}
 	return f.collection(following(actor, filters...))
 }
-func (f fedbox) Followers(actor ap.Item, filters ...FilterFn) (ap.CollectionInterface, error) {
+func (f fedbox) Followers(actor pub.Item, filters ...FilterFn) (pub.CollectionInterface, error) {
 	if err := validateActor(actor); err != nil {
 		return nil, err
 	}
 	return f.collection(followers(actor, filters...))
 }
-func (f fedbox) Likes(actor ap.Item, filters ...FilterFn) (ap.CollectionInterface, error) {
+func (f fedbox) Likes(actor pub.Item, filters ...FilterFn) (pub.CollectionInterface, error) {
 	if err := validateActor(actor); err != nil {
 		return nil, err
 	}
 	return f.collection(likes(actor, filters...))
 }
-func (f fedbox) Liked(object ap.Item, filters ...FilterFn) (ap.CollectionInterface, error) {
+func (f fedbox) Liked(object pub.Item, filters ...FilterFn) (pub.CollectionInterface, error) {
 	if err := validateObject(object); err != nil {
 		return nil, err
 	}
 	return f.collection(liked(object, filters...))
 }
-func (f fedbox) Replies(object ap.Item, filters ...FilterFn) (ap.CollectionInterface, error) {
+func (f fedbox) Replies(object pub.Item, filters ...FilterFn) (pub.CollectionInterface, error) {
 	if err := validateObject(object); err != nil {
 		return nil, err
 	}
 	return f.collection(replies(object, filters...))
 }
-func (f fedbox) Shares(object ap.Item, filters ...FilterFn) (ap.CollectionInterface, error) {
+func (f fedbox) Shares(object pub.Item, filters ...FilterFn) (pub.CollectionInterface, error) {
 	if err := validateObject(object); err != nil {
 		return nil, err
 	}
 	return f.collection(shares(object, filters...))
 }
 
-func (f fedbox) Actor(iri ap.IRI) (*ap.Actor, error) {
+func (f fedbox) Collection(iri pub.IRI) (pub.CollectionInterface, error) {
+	return f.collection(iri)
+}
+
+func (f fedbox) Actor(iri pub.IRI) (*pub.Actor, error) {
 	it, err := f.object(iri)
 	if err != nil {
 		return anonymousActor(), errors.Annotatef(err, "Unable to load Actor: %s", iri)
 	}
-	var person *ap.Actor
-	err = ap.OnActor(it, func(p *ap.Actor) error {
+	var person *pub.Actor
+	err = pub.OnActor(it, func(p *pub.Actor) error {
 		person = p
 		return nil
 	})
 	return person, err
 }
 
-func (f fedbox) Activity(iri ap.IRI) (*ap.Activity, error) {
+func (f fedbox) Activity(iri pub.IRI) (*pub.Activity, error) {
 	it, err := f.object(iri)
 	if err != nil {
 		return nil, errors.Annotatef(err, "Unable to load Activity: %s", iri)
 	}
-	var activity *ap.Activity
-	err = ap.OnActivity(it, func(a *ap.Activity) error {
+	var activity *pub.Activity
+	err = pub.OnActivity(it, func(a *pub.Activity) error {
 		activity = a
 		return nil
 	})
 	return activity, err
 }
 
-func (f fedbox) Object(iri ap.IRI) (*ap.Object, error) {
+func (f fedbox) Object(iri pub.IRI) (*pub.Object, error) {
 	it, err := f.object(iri)
 	if err != nil {
 		return nil, errors.Annotatef(err, "Unable to load Object: %s", iri)
 	}
-	var object *ap.Object
-	err = ap.OnObject(it, func(o *ap.Object) error {
+	var object *pub.Object
+	err = pub.OnObject(it, func(o *pub.Object) error {
 		object = o
 		return nil
 	})
 	return object, err
+}
+
+func postRequest(f fedbox, url pub.IRI, a pub.Item) (pub.IRI, pub.Item, error) {
+	body, err := j.Marshal(a)
+	var resp *http.Response
+	var it pub.Item
+	var iri pub.IRI
+	resp, err = f.client.Post(url.String(), client.ContentTypeActivityJson, bytes.NewReader(body))
+	if err != nil {
+		return iri, it, err
+	}
+	if body, err = ioutil.ReadAll(resp.Body); err != nil {
+		f.errFn(err.Error())
+		return iri, it, err
+	}
+	if resp.StatusCode != http.StatusGone && resp.StatusCode >= http.StatusBadRequest {
+		errs := _errors{}
+		if err := j.Unmarshal(body, &errs); err != nil {
+			f.errFn("Unable to unmarshal error response: %s", err.Error())
+		}
+		if len(errs.Errors) == 0 {
+			return iri, it, errors.Newf("Unknown error")
+		}
+		err := errs.Errors[0]
+		return iri, it, errors.WrapWithStatus(err.Code, nil, err.Message)
+	}
+	iri = pub.IRI(resp.Header.Get("Location"))
+	it, err = pub.UnmarshalJSON(body)
+	return iri, it, err
+}
+
+func (f fedbox) ToOutbox(a pub.Item) (pub.IRI, pub.Item, error) {
+	url := pub.IRI("")
+	err := pub.OnActivity(a, func(a *pub.Activity) error {
+		url = outbox(a.Actor)
+		return nil
+	})
+	if err != nil {
+		return "", nil, err
+	}
+	if len(url) == 0 {
+		return "", nil, errors.Newf("Invalid URL to post to")
+	}
+	return postRequest(f, url, a)
+}
+
+func (f fedbox) ToInbox(a pub.Item) (pub.IRI, pub.Item, error) {
+	url := pub.IRI("")
+	err := pub.OnActivity(a, func(a *pub.Activity) error {
+		url = inbox(a.Actor)
+		return nil
+	})
+	if err != nil {
+		return "", nil, err
+	}
+	if len(url) == 0 {
+		return "", nil, errors.Newf("Invalid URL to post to")
+	}
+	return postRequest(f, url, a)
 }
