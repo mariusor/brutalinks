@@ -705,8 +705,6 @@ func accountsEqual(a1, a2 app.Account) bool {
 }
 
 func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) {
-	var qs string
-
 	target := "/"
 	c := "objects"
 	if len(f.FollowedBy) > 0 {
@@ -753,16 +751,13 @@ func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) 
 			pub.VideoType,
 		}
 	}
-	if q, err := qstring.MarshalString(&f); err == nil {
-		qs = fmt.Sprintf("?%s", q)
-	}
-	url := fmt.Sprintf("%s%s%s%s", r.BaseURL, target, c, qs)
+	url := fmt.Sprintf("%s%s%s", r.BaseURL, target, c)
 
 	ctx := log.Ctx{
 		"url": url,
 	}
 
-	it, err := r.fedbox.Collection(pub.IRI(url))
+	it, err := r.fedbox.Collection(pub.IRI(url), Values(f))
 	if err != nil {
 		r.logger.WithContext(ctx).Error(err.Error())
 		return nil, 0, err
@@ -882,19 +877,15 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 
 func (r *repository) loadVotesCollection(iri pub.IRI, actors ...pub.IRI) ([]app.Vote, error) {
 	cntActors := len(actors)
+	f := app.Filters{}
 	if cntActors > 0 {
 		attrTo := make([]app.Hash, cntActors)
 		for i, a := range actors {
 			attrTo[i] = app.Hash(a.String())
 		}
-		f := app.LoadVotesFilter{
-			AttributedTo: attrTo,
-		}
-		if q, err := qstring.MarshalString(&f); err == nil {
-			iri = pub.IRI(fmt.Sprintf("%s?%s", iri, q))
-		}
+		f.LoadVotesFilter.AttributedTo = attrTo
 	}
-	likes, err := r.fedbox.Collection(iri)
+	likes, err := r.fedbox.Collection(iri, Values(f))
 	// first step is to verify if vote already exists:
 	if err != nil {
 		return nil, err
@@ -915,7 +906,6 @@ func (r *repository) loadVotesCollection(iri pub.IRI, actors ...pub.IRI) ([]app.
 }
 
 func (r *repository) LoadVotes(f app.Filters) (app.VoteCollection, uint, error) {
-	var qs string
 	f.Type = pub.ActivityVocabularyTypes{
 		pub.LikeType,
 		pub.DislikeType,
@@ -926,18 +916,12 @@ func (r *repository) LoadVotes(f app.Filters) (app.VoteCollection, uint, error) 
 	if len(f.LoadVotesFilter.AttributedTo) == 1 {
 		attrTo := f.LoadVotesFilter.AttributedTo[0]
 		f.LoadVotesFilter.AttributedTo = nil
-		if q, err := qstring.MarshalString(&f); err == nil {
-			qs = fmt.Sprintf("?%s", q)
-		}
-		url = fmt.Sprintf("%s/actors/%s/outbox%s", r.BaseURL, attrTo, qs)
+		url = fmt.Sprintf("%s/actors/%s/outbox", r.BaseURL, attrTo)
 	} else {
-		if q, err := qstring.MarshalString(&f); err == nil {
-			qs = fmt.Sprintf("?%s", q)
-		}
-		url = fmt.Sprintf("%s/inbox%s", r.BaseURL, qs)
+		url = fmt.Sprintf("%s/inbox", r.BaseURL)
 	}
 
-	it, err := r.fedbox.Collection(pub.IRI(url))
+	it, err := r.fedbox.Collection(pub.IRI(url), Values(f))
 	if err != nil {
 		r.logger.Error(err.Error())
 		return nil, 0, err
@@ -1155,13 +1139,7 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 }
 
 func (r *repository) LoadAccounts(f app.Filters) (app.AccountCollection, uint, error) {
-	var qs string
-	if q, err := qstring.MarshalString(&f); err == nil {
-		qs = fmt.Sprintf("?%s", q)
-	}
-	url := fmt.Sprintf("%s/%s", ActorsURL, qs)
-
-	it, err := r.fedbox.Collection(pub.IRI(url))
+	it, err := r.fedbox.Actors(Values(f))
 	if err != nil {
 		r.logger.Error(err.Error())
 		return nil, 0, err
@@ -1205,6 +1183,13 @@ func (r *repository) LoadAccount(f app.Filters) (app.Account, error) {
 		return app.AnonymousAccount, errors.NotFoundf("account %s", id)
 	}
 	return *ac, nil
+}
+
+func Values(f app.Filters) func() url.Values {
+	return func() url.Values {
+		v, _ := qstring.Marshal(&f)
+		return v
+	}
 }
 
 func (r *repository) FollowAccount(er, ed app.Account) error {
