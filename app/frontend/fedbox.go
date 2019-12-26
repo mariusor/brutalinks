@@ -13,6 +13,12 @@ import (
 	"net/url"
 )
 
+const (
+	activities = handlers.CollectionType("activities")
+	actors     = handlers.CollectionType("actors")
+	objects    = handlers.CollectionType("objects")
+)
+
 type fedbox struct {
 	baseURL *url.URL
 	client  client.HttpClient
@@ -127,6 +133,9 @@ func rawFilterQuery(f ...FilterFn) string {
 	return "?" + q.Encode()
 }
 func iri(i pub.Item, col handlers.CollectionType, f ...FilterFn) pub.IRI {
+	if len(col) == 0 {
+		return pub.IRI(fmt.Sprintf("%s%s", i.GetLink(), rawFilterQuery(f...)))
+	}
 	return pub.IRI(fmt.Sprintf("%s/%s%s", i.GetLink(), col, rawFilterQuery(f...)))
 }
 func inbox(a pub.Item, f ...FilterFn) pub.IRI {
@@ -150,11 +159,9 @@ func shares(a pub.Item, f ...FilterFn) pub.IRI {
 func replies(a pub.Item, f ...FilterFn) pub.IRI {
 	return iri(a, handlers.Replies, f...)
 }
-
 func liked(a pub.Item, f ...FilterFn) pub.IRI {
 	return iri(a, handlers.Liked, f...)
 }
-
 func validateActor(a pub.Item) error {
 	if a == nil {
 		return errors.Errorf("Actor is nil")
@@ -225,8 +232,8 @@ func (f fedbox) Shares(object pub.Item, filters ...FilterFn) (pub.CollectionInte
 	return f.collection(shares(object, filters...))
 }
 
-func (f fedbox) Collection(iri pub.IRI) (pub.CollectionInterface, error) {
-	return f.collection(iri)
+func (f fedbox) Collection(i pub.IRI, filters ...FilterFn) (pub.CollectionInterface, error) {
+	return f.collection(iri(i, "", filters...))
 }
 
 func (f fedbox) Actor(iri pub.IRI) (*pub.Actor, error) {
@@ -267,7 +274,15 @@ func (f fedbox) Object(iri pub.IRI) (*pub.Object, error) {
 	})
 	return object, err
 }
-
+func (f fedbox) Activities(filters ...FilterFn) (pub.CollectionInterface, error) {
+	return f.collection(iri(pub.IRI(f.baseURL.String()), activities, filters...))
+}
+func (f fedbox) Actors(filters ...FilterFn) (pub.CollectionInterface, error) {
+	return f.collection(iri(pub.IRI(f.baseURL.String()), actors, filters...))
+}
+func (f fedbox) Objects(filters ...FilterFn) (pub.CollectionInterface, error) {
+	return f.collection(iri(pub.IRI(f.baseURL.String()), objects, filters...))
+}
 func postRequest(f fedbox, url pub.IRI, a pub.Item) (pub.IRI, pub.Item, error) {
 	body, err := j.Marshal(a)
 	var resp *http.Response
