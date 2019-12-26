@@ -122,6 +122,10 @@ func ItemLocalLink(i app.Item) string {
 	return fmt.Sprintf("%s/%s", AccountLocalLink(*i.SubmittedBy), i.Hash.Short())
 }
 
+func followLink(f app.FollowRequest) string {
+	return fmt.Sprintf("%s/%s", AccountLocalLink(*f.SubmittedBy), "follow")
+}
+
 func scoreLink(i app.Item, dir string) string {
 	// @todo(marius) :link_generation:
 	return fmt.Sprintf("%s/%s", ItemPermaLink(i), dir)
@@ -133,6 +137,14 @@ func yayLink(i app.Item) string {
 
 func nayLink(i app.Item) string {
 	return scoreLink(i, "nay")
+}
+
+func acceptLink(f app.FollowRequest) string {
+	return fmt.Sprintf("%s/%s", followLink(f), "accept")
+}
+
+func rejectLink(f app.FollowRequest) string {
+	return fmt.Sprintf("%s/%s", followLink(f), "reject")
 }
 
 func canPaginate(m interface{}) bool {
@@ -234,29 +246,17 @@ func (h *handler) HandleInbox(w http.ResponseWriter, r *http.Request) {
 	m.Title = title
 	m.HideText = true
 
-	curActor := loadAPPerson(*acct)
-	followReq, err := h.storage.fedbox.Inbox(curActor, func() url.Values {
-		return url.Values{
-			"type": {
-				string(pub.FollowType),
-			},
-		}
+	requests, _, err := h.storage.LoadFollowRequests(acct, app.Filters{
+		LoadFollowRequestsFilter: app.LoadFollowRequestsFilter{
+			On: app.Hashes{app.Hash(acct.Metadata.ID)},
+		},
 	})
-	if err == nil && len(followReq.Collection()) > 0 {
-		requests := make([]app.FollowRequest, 0)
-		for _, fr := range followReq.Collection() {
-			f := app.FollowRequest{}
-			if err := f.FromActivityPub(fr); err == nil {
-				if !accountInCollection(*f.SubmittedBy, acct.Followers) {
-					requests = append(requests, f)
-				}
-			}
-		}
-		requests, err = h.storage.loadAuthors(requests...)
-		for _, r := range requests {
-			f := follow{r}
-			m.Items = append(m.Items, &f)
-		}
+	if err != nil {
+		h.HandleErrors(w, r, errors.NewNotValid(err, "Unable to load items!"))
+	}
+	for _, r := range requests {
+		f := follow{r}
+		m.Items = append(m.Items, &f)
 	}
 	comments, err := loadItems(r.Context(), filter, acct, h.logger)
 	if err != nil {

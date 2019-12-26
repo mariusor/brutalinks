@@ -32,6 +32,7 @@ func (h *handler) Routes() func(chi.Router) {
 			r.Get("/", h.ShowAccount)
 			r.Post("/", h.HandleSubmit)
 			r.Get("/follow", h.FollowAccount)
+			r.Get("/follow/{action}", h.HandleFollowRequest)
 
 			r.Route("/{hash}", func(r chi.Router) {
 				r.Use(h.CSRF)

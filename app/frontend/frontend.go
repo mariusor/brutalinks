@@ -508,13 +508,13 @@ func (h *handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name st
 				}
 				return ac
 			},
-			"IsComment" : func (t HasType) bool {
+			"IsComment": func(t HasType) bool {
 				return t.Type() == Comment
 			},
-			"IsFollowRequest" : func (t HasType) bool {
+			"IsFollowRequest": func(t HasType) bool {
 				return t.Type() == FollowRequest
 			},
-			"IsVote" : func (t HasType) bool {
+			"IsVote": func(t HasType) bool {
 				return t.Type() == Vote
 			},
 			"LoadFlashMessages": loadFlashMessages(r, w, s),
@@ -545,6 +545,8 @@ func (h *handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name st
 			"ScoreClass":     scoreClass,
 			"YayLink":        yayLink,
 			"NayLink":        nayLink,
+			"AcceptLink":     acceptLink,
+			"RejectLink":     rejectLink,
 			"PageLink":       pageLink,
 			"CanPaginate":    canPaginate,
 			"Config":         func() app.Config { return app.Instance.Config },

@@ -1192,6 +1192,65 @@ func Values(f app.Filters) func() url.Values {
 	}
 }
 
+func (r *repository) LoadFollowRequests(ed *app.Account, f app.Filters) (app.FollowRequests, uint, error) {
+	if len(f.Type) == 0 {
+		f.Type = pub.ActivityVocabularyTypes {pub.FollowType}
+	}
+	var followReq pub.CollectionInterface
+	var err error
+	if ed == nil {
+		followReq, err = r.fedbox.Activities(Values(f))
+	} else {
+		followReq, err = r.fedbox.Inbox(loadAPPerson(*ed),  Values(f))
+	}
+	requests := make([]app.FollowRequest, 0)
+	if err == nil && len(followReq.Collection()) > 0 {
+		for _, fr := range followReq.Collection() {
+			f := app.FollowRequest{}
+			if err := f.FromActivityPub(fr); err == nil {
+				if !accountInCollection(*f.SubmittedBy, ed.Followers) {
+					requests = append(requests, f)
+				}
+			}
+		}
+		requests, err = r.loadAuthors(requests...)
+	}
+	return requests, uint(len(requests)), nil
+}
+
+func (r *repository) SendFollowResponse(f app.FollowRequest, accept bool) error {
+	ed := f.Object
+	er := f.SubmittedBy
+	if !accountValidForC2S(ed) {
+		return errors.Unauthorizedf("invalid account %s", ed)
+	}
+
+	to := make(pub.ItemCollection, 0)
+	bcc := make(pub.ItemCollection, 0)
+
+	to = append(to, pub.IRI(er.Metadata.ID))
+	bcc = append(bcc, pub.IRI(BaseURL))
+
+	response := pub.Activity{
+		To:     to,
+		Type:   pub.RejectType,
+		BCC:    bcc,
+		Object: pub.IRI(f.Metadata.ID),
+		Actor:  pub.IRI(ed.Metadata.ID),
+	}
+	if accept {
+		to = append(to, pub.PublicNS)
+		response.Type = pub.AcceptType
+	}
+
+	_, _, err := r.fedbox.ToOutbox(response)
+	if err != nil {
+		r.logger.Error(err.Error())
+		return err
+	}
+	return nil
+}
+
 func (r *repository) FollowAccount(er, ed app.Account) error {
 	follower := loadAPPerson(er)
 	followed := loadAPPerson(ed)

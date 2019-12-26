@@ -80,7 +80,7 @@ func (vt VoteTypes) String() string {
 }
 
 func (h Hashes) Contains(s Hash) bool {
-	for _, hh  := range h {
+	for _, hh := range h {
 		if HashesEqual(hh, s) {
 			return true
 		}
@@ -130,8 +130,15 @@ type Filters struct {
 	LoadAccountsFilter
 	LoadItemsFilter
 	LoadVotesFilter
+	LoadFollowRequestsFilter
 	Page     int `qstring:"page,omitempty"`
 	MaxItems int `qstring:"maxItems,omitempty"`
+}
+
+type LoadFollowRequestsFilter struct {
+	Key   []Hash `qstring:"iri,omitempty"`
+	Actor []Hash `qstring:"actor,omitempty"`
+	On    []Hash `qstring:"object,omitempty"`
 }
 
 type LoadAccountsFilter struct {
@@ -535,6 +542,7 @@ type Repository interface {
 	CanLoadItems
 	CanLoadInfo
 	CanLoadVotes
+	CanLoadFollows
 }
 
 type Authenticated interface {
@@ -553,6 +561,10 @@ type CanLoadItems interface {
 type CanLoadVotes interface {
 	LoadVotes(Filters) (VoteCollection, uint, error)
 	LoadVote(Filters) (Vote, error)
+}
+
+type CanLoadFollows interface {
+	LoadFollowRequests(*Account, Filters) (FollowRequests, uint, error)
 }
 
 type CanLoadInfo interface {
@@ -595,12 +607,14 @@ type CanLoad interface {
 	CanLoadItems
 	CanLoadAccounts
 	CanLoadVotes
+	CanLoadFollows
 }
 
 type CanSave interface {
 	CanSaveItems
 	CanSaveAccounts
 	CanSaveVotes
+	CanSaveActivity
 }
 
 func ContextVoteLoader(ctx context.Context) (CanLoadVotes, bool) {
