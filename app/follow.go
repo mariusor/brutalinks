@@ -6,12 +6,19 @@ import (
 	"time"
 )
 
+type FollowRequests []FollowRequest
+
 type FollowRequest struct {
-	Hash        Hash      `json:"hash"`
-	SubmittedAt time.Time `json:"-"`
-	SubmittedBy *Account  `json:"-"`
-	Object      *Account  `json:"-"`
-	Flags       FlagBits  `json:"-"`
+	Hash        Hash            `json:"hash"`
+	SubmittedAt time.Time       `json:"-"`
+	SubmittedBy *Account        `json:"-"`
+	Object      *Account        `json:"-"`
+	Metadata    *FollowMetadata `json:"-"`
+	Flags       FlagBits        `json:"-"`
+}
+
+type FollowMetadata struct {
+	ID string `json:"-"`
 }
 
 func (f *FollowRequest) FromActivityPub(it pub.Item) error {
@@ -24,6 +31,9 @@ func (f *FollowRequest) FromActivityPub(it pub.Item) error {
 	if it.IsLink() {
 		iri := it.GetLink()
 		f.Hash.FromActivityPub(iri)
+		f.Metadata = &FollowMetadata{
+			ID: iri.String(),
+		}
 		return nil
 	}
 	return pub.OnActivity(it, func(a *pub.Activity) error {
@@ -35,7 +45,9 @@ func (f *FollowRequest) FromActivityPub(it pub.Item) error {
 		followed.FromActivityPub(a.Object)
 		f.Object = &followed
 		f.SubmittedAt = a.Published
+		f.Metadata = &FollowMetadata{
+			ID: string(a.ID),
+		}
 		return nil
 	})
 }
-
