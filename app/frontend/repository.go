@@ -1284,14 +1284,14 @@ func (r *repository) SaveAccount(a app.Account) (app.Account, error) {
 	p := loadAPPerson(a)
 	id := p.GetLink()
 
+	now := time.Now().UTC()
+
 	p.Generator = pub.IRI(app.Instance.BaseURL)
-	p.Published = time.Now()
-	p.Updated = p.Published
+	p.Published = now
+	p.Updated = now
 	p.URL = accountURL(a)
 
 	author := loadAPPerson(*a.CreatedBy)
-	now := time.Now()
-
 	act := pub.Activity{
 		To:           pub.ItemCollection{pub.PublicNS},
 		BCC:          pub.ItemCollection{pub.IRI(BaseURL)},
