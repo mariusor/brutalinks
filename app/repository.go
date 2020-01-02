@@ -24,6 +24,7 @@ type repository struct {
 	BaseURL string
 	logger  log.Logger
 	fedbox  *fedbox
+	cl      *Account
 }
 
 // Repository middleware
@@ -1288,7 +1289,6 @@ func (r *repository) SaveAccount(a Account) (Account, error) {
 	p.Generator = pub.IRI(Instance.BaseURL)
 	p.Published = now
 	p.Updated = now
-	p.URL = accountURL(a)
 
 	author := loadAPPerson(*a.CreatedBy)
 	act := pub.Activity{
@@ -1321,7 +1321,7 @@ func (r *repository) SaveAccount(a Account) (Account, error) {
 	}
 
 	var ap pub.Item
-	if _, ap, err = r.fedbox.ToInbox(act); err != nil {
+	if _, ap, err = r.fedbox.ToOutbox(act); err != nil {
 		r.logger.Error(err.Error())
 		return a, err
 	}
