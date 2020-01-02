@@ -95,8 +95,12 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	a.CreatedBy = h.storage.cl
-	h.storage.WithAccount(h.storage.cl)
+	acc := h.account(r)
+	if !acc.IsLogged() {
+		acc = h.storage.cl
+	}
+	a.CreatedBy = acc
+	h.storage.WithAccount(acc)
 	*a, err = h.storage.SaveAccount(*a)
 	if err != nil {
 		h.HandleErrors(w, r, err)
