@@ -509,7 +509,10 @@ summary:focus {
     padding: 0;
     margin: 0;
 }
-#private-message, #reply, #register, #new, #login {
+#private-message {
+    max-width: 24rem;
+}
+#reply, #register, #new, #login {
     max-width: 30rem;
 }
 #private-message textarea,
