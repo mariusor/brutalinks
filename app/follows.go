@@ -16,15 +16,9 @@ func (h *handler) FollowAccount(w http.ResponseWriter, r *http.Request) {
 	}
 
 	handle := chi.URLParam(r, "handle")
-	accountLoader, ok := ContextAccountLoader(r.Context())
-	if !ok {
-		err := errors.Errorf("could not load account repository from Context")
-		h.logger.Error(err.Error())
-		h.HandleErrors(w, r, err)
-		return
-	}
+	repo := h.storage
 	var err error
-	accounts, cnt, err := accountLoader.LoadAccounts(Filters{LoadAccountsFilter: LoadAccountsFilter{Handle: []string{handle}}})
+	accounts, cnt, err := repo.LoadAccounts(Filters{LoadAccountsFilter: LoadAccountsFilter{Handle: []string{handle}}})
 	if err != nil {
 		h.HandleErrors(w, r, err)
 		return
@@ -38,7 +32,7 @@ func (h *handler) FollowAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	toFollow, _ := accounts.First()
-	err = h.storage.FollowAccount(*loggedAccount, *toFollow)
+	err = repo.FollowAccount(*loggedAccount, *toFollow)
 	if err != nil {
 		h.HandleErrors(w, r, err)
 		return
@@ -56,14 +50,8 @@ func (h *handler) HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	handle := chi.URLParam(r, "handle")
-	accountLoader, ok := ContextAccountLoader(r.Context())
-	if !ok {
-		err := errors.Errorf("could not load account repository from Context")
-		h.logger.Error(err.Error())
-		h.HandleErrors(w, r, err)
-		return
-	}
-	accounts, cnt, err := accountLoader.LoadAccounts(Filters{LoadAccountsFilter: LoadAccountsFilter{Handle: []string{handle}}})
+	repo := h.storage
+	accounts, cnt, err := repo.LoadAccounts(Filters{LoadAccountsFilter: LoadAccountsFilter{Handle: []string{handle}}})
 	if err != nil {
 		h.HandleErrors(w, r, err)
 		return
@@ -79,15 +67,8 @@ func (h *handler) HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
 	if action == "accept" {
 		accept = true
 	}
-	loader, ok := ContextLoader(r.Context())
-	if !ok {
-		err := errors.Errorf("could not load account repository from Context")
-		h.logger.Error(err.Error())
-		h.HandleErrors(w, r, err)
-		return
-	}
 
-	followRequests, cnt, err := loader.LoadFollowRequests(loggedAccount, Filters{
+	followRequests, cnt, err := repo.LoadFollowRequests(loggedAccount, Filters{
 		LoadFollowRequestsFilter: LoadFollowRequestsFilter{
 			Actor: Hashes{Hash(follower.Metadata.ID)},
 			On:    Hashes{Hash(loggedAccount.Metadata.ID)},
@@ -102,7 +83,7 @@ func (h *handler) HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	follow := followRequests[0]
-	err = h.storage.SendFollowResponse(follow, accept)
+	err = repo.SendFollowResponse(follow, accept)
 	if err != nil {
 		h.HandleErrors(w, r, err)
 		return

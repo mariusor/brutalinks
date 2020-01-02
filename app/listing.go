@@ -204,14 +204,6 @@ func (h *handler) HandleIndex(w http.ResponseWriter, r *http.Request) {
 	h.RenderTemplate(r, w, "listing", m)
 }
 
-type follow struct {
-	FollowRequest
-}
-
-func (f *follow) Type() RenderType {
-	return Follow
-}
-
 // HandleIndex serves / request
 func (h *handler) HandleInbox(w http.ResponseWriter, r *http.Request) {
 	filter := Filters{
@@ -268,33 +260,29 @@ func (h *handler) HandleInbox(w http.ResponseWriter, r *http.Request) {
 
 	h.RenderTemplate(r, w, "listing", m)
 }
+
 func loadItems(c context.Context, filter Filters, acc *Account, l log.Logger) (comments, error) {
-	itemLoader, ok := ContextItemLoader(c)
+	repo, ok := ContextRepository(c)
 	if !ok {
 		err := errors.Errorf("could not load item repository from Context")
 		return nil, err
 	}
-	contentItems, _, err := itemLoader.LoadItems(filter)
+	contentItems, _, err := repo.LoadItems(filter)
 
 	if err != nil {
 		return nil, err
 	}
 	comments := loadComments(contentItems)
 	if acc.IsLogged() {
-		votesLoader, ok := ContextVoteLoader(c)
-		if ok {
-			acc.Votes, _, err = votesLoader.LoadVotes(Filters{
-				LoadVotesFilter: LoadVotesFilter{
-					AttributedTo: []Hash{acc.Hash},
-					ItemKey:      comments.getItemsHashes(),
-				},
-				MaxItems: MaxContentItems,
-			})
-			if err != nil {
-				l.Error(err.Error())
-			}
-		} else {
-			l.Error("could not load vote repository from Context")
+		acc.Votes, _, err = repo.LoadVotes(Filters{
+			LoadVotesFilter: LoadVotesFilter{
+				AttributedTo: []Hash{acc.Hash},
+				ItemKey:      comments.getItemsHashes(),
+			},
+			MaxItems: MaxContentItems,
+		})
+		if err != nil {
+			l.Error(err.Error())
 		}
 	}
 	return comments, nil

@@ -484,18 +484,6 @@ func buildLink(routes chi.Routes, name string, par ...interface{}) string {
 	return "/"
 }
 
-type RenderType int
-
-const (
-	Comment = iota
-	Follow
-	Appreciation
-)
-
-type HasType interface {
-	Type() RenderType
-}
-
 func (h *handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name string, m interface{}) error {
 	var err error
 	var ac *Account
@@ -821,9 +809,7 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 			// TODO(marius): Fix this ugly hack where we need to not override OAuth2 metadata loaded at login
 			acc.Metadata = m
 			r = r.WithContext(context.WithValue(r.Context(), AccountCtxtKey, &acc))
-			if auth, ok := ContextAuthenticated(r.Context()); ok {
-				auth.WithAccount(&acc)
-			}
+			h.storage.WithAccount(&acc)
 		}
 		next.ServeHTTP(w, r)
 	}
@@ -861,12 +847,14 @@ func (h handler) NeedsSessions(next http.Handler) http.Handler {
 // It's something Mastodon compatible servers should show
 func (h *handler) HandleAbout(w http.ResponseWriter, r *http.Request) {
 	m := aboutModel{Title: "About"}
-	f, err := h.storage.LoadInfo()
-	if err != nil {
+
+	repo := h.storage
+	info, err := repo.LoadInfo()
+	if err != nil  {
 		h.HandleErrors(w, r, errors.NewNotValid(err, "oops!"))
 		return
 	}
-	m.Desc.Description = f.Description
+	m.Desc.Description = info.Description
 
 	h.RenderTemplate(r, w, "about", m)
 }
@@ -964,7 +952,7 @@ var nodeInfo = WebInfo{}
 
 func getNodeInfo(req *http.Request) (WebInfo, error) {
 	c := req.Context()
-	nodeInfoLoader, ok := ContextNodeInfoLoader(c)
+	repo, ok := ContextRepository(c)
 	if !ok {
 		err := errors.Errorf("could not load item repository from Context")
 		return WebInfo{}, err
@@ -972,7 +960,7 @@ func getNodeInfo(req *http.Request) (WebInfo, error) {
 
 	var err error
 	if nodeInfo.Title == "" {
-		nodeInfo, err = nodeInfoLoader.LoadInfo()
+		nodeInfo, err = repo.LoadInfo()
 	}
 	return nodeInfo, err
 }

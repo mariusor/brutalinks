@@ -143,7 +143,28 @@ const Report = "bad"
 const Yay = "yay"
 const Nay = "nay"
 
+type RenderType int
+
+const (
+	Comment = iota
+	Follow
+	Appreciation
+)
+
+type HasType interface {
+	Type() RenderType
+}
+
+type follow struct {
+	FollowRequest
+}
+
+func (f *follow) Type() RenderType {
+	return Follow
+}
+
 type comments []*comment
+
 type comment struct {
 	Item
 	// Voted shows if current logged account has Yayed(+1) or Nayed(-1) current Item
@@ -342,20 +363,11 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 	items := make([]Item, 0)
 
 	m := contentModel{}
-	acctLoader, ok := ContextAccountLoader(r.Context())
-	if !ok {
-		h.logger.Error("could not load item repository from Context")
-		return
-	}
+	repo := h.storage
 	handle := chi.URLParam(r, "handle")
-	auth, err := acctLoader.LoadAccount(Filters{LoadAccountsFilter: LoadAccountsFilter{
+	auth, err := repo.LoadAccount(Filters{LoadAccountsFilter: LoadAccountsFilter{
 		Handle: []string{handle},
 	}})
-	itemLoader, ok := ContextItemLoader(r.Context())
-	if !ok {
-		h.logger.Error("could not load item repository from Context")
-		return
-	}
 
 	hash := chi.URLParam(r, "hash")
 	f := Filters{
@@ -366,8 +378,8 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 	if !HashesEqual(auth.Hash, AnonymousHash) {
 		f.LoadItemsFilter.AttributedTo = Hashes{auth.Hash}
 	}
-	i, err := itemLoader.LoadItem(f)
 
+	i, err := repo.LoadItem(f)
 	if err != nil {
 		h.logger.WithContext(log.Ctx{
 			"handle": handle,
@@ -425,7 +437,7 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 	if filter.Context == nil {
 		filter.Context = []string{m.Content.Hash.String()}
 	}
-	contentItems, _, err := itemLoader.LoadItems(filter)
+	contentItems, _, err := repo.LoadItems(filter)
 	if len(contentItems) >= filter.MaxItems {
 		m.nextPage = filter.Page + 1
 	}
@@ -440,7 +452,7 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 	allComments = append(allComments, loadComments(contentItems)...)
 
 	if i.Parent.IsValid() && i.Parent.SubmittedAt.IsZero() {
-		if p, err := itemLoader.LoadItem(Filters{LoadItemsFilter: LoadItemsFilter{Key: Hashes{i.Parent.Hash}}}); err == nil {
+		if p, err := repo.LoadItem(Filters{LoadItemsFilter: LoadItemsFilter{Key: Hashes{i.Parent.Hash}}}); err == nil {
 			i.Parent = &p
 			if p.OP != nil {
 				i.OP = p.OP
@@ -454,21 +466,16 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 	addLevelComments(allComments)
 	removeCurElementParentComments(&allComments)
 
-	if ok && account.IsLogged() {
-		votesLoader, ok := ContextVoteLoader(r.Context())
-		if ok {
-			account.Votes, _, err = votesLoader.LoadVotes(Filters{
-				LoadVotesFilter: LoadVotesFilter{
-					AttributedTo: []Hash{account.Hash},
-					ItemKey:      allComments.getItemsHashes(),
-				},
-				MaxItems: MaxContentItems,
-			})
-			if err != nil {
-				h.logger.Error(err.Error())
-			}
-		} else {
-			h.logger.Error("could not load vote repository from Context")
+	if account.IsLogged() {
+		account.Votes, _, err = repo.LoadVotes(Filters{
+			LoadVotesFilter: LoadVotesFilter{
+				AttributedTo: []Hash{account.Hash},
+				ItemKey:      allComments.getItemsHashes(),
+			},
+			MaxItems: MaxContentItems,
+		})
+		if err != nil {
+			h.logger.Error(err.Error())
 		}
 	}
 
@@ -483,12 +490,12 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 
 func accountFromRequestHandle(r *http.Request) (*Account, error) {
 	handle := chi.URLParam(r, "handle")
-	accountLoader, ok := ContextAccountLoader(r.Context())
+	repo, ok := ContextRepository(r.Context())
 	if !ok {
 		return nil, errors.Newf("could not load account repository from Context")
 	}
 	var err error
-	accounts, cnt, err := accountLoader.LoadAccounts(Filters{LoadAccountsFilter: LoadAccountsFilter{Handle: []string{handle}}})
+	accounts, cnt, err := repo.LoadAccounts(Filters{LoadAccountsFilter: LoadAccountsFilter{Handle: []string{handle}}})
 	if err != nil {
 		return nil, err
 	}
@@ -518,14 +525,10 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 	saveVote := true
 
-	itemLoader, ok := ContextItemLoader(r.Context())
-	if !ok {
-		h.HandleErrors(w, r, errors.Errorf("could not load item repository from Context"))
-		return
-	}
+	repo := h.storage
 	if n.Parent.IsValid() {
 		if n.Parent.SubmittedAt.IsZero() {
-			if p, err := itemLoader.LoadItem(Filters{LoadItemsFilter: LoadItemsFilter{Key: Hashes{n.Parent.Hash}}}); err == nil {
+			if p, err := repo.LoadItem(Filters{LoadItemsFilter: LoadItemsFilter{Key: Hashes{n.Parent.Hash}}}); err == nil {
 				n.Parent = &p
 				if p.OP != nil {
 					n.OP = p.OP
@@ -543,18 +546,12 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(n.Hash) > 0 {
-		if p, err := itemLoader.LoadItem(Filters{LoadItemsFilter: LoadItemsFilter{Key: Hashes{n.Hash}}}); err == nil {
+		if p, err := repo.LoadItem(Filters{LoadItemsFilter: LoadItemsFilter{Key: Hashes{n.Hash}}}); err == nil {
 			n.Title = p.Title
 		}
 		saveVote = false
 	}
-
-	var itemSaver CanSaveItems
-	if itemSaver, ok = ContextItemSaver(r.Context()); !ok {
-		h.logger.Error("could not load item repository from Context")
-		return
-	}
-	n, err = itemSaver.SaveItem(n)
+	n, err = repo.SaveItem(n)
 	if err != nil {
 		h.logger.WithContext(log.Ctx{
 			"prev": err,
@@ -564,16 +561,12 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if saveVote {
-		var voteSaver CanSaveVotes
-		if voteSaver, ok = ContextVoteSaver(r.Context()); !ok {
-			h.logger.Error("could not load item repository from Context")
-		}
 		v := Vote{
 			SubmittedBy: acc,
 			Item:        &n,
 			Weight:      1 * ScoreMultiplier,
 		}
-		if _, err := voteSaver.SaveVote(v); err != nil {
+		if _, err := repo.SaveVote(v); err != nil {
 			h.logger.WithContext(log.Ctx{
 				"hash":   v.Item.Hash,
 				"author": v.SubmittedBy.Handle,
@@ -600,13 +593,8 @@ func genitive(name string) string {
 func (h *handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 	hash := chi.URLParam(r, "hash")
 
-	val := r.Context().Value(RepositoryCtxtKey)
-	itemLoader, ok := val.(CanLoadItems)
-	if !ok {
-		h.logger.Error("could not load item repository from Context")
-		return
-	}
-	p, err := itemLoader.LoadItem(Filters{LoadItemsFilter: LoadItemsFilter{Key: Hashes{Hash(hash)}}})
+	repo := h.storage
+	p, err := repo.LoadItem(Filters{LoadItemsFilter: LoadItemsFilter{Key: Hashes{Hash(hash)}}})
 	if err != nil {
 		h.logger.Error(err.Error())
 		h.HandleErrors(w, r, errors.NewNotFound(err, "not found"))
@@ -619,10 +607,8 @@ func (h *handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 		url = fmt.Sprintf("%s#item-%s", backUrl, p.Hash)
 	}
 	p.Delete()
-	if sav, ok := ContextItemSaver(r.Context()); ok {
-		if _, err = sav.SaveItem(p); err != nil {
-			h.addFlashMessage(Error, r, "unable to delete item as current user")
-		}
+	if p, err = repo.SaveItem(p); err != nil {
+		h.addFlashMessage(Error, r, "unable to delete item as current user")
 	}
 
 	h.Redirect(w, r, url, http.StatusFound)
@@ -647,14 +633,8 @@ func (h *handler) ShowReport(w http.ResponseWriter, r *http.Request) {
 func (h *handler) HandleVoting(w http.ResponseWriter, r *http.Request) {
 	hash := chi.URLParam(r, "hash")
 
-	val := r.Context().Value(RepositoryCtxtKey)
-	itemLoader, ok := val.(CanLoadItems)
-	if !ok {
-		h.logger.Error("could not load item repository from Context")
-		return
-	}
-
-	p, err := itemLoader.LoadItem(Filters{LoadItemsFilter: LoadItemsFilter{Key: Hashes{Hash(hash)}}})
+	repo := h.storage
+	p, err := repo.LoadItem(Filters{LoadItemsFilter: LoadItemsFilter{Key: Hashes{Hash(hash)}}})
 	if err != nil {
 		h.logger.Error(err.Error())
 		h.HandleErrors(w, r, errors.NewNotFound(err, "not found"))
@@ -673,21 +653,16 @@ func (h *handler) HandleVoting(w http.ResponseWriter, r *http.Request) {
 
 	acc := h.account(r)
 	if acc.IsLogged() {
-		voter, ok := val.(CanSaveVotes)
 		backUrl := r.Header.Get("Referer")
 		if !strings.Contains(backUrl, url) && strings.Contains(backUrl, Instance.BaseURL) {
 			url = fmt.Sprintf("%s#item-%s", backUrl, p.Hash)
-		}
-		if !ok {
-			h.logger.Error("could not load vote repository from Context")
-			return
 		}
 		v := Vote{
 			SubmittedBy: acc,
 			Item:        &p,
 			Weight:      multiplier * ScoreMultiplier,
 		}
-		if _, err := voter.SaveVote(v); err != nil {
+		if _, err := repo.SaveVote(v); err != nil {
 			h.logger.WithContext(log.Ctx{
 				"hash":   v.Item.Hash,
 				"author": v.SubmittedBy.Handle,

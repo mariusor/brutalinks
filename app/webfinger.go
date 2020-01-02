@@ -26,7 +26,7 @@ type node struct {
 }
 
 type NodeInfoResolver struct{
-	storage Repository
+	storage *repository
 }
 
 func NodeInfoResolverNew(c appConfig) NodeInfoResolver {

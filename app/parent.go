@@ -9,13 +9,8 @@ import (
 
 // HandleItemRedirect serves /i/{hash} request
 func (h *handler) HandleItemRedirect(w http.ResponseWriter, r *http.Request) {
-	val := r.Context().Value(RepositoryCtxtKey)
-	itemLoader, ok := val.(CanLoadItems)
-	if !ok {
-		h.logger.Error("could not load item repository from Context")
-		return
-	}
-	p, err := itemLoader.LoadItem(Filters{
+	repo := h.storage
+	p, err := repo.LoadItem(Filters{
 		LoadItemsFilter: LoadItemsFilter{
 			Key: Hashes{Hash(chi.URLParam(r, "hash"))},
 		},

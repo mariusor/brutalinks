@@ -167,13 +167,8 @@ func (h *handler) ValidateItemAuthor(next http.Handler) http.Handler {
 		url := r.URL
 		action := path.Base(url.Path)
 		if len(hash) > 0 && action != hash {
-			val := r.Context().Value(RepositoryCtxtKey)
-			itemLoader, ok := val.(CanLoadItems)
-			if !ok {
-				h.logger.Error("could not load item repository from Context")
-				return
-			}
-			m, err := itemLoader.LoadItem(Filters{LoadItemsFilter: LoadItemsFilter{Key: Hashes{Hash(hash)}}})
+			repo := h.storage
+			m, err := repo.LoadItem(Filters{LoadItemsFilter: LoadItemsFilter{Key: Hashes{Hash(hash)}}})
 			if err != nil {
 				h.logger.Error(err.Error())
 				h.HandleErrors(w, r, errors.NewNotFound(err, "item"))
