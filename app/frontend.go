@@ -42,7 +42,6 @@ type handler struct {
 	sstor   sessions.Store
 	logger  log.Logger
 	storage *repository
-	o       *Account
 }
 
 var defaultAccount = AnonymousAccount
@@ -217,14 +216,27 @@ func Init(c appConfig) (handler, error) {
 
 	h.storage = NewRepository(c)
 	key := os.Getenv("OAUTH2_KEY")
+	pw := os.Getenv("OAUTH2_SECRET")
 	if len(key) > 0 {
 		oIRI := pub.IRI(fmt.Sprintf("%s/actors/%s", h.storage.BaseURL, key))
-		oauthApp, err := h.storage.fedbox.Actor(oIRI)
+		oauth, err := h.storage.fedbox.Actor(oIRI)
 		if err == nil {
-			pub.OnActor(oauthApp, func(p *pub.Actor) error {
-				h.o = &Account{}
-				return h.o.FromActivityPub(p)
-			})
+			h.storage.cl = new(Account)
+			h.storage.cl.FromActivityPub(oauth)
+			config := GetOauth2Config("fedbox", h.conf.BaseURL)
+
+			handle := h.storage.cl.Handle
+			tok, err := config.PasswordCredentialsToken(context.Background(), handle, pw)
+			if err != nil {
+				return h, err
+			}
+			if tok == nil {
+				return h, err
+			}
+			h.storage.cl.Metadata.OAuth.Provider = "fedbox"
+			h.storage.cl.Metadata.OAuth.Token = tok.AccessToken
+			h.storage.cl.Metadata.OAuth.TokenType = tok.TokenType
+			h.storage.cl.Metadata.OAuth.RefreshToken = tok.RefreshToken
 		}
 	}
 
