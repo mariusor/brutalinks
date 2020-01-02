@@ -1,4 +1,4 @@
-package frontend
+package app
 
 import (
 	"bytes"
@@ -71,7 +71,7 @@ func SetUA(s string) OptionFn {
 	}
 }
 
-func New(o ...OptionFn) (*fedbox, error) {
+func NewClient(o ...OptionFn) (*fedbox, error) {
 	f := fedbox{}
 	f.client = client.NewClient()
 	for _, fn := range o {

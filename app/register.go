@@ -1,10 +1,9 @@
-package frontend
+package app
 
 import (
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/csrf"
-	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/internal/log"
 	"github.com/openshift/osin"
 	"golang.org/x/oauth2"
@@ -19,15 +18,15 @@ import (
 
 type registerModel struct {
 	Title   string
-	Account app.Account
+	Account Account
 }
 
-func accountFromRequest(r *http.Request, l log.Logger) (*app.Account, error) {
+func accountFromRequest(r *http.Request, l log.Logger) (*Account, error) {
 	if r.Method != http.MethodPost {
 		return nil, errors.Errorf("invalid http method type")
 	}
 
-	a := app.Account{Metadata: &app.AccountMetadata{}}
+	a := Account{Metadata: &AccountMetadata{}}
 	pw := r.PostFormValue("pw")
 	pwConfirm := r.PostFormValue("pw-confirm")
 	if pw != pwConfirm {
@@ -48,7 +47,7 @@ func accountFromRequest(r *http.Request, l log.Logger) (*app.Account, error) {
 	a.CreatedAt = now
 	a.UpdatedAt = now
 
-	a.Metadata = &app.AccountMetadata{
+	a.Metadata = &AccountMetadata{
 		Password: []byte(pw),
 	}
 
@@ -57,7 +56,7 @@ func accountFromRequest(r *http.Request, l log.Logger) (*app.Account, error) {
 
 func checkUserCreatingEnabled(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !app.Instance.Config.UserCreatingEnabled {
+		if !Instance.Config.UserCreatingEnabled {
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 		}
 		next.ServeHTTP(w, r)
@@ -81,8 +80,8 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	maybeExists, err := h.storage.LoadAccount(app.Filters{
-		LoadAccountsFilter: app.LoadAccountsFilter{
+	maybeExists, err := h.storage.LoadAccount(Filters{
+		LoadAccountsFilter: LoadAccountsFilter{
 			Handle: []string{a.Handle},
 		},
 	})

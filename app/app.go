@@ -4,8 +4,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/go-ap/errors"
+	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/joho/godotenv"
+	"github.com/writeas/go-nodeinfo"
 	"io"
 	"net/http"
 	"os"
@@ -67,7 +70,7 @@ type backendConfig struct {
 	Name    string
 }
 
-type Config struct {
+type Configuration struct {
 	Env                        EnvType
 	LogLevel                   log.Level
 	DB                         backendConfig
@@ -110,9 +113,10 @@ type Application struct {
 	Port     int
 	listen   string
 	Secure   bool
-	Config   Config
+	Config   Configuration
 	Logger   log.Logger
 	SeedVal  int64
+	front    *handler
 }
 
 type Collection interface{}
@@ -122,9 +126,48 @@ var Instance Application
 
 // New instantiates a new Application
 func New(host string, port int, env EnvType, ver string) Application {
-	app := Application{HostName: host, Port: port, Version: ver, Config: Config{Env: env}}
+	app := Application{HostName: host, Port: port, Version: ver, Config: Configuration{Env: env}}
 	loadEnv(&app)
 	return app
+}
+
+func (a *Application) Front(r chi.Router) {
+	conf := appConfig{
+		Env:      a.Config.Env,
+		Logger:   a.Logger.New(log.Ctx{"package": "frontend"}),
+		Secure:   a.Secure,
+		BaseURL:  a.BaseURL,
+		APIURL:   a.APIURL,
+		HostName: a.HostName,
+	}
+	front, err := Init(conf)
+	if err != nil {
+		a.Logger.Warn(err.Error())
+	}
+	a.front = &front
+	// .well-known
+	cfg := NodeInfoConfig()
+	ni := nodeinfo.NewService(cfg, NodeInfoResolverNew(conf))
+	// Web-Finger
+	r.Route("/.well-known", func(r chi.Router) {
+		r.Get("/webfinger", front.HandleWebFinger)
+		//r.Get("/host-meta", h.HandleHostMeta)
+		r.Get("/nodeinfo", ni.NodeInfoDiscover)
+		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
+			errors.HandleError(errors.NotFoundf("%s", r.RequestURI)).ServeHTTP(w, r)
+		})
+	})
+	r.Get("/nodeinfo", ni.NodeInfo)
+
+	// Frontend
+	r.With(front.Repository).Route("/", front.Routes())
+
+	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
+		front.HandleErrors(w, r, errors.NotFoundf("%s", r.RequestURI))
+	})
+	r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
+		front.HandleErrors(w, r, errors.MethodNotAllowedf("%s not allowed", r.Method))
+	})
 }
 
 type Cacheable interface {
@@ -161,8 +204,8 @@ func (a Application) Name() string {
 }
 
 // Name formats the name of the current Application
-func (a Application) NodeInfo() Info {
-	inf := Info{
+func (a Application) NodeInfo() WebInfo {
+	inf := WebInfo{
 		Title:   a.Name(),
 		Summary: "Link aggregator inspired by reddit and hacker news using ActivityPub federation.",
 		Email:   "system@littr.me",

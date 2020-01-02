@@ -1,8 +1,7 @@
-package frontend
+package app
 
 import (
 	"fmt"
-	"github.com/mariusor/littr.go/app"
 	"github.com/sirupsen/logrus"
 	"net/http"
 )
@@ -11,7 +10,7 @@ const SessionUserKey = "__current_acct"
 
 type loginModel struct {
 	Title   string
-	Account app.Account
+	Account Account
 	OAuth   bool
 }
 
@@ -23,8 +22,8 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 	config := GetOauth2Config("fedbox", h.conf.BaseURL)
 	// Try to load actor from handle
-	acct, err := h.storage.LoadAccount(app.Filters{
-		LoadAccountsFilter: app.LoadAccountsFilter{
+	acct, err := h.storage.LoadAccount(Filters{
+		LoadAccountsFilter: LoadAccountsFilter{
 			Handle:  []string{handle,},
 			Deleted: []bool{false,},
 		},

@@ -1,10 +1,9 @@
-package frontend
+package app
 
 import (
 	"github.com/go-ap/errors"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
-	"github.com/mariusor/littr.go/app"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -13,7 +12,7 @@ import (
 func (h *handler) Routes() func(chi.Router) {
 	return func(r chi.Router) {
 		r.Use(middleware.GetHead)
-		r.Use(app.ReqLogger(h.logger))
+		r.Use(ReqLogger(h.logger))
 		r.Use(h.LoadSession)
 		r.Use(SetSecurityHeaders)
 		//r.Use(middleware.RedirectSlashes)
@@ -97,21 +96,21 @@ func (h *handler) Routes() func(chi.Router) {
 		assets := filepath.Join(workDir, "assets")
 
 		// static
-		r.With(app.StripCookies).Get("/ns", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		r.With(StripCookies).Get("/ns", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/ld+json")
 			http.ServeFile(w, r, filepath.Join(assets, "ns.json"))
 		}))
-		r.With(app.StripCookies).Get("/favicon.ico", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		r.With(StripCookies).Get("/favicon.ico", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			http.ServeFile(w, r, filepath.Join(assets, "favicon.ico"))
 		}))
-		r.With(app.StripCookies).Get("/icons.svg", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		r.With(StripCookies).Get("/icons.svg", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			http.ServeFile(w, r, filepath.Join(assets, "icons.svg"))
 		}))
-		r.With(app.StripCookies).Get("/robots.txt", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		r.With(StripCookies).Get("/robots.txt", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			http.ServeFile(w, r, filepath.Join(assets, "robots.txt"))
 		}))
-		r.With(app.StripCookies).Get("/css/{path}", serveFiles(filepath.Join(assets, "css")))
-		r.With(app.StripCookies).Get("/js/{path}", serveFiles(filepath.Join(assets, "js")))
+		r.With(StripCookies).Get("/css/{path}", serveFiles(filepath.Join(assets, "css")))
+		r.With(StripCookies).Get("/js/{path}", serveFiles(filepath.Join(assets, "js")))
 	}
 }
 

@@ -1,4 +1,4 @@
-package frontend
+package app
 
 import (
 	"bytes"
@@ -11,7 +11,6 @@ import (
 	"github.com/go-ap/errors"
 	"github.com/go-ap/handlers"
 	j "github.com/go-ap/jsonld"
-	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/internal/log"
 	"github.com/mariusor/qstring"
 	"github.com/spacemonkeygo/httpsig"
@@ -30,13 +29,13 @@ type repository struct {
 // Repository middleware
 func (h handler) Repository(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		ctx := context.WithValue(r.Context(), app.RepositoryCtxtKey, h.storage)
+		ctx := context.WithValue(r.Context(), RepositoryCtxtKey, h.storage)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	}
 	return http.HandlerFunc(fn)
 }
 
-func NewRepository(c Config) *repository {
+func NewRepository(c appConfig) *repository {
 	pub.ItemTyperFunc = pub.JSONGetItemByType
 
 	BaseURL = c.APIURL
@@ -45,9 +44,9 @@ func NewRepository(c Config) *repository {
 
 	infoFn := func(el ...interface{}) { c.Logger.WithContext(log.Ctx{"client": "api"}).Errorf("%v", el) }
 	errFn := func(el ...interface{}) { c.Logger.WithContext(log.Ctx{"client": "api"}).Debugf("%v", el) }
-	ua := fmt.Sprintf("%s-%s", app.Instance.HostName, app.Instance.Version)
+	ua := fmt.Sprintf("%s-%s", Instance.HostName, Instance.Version)
 
-	f, _ := New(SetURL(BaseURL), SetInfoLogger(infoFn), SetErrorLogger(errFn), SetUA(ua))
+	f, _ := NewClient(SetURL(BaseURL), SetInfoLogger(infoFn), SetErrorLogger(errFn), SetUA(ua))
 
 	return &repository{
 		BaseURL: c.APIURL,
@@ -78,7 +77,7 @@ func getObjectType(el pub.Item) string {
 	return label
 }
 
-func BuildCollectionID(a app.Account, o handlers.CollectionType) pub.ID {
+func BuildCollectionID(a Account, o handlers.CollectionType) pub.ID {
 	if len(a.Handle) > 0 {
 		return pub.ID(fmt.Sprintf("%s/%s/%s", ActorsURL, url.PathEscape(a.Hash.String()), o))
 	}
@@ -89,18 +88,18 @@ var BaseURL = "http://fedbox.git"
 var ActorsURL = fmt.Sprintf("%s/actors", BaseURL)
 var ObjectsURL = fmt.Sprintf("%s/objects", BaseURL)
 
-func apAccountID(a app.Account) pub.ID {
+func apAccountID(a Account) pub.ID {
 	if len(a.Hash) >= 8 {
 		return pub.ID(fmt.Sprintf("%s/%s", ActorsURL, a.Hash.String()))
 	}
 	return pub.ID(fmt.Sprintf("%s/anonymous", ActorsURL))
 }
 
-func accountURL(acc app.Account) pub.IRI {
-	return pub.IRI(fmt.Sprintf("%s%s", app.Instance.BaseURL, AccountPermaLink(acc)))
+func accountURL(acc Account) pub.IRI {
+	return pub.IRI(fmt.Sprintf("%s%s", Instance.BaseURL, AccountPermaLink(acc)))
 }
 
-func BuildIDFromItem(i app.Item) (pub.ID, bool) {
+func BuildIDFromItem(i Item) (pub.ID, bool) {
 	if !i.IsValid() {
 		return "", false
 	}
@@ -110,7 +109,7 @@ func BuildIDFromItem(i app.Item) (pub.ID, bool) {
 	return pub.ID(fmt.Sprintf("%s/%s", ObjectsURL, url.PathEscape(i.Hash.String()))), true
 }
 
-func BuildActorID(a app.Account) pub.ID {
+func BuildActorID(a Account) pub.ID {
 	if !a.IsValid() {
 		return pub.ID(pub.PublicNS)
 	}
@@ -120,13 +119,13 @@ func BuildActorID(a app.Account) pub.ID {
 	return pub.ID(fmt.Sprintf("%s/%s", ActorsURL, url.PathEscape(a.Hash.String())))
 }
 
-func loadAPItem(item app.Item) pub.Item {
+func loadAPItem(item Item) pub.Item {
 	o := pub.Object{}
 
 	if id, ok := BuildIDFromItem(item); ok {
 		o.ID = id
 	}
-	if item.MimeType == app.MimeTypeURL {
+	if item.MimeType == MimeTypeURL {
 		o.Type = pub.PageType
 		o.URL = pub.IRI(item.Data)
 	} else {
@@ -145,16 +144,16 @@ func loadAPItem(item app.Item) pub.Item {
 		}
 		o.Name = make(pub.NaturalLanguageValues, 0)
 		switch item.MimeType {
-		case app.MimeTypeMarkdown:
+		case MimeTypeMarkdown:
 			o.Source.MediaType = pub.MimeType(item.MimeType)
-			o.MediaType = pub.MimeType(app.MimeTypeHTML)
+			o.MediaType = pub.MimeType(MimeTypeHTML)
 			if item.Data != "" {
 				o.Source.Content.Set("en", item.Data)
-				o.Content.Set("en", string(app.Markdown(item.Data)))
+				o.Content.Set("en", string(Markdown(item.Data)))
 			}
-		case app.MimeTypeText:
+		case MimeTypeText:
 			fallthrough
-		case app.MimeTypeHTML:
+		case MimeTypeHTML:
 			o.MediaType = pub.MimeType(item.MimeType)
 			o.Content.Set("en", item.Data)
 		}
@@ -281,7 +280,7 @@ func loadAPItem(item app.Item) pub.Item {
 func anonymousActor() *pub.Actor {
 	p := pub.Actor{}
 	name := pub.NaturalLanguageValues{
-		{pub.NilLangRef, app.Anonymous},
+		{pub.NilLangRef, Anonymous},
 	}
 	p.ID = pub.ID(pub.PublicNS)
 	p.Type = pub.PersonType
@@ -296,7 +295,7 @@ func anonymousPerson(url string) *pub.Actor {
 	return p
 }
 
-func loadAPPerson(a app.Account) *pub.Actor {
+func loadAPPerson(a Account) *pub.Actor {
 	p := pub.Actor{}
 	p.Type = pub.PersonType
 	p.Name = pub.NaturalLanguageValuesNew()
@@ -382,7 +381,7 @@ func getSigner(pubKeyID pub.ID, key crypto.PrivateKey) *httpsig.Signer {
 	return httpsig.NewSigner(string(pubKeyID), key, httpsig.RSASHA256, hdrs)
 }
 
-func (r *repository) WithAccount(a *app.Account) error {
+func (r *repository) WithAccount(a *Account) error {
 	r.fedbox.SignFn(func(req *http.Request) error {
 		// TODO(marius): this needs to be added to the federated requests, which we currently don't support
 		if !a.IsValid() || !a.IsLogged() {
@@ -407,7 +406,7 @@ func (r *repository) WithAccount(a *app.Account) error {
 	return nil
 }
 
-func (r *repository) withAccountS2S(a *app.Account) error {
+func (r *repository) withAccountS2S(a *Account) error {
 	// TODO(marius): this needs to be added to the federated requests, which we currently don't support
 	if !a.IsValid() || !a.IsLogged() {
 		return nil
@@ -439,8 +438,8 @@ func (r *repository) withAccountS2S(a *app.Account) error {
 	return nil
 }
 
-func (r *repository) LoadItem(f app.Filters) (app.Item, error) {
-	var item app.Item
+func (r *repository) LoadItem(f Filters) (Item, error) {
+	var item Item
 
 	f.MaxItems = 1
 	hashes := f.LoadItemsFilter.Key
@@ -454,7 +453,7 @@ func (r *repository) LoadItem(f app.Filters) (app.Item, error) {
 	}
 	err = item.FromActivityPub(art)
 	if err == nil {
-		var items app.ItemCollection
+		var items ItemCollection
 		items, err = r.loadItemsAuthors(item)
 		items, err = r.loadItemsVotes(items...)
 		if len(items) > 0 {
@@ -465,8 +464,8 @@ func (r *repository) LoadItem(f app.Filters) (app.Item, error) {
 	return item, err
 }
 
-func hashesUnique(a app.Hashes) app.Hashes {
-	u := make([]app.Hash, 0, len(a))
+func hashesUnique(a Hashes) Hashes {
+	u := make([]Hash, 0, len(a))
 	m := make(map[string]bool)
 
 	for _, val := range a {
@@ -479,16 +478,16 @@ func hashesUnique(a app.Hashes) app.Hashes {
 	return u
 }
 
-func (r *repository) loadAccountsVotes(accounts ...app.Account) (app.AccountCollection, error) {
+func (r *repository) loadAccountsVotes(accounts ...Account) (AccountCollection, error) {
 	if len(accounts) == 0 {
 		return accounts, nil
 	}
-	fVotes := app.Filters{}
+	fVotes := Filters{}
 	for _, account := range accounts {
 		fVotes.LoadVotesFilter.AttributedTo = append(fVotes.LoadVotesFilter.AttributedTo, account.Hash)
 	}
 	fVotes.LoadVotesFilter.AttributedTo = hashesUnique(fVotes.LoadVotesFilter.AttributedTo)
-	col := make(app.AccountCollection, len(accounts))
+	col := make(AccountCollection, len(accounts))
 	votes, _, err := r.LoadVotes(fVotes)
 	if err != nil {
 		return accounts, errors.Annotatef(err, "unable to load accounts votes")
@@ -504,25 +503,25 @@ func (r *repository) loadAccountsVotes(accounts ...app.Account) (app.AccountColl
 	return col, nil
 }
 
-func accountInCollection(ac app.Account, col app.AccountCollection) bool {
+func accountInCollection(ac Account, col AccountCollection) bool {
 	for _, fol := range col {
-		if app.HashesEqual(fol.Hash, ac.Hash) {
+		if HashesEqual(fol.Hash, ac.Hash) {
 			return true
 		}
 	}
 	return false
 }
 
-func hashInCollection(h app.Hash, col app.AccountCollection) bool {
+func hashInCollection(h Hash, col AccountCollection) bool {
 	for _, fol := range col {
-		if app.HashesEqual(fol.Hash, h) {
+		if HashesEqual(fol.Hash, h) {
 			return true
 		}
 	}
 	return false
 }
 
-func (r *repository) loadAccountsFollowers(acc app.Account) (app.Account, error) {
+func (r *repository) loadAccountsFollowers(acc Account) (Account, error) {
 	if !acc.HasMetadata() || len(acc.Metadata.FollowersIRI) == 0 {
 		return acc, nil
 	}
@@ -539,10 +538,10 @@ func (r *repository) loadAccountsFollowers(acc app.Account) (app.Account, error)
 			if !pub.ActorTypes.Contains(fol.GetType()) {
 				continue
 			}
-			p := app.Account{}
+			p := Account{}
 			p.FromActivityPub(fol)
 			if p.IsValid() {
-				acc.Followers = append(acc.Followers, )
+				acc.Followers = append(acc.Followers)
 			}
 		}
 		return nil
@@ -551,7 +550,7 @@ func (r *repository) loadAccountsFollowers(acc app.Account) (app.Account, error)
 	return acc, nil
 }
 
-func (r *repository) loadItemsReplies(items ...app.Item) (app.ItemCollection, error) {
+func (r *repository) loadItemsReplies(items ...Item) (ItemCollection, error) {
 	if len(items) == 0 {
 		return items, nil
 	}
@@ -567,8 +566,8 @@ func (r *repository) loadItemsReplies(items ...app.Item) (app.ItemCollection, er
 
 	var err error
 	if len(repliesTo) > 0 {
-		f := app.Filters{
-			LoadItemsFilter: app.LoadItemsFilter{
+		f := Filters{
+			LoadItemsFilter: LoadItemsFilter{
 				InReplyTo: repliesTo,
 			},
 		}
@@ -578,16 +577,16 @@ func (r *repository) loadItemsReplies(items ...app.Item) (app.ItemCollection, er
 	return items, err
 }
 
-func (r *repository) loadItemsVotes(items ...app.Item) (app.ItemCollection, error) {
+func (r *repository) loadItemsVotes(items ...Item) (ItemCollection, error) {
 	if len(items) == 0 {
 		return items, nil
 	}
-	fVotes := app.Filters{}
+	fVotes := Filters{}
 	for _, it := range items {
 		fVotes.LoadVotesFilter.ItemKey = append(fVotes.LoadVotesFilter.ItemKey, it.Hash)
 	}
 	fVotes.LoadVotesFilter.ItemKey = hashesUnique(fVotes.LoadVotesFilter.ItemKey)
-	col := make(app.ItemCollection, len(items))
+	col := make(ItemCollection, len(items))
 	votes, _, err := r.LoadVotes(fVotes)
 	if err != nil {
 		return items, errors.Annotatef(err, "unable to load items votes")
@@ -603,11 +602,11 @@ func (r *repository) loadItemsVotes(items ...app.Item) (app.ItemCollection, erro
 	return col, nil
 }
 
-func (r *repository) loadAuthors(items ...app.FollowRequest) ([]app.FollowRequest, error) {
+func (r *repository) loadAuthors(items ...FollowRequest) ([]FollowRequest, error) {
 	if len(items) == 0 {
 		return items, nil
 	}
-	fActors := app.Filters{}
+	fActors := Filters{}
 	for _, it := range items {
 		if !it.SubmittedBy.IsValid() {
 			continue
@@ -632,23 +631,23 @@ func (r *repository) loadAuthors(items ...app.FollowRequest) ([]app.FollowReques
 	return items, nil
 }
 
-func (r *repository) loadItemsAuthors(items ...app.Item) (app.ItemCollection, error) {
+func (r *repository) loadItemsAuthors(items ...Item) (ItemCollection, error) {
 	if len(items) == 0 {
 		return items, nil
 	}
 
-	fActors := app.Filters{}
+	fActors := Filters{}
 	for _, it := range items {
 		if it.HasMetadata() {
 			// Adding an item's recipients list (To and CC) to the list of actors we want to load from the ActivityPub API
 			if len(it.Metadata.To) > 0 {
 				for _, to := range it.Metadata.To {
-					fActors.LoadAccountsFilter.Key = append(fActors.LoadAccountsFilter.Key, app.Hash(to.Metadata.ID))
+					fActors.LoadAccountsFilter.Key = append(fActors.LoadAccountsFilter.Key, Hash(to.Metadata.ID))
 				}
 			}
 			if len(it.Metadata.CC) > 0 {
 				for _, cc := range it.Metadata.CC {
-					fActors.LoadAccountsFilter.Key = append(fActors.LoadAccountsFilter.Key, app.Hash(cc.Metadata.ID))
+					fActors.LoadAccountsFilter.Key = append(fActors.LoadAccountsFilter.Key, Hash(cc.Metadata.ID))
 				}
 			}
 		}
@@ -657,7 +656,7 @@ func (r *repository) loadItemsAuthors(items ...app.Item) (app.ItemCollection, er
 		}
 		// Adding an item's author to the list of actors we want to load from the ActivityPub API
 		if it.SubmittedBy.HasMetadata() && len(it.SubmittedBy.Metadata.ID) > 0 {
-			fActors.LoadAccountsFilter.Key = append(fActors.LoadAccountsFilter.Key, app.Hash(it.SubmittedBy.Metadata.ID))
+			fActors.LoadAccountsFilter.Key = append(fActors.LoadAccountsFilter.Key, Hash(it.SubmittedBy.Metadata.ID))
 		} else if len(it.SubmittedBy.Hash) > 0 {
 			fActors.LoadAccountsFilter.Key = append(fActors.LoadAccountsFilter.Key, it.SubmittedBy.Hash)
 		} else if len(it.SubmittedBy.Handle) > 0 {
@@ -668,7 +667,7 @@ func (r *repository) loadItemsAuthors(items ...app.Item) (app.ItemCollection, er
 	if len(fActors.LoadAccountsFilter.Key)+len(fActors.Handle) == 0 {
 		return items, errors.Errorf("unable to load items authors")
 	}
-	col := make(app.ItemCollection, len(items))
+	col := make(ItemCollection, len(items))
 	authors, _, err := r.LoadAccounts(fActors)
 	if err != nil {
 		return items, errors.Annotatef(err, "unable to load items authors")
@@ -700,11 +699,11 @@ func (r *repository) loadItemsAuthors(items ...app.Item) (app.ItemCollection, er
 	return col, nil
 }
 
-func accountsEqual(a1, a2 app.Account) bool {
+func accountsEqual(a1, a2 Account) bool {
 	return bytes.Equal(a1.Hash, a2.Hash) || (len(a1.Handle)+len(a2.Handle) > 0 && a1.Handle == a2.Handle)
 }
 
-func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) {
+func (r *repository) LoadItems(f Filters) (ItemCollection, uint, error) {
 	target := "/"
 	c := "objects"
 	if len(f.FollowedBy) > 0 {
@@ -763,7 +762,7 @@ func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) 
 		return nil, 0, err
 	}
 
-	items := make(app.ItemCollection, 0)
+	items := make(ItemCollection, 0)
 	var count uint = 0
 	pub.OnOrderedCollection(it, func(col *pub.OrderedCollection) error {
 		count = col.TotalItems
@@ -774,7 +773,7 @@ func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) 
 			if !filterLocal && !it.GetLink().Contains(pub.IRI(r.BaseURL), false) {
 				continue
 			}
-			i := app.Item{}
+			i := Item{}
 			if err := i.FromActivityPub(it); err != nil {
 				r.logger.Error(err.Error())
 				continue
@@ -789,33 +788,33 @@ func (r *repository) LoadItems(f app.Filters) (app.ItemCollection, uint, error) 
 
 	// TODO(marius): move this somewhere more palatable
 	//  it's currently done like this when loading from collections of Activities that only contain the ID of the object
-	toLoad := make(app.Hashes, 0)
+	toLoad := make(Hashes, 0)
 	for _, i := range items {
 		if i.IsValid() && !i.Deleted() && i.SubmittedAt.IsZero() {
-			toLoad = append(toLoad, app.Hash(i.Metadata.ID))
+			toLoad = append(toLoad, Hash(i.Metadata.ID))
 		}
 	}
 	if len(toLoad) > 0 {
-		return r.LoadItems(app.Filters{
-			LoadItemsFilter: app.LoadItemsFilter{
+		return r.LoadItems(Filters{
+			LoadItemsFilter: LoadItemsFilter{
 				Key: toLoad,
 			},
 		})
 	}
 	items, err = r.loadItemsAuthors(items...)
-	if app.Instance.Config.VotingEnabled {
+	if Instance.Config.VotingEnabled {
 		items, err = r.loadItemsVotes(items...)
 	}
 
 	return items, count, err
 }
 
-func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
+func (r *repository) SaveVote(v Vote) (Vote, error) {
 	if !v.SubmittedBy.IsValid() || !v.SubmittedBy.HasMetadata() {
-		return app.Vote{}, errors.Newf("Invalid vote submitter")
+		return Vote{}, errors.Newf("Invalid vote submitter")
 	}
 	if !v.Item.IsValid() || !v.Item.HasMetadata() {
-		return app.Vote{}, errors.Newf("Invalid vote item")
+		return Vote{}, errors.Newf("Invalid vote item")
 	}
 	author := loadAPPerson(*v.SubmittedBy)
 	if !accountValidForC2S(v.SubmittedBy) {
@@ -831,7 +830,7 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 			"err": err,
 		}).Warn(err.Error())
 	}
-	var exists app.Vote
+	var exists Vote
 	for _, vot := range itemVotes {
 		if !vot.SubmittedBy.IsValid() || !v.SubmittedBy.IsValid() {
 			continue
@@ -875,13 +874,13 @@ func (r *repository) SaveVote(v app.Vote) (app.Vote, error) {
 	return v, err
 }
 
-func (r *repository) loadVotesCollection(iri pub.IRI, actors ...pub.IRI) ([]app.Vote, error) {
+func (r *repository) loadVotesCollection(iri pub.IRI, actors ...pub.IRI) ([]Vote, error) {
 	cntActors := len(actors)
-	f := app.Filters{}
+	f := Filters{}
 	if cntActors > 0 {
-		attrTo := make([]app.Hash, cntActors)
+		attrTo := make([]Hash, cntActors)
 		for i, a := range actors {
-			attrTo[i] = app.Hash(a.String())
+			attrTo[i] = Hash(a.String())
 		}
 		f.LoadVotesFilter.AttributedTo = attrTo
 	}
@@ -890,10 +889,10 @@ func (r *repository) loadVotesCollection(iri pub.IRI, actors ...pub.IRI) ([]app.
 	if err != nil {
 		return nil, err
 	}
-	votes := make([]app.Vote, 0)
+	votes := make([]Vote, 0)
 	err = pub.OnOrderedCollection(likes, func(col *pub.OrderedCollection) error {
 		for _, like := range col.OrderedItems {
-			vote := app.Vote{}
+			vote := Vote{}
 			vote.FromActivityPub(like)
 			votes = append(votes, vote)
 		}
@@ -905,7 +904,7 @@ func (r *repository) loadVotesCollection(iri pub.IRI, actors ...pub.IRI) ([]app.
 	return votes, nil
 }
 
-func (r *repository) LoadVotes(f app.Filters) (app.VoteCollection, uint, error) {
+func (r *repository) LoadVotes(f Filters) (VoteCollection, uint, error) {
 	f.Type = pub.ActivityVocabularyTypes{
 		pub.LikeType,
 		pub.DislikeType,
@@ -927,12 +926,12 @@ func (r *repository) LoadVotes(f app.Filters) (app.VoteCollection, uint, error) 
 		return nil, 0, err
 	}
 	var count uint = 0
-	votes := make(app.VoteCollection, 0)
-	undos := make(app.VoteCollection, 0)
+	votes := make(VoteCollection, 0)
+	undos := make(VoteCollection, 0)
 	pub.OnOrderedCollection(it, func(col *pub.OrderedCollection) error {
 		count = col.TotalItems
 		for _, it := range col.OrderedItems {
-			vot := app.Vote{}
+			vot := Vote{}
 			if err := vot.FromActivityPub(it); err != nil {
 				r.logger.WithContext(log.Ctx{
 					"type": fmt.Sprintf("%T", it),
@@ -970,12 +969,12 @@ func (r *repository) LoadVotes(f app.Filters) (app.VoteCollection, uint, error) 
 	return votes, count, nil
 }
 
-func (r *repository) LoadVote(f app.Filters) (app.Vote, error) {
+func (r *repository) LoadVote(f Filters) (Vote, error) {
 	if len(f.ItemKey) == 0 {
-		return app.Vote{}, errors.Newf("invalid item hash")
+		return Vote{}, errors.Newf("invalid item hash")
 	}
 
-	v := app.Vote{}
+	v := Vote{}
 	itemHash := f.ItemKey[0]
 	f.ItemKey = nil
 	url := fmt.Sprintf("%s/liked/%s", r.BaseURL, itemHash)
@@ -1007,7 +1006,7 @@ func (r *repository) handlerErrorResponse(body []byte) error {
 	return errors.WrapWithStatus(err.Code, nil, err.Message)
 }
 
-func (r *repository) handleItemSaveSuccessResponse(it app.Item, body []byte) (app.Item, error) {
+func (r *repository) handleItemSaveSuccessResponse(it Item, body []byte) (Item, error) {
 	ap, err := pub.UnmarshalJSON(body)
 	if err != nil {
 		r.logger.Error(err.Error())
@@ -1022,11 +1021,11 @@ func (r *repository) handleItemSaveSuccessResponse(it app.Item, body []byte) (ap
 	return items[0], err
 }
 
-func accountValidForC2S(a *app.Account) bool {
+func accountValidForC2S(a *Account) bool {
 	return a.IsValid() && a.IsLogged()
 }
 
-func (r *repository) getAuthorRequestURL(a *app.Account) string {
+func (r *repository) getAuthorRequestURL(a *Account) string {
 	var reqURL string
 	if a.IsValid() && a.IsLogged() {
 		author := loadAPPerson(*a)
@@ -1042,9 +1041,9 @@ func (r *repository) getAuthorRequestURL(a *app.Account) string {
 	return reqURL
 }
 
-func (r *repository) SaveItem(it app.Item) (app.Item, error) {
+func (r *repository) SaveItem(it Item) (Item, error) {
 	if !it.SubmittedBy.IsValid() || !it.SubmittedBy.HasMetadata() {
-		return app.Item{}, errors.Newf("Invalid item submitter")
+		return Item{}, errors.Newf("Invalid item submitter")
 	}
 	art := loadAPItem(it)
 	author := loadAPPerson(*it.SubmittedBy)
@@ -1076,8 +1075,8 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 			for _, m := range it.Metadata.Mentions {
 				names = append(names, m.Name)
 			}
-			ff := app.Filters{
-				LoadAccountsFilter: app.LoadAccountsFilter{
+			ff := Filters{
+				LoadAccountsFilter: LoadAccountsFilter{
 					Handle: names,
 				},
 			}
@@ -1138,18 +1137,18 @@ func (r *repository) SaveItem(it app.Item) (app.Item, error) {
 	return items[0], err
 }
 
-func (r *repository) LoadAccounts(f app.Filters) (app.AccountCollection, uint, error) {
+func (r *repository) LoadAccounts(f Filters) (AccountCollection, uint, error) {
 	it, err := r.fedbox.Actors(Values(f))
 	if err != nil {
 		r.logger.Error(err.Error())
 		return nil, 0, err
 	}
-	accounts := make(app.AccountCollection, 0)
+	accounts := make(AccountCollection, 0)
 	var count uint = 0
 	pub.OnOrderedCollection(it, func(col *pub.OrderedCollection) error {
 		count = col.TotalItems
 		for _, it := range col.OrderedItems {
-			acc := app.Account{Metadata: &app.AccountMetadata{}}
+			acc := Account{Metadata: &AccountMetadata{}}
 			if err := acc.FromActivityPub(it); err != nil {
 				r.logger.WithContext(log.Ctx{
 					"type": fmt.Sprintf("%T", it),
@@ -1164,14 +1163,14 @@ func (r *repository) LoadAccounts(f app.Filters) (app.AccountCollection, uint, e
 	return accounts, count, nil
 }
 
-func (r *repository) LoadAccount(f app.Filters) (app.Account, error) {
-	var accounts app.AccountCollection
+func (r *repository) LoadAccount(f Filters) (Account, error) {
+	var accounts AccountCollection
 	var err error
 	if accounts, _, err = r.LoadAccounts(f); err != nil {
-		return app.AnonymousAccount, err
+		return AnonymousAccount, err
 	}
 
-	var ac *app.Account
+	var ac *Account
 	if ac, err = accounts.First(); err != nil {
 		var id string
 		if len(f.LoadAccountsFilter.Key) > 0 {
@@ -1180,33 +1179,33 @@ func (r *repository) LoadAccount(f app.Filters) (app.Account, error) {
 		if len(f.Handle) > 0 {
 			id = f.Handle[0]
 		}
-		return app.AnonymousAccount, errors.NotFoundf("account %s", id)
+		return AnonymousAccount, errors.NotFoundf("account %s", id)
 	}
 	return *ac, nil
 }
 
-func Values(f app.Filters) func() url.Values {
+func Values(f Filters) func() url.Values {
 	return func() url.Values {
 		v, _ := qstring.Marshal(&f)
 		return v
 	}
 }
 
-func (r *repository) LoadFollowRequests(ed *app.Account, f app.Filters) (app.FollowRequests, uint, error) {
+func (r *repository) LoadFollowRequests(ed *Account, f Filters) (FollowRequests, uint, error) {
 	if len(f.Type) == 0 {
-		f.Type = pub.ActivityVocabularyTypes {pub.FollowType}
+		f.Type = pub.ActivityVocabularyTypes{pub.FollowType}
 	}
 	var followReq pub.CollectionInterface
 	var err error
 	if ed == nil {
 		followReq, err = r.fedbox.Activities(Values(f))
 	} else {
-		followReq, err = r.fedbox.Inbox(loadAPPerson(*ed),  Values(f))
+		followReq, err = r.fedbox.Inbox(loadAPPerson(*ed), Values(f))
 	}
-	requests := make([]app.FollowRequest, 0)
+	requests := make([]FollowRequest, 0)
 	if err == nil && len(followReq.Collection()) > 0 {
 		for _, fr := range followReq.Collection() {
-			f := app.FollowRequest{}
+			f := FollowRequest{}
 			if err := f.FromActivityPub(fr); err == nil {
 				if !accountInCollection(*f.SubmittedBy, ed.Followers) {
 					requests = append(requests, f)
@@ -1218,7 +1217,7 @@ func (r *repository) LoadFollowRequests(ed *app.Account, f app.Filters) (app.Fol
 	return requests, uint(len(requests)), nil
 }
 
-func (r *repository) SendFollowResponse(f app.FollowRequest, accept bool) error {
+func (r *repository) SendFollowResponse(f FollowRequest, accept bool) error {
 	ed := f.Object
 	er := f.SubmittedBy
 	if !accountValidForC2S(ed) {
@@ -1251,7 +1250,7 @@ func (r *repository) SendFollowResponse(f app.FollowRequest, accept bool) error 
 	return nil
 }
 
-func (r *repository) FollowAccount(er, ed app.Account) error {
+func (r *repository) FollowAccount(er, ed Account) error {
 	follower := loadAPPerson(er)
 	followed := loadAPPerson(ed)
 	if !accountValidForC2S(&er) {
@@ -1280,13 +1279,13 @@ func (r *repository) FollowAccount(er, ed app.Account) error {
 	return nil
 }
 
-func (r *repository) SaveAccount(a app.Account) (app.Account, error) {
+func (r *repository) SaveAccount(a Account) (Account, error) {
 	p := loadAPPerson(a)
 	id := p.GetLink()
 
 	now := time.Now().UTC()
 
-	p.Generator = pub.IRI(app.Instance.BaseURL)
+	p.Generator = pub.IRI(Instance.BaseURL)
 	p.Published = now
 	p.Updated = now
 	p.URL = accountURL(a)
@@ -1335,6 +1334,6 @@ func (r *repository) SaveAccount(a app.Account) (app.Account, error) {
 
 // LoadInfo this method is here to keep compatibility with the repository interfaces
 // but in the long term we might want to store some of this information in the DB
-func (r *repository) LoadInfo() (app.Info, error) {
-	return app.Instance.NodeInfo(), nil
+func (r *repository) LoadInfo() (WebInfo, error) {
+	return Instance.NodeInfo(), nil
 }

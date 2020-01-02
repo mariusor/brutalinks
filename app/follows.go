@@ -1,9 +1,8 @@
-package frontend
+package app
 
 import (
 	"github.com/go-ap/errors"
 	"github.com/go-chi/chi"
-	"github.com/mariusor/littr.go/app"
 	"net/http"
 )
 
@@ -17,7 +16,7 @@ func (h *handler) FollowAccount(w http.ResponseWriter, r *http.Request) {
 	}
 
 	handle := chi.URLParam(r, "handle")
-	accountLoader, ok := app.ContextAccountLoader(r.Context())
+	accountLoader, ok := ContextAccountLoader(r.Context())
 	if !ok {
 		err := errors.Errorf("could not load account repository from Context")
 		h.logger.Error(err.Error())
@@ -25,7 +24,7 @@ func (h *handler) FollowAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var err error
-	accounts, cnt, err := accountLoader.LoadAccounts(app.Filters{LoadAccountsFilter: app.LoadAccountsFilter{Handle: []string{handle}}})
+	accounts, cnt, err := accountLoader.LoadAccounts(Filters{LoadAccountsFilter: LoadAccountsFilter{Handle: []string{handle}}})
 	if err != nil {
 		h.HandleErrors(w, r, err)
 		return
@@ -57,14 +56,14 @@ func (h *handler) HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	handle := chi.URLParam(r, "handle")
-	accountLoader, ok := app.ContextAccountLoader(r.Context())
+	accountLoader, ok := ContextAccountLoader(r.Context())
 	if !ok {
 		err := errors.Errorf("could not load account repository from Context")
 		h.logger.Error(err.Error())
 		h.HandleErrors(w, r, err)
 		return
 	}
-	accounts, cnt, err := accountLoader.LoadAccounts(app.Filters{LoadAccountsFilter: app.LoadAccountsFilter{Handle: []string{handle}}})
+	accounts, cnt, err := accountLoader.LoadAccounts(Filters{LoadAccountsFilter: LoadAccountsFilter{Handle: []string{handle}}})
 	if err != nil {
 		h.HandleErrors(w, r, err)
 		return
@@ -80,7 +79,7 @@ func (h *handler) HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
 	if action == "accept" {
 		accept = true
 	}
-	loader, ok := app.ContextLoader(r.Context())
+	loader, ok := ContextLoader(r.Context())
 	if !ok {
 		err := errors.Errorf("could not load account repository from Context")
 		h.logger.Error(err.Error())
@@ -88,10 +87,10 @@ func (h *handler) HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	followRequests, cnt, err := loader.LoadFollowRequests(loggedAccount, app.Filters{
-		LoadFollowRequestsFilter: app.LoadFollowRequestsFilter{
-			Actor: app.Hashes{app.Hash(follower.Metadata.ID)},
-			On: app.Hashes{app.Hash(loggedAccount.Metadata.ID)},
+	followRequests, cnt, err := loader.LoadFollowRequests(loggedAccount, Filters{
+		LoadFollowRequestsFilter: LoadFollowRequestsFilter{
+			Actor: Hashes{Hash(follower.Metadata.ID)},
+			On:    Hashes{Hash(loggedAccount.Metadata.ID)},
 		},
 	})
 	if err != nil {

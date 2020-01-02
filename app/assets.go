@@ -1,6 +1,6 @@
 //go:generate go run -tags=dev assets_generate.go
 
-package frontend
+package app
 
 import (
 	"net/http"

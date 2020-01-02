@@ -1,4 +1,4 @@
-package frontend
+package app
 
 import (
 	"encoding/json"
@@ -8,8 +8,6 @@ import (
 	"math"
 	"net/http"
 	"strings"
-
-	"github.com/mariusor/littr.go/app"
 
 	"github.com/go-ap/errors"
 )
@@ -28,10 +26,10 @@ type node struct {
 }
 
 type NodeInfoResolver struct{
-	storage app.Repository
+	storage Repository
 }
 
-func NodeInfoResolverNew(c Config) NodeInfoResolver {
+func NodeInfoResolverNew(c appConfig) NodeInfoResolver {
 	return NodeInfoResolver{
 		storage: NewRepository(c),
 	}
@@ -42,23 +40,23 @@ func (n NodeInfoResolver) IsOpenRegistration() (bool, error) {
 }
 
 func (n NodeInfoResolver) Usage() (nodeinfo.Usage, error) {
-	us, _, _ := n.storage.LoadAccounts(app.Filters{
-		LoadAccountsFilter: app.LoadAccountsFilter{
+	us, _, _ := n.storage.LoadAccounts(Filters{
+		LoadAccountsFilter: LoadAccountsFilter{
 			//IRI:  app.Instance.APIURL,
 			Deleted: []bool{false},
 		},
 		MaxItems: math.MaxInt64,
 	})
 
-	posts, _, _ := n.storage.LoadItems(app.Filters{
-		LoadItemsFilter: app.LoadItemsFilter{
+	posts, _, _ := n.storage.LoadItems(Filters{
+		LoadItemsFilter: LoadItemsFilter{
 			Deleted: []bool{false},
 			Context: []string{"0"},
 		},
 		MaxItems: math.MaxInt64,
 	})
-	all, _, _ := n.storage.LoadItems(app.Filters{
-		LoadItemsFilter: app.LoadItemsFilter{
+	all, _, _ := n.storage.LoadItems(Filters{
+		LoadItemsFilter: LoadItemsFilter{
 			Deleted: []bool{false},
 		},
 		MaxItems: math.MaxInt64,
@@ -76,12 +74,12 @@ func (n NodeInfoResolver) Usage() (nodeinfo.Usage, error) {
 
 func NodeInfoConfig() nodeinfo.Config {
 	return nodeinfo.Config{
-		BaseURL: app.Instance.BaseURL,
+		BaseURL: Instance.BaseURL,
 		InfoURL: "/nodeinfo",
 
 		Metadata: nodeinfo.Metadata{
-			NodeName:        app.Instance.NodeInfo().Title,
-			NodeDescription: app.Instance.NodeInfo().Summary,
+			NodeName:        Instance.NodeInfo().Title,
+			NodeDescription: Instance.NodeInfo().Summary,
 			Private:         false,
 			Software: nodeinfo.SoftwareMeta{
 				GitHub:   "https://github.com/mariusor/littr.go",
@@ -97,8 +95,8 @@ func NodeInfoConfig() nodeinfo.Config {
 		//	Outbound: []nodeinfo.NodeService{},
 		//},
 		Software: nodeinfo.SoftwareInfo{
-			Name:    app.Instance.NodeInfo().Title,
-			Version: app.Instance.NodeInfo().Version,
+			Name:    Instance.NodeInfo().Title,
+			Version: Instance.NodeInfo().Version,
 		},
 	}
 }
@@ -147,7 +145,7 @@ func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 	wf := node{}
 	if handle == "self" {
 		var err error
-		var inf app.Info
+		var inf WebInfo
 		if inf, err = h.storage.LoadInfo(); err != nil {
 			errors.HandleError(errors.NewNotValid(err, "ooops!")).ServeHTTP(w, r)
 			return
@@ -186,7 +184,7 @@ func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 				return ar[0], ar[1]
 			}(handle)
 		}
-		a, err := h.storage.LoadAccount(app.Filters{LoadAccountsFilter: app.LoadAccountsFilter{Handle: []string{handle}}})
+		a, err := h.storage.LoadAccount(Filters{LoadAccountsFilter: LoadAccountsFilter{Handle: []string{handle}}})
 		if err != nil {
 			err := errors.NotFoundf("resource not found %s", res)
 			h.logger.Error(err.Error())

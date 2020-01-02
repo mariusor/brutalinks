@@ -41,7 +41,7 @@ const (
 	ContextNil  = "0"
 )
 
-type Info struct {
+type WebInfo struct {
 	Title       string   `json:"title"`
 	Email       string   `json:"email"`
 	Summary     string   `json:"summary"`
@@ -568,7 +568,7 @@ type CanLoadFollows interface {
 }
 
 type CanLoadInfo interface {
-	LoadInfo() (Info, error)
+	LoadInfo() (WebInfo, error)
 }
 
 type CanSaveVotes interface {

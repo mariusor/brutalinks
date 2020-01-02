@@ -1,9 +1,8 @@
-package frontend
+package app
 
 import (
 	"fmt"
 	"github.com/go-ap/errors"
-	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/qstring"
 	"net/http"
 	"net/url"
@@ -11,15 +10,9 @@ import (
 	"github.com/go-chi/chi"
 )
 
-// Paginator is an interface for paginating collections
-type Paginator interface {
-	NextPage() int
-	PrevPage() int
-}
-
 type itemListingModel struct {
 	Title          string
-	User           *app.Account
+	User           *Account
 	Items          []HasType
 	HideText       bool
 	nextPage       int
@@ -38,7 +31,7 @@ func (i itemListingModel) PrevPage() int {
 func (h *handler) ShowAccount(w http.ResponseWriter, r *http.Request) {
 	handle := chi.URLParam(r, "handle")
 
-	accountLoader, ok := app.ContextAccountLoader(r.Context())
+	accountLoader, ok := ContextAccountLoader(r.Context())
 	if !ok {
 		err := errors.Errorf("could not load account repository from Context")
 		h.logger.Error(err.Error())
@@ -46,7 +39,7 @@ func (h *handler) ShowAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var err error
-	accounts, cnt, err := accountLoader.LoadAccounts(app.Filters{LoadAccountsFilter: app.LoadAccountsFilter{Handle: []string{handle}}})
+	accounts, cnt, err := accountLoader.LoadAccounts(Filters{LoadAccountsFilter: LoadAccountsFilter{Handle: []string{handle}}})
 	if err != nil {
 		h.HandleErrors(w, r, err)
 		return
@@ -60,8 +53,8 @@ func (h *handler) ShowAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filter := app.Filters{
-		LoadItemsFilter: app.LoadItemsFilter{},
+	filter := Filters{
+		LoadItemsFilter: LoadItemsFilter{},
 		MaxItems:        MaxContentItems,
 		Page:            1,
 	}

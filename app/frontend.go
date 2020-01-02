@@ -1,4 +1,4 @@
-package frontend
+package app
 
 import (
 	"bufio"
@@ -19,7 +19,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mariusor/littr.go/app"
 	"github.com/unrolled/render"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
@@ -39,14 +38,14 @@ const (
 )
 
 type handler struct {
-	conf    Config
+	conf    appConfig
 	sstor   sessions.Store
 	logger  log.Logger
 	storage *repository
-	o       *app.Account
+	o       *Account
 }
 
-var defaultAccount = app.AnonymousAccount
+var defaultAccount = AnonymousAccount
 
 type flashType string
 
@@ -182,8 +181,8 @@ func relTimeFmt(old time.Time) string {
 	return fmt.Sprintf("%.1f %s %s", val, pluralize(val, unit), when)
 }
 
-type Config struct {
-	Env             app.EnvType
+type appConfig struct {
+	Env             EnvType
 	Version         string
 	APIURL          string
 	BaseURL         string
@@ -194,9 +193,9 @@ type Config struct {
 	Logger          log.Logger
 }
 
-func Init(c Config) (handler, error) {
+func Init(c appConfig) (handler, error) {
 	// frontend
-	gob.Register(app.Account{})
+	gob.Register(Account{})
 	gob.Register(flash{})
 
 	var err error
@@ -223,7 +222,7 @@ func Init(c Config) (handler, error) {
 		oauthApp, err := h.storage.fedbox.Actor(oIRI)
 		if err == nil {
 			pub.OnActor(oauthApp, func(p *pub.Actor) error {
-				h.o = &app.Account{}
+				h.o = &Account{}
 				return h.o.FromActivityPub(p)
 			})
 		}
@@ -233,14 +232,14 @@ func Init(c Config) (handler, error) {
 }
 
 // InitSessionStore initializes the session store if we have encryption key settings in the env variables
-func InitSessionStore(c Config) (sessions.Store, error) {
+func InitSessionStore(c appConfig) (sessions.Store, error) {
 	var s sessions.Store
 	if len(c.SessionKeys) == 0 {
 		err := errors.NotImplementedf("no session encryption configuration, unable to use sessions")
 		if c.Logger != nil {
 			c.Logger.Warn(err.Error())
 		}
-		//app.Config.SessionsEnabled = false
+		//app.appConfig.SessionsEnabled = false
 		return nil, err
 	}
 	switch strings.ToLower(c.SessionsBackend) {
@@ -397,8 +396,8 @@ func appName(n string) template.HTML {
 	return template.HTML(name.String())
 }
 
-func (h *handler) account(r *http.Request) *app.Account {
-	acct, ok := app.ContextAccount(r.Context())
+func (h *handler) account(r *http.Request) *Account {
+	acct, ok := ContextAccount(r.Context())
 	if !ok {
 		return &defaultAccount
 	}
@@ -477,8 +476,8 @@ type RenderType int
 
 const (
 	Comment = iota
-	FollowRequest
-	Vote
+	Follow
+	Appreciation
 )
 
 type HasType interface {
@@ -487,7 +486,7 @@ type HasType interface {
 
 func (h *handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name string, m interface{}) error {
 	var err error
-	var ac *app.Account
+	var ac *Account
 
 	s, _ := h.sstor.Get(r, sessionName)
 	nodeInfo, err := getNodeInfo(r)
@@ -502,7 +501,7 @@ func (h *handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name st
 			"sluggify":     sluggify,
 			"title":        func(t []byte) string { return string(t) },
 			"getProviders": getAuthProviders,
-			"CurrentAccount": func() *app.Account {
+			"CurrentAccount": func() *Account {
 				if ac == nil {
 					ac = h.account(r)
 				}
@@ -512,10 +511,10 @@ func (h *handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name st
 				return t.Type() == Comment
 			},
 			"IsFollowRequest": func(t HasType) bool {
-				return t.Type() == FollowRequest
+				return t.Type() == Follow
 			},
 			"IsVote": func(t HasType) bool {
-				return t.Type() == Vote
+				return t.Type() == Appreciation
 			},
 			"LoadFlashMessages": loadFlashMessages(r, w, s),
 			"Mod10":             func(lvl uint8) float64 { return math.Mod(float64(lvl), float64(10)) },
@@ -523,7 +522,7 @@ func (h *handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name st
 			"HTML":              html,
 			"Text":              text,
 			"replaceTags":       replaceTagsInItem,
-			"Markdown":          app.Markdown,
+			"Markdown":          Markdown,
 			"AccountLocalLink":  AccountLocalLink,
 			"AccountPermaLink":  AccountPermaLink,
 			"ShowAccountHandle": ShowAccountHandle,
@@ -537,7 +536,7 @@ func (h *handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name st
 			"NumberFmt":         func(i int) string { return numberFormat("%d", i) },
 			"TimeFmt":           relTimeFmt,
 			"ISOTimeFmt":        isoTimeFmt,
-			"ShowUpdate": func(i app.Item) bool {
+			"ShowUpdate": func(i Item) bool {
 				// TODO(marius): I have to find out why there's a difference between SubmittedAt and UpdatedAt
 				//  values coming from fedbox
 				return !(i.UpdatedAt.IsZero() || math.Abs(float64(i.SubmittedAt.Sub(i.UpdatedAt).Milliseconds())) < 20000.0)
@@ -549,15 +548,15 @@ func (h *handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name st
 			"RejectLink":     rejectLink,
 			"PageLink":       pageLink,
 			"CanPaginate":    canPaginate,
-			"Config":         func() app.Config { return app.Instance.Config },
-			"Info":           func() app.Info { return nodeInfo },
+			"Config":         func() Configuration { return Instance.Config },
+			"Info":           func() WebInfo { return nodeInfo },
 			"Name":           appName,
 			"Menu":           func() []headerEl { return headerMenu(r) },
 			"icon":           icon,
 			"asset":          func(p string) template.HTML { return template.HTML(asset(p)) },
 			"req":            func() *http.Request { return r },
 			"sameBase":       sameBasePath,
-			"sameHash":       app.HashesEqual,
+			"sameHash":       HashesEqual,
 			"fmtPubKey":      fmtPubKey,
 			"pluralize":      func(s string, cnt int) string { return pluralize(float64(cnt), s) },
 			csrf.TemplateTag: func() template.HTML { return csrf.TemplateField(r) },
@@ -573,7 +572,7 @@ func (h *handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name st
 		DisableHTTPErrorRendering: false,
 	})
 
-	if app.Instance.Config.Env != app.PROD {
+	if Instance.Config.Env != PROD {
 		w.Header().Set("Cache-Control", "no-store")
 	}
 	if err = ren.HTML(w, http.StatusOK, name, m); err != nil {
@@ -634,9 +633,9 @@ func (h *handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
 	s, _ := h.sstor.Get(r, sessionName)
 	account := loadCurrentAccountFromSession(s, h.storage, h.logger)
 	if account.Metadata == nil {
-		account.Metadata = &app.AccountMetadata{}
+		account.Metadata = &AccountMetadata{}
 	}
-	account.Metadata.OAuth = app.OAuth{
+	account.Metadata.OAuth = OAuth{
 		State:        state,
 		Code:         code,
 		Provider:     provider,
@@ -724,13 +723,13 @@ func isInverted(r *http.Request) bool {
 	return false
 }
 
-func loadCurrentAccountFromSession(s *sessions.Session, r *repository, l log.Logger) app.Account {
+func loadCurrentAccountFromSession(s *sessions.Session, r *repository, l log.Logger) Account {
 	// load the current account from the session or setting it to anonymous
 	raw, ok := s.Values[SessionUserKey]
 	if !ok {
 		return defaultAccount
 	}
-	a, ok := raw.(app.Account)
+	a, ok := raw.(Account)
 	if !ok {
 		return defaultAccount
 	}
@@ -769,7 +768,7 @@ func SetSecurityHeaders(next http.Handler) http.Handler {
 }
 
 func (h *handler) LoadSession(next http.Handler) http.Handler {
-	if !app.Instance.Config.SessionsEnabled {
+	if !Instance.Config.SessionsEnabled {
 		return next
 	}
 	fn := func(w http.ResponseWriter, r *http.Request) {
@@ -789,10 +788,10 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 		acc := loadCurrentAccountFromSession(s, h.storage, h.logger)
 		m := acc.Metadata
 		if acc.IsLogged() {
-			acc, err = h.storage.LoadAccount(app.Filters{
-				LoadAccountsFilter: app.LoadAccountsFilter{
+			acc, err = h.storage.LoadAccount(Filters{
+				LoadAccountsFilter: LoadAccountsFilter{
 					Handle: []string{acc.Handle},
-					Key:    []app.Hash{acc.Hash},
+					Key:    []Hash{acc.Hash},
 				},
 			})
 			ctx := log.Ctx{
@@ -809,8 +808,8 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 			}
 			// TODO(marius): Fix this ugly hack where we need to not override OAuth2 metadata loaded at login
 			acc.Metadata = m
-			r = r.WithContext(context.WithValue(r.Context(), app.AccountCtxtKey, &acc))
-			if auth, ok := app.ContextAuthenticated(r.Context()); ok {
+			r = r.WithContext(context.WithValue(r.Context(), AccountCtxtKey, &acc))
+			if auth, ok := ContextAuthenticated(r.Context()); ok {
 				auth.WithAccount(&acc)
 			}
 		}
@@ -837,7 +836,7 @@ func (h *handler) addFlashMessage(typ flashType, r *http.Request, msgs ...string
 
 func (h handler) NeedsSessions(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		if !app.Instance.Config.SessionsEnabled {
+		if !Instance.Config.SessionsEnabled {
 			h.HandleErrors(w, r, errors.NotFoundf("sessions are disabled"))
 			return
 		}
@@ -949,14 +948,14 @@ func (h *handler) HandleErrors(w http.ResponseWriter, r *http.Request, errs ...e
 	}
 }
 
-var nodeInfo = app.Info{}
+var nodeInfo = WebInfo{}
 
-func getNodeInfo(req *http.Request) (app.Info, error) {
+func getNodeInfo(req *http.Request) (WebInfo, error) {
 	c := req.Context()
-	nodeInfoLoader, ok := app.ContextNodeInfoLoader(c)
+	nodeInfoLoader, ok := ContextNodeInfoLoader(c)
 	if !ok {
 		err := errors.Errorf("could not load item repository from Context")
-		return app.Info{}, err
+		return WebInfo{}, err
 	}
 
 	var err error
