@@ -1,5 +1,7 @@
 <section class="follow-request" id="f-{{.Hash}}" data-hash="{{.Hash}}">
-    <a class="by" href="{{ .SubmittedBy | AccountPermaLink }}">{{ .SubmittedBy | ShowAccountHandle }}</a> wants to follow you
-    <span><a href="{{ .FollowRequest | AcceptLink }}">{{ icon "plus" }}Accept</a></span>
-    <span><a href="{{ .FollowRequest | RejectLink }}">{{ icon "minus" }}Reject</a></span>
+    <section><a class="by" href="{{ .SubmittedBy | AccountPermaLink }}">{{ .SubmittedBy | ShowAccountHandle }}</a> wants to follow you:</section>
+    <aside class="response">
+        <span><a href="{{ .FollowRequest | AcceptLink }}">{{ icon "plus" }}Accept</a></span>
+        <span><a href="{{ .FollowRequest | RejectLink }}">{{ icon "minus" }}Reject</a></span>
+    </aside>
 </section>

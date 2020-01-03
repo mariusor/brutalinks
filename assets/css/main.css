@@ -272,6 +272,18 @@ ol {
     list-style: none;
     padding-left: 0;
 }
+.follow-request {
+    line-height: 1.62em;
+}
+.follow-request section {
+    float: left;
+    padding: .6rem 0;
+}
+.follow-request aside.response {
+    float: left;
+    margin-left: 2rem;
+    width: 5rem;
+}
 .item {
     display: grid;
     grid-template-columns: 1.6rem 11fr;
@@ -382,6 +394,9 @@ ol.comments li {
 }
 .icon.icon-lock {
     transform: rotateX(180deg);
+}
+.follow {
+    margin-left: .6rem;
 }
 .by:before {
     content: "~";
@@ -509,10 +524,7 @@ summary:focus {
     padding: 0;
     margin: 0;
 }
-#private-message {
-    max-width: 24rem;
-}
-#reply, #register, #new, #login {
+#private-message, #reply, #register, #new, #login {
     max-width: 30rem;
 }
 #private-message textarea,
@@ -617,9 +629,12 @@ section#no-items {
 }
 .acct-info {
     float: right;
+    min-width: 24%;
 }
 .acct-info #private-message {
-    width: 30rem;
+    width: 100%;
+    max-width: 22rem;
+    margin: 1rem 0;
 }
 .pub-key details[open] {
 }

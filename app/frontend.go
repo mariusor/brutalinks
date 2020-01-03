@@ -484,6 +484,40 @@ func buildLink(routes chi.Routes, name string, par ...interface{}) string {
 	return "/"
 }
 
+func AccountFollows(a, b *Account) bool {
+	for _, acc := range a.Following {
+		if HashesEqual(acc.Hash, b.Hash) {
+			return true
+		}
+	}
+	return false
+}
+
+func AccountIsFollowed(a, b *Account) bool {
+	for _, acc := range a.Followers {
+		if HashesEqual(acc.Hash, b.Hash) {
+			return true
+		}
+	}
+	return false
+}
+
+func showFollowedLink(logged, current *Account) bool {
+	if !Instance.Config.UserFollowingEnabled {
+		return false
+	}
+	if !logged.IsLogged() {
+		return false
+	}
+	if HashesEqual(logged.Hash, current.Hash) {
+		return false
+	}
+	if AccountFollows(logged, current) {
+		return false
+	}
+	return true
+}
+
 func (h *handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name string, m interface{}) error {
 	var err error
 	var ac *Account
@@ -559,6 +593,9 @@ func (h *handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name st
 			"sameHash":       HashesEqual,
 			"fmtPubKey":      fmtPubKey,
 			"pluralize":      func(s string, cnt int) string { return pluralize(float64(cnt), s) },
+			"ShowFollowLink": showFollowedLink,
+			"Follows":        AccountFollows,
+			"IsFollowed":     AccountIsFollowed,
 			csrf.TemplateTag: func() template.HTML { return csrf.TemplateField(r) },
 			//"ScoreFmt":          func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
 			//"NumberFmt":         func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
@@ -807,6 +844,10 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 			if err != nil {
 				h.logger.WithContext(ctx).Warn(err.Error())
 			}
+			acc, err = h.storage.loadAccountsFollowing(acc)
+			if err != nil {
+				h.logger.WithContext(ctx).Warn(err.Error())
+			}
 			// TODO(marius): Fix this ugly hack where we need to not override OAuth2 metadata loaded at login
 			acc.Metadata = m
 			r = r.WithContext(context.WithValue(r.Context(), AccountCtxtKey, &acc))
@@ -851,7 +892,7 @@ func (h *handler) HandleAbout(w http.ResponseWriter, r *http.Request) {
 
 	repo := h.storage
 	info, err := repo.LoadInfo()
-	if err != nil  {
+	if err != nil {
 		h.HandleErrors(w, r, errors.NewNotValid(err, "oops!"))
 		return
 	}

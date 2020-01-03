@@ -62,6 +62,7 @@ type Account struct {
 	Metadata  *AccountMetadata  `json:"-"`
 	Votes     VoteCollection    `json:"votes,omitempty"`
 	Followers AccountCollection `json:"followers,omitempty"`
+	Following AccountCollection `json:"following,omitempty"`
 }
 
 // Hash is a local type for string, it should hold a [32]byte array actually

@@ -547,6 +547,35 @@ func (r *repository) loadAccountsFollowers(acc Account) (Account, error) {
 	return acc, nil
 }
 
+func (r *repository) loadAccountsFollowing(acc Account) (Account, error) {
+	if !acc.HasMetadata() || len(acc.Metadata.FollowersIRI) == 0 {
+		return acc, nil
+	}
+	it, err := r.fedbox.Collection(pub.IRI(acc.Metadata.FollowingIRI))
+	if err != nil {
+		r.logger.Error(err.Error())
+		return acc, nil
+	}
+	if !pub.CollectionTypes.Contains(it.GetType()) {
+		return acc, nil
+	}
+	pub.OnOrderedCollection(it, func(o *pub.OrderedCollection) error {
+		for _, fol := range o.Collection() {
+			if !pub.ActorTypes.Contains(fol.GetType()) {
+				continue
+			}
+			p := Account{}
+			p.FromActivityPub(fol)
+			if p.IsValid() {
+				acc.Following = append(acc.Following, p)
+			}
+		}
+		return nil
+	})
+
+	return acc, nil
+}
+
 func (r *repository) loadItemsReplies(items ...Item) (ItemCollection, error) {
 	if len(items) == 0 {
 		return items, nil
