@@ -386,18 +386,14 @@ func (r *repository) WithAccount(a *Account) error {
 	r.fedbox.SignFn(func(req *http.Request) error {
 		// TODO(marius): this needs to be added to the federated requests, which we currently don't support
 		if !a.IsValid() || !a.IsLogged() {
-			e := errors.Newf("invalid account used for C2S authentication")
-			r.logger.WithContext(log.Ctx{
-				"handle": a.Handle,
-				"logged": a.IsLogged(),
-			}).Error(e.Error())
-			return e
+			return nil
 		}
 		if a.Metadata.OAuth.Token == "" {
 			e := errors.Newf("account has no OAuth2 token")
 			r.logger.WithContext(log.Ctx{
 				"handle": a.Handle,
 				"logged": a.IsLogged(),
+				"metadata": a.Metadata,
 			}).Error(e.Error())
 			return e
 		}
@@ -542,7 +538,7 @@ func (r *repository) loadAccountsFollowers(acc Account) (Account, error) {
 			p := Account{}
 			p.FromActivityPub(fol)
 			if p.IsValid() {
-				acc.Followers = append(acc.Followers)
+				acc.Followers = append(acc.Followers, p)
 			}
 		}
 		return nil
