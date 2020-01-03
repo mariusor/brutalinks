@@ -26,6 +26,84 @@ func (h *Hash) FromActivityPub(it pub.Item) error {
 	return nil
 }
 
+func FromActor(a *Account, p *pub.Actor) error {
+	name := p.Name.First().Value
+	a.Hash.FromActivityPub(p)
+	if len(name) > 0 {
+		a.Handle = name
+	}
+	a.Flags = FlagsNone
+	if a.Metadata == nil {
+		a.Metadata = &AccountMetadata{}
+	}
+	if len(p.ID) > 0 {
+		iri := p.GetLink()
+		a.Metadata.ID = iri.String()
+		if p.URL != nil {
+			a.Metadata.URL = p.URL.GetLink().String()
+		}
+		if !HostIsLocal(a.Metadata.ID) {
+			a.Metadata.Name = name
+		}
+	}
+	if p.Icon != nil {
+		if p.Icon.IsObject() {
+			pub.OnObject(p.Icon, func(o *pub.Object) error {
+				a.Metadata.Icon.MimeType = string(o.MediaType)
+				a.Metadata.Icon.URI = o.URL.GetLink().String()
+				return nil
+			})
+		}
+	}
+	if a.Email == "" {
+		// @TODO(marius): this returns false positives when API_URL is set and different than
+		host := host(a.Metadata.URL)
+		a.Email = fmt.Sprintf("%s@%s", a.Handle, host)
+	}
+	if p.GetType() == pub.TombstoneType {
+		a.Handle = Anonymous
+		a.Flags = a.Flags & FlagsDeleted
+	}
+	if !p.Published.IsZero() {
+		a.CreatedAt = p.Published
+	}
+	if !p.Updated.IsZero() {
+		a.UpdatedAt = p.Updated
+	}
+	pName := p.PreferredUsername.First().Value
+	if pName == "" {
+		pName = p.Name.First().Value
+	}
+	a.Handle = pName
+	if len(a.Metadata.URL) > 0 {
+		host := host(a.Metadata.URL)
+		a.Email = fmt.Sprintf("%s@%s", a.Handle, host)
+	}
+	if p.Inbox != nil {
+		a.Metadata.InboxIRI = p.Inbox.GetLink().String()
+	}
+	if p.Outbox != nil {
+		a.Metadata.OutboxIRI = p.Outbox.GetLink().String()
+	}
+	if p.Followers != nil {
+		a.Metadata.FollowersIRI = p.Followers.GetLink().String()
+	}
+	if p.Following != nil {
+		a.Metadata.FollowingIRI = p.Following.GetLink().String()
+	}
+	if p.Liked != nil {
+		a.Metadata.LikedIRI = p.Liked.GetLink().String()
+	}
+	if block, _ := pem.Decode([]byte(p.PublicKey.PublicKeyPem)); block != nil {
+		pub := make([]byte, base64.StdEncoding.EncodedLen(len(block.Bytes)))
+		base64.StdEncoding.Encode(pub, block.Bytes)
+		a.Metadata.Key = &SSHKey{
+			Public: pub,
+		}
+	}
+	return nil
+}
+
 func (a *Account) FromActivityPub(it pub.Item) error {
 	if a == nil {
 		return nil
@@ -42,113 +120,6 @@ func (a *Account) FromActivityPub(it pub.Item) error {
 		a.Metadata = &AccountMetadata{
 			ID: iri.String(),
 		}
-		return nil
-	}
-	// FIXME(marius): This whole thing needs to be changed to OnXX functions.
-	personFn := func(a *Account, fnAp func(a *Account, p pub.Person) error) error {
-		if pp, ok := it.(pub.Person); ok {
-			return fnAp(a, pp)
-		}
-		if pp, ok := it.(*pub.Person); ok {
-			return fnAp(a, *pp)
-		}
-		return nil
-	}
-	loadFromObject := func(a *Account, p pub.Object) error {
-		name := p.Name.First().Value
-		a.Hash.FromActivityPub(p)
-		if len(name) > 0 {
-			a.Handle = name
-		}
-		a.Flags = FlagsNone
-		if a.Metadata == nil {
-			a.Metadata = &AccountMetadata{}
-		}
-		if len(p.ID) > 0 {
-			iri := p.GetLink()
-			a.Metadata.ID = iri.String()
-			if p.URL != nil {
-				a.Metadata.URL = p.URL.GetLink().String()
-			}
-			if !HostIsLocal(a.Metadata.ID) {
-				a.Metadata.Name = name
-			}
-		}
-		if p.Icon != nil {
-			if p.Icon.IsObject() {
-				pub.OnObject(p.Icon, func(o *pub.Object) error {
-					a.Metadata.Icon.MimeType = string(o.MediaType)
-					a.Metadata.Icon.URI = o.URL.GetLink().String()
-					return nil
-				})
-			}
-		}
-		if a.Email == "" {
-			// @TODO(marius): this returns false positives when API_URL is set and different than
-			host := host(a.Metadata.URL)
-			a.Email = fmt.Sprintf("%s@%s", a.Handle, host)
-		}
-
-		if it.GetType() == pub.TombstoneType {
-			a.Handle = Anonymous
-			a.Flags = a.Flags & FlagsDeleted
-		}
-		if !p.Published.IsZero() {
-			a.CreatedAt = p.Published
-		}
-		if !p.Updated.IsZero() {
-			a.UpdatedAt = p.Updated
-		}
-		return nil
-	}
-	loadFromPerson := func(a *Account, p pub.Actor) error {
-		pub.OnObject(&p, func(o *pub.Object) error {
-			return loadFromObject(a, *o)
-		})
-		pName := p.PreferredUsername.First().Value
-		if pName == "" {
-			pName = p.Name.First().Value
-		}
-		a.Handle = pName
-		if a.Metadata == nil {
-			a.Metadata = &AccountMetadata{}
-		}
-		if len(a.Metadata.URL) > 0 {
-			host := host(a.Metadata.URL)
-			a.Email = fmt.Sprintf("%s@%s", a.Handle, host)
-		}
-		if p.Inbox != nil {
-			a.Metadata.InboxIRI = p.Inbox.GetLink().String()
-		}
-		if p.Outbox != nil {
-			a.Metadata.OutboxIRI = p.Outbox.GetLink().String()
-		}
-		if p.Followers != nil {
-			a.Metadata.FollowersIRI = p.Followers.GetLink().String()
-		}
-		if p.Following != nil {
-			a.Metadata.FollowingIRI = p.Following.GetLink().String()
-		}
-		if p.Liked != nil {
-			a.Metadata.LikedIRI = p.Liked.GetLink().String()
-		}
-		return nil
-	}
-	loadFromLocal := func(a *Account, p pub.Actor) error {
-		if err := loadFromPerson(a, p); err != nil {
-			return err
-		}
-		if a.Metadata == nil {
-			a.Metadata = &AccountMetadata{}
-		}
-		if block, _ := pem.Decode([]byte(p.PublicKey.PublicKeyPem)); block != nil {
-			pub := make([]byte, base64.StdEncoding.EncodedLen(len(block.Bytes)))
-			base64.StdEncoding.Encode(pub, block.Bytes)
-			a.Metadata.Key = &SSHKey{
-				Public: pub,
-			}
-		}
-
 		return nil
 	}
 	switch it.GetType() {
@@ -169,7 +140,9 @@ func (a *Account) FromActivityPub(it pub.Item) error {
 	case pub.TombstoneType:
 		fallthrough
 	case pub.PersonType:
-		personFn(a, loadFromLocal)
+		return pub.OnActor(it, func(p *pub.Actor) error {
+			return FromActor(a, p)
+		})
 	default:
 		return errors.Newf("invalid actor type")
 	}
