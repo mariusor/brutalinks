@@ -772,6 +772,7 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 		return next
 	}
 	fn := func(w http.ResponseWriter, r *http.Request) {
+		h.storage.WithAccount(nil)
 		if h.sstor == nil {
 			h.logger.Warn("missing session store, unable to load session")
 			return
