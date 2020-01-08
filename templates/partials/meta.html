@@ -24,16 +24,22 @@ submitted{{ if not .Deleted}}{{- if ShowUpdate $it }}<time class="updated-at" da
 */ -}}
 {{- end -}}
 {{- if not $it.IsTop -}}
-{{- if and $it.Parent (not (sameBase req.URL.Path (ParentLink $it))) }}
-            <li><a href="{{$it | ParentLink }}" class="to-parent" title="Parent">{{/*icon "angle-up"*/}}parent</a></li>
-{{end -}}
-{{- if and $it.OP (not (sameBase req.URL.Path (OPLink $it))) }}
-            <li><a href="{{$it | OPLink }}" class="to-op" title="TopPost">{{/*icon "angle-double-up"*/}}top</a></li>
-{{end -}}
+{{- if $it.Parent -}}
+{{- $parentLink := (ParentLink $it) -}}
+{{- if not (sameBase req.URL.Path $parentLink) }}
+            <li><a href="{{$parentLink}}" class="to-parent" title="Parent">{{/*icon "angle-up"*/}}parent</a></li>
+{{- end -}}
+{{- if $it.OP -}}
+{{- $opLink := (OPLink $it) -}}
+{{- if and (not (sameBase req.URL.Path $opLink)) (ne $parentLink $opLink) }}
+            <li><a href="{{$opLink}}" class="to-op" title="TopPost">{{/*icon "angle-double-up"*/}}top</a></li>
+{{- end -}}
+{{- end -}}
+{{- end -}}
 {{- end -}}
 {{- if or (not $it.IsTop) (not .IsLink) }}
             <li><a href="{{$it | ItemLocalLink }}" class="to-item" title="Permalink{{if .Item.Title}}: {{$it.Title }}{{end}}">{{ if $it.Private }}{{icon "lock"}} {{ end -}}{{/* icon "reply" "h-mirror" */}}link</a></li>
-{{ end -}}
+{{- end -}}
 {{- if $it.IsFederated }}<!-- <li>This shit federated, yo!</li> -->{{ end }}
         </ul>
     </nav>
