@@ -1,4 +1,4 @@
-{{- $account := CurrentAccount -}}
+{{- $account := CurrentAccount }}
 <h1 class="logo"><a href="/" title="{{ Info.Title }}">{{ Info.Title | Name }}</a></h1>
 <nav class="sections">
     <ul class="inline">
@@ -8,12 +8,12 @@
 {{- else }}
 {{- if or (and $value.Auth $account.IsLogged) (not $value.Auth) }}
         <li><a href="{{$value.URL}}">{{ icon $value.Icon }} /{{$value.Name}}</a></li>
-{{- end }}
-{{- end }}
+{{- end -}}
+{{- end -}}
 {{- end }}
     </ul>
 </nav>
-{{- $providers := getProviders -}}
+{{- $providers := getProviders }}
 <nav class="top">
     <ul class="inline">
         <li><a id="top-invert" title="Invert colours" href="/#invert">{{ icon "adjust" }}</a></li>
@@ -37,4 +37,4 @@
 {{- end }}
     </ul>
 </nav>
-{{- template "partials/flash" -}}
+{{ template "partials/flash" -}}

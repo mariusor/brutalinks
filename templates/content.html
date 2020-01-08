@@ -3,10 +3,10 @@
 {{- end -}}
 {{- if not .Content.Item.Deleted -}}
 <section id="reply">{{template "partials/content/edit" . }}</section>
-{{- end -}}
+{{- end }}
 <hr />
-{{- if .Content.Children | len -}}
+{{- if .Content.Children | len }}
 {{ template "partials/content/comments" .Content }}
-{{- else -}}
+{{- else }}
 <section id="no-items"><p>There's only dust here.</p></section>
-{{- end -}}
+{{ end -}}
