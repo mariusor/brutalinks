@@ -6,10 +6,8 @@ import (
 	pub "github.com/go-ap/activitypub"
 	"github.com/mariusor/littr.go/internal/log"
 	"github.com/mariusor/qstring"
-	"html/template"
 	"net/http"
 	"net/url"
-	"os"
 	"path"
 	"strings"
 
@@ -32,24 +30,6 @@ func isNay(v *Vote) bool {
 type aboutModel struct {
 	Title string
 	Desc  Desc
-}
-
-func getAuthProviders() map[string]string {
-	p := make(map[string]string)
-	if os.Getenv("GITHUB_KEY") != "" {
-		p["github"] = "Github"
-	}
-	if os.Getenv("GITLAB_KEY") != "" {
-		p["gitlab"] = "Gitlab"
-	}
-	if os.Getenv("GOOGLE_KEY") != "" {
-		p["google"] = "Google"
-	}
-	if os.Getenv("FACEBOOK_KEY") != "" {
-		p["facebook"] = "Facebook"
-	}
-
-	return p
 }
 
 func parentLink(c Item) string {
@@ -118,40 +98,6 @@ func ItemLocalLink(i Item) string {
 
 func followLink(f FollowRequest) string {
 	return fmt.Sprintf("%s/%s", AccountLocalLink(*f.SubmittedBy), "follow")
-}
-
-func scoreLink(i Item, dir string) string {
-	// @todo(marius) :link_generation:
-	return fmt.Sprintf("%s/%s", ItemPermaLink(i), dir)
-}
-
-func yayLink(i Item) string {
-	return scoreLink(i, "yay")
-}
-
-func nayLink(i Item) string {
-	return scoreLink(i, "nay")
-}
-
-func acceptLink(f FollowRequest) string {
-	return fmt.Sprintf("%s/%s", followLink(f), "accept")
-}
-
-func rejectLink(f FollowRequest) string {
-	return fmt.Sprintf("%s/%s", followLink(f), "reject")
-}
-
-func canPaginate(m interface{}) bool {
-	_, ok := m.(Paginator)
-	return ok
-}
-
-func pageLink(p int) template.HTML {
-	if p >= 1 {
-		return template.HTML(fmt.Sprintf("?page=%d", p))
-	} else {
-		return template.HTML("")
-	}
 }
 
 // HandleIndex serves / request

@@ -1,6 +1,8 @@
 package app
 
 import (
+	"bufio"
+	"bytes"
 	"encoding/gob"
 	"fmt"
 	"github.com/go-ap/errors"
@@ -8,11 +10,18 @@ import (
 	"github.com/gorilla/sessions"
 	"github.com/mariusor/littr.go/internal/log"
 	"github.com/unrolled/render"
+	"golang.org/x/text/language"
+	"golang.org/x/text/message"
 	"html/template"
 	"math"
 	"net/http"
+	"os"
+	"path"
+	"path/filepath"
 	"strings"
+	"time"
 )
+
 type flashType string
 
 const (
@@ -32,6 +41,7 @@ type LogFn func(string, log.Ctx)
 type session struct {
 	s sessions.Store
 }
+
 func (h *session) new(r *http.Request) (*sessions.Session, error) {
 	return h.s.New(r, sessionName)
 }
@@ -106,6 +116,12 @@ func (h *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"model":    m,
 		})
 	}
+	accountFromRequest := func() *Account {
+		if ac == nil {
+			ac = account(r)
+		}
+		return ac
+	}
 	nodeInfo, err := getNodeInfo(r)
 	ren := render.New(render.Options{
 		Directory:  templateDir,
@@ -114,27 +130,16 @@ func (h *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 		Funcs: []template.FuncMap{{
 			//"urlParam":          func(s string) string { return chi.URLParam(r, s) },
 			//"get":               func(s string) string { return r.URL.Query().Get(s) },
-			"isInverted":   func() bool { return isInverted(r) },
-			"sluggify":     sluggify,
-			"title":        func(t []byte) string { return string(t) },
-			"getProviders": getAuthProviders,
-			"CurrentAccount": func() *Account {
-				if ac == nil {
-					ac = account(r)
-				}
-				return ac
-			},
-			"IsComment": func(t HasType) bool {
-				return t.Type() == Comment
-			},
-			"IsFollowRequest": func(t HasType) bool {
-				return t.Type() == Follow
-			},
-			"IsVote": func(t HasType) bool {
-				return t.Type() == Appreciation
-			},
+			"isInverted":        func() bool { return isInverted(r) },
+			"sluggify":          sluggify,
+			"title":             func(t []byte) string { return string(t) },
+			"getProviders":      getAuthProviders,
+			"CurrentAccount":    accountFromRequest,
+			"IsComment":         func(t HasType) bool { return t.Type() == Comment },
+			"IsFollowRequest":   func(t HasType) bool { return t.Type() == Follow },
+			"IsVote":            func(t HasType) bool { return t.Type() == Appreciation },
 			"LoadFlashMessages": loadFlashMessages(r, w, s),
-			"Mod10":             func(lvl uint8) float64 { return math.Mod(float64(lvl), float64(10)) },
+			"Mod10":             mod10,
 			"ShowText":          showText(m),
 			"HTML":              html,
 			"Text":              text,
@@ -153,33 +158,29 @@ func (h *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"NumberFmt":         func(i int) string { return numberFormat("%d", i) },
 			"TimeFmt":           relTimeFmt,
 			"ISOTimeFmt":        isoTimeFmt,
-			"ShowUpdate": func(i Item) bool {
-				// TODO(marius): I have to find out why there's a difference between SubmittedAt and UpdatedAt
-				//  values coming from fedbox
-				return !(i.UpdatedAt.IsZero() || math.Abs(float64(i.SubmittedAt.Sub(i.UpdatedAt).Milliseconds())) < 20000.0)
-			},
-			"ScoreClass":     scoreClass,
-			"YayLink":        yayLink,
-			"NayLink":        nayLink,
-			"AcceptLink":     acceptLink,
-			"RejectLink":     rejectLink,
-			"PageLink":       pageLink,
-			"CanPaginate":    canPaginate,
-			"Config":         func() Configuration { return Instance.Config },
-			"Info":           func() WebInfo { return nodeInfo },
-			"Name":           appName,
-			"Menu":           func() []headerEl { return headerMenu(r) },
-			"icon":           icon,
-			"asset":          func(p string) template.HTML { return template.HTML(asset(p)) },
-			"req":            func() *http.Request { return r },
-			"sameBase":       sameBasePath,
-			"sameHash":       HashesEqual,
-			"fmtPubKey":      fmtPubKey,
-			"pluralize":      func(s string, cnt int) string { return pluralize(float64(cnt), s) },
-			"ShowFollowLink": showFollowedLink,
-			"Follows":        AccountFollows,
-			"IsFollowed":     AccountIsFollowed,
-			csrf.TemplateTag: func() template.HTML { return csrf.TemplateField(r) },
+			"ShowUpdate":        showUpdateTime,
+			"ScoreClass":        scoreClass,
+			"YayLink":           yayLink,
+			"NayLink":           nayLink,
+			"AcceptLink":        acceptLink,
+			"RejectLink":        rejectLink,
+			"PageLink":          pageLink,
+			"CanPaginate":       canPaginate,
+			"Config":            func() Configuration { return Instance.Config },
+			"Info":              func() WebInfo { return nodeInfo },
+			"Name":              appName,
+			"Menu":              func() []headerEl { return headerMenu(r) },
+			"icon":              icon,
+			"asset":             func(p string) template.HTML { return template.HTML(asset(p)) },
+			"req":               func() *http.Request { return r },
+			"sameBase":          sameBasePath,
+			"sameHash":          HashesEqual,
+			"fmtPubKey":         fmtPubKey,
+			"pluralize":         func(s string, cnt int) string { return pluralize(float64(cnt), s) },
+			"ShowFollowLink":    showFollowedLink,
+			"Follows":           AccountFollows,
+			"IsFollowed":        AccountIsFollowed,
+			csrf.TemplateTag:    func() template.HTML { return csrf.TemplateField(r) },
 			//"ScoreFmt":          func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
 			//"NumberFmt":         func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
 		}},
@@ -261,4 +262,376 @@ func (h *view) Redirect(w http.ResponseWriter, r *http.Request, url string, stat
 	}
 
 	http.Redirect(w, r, url, status)
+}
+
+func loadFlashMessages(r *http.Request, w http.ResponseWriter, s *sessions.Session) func() []flash {
+	flashData := make([]flash, 0)
+	flashes := s.Flashes()
+	// setting the local flashData value
+	for _, int := range flashes {
+		if int == nil {
+			continue
+		}
+		if f, ok := int.(flash); ok {
+			flashData = append(flashData, f)
+		}
+	}
+	s.Save(r, w)
+	return func() []flash { return flashData }
+}
+
+func mod10(lvl uint8) float64 {
+	return math.Mod(float64(lvl), float64(10))
+}
+
+func showUpdateTime(i Item) bool {
+	return !(i.UpdatedAt.IsZero() || math.Abs(float64(i.SubmittedAt.Sub(i.UpdatedAt).Milliseconds())) < float64(2*time.Second))
+}
+
+func scoreClass(s int) string {
+	_, class := loadScoreFormat(s)
+	if class == "" {
+		class = "H"
+	}
+	return class
+}
+
+func scoreFmt(s int) string {
+	score, units := loadScoreFormat(s)
+	if units == "inf" {
+		units = ""
+	}
+	return fmt.Sprintf("%s%s", score, units)
+}
+
+func numberFormat(fmtVerb string, el ...interface{}) string {
+	return message.NewPrinter(language.English).Sprintf(fmtVerb, el...)
+}
+
+func loadScoreFormat(s int) (string, string) {
+	const (
+		ScoreMaxK = 1000.0
+		ScoreMaxM = 1000000.0
+		ScoreMaxB = 1000000000.0
+	)
+	score := 0.0
+	units := ""
+	base := float64(s)
+	d := math.Ceil(math.Log10(math.Abs(base)))
+	dK := 4.0  // math.Ceil(math.Log10(math.Abs(ScoreMaxK))) + 1
+	dM := 7.0  // math.Ceil(math.Log10(math.Abs(ScoreMaxM))) + 1
+	dB := 10.0 // math.Ceil(math.Log10(math.Abs(ScoreMaxB))) + 1
+	if d < dK {
+		score = math.Ceil(base)
+		return numberFormat("%d", int(score)), ""
+	} else if d < dM {
+		score = base / ScoreMaxK
+		units = "K"
+	} else if d < dB {
+		score = base / ScoreMaxM
+		units = "M"
+	} else if d < dB+2 {
+		score = base / ScoreMaxB
+		units = "B"
+	} else {
+		sign := ""
+		if base < 0 {
+			sign = "&ndash;"
+		}
+		return fmt.Sprintf("%s%s", sign, "∞"), "inf"
+	}
+
+	return numberFormat("%3.1f", score), units
+}
+
+func headerMenu(r *http.Request) []headerEl {
+	sections := []string{"self", "federated", "followed"}
+	ret := make([]headerEl, 0)
+	for _, s := range sections {
+		el := headerEl{
+			Name: s,
+			URL:  fmt.Sprintf("/%s", s),
+		}
+		if path.Base(r.URL.Path) == s {
+			el.IsCurrent = true
+		}
+		switch strings.ToLower(s) {
+		case "self":
+			el.Icon = "home"
+		case "federated":
+			el.Icon = "activitypub"
+		case "followed":
+			el.Icon = "star"
+			el.Auth = true
+		}
+		ret = append(ret, el)
+	}
+
+	return ret
+}
+
+func appName(n string) template.HTML {
+	if n == "" {
+		return template.HTML(n)
+	}
+	parts := strings.Split(n, " ")
+	name := strings.Builder{}
+
+	initial := parts[0][0:1]
+	name.WriteString("<strong>")
+	name.WriteString(string(icon(initial)))
+	name.WriteString(parts[0][1:])
+	name.WriteString("</strong>")
+
+	for i, p := range parts {
+		if i == 0 {
+			continue
+		}
+		name.WriteString(" <small>")
+		name.WriteString(p)
+		name.WriteString("</small>")
+	}
+
+	return template.HTML(name.String())
+}
+
+func showText(m interface{}) func() bool {
+	return func() bool {
+		mm, ok := m.(itemListingModel)
+		return !ok || !mm.HideText
+	}
+}
+
+func sluggify(s MimeType) string {
+	if s == "" {
+		return ""
+	}
+	return strings.Replace(string(s), "/", "-", -1)
+}
+
+func getAuthProviders() map[string]string {
+	p := make(map[string]string)
+	if os.Getenv("GITHUB_KEY") != "" {
+		p["github"] = "Github"
+	}
+	if os.Getenv("GITLAB_KEY") != "" {
+		p["gitlab"] = "Gitlab"
+	}
+	if os.Getenv("GOOGLE_KEY") != "" {
+		p["google"] = "Google"
+	}
+	if os.Getenv("FACEBOOK_KEY") != "" {
+		p["facebook"] = "Facebook"
+	}
+
+	return p
+}
+
+func html(data string) template.HTML {
+	return template.HTML(data)
+}
+
+func text(data string) string {
+	return string(data)
+}
+
+func icon(icon string, c ...string) template.HTML {
+	cls := make([]string, 0)
+	cls = append(cls, c...)
+
+	buf := fmt.Sprintf(`<svg class="icon icon-%s %s"><use xlink:href="#icon-%s" /></svg>`,
+		icon, strings.Join(cls, " "), icon)
+
+	return template.HTML(buf)
+}
+
+func asset(p string) []byte {
+	file := filepath.Clean(p)
+	fullPath := filepath.Join(assetsDir, file)
+
+	f, err := os.Open(fullPath)
+	if err != nil {
+		return []byte{0}
+	}
+	defer f.Close()
+
+	r := bufio.NewReader(f)
+	b := bytes.Buffer{}
+	_, err = r.WriteTo(&b)
+	if err != nil {
+		return []byte{0}
+	}
+
+	return b.Bytes()
+}
+
+func isoTimeFmt(t time.Time) string {
+	return t.Format("2006-01-02T15:04:05.000-07:00")
+}
+
+func pluralize(d float64, unit string) string {
+	l := len(unit)
+	cons := func(c byte) bool {
+		cons := []byte{'b', 'c', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'm', 'n', 'p', 'q', 'r', 's', 't', 'v', 'w', 'y', 'z'}
+		for _, cc := range cons {
+			if c == cc {
+				return true
+			}
+		}
+		return false
+	}
+	if math.Round(d) != 1 {
+		if cons(unit[l-2]) && unit[l-1] == 'y' {
+			unit = unit[:l-1] + "ie"
+		}
+		return unit + "s"
+	}
+	return unit
+}
+
+func relTimeFmt(old time.Time) string {
+	td := time.Now().UTC().Sub(old)
+	val := 0.0
+	unit := ""
+	when := "ago"
+
+	hours := math.Abs(td.Hours())
+	minutes := math.Abs(td.Minutes())
+	seconds := math.Abs(td.Seconds())
+
+	if td.Seconds() < 0 {
+		// we're in the future
+		when = "in the future"
+	}
+	if seconds < 30 {
+		return "now"
+	}
+	if hours < 1 {
+		if minutes < 1 {
+			val = math.Mod(seconds, 60)
+			unit = "second"
+		} else {
+			val = math.Mod(minutes, 60)
+			unit = "minute"
+		}
+	} else if hours < 24 {
+		val = hours
+		unit = "hour"
+	} else if hours < 168 {
+		val = hours / 24
+		unit = "day"
+	} else if hours < 672 {
+		val = hours / 168
+		unit = "week"
+	} else if hours < 8760 {
+		val = hours / 672
+		unit = "month"
+	} else if hours < 87600 {
+		val = hours / 8760
+		unit = "year"
+	} else if hours < 876000 {
+		val = hours / 87600
+		unit = "decade"
+	} else {
+		val = hours / 876000
+		unit = "century"
+	}
+	switch unit {
+	case "day":
+		fallthrough
+	case "hour":
+		fallthrough
+	case "minute":
+		return fmt.Sprintf("%.0f %s %s", val, pluralize(val, unit), when)
+	}
+	return fmt.Sprintf("%.1f %s %s", val, pluralize(val, unit), when)
+}
+
+func scoreLink(i Item, dir string) string {
+	// @todo(marius) :link_generation:
+	return fmt.Sprintf("%s/%s", ItemPermaLink(i), dir)
+}
+
+func yayLink(i Item) string {
+	return scoreLink(i, "yay")
+}
+
+func nayLink(i Item) string {
+	return scoreLink(i, "nay")
+}
+
+func acceptLink(f FollowRequest) string {
+	return fmt.Sprintf("%s/%s", followLink(f), "accept")
+}
+
+func rejectLink(f FollowRequest) string {
+	return fmt.Sprintf("%s/%s", followLink(f), "reject")
+}
+
+func pageLink(p int) template.HTML {
+	if p >= 1 {
+		return template.HTML(fmt.Sprintf("?page=%d", p))
+	} else {
+		return template.HTML("")
+	}
+}
+
+func canPaginate(m interface{}) bool {
+	_, ok := m.(Paginator)
+	return ok
+}
+
+func sameBasePath(s1 string, s2 string) bool {
+	return path.Base(s1) == path.Base(s2)
+}
+
+func fmtPubKey(pub []byte) string {
+	s := strings.Builder{}
+	eolIdx := 0
+	for _, b := range pub {
+		if b == '\n' {
+			eolIdx = 0
+		}
+		if eolIdx > 0 && eolIdx%65 == 0 {
+			s.WriteByte('\n')
+			eolIdx = 1
+		}
+		s.WriteByte(b)
+		eolIdx++
+	}
+	return s.String()
+}
+
+func AccountFollows(a, b *Account) bool {
+	for _, acc := range a.Following {
+		if HashesEqual(acc.Hash, b.Hash) {
+			return true
+		}
+	}
+	return false
+}
+
+func AccountIsFollowed(a, b *Account) bool {
+	for _, acc := range a.Followers {
+		if HashesEqual(acc.Hash, b.Hash) {
+			return true
+		}
+	}
+	return false
+}
+
+func showFollowedLink(logged, current *Account) bool {
+	if !Instance.Config.UserFollowingEnabled {
+		return false
+	}
+	if !logged.IsLogged() {
+		return false
+	}
+	if HashesEqual(logged.Hash, current.Hash) {
+		return false
+	}
+	if AccountFollows(logged, current) {
+		return false
+	}
+	return true
 }

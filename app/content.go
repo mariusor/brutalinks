@@ -213,13 +213,6 @@ func (c comments) getItemsHashes() Hashes {
 	return items
 }
 
-func sluggify(s MimeType) string {
-	if s == "" {
-		return ""
-	}
-	return strings.Replace(string(s), "/", "-", -1)
-}
-
 func mimeTypeTagReplace(m MimeType, t Tag) string {
 	var cls string
 

@@ -1,31 +1,20 @@
 package app
 
 import (
-	"bufio"
-	"bytes"
 	"context"
 	xerrors "errors"
 	"fmt"
 	pub "github.com/go-ap/activitypub"
-	"github.com/gorilla/csrf"
-	"html/template"
-	"math"
-	"net/http"
-	"net/url"
-	"os"
-	"path"
-	"path/filepath"
-	"strings"
-	"time"
-
-	"golang.org/x/text/language"
-	"golang.org/x/text/message"
-
 	"github.com/go-ap/errors"
 	"github.com/go-chi/chi"
+	"github.com/gorilla/csrf"
 	"github.com/gorilla/sessions"
 	"github.com/mariusor/littr.go/internal/log"
 	"golang.org/x/oauth2"
+	"net/http"
+	"net/url"
+	"os"
+	"strings"
 )
 
 const (
@@ -43,126 +32,6 @@ type handler struct {
 }
 
 var defaultAccount = AnonymousAccount
-
-func html(data string) template.HTML {
-	return template.HTML(data)
-}
-
-func text(data string) string {
-	return string(data)
-}
-
-func icon(icon string, c ...string) template.HTML {
-	cls := make([]string, 0)
-	cls = append(cls, c...)
-
-	buf := fmt.Sprintf(`<svg class="icon icon-%s %s"><use xlink:href="#icon-%s" /></svg>`,
-		icon, strings.Join(cls, " "), icon)
-
-	return template.HTML(buf)
-}
-
-func asset(p string) []byte {
-	file := filepath.Clean(p)
-	fullPath := filepath.Join(assetsDir, file)
-
-	f, err := os.Open(fullPath)
-	if err != nil {
-		return []byte{0}
-	}
-	defer f.Close()
-
-	r := bufio.NewReader(f)
-	b := bytes.Buffer{}
-	_, err = r.WriteTo(&b)
-	if err != nil {
-		return []byte{0}
-	}
-
-	return b.Bytes()
-}
-
-func isoTimeFmt(t time.Time) string {
-	return t.Format("2006-01-02T15:04:05.000-07:00")
-}
-
-func pluralize(d float64, unit string) string {
-	l := len(unit)
-	cons := func(c byte) bool {
-		cons := []byte{'b', 'c', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'm', 'n', 'p', 'q', 'r', 's', 't', 'v', 'w', 'y', 'z'}
-		for _, cc := range cons {
-			if c == cc {
-				return true
-			}
-		}
-		return false
-	}
-	if math.Round(d) != 1 {
-		if cons(unit[l-2]) && unit[l-1] == 'y' {
-			unit = unit[:l-1] + "ie"
-		}
-		return unit + "s"
-	}
-	return unit
-}
-
-func relTimeFmt(old time.Time) string {
-	td := time.Now().UTC().Sub(old)
-	val := 0.0
-	unit := ""
-	when := "ago"
-
-	hours := math.Abs(td.Hours())
-	minutes := math.Abs(td.Minutes())
-	seconds := math.Abs(td.Seconds())
-
-	if td.Seconds() < 0 {
-		// we're in the future
-		when = "in the future"
-	}
-	if seconds < 30 {
-		return "now"
-	}
-	if hours < 1 {
-		if minutes < 1 {
-			val = math.Mod(seconds, 60)
-			unit = "second"
-		} else {
-			val = math.Mod(minutes, 60)
-			unit = "minute"
-		}
-	} else if hours < 24 {
-		val = hours
-		unit = "hour"
-	} else if hours < 168 {
-		val = hours / 24
-		unit = "day"
-	} else if hours < 672 {
-		val = hours / 168
-		unit = "week"
-	} else if hours < 8760 {
-		val = hours / 672
-		unit = "month"
-	} else if hours < 87600 {
-		val = hours / 8760
-		unit = "year"
-	} else if hours < 876000 {
-		val = hours / 87600
-		unit = "decade"
-	} else {
-		val = hours / 876000
-		unit = "century"
-	}
-	switch unit {
-	case "day":
-		fallthrough
-	case "hour":
-		fallthrough
-	case "minute":
-		return fmt.Sprintf("%.0f %s %s", val, pluralize(val, unit), when)
-	}
-	return fmt.Sprintf("%.1f %s %s", val, pluralize(val, unit), when)
-}
 
 type appConfig struct {
 	Env             EnvType
@@ -246,119 +115,12 @@ func initFileSession(h string, secure bool, k ...[]byte) (sessions.Store, error)
 	return ss, nil
 }
 
-func loadScoreFormat(s int) (string, string) {
-	const (
-		ScoreMaxK = 1000.0
-		ScoreMaxM = 1000000.0
-		ScoreMaxB = 1000000000.0
-	)
-	score := 0.0
-	units := ""
-	base := float64(s)
-	d := math.Ceil(math.Log10(math.Abs(base)))
-	dK := 4.0  // math.Ceil(math.Log10(math.Abs(ScoreMaxK))) + 1
-	dM := 7.0  // math.Ceil(math.Log10(math.Abs(ScoreMaxM))) + 1
-	dB := 10.0 // math.Ceil(math.Log10(math.Abs(ScoreMaxB))) + 1
-	if d < dK {
-		score = math.Ceil(base)
-		return numberFormat("%d", int(score)), ""
-	} else if d < dM {
-		score = base / ScoreMaxK
-		units = "K"
-	} else if d < dB {
-		score = base / ScoreMaxM
-		units = "M"
-	} else if d < dB+2 {
-		score = base / ScoreMaxB
-		units = "B"
-	} else {
-		sign := ""
-		if base < 0 {
-			sign = "&ndash;"
-		}
-		return fmt.Sprintf("%s%s", sign, "∞"), "inf"
-	}
-
-	return numberFormat("%3.1f", score), units
-}
-
-func numberFormat(fmtVerb string, el ...interface{}) string {
-	return message.NewPrinter(language.English).Sprintf(fmtVerb, el...)
-}
-
-func scoreClass(s int) string {
-	_, class := loadScoreFormat(s)
-	if class == "" {
-		class = "H"
-	}
-	return class
-}
-
-func scoreFmt(s int) string {
-	score, units := loadScoreFormat(s)
-	if units == "inf" {
-		units = ""
-	}
-	return fmt.Sprintf("%s%s", score, units)
-}
-
 type headerEl struct {
 	IsCurrent bool
 	Icon      string
 	Auth      bool
 	Name      string
 	URL       string
-}
-
-func headerMenu(r *http.Request) []headerEl {
-	sections := []string{"self", "federated", "followed"}
-	ret := make([]headerEl, 0)
-	for _, s := range sections {
-		el := headerEl{
-			Name: s,
-			URL:  fmt.Sprintf("/%s", s),
-		}
-		if path.Base(r.URL.Path) == s {
-			el.IsCurrent = true
-		}
-		switch strings.ToLower(s) {
-		case "self":
-			el.Icon = "home"
-		case "federated":
-			el.Icon = "activitypub"
-		case "followed":
-			el.Icon = "star"
-			el.Auth = true
-		}
-		ret = append(ret, el)
-	}
-
-	return ret
-}
-
-func appName(n string) template.HTML {
-	if n == "" {
-		return template.HTML(n)
-	}
-	parts := strings.Split(n, " ")
-	name := strings.Builder{}
-
-	initial := parts[0][0:1]
-	name.WriteString("<strong>")
-	name.WriteString(string(icon(initial)))
-	name.WriteString(parts[0][1:])
-	name.WriteString("</strong>")
-
-	for i, p := range parts {
-		if i == 0 {
-			continue
-		}
-		name.WriteString(" <small>")
-		name.WriteString(p)
-		name.WriteString("</small>")
-	}
-
-	return template.HTML(name.String())
 }
 
 func account(r *http.Request) *Account {
@@ -369,34 +131,6 @@ func account(r *http.Request) *Account {
 	return acct
 }
 
-func sameBasePath(s1 string, s2 string) bool {
-	return path.Base(s1) == path.Base(s2)
-}
-
-func showText(m interface{}) func() bool {
-	return func() bool {
-		mm, ok := m.(itemListingModel)
-		return !ok || !mm.HideText
-	}
-}
-
-func fmtPubKey(pub []byte) string {
-	s := strings.Builder{}
-	eolIdx := 0
-	for _, b := range pub {
-		if b == '\n' {
-			eolIdx = 0
-		}
-		if eolIdx > 0 && eolIdx%65 == 0 {
-			s.WriteByte('\n')
-			eolIdx = 1
-		}
-		s.WriteByte(b)
-		eolIdx++
-	}
-	return s.String()
-}
-
 // buildLink("name", someVar1, anotherVar2) :: /path/of/name/{var1}/{var2} -> /path/of/name/someVar1/someVar2
 func buildLink(routes chi.Routes, name string, par ...interface{}) string {
 	for _, r := range routes.Routes() {
@@ -405,40 +139,6 @@ func buildLink(routes chi.Routes, name string, par ...interface{}) string {
 		}
 	}
 	return "/"
-}
-
-func AccountFollows(a, b *Account) bool {
-	for _, acc := range a.Following {
-		if HashesEqual(acc.Hash, b.Hash) {
-			return true
-		}
-	}
-	return false
-}
-
-func AccountIsFollowed(a, b *Account) bool {
-	for _, acc := range a.Followers {
-		if HashesEqual(acc.Hash, b.Hash) {
-			return true
-		}
-	}
-	return false
-}
-
-func showFollowedLink(logged, current *Account) bool {
-	if !Instance.Config.UserFollowingEnabled {
-		return false
-	}
-	if !logged.IsLogged() {
-		return false
-	}
-	if HashesEqual(logged.Hash, current.Hash) {
-		return false
-	}
-	if AccountFollows(logged, current) {
-		return false
-	}
-	return true
 }
 
 // HandleAdmin serves /admin request
@@ -585,22 +285,6 @@ func loadCurrentAccountFromSession(s *sessions.Session, r *repository, l log.Log
 		"hash":   a.Hash,
 	}).Debug("loaded account from session")
 	return a
-}
-
-func loadFlashMessages(r *http.Request, w http.ResponseWriter, s *sessions.Session) func() []flash {
-	flashData := make([]flash, 0)
-	flashes := s.Flashes()
-	// setting the local flashData value
-	for _, int := range flashes {
-		if int == nil {
-			continue
-		}
-		if f, ok := int.(flash); ok {
-			flashData = append(flashData, f)
-		}
-	}
-	s.Save(r, w)
-	return func() []flash { return flashData }
 }
 
 func SetSecurityHeaders(next http.Handler) http.Handler {
