@@ -3,10 +3,13 @@ package app
 import (
 	"bytes"
 	"fmt"
+	"github.com/go-chi/chi"
 	"github.com/pborman/uuid"
+	"net/http"
 	"time"
 
 	"github.com/go-ap/errors"
+	"github.com/mariusor/littr.go/internal/log"
 )
 
 type SSHKey struct {
@@ -171,4 +174,66 @@ func (a AccountCollection) First() (*Account, error) {
 		return &act, nil
 	}
 	return nil, errors.Errorf("empty %T", a)
+}
+
+func accountFromRequest(r *http.Request, l log.Logger) (*Account, error) {
+	if r.Method != http.MethodPost {
+		return nil, errors.Errorf("invalid http method type")
+	}
+
+	a := Account{Metadata: &AccountMetadata{}}
+	pw := r.PostFormValue("pw")
+	pwConfirm := r.PostFormValue("pw-confirm")
+	if pw != pwConfirm {
+		return nil, errors.Errorf("the passwords don't match")
+	}
+
+	/*
+		agree := r.PostFormValue("agree")
+		if agree != "y" {
+			errs = append(errs, errors.Errorf("you must agree not to be a dick to other people"))
+		}
+	*/
+	handle := r.PostFormValue("handle")
+	if handle != "" {
+		a.Handle = handle
+	}
+	now := time.Now().UTC()
+	a.CreatedAt = now
+	a.UpdatedAt = now
+
+	a.Metadata = &AccountMetadata{
+		Password: []byte(pw),
+	}
+
+	return &a, nil
+}
+
+func checkUserCreatingEnabled(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !Instance.Config.UserCreatingEnabled {
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func accountFromRequestHandle(r *http.Request) (*Account, error) {
+	handle := chi.URLParam(r, "handle")
+	repo, ok := ContextRepository(r.Context())
+	if !ok {
+		return nil, errors.Newf("could not load account repository from Context")
+	}
+	var err error
+	accounts, cnt, err := repo.LoadAccounts(Filters{LoadAccountsFilter: LoadAccountsFilter{Handle: []string{handle}}})
+	if err != nil {
+		return nil, err
+	}
+	if cnt == 0 {
+		return nil, errors.NotFoundf("account %q not found", handle)
+	}
+	if cnt > 1 {
+		return nil, errors.NotFoundf("too many %q accounts found", handle)
+	}
+	return accounts.First()
 }

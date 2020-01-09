@@ -50,8 +50,17 @@ func Init(c appConfig) (handler, error) {
 
 	h := handler{}
 
+	infoFn := func(string, log.Ctx) {}
+	errFn := func(string, log.Ctx) {}
+
 	if c.Logger != nil {
 		h.logger = c.Logger
+		infoFn = func(s string, ctx log.Ctx) {
+			h.logger.WithContext(ctx).Info(s)
+		}
+		errFn = func(s string, ctx log.Ctx) {
+			h.logger.WithContext(ctx).Error(s)
+		}
 	}
 
 	if c.SessionsBackend = os.Getenv("SESSIONS_BACKEND"); c.SessionsBackend == "" {
@@ -59,7 +68,7 @@ func Init(c appConfig) (handler, error) {
 	}
 	c.SessionsBackend = strings.ToLower(c.SessionsBackend)
 	c.SessionKeys = loadEnvSessionKeys()
-	h.v, _ = ViewInit(c)
+	h.v, _ = ViewInit(c, infoFn, errFn)
 	h.conf = c
 
 	h.storage = ActivityPubService(c)

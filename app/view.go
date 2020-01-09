@@ -71,10 +71,13 @@ type view struct {
 	errFn  LogFn
 }
 
-func ViewInit(c appConfig) (*view, error) {
+func ViewInit(c appConfig, infoFn, errFn LogFn) (*view, error) {
 	v := view{
-		s: &session{},
+		s:      &session{},
+		infoFn: infoFn,
+		errFn:  errFn,
 	}
+
 	// session encoding for account and flash message objects
 	gob.Register(Account{})
 	gob.Register(flash{})
@@ -634,4 +637,80 @@ func showFollowedLink(logged, current *Account) bool {
 		return false
 	}
 	return true
+}
+
+func isYay(v *Vote) bool {
+	return v != nil && v.Weight > 0
+}
+
+func isNay(v *Vote) bool {
+	return v != nil && v.Weight < 0
+}
+
+func parentLink(c Item) string {
+	if c.Parent != nil {
+		// @todo(marius) :link_generation:
+		return fmt.Sprintf("/i/%s", c.Parent.Hash)
+	}
+	return ""
+}
+
+func opLink(c Item) string {
+	if c.OP != nil {
+		// @todo(marius) :link_generation:
+		return fmt.Sprintf("/i/%s", c.OP.Hash)
+	}
+	return ""
+}
+
+// AccountPermaLink
+func AccountPermaLink(a Account) string {
+	if a.HasMetadata() && len(a.Metadata.URL) > 0 {
+		return a.Metadata.URL
+	}
+	return AccountLocalLink(a)
+}
+
+// ItemPermaLink
+func ItemPermaLink(i Item) string {
+	if !i.IsLink() && i.HasMetadata() && len(i.Metadata.URL) > 0 {
+		return i.Metadata.URL
+	}
+	return ItemLocalLink(i)
+}
+
+// ItemLocalLink
+func ItemLocalLink(i Item) string {
+	if i.SubmittedBy == nil {
+		// @todo(marius) :link_generation:
+		return fmt.Sprintf("/i/%s", i.Hash.Short())
+	}
+	return fmt.Sprintf("%s/%s", AccountLocalLink(*i.SubmittedBy), i.Hash.Short())
+}
+
+func followLink(f FollowRequest) string {
+	return fmt.Sprintf("%s/%s", AccountLocalLink(*f.SubmittedBy), "follow")
+}
+
+// ShowAccountHandle
+func ShowAccountHandle(a Account) string {
+	//if strings.Contains(a.Handle, "@") {
+	//	// @TODO(marius): simplify this at a higher level in the stack, see Account::FromActivityPub
+	//	if parts := strings.SplitAfter(a.Handle, "@"); len(parts) > 1 {
+	//		if strings.Contains(parts[1], app.Instance.HostName) {
+	//			handle := parts[0]
+	//			a.Handle = handle[:len(handle)-1]
+	//		}
+	//	}
+	//}
+	return a.Handle
+}
+
+func AccountLocalLink(a Account) string {
+	handle := "anonymous"
+	if len(a.Handle) > 0 {
+		handle = a.Handle
+	}
+	// @todo(marius) :link_generation:
+	return fmt.Sprintf("/~%s", handle)
 }

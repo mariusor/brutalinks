@@ -64,7 +64,7 @@ type Score struct {
 	Max         int64
 	Ups         int64
 	Downs       int64
-	Key         Key
+	Key         Hash
 	Score       int64
 	SubmittedAt time.Time
 	Type        ScoreType

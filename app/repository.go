@@ -56,6 +56,8 @@ func ActivityPubService(c appConfig) *repository {
 	return &repository{
 		BaseURL: c.APIURL,
 		fedbox:  f,
+		infoFn: infoFn,
+		errFn: errFn,
 	}
 }
 

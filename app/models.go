@@ -43,6 +43,11 @@ type registerModel struct {
 	Account Account
 }
 
+type aboutModel struct {
+	Title string
+	Desc  Desc
+}
+
 type errorModel struct {
 	Status int
 	Title  string

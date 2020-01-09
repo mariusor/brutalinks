@@ -1,93 +1,53 @@
 package app
 
 import (
+	pub "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
-	"github.com/go-chi/chi"
-	"net/http"
+	"time"
 )
 
-func (h *handler) FollowAccount(w http.ResponseWriter, r *http.Request) {
-	loggedAccount := account(r)
-	if !loggedAccount.IsValid() {
-		err := errors.Unauthorizedf("invalid logged account")
-		h.logger.Error(err.Error())
-		h.v.HandleErrors(w, r, err)
-		return
-	}
+type FollowRequests []FollowRequest
 
-	handle := chi.URLParam(r, "handle")
-	repo := h.storage
-	var err error
-	accounts, cnt, err := repo.LoadAccounts(Filters{LoadAccountsFilter: LoadAccountsFilter{Handle: []string{handle}}})
-	if err != nil {
-		h.v.HandleErrors(w, r, err)
-		return
-	}
-	if cnt == 0 {
-		h.v.HandleErrors(w, r, errors.NotFoundf("account %q not found", handle))
-		return
-	}
-	if cnt > 1 {
-		h.v.HandleErrors(w, r, errors.NotFoundf("too many %q accounts found", handle))
-		return
-	}
-	toFollow, _ := accounts.First()
-	err = repo.FollowAccount(*loggedAccount, *toFollow)
-	if err != nil {
-		h.v.HandleErrors(w, r, err)
-		return
-	}
-	h.v.Redirect(w, r, AccountPermaLink(*toFollow), http.StatusSeeOther)
+type FollowRequest struct {
+	Hash        Hash            `json:"hash"`
+	SubmittedAt time.Time       `json:"-"`
+	SubmittedBy *Account        `json:"-"`
+	Object      *Account        `json:"-"`
+	Metadata    *FollowMetadata `json:"-"`
+	Flags       FlagBits        `json:"-"`
 }
 
-func (h *handler) HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
-	loggedAccount := account(r)
-	if !loggedAccount.IsValid() {
-		err := errors.Unauthorizedf("invalid logged account")
-		h.logger.Error(err.Error())
-		h.v.HandleErrors(w, r, err)
-		return
-	}
+type FollowMetadata struct {
+	ID string `json:"-"`
+}
 
-	handle := chi.URLParam(r, "handle")
-	repo := h.storage
-	accounts, cnt, err := repo.LoadAccounts(Filters{LoadAccountsFilter: LoadAccountsFilter{Handle: []string{handle}}})
-	if err != nil {
-		h.v.HandleErrors(w, r, err)
-		return
+func (f *FollowRequest) FromActivityPub(it pub.Item) error {
+	if f == nil {
+		return nil
 	}
-	if cnt == 0 {
-		h.v.HandleErrors(w, r, errors.NotFoundf("account %q not found", handle))
-		return
+	if it == nil {
+		return errors.Newf("nil item received")
 	}
-	follower, _ := accounts.First()
-	
-	accept := false
-	action := chi.URLParam(r, "action")
-	if action == "accept" {
-		accept = true
+	if it.IsLink() {
+		iri := it.GetLink()
+		f.Hash.FromActivityPub(iri)
+		f.Metadata = &FollowMetadata{
+			ID: iri.String(),
+		}
+		return nil
 	}
-
-	followRequests, cnt, err := repo.LoadFollowRequests(loggedAccount, Filters{
-		LoadFollowRequestsFilter: LoadFollowRequestsFilter{
-			Actor: Hashes{Hash(follower.Metadata.ID)},
-			On:    Hashes{Hash(loggedAccount.Metadata.ID)},
-		},
+	return pub.OnActivity(it, func(a *pub.Activity) error {
+		f.Hash.FromActivityPub(a)
+		follower := Account{}
+		follower.FromActivityPub(a.Actor)
+		f.SubmittedBy = &follower
+		followed := Account{}
+		followed.FromActivityPub(a.Object)
+		f.Object = &followed
+		f.SubmittedAt = a.Published
+		f.Metadata = &FollowMetadata{
+			ID: string(a.ID),
+		}
+		return nil
 	})
-	if err != nil {
-		h.v.HandleErrors(w, r, err)
-		return
-	}
-	if cnt == 0 {
-		h.v.HandleErrors(w, r, errors.NotFoundf("follow request not found"))
-		return
-	}
-	follow := followRequests[0]
-	err = repo.SendFollowResponse(follow, accept)
-	if err != nil {
-		h.v.HandleErrors(w, r, err)
-		return
-	}
-	backUrl := r.Header.Get("Referer")
-	h.v.Redirect(w, r, backUrl, http.StatusSeeOther)
 }
