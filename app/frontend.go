@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"encoding/gob"
 	xerrors "errors"
 	"fmt"
 	pub "github.com/go-ap/activitypub"
@@ -19,7 +18,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/unrolled/render"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
 
@@ -39,26 +37,12 @@ const (
 
 type handler struct {
 	conf    appConfig
-	sstor   sessions.Store
+	v       *view
 	logger  log.Logger
 	storage *repository
 }
 
 var defaultAccount = AnonymousAccount
-
-type flashType string
-
-const (
-	Success flashType = "success"
-	Info    flashType = "info"
-	Warning flashType = "warning"
-	Error   flashType = "error"
-)
-
-type flash struct {
-	Type flashType
-	Msg  string
-}
 
 func html(data string) template.HTML {
 	return template.HTML(data)
@@ -193,10 +177,6 @@ type appConfig struct {
 }
 
 func Init(c appConfig) (handler, error) {
-	// frontend
-	gob.Register(Account{})
-	gob.Register(flash{})
-
 	var err error
 
 	h := handler{}
@@ -209,23 +189,22 @@ func Init(c appConfig) (handler, error) {
 		c.SessionsBackend = "cookie"
 	}
 	c.SessionsBackend = strings.ToLower(c.SessionsBackend)
-
 	c.SessionKeys = loadEnvSessionKeys()
-	h.sstor, err = InitSessionStore(c)
+	h.v, _ = ViewInit(c)
 	h.conf = c
 
-	h.storage = NewRepository(c)
+	h.storage = ActivityPubService(c)
 	key := os.Getenv("OAUTH2_KEY")
 	pw := os.Getenv("OAUTH2_SECRET")
 	if len(key) > 0 {
 		oIRI := pub.IRI(fmt.Sprintf("%s/actors/%s", h.storage.BaseURL, key))
 		oauth, err := h.storage.fedbox.Actor(oIRI)
 		if err == nil {
-			h.storage.cl = new(Account)
-			h.storage.cl.FromActivityPub(oauth)
+			h.storage.app = new(Account)
+			h.storage.app.FromActivityPub(oauth)
 			config := GetOauth2Config("fedbox", h.conf.BaseURL)
 
-			handle := h.storage.cl.Handle
+			handle := h.storage.app.Handle
 			tok, err := config.PasswordCredentialsToken(context.Background(), handle, pw)
 			if err != nil {
 				return h, err
@@ -233,64 +212,38 @@ func Init(c appConfig) (handler, error) {
 			if tok == nil {
 				return h, err
 			}
-			h.storage.cl.Metadata.OAuth.Provider = "fedbox"
-			h.storage.cl.Metadata.OAuth.Token = tok.AccessToken
-			h.storage.cl.Metadata.OAuth.TokenType = tok.TokenType
-			h.storage.cl.Metadata.OAuth.RefreshToken = tok.RefreshToken
+			h.storage.app.Metadata.OAuth.Provider = "fedbox"
+			h.storage.app.Metadata.OAuth.Token = tok.AccessToken
+			h.storage.app.Metadata.OAuth.TokenType = tok.TokenType
+			h.storage.app.Metadata.OAuth.RefreshToken = tok.RefreshToken
 		}
 	}
 
 	return h, err
 }
 
-// InitSessionStore initializes the session store if we have encryption key settings in the env variables
-func InitSessionStore(c appConfig) (sessions.Store, error) {
-	var s sessions.Store
-	if len(c.SessionKeys) == 0 {
-		err := errors.NotImplementedf("no session encryption configuration, unable to use sessions")
-		if c.Logger != nil {
-			c.Logger.Warn(err.Error())
-		}
-		//app.appConfig.SessionsEnabled = false
-		return nil, err
-	}
-	switch strings.ToLower(c.SessionsBackend) {
-	case "file":
-		sessDir := fmt.Sprintf("%s/%s", os.TempDir(), c.HostName)
-		if _, err := os.Stat(sessDir); os.IsNotExist(err) {
-			if err := os.Mkdir(sessDir, 0700); err != nil {
-				c.Logger.WithContext(log.Ctx{
-					"folder": sessDir,
-					"err":    err,
-				}).Error("unable to create folder")
-			}
-		}
-		ss := sessions.NewFilesystemStore(sessDir, c.SessionKeys...)
-		ss.Options.Domain = c.HostName
-		ss.Options.Path = "/"
-		ss.Options.HttpOnly = true
-		ss.Options.Secure = c.Secure
-		s = ss
-	case "cookie":
-		fallthrough
-	default:
-		if strings.ToLower(c.SessionsBackend) != "cookie" {
-			c.Logger.Warnf("Invalid session backend %q, falling back to cookie.", c.SessionsBackend)
-		}
-		ss := sessions.NewCookieStore(c.SessionKeys...)
-		ss.Options.Domain = c.HostName
-		ss.Options.Path = "/"
-		ss.Options.HttpOnly = true
-		ss.Options.Secure = c.Secure
-		s = ss
-	}
-	return s, nil
+func initCookieSession(h string, secure bool, k ...[]byte) (sessions.Store, error) {
+	ss := sessions.NewCookieStore(k...)
+	ss.Options.Domain = h
+	ss.Options.Path = "/"
+	ss.Options.HttpOnly = true
+	ss.Options.Secure = secure
+	return ss, nil
 }
 
-type errorModel struct {
-	Status int
-	Title  string
-	Errors []error
+func initFileSession(h string, secure bool, k ...[]byte) (sessions.Store, error) {
+	sessDir := fmt.Sprintf("%s/%s", os.TempDir(), h)
+	if _, err := os.Stat(sessDir); os.IsNotExist(err) {
+		if err := os.Mkdir(sessDir, 0700); err != nil {
+			return nil, err
+		}
+	}
+	ss := sessions.NewFilesystemStore(sessDir, k...)
+	ss.Options.Domain = h
+	ss.Options.Path = "/"
+	ss.Options.HttpOnly = true
+	ss.Options.Secure = secure
+	return ss, nil
 }
 
 func loadScoreFormat(s int) (string, string) {
@@ -408,42 +361,12 @@ func appName(n string) template.HTML {
 	return template.HTML(name.String())
 }
 
-func (h *handler) account(r *http.Request) *Account {
+func account(r *http.Request) *Account {
 	acct, ok := ContextAccount(r.Context())
 	if !ok {
 		return &defaultAccount
 	}
 	return acct
-}
-
-func (h *handler) saveSession(w http.ResponseWriter, r *http.Request) error {
-	if h.sstor == nil {
-		err := errors.Newf("missing session store, unable to save session")
-		h.logger.Errorf("%s", err)
-		return err
-	}
-	s, err := h.sstor.Get(r, sessionName)
-	if err != nil {
-		h.logger.Errorf("%s", err)
-		return errors.Errorf("failed to load session before redirect: %s", err)
-	}
-	if err := h.sstor.Save(r, w, s); err != nil {
-		err := errors.Errorf("failed to save session before redirect: %s", err)
-		h.logger.Errorf("%s", err)
-		return err
-	}
-	return nil
-}
-
-func (h *handler) Redirect(w http.ResponseWriter, r *http.Request, url string, status int) {
-	if err := h.saveSession(w, r); err != nil {
-		h.logger.WithContext(log.Ctx{
-			"status": status,
-			"url":    url,
-		}).Error(err.Error())
-	}
-
-	http.Redirect(w, r, url, status)
 }
 
 func sameBasePath(s1 string, s2 string) bool {
@@ -518,119 +441,6 @@ func showFollowedLink(logged, current *Account) bool {
 	return true
 }
 
-func (h *handler) RenderTemplate(r *http.Request, w http.ResponseWriter, name string, m interface{}) error {
-	var err error
-	var ac *Account
-
-	s, _ := h.sstor.Get(r, sessionName)
-	nodeInfo, err := getNodeInfo(r)
-	ren := render.New(render.Options{
-		Directory:  templateDir,
-		Layout:     "layout",
-		Extensions: []string{".html"},
-		Funcs: []template.FuncMap{{
-			//"urlParam":          func(s string) string { return chi.URLParam(r, s) },
-			//"get":               func(s string) string { return r.URL.Query().Get(s) },
-			"isInverted":   func() bool { return isInverted(r) },
-			"sluggify":     sluggify,
-			"title":        func(t []byte) string { return string(t) },
-			"getProviders": getAuthProviders,
-			"CurrentAccount": func() *Account {
-				if ac == nil {
-					ac = h.account(r)
-				}
-				return ac
-			},
-			"IsComment": func(t HasType) bool {
-				return t.Type() == Comment
-			},
-			"IsFollowRequest": func(t HasType) bool {
-				return t.Type() == Follow
-			},
-			"IsVote": func(t HasType) bool {
-				return t.Type() == Appreciation
-			},
-			"LoadFlashMessages": loadFlashMessages(r, w, s),
-			"Mod10":             func(lvl uint8) float64 { return math.Mod(float64(lvl), float64(10)) },
-			"ShowText":          showText(m),
-			"HTML":              html,
-			"Text":              text,
-			"replaceTags":       replaceTagsInItem,
-			"Markdown":          Markdown,
-			"AccountLocalLink":  AccountLocalLink,
-			"AccountPermaLink":  AccountPermaLink,
-			"ShowAccountHandle": ShowAccountHandle,
-			"ItemLocalLink":     ItemLocalLink,
-			"ItemPermaLink":     ItemPermaLink,
-			"ParentLink":        parentLink,
-			"OPLink":            opLink,
-			"IsYay":             isYay,
-			"IsNay":             isNay,
-			"ScoreFmt":          scoreFmt,
-			"NumberFmt":         func(i int) string { return numberFormat("%d", i) },
-			"TimeFmt":           relTimeFmt,
-			"ISOTimeFmt":        isoTimeFmt,
-			"ShowUpdate": func(i Item) bool {
-				// TODO(marius): I have to find out why there's a difference between SubmittedAt and UpdatedAt
-				//  values coming from fedbox
-				return !(i.UpdatedAt.IsZero() || math.Abs(float64(i.SubmittedAt.Sub(i.UpdatedAt).Milliseconds())) < 20000.0)
-			},
-			"ScoreClass":     scoreClass,
-			"YayLink":        yayLink,
-			"NayLink":        nayLink,
-			"AcceptLink":     acceptLink,
-			"RejectLink":     rejectLink,
-			"PageLink":       pageLink,
-			"CanPaginate":    canPaginate,
-			"Config":         func() Configuration { return Instance.Config },
-			"Info":           func() WebInfo { return nodeInfo },
-			"Name":           appName,
-			"Menu":           func() []headerEl { return headerMenu(r) },
-			"icon":           icon,
-			"asset":          func(p string) template.HTML { return template.HTML(asset(p)) },
-			"req":            func() *http.Request { return r },
-			"sameBase":       sameBasePath,
-			"sameHash":       HashesEqual,
-			"fmtPubKey":      fmtPubKey,
-			"pluralize":      func(s string, cnt int) string { return pluralize(float64(cnt), s) },
-			"ShowFollowLink": showFollowedLink,
-			"Follows":        AccountFollows,
-			"IsFollowed":     AccountIsFollowed,
-			csrf.TemplateTag: func() template.HTML { return csrf.TemplateField(r) },
-			//"ScoreFmt":          func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
-			//"NumberFmt":         func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
-		}},
-		Delims:                    render.Delims{Left: "{{", Right: "}}"},
-		Charset:                   "UTF-8",
-		DisableCharset:            false,
-		BinaryContentType:         "application/octet-stream",
-		HTMLContentType:           "text/html",
-		IsDevelopment:             true,
-		DisableHTTPErrorRendering: false,
-	})
-
-	if Instance.Config.Env != PROD {
-		w.Header().Set("Cache-Control", "no-store")
-	}
-	if err = ren.HTML(w, http.StatusOK, name, m); err != nil {
-		new := errors.Newf("failed to render template")
-		h.logger.WithContext(log.Ctx{
-			"template": name,
-			"model":    fmt.Sprintf("%T", m),
-			//"trace":    new.StackTrace(),
-			"previous": err.Error(),
-		}).Error(new.Error())
-		ren.HTML(w, http.StatusInternalServerError, "error", new)
-	}
-	if err = h.saveSession(w, r); err != nil {
-		h.logger.WithContext(log.Ctx{
-			"template": name,
-			"model":    fmt.Sprintf("%#v", m),
-		}).Error(err.Error())
-	}
-	return err
-}
-
 // HandleAdmin serves /admin request
 func (h handler) HandleAdmin(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(200)
@@ -649,13 +459,13 @@ func (h *handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
 		for _, errDesc := range errDescriptions {
 			errs = append(errs, errors.Errorf(errDesc))
 		}
-		h.HandleErrors(w, r, errs...)
+		h.v.HandleErrors(w, r, errs...)
 		return
 	}
 	code := q.Get("code")
 	state := q.Get("state")
 	if len(code) == 0 {
-		h.HandleErrors(w, r, errors.Forbiddenf("%s error: Empty authentication token", provider))
+		h.v.HandleErrors(w, r, errors.Forbiddenf("%s error: Empty authentication token", provider))
 		return
 	}
 
@@ -663,11 +473,11 @@ func (h *handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
 	tok, err := conf.Exchange(r.Context(), code)
 	if err != nil {
 		h.logger.Errorf("%s", err)
-		h.HandleErrors(w, r, err)
+		h.v.HandleErrors(w, r, err)
 		return
 	}
 
-	s, _ := h.sstor.Get(r, sessionName)
+	s, _ := h.v.s.get(r)
 	account := loadCurrentAccountFromSession(s, h.storage, h.logger)
 	if account.Metadata == nil {
 		account.Metadata = &AccountMetadata{}
@@ -684,11 +494,11 @@ func (h *handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
 
 	s.Values[SessionUserKey] = account
 	if strings.ToLower(provider) != "local" {
-		h.addFlashMessage(Success, r, fmt.Sprintf("Login successful with %s", provider))
+		h.v.addFlashMessage(Success, r, fmt.Sprintf("Login successful with %s", provider))
 	} else {
-		h.addFlashMessage(Success, r, "Login successful")
+		h.v.addFlashMessage(Success, r, "Login successful")
 	}
-	h.Redirect(w, r, "/", http.StatusFound)
+	h.v.Redirect(w, r, "/", http.StatusFound)
 }
 
 func GetOauth2Config(provider string, localBaseURL string) oauth2.Config {
@@ -810,17 +620,17 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 	}
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		h.storage.WithAccount(nil)
-		if h.sstor == nil {
+		if h.v.s == nil {
 			h.logger.Warn("missing session store, unable to load session")
 			return
 		}
-		s, err := h.sstor.Get(r, sessionName)
+		s, err := h.v.s.get(r)
 		if err != nil {
 			h.logger.WithContext(log.Ctx{
 				"err": err,
 			}).Error("unable to load session")
 			if xerrors.Is(err, new(os.PathError)) {
-				h.sstor.New(r, sessionName)
+				h.v.s.new(r)
 			}
 		}
 		acc := loadCurrentAccountFromSession(s, h.storage, h.logger)
@@ -863,21 +673,13 @@ func (h *handler) addFlashErrors(r *http.Request, errs ...error) {
 	for _, err := range errs {
 		msg += err.Error()
 	}
-	h.addFlashMessage(Error, r, msg)
-}
-
-func (h *handler) addFlashMessage(typ flashType, r *http.Request, msgs ...string) {
-	s, _ := h.sstor.Get(r, sessionName)
-	for _, msg := range msgs {
-		n := flash{typ, msg}
-		s.AddFlash(n)
-	}
+	h.v.addFlashMessage(Error, r, msg)
 }
 
 func (h handler) NeedsSessions(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		if !Instance.Config.SessionsEnabled {
-			h.HandleErrors(w, r, errors.NotFoundf("sessions are disabled"))
+			h.v.HandleErrors(w, r, errors.NotFoundf("sessions are disabled"))
 			return
 		}
 		next.ServeHTTP(w, r)
@@ -893,12 +695,12 @@ func (h *handler) HandleAbout(w http.ResponseWriter, r *http.Request) {
 	repo := h.storage
 	info, err := repo.LoadInfo()
 	if err != nil {
-		h.HandleErrors(w, r, errors.NewNotValid(err, "oops!"))
+		h.v.HandleErrors(w, r, errors.NewNotValid(err, "oops!"))
 		return
 	}
 	m.Desc.Description = info.Description
 
-	h.RenderTemplate(r, w, "about", m)
+	h.v.RenderTemplate(r, w, "about", m)
 }
 
 func httpErrorResponse(e error) int {
@@ -945,49 +747,9 @@ func loadEnvSessionKeys() [][]byte {
 
 func (h *handler) ErrorHandler(errs ...error) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		h.HandleErrors(w, r, errs...)
+		h.v.HandleErrors(w, r, errs...)
 	}
 	return http.HandlerFunc(fn)
-}
-
-// HandleErrors serves failed requests
-func (h *handler) HandleErrors(w http.ResponseWriter, r *http.Request, errs ...error) {
-	d := errorModel{
-		Errors: errs,
-	}
-	renderErrors := true
-	if r.Method == http.MethodPost {
-		renderErrors = false
-	}
-	backURL := "/"
-	if refURLs, ok := r.Header["Referer"]; ok {
-		backURL = refURLs[0]
-		renderErrors = false
-	}
-
-	status := http.StatusInternalServerError
-	for _, err := range errs {
-		if err == nil {
-			continue
-		}
-		if renderErrors {
-			status = httpErrorResponse(err)
-		} else {
-			h.addFlashErrors(r, err)
-		}
-	}
-
-	if renderErrors {
-		d.Title = fmt.Sprintf("Error %d", status)
-		d.Status = status
-		w.WriteHeader(status)
-		w.Header().Set("Cache-Control", " no-store, must-revalidate")
-		w.Header().Set("Pragma", " no-cache")
-		w.Header().Set("Expires", " 0")
-		h.RenderTemplate(r, w, "error", d)
-	} else {
-		h.Redirect(w, r, backURL, http.StatusFound)
-	}
 }
 
 var nodeInfo = WebInfo{}

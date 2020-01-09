@@ -173,7 +173,7 @@ func (h *handler) HandleIndex(w http.ResponseWriter, r *http.Request) {
 	baseURL, _ := url.Parse(h.conf.BaseURL)
 	title := fmt.Sprintf("%s: main page", baseURL.Host)
 
-	acct := h.account(r)
+	acct := account(r)
 	base := path.Base(r.URL.Path)
 	switch strings.ToLower(base) {
 	case "self":
@@ -190,7 +190,7 @@ func (h *handler) HandleIndex(w http.ResponseWriter, r *http.Request) {
 	m.HideText = true
 	comments, err := loadItems(r.Context(), filter, acct, h.logger)
 	if err != nil {
-		h.HandleErrors(w, r, errors.NewNotValid(err, "Unable to load items!"))
+		h.v.HandleErrors(w, r, errors.NewNotValid(err, "Unable to load items!"))
 	}
 	for _, c := range comments {
 		m.Items = append(m.Items, c)
@@ -201,7 +201,7 @@ func (h *handler) HandleIndex(w http.ResponseWriter, r *http.Request) {
 	if filter.Page > 1 {
 		m.prevPage = filter.Page - 1
 	}
-	h.RenderTemplate(r, w, "listing", m)
+	h.v.RenderTemplate(r, w, "listing", m)
 }
 
 // HandleIndex serves / request
@@ -223,7 +223,7 @@ func (h *handler) HandleInbox(w http.ResponseWriter, r *http.Request) {
 	baseURL, _ := url.Parse(h.conf.BaseURL)
 	title := fmt.Sprintf("%s: main page", baseURL.Host)
 
-	acct := h.account(r)
+	acct := account(r)
 	title = fmt.Sprintf("%s: followed", baseURL.Host)
 
 	filter.FollowedBy = acct.Hash.String()
@@ -238,7 +238,7 @@ func (h *handler) HandleInbox(w http.ResponseWriter, r *http.Request) {
 		},
 	})
 	if err != nil {
-		h.HandleErrors(w, r, errors.NewNotValid(err, "Unable to load items!"))
+		h.v.HandleErrors(w, r, errors.NewNotValid(err, "Unable to load items!"))
 	}
 	for _, r := range requests {
 		f := follow{r}
@@ -246,7 +246,7 @@ func (h *handler) HandleInbox(w http.ResponseWriter, r *http.Request) {
 	}
 	comments, err := loadItems(r.Context(), filter, acct, h.logger)
 	if err != nil {
-		h.HandleErrors(w, r, errors.NewNotValid(err, "Unable to load items!"))
+		h.v.HandleErrors(w, r, errors.NewNotValid(err, "Unable to load items!"))
 	}
 	for _, c := range comments {
 		m.Items = append(m.Items, c)
@@ -258,7 +258,7 @@ func (h *handler) HandleInbox(w http.ResponseWriter, r *http.Request) {
 		m.prevPage = filter.Page - 1
 	}
 
-	h.RenderTemplate(r, w, "listing", m)
+	h.v.RenderTemplate(r, w, "listing", m)
 }
 
 func loadItems(c context.Context, filter Filters, acc *Account, l log.Logger) (comments, error) {
@@ -295,9 +295,9 @@ func (h *handler) HandleTags(w http.ResponseWriter, r *http.Request) {
 		MaxItems: MaxContentItems,
 		Page:     1,
 	}
-	acct := h.account(r)
+	acct := account(r)
 	if len(tag) == 0 {
-		h.HandleErrors(w, r, errors.BadRequestf("missing tag"))
+		h.v.HandleErrors(w, r, errors.BadRequestf("missing tag"))
 	}
 	filter.Content = "#" + tag
 	filter.ContentMatchType = MatchFuzzy
@@ -309,7 +309,7 @@ func (h *handler) HandleTags(w http.ResponseWriter, r *http.Request) {
 	m.Title = fmt.Sprintf("%s: tagged as #%s", baseURL.Host, tag)
 	comments, err := loadItems(r.Context(), filter, acct, h.logger)
 	if err != nil {
-		h.HandleErrors(w, r, errors.NewNotValid(err, "oops!"))
+		h.v.HandleErrors(w, r, errors.NewNotValid(err, "oops!"))
 	}
 	for _, c := range comments {
 		m.Items = append(m.Items, c)
@@ -320,14 +320,14 @@ func (h *handler) HandleTags(w http.ResponseWriter, r *http.Request) {
 	if filter.Page > 1 {
 		m.prevPage = filter.Page - 1
 	}
-	h.RenderTemplate(r, w, "listing", m)
+	h.v.RenderTemplate(r, w, "listing", m)
 }
 
 // HandleDomains serves /domains/{domain} request
 func (h *handler) HandleDomains(w http.ResponseWriter, r *http.Request) {
 	domain := chi.URLParam(r, "domain")
 
-	acct := h.account(r)
+	acct := account(r)
 	filter := Filters{
 		LoadItemsFilter: LoadItemsFilter{
 			Context: []string{"0"},
@@ -350,7 +350,7 @@ func (h *handler) HandleDomains(w http.ResponseWriter, r *http.Request) {
 	m.HideText = true
 	comments, err := loadItems(r.Context(), filter, acct, h.logger)
 	if err != nil {
-		h.HandleErrors(w, r, errors.NewNotValid(err, "oops!"))
+		h.v.HandleErrors(w, r, errors.NewNotValid(err, "oops!"))
 	}
 	for _, c := range comments {
 		m.Items = append(m.Items, c)
@@ -361,5 +361,5 @@ func (h *handler) HandleDomains(w http.ResponseWriter, r *http.Request) {
 	if filter.Page > 1 {
 		m.prevPage = filter.Page - 1
 	}
-	h.RenderTemplate(r, w, "listing", m)
+	h.v.RenderTemplate(r, w, "listing", m)
 }

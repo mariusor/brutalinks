@@ -31,7 +31,7 @@ type NodeInfoResolver struct{
 
 func NodeInfoResolverNew(c appConfig) NodeInfoResolver {
 	return NodeInfoResolver{
-		storage: NewRepository(c),
+		storage: ActivityPubService(c),
 	}
 }
 

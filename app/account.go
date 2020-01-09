@@ -10,23 +10,6 @@ import (
 	"github.com/go-chi/chi"
 )
 
-type itemListingModel struct {
-	Title          string
-	User           *Account
-	Items          []HasType
-	HideText       bool
-	nextPage       int
-	prevPage       int
-}
-
-func (i itemListingModel) NextPage() int {
-	return i.nextPage
-}
-
-func (i itemListingModel) PrevPage() int {
-	return i.prevPage
-}
-
 // ShowAccount serves /~handler request
 func (h *handler) ShowAccount(w http.ResponseWriter, r *http.Request) {
 	handle := chi.URLParam(r, "handle")
@@ -35,15 +18,15 @@ func (h *handler) ShowAccount(w http.ResponseWriter, r *http.Request) {
 	var err error
 	accounts, cnt, err := repo.LoadAccounts(Filters{LoadAccountsFilter: LoadAccountsFilter{Handle: []string{handle}}})
 	if err != nil {
-		h.HandleErrors(w, r, err)
+		h.v.HandleErrors(w, r, err)
 		return
 	}
 	if cnt == 0 {
-		h.HandleErrors(w, r, errors.NotFoundf("account %q not found", handle))
+		h.v.HandleErrors(w, r, errors.NotFoundf("account %q not found", handle))
 		return
 	}
 	if cnt > 1 {
-		h.HandleErrors(w, r, errors.NotFoundf("too many %q accounts found", handle))
+		h.v.HandleErrors(w, r, errors.NotFoundf("too many %q accounts found", handle))
 		return
 	}
 
@@ -64,9 +47,9 @@ func (h *handler) ShowAccount(w http.ResponseWriter, r *http.Request) {
 
 	m.Title = fmt.Sprintf("%s: %s submissions", baseURL.Host, genitive(handle))
 	m.User, _ = accounts.First()
-	comments, err := loadItems(r.Context(), filter, h.account(r), h.logger)
+	comments, err := loadItems(r.Context(), filter, account(r), h.logger)
 	if err != nil {
-		h.HandleErrors(w, r, errors.NewNotValid(err, "unable to load items"))
+		h.v.HandleErrors(w, r, errors.NewNotValid(err, "unable to load items"))
 	}
 	for _, com := range comments {
 		m.Items = append(m.Items, com)
@@ -77,5 +60,5 @@ func (h *handler) ShowAccount(w http.ResponseWriter, r *http.Request) {
 	if filter.Page > 1 {
 		m.prevPage = filter.Page - 1
 	}
-	h.RenderTemplate(r, w, "user", m)
+	h.v.RenderTemplate(r, w, "user", m)
 }

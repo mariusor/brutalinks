@@ -179,21 +179,6 @@ func (c *comment) Type() RenderType {
 	return Comment
 }
 
-type contentModel struct {
-	Title    string
-	Content  comment
-	nextPage int
-	prevPage int
-}
-
-func (c contentModel) NextPage() int {
-	return c.nextPage
-}
-
-func (c contentModel) PrevPage() int {
-	return c.prevPage
-}
-
 func loadComments(items []Item) comments {
 	var all = make(comments, len(items))
 	for k, item := range items {
@@ -385,7 +370,7 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 			"handle": handle,
 			"hash":   hash,
 		}).Error(err.Error())
-		h.HandleErrors(w, r, errors.NotFoundf("Item %q", hash))
+		h.v.HandleErrors(w, r, errors.NotFoundf("Item %q", hash))
 		return
 	}
 	if !i.Deleted() && len(i.Data)+len(i.Title) == 0 {
@@ -397,18 +382,18 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 			"content":     i.Data[0:datLen],
 			"content_len": len(i.Data),
 		}).Warn("Item deleted or empty")
-		h.HandleErrors(w, r, errors.NotFoundf("Item %q", hash))
+		h.v.HandleErrors(w, r, errors.NotFoundf("Item %q", hash))
 		return
 	}
 	m.Content = comment{Item: i}
 	url := r.URL
 	maybeEdit := path.Base(url.Path)
 
-	account := h.account(r)
+	account := account(r)
 	if maybeEdit != hash && maybeEdit == Edit {
 		if !HashesEqual(m.Content.SubmittedBy.Hash, account.Hash) {
 			url.Path = path.Dir(url.Path)
-			h.Redirect(w, r, url.RequestURI(), http.StatusFound)
+			h.v.Redirect(w, r, url.RequestURI(), http.StatusFound)
 			return
 		}
 		m.Content.Edit = true
@@ -446,7 +431,7 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil {
 		h.logger.Error(err.Error())
-		h.HandleErrors(w, r, errors.NewNotFound(err, "" /*, errors.ErrorStack(err)*/))
+		h.v.HandleErrors(w, r, errors.NewNotFound(err, "" /*, errors.ErrorStack(err)*/))
 		return
 	}
 	allComments = append(allComments, loadComments(contentItems)...)
@@ -485,7 +470,7 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 		// FIXME(marius): we lost the handler of the account
 		m.Title = fmt.Sprintf("%s comment", genitive(m.Content.SubmittedBy.Handle))
 	}
-	h.RenderTemplate(r, w, "content", m)
+	h.v.RenderTemplate(r, w, "content", m)
 }
 
 func accountFromRequestHandle(r *http.Request) (*Account, error) {
@@ -514,13 +499,13 @@ func accountFromRequestHandle(r *http.Request) (*Account, error) {
 // HandleSubmit handles POST /~handler/hash/edit requests
 // HandleSubmit handles POST /year/month/day/hash/edit requests
 func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
-	acc := h.account(r)
+	acc := account(r)
 	n, err := ContentFromRequest(r, *acc)
 	if err != nil {
 		h.logger.WithContext(log.Ctx{
 			"prev": err,
 		}).Error("wrong http method")
-		h.HandleErrors(w, r, errors.NewMethodNotAllowed(err, ""))
+		h.v.HandleErrors(w, r, errors.NewMethodNotAllowed(err, ""))
 		return
 	}
 	saveVote := true
@@ -556,7 +541,7 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 		h.logger.WithContext(log.Ctx{
 			"prev": err,
 		}).Error("unable to save item")
-		h.HandleErrors(w, r, err)
+		h.v.HandleErrors(w, r, err)
 		return
 	}
 
@@ -574,7 +559,7 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 			}).Error(err.Error())
 		}
 	}
-	h.Redirect(w, r, ItemPermaLink(n), http.StatusSeeOther)
+	h.v.Redirect(w, r, ItemPermaLink(n), http.StatusSeeOther)
 }
 
 func genitive(name string) string {
@@ -597,7 +582,7 @@ func (h *handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 	p, err := repo.LoadItem(Filters{LoadItemsFilter: LoadItemsFilter{Key: Hashes{Hash(hash)}}})
 	if err != nil {
 		h.logger.Error(err.Error())
-		h.HandleErrors(w, r, errors.NewNotFound(err, "not found"))
+		h.v.HandleErrors(w, r, errors.NewNotFound(err, "not found"))
 		return
 	}
 
@@ -608,24 +593,24 @@ func (h *handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 	}
 	p.Delete()
 	if p, err = repo.SaveItem(p); err != nil {
-		h.addFlashMessage(Error, r, "unable to delete item as current user")
+		h.v.addFlashMessage(Error, r, "unable to delete item as current user")
 	}
 
-	h.Redirect(w, r, url, http.StatusFound)
+	h.v.Redirect(w, r, url, http.StatusFound)
 }
 
 // HandleReport serves /{year}/{month}/{day}/{hash}/report POST request
 // HandleReport serves /~{handle}/report request
 func (h *handler) HandleReport(w http.ResponseWriter, r *http.Request) {
 	m := contentModel{}
-	h.RenderTemplate(r, w, "new", m)
+	h.v.RenderTemplate(r, w, "new", m)
 }
 
 // ShowReport serves /{year}/{month}/{day}/{hash}/Report GET request
 // ShowReport serves /~{handle}/Report request
 func (h *handler) ShowReport(w http.ResponseWriter, r *http.Request) {
 	m := contentModel{}
-	h.RenderTemplate(r, w, "new", m)
+	h.v.RenderTemplate(r, w, "new", m)
 }
 
 // HandleVoting serves /{year}/{month}/{day}/{hash}/{direction} request
@@ -637,7 +622,7 @@ func (h *handler) HandleVoting(w http.ResponseWriter, r *http.Request) {
 	p, err := repo.LoadItem(Filters{LoadItemsFilter: LoadItemsFilter{Key: Hashes{Hash(hash)}}})
 	if err != nil {
 		h.logger.Error(err.Error())
-		h.HandleErrors(w, r, errors.NewNotFound(err, "not found"))
+		h.v.HandleErrors(w, r, errors.NewNotFound(err, "not found"))
 		return
 	}
 
@@ -651,7 +636,7 @@ func (h *handler) HandleVoting(w http.ResponseWriter, r *http.Request) {
 	}
 	url := ItemPermaLink(p)
 
-	acc := h.account(r)
+	acc := account(r)
 	if acc.IsLogged() {
 		backUrl := r.Header.Get("Referer")
 		if !strings.Contains(backUrl, url) && strings.Contains(backUrl, Instance.BaseURL) {
@@ -669,10 +654,10 @@ func (h *handler) HandleVoting(w http.ResponseWriter, r *http.Request) {
 				"weight": v.Weight,
 				"error":  err,
 			}).Error("Unable to save vote")
-			h.addFlashMessage(Error, r, err.Error())
+			h.v.addFlashMessage(Error, r, err.Error())
 		}
 	} else {
-		h.addFlashMessage(Error, r, "unable to vote as current user")
+		h.v.addFlashMessage(Error, r, "unable to vote as current user")
 	}
-	h.Redirect(w, r, url, http.StatusFound)
+	h.v.Redirect(w, r, url, http.StatusFound)
 }

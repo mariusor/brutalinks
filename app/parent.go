@@ -17,9 +17,9 @@ func (h *handler) HandleItemRedirect(w http.ResponseWriter, r *http.Request) {
 		MaxItems: 1,
 	})
 	if err != nil {
-		h.HandleErrors(w, r, errors.NewNotValid(err, "oops!"))
+		h.v.HandleErrors(w, r, errors.NewNotValid(err, "oops!"))
 		return
 	}
 	url := ItemPermaLink(p)
-	h.Redirect(w, r, url, http.StatusMovedPermanently)
+	h.v.Redirect(w, r, url, http.StatusMovedPermanently)
 }

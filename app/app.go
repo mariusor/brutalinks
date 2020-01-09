@@ -163,10 +163,10 @@ func (a *Application) Front(r chi.Router) {
 	r.With(front.Repository).Route("/", front.Routes())
 
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
-		front.HandleErrors(w, r, errors.NotFoundf("%s", r.RequestURI))
+		front.v.HandleErrors(w, r, errors.NotFoundf("%s", r.RequestURI))
 	})
 	r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
-		front.HandleErrors(w, r, errors.MethodNotAllowedf("%s not allowed", r.Method))
+		front.v.HandleErrors(w, r, errors.MethodNotAllowedf("%s not allowed", r.Method))
 	})
 }
 

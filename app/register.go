@@ -16,11 +16,6 @@ import (
 	"github.com/go-ap/errors"
 )
 
-type registerModel struct {
-	Title   string
-	Account Account
-}
-
 func accountFromRequest(r *http.Request, l log.Logger) (*Account, error) {
 	if r.Method != http.MethodPost {
 		return nil, errors.Errorf("invalid http method type")
@@ -67,7 +62,7 @@ func checkUserCreatingEnabled(next http.Handler) http.Handler {
 func (h *handler) ShowRegister(w http.ResponseWriter, r *http.Request) {
 	m := registerModel{}
 
-	h.RenderTemplate(r, w, "register", m)
+	h.v.RenderTemplate(r, w, "register", m)
 }
 
 var scopeAnonymousUserCreate = "anonUserCreate"
@@ -76,7 +71,7 @@ var scopeAnonymousUserCreate = "anonUserCreate"
 func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	a, err := accountFromRequest(r, h.logger)
 	if err != nil {
-		h.HandleErrors(w, r, err)
+		h.v.HandleErrors(w, r, err)
 		return
 	}
 
@@ -87,27 +82,27 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	})
 	notFound := errors.NotFoundf("")
 	if err != nil && !notFound.As(err) {
-		h.HandleErrors(w, r, errors.NewBadRequest(err, "unable to create"))
+		h.v.HandleErrors(w, r, errors.NewBadRequest(err, "unable to create"))
 		return
 	}
 	if maybeExists.IsValid() {
-		h.HandleErrors(w, r, errors.BadRequestf("account %s already exists", a.Handle))
+		h.v.HandleErrors(w, r, errors.BadRequestf("account %s already exists", a.Handle))
 		return
 	}
 
-	acc := h.account(r)
+	acc := account(r)
 	if !acc.IsLogged() {
-		acc = h.storage.cl
+		acc = h.storage.app
 	}
 	a.CreatedBy = acc
 	h.storage.WithAccount(acc)
 	*a, err = h.storage.SaveAccount(*a)
 	if err != nil {
-		h.HandleErrors(w, r, err)
+		h.v.HandleErrors(w, r, err)
 		return
 	}
 	if !a.IsValid() || !a.HasMetadata() || a.Metadata.ID == "" {
-		h.HandleErrors(w, r, errors.Newf("unable to save actor"))
+		h.v.HandleErrors(w, r, errors.Newf("unable to save actor"))
 		return
 	}
 
@@ -119,23 +114,23 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 
 	res, err := http.Get(sessUrl)
 	if err != nil {
-		h.HandleErrors(w, r, err)
+		h.v.HandleErrors(w, r, err)
 		return
 	}
 
 	var body []byte
 	if body, err = ioutil.ReadAll(res.Body); err != nil {
-		h.HandleErrors(w, r, err)
+		h.v.HandleErrors(w, r, err)
 		return
 	}
 	d := osin.AuthorizeData{}
 	if err := json.Unmarshal(body, &d); err != nil {
-		h.HandleErrors(w, r, err)
+		h.v.HandleErrors(w, r, err)
 		return
 	}
 
 	if d.Code == "" {
-		h.HandleErrors(w, r, errors.NotValidf("unable to get session token for setting the user's password"))
+		h.v.HandleErrors(w, r, errors.NotValidf("unable to get session token for setting the user's password"))
 		return
 	}
 
@@ -156,13 +151,13 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	pwChRes, err := http.Post(u.String(), "application/x-www-form-urlencoded", strings.NewReader(form.Encode()))
 	if body, err = ioutil.ReadAll(pwChRes.Body); err != nil {
 		h.logger.Error(err.Error())
-		h.HandleErrors(w, r, err)
+		h.v.HandleErrors(w, r, err)
 		return
 	}
 	if pwChRes.StatusCode != http.StatusOK {
-		h.HandleErrors(w, r, h.storage.handlerErrorResponse(body))
+		h.v.HandleErrors(w, r, h.storage.handlerErrorResponse(body))
 		return
 	}
-	h.Redirect(w, r, "/", http.StatusSeeOther)
+	h.v.Redirect(w, r, "/", http.StatusSeeOther)
 	return
 }

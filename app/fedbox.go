@@ -8,6 +8,7 @@ import (
 	"github.com/go-ap/errors"
 	"github.com/go-ap/handlers"
 	j "github.com/go-ap/jsonld"
+	"github.com/mariusor/littr.go/internal/log"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -22,23 +23,35 @@ const (
 type fedbox struct {
 	baseURL *url.URL
 	client  client.HttpClient
-	infoFn  client.LogFn
-	errFn   client.LogFn
+	infoFn  LogFn
+	errFn   LogFn
 }
 
 type OptionFn func(*fedbox) error
 
-func SetInfoLogger(logFn client.LogFn) OptionFn {
+func SetInfoLogger(logFn LogFn) OptionFn {
 	return func(f *fedbox) error {
 		f.infoFn = logFn
-		client.InfoLogger = logFn
+		client.InfoLogger = func(el ...interface{}) {
+			ctx := log.Ctx{}
+			for _, i := range el {
+				ctx[fmt.Sprintf("%T", i)] = i
+			}
+			logFn("", ctx)
+		}
 		return nil
 	}
 }
-func SetErrorLogger(logFn client.LogFn) OptionFn {
+func SetErrorLogger(logFn LogFn) OptionFn {
 	return func(f *fedbox) error {
 		f.errFn = logFn
-		client.ErrorLogger = logFn
+		client.ErrorLogger = func(el ...interface{}) {
+			ctx := log.Ctx{}
+			for _, i := range el {
+				ctx[fmt.Sprintf("%T", i)] = i
+			}
+			logFn("", ctx)
+		}
 		return nil
 	}
 }
@@ -80,8 +93,8 @@ func NewClient(o ...OptionFn) (*fedbox, error) {
 		}
 	}
 
-	client.ErrorLogger = f.infoFn
-	client.InfoLogger = f.errFn
+	//client.ErrorLogger = f.infoFn
+	//client.InfoLogger = f.errFn
 	return &f, nil
 }
 
@@ -293,13 +306,13 @@ func postRequest(f fedbox, url pub.IRI, a pub.Item) (pub.IRI, pub.Item, error) {
 		return iri, it, err
 	}
 	if body, err = ioutil.ReadAll(resp.Body); err != nil {
-		f.errFn(err.Error())
+		f.errFn(err.Error(), nil)
 		return iri, it, err
 	}
 	if resp.StatusCode != http.StatusGone && resp.StatusCode >= http.StatusBadRequest {
 		errs := _errors{}
 		if err := j.Unmarshal(body, &errs); err != nil {
-			f.errFn("Unable to unmarshal error response: %s", err.Error())
+			f.errFn(fmt.Sprintf("Unable to unmarshal error response: %s", err.Error()), nil)
 		}
 		if len(errs.Errors) == 0 {
 			return iri, it, errors.Newf("Unknown error")

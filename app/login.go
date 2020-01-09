@@ -8,12 +8,6 @@ import (
 
 const SessionUserKey = "__current_acct"
 
-type loginModel struct {
-	Title   string
-	Account Account
-	OAuth   bool
-}
-
 // ShowLogin handles POST /login requests
 func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	pw := r.PostFormValue("pw")
@@ -34,8 +28,8 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 			"client": config.ClientID,
 			"state":  state,
 		}).Error(err.Error())
-		h.addFlashMessage(Error, r, fmt.Sprintf("Login failed: %s", err))
-		h.Redirect(w, r, "/login", http.StatusSeeOther)
+		h.v.addFlashMessage(Error, r, fmt.Sprintf("Login failed: %s", err))
+		h.v.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
 
@@ -47,8 +41,8 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 			"state":  state,
 			"error": err,
 		}).Error("login failed")
-		h.addFlashMessage(Error, r, "Login failed: invalid username or password")
-		h.Redirect(w, r, "/login", http.StatusSeeOther)
+		h.v.addFlashMessage(Error, r, "Login failed: invalid username or password")
+		h.v.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
 	if tok == nil {
@@ -57,32 +51,32 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 			"client": config.ClientID,
 			"state":  state,
 		}).Errorf("nil token received")
-		h.addFlashMessage(Error, r, "Login failed: wrong handle or password")
-		h.Redirect(w, r, "/login", http.StatusSeeOther)
+		h.v.addFlashMessage(Error, r, "Login failed: wrong handle or password")
+		h.v.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
 	acct.Metadata.OAuth.Provider = "fedbox"
 	acct.Metadata.OAuth.Token = tok.AccessToken
 	acct.Metadata.OAuth.TokenType = tok.TokenType
 	acct.Metadata.OAuth.RefreshToken = tok.RefreshToken
-	s, _ := h.sstor.Get(r, sessionName)
+	s, _ := h.v.s.get(r)
 	s.Values[SessionUserKey] = acct
-	h.Redirect(w, r, "/", http.StatusSeeOther)
+	h.v.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 // ShowLogin serves GET /login requests
 func (h *handler) ShowLogin(w http.ResponseWriter, r *http.Request) {
-	a := h.account(r)
+	a := account(r)
 
 	m := loginModel{Title: "Login"}
 	m.Account = *a
 
-	h.RenderTemplate(r, w, "login", m)
+	h.v.RenderTemplate(r, w, "login", m)
 }
 
 // HandleLogout serves /logout requests
 func (h *handler) HandleLogout(w http.ResponseWriter, r *http.Request) {
-	s, err := h.sstor.Get(r, sessionName)
+	s, err := h.v.s.get(r)
 	if err != nil {
 		h.logger.Error(err.Error())
 	}
@@ -91,5 +85,5 @@ func (h *handler) HandleLogout(w http.ResponseWriter, r *http.Request) {
 	if r.Header.Get("Referer") != "" {
 		backUrl = r.Header.Get("Referer")
 	}
-	h.Redirect(w, r, backUrl, http.StatusSeeOther)
+	h.v.Redirect(w, r, backUrl, http.StatusSeeOther)
 }

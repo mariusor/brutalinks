@@ -39,7 +39,7 @@ func (h *handler) Routes() func(chi.Router) {
 				r.Post("/", h.HandleSubmit)
 
 				r.Group(func(r chi.Router) {
-					r.Use(h.ValidateLoggedIn(h.HandleErrors))
+					r.Use(h.ValidateLoggedIn(h.v.HandleErrors))
 					r.Get("/yay", h.HandleVoting)
 					r.Get("/nay", h.HandleVoting)
 
@@ -78,7 +78,7 @@ func (h *handler) Routes() func(chi.Router) {
 
 		r.Get("/self", h.HandleIndex)
 		r.Get("/federated", h.HandleIndex)
-		r.With(h.NeedsSessions, h.ValidateLoggedIn(h.HandleErrors)).Get("/followed", h.HandleInbox)
+		r.With(h.NeedsSessions, h.ValidateLoggedIn(h.v.HandleErrors)).Get("/followed", h.HandleInbox)
 
 		r.Route("/auth", func(r chi.Router) {
 			r.Use(h.NeedsSessions)
@@ -86,10 +86,10 @@ func (h *handler) Routes() func(chi.Router) {
 		})
 
 		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
-			h.HandleErrors(w, r, errors.NotFoundf("%q", r.RequestURI))
+			h.v.HandleErrors(w, r, errors.NotFoundf("%q", r.RequestURI))
 		})
 		r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
-			h.HandleErrors(w, r, errors.MethodNotAllowedf("invalid %q request", r.Method))
+			h.v.HandleErrors(w, r, errors.MethodNotAllowedf("invalid %q request", r.Method))
 		})
 
 		workDir, _ := os.Getwd()

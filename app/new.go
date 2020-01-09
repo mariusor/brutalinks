@@ -125,7 +125,7 @@ func ContentFromRequest(r *http.Request, acc Account) (Item, error) {
 
 // ShowSubmit serves GET /submit request
 func (h *handler) ShowSubmit(w http.ResponseWriter, r *http.Request) {
-	h.RenderTemplate(r, w, "new", contentModel{Title: "New submission"})
+	h.v.RenderTemplate(r, w, "new", contentModel{Title: "New submission"})
 }
 
 func (h *handler) ValidatePermissions(actions ...string) func(http.Handler) http.Handler {
@@ -142,13 +142,13 @@ func (h *handler) ValidatePermissions(actions ...string) func(http.Handler) http
 }
 
 func (h *handler) RedirectToLogin(w http.ResponseWriter, r *http.Request, errs ...error) {
-	h.Redirect(w, r, "/login", http.StatusMovedPermanently)
+	h.v.Redirect(w, r, "/login", http.StatusMovedPermanently)
 }
 
 func (h *handler) ValidateLoggedIn(eh ErrorHandler) Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
-			if !h.account(r).IsLogged() {
+			if !account(r).IsLogged() {
 				e := errors.Unauthorizedf("Please login to perform this action")
 				h.logger.Errorf("%s", e)
 				eh(w, r, e)
@@ -162,7 +162,7 @@ func (h *handler) ValidateLoggedIn(eh ErrorHandler) Handler {
 
 func (h *handler) ValidateItemAuthor(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		acc := h.account(r)
+		acc := account(r)
 		hash := chi.URLParam(r, "hash")
 		url := r.URL
 		action := path.Base(url.Path)
@@ -171,12 +171,12 @@ func (h *handler) ValidateItemAuthor(next http.Handler) http.Handler {
 			m, err := repo.LoadItem(Filters{LoadItemsFilter: LoadItemsFilter{Key: Hashes{Hash(hash)}}})
 			if err != nil {
 				h.logger.Error(err.Error())
-				h.HandleErrors(w, r, errors.NewNotFound(err, "item"))
+				h.v.HandleErrors(w, r, errors.NewNotFound(err, "item"))
 				return
 			}
 			if !HashesEqual(m.SubmittedBy.Hash, acc.Hash) {
 				url.Path = path.Dir(url.Path)
-				h.Redirect(w, r, url.RequestURI(), http.StatusTemporaryRedirect)
+				h.v.Redirect(w, r, url.RequestURI(), http.StatusTemporaryRedirect)
 				return
 			}
 			next.ServeHTTP(w, r)

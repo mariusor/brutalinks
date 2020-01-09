@@ -7,11 +7,11 @@ import (
 )
 
 func (h *handler) FollowAccount(w http.ResponseWriter, r *http.Request) {
-	loggedAccount := h.account(r)
+	loggedAccount := account(r)
 	if !loggedAccount.IsValid() {
 		err := errors.Unauthorizedf("invalid logged account")
 		h.logger.Error(err.Error())
-		h.HandleErrors(w, r, err)
+		h.v.HandleErrors(w, r, err)
 		return
 	}
 
@@ -20,32 +20,32 @@ func (h *handler) FollowAccount(w http.ResponseWriter, r *http.Request) {
 	var err error
 	accounts, cnt, err := repo.LoadAccounts(Filters{LoadAccountsFilter: LoadAccountsFilter{Handle: []string{handle}}})
 	if err != nil {
-		h.HandleErrors(w, r, err)
+		h.v.HandleErrors(w, r, err)
 		return
 	}
 	if cnt == 0 {
-		h.HandleErrors(w, r, errors.NotFoundf("account %q not found", handle))
+		h.v.HandleErrors(w, r, errors.NotFoundf("account %q not found", handle))
 		return
 	}
 	if cnt > 1 {
-		h.HandleErrors(w, r, errors.NotFoundf("too many %q accounts found", handle))
+		h.v.HandleErrors(w, r, errors.NotFoundf("too many %q accounts found", handle))
 		return
 	}
 	toFollow, _ := accounts.First()
 	err = repo.FollowAccount(*loggedAccount, *toFollow)
 	if err != nil {
-		h.HandleErrors(w, r, err)
+		h.v.HandleErrors(w, r, err)
 		return
 	}
-	h.Redirect(w, r, AccountPermaLink(*toFollow), http.StatusSeeOther)
+	h.v.Redirect(w, r, AccountPermaLink(*toFollow), http.StatusSeeOther)
 }
 
 func (h *handler) HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
-	loggedAccount := h.account(r)
+	loggedAccount := account(r)
 	if !loggedAccount.IsValid() {
 		err := errors.Unauthorizedf("invalid logged account")
 		h.logger.Error(err.Error())
-		h.HandleErrors(w, r, err)
+		h.v.HandleErrors(w, r, err)
 		return
 	}
 
@@ -53,11 +53,11 @@ func (h *handler) HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
 	repo := h.storage
 	accounts, cnt, err := repo.LoadAccounts(Filters{LoadAccountsFilter: LoadAccountsFilter{Handle: []string{handle}}})
 	if err != nil {
-		h.HandleErrors(w, r, err)
+		h.v.HandleErrors(w, r, err)
 		return
 	}
 	if cnt == 0 {
-		h.HandleErrors(w, r, errors.NotFoundf("account %q not found", handle))
+		h.v.HandleErrors(w, r, errors.NotFoundf("account %q not found", handle))
 		return
 	}
 	follower, _ := accounts.First()
@@ -75,19 +75,19 @@ func (h *handler) HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
 		},
 	})
 	if err != nil {
-		h.HandleErrors(w, r, err)
+		h.v.HandleErrors(w, r, err)
 		return
 	}
 	if cnt == 0 {
-		h.HandleErrors(w, r, errors.NotFoundf("follow request not found"))
+		h.v.HandleErrors(w, r, errors.NotFoundf("follow request not found"))
 		return
 	}
 	follow := followRequests[0]
 	err = repo.SendFollowResponse(follow, accept)
 	if err != nil {
-		h.HandleErrors(w, r, err)
+		h.v.HandleErrors(w, r, err)
 		return
 	}
 	backUrl := r.Header.Get("Referer")
-	h.Redirect(w, r, backUrl, http.StatusSeeOther)
+	h.v.Redirect(w, r, backUrl, http.StatusSeeOther)
 }
