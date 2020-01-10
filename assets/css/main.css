@@ -132,8 +132,7 @@ header .top {
     vertical-align: middle;
 }
 body > header h1.logo .icon {
-    height: 1.12em;
-    width: .9em;
+    height: 1.2em;
     vertical-align: bottom;
 }
 body > header h1.logo .icon.icon-l {
