@@ -380,10 +380,9 @@ func appName(n string) template.HTML {
 	parts := strings.Split(n, " ")
 	name := strings.Builder{}
 
-	initial := parts[0][0:1]
 	name.WriteString("<strong>")
-	name.WriteString(string(icon(initial)))
-	name.WriteString(parts[0][1:])
+	name.WriteString(string(icon("trash-o")))
+	name.WriteString(parts[0])
 	name.WriteString("</strong>")
 
 	for i, p := range parts {
