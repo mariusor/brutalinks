@@ -689,6 +689,10 @@ svg.icon.icon-adjust {
     aside.domain {
         display: none;
     }
+    .logo a strong,
+    .logo a small {
+        display: none;
+    }
 }
 @media (max-width: 330px) {
     .sections li a svg.icon.icon-activitypub {
@@ -702,9 +706,6 @@ svg.icon.icon-adjust {
     .sections li {
         font-size: 0;
         overflow: hidden;
-    }
-    body > header .top {
-        display: none;
     }
     :root {
         font-size: 3.8vw;
@@ -722,9 +723,6 @@ svg.icon.icon-adjust {
     .sections li {
         font-size: 0;
         overflow: hidden;
-    }
-    body > header .top {
-        display: none;
     }
     :root {
         font-size: 3.6vw;
