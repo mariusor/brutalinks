@@ -117,7 +117,7 @@ body > header h1 small {
     font-weight: lighter;
 }
 body > header nav {
-    padding-top: .6em;
+    padding-top: .72rem;
 }
 header .sections {
     margin-left: 1rem;
@@ -133,7 +133,7 @@ header .top {
 }
 body > header h1.logo .icon {
     height: 1.2em;
-    vertical-align: bottom;
+    margin-bottom: .5rem;
 }
 body > header h1.logo .icon.icon-l {
     width: .5em;
@@ -747,11 +747,6 @@ svg.icon.icon-adjust {
     }
     .sections li {
         font-size: unset;
-    }
-}
-@media (min-width: 640px) {
-    :root {
-        font-size: 2vw;
     }
 }
 @media (min-width: 768px) {
