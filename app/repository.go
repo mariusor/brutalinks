@@ -1388,12 +1388,12 @@ func (r *repository) LoadInfo() (WebInfo, error) {
 	return Instance.NodeInfo(), nil
 }
 
-func (h *handler) LoadItems(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func (r *repository) Load(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		var cursor Cursor
 		m := listingModel{}
-		m.User = account(r)
-		m.Items, cursor = h.storage.LoadCollectionWithCursor(FiltersFromContext(r.Context()))
+		m.User = account(req)
+		m.Items, cursor = r.LoadCollectionWithCursor(FiltersFromContext(req.Context()))
 
 		if cursor.next > 0 {
 			m.nextPage = cursor.next
@@ -1401,7 +1401,7 @@ func (h *handler) LoadItems(next http.Handler) http.Handler {
 		if  cursor.prev > 0 {
 			m.prevPage = cursor.prev
 		}
-		ctx := context.WithValue(r.Context(), CollectionCtxtKey, &m)
-		next.ServeHTTP(w, r.WithContext(ctx))
+		ctx := context.WithValue(req.Context(), CollectionCtxtKey, &m)
+		next.ServeHTTP(w, req.WithContext(ctx))
 	})
 }
