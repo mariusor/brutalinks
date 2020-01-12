@@ -59,8 +59,8 @@ func ActivityPubService(c appConfig) *repository {
 	return &repository{
 		BaseURL: c.APIURL,
 		fedbox:  f,
-		infoFn: infoFn,
-		errFn: errFn,
+		infoFn:  infoFn,
+		errFn:   errFn,
 	}
 }
 
@@ -665,6 +665,10 @@ func (r *repository) loadAuthors(items ...FollowRequest) ([]FollowRequest, error
 	return items, nil
 }
 
+func accountsEqual(a1, a2 Account) bool {
+	return bytes.Equal(a1.Hash, a2.Hash) || (len(a1.Handle)+len(a2.Handle) > 0 && a1.Handle == a2.Handle)
+}
+
 func (r *repository) loadItemsAuthors(items ...Item) (ItemCollection, error) {
 	if len(items) == 0 {
 		return items, nil
@@ -733,10 +737,20 @@ func (r *repository) loadItemsAuthors(items ...Item) (ItemCollection, error) {
 	return col, nil
 }
 
-func accountsEqual(a1, a2 Account) bool {
-	return bytes.Equal(a1.Hash, a2.Hash) || (len(a1.Handle)+len(a2.Handle) > 0 && a1.Handle == a2.Handle)
+type Cursor struct {
+	next  int
+	prev  int
+	total int
 }
 
+var emptyCursor = Cursor{}
+
+func (r *repository) LoadCollectionWithCursor(f *colFilters) ([]Renderable, Cursor) {
+	if f == nil {
+		return nil, emptyCursor
+	}
+	return nil, emptyCursor
+}
 func (r *repository) LoadItems(f Filters) (ItemCollection, uint, error) {
 	target := "/"
 	c := "objects"
@@ -1372,4 +1386,22 @@ func (r *repository) SaveAccount(a Account) (Account, error) {
 // but in the long term we might want to store some of this information in the DB
 func (r *repository) LoadInfo() (WebInfo, error) {
 	return Instance.NodeInfo(), nil
+}
+
+func (h *handler) LoadItems(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var cursor Cursor
+		m := listingModel{}
+		m.User = account(r)
+		m.Items, cursor = h.storage.LoadCollectionWithCursor(FiltersFromContext(r.Context()))
+
+		if cursor.next > 0 {
+			m.nextPage = cursor.next
+		}
+		if  cursor.prev > 0 {
+			m.prevPage = cursor.prev
+		}
+		ctx := context.WithValue(r.Context(), CollectionCtxtKey, &m)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
 }

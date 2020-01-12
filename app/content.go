@@ -82,7 +82,7 @@ const (
 	Appreciation
 )
 
-type HasType interface {
+type Renderable interface {
 	Type() RenderType
 }
 

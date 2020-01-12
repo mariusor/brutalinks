@@ -100,21 +100,21 @@ func ViewInit(c appConfig, infoFn, errFn LogFn) (*view, error) {
 	return &v, nil
 }
 
-func (h *view) addFlashMessage(typ flashType, r *http.Request, msgs ...string) {
-	s, _ := h.s.get(r)
+func (v *view) addFlashMessage(typ flashType, r *http.Request, msgs ...string) {
+	s, _ := v.s.get(r)
 	for _, msg := range msgs {
 		n := flash{typ, msg}
 		s.AddFlash(n)
 	}
 }
 
-func (h *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name string, m interface{}) error {
+func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name string, m interface{}) error {
 	var err error
 	var ac *Account
 	var s *sessions.Session
 
-	if s, err = h.s.get(r); err != nil {
-		h.errFn(err.Error(), log.Ctx{
+	if s, err = v.s.get(r); err != nil {
+		v.errFn(err.Error(), log.Ctx{
 			"template": name,
 			"model":    m,
 		})
@@ -138,9 +138,9 @@ func (h *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"title":             func(t []byte) string { return string(t) },
 			"getProviders":      getAuthProviders,
 			"CurrentAccount":    accountFromRequest,
-			"IsComment":         func(t HasType) bool { return t.Type() == Comment },
-			"IsFollowRequest":   func(t HasType) bool { return t.Type() == Follow },
-			"IsVote":            func(t HasType) bool { return t.Type() == Appreciation },
+			"IsComment":         func(t Renderable) bool { return t.Type() == Comment },
+			"IsFollowRequest":   func(t Renderable) bool { return t.Type() == Follow },
+			"IsVote":            func(t Renderable) bool { return t.Type() == Appreciation },
 			"LoadFlashMessages": loadFlashMessages(r, w, s),
 			"Mod10":             mod10,
 			"ShowText":          showText(m),
@@ -201,14 +201,14 @@ func (h *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 	}
 	if err = ren.HTML(w, http.StatusOK, name, m); err != nil {
 		new := errors.Annotatef(err, "failed to render template")
-		h.errFn(new.Error(), log.Ctx{
+		v.errFn(new.Error(), log.Ctx{
 			"template": name,
 			"model":    m,
 		})
 		ren.HTML(w, http.StatusInternalServerError, "error", new)
 	}
-	if err = h.s.save(w, r); err != nil {
-		h.errFn(err.Error(), log.Ctx{
+	if err = v.s.save(w, r); err != nil {
+		v.errFn(err.Error(), log.Ctx{
 			"template": name,
 			"model":    fmt.Sprintf("%#v", m),
 		})
@@ -217,7 +217,7 @@ func (h *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 }
 
 // HandleErrors serves failed requests
-func (h *view) HandleErrors(w http.ResponseWriter, r *http.Request, errs ...error) {
+func (v *view) HandleErrors(w http.ResponseWriter, r *http.Request, errs ...error) {
 	d := errorModel{
 		Errors: errs,
 	}
@@ -239,7 +239,7 @@ func (h *view) HandleErrors(w http.ResponseWriter, r *http.Request, errs ...erro
 		if renderErrors {
 			status = httpErrorResponse(err)
 		} else {
-			h.addFlashMessage(Error, r, err.Error())
+			v.addFlashMessage(Error, r, err.Error())
 		}
 	}
 
@@ -250,15 +250,15 @@ func (h *view) HandleErrors(w http.ResponseWriter, r *http.Request, errs ...erro
 		w.Header().Set("Cache-Control", " no-store, must-revalidate")
 		w.Header().Set("Pragma", " no-cache")
 		w.Header().Set("Expires", " 0")
-		h.RenderTemplate(r, w, "error", d)
+		v.RenderTemplate(r, w, "error", d)
 	} else {
-		h.Redirect(w, r, backURL, http.StatusFound)
+		v.Redirect(w, r, backURL, http.StatusFound)
 	}
 }
 
-func (h *view) Redirect(w http.ResponseWriter, r *http.Request, url string, status int) {
-	if err := h.s.save(w, r); err != nil {
-		h.errFn(err.Error(), log.Ctx{
+func (v *view) Redirect(w http.ResponseWriter, r *http.Request, url string, status int) {
+	if err := v.s.save(w, r); err != nil {
+		v.errFn(err.Error(), log.Ctx{
 			"status": status,
 			"url":    url,
 		})
@@ -398,7 +398,7 @@ func appName(n string) template.HTML {
 
 func showText(m interface{}) func() bool {
 	return func() bool {
-		mm, ok := m.(itemListingModel)
+		mm, ok := m.(listingModel)
 		return !ok || !mm.HideText
 	}
 }
@@ -572,9 +572,8 @@ func rejectLink(f FollowRequest) string {
 func pageLink(p int) template.HTML {
 	if p >= 1 {
 		return template.HTML(fmt.Sprintf("?page=%d", p))
-	} else {
-		return template.HTML("")
 	}
+	return ""
 }
 
 func canPaginate(m interface{}) bool {

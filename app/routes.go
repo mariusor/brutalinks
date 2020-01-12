@@ -19,7 +19,7 @@ func (h *handler) Routes() func(chi.Router) {
 
 		r.Get("/about", h.HandleAbout)
 
-		r.Get("/", h.HandleIndex)
+		r.With(DefaultFilters, h.LoadItems).Get("/", h.HandleListing)
 		r.With(h.CSRF).Group(func(r chi.Router) {
 			r.Get("/submit", h.ShowSubmit)
 			r.Post("/submit", h.HandleSubmit)
@@ -27,7 +27,7 @@ func (h *handler) Routes() func(chi.Router) {
 			r.With(checkUserCreatingEnabled).Post("/register", h.HandleRegister)
 		})
 
-		r.Route("/~{handle}", func(r chi.Router) {
+		r.With(DefaultFilters).Route("/~{handle}", func(r chi.Router) {
 			r.Get("/", h.ShowAccount)
 			r.Post("/", h.HandleSubmit)
 			r.Get("/follow", h.FollowAccount)
@@ -64,9 +64,8 @@ func (h *handler) Routes() func(chi.Router) {
 		r.Get("/i/{hash}", h.HandleItemRedirect)
 
 		// @todo(marius) :link_generation:
-		r.Get("/d", h.HandleDomains)
-		r.Get("/d/", h.HandleDomains)
-		r.Get("/d/{domain}", h.HandleDomains)
+		r.With(middleware.StripSlashes).Get("/d", h.HandleDomains)
+		r.With(DefaultFilters, h.LoadItems).Get("/d/{domain}", h.HandleDomains)
 		// @todo(marius) :link_generation:
 		r.Get("/t/{tag}", h.HandleTags)
 

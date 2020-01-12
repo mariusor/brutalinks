@@ -54,7 +54,7 @@ func (h *handler) ShowAccount(w http.ResponseWriter, r *http.Request) {
 		h.logger.Debug("unable to load url parameters")
 	}
 	baseURL, _ := url.Parse(h.conf.BaseURL)
-	m := itemListingModel{}
+	m := listingModel{}
 
 	m.Title = fmt.Sprintf("%s: %s submissions", baseURL.Host, genitive(handle))
 	m.User, _ = accounts.First()
@@ -180,17 +180,31 @@ func (h *handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 	h.v.Redirect(w, r, url, http.StatusFound)
 }
 
-// HandleReport serves /{year}/{month}/{day}/{hash}/report POST request
-// HandleReport serves /~{handle}/report request
+// HandleReport serves /{year}/{month}/{day}/{hash}/bad POST request
+// HandleReport serves /~{handle}/{hash}/bad request
 func (h *handler) HandleReport(w http.ResponseWriter, r *http.Request) {
 	m := contentModel{}
 	h.v.RenderTemplate(r, w, "new", m)
 }
 
-// ShowReport serves /{year}/{month}/{day}/{hash}/Report GET request
-// ShowReport serves /~{handle}/Report request
+// ShowReport serves /{year}/{month}/{day}/{hash}/bad GET request
+// ShowReport serves /~{handle}/{hash}/bad request
 func (h *handler) ShowReport(w http.ResponseWriter, r *http.Request) {
-	m := contentModel{}
+	hash := chi.URLParam(r, "hash")
+
+	repo := h.storage
+	p, err := repo.LoadItem(Filters{LoadItemsFilter: LoadItemsFilter{Key: Hashes{Hash(hash)}}})
+	if err != nil {
+		h.logger.Error(err.Error())
+		h.v.HandleErrors(w, r, errors.NewNotFound(err, "not found"))
+		return
+	}
+	m := contentModel{
+		Title: fmt.Sprintf("Report %s", p.Title),
+		Content: comment{
+			Item: p,
+		},
+	}
 	h.v.RenderTemplate(r, w, "new", m)
 }
 
@@ -493,7 +507,7 @@ func (h *handler) HandleIndex(w http.ResponseWriter, r *http.Request) {
 		filter.Federated = []bool{true}
 	default:
 	}
-	m := itemListingModel{}
+	m := listingModel{}
 	m.Title = title
 	m.HideText = true
 	comments, err := loadItems(r.Context(), filter, acct, h.logger)
@@ -503,9 +517,7 @@ func (h *handler) HandleIndex(w http.ResponseWriter, r *http.Request) {
 	for _, c := range comments {
 		m.Items = append(m.Items, c)
 	}
-	if len(comments) >= filter.MaxItems {
-		m.nextPage = filter.Page + 1
-	}
+	m.nextPage = filter.Page + 1
 	if filter.Page > 1 {
 		m.prevPage = filter.Page - 1
 	}
@@ -536,7 +548,7 @@ func (h *handler) HandleInbox(w http.ResponseWriter, r *http.Request) {
 
 	filter.FollowedBy = acct.Hash.String()
 
-	m := itemListingModel{}
+	m := listingModel{}
 	m.Title = title
 	m.HideText = true
 
@@ -586,7 +598,7 @@ func (h *handler) HandleTags(w http.ResponseWriter, r *http.Request) {
 		h.logger.Debug("unable to load url parameters")
 	}
 	baseURL, _ := url.Parse(h.conf.BaseURL)
-	m := itemListingModel{}
+	m := listingModel{}
 	m.Title = fmt.Sprintf("%s: tagged as #%s", baseURL.Host, tag)
 	comments, err := loadItems(r.Context(), filter, acct, h.logger)
 	if err != nil {
@@ -626,7 +638,7 @@ func (h *handler) HandleDomains(w http.ResponseWriter, r *http.Request) {
 		h.logger.Debug("unable to load url parameters")
 	}
 	baseURL, _ := url.Parse(h.conf.BaseURL)
-	m := itemListingModel{}
+	m := listingModel{}
 	m.Title = fmt.Sprintf("%s: from %s", baseURL.Host, domain)
 	m.HideText = true
 	comments, err := loadItems(r.Context(), filter, acct, h.logger)
@@ -678,7 +690,7 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 			"handle": handle,
 			"client": config.ClientID,
 			"state":  state,
-			"error": err,
+			"error":  err,
 		}).Error("login failed")
 		h.v.addFlashMessage(Error, r, "Login failed: invalid username or password")
 		h.v.Redirect(w, r, "/login", http.StatusSeeOther)
@@ -908,4 +920,17 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	}
 	h.v.Redirect(w, r, "/", http.StatusSeeOther)
 	return
+}
+
+// HandleListing serves /domains/{domain} request
+func (h *handler) HandleListing(w http.ResponseWriter, r *http.Request) {
+	model := ListingModelFromContext(r.Context())
+	if model == nil {
+		h.v.HandleErrors(w, r, errors.Errorf("Ooops!!"))
+		return
+	}
+	if err := h.v.RenderTemplate(r, w, "listing", model); err != nil {
+		h.v.HandleErrors(w, r, err)
+		return
+	}
 }

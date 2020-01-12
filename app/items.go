@@ -139,8 +139,8 @@ const (
 )
 
 func loadItems(c context.Context, filter Filters, acc *Account, l log.Logger) (comments, error) {
-	repo, ok := ContextRepository(c)
-	if !ok {
+	repo := ContextRepository(c)
+	if repo == nil {
 		err := errors.Errorf("could not load item repository from Context")
 		return nil, err
 	}

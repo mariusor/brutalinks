@@ -220,8 +220,8 @@ func checkUserCreatingEnabled(next http.Handler) http.Handler {
 
 func accountFromRequestHandle(r *http.Request) (*Account, error) {
 	handle := chi.URLParam(r, "handle")
-	repo, ok := ContextRepository(r.Context())
-	if !ok {
+	repo := ContextRepository(r.Context())
+	if repo == nil {
 		return nil, errors.Newf("could not load account repository from Context")
 	}
 	var err error
