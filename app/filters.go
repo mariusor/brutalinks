@@ -123,6 +123,7 @@ func copyAccountFilters(a *LoadAccountsFilter, b LoadAccountsFilter) {
 }
 
 type colFilters struct {
+	colURL string
 	Hash   string `qstring:"-"`
 	Handle string `qstring:"-"`
 	Action string `qstring:"-"`

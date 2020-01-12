@@ -19,7 +19,7 @@ func (h *handler) Routes() func(chi.Router) {
 
 		r.Get("/about", h.HandleAbout)
 
-		r.With(DefaultFilters, h.LoadItems).Get("/", h.HandleListing)
+		r.With(DefaultFilters, h.storage.Load).Get("/", h.HandleListing)
 		r.With(h.CSRF).Group(func(r chi.Router) {
 			r.Get("/submit", h.ShowSubmit)
 			r.Post("/submit", h.HandleSubmit)
@@ -64,10 +64,10 @@ func (h *handler) Routes() func(chi.Router) {
 		r.Get("/i/{hash}", h.HandleItemRedirect)
 
 		// @todo(marius) :link_generation:
-		r.With(middleware.StripSlashes).Get("/d", h.HandleDomains)
-		r.With(DefaultFilters, h.LoadItems).Get("/d/{domain}", h.HandleDomains)
+		r.With(DomainFilters, middleware.StripSlashes).Get("/d", h.HandleDomains)
+		r.With(DomainFilters).Get("/d/{domain}", h.HandleDomains)
 		// @todo(marius) :link_generation:
-		r.Get("/t/{tag}", h.HandleTags)
+		r.With(TagFilters).Get("/t/{tag}", h.HandleTags)
 
 		r.With(h.NeedsSessions).Get("/logout", h.HandleLogout)
 		r.With(h.CSRF, h.NeedsSessions).Group(func(r chi.Router) {
@@ -75,9 +75,9 @@ func (h *handler) Routes() func(chi.Router) {
 			r.Post("/login", h.HandleLogin)
 		})
 
-		r.Get("/self", h.HandleIndex)
-		r.Get("/federated", h.HandleIndex)
-		r.With(h.NeedsSessions, h.ValidateLoggedIn(h.v.HandleErrors)).Get("/followed", h.HandleInbox)
+		r.With(SelfFilters).Get("/self", h.HandleIndex)
+		r.With(FederatedFilters).Get("/federated", h.HandleIndex)
+		r.With(h.NeedsSessions, SelfFilters, h.ValidateLoggedIn(h.v.HandleErrors)).Get("/followed", h.HandleInbox)
 
 		r.Route("/auth", func(r chi.Router) {
 			r.Use(h.NeedsSessions)
