@@ -133,11 +133,10 @@ type headerEl struct {
 }
 
 func account(r *http.Request) *Account {
-	acct, ok := ContextAccount(r.Context())
-	if !ok {
-		return &defaultAccount
+	if acct := ContextAccount(r.Context()); acct != nil {
+		return acct
 	}
-	return acct
+	return &defaultAccount
 }
 
 // buildLink("name", someVar1, anotherVar2) :: /path/of/name/{var1}/{var2} -> /path/of/name/someVar1/someVar2
@@ -448,9 +447,8 @@ func (h *handler) ErrorHandler(errs ...error) http.Handler {
 var nodeInfo = WebInfo{}
 
 func getNodeInfo(req *http.Request) (WebInfo, error) {
-	c := req.Context()
-	repo, ok := ContextRepository(c)
-	if !ok {
+	repo := ContextRepository(req.Context())
+	if repo == nil {
 		err := errors.Errorf("could not load item repository from Context")
 		return WebInfo{}, err
 	}

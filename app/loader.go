@@ -3,11 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
-	as "github.com/go-ap/activitypub"
-	"github.com/mariusor/qstring"
-	"net/url"
 	"strings"
-	"time"
 )
 
 type CtxtKey string
@@ -59,13 +55,8 @@ type Filterable interface {
 }
 
 type Paginator interface {
-	QueryString() string
-	BasePage() Paginator
-	CurrentPage() Paginator
-	NextPage() Paginator
-	PrevPage() Paginator
-	FirstPage() Paginator
-	CurrentIndex() int
+	NextPage() int
+	PrevPage() int
 }
 
 type VoteTypes []VoteType
@@ -96,60 +87,6 @@ func (h Hashes) String() string {
 	return strings.Join(str, ", ")
 }
 
-type LoadVotesFilter struct {
-	ItemKey              []Hash                     `qstring:"object,omitempty"`
-	Type                 as.ActivityVocabularyTypes `qstring:"type,omitempty"`
-	AttributedTo         []Hash                     `qstring:"attributedTo,omitempty"`
-	SubmittedAt          time.Time                  `qstring:"submittedAt,omitempty"`
-	SubmittedAtMatchType MatchType                  `qstring:"submittedAtMatchType,omitempty"`
-}
-
-type LoadItemsFilter struct {
-	Key                  []Hash     `qstring:"iri,omitempty"`
-	MediaType            []MimeType `qstring:"mediaType,omitempty"`
-	AttributedTo         []Hash     `qstring:"attributedTo,omitempty"`
-	InReplyTo            []string   `qstring:"inReplyTo,omitempty"`
-	Context              []string   `qstring:"context,omitempty"`
-	SubmittedAt          time.Time  `qstring:"submittedAt,omitempty"`
-	SubmittedAtMatchType MatchType  `qstring:"submittedAtMatchType,omitempty"`
-	Content              string     `qstring:"content,omitempty"`
-	ContentMatchType     MatchType  `qstring:"contentMatchType,omitempty"`
-	Deleted              []bool     `qstring:"-"` // used as an array to allow for it to be missing
-	IRI                  string     `qstring:"id,omitempty"`
-	URL                  string     `qstring:"url,omitempty"`
-	Depth                int        `qstring:"depth,omitempty"`
-	Federated            []bool     `qstring:"-"` // used as an array to allow for it to be missing
-	Private              []bool     `qstring:"-"` // used as an array to allow for it to be missing
-	// FollowedBy is the hash or handle of the user of which we should show the list of items that were commented on or liked
-	FollowedBy   string `qstring:"followedBy,omitempty"`
-	contentAlias string
-	authorAlias  string
-}
-
-type Filters struct {
-	LoadAccountsFilter
-	LoadItemsFilter
-	LoadVotesFilter
-	LoadFollowRequestsFilter
-	Page     int `qstring:"page,omitempty"`
-	MaxItems int `qstring:"maxItems,omitempty"`
-}
-
-type LoadFollowRequestsFilter struct {
-	Key   []Hash `qstring:"iri,omitempty"`
-	Actor []Hash `qstring:"actor,omitempty"`
-	On    []Hash `qstring:"object,omitempty"`
-}
-
-type LoadAccountsFilter struct {
-	Key      []Hash   `qstring:"iri,omitempty"`
-	Handle   []string `qstring:"name,omitempty"`
-	Email    []string `qstring:"email,omitempty"`
-	Deleted  []bool   `qstring:"deleted,omitempty"`
-	IRI      string   `qstring:"id,omitempty"`
-	InboxIRI string   `qstring:"inbox,omitempty"`
-}
-
 func (v VoteType) String() string {
 	return strings.ToLower(string(v))
 }
@@ -157,21 +94,6 @@ func (v VoteType) String() string {
 //func (m MimeType) String() string {
 //	return url.QueryEscape(strings.ToLower(string(m)))
 //}
-
-func query(f Filterable) string {
-	res := ""
-
-	var u url.Values
-	var err error
-	if u, err = qstring.Marshal(f); err != nil {
-		return ""
-	}
-
-	if len(u) > 0 {
-		res = "?" + u.Encode()
-	}
-	return res
-}
 
 // @todo(marius) the GetWhereClauses methods should be moved to the db package into a different format
 func (f LoadVotesFilter) GetWhereClauses() ([]string, []interface{}) {
@@ -219,28 +141,6 @@ func (f LoadVotesFilter) GetWhereClauses() ([]string, []interface{}) {
 		wheres = append(wheres, fmt.Sprintf("(%s)", strings.Join(whereColumns, " OR ")))
 	}
 	return wheres, whereValues
-}
-
-func copyVotesFilters(a *LoadVotesFilter, b LoadVotesFilter) {
-	a.ItemKey = b.ItemKey
-	a.Type = b.Type
-	a.AttributedTo = b.AttributedTo
-	a.SubmittedAt = b.SubmittedAt
-	a.SubmittedAtMatchType = b.SubmittedAtMatchType
-}
-
-// @todo(marius) the WithContentAlias methods should be moved to the db package into a different format
-//   as we can see here, the aliases show that
-func (f *LoadItemsFilter) WithAuthorAlias(s string) *LoadItemsFilter {
-	f.authorAlias = s
-	return f
-}
-
-// @todo(marius) the WithContentAlias methods should be moved to the db package into a different format
-//   as we can see here, the aliases show that
-func (f *LoadItemsFilter) WithContentAlias(s string) *LoadItemsFilter {
-	f.contentAlias = s
-	return f
 }
 
 // @todo(marius) the GetWhereClauses methods should be moved to the db package into a different format
@@ -382,54 +282,8 @@ FROM "items" WHERE "key" ~* ?%d) AND "%s"."path" IS NOT NULL)`, it, counter, it)
 	return wheres, whereValues
 }
 
-func copyItemsFilters(a *LoadItemsFilter, b LoadItemsFilter) {
-	a.Key = b.Key
-	a.MediaType = b.MediaType
-	a.AttributedTo = b.AttributedTo
-	a.InReplyTo = b.InReplyTo
-	a.Context = b.Context
-	a.SubmittedAt = b.SubmittedAt
-	a.SubmittedAtMatchType = b.SubmittedAtMatchType
-	a.Content = b.Content
-	a.ContentMatchType = b.ContentMatchType
-	a.Deleted = b.Deleted
-	a.IRI = b.IRI
-	a.Deleted = b.Deleted
-	a.FollowedBy = b.FollowedBy
-	a.contentAlias = b.contentAlias
-	a.authorAlias = b.authorAlias
-}
-
 func (f *Filters) QueryString() string {
 	return query(f)
-}
-
-func (f *Filters) BasePage() Paginator {
-	b := &Filters{}
-	copyFilters(b, *f)
-	return b
-}
-
-func (f *Filters) CurrentPage() Paginator {
-	return f
-}
-func (f *Filters) NextPage() Paginator {
-	b := &Filters{}
-	copyFilters(b, *f)
-	b.Page += 1
-	return b
-}
-func (f *Filters) PrevPage() Paginator {
-	b := &Filters{}
-	copyFilters(b, *f)
-	b.Page -= 1
-	return b
-}
-func (f *Filters) FirstPage() Paginator {
-	b := &Filters{}
-	copyFilters(b, *f)
-	b.Page = 1
-	return b
 }
 func (f *Filters) CurrentIndex() int {
 	return f.Page
@@ -520,31 +374,18 @@ func (f LoadAccountsFilter) GetWhereClauses() ([]string, []interface{}) {
 	return wheres, whereValues
 }
 
-func copyFilters(a *Filters, b Filters) {
-	copyAccountFilters(&a.LoadAccountsFilter, b.LoadAccountsFilter)
-	copyItemsFilters(&a.LoadItemsFilter, b.LoadItemsFilter)
-	copyVotesFilters(&a.LoadVotesFilter, b.LoadVotesFilter)
-	a.MaxItems = b.MaxItems
-	a.Page = b.Page
+
+func ContextRepository(ctx context.Context) *repository {
+	if l, ok := ctx.Value(RepositoryCtxtKey).(*repository); ok {
+		return l
+	}
+	return nil
 }
 
-func copyAccountFilters(a *LoadAccountsFilter, b LoadAccountsFilter) {
-	a.Key = b.Key
-	a.Handle = b.Handle
-	a.Email = b.Email
-	a.Deleted = b.Deleted
-	a.InboxIRI = b.InboxIRI
-	a.IRI = b.IRI
-}
-
-func ContextRepository(ctx context.Context) (*repository, bool) {
-	ctxVal := ctx.Value(RepositoryCtxtKey)
-	l, ok := ctxVal.(*repository)
-	return l, ok
-}
-
-func ContextAccount(ctx context.Context) (*Account, bool) {
+func ContextAccount(ctx context.Context) *Account {
 	ctxVal := ctx.Value(AccountCtxtKey)
-	a, ok := ctxVal.(*Account)
-	return a, ok
+	if a, ok := ctxVal.(*Account); ok {
+		return a
+	}
+	return nil
 }
