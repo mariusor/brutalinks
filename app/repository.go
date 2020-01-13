@@ -16,6 +16,7 @@ import (
 	"github.com/spacemonkeygo/httpsig"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -46,10 +47,9 @@ func ActivityPubService(c appConfig) *repository {
 
 	infoFn := func(s string, ctx log.Ctx) {}
 	errFn := func(s string, ctx log.Ctx) {
-		if ctx == nil {
-			ctx = log.Ctx{}
+		if ctx != nil {
+			ctx = log.Ctx{"client": "api"}
 		}
-		ctx["client"] = "api"
 		c.Logger.WithContext(ctx).Error(s)
 	}
 	ua := fmt.Sprintf("%s-%s", Instance.HostName, Instance.Version)
@@ -740,17 +740,113 @@ func (r *repository) loadItemsAuthors(items ...Item) (ItemCollection, error) {
 type Cursor struct {
 	next  int
 	prev  int
-	total int
+	total uint
 }
 
 var emptyCursor = Cursor{}
 
-func (r *repository) LoadCollectionWithCursor(f *colFilters) ([]Renderable, Cursor) {
-	if f == nil {
-		return nil, emptyCursor
+func (r *repository) Inbox(f *fedFilters) ([]Renderable, Cursor, error) {
+	col, err := r.fedbox.Inbox(r.fedbox.Service(), Values(f))
+	if err != nil {
+		return nil, emptyCursor, err
 	}
-	return nil, emptyCursor
+	itemTypes := pub.ActivityVocabularyTypes{
+		pub.ArticleType,
+		pub.NoteType,
+		pub.LinkType,
+		pub.DocumentType,
+		pub.VideoType,
+		pub.AudioType,
+	}
+
+	var cursor Cursor
+	items := make([]Renderable, 0)
+	var count uint = 0
+	toDeref := make(pub.IRIs, 0)
+
+	cursorFromColPage := func(cur *Cursor, p *pub.OrderedCollectionPage) {
+		if pURL, err := p.Prev.GetLink().URL(); err == nil {
+			if pPage, err := strconv.ParseInt(pURL.Query().Get("page"), 10, 16); err == nil {
+				cursor.prev = int(pPage)
+			}
+		}
+		if nURL, err := p.Next.GetLink().URL(); err == nil {
+			if nPage, err := strconv.ParseInt(nURL.Query().Get("page"), 10, 16); err == nil {
+				cursor.next = int(nPage)
+			}
+		}
+	}
+	cursorFromCol := func(cur *Cursor, c *pub.OrderedCollection) {
+		cursor.total = count
+		if pURL, err := c.First.GetLink().URL(); err == nil {
+			if pPage, err := strconv.ParseInt(pURL.Query().Get("page"), 10, 16); err == nil {
+				cursor.next = int(pPage) + 1
+			}
+		}
+	}
+	itemsFromCol := func(c *pub.OrderedCollection) error {
+		count = c.TotalItems
+		cursorFromCol(&cursor, c)
+
+		for _, it := range c.OrderedItems {
+			pub.OnActivity(it, func(a *pub.Activity) error {
+				ob := a.Object
+				if ob.IsObject() {
+					if itemTypes.Contains(ob.GetType()) {
+						i := Item{}
+						i.FromActivityPub(ob)
+						items = append(items, &comment{Item: i})
+					}
+				} else {
+					toDeref = append(toDeref, ob.GetLink())
+				}
+				return nil
+			})
+		}
+		return nil
+	}
+
+	if col.GetType() == pub.OrderedCollectionPageType {
+		pub.OnOrderedCollectionPage(col, func(p *pub.OrderedCollectionPage) error {
+			pub.OnOrderedCollection(p, func(c *pub.OrderedCollection) error {
+				return itemsFromCol(c)
+			})
+			cursorFromColPage(&cursor, p)
+			return nil
+		})
+	}
+	if col.GetType() == pub.OrderedCollectionType {
+		pub.OnOrderedCollection(col, func(c *pub.OrderedCollection) error {
+			return itemsFromCol(c)
+		})
+	}
+
+	if len(toDeref) > 0 {
+		f := fedFilters{
+			IRI:  toDeref,
+			Type: itemTypes,
+		}
+		objects, err := r.fedbox.Objects(Values(&f))
+		if err != nil {
+			// err
+		}
+		pub.OnOrderedCollection(objects, func(c *pub.OrderedCollection) error {
+			for _, it := range c.OrderedItems {
+				if it.IsObject() {
+					if itemTypes.Contains(it.GetType()) {
+						i := Item{}
+						i.FromActivityPub(it)
+						items = append(items, &comment{Item: i})
+					}
+				}
+			}
+			return nil
+		})
+	}
+
+	return items, emptyCursor, nil
 }
+
 func (r *repository) LoadItems(f Filters) (ItemCollection, uint, error) {
 	target := "/"
 	c := "objects"
@@ -1234,9 +1330,9 @@ func (r *repository) LoadAccount(f Filters) (Account, error) {
 	return *ac, nil
 }
 
-func Values(f Filters) func() url.Values {
+func Values(f interface{}) func() url.Values {
 	return func() url.Values {
-		v, _ := qstring.Marshal(&f)
+		v, _ := qstring.Marshal(f)
 		return v
 	}
 }
@@ -1391,14 +1487,19 @@ func (r *repository) LoadInfo() (WebInfo, error) {
 func (r *repository) Load(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		var cursor Cursor
+		var err error
+
 		m := listingModel{}
 		m.User = account(req)
-		m.Items, cursor = r.LoadCollectionWithCursor(FiltersFromContext(req.Context()))
+		m.Items, cursor, err = r.Inbox(FiltersFromContext(req.Context()))
+		if err != nil {
+			// err
+		}
 
 		if cursor.next > 0 {
 			m.nextPage = cursor.next
 		}
-		if  cursor.prev > 0 {
+		if cursor.prev > 0 {
 			m.prevPage = cursor.prev
 		}
 		ctx := context.WithValue(req.Context(), CollectionCtxtKey, &m)
