@@ -122,27 +122,39 @@ func copyAccountFilters(a *LoadAccountsFilter, b LoadAccountsFilter) {
 	a.IRI = b.IRI
 }
 
-type colFilters struct {
-	colURL string
-	Hash   string `qstring:"-"`
-	Handle string `qstring:"-"`
-	Action string `qstring:"-"`
-	Domain string `qstring:"-"`
-	Tag    string `qstring:"-"`
+type fedFilters struct {
+	Name       []string                    `qstring:"name,omitempty"`
+	Cont       []string                    `qstring:"content,omitempty"`
+	URL        pub.IRIs                    `qstring:"url,omitempty"`
+	MedTypes   []pub.MimeType              `qstring:"mediaType,omitempty"`
+	IRI        pub.IRIs                    `qstring:"iri,omitempty"`
+	ObjectKey  []string                    `qstring:"object,omitempty"`
+	ActorKey   []string                    `qstring:"actor,omitempty"`
+	TargetKey  []string                    `qstring:"target,omitempty"`
+	Type       pub.ActivityVocabularyTypes `qstring:"type,omitempty"`
+	AttrTo     []string                    `qstring:"attributedTo,omitempty"`
+	InReplTo   []string                    `qstring:"inReplyTo,omitempty"`
+	OP         []string                    `qstring:"context,omitempty"`
+	FollowedBy []string                    `qstring:"followedBy,omitempty"` // todo(marius): not really used
+	CurPage    uint                        `qstring:"page,omitempty"`
+	MaxItems   uint                        `qstring:"maxItems,omitempty"`
 }
 
 // FiltersFromRequest loads the filters we use for generating storage queries from the HTTP request
-func FiltersFromRequest(r *http.Request) *colFilters {
-	f := colFilters{}
+func FiltersFromRequest(r *http.Request) *fedFilters {
+	f := fedFilters{}
 	if err := qstring.Unmarshal(r.URL.Query(), &f); err != nil {
 		return nil
+	}
+	if f.MaxItems == 0 {
+		f.MaxItems = MaxContentItems
 	}
 	return &f
 }
 
 // FiltersFromRequest loads the filters we use for generating storage queries from the HTTP request
-func FiltersFromContext(ctx context.Context) *colFilters {
-	if f, ok := ctx.Value(FilterCtxtKey).(*colFilters); ok {
+func FiltersFromContext(ctx context.Context) *fedFilters {
+	if f, ok := ctx.Value(FilterCtxtKey).(*fedFilters); ok {
 		return f
 	}
 	return nil
@@ -151,7 +163,10 @@ func FiltersFromContext(ctx context.Context) *colFilters {
 func DefaultFilters(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := FiltersFromRequest(r)
-		ctx := context.WithValue(r.Context(), FilterCtxtKey, &f)
+		f.Type = pub.ActivityVocabularyTypes{
+			pub.CreateType,
+		}
+		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -159,7 +174,8 @@ func DefaultFilters(next http.Handler) http.Handler {
 func SelfFilters(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := FiltersFromRequest(r)
-		ctx := context.WithValue(r.Context(), FilterCtxtKey, &f)
+		f.IRI = pub.IRIs{pub.IRI("http://federated.id")}
+		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -167,7 +183,11 @@ func SelfFilters(next http.Handler) http.Handler {
 func FollowedFilters(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := FiltersFromRequest(r)
-		ctx := context.WithValue(r.Context(), FilterCtxtKey, &f)
+		f.Type = pub.ActivityVocabularyTypes{
+			pub.CreateType,
+			pub.FollowType,
+		}
+		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -175,7 +195,7 @@ func FollowedFilters(next http.Handler) http.Handler {
 func FederatedFilters(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := FiltersFromRequest(r)
-		ctx := context.WithValue(r.Context(), FilterCtxtKey, &f)
+		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -183,8 +203,8 @@ func FederatedFilters(next http.Handler) http.Handler {
 func DomainFilters(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := FiltersFromRequest(r)
-		f.Domain = chi.URLParam(r, "domain")
-		ctx := context.WithValue(r.Context(), FilterCtxtKey, &f)
+		f.URL = pub.IRIs{pub.IRI(chi.URLParam(r, "domain"))}
+		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -192,16 +212,16 @@ func DomainFilters(next http.Handler) http.Handler {
 func TagFilters(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := FiltersFromRequest(r)
-		f.Tag = chi.URLParam(r, "tag")
-		ctx := context.WithValue(r.Context(), FilterCtxtKey, &f)
+		f.Cont = []string{chi.URLParam(r, "tag")}
+		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 func AccountFilters(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := FiltersFromRequest(r)
-		f.Handle = chi.URLParam(r, "handle")
-		ctx := context.WithValue(r.Context(), FilterCtxtKey, &f)
+		f.AttrTo = []string{chi.URLParam(r, "handle")}
+		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

@@ -926,11 +926,10 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 func (h *handler) HandleListing(w http.ResponseWriter, r *http.Request) {
 	model := ListingModelFromContext(r.Context())
 	if model == nil {
-		h.v.HandleErrors(w, r, errors.Errorf("Ooops!!"))
+		h.v.HandleErrors(w, r, errors.Errorf("Oops!!"))
 		return
 	}
 	if err := h.v.RenderTemplate(r, w, "listing", model); err != nil {
 		h.v.HandleErrors(w, r, err)
-		return
 	}
 }

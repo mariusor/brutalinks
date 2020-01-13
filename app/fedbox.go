@@ -128,6 +128,7 @@ func (f fedbox) collection(i pub.IRI) (pub.CollectionInterface, error) {
 func (f fedbox) object(i pub.IRI) (pub.Item, error) {
 	return f.client.LoadIRI(i)
 }
+
 func rawFilterQuery(f ...FilterFn) string {
 	if len(f) == 0 {
 		return ""
@@ -353,4 +354,14 @@ func (f fedbox) ToInbox(a pub.Item) (pub.IRI, pub.Item, error) {
 		return "", nil, errors.Newf("Invalid URL to post to")
 	}
 	return postRequest(f, url, a)
+}
+func (f *fedbox) Service() pub.Service {
+	s := pub.Service{
+		ID:                pub.ID(f.baseURL.String()),
+		Type:              pub.ServiceType,
+		URL:               pub.IRI(f.baseURL.String()),
+	}
+	s.Inbox = inbox(s)
+
+	return s
 }
