@@ -745,6 +745,12 @@ type Cursor struct {
 
 var emptyCursor = Cursor{}
 
+// Inbox loads the service's inbox collection.
+// First step is to load the Create activities from the inbox
+// Iterating over the activities in the resulting collection, we gather the objects and actors
+//  With the resulting Object IRIs we load from the objects collection with our matching filters
+//  With the resulting Actor IRIs we load from the actors collection with matching filters
+// From the
 func (r *repository) Inbox(f *fedFilters) ([]Renderable, Cursor, error) {
 	col, err := r.fedbox.Inbox(r.fedbox.Service(), Values(f))
 	if err != nil {
@@ -754,15 +760,21 @@ func (r *repository) Inbox(f *fedFilters) ([]Renderable, Cursor, error) {
 		pub.ArticleType,
 		pub.NoteType,
 		pub.LinkType,
+		pub.PageType,
 		pub.DocumentType,
 		pub.VideoType,
 		pub.AudioType,
 	}
+	actTypes := pub.ActivityVocabularyTypes{
+		pub.ActorType,
+	}
 
 	var cursor Cursor
-	items := make([]Renderable, 0)
 	var count uint = 0
-	toDeref := make(pub.IRIs, 0)
+
+	items := make([]comment, 0)
+	obToLoad := make(pub.IRIs, 0)
+	actToLoad := make(pub.IRIs, 0)
 
 	cursorFromColPage := func(cur *Cursor, p *pub.OrderedCollectionPage) {
 		if pURL, err := p.Prev.GetLink().URL(); err == nil {
@@ -787,18 +799,30 @@ func (r *repository) Inbox(f *fedFilters) ([]Renderable, Cursor, error) {
 	itemsFromCol := func(c *pub.OrderedCollection) error {
 		count = c.TotalItems
 		cursorFromCol(&cursor, c)
-
 		for _, it := range c.OrderedItems {
 			pub.OnActivity(it, func(a *pub.Activity) error {
+				act := a.Actor
+				iri := act.GetLink()
+				if !act.IsObject() && !actToLoad.Contains(iri) && pub.PublicNS != iri {
+					actToLoad = append(actToLoad, iri)
+				}
 				ob := a.Object
 				if ob.IsObject() {
 					if itemTypes.Contains(ob.GetType()) {
 						i := Item{}
 						i.FromActivityPub(ob)
-						items = append(items, &comment{Item: i})
+						if act.IsObject() {
+							auth := Account{}
+							auth.FromActivityPub(act)
+							i.SubmittedBy = &auth
+						}
+						items = append(items, comment{Item: i})
 					}
 				} else {
-					toDeref = append(toDeref, ob.GetLink())
+					iri := ob.GetLink()
+					if !ob.IsObject() && !obToLoad.Contains(iri) {
+						obToLoad = append(obToLoad, iri)
+					}
 				}
 				return nil
 			})
@@ -821,10 +845,11 @@ func (r *repository) Inbox(f *fedFilters) ([]Renderable, Cursor, error) {
 		})
 	}
 
-	if len(toDeref) > 0 {
+	if len(obToLoad) > 0 {
 		f := fedFilters{
-			IRI:  toDeref,
-			Type: itemTypes,
+			IRI:      obToLoad,
+			Type:     itemTypes,
+			InReplTo: []string{""},
 		}
 		objects, err := r.fedbox.Objects(Values(&f))
 		if err != nil {
@@ -836,7 +861,34 @@ func (r *repository) Inbox(f *fedFilters) ([]Renderable, Cursor, error) {
 					if itemTypes.Contains(it.GetType()) {
 						i := Item{}
 						i.FromActivityPub(it)
-						items = append(items, &comment{Item: i})
+						items = append(items, comment{Item: i})
+					}
+				}
+			}
+			return nil
+		})
+	}
+	// Match loaded actors to the items' authors
+	if len(actToLoad) > 0 {
+		f := fedFilters{
+			IRI:  actToLoad,
+			Type: actTypes,
+		}
+		actors, err := r.fedbox.Actors(Values(&f))
+		if err != nil {
+			// err
+		}
+		pub.OnOrderedCollection(actors, func(c *pub.OrderedCollection) error {
+			for _, it := range c.OrderedItems {
+				if it.IsObject() {
+					if itemTypes.Contains(it.GetType()) {
+						a := Account{}
+						a.FromActivityPub(it)
+						for i := range items {
+							if HashesEqual(items[i].SubmittedBy.Hash, a.Hash) {
+								items[i].SubmittedBy = &a
+							}
+						}
 					}
 				}
 			}
@@ -844,7 +896,11 @@ func (r *repository) Inbox(f *fedFilters) ([]Renderable, Cursor, error) {
 		})
 	}
 
-	return items, emptyCursor, nil
+	result := make([]Renderable, len(items))
+	for i, com := range items {
+		result[i] = &com
+	}
+	return result, emptyCursor, nil
 }
 
 func (r *repository) LoadItems(f Filters) (ItemCollection, uint, error) {

@@ -128,7 +128,7 @@ type fedFilters struct {
 	URL        pub.IRIs                    `qstring:"url,omitempty"`
 	MedTypes   []pub.MimeType              `qstring:"mediaType,omitempty"`
 	IRI        pub.IRIs                    `qstring:"iri,omitempty"`
-	ObjectKey  []string                    `qstring:"object,omitempty"`
+	ObjectIRI  pub.IRIs                    `qstring:"object,omitempty"`
 	ActorKey   []string                    `qstring:"actor,omitempty"`
 	TargetKey  []string                    `qstring:"target,omitempty"`
 	Type       pub.ActivityVocabularyTypes `qstring:"type,omitempty"`
