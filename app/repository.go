@@ -839,10 +839,6 @@ func LoadFromCollection(f func(*fedFilters) (pub.CollectionInterface, error), cu
 				err := pub.OnOrderedCollectionPage(col, func(c *pub.OrderedCollectionPage) error {
 					_, cur.next = getOrderedCollectionPagePrevNext(c)
 					status, err := accum(c.OrderedItems)
-					if len(c.OrderedItems) < cur.filters.MaxItems {
-						cur.next = ""
-						status = true
-					}
 					done <- status
 					return err
 				})
@@ -855,10 +851,6 @@ func LoadFromCollection(f func(*fedFilters) (pub.CollectionInterface, error), cu
 				err := pub.OnOrderedCollection(col, func(c *pub.OrderedCollection) error {
 					cur.next = getOrderedCollectionNext(c)
 					status, err := accum(c.OrderedItems)
-					if len(c.OrderedItems) < cur.filters.MaxItems {
-						cur.next = ""
-						status = true
-					}
 					done <- status
 					return err
 				})
@@ -871,10 +863,6 @@ func LoadFromCollection(f func(*fedFilters) (pub.CollectionInterface, error), cu
 				err := pub.OnCollectionPage(col, func(c *pub.CollectionPage) error {
 					_, cur.next = getCollectionPagePrevNext(c)
 					status, err := accum(c.Items)
-					if len(c.Items) < cur.filters.MaxItems {
-						cur.next = ""
-						status = true
-					}
 					done <- status
 					return err
 				})
@@ -887,10 +875,6 @@ func LoadFromCollection(f func(*fedFilters) (pub.CollectionInterface, error), cu
 				err := pub.OnCollection(col, func(c *pub.Collection) error {
 					cur.next = getCollectionNext(c)
 					status, err := accum(c.Items)
-					if len(c.Items) < cur.filters.MaxItems {
-						cur.next = ""
-						status = true
-					}
 					done <- status
 					return err
 				})
@@ -982,21 +966,27 @@ func (r *repository) Inbox(f *fedFilters) (Cursor, error) {
 			}
 		}
 
+		before := len(*items)
+		var after int
 		if len(obToLoad) > 0 {
 			f := fedFilters{
 				IRI:  obToLoad,
 				Type: ValidItemTypes,
 				OP:   []string{"-"},
 			}
+
 			err := LoadFromCollection(objects, &colCursor{filters: &f}, func(c pub.ItemCollection) (b bool, err error) {
 				return objectsFromObjectsCol(items, c)
 			})
+			after = len(*items)
 			if err != nil {
 				return true, err
 			}
 		}
 
-		return len(*items) == f.MaxItems, nil
+		// TODO(marius): this needs to be externalized also to a different function that we can pass from outer scope
+		//   This function implements the logic for breaking out of the collection iteration cycle and returns a bool
+		return before == after || after == f.MaxItems, nil
 	}
 
 	items := make([]Item, 0)
