@@ -95,19 +95,22 @@ func (h *handler) Routes() func(chi.Router) {
 		assets := filepath.Join(workDir, "assets")
 
 		// static
-		r.With(StripCookies).Get("/ns", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		r.With(StripCookies).Get("/ns", func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/ld+json")
+			w.Header().Set("Cache-Control", "public,max-age=31557600")
 			http.ServeFile(w, r, filepath.Join(assets, "ns.json"))
-		}))
-		r.With(StripCookies).Get("/favicon.ico", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		})
+		r.With(StripCookies).Get("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Cache-Control", "public,max-age=31557600")
 			http.ServeFile(w, r, filepath.Join(assets, "favicon.ico"))
-		}))
-		r.With(StripCookies).Get("/icons.svg", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		})
+		r.With(StripCookies).Get("/icons.svg", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Cache-Control", "public,max-age=31557600")
 			http.ServeFile(w, r, filepath.Join(assets, "icons.svg"))
-		}))
-		r.With(StripCookies).Get("/robots.txt", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		})
+		r.With(StripCookies).Get("/robots.txt", func(w http.ResponseWriter, r *http.Request) {
 			http.ServeFile(w, r, filepath.Join(assets, "robots.txt"))
-		}))
+		})
 		r.With(StripCookies).Get("/css/{path}", serveFiles(filepath.Join(assets, "css")))
 		r.With(StripCookies).Get("/js/{path}", serveFiles(filepath.Join(assets, "js")))
 	}
@@ -117,6 +120,7 @@ func serveFiles(st string) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		path := filepath.Clean(chi.URLParam(r, "path"))
 		fullPath := filepath.Join(st, path)
+		w.Header().Set("Cache-Control", "public,max-age=31557600")
 		http.ServeFile(w, r, fullPath)
 	}
 }
