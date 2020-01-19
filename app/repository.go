@@ -29,7 +29,8 @@ type repository struct {
 }
 
 var ValidActorTypes = pub.ActivityVocabularyTypes{
-	pub.ActorType,
+	pub.PersonType,
+	pub.TombstoneType,
 }
 
 var ValidItemTypes = pub.ActivityVocabularyTypes{
@@ -40,6 +41,7 @@ var ValidItemTypes = pub.ActivityVocabularyTypes{
 	pub.DocumentType,
 	pub.VideoType,
 	pub.AudioType,
+	pub.TombstoneType,
 }
 
 var ValidActivityTypes = pub.ActivityVocabularyTypes{
@@ -996,45 +998,44 @@ func (r *repository) Inbox(f *fedFilters) (Cursor, error) {
 	if err != nil {
 		return emptyCursor, err
 	}
-	//actToLoad := make(pub.IRIs, 0)
-	//for _, it := range items {
-	//	if it.Item.SubmittedBy == nil {
-	//		continue
-	//	}
-	//	if len(it.Item.SubmittedBy.Handle) == 0 {
-	//		act := pub.IRI(it.Item.SubmittedBy.Metadata.ID)
-	//		if !actToLoad.Contains(act) {
-	//			actToLoad = append(actToLoad, act)
-	//		}
-	//	}
-	//}
-	//// Match loaded actors to the items' authors
-	//if len(actToLoad) > 0 {
-	//	f := fedFilters{
-	//		IRI:  actToLoad,
-	//		Type: ValidActorTypes,
-	//	}
-	//	actors, err := r.fedbox.Actors(Values(&f))
-	//	if err != nil {
-	//		// err
-	//	}
-	//	pub.OnOrderedCollection(actors, func(c *pub.OrderedCollection) error {
-	//		for _, it := range c.OrderedItems {
-	//			if !it.IsObject() || !ValidActorTypes.Contains(it.GetType()) {
-	//				continue
-	//			}
-	//			a := Account{}
-	//			a.FromActivityPub(it)
-	//			for i := range items {
-	//				if HashesEqual(items[i].SubmittedBy.Hash, a.Hash) {
-	//					items[i].SubmittedBy = &a
-	//					continue
-	//				}
-	//			}
-	//		}
-	//		return nil
-	//	})
-	//}
+	actToLoad := make(pub.IRIs, 0)
+	for _, it := range items {
+		if it.SubmittedBy == nil {
+			continue
+		}
+		if len(it.SubmittedBy.Handle) == 0 {
+			act := pub.IRI(it.SubmittedBy.Metadata.ID)
+			if !actToLoad.Contains(act) {
+				actToLoad = append(actToLoad, act)
+			}
+		}
+	}
+	// Match loaded actors to the items' authors
+	if len(actToLoad) > 0 {
+		f := fedFilters{
+			IRI:  actToLoad,
+			Type: ValidActorTypes,
+		}
+		actors := func(f *fedFilters) (pub.CollectionInterface, error) {
+			return r.fedbox.Actors(Values(f))
+		}
+		LoadFromCollection(actors, &colCursor{filters: &f}, func(col pub.ItemCollection) (bool, error) {
+			for _, it := range col {
+				if !it.IsObject() || !ValidActorTypes.Contains(it.GetType()) {
+					continue
+				}
+				a := Account{}
+				a.FromActivityPub(it)
+				for i := range items {
+					if HashesEqual(items[i].SubmittedBy.Hash, a.Hash) {
+						items[i].SubmittedBy = &a
+						continue
+					}
+				}
+			}
+			return true, nil
+		})
+	}
 
 	result := make([]Renderable, 0)
 	for _, it := range items {
