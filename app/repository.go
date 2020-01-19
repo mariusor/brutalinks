@@ -16,7 +16,6 @@ import (
 	"github.com/spacemonkeygo/httpsig"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -27,6 +26,26 @@ type repository struct {
 	fedbox  *fedbox
 	infoFn  LogFn
 	errFn   LogFn
+}
+
+var ValidActorTypes = pub.ActivityVocabularyTypes{
+	pub.ActorType,
+}
+
+var ValidItemTypes = pub.ActivityVocabularyTypes{
+	pub.ArticleType,
+	pub.NoteType,
+	pub.LinkType,
+	pub.PageType,
+	pub.DocumentType,
+	pub.VideoType,
+	pub.AudioType,
+}
+
+var ValidActivityTypes = pub.ActivityVocabularyTypes{
+	pub.CreateType,
+	pub.LikeType,
+	pub.FollowType,
 }
 
 // Repository middleware
@@ -738,12 +757,164 @@ func (r *repository) loadItemsAuthors(items ...Item) (ItemCollection, error) {
 }
 
 type Cursor struct {
-	next  int
-	prev  int
-	total uint
+	after  Hash
+	before Hash
+	items  []Renderable
+	total  uint
 }
 
 var emptyCursor = Cursor{}
+
+type colCursor struct {
+	next    string
+	prev    string
+	filters *fedFilters
+	items   pub.ItemCollection
+}
+
+func getOrderedCollectionPagePrevNext(c *pub.OrderedCollectionPage) (string, string) {
+	var prev, next string
+	if c.Prev != nil {
+		if pUrl, err := c.Prev.GetLink().URL(); err == nil {
+			prev = pUrl.Query().Get("before")
+		}
+	}
+	if c.Next != nil {
+		if nUrl, err := c.Next.GetLink().URL(); err == nil {
+			next = nUrl.Query().Get("after")
+		}
+	}
+
+	return prev, next
+}
+
+func getCollectionPagePrevNext(c *pub.CollectionPage) (string, string) {
+	var prev, next string
+	if c.Prev != nil {
+		if pUrl, err := c.Prev.GetLink().URL(); err == nil {
+			prev = pUrl.Query().Get("before")
+		}
+	}
+	if c.Next != nil {
+		if nUrl, err := c.Next.GetLink().URL(); err == nil {
+			next = nUrl.Query().Get("after")
+		}
+	}
+
+	return prev, next
+}
+func getOrderedCollectionNext(c *pub.OrderedCollection) string {
+	var next string
+	if c.First != nil {
+		if fUrl, err := c.First.GetLink().URL(); err == nil {
+			next = fUrl.Query().Get("after")
+		}
+	}
+
+	return next
+}
+
+func getCollectionNext(c *pub.Collection) string {
+	var next string
+	if fUrl, err := c.First.GetLink().URL(); err == nil {
+		next = fUrl.Query().Get("after")
+	}
+
+	return next
+}
+
+// LoadFromCollection iterates over a collection returned by the f function, until accum is satisfied
+func LoadFromCollection(f func(*fedFilters) (pub.CollectionInterface, error), cur *colCursor, accum func(pub.ItemCollection) (bool, error)) error {
+	done := make(chan bool)
+
+	var err error
+	for {
+		go func() {
+			col, err := f(cur.filters)
+			if err != nil {
+				return
+			}
+
+			if col.GetType() == pub.OrderedCollectionPageType {
+				err := pub.OnOrderedCollectionPage(col, func(c *pub.OrderedCollectionPage) error {
+					_, cur.next = getOrderedCollectionPagePrevNext(c)
+					status, err := accum(c.OrderedItems)
+					if len(c.OrderedItems) < cur.filters.MaxItems {
+						cur.next = ""
+						status = true
+					}
+					done <- status
+					return err
+				})
+				if err != nil {
+					done <- true
+					return
+				}
+			}
+			if col.GetType() == pub.OrderedCollectionType {
+				err := pub.OnOrderedCollection(col, func(c *pub.OrderedCollection) error {
+					cur.next = getOrderedCollectionNext(c)
+					status, err := accum(c.OrderedItems)
+					if len(c.OrderedItems) < cur.filters.MaxItems {
+						cur.next = ""
+						status = true
+					}
+					done <- status
+					return err
+				})
+				if err != nil {
+					done <- true
+					return
+				}
+			}
+			if col.GetType() == pub.CollectionPageType {
+				err := pub.OnCollectionPage(col, func(c *pub.CollectionPage) error {
+					_, cur.next = getCollectionPagePrevNext(c)
+					status, err := accum(c.Items)
+					if len(c.Items) < cur.filters.MaxItems {
+						cur.next = ""
+						status = true
+					}
+					done <- status
+					return err
+				})
+				if err != nil {
+					done <- true
+					return
+				}
+			}
+			if col.GetType() == pub.CollectionType {
+				err := pub.OnCollection(col, func(c *pub.Collection) error {
+					cur.next = getCollectionNext(c)
+					status, err := accum(c.Items)
+					if len(c.Items) < cur.filters.MaxItems {
+						cur.next = ""
+						status = true
+					}
+					done <- status
+					return err
+				})
+				if err != nil {
+					done <- true
+					return
+				}
+			}
+		}()
+
+		// Advance current collection cursor
+		if len(cur.next) > 0 {
+			cur.filters.Next = cur.next
+		}
+		if len(cur.prev) > 0 {
+			cur.filters.Prev = cur.prev
+		}
+		if <-done {
+			break
+		}
+	}
+
+	return err
+}
 
 // Inbox loads the service's inbox collection.
 // First step is to load the Create activities from the inbox
@@ -751,156 +922,148 @@ var emptyCursor = Cursor{}
 //  With the resulting Object IRIs we load from the objects collection with our matching filters
 //  With the resulting Actor IRIs we load from the actors collection with matching filters
 // From the
-func (r *repository) Inbox(f *fedFilters) ([]Renderable, Cursor, error) {
-	col, err := r.fedbox.Inbox(r.fedbox.Service(), Values(f))
+func (r *repository) Inbox(f *fedFilters) (Cursor, error) {
+	inbox := func(f *fedFilters) (pub.CollectionInterface, error) {
+		return r.fedbox.Inbox(r.fedbox.Service(), Values(f))
+	}
+	objects := func(f *fedFilters) (pub.CollectionInterface, error) {
+		return r.fedbox.Objects(Values(f))
+	}
+
+	objectsFromObjectsCol := func(items *[]Item, c pub.ItemCollection) (bool, error) {
+		deferredItems := make([]Item, len(c))
+		for k, it := range c {
+			i := Item{}
+			i.FromActivityPub(it)
+			deferredItems[k] = i
+		}
+		if len(deferredItems) > 0 {
+			k := 0
+			for _, c := range *items {
+				for _, d := range deferredItems {
+					if !c.SubmittedAt.IsZero() {
+						k++
+						break
+					}
+					if HashesEqual(d.Hash, c.Hash) {
+						(*items)[k] = d
+						k++
+						break
+					}
+				}
+			}
+			*items = (*items)[:k]
+		}
+		return true, nil
+	}
+	objectsFromActivityCol := func(items *[]Item, c pub.ItemCollection) (bool, error) {
+		obToLoad := make(pub.IRIs, 0)
+		for _, it := range c {
+			if ValidActivityTypes.Contains(it.GetType()) {
+				pub.OnActivity(it, func(a *pub.Activity) error {
+					ob := a.Object
+					if ob.IsObject() {
+						if ValidItemTypes.Contains(ob.GetType()) {
+							i := Item{}
+							i.FromActivityPub(ob)
+							*items = append(*items, i)
+						}
+					} else {
+						iri := ob.GetLink()
+						i := Item{}
+						i.FromActivityPub(iri)
+						*items = append(*items, i)
+						if !ob.IsObject() && !obToLoad.Contains(iri) {
+							obToLoad = append(obToLoad, iri)
+						}
+					}
+					return nil
+				})
+			}
+		}
+
+		if len(obToLoad) > 0 {
+			f := fedFilters{
+				IRI:  obToLoad,
+				Type: ValidItemTypes,
+				OP:   []string{"-"},
+			}
+			err := LoadFromCollection(objects, &colCursor{filters: &f}, func(c pub.ItemCollection) (b bool, err error) {
+				return objectsFromObjectsCol(items, c)
+			})
+			if err != nil {
+				return true, err
+			}
+		}
+
+		return len(*items) == f.MaxItems, nil
+	}
+
+	items := make([]Item, 0)
+	err := LoadFromCollection(inbox, &colCursor{filters: f}, func(col pub.ItemCollection) (bool, error) {
+		return objectsFromActivityCol(&items, col)
+	})
 	if err != nil {
-		return nil, emptyCursor, err
+		return emptyCursor, err
 	}
-	itemTypes := pub.ActivityVocabularyTypes{
-		pub.ArticleType,
-		pub.NoteType,
-		pub.LinkType,
-		pub.PageType,
-		pub.DocumentType,
-		pub.VideoType,
-		pub.AudioType,
-	}
-	actTypes := pub.ActivityVocabularyTypes{
-		pub.ActorType,
+	//actToLoad := make(pub.IRIs, 0)
+	//for _, it := range items {
+	//	if it.Item.SubmittedBy == nil {
+	//		continue
+	//	}
+	//	if len(it.Item.SubmittedBy.Handle) == 0 {
+	//		act := pub.IRI(it.Item.SubmittedBy.Metadata.ID)
+	//		if !actToLoad.Contains(act) {
+	//			actToLoad = append(actToLoad, act)
+	//		}
+	//	}
+	//}
+	//// Match loaded actors to the items' authors
+	//if len(actToLoad) > 0 {
+	//	f := fedFilters{
+	//		IRI:  actToLoad,
+	//		Type: ValidActorTypes,
+	//	}
+	//	actors, err := r.fedbox.Actors(Values(&f))
+	//	if err != nil {
+	//		// err
+	//	}
+	//	pub.OnOrderedCollection(actors, func(c *pub.OrderedCollection) error {
+	//		for _, it := range c.OrderedItems {
+	//			if !it.IsObject() || !ValidActorTypes.Contains(it.GetType()) {
+	//				continue
+	//			}
+	//			a := Account{}
+	//			a.FromActivityPub(it)
+	//			for i := range items {
+	//				if HashesEqual(items[i].SubmittedBy.Hash, a.Hash) {
+	//					items[i].SubmittedBy = &a
+	//					continue
+	//				}
+	//			}
+	//		}
+	//		return nil
+	//	})
+	//}
+
+	result := make([]Renderable, 0)
+	for _, it := range items {
+		if len(it.Hash) > 0 {
+			result = append(result, &comment{Item: it})
+		}
 	}
 
-	var cursor Cursor
-	var count uint = 0
+	prev, next := cursorHashes(f)
+	return Cursor{
+		after:  next,
+		before: prev,
+		items:  result,
+		total:  uint(len(result)),
+	}, nil
+}
 
-	items := make([]comment, 0)
-	obToLoad := make(pub.IRIs, 0)
-	actToLoad := make(pub.IRIs, 0)
-
-	cursorFromColPage := func(cur *Cursor, p *pub.OrderedCollectionPage) {
-		if pURL, err := p.Prev.GetLink().URL(); err == nil {
-			if pPage, err := strconv.ParseInt(pURL.Query().Get("page"), 10, 16); err == nil {
-				cursor.prev = int(pPage)
-			}
-		}
-		if nURL, err := p.Next.GetLink().URL(); err == nil {
-			if nPage, err := strconv.ParseInt(nURL.Query().Get("page"), 10, 16); err == nil {
-				cursor.next = int(nPage)
-			}
-		}
-	}
-	cursorFromCol := func(cur *Cursor, c *pub.OrderedCollection) {
-		cursor.total = count
-		if pURL, err := c.First.GetLink().URL(); err == nil {
-			if pPage, err := strconv.ParseInt(pURL.Query().Get("page"), 10, 16); err == nil {
-				cursor.next = int(pPage) + 1
-			}
-		}
-	}
-	itemsFromCol := func(c *pub.OrderedCollection) error {
-		count = c.TotalItems
-		cursorFromCol(&cursor, c)
-		for _, it := range c.OrderedItems {
-			pub.OnActivity(it, func(a *pub.Activity) error {
-				act := a.Actor
-				iri := act.GetLink()
-				if !act.IsObject() && !actToLoad.Contains(iri) && pub.PublicNS != iri {
-					actToLoad = append(actToLoad, iri)
-				}
-				ob := a.Object
-				if ob.IsObject() {
-					if itemTypes.Contains(ob.GetType()) {
-						i := Item{}
-						i.FromActivityPub(ob)
-						if act.IsObject() {
-							auth := Account{}
-							auth.FromActivityPub(act)
-							i.SubmittedBy = &auth
-						}
-						items = append(items, comment{Item: i})
-					}
-				} else {
-					iri := ob.GetLink()
-					if !ob.IsObject() && !obToLoad.Contains(iri) {
-						obToLoad = append(obToLoad, iri)
-					}
-				}
-				return nil
-			})
-		}
-		return nil
-	}
-
-	if col.GetType() == pub.OrderedCollectionPageType {
-		pub.OnOrderedCollectionPage(col, func(p *pub.OrderedCollectionPage) error {
-			pub.OnOrderedCollection(p, func(c *pub.OrderedCollection) error {
-				return itemsFromCol(c)
-			})
-			cursorFromColPage(&cursor, p)
-			return nil
-		})
-	}
-	if col.GetType() == pub.OrderedCollectionType {
-		pub.OnOrderedCollection(col, func(c *pub.OrderedCollection) error {
-			return itemsFromCol(c)
-		})
-	}
-
-	if len(obToLoad) > 0 {
-		f := fedFilters{
-			IRI:      obToLoad,
-			Type:     itemTypes,
-			InReplTo: []string{""},
-		}
-		objects, err := r.fedbox.Objects(Values(&f))
-		if err != nil {
-			// err
-		}
-		pub.OnOrderedCollection(objects, func(c *pub.OrderedCollection) error {
-			for _, it := range c.OrderedItems {
-				if it.IsObject() {
-					if itemTypes.Contains(it.GetType()) {
-						i := Item{}
-						i.FromActivityPub(it)
-						items = append(items, comment{Item: i})
-					}
-				}
-			}
-			return nil
-		})
-	}
-	// Match loaded actors to the items' authors
-	if len(actToLoad) > 0 {
-		f := fedFilters{
-			IRI:  actToLoad,
-			Type: actTypes,
-		}
-		actors, err := r.fedbox.Actors(Values(&f))
-		if err != nil {
-			// err
-		}
-		pub.OnOrderedCollection(actors, func(c *pub.OrderedCollection) error {
-			for _, it := range c.OrderedItems {
-				if it.IsObject() {
-					if itemTypes.Contains(it.GetType()) {
-						a := Account{}
-						a.FromActivityPub(it)
-						for i := range items {
-							if HashesEqual(items[i].SubmittedBy.Hash, a.Hash) {
-								items[i].SubmittedBy = &a
-							}
-						}
-					}
-				}
-			}
-			return nil
-		})
-	}
-
-	result := make([]Renderable, len(items))
-	for i, com := range items {
-		result[i] = &com
-	}
-	return result, emptyCursor, nil
+func cursorHashes(f *fedFilters) (Hash, Hash) {
+	return Hash(f.Prev), Hash(f.Next)
 }
 
 func (r *repository) LoadItems(f Filters) (ItemCollection, uint, error) {
@@ -1547,16 +1710,17 @@ func (r *repository) Load(next http.Handler) http.Handler {
 
 		m := listingModel{}
 		m.User = account(req)
-		m.Items, cursor, err = r.Inbox(FiltersFromContext(req.Context()))
+		cursor, err = r.Inbox(FiltersFromContext(req.Context()))
+		m.Items = cursor.items
 		if err != nil {
 			// err
 		}
 
-		if cursor.next > 0 {
-			m.nextPage = cursor.next
+		if len(cursor.after) > 0 {
+			m.after = cursor.after
 		}
-		if cursor.prev > 0 {
-			m.prevPage = cursor.prev
+		if len(cursor.before) > 0 {
+			m.before = cursor.before
 		}
 		ctx := context.WithValue(req.Context(), CollectionCtxtKey, &m)
 		next.ServeHTTP(w, req.WithContext(ctx))

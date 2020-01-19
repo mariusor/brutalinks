@@ -4,36 +4,41 @@ import (
 	"context"
 )
 
+type Paginator interface {
+	NextPage() Hash
+	PrevPage() Hash
+}
+
 type listingModel struct {
-	Title          string
-	User           *Account
-	Items          []Renderable
-	HideText       bool
-	nextPage       int
-	prevPage       int
+	Title    string
+	User     *Account
+	Items    []Renderable
+	HideText bool
+	after    Hash
+	before   Hash
 }
 
-func (i listingModel) NextPage() int {
-	return i.nextPage
+func (i listingModel) NextPage() Hash {
+	return i.after
 }
 
-func (i listingModel) PrevPage() int {
-	return i.prevPage
+func (i listingModel) PrevPage() Hash {
+	return i.before
 }
 
 type contentModel struct {
 	Title    string
 	Content  comment
-	nextPage int
-	prevPage int
+	after    Hash
+	before   Hash
 }
 
-func (c contentModel) NextPage() int {
-	return c.nextPage
+func (c contentModel) NextPage() Hash {
+	return c.after
 }
 
-func (c contentModel) PrevPage() int {
-	return c.prevPage
+func (c contentModel) PrevPage() Hash {
+	return c.before
 }
 
 type loginModel struct {

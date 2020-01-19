@@ -1,62 +1,24 @@
 <meta charset="UTF-8">
 <title>{{.Title}}</title>
-{{ if eq current "listing" }}
-{{- if gt .PrevPage 0 }}
-<link href="{{ .PrevPage | PageLink }}" rel="next" rel="prefetch" />
+{{ if CanPaginate . -}}
+{{- if gt (len .PrevPage) 0 }}
+<link href="{{ .PrevPage | PrevPageLink }}" rel="next" />
 {{end -}}
-{{- if gt .NextPage 0 }}
-<link href="{{.NextPage | PageLink }}" rel="prev" />
+{{- if gt (len .NextPage) 0 }}
+<link href="{{.NextPage | NextPageLink }}" rel="prev" rel="prefetch" />
 {{end -}}
 {{end}}
 <link rel="stylesheet" href="/css/main.css" />
 <style>
-/* Light mode */
+:root { --main-bg-color: Window; --main-fg-color: WindowText; --main-link-color: blue; --main-linkvisited-color: rebeccapurple; --main-linkactive-color: red;}
+:root.inverted { --main-bg-color: WindowText; --main-fg-color: Window; --main-link-color: dodgerblue; --main-linkvisited-color: mediumpurple; --main-linkactive-color: red;}
 @media (prefers-color-scheme: light) {
-    :root {
-        --main-bg-color: #EFF0F1;
-        --main-fg-color: #232627;
-        --main-link-color: blue;
-        --main-linkvisited-color: rebeccapurple;
-        --main-linkactive-color: red;
-    }
-    :root.inverted {
-        --main-bg-color: #232627;
-        --main-fg-color: #EFF0F1;
-        --main-link-color: dodgerblue;
-        --main-linkvisited-color: mediumpurple;
-        --main-linkactive-color: red;
-    }
+:root {--main-bg-color: #EFF0F1; --main-fg-color: #232627; --main-link-color: blue; --main-linkvisited-color: rebeccapurple; --main-linkactive-color: red;}
+:root.inverted { --main-bg-color: #232627; --main-fg-color: #EFF0F1; --main-link-color: dodgerblue; --main-linkvisited-color: mediumpurple; --main-linkactive-color: red;}
 }
-/* Dark mode */
 @media (prefers-color-scheme: dark) {
-    :root {
-        --main-bg-color: #232627;
-        --main-fg-color: #EFF0F1;
-        --main-link-color: dodgerblue;
-        --main-linkvisited-color: mediumpurple;
-        --main-linkactive-color: red;
-    }
-    :root.inverted {
-        --main-bg-color: #EFF0F1;
-        --main-fg-color: #232627;
-        --main-link-color: blue;
-        --main-linkvisited-color: rebeccapurple;
-        --main-linkactive-color: red;
-    }
-}
-:root {
-    --main-bg-color: Window;
-    --main-fg-color: WindowText;
-    --main-link-color: blue;
-    --main-linkvisited-color: rebeccapurple;
-    --main-linkactive-color: red;
-}
-:root.inverted {
-    --main-bg-color: WindowText;
-    --main-fg-color: Window;
-    --main-link-color: dodgerblue;
-    --main-linkvisited-color: mediumpurple;
-    --main-linkactive-color: red;
+:root { --main-bg-color: #232627; --main-fg-color: #EFF0F1; --main-link-color: dodgerblue; --main-linkvisited-color: mediumpurple; --main-linkactive-color: red; }
+:root.inverted { --main-bg-color: #EFF0F1; --main-fg-color: #232627; --main-link-color: blue; --main-linkvisited-color: rebeccapurple; --main-linkactive-color: red;}
 }
 svg.icon { height: 1em; width: 1em; fill: currentColor; }
 </style>
