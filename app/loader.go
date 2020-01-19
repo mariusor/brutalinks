@@ -54,11 +54,6 @@ type Filterable interface {
 	GetLimit() string
 }
 
-type Paginator interface {
-	NextPage() int
-	PrevPage() int
-}
-
 type VoteTypes []VoteType
 type Hashes []Hash
 

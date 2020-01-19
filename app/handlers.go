@@ -66,10 +66,10 @@ func (h *handler) ShowAccount(w http.ResponseWriter, r *http.Request) {
 		m.Items = append(m.Items, com)
 	}
 	if len(comments) >= filter.MaxItems {
-		m.nextPage = filter.Page + 1
+		m.after = comments[len(comments)-1].Hash
 	}
 	if filter.Page > 1 {
-		m.prevPage = filter.Page - 1
+		m.before = comments[0].Hash
 	}
 	h.v.RenderTemplate(r, w, "user", m)
 }
@@ -84,7 +84,7 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	n, err := ContentFromRequest(r, *acc)
 	if err != nil {
 		h.logger.WithContext(log.Ctx{
-			"prev": err,
+			"before": err,
 		}).Error("wrong http method")
 		h.v.HandleErrors(w, r, errors.NewMethodNotAllowed(err, ""))
 		return
@@ -120,7 +120,7 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	n, err = repo.SaveItem(n)
 	if err != nil {
 		h.logger.WithContext(log.Ctx{
-			"prev": err,
+			"before": err,
 		}).Error("unable to save item")
 		h.v.HandleErrors(w, r, err)
 		return
@@ -341,10 +341,10 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 	}
 	contentItems, _, err := repo.LoadItems(filter)
 	if len(contentItems) >= filter.MaxItems {
-		m.nextPage = filter.Page + 1
+		m.after = contentItems[len(contentItems)-1].Hash
 	}
 	if filter.Page > 1 {
-		m.prevPage = filter.Page - 1
+		m.before = contentItems[0].Hash
 	}
 	if err != nil {
 		h.logger.Error(err.Error())
@@ -517,9 +517,11 @@ func (h *handler) HandleIndex(w http.ResponseWriter, r *http.Request) {
 	for _, c := range comments {
 		m.Items = append(m.Items, c)
 	}
-	m.nextPage = filter.Page + 1
-	if filter.Page > 1 {
-		m.prevPage = filter.Page - 1
+	if l := len(comments); l > 0 {
+		m.before = comments[0].Hash
+		if l > 1 {
+			m.after = comments[l-1].Hash
+		}
 	}
 	h.v.RenderTemplate(r, w, "listing", m)
 }
@@ -572,10 +574,10 @@ func (h *handler) HandleInbox(w http.ResponseWriter, r *http.Request) {
 		m.Items = append(m.Items, c)
 	}
 	if len(comments) >= filter.MaxItems {
-		m.nextPage = filter.Page + 1
+		m.after = comments[len(comments)-1].Hash
 	}
 	if filter.Page > 1 {
-		m.prevPage = filter.Page - 1
+		m.before = comments[0].Hash
 	}
 
 	h.v.RenderTemplate(r, w, "listing", m)
@@ -608,10 +610,10 @@ func (h *handler) HandleTags(w http.ResponseWriter, r *http.Request) {
 		m.Items = append(m.Items, c)
 	}
 	if len(comments) >= filter.MaxItems {
-		m.nextPage = filter.Page + 1
+		m.after = comments[len(comments)-1].Hash
 	}
 	if filter.Page > 1 {
-		m.prevPage = filter.Page - 1
+		m.before = comments[0].Hash
 	}
 	h.v.RenderTemplate(r, w, "listing", m)
 }
@@ -649,10 +651,10 @@ func (h *handler) HandleDomains(w http.ResponseWriter, r *http.Request) {
 		m.Items = append(m.Items, c)
 	}
 	if len(comments) >= filter.MaxItems {
-		m.nextPage = filter.Page + 1
+		m.after = comments[len(comments)-1].Hash
 	}
 	if filter.Page > 1 {
-		m.prevPage = filter.Page - 1
+		m.before = comments[0].Hash
 	}
 	h.v.RenderTemplate(r, w, "listing", m)
 }

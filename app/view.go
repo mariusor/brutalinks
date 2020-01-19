@@ -167,7 +167,8 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"NayLink":           nayLink,
 			"AcceptLink":        acceptLink,
 			"RejectLink":        rejectLink,
-			"PageLink":          pageLink,
+			"NextPageLink":      nextPageLink,
+			"PrevPageLink":      prevPageLink,
 			"CanPaginate":       canPaginate,
 			"Config":            func() Configuration { return Instance.Config },
 			"Info":              func() WebInfo { return nodeInfo },
@@ -569,9 +570,15 @@ func rejectLink(f FollowRequest) string {
 	return fmt.Sprintf("%s/%s", followLink(f), "reject")
 }
 
-func pageLink(p int) template.HTML {
-	if p >= 1 {
-		return template.HTML(fmt.Sprintf("?page=%d", p))
+func nextPageLink(p Hash) template.HTML {
+	if len(p) > 0 {
+		return template.HTML(fmt.Sprintf("?after=%s", p))
+	}
+	return ""
+}
+func prevPageLink(p Hash) template.HTML {
+	if len(p) > 0 {
+		return template.HTML(fmt.Sprintf("?before=%s", p))
 	}
 	return ""
 }

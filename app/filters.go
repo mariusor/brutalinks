@@ -136,8 +136,9 @@ type fedFilters struct {
 	InReplTo   []string                    `qstring:"inReplyTo,omitempty"`
 	OP         []string                    `qstring:"context,omitempty"`
 	FollowedBy []string                    `qstring:"followedBy,omitempty"` // todo(marius): not really used
-	CurPage    uint                        `qstring:"page,omitempty"`
-	MaxItems   uint                        `qstring:"maxItems,omitempty"`
+	Next       string                      `qstring:"after,omitempty"`
+	Prev       string                      `qstring:"before,omitempty"`
+	MaxItems   int                         `qstring:"maxItems,omitempty"`
 }
 
 // FiltersFromRequest loads the filters we use for generating storage queries from the HTTP request
