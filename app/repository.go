@@ -31,18 +31,16 @@ type repository struct {
 
 var ValidActorTypes = pub.ActivityVocabularyTypes{
 	pub.PersonType,
-	pub.TombstoneType,
 }
 
 var ValidItemTypes = pub.ActivityVocabularyTypes{
 	pub.ArticleType,
 	pub.NoteType,
 	pub.LinkType,
-	//pub.PageType,
-	//pub.DocumentType,
-	//pub.VideoType,
-	//pub.AudioType,
-	//pub.TombstoneType,
+	pub.PageType,
+	pub.DocumentType,
+	pub.VideoType,
+	pub.AudioType,
 }
 
 var ValidActivityTypes = pub.ActivityVocabularyTypes{
@@ -1020,7 +1018,6 @@ func (r *repository) ServiceInbox(f *fedFilters) (Cursor, error) {
 			}
 		}
 
-		before := len(items)
 		var after int
 		if len(deferredItems) > 0 {
 			f := fedFilters{
@@ -1048,12 +1045,11 @@ func (r *repository) ServiceInbox(f *fedFilters) (Cursor, error) {
 				}
 			}
 			items = items[:k]
-			after = len(items)
 		}
 
 		// TODO(marius): this needs to be externalized also to a different function that we can pass from outer scope
 		//   This function implements the logic for breaking out of the collection iteration cycle and returns a bool
-		return before >= after || after == f.MaxItems, nil
+		return after == f.MaxItems, nil
 	})
 	if err != nil {
 		return emptyCursor, err
