@@ -662,18 +662,28 @@ func (r *repository) loadAuthors(items ...FollowRequest) ([]FollowRequest, error
 	if len(items) == 0 {
 		return items, nil
 	}
-	fActors := Filters{}
+	fActors := fedFilters{
+		Type: ValidActorTypes,
+	}
 	for _, it := range items {
 		if !it.SubmittedBy.IsValid() {
 			continue
 		}
-		fActors.LoadAccountsFilter.Key = append(fActors.LoadAccountsFilter.Key, it.SubmittedBy.Hash)
+		var hash pub.IRI
+		if it.SubmittedBy.HasMetadata() && len(it.SubmittedBy.Metadata.ID) > 0 {
+			hash = hashIRI(it.SubmittedBy.Metadata.ID)
+		} else {
+			hash = pub.IRI(it.SubmittedBy.Hash)
+		}
+		if len(hash) > 0 && !fActors.IRI.Contains(hash) {
+			fActors.IRI = append(fActors.IRI, hash)
+		}
 	}
-	fActors.LoadAccountsFilter.Key = hashesUnique(fActors.LoadAccountsFilter.Key)
-	if len(fActors.LoadAccountsFilter.Key)+len(fActors.Handle) == 0 {
+
+	if len(fActors.IRI) == 0 {
 		return items, errors.Errorf("unable to load items authors")
 	}
-	authors, _, err := r.LoadAccounts(fActors)
+	authors, err := r.accounts(&fActors)
 	if err != nil {
 		return items, errors.Annotatef(err, "unable to load items authors")
 	}
@@ -691,23 +701,35 @@ func accountsEqual(a1, a2 Account) bool {
 	return bytes.Equal(a1.Hash, a2.Hash) || (len(a1.Handle)+len(a2.Handle) > 0 && a1.Handle == a2.Handle)
 }
 
+func hashIRI(i string) pub.IRI {
+	return pub.IRI(path.Base(i))
+}
+
 func (r *repository) loadItemsAuthors(items ...Item) (ItemCollection, error) {
 	if len(items) == 0 {
 		return items, nil
 	}
 
-	fActors := Filters{}
+	fActors := fedFilters{
+		Type: ValidActorTypes,
+	}
 	for _, it := range items {
 		if it.HasMetadata() {
 			// Adding an item's recipients list (To and CC) to the list of accounts we want to load from the ActivityPub API
 			if len(it.Metadata.To) > 0 {
 				for _, to := range it.Metadata.To {
-					fActors.LoadAccountsFilter.Key = append(fActors.LoadAccountsFilter.Key, Hash(to.Metadata.ID))
+					hash := hashIRI(to.Metadata.ID)
+					if len(hash) > 0 && !fActors.IRI.Contains(hash) {
+						fActors.IRI = append(fActors.IRI, hash)
+					}
 				}
 			}
 			if len(it.Metadata.CC) > 0 {
 				for _, cc := range it.Metadata.CC {
-					fActors.LoadAccountsFilter.Key = append(fActors.LoadAccountsFilter.Key, Hash(cc.Metadata.ID))
+					hash := hashIRI(cc.Metadata.ID)
+					if len(hash) > 0 && !fActors.IRI.Contains(hash) {
+						fActors.IRI = append(fActors.IRI, hash)
+					}
 				}
 			}
 		}
@@ -715,20 +737,22 @@ func (r *repository) loadItemsAuthors(items ...Item) (ItemCollection, error) {
 			continue
 		}
 		// Adding an item's author to the list of accounts we want to load from the ActivityPub API
+		var hash pub.IRI
 		if it.SubmittedBy.HasMetadata() && len(it.SubmittedBy.Metadata.ID) > 0 {
-			fActors.LoadAccountsFilter.Key = append(fActors.LoadAccountsFilter.Key, Hash(it.SubmittedBy.Metadata.ID))
-		} else if len(it.SubmittedBy.Hash) > 0 {
-			fActors.LoadAccountsFilter.Key = append(fActors.LoadAccountsFilter.Key, it.SubmittedBy.Hash)
-		} else if len(it.SubmittedBy.Handle) > 0 {
-			fActors.Handle = append(fActors.Handle, it.SubmittedBy.Handle)
+			hash = hashIRI(it.SubmittedBy.Metadata.ID)
+		} else {
+			hash = pub.IRI(it.SubmittedBy.Hash)
+		}
+		if len(hash) > 0 && !fActors.IRI.Contains(hash) {
+			fActors.IRI = append(fActors.IRI, hash)
 		}
 	}
-	fActors.LoadAccountsFilter.Key = hashesUnique(fActors.LoadAccountsFilter.Key)
-	if len(fActors.LoadAccountsFilter.Key)+len(fActors.Handle) == 0 {
+
+	if len(fActors.IRI) == 0 {
 		return items, errors.Errorf("unable to load items authors")
 	}
 	col := make(ItemCollection, len(items))
-	authors, _, err := r.LoadAccounts(fActors)
+	authors, err := r.accounts(&fActors)
 	if err != nil {
 		return items, errors.Annotatef(err, "unable to load items authors")
 	}
