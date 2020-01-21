@@ -266,7 +266,7 @@ func loadAPItem(item Item) pub.Item {
 	// TODO(marius): add proper dynamic recipients to this based on some selector in the frontend
 	if !item.Private() {
 		to = append(to, pub.PublicNS)
-		bcc = append(bcc, pub.ItemCollection{pub.IRI(BaseURL)})
+		bcc = append(bcc, pub.IRI(BaseURL))
 	}
 	if item.Metadata != nil {
 		m := item.Metadata
@@ -1494,7 +1494,7 @@ func (r *repository) SaveItem(it Item) (Item, error) {
 		if it.Parent == nil && it.SubmittedBy.HasMetadata() && len(it.SubmittedBy.Metadata.FollowersIRI) > 0 {
 			cc = append(cc, pub.IRI(it.SubmittedBy.Metadata.FollowersIRI))
 		}
-		bcc = append(bcc, pub.ItemCollection{pub.IRI(BaseURL)})
+		bcc = append(bcc, pub.IRI(BaseURL))
 	}
 
 	act := &pub.Activity{
@@ -1662,7 +1662,7 @@ func (r *repository) FollowAccount(er, ed Account) error {
 
 	//to = append(to, follower.GetLink())
 	to = append(to, pub.PublicNS)
-	bcc = append(bcc, pub.ItemCollection{pub.IRI(BaseURL)})
+	bcc = append(bcc, pub.IRI(BaseURL))
 
 	follow := pub.Follow{
 		Type:   pub.FollowType,
