@@ -288,15 +288,19 @@ func (f fedbox) Object(iri pub.IRI) (*pub.Object, error) {
 	})
 	return object, err
 }
+
 func (f fedbox) Activities(filters ...FilterFn) (pub.CollectionInterface, error) {
 	return f.collection(iri(pub.IRI(f.baseURL.String()), activities, filters...))
 }
+
 func (f fedbox) Actors(filters ...FilterFn) (pub.CollectionInterface, error) {
 	return f.collection(iri(pub.IRI(f.baseURL.String()), actors, filters...))
 }
+
 func (f fedbox) Objects(filters ...FilterFn) (pub.CollectionInterface, error) {
 	return f.collection(iri(pub.IRI(f.baseURL.String()), objects, filters...))
 }
+
 func postRequest(f fedbox, url pub.IRI, a pub.Item) (pub.IRI, pub.Item, error) {
 	body, err := j.Marshal(a)
 	var resp *http.Response
@@ -355,11 +359,12 @@ func (f fedbox) ToInbox(a pub.Item) (pub.IRI, pub.Item, error) {
 	}
 	return postRequest(f, url, a)
 }
+
 func (f *fedbox) Service() pub.Service {
 	s := pub.Service{
-		ID:                pub.ID(f.baseURL.String()),
-		Type:              pub.ServiceType,
-		URL:               pub.IRI(f.baseURL.String()),
+		ID:   pub.ID(f.baseURL.String()),
+		Type: pub.ServiceType,
+		URL:  pub.IRI(f.baseURL.String()),
 	}
 	s.Inbox = inbox(s)
 
