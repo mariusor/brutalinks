@@ -1130,7 +1130,7 @@ func (r *repository) LoadItems(f Filters) (ItemCollection, uint, error) {
 	c := "objects"
 	if len(f.FollowedBy) > 0 {
 		// TODO(marius): make this work for multiple FollowedBy filters
-		target = fmt.Sprintf("/accounts/%s/", f.FollowedBy)
+		target = fmt.Sprintf("/%s/%s/", actors, f.FollowedBy)
 		c = "inbox"
 		f.FollowedBy = ""
 		f.LoadItemsFilter.IRI = ""
@@ -1336,7 +1336,7 @@ func (r *repository) LoadVotes(f Filters) (VoteCollection, uint, error) {
 	if len(f.LoadVotesFilter.AttributedTo) == 1 {
 		attrTo := f.LoadVotesFilter.AttributedTo[0]
 		f.LoadVotesFilter.AttributedTo = nil
-		url = fmt.Sprintf("%s/accounts/%s/outbox", r.BaseURL, attrTo)
+		url = fmt.Sprintf("%s/%s/%s/outbox", r.BaseURL, actors, attrTo)
 	} else {
 		url = fmt.Sprintf("%s/inbox", r.BaseURL)
 	}
