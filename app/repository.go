@@ -935,24 +935,26 @@ func (r *repository) accounts(f *fedFilters) ([]Account, error) {
 			a.FromActivityPub(it)
 			accounts = append(accounts, a)
 		}
-		return true, nil
+		// TODO(marius): this needs to be externalized also to a different function that we can pass from outer scope
+		//   This function implements the logic for breaking out of the collection iteration cycle and returns a bool
+		return len(accounts) == f.MaxItems || len(f.Next) == 0, nil
 	})
 
 	return accounts, err
 }
 
-func (r *repository) objects(f *fedFilters) ([]Item, error) {
+func (r *repository) objects(f *fedFilters) (ItemCollection, error) {
 	objects := func(f *fedFilters) (pub.CollectionInterface, error) {
 		return r.fedbox.Objects(Values(f))
 	}
-	items := make ([]Item, 0)
+	items := make(ItemCollection, 0)
 	err := LoadFromCollection(objects, &colCursor{filters: f}, func(c pub.ItemCollection) (bool, error) {
 		for _, it := range c {
 			i := Item{}
 			i.FromActivityPub(it)
 			items = append(items, i)
 		}
-		return true, nil
+		return len(items) == f.MaxItems || len(f.Next) == 0, nil
 	})
 	return items, err
 }
