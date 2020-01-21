@@ -523,7 +523,7 @@ func (h *handler) HandleIndex(w http.ResponseWriter, r *http.Request) {
 			m.after = comments[l-1].Hash
 		}
 	}
-	h.v.RenderTemplate(r, w, "listing", m)
+	h.v.RenderTemplate(r, w, "listing", &m)
 }
 
 // HandleIndex serves /followed request
@@ -580,7 +580,7 @@ func (h *handler) HandleInbox(w http.ResponseWriter, r *http.Request) {
 		m.before = comments[0].Hash
 	}
 
-	h.v.RenderTemplate(r, w, "listing", m)
+	h.v.RenderTemplate(r, w, "listing", &m)
 }
 
 // HandleTags serves /tags/{tag} request
@@ -615,7 +615,7 @@ func (h *handler) HandleTags(w http.ResponseWriter, r *http.Request) {
 	if filter.Page > 1 {
 		m.before = comments[0].Hash
 	}
-	h.v.RenderTemplate(r, w, "listing", m)
+	h.v.RenderTemplate(r, w, "listing", &m)
 }
 
 // HandleDomains serves /domains/{domain} request
@@ -656,7 +656,7 @@ func (h *handler) HandleDomains(w http.ResponseWriter, r *http.Request) {
 	if filter.Page > 1 {
 		m.before = comments[0].Hash
 	}
-	h.v.RenderTemplate(r, w, "listing", m)
+	h.v.RenderTemplate(r, w, "listing", &m)
 }
 
 const SessionUserKey = "__current_acct"
@@ -927,6 +927,7 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 // HandleListing serves /domains/{domain} request
 func (h *handler) HandleListing(w http.ResponseWriter, r *http.Request) {
 	model := ListingModelFromContext(r.Context())
+	model.HideText = true
 	if model == nil {
 		h.v.HandleErrors(w, r, errors.Errorf("Oops!!"))
 		return
