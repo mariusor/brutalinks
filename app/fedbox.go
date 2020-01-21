@@ -187,10 +187,10 @@ func validateActor(a pub.Item) error {
 }
 func validateObject(o pub.Item) error {
 	if o == nil {
-		return errors.Errorf("Object is nil")
+		return errors.Errorf("object is nil")
 	}
 	if o.IsObject() && !pub.ObjectTypes.Contains(o.GetType()) {
-		return errors.Errorf("Invalid Object type %s", o.GetType())
+		return errors.Errorf("invalid Object type %q", o.GetType())
 	}
 	return nil
 }
