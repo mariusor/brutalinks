@@ -279,7 +279,7 @@ func loadRecipientsFrom(recipients pub.ItemCollection) ([]*Account, bool) {
 		maybeCol := path.Base(recURL.Path)
 		if handlers.ValidCollection(maybeCol) {
 			if handlers.CollectionType(maybeCol) != handlers.Followers && handlers.CollectionType(maybeCol) != handlers.Following {
-				// we don't know how to handle collections that don't contain actors
+				// we don't know how to handle collections that don't contain accounts
 				continue
 			}
 			acc := Account{

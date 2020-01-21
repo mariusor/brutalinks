@@ -64,7 +64,7 @@ func ActivityPubService(c appConfig) *repository {
 	pub.ItemTyperFunc = pub.JSONGetItemByType
 
 	BaseURL = c.APIURL
-	ActorsURL = fmt.Sprintf("%s/actors", BaseURL)
+	ActorsURL = fmt.Sprintf("%s/accounts", BaseURL)
 	ObjectsURL = fmt.Sprintf("%s/objects", BaseURL)
 
 	infoFn := func(s string, ctx log.Ctx) {}
@@ -116,7 +116,7 @@ func BuildCollectionID(a Account, o handlers.CollectionType) pub.ID {
 }
 
 var BaseURL = "http://fedbox.git"
-var ActorsURL = fmt.Sprintf("%s/actors", BaseURL)
+var ActorsURL = fmt.Sprintf("%s/accounts", BaseURL)
 var ObjectsURL = fmt.Sprintf("%s/objects", BaseURL)
 
 func apAccountID(a Account) pub.ID {
@@ -699,7 +699,7 @@ func (r *repository) loadItemsAuthors(items ...Item) (ItemCollection, error) {
 	fActors := Filters{}
 	for _, it := range items {
 		if it.HasMetadata() {
-			// Adding an item's recipients list (To and CC) to the list of actors we want to load from the ActivityPub API
+			// Adding an item's recipients list (To and CC) to the list of accounts we want to load from the ActivityPub API
 			if len(it.Metadata.To) > 0 {
 				for _, to := range it.Metadata.To {
 					fActors.LoadAccountsFilter.Key = append(fActors.LoadAccountsFilter.Key, Hash(to.Metadata.ID))
@@ -714,7 +714,7 @@ func (r *repository) loadItemsAuthors(items ...Item) (ItemCollection, error) {
 		if !it.SubmittedBy.IsValid() {
 			continue
 		}
-		// Adding an item's author to the list of actors we want to load from the ActivityPub API
+		// Adding an item's author to the list of accounts we want to load from the ActivityPub API
 		if it.SubmittedBy.HasMetadata() && len(it.SubmittedBy.Metadata.ID) > 0 {
 			fActors.LoadAccountsFilter.Key = append(fActors.LoadAccountsFilter.Key, Hash(it.SubmittedBy.Metadata.ID))
 		} else if len(it.SubmittedBy.Hash) > 0 {
@@ -843,7 +843,7 @@ func LoadFromCollection(f func(*fedFilters) (pub.CollectionInterface, error), cu
 
 			col, err = f(cur.filters)
 			if err != nil {
-				status = true
+				fetch <- res{true, err}
 				return
 			}
 
@@ -897,50 +897,72 @@ func LoadFromCollection(f func(*fedFilters) (pub.CollectionInterface, error), cu
 	return err
 }
 
-// ServiceInbox loads the service's inbox collection.
-// First step is to load the Create activities from the inbox
-// Iterating over the activities in the resulting collection, we gather the objects and actors
-//  With the resulting Object IRIs we load from the objects collection with our matching filters
-//  With the resulting Actor IRIs we load from the actors collection with matching filters
-// From the
-func (r *repository) ServiceInbox(f *fedFilters) (Cursor, error) {
+func (r *repository) accounts(f *fedFilters) ([]Account, error) {
+	actors := func(f *fedFilters) (pub.CollectionInterface, error) {
+		return r.fedbox.Actors(Values(f))
+	}
+	accounts := make([]Account, 0)
+	err := LoadFromCollection(actors, &colCursor{filters: f}, func(col pub.ItemCollection) (bool, error) {
+		for _, it := range col {
+			if !it.IsObject() || !ValidActorTypes.Contains(it.GetType()) {
+				continue
+			}
+			a := Account{}
+			a.FromActivityPub(it)
+			accounts = append(accounts, a)
+		}
+		return true, nil
+	})
+
+	return accounts, err
+}
+
+func (r *repository) objects(f *fedFilters) ([]Item, error) {
+	objects := func(f *fedFilters) (pub.CollectionInterface, error) {
+		return r.fedbox.Objects(Values(f))
+	}
+	items := make ([]Item, 0)
+	err := LoadFromCollection(objects, &colCursor{filters: f}, func(c pub.ItemCollection) (bool, error) {
+		for _, it := range c {
+			i := Item{}
+			i.FromActivityPub(it)
+			items = append(items, i)
+		}
+		return true, nil
+	})
+	return items, err
+}
+
+func (r *repository) Objects(f *fedFilters) (Cursor, error) {
+	items, err := r.objects(f)
+	if err != nil {
+		return emptyCursor, err
+	}
+	result := make([]Renderable, 0)
+	for _, it := range items {
+		if len(it.Hash) > 0 {
+			result = append(result, &comment{Item: it})
+		}
+	}
+
+	prev, next := cursorHashes(f)
+	return Cursor{
+		after:  next,
+		before: prev,
+		items:  result,
+		total:  uint(len(result)),
+	}, nil
+}
+
+func (r *repository) serviceInbox(f *fedFilters)([]Item, error) {
 	self := r.fedbox.Service()
 	inbox := func(f *fedFilters) (pub.CollectionInterface, error) {
 		return r.fedbox.Inbox(self, Values(f))
 	}
-	objects := func(f *fedFilters) (pub.CollectionInterface, error) {
-		return r.fedbox.Objects(Values(f))
-	}
-
 	if len(f.Recipients) == 0 {
 		f.Recipients = pub.IRIs{pub.PublicNS, self.GetLink()}
 	}
-	objectsFromObjectsCol := func(items *[]Item, c pub.ItemCollection) (bool, error) {
-		deferredItems := make([]Item, 0)
-		for _, it := range c {
-			i := Item{}
-			i.FromActivityPub(it)
-			deferredItems = append(deferredItems, i)
-		}
-		if len(deferredItems) > 0 {
-			k := 0
-			for _, c := range *items {
-				for _, d := range deferredItems {
-					if !c.SubmittedAt.IsZero() {
-						k++
-						break
-					}
-					if HashesEqual(d.Hash, c.Hash) {
-						(*items)[k] = d
-						k++
-						break
-					}
-				}
-			}
-			*items = (*items)[:k]
-		}
-		return true, nil
-	}
+
 	objectsFromActivityCol := func(items *[]Item, c pub.ItemCollection) (bool, error) {
 		deferredItems := make(pub.IRIs, 0)
 		for _, it := range c {
@@ -977,12 +999,25 @@ func (r *repository) ServiceInbox(f *fedFilters) (Cursor, error) {
 				Recipients: pub.IRIs{pub.PublicNS, self.GetLink()},
 				OP:         []string{"-"},
 			}
-			err := LoadFromCollection(objects, &colCursor{filters: &f}, func(c pub.ItemCollection) (bool, error) {
-				return objectsFromObjectsCol(items, c)
-			})
+			objects, err := r.objects(&f)
 			if err != nil {
 				return true, err
 			}
+			k := 0
+			for _, c := range *items {
+				for _, d := range objects {
+					if !c.SubmittedAt.IsZero() {
+						k++
+						break
+					}
+					if HashesEqual(d.Hash, c.Hash) {
+						(*items)[k] = d
+						k++
+						break
+					}
+				}
+			}
+			*items = (*items)[:k]
 			after = len(*items)
 		}
 
@@ -995,9 +1030,21 @@ func (r *repository) ServiceInbox(f *fedFilters) (Cursor, error) {
 	err := LoadFromCollection(inbox, &colCursor{filters: f}, func(col pub.ItemCollection) (bool, error) {
 		return objectsFromActivityCol(&items, col)
 	})
+	return items, err
+}
+
+// ServiceInbox loads the service's inbox collection.
+// First step is to load the Create activities from the inbox
+// Iterating over the activities in the resulting collection, we gather the objects and accounts
+//  With the resulting Object IRIs we load from the objects collection with our matching filters
+//  With the resulting Actor IRIs we load from the accounts collection with matching filters
+// From the
+func (r *repository) ServiceInbox(f *fedFilters) (Cursor, error) {
+	items, err := r.serviceInbox(f)
 	if err != nil {
 		return emptyCursor, err
 	}
+
 	actToLoad := make(pub.IRIs, 0)
 	for _, it := range items {
 		if it.SubmittedBy == nil {
@@ -1010,34 +1057,28 @@ func (r *repository) ServiceInbox(f *fedFilters) (Cursor, error) {
 			}
 		}
 	}
-	// Match loaded actors to the items' authors
+	// Match loaded accounts to the items' authors
 	if len(actToLoad) > 0 {
 		f := fedFilters{
 			IRI:  actToLoad,
 			Type: ValidActorTypes,
 		}
-		actors := func(f *fedFilters) (pub.CollectionInterface, error) {
-			return r.fedbox.Actors(Values(f))
+		actors, err := r.accounts(&f)
+		if err != nil {
+			return emptyCursor, err
 		}
-		LoadFromCollection(actors, &colCursor{filters: &f}, func(col pub.ItemCollection) (bool, error) {
-			for _, it := range col {
-				if !it.IsObject() || !ValidActorTypes.Contains(it.GetType()) {
+
+		for i := range items {
+			for _, a := range actors {
+				if items[i].SubmittedBy == nil {
 					continue
 				}
-				a := Account{}
-				a.FromActivityPub(it)
-				for i := range items {
-					if items[i].SubmittedBy == nil {
-						continue
-					}
-					if HashesEqual(items[i].SubmittedBy.Hash, a.Hash) {
-						items[i].SubmittedBy = &a
-						continue
-					}
+				if HashesEqual(items[i].SubmittedBy.Hash, a.Hash) {
+					items[i].SubmittedBy = &a
+					break
 				}
 			}
-			return true, nil
-		})
+		}
 	}
 
 	result := make([]Renderable, 0)
@@ -1065,7 +1106,7 @@ func (r *repository) LoadItems(f Filters) (ItemCollection, uint, error) {
 	c := "objects"
 	if len(f.FollowedBy) > 0 {
 		// TODO(marius): make this work for multiple FollowedBy filters
-		target = fmt.Sprintf("/actors/%s/", f.FollowedBy)
+		target = fmt.Sprintf("/accounts/%s/", f.FollowedBy)
 		c = "inbox"
 		f.FollowedBy = ""
 		f.LoadItemsFilter.IRI = ""
@@ -1271,7 +1312,7 @@ func (r *repository) LoadVotes(f Filters) (VoteCollection, uint, error) {
 	if len(f.LoadVotesFilter.AttributedTo) == 1 {
 		attrTo := f.LoadVotesFilter.AttributedTo[0]
 		f.LoadVotesFilter.AttributedTo = nil
-		url = fmt.Sprintf("%s/actors/%s/outbox", r.BaseURL, attrTo)
+		url = fmt.Sprintf("%s/accounts/%s/outbox", r.BaseURL, attrTo)
 	} else {
 		url = fmt.Sprintf("%s/inbox", r.BaseURL)
 	}
@@ -1438,7 +1479,7 @@ func (r *repository) SaveItem(it Item) (Item, error) {
 			}
 			actors, _, err := r.LoadAccounts(ff)
 			if err != nil {
-				r.errFn("unable to load actors from mentions", log.Ctx{"err": err})
+				r.errFn("unable to load accounts from mentions", log.Ctx{"err": err})
 			}
 			for _, actor := range actors {
 				if actor.HasMetadata() && len(actor.Metadata.ID) > 0 {
