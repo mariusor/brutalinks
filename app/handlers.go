@@ -924,6 +924,7 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 // HandleListing serves / request
 func (h *handler) HandleListing(w http.ResponseWriter, r *http.Request) {
 	model := ListingModelFromContext(r.Context())
+	model.HideText = true
 	if model == nil {
 		h.v.HandleErrors(w, r, errors.Errorf("Oops!!"))
 		return
