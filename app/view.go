@@ -399,7 +399,7 @@ func appName(n string) template.HTML {
 
 func showText(m interface{}) func() bool {
 	return func() bool {
-		mm, ok := m.(listingModel)
+		mm, ok := m.(*listingModel)
 		return !ok || !mm.HideText
 	}
 }
