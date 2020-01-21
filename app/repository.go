@@ -1063,6 +1063,14 @@ func (r *repository) ServiceInbox(f *fedFilters) (Cursor, error) {
 	if err != nil {
 		return emptyCursor, err
 	}
+	items, err = r.loadItemsVotes(items...)
+	if err != nil {
+		return emptyCursor, err
+	}
+	//items, err = r.loadItemsReplies(items...)
+	//if err != nil {
+	//	return emptyCursor, err
+	//}
 
 	result := make([]Renderable, 0)
 	for _, it := range items {
