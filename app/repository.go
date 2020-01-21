@@ -16,6 +16,7 @@ import (
 	"github.com/spacemonkeygo/httpsig"
 	"net/http"
 	"net/url"
+	"path"
 	"strings"
 	"time"
 )
@@ -37,11 +38,11 @@ var ValidItemTypes = pub.ActivityVocabularyTypes{
 	pub.ArticleType,
 	pub.NoteType,
 	pub.LinkType,
-	pub.PageType,
-	pub.DocumentType,
-	pub.VideoType,
-	pub.AudioType,
-	pub.TombstoneType,
+	//pub.PageType,
+	//pub.DocumentType,
+	//pub.VideoType,
+	//pub.AudioType,
+	//pub.TombstoneType,
 }
 
 var ValidActivityTypes = pub.ActivityVocabularyTypes{
@@ -825,103 +826,101 @@ func getCollectionNext(c *pub.Collection) string {
 	return next
 }
 
+type res struct {
+	done bool
+	err  error
+}
+
 // LoadFromCollection iterates over a collection returned by the f function, until accum is satisfied
 func LoadFromCollection(f func(*fedFilters) (pub.CollectionInterface, error), cur *colCursor, accum func(pub.ItemCollection) (bool, error)) error {
-	done := make(chan bool)
+	fetch := make(chan res)
 
 	var err error
 	for {
 		go func() {
-			col, err := f(cur.filters)
+			var status bool
+			var col pub.CollectionInterface
+
+			col, err = f(cur.filters)
 			if err != nil {
+				status = true
 				return
 			}
 
 			if col.GetType() == pub.OrderedCollectionPageType {
-				err := pub.OnOrderedCollectionPage(col, func(c *pub.OrderedCollectionPage) error {
+				pub.OnOrderedCollectionPage(col, func(c *pub.OrderedCollectionPage) error {
 					_, cur.next = getOrderedCollectionPagePrevNext(c)
-					status, err := accum(c.OrderedItems)
-					done <- status
-					return err
+					status, err = accum(c.OrderedItems)
+					return nil
 				})
-				if err != nil {
-					done <- true
-					return
-				}
 			}
 			if col.GetType() == pub.OrderedCollectionType {
-				err := pub.OnOrderedCollection(col, func(c *pub.OrderedCollection) error {
+				pub.OnOrderedCollection(col, func(c *pub.OrderedCollection) error {
 					cur.next = getOrderedCollectionNext(c)
-					status, err := accum(c.OrderedItems)
-					done <- status
-					return err
+					status, err = accum(c.OrderedItems)
+					return nil
 				})
-				if err != nil {
-					done <- true
-					return
-				}
 			}
 			if col.GetType() == pub.CollectionPageType {
-				err := pub.OnCollectionPage(col, func(c *pub.CollectionPage) error {
+				pub.OnCollectionPage(col, func(c *pub.CollectionPage) error {
 					_, cur.next = getCollectionPagePrevNext(c)
-					status, err := accum(c.Items)
-					done <- status
-					return err
+					status, err = accum(c.Items)
+					return nil
 				})
-				if err != nil {
-					done <- true
-					return
-				}
 			}
 			if col.GetType() == pub.CollectionType {
-				err := pub.OnCollection(col, func(c *pub.Collection) error {
+				pub.OnCollection(col, func(c *pub.Collection) error {
 					cur.next = getCollectionNext(c)
-					status, err := accum(c.Items)
-					done <- status
-					return err
+					status, err = accum(c.Items)
+					return nil
 				})
-				if err != nil {
-					done <- true
-					return
-				}
 			}
+			if err != nil {
+				status = true
+			}
+			fetch <- res{status, err}
 		}()
 
+		r := <-fetch
+		if r.done || len(cur.next)+len(cur.prev) == 0 {
+			break
+		}
 		// Advance current collection cursor
-		if len(cur.next) > 0 {
+		if len(cur.next) > 0 && cur.filters.Next != cur.next {
 			cur.filters.Next = cur.next
 		}
-		if len(cur.prev) > 0 {
+		if len(cur.prev) > 0 && cur.filters.Prev != cur.prev {
 			cur.filters.Prev = cur.prev
-		}
-		if <-done {
-			break
 		}
 	}
 
 	return err
 }
 
-// Inbox loads the service's inbox collection.
+// ServiceInbox loads the service's inbox collection.
 // First step is to load the Create activities from the inbox
 // Iterating over the activities in the resulting collection, we gather the objects and actors
 //  With the resulting Object IRIs we load from the objects collection with our matching filters
 //  With the resulting Actor IRIs we load from the actors collection with matching filters
 // From the
-func (r *repository) Inbox(f *fedFilters) (Cursor, error) {
+func (r *repository) ServiceInbox(f *fedFilters) (Cursor, error) {
+	self := r.fedbox.Service()
 	inbox := func(f *fedFilters) (pub.CollectionInterface, error) {
-		return r.fedbox.Inbox(r.fedbox.Service(), Values(f))
+		return r.fedbox.Inbox(self, Values(f))
 	}
 	objects := func(f *fedFilters) (pub.CollectionInterface, error) {
 		return r.fedbox.Objects(Values(f))
 	}
 
+	if len(f.Recipients) == 0 {
+		f.Recipients = pub.IRIs{pub.PublicNS, self.GetLink()}
+	}
 	objectsFromObjectsCol := func(items *[]Item, c pub.ItemCollection) (bool, error) {
-		deferredItems := make([]Item, len(c))
-		for k, it := range c {
+		deferredItems := make([]Item, 0)
+		for _, it := range c {
 			i := Item{}
 			i.FromActivityPub(it)
-			deferredItems[k] = i
+			deferredItems = append(deferredItems, i)
 		}
 		if len(deferredItems) > 0 {
 			k := 0
@@ -943,7 +942,7 @@ func (r *repository) Inbox(f *fedFilters) (Cursor, error) {
 		return true, nil
 	}
 	objectsFromActivityCol := func(items *[]Item, c pub.ItemCollection) (bool, error) {
-		obToLoad := make(pub.IRIs, 0)
+		deferredItems := make(pub.IRIs, 0)
 		for _, it := range c {
 			if ValidActivityTypes.Contains(it.GetType()) {
 				pub.OnActivity(it, func(a *pub.Activity) error {
@@ -958,9 +957,10 @@ func (r *repository) Inbox(f *fedFilters) (Cursor, error) {
 						iri := ob.GetLink()
 						i := Item{}
 						i.FromActivityPub(iri)
+						uuid := pub.IRI(path.Base(iri.String()))
 						*items = append(*items, i)
-						if !ob.IsObject() && !obToLoad.Contains(iri) {
-							obToLoad = append(obToLoad, iri)
+						if !ob.IsObject() && !deferredItems.Contains(uuid) {
+							deferredItems = append(deferredItems, uuid)
 						}
 					}
 					return nil
@@ -970,25 +970,25 @@ func (r *repository) Inbox(f *fedFilters) (Cursor, error) {
 
 		before := len(*items)
 		var after int
-		if len(obToLoad) > 0 {
+		if len(deferredItems) > 0 {
 			f := fedFilters{
-				IRI:  obToLoad,
-				Type: ValidItemTypes,
-				OP:   []string{"-"},
+				IRI:        deferredItems,
+				Type:       ValidItemTypes,
+				Recipients: pub.IRIs{pub.PublicNS, self.GetLink()},
+				OP:         []string{"-"},
 			}
-
-			err := LoadFromCollection(objects, &colCursor{filters: &f}, func(c pub.ItemCollection) (b bool, err error) {
+			err := LoadFromCollection(objects, &colCursor{filters: &f}, func(c pub.ItemCollection) (bool, error) {
 				return objectsFromObjectsCol(items, c)
 			})
-			after = len(*items)
 			if err != nil {
 				return true, err
 			}
+			after = len(*items)
 		}
 
 		// TODO(marius): this needs to be externalized also to a different function that we can pass from outer scope
 		//   This function implements the logic for breaking out of the collection iteration cycle and returns a bool
-		return before == after || after == f.MaxItems, nil
+		return before >= after || after == f.MaxItems, nil
 	}
 
 	items := make([]Item, 0)
@@ -1004,7 +1004,7 @@ func (r *repository) Inbox(f *fedFilters) (Cursor, error) {
 			continue
 		}
 		if len(it.SubmittedBy.Handle) == 0 {
-			act := pub.IRI(it.SubmittedBy.Metadata.ID)
+			act := pub.IRI(path.Base(it.SubmittedBy.Metadata.ID))
 			if !actToLoad.Contains(act) {
 				actToLoad = append(actToLoad, act)
 			}
@@ -1027,6 +1027,9 @@ func (r *repository) Inbox(f *fedFilters) (Cursor, error) {
 				a := Account{}
 				a.FromActivityPub(it)
 				for i := range items {
+					if items[i].SubmittedBy == nil {
+						continue
+					}
 					if HashesEqual(items[i].SubmittedBy.Hash, a.Hash) {
 						items[i].SubmittedBy = &a
 						continue
@@ -1701,7 +1704,7 @@ func (r *repository) Load(next http.Handler) http.Handler {
 
 		m := listingModel{}
 		m.User = account(req)
-		cursor, err = r.Inbox(FiltersFromContext(req.Context()))
+		cursor, err = r.ServiceInbox(FiltersFromContext(req.Context()))
 		m.Items = cursor.items
 		if err != nil {
 			// err
