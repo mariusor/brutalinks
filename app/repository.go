@@ -980,7 +980,13 @@ func (r *repository) Objects(f *fedFilters) (Cursor, error) {
 	}, nil
 }
 
-func (r *repository) serviceInbox(f *fedFilters)([]Item, error) {
+// ServiceInbox loads the service's inbox collection.
+// First step is to load the Create activities from the inbox
+// Iterating over the activities in the resulting collection, we gather the objects and accounts
+//  With the resulting Object IRIs we load from the objects collection with our matching filters
+//  With the resulting Actor IRIs we load from the accounts collection with matching filters
+// From the
+func (r *repository) ServiceInbox(f *fedFilters) (Cursor, error) {
 	self := r.fedbox.Service()
 	inbox := func(f *fedFilters) (pub.CollectionInterface, error) {
 		return r.fedbox.Inbox(self, Values(f))
@@ -989,24 +995,22 @@ func (r *repository) serviceInbox(f *fedFilters)([]Item, error) {
 		f.Recipients = pub.IRIs{pub.PublicNS, self.GetLink()}
 	}
 
-	objectsFromActivityCol := func(items *[]Item, c pub.ItemCollection) (bool, error) {
+	items := make(ItemCollection, 0)
+	err := LoadFromCollection(inbox, &colCursor{filters: f}, func(col pub.ItemCollection) (bool, error) {
 		deferredItems := make(pub.IRIs, 0)
-		for _, it := range c {
-			if ValidActivityTypes.Contains(it.GetType()) {
+		for _, it := range col {
+			if it.GetType() == pub.CreateType {
 				pub.OnActivity(it, func(a *pub.Activity) error {
 					ob := a.Object
+					i := Item{}
+					i.FromActivityPub(ob)
 					if ob.IsObject() {
 						if ValidItemTypes.Contains(ob.GetType()) {
-							i := Item{}
-							i.FromActivityPub(ob)
-							*items = append(*items, i)
+							items = append(items, i)
 						}
 					} else {
-						iri := ob.GetLink()
-						i := Item{}
-						i.FromActivityPub(iri)
-						uuid := pub.IRI(path.Base(iri.String()))
-						*items = append(*items, i)
+						uuid := pub.IRI(path.Base(ob.GetLink().String()))
+						items = append(items, i)
 						if !ob.IsObject() && !deferredItems.Contains(uuid) {
 							deferredItems = append(deferredItems, uuid)
 						}
@@ -1016,7 +1020,7 @@ func (r *repository) serviceInbox(f *fedFilters)([]Item, error) {
 			}
 		}
 
-		before := len(*items)
+		before := len(items)
 		var after int
 		if len(deferredItems) > 0 {
 			f := fedFilters{
@@ -1030,81 +1034,34 @@ func (r *repository) serviceInbox(f *fedFilters)([]Item, error) {
 				return true, err
 			}
 			k := 0
-			for _, c := range *items {
+			for _, c := range items {
 				for _, d := range objects {
 					if !c.SubmittedAt.IsZero() {
 						k++
 						break
 					}
 					if HashesEqual(d.Hash, c.Hash) {
-						(*items)[k] = d
+						items[k] = d
 						k++
 						break
 					}
 				}
 			}
-			*items = (*items)[:k]
-			after = len(*items)
+			items = items[:k]
+			after = len(items)
 		}
 
 		// TODO(marius): this needs to be externalized also to a different function that we can pass from outer scope
 		//   This function implements the logic for breaking out of the collection iteration cycle and returns a bool
 		return before >= after || after == f.MaxItems, nil
-	}
-
-	items := make([]Item, 0)
-	err := LoadFromCollection(inbox, &colCursor{filters: f}, func(col pub.ItemCollection) (bool, error) {
-		return objectsFromActivityCol(&items, col)
 	})
-	return items, err
-}
-
-// ServiceInbox loads the service's inbox collection.
-// First step is to load the Create activities from the inbox
-// Iterating over the activities in the resulting collection, we gather the objects and accounts
-//  With the resulting Object IRIs we load from the objects collection with our matching filters
-//  With the resulting Actor IRIs we load from the accounts collection with matching filters
-// From the
-func (r *repository) ServiceInbox(f *fedFilters) (Cursor, error) {
-	items, err := r.serviceInbox(f)
 	if err != nil {
 		return emptyCursor, err
 	}
 
-	actToLoad := make(pub.IRIs, 0)
-	for _, it := range items {
-		if it.SubmittedBy == nil {
-			continue
-		}
-		if len(it.SubmittedBy.Handle) == 0 {
-			act := pub.IRI(path.Base(it.SubmittedBy.Metadata.ID))
-			if !actToLoad.Contains(act) {
-				actToLoad = append(actToLoad, act)
-			}
-		}
-	}
-	// Match loaded accounts to the items' authors
-	if len(actToLoad) > 0 {
-		f := fedFilters{
-			IRI:  actToLoad,
-			Type: ValidActorTypes,
-		}
-		actors, err := r.accounts(&f)
-		if err != nil {
-			return emptyCursor, err
-		}
-
-		for i := range items {
-			for _, a := range actors {
-				if items[i].SubmittedBy == nil {
-					continue
-				}
-				if HashesEqual(items[i].SubmittedBy.Hash, a.Hash) {
-					items[i].SubmittedBy = &a
-					break
-				}
-			}
-		}
+	items, err = r.loadItemsAuthors(items...)
+	if err != nil {
+		return emptyCursor, err
 	}
 
 	result := make([]Renderable, 0)
