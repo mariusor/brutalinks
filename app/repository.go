@@ -64,8 +64,8 @@ func ActivityPubService(c appConfig) *repository {
 	pub.ItemTyperFunc = pub.JSONGetItemByType
 
 	BaseURL = c.APIURL
-	ActorsURL = fmt.Sprintf("%s/accounts", BaseURL)
-	ObjectsURL = fmt.Sprintf("%s/objects", BaseURL)
+	ActorsURL = fmt.Sprintf("%s/%s", BaseURL, actors)
+	ObjectsURL = fmt.Sprintf("%s/%s", BaseURL, objects)
 
 	infoFn := func(s string, ctx log.Ctx) {}
 	errFn := func(s string, ctx log.Ctx) {
@@ -116,8 +116,8 @@ func BuildCollectionID(a Account, o handlers.CollectionType) pub.ID {
 }
 
 var BaseURL = "http://fedbox.git"
-var ActorsURL = fmt.Sprintf("%s/accounts", BaseURL)
-var ObjectsURL = fmt.Sprintf("%s/objects", BaseURL)
+var ActorsURL = fmt.Sprintf("%s/%s", BaseURL, actors)
+var ObjectsURL = fmt.Sprintf("%s/%s", BaseURL, objects)
 
 func apAccountID(a Account) pub.ID {
 	if len(a.Hash) >= 8 {
