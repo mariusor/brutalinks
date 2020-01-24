@@ -129,6 +129,7 @@ type fedFilters struct {
 	MedTypes   []pub.MimeType              `qstring:"mediaType,omitempty"`
 	IRI        pub.IRIs                    `qstring:"iri,omitempty"`
 	ObjectIRI  pub.IRIs                    `qstring:"object,omitempty"`
+	Generator  pub.IRIs                    `qstring:"generator,omitempty"`
 	ActorKey   []string                    `qstring:"actor,omitempty"`
 	TargetKey  []string                    `qstring:"target,omitempty"`
 	Type       pub.ActivityVocabularyTypes `qstring:"type,omitempty"`
@@ -176,7 +177,10 @@ func DefaultFilters(next http.Handler) http.Handler {
 func SelfFilters(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := FiltersFromRequest(r)
-		f.IRI = pub.IRIs{pub.IRI("http://federated.id")}
+		f.Type = pub.ActivityVocabularyTypes{
+			pub.CreateType,
+		}
+		f.Generator = pub.IRIs{pub.IRI(Instance.BaseURL)}
 		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -197,6 +201,9 @@ func FollowedFilters(next http.Handler) http.Handler {
 func FederatedFilters(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := FiltersFromRequest(r)
+		f.Type = pub.ActivityVocabularyTypes{
+			pub.CreateType,
+		}
 		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
