@@ -1,5 +1,5 @@
 {{- $count := .Children | len -}}
-{{- $it := .Item -}}
+{{- $it := . -}}
 <footer class="meta col">
 submitted{{ if not .Deleted}}{{- if ShowUpdate $it }}<time class="updated-at" datetime="{{ $it.UpdatedAt | ISOTimeFmt | html }}" title="updated at {{ $it.UpdatedAt | ISOTimeFmt }}"><sup>&#10033;</sup></time> {{- end }} <time class="submitted-at" datetime="{{ $it.SubmittedAt | ISOTimeFmt | html }}" title="{{ $it.SubmittedAt | ISOTimeFmt }}">{{ icon "clock-o" }}{{ $it.SubmittedAt | TimeFmt }}</time>{{- end -}}
     {{- if $it.SubmittedBy.IsValid }} by <a class="by" href="{{ $it.SubmittedBy | AccountPermaLink }}">{{ $it.SubmittedBy | ShowAccountHandle }}</a>{{end}}
@@ -11,16 +11,16 @@ submitted{{ if not .Deleted}}{{- if ShowUpdate $it }}<time class="updated-at" da
 @todo(marius) :link_generation: this needs a generic way of creating links
 */ -}}
 {{- if not .Deleted }}
-            <li><a href="{{$it | ItemLocalLink }}/edit" title="Edit{{if .Item.Title}}: {{$it.Title }}{{end}}">{{/*icon "edit"*/}}edit</a></li>
-            <li><a href="{{$it | ItemLocalLink }}/rm" class="rm" data-hash="{{ .Item.Hash }}" title="Remove{{if .Item.Title}}: {{$it.Title }}{{end}}">{{/*icon "eraser"*/}}rm</a></li>
+            <li><a href="{{$it | ItemLocalLink }}/edit" title="Edit{{if .Title}}: {{$it.Title }}{{end}}">{{/*icon "edit"*/}}edit</a></li>
+            <li><a href="{{$it | ItemLocalLink }}/rm" class="rm" data-hash="{{ .Hash }}" title="Remove{{if .Title}}: {{$it.Title }}{{end}}">{{/*icon "eraser"*/}}rm</a></li>
 {{- /*
 {{ else -}}
-            <li><a href="{{$it | ItemLocalLink }}/undo" class="undo" data-hash="{{ .Item.Hash }}" title="Recover item"><!--{{icon "recycle"}}-->undo</a></li>
+            <li><a href="{{$it | ItemLocalLink }}/undo" class="undo" data-hash="{{ .Hash }}" title="Recover item"><!--{{icon "recycle"}}-->undo</a></li>
 */ -}}
 {{- end -}}
 {{- end -}}
 {{- /*
-            <li><a href="{{$it | PermaLink }}/bad" title="Report{{if .Item.Title}}: {{$it.Title }}{{end}}"><!--{{ icon "star"}}-->report</a></li>
+            <li><a href="{{$it | PermaLink }}/bad" title="Report{{if .Title}}: {{$it.Title }}{{end}}"><!--{{ icon "star"}}-->report</a></li>
 */ -}}
 {{- end -}}
 {{- if not $it.IsTop -}}
@@ -38,7 +38,7 @@ submitted{{ if not .Deleted}}{{- if ShowUpdate $it }}<time class="updated-at" da
 {{- end -}}
 {{- end -}}
 {{- if or (not $it.IsTop) (not .IsLink) }}
-            <li><a href="{{$it | ItemLocalLink }}" class="to-item" title="Permalink{{if .Item.Title}}: {{$it.Title }}{{end}}">{{ if $it.Private }}{{icon "lock"}} {{ end -}}{{/* icon "reply" "h-mirror" */}}link</a></li>
+            <li><a href="{{$it | ItemLocalLink }}" class="to-item" title="Permalink{{if .Title}}: {{$it.Title }}{{end}}">{{ if $it.Private }}{{icon "lock"}} {{ end -}}{{/* icon "reply" "h-mirror" */}}link</a></li>
 {{- end -}}
 {{- if $it.IsFederated }}<!-- <li>This shit federated, yo!</li> -->{{ end }}
         </ul>

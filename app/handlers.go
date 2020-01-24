@@ -200,10 +200,8 @@ func (h *handler) ShowReport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	m := contentModel{
-		Title: fmt.Sprintf("Report %s", p.Title),
-		Content: comment{
-			Item: p,
-		},
+		Title:   fmt.Sprintf("Report %s", p.Title),
+		Content: p,
 	}
 	h.v.RenderTemplate(r, w, "new", m)
 }
@@ -302,7 +300,7 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 		h.v.HandleErrors(w, r, errors.NotFoundf("Item %q", hash))
 		return
 	}
-	m.Content = comment{Item: i}
+	m.Content = i
 	url := r.URL
 	maybeEdit := path.Base(url.Path)
 
@@ -317,8 +315,8 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	items = append(items, i)
-	allComments := make(comments, 1)
-	allComments[0] = &m.Content
+	allComments := make(ItemCollection, 1)
+	allComments[0] = m.Content
 
 	filter := Filters{
 		LoadItemsFilter: LoadItemsFilter{
@@ -351,7 +349,7 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 		h.v.HandleErrors(w, r, errors.NewNotFound(err, "" /*, errors.ErrorStack(err)*/))
 		return
 	}
-	allComments = append(allComments, loadComments(contentItems)...)
+	allComments = append(allComments, contentItems...)
 
 	if i.Parent.IsValid() && i.Parent.SubmittedAt.IsZero() {
 		if p, err := repo.LoadItem(Filters{LoadItemsFilter: LoadItemsFilter{Key: Hashes{i.Parent.Hash}}}); err == nil {
@@ -563,8 +561,7 @@ func (h *handler) HandleInbox(w http.ResponseWriter, r *http.Request) {
 		h.v.HandleErrors(w, r, errors.NewNotValid(err, "Unable to load items!"))
 	}
 	for _, r := range requests {
-		f := follow{r}
-		m.Items = append(m.Items, &f)
+		m.Items = append(m.Items, r)
 	}
 	comments, err := loadItems(r.Context(), filter, acct, h.logger)
 	if err != nil {
@@ -671,8 +668,8 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	// Try to load actor from handle
 	acct, err := h.storage.LoadAccount(Filters{
 		LoadAccountsFilter: LoadAccountsFilter{
-			Handle:  []string{handle,},
-			Deleted: []bool{false,},
+			Handle:  []string{handle},
+			Deleted: []bool{false},
 		},
 	})
 	if err != nil {

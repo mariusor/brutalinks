@@ -27,10 +27,10 @@ func (i listingModel) PrevPage() Hash {
 }
 
 type contentModel struct {
-	Title    string
-	Content  comment
-	after    Hash
-	before   Hash
+	Title   string
+	Content Item
+	after   Hash
+	before  Hash
 }
 
 func (c contentModel) NextPage() Hash {

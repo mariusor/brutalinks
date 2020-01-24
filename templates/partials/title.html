@@ -1,4 +1,4 @@
-{{- if .Item.Title -}}
+{{- if .Title -}}
 <header>
 <h2 data-hash="{{.Hash}}" class="title">
 {{- if .IsLink -}}
@@ -6,7 +6,7 @@
 {{- else -}}
     {{- .Title -}}
 {{- end -}}
-    <a href="{{ .Item | ItemPermaLink }}" class="to-item" title="Permalink{{if .Item.Title}}: {{.Title }}{{end}}"></a>
+    <a href="{{ . | ItemPermaLink }}" class="to-item" title="Permalink{{if .Title}}: {{.Title }}{{end}}"></a>
 </h2>
 {{ if .Public }}
 {{- $domain := .GetDomain -}}

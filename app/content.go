@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"net/url"
 	"strings"
+	"time"
 
 	mark "gitlab.com/golang-commonmark/markdown"
 )
@@ -86,41 +87,37 @@ type Renderable interface {
 	Type() RenderType
 }
 
-type follow struct {
-	FollowRequest
-}
-
-func (f *follow) Type() RenderType {
+func (f FollowRequest) Type() RenderType {
 	return Follow
 }
 
-type comments []*comment
-
-type comment struct {
-	Item
-	// Voted shows if current logged account has Yayed(+1) or Nayed(-1) current Item
-	Voted    uint8
-	Level    uint8
-	Edit     bool
-	Children comments
-	Parent   *comment
+type Item struct {
+	Hash        Hash           `json:"hash"`
+	Title       string         `json:"-"`
+	MimeType    MimeType       `json:"-"`
+	Data        string         `json:"-"`
+	Score       int            `json:"-"`
+	SubmittedAt time.Time      `json:"-"`
+	SubmittedBy *Account       `json:"-"`
+	UpdatedAt   time.Time      `json:"-"`
+	UpdatedBy   *Account       `json:"-"`
+	Flags       FlagBits       `json:"-"`
+	Metadata    *ItemMetadata  `json:"-"`
+	IsTop       bool           `json:"-"`
+	Parent      *Item          `json:"-"`
+	OP          *Item          `json:"-"`
+	Voted       uint8          `json:"-"`
+	Level       uint8          `json:"-"`
+	Edit        bool           `json:"-"`
+	Children    ItemCollection `json:"-"`
 }
 
-func (c *comment) Type() RenderType {
+func (i Item) Type() RenderType {
 	return Comment
 }
 
-func loadComments(items []Item) comments {
-	var all = make(comments, len(items))
-	for k, item := range items {
-		com := comment{Item: item}
-		all[k] = &com
-	}
-	return all
-}
-
-func (c comments) Contains(cc comment) bool {
-	for _, com := range c {
+func (i ItemCollection) Contains(cc Item) bool {
+	for _, com := range i {
 		if HashesEqual(com.Hash, cc.Hash) {
 			return true
 		}
@@ -128,18 +125,10 @@ func (c comments) Contains(cc comment) bool {
 	return false
 }
 
-func (c comments) getItems() ItemCollection {
-	var items = make(ItemCollection, len(c))
-	for k, com := range c {
-		items[k] = com.Item
-	}
-	return items
-}
-
-func (c comments) getItemsHashes() Hashes {
-	var items = make(Hashes, len(c))
-	for k, com := range c {
-		items[k] = com.Item.Hash
+func (i ItemCollection) getItemsHashes() Hashes {
+	var items = make(Hashes, len(i))
+	for k, com := range i {
+		items[k] = com.Hash
 	}
 	return items
 }
@@ -207,10 +196,10 @@ func replaceTagsInItem(cur Item) string {
 	return dat
 }
 
-func removeCurElementParentComments(com *comments) {
+func removeCurElementParentComments(com *ItemCollection) {
 	first := (*com)[0]
 	lvl := first.Level
-	keepComments := make(comments, 0)
+	keepComments := make(ItemCollection, 0)
 	for _, cur := range *com {
 		if cur.Level >= lvl {
 			keepComments = append(keepComments, cur)
@@ -219,11 +208,11 @@ func removeCurElementParentComments(com *comments) {
 	*com = keepComments
 }
 
-func addLevelComments(allComments comments) {
+func addLevelComments(allComments ItemCollection) {
 	leveled := make(Hashes, 0)
-	var setLevel func(comments)
+	var setLevel func(ItemCollection)
 
-	setLevel = func(com comments) {
+	setLevel = func(com ItemCollection) {
 		for _, cur := range com {
 			if leveled.Contains(cur.Hash) {
 				break
@@ -240,12 +229,12 @@ func addLevelComments(allComments comments) {
 	setLevel(allComments)
 }
 
-func reparentComments(allComments []*comment) {
-	parFn := func(t []*comment, cur comment) *comment {
+func reparentComments(allComments ItemCollection) {
+	parFn := func(t ItemCollection, cur Item) *Item {
 		for _, n := range t {
-			if cur.Item.Parent.IsValid() {
-				if HashesEqual(cur.Item.Parent.Hash, n.Hash) {
-					return n
+			if cur.Parent.IsValid() {
+				if HashesEqual(cur.Parent.Hash, n.Hash) {
+					return &n
 				}
 			}
 		}
@@ -254,7 +243,7 @@ func reparentComments(allComments []*comment) {
 
 	first := allComments[0]
 	for _, cur := range allComments {
-		if par := parFn(allComments, *cur); par != nil {
+		if par := parFn(allComments, cur); par != nil {
 			if HashesEqual(first.Hash, cur.Hash) {
 				continue
 			}

@@ -1,5 +1,5 @@
 <section class="{{if .Deleted }}deleted {{end}}{{ if .Private }}private {{ end }}item{{ if not .Parent }} op{{end}}" id="i-{{.Hash}}" data-hash="{{.Hash}}">
-    {{- template "partials/score" .Item -}}
+    {{- template "partials/score" . -}}
     {{- template "partials/data" . -}}
     {{- template "partials/meta" . -}}
 </section>

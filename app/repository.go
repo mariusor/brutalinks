@@ -965,7 +965,7 @@ func (r *repository) Objects(f *fedFilters) (Cursor, error) {
 	result := make([]Renderable, 0)
 	for _, it := range items {
 		if len(it.Hash) > 0 {
-			result = append(result, &comment{Item: it})
+			result = append(result, &it)
 		}
 	}
 
@@ -1018,15 +1018,14 @@ func (r *repository) ServiceInbox(f *fedFilters) (Cursor, error) {
 			}
 		}
 
-		var after int
 		if len(deferredItems) > 0 {
-			f := fedFilters{
+			ff := fedFilters{
 				IRI:        deferredItems,
 				Type:       ValidItemTypes,
 				Recipients: pub.IRIs{pub.PublicNS, self.GetLink()},
 				OP:         []string{"-"},
 			}
-			objects, err := r.objects(&f)
+			objects, err := r.objects(&ff)
 			if err != nil {
 				return true, err
 			}
@@ -1049,12 +1048,11 @@ func (r *repository) ServiceInbox(f *fedFilters) (Cursor, error) {
 
 		// TODO(marius): this needs to be externalized also to a different function that we can pass from outer scope
 		//   This function implements the logic for breaking out of the collection iteration cycle and returns a bool
-		return after == f.MaxItems, nil
+		return len(items) == f.MaxItems, nil
 	})
 	if err != nil {
 		return emptyCursor, err
 	}
-
 	items, err = r.loadItemsAuthors(items...)
 	if err != nil {
 		return emptyCursor, err
@@ -1071,7 +1069,7 @@ func (r *repository) ServiceInbox(f *fedFilters) (Cursor, error) {
 	result := make([]Renderable, 0)
 	for _, it := range items {
 		if len(it.Hash) > 0 {
-			result = append(result, &comment{Item: it})
+			result = append(result, it)
 		}
 	}
 
@@ -1732,7 +1730,10 @@ func (r *repository) Load(next http.Handler) http.Handler {
 
 		m := listingModel{}
 		m.User = account(req)
-		cursor, err = r.ServiceInbox(FiltersFromContext(req.Context()))
+
+		f := FiltersFromContext(req.Context())
+		//f.MaxItems = 3 * MaxContentItems
+		cursor, err = r.ServiceInbox(f)
 		m.Items = cursor.items
 		if err != nil {
 			// err
