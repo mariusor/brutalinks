@@ -1,7 +1,7 @@
 {{- if not .Content.Edit -}}
 {{ template "partials/item" .Content }}
 {{- end -}}
-{{- if not .Content.Item.Deleted -}}
+{{- if not .Content.Deleted -}}
 <section id="reply">{{template "partials/content/edit" . }}</section>
 {{- end }}
 <hr />

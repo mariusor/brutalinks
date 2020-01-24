@@ -54,25 +54,6 @@ func (d data) String() string {
 	return d.Processed
 }
 
-type Item struct {
-	Hash        Hash          `json:"hash"`
-	Title       string        `json:"-"`
-	MimeType    MimeType      `json:"-"`
-	Data        string        `json:"-"`
-	Score       int           `json:"-"`
-	SubmittedAt time.Time     `json:"-"`
-	SubmittedBy *Account      `json:"-"`
-	UpdatedAt   time.Time     `json:"-"`
-	UpdatedBy   *Account      `json:"-"`
-	Flags       FlagBits      `json:"-"`
-	Path        []byte        `json:"-"`
-	FullPath    []byte        `json:"-"`
-	Metadata    *ItemMetadata `json:"-"`
-	IsTop       bool          `json:"-"`
-	Parent      *Item         `json:"-"`
-	OP          *Item         `json:"-"`
-}
-
 func (i *Item) IsValid() bool {
 	return i != nil && len(i.Hash) > 0
 }
@@ -138,7 +119,7 @@ const (
 	MaxContentItems = 50
 )
 
-func loadItems(c context.Context, filter Filters, acc *Account, l log.Logger) (comments, error) {
+func loadItems(c context.Context, filter Filters, acc *Account, l log.Logger) (ItemCollection, error) {
 	repo := ContextRepository(c)
 	if repo == nil {
 		err := errors.Errorf("could not load item repository from Context")
@@ -149,12 +130,11 @@ func loadItems(c context.Context, filter Filters, acc *Account, l log.Logger) (c
 	if err != nil {
 		return nil, err
 	}
-	comments := loadComments(contentItems)
 	if acc.IsLogged() {
 		acc.Votes, _, err = repo.LoadVotes(Filters{
 			LoadVotesFilter: LoadVotesFilter{
 				AttributedTo: []Hash{acc.Hash},
-				ItemKey:      comments.getItemsHashes(),
+				ItemKey:      contentItems.getItemsHashes(),
 			},
 			MaxItems: MaxContentItems,
 		})
@@ -162,7 +142,7 @@ func loadItems(c context.Context, filter Filters, acc *Account, l log.Logger) (c
 			l.Error(err.Error())
 		}
 	}
-	return comments, nil
+	return contentItems, nil
 }
 
 func detectMimeType(data string) MimeType {
@@ -234,7 +214,7 @@ func ContentFromRequest(r *http.Request, acc Account) (Item, error) {
 		i.MakePrivate()
 		to := Account{}
 		to.FromActivityPub(pub.IRI(receiver.Metadata.ID))
-		i.Metadata.To = []*Account{&to,}
+		i.Metadata.To = []*Account{&to}
 	}
 
 	tit := r.PostFormValue("title")
