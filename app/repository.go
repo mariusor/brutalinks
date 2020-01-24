@@ -23,6 +23,7 @@ import (
 
 type repository struct {
 	BaseURL string
+	SelfURL string
 	app     *Account
 	fedbox  *fedbox
 	infoFn  LogFn
@@ -78,6 +79,7 @@ func ActivityPubService(c appConfig) *repository {
 
 	return &repository{
 		BaseURL: c.APIURL,
+		SelfURL: c.BaseURL,
 		fedbox:  f,
 		infoFn:  infoFn,
 		errFn:   errFn,
@@ -223,7 +225,6 @@ func loadAPItem(item Item) pub.Item {
 		return del
 	}
 
-	//o.Generator = pub.IRI(app.Instance.BaseURL)
 	if item.Title != "" {
 		o.Name.Set("en", string(item.Title))
 	}
@@ -1225,10 +1226,11 @@ func (r *repository) SaveVote(v Vote) (Vote, error) {
 
 	o := loadAPItem(*v.Item)
 	act := pub.Activity{
-		Type:  pub.UndoType,
-		To:    pub.ItemCollection{pub.PublicNS},
-		BCC:   pub.ItemCollection{pub.IRI(BaseURL)},
-		Actor: author.GetLink(),
+		Type:      pub.UndoType,
+		Generator: pub.IRI(r.SelfURL),
+		To:        pub.ItemCollection{pub.PublicNS},
+		BCC:       pub.ItemCollection{pub.IRI(BaseURL)},
+		Actor:     author.GetLink(),
 	}
 
 	if exists.HasMetadata() {
@@ -1483,11 +1485,12 @@ func (r *repository) SaveItem(it Item) (Item, error) {
 	}
 
 	act := &pub.Activity{
-		To:     to,
-		CC:     cc,
-		BCC:    bcc,
-		Actor:  author.GetLink(),
-		Object: art,
+		Generator: pub.IRI(r.SelfURL),
+		To:        to,
+		CC:        cc,
+		BCC:       bcc,
+		Actor:     author.GetLink(),
+		Object:    art,
 	}
 	if it.Deleted() {
 		if len(id) == 0 {
@@ -1616,11 +1619,12 @@ func (r *repository) SendFollowResponse(f FollowRequest, accept bool) error {
 	bcc = append(bcc, pub.IRI(BaseURL))
 
 	response := pub.Activity{
-		To:     to,
-		Type:   pub.RejectType,
-		BCC:    bcc,
-		Object: pub.IRI(f.Metadata.ID),
-		Actor:  pub.IRI(ed.Metadata.ID),
+		To:        to,
+		Type:      pub.RejectType,
+		Generator: pub.IRI(r.SelfURL),
+		BCC:       bcc,
+		Object:    pub.IRI(f.Metadata.ID),
+		Actor:     pub.IRI(ed.Metadata.ID),
 	}
 	if accept {
 		to = append(to, pub.PublicNS)
@@ -1670,12 +1674,12 @@ func (r *repository) SaveAccount(a Account) (Account, error) {
 
 	now := time.Now().UTC()
 
-	p.Generator = pub.IRI(Instance.BaseURL)
 	p.Published = now
 	p.Updated = now
 
 	author := loadAPPerson(*a.CreatedBy)
 	act := pub.Activity{
+		Generator:    pub.IRI(r.SelfURL),
 		To:           pub.ItemCollection{pub.PublicNS},
 		BCC:          pub.ItemCollection{pub.IRI(BaseURL)},
 		AttributedTo: author.GetLink(),
