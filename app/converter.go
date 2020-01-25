@@ -250,16 +250,7 @@ func FromArticle(i *Item, a *pub.Object) error {
 			}
 		}
 	}
-	i.MakePrivate()
-	isPublic := false
-	i.Metadata.To, isPublic = loadRecipientsFrom(a.To)
-	if isPublic {
-		i.MakePublic()
-	}
-	i.Metadata.CC, isPublic = loadRecipientsFrom(a.CC)
-	if isPublic {
-		i.MakePublic()
-	}
+	loadRecipients(i, a)
 
 	return nil
 }
@@ -299,6 +290,22 @@ func loadRecipientsFrom(recipients pub.ItemCollection) ([]*Account, bool) {
 	return result, isPublic
 }
 
+func loadRecipients (i *Item, it pub.Item) error {
+	i.MakePrivate()
+	return pub.OnObject(it, func(o *pub.Object) error {
+		isPublic := false
+		i.Metadata.To, isPublic = loadRecipientsFrom(o.To)
+		if isPublic {
+			i.MakePublic()
+		}
+		i.Metadata.CC, isPublic = loadRecipientsFrom(o.CC)
+		if isPublic {
+			i.MakePublic()
+		}
+		return nil
+	})
+}
+
 func (i *Item) FromActivityPub(it pub.Item) error {
 	// TODO(marius): see that we seem to have this functionality duplicated in the FromArticle() function
 	if it == nil {
@@ -336,6 +343,7 @@ func (i *Item) FromActivityPub(it pub.Item) error {
 				i.Metadata = &ItemMetadata{}
 			}
 			i.Metadata.AuthorURI = act.Actor.GetLink().String()
+			loadRecipients(i, act)
 			return err
 		})
 	case pub.ArticleType:
