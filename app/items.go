@@ -116,7 +116,7 @@ func (i ItemCollection) First() (*Item, error) {
 }
 
 const (
-	MaxContentItems = 50
+	MaxContentItems = 25
 )
 
 func loadItems(c context.Context, filter Filters, acc *Account, l log.Logger) (ItemCollection, error) {
