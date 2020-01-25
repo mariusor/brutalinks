@@ -385,7 +385,7 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 		// FIXME(marius): we lost the handler of the account
 		m.Title = fmt.Sprintf("%s comment", genitive(m.Content.SubmittedBy.Handle))
 	}
-	h.v.RenderTemplate(r, w, "content", m)
+	h.v.RenderTemplate(r, w, "content", &m)
 }
 
 func (h *handler) FollowAccount(w http.ResponseWriter, r *http.Request) {
