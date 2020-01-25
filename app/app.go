@@ -145,9 +145,13 @@ func (a *Application) Front(r chi.Router) {
 		a.Logger.Warn(err.Error())
 	}
 	a.front = &front
+
+	// Frontend
+	r.With(front.Repository).Route("/", front.Routes())
+
 	// .well-known
 	cfg := NodeInfoConfig()
-	ni := nodeinfo.NewService(cfg, NodeInfoResolverNew(conf))
+	ni := nodeinfo.NewService(cfg, NodeInfoResolverNew(front.storage))
 	// Web-Finger
 	r.Route("/.well-known", func(r chi.Router) {
 		r.Get("/webfinger", front.HandleWebFinger)
@@ -158,10 +162,6 @@ func (a *Application) Front(r chi.Router) {
 		})
 	})
 	r.Get("/nodeinfo", ni.NodeInfo)
-
-	// Frontend
-	r.With(front.Repository).Route("/", front.Routes())
-
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		front.v.HandleErrors(w, r, errors.NotFoundf("%s", r.RequestURI))
 	})

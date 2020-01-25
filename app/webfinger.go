@@ -25,21 +25,17 @@ type node struct {
 	Links   []link   `json:"links"`
 }
 
-type NodeInfoResolver struct{
-	storage *repository
+type NodeInfoResolver struct {
+	storage  *repository
+	users    int
+	comments int
+	posts    int
 }
 
-func NodeInfoResolverNew(c appConfig) NodeInfoResolver {
-	return NodeInfoResolver{
-		storage: ActivityPubService(c),
+func NodeInfoResolverNew(storage *repository) NodeInfoResolver {
+	n := NodeInfoResolver{
+		storage: storage,
 	}
-}
-
-func (n NodeInfoResolver) IsOpenRegistration() (bool, error) {
-	return false, nil
-}
-
-func (n NodeInfoResolver) Usage() (nodeinfo.Usage, error) {
 	us, _, _ := n.storage.LoadAccounts(Filters{
 		LoadAccountsFilter: LoadAccountsFilter{
 			//IRI:  app.Instance.APIURL,
@@ -47,6 +43,7 @@ func (n NodeInfoResolver) Usage() (nodeinfo.Usage, error) {
 		},
 		MaxItems: math.MaxInt64,
 	})
+	n.users = len(us)
 
 	posts, _, _ := n.storage.LoadItems(Filters{
 		LoadItemsFilter: LoadItemsFilter{
@@ -55,6 +52,7 @@ func (n NodeInfoResolver) Usage() (nodeinfo.Usage, error) {
 		},
 		MaxItems: math.MaxInt64,
 	})
+	n.posts = len(posts)
 	all, _, _ := n.storage.LoadItems(Filters{
 		LoadItemsFilter: LoadItemsFilter{
 			Deleted: []bool{false},
@@ -62,12 +60,21 @@ func (n NodeInfoResolver) Usage() (nodeinfo.Usage, error) {
 		MaxItems: math.MaxInt64,
 	})
 
+	n.comments = len(all) - n.posts
+	return n
+}
+
+func (n NodeInfoResolver) IsOpenRegistration() (bool, error) {
+	return Instance.Config.UserCreatingEnabled, nil
+}
+
+func (n NodeInfoResolver) Usage() (nodeinfo.Usage, error) {
 	u := nodeinfo.Usage{
 		Users: nodeinfo.UsageUsers{
-			Total: len(us),
+			Total: n.users,
 		},
-		LocalComments: len(all) - len(posts),
-		LocalPosts:    len(posts),
+		LocalComments: n.comments,
+		LocalPosts:    n.posts,
 	}
 	return u, nil
 }
@@ -175,7 +182,7 @@ func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		if strings.Contains(handle, "@") {
-			handle, _ = func(s string) (string, string){
+			handle, _ = func(s string) (string, string) {
 				split := "@"
 				ar := strings.Split(s, split)
 				if len(ar) != 2 {
