@@ -193,7 +193,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 		DisableCharset:            false,
 		BinaryContentType:         "application/octet-stream",
 		HTMLContentType:           "text/html",
-		IsDevelopment:             true,
+		IsDevelopment:             !Instance.Config.Env.IsProd(),
 		DisableHTTPErrorRendering: false,
 	})
 
@@ -576,6 +576,7 @@ func nextPageLink(p Hash) template.HTML {
 	}
 	return ""
 }
+
 func prevPageLink(p Hash) template.HTML {
 	if len(p) > 0 {
 		return template.HTML(fmt.Sprintf("?before=%s", p))
