@@ -921,14 +921,14 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// HandleListing serves /domains/{domain} request
+// HandleListing serves / request
 func (h *handler) HandleListing(w http.ResponseWriter, r *http.Request) {
 	model := ListingModelFromContext(r.Context())
-	model.HideText = true
 	if model == nil {
 		h.v.HandleErrors(w, r, errors.Errorf("Oops!!"))
 		return
 	}
+	model.HideText = true
 	if err := h.v.RenderTemplate(r, w, "listing", model); err != nil {
 		h.v.HandleErrors(w, r, err)
 	}
