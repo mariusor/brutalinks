@@ -204,6 +204,7 @@ func FederatedFilters(next http.Handler) http.Handler {
 		f.Type = pub.ActivityVocabularyTypes{
 			pub.CreateType,
 		}
+		f.Generator = pub.IRIs{"-"}
 		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})

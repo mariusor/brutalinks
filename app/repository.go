@@ -980,13 +980,33 @@ func (r *repository) Objects(f *fedFilters) (Cursor, error) {
 		}
 	}
 
-	prev, next := cursorHashes(f)
 	return Cursor{
-		after:  next,
-		before: prev,
+		after:  Hash(f.Next),
+		before: Hash(f.Prev),
 		items:  result,
 		total:  uint(len(result)),
 	}, nil
+}
+
+func validFederated(i Item, f *fedFilters) bool {
+	if len(f.Generator) > 0 {
+		for _, g := range f.Generator {
+			if i.pub == nil || i.pub.Generator == nil {
+				continue
+			}
+			if g == "-" {
+				if i.pub.Generator.GetLink().Equals(pub.IRI(Instance.BaseURL), false) {
+					return false
+				}
+				return true
+			}
+			if i.pub.Generator.GetLink().Equals(g, false) {
+				return true
+			}
+		}
+	}
+	// @todo(marius): currently this marks as valid nil generator, but we eventually want non nil generators
+	return i.pub != nil && i.pub.Generator == nil
 }
 
 func validRecipients(i Item, f *fedFilters) bool {
@@ -1000,14 +1020,23 @@ func validRecipients(i Item, f *fedFilters) bool {
 	return true
 }
 
+func validItem(it Item, f *fedFilters) bool {
+	if keep := validRecipients(it, f); !keep {
+		return keep
+	}
+	if keep := validFederated(it, f); !keep {
+		return keep
+	}
+	return true
+}
+
 func filterItems(items ItemCollection, f *fedFilters) ItemCollection {
 	result := make(ItemCollection, 0)
 	for _, it := range items {
 		if !it.HasMetadata() {
 			continue
 		}
-		keep := validRecipients(it, f)
-		if keep {
+		if validItem(it, f) {
 			result = append(result, it)
 		}
 	}
@@ -1031,6 +1060,7 @@ func (r *repository) ServiceInbox(f *fedFilters, acc *Account) (Cursor, error) {
 	}
 
 	items := make(ItemCollection, 0)
+	relations := make(map[pub.IRI]pub.IRI)
 	err := LoadFromCollection(inbox, &colCursor{filters: f}, func(col pub.ItemCollection) (bool, error) {
 		deferredItems := make(pub.IRIs, 0)
 		for _, it := range col {
@@ -1039,17 +1069,20 @@ func (r *repository) ServiceInbox(f *fedFilters, acc *Account) (Cursor, error) {
 					ob := a.Object
 					i := Item{}
 					if ob.IsObject() {
-						i.FromActivityPub(ob)
-						if validRecipients(i, f) && ValidItemTypes.Contains(ob.GetType()) {
-							items = append(items, i)
+						if ValidItemTypes.Contains(ob.GetType()) {
+							i.FromActivityPub(ob)
+							if validItem(i, f) {
+								items = append(items, i)
+							}
 						}
 					} else {
 						i.FromActivityPub(a)
 						uuid := pub.IRI(path.Base(ob.GetLink().String()))
-						if validRecipients(i, f) && !ob.IsObject() && !deferredItems.Contains(uuid) {
+						if !deferredItems.Contains(uuid) && validItem(i, f) {
 							deferredItems = append(deferredItems, uuid)
 						}
 					}
+					relations[a.GetLink()] = ob.GetLink()
 					return nil
 				})
 			}
@@ -1105,17 +1138,12 @@ func (r *repository) ServiceInbox(f *fedFilters, acc *Account) (Cursor, error) {
 		}
 	}
 
-	prev, next := cursorHashes(f)
 	return Cursor{
-		after:  next,
-		before: prev,
+		after:  Hash(f.Next),
+		before: Hash(f.Prev),
 		items:  result,
 		total:  uint(len(result)),
 	}, nil
-}
-
-func cursorHashes(f *fedFilters) (Hash, Hash) {
-	return Hash(f.Prev), Hash(f.Next)
 }
 
 func (r *repository) LoadItems(f Filters) (ItemCollection, uint, error) {
@@ -1758,7 +1786,7 @@ func (r *repository) LoadInfo() (WebInfo, error) {
 	return Instance.NodeInfo(), nil
 }
 
-func (r *repository) Load(next http.Handler) http.Handler {
+func (r *repository) LoadServiceInbox(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		var cursor Cursor
 		var err error

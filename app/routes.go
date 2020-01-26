@@ -19,7 +19,7 @@ func (h *handler) Routes() func(chi.Router) {
 
 		r.Get("/about", h.HandleAbout)
 
-		r.With(DefaultFilters, h.storage.Load).Get("/", h.HandleListing)
+		r.With(DefaultFilters, h.storage.LoadServiceInbox).Get("/", h.HandleListing)
 		r.With(h.CSRF).Group(func(r chi.Router) {
 			r.Get("/submit", h.ShowSubmit)
 			r.Post("/submit", h.HandleSubmit)
@@ -75,8 +75,8 @@ func (h *handler) Routes() func(chi.Router) {
 			r.Post("/login", h.HandleLogin)
 		})
 
-		r.With(SelfFilters).Get("/self", h.HandleIndex)
-		r.With(FederatedFilters).Get("/federated", h.HandleIndex)
+		r.With(SelfFilters, h.storage.LoadServiceInbox).Get("/self", h.HandleListing)
+		r.With(FederatedFilters, h.storage.LoadServiceInbox).Get("/federated", h.HandleListing)
 		r.With(h.NeedsSessions, FollowedFilters, h.ValidateLoggedIn(h.v.HandleErrors)).Get("/followed", h.HandleInbox)
 
 		r.Route("/auth", func(r chi.Router) {
