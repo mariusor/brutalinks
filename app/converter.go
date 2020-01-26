@@ -108,6 +108,7 @@ func (a *Account) FromActivityPub(it pub.Item) error {
 	if a == nil {
 		return nil
 	}
+	a.pub, _ = it.(*pub.Person)
 	if it == nil {
 		return errors.Newf("nil item received")
 	}
@@ -318,7 +319,7 @@ func (i *Item) FromActivityPub(it pub.Item) error {
 		}
 		return nil
 	}
-
+	i.pub, _ = it.(*pub.Object)
 	switch it.GetType() {
 	case pub.DeleteType:
 		return pub.OnActivity(it, func(act *pub.Activity) error {
@@ -409,6 +410,7 @@ func (v *Vote) FromActivityPub(it pub.Item) error {
 	if it == nil {
 		return errors.Newf("nil item received")
 	}
+	v.pub, _ = it.(*pub.Activity)
 	if it.IsLink() {
 		return errors.Newf("unable to load from IRI")
 	}

@@ -14,6 +14,7 @@ type FollowRequest struct {
 	SubmittedBy *Account        `json:"-"`
 	Object      *Account        `json:"-"`
 	Metadata    *FollowMetadata `json:"-"`
+	pub         *pub.Activity   `json:"-"`
 	Flags       FlagBits        `json:"-"`
 }
 
@@ -36,6 +37,7 @@ func (f *FollowRequest) FromActivityPub(it pub.Item) error {
 		}
 		return nil
 	}
+	f.pub, _ = it.(*pub.Activity)
 	return pub.OnActivity(it, func(a *pub.Activity) error {
 		f.Hash.FromActivityPub(a)
 		follower := Account{}

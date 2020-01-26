@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	pub "github.com/go-ap/activitypub"
 	"html/template"
 	"net/url"
 	"strings"
@@ -103,6 +104,7 @@ type Item struct {
 	UpdatedBy   *Account       `json:"-"`
 	Flags       FlagBits       `json:"-"`
 	Metadata    *ItemMetadata  `json:"-"`
+	pub         *pub.Object    `json:"-"`
 	IsTop       bool           `json:"-"`
 	Parent      *Item          `json:"-"`
 	OP          *Item          `json:"-"`
