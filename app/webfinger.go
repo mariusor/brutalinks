@@ -97,12 +97,12 @@ func NodeInfoConfig() nodeinfo.Config {
 		Protocols: []nodeinfo.NodeProtocol{
 			nodeinfo.ProtocolActivityPub,
 		},
-		//Services: nodeinfo.Services{
-		//	Inbound:  []nodeinfo.NodeService{},
-		//	Outbound: []nodeinfo.NodeService{},
-		//},
+		Services: nodeinfo.Services{
+			Inbound:  []nodeinfo.NodeService{},
+			Outbound: []nodeinfo.NodeService{},
+		},
 		Software: nodeinfo.SoftwareInfo{
-			Name:    Instance.NodeInfo().Title,
+			Name:    "littr",
 			Version: Instance.NodeInfo().Version,
 		},
 	}

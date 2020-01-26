@@ -13,7 +13,7 @@ ifneq ($(ENV), dev)
 endif
 
 ifeq ($(shell git describe --always > /dev/null 2>&1 ; echo $$?), 0)
-export VERSION = $(shell git describe --always)
+export VERSION = $(shell git describe --always --dirty=-git)
 endif
 ifeq ($(shell git describe --tags > /dev/null 2>&1 ; echo $$?), 0)
 export VERSION = $(shell git describe --tags)
