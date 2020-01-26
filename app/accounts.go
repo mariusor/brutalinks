@@ -3,6 +3,7 @@ package app
 import (
 	"bytes"
 	"fmt"
+	pub "github.com/go-ap/activitypub"
 	"github.com/go-chi/chi"
 	"github.com/pborman/uuid"
 	"net/http"
@@ -63,6 +64,7 @@ type Account struct {
 	UpdatedAt time.Time         `json:"-"`
 	Flags     FlagBits          `json:"flags,omitempty"`
 	Metadata  *AccountMetadata  `json:"-"`
+	pub       *pub.Person       `json:"-"`
 	Votes     VoteCollection    `json:"votes,omitempty"`
 	Followers AccountCollection `json:"followers,omitempty"`
 	Following AccountCollection `json:"following,omitempty"`

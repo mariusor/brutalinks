@@ -1,6 +1,7 @@
 package app
 
 import (
+	pub "github.com/go-ap/activitypub"
 	"net/url"
 	"strings"
 	"time"
@@ -30,6 +31,7 @@ type Vote struct {
 	Item        *Item         `json:"on"`
 	Flags       FlagBits      `json:"-"`
 	Metadata    *VoteMetadata `json:"-"`
+	pub         *pub.Like     `json:"-"`
 }
 
 func (v Vote) HasMetadata() bool {
