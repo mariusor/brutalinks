@@ -1252,7 +1252,7 @@ func (r *repository) SendFollowResponse(f FollowRequest, accept bool) error {
 	ed := f.Object
 	er := f.SubmittedBy
 	if !accountValidForC2S(ed) {
-		return errors.Unauthorizedf("invalid account %s", ed)
+		return errors.Unauthorizedf("invalid account %s", ed.Handle)
 	}
 
 	to := make(pub.ItemCollection, 0)
