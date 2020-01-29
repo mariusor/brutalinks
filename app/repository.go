@@ -1243,7 +1243,7 @@ func (r *repository) LoadFollowRequests(ed *Account, f Filters) (FollowRequests,
 				}
 			}
 		}
-		requests, err = r.loadAuthors(requests...)
+		requests, _ = r.loadAuthors(requests...)
 	}
 	return requests, uint(len(requests)), nil
 }

@@ -529,10 +529,8 @@ func (h *handler) HandleInbox(w http.ResponseWriter, r *http.Request) {
 	}
 
 	baseURL, _ := url.Parse(h.conf.BaseURL)
-	title := fmt.Sprintf("%s: main page", baseURL.Host)
-
 	acct := account(r)
-	title = fmt.Sprintf("%s: followed", baseURL.Host)
+	title := fmt.Sprintf("%s: followed", baseURL.Host)
 
 	filter.FollowedBy = acct.Hash.String()
 
