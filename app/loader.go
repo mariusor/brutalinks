@@ -21,7 +21,6 @@ var (
 type MatchType int
 type ItemType string
 type VoteType string
-type MimeType string
 
 const (
 	MatchEquals = MatchType(1 << iota)

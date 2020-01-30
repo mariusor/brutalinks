@@ -631,7 +631,7 @@ func (h *handler) HandleDomains(w http.ResponseWriter, r *http.Request) {
 		filter.LoadItemsFilter.URL = domain
 		filter.Type = pub.ActivityVocabularyTypes{pub.PageType}
 	} else {
-		filter.MediaType = []MimeType{MimeTypeMarkdown, MimeTypeText, MimeTypeHTML}
+		filter.MediaType = []string{MimeTypeMarkdown, MimeTypeText, MimeTypeHTML}
 	}
 	if err := qstring.Unmarshal(r.URL.Query(), &filter); err != nil {
 		h.logger.Debug("unable to load url parameters")

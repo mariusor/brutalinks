@@ -404,7 +404,7 @@ func showText(m interface{}) func() bool {
 	}
 }
 
-func sluggify(s MimeType) string {
+func sluggify(s string) string {
 	if s == "" {
 		return ""
 	}

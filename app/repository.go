@@ -21,6 +21,9 @@ import (
 	"time"
 )
 
+var nilIRI = pub.IRI("-")
+var nilIRIs = pub.IRIs{nilIRI}
+
 type repository struct {
 	BaseURL string
 	SelfURL string
@@ -994,7 +997,7 @@ func validFederated(i Item, f *fedFilters) bool {
 			if i.pub == nil || i.pub.Generator == nil {
 				continue
 			}
-			if g == "-" {
+			if g == nilIRI {
 				if i.pub.Generator.GetLink().Equals(pub.IRI(Instance.BaseURL), false) {
 					return false
 				}
@@ -1093,7 +1096,7 @@ func (r *repository) ServiceInbox(f *fedFilters, acc *Account) (Cursor, error) {
 				IRI:        deferredItems,
 				Type:       ValidItemTypes,
 				Recipients: pub.IRIs{pub.PublicNS, self.GetLink()},
-				OP:         []string{"-"},
+				OP:         nilIRIs,
 				MaxItems:   f.MaxItems - len(items),
 			}
 			objects, err := r.objects(&ff)
@@ -1182,15 +1185,7 @@ func (r *repository) LoadItems(f Filters) (ItemCollection, uint, error) {
 		}
 	}
 	if len(f.Type) == 0 && len(f.LoadItemsFilter.Deleted) > 0 {
-		f.Type = pub.ActivityVocabularyTypes{
-			pub.ArticleType,
-			pub.AudioType,
-			pub.DocumentType,
-			pub.ImageType,
-			pub.NoteType,
-			pub.PageType,
-			pub.VideoType,
-		}
+		f.Type = ValidItemTypes
 	}
 	url := fmt.Sprintf("%s%s%s", r.BaseURL, target, c)
 

@@ -145,7 +145,7 @@ func loadItems(c context.Context, filter Filters, acc *Account, l log.Logger) (I
 	return contentItems, nil
 }
 
-func detectMimeType(data string) MimeType {
+func detectMimeType(data string) string {
 	u, err := url.ParseRequestURI(data)
 	if err == nil && u != nil && !bytes.ContainsRune([]byte(data), '\n') {
 		return MimeTypeURL
@@ -231,7 +231,7 @@ func ContentFromRequest(r *http.Request, acc Account) (Item, error) {
 
 	i.Metadata.Tags, i.Metadata.Mentions = loadTags(i.Data)
 	if !i.IsLink() {
-		i.MimeType = MimeType(r.PostFormValue("mime-type"))
+		i.MimeType = r.PostFormValue("mime-type")
 	}
 	if len(i.Data) > 0 {
 		now := time.Now().UTC()
