@@ -46,6 +46,9 @@ func ActivityPubService(c appConfig) *repository {
 
 	infoFn := func(s string, ctx log.Ctx) {}
 	errFn := func(s string, ctx log.Ctx) {
+		if ctx == nil {
+			ctx = log.Ctx{}
+		}
 		ctx["client"] = "api"
 		c.Logger.WithContext(ctx).Error(s)
 	}
