@@ -20,10 +20,10 @@ const (
 	FlagsNone = FlagBits(0)
 )
 
-const MimeTypeURL = MimeType("application/url")
-const MimeTypeHTML = MimeType("text/html")
-const MimeTypeMarkdown = MimeType("text/markdown")
-const MimeTypeText = MimeType("text/plain")
+const MimeTypeURL = "application/url"
+const MimeTypeHTML = "text/html"
+const MimeTypeMarkdown = "text/markdown"
+const MimeTypeText = "text/plain"
 const RandomSeedSelectedByDiceRoll = 777
 
 func (f *FlagBits) FromInt64() error {
@@ -95,7 +95,7 @@ func (f FollowRequest) Type() RenderType {
 type Item struct {
 	Hash        Hash           `json:"hash"`
 	Title       string         `json:"-"`
-	MimeType    MimeType       `json:"-"`
+	MimeType    string         `json:"-"`
 	Data        string         `json:"-"`
 	Score       int            `json:"-"`
 	SubmittedAt time.Time      `json:"-"`
@@ -135,7 +135,7 @@ func (i ItemCollection) getItemsHashes() Hashes {
 	return items
 }
 
-func mimeTypeTagReplace(m MimeType, t Tag) string {
+func mimeTypeTagReplace(m string, t Tag) string {
 	var cls string
 
 	if t.Type == TagTag {

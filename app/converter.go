@@ -168,7 +168,7 @@ func FromArticle(i *Item, a *pub.Object) error {
 		i.MimeType = MimeTypeURL
 	} else {
 		if len(a.MediaType) > 0 {
-			i.MimeType = MimeType(a.MediaType)
+			i.MimeType = string(a.MediaType)
 		}
 		i.Data = a.Content.First().Value
 	}
@@ -234,7 +234,7 @@ func FromArticle(i *Item, a *pub.Object) error {
 	//    to repro, I used some copy/pasted comments from console javascript
 	if len(a.Source.Content) > 0 && len(a.Source.MediaType) > 0 {
 		i.Data = a.Source.Content.First().Value
-		i.MimeType = MimeType(a.Source.MediaType)
+		i.MimeType = string(a.Source.MediaType)
 	}
 	if a.Tag != nil && len(a.Tag) > 0 {
 		i.Metadata.Tags = make(TagCollection, 0)
