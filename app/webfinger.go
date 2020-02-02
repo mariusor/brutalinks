@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
-	"github.com/go-ap/activitypub"
 	"github.com/writeas/go-nodeinfo"
+	"math"
 	"net/http"
 	"strings"
 
@@ -32,42 +32,35 @@ type NodeInfoResolver struct {
 	posts    int
 }
 
-func NodeInfoResolverNew(stor *repository) NodeInfoResolver {
-	n := NodeInfoResolver{}
-	fp := fedFilters{
-		Type: ActivityTypesFilter(ValidActorTypes...),
+func NodeInfoResolverNew(storage *repository) NodeInfoResolver {
+	n := NodeInfoResolver{
+		storage: storage,
 	}
-	if item, err := stor.fedbox.Actors(Values(&fp)); err != nil {
-		stor.errFn(fmt.Sprintf("unable to load actors: %s", err), nil)
-	} else {
-		activitypub.OnOrderedCollection(item, func(c *activitypub.OrderedCollection) error {
-			n.users = int(c.TotalItems)
-			return nil
-		})
-	}
-	fi := fedFilters{
-		Type: ActivityTypesFilter(ValidItemTypes...),
-		OP: nilIRIs,
-	}
-	if item, err := stor.fedbox.Objects(Values(&fi)); err != nil {
-		stor.errFn(fmt.Sprintf("unable to load items: %s", err), nil)
-	} else {
-		activitypub.OnOrderedCollection(item, func(c *activitypub.OrderedCollection) error {
-			n.posts = int(c.TotalItems)
-			return nil
-		})
-	}
-	fa := fedFilters{
-		Type: ActivityTypesFilter(ValidItemTypes...),
-	}
-	if item, err := stor.fedbox.Objects(Values(&fa)); err != nil {
-		stor.errFn(fmt.Sprintf("unable to load all coments: %s", err), nil)
-	} else {
-		activitypub.OnOrderedCollection(item, func(c *activitypub.OrderedCollection) error {
-			n.comments = int(c.TotalItems) - n.posts
-			return nil
-		})
-	}
+	us, _, _ := n.storage.LoadAccounts(Filters{
+		LoadAccountsFilter: LoadAccountsFilter{
+			//IRI:  app.Instance.APIURL,
+			Deleted: []bool{false},
+		},
+		MaxItems: math.MaxInt64,
+	})
+	n.users = len(us)
+
+	posts, _, _ := n.storage.LoadItems(Filters{
+		LoadItemsFilter: LoadItemsFilter{
+			Deleted: []bool{false},
+			Context: []string{"0"},
+		},
+		MaxItems: math.MaxInt64,
+	})
+	n.posts = len(posts)
+	all, _, _ := n.storage.LoadItems(Filters{
+		LoadItemsFilter: LoadItemsFilter{
+			Deleted: []bool{false},
+		},
+		MaxItems: math.MaxInt64,
+	})
+
+	n.comments = len(all) - n.posts
 	return n
 }
 
