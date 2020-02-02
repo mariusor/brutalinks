@@ -21,8 +21,8 @@ import (
 	"time"
 )
 
-var nilIRI = pub.IRI("-")
-var nilIRIs = pub.IRIs{nilIRI}
+var nilIRI = EqualsString("-")
+var nilIRIs = CompStrs{nilIRI}
 
 type repository struct {
 	BaseURL string
@@ -541,15 +541,6 @@ func accountInCollection(ac Account, col AccountCollection) bool {
 	return false
 }
 
-func hashInCollection(h Hash, col AccountCollection) bool {
-	for _, fol := range col {
-		if HashesEqual(fol.Hash, h) {
-			return true
-		}
-	}
-	return false
-}
-
 func (r *repository) loadAccountsFollowers(acc Account) (Account, error) {
 	if !acc.HasMetadata() || len(acc.Metadata.FollowersIRI) == 0 {
 		return acc, nil
@@ -672,24 +663,36 @@ func (r *repository) loadItemsVotes(items ...Item) (ItemCollection, error) {
 	return col, nil
 }
 
+func EqualsString(s string) CompStr {
+	return CompStr{Operator: "=", Str: s}
+}
+
+func ActivityTypesFilter(t ...pub.ActivityVocabularyType) CompStrs {
+	r := make(CompStrs, len(t))
+	for i, typ := range t {
+		r[i] = EqualsString(string(typ))
+	}
+	return r
+}
+
 func (r *repository) loadAuthors(items ...FollowRequest) ([]FollowRequest, error) {
 	if len(items) == 0 {
 		return items, nil
 	}
 	fActors := fedFilters{
-		Type: ValidActorTypes,
+		Type: ActivityTypesFilter(ValidActorTypes...),
 	}
 	for _, it := range items {
 		if !it.SubmittedBy.IsValid() {
 			continue
 		}
-		var hash pub.IRI
+		var hash CompStr
 		if it.SubmittedBy.HasMetadata() && len(it.SubmittedBy.Metadata.ID) > 0 {
-			hash = hashIRI(it.SubmittedBy.Metadata.ID)
+			hash = EqualsString(it.SubmittedBy.Metadata.ID)
 		} else {
-			hash = pub.IRI(it.SubmittedBy.Hash)
+			hash = EqualsString(it.SubmittedBy.Hash.String())
 		}
-		if len(hash) > 0 && !fActors.IRI.Contains(hash) {
+		if len(hash.Str) > 0 && !fActors.IRI.Contains(hash) {
 			fActors.IRI = append(fActors.IRI, hash)
 		}
 	}
@@ -715,33 +718,29 @@ func accountsEqual(a1, a2 Account) bool {
 	return bytes.Equal(a1.Hash, a2.Hash) || (len(a1.Handle)+len(a2.Handle) > 0 && a1.Handle == a2.Handle)
 }
 
-func hashIRI(i string) pub.IRI {
-	return pub.IRI(path.Base(i))
-}
-
 func (r *repository) loadItemsAuthors(items ...Item) (ItemCollection, error) {
 	if len(items) == 0 {
 		return items, nil
 	}
 
 	fActors := fedFilters{
-		Type: ValidActorTypes,
+		Type: ActivityTypesFilter(ValidActorTypes...),
 	}
 	for _, it := range items {
 		if it.HasMetadata() {
 			// Adding an item's recipients list (To and CC) to the list of accounts we want to load from the ActivityPub API
 			if len(it.Metadata.To) > 0 {
 				for _, to := range it.Metadata.To {
-					hash := hashIRI(to.Metadata.ID)
-					if len(hash) > 0 && !fActors.IRI.Contains(hash) {
+					hash := EqualsString(to.Metadata.ID)
+					if len(hash.Str) > 0 && !fActors.IRI.Contains(hash) {
 						fActors.IRI = append(fActors.IRI, hash)
 					}
 				}
 			}
 			if len(it.Metadata.CC) > 0 {
 				for _, cc := range it.Metadata.CC {
-					hash := hashIRI(cc.Metadata.ID)
-					if len(hash) > 0 && !fActors.IRI.Contains(hash) {
+					hash := EqualsString(cc.Metadata.ID)
+					if len(hash.Str) > 0 && !fActors.IRI.Contains(hash) {
 						fActors.IRI = append(fActors.IRI, hash)
 					}
 				}
@@ -751,13 +750,13 @@ func (r *repository) loadItemsAuthors(items ...Item) (ItemCollection, error) {
 			continue
 		}
 		// Adding an item's author to the list of accounts we want to load from the ActivityPub API
-		var hash pub.IRI
+		var hash CompStr
 		if it.SubmittedBy.HasMetadata() && len(it.SubmittedBy.Metadata.ID) > 0 {
-			hash = hashIRI(it.SubmittedBy.Metadata.ID)
+			hash = EqualsString(it.SubmittedBy.Metadata.ID)
 		} else {
-			hash = pub.IRI(it.SubmittedBy.Hash)
+			hash = CompStr{Str: it.SubmittedBy.Hash.String()}
 		}
-		if len(hash) > 0 && !fActors.IRI.Contains(hash) {
+		if len(hash.Str) > 0 && !fActors.IRI.Contains(hash) {
 			fActors.IRI = append(fActors.IRI, hash)
 		}
 	}
@@ -1003,7 +1002,7 @@ func validFederated(i Item, f *fedFilters) bool {
 				}
 				return true
 			}
-			if i.pub.Generator.GetLink().Equals(g, false) {
+			if i.pub.Generator.GetLink().Equals(pub.IRI(g.Str), false) {
 				return true
 			}
 		}
@@ -1015,7 +1014,7 @@ func validFederated(i Item, f *fedFilters) bool {
 func validRecipients(i Item, f *fedFilters) bool {
 	if len(f.Recipients) > 0 {
 		for _, r := range f.Recipients {
-			if r.Equals(pub.PublicNS, false) && i.Private() {
+			if pub.IRI(r.Str).Equals(pub.PublicNS, false) && i.Private() {
 				return false
 			}
 		}
@@ -1047,6 +1046,14 @@ func filterItems(items ItemCollection, f *fedFilters) ItemCollection {
 	return result
 }
 
+func IRIsFilter(iris ...pub.IRI) CompStrs {
+	r := make(CompStrs, len(iris))
+	for i, iri := range iris {
+		r[i] = EqualsString(iri.String())
+	}
+	return r
+}
+
 // ServiceInbox loads the service's inbox collection.
 // First step is to load the Create activities from the inbox
 // Iterating over the activities in the resulting collection, we gather the objects and accounts
@@ -1059,13 +1066,13 @@ func (r *repository) ServiceInbox(f *fedFilters, acc *Account) (Cursor, error) {
 		return r.fedbox.Inbox(self, Values(f))
 	}
 	if len(f.Recipients) == 0 {
-		f.Recipients = pub.IRIs{pub.PublicNS, self.GetLink()}
+		f.Recipients = IRIsFilter(pub.PublicNS, self.GetLink())
 	}
 
 	items := make(ItemCollection, 0)
 	relations := make(map[pub.IRI]pub.IRI)
 	err := LoadFromCollection(inbox, &colCursor{filters: f}, func(col pub.ItemCollection) (bool, error) {
-		deferredItems := make(pub.IRIs, 0)
+		deferredItems := make(CompStrs, 0)
 		for _, it := range col {
 			if it.GetType() == pub.CreateType {
 				pub.OnActivity(it, func(a *pub.Activity) error {
@@ -1080,7 +1087,7 @@ func (r *repository) ServiceInbox(f *fedFilters, acc *Account) (Cursor, error) {
 						}
 					} else {
 						i.FromActivityPub(a)
-						uuid := pub.IRI(path.Base(ob.GetLink().String()))
+						uuid := EqualsString(path.Base(ob.GetLink().String()))
 						if !deferredItems.Contains(uuid) && validItem(i, f) {
 							deferredItems = append(deferredItems, uuid)
 						}
@@ -1094,8 +1101,8 @@ func (r *repository) ServiceInbox(f *fedFilters, acc *Account) (Cursor, error) {
 		if len(deferredItems) > 0 {
 			ff := fedFilters{
 				IRI:        deferredItems,
-				Type:       ValidItemTypes,
-				Recipients: pub.IRIs{pub.PublicNS, self.GetLink()},
+				Type:       ActivityTypesFilter(ValidItemTypes...),
+				Recipients: IRIsFilter(pub.PublicNS, self.GetLink()),
 				OP:         nilIRIs,
 				MaxItems:   f.MaxItems - len(items),
 			}

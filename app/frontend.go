@@ -186,7 +186,7 @@ func (h *handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s, _ := h.v.s.get(r)
-	account := loadCurrentAccountFromSession(s, h.storage, h.logger)
+	account := loadCurrentAccountFromSession(s, h.logger)
 	if account.Metadata == nil {
 		account.Metadata = &AccountMetadata{}
 	}
@@ -278,7 +278,7 @@ func isInverted(r *http.Request) bool {
 	return false
 }
 
-func loadCurrentAccountFromSession(s *sessions.Session, r *repository, l log.Logger) Account {
+func loadCurrentAccountFromSession(s *sessions.Session, l log.Logger) Account {
 	// load the current account from the session or setting it to anonymous
 	raw, ok := s.Values[SessionUserKey]
 	if !ok {
@@ -325,7 +325,7 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 				h.v.s.new(r)
 			}
 		}
-		acc := loadCurrentAccountFromSession(s, h.storage, h.logger)
+		acc := loadCurrentAccountFromSession(s, h.logger)
 		m := acc.Metadata
 		if acc.IsLogged() {
 			acc, err = h.storage.LoadAccount(Filters{
