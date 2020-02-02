@@ -15,7 +15,7 @@ require (
 	github.com/gorilla/sessions v1.2.0
 	github.com/joho/godotenv v1.3.0
 	github.com/lib/pq v1.3.0
-	github.com/mariusor/qstring v0.0.0-20180919140350-29d781f85f0f
+	github.com/mariusor/qstring v0.0.0-20200201110740-0235fb7077e1
 	github.com/openshift/osin v1.0.1
 	github.com/pborman/uuid v1.2.0
 	github.com/sirupsen/logrus v1.4.2
