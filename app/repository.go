@@ -753,7 +753,7 @@ func (r *repository) LoadItems(f Filters) (ItemCollection, uint, error) {
 		}
 	}
 	filterLocal := false
-	filterPrivate := false
+	keepPrivate := true
 	if len(f.Federated) > 0 {
 		for _, fed := range f.Federated {
 			if !fed {
@@ -767,10 +767,9 @@ func (r *repository) LoadItems(f Filters) (ItemCollection, uint, error) {
 	}
 	if len(f.Private) > 0 {
 		for _, prv := range f.Private {
-			if !prv {
-				filterPrivate = true
+			if keepPrivate := !prv; keepPrivate {
+				break
 			}
-			break
 		}
 	}
 	if len(f.Type) == 0 && len(f.LoadItemsFilter.Deleted) > 0 {
@@ -812,7 +811,7 @@ func (r *repository) LoadItems(f Filters) (ItemCollection, uint, error) {
 				r.errFn(err.Error(), nil)
 				continue
 			}
-			if filterPrivate && i.Private() {
+			if keepPrivate && i.Private() {
 				continue
 			}
 			items = append(items, i)
@@ -1172,6 +1171,9 @@ func (r *repository) SaveItem(it Item) (Item, error) {
 }
 
 func (r *repository) LoadAccounts(f Filters) (AccountCollection, uint, error) {
+	f.Type = pub.ActivityVocabularyTypes {
+		pub.PersonType,
+	}
 	it, err := r.fedbox.Actors(Values(f))
 	if err != nil {
 		r.errFn(err.Error(), nil)

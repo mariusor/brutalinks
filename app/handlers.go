@@ -512,14 +512,14 @@ func (h *handler) HandleIndex(w http.ResponseWriter, r *http.Request) {
 	h.v.RenderTemplate(r, w, "listing", m)
 }
 
-// HandleIndex serves / request
+// HandleIndex serves /followed request
 func (h *handler) HandleInbox(w http.ResponseWriter, r *http.Request) {
 	filter := Filters{
 		LoadItemsFilter: LoadItemsFilter{
 			InReplyTo: []string{""},
 			Deleted:   []bool{false},
 			Federated: []bool{false},
-			Private:   []bool{false},
+			Private:   []bool{true},
 		},
 		Page:     1,
 		MaxItems: MaxContentItems,
