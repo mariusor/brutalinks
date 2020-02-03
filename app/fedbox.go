@@ -197,6 +197,8 @@ func validateObject(o pub.Item) error {
 
 type FilterFn func() url.Values
 
+type CollectionFn func() (pub.CollectionInterface, error)
+
 func (f fedbox) Inbox(actor pub.Item, filters ...FilterFn) (pub.CollectionInterface, error) {
 	if err := validateActor(actor); err != nil {
 		return nil, err
