@@ -124,16 +124,16 @@ func FiltersFromRequest(r *http.Request) *fedFilters {
 	return &f
 }
 
+var CreateActivitiesFilter = CompStrs{
+	CompStr{Str: string(pub.CreateType)},
+}
+
 // FiltersFromRequest loads the filters we use for generating storage queries from the HTTP request
 func FiltersFromContext(ctx context.Context) *fedFilters {
 	if f, ok := ctx.Value(FilterCtxtKey).(*fedFilters); ok {
 		return f
 	}
 	return nil
-}
-
-var CreateActivitiesFilter = CompStrs{
-	CompStr{Str: string(pub.CreateType)},
 }
 
 func DefaultFilters(next http.Handler) http.Handler {
@@ -208,7 +208,7 @@ func TagFilters(next http.Handler) http.Handler {
 func AccountFilters(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := FiltersFromRequest(r)
-		f.AttrTo = CompStrs{LikeString(chi.URLParam(r, "handle"))}
+		f.Type = CreateActivitiesFilter
 		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})

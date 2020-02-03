@@ -11,6 +11,7 @@ import (
 	"github.com/go-ap/errors"
 	"github.com/go-ap/handlers"
 	j "github.com/go-ap/jsonld"
+	"github.com/go-chi/chi"
 	"github.com/mariusor/littr.go/internal/log"
 	"github.com/mariusor/qstring"
 	"github.com/spacemonkeygo/httpsig"
@@ -867,7 +868,7 @@ type res struct {
 }
 
 // LoadFromCollection iterates over a collection returned by the f function, until accum is satisfied
-func LoadFromCollection(f func(*fedFilters) (pub.CollectionInterface, error), cur *colCursor, accum func(pub.ItemCollection) (bool, error)) error {
+func LoadFromCollection(f CollectionFn, cur *colCursor, accum func(pub.ItemCollection) (bool, error)) error {
 	fetch := make(chan res)
 
 	var err error
@@ -876,7 +877,7 @@ func LoadFromCollection(f func(*fedFilters) (pub.CollectionInterface, error), cu
 			var status bool
 			var col pub.CollectionInterface
 
-			col, err = f(cur.filters)
+			col, err = f()
 			if err != nil {
 				fetch <- res{true, err}
 				return
@@ -933,7 +934,7 @@ func LoadFromCollection(f func(*fedFilters) (pub.CollectionInterface, error), cu
 }
 
 func (r *repository) accounts(f *fedFilters) ([]Account, error) {
-	actors := func(f *fedFilters) (pub.CollectionInterface, error) {
+	actors := func() (pub.CollectionInterface, error) {
 		return r.fedbox.Actors(Values(f))
 	}
 	accounts := make([]Account, 0)
@@ -955,7 +956,7 @@ func (r *repository) accounts(f *fedFilters) ([]Account, error) {
 }
 
 func (r *repository) objects(f *fedFilters) (ItemCollection, error) {
-	objects := func(f *fedFilters) (pub.CollectionInterface, error) {
+	objects := func() (pub.CollectionInterface, error) {
 		return r.fedbox.Objects(Values(f))
 	}
 	items := make(ItemCollection, 0)
@@ -1054,24 +1055,20 @@ func IRIsFilter(iris ...pub.IRI) CompStrs {
 	return r
 }
 
-// ServiceInbox loads the service's inbox collection.
+// ActorInbox loads the service's inbox collection.
 // First step is to load the Create activities from the inbox
 // Iterating over the activities in the resulting collection, we gather the objects and accounts
 //  With the resulting Object IRIs we load from the objects collection with our matching filters
 //  With the resulting Actor IRIs we load from the accounts collection with matching filters
 // From the
-func (r *repository) ServiceInbox(f *fedFilters, acc *Account) (Cursor, error) {
-	self := r.fedbox.Service()
-	inbox := func(f *fedFilters) (pub.CollectionInterface, error) {
-		return r.fedbox.Inbox(self, Values(f))
-	}
+func (r *repository) ActorInbox(fn CollectionFn, f *fedFilters, actor pub.Item, acc *Account) (Cursor, error) {
 	if len(f.Recipients) == 0 {
-		f.Recipients = IRIsFilter(pub.PublicNS, self.GetLink())
+		f.Recipients = IRIsFilter(pub.PublicNS, actor.GetLink())
 	}
 
 	items := make(ItemCollection, 0)
 	relations := make(map[pub.IRI]pub.IRI)
-	err := LoadFromCollection(inbox, &colCursor{filters: f}, func(col pub.ItemCollection) (bool, error) {
+	err := LoadFromCollection(fn, &colCursor{filters: f}, func(col pub.ItemCollection) (bool, error) {
 		deferredItems := make(CompStrs, 0)
 		for _, it := range col {
 			if it.GetType() == pub.CreateType {
@@ -1102,7 +1099,7 @@ func (r *repository) ServiceInbox(f *fedFilters, acc *Account) (Cursor, error) {
 			ff := fedFilters{
 				IRI:        deferredItems,
 				Type:       ActivityTypesFilter(ValidItemTypes...),
-				Recipients: IRIsFilter(pub.PublicNS, self.GetLink()),
+				Recipients: IRIsFilter(pub.PublicNS, actor.GetLink()),
 				OP:         nilIRIs,
 				MaxItems:   f.MaxItems - len(items),
 			}
@@ -1788,7 +1785,45 @@ func (r *repository) LoadInfo() (WebInfo, error) {
 	return Instance.NodeInfo(), nil
 }
 
-func (r *repository) LoadServiceInbox(next http.Handler) http.Handler {
+func (r *repository) LoadOutbox(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		var cursor Cursor
+		var err error
+
+		m := listingModel{}
+		m.User = account(req)
+
+		handle := chi.URLParam(req, "handle")
+		actors, err := r.accounts(&fedFilters{Name:CompStrs{EqualsString(handle)}})
+		if err != nil {
+			// err
+		}
+		if len(actors) == 0 {
+			// err
+		}
+		actor := actors[0].pub
+		f := FiltersFromContext(req.Context())
+		outbox := func() (pub.CollectionInterface, error) {
+			return r.fedbox.Outbox(actor, Values(f))
+		}
+		cursor, err = r.ActorInbox(outbox, f, actor, m.User)
+		m.Items = cursor.items
+		if err != nil {
+			// err
+		}
+
+		if len(cursor.after) > 0 {
+			m.after = cursor.after
+		}
+		if len(cursor.before) > 0 {
+			m.before = cursor.before
+		}
+		ctx := context.WithValue(req.Context(), CollectionCtxtKey, &m)
+		next.ServeHTTP(w, req.WithContext(ctx))
+	})
+}
+
+func (r *repository) LoadInbox(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		var cursor Cursor
 		var err error
@@ -1797,7 +1832,11 @@ func (r *repository) LoadServiceInbox(next http.Handler) http.Handler {
 		m.User = account(req)
 
 		f := FiltersFromContext(req.Context())
-		cursor, err = r.ServiceInbox(f, m.User)
+		self := r.fedbox.Service()
+		inbox := func() (pub.CollectionInterface, error) {
+			return r.fedbox.Inbox(self, Values(f))
+		}
+		cursor, err = r.ActorInbox(inbox, f, self, m.User)
 		m.Items = cursor.items
 		if err != nil {
 			// err
