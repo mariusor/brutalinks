@@ -680,7 +680,7 @@ func (r *repository) loadAuthors(items ...FollowRequest) ([]FollowRequest, error
 	if len(items) == 0 {
 		return items, nil
 	}
-	fActors := fedFilters{
+	fActors := ActivityFilters{
 		Type: ActivityTypesFilter(ValidActorTypes...),
 	}
 	for _, it := range items {
@@ -724,7 +724,7 @@ func (r *repository) loadItemsAuthors(items ...Item) (ItemCollection, error) {
 		return items, nil
 	}
 
-	fActors := fedFilters{
+	fActors := ActivityFilters{
 		Type: ActivityTypesFilter(ValidActorTypes...),
 	}
 	for _, it := range items {
@@ -807,7 +807,7 @@ type Cursor struct {
 var emptyCursor = Cursor{}
 
 type colCursor struct {
-	filters *fedFilters
+	filters *ActivityFilters
 	items   pub.ItemCollection
 }
 
@@ -933,7 +933,7 @@ func LoadFromCollection(f CollectionFn, cur *colCursor, accum func(pub.ItemColle
 	return err
 }
 
-func (r *repository) accounts(f *fedFilters) ([]Account, error) {
+func (r *repository) accounts(f *ActivityFilters) ([]Account, error) {
 	actors := func() (pub.CollectionInterface, error) {
 		return r.fedbox.Actors(Values(f))
 	}
@@ -955,7 +955,7 @@ func (r *repository) accounts(f *fedFilters) ([]Account, error) {
 	return accounts, err
 }
 
-func (r *repository) objects(f *fedFilters) (ItemCollection, error) {
+func (r *repository) objects(f *ActivityFilters) (ItemCollection, error) {
 	objects := func() (pub.CollectionInterface, error) {
 		return r.fedbox.Objects(Values(f))
 	}
@@ -971,7 +971,7 @@ func (r *repository) objects(f *fedFilters) (ItemCollection, error) {
 	return items, err
 }
 
-func (r *repository) Objects(f *fedFilters) (Cursor, error) {
+func (r *repository) Objects(f *ActivityFilters) (Cursor, error) {
 	items, err := r.objects(f)
 	if err != nil {
 		return emptyCursor, err
@@ -991,7 +991,7 @@ func (r *repository) Objects(f *fedFilters) (Cursor, error) {
 	}, nil
 }
 
-func validFederated(i Item, f *fedFilters) bool {
+func validFederated(i Item, f *ActivityFilters) bool {
 	if len(f.Generator) > 0 {
 		for _, g := range f.Generator {
 			if i.pub == nil || i.pub.Generator == nil {
@@ -1012,7 +1012,7 @@ func validFederated(i Item, f *fedFilters) bool {
 	return i.pub != nil && i.pub.Generator == nil
 }
 
-func validRecipients(i Item, f *fedFilters) bool {
+func validRecipients(i Item, f *ActivityFilters) bool {
 	if len(f.Recipients) > 0 {
 		for _, r := range f.Recipients {
 			if pub.IRI(r.Str).Equals(pub.PublicNS, false) && i.Private() {
@@ -1023,7 +1023,7 @@ func validRecipients(i Item, f *fedFilters) bool {
 	return true
 }
 
-func validItem(it Item, f *fedFilters) bool {
+func validItem(it Item, f *ActivityFilters) bool {
 	if keep := validRecipients(it, f); !keep {
 		return keep
 	}
@@ -1033,7 +1033,7 @@ func validItem(it Item, f *fedFilters) bool {
 	return true
 }
 
-func filterItems(items ItemCollection, f *fedFilters) ItemCollection {
+func filterItems(items ItemCollection, f *ActivityFilters) ItemCollection {
 	result := make(ItemCollection, 0)
 	for _, it := range items {
 		if !it.HasMetadata() {
@@ -1061,7 +1061,7 @@ func IRIsFilter(iris ...pub.IRI) CompStrs {
 //  With the resulting Object IRIs we load from the objects collection with our matching filters
 //  With the resulting Actor IRIs we load from the accounts collection with matching filters
 // From the
-func (r *repository) ActorInbox(fn CollectionFn, f *fedFilters, actor pub.Item, acc *Account) (Cursor, error) {
+func (r *repository) ActorInbox(fn CollectionFn, f *ActivityFilters, actor pub.Item, acc *Account) (Cursor, error) {
 	if len(f.Recipients) == 0 {
 		f.Recipients = IRIsFilter(pub.PublicNS, actor.GetLink())
 	}
@@ -1096,7 +1096,7 @@ func (r *repository) ActorInbox(fn CollectionFn, f *fedFilters, actor pub.Item, 
 		}
 
 		if len(deferredItems) > 0 {
-			ff := fedFilters{
+			ff := ActivityFilters{
 				IRI:        deferredItems,
 				Type:       ActivityTypesFilter(ValidItemTypes...),
 				Recipients: IRIsFilter(pub.PublicNS, actor.GetLink()),
@@ -1794,7 +1794,7 @@ func (r *repository) LoadOutbox(next http.Handler) http.Handler {
 		m.User = account(req)
 
 		handle := chi.URLParam(req, "handle")
-		actors, err := r.accounts(&fedFilters{Name:CompStrs{EqualsString(handle)}})
+		actors, err := r.accounts(&ActivityFilters{Name: CompStrs{EqualsString(handle)}})
 		if err != nil {
 			// @TODO err
 		}
