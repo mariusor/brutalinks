@@ -92,24 +92,22 @@ func query(f Filterable) string {
 }
 
 type fedFilters struct {
-	Name       CompStrs `qstring:"name,omitempty"`
-	Cont       CompStrs `qstring:"content,omitempty"`
-	URL        CompStrs `qstring:"url,omitempty"`
-	MedTypes   CompStrs `qstring:"mediaType,omitempty"`
-	IRI        CompStrs `qstring:"iri,omitempty"`
-	ObjectIRI  CompStrs `qstring:"object,omitempty"`
-	Generator  CompStrs `qstring:"generator,omitempty"`
-	ActorKey   CompStrs `qstring:"actor,omitempty"`
-	TargetKey  CompStrs `qstring:"target,omitempty"`
-	Type       CompStrs `qstring:"type,omitempty"`
-	AttrTo     CompStrs `qstring:"attributedTo,omitempty"`
-	InReplTo   CompStrs `qstring:"inReplyTo,omitempty"`
-	OP         CompStrs `qstring:"context,omitempty"`
-	FollowedBy CompStrs `qstring:"followedBy,omitempty"` // todo(marius): not really used
-	Recipients CompStrs `qstring:"recipients,omitempty"`
-	Next       string   `qstring:"after,omitempty"`
-	Prev       string   `qstring:"before,omitempty"`
-	MaxItems   int      `qstring:"maxItems,omitempty"`
+	Name       CompStrs    `qstring:"name,omitempty"`
+	Cont       CompStrs    `qstring:"content,omitempty"`
+	URL        CompStrs    `qstring:"url,omitempty"`
+	MedTypes   CompStrs    `qstring:"mediaType,omitempty"`
+	IRI        CompStrs    `qstring:"iri,omitempty"`
+	Generator  CompStrs    `qstring:"generator,omitempty"`
+	Type       CompStrs    `qstring:"type,omitempty"`
+	AttrTo     CompStrs    `qstring:"attributedTo,omitempty"`
+	InReplTo   CompStrs    `qstring:"inReplyTo,omitempty"`
+	OP         CompStrs    `qstring:"context,omitempty"`
+	Recipients CompStrs    `qstring:"recipients,omitempty"`
+	Object     *fedFilters `qstring:"object,omitempty"`
+	Actor      *fedFilters `qstring:"actor,omitempty"`
+	Next       string      `qstring:"after,omitempty"`
+	Prev       string      `qstring:"before,omitempty"`
+	MaxItems   int         `qstring:"maxItems,omitempty"`
 }
 
 // FiltersFromRequest loads the filters we use for generating storage queries from the HTTP request
@@ -140,6 +138,7 @@ func DefaultFilters(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := FiltersFromRequest(r)
 		f.Type = CreateActivitiesFilter
+		f.Object = &fedFilters{OP: nilIRIs}
 		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -149,6 +148,7 @@ func SelfFilters(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := FiltersFromRequest(r)
 		f.Type = CreateActivitiesFilter
+		f.Object = &fedFilters{OP: nilIRIs}
 		f.IRI = CompStrs{LikeString(Instance.APIURL)}
 		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
 		next.ServeHTTP(w, r.WithContext(ctx))
@@ -178,6 +178,10 @@ func FederatedFilters(next http.Handler) http.Handler {
 		f := FiltersFromRequest(r)
 		f.Type = CreateActivitiesFilter
 		f.IRI = CompStrs{DifferentThanString(Instance.APIURL)}
+		f.Object = &fedFilters{
+			OP:   nilIRIs,
+			Type: ActivityTypesFilter(ValidItemTypes...),
+		}
 		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -189,8 +193,21 @@ func LikeString(s string) CompStr {
 
 func DomainFilters(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		domain := chi.URLParam(r, "domain")
 		f := FiltersFromRequest(r)
-		f.URL = CompStrs{LikeString(chi.URLParam(r, "domain"))}
+		f.Type = CreateActivitiesFilter
+		f.Object = &fedFilters{}
+		if len(domain) > 0 {
+			f.Object.URL = CompStrs{LikeString(domain)}
+			f.Object.Type = CompStrs{EqualsString(string(pub.PageType))}
+		} else {
+			f.Object.MedTypes = CompStrs{
+				EqualsString(MimeTypeMarkdown),
+				EqualsString(MimeTypeText),
+				EqualsString(MimeTypeHTML),
+			}
+			f.Object.Type = ActivityTypesFilter(ValidItemTypes...)
+		}
 		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -198,8 +215,16 @@ func DomainFilters(next http.Handler) http.Handler {
 
 func TagFilters(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		tag := chi.URLParam(r, "tag")
+		if len(tag) == 0 {
+			// @TODO err
+		}
 		f := FiltersFromRequest(r)
-		f.Cont = CompStrs{LikeString(chi.URLParam(r, "tag"))}
+		f.Type = CreateActivitiesFilter
+		f.Object = &fedFilters{
+			OP:   nilIRIs,
+			Cont: CompStrs{LikeString(tag)},
+		}
 		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
