@@ -1796,10 +1796,10 @@ func (r *repository) LoadOutbox(next http.Handler) http.Handler {
 		handle := chi.URLParam(req, "handle")
 		actors, err := r.accounts(&fedFilters{Name:CompStrs{EqualsString(handle)}})
 		if err != nil {
-			// err
+			// @TODO err
 		}
 		if len(actors) == 0 {
-			// err
+			// @TODO  err
 		}
 		actor := actors[0].pub
 		f := FiltersFromContext(req.Context())
@@ -1809,7 +1809,7 @@ func (r *repository) LoadOutbox(next http.Handler) http.Handler {
 		cursor, err = r.ActorInbox(outbox, f, actor, m.User)
 		m.Items = cursor.items
 		if err != nil {
-			// err
+			// @TODO err
 		}
 
 		if len(cursor.after) > 0 {
@@ -1839,7 +1839,7 @@ func (r *repository) LoadInbox(next http.Handler) http.Handler {
 		cursor, err = r.ActorInbox(inbox, f, self, m.User)
 		m.Items = cursor.items
 		if err != nil {
-			// err
+			// @TODO err
 		}
 
 		if len(cursor.after) > 0 {
