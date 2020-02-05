@@ -165,6 +165,9 @@ var CreateFollowActivitiesFilter = CompStrs{
 func FollowedFilters(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := FiltersFromRequest(r)
+
+		act := account(r)
+		f.Recipients = IRIsFilter(pub.PublicNS, act.pub.GetLink())
 		f.Type = CreateFollowActivitiesFilter
 		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
 		next.ServeHTTP(w, r.WithContext(ctx))

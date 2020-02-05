@@ -19,7 +19,7 @@ func (h *handler) Routes() func(chi.Router) {
 
 		r.Get("/about", h.HandleAbout)
 
-		r.With(DefaultFilters, h.storage.LoadInbox).Get("/", h.HandleListing)
+		r.With(DefaultFilters, h.storage.LoadServiceInbox).Get("/", h.HandleListing)
 		r.With(h.CSRF).Group(func(r chi.Router) {
 			r.Get("/submit", h.ShowSubmit)
 			r.Post("/submit", h.HandleSubmit)
@@ -64,10 +64,10 @@ func (h *handler) Routes() func(chi.Router) {
 		r.Get("/i/{hash}", h.HandleItemRedirect)
 
 		// @todo(marius) :link_generation:
-		r.With(DomainFilters, h.storage.LoadInbox, middleware.StripSlashes).Get("/d", h.HandleListing)
-		r.With(DomainFilters, h.storage.LoadInbox).Get("/d/{domain}", h.HandleListing)
+		r.With(DomainFilters, h.storage.LoadServiceInbox, middleware.StripSlashes).Get("/d", h.HandleListing)
+		r.With(DomainFilters, h.storage.LoadServiceInbox).Get("/d/{domain}", h.HandleListing)
 		// @todo(marius) :link_generation:
-		r.With(TagFilters, h.storage.LoadInbox).Get("/t/{tag}", h.HandleListing)
+		r.With(TagFilters, h.storage.LoadServiceInbox).Get("/t/{tag}", h.HandleListing)
 
 		r.With(h.NeedsSessions).Get("/logout", h.HandleLogout)
 		r.With(h.CSRF, h.NeedsSessions).Group(func(r chi.Router) {
@@ -75,9 +75,9 @@ func (h *handler) Routes() func(chi.Router) {
 			r.Post("/login", h.HandleLogin)
 		})
 
-		r.With(SelfFilters, h.storage.LoadInbox).Get("/self", h.HandleListing)
-		r.With(FederatedFilters, h.storage.LoadInbox).Get("/federated", h.HandleListing)
-		r.With(h.NeedsSessions, FollowedFilters, h.ValidateLoggedIn(h.v.HandleErrors)).Get("/followed", h.HandleInbox)
+		r.With(SelfFilters, h.storage.LoadServiceInbox).Get("/self", h.HandleListing)
+		r.With(FederatedFilters, h.storage.LoadServiceInbox).Get("/federated", h.HandleListing)
+		r.With(h.NeedsSessions, FollowedFilters, h.ValidateLoggedIn(h.v.HandleErrors), h.storage.LoadInbox).Get("/followed", h.HandleListing)
 
 		r.Route("/auth", func(r chi.Router) {
 			r.Use(h.NeedsSessions)
