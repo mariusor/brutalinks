@@ -126,14 +126,6 @@ var CreateActivitiesFilter = CompStrs{
 	CompStr{Str: string(pub.CreateType)},
 }
 
-// FiltersFromRequest loads the filters we use for generating storage queries from the HTTP request
-func FiltersFromContext(ctx context.Context) *ActivityFilters {
-	if f, ok := ctx.Value(FilterCtxtKey).(*ActivityFilters); ok {
-		return f
-	}
-	return nil
-}
-
 func DefaultFilters(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := FiltersFromRequest(r)
@@ -143,6 +135,14 @@ func DefaultFilters(next http.Handler) http.Handler {
 		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
+}
+
+// FiltersFromRequest loads the filters we use for generating storage queries from the HTTP request
+func FiltersFromContext(ctx context.Context) *ActivityFilters {
+	if f, ok := ctx.Value(FilterCtxtKey).(*ActivityFilters); ok {
+		return f
+	}
+	return nil
 }
 
 func SelfFilters(next http.Handler) http.Handler {
@@ -167,7 +167,9 @@ func FollowedFilters(next http.Handler) http.Handler {
 		f := FiltersFromRequest(r)
 
 		act := account(r)
-		f.Recipients = IRIsFilter(pub.PublicNS, act.pub.GetLink())
+		if act.pub != nil {
+			f.Recipients = IRIsFilter(pub.PublicNS, act.pub.GetLink())
+		}
 		f.Type = CreateFollowActivitiesFilter
 		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
 		next.ServeHTTP(w, r.WithContext(ctx))
@@ -237,6 +239,17 @@ func AccountFilters(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := FiltersFromRequest(r)
 		f.Type = CreateActivitiesFilter
+		handle := chi.URLParam(r, "handle")
+		fa := &ActivityFilters{
+			Name: CompStrs{EqualsString(handle)},
+		}
+		repo := ContextRepository(r.Context())
+		if actors, err := repo.accounts(fa); err == nil {
+			if len(actors) > 0 {
+				actor := actors[0]
+				f.AttrTo = IRIsFilter(actor.pub.GetLink())
+			}
+		}
 		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
