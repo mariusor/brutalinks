@@ -1055,13 +1055,13 @@ func IRIsFilter(iris ...pub.IRI) CompStrs {
 	return r
 }
 
-// ActorInbox loads the service's inbox collection.
+// ActorCollection loads the service's collection returned by fn.
 // First step is to load the Create activities from the inbox
 // Iterating over the activities in the resulting collection, we gather the objects and accounts
 //  With the resulting Object IRIs we load from the objects collection with our matching filters
 //  With the resulting Actor IRIs we load from the accounts collection with matching filters
 // From the
-func (r *repository) ActorInbox(fn CollectionFn, f *ActivityFilters, actor pub.Item, acc *Account) (Cursor, error) {
+func (r *repository) ActorCollection(fn CollectionFn, f *ActivityFilters, actor pub.Item, acc *Account) (Cursor, error) {
 	if len(f.Recipients) == 0 {
 		f.Recipients = IRIsFilter(pub.PublicNS, actor.GetLink())
 	}
@@ -1806,7 +1806,7 @@ func (r *repository) LoadOutbox(next http.Handler) http.Handler {
 		outbox := func() (pub.CollectionInterface, error) {
 			return r.fedbox.Outbox(actor, Values(f))
 		}
-		cursor, err = r.ActorInbox(outbox, f, actor, m.User)
+		cursor, err = r.ActorCollection(outbox, f, actor, m.User)
 		m.Items = cursor.items
 		if err != nil {
 			// @TODO err
@@ -1831,12 +1831,53 @@ func (r *repository) LoadInbox(next http.Handler) http.Handler {
 		m := listingModel{}
 		m.User = account(req)
 
+		handle := chi.URLParam(req, "handle")
+		fa := &ActivityFilters{
+			Name: CompStrs{EqualsString(handle)},
+		}
+		actors, err := r.accounts(fa)
+		if err != nil {
+			// @TODO err
+		}
+		if len(actors) == 0 {
+			// @TODO  err
+		}
+		actor := actors[0].pub
+		f := FiltersFromContext(req.Context())
+		outbox := func() (pub.CollectionInterface, error) {
+			return r.fedbox.Inbox(actor, Values(f))
+		}
+		cursor, err = r.ActorCollection(outbox, f, actor, m.User)
+		m.Items = cursor.items
+		if err != nil {
+			// @TODO err
+		}
+
+		if len(cursor.after) > 0 {
+			m.after = cursor.after
+		}
+		if len(cursor.before) > 0 {
+			m.before = cursor.before
+		}
+		ctx := context.WithValue(req.Context(), CollectionCtxtKey, &m)
+		next.ServeHTTP(w, req.WithContext(ctx))
+	})
+}
+
+func (r *repository) LoadServiceInbox(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		var cursor Cursor
+		var err error
+
+		m := listingModel{}
+		m.User = account(req)
+
 		f := FiltersFromContext(req.Context())
 		self := r.fedbox.Service()
 		inbox := func() (pub.CollectionInterface, error) {
 			return r.fedbox.Inbox(self, Values(f))
 		}
-		cursor, err = r.ActorInbox(inbox, f, self, m.User)
+		cursor, err = r.ActorCollection(inbox, f, self, m.User)
 		m.Items = cursor.items
 		if err != nil {
 			// @TODO err
