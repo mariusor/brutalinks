@@ -1062,10 +1062,6 @@ func IRIsFilter(iris ...pub.IRI) CompStrs {
 //  With the resulting Actor IRIs we load from the accounts collection with matching filters
 // From the
 func (r *repository) ActorCollection(fn CollectionFn, f *ActivityFilters, actor pub.Item, acc *Account) (Cursor, error) {
-	if len(f.Recipients) == 0 {
-		f.Recipients = IRIsFilter(pub.PublicNS, actor.GetLink())
-	}
-
 	items := make(ItemCollection, 0)
 	relations := make(map[pub.IRI]pub.IRI)
 	err := LoadFromCollection(fn, &colCursor{filters: f}, func(col pub.ItemCollection) (bool, error) {
@@ -1099,7 +1095,6 @@ func (r *repository) ActorCollection(fn CollectionFn, f *ActivityFilters, actor 
 			ff := ActivityFilters{
 				IRI:        deferredItems,
 				Type:       ActivityTypesFilter(ValidItemTypes...),
-				Recipients: IRIsFilter(pub.PublicNS, actor.GetLink()),
 				OP:         nilIRIs,
 				MaxItems:   f.MaxItems - len(items),
 			}
@@ -1831,23 +1826,12 @@ func (r *repository) LoadInbox(next http.Handler) http.Handler {
 		m := listingModel{}
 		m.User = account(req)
 
-		handle := chi.URLParam(req, "handle")
-		fa := &ActivityFilters{
-			Name: CompStrs{EqualsString(handle)},
-		}
-		actors, err := r.accounts(fa)
-		if err != nil {
-			// @TODO err
-		}
-		if len(actors) == 0 {
-			// @TODO  err
-		}
-		actor := actors[0].pub
+		actor := m.User.pub
 		f := FiltersFromContext(req.Context())
-		outbox := func() (pub.CollectionInterface, error) {
+		collFn := func() (pub.CollectionInterface, error) {
 			return r.fedbox.Inbox(actor, Values(f))
 		}
-		cursor, err = r.ActorCollection(outbox, f, actor, m.User)
+		cursor, err = r.ActorCollection(collFn, f, actor, m.User)
 		m.Items = cursor.items
 		if err != nil {
 			// @TODO err
