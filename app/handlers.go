@@ -3,7 +3,6 @@ package app
 import (
 	"encoding/json"
 	"fmt"
-	pub "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
 	"github.com/gorilla/csrf"
 	"github.com/mariusor/littr.go/internal/log"
@@ -20,59 +19,6 @@ import (
 
 	"github.com/go-chi/chi"
 )
-
-// ShowAccount serves /~handler request
-func (h *handler) ShowAccount(w http.ResponseWriter, r *http.Request) {
-	handle := chi.URLParam(r, "handle")
-
-	repo := h.storage
-	var err error
-	accounts, cnt, err := repo.LoadAccounts(Filters{LoadAccountsFilter: LoadAccountsFilter{Handle: []string{handle}}})
-	if err != nil {
-		h.v.HandleErrors(w, r, err)
-		return
-	}
-	if cnt == 0 {
-		h.v.HandleErrors(w, r, errors.NotFoundf("account %q not found", handle))
-		return
-	}
-	if cnt > 1 {
-		h.v.HandleErrors(w, r, errors.NotFoundf("too many %q accounts found", handle))
-		return
-	}
-
-	filter := Filters{
-		LoadItemsFilter: LoadItemsFilter{},
-		MaxItems:        MaxContentItems,
-		Page:            1,
-	}
-	for _, a := range accounts {
-		filter.LoadItemsFilter.AttributedTo = append(filter.LoadItemsFilter.AttributedTo, a.Hash)
-	}
-
-	if err := qstring.Unmarshal(r.URL.Query(), &filter); err != nil {
-		h.logger.Debug("unable to load url parameters")
-	}
-	baseURL, _ := url.Parse(h.conf.BaseURL)
-	m := listingModel{}
-
-	m.Title = fmt.Sprintf("%s: %s submissions", baseURL.Host, genitive(handle))
-	m.User, _ = accounts.First()
-	comments, err := loadItems(r.Context(), filter, account(r), h.logger)
-	if err != nil {
-		h.v.HandleErrors(w, r, errors.NewNotValid(err, "unable to load items"))
-	}
-	for _, com := range comments {
-		m.Items = append(m.Items, com)
-	}
-	if len(comments) >= filter.MaxItems {
-		m.after = comments[len(comments)-1].Hash
-	}
-	if filter.Page > 1 {
-		m.before = comments[0].Hash
-	}
-	h.v.RenderTemplate(r, w, "user", m)
-}
 
 // HandleSubmit handles POST /submit requests
 // HandleSubmit handles POST /~handler/hash requests
@@ -474,56 +420,6 @@ func (h *handler) HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
 	h.v.Redirect(w, r, backUrl, http.StatusSeeOther)
 }
 
-// HandleIndex serves / request
-func (h *handler) HandleIndex(w http.ResponseWriter, r *http.Request) {
-	filter := Filters{
-		LoadItemsFilter: LoadItemsFilter{
-			InReplyTo: []string{""},
-			Deleted:   []bool{false},
-			Federated: []bool{false},
-			Private:   []bool{false},
-		},
-		Page:     1,
-		MaxItems: MaxContentItems,
-	}
-	if err := qstring.Unmarshal(r.URL.Query(), &filter); err != nil {
-		h.logger.Debug("unable to load url parameters")
-	}
-
-	baseURL, _ := url.Parse(h.conf.BaseURL)
-	title := fmt.Sprintf("%s: main page", baseURL.Host)
-
-	acct := account(r)
-	base := path.Base(r.URL.Path)
-	switch strings.ToLower(base) {
-	case "self":
-		title = fmt.Sprintf("%s: self", baseURL.Host)
-		h.logger.Debug("showing self posts")
-	case "federated":
-		title = fmt.Sprintf("%s: federated", baseURL.Host)
-		h.logger.Debug("showing federated posts")
-		filter.Federated = []bool{true}
-	default:
-	}
-	m := listingModel{}
-	m.Title = title
-	m.HideText = true
-	comments, err := loadItems(r.Context(), filter, acct, h.logger)
-	if err != nil {
-		h.v.HandleErrors(w, r, errors.NewNotValid(err, "Unable to load items!"))
-	}
-	for _, c := range comments {
-		m.Items = append(m.Items, c)
-	}
-	if l := len(comments); l > 0 {
-		m.before = comments[0].Hash
-		if l > 1 {
-			m.after = comments[l-1].Hash
-		}
-	}
-	h.v.RenderTemplate(r, w, "listing", &m)
-}
-
 // HandleIndex serves /followed request
 func (h *handler) HandleInbox(w http.ResponseWriter, r *http.Request) {
 	filter := Filters{
@@ -577,82 +473,6 @@ func (h *handler) HandleInbox(w http.ResponseWriter, r *http.Request) {
 		m.before = comments[0].Hash
 	}
 
-	h.v.RenderTemplate(r, w, "listing", &m)
-}
-
-// HandleTags serves /tags/{tag} request
-func (h *handler) HandleTags(w http.ResponseWriter, r *http.Request) {
-	tag := chi.URLParam(r, "tag")
-	filter := Filters{
-		MaxItems: MaxContentItems,
-		Page:     1,
-	}
-	acct := account(r)
-	if len(tag) == 0 {
-		h.v.HandleErrors(w, r, errors.BadRequestf("missing tag"))
-	}
-	filter.Content = "#" + tag
-	filter.ContentMatchType = MatchFuzzy
-	if err := qstring.Unmarshal(r.URL.Query(), &filter); err != nil {
-		h.logger.Debug("unable to load url parameters")
-	}
-	baseURL, _ := url.Parse(h.conf.BaseURL)
-	m := listingModel{}
-	m.Title = fmt.Sprintf("%s: tagged as #%s", baseURL.Host, tag)
-	comments, err := loadItems(r.Context(), filter, acct, h.logger)
-	if err != nil {
-		h.v.HandleErrors(w, r, errors.NewNotValid(err, "oops!"))
-	}
-	for _, c := range comments {
-		m.Items = append(m.Items, c)
-	}
-	if len(comments) >= filter.MaxItems {
-		m.after = comments[len(comments)-1].Hash
-	}
-	if filter.Page > 1 {
-		m.before = comments[0].Hash
-	}
-	h.v.RenderTemplate(r, w, "listing", &m)
-}
-
-// HandleDomains serves /domains/{domain} request
-func (h *handler) HandleDomains(w http.ResponseWriter, r *http.Request) {
-	domain := chi.URLParam(r, "domain")
-
-	acct := account(r)
-	filter := Filters{
-		LoadItemsFilter: LoadItemsFilter{
-			Context: []string{"0"},
-		},
-		MaxItems: MaxContentItems,
-		Page:     1,
-	}
-	if len(domain) > 0 {
-		filter.LoadItemsFilter.URL = domain
-		filter.Type = pub.ActivityVocabularyTypes{pub.PageType}
-	} else {
-		filter.MediaType = []string{MimeTypeMarkdown, MimeTypeText, MimeTypeHTML}
-	}
-	if err := qstring.Unmarshal(r.URL.Query(), &filter); err != nil {
-		h.logger.Debug("unable to load url parameters")
-	}
-	baseURL, _ := url.Parse(h.conf.BaseURL)
-	m := listingModel{}
-	m.Title = fmt.Sprintf("%s: from %s", baseURL.Host, domain)
-	m.HideText = true
-	comments, err := loadItems(r.Context(), filter, acct, h.logger)
-	if err != nil {
-		h.v.HandleErrors(w, r, errors.NewNotValid(err, "oops!"))
-	}
-	for _, c := range comments {
-		m.Items = append(m.Items, c)
-	}
-	if len(comments) >= filter.MaxItems {
-		m.after = comments[len(comments)-1].Hash
-	}
-	if filter.Page > 1 {
-		m.before = comments[0].Hash
-	}
 	h.v.RenderTemplate(r, w, "listing", &m)
 }
 
