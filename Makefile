@@ -5,7 +5,7 @@ export VERSION=(unknown)
 GO := go
 ENV ?= dev
 LDFLAGS ?= -X main.version=$(VERSION)
-BUILDFLAGS ?= -a -ldflags '$(LDFLAGS)'
+BUILDFLAGS ?= -trimpath -a -ldflags '$(LDFLAGS)'
 APPSOURCES := $(wildcard  ./activitypub/*.go ./app/*.go ./app/*/*.go internal/*/*.go) main.go
 
 ifneq ($(ENV), dev)
