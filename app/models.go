@@ -1,9 +1,5 @@
 package app
 
-import (
-	"context"
-)
-
 type Paginator interface {
 	NextPage() Hash
 	PrevPage() Hash
@@ -11,6 +7,7 @@ type Paginator interface {
 
 type listingModel struct {
 	Title    string
+	tpl      string
 	User     *Account
 	Items    []Renderable
 	HideText bool
@@ -61,11 +58,4 @@ type errorModel struct {
 	Status int
 	Title  string
 	Errors []error
-}
-
-func ListingModelFromContext(ctx context.Context) *listingModel {
-	if l, ok := ctx.Value(CollectionCtxtKey).(*listingModel); ok {
-		return l
-	}
-	return nil
 }

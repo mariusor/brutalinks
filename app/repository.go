@@ -1061,7 +1061,7 @@ func IRIsFilter(iris ...pub.IRI) CompStrs {
 //  With the resulting Object IRIs we load from the objects collection with our matching filters
 //  With the resulting Actor IRIs we load from the accounts collection with matching filters
 // From the
-func (r *repository) ActorCollection(fn CollectionFn, f *ActivityFilters, actor pub.Item, acc *Account) (Cursor, error) {
+func (r *repository) ActorCollection(fn CollectionFn, f *ActivityFilters, acc *Account) (Cursor, error) {
 	items := make(ItemCollection, 0)
 	relations := make(map[pub.IRI]pub.IRI)
 	err := LoadFromCollection(fn, &colCursor{filters: f}, func(col pub.ItemCollection) (bool, error) {
@@ -1093,10 +1093,10 @@ func (r *repository) ActorCollection(fn CollectionFn, f *ActivityFilters, actor 
 
 		if len(deferredItems) > 0 {
 			ff := ActivityFilters{
-				IRI:        deferredItems,
-				Type:       ActivityTypesFilter(ValidItemTypes...),
-				OP:         nilIRIs,
-				MaxItems:   f.MaxItems - len(items),
+				IRI:      deferredItems,
+				Type:     ActivityTypesFilter(ValidItemTypes...),
+				OP:       nilIRIs,
+				MaxItems: f.MaxItems - len(items),
 			}
 			objects, err := r.objects(&ff)
 			if err != nil {
@@ -1785,8 +1785,8 @@ func (r *repository) LoadOutbox(next http.Handler) http.Handler {
 		var cursor Cursor
 		var err error
 
-		m := listingModel{}
-		m.User = account(req)
+		m := ContextListingModel(req.Context())
+		acc := account(req)
 
 		handle := chi.URLParam(req, "handle")
 		actors, err := r.accounts(&ActivityFilters{Name: CompStrs{EqualsString(handle)}})
@@ -1797,11 +1797,11 @@ func (r *repository) LoadOutbox(next http.Handler) http.Handler {
 			// @TODO  err
 		}
 		actor := actors[0].pub
-		f := FiltersFromContext(req.Context())
+		f := ContextActivityFilters(req.Context())
 		outbox := func() (pub.CollectionInterface, error) {
 			return r.fedbox.Outbox(actor, Values(f))
 		}
-		cursor, err = r.ActorCollection(outbox, f, actor, m.User)
+		cursor, err = r.ActorCollection(outbox, f, acc)
 		m.Items = cursor.items
 		if err != nil {
 			// @TODO err
@@ -1813,8 +1813,7 @@ func (r *repository) LoadOutbox(next http.Handler) http.Handler {
 		if len(cursor.before) > 0 {
 			m.before = cursor.before
 		}
-		ctx := context.WithValue(req.Context(), CollectionCtxtKey, &m)
-		next.ServeHTTP(w, req.WithContext(ctx))
+		next.ServeHTTP(w, req)
 	})
 }
 
@@ -1823,15 +1822,15 @@ func (r *repository) LoadInbox(next http.Handler) http.Handler {
 		var cursor Cursor
 		var err error
 
-		m := listingModel{}
-		m.User = account(req)
+		m := ContextListingModel(req.Context())
+		acc := account(req)
 
-		actor := m.User.pub
-		f := FiltersFromContext(req.Context())
+		actor := acc.pub
+		f := ContextActivityFilters(req.Context())
 		collFn := func() (pub.CollectionInterface, error) {
 			return r.fedbox.Inbox(actor, Values(f))
 		}
-		cursor, err = r.ActorCollection(collFn, f, actor, m.User)
+		cursor, err = r.ActorCollection(collFn, f, acc)
 		m.Items = cursor.items
 		if err != nil {
 			// @TODO err
@@ -1843,8 +1842,7 @@ func (r *repository) LoadInbox(next http.Handler) http.Handler {
 		if len(cursor.before) > 0 {
 			m.before = cursor.before
 		}
-		ctx := context.WithValue(req.Context(), CollectionCtxtKey, &m)
-		next.ServeHTTP(w, req.WithContext(ctx))
+		next.ServeHTTP(w, req)
 	})
 }
 
@@ -1853,15 +1851,14 @@ func (r *repository) LoadServiceInbox(next http.Handler) http.Handler {
 		var cursor Cursor
 		var err error
 
-		m := listingModel{}
-		m.User = account(req)
-
-		f := FiltersFromContext(req.Context())
+		m := ContextListingModel(req.Context())
+		acc := account(req)
+		f := ContextActivityFilters(req.Context())
 		self := r.fedbox.Service()
 		inbox := func() (pub.CollectionInterface, error) {
 			return r.fedbox.Inbox(self, Values(f))
 		}
-		cursor, err = r.ActorCollection(inbox, f, self, m.User)
+		cursor, err = r.ActorCollection(inbox, f, acc)
 		m.Items = cursor.items
 		if err != nil {
 			// @TODO err
@@ -1873,7 +1870,6 @@ func (r *repository) LoadServiceInbox(next http.Handler) http.Handler {
 		if len(cursor.before) > 0 {
 			m.before = cursor.before
 		}
-		ctx := context.WithValue(req.Context(), CollectionCtxtKey, &m)
-		next.ServeHTTP(w, req.WithContext(ctx))
+		next.ServeHTTP(w, req)
 	})
 }

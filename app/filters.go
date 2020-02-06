@@ -138,7 +138,7 @@ func DefaultFilters(next http.Handler) http.Handler {
 }
 
 // FiltersFromRequest loads the filters we use for generating storage queries from the HTTP request
-func FiltersFromContext(ctx context.Context) *ActivityFilters {
+func ContextActivityFilters(ctx context.Context) *ActivityFilters {
 	if f, ok := ctx.Value(FilterCtxtKey).(*ActivityFilters); ok {
 		return f
 	}
@@ -235,6 +235,16 @@ func TagFilters(next http.Handler) http.Handler {
 	})
 }
 
+func WithModel(m interface{}) Handler {
+	return func(next http.Handler) http.Handler {
+		fn := func(w http.ResponseWriter, r *http.Request) {
+			ctx := r.Context()
+			next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, ModelCtxtKey, m)))
+		}
+		return http.HandlerFunc(fn)
+	}
+}
+
 func AccountFilters(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := FiltersFromRequest(r)
@@ -248,6 +258,8 @@ func AccountFilters(next http.Handler) http.Handler {
 			if len(actors) > 0 {
 				actor := actors[0]
 				f.AttrTo = IRIsFilter(actor.pub.GetLink())
+				m := ContextListingModel(r.Context())
+				m.User = &actor
 			}
 		}
 		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
