@@ -12,10 +12,7 @@ var (
 	AccountCtxtKey    CtxtKey = "__acct"
 	RepositoryCtxtKey CtxtKey = "__repository"
 	FilterCtxtKey     CtxtKey = "__filter"
-
-	CollectionCtxtKey      CtxtKey = "__collection"
-	CollectionCountCtxtKey CtxtKey = "__collection_count"
-	ItemCtxtKey            CtxtKey = "__item"
+	ModelCtxtKey     CtxtKey = "__model"
 )
 
 type MatchType int
@@ -368,6 +365,19 @@ func (f LoadAccountsFilter) GetWhereClauses() ([]string, []interface{}) {
 	return wheres, whereValues
 }
 
+func ContextListingModel(ctx context.Context) *listingModel {
+	if l, ok := ctx.Value(ModelCtxtKey).(*listingModel); ok {
+		return l
+	}
+	return nil
+}
+
+func ContextContentModel(ctx context.Context) *contentModel {
+	if l, ok := ctx.Value(ModelCtxtKey).(*contentModel); ok {
+		return l
+	}
+	return nil
+}
 
 func ContextRepository(ctx context.Context) *repository {
 	if l, ok := ctx.Value(RepositoryCtxtKey).(*repository); ok {
