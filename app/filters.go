@@ -132,6 +132,7 @@ func DefaultFilters(next http.Handler) http.Handler {
 		f.Type = CreateActivitiesFilter
 		f.Object = &ActivityFilters{}
 		f.Object.OP = nilIRIs
+		f.Object.Type = ActivityTypesFilter(ValidItemTypes...)
 		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -151,6 +152,7 @@ func SelfFilters(next http.Handler) http.Handler {
 		f.Type = CreateActivitiesFilter
 		f.Object = &ActivityFilters{}
 		f.Object.OP = nilIRIs
+		f.Object.Type = ActivityTypesFilter(ValidItemTypes...)
 		f.IRI = CompStrs{LikeString(Instance.APIURL)}
 		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
 		next.ServeHTTP(w, r.WithContext(ctx))
@@ -214,6 +216,7 @@ func DomainFilters(next http.Handler) http.Handler {
 			}
 			f.Object.Type = ActivityTypesFilter(ValidItemTypes...)
 		}
+		f.Object.OP = nilIRIs
 		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -228,8 +231,8 @@ func TagFilters(next http.Handler) http.Handler {
 		f := FiltersFromRequest(r)
 		f.Type = CreateActivitiesFilter
 		f.Object = &ActivityFilters{}
-		f.Object.OP = nilIRIs
-		f.Object.Cont = CompStrs{LikeString(tag)}
+		f.Object.Type = ActivityTypesFilter(ValidItemTypes...)
+		f.Object.Cont = CompStrs{LikeString("#" + tag)}
 		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
