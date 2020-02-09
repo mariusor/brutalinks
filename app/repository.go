@@ -1092,13 +1092,10 @@ func (r *repository) ActorCollection(fn CollectionFn, f *ActivityFilters, acc *A
 		}
 
 		if len(deferredItems) > 0 {
-			ff := ActivityFilters{
-				IRI:      deferredItems,
-				Type:     ActivityTypesFilter(ValidItemTypes...),
-				OP:       nilIRIs,
-				MaxItems: f.MaxItems - len(items),
-			}
-			objects, err := r.objects(&ff)
+			ff := f.Object
+			ff.IRI =  deferredItems
+			ff.MaxItems = f.MaxItems - len(items)
+			objects, err := r.objects(ff)
 			if err != nil {
 				return true, err
 			}
