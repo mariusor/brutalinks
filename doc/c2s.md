@@ -1,6 +1,6 @@
 # Querying FedBOX
 
-Unless specified all filters mention in [FedBOX](https://github.com/go-ap/fedbox/tree/master/doc/c2s.md) apply to the 
+Unless specified all filters mentioned in [FedBOX](https://github.com/go-ap/fedbox/tree/master/doc/c2s.md) apply to the 
 corresponding types of collections we're loading from.
 
 In the following scenarios, to get the full set of information we usually require more than the one request mentioned in them.
