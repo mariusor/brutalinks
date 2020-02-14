@@ -420,62 +420,6 @@ func (h *handler) HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
 	h.v.Redirect(w, r, backUrl, http.StatusSeeOther)
 }
 
-// HandleIndex serves /followed request
-func (h *handler) HandleInbox(w http.ResponseWriter, r *http.Request) {
-	filter := Filters{
-		LoadItemsFilter: LoadItemsFilter{
-			InReplyTo: []string{""},
-			Deleted:   []bool{false},
-			Federated: []bool{false},
-			Private:   []bool{true},
-		},
-		Page:     1,
-		MaxItems: MaxContentItems,
-	}
-	if err := qstring.Unmarshal(r.URL.Query(), &filter); err != nil {
-		h.logger.Debug("unable to load url parameters")
-	}
-
-	baseURL, _ := url.Parse(h.conf.BaseURL)
-	title := fmt.Sprintf("%s: main page", baseURL.Host)
-
-	acct := account(r)
-	title = fmt.Sprintf("%s: followed", baseURL.Host)
-
-	filter.FollowedBy = acct.Hash.String()
-
-	m := listingModel{}
-	m.Title = title
-	m.HideText = true
-
-	requests, _, err := h.storage.LoadFollowRequests(acct, Filters{
-		LoadFollowRequestsFilter: LoadFollowRequestsFilter{
-			On: Hashes{Hash(acct.Metadata.ID)},
-		},
-	})
-	if err != nil {
-		h.v.HandleErrors(w, r, errors.NewNotValid(err, "Unable to load items!"))
-	}
-	for _, r := range requests {
-		m.Items = append(m.Items, r)
-	}
-	comments, err := loadItems(r.Context(), filter, acct, h.logger)
-	if err != nil {
-		h.v.HandleErrors(w, r, errors.NewNotValid(err, "Unable to load items!"))
-	}
-	for _, c := range comments {
-		m.Items = append(m.Items, c)
-	}
-	if len(comments) >= filter.MaxItems {
-		m.after = comments[len(comments)-1].Hash
-	}
-	if filter.Page > 1 {
-		m.before = comments[0].Hash
-	}
-
-	h.v.RenderTemplate(r, w, "listing", &m)
-}
-
 const SessionUserKey = "__current_acct"
 
 // ShowLogin handles POST /login requests
@@ -541,7 +485,7 @@ func (h *handler) ShowLogin(w http.ResponseWriter, r *http.Request) {
 	m := loginModel{Title: "Login"}
 	m.Account = *a
 
-	h.v.RenderTemplate(r, w, "login", m)
+	h.v.RenderTemplate(r, w, m.Template(), m)
 }
 
 // HandleLogout serves /logout requests
@@ -640,8 +584,7 @@ func (h *handler) HandleItemRedirect(w http.ResponseWriter, r *http.Request) {
 // ShowRegister serves GET /register requests
 func (h *handler) ShowRegister(w http.ResponseWriter, r *http.Request) {
 	m := registerModel{}
-
-	h.v.RenderTemplate(r, w, "register", m)
+	h.v.RenderTemplate(r, w, m.Template(), m)
 }
 
 var scopeAnonymousUserCreate = "anonUserCreate"
@@ -741,18 +684,14 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// HandleListing serves / request
-func (h *handler) HandleListing(w http.ResponseWriter, r *http.Request) {
-	model := ContextListingModel(r.Context())
+// HandleShow serves / request
+func (h *handler) HandleShow(w http.ResponseWriter, r *http.Request) {
+	model := ContextModel(r.Context())
 	if model == nil {
 		h.v.HandleErrors(w, r, errors.Errorf("Oops!!"))
 		return
 	}
-	model.HideText = true
-	if model.tpl == "" {
-		model.tpl = "listing"
-	}
-	if err := h.v.RenderTemplate(r, w, model.tpl, model); err != nil {
+	if err := h.v.RenderTemplate(r, w, model.Template(), model); err != nil {
 		h.v.HandleErrors(w, r, err)
 	}
 }

@@ -1067,8 +1067,8 @@ func (r *repository) ActorCollection(fn CollectionFn, f *ActivityFilters, acc *A
 	err := LoadFromCollection(fn, &colCursor{filters: f}, func(col pub.ItemCollection) (bool, error) {
 		deferredItems := make(CompStrs, 0)
 		for _, it := range col {
-			if it.GetType() == pub.CreateType {
-				pub.OnActivity(it, func(a *pub.Activity) error {
+			pub.OnActivity(it, func(a *pub.Activity) error {
+				if it.GetType() == pub.CreateType {
 					ob := a.Object
 					i := Item{}
 					if ob.IsObject() {
@@ -1086,14 +1086,16 @@ func (r *repository) ActorCollection(fn CollectionFn, f *ActivityFilters, acc *A
 						}
 					}
 					relations[a.GetLink()] = ob.GetLink()
-					return nil
-				})
-			}
+				}
+				if it.GetType() == pub.FollowType {
+				}
+				return nil
+			})
 		}
 
 		if len(deferredItems) > 0 {
 			ff := f.Object
-			ff.IRI =  deferredItems
+			ff.IRI = deferredItems
 			ff.MaxItems = f.MaxItems - len(items)
 			objects, err := r.objects(ff)
 			if err != nil {
@@ -1813,6 +1815,26 @@ func (r *repository) LoadOutbox(next http.Handler) http.Handler {
 		next.ServeHTTP(w, req)
 	})
 }
+func (r *repository) LoadOutboxObject(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		f := ContextActivityFilters(req.Context())
+		m := ContextContentModel(req.Context())
+		it, err := r.fedbox.Outbox(m.User.pub, Values(f))
+		if err != nil {
+			return
+		}
+		if it == nil {
+			return
+		}
+		i := Item{}
+		i.FromActivityPub(it)
+		if !i.Deleted() && len(i.Data)+len(i.Title) == 0 {
+			return
+		}
+		m.Content = i
+		next.ServeHTTP(w, req)
+	})
+}
 
 func (r *repository) LoadInbox(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
@@ -1823,21 +1845,23 @@ func (r *repository) LoadInbox(next http.Handler) http.Handler {
 		acc := account(req)
 
 		actor := acc.pub
-		f := ContextActivityFilters(req.Context())
-		collFn := func() (pub.CollectionInterface, error) {
-			return r.fedbox.Inbox(actor, Values(f))
-		}
-		cursor, err = r.ActorCollection(collFn, f, acc)
-		m.Items = cursor.items
-		if err != nil {
-			// @TODO err
-		}
+		if actor != nil {
+			f := ContextActivityFilters(req.Context())
+			collFn := func() (pub.CollectionInterface, error) {
+				return r.fedbox.Inbox(actor, Values(f))
+			}
+			cursor, err = r.ActorCollection(collFn, f, acc)
+			m.Items = cursor.items
+			if err != nil {
+				// @TODO err
+			}
 
-		if len(cursor.after) > 0 {
-			m.after = cursor.after
-		}
-		if len(cursor.before) > 0 {
-			m.before = cursor.before
+			if len(cursor.after) > 0 {
+				m.after = cursor.after
+			}
+			if len(cursor.before) > 0 {
+				m.before = cursor.before
+			}
 		}
 		next.ServeHTTP(w, req)
 	})
