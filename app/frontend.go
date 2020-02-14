@@ -132,7 +132,7 @@ type headerEl struct {
 	URL       string
 }
 
-func account(r *http.Request) *Account {
+func loggedAccount(r *http.Request) *Account {
 	if acct := ContextAccount(r.Context()); acct != nil {
 		return acct
 	}
@@ -328,12 +328,11 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 		acc := loadCurrentAccountFromSession(s, h.logger)
 		m := acc.Metadata
 		if acc.IsLogged() {
-			acc, err = h.storage.LoadAccount(Filters{
-				LoadAccountsFilter: LoadAccountsFilter{
-					Handle: []string{acc.Handle},
-					Key:    []Hash{acc.Hash},
-				},
-			})
+			f := &ActivityFilters{
+				Name:       CompStrs{EqualsString(acc.Handle)},
+				IRI:        CompStrs{EqualsString(acc.Hash.String())},
+			}
+			accounts, err := h.storage.accounts(f)
 			ctx := log.Ctx{
 				"handle": acc.Handle,
 				"hash":   acc.Hash,
@@ -341,6 +340,7 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 			if err != nil {
 				h.logger.WithContext(ctx).Warn(err.Error())
 			}
+			acc = accounts[0]
 			// TODO(marius): this needs to be moved to where we're handling all Inbox activities, not on page load
 			acc, err = h.storage.loadAccountsFollowers(acc)
 			if err != nil {
@@ -352,7 +352,7 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 			}
 			// TODO(marius): Fix this ugly hack where we need to not override OAuth2 metadata loaded at login
 			acc.Metadata = m
-			r = r.WithContext(context.WithValue(r.Context(), AccountCtxtKey, &acc))
+			r = r.WithContext(context.WithValue(r.Context(), LoggedAccountCtxtKey, &acc))
 			h.storage.WithAccount(&acc)
 		}
 		next.ServeHTTP(w, r)
@@ -392,7 +392,7 @@ func (h *handler) HandleAbout(w http.ResponseWriter, r *http.Request) {
 	}
 	m.Desc.Description = info.Description
 
-	h.v.RenderTemplate(r, w, "about", m)
+	h.v.RenderTemplate(r, w, m.Template(), m)
 }
 
 func httpErrorResponse(e error) int {
