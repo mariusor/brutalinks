@@ -178,7 +178,7 @@ func (a AccountCollection) First() (*Account, error) {
 	return nil, errors.Errorf("empty %T", a)
 }
 
-func accountFromRequest(r *http.Request, l log.Logger) (*Account, error) {
+func accountFromPost(r *http.Request, l log.Logger) (*Account, error) {
 	if r.Method != http.MethodPost {
 		return nil, errors.Errorf("invalid http method type")
 	}
@@ -222,20 +222,22 @@ func checkUserCreatingEnabled(next http.Handler) http.Handler {
 
 func accountFromRequestHandle(r *http.Request) (*Account, error) {
 	handle := chi.URLParam(r, "handle")
+	if handle == "" {
+		return nil, errors.NotFoundf("missing account handle", handle)
+	}
+	fa := &ActivityFilters{
+		Name: CompStrs{EqualsString(handle)},
+	}
 	repo := ContextRepository(r.Context())
-	if repo == nil {
-		return nil, errors.Newf("could not load account repository from Context")
+	var account *Account
+	if accounts, err := repo.accounts(fa); err == nil {
+		if  len(accounts) == 0 {
+			return nil, errors.NotFoundf("account %q not found", handle)
+		}
+		if len(accounts) > 1 {
+			return nil, errors.NotFoundf("too many %q accounts found", handle)
+		}
+		account = &accounts[0]
 	}
-	var err error
-	accounts, cnt, err := repo.LoadAccounts(Filters{LoadAccountsFilter: LoadAccountsFilter{Handle: []string{handle}}})
-	if err != nil {
-		return nil, err
-	}
-	if cnt == 0 {
-		return nil, errors.NotFoundf("account %q not found", handle)
-	}
-	if cnt > 1 {
-		return nil, errors.NotFoundf("too many %q accounts found", handle)
-	}
-	return accounts.First()
+	return account, nil
 }
