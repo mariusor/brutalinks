@@ -9,10 +9,11 @@ import (
 type CtxtKey string
 
 var (
-	AccountCtxtKey    CtxtKey = "__acct"
-	RepositoryCtxtKey CtxtKey = "__repository"
-	FilterCtxtKey     CtxtKey = "__filter"
-	ModelCtxtKey     CtxtKey = "__model"
+	LoggedAccountCtxtKey CtxtKey = "__acct"
+	RepositoryCtxtKey    CtxtKey = "__repository"
+	FilterCtxtKey        CtxtKey = "__filter"
+	ModelCtxtKey         CtxtKey = "__model"
+	AuthorCtxtKey        CtxtKey = "__author"
 )
 
 type MatchType int
@@ -394,7 +395,15 @@ func ContextRepository(ctx context.Context) *repository {
 }
 
 func ContextAccount(ctx context.Context) *Account {
-	ctxVal := ctx.Value(AccountCtxtKey)
+	ctxVal := ctx.Value(LoggedAccountCtxtKey)
+	if a, ok := ctxVal.(*Account); ok {
+		return a
+	}
+	return nil
+}
+
+func ContextAuthor(ctx context.Context) *Account {
+	ctxVal := ctx.Value(AuthorCtxtKey)
 	if a, ok := ctxVal.(*Account); ok {
 		return a
 	}

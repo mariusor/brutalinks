@@ -146,7 +146,7 @@ func ContextActivityFilters(ctx context.Context) *ActivityFilters {
 	return nil
 }
 
-func SelfFilters(next http.Handler) http.Handler {
+func SelfFiltersMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := FiltersFromRequest(r)
 		f.Type = CreateActivitiesFilter
@@ -164,7 +164,7 @@ var CreateFollowActivitiesFilter = CompStrs{
 	CompStr{Str: string(pub.FollowType)},
 }
 
-func FollowedFilters(next http.Handler) http.Handler {
+func FollowedFiltersMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := FiltersFromRequest(r)
 		f.Type = CreateFollowActivitiesFilter
@@ -177,7 +177,7 @@ func DifferentThanString(s string) CompStr {
 	return CompStr{Operator: "!", Str: s}
 }
 
-func FederatedFilters(next http.Handler) http.Handler {
+func FederatedFiltersMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := FiltersFromRequest(r)
 		f.Type = CreateActivitiesFilter
@@ -194,7 +194,7 @@ func LikeString(s string) CompStr {
 	return CompStr{Operator: "~", Str: s}
 }
 
-func DomainFilters(next http.Handler) http.Handler {
+func DomainFiltersMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		domain := chi.URLParam(r, "domain")
 		f := FiltersFromRequest(r)
@@ -217,7 +217,7 @@ func DomainFilters(next http.Handler) http.Handler {
 	})
 }
 
-func TagFilters(next http.Handler) http.Handler {
+func TagFiltersMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		tag := chi.URLParam(r, "tag")
 		if len(tag) == 0 {
@@ -233,7 +233,7 @@ func TagFilters(next http.Handler) http.Handler {
 	})
 }
 
-func WithModel(m interface{}) Handler {
+func WithModelMw(m interface{}) Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
@@ -243,23 +243,10 @@ func WithModel(m interface{}) Handler {
 	}
 }
 
-func ItemFilters(next http.Handler) http.Handler {
+func ItemFiltersMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := FiltersFromRequest(r)
 		f.Type = CreateActivitiesFilter
-		handle := chi.URLParam(r, "handle")
-		fa := &ActivityFilters{
-			Name: CompStrs{EqualsString(handle)},
-		}
-		repo := ContextRepository(r.Context())
-		if actors, err := repo.accounts(fa); err == nil {
-			if len(actors) > 0 {
-				actor := actors[0]
-				//f.AttrTo = IRIsFilter(actor.pub.GetLink())
-				m := ContextContentModel(r.Context())
-				m.User = &actor
-			}
-		}
 		hash := chi.URLParam(r, "hash")
 		f.Object = &ActivityFilters{}
 		f.Object.IRI = CompStrs{LikeString(hash)}
@@ -268,22 +255,16 @@ func ItemFilters(next http.Handler) http.Handler {
 	})
 }
 
-func AccountFilters(next http.Handler) http.Handler {
+func AccountFiltersMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := FiltersFromRequest(r)
 		f.Type = CreateActivitiesFilter
-		handle := chi.URLParam(r, "handle")
-		fa := &ActivityFilters{
-			Name: CompStrs{EqualsString(handle)},
-		}
-		repo := ContextRepository(r.Context())
-		if actors, err := repo.accounts(fa); err == nil {
-			if len(actors) > 0 {
-				actor := actors[0]
-				f.AttrTo = IRIsFilter(actor.pub.GetLink())
-				m := ContextListingModel(r.Context())
-				m.User = &actor
-			}
+
+		author := ContextAuthor(r.Context())
+		if author != nil {
+			f.AttrTo = IRIsFilter(author.pub.GetLink())
+			m := ContextListingModel(r.Context())
+			m.User = author
 		}
 		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
 		next.ServeHTTP(w, r.WithContext(ctx))

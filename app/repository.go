@@ -11,7 +11,6 @@ import (
 	"github.com/go-ap/errors"
 	"github.com/go-ap/handlers"
 	j "github.com/go-ap/jsonld"
-	"github.com/go-chi/chi"
 	"github.com/mariusor/littr.go/internal/log"
 	"github.com/mariusor/qstring"
 	"github.com/spacemonkeygo/httpsig"
@@ -1779,23 +1778,21 @@ func (r *repository) LoadInfo() (WebInfo, error) {
 	return Instance.NodeInfo(), nil
 }
 
-func (r *repository) LoadOutbox(next http.Handler) http.Handler {
+func (r *repository) LoadOutboxMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		var cursor Cursor
 		var err error
 
 		m := ContextListingModel(req.Context())
-		acc := account(req)
+		acc := loggedAccount(req)
 
-		handle := chi.URLParam(req, "handle")
-		actors, err := r.accounts(&ActivityFilters{Name: CompStrs{EqualsString(handle)}})
-		if err != nil {
-			// @TODO err
+		author := ContextAuthor(req.Context())
+		if author == nil {
+			// TODO(marius): error
+			next.ServeHTTP(w, req)
+			return
 		}
-		if len(actors) == 0 {
-			// @TODO  err
-		}
-		actor := actors[0].pub
+		actor := author.pub
 		f := ContextActivityFilters(req.Context())
 		outbox := func() (pub.CollectionInterface, error) {
 			return r.fedbox.Outbox(actor, Values(f))
@@ -1815,34 +1812,37 @@ func (r *repository) LoadOutbox(next http.Handler) http.Handler {
 		next.ServeHTTP(w, req)
 	})
 }
-func (r *repository) LoadOutboxObject(next http.Handler) http.Handler {
+
+func (r *repository) LoadOutboxObjectMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		f := ContextActivityFilters(req.Context())
 		m := ContextContentModel(req.Context())
-		it, err := r.fedbox.Outbox(m.User.pub, Values(f))
-		if err != nil {
+		author := ContextAuthor(req.Context())
+		if author == nil {
+			next.ServeHTTP(w, req)
 			return
 		}
-		if it == nil {
+		col, err := r.fedbox.Outbox(author.pub, Values(f))
+		if err != nil || col == nil {
+			next.ServeHTTP(w, req)
 			return
 		}
-		i := Item{}
-		i.FromActivityPub(it)
-		if !i.Deleted() && len(i.Data)+len(i.Title) == 0 {
-			return
-		}
-		m.Content = i
+		pub.OnOrderedCollection(col, func(c *pub.OrderedCollection) error {
+			it := c.OrderedItems.First()
+			m.Content.FromActivityPub(it)
+			return nil
+		})
 		next.ServeHTTP(w, req)
 	})
 }
 
-func (r *repository) LoadInbox(next http.Handler) http.Handler {
+func (r *repository) LoadInboxMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		var cursor Cursor
 		var err error
 
 		m := ContextListingModel(req.Context())
-		acc := account(req)
+		acc := loggedAccount(req)
 
 		actor := acc.pub
 		if actor != nil {
@@ -1867,13 +1867,13 @@ func (r *repository) LoadInbox(next http.Handler) http.Handler {
 	})
 }
 
-func (r *repository) LoadServiceInbox(next http.Handler) http.Handler {
+func (r *repository) LoadServiceInboxMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		var cursor Cursor
 		var err error
 
 		m := ContextListingModel(req.Context())
-		acc := account(req)
+		acc := loggedAccount(req)
 		f := ContextActivityFilters(req.Context())
 		self := r.fedbox.Service()
 		inbox := func() (pub.CollectionInterface, error) {
@@ -1892,5 +1892,17 @@ func (r *repository) LoadServiceInbox(next http.Handler) http.Handler {
 			m.before = cursor.before
 		}
 		next.ServeHTTP(w, req)
+	})
+}
+
+func (r *repository) LoadAuthorMw(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		author, err := accountFromRequestHandle(r)
+		if err != nil {
+			next.ServeHTTP(w, r)
+			return
+		}
+		ctx := context.WithValue(r.Context(), AuthorCtxtKey, author)
+		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

@@ -39,9 +39,9 @@ func (i listingModel) Template() string {
 }
 
 type contentModel struct {
+	tpl string
 	Title   string
 	Content Item
-	User    *Account
 	after   Hash
 	before  Hash
 }
@@ -55,7 +55,10 @@ func (c contentModel) PrevPage() Hash {
 }
 
 func (c contentModel) Template() string {
-	return "content"
+	if c.tpl == "" {
+		c.tpl = "content"
+	}
+	return c.tpl
 }
 
 type loginModel struct {

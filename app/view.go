@@ -121,7 +121,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 	}
 	accountFromRequest := func() *Account {
 		if ac == nil {
-			ac = account(r)
+			ac = loggedAccount(r)
 		}
 		return ac
 	}
@@ -399,8 +399,13 @@ func appName(n string) template.HTML {
 
 func showText(m Model) func() bool {
 	return func() bool {
-		mm, ok := m.(*listingModel)
-		return ok && mm.ShowText
+		if mm, ok := m.(*listingModel); ok {
+			return mm.ShowText
+		}
+		if _, ok := m.(*contentModel); ok {
+			return true
+		}
+		return true
 	}
 }
 

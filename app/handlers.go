@@ -26,7 +26,7 @@ import (
 // HandleSubmit handles POST /~handler/hash/edit requests
 // HandleSubmit handles POST /year/month/day/hash/edit requests
 func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
-	acc := account(r)
+	acc := loggedAccount(r)
 	n, err := ContentFromRequest(r, *acc)
 	if err != nil {
 		h.logger.WithContext(log.Ctx{
@@ -175,7 +175,7 @@ func (h *handler) HandleVoting(w http.ResponseWriter, r *http.Request) {
 	}
 	url := ItemPermaLink(p)
 
-	acc := account(r)
+	acc := loggedAccount(r)
 	if acc.IsLogged() {
 		backUrl := r.Header.Get("Referer")
 		if !strings.Contains(backUrl, url) && strings.Contains(backUrl, Instance.BaseURL) {
@@ -210,11 +210,8 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 
 	m := contentModel{}
 	repo := h.storage
-	handle := chi.URLParam(r, "handle")
-	auth, err := repo.LoadAccount(Filters{LoadAccountsFilter: LoadAccountsFilter{
-		Handle: []string{handle},
-	}})
-
+	auth := ContextAuthor(r.Context())
+	handle := auth.Handle
 	hash := chi.URLParam(r, "hash")
 	f := Filters{
 		LoadItemsFilter: LoadItemsFilter{
@@ -250,7 +247,7 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 	url := r.URL
 	maybeEdit := path.Base(url.Path)
 
-	account := account(r)
+	account := loggedAccount(r)
 	if maybeEdit != hash && maybeEdit == Edit {
 		if !HashesEqual(m.Content.SubmittedBy.Hash, account.Hash) {
 			url.Path = path.Dir(url.Path)
@@ -335,7 +332,7 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) FollowAccount(w http.ResponseWriter, r *http.Request) {
-	loggedAccount := account(r)
+	loggedAccount := loggedAccount(r)
 	if !loggedAccount.IsValid() {
 		err := errors.Unauthorizedf("invalid logged account")
 		h.logger.Error(err.Error())
@@ -343,23 +340,13 @@ func (h *handler) FollowAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	handle := chi.URLParam(r, "handle")
 	repo := h.storage
 	var err error
-	accounts, cnt, err := repo.LoadAccounts(Filters{LoadAccountsFilter: LoadAccountsFilter{Handle: []string{handle}}})
-	if err != nil {
-		h.v.HandleErrors(w, r, err)
+	toFollow := ContextAuthor(r.Context())
+	if toFollow == nil {
+		h.v.HandleErrors(w, r, errors.NotFoundf("account not found"))
 		return
 	}
-	if cnt == 0 {
-		h.v.HandleErrors(w, r, errors.NotFoundf("account %q not found", handle))
-		return
-	}
-	if cnt > 1 {
-		h.v.HandleErrors(w, r, errors.NotFoundf("too many %q accounts found", handle))
-		return
-	}
-	toFollow, _ := accounts.First()
 	err = repo.FollowAccount(*loggedAccount, *toFollow)
 	if err != nil {
 		h.v.HandleErrors(w, r, err)
@@ -369,7 +356,7 @@ func (h *handler) FollowAccount(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
-	loggedAccount := account(r)
+	loggedAccount := loggedAccount(r)
 	if !loggedAccount.IsValid() {
 		err := errors.Unauthorizedf("invalid logged account")
 		h.logger.Error(err.Error())
@@ -377,19 +364,12 @@ func (h *handler) HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	handle := chi.URLParam(r, "handle")
 	repo := h.storage
-	accounts, cnt, err := repo.LoadAccounts(Filters{LoadAccountsFilter: LoadAccountsFilter{Handle: []string{handle}}})
-	if err != nil {
-		h.v.HandleErrors(w, r, err)
+	follower := ContextAuthor(r.Context())
+	if follower == nil {
+		h.v.HandleErrors(w, r, errors.NotFoundf("account not found"))
 		return
 	}
-	if cnt == 0 {
-		h.v.HandleErrors(w, r, errors.NotFoundf("account %q not found", handle))
-		return
-	}
-	follower, _ := accounts.First()
-
 	accept := false
 	action := chi.URLParam(r, "action")
 	if action == "accept" {
@@ -480,7 +460,7 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 // ShowLogin serves GET /login requests
 func (h *handler) ShowLogin(w http.ResponseWriter, r *http.Request) {
-	a := account(r)
+	a := loggedAccount(r)
 
 	m := loginModel{Title: "Login"}
 	m.Account = *a
@@ -527,7 +507,7 @@ func (h *handler) RedirectToLogin(w http.ResponseWriter, r *http.Request, errs .
 func (h *handler) ValidateLoggedIn(eh ErrorHandler) Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
-			if !account(r).IsLogged() {
+			if !loggedAccount(r).IsLogged() {
 				e := errors.Unauthorizedf("Please login to perform this action")
 				h.logger.Errorf("%s", e)
 				eh(w, r, e)
@@ -541,7 +521,7 @@ func (h *handler) ValidateLoggedIn(eh ErrorHandler) Handler {
 
 func (h *handler) ValidateItemAuthor(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		acc := account(r)
+		acc := loggedAccount(r)
 		hash := chi.URLParam(r, "hash")
 		url := r.URL
 		action := path.Base(url.Path)
@@ -591,7 +571,7 @@ var scopeAnonymousUserCreate = "anonUserCreate"
 
 // HandleRegister handles POST /register requests
 func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
-	a, err := accountFromRequest(r, h.logger)
+	a, err := accountFromPost(r, h.logger)
 	if err != nil {
 		h.v.HandleErrors(w, r, err)
 		return
@@ -612,7 +592,7 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	acc := account(r)
+	acc := loggedAccount(r)
 	if !acc.IsLogged() {
 		acc = h.storage.app
 	}
