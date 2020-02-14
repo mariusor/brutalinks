@@ -365,6 +365,13 @@ func (f LoadAccountsFilter) GetWhereClauses() ([]string, []interface{}) {
 	return wheres, whereValues
 }
 
+func ContextModel(ctx context.Context) Model {
+	if l, ok := ctx.Value(ModelCtxtKey).(Model); ok {
+		return l
+	}
+	return nil
+}
+
 func ContextListingModel(ctx context.Context) *listingModel {
 	if l, ok := ctx.Value(ModelCtxtKey).(*listingModel); ok {
 		return l

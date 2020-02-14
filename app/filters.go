@@ -167,11 +167,6 @@ var CreateFollowActivitiesFilter = CompStrs{
 func FollowedFilters(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := FiltersFromRequest(r)
-
-		act := account(r)
-		if act.pub != nil {
-			f.Recipients = IRIsFilter(pub.PublicNS, act.pub.GetLink())
-		}
 		f.Type = CreateFollowActivitiesFilter
 		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
 		next.ServeHTTP(w, r.WithContext(ctx))
@@ -246,6 +241,31 @@ func WithModel(m interface{}) Handler {
 		}
 		return http.HandlerFunc(fn)
 	}
+}
+
+func ItemFilters(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		f := FiltersFromRequest(r)
+		f.Type = CreateActivitiesFilter
+		handle := chi.URLParam(r, "handle")
+		fa := &ActivityFilters{
+			Name: CompStrs{EqualsString(handle)},
+		}
+		repo := ContextRepository(r.Context())
+		if actors, err := repo.accounts(fa); err == nil {
+			if len(actors) > 0 {
+				actor := actors[0]
+				//f.AttrTo = IRIsFilter(actor.pub.GetLink())
+				m := ContextContentModel(r.Context())
+				m.User = &actor
+			}
+		}
+		hash := chi.URLParam(r, "hash")
+		f.Object = &ActivityFilters{}
+		f.Object.IRI = CompStrs{LikeString(hash)}
+		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
 }
 
 func AccountFilters(next http.Handler) http.Handler {
