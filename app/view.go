@@ -108,7 +108,7 @@ func (v *view) addFlashMessage(typ flashType, r *http.Request, msgs ...string) {
 	}
 }
 
-func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name string, m interface{}) error {
+func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name string, m Model) error {
 	var err error
 	var ac *Account
 	var s *sessions.Session
@@ -397,10 +397,10 @@ func appName(n string) template.HTML {
 	return template.HTML(name.String())
 }
 
-func showText(m interface{}) func() bool {
+func showText(m Model) func() bool {
 	return func() bool {
 		mm, ok := m.(*listingModel)
-		return ok || mm.ShowText
+		return ok && mm.ShowText
 	}
 }
 
@@ -408,7 +408,7 @@ func sluggify(s string) string {
 	if s == "" {
 		return ""
 	}
-	return strings.Replace(string(s), "/", "-", -1)
+	return strings.Replace(s, "/", "-", -1)
 }
 
 func getAuthProviders() map[string]string {
