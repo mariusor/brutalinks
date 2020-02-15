@@ -26,10 +26,9 @@ func LoadOutboxMw(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		acc := loggedAccount(r)
 		f := ContextActivityFilters(r.Context())
 		repo := ContextRepository(r.Context())
-		cursor, err := repo.LoadActorOutbox(acc.pub, f)
+		cursor, err := repo.LoadActorOutbox(author.pub, f)
 		if err != nil {
 			// @TODO err
 			next.ServeHTTP(w, r)
