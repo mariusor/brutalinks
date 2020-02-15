@@ -362,7 +362,7 @@ func (f fedbox) ToInbox(a pub.Item) (pub.IRI, pub.Item, error) {
 	return postRequest(f, url, a)
 }
 
-func (f *fedbox) Service() pub.Service {
+func (f *fedbox) Service() *pub.Service {
 	s := pub.Service{
 		ID:   pub.ID(f.baseURL.String()),
 		Type: pub.ServiceType,
@@ -370,5 +370,5 @@ func (f *fedbox) Service() pub.Service {
 	}
 	s.Inbox = inbox(s)
 
-	return s
+	return &s
 }
