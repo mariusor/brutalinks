@@ -1,6 +1,7 @@
 package app
 
 type Paginator interface {
+	SetCursor(*Cursor)
 	NextPage() Hash
 	PrevPage() Hash
 }
@@ -19,46 +20,77 @@ type listingModel struct {
 	before   Hash
 }
 
-func (i listingModel) NextPage() Hash {
-	return i.after
+func (m listingModel) NextPage() Hash {
+	return m.after
 }
 
-func (i listingModel) PrevPage() Hash {
-	return i.before
+func (m listingModel) PrevPage() Hash {
+	return m.before
 }
 
-func (i *listingModel) SetItems(items []Renderable) {
-	i.Items = items
-}
-
-func (i listingModel) Template() string {
-	if i.tpl == "" {
-		i.tpl = "listing"
+func (m *listingModel) SetCursor(c *Cursor) {
+	if c == nil {
+		return
 	}
-	return i.tpl
+	m.Items = c.items
+	m.after = c.after
+	m.before = c.before
+}
+
+func (m listingModel) Template() string {
+	if m.tpl == "" {
+		m.tpl = "listing"
+	}
+	return m.tpl
 }
 
 type contentModel struct {
-	tpl string
+	tpl     string
 	Title   string
 	Content Item
 	after   Hash
 	before  Hash
 }
 
-func (c contentModel) NextPage() Hash {
-	return c.after
+func (m contentModel) NextPage() Hash {
+	return m.after
 }
 
-func (c contentModel) PrevPage() Hash {
-	return c.before
+func (m contentModel) PrevPage() Hash {
+	return m.before
 }
 
-func (c contentModel) Template() string {
-	if c.tpl == "" {
-		c.tpl = "content"
+func (m contentModel) Template() string {
+	if m.tpl == "" {
+		m.tpl = "content"
 	}
-	return c.tpl
+	return m.tpl
+}
+
+func (m *contentModel) SetCursor(c *Cursor) {
+	if c == nil {
+		return
+	}
+	comments := make(ItemCollection, 0)
+	for _, ren := range c.items {
+		if it, ok := ren.(Item); ok {
+			comments = append(comments, it)
+		}
+	}
+
+	if len(comments) == 0 {
+		return
+	}
+
+	reparentComments(comments)
+	addLevelComments(comments)
+	removeCurElementParentComments(&comments)
+
+	m.Content = comments[0]
+	m.Content.Children = comments[1:]
+
+	m.after = c.after
+	m.before = c.before
 }
 
 type loginModel struct {
@@ -71,6 +103,8 @@ func (c loginModel) Template() string {
 	return "login"
 }
 
+func (m *loginModel) SetCursor(c *Cursor) {}
+
 type registerModel struct {
 	Title   string
 	Account Account
@@ -79,15 +113,17 @@ type registerModel struct {
 func (c registerModel) Template() string {
 	return "register"
 }
+func (m *registerModel) SetCursor(c *Cursor) {}
 
 type aboutModel struct {
 	Title string
 	Desc  Desc
 }
 
-func (c aboutModel) Template() string {
+func (m aboutModel) Template() string {
 	return "about"
 }
+func (m *aboutModel) SetCursor(c *Cursor) {}
 
 type errorModel struct {
 	Status int
@@ -95,6 +131,7 @@ type errorModel struct {
 	Errors []error
 }
 
-func (c errorModel) Template() string {
+func (m errorModel) Template() string {
 	return "error"
 }
+func (m *errorModel) SetCursor(c *Cursor) {}

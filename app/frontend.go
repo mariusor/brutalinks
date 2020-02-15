@@ -340,6 +340,11 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 			if err != nil {
 				h.logger.WithContext(ctx).Warn(err.Error())
 			}
+			if len(accounts) == 0 {
+				h.logger.WithContext(ctx).Warnf("no accounts found for %v", f)
+				next.ServeHTTP(w, r)
+				return
+			}
 			acc = accounts[0]
 			// TODO(marius): this needs to be moved to where we're handling all Inbox activities, not on page load
 			acc, err = h.storage.loadAccountsFollowers(acc)
@@ -382,7 +387,7 @@ func (h handler) NeedsSessions(next http.Handler) http.Handler {
 // HandleAbout serves /about request
 // It's something Mastodon compatible servers should show
 func (h *handler) HandleAbout(w http.ResponseWriter, r *http.Request) {
-	m := aboutModel{Title: "About"}
+	m := &aboutModel{Title: "About"}
 
 	repo := h.storage
 	info, err := repo.LoadInfo()
