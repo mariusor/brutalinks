@@ -672,6 +672,10 @@ func (h *handler) HandleShow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	cursor := ContextCursor(r.Context())
+	if cursor == nil {
+		h.v.HandleErrors(w, r, errors.Errorf("Oops cursor!!"))
+		return
+	}
 	if mod, ok := m.(Paginator); ok {
 		mod.SetCursor(cursor)
 	}
