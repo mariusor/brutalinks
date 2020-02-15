@@ -673,7 +673,7 @@ func (h *handler) HandleShow(w http.ResponseWriter, r *http.Request) {
 	}
 	cursor := ContextCursor(r.Context())
 	if cursor == nil {
-		h.v.HandleErrors(w, r, errors.Errorf("Oops cursor!!"))
+		h.v.HandleErrors(w, r, errors.NotFoundf("Unable to load items"))
 		return
 	}
 	if mod, ok := m.(Paginator); ok {
@@ -683,8 +683,8 @@ func (h *handler) HandleShow(w http.ResponseWriter, r *http.Request) {
 		repo := ContextRepository(r.Context())
 		err := repo.loadAccountVotes(acc, cursor.items.Items())
 		if err != nil {
-			h.v.HandleErrors(w, r, errors.Errorf("unable to load account votes"))
-			return
+			//h.v.HandleErrors(w, r, errors.Errorf("unable to load account votes"))
+			//return
 		}
 	}
 	if err := h.v.RenderTemplate(r, w, m.Template(), m); err != nil {
