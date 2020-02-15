@@ -129,7 +129,7 @@ func (h *handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 // HandleReport serves /{year}/{month}/{day}/{hash}/bad POST request
 // HandleReport serves /~{handle}/{hash}/bad request
 func (h *handler) HandleReport(w http.ResponseWriter, r *http.Request) {
-	m := contentModel{}
+	m := &contentModel{}
 	h.v.RenderTemplate(r, w, "new", m)
 }
 
@@ -145,7 +145,7 @@ func (h *handler) ShowReport(w http.ResponseWriter, r *http.Request) {
 		h.v.HandleErrors(w, r, errors.NewNotFound(err, "not found"))
 		return
 	}
-	m := contentModel{
+	m := &contentModel{
 		Title:   fmt.Sprintf("Report %s", p.Title),
 		Content: p,
 	}
@@ -208,7 +208,7 @@ func (h *handler) HandleVoting(w http.ResponseWriter, r *http.Request) {
 func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 	items := make([]Item, 0)
 
-	m := contentModel{}
+	m := &contentModel{}
 	repo := h.storage
 	auth := ContextAuthor(r.Context())
 	handle := auth.Handle
@@ -328,7 +328,7 @@ func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
 		// FIXME(marius): we lost the handler of the account
 		m.Title = fmt.Sprintf("%s comment", genitive(m.Content.SubmittedBy.Handle))
 	}
-	h.v.RenderTemplate(r, w, "content", &m)
+	h.v.RenderTemplate(r, w, "content", m)
 }
 
 func (h *handler) FollowAccount(w http.ResponseWriter, r *http.Request) {
@@ -666,12 +666,24 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 
 // HandleShow serves / request
 func (h *handler) HandleShow(w http.ResponseWriter, r *http.Request) {
-	model := ContextModel(r.Context())
-	if model == nil {
+	m := ContextModel(r.Context())
+	if m == nil {
 		h.v.HandleErrors(w, r, errors.Errorf("Oops!!"))
 		return
 	}
-	if err := h.v.RenderTemplate(r, w, model.Template(), model); err != nil {
+	cursor := ContextCursor(r.Context())
+	if mod, ok := m.(Paginator); ok {
+		mod.SetCursor(cursor)
+	}
+	if acc := loggedAccount(r); acc != nil {
+		repo := ContextRepository(r.Context())
+		err := repo.loadAccountVotes(acc, cursor.items.Items())
+		if err != nil {
+			h.v.HandleErrors(w, r, errors.Errorf("unable to load account votes"))
+			return
+		}
+	}
+	if err := h.v.RenderTemplate(r, w, m.Template(), m); err != nil {
 		h.v.HandleErrors(w, r, err)
 	}
 }

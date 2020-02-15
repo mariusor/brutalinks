@@ -14,6 +14,8 @@ var (
 	FilterCtxtKey        CtxtKey = "__filter"
 	ModelCtxtKey         CtxtKey = "__model"
 	AuthorCtxtKey        CtxtKey = "__author"
+	CursorCtxtKey        CtxtKey = "__cursor"
+	ContentCtxtKey       CtxtKey = "__content"
 )
 
 type MatchType int
@@ -406,6 +408,22 @@ func ContextAuthor(ctx context.Context) *Account {
 	ctxVal := ctx.Value(AuthorCtxtKey)
 	if a, ok := ctxVal.(*Account); ok {
 		return a
+	}
+	return nil
+}
+
+func ContextCursor(ctx context.Context) *Cursor {
+	ctxVal := ctx.Value(CursorCtxtKey)
+	if c, ok := ctxVal.(*Cursor); ok {
+		return c
+	}
+	return nil
+}
+
+func ContextContent(ctx context.Context) *Item {
+	ctxVal := ctx.Value(ContentCtxtKey)
+	if i, ok := ctxVal.(*Item); ok {
+		return i
 	}
 	return nil
 }

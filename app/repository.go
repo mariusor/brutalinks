@@ -799,7 +799,7 @@ func (r *repository) loadItemsAuthors(items ...Item) (ItemCollection, error) {
 type Cursor struct {
 	after  Hash
 	before Hash
-	items  []Renderable
+	items  RenderableList
 	total  uint
 }
 
@@ -1060,7 +1060,7 @@ func IRIsFilter(iris ...pub.IRI) CompStrs {
 //  With the resulting Object IRIs we load from the objects collection with our matching filters
 //  With the resulting Actor IRIs we load from the accounts collection with matching filters
 // From the
-func (r *repository) ActorCollection(fn CollectionFn, f *ActivityFilters, acc *Account) (Cursor, error) {
+func (r *repository) ActorCollection(fn CollectionFn, f *ActivityFilters) (Cursor, error) {
 	items := make(ItemCollection, 0)
 	relations := make(map[pub.IRI]pub.IRI)
 	err := LoadFromCollection(fn, &colCursor{filters: f}, func(col pub.ItemCollection) (bool, error) {
@@ -1119,10 +1119,6 @@ func (r *repository) ActorCollection(fn CollectionFn, f *ActivityFilters, acc *A
 		return emptyCursor, err
 	}
 	items, err = r.loadItemsVotes(items...)
-	if err != nil {
-		return emptyCursor, err
-	}
-	r.loadAccountVotes(acc, items)
 	if err != nil {
 		return emptyCursor, err
 	}
@@ -1778,131 +1774,30 @@ func (r *repository) LoadInfo() (WebInfo, error) {
 	return Instance.NodeInfo(), nil
 }
 
-func (r *repository) LoadOutboxMw(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		var cursor Cursor
-		var err error
-
-		m := ContextListingModel(req.Context())
-		acc := loggedAccount(req)
-
-		author := ContextAuthor(req.Context())
-		if author == nil {
-			// TODO(marius): error
-			next.ServeHTTP(w, req)
-			return
-		}
-		actor := author.pub
-		f := ContextActivityFilters(req.Context())
-		outbox := func() (pub.CollectionInterface, error) {
-			return r.fedbox.Outbox(actor, Values(f))
-		}
-		cursor, err = r.ActorCollection(outbox, f, acc)
-		m.Items = cursor.items
-		if err != nil {
-			// @TODO err
-		}
-
-		if len(cursor.after) > 0 {
-			m.after = cursor.after
-		}
-		if len(cursor.before) > 0 {
-			m.before = cursor.before
-		}
-		next.ServeHTTP(w, req)
-	})
+func (r *repository) LoadActorOutbox(actor pub.Item, f *ActivityFilters) (*Cursor, error) {
+	if actor == nil {
+		return nil, errors.Errorf("Invalid actor")
+	}
+	outbox := func() (pub.CollectionInterface, error) {
+		return r.fedbox.Outbox(actor, Values(f))
+	}
+	cursor, err := r.ActorCollection(outbox, f)
+	if err != nil {
+		return nil, err
+	}
+	return &cursor, nil
 }
 
-func (r *repository) LoadOutboxObjectMw(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		f := ContextActivityFilters(req.Context())
-		m := ContextContentModel(req.Context())
-		author := ContextAuthor(req.Context())
-		if author == nil {
-			next.ServeHTTP(w, req)
-			return
-		}
-		col, err := r.fedbox.Outbox(author.pub, Values(f))
-		if err != nil || col == nil {
-			next.ServeHTTP(w, req)
-			return
-		}
-		pub.OnOrderedCollection(col, func(c *pub.OrderedCollection) error {
-			it := c.OrderedItems.First()
-			m.Content.FromActivityPub(it)
-			return nil
-		})
-		next.ServeHTTP(w, req)
-	})
-}
-
-func (r *repository) LoadInboxMw(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		var cursor Cursor
-		var err error
-
-		m := ContextListingModel(req.Context())
-		acc := loggedAccount(req)
-
-		actor := acc.pub
-		if actor != nil {
-			f := ContextActivityFilters(req.Context())
-			collFn := func() (pub.CollectionInterface, error) {
-				return r.fedbox.Inbox(actor, Values(f))
-			}
-			cursor, err = r.ActorCollection(collFn, f, acc)
-			m.Items = cursor.items
-			if err != nil {
-				// @TODO err
-			}
-
-			if len(cursor.after) > 0 {
-				m.after = cursor.after
-			}
-			if len(cursor.before) > 0 {
-				m.before = cursor.before
-			}
-		}
-		next.ServeHTTP(w, req)
-	})
-}
-
-func (r *repository) LoadServiceInboxMw(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		var cursor Cursor
-		var err error
-
-		m := ContextListingModel(req.Context())
-		acc := loggedAccount(req)
-		f := ContextActivityFilters(req.Context())
-		self := r.fedbox.Service()
-		inbox := func() (pub.CollectionInterface, error) {
-			return r.fedbox.Inbox(self, Values(f))
-		}
-		cursor, err = r.ActorCollection(inbox, f, acc)
-		m.Items = cursor.items
-		if err != nil {
-			// @TODO err
-		}
-
-		if len(cursor.after) > 0 {
-			m.after = cursor.after
-		}
-		if len(cursor.before) > 0 {
-			m.before = cursor.before
-		}
-		next.ServeHTTP(w, req)
-	})
-}
-
-func (r *repository) LoadAuthorMw(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		author, err := accountFromRequestHandle(r)
-		if err != nil {
-			next.ServeHTTP(w, r)
-			return
-		}
-		ctx := context.WithValue(r.Context(), AuthorCtxtKey, author)
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
+func (r *repository) LoadActorInbox(actor pub.Item, f *ActivityFilters) (*Cursor, error) {
+	if actor == nil {
+		return nil, errors.Errorf("Invalid actor")
+	}
+	collFn := func() (pub.CollectionInterface, error) {
+		return r.fedbox.Inbox(actor, Values(f))
+	}
+	cursor, err := r.ActorCollection(collFn, f)
+	if err != nil {
+		return nil, err
+	}
+	return &cursor, nil
 }
