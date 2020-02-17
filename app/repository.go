@@ -601,29 +601,31 @@ func (r *repository) loadAccountsFollowing(acc Account) (Account, error) {
 
 func (r *repository) loadItemsReplies(items ...Item) (ItemCollection, error) {
 	if len(items) == 0 {
-		return items, nil
+		return nil, nil
 	}
 
-	repliesTo := make([]string, 0)
+	repliesTo := make(pub.IRIs, 0)
 	for _, it := range items {
 		if it.OP.IsValid() {
-			if id, ok := BuildIDFromItem(*it.OP); ok {
-				repliesTo = append(repliesTo, string(id))
+			if it.OP.pub == nil {
+				continue
+			}
+			if id := it.OP.pub.GetLink(); len(id) > 0 && !repliesTo.Contains(id) {
+				repliesTo = append(repliesTo, id)
+			}
+		} else {
+			if id := it.pub.GetLink(); len(id) > 0 && !repliesTo.Contains(id) {
+				repliesTo = append(repliesTo, id)
 			}
 		}
 	}
 
-	var err error
-	if len(repliesTo) > 0 {
-		f := Filters{
-			LoadItemsFilter: LoadItemsFilter{
-				InReplyTo: repliesTo,
-			},
-		}
-		items, _, err = r.LoadItems(f)
+	if len(repliesTo) == 0 {
+		return nil, nil
 	}
-
-	return items, err
+	return r.objects(&ActivityFilters{
+		InReplTo: IRIsFilter(repliesTo...),
+	})
 }
 
 func (r *repository) loadAccountVotes(acc *Account, items ItemCollection) error {

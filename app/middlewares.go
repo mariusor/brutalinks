@@ -91,28 +91,24 @@ func LoadOutboxObjectMw(next http.Handler) http.Handler {
 			i.FromActivityPub(c.OrderedItems.First())
 			return nil
 		})
-		var items ItemCollection
-		items, err = repo.loadItemsAuthors(i)
-		if err != nil {
-			// @TODO err
-			next.ServeHTTP(w, r)
-			return
+
+		items := ItemCollection{i}
+		if comments, err := repo.loadItemsReplies(i); err == nil {
+			items = append(items, comments...)
 		}
-		items, err = repo.loadItemsVotes(items...)
-		if err != nil {
-			// @TODO err
-			next.ServeHTTP(w, r)
-			return
+		if items, err = repo.loadItemsAuthors(items...); err != nil {
+			repo.errFn("unable to load item authors", nil)
+		}
+		if items, err = repo.loadItemsVotes(items...); err != nil {
+			repo.errFn("unable to load item votes", nil)
 		}
 		c := Cursor{
-			items: []Renderable{items[0]},
+			items: make(RenderableList, len(items)),
+		}
+		for k, it := range items {
+			c.items[k] = it
 		}
 
-		f = FiltersFromRequest(r)
-		f.Type = CreateActivitiesFilter
-		f.Object = &ActivityFilters{}
-		f.Object.OP = CompStrs{LikeString(i.Hash.String())}
-		
 		ctx := context.WithValue(r.Context(), CursorCtxtKey, &c)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
