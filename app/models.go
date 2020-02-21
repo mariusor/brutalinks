@@ -14,7 +14,7 @@ type listingModel struct {
 	Title    string
 	tpl      string
 	User     *Account
-	Items    []Renderable
+	Items    RenderableList
 	ShowText bool
 	after    Hash
 	before   Hash
@@ -47,7 +47,7 @@ func (m listingModel) Template() string {
 type contentModel struct {
 	tpl     string
 	Title   string
-	Content Item
+	Content Renderable
 	after   Hash
 	before  Hash
 }
@@ -99,21 +99,21 @@ type loginModel struct {
 	OAuth   bool
 }
 
-func (c loginModel) Template() string {
+func (loginModel) Template() string {
 	return "login"
 }
 
-func (m *loginModel) SetCursor(c *Cursor) {}
+func (*loginModel) SetCursor(c *Cursor) {}
 
 type registerModel struct {
 	Title   string
 	Account Account
 }
 
-func (c registerModel) Template() string {
+func (registerModel) Template() string {
 	return "register"
 }
-func (m *registerModel) SetCursor(c *Cursor) {}
+func (*registerModel) SetCursor(c *Cursor) {}
 
 type aboutModel struct {
 	Title string
@@ -123,7 +123,7 @@ type aboutModel struct {
 func (m aboutModel) Template() string {
 	return "about"
 }
-func (m *aboutModel) SetCursor(c *Cursor) {}
+func (*aboutModel) SetCursor(c *Cursor) {}
 
 type errorModel struct {
 	Status int
@@ -131,7 +131,7 @@ type errorModel struct {
 	Errors []error
 }
 
-func (m errorModel) Template() string {
+func (errorModel) Template() string {
 	return "error"
 }
-func (m *errorModel) SetCursor(c *Cursor) {}
+func (*errorModel) SetCursor(c *Cursor) {}
