@@ -105,8 +105,8 @@ func LoadOutboxObjectMw(next http.Handler) http.Handler {
 		c := Cursor{
 			items: make(RenderableList, len(items)),
 		}
-		for k, it := range items {
-			c.items[k] = &it
+		for k := range items {
+			c.items[k] = Renderable(&items[k])
 		}
 
 		ctx := context.WithValue(r.Context(), CursorCtxtKey, &c)
