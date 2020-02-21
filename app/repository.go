@@ -1132,7 +1132,7 @@ func (r *repository) ActorCollection(fn CollectionFn, f *ActivityFilters) (Curso
 	result := make([]Renderable, 0)
 	for _, it := range items {
 		if len(it.Hash) > 0 {
-			result = append(result, it)
+			result = append(result, &it)
 		}
 	}
 
