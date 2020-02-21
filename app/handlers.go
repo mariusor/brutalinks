@@ -6,12 +6,10 @@ import (
 	"github.com/go-ap/errors"
 	"github.com/gorilla/csrf"
 	"github.com/mariusor/littr.go/internal/log"
-	"github.com/mariusor/qstring"
 	"github.com/openshift/osin"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 	"io/ioutil"
-	"math"
 	"net/http"
 	"net/url"
 	"path"
@@ -147,7 +145,7 @@ func (h *handler) ShowReport(w http.ResponseWriter, r *http.Request) {
 	}
 	m := &contentModel{
 		Title:   fmt.Sprintf("Report %s", p.Title),
-		Content: p,
+		Content: &p,
 	}
 	h.v.RenderTemplate(r, w, "new", m)
 }
@@ -199,136 +197,6 @@ func (h *handler) HandleVoting(w http.ResponseWriter, r *http.Request) {
 		h.v.addFlashMessage(Error, r, "unable to vote as current user")
 	}
 	h.v.Redirect(w, r, url, http.StatusFound)
-}
-
-// ShowItem serves /~{handle}/{hash} request
-// ShowItem serves /~{handle}/{hash}/edit request
-// ShowItem serves /{year}/{month}/{day}/{hash} request
-// ShowItem serves /{year}/{month}/{day}/{hash}/edit request
-func (h *handler) ShowItem(w http.ResponseWriter, r *http.Request) {
-	items := make([]Item, 0)
-
-	m := &contentModel{}
-	repo := h.storage
-	auth := ContextAuthor(r.Context())
-	handle := auth.Handle
-	hash := chi.URLParam(r, "hash")
-	f := Filters{
-		LoadItemsFilter: LoadItemsFilter{
-			Key: Hashes{Hash(hash)},
-		},
-	}
-	if !HashesEqual(auth.Hash, AnonymousHash) {
-		f.LoadItemsFilter.AttributedTo = Hashes{auth.Hash}
-	}
-
-	i, err := repo.LoadItem(f)
-	if err != nil {
-		h.logger.WithContext(log.Ctx{
-			"handle": handle,
-			"hash":   hash,
-		}).Error(err.Error())
-		h.v.HandleErrors(w, r, errors.NotFoundf("Item %q", hash))
-		return
-	}
-	if !i.Deleted() && len(i.Data)+len(i.Title) == 0 {
-		datLen := int(math.Min(12.0, float64(len(i.Data))))
-		h.logger.WithContext(log.Ctx{
-			"handle":      handle,
-			"hash":        hash,
-			"title":       i.Title,
-			"content":     i.Data[0:datLen],
-			"content_len": len(i.Data),
-		}).Warn("Item deleted or empty")
-		h.v.HandleErrors(w, r, errors.NotFoundf("Item %q", hash))
-		return
-	}
-	m.Content = i
-	url := r.URL
-	maybeEdit := path.Base(url.Path)
-
-	account := loggedAccount(r)
-	if maybeEdit != hash && maybeEdit == Edit {
-		if !HashesEqual(m.Content.SubmittedBy.Hash, account.Hash) {
-			url.Path = path.Dir(url.Path)
-			h.v.Redirect(w, r, url.RequestURI(), http.StatusFound)
-			return
-		}
-		m.Content.Edit = true
-	}
-
-	items = append(items, i)
-	allComments := make(ItemCollection, 1)
-	allComments[0] = m.Content
-
-	filter := Filters{
-		LoadItemsFilter: LoadItemsFilter{
-			Depth: 10,
-		},
-		MaxItems: MaxContentItems,
-		Page:     1,
-	}
-	if err := qstring.Unmarshal(r.URL.Query(), &filter); err != nil {
-		h.logger.Debug("unable to load url parameters")
-	}
-
-	if i.OP.IsValid() {
-		if id, ok := BuildIDFromItem(*i.OP); ok {
-			filter.Context = []string{string(id)}
-		}
-	}
-	if filter.Context == nil {
-		filter.Context = []string{m.Content.Hash.String()}
-	}
-	contentItems, _, err := repo.LoadItems(filter)
-	if len(contentItems) >= filter.MaxItems {
-		m.after = contentItems[len(contentItems)-1].Hash
-	}
-	if filter.Page > 1 {
-		m.before = contentItems[0].Hash
-	}
-	if err != nil {
-		h.logger.Error(err.Error())
-		h.v.HandleErrors(w, r, errors.NewNotFound(err, "" /*, errors.ErrorStack(err)*/))
-		return
-	}
-	allComments = append(allComments, contentItems...)
-
-	if i.Parent.IsValid() && i.Parent.SubmittedAt.IsZero() {
-		if p, err := repo.LoadItem(Filters{LoadItemsFilter: LoadItemsFilter{Key: Hashes{i.Parent.Hash}}}); err == nil {
-			i.Parent = &p
-			if p.OP != nil {
-				i.OP = p.OP
-			} else {
-				i.OP = &p
-			}
-		}
-	}
-
-	reparentComments(allComments)
-	addLevelComments(allComments)
-	removeCurElementParentComments(&allComments)
-
-	if account.IsLogged() {
-		account.Votes, _, err = repo.LoadVotes(Filters{
-			LoadVotesFilter: LoadVotesFilter{
-				AttributedTo: []Hash{account.Hash},
-				ItemKey:      allComments.getItemsHashes(),
-			},
-			MaxItems: MaxContentItems,
-		})
-		if err != nil {
-			h.logger.Error(err.Error())
-		}
-	}
-
-	if len(m.Title) > 0 {
-		m.Title = fmt.Sprintf("%s", i.Title)
-	} else {
-		// FIXME(marius): we lost the handler of the account
-		m.Title = fmt.Sprintf("%s comment", genitive(m.Content.SubmittedBy.Handle))
-	}
-	h.v.RenderTemplate(r, w, "content", m)
 }
 
 func (h *handler) FollowAccount(w http.ResponseWriter, r *http.Request) {

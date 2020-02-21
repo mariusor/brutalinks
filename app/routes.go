@@ -47,7 +47,7 @@ func (h *handler) Routes() func(chi.Router) {
 					r.Post("/bad", h.HandleReport)
 
 					r.With(h.ValidateItemAuthor).Group(func(r chi.Router) {
-						r.Get("/edit", h.ShowItem)
+						r.Get("/edit", h.HandleShow)
 						r.Post("/edit", h.HandleSubmit)
 						r.Get("/rm", h.HandleDelete)
 					})

@@ -110,33 +110,33 @@ func (r RenderableList) Follows() FollowRequests {
 	return follows
 }
 
-func (f FollowRequest) Type() RenderType {
+func (f *FollowRequest) Type() RenderType {
 	return Follow
 }
 
 type Item struct {
-	Hash        Hash           `json:"hash"`
-	Title       string         `json:"-"`
-	MimeType    string         `json:"-"`
-	Data        string         `json:"-"`
-	Score       int            `json:"-"`
-	SubmittedAt time.Time      `json:"-"`
-	SubmittedBy *Account       `json:"-"`
-	UpdatedAt   time.Time      `json:"-"`
-	UpdatedBy   *Account       `json:"-"`
-	Flags       FlagBits       `json:"-"`
-	Metadata    *ItemMetadata  `json:"-"`
-	pub         *pub.Object    `json:"-"`
-	IsTop       bool           `json:"-"`
-	Parent      *Item          `json:"-"`
-	OP          *Item          `json:"-"`
-	Voted       uint8          `json:"-"`
-	Level       uint8          `json:"-"`
-	Edit        bool           `json:"-"`
-	Children    ItemCollection `json:"-"`
+	Hash        Hash          `json:"hash"`
+	Title       string        `json:"-"`
+	MimeType    string        `json:"-"`
+	Data        string        `json:"-"`
+	Score       int           `json:"-"`
+	SubmittedAt time.Time     `json:"-"`
+	SubmittedBy *Account      `json:"-"`
+	UpdatedAt   time.Time     `json:"-"`
+	UpdatedBy   *Account      `json:"-"`
+	Flags       FlagBits      `json:"-"`
+	Metadata    *ItemMetadata `json:"-"`
+	pub         *pub.Object   `json:"-"`
+	IsTop       bool          `json:"-"`
+	Parent      *Item         `json:"-"`
+	OP          *Item         `json:"-"`
+	Voted       uint8         `json:"-"`
+	Level       uint8         `json:"-"`
+	Edit        bool          `json:"-"`
+	Children    []*Item       `json:"-"`
 }
 
-func (i Item) Type() RenderType {
+func (i *Item) Type() RenderType {
 	return Comment
 }
 
@@ -220,10 +220,10 @@ func replaceTagsInItem(cur Item) string {
 	return dat
 }
 
-func removeCurElementParentComments(com *ItemCollection) {
+func removeCurElementParentComments(com *[]*Item) {
 	first := (*com)[0]
 	lvl := first.Level
-	keepComments := make(ItemCollection, 0)
+	keepComments := make([]*Item, 0)
 	for _, cur := range *com {
 		if cur.Level >= lvl {
 			keepComments = append(keepComments, cur)
@@ -232,11 +232,11 @@ func removeCurElementParentComments(com *ItemCollection) {
 	*com = keepComments
 }
 
-func addLevelComments(allComments ItemCollection) {
+func addLevelComments(allComments []*Item) {
 	leveled := make(Hashes, 0)
-	var setLevel func(ItemCollection)
+	var setLevel func([]*Item)
 
-	setLevel = func(com ItemCollection) {
+	setLevel = func(com []*Item) {
 		for _, cur := range com {
 			if leveled.Contains(cur.Hash) {
 				break
@@ -253,12 +253,12 @@ func addLevelComments(allComments ItemCollection) {
 	setLevel(allComments)
 }
 
-func reparentComments(allComments ItemCollection) {
-	parFn := func(t ItemCollection, cur Item) *Item {
+func reparentComments(allComments []*Item) {
+	parFn := func(t []*Item, cur *Item) *Item {
 		for _, n := range t {
 			if cur.Parent.IsValid() {
 				if HashesEqual(cur.Parent.Hash, n.Hash) {
-					return &n
+					return n
 				}
 			}
 		}
@@ -271,8 +271,8 @@ func reparentComments(allComments ItemCollection) {
 			if HashesEqual(first.Hash, cur.Hash) {
 				continue
 			}
-			cur.Parent = par
 			par.Children = append(par.Children, cur)
+			cur.Parent = par
 		}
 	}
 }
