@@ -1089,6 +1089,7 @@ func (r *repository) ActorCollection(fn CollectionFn, f *ActivityFilters) (Curso
 					relations[a.GetLink()] = ob.GetLink()
 				}
 				if it.GetType() == pub.FollowType {
+					// TODO(marius)
 				}
 				return nil
 			})
@@ -1130,8 +1131,9 @@ func (r *repository) ActorCollection(fn CollectionFn, f *ActivityFilters) (Curso
 	//}
 
 	result := make([]Renderable, 0)
-	for _, it := range items {
-		if len(it.Hash) > 0 {
+	for i := range items {
+		it := items[i]
+		if it.IsValid() {
 			result = append(result, &it)
 		}
 	}
