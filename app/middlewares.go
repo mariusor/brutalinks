@@ -91,6 +91,12 @@ func LoadOutboxObjectMw(next http.Handler) http.Handler {
 			i.FromActivityPub(c.OrderedItems.First())
 			return nil
 		})
+		if !i.IsValid() {
+			repo.errFn("unable to load item", nil)
+			// @TODO err
+			next.ServeHTTP(w, r)
+			return
+		}
 
 		items := ItemCollection{i}
 		if comments, err := repo.loadItemsReplies(i); err == nil {
