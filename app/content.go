@@ -167,7 +167,7 @@ func mimeTypeTagReplace(m string, t Tag) string {
 		cls = "mention"
 	}
 
-	return fmt.Sprintf("<a href='%s' class='%s'>%s</a>", t.URL, cls, t.Name)
+	return fmt.Sprintf("<a href='%s' rel='%s' class='%s'>%s</a>", t.URL, cls, cls, t.Name)
 }
 
 func inRange(n string, nn map[string]string) bool {
