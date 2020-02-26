@@ -11,7 +11,7 @@
 {{ if .Public }}
 {{- $domain := .GetDomain -}}
 <aside class="domain">
-<a title="{{- if .IsLink -}}All items from {{$domain}}{{- else -}}Discussions only{{- end -}}" href="/d{{- if .IsLink -}}/{{$domain}}{{- end -}}">{{- if .IsLink -}}{{$domain}}{{- else -}} discussion {{- end -}}</a>
+<a title="{{- if .IsLink -}}All items from {{$domain}}{{- else -}}Discussions only{{- end -}}" rel="directory" href="/d{{- if .IsLink -}}/{{$domain}}{{- end -}}">{{- if .IsLink -}}{{$domain}}{{- else -}} discussion {{- end -}}</a>
 </aside>
 {{- end -}}
 </header>
