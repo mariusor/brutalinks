@@ -4,11 +4,11 @@ go 1.13
 
 require (
 	github.com/captncraig/cors v0.0.0-20190703115713-e80254a89df1 // indirect
-	github.com/go-ap/activitypub v0.0.0-20191222130856-db8e40c89444
-	github.com/go-ap/client v0.0.0-20191222183513-a49cd9f438bb
-	github.com/go-ap/errors v0.0.0-20191222183928-b7ce8b9c41e0
-	github.com/go-ap/handlers v0.0.0-20191222184133-108335c3587d
-	github.com/go-ap/jsonld v0.0.0-20191222183131-1f7910127b87
+	github.com/go-ap/activitypub v0.0.0-20200302113530-ef90082ea6d8
+	github.com/go-ap/client v0.0.0-20200302114213-753e8a36a1bf
+	github.com/go-ap/errors v0.0.0-20200302114017-b6ee20a2b83e
+	github.com/go-ap/handlers v0.0.0-20200302114613-49ede354646a
+	github.com/go-ap/jsonld v0.0.0-20200302113640-5bd3bc85d72b
 	github.com/go-chi/chi v4.0.2+incompatible
 	github.com/golang/protobuf v1.3.2 // indirect
 	github.com/gorilla/csrf v1.6.2
