@@ -292,15 +292,15 @@ func (f fedbox) Object(iri pub.IRI) (*pub.Object, error) {
 }
 
 func (f fedbox) Activities(filters ...FilterFn) (pub.CollectionInterface, error) {
-	return f.collection(iri(pub.IRI(f.baseURL.String()), activities, filters...))
+	return f.collection(iri(f.Service().GetLink(), activities, filters...))
 }
 
 func (f fedbox) Actors(filters ...FilterFn) (pub.CollectionInterface, error) {
-	return f.collection(iri(pub.IRI(f.baseURL.String()), actors, filters...))
+	return f.collection(iri(f.Service().GetLink(), actors, filters...))
 }
 
 func (f fedbox) Objects(filters ...FilterFn) (pub.CollectionInterface, error) {
-	return f.collection(iri(pub.IRI(f.baseURL.String()), objects, filters...))
+	return f.collection(iri(f.Service().GetLink(), objects, filters...))
 }
 
 func postRequest(f fedbox, url pub.IRI, a pub.Item) (pub.IRI, pub.Item, error) {
