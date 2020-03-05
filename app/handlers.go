@@ -547,7 +547,7 @@ func (h *handler) HandleShow(w http.ResponseWriter, r *http.Request) {
 	if mod, ok := m.(Paginator); ok {
 		mod.SetCursor(cursor)
 	}
-	if acc := loggedAccount(r); acc != nil {
+	if acc := loggedAccount(r); acc.IsLogged() {
 		repo := ContextRepository(r.Context())
 		err := repo.loadAccountVotes(acc, cursor.items.Items())
 		if err != nil {
