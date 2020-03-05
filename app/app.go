@@ -151,7 +151,7 @@ func (a *Application) Front(r chi.Router) {
 
 	// .well-known
 	cfg := NodeInfoConfig()
-	ni := nodeinfo.NewService(cfg, NodeInfoResolverNew(front.storage))
+	ni := nodeinfo.NewService(cfg, NodeInfoResolverNew(front.storage.fedbox))
 	// Web-Finger
 	r.Route("/.well-known", func(r chi.Router) {
 		r.Get("/webfinger", front.HandleWebFinger)

@@ -5,7 +5,6 @@ import (
 	"encoding/xml"
 	"fmt"
 	"github.com/writeas/go-nodeinfo"
-	"math"
 	"net/http"
 	"strings"
 
@@ -26,41 +25,35 @@ type node struct {
 }
 
 type NodeInfoResolver struct {
-	storage  *repository
 	users    int
 	comments int
 	posts    int
 }
 
-func NodeInfoResolverNew(storage *repository) NodeInfoResolver {
-	n := NodeInfoResolver{
-		storage: storage,
+var (
+	actorsFilter = &ActivityFilters{
+		Type: ActivityTypesFilter(ValidActorTypes...),
 	}
-	us, _, _ := n.storage.LoadAccounts(Filters{
-		LoadAccountsFilter: LoadAccountsFilter{
-			//IRI:  app.Instance.APIURL,
-			Deleted: []bool{false},
-		},
-		MaxItems: math.MaxInt64,
-	})
-	n.users = len(us)
+	postsFilter = &ActivityFilters{
+		Type: ActivityTypesFilter(ValidItemTypes...),
+		OP:   nilIRIs,
+	}
+	allFilter = &ActivityFilters{
+		Type: ActivityTypesFilter(ValidItemTypes...),
+	}
+)
 
-	posts, _, _ := n.storage.LoadItems(Filters{
-		LoadItemsFilter: LoadItemsFilter{
-			Deleted: []bool{false},
-			Context: []string{"0"},
-		},
-		MaxItems: math.MaxInt64,
-	})
-	n.posts = len(posts)
-	all, _, _ := n.storage.LoadItems(Filters{
-		LoadItemsFilter: LoadItemsFilter{
-			Deleted: []bool{false},
-		},
-		MaxItems: math.MaxInt64,
-	})
+func NodeInfoResolverNew(f *fedbox) NodeInfoResolver {
+	n := NodeInfoResolver{}
 
-	n.comments = len(all) - n.posts
+	us, _ := f.Actors(Values(actorsFilter))
+	n.users = int(us.Count())
+
+	posts, _ := f.Objects(Values(postsFilter))
+	n.posts = int(posts.Count())
+	all, _ := f.Objects(Values(allFilter))
+
+	n.comments = int(all.Count()) - n.posts
 	return n
 }
 
