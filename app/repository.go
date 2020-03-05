@@ -1277,11 +1277,11 @@ func (r *repository) SaveVote(v Vote) (Vote, error) {
 
 	o := loadAPItem(*v.Item)
 	act := pub.Activity{
-		Type:      pub.UndoType,
-		Generator: pub.IRI(r.SelfURL),
-		To:        pub.ItemCollection{pub.PublicNS},
-		BCC:       pub.ItemCollection{pub.IRI(BaseURL)},
-		Actor:     author.GetLink(),
+		Type: pub.UndoType,
+		//Generator: pub.IRI(r.SelfURL),
+		To:    pub.ItemCollection{pub.PublicNS},
+		BCC:   pub.ItemCollection{pub.IRI(BaseURL)},
+		Actor: author.GetLink(),
 	}
 
 	if exists.HasMetadata() {
@@ -1536,12 +1536,12 @@ func (r *repository) SaveItem(it Item) (Item, error) {
 	}
 
 	act := &pub.Activity{
-		Generator: pub.IRI(r.SelfURL),
-		To:        to,
-		CC:        cc,
-		BCC:       bcc,
-		Actor:     author.GetLink(),
-		Object:    art,
+		//Generator: pub.IRI(r.SelfURL),
+		To:     to,
+		CC:     cc,
+		BCC:    bcc,
+		Actor:  author.GetLink(),
+		Object: art,
 	}
 	if it.Deleted() {
 		if len(id) == 0 {
@@ -1670,12 +1670,12 @@ func (r *repository) SendFollowResponse(f FollowRequest, accept bool) error {
 	bcc = append(bcc, pub.IRI(BaseURL))
 
 	response := pub.Activity{
-		To:        to,
-		Type:      pub.RejectType,
-		Generator: pub.IRI(r.SelfURL),
-		BCC:       bcc,
-		Object:    pub.IRI(f.Metadata.ID),
-		Actor:     pub.IRI(ed.Metadata.ID),
+		To:   to,
+		Type: pub.RejectType,
+		//Generator: pub.IRI(r.SelfURL),
+		BCC:    bcc,
+		Object: pub.IRI(f.Metadata.ID),
+		Actor:  pub.IRI(ed.Metadata.ID),
 	}
 	if accept {
 		to = append(to, pub.PublicNS)
@@ -1730,7 +1730,7 @@ func (r *repository) SaveAccount(a Account) (Account, error) {
 
 	author := loadAPPerson(*a.CreatedBy)
 	act := pub.Activity{
-		Generator:    pub.IRI(r.SelfURL),
+		//Generator:    pub.IRI(r.SelfURL),
 		To:           pub.ItemCollection{pub.PublicNS},
 		BCC:          pub.ItemCollection{pub.IRI(BaseURL)},
 		AttributedTo: author.GetLink(),
