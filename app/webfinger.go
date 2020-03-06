@@ -47,13 +47,19 @@ func NodeInfoResolverNew(f *fedbox) NodeInfoResolver {
 	n := NodeInfoResolver{}
 
 	us, _ := f.Actors(Values(actorsFilter))
-	n.users = int(us.Count())
+	if us != nil {
+		n.users = int(us.Count())
+	}
 
 	posts, _ := f.Objects(Values(postsFilter))
-	n.posts = int(posts.Count())
+	if posts != nil {
+		n.posts = int(posts.Count())
+	}
 	all, _ := f.Objects(Values(allFilter))
 
-	n.comments = int(all.Count()) - n.posts
+	if all != nil {
+		n.comments = int(all.Count()) - n.posts
+	}
 	return n
 }
 
