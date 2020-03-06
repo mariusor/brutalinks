@@ -17,6 +17,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"sort"
 	"strings"
 	"time"
 )
@@ -1056,6 +1057,12 @@ func IRIsFilter(iris ...pub.IRI) CompStrs {
 	return r
 }
 
+func orderRenderables(r RenderableList) {
+	sort.SliceStable(r, func(i, j int) bool {
+		return r[i].Date().After(r[j].Date())
+	})
+}
+
 // ActorCollection loads the service's collection returned by fn.
 // First step is to load the Create activities from the inbox
 // Iterating over the activities in the resulting collection, we gather the objects and accounts
@@ -1154,6 +1161,7 @@ func (r *repository) ActorCollection(fn CollectionFn, f *ActivityFilters) (Curso
 			}
 		}
 	}
+	orderRenderables(result)
 
 	return Cursor{
 		after:  Hash(f.Next),

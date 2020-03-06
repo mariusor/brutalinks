@@ -86,6 +86,7 @@ const (
 
 type Renderable interface {
 	Type() RenderType
+	Date() time.Time
 }
 
 type RenderableList []Renderable
@@ -114,6 +115,10 @@ func (f *FollowRequest) Type() RenderType {
 	return Follow
 }
 
+func (f FollowRequest) Date() time.Time {
+	return f.SubmittedAt
+}
+
 type Item struct {
 	Hash        Hash          `json:"hash"`
 	Title       string        `json:"-"`
@@ -138,6 +143,10 @@ type Item struct {
 
 func (i *Item) Type() RenderType {
 	return Comment
+}
+
+func (i Item) Date() time.Time {
+	return i.SubmittedAt
 }
 
 func (i ItemCollection) Contains(cc Item) bool {
