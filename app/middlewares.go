@@ -4,6 +4,7 @@ import (
 	"context"
 	pub "github.com/go-ap/activitypub"
 	"net/http"
+	"path"
 )
 
 func LoadAuthorMw(next http.Handler) http.Handler {
@@ -80,6 +81,8 @@ func LoadOutboxObjectMw(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
+		// @todo(marius): we should improve activities objects, as if we edit an object,
+		//   we need to update the activity to contain the new object.
 		col, err := repo.fedbox.Outbox(author.pub, Values(f))
 		if err != nil || col == nil {
 			// @TODO err
@@ -98,6 +101,12 @@ func LoadOutboxObjectMw(next http.Handler) http.Handler {
 			return
 		}
 
+		// @todo(marius): this is a very ugly way of checking for edit,
+		//   as if we add a middleware which sets the editable bit to true,
+		//   it's being run _before_ actually loading the object
+		if path.Base(r.URL.Path) == "edit" {
+			i.Edit = true
+		}
 		items := ItemCollection{i}
 		if comments, err := repo.loadItemsReplies(i); err == nil {
 			items = append(items, comments...)

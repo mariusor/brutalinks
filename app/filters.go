@@ -233,7 +233,7 @@ func TagFiltersMw(next http.Handler) http.Handler {
 	})
 }
 
-func WithModelMw(m interface{}) Handler {
+func ModelMw(m interface{}) Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()

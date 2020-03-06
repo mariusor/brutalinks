@@ -614,14 +614,9 @@ func (r *repository) loadItemsReplies(items ...Item) (ItemCollection, error) {
 				repliesTo = append(repliesTo, id)
 			}
 		} else {
-			if it.pub == nil {
-				continue
+			if id := it.pub.GetLink(); len(id) > 0 && !repliesTo.Contains(id) {
+				repliesTo = append(repliesTo, id)
 			}
-			id := it.pub.GetLink()
-			if len(id) == 0 || repliesTo.Contains(id) {
-				continue
-			}
-			repliesTo = append(repliesTo, id)
 		}
 	}
 
@@ -1069,6 +1064,7 @@ func IRIsFilter(iris ...pub.IRI) CompStrs {
 // From the
 func (r *repository) ActorCollection(fn CollectionFn, f *ActivityFilters) (Cursor, error) {
 	items := make(ItemCollection, 0)
+	follows := make(FollowRequests, 0)
 	relations := make(map[pub.IRI]pub.IRI)
 	err := LoadFromCollection(fn, &colCursor{filters: f}, func(col pub.ItemCollection) (bool, error) {
 		deferredItems := make(CompStrs, 0)
@@ -1094,7 +1090,11 @@ func (r *repository) ActorCollection(fn CollectionFn, f *ActivityFilters) (Curso
 					relations[a.GetLink()] = ob.GetLink()
 				}
 				if it.GetType() == pub.FollowType {
-					// TODO(marius)
+					// @todo(marius)
+					f := FollowRequest{}
+					f.FromActivityPub(a)
+					follows = append(follows, f)
+					relations[a.GetLink()] = a.GetLink()
 				}
 				return nil
 			})
@@ -1134,12 +1134,24 @@ func (r *repository) ActorCollection(fn CollectionFn, f *ActivityFilters) (Curso
 	//if err != nil {
 	//	return emptyCursor, err
 	//}
+	follows, err = r.loadAuthors(follows...)
+	if err != nil {
+		return emptyCursor, err
+	}
 
 	result := make([]Renderable, 0)
-	for i := range items {
-		it := items[i]
-		if it.IsValid() {
-			result = append(result, &it)
+	for _, iI := range relations {
+		for _, it := range items {
+			if it.IsValid() && it.pub.GetLink() == iI {
+				result = append(result, &it)
+				break
+			}
+		}
+		for _, f := range follows {
+			if f.pub != nil && f.pub.GetLink() == iI {
+				result = append(result, &f)
+				break
+			}
 		}
 	}
 
@@ -1282,8 +1294,7 @@ func (r *repository) SaveVote(v Vote) (Vote, error) {
 
 	o := loadAPItem(*v.Item)
 	act := pub.Activity{
-		Type: pub.UndoType,
-		//Generator: pub.IRI(r.SelfURL),
+		Type:  pub.UndoType,
 		To:    pub.ItemCollection{pub.PublicNS},
 		BCC:   pub.ItemCollection{pub.IRI(BaseURL)},
 		Actor: author.GetLink(),
@@ -1541,7 +1552,6 @@ func (r *repository) SaveItem(it Item) (Item, error) {
 	}
 
 	act := &pub.Activity{
-		//Generator: pub.IRI(r.SelfURL),
 		To:     to,
 		CC:     cc,
 		BCC:    bcc,
@@ -1675,9 +1685,8 @@ func (r *repository) SendFollowResponse(f FollowRequest, accept bool) error {
 	bcc = append(bcc, pub.IRI(BaseURL))
 
 	response := pub.Activity{
-		To:   to,
-		Type: pub.RejectType,
-		//Generator: pub.IRI(r.SelfURL),
+		To:     to,
+		Type:   pub.RejectType,
 		BCC:    bcc,
 		Object: pub.IRI(f.Metadata.ID),
 		Actor:  pub.IRI(ed.Metadata.ID),
@@ -1735,7 +1744,6 @@ func (r *repository) SaveAccount(a Account) (Account, error) {
 
 	author := loadAPPerson(*a.CreatedBy)
 	act := pub.Activity{
-		//Generator:    pub.IRI(r.SelfURL),
 		To:           pub.ItemCollection{pub.PublicNS},
 		BCC:          pub.ItemCollection{pub.IRI(BaseURL)},
 		AttributedTo: author.GetLink(),

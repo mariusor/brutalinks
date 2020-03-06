@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/go-ap/errors"
@@ -295,7 +296,7 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tok, err := config.PasswordCredentialsToken(r.Context(), handle, pw)
+	tok, err := config.PasswordCredentialsToken(context.Background(), handle, pw)
 	if err != nil {
 		h.logger.WithContext(logrus.Fields{
 			"handle": handle,
@@ -348,11 +349,6 @@ func (h *handler) HandleLogout(w http.ResponseWriter, r *http.Request) {
 		backUrl = r.Header.Get("Referer")
 	}
 	h.v.Redirect(w, r, backUrl, http.StatusSeeOther)
-}
-
-// ShowSubmit serves GET /submit request
-func (h *handler) ShowSubmit(w http.ResponseWriter, r *http.Request) {
-	h.v.RenderTemplate(r, w, "new", contentModel{Title: "New submission"})
 }
 
 func (h *handler) ValidatePermissions(actions ...string) func(http.Handler) http.Handler {
@@ -427,12 +423,6 @@ func (h *handler) HandleItemRedirect(w http.ResponseWriter, r *http.Request) {
 	}
 	url := ItemPermaLink(p)
 	h.v.Redirect(w, r, url, http.StatusMovedPermanently)
-}
-
-// ShowRegister serves GET /register requests
-func (h *handler) ShowRegister(w http.ResponseWriter, r *http.Request) {
-	m := registerModel{}
-	h.v.RenderTemplate(r, w, m.Template(), m)
 }
 
 var scopeAnonymousUserCreate = "anonUserCreate"
@@ -540,19 +530,12 @@ func (h *handler) HandleShow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	cursor := ContextCursor(r.Context())
-	if cursor == nil {
-		h.v.HandleErrors(w, r, errors.NotFoundf("Unable to load items"))
-		return
-	}
-	if mod, ok := m.(Paginator); ok {
+	if mod, ok := m.(Paginator); ok && cursor != nil {
 		mod.SetCursor(cursor)
-	}
-	if acc := loggedAccount(r); acc.IsLogged() {
-		repo := ContextRepository(r.Context())
-		err := repo.loadAccountVotes(acc, cursor.items.Items())
-		if err != nil {
-			//h.v.HandleErrors(w, r, errors.Errorf("unable to load account votes"))
-			//return
+		if acc := loggedAccount(r); acc != nil {
+			if repo := ContextRepository(r.Context()); repo != nil {
+				repo.loadAccountVotes(acc, cursor.items.Items())
+			}
 		}
 	}
 	if err := h.v.RenderTemplate(r, w, m.Template(), m); err != nil {
