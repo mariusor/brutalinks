@@ -615,6 +615,9 @@ func (r *repository) loadItemsReplies(items ...Item) (ItemCollection, error) {
 				repliesTo = append(repliesTo, id)
 			}
 		} else {
+			if it.pub == nil {
+				continue
+			}
 			if id := it.pub.GetLink(); len(id) > 0 && !repliesTo.Contains(id) {
 				repliesTo = append(repliesTo, id)
 			}
