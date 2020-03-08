@@ -1,4 +1,5 @@
-{{- if .SubmittedBy.IsLogged -}}
+{{- $acc := CurrentAccount -}}
+{{- if not ( IsFollowed $acc .SubmittedBy) -}}
 <section class="follow-request" id="f-{{.Hash}}" data-hash="{{.Hash}}">
     <section><a class="by" href="{{ .SubmittedBy | AccountPermaLink }}">{{ .SubmittedBy | ShowAccountHandle }}</a> wants to follow you:</section>
     <aside class="response">
