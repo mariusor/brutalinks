@@ -332,8 +332,9 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 		m := acc.Metadata
 		if acc.IsLogged() {
 			f := &ActivityFilters{
-				Name:       CompStrs{EqualsString(acc.Handle)},
-				IRI:        CompStrs{EqualsString(acc.Hash.String())},
+				Name: CompStrs{EqualsString(acc.Handle)},
+				//IRI:  CompStrs{EqualsString(acc.Hash.String())},
+				Type: ActivityTypesFilter(ValidActorTypes...),
 			}
 			accounts, err := h.storage.accounts(f)
 			ctx := log.Ctx{

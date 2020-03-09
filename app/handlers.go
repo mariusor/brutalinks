@@ -279,11 +279,9 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 	config := GetOauth2Config("fedbox", h.conf.BaseURL)
 	// Try to load actor from handle
-	acct, err := h.storage.LoadAccount(Filters{
-		LoadAccountsFilter: LoadAccountsFilter{
-			Handle:  []string{handle},
-			Deleted: []bool{false},
-		},
+	accts, err := h.storage.accounts(&ActivityFilters{
+		Name: CompStrs{EqualsString(handle)},
+		Type: ActivityTypesFilter(ValidActorTypes...),
 	})
 	if err != nil {
 		h.logger.WithContext(logrus.Fields{
@@ -295,6 +293,7 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		h.v.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
+	acct := accts[0]
 
 	tok, err := config.PasswordCredentialsToken(context.Background(), handle, pw)
 	if err != nil {
