@@ -201,29 +201,38 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 		BinaryContentType:         "application/octet-stream",
 		HTMLContentType:           "text/html",
 		IsDevelopment:             !Instance.Config.Env.IsProd(),
-		DisableHTTPErrorRendering: false,
+		DisableHTTPErrorRendering: true,
 	})
 
 	if Instance.Config.Env != PROD {
 		w.Header().Set("Cache-Control", "no-store")
 	}
-	if err = ren.HTML(w, http.StatusOK, name, m); err != nil {
+	err = ren.HTML(w, http.StatusOK, name, m)
+	if err != nil {
 		new := errors.Annotatef(err, "failed to render template")
 		v.errFn(new.Error(), log.Ctx{
 			"template": name,
 			"model":    m,
 		})
-		ren.HTML(w, http.StatusInternalServerError, "error", new)
+		em := errorModel{
+			Status: http.StatusInternalServerError,
+			Title:  "Failed to render template",
+			Errors: []error{new, err},
+		}
+		ren.HTML(w, http.StatusInternalServerError, "error", em)
+		return err
 	}
 	if Instance.Config.SessionsEnabled {
-		if err = v.s.save(w, r); err != nil {
+		err := v.s.save(w, r)
+		if err != nil {
 			v.errFn(err.Error(), log.Ctx{
 				"template": name,
 				"model":    fmt.Sprintf("%#v", m),
 			})
+			return err
 		}
 	}
-	return err
+	return nil
 }
 
 // HandleErrors serves failed requests
