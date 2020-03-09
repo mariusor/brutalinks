@@ -73,7 +73,6 @@ type view struct {
 
 func ViewInit(c appConfig, infoFn, errFn LogFn) (*view, error) {
 	v := view{
-		s:      &session{},
 		infoFn: infoFn,
 		errFn:  errFn,
 	}
@@ -84,18 +83,24 @@ func ViewInit(c appConfig, infoFn, errFn LogFn) (*view, error) {
 
 	if len(c.SessionKeys) == 0 {
 		err := errors.NotImplementedf("no session encryption configuration, unable to use sessions")
-		return nil, err
+		return &v, err
 	}
 	switch strings.ToLower(c.SessionsBackend) {
 	case "file":
-		v.s.s, _ = initFileSession(c.HostName, c.Secure, c.SessionKeys...)
+		s, _ := initFileSession(c.HostName, c.Secure, c.SessionKeys...)
+		v.s = &session{
+			s: s,
+		}
 	case "cookie":
 		fallthrough
 	default:
 		if strings.ToLower(c.SessionsBackend) != "cookie" {
 			v.infoFn(fmt.Sprintf("Invalid session backend %q, falling back to cookie.", c.SessionsBackend), nil)
 		}
-		v.s.s, _ = initCookieSession(c.HostName, c.Secure, c.SessionKeys...)
+		s, _ := initCookieSession(c.HostName, c.Secure, c.SessionKeys...)
+		v.s = &session{
+			s: s,
+		}
 	}
 	return &v, nil
 }
@@ -113,11 +118,13 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 	var ac *Account
 	var s *sessions.Session
 
-	if s, err = v.s.get(r); err != nil {
-		v.errFn(err.Error(), log.Ctx{
-			"template": name,
-			"model":    m,
-		})
+	if Instance.Config.SessionsEnabled {
+		if s, err = v.s.get(r); err != nil {
+			v.errFn(err.Error(), log.Ctx{
+				"template": name,
+				"model":    m,
+			})
+		}
 	}
 	accountFromRequest := func() *Account {
 		if ac == nil {
@@ -208,11 +215,13 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 		})
 		ren.HTML(w, http.StatusInternalServerError, "error", new)
 	}
-	if err = v.s.save(w, r); err != nil {
-		v.errFn(err.Error(), log.Ctx{
-			"template": name,
-			"model":    fmt.Sprintf("%#v", m),
-		})
+	if Instance.Config.SessionsEnabled {
+		if err = v.s.save(w, r); err != nil {
+			v.errFn(err.Error(), log.Ctx{
+				"template": name,
+				"model":    fmt.Sprintf("%#v", m),
+			})
+		}
 	}
 	return err
 }
@@ -270,6 +279,10 @@ func (v *view) Redirect(w http.ResponseWriter, r *http.Request, url string, stat
 
 func loadFlashMessages(r *http.Request, w http.ResponseWriter, s *sessions.Session) func() []flash {
 	flashData := make([]flash, 0)
+	flashFn := func() []flash { return flashData }
+	if !Instance.Config.SessionsEnabled {
+		return flashFn
+	}
 	flashes := s.Flashes()
 	// setting the local flashData value
 	for _, int := range flashes {
@@ -281,7 +294,7 @@ func loadFlashMessages(r *http.Request, w http.ResponseWriter, s *sessions.Sessi
 		}
 	}
 	s.Save(r, w)
-	return func() []flash { return flashData }
+	return flashFn
 }
 
 func mod10(lvl uint8) float64 {

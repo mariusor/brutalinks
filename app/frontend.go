@@ -69,6 +69,9 @@ func Init(c appConfig) (handler, error) {
 	c.SessionsBackend = strings.ToLower(c.SessionsBackend)
 	c.SessionKeys = loadEnvSessionKeys()
 	h.v, _ = ViewInit(c, infoFn, errFn)
+	if h.v.s == nil {
+		Instance.Config.SessionsEnabled = false
+	}
 	h.conf = c
 
 	h.storage = ActivityPubService(c)
@@ -433,10 +436,10 @@ func httpErrorResponse(e error) int {
 
 func loadEnvSessionKeys() [][]byte {
 	keys := make([][]byte, 0)
-	if authKey := []byte(os.Getenv("SESS_AUTH_KEY")); authKey != nil {
+	if authKey := []byte(os.Getenv("SESS_AUTH_KEY")); len(authKey) > 0 {
 		keys = append(keys, authKey)
 	}
-	if encKey := []byte(os.Getenv("SESS_ENC_KEY")); encKey != nil {
+	if encKey := []byte(os.Getenv("SESS_ENC_KEY")); len(encKey) > 0 {
 		keys = append(keys, encKey)
 	}
 	return keys
