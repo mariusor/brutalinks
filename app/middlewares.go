@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	pub "github.com/go-ap/activitypub"
+	"github.com/go-ap/errors"
 	"net/http"
 	"path"
 )
@@ -31,8 +32,7 @@ func LoadOutboxMw(next http.Handler) http.Handler {
 		repo := ContextRepository(r.Context())
 		cursor, err := repo.LoadActorOutbox(author.pub, f)
 		if err != nil {
-			// @TODO err
-			next.ServeHTTP(w, r)
+			ctxtErr(next, w, r, errors.Annotatef(err, "unable to load actor's outbox"))
 			return
 		}
 		ctx := context.WithValue(r.Context(), CursorCtxtKey, cursor)
@@ -62,13 +62,23 @@ func LoadServiceInboxMw(next http.Handler) http.Handler {
 		repo := ContextRepository(r.Context())
 		cursor, err := repo.LoadActorInbox(repo.fedbox.Service(), f)
 		if err != nil {
-			// @TODO err
-			next.ServeHTTP(w, r)
+			ctxtErr(next, w, r, errors.Annotatef(err, "unable to load actor's inbox"))
 			return
 		}
 		ctx := context.WithValue(r.Context(), CursorCtxtKey, cursor)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
+}
+
+func ctxtErr(next  http.Handler, w http.ResponseWriter, r *http.Request, err error) {
+	status, hErr := errors.HttpErrors(err)
+	rr := hErr[0]
+	ctx := context.WithValue(r.Context(), ModelCtxtKey, errorModel{
+		Status: status,
+		Title:  rr.Message,
+		Errors: []error{err},
+	})
+	next.ServeHTTP(w, r.WithContext(ctx))
 }
 
 func LoadOutboxObjectMw(next http.Handler) http.Handler {
@@ -77,16 +87,14 @@ func LoadOutboxObjectMw(next http.Handler) http.Handler {
 		repo := ContextRepository(r.Context())
 		author := ContextAuthor(r.Context())
 		if author == nil {
-			// @TODO err
-			next.ServeHTTP(w, r)
+			ctxtErr(next, w, r, errors.NotFoundf("Author not found"))
 			return
 		}
 		// @todo(marius): we should improve activities objects, as if we edit an object,
 		//   we need to update the activity to contain the new object.
 		col, err := repo.fedbox.Outbox(author.pub, Values(f))
 		if err != nil || col == nil {
-			// @TODO err
-			next.ServeHTTP(w, r)
+			ctxtErr(next, w, r, errors.NotFoundf("Object not found"))
 			return
 		}
 		i := Item{}
@@ -96,8 +104,7 @@ func LoadOutboxObjectMw(next http.Handler) http.Handler {
 		})
 		if !i.IsValid() {
 			repo.errFn("unable to load item", nil)
-			// @TODO err
-			next.ServeHTTP(w, r)
+			ctxtErr(next, w, r, errors.NotFoundf("Object not found"))
 			return
 		}
 

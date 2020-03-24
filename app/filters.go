@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	pub "github.com/go-ap/activitypub"
+	"github.com/go-ap/errors"
 	"github.com/go-chi/chi"
 	"github.com/mariusor/qstring"
 	"net/http"
@@ -221,7 +222,8 @@ func TagFiltersMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		tag := chi.URLParam(r, "tag")
 		if len(tag) == 0 {
-			// @TODO err
+			ctxtErr(next, w, r, errors.NotFoundf("tag not found"))
+			return
 		}
 		f := FiltersFromRequest(r)
 		f.Type = CreateActivitiesFilter

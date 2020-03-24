@@ -529,9 +529,9 @@ func (h *handler) HandleShow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	cursor := ContextCursor(r.Context())
-	if mod, ok := m.(Paginator); ok && cursor != nil {
+	if mod, ok := m.(Paginator); ok {
 		mod.SetCursor(cursor)
-		if acc := loggedAccount(r); acc != nil {
+		if acc := loggedAccount(r); acc.IsLogged() && cursor != nil {
 			if repo := ContextRepository(r.Context()); repo != nil {
 				repo.loadAccountVotes(acc, cursor.items.Items())
 			}
