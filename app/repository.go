@@ -633,40 +633,64 @@ func (r *repository) loadItemsReplies(items ...Item) (ItemCollection, error) {
 }
 
 func (r *repository) loadAccountVotes(acc *Account, items ItemCollection) error {
-	var err error
-	acc.Votes, _, err = r.LoadVotes(Filters{
-		LoadVotesFilter: LoadVotesFilter{
-			AttributedTo: []Hash{acc.Hash},
-			ItemKey:      items.getItemsHashes(),
-		},
-		MaxItems: MaxContentItems,
+	if len(items) == 0 || acc == nil || acc.pub == nil {
+		return nil
+	}
+	voteActivities := pub.ActivityVocabularyTypes{pub.LikeType, pub.DislikeType, pub.UndoType}
+	f := &ActivityFilters{
+		Object: &ActivityFilters{},
+		Type: ActivityTypesFilter(voteActivities...),
+	}
+	for _, it := range items {
+		f.Object.IRI = append(f.Object.IRI, LikeString(it.Hash.String()))
+	}
+	collFn := func() (pub.CollectionInterface, error) {
+		return r.fedbox.Outbox(acc.pub, Values(f))
+	}
+	return LoadFromCollection(collFn, &colCursor{filters: f}, func(col pub.ItemCollection) (bool, error) {
+		for _, it := range col {
+			if !it.IsObject() || !voteActivities.Contains(it.GetType()) {
+				continue
+			}
+			v := Vote{}
+			v.FromActivityPub(it)
+			acc.Votes = append(acc.Votes, v)
+		}
+		return true, nil
 	})
-	return err
 }
 
 func (r *repository) loadItemsVotes(items ...Item) (ItemCollection, error) {
 	if len(items) == 0 {
 		return items, nil
 	}
-	fVotes := Filters{}
+	voteActivities := pub.ActivityVocabularyTypes{pub.LikeType, pub.DislikeType, pub.UndoType}
+	f := &ActivityFilters{
+		Object: &ActivityFilters{},
+		Type: ActivityTypesFilter(voteActivities...),
+	}
 	for _, it := range items {
-		fVotes.LoadVotesFilter.ItemKey = append(fVotes.LoadVotesFilter.ItemKey, it.Hash)
+		f.Object.IRI = append(f.Object.IRI, LikeString(it.Hash.String()))
 	}
-	fVotes.LoadVotesFilter.ItemKey = hashesUnique(fVotes.LoadVotesFilter.ItemKey)
-	col := make(ItemCollection, len(items))
-	votes, _, err := r.LoadVotes(fVotes)
-	if err != nil {
-		return items, errors.Annotatef(err, "unable to load items votes")
+	collFn := func() (pub.CollectionInterface, error) {
+		return r.fedbox.Inbox(r.fedbox.Service(), Values(f))
 	}
-	for k, it := range items {
-		for _, vot := range votes {
-			if bytes.Equal(vot.Item.Hash, it.Hash) {
-				it.Score += vot.Weight
+	err := LoadFromCollection(collFn, &colCursor{filters: f}, func(c pub.ItemCollection) (bool, error) {
+		for _, vAct := range c {
+			if !vAct.IsObject() || !voteActivities.Contains(vAct.GetType()) {
+				continue
+			}
+			v := Vote{}
+			v.FromActivityPub(vAct)
+			for k, ob := range items {
+				if bytes.Equal(v.Item.Hash, ob.Hash) {
+					items[k].Score += v.Weight
+				}
 			}
 		}
-		col[k] = it
-	}
-	return col, nil
+		return true, nil
+	})
+	return items, err
 }
 
 func EqualsString(s string) CompStr {
