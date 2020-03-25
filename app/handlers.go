@@ -283,7 +283,10 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		Name: CompStrs{EqualsString(handle)},
 		Type: ActivityTypesFilter(ValidActorTypes...),
 	})
-	if err != nil {
+	if err != nil || len(accts) == 0 {
+		if len(accts) == 0 {
+			err = errors.NotFoundf("%s", handle)
+		}
 		h.logger.WithContext(logrus.Fields{
 			"handle": handle,
 			"client": config.ClientID,
