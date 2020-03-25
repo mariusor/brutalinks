@@ -638,7 +638,7 @@ func (r *repository) loadItemsReplies(items ...Item) (ItemCollection, error) {
 	f := &ActivityFilters{}
 	for _, top := range repliesTo {
 		collFn := func() (pub.CollectionInterface, error) {
-			return r.fedbox.Replies(top.GetLink())
+			return r.fedbox.Replies(top.GetLink(), Values(f))
 		}
 		err := LoadFromCollection(collFn, &colCursor{filters: f}, func(c pub.ItemCollection) (bool, error) {
 			for _, it := range c {
@@ -683,7 +683,9 @@ func (r *repository) loadAccountVotes(acc *Account, items ItemCollection) error 
 			}
 			v := Vote{}
 			v.FromActivityPub(it)
-			acc.Votes = append(acc.Votes, v)
+			if !acc.Votes.Contains(v) {
+				acc.Votes = append(acc.Votes, v)
+			}
 		}
 		return false, nil
 	})
@@ -869,55 +871,56 @@ type colCursor struct {
 	items   pub.ItemCollection
 }
 
-func getOrderedCollectionPagePrevNext(c *pub.OrderedCollectionPage) (string, string) {
-	var prev, next string
-	if c.Prev != nil {
-		if pUrl, err := c.Prev.GetLink().URL(); err == nil {
-			prev = pUrl.Query().Get("before")
+func getCollectionPrevNext(col pub.CollectionInterface) (prev, next string) {
+	qFn := func(i pub.Item) url.Values {
+		if i == nil {
+			return url.Values{}
+		}
+		if u, err := i.GetLink().URL(); err == nil {
+			return u.Query()
+		}
+		return url.Values{}
+	}
+	beforeFn := func(i pub.Item) string {
+		return qFn(i).Get("before")
+	}
+	afterFn := func(i pub.Item) string {
+		return qFn(i).Get("after")
+	}
+	nextFromLastFn := func(i pub.Item) string {
+		if u, err := i.GetLink().URL(); err == nil {
+			_, next = path.Split(u.Path)
+			return next
+		}
+		return ""
+	}
+	switch col.GetType() {
+	case pub.OrderedCollectionPageType:
+		if c, ok := col.(*pub.OrderedCollectionPage); ok {
+			prev = beforeFn(c.Prev)
+			next = afterFn(c.Next)
+		}
+	case pub.OrderedCollectionType:
+		if c, ok := col.(*pub.OrderedCollection); ok {
+			next = afterFn(c.First)
+			if next == "" && len(c.OrderedItems) > 0 {
+				next = nextFromLastFn(c.OrderedItems[len(c.OrderedItems)-1])
+			}
+		}
+	case pub.CollectionPageType:
+		if c, ok := col.(*pub.CollectionPage); ok {
+			prev = beforeFn(c.Prev)
+			next = afterFn(c.Next)
+		}
+	case pub.CollectionType:
+		if c, ok := col.(*pub.Collection); ok {
+			next = afterFn(c.First)
+			if next == "" && len(c.Items) > 0 {
+				next = nextFromLastFn(c.Items[len(c.Items)-1])
+			}
 		}
 	}
-	if c.Next != nil {
-		if nUrl, err := c.Next.GetLink().URL(); err == nil {
-			next = nUrl.Query().Get("after")
-		}
-	}
-
 	return prev, next
-}
-
-func getCollectionPagePrevNext(c *pub.CollectionPage) (string, string) {
-	var prev, next string
-	if c.Prev != nil {
-		if pUrl, err := c.Prev.GetLink().URL(); err == nil {
-			prev = pUrl.Query().Get("before")
-		}
-	}
-	if c.Next != nil {
-		if nUrl, err := c.Next.GetLink().URL(); err == nil {
-			next = nUrl.Query().Get("after")
-		}
-	}
-
-	return prev, next
-}
-func getOrderedCollectionNext(c *pub.OrderedCollection) string {
-	var next string
-	if c.First != nil {
-		if fUrl, err := c.First.GetLink().URL(); err == nil {
-			next = fUrl.Query().Get("after")
-		}
-	}
-
-	return next
-}
-
-func getCollectionNext(c *pub.Collection) string {
-	var next string
-	if fUrl, err := c.First.GetLink().URL(); err == nil {
-		next = fUrl.Query().Get("after")
-	}
-
-	return next
 }
 
 type res struct {
@@ -930,7 +933,7 @@ func LoadFromCollection(f CollectionFn, cur *colCursor, accum func(pub.ItemColle
 	fetch := make(chan res)
 
 	var err error
-	for cnt := 0; ; cnt++ {
+	for processed := 0; ; {
 		go func() {
 			var status bool
 			var col pub.CollectionInterface
@@ -942,44 +945,40 @@ func LoadFromCollection(f CollectionFn, cur *colCursor, accum func(pub.ItemColle
 			}
 
 			var prev string
+			prev, cur.filters.Next = getCollectionPrevNext(col)
+			if processed == 0 {
+				cur.filters.Prev = prev
+			}
 			if col.GetType() == pub.OrderedCollectionPageType {
 				pub.OnOrderedCollectionPage(col, func(c *pub.OrderedCollectionPage) error {
-					prev, cur.filters.Next = getOrderedCollectionPagePrevNext(c)
-					if cnt == 0 {
-						cur.filters.Prev = prev
-					}
 					status, err = accum(c.OrderedItems)
 					return nil
 				})
 			}
 			if col.GetType() == pub.OrderedCollectionType {
 				pub.OnOrderedCollection(col, func(c *pub.OrderedCollection) error {
-					cur.filters.Next = getOrderedCollectionNext(c)
 					status, err = accum(c.OrderedItems)
 					return nil
 				})
 			}
 			if col.GetType() == pub.CollectionPageType {
 				pub.OnCollectionPage(col, func(c *pub.CollectionPage) error {
-					prev, cur.filters.Next = getCollectionPagePrevNext(c)
-					if cnt == 0 {
-						cur.filters.Prev = prev
-					}
 					status, err = accum(c.Items)
 					return nil
 				})
 			}
 			if col.GetType() == pub.CollectionType {
 				pub.OnCollection(col, func(c *pub.Collection) error {
-					cur.filters.Next = getCollectionNext(c)
 					status, err = accum(c.Items)
 					return nil
 				})
 			}
 			if err != nil {
 				status = true
+			} else {
+				processed += len(col.Collection())
 			}
-			fetch <- res{status, err}
+			fetch <- res{status || uint(processed) == col.Count(), err}
 		}()
 
 		r := <-fetch
