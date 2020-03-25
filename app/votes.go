@@ -42,6 +42,15 @@ func (v *Vote) IsValid() bool {
 	return v != nil && v.Item.IsValid()
 }
 
+func (v VoteCollection) Contains(vot Vote) bool {
+	for _, vv := range v {
+		if vv.Metadata.IRI == vot.Metadata.IRI {
+			return true
+		}
+	}
+	return false
+}
+
 func trimHash(s Hash) Hash {
 	h, err := url.PathUnescape(string(s))
 	if err != nil {
