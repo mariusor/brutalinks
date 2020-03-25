@@ -647,7 +647,9 @@ func (r *repository) loadItemsReplies(items ...Item) (ItemCollection, error) {
 				}
 				i := Item{}
 				i.FromActivityPub(it)
-				allReplies = append(allReplies, i)
+				if !allReplies.Contains(i) {
+					allReplies = append(allReplies, i)
+				}
 			}
 			return true, nil
 		})
