@@ -1,6 +1,3 @@
-{{- if eq .Content nil -}}
-There's only dust here
-{{- else -}}
 {{- if not .Content.Edit -}}
 {{ template "partials/item" .Content }}
 {{- end -}}
@@ -12,5 +9,4 @@ There's only dust here
 {{ template "partials/content/comments" .Content }}
 {{- else }}
 <section id="no-items"><p>There's only dust here.</p></section>
-{{ end -}}
 {{ end -}}
