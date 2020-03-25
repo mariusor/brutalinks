@@ -531,11 +531,6 @@ func (h *handler) HandleShow(w http.ResponseWriter, r *http.Request) {
 	cursor := ContextCursor(r.Context())
 	if mod, ok := m.(Paginator); ok {
 		mod.SetCursor(cursor)
-		if acc := loggedAccount(r); acc.IsLogged() && cursor != nil {
-			if repo := ContextRepository(r.Context()); repo != nil {
-				repo.loadAccountVotes(acc, cursor.items.Items())
-			}
-		}
 	}
 	if err := h.v.RenderTemplate(r, w, m.Template(), m); err != nil {
 		h.v.HandleErrors(w, r, err)

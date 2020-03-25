@@ -361,6 +361,11 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 			}
 			// TODO(marius): Fix this ugly hack where we need to not override OAuth2 metadata loaded at login
 			acc.Metadata = m
+			var items ItemCollection
+			if cursor := ContextCursor(r.Context()); cursor != nil {
+				items =  cursor.items.Items()
+			}
+			h.storage.loadAccountVotes(&acc, items)
 			r = r.WithContext(context.WithValue(r.Context(), LoggedAccountCtxtKey, &acc))
 			h.storage.WithAccount(&acc)
 		}

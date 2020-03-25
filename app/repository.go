@@ -662,7 +662,7 @@ func (r *repository) loadItemsReplies(items ...Item) (ItemCollection, error) {
 }
 
 func (r *repository) loadAccountVotes(acc *Account, items ItemCollection) error {
-	if len(items) == 0 || acc == nil || acc.pub == nil {
+	if acc == nil || acc.pub == nil {
 		return nil
 	}
 	voteActivities := pub.ActivityVocabularyTypes{pub.LikeType, pub.DislikeType, pub.UndoType}
@@ -685,7 +685,7 @@ func (r *repository) loadAccountVotes(acc *Account, items ItemCollection) error 
 			v.FromActivityPub(it)
 			acc.Votes = append(acc.Votes, v)
 		}
-		return true, nil
+		return false, nil
 	})
 }
 
