@@ -600,36 +600,63 @@ func (r *repository) loadAccountsFollowing(acc Account) (Account, error) {
 	return acc, nil
 }
 
+func getRepliesOf(items ...Item) pub.IRIs {
+	repliesTo := make(pub.IRIs, 0)
+	iriFn := func(it Item) pub.IRI {
+		if it.pub != nil {
+			return it.pub.GetLink()
+		}
+		if id, ok := BuildIDFromItem(it); ok {
+			return pub.IRI(id)
+		}
+		return ""
+	}
+	for _, it := range items {
+		iri := iriFn(it)
+		if len(iri) > 0 && !repliesTo.Contains(iri) {
+			repliesTo = append(repliesTo, iri)
+		}
+		if it.OP.IsValid() {
+			iri := iriFn(*it.OP)
+			if len(iri) > 0 && !repliesTo.Contains(iri) {
+				repliesTo = append(repliesTo, iri)
+			}
+		}
+	}
+	return repliesTo
+}
+
 func (r *repository) loadItemsReplies(items ...Item) (ItemCollection, error) {
 	if len(items) == 0 {
 		return nil, nil
 	}
-
-	repliesTo := make(pub.IRIs, 0)
-	for _, it := range items {
-		if it.OP.IsValid() {
-			if it.OP.pub == nil {
-				continue
-			}
-			if id := it.OP.pub.GetLink(); len(id) > 0 && !repliesTo.Contains(id) {
-				repliesTo = append(repliesTo, id)
-			}
-		} else {
-			if it.pub == nil {
-				continue
-			}
-			if id := it.pub.GetLink(); len(id) > 0 && !repliesTo.Contains(id) {
-				repliesTo = append(repliesTo, id)
-			}
-		}
-	}
-
+	repliesTo := getRepliesOf(items...)
 	if len(repliesTo) == 0 {
 		return nil, nil
 	}
-	return r.objects(&ActivityFilters{
-		InReplTo: IRIsFilter(repliesTo...),
-	})
+	allReplies := make(ItemCollection, 0)
+	f := &ActivityFilters{}
+	for _, top := range repliesTo {
+		collFn := func() (pub.CollectionInterface, error) {
+			return r.fedbox.Replies(top.GetLink())
+		}
+		err := LoadFromCollection(collFn, &colCursor{filters: f}, func(c pub.ItemCollection) (bool, error) {
+			for _, it := range c {
+				if !it.IsObject() {
+					continue
+				}
+				i := Item{}
+				i.FromActivityPub(it)
+				allReplies = append(allReplies, i)
+			}
+			return true, nil
+		})
+		if err != nil {
+			r.errFn(err.Error(), nil)
+		}
+	}
+	// TODO(marius): probably we can thread the replies right here
+	return allReplies, nil
 }
 
 func (r *repository) loadAccountVotes(acc *Account, items ItemCollection) error {
@@ -639,7 +666,7 @@ func (r *repository) loadAccountVotes(acc *Account, items ItemCollection) error 
 	voteActivities := pub.ActivityVocabularyTypes{pub.LikeType, pub.DislikeType, pub.UndoType}
 	f := &ActivityFilters{
 		Object: &ActivityFilters{},
-		Type: ActivityTypesFilter(voteActivities...),
+		Type:   ActivityTypesFilter(voteActivities...),
 	}
 	for _, it := range items {
 		f.Object.IRI = append(f.Object.IRI, LikeString(it.Hash.String()))
@@ -667,7 +694,7 @@ func (r *repository) loadItemsVotes(items ...Item) (ItemCollection, error) {
 	voteActivities := pub.ActivityVocabularyTypes{pub.LikeType, pub.DislikeType, pub.UndoType}
 	f := &ActivityFilters{
 		Object: &ActivityFilters{},
-		Type: ActivityTypesFilter(voteActivities...),
+		Type:   ActivityTypesFilter(voteActivities...),
 	}
 	for _, it := range items {
 		f.Object.IRI = append(f.Object.IRI, LikeString(it.Hash.String()))
