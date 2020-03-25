@@ -223,17 +223,17 @@ func (f fedbox) Followers(actor pub.Item, filters ...FilterFn) (pub.CollectionIn
 	}
 	return f.collection(followers(actor, filters...))
 }
-func (f fedbox) Likes(actor pub.Item, filters ...FilterFn) (pub.CollectionInterface, error) {
-	if err := validateActor(actor); err != nil {
-		return nil, err
-	}
-	return f.collection(likes(actor, filters...))
-}
-func (f fedbox) Liked(object pub.Item, filters ...FilterFn) (pub.CollectionInterface, error) {
+func (f fedbox) Likes(object pub.Item, filters ...FilterFn) (pub.CollectionInterface, error) {
 	if err := validateObject(object); err != nil {
 		return nil, err
 	}
-	return f.collection(liked(object, filters...))
+	return f.collection(likes(object, filters...))
+}
+func (f fedbox) Liked(actor pub.Item, filters ...FilterFn) (pub.CollectionInterface, error) {
+	if err := validateActor(actor); err != nil {
+		return nil, err
+	}
+	return f.collection(liked(actor, filters...))
 }
 func (f fedbox) Replies(object pub.Item, filters ...FilterFn) (pub.CollectionInterface, error) {
 	if err := validateObject(object); err != nil {
