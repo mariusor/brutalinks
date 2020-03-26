@@ -1,10 +1,11 @@
+{{ $readonly:=not (or CurrentAccount.IsLogged Config.AnonymousCommentingEnabled)}}
 <form method="post">
     <fieldset {{ if .Content.Hash }}data-reply="{{.Content.Hash }}"{{end}}>
-        <label for="submit-data">{{- if .Content.Edit -}}Edit{{- else -}}{{ if not .Content.Hash }}New{{else}}Comment{{ end }}{{- end -}}: </label><br/>
-        <textarea {{if not (or CurrentAccount.IsLogged Config.AnonymousCommentingEnabled) -}} readonly="readonly" {{ end -}}name="data" id="submit-data" cols="80" rows="5" required>{{- if .Content.Edit -}}{{- .Content.Data -}}{{- end -}}{{if not (or CurrentAccount.IsLogged Config.AnonymousCommentingEnabled) -}} You must login to be able to comment {{ end -}}</textarea><br/>
+        <label for="submit-data">{{ if not .Content.Hash }}New{{else}}{{- if .Content.Edit -}}Edit{{- else -}}Comment{{ end }}{{- end -}}: </label><br/>
+        <textarea {{if $readonly -}} readonly="readonly" {{ end -}}name="data" id="submit-data" cols="80" rows="5" required>{{- if .Content.Edit -}}{{- .Content.Data -}}{{- end -}}{{if $readonly -}} You must login to be able to comment {{ end -}}</textarea><br/>
 {{- if not .Content.Hash -}}
         <label for="submit-title">Title: </label><br/>
-        <textarea {{if not (or CurrentAccount.IsLogged Config.AnonymousCommentingEnabled) -}} readonly="readonly" {{ end -}} name="title" id="submit-title" rows="2" required>{{- if .Content.Edit -}}{{- .Content.Title -}}{{- end -}}</textarea><br/>
+        <textarea {{if $readonly -}} readonly="readonly" {{ end -}} name="title" id="submit-title" rows="2" required>{{- if .Content.Edit -}}{{- .Content.Title -}}{{- end -}}</textarea><br/>
 {{- end -}}
 {{- if .Content.Hash -}}
 {{- if .Content.Edit }}
@@ -18,7 +19,7 @@
 {{- end }}
         {{ csrfField }}
         <input type="hidden" name="mime-type" id="submit-mime-type" value="text/markdown"/>
-        <button {{if not (or CurrentAccount.IsLogged Config.AnonymousCommentingEnabled) -}} disabled="disabled" {{ end -}}type="submit">{{- if .Content.Edit -}}{{icon "edit" }} Edit{{- else -}}{{ if not .Content.Hash }}{{icon "reply" "h-mirror" "v-mirror"}} Submit{{else}}Reply {{icon "reply" "h-mirror" }}{{end}}{{end}}</button>
+        <button {{if $readonly -}} disabled="disabled" {{ end -}}type="submit">{{ if not .Content.Hash }}{{icon "reply" "h-mirror" "v-mirror"}} Submit{{else}}{{- if .Content.Edit -}}{{icon "edit" }} Edit{{- else -}}Reply {{icon "reply" "h-mirror" }}{{end}}{{end}}</button>
         {{- /* }}
         <label class="mime-type" title="text/markdown"><input type="radio" name="mime_type" value="text/markdown" checked="checked"/> self</label>
         <label class="mime-type" title="text/html"><input type="radio" name="mime_type" value="text/html"/> html</label>
