@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	pub "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
 	"github.com/gorilla/csrf"
 	"github.com/mariusor/littr.go/internal/log"
@@ -39,7 +40,13 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	repo := h.storage
 	if n.Parent.IsValid() {
 		if n.Parent.SubmittedAt.IsZero() {
-			if p, err := repo.LoadItem(Filters{LoadItemsFilter: LoadItemsFilter{Key: Hashes{n.Parent.Hash}}}); err == nil {
+			var iri pub.IRI
+			if n.Parent.HasMetadata() && len(n.Parent.Metadata.ID) > 0 {
+				iri = pub.IRI(n.Parent.Metadata.ID)
+			} else {
+				iri = pub.IRI(fmt.Sprintf("%s/%s", ObjectsURL, n.Parent.Hash))
+			}
+			if p, err := repo.LoadItem(iri); err == nil {
 				n.Parent = &p
 				if p.OP != nil {
 					n.OP = p.OP
@@ -57,7 +64,13 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(n.Hash) > 0 {
-		if p, err := repo.LoadItem(Filters{LoadItemsFilter: LoadItemsFilter{Key: Hashes{n.Hash}}}); err == nil {
+		var iri pub.IRI
+		if n.HasMetadata() && len(n.Metadata.ID) > 0 {
+			iri = pub.IRI(n.Metadata.ID)
+		} else {
+			iri = pub.IRI(fmt.Sprintf("%s/%s", ObjectsURL, n.Hash))
+		}
+		if p, err := repo.LoadItem(iri); err == nil {
 			n.Title = p.Title
 		}
 		saveVote = false
@@ -102,10 +115,9 @@ func genitive(name string) string {
 // HandleDelete serves /{year}/{month}/{day}/{hash}/rm POST request
 // HandleDelete serves /~{handle}/rm GET request
 func (h *handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
-	hash := chi.URLParam(r, "hash")
-
 	repo := h.storage
-	p, err := repo.LoadItem(Filters{LoadItemsFilter: LoadItemsFilter{Key: Hashes{Hash(hash)}}})
+	iri := pub.IRI(fmt.Sprintf("%s/%s", ObjectsURL, chi.URLParam(r, "hash")))
+	p, err := repo.LoadItem(iri)
 	if err != nil {
 		h.logger.Error(err.Error())
 		h.v.HandleErrors(w, r, errors.NewNotFound(err, "not found"))
@@ -135,10 +147,9 @@ func (h *handler) HandleReport(w http.ResponseWriter, r *http.Request) {
 // ShowReport serves /{year}/{month}/{day}/{hash}/bad GET request
 // ShowReport serves /~{handle}/{hash}/bad request
 func (h *handler) ShowReport(w http.ResponseWriter, r *http.Request) {
-	hash := chi.URLParam(r, "hash")
-
 	repo := h.storage
-	p, err := repo.LoadItem(Filters{LoadItemsFilter: LoadItemsFilter{Key: Hashes{Hash(hash)}}})
+	iri := pub.IRI(fmt.Sprintf("%s/%s", ObjectsURL, chi.URLParam(r, "hash")))
+	p, err := repo.LoadItem(iri)
 	if err != nil {
 		h.logger.Error(err.Error())
 		h.v.HandleErrors(w, r, errors.NewNotFound(err, "not found"))
@@ -154,10 +165,9 @@ func (h *handler) ShowReport(w http.ResponseWriter, r *http.Request) {
 // HandleVoting serves /{year}/{month}/{day}/{hash}/{direction} request
 // HandleVoting serves /~{handle}/{direction} request
 func (h *handler) HandleVoting(w http.ResponseWriter, r *http.Request) {
-	hash := chi.URLParam(r, "hash")
-
 	repo := h.storage
-	p, err := repo.LoadItem(Filters{LoadItemsFilter: LoadItemsFilter{Key: Hashes{Hash(hash)}}})
+	iri := pub.IRI(fmt.Sprintf("%s/%s", ObjectsURL, chi.URLParam(r, "hash")))
+	p, err := repo.LoadItem(iri)
 	if err != nil {
 		h.logger.Error(err.Error())
 		h.v.HandleErrors(w, r, errors.NewNotFound(err, "not found"))
@@ -322,16 +332,6 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	h.v.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
-// ShowLogin serves GET /login requests
-func (h *handler) ShowLogin(w http.ResponseWriter, r *http.Request) {
-	a := loggedAccount(r)
-
-	m := loginModel{Title: "Login"}
-	m.Account = *a
-
-	h.v.RenderTemplate(r, w, m.Template(), m)
-}
-
 // HandleLogout serves /logout requests
 func (h *handler) HandleLogout(w http.ResponseWriter, r *http.Request) {
 	s, err := h.v.s.get(r)
@@ -386,7 +386,8 @@ func (h *handler) ValidateItemAuthor(next http.Handler) http.Handler {
 		action := path.Base(url.Path)
 		if len(hash) > 0 && action != hash {
 			repo := h.storage
-			m, err := repo.LoadItem(Filters{LoadItemsFilter: LoadItemsFilter{Key: Hashes{Hash(hash)}}})
+			iri := pub.IRI(fmt.Sprintf("%s/%s", ObjectsURL, hash))
+			m, err := repo.LoadItem(iri)
 			if err != nil {
 				h.logger.Error(err.Error())
 				h.v.HandleErrors(w, r, errors.NewNotFound(err, "item"))
@@ -406,12 +407,8 @@ func (h *handler) ValidateItemAuthor(next http.Handler) http.Handler {
 // HandleItemRedirect serves /i/{hash} request
 func (h *handler) HandleItemRedirect(w http.ResponseWriter, r *http.Request) {
 	repo := h.storage
-	p, err := repo.LoadItem(Filters{
-		LoadItemsFilter: LoadItemsFilter{
-			Key: Hashes{Hash(chi.URLParam(r, "hash"))},
-		},
-		MaxItems: 1,
-	})
+	iri := pub.IRI(fmt.Sprintf("%s/%s", ObjectsURL, chi.URLParam(r, "hash")))
+	p, err := repo.LoadItem(iri)
 	if err != nil {
 		h.v.HandleErrors(w, r, errors.NewNotValid(err, "oops!"))
 		return
@@ -430,17 +427,9 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	maybeExists, err := h.storage.LoadAccount(Filters{
-		LoadAccountsFilter: LoadAccountsFilter{
-			Handle: []string{a.Handle},
-		},
-	})
-	notFound := errors.NotFoundf("")
-	if err != nil && !notFound.As(err) {
-		h.v.HandleErrors(w, r, errors.NewBadRequest(err, "unable to create"))
-		return
-	}
-	if maybeExists.IsValid() {
+	f := &ActivityFilters{Name: CompStrs{EqualsString(a.Handle)}}
+	maybeExists, _ := h.storage.fedbox.Actors(Values(f))
+	if maybeExists.Count() > 0 {
 		h.v.HandleErrors(w, r, errors.BadRequestf("account %s already exists", a.Handle))
 		return
 	}

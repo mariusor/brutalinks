@@ -2,7 +2,6 @@ package app
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	pub "github.com/go-ap/activitypub"
 	"github.com/go-chi/chi"
@@ -13,7 +12,6 @@ import (
 	"time"
 
 	"github.com/go-ap/errors"
-	"github.com/mariusor/littr.go/internal/log"
 )
 
 const TagMention = "mention"
@@ -118,32 +116,6 @@ func (i ItemCollection) First() (*Item, error) {
 const (
 	MaxContentItems = 25
 )
-
-func loadItems(c context.Context, filter Filters, acc *Account, l log.Logger) (ItemCollection, error) {
-	repo := ContextRepository(c)
-	if repo == nil {
-		err := errors.Errorf("could not load item repository from Context")
-		return nil, err
-	}
-	contentItems, _, err := repo.LoadItems(filter)
-
-	if err != nil {
-		return nil, err
-	}
-	if acc.IsLogged() {
-		acc.Votes, _, err = repo.LoadVotes(Filters{
-			LoadVotesFilter: LoadVotesFilter{
-				AttributedTo: []Hash{acc.Hash},
-				ItemKey:      contentItems.getItemsHashes(),
-			},
-			MaxItems: MaxContentItems,
-		})
-		if err != nil {
-			l.Error(err.Error())
-		}
-	}
-	return contentItems, nil
-}
 
 func detectMimeType(data string) string {
 	u, err := url.ParseRequestURI(data)

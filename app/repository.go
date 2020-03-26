@@ -468,15 +468,9 @@ func (r *repository) withAccountS2S(a *Account) error {
 	return nil
 }
 
-func (r *repository) LoadItem(f Filters) (Item, error) {
+func (r *repository) LoadItem(iri pub.IRI) (Item, error) {
 	var item Item
-
-	f.MaxItems = 1
-	hashes := f.LoadItemsFilter.Key
-	f.LoadItemsFilter.Key = nil
-
-	url := fmt.Sprintf("%s/objects/%s", r.BaseURL, hashes[0])
-	art, err := r.fedbox.Object(pub.IRI(url))
+	art, err := r.fedbox.Object(iri)
 	if err != nil {
 		r.errFn(err.Error(), nil)
 		return item, err
@@ -512,25 +506,13 @@ func (r *repository) loadAccountsVotes(accounts ...Account) (AccountCollection, 
 	if len(accounts) == 0 {
 		return accounts, nil
 	}
-	fVotes := Filters{}
 	for _, account := range accounts {
-		fVotes.LoadVotesFilter.AttributedTo = append(fVotes.LoadVotesFilter.AttributedTo, account.Hash)
-	}
-	fVotes.LoadVotesFilter.AttributedTo = hashesUnique(fVotes.LoadVotesFilter.AttributedTo)
-	col := make(AccountCollection, len(accounts))
-	votes, _, err := r.LoadVotes(fVotes)
-	if err != nil {
-		return accounts, errors.Annotatef(err, "unable to load accounts votes")
-	}
-	for k, ac := range accounts {
-		for _, vot := range votes {
-			if bytes.Equal(vot.SubmittedBy.Hash, ac.Hash) {
-				ac.Score += vot.Weight
-			}
+		err := r.loadAccountVotes(&account, nil)
+		if err != nil {
+			r.errFn(err.Error(), nil)
 		}
-		col[k] = ac
 	}
-	return col, nil
+	return accounts, nil
 }
 
 func accountInCollection(ac Account, col AccountCollection) bool {
@@ -747,12 +729,7 @@ func (r *repository) loadAuthors(items ...FollowRequest) ([]FollowRequest, error
 		if !it.SubmittedBy.IsValid() {
 			continue
 		}
-		var hash CompStr
-		if it.SubmittedBy.HasMetadata() && len(it.SubmittedBy.Metadata.ID) > 0 {
-			hash = EqualsString(it.SubmittedBy.Metadata.ID)
-		} else {
-			hash = EqualsString(it.SubmittedBy.Hash.String())
-		}
+		hash := LikeString(it.SubmittedBy.Hash.String())
 		if len(hash.Str) > 0 && !fActors.IRI.Contains(hash) {
 			fActors.IRI = append(fActors.IRI, hash)
 		}
@@ -788,71 +765,68 @@ func (r *repository) loadItemsAuthors(items ...Item) (ItemCollection, error) {
 		Type: ActivityTypesFilter(ValidActorTypes...),
 	}
 	for _, it := range items {
+		if it.SubmittedBy.IsValid() {
+			// Adding an item's author to the list of accounts we want to load from the ActivityPub API
+			hash := LikeString(it.SubmittedBy.Hash.String())
+			if len(hash.Str) > 0 && !fActors.IRI.Contains(hash) {
+				fActors.IRI = append(fActors.IRI, hash)
+			}
+		}
 		if it.HasMetadata() {
 			// Adding an item's recipients list (To and CC) to the list of accounts we want to load from the ActivityPub API
 			if len(it.Metadata.To) > 0 {
 				for _, to := range it.Metadata.To {
-					hash := EqualsString(to.Metadata.ID)
-					if len(hash.Str) > 0 && !fActors.IRI.Contains(hash) {
-						fActors.IRI = append(fActors.IRI, hash)
+					hash := LikeString(to.Hash.String())
+					if len(hash.Str) == 0 || fActors.IRI.Contains(hash) {
+						continue
 					}
+					fActors.IRI = append(fActors.IRI, hash)
 				}
 			}
 			if len(it.Metadata.CC) > 0 {
 				for _, cc := range it.Metadata.CC {
-					hash := EqualsString(cc.Metadata.ID)
-					if len(hash.Str) > 0 && !fActors.IRI.Contains(hash) {
-						fActors.IRI = append(fActors.IRI, hash)
+					hash := LikeString(cc.Hash.String())
+					if len(hash.Str) == 0 || fActors.IRI.Contains(hash) {
+						continue
 					}
+					fActors.IRI = append(fActors.IRI, hash)
 				}
 			}
-		}
-		if !it.SubmittedBy.IsValid() {
-			continue
-		}
-		// Adding an item's author to the list of accounts we want to load from the ActivityPub API
-		var hash CompStr
-		if it.SubmittedBy.HasMetadata() && len(it.SubmittedBy.Metadata.ID) > 0 {
-			hash = EqualsString(it.SubmittedBy.Metadata.ID)
-		} else {
-			hash = CompStr{Str: it.SubmittedBy.Hash.String()}
-		}
-		if len(hash.Str) > 0 && !fActors.IRI.Contains(hash) {
-			fActors.IRI = append(fActors.IRI, hash)
 		}
 	}
 
 	if len(fActors.IRI) == 0 {
 		return items, errors.Errorf("unable to load items authors")
 	}
-	col := make(ItemCollection, len(items))
 	authors, err := r.accounts(&fActors)
 	if err != nil {
 		return items, errors.Annotatef(err, "unable to load items authors")
 	}
-	for k, it := range items {
-		for a, auth := range authors {
-			if accountsEqual(*it.SubmittedBy, auth) {
-				it.SubmittedBy = &(authors[a])
+	col := make(ItemCollection, 0)
+	for _, it := range items {
+		for a := range authors {
+			auth := authors[a]
+			if HashesEqual(it.SubmittedBy.Hash, auth.Hash) {
+				it.SubmittedBy = &auth
 			}
-			if it.UpdatedBy.IsValid() && accountsEqual(*it.UpdatedBy, auth) {
-				it.UpdatedBy = &(authors[a])
+			if it.UpdatedBy.IsValid() && HashesEqual(it.UpdatedBy.Hash, auth.Hash) {
+				it.UpdatedBy = &auth
 			}
 			if !it.HasMetadata() {
 				continue
 			}
 			for i, to := range it.Metadata.To {
-				if accountsEqual(*to, auth) {
-					it.Metadata.To[i] = &(authors[a])
+				if HashesEqual(to.Hash, auth.Hash) {
+					it.Metadata.To[i] = &auth
 				}
 			}
 			for i, cc := range it.Metadata.CC {
-				if accountsEqual(*cc, auth) {
-					it.Metadata.CC[i] = &(authors[a])
+				if HashesEqual(cc.Hash, auth.Hash) {
+					it.Metadata.CC[i] = &auth
 				}
 			}
 		}
-		col[k] = it
+		col = append(col, it)
 	}
 	return col, nil
 }
@@ -1049,24 +1023,28 @@ func (r *repository) Objects(f *ActivityFilters) (Cursor, error) {
 }
 
 func validFederated(i Item, f *ActivityFilters) bool {
+	ob, err := pub.ToObject(i.pub)
+	if err != nil {
+		return false
+	}
 	if len(f.Generator) > 0 {
 		for _, g := range f.Generator {
-			if i.pub == nil || i.pub.Generator == nil {
+			if i.pub == nil || ob.Generator == nil {
 				continue
 			}
 			if g == nilIRI {
-				if i.pub.Generator.GetLink().Equals(pub.IRI(Instance.BaseURL), false) {
+				if ob.Generator.GetLink().Equals(pub.IRI(Instance.BaseURL), false) {
 					return false
 				}
 				return true
 			}
-			if i.pub.Generator.GetLink().Equals(pub.IRI(g.Str), false) {
+			if ob.Generator.GetLink().Equals(pub.IRI(g.Str), false) {
 				return true
 			}
 		}
 	}
 	// @todo(marius): currently this marks as valid nil generator, but we eventually want non nil generators
-	return i.pub != nil && i.pub.Generator == nil
+	return ob != nil && ob.Generator == nil
 }
 
 func validRecipients(i Item, f *ActivityFilters) bool {
@@ -1128,8 +1106,10 @@ func (r *repository) ActorCollection(fn CollectionFn, f *ActivityFilters) (Curso
 	items := make(ItemCollection, 0)
 	follows := make(FollowRequests, 0)
 	relations := make(map[pub.IRI]pub.IRI)
+
+	deferredItems := make(CompStrs, 0)
+
 	err := LoadFromCollection(fn, &colCursor{filters: f}, func(col pub.ItemCollection) (bool, error) {
-		deferredItems := make(CompStrs, 0)
 		for _, it := range col {
 			pub.OnActivity(it, func(a *pub.Activity) error {
 				if it.GetType() == pub.CreateType {
@@ -1144,7 +1124,7 @@ func (r *repository) ActorCollection(fn CollectionFn, f *ActivityFilters) (Curso
 						}
 					} else {
 						i.FromActivityPub(a)
-						uuid := EqualsString(path.Base(ob.GetLink().String()))
+						uuid := LikeString(path.Base(ob.GetLink().String()))
 						if !deferredItems.Contains(uuid) && validItem(i, f) {
 							deferredItems = append(deferredItems, uuid)
 						}
@@ -1162,27 +1142,22 @@ func (r *repository) ActorCollection(fn CollectionFn, f *ActivityFilters) (Curso
 			})
 		}
 
-		if len(deferredItems) > 0 {
-			ff := f.Object
-			ff.IRI = deferredItems
-			ff.MaxItems = f.MaxItems - len(items)
-			objects, err := r.objects(ff)
-			if err != nil {
-				return true, err
-			}
-			for _, d := range objects {
-				if !items.Contains(d) {
-					items = append(items, d)
-				}
-			}
-		}
-
 		// TODO(marius): this needs to be externalized also to a different function that we can pass from outer scope
 		//   This function implements the logic for breaking out of the collection iteration cycle and returns a bool
-		return len(items) >= f.MaxItems || len(f.Next) == 0, nil
+		return len(items)+len(follows) >= f.MaxItems || len(f.Next) == 0, nil
 	})
 	if err != nil {
 		return emptyCursor, err
+	}
+	if len(deferredItems) > 0 {
+		ff := f.Object
+		ff.IRI = deferredItems
+		objects, _ := r.objects(ff)
+		for _, d := range objects {
+			if !items.Contains(d) {
+				items = append(items, d)
+			}
+		}
 	}
 	items, err = r.loadItemsAuthors(items...)
 	if err != nil {
@@ -1202,17 +1177,18 @@ func (r *repository) ActorCollection(fn CollectionFn, f *ActivityFilters) (Curso
 	}
 
 	result := make([]Renderable, 0)
-	for _, iI := range relations {
-		for _, it := range items {
-			if it.IsValid() && it.pub.GetLink() == iI {
+	for _, rel := range relations {
+		for i := range items {
+			it := items[i]
+			if it.IsValid() && it.pub.GetLink() == rel {
 				result = append(result, &it)
 				break
 			}
 		}
-		for _, f := range follows {
-			if f.pub != nil && f.pub.GetLink() == iI {
+		for i := range follows {
+			f := follows[i]
+			if f.pub != nil && f.pub.GetLink() == rel {
 				result = append(result, &f)
-				break
 			}
 		}
 	}
@@ -1224,103 +1200,6 @@ func (r *repository) ActorCollection(fn CollectionFn, f *ActivityFilters) (Curso
 		items:  result,
 		total:  uint(len(result)),
 	}, nil
-}
-
-func (r *repository) LoadItems(f Filters) (ItemCollection, uint, error) {
-	target := "/"
-	c := "objects"
-	if len(f.FollowedBy) > 0 {
-		// TODO(marius): make this work for multiple FollowedBy filters
-		target = fmt.Sprintf("/%s/%s/", actors, f.FollowedBy)
-		c = "inbox"
-		f.FollowedBy = ""
-		f.LoadItemsFilter.IRI = ""
-		f.Federated = nil
-		f.InReplyTo = nil
-		f.Type = pub.ActivityVocabularyTypes{
-			pub.CreateType,
-		}
-	}
-	filterLocal := false
-	keepPrivate := true
-	if len(f.Federated) > 0 {
-		for _, fed := range f.Federated {
-			if !fed {
-				// TODO(marius): need to add to fedbox support for filtering by hostname
-				f.LoadItemsFilter.IRI = BaseURL
-			} else {
-				filterLocal = true
-			}
-			break
-		}
-	}
-	if len(f.Private) > 0 {
-		for _, prv := range f.Private {
-			if keepPrivate := !prv; keepPrivate {
-				break
-			}
-		}
-	}
-	if len(f.Type) == 0 && len(f.LoadItemsFilter.Deleted) > 0 {
-		f.Type = ValidItemTypes
-	}
-	url := fmt.Sprintf("%s%s%s", r.BaseURL, target, c)
-
-	ctx := log.Ctx{
-		"url": url,
-	}
-
-	it, err := r.fedbox.Collection(pub.IRI(url), Values(f))
-	if err != nil {
-		r.errFn(err.Error(), ctx)
-		return nil, 0, err
-	}
-
-	items := make(ItemCollection, 0)
-	var count uint = 0
-	pub.OnOrderedCollection(it, func(col *pub.OrderedCollection) error {
-		count = col.TotalItems
-		for _, it := range col.OrderedItems {
-			if filterLocal && it.GetLink().Contains(pub.IRI(r.BaseURL), false) {
-				continue
-			}
-			if !filterLocal && !it.GetLink().Contains(pub.IRI(r.BaseURL), false) {
-				continue
-			}
-			i := Item{}
-			if err := i.FromActivityPub(it); err != nil {
-				r.errFn(err.Error(), nil)
-				continue
-			}
-			if keepPrivate && i.Private() {
-				continue
-			}
-			items = append(items, i)
-		}
-		return nil
-	})
-
-	// TODO(marius): move this somewhere more palatable
-	//  it's currently done like this when loading from collections of Activities that only contain the ID of the object
-	toLoad := make(Hashes, 0)
-	for _, i := range items {
-		if i.IsValid() && !i.Deleted() && i.SubmittedAt.IsZero() {
-			toLoad = append(toLoad, Hash(i.Metadata.ID))
-		}
-	}
-	if len(toLoad) > 0 {
-		return r.LoadItems(Filters{
-			LoadItemsFilter: LoadItemsFilter{
-				Key: toLoad,
-			},
-		})
-	}
-	items, err = r.loadItemsAuthors(items...)
-	if Instance.Config.VotingEnabled {
-		items, err = r.loadItemsVotes(items...)
-	}
-
-	return items, count, err
 }
 
 func (r *repository) SaveVote(v Vote) (Vote, error) {
@@ -1536,7 +1415,7 @@ func (r *repository) handleItemSaveSuccessResponse(it Item, body []byte) (Item, 
 }
 
 func accountValidForC2S(a *Account) bool {
-	return a.IsValid() && a.IsLogged()
+	return a.IsValid() /*&& a.IsLogged()*/
 }
 
 func (r *repository) getAuthorRequestURL(a *Account) string {
@@ -1556,11 +1435,16 @@ func (r *repository) getAuthorRequestURL(a *Account) string {
 }
 
 func (r *repository) SaveItem(it Item) (Item, error) {
-	if !it.SubmittedBy.IsValid() || !it.SubmittedBy.HasMetadata() {
-		return Item{}, errors.Newf("Invalid item submitter")
+	if it.SubmittedBy == nil || !it.SubmittedBy.HasMetadata() {
+		return Item{}, errors.Newf("invalid account")
 	}
 	art := loadAPItem(it)
-	author := loadAPPerson(*it.SubmittedBy)
+	var author *pub.Actor
+	if it.SubmittedBy.IsLogged() {
+		author = loadAPPerson(*it.SubmittedBy)
+	} else {
+		author = anonymousPerson(r.BaseURL)
+	}
 	if !accountValidForC2S(it.SubmittedBy) {
 		return it, errors.Unauthorizedf("invalid account %s", it.SubmittedBy.Handle)
 	}
@@ -1585,15 +1469,11 @@ func (r *repository) SaveItem(it Item) (Item, error) {
 			}
 		}
 		if len(it.Metadata.Mentions) > 0 {
-			names := make([]string, 0)
+			names := make(CompStrs, 0)
 			for _, m := range it.Metadata.Mentions {
-				names = append(names, m.Name)
+				names = append(names, EqualsString(m.Name))
 			}
-			ff := Filters{
-				LoadAccountsFilter: LoadAccountsFilter{
-					Handle: names,
-				},
-			}
+			ff := &ActivityFilters{Name: names}
 			actors, _, err := r.LoadAccounts(ff)
 			if err != nil {
 				r.errFn("unable to load accounts from mentions", log.Ctx{"err": err})
@@ -1621,6 +1501,7 @@ func (r *repository) SaveItem(it Item) (Item, error) {
 		Actor:  author.GetLink(),
 		Object: art,
 	}
+	loadAuthors := true
 	if it.Deleted() {
 		if len(id) == 0 {
 			r.errFn(err.Error(), log.Ctx{
@@ -1630,6 +1511,7 @@ func (r *repository) SaveItem(it Item) (Item, error) {
 		}
 		act.Object = id
 		act.Type = pub.DeleteType
+		loadAuthors = false
 	} else {
 		if len(id) == 0 {
 			act.Type = pub.CreateType
@@ -1637,7 +1519,8 @@ func (r *repository) SaveItem(it Item) (Item, error) {
 			act.Type = pub.UpdateType
 		}
 	}
-	_, ob, err := r.fedbox.ToOutbox(act)
+	var ob pub.Item
+	_, ob, err = r.fedbox.ToOutbox(act)
 	if err != nil {
 		r.errFn(err.Error(), nil)
 		return it, err
@@ -1647,12 +1530,15 @@ func (r *repository) SaveItem(it Item) (Item, error) {
 		r.errFn(err.Error(), nil)
 		return it, err
 	}
-	items, err := r.loadItemsAuthors(it)
-	return items[0], err
+	if loadAuthors {
+		items, err := r.loadItemsAuthors(it)
+		return items[0], err
+	}
+	return it, err
 }
 
-func (r *repository) LoadAccounts(f Filters) (AccountCollection, uint, error) {
-	it, err := r.fedbox.Actors(Values(&(f.LoadAccountsFilter)))
+func (r *repository) LoadAccounts(f *ActivityFilters) (AccountCollection, uint, error) {
+	it, err := r.fedbox.Actors(Values(f))
 	if err != nil {
 		r.errFn(err.Error(), nil)
 		return nil, 0, err
@@ -1677,25 +1563,13 @@ func (r *repository) LoadAccounts(f Filters) (AccountCollection, uint, error) {
 	return accounts, count, nil
 }
 
-func (r *repository) LoadAccount(f Filters) (Account, error) {
-	var accounts AccountCollection
-	var err error
-	if accounts, _, err = r.LoadAccounts(f); err != nil {
-		return AnonymousAccount, err
+func (r *repository) LoadAccount(f *ActivityFilters) (Account, error) {
+	accounts, _, err := r.LoadAccounts(f)
+	if err != nil || len(accounts) == 0 {
+		return AnonymousAccount, errors.NewNotFound(err, "account")
 	}
-
-	var ac *Account
-	if ac, err = accounts.First(); err != nil {
-		var id string
-		if len(f.LoadAccountsFilter.Key) > 0 {
-			id = f.LoadAccountsFilter.Key[0].String()
-		}
-		if len(f.Handle) > 0 {
-			id = f.Handle[0]
-		}
-		return AnonymousAccount, errors.NotFoundf("account %s", id)
-	}
-	return *ac, nil
+	acc, err := accounts.First()
+	return *acc, err
 }
 
 func Values(f interface{}) func() url.Values {
