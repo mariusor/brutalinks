@@ -146,35 +146,32 @@ func rawFilterQuery(f ...FilterFn) string {
 
 	return "?" + q.Encode()
 }
-func iri(i pub.Item, col handlers.CollectionType, f ...FilterFn) pub.IRI {
-	if len(col) == 0 {
-		return pub.IRI(fmt.Sprintf("%s%s", i.GetLink(), rawFilterQuery(f...)))
-	}
-	return pub.IRI(fmt.Sprintf("%s/%s%s", i.GetLink(), col, rawFilterQuery(f...)))
+func iri(i pub.IRI, f ...FilterFn) pub.IRI {
+	return pub.IRI(fmt.Sprintf("%s%s", i, rawFilterQuery(f...)))
 }
 func inbox(a pub.Item, f ...FilterFn) pub.IRI {
-	return iri(a, handlers.Inbox, f...)
+	return iri(handlers.Inbox.IRI(a), f...)
 }
 func outbox(a pub.Item, f ...FilterFn) pub.IRI {
-	return iri(a, handlers.Outbox, f...)
+	return iri(handlers.Outbox.IRI(a), f...)
 }
 func following(a pub.Item, f ...FilterFn) pub.IRI {
-	return iri(a, handlers.Following, f...)
+	return iri(handlers.Following.IRI(a), f...)
 }
 func followers(a pub.Item, f ...FilterFn) pub.IRI {
-	return iri(a, handlers.Followers, f...)
-}
-func likes(a pub.Item, f ...FilterFn) pub.IRI {
-	return iri(a, handlers.Likes, f...)
-}
-func shares(a pub.Item, f ...FilterFn) pub.IRI {
-	return iri(a, handlers.Shares, f...)
-}
-func replies(a pub.Item, f ...FilterFn) pub.IRI {
-	return iri(a, handlers.Replies, f...)
+	return iri(handlers.Followers.IRI(a), f...)
 }
 func liked(a pub.Item, f ...FilterFn) pub.IRI {
-	return iri(a, handlers.Liked, f...)
+	return iri(handlers.Liked.IRI(a), f...)
+}
+func likes(o pub.Item, f ...FilterFn) pub.IRI {
+	return iri(handlers.Likes.IRI(o), f...)
+}
+func shares(o pub.Item, f ...FilterFn) pub.IRI {
+	return iri(handlers.Shares.IRI(o), f...)
+}
+func replies(o pub.Item, f ...FilterFn) pub.IRI {
+	return iri(handlers.Replies.IRI(o), f...)
 }
 func validateActor(a pub.Item) error {
 	if a == nil {
@@ -249,7 +246,7 @@ func (f fedbox) Shares(object pub.Item, filters ...FilterFn) (pub.CollectionInte
 }
 
 func (f fedbox) Collection(i pub.IRI, filters ...FilterFn) (pub.CollectionInterface, error) {
-	return f.collection(iri(i, "", filters...))
+	return f.collection(iri(i, filters...))
 }
 
 func (f fedbox) Actor(iri pub.IRI) (*pub.Actor, error) {
@@ -292,15 +289,15 @@ func (f fedbox) Object(iri pub.IRI) (*pub.Object, error) {
 }
 
 func (f fedbox) Activities(filters ...FilterFn) (pub.CollectionInterface, error) {
-	return f.collection(iri(f.Service().GetLink(), activities, filters...))
+	return f.collection(iri(activities.IRI(f.Service()), filters...))
 }
 
 func (f fedbox) Actors(filters ...FilterFn) (pub.CollectionInterface, error) {
-	return f.collection(iri(f.Service().GetLink(), actors, filters...))
+	return f.collection(iri(actors.IRI(f.Service()), filters...))
 }
 
 func (f fedbox) Objects(filters ...FilterFn) (pub.CollectionInterface, error) {
-	return f.collection(iri(f.Service().GetLink(), objects, filters...))
+	return f.collection(iri(objects.IRI(f.Service()), filters...))
 }
 
 func postRequest(f fedbox, url pub.IRI, a pub.Item) (pub.IRI, pub.Item, error) {
@@ -363,12 +360,12 @@ func (f fedbox) ToInbox(a pub.Item) (pub.IRI, pub.Item, error) {
 }
 
 func (f *fedbox) Service() *pub.Service {
-	s := pub.Service{
+	s := &pub.Service{
 		ID:   pub.ID(f.baseURL.String()),
 		Type: pub.ServiceType,
 		URL:  pub.IRI(f.baseURL.String()),
 	}
 	s.Inbox = inbox(s)
 
-	return &s
+	return s
 }
