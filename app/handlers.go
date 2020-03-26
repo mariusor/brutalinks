@@ -284,7 +284,7 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		Type: ActivityTypesFilter(ValidActorTypes...),
 	})
 	if err != nil || len(accts) == 0 {
-		if len(accts) == 0 {
+		if err == nil {
 			err = errors.NotFoundf("%s", handle)
 		}
 		h.logger.WithContext(logrus.Fields{
@@ -299,24 +299,17 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	acct := accts[0]
 
 	tok, err := config.PasswordCredentialsToken(context.Background(), handle, pw)
-	if err != nil {
+	if err != nil || tok == nil {
+		if err == nil {
+			err = errors.Errorf("nil token received")
+		}
 		h.logger.WithContext(logrus.Fields{
 			"handle": handle,
 			"client": config.ClientID,
 			"state":  state,
 			"error":  err,
-		}).Error("login failed")
+		}).Error(errors.Annotatef(err, "login failed").Error())
 		h.v.addFlashMessage(Error, r, "Login failed: invalid username or password")
-		h.v.Redirect(w, r, "/login", http.StatusSeeOther)
-		return
-	}
-	if tok == nil {
-		h.logger.WithContext(logrus.Fields{
-			"handle": handle,
-			"client": config.ClientID,
-			"state":  state,
-		}).Errorf("nil token received")
-		h.v.addFlashMessage(Error, r, "Login failed: wrong handle or password")
 		h.v.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
