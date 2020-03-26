@@ -25,9 +25,9 @@ func (h *handler) Routes() func(chi.Router) {
 
 		r.With(ModelMw(&listingModel{}), DefaultFilters, LoadServiceInboxMw).Get("/", h.HandleShow)
 		r.With(h.CSRF).Group(func(r chi.Router) {
-			r.With(ModelMw(&contentModel{Content: &Item{Edit: true}})).Get("/submit", h.HandleShow)
+			r.With(ModelMw(&contentModel{Title: "Add new submission", Content: &Item{Edit: true}})).Get("/submit", h.HandleShow)
 			r.Post("/submit", h.HandleSubmit)
-			r.With(ModelMw(&registerModel{}), checkUserCreatingEnabled).Get("/register", h.HandleShow)
+			r.With(ModelMw(&registerModel{Title: "Register new account"}), checkUserCreatingEnabled).Get("/register", h.HandleShow)
 			r.With(checkUserCreatingEnabled).Post("/register", h.HandleRegister)
 		})
 
@@ -51,7 +51,7 @@ func (h *handler) Routes() func(chi.Router) {
 					r.Post("/bad", h.HandleReport)
 
 					r.With(h.ValidateItemAuthor).Group(func(r chi.Router) {
-						r.Get("/edit", h.HandleShow)
+						r.With(ModelMw(&contentModel{Title: "Edit item"})).Get("/edit", h.HandleShow)
 						r.Post("/edit", h.HandleSubmit)
 						r.Get("/rm", h.HandleDelete)
 					})
@@ -75,7 +75,7 @@ func (h *handler) Routes() func(chi.Router) {
 
 		r.With(h.NeedsSessions).Get("/logout", h.HandleLogout)
 		r.With(h.CSRF, h.NeedsSessions).Group(func(r chi.Router) {
-			r.Get("/login", h.ShowLogin)
+			r.With(ModelMw(&loginModel{Title: "Local authentication"})).Get("/login", h.HandleShow)
 			r.Post("/login", h.HandleLogin)
 		})
 

@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"fmt"
 	pub "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
 	"github.com/go-chi/chi"
@@ -134,7 +135,9 @@ func DefaultFilters(next http.Handler) http.Handler {
 		f.Object = &ActivityFilters{}
 		f.Object.OP = nilIRIs
 		f.Object.Type = ActivityTypesFilter(ValidItemTypes...)
-		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
+		m := ContextListingModel(r.Context())
+		m.Title = "Newest items"
+		ctx := context.WithValue(context.WithValue(r.Context(), FilterCtxtKey, f), ModelCtxtKey, m)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -155,7 +158,9 @@ func SelfFiltersMw(next http.Handler) http.Handler {
 		f.Object.OP = nilIRIs
 		f.Object.Type = ActivityTypesFilter(ValidItemTypes...)
 		f.IRI = CompStrs{LikeString(Instance.APIURL)}
-		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
+		m := ContextListingModel(r.Context())
+		m.Title = "Local instance items"
+		ctx := context.WithValue(context.WithValue(r.Context(), FilterCtxtKey, f), ModelCtxtKey, m)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -169,7 +174,9 @@ func FollowedFiltersMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := FiltersFromRequest(r)
 		f.Type = CreateFollowActivitiesFilter
-		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
+		m := ContextListingModel(r.Context())
+		m.Title = "Followed items"
+		ctx := context.WithValue(context.WithValue(r.Context(), FilterCtxtKey, f), ModelCtxtKey, m)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -186,7 +193,9 @@ func FederatedFiltersMw(next http.Handler) http.Handler {
 		f.Object = &ActivityFilters{}
 		f.Object.OP = nilIRIs
 		f.Object.Type = ActivityTypesFilter(ValidItemTypes...)
-		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
+		m := ContextListingModel(r.Context())
+		m.Title = "Federated items"
+		ctx := context.WithValue(context.WithValue(r.Context(), FilterCtxtKey, f), ModelCtxtKey, m)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -201,9 +210,11 @@ func DomainFiltersMw(next http.Handler) http.Handler {
 		f := FiltersFromRequest(r)
 		f.Type = CreateActivitiesFilter
 		f.Object = &ActivityFilters{}
+		m := ContextListingModel(r.Context())
 		if len(domain) > 0 {
 			f.Object.URL = CompStrs{LikeString(domain)}
 			f.Object.Type = CompStrs{EqualsString(string(pub.PageType))}
+			m.Title = fmt.Sprintf("Items pointing to %s", domain)
 		} else {
 			f.Object.MedTypes = CompStrs{
 				EqualsString(MimeTypeMarkdown),
@@ -211,9 +222,10 @@ func DomainFiltersMw(next http.Handler) http.Handler {
 				EqualsString(MimeTypeHTML),
 			}
 			f.Object.Type = ActivityTypesFilter(ValidItemTypes...)
+			m.Title = fmt.Sprintf("Discussion items")
 		}
 		f.Object.OP = nilIRIs
-		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
+		ctx := context.WithValue(context.WithValue(r.Context(), FilterCtxtKey, f), ModelCtxtKey, m)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -230,7 +242,9 @@ func TagFiltersMw(next http.Handler) http.Handler {
 		f.Object = &ActivityFilters{}
 		f.Object.Type = ActivityTypesFilter(ValidItemTypes...)
 		f.Object.Cont = CompStrs{LikeString("#" + tag)}
-		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
+		m := ContextListingModel(r.Context())
+		m.Title = fmt.Sprintf("Items tagged as #%s", tag)
+		ctx := context.WithValue(context.WithValue(r.Context(), FilterCtxtKey, f), ModelCtxtKey, m)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -268,7 +282,10 @@ func AccountFiltersMw(next http.Handler) http.Handler {
 			m := ContextListingModel(r.Context())
 			m.User = author
 		}
-		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
+
+		m := ContextListingModel(r.Context())
+		m.Title = fmt.Sprintf("%s items", genitive(author.Handle))
+		ctx := context.WithValue(context.WithValue(r.Context(), FilterCtxtKey, f), ModelCtxtKey, m)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

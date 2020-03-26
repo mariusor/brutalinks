@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"fmt"
 	pub "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
 	"net/http"
@@ -130,8 +131,12 @@ func LoadOutboxObjectMw(next http.Handler) http.Handler {
 		for k := range items {
 			c.items[k] = Renderable(&items[k])
 		}
-
-		ctx := context.WithValue(r.Context(), CursorCtxtKey, &c)
+		m := ContextContentModel(r.Context())
+		m.Title = fmt.Sprintf("Replies to %s item", genitive(author.Handle))
+		if len(i.Title) > 0 {
+			m.Title = fmt.Sprintf("%s: %s", m.Title, i.Title)
+		}
+		ctx := context.WithValue(context.WithValue(r.Context(), CursorCtxtKey, &c), ModelCtxtKey, m)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
