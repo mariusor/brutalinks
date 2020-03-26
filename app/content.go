@@ -131,7 +131,7 @@ type Item struct {
 	UpdatedBy   *Account      `json:"-"`
 	Flags       FlagBits      `json:"-"`
 	Metadata    *ItemMetadata `json:"-"`
-	pub         *pub.Object   `json:"-"`
+	pub         pub.Item      `json:"-"`
 	IsTop       bool          `json:"-"`
 	Parent      *Item         `json:"-"`
 	OP          *Item         `json:"-"`

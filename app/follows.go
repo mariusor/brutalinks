@@ -14,7 +14,7 @@ type FollowRequest struct {
 	SubmittedBy *Account        `json:"-"`
 	Object      *Account        `json:"-"`
 	Metadata    *FollowMetadata `json:"-"`
-	pub         *pub.Activity   `json:"-"`
+	pub         pub.Item        `json:"-"`
 	Flags       FlagBits        `json:"-"`
 }
 
@@ -29,6 +29,7 @@ func (f *FollowRequest) FromActivityPub(it pub.Item) error {
 	if it == nil {
 		return errors.Newf("nil item received")
 	}
+	f.pub = it
 	if it.IsLink() {
 		iri := it.GetLink()
 		f.Hash.FromActivityPub(iri)
@@ -37,19 +38,19 @@ func (f *FollowRequest) FromActivityPub(it pub.Item) error {
 		}
 		return nil
 	}
-	f.pub, _ = it.(*pub.Activity)
 	return pub.OnActivity(it, func(a *pub.Activity) error {
 		f.Hash.FromActivityPub(a)
-		follower := Account{}
-		follower.FromActivityPub(a.Actor)
-		f.SubmittedBy = &follower
-		followed := Account{}
-		followed.FromActivityPub(a.Object)
-		f.Object = &followed
+		wer := Account{}
+		wer.FromActivityPub(a.Actor)
+		f.SubmittedBy = &wer
+		wed := Account{}
+		wed.FromActivityPub(a.Object)
+		f.Object = &wed
 		f.SubmittedAt = a.Published
 		f.Metadata = &FollowMetadata{
 			ID: string(a.ID),
 		}
+
 		return nil
 	})
 }

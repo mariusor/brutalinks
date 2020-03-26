@@ -64,7 +64,7 @@ type Account struct {
 	UpdatedAt time.Time         `json:"-"`
 	Flags     FlagBits          `json:"flags,omitempty"`
 	Metadata  *AccountMetadata  `json:"-"`
-	pub       *pub.Person       `json:"-"`
+	pub       pub.Item          `json:"-"`
 	Votes     VoteCollection    `json:"votes,omitempty"`
 	Followers AccountCollection `json:"followers,omitempty"`
 	Following AccountCollection `json:"following,omitempty"`
@@ -231,7 +231,7 @@ func accountFromRequestHandle(r *http.Request) (*Account, error) {
 	repo := ContextRepository(r.Context())
 	var account *Account
 	if accounts, err := repo.accounts(fa); err == nil {
-		if  len(accounts) == 0 {
+		if len(accounts) == 0 {
 			return nil, errors.NotFoundf("account %q not found", handle)
 		}
 		if len(accounts) > 1 {

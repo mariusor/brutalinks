@@ -108,7 +108,7 @@ func (a *Account) FromActivityPub(it pub.Item) error {
 	if a == nil {
 		return nil
 	}
-	a.pub, _ = it.(*pub.Person)
+	a.pub = it
 	if it == nil {
 		return errors.Newf("nil item received")
 	}
@@ -312,6 +312,7 @@ func (i *Item) FromActivityPub(it pub.Item) error {
 	if it == nil {
 		return errors.Newf("nil item received")
 	}
+	i.pub = it
 	if it.IsLink() {
 		i.Hash.FromActivityPub(it.GetLink())
 		i.Metadata = &ItemMetadata{
@@ -319,7 +320,6 @@ func (i *Item) FromActivityPub(it pub.Item) error {
 		}
 		return nil
 	}
-	i.pub, _ = it.(*pub.Object)
 	switch it.GetType() {
 	case pub.DeleteType:
 		return pub.OnActivity(it, func(act *pub.Activity) error {
