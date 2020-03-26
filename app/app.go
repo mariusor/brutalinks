@@ -308,6 +308,7 @@ func loadEnv(l *Application) (bool, error) {
 	l.Config.SessionsEnabled = !sessionsDisabled
 	userCreationDisabled, _ := strconv.ParseBool(os.Getenv("DISABLE_USER_CREATION"))
 	l.Config.UserCreatingEnabled = !userCreationDisabled
+	// TODO(marius): this stopped working - as the anonymous user doesn't have a valid Outbox.
 	anonymousCommentingDisabled, _ := strconv.ParseBool(os.Getenv("DISABLE_ANONYMOUS_COMMENTING"))
 	l.Config.AnonymousCommentingEnabled = !anonymousCommentingDisabled
 	userFollowingDisabled, _ := strconv.ParseBool(os.Getenv("DISABLE_USER_FOLLOWING"))
