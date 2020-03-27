@@ -225,7 +225,7 @@ func accountFromRequestHandle(r *http.Request) (*Account, error) {
 	if handle == "" {
 		return nil, errors.NotFoundf("missing account handle", handle)
 	}
-	fa := &ActivityFilters{
+	fa := &Filters{
 		Name: CompStrs{EqualsString(handle)},
 	}
 	repo := ContextRepository(r.Context())

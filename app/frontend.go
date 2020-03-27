@@ -331,7 +331,7 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 		acc := loadCurrentAccountFromSession(s, h.logger)
 		m := acc.Metadata
 		if acc.IsLogged() {
-			f := &ActivityFilters{
+			f := &Filters{
 				Name: CompStrs{EqualsString(acc.Handle)},
 				//IRI:  CompStrs{EqualsString(acc.Hash.String())},
 				Type: ActivityTypesFilter(ValidActorTypes...),

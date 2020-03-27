@@ -8,8 +8,6 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/mariusor/qstring"
 	"net/http"
-	"net/url"
-	"time"
 )
 
 type CompStr = qstring.ComparativeString
@@ -24,97 +22,28 @@ func (cs CompStrs) Contains(f CompStr) bool {
 	return false
 }
 
-type LoadVotesFilter struct {
-	ItemKey              []Hash                      `qstring:"object,omitempty"`
-	Type                 pub.ActivityVocabularyTypes `qstring:"type,omitempty"`
-	AttributedTo         []Hash                      `qstring:"attributedTo,omitempty"`
-	SubmittedAt          time.Time                   `qstring:"submittedAt,omitempty"`
-	SubmittedAtMatchType MatchType                   `qstring:"submittedAtMatchType,omitempty"`
-}
-
-type LoadAccountsFilter struct {
-	Key      []Hash   `qstring:"iri,omitempty"`
-	Handle   []string `qstring:"name,omitempty"`
-	Email    []string `qstring:"email,omitempty"`
-	Deleted  []bool   `qstring:"deleted,omitempty"`
-	IRI      string   `qstring:"id,omitempty"`
-	InboxIRI string   `qstring:"inbox,omitempty"`
-}
-
-type LoadFollowRequestsFilter struct {
-	Key   []Hash `qstring:"iri,omitempty"`
-	Actor []Hash `qstring:"actor,omitempty"`
-	On    []Hash `qstring:"object,omitempty"`
-}
-
-type LoadItemsFilter struct {
-	Key                  []Hash    `qstring:"iri,omitempty"`
-	MediaType            []string  `qstring:"mediaType,omitempty"`
-	AttributedTo         []Hash    `qstring:"attributedTo,omitempty"`
-	InReplyTo            []string  `qstring:"inReplyTo,omitempty"`
-	Context              []string  `qstring:"context,omitempty"`
-	SubmittedAt          time.Time `qstring:"submittedAt,omitempty"`
-	SubmittedAtMatchType MatchType `qstring:"submittedAtMatchType,omitempty"`
-	Content              string    `qstring:"content,omitempty"`
-	ContentMatchType     MatchType `qstring:"contentMatchType,omitempty"`
-	Deleted              []bool    `qstring:"-"` // used as an array to allow for it to be missing
-	IRI                  string    `qstring:"id,omitempty"`
-	URL                  string    `qstring:"url,omitempty"`
-	Depth                int       `qstring:"depth,omitempty"`
-	Federated            []bool    `qstring:"-"` // used as an array to allow for it to be missing
-	Private              []bool    `qstring:"-"` // used as an array to allow for it to be missing
-	// FollowedBy is the hash or handle of the user of which we should show the list of items that were commented on or liked
-	FollowedBy   string `qstring:"followedBy,omitempty"`
-	contentAlias string
-	authorAlias  string
-}
-
 type Filters struct {
-	LoadAccountsFilter
-	LoadItemsFilter
-	LoadVotesFilter
-	LoadFollowRequestsFilter
-	Page     int `qstring:"page,omitempty"`
-	MaxItems int `qstring:"maxItems,omitempty"`
-}
-
-func query(f Filterable) string {
-	res := ""
-
-	var u url.Values
-	var err error
-	if u, err = qstring.Marshal(f); err != nil {
-		return ""
-	}
-
-	if len(u) > 0 {
-		res = "?" + u.Encode()
-	}
-	return res
-}
-
-type ActivityFilters struct {
-	Name       CompStrs         `qstring:"name,omitempty"`
-	Cont       CompStrs         `qstring:"content,omitempty"`
-	MedTypes   CompStrs         `qstring:"mediaType,omitempty"`
-	URL        CompStrs         `qstring:"url,omitempty"`
-	IRI        CompStrs         `qstring:"iri,omitempty"`
-	Generator  CompStrs         `qstring:"generator,omitempty"`
-	Type       CompStrs         `qstring:"type,omitempty"`
-	AttrTo     CompStrs         `qstring:"attributedTo,omitempty"`
-	InReplTo   CompStrs         `qstring:"inReplyTo,omitempty"`
-	OP         CompStrs         `qstring:"context,omitempty"`
-	Recipients CompStrs         `qstring:"recipients,omitempty"`
-	Next       string           `qstring:"after,omitempty"`
-	Prev       string           `qstring:"before,omitempty"`
-	MaxItems   int              `qstring:"maxItems,omitempty"`
-	Object     *ActivityFilters `qstring:"object,omitempty"`
-	Actor      *ActivityFilters `qstring:"actor,omitempty"`
+	Name       CompStrs `qstring:"name,omitempty"`
+	Cont       CompStrs `qstring:"content,omitempty"`
+	MedTypes   CompStrs `qstring:"mediaType,omitempty"`
+	URL        CompStrs `qstring:"url,omitempty"`
+	IRI        CompStrs `qstring:"iri,omitempty"`
+	Generator  CompStrs `qstring:"generator,omitempty"`
+	Type       CompStrs `qstring:"type,omitempty"`
+	AttrTo     CompStrs `qstring:"attributedTo,omitempty"`
+	InReplTo   CompStrs `qstring:"inReplyTo,omitempty"`
+	OP         CompStrs `qstring:"context,omitempty"`
+	Recipients CompStrs `qstring:"recipients,omitempty"`
+	Next       string   `qstring:"after,omitempty"`
+	Prev       string   `qstring:"before,omitempty"`
+	MaxItems   int      `qstring:"maxItems,omitempty"`
+	Object     *Filters `qstring:"object,omitempty"`
+	Actor      *Filters `qstring:"actor,omitempty"`
 }
 
 // FiltersFromRequest loads the filters we use for generating storage queries from the HTTP request
-func FiltersFromRequest(r *http.Request) *ActivityFilters {
-	f := ActivityFilters{}
+func FiltersFromRequest(r *http.Request) *Filters {
+	f := Filters{}
 	if err := qstring.Unmarshal(r.URL.Query(), &f); err != nil {
 		return nil
 	}
@@ -132,7 +61,7 @@ func DefaultFilters(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := FiltersFromRequest(r)
 		f.Type = CreateActivitiesFilter
-		f.Object = &ActivityFilters{}
+		f.Object = &Filters{}
 		f.Object.OP = nilIRIs
 		f.Object.Type = ActivityTypesFilter(ValidItemTypes...)
 		m := ContextListingModel(r.Context())
@@ -143,8 +72,8 @@ func DefaultFilters(next http.Handler) http.Handler {
 }
 
 // FiltersFromRequest loads the filters we use for generating storage queries from the HTTP request
-func ContextActivityFilters(ctx context.Context) *ActivityFilters {
-	if f, ok := ctx.Value(FilterCtxtKey).(*ActivityFilters); ok {
+func ContextActivityFilters(ctx context.Context) *Filters {
+	if f, ok := ctx.Value(FilterCtxtKey).(*Filters); ok {
 		return f
 	}
 	return nil
@@ -154,7 +83,7 @@ func SelfFiltersMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := FiltersFromRequest(r)
 		f.Type = CreateActivitiesFilter
-		f.Object = &ActivityFilters{}
+		f.Object = &Filters{}
 		f.Object.OP = nilIRIs
 		f.Object.Type = ActivityTypesFilter(ValidItemTypes...)
 		f.IRI = CompStrs{LikeString(Instance.APIURL)}
@@ -190,7 +119,7 @@ func FederatedFiltersMw(next http.Handler) http.Handler {
 		f := FiltersFromRequest(r)
 		f.Type = CreateActivitiesFilter
 		f.IRI = CompStrs{DifferentThanString(Instance.APIURL)}
-		f.Object = &ActivityFilters{}
+		f.Object = &Filters{}
 		f.Object.OP = nilIRIs
 		f.Object.Type = ActivityTypesFilter(ValidItemTypes...)
 		m := ContextListingModel(r.Context())
@@ -209,7 +138,7 @@ func DomainFiltersMw(next http.Handler) http.Handler {
 		domain := chi.URLParam(r, "domain")
 		f := FiltersFromRequest(r)
 		f.Type = CreateActivitiesFilter
-		f.Object = &ActivityFilters{}
+		f.Object = &Filters{}
 		m := ContextListingModel(r.Context())
 		if len(domain) > 0 {
 			f.Object.URL = CompStrs{LikeString(domain)}
@@ -239,7 +168,7 @@ func TagFiltersMw(next http.Handler) http.Handler {
 		}
 		f := FiltersFromRequest(r)
 		f.Type = CreateActivitiesFilter
-		f.Object = &ActivityFilters{}
+		f.Object = &Filters{}
 		f.Object.Type = ActivityTypesFilter(ValidItemTypes...)
 		f.Object.Cont = CompStrs{LikeString("#" + tag)}
 		m := ContextListingModel(r.Context())
@@ -264,7 +193,7 @@ func ItemFiltersMw(next http.Handler) http.Handler {
 		f := FiltersFromRequest(r)
 		f.Type = CreateActivitiesFilter
 		hash := chi.URLParam(r, "hash")
-		f.Object = &ActivityFilters{}
+		f.Object = &Filters{}
 		f.Object.IRI = CompStrs{LikeString(hash)}
 		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
 		next.ServeHTTP(w, r.WithContext(ctx))

@@ -31,14 +31,14 @@ type NodeInfoResolver struct {
 }
 
 var (
-	actorsFilter = &ActivityFilters{
+	actorsFilter = &Filters{
 		Type: ActivityTypesFilter(ValidActorTypes...),
 	}
-	postsFilter = &ActivityFilters{
+	postsFilter = &Filters{
 		Type: ActivityTypesFilter(ValidItemTypes...),
 		OP:   nilIRIs,
 	}
-	allFilter = &ActivityFilters{
+	allFilter = &Filters{
 		Type: ActivityTypesFilter(ValidItemTypes...),
 	}
 )
@@ -190,7 +190,7 @@ func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 				return ar[0], ar[1]
 			}(handle)
 		}
-		ff := &ActivityFilters{Name: CompStrs{EqualsString(handle)}}
+		ff := &Filters{Name: CompStrs{EqualsString(handle)}}
 		a, err := h.storage.LoadAccount(ff)
 		if err != nil {
 			err := errors.NotFoundf("resource not found %s", res)

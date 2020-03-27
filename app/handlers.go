@@ -255,12 +255,15 @@ func (h *handler) HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
 		accept = true
 	}
 
-	followRequests, cnt, err := repo.LoadFollowRequests(loggedAccount, Filters{
-		LoadFollowRequestsFilter: LoadFollowRequestsFilter{
-			Actor: Hashes{Hash(follower.Metadata.ID)},
-			On:    Hashes{Hash(loggedAccount.Metadata.ID)},
+	ff := &Filters{
+		Actor: &Filters{
+			IRI: CompStrs{LikeString(follower.Hash.String())},
 		},
-	})
+		Object:  &Filters{
+			IRI: CompStrs{LikeString(loggedAccount.Hash.String())},
+		},
+	}
+	followRequests, cnt, err := repo.LoadFollowRequests(loggedAccount, ff)
 	if err != nil {
 		h.v.HandleErrors(w, r, err)
 		return
@@ -289,7 +292,7 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 	config := GetOauth2Config("fedbox", h.conf.BaseURL)
 	// Try to load actor from handle
-	accts, err := h.storage.accounts(&ActivityFilters{
+	accts, err := h.storage.accounts(&Filters{
 		Name: CompStrs{EqualsString(handle)},
 		Type: ActivityTypesFilter(ValidActorTypes...),
 	})
@@ -427,7 +430,7 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	f := &ActivityFilters{Name: CompStrs{EqualsString(a.Handle)}}
+	f := &Filters{Name: CompStrs{EqualsString(a.Handle)}}
 	maybeExists, _ := h.storage.fedbox.Actors(Values(f))
 	if maybeExists.Count() > 0 {
 		h.v.HandleErrors(w, r, errors.BadRequestf("account %s already exists", a.Handle))

@@ -617,7 +617,7 @@ func (r *repository) loadItemsReplies(items ...Item) (ItemCollection, error) {
 		return nil, nil
 	}
 	allReplies := make(ItemCollection, 0)
-	f := &ActivityFilters{}
+	f := &Filters{}
 	for _, top := range repliesTo {
 		collFn := func() (pub.CollectionInterface, error) {
 			return r.fedbox.Replies(top.GetLink(), Values(f))
@@ -648,8 +648,8 @@ func (r *repository) loadAccountVotes(acc *Account, items ItemCollection) error 
 		return nil
 	}
 	voteActivities := pub.ActivityVocabularyTypes{pub.LikeType, pub.DislikeType, pub.UndoType}
-	f := &ActivityFilters{
-		Object: &ActivityFilters{},
+	f := &Filters{
+		Object: &Filters{},
 		Type:   ActivityTypesFilter(voteActivities...),
 	}
 	for _, it := range items {
@@ -678,8 +678,8 @@ func (r *repository) loadItemsVotes(items ...Item) (ItemCollection, error) {
 		return items, nil
 	}
 	voteActivities := pub.ActivityVocabularyTypes{pub.LikeType, pub.DislikeType, pub.UndoType}
-	f := &ActivityFilters{
-		Object: &ActivityFilters{},
+	f := &Filters{
+		Object: &Filters{},
 		Type:   ActivityTypesFilter(voteActivities...),
 	}
 	for _, it := range items {
@@ -722,7 +722,7 @@ func (r *repository) loadAuthors(items ...FollowRequest) ([]FollowRequest, error
 	if len(items) == 0 {
 		return items, nil
 	}
-	fActors := ActivityFilters{
+	fActors := Filters{
 		Type: ActivityTypesFilter(ValidActorTypes...),
 	}
 	for _, it := range items {
@@ -761,7 +761,7 @@ func (r *repository) loadItemsAuthors(items ...Item) (ItemCollection, error) {
 		return items, nil
 	}
 
-	fActors := ActivityFilters{
+	fActors := Filters{
 		Type: ActivityTypesFilter(ValidActorTypes...),
 	}
 	for _, it := range items {
@@ -841,7 +841,7 @@ type Cursor struct {
 var emptyCursor = Cursor{}
 
 type colCursor struct {
-	filters *ActivityFilters
+	filters *Filters
 	items   pub.ItemCollection
 }
 
@@ -964,7 +964,7 @@ func LoadFromCollection(f CollectionFn, cur *colCursor, accum func(pub.ItemColle
 	return err
 }
 
-func (r *repository) accounts(f *ActivityFilters) ([]Account, error) {
+func (r *repository) accounts(f *Filters) ([]Account, error) {
 	actors := func() (pub.CollectionInterface, error) {
 		return r.fedbox.Actors(Values(f))
 	}
@@ -986,7 +986,7 @@ func (r *repository) accounts(f *ActivityFilters) ([]Account, error) {
 	return accounts, err
 }
 
-func (r *repository) objects(f *ActivityFilters) (ItemCollection, error) {
+func (r *repository) objects(f *Filters) (ItemCollection, error) {
 	objects := func() (pub.CollectionInterface, error) {
 		return r.fedbox.Objects(Values(f))
 	}
@@ -1002,7 +1002,7 @@ func (r *repository) objects(f *ActivityFilters) (ItemCollection, error) {
 	return items, err
 }
 
-func (r *repository) Objects(f *ActivityFilters) (Cursor, error) {
+func (r *repository) Objects(f *Filters) (Cursor, error) {
 	items, err := r.objects(f)
 	if err != nil {
 		return emptyCursor, err
@@ -1022,7 +1022,7 @@ func (r *repository) Objects(f *ActivityFilters) (Cursor, error) {
 	}, nil
 }
 
-func validFederated(i Item, f *ActivityFilters) bool {
+func validFederated(i Item, f *Filters) bool {
 	ob, err := pub.ToObject(i.pub)
 	if err != nil {
 		return false
@@ -1047,7 +1047,7 @@ func validFederated(i Item, f *ActivityFilters) bool {
 	return ob != nil && ob.Generator == nil
 }
 
-func validRecipients(i Item, f *ActivityFilters) bool {
+func validRecipients(i Item, f *Filters) bool {
 	if len(f.Recipients) > 0 {
 		for _, r := range f.Recipients {
 			if pub.IRI(r.Str).Equals(pub.PublicNS, false) && i.Private() {
@@ -1058,7 +1058,7 @@ func validRecipients(i Item, f *ActivityFilters) bool {
 	return true
 }
 
-func validItem(it Item, f *ActivityFilters) bool {
+func validItem(it Item, f *Filters) bool {
 	if keep := validRecipients(it, f); !keep {
 		return keep
 	}
@@ -1068,7 +1068,7 @@ func validItem(it Item, f *ActivityFilters) bool {
 	return true
 }
 
-func filterItems(items ItemCollection, f *ActivityFilters) ItemCollection {
+func filterItems(items ItemCollection, f *Filters) ItemCollection {
 	result := make(ItemCollection, 0)
 	for _, it := range items {
 		if !it.HasMetadata() {
@@ -1102,7 +1102,7 @@ func orderRenderables(r RenderableList) {
 //  With the resulting Object IRIs we load from the objects collection with our matching filters
 //  With the resulting Actor IRIs we load from the accounts collection with matching filters
 // From the
-func (r *repository) ActorCollection(fn CollectionFn, f *ActivityFilters) (Cursor, error) {
+func (r *repository) ActorCollection(fn CollectionFn, f *Filters) (Cursor, error) {
 	items := make(ItemCollection, 0)
 	follows := make(FollowRequests, 0)
 	relations := make(map[pub.IRI]pub.IRI)
@@ -1269,13 +1269,12 @@ func (r *repository) SaveVote(v Vote) (Vote, error) {
 
 func (r *repository) loadVotesCollection(iri pub.IRI, actors ...pub.IRI) ([]Vote, error) {
 	cntActors := len(actors)
-	f := Filters{}
+	f := &Filters{}
 	if cntActors > 0 {
-		attrTo := make([]Hash, cntActors)
+		f.AttrTo = make(CompStrs, cntActors)
 		for i, a := range actors {
-			attrTo[i] = Hash(a.String())
+			f.AttrTo[i] = LikeString(a.String())
 		}
-		f.LoadVotesFilter.AttributedTo = attrTo
 	}
 	likes, err := r.fedbox.Collection(iri, Values(f))
 	// first step is to verify if vote already exists:
@@ -1295,90 +1294,6 @@ func (r *repository) loadVotesCollection(iri pub.IRI, actors ...pub.IRI) ([]Vote
 		return nil, err
 	}
 	return votes, nil
-}
-
-func (r *repository) LoadVotes(f Filters) (VoteCollection, uint, error) {
-	f.Type = pub.ActivityVocabularyTypes{
-		pub.LikeType,
-		pub.DislikeType,
-		pub.UndoType,
-	}
-
-	var url string
-	if len(f.LoadVotesFilter.AttributedTo) == 1 {
-		attrTo := f.LoadVotesFilter.AttributedTo[0]
-		f.LoadVotesFilter.AttributedTo = nil
-		url = fmt.Sprintf("%s/%s/%s/outbox", r.BaseURL, actors, attrTo)
-	} else {
-		url = fmt.Sprintf("%s/inbox", r.BaseURL)
-	}
-
-	it, err := r.fedbox.Collection(pub.IRI(url), Values(f))
-	if err != nil {
-		r.errFn(err.Error(), nil)
-		return nil, 0, err
-	}
-	var count uint = 0
-	votes := make(VoteCollection, 0)
-	undos := make(VoteCollection, 0)
-	pub.OnOrderedCollection(it, func(col *pub.OrderedCollection) error {
-		count = col.TotalItems
-		for _, it := range col.OrderedItems {
-			vot := Vote{}
-			if err := vot.FromActivityPub(it); err != nil {
-				r.errFn(err.Error(), log.Ctx{
-					"type": fmt.Sprintf("%T", it),
-				})
-				continue
-			}
-			if vot.Weight != 0 {
-				votes = append(votes, vot)
-			} else {
-				if vot.Metadata == nil || len(vot.Metadata.OriginalIRI) == 0 {
-					r.infoFn("Zero vote without an original activity undone", nil)
-					continue
-				}
-				undos = append(undos, vot)
-			}
-		}
-		for _, undo := range undos {
-			if undo.Metadata == nil || len(undo.Metadata.OriginalIRI) == 0 {
-				// error
-				continue
-			}
-			for i, vot := range votes {
-				if vot.Metadata == nil || len(vot.Metadata.IRI) == 0 {
-					// error
-					continue
-				}
-				if vot.Metadata.IRI == undo.Metadata.OriginalIRI {
-					votes = append(votes[:i], votes[i+1:]...)
-				}
-			}
-		}
-		return err
-	})
-
-	return votes, count, nil
-}
-
-func (r *repository) LoadVote(f Filters) (Vote, error) {
-	if len(f.ItemKey) == 0 {
-		return Vote{}, errors.Newf("invalid item hash")
-	}
-
-	v := Vote{}
-	itemHash := f.ItemKey[0]
-	f.ItemKey = nil
-	url := fmt.Sprintf("%s/liked/%s", r.BaseURL, itemHash)
-
-	like, err := r.fedbox.Activity(pub.IRI(url))
-	if err != nil {
-		r.errFn(err.Error(), nil)
-		return v, err
-	}
-	err = v.FromActivityPub(like)
-	return v, err
 }
 
 type _errors struct {
@@ -1473,7 +1388,7 @@ func (r *repository) SaveItem(it Item) (Item, error) {
 			for _, m := range it.Metadata.Mentions {
 				names = append(names, EqualsString(m.Name))
 			}
-			ff := &ActivityFilters{Name: names}
+			ff := &Filters{Name: names}
 			actors, _, err := r.LoadAccounts(ff)
 			if err != nil {
 				r.errFn("unable to load accounts from mentions", log.Ctx{"err": err})
@@ -1537,7 +1452,7 @@ func (r *repository) SaveItem(it Item) (Item, error) {
 	return it, err
 }
 
-func (r *repository) LoadAccounts(f *ActivityFilters) (AccountCollection, uint, error) {
+func (r *repository) LoadAccounts(f *Filters) (AccountCollection, uint, error) {
 	it, err := r.fedbox.Actors(Values(f))
 	if err != nil {
 		r.errFn(err.Error(), nil)
@@ -1563,7 +1478,7 @@ func (r *repository) LoadAccounts(f *ActivityFilters) (AccountCollection, uint, 
 	return accounts, count, nil
 }
 
-func (r *repository) LoadAccount(f *ActivityFilters) (Account, error) {
+func (r *repository) LoadAccount(f *Filters) (Account, error) {
 	accounts, _, err := r.LoadAccounts(f)
 	if err != nil || len(accounts) == 0 {
 		return AnonymousAccount, errors.NewNotFound(err, "account")
@@ -1582,9 +1497,9 @@ func Values(f interface{}) func() url.Values {
 	}
 }
 
-func (r *repository) LoadFollowRequests(ed *Account, f Filters) (FollowRequests, uint, error) {
+func (r *repository) LoadFollowRequests(ed *Account, f *Filters) (FollowRequests, uint, error) {
 	if len(f.Type) == 0 {
-		f.Type = pub.ActivityVocabularyTypes{pub.FollowType}
+		f.Type = ActivityTypesFilter(pub.FollowType)
 	}
 	var followReq pub.CollectionInterface
 	var err error
@@ -1728,7 +1643,7 @@ func (r *repository) LoadInfo() (WebInfo, error) {
 	return Instance.NodeInfo(), nil
 }
 
-func (r *repository) LoadActorOutbox(actor pub.Item, f *ActivityFilters) (*Cursor, error) {
+func (r *repository) LoadActorOutbox(actor pub.Item, f *Filters) (*Cursor, error) {
 	if actor == nil {
 		return nil, errors.Errorf("Invalid actor")
 	}
@@ -1742,7 +1657,7 @@ func (r *repository) LoadActorOutbox(actor pub.Item, f *ActivityFilters) (*Curso
 	return &cursor, nil
 }
 
-func (r *repository) LoadActorInbox(actor pub.Item, f *ActivityFilters) (*Cursor, error) {
+func (r *repository) LoadActorInbox(actor pub.Item, f *Filters) (*Cursor, error) {
 	if actor == nil {
 		return nil, errors.Errorf("Invalid actor")
 	}
