@@ -475,8 +475,7 @@ func (r *repository) LoadItem(iri pub.IRI) (Item, error) {
 		r.errFn(err.Error(), nil)
 		return item, err
 	}
-	err = item.FromActivityPub(art)
-	if err == nil {
+	if err = item.FromActivityPub(art); err == nil {
 		var items ItemCollection
 		items, err = r.loadItemsAuthors(item)
 		items, err = r.loadItemsVotes(items...)

@@ -392,8 +392,7 @@ func (h *handler) ValidateItemAuthor(next http.Handler) http.Handler {
 			iri := pub.IRI(fmt.Sprintf("%s/%s", ObjectsURL, hash))
 			m, err := repo.LoadItem(iri)
 			if err != nil {
-				h.logger.Error(err.Error())
-				h.v.HandleErrors(w, r, errors.NewNotFound(err, "item"))
+				ctxtErr(next, w, r, errors.NewNotFound(err, "item"))
 				return
 			}
 			if !HashesEqual(m.SubmittedBy.Hash, acc.Hash) {
