@@ -223,7 +223,7 @@ func checkUserCreatingEnabled(next http.Handler) http.Handler {
 func accountFromRequestHandle(r *http.Request) (*Account, error) {
 	handle := chi.URLParam(r, "handle")
 	if handle == "" {
-		return nil, errors.NotFoundf("missing account handle", handle)
+		return nil, errors.NotFoundf("missing account handle %s", handle)
 	}
 	fa := &Filters{
 		Name: CompStrs{EqualsString(handle)},
