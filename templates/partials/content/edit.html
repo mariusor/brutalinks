@@ -2,10 +2,10 @@
 <form method="post">
     <fieldset {{ if .Content.Hash }}data-reply="{{.Content.Hash }}"{{end}}>
         <label for="submit-data">{{ if not .Content.Hash }}New{{else}}{{- if .Content.Edit -}}Edit{{- else -}}Comment{{ end }}{{- end -}}: </label><br/>
-        <textarea {{if $readonly -}} readonly="readonly" {{ end -}}name="data" id="submit-data" cols="80" rows="5" required>{{- if .Content.Edit -}}{{- .Content.Data -}}{{- end -}}{{if $readonly -}} You must login to be able to comment {{ end -}}</textarea><br/>
+        <textarea {{if $readonly -}} disabled="disabled" {{ end -}}name="data" id="submit-data" cols="80" rows="5" required>{{- if .Content.Edit -}}{{- .Content.Data -}}{{- end -}}{{if $readonly -}} You must authenticate to be able to comment {{ end -}}</textarea><br/>
 {{- if not .Content.Hash -}}
         <label for="submit-title">Title: </label><br/>
-        <textarea {{if $readonly -}} readonly="readonly" {{ end -}} name="title" id="submit-title" rows="2" required>{{- if .Content.Edit -}}{{- .Content.Title -}}{{- end -}}</textarea><br/>
+        <textarea {{if $readonly -}} disabled="disabled" {{ end -}} name="title" id="submit-title" rows="2" required>{{- if .Content.Edit -}}{{- .Content.Title -}}{{- end -}}</textarea><br/>
 {{- end -}}
 {{- if .Content.Hash -}}
 {{- if .Content.Edit }}
