@@ -19,6 +19,11 @@
     <summary><span>Message user</span></summary>
     {{ template "partials/content/edit" -}}
     </details>
+{{- else -}}
+    <details id="invites">
+        <summary><span>Invite a user</span></summary>
+        {{ template "partials/invite" -}}
+    </details>
 {{ end -}}
 </section>
 {{ template "listing" . }}

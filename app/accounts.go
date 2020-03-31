@@ -178,16 +178,26 @@ func (a AccountCollection) First() (*Account, error) {
 	return nil, errors.Errorf("empty %T", a)
 }
 
-func accountFromPost(r *http.Request, l log.Logger) (*Account, error) {
+func accountFromPost(r *http.Request, l log.Logger) (Account, error) {
 	if r.Method != http.MethodPost {
-		return nil, errors.Errorf("invalid http method type")
+		return AnonymousAccount, errors.Errorf("invalid http method type")
 	}
 
-	a := Account{Metadata: &AccountMetadata{}}
+	var a Account
+	var err error
+	hash := r.PostFormValue("hash")
+	if len(hash) > 0 {
+		s := ContextRepository(r.Context())
+		f := &Filters{IRI: CompStrs{LikeString(hash)}}
+		a, err = s.LoadAccount(f)
+	}
+	if accountsEqual(a, AnonymousAccount) || err != nil {
+		a = Account{Metadata: &AccountMetadata{}}
+	}
 	pw := r.PostFormValue("pw")
 	pwConfirm := r.PostFormValue("pw-confirm")
 	if pw != pwConfirm {
-		return nil, errors.Errorf("the passwords don't match")
+		return AnonymousAccount, errors.Errorf("the passwords don't match")
 	}
 
 	/*
@@ -197,18 +207,13 @@ func accountFromPost(r *http.Request, l log.Logger) (*Account, error) {
 		}
 	*/
 	handle := r.PostFormValue("handle")
-	if handle != "" {
+	if len(handle) > 0 {
 		a.Handle = handle
 	}
-	now := time.Now().UTC()
-	a.CreatedAt = now
-	a.UpdatedAt = now
-
 	a.Metadata = &AccountMetadata{
 		Password: []byte(pw),
 	}
-
-	return &a, nil
+	return a, nil
 }
 
 func checkUserCreatingEnabled(next http.Handler) http.Handler {

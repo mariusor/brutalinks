@@ -8,6 +8,7 @@ import (
 	"github.com/go-ap/errors"
 	"github.com/gorilla/csrf"
 	"github.com/mariusor/littr.go/internal/log"
+	"github.com/mariusor/qstring"
 	"github.com/openshift/osin"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
@@ -259,7 +260,7 @@ func (h *handler) HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
 		Actor: &Filters{
 			IRI: CompStrs{LikeString(follower.Hash.String())},
 		},
-		Object:  &Filters{
+		Object: &Filters{
 			IRI: CompStrs{LikeString(loggedAccount.Hash.String())},
 		},
 	}
@@ -421,6 +422,73 @@ func (h *handler) HandleItemRedirect(w http.ResponseWriter, r *http.Request) {
 
 var scopeAnonymousUserCreate = "anonUserCreate"
 
+func getPassCode(h *handler, acc *Account, invitee *Account, r *http.Request) (string, error) {
+	if !acc.IsLogged() {
+		acc = h.storage.app
+	}
+
+	// TODO(marius): Start oauth2 authorize session
+	config := GetOauth2Config("fedbox", h.conf.BaseURL)
+	config.Scopes = []string{scopeAnonymousUserCreate}
+	param := oauth2.SetAuthURLParam("actor", invitee.pub.GetLink().String())
+	sessUrl := config.AuthCodeURL(csrf.Token(r), param)
+	res, err := http.Get(sessUrl)
+	if err != nil {
+		return "", err
+	}
+
+	var body []byte
+	if body, err = ioutil.ReadAll(res.Body); err != nil {
+		return "", err
+	}
+	d := osin.AuthorizeData{}
+	if err := json.Unmarshal(body, &d); err != nil {
+		return "", err
+	}
+
+	if d.Code == "" {
+		return "", errors.NotValidf("unable to get session token for setting the user's password")
+	}
+	return d.Code, nil
+}
+
+// HandleSendInvite handles POST /invite requests
+func (h *handler) HandleSendInvite(w http.ResponseWriter, r *http.Request) {
+	acc := loggedAccount(r)
+	email := r.PostFormValue("email")
+	if len(email) == 0 {
+		h.v.HandleErrors(w, r, errors.BadRequestf("invalid email"))
+		return
+	}
+
+	invitee, err := h.storage.SaveAccount(Account{
+		Email:     email,
+		CreatedBy: acc,
+	})
+
+	if err != nil {
+		h.v.HandleErrors(w, r, errors.NewBadRequest(err, "unable to save account"))
+		return
+	}
+	if !invitee.IsValid() || !invitee.HasMetadata() || invitee.Metadata.ID == "" {
+		h.v.HandleErrors(w, r, errors.NewBadRequest(err, "invalid account saved"))
+		return
+	}
+
+	u := fmt.Sprintf("%s/register/%s", h.conf.BaseURL, invitee.Hash)
+	bodyFmt := "Hello %s,\nThe user %s has invited you to %s: %s.\nTo accept this invitation and create an account, visit the URL below: %s\n"
+	mailContent := struct {
+		Subject string `qstring:subject`
+		Body    string `qstring:body`
+	}{
+		Subject: fmt.Sprintf("You are invited to join %s", h.conf.HostName),
+		Body:    fmt.Sprintf(bodyFmt, invitee.Email, acc.Handle, h.conf.HostName, h.conf.BaseURL, u),
+	}
+	q, _ := qstring.Marshal(&mailContent)
+	h.v.Redirect(w, r, fmt.Sprintf("mailto:%s?%s", invitee.Email, q.Encode()), http.StatusSeeOther)
+	return
+}
+
 // HandleRegister handles POST /register requests
 func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	a, err := accountFromPost(r, h.logger)
@@ -436,14 +504,11 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	acc := loggedAccount(r)
-	if !acc.IsLogged() {
-		acc = h.storage.app
-	}
-	a.CreatedBy = acc
-	h.storage.WithAccount(acc)
-	*a, err = h.storage.SaveAccount(*a)
+	app := h.storage.app
+	a.CreatedBy = app
+	a, err = h.storage.WithAccount(app).SaveAccount(a)
 	if err != nil {
+		h.logger.Error(err.Error())
 		h.v.HandleErrors(w, r, err)
 		return
 	}
@@ -486,7 +551,6 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	q := u.Query()
 	q.Set("s", d.Code)
 	u.RawQuery = q.Encode()
-
 	form := url.Values{}
 	pw := r.PostFormValue("pw")
 	pwConfirm := r.PostFormValue("pw-confirm")
@@ -508,7 +572,7 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// HandleShow serves / request
+// HandleShow serves most of the GET requests
 func (h *handler) HandleShow(w http.ResponseWriter, r *http.Request) {
 	m := ContextModel(r.Context())
 	if m == nil {

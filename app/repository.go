@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	pub "github.com/go-ap/activitypub"
+	"github.com/go-ap/client"
 	"github.com/go-ap/errors"
 	"github.com/go-ap/handlers"
 	j "github.com/go-ap/jsonld"
@@ -415,28 +416,35 @@ func getSigner(pubKeyID pub.ID, key crypto.PrivateKey) *httpsig.Signer {
 	return httpsig.NewSigner(string(pubKeyID), key, httpsig.RSASHA256, hdrs)
 }
 
-func (r *repository) WithAccount(a *Account) error {
-	r.fedbox.SignFn(func(req *http.Request) error {
-		// TODO(marius): this needs to be added to the federated requests, which we currently don't support
-		if !a.IsValid() || !a.IsLogged() {
-			return nil
-		}
-		if a.Metadata.OAuth.Token == "" {
-			e := errors.Newf("account has no OAuth2 token")
-			r.errFn(e.Error(), log.Ctx{
-				"handle":   a.Handle,
-				"logged":   a.IsLogged(),
-				"metadata": a.Metadata,
-			})
-			return e
-		}
-		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", a.Metadata.OAuth.Token))
-		return nil
-	})
-	return nil
+// @todo(marius): the decision which sign function to use (the one for S2S or the one for C2S)
+//   should be made in fedbox, because that's the place where we know if the request we're signing
+//   is addressed to an IRI belonging to that specific fedbox instance or to another ActivityPub server
+func (r *repository) WithAccount(a *Account) *repository {
+	r.fedbox.SignFn(r.withAccountC2S(a))
+	return r
 }
 
-func (r *repository) withAccountS2S(a *Account) error {
+func (r *repository) withAccountC2S(a *Account) client.RequestSignFn {
+	// TODO(marius): this needs to be added to the federated requests, which we currently don't support
+	if !a.IsValid() || !a.IsLogged() {
+		return nil
+	}
+	if a.Metadata.OAuth.Token == "" {
+		r.errFn("account has no OAuth2 token", log.Ctx{
+			"handle":   a.Handle,
+			"logged":   a.IsLogged(),
+			"metadata": a.Metadata,
+		})
+		return nil
+	}
+	tok := a.Metadata.OAuth.Token
+	return func(req *http.Request) error {
+		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", tok))
+		return nil
+	}
+}
+
+func (r *repository) withAccountS2S(a *Account) client.RequestSignFn {
 	// TODO(marius): this needs to be added to the federated requests, which we currently don't support
 	if !a.IsValid() || !a.IsLogged() {
 		return nil
@@ -452,20 +460,25 @@ func (r *repository) withAccountS2S(a *Account) error {
 		prv, err = x509.ParsePKCS8PrivateKey(k.Private)
 	}
 	if err != nil {
-		return err
+		r.errFn(err.Error(), log.Ctx{
+			"handle":   a.Handle,
+			"logged":   a.IsLogged(),
+			"metadata": a.Metadata,
+		})
+		return nil
 	}
 	if k.ID == "id-ecdsa" {
-		return errors.Errorf("unsupported private key type %s", k.ID)
 		//prv, err = x509.ParseECPrivateKey(k.Private)
-	}
-	if err != nil {
-		return err
+		err := errors.Errorf("unsupported private key type %s", k.ID)
+		r.errFn(err.Error(), log.Ctx{
+			"handle":   a.Handle,
+			"logged":   a.IsLogged(),
+			"metadata": a.Metadata,
+		})
+		return nil
 	}
 	p := *loadAPPerson(*a)
-	s := getSigner(p.PublicKey.ID, prv)
-	r.fedbox.SignFn(s.Sign)
-
-	return nil
+	return getSigner(p.PublicKey.ID, prv).Sign
 }
 
 func (r *repository) LoadItem(iri pub.IRI) (Item, error) {

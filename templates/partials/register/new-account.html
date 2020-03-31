@@ -1,9 +1,13 @@
-<form method="post">
+{{ $current := .Account }}
+<form method="post" action="/register">
     <fieldset>
-        <legend>New account</legend>
+        <legend>{{- if $current.IsValid -}}Account from invitation{{- else -}}New account{{- end -}}</legend>
         {{ csrfField }}
+{{- if $current.IsValid }}
+        <input name="hash" type="hidden" value="{{$current.Hash}}" />
+{{- end }}
         <label for="new-acct-handle">Handle:</label><br/>
-        <input name="handle" id="new-acct-handle"  type="text" autocomplete="username" size="40" required/><br/>
+        <input name="handle" id="new-acct-handle" type="text" autocomplete="username" size="40" {{if $current.IsValid }}value="{{$current.Handle}}"{{ end }} required/><br/>
         <label for="new-acct-pw">Password:</label><br/>
         <input name="pw" id="new-acct-pw" type="password" autocomplete="new-password" minlength="8" size="40" required/><br/>
         <label for="new-acct-pw-confirm">Confirm password:</label><br/>

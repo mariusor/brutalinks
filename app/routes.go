@@ -13,22 +13,26 @@ import (
 
 func (h *handler) Routes() func(chi.Router) {
 	return func(r chi.Router) {
-
 		r.Use(middleware.GetHead)
 		r.Use(ReqLogger(h.logger))
 		r.Use(h.LoadSession)
 		r.Use(SetSecurityHeaders)
-		//r.Use(middleware.RedirectSlashes)
 		r.Use(middleware.Timeout(60 * time.Millisecond))
 
-		r.Get("/about", h.HandleAbout)
-
-		r.With(ModelMw(&listingModel{}), DefaultFilters, LoadServiceInboxMw).Get("/", h.HandleShow)
 		r.With(h.CSRF).Group(func(r chi.Router) {
 			r.With(ModelMw(&contentModel{Title: "Add new submission", Content: &Item{Edit: true}})).Get("/submit", h.HandleShow)
 			r.Post("/submit", h.HandleSubmit)
-			r.With(ModelMw(&registerModel{Title: "Register new account"}), checkUserCreatingEnabled).Get("/register", h.HandleShow)
-			r.With(checkUserCreatingEnabled).Post("/register", h.HandleRegister)
+			r.With(checkUserCreatingEnabled).Route("/register", func(r chi.Router) {
+				r.Group(func(r chi.Router) {
+					r.With(ModelMw(&registerModel{Title: "Register new account"})).Get("/", h.HandleShow)
+					r.With(ModelMw(&registerModel{Title: "Register account from invite"}), LoadInvitedMw).Get("/{hash}", h.HandleShow)
+				})
+				r.Post("/", h.HandleRegister)
+			})
+			r.With(h.NeedsSessions).Group(func(r chi.Router) {
+				r.With(ModelMw(&loginModel{Title: "Local authentication"})).Get("/login", h.HandleShow)
+				r.Post("/login", h.HandleLogin)
+			})
 		})
 
 		r.With(LoadAuthorMw).Route("/~{handle}", func(r chi.Router) {
@@ -47,7 +51,8 @@ func (h *handler) Routes() func(chi.Router) {
 					r.Get("/yay", h.HandleVoting)
 					r.Get("/nay", h.HandleVoting)
 
-					r.Get("/bad", h.ShowReport)
+					//r.Get("/bad", h.ShowReport)
+					r.With(ModelMw(&contentModel{Title: "Report item"})).Get("/bad", h.HandleShow)
 					r.Post("/bad", h.HandleReport)
 
 					r.With(h.ValidateItemAuthor).Group(func(r chi.Router) {
@@ -67,22 +72,20 @@ func (h *handler) Routes() func(chi.Router) {
 		// @todo(marius) :link_generation:
 		r.Get("/i/{hash}", h.HandleItemRedirect)
 
-		// @todo(marius) :link_generation:
-		r.With(ModelMw(&listingModel{}), DomainFiltersMw, LoadServiceInboxMw, middleware.StripSlashes).Get("/d", h.HandleShow)
-		r.With(ModelMw(&listingModel{}), DomainFiltersMw, LoadServiceInboxMw).Get("/d/{domain}", h.HandleShow)
-		// @todo(marius) :link_generation:
-		r.With(ModelMw(&listingModel{}), TagFiltersMw, LoadServiceInboxMw).Get("/t/{tag}", h.HandleShow)
-
 		r.With(h.NeedsSessions).Get("/logout", h.HandleLogout)
-		r.With(h.CSRF, h.NeedsSessions).Group(func(r chi.Router) {
-			r.With(ModelMw(&loginModel{Title: "Local authentication"})).Get("/login", h.HandleShow)
-			r.Post("/login", h.HandleLogin)
-		})
+		r.With(h.NeedsSessions, h.ValidateLoggedIn(h.v.HandleErrors)).Post("/invite", h.HandleSendInvite)
 
-		r.With(ModelMw(&listingModel{}), SelfFiltersMw, LoadServiceInboxMw).Get("/self", h.HandleShow)
-		r.With(ModelMw(&listingModel{}), FederatedFiltersMw, LoadServiceInboxMw).Get("/federated", h.HandleShow)
-		r.With(ModelMw(&listingModel{}), h.NeedsSessions, FollowedFiltersMw, h.ValidateLoggedIn(h.v.HandleErrors), LoadInboxMw).Get("/followed", h.HandleShow)
-		r.With(ModelMw(&listingModel{}), ModerationFiltersMw, LoadInboxMw, AnonymizeListing).Get("/moderation", h.HandleShow)
+		r.With(ModelMw(&listingModel{})).Group(func(r chi.Router) {
+			// @todo(marius) :link_generation:
+			r.With(DefaultFilters, LoadServiceInboxMw).Get("/", h.HandleShow)
+			r.With(DomainFiltersMw, LoadServiceInboxMw, middleware.StripSlashes).Get("/d", h.HandleShow)
+			r.With(DomainFiltersMw, LoadServiceInboxMw).Get("/d/{domain}", h.HandleShow)
+			r.With(TagFiltersMw, LoadServiceInboxMw).Get("/t/{tag}", h.HandleShow)
+			r.With(SelfFiltersMw, LoadServiceInboxMw).Get("/self", h.HandleShow)
+			r.With(FederatedFiltersMw, LoadServiceInboxMw).Get("/federated", h.HandleShow)
+			r.With(h.NeedsSessions, FollowedFiltersMw, h.ValidateLoggedIn(h.v.HandleErrors), LoadInboxMw).Get("/followed", h.HandleShow)
+			r.With(ModerationFiltersMw, LoadInboxMw, AnonymizeListing).Get("/moderation", h.HandleShow)
+		})
 
 		r.Route("/auth", func(r chi.Router) {
 			r.Use(h.NeedsSessions)
@@ -96,6 +99,7 @@ func (h *handler) Routes() func(chi.Router) {
 			h.v.HandleErrors(w, r, errors.MethodNotAllowedf("invalid %q request", r.Method))
 		})
 
+		r.Get("/about", h.HandleAbout)
 		workDir, _ := os.Getwd()
 		assets := filepath.Join(workDir, "assets")
 

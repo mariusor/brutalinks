@@ -112,3 +112,10 @@ func ContextContent(ctx context.Context) *Item {
 	}
 	return nil
 }
+
+func ContextRegisterModel(ctx context.Context) *registerModel {
+	if r, ok := ctx.Value(ModelCtxtKey).(*registerModel); ok {
+		return r
+	}
+	return nil
+}
