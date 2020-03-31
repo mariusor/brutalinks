@@ -101,6 +101,10 @@ func FromActor(a *Account, p *pub.Actor) error {
 			Public: pub,
 		}
 	}
+	if p.AttributedTo != nil {
+		a.CreatedBy = &Account{}
+		a.CreatedBy.FromActivityPub(p.AttributedTo)
+	}
 	return nil
 }
 
