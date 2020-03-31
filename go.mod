@@ -9,14 +9,10 @@ require (
 	github.com/go-ap/errors v0.0.0-20200327122229-53c42fe04723
 	github.com/go-ap/handlers v0.0.0-20200329163205-a3773c88ca17
 	github.com/go-ap/jsonld v0.0.0-20200327122108-fafac2de2660
-	github.com/go-ap/processing v0.0.0-20200326184034-6d2fa1a88180 // indirect
 	github.com/go-chi/chi v4.0.4+incompatible
-	github.com/golang/protobuf v1.3.5 // indirect
-	github.com/google/uuid v1.1.1 // indirect
 	github.com/gorilla/csrf v1.6.2
 	github.com/gorilla/sessions v1.2.0
 	github.com/joho/godotenv v1.3.0
-	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/lib/pq v1.3.0
 	github.com/mariusor/qstring v0.0.0-20200204164351-5a99d46de39d
 	github.com/openshift/osin v1.0.1
@@ -33,5 +29,4 @@ require (
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	golang.org/x/sys v0.0.0-20200327173247-9dae0f8f5775 // indirect
 	golang.org/x/text v0.3.2
-	google.golang.org/appengine v1.6.5 // indirect
 )
