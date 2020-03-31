@@ -181,8 +181,11 @@ footer nav.bottom {
     float: right;
     font-size: .7rem;
 }
-footer ul.omega{
-    margin-left: 1rem;
+footer nav.bottom ul::after {
+    content: "\22c5";
+}
+footer nav.bottom ul.omega::after {
+    content: "";
 }
 footer nav.bottom ul.omega::before {
     content: "Ω";
