@@ -79,7 +79,7 @@ const Nay = "nay"
 type RenderType int
 
 const (
-	Comment = iota
+	Comment RenderType = iota
 	Follow
 	Appreciation
 )
