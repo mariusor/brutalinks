@@ -82,6 +82,7 @@ func (h *handler) Routes() func(chi.Router) {
 		r.With(ModelMw(&listingModel{}), SelfFiltersMw, LoadServiceInboxMw).Get("/self", h.HandleShow)
 		r.With(ModelMw(&listingModel{}), FederatedFiltersMw, LoadServiceInboxMw).Get("/federated", h.HandleShow)
 		r.With(ModelMw(&listingModel{}), h.NeedsSessions, FollowedFiltersMw, h.ValidateLoggedIn(h.v.HandleErrors), LoadInboxMw).Get("/followed", h.HandleShow)
+		r.With(ModelMw(&listingModel{}), ModerationFiltersMw, LoadInboxMw, AnonymizeListing).Get("/moderation", h.HandleShow)
 
 		r.Route("/auth", func(r chi.Router) {
 			r.Use(h.NeedsSessions)

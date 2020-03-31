@@ -12,9 +12,15 @@
     </ul></nav>
 {{- end -}}
 {{ end -}}
-<nav class="bottom"><ul class="inline">
+<nav class="bottom">
+    <ul class="inline">
+        <li><a title="Moderation log" href="/moderation">Moderation</a></li>
+        <li><a href="/about">About</a></li>
+    </ul>
+    <ul class="inline omega">
 {{ $version := Info.Version}}
-    <li class="repo">Source code: <a title="The code" href="https://github.com/mariusor/littr.go">{{ icon "github" }}</a></li>
-    {{if $version }}<li class="version no-sep"><a title="Version" href="https://github.com/mariusor/littr.go/commits/{{$version}}">{{ icon "code" }} {{$version}}</a></li>{{end}}
-    <li class="licence">Licensed under <a href="https://github.com/mariusor/littr.go/blob/master/LICENSE" rel="license">MIT</a></li>
-</ul></nav>
+        <li class="repo">Source code: <a title="The code" href="https://github.com/mariusor/littr.go">{{ icon "github" }}</a></li>
+        {{if $version }}<li class="version no-sep"><a title="Version" href="https://github.com/mariusor/littr.go/commits/{{$version}}">{{ icon "code" }} {{$version}}</a></li>{{end}}
+        <li class="licence">Licensed under <a href="https://github.com/mariusor/littr.go/blob/master/LICENSE" rel="license">MIT</a></li>
+    </ul>
+</nav>

@@ -181,16 +181,19 @@ footer nav.bottom {
     float: right;
     font-size: .7rem;
 }
-footer nav.bottom::before {
+footer ul.omega{
+    margin-left: 1rem;
+}
+footer nav.bottom ul.omega::before {
     content: "Ω";
 }
-footer nav.bottom:hover::before {
+footer nav.bottom ul.omega:hover::before {
     content: "";
 }
-footer nav.bottom ul {
+footer nav.bottom ul.omega li {
     display: none;
 }
-footer nav.bottom:hover ul {
+footer nav.bottom ul.omega:hover li {
     display: unset;
 }
 .item h1,

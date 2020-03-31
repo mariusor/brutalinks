@@ -218,3 +218,25 @@ func AccountFiltersMw(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
+
+var ModerationActivitiesFilter = CompStrs{
+	CompStr{Str: string(pub.BlockType)},
+	CompStr{Str: string(pub.FlagType)},
+}
+
+func ModerationFiltersMw(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		f := FiltersFromRequest(r)
+		f.Type = ModerationActivitiesFilter
+		m := ContextListingModel(r.Context())
+		m.Title = "Moderation log"
+		ctx := context.WithValue(context.WithValue(r.Context(), FilterCtxtKey, f), ModelCtxtKey, m)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func AnonymizeListing(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		next.ServeHTTP(w, r)
+	})
+}
