@@ -74,6 +74,9 @@ func SetSignFn(signer client.RequestSignFn) OptionFn {
 }
 
 func (f *fedbox) SignFn(signer client.RequestSignFn) {
+	if signer == nil {
+		return
+	}
 	f.client.SignFn(signer)
 }
 
