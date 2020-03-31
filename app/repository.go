@@ -1234,7 +1234,7 @@ func (r *repository) SaveVote(v Vote) (Vote, error) {
 	}
 
 	o := loadAPItem(*v.Item)
-	act := pub.Activity{
+	act := &pub.Activity{
 		Type:  pub.UndoType,
 		To:    pub.ItemCollection{pub.PublicNS},
 		BCC:   pub.ItemCollection{pub.IRI(BaseURL)},
@@ -1535,7 +1535,7 @@ func (r *repository) SendFollowResponse(f FollowRequest, accept bool) error {
 	to = append(to, pub.IRI(er.Metadata.ID))
 	bcc = append(bcc, pub.IRI(BaseURL))
 
-	response := pub.Activity{
+	response := &pub.Activity{
 		To:     to,
 		Type:   pub.RejectType,
 		BCC:    bcc,
@@ -1569,7 +1569,7 @@ func (r *repository) FollowAccount(er, ed Account) error {
 	to = append(to, pub.PublicNS)
 	bcc = append(bcc, pub.IRI(BaseURL))
 
-	follow := pub.Follow{
+	follow := &pub.Follow{
 		Type:   pub.FollowType,
 		To:     to,
 		BCC:    bcc,
@@ -1590,16 +1590,21 @@ func (r *repository) SaveAccount(a Account) (Account, error) {
 
 	now := time.Now().UTC()
 
-	p.Published = now
+	if p.Published.IsZero() {
+		p.Published = now
+	}
 	p.Updated = now
 
-	author := loadAPPerson(*a.CreatedBy)
-	act := pub.Activity{
+	act := &pub.Activity {
 		To:           pub.ItemCollection{pub.PublicNS},
 		BCC:          pub.ItemCollection{pub.IRI(BaseURL)},
-		AttributedTo: author.GetLink(),
 		Updated:      now,
-		Actor:        author.GetLink(),
+	}
+
+	if a.CreatedBy != nil {
+		author := loadAPPerson(*a.CreatedBy)
+		act.AttributedTo = author.GetLink()
+		act.Actor = author.GetLink()
 	}
 
 	var err error
