@@ -460,7 +460,7 @@ func HostIsLocal(s string) bool {
 }
 
 func host(u string) string {
-	if pu, err := url.ParseRequestURI(u); err == nil {
+	if pu, err := url.Parse(u); err == nil {
 		return pu.Host
 	}
 	return ""
