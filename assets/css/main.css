@@ -49,6 +49,9 @@ body {
     grid-template-areas: "header" "main" "footer";
     grid-gap: .5rem;
 }
+main {
+    max-width: 80rem;
+}
 p {
     word-break: break-word;
 }
@@ -121,9 +124,6 @@ body > header nav {
 }
 header .sections {
     margin-left: 1rem;
-}
-.error header .top {
-    display: none;
 }
 header .top {
     text-align: right;
@@ -588,18 +588,11 @@ form label.mime-type {
     font-size: .8em;
     float: right;
 }
-.about main,
-.error main {
-    margin: 0 auto;
-    max-width: 960px;
-}
 .error main {
     font-size: 2em;
     max-height: 480px;
-    align-items: center;
 }
-.error > header nav,
-.about > header {
+.error > header nav {
     display: none;
 }
 section#no-items {
@@ -619,12 +612,6 @@ section#no-items {
 .error main section h1 {
     font-size: 1.2em;
     margin-bottom: 1rem;
-    text-align: center;
-}
-.about main section h1 {
-    font-size: 2em;
-    text-align: center;
-    margin-bottom: 1em;
 }
 .pagination li {
     margin-left: .4rem;
@@ -673,10 +660,10 @@ svg.icon.icon-adjust {
     vertical-align: baseline;
 }
 @media (max-width: 767px) {
-    body > header .top span.score {
+    body > header span.score {
         display: none;
     }
-    body > header .top li:nth-child(2) {
+    body > header li.register-local {
         display: none;
     }
     .acct-info {
@@ -735,9 +722,6 @@ svg.icon.icon-adjust {
     }
 }
 @media (min-width: 480px) {
-    body > header .top {
-        display: unset;
-    }
     :root {
         font-size: 2.6vw;
     }
@@ -757,7 +741,7 @@ svg.icon.icon-adjust {
     :root {
         font-size: 2vw;
     }
-    body > header .top {
+    body > header nav {
         display: unset;
     }
     body > header .sections li a {
