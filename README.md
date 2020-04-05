@@ -1,4 +1,4 @@
-# Littr.me
+# About
 
 This project represents a new attempt at the social link aggregator paradigm.
 
