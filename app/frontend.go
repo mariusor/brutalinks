@@ -342,22 +342,26 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 				"hash":   acc.Hash,
 			}
 			if err != nil {
-				h.logger.WithContext(ctx).Warn(err.Error())
+				h.v.s.new(r)
+				ctxtErr(next, w, r, err)
+				return
 			}
 			if len(accounts) == 0 {
-				h.logger.WithContext(ctx).Warnf("no accounts found for %v", f)
-				next.ServeHTTP(w, r)
+				h.v.s.new(r)
+				err := errors.NotFoundf("no accounts found for %v", f)
+				h.logger.WithContext(ctx).Warnf(err.Error())
+				ctxtErr(next, w, r, err)
 				return
 			}
 			acc = accounts[0]
 			// TODO(marius): this needs to be moved to where we're handling all Inbox activities, not on page load
 			acc, err = h.storage.loadAccountsFollowers(acc)
 			if err != nil {
-				h.logger.WithContext(ctx).Warn(err.Error())
+				h.logger.WithContext(ctx).Warnf(err.Error())
 			}
 			acc, err = h.storage.loadAccountsFollowing(acc)
 			if err != nil {
-				h.logger.WithContext(ctx).Warn(err.Error())
+				h.logger.WithContext(ctx).Warnf(err.Error())
 			}
 			// TODO(marius): Fix this ugly hack where we need to not override OAuth2 metadata loaded at login
 			acc.Metadata = m
