@@ -919,6 +919,9 @@ func LoadFromCollection(f CollectionFn, cur *colCursor, accum func(pub.ItemColle
 	fetch := make(chan res)
 
 	var err error
+	ocTypes := pub.ActivityVocabularyTypes{pub.OrderedCollectionType, pub.OrderedCollectionPageType}
+	cTypes := pub.ActivityVocabularyTypes{pub.CollectionType, pub.CollectionPageType}
+
 	for processed := 0; ; {
 		go func() {
 			var status bool
@@ -935,25 +938,13 @@ func LoadFromCollection(f CollectionFn, cur *colCursor, accum func(pub.ItemColle
 			if processed == 0 {
 				cur.filters.Prev = prev
 			}
-			if col.GetType() == pub.OrderedCollectionPageType {
-				pub.OnOrderedCollectionPage(col, func(c *pub.OrderedCollectionPage) error {
-					status, err = accum(c.OrderedItems)
-					return nil
-				})
-			}
-			if col.GetType() == pub.OrderedCollectionType {
+			if ocTypes.Contains(col.GetType()) {
 				pub.OnOrderedCollection(col, func(c *pub.OrderedCollection) error {
 					status, err = accum(c.OrderedItems)
 					return nil
 				})
 			}
-			if col.GetType() == pub.CollectionPageType {
-				pub.OnCollectionPage(col, func(c *pub.CollectionPage) error {
-					status, err = accum(c.Items)
-					return nil
-				})
-			}
-			if col.GetType() == pub.CollectionType {
+			if cTypes.Contains(col.GetType()) {
 				pub.OnCollection(col, func(c *pub.Collection) error {
 					status, err = accum(c.Items)
 					return nil
