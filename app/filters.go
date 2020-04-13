@@ -262,3 +262,21 @@ func LoadInvitedMw(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
+
+var ActorsFilters = CompStrs{
+	CompStr{Str: string(pub.PersonType)},
+}
+
+func ActorsFiltersMw(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		f := FiltersFromRequest(r)
+		f.Type = CreateActivitiesFilter
+		f.Object = &Filters{
+			Type: ActorsFilters,
+		}
+		m := ContextListingModel(r.Context())
+		m.Title = "Account listing"
+		ctx := context.WithValue(context.WithValue(r.Context(), FilterCtxtKey, f), ModelCtxtKey, m)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}

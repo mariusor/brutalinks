@@ -148,6 +148,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"IsComment":         func(t Renderable) bool { return t.Type() == Comment },
 			"IsFollowRequest":   func(t Renderable) bool { return t.Type() == Follow },
 			"IsVote":            func(t Renderable) bool { return t.Type() == Appreciation },
+			"IsAccount":         func(t Renderable) bool { return t.Type() == Actor },
 			"LoadFlashMessages": loadFlashMessages(r, w, s),
 			"Mod10":             mod10,
 			"ShowText":          showText(m),
@@ -697,7 +698,7 @@ func opLink(c Item) string {
 
 // AccountPermaLink
 func AccountPermaLink(a Account) string {
-	if a.HasMetadata() && len(a.Metadata.URL) > 0 {
+	if a.HasMetadata() && len(a.Metadata.URL) > 0 && a.Metadata.URL != a.Metadata.ID {
 		return a.Metadata.URL
 	}
 	return AccountLocalLink(a)

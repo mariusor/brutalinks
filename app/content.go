@@ -82,6 +82,7 @@ const (
 	Comment RenderType = iota
 	Follow
 	Appreciation
+	Actor
 )
 
 type Renderable interface {

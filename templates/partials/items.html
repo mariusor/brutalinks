@@ -7,6 +7,9 @@
 {{- if IsFollowRequest . -}}
     {{- template "partials/follow" $value -}}
 {{- end -}}
+{{- if IsAccount . -}}
+    {{- template "partials/account" $value -}}
+{{- end -}}
     </li>
 {{- end -}}
 </ol>

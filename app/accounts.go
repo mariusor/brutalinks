@@ -170,6 +170,14 @@ func (a Account) Deleted() bool {
 	return (a.Flags & FlagsDeleted) == FlagsDeleted
 }
 
+func (a Account) Type() RenderType {
+	return Actor
+}
+
+func (a Account) Date() time.Time {
+	return a.CreatedAt
+}
+
 // First
 func (a AccountCollection) First() (*Account, error) {
 	for _, act := range a {

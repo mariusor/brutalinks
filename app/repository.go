@@ -1108,6 +1108,7 @@ func orderRenderables(r RenderableList) {
 func (r *repository) ActorCollection(fn CollectionFn, f *Filters) (Cursor, error) {
 	items := make(ItemCollection, 0)
 	follows := make(FollowRequests, 0)
+	accounts := make(AccountCollection, 0)
 	relations := make(map[pub.IRI]pub.IRI)
 
 	deferredItems := make(CompStrs, 0)
@@ -1117,15 +1118,22 @@ func (r *repository) ActorCollection(fn CollectionFn, f *Filters) (Cursor, error
 			pub.OnActivity(it, func(a *pub.Activity) error {
 				if it.GetType() == pub.CreateType {
 					ob := a.Object
-					i := Item{}
+
 					if ob.IsObject() {
 						if ValidItemTypes.Contains(ob.GetType()) {
+							i := Item{}
 							i.FromActivityPub(ob)
 							if validItem(i, f) {
 								items = append(items, i)
 							}
 						}
+						if ValidActorTypes.Contains(ob.GetType()) {
+							a := Account{}
+							a.FromActivityPub(ob)
+							accounts = append(accounts, a)
+						}
 					} else {
+						i := Item{}
 						i.FromActivityPub(a)
 						uuid := LikeString(path.Base(ob.GetLink().String()))
 						if !deferredItems.Contains(uuid) && validItem(i, f) {
@@ -1147,7 +1155,7 @@ func (r *repository) ActorCollection(fn CollectionFn, f *Filters) (Cursor, error
 
 		// TODO(marius): this needs to be externalized also to a different function that we can pass from outer scope
 		//   This function implements the logic for breaking out of the collection iteration cycle and returns a bool
-		return len(items)+len(follows) >= f.MaxItems || len(f.Next) == 0, nil
+		return len(items)+len(follows)+len(accounts) >= f.MaxItems || len(f.Next) == 0, nil
 	})
 	if err != nil {
 		return emptyCursor, err
@@ -1192,6 +1200,12 @@ func (r *repository) ActorCollection(fn CollectionFn, f *Filters) (Cursor, error
 			f := follows[i]
 			if f.pub != nil && f.pub.GetLink() == rel {
 				result = append(result, &f)
+			}
+		}
+		for i := range accounts {
+			a := accounts[i]
+			if a.pub != nil && a.pub.GetLink() == rel {
+				result = append(result, &a)
 			}
 		}
 	}
@@ -1599,18 +1613,20 @@ func (r *repository) SaveAccount(a Account) (Account, error) {
 	}
 	p.Updated = now
 
-	act := &pub.Activity {
-		To:           pub.ItemCollection{pub.PublicNS},
-		BCC:          pub.ItemCollection{pub.IRI(BaseURL)},
-		Updated:      now,
+	act := &pub.Activity{
+		To:      pub.ItemCollection{pub.PublicNS},
+		BCC:     pub.ItemCollection{pub.IRI(BaseURL)},
+		Updated: now,
 	}
 
+	var author *pub.Actor
 	if a.CreatedBy != nil {
-		author := loadAPPerson(*a.CreatedBy)
-		act.AttributedTo = author.GetLink()
-		act.Actor = author.GetLink()
+		author = loadAPPerson(*a.CreatedBy)
+	} else {
+		author = r.fedbox.Service()
 	}
-
+	act.AttributedTo = author.GetLink()
+	act.Actor = author.GetLink()
 	var err error
 	if a.Deleted() {
 		if len(id) == 0 {

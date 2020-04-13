@@ -1,0 +1,7 @@
+{{- if ne .Handle "" -}}
+<section class="acct comments lvl-1">
+    <p>{{- if .HasIcon }}<img src="{{.Metadata.Icon.URI}}" alt="{{.Handle}}" class="avatar" />{{ end -}}
+        <span class="by"><a href="{{ AccountPermaLink . }}">{{.Handle}}</a></span>
+    </p>
+</section>
+{{- end -}}
