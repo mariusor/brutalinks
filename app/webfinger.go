@@ -129,7 +129,7 @@ func (h handler) HandleHostMeta(w http.ResponseWriter, r *http.Request) {
 
 // HandleWebFinger serves /.well-known/webfinger/
 func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
-	res := r.URL.Query()["resource"][0]
+	res := r.URL.Query().Get("resource")
 
 	typ, handle := func(res string) (string, string) {
 		split := ":"
