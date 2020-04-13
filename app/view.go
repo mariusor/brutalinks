@@ -113,11 +113,19 @@ func (v *view) addFlashMessage(typ flashType, r *http.Request, msgs ...string) {
 	}
 }
 
+func ToTitle(s string) string {
+	if len(s) < 1 {
+		return s
+	}
+	return strings.ToUpper(string(s[0]) + strings.ToLower(s[1:]))
+}
+
 func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name string, m Model) error {
 	var err error
 	var ac *Account
 	var s *sessions.Session
 
+	layout := "layout"
 	if Instance.Config.SessionsEnabled {
 		if s, err = v.s.get(r); err != nil {
 			v.errFn(err.Error(), log.Ctx{
@@ -135,7 +143,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 	nodeInfo, err := getNodeInfo(r)
 	ren := render.New(render.Options{
 		Directory:  templateDir,
-		Layout:     "layout",
+		Layout:     layout,
 		Extensions: []string{".html"},
 		Funcs: []template.FuncMap{{
 			//"urlParam":          func(s string) string { return chi.URLParam(r, s) },
@@ -193,6 +201,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"Follows":           AccountFollows,
 			"IsFollowed":        AccountIsFollowed,
 			csrf.TemplateTag:    func() template.HTML { return csrf.TemplateField(r) },
+			"ToTitle":           ToTitle,
 			//"ScoreFmt":          func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
 			//"NumberFmt":         func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
 		}},
@@ -264,12 +273,13 @@ func (v *view) HandleErrors(w http.ResponseWriter, r *http.Request, errs ...erro
 	}
 
 	if renderErrors {
-		d.Title = fmt.Sprintf("Error %d", status)
 		d.Status = status
-		w.WriteHeader(status)
+		d.Title = fmt.Sprintf("Error %d", status)
+		d.StatusText = http.StatusText(d.Status)
 		w.Header().Set("Cache-Control", " no-store, must-revalidate")
 		w.Header().Set("Pragma", " no-cache")
 		w.Header().Set("Expires", " 0")
+		w.WriteHeader(status)
 		v.RenderTemplate(r, w, "error", d)
 	} else {
 		v.Redirect(w, r, backURL, http.StatusFound)

@@ -1,6 +1,6 @@
 <section>
-<h1>{{.Status}}</h1>
-{{range $error := .Errors}}
-<p>{{$error}}</p>
-{{end}}
+    <h1>{{ .StatusText }}</h1>
+    {{range $error := .Errors}}
+        <p>{{$error.Error | ToTitle }}</p>
+    {{end}}
 </section>

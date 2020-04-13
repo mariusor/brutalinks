@@ -125,9 +125,10 @@ func (m aboutModel) Template() string {
 func (*aboutModel) SetCursor(c *Cursor) {}
 
 type errorModel struct {
-	Status int
-	Title  string
-	Errors []error
+	Status     int
+	StatusText string
+	Title      string
+	Errors     []error
 }
 
 func (errorModel) Template() string {

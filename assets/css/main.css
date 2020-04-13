@@ -50,7 +50,7 @@ body {
     grid-gap: .5rem;
 }
 main {
-    max-width: 80rem;
+    max-width: 100%;
 }
 p {
     word-break: break-word;
@@ -591,6 +591,7 @@ form label.mime-type {
 .error main {
     font-size: 2em;
     max-height: 480px;
+    margin: 3rem auto;
 }
 .error > header nav {
     display: none;
@@ -599,6 +600,9 @@ section#no-items {
     opacity: .65;
     margin-top: .6rem;
     margin-left: .4rem;
+}
+.error main section {
+    text-align: center;
 }
 .error main section,
 .about main section {
@@ -611,7 +615,6 @@ section#no-items {
 }
 .error main section h1 {
     font-size: 1.2em;
-    margin-bottom: 1rem;
 }
 .pagination li {
     margin-left: .4rem;

@@ -72,11 +72,11 @@ func LoadServiceInboxMw(next http.Handler) http.Handler {
 }
 
 func ctxtErr(next  http.Handler, w http.ResponseWriter, r *http.Request, err error) {
-	status, hErr := errors.HttpErrors(err)
-	rr := hErr[0]
+	status, _ := errors.HttpErrors(err)
 	ctx := context.WithValue(r.Context(), ModelCtxtKey, errorModel{
 		Status: status,
-		Title:  rr.Message,
+		Title: fmt.Sprintf("Error %d", status),
+		StatusText: http.StatusText(status),
 		Errors: []error{err},
 	})
 	next.ServeHTTP(w, r.WithContext(ctx))
