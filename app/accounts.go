@@ -55,7 +55,7 @@ type AccountMetadata struct {
 type AccountCollection []Account
 
 type Account struct {
-	Email     string            `json:"email,omitempty"`
+	Email     string            `json:"-"`
 	Hash      Hash              `json:"hash,omitempty"`
 	Score     int               `json:"score,omitempty"`
 	Handle    string            `json:"handle,omitempty"`
