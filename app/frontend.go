@@ -78,7 +78,7 @@ func Init(c appConfig) (handler, error) {
 	key := os.Getenv("OAUTH2_KEY")
 	pw := os.Getenv("OAUTH2_SECRET")
 	if len(key) > 0 {
-		oIRI := pub.IRI(fmt.Sprintf("%s/%s/%s", h.storage.BaseURL, actors, key))
+		oIRI := actors.IRI(pub.IRI(h.storage.BaseURL)).AddPath(key)
 		oauth, err := h.storage.fedbox.Actor(oIRI)
 		if err == nil {
 			h.storage.app = new(Account)

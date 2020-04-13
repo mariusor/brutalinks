@@ -68,8 +68,8 @@ func ActivityPubService(c appConfig) *repository {
 	pub.ItemTyperFunc = pub.JSONGetItemByType
 
 	BaseURL = c.APIURL
-	ActorsURL = fmt.Sprintf("%s/%s", BaseURL, actors)
-	ObjectsURL = fmt.Sprintf("%s/%s", BaseURL, objects)
+	ActorsURL = actors.IRI(pub.IRI(BaseURL))
+	ObjectsURL = objects.IRI(pub.IRI(BaseURL))
 
 	infoFn := func(s string, ctx log.Ctx) {}
 	errFn := func(s string, ctx log.Ctx) {
@@ -117,12 +117,12 @@ func BuildCollectionID(a Account, o handlers.CollectionType) pub.ID {
 	if len(a.Handle) > 0 {
 		return pub.ID(fmt.Sprintf("%s/%s/%s", ActorsURL, url.PathEscape(a.Hash.String()), o))
 	}
-	return pub.ID(fmt.Sprintf("%s/%s", BaseURL, o))
+	return o.IRI(pub.IRI(BaseURL))
 }
 
 var BaseURL = "http://fedbox.git"
-var ActorsURL = fmt.Sprintf("%s/%s", BaseURL, actors)
-var ObjectsURL = fmt.Sprintf("%s/%s", BaseURL, objects)
+var ActorsURL = actors.IRI(pub.IRI(BaseURL))
+var ObjectsURL = objects.IRI(pub.IRI(BaseURL))
 
 func apAccountID(a Account) pub.ID {
 	if len(a.Hash) >= 8 {
@@ -132,7 +132,7 @@ func apAccountID(a Account) pub.ID {
 }
 
 func accountURL(acc Account) pub.IRI {
-	return pub.IRI(fmt.Sprintf("%s%s", Instance.BaseURL, AccountPermaLink(acc)))
+	return pub.IRI(fmt.Sprintf("%s%s", Instance.BaseURL, AccountLocalLink(acc)))
 }
 
 func BuildIDFromItem(i Item) (pub.ID, bool) {
@@ -326,7 +326,7 @@ func anonymousActor() *pub.Actor {
 
 func anonymousPerson(url string) *pub.Actor {
 	p := anonymousActor()
-	p.Inbox = pub.IRI(fmt.Sprintf("%s/inbox", url))
+	p.Inbox = handlers.Inbox.IRI(pub.IRI(url))
 	return p
 }
 
@@ -376,9 +376,9 @@ func loadAPPerson(a Account) *pub.Actor {
 		} else {
 			p.Name.Set("en", a.Handle)
 
-			p.Outbox = pub.IRI(BuildCollectionID(a, handlers.Outbox))
-			p.Inbox = pub.IRI(BuildCollectionID(a, handlers.Inbox))
-			p.Liked = pub.IRI(BuildCollectionID(a, handlers.Liked))
+			p.Outbox = BuildCollectionID(a, handlers.Outbox)
+			p.Inbox = BuildCollectionID(a, handlers.Inbox)
+			p.Liked = BuildCollectionID(a, handlers.Liked)
 
 			p.URL = accountURL(a)
 
@@ -394,7 +394,7 @@ func loadAPPerson(a Account) *pub.Actor {
 		}
 		oauthURL := strings.Replace(BaseURL, "api", "oauth", 1)
 		p.Endpoints = &pub.Endpoints{
-			SharedInbox:                pub.IRI(fmt.Sprintf("%s/inbox", BaseURL)),
+			SharedInbox:                handlers.Inbox.IRI(pub.IRI(BaseURL)),
 			OauthAuthorizationEndpoint: pub.IRI(fmt.Sprintf("%s/authorize", oauthURL)),
 			OauthTokenEndpoint:         pub.IRI(fmt.Sprintf("%s/token", oauthURL)),
 		}
@@ -404,7 +404,7 @@ func loadAPPerson(a Account) *pub.Actor {
 	if a.IsValid() && a.HasMetadata() && a.Metadata.Key != nil && a.Metadata.Key.Public != nil {
 		p.PublicKey = pub.PublicKey{
 			ID:           pub.ID(fmt.Sprintf("%s#main-key", p.ID)),
-			Owner:        pub.IRI(p.ID),
+			Owner:        p.ID,
 			PublicKeyPem: fmt.Sprintf("-----BEGIN PUBLIC KEY-----\n%s\n-----END PUBLIC KEY-----", base64.StdEncoding.EncodeToString(a.Metadata.Key.Public)),
 		}
 	}
