@@ -475,14 +475,15 @@ func (h *handler) HandleSendInvite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// @todo(marius): :link_generation:
 	u := fmt.Sprintf("%s/register/%s", h.conf.BaseURL, invitee.Hash)
-	bodyFmt := "Hello %s,\nThe user %s has invited you to %s: %s.\nTo accept this invitation and create an account, visit the URL below: %s\n"
+	bodyFmt := "Hello %s,\nThis is an invitation to join %s: %s.\nTo accept this invitation and create an account, visit the URL below: %s\n/%s"
 	mailContent := struct {
 		Subject string `qstring:subject`
 		Body    string `qstring:body`
 	}{
 		Subject: fmt.Sprintf("You are invited to join %s", h.conf.HostName),
-		Body:    fmt.Sprintf(bodyFmt, invitee.Email, acc.Handle, h.conf.HostName, h.conf.BaseURL, u),
+		Body:    fmt.Sprintf(bodyFmt, invitee.Email, h.conf.HostName, h.conf.BaseURL, u, acc.Handle),
 	}
 	q, _ := qstring.Marshal(&mailContent)
 	h.v.Redirect(w, r, fmt.Sprintf("mailto:%s?%s", invitee.Email, q.Encode()), http.StatusSeeOther)
