@@ -44,7 +44,7 @@ type Logger interface {
 	middleware.LogFormatter
 }
 
-type Ctx logrus.Fields
+type Ctx map[string]interface{}
 
 type logger struct {
 	l   logrus.FieldLogger
