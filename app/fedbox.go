@@ -8,7 +8,6 @@ import (
 	"github.com/go-ap/errors"
 	"github.com/go-ap/handlers"
 	j "github.com/go-ap/jsonld"
-	"github.com/mariusor/littr.go/internal/log"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -31,26 +30,24 @@ type OptionFn func(*fedbox) error
 
 func SetInfoLogger(logFn LogFn) OptionFn {
 	return func(f *fedbox) error {
+		if logFn == nil {
+			return nil
+		}
 		f.infoFn = logFn
-		client.InfoLogger = func(el ...interface{}) {
-			ctx := log.Ctx{}
-			for _, i := range el {
-				ctx[fmt.Sprintf("%T", i)] = i
-			}
-			logFn("", ctx)
+		client.InfoLogger = func(s string, el ...interface{}) {
+			logFn(fmt.Sprintf(s, el...), nil)
 		}
 		return nil
 	}
 }
-func SetErrorLogger(logFn LogFn) OptionFn {
+func SetErrorLogger(errFn LogFn) OptionFn {
 	return func(f *fedbox) error {
-		f.errFn = logFn
-		client.ErrorLogger = func(el ...interface{}) {
-			ctx := log.Ctx{}
-			for _, i := range el {
-				ctx[fmt.Sprintf("%T", i)] = i
-			}
-			logFn("", ctx)
+		if errFn == nil {
+			return nil
+		}
+		f.errFn = errFn
+		client.ErrorLogger = func(s string, el ...interface{}) {
+			errFn(fmt.Sprintf(s, el...), nil)
 		}
 		return nil
 	}
