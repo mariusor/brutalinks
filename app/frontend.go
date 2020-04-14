@@ -20,8 +20,6 @@ import (
 const (
 	sessionName = "_s"
 	csrfName    = "_c"
-	templateDir = "templates/"
-	assetsDir   = "assets/"
 )
 
 type handler struct {

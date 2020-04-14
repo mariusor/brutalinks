@@ -10,6 +10,8 @@ APPSOURCES := $(wildcard ./app/*.go internal/*/*.go)
 
 ifneq ($(ENV), dev)
 	LDFLAGS += -s -w -extldflags "-static"
+	APPSOURCES += internal/assets/assets.gen.go
+assets: internal/assets/assets.gen.go
 endif
 
 ifeq ($(shell git describe --always > /dev/null 2>&1 ; echo $$?), 0)
@@ -22,9 +24,12 @@ endif
 BUILD := $(GO) build $(BUILDFLAGS)
 TEST := $(GO) test $(BUILDFLAGS)
 
-.PHONY: all run clean images test
+.PHONY: all run clean images test assets
 
 all: app
+
+internal/assets/assets.gen.go:
+	go generate -tags $(ENV) ./assets.go
 
 app: bin/app
 bin/app: go.mod ./cli/app/main.go $(APPSOURCES)
@@ -34,7 +39,7 @@ run: app
 	@./bin/app
 
 clean:
-	-$(RM) bin/*
+	-$(RM) bin/* internal/assets/assets.gen.go
 	$(MAKE) -C docker $@
 
 images:

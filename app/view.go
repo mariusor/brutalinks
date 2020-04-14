@@ -1,13 +1,12 @@
 package app
 
 import (
-	"bufio"
-	"bytes"
 	"encoding/gob"
 	"fmt"
 	"github.com/go-ap/errors"
 	"github.com/gorilla/csrf"
 	"github.com/gorilla/sessions"
+	"github.com/mariusor/littr.go/internal/assets"
 	"github.com/mariusor/littr.go/internal/log"
 	"github.com/unrolled/render"
 	"golang.org/x/text/language"
@@ -17,7 +16,6 @@ import (
 	"net/http"
 	"os"
 	"path"
-	"path/filepath"
 	"strings"
 	"time"
 )
@@ -142,7 +140,8 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 	}
 	nodeInfo, err := getNodeInfo(r)
 	ren := render.New(render.Options{
-		Directory:  templateDir,
+		AssetNames: assets.Files,
+		Asset:      assets.Template,
 		Layout:     layout,
 		Extensions: []string{".html"},
 		Funcs: []template.FuncMap{{
@@ -191,7 +190,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"Name":              appName,
 			"Menu":              func() []headerEl { return headerMenu(r) },
 			"icon":              icon,
-			"asset":             func(p string) template.HTML { return template.HTML(asset(p)) },
+			"asset":             assets.Asset,
 			"req":               func() *http.Request { return r },
 			"sameBase":          sameBasePath,
 			"sameHash":          HashesEqual,
@@ -483,26 +482,6 @@ func icon(icon string, c ...string) template.HTML {
 		icon, strings.Join(cls, " "), icon)
 
 	return template.HTML(buf)
-}
-
-func asset(p string) []byte {
-	file := filepath.Clean(p)
-	fullPath := filepath.Join(assetsDir, file)
-
-	f, err := os.Open(fullPath)
-	if err != nil {
-		return []byte{0}
-	}
-	defer f.Close()
-
-	r := bufio.NewReader(f)
-	b := bytes.Buffer{}
-	_, err = r.WriteTo(&b)
-	if err != nil {
-		return []byte{0}
-	}
-
-	return b.Bytes()
 }
 
 func isoTimeFmt(t time.Time) string {
