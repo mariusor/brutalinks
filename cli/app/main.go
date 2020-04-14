@@ -9,7 +9,6 @@ import (
 	"github.com/go-ap/errors"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
-	_ "github.com/lib/pq"
 
 	"github.com/mariusor/littr.go/app"
 	"github.com/mariusor/littr.go/internal/log"

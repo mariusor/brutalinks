@@ -6,7 +6,7 @@ GO := go
 ENV ?= dev
 LDFLAGS ?= -X main.version=$(VERSION)
 BUILDFLAGS ?= -trimpath -a -ldflags '$(LDFLAGS)'
-APPSOURCES := $(wildcard  ./activitypub/*.go ./app/*.go ./app/*/*.go internal/*/*.go) main.go
+APPSOURCES := $(wildcard ./app/*.go internal/*/*.go)
 
 ifneq ($(ENV), dev)
 	LDFLAGS += -s -w -extldflags "-static"
@@ -27,8 +27,8 @@ TEST := $(GO) test $(BUILDFLAGS)
 all: app
 
 app: bin/app
-bin/app: go.mod main.go $(APPSOURCES)
-	$(BUILD) -tags $(ENV) -o $@ ./main.go
+bin/app: go.mod ./cli/app/main.go $(APPSOURCES)
+	$(BUILD) -tags $(ENV) -o $@ ./cli/app/main.go
 
 run: app
 	@./bin/app
