@@ -1,4 +1,4 @@
-//+build !dev
+// +build prod qa
 
 package assets
 
