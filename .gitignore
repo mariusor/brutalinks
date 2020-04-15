@@ -1,4 +1,6 @@
 .env
+.env.prod
+.env.qa
 .env.dev
 .idea/
 *.orig
