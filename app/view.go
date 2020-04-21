@@ -115,7 +115,7 @@ func ToTitle(s string) string {
 	if len(s) < 1 {
 		return s
 	}
-	return strings.ToUpper(string(s[0]) + strings.ToLower(s[1:]))
+	return strings.ToUpper(s[0:1]) + s[1:]
 }
 
 func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name string, m Model) error {
