@@ -296,6 +296,9 @@ ol {
     /*align-items: center;*/
     grid-template-areas: "sidebar main" "sidebar footer";
 }
+.item.acct {
+    display: block;
+}
 .item aside.score {
     grid-area: sidebar;
 }
@@ -333,24 +336,28 @@ ol.comments.lvl-0 {
 ol.comments li {
     list-style: none;
 }
+.items .acct {
+    margin-left: 2rem;
+    height: 3.4ex;
+}
 .acct .score:before {
     content: "[";
 }
 .acct .score:after {
     content: "]";
 }
-.item .score {
+.item aside.score {
     display: grid;
     grid-template-rows: 1em 1.5em 1em;
 }
-.item .score a {
+.item aside.score a {
     justify-self: center;
     align-self: center;
 }
-.score a.nay {
+aside.score a.nay {
     margin-bottom: .5em;
 }
-.item .score data {
+.item aside.score data {
     justify-self: center;
     align-self: center;
     font-size: .7em;
@@ -358,32 +365,32 @@ ol.comments li {
 .item aside.score.disabled svg {
     margin-top: 1em;
 }
-.item .score data svg {
+.item aside.score data svg {
     margin-right: .1em;
     margin-bottom: .1em;
 }
-.item .score data.inf {
+.item aside.score data.inf {
     font-weight: bold;
     font-size: 1.3em;
     margin: 0;
     padding: 0;
 }
-.item .score data.K,
-.item .score data.M,
-.item .score data.B {
+.item aside.score data.K,
+.item aside.score data.M,
+.item aside.score data.B {
     font-weight: lighter;
     font-size: .6em;
 }
-.score .icon-recycle {
+aside.score .icon-recycle {
     opacity: .6;
 }
-.score a:not([href]) {
+aside.score a:not([href]) {
     opacity: .3;
 }
-.item .score a[href].ed {
+.item aside.score a[href].ed {
     color: var(--main-linkvisited-color);
 }
-.score a[href]:visited {
+aside.score a[href]:visited {
     color: var(--main-link-color);
 }
 .deleted {

@@ -1,7 +1,7 @@
 {{- if ne .Handle "" -}}
-<section class="acct comments lvl-1">
-    <p>{{- if .HasIcon }}<img src="{{.Metadata.Icon.URI}}" alt="{{.Handle}}" class="avatar" />{{ end -}}
-        <span class="by"><a href="{{ AccountPermaLink . }}">{{.Handle}}</a></span>
-    </p>
+<section class="{{if .Deleted }}deleted {{end}}item acct" id="a-{{.Hash}}" data-hash="{{.Hash}}">
+    {{- if .HasIcon }}<img src="{{.Metadata.Icon.URI}}" alt="{{.Handle}}" class="avatar" />{{ end -}}
+    <a class="by" href="{{ AccountPermaLink . }}">{{.Handle}}</a>
+    <span class="score">{{ .Score | ScoreFmt}}</span>
 </section>
 {{- end -}}
