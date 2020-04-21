@@ -1,15 +1,11 @@
 package app
 
 import (
-	"bytes"
 	"fmt"
 	pub "github.com/go-ap/activitypub"
 	"github.com/go-ap/client"
 	"github.com/go-ap/errors"
 	"github.com/go-ap/handlers"
-	j "github.com/go-ap/jsonld"
-	"io/ioutil"
-	"net/http"
 	"net/url"
 )
 
@@ -21,7 +17,7 @@ const (
 
 type fedbox struct {
 	baseURL *url.URL
-	client  client.HttpClient
+	client  client.ActivityPub
 	infoFn  LogFn
 	errFn   LogFn
 }
@@ -86,7 +82,7 @@ func SetUA(s string) OptionFn {
 
 func NewClient(o ...OptionFn) (*fedbox, error) {
 	f := fedbox{}
-	f.client = client.NewClient()
+	f.client = client.New()
 	for _, fn := range o {
 		if err := fn(&f); err != nil {
 			return nil, err
@@ -300,35 +296,6 @@ func (f fedbox) Objects(filters ...FilterFn) (pub.CollectionInterface, error) {
 	return f.collection(iri(objects.IRI(f.Service()), filters...))
 }
 
-func postRequest(f fedbox, url pub.IRI, a pub.Item) (pub.IRI, pub.Item, error) {
-	body, err := j.Marshal(a)
-	var resp *http.Response
-	var it pub.Item
-	var iri pub.IRI
-	resp, err = f.client.Post(url.String(), client.ContentTypeActivityJson, bytes.NewReader(body))
-	if err != nil {
-		return iri, it, err
-	}
-	if body, err = ioutil.ReadAll(resp.Body); err != nil {
-		f.errFn(err.Error(), nil)
-		return iri, it, err
-	}
-	if resp.StatusCode != http.StatusGone && resp.StatusCode >= http.StatusBadRequest {
-		errs := _errors{}
-		if err := j.Unmarshal(body, &errs); err != nil {
-			f.errFn(fmt.Sprintf("Unable to unmarshal error response: %s", err.Error()), nil)
-		}
-		if len(errs.Errors) == 0 {
-			return iri, it, errors.Newf("Unknown error")
-		}
-		err := errs.Errors[0]
-		return iri, it, errors.WrapWithStatus(err.Code, nil, err.Message)
-	}
-	iri = pub.IRI(resp.Header.Get("Location"))
-	it, err = pub.UnmarshalJSON(body)
-	return iri, it, err
-}
-
 func (f fedbox) ToOutbox(a pub.Item) (pub.IRI, pub.Item, error) {
 	url := pub.IRI("")
 	err := pub.OnActivity(a, func(a *pub.Activity) error {
@@ -341,7 +308,7 @@ func (f fedbox) ToOutbox(a pub.Item) (pub.IRI, pub.Item, error) {
 	if len(url) == 0 {
 		return "", nil, errors.Newf("Invalid URL to post to")
 	}
-	return postRequest(f, url, a)
+	return f.client.ToCollection(url, a)
 }
 
 func (f fedbox) ToInbox(a pub.Item) (pub.IRI, pub.Item, error) {
@@ -356,7 +323,7 @@ func (f fedbox) ToInbox(a pub.Item) (pub.IRI, pub.Item, error) {
 	if len(url) == 0 {
 		return "", nil, errors.Newf("Invalid URL to post to")
 	}
-	return postRequest(f, url, a)
+	return f.client.ToCollection(url, a)
 }
 
 func (f *fedbox) Service() *pub.Service {
