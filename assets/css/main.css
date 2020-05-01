@@ -59,14 +59,21 @@ article dl,
 article ul,
 article ol {
     margin-left: 1.3rem;
+    list-style: unset;
 }
 article dl.recipients {
     margin-left: 0;
 }
+article blockquote {
+    quotes: "“" "”";
+    border-left: 1px solid var(--main-fg-color);
+    padding-left: .6rem;
+    opacity: .75;
+}
 article p + p, article p + ul, article p + ol, article p + dl,
 article p + div, article p + h1, article p + h2, article p + h3, article p + h4, article p + h5, article p + h6,
 article p + blockquote, article p + pre {
-    padding-top: .6rem;
+    margin-top: .6rem;
 }
 a[href] {
     color: var(--main-link-color);
