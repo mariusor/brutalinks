@@ -22,7 +22,7 @@ footer, header, hgroup, menu, nav, section {
     display: block;
 }
 body {
-    font-family: sans;
+    font-family: sans-serif;
     line-height: 1;
 }
 blockquote, q {
@@ -170,6 +170,8 @@ body > header h1.logo .icon.icon-l {
     font-size: .8rem;
 }
 .sections li a svg {
+    height: 1rem;
+    width: 1rem;
     vertical-align: text-top;
 }
 .sections li a svg.icon-activitypub {
@@ -244,7 +246,7 @@ li .follow-request {
     min-height: 3.3rem;
 }
 .hide-text article header {
-    margin-bottom: 0px;
+    margin-bottom: 0;
 }
 article hr {
     width: 100%;
@@ -258,6 +260,7 @@ article > header h2 {
 aside.domain {
     font-size: .85em;
     margin-left: .4em;
+    display: inline;
 }
 .domain:before {
     content: "(";
@@ -638,7 +641,22 @@ section#no-items {
 }
 .acct-info {
     float: right;
-    min-width: 24%;
+    min-width: 33%;
+}
+.acct-info details {
+    margin-top: .5rem;
+}
+#invites {
+    height: 3rem;
+}
+details#invites summary {
+    margin-right: .3rem;
+    margin-top: .3rem;
+}
+details#invites summary,
+#invites form {
+    display: inline;
+    float: left;
 }
 .acct-info #private-message {
     width: 100%;
@@ -662,11 +680,7 @@ section#no-items {
 .acct-info section {
     margin-top: 1em;
 }
-svg.icon.icon-adjust {
-    width: 1.1em;
-    height: 1.1em;
-}
-.icon-adjust, .icon-clock-o {
+.icon-clock-o {
     vertical-align: bottom;
 }
 .icon-github, .icon-code {
@@ -676,150 +690,10 @@ svg.icon.icon-adjust {
 .icon-angle-double-right {
     vertical-align: baseline;
 }
-@media (max-width: 767px) {
-    body > header span.score {
-        display: none;
-    }
-    body > header li.register-local {
-        display: none;
-    }
-    .acct-info {
-        float: none;
-    }
-}
-@media (max-width: 576px) {
-    .sections li a svg.icon.icon-activitypub {
-        height: 1rem;
-        width: 1.3rem;
-    }
-    .sections li a svg {
-        height: 1rem;
-        width: 1rem;
-    }
-    aside.domain {
-        display: none;
-    }
-    .logo a strong,
-    .logo a small {
-        display: none;
-    }
-}
-@media (max-width: 330px) {
-    .sections li a svg.icon.icon-activitypub {
-        height: 1rem;
-        width: 1.3rem;
-    }
-    .sections li a svg {
-        height: 1rem;
-        width: 1rem;
-    }
-    .sections li {
-        font-size: 0;
-        overflow: hidden;
-    }
-    :root {
-        font-size: 3.8vw;
-    }
-}
-@media (min-width: 330px) {
-    .sections li a svg.icon.icon-activitypub {
-        height: 1rem;
-        width: 1.3rem;
-    }
-    .sections li a svg {
-        height: 1rem;
-        width: 1rem;
-    }
-    .sections li {
-        font-size: 0;
-        overflow: hidden;
-    }
-    :root {
-        font-size: 3.6vw;
-    }
-}
-@media (min-width: 480px) {
-    :root {
-        font-size: 2.6vw;
-    }
-}
-@media (min-width: 576px) {
-    :root {
-        font-size: 2.4vw;
-    }
-    aside.domain {
-        display: inline;
-    }
-    .sections li {
-        font-size: unset;
-    }
-}
-@media (min-width: 768px) {
-    :root {
-        font-size: 2vw;
-    }
-    body > header nav {
-        display: unset;
-    }
-    body > header .sections li a {
-        font-size: unset;
-        display: unset;
-    }
-    body > header .top span.score {
-        display: unset;
-    }
-    body > header .top li:first-child,
-    body > header .top li:nth-child(2) {
-        display: unset;
-    }
-}
-@media (min-width: 860px) {
-    :root {
-        font-size: 1.8vw;
-    }
-}
-@media (min-width: 948px) {
-    :root {
-        font-size: 1.6vw;
-    }
-}
-@media (min-width: 1050px) {
-    :root {
-        font-size: 1.4vw;
-    }
-}
-@media (min-width: 1200px) {
-    :root {
-        font-size: 1.16vw;
-    }
-    aside.domain {
-        display: inline;
-    }
-}
-@media (min-width: 1500px) {
-    :root {
-        font-size: .9vw;
-    }
-}
-@media (min-width: 1700px) {
-    :root {
-        font-size: 1.05vw;
-    }
-}
-@media (min-width: 1800px) {
-    :root {
-        font-size: .86vw;
-    }
-}
-@media (min-width: 2200px) {
-    :root {
-        font-size: .62vw;
-    }
-}
 dialog {
     width: 60%;
 }
-button.close {
+dialog button.close {
     width: 1.5em;
     height: 1.5em;
     padding: 0;
@@ -827,4 +701,97 @@ button.close {
     margin-top: -1em;
     margin-right: -1em;
     float: right;
+}
+@media (min-width: 2201px) {
+    :root {
+        font-size: .78vw;
+    }
+}
+@media (max-width: 2200px) {
+    :root {
+        font-size: .86vw;
+    }
+}
+@media (max-width: 1800px) {
+    :root {
+        font-size: 1.05vw;
+    }
+}
+@media (max-width: 1500px) {
+    :root {
+        font-size: 1.16vw;
+    }
+}
+@media (max-width: 1200px) {
+    :root {
+        font-size: 1.4vw;
+    }
+}
+@media (max-width: 1050px) {
+    :root {
+        font-size: 1.6vw;
+    }
+}
+@media (max-width: 948px) {
+    :root {
+        font-size: 1.8vw;
+    }
+}
+@media (max-width: 860px) {
+    :root {
+        font-size: 2vw;
+    }
+    .sections li {
+        font-size: unset;
+        display: unset;
+    }
+    body > header nav,
+    body > header .top li:first-child,
+    body > header .top li:nth-child(2),
+    body > header .top span.score,
+    .meta li,
+    .logo a strong,
+    .logo a small {
+        display: unset;
+    }
+}
+@media (max-width: 768px) {
+    :root {
+        font-size: 2.4vw;
+    }
+    .acct-info {
+        float: none;
+    }
+    .acct-info details input[type=email] {
+        margin-left: .4rem;
+    }
+    .sections li {
+        font-size: 0;
+        overflow: hidden;
+    }
+    .sections li a svg {
+        vertical-align: top;
+    }
+}
+@media (max-width: 576px) {
+    :root {
+        font-size: 2.6vw;
+    }
+    .top li::after {
+        content: none;
+    }
+    .top li:not(.acct) {
+        display: none;
+    }
+}
+@media (max-width: 480px) {
+    :root {
+        font-size: 3.6vw;
+    }
+    aside.domain,
+    .meta li,
+    .logo a strong,
+    .logo a small {
+        display: none;
+    }
 }
