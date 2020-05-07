@@ -3,6 +3,7 @@ package app
 import (
 	"encoding/gob"
 	"fmt"
+	pub "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
 	"github.com/gorilla/csrf"
 	"github.com/gorilla/sessions"
@@ -627,6 +628,13 @@ func fmtPubKey(pub []byte) string {
 	return s.String()
 }
 
+func InOutbox(a *Account, b pub.Item) bool {
+	if !a.HasMetadata() {
+		return false
+	}
+	return a.Metadata.outbox.Contains(b)
+}
+
 func AccountFollows(a, b *Account) bool {
 	for _, acc := range a.Following {
 		if HashesEqual(acc.Hash, b.Hash) {
@@ -656,6 +664,12 @@ func showFollowedLink(logged, current *Account) bool {
 		return false
 	}
 	if AccountFollows(logged, current) {
+		return false
+	}
+	if InOutbox(logged, pub.Follow{
+		Type: pub.FollowType,
+		Object: current.pub.GetLink(),
+	}) {
 		return false
 	}
 	return true

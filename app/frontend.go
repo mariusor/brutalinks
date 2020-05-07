@@ -368,6 +368,10 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 				items =  cursor.items.Items()
 			}
 			h.storage.loadAccountVotes(&acc, items)
+			acc, err = h.storage.loadAccountsOutbox(acc)
+			if err != nil {
+				h.logger.WithContext(ctx).Warnf(err.Error())
+			}
 			r = r.WithContext(context.WithValue(r.Context(), LoggedAccountCtxtKey, &acc))
 			h.storage.WithAccount(&acc)
 		}

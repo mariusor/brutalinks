@@ -565,6 +565,27 @@ func (r *repository) loadAccountsFollowers(acc Account) (Account, error) {
 	return acc, nil
 }
 
+func (r *repository) loadAccountsOutbox(acc Account) (Account, error) {
+	if !acc.HasMetadata() || len(acc.Metadata.OutboxIRI) == 0 {
+		return acc, nil
+	}
+	it, err := r.fedbox.Collection(pub.IRI(acc.Metadata.OutboxIRI))
+	if err != nil {
+		r.errFn(err.Error(), nil)
+		return acc, nil
+	}
+	if !pub.CollectionTypes.Contains(it.GetType()) {
+		return acc, nil
+	}
+	pub.OnOrderedCollection(it, func(o *pub.OrderedCollection) error {
+		for _, it := range o.Collection() {
+			acc.Metadata.outbox = append(acc.Metadata.outbox, it)
+		}
+		return nil
+	})
+
+	return acc, nil
+}
 func (r *repository) loadAccountsFollowing(acc Account) (Account, error) {
 	if !acc.HasMetadata() || len(acc.Metadata.FollowersIRI) == 0 {
 		return acc, nil

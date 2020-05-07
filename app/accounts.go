@@ -35,21 +35,22 @@ type OAuth struct {
 }
 
 type AccountMetadata struct {
-	Password     []byte        `json:"pw,omitempty"`
-	Provider     string        `json:"provider,omitempty"`
-	Salt         []byte        `json:"salt,omitempty"`
-	Key          *SSHKey       `json:"key,omitempty"`
-	Blurb        []byte        `json:"blurb,omitempty"`
-	Icon         ImageMetadata `json:"icon,omitempty"`
-	Name         string        `json:"name,omitempty"`
-	ID           string        `json:"id,omitempty"`
-	URL          string        `json:"url,omitempty"`
-	InboxIRI     string        `json:"inbox,omitempty"`
-	OutboxIRI    string        `json:"outbox,omitempty"`
-	LikedIRI     string        `json:"liked,omitempty"`
-	FollowersIRI string        `json:"followers,omitempty"`
-	FollowingIRI string        `json:"following,omitempty"`
-	OAuth        OAuth         `json:-`
+	Password     []byte             `json:"pw,omitempty"`
+	Provider     string             `json:"provider,omitempty"`
+	Salt         []byte             `json:"salt,omitempty"`
+	Key          *SSHKey            `json:"key,omitempty"`
+	Blurb        []byte             `json:"blurb,omitempty"`
+	Icon         ImageMetadata      `json:"icon,omitempty"`
+	Name         string             `json:"name,omitempty"`
+	ID           string             `json:"id,omitempty"`
+	URL          string             `json:"url,omitempty"`
+	InboxIRI     string             `json:"inbox,omitempty"`
+	OutboxIRI    string             `json:"outbox,omitempty"`
+	LikedIRI     string             `json:"liked,omitempty"`
+	FollowersIRI string             `json:"followers,omitempty"`
+	FollowingIRI string             `json:"following,omitempty"`
+	OAuth        OAuth              `json:-`
+	outbox       pub.ItemCollection
 }
 
 type AccountCollection []Account
