@@ -7,6 +7,7 @@ ENV ?= dev
 LDFLAGS ?= -X main.version=$(VERSION)
 BUILDFLAGS ?= -trimpath -a -ldflags '$(LDFLAGS)'
 APPSOURCES := $(wildcard ./app/*.go internal/*/*.go)
+ASSETFILES := $(wildcard ./templates/*.html templates/partials/*.html templates/partials/*/*.html assets/css/*.css assets/js/*.js assets/*)
 
 ifneq ($(ENV), dev)
 	LDFLAGS += -s -w -extldflags "-static"
@@ -28,7 +29,9 @@ TEST := $(GO) test $(BUILDFLAGS)
 
 all: app
 
-internal/assets/assets.gen.go:
+assets:
+
+internal/assets/assets.gen.go: $(ASSETFILES)
 	go generate -tags $(ENV) ./assets.go
 
 app: bin/app
