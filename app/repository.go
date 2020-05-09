@@ -425,20 +425,20 @@ func (r *repository) WithAccount(a *Account) *repository {
 }
 
 func (r *repository) withAccountC2S(a *Account) client.RequestSignFn {
-	// TODO(marius): this needs to be added to the federated requests, which we currently don't support
-	if !a.IsValid() || !a.IsLogged() {
-		return nil
-	}
-	if a.Metadata.OAuth.Token == "" {
-		r.errFn("account has no OAuth2 token", log.Ctx{
-			"handle":   a.Handle,
-			"logged":   a.IsLogged(),
-			"metadata": a.Metadata,
-		})
-		return nil
-	}
-	tok := a.Metadata.OAuth.Token
 	return func(req *http.Request) error {
+		// TODO(marius): this needs to be added to the federated requests, which we currently don't support
+		if !a.IsValid() || !a.IsLogged() {
+			return nil
+		}
+		if a.Metadata.OAuth.Token == "" {
+			r.errFn("account has no OAuth2 token", log.Ctx{
+				"handle":   a.Handle,
+				"logged":   a.IsLogged(),
+				"metadata": a.Metadata,
+			})
+			return nil
+		}
+		tok := a.Metadata.OAuth.Token
 		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", tok))
 		return nil
 	}
