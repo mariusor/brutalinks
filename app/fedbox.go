@@ -7,6 +7,7 @@ import (
 	"github.com/go-ap/errors"
 	"github.com/go-ap/handlers"
 	"net/url"
+	"strings"
 )
 
 const (
@@ -94,8 +95,15 @@ func NewClient(o ...OptionFn) (*fedbox, error) {
 	return &f, nil
 }
 
+func (f fedbox) normaliseIRI(i pub.IRI) pub.IRI {
+	if u, e := i.URL(); e == nil && u.Scheme != f.baseURL.Scheme {
+		return pub.IRI(strings.Replace(i.String(), u.Scheme, f.baseURL.Scheme, 1))
+	}
+	return i
+}
+
 func (f fedbox) collection(i pub.IRI) (pub.CollectionInterface, error) {
-	it, err := f.client.LoadIRI(i)
+	it, err := f.client.LoadIRI(f.normaliseIRI(i))
 	if err != nil {
 		return nil, errors.Annotatef(err, "Unable to load IRI: %s", i)
 	}
