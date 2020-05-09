@@ -655,7 +655,6 @@ details#invites summary {
 }
 details#invites summary,
 #invites form {
-    display: inline;
     float: left;
 }
 .acct-info #private-message {
