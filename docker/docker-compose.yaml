@@ -1,65 +1,61 @@
-version: "3"
+version: "3.8"
 services:
   fedbox:
-    env_file: ./.env
-    image: ${HOSTNAME}/fedbox:${ENV}
-    build:
-      context: fedbox
-      dockerfile: ./Dockerfile
-      args:
-        ENV: ${ENV}
-        HOSTNAME: ${HOSTNAME}
-    command: fedbox --env ${ENV}
+    image:
+      - fedbox/app:${ENV}
+      - quay.io/fedbox/fedbox:${ENV}
+    command: /bin/fedbox --env ${ENV}
+    expose:
+      - 4000
+    environment:
+      - ENV=${ENV}
+      - LISTEN=:4000
+    volumes:
+      - /tmp:/storage
+    networks:
+      - default
+  bootstrap:
+    image: quay.io/fedbox/fedbox:${ENV}
+    command: /bin/ctl --env ${ENV} bootstrap
+    volumes:
+      - /tmp:/storage
+    depends_on:
+      - fedbox
+  add_app:
+    image: quay.io/fedbox/fedbox:${ENV}
+    command: /bin/ctl --env ${ENV} oauth client add --redirectUri http://brutalinks.git/auth/fedbox/callback
+    volumes:
+      - /tmp:/storage
+    depends_on:
+      - bootstrap
   lb:
     env_file: ./.env
-    image: ${HOSTNAME}/lb:${ENV}
-    build:
-      context: varnish
-      dockerfile: ./Dockerfile
-      args:
-        LISTEN: ${LISTEN}
-        HOSTNAME: ${HOSTNAME}
+    image: caddy
     ports:
       - 80:80
+      - 443:443
     links:
     - app
+    volumes:
+    -  ./Caddyfile:/etc/caddy/Caddyfile
     environment:
     - VARNISH_BACKEND_ADDRESS=app
     - VARNISH_BACKEND_PORT=${PORT}
-  ssl:
-    env_file: ./.env
-    image: ${HOSTNAME}/ssl:${ENV}
-    build:
-      context: hitch
-      dockerfile: ./Dockerfile
-      args:
-        LISTEN: ${LISTEN}
-        HOSTNAME: ${HOSTNAME}
-    ports:
-    - 443:443
-    depends_on:
-    - lb
-    links:
-    - lb
-    environment:
-    - HITCH_BACKEND_ADDRESS=lb
-    - HITCH_BACKEND_PORT=6081
     networks:
-      default:
-        aliases:
-          - ${HOSTNAME}
+      - default
   app:
     env_file: ./.env
-    image: ${HOSTNAME}/app:${ENV}
-#    depends_on:
-#    links:
+    image: quay.io/fedbox/littr:${ENV}
+    depends_on:
+    - add_app
+    links:
+    - fedbox
 #    - redis
 #    - es
-    build:
-      context: app
-      dockerfile: ./Dockerfile
-      args:
-        ENV: ${ENV}
-        LISTEN: ${LISTEN}
-        HOSTNAME: ${HOSTNAME}
-    command: app -host ${HOSTNAME} -port ${PORT} -env ${ENV}
+    command: /bin/littr -host ${HOSTNAME} -port ${PORT} -env ${ENV}
+    networks:
+      - default
+
+networks:
+  default:
+    internal: true

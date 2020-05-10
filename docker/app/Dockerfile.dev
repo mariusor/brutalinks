@@ -25,9 +25,11 @@ ENV LISTEN $LISTEN
 ENV ENV $ENV
 
 COPY --from=builder /go/src/app/bin/app /bin/littr
+ADD ./templates /
+ADD ./assets /
 
 ADD docker/app/.env ./
-ADD docker/app/.env.prod ./
+ADD docker/app/.env.dev ./
 
 CMD ["/bin/littr"]
 
