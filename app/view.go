@@ -321,8 +321,10 @@ func mod10(lvl uint8) float64 {
 	return math.Mod(float64(lvl), float64(10))
 }
 
+const minShowUpdateTime = 2 * time.Second
+
 func showUpdateTime(i Item) bool {
-	return !(i.UpdatedAt.IsZero() || math.Abs(float64(i.SubmittedAt.Sub(i.UpdatedAt).Milliseconds())) < float64(2*time.Second))
+	return !i.UpdatedAt.IsZero() && i.UpdatedAt.Sub(i.SubmittedAt) > minShowUpdateTime
 }
 
 func scoreClass(s int) string {
@@ -667,7 +669,7 @@ func showFollowedLink(logged, current *Account) bool {
 		return false
 	}
 	if InOutbox(logged, pub.Follow{
-		Type: pub.FollowType,
+		Type:   pub.FollowType,
 		Object: current.pub.GetLink(),
 	}) {
 		return false
