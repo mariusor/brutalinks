@@ -207,25 +207,26 @@ func isWordDelimiter (b byte) bool {
 }
 
 func replaceTag(d *string, t Tag, w string) {
-	var base []string
-	var pref [][]byte
 	inWord := func(d string, i, end int) bool {
 		dl := len(d)
 		if i < 1 || end > dl {
 			return false
 		}
-		before := !isWordDelimiter(d[i-1])
+		before := isWordDelimiter(d[i-1])
 		after := true
 		if end < dl {
-			after = !isWordDelimiter(d[end])
+			after = isWordDelimiter(d[end])
 		}
 		return before && after
 	}
 
+	var base []string
 	base = append(base, t.Name)
 	if u, err := url.Parse(t.URL); err == nil && len(u.Host) > 0 {
 		base = append(base, t.Name+`@`+u.Host)
 	}
+
+	var pref [][]byte
 	if t.Type == TagMention {
 		pref = [][]byte{{'~'}, {'@'}}
 	} else {
@@ -250,7 +251,7 @@ func replaceTag(d *string, t Tag, w string) {
 			if end > len(*d) {
 				break
 			}
-			if inWord(*d, pos, end) {
+			if !inWord(*d, pos, end) {
 				*d = replaceBetweenPos(*d, w, pos, end)
 			}
 		}
