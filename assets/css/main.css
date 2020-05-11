@@ -303,19 +303,14 @@ ol {
     display: grid;
     grid-template-columns: 1.6rem 11fr;
     grid-template-rows: minmax(max-content, 1.4rem) auto;
-    /*align-items: center;*/
     grid-template-areas: "sidebar main" "sidebar footer";
-}
-.item.acct {
-    display: block;
-}
-.item aside.score {
-    grid-area: sidebar;
 }
 .item .data {
     line-height: 1.62em;
-    /*grid-area: main;*/
     padding-left: 1ex;
+}
+.item article.data {
+    /*grid-area: main;*/
     /*min-height: 1.4em;*/
     display: grid;
 }
@@ -335,28 +330,43 @@ summary + ol.comments {
 ol.comments {
     margin-top: .3em;
     padding: 0 0 0 1.4em;
-    /*border-radius: 0 0 0 .4rem;*/
 }
 .comments > li {
     padding: .7rem 0 0 0;
 }
-ol.comments.lvl-0 {
-    /*border-radius: .4rem 0 0 .4rem;*/
-}
+ol.comments.lvl-0 {}
 ol.comments li {
     list-style: none;
 }
-.items .acct {
-    margin-left: 2rem;
-    height: 3.4ex;
-}
-.acct .score:before {
+.top .score:before {
     content: "[";
 }
-.acct .score:after {
+.top .score:after {
     content: "]";
 }
+.acct img.avatar,
+.acct svg.avatar {
+    height: 2rem;
+    width: 2rem;
+    vertical-align: bottom;
+    margin-right: .2rem;
+}
+.item.acct img.avatar,
+.item.acct svg.avatar {
+    height: 1rem;
+    width: 1rem;
+    vertical-align: unset;
+}
+.item aside.users svg {
+    justify-self: center;
+    align-self: center;
+}
+.item aside.users {
+    grid-area: sidebar;
+    display: grid;
+}
 .item aside.score {
+    grid-area: sidebar;
     display: grid;
     grid-template-rows: 1em 1.5em 1em;
 }
@@ -410,9 +420,19 @@ aside.score a[href]:visited {
     font-size: .85em;
     opacity: .6;
     padding-left: 1ex;
+    line-height: 1.1rem;
 }
 .meta time .icon-clock-o {
     margin-right: .2em;
+}
+.meta .icon-activitypub {
+    display: none;
+}
+.item:hover .meta .icon-activitypub,
+.acct:hover .meta .icon-activitypub {
+    vertical-align: text-top;
+    width: 1.1em;
+    display: unset;
 }
 .icon.icon-lock {
     transform: rotateX(180deg);

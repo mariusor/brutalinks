@@ -1,0 +1,18 @@
+<nav class="moderation-hdr">
+    <form method="get">
+        <label>Moderator
+        <select name="m">
+            <option value="all" selected="selected">(all)</option>
+            <option valeu="users">(users)</option>
+        </select>
+        </label>
+        <label><input type="checkbox" name="it"/> Items</label>
+        <label><input type="checkbox" name="c" /> Comments</label>
+        <label><input type="checkbox" name="d"/> Domains</label>
+        <label><input type="checkbox" name="t"/> Tags</label>
+        <label><input type="checkbox" name="u"/> Users</label>
+        <label><input type="checkbox" name="in"/> Instances</label>
+        <button type="submit">Filter</button>
+    </form>
+</nav>
+{{ template "listing" . }}

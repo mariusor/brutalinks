@@ -1,0 +1,6 @@
+<main class="data">
+    <a href="{{ AccountPermaLink . }}">
+        {{- if .HasIcon -}}<img src="{{.Metadata.Icon.URI}}" alt="{{.Handle}}" class="avatar" />{{- else -}}{{- icon "user" "avatar" -}}{{- end -}}
+        {{- .Handle -}}
+    </a>
+</main>

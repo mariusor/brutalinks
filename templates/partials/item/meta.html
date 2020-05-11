@@ -13,15 +13,9 @@ submitted{{ if not .Deleted}}{{- if ShowUpdate $it }}<time class="updated-at" da
 {{- if not .Deleted }}
             <li><a href="{{$it | ItemLocalLink }}/edit" title="Edit{{if .Title}}: {{$it.Title }}{{end}}">{{/*icon "edit"*/}}edit</a></li>
             <li><a href="{{$it | ItemLocalLink }}/rm" class="rm" data-hash="{{ .Hash }}" title="Remove{{if .Title}}: {{$it.Title }}{{end}}">{{/*icon "eraser"*/}}rm</a></li>
-{{- /*
-{{ else -}}
-            <li><a href="{{$it | ItemLocalLink }}/undo" class="undo" data-hash="{{ .Hash }}" title="Recover item"><!--{{icon "recycle"}}-->undo</a></li>
-*/ -}}
 {{- end -}}
 {{- end -}}
-{{- /*
-            <li><a href="{{$it | PermaLink }}/bad" title="Report{{if .Title}}: {{$it.Title }}{{end}}"><!--{{ icon "star"}}-->report</a></li>
-*/ -}}
+            <li><a href="{{$it | ItemLocalLink }}/bad" title="Report{{if .Title}}: {{$it.Title }}{{end}}"><!--{{ icon "flag"}}-->report</a></li>
 {{- end -}}
 {{- if not $it.IsTop -}}
 {{- if $it.Parent -}}
@@ -39,8 +33,8 @@ submitted{{ if not .Deleted}}{{- if ShowUpdate $it }}<time class="updated-at" da
 {{- end -}}
 {{- if or (not $it.IsTop) (not .IsLink) }}
             <li><a href="{{$it | ItemLocalLink }}" class="to-item" title="Permalink{{if .Title}}: {{$it.Title }}{{end}}">{{ if $it.Private }}{{icon "lock"}} {{ end -}}{{/* icon "reply" "h-mirror" */}}link</a></li>
-{{- end -}}
-{{- if $it.IsFederated }}<!-- <li>This shit federated, yo!</li> -->{{ end }}
+{{- end }}
+            {{ if not $it.Private }}<li><a href="{{ $it.Metadata.ID }}" data-hash="{{ .Hash }}" title="ActivityPub link{{if .Title}}: {{$it.Title }}{{end}}">{{icon "activitypub"}}</a></li> {{- end -}}
         </ul>
     </nav>
 </footer>

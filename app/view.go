@@ -323,8 +323,14 @@ func mod10(lvl uint8) float64 {
 
 const minShowUpdateTime = 2 * time.Second
 
-func showUpdateTime(i Item) bool {
-	return !i.UpdatedAt.IsZero() && i.UpdatedAt.Sub(i.SubmittedAt) > minShowUpdateTime
+func showUpdateTime(i Renderable) bool {
+	if it, ok := i.(*Item); ok {
+		return !it.UpdatedAt.IsZero() && it.UpdatedAt.Sub(it.SubmittedAt) > minShowUpdateTime
+	}
+	if a, ok := i.(*Account); ok {
+		return !a.UpdatedAt.IsZero() && a.UpdatedAt.Sub(a.CreatedAt) > minShowUpdateTime
+	}
+	return false
 }
 
 func scoreClass(s int) string {

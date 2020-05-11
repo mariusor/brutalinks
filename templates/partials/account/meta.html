@@ -1,0 +1,19 @@
+{{- $it := . -}}
+<footer class="meta col">
+created{{ if not .Deleted}}{{- if ShowUpdate $it }}<time class="updated-at" datetime="{{ $it.UpdatedAt | ISOTimeFmt | html }}" title="accepted at {{ $it.UpdatedAt | ISOTimeFmt }}"><sup>&#10033;</sup></time> {{- end }} <time class="submitted-at" datetime="{{ $it.CreatedAt | ISOTimeFmt | html }}" title="{{ $it.CreatedAt | ISOTimeFmt }}">{{ icon "clock-o" }}{{ $it.CreatedAt | TimeFmt }}</time>{{- end -}}
+    {{- if $it.CreatedBy.IsValid }} by <a class="by" rel="author" href="{{ $it.CreatedBy | AccountPermaLink }}">{{ $it.CreatedBy | ShowAccountHandle }}</a>{{end}}
+    <nav class="meta-items">
+        <ul class="inline">
+{{- if and CurrentAccount.IsValid $it.CreatedBy.IsValid -}}
+{{- if (sameHash $it.CreatedBy.Hash CurrentAccount.Hash) }}
+{{- /*
+@todo(marius) :link_generation: this needs a generic way of creating links
+*/ -}}
+{{- end -}}
+            <li><a href="{{$it | AccountLocalLink }}/msg" title="Message{{if .Handle}}: {{$it.Handle }}{{end}}">{{/*icon "edit"*/}}message</a></li>
+            <li><a href="{{$it | AccountLocalLink }}/bad" title="Report{{if .Handle}}: {{$it.Handle }}{{end}}"><!--{{ icon "flag"}}-->report</a></li>
+{{- end }}
+            <li><a href="{{ $it.Metadata.ID }}" data-hash="{{ .Hash }}" title="ActivityPub link{{if .Handle}}: {{$it.Handle }}{{end}}">{{icon "activitypub"}}</a></li>
+        </ul>
+    </nav>
+</footer>
