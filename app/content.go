@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"strings"
 	"time"
+	"unicode"
 
 	mark "gitlab.com/golang-commonmark/markdown"
 )
@@ -189,10 +190,76 @@ func inRange(n string, nn map[string]string) bool {
 	return false
 }
 
+func replaceBetweenPos(d, r string, st, end int) string {
+	if st < 0 || end > len(d) {
+		return d
+	}
+	if end < len(d) {
+		r += d[end:]
+	}
+	return d[:st] + r
+}
+
+func isWordDelimiter (b byte) bool {
+	return unicode.Is(unicode.Number, rune(b)) ||
+		unicode.Is(unicode.Letter, rune(b)) ||
+		unicode.Is(unicode.Punct, rune(b))
+}
+
+func replaceTag(d *string, t Tag, w string) {
+	var base []string
+	var pref [][]byte
+	inWord := func(d string, i, end int) bool {
+		dl := len(d)
+		if i < 1 || end > dl {
+			return false
+		}
+		before := !isWordDelimiter(d[i-1])
+		after := true
+		if end < dl {
+			after = !isWordDelimiter(d[end])
+		}
+		return before && after
+	}
+
+	base = append(base, t.Name)
+	if u, err := url.Parse(t.URL); err == nil && len(u.Host) > 0 {
+		base = append(base, t.Name+`@`+u.Host)
+	}
+	if t.Type == TagMention {
+		pref = [][]byte{{'~'}, {'@'}}
+	} else {
+		pref = [][]byte{{'#'}}
+	}
+	var search [][]byte
+	for _, p := range pref {
+		for _, b := range base {
+			s := append(p, b...)
+			search = append(search, s)
+		}
+	}
+	for _, s := range search {
+		end := 0
+		for {
+			inx := strings.Index((*d)[end:], string(s))
+			if inx < 0 {
+				break
+			}
+			pos := end+inx
+			end = pos+len(s)
+			if end > len(*d) {
+				break
+			}
+			if inWord(*d, pos, end) {
+				*d = replaceBetweenPos(*d, w, pos, end)
+			}
+		}
+	}
+}
+
 func replaceTagsInItem(cur Item) string {
-	dat := cur.Data
-	if cur.Metadata == nil {
-		return dat
+	if !cur.HasMetadata() {
+		return cur.Data
 	}
 	replaces := make(map[string]string, 0)
 	if cur.Metadata.Tags != nil {
@@ -210,24 +277,15 @@ func replaceTagsInItem(cur Item) string {
 			if inRange(lbl, replaces) {
 				continue
 			}
-			if u, err := url.Parse(t.URL); err == nil && len(u.Host) > 0 {
-				nameAtT := fmt.Sprintf("~%s@%s", t.Name, u.Host)
-				nameAtA := fmt.Sprintf("@%s@%s", t.Name, u.Host)
-				dat = strings.ReplaceAll(dat, nameAtT, lbl)
-				dat = strings.ReplaceAll(dat, nameAtA, lbl)
-			}
-			nameT := fmt.Sprintf("~%s", t.Name)
-			nameA := fmt.Sprintf("@%s", t.Name)
-			dat = strings.ReplaceAll(dat, nameT, lbl)
-			dat = strings.ReplaceAll(dat, nameA, lbl)
+			replaceTag(&cur.Data, t, lbl)
 			replaces[lbl] = mimeTypeTagReplace(cur.MimeType, t)
 		}
 	}
 
 	for to, repl := range replaces {
-		dat = strings.ReplaceAll(dat, to, repl)
+		cur.Data = strings.ReplaceAll(cur.Data, to, repl)
 	}
-	return dat
+	return cur.Data
 }
 
 func removeCurElementParentComments(com *[]*Item) {
