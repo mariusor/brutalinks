@@ -7,7 +7,7 @@ ENV ?= dev
 LDFLAGS ?= -X main.version=$(VERSION)
 BUILDFLAGS ?= -trimpath -a -ldflags '$(LDFLAGS)'
 APPSOURCES := $(wildcard ./app/*.go internal/*/*.go)
-ASSETFILES := $(wildcard ./templates/*.html templates/partials/*.html templates/partials/*/*.html assets/css/*.css assets/js/*.js assets/*)
+ASSETFILES := $(wildcard templates/* templates/partials/* templates/partials/*/* assets/*/* assets/*)
 
 ifneq ($(ENV), dev)
 	LDFLAGS += -s -w -extldflags "-static"
