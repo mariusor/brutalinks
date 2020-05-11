@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	aletheia.icu/broccoli v1.0.3 // indirect
+	aletheia.icu/broccoli/fs v0.0.0-20200420162907-e7ff440cf358
 	github.com/captncraig/cors v0.0.0-20190703115713-e80254a89df1 // indirect
 	github.com/go-ap/activitypub v0.0.0-20200507144943-fac868b7c2f3
 	github.com/go-ap/client v0.0.0-20200507145130-fd86f8deae80
