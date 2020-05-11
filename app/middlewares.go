@@ -9,11 +9,11 @@ import (
 	"path"
 )
 
-func LoadAuthorMw(next http.Handler) http.Handler {
+func (h handler)LoadAuthorMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		author, err := accountFromRequestHandle(r)
 		if err != nil {
-			next.ServeHTTP(w, r)
+			h.ErrorHandler(err).ServeHTTP(w, r)
 			return
 		}
 		ctx := context.WithValue(r.Context(), AuthorCtxtKey, author)
@@ -25,7 +25,6 @@ func LoadOutboxMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		author := ContextAuthor(r.Context())
 		if author == nil {
-			// TODO(marius): error
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -71,7 +70,7 @@ func LoadServiceInboxMw(next http.Handler) http.Handler {
 	})
 }
 
-func ctxtErr(next  http.Handler, w http.ResponseWriter, r *http.Request, err error) {
+func ctxtErr(next http.Handler, w http.ResponseWriter, r *http.Request, err error) {
 	status, _ := errors.HttpErrors(err)
 	ctx := context.WithValue(r.Context(), ModelCtxtKey, errorModel{
 		Status: status,

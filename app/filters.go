@@ -178,13 +178,12 @@ func TagFiltersMw(next http.Handler) http.Handler {
 	})
 }
 
-func ModelMw(m interface{}) Handler {
+func ModelMw(m Model) Handler {
 	return func(next http.Handler) http.Handler {
-		fn := func(w http.ResponseWriter, r *http.Request) {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
 			next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, ModelCtxtKey, m)))
-		}
-		return http.HandlerFunc(fn)
+		})
 	}
 }
 
@@ -205,15 +204,16 @@ func AccountFiltersMw(next http.Handler) http.Handler {
 		f := FiltersFromRequest(r)
 		f.Type = CreateActivitiesFilter
 
-		author := ContextAuthor(r.Context())
-		if author != nil {
-			f.AttrTo = IRIsFilter(author.pub.GetLink())
-			m := ContextListingModel(r.Context())
-			m.User = author
-		}
-
 		m := ContextListingModel(r.Context())
+		author := ContextAuthor(r.Context())
+		if author == nil {
+			next.ServeHTTP(w, r)
+			return
+		}
+		f.AttrTo = IRIsFilter(author.pub.GetLink())
 		m.Title = fmt.Sprintf("%s items", genitive(author.Handle))
+		m.User = author
+
 		ctx := context.WithValue(context.WithValue(r.Context(), FilterCtxtKey, f), ModelCtxtKey, m)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})

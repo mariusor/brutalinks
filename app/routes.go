@@ -35,7 +35,7 @@ func (h *handler) Routes() func(chi.Router) {
 			})
 		})
 
-		r.With(LoadAuthorMw).Route("/~{handle}", func(r chi.Router) {
+		r.With(h.LoadAuthorMw).Route("/~{handle}", func(r chi.Router) {
 			r.With(ModelMw(&listingModel{tpl: "user"}), AccountFiltersMw, LoadOutboxMw).Get("/", h.HandleShow)
 			r.Post("/", h.HandleSubmit)
 			r.Get("/follow", h.FollowAccount)
