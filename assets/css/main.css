@@ -700,7 +700,7 @@ details#invites summary,
     margin-top: 1em;
 }
 .icon-clock-o {
-    vertical-align: bottom;
+    vertical-align: text-bottom;
 }
 .icon-github, .icon-code {
     vertical-align: middle;
