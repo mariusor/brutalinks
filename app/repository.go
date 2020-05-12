@@ -751,7 +751,41 @@ func ActivityTypesFilter(t ...pub.ActivityVocabularyType) CompStrs {
 	return r
 }
 
-func (r *repository) loadAuthors(items ...FollowRequest) ([]FollowRequest, error) {
+func (r *repository) loadAccountsAuthors(accounts ...Account) ([]Account, error) {
+	if len(accounts) == 0 {
+		return accounts, nil
+	}
+	fActors := Filters{
+		Type: ActivityTypesFilter(ValidActorTypes...),
+	}
+	for _, it := range accounts {
+		if !it.CreatedBy.IsValid() {
+			continue
+		}
+		hash := LikeString(it.CreatedBy.Hash.String())
+		if len(hash.Str) > 0 && !fActors.IRI.Contains(hash) {
+			fActors.IRI = append(fActors.IRI, hash)
+		}
+	}
+
+	if len(fActors.IRI) == 0 {
+		return accounts, errors.Errorf("unable to load accounts authors")
+	}
+	authors, err := r.accounts(&fActors)
+	if err != nil {
+		return accounts, errors.Annotatef(err, "unable to load accounts authors")
+	}
+	for k, it := range accounts {
+		for i, auth := range authors {
+			if accountsEqual(*it.CreatedBy, auth) {
+				accounts[k].CreatedBy = &(authors[i])
+			}
+		}
+	}
+	return accounts, nil
+}
+
+func (r *repository) loadFollowsAuthors(items ...FollowRequest) ([]FollowRequest, error) {
 	if len(items) == 0 {
 		return items, nil
 	}
@@ -1203,7 +1237,11 @@ func (r *repository) ActorCollection(fn CollectionFn, f *Filters) (Cursor, error
 	//if err != nil {
 	//	return emptyCursor, err
 	//}
-	follows, err = r.loadAuthors(follows...)
+	follows, err = r.loadFollowsAuthors(follows...)
+	if err != nil {
+		return emptyCursor, err
+	}
+	accounts, err = r.loadAccountsAuthors(accounts...)
 	if err != nil {
 		return emptyCursor, err
 	}
@@ -1556,7 +1594,7 @@ func (r *repository) LoadFollowRequests(ed *Account, f *Filters) (FollowRequests
 				}
 			}
 		}
-		requests, err = r.loadAuthors(requests...)
+		requests, err = r.loadFollowsAuthors(requests...)
 	}
 	return requests, uint(len(requests)), nil
 }
