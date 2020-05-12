@@ -747,14 +747,14 @@ func ShowAccountHandle(a Account) string {
 	//		}
 	//	}
 	//}
-	return a.Handle
-}
-
-func AccountLocalLink(a Account) string {
-	handle := "anonymous"
+	handle := Anonymous
 	if len(a.Handle) > 0 {
 		handle = a.Handle
 	}
+	return handle
+}
+
+func AccountLocalLink(a Account) string {
 	// @todo(marius) :link_generation:
-	return fmt.Sprintf("/~%s", handle)
+	return fmt.Sprintf("/~%s", ShowAccountHandle(a))
 }
