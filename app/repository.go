@@ -758,11 +758,11 @@ func (r *repository) loadAccountsAuthors(accounts ...Account) ([]Account, error)
 	fActors := Filters{
 		Type: ActivityTypesFilter(ValidActorTypes...),
 	}
-	for _, it := range accounts {
-		if !it.CreatedBy.IsValid() {
+	for _, ac := range accounts {
+		if !ac.CreatedBy.IsValid() {
 			continue
 		}
-		hash := LikeString(it.CreatedBy.Hash.String())
+		hash := LikeString(ac.CreatedBy.Hash.String())
 		if len(hash.Str) > 0 && !fActors.IRI.Contains(hash) {
 			fActors.IRI = append(fActors.IRI, hash)
 		}
@@ -775,11 +775,16 @@ func (r *repository) loadAccountsAuthors(accounts ...Account) ([]Account, error)
 	if err != nil {
 		return accounts, errors.Annotatef(err, "unable to load accounts authors")
 	}
-	for k, it := range accounts {
+	for k, ac := range accounts {
+		found := false
 		for i, auth := range authors {
-			if accountsEqual(*it.CreatedBy, auth) {
+			if accountsEqual(*ac.CreatedBy, auth) {
 				accounts[k].CreatedBy = &(authors[i])
+				found = true
 			}
+		}
+		if !found {
+			accounts[k].CreatedBy = &SystemAccount
 		}
 	}
 	return accounts, nil

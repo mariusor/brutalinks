@@ -27,11 +27,13 @@ var Logger log.Logger
 const (
 	// Anonymous label
 	Anonymous = "anonymous"
-	// AnonymousHash is the sha hash for the anonymous account
+	System = "system"
 )
 
+// AnonymousHash is the sha hash for the anonymous account
 var AnonymousHash = Hash{}
 var AnonymousAccount = Account{Handle: Anonymous, Hash: AnonymousHash, Metadata: &AccountMetadata{}}
+var SystemAccount = Account{Handle: System, Hash: AnonymousHash, Metadata: &AccountMetadata{}}
 
 var listenHost string
 var listenPort int64
