@@ -9,7 +9,7 @@ import (
 	"path"
 )
 
-func (h handler)LoadAuthorMw(next http.Handler) http.Handler {
+func (h handler) LoadAuthorMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		author, err := accountFromRequestHandle(r)
 		if err != nil {
@@ -73,10 +73,10 @@ func LoadServiceInboxMw(next http.Handler) http.Handler {
 func ctxtErr(next http.Handler, w http.ResponseWriter, r *http.Request, err error) {
 	status, _ := errors.HttpErrors(err)
 	ctx := context.WithValue(r.Context(), ModelCtxtKey, errorModel{
-		Status: status,
-		Title: fmt.Sprintf("Error %d", status),
+		Status:     status,
+		Title:      fmt.Sprintf("Error %d", status),
 		StatusText: http.StatusText(status),
-		Errors: []error{err},
+		Errors:     []error{err},
 	})
 	next.ServeHTTP(w, r.WithContext(ctx))
 }
@@ -137,5 +137,55 @@ func LoadOutboxObjectMw(next http.Handler) http.Handler {
 		}
 		ctx := context.WithValue(context.WithValue(r.Context(), CursorCtxtKey, &c), ModelCtxtKey, m)
 		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func ThreadedListingMw(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		c := ContextCursor(r.Context())
+		if c == nil {
+			ctxtErr(next, w, r, errors.NotFoundf("Cursor not found"))
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		comments := make([]*Item, 0)
+		accounts := make([]*Account, 0)
+		for _, ren := range c.items {
+			if it, ok := ren.(*Item); ok {
+				comments = append(comments, it)
+			}
+			if ac, ok := ren.(*Account); ok {
+				accounts = append(accounts, ac)
+			}
+		}
+
+		reparentComments(&comments)
+		addLevelComments(comments)
+
+		reparentAccounts(&accounts)
+		addLevelAccounts(accounts)
+
+		newitems := make([]Renderable, 0)
+		for _, ren := range c.items {
+			switch ren.Type() {
+			case Comment:
+				for _, it := range comments {
+					if it == ren {
+						newitems = append(newitems, it)
+					}
+				}
+			case Actor:
+				for _, ac := range accounts {
+					if ac == ren {
+						newitems = append(newitems, ac)
+					}
+				}
+			default:
+				newitems = append(newitems, ren)
+			}
+		}
+		c.items = newitems
+		next.ServeHTTP(w, r)
 	})
 }

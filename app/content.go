@@ -290,6 +290,9 @@ func replaceTagsInItem(cur Item) string {
 }
 
 func removeCurElementParentComments(com *[]*Item) {
+	if len(*com) == 0 {
+		return
+	}
 	first := (*com)[0]
 	lvl := first.Level
 	keepComments := make([]*Item, 0)
@@ -302,6 +305,10 @@ func removeCurElementParentComments(com *[]*Item) {
 }
 
 func addLevelComments(allComments []*Item) {
+	if len(allComments) == 0 {
+		return
+	}
+
 	leveled := make(Hashes, 0)
 	var setLevel func([]*Item)
 
@@ -322,7 +329,11 @@ func addLevelComments(allComments []*Item) {
 	setLevel(allComments)
 }
 
-func reparentComments(allComments []*Item) {
+func reparentComments(allComments *[]*Item) {
+	if len(*allComments) == 0 {
+		return
+	}
+
 	parFn := func(t []*Item, cur *Item) *Item {
 		for _, n := range t {
 			if cur.Parent.IsValid() {
@@ -334,14 +345,14 @@ func reparentComments(allComments []*Item) {
 		return nil
 	}
 
-	first := allComments[0]
-	for _, cur := range allComments {
-		if par := parFn(allComments, cur); par != nil {
-			if HashesEqual(first.Hash, cur.Hash) {
-				continue
-			}
+	retComments := make([]*Item, 0)
+	for _, cur := range *allComments {
+		if par := parFn(*allComments, cur); par != nil {
 			par.Children = append(par.Children, cur)
 			cur.Parent = par
+		} else {
+			retComments = append(retComments, par)
 		}
 	}
+	*allComments = retComments
 }

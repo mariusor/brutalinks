@@ -1,1 +1,5 @@
-{{ template "listing" . }}
+{{- if gt (len .Items) 0 }}
+{{ template "partials/accounts/accounts" .Items }}
+{{- else }}
+    <section id="no-items"><p>There's only dust here.</p></section>
+{{ end -}}

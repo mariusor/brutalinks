@@ -47,7 +47,7 @@ func (h *handler) Routes() func(chi.Router) {
 			r.Get("/follow/{action}", h.HandleFollowRequest)
 
 			r.Route("/{hash}", func(r chi.Router) {
-				r.Use(h.CSRF, ModelMw(&contentModel{}), ItemFiltersMw, LoadOutboxObjectMw)
+				r.Use(h.CSRF, ModelMw(&contentModel{}), ItemFiltersMw, LoadOutboxObjectMw, ThreadedListingMw)
 				r.Get("/", h.HandleShow)
 				r.Post("/", h.HandleSubmit)
 
@@ -92,7 +92,7 @@ func (h *handler) Routes() func(chi.Router) {
 				Get("/followed", h.HandleShow)
 			r.With(ModelMw(&listingModel{tpl: "moderation"}), ModerationFiltersMw, LoadInboxMw, AnonymizeListing).
 				Get("/moderation", h.HandleShow)
-			r.With(ModelMw(&listingModel{tpl: "accounts"}), ActorsFiltersMw, LoadServiceInboxMw).
+			r.With(ModelMw(&listingModel{tpl: "accounts"}), ActorsFiltersMw, LoadServiceInboxMw, ThreadedListingMw).
 				Get("/~", h.HandleShow)
 		})
 

@@ -71,23 +71,7 @@ func (m *contentModel) SetCursor(c *Cursor) {
 	if c == nil {
 		return
 	}
-	comments := make([]*Item, 0)
-	for _, ren := range c.items {
-		if it, ok := ren.(*Item); ok {
-			comments = append(comments, it)
-		}
-	}
-
-	if len(comments) == 0 {
-		return
-	}
-	cont := comments[0]
-
-	reparentComments(comments)
-	addLevelComments(comments)
-	removeCurElementParentComments(&comments)
-
-	m.Content = cont
+	m.Content = c.items[0]
 	m.after = c.after
 	m.before = c.before
 }

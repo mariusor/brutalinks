@@ -35,21 +35,21 @@ type OAuth struct {
 }
 
 type AccountMetadata struct {
-	Password     []byte             `json:"pw,omitempty"`
-	Provider     string             `json:"provider,omitempty"`
-	Salt         []byte             `json:"salt,omitempty"`
-	Key          *SSHKey            `json:"key,omitempty"`
-	Blurb        []byte             `json:"blurb,omitempty"`
-	Icon         ImageMetadata      `json:"icon,omitempty"`
-	Name         string             `json:"name,omitempty"`
-	ID           string             `json:"id,omitempty"`
-	URL          string             `json:"url,omitempty"`
-	InboxIRI     string             `json:"inbox,omitempty"`
-	OutboxIRI    string             `json:"outbox,omitempty"`
-	LikedIRI     string             `json:"liked,omitempty"`
-	FollowersIRI string             `json:"followers,omitempty"`
-	FollowingIRI string             `json:"following,omitempty"`
-	OAuth        OAuth              `json:-`
+	Password     []byte        `json:"pw,omitempty"`
+	Provider     string        `json:"provider,omitempty"`
+	Salt         []byte        `json:"salt,omitempty"`
+	Key          *SSHKey       `json:"key,omitempty"`
+	Blurb        []byte        `json:"blurb,omitempty"`
+	Icon         ImageMetadata `json:"icon,omitempty"`
+	Name         string        `json:"name,omitempty"`
+	ID           string        `json:"id,omitempty"`
+	URL          string        `json:"url,omitempty"`
+	InboxIRI     string        `json:"inbox,omitempty"`
+	OutboxIRI    string        `json:"outbox,omitempty"`
+	LikedIRI     string        `json:"liked,omitempty"`
+	FollowersIRI string        `json:"followers,omitempty"`
+	FollowingIRI string        `json:"following,omitempty"`
+	OAuth        OAuth         `json:-`
 	outbox       pub.ItemCollection
 }
 
@@ -69,6 +69,9 @@ type Account struct {
 	Votes     VoteCollection    `json:"votes,omitempty"`
 	Followers AccountCollection `json:"followers,omitempty"`
 	Following AccountCollection `json:"following,omitempty"`
+	Level     uint8             `json:"-"`
+	Parent    *Account          `json:"-"`
+	Children  []*Account        `json:"-"`
 }
 
 // Hash is a local type for string, it should hold a [32]byte array actually
@@ -254,4 +257,55 @@ func accountFromRequestHandle(r *http.Request) (*Account, error) {
 		account = &accounts[0]
 	}
 	return account, nil
+}
+
+func addLevelAccounts(allAccounts []*Account) {
+	if len(allAccounts) == 0 {
+		return
+	}
+	leveled := make(Hashes, 0)
+	var setLevel func([]*Account)
+
+	setLevel = func(com []*Account) {
+		for _, cur := range com {
+			if leveled.Contains(cur.Hash) {
+				break
+			}
+			leveled = append(leveled, cur.Hash)
+			if len(cur.Children) > 0 {
+				for _, child := range cur.Children {
+					child.Level = cur.Level + 1
+					setLevel(cur.Children)
+				}
+			}
+		}
+	}
+	setLevel(allAccounts)
+}
+
+func reparentAccounts(allAccounts *[]*Account) {
+	if len(*allAccounts) == 0 {
+		return
+	}
+	parFn := func(t []*Account, cur *Account) *Account {
+		for _, n := range t {
+			if cur.CreatedBy.IsValid() {
+				if HashesEqual(cur.CreatedBy.Hash, n.Hash) {
+					return n
+				}
+			}
+		}
+		return nil
+	}
+
+	retAccounts := make([]*Account, 0)
+	for _, cur := range *allAccounts {
+		if par := parFn(*allAccounts, cur); par != nil {
+			par.Children = append(par.Children, cur)
+			cur.Parent = par
+		} else {
+			retAccounts = append(retAccounts, cur)
+		}
+	}
+	*allAccounts = retAccounts
 }
