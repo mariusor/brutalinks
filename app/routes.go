@@ -92,7 +92,7 @@ func (h *handler) Routes() func(chi.Router) {
 				Get("/followed", h.HandleShow)
 			r.With(ModelMw(&listingModel{tpl: "moderation"}), ModerationFiltersMw, LoadInboxMw, AnonymizeListing).
 				Get("/moderation", h.HandleShow)
-			r.With(ModelMw(&listingModel{tpl: "accounts"}), ActorsFiltersMw, LoadServiceInboxMw, ThreadedListingMw).
+			r.With(ModelMw(&listingModel{tpl: "accounts"}), ActorsFiltersMw, LoadServiceInboxMw).
 				Get("/~", h.HandleShow)
 		})
 
