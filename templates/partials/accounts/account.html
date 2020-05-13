@@ -1,0 +1,10 @@
+<main>
+    {{- /* }}<a href="{{ AccountPermaLink . }}">
+    {{- if .HasIcon -}}<img src="{{.Metadata.Icon.URI}}" alt="{{.Handle}}" class="avatar" />{{- else -}}{{- icon "user" "avatar" -}}{{- end -}}
+    {{- .Handle -}}
+</a> {{ */ -}}
+    {{ template "partials/account" . }}
+{{- if gt (len .Children) 0 -}}
+   {{ template "partials/accounts/accounts" .Children }}
+{{- end -}}
+</main>

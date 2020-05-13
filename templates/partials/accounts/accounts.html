@@ -1,0 +1,11 @@
+{{- if gt (len .) 0 }}
+    <ol class="accounts">
+        {{- range $key, $value := . }}
+            {{- if $value.Handle | len }}
+                <li data-index="{{$key}}" class="account" data-hash="{{$value.Hash}}" id="account-{{$value.Hash}}">
+                    {{ template "partials/accounts/account" $value }}
+                </li>
+            {{- end -}}
+        {{ end -}}
+    </ol>
+{{ end -}}
