@@ -112,8 +112,7 @@ func (h *handler) Routes() func(chi.Router) {
 		workDir, _ := os.Getwd()
 		assets := filepath.Join(workDir, "assets")
 
-		// static
-		r.With(StripCookies).Group(func(r chi.Router) {
+		r.Group(func(r chi.Router) {
 			r.Get("/ns", func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "application/ld+json")
 				w.Header().Set("Cache-Control", fmt.Sprintf("public,max-age=%d", int(year.Seconds())))
@@ -122,8 +121,8 @@ func (h *handler) Routes() func(chi.Router) {
 			r.Get("/favicon.ico", serveFiles(filepath.Join(assets, "/favicon.ico")))
 			r.Get("/icons.svg", serveFiles(filepath.Join(assets, "/icons.svg")))
 			r.Get("/robots.txt", serveFiles(filepath.Join(assets, "/robots.txt")))
-			r.Get("/css/{path}", serveFiles(filepath.Join(assets, "css")))
-			r.Get("/js/{path}", serveFiles(filepath.Join(assets, "js")))
+			r.Get("/css/{path}", serveFiles(filepath.Join(assets, "/css")))
+			r.Get("/js/{path}", serveFiles(filepath.Join(assets, "/js")))
 		})
 	}
 }
