@@ -5,9 +5,14 @@ import (
 	"github.com/go-ap/errors"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	"github.com/tdewolff/minify"
+	"github.com/tdewolff/minify/css"
+	"github.com/tdewolff/minify/js"
+	"github.com/tdewolff/minify/svg"
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"time"
 )
 
@@ -83,9 +88,12 @@ func (h *handler) Routes() func(chi.Router) {
 			r.With(TagFiltersMw, LoadServiceInboxMw).Get("/t/{tag}", h.HandleShow)
 			r.With(SelfFiltersMw, LoadServiceInboxMw).Get("/self", h.HandleShow)
 			r.With(FederatedFiltersMw, LoadServiceInboxMw).Get("/federated", h.HandleShow)
-			r.With(h.NeedsSessions, FollowedFiltersMw, h.ValidateLoggedIn(h.v.HandleErrors), LoadInboxMw).Get("/followed", h.HandleShow)
-			r.With(ModelMw(&listingModel{tpl: "moderation"}), ModerationFiltersMw, LoadInboxMw, AnonymizeListing).Get("/moderation", h.HandleShow)
-			r.With(ModelMw(&listingModel{tpl: "accounts"}), ActorsFiltersMw, LoadServiceInboxMw).With().Get("/~", h.HandleShow)
+			r.With(h.NeedsSessions, FollowedFiltersMw, h.ValidateLoggedIn(h.v.HandleErrors), LoadInboxMw).
+				Get("/followed", h.HandleShow)
+			r.With(ModelMw(&listingModel{tpl: "moderation"}), ModerationFiltersMw, LoadInboxMw, AnonymizeListing).
+				Get("/moderation", h.HandleShow)
+			r.With(ModelMw(&listingModel{tpl: "accounts"}), ActorsFiltersMw, LoadServiceInboxMw, ThreadedListingMw).
+				Get("/~", h.HandleShow)
 		})
 
 		r.Route("/auth", func(r chi.Router) {
@@ -105,24 +113,18 @@ func (h *handler) Routes() func(chi.Router) {
 		assets := filepath.Join(workDir, "assets")
 
 		// static
-		r.With(StripCookies).Get("/ns", func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Content-Type", "application/ld+json")
-			w.Header().Set("Cache-Control", "public,max-age=31557600")
-			http.ServeFile(w, r, filepath.Join(assets, "ns.json"))
+		r.With(StripCookies).Group(func(r chi.Router) {
+			r.Get("/ns", func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/ld+json")
+				w.Header().Set("Cache-Control", fmt.Sprintf("public,max-age=%d", int(year.Seconds())))
+				http.ServeFile(w, r, filepath.Join(assets, "ns.json"))
+			})
+			r.Get("/favicon.ico", serveFiles(filepath.Join(assets, "/favicon.ico")))
+			r.Get("/icons.svg", serveFiles(filepath.Join(assets, "/icons.svg")))
+			r.Get("/robots.txt", serveFiles(filepath.Join(assets, "/robots.txt")))
+			r.Get("/css/{path}", serveFiles(filepath.Join(assets, "css")))
+			r.Get("/js/{path}", serveFiles(filepath.Join(assets, "js")))
 		})
-		r.With(StripCookies).Get("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Cache-Control", "public,max-age=31557600")
-			http.ServeFile(w, r, filepath.Join(assets, "favicon.ico"))
-		})
-		r.With(StripCookies).Get("/icons.svg", func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Cache-Control", "public,max-age=31557600")
-			http.ServeFile(w, r, filepath.Join(assets, "icons.svg"))
-		})
-		r.With(StripCookies).Get("/robots.txt", func(w http.ResponseWriter, r *http.Request) {
-			http.ServeFile(w, r, filepath.Join(assets, "robots.txt"))
-		})
-		r.With(StripCookies).Get("/css/{path}", serveFiles(filepath.Join(assets, "css")))
-		r.With(StripCookies).Get("/js/{path}", serveFiles(filepath.Join(assets, "js")))
 	}
 }
 
@@ -132,6 +134,16 @@ func serveFiles(st string) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		path := filepath.Clean(chi.URLParam(r, "path"))
 		fullPath := filepath.Join(st, path)
+
+		m := minify.New()
+		m.AddFunc("image/svg+xml", svg.Minify)
+		m.AddFunc("text/css", css.Minify)
+		m.AddFuncRegexp(regexp.MustCompile("^(application|text)/(x-)?(java|ecma)script$"), js.Minify)
+
+		mw := m.ResponseWriter(w, r)
+		defer mw.Close()
+
+		w = mw
 		w.Header().Set("Cache-Control", fmt.Sprintf("public,max-age=%d", int(year.Seconds())))
 		http.ServeFile(w, r, fullPath)
 	}

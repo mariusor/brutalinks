@@ -22,6 +22,8 @@ require (
 	github.com/sirupsen/logrus v1.5.0
 	github.com/spacemonkeygo/httpsig v0.0.0-20181218213338-2605ae379e47
 	github.com/stretchr/testify v1.5.1 // indirect
+	github.com/tdewolff/minify v2.3.6+incompatible
+	github.com/tdewolff/parse v2.3.4+incompatible // indirect
 	github.com/unrolled/render v1.0.2
 	github.com/writeas/go-nodeinfo v1.0.0
 	github.com/writeas/go-webfinger v0.0.0-20190106002315-85cf805c86d2 // indirect
