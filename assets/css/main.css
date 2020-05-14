@@ -424,6 +424,7 @@ aside.score a[href]:visited {
 }
 .meta time .icon-clock-o {
     margin-right: .2em;
+    vertical-align: middle;
 }
 .meta .icon-activitypub {
     display: none;
