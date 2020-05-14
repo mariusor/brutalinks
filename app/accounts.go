@@ -268,7 +268,7 @@ func addLevelAccounts(allAccounts []*Account) {
 
 	setLevel = func(com []*Account) {
 		for _, cur := range com {
-			if leveled.Contains(cur.Hash) {
+			if cur == nil || leveled.Contains(cur.Hash) {
 				break
 			}
 			leveled = append(leveled, cur.Hash)

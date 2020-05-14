@@ -71,7 +71,9 @@ func (m *contentModel) SetCursor(c *Cursor) {
 	if c == nil {
 		return
 	}
-	m.Content = c.items[0]
+	if len(c.items) > 0 {
+		m.Content = c.items[0]
+	}
 	m.after = c.after
 	m.before = c.before
 }

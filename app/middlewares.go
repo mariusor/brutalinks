@@ -185,7 +185,9 @@ func ThreadedListingMw(next http.Handler) http.Handler {
 				newitems = append(newitems, ren)
 			}
 		}
-		c.items = newitems
+		if len(newitems) > 0 {
+			c.items = newitems
+		}
 		next.ServeHTTP(w, r)
 	})
 }

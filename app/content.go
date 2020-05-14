@@ -314,7 +314,7 @@ func addLevelComments(allComments []*Item) {
 
 	setLevel = func(com []*Item) {
 		for _, cur := range com {
-			if leveled.Contains(cur.Hash) {
+			if cur == nil || leveled.Contains(cur.Hash) {
 				break
 			}
 			leveled = append(leveled, cur.Hash)
@@ -351,7 +351,7 @@ func reparentComments(allComments *[]*Item) {
 			par.Children = append(par.Children, cur)
 			cur.Parent = par
 		} else {
-			retComments = append(retComments, par)
+			retComments = append(retComments, cur)
 		}
 	}
 	*allComments = retComments
