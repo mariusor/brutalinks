@@ -122,25 +122,25 @@ func (f FollowRequest) Date() time.Time {
 }
 
 type Item struct {
-	Hash        Hash          `json:"hash"`
-	Title       string        `json:"-"`
-	MimeType    string        `json:"-"`
-	Data        string        `json:"-"`
-	Score       int           `json:"-"`
-	SubmittedAt time.Time     `json:"-"`
-	SubmittedBy *Account      `json:"-"`
-	UpdatedAt   time.Time     `json:"-"`
-	UpdatedBy   *Account      `json:"-"`
-	Flags       FlagBits      `json:"-"`
-	Metadata    *ItemMetadata `json:"-"`
-	pub         pub.Item      `json:"-"`
-	IsTop       bool          `json:"-"`
-	Parent      *Item         `json:"-"`
-	OP          *Item         `json:"-"`
-	Voted       uint8         `json:"-"`
-	Level       uint8         `json:"-"`
-	Edit        bool          `json:"-"`
-	Children    []*Item       `json:"-"`
+	Hash        Hash              `json:"hash"`
+	Title       string            `json:"-"`
+	MimeType    string            `json:"-"`
+	Data        string            `json:"-"`
+	Score       int               `json:"-"`
+	SubmittedAt time.Time         `json:"-"`
+	SubmittedBy *Account          `json:"-"`
+	UpdatedAt   time.Time         `json:"-"`
+	UpdatedBy   *Account          `json:"-"`
+	Flags       FlagBits          `json:"-"`
+	Metadata    *ItemMetadata     `json:"-"`
+	pub         pub.Item          `json:"-"`
+	IsTop       bool              `json:"-"`
+	Parent      *Item             `json:"-"`
+	OP          *Item             `json:"-"`
+	Voted       uint8             `json:"-"`
+	Level       uint8             `json:"-"`
+	Edit        bool              `json:"-"`
+	Children    ItemPtrCollection `json:"-"`
 }
 
 func (i *Item) Type() RenderType {
@@ -200,7 +200,7 @@ func replaceBetweenPos(d, r string, st, end int) string {
 	return d[:st] + r
 }
 
-func isWordDelimiter (b byte) bool {
+func isWordDelimiter(b byte) bool {
 	return unicode.Is(unicode.Number, rune(b)) ||
 		unicode.Is(unicode.Letter, rune(b)) ||
 		unicode.Is(unicode.Punct, rune(b))
@@ -246,8 +246,8 @@ func replaceTag(d *string, t Tag, w string) {
 			if inx < 0 {
 				break
 			}
-			pos := end+inx
-			end = pos+len(s)
+			pos := end + inx
+			end = pos + len(s)
 			if end > len(*d) {
 				break
 			}
@@ -329,12 +329,23 @@ func addLevelComments(allComments []*Item) {
 	setLevel(allComments)
 }
 
-func reparentComments(allComments *[]*Item) {
+type ItemPtrCollection []*Item
+
+func (h ItemPtrCollection) Contains(s Hash) bool {
+	for _, hh := range h {
+		if HashesEqual(hh.Hash, s) {
+			return true
+		}
+	}
+	return false
+}
+
+func reparentComments(allComments *ItemPtrCollection) {
 	if len(*allComments) == 0 {
 		return
 	}
 
-	parFn := func(t []*Item, cur *Item) *Item {
+	parFn := func(t ItemPtrCollection, cur *Item) *Item {
 		for _, n := range t {
 			if cur.Parent.IsValid() {
 				if HashesEqual(cur.Parent.Hash, n.Hash) {
@@ -345,12 +356,18 @@ func reparentComments(allComments *[]*Item) {
 		return nil
 	}
 
-	retComments := make([]*Item, 0)
+	retComments := make(ItemPtrCollection, 0)
 	for _, cur := range *allComments {
 		if par := parFn(*allComments, cur); par != nil {
+			if par.Children.Contains(cur.Hash) {
+				continue
+			}
 			par.Children = append(par.Children, cur)
 			cur.Parent = par
 		} else {
+			if cur == nil || retComments.Contains(cur.Hash) {
+				continue
+			}
 			retComments = append(retComments, cur)
 		}
 	}

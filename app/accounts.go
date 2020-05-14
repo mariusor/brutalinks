@@ -56,22 +56,22 @@ type AccountMetadata struct {
 type AccountCollection []Account
 
 type Account struct {
-	Email     string            `json:"-"`
-	Hash      Hash              `json:"hash,omitempty"`
-	Score     int               `json:"score,omitempty"`
-	Handle    string            `json:"handle,omitempty"`
-	CreatedAt time.Time         `json:"-"`
-	CreatedBy *Account          `json:"-"`
-	UpdatedAt time.Time         `json:"-"`
-	Flags     FlagBits          `json:"flags,omitempty"`
-	Metadata  *AccountMetadata  `json:"-"`
-	pub       pub.Item          `json:"-"`
-	Votes     VoteCollection    `json:"votes,omitempty"`
-	Followers AccountCollection `json:"followers,omitempty"`
-	Following AccountCollection `json:"following,omitempty"`
-	Level     uint8             `json:"-"`
-	Parent    *Account          `json:"-"`
-	Children  []*Account        `json:"-"`
+	Email     string               `json:"-"`
+	Hash      Hash                 `json:"hash,omitempty"`
+	Score     int                  `json:"score,omitempty"`
+	Handle    string               `json:"handle,omitempty"`
+	CreatedAt time.Time            `json:"-"`
+	CreatedBy *Account             `json:"-"`
+	UpdatedAt time.Time            `json:"-"`
+	Flags     FlagBits             `json:"flags,omitempty"`
+	Metadata  *AccountMetadata     `json:"-"`
+	pub       pub.Item             `json:"-"`
+	Votes     VoteCollection       `json:"votes,omitempty"`
+	Followers AccountCollection    `json:"followers,omitempty"`
+	Following AccountCollection    `json:"following,omitempty"`
+	Level     uint8                `json:"-"`
+	Parent    *Account             `json:"-"`
+	Children  AccountPtrCollection `json:"-"`
 }
 
 // Hash is a local type for string, it should hold a [32]byte array actually
@@ -259,14 +259,25 @@ func accountFromRequestHandle(r *http.Request) (*Account, error) {
 	return account, nil
 }
 
-func addLevelAccounts(allAccounts []*Account) {
+type AccountPtrCollection []*Account
+
+func (h AccountPtrCollection) Contains(s Hash) bool {
+	for _, hh := range h {
+		if HashesEqual(hh.Hash, s) {
+			return true
+		}
+	}
+	return false
+}
+
+func addLevelAccounts(allAccounts AccountPtrCollection) {
 	if len(allAccounts) == 0 {
 		return
 	}
 	leveled := make(Hashes, 0)
-	var setLevel func([]*Account)
+	var setLevel func(AccountPtrCollection)
 
-	setLevel = func(com []*Account) {
+	setLevel = func(com AccountPtrCollection) {
 		for _, cur := range com {
 			if cur == nil || leveled.Contains(cur.Hash) {
 				break
@@ -283,11 +294,11 @@ func addLevelAccounts(allAccounts []*Account) {
 	setLevel(allAccounts)
 }
 
-func reparentAccounts(allAccounts *[]*Account) {
+func reparentAccounts(allAccounts *AccountPtrCollection) {
 	if len(*allAccounts) == 0 {
 		return
 	}
-	parFn := func(t []*Account, cur *Account) *Account {
+	parFn := func(t AccountPtrCollection, cur *Account) *Account {
 		for _, n := range t {
 			if cur.CreatedBy.IsValid() {
 				if HashesEqual(cur.CreatedBy.Hash, n.Hash) {
@@ -298,7 +309,7 @@ func reparentAccounts(allAccounts *[]*Account) {
 		return nil
 	}
 
-	retAccounts := make([]*Account, 0)
+	retAccounts := make(AccountPtrCollection, 0)
 	for _, cur := range *allAccounts {
 		if par := parFn(*allAccounts, cur); par != nil {
 			par.Children = append(par.Children, cur)

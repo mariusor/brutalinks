@@ -149,8 +149,8 @@ func ThreadedListingMw(next http.Handler) http.Handler {
 			return
 		}
 
-		comments := make([]*Item, 0)
-		accounts := make([]*Account, 0)
+		comments := make(ItemPtrCollection, 0)
+		accounts := make(AccountPtrCollection, 0)
 		for _, ren := range c.items {
 			if it, ok := ren.(*Item); ok {
 				comments = append(comments, it)
