@@ -248,7 +248,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 
 // HandleErrors serves failed requests
 func (v *view) HandleErrors(w http.ResponseWriter, r *http.Request, errs ...error) {
-	d := errorModel{
+	d := &errorModel{
 		Errors: errs,
 	}
 	renderErrors := true

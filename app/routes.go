@@ -57,11 +57,11 @@ func (h *handler) Routes() func(chi.Router) {
 					r.Get("/nay", h.HandleVoting)
 
 					//r.Get("/bad", h.ShowReport)
-					r.With(ModelMw(&contentModel{Title: "Report item"})).Get("/bad", h.HandleShow)
+					r.With(TitleMw("Report item")).Get("/bad", h.HandleShow)
 					r.Post("/bad", h.HandleReport)
 
 					r.With(h.ValidateItemAuthor).Group(func(r chi.Router) {
-						r.With(ModelMw(&contentModel{Title: "Edit item"})).Get("/edit", h.HandleShow)
+						r.With(TitleMw("Edit item")).Get("/edit", h.HandleShow)
 						r.Post("/edit", h.HandleSubmit)
 						r.Get("/rm", h.HandleDelete)
 					})

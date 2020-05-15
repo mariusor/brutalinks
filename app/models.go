@@ -9,6 +9,7 @@ type Paginator interface {
 }
 
 type Model interface {
+	SetTitle(string)
 	Template() string
 }
 
@@ -39,6 +40,10 @@ func (m *listingModel) SetCursor(c *Cursor) {
 	m.before = c.before
 }
 
+func (m *listingModel) SetTitle(s string) {
+	m.Title = s
+}
+
 func (m listingModel) Template() string {
 	if m.tpl == "" {
 		m.tpl = "listing"
@@ -61,6 +66,10 @@ func (m contentModel) NextPage() Hash {
 
 func (m contentModel) PrevPage() Hash {
 	return m.before
+}
+
+func (m *contentModel) SetTitle(s string) {
+	m.Title = s
 }
 
 func (m contentModel) Template() string {
@@ -115,6 +124,10 @@ type loginModel struct {
 	OAuth   bool
 }
 
+func (m *loginModel) SetTitle(s string) {
+	m.Title = s
+}
+
 func (loginModel) Template() string {
 	return "login"
 }
@@ -124,6 +137,10 @@ func (*loginModel) SetCursor(c *Cursor) {}
 type registerModel struct {
 	Title   string
 	Account Account
+}
+
+func (m *registerModel) SetTitle(s string) {
+	m.Title = s
 }
 
 func (registerModel) Template() string {
@@ -136,9 +153,14 @@ type aboutModel struct {
 	Desc  Desc
 }
 
+func (m *aboutModel) SetTitle(s string) {
+	m.Title = s
+}
+
 func (m aboutModel) Template() string {
 	return "about"
 }
+
 func (*aboutModel) SetCursor(c *Cursor) {}
 
 type errorModel struct {
@@ -146,6 +168,10 @@ type errorModel struct {
 	StatusText string
 	Title      string
 	Errors     []error
+}
+
+func (m *errorModel) SetTitle(s string) {
+	m.Title = s
 }
 
 func (errorModel) Template() string {

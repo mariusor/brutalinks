@@ -140,6 +140,27 @@ func LoadOutboxObjectMw(next http.Handler) http.Handler {
 	})
 }
 
+func TitleMw(s string) Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			m := ContextModel(r.Context())
+			if m != nil {
+				m.SetTitle(s)
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func ModelMw(m Model) Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx := r.Context()
+			next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, ModelCtxtKey, m)))
+		})
+	}
+}
+
 func ThreadedListingMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		c := ContextCursor(r.Context())

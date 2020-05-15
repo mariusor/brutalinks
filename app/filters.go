@@ -178,15 +178,6 @@ func TagFiltersMw(next http.Handler) http.Handler {
 	})
 }
 
-func ModelMw(m Model) Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ctx := r.Context()
-			next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, ModelCtxtKey, m)))
-		})
-	}
-}
-
 func ItemFiltersMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := FiltersFromRequest(r)
