@@ -192,6 +192,10 @@ func ItemFiltersMw(next http.Handler) http.Handler {
 		f := FiltersFromRequest(r)
 		f.Type = CreateActivitiesFilter
 		hash := chi.URLParam(r, "hash")
+
+		m := ContextContentModel(r.Context())
+		m.Hash = Hash(hash)
+
 		f.Object = &Filters{}
 		f.Object.IRI = CompStrs{LikeString(hash)}
 		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)

@@ -242,6 +242,9 @@ func replaceTag(d *string, t Tag, w string) {
 	for _, s := range search {
 		end := 0
 		for {
+			if end >= len(*d) {
+				break
+			}
 			inx := strings.Index((*d)[end:], string(s))
 			if inx < 0 {
 				break
@@ -287,21 +290,6 @@ func replaceTagsInItem(cur Item) string {
 		cur.Data = strings.ReplaceAll(cur.Data, to, repl)
 	}
 	return cur.Data
-}
-
-func removeCurElementParentComments(com *[]*Item) {
-	if len(*com) == 0 {
-		return
-	}
-	first := (*com)[0]
-	lvl := first.Level
-	keepComments := make([]*Item, 0)
-	for _, cur := range *com {
-		if cur.Level >= lvl {
-			keepComments = append(keepComments, cur)
-		}
-	}
-	*com = keepComments
 }
 
 func addLevelComments(allComments []*Item) {

@@ -622,20 +622,17 @@ func getRepliesOf(items ...Item) pub.IRIs {
 			return it.pub.GetLink()
 		}
 		if id, ok := BuildIDFromItem(it); ok {
-			return pub.IRI(id)
+			return id
 		}
 		return ""
 	}
 	for _, it := range items {
+		if it.OP.IsValid() {
+			it = *it.OP
+		}
 		iri := iriFn(it)
 		if len(iri) > 0 && !repliesTo.Contains(iri) {
 			repliesTo = append(repliesTo, iri)
-		}
-		if it.OP.IsValid() {
-			iri := iriFn(*it.OP)
-			if len(iri) > 0 && !repliesTo.Contains(iri) {
-				repliesTo = append(repliesTo, iri)
-			}
 		}
 	}
 	return repliesTo
