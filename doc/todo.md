@@ -1,8 +1,8 @@
 # Issues
 * When adding a new OAuth2 client from the command line, we shouldn't allow password flow by default, but based on a parameter when creating it.
-* Refactor the fedbox API client and the filters overall. Main issue currently:
-    * ~~ When loading an Activity collection, dereference the Objects in it and load those from the /objects end-point~~
-    * ~~ Use the ActivityPub client.LoadIRI method instead of manual Get and processing of incoming response~~
+* ~~Refactor the fedbox API client and the filters overall. Main issue currently:~~
+    * ~~When loading an Activity collection, dereference the Objects in it and load those from the /objects end-point~~
+    * ~~Use the ActivityPub client.LoadIRI method instead of manual Get and processing of incoming response~~
 * Audience improvements:
     * ~~Add all @mentions to the CC field - this just got a bit easier as we can send multiple Objects on a Create activity.~~
     * ~~Move local instance from To to BCC field~~
