@@ -256,7 +256,7 @@ func (f fedbox) Collection(i pub.IRI, filters ...FilterFn) (pub.CollectionInterf
 func (f fedbox) Actor(iri pub.IRI) (*pub.Actor, error) {
 	it, err := f.object(iri)
 	if err != nil {
-		return anonymousActor(), errors.Annotatef(err, "Unable to load Actor: %s", iri)
+		return anonymousActor, errors.Annotatef(err, "Unable to load Actor: %s", iri)
 	}
 	var person *pub.Actor
 	err = pub.OnActor(it, func(p *pub.Actor) error {

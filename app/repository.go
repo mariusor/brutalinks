@@ -320,20 +320,15 @@ func loadAPItem(item Item) pub.Item {
 	return &o
 }
 
-func anonymousActor() *pub.Actor {
-	p := pub.Actor{}
-	name := pub.NaturalLanguageValues{
-		{pub.NilLangRef, Anonymous},
-	}
-	p.ID = pub.PublicNS
-	p.Type = pub.PersonType
-	p.Name = name
-	p.PreferredUsername = name
-	return &p
+var anonymousActor = &pub.Actor{
+	ID:                pub.PublicNS,
+	Name:              pub.NaturalLanguageValues{{pub.NilLangRef, Anonymous}},
+	Type:              pub.PersonType,
+	PreferredUsername: pub.NaturalLanguageValues{{pub.NilLangRef, Anonymous}},
 }
 
 func anonymousPerson(url string) *pub.Actor {
-	p := anonymousActor()
+	p := anonymousActor
 	p.Inbox = handlers.Inbox.IRI(pub.IRI(url))
 	return p
 }
