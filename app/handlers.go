@@ -40,19 +40,9 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 
 	repo := h.storage
 	if n.Parent.IsValid() {
-		if n.Parent.SubmittedAt.IsZero() {
-			var iri pub.IRI
-			if n.Parent.HasMetadata() && len(n.Parent.Metadata.ID) > 0 {
-				iri = pub.IRI(n.Parent.Metadata.ID)
-			} else {
-				iri = ObjectsURL.AddPath(n.Parent.Hash.String())
-			}
-			if p, err := repo.LoadItem(iri); err == nil {
-				n.Parent = &p
-				if p.OP != nil {
-					n.OP = p.OP
-				}
-			}
+		c := ContextCursor(r.Context())
+		if len(c.items) > 0 {
+			n.Parent = getFromList(n.Parent.Hash, c.items)
 		}
 		if len(n.Metadata.To) == 0 {
 			n.Metadata.To = make([]*Account, 0)
@@ -61,6 +51,9 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 		if n.Parent.Private() {
 			n.MakePrivate()
 			saveVote = false
+		}
+		if n.Parent.OP.IsValid() {
+			n.OP = n.Parent.OP
 		}
 	}
 

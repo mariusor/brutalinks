@@ -182,7 +182,7 @@ func loadAPItem(item Item) pub.Item {
 		switch item.MimeType {
 		case MimeTypeMarkdown:
 			o.Source.MediaType = pub.MimeType(item.MimeType)
-			o.MediaType = pub.MimeType(MimeTypeHTML)
+			o.MediaType = MimeTypeHTML
 			if item.Data != "" {
 				o.Source.Content.Set("en", item.Data)
 				o.Content.Set("en", string(Markdown(item.Data)))
@@ -208,7 +208,7 @@ func loadAPItem(item Item) pub.Item {
 		repl := make(pub.ItemCollection, 0)
 		if item.Parent != nil {
 			if par, ok := BuildIDFromItem(*item.Parent); ok {
-				repl = append(repl, pub.IRI(par))
+				repl = append(repl, par)
 			}
 			if item.OP == nil {
 				item.OP = item.Parent
@@ -216,10 +216,9 @@ func loadAPItem(item Item) pub.Item {
 		}
 		if item.OP != nil {
 			if op, ok := BuildIDFromItem(*item.OP); ok {
-				iri := pub.IRI(op)
-				del.Context = iri
-				if !repl.Contains(iri) {
-					repl = append(repl, iri)
+				del.Context = op
+				if !repl.Contains(op) {
+					repl = append(repl, op)
 				}
 			}
 		}
@@ -231,42 +230,49 @@ func loadAPItem(item Item) pub.Item {
 	}
 
 	if item.Title != "" {
-		o.Name.Set("en", string(item.Title))
+		o.Name.Set("en", item.Title)
 	}
 	if item.SubmittedBy != nil {
-		id := BuildActorID(*item.SubmittedBy)
-		o.AttributedTo = pub.IRI(id)
+		o.AttributedTo = BuildActorID(*item.SubmittedBy)
 	}
+
+	to := make(pub.ItemCollection, 0)
+	bcc := make(pub.ItemCollection, 0)
+	cc := make(pub.ItemCollection, 0)
 	repl := make(pub.ItemCollection, 0)
+
 	if item.Parent != nil {
 		p := item.Parent
-		if par, ok := BuildIDFromItem(*p); ok {
-			repl = append(repl, pub.IRI(par))
-		}
-		if p.SubmittedBy.IsValid() {
-			if pAuth := BuildActorID(*p.SubmittedBy); pub.IRI(pAuth) != pub.PublicNS {
-				o.To = append(o.To, pub.IRI(pAuth))
+		first := true
+		for {
+			if par, ok := BuildIDFromItem(*p); ok {
+				repl = append(repl, par)
 			}
-		}
-		if item.OP == nil {
-			item.OP = p
+			if p.SubmittedBy.IsValid() {
+				if pAuth := BuildActorID(*p.SubmittedBy); !pub.PublicNS.Equals(pAuth, true) {
+					if first {
+						if !to.Contains(pAuth) {
+							to = append(to, pAuth)
+						}
+						first = false
+					} else if !cc.Contains(pAuth) {
+						cc = append(cc, pAuth)
+					}
+				}
+			}
+			if p.Parent == nil {
+				break
+			}
+			p = p.Parent
 		}
 	}
-	if item.OP != nil {
-		if op, ok := BuildIDFromItem(*item.OP); ok {
-			iri := pub.IRI(op)
-			o.Context = iri
-			if !repl.Contains(iri) {
-				repl = append(repl, iri)
-			}
-		}
+	if op, ok := BuildIDFromItem(*item.OP); ok {
+		o.Context = op
 	}
 	if len(repl) > 0 {
 		o.InReplyTo = repl
 	}
-	to := make(pub.ItemCollection, 0)
-	bcc := make(pub.ItemCollection, 0)
-	cc := make(pub.ItemCollection, 0)
+
 	// TODO(marius): add proper dynamic recipients to this based on some selector in the frontend
 	if !item.Private() {
 		to = append(to, pub.PublicNS)
@@ -274,14 +280,16 @@ func loadAPItem(item Item) pub.Item {
 	}
 	if item.Metadata != nil {
 		m := item.Metadata
-		if len(m.To) > 0 {
-			for _, rec := range m.To {
-				to = append(to, pub.IRI(rec.Metadata.ID))
+		for _, rec := range m.To {
+			mto := pub.IRI(rec.Metadata.ID)
+			if !to.Contains(mto) {
+				to = append(to, mto)
 			}
 		}
-		if len(m.CC) > 0 {
-			for _, rec := range m.CC {
-				cc = append(cc, pub.IRI(rec.Metadata.ID))
+		for _, rec := range m.CC {
+			mcc := pub.IRI(rec.Metadata.ID)
+			if !cc.Contains(mcc) {
+				cc = append(cc, mcc)
 			}
 		}
 		if m.Mentions != nil || m.Tags != nil {
@@ -317,7 +325,7 @@ func anonymousActor() *pub.Actor {
 	name := pub.NaturalLanguageValues{
 		{pub.NilLangRef, Anonymous},
 	}
-	p.ID = pub.ID(pub.PublicNS)
+	p.ID = pub.PublicNS
 	p.Type = pub.PersonType
 	p.Name = name
 	p.PreferredUsername = name

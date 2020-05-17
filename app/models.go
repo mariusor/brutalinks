@@ -79,19 +79,11 @@ func (m contentModel) Template() string {
 	return m.tpl
 }
 
-func (m *contentModel) SetCursor(c *Cursor) {
-	if c == nil {
-		return
-	}
-	m.after = c.after
-	m.before = c.before
-	if len(c.items) == 0 {
-		return
-	}
+func getFromList(h Hash, items RenderableList) *Item {
 	var findOrDescendFn func(collection ItemPtrCollection) (*Item, bool)
 	findOrDescendFn = func(collection ItemPtrCollection) (*Item, bool) {
 		for _, com := range collection {
-			if bytes.Equal(m.Hash, com.Hash) {
+			if bytes.Equal(h, com.Hash) {
 				return com, true
 			}
 			if cur, found := findOrDescendFn(com.Children); found {
@@ -101,21 +93,32 @@ func (m *contentModel) SetCursor(c *Cursor) {
 		return nil, false
 	}
 
-	for _, cur := range c.items {
+	for _, cur := range items {
 		if cur.Type() != Comment {
 			continue
 		}
 		if it, ok := cur.(*Item); ok {
-			if bytes.Equal(m.Hash, it.Hash) {
-				m.Content = cur
-				return
+			if bytes.Equal(h, it.Hash) {
+				return it
 			}
 			if cur, found := findOrDescendFn(it.Children); found {
-				m.Content = cur
-				return
+				return cur
 			}
 		}
 	}
+	return nil
+}
+
+func (m *contentModel) SetCursor(c *Cursor) {
+	if c == nil {
+		return
+	}
+	m.after = c.after
+	m.before = c.before
+	if len(c.items) == 0 {
+		return
+	}
+	m.Content = getFromList(m.Hash, c.items)
 }
 
 type loginModel struct {
