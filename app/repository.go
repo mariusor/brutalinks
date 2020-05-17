@@ -266,8 +266,10 @@ func loadAPItem(item Item) pub.Item {
 			p = p.Parent
 		}
 	}
-	if op, ok := BuildIDFromItem(*item.OP); ok {
-		o.Context = op
+	if item.OP != nil {
+		if op, ok := BuildIDFromItem(*item.OP); ok {
+			o.Context = op
+		}
 	}
 	if len(repl) > 0 {
 		o.InReplyTo = repl
