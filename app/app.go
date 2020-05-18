@@ -305,8 +305,10 @@ func loadEnv(l *Application) (bool, error) {
 
 	votingDisabled, _ := strconv.ParseBool(os.Getenv("DISABLE_VOTING"))
 	l.Config.VotingEnabled = !votingDisabled
-	downvotingDisabled, _ := strconv.ParseBool(os.Getenv("DISABLE_DOWNVOTING"))
-	l.Config.DownvotingEnabled = !downvotingDisabled
+	if l.Config.VotingEnabled {
+		downvotingDisabled, _ := strconv.ParseBool(os.Getenv("DISABLE_DOWNVOTING"))
+		l.Config.DownvotingEnabled = !downvotingDisabled
+	}
 	sessionsDisabled, _ := strconv.ParseBool(os.Getenv("DISABLE_SESSIONS"))
 	l.Config.SessionsEnabled = !sessionsDisabled
 	userCreationDisabled, _ := strconv.ParseBool(os.Getenv("DISABLE_USER_CREATION"))
