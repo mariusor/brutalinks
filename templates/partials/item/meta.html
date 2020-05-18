@@ -15,7 +15,7 @@ submitted{{ if not .Deleted}}{{- if ShowUpdate $it }}<time class="updated-at" da
             <li><a href="{{$it | ItemLocalLink }}/rm" class="rm" data-hash="{{ .Hash }}" title="Remove{{if .Title}}: {{$it.Title }}{{end}}">{{/*icon "eraser"*/}}rm</a></li>
 {{- end -}}
 {{- end -}}
-            <li><a href="{{$it | ItemLocalLink }}/bad" title="Report{{if .Title}}: {{$it.Title }}{{end}}"><!--{{ icon "flag"}}-->report</a></li>
+            {{ if Config.ModerationEnabled }}<li><a href="{{$it | ItemLocalLink }}/bad" title="Report{{if .Title}}: {{$it.Title }}{{end}}"><!--{{ icon "flag"}}-->report</a></li>{{ end }}
 {{- end -}}
 {{- if not $it.IsTop -}}
 {{- if $it.Parent -}}

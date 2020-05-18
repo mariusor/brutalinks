@@ -84,6 +84,7 @@ type Configuration struct {
 	DownvotingEnabled          bool
 	UserCreatingEnabled        bool
 	UserFollowingEnabled       bool
+	ModerationEnabled          bool
 }
 
 // Stats holds data for keeping compatibility with Mastodon instances
@@ -315,6 +316,8 @@ func loadEnv(l *Application) (bool, error) {
 	l.Config.AnonymousCommentingEnabled = !anonymousCommentingDisabled
 	userFollowingDisabled, _ := strconv.ParseBool(os.Getenv("DISABLE_USER_FOLLOWING"))
 	l.Config.UserFollowingEnabled = !userFollowingDisabled
+	moderationDisabled, _ := strconv.ParseBool(os.Getenv("DISABLE_MODERATION"))
+	l.Config.ModerationEnabled = !moderationDisabled
 
 	if l.APIURL = os.Getenv("API_URL"); l.APIURL == "" {
 		l.APIURL = fmt.Sprintf("%s/api", l.BaseURL)
