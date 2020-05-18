@@ -486,10 +486,11 @@ func text(data string) string {
 
 func icon(icon string, c ...string) template.HTML {
 	cls := make([]string, 0)
+	cls = append(cls, icon)
 	cls = append(cls, c...)
 
-	buf := fmt.Sprintf(`<svg class="icon icon-%s %s"><use xlink:href="#icon-%s" /></svg>`,
-		icon, strings.Join(cls, " "), icon)
+	buf := fmt.Sprintf(`<svg class="icon icon-%s" alt="%s"><use xlink:href="#icon-%s" /></svg>`,
+		strings.Join(cls, " "), icon, icon)
 
 	return template.HTML(buf)
 }
