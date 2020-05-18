@@ -12,7 +12,7 @@
 {{- if not .User.CreatedAt.IsZero }}
     <section class="join">Joined <time datetime="{{ .User.CreatedAt | ISOTimeFmt | html }}" title="{{ .User.CreatedAt | ISOTimeFmt }}">{{ .User.CreatedAt | TimeFmt }}</time></section>
 {{- end }}
-    <section>Score <data title="{{.User.Score | NumberFmt }}" class="score {{- .User.Score | ScoreClass -}}">{{ .User.Score | ScoreFmt}}</data></section>
+    <section>Score <data class="score {{- .User.Score | ScoreClass -}}">{{ .User.Score | ScoreFmt}}</data></section>
 {{- if CurrentAccount.IsLogged }}
     {{- if .User.HasPublicKey }}
     <section class="pub-key"><details><summary>PublicKey</summary><pre>{{.User.Metadata.Key.Public | fmtPubKey }}</pre></details></section>
