@@ -32,7 +32,7 @@ submitted{{ if not .Deleted}}{{- if ShowUpdate $it }}<time class="updated-at" da
 {{- end -}}
 {{- end -}}
 {{- if or (not $it.IsTop) (not .IsLink) }}
-            <li><a href="{{$it | ItemLocalLink }}" class="to-item" title="Permalink{{if .Title}}: {{$it.Title }}{{end}}">{{ if $it.Private }}{{icon "lock"}} {{ end -}}{{/* icon "reply" "h-mirror" */}}link</a></li>
+            <li><a href="{{$it | ItemLocalLink }}" class="to-item" title="Permalink{{if .Title}}: {{$it.Title }}{{end}}">{{ if $it.Private }}{{icon "lock"}} {{ end -}}{{/* icon "reply" "h-mirror" */}}reply</a></li>
 {{- end }}
             {{ if not $it.Private }}<li><a href="{{ $it.Metadata.ID }}" data-hash="{{ .Hash }}" title="ActivityPub link{{if .Title}}: {{$it.Title }}{{end}}">{{icon "activitypub"}}</a></li> {{- end -}}
         </ul>
