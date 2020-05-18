@@ -1180,6 +1180,9 @@ func (r *repository) ActorCollection(fn CollectionFn, f *Filters) (Cursor, error
 			pub.OnActivity(it, func(a *pub.Activity) error {
 				if it.GetType() == pub.CreateType {
 					ob := a.Object
+					if ob == nil {
+						return nil
+					}
 
 					if ob.IsObject() {
 						if ValidItemTypes.Contains(ob.GetType()) {
