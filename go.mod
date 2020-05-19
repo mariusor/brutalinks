@@ -7,9 +7,9 @@ require (
 	aletheia.icu/broccoli/fs v0.0.0-20200506212414-5bc1e2f86a59
 	github.com/captncraig/cors v0.0.0-20190703115713-e80254a89df1 // indirect
 	github.com/go-ap/activitypub v0.0.0-20200515132036-48d16c143b2d
-	github.com/go-ap/client v0.0.0-20200514115850-fcd805d9d5f0
+	github.com/go-ap/client v0.0.0-20200515132242-018f9c4eaf22
 	github.com/go-ap/errors v0.0.0-20200402124111-0e465c0b25bc
-	github.com/go-ap/handlers v0.0.0-20200507145318-f9e00f3af3d2
+	github.com/go-ap/handlers v0.0.0-20200515132640-f77b105f5e08
 	github.com/go-ap/jsonld v0.0.0-20200327122108-fafac2de2660
 	github.com/go-chi/chi v4.0.4+incompatible
 	github.com/gorilla/csrf v1.6.2
