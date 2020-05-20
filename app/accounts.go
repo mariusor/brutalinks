@@ -161,7 +161,7 @@ func (a Account) GetLink() string {
 
 // IsLogged should show if current user was loaded from a session
 func (a *Account) IsLogged() bool {
-	return a != nil && !a.CreatedAt.IsZero() || (!bytes.Equal(a.Hash, AnonymousHash) && a.Handle != Anonymous)
+	return a != nil && (!a.CreatedAt.IsZero() || (!bytes.Equal(a.Hash, AnonymousHash) && a.Handle != Anonymous))
 }
 
 // HasIcon

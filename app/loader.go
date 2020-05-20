@@ -54,68 +54,55 @@ func (h Hashes) String() string {
 }
 
 func ContextModel(ctx context.Context) Model {
-	if l, ok := ctx.Value(ModelCtxtKey).(Model); ok {
-		return l
-	}
-	return nil
+	var m Model
+	m, _ = ctx.Value(ModelCtxtKey).(Model)
+	return m
 }
 
 func ContextListingModel(ctx context.Context) *listingModel {
-	if l, ok := ctx.Value(ModelCtxtKey).(*listingModel); ok {
-		return l
-	}
-	return nil
+	var m *listingModel
+	m, _ = ctx.Value(ModelCtxtKey).(*listingModel)
+	return m
 }
 
 func ContextContentModel(ctx context.Context) *contentModel {
-	if l, ok := ctx.Value(ModelCtxtKey).(*contentModel); ok {
-		return l
-	}
-	return nil
+	var m *contentModel
+	m, _ = ctx.Value(ModelCtxtKey).(*contentModel)
+	return m
 }
 
 func ContextRepository(ctx context.Context) *repository {
-	if l, ok := ctx.Value(RepositoryCtxtKey).(*repository); ok {
-		return l
-	}
-	return nil
+	var r *repository
+	r, _ = ctx.Value(RepositoryCtxtKey).(*repository)
+	return r
 }
 
 func ContextAccount(ctx context.Context) *Account {
-	ctxVal := ctx.Value(LoggedAccountCtxtKey)
-	if a, ok := ctxVal.(*Account); ok {
-		return a
-	}
-	return nil
+	var a *Account
+	a, _ = ctx.Value(LoggedAccountCtxtKey).(*Account)
+	return a
 }
 
 func ContextAuthors(ctx context.Context) []Account {
-	ctxVal := ctx.Value(AuthorCtxtKey)
-	if a, ok := ctxVal.([]Account); ok {
-		return a
-	}
-	return nil
+	var a []Account
+	a, _ = ctx.Value(AuthorCtxtKey).([]Account)
+	return a
 }
 
 func ContextCursor(ctx context.Context) *Cursor {
-	ctxVal := ctx.Value(CursorCtxtKey)
-	if c, ok := ctxVal.(*Cursor); ok {
-		return c
-	}
-	return nil
+	var c *Cursor
+	c, _ = ctx.Value(CursorCtxtKey).(*Cursor)
+	return c
 }
 
 func ContextContent(ctx context.Context) *Item {
-	ctxVal := ctx.Value(ContentCtxtKey)
-	if i, ok := ctxVal.(*Item); ok {
-		return i
-	}
-	return nil
+	var i *Item
+	i, _ = ctx.Value(ContentCtxtKey).(*Item)
+	return i
 }
 
 func ContextRegisterModel(ctx context.Context) *registerModel {
-	if r, ok := ctx.Value(ModelCtxtKey).(*registerModel); ok {
-		return r
-	}
-	return nil
+	var r *registerModel
+	r, _ = ctx.Value(ModelCtxtKey).(*registerModel)
+	return r
 }
