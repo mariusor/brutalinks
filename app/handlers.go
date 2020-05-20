@@ -214,7 +214,7 @@ func (h *handler) FollowAccount(w http.ResponseWriter, r *http.Request) {
 	}
 	repo := h.storage
 	var err error
-	toFollow := ContextAuthor(r.Context())
+	toFollow := ContextAuthors(r.Context())
 	if len(toFollow) == 0 {
 		h.v.HandleErrors(w, r, errors.NotFoundf("account not found"))
 		return
@@ -238,7 +238,7 @@ func (h *handler) HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	repo := h.storage
-	followers := ContextAuthor(r.Context())
+	followers := ContextAuthors(r.Context())
 	if len(followers) == 0 {
 		h.v.HandleErrors(w, r, errors.NotFoundf("account not found"))
 		return

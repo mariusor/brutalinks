@@ -47,7 +47,7 @@ func (h *handler) Routes() func(chi.Router) {
 			r.Get("/follow/{action}", h.HandleFollowRequest)
 
 			r.Route("/{hash}", func(r chi.Router) {
-				r.Use(h.CSRF, ModelMw(&contentModel{}), ItemFiltersMw, LoadOutboxObjectMw, ThreadedListingMw)
+				r.Use(h.CSRF, ModelMw(&contentModel{}), ItemFiltersMw, LoadObjectFromInboxMw, ThreadedListingMw)
 				r.Get("/", h.HandleShow)
 				r.Post("/", h.HandleSubmit)
 

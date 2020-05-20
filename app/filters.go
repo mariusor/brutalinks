@@ -200,7 +200,7 @@ func AccountFiltersMw(next http.Handler) http.Handler {
 		f.Type = CreateActivitiesFilter
 
 		m := ContextListingModel(r.Context())
-		authors := ContextAuthor(r.Context())
+		authors := ContextAuthors(r.Context())
 		if len(authors) == 0 {
 			next.ServeHTTP(w, r)
 			return

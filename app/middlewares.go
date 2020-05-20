@@ -26,7 +26,7 @@ func (h handler) LoadAuthorMw(next http.Handler) http.Handler {
 
 func LoadOutboxMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		authors := ContextAuthor(r.Context())
+		authors := ContextAuthors(r.Context())
 		if len(authors) == 0 {
 			ctxtErr(next, w, r, errors.NotFoundf("actor not found"))
 			return
@@ -74,7 +74,7 @@ func LoadServiceInboxMw(next http.Handler) http.Handler {
 		repo := ContextRepository(r.Context())
 		cursor, err := repo.LoadActorInbox(repo.fedbox.Service(), f)
 		if err != nil {
-			ctxtErr(next, w, r, errors.Annotatef(err, "unable to load actor's inbox"))
+			ctxtErr(next, w, r, errors.Annotatef(err, "unable to load the %s's inbox", repo.fedbox.Service().Type))
 			return
 		}
 		ctx := context.WithValue(r.Context(), CursorCtxtKey, cursor)
@@ -93,16 +93,36 @@ func ctxtErr(next http.Handler, w http.ResponseWriter, r *http.Request, err erro
 	next.ServeHTTP(w, r.WithContext(ctx))
 }
 
-func LoadOutboxObjectMw(next http.Handler) http.Handler {
+func LoadObjectFromInboxMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var err error
+		var col pub.CollectionInterface
+
 		f := ContextActivityFilters(r.Context())
 		repo := ContextRepository(r.Context())
-		// @TODO(marius): we should improve activities objects, as if we edit an object,
-		//   we need to update the activity to contain the new object.
-		col, err := repo.fedbox.Inbox(repo.fedbox.Service(), Values(f))
-		if err != nil || col == nil {
-			ctxtErr(next, w, r, errors.NotFoundf("Object not found"))
-			return
+
+		// we first try to load from the service's inbox
+		col, err = repo.fedbox.Inbox(repo.fedbox.Service(), Values(f))
+		if err != nil {
+			// log
+		}
+		if col.Count() == 0 {
+			// if nothing found, try to load from the logged account's collections
+			current := ContextAccount(r.Context())
+			if current.IsLogged() {
+				// if the current user is logged, try to load from their inbox
+				col, err = repo.fedbox.Inbox(current.pub, Values(f))
+				if err != nil {
+					// log
+				}
+				if col.Count() == 0 {
+					// if the current user is logged, try to load from their outbox
+					col, err = repo.fedbox.Outbox(current.pub, Values(f))
+					if err != nil {
+						// log
+					}
+				}
+			}
 		}
 		i := Item{}
 		pub.OnOrderedCollection(col, func(c *pub.OrderedCollection) error {
