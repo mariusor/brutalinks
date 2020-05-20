@@ -258,7 +258,7 @@ func (v *view) HandleErrors(w http.ResponseWriter, r *http.Request, errs ...erro
 	backURL := "/"
 	if refURLs, ok := r.Header["Referer"]; ok {
 		backURL = refURLs[0]
-		renderErrors = false
+		//renderErrors = false
 	}
 
 	status := http.StatusInternalServerError
