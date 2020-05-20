@@ -200,14 +200,16 @@ func AccountFiltersMw(next http.Handler) http.Handler {
 		f.Type = CreateActivitiesFilter
 
 		m := ContextListingModel(r.Context())
-		author := ContextAuthor(r.Context())
-		if author == nil {
+		authors := ContextAuthor(r.Context())
+		if len(authors) == 0 {
 			next.ServeHTTP(w, r)
 			return
 		}
-		f.AttrTo = IRIsFilter(author.pub.GetLink())
-		m.Title = fmt.Sprintf("%s items", genitive(author.Handle))
-		m.User = author
+		for _, author := range authors {
+			f.AttrTo = append(f.AttrTo, LikeString(author.Hash.String()))
+		}
+		m.User = &authors[0]
+		m.Title = fmt.Sprintf("%s items", genitive(m.User.Handle))
 
 		ctx := context.WithValue(context.WithValue(r.Context(), FilterCtxtKey, f), ModelCtxtKey, m)
 		next.ServeHTTP(w, r.WithContext(ctx))

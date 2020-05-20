@@ -11,29 +11,41 @@ import (
 
 func (h handler) LoadAuthorMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		author, err := accountFromRequestHandle(r)
+		authors, err := accountsFromRequestHandle(r)
 		if err != nil {
 			h.ErrorHandler(err).ServeHTTP(w, r)
 			return
 		}
-		ctx := context.WithValue(r.Context(), AuthorCtxtKey, author)
+		if len(authors) == 0 {
+			authors = append(authors, AnonymousAccount)
+		}
+		ctx := context.WithValue(r.Context(), AuthorCtxtKey, authors)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
 func LoadOutboxMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		author := ContextAuthor(r.Context())
-		if author == nil {
-			next.ServeHTTP(w, r)
+		authors := ContextAuthor(r.Context())
+		if len(authors) == 0 {
+			ctxtErr(next, w, r, errors.NotFoundf("actor not found"))
 			return
 		}
 		f := ContextActivityFilters(r.Context())
 		repo := ContextRepository(r.Context())
-		cursor, err := repo.LoadActorOutbox(author.pub, f)
-		if err != nil {
-			ctxtErr(next, w, r, errors.Annotatef(err, "unable to load actor's outbox"))
-			return
+
+		var cursor = new(Cursor)
+		cursor.items = make(RenderableList, 0)
+		for _, author := range authors {
+			c, err := repo.LoadActorOutbox(author.pub, f)
+			if err != nil {
+				ctxtErr(next, w, r, errors.Annotatef(err, "unable to load actor's outbox"))
+				return
+			}
+			cursor.items = append(cursor.items, c.items...)
+			cursor.total += c.total
+			cursor.before = c.before
+			cursor.after = c.after
 		}
 		ctx := context.WithValue(r.Context(), CursorCtxtKey, cursor)
 		next.ServeHTTP(w, r.WithContext(ctx))
@@ -72,7 +84,7 @@ func LoadServiceInboxMw(next http.Handler) http.Handler {
 
 func ctxtErr(next http.Handler, w http.ResponseWriter, r *http.Request, err error) {
 	status, _ := errors.HttpErrors(err)
-	ctx := context.WithValue(r.Context(), ModelCtxtKey, errorModel{
+	ctx := context.WithValue(r.Context(), ModelCtxtKey, &errorModel{
 		Status:     status,
 		Title:      fmt.Sprintf("Error %d", status),
 		StatusText: http.StatusText(status),
@@ -85,14 +97,9 @@ func LoadOutboxObjectMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := ContextActivityFilters(r.Context())
 		repo := ContextRepository(r.Context())
-		author := ContextAuthor(r.Context())
-		if author == nil {
-			ctxtErr(next, w, r, errors.NotFoundf("Author not found"))
-			return
-		}
-		// @todo(marius): we should improve activities objects, as if we edit an object,
+		// @TODO(marius): we should improve activities objects, as if we edit an object,
 		//   we need to update the activity to contain the new object.
-		col, err := repo.fedbox.Outbox(author.pub, Values(f))
+		col, err := repo.fedbox.Inbox(repo.fedbox.Service(), Values(f))
 		if err != nil || col == nil {
 			ctxtErr(next, w, r, errors.NotFoundf("Object not found"))
 			return
@@ -124,18 +131,18 @@ func LoadOutboxObjectMw(next http.Handler) http.Handler {
 		if items, err = repo.loadItemsVotes(items...); err != nil {
 			repo.errFn("unable to load item votes", nil)
 		}
-		c := Cursor{
+		c := &Cursor{
 			items: make(RenderableList, len(items)),
 		}
 		for k := range items {
 			c.items[k] = Renderable(&items[k])
 		}
 		m := ContextContentModel(r.Context())
-		m.Title = fmt.Sprintf("Replies to %s item", genitive(author.Handle))
+		m.Title = fmt.Sprintf("Replies to %s item", genitive(i.SubmittedBy.Handle))
 		if len(i.Title) > 0 {
 			m.Title = fmt.Sprintf("%s: %s", m.Title, i.Title)
 		}
-		ctx := context.WithValue(context.WithValue(r.Context(), CursorCtxtKey, &c), ModelCtxtKey, m)
+		ctx := context.WithValue(context.WithValue(r.Context(), CursorCtxtKey, c), ModelCtxtKey, m)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -165,7 +172,6 @@ func ThreadedListingMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		c := ContextCursor(r.Context())
 		if c == nil {
-			ctxtErr(next, w, r, errors.NotFoundf("Cursor not found"))
 			next.ServeHTTP(w, r)
 			return
 		}

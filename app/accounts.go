@@ -237,7 +237,7 @@ func checkUserCreatingEnabled(next http.Handler) http.Handler {
 	})
 }
 
-func accountFromRequestHandle(r *http.Request) (*Account, error) {
+func accountsFromRequestHandle(r *http.Request) ([]Account, error) {
 	handle := chi.URLParam(r, "handle")
 	if handle == "" {
 		return nil, errors.NotFoundf("missing account handle %s", handle)
@@ -246,17 +246,7 @@ func accountFromRequestHandle(r *http.Request) (*Account, error) {
 		Name: CompStrs{EqualsString(handle)},
 	}
 	repo := ContextRepository(r.Context())
-	var account *Account
-	if accounts, err := repo.accounts(fa); err == nil {
-		if len(accounts) == 0 {
-			return nil, errors.NotFoundf("account %q not found", handle)
-		}
-		if len(accounts) > 1 {
-			return nil, errors.NotFoundf("too many %q accounts found", handle)
-		}
-		account = &accounts[0]
-	}
-	return account, nil
+	return repo.accounts(fa)
 }
 
 type AccountPtrCollection []*Account

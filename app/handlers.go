@@ -212,20 +212,20 @@ func (h *handler) FollowAccount(w http.ResponseWriter, r *http.Request) {
 		h.v.HandleErrors(w, r, err)
 		return
 	}
-
 	repo := h.storage
 	var err error
 	toFollow := ContextAuthor(r.Context())
-	if toFollow == nil {
+	if len(toFollow) == 0 {
 		h.v.HandleErrors(w, r, errors.NotFoundf("account not found"))
 		return
 	}
-	err = repo.FollowAccount(*loggedAccount, *toFollow)
+	fol := toFollow[0]
+	err = repo.FollowAccount(*loggedAccount, fol)
 	if err != nil {
 		h.v.HandleErrors(w, r, err)
 		return
 	}
-	h.v.Redirect(w, r, AccountPermaLink(*toFollow), http.StatusSeeOther)
+	h.v.Redirect(w, r, AccountPermaLink(fol), http.StatusSeeOther)
 }
 
 func (h *handler) HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
@@ -238,8 +238,8 @@ func (h *handler) HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	repo := h.storage
-	follower := ContextAuthor(r.Context())
-	if follower == nil {
+	followers := ContextAuthor(r.Context())
+	if len(followers) == 0 {
 		h.v.HandleErrors(w, r, errors.NotFoundf("account not found"))
 		return
 	}
@@ -249,6 +249,7 @@ func (h *handler) HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
 		accept = true
 	}
 
+	follower := followers[0]
 	ff := &Filters{
 		Actor: &Filters{
 			IRI: CompStrs{LikeString(follower.Hash.String())},
@@ -574,7 +575,7 @@ func (h *handler) HandleShow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	cursor := ContextCursor(r.Context())
-	if mod, ok := m.(Paginator); ok {
+	if mod, ok := m.(Paginator); ok && cursor != nil {
 		mod.SetCursor(cursor)
 	}
 	if err := h.v.RenderTemplate(r, w, m.Template(), m); err != nil {

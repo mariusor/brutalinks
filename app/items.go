@@ -3,7 +3,6 @@ package app
 import (
 	"bytes"
 	"fmt"
-	pub "github.com/go-ap/activitypub"
 	"github.com/go-chi/chi"
 	"net/http"
 	"net/url"
@@ -178,15 +177,15 @@ func ContentFromRequest(r *http.Request, acc Account) (Item, error) {
 		return Item{}, errors.Errorf("invalid http method type")
 	}
 
-	var receiver *Account
+	var receivers []Account
 	var err error
 	i := Item{}
 	i.Metadata = &ItemMetadata{}
-	if receiver, err = accountFromRequestHandle(r); err == nil && chi.URLParam(r, "hash") == "" {
+	if receivers, err = accountsFromRequestHandle(r); err == nil && chi.URLParam(r, "hash") == "" {
 		i.MakePrivate()
-		to := Account{}
-		to.FromActivityPub(pub.IRI(receiver.Metadata.ID))
-		i.Metadata.To = []*Account{&to}
+		for _, rec := range receivers {
+			i.Metadata.To = append(i.Metadata.To, &rec)
+		}
 	}
 
 	tit := r.PostFormValue("title")
