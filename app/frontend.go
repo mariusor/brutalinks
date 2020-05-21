@@ -43,21 +43,24 @@ type appConfig struct {
 	Logger          log.Logger
 }
 
+
+var defaultLogFn = func (string, ...interface{}) {}
+var defaultCtxLogFn = func(c log.Ctx) LogFn { return defaultLogFn }
+
 func Init(c appConfig) (handler, error) {
 	var err error
 
 	h := handler{}
-
-	infoFn := func(string, log.Ctx) {}
-	errFn := func(string, log.Ctx) {}
+	infoFn := defaultCtxLogFn
+	errFn := defaultCtxLogFn
 
 	if c.Logger != nil {
 		h.logger = c.Logger
-		infoFn = func(s string, ctx log.Ctx) {
-			h.logger.WithContext(ctx).Info(s)
+		infoFn = func(ctx log.Ctx) LogFn {
+			return h.logger.WithContext(ctx).Infof
 		}
-		errFn = func(s string, ctx log.Ctx) {
-			h.logger.WithContext(ctx).Error(s)
+		errFn = func(ctx log.Ctx) LogFn {
+			return h.logger.WithContext(ctx).Errorf
 		}
 	}
 

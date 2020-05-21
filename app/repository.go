@@ -31,8 +31,8 @@ type repository struct {
 	SelfURL string
 	app     *Account
 	fedbox  *fedbox
-	infoFn  LogFn
-	errFn   LogFn
+	infoFn  CtxLogFn
+	errFn   CtxLogFn
 }
 
 var ValidActorTypes = pub.ActivityVocabularyTypes{
@@ -71,12 +71,17 @@ func ActivityPubService(c appConfig) *repository {
 	ActorsURL = actors.IRI(pub.IRI(BaseURL))
 	ObjectsURL = objects.IRI(pub.IRI(BaseURL))
 
-	infoFn := func(s string, ctx log.Ctx) {}
-	errFn := func(s string, ctx log.Ctx) {
+	infoFn := func(ctx log.Ctx) LogFn {
 		if ctx != nil {
 			ctx = log.Ctx{"client": "api"}
 		}
-		c.Logger.WithContext(ctx).Error(s)
+		return c.Logger.WithContext(ctx).Infof
+	}
+	errFn := func(ctx log.Ctx) LogFn {
+		if ctx != nil {
+			ctx = log.Ctx{"client": "api"}
+		}
+		return c.Logger.WithContext(ctx).Errorf
 	}
 	ua := fmt.Sprintf("%s-%s", Instance.HostName, Instance.Version)
 
@@ -436,11 +441,11 @@ func (r *repository) withAccountC2S(a *Account) client.RequestSignFn {
 			return nil
 		}
 		if a.Metadata.OAuth.Token == "" {
-			r.errFn("account has no OAuth2 token", log.Ctx{
+			r.errFn(log.Ctx{
 				"handle":   a.Handle,
 				"logged":   a.IsLogged(),
 				"metadata": a.Metadata,
-			})
+			})("account has no OAuth2 token")
 			return nil
 		}
 		tok := a.Metadata.OAuth.Token
@@ -465,21 +470,21 @@ func (r *repository) withAccountS2S(a *Account) client.RequestSignFn {
 		prv, err = x509.ParsePKCS8PrivateKey(k.Private)
 	}
 	if err != nil {
-		r.errFn(err.Error(), log.Ctx{
+		r.errFn(log.Ctx{
 			"handle":   a.Handle,
 			"logged":   a.IsLogged(),
 			"metadata": a.Metadata,
-		})
+		})(err.Error())
 		return nil
 	}
 	if k.ID == "id-ecdsa" {
 		//prv, err = x509.ParseECPrivateKey(k.Private)
 		err := errors.Errorf("unsupported private key type %s", k.ID)
-		r.errFn(err.Error(), log.Ctx{
+		r.errFn(log.Ctx{
 			"handle":   a.Handle,
 			"logged":   a.IsLogged(),
 			"metadata": a.Metadata,
-		})
+		})(err.Error())
 		return nil
 	}
 	p := *loadAPPerson(*a)
@@ -490,7 +495,7 @@ func (r *repository) LoadItem(iri pub.IRI) (Item, error) {
 	var item Item
 	art, err := r.fedbox.Object(iri)
 	if err != nil {
-		r.errFn(err.Error(), nil)
+		r.errFn(nil)(err.Error())
 		return item, err
 	}
 	if err = item.FromActivityPub(art); err == nil {
@@ -526,7 +531,7 @@ func (r *repository) loadAccountsVotes(accounts ...Account) (AccountCollection, 
 	for _, account := range accounts {
 		err := r.loadAccountVotes(&account, nil)
 		if err != nil {
-			r.errFn(err.Error(), nil)
+			r.errFn(nil)(err.Error())
 		}
 	}
 	return accounts, nil
@@ -547,7 +552,7 @@ func (r *repository) loadAccountsFollowers(acc Account) (Account, error) {
 	}
 	it, err := r.fedbox.Collection(pub.IRI(acc.Metadata.FollowersIRI))
 	if err != nil {
-		r.errFn(err.Error(), nil)
+		r.errFn(nil)(err.Error())
 		return acc, nil
 	}
 	if !pub.CollectionTypes.Contains(it.GetType()) {
@@ -576,7 +581,7 @@ func (r *repository) loadAccountsOutbox(acc Account) (Account, error) {
 	}
 	it, err := r.fedbox.Collection(pub.IRI(acc.Metadata.OutboxIRI))
 	if err != nil {
-		r.errFn(err.Error(), nil)
+		r.errFn(nil)(err.Error())
 		return acc, nil
 	}
 	if !pub.CollectionTypes.Contains(it.GetType()) {
@@ -597,7 +602,7 @@ func (r *repository) loadAccountsFollowing(acc Account) (Account, error) {
 	}
 	it, err := r.fedbox.Collection(pub.IRI(acc.Metadata.FollowingIRI))
 	if err != nil {
-		r.errFn(err.Error(), nil)
+		r.errFn(nil)(err.Error())
 		return acc, nil
 	}
 	if !pub.CollectionTypes.Contains(it.GetType()) {
@@ -671,7 +676,7 @@ func (r *repository) loadItemsReplies(items ...Item) (ItemCollection, error) {
 			return true, nil
 		})
 		if err != nil {
-			r.errFn(err.Error(), nil)
+			r.errFn(nil)(err.Error())
 		}
 	}
 	// TODO(marius): probably we can thread the replies right here
@@ -1304,10 +1309,10 @@ func (r *repository) SaveVote(v Vote) (Vote, error) {
 	itemVotes, err := r.loadVotesCollection(pub.IRI(url), pub.IRI(v.SubmittedBy.Metadata.ID))
 	// first step is to verify if vote already exists:
 	if err != nil {
-		r.errFn(err.Error(), log.Ctx{
+		r.errFn(log.Ctx{
 			"url": url,
 			"err": err,
-		})
+		})(err.Error())
 	}
 	var exists Vote
 	for _, vot := range itemVotes {
@@ -1331,7 +1336,7 @@ func (r *repository) SaveVote(v Vote) (Vote, error) {
 	if exists.HasMetadata() {
 		act.Object = pub.IRI(exists.Metadata.IRI)
 		if _, _, err := r.fedbox.ToOutbox(act); err != nil {
-			r.errFn(err.Error(), nil)
+			r.errFn(nil)(err.Error())
 		}
 	}
 
@@ -1346,7 +1351,7 @@ func (r *repository) SaveVote(v Vote) (Vote, error) {
 
 	_, _, err = r.fedbox.ToOutbox(act)
 	if err != nil {
-		r.errFn(err.Error(), nil)
+		r.errFn(nil)(err.Error())
 		return v, err
 	}
 	err = v.FromActivityPub(act)
@@ -1390,7 +1395,7 @@ type _errors struct {
 func (r *repository) handlerErrorResponse(body []byte) error {
 	errs := _errors{}
 	if err := j.Unmarshal(body, &errs); err != nil {
-		r.errFn(fmt.Sprintf("Unable to unmarshal error response: %s", err.Error()), nil)
+		r.errFn(nil)("Unable to unmarshal error response: %s", err.Error())
 		return nil
 	}
 	if len(errs.Errors) == 0 {
@@ -1403,12 +1408,12 @@ func (r *repository) handlerErrorResponse(body []byte) error {
 func (r *repository) handleItemSaveSuccessResponse(it Item, body []byte) (Item, error) {
 	ap, err := pub.UnmarshalJSON(body)
 	if err != nil {
-		r.errFn(err.Error(), nil)
+		r.errFn(nil)(err.Error())
 		return it, err
 	}
 	err = it.FromActivityPub(ap)
 	if err != nil {
-		r.errFn(err.Error(), nil)
+		r.errFn(nil)(err.Error())
 		return it, err
 	}
 	items, err := r.loadItemsAuthors(it)
@@ -1477,7 +1482,7 @@ func (r *repository) SaveItem(it Item) (Item, error) {
 			ff := &Filters{Name: names}
 			actors, _, err := r.LoadAccounts(ff)
 			if err != nil {
-				r.errFn("unable to load accounts from mentions", log.Ctx{"err": err})
+				r.errFn(log.Ctx{"err": err})("unable to load accounts from mentions")
 			}
 			for _, actor := range actors {
 				if actor.HasMetadata() && len(actor.Metadata.ID) > 0 {
@@ -1505,9 +1510,9 @@ func (r *repository) SaveItem(it Item) (Item, error) {
 	loadAuthors := true
 	if it.Deleted() {
 		if len(id) == 0 {
-			r.errFn(err.Error(), log.Ctx{
+			r.errFn(log.Ctx{
 				"item": it.Hash,
-			})
+			})(err.Error())
 			return it, errors.NotFoundf("item hash is empty, can not delete")
 		}
 		act.Object = id
@@ -1523,12 +1528,12 @@ func (r *repository) SaveItem(it Item) (Item, error) {
 	var ob pub.Item
 	_, ob, err = r.fedbox.ToOutbox(act)
 	if err != nil {
-		r.errFn(err.Error(), nil)
+		r.errFn(nil)(err.Error())
 		return it, err
 	}
 	err = it.FromActivityPub(ob)
 	if err != nil {
-		r.errFn(err.Error(), nil)
+		r.errFn(nil)(err.Error())
 		return it, err
 	}
 	if loadAuthors {
@@ -1541,7 +1546,7 @@ func (r *repository) SaveItem(it Item) (Item, error) {
 func (r *repository) LoadAccounts(f *Filters) (AccountCollection, uint, error) {
 	it, err := r.fedbox.Actors(Values(f))
 	if err != nil {
-		r.errFn(err.Error(), nil)
+		r.errFn(nil)(err.Error())
 		return nil, 0, err
 	}
 	accounts := make(AccountCollection, 0)
@@ -1551,9 +1556,9 @@ func (r *repository) LoadAccounts(f *Filters) (AccountCollection, uint, error) {
 		for _, it := range col.OrderedItems {
 			acc := Account{Metadata: &AccountMetadata{}}
 			if err := acc.FromActivityPub(it); err != nil {
-				r.errFn(err.Error(), log.Ctx{
+				r.errFn(log.Ctx{
 					"type": fmt.Sprintf("%T", it),
-				})
+				})(err.Error())
 				continue
 			}
 			accounts = append(accounts, acc)
@@ -1636,7 +1641,7 @@ func (r *repository) SendFollowResponse(f FollowRequest, accept bool) error {
 
 	_, _, err := r.fedbox.ToOutbox(response)
 	if err != nil {
-		r.errFn(err.Error(), nil)
+		r.errFn(nil)(err.Error())
 		return err
 	}
 	return nil
@@ -1665,7 +1670,7 @@ func (r *repository) FollowAccount(er, ed Account) error {
 	}
 	_, _, err := r.fedbox.ToOutbox(follow)
 	if err != nil {
-		r.errFn(err.Error(), nil)
+		r.errFn(nil)(err.Error())
 		return err
 	}
 	return nil
@@ -1700,9 +1705,9 @@ func (r *repository) SaveAccount(a Account) (Account, error) {
 	if a.Deleted() {
 		if len(id) == 0 {
 			err := errors.NotFoundf("item hash is empty, can not delete")
-			r.infoFn(err.Error(), log.Ctx{
+			r.infoFn(log.Ctx{
 				"account": a.Hash,
-			})
+			})(err.Error())
 			return a, err
 		}
 		act.Type = pub.DeleteType
@@ -1720,12 +1725,12 @@ func (r *repository) SaveAccount(a Account) (Account, error) {
 
 	var ap pub.Item
 	if _, ap, err = r.fedbox.ToOutbox(act); err != nil {
-		r.errFn(err.Error(), nil)
+		r.errFn(nil)(err.Error())
 		return a, err
 	}
 	err = a.FromActivityPub(ap)
 	if err != nil {
-		r.errFn(err.Error(), nil)
+		r.errFn(nil)(err.Error())
 	}
 	return a, err
 }

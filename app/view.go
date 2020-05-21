@@ -35,7 +35,8 @@ type flash struct {
 	Msg  string
 }
 
-type LogFn func(string, log.Ctx)
+type CtxLogFn func(log.Ctx) LogFn
+type LogFn func(string, ...interface{})
 
 type session struct {
 	s sessions.Store
@@ -66,11 +67,11 @@ func (h *session) save(w http.ResponseWriter, r *http.Request) error {
 
 type view struct {
 	s      *session
-	infoFn LogFn
-	errFn  LogFn
+	infoFn CtxLogFn
+	errFn  CtxLogFn
 }
 
-func ViewInit(c appConfig, infoFn, errFn LogFn) (*view, error) {
+func ViewInit(c appConfig, infoFn, errFn CtxLogFn) (*view, error) {
 	v := view{
 		infoFn: infoFn,
 		errFn:  errFn,
@@ -94,7 +95,7 @@ func ViewInit(c appConfig, infoFn, errFn LogFn) (*view, error) {
 		fallthrough
 	default:
 		if strings.ToLower(c.SessionsBackend) != "cookie" {
-			v.infoFn(fmt.Sprintf("Invalid session backend %q, falling back to cookie.", c.SessionsBackend), nil)
+			v.infoFn(nil)("Invalid session backend %q, falling back to cookie.", c.SessionsBackend)
 		}
 		s, _ := initCookieSession(c.HostName, c.Secure, c.SessionKeys...)
 		v.s = &session{
@@ -127,10 +128,10 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 	layout := "layout"
 	if Instance.Config.SessionsEnabled {
 		if s, err = v.s.get(r); err != nil {
-			v.errFn(err.Error(), log.Ctx{
+			v.errFn(log.Ctx{
 				"template": name,
 				"model":    m,
-			})
+			})(err.Error())
 		}
 	}
 	accountFromRequest := func() *Account {
@@ -221,10 +222,10 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 	err = ren.HTML(w, http.StatusOK, name, m)
 	if err != nil {
 		new := errors.Annotatef(err, "failed to render template")
-		v.errFn(new.Error(), log.Ctx{
+		v.errFn(log.Ctx{
 			"template": name,
 			"model":    m,
-		})
+		})(new.Error())
 		em := errorModel{
 			Status: http.StatusInternalServerError,
 			Title:  "Failed to render template",
@@ -236,10 +237,10 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 	if Instance.Config.SessionsEnabled {
 		err := v.s.save(w, r)
 		if err != nil {
-			v.errFn(err.Error(), log.Ctx{
+			v.errFn(log.Ctx{
 				"template": name,
 				"model":    fmt.Sprintf("%#v", m),
-			})
+			})(err.Error())
 			return err
 		}
 	}
@@ -289,10 +290,10 @@ func (v *view) HandleErrors(w http.ResponseWriter, r *http.Request, errs ...erro
 
 func (v *view) Redirect(w http.ResponseWriter, r *http.Request, url string, status int) {
 	if err := v.s.save(w, r); err != nil {
-		v.errFn(err.Error(), log.Ctx{
+		v.errFn(log.Ctx{
 			"status": status,
 			"url":    url,
-		})
+		})(err.Error())
 	}
 
 	http.Redirect(w, r, url, status)

@@ -19,32 +19,24 @@ const (
 type fedbox struct {
 	baseURL *url.URL
 	client  client.ActivityPub
-	infoFn  LogFn
-	errFn   LogFn
+	infoFn  CtxLogFn
+	errFn   CtxLogFn
 }
 
 type OptionFn func(*fedbox) error
 
-func SetInfoLogger(logFn LogFn) OptionFn {
+func SetInfoLogger(logFn CtxLogFn) OptionFn {
 	return func(f *fedbox) error {
 		if logFn == nil {
-			return nil
-		}
-		f.infoFn = logFn
-		client.InfoLogger = func(s string, el ...interface{}) {
-			logFn(fmt.Sprintf(s, el...), nil)
+			f.infoFn = logFn
 		}
 		return nil
 	}
 }
-func SetErrorLogger(errFn LogFn) OptionFn {
+func SetErrorLogger(errFn CtxLogFn) OptionFn {
 	return func(f *fedbox) error {
-		if errFn == nil {
-			return nil
-		}
-		f.errFn = errFn
-		client.ErrorLogger = func(s string, el ...interface{}) {
-			errFn(fmt.Sprintf(s, el...), nil)
+		if errFn != nil {
+			f.errFn = errFn
 		}
 		return nil
 	}
@@ -82,16 +74,25 @@ func SetUA(s string) OptionFn {
 }
 
 func NewClient(o ...OptionFn) (*fedbox, error) {
-	f := fedbox{}
-	f.client = client.New()
+	f := fedbox{
+		infoFn: defaultCtxLogFn,
+		errFn: defaultCtxLogFn,
+	}
 	for _, fn := range o {
 		if err := fn(&f); err != nil {
 			return nil, err
 		}
 	}
-
-	//client.ErrorLogger = f.infoFn
-	//client.InfoLogger = f.errFn
+	infoFn := func(s string, el ...interface{}) {
+		f.infoFn(nil)(s, el...)
+	}
+	errFn := func(s string, el ...interface{}) {
+		f.errFn(nil)(s, el...)
+	}
+	f.client = client.New(
+		client.SetErrorLogger(errFn),
+		client.SetInfoLogger(infoFn),
+	)
 	return &f, nil
 }
 
