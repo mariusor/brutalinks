@@ -8,8 +8,8 @@
 <link href="{{.NextPage | NextPageLink }}" rel="prev prefetch" />
 {{end -}}
 {{end}}
-<link rel="stylesheet" href="/css/main.css" />
 <style>
+body>svg { display: none; }
 svg.icon { height: 1em; width: 1em; fill: currentColor; }
 :root { --main-bg-color: Window; --main-fg-color: WindowText; --main-link-color: blue; --main-linkvisited-color: rebeccapurple; --main-linkactive-color: red;}
 :root.inverted { --main-bg-color: WindowText; --main-fg-color: Window; --main-link-color: dodgerblue; --main-linkvisited-color: mediumpurple; --main-linkactive-color: red;}
@@ -22,6 +22,7 @@ svg.icon { height: 1em; width: 1em; fill: currentColor; }
 :root.inverted { --main-bg-color: #EFF0F1; --main-fg-color: #232627; --main-link-color: blue; --main-linkvisited-color: rebeccapurple; --main-linkactive-color: red;}
 }
 </style>
+<link rel="stylesheet" href="/css/main.css" />
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <meta name="theme-color" content="rebeccapurple" />
 <meta name="description" content="Link aggregator inspired by reddit and hacker news using ActivityPub federation."/>
