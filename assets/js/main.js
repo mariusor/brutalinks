@@ -23,7 +23,14 @@ OnReady( function() {
         e.preventDefault();
         e.stopPropagation();
     });
-
+    $(".score a").forEach(function(lnk) {
+        if(lnk.getAttribute("href") == "#") {
+            addEvent(lnk, "click", function(e){
+                e.stopPropagation();
+                e.preventDefault();
+            });
+        }
+    });
     $("a.rm").forEach(function (del) {
         addEvent(del, "click", function(e) {
             e.stopPropagation();
@@ -56,7 +63,6 @@ OnReady( function() {
             });
         });
     });
-
     if (haveModals()) {
         $("button.close").forEach(function (close) {
             addEvent(close, "click", function(e) {

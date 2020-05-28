@@ -75,18 +75,17 @@ article p + div, article p + h1, article p + h2, article p + h3, article p + h4,
 article p + blockquote, article p + pre {
     margin-top: .6rem;
 }
-a[href] {
-    color: var(--main-link-color);
+a.to-item, .logo a {
     text-decoration: none;
 }
-a[href]:hover {
+a:hover.to-item {
     text-decoration: underline;
 }
-a[href]:visited {
-    color: var(--main-linkvisited-color);
+a {
+    color: var(--main-link-color);
 }
-a:not([href]) {
-    color: var(--main-fg-color);
+a:visited {
+    color: var(--main-linkvisited-color);
 }
 .h-mirror {
     transform: rotateX(180deg);
@@ -109,9 +108,6 @@ button svg.icon.icon-sign-in {
 h1.logo a,
 h1.logo a:visited {
     color: var(--main-fg-color);
-}
-h1.logo a:hover {
-    text-decoration: none;
 }
 body > header {
     display: grid;
@@ -145,22 +141,21 @@ body > header h1.logo .icon {
 body > header h1.logo .icon.icon-l {
     width: .5em;
 }
-.inline {
-    display: inline;
-}
-.inline li {
+footer nav,
+nav ul {
     display: inline-block;
-    /*margin-left: .4em;*/
 }
-.sections .inline li::after,
-.meta-items .inline li::after,
-.inline li:last-child::after,
-.inline li.no-sep::after {
+nav ul li {
+    display: inline-block;
+}
+nav.sections ul li::after,
+.meta nav ul li::after,
+nav ul li:last-child::after {
     content: unset;
 }
-.inline li::after {
+nav ul li::after {
     content: "\22c5";
-    padding-left: .4em;
+    padding: 0 .2em 0 .4em;
 }
 .top {
     text-align: right;
@@ -184,29 +179,14 @@ body > main {
 body > footer {
     grid-area: footer;
     padding-bottom: 1em;
+    text-align: right;
 }
-footer nav.bottom {
-    overflow: hidden;
-    float: right;
+body > footer nav ul {
+    margin-top: .5rem;
     font-size: .7rem;
 }
-footer nav.bottom ul::after {
-    content: "\22c5";
-}
-footer nav.bottom ul.omega::after {
-    content: "";
-}
-footer nav.bottom ul.omega::before {
-    content: "Ω";
-}
-footer nav.bottom ul.omega:hover::before {
-    content: "";
-}
-footer nav.bottom ul.omega li {
-    display: none;
-}
-footer nav.bottom ul.omega:hover li {
-    display: unset;
+body > footer nav ul:first-child {
+    display: block;
 }
 .item h1,
 .item h2,
@@ -404,13 +384,16 @@ aside.score a.nay {
 aside.score .icon-recycle {
     opacity: .6;
 }
-aside.score a:not([href]) {
+aside.score a[href="#"],
+aside.score a[href="#"]:visited {
+    color: var(--main-fg-color);
     opacity: .3;
+    cursor: default;
 }
-.item aside.score a[href].ed {
+aside.score a.ed {
     color: var(--main-linkvisited-color);
 }
-aside.score a[href]:visited {
+aside.score a:visited {
     color: var(--main-link-color);
 }
 .deleted {
@@ -423,16 +406,15 @@ aside.score a[href]:visited {
     line-height: 1.1rem;
 }
 .meta time .icon-clock-o {
-    margin-right: .2em;
-    vertical-align: middle;
+    width: .85em;
 }
 .meta .icon-activitypub {
+    vertical-align: text-top;
+    width: 1.1em;
     display: none;
 }
 .item:hover .meta .icon-activitypub,
 .acct:hover .meta .icon-activitypub {
-    vertical-align: text-top;
-    width: 1.1em;
     display: unset;
 }
 .icon.icon-lock {
@@ -498,10 +480,7 @@ summary:focus {
 }
 .comments details > summary {
     font-size: 0.7rem;
-    /*display: inline;*/
-    /*margin-top: .6rem;*/
     padding: .3rem 0 .3rem .3rem;
-    /*border-radius: 0 0 0 .4rem;*/
 }
 .comments details > summary span {
     opacity: .6;
@@ -583,13 +562,6 @@ summary:focus {
 #register form button,
 #login form button {
     margin-top: .2em;
-}
-.meta-items {
-    display: inline-block;
-    text-align: center;
-}
-.meta-items li {
-    padding-left: .2rem;
 }
 dl.recipients dt,
 dl.recipients dd {
@@ -700,15 +672,13 @@ details#invites summary,
 .acct-info section {
     margin-top: 1em;
 }
-.icon-clock-o {
-    vertical-align: text-bottom;
-}
-.icon-github, .icon-code {
-    vertical-align: middle;
-}
+.icon-clock-o,
+.icon-code,
+.icon-github,
 .icon-angle-double-left,
-.icon-angle-double-right {
-    vertical-align: baseline;
+.icon-angle-double-right,
+.icon-adjust {
+    vertical-align: text-top;
 }
 dialog {
     width: 60%;

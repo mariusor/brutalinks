@@ -3,8 +3,8 @@
 <footer class="meta col">
 submitted{{ if not .Deleted}}{{- if ShowUpdate $it }}<time class="updated-at" datetime="{{ $it.UpdatedAt | ISOTimeFmt | html }}" title="updated at {{ $it.UpdatedAt | ISOTimeFmt }}"><sup>&#10033;</sup></time> {{- end }} <time class="submitted-at" datetime="{{ $it.SubmittedAt | ISOTimeFmt | html }}" title="{{ $it.SubmittedAt | ISOTimeFmt }}">{{ icon "clock-o" }}{{ $it.SubmittedAt | TimeFmt }}</time>{{- end -}}
     {{- if $it.SubmittedBy.IsValid }} by <a class="by" rel="author" href="{{ $it.SubmittedBy | AccountPermaLink }}">{{ $it.SubmittedBy | ShowAccountHandle }}</a>{{end}}
-    <nav class="meta-items">
-        <ul class="inline">
+    <nav>
+        <ul>
 {{- if and CurrentAccount.IsValid $it.SubmittedBy.IsValid -}}
 {{- if (sameHash $it.SubmittedBy.Hash CurrentAccount.Hash) }}
 {{- /*
@@ -13,26 +13,26 @@ submitted{{ if not .Deleted}}{{- if ShowUpdate $it }}<time class="updated-at" da
 {{- if not .Deleted }}
             <li><a href="{{$it | ItemLocalLink }}/edit" title="Edit{{if .Title}}: {{$it.Title }}{{end}}">{{/*icon "edit"*/}}edit</a></li>
             <li><a href="{{$it | ItemLocalLink }}/rm" class="rm" data-hash="{{ .Hash }}" title="Remove{{if .Title}}: {{$it.Title }}{{end}}">{{/*icon "eraser"*/}}rm</a></li>
-{{- end -}}
-{{- end -}}
+{{ end -}}
+{{ end -}}
             {{ if Config.ModerationEnabled }}<li><a href="{{$it | ItemLocalLink }}/bad" title="Report{{if .Title}}: {{$it.Title }}{{end}}"><!--{{ icon "flag"}}-->report</a></li>{{ end }}
 {{- end -}}
 {{- if not $it.IsTop -}}
 {{- if $it.Parent -}}
 {{- $parentLink := (ParentLink $it) -}}
 {{- if not (sameBase req.URL.Path $parentLink) }}
-            <li><a href="{{$parentLink}}" class="to-parent" title="Parent">{{/*icon "angle-up"*/}}parent</a></li>
+            <li><a href="{{$parentLink}}" title="Parent">{{/*icon "angle-up"*/}}parent</a></li>
 {{- end -}}
 {{- if $it.OP -}}
 {{- $opLink := (OPLink $it) -}}
 {{- if and (not (sameBase req.URL.Path $opLink)) (ne $parentLink $opLink) }}
-            <li><a href="{{$opLink}}" class="to-op" title="TopPost">{{/*icon "angle-double-up"*/}}top</a></li>
+            <li><a href="{{$opLink}}" title="TopPost">{{/*icon "angle-double-up"*/}}top</a></li>
 {{- end -}}
 {{- end -}}
 {{- end -}}
 {{- end -}}
 {{- if or (not $it.IsTop) (not .IsLink) }}
-            <li><a href="{{$it | ItemLocalLink }}" class="to-item" title="Permalink{{if .Title}}: {{$it.Title }}{{end}}">{{ if $it.Private }}{{icon "lock"}} {{ end -}}{{/* icon "reply" "h-mirror" */}}reply</a></li>
+            <li><a href="{{$it | ItemLocalLink }}" title="Permalink{{if .Title}}: {{$it.Title }}{{end}}">{{ if $it.Private }}{{icon "lock"}} {{ end -}}{{/* icon "reply" "h-mirror" */}}reply</a></li>
 {{- end }}
             {{ if not $it.Private }}<li><a href="{{ $it.Metadata.ID }}" data-hash="{{ .Hash }}" title="ActivityPub link{{if .Title}}: {{$it.Title }}{{end}}">{{icon "activitypub"}}</a></li> {{- end -}}
         </ul>

@@ -4,10 +4,15 @@
             {{- if .User.HasIcon -}}<img src="{{.User.Metadata.Icon.URI}}" alt="{{.User.Handle}}" class="avatar" />{{- else -}}{{- icon "user" "avatar" -}}{{- end -}}
             {{- .User.Handle -}}
         </span>
-{{- if ShowFollowLink CurrentAccount .User -}}
-        <span class="follow"><a alt="Follow user {{ .User.Handle }}" title="Follow user {{ .User.Handle }}"  href="{{ .User | AccountPermaLink }}/follow">{{ icon "star" }}</a></span>
-{{- end -}}
-        <span class="meta"><a href="{{ .User.Metadata.ID }}" data-hash="{{ .User.Hash }}" title="ActivityPub link for {{ .User.Handle }}">{{icon "activitypub"}}</a></span>
+        <ul class="inline">
+            {{- if ShowFollowLink CurrentAccount .User -}}
+                <li class="follow"><a title="Follow user {{ .User.Handle }}" href="{{ .User | AccountPermaLink }}/follow">{{ icon "star" }}</a></li>
+            {{- end -}}
+            {{- if ShowBlockLink CurrentAccount .User -}}
+                <li class="block"><a title="Block user {{ .User.Handle }}" href="{{ .User | AccountPermaLink }}/block">{{ icon "block" }}</a></li>
+            {{- end -}}
+            <li class="meta"><a href="{{ .User.Metadata.ID }}" data-hash="{{ .User.Hash }}" title="ActivityPub link for {{ .User.Handle }}">{{icon "activitypub"}}</a></li>
+        </ul>
     </h2>
 {{- if not .User.CreatedAt.IsZero }}
     <section class="join">Joined <time datetime="{{ .User.CreatedAt | ISOTimeFmt | html }}" title="{{ .User.CreatedAt | ISOTimeFmt }}">{{ .User.CreatedAt | TimeFmt }}</time></section>

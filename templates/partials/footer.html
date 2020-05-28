@@ -1,26 +1,16 @@
-{{- if CanPaginate . -}}
-{{if or (gt (len .PrevPage) 0) (gt (len .NextPage) 0) -}}
-<nav class="pagination">
-    View more:
-    <ul class="inline">
-        {{ if gt (len .PrevPage) 0 -}}
-            <li><a href="{{ .PrevPage | PrevPageLink }}" rel="prev">{{icon "angle-double-left"}} prev</a></li>
-        {{- end -}}
-        {{ if gt (len .NextPage) 0 -}}
-            <li><a href="{{.NextPage | NextPageLink }}" rel="next">next {{icon "angle-double-right"}}</a></li>
-        {{- end}}
-    </ul></nav>
-{{- end -}}
-{{ end -}}
 <nav class="bottom">
-    <ul class="inline">
-        <li><a href="/about">About</a></li>
-        {{ if Config.ModerationEnabled }}<li><a title="Moderation log" href="/moderation">Moderation</a></li>{{ end }}
+{{- if eq current "about" }}
+    <ul>
+        {{ $version := Info.Version}}
+        <li>Content is <a href="https://creativecommons.org/licenses/by-sa/4.0/" rel="license">CC-BY-SA 4.0</a></li>
+        <li>Source code: <a title="The code" href="https://github.com/mariusor/littr.go">{{ icon "github" }}</a></li>
+        {{if $version }}<li class="version"><a title="Version" href="https://github.com/mariusor/littr.go/commits/{{$version}}">{{ icon "code" }} {{$version}}</a></li>{{end}}
+        <li><a href="https://github.com/mariusor/littr.go/blob/master/LICENSE" rel="license">MIT</a></li>
     </ul>
-    <ul class="inline omega">
-{{ $version := Info.Version}}
-        <li class="repo">Source code: <a title="The code" href="https://github.com/mariusor/littr.go">{{ icon "github" }}</a></li>
-        {{if $version }}<li class="version no-sep"><a title="Version" href="https://github.com/mariusor/littr.go/commits/{{$version}}">{{ icon "code" }} {{$version}}</a></li>{{end}}
-        <li class="licence">Licensed under <a href="https://github.com/mariusor/littr.go/blob/master/LICENSE" rel="license">MIT</a></li>
+{{- end -}}
+    <ul>
+        <li><a id="top-invert" title="Invert colours" href="/#invert">{{ icon "adjust" }} Invert colours</a></li>
+        <li><a href="/about">About</a></li>
+{{ if Config.ModerationEnabled }}<li><a title="Moderation log" href="/moderation">Moderation</a></li>{{ end }}
     </ul>
 </nav>
