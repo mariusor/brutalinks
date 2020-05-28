@@ -32,6 +32,7 @@ type handler struct {
 var defaultAccount = AnonymousAccount
 
 type appConfig struct {
+	Name            string
 	Env             EnvType
 	Version         string
 	APIURL          string

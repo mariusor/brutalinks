@@ -27,7 +27,7 @@ var Logger log.Logger
 const (
 	// Anonymous label
 	Anonymous = "anonymous"
-	System = "system"
+	System    = "system"
 )
 
 // AnonymousHash is the sha hash for the anonymous account
@@ -73,6 +73,7 @@ type backendConfig struct {
 }
 
 type Configuration struct {
+	Name                       string
 	Env                        EnvType
 	LogLevel                   log.Level
 	DB                         backendConfig
@@ -119,6 +120,7 @@ type Application struct {
 	Config   Configuration
 	Logger   log.Logger
 	SeedVal  int64
+	name     string
 	front    *handler
 }
 
@@ -136,6 +138,7 @@ func New(host string, port int, env EnvType, ver string) Application {
 
 func (a *Application) Front(r chi.Router) {
 	conf := appConfig{
+		Name:     a.Config.Name,
 		Env:      a.Config.Env,
 		Logger:   a.Logger.New(log.Ctx{"package": "frontend"}),
 		Secure:   a.Secure,
@@ -202,8 +205,11 @@ func (e EnvType) IsTest() bool {
 
 // Name formats the name of the current Application
 func (a Application) Name() string {
-	parts := strings.Split(a.HostName, ".")
-	return strings.Join(parts, " ")
+	if a.name == "" {
+		parts := strings.Split(a.HostName, ".")
+		a.name = strings.Join(parts, " ")
+	}
+	return a.name
 }
 
 // Name formats the name of the current Application
@@ -274,10 +280,14 @@ func loadEnv(l *Application) (bool, error) {
 		}
 	}
 
+	l.HostName = os.Getenv("HOSTNAME")
 	if l.HostName == "" {
-		l.HostName = os.Getenv("HOSTNAME")
-		if l.HostName == "" {
-			l.HostName = DefaultHost
+		l.HostName = DefaultHost
+	}
+	if l.name == "" {
+		l.name = os.Getenv("NAME")
+		if l.name == "" {
+			l.name = l.HostName
 		}
 	}
 	if l.listen = os.Getenv("LISTEN"); l.listen == "" {
