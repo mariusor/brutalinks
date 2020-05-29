@@ -1222,10 +1222,13 @@ func (r *repository) ActorCollection(fn CollectionFn, f *Filters) (Cursor, error
 				return nil
 			})
 		}
-
+		foundAll := len(items)+len(follows)+len(accounts) >= f.MaxItems
+		if !foundAll {
+			f.MaxItems -= len(items)+len(follows)+len(accounts)
+		}
 		// TODO(marius): this needs to be externalized also to a different function that we can pass from outer scope
 		//   This function implements the logic for breaking out of the collection iteration cycle and returns a bool
-		return len(items)+len(follows)+len(accounts) >= f.MaxItems || len(f.Next) == 0, nil
+		return foundAll || len(f.Next) == 0, nil
 	})
 	if err != nil {
 		return emptyCursor, err

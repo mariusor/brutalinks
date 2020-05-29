@@ -47,7 +47,7 @@ func FiltersFromRequest(r *http.Request) *Filters {
 	if err := qstring.Unmarshal(r.URL.Query(), &f); err != nil {
 		return nil
 	}
-	if f.MaxItems == 0 {
+	if f.MaxItems <= 0 || f.MaxItems > MaxContentItems {
 		f.MaxItems = MaxContentItems
 	}
 	return &f
