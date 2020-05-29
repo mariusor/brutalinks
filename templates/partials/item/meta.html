@@ -22,6 +22,9 @@ submitted{{ if not .Deleted}}{{- if ShowUpdate $it }}<time class="updated-at" da
     <nav>
         <ul>
             <li>Go to: </li>
+{{- if or (not $it.IsTop) (not .IsLink) }}
+            <li><a href="{{$it | ItemLocalLink }}" title="Permalink{{if .Title}}: {{$it.Title }}{{end}}">{{ if $it.Private }}{{icon "lock"}} {{ end -}}{{ if eq current "content"}}reply{{else}}discussion{{end}}</a></li>
+{{- end }}
 {{- if not $it.IsTop -}}
 {{- if $it.Parent -}}
 {{- $parentLink := (ParentLink $it) -}}
@@ -36,10 +39,7 @@ submitted{{ if not .Deleted}}{{- if ShowUpdate $it }}<time class="updated-at" da
 {{- end -}}
 {{- end -}}
 {{- end -}}
-{{- if or (not $it.IsTop) (not .IsLink) }}
-            <li><a href="{{$it | ItemLocalLink }}" title="Permalink{{if .Title}}: {{$it.Title }}{{end}}">{{ if $it.Private }}{{icon "lock"}} {{ end -}}{{ if eq current "content"}}reply{{else}}discussion{{end}}</a></li>
-{{- end }}
-            {{ if not $it.Private }}<li><a href="{{ $it.Metadata.ID }}" data-hash="{{ .Hash }}" title="ActivityPub link{{if .Title}}: {{$it.Title }}{{end}}">{{icon "activitypub"}}</a></li> {{- end -}}
+            {{ if not $it.Private }}<li><a href="{{ $it.Metadata.ID }}" data-hash="{{ .Hash }}" title="ActivityPub link{{if .Title}}: {{$it.Title }}{{end}}">&#8203;{{icon "activitypub"}}</a></li> {{- end -}}
         </ul>
     </nav>
 </footer>
