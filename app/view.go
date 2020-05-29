@@ -199,7 +199,8 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"sameHash":          HashesEqual,
 			"fmtPubKey":         fmtPubKey,
 			"pluralize":         func(s string, cnt int) string { return pluralize(float64(cnt), s) },
-			"ShowFollowLink":    showFollowedLink,
+			"ShowFollowLink":    showFollowLink,
+			"ShowBlockLink":     showBlockLink,
 			"Follows":           AccountFollows,
 			"IsFollowed":        AccountIsFollowed,
 			csrf.TemplateTag:    func() template.HTML { return csrf.TemplateField(r) },
@@ -360,14 +361,14 @@ func loadScoreFormat(s int) (string, string) {
 		ScoreMaxK = 1000.0
 		ScoreMaxM = 1000000.0
 		ScoreMaxB = 1000000000.0
+		dK        = 4.0
+		dM        = 7.0
+		dB        = 10.0
 	)
 	score := 0.0
 	units := ""
 	base := float64(s)
 	d := math.Ceil(math.Log10(math.Abs(base)))
-	dK := 4.0  // math.Ceil(math.Log10(math.Abs(ScoreMaxK))) + 1
-	dM := 7.0  // math.Ceil(math.Log10(math.Abs(ScoreMaxM))) + 1
-	dB := 10.0 // math.Ceil(math.Log10(math.Abs(ScoreMaxB))) + 1
 	if d < dK {
 		score = math.Ceil(base)
 		return numberFormat("%d", int(score)), ""
@@ -428,10 +429,7 @@ func appName(n string) template.HTML {
 	name.WriteString("<strong>")
 	name.WriteString(parts[0])
 	name.WriteString("</strong>")
-	for i, p := range parts {
-		if i == 0 {
-			continue
-		}
+	for _, p := range parts[1:] {
 		name.WriteString(" <small>")
 		name.WriteString(p)
 		name.WriteString("</small>")
@@ -664,7 +662,26 @@ func AccountIsFollowed(a, b *Account) bool {
 	return false
 }
 
-func showFollowedLink(logged, current *Account) bool {
+func showBlockLink(logged, current *Account) bool {
+	if !Instance.Config.ModerationEnabled {
+		return false
+	}
+	if !logged.IsLogged() {
+		return false
+	}
+	if HashesEqual(logged.Hash, current.Hash) {
+		return false
+	}
+	if InOutbox(logged, pub.Follow{
+		Type:   pub.BlockType,
+		Object: current.pub.GetLink(),
+	}) {
+		return false
+	}
+	return true
+}
+
+func showFollowLink(logged, current *Account) bool {
 	if !Instance.Config.UserFollowingEnabled {
 		return false
 	}
@@ -674,9 +691,9 @@ func showFollowedLink(logged, current *Account) bool {
 	if HashesEqual(logged.Hash, current.Hash) {
 		return false
 	}
-	if AccountFollows(logged, current) {
-		return false
-	}
+	//if AccountFollows(logged, current) {
+	//	return false
+	//}
 	if InOutbox(logged, pub.Follow{
 		Type:   pub.FollowType,
 		Object: current.pub.GetLink(),
