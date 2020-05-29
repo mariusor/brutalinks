@@ -99,7 +99,7 @@ a[href="#"],
 a[href="#"]:visited {
     color: var(--main-fg-color);
     text-decoration: none;
-    cursor: default;
+    cursor: text;
 }
 .h-mirror {
     transform: rotateX(180deg);
