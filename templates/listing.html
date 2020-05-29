@@ -9,10 +9,10 @@
     View more:
     <ul>
         {{ if gt (len .PrevPage) 0 -}}
-        <li><a href="{{ .PrevPage | PrevPageLink }}" rel="prev">{{icon "angle-double-left"}} prev</a></li>
+        <li><a href="{{ .PrevPage | PrevPageLink }}" rel="prev">{{icon "angle-double-left"}}prev</a></li>
         {{- end -}}
         {{ if gt (len .NextPage) 0 -}}
-        <li><a href="{{.NextPage | NextPageLink }}" rel="next">next {{icon "angle-double-right"}}</a></li>
+        <li><a href="{{.NextPage | NextPageLink }}" rel="next">next{{icon "angle-double-right"}}</a></li>
         {{- end}}
     </ul>
 </nav>

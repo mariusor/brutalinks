@@ -83,22 +83,19 @@ article p + div, article p + h1, article p + h2, article p + h3, article p + h4,
 article p + blockquote, article p + pre {
     margin-top: .6rem;
 }
-a.to-item, .logo a {
-    text-decoration: none;
-}
-a:hover.to-item {
-    text-decoration: underline;
-}
 a {
     color: var(--main-link-color);
+    text-decoration: none;
 }
 a:visited {
     color: var(--main-linkvisited-color);
 }
+a:hover {
+    text-decoration: underline;
+}
 a[href="#"],
 a[href="#"]:visited {
     color: var(--main-fg-color);
-    text-decoration: none;
     cursor: text;
 }
 .h-mirror {
@@ -118,10 +115,12 @@ button svg.icon.icon-reply,
 button svg.icon.icon-sign-in {
     height: .9em;
     width: .9em;
+    vertical-align: text-bottom;
 }
 h1.logo a,
 h1.logo a:visited {
     color: var(--main-fg-color);
+    text-decoration: none;
 }
 body > header {
     display: grid;
@@ -180,6 +179,9 @@ nav ul li::after {
 body > main {
     grid-area: main;
 }
+body > main nav ul li::after {
+    padding: 0 .4em;
+}
 body > footer {
     grid-area: footer;
     padding-bottom: 1em;
@@ -198,8 +200,7 @@ body > footer nav ul:first-child {
 .item h4,
 .item h5,
 .item h6 {
-    font-weight: normal;
-    /*margin: 0.2em 0;*/
+    font-weight: 500;
 }
 .item h1 {
     font-size: 1.22em;
@@ -294,8 +295,6 @@ ol {
     padding-left: 1ex;
 }
 .item article.data {
-    /*grid-area: main;*/
-    /*min-height: 1.4em;*/
     display: grid;
 }
 .item footer::before {
@@ -303,7 +302,7 @@ ol {
 }
 .item footer {
     grid-area: footer;
-    margin: .5em 0 1em 0;
+    margin: .2em 0 1em 0;
 }
 ol li:last-child .item footer {
     margin-bottom: 0;
@@ -391,6 +390,7 @@ aside.score .icon-recycle {
 aside.score a[href="#"],
 aside.score a[href="#"]:visited {
     opacity: .3;
+    color: var(--main-fg-color);
 }
 aside.score a.ed {
     color: var(--main-linkvisited-color);
