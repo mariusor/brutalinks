@@ -95,6 +95,12 @@ a {
 a:visited {
     color: var(--main-linkvisited-color);
 }
+a[href="#"],
+a[href="#"]:visited {
+    color: var(--main-fg-color);
+    text-decoration: none;
+    cursor: default;
+}
 .h-mirror {
     transform: rotateX(180deg);
 }
@@ -384,9 +390,7 @@ aside.score .icon-recycle {
 }
 aside.score a[href="#"],
 aside.score a[href="#"]:visited {
-    color: var(--main-fg-color);
     opacity: .3;
-    cursor: default;
 }
 aside.score a.ed {
     color: var(--main-linkvisited-color);
