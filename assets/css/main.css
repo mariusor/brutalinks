@@ -21,6 +21,14 @@ article, aside, details, figcaption, figure,
 footer, header, hgroup, menu, nav, section {
     display: block;
 }
+h1 { font-size: 180%; }
+h2 { font-size: 160%; }
+h3 { font-size: 140%; }
+h3 { font-size: 125%; }
+h3 { font-size: 118%; }
+h4 { font-size: 102%; }
+h5 { font-size: 96%; }
+h6 { font-size: 92%; }
 body {
     font-family: sans-serif;
     line-height: 1;
@@ -115,10 +123,7 @@ body > header {
     grid-area: header;
     margin: .5rem 0 0 0;
 }
-body > header h1 {
-    font-size: 1.6em;
-}
-body > header h1 small {
+body > header small {
     opacity: 0.7;
     font-weight: lighter;
 }
@@ -132,14 +137,7 @@ header .top {
     text-align: right;
 }
 .icon {
-    vertical-align: middle;
-}
-body > header h1.logo .icon {
-    height: 1.2em;
-    margin-bottom: .5rem;
-}
-body > header h1.logo .icon.icon-l {
-    width: .5em;
+    vertical-align: text-top;
 }
 footer nav,
 nav ul {
@@ -391,6 +389,9 @@ aside.score a[href="#"]:visited {
     cursor: default;
 }
 aside.score a.ed {
+    color: var(--main-linkvisited-color);
+}
+aside.score a.ed:visited {
     color: var(--main-linkvisited-color);
 }
 aside.score a:visited {
