@@ -145,17 +145,22 @@ header .top {
     vertical-align: text-top;
 }
 footer nav,
-nav ul {
+nav ul,
+nav dl {
     display: inline-block;
 }
-nav ul li {
+nav ul li,
+nav dl dd,
+nav dl dt {
     display: inline-block;
 }
 nav.sections ul li::after,
 .meta nav ul li::after,
-nav ul li:last-child::after {
+nav ul li:last-child::after,
+nav dl dd:last-child::after {
     content: unset;
 }
+nav dl dd::after,
 nav ul li::after {
     content: "\22c5";
     padding: 0 .2em 0 .4em;
@@ -179,7 +184,10 @@ nav ul li::after {
 body > main {
     grid-area: main;
 }
-body > main nav ul li::after {
+body > main nav ul li::after,
+body > main nav dl dt::after,
+body > main nav dl dd::after
+{
     padding: 0 .4em;
 }
 body > footer {
@@ -187,7 +195,7 @@ body > footer {
     padding-bottom: 1em;
     text-align: right;
 }
-body > footer nav ul {
+body > footer nav {
     margin-top: .5rem;
     font-size: .7rem;
 }
