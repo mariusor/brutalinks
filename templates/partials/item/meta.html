@@ -22,9 +22,9 @@ submitted{{ if not .Deleted}}{{- if ShowUpdate $it }}<time class="updated-at" da
     <nav>
         <ul>
             <li>Go to: </li>
-{{- if or (not $it.IsTop) (not .IsLink) }}
+{{ if or (not $it.IsTop) (not .IsLink) -}}
             <li><a href="{{$it | ItemLocalLink }}" title="Permalink{{if .Title}}: {{$it.Title }}{{end}}">{{ if $it.Private }}{{icon "lock"}} {{ end -}}{{ if eq current "content"}}reply{{else}}discussion{{end}}</a></li>
-{{- end }}
+{{ end -}}
 {{- if not $it.IsTop -}}
 {{- if $it.Parent -}}
 {{- $parentLink := (ParentLink $it) -}}
