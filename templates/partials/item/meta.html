@@ -42,7 +42,7 @@ submitted{{ if not .Deleted}}{{- if ShowUpdate $it }}<time class="updated-at" da
 {{- end -}}
 {{- end }}
 {{- if not $it.Private }}
-            <li><a href="{{ $it.Metadata.ID }}" data-hash="{{ .Hash }}" title="ActivityPub link{{if .Title}}: {{$it.Title }}{{end}}">&#8203;{{icon "activitypub"}}</a></li>
+            <li><a href="{{ $it.Metadata.ID }}" data-hash="{{ .Hash }}" title="ActivityPub link{{if .Title}}: {{$it.Title }}{{end}}">{{icon "activitypub"}}</a></li>
 {{- end }}
         </ul>
     </nav>

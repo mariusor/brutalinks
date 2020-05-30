@@ -6,7 +6,7 @@
 {{- else -}}
     {{- .Title -}}
 {{- end -}}
-    <a href="{{ . | ItemPermaLink }}" class="to-item" title="Permalink{{if .Title}}: {{.Title }}{{end}}">&#8203;</a>
+    <a href="{{ . | ItemPermaLink }}" class="to-item" title="Permalink{{if .Title}}: {{.Title }}{{end}}"></a>
 </h2>
 {{ if .Public }}
 {{- $domain := .GetDomain -}}
