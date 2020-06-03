@@ -445,7 +445,7 @@ a[rel="tag"]::before {
     text-decoration: underline dotted;
 }
 .comment {
-    font-size: .96em;
+    font-size: .9rem;
 }
 .item del {
     line-height: 2rem;
