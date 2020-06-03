@@ -454,23 +454,22 @@ aside.score a:visited {
 .follow {
     margin-left: .6rem;
 }
-.by:before {
+.by::before {
     content: "~";
 }
-.mention:before {
-    content: "~";
-    opacity: 0.8;
+a[rel="mention"]::before,
+a[rel="tag"]::before {
+    opacity: .8;
+    font-weight: bold;
 }
-.tag:before {
+a[rel="mention"]::before {
+    content: "~";
+}
+a[rel="tag"]::before {
     content: "#";
-    opacity: 0.8;
-    font-weight: 900;
 }
 .meta time {
     text-decoration: underline dotted;
-}
-.submission {
-    padding: .2em 0 0 1.9em;
 }
 .comment {
     font-size: .96em;
@@ -478,11 +477,11 @@ aside.score a:visited {
 .item del {
     line-height: 2rem;
     padding-left: 2ex;
-    letter-spacing: 0.3ex;
+    letter-spacing: .3ex;
     font-weight: 100;
 }
 .domains {
-    font-size: 0.9em;
+    font-size: .9em;
     font-weight: 200;
 }
 #content .meta {
