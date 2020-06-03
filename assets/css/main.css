@@ -33,13 +33,6 @@ body {
     font-family: sans-serif;
     line-height: 1;
 }
-blockquote, q {
-    quotes: none;
-}
-blockquote::before, blockquote::after,
-q::before, q::after {
-    content: none;
-}
 table {
     border-collapse: collapse;
     border-spacing: 0;
@@ -66,7 +59,7 @@ p {
 article nav dl,
 article nav ul,
 article nav ol {
-    margin-left: 0rem;
+    margin-left: 0;
 }
 article dl,
 article ul,
@@ -74,13 +67,12 @@ article ol {
     margin-left: 1.3rem;
     list-style: unset;
 }
-article dl.recipients {
-    margin-left: 0;
-}
-article blockquote {
-    quotes: "“" "”";
-    border-left: 1px solid var(--main-fg-color);
-    padding-left: .6rem;
+article blockquote,
+article q {
+    quotes: none;
+    border-left: 2px solid var(--main-fg-color);
+    padding-left: .6em;
+    margin-bottom: .3em;
     opacity: .75;
 }
 article p + p, article p + ul, article p + ol, article p + dl,
@@ -134,7 +126,7 @@ body > header {
     margin: .5rem 0 0 0;
 }
 body > header small {
-    opacity: 0.7;
+    opacity: .7;
     font-weight: lighter;
 }
 body > header nav {
@@ -159,16 +151,16 @@ nav dl dd,
 nav dl dt {
     display: inline-block;
 }
-nav.sections ul li::after,
-.meta nav ul li::after,
-nav ul li:last-child::after,
-nav dl dd:last-child::after {
+nav.sections ul li::before,
+.meta nav ul li::before,
+nav ul li:first-child::before,
+nav dl dt:first-child::before {
     content: unset;
 }
-nav dl dd::after,
-nav ul li::after {
+nav dl dt::before,
+nav ul li::before {
     content: "\22c5";
-    padding: 0 .2em 0 .4em;
+    padding: 0 .4em;
 }
 .top {
     text-align: right;
@@ -188,12 +180,6 @@ nav ul li::after {
 }
 body > main {
     grid-area: main;
-}
-body > main nav ul li::after,
-body > main nav dl dt::after,
-body > main nav dl dd::after
-{
-    padding: 0 .4em;
 }
 body > footer {
     grid-area: footer;
@@ -232,9 +218,6 @@ body > footer nav ul:first-child {
 }
 .item h6 {
     font-size: .94em;
-}
-.item h1 a {
-    /*padding-left: 0.3em;*/
 }
 ol.hide-text article.data {
     display: none;
@@ -505,7 +488,7 @@ summary:focus {
     margin-bottom: 1px;
 }
 .comments details > summary {
-    font-size: 0.7rem;
+    font-size: .7rem;
     padding: .3rem 0 .3rem .3rem;
 }
 .comments details > summary span {

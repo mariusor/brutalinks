@@ -19,7 +19,7 @@
 </header>
 {{- end -}}
 {{ if .Private }}
-<dl class="recipients">
+<nav><dl class="recipients">
 {{ if gt (len .Metadata.To) 0 -}}
     <dt>To:</dt>
     {{- range $it := .Metadata.To }}
@@ -32,5 +32,5 @@
     <dd><a class="by" href="{{ $it | AccountPermaLink }}">{{ $it | ShowAccountHandle }}</a></dd>
     {{ end -}}
 {{- end }}
-</dl>
+</dl></nav>
 {{- end -}}

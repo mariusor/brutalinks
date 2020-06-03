@@ -5,8 +5,7 @@
 {{ end -}}
 {{ if CanPaginate . -}}
 {{ if or (gt (len .PrevPage) 0) (gt (len .NextPage) 0) -}}
-<nav>
-    View more:
+<nav>View more:
     <ul>
         {{ if gt (len .PrevPage) 0 -}}
         <li><a href="{{ .PrevPage | PrevPageLink }}" rel="prev">{{icon "angle-double-left"}}prev</a></li>
