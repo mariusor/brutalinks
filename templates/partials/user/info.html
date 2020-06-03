@@ -7,7 +7,8 @@
         </h2>
     </summary>
 {{- if not .CreatedAt.IsZero }}
-        Joined <time datetime="{{ .CreatedAt | ISOTimeFmt | html }}" title="{{ .CreatedAt | ISOTimeFmt }}">{{ .CreatedAt | TimeFmt }}</time><br/>
+<aside>
+    Joined <time datetime="{{ .CreatedAt | ISOTimeFmt | html }}" title="{{ .CreatedAt | ISOTimeFmt }}">{{ .CreatedAt | TimeFmt }}</time><br/>
 {{- end }}
 {{- if CurrentAccount.IsLogged }}
     <nav>
@@ -26,4 +27,5 @@
 {{- if sameHash .Hash CurrentAccount.Hash }}
     {{ template "partials/user/invite" -}}
 {{ end -}}
+</aside>
 </details>

@@ -2,17 +2,19 @@
 <header>
 <h2 data-hash="{{.Hash}}" class="title">
 {{- if .IsLink -}}
-    <a class="titles" data-hash="{{.Hash}}" href="{{.Data | printf "%s"}}">{{- .Title -}}</a>
+    <a class="titles" rel="external" data-hash="{{.Hash}}" href="{{.Data | printf "%s"}}">{{- .Title -}}</a>
 {{- else -}}
     {{- .Title -}}
-{{- end -}}
-    <a href="{{ . | ItemPermaLink }}" class="to-item" title="Permalink{{if .Title}}: {{.Title }}{{end}}"></a>
+{{- end }}
 </h2>
 {{ if .Public }}
+<nav><ul>
+    <li><a rel="bookmark canonical" href="{{ . | ItemPermaLink }}">permalink</a></li>
 {{- $domain := .GetDomain -}}
-<aside class="domain">
-<a title="{{- if .IsLink -}}All items from {{$domain}}{{- else -}}Discussions only{{- end -}}" rel="directory" href="/d{{- if .IsLink -}}/{{$domain}}{{- end -}}">{{- if .IsLink -}}{{$domain}}{{- else -}} discussion {{- end -}}</a>
-</aside>
+    <li>
+        <a rel="directory" href="/d{{- if .IsLink -}}/{{$domain}}{{- end -}}">{{- if .IsLink -}}{{$domain}}{{- else -}} discussion {{- end -}}</a>
+    </li>
+</ul></nav>
 {{- end -}}
 </header>
 {{- end -}}

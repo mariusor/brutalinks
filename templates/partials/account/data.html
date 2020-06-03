@@ -1,6 +1,10 @@
-<main class="data">
+<div class="data">
+{{- if gt (len .Handle) 0 }}
     <a href="{{ AccountPermaLink . }}">
         {{- if .HasIcon -}}<img src="{{.Metadata.Icon.URI}}" alt="{{.Handle}}" class="avatar" />{{- else -}}{{- icon "user" "avatar" -}}{{- end -}}
         {{- .Handle -}}
     </a>
-</main>
+{{- else -}}
+    <span>Pending invitation</span>
+{{- end -}}
+</div>

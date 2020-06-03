@@ -36,8 +36,8 @@ body {
 blockquote, q {
     quotes: none;
 }
-blockquote:before, blockquote:after,
-q:before, q:after {
+blockquote::before, blockquote::after,
+q::before, q::after {
     content: none;
 }
 table {
@@ -62,6 +62,11 @@ main {
 }
 p {
     word-break: break-word;
+}
+article nav dl,
+article nav ul,
+article nav ol {
+    margin-left: 0rem;
 }
 article dl,
 article ul,
@@ -248,18 +253,30 @@ article > section {
     width: 100%;
 }
 article > header h2 {
-    display: inline;
+    display: inline-block;
 }
-aside.domain {
+article > header nav {
     font-size: .85em;
+    opacity: .8;
     margin-left: .4em;
-    display: inline;
+    display: inline-block;
 }
-.domain:before {
+article > header nav ul li {
+    margin: 0 .3em;
+    padding: 0;
+}
+article > header nav ul li::after {
+    content: unset;
+}
+article > header nav ul li:last-child::before {
     content: "(";
+    margin: 0;
+    padding:0;
 }
-.domain:after {
+article > header nav ul li:last-child::after {
     content: ")";
+    margin: 0;
+    padding:0;
 }
 .data pre {
     line-height: 1.3rem;
@@ -329,10 +346,10 @@ ol.comments.lvl-0 {}
 ol.comments li {
     list-style: none;
 }
-.top .score:before {
+.top .score::before {
     content: "[";
 }
-.top .score:after {
+.top .score::after {
     content: "]";
 }
 .acct img.avatar,
@@ -395,6 +412,7 @@ aside.score a.nay {
 aside.score .icon-recycle {
     opacity: .6;
 }
+.deleted aside.score a.ed,
 aside.score a[href="#"],
 aside.score a[href="#"]:visited {
     opacity: .3;
@@ -487,10 +505,6 @@ summary:focus {
     padding: .3rem 0 0 .3rem;
     margin-bottom: 1px;
 }
-.comments details:not([open]) > summary {
-}
-.comments details > summary::before {
-}
 .comments details > summary {
     font-size: 0.7rem;
     padding: .3rem 0 .3rem .3rem;
@@ -552,6 +566,16 @@ summary:focus {
     white-space: normal;
     font-family: revert;
 }
+.user details {
+    display: inline-block;
+}
+.user details aside,
+.user details summary {
+    margin: .2em 0;
+}
+.user details aside nav {
+    margin-top: .4em;
+}
 #private-message fieldset,
 #new fieldset,
 #reply fieldset {
@@ -584,17 +608,6 @@ dl.recipients dd {
 }
 dl.recipients dd {
     margin-left: .2rem;
-}
-h2.title .to-item::after {
-    content: '\00a7';
-}
-h2.title .to-item {
-    margin-left: .4em;
-}
-a.to-item svg {
-    width: .78em;
-    height: .78em;
-    vertical-align: baseline;
 }
 .details-agree {
     font-size: .8em;
@@ -791,7 +804,8 @@ dialog button.close {
     :root {
         font-size: 3.6vw;
     }
-    aside.domain,
+    article > header nav ul li:last-child,
+    footer time svg,
     .meta li,
     .logo a strong,
     .logo a small {
