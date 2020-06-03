@@ -122,6 +122,9 @@ h1.logo a:visited {
     color: var(--main-fg-color);
     text-decoration: none;
 }
+body > header svg.icon {
+    vertical-align: text-top;
+}
 body > header {
     display: grid;
     grid-template-columns: auto auto 5fr;
@@ -142,7 +145,7 @@ header .top {
     text-align: right;
 }
 .icon {
-    vertical-align: text-top;
+    vertical-align: middle;
 }
 footer nav,
 nav ul,
@@ -175,7 +178,6 @@ nav ul li::before {
 .sections li a svg {
     height: 1rem;
     width: 1rem;
-    vertical-align: text-top;
 }
 .sections li a svg.icon-activitypub {
     width: 1.2rem;
@@ -238,38 +240,36 @@ article hr {
 article > section {
     width: 100%;
 }
-article > header h2 {
+article > header * {
     display: inline-block;
 }
-article > header nav {
+article > header ul {
     font-size: .85em;
     opacity: .8;
     margin-left: .4em;
-    display: inline-block;
 }
-article > header nav ul li {
+article > header ul li {
     margin: 0 .3em;
     padding: 0;
 }
-article > header nav ul li::after {
+article > header ul li::after {
     content: unset;
 }
-article > header nav ul li:last-child::before {
-    content: "(";
+article > header ul li:last-child::before,
+article > header ul li:last-child::after {
     margin: 0;
-    padding:0;
+    padding: 0;
 }
-article > header nav ul li:last-child::after {
+article > header ul li:last-child::before {
+    content: "(";
+}
+article > header ul li:last-child::after {
     content: ")";
-    margin: 0;
-    padding:0;
 }
 .data pre {
     line-height: 1.3rem;
     overflow: auto;
     max-width: 100%;
-}
-.data code {
 }
 .data p:first-of-type {
     margin-top: 0;
@@ -337,19 +337,6 @@ ol.comments li {
 }
 .top .score::after {
     content: "]";
-}
-.acct img.avatar,
-.acct svg.avatar {
-    height: 2rem;
-    width: 2rem;
-    vertical-align: bottom;
-    margin-right: .2rem;
-}
-.item.acct img.avatar,
-.item.acct svg.avatar {
-    height: 1rem;
-    width: 1rem;
-    vertical-align: unset;
 }
 .item aside.users svg {
     justify-self: center;
@@ -560,6 +547,9 @@ summary:focus {
 }
 .user details aside nav {
     margin-top: .4em;
+}
+.user details svg.icon-star {
+    vertical-align: text-top;
 }
 #private-message fieldset,
 #new fieldset,

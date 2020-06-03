@@ -1,20 +1,20 @@
 {{- if .Title -}}
 <header>
-<h2 data-hash="{{.Hash}}" class="title">
+<h2 data-hash="{{.Hash}}">
 {{- if .IsLink -}}
-    <a class="titles" rel="external" data-hash="{{.Hash}}" href="{{.Data | printf "%s"}}">{{- .Title -}}</a>
+    <a rel="external" data-hash="{{.Hash}}" href="{{.Data | printf "%s"}}">{{- .Title -}}</a>
 {{- else -}}
     {{- .Title -}}
-{{- end }}
+{{- end -}}
 </h2>
 {{ if .Public }}
-<nav><ul>
+<ul>
     <li><a rel="bookmark canonical" href="{{ . | ItemPermaLink }}">permalink</a></li>
 {{- $domain := .GetDomain -}}
     <li>
         <a rel="directory" href="/d{{- if .IsLink -}}/{{$domain}}{{- end -}}">{{- if .IsLink -}}{{$domain}}{{- else -}} discussion {{- end -}}</a>
     </li>
-</ul></nav>
+</ul>
 {{- end -}}
 </header>
 {{- end -}}

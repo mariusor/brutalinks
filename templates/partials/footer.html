@@ -2,16 +2,16 @@
     <ul>
         <li><a id="top-invert" title="Invert colours" href="/#invert">{{ icon "adjust" }} Invert colours</a></li>
         <li><a href="/about">About</a></li>
-{{ if Config.ModerationEnabled }}<li><a title="Moderation log" href="/moderation">Moderation</a></li>{{ end }}
+{{- if Config.ModerationEnabled }}<li><a title="Moderation log" href="/moderation">Moderation</a></li>{{ end }}
     </ul>
     <dl>
-        {{ $version := Info.Version}}
-        {{/*}}<dt>Content:</dt>
-        <dd><a href="https://creativecommons.org/licenses/by-sa/4.0/" rel="license">CC-BY-SA 4.0</a></dd> {{ */}}
+        {{ $version := Info.Version -}}
+        {{- /*}}<dt>Content:</dt>
+        <dd><a href="https://creativecommons.org/licenses/by-sa/4.0/" rel="license">CC-BY-SA 4.0</a></dd> {{ */ -}}
         <dt>Source code:</dt>
         <dd>
             <a href="https://github.com/mariusor/littr.go/blob/master/LICENSE" rel="license">MIT</a> &ndash;
-            {{ if $version }}<a title="Version" href="https://github.com/mariusor/littr.go/commits/{{$version}}">{{ icon "code" }} {{$version}}</a>{{- else -}}<a title="The code" href="https://github.com/mariusor/littr.go">{{ icon "github" }}</a>{{- end -}}
+            {{ if $version }}<a title="Version" href="https://github.com/mariusor/littr.go/commits/{{$version}}">{{ icon "code" }} {{$version}}</a>{{- else -}}<a title="The code" href="https://github.com/mariusor/littr.go">{{ icon "github" }}</a>{{- end }}
         </dd>
     </dl>
 </nav>

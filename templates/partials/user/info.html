@@ -2,30 +2,30 @@
     <summary>
         <h2 style="display: inline-block">
             {{- if .HasIcon -}}<img src="{{.Metadata.Icon.URI}}" alt="{{.Handle}}" class="avatar" />{{- else -}}{{- icon "user" "avatar" -}}{{- end -}}
-            {{- .Handle }}
-            {{ if gt .Score 0 }}<data class="score {{- .Score | ScoreClass -}}">{{ .Score | ScoreFmt}}</data> {{ end }}
+            {{- .Handle -}}
+            {{- if gt .Score 0 }}<data class="score {{- .Score | ScoreClass -}}">{{ .Score | ScoreFmt}}</data> {{ end -}}
         </h2>
     </summary>
 {{- if not .CreatedAt.IsZero }}
-<aside>
-    Joined <time datetime="{{ .CreatedAt | ISOTimeFmt | html }}" title="{{ .CreatedAt | ISOTimeFmt }}">{{ .CreatedAt | TimeFmt }}</time><br/>
+    <aside>
+        Joined <time datetime="{{ .CreatedAt | ISOTimeFmt | html }}" title="{{ .CreatedAt | ISOTimeFmt }}">{{ .CreatedAt | TimeFmt }}</time><br/>
 {{- end }}
 {{- if CurrentAccount.IsLogged }}
-    <nav>
-        <ul>
-            {{- if not (sameHash .Hash CurrentAccount.Hash) }}<li><a title="Message user {{ .Handle }}" href="{{ . | AccountPermaLink }}/message">{{ icon "edit" "v-mirror" }} Message</a></li>{{- end -}}
-            {{- if ShowFollowLink CurrentAccount . }}
-            <li><a title="Follow user {{ .Handle }}" href="{{ . | AccountPermaLink }}/follow">{{ icon "star" }} Follow</a></li>{{- end -}}
-            {{- if  ShowBlockLink CurrentAccount . }}
-            <li><a title="Block user {{ .Handle }}" href="{{ . | AccountPermaLink }}/block">{{ icon "block" }} Block</a></li>{{- end -}}
-        </ul>
-    </nav>
+        <nav>
+            <ul>
+                {{ if not (sameHash .Hash CurrentAccount.Hash) }}<li><a title="Message user {{ .Handle }}" href="{{ . | AccountPermaLink }}/message">{{ icon "edit" "v-mirror" }} Message</a></li>{{- end -}}
+                {{- if ShowFollowLink CurrentAccount . }}
+                <li><a title="Follow user {{ .Handle }}" href="{{ . | AccountPermaLink }}/follow">{{ icon "star" }} Follow</a></li>{{- end -}}
+                {{- if  ShowBlockLink CurrentAccount . }}
+                <li><a title="Block user {{ .Handle }}" href="{{ . | AccountPermaLink }}/block">{{ icon "block" }} Block</a></li>{{- end }}
+            </ul>
+        </nav>
     {{- if .HasPublicKey }}
         <section class="pub-key"><details><summary>PublicKey</summary><pre>{{.Metadata.Key.Public | fmtPubKey }}</pre></details></section>
     {{- end -}}
 {{ end -}}
 {{- if sameHash .Hash CurrentAccount.Hash }}
     {{ template "partials/user/invite" -}}
-{{ end -}}
-</aside>
+{{- end }}
+    </aside>
 </details>
