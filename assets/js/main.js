@@ -65,13 +65,13 @@ OnReady( function() {
     });
     $("button[type='reset']").forEach(function (btn) {
         addEvent(btn, "click", function(e) {
-            e.stopPropagation();
-            e.preventDefault();
             let backHref = btn.getAttribute("data-back");
-            if (backHref.length > 0) {
-                window.location = backHref;
-            } else {
-                history.go(-1);
+            if (!window.location.href.endsWith(backHref)) {
+                if (backHref.length > 0) {
+                    window.location = backHref;
+                } else {
+                    history.go(-1);
+                }
             }
         });
     });
