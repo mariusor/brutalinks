@@ -238,3 +238,20 @@ func ThreadedListingMw(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
+
+func (h *handler) OutOfOrderMw(c *Configuration) Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if !c.MaintenanceMode {
+				next.ServeHTTP(w, r)
+				return
+			}
+			em := errorModel{
+				Status: http.StatusOK,
+				Title:  "Maintenance",
+				Errors: []error{errors.Newf("Server in maintenance mode, please come back later.")},
+			}
+			h.v.RenderTemplate(r, w, "error", &em)
+		})
+	}
+}

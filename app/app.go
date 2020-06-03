@@ -77,8 +77,6 @@ type Configuration struct {
 	Env                        EnvType
 	LogLevel                   log.Level
 	DB                         backendConfig
-	ES                         backendConfig
-	Redis                      backendConfig
 	AnonymousCommentingEnabled bool
 	SessionsEnabled            bool
 	VotingEnabled              bool
@@ -86,6 +84,7 @@ type Configuration struct {
 	UserCreatingEnabled        bool
 	UserFollowingEnabled       bool
 	ModerationEnabled          bool
+	MaintenanceMode            bool
 }
 
 // Stats holds data for keeping compatibility with Mastodon instances
@@ -309,10 +308,6 @@ func loadEnv(l *Application) (bool, error) {
 	l.Config.DB.Port = os.Getenv("DB_PORT")
 	l.Config.DB.User = os.Getenv("DB_USER")
 
-	l.Config.Redis.Host = os.Getenv("REDIS_HOST")
-	l.Config.Redis.Port = os.Getenv("REDIS_PORT")
-	l.Config.Redis.Pw = os.Getenv("REDIS_PASSWORD")
-
 	votingDisabled, _ := strconv.ParseBool(os.Getenv("DISABLE_VOTING"))
 	l.Config.VotingEnabled = !votingDisabled
 	if l.Config.VotingEnabled {
@@ -361,7 +356,7 @@ func (a *Application) Run(m http.Handler, wait time.Duration) {
 	}()
 
 	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGHUP, syscall.SIGINT,
+	signal.Notify(sigChan, syscall.SIGHUP, syscall.SIGINT, syscall.SIGUSR1,
 		syscall.SIGTERM, syscall.SIGQUIT)
 
 	exitChan := make(chan int)
@@ -372,6 +367,9 @@ func (a *Application) Run(m http.Handler, wait time.Duration) {
 			case syscall.SIGHUP:
 				a.Logger.Info("SIGHUP received, reloading configuration")
 				loadEnv(a)
+			case syscall.SIGUSR1:
+				a.Logger.Info("SIGUSR1 received, switching to maintenance mode")
+				a.Config.MaintenanceMode = !a.Config.MaintenanceMode
 			// kill -SIGINT XXXX or Ctrl+c
 			case syscall.SIGINT:
 				a.Logger.Info("SIGINT received, stopping")
