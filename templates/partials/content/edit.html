@@ -1,29 +1,60 @@
-{{ $readonly:=not (or CurrentAccount.IsLogged Config.AnonymousCommentingEnabled)}}
-<form method="post">
-    <fieldset {{ if .Content.Hash }}data-reply="{{.Content.Hash }}"{{end}}>
-        <label for="submit-data">{{ if not .Content.Hash }}New{{else}}{{- if .Content.Edit -}}Edit{{- else -}}Comment{{ end }}{{- end -}}: </label><br/>
-        <textarea {{if $readonly -}} disabled="disabled" {{ end -}}name="data" id="submit-data" cols="80" rows="5" required>{{- if .Content.Edit -}}{{- .Content.Data -}}{{- end -}}{{if $readonly -}} You must authenticate to be able to comment {{ end -}}</textarea><br/>
-{{- if not .Content.Hash -}}
-        <label for="submit-title">Title: </label><br/>
-        <textarea {{if $readonly -}} disabled="disabled" {{ end -}} name="title" id="submit-title" rows="2" required>{{- if .Content.Edit -}}{{- .Content.Title -}}{{- end -}}</textarea><br/>
+{{- $readonly:=not (or CurrentAccount.IsLogged Config.AnonymousCommentingEnabled) -}}
+{{- $label := "" -}}
+{{- $hash := "" -}}
+{{- $edit := false -}}
+{{- $title := "" -}}
+{{- $data := "" -}}
+{{- $op := "" -}}
+{{- $back := "/" -}}
+{{- if eq current "user-message" -}}
+{{- $label = printf "Message %s:" .User.Handle -}}
+{{- $back = ( AccountPermaLink .User) -}}
+{{- else -}}
+{{- $hash = .Content.Hash -}}
+{{- $edit = .Content.Edit -}}
+{{- $title = .Content.Title -}}
+{{- $data = .Content.Data -}}
+{{- $back = ( ItemPermaLink .Content) -}}
+{{- if .Content.OP.IsValid -}}
+{{- $op = .Content.OP.Hash -}}
 {{- end -}}
-{{- if .Content.Hash -}}
-{{- if .Content.Edit }}
-        <input type="hidden" name="hash" id="submit-self" value="{{ .Content.Hash }}"/>
+{{- if not .Content.Hash -}}
+{{- $label = "New:" -}}
+{{- $back = "/" -}}
+{{-  else -}}
+{{- if .Content.Edit -}}
+{{- $label = "Edit:" -}}
+{{- else -}}
+{{- $label = "Comment:" -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+<form method="post">
+    <fieldset {{ if $hash }}data-reply="{{ $hash }}"{{end}}>
+        <label for="submit-data">{{ $label }}</label><br/>
+        <textarea {{if $readonly -}} disabled {{ end -}}name="data" id="submit-data" cols="80" rows="5" required>{{- if $edit -}}{{- $data -}}{{- end -}}{{if $readonly -}} You must authenticate to be able to comment {{ end -}}</textarea><br/>
+{{- if not $hash -}}
+        <label for="submit-title">Title: </label><br/>
+        <textarea {{if $readonly -}} disabled {{ end -}} name="title" id="submit-title" rows="2" required>{{- if $edit -}}{{- $data -}}{{- end -}}</textarea><br/>
+{{- end -}}
+{{- if $hash -}}
+{{- if $edit }}
+        <input type="hidden" name="hash" id="submit-self" value="{{  $hash }}"/>
 {{- else }}
-        <input type="hidden" name="parent" id="submit-parent" value="{{ .Content.Hash }}"/>
-{{- if and .Content.OP.IsValid }}
-        <input type="hidden" name="op" id="submit-op" value="{{ .Content.OP.Hash }}"/>
+        <input type="hidden" name="parent" id="submit-parent" value="{{ $hash }}"/>
+{{- if $op }}
+        <input type="hidden" name="op" id="submit-op" value="{{ $op }}"/>
 {{- end -}}
 {{- end -}}
 {{- end }}
         {{ csrfField }}
         <input type="hidden" name="mime-type" id="submit-mime-type" value="text/markdown"/>
-        <button {{if $readonly -}} disabled="disabled" {{ end -}}type="submit">{{ if not .Content.Hash }}{{icon "reply" "h-mirror" "v-mirror"}} Submit{{else}}{{- if .Content.Edit -}}{{icon "edit" }} Edit{{- else -}}Reply {{icon "reply" "h-mirror" }}{{end}}{{end}}</button>
+        <button {{if $readonly -}}disabled {{ end -}}type="submit">{{ if not $hash }}{{icon "reply" "h-mirror" "v-mirror"}} Submit{{else}}{{- if $edit -}}{{icon "edit" }}Save{{- else -}}Reply {{icon "reply" "h-mirror" }}{{end}}{{end}}</button>
+        <button {{if $readonly -}}disabled {{ else -}} data-back="{{ $back }}"{{ end -}}type="reset" formnovalidate>{{icon "plus" "deg-45"}}Cancel</button>
         {{- /* }}
         <label class="mime-type" title="text/markdown"><input type="radio" name="mime_type" value="text/markdown" checked="checked"/> self</label>
         <label class="mime-type" title="text/html"><input type="radio" name="mime_type" value="text/html"/> html</label>
-        {{ if not .Content.Hash }}<label class="mime-type" title="application/url"><input type="radio" name="mime_type" value="application/url"/> url</label>{{end}}
+        {{ if not $hash }}<label class="mime-type" title="application/url"><input type="radio" name="mime_type" value="application/url"/> url</label>{{end}}
         {{ */}}
     </fieldset>
 </form>

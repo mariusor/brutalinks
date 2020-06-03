@@ -63,6 +63,18 @@ OnReady( function() {
             });
         });
     });
+    $("button[type='reset']").forEach(function (btn) {
+        addEvent(btn, "click", function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            let backHref = btn.getAttribute("data-back");
+            if (backHref.length > 0) {
+                window.location = backHref;
+            } else {
+                history.go(-1);
+            }
+        });
+    });
     if (haveModals()) {
         $("button.close").forEach(function (close) {
             addEvent(close, "click", function(e) {

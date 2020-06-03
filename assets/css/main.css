@@ -95,6 +95,9 @@ a[href="#"]:visited {
     color: var(--main-fg-color);
     cursor: text;
 }
+.deg-45 {
+    transform: rotate(45deg);
+}
 .h-mirror {
     transform: rotateX(180deg);
 }
