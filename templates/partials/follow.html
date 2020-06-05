@@ -1,10 +1,8 @@
 {{- $acc := CurrentAccount -}}
 {{- if not ( IsFollowed $acc .SubmittedBy) -}}
-<section class="follow-request" id="f-{{.Hash}}" data-hash="{{.Hash}}">
-    <section><a class="by" href="{{ .SubmittedBy | AccountPermaLink }}">{{ .SubmittedBy | ShowAccountHandle }}</a> wants to follow you:</section>
-    <aside class="response">
-        <span><a href="{{ . | AcceptLink }}">{{ icon "plus" }}Accept</a></span>
-        <span><a href="{{ . | RejectLink }}">{{ icon "minus" }}Reject</a></span>
-    </aside>
-</section>
+<div><a class="by" href="{{ .SubmittedBy | AccountPermaLink }}">{{ .SubmittedBy | ShowAccountHandle }}</a> wants to follow you:</div>
+<aside class="score" id="f-{{.Hash}}" data-hash="{{.Hash}}">
+    <a href="{{ . | AcceptLink }}">{{ icon "check" }} </a><br/>
+    <a href="{{ . | RejectLink }}">{{ icon "plus" "deg-45" }}</a>
+</aside>
 {{- end -}}
