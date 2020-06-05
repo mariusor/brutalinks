@@ -11,11 +11,11 @@ type FollowRequests []FollowRequest
 type FollowRequest struct {
 	Hash        Hash            `json:"hash"`
 	SubmittedAt time.Time       `json:"-"`
-	SubmittedBy *Account        `json:"-"`
+	SubmittedBy *Account        `json:"by,omitempty"`
 	Object      *Account        `json:"-"`
 	Metadata    *FollowMetadata `json:"-"`
 	pub         pub.Item        `json:"-"`
-	Flags       FlagBits        `json:"-"`
+	Flags       FlagBits        `json:"flags,omitempty"`
 }
 
 type FollowMetadata struct {
@@ -53,4 +53,13 @@ func (f *FollowRequest) FromActivityPub(it pub.Item) error {
 
 		return nil
 	})
+}
+// Private
+func (f *FollowRequest) Private() bool {
+	return f.Flags & FlagsPrivate == FlagsPrivate
+}
+
+// Deleted
+func (f *FollowRequest) Deleted() bool {
+	return f.Flags & FlagsDeleted == FlagsDeleted
 }

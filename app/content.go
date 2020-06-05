@@ -128,7 +128,7 @@ type Item struct {
 	Data        string            `json:"-"`
 	Score       int               `json:"-"`
 	SubmittedAt time.Time         `json:"-"`
-	SubmittedBy *Account          `json:"-"`
+	SubmittedBy *Account          `json:"by,omitempty"`
 	UpdatedAt   time.Time         `json:"-"`
 	UpdatedBy   *Account          `json:"-"`
 	Flags       FlagBits          `json:"-"`

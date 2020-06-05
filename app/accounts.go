@@ -58,7 +58,7 @@ type AccountCollection []Account
 type Account struct {
 	Email     string               `json:"-"`
 	Hash      Hash                 `json:"hash,omitempty"`
-	Score     int                  `json:"score,omitempty"`
+	Score     int                  `json:"-"`
 	Handle    string               `json:"handle,omitempty"`
 	CreatedAt time.Time            `json:"-"`
 	CreatedBy *Account             `json:"-"`
@@ -66,7 +66,7 @@ type Account struct {
 	Flags     FlagBits             `json:"flags,omitempty"`
 	Metadata  *AccountMetadata     `json:"-"`
 	pub       pub.Item             `json:"-"`
-	Votes     VoteCollection       `json:"votes,omitempty"`
+	Votes     VoteCollection       `json:"-"`
 	Followers AccountCollection    `json:"followers,omitempty"`
 	Following AccountCollection    `json:"following,omitempty"`
 	Level     uint8                `json:"-"`
@@ -131,6 +131,11 @@ func (a Account) HasPublicKey() bool {
 // IsValid returns if the current account has a handle or a hash with length greater than 0
 func (a *Account) IsValid() bool {
 	return a != nil && len(a.Hash) > 0
+}
+
+// Private
+func (a *Account) Private() bool {
+	return a.Flags & FlagsPrivate == FlagsPrivate
 }
 
 // Deletable
