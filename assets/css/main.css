@@ -229,8 +229,7 @@ body > footer nav:last-child * {
 ol.hide-text article.data {
     display: none;
 }
-.hide-text li.item,
-li .follow-request {
+.item, .follow-request, .account {
     min-height: 3.3rem;
 }
 .hide-text article header {
@@ -285,21 +284,14 @@ ol {
     list-style: none;
     padding-left: 0;
 }
-.follow-request {
-    line-height: 1.62em;
-}
-.follow-request section {
-    float: left;
-    padding: .6rem 0;
-}
-.follow-request aside.response {
-    float: left;
-    margin-left: 2rem;
-    width: 5rem;
-}
-.item {
+.follow-request, .item {
     display: grid;
     grid-template-columns: 1.6rem 11fr;
+}
+.follow-request {
+    grid-template-areas: "sidebar main";
+}
+.item {
     grid-template-rows: minmax(max-content, 1.4rem) auto;
     grid-template-areas: "sidebar main" "sidebar footer";
 }
@@ -310,6 +302,7 @@ ol {
 .item article.data {
     display: grid;
 }
+.follow-request footer::before,
 .item footer::before {
     content: '\2012';
 }
@@ -340,6 +333,10 @@ ol.comments li {
 .top .score::after {
     content: "]";
 }
+.follow-request div {
+    align-self: center;
+    margin-left: 1.1ex;
+}
 .item aside.users svg {
     justify-self: center;
     align-self: center;
@@ -348,58 +345,61 @@ ol.comments li {
     grid-area: sidebar;
     display: grid;
 }
-.item aside.score {
+.follow-request .score,
+.item .score {
     grid-area: sidebar;
     display: grid;
+}
+.item .score {
     grid-template-rows: 1em 1.5em 1em;
 }
-.item aside.score a {
+.score a {
     justify-self: center;
     align-self: center;
 }
-aside.score a.nay {
+.score a.nay {
     margin-bottom: .5em;
 }
-.item aside.score data {
+.item .score data {
     justify-self: center;
     align-self: center;
     font-size: .7em;
 }
-.item aside.score.disabled svg {
+.item .score.disabled svg {
     margin-top: 1em;
 }
-.item aside.score data svg {
+.item .score data svg {
     margin-right: .1em;
     margin-bottom: .1em;
 }
-.item aside.score data.inf {
+.item .score data.inf {
     font-weight: bold;
     font-size: 1.3em;
     margin: 0;
     padding: 0;
 }
-.item aside.score data.K,
-.item aside.score data.M,
-.item aside.score data.B {
+.item .score data.K,
+.item .score data.M,
+.item .score data.B {
     font-weight: lighter;
     font-size: .6em;
 }
-aside.score .icon-recycle {
+.score .icon-recycle {
     opacity: .6;
 }
-.deleted aside.score a.ed,
-aside.score a[href="#"],
-aside.score a[href="#"]:visited {
+.deleted .score a.ed,
+.score a[href="#"],
+.score a[href="#"]:visited {
     opacity: .3;
     color: var(--main-fg-color);
 }
-aside.score a.ed {
+.score a.ed {
     color: var(--main-linkvisited-color);
 }
-aside.score a.ed:visited {
+.score a.ed:visited {
     color: var(--main-linkvisited-color);
 }
-aside.score a:visited {
+.score a:visited {
     color: var(--main-link-color);
 }
 .deleted {
