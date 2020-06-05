@@ -193,10 +193,12 @@ body > footer {
 }
 body > footer nav {
     margin-top: .5rem;
-    font-size: .7rem;
 }
-body > footer nav ul:first-child {
-    display: block;
+body > footer nav:first-child {
+    float: left;
+}
+body > footer nav:last-child * {
+    font-size: .7rem;
 }
 .item h1,
 .item h2,
