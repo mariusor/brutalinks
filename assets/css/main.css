@@ -426,12 +426,6 @@ aside.score a:visited {
 .icon.icon-lock {
     transform: rotateX(180deg);
 }
-.follow {
-    margin-left: .6rem;
-}
-.by::before {
-    content: "~";
-}
 a[rel="mention"]::before,
 a[rel="tag"]::before {
     opacity: .8;

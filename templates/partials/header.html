@@ -17,7 +17,7 @@
 <nav class="top">
     <ul>
 {{- if $account.IsLogged }}
-        <li class="acct"><a class="by" href="{{ $account | AccountPermaLink }}">{{$account.Handle}}</a> <span class="score">{{$account.Score | ScoreFmt}}</span></li>
+        <li class="acct"><a rel="mention" href="{{ $account | AccountPermaLink }}">{{$account.Handle}}</a> <span class="score">{{$account.Score | ScoreFmt}}</span></li>
         <li class=""><a href="/logout">Log out</a></li>
 {{- end }}
 {{- if or $account.IsLogged Config.AnonymousCommentingEnabled }}
