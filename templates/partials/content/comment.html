@@ -1,5 +1,7 @@
 {{- $count := .Children | len -}}
+<div class="item">
 {{- template "partials/item" . -}}
+</div>
 {{- if $count -}}
 {{- if gt $count 1 -}}
 <details open>

@@ -1,7 +1,6 @@
 {{- if .Deleted -}}
 <del class="titles" data-hash="{{.Hash}}">deleted</del>
 {{- else -}}
-<article class="data{{if ShowText}} {{ .MimeType | sluggify }}{{if not .Title}} comment{{end}}{{- end -}}">
 {{- template "partials/item/title" . -}}
 {{- if .IsSelf -}}
 {{if or ShowText (not .Title) }}
@@ -10,5 +9,4 @@
 {{- if eq .MimeType "text/markdown" -}}{{- replaceTags . | Markdown -}}{{- end -}}
 {{end}}
 {{- end -}}
-</article>
 {{- end -}}

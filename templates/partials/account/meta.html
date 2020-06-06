@@ -1,5 +1,5 @@
 {{- $it := . -}}
-<footer class="meta col">
+<footer class="meta">
 {{ if not .Deleted}}{{- if ShowUpdate $it }}invited<time class="updated-at" datetime="{{ $it.UpdatedAt | ISOTimeFmt | html }}" title="accepted on {{ $it.UpdatedAt | ISOTimeFmt }}"><sup>&#10033;</sup></time> {{- else -}}created{{- end }} <time class="submitted-at" datetime="{{ $it.CreatedAt | ISOTimeFmt | html }}" title="{{ $it.CreatedAt | ISOTimeFmt }}">{{ icon "clock-o" }}{{ $it.CreatedAt | TimeFmt }}</time>{{- end -}}
     {{- if and (ne current "user") $it.CreatedBy.IsValid }} by <a class="by" rel="author" href="{{ $it.CreatedBy | AccountPermaLink }}">{{ $it.CreatedBy | ShowAccountHandle }}</a>{{end}}
     <nav>

@@ -6,16 +6,11 @@
 {{- else -}}
     {{- .Title -}}
 {{- end -}}
+{{ if and (eq current "listing") .Public }}
+{{- $domain := .GetDomain }}
+    <small><a rel="directory" href="/d{{- if .IsLink -}}/{{$domain}}{{- end -}}">{{- if .IsLink -}}{{$domain}}{{- else -}} discussion {{- end -}}</a></small>
+{{ end -}}
 </h2>
-{{ if .Public }}
-<ul>
-    <li><a rel="bookmark canonical" href="{{ . | ItemPermaLink }}">permalink</a></li>
-{{- $domain := .GetDomain -}}
-    <li>
-        <a rel="directory" href="/d{{- if .IsLink -}}/{{$domain}}{{- end -}}">{{- if .IsLink -}}{{$domain}}{{- else -}} discussion {{- end -}}</a>
-    </li>
-</ul>
-{{- end -}}
 </header>
 {{- end -}}
 {{ if .Private }}

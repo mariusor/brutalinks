@@ -3,7 +3,12 @@
         <h2 style="display: inline-block">
             {{- if .HasIcon -}}<img src="{{.Metadata.Icon.URI}}" alt="{{.Handle}}" class="avatar" />{{- else -}}{{- icon "user" "avatar" -}}{{- end -}}
             {{- .Handle -}}
-            {{- if gt .Score 0 }}<data class="score {{- .Score | ScoreClass -}}">{{ .Score | ScoreFmt}}</data> {{ end -}}
+            {{- /*}}{{- if gt .Score 0 }}<data class="score {{- .Score | ScoreClass -}}">{{ .Score | ScoreFmt}}</data> {{ end -}}
+            <nav style="display:inline-block">
+                <ul>
+                    <li><a href="{{ .Metadata.ID }}" data-hash="{{ .Hash }}" title="ActivityPub link{{if .Handle}}: {{.Handle }}{{end}}">{{icon "activitypub"}}</a></li>
+                </ul>
+            </nav>{{*/ -}}
         </h2>
     </summary>
 {{- if not .CreatedAt.IsZero }}

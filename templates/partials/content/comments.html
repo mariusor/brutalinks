@@ -1,4 +1,3 @@
-{{/* }} <pre> {{ . | printf "%#v" }}</pre> {{ */}}
 <ol class="comments lvl-{{ .Level | Mod10 }}" data-parent="{{ .Hash }}" id="c-{{.Hash}}">
 {{- range $key, $value := .Children }}
     <li data-index="{{$key}}" class="comment" data-hash="{{.Hash}}" id="item-{{.Hash}}">

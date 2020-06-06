@@ -1,6 +1,5 @@
-<section class="{{if .Deleted }}deleted {{end}}{{ if .Private }}private {{ end }}item{{ if not .Parent }} op{{end}}" id="i-{{.Hash}}" data-hash="{{.Hash}}">
-    {{- template "partials/item/score" . -}}
-    {{- template "partials/item/data" . -}}
-    {{- template "partials/item/meta" . -}}
+<section class="{{if .Deleted }}deleted {{end}}{{ if .Private }}private {{ end }}{{ if not .Parent }} op{{end}}" id="i-{{.Hash}}" data-hash="{{.Hash}}">
+{{- template "partials/item/data" . -}}
+{{- template "partials/item/meta" . -}}
 </section>
-
+{{- template "partials/item/score" . -}}
