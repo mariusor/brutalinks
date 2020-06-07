@@ -84,11 +84,9 @@ svg.icon.icon-eraser {
     width: 1.4em;
     margin-left: -.2em;
 }
-button svg.icon.icon-reply,
-button svg.icon.icon-sign-in {
-    height: .9em;
-    width: .9em;
-    vertical-align: text-bottom;
+.icon.icon-lock, .icon.icon-clock-o, .icon.icon-code, .icon.icon-github,
+.icon.icon-angle-double-left, .icon.icon-angle-double-right, .icon.icon-adjust {
+    vertical-align: text-top;
 }
 h1.logo a,
 h1.logo a:visited {

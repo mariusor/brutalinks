@@ -71,9 +71,6 @@ details#invites summary,
 .acct-info section {
     margin-top: 1em;
 }
-.icon-clock-o, .icon-code, .icon-github, .icon-angle-double-left, .icon-angle-double-right, .icon-adjust {
-    vertical-align: text-top;
-}
 li section footer,
 li section footer * {
     display: inline-block;

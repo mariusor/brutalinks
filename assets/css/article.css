@@ -183,3 +183,9 @@ dl.recipients dd {
     position: relative;
     top: 3px;
 }
+button svg.icon.icon-reply,
+button svg.icon.icon-sign-in {
+    height: .9em;
+    width: .9em;
+    vertical-align: text-bottom;
+}
