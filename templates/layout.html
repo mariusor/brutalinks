@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="en" class="{{ if isInverted }}inverted{{end}}">
 <head>
-{{- template "partials/head" . -}}
+{{ template "partials/head" . -}}
 </head>
 {{- $account := CurrentAccount }}
-<body class="{{current}}">
+<body>
 <header>{{ template "partials/header" . }}</header>
-<main>
+<main class="{{current}}">
 {{ yield -}}
 </main>
 <footer>

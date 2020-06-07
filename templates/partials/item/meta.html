@@ -3,18 +3,16 @@
 <footer class="meta">
 <small>submitted{{ if not .Deleted}}{{- if ShowUpdate $it }}<time class="updated-at" datetime="{{ $it.UpdatedAt | ISOTimeFmt | html }}" title="updated at {{ $it.UpdatedAt | ISOTimeFmt }}"><sup>&#10033;</sup></time> {{- end }} <time class="submitted-at" datetime="{{ $it.SubmittedAt | ISOTimeFmt | html }}" title="{{ $it.SubmittedAt | ISOTimeFmt }}">{{ icon "clock-o" }}{{ $it.SubmittedAt | TimeFmt }}</time>{{- end -}}
     {{- if and (ne current "user") $it.SubmittedBy.IsValid }} by <a rel="mention" rel="author" href="{{ $it.SubmittedBy | AccountPermaLink }}">{{ $it.SubmittedBy | ShowAccountHandle }}</a>{{end}}</small>
-{{- if and CurrentAccount.IsValid }}
-    <nav>
-        <ul>
-            {{- if and (not $it.IsTop) }}
-                {{- $link := (ItemLocalLink $it) -}}
-                {{- if not (sameBase req.URL.Path $link) -}}
-                    {{- if eq current "content" }}
-                        <li><small><a href="{{$link}}" title="Reply{{if .Title}}: {{$it.Title }}{{end}}">{{ if $it.Private }}{{icon "lock"}} {{ end -}} reply</a></small></li>
-                    {{- else -}}
-                        <li><small><a href="{{$link}}" title="Comments{{if .Title}}: {{$it.Title }}{{end}}">{{ if $it.Private }}{{icon "lock"}} {{ end -}} permalink</a></small></li>
-                    {{- end -}}
+    <nav><ul>
+            {{- $link := (ItemLocalLink $it) -}}
+            {{- if not (sameBase req.URL.Path $link) -}}
+                {{- if eq current "content" }}
+                    <li><small><a href="{{$link}}" title="Reply{{if .Title}}: {{$it.Title }}{{end}}">{{ if $it.Private }}{{icon "lock"}} {{ end -}} reply</a></small></li>
+                {{- else -}}
+                    <li><small><a href="{{$link}}" title="Comments{{if .Title}}: {{$it.Title }}{{end}}">{{ if $it.Private }}{{icon "lock"}} {{ end -}} permalink</a></small></li>
                 {{- end -}}
+            {{- end -}}
+            {{- if not $it.IsTop }}
                 {{- if $it.Parent -}}
                     {{- $parentLink := (ParentLink $it) -}}
                     {{- if not (sameBase req.URL.Path $parentLink) }}
@@ -27,21 +25,19 @@
                         {{- end -}}
                     {{- end -}}
                 {{- end }}
-                {{- if and CurrentAccount.IsValid $it.SubmittedBy.IsValid -}}
-                    {{- if (sameHash $it.SubmittedBy.Hash CurrentAccount.Hash) }}
-                        {{- if not .Deleted }}
-                            <li><small><a href="{{$it | ItemLocalLink }}/edit" title="Edit{{if .Title}}: {{$it.Title }}{{end}}">{{/*icon "edit"*/}}edit</a></small></li>
-                            <li><small><a href="{{$it | ItemLocalLink }}/rm" class="rm" data-hash="{{ .Hash }}" title="Remove{{if .Title}}: {{$it.Title }}{{end}}">{{/*icon "eraser"*/}}rm</a></small></li>
-                        {{ end -}}
-                    {{ end -}}
-                    {{ if Config.ModerationEnabled }}
-                    <li><small><a href="{{$it | ItemLocalLink }}/bad" title="Report{{if .Title}}: {{$it.Title }}{{end}}"> <!--{{ icon "flag"}}-->report</a></small></li>{{ end }}
-                {{ end -}}
             {{- end }}
+            {{- if and CurrentAccount.IsValid $it.SubmittedBy.IsValid -}}
+                {{- if (sameHash $it.SubmittedBy.Hash CurrentAccount.Hash) }}
+                    {{- if not .Deleted }}
+                        <li><small><a href="{{$it | ItemLocalLink }}/edit" title="Edit{{if .Title}}: {{$it.Title }}{{end}}">{{/*icon "edit"*/}}edit</a></small></li>
+                        <li><small><a href="{{$it | ItemLocalLink }}/rm" class="rm" data-hash="{{ .Hash }}" title="Remove{{if .Title}}: {{$it.Title }}{{end}}">{{/*icon "eraser"*/}}rm</a></small></li>
+                    {{ end -}}
+                {{ end -}}
+                {{ if Config.ModerationEnabled }}
+                <li><small><a href="{{$it | ItemLocalLink }}/bad" title="Report{{if .Title}}: {{$it.Title }}{{end}}"> <!--{{ icon "flag"}}-->report</a></small></li>{{ end }}
+            {{ end -}}
             {{/* - if not $it.Private }}
             <li><a href="{{ $it.Metadata.ID }}" data-hash="{{ .Hash }}" title="ActivityPub link{{if .Title}}: {{$it.Title }}{{end}}">{{icon "activitypub"}}</a></li>
 {{- end */}}
-        </ul>
-    </nav>
-    {{- end }}
+    </ul></nav>
 </footer>

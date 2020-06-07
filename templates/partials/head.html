@@ -1,13 +1,13 @@
 <meta charset="UTF-8">
 <title>{{.Title}}</title>
-{{ if CanPaginate . -}}
+{{- if CanPaginate . -}}
 {{- if gt (len .PrevPage) 0 }}
 <link href="{{ .PrevPage | PrevPageLink }}" rel="next prefetch" />
 {{end -}}
 {{- if gt (len .NextPage) 0 }}
 <link href="{{.NextPage | NextPageLink }}" rel="prev prefetch" />
 {{end -}}
-{{end}}
+{{end -}}
 <style>
 svg.icon { height: 1em; width: 1em; fill: currentColor; }
 :root { --main-bg-color: Window; --main-fg-color: WindowText; --main-link-color: blue; --main-linkvisited-color: rebeccapurple; --main-linkactive-color: red;}
@@ -24,9 +24,9 @@ svg.icon { height: 1em; width: 1em; fill: currentColor; }
 <link rel="stylesheet" href="/css/main.css" />
 <link rel="stylesheet" href="/css/{{current}}.css" />
 {{ if (or (or (eq current "listing") (eq current "content")) (eq current "user")) -}}
-{{ if ne current "listing" -}}
+{{- if ne current "listing" -}}
 <link rel="stylesheet" href="/css/listing.css" />
-{{- end }}
+{{- end -}}
 <link rel="stylesheet" href="/css/article.css" />
 {{- end }}
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
