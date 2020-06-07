@@ -119,24 +119,14 @@ body > header menu.tabs {
 .icon {
     vertical-align: middle;
 }
-footer nav, menu,
-nav ul, nav dl {
-    display: inline-block;
-}
-menu li, nav ul li,
-nav dl dd, nav dl dt {
+menu li, nav ul, nav ul li, nav dl, nav dl dd, nav dl dt {
     display: inline-block;
 }
 body > header menu li:first-child::before,
-body > header menu.tabs li::before,
-.item footer nav ul li::before,
-nav ul li:first-child::before,
-nav dl dt:first-child::before {
+body > header menu.tabs li::before {
     content: unset;
 }
-body > header menu li::before,
-nav dl dt::before,
-nav ul li::before {
+body > header menu li::before {
     content: "\22c5";
     padding: 0 .4em;
 }
@@ -170,10 +160,6 @@ body > footer nav:last-child {
 }
 body > footer nav:last-child * {
     font-size: .7rem;
-}
-ol {
-    list-style: none;
-    padding-left: 0;
 }
 .deleted {
     opacity: .7;
@@ -220,6 +206,19 @@ dialog button.close {
     margin-top: -1em;
     margin-right: -1em;
     float: right;
+}
+section footer,
+section footer * {
+    display: inline-block;
+}
+nav ul li::before,
+nav ul li:first-child::before,
+nav dl dt:first-child::before {
+    content: unset;
+}
+nav dl dt::before, nav ul li::before {
+    content: "\22c5";
+    padding: 0 .4em;
 }
 @media (min-width: 2201px) {
     :root {

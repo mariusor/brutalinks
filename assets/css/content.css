@@ -1,8 +1,4 @@
-.comments .item {
-    margin-left: -.8em;
-}
-.comments details[open] {
-}
+.comments details[open] { }
 .comments details:not([open]) {
 }
 .comments details {
@@ -33,8 +29,9 @@ summary + ol.comments {
     margin-top: -1px;
 }
 ol.comments {
+    grid-area: main;
     margin-top: .3em;
-    padding: 0 0 0 1.4em;
+    padding: 0 0 0 0.8em;
 }
 .comments > li {
     padding: .7rem 0 0 0;
@@ -75,4 +72,21 @@ ol.comments li {
 }
 .lvl-0 {
     border-color: #3a3a3aaa;
+}
+main.content article section {
+    grid-area: main;
+    align-self: center;
+    margin-left: 1ex;
+}
+main.content article {
+    display: grid;
+    grid-template-columns: 1.6rem 11fr;
+    grid-template-areas: "sidebar main";
+}
+.content article section footer * {
+    display: inline-block;
+}
+.content article section footer {
+    opacity: .6;
+    line-height: 1.12rem;
 }

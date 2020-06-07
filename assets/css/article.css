@@ -1,61 +1,51 @@
-p {
-    word-break: break-word;
-}
-section nav dl,
-section nav ul,
-section nav ol {
+section nav dl, section nav ul, section nav ol {
     margin-left: 0;
 }
-section dl,
-section ul,
-section ol {
+section dl, section ul, section ol {
     margin-left: 1.3rem;
     list-style: unset;
 }
-section blockquote,
-section q {
+p {
+    word-break: break-word;
+}
+article blockquote,
+article q {
     quotes: none;
     border-left: 2px solid var(--main-fg-color);
     padding-left: .6em;
     margin-bottom: .3em;
     opacity: .75;
 }
-section  p + p, section  p + ul, section  p + ol, section  p + dl,
-section  p + div, section  p + h1, section  p + h2, section  p + h3, section  p + h4, section  p + h5, section  p + h6,
-section  p + blockquote, section  p + pre {
+section p + p, section p + ul, section p + ol, section p + dl,
+section p + div, section p + h1, section p + h2, section p + h3, section p + h4, section p + h5, section p + h6,
+section p + blockquote, section p + pre {
     margin-top: .6rem;
 }
-.item h1, .item h2, .item h3,
-.item h4, .item h5, .item h6 {
+section h1, section h2, section h3,
+section h4, section h5, section h6 {
     font-weight: 500;
 }
-.item h1 {
+section h1 {
     font-size: 1.22em;
 }
-.item h2 {
+section h2 {
     font-size: 1.16em;
 }
-.item h3 {
+section h3 {
     font-size: 1.11em;
 }
-.item h4 {
+section h4 {
     font-size: 1em;
 }
-.item h5 {
+section h5 {
     font-size: .96em;
 }
-.item h6 {
+section h6 {
     font-size: .94em;
 }
-.item, .follow-request, .account {
-    min-height: 3.3rem;
-}
-.item section,
-.follow-request section,
-.account section {
-    grid-area: main;
-    margin-left: 1ex;
-    align-self: center;
+section > header h2 {
+    font-weight: 500;
+    font-size: 1.16em;
 }
 section > header h2 small {
     font-size: .75em;
@@ -81,20 +71,9 @@ section > header h2 small:last-child::after {
     font-weight: normal;
     font-size: 110%;
 }
-.follow-request, .item, .account {
-    display: grid;
-    grid-template-columns: 1.6rem 11fr;
-    grid-template-areas: "sidebar main";
-}
 .score .data {
     display: grid;
     line-height: 1.62em;
-}
-.follow-request footer,
-.item footer,
-.account footer {
-    opacity: .6;
-    line-height: 1.12rem;
 }
 footer small {
     font-size: .7rem;
@@ -107,9 +86,7 @@ footer .icon-activitypub {
     width: 1.1em;
     display: none;
 }
-.account footer::before,
-.follow-request footer::before,
-.item footer::before {
+section footer::before {
     content: '\2012';
 }
 .account .score {
@@ -122,8 +99,10 @@ footer .icon-activitypub {
     grid-template-rows: 1em 1.5em 1em;
 }
 .score {
-    grid-area: sidebar;
     display: grid;
+    grid-area: sidebar;
+    min-height: 5.3ex;
+    align-content: center;
     align-self: center;
 }
 .score a {
@@ -134,7 +113,7 @@ footer .icon-activitypub {
     font-size: 1.8em;
 }
 .score a.nay {
-    margin-top: -.45em;
+    margin-top: -.2em;
 }
 .score a:hover {
     text-decoration: none;
@@ -171,13 +150,6 @@ footer .icon-activitypub {
 }
 .score a:visited {
     color: var(--main-link-color);
-}
-.domains {
-    font-size: .9em;
-    font-weight: 200;
-}
-#content .meta {
-    padding: 0 0 0 5ex;
 }
 summary:focus {
     outline: none;

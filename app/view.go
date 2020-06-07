@@ -203,6 +203,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"ShowBlockLink":     showBlockLink,
 			"Follows":           AccountFollows,
 			"IsFollowed":        AccountIsFollowed,
+			"IsRejected":        AccountIsRejected,
 			csrf.TemplateTag:    func() template.HTML { return csrf.TemplateField(r) },
 			"ToTitle":           ToTitle,
 			//"ScoreFmt":          func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
@@ -660,6 +661,13 @@ func AccountIsFollowed(a, b *Account) bool {
 		}
 	}
 	return false
+}
+
+func AccountIsRejected(a, b *Account) bool {
+	return InOutbox(a, pub.Follow{
+		Type:   pub.BlockType,
+		Object: b.pub.GetLink(),
+	})
 }
 
 func showBlockLink(logged, current *Account) bool {

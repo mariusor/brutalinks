@@ -1,20 +1,16 @@
 <ol>
 {{- range $key, $value := . -}}
+    <li data-index="{{$key}}" data-hash="{{.Hash}}" id="li-{{.Hash}}"{{- /*}}  class="account"{{ */ -}}>
 {{- if IsComment . }}
-    <li data-index="{{$key}}" data-hash="{{.Hash}}" id="item-{{.Hash}}" class="item">
     {{- template "partials/item" $value -}}
-    </li>
 {{ end -}}
 {{- if IsFollowRequest . }}
-    <li data-index="{{$key}}" data-hash="{{.Hash}}" id="follow-{{.Hash}}" class="follow-request">
     {{- template "partials/follow" $value }}
-    </li>
 {{ end -}}
 {{- if IsAccount . }}
 {{- /*if and (IsAccount .) (gt (len $value.Handle) 0) */}}
-    <li data-index="{{$key}}" data-hash="{{.Hash}}" id="account-{{.Hash}}" class="account">
     {{- template "partials/account" $value }}
-    </li>
 {{ end -}}
+    </li>
 {{- end }}
 </ol>

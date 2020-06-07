@@ -32,9 +32,10 @@
                         <li><small><a href="{{$it | ItemLocalLink }}/edit" title="Edit{{if .Title}}: {{$it.Title }}{{end}}">{{/*icon "edit"*/}}edit</a></small></li>
                         <li><small><a href="{{$it | ItemLocalLink }}/rm" class="rm" data-hash="{{ .Hash }}" title="Remove{{if .Title}}: {{$it.Title }}{{end}}">{{/*icon "eraser"*/}}rm</a></small></li>
                     {{ end -}}
-                {{ end -}}
+                {{- else -}}
                 {{ if Config.ModerationEnabled }}
                 <li><small><a href="{{$it | ItemLocalLink }}/bad" title="Report{{if .Title}}: {{$it.Title }}{{end}}"> <!--{{ icon "flag"}}-->report</a></small></li>{{ end }}
+            {{ end -}}
             {{ end -}}
             {{/* - if not $it.Private }}
             <li><a href="{{ $it.Metadata.ID }}" data-hash="{{ .Hash }}" title="ActivityPub link{{if .Title}}: {{$it.Title }}{{end}}">{{icon "activitypub"}}</a></li>

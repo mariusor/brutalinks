@@ -3,3 +3,31 @@
     margin-top: .6rem;
     margin-left: .4rem;
 }
+main  ol li aside {
+    min-height: 5.3ex;
+    align-content: center;
+}
+main ol li section {
+    grid-area: main;
+    align-self: center;
+    margin-left: 1ex;
+}
+main ol li {
+    display: grid;
+    grid-template-columns: 1.6rem 11fr;
+    grid-template-areas: "sidebar main";
+}
+li section footer {
+    opacity: .6;
+    line-height: 1.12rem;
+}
+li section footer,
+li section footer * {
+    display: inline-block;
+}
+li nav ul li::before,
+nav ul li::before,
+nav ul li:first-child::before,
+nav dl dt:first-child::before {
+    content: unset;
+}

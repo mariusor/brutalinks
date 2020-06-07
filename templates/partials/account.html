@@ -1,9 +1,5 @@
-<section class="{{if .Deleted }}deleted {{end}}{{ if .Private }}private {{ end }}" id="a-{{.Hash}}" data-hash="{{.Hash}}">
-{{- if eq .Handle "" -}}
-    Invitation pending
-{{- else -}}
-    {{- template "partials/account/data" . -}}
-{{- end -}}
-    {{- template "partials/account/meta" . -}}
+<section class="account {{if .Deleted }} deleted{{end}}{{ if .Private }} private{{ end }}" id="a-{{.Hash}}" data-hash="{{.Hash}}">
+{{- template "partials/account/data" . -}}
+{{- template "partials/account/meta" . -}}
 </section>
 {{- template "partials/account/score" . -}}

@@ -1,14 +1,5 @@
-{{- $acc := CurrentAccount -}}
-{{- if not ( IsFollowed $acc .SubmittedBy) -}}
-<section class="{{if .Deleted }}deleted {{end}}{{ if .Private }}private {{ end }} ">
-    You received a follow request from <a rel="mention" href="{{ .SubmittedBy | AccountPermaLink }}">{{ .SubmittedBy | ShowAccountHandle }}</a><br/>
-{{- $it := . -}}
-<footer class="meta">
-    <small>{{ if not .Deleted}}sent <time class="submitted-at" datetime="{{ $it.SubmittedAt | ISOTimeFmt | html }}" title="{{ $it.SubmittedAt | ISOTimeFmt }}">{{ icon "clock-o" }}{{ $it.SubmittedAt | TimeFmt }}</time>{{- end -}}</small>
-</footer>
+<section class="follow-request{{if .Deleted }} deleted {{end}}{{ if .Private }} private{{ end }}">
+{{ template "partials/follow/data" .}}
+{{ template "partials/follow/meta" .}}
 </section>
-<aside class="score" id="f-{{.Hash}}" data-hash="{{.Hash}}">
-    <a href="{{ . | AcceptLink }}">&#10004;</a>
-    <a href="{{ . | RejectLink }}">&#10006;</a>
-</aside>
-{{- end -}}
+{{ template "partials/follow/score" . }}

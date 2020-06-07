@@ -31,10 +31,6 @@
 #new label,
 #login label {
 }
-#register form button,
-#login form button {
-    margin-top: .2em;
-}
 .acct-info {
     float: right;
     min-width: 33%;
@@ -68,13 +64,23 @@ details#invites summary,
     text-align: justify;
     overflow: hidden;
     position: fixed;
-    background: var(--main-bg-color);
     z-index: 100;
     box-shadow: 0 0 2px -2px var(--main-fg-color);
+    background-color: var(--main-bg-color);
 }
 .acct-info section {
     margin-top: 1em;
 }
 .icon-clock-o, .icon-code, .icon-github, .icon-angle-double-left, .icon-angle-double-right, .icon-adjust {
     vertical-align: text-top;
+}
+li section footer,
+li section footer * {
+    display: inline-block;
+}
+li nav ul li::before,
+nav ul li::before,
+nav ul li:first-child::before,
+nav dl dt:first-child::before {
+    content: unset;
 }
