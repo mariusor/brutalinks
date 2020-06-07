@@ -79,7 +79,7 @@ section > header h2 small:last-child::after {
     line-height: 1.62em;
 }
 footer small {
-    font-size: .7rem;
+    font-size: .8rem;
 }
 footer time .icon-clock-o {
     width: .85em;

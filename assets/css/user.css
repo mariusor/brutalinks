@@ -11,9 +11,7 @@
 .user details svg.icon-star {
     vertical-align: text-top;
 }
-#private-message fieldset,
-#new fieldset,
-#reply fieldset {
+#private-message fieldset {
     border: 0;
     padding: 0;
     margin: 0;
@@ -21,14 +19,10 @@
 #private-message, #reply, #register, #new, #login {
     max-width: 30rem;
 }
-#private-message textarea,
-#reply textarea,
-#new textarea {
+#private-message textarea {
     width: 100%;
 }
 #private-message label,
-#reply label,
-#new label,
 #login label {
 }
 .acct-info {

@@ -31,7 +31,7 @@ summary + ol.comments {
 }
 ol.comments {
     margin-top: .3em;
-    padding: 0 0 0 1.2em;
+    padding: 0 0 0 .6em;
 }
 li ol {
     margin-left: .6em;
@@ -101,4 +101,15 @@ nav ul li::before,
 nav ul li:first-child::before,
 nav dl dt:first-child::before {
     content: unset;
+}
+#reply, #new {
+    max-width: 30rem;
+}
+fieldset {
+    border: 0;
+    padding: 0;
+    margin: 0;
+}
+textarea {
+    width: 100%;
 }
