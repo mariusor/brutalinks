@@ -24,7 +24,7 @@ svg.icon { height: 1em; width: 1em; fill: currentColor; }
 <link rel="stylesheet" href="/css/main.css" />
 <link rel="stylesheet" href="/css/{{current}}.css" />
 {{ if or (or (or (eq current "listing") (eq current "content")) (eq current "user")) (eq current "user-message") -}}
-{{- if ne current "listing" -}}
+{{- if and (ne current "listing") (ne current "content") -}}
 <link rel="stylesheet" href="/css/listing.css" />
 {{ end -}}
 <link rel="stylesheet" href="/css/article.css" />
