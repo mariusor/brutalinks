@@ -22,6 +22,13 @@ svg.icon { height: 1em; width: 1em; fill: currentColor; }
 }
 </style>
 <link rel="stylesheet" href="/css/main.css" />
+<link rel="stylesheet" href="/css/{{current}}.css" />
+{{ if (or (or (eq current "listing") (eq current "content")) (eq current "user")) -}}
+{{ if ne current "listing" -}}
+<link rel="stylesheet" href="/css/listing.css" />
+{{- end }}
+<link rel="stylesheet" href="/css/article.css" />
+{{- end }}
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <meta name="theme-color" content="rebeccapurple" />
 <meta name="description" content="Link aggregator inspired by reddit and hacker news using ActivityPub federation."/>

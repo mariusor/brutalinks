@@ -11,6 +11,7 @@
     </li>
 {{ end -}}
 {{- if IsAccount . }}
+{{- /*if and (IsAccount .) (gt (len $value.Handle) 0) */}}
     <li data-index="{{$key}}" data-hash="{{.Hash}}" id="account-{{.Hash}}" class="account">
     {{- template "partials/account" $value }}
     </li>

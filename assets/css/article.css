@@ -1,0 +1,211 @@
+p {
+    word-break: break-word;
+}
+section nav dl,
+section nav ul,
+section nav ol {
+    margin-left: 0;
+}
+section dl,
+section ul,
+section ol {
+    margin-left: 1.3rem;
+    list-style: unset;
+}
+section blockquote,
+section q {
+    quotes: none;
+    border-left: 2px solid var(--main-fg-color);
+    padding-left: .6em;
+    margin-bottom: .3em;
+    opacity: .75;
+}
+section  p + p, section  p + ul, section  p + ol, section  p + dl,
+section  p + div, section  p + h1, section  p + h2, section  p + h3, section  p + h4, section  p + h5, section  p + h6,
+section  p + blockquote, section  p + pre {
+    margin-top: .6rem;
+}
+.item h1, .item h2, .item h3,
+.item h4, .item h5, .item h6 {
+    font-weight: 500;
+}
+.item h1 {
+    font-size: 1.22em;
+}
+.item h2 {
+    font-size: 1.16em;
+}
+.item h3 {
+    font-size: 1.11em;
+}
+.item h4 {
+    font-size: 1em;
+}
+.item h5 {
+    font-size: .96em;
+}
+.item h6 {
+    font-size: .94em;
+}
+.item, .follow-request, .account {
+    min-height: 3.3rem;
+}
+.item section,
+.follow-request section,
+.account section {
+    grid-area: main;
+    margin-left: 1ex;
+    align-self: center;
+}
+section > header h2 small {
+    font-size: .75em;
+    opacity: .8;
+    margin: 0 .3rem 0 1rem;
+    padding: 0;
+}
+section > header h2 small:last-child::before {
+    content: "(";
+}
+section > header h2 small:last-child::after {
+    content: ")";
+}
+.data pre {
+    line-height: 1.3rem;
+    overflow: auto;
+    max-width: 100%;
+}
+.data p:first-of-type {
+    margin-top: 0;
+}
+.data p:first-of-type::first-letter {
+    font-weight: normal;
+    font-size: 110%;
+}
+.follow-request, .item, .account {
+    display: grid;
+    grid-template-columns: 1.6rem 11fr;
+    grid-template-areas: "sidebar main";
+}
+.score .data {
+    display: grid;
+    line-height: 1.62em;
+}
+.follow-request footer,
+.item footer,
+.account footer {
+    opacity: .6;
+    line-height: 1.12rem;
+}
+footer small {
+    font-size: .7rem;
+}
+footer time .icon-clock-o {
+    width: .85em;
+}
+footer .icon-activitypub {
+    vertical-align: text-top;
+    width: 1.1em;
+    display: none;
+}
+.account footer::before,
+.follow-request footer::before,
+.item footer::before {
+    content: '\2012';
+}
+.account .score {
+    grid-template-rows: 1.5em;
+}
+.follow-request .score {
+    grid-template-rows: 1.5em 1.5em;
+}
+.item .score {
+    grid-template-rows: 1em 1.5em 1em;
+}
+.score {
+    grid-area: sidebar;
+    display: grid;
+    align-self: center;
+}
+.score a {
+    font-family: monospace;
+    justify-self: center;
+    align-self: center;
+    font-weight: bolder;
+    font-size: 1.8em;
+}
+.score a.nay {
+    margin-top: -.45em;
+}
+.score a:hover {
+    text-decoration: none;
+}
+.score data {
+    justify-self: center;
+    align-self: center;
+    font-size: .7em;
+}
+.score data.inf {
+    font-weight: bold;
+    font-size: 1.3em;
+    margin: 0;
+    padding: 0;
+}
+.score data.K, .score data.M,  .score data.B {
+    font-weight: lighter;
+    font-size: .6em;
+}
+.score .icon-recycle {
+    opacity: .6;
+}
+.deleted .score a.ed,
+.score a[href="#"],
+.score a[href="#"]:visited {
+    opacity: .3;
+    color: var(--main-fg-color);
+}
+.score a.ed {
+    color: var(--main-linkvisited-color);
+}
+.score a.ed:visited {
+    color: var(--main-linkvisited-color);
+}
+.score a:visited {
+    color: var(--main-link-color);
+}
+.domains {
+    font-size: .9em;
+    font-weight: 200;
+}
+#content .meta {
+    padding: 0 0 0 5ex;
+}
+summary:focus {
+    outline: none;
+}
+.text-plain {
+    white-space: pre;
+    font-family: monospace;
+    /*overflow: auto;*/
+    line-height: revert;
+}
+.text-plain > header {
+    white-space: normal;
+    font-family: revert;
+}
+
+dl.recipients dt,
+dl.recipients dd {
+    opacity: .8;
+    display: inline;
+    font-size: .8rem;
+}
+dl.recipients dd {
+    margin-left: .2rem;
+}
+.details-agree {
+    font-size: .8em;
+}
+.details-agree input[type=checkbox] {
+    position: relative;
+    top: 3px;
+}

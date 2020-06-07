@@ -1,0 +1,80 @@
+.user details {
+    display: inline-block;
+}
+.user details aside,
+.user details summary {
+    margin: .2em 0;
+}
+.user details aside nav {
+    margin-top: .4em;
+}
+.user details svg.icon-star {
+    vertical-align: text-top;
+}
+#private-message fieldset,
+#new fieldset,
+#reply fieldset {
+    border: 0;
+    padding: 0;
+    margin: 0;
+}
+#private-message, #reply, #register, #new, #login {
+    max-width: 30rem;
+}
+#private-message textarea,
+#reply textarea,
+#new textarea {
+    width: 100%;
+}
+#private-message label,
+#reply label,
+#new label,
+#login label {
+}
+#register form button,
+#login form button {
+    margin-top: .2em;
+}
+.acct-info {
+    float: right;
+    min-width: 33%;
+}
+.acct-info details {
+    margin-top: .5rem;
+}
+#invites {
+    height: 3rem;
+}
+details#invites summary {
+    margin-right: .3rem;
+    margin-top: .3rem;
+}
+details#invites summary,
+#invites form {
+    float: left;
+}
+.acct-info #private-message {
+    width: 100%;
+    max-width: 22rem;
+    margin: 1rem 0;
+}
+.pub-key details[open] {
+}
+.pub-key details[open] pre {
+    max-width: 65ex;
+    font-size: .8em;
+    right: .5em;
+    padding: .2em;
+    text-align: justify;
+    overflow: hidden;
+    position: fixed;
+    background: var(--main-bg-color);
+    z-index: 100;
+    box-shadow: 0 0 2px -2px var(--main-fg-color);
+}
+.acct-info section {
+    margin-top: 1em;
+}
+.icon-clock-o, .icon-code, .icon-github, .icon-angle-double-left, .icon-angle-double-right, .icon-adjust {
+    vertical-align: text-top;
+}

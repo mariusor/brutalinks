@@ -4,7 +4,7 @@
     You received a follow request from <a rel="mention" href="{{ .SubmittedBy | AccountPermaLink }}">{{ .SubmittedBy | ShowAccountHandle }}</a><br/>
 {{- $it := . -}}
 <footer class="meta">
-    {{ if not .Deleted}}sent <time class="submitted-at" datetime="{{ $it.SubmittedAt | ISOTimeFmt | html }}" title="{{ $it.SubmittedAt | ISOTimeFmt }}">{{ icon "clock-o" }}{{ $it.SubmittedAt | TimeFmt }}</time>{{- end -}}
+    <small>{{ if not .Deleted}}sent <time class="submitted-at" datetime="{{ $it.SubmittedAt | ISOTimeFmt | html }}" title="{{ $it.SubmittedAt | ISOTimeFmt }}">{{ icon "clock-o" }}{{ $it.SubmittedAt | TimeFmt }}</time>{{- end -}}</small>
 </footer>
 </section>
 <aside class="score" id="f-{{.Hash}}" data-hash="{{.Hash}}">

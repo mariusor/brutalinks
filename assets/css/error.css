@@ -1,0 +1,17 @@
+main section {
+    opacity: .65;
+    margin-top: 1em;
+    line-height: 2em;
+    text-align: center;
+}
+main section h1 {
+    font-size: 1.2em;
+}
+main {
+    font-size: 2em;
+    max-height: 480px;
+    margin: 3rem auto;
+}
+header menu {
+    display: none;
+}

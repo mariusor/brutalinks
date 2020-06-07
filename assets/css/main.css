@@ -53,33 +53,6 @@ body {
 main {
     max-width: 100%;
 }
-p {
-    word-break: break-word;
-}
-section nav dl,
-section nav ul,
-section nav ol {
-    margin-left: 0;
-}
-section dl,
-section ul,
-section ol {
-    margin-left: 1.3rem;
-    list-style: unset;
-}
-section blockquote,
-section q {
-    quotes: none;
-    border-left: 2px solid var(--main-fg-color);
-    padding-left: .6em;
-    margin-bottom: .3em;
-    opacity: .75;
-}
-section  p + p, section  p + ul, section  p + ol, section  p + dl,
-section  p + div, section  p + h1, section  p + h2, section  p + h3, section  p + h4, section  p + h5, section  p + h6,
-section  p + blockquote, section  p + pre {
-    margin-top: .6rem;
-}
 a {
     color: var(--main-link-color);
     text-decoration: none;
@@ -90,8 +63,7 @@ a:visited {
 a:hover {
     text-decoration: underline;
 }
-a[href="#"],
-a[href="#"]:visited {
+a[href="#"], a[href="#"]:visited {
     color: var(--main-fg-color);
     cursor: text;
     text-decoration: none;
@@ -147,16 +119,12 @@ body > header menu.tabs {
 .icon {
     vertical-align: middle;
 }
-footer nav,
-menu,
-nav ul,
-nav dl {
+footer nav, menu,
+nav ul, nav dl {
     display: inline-block;
 }
-menu li,
-nav ul li,
-nav dl dd,
-nav dl dt {
+menu li, nav ul li,
+nav dl dd, nav dl dt {
     display: inline-block;
 }
 body > header menu li:first-child::before,
@@ -203,171 +171,9 @@ body > footer nav:last-child {
 body > footer nav:last-child * {
     font-size: .7rem;
 }
-.item h1,
-.item h2,
-.item h3,
-.item h4,
-.item h5,
-.item h6 {
-    font-weight: 500;
-}
-.item h1 {
-    font-size: 1.22em;
-}
-.item h2 {
-    font-size: 1.16em;
-}
-.item h3 {
-    font-size: 1.11em;
-}
-.item h4 {
-    font-size: 1em;
-}
-.item h5 {
-    font-size: .96em;
-}
-.item h6 {
-    font-size: .94em;
-}
-.item, .follow-request, .account {
-    min-height: 3.3rem;
-}
-.item section,
-.follow-request section,
-.account section {
-    grid-area: main;
-    margin-left: 1ex;
-    align-self: center;
-}
-section > header h2 small {
-    font-size: .75em;
-    opacity: .8;
-    margin: 0 .3rem 0 1rem;
-    padding: 0;
-}
-section > header h2 small:last-child::before {
-    content: "(";
-}
-section > header h2 small:last-child::after {
-    content: ")";
-}
-.data pre {
-    line-height: 1.3rem;
-    overflow: auto;
-    max-width: 100%;
-}
-.data p:first-of-type {
-    margin-top: 0;
-}
-.data p:first-of-type::first-letter {
-    font-weight: normal;
-    font-size: 110%;
-}
 ol {
     list-style: none;
     padding-left: 0;
-}
-.follow-request, .item, .account {
-    display: grid;
-    grid-template-columns: 1.6rem 11fr;
-    grid-template-areas: "sidebar main";
-}
-.score .data {
-    display: grid;
-    line-height: 1.62em;
-}
-.follow-request footer,
-.item footer,
-.account footer {
-    font-size: .85em;
-    opacity: .6;
-    line-height: 1.12rem;
-}
-footer time .icon-clock-o {
-    width: .85em;
-}
-footer .icon-activitypub {
-    vertical-align: text-top;
-    width: 1.1em;
-    display: none;
-}
-.account footer::before,
-.follow-request footer::before,
-.item footer::before {
-    content: '\2012';
-}
-summary + ol.comments {
-    margin-top: -1px;
-}
-ol.comments {
-    margin-top: .3em;
-    padding: 0 0 0 1.4em;
-}
-.comments > li {
-    padding: .7rem 0 0 0;
-}
-ol.comments.lvl-0 {}
-ol.comments li {
-    list-style: none;
-}
-.account .score {
-    grid-template-rows: 1.5em;
-}
-.follow-request .score {
-    grid-template-rows: 1.5em 1.5em;
-}
-.item .score {
-    grid-template-rows: 1em 1.5em 1em;
-}
-.score {
-    grid-area: sidebar;
-    display: grid;
-}
-.score a {
-    font-family: monospace;
-    justify-self: center;
-    align-self: center;
-    font-weight: bolder;
-    font-size: 1.8em;
-}
-.score a.nay {
-    margin-top: -.45em;
-}
-.score a:hover {
-    text-decoration: none;
-}
-.score data {
-    justify-self: center;
-    align-self: center;
-    font-size: .7em;
-}
-.score data.inf {
-    font-weight: bold;
-    font-size: 1.3em;
-    margin: 0;
-    padding: 0;
-}
-.score data.K, .score data.M,  .score data.B {
-    font-weight: lighter;
-    font-size: .6em;
-}
-.score .icon-recycle {
-    opacity: .6;
-}
-.deleted .score a.ed,
-.score a[href="#"],
-.score a[href="#"]:visited {
-    opacity: .3;
-    color: var(--main-fg-color);
-}
-.score a.ed {
-    color: var(--main-linkvisited-color);
-}
-.score a.ed:visited {
-    color: var(--main-linkvisited-color);
-}
-.score a:visited {
-    color: var(--main-link-color);
 }
 .deleted {
     opacity: .7;
@@ -389,152 +195,11 @@ a[rel="tag"]::before {
 footer time {
     text-decoration: underline dotted;
 }
-.comment {
-    font-size: .9rem;
-}
 del {
     line-height: 2rem;
     padding-left: 2ex;
     letter-spacing: .3ex;
     font-weight: 100;
-}
-.domains {
-    font-size: .9em;
-    font-weight: 200;
-}
-#content .meta {
-    padding: 0 0 0 5ex;
-}
-.comments .item {
-    margin-left: -.8em;
-}
-.comments details[open] {
-}
-.comments details:not([open]) {
-}
-.comments details {
-    margin: .3em 0 .6em 0;
-}
-summary:focus {
-    outline: none;
-}
-.comments details[open] > summary {
-    padding: .3rem 0 0 .3rem;
-    margin-bottom: 1px;
-}
-.comments details > summary {
-    font-size: .7rem;
-    padding: .3rem 0 .3rem .3rem;
-}
-.comments details > summary span {
-    opacity: .6;
-}
-.comments details > summary::-webkit-details-marker {
-    opacity: .3;
-}
-.comments, .comments summary {
-    border-left-width: 1px;
-    border-left-style: solid;
-}
-.lvl-9 {
-    border-color: #ebebebaa;
-}
-.lvl-8 {
-    border-color: #d7d7d7aa;
-}
-.lvl-7 {
-    border-color: #c4c4c4aa;
-}
-.lvl-6 {
-    border-color: #b0b0b0aa;
-}
-.lvl-5 {
-    border-color: #9c9c9caa;
-}
-.lvl-4 {
-    border-color: #898989aa;
-}
-.lvl-3 {
-    border-color: #757575aa;
-}
-.lvl-2 {
-    border-color: #626262aa;
-}
-.lvl-1 {
-    border-color: #4e4e4eaa;
-}
-.lvl-0 {
-    border-color: #3a3a3aaa;
-}
-/*.data {*/
-/*max-width: 960px;*/
-/*}*/
-.comments .data,
-#content .data {
-    border: none;
-}
-.text-plain {
-    white-space: pre;
-    font-family: monospace;
-    /*overflow: auto;*/
-    line-height: revert;
-}
-.text-plain > header {
-    white-space: normal;
-    font-family: revert;
-}
-.user details {
-    display: inline-block;
-}
-.user details aside,
-.user details summary {
-    margin: .2em 0;
-}
-.user details aside nav {
-    margin-top: .4em;
-}
-.user details svg.icon-star {
-    vertical-align: text-top;
-}
-#private-message fieldset,
-#new fieldset,
-#reply fieldset {
-    border: 0;
-    padding: 0;
-    margin: 0;
-}
-#private-message, #reply, #register, #new, #login {
-    max-width: 30rem;
-}
-#private-message textarea,
-#reply textarea,
-#new textarea {
-    width: 100%;
-}
-#private-message label,
-#reply label,
-#new label,
-#login label {
-}
-#register form button,
-#login form button {
-    margin-top: .2em;
-}
-dl.recipients dt,
-dl.recipients dd {
-    opacity: .8;
-    display: inline;
-    font-size: .8rem;
-}
-dl.recipients dd {
-    margin-left: .2rem;
-}
-.details-agree {
-    font-size: .8em;
-}
-.details-agree input[type=checkbox] {
-    position: relative;
-    top: 3px;
 }
 form label {
     min-height: 1.8rem;
@@ -543,77 +208,6 @@ form label {
 form label.mime-type {
     font-size: .8em;
     float: right;
-}
-.error main {
-    font-size: 2em;
-    max-height: 480px;
-    margin: 3rem auto;
-}
-.error > header nav {
-    display: none;
-}
-section#no-items {
-    opacity: .65;
-    margin-top: .6rem;
-    margin-left: .4rem;
-}
-.error main section {
-    text-align: center;
-}
-.error main section,
-.about main section {
-    opacity: .65;
-    margin-top: 1em;
-    line-height: 2em;
-}
-.about main section {
-    padding: 0 1rem;
-}
-.error main section h1 {
-    font-size: 1.2em;
-}
-.acct-info {
-    float: right;
-    min-width: 33%;
-}
-.acct-info details {
-    margin-top: .5rem;
-}
-#invites {
-    height: 3rem;
-}
-details#invites summary {
-    margin-right: .3rem;
-    margin-top: .3rem;
-}
-details#invites summary,
-#invites form {
-    float: left;
-}
-.acct-info #private-message {
-    width: 100%;
-    max-width: 22rem;
-    margin: 1rem 0;
-}
-.pub-key details[open] {
-}
-.pub-key details[open] pre {
-    max-width: 65ex;
-    font-size: .8em;
-    right: .5em;
-    padding: .2em;
-    text-align: justify;
-    overflow: hidden;
-    position: fixed;
-    background: var(--main-bg-color);
-    z-index: 100;
-    box-shadow: 0 0 2px -2px var(--main-fg-color);
-}
-.acct-info section {
-    margin-top: 1em;
-}
-.icon-clock-o, .icon-code, .icon-github, .icon-angle-double-left, .icon-angle-double-right, .icon-adjust {
-    vertical-align: text-top;
 }
 dialog {
     width: 60%;
@@ -666,14 +260,10 @@ dialog button.close {
     :root {
         font-size: 2vw;
     }
-    menu li {
-        font-size: unset;
-        display: unset;
-    }
     body > header menu,
-    body > header body > header menu li:first-child,
-    body > header body > header menu li:nth-child(2),
-    body > header body > header menu span.score,
+    body > header menu li:first-child,
+    body > header menu li:nth-child(2),
+    body > header menu span.score,
     .meta li,
     .logo a strong,
     .logo a small {

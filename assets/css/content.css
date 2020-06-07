@@ -1,0 +1,78 @@
+.comments .item {
+    margin-left: -.8em;
+}
+.comments details[open] {
+}
+.comments details:not([open]) {
+}
+.comments details {
+    margin: .3em 0 .6em 0;
+}
+.comments details[open] > summary {
+    padding: .3rem 0 0 .3rem;
+    margin-bottom: 1px;
+}
+.comments details > summary {
+    font-size: .7rem;
+    padding: .3rem 0 .3rem .3rem;
+}
+.comments details > summary span {
+    opacity: .6;
+}
+.comments details > summary::-webkit-details-marker {
+    opacity: .3;
+}
+.comments, .comments summary {
+    border-left-width: 1px;
+    border-left-style: solid;
+}
+.comments .data, #content .data {
+    border: none;
+}
+summary + ol.comments {
+    margin-top: -1px;
+}
+ol.comments {
+    margin-top: .3em;
+    padding: 0 0 0 1.4em;
+}
+.comments > li {
+    padding: .7rem 0 0 0;
+}
+ol.comments.lvl-0 {}
+ol.comments li {
+    list-style: none;
+}
+.comment {
+    font-size: .9rem;
+}
+.lvl-9 {
+    border-color: #ebebebaa;
+}
+.lvl-8 {
+    border-color: #d7d7d7aa;
+}
+.lvl-7 {
+    border-color: #c4c4c4aa;
+}
+.lvl-6 {
+    border-color: #b0b0b0aa;
+}
+.lvl-5 {
+    border-color: #9c9c9caa;
+}
+.lvl-4 {
+    border-color: #898989aa;
+}
+.lvl-3 {
+    border-color: #757575aa;
+}
+.lvl-2 {
+    border-color: #626262aa;
+}
+.lvl-1 {
+    border-color: #4e4e4eaa;
+}
+.lvl-0 {
+    border-color: #3a3a3aaa;
+}

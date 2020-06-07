@@ -1,0 +1,11 @@
+.about main section {
+    opacity: .65;
+    margin-top: 1em;
+    line-height: 2em;
+}
+.about main section {
+    padding: 0 1rem;
+}
+header menu {
+    display: none;
+}
