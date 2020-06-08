@@ -125,7 +125,7 @@ section footer::before {
     font-size: 1.8em;
 }
 .score a.nay {
-    margin-top: -.2em;
+    margin-top: -.35em;
 }
 .score a:hover {
     text-decoration: none;

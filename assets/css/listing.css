@@ -7,12 +7,12 @@ main  ol li aside {
     min-height: 5.3ex;
     align-content: center;
 }
-main ol li section {
+main > ol > li section {
     grid-area: main;
     align-self: center;
     margin-left: 1ex;
 }
-main ol li {
+main > ol > li {
     display: grid;
     grid-template-columns: 1.6rem 11fr;
     grid-template-areas: "sidebar main";
