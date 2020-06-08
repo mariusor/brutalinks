@@ -44,8 +44,7 @@ type appConfig struct {
 	Logger          log.Logger
 }
 
-
-var defaultLogFn = func (string, ...interface{}) {}
+var defaultLogFn = func(string, ...interface{}) {}
 var defaultCtxLogFn = func(c log.Ctx) LogFn { return defaultLogFn }
 
 func Init(c appConfig) (handler, error) {
@@ -302,10 +301,12 @@ func loadCurrentAccountFromSession(s *sessions.Session, l log.Logger) Account {
 
 func SetSecurityHeaders(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload")
 		w.Header().Set("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline';")
 		w.Header().Set("X-Frame-Options", "DENY")
 		w.Header().Set("X-Xss-Protection", "1; mode=block")
 		w.Header().Set("Referrer-Policy", "same-origin")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
 		next.ServeHTTP(w, r)
 	}
 	return http.HandlerFunc(fn)
@@ -369,7 +370,7 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 			acc.Metadata = m
 			var items ItemCollection
 			if cursor := ContextCursor(r.Context()); cursor != nil {
-				items =  cursor.items.Items()
+				items = cursor.items.Items()
 			}
 			h.storage.loadAccountVotes(&acc, items)
 			acc, err = h.storage.loadAccountsOutbox(acc)
