@@ -7,9 +7,9 @@
             {{- $link := (ItemLocalLink $it) -}}
             {{- if not (sameBase req.URL.Path $link) -}}
                 {{- if eq current "content" }}
-                    <li><small><a href="{{$link}}" title="Reply{{if .Title}}: {{$it.Title }}{{end}}">{{ if $it.Private }}{{icon "lock"}} {{ end -}} reply</a></small></li>
+                    <li><small><a href="{{$link}}" rel="bookmark" title="Reply{{if .Title}}: {{$it.Title }}{{end}}">{{ if $it.Private }}{{icon "lock"}} {{ end -}} reply</a></small></li>
                 {{- else -}}
-                    <li><small><a href="{{$link}}" title="Comments{{if .Title}}: {{$it.Title }}{{end}}">{{ if $it.Private }}{{icon "lock"}} {{ end -}} permalink</a></small></li>
+                    <li><small><a href="{{$link}}" rel="bookmark" title="Permalink{{if .Title}}: {{$it.Title }}{{end}}">{{ if $it.Private }}{{icon "lock"}} {{ end -}} permalink</a></small></li>
                 {{- end -}}
             {{- end -}}
             {{- if not $it.IsTop }}
@@ -40,6 +40,6 @@
             {{/* - if not $it.Private }}
             <li><a href="{{ $it.Metadata.ID }}" data-hash="{{ .Hash }}" title="ActivityPub link{{if .Title}}: {{$it.Title }}{{end}}">{{icon "activitypub"}}</a></li>
 {{- end */}}
-    </ul></nav><br/>
+    </ul></nav>
     {{ template "partials/item/recipients" . }}
 </footer>

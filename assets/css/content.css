@@ -96,12 +96,6 @@ main.content article {
     opacity: .6;
     line-height: 1.12rem;
 }
-li nav ul li::before,
-nav ul li::before,
-nav ul li:first-child::before,
-nav dl dt:first-child::before {
-    content: unset;
-}
 #reply, #new {
     max-width: 30rem;
 }

@@ -124,10 +124,6 @@ body > header menu li:first-child::before,
 body > header menu.tabs li::before {
     content: unset;
 }
-body > header menu li::before {
-    content: "\22c5";
-    padding: 0 .4em;
-}
 body > header menu {
     text-align: right;
     align-self: end;
@@ -153,11 +149,8 @@ body > footer nav {
     margin-top: .5rem;
     float: left;
 }
-body > footer nav:last-child {
+body > footer nav:not(.pagination) {
     float: right;
-}
-body > footer nav:last-child * {
-    font-size: .7rem;
 }
 .deleted {
     opacity: .7;
@@ -205,18 +198,12 @@ dialog button.close {
     margin-right: -1em;
     float: right;
 }
-section footer,
-section footer * {
-    display: inline-block;
-}
-nav ul li::before,
-nav ul li:first-child::before,
-nav dl dt:first-child::before {
+li footer nav ul li::before, nav ul li:first-child::before, nav dl dt:first-child::before {
     content: unset;
 }
-nav dl dt::before, nav ul li::before {
+menu li::before, nav dl dt::before, nav ul li::before {
     content: "\22c5";
-    padding: 0 .4em;
+    padding: 0 .4em 0 .2em;
 }
 p {
     word-break: break-word;
@@ -260,13 +247,7 @@ p {
     :root {
         font-size: 2vw;
     }
-    body > header menu,
-    body > header menu li:first-child,
-    body > header menu li:nth-child(2),
-    body > header menu span.score,
-    .meta li,
-    .logo a strong,
-    .logo a small {
+    body > header menu a span {
         display: unset;
     }
 }
@@ -274,28 +255,19 @@ p {
     :root {
         font-size: 2.4vw;
     }
-    .acct-info {
-        float: none;
-    }
-    .acct-info details input[type=email] {
-        margin-left: .4rem;
-    }
-    body > header menu li {
-        font-size: 0;
-        overflow: hidden;
-    }
-    body > menu li a svg {
-        vertical-align: top;
+    section footer nav li a:not([rel="bookmark"]),
+    body > footer nav:not(.pagination),
+    body > header menu a span,
+    body > header menu:nth-of-type(2) li:not(.acct) {
+        display: none;
     }
 }
 @media (max-width: 576px) {
     :root {
         font-size: 2.6vw;
     }
-    body > header menu li::after {
-        content: none;
-    }
-    body > header menu li:not(.acct) {
+    section header h2 small,
+    .logo a strong {
         display: none;
     }
 }
@@ -304,8 +276,6 @@ p {
         font-size: 3.6vw;
     }
     footer time svg,
-    .meta li,
-    .logo a strong,
     .logo a small {
         display: none;
     }

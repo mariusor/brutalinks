@@ -65,13 +65,3 @@ details#invites summary,
 .acct-info section {
     margin-top: 1em;
 }
-li section footer,
-li section footer * {
-    display: inline-block;
-}
-li nav ul li::before,
-nav ul li::before,
-nav ul li:first-child::before,
-nav dl dt:first-child::before {
-    content: unset;
-}

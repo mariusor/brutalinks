@@ -81,9 +81,6 @@ section > header h2 small:last-child::after {
     display: grid;
     line-height: 1.62em;
 }
-footer small {
-    font-size: .8rem;
-}
 footer time .icon-clock-o {
     width: .85em;
 }
@@ -91,6 +88,15 @@ footer .icon-activitypub {
     vertical-align: text-top;
     width: 1.1em;
     display: none;
+}
+section footer,
+section footer nav,
+section footer nav ul,
+section footer nav ul li {
+    display: inline-block;
+}
+.item footer nav ul li::before {
+    content: unset;
 }
 section footer::before {
     content: '\2012';
@@ -192,4 +198,12 @@ button svg.icon.icon-sign-in {
     height: .9em;
     width: .9em;
     vertical-align: text-bottom;
+}
+@media (max-width: 576px) {
+    section footer {
+        font-size: .75em;
+    }
+    section footer::before {
+        content: "";
+    }
 }

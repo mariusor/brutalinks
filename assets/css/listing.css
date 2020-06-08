@@ -21,13 +21,6 @@ li section footer {
     opacity: .6;
     line-height: 1.12rem;
 }
-li section footer,
-li section footer * {
-    display: inline-block;
+body > footer nav.pagination ul li:first-of-type {
+    margin-right: .2em;
 }
-li footer nav ul li::before,
-nav ul li:first-child::before,
-nav dl dt:first-child::before {
-    content: unset;
-}
-
