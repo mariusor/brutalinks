@@ -5,11 +5,8 @@ section dl, section ul, section ol {
     margin-left: 1.3rem;
     list-style: unset;
 }
-p {
-    word-break: break-word;
-}
-article blockquote,
-article q {
+section blockquote,
+section q {
     quotes: none;
     border-left: 2px solid var(--main-fg-color);
     padding-left: .6em;
@@ -26,21 +23,27 @@ section h4, section h5, section h6 {
     font-weight: 500;
 }
 section h1 {
-    font-size: 1.22em;
+    font-size: 1.32em;
+    line-height: 1.44em;
 }
 section h2 {
-    font-size: 1.16em;
+    font-size: 1.20em;
+    line-height: 1.32em;
 }
 section h3 {
     font-size: 1.11em;
+    line-height: 1.32em;
 }
 section h4 {
     font-size: 1em;
+    line-height: 1.3em;
 }
 section h5 {
+    line-height: 1.1em;
     font-size: .96em;
 }
 section h6 {
+    line-height: 1em;
     font-size: .94em;
 }
 section > header h2 {
@@ -60,7 +63,7 @@ section > header h2 small:last-child::after {
     content: ")";
 }
 .item {
-    line-height: 1.6em;
+    line-height: 1.3em;
 }
 .data pre {
     line-height: 1.3rem;
@@ -92,13 +95,14 @@ footer .icon-activitypub {
 section footer::before {
     content: '\2012';
 }
-.account .score {
+.account + .score {
     grid-template-rows: 1.5em;
+    align-content: center;
 }
-.follow-request .score {
+.follow-request + .score {
     grid-template-rows: 1.5em 1.5em;
 }
-.item .score {
+.item + .score {
     grid-template-rows: 1em 1.5em 1em;
 }
 .score {

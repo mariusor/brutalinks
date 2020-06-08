@@ -9,3 +9,6 @@
 header menu {
     display: none;
 }
+.about p {
+    line-height: 1.6em;
+}

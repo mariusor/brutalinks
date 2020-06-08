@@ -218,6 +218,9 @@ nav dl dt::before, nav ul li::before {
     content: "\22c5";
     padding: 0 .4em;
 }
+p {
+    word-break: break-word;
+}
 @media (min-width: 2201px) {
     :root {
         font-size: .78vw;
