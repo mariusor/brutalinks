@@ -4,14 +4,10 @@
 .comments details {
     margin: .3em 0 .6em 0;
 }
-.comments details[open] > summary {
-    padding: .3rem 0 0 .3rem;
-    margin-bottom: 1px;
-}
 .comments details > summary {
-    font-size: .7rem;
-    padding: .3rem 0 .3rem .3rem;
-    margin-left: .8em;
+    margin-left: .6em;
+    margin-bottom: -.3em;
+    padding: .3em 0 .3em .6em;
 }
 .comments details > summary span {
     opacity: .6;
@@ -25,9 +21,6 @@
 }
 .comments .data, #content .data {
     border: none;
-}
-summary + ol.comments {
-    margin-top: -1px;
 }
 ol.comments {
     margin-top: .3em;
