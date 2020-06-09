@@ -211,8 +211,19 @@ menu li::before, nav dl dt::before, nav ul li::before {
 p {
     word-break: break-word;
 }
+form fieldset {
+    border: 0;
+    padding: 0;
+    margin: 0;
+}
+form textarea {
+    width: 100%;
+}
 form button {
     margin-top: .2em;
+}
+#reply, #new {
+    max-width: 30rem;
 }
 @media (min-width: 2201px) {
     :root {

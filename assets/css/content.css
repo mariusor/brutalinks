@@ -89,14 +89,3 @@ main.content article {
     opacity: .6;
     line-height: 1.12rem;
 }
-#reply, #new {
-    max-width: 30rem;
-}
-fieldset {
-    border: 0;
-    padding: 0;
-    margin: 0;
-}
-textarea {
-    width: 100%;
-}
