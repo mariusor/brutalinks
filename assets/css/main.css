@@ -21,6 +21,9 @@ article, aside, details, figcaption, figure,
 footer, header, hgroup, menu, nav, section {
     display: block;
 }
+:root {
+    height: 100%;
+}
 h1 { font-size: 180%; }
 h2 { font-size: 160%; }
 h3 { font-size: 140%; }
@@ -31,14 +34,10 @@ h5 { font-size: 96%; }
 h6 { font-size: 92%; }
 body {
     font-family: sans-serif;
-    line-height: 1;
 }
 table {
     border-collapse: collapse;
     border-spacing: 0;
-}
-:root {
-    height: 100%;
 }
 body {
     background-color: var(--main-bg-color);
@@ -88,11 +87,6 @@ svg.icon.icon-eraser {
 .icon.icon-angle-double-left, .icon.icon-angle-double-right, .icon.icon-adjust {
     vertical-align: text-top;
 }
-h1.logo a,
-h1.logo a:visited {
-    color: var(--main-fg-color);
-    text-decoration: none;
-}
 body > header svg.icon {
     vertical-align: text-top;
 }
@@ -101,6 +95,15 @@ body > header {
     grid-template-columns: auto auto 5fr;
     grid-area: header;
     margin: .5rem 0 0 0;
+}
+body > header h1 {
+    margin-bottom: -3px;
+}
+body > header h1 a,
+body > header h1 a:hover,
+body > header h1 a:visited {
+    color: var(--main-fg-color);
+    text-decoration: none;
 }
 body > header small {
     opacity: .7;
@@ -267,7 +270,7 @@ p {
         font-size: 2.6vw;
     }
     section header h2 small,
-    .logo a strong {
+    body > header h1 a strong {
         display: none;
     }
 }
@@ -276,7 +279,7 @@ p {
         font-size: 3.6vw;
     }
     footer time svg,
-    .logo a small {
+    body > header h1 a small {
         display: none;
     }
 }

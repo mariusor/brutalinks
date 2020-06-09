@@ -1,5 +1,5 @@
 {{- $account := CurrentAccount }}
-<h1 class="logo"><a href="/">{{ Info.Title | Name }}</a></h1>
+<h1><a href="/">{{ Info.Title | Name }}</a></h1>
 <menu class="tabs">
 {{- range $key, $value := Menu -}}
 {{- if $value.IsCurrent }}
