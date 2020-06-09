@@ -211,6 +211,9 @@ menu li::before, nav dl dt::before, nav ul li::before {
 p {
     word-break: break-word;
 }
+form button {
+    margin-top: .2em;
+}
 @media (min-width: 2201px) {
     :root {
         font-size: .78vw;

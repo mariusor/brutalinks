@@ -3,7 +3,6 @@ section nav dl, section nav ul, section nav ol {
 }
 section dl, section ul, section ol {
     margin-left: 1.3rem;
-    list-style: unset;
 }
 section blockquote,
 section q {

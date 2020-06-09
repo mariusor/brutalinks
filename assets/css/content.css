@@ -33,7 +33,7 @@ li ol {
     padding: .7rem 0 0 0;
 }
 ol.comments.lvl-0 {}
-ol.comments li {
+ol.comments > li {
     list-style: none;
 }
 .comment {
