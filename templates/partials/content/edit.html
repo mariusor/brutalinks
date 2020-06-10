@@ -6,11 +6,18 @@
 {{- $data := "" -}}
 {{- $op := "" -}}
 {{- $back := "/" -}}
+{{- $showTitle := false -}}
+{{- if eq current "block" -}}
+{{- $label = printf "Block %s:" .User.Handle -}}
+{{- $back = ( AccountPermaLink .User) -}}
+{{- else -}}
 {{- if eq current "user-message" -}}
 {{- $label = printf "Message %s:" .User.Handle -}}
 {{- $back = ( AccountPermaLink .User) -}}
+{{- $showTitle = true -}}
 {{- else -}}
 {{- $hash = .Content.Hash -}}
+{{- $showTitle = eq (len $hash) 0 -}}
 {{- $edit = .Content.Edit -}}
 {{- $title = .Content.Title -}}
 {{- $data = .Content.Data -}}
@@ -29,11 +36,12 @@
 {{- end -}}
 {{- end -}}
 {{- end -}}
+{{- end -}}
 <form method="post">
     <fieldset {{ if $hash }}data-reply="{{ $hash }}"{{end}}>
         <label for="submit-data">{{ $label }}</label><br/>
         <textarea {{if $readonly -}} disabled {{ end -}}name="data" id="submit-data" cols="80" rows="5" required>{{- if $edit -}}{{- $data -}}{{- end -}}{{if $readonly -}} You must authenticate to be able to comment {{ end -}}</textarea><br/>
-{{- if not $hash -}}
+{{- if $showTitle -}}
         <label for="submit-title">Title: </label><br/>
         <textarea {{if $readonly -}} disabled {{ end -}} name="title" id="submit-title" rows="2" required>{{- if $edit -}}{{- $data -}}{{- end -}}</textarea><br/>
 {{- end -}}

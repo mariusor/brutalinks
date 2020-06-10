@@ -40,10 +40,17 @@ func (h *handler) Routes() func(chi.Router) {
 
 			r.With(h.LoadAuthorMw).Route("/~{handle}", func(r chi.Router) {
 				r.With(ModelMw(&listingModel{tpl: "user"}), AccountFiltersMw, LoadOutboxMw).Get("/", h.HandleShow)
+
 				r.Get("/follow", h.FollowAccount)
 				r.Get("/follow/{action}", h.HandleFollowRequest)
-				r.With(ModelMw(&listingModel{tpl: "user-message"}), AccountFiltersMw, LoadOutboxMw).Get("/message", h.HandleShow)
-				r.Post("/message", h.HandleSubmit)
+
+				r.With(h.CSRF, ModelMw(&listingModel{tpl: "user-message"}), AccountFiltersMw, LoadOutboxMw).Group(func(r chi.Router) {
+					r.Get("/message", h.HandleShow)
+					r.Post("/message", h.HandleSubmit)
+
+					r.With(TemplateMw("block")).Get("/block", h.HandleShow)
+					r.Post("/block", h.BlockAccount)
+				})
 
 				r.Route("/{hash}", func(r chi.Router) {
 					r.Use(h.CSRF, ModelMw(&contentModel{}), ItemFiltersMw, LoadObjectFromInboxMw, ThreadedListingMw)

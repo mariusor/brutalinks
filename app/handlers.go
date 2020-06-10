@@ -571,8 +571,11 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 func (h *handler) HandleShow(w http.ResponseWriter, r *http.Request) {
 	m := ContextModel(r.Context())
 	if m == nil {
-		h.v.HandleErrors(w, r, errors.Errorf("Oops!!"))
-		return
+		m = &errorModel{
+			Status:     404,
+			StatusText: "Oops!!",
+			Title:      "Oops!!",
+		}
 	}
 	cursor := ContextCursor(r.Context())
 	if mod, ok := m.(Paginator); ok && cursor != nil {
@@ -581,4 +584,28 @@ func (h *handler) HandleShow(w http.ResponseWriter, r *http.Request) {
 	if err := h.v.RenderTemplate(r, w, m.Template(), m); err != nil {
 		h.v.HandleErrors(w, r, err)
 	}
+}
+
+func (h *handler) BlockAccount(w http.ResponseWriter, r *http.Request) {
+	loggedAccount := loggedAccount(r)
+	if !loggedAccount.IsValid() {
+		err := errors.Unauthorizedf("invalid logged account")
+		h.logger.Error(err.Error())
+		h.v.HandleErrors(w, r, err)
+		return
+	}
+	repo := h.storage
+	var err error
+	toFollow := ContextAuthors(r.Context())
+	if len(toFollow) == 0 {
+		h.v.HandleErrors(w, r, errors.NotFoundf("account not found"))
+		return
+	}
+	fol := toFollow[0]
+	err = repo.BlockAccount(*loggedAccount, fol)
+	if err != nil {
+		h.v.HandleErrors(w, r, err)
+		return
+	}
+	h.v.Redirect(w, r, AccountPermaLink(fol), http.StatusSeeOther)
 }

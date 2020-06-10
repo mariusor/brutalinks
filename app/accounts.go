@@ -69,6 +69,8 @@ type Account struct {
 	Votes     VoteCollection       `json:"-"`
 	Followers AccountCollection    `json:"followers,omitempty"`
 	Following AccountCollection    `json:"following,omitempty"`
+	Blocked   AccountCollection    `json:"-"`
+	Ignored   AccountCollection    `json:"-"`
 	Level     uint8                `json:"-"`
 	Parent    *Account             `json:"-"`
 	Children  AccountPtrCollection `json:"-"`
@@ -135,7 +137,7 @@ func (a *Account) IsValid() bool {
 
 // Private
 func (a *Account) Private() bool {
-	return a.Flags & FlagsPrivate == FlagsPrivate
+	return a.Flags&FlagsPrivate == FlagsPrivate
 }
 
 // Deletable

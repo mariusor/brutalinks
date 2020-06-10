@@ -596,6 +596,7 @@ func (r *repository) loadAccountsOutbox(acc Account) (Account, error) {
 
 	return acc, nil
 }
+
 func (r *repository) loadAccountsFollowing(acc Account) (Account, error) {
 	if !acc.HasMetadata() || len(acc.Metadata.FollowersIRI) == 0 {
 		return acc, nil
@@ -618,6 +619,50 @@ func (r *repository) loadAccountsFollowing(acc Account) (Account, error) {
 			if p.IsValid() {
 				acc.Following = append(acc.Following, p)
 			}
+		}
+		return nil
+	})
+
+	return acc, nil
+}
+
+func (r *repository) loadAccountsBlockedIgnored(acc Account) (Account, error) {
+	if !acc.HasMetadata() || len(acc.Metadata.OutboxIRI) == 0 {
+		return acc, nil
+	}
+
+	good := pub.ActivityVocabularyTypes{pub.BlockType, pub.IgnoreType}
+	f := &Filters{
+		Type: ActivityTypesFilter(good...),
+	}
+	it, err := r.fedbox.Collection(pub.IRI(acc.Metadata.OutboxIRI), Values(f))
+	if err != nil {
+		r.errFn(nil)(err.Error())
+		return acc, nil
+	}
+	if !pub.CollectionTypes.Contains(it.GetType()) {
+		return acc, nil
+	}
+	pub.OnOrderedCollection(it, func(o *pub.OrderedCollection) error {
+		for _, it := range o.Collection() {
+			if !good.Contains(it.GetType()) {
+				continue
+			}
+
+			pub.OnActivity(it, func(act *pub.Activity) error {
+				p := Account{}
+				p.FromActivityPub(act.Object)
+
+				if p.IsValid() {
+					if act.GetType() == pub.BlockType {
+						acc.Blocked = append(acc.Blocked, p)
+					}
+					if act.GetType() == pub.IgnoreType {
+						acc.Ignored = append(acc.Ignored, p)
+					}
+				}
+				return nil
+			})
 		}
 		return nil
 	})
@@ -1224,7 +1269,7 @@ func (r *repository) ActorCollection(fn CollectionFn, f *Filters) (Cursor, error
 		}
 		foundAll := len(items)+len(follows)+len(accounts) >= f.MaxItems
 		if !foundAll {
-			f.MaxItems -= len(items)+len(follows)+len(accounts)
+			f.MaxItems -= len(items) + len(follows) + len(accounts)
 		}
 		// TODO(marius): this needs to be externalized also to a different function that we can pass from outer scope
 		//   This function implements the logic for breaking out of the collection iteration cycle and returns a bool
@@ -1770,4 +1815,28 @@ func (r *repository) LoadActorInbox(actor pub.Item, f *Filters) (*Cursor, error)
 		return nil, err
 	}
 	return &cursor, nil
+}
+
+func (r *repository) BlockAccount(er, ed Account) error {
+	blocker := loadAPPerson(er)
+	blocked := loadAPPerson(ed)
+	if !accountValidForC2S(&er) {
+		return errors.Unauthorizedf("invalid account %s", er.Handle)
+	}
+
+	bcc := make(pub.ItemCollection, 0)
+	bcc = append(bcc, pub.IRI(BaseURL))
+
+	block := &pub.Block{
+		Type:   pub.BlockType,
+		BCC:    bcc,
+		Object: blocked.GetLink(),
+		Actor:  blocker.GetLink(),
+	}
+	_, _, err := r.fedbox.ToOutbox(block)
+	if err != nil {
+		r.errFn(nil)(err.Error())
+		return err
+	}
+	return nil
 }

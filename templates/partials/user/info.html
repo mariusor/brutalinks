@@ -21,8 +21,11 @@
                 {{ if not (sameHash .Hash CurrentAccount.Hash) }}<li><a title="Message user {{ .Handle }}" href="{{ . | AccountPermaLink }}/message">{{ icon "edit" "v-mirror" }} Message</a></li>{{- end -}}
                 {{- if ShowFollowLink CurrentAccount . }}
                 <li><a title="Follow user {{ .Handle }}" href="{{ . | AccountPermaLink }}/follow">{{ icon "star" }} Follow</a></li>{{- end -}}
-                {{- if  ShowBlockLink CurrentAccount . }}
-                <li><a title="Block user {{ .Handle }}" href="{{ . | AccountPermaLink }}/block">{{ icon "block" }} Block</a></li>{{- end }}
+                {{- if or (ShowBlockLink CurrentAccount .) (IsBlocked CurrentAccount .) }}
+                <li>
+                    {{- if ShowBlockLink CurrentAccount . -}}<a title="Block user {{ .Handle }}" href="{{ . | AccountPermaLink }}/block">{{ icon "block" }} Block</a>{{- end -}}
+                    {{- if IsBlocked CurrentAccount . }}{{ icon "block" }} Blocked{{- end -}}
+                </li>{{- end }}
             </ul>
         </nav>
     {{- if .HasPublicKey }}

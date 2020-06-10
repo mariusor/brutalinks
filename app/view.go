@@ -204,6 +204,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"Follows":           AccountFollows,
 			"IsFollowed":        AccountIsFollowed,
 			"IsRejected":        AccountIsRejected,
+			"IsBlocked":         AccountIsBlocked,
 			csrf.TemplateTag:    func() template.HTML { return csrf.TemplateField(r) },
 			"ToTitle":           ToTitle,
 			//"ScoreFmt":          func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
@@ -654,6 +655,24 @@ func AccountFollows(a, b *Account) bool {
 	return false
 }
 
+func AccountBlocks(a, b *Account) bool {
+	for _, acc := range a.Blocked {
+		if HashesEqual(acc.Hash, b.Hash) {
+			return true
+		}
+	}
+	return false
+}
+
+func AccountIgnores(a, b *Account) bool {
+	for _, acc := range a.Blocked {
+		if HashesEqual(acc.Hash, b.Hash) {
+			return true
+		}
+	}
+	return false
+}
+
 func AccountIsFollowed(a, b *Account) bool {
 	for _, acc := range a.Followers {
 		if HashesEqual(acc.Hash, b.Hash) {
@@ -670,6 +689,24 @@ func AccountIsRejected(a, b *Account) bool {
 	})
 }
 
+func AccountIsBlocked(a, b *Account) bool {
+	for _, acc := range a.Blocked {
+		if HashesEqual(acc.Hash, b.Hash) {
+			return true
+		}
+	}
+	return false
+}
+
+func AccountIsIgnored(a, b *Account) bool {
+	for _, acc := range a.Blocked {
+		if HashesEqual(acc.Hash, b.Hash) {
+			return true
+		}
+	}
+	return false
+}
+
 func showBlockLink(logged, current *Account) bool {
 	if !Instance.Config.ModerationEnabled {
 		return false
@@ -680,10 +717,13 @@ func showBlockLink(logged, current *Account) bool {
 	if HashesEqual(logged.Hash, current.Hash) {
 		return false
 	}
-	if InOutbox(logged, pub.Follow{
+	if InOutbox(logged, pub.Block{
 		Type:   pub.BlockType,
 		Object: current.pub.GetLink(),
 	}) {
+		return false
+	}
+	if AccountBlocks(logged, current) {
 		return false
 	}
 	return true
@@ -699,13 +739,13 @@ func showFollowLink(logged, current *Account) bool {
 	if HashesEqual(logged.Hash, current.Hash) {
 		return false
 	}
-	//if AccountFollows(logged, current) {
-	//	return false
-	//}
 	if InOutbox(logged, pub.Follow{
 		Type:   pub.FollowType,
 		Object: current.pub.GetLink(),
 	}) {
+		return false
+	}
+	if AccountFollows(logged, current) {
 		return false
 	}
 	return true

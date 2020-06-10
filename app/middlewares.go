@@ -179,6 +179,25 @@ func TitleMw(s string) Handler {
 	}
 }
 
+func TemplateMw(s string) Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			defer next.ServeHTTP(w, r)
+
+			m := ContextModel(r.Context())
+			if m == nil {
+				return
+			}
+			if l, ok := m.(*contentModel); ok {
+				l.tpl = s
+			}
+			if l, ok := m.(*listingModel); ok {
+				l.tpl = s
+			}
+		})
+	}
+}
+
 func ModelMw(m Model) Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
