@@ -1,6 +1,6 @@
 <ol>
 {{- range $key, $value := . -}}
-    <li data-index="{{$key}}" data-hash="{{.Hash}}" id="li-{{.Hash}}"{{- /*}}  class="account"{{ */ -}}>
+    <li data-index="{{$key}}" data-hash="{{.Hash}}" id="li-{{.Hash}}">
 {{- if IsComment . }}
     {{- template "partials/item" $value -}}
 {{ end -}}
@@ -8,7 +8,6 @@
     {{- template "partials/follow" $value }}
 {{ end -}}
 {{- if IsAccount . }}
-{{- /*if and (IsAccount .) (gt (len $value.Handle) 0) */}}
     {{- template "partials/account" $value }}
 {{ end -}}
     </li>
