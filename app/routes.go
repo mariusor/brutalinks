@@ -1,18 +1,13 @@
 package app
 
 import (
-	"fmt"
 	"github.com/go-ap/errors"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
-	"github.com/tdewolff/minify"
-	"github.com/tdewolff/minify/css"
-	"github.com/tdewolff/minify/js"
-	"github.com/tdewolff/minify/svg"
+	"github.com/mariusor/littr.go/internal/assets"
 	"net/http"
 	"os"
 	"path/filepath"
-	"regexp"
 	"time"
 )
 
@@ -115,40 +110,15 @@ func (h *handler) Routes() func(chi.Router) {
 
 		r.Get("/about", h.HandleAbout)
 		workDir, _ := os.Getwd()
-		assets := filepath.Join(workDir, "assets")
+		assetsDir := filepath.Join(workDir, "assets")
 
 		r.Group(func(r chi.Router) {
-			r.Get("/ns", func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "application/ld+json")
-				w.Header().Set("Cache-Control", fmt.Sprintf("public,max-age=%d", int(year.Seconds())))
-				http.ServeFile(w, r, filepath.Join(assets, "ns.json"))
-			})
-			r.Get("/favicon.ico", serveFiles(filepath.Join(assets, "/favicon.ico")))
-			r.Get("/icons.svg", serveFiles(filepath.Join(assets, "/icons.svg")))
-			r.Get("/robots.txt", serveFiles(filepath.Join(assets, "/robots.txt")))
-			r.Get("/css/{path}", serveFiles(filepath.Join(assets, "/css")))
-			r.Get("/js/{path}", serveFiles(filepath.Join(assets, "/js")))
+			r.Get("/ns", assets.ServeStatic(filepath.Join(assetsDir, "/ns.json")))
+			r.Get("/favicon.ico", assets.ServeStatic(filepath.Join(assetsDir, "/favicon.ico")))
+			r.Get("/icons.svg", assets.ServeStatic(filepath.Join(assetsDir, "/icons.svg")))
+			r.Get("/robots.txt", assets.ServeStatic(filepath.Join(assetsDir, "/robots.txt")))
+			r.Get("/css/{path}", assets.ServeStatic(filepath.Join(assetsDir, "/css")))
+			r.Get("/js/{path}", assets.ServeStatic(filepath.Join(assetsDir, "/js")))
 		})
-	}
-}
-
-const year = 8766 * time.Hour
-
-func serveFiles(st string) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		path := filepath.Clean(chi.URLParam(r, "path"))
-		fullPath := filepath.Join(st, path)
-
-		m := minify.New()
-		m.AddFunc("image/svg+xml", svg.Minify)
-		m.AddFunc("text/css", css.Minify)
-		m.AddFuncRegexp(regexp.MustCompile("^(application|text)/(x-)?(java|ecma)script$"), js.Minify)
-
-		mw := m.ResponseWriter(w, r)
-		defer mw.Close()
-
-		w = mw
-		w.Header().Set("Cache-Control", fmt.Sprintf("public,max-age=%d", int(year.Seconds())))
-		http.ServeFile(w, r, fullPath)
 	}
 }
