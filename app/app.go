@@ -201,6 +201,9 @@ func (e EnvType) IsQA() bool {
 func (e EnvType) IsTest() bool {
 	return strings.Contains(string(e), string(TEST))
 }
+func (e EnvType) IsDev() bool {
+	return strings.Contains(string(e), string(DEV))
+}
 
 // Name formats the name of the current Application
 func (a Application) Name() string {
