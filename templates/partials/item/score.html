@@ -1,9 +1,9 @@
 <aside class="score" data-score="{{if .Deleted}}-1{{else}}{{ .Score | ScoreFmt }}{{end}}" data-hash="{{.Hash}}">
     {{- $account := CurrentAccount -}}
     {{- $vote := $account.VotedOn . -}}
-    {{ if Config.VotingEnabled }}<a href="{{if and (not .Deleted) $account.IsLogged }}{{ . | YayLink}}{{ else }}#{{ end }}" class="yay{{if $vote | IsYay }} ed{{end}}" data-action="yay" data-hash="{{.Hash}}" rel="nofollow" title="yay">&#43;</a>{{ end }}
+    {{ if Config.VotingEnabled }}<a href="{{if and (not .Deleted) $account.IsLogged }}{{ . | YayLink}}{{ else }}#{{ end }}" class="yay{{if and (not .Deleted) (IsYay $vote) }} ed{{end}}" data-action="yay" data-hash="{{.Hash}}" rel="nofollow" title="yay">&#43;</a>{{ end }}
     <data{{if not .Deleted}} class="{{- .Score | ScoreClass -}}" value="{{.Score | NumberFmt }}"{{end}}>
         <small>{{- if .Deleted}}{{ icon "recycle" }}{{else}}{{ .Score | ScoreFmt }}{{end -}}</small>
     </data>
-    {{ if Config.VotingEnabled }}{{ if Config.DownvotingEnabled }}<a href="{{if and (not .Deleted) $account.IsLogged }}{{ . | NayLink}}{{ else }}#{{ end }}" class="nay{{if $vote | IsNay }} ed{{end}}" data-action="nay" data-hash="{{.Hash}}" rel="nofollow" title="nay">&#8722;</a>{{ end }}{{ end }}
+    {{ if Config.VotingEnabled }}{{ if Config.DownvotingEnabled }}<a href="{{if and (not .Deleted) $account.IsLogged }}{{ . | NayLink}}{{ else }}#{{ end }}" class="nay{{if and (not .Deleted) (IsNay $vote) }} ed{{end}}" data-action="nay" data-hash="{{.Hash}}" rel="nofollow" title="nay">&#8722;</a>{{ end }}{{ end }}
 </aside>
