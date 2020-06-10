@@ -24,12 +24,11 @@ OnReady( function() {
         e.stopPropagation();
     });
     $(".score a").forEach(function(lnk) {
-        if(lnk.getAttribute("href") == "#") {
-            addEvent(lnk, "click", function(e){
-                e.stopPropagation();
-                e.preventDefault();
-            });
-        }
+        if(lnk.getAttribute("href") != "#") { return; }
+        addEvent(lnk, "click", function(e){
+            e.stopPropagation();
+            e.preventDefault();
+        });
     });
     $("a.rm").forEach(function (del) {
         addEvent(del, "click", function(e) {
@@ -66,12 +65,12 @@ OnReady( function() {
     $("button[type='reset']").forEach(function (btn) {
         addEvent(btn, "click", function(e) {
             let backHref = btn.getAttribute("data-back");
-            if (!window.location.href.endsWith(backHref)) {
-                if (backHref.length > 0) {
-                    window.location = backHref;
-                } else {
-                    history.go(-1);
-                }
+            if (backHref == undefined) { return; }
+            if (window.location.href.endsWith(backHref)) { return; }
+            if (backHref.length > 0) {
+                window.location = backHref;
+            } else {
+                history.go(-1);
             }
         });
     });

@@ -1,7 +1,7 @@
 {{- $flashes := LoadFlashMessages -}}
 {{- if gt (len $flashes) 0 -}}
-<dialog id="flashes" open>
-<menu> <button class="close" data-dismiss="alert" aria-label="Close" title="Close">⨉</button> </menu>
+<dialog id="flashes" open role="alertdialog">
+<button class="close" type="reset" data-dismiss="alert" aria-label="Close" title="Close">&#10761;</button>
 {{- range $flash := $flashes -}}
 <p class="alert alert-{{$flash.Type}} alert-dismissible" role="alert">{{$flash.Msg}}</p>
 {{- end -}}

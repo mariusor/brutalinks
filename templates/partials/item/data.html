@@ -2,6 +2,7 @@
 <del class="titles" data-hash="{{.Hash}}">deleted</del>
 {{- else -}}
 {{- template "partials/item/title" . -}}
+{{ template "partials/item/recipients" . }}
 {{- if .IsSelf -}}
 {{if or ShowText (not .Title) }}
 {{- if eq .MimeType "text/html" -}}{{- replaceTags . | HTML -}}{{- end -}}
