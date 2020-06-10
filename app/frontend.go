@@ -356,7 +356,14 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 				ctxtErr(next, w, r, err)
 				return
 			}
+			if !accounts[0].IsValid() {
+				ctxtErr(next, w, r, errors.NotFoundf("Not found"))
+				return
+			}
 			acc = accounts[0]
+			// TODO(marius): Fix this ugly hack where we need to not override OAuth2 metadata loaded at login
+			acc.Metadata = m
+			h.storage.WithAccount(&acc)
 			// TODO(marius): this needs to be moved to where we're handling all Inbox activities, not on page load
 			acc, err = h.storage.loadAccountsFollowers(acc)
 			if err != nil {
@@ -366,8 +373,11 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 			if err != nil {
 				h.logger.WithContext(ctx).Warnf(err.Error())
 			}
-			// TODO(marius): Fix this ugly hack where we need to not override OAuth2 metadata loaded at login
-			acc.Metadata = m
+			acc, err = h.storage.loadAccountsBlockedIgnored(acc)
+			if err != nil {
+				h.logger.WithContext(ctx).Warnf(err.Error())
+			}
+
 			var items ItemCollection
 			if cursor := ContextCursor(r.Context()); cursor != nil {
 				items = cursor.items.Items()
