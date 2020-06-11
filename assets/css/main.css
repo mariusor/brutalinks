@@ -267,8 +267,12 @@ form button {
     :root {
         font-size: 2.4vw;
     }
+    body > footer nav:nth-of-type(2) li:first-of-type {
+        display:inline-block;
+    }
     section footer nav li a:not([rel="bookmark"]),
-    body > footer nav:not(.pagination),
+    body > footer nav:not(.pagination) li,
+    body > footer nav:not(.pagination) dl,
     body > header menu a span,
     body > header menu:nth-of-type(2) li:not(.acct) {
         display: none;
