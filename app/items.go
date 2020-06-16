@@ -172,7 +172,7 @@ func loadTags(data string) (TagCollection, TagCollection) {
 	return tags, mentions
 }
 
-func ContentFromRequest(r *http.Request, acc Account) (Item, error) {
+func ContentFromRequest(r *http.Request, author Account) (Item, error) {
 	if r.Method != http.MethodPost {
 		return Item{}, errors.Errorf("invalid http method type")
 	}
@@ -197,7 +197,7 @@ func ContentFromRequest(r *http.Request, acc Account) (Item, error) {
 		i.Data = dat
 	}
 
-	i.SubmittedBy = &acc
+	i.SubmittedBy = &author
 	i.MimeType = detectMimeType(i.Data)
 
 	i.Metadata.Tags, i.Metadata.Mentions = loadTags(i.Data)
