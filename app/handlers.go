@@ -594,15 +594,24 @@ func (h *handler) BlockAccount(w http.ResponseWriter, r *http.Request) {
 		h.v.HandleErrors(w, r, err)
 		return
 	}
+
+	n, err := ContentFromRequest(r, *loggedAccount)
+	if err != nil {
+		h.logger.WithContext(log.Ctx{
+			"before": err,
+		}).Error("wrong http method")
+		h.v.HandleErrors(w, r, errors.NewMethodNotAllowed(err, ""))
+		return
+	}
 	repo := h.storage
-	var err error
+
 	toFollow := ContextAuthors(r.Context())
 	if len(toFollow) == 0 {
 		h.v.HandleErrors(w, r, errors.NotFoundf("account not found"))
 		return
 	}
 	fol := toFollow[0]
-	err = repo.BlockAccount(*loggedAccount, fol)
+	err = repo.BlockAccount(*loggedAccount, fol, &n)
 	if err != nil {
 		h.v.HandleErrors(w, r, err)
 		return

@@ -1820,7 +1820,7 @@ func (r *repository) LoadActorInbox(actor pub.Item, f *Filters) (*Cursor, error)
 	return &cursor, nil
 }
 
-func (r *repository) BlockAccount(er, ed Account) error {
+func (r *repository) BlockAccount(er, ed Account, reason *Item) error {
 	blocker := loadAPPerson(er)
 	blocked := loadAPPerson(ed)
 	if !accountValidForC2S(&er) {
@@ -1830,12 +1830,14 @@ func (r *repository) BlockAccount(er, ed Account) error {
 	bcc := make(pub.ItemCollection, 0)
 	bcc = append(bcc, pub.IRI(BaseURL))
 
-	block := &pub.Block{
-		Type:   pub.BlockType,
-		BCC:    bcc,
-		Object: blocked.GetLink(),
-		Actor:  blocker.GetLink(),
+	block := new(pub.Block)
+	if reason != nil {
+		loadAPItem(block, *reason)
 	}
+	block.Type = pub.BlockType
+	block.BCC = bcc
+	block.Object = blocked.GetLink()
+	block.Actor = blocker.GetLink()
 	_, _, err := r.fedbox.ToOutbox(block)
 	if err != nil {
 		r.errFn(nil)(err.Error())
