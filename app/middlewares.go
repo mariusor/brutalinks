@@ -54,10 +54,9 @@ func LoadOutboxMw(next http.Handler) http.Handler {
 
 func LoadInboxMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		acc := loggedAccount(r)
 		f := ContextActivityFilters(r.Context())
 		repo := ContextRepository(r.Context())
-		cursor, err := repo.LoadActorInbox(acc.pub, f)
+		cursor, err := repo.LoadActorInbox(repo.fedbox.Service(), f)
 		if err != nil {
 			// @todo(marius): err
 			next.ServeHTTP(w, r)
