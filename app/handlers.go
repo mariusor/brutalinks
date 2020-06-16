@@ -220,7 +220,8 @@ func (h *handler) FollowAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fol := toFollow[0]
-	err = repo.FollowAccount(*loggedAccount, fol)
+	// todo(marius): load follow reason from POST request so we can show it to the followed user
+	err = repo.FollowAccount(*loggedAccount, fol, nil)
 	if err != nil {
 		h.v.HandleErrors(w, r, err)
 		return

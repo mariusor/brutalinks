@@ -1698,7 +1698,7 @@ func (r *repository) SendFollowResponse(f FollowRequest, accept bool) error {
 	return nil
 }
 
-func (r *repository) FollowAccount(er, ed Account) error {
+func (r *repository) FollowAccount(er, ed Account, reason *Item) error {
 	follower := loadAPPerson(er)
 	followed := loadAPPerson(ed)
 	if !accountValidForC2S(&er) {
@@ -1712,13 +1712,15 @@ func (r *repository) FollowAccount(er, ed Account) error {
 	to = append(to, pub.PublicNS)
 	bcc = append(bcc, pub.IRI(BaseURL))
 
-	follow := &pub.Follow{
-		Type:   pub.FollowType,
-		To:     to,
-		BCC:    bcc,
-		Object: followed.GetLink(),
-		Actor:  follower.GetLink(),
+	follow := new(pub.Follow)
+	if reason != nil {
+		loadAPItem(follow, *reason)
 	}
+	follow.Type = pub.FollowType
+	follow.To = to
+	follow.BCC = bcc
+	follow.Object = followed.GetLink()
+	follow.Actor = follower.GetLink()
 	_, _, err := r.fedbox.ToOutbox(follow)
 	if err != nil {
 		r.errFn(nil)(err.Error())
