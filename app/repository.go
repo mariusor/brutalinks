@@ -160,171 +160,172 @@ func BuildActorID(a Account) pub.ID {
 	return pub.ID(fmt.Sprintf("%s/%s", ActorsURL, url.PathEscape(a.Hash.String())))
 }
 
-func loadAPItem(item Item) pub.Item {
-	o := pub.Object{}
-
-	if id, ok := BuildIDFromItem(item); ok {
-		o.ID = id
-	}
-	if item.MimeType == MimeTypeURL {
-		o.Type = pub.PageType
-		o.URL = pub.IRI(item.Data)
-	} else {
-		wordCount := strings.Count(item.Data, " ") +
-			strings.Count(item.Data, "\t") +
-			strings.Count(item.Data, "\n") +
-			strings.Count(item.Data, "\r\n")
-		if wordCount > 300 {
-			o.Type = pub.ArticleType
+func loadAPItem(it pub.Item, item Item) error {
+	return pub.OnObject(it, func(o *pub.Object) error {
+		if id, ok := BuildIDFromItem(item); ok {
+			o.ID = id
+		}
+		if item.MimeType == MimeTypeURL {
+			o.Type = pub.PageType
+			o.URL = pub.IRI(item.Data)
 		} else {
-			o.Type = pub.NoteType
-		}
-
-		if len(item.Hash) > 0 {
-			o.URL = pub.IRI(ItemPermaLink(item))
-		}
-		o.Name = make(pub.NaturalLanguageValues, 0)
-		switch item.MimeType {
-		case MimeTypeMarkdown:
-			o.Source.MediaType = pub.MimeType(item.MimeType)
-			o.MediaType = MimeTypeHTML
-			if item.Data != "" {
-				o.Source.Content.Set("en", item.Data)
-				o.Content.Set("en", string(Markdown(item.Data)))
+			wordCount := strings.Count(item.Data, " ") +
+				strings.Count(item.Data, "\t") +
+				strings.Count(item.Data, "\n") +
+				strings.Count(item.Data, "\r\n")
+			if wordCount > 300 {
+				o.Type = pub.ArticleType
+			} else {
+				o.Type = pub.NoteType
 			}
-		case MimeTypeText:
-			fallthrough
-		case MimeTypeHTML:
-			o.MediaType = pub.MimeType(item.MimeType)
-			o.Content.Set("en", item.Data)
-		}
-	}
 
-	o.Published = item.SubmittedAt
-	o.Updated = item.UpdatedAt
-
-	if item.Deleted() {
-		del := pub.Tombstone{
-			ID:         o.ID,
-			Type:       pub.TombstoneType,
-			FormerType: o.Type,
-			Deleted:    o.Updated,
+			if len(item.Hash) > 0 {
+				o.URL = pub.IRI(ItemPermaLink(item))
+			}
+			o.Name = make(pub.NaturalLanguageValues, 0)
+			switch item.MimeType {
+			case MimeTypeMarkdown:
+				o.Source.MediaType = pub.MimeType(item.MimeType)
+				o.MediaType = MimeTypeHTML
+				if item.Data != "" {
+					o.Source.Content.Set("en", item.Data)
+					o.Content.Set("en", string(Markdown(item.Data)))
+				}
+			case MimeTypeText:
+				fallthrough
+			case MimeTypeHTML:
+				o.MediaType = pub.MimeType(item.MimeType)
+				o.Content.Set("en", item.Data)
+			}
 		}
+
+		o.Published = item.SubmittedAt
+		o.Updated = item.UpdatedAt
+
+		if item.Deleted() {
+			del := pub.Tombstone{
+				ID:         o.ID,
+				Type:       pub.TombstoneType,
+				FormerType: o.Type,
+				Deleted:    o.Updated,
+			}
+			repl := make(pub.ItemCollection, 0)
+			if item.Parent != nil {
+				if par, ok := BuildIDFromItem(*item.Parent); ok {
+					repl = append(repl, par)
+				}
+				if item.OP == nil {
+					item.OP = item.Parent
+				}
+			}
+			if item.OP != nil {
+				if op, ok := BuildIDFromItem(*item.OP); ok {
+					del.Context = op
+					if !repl.Contains(op) {
+						repl = append(repl, op)
+					}
+				}
+			}
+			if len(repl) > 0 {
+				del.InReplyTo = repl
+			}
+
+			it = &del
+			return nil
+		}
+
+		if item.Title != "" {
+			o.Name.Set("en", item.Title)
+		}
+		if item.SubmittedBy != nil {
+			o.AttributedTo = BuildActorID(*item.SubmittedBy)
+		}
+
+		to := make(pub.ItemCollection, 0)
+		bcc := make(pub.ItemCollection, 0)
+		cc := make(pub.ItemCollection, 0)
 		repl := make(pub.ItemCollection, 0)
+
 		if item.Parent != nil {
-			if par, ok := BuildIDFromItem(*item.Parent); ok {
-				repl = append(repl, par)
-			}
-			if item.OP == nil {
-				item.OP = item.Parent
+			p := item.Parent
+			first := true
+			for {
+				if par, ok := BuildIDFromItem(*p); ok {
+					repl = append(repl, par)
+				}
+				if p.SubmittedBy.IsValid() {
+					if pAuth := BuildActorID(*p.SubmittedBy); !pub.PublicNS.Equals(pAuth, true) {
+						if first {
+							if !to.Contains(pAuth) {
+								to = append(to, pAuth)
+							}
+							first = false
+						} else if !cc.Contains(pAuth) {
+							cc = append(cc, pAuth)
+						}
+					}
+				}
+				if p.Parent == nil {
+					break
+				}
+				p = p.Parent
 			}
 		}
 		if item.OP != nil {
 			if op, ok := BuildIDFromItem(*item.OP); ok {
-				del.Context = op
-				if !repl.Contains(op) {
-					repl = append(repl, op)
-				}
+				o.Context = op
 			}
 		}
 		if len(repl) > 0 {
-			del.InReplyTo = repl
+			o.InReplyTo = repl
 		}
 
-		return del
-	}
-
-	if item.Title != "" {
-		o.Name.Set("en", item.Title)
-	}
-	if item.SubmittedBy != nil {
-		o.AttributedTo = BuildActorID(*item.SubmittedBy)
-	}
-
-	to := make(pub.ItemCollection, 0)
-	bcc := make(pub.ItemCollection, 0)
-	cc := make(pub.ItemCollection, 0)
-	repl := make(pub.ItemCollection, 0)
-
-	if item.Parent != nil {
-		p := item.Parent
-		first := true
-		for {
-			if par, ok := BuildIDFromItem(*p); ok {
-				repl = append(repl, par)
+		// TODO(marius): add proper dynamic recipients to this based on some selector in the frontend
+		if !item.Private() {
+			to = append(to, pub.PublicNS)
+			bcc = append(bcc, pub.IRI(BaseURL))
+		}
+		if item.Metadata != nil {
+			m := item.Metadata
+			for _, rec := range m.To {
+				mto := pub.IRI(rec.Metadata.ID)
+				if !to.Contains(mto) {
+					to = append(to, mto)
+				}
 			}
-			if p.SubmittedBy.IsValid() {
-				if pAuth := BuildActorID(*p.SubmittedBy); !pub.PublicNS.Equals(pAuth, true) {
-					if first {
-						if !to.Contains(pAuth) {
-							to = append(to, pAuth)
-						}
-						first = false
-					} else if !cc.Contains(pAuth) {
-						cc = append(cc, pAuth)
+			for _, rec := range m.CC {
+				mcc := pub.IRI(rec.Metadata.ID)
+				if !cc.Contains(mcc) {
+					cc = append(cc, mcc)
+				}
+			}
+			if m.Mentions != nil || m.Tags != nil {
+				o.Tag = make(pub.ItemCollection, 0)
+				for _, men := range m.Mentions {
+					// todo(marius): retrieve object ids of each mention and add it to the CC of the object
+					t := pub.Object{
+						ID:   pub.ID(men.URL),
+						Type: pub.MentionType,
+						Name: pub.NaturalLanguageValues{{Ref: pub.NilLangRef, Value: men.Name}},
 					}
+					o.Tag.Append(t)
+				}
+				for _, tag := range m.Tags {
+					t := pub.Object{
+						ID:   pub.ID(tag.URL),
+						Type: pub.ObjectType,
+						Name: pub.NaturalLanguageValues{{Ref: pub.NilLangRef, Value: tag.Name}},
+					}
+					o.Tag.Append(t)
 				}
 			}
-			if p.Parent == nil {
-				break
-			}
-			p = p.Parent
 		}
-	}
-	if item.OP != nil {
-		if op, ok := BuildIDFromItem(*item.OP); ok {
-			o.Context = op
-		}
-	}
-	if len(repl) > 0 {
-		o.InReplyTo = repl
-	}
+		o.To = to
+		o.CC = cc
+		o.BCC = bcc
 
-	// TODO(marius): add proper dynamic recipients to this based on some selector in the frontend
-	if !item.Private() {
-		to = append(to, pub.PublicNS)
-		bcc = append(bcc, pub.IRI(BaseURL))
-	}
-	if item.Metadata != nil {
-		m := item.Metadata
-		for _, rec := range m.To {
-			mto := pub.IRI(rec.Metadata.ID)
-			if !to.Contains(mto) {
-				to = append(to, mto)
-			}
-		}
-		for _, rec := range m.CC {
-			mcc := pub.IRI(rec.Metadata.ID)
-			if !cc.Contains(mcc) {
-				cc = append(cc, mcc)
-			}
-		}
-		if m.Mentions != nil || m.Tags != nil {
-			o.Tag = make(pub.ItemCollection, 0)
-			for _, men := range m.Mentions {
-				// todo(marius): retrieve object ids of each mention and add it to the CC of the object
-				t := pub.Object{
-					ID:   pub.ID(men.URL),
-					Type: pub.MentionType,
-					Name: pub.NaturalLanguageValues{{Ref: pub.NilLangRef, Value: men.Name}},
-				}
-				o.Tag.Append(t)
-			}
-			for _, tag := range m.Tags {
-				t := pub.Object{
-					ID:   pub.ID(tag.URL),
-					Type: pub.ObjectType,
-					Name: pub.NaturalLanguageValues{{Ref: pub.NilLangRef, Value: tag.Name}},
-				}
-				o.Tag.Append(t)
-			}
-		}
-	}
-	o.To = to
-	o.CC = cc
-	o.BCC = bcc
-
-	return &o
+		return nil
+	})
 }
 
 var anonymousActor = &pub.Actor{
@@ -1373,7 +1374,8 @@ func (r *repository) SaveVote(v Vote) (Vote, error) {
 		}
 	}
 
-	o := loadAPItem(*v.Item)
+	o := new(pub.Object)
+	loadAPItem(o, *v.Item)
 	act := &pub.Activity{
 		Type:  pub.UndoType,
 		To:    pub.ItemCollection{pub.PublicNS},
@@ -1492,7 +1494,8 @@ func (r *repository) SaveItem(it Item) (Item, error) {
 	if it.SubmittedBy == nil || !it.SubmittedBy.HasMetadata() {
 		return Item{}, errors.Newf("invalid account")
 	}
-	art := loadAPItem(it)
+	art := new(pub.Object)
+	loadAPItem(art, it)
 	var author *pub.Actor
 	if it.SubmittedBy.IsLogged() {
 		author = loadAPPerson(*it.SubmittedBy)
