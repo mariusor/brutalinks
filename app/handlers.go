@@ -259,6 +259,7 @@ func (h *handler) HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
 			IRI: CompStrs{LikeString(loggedAccount.Hash.String())},
 		},
 	}
+	// todo(marius): load response reason from POST request so we can show it to the followed user
 	followRequests, cnt, err := repo.LoadFollowRequests(loggedAccount, ff)
 	if err != nil {
 		h.v.HandleErrors(w, r, err)
@@ -269,7 +270,7 @@ func (h *handler) HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	follow := followRequests[0]
-	err = repo.SendFollowResponse(follow, accept)
+	err = repo.SendFollowResponse(follow, accept, nil)
 	if err != nil {
 		h.v.HandleErrors(w, r, err)
 		return

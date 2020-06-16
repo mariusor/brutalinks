@@ -1665,7 +1665,7 @@ func (r *repository) LoadFollowRequests(ed *Account, f *Filters) (FollowRequests
 	return requests, uint(len(requests)), nil
 }
 
-func (r *repository) SendFollowResponse(f FollowRequest, accept bool) error {
+func (r *repository) SendFollowResponse(f FollowRequest, accept bool, reason *Item) error {
 	ed := f.Object
 	er := f.SubmittedBy
 	if !accountValidForC2S(ed) {
@@ -1678,13 +1678,15 @@ func (r *repository) SendFollowResponse(f FollowRequest, accept bool) error {
 	to = append(to, pub.IRI(er.Metadata.ID))
 	bcc = append(bcc, pub.IRI(BaseURL))
 
-	response := &pub.Activity{
-		To:     to,
-		Type:   pub.RejectType,
-		BCC:    bcc,
-		Object: pub.IRI(f.Metadata.ID),
-		Actor:  pub.IRI(ed.Metadata.ID),
+	response := new(pub.Activity)
+	if reason != nil {
+		loadAPItem(response, *reason)
 	}
+	response.To = to
+	response.Type = pub.RejectType
+	response.BCC = bcc
+	response.Object = pub.IRI(f.Metadata.ID)
+	response.Actor = pub.IRI(ed.Metadata.ID)
 	if accept {
 		to = append(to, pub.PublicNS)
 		response.Type = pub.AcceptType
