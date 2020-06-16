@@ -264,17 +264,13 @@ func loadRecipientsFrom(recipients pub.ItemCollection) ([]*Account, bool) {
 	result := make([]*Account, 0)
 	isPublic := false
 	for _, rec := range recipients {
-		recURL, err := rec.GetLink().URL()
-		if err != nil {
-			continue
-		}
 		if rec == pub.PublicNS {
 			isPublic = true
 			continue
 		}
-		maybeCol := path.Base(recURL.Path)
+		_, maybeCol := handlers.Split(rec.GetLink())
 		if handlers.ValidCollection(maybeCol) {
-			if handlers.CollectionType(maybeCol) != handlers.Followers && handlers.CollectionType(maybeCol) != handlers.Following {
+			if maybeCol != handlers.Followers && maybeCol != handlers.Following {
 				// we don't know how to handle collections that don't contain accounts
 				continue
 			}
