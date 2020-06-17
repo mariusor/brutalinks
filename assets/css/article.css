@@ -19,7 +19,7 @@ section p + blockquote, section p + pre {
 }
 section h1, section h2, section h3,
 section h4, section h5, section h6 {
-    font-weight: 500;
+    font-weight: 600;
 }
 section h1 {
     font-size: 1.32em;
@@ -46,14 +46,14 @@ section h6 {
     font-size: .94em;
 }
 section > header h2 {
-    font-weight: 500;
-    font-size: 1.16em;
+    font-size: 1.24em;
 }
 section > header h2 small {
     font-size: .75em;
     opacity: .8;
     margin: 0 .3rem 0 1rem;
     padding: 0;
+    font-weight: 400;
 }
 section > header h2 small:last-child::before {
     content: "(";
