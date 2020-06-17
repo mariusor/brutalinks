@@ -56,10 +56,14 @@ func LoadInboxMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := ContextActivityFilters(r.Context())
 		repo := ContextRepository(r.Context())
-		cursor, err := repo.LoadActorInbox(repo.fedbox.Service(), f)
+		acc := loggedAccount(r)
+		if acc == nil {
+			ctxtErr(next, w, r, errors.MethodNotAllowedf( "nil account"))
+			return
+		}
+		cursor, err := repo.LoadActorInbox(acc.pub, f)
 		if err != nil {
-			// @todo(marius): err
-			next.ServeHTTP(w, r)
+			ctxtErr(next, w, r, errors.Annotatef(err, "unable to load the %s's inbox", acc.pub.GetType()))
 			return
 		}
 		ctx := context.WithValue(r.Context(), CursorCtxtKey, cursor)

@@ -96,7 +96,7 @@ func (h *handler) Routes() func(chi.Router) {
 				r.With(FederatedFiltersMw, LoadServiceInboxMw).Get("/federated", h.HandleShow)
 				r.With(h.NeedsSessions, FollowedFiltersMw, h.ValidateLoggedIn(h.v.HandleErrors), LoadInboxMw).
 					Get("/followed", h.HandleShow)
-				r.With(ModelMw(&listingModel{tpl: "moderation"}), ModerationFiltersMw, LoadInboxMw, AnonymizeListing).
+				r.With(ModelMw(&listingModel{tpl: "moderation"}), ModerationFiltersMw, LoadServiceInboxMw, AnonymizeListing).
 					Get("/moderation", h.HandleShow)
 				r.With(ModelMw(&listingModel{tpl: "listing"}), ActorsFiltersMw, LoadServiceInboxMw, ThreadedListingMw).
 					Get("/~", h.HandleShow)
