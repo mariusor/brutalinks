@@ -5,6 +5,7 @@ import (
 	pub "github.com/go-ap/activitypub"
 	"html/template"
 	"net/url"
+	"regexp"
 	"strings"
 	"time"
 	"unicode"
@@ -290,6 +291,37 @@ func replaceTagsInItem(cur Item) string {
 		cur.Data = strings.ReplaceAll(cur.Data, to, repl)
 	}
 	return cur.Data
+}
+
+func (c TagCollection) Contains(t Tag) bool {
+	for _, tt := range c {
+		if tt.Type == t.Type && tt.Name == t.Name && tt.URL == t.URL {
+			return true
+		}
+	}
+	return false
+}
+
+func loadTags(data string) (TagCollection, TagCollection) {
+	if !strings.ContainsAny(data, "#@~") {
+		return nil, nil
+	}
+	tags := make(TagCollection, 0)
+	mentions := make(TagCollection, 0)
+
+	r := regexp.MustCompile(`(?:\A|\s)((?:[~@]\w+)(?:@\w+.\w+)?|(?:#[\w-]{3,}))`)
+	matches := r.FindAllSubmatch([]byte(data), -1)
+
+	for _, sub := range matches {
+		t := getTagFromBytes(sub[1])
+		if t.Type == TagMention && !mentions.Contains(t) {
+			mentions = append(mentions, t)
+		}
+		if t.Type == TagTag && !tags.Contains(t) {
+			tags = append(tags, t)
+		}
+	}
+	return tags, mentions
 }
 
 func addLevelComments(allComments []*Item) {

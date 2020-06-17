@@ -6,7 +6,6 @@ import (
 	"github.com/go-chi/chi"
 	"net/http"
 	"net/url"
-	"regexp"
 	"strings"
 	"time"
 
@@ -148,28 +147,6 @@ func getTagFromBytes(d []byte) Tag {
 		t.URL = fmt.Sprintf("%s/t/%s", host, name)
 	}
 	return t
-}
-
-func loadTags(data string) (TagCollection, TagCollection) {
-	if !strings.ContainsAny(data, "#@~") {
-		return nil, nil
-	}
-	tags := make(TagCollection, 0)
-	mentions := make(TagCollection, 0)
-
-	r := regexp.MustCompile(`(?:\A|\s)((?:[~@]\w+)(?:@\w+.\w+)?|(?:#\w{4,}))`)
-	matches := r.FindAllSubmatch([]byte(data), -1)
-
-	for _, sub := range matches {
-		t := getTagFromBytes(sub[1])
-		if t.Type == TagMention {
-			mentions = append(mentions, t)
-		}
-		if t.Type == TagTag {
-			tags = append(tags, t)
-		}
-	}
-	return tags, mentions
 }
 
 func ContentFromRequest(r *http.Request, author Account) (Item, error) {
