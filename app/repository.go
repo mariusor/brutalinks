@@ -1810,6 +1810,17 @@ func (r *repository) LoadActorOutbox(actor pub.Item, f *Filters) (*Cursor, error
 	return &cursor, nil
 }
 
+func (r *repository) LoadActivities(f *Filters) (*Cursor, error) {
+	collFn := func() (pub.CollectionInterface, error) {
+		return r.fedbox.Activities(Values(f))
+	}
+	cursor, err := r.ActorCollection(collFn, f)
+	if err != nil {
+		return nil, err
+	}
+	return &cursor, nil
+}
+
 func (r *repository) LoadActorInbox(actor pub.Item, f *Filters) (*Cursor, error) {
 	if actor == nil {
 		return nil, errors.Errorf("Invalid actor")
