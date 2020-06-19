@@ -286,11 +286,9 @@ func loadEnv(l *Application) (bool, error) {
 	if l.HostName == "" {
 		l.HostName = DefaultHost
 	}
+	l.name = os.Getenv("NAME")
 	if l.name == "" {
-		l.name = os.Getenv("NAME")
-		if l.name == "" {
-			l.name = l.HostName
-		}
+		l.name = l.HostName
 	}
 	if l.listen = os.Getenv("LISTEN"); l.listen == "" {
 		l.listen = fmt.Sprintf("%s:%d", l.HostName, l.Port)
@@ -335,6 +333,73 @@ func loadEnv(l *Application) (bool, error) {
 	return true, nil
 }
 
+type exit struct {
+	// signal is a channel which is waiting on user/os signals
+	signal chan os.Signal
+	// status is a channel on which we return exit codes for application
+	status chan int
+	// handlers is the mapping of signals to functions to execute
+	h signalHandlers
+}
+
+type signalHandlers map[os.Signal]func(*exit, os.Signal)
+
+// RegisterSignalHandlers sets up the signal handlers we want to use
+func RegisterSignalHandlers(handlers signalHandlers) *exit {
+	x := &exit{
+		signal: make(chan os.Signal, 1),
+		status: make(chan int, 1),
+		h:      handlers,
+	}
+	signals := make([]os.Signal, 0)
+	for sig := range handlers {
+		signals = append(signals, sig)
+	}
+	signal.Notify(x.signal, signals...)
+	return x
+}
+
+// handle reads signals received from the os and executes the handlers it has registered
+func (ex *exit) wait() chan int {
+	go func(ex *exit) {
+		for {
+			select {
+			case s := <-ex.signal:
+				ex.h[s](ex, s)
+			}
+		}
+	}(ex)
+	return ex.status
+}
+
+// SetupHttpServer creates a new http server and returns the start and stop functions for it
+func SetupHttpServer(listen string, m http.Handler, wait time.Duration, ctx context.Context) (func() error, func() error) {
+	srv := &http.Server{
+		Addr:         listen,
+		WriteTimeout: wait,
+		ReadTimeout:  wait,
+		IdleTimeout:  time.Second * 60,
+		Handler:      m,
+	}
+
+	shutdown := func() error {
+		select {
+		case <-ctx.Done():
+			if err := ctx.Err(); err != http.ErrServerClosed {
+				return err
+			}
+		}
+		err := srv.Shutdown(ctx)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
+	// Run our server in a goroutine so that it doesn't block.
+	return srv.ListenAndServe, shutdown
+}
+
 // Run is the wrapper for starting the web-server and handling signals
 func (a *Application) Run(m http.Handler, wait time.Duration) {
 	a.Logger.WithContext(log.Ctx{
@@ -342,91 +407,50 @@ func (a *Application) Run(m http.Handler, wait time.Duration) {
 		"host":   a.HostName,
 		"env":    a.Config.Env,
 	}).Info("Started")
-	srv := &http.Server{
-		Addr:         a.Listen(),
-		WriteTimeout: time.Second * 15,
-		ReadTimeout:  time.Second * 15,
-		IdleTimeout:  time.Second * 60,
-		Handler:      m,
-	}
+
+	srvStart, srvShutdown := SetupHttpServer(a.Listen(), m, wait, context.Background())
+	defer srvShutdown()
 
 	// Run our server in a goroutine so that it doesn't block.
 	go func() {
-		if err := srv.ListenAndServe(); err != nil {
+		if err := srvStart(); err != nil {
 			a.Logger.Error(err.Error())
 			os.Exit(1)
 		}
 	}()
 
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGHUP, syscall.SIGINT, syscall.SIGUSR1,
-		syscall.SIGTERM, syscall.SIGQUIT)
-
-	exitChan := make(chan int)
-	go func() {
-		for {
-			s := <-sigChan
-			switch s {
-			case syscall.SIGHUP:
-				a.Logger.Info("SIGHUP received, reloading configuration")
-				loadEnv(a)
-			case syscall.SIGUSR1:
-				a.Logger.Info("SIGUSR1 received, switching to maintenance mode")
-				a.Config.MaintenanceMode = !a.Config.MaintenanceMode
-			// kill -SIGINT XXXX or Ctrl+c
-			case syscall.SIGINT:
-				a.Logger.Info("SIGINT received, stopping")
-				exitChan <- 0
+	// Set up the signal channel to tell us if the user/os requires us to stop
+	sigHandlerFns := signalHandlers{
+		syscall.SIGHUP: func(x *exit, s os.Signal) {
+			a.Logger.Info("SIGHUP received, reloading configuration")
+			loadEnv(a)
+		},
+		syscall.SIGUSR1: func(x *exit, s os.Signal) {
+			a.Logger.Info("SIGUSR1 received, switching to maintenance mode")
+			a.Config.MaintenanceMode = !a.Config.MaintenanceMode
+		},
+		syscall.SIGTERM: func(x *exit, s os.Signal) {
 			// kill -SIGTERM XXXX
-			case syscall.SIGTERM:
-				a.Logger.Info("SIGITERM received, force stopping")
-				exitChan <- 0
-			// kill -SIGQUIT XXXX
-			case syscall.SIGQUIT:
-				a.Logger.Info("SIGQUIT received, force stopping with core-dump")
-				exitChan <- 0
-			default:
-				a.Logger.WithContext(log.Ctx{"signal": s}).Info("Unknown signal")
-			}
-		}
-	}()
-	code := <-exitChan
+			a.Logger.Info("SIGTERM received, stopping")
+			x.status <- 0
+		},
+		syscall.SIGINT: func(x *exit, s os.Signal) {
+			// kill -SIGINT XXXX or Ctrl+c
+			a.Logger.Info("SIGINT received, stopping")
+			x.status <- 0
+		},
+		syscall.SIGQUIT: func(x *exit, s os.Signal) {
+			a.Logger.Error("SIGQUIT received, force stopping")
+			x.status <- -1
+		},
+	}
 
-	// Create a deadline to wait for.
-	ctx, cancel := context.WithTimeout(context.Background(), wait)
-	//log.RegisterExitHandler(cancel)
-	defer cancel()
-
-	// Doesn't block if no connections, but will otherwise wait
-	// until the timeout deadline.
-	srv.Shutdown(ctx)
-	// Optionally, you could run srv.Shutdown in a goroutine and block on
-	// <-ctx.Done() if your application should wait for other services
-	// to finalize based on context cancellation.
-	a.Logger.Info("Shutting down")
+	// Wait for OS signals asynchronously
+	code := <-RegisterSignalHandlers(sigHandlerFns).wait()
+	if code == 0 {
+		a.Logger.Info("Shutting down")
+	}
 	os.Exit(code)
-}
-
-// ShowHeaders is a middleware for logging headers for a request
-func ShowHeaders(next http.Handler) http.Handler {
-	fn := func(w http.ResponseWriter, r *http.Request) {
-		for name, val := range r.Header {
-			Logger.WithContext(log.Ctx{name: val}).Debug("")
-		}
-		next.ServeHTTP(w, r)
-	}
-	return http.HandlerFunc(fn)
-}
-
-// StripCookies is a middleware for removing Header and SetCookie headers
-func StripCookies(next http.Handler) http.Handler {
-	fn := func(w http.ResponseWriter, r *http.Request) {
-		next.ServeHTTP(w, r)
-
-		w.Header().Del("Set-Cookie")
-		w.Header().Set("Cache-Control", "no-cache")
-	}
-	return http.HandlerFunc(fn)
 }
 
 func ReqLogger(f middleware.LogFormatter) Handler {
