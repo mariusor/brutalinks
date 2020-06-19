@@ -47,13 +47,13 @@ section h6 {
 }
 section > header h2 {
     font-size: 1.24em;
+    font-weight: 400;
 }
 section > header h2 small {
     font-size: .75em;
     opacity: .8;
-    margin: 0 .3rem 0 1rem;
+    margin: 0 0 0 1ex;
     padding: 0;
-    font-weight: 400;
 }
 section > header h2 small:last-child::before {
     content: "(";
