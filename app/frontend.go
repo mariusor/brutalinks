@@ -479,22 +479,6 @@ func (h *handler) ErrorHandler(errs ...error) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
-var nodeInfo = WebInfo{}
-
-func getNodeInfo(req *http.Request) (WebInfo, error) {
-	repo := ContextRepository(req.Context())
-	if repo == nil {
-		err := errors.Errorf("could not load item repository from Context")
-		return WebInfo{}, err
-	}
-
-	var err error
-	if nodeInfo.Title == "" {
-		nodeInfo, err = repo.LoadInfo()
-	}
-	return nodeInfo, err
-}
-
 func (h handler) CSRF(next http.Handler) http.Handler {
 	opts := []csrf.Option{
 		csrf.CookieName(csrfName),

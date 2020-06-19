@@ -140,7 +140,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 		}
 		return ac
 	}
-	nodeInfo, err := getNodeInfo(r)
+
 	ren := render.New(render.Options{
 		AssetNames: assets.Files,
 		Asset:      assets.Template,
@@ -188,8 +188,8 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"PrevPageLink":      prevPageLink,
 			"CanPaginate":       canPaginate,
 			"Config":            func() Configuration { return Instance.Config },
-			"Info":              func() WebInfo { return nodeInfo },
-			"Name":              appName,
+			"Version":           func() string { return Instance.Version },
+			"Name":              appName(Instance.name),
 			"Menu":              func() []headerEl { return headerMenu(r) },
 			"icon":              icon,
 			"svg":               assets.Svg,
@@ -420,24 +420,26 @@ func headerMenu(r *http.Request) []headerEl {
 	return ret
 }
 
-func appName(n string) template.HTML {
-	if n == "" {
-		return template.HTML(n)
-	}
-	parts := strings.Split(n, " ")
-	name := strings.Builder{}
+func appName(n string) func() template.HTML {
+	return func() template.HTML {
+		if n == "" {
+			return template.HTML(n)
+		}
+		parts := strings.Split(n, " ")
+		name := strings.Builder{}
 
-	name.WriteString(string(icon("trash-o")))
-	name.WriteString("<strong>")
-	name.WriteString(parts[0])
-	name.WriteString("</strong>")
-	for _, p := range parts[1:] {
-		name.WriteString(" <small>")
-		name.WriteString(p)
-		name.WriteString("</small>")
-	}
+		name.WriteString(string(icon("trash-o")))
+		name.WriteString("<strong>")
+		name.WriteString(parts[0])
+		name.WriteString("</strong>")
+		for _, p := range parts[1:] {
+			name.WriteString(" <small>")
+			name.WriteString(p)
+			name.WriteString("</small>")
+		}
 
-	return template.HTML(name.String())
+		return template.HTML(name.String())
+	}
 }
 
 func showText(m Model) func() bool {
