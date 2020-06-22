@@ -1,6 +1,9 @@
 package app
 
-import "bytes"
+import (
+	"bytes"
+	"fmt"
+)
 
 type Paginator interface {
 	SetCursor(*Cursor)
@@ -51,13 +54,26 @@ func (m listingModel) Template() string {
 	return m.tpl
 }
 
+type mBox struct {
+	Readonly  bool
+	Editable  bool
+	ShowTitle bool
+	Label     string
+	Hash      Hash
+	OP        Hash
+	Title     string
+	Back      string
+}
+
 type contentModel struct {
-	tpl     string
-	Title   string
-	Hash    Hash
-	Content Renderable
-	after   Hash
-	before  Hash
+	tpl          string
+	Title        string
+	Hash         Hash
+	Content      Renderable
+	ShowChildren bool
+	Message      mBox
+	after        Hash
+	before       Hash
 }
 
 func (m contentModel) NextPage() Hash {
@@ -86,7 +102,7 @@ func getFromList(h Hash, items RenderableList) *Item {
 			if bytes.Equal(h, com.Hash) {
 				return com, true
 			}
-			if cur, found := findOrDescendFn(com.Children); found {
+			if cur, found := findOrDescendFn(com.children); found {
 				return cur, found
 			}
 		}
@@ -101,7 +117,7 @@ func getFromList(h Hash, items RenderableList) *Item {
 			if bytes.Equal(h, it.Hash) {
 				return it
 			}
-			if cur, found := findOrDescendFn(it.Children); found {
+			if cur, found := findOrDescendFn(it.children); found {
 				return cur
 			}
 		}
@@ -119,6 +135,18 @@ func (m *contentModel) SetCursor(c *Cursor) {
 		return
 	}
 	m.Content = getFromList(m.Hash, c.items)
+	if m.Content.IsValid() {
+		if m.Message.Editable {
+			m.Message.Label = "Edit:"
+		} else {
+			m.Message.Label = "Reply:"
+		}
+		m.Message.Back = PermaLink(m.Content)
+	}
+	if acc, ok := m.Content.(*Account); ok {
+		m.Message.Label = fmt.Sprintf("Message %s", acc.Handle)
+		m.Title = fmt.Sprintf("Message %s", acc.Handle)
+	}
 }
 
 type loginModel struct {

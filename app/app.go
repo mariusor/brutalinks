@@ -118,8 +118,6 @@ type Application struct {
 	Secure   bool
 	Config   Configuration
 	Logger   log.Logger
-	SeedVal  int64
-	name     string
 	front    *handler
 }
 
@@ -148,8 +146,9 @@ func (a *Application) Front(r chi.Router) {
 	front, err := Init(conf)
 	if err != nil {
 		a.Logger.Warn(err.Error())
+		return
 	}
-	a.front = &front
+	a.front = front
 
 	// Frontend
 	r.With(front.Repository).Route("/", front.Routes())
@@ -206,18 +205,9 @@ func (e EnvType) IsDev() bool {
 }
 
 // Name formats the name of the current Application
-func (a Application) Name() string {
-	if a.name == "" {
-		parts := strings.Split(a.HostName, ".")
-		a.name = strings.Join(parts, " ")
-	}
-	return a.name
-}
-
-// Name formats the name of the current Application
 func (a Application) NodeInfo() WebInfo {
 	inf := WebInfo{
-		Title:   a.Name(),
+		Title:   a.Config.Name,
 		Summary: "Link aggregator inspired by reddit and hacker news using ActivityPub federation.",
 		Email:   "system@littr.me",
 		URI:     a.BaseURL,
@@ -245,8 +235,6 @@ func (a *Application) Listen() string {
 }
 
 func loadEnv(l *Application) (bool, error) {
-	var err error
-
 	if !validEnv(l.Config.Env) {
 		env := os.Getenv("ENV")
 		l.Config.Env = EnvType(strings.ToLower(env))
@@ -286,15 +274,12 @@ func loadEnv(l *Application) (bool, error) {
 	if l.HostName == "" {
 		l.HostName = DefaultHost
 	}
-	l.name = os.Getenv("NAME")
-	if l.name == "" {
-		l.name = l.HostName
+	l.Config.Name = os.Getenv("NAME")
+	if l.Config.Name == "" {
+		l.Config.Name = l.HostName
 	}
 	if l.listen = os.Getenv("LISTEN"); l.listen == "" {
 		l.listen = fmt.Sprintf("%s:%d", l.HostName, l.Port)
-	}
-	if l.SeedVal, err = strconv.ParseInt(os.Getenv("SEED"), 10, 64); err != nil {
-		l.SeedVal = RandomSeedSelectedByDiceRoll
 	}
 	l.Secure, _ = strconv.ParseBool(os.Getenv("HTTPS"))
 	if l.Secure {

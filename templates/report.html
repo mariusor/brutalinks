@@ -1,0 +1,12 @@
+{{- if IsComment .Content }}
+<article>
+    {{ template "partials/item" .Content }}
+</article>
+{{- end -}}
+{{- if IsAccount .Content }}
+    {{- template "partials/account" .Content -}}
+{{ end -}}
+<section id="report">
+    You are about to report this item to the instance's moderators.<br/>
+    {{ template "partials/content/edit" . }}
+</section>

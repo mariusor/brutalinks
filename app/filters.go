@@ -199,19 +199,17 @@ func AccountFiltersMw(next http.Handler) http.Handler {
 		f := FiltersFromRequest(r)
 		f.Type = CreateActivitiesFilter
 
-		m := ContextListingModel(r.Context())
 		authors := ContextAuthors(r.Context())
 		if len(authors) == 0 {
 			next.ServeHTTP(w, r)
 			return
 		}
+
 		for _, author := range authors {
 			f.AttrTo = append(f.AttrTo, LikeString(author.Hash.String()))
 		}
-		m.User = &authors[0]
-		m.Title = fmt.Sprintf("%s items", genitive(m.User.Handle))
 
-		ctx := context.WithValue(context.WithValue(r.Context(), FilterCtxtKey, f), ModelCtxtKey, m)
+		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

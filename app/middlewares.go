@@ -6,7 +6,6 @@ import (
 	pub "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
 	"net/http"
-	"path"
 )
 
 func (h handler) LoadAuthorMw(next http.Handler) http.Handler {
@@ -19,8 +18,7 @@ func (h handler) LoadAuthorMw(next http.Handler) http.Handler {
 		if len(authors) == 0 {
 			authors = append(authors, AnonymousAccount)
 		}
-		ctx := context.WithValue(r.Context(), AuthorCtxtKey, authors)
-		next.ServeHTTP(w, r.WithContext(ctx))
+		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), AuthorCtxtKey, authors)))
 	})
 }
 
@@ -58,7 +56,7 @@ func LoadInboxMw(next http.Handler) http.Handler {
 		repo := ContextRepository(r.Context())
 		acc := loggedAccount(r)
 		if acc == nil {
-			ctxtErr(next, w, r, errors.MethodNotAllowedf( "nil account"))
+			ctxtErr(next, w, r, errors.MethodNotAllowedf("nil account"))
 			return
 		}
 		cursor, err := repo.LoadActorInbox(acc.pub, f)
@@ -138,12 +136,6 @@ func LoadObjectFromInboxMw(next http.Handler) http.Handler {
 			return
 		}
 
-		// @todo(marius): this is a very ugly way of checking for edit,
-		//   as if we add a middleware which sets the editable bit to true,
-		//   it's being run _before_ actually loading the object
-		if path.Base(r.URL.Path) == "edit" {
-			i.Edit = true
-		}
 		items := ItemCollection{i}
 		if comments, err := repo.loadItemsReplies(i); err == nil {
 			items = append(items, comments...)
@@ -176,6 +168,9 @@ func TitleMw(s string) Handler {
 			m := ContextModel(r.Context())
 			if m != nil {
 				m.SetTitle(s)
+				if mm, ok := m.(*contentModel); ok {
+					mm.Message.Title = s
+				}
 			}
 			next.ServeHTTP(w, r)
 		})
@@ -204,17 +199,153 @@ func TemplateMw(s string) Handler {
 func ModelMw(m Model) Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ctx := r.Context()
-			next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, ModelCtxtKey, m)))
+			authors := ContextAuthors(r.Context())
+			if len(authors) > 0 {
+
+			}
+			ctx := context.WithValue(r.Context(), ModelCtxtKey, m)
+			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }
 
+func ListingModelMw(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := context.WithValue(r.Context(), ModelCtxtKey, new(listingModel))
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+func AccountListingModelMw(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		m := new(listingModel)
+		m.tpl = "user"
+
+		authors := ContextAuthors(r.Context())
+		if len(authors) > 0 && authors[0].IsValid() {
+			m.User = &authors[0]
+		}
+		ctx := context.WithValue(r.Context(), ModelCtxtKey, m)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func ContentModelMw(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		m := ContextContentModel(ctx)
+		if m == nil {
+			m = new(contentModel)
+			m.Content = new(Item)
+		}
+		m.Content = new(Item)
+		m.Message.Label = "New:"
+		m.Message.Back = "/"
+		next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, ModelCtxtKey, m)))
+	})
+}
+
+func EditContentModelMw(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		m := ContextContentModel(ctx)
+		if m == nil {
+			m = new(contentModel)
+			m.Content = new(Item)
+		}
+		m.Title = "Edit item"
+		m.Message.Editable = true
+		m.Message.Label = "Edit:"
+		m.Message.Back = "/"
+		next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, ModelCtxtKey, m)))
+	})
+}
+
+func AddModelMw(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		m := ContextContentModel(ctx)
+		if m == nil {
+			m = new(contentModel)
+			m.Content = new(Item)
+		}
+		m.tpl = "new"
+		m.Message.ShowTitle = true
+		m.Title = "Add new submission"
+		m.Message.Editable = true
+		m.Message.Label = "Add new submission:"
+		m.Message.Back = "/"
+		next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, ModelCtxtKey, m)))
+	})
+}
+
+func ReportContentModelMw(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		m := ContextContentModel(ctx)
+		if m == nil {
+			m = new(contentModel)
+			m.Content = new(Item)
+		}
+		m.tpl = "report"
+		m.Content = new(Item)
+		m.Title = "Report item"
+		m.Message.Editable = false
+		m.Message.Label = "Reason for reporting:"
+		m.Message.Back = "/"
+		next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, ModelCtxtKey, m)))
+	})
+}
+
+func BlockContentModelMw(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		m := ContextContentModel(ctx)
+		if m == nil {
+			m = new(contentModel)
+			m.Content = new(Account)
+		}
+		m.tpl = "block"
+		authors := ContextAuthors(ctx)
+		if len(authors) == 0 {
+			next.ServeHTTP(w, r)
+			return
+		}
+		auth := authors[0]
+		m.Title = fmt.Sprintf("Block %s", auth.Handle)
+		m.Message.Label = fmt.Sprintf("Block %s:", auth.Handle)
+		m.Message.Back = PermaLink(&auth)
+		m.Message.Editable = true
+		next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, ModelCtxtKey, m)))
+	})
+}
+
+func MessageUserContentModelMw(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		m := ContextContentModel(ctx)
+		if m == nil {
+			m = new(contentModel)
+			m.Content = new(Account)
+		}
+		authors := ContextAuthors(ctx)
+		if len(authors) == 0 {
+			next.ServeHTTP(w, r)
+			return
+		}
+		auth := authors[0]
+		m.Title = fmt.Sprintf("Send user %s private message", auth.Handle)
+		m.Message.Editable = true
+		m.Message.Label = fmt.Sprintf("Message %s:", auth.Handle)
+		m.Message.Back = PermaLink(&auth)
+		next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, ModelCtxtKey, m)))
+	})
+}
 func ThreadedListingMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer next.ServeHTTP(w, r)
+
 		c := ContextCursor(r.Context())
 		if c == nil {
-			next.ServeHTTP(w, r)
 			return
 		}
 
@@ -257,7 +388,6 @@ func ThreadedListingMw(next http.Handler) http.Handler {
 		if len(newitems) > 0 {
 			c.items = newitems
 		}
-		next.ServeHTTP(w, r)
 	})
 }
 

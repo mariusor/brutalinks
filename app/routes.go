@@ -23,7 +23,7 @@ func (h *handler) Routes() func(chi.Router) {
 			r.Use(h.OutOfOrderMw(&Instance.Config))
 
 			r.With(h.CSRF).Group(func(r chi.Router) {
-				r.With(ModelMw(&contentModel{Title: "Add new submission", Content: &Item{Edit: true}})).Get("/submit", h.HandleShow)
+				r.With(AddModelMw).Get("/submit", h.HandleShow)
 				r.Post("/submit", h.HandleSubmit)
 				r.With(checkUserCreatingEnabled).Route("/register", func(r chi.Router) {
 					r.Group(func(r chi.Router) {
@@ -39,21 +39,21 @@ func (h *handler) Routes() func(chi.Router) {
 			})
 
 			r.With(h.LoadAuthorMw).Route("/~{handle}", func(r chi.Router) {
-				r.With(ModelMw(&listingModel{tpl: "user"}), AccountFiltersMw, LoadOutboxMw).Get("/", h.HandleShow)
+				r.With(AccountListingModelMw, AccountFiltersMw, LoadOutboxMw).Get("/", h.HandleShow)
 
 				r.Get("/follow", h.FollowAccount)
 				r.Get("/follow/{action}", h.HandleFollowRequest)
 
-				r.With(h.CSRF, ModelMw(&listingModel{tpl: "user-message"}), AccountFiltersMw, LoadOutboxMw).Group(func(r chi.Router) {
+				r.With(h.CSRF, MessageUserContentModelMw, AccountFiltersMw, LoadOutboxMw).Group(func(r chi.Router) {
 					r.Get("/message", h.HandleShow)
 					r.Post("/message", h.HandleSubmit)
 
-					r.With(TemplateMw("block")).Get("/block", h.HandleShow)
+					r.With(BlockContentModelMw).Get("/block", h.HandleShow)
 					r.Post("/block", h.BlockAccount)
 				})
 
 				r.Route("/{hash}", func(r chi.Router) {
-					r.Use(h.CSRF, ModelMw(&contentModel{}), ItemFiltersMw, LoadObjectFromInboxMw, ThreadedListingMw)
+					r.Use(h.CSRF, ContentModelMw, ItemFiltersMw, LoadObjectFromInboxMw, ThreadedListingMw)
 					r.Get("/", h.HandleShow)
 					r.Post("/", h.HandleSubmit)
 
@@ -63,11 +63,11 @@ func (h *handler) Routes() func(chi.Router) {
 						r.Get("/nay", h.HandleVoting)
 
 						//r.Get("/bad", h.ShowReport)
-						r.With(TitleMw("Report item")).Get("/bad", h.HandleShow)
+						r.With(ReportContentModelMw, TitleMw("Report item"), TemplateMw("report")).Get("/bad", h.HandleShow)
 						r.Post("/bad", h.HandleReport)
 
 						r.With(h.ValidateItemAuthor).Group(func(r chi.Router) {
-							r.With(TitleMw("Edit item")).Get("/edit", h.HandleShow)
+							r.With(EditContentModelMw).Get("/edit", h.HandleShow)
 							r.Post("/edit", h.HandleSubmit)
 							r.Get("/rm", h.HandleDelete)
 						})
@@ -86,7 +86,7 @@ func (h *handler) Routes() func(chi.Router) {
 			r.With(h.NeedsSessions).Get("/logout", h.HandleLogout)
 			r.With(h.NeedsSessions, h.ValidateLoggedIn(h.v.HandleErrors)).Post("/invite", h.HandleSendInvite)
 
-			r.With(ModelMw(&listingModel{})).Group(func(r chi.Router) {
+			r.With(ListingModelMw).Group(func(r chi.Router) {
 				// @todo(marius) :link_generation:
 				r.With(DefaultFilters, LoadServiceInboxMw).Get("/", h.HandleShow)
 				r.With(DomainFiltersMw, LoadServiceInboxMw, middleware.StripSlashes).Get("/d", h.HandleShow)

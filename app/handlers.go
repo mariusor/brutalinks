@@ -92,7 +92,7 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 			}).Error(err.Error())
 		}
 	}
-	h.v.Redirect(w, r, ItemPermaLink(n), http.StatusSeeOther)
+	h.v.Redirect(w, r, ItemPermaLink(&n), http.StatusSeeOther)
 }
 
 func genitive(name string) string {
@@ -118,7 +118,7 @@ func (h *handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	url := ItemPermaLink(p)
+	url := ItemPermaLink(&p)
 	backUrl := r.Header.Get("Referer")
 	if !strings.Contains(backUrl, url) && strings.Contains(backUrl, Instance.BaseURL) {
 		url = fmt.Sprintf("%s#item-%s", backUrl, p.Hash)
@@ -129,31 +129,6 @@ func (h *handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.v.Redirect(w, r, url, http.StatusFound)
-}
-
-// HandleReport serves /{year}/{month}/{day}/{hash}/bad POST request
-// HandleReport serves /~{handle}/{hash}/bad request
-func (h *handler) HandleReport(w http.ResponseWriter, r *http.Request) {
-	m := &contentModel{}
-	h.v.RenderTemplate(r, w, "new", m)
-}
-
-// ShowReport serves /{year}/{month}/{day}/{hash}/bad GET request
-// ShowReport serves /~{handle}/{hash}/bad request
-func (h *handler) ShowReport(w http.ResponseWriter, r *http.Request) {
-	repo := h.storage
-	iri := ObjectsURL.AddPath(chi.URLParam(r, "hash"))
-	p, err := repo.LoadItem(iri)
-	if err != nil {
-		h.logger.Error(err.Error())
-		h.v.HandleErrors(w, r, errors.NewNotFound(err, "not found"))
-		return
-	}
-	m := &contentModel{
-		Title:   fmt.Sprintf("Report %s", p.Title),
-		Content: &p,
-	}
-	h.v.RenderTemplate(r, w, "new", m)
 }
 
 // HandleVoting serves /{year}/{month}/{day}/{hash}/{direction} request
@@ -176,7 +151,7 @@ func (h *handler) HandleVoting(w http.ResponseWriter, r *http.Request) {
 	case Nay:
 		multiplier = -1
 	}
-	url := ItemPermaLink(p)
+	url := ItemPermaLink(&p)
 
 	acc := loggedAccount(r)
 	if acc.IsLogged() {
@@ -226,7 +201,7 @@ func (h *handler) FollowAccount(w http.ResponseWriter, r *http.Request) {
 		h.v.HandleErrors(w, r, err)
 		return
 	}
-	h.v.Redirect(w, r, AccountPermaLink(fol), http.StatusSeeOther)
+	h.v.Redirect(w, r, AccountPermaLink(&fol), http.StatusSeeOther)
 }
 
 func (h *handler) HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
@@ -412,7 +387,7 @@ func (h *handler) HandleItemRedirect(w http.ResponseWriter, r *http.Request) {
 		h.v.HandleErrors(w, r, errors.NewNotValid(err, "oops!"))
 		return
 	}
-	url := ItemPermaLink(p)
+	url := ItemPermaLink(&p)
 	h.v.Redirect(w, r, url, http.StatusMovedPermanently)
 }
 
@@ -618,5 +593,42 @@ func (h *handler) BlockAccount(w http.ResponseWriter, r *http.Request) {
 		h.v.HandleErrors(w, r, err)
 		return
 	}
-	h.v.Redirect(w, r, AccountPermaLink(fol), http.StatusSeeOther)
+	h.v.Redirect(w, r, AccountPermaLink(&fol), http.StatusSeeOther)
+}
+
+// HandleReport serves /~{handle}/{hash}/bad request
+func (h *handler) HandleReport(w http.ResponseWriter, r *http.Request) {
+	loggedAccount := loggedAccount(r)
+	if !loggedAccount.IsValid() {
+		err := errors.Unauthorizedf("invalid logged account")
+		h.logger.Error(err.Error())
+		h.v.HandleErrors(w, r, err)
+		return
+	}
+
+	reason, err := ContentFromRequest(r, *loggedAccount)
+	if err != nil {
+		h.logger.WithContext(log.Ctx{
+			"before": err,
+		}).Error("wrong http method")
+		h.v.HandleErrors(w, r, errors.NewMethodNotAllowed(err, ""))
+		return
+	}
+	repo := h.storage
+
+	p := new(Item)
+	p.FromActivityPub(ObjectsURL.AddPath(chi.URLParam(r, "hash")))
+	err = repo.ReportItem(*loggedAccount, *p, &reason)
+	if err != nil {
+		h.logger.Error(err.Error())
+		h.v.HandleErrors(w, r, errors.NewNotFound(err, "not found"))
+		return
+	}
+	url := ItemPermaLink(p)
+
+	backUrl := r.Header.Get("Referer")
+	if !strings.Contains(backUrl, url) && strings.Contains(backUrl, Instance.BaseURL) {
+		url = fmt.Sprintf("%s#item-%s", backUrl, p.Hash)
+	}
+	h.v.Redirect(w, r, url, http.StatusFound)
 }

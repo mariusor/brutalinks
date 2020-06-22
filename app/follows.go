@@ -63,3 +63,7 @@ func (f *FollowRequest) Private() bool {
 func (f *FollowRequest) Deleted() bool {
 	return f.Flags & FlagsDeleted == FlagsDeleted
 }
+// IsValid returns if the current follow request has a hash with length greater than 0
+func (f *FollowRequest) IsValid() bool {
+	return f != nil && len(f.Hash) > 0
+}

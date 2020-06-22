@@ -88,6 +88,7 @@ const (
 )
 
 type Renderable interface {
+	IsValid() bool
 	Type() RenderType
 	Date() time.Time
 }
@@ -141,8 +142,15 @@ type Item struct {
 	Voted       uint8             `json:"-"`
 	Level       uint8             `json:"-"`
 	Edit        bool              `json:"-"`
-	Children    ItemPtrCollection `json:"-"`
+	children    ItemPtrCollection `json:"-"`
 }
+
+func (i *Item) Children() ItemPtrCollection {
+	if i != nil {
+		return i.children
+ 	} 
+ 	return nil
+} 
 
 func (i *Item) Type() RenderType {
 	return Comment
@@ -338,10 +346,10 @@ func addLevelComments(allComments []*Item) {
 				break
 			}
 			leveled = append(leveled, cur.Hash)
-			if len(cur.Children) > 0 {
-				for _, child := range cur.Children {
+			if len(cur.children) > 0 {
+				for _, child := range cur.children {
 					child.Level = cur.Level + 1
-					setLevel(cur.Children)
+					setLevel(cur.children)
 				}
 			}
 		}
@@ -379,10 +387,10 @@ func reparentComments(allComments *ItemPtrCollection) {
 	retComments := make(ItemPtrCollection, 0)
 	for _, cur := range *allComments {
 		if par := parFn(*allComments, cur); par != nil {
-			if par.Children.Contains(cur.Hash) {
+			if par.children.Contains(cur.Hash) {
 				continue
 			}
-			par.Children = append(par.Children, cur)
+			par.children = append(par.children, cur)
 			cur.Parent = par
 		} else {
 			if cur == nil || retComments.Contains(cur.Hash) {

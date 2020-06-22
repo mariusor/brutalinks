@@ -47,10 +47,11 @@ type appConfig struct {
 var defaultLogFn = func(string, ...interface{}) {}
 var defaultCtxLogFn = func(c log.Ctx) LogFn { return defaultLogFn }
 
-func Init(c appConfig) (handler, error) {
+func Init(c appConfig) (*handler, error) {
 	var err error
 
-	h := handler{}
+	h := new(handler)
+
 	infoFn := defaultCtxLogFn
 	errFn := defaultCtxLogFn
 
@@ -141,22 +142,6 @@ func loggedAccount(r *http.Request) *Account {
 		return acct
 	}
 	return &defaultAccount
-}
-
-// buildLink("name", someVar1, anotherVar2) :: /path/of/name/{var1}/{var2} -> /path/of/name/someVar1/someVar2
-func buildLink(routes chi.Routes, name string, par ...interface{}) string {
-	for _, r := range routes.Routes() {
-		if strings.Contains(r.Pattern, name) {
-
-		}
-	}
-	return "/"
-}
-
-// HandleAdmin serves /admin request
-func (h handler) HandleAdmin(w http.ResponseWriter, _ *http.Request) {
-	w.WriteHeader(200)
-	w.Write([]byte("done!!!"))
 }
 
 // HandleCallback serves /auth/{provider}/callback request

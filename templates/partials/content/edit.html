@@ -1,41 +1,14 @@
-{{- $readonly:=not (or CurrentAccount.IsLogged Config.AnonymousCommentingEnabled) -}}
-{{- $label := "" -}}
-{{- $hash := "" -}}
-{{- $edit := false -}}
-{{- $title := "" -}}
+{{- $readonly := not (or CurrentAccount.IsLogged Config.AnonymousCommentingEnabled) -}}
+{{- $label := .Message.Label -}}
+{{- $hash := .Hash -}}
+{{- $edit := .Message.Editable -}}
+{{- $title := .Message.Title -}}
 {{- $data := "" -}}
-{{- $op := "" -}}
-{{- $back := "/" -}}
-{{- $showTitle := false -}}
-{{- if eq current "block" -}}
-{{- $label = printf "Block %s:" .User.Handle -}}
-{{- $back = ( AccountPermaLink .User) -}}
-{{- else -}}
-{{- if eq current "user-message" -}}
-{{- $label = printf "Message %s:" .User.Handle -}}
-{{- $back = ( AccountPermaLink .User) -}}
-{{- $showTitle = true -}}
-{{- else -}}
-{{- $hash = .Content.Hash -}}
-{{- $showTitle = eq (len $hash) 0 -}}
-{{- $edit = .Content.Edit -}}
-{{- $title = .Content.Title -}}
-{{- $data = .Content.Data -}}
-{{- $back = ( ItemPermaLink .Content) -}}
-{{- if .Content.OP.IsValid -}}
-{{- $op = .Content.OP.Hash -}}
-{{- end -}}
-{{- if not .Content.Hash -}}
-{{- $label = "New:" -}}
-{{- $back = "/" -}}
-{{-  else -}}
-{{- if .Content.Edit -}}
-{{- $label = "Edit:" -}}
-{{- else -}}
-{{- $label = "Comment:" -}}
-{{- end -}}
-{{- end -}}
-{{- end -}}
+{{- $op := .Message.OP -}}
+{{- $back := .Message.Back -}}
+{{- $showTitle := .Message.ShowTitle -}}
+{{- if .Content.IsValid -}}
+    {{- $data = .Content.Data -}}
 {{- end -}}
 <form method="post">
     <fieldset {{ if $hash }}data-reply="{{ $hash }}"{{end}}>
@@ -47,7 +20,7 @@
 {{- end -}}
 {{- if $hash -}}
 {{- if $edit }}
-        <input type="hidden" name="hash" id="submit-self" value="{{  $hash }}"/>
+        <input type="hidden" name="hash" id="submit-self" value="{{ $hash }}"/>
 {{- else }}
         <input type="hidden" name="parent" id="submit-parent" value="{{ $hash }}"/>
 {{- if $op }}

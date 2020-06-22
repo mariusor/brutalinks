@@ -189,7 +189,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"CanPaginate":       canPaginate,
 			"Config":            func() Configuration { return Instance.Config },
 			"Version":           func() string { return Instance.Version },
-			"Name":              appName(Instance.name),
+			"Name":              appName,
 			"Menu":              func() []headerEl { return headerMenu(r) },
 			"icon":              icon,
 			"svg":               assets.Svg,
@@ -420,26 +420,24 @@ func headerMenu(r *http.Request) []headerEl {
 	return ret
 }
 
-func appName(n string) func() template.HTML {
-	return func() template.HTML {
-		if n == "" {
-			return template.HTML(n)
-		}
-		parts := strings.Split(n, " ")
-		name := strings.Builder{}
-
-		name.WriteString(string(icon("trash-o")))
-		name.WriteString("<strong>")
-		name.WriteString(parts[0])
-		name.WriteString("</strong>")
-		for _, p := range parts[1:] {
-			name.WriteString(" <small>")
-			name.WriteString(p)
-			name.WriteString("</small>")
-		}
-
-		return template.HTML(name.String())
+func appName(n string) template.HTML {
+	if n == "" {
+		return template.HTML(n)
 	}
+	parts := strings.Split(n, " ")
+	name := strings.Builder{}
+
+	name.WriteString(string(icon("trash-o")))
+	name.WriteString("<strong>")
+	name.WriteString(parts[0])
+	name.WriteString("</strong>")
+	for _, p := range parts[1:] {
+		name.WriteString(" <small>")
+		name.WriteString(p)
+		name.WriteString("</small>")
+	}
+
+	return template.HTML(name.String())
 }
 
 func showText(m Model) func() bool {
@@ -582,7 +580,7 @@ func relTimeFmt(old time.Time) string {
 
 func scoreLink(i Item, dir string) string {
 	// @todo(marius) :link_generation:
-	return fmt.Sprintf("%s/%s", ItemPermaLink(i), dir)
+	return fmt.Sprintf("%s/%s", ItemPermaLink(&i), dir)
 }
 
 func yayLink(i Item) string {
@@ -778,7 +776,10 @@ func opLink(c Item) string {
 }
 
 // AccountPermaLink
-func AccountPermaLink(a Account) string {
+func AccountPermaLink(a *Account) string {
+	if a == nil {
+		return ""
+	}
 	if a.HasMetadata() && len(a.Metadata.URL) > 0 && a.Metadata.URL != a.Metadata.ID {
 		return a.Metadata.URL
 	}
@@ -786,28 +787,42 @@ func AccountPermaLink(a Account) string {
 }
 
 // ItemPermaLink
-func ItemPermaLink(i Item) string {
+func ItemPermaLink(i *Item) string {
+	if i == nil {
+		return ""
+	}
 	if !i.IsLink() && i.HasMetadata() && len(i.Metadata.URL) > 0 {
 		return i.Metadata.URL
 	}
 	return ItemLocalLink(i)
 }
 
+// PermaLink
+func PermaLink(r Renderable) string {
+	if i, ok := r.(*Item); ok {
+		return ItemPermaLink(i)
+	}
+	if a, ok := r.(*Account); ok {
+		return AccountPermaLink(a)
+	}
+	return ""
+}
+
 // ItemLocalLink
-func ItemLocalLink(i Item) string {
+func ItemLocalLink(i *Item) string {
 	if i.SubmittedBy == nil {
 		// @todo(marius) :link_generation:
 		return fmt.Sprintf("/i/%s", i.Hash.Short())
 	}
-	return fmt.Sprintf("%s/%s", AccountLocalLink(*i.SubmittedBy), i.Hash.Short())
+	return fmt.Sprintf("%s/%s", AccountLocalLink(i.SubmittedBy), i.Hash.Short())
 }
 
 func followLink(f FollowRequest) string {
-	return fmt.Sprintf("%s/%s", AccountLocalLink(*f.SubmittedBy), "follow")
+	return fmt.Sprintf("%s/%s", AccountLocalLink(f.SubmittedBy), "follow")
 }
 
 // ShowAccountHandle
-func ShowAccountHandle(a Account) string {
+func ShowAccountHandle(a *Account) string {
 	//if strings.Contains(a.Handle, "@") {
 	//	// @TODO(marius): simplify this at a higher level in the stack, see Account::FromActivityPub
 	//	if parts := strings.SplitAfter(a.Handle, "@"); len(parts) > 1 {
@@ -824,7 +839,7 @@ func ShowAccountHandle(a Account) string {
 	return handle
 }
 
-func AccountLocalLink(a Account) string {
+func AccountLocalLink(a *Account) string {
 	// @todo(marius) :link_generation:
 	return fmt.Sprintf("/~%s", ShowAccountHandle(a))
 }

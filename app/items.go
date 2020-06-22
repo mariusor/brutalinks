@@ -41,25 +41,16 @@ type Identifiable interface {
 	Id() int64
 }
 
-type data struct {
-	Source    string
-	Processed string
-}
-
-func (d data) String() string {
-	return d.Processed
-}
-
 func (i *Item) IsValid() bool {
 	return i != nil && len(i.Hash) > 0
 }
 
-func (i Item) Deleted() bool {
-	return (i.Flags & FlagsDeleted) == FlagsDeleted
+func (i *Item) Deleted() bool {
+	return i != nil && (i.Flags & FlagsDeleted) == FlagsDeleted
 }
 
 // UnDelete remove the deleted flag from an item
-func (i Item) UnDelete() {
+func (i *Item) UnDelete() {
 	i.Flags ^= FlagsDeleted
 }
 
@@ -68,12 +59,12 @@ func (i *Item) Delete() {
 	i.Flags |= FlagsDeleted
 }
 
-func (i Item) Private() bool {
-	return (i.Flags & FlagsPrivate) == FlagsPrivate
+func (i *Item) Private() bool {
+	return i != nil && (i.Flags & FlagsPrivate) == FlagsPrivate
 }
 
-func (i Item) Public() bool {
-	return (i.Flags & FlagsPrivate) != FlagsPrivate
+func (i *Item) Public() bool {
+	return i != nil && (i.Flags & FlagsPrivate) != FlagsPrivate
 }
 
 func (i *Item) MakePrivate() {
@@ -84,8 +75,8 @@ func (i *Item) MakePublic() {
 	i.Flags ^= FlagsPrivate
 }
 
-func (i Item) IsLink() bool {
-	return i.MimeType == MimeTypeURL
+func (i *Item) IsLink() bool {
+	return i != nil && i.MimeType == MimeTypeURL
 }
 
 func (i Item) GetDomain() string {
@@ -100,7 +91,7 @@ func (i Item) GetDomain() string {
 }
 
 func (i Item) IsSelf() bool {
-	mimeComponents := strings.Split(string(i.MimeType), "/")
+	mimeComponents := strings.Split(i.MimeType, "/")
 	return mimeComponents[0] == "text"
 }
 

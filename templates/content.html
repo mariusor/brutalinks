@@ -1,4 +1,4 @@
-{{- if not .Content.Edit -}}
+{{- if not .Message.Editable -}}
 <article>
 {{ template "partials/item" .Content }}
 </article>
@@ -7,8 +7,10 @@
 <section id="reply">{{template "partials/content/edit" . }}</section>
 {{- end }}
 <hr />
-{{- if .Content.Children | len }}
+{{- if .Content.IsValid -}}
+{{- if gt (len .Content.Children) 0 }}
 {{ template "partials/content/comments" .Content }}
 {{- else }}
 <section id="no-items"><p>There's only dust here.</p></section>
 {{ end -}}
+{{- end -}}

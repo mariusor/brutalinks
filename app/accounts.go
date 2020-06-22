@@ -107,12 +107,12 @@ func (a *Account) HasMetadata() bool {
 }
 
 // IsFederated
-func (a Account) IsFederated() bool {
+func (a *Account) IsFederated() bool {
 	return !a.IsLocal()
 }
 
 // IsLocal
-func (a Account) IsLocal() bool {
+func (a *Account) IsLocal() bool {
 	if !a.HasMetadata() {
 		return true
 	}
@@ -126,7 +126,7 @@ func (a Account) IsLocal() bool {
 }
 
 // HasPublicKey returns if current account had a public ssh key generated
-func (a Account) HasPublicKey() bool {
+func (a *Account) HasPublicKey() bool {
 	return a.HasMetadata() && a.Metadata.Key != nil && len(a.Metadata.Key.Public) > 0
 }
 
@@ -137,7 +137,7 @@ func (a *Account) IsValid() bool {
 
 // Private
 func (a *Account) Private() bool {
-	return a.Flags&FlagsPrivate == FlagsPrivate
+	return a != nil && a.Flags&FlagsPrivate == FlagsPrivate
 }
 
 // Deletable
@@ -172,13 +172,13 @@ func (a *Account) IsLogged() bool {
 }
 
 // HasIcon
-func (a Account) HasIcon() bool {
+func (a *Account) HasIcon() bool {
 	return a.HasMetadata() && len(a.Metadata.Icon.URI) > 0
 }
 
 // Deleted
-func (a Account) Deleted() bool {
-	return (a.Flags & FlagsDeleted) == FlagsDeleted
+func (a *Account) Deleted() bool {
+	return a != nil && (a.Flags&FlagsDeleted) == FlagsDeleted
 }
 
 func (a Account) Type() RenderType {

@@ -96,28 +96,6 @@ func ActivityPubService(c appConfig) *repository {
 	}
 }
 
-func getObjectType(el pub.Item) string {
-	if el == nil {
-		return ""
-	}
-	var label = ""
-	switch el.(type) {
-	case *pub.OrderedCollection:
-		label = "collection"
-	case pub.OrderedCollection:
-		label = "collection"
-	case pub.Person:
-		if o, ok := el.(pub.Person); ok {
-			label = o.Name.First().Value
-		}
-	case *pub.Person:
-		if o, ok := el.(*pub.Person); ok {
-			label = o.Name.First().Value
-		}
-	}
-	return label
-}
-
 func BuildCollectionID(a Account, o handlers.CollectionType) pub.ID {
 	if len(a.Handle) > 0 {
 		return pub.ID(fmt.Sprintf("%s/%s/%s", ActorsURL, url.PathEscape(a.Hash.String()), o))
@@ -137,7 +115,7 @@ func apAccountID(a Account) pub.ID {
 }
 
 func accountURL(acc Account) pub.IRI {
-	return pub.IRI(fmt.Sprintf("%s%s", Instance.BaseURL, AccountLocalLink(acc)))
+	return pub.IRI(fmt.Sprintf("%s%s", Instance.BaseURL, AccountLocalLink(&acc)))
 }
 
 func BuildIDFromItem(i Item) (pub.ID, bool) {
@@ -180,7 +158,7 @@ func loadAPItem(it pub.Item, item Item) error {
 			}
 
 			if len(item.Hash) > 0 {
-				o.URL = pub.IRI(ItemPermaLink(item))
+				o.URL = pub.IRI(ItemPermaLink(&item))
 			}
 			o.Name = make(pub.NaturalLanguageValues, 0)
 			switch item.MimeType {
@@ -1854,6 +1832,60 @@ func (r *repository) BlockAccount(er, ed Account, reason *Item) error {
 	block.Object = blocked.GetLink()
 	block.Actor = blocker.GetLink()
 	_, _, err := r.fedbox.ToOutbox(block)
+	if err != nil {
+		r.errFn(nil)(err.Error())
+		return err
+	}
+	return nil
+}
+
+func (r *repository) ReportItem(er Account, it Item, reason *Item) error {
+	reporter := loadAPPerson(er)
+	reported := new(pub.Object)
+	loadAPItem(reported, it)
+	if !accountValidForC2S(&er) {
+		return errors.Unauthorizedf("invalid account %s", er.Handle)
+	}
+
+	bcc := make(pub.ItemCollection, 0)
+	bcc = append(bcc, pub.IRI(BaseURL))
+
+	report := new(pub.Flag)
+	if reason != nil {
+		loadAPItem(report, *reason)
+	}
+	report.Type = pub.FlagType
+	report.BCC = bcc
+	report.Object = reported.GetLink()
+	report.Actor = reporter.GetLink()
+	_, _, err := r.fedbox.ToOutbox(report)
+	if err != nil {
+		r.errFn(nil)(err.Error())
+		return err
+	}
+	return nil
+}
+
+func (r *repository) ReportAccount(er , ed Account, reason *Item) error {
+	reporter := loadAPPerson(er)
+	reported := loadAPPerson(ed)
+
+	if !accountValidForC2S(&er) {
+		return errors.Unauthorizedf("invalid account %s", er.Handle)
+	}
+
+	bcc := make(pub.ItemCollection, 0)
+	bcc = append(bcc, pub.IRI(BaseURL))
+
+	report := new(pub.Flag)
+	if reason != nil {
+		loadAPItem(report, *reason)
+	}
+	report.Type = pub.FlagType
+	report.BCC = bcc
+	report.Object = reported.GetLink()
+	report.Actor = reporter.GetLink()
+	_, _, err := r.fedbox.ToOutbox(report)
 	if err != nil {
 		r.errFn(nil)(err.Error())
 		return err
