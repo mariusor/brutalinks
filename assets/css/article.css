@@ -116,7 +116,7 @@ section footer::before {
     font-family: monospace;
     justify-self: center;
     align-self: center;
-    font-weight: bolder;
+    font-weight: 901;
     font-size: 1.8em;
 }
 .score a.nay {
