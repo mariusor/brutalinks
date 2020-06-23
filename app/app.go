@@ -145,8 +145,8 @@ func (a *Application) Front(r chi.Router) {
 	}
 	front, err := Init(conf)
 	if err != nil {
-		a.Logger.Warn(err.Error())
-		return
+		a.Logger.Error(err.Error())
+		//return
 	}
 	a.front = front
 
