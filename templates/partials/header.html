@@ -1,6 +1,6 @@
 {{- $account := CurrentAccount }}
-<h1><a href="/">{{ Config.Name | Name }}</a></h1>
-<menu class="tabs">
+<figure><h1><a href="/">{{ Config.Name | Name }}</a></h1></figure>
+<nav class="tabs"><ul>
 {{- range $key, $value := Menu -}}
 {{- if $value.IsCurrent }}
     <li><a aria-current="page" href="#">{{ icon $value.Icon }} <span>/{{$value.Name}}</span></a></li>
@@ -10,9 +10,9 @@
 {{- end -}}
 {{- end -}}
 {{- end }}
-</menu>
+</ul></nav>
 {{- $providers := getProviders }}
-<menu>
+<nav><ul>
 {{- if $account.IsLogged }}
         <li class="acct"><a rel="mention" href="{{ $account | AccountPermaLink }}">{{$account.Handle}}</a> {{/* }}<span class="score">{{$account.Score | ScoreFmt}}</span>{{ */}}</li>
         <li class="acct"><a href="/logout">Log out</a></li>
@@ -31,5 +31,5 @@
 {{ end -}}
 {{- end -}}
 {{- end }}
-</menu>
+</ul></nav>
 {{ template "partials/flash" -}}

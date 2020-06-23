@@ -109,34 +109,34 @@ body > header small {
     opacity: .7;
     font-weight: lighter;
 }
-body > header menu {
+body > header nav ul {
     padding-top: .72rem;
     margin-left: 1rem;
     text-align: right;
 }
-body > header menu.tabs {
+body > header nav.tabs ul {
     font-size: 1em;
 }
 .icon {
     vertical-align: middle;
 }
-menu li, nav ul, nav ul li, nav dl, nav dl dd, nav dl dt {
+nav ul, nav ul li, nav dl, nav dl dd, nav dl dt {
     display: inline-block;
 }
-body > header menu li:first-child::before,
-body > header menu.tabs li::before {
+body > header nav ul li:first-child::before,
+body > header nav.tabs ul li::before {
     content: unset;
 }
-body > header menu {
+body > header nav:not(.tabs) {
     text-align: right;
     align-self: end;
     font-size: .8rem;
 }
-menu li a svg {
+nav ul li a svg {
     height: 1rem;
     width: 1rem;
 }
-menu li a svg.icon-activitypub {
+nav ul li a svg.icon-activitypub {
     width: 1.2rem;
     margin-left: .2rem;
 }
@@ -204,7 +204,7 @@ dialog button.close {
 li footer nav ul li::before, nav ul li:first-child::before, nav dl dt:first-child::before {
     content: unset;
 }
-menu li::before, nav dl dt::before, nav ul li::before {
+nav dl dt::before, nav ul li::before {
     content: "\22c5";
     padding: 0 .4em 0 .2em;
 }
@@ -259,7 +259,7 @@ form button {
     :root {
         font-size: 2vw;
     }
-    body > header menu a span {
+    body > header nav ul a span {
         display: unset;
     }
 }
@@ -273,8 +273,8 @@ form button {
     section footer nav li a:not([rel="bookmark"]),
     body > footer nav:not(.pagination) li,
     body > footer nav:not(.pagination) dl,
-    body > header menu a span,
-    body > header menu:nth-of-type(2) li:not(.acct) {
+    body > header nav ul a span,
+    body > header nav:nth-of-type(2) li:not(.acct) {
         display: none;
     }
 }
