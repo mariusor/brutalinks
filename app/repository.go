@@ -1850,15 +1850,29 @@ func (r *repository) ReportItem(er Account, it Item, reason *Item) error {
 	bcc := make(pub.ItemCollection, 0)
 	bcc = append(bcc, pub.IRI(BaseURL))
 
-	report := new(pub.Flag)
-	if reason != nil {
-		loadAPItem(report, *reason)
+	// We need to add the reported/reporter accounts' creators to the CC list
+	cc := make(pub.ItemCollection, 0)
+	if reporter.AttributedTo != nil {
+		cc = append(cc, reporter.AttributedTo.GetLink())
 	}
-	report.Type = pub.FlagType
-	report.BCC = bcc
-	report.Object = reported.GetLink()
-	report.Actor = reporter.GetLink()
-	_, _, err := r.fedbox.ToOutbox(report)
+	if reported.AttributedTo != nil {
+		reportedAuthor, err := r.fedbox.Actor(reported.AttributedTo.GetLink())
+		if err == nil && reportedAuthor.AttributedTo != nil && !reportedAuthor.AttributedTo.GetLink().Equals(reportedAuthor.GetLink(), false) {
+			cc = append(cc, reportedAuthor.AttributedTo.GetLink())
+		}
+	}
+
+	flag := new(pub.Flag)
+	if reason != nil {
+		loadAPItem(flag, *reason)
+	}
+	flag.Type = pub.FlagType
+	flag.BCC = bcc
+	flag.CC = cc
+	flag.To = flag.To[:]
+	flag.Object = reported.GetLink()
+	flag.Actor = reporter.GetLink()
+	_, _, err := r.fedbox.ToOutbox(flag)
 	if err != nil {
 		r.errFn(nil)(err.Error())
 		return err
@@ -1866,7 +1880,7 @@ func (r *repository) ReportItem(er Account, it Item, reason *Item) error {
 	return nil
 }
 
-func (r *repository) ReportAccount(er , ed Account, reason *Item) error {
+func (r *repository) ReportAccount(er, ed Account, reason *Item) error {
 	reporter := loadAPPerson(er)
 	reported := loadAPPerson(ed)
 

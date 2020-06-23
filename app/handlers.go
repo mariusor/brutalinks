@@ -616,15 +616,20 @@ func (h *handler) HandleReport(w http.ResponseWriter, r *http.Request) {
 	}
 	repo := h.storage
 
-	p := new(Item)
-	p.FromActivityPub(ObjectsURL.AddPath(chi.URLParam(r, "hash")))
-	err = repo.ReportItem(*loggedAccount, *p, &reason)
+	p, err := repo.LoadItem(ObjectsURL.AddPath(chi.URLParam(r, "hash")))
+	if err != nil {
+		h.logger.WithContext(log.Ctx{
+			"before": err,
+		}).Error("invalid item to report")
+		h.v.HandleErrors(w, r, errors.NewNotFound(err, ""))
+	}
+	err = repo.ReportItem(*loggedAccount, p, &reason)
 	if err != nil {
 		h.logger.Error(err.Error())
 		h.v.HandleErrors(w, r, errors.NewNotFound(err, "not found"))
 		return
 	}
-	url := ItemPermaLink(p)
+	url := ItemPermaLink(&p)
 
 	backUrl := r.Header.Get("Referer")
 	if !strings.Contains(backUrl, url) && strings.Contains(backUrl, Instance.BaseURL) {
