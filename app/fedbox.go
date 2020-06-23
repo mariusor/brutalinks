@@ -260,11 +260,11 @@ func (f fedbox) Actor(iri pub.IRI) (*pub.Actor, error) {
 		return anonymousActor, errors.Annotatef(err, "Unable to load Actor: %s", iri)
 	}
 	var person *pub.Actor
-	err = pub.OnActor(it, func(p *pub.Actor) error {
+	pub.OnActor(it, func(p *pub.Actor) error {
 		person = p
 		return nil
 	})
-	return person, err
+	return person, nil
 }
 
 func (f fedbox) Activity(iri pub.IRI) (*pub.Activity, error) {
@@ -273,11 +273,11 @@ func (f fedbox) Activity(iri pub.IRI) (*pub.Activity, error) {
 		return nil, errors.Annotatef(err, "Unable to load Activity: %s", iri)
 	}
 	var activity *pub.Activity
-	err = pub.OnActivity(it, func(a *pub.Activity) error {
+	pub.OnActivity(it, func(a *pub.Activity) error {
 		activity = a
 		return nil
 	})
-	return activity, err
+	return activity, nil
 }
 
 func (f fedbox) Object(iri pub.IRI) (*pub.Object, error) {
@@ -286,11 +286,11 @@ func (f fedbox) Object(iri pub.IRI) (*pub.Object, error) {
 		return nil, errors.Annotatef(err, "Unable to load Object: %s", iri)
 	}
 	var object *pub.Object
-	err = pub.OnObject(it, func(o *pub.Object) error {
+	pub.OnObject(it, func(o *pub.Object) error {
 		object = o
 		return nil
 	})
-	return object, err
+	return object, nil
 }
 
 func (f fedbox) Activities(filters ...FilterFn) (pub.CollectionInterface, error) {
@@ -307,13 +307,10 @@ func (f fedbox) Objects(filters ...FilterFn) (pub.CollectionInterface, error) {
 
 func (f fedbox) ToOutbox(a pub.Item) (pub.IRI, pub.Item, error) {
 	url := pub.IRI("")
-	err := pub.OnActivity(a, func(a *pub.Activity) error {
+	pub.OnActivity(a, func(a *pub.Activity) error {
 		url = outbox(a.Actor)
 		return nil
 	})
-	if err != nil {
-		return "", nil, err
-	}
 	if len(url) == 0 {
 		return "", nil, errors.Newf("Invalid URL to post to")
 	}
@@ -322,13 +319,10 @@ func (f fedbox) ToOutbox(a pub.Item) (pub.IRI, pub.Item, error) {
 
 func (f fedbox) ToInbox(a pub.Item) (pub.IRI, pub.Item, error) {
 	url := pub.IRI("")
-	err := pub.OnActivity(a, func(a *pub.Activity) error {
+	pub.OnActivity(a, func(a *pub.Activity) error {
 		url = inbox(a.Actor)
 		return nil
 	})
-	if err != nil {
-		return "", nil, err
-	}
 	if len(url) == 0 {
 		return "", nil, errors.Newf("Invalid URL to post to")
 	}
