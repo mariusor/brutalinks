@@ -39,9 +39,8 @@ func main() {
 	// Routes
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
-	if app.Instance.Config.Env == app.PROD {
+	if app.Instance.Config.Env != app.PROD {
 		r.Use(middleware.Recoverer)
-	} else {
 		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	}
 	app.Instance.Front(r)
