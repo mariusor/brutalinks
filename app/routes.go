@@ -63,7 +63,7 @@ func (h *handler) Routes() func(chi.Router) {
 						r.Get("/nay", h.HandleVoting)
 
 						//r.Get("/bad", h.ShowReport)
-						r.With(ReportContentModelMw, TitleMw("Report item"), TemplateMw("report")).Get("/bad", h.HandleShow)
+						r.With(ReportContentModelMw, TemplateMw("report")).Get("/bad", h.HandleShow)
 						r.Post("/bad", h.HandleReport)
 
 						r.With(h.ValidateItemAuthor).Group(func(r chi.Router) {

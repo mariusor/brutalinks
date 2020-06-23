@@ -215,15 +215,17 @@ func ListingModelMw(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
+
 func AccountListingModelMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		m := new(listingModel)
 		m.tpl = "user"
-
 		authors := ContextAuthors(r.Context())
-		if len(authors) > 0 && authors[0].IsValid() {
-			m.User = &authors[0]
+		auth := authors[0]
+		if len(authors) > 0 && auth.IsValid() {
+			m.User = &auth
 		}
+		m.Title = fmt.Sprintf("%s submissions", genitive(auth.Handle))
 		ctx := context.WithValue(r.Context(), ModelCtxtKey, m)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
