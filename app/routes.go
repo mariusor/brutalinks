@@ -122,6 +122,7 @@ func (h *handler) Routes() func(chi.Router) {
 		r.Group(func(r chi.Router) {
 			r.Get("/ns", assets.ServeStatic(filepath.Join(assetsDir, "/ns.json")))
 			r.Get("/favicon.ico", assets.ServeStatic(filepath.Join(assetsDir, "/favicon.ico")))
+			r.Get("/demo-responsive-nav", assets.ServeStatic(filepath.Join(assetsDir, "/demo.html")))
 			r.Get("/icons.svg", assets.ServeStatic(filepath.Join(assetsDir, "/icons.svg")))
 			r.Get("/robots.txt", assets.ServeStatic(filepath.Join(assetsDir, "/robots.txt")))
 			r.Get("/css/{path}", assets.ServeStatic(filepath.Join(assetsDir, "/css")))
