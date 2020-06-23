@@ -5,6 +5,7 @@ import (
 	"fmt"
 	pub "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
+	"html/template"
 	"net/http"
 )
 
@@ -240,10 +241,15 @@ func ContentModelMw(next http.Handler) http.Handler {
 			m.Content = new(Item)
 		}
 		m.Content = new(Item)
-		m.Message.Label = "New:"
+		m.Message.Label = "Reply:"
 		m.Message.Back = "/"
+		m.Message.SubmitLabel = htmlf("Reply %s", icon("reply","h-mirror"))
 		next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, ModelCtxtKey, m)))
 	})
+}
+
+func htmlf(s string, p ...interface{}) template.HTML {
+	return template.HTML(fmt.Sprintf(s, p...))
 }
 
 func EditContentModelMw(next http.Handler) http.Handler {
@@ -258,6 +264,7 @@ func EditContentModelMw(next http.Handler) http.Handler {
 		m.Message.Editable = true
 		m.Message.Label = "Edit:"
 		m.Message.Back = "/"
+		m.Message.SubmitLabel = htmlf("%s Save", icon("edit"))
 		next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, ModelCtxtKey, m)))
 	})
 }
@@ -276,6 +283,7 @@ func AddModelMw(next http.Handler) http.Handler {
 		m.Message.Editable = true
 		m.Message.Label = "Add new submission:"
 		m.Message.Back = "/"
+		m.Message.SubmitLabel = htmlf("%s Submit", icon("reply","h-mirror", "v-mirror"))
 		next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, ModelCtxtKey, m)))
 	})
 }
@@ -292,7 +300,8 @@ func ReportContentModelMw(next http.Handler) http.Handler {
 		m.Content = new(Item)
 		m.Title = "Report item"
 		m.Message.Editable = false
-		m.Message.Label = "Reason for reporting:"
+		m.Message.SubmitLabel = htmlf("%s Report", icon("flag"))
+		m.Message.Label = "Please add your reason for reporting:"
 		m.Message.Back = "/"
 		next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, ModelCtxtKey, m)))
 	})
@@ -317,6 +326,7 @@ func BlockContentModelMw(next http.Handler) http.Handler {
 		m.Message.Label = fmt.Sprintf("Block %s:", auth.Handle)
 		m.Message.Back = PermaLink(&auth)
 		m.Message.Editable = true
+		m.Message.SubmitLabel = htmlf("%s Block", icon("block"))
 		next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, ModelCtxtKey, m)))
 	})
 }
@@ -339,6 +349,7 @@ func MessageUserContentModelMw(next http.Handler) http.Handler {
 		m.Message.Editable = true
 		m.Message.Label = fmt.Sprintf("Message %s:", auth.Handle)
 		m.Message.Back = PermaLink(&auth)
+		m.Message.SubmitLabel = htmlf("%s Send", icon("lock"))
 		next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, ModelCtxtKey, m)))
 	})
 }

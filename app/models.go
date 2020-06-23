@@ -2,7 +2,7 @@ package app
 
 import (
 	"bytes"
-	"fmt"
+	"html/template"
 )
 
 type Paginator interface {
@@ -55,14 +55,15 @@ func (m listingModel) Template() string {
 }
 
 type mBox struct {
-	Readonly  bool
-	Editable  bool
-	ShowTitle bool
-	Label     string
-	Hash      Hash
-	OP        Hash
-	Title     string
-	Back      string
+	Readonly    bool
+	Editable    bool
+	ShowTitle   bool
+	Label       string
+	Hash        Hash
+	OP          Hash
+	Title       string
+	Back        string
+	SubmitLabel template.HTML
 }
 
 type contentModel struct {
@@ -135,18 +136,6 @@ func (m *contentModel) SetCursor(c *Cursor) {
 		return
 	}
 	m.Content = getFromList(m.Hash, c.items)
-	if m.Content.IsValid() {
-		if m.Message.Editable {
-			m.Message.Label = "Edit:"
-		} else {
-			m.Message.Label = "Reply:"
-		}
-		m.Message.Back = PermaLink(m.Content)
-	}
-	if acc, ok := m.Content.(*Account); ok {
-		m.Message.Label = fmt.Sprintf("Message %s", acc.Handle)
-		m.Title = fmt.Sprintf("Message %s", acc.Handle)
-	}
 }
 
 type loginModel struct {

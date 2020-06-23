@@ -6,7 +6,8 @@
 {{- if IsAccount .Content }}
     {{- template "partials/account" .Content -}}
 {{ end -}}
-<section id="report">
-    You are about to report this item to the instance's moderators.<br/>
+<hr/>
+You are about to report this item to the instance's moderators.
+<section id="new">
     {{ template "partials/content/edit" . }}
 </section>

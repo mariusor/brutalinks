@@ -13,7 +13,7 @@
 <form method="post">
     <fieldset {{ if $hash }}data-reply="{{ $hash }}"{{end}}>
         <label for="submit-data">{{ $label }}</label><br/>
-        <textarea {{if $readonly -}} disabled {{ end -}}name="data" id="submit-data" cols="80" rows="5" required>{{- if $edit -}}{{- $data -}}{{- end -}}{{if $readonly -}} You must authenticate to be able to comment {{ end -}}</textarea><br/>
+        <textarea {{if $readonly -}}disabled placeholder="You must authenticate to be able to comment" {{ end -}} name="data" id="submit-data" cols="80" rows="5" required>{{- if $edit -}}{{- $data -}}{{- end -}}</textarea><br/>
 {{- if $showTitle -}}
         <label for="submit-title">Title: </label><br/>
         <textarea {{if $readonly -}} disabled {{ end -}} name="title" id="submit-title" rows="2" required>{{- if $edit -}}{{- $data -}}{{- end -}}</textarea><br/>
@@ -30,7 +30,7 @@
 {{- end }}
         {{ csrfField }}
         <input type="hidden" name="mime-type" id="submit-mime-type" value="text/markdown"/>
-        <button {{if $readonly -}}disabled {{ end -}}type="submit">{{ if not $hash }}{{icon "reply" "h-mirror" "v-mirror"}} Submit{{else}}{{- if $edit -}}{{icon "edit" }}Save{{- else -}}Reply {{icon "reply" "h-mirror" }}{{end}}{{end}}</button>
+        <button {{if $readonly -}}disabled {{ end -}}type="submit">{{ .Message.SubmitLabel }}</button>
         <button {{if $readonly -}}disabled {{ else -}} data-back="{{ $back }}"{{ end -}}type="reset" formnovalidate>{{icon "plus" "deg-45"}}Cancel</button>
         {{- /* }}
         <label class="mime-type" title="text/markdown"><input type="radio" name="mime_type" value="text/markdown" checked="checked"/> self</label>
