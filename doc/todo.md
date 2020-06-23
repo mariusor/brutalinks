@@ -1,4 +1,6 @@
 # Issues
+* Merge assets to a single tidyfied file when executing go generate, and ...
+* Add local override of broccoli cli to allow minification at go generate time
 * Unify report/reply models, cursors.
 * Unify msg user/add new submission models, cursors.
 * Show lock icon when replying to private message. 
