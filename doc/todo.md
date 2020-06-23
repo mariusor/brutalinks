@@ -1,4 +1,7 @@
 # Issues
+* Unify report/reply models, cursors.
+* Unify msg user/add new submission models, cursors.
+* Show lock icon when replying to private message. 
 * When adding a new OAuth2 client from the command line, we shouldn't allow password flow by default, but based on a parameter when creating it.
 * ~~Refactor the fedbox API client and the filters overall. Main issue currently:~~
     * ~~When loading an Activity collection, dereference the Objects in it and load those from the /objects end-point~~
