@@ -34,7 +34,10 @@
                     {{ end -}}
                 {{- else -}}
                 {{ if Config.ModerationEnabled }}
-                <li><small><a href="{{$it | ItemLocalLink }}/bad" title="Report{{if .Title}}: {{$it.Title }}{{end}}"> <!--{{ icon "flag"}}-->report</a></small></li>{{ end }}
+                <li><small>
+                {{- if ItemReported $it }}reported{{- else -}}
+                <a href="{{$it | ItemLocalLink }}/bad" title="Report{{if .Title}}: {{$it.Title }}{{end}}"> <!--{{ icon "flag"}}-->report</a>{{- end -}}
+                </small></li>{{ end }}
             {{ end -}}
             {{ end -}}
             {{/* - if not $it.Private }}

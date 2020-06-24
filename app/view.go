@@ -199,14 +199,15 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"sameHash":              HashesEqual,
 			"fmtPubKey":             fmtPubKey,
 			"pluralize":             func(s string, cnt int) string { return pluralize(float64(cnt), s) },
-			"ShowFollowLink":        showFollowLink,
-			"ShowAccountBlockLink":  showAccountBlockLink,
-			"ShowAccountReportLink": showAccountReportLink,
-			"AccountFollows":        AccountFollows,
-			"AccountIsFollowed":     AccountIsFollowed,
-			"AccountIsRejected":     AccountIsRejected,
-			"AccountIsBlocked":      AccountIsBlocked,
-			"AccountIsReported":     AccountIsReported,
+			"ShowFollowLink":        func(a *Account) bool { return showFollowLink(accountFromRequest(), a) },
+			"ShowAccountBlockLink":  func(a *Account) bool { return showAccountBlockLink(accountFromRequest(), a) },
+			"ShowAccountReportLink": func(a *Account) bool { return showAccountReportLink(accountFromRequest(), a) },
+			"AccountFollows":        func(a *Account) bool { return AccountFollows(a, accountFromRequest()) },
+			"AccountIsFollowed":     func(a *Account) bool { return AccountIsFollowed(accountFromRequest(), a) },
+			"AccountIsRejected":     func(a *Account) bool { return AccountIsRejected(accountFromRequest(), a) },
+			"AccountIsBlocked":      func(a *Account) bool { return AccountIsBlocked(accountFromRequest(), a) },
+			"AccountIsReported":     func(a *Account) bool { return AccountIsReported(accountFromRequest(), a) },
+			"ItemReported":          func(i *Item) bool { return ItemIsReported(accountFromRequest(), i) },
 			csrf.TemplateTag:        func() template.HTML { return csrf.TemplateField(r) },
 			"ToTitle":               ToTitle,
 			//"ScoreFmt":          func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
@@ -648,8 +649,17 @@ func InOutbox(a *Account, b pub.Item) bool {
 	return a.Metadata.outbox.Contains(b)
 }
 
-func AccountFollows(a, b *Account) bool {
+func AccountFollows(a, by *Account) bool {
 	for _, acc := range a.Following {
+		if HashesEqual(acc.Hash, by.Hash) {
+			return true
+		}
+	}
+	return false
+}
+
+func AccountBlocks(by, b *Account) bool {
+	for _, acc := range by.Blocked {
 		if HashesEqual(acc.Hash, b.Hash) {
 			return true
 		}
@@ -657,8 +667,8 @@ func AccountFollows(a, b *Account) bool {
 	return false
 }
 
-func AccountBlocks(a, b *Account) bool {
-	for _, acc := range a.Blocked {
+func AccountIgnores(by, b *Account) bool {
+	for _, acc := range by.Ignored {
 		if HashesEqual(acc.Hash, b.Hash) {
 			return true
 		}
@@ -666,113 +676,106 @@ func AccountBlocks(a, b *Account) bool {
 	return false
 }
 
-func AccountIgnores(a, b *Account) bool {
-	for _, acc := range a.Blocked {
-		if HashesEqual(acc.Hash, b.Hash) {
-			return true
-		}
-	}
-	return false
-}
-
-func AccountIsFollowed(a, b *Account) bool {
+func AccountIsFollowed(a, by *Account) bool {
 	for _, acc := range a.Followers {
-		if HashesEqual(acc.Hash, b.Hash) {
+		if HashesEqual(acc.Hash, by.Hash) {
 			return true
 		}
 	}
 	return false
 }
 
-func AccountIsRejected(a, b *Account) bool {
-	return InOutbox(a, pub.Follow{
+func AccountIsRejected(by, a *Account) bool {
+	return InOutbox(by, pub.Block{
 		Type:   pub.BlockType,
-		Object: b.pub.GetLink(),
+		Object: a.pub.GetLink(),
 	})
 }
 
-func AccountIsBlocked(a, b *Account) bool {
-	for _, acc := range a.Blocked {
-		if HashesEqual(acc.Hash, b.Hash) {
+func AccountIsBlocked(by, a *Account) bool {
+	for _, acc := range by.Blocked {
+		if HashesEqual(acc.Hash, a.Hash) {
 			return true
 		}
 	}
 	return false
 }
 
-func AccountIsIgnored(a, b *Account) bool {
-	for _, acc := range a.Blocked {
-		if HashesEqual(acc.Hash, b.Hash) {
+func AccountIsIgnored(by, a *Account) bool {
+	for _, acc := range by.Ignored {
+		if HashesEqual(acc.Hash, a.Hash) {
 			return true
 		}
 	}
 	return false
 }
 
-func AccountIsReported(a, b *Account) bool {
-	for _, acc := range a.Blocked {
-		if HashesEqual(acc.Hash, b.Hash) {
-			return true
-		}
-	}
+func AccountIsReported(by, a *Account) bool {
 	return false
 }
 
-func showAccountBlockLink(logged, current *Account) bool {
+func ItemIsReported(by *Account, i *Item) bool {
+	return InOutbox(by, pub.Flag{
+		Type:   pub.FlagType,
+		Object: i.pub.GetLink(),
+	})
+}
+
+func showAccountBlockLink(by, current *Account) bool {
 	if !Instance.Config.ModerationEnabled {
 		return false
 	}
-	if !logged.IsLogged() {
+	if !by.IsLogged() {
 		return false
 	}
-	if HashesEqual(logged.Hash, current.Hash) {
+	if HashesEqual(by.Hash, current.Hash) {
 		return false
 	}
-	if InOutbox(logged, pub.Block{
+	if InOutbox(by, pub.Block{
 		Type:   pub.BlockType,
 		Object: current.pub.GetLink(),
 	}) {
 		return false
 	}
-	if AccountBlocks(logged, current) {
+	if AccountBlocks(by, current) {
 		return false
 	}
 	return true
 }
 
-func showFollowLink(logged, current *Account) bool {
+func showFollowLink(by, current *Account) bool {
 	if !Instance.Config.UserFollowingEnabled {
 		return false
 	}
-	if !logged.IsLogged() {
+	if !by.IsLogged() {
 		return false
 	}
-	if HashesEqual(logged.Hash, current.Hash) {
+	if HashesEqual(by.Hash, current.Hash) {
 		return false
 	}
-	if InOutbox(logged, pub.Follow{
+	if InOutbox(by, pub.Follow{
 		Type:   pub.FollowType,
 		Object: current.pub.GetLink(),
 	}) {
 		return false
 	}
-	if AccountFollows(logged, current) {
+	if AccountFollows(by, current) {
 		return false
 	}
 	return true
 }
 
-func showAccountReportLink(logged, current *Account) bool {
+func showAccountReportLink(by, current *Account) bool {
 	if !Instance.Config.ModerationEnabled {
 		return false
 	}
-	if !logged.IsLogged() {
+	if !by.IsLogged() {
 		return false
 	}
-	if HashesEqual(logged.Hash, current.Hash) {
+	if HashesEqual(by.Hash, current.Hash) {
 		return false
 	}
-	if InOutbox(logged, pub.Block{
+	if InOutbox(by, pub.Block{
 		Type:   pub.FlagType,
 		Object: current.pub.GetLink(),
 	}) {

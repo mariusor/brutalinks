@@ -19,18 +19,18 @@
         <nav>
             <ul>
                 {{ if not (sameHash .Hash CurrentAccount.Hash) }}<li><a title="Message user {{ .Handle }}" href="{{ . | AccountPermaLink }}/message">{{ icon "edit" "v-mirror" }} Message</a></li>{{- end -}}
-                {{- if or (ShowFollowLink CurrentAccount .) (AccountFollows CurrentAccount .) }}
+                {{- if or (ShowFollowLink .) (AccountFollows .) }}
                 <li>
-                   {{- if ShowFollowLink CurrentAccount . -}} <a title="Follow user {{ .Handle }}" href="{{ . | AccountPermaLink }}/follow">{{ icon "star" }} Follow</a>{{- end -}}
-                   {{- if AccountFollows CurrentAccount . }}{{ icon "star" }} Followed{{- end -}}
+                   {{- if ShowFollowLink . -}} <a title="Follow user {{ .Handle }}" href="{{ . | AccountPermaLink }}/follow">{{ icon "star" }} Follow</a>{{- end -}}
+                   {{- if AccountFollows . }}{{ icon "star" }} Followed{{- end -}}
                 </li>{{- end -}}
-                {{- if or (ShowAccountBlockLink CurrentAccount .) (AccountIsBlocked CurrentAccount .) }}
+                {{- if or (ShowAccountBlockLink .) (AccountIsBlocked .) }}
                 <li>
-                    {{- if ShowAccountBlockLink CurrentAccount . -}}<a title="Block user {{ .Handle }}" href="{{ . | AccountPermaLink }}/block">{{ icon "block" }} Block</a>{{- end -}}
-                    {{- if AccountIsBlocked CurrentAccount . }}{{ icon "block" }} Blocked{{- end -}}
+                    {{- if ShowAccountBlockLink . -}}<a title="Block user {{ .Handle }}" href="{{ . | AccountPermaLink }}/block">{{ icon "block" }} Block</a>{{- end -}}
+                    {{- if AccountIsBlocked . }}{{ icon "block" }} Blocked{{- end -}}
                 </li>{{- end }}
                 {{- /*}}
-                {{- if ShowAccountReportLink CurrentAccount . }}
+                {{- if ShowAccountReportLink . }}
                 <li>
                     <a title="Report user {{ .Handle }}" href="{{ . | AccountPermaLink }}/bad">{{ icon "flag" }} Report</a>
                 </li>{{- end }}
