@@ -19,13 +19,22 @@
         <nav>
             <ul>
                 {{ if not (sameHash .Hash CurrentAccount.Hash) }}<li><a title="Message user {{ .Handle }}" href="{{ . | AccountPermaLink }}/message">{{ icon "edit" "v-mirror" }} Message</a></li>{{- end -}}
-                {{- if ShowFollowLink CurrentAccount . }}
-                <li><a title="Follow user {{ .Handle }}" href="{{ . | AccountPermaLink }}/follow">{{ icon "star" }} Follow</a></li>{{- end -}}
-                {{- if or (ShowBlockLink CurrentAccount .) (IsBlocked CurrentAccount .) }}
+                {{- if or (ShowFollowLink CurrentAccount .) (AccountFollows CurrentAccount .) }}
                 <li>
-                    {{- if ShowBlockLink CurrentAccount . -}}<a title="Block user {{ .Handle }}" href="{{ . | AccountPermaLink }}/block">{{ icon "block" }} Block</a>{{- end -}}
-                    {{- if IsBlocked CurrentAccount . }}{{ icon "block" }} Blocked{{- end -}}
+                   {{- if ShowFollowLink CurrentAccount . -}} <a title="Follow user {{ .Handle }}" href="{{ . | AccountPermaLink }}/follow">{{ icon "star" }} Follow</a>{{- end -}}
+                   {{- if AccountFollows CurrentAccount . }}{{ icon "star" }} Followed{{- end -}}
+                </li>{{- end -}}
+                {{- if or (ShowAccountBlockLink CurrentAccount .) (AccountIsBlocked CurrentAccount .) }}
+                <li>
+                    {{- if ShowAccountBlockLink CurrentAccount . -}}<a title="Block user {{ .Handle }}" href="{{ . | AccountPermaLink }}/block">{{ icon "block" }} Block</a>{{- end -}}
+                    {{- if AccountIsBlocked CurrentAccount . }}{{ icon "block" }} Blocked{{- end -}}
                 </li>{{- end }}
+                {{- /*}}
+                {{- if ShowAccountReportLink CurrentAccount . }}
+                <li>
+                    <a title="Report user {{ .Handle }}" href="{{ . | AccountPermaLink }}/bad">{{ icon "flag" }} Report</a>
+                </li>{{- end }}
+                {{ */ -}}
             </ul>
         </nav>
     {{- if .HasPublicKey }}

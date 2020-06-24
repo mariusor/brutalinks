@@ -149,64 +149,66 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 		Funcs: []template.FuncMap{{
 			//"urlParam":          func(s string) string { return chi.URLParam(r, s) },
 			//"get":               func(s string) string { return r.URL.Query().Get(s) },
-			"isInverted":        func() bool { return isInverted(r) },
-			"sluggify":          sluggify,
-			"title":             func(t []byte) string { return string(t) },
-			"getProviders":      getAuthProviders,
-			"CurrentAccount":    accountFromRequest,
-			"IsComment":         func(t Renderable) bool { return t.Type() == Comment },
-			"IsFollowRequest":   func(t Renderable) bool { return t.Type() == Follow },
-			"IsVote":            func(t Renderable) bool { return t.Type() == Appreciation },
-			"IsAccount":         func(t Renderable) bool { return t.Type() == Actor },
-			"LoadFlashMessages": loadFlashMessages(r, w, s),
-			"Mod10":             mod10,
-			"ShowText":          showText(m),
-			"HTML":              html,
-			"Text":              text,
-			"replaceTags":       replaceTagsInItem,
-			"Markdown":          Markdown,
-			"AccountLocalLink":  AccountLocalLink,
-			"AccountPermaLink":  AccountPermaLink,
-			"ShowAccountHandle": ShowAccountHandle,
-			"ItemLocalLink":     ItemLocalLink,
-			"ItemPermaLink":     ItemPermaLink,
-			"ParentLink":        parentLink,
-			"OPLink":            opLink,
-			"IsYay":             isYay,
-			"IsNay":             isNay,
-			"ScoreFmt":          scoreFmt,
-			"NumberFmt":         func(i int) string { return numberFormat("%d", i) },
-			"TimeFmt":           relTimeFmt,
-			"ISOTimeFmt":        isoTimeFmt,
-			"ShowUpdate":        showUpdateTime,
-			"ScoreClass":        scoreClass,
-			"YayLink":           yayLink,
-			"NayLink":           nayLink,
-			"AcceptLink":        acceptLink,
-			"RejectLink":        rejectLink,
-			"NextPageLink":      nextPageLink,
-			"PrevPageLink":      prevPageLink,
-			"CanPaginate":       canPaginate,
-			"Config":            func() Configuration { return Instance.Config },
-			"Version":           func() string { return Instance.Version },
-			"Name":              appName,
-			"Menu":              func() []headerEl { return headerMenu(r) },
-			"icon":              icon,
-			"svg":               assets.Svg,
-			"js":                assets.Js,
-			"req":               func() *http.Request { return r },
-			"sameBase":          sameBasePath,
-			"sameHash":          HashesEqual,
-			"fmtPubKey":         fmtPubKey,
-			"pluralize":         func(s string, cnt int) string { return pluralize(float64(cnt), s) },
-			"ShowFollowLink":    showFollowLink,
-			"ShowBlockLink":     showBlockLink,
-			"Follows":           AccountFollows,
-			"IsFollowed":        AccountIsFollowed,
-			"IsRejected":        AccountIsRejected,
-			"IsBlocked":         AccountIsBlocked,
-			csrf.TemplateTag:    func() template.HTML { return csrf.TemplateField(r) },
-			"ToTitle":           ToTitle,
+			"isInverted":            func() bool { return isInverted(r) },
+			"sluggify":              sluggify,
+			"title":                 func(t []byte) string { return string(t) },
+			"getProviders":          getAuthProviders,
+			"CurrentAccount":        accountFromRequest,
+			"IsComment":             func(t Renderable) bool { return t.Type() == Comment },
+			"IsFollowRequest":       func(t Renderable) bool { return t.Type() == Follow },
+			"IsVote":                func(t Renderable) bool { return t.Type() == Appreciation },
+			"IsAccount":             func(t Renderable) bool { return t.Type() == Actor },
+			"LoadFlashMessages":     loadFlashMessages(r, w, s),
+			"Mod10":                 mod10,
+			"ShowText":              showText(m),
+			"HTML":                  html,
+			"Text":                  text,
+			"replaceTags":           replaceTagsInItem,
+			"Markdown":              Markdown,
+			"AccountLocalLink":      AccountLocalLink,
+			"AccountPermaLink":      AccountPermaLink,
+			"ShowAccountHandle":     ShowAccountHandle,
+			"ItemLocalLink":         ItemLocalLink,
+			"ItemPermaLink":         ItemPermaLink,
+			"ParentLink":            parentLink,
+			"OPLink":                opLink,
+			"IsYay":                 isYay,
+			"IsNay":                 isNay,
+			"ScoreFmt":              scoreFmt,
+			"NumberFmt":             func(i int) string { return numberFormat("%d", i) },
+			"TimeFmt":               relTimeFmt,
+			"ISOTimeFmt":            isoTimeFmt,
+			"ShowUpdate":            showUpdateTime,
+			"ScoreClass":            scoreClass,
+			"YayLink":               yayLink,
+			"NayLink":               nayLink,
+			"AcceptLink":            acceptLink,
+			"RejectLink":            rejectLink,
+			"NextPageLink":          nextPageLink,
+			"PrevPageLink":          prevPageLink,
+			"CanPaginate":           canPaginate,
+			"Config":                func() Configuration { return Instance.Config },
+			"Version":               func() string { return Instance.Version },
+			"Name":                  appName,
+			"Menu":                  func() []headerEl { return headerMenu(r) },
+			"icon":                  icon,
+			"svg":                   assets.Svg,
+			"js":                    assets.Js,
+			"req":                   func() *http.Request { return r },
+			"sameBase":              sameBasePath,
+			"sameHash":              HashesEqual,
+			"fmtPubKey":             fmtPubKey,
+			"pluralize":             func(s string, cnt int) string { return pluralize(float64(cnt), s) },
+			"ShowFollowLink":        showFollowLink,
+			"ShowAccountBlockLink":  showAccountBlockLink,
+			"ShowAccountReportLink": showAccountReportLink,
+			"AccountFollows":        AccountFollows,
+			"AccountIsFollowed":     AccountIsFollowed,
+			"AccountIsRejected":     AccountIsRejected,
+			"AccountIsBlocked":      AccountIsBlocked,
+			"AccountIsReported":     AccountIsReported,
+			csrf.TemplateTag:        func() template.HTML { return csrf.TemplateField(r) },
+			"ToTitle":               ToTitle,
 			//"ScoreFmt":          func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
 			//"NumberFmt":         func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
 		}},
@@ -707,7 +709,16 @@ func AccountIsIgnored(a, b *Account) bool {
 	return false
 }
 
-func showBlockLink(logged, current *Account) bool {
+func AccountIsReported(a, b *Account) bool {
+	for _, acc := range a.Blocked {
+		if HashesEqual(acc.Hash, b.Hash) {
+			return true
+		}
+	}
+	return false
+}
+
+func showAccountBlockLink(logged, current *Account) bool {
 	if !Instance.Config.ModerationEnabled {
 		return false
 	}
@@ -746,6 +757,25 @@ func showFollowLink(logged, current *Account) bool {
 		return false
 	}
 	if AccountFollows(logged, current) {
+		return false
+	}
+	return true
+}
+
+func showAccountReportLink(logged, current *Account) bool {
+	if !Instance.Config.ModerationEnabled {
+		return false
+	}
+	if !logged.IsLogged() {
+		return false
+	}
+	if HashesEqual(logged.Hash, current.Hash) {
+		return false
+	}
+	if InOutbox(logged, pub.Block{
+		Type:   pub.FlagType,
+		Object: current.pub.GetLink(),
+	}) {
 		return false
 	}
 	return true
