@@ -563,6 +563,7 @@ func (h *handler) HandleShow(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// BlockAccount processes a report request received at /~{handle}/block
 func (h *handler) BlockAccount(w http.ResponseWriter, r *http.Request) {
 	loggedAccount := loggedAccount(r)
 	if !loggedAccount.IsValid() {
@@ -596,8 +597,16 @@ func (h *handler) BlockAccount(w http.ResponseWriter, r *http.Request) {
 	h.v.Redirect(w, r, AccountPermaLink(&fol), http.StatusSeeOther)
 }
 
-// HandleReport serves /~{handle}/{hash}/bad request
-func (h *handler) HandleReport(w http.ResponseWriter, r *http.Request) {
+// BlockItem processes a block request received at /~{handle}/{hash}/block
+func (h *handler) BlockItem(w http.ResponseWriter, r *http.Request) {
+}
+
+// ReportAccount processes a report request received at /~{handle}/block
+func (h *handler) ReportAccount(w http.ResponseWriter, r *http.Request) {
+}
+
+// ReportItem processes a report request received at /~{handle}/{hash}/bad
+func (h *handler) ReportItem(w http.ResponseWriter, r *http.Request) {
 	loggedAccount := loggedAccount(r)
 	if !loggedAccount.IsValid() {
 		err := errors.Unauthorizedf("invalid logged account")

@@ -50,6 +50,8 @@ func (h *handler) Routes() func(chi.Router) {
 
 					r.With(BlockContentModelMw).Get("/block", h.HandleShow)
 					r.Post("/block", h.BlockAccount)
+					r.With(ReportContentModelMw).Get("/bad", h.HandleShow)
+					r.Post("/bad", h.ReportAccount)
 				})
 
 				r.Route("/{hash}", func(r chi.Router) {
@@ -64,7 +66,7 @@ func (h *handler) Routes() func(chi.Router) {
 
 						//r.Get("/bad", h.ShowReport)
 						r.With(ReportContentModelMw, TemplateMw("report")).Get("/bad", h.HandleShow)
-						r.Post("/bad", h.HandleReport)
+						r.Post("/bad", h.ReportItem)
 
 						r.With(h.ValidateItemAuthor).Group(func(r chi.Router) {
 							r.With(EditContentModelMw).Get("/edit", h.HandleShow)
