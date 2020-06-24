@@ -1813,25 +1813,81 @@ func (r *repository) LoadActorInbox(actor pub.Item, f *Filters) (*Cursor, error)
 	return &cursor, nil
 }
 
-func (r *repository) BlockAccount(er, ed Account, reason *Item) error {
-	blocker := loadAPPerson(er)
-	blocked := loadAPPerson(ed)
-	if !accountValidForC2S(&er) {
-		return errors.Unauthorizedf("invalid account %s", er.Handle)
-	}
-
+func (r repository) moderationActivity(er *pub.Actor, ed pub.Item, reason *Item)  (*pub.Activity, error) {
 	bcc := make(pub.ItemCollection, 0)
 	bcc = append(bcc, pub.IRI(BaseURL))
 
-	block := new(pub.Block)
+	// We need to add the ed/er accounts' creators to the CC list
+	cc := make(pub.ItemCollection, 0)
+	if er.AttributedTo != nil && !er.AttributedTo.GetLink().Equals(pub.PublicNS, true) {
+		cc = append(cc, er.AttributedTo.GetLink())
+	}
+	pub.OnObject(ed, func(o *pub.Object) error {
+		if o.AttributedTo != nil {
+			auth, err := r.fedbox.Actor(o.AttributedTo.GetLink())
+			if err == nil && auth.AttributedTo != nil &&
+				!(auth.AttributedTo.GetLink().Equals(auth.GetLink(), false) || auth.AttributedTo.GetLink().Equals(pub.PublicNS, true)) {
+				cc = append(cc, auth.AttributedTo.GetLink())
+			}
+		}
+		return nil
+	})
+
+	act := new(pub.Activity)
 	if reason != nil {
-		loadAPItem(block, *reason)
+		loadAPItem(act, *reason)
+	}
+	act.BCC = bcc
+	act.CC = cc
+	act.To = nil
+	act.Object = ed.GetLink()
+	act.Actor = er.GetLink()
+	return act, nil
+}
+
+func (r repository) moderationActivityOnItem(er Account, ed Item, reason *Item) (*pub.Activity, error) {
+	reporter := loadAPPerson(er)
+	reported := new(pub.Object)
+	loadAPItem(reported, ed)
+	if !accountValidForC2S(&er) {
+		return nil, errors.Unauthorizedf("invalid account %s", er.Handle)
+	}
+	return r.moderationActivity(reporter, reported, reason)
+}
+
+func (r repository) moderationActivityOnAccount(er, ed Account, reason *Item) (*pub.Activity, error) {
+	reporter := loadAPPerson(er)
+	reported := loadAPPerson(ed)
+	if !accountValidForC2S(&er) {
+		return nil, errors.Unauthorizedf("invalid account %s", er.Handle)
+	}
+
+	return r.moderationActivity(reporter, reported, reason)
+}
+
+func (r *repository) BlockAccount(er, ed Account, reason *Item) error {
+	block, err := r.moderationActivityOnAccount(er, ed, reason)
+	if err != nil {
+		r.errFn(nil)(err.Error())
+		return err
 	}
 	block.Type = pub.BlockType
-	block.BCC = bcc
-	block.Object = blocked.GetLink()
-	block.Actor = blocker.GetLink()
-	_, _, err := r.fedbox.ToOutbox(block)
+	_, _, err = r.fedbox.ToOutbox(block)
+	if err != nil {
+		r.errFn(nil)(err.Error())
+		return err
+	}
+	return nil
+}
+
+func (r *repository) BlockItem(er Account, ed Item, reason *Item) error {
+	block, err := r.moderationActivityOnItem(er, ed, reason)
+	if err != nil {
+		r.errFn(nil)(err.Error())
+		return err
+	}
+	block.Type = pub.BlockType
+	_, _, err = r.fedbox.ToOutbox(block)
 	if err != nil {
 		r.errFn(nil)(err.Error())
 		return err
@@ -1840,39 +1896,13 @@ func (r *repository) BlockAccount(er, ed Account, reason *Item) error {
 }
 
 func (r *repository) ReportItem(er Account, it Item, reason *Item) error {
-	reporter := loadAPPerson(er)
-	reported := new(pub.Object)
-	loadAPItem(reported, it)
-	if !accountValidForC2S(&er) {
-		return errors.Unauthorizedf("invalid account %s", er.Handle)
-	}
-
-	bcc := make(pub.ItemCollection, 0)
-	bcc = append(bcc, pub.IRI(BaseURL))
-
-	// We need to add the reported/reporter accounts' creators to the CC list
-	cc := make(pub.ItemCollection, 0)
-	if reporter.AttributedTo != nil {
-		cc = append(cc, reporter.AttributedTo.GetLink())
-	}
-	if reported.AttributedTo != nil {
-		reportedAuthor, err := r.fedbox.Actor(reported.AttributedTo.GetLink())
-		if err == nil && reportedAuthor.AttributedTo != nil && !reportedAuthor.AttributedTo.GetLink().Equals(reportedAuthor.GetLink(), false) {
-			cc = append(cc, reportedAuthor.AttributedTo.GetLink())
-		}
-	}
-
-	flag := new(pub.Flag)
-	if reason != nil {
-		loadAPItem(flag, *reason)
+	flag, err := r.moderationActivityOnItem(er, it, reason)
+	if err != nil {
+		r.errFn(nil)(err.Error())
+		return err
 	}
 	flag.Type = pub.FlagType
-	flag.BCC = bcc
-	flag.CC = cc
-	flag.To = flag.To[:]
-	flag.Object = reported.GetLink()
-	flag.Actor = reporter.GetLink()
-	_, _, err := r.fedbox.ToOutbox(flag)
+	_, _, err = r.fedbox.ToOutbox(flag)
 	if err != nil {
 		r.errFn(nil)(err.Error())
 		return err
@@ -1881,25 +1911,13 @@ func (r *repository) ReportItem(er Account, it Item, reason *Item) error {
 }
 
 func (r *repository) ReportAccount(er, ed Account, reason *Item) error {
-	reporter := loadAPPerson(er)
-	reported := loadAPPerson(ed)
-
-	if !accountValidForC2S(&er) {
-		return errors.Unauthorizedf("invalid account %s", er.Handle)
-	}
-
-	bcc := make(pub.ItemCollection, 0)
-	bcc = append(bcc, pub.IRI(BaseURL))
-
-	report := new(pub.Flag)
-	if reason != nil {
-		loadAPItem(report, *reason)
+	report, err := r.moderationActivityOnAccount(er, ed, reason)
+	if err != nil {
+		r.errFn(nil)(err.Error())
+		return err
 	}
 	report.Type = pub.FlagType
-	report.BCC = bcc
-	report.Object = reported.GetLink()
-	report.Actor = reporter.GetLink()
-	_, _, err := r.fedbox.ToOutbox(report)
+	_, _, err = r.fedbox.ToOutbox(report)
 	if err != nil {
 		r.errFn(nil)(err.Error())
 		return err
