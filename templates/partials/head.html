@@ -21,14 +21,7 @@ svg.icon { height: 1em; width: 1em; fill: currentColor; }
 :root.inverted { --main-bg-color: #EFF0F1; --main-fg-color: #232627; --main-link-color: blue; --main-linkvisited-color: rebeccapurple; --main-linkactive-color: red;}
 }
 </style>
-<link rel="stylesheet" href="/css/main.css" />
 <link rel="stylesheet" href="/css/{{current}}.css" />
-{{ if or (or (or (or (or (or (eq current "listing") (eq current "content")) (eq current "user")) (eq current "user-message")) (eq current "report")) (eq current "new")) (eq current "block") -}}
-{{- if and (and (ne current "listing") (ne current "content")) (ne current "report") -}}
-<link rel="stylesheet" href="/css/listing.css" />
-{{ end -}}
-<link rel="stylesheet" href="/css/article.css" />
-{{- end }}
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <meta name="theme-color" content="rebeccapurple" />
 <meta name="description" content="Link aggregator inspired by reddit and hacker news using ActivityPub federation."/>

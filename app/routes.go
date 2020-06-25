@@ -121,13 +121,29 @@ func (h *handler) Routes() func(chi.Router) {
 		workDir, _ := os.Getwd()
 		assetsDir := filepath.Join(workDir, "assets")
 
+		styles := assets.AssetFiles{
+			"block.css": []string{"main.css", "listing.css", "article.css"},
+			"report.css": []string{"main.css", "article.css", "article.css", "report.css"},
+			"content.css": []string{"main.css", "article.css", "content.css"},
+			"listing.css": []string{"main.css", "listing.css", "article.css"},
+			"moderation.css": []string{"main.css"},
+			"user.css": []string{"main.css", "listing.css", "article.css", "user.css"},
+			"user-message.css": []string{"main.css", "listing.css", "article.css", "user-message.css"},
+			"new.css": []string{"main.css", "listing.css", "article.css"},
+			"404.css" : []string{"main.css", "error.css"},
+			"about.css": []string{"main.css", "about.css"},
+			"error.css": []string{"main.css", "error.css"},
+			"login.css": []string{"main.css", "login.css"},
+			"register.css": []string{"main.css", "login.css"},
+			"main.js": []string{"main.js"},
+		}
 		r.Group(func(r chi.Router) {
 			r.Get("/ns", assets.ServeStatic(filepath.Join(assetsDir, "/ns.json")))
 			r.Get("/favicon.ico", assets.ServeStatic(filepath.Join(assetsDir, "/favicon.ico")))
 			r.Get("/icons.svg", assets.ServeStatic(filepath.Join(assetsDir, "/icons.svg")))
 			r.Get("/robots.txt", assets.ServeStatic(filepath.Join(assetsDir, "/robots.txt")))
-			r.Get("/css/{path}", assets.ServeStatic(filepath.Join(assetsDir, "/css")))
-			r.Get("/js/{path}", assets.ServeStatic(filepath.Join(assetsDir, "/js")))
+			r.Get("/css/{path}", assets.ServeAsset(styles))
+			r.Get("/js/{path}", assets.ServeAsset(styles))
 		})
 	}
 }

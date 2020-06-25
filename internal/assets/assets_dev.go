@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/go-chi/chi"
 	"html/template"
+	"io"
 	"net/http"
 	"os"
 	"path"
@@ -35,4 +36,10 @@ func ServeStatic(st string) func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", fmt.Sprintf("public,max-age=%d", int(year.Seconds())))
 		http.ServeFile(w, r, fullPath)
 	}
+}
+
+func ServeAsset(s AssetFiles) func(w http.ResponseWriter, r *http.Request) {
+	return writeAsset(s, func(s string, w io.Writer, b []byte) {
+		w.Write(b)
+	})
 }
