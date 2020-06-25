@@ -12,7 +12,7 @@ OnReady( function() {
     } else {
         root.classList.remove("inverted");
     }
-    addEvent($("#top-invert")[0], "click", function(e) {
+    addEvent($("#invert")[0], "click", function(e) {
         if (isInverted()) {
             root.classList.remove("inverted");
             deleteCookie("inverted");
