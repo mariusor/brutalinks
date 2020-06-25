@@ -5,7 +5,7 @@
 <link href="{{ .PrevPage | PrevPageLink }}" rel="prev prefetch" />
 {{end -}}
 {{- if gt (len .NextPage) 0 }}
-<link href="{{ .NextPage | NextPageLink }}" rel="next" />
+<link href="{{ .NextPage | NextPageLink }}" rel="next prefetch" />
 {{end -}}
 {{end -}}
 <style>
