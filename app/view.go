@@ -222,9 +222,6 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 		DisableHTTPErrorRendering: true,
 	})
 
-	if Instance.Config.Env != PROD {
-		w.Header().Set("Cache-Control", "no-store")
-	}
 	err = ren.HTML(w, http.StatusOK, name, m)
 	if err != nil {
 		new := errors.Annotatef(err, "failed to render template")
