@@ -2,7 +2,7 @@
 <title>{{.Title}}</title>
 {{- if CanPaginate . -}}
 {{- if gt (len .PrevPage) 0 }}
-<link href="{{ .PrevPage | PrevPageLink }}" rel="next prefetch" />
+<link href="{{ .PrevPage | PrevPageLink }}" rel="next" />
 {{end -}}
 {{- if gt (len .NextPage) 0 }}
 <link href="{{.NextPage | NextPageLink }}" rel="prev prefetch" />
