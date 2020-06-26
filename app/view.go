@@ -50,18 +50,27 @@ func (h *session) get(r *http.Request) (*sessions.Session, error) {
 }
 
 func (h *session) save(w http.ResponseWriter, r *http.Request) error {
+	clearSessionCookie := func (w http.ResponseWriter, r *http.Request) {
+		if c, _ := r.Cookie(sessionName); c != nil {
+			c.Value = ""
+			c.MaxAge = 0
+			http.SetCookie(w, c)
+		}
+	}
 	if h.s == nil {
-		err := errors.Newf("missing session store, unable to save session")
-		return err
+		clearSessionCookie(w, r)
+		return errors.Newf("missing session store, unable to save session")
 	}
 	s, err := h.s.Get(r, sessionName)
 	if err != nil {
-		return errors.Errorf("failed to load session before redirect: %s", err)
+		clearSessionCookie(w, r)
+		return errors.Annotatef(err, "failed to load session")
 	}
 	if err := h.s.Save(r, w, s); err != nil {
-		err := errors.Errorf("failed to save session before redirect: %s", err)
-		return err
+		clearSessionCookie(w, r)
+		return errors.Annotatef(err, "failed to save session")
 	}
+
 	return nil
 }
 
@@ -125,8 +134,10 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 	var ac *Account
 	var s *sessions.Session
 
+	_, isError := m.(*errorModel)
+
 	layout := "layout"
-	if Instance.Config.SessionsEnabled {
+	if Instance.Config.SessionsEnabled && !isError {
 		if s, err = v.s.get(r); err != nil {
 			v.errFn(log.Ctx{
 				"template": name,
@@ -222,28 +233,11 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 		DisableHTTPErrorRendering: true,
 	})
 
-	err = ren.HTML(w, http.StatusOK, name, m)
-	if err != nil {
-		new := errors.Annotatef(err, "failed to render template")
-		v.errFn(log.Ctx{
-			"template": name,
-			"model":    m,
-		})(new.Error())
-		em := errorModel{
-			Status: http.StatusInternalServerError,
-			Title:  "Failed to render template",
-			Errors: []error{new, err},
-		}
-		ren.HTML(w, http.StatusInternalServerError, "error", em)
-		return err
+	if err = ren.HTML(w, http.StatusOK, name, m); err != nil {
+		return errors.Annotatef(err, "failed to render template")
 	}
-	if Instance.Config.SessionsEnabled {
-		err := v.s.save(w, r)
-		if err != nil {
-			v.errFn(log.Ctx{
-				"template": name,
-				"model":    fmt.Sprintf("%#v", m),
-			})(err.Error())
+	if Instance.Config.SessionsEnabled && !isError {
+		if err := v.s.save(w, r); err != nil {
 			return err
 		}
 	}
@@ -293,12 +287,14 @@ func (v *view) HandleErrors(w http.ResponseWriter, r *http.Request, errs ...erro
 
 func (v *view) Redirect(w http.ResponseWriter, r *http.Request, url string, status int) {
 	if err := v.s.save(w, r); err != nil {
+		err := errors.Annotatef(err, "Failed to save session before redirect")
 		v.errFn(log.Ctx{
 			"status": status,
 			"url":    url,
-		})(err.Error())
+		})("Error: %s", err)
+		v.HandleErrors(w, r, err)
+		return
 	}
-
 	http.Redirect(w, r, url, status)
 }
 
