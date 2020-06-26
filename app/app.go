@@ -77,6 +77,7 @@ type Configuration struct {
 	Env                        EnvType
 	LogLevel                   log.Level
 	DB                         backendConfig
+	AdminContact               string
 	AnonymousCommentingEnabled bool
 	SessionsEnabled            bool
 	VotingEnabled              bool
@@ -204,12 +205,12 @@ func (e EnvType) IsDev() bool {
 	return strings.Contains(string(e), string(DEV))
 }
 
-// Name formats the name of the current Application
 func (a Application) NodeInfo() WebInfo {
+	// Name formats the name of the current Application
 	inf := WebInfo{
 		Title:   a.Config.Name,
 		Summary: "Link aggregator inspired by reddit and hacker news using ActivityPub federation.",
-		Email:   "system@littr.me",
+		Email:   a.Config.AdminContact,
 		URI:     a.BaseURL,
 		Version: a.Version,
 	}
@@ -311,6 +312,11 @@ func loadEnv(l *Application) (bool, error) {
 	l.Config.UserFollowingEnabled = !userFollowingDisabled
 	moderationDisabled, _ := strconv.ParseBool(os.Getenv("DISABLE_MODERATION"))
 	l.Config.ModerationEnabled = !moderationDisabled
+	l.Config.AdminContact = os.Getenv("ADMIN_CONTACT")
+
+	if l.Config.AdminContact == "" {
+		l.Config.AdminContact = author
+	}
 
 	if l.APIURL = os.Getenv("API_URL"); l.APIURL == "" {
 		l.APIURL = fmt.Sprintf("%s/api", l.BaseURL)

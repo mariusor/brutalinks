@@ -78,6 +78,12 @@ func (n NodeInfoResolver) Usage() (nodeinfo.Usage, error) {
 	return u, nil
 }
 
+const (
+	githubUrl = "https://github.com/mariusor/go-littr"
+	author    = "@mariusor@metalhead.club"
+	softwareName = "go-littr"
+)
+
 func NodeInfoConfig() nodeinfo.Config {
 	return nodeinfo.Config{
 		BaseURL: Instance.BaseURL,
@@ -88,9 +94,9 @@ func NodeInfoConfig() nodeinfo.Config {
 			NodeDescription: Instance.NodeInfo().Summary,
 			Private:         false,
 			Software: nodeinfo.SoftwareMeta{
-				GitHub:   "https://github.com/mariusor/littr.go",
-				HomePage: "https://littr.me",
-				Follow:   "mariusor@metalhead.club",
+				GitHub:   githubUrl,
+				HomePage: Instance.BaseURL,
+				Follow:   author,
 			},
 		},
 		Protocols: []nodeinfo.NodeProtocol{
@@ -98,10 +104,10 @@ func NodeInfoConfig() nodeinfo.Config {
 		},
 		Services: nodeinfo.Services{
 			Inbound:  []nodeinfo.NodeService{},
-			Outbound: []nodeinfo.NodeService{},
+			Outbound: []nodeinfo.NodeService{nodeinfo.ServiceAtom},
 		},
 		Software: nodeinfo.SoftwareInfo{
-			Name:    "littr",
+			Name:    softwareName,
 			Version: Instance.NodeInfo().Version,
 		},
 	}
