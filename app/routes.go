@@ -135,7 +135,7 @@ func (h *handler) Routes() func(chi.Router) {
 			"error.css": []string{"main.css", "error.css"},
 			"login.css": []string{"main.css", "login.css"},
 			"register.css": []string{"main.css", "login.css"},
-			"main.js": []string{"main.js"},
+			"main.js": []string{"base.js", "main.js"},
 		}
 		r.Group(func(r chi.Router) {
 			r.Get("/ns", assets.ServeStatic(filepath.Join(assetsDir, "/ns.json")))
