@@ -136,6 +136,9 @@ func (m *contentModel) SetCursor(c *Cursor) {
 		return
 	}
 	m.Content = getFromList(m.Hash, c.items)
+	if m.Content != nil {
+		m.Message.Back = PermaLink(m.Content)
+	}
 }
 
 type loginModel struct {
