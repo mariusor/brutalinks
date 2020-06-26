@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/writeas/go-nodeinfo"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"github.com/go-ap/errors"
@@ -90,7 +91,7 @@ func NodeInfoConfig() nodeinfo.Config {
 		InfoURL: "/nodeinfo",
 
 		Metadata: nodeinfo.Metadata{
-			NodeName:        Instance.NodeInfo().Title,
+			NodeName:        string(regexp.MustCompile(`<[\/\w]+>`).ReplaceAll([]byte(Instance.NodeInfo().Title), []byte{})),
 			NodeDescription: Instance.NodeInfo().Summary,
 			Private:         false,
 			Software: nodeinfo.SoftwareMeta{
