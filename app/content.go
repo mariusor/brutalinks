@@ -26,7 +26,6 @@ const MimeTypeURL = "application/url"
 const MimeTypeHTML = "text/html"
 const MimeTypeMarkdown = "text/markdown"
 const MimeTypeText = "text/plain"
-const RandomSeedSelectedByDiceRoll = 777
 
 func (f *FlagBits) FromInt64() error {
 	return nil
@@ -83,8 +82,12 @@ type RenderType int
 const (
 	Comment RenderType = iota
 	Follow
-	Appreciation
+	AppreciationLike
+	AppreciationDislike
 	Actor
+	ModerationBlock
+	ModerationIgnored
+	ModerationReported
 )
 
 type Renderable interface {
@@ -115,14 +118,7 @@ func (r RenderableList) Follows() FollowRequests {
 	return follows
 }
 
-func (f *FollowRequest) Type() RenderType {
-	return Follow
-}
-
-func (f FollowRequest) Date() time.Time {
-	return f.SubmittedAt
-}
-
+// Item
 type Item struct {
 	Hash        Hash              `json:"hash"`
 	Title       string            `json:"-"`

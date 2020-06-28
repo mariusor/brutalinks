@@ -34,14 +34,25 @@ type Vote struct {
 	pub         *pub.Like     `json:"-"`
 }
 
+// HasMetadata
 func (v Vote) HasMetadata() bool {
 	return v.Metadata != nil
 }
 
+// IsValid
 func (v *Vote) IsValid() bool {
 	return v != nil && v.Item.IsValid()
 }
 
+// Type
+func (v *Vote) Type() RenderType {
+	return AppreciationLike
+}
+
+// Date
+func (v Vote) Date() time.Time {
+	return v.SubmittedAt
+}
 func (v VoteCollection) Contains(vot Vote) bool {
 	for _, vv := range v {
 		if vv.Metadata.IRI == vot.Metadata.IRI {

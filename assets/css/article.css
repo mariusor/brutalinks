@@ -100,6 +100,7 @@ section footer nav ul li {
 section footer::before {
     content: '\2012';
 }
+.moderation-request + .score,
 .follow-request + .score,
 .account + .score {
     grid-template-rows: 1.5em;

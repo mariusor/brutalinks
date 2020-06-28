@@ -126,7 +126,7 @@ func (h *handler) Routes() func(chi.Router) {
 			"report.css": []string{"main.css", "article.css", "article.css", "report.css"},
 			"content.css": []string{"main.css", "article.css", "content.css"},
 			"listing.css": []string{"main.css", "listing.css", "article.css"},
-			"moderation.css": []string{"main.css"},
+			"moderation.css": []string{"main.css", "listing.css", "article.css"},
 			"user.css": []string{"main.css", "listing.css", "article.css", "user.css"},
 			"user-message.css": []string{"main.css", "listing.css", "article.css", "user-message.css"},
 			"new.css": []string{"main.css", "listing.css", "article.css"},

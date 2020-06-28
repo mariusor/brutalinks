@@ -37,6 +37,10 @@ type repository struct {
 
 var ValidActorTypes = pub.ActivityVocabularyTypes{
 	pub.PersonType,
+	pub.ServiceType,
+	pub.GroupType,
+	pub.ApplicationType,
+	pub.OrganizationType,
 }
 
 var ValidItemTypes = pub.ActivityVocabularyTypes{
@@ -542,10 +546,9 @@ func (r *repository) loadAccountsFollowers(acc Account) (Account, error) {
 			if !pub.ActorTypes.Contains(fol.GetType()) {
 				continue
 			}
-			p := Account{}
-			p.FromActivityPub(fol)
-			if p.IsValid() {
-				acc.Followers = append(acc.Followers, p)
+			p := new(Account)
+			if err := p.FromActivityPub(fol); err == nil && p.IsValid() {
+				acc.Followers = append(acc.Followers, *p)
 			}
 		}
 		return nil
@@ -593,10 +596,9 @@ func (r *repository) loadAccountsFollowing(acc Account) (Account, error) {
 			if !pub.ActorTypes.Contains(fol.GetType()) {
 				continue
 			}
-			p := Account{}
-			p.FromActivityPub(fol)
-			if p.IsValid() {
-				acc.Following = append(acc.Following, p)
+			p := new(Account)
+			if err := p.FromActivityPub(fol); err == nil && p.IsValid() {
+				acc.Following = append(acc.Following, *p)
 			}
 		}
 		return nil
@@ -627,17 +629,14 @@ func (r *repository) loadAccountsBlockedIgnored(acc Account) (Account, error) {
 			if !good.Contains(it.GetType()) {
 				continue
 			}
-
 			pub.OnActivity(it, func(act *pub.Activity) error {
-				p := Account{}
-				p.FromActivityPub(act.Object)
-
-				if p.IsValid() {
+				p := new(Account)
+				if err := p.FromActivityPub(act.Object); err == nil && p.IsValid() {
 					if act.GetType() == pub.BlockType {
-						acc.Blocked = append(acc.Blocked, p)
+						acc.Blocked = append(acc.Blocked, *p)
 					}
 					if act.GetType() == pub.IgnoreType {
-						acc.Ignored = append(acc.Ignored, p)
+						acc.Ignored = append(acc.Ignored, *p)
 					}
 				}
 				return nil
@@ -691,10 +690,9 @@ func (r *repository) loadItemsReplies(items ...Item) (ItemCollection, error) {
 				if !it.IsObject() {
 					continue
 				}
-				i := Item{}
-				i.FromActivityPub(it)
-				if !allReplies.Contains(i) {
-					allReplies = append(allReplies, i)
+				i := new(Item)
+				if err := i.FromActivityPub(it); err == nil && !allReplies.Contains(*i) {
+					allReplies = append(allReplies, *i)
 				}
 			}
 			return true, nil
@@ -727,10 +725,9 @@ func (r *repository) loadAccountVotes(acc *Account, items ItemCollection) error 
 			if !it.IsObject() || !voteActivities.Contains(it.GetType()) {
 				continue
 			}
-			v := Vote{}
-			v.FromActivityPub(it)
-			if !acc.Votes.Contains(v) {
-				acc.Votes = append(acc.Votes, v)
+			v := new(Vote)
+			if err := v.FromActivityPub(it); err == nil && !acc.Votes.Contains(*v) {
+				acc.Votes = append(acc.Votes, *v)
 			}
 		}
 		return false, nil
@@ -757,11 +754,12 @@ func (r *repository) loadItemsVotes(items ...Item) (ItemCollection, error) {
 			if !vAct.IsObject() || !voteActivities.Contains(vAct.GetType()) {
 				continue
 			}
-			v := Vote{}
-			v.FromActivityPub(vAct)
-			for k, ob := range items {
-				if bytes.Equal(v.Item.Hash, ob.Hash) {
-					items[k].Score += v.Weight
+			v := new(Vote)
+			if err := v.FromActivityPub(vAct); err == nil {
+				for k, ob := range items {
+					if bytes.Equal(v.Item.Hash, ob.Hash) {
+						items[k].Score += v.Weight
+					}
 				}
 			}
 		}
@@ -1068,9 +1066,10 @@ func (r *repository) accounts(f *Filters) ([]Account, error) {
 			if !it.IsObject() || !ValidActorTypes.Contains(it.GetType()) {
 				continue
 			}
-			a := Account{}
-			a.FromActivityPub(it)
-			accounts = append(accounts, a)
+			a := new(Account)
+			if err := a.FromActivityPub(it); err == nil && a.IsValid() {
+				accounts = append(accounts, *a)
+			}
 		}
 		// TODO(marius): this needs to be externalized also to a different function that we can pass from outer scope
 		//   This function implements the logic for breaking out of the collection iteration cycle and returns a bool
@@ -1087,9 +1086,10 @@ func (r *repository) objects(f *Filters) (ItemCollection, error) {
 	items := make(ItemCollection, 0)
 	err := LoadFromCollection(objects, &colCursor{filters: f}, func(c pub.ItemCollection) (bool, error) {
 		for _, it := range c {
-			i := Item{}
-			i.FromActivityPub(it)
-			items = append(items, i)
+			i := new(Item)
+			if err := i.FromActivityPub(it); err== nil && i.IsValid() {
+				items = append(items, *i)
+			}
 		}
 		return len(items) == f.MaxItems || len(f.Next) == 0, nil
 	})
@@ -1200,47 +1200,54 @@ func (r *repository) ActorCollection(fn CollectionFn, f *Filters) (Cursor, error
 	items := make(ItemCollection, 0)
 	follows := make(FollowRequests, 0)
 	accounts := make(AccountCollection, 0)
+	moderations := make(ModerationRequests, 0)
 	relations := make(map[pub.IRI]pub.IRI)
 
 	deferredItems := make(CompStrs, 0)
 
+	result := make([]Renderable, 0)
 	err := LoadFromCollection(fn, &colCursor{filters: f}, func(col pub.ItemCollection) (bool, error) {
 		for _, it := range col {
 			pub.OnActivity(it, func(a *pub.Activity) error {
-				if it.GetType() == pub.CreateType {
+				typ := it.GetType()
+				if typ == pub.CreateType {
 					ob := a.Object
 					if ob == nil {
 						return nil
 					}
-
 					if ob.IsObject() {
 						if ValidItemTypes.Contains(ob.GetType()) {
-							i := Item{}
+							i := new(Item)
 							i.FromActivityPub(ob)
-							if validItem(i, f) {
-								items = append(items, i)
+							if validItem(*i, f) {
+								items = append(items, *i)
 							}
 						}
 						if ValidActorTypes.Contains(ob.GetType()) {
-							a := Account{}
+							a := new(Account)
 							a.FromActivityPub(ob)
-							accounts = append(accounts, a)
+							accounts = append(accounts, *a)
 						}
 					} else {
-						i := Item{}
+						i := new(Item)
 						i.FromActivityPub(a)
 						uuid := LikeString(path.Base(ob.GetLink().String()))
-						if !deferredItems.Contains(uuid) && validItem(i, f) {
+						if !deferredItems.Contains(uuid) && validItem(*i, f) {
 							deferredItems = append(deferredItems, uuid)
 						}
 					}
 					relations[a.GetLink()] = ob.GetLink()
 				}
 				if it.GetType() == pub.FollowType {
-					// @todo(marius)
 					f := FollowRequest{}
 					f.FromActivityPub(a)
 					follows = append(follows, f)
+					relations[a.GetLink()] = a.GetLink()
+				}
+				if ModerationActivityTypes.Contains(typ) {
+					m := ModerationRequest{}
+					m.FromActivityPub(a)
+					moderations = append(moderations, m)
 					relations[a.GetLink()] = a.GetLink()
 				}
 				return nil
@@ -1288,7 +1295,6 @@ func (r *repository) ActorCollection(fn CollectionFn, f *Filters) (Cursor, error
 		return emptyCursor, err
 	}
 
-	result := make([]Renderable, 0)
 	for _, rel := range relations {
 		for i := range items {
 			it := items[i]
@@ -1305,6 +1311,12 @@ func (r *repository) ActorCollection(fn CollectionFn, f *Filters) (Cursor, error
 		}
 		for i := range accounts {
 			a := accounts[i]
+			if a.pub != nil && a.pub.GetLink() == rel {
+				result = append(result, &a)
+			}
+		}
+		for i := range moderations {
+			a := moderations[i]
 			if a.pub != nil && a.pub.GetLink() == rel {
 				result = append(result, &a)
 			}
@@ -1631,10 +1643,10 @@ func (r *repository) LoadFollowRequests(ed *Account, f *Filters) (FollowRequests
 	requests := make([]FollowRequest, 0)
 	if err == nil && len(followReq.Collection()) > 0 {
 		for _, fr := range followReq.Collection() {
-			f := FollowRequest{}
+			f := new(FollowRequest)
 			if err := f.FromActivityPub(fr); err == nil {
 				if !accountInCollection(*f.SubmittedBy, ed.Followers) {
-					requests = append(requests, f)
+					requests = append(requests, *f)
 				}
 			}
 		}
@@ -1839,7 +1851,6 @@ func (r repository) moderationActivity(er *pub.Actor, ed pub.Item, reason *Item)
 	}
 	act.BCC = bcc
 	act.CC = cc
-	act.To = nil
 	act.Object = ed.GetLink()
 	act.Actor = er.GetLink()
 	return act, nil

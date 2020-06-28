@@ -291,7 +291,7 @@ func loadRecipientsFrom(recipients pub.ItemCollection) ([]*Account, bool) {
 	return result, isPublic
 }
 
-func loadRecipients (i *Item, it pub.Item) error {
+func loadRecipients(i *Item, it pub.Item) error {
 	i.MakePrivate()
 	return pub.OnObject(it, func(o *pub.Object) error {
 		isPublic := false
@@ -368,27 +368,30 @@ func (i *Item) FromActivityPub(it pub.Item) error {
 		}
 		pub.OnObject(it, func(o *pub.Object) error {
 			if o.Context != nil {
-				op := Item{}
-				op.FromActivityPub(o.Context)
-				i.OP = &op
+				op := new(Item)
+				if err := op.FromActivityPub(o.Context); err == nil {
+					i.OP = op
+				}
 			}
 			if o.InReplyTo != nil {
 				if repl, ok := o.InReplyTo.(pub.ItemCollection); ok {
 					first := repl.First()
 					if first != nil {
-						par := Item{}
-						par.FromActivityPub(first)
-						i.Parent = &par
-						if i.OP == nil {
-							i.OP = &par
+						par := new(Item)
+						if err := par.FromActivityPub(first); err == nil {
+							i.Parent = par
+							if i.OP == nil {
+								i.OP = par
+							}
 						}
 					}
 				} else {
-					par := Item{}
-					par.FromActivityPub(o.InReplyTo)
-					i.Parent = &par
-					if i.OP == nil {
-						i.OP = &par
+					par := new(Item)
+					if err := par.FromActivityPub(o.InReplyTo); err == nil {
+						i.Parent = par
+						if i.OP == nil {
+							i.OP = par
+						}
 					}
 				}
 			}
@@ -482,31 +485,110 @@ func GetHashFromAP(obj pub.Item) Hash {
 	return Hash(h)
 }
 
-func (i *TagCollection) FromActivityPub(it pub.ItemCollection) error {
+func (c *TagCollection) FromActivityPub(it pub.ItemCollection) error {
 	if it == nil || len(it) == 0 {
 		return errors.Newf("empty collection")
 	}
 	for _, t := range it {
 		if m, ok := t.(*pub.Mention); ok {
-			u := string(t.GetID())
-			// we have a link
-			lt := Tag{
-				URL:  u,
-				Type: TagMention,
-				Name: m.Name.First().Value,
-			}
-			*i = append(*i, lt)
+			*c = append(*c, Tag{URL: t.GetID().String(), Type: TagMention, Name: m.Name.First().Value})
 		}
 		if ob, ok := t.(*pub.Object); ok {
-			u := string(t.GetID())
-			// we have a link
-			lt := Tag{
-				URL:  u,
-				Type: TagTag,
-				Name: ob.Name.First().Value,
-			}
-			*i = append(*i, lt)
+			*c = append(*c, Tag{URL: t.GetID().String(), Type: TagTag, Name: ob.Name.First().Value})
 		}
 	}
 	return nil
+}
+
+func LoadFromActivityPubObject(it pub.Item) (Renderable, error) {
+	if it == nil {
+		return nil, errors.Newf("nil ActivityPub object")
+	}
+	typ := it.GetType()
+	if !(pub.ObjectTypes.Contains(typ) || pub.ActorTypes.Contains(typ)) {
+		return nil, errors.Newf("invalid ActivityPub object")
+	}
+	var result Renderable
+	var err error
+	if pub.ObjectTypes.Contains(typ) {
+		err = pub.OnObject(it, func(ob *pub.Object) error {
+			i := new(Item)
+			if err = i.FromActivityPub(ob); err == nil {
+				result = i
+			}
+			return err
+		})
+	}
+	if pub.ActorTypes.Contains(typ) {
+		err = pub.OnActor(it, func(ac *pub.Actor) error {
+			var err error
+			a := new(Account)
+			if err = a.FromActivityPub(ac); err == nil {
+				result = a
+			}
+			return err
+		})
+	}
+	return result, err
+}
+
+func LoadFromActivityPubActivity(it pub.Item) (Renderable, error) {
+	if it == nil {
+		return nil, errors.Newf("nil ActivityPub item")
+	}
+	typ := it.GetType()
+
+	if !pub.ActivityTypes.Contains(typ) {
+		return LoadFromActivityPubObject(it)
+	}
+	var result Renderable
+	err := pub.OnActivity(it, func(act *pub.Activity) error {
+		ob := act.Object
+		switch typ {
+		case pub.DeleteType:
+			fallthrough
+		case pub.UpdateType:
+			fallthrough
+		case pub.CreateType:
+			// Item or Account
+			if ob.IsObject() {
+				var err error
+				result, err = LoadFromActivityPubObject(ob)
+				return err
+			}
+		case pub.LikeType:
+			fallthrough
+		case pub.DislikeType:
+			// Vote
+			v := new(Vote)
+			err := v.FromActivityPub(act)
+			if err != nil {
+				return err
+			}
+			result = v
+		case pub.FollowType:
+			// FollowRequest
+			f := new(FollowRequest)
+			err := f.FromActivityPub(act)
+			if err != nil {
+				return err
+			}
+			result = f
+			break
+		case pub.FlagType:
+			fallthrough
+		case pub.BlockType:
+			fallthrough
+		case pub.IgnoreType:
+			// ModerationRequest
+			m := new(ModerationRequest)
+			err := m.FromActivityPub(act)
+			if err != nil {
+				return err
+			}
+			result = m
+		}
+		return nil
+	})
+	return result, err
 }

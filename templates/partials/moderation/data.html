@@ -1,0 +1,4 @@
+<a rel="mention" href="{{ .SubmittedBy | AccountPermaLink }}">{{ .SubmittedBy | ShowAccountHandle }}</a>
+{{.Type | RenderLabel }}ed <a href="{{ .Object | PermaLink }}">this {{ .Object.Type | RenderLabel }}</a><br/>
+Reason: {{ .Data }}
+<br/>

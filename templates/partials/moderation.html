@@ -1,0 +1,5 @@
+<section class="moderation-request{{if .Deleted }} deleted {{end}}{{ if .Private }} private{{ end }}">
+{{ template "partials/moderation/data" .}}
+{{ template "partials/moderation/meta" .}}
+</section>
+{{- template "partials/moderation/score" . -}}

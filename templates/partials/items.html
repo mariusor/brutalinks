@@ -10,6 +10,9 @@
 {{- if IsAccount . }}
     {{- template "partials/account" $value }}
 {{ end -}}
+{{- if IsModeration . }}
+    {{- template "partials/moderation" $value }}
+{{ end -}}
     </li>
 {{- end }}
 </ol>

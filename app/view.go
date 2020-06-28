@@ -50,7 +50,7 @@ func (h *session) get(r *http.Request) (*sessions.Session, error) {
 }
 
 func (h *session) save(w http.ResponseWriter, r *http.Request) error {
-	clearSessionCookie := func (w http.ResponseWriter, r *http.Request) {
+	clearSessionCookie := func(w http.ResponseWriter, r *http.Request) {
 		if c, _ := r.Cookie(sessionName); c != nil {
 			c.Value = ""
 			c.MaxAge = 0
@@ -129,6 +129,28 @@ func ToTitle(s string) string {
 	return strings.ToUpper(s[0:1]) + s[1:]
 }
 
+func renderLabel(t RenderType) template.HTML {
+	switch t {
+	case Comment:
+		return "item"
+	case Follow:
+		return "follow"
+	case AppreciationLike:
+		return "like"
+	case AppreciationDislike:
+		return "dislike"
+	case Actor:
+		return "account"
+	case ModerationBlock:
+		return "block"
+	case ModerationIgnored:
+		return "ignore"
+	case ModerationReported:
+		return "report"
+	}
+	return ""
+}
+
 func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name string, m Model) error {
 	var err error
 	var ac *Account
@@ -167,8 +189,9 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"CurrentAccount":        accountFromRequest,
 			"IsComment":             func(t Renderable) bool { return t.Type() == Comment },
 			"IsFollowRequest":       func(t Renderable) bool { return t.Type() == Follow },
-			"IsVote":                func(t Renderable) bool { return t.Type() == Appreciation },
+			"IsVote":                func(t Renderable) bool { return t.Type() == AppreciationLike || t.Type() == AppreciationDislike },
 			"IsAccount":             func(t Renderable) bool { return t.Type() == Actor },
+			"IsModeration":          func(t Renderable) bool { return t.Type() == ModerationBlock || t.Type() == ModerationIgnored || t.Type() == ModerationReported },
 			"LoadFlashMessages":     loadFlashMessages(r, w, s),
 			"Mod10":                 mod10,
 			"ShowText":              showText(m),
@@ -180,7 +203,8 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"AccountPermaLink":      AccountPermaLink,
 			"ShowAccountHandle":     ShowAccountHandle,
 			"ItemLocalLink":         ItemLocalLink,
-			"ItemPermaLink":         ItemPermaLink,
+			"ItemPermaLink":         PermaLink,
+			"PermaLink":             PermaLink,
 			"ParentLink":            parentLink,
 			"OPLink":                opLink,
 			"IsYay":                 isYay,
@@ -219,6 +243,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"AccountIsBlocked":      func(a *Account) bool { return AccountIsBlocked(accountFromRequest(), a) },
 			"AccountIsReported":     func(a *Account) bool { return AccountIsReported(accountFromRequest(), a) },
 			"ItemReported":          func(i *Item) bool { return ItemIsReported(accountFromRequest(), i) },
+			"RenderLabel":           renderLabel,
 			csrf.TemplateTag:        func() template.HTML { return csrf.TemplateField(r) },
 			"ToTitle":               ToTitle,
 			//"ScoreFmt":          func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
