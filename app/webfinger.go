@@ -65,7 +65,7 @@ func NodeInfoResolverNew(f *fedbox) NodeInfoResolver {
 }
 
 func (n NodeInfoResolver) IsOpenRegistration() (bool, error) {
-	return Instance.Config.UserCreatingEnabled, nil
+	return Instance.Conf.UserCreatingEnabled, nil
 }
 
 func (n NodeInfoResolver) Usage() (nodeinfo.Usage, error) {

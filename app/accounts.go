@@ -235,15 +235,6 @@ func accountFromPost(r *http.Request, l log.Logger) (Account, error) {
 	return a, nil
 }
 
-func checkUserCreatingEnabled(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !Instance.Config.UserCreatingEnabled {
-			http.Redirect(w, r, "/", http.StatusSeeOther)
-		}
-		next.ServeHTTP(w, r)
-	})
-}
-
 func accountsFromRequestHandle(r *http.Request) ([]Account, error) {
 	handle := chi.URLParam(r, "handle")
 	if handle == "" {

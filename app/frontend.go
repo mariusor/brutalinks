@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/gorilla/csrf"
 	"github.com/gorilla/sessions"
+	"github.com/mariusor/littr.go/internal/config"
 	"github.com/mariusor/littr.go/internal/log"
 	"golang.org/x/oauth2"
 	"net/http"
@@ -32,13 +33,8 @@ type handler struct {
 var defaultAccount = AnonymousAccount
 
 type appConfig struct {
-	Name            string
-	Env             EnvType
-	Version         string
-	APIURL          string
+	config.Configuration
 	BaseURL         string
-	HostName        string
-	Secure          bool
 	SessionKeys     [][]byte
 	SessionsBackend string
 	Logger          log.Logger
@@ -72,7 +68,7 @@ func Init(c appConfig) (*handler, error) {
 	c.SessionKeys = loadEnvSessionKeys()
 	h.v, _ = ViewInit(c, infoFn, errFn)
 	if h.v.s == nil {
-		Instance.Config.SessionsEnabled = false
+		h.conf.SessionsEnabled = false
 	}
 	h.conf = c
 
@@ -298,7 +294,7 @@ func SetSecurityHeaders(next http.Handler) http.Handler {
 }
 
 func (h *handler) LoadSession(next http.Handler) http.Handler {
-	if !Instance.Config.SessionsEnabled {
+	if !h.conf.SessionsEnabled {
 		return next
 	}
 	fn := func(w http.ResponseWriter, r *http.Request) {
@@ -390,7 +386,7 @@ func (h *handler) addFlashErrors(r *http.Request, errs ...error) {
 
 func (h handler) NeedsSessions(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		if !Instance.Config.SessionsEnabled {
+		if !h.conf.SessionsEnabled {
 			h.v.HandleErrors(w, r, errors.NotFoundf("sessions are disabled"))
 			return
 		}

@@ -459,7 +459,7 @@ func (v *Vote) FromActivityPub(it pub.Item) error {
 }
 
 func HostIsLocal(s string) bool {
-	return strings.Contains(host(s), Instance.HostName) || strings.Contains(host(s), host(Instance.APIURL))
+	return strings.Contains(host(s), Instance.Conf.HostName) || strings.Contains(host(s), host(Instance.Conf.APIURL))
 }
 
 func host(u string) string {

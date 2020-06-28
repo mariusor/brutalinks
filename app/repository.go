@@ -87,7 +87,7 @@ func ActivityPubService(c appConfig) *repository {
 		}
 		return c.Logger.WithContext(ctx).Errorf
 	}
-	ua := fmt.Sprintf("%s-%s", Instance.HostName, Instance.Version)
+	ua := fmt.Sprintf("%s-%s", c.HostName, Instance.Version)
 
 	f, _ := NewClient(SetURL(BaseURL), SetInfoLogger(infoFn), SetErrorLogger(errFn), SetUA(ua))
 

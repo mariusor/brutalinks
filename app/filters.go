@@ -86,7 +86,7 @@ func SelfFiltersMw(next http.Handler) http.Handler {
 		f.Object = &Filters{}
 		f.Object.OP = nilIRIs
 		f.Object.Type = ActivityTypesFilter(ValidItemTypes...)
-		f.IRI = CompStrs{LikeString(Instance.APIURL)}
+		f.IRI = CompStrs{LikeString(Instance.Conf.APIURL)}
 		m := ContextListingModel(r.Context())
 		m.Title = "Local instance items"
 		ctx := context.WithValue(context.WithValue(r.Context(), FilterCtxtKey, f), ModelCtxtKey, m)
@@ -118,7 +118,7 @@ func FederatedFiltersMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := FiltersFromRequest(r)
 		f.Type = CreateActivitiesFilter
-		f.IRI = CompStrs{DifferentThanString(Instance.APIURL)}
+		f.IRI = CompStrs{DifferentThanString(Instance.Conf.APIURL)}
 		f.Object = &Filters{}
 		f.Object.OP = nilIRIs
 		f.Object.Type = ActivityTypesFilter(ValidItemTypes...)

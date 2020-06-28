@@ -5,13 +5,14 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/mariusor/littr.go/internal/assets"
+	"github.com/mariusor/littr.go/internal/config"
 	"net/http"
 	"os"
 	"path/filepath"
 	"time"
 )
 
-func (h *handler) Routes() func(chi.Router) {
+func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 	return func(r chi.Router) {
 		r.Use(middleware.GetHead)
 		r.Use(ReqLogger(h.logger))
@@ -20,12 +21,12 @@ func (h *handler) Routes() func(chi.Router) {
 		r.Group(func(r chi.Router) {
 			r.Use(h.LoadSession)
 			r.Use(middleware.Timeout(60 * time.Millisecond))
-			r.Use(h.OutOfOrderMw(&Instance.Config))
+			r.Use(h.OutOfOrderMw)
 
 			r.With(h.CSRF).Group(func(r chi.Router) {
 				r.With(AddModelMw).Get("/submit", h.HandleShow)
 				r.Post("/submit", h.HandleSubmit)
-				r.With(checkUserCreatingEnabled).Route("/register", func(r chi.Router) {
+				r.With(c.CheckUserCreatingEnabled).Route("/register", func(r chi.Router) {
 					r.Group(func(r chi.Router) {
 						r.With(ModelMw(&registerModel{Title: "Register new account"})).Get("/", h.HandleShow)
 						r.With(ModelMw(&registerModel{Title: "Register account from invite"}), LoadInvitedMw).Get("/{hash}", h.HandleShow)
@@ -98,7 +99,7 @@ func (h *handler) Routes() func(chi.Router) {
 				r.With(FederatedFiltersMw, LoadServiceInboxMw).Get("/federated", h.HandleShow)
 				r.With(h.NeedsSessions, FollowedFiltersMw, h.ValidateLoggedIn(h.v.HandleErrors), LoadInboxMw).
 					Get("/followed", h.HandleShow)
-				r.With(ModelMw(&listingModel{tpl: "moderation"}), ModerationFiltersMw, LoadServiceInboxMw, AnonymizeListing).
+				r.With(ModelMw(&listingModel{tpl: "moderation"}), ModerationFiltersMw, LoadServiceInboxMw).
 					Get("/moderation", h.HandleShow)
 				r.With(ModelMw(&listingModel{tpl: "listing"}), ActorsFiltersMw, LoadServiceInboxMw, ThreadedListingMw).
 					Get("/~", h.HandleShow)

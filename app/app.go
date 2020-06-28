@@ -7,14 +7,12 @@ import (
 	"github.com/go-ap/errors"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
-	"github.com/joho/godotenv"
+	"github.com/mariusor/littr.go/internal/config"
 	"github.com/writeas/go-nodeinfo"
 	"io"
 	"net/http"
 	"os"
 	"os/signal"
-	"strconv"
-	"strings"
 	"syscall"
 	"time"
 
@@ -41,53 +39,6 @@ var listenOn string
 
 const DefaultHost = "localhost"
 
-// EnvType type alias
-type EnvType string
-
-// DEV environment
-const DEV EnvType = "dev"
-
-// PROD environment
-const PROD EnvType = "prod"
-
-// QA environment
-const QA EnvType = "qa"
-
-// testing environment
-const TEST EnvType = "test"
-
-var validEnvTypes = []EnvType{
-	DEV,
-	PROD,
-	QA,
-	TEST,
-}
-
-type backendConfig struct {
-	Enabled bool
-	Host    string
-	Port    string
-	User    string
-	Pw      string
-	Name    string
-}
-
-type Configuration struct {
-	Name                       string
-	Env                        EnvType
-	LogLevel                   log.Level
-	DB                         backendConfig
-	AdminContact               string
-	AnonymousCommentingEnabled bool
-	SessionsEnabled            bool
-	VotingEnabled              bool
-	DownvotingEnabled          bool
-	UserCreatingEnabled        bool
-	UserFollowingEnabled       bool
-	ModerationEnabled          bool
-	MaintenanceMode            bool
-}
-
 // Stats holds data for keeping compatibility with Mastodon instances
 type Stats struct {
 	DomainCount int  `json:"domain_count"`
@@ -110,16 +61,11 @@ type Desc struct {
 
 // Application is the global state of our application
 type Application struct {
-	Version  string
-	HostName string
-	APIURL   string
-	BaseURL  string
-	Port     int
-	listen   string
-	Secure   bool
-	Config   Configuration
-	Logger   log.Logger
-	front    *handler
+	Version string
+	BaseURL string
+	Conf    *config.Configuration
+	Logger  log.Logger
+	front   *handler
 }
 
 type Collection interface{}
@@ -128,31 +74,57 @@ type Collection interface{}
 var Instance Application
 
 // New instantiates a new Application
-func New(host string, port int, env EnvType, ver string) Application {
-	app := Application{HostName: host, Port: port, Version: ver, Config: Configuration{Env: env}}
-	loadEnv(&app)
+func New(host string, port int, env config.EnvType, ver string) Application {
+	c, err := config.Load(env)
+	if err != nil {
+		c = &config.Default
+	}
+	app := Application{Version: ver, Conf: c}
+	app.setUp(c, host, port)
 	return app
+}
+
+func (a *Application) setUp(c *config.Configuration, host string, port int) error {
+	a.Conf = c
+	a.Logger = log.Dev(c.LogLevel)
+	if c.Secure {
+		a.BaseURL = fmt.Sprintf("https://%s", c.HostName)
+	} else {
+		a.BaseURL = fmt.Sprintf("http://%s", c.HostName)
+	}
+	if c.AdminContact == "" {
+		c.AdminContact = author
+	}
+	if host != "" {
+		c.HostName = host
+	}
+	if port != 0 {
+		c.Port = port
+	}
+	if c.APIURL == "" {
+		c.APIURL = fmt.Sprintf("%s/api", a.BaseURL)
+	}
+	return nil
+}
+
+func (a Application) Listen() string {
+	return fmt.Sprintf("%s:%d", a.Conf.HostName, a.Conf.Port)
 }
 
 func (a *Application) Front(r chi.Router) {
 	conf := appConfig{
-		Name:     a.Config.Name,
-		Env:      a.Config.Env,
-		Logger:   a.Logger.New(log.Ctx{"package": "frontend"}),
-		Secure:   a.Secure,
+		Configuration: *a.Conf,
 		BaseURL:  a.BaseURL,
-		APIURL:   a.APIURL,
-		HostName: a.HostName,
+		Logger:   a.Logger.New(log.Ctx{"package": "frontend"}),
 	}
 	front, err := Init(conf)
 	if err != nil {
 		a.Logger.Error(err.Error())
-		//return
 	}
 	a.front = front
 
 	// Frontend
-	r.With(front.Repository).Route("/", front.Routes())
+	r.With(front.Repository).Route("/", front.Routes(a.Conf))
 
 	// .well-known
 	cfg := NodeInfoConfig()
@@ -179,38 +151,12 @@ type Cacheable interface {
 	GetAge() int
 }
 
-func validEnv(env EnvType) bool {
-	if len(env) == 0 {
-		return false
-	}
-	s := strings.ToLower(string(env))
-	for _, k := range validEnvTypes {
-		if strings.Contains(s, string(k)) {
-			return true
-		}
-	}
-	return false
-}
-
-func (e EnvType) IsProd() bool {
-	return strings.Contains(string(e), string(PROD))
-}
-func (e EnvType) IsQA() bool {
-	return strings.Contains(string(e), string(QA))
-}
-func (e EnvType) IsTest() bool {
-	return strings.Contains(string(e), string(TEST))
-}
-func (e EnvType) IsDev() bool {
-	return strings.Contains(string(e), string(DEV))
-}
-
 func (a Application) NodeInfo() WebInfo {
 	// Name formats the name of the current Application
 	inf := WebInfo{
-		Title:   a.Config.Name,
+		Title:   a.Conf.Name,
 		Summary: "Link aggregator inspired by reddit and hacker news using ActivityPub federation.",
-		Email:   a.Config.AdminContact,
+		Email:   a.Conf.AdminContact,
 		URI:     a.BaseURL,
 		Version: a.Version,
 	}
@@ -222,106 +168,6 @@ func (a Application) NodeInfo() WebInfo {
 		inf.Description = string(bytes.Trim(rme, "\x00"))
 	}
 	return inf
-}
-
-func (a *Application) Listen() string {
-	if len(a.listen) > 0 {
-		return a.listen
-	}
-	var port string
-	if a.Port != 0 {
-		port = fmt.Sprintf(":%d", a.Port)
-	}
-	return fmt.Sprintf("%s%s", a.HostName, port)
-}
-
-func loadEnv(l *Application) (bool, error) {
-	if !validEnv(l.Config.Env) {
-		env := os.Getenv("ENV")
-		l.Config.Env = EnvType(strings.ToLower(env))
-	}
-	if !validEnv(l.Config.Env) {
-		l.Config.Env = DEV
-	}
-	configs := []string{
-		".env",
-		fmt.Sprintf(".env.%s", l.Config.Env),
-	}
-
-	lvl := os.Getenv("LOG_LEVEL")
-	switch strings.ToLower(lvl) {
-	case "trace":
-		l.Config.LogLevel = log.TraceLevel
-	case "debug":
-		l.Config.LogLevel = log.DebugLevel
-	case "warn":
-		l.Config.LogLevel = log.WarnLevel
-	case "error":
-		l.Config.LogLevel = log.ErrorLevel
-	case "info":
-		fallthrough
-	default:
-		l.Config.LogLevel = log.InfoLevel
-	}
-	l.Logger = log.Dev(l.Config.LogLevel)
-
-	for _, f := range configs {
-		if err := godotenv.Overload(f); err != nil {
-			l.Logger.Warnf("%s", err)
-		}
-	}
-
-	l.HostName = os.Getenv("HOSTNAME")
-	if l.HostName == "" {
-		l.HostName = DefaultHost
-	}
-	l.Config.Name = os.Getenv("NAME")
-	if l.Config.Name == "" {
-		l.Config.Name = l.HostName
-	}
-	if l.listen = os.Getenv("LISTEN"); l.listen == "" {
-		l.listen = fmt.Sprintf("%s:%d", l.HostName, l.Port)
-	}
-	l.Secure, _ = strconv.ParseBool(os.Getenv("HTTPS"))
-	if l.Secure {
-		l.BaseURL = fmt.Sprintf("https://%s", l.HostName)
-	} else {
-		l.BaseURL = fmt.Sprintf("http://%s", l.HostName)
-	}
-
-	l.Config.DB.Host = os.Getenv("DB_HOST")
-	l.Config.DB.Pw = os.Getenv("DB_PASSWORD")
-	l.Config.DB.Name = os.Getenv("DB_NAME")
-	l.Config.DB.Port = os.Getenv("DB_PORT")
-	l.Config.DB.User = os.Getenv("DB_USER")
-
-	votingDisabled, _ := strconv.ParseBool(os.Getenv("DISABLE_VOTING"))
-	l.Config.VotingEnabled = !votingDisabled
-	if l.Config.VotingEnabled {
-		downvotingDisabled, _ := strconv.ParseBool(os.Getenv("DISABLE_DOWNVOTING"))
-		l.Config.DownvotingEnabled = !downvotingDisabled
-	}
-	sessionsDisabled, _ := strconv.ParseBool(os.Getenv("DISABLE_SESSIONS"))
-	l.Config.SessionsEnabled = !sessionsDisabled
-	userCreationDisabled, _ := strconv.ParseBool(os.Getenv("DISABLE_USER_CREATION"))
-	l.Config.UserCreatingEnabled = !userCreationDisabled
-	// TODO(marius): this stopped working - as the anonymous user doesn't have a valid Outbox.
-	anonymousCommentingDisabled, _ := strconv.ParseBool(os.Getenv("DISABLE_ANONYMOUS_COMMENTING"))
-	l.Config.AnonymousCommentingEnabled = !anonymousCommentingDisabled
-	userFollowingDisabled, _ := strconv.ParseBool(os.Getenv("DISABLE_USER_FOLLOWING"))
-	l.Config.UserFollowingEnabled = !userFollowingDisabled
-	moderationDisabled, _ := strconv.ParseBool(os.Getenv("DISABLE_MODERATION"))
-	l.Config.ModerationEnabled = !moderationDisabled
-	l.Config.AdminContact = os.Getenv("ADMIN_CONTACT")
-
-	if l.Config.AdminContact == "" {
-		l.Config.AdminContact = author
-	}
-
-	if l.APIURL = os.Getenv("API_URL"); l.APIURL == "" {
-		l.APIURL = fmt.Sprintf("%s/api", l.BaseURL)
-	}
-	return true, nil
 }
 
 type exit struct {
@@ -395,8 +241,8 @@ func SetupHttpServer(listen string, m http.Handler, wait time.Duration, ctx cont
 func (a *Application) Run(m http.Handler, wait time.Duration) {
 	a.Logger.WithContext(log.Ctx{
 		"listen": a.Listen(),
-		"host":   a.HostName,
-		"env":    a.Config.Env,
+		"host":   a.Conf.HostName,
+		"env":    a.Conf.Env,
 	}).Info("Started")
 
 	srvStart, srvShutdown := SetupHttpServer(a.Listen(), m, wait, context.Background())
@@ -405,7 +251,7 @@ func (a *Application) Run(m http.Handler, wait time.Duration) {
 	// Run our server in a goroutine so that it doesn't block.
 	go func() {
 		if err := srvStart(); err != nil {
-			a.Logger.Error(err.Error())
+			a.Logger.Errorf("Error: %s", err)
 			os.Exit(1)
 		}
 	}()
@@ -414,11 +260,13 @@ func (a *Application) Run(m http.Handler, wait time.Duration) {
 	sigHandlerFns := signalHandlers{
 		syscall.SIGHUP: func(x *exit, s os.Signal) {
 			a.Logger.Info("SIGHUP received, reloading configuration")
-			loadEnv(a)
+			if c, err := config.Load(a.Conf.Env); err == nil {
+				a.Conf = c
+			}
 		},
 		syscall.SIGUSR1: func(x *exit, s os.Signal) {
 			a.Logger.Info("SIGUSR1 received, switching to maintenance mode")
-			a.Config.MaintenanceMode = !a.Config.MaintenanceMode
+			a.Conf.MaintenanceMode = !a.Conf.MaintenanceMode
 		},
 		syscall.SIGTERM: func(x *exit, s os.Signal) {
 			// kill -SIGTERM XXXX

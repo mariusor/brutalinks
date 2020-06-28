@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/tls"
 	"flag"
+	"github.com/mariusor/littr.go/internal/config"
 	"net/http"
 	"time"
 
@@ -16,7 +17,7 @@ import (
 
 var version = "HEAD"
 
-const defaultPort = 3000
+const defaultPort = config.DefaultPort
 const defaultTimeout = time.Second * 15
 
 func main() {
@@ -31,15 +32,15 @@ func main() {
 	flag.StringVar(&env, "env", "unknown", "the environment type")
 	flag.Parse()
 
-	e := app.EnvType(env)
+	e := config.EnvType(env)
 	app.Instance = app.New(host, port, e, version)
-	errors.IncludeBacktrace = app.Instance.Config.Env == app.DEV
+	errors.IncludeBacktrace = app.Instance.Conf.Env == config.DEV
 	app.Logger = app.Instance.Logger.New(log.Ctx{"package": "app"})
 
 	// Routes
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
-	if app.Instance.Config.Env != app.PROD {
+	if !app.Instance.Conf.Env.IsProd() {
 		r.Use(middleware.Recoverer)
 		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	}

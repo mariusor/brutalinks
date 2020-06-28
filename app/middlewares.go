@@ -243,7 +243,7 @@ func ContentModelMw(next http.Handler) http.Handler {
 		m.Content = new(Item)
 		m.Message.Label = "Reply:"
 		m.Message.Back = "/"
-		m.Message.SubmitLabel = htmlf("Reply %s", icon("reply","h-mirror"))
+		m.Message.SubmitLabel = htmlf("Reply %s", icon("reply", "h-mirror"))
 		next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, ModelCtxtKey, m)))
 	})
 }
@@ -283,7 +283,7 @@ func AddModelMw(next http.Handler) http.Handler {
 		m.Message.Editable = true
 		m.Message.Label = "Add new submission:"
 		m.Message.Back = "/"
-		m.Message.SubmitLabel = htmlf("%s Submit", icon("reply","h-mirror", "v-mirror"))
+		m.Message.SubmitLabel = htmlf("%s Submit", icon("reply", "h-mirror", "v-mirror"))
 		next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, ModelCtxtKey, m)))
 	})
 }
@@ -404,19 +404,17 @@ func ThreadedListingMw(next http.Handler) http.Handler {
 	})
 }
 
-func (h *handler) OutOfOrderMw(c *Configuration) Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if !c.MaintenanceMode {
-				next.ServeHTTP(w, r)
-				return
-			}
-			em := errorModel{
-				Status: http.StatusOK,
-				Title:  "Maintenance",
-				Errors: []error{errors.Newf("Server in maintenance mode, please come back later.")},
-			}
-			h.v.RenderTemplate(r, w, "error", &em)
-		})
-	}
+func (h *handler) OutOfOrderMw(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !h.conf.MaintenanceMode {
+			next.ServeHTTP(w, r)
+			return
+		}
+		em := errorModel{
+			Status: http.StatusOK,
+			Title:  "Maintenance",
+			Errors: []error{errors.Newf("Server in maintenance mode, please come back later.")},
+		}
+		h.v.RenderTemplate(r, w, "error", &em)
+	})
 }

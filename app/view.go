@@ -8,6 +8,7 @@ import (
 	"github.com/gorilla/csrf"
 	"github.com/gorilla/sessions"
 	"github.com/mariusor/littr.go/internal/assets"
+	"github.com/mariusor/littr.go/internal/config"
 	"github.com/mariusor/littr.go/internal/log"
 	"github.com/unrolled/render"
 	"golang.org/x/text/language"
@@ -159,7 +160,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 	_, isError := m.(*errorModel)
 
 	layout := "layout"
-	if Instance.Config.SessionsEnabled && !isError {
+	if Instance.Conf.SessionsEnabled && !isError {
 		if s, err = v.s.get(r); err != nil {
 			v.errFn(log.Ctx{
 				"template": name,
@@ -222,7 +223,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"NextPageLink":          nextPageLink,
 			"PrevPageLink":          prevPageLink,
 			"CanPaginate":           canPaginate,
-			"Config":                func() Configuration { return Instance.Config },
+			"Config":                func() config.Configuration { return *Instance.Conf },
 			"Version":               func() string { return Instance.Version },
 			"Name":                  appName,
 			"Menu":                  func() []headerEl { return headerMenu(r) },
@@ -254,14 +255,14 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 		DisableCharset:            false,
 		BinaryContentType:         "application/octet-stream",
 		HTMLContentType:           "text/html",
-		IsDevelopment:             !Instance.Config.Env.IsProd(),
+		IsDevelopment:             !Instance.Conf.Env.IsProd(),
 		DisableHTTPErrorRendering: true,
 	})
 
 	if err = ren.HTML(w, http.StatusOK, name, m); err != nil {
 		return errors.Annotatef(err, "failed to render template")
 	}
-	if Instance.Config.SessionsEnabled && !isError {
+	if Instance.Conf.SessionsEnabled && !isError {
 		if err := v.s.save(w, r); err != nil {
 			return err
 		}
@@ -326,7 +327,7 @@ func (v *view) Redirect(w http.ResponseWriter, r *http.Request, url string, stat
 func loadFlashMessages(r *http.Request, w http.ResponseWriter, s *sessions.Session) func() []flash {
 	flashData := make([]flash, 0)
 	flashFn := func() []flash { return flashData }
-	if !Instance.Config.SessionsEnabled {
+	if !Instance.Conf.SessionsEnabled {
 		return flashFn
 	}
 	flashes := s.Flashes()
@@ -740,7 +741,7 @@ func ItemIsReported(by *Account, i *Item) bool {
 }
 
 func showAccountBlockLink(by, current *Account) bool {
-	if !Instance.Config.ModerationEnabled {
+	if !Instance.Conf.ModerationEnabled {
 		return false
 	}
 	if !by.IsLogged() {
@@ -762,7 +763,7 @@ func showAccountBlockLink(by, current *Account) bool {
 }
 
 func showFollowLink(by, current *Account) bool {
-	if !Instance.Config.UserFollowingEnabled {
+	if !Instance.Conf.UserFollowingEnabled {
 		return false
 	}
 	if !by.IsLogged() {
@@ -784,7 +785,7 @@ func showFollowLink(by, current *Account) bool {
 }
 
 func showAccountReportLink(by, current *Account) bool {
-	if !Instance.Config.ModerationEnabled {
+	if !Instance.Conf.ModerationEnabled {
 		return false
 	}
 	if !by.IsLogged() {
