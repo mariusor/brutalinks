@@ -325,9 +325,9 @@ func (v *view) Redirect(w http.ResponseWriter, r *http.Request, url string, stat
 }
 
 func loadFlashMessages(r *http.Request, w http.ResponseWriter, s *sessions.Session) func() []flash {
-	flashData := make([]flash, 0)
+	var flashData []flash
 	flashFn := func() []flash { return flashData }
-	if !Instance.Conf.SessionsEnabled {
+	if s == nil || !Instance.Conf.SessionsEnabled{
 		return flashFn
 	}
 	flashes := s.Flashes()
