@@ -115,10 +115,15 @@ section footer::before {
 }
 .score a {
     font-family: monospace;
-    justify-self: center;
-    align-self: center;
     font-weight: 901;
     font-size: 1.8em;
+}
+.score * {
+    justify-self: center;
+    align-self: center;
+}
+.score data:not(.N) {
+    padding-left: .1em;
 }
 .score a.nay {
     margin-top: -.35em;

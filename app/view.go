@@ -365,6 +365,9 @@ func scoreClass(s int) string {
 	if class == "" {
 		class = "H"
 	}
+	if s < 0 {
+		class += " N"
+	}
 	return class
 }
 
