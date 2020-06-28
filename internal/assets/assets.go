@@ -69,13 +69,13 @@ func writeAsset(s AssetFiles, writeFn func (s string, w io.Writer, b []byte)) fu
 		mimeType := mime.TypeByExtension(ext)
 		files, ok := s[asset]
 		if !ok {
-			w.WriteHeader(http.StatusNotFound)
 			w.Write([]byte("not found"))
+			w.WriteHeader(http.StatusNotFound)
 			return
 		}
 
 		if writeFn == nil {
-			writeFn = func (s string, _w io.Writer, b []byte) {
+			writeFn = func (s string, w io.Writer, b []byte) {
 				w.Write(b)
 			}
 		}

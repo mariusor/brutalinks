@@ -67,10 +67,11 @@ func ServeAsset(s AssetFiles) func(w http.ResponseWriter, r *http.Request) {
 	m.AddFunc("image/svg+xml", svg.Minify)
 	m.AddFunc("text/css", css.Minify)
 	m.AddFuncRegexp(regexp.MustCompile("^(application|text)/(x-)?(java|ecma)script$"), js.Minify)
-	rdr := new(bytes.Buffer)
 
-	return writeAsset(s, func(mimeType string, w io.Writer, b []byte) {
+	writeFn := func(mimeType string, w io.Writer, b []byte) {
+		rdr := new(bytes.Buffer)
 		rdr.Write(b)
 		m.Minify(mimeType, w, rdr)
-	})
+	}
+	return writeAsset(s, writeFn)
 }
