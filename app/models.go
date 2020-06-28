@@ -137,6 +137,11 @@ func (m *contentModel) SetCursor(c *Cursor) {
 	}
 	m.Content = getFromList(m.Hash, c.items)
 	if m.Content != nil {
+		if it, ok := m.Content.(*Item); ok {
+			if it.Private() {
+				m.Message.SubmitLabel = htmlf("%s Reply", icon("lock"))
+			}
+		}
 		m.Message.Back = PermaLink(m.Content)
 	}
 }
