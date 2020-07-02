@@ -470,7 +470,11 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	}
 
 	f := &Filters{Name: CompStrs{EqualsString(a.Handle)}}
-	maybeExists, _ := h.storage.fedbox.Actors(Values(f))
+	maybeExists, err := h.storage.fedbox.Actors(Values(f))
+	if err != nil {
+		h.v.HandleErrors(w, r, err)
+		return
+	}
 	if maybeExists.Count() > 0 {
 		h.v.HandleErrors(w, r, errors.BadRequestf("account %s already exists", a.Handle))
 		return
@@ -506,12 +510,25 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 		h.v.HandleErrors(w, r, err)
 		return
 	}
+	if res.StatusCode != http.StatusOK {
+		incoming, e := errors.UnmarshalJSON(body)
+		var errs []error
+		if e == nil {
+			errs = make([]error, len(incoming))
+			for i := range incoming {
+				errs[i] = incoming[i]
+			}
+		} else {
+			errs = []error{errors.WrapWithStatus(res.StatusCode, errors.Newf(""), "invalid response")}
+		}
+		h.v.HandleErrors(w, r, errs...)
+		return
+	}
 	d := osin.AuthorizeData{}
 	if err := json.Unmarshal(body, &d); err != nil {
 		h.v.HandleErrors(w, r, err)
 		return
 	}
-
 	if d.Code == "" {
 		h.v.HandleErrors(w, r, errors.NotValidf("unable to get session token for setting the user's password"))
 		return
