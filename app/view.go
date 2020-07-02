@@ -97,7 +97,7 @@ func ViewInit(c appConfig, infoFn, errFn CtxLogFn) (*view, error) {
 	}
 	switch strings.ToLower(c.SessionsBackend) {
 	case "file":
-		s, _ := initFileSession(c.HostName, c.Secure, c.SessionKeys...)
+		s, _ := v.initFileSession(c.HostName, c.Secure, c.SessionKeys...)
 		v.s = &session{
 			s: s,
 		}

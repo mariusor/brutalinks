@@ -110,10 +110,15 @@ func initCookieSession(h string, secure bool, k ...[]byte) (sessions.Store, erro
 	return ss, nil
 }
 
-func initFileSession(h string, secure bool, k ...[]byte) (sessions.Store, error) {
+func (v view)initFileSession(h string, secure bool, k ...[]byte) (sessions.Store, error) {
 	sessDir := fmt.Sprintf("%s/%s", os.TempDir(), h)
-	if _, err := os.Stat(sessDir); os.IsNotExist(err) {
-		if err := os.Mkdir(sessDir, 0700); err != nil {
+	if _, err := os.Stat(sessDir); err != nil {
+		if os.IsNotExist(err) {
+			if err := os.Mkdir(sessDir, 0700); err != nil {
+				return nil, err
+			}
+		} else {
+			v.errFn(nil)("Invalid path %s for saving sessions: %s", sessDir, err)
 			return nil, err
 		}
 	}
