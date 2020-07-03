@@ -8,19 +8,17 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/mariusor/littr.go/internal/config"
+	"github.com/mariusor/littr.go/internal/log"
 	"github.com/writeas/go-nodeinfo"
 	"io"
+	"io/ioutil"
+	golog "log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
-
-	"github.com/mariusor/littr.go/internal/log"
 )
-
-// Logger is the package default logger instance
-var Logger log.Logger
 
 const (
 	// Anonymous label
@@ -210,13 +208,14 @@ func (ex *exit) wait() chan int {
 }
 
 // SetupHttpServer creates a new http server and returns the start and stop functions for it
-func SetupHttpServer(listen string, m http.Handler, wait time.Duration, ctx context.Context) (func() error, func() error) {
+func SetupHttpServer(ctx context.Context, listen string, m http.Handler, wait time.Duration) (func() error, func() error) {
 	srv := &http.Server{
 		Addr:         listen,
 		WriteTimeout: wait,
 		ReadTimeout:  wait,
 		IdleTimeout:  time.Second * 60,
 		Handler:      m,
+		ErrorLog:     golog.New(ioutil.Discard, "", 0),
 	}
 
 	shutdown := func() error {
@@ -245,7 +244,7 @@ func (a *Application) Run(m http.Handler, wait time.Duration) {
 		"env":    a.Conf.Env,
 	}).Info("Started")
 
-	srvStart, srvShutdown := SetupHttpServer(a.Listen(), m, wait, context.Background())
+	srvStart, srvShutdown := SetupHttpServer(context.Background(), a.Listen(), m, wait)
 	defer srvShutdown()
 
 	// Run our server in a goroutine so that it doesn't block.
