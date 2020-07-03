@@ -268,17 +268,22 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		Name: CompStrs{EqualsString(handle)},
 		Type: ActivityTypesFilter(ValidActorTypes...),
 	})
+
+	handleErr := func(msg string, f logrus.Fields) {
+		h.logger.WithContext(f).Error(err.Error())
+		h.v.addFlashMessage(Error, r, msg)
+		h.v.Redirect(w, r, "/login", http.StatusSeeOther)
+	}
 	if err != nil || len(accts) == 0 {
 		if err == nil {
 			err = errors.NotFoundf("%s", handle)
 		}
-		h.logger.WithContext(logrus.Fields{
+		handleErr(fmt.Sprintf("Login failed: %s", err), logrus.Fields{
 			"handle": handle,
 			"client": config.ClientID,
 			"state":  state,
-		}).Error(err.Error())
-		h.v.addFlashMessage(Error, r, fmt.Sprintf("Login failed: %s", err))
-		h.v.Redirect(w, r, "/login", http.StatusSeeOther)
+			"err":    err,
+		})
 		return
 	}
 	acct := accts[0]
@@ -288,21 +293,28 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		if err == nil {
 			err = errors.Errorf("nil token received")
 		}
-		h.logger.WithContext(logrus.Fields{
+		handleErr("Login failed: invalid username or password", logrus.Fields{
 			"handle": handle,
 			"client": config.ClientID,
 			"state":  state,
 			"error":  err,
-		}).Error(errors.Annotatef(err, "login failed").Error())
-		h.v.addFlashMessage(Error, r, "Login failed: invalid username or password")
-		h.v.Redirect(w, r, "/login", http.StatusSeeOther)
+		})
 		return
 	}
 	acct.Metadata.OAuth.Provider = "fedbox"
 	acct.Metadata.OAuth.Token = tok.AccessToken
 	acct.Metadata.OAuth.TokenType = tok.TokenType
 	acct.Metadata.OAuth.RefreshToken = tok.RefreshToken
-	s, _ := h.v.s.get(r)
+	s, err := h.v.s.get(r)
+	if err != nil {
+		handleErr("Login failed: unable to save session", logrus.Fields{
+			"handle": handle,
+			"client": config.ClientID,
+			"state":  state,
+			"error":  err,
+		})
+		return
+	}
 	s.Values[SessionUserKey] = acct
 	h.v.Redirect(w, r, "/", http.StatusSeeOther)
 }
@@ -312,8 +324,9 @@ func (h *handler) HandleLogout(w http.ResponseWriter, r *http.Request) {
 	s, err := h.v.s.get(r)
 	if err != nil {
 		h.logger.Error(err.Error())
+	} else {
+		s.Values[SessionUserKey] = nil
 	}
-	s.Values[SessionUserKey] = nil
 	backUrl := "/"
 	if r.Header.Get("Referer") != "" {
 		backUrl = r.Header.Get("Referer")

@@ -41,6 +41,8 @@ type LogFn func(string, ...interface{})
 
 type session struct {
 	s sessions.Store
+	infoFn CtxLogFn
+	errFn  CtxLogFn
 }
 
 func (h *session) new(r *http.Request) (*sessions.Session, error) {
@@ -110,6 +112,8 @@ func ViewInit(c appConfig, infoFn, errFn CtxLogFn) (*view, error) {
 		s, _ := initCookieSession(c.HostName, c.Secure, c.SessionKeys...)
 		v.s = &session{
 			s: s,
+			infoFn: infoFn,
+			errFn: errFn,
 		}
 	}
 	return &v, nil
