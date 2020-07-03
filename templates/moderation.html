@@ -1,4 +1,5 @@
 <nav class="moderation-hdr">
+{{/* }}
     <form method="get">
         <label>Moderator
         <select name="m">
@@ -6,7 +7,7 @@
             <option valeu="users">(users)</option>
         </select>
         </label>
-        <label><input type="checkbox" name="it"/> Items</label>
+        <label><input type="checkbox" name="i"/> Items</label>
         <label><input type="checkbox" name="c" /> Comments</label>
         <label><input type="checkbox" name="d"/> Domains</label>
         <label><input type="checkbox" name="t"/> Tags</label>
@@ -14,5 +15,6 @@
         <label><input type="checkbox" name="in"/> Instances</label>
         <button type="submit">Filter</button>
     </form>
+{{ */}}
 </nav>
 {{ template "listing" . }}
