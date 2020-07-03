@@ -12,7 +12,6 @@ import (
 	"github.com/go-chi/chi/middleware"
 
 	"github.com/mariusor/littr.go/app"
-	"github.com/mariusor/littr.go/internal/log"
 )
 
 var version = "HEAD"
@@ -35,7 +34,6 @@ func main() {
 	e := config.EnvType(env)
 	app.Instance = app.New(host, port, e, version)
 	errors.IncludeBacktrace = app.Instance.Conf.Env == config.DEV
-	app.Logger = app.Instance.Logger.New(log.Ctx{"package": "app"})
 
 	// Routes
 	r := chi.NewRouter()
