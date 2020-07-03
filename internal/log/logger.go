@@ -59,10 +59,10 @@ func Dev(lvl Level) Logger {
 		QuoteEmptyFields: true,
 		FullTimestamp:    false,
 	})
-	logrus.SetOutput(os.Stdout)
-	logrus.SetLevel(logrus.Level(lvl))
-
-	l.l = logrus.StandardLogger()
+	logger := logrus.New()
+	logger.Level = logrus.Level(lvl)
+	logger.Out = os.Stdout
+	l.l = logger
 	return &l
 }
 
