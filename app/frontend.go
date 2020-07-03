@@ -103,16 +103,23 @@ func Init(c appConfig) (*handler, error) {
 	return h, err
 }
 
-func initCookieSession(h string, secure bool, k ...[]byte) (sessions.Store, error) {
+func initCookieSession(h string, e config.EnvType, secure bool, k ...[]byte) (sessions.Store, error) {
 	ss := sessions.NewCookieStore(k...)
 	ss.Options.Domain = h
 	ss.Options.Path = "/"
 	ss.Options.HttpOnly = true
 	ss.Options.Secure = secure
+	ss.Options.SameSite = http.SameSiteLaxMode
+	if e.IsProd() {
+		ss.Options.SameSite = http.SameSiteStrictMode
+	}
+	if e.IsDev() {
+		ss.Options.SameSite = http.SameSiteNoneMode
+	}
 	return ss, nil
 }
 
-func (v view)initFileSession(h string, secure bool, k ...[]byte) (sessions.Store, error) {
+func (v view) initFileSession(h string, e config.EnvType, secure bool, k ...[]byte) (sessions.Store, error) {
 	sessDir := fmt.Sprintf("%s/%s", os.TempDir(), h)
 	if _, err := os.Stat(sessDir); err != nil {
 		if os.IsNotExist(err) {
@@ -129,6 +136,13 @@ func (v view)initFileSession(h string, secure bool, k ...[]byte) (sessions.Store
 	ss.Options.Path = "/"
 	ss.Options.HttpOnly = true
 	ss.Options.Secure = secure
+	ss.Options.SameSite = http.SameSiteLaxMode
+	if e.IsProd() {
+		ss.Options.SameSite = http.SameSiteStrictMode
+	}
+	if e.IsDev() {
+		ss.Options.SameSite = http.SameSiteNoneMode
+	}
 	return ss, nil
 }
 

@@ -40,7 +40,7 @@ type CtxLogFn func(log.Ctx) LogFn
 type LogFn func(string, ...interface{})
 
 type session struct {
-	s sessions.Store
+	s      sessions.Store
 	infoFn CtxLogFn
 	errFn  CtxLogFn
 }
@@ -97,24 +97,20 @@ func ViewInit(c appConfig, infoFn, errFn CtxLogFn) (*view, error) {
 		err := errors.NotImplementedf("no session encryption configuration, unable to use sessions")
 		return &v, err
 	}
+	v.s = &session{
+		infoFn: infoFn,
+		errFn:  errFn,
+	}
 	switch strings.ToLower(c.SessionsBackend) {
-	case fsBackend:
-		s, _ := v.initFileSession(c.HostName, c.Secure, c.SessionKeys...)
-		v.s = &session{
-			s: s,
-		}
 	case cookieBackend:
-		fallthrough
-	default:
 		if strings.ToLower(c.SessionsBackend) != "cookie" {
 			v.infoFn(nil)("Invalid session backend %q, falling back to cookie.", c.SessionsBackend)
 		}
-		s, _ := initCookieSession(c.HostName, c.Secure, c.SessionKeys...)
-		v.s = &session{
-			s: s,
-			infoFn: infoFn,
-			errFn: errFn,
-		}
+		v.s.s, _ = initCookieSession(c.HostName, c.Env, c.Secure, c.SessionKeys...)
+	case fsBackend:
+		fallthrough
+	default:
+		v.s.s, _ = v.initFileSession(c.HostName, c.Env, c.Secure, c.SessionKeys...)
 	}
 	return &v, nil
 }
@@ -331,7 +327,7 @@ func (v *view) Redirect(w http.ResponseWriter, r *http.Request, url string, stat
 func loadFlashMessages(r *http.Request, w http.ResponseWriter, s *sessions.Session) func() []flash {
 	var flashData []flash
 	flashFn := func() []flash { return flashData }
-	if s == nil || !Instance.Conf.SessionsEnabled{
+	if s == nil || !Instance.Conf.SessionsEnabled {
 		return flashFn
 	}
 	flashes := s.Flashes()
