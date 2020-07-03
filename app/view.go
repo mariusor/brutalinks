@@ -96,12 +96,12 @@ func ViewInit(c appConfig, infoFn, errFn CtxLogFn) (*view, error) {
 		return &v, err
 	}
 	switch strings.ToLower(c.SessionsBackend) {
-	case "file":
+	case fsBackend:
 		s, _ := v.initFileSession(c.HostName, c.Secure, c.SessionKeys...)
 		v.s = &session{
 			s: s,
 		}
-	case "cookie":
+	case cookieBackend:
 		fallthrough
 	default:
 		if strings.ToLower(c.SessionsBackend) != "cookie" {

@@ -21,6 +21,8 @@ import (
 const (
 	sessionName = "_s"
 	csrfName    = "_c"
+	cookieBackend = "cookie"
+	fsBackend = "fs"
 )
 
 type handler struct {

@@ -99,7 +99,7 @@ func (a *Application) setUp(c *config.Configuration, host string, port int) erro
 		c.HostName = host
 	}
 	if port != 0 {
-		c.Port = port
+		c.ListenPort = port
 	}
 	if c.APIURL == "" {
 		c.APIURL = fmt.Sprintf("%s/api", a.BaseURL)
@@ -108,7 +108,7 @@ func (a *Application) setUp(c *config.Configuration, host string, port int) erro
 }
 
 func (a Application) Listen() string {
-	return fmt.Sprintf("%s:%d", a.Conf.HostName, a.Conf.Port)
+	return fmt.Sprintf("%s:%d", a.Conf.ListenHost, a.Conf.ListenPort)
 }
 
 func (a *Application) Front(r chi.Router) {

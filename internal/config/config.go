@@ -10,24 +10,15 @@ import (
 	"strings"
 )
 
-type backendConfig struct {
-	Enabled bool
-	Host    string
-	Port    string
-	User    string
-	Pw      string
-	Name    string
-}
-
 type Configuration struct {
 	HostName                   string
-	Port                       int
-	APIURL                     string
 	Name                       string
+	ListenPort                 int
+	ListenHost                 string
+	APIURL                     string
 	Secure                     bool
 	Env                        EnvType
 	LogLevel                   log.Level
-	DB                         backendConfig
 	AdminContact               string
 	AnonymousCommentingEnabled bool
 	SessionsEnabled            bool
@@ -39,7 +30,8 @@ type Configuration struct {
 	MaintenanceMode            bool
 }
 
-const DefaultPort = 3000
+const DefaultListenPort = 3000
+const DefaultListenHost = "localhost"
 
 func Load(e EnvType) (*Configuration, error) {
 	c := new(Configuration)
@@ -81,19 +73,17 @@ func Load(e EnvType) (*Configuration, error) {
 	if c.Name == "" {
 		c.Name = c.HostName
 	}
-	if port, _ := strconv.ParseInt(os.Getenv("PORT"), 10, 32); port > 0 {
-		c.Port = int(port)
-	} else {
-		c.Port = DefaultPort
+	c.ListenHost = os.Getenv("LISTEN_HOSTNAME")
+	if c.ListenHost == "" {
+		c.ListenHost = DefaultListenHost
 	}
-	
-	c.Secure, _ = strconv.ParseBool(os.Getenv("HTTPS"))
+	if port, _ := strconv.ParseInt(os.Getenv("LISTEN_PORT"), 10, 32); port > 0 {
+		c.ListenPort = int(port)
+	} else {
+		c.ListenPort = DefaultListenPort
+	}
 
-	//c.DB.Host = os.Getenv("DB_HOST")
-	//c.DB.Pw = os.Getenv("DB_PASSWORD")
-	//c.DB.Name = os.Getenv("DB_NAME")
-	//c.DB.Port = os.Getenv("DB_PORT")
-	//c.DB.User = os.Getenv("DB_USER")
+	c.Secure, _ = strconv.ParseBool(os.Getenv("HTTPS"))
 
 	votingDisabled, _ := strconv.ParseBool(os.Getenv("DISABLE_VOTING"))
 	c.VotingEnabled = !votingDisabled

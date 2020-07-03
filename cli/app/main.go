@@ -17,7 +17,7 @@ import (
 
 var version = "HEAD"
 
-const defaultPort = config.DefaultPort
+const defaultPort = config.DefaultListenPort
 const defaultTimeout = time.Second * 15
 
 func main() {
