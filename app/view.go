@@ -45,14 +45,14 @@ type session struct {
 	errFn  CtxLogFn
 }
 
-func (h *session) new(r *http.Request) (*sessions.Session, error) {
-	return h.s.New(r, sessionName)
+func (s *session) new(r *http.Request) (*sessions.Session, error) {
+	return s.s.New(r, sessionName)
 }
-func (h *session) get(r *http.Request) (*sessions.Session, error) {
-	return h.s.Get(r, sessionName)
+func (s *session) get(r *http.Request) (*sessions.Session, error) {
+	return s.s.Get(r, sessionName)
 }
 
-func (h *session) save(w http.ResponseWriter, r *http.Request) error {
+func (s *session) save(w http.ResponseWriter, r *http.Request) error {
 	clearSessionCookie := func(w http.ResponseWriter, r *http.Request) {
 		if c, _ := r.Cookie(sessionName); c != nil {
 			c.Value = ""
@@ -60,20 +60,21 @@ func (h *session) save(w http.ResponseWriter, r *http.Request) error {
 			http.SetCookie(w, c)
 		}
 	}
-	if h.s == nil {
+	if s.s == nil {
 		clearSessionCookie(w, r)
 		return errors.Newf("missing session store, unable to save session")
 	}
-	s, err := h.s.Get(r, sessionName)
+	ss, err := s.s.Get(r, sessionName)
 	if err != nil {
 		clearSessionCookie(w, r)
 		return errors.Annotatef(err, "failed to load session")
 	}
-	if err := h.s.Save(r, w, s); err != nil {
+	if err := s.s.Save(r, w, ss); err != nil {
 		clearSessionCookie(w, r)
 		return errors.Annotatef(err, "failed to save session")
 	}
 
+	s.infoFn(nil)("session saved")
 	return nil
 }
 
@@ -102,14 +103,14 @@ func ViewInit(c appConfig, infoFn, errFn CtxLogFn) (*view, error) {
 		errFn:  errFn,
 	}
 	switch strings.ToLower(c.SessionsBackend) {
-	case cookieBackend:
+	case sessionsCookieBackend:
 		v.s.s, _ = initCookieSession(c.HostName, c.Env, c.Secure, c.SessionKeys...)
-	case fsBackend:
+	case sessionsFSBackend:
 		fallthrough
 	default:
-		if strings.ToLower(c.SessionsBackend) != fsBackend {
-			v.infoFn(log.Ctx{"backend": c.SessionsBackend})("Invalid session backend, falling back to %s.", fsBackend)
-			c.SessionsBackend = fsBackend
+		if strings.ToLower(c.SessionsBackend) != sessionsFSBackend {
+			v.infoFn(log.Ctx{"backend": c.SessionsBackend})("Invalid session backend, falling back to %s.", sessionsFSBackend)
+			c.SessionsBackend = sessionsFSBackend
 		}
 		v.s.s, _ = v.initFileSession(c.HostName, c.Env, c.Secure, c.SessionKeys...)
 	}

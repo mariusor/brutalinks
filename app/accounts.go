@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/go-ap/errors"
-	"github.com/mariusor/littr.go/internal/log"
 )
 
 type SSHKey struct {
@@ -197,7 +196,7 @@ func (a AccountCollection) First() (*Account, error) {
 	return nil, errors.Errorf("empty %T", a)
 }
 
-func accountFromPost(r *http.Request, l log.Logger) (Account, error) {
+func accountFromPost(r *http.Request) (Account, error) {
 	if r.Method != http.MethodPost {
 		return AnonymousAccount, errors.Errorf("invalid http method type")
 	}

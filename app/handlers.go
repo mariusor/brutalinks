@@ -10,7 +10,6 @@ import (
 	"github.com/mariusor/littr.go/internal/log"
 	"github.com/mariusor/qstring"
 	"github.com/openshift/osin"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 	"io/ioutil"
 	"net/http"
@@ -30,9 +29,9 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	acc := loggedAccount(r)
 	n, err := ContentFromRequest(r, *acc)
 	if err != nil {
-		h.logger.WithContext(log.Ctx{
+		h.errFn(log.Ctx{
 			"before": err,
-		}).Error("wrong http method")
+		})("Error: wrong http method")
 		h.v.HandleErrors(w, r, errors.NewMethodNotAllowed(err, ""))
 		return
 	}
@@ -71,9 +70,9 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 	n, err = repo.SaveItem(n)
 	if err != nil {
-		h.logger.WithContext(log.Ctx{
+		h.errFn(log.Ctx{
 			"before": err,
-		}).Error("unable to save item")
+		})("Error: unable to save item")
 		h.v.HandleErrors(w, r, err)
 		return
 	}
@@ -85,11 +84,11 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 			Weight:      1 * ScoreMultiplier,
 		}
 		if _, err := repo.SaveVote(v); err != nil {
-			h.logger.WithContext(log.Ctx{
+			h.errFn(log.Ctx{
 				"hash":   v.Item.Hash,
 				"author": v.SubmittedBy.Handle,
 				"weight": v.Weight,
-			}).Error(err.Error())
+			})("Error: %s", err)
 		}
 	}
 	h.v.Redirect(w, r, ItemPermaLink(&n), http.StatusSeeOther)
@@ -113,7 +112,7 @@ func (h *handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 	iri := ObjectsURL.AddPath(chi.URLParam(r, "hash"))
 	p, err := repo.LoadItem(iri)
 	if err != nil {
-		h.logger.Error(err.Error())
+		h.errFn(nil)("Error: %s", err)
 		h.v.HandleErrors(w, r, errors.NewNotFound(err, "not found"))
 		return
 	}
@@ -138,7 +137,7 @@ func (h *handler) HandleVoting(w http.ResponseWriter, r *http.Request) {
 	iri := ObjectsURL.AddPath(chi.URLParam(r, "hash"))
 	p, err := repo.LoadItem(iri)
 	if err != nil {
-		h.logger.Error(err.Error())
+		h.errFn(nil)("Error: %s", err)
 		h.v.HandleErrors(w, r, errors.NewNotFound(err, "not found"))
 		return
 	}
@@ -165,13 +164,13 @@ func (h *handler) HandleVoting(w http.ResponseWriter, r *http.Request) {
 			Weight:      multiplier * ScoreMultiplier,
 		}
 		if _, err := repo.SaveVote(v); err != nil {
-			h.logger.WithContext(log.Ctx{
+			h.errFn(log.Ctx{
 				"hash":   v.Item.Hash,
 				"author": v.SubmittedBy.Handle,
 				"weight": v.Weight,
 				"error":  err,
-			}).Error("Unable to save vote")
-			h.v.addFlashMessage(Error, r, err.Error())
+			})("Error: Unable to save vote")
+			h.v.addFlashMessage(Error, r, "Unable to save vote")
 		}
 	} else {
 		h.v.addFlashMessage(Error, r, "unable to vote as current user")
@@ -183,7 +182,7 @@ func (h *handler) FollowAccount(w http.ResponseWriter, r *http.Request) {
 	loggedAccount := loggedAccount(r)
 	if !loggedAccount.IsValid() {
 		err := errors.Unauthorizedf("invalid logged account")
-		h.logger.Error(err.Error())
+		h.errFn(nil)("Error: %s", err)
 		h.v.HandleErrors(w, r, err)
 		return
 	}
@@ -208,7 +207,7 @@ func (h *handler) HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
 	loggedAccount := loggedAccount(r)
 	if !loggedAccount.IsValid() {
 		err := errors.Unauthorizedf("invalid logged account")
-		h.logger.Error(err.Error())
+		h.errFn(nil)("Error: %s", err)
 		h.v.HandleErrors(w, r, err)
 		return
 	}
@@ -269,8 +268,8 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		Type: ActivityTypesFilter(ValidActorTypes...),
 	})
 
-	handleErr := func(msg string, f logrus.Fields) {
-		h.logger.WithContext(f).Error(err.Error())
+	handleErr := func(msg string, f log.Ctx) {
+		h.errFn(f)("Error: %s", err)
 		h.v.addFlashMessage(Error, r, msg)
 		h.v.Redirect(w, r, "/login", http.StatusSeeOther)
 	}
@@ -278,7 +277,7 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		if err == nil {
 			err = errors.NotFoundf("%s", handle)
 		}
-		handleErr(fmt.Sprintf("Login failed: %s", err), logrus.Fields{
+		handleErr(fmt.Sprintf("Login failed: %s", err), log.Ctx{
 			"handle": handle,
 			"client": config.ClientID,
 			"state":  state,
@@ -293,7 +292,7 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		if err == nil {
 			err = errors.Errorf("nil token received")
 		}
-		handleErr("Login failed: invalid username or password", logrus.Fields{
+		handleErr("Login failed: invalid username or password", log.Ctx{
 			"handle": handle,
 			"client": config.ClientID,
 			"state":  state,
@@ -307,7 +306,7 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	acct.Metadata.OAuth.RefreshToken = tok.RefreshToken
 	s, err := h.v.s.get(r)
 	if err != nil {
-		handleErr("Login failed: unable to save session", logrus.Fields{
+		handleErr("Login failed: unable to save session", log.Ctx{
 			"handle": handle,
 			"client": config.ClientID,
 			"state":  state,
@@ -323,7 +322,7 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 func (h *handler) HandleLogout(w http.ResponseWriter, r *http.Request) {
 	s, err := h.v.s.get(r)
 	if err != nil {
-		h.logger.Error(err.Error())
+		h.errFn(nil)("Error: %s", err)
 	} else {
 		s.Values[SessionUserKey] = nil
 	}
@@ -356,7 +355,7 @@ func (h *handler) ValidateLoggedIn(eh ErrorHandler) Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			if !loggedAccount(r).IsLogged() {
 				e := errors.Unauthorizedf("Please login to perform this action")
-				h.logger.Errorf("%s", e)
+				h.errFn(nil)("Error: %s", e)
 				eh(w, r, e)
 				return
 			}
@@ -476,7 +475,7 @@ func (h *handler) HandleSendInvite(w http.ResponseWriter, r *http.Request) {
 
 // HandleRegister handles POST /register requests
 func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
-	a, err := accountFromPost(r, h.logger)
+	a, err := accountFromPost(r)
 	if err != nil {
 		h.v.HandleErrors(w, r, err)
 		return
@@ -497,7 +496,7 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	a.CreatedBy = app
 	a, err = h.storage.WithAccount(app).SaveAccount(a)
 	if err != nil {
-		h.logger.Error(err.Error())
+		h.errFn(nil)("Error: %s", err)
 		h.v.HandleErrors(w, r, err)
 		return
 	}
@@ -562,7 +561,7 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 
 	pwChRes, err := http.Post(u.String(), "application/x-www-form-urlencoded", strings.NewReader(form.Encode()))
 	if body, err = ioutil.ReadAll(pwChRes.Body); err != nil {
-		h.logger.Error(err.Error())
+		h.errFn(nil)("Error: %s", err)
 		h.v.HandleErrors(w, r, err)
 		return
 	}
@@ -598,16 +597,16 @@ func (h *handler) BlockAccount(w http.ResponseWriter, r *http.Request) {
 	loggedAccount := loggedAccount(r)
 	if !loggedAccount.IsValid() {
 		err := errors.Unauthorizedf("invalid logged account")
-		h.logger.Error(err.Error())
+		h.errFn(nil)("Error: %s", err)
 		h.v.HandleErrors(w, r, err)
 		return
 	}
 
 	n, err := ContentFromRequest(r, *loggedAccount)
 	if err != nil {
-		h.logger.WithContext(log.Ctx{
+		h.errFn(log.Ctx{
 			"before": err,
-		}).Error("wrong http method")
+		})("wrong http method")
 		h.v.HandleErrors(w, r, errors.NewMethodNotAllowed(err, ""))
 		return
 	}
@@ -640,16 +639,16 @@ func (h *handler) ReportItem(w http.ResponseWriter, r *http.Request) {
 	loggedAccount := loggedAccount(r)
 	if !loggedAccount.IsValid() {
 		err := errors.Unauthorizedf("invalid logged account")
-		h.logger.Error(err.Error())
+		h.errFn(nil)("Error: %s", err)
 		h.v.HandleErrors(w, r, err)
 		return
 	}
 
 	reason, err := ContentFromRequest(r, *loggedAccount)
 	if err != nil {
-		h.logger.WithContext(log.Ctx{
+		h.errFn(log.Ctx{
 			"before": err,
-		}).Error("wrong http method")
+		})("Error: wrong http method")
 		h.v.HandleErrors(w, r, errors.NewMethodNotAllowed(err, ""))
 		return
 	}
@@ -657,14 +656,14 @@ func (h *handler) ReportItem(w http.ResponseWriter, r *http.Request) {
 
 	p, err := repo.LoadItem(ObjectsURL.AddPath(chi.URLParam(r, "hash")))
 	if err != nil {
-		h.logger.WithContext(log.Ctx{
+		h.errFn(log.Ctx{
 			"before": err,
-		}).Error("invalid item to report")
+		})("invalid item to report")
 		h.v.HandleErrors(w, r, errors.NewNotFound(err, ""))
 	}
 	err = repo.ReportItem(*loggedAccount, p, &reason)
 	if err != nil {
-		h.logger.Error(err.Error())
+		h.errFn(nil)("Error: %s", err)
 		h.v.HandleErrors(w, r, errors.NewNotFound(err, "not found"))
 		return
 	}

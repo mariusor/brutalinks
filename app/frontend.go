@@ -19,17 +19,19 @@ import (
 )
 
 const (
-	sessionName = "_s"
-	csrfName    = "_c"
-	cookieBackend = "cookie"
-	fsBackend = "fs"
+	sessionName           = "_s"
+	csrfName              = "_c"
+	sessionsCookieBackend = "cookie"
+	sessionsFSBackend     = "fs"
 )
 
 type handler struct {
 	conf    appConfig
 	v       *view
-	logger  log.Logger
 	storage *repository
+	logger  log.Logger
+	infoFn  CtxLogFn
+	errFn   CtxLogFn
 }
 
 var defaultAccount = AnonymousAccount
@@ -50,25 +52,24 @@ func Init(c appConfig) (*handler, error) {
 
 	h := new(handler)
 
-	infoFn := defaultCtxLogFn
-	errFn := defaultCtxLogFn
-
+	h.infoFn = defaultCtxLogFn
+	h.errFn = defaultCtxLogFn
 	if c.Logger != nil {
+		h.infoFn = func(ctx log.Ctx) LogFn {
+			return c.Logger.WithContext(ctx).Infof
+		}
+		h.errFn = func(ctx log.Ctx) LogFn {
+			return c.Logger.WithContext(ctx).Errorf
+		}
 		h.logger = c.Logger
-		infoFn = func(ctx log.Ctx) LogFn {
-			return h.logger.WithContext(ctx).Infof
-		}
-		errFn = func(ctx log.Ctx) LogFn {
-			return h.logger.WithContext(ctx).Errorf
-		}
 	}
 
 	if c.SessionsBackend = os.Getenv("SESSIONS_BACKEND"); c.SessionsBackend == "" {
-		c.SessionsBackend = "cookie"
+		c.SessionsBackend = sessionsFSBackend
 	}
 	c.SessionsBackend = strings.ToLower(c.SessionsBackend)
 	c.SessionKeys = loadEnvSessionKeys()
-	h.v, _ = ViewInit(c, infoFn, errFn)
+	h.v, _ = ViewInit(c, h.infoFn, h.errFn)
 	if h.v.s == nil {
 		h.conf.SessionsEnabled = false
 	}
@@ -186,13 +187,13 @@ func (h *handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
 	conf := GetOauth2Config(provider, h.conf.BaseURL)
 	tok, err := conf.Exchange(r.Context(), code)
 	if err != nil {
-		h.logger.Errorf("%s", err)
+		h.errFn(nil)("%s", err)
 		h.v.HandleErrors(w, r, err)
 		return
 	}
 
 	s, _ := h.v.s.get(r)
-	account := loadCurrentAccountFromSession(s, h.logger)
+	account := loadCurrentAccountFromSession(s, h.infoFn)
 	if account.Metadata == nil {
 		account.Metadata = &AccountMetadata{}
 	}
@@ -284,7 +285,7 @@ func isInverted(r *http.Request) bool {
 	return false
 }
 
-func loadCurrentAccountFromSession(s *sessions.Session, l log.Logger) Account {
+func loadCurrentAccountFromSession(s *sessions.Session, l CtxLogFn) Account {
 	// load the current account from the session or setting it to anonymous
 	raw, ok := s.Values[SessionUserKey]
 	if !ok {
@@ -294,10 +295,10 @@ func loadCurrentAccountFromSession(s *sessions.Session, l log.Logger) Account {
 	if !ok {
 		return defaultAccount
 	}
-	l.WithContext(log.Ctx{
+	l(log.Ctx{
 		"handle": a.Handle,
 		"hash":   a.Hash,
-	}).Debug("loaded account from session")
+	})("loaded account from session")
 	return a
 }
 
@@ -333,7 +334,7 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 				h.v.s.new(r)
 			}
 		}
-		acc := loadCurrentAccountFromSession(s, h.logger)
+		acc := loadCurrentAccountFromSession(s, h.infoFn)
 		m := acc.Metadata
 		if acc.IsLogged() {
 			f := &Filters{
@@ -354,7 +355,7 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 			if len(accounts) == 0 {
 				h.v.s.new(r)
 				err := errors.NotFoundf("no accounts found for %v", f)
-				h.logger.WithContext(ctx).Warnf(err.Error())
+				h.infoFn(ctx)("Error: %s", err)
 				ctxtErr(next, w, r, err)
 				return
 			}
@@ -369,15 +370,15 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 			// TODO(marius): this needs to be moved to where we're handling all Inbox activities, not on page load
 			acc, err = h.storage.loadAccountsFollowers(acc)
 			if err != nil {
-				h.logger.WithContext(ctx).Warnf(err.Error())
+				h.infoFn(ctx)("Error: %s", err)
 			}
 			acc, err = h.storage.loadAccountsFollowing(acc)
 			if err != nil {
-				h.logger.WithContext(ctx).Warnf(err.Error())
+				h.infoFn(ctx)("Error: %s", err)
 			}
 			acc, err = h.storage.loadAccountsBlockedIgnored(acc)
 			if err != nil {
-				h.logger.WithContext(ctx).Warnf(err.Error())
+				h.infoFn(ctx)("Error: %s", err)
 			}
 
 			var items ItemCollection
@@ -387,7 +388,7 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 			h.storage.loadAccountVotes(&acc, items)
 			acc, err = h.storage.loadAccountsOutbox(acc)
 			if err != nil {
-				h.logger.WithContext(ctx).Warnf(err.Error())
+				h.infoFn(ctx)("Error: %s", err)
 			}
 			r = r.WithContext(context.WithValue(r.Context(), LoggedAccountCtxtKey, &acc))
 			h.storage.WithAccount(&acc)
@@ -493,7 +494,7 @@ func (h handler) CSRF(next http.Handler) http.Handler {
 		authKey = h.conf.SessionKeys[0]
 	} else {
 		if h.conf.Env.IsProd() {
-			h.logger.Warnf("Invalid CSRF auth key")
+			h.errFn(nil)("Invalid CSRF auth key")
 		}
 		// TODO(marius): WTF is this?
 		authKey = []byte{0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1}

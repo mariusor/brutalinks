@@ -201,7 +201,7 @@ func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 		a, err := h.storage.LoadAccount(ff)
 		if err != nil {
 			err := errors.NotFoundf("resource not found %s", res)
-			h.logger.Error(err.Error())
+			h.errFn(nil)("Error: %s", err)
 			errors.HandleError(err).ServeHTTP(w, r)
 			return
 		}
