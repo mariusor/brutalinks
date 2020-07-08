@@ -1,0 +1,9 @@
+.moderation details[open] summary {
+    float: left;
+    margin-right: .4rem;
+}
+.moderation details {
+    font-size: .8em;
+    clear: both;
+    margin: .2ex 0;
+}
