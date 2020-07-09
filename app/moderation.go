@@ -36,6 +36,11 @@ func (m *ModerationRequest) IsValid() bool {
 	return m != nil && len(m.Hash) > 0
 }
 
+// AP returns the underlying actvitypub item
+func (m *ModerationRequest) AP() pub.Item {
+	return m.pub
+}
+
 // Date
 func (m ModerationRequest) Date() time.Time {
 	return m.SubmittedAt

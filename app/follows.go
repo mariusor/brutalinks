@@ -83,3 +83,8 @@ func (f *FollowRequest) Deleted() bool {
 func (f *FollowRequest) IsValid() bool {
 	return f != nil && len(f.Hash) > 0
 }
+
+// AP returns the underlying actvitypub item
+func (f *FollowRequest) AP() pub.Item {
+	return f.pub
+}

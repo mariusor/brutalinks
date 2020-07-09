@@ -3,6 +3,7 @@ package app
 import (
 	"bytes"
 	"fmt"
+	pub "github.com/go-ap/activitypub"
 	"github.com/go-chi/chi"
 	"net/http"
 	"net/url"
@@ -43,6 +44,11 @@ type Identifiable interface {
 
 func (i *Item) IsValid() bool {
 	return i != nil && len(i.Hash) > 0
+}
+
+// AP returns the underlying actvitypub item
+func (i *Item) AP() pub.Item {
+	return i.pub
 }
 
 func (i *Item) Deleted() bool {

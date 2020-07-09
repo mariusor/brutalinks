@@ -91,6 +91,7 @@ const (
 )
 
 type Renderable interface {
+	AP() pub.Item
 	IsValid() bool
 	Type() RenderType
 	Date() time.Time

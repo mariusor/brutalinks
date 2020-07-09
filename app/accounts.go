@@ -134,6 +134,11 @@ func (a *Account) IsValid() bool {
 	return a != nil && len(a.Hash) > 0
 }
 
+// AP returns the underlying actvitypub item
+func (a *Account) AP() pub.Item {
+	return a.pub
+}
+
 // Private
 func (a *Account) Private() bool {
 	return a != nil && a.Flags&FlagsPrivate == FlagsPrivate

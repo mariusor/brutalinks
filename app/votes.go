@@ -44,6 +44,11 @@ func (v *Vote) IsValid() bool {
 	return v != nil && v.Item.IsValid()
 }
 
+// AP returns the underlying actvitypub item
+func (v *Vote) AP() pub.Item {
+	return v.pub
+}
+
 // Type
 func (v *Vote) Type() RenderType {
 	return AppreciationLike
