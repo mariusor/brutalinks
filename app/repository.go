@@ -853,6 +853,66 @@ func (r *repository) loadFollowsAuthors(items ...FollowRequest) ([]FollowRequest
 	return items, nil
 }
 
+func (r *repository) loadModerationDetails(items ...ModerationRequest) ([]ModerationRequest, error) {
+	if len(items) == 0 {
+		return items, nil
+	}
+	fActors := Filters{}
+	fObjects := Filters{}
+	for _, it := range items {
+		if !it.SubmittedBy.IsValid() {
+			continue
+		}
+		hash := LikeString(it.SubmittedBy.Hash.String())
+		if len(hash.Str) > 0 && !fActors.IRI.Contains(hash) {
+			fActors.IRI = append(fActors.IRI, hash)
+		}
+
+		ap := it.Object.AP()
+		itIRI := ap.GetLink().String()
+		if strings.Contains(itIRI, string(actors)) {
+			hash = LikeString(path.Base(ap.GetLink().String()))
+			if !fActors.IRI.Contains(hash) {
+				fActors.IRI = append(fActors.IRI, hash)
+			}
+		} else if strings.Contains(itIRI, string(objects))  {
+			iri := EqualsString(it.Object.AP().GetLink().String())
+			if !fObjects.IRI.Contains(iri) {
+				fObjects.IRI = append(fObjects.IRI, iri)
+			}
+		}
+	}
+
+	if len(fActors.IRI) == 0 {
+		return items, errors.Errorf("unable to load items authors")
+	}
+	authors, err := r.accounts(&fActors)
+	if err != nil {
+		return items, errors.Annotatef(err, "unable to load items authors")
+	}
+	objects, err := r.objects(&fObjects)
+	if err != nil {
+		return items, errors.Annotatef(err, "unable to load items objects")
+	}
+	for k, it := range items {
+		for i, auth := range authors {
+			if accountsEqual(*it.SubmittedBy, auth) {
+				items[k].SubmittedBy = &(authors[i])
+			}
+			if it.Object.AP().GetLink().Equals(auth.pub.GetLink(), false) {
+				items[k].Object = &(authors[i])
+			}
+		}
+	}
+	for k, it := range items {
+		for i, obj := range objects {
+			if it.Object.AP().GetLink().Equals(obj.pub.GetLink(), false) {
+				items[k].Object = &(objects[i])
+			}
+		}
+	}
+	return items, nil
+}
 func accountsEqual(a1, a2 Account) bool {
 	return bytes.Equal(a1.Hash, a2.Hash) || (len(a1.Handle)+len(a2.Handle) > 0 && a1.Handle == a2.Handle)
 }
@@ -1087,13 +1147,30 @@ func (r *repository) objects(f *Filters) (ItemCollection, error) {
 	err := LoadFromCollection(objects, &colCursor{filters: f}, func(c pub.ItemCollection) (bool, error) {
 		for _, it := range c {
 			i := new(Item)
-			if err := i.FromActivityPub(it); err== nil && i.IsValid() {
+			if err := i.FromActivityPub(it); err == nil && i.IsValid() {
 				items = append(items, *i)
 			}
 		}
 		return len(items) == f.MaxItems || len(f.Next) == 0, nil
 	})
 	return items, err
+}
+
+func (r *repository) actors(f *Filters) (AccountCollection, error) {
+	objects := func() (pub.CollectionInterface, error) {
+		return r.fedbox.Actors(Values(f))
+	}
+	accounts := make(AccountCollection, 0)
+	err := LoadFromCollection(objects, &colCursor{filters: f}, func(c pub.ItemCollection) (bool, error) {
+		for _, it := range c {
+			i := new(Account)
+			if err := i.FromActivityPub(it); err == nil && i.IsValid() {
+				accounts = append(accounts, *i)
+			}
+		}
+		return len(accounts) == f.MaxItems || len(f.Next) == 0, nil
+	})
+	return accounts, err
 }
 
 func (r *repository) Objects(f *Filters) (Cursor, error) {
@@ -1204,6 +1281,8 @@ func (r *repository) ActorCollection(fn CollectionFn, f *Filters) (Cursor, error
 	relations := make(map[pub.IRI]pub.IRI)
 
 	deferredItems := make(CompStrs, 0)
+	deferredActors := make(CompStrs, 0)
+	deferredActivities := make(CompStrs, 0)
 
 	result := make([]Renderable, 0)
 	err := LoadFromCollection(fn, &colCursor{filters: f}, func(col pub.ItemCollection) (bool, error) {
@@ -1245,6 +1324,22 @@ func (r *repository) ActorCollection(fn CollectionFn, f *Filters) (Cursor, error
 					relations[a.GetLink()] = a.GetLink()
 				}
 				if ModerationActivityTypes.Contains(typ) {
+					ob := a.Object
+					if ob == nil {
+						return nil
+					}
+					if !ob.IsObject() {
+						iri := EqualsString(ob.GetLink().String())
+						if strings.Contains(iri.String(), string(actors)) && !deferredActors.Contains(iri) {
+							deferredActors = append(deferredActors, iri)
+						}
+						if strings.Contains(iri.String(), string(objects)) && !deferredItems.Contains(iri) {
+							deferredItems = append(deferredItems, iri)
+						}
+						if strings.Contains(iri.String(), string(activities)) && !deferredActivities.Contains(iri) {
+							deferredActivities = append(deferredActivities, iri)
+						}
+					}
 					m := ModerationRequest{}
 					m.FromActivityPub(a)
 					moderations = append(moderations, m)
@@ -1265,12 +1360,41 @@ func (r *repository) ActorCollection(fn CollectionFn, f *Filters) (Cursor, error
 		return emptyCursor, err
 	}
 	if len(deferredItems) > 0 {
+		if f.Object == nil {
+			f.Object = new(Filters)
+		}
 		ff := f.Object
 		ff.IRI = deferredItems
 		objects, _ := r.objects(ff)
 		for _, d := range objects {
 			if !items.Contains(d) {
 				items = append(items, d)
+			}
+			for _, m := range moderations {
+				modIt := m.Object.AP()
+				defIt := d.pub
+				if modIt.GetLink().Equals(defIt.GetLink(), false) {
+					m.Object = &d
+					break
+				}
+			}
+		}
+	}
+	if len(deferredActors) > 0 {
+		if f.Actor == nil {
+			f.Actor = new(Filters)
+		}
+		ff := f.Actor
+		ff.IRI = deferredItems
+		accounts, _ := r.accounts(ff)
+		for _, d := range accounts {
+			for _, m := range moderations {
+				modAc := m.SubmittedBy.AP()
+				defAc := d.pub
+				if modAc.GetLink().Equals(defAc.GetLink(), false) {
+					m.SubmittedBy = &d
+					break
+				}
 			}
 		}
 	}
@@ -1291,6 +1415,10 @@ func (r *repository) ActorCollection(fn CollectionFn, f *Filters) (Cursor, error
 		return emptyCursor, err
 	}
 	accounts, err = r.loadAccountsAuthors(accounts...)
+	if err != nil {
+		return emptyCursor, err
+	}
+	moderations, err = r.loadModerationDetails(moderations...)
 	if err != nil {
 		return emptyCursor, err
 	}
@@ -1825,7 +1953,7 @@ func (r *repository) LoadActorInbox(actor pub.Item, f *Filters) (*Cursor, error)
 	return &cursor, nil
 }
 
-func (r repository) moderationActivity(er *pub.Actor, ed pub.Item, reason *Item)  (*pub.Activity, error) {
+func (r repository) moderationActivity(er *pub.Actor, ed pub.Item, reason *Item) (*pub.Activity, error) {
 	bcc := make(pub.ItemCollection, 0)
 	bcc = append(bcc, pub.IRI(BaseURL))
 
