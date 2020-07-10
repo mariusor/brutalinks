@@ -84,7 +84,6 @@ footer time .icon-clock-o {
     width: .85em;
 }
 footer .icon-activitypub {
-    vertical-align: text-top;
     width: 1.1em;
     display: none;
 }
@@ -100,11 +99,12 @@ section footer nav ul li {
 section footer::before {
     content: '\2012';
 }
-.moderation-request + .score,
-.follow-request + .score,
-.account + .score {
+.moderation-request + .score, .follow-request + .score, .account + .score {
     grid-template-rows: 1.5em;
     align-content: center;
+}
+.moderation-request + .score, .account + .score {
+    opacity: .5;
 }
 .score {
     grid-template-rows: 1em 1.5em 1em;
@@ -113,27 +113,14 @@ section footer::before {
     min-height: 5.3ex;
     align-content: start;
 }
-.score a {
-    font-family: monospace;
-    font-weight: 901;
-    font-size: 1.8em;
-}
 .score * {
     justify-self: center;
     align-self: center;
-}
-.score data:not(.N) {
-    padding-left: .1em;
-}
-.score a.nay {
-    margin-top: -.35em;
 }
 .score a:hover {
     text-decoration: none;
 }
 .score data {
-    justify-self: center;
-    align-self: center;
     font-size: .7em;
 }
 .score data.inf {
@@ -177,7 +164,6 @@ summary:focus {
     white-space: normal;
     font-family: revert;
 }
-
 dl.recipients dt,
 dl.recipients dd {
     opacity: .8;
@@ -198,7 +184,6 @@ button svg.icon.icon-reply,
 button svg.icon.icon-sign-in {
     height: .9em;
     width: .9em;
-    vertical-align: text-bottom;
 }
 form fieldset {
     border-width: 0;

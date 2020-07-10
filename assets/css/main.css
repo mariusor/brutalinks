@@ -83,21 +83,16 @@ svg.icon.icon-eraser {
     width: 1.4em;
     margin-left: -.2em;
 }
-.icon.icon-lock, .icon.icon-clock-o, .icon.icon-code, .icon.icon-github,
-.icon.icon-angle-double-left, .icon.icon-angle-double-right, .icon.icon-adjust {
-    vertical-align: text-top;
-}
-body > header svg.icon {
-    vertical-align: text-top;
+.icon.icon-home, .icon.icon-star, .icon.icon-activitypub, .icon.icon-adjust,
+.icon.icon-lock
+{
+    margin-right: -.1em;
 }
 body > header {
     display: grid;
     grid-template-columns: auto auto 5fr;
     grid-area: header;
     margin: .5rem 0 0 0;
-}
-body > header h1 {
-    margin-bottom: -3px;
 }
 body > header h1 a,
 body > header h1 a:hover,
@@ -116,9 +111,6 @@ body > header nav ul {
 }
 body > header nav.tabs ul {
     font-size: 1em;
-}
-.icon {
-    vertical-align: middle;
 }
 nav ul, nav ul li, nav dl, nav dl dd, nav dl dt {
     display: inline-block;
@@ -216,6 +208,10 @@ form textarea {
 }
 form button {
     margin-top: .2em;
+    padding: .2em;
+}
+form button svg {
+    margin-bottom: -.2em;
 }
 #reply, #new {
     max-width: 30rem;
