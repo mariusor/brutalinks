@@ -19,6 +19,7 @@ type ModerationRequest struct {
 	Typ         RenderType        `json:"type,omitempty"`
 	SubmittedAt time.Time         `json:"-"`
 	Data        string            `json:"-"`
+	MimeType    string            `json:"-"`
 	SubmittedBy *Account          `json:"by,omitempty"`
 	Object      Renderable        `json:"-"`
 	Metadata    *ActivityMetadata `json:"-"`
@@ -106,6 +107,9 @@ func (m *ModerationRequest) FromActivityPub(it pub.Item) error {
 		})
 		if len(reason.Data) > 0 {
 			m.Data = reason.Data
+		}
+		if len(reason.MimeType) > 0 {
+			m.MimeType = reason.MimeType
 		}
 		m.SubmittedAt = a.Published
 		m.Metadata = &ActivityMetadata{
