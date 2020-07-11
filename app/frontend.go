@@ -81,7 +81,10 @@ func Init(c appConfig) (*handler, error) {
 	if len(key) > 0 {
 		oIRI := actors.IRI(pub.IRI(h.storage.BaseURL)).AddPath(key)
 		oauth, err := h.storage.fedbox.Actor(oIRI)
-		if err == nil {
+		if err != nil {
+			h.errFn(nil)("Failed to load actor: %s", err)
+		}
+		if oauth != nil  {
 			h.storage.app = new(Account)
 			h.storage.app.FromActivityPub(oauth)
 			config := GetOauth2Config("fedbox", h.conf.BaseURL)
