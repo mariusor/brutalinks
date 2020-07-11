@@ -276,7 +276,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 		DisableCharset:            false,
 		BinaryContentType:         "application/octet-stream",
 		HTMLContentType:           "text/html",
-		IsDevelopment:             !Instance.Conf.Env.IsProd(),
+		IsDevelopment:             Instance.Conf.Env.IsDev(),
 		DisableHTTPErrorRendering: true,
 	})
 
