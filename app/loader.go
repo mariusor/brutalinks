@@ -72,6 +72,12 @@ func ContextContentModel(ctx context.Context) *contentModel {
 	return m
 }
 
+func ContextModerationModel(ctx context.Context) *moderationModel {
+	var m *moderationModel
+	m, _ = ctx.Value(ModelCtxtKey).(*moderationModel)
+	return m
+}
+
 func ContextRepository(ctx context.Context) *repository {
 	var r *repository
 	r, _ = ctx.Value(RepositoryCtxtKey).(*repository)

@@ -49,7 +49,7 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 					r.Get("/message", h.HandleShow)
 					r.Post("/message", h.HandleSubmit)
 
-					r.With(BlockContentModelMw).Get("/block", h.HandleShow)
+					r.With(BlockAccountModelMw).Get("/block", h.HandleShow)
 					r.Post("/block", h.BlockAccount)
 					r.With(ReportAccountModelMw).Get("/bad", h.HandleShow)
 					r.Post("/bad", h.ReportAccount)
@@ -66,8 +66,10 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 						r.Get("/nay", h.HandleVoting)
 
 						//r.Get("/bad", h.ShowReport)
-						r.With(ReportContentModelMw, TemplateMw("report")).Get("/bad", h.HandleShow)
+						r.With(ReportContentModelMw).Get("/bad", h.HandleShow)
 						r.Post("/bad", h.ReportItem)
+						r.With(BlockContentModelMw).Get("/block", h.HandleShow)
+						r.Post("/block", h.BlockItem)
 
 						r.With(h.ValidateItemAuthor).Group(func(r chi.Router) {
 							r.With(EditContentModelMw).Get("/edit", h.HandleShow)
@@ -123,8 +125,7 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 		assetsDir := filepath.Join(workDir, "assets")
 
 		styles := assets.AssetFiles{
-			"block.css": []string{"main.css", "listing.css", "article.css"},
-			"report.css": []string{"main.css", "article.css", "article.css", "report.css"},
+			"moderate.css": []string{"main.css", "listing.css", "article.css", "moderate.css"},
 			"content.css": []string{"main.css", "article.css", "content.css"},
 			"listing.css": []string{"main.css", "listing.css", "article.css"},
 			"moderation.css": []string{"main.css", "listing.css", "article.css", "moderation.css"},

@@ -148,6 +148,49 @@ func (m *contentModel) SetCursor(c *Cursor) {
 	}
 }
 
+type moderationModel struct {
+	Title        string
+	Hash         Hash
+	Content      *ModerationRequest
+	ShowChildren bool
+	Message      mBox
+	after        Hash
+	before       Hash
+}
+
+func (m moderationModel) NextPage() Hash {
+	return m.after
+}
+
+func (m moderationModel) PrevPage() Hash {
+	return m.before
+}
+
+func (m *moderationModel) SetTitle(s string) {
+	m.Title = s
+}
+
+func (m moderationModel) Template() string {
+	return "moderate"
+}
+
+func (m *moderationModel) SetCursor(c *Cursor) {
+	if c == nil {
+		return
+	}
+	m.after = c.after
+	m.before = c.before
+	if len(c.items) == 0 {
+		return
+	}
+	if m.Content.Object == nil || !m.Content.Object.IsValid() {
+		m.Content.Object = getFromList(m.Hash, c.items)
+	}
+	if m.Content.Object != nil && len(m.Message.Back) == 0 {
+		m.Message.Back = PermaLink(m.Content.Object)
+	}
+}
+
 type loginModel struct {
 	Title   string
 	Account Account

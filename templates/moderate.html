@@ -1,0 +1,13 @@
+{{- if IsComment .Content.Object }}
+<article>
+    {{ template "partials/item" .Content.Object }}
+</article>
+{{- end -}}
+{{- if IsAccount .Content.Object }}
+    {{- template "partials/user/info" .Content.Object -}}
+{{ end -}}
+<hr/>
+You are about to {{ .Content | RenderLabel }} this {{ .Content.Object | RenderLabel }}.
+<section id="new">
+    {{ template "partials/content/edit" . }}
+</section>

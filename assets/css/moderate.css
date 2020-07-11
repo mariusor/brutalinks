@@ -1,17 +1,17 @@
-main.report article section {
+.moderate article section {
     grid-area: main;
     align-self: center;
     margin-left: 1ex;
 }
-main.report article {
+.moderate article {
     display: grid;
     grid-template-columns: 1.6rem 11fr;
     grid-template-areas: "sidebar main";
 }
-.report article section footer * {
+.moderate article section footer * {
     display: inline-block;
 }
-.report article section footer {
+.moderate article section footer {
     opacity: .6;
     line-height: 1.12rem;
 }

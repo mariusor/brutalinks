@@ -5,6 +5,7 @@ import (
 	"fmt"
 	pub "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
+	"github.com/go-chi/chi"
 	"html/template"
 	"net/http"
 )
@@ -163,40 +164,6 @@ func LoadObjectFromInboxMw(next http.Handler) http.Handler {
 	})
 }
 
-func TitleMw(s string) Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			m := ContextModel(r.Context())
-			if m != nil {
-				m.SetTitle(s)
-				if mm, ok := m.(*contentModel); ok {
-					mm.Message.Title = s
-				}
-			}
-			next.ServeHTTP(w, r)
-		})
-	}
-}
-
-func TemplateMw(s string) Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			defer next.ServeHTTP(w, r)
-
-			m := ContextModel(r.Context())
-			if m == nil {
-				return
-			}
-			if l, ok := m.(*contentModel); ok {
-				l.tpl = s
-			}
-			if l, ok := m.(*listingModel); ok {
-				l.tpl = s
-			}
-		})
-	}
-}
-
 func ModelMw(m Model) Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -288,12 +255,13 @@ func AddModelMw(next http.Handler) http.Handler {
 	})
 }
 
-func reportModelFromCtx(ctx context.Context) *contentModel {
-	m := ContextContentModel(ctx)
+func reportModelFromCtx(ctx context.Context) *moderationModel {
+	m := ContextModerationModel(ctx)
 	if m == nil {
-		m = new(contentModel)
+		m = new(moderationModel)
+		m.Content = new(ModerationRequest)
+		m.Content.pub = &pub.Flag{Type: pub.FlagType}
 	}
-	m.tpl = "report"
 	m.Message.Editable = false
 	m.Message.SubmitLabel = htmlf("%s Report", icon("flag"))
 	m.Message.Label = "Please add your reason for reporting:"
@@ -306,7 +274,11 @@ func ReportContentModelMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		m := reportModelFromCtx(ctx)
-		m.Content = new(Item)
+		hash := chi.URLParam(r, "hash")
+		if hash != "" {
+			m.Hash = Hash(hash)
+		}
+
 		m.Title = "Report item"
 		next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, ModelCtxtKey, m)))
 	})
@@ -322,10 +294,45 @@ func ReportAccountModelMw(next http.Handler) http.Handler {
 			return
 		}
 		auth := authors[0]
+		m.Content.Object = &auth
+		m.Hash = auth.Hash
 		m.Title = fmt.Sprintf("Report %s", auth.Handle)
 		m.Message.Label = fmt.Sprintf("Report %s:", auth.Handle)
-		m.Content = &auth
 		m.Title = "Report account"
+		m.Message.Back = PermaLink(&auth)
+		next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, ModelCtxtKey, m)))
+	})
+}
+
+func blockModelFromCtx(ctx context.Context) *moderationModel {
+	m := ContextModerationModel(ctx)
+	if m == nil {
+		m = new(moderationModel)
+		m.Content = new(ModerationRequest)
+		m.Content.pub = &pub.Block{Type: pub.BlockType}
+	}
+	m.Message.Editable = false
+	m.Title = fmt.Sprintf("Block item")
+	m.Message.Label = fmt.Sprintf("Block item:")
+	m.Message.SubmitLabel = htmlf("%s Block", icon("block"))
+	m.Message.Label = "Please add your reason for blocking:"
+	m.Message.Back = "/"
+
+	return m
+}
+func BlockAccountModelMw(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		m := blockModelFromCtx(ctx)
+		authors := ContextAuthors(ctx)
+		if len(authors) == 0 {
+			next.ServeHTTP(w, r)
+			return
+		}
+		auth := authors[0]
+		m.Content.Object = &auth
+		m.Title = fmt.Sprintf("Block %s", auth.Handle)
+		m.Message.Label = fmt.Sprintf("Block %s:", auth.Handle)
 		m.Message.Back = PermaLink(&auth)
 		next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, ModelCtxtKey, m)))
 	})
@@ -334,23 +341,11 @@ func ReportAccountModelMw(next http.Handler) http.Handler {
 func BlockContentModelMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		m := ContextContentModel(ctx)
-		if m == nil {
-			m = new(contentModel)
-			m.Content = new(Account)
+		m := blockModelFromCtx(ctx)
+		hash := chi.URLParam(r, "hash")
+		if hash != "" {
+			m.Hash = Hash(hash)
 		}
-		m.tpl = "block"
-		authors := ContextAuthors(ctx)
-		if len(authors) == 0 {
-			next.ServeHTTP(w, r)
-			return
-		}
-		auth := authors[0]
-		m.Title = fmt.Sprintf("Block %s", auth.Handle)
-		m.Message.Label = fmt.Sprintf("Block %s:", auth.Handle)
-		m.Message.Back = PermaLink(&auth)
-		m.Message.Editable = true
-		m.Message.SubmitLabel = htmlf("%s Block", icon("block"))
 		next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, ModelCtxtKey, m)))
 	})
 }
