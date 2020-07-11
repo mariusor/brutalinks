@@ -107,11 +107,12 @@ section footer::before {
     opacity: .5;
 }
 .score {
-    grid-template-rows: 1em 1.5em 1em;
+    grid-template-rows: .6em 1.5em 1em;
     display: grid;
     grid-area: sidebar;
-    min-height: 5.3ex;
+    min-height: 3.2em;
     align-content: start;
+    margin-top: .5em;
 }
 .score * {
     justify-self: center;
