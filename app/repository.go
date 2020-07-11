@@ -957,7 +957,7 @@ func (r *repository) loadItemsAuthors(items ...Item) (ItemCollection, error) {
 	}
 
 	if len(fActors.IRI) == 0 {
-		return items, errors.Errorf("unable to load items authors")
+		return items, nil
 	}
 	authors, err := r.accounts(&fActors)
 	if err != nil {
