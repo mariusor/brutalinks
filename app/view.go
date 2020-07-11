@@ -132,26 +132,45 @@ func ToTitle(s string) string {
 	return strings.ToUpper(s[0:1]) + s[1:]
 }
 
-func renderLabel(t RenderType) template.HTML {
+func renderLabel(r Renderable) template.HTML {
+	t := r.Type()
+
+	lbl := "unknown"
 	switch t {
 	case Comment:
-		return "item"
+		lbl = "item"
+		if i, ok := r.(*Item); ok {
+			if i.IsTop() {
+				lbl = "submission"
+			} else {
+				lbl = "comment"
+			}
+		}
+
 	case Follow:
-		return "follow"
-	case AppreciationLike:
-		return "like"
-	case AppreciationDislike:
-		return "dislike"
+		lbl = "follow"
+	case Appreciation:
+		if i, ok := r.(*Vote); ok {
+			if i.IsYay() {
+				lbl = "like"
+			} else {
+				lbl = "dislike"
+			}
+		}
 	case Actor:
 		return "account"
-	case ModerationBlock:
-		return "block"
-	case ModerationIgnored:
-		return "ignore"
-	case ModerationReported:
-		return "report"
+	case Moderation:
+		if i, ok := r.(*ModerationRequest); ok {
+			if i.IsBlock() {
+				lbl = "block"
+			} else if i.IsIgnore() {
+				lbl = "ignore"
+			} else if i.IsReport() {
+				lbl = "report"
+			}
+		}
 	}
-	return ""
+	return template.HTML(lbl)
 }
 
 func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name string, m Model) error {
@@ -192,9 +211,9 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"CurrentAccount":        accountFromRequest,
 			"IsComment":             func(t Renderable) bool { return t.Type() == Comment },
 			"IsFollowRequest":       func(t Renderable) bool { return t.Type() == Follow },
-			"IsVote":                func(t Renderable) bool { return t.Type() == AppreciationLike || t.Type() == AppreciationDislike },
+			"IsVote":                func(t Renderable) bool { return t.Type() == Appreciation },
 			"IsAccount":             func(t Renderable) bool { return t.Type() == Actor },
-			"IsModeration":          func(t Renderable) bool { return t.Type() == ModerationBlock || t.Type() == ModerationIgnored || t.Type() == ModerationReported },
+			"IsModeration":          func(t Renderable) bool { return t.Type() == Moderation },
 			"LoadFlashMessages":     loadFlashMessages(r, w, s),
 			"Mod10":                 mod10,
 			"ShowText":              showText(m),

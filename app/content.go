@@ -82,12 +82,9 @@ type RenderType int
 const (
 	Comment RenderType = iota
 	Follow
-	AppreciationLike
-	AppreciationDislike
+	Appreciation
 	Actor
-	ModerationBlock
-	ModerationIgnored
-	ModerationReported
+	Moderation
 )
 
 type Renderable interface {
@@ -133,7 +130,6 @@ type Item struct {
 	Flags       FlagBits          `json:"-"`
 	Metadata    *ItemMetadata     `json:"-"`
 	pub         pub.Item          `json:"-"`
-	IsTop       bool              `json:"-"`
 	Parent      *Item             `json:"-"`
 	OP          *Item             `json:"-"`
 	Voted       uint8             `json:"-"`
@@ -145,9 +141,9 @@ type Item struct {
 func (i *Item) Children() ItemPtrCollection {
 	if i != nil {
 		return i.children
- 	} 
- 	return nil
-} 
+	}
+	return nil
+}
 
 func (i *Item) Type() RenderType {
 	return Comment
@@ -155,6 +151,21 @@ func (i *Item) Type() RenderType {
 
 func (i Item) Date() time.Time {
 	return i.SubmittedAt
+}
+
+// IsTop returns true if current item is a top level submission
+func (i Item) IsTop() bool {
+	if i.pub == nil {
+		return false
+	}
+	isTop := false
+	pub.OnObject(i.pub, func(o *pub.Object) error {
+		if o.InReplyTo == nil {
+			isTop = true
+		}
+		return nil
+	})
+	return isTop
 }
 
 func (i ItemCollection) Contains(cc Item) bool {

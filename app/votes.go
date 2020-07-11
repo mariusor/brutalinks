@@ -44,6 +44,22 @@ func (v *Vote) IsValid() bool {
 	return v != nil && v.Item.IsValid()
 }
 
+// IsYay returns true if current vote is a Yay
+func (v Vote) IsYay() bool {
+	if v.pub == nil {
+		return false
+	}
+	return v.pub.GetType() == pub.LikeType
+}
+
+// IsNay returns true if current vote is a Nay
+func (v Vote) IsNay() bool {
+	if v.pub == nil {
+		return false
+	}
+	return v.pub.GetType() == pub.DislikeType
+}
+
 // AP returns the underlying actvitypub item
 func (v *Vote) AP() pub.Item {
 	return v.pub
@@ -51,7 +67,7 @@ func (v *Vote) AP() pub.Item {
 
 // Type
 func (v *Vote) Type() RenderType {
-	return AppreciationLike
+	return Appreciation
 }
 
 // Date

@@ -16,7 +16,6 @@ type ModerationRequests []ModerationRequest
 type ModerationRequest struct {
 	Hash        Hash              `json:"hash"`
 	Icon        template.HTML     `json:"-"`
-	Typ         RenderType        `json:"type,omitempty"`
 	SubmittedAt time.Time         `json:"-"`
 	Data        string            `json:"-"`
 	MimeType    string            `json:"-"`
@@ -29,12 +28,36 @@ type ModerationRequest struct {
 
 // Type
 func (m *ModerationRequest) Type() RenderType {
-	return m.Typ
+	return Moderation
 }
 
 // IsValid returns if the current follow request has a hash with length greater than 0
 func (m *ModerationRequest) IsValid() bool {
 	return m != nil && len(m.Hash) > 0
+}
+
+// IsBlock returns true if current moderation request is a block
+func (m ModerationRequest) IsBlock() bool {
+	if m.pub == nil {
+		return false
+	}
+	return m.pub.GetType() == pub.BlockType
+}
+
+// IsIgnore returns true if current moderation request is a ignore
+func (m ModerationRequest) IsIgnore() bool {
+	if m.pub == nil {
+		return false
+	}
+	return m.pub.GetType() == pub.IgnoreType
+}
+
+// IsReport returns true if current moderation request is a report
+func (m ModerationRequest) IsReport() bool {
+	if m.pub == nil {
+		return false
+	}
+	return m.pub.GetType() == pub.FlagType
 }
 
 // AP returns the underlying actvitypub item
@@ -76,15 +99,6 @@ func (m *ModerationRequest) FromActivityPub(it pub.Item) error {
 	return pub.OnActivity(it, func(a *pub.Activity) error {
 		m.Hash.FromActivityPub(a)
 		wer := new(Account)
-
-		switch a.Type {
-		case pub.BlockType:
-			m.Typ = ModerationBlock
-		case pub.IgnoreType:
-			m.Typ = ModerationIgnored
-		case pub.FlagType:
-			m.Typ = ModerationReported
-		}
 
 		m.Icon = icon(strings.ToLower(string(a.Type)))
 		wer.FromActivityPub(a.Actor)

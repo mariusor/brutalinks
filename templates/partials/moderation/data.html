@@ -1,5 +1,5 @@
 <a rel="mention" href="{{ .SubmittedBy | AccountPermaLink }}">{{ .SubmittedBy | ShowAccountHandle }}</a>
-{{.Type | RenderLabel }}ed <a href="{{ .Object | PermaLink }}">this {{ .Object.Type | RenderLabel }}</a>
+{{. | RenderLabel }}ed <a href="{{ .Object | PermaLink }}">this {{ .Object | RenderLabel }}</a>
 <details><summary>Reason:</summary>
 {{- if eq .MimeType "text/html" -}}{{- .Data | HTML -}}{{- end -}}
 {{- if eq .MimeType "text/plain" -}}{{- .Data | Text -}}{{end}}
