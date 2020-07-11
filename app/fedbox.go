@@ -330,10 +330,11 @@ func (f fedbox) ToInbox(a pub.Item) (pub.IRI, pub.Item, error) {
 }
 
 func (f *fedbox) Service() *pub.Service {
+	iri := strings.TrimRight(f.baseURL.String(), "/")
 	s := &pub.Service{
-		ID:   pub.ID(f.baseURL.String()),
+		ID:   pub.ID(iri),
 		Type: pub.ServiceType,
-		URL:  pub.IRI(f.baseURL.String()),
+		URL:  pub.IRI(iri),
 	}
 	s.Inbox = inbox(s)
 
