@@ -602,7 +602,7 @@ func (h *handler) BlockAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	n, err := ContentFromRequest(r, *loggedAccount)
+	reason, err := ContentFromRequest(r, *loggedAccount)
 	if err != nil {
 		h.errFn(log.Ctx{
 			"before": err,
@@ -612,22 +612,53 @@ func (h *handler) BlockAccount(w http.ResponseWriter, r *http.Request) {
 	}
 	repo := h.storage
 
-	toFollow := ContextAuthors(r.Context())
-	if len(toFollow) == 0 {
+	toBlock := ContextAuthors(r.Context())
+	if len(toBlock) == 0 {
 		h.v.HandleErrors(w, r, errors.NotFoundf("account not found"))
 		return
 	}
-	fol := toFollow[0]
-	err = repo.BlockAccount(*loggedAccount, fol, &n)
+	block := toBlock[0]
+	err = repo.BlockAccount(*loggedAccount, block, &reason)
 	if err != nil {
 		h.v.HandleErrors(w, r, err)
 		return
 	}
-	h.v.Redirect(w, r, AccountPermaLink(&fol), http.StatusSeeOther)
+	h.v.Redirect(w, r, PermaLink(&block), http.StatusSeeOther)
 }
 
 // BlockItem processes a block request received at /~{handle}/{hash}/block
 func (h *handler) BlockItem(w http.ResponseWriter, r *http.Request) {
+	loggedAccount := loggedAccount(r)
+	if !loggedAccount.IsValid() {
+		err := errors.Unauthorizedf("invalid logged account")
+		h.errFn(nil)("Error: %s", err)
+		h.v.HandleErrors(w, r, err)
+		return
+	}
+
+	reason, err := ContentFromRequest(r, *loggedAccount)
+	if err != nil {
+		h.errFn(log.Ctx{
+			"before": err,
+		})("wrong http method")
+		h.v.HandleErrors(w, r, errors.NewMethodNotAllowed(err, ""))
+		return
+	}
+	repo := h.storage
+
+	it, err := repo.LoadItem(ObjectsURL.AddPath(chi.URLParam(r, "hash")))
+	if err != nil {
+		h.errFn(log.Ctx{
+			"before": err,
+		})("invalid item to report")
+		h.v.HandleErrors(w, r, errors.NewNotFound(err, ""))
+	}
+	err = repo.BlockItem(*loggedAccount, it, &reason)
+	if err != nil {
+		h.v.HandleErrors(w, r, err)
+		return
+	}
+	h.v.Redirect(w, r, PermaLink(&it), http.StatusSeeOther)
 }
 
 // ReportAccount processes a report request received at /~{handle}/block
