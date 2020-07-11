@@ -288,21 +288,45 @@ func AddModelMw(next http.Handler) http.Handler {
 	})
 }
 
+func reportModelFromCtx(ctx context.Context) *contentModel {
+	m := ContextContentModel(ctx)
+	if m == nil {
+		m = new(contentModel)
+	}
+	m.tpl = "report"
+	m.Message.Editable = false
+	m.Message.SubmitLabel = htmlf("%s Report", icon("flag"))
+	m.Message.Label = "Please add your reason for reporting:"
+	m.Message.Back = "/"
+
+	return m
+}
+
 func ReportContentModelMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		m := ContextContentModel(ctx)
-		if m == nil {
-			m = new(contentModel)
-			m.Content = new(Item)
-		}
-		m.tpl = "report"
+		m := reportModelFromCtx(ctx)
 		m.Content = new(Item)
 		m.Title = "Report item"
-		m.Message.Editable = false
-		m.Message.SubmitLabel = htmlf("%s Report", icon("flag"))
-		m.Message.Label = "Please add your reason for reporting:"
-		m.Message.Back = "/"
+		next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, ModelCtxtKey, m)))
+	})
+}
+
+func ReportAccountModelMw(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		m := reportModelFromCtx(ctx)
+		authors := ContextAuthors(ctx)
+		if len(authors) == 0 {
+			next.ServeHTTP(w, r)
+			return
+		}
+		auth := authors[0]
+		m.Title = fmt.Sprintf("Report %s", auth.Handle)
+		m.Message.Label = fmt.Sprintf("Report %s:", auth.Handle)
+		m.Content = &auth
+		m.Title = "Report account"
+		m.Message.Back = PermaLink(&auth)
 		next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, ModelCtxtKey, m)))
 	})
 }

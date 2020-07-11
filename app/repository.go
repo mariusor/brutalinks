@@ -1738,13 +1738,21 @@ func (r *repository) LoadAccounts(f *Filters) (AccountCollection, uint, error) {
 	return accounts, count, nil
 }
 
-func (r *repository) LoadAccount(f *Filters) (Account, error) {
-	accounts, _, err := r.LoadAccounts(f)
-	if err != nil || len(accounts) == 0 {
-		return AnonymousAccount, errors.NewNotFound(err, "account")
+func (r *repository) LoadAccount(iri pub.IRI) (Account, error) {
+	var acc Account
+	act, err := r.fedbox.Actor(iri)
+	if err != nil {
+		r.errFn(nil)(err.Error())
+		return acc, err
 	}
-	acc, err := accounts.First()
-	return *acc, err
+	if err = acc.FromActivityPub(act); err == nil {
+		var accounts AccountCollection
+		accounts, err = r.loadAccountsVotes(acc)
+		if len(accounts) > 0 {
+			acc = accounts[0]
+		}
+	}
+	return acc, err
 }
 
 func Values(f interface{}) func() url.Values {

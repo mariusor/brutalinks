@@ -211,8 +211,7 @@ func accountFromPost(r *http.Request) (Account, error) {
 	hash := r.PostFormValue("hash")
 	if len(hash) > 0 {
 		s := ContextRepository(r.Context())
-		f := &Filters{IRI: CompStrs{LikeString(hash)}}
-		a, err = s.LoadAccount(f)
+		a, err = s.LoadAccount(ActorsURL.AddPath(hash))
 	}
 	if accountsEqual(a, AnonymousAccount) || err != nil {
 		a = Account{Metadata: &AccountMetadata{}}

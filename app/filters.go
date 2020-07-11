@@ -239,15 +239,17 @@ func AnonymizeListing(next http.Handler) http.Handler {
 
 func LoadInvitedMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		code := chi.URLParam(r, "hash")
-		if len(code) == 0 {}
+		hash := chi.URLParam(r, "hash")
+		if len(hash) == 0 {
+			next.ServeHTTP(w, r)
+			return
+		}
 		s := ContextRepository(r.Context())
 		if s == nil {
 			next.ServeHTTP(w, r)
 			return
 		}
-		f := &Filters{IRI: CompStrs{LikeString(code)}}
-		a, err := s.LoadAccount(f)
+		a, err := s.LoadAccount(ActorsURL.AddPath(hash))
 		if err != nil {
 			ctxtErr(next, w, r, err)
 			return

@@ -135,7 +135,9 @@ func (m *contentModel) SetCursor(c *Cursor) {
 	if len(c.items) == 0 {
 		return
 	}
-	m.Content = getFromList(m.Hash, c.items)
+	if !m.Content.IsValid() {
+		m.Content = getFromList(m.Hash, c.items)
+	}
 	if m.Content != nil {
 		if it, ok := m.Content.(*Item); ok {
 			if it.Private() {

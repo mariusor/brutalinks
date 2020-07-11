@@ -7,7 +7,7 @@
 {{- $op := .Message.OP -}}
 {{- $back := .Message.Back -}}
 {{- $showTitle := .Message.ShowTitle -}}
-{{- if .Content.IsValid -}}
+{{- if and (IsComment .Content) (.Content.IsValid) -}}
     {{- $data = .Content.Data -}}
 {{- end -}}
 <form method="post">

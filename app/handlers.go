@@ -632,6 +632,43 @@ func (h *handler) BlockItem(w http.ResponseWriter, r *http.Request) {
 
 // ReportAccount processes a report request received at /~{handle}/block
 func (h *handler) ReportAccount(w http.ResponseWriter, r *http.Request) {
+	loggedAccount := loggedAccount(r)
+	if !loggedAccount.IsValid() {
+		err := errors.Unauthorizedf("invalid logged account")
+		h.errFn(nil)("Error: %s", err)
+		h.v.HandleErrors(w, r, err)
+		return
+	}
+
+	reason, err := ContentFromRequest(r, *loggedAccount)
+	if err != nil {
+		h.errFn(log.Ctx{
+			"before": err,
+		})("Error: wrong http method")
+		h.v.HandleErrors(w, r, errors.NewMethodNotAllowed(err, ""))
+		return
+	}
+	repo := h.storage
+
+	byHandleAccounts := ContextAuthors(r.Context())
+	if len(byHandleAccounts) == 0 {
+		h.v.HandleErrors(w, r, errors.NotFoundf("account not found"))
+		return
+	}
+	p := byHandleAccounts[0]
+	err = repo.ReportAccount(*loggedAccount, p, &reason)
+	if err != nil {
+		h.errFn(nil)("Error: %s", err)
+		h.v.HandleErrors(w, r, errors.NewNotFound(err, "not found"))
+		return
+	}
+	url := AccountPermaLink(&p)
+
+	backUrl := r.Header.Get("Referer")
+	if !strings.Contains(backUrl, url) && strings.Contains(backUrl, Instance.BaseURL) {
+		url = fmt.Sprintf("%s#item-%s", backUrl, p.Hash)
+	}
+	h.v.Redirect(w, r, url, http.StatusFound)
 }
 
 // ReportItem processes a report request received at /~{handle}/{hash}/bad

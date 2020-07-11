@@ -7,7 +7,7 @@
     {{- template "partials/account" .Content -}}
 {{ end -}}
 <hr/>
-You are about to report this item to the instance's moderators.
+You are about to report this {{ .Content | RenderLabel }} to the instance's moderators.
 <section id="new">
     {{ template "partials/content/edit" . }}
 </section>

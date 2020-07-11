@@ -198,16 +198,22 @@ func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 			}(handle)
 		}
 		ff := &Filters{Name: CompStrs{EqualsString(handle)}}
-		a, err := h.storage.LoadAccount(ff)
+		accounts, _, err := h.storage.LoadAccounts(ff)
 		if err != nil {
 			err := errors.NotFoundf("resource not found %s", res)
 			h.errFn(nil)("Error: %s", err)
 			errors.HandleError(err).ServeHTTP(w, r)
 			return
 		}
-
+		a, err := accounts.First()
+		if err != nil {
+			err := errors.NotFoundf("resource not found %s", res)
+			h.errFn(nil)("Error: %s", err)
+			errors.HandleError(err).ServeHTTP(w, r)
+			return
+		}
 		wf.Aliases = []string{
-			string(BuildActorID(a)),
+			string(BuildActorID(*a)),
 			fmt.Sprintf("%s/%s", ActorsURL, a.Handle),
 		}
 		wf.Subject = res
@@ -215,17 +221,17 @@ func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 			{
 				Rel:  "self",
 				Type: "application/activity+json",
-				Href: string(BuildActorID(a)),
+				Href: string(BuildActorID(*a)),
 			},
 			{
 				Rel:  "http://webfinger.net/rel/profile-page",
 				Type: "application/activity+json",
-				Href: string(BuildActorID(a)),
+				Href: string(BuildActorID(*a)),
 			},
 			{
 				Rel:  "http://webfinger.net/rel/profile-page",
 				Type: "text/html",
-				Href: accountURL(a).String(),
+				Href: accountURL(*a).String(),
 			},
 		}
 	}

@@ -51,7 +51,7 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 
 					r.With(BlockContentModelMw).Get("/block", h.HandleShow)
 					r.Post("/block", h.BlockAccount)
-					r.With(ReportContentModelMw).Get("/bad", h.HandleShow)
+					r.With(ReportAccountModelMw).Get("/bad", h.HandleShow)
 					r.Post("/bad", h.ReportAccount)
 				})
 

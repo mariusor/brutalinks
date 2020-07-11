@@ -29,12 +29,10 @@
                     {{- if ShowAccountBlockLink . -}}<a title="Block user {{ .Handle }}" href="{{ . | AccountPermaLink }}/block">{{ icon "block" }} Block</a>{{- end -}}
                     {{- if AccountIsBlocked . }}{{ icon "block" }} Blocked{{- end -}}
                 </li>{{- end }}
-                {{- /*}}
                 {{- if ShowAccountReportLink . }}
                 <li>
                     <a title="Report user {{ .Handle }}" href="{{ . | AccountPermaLink }}/bad">{{ icon "flag" }} Report</a>
                 </li>{{- end }}
-                {{ */ -}}
             </ul>
         </nav>
     {{- if .HasPublicKey }}
