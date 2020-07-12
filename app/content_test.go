@@ -33,7 +33,7 @@ func Test_replaceTagsInItem(t *testing.T) {
 				},
 			},
 			want: `https://todo.sr.ht/~marius/go-activitypub
-<a href='https://brutalinks.git/~marius' rel='mention' class='mention'>marius</a>`,
+<a href='https://brutalinks.git/~marius' rel='mention'>marius</a>`,
 		},
 		{
 			name: "mention-and-tag",
@@ -60,8 +60,8 @@ func Test_replaceTagsInItem(t *testing.T) {
 					},
 				},
 			},
-			want: `some <a href='https://brutalinks.git/t/tag' rel='tag' class='tag'>tag</a>
-<a href='https://brutalinks.git/~marius' rel='mention' class='mention'>marius</a>`,
+			want: `some <a href='https://brutalinks.git/t/tag' rel='tag'>tag</a>
+<a href='https://brutalinks.git/~marius' rel='mention'>marius</a>`,
 		},
 		{
 			name: "tag",
@@ -80,7 +80,7 @@ func Test_replaceTagsInItem(t *testing.T) {
 					},
 				},
 			},
-			want: `some <a href='https://brutalinks.git/t/tag' rel='tag' class='tag'>tag</a>-`,
+			want: `some <a href='https://brutalinks.git/t/tag' rel='tag'>tag</a>-`,
 		},
 	}
 	for _, tt := range tests {
