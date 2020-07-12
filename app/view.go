@@ -16,6 +16,7 @@ import (
 	"html/template"
 	"math"
 	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"strings"
@@ -173,6 +174,17 @@ func renderLabel(r Renderable) template.HTML {
 	return template.HTML(lbl)
 }
 
+func stringInSlice(ss []string) func(v string) bool {
+	return func(v string) bool {
+		for _, vv := range ss {
+			if vv == v {
+				return true
+			}
+		}
+		return false
+	}
+}
+
 func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name string, m Model) error {
 	var err error
 	var ac *Account
@@ -252,6 +264,9 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"svg":                   assets.Svg,
 			"js":                    assets.Js,
 			"req":                   func() *http.Request { return r },
+			"url":                   func() url.Values { return r.URL.Query() },
+			"urlValue":              func(k string) []string { return r.URL.Query()[k] },
+			"urlValueContains":      func(k, v string) bool { return stringInSlice(r.URL.Query()[k])(v) },
 			"sameBase":              sameBasePath,
 			"sameHash":              HashesEqual,
 			"fmtPubKey":             fmtPubKey,

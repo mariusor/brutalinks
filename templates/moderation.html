@@ -1,20 +1,19 @@
 <nav class="moderation-hdr">
-{{/* }}
     <form method="get">
-        <label>Moderator
-        <select name="m">
-            <option value="all" selected="selected">(all)</option>
-            <option valeu="users">(users)</option>
+        <label for="which-moderators">Moderator</label>
+        <select name="m" id="which-moderators">
+            <option value="all" {{- if urlValueContains "m" "all" }} selected{{- end -}}>(all)</option>
+            <option value="users"{{- if urlValueContains "m" "users" }} selected{{- end -}}>(users)</option>
         </select>
-        </label>
-        <label><input type="checkbox" name="i"/> Items</label>
-        <label><input type="checkbox" name="c" /> Comments</label>
-        <label><input type="checkbox" name="d"/> Domains</label>
-        <label><input type="checkbox" name="t"/> Tags</label>
-        <label><input type="checkbox" name="u"/> Users</label>
-        <label><input type="checkbox" name="in"/> Instances</label>
+        <label><input type="checkbox" name="t" value="i"{{- if urlValueContains "t" "i" }} checked{{- end -}}/> Items</label>
+        <label><input type="checkbox" name="t" value="c"{{- if urlValueContains "t" "c" }} checked{{- end -}}/> Comments</label>
+        <label><input type="checkbox" name="t" value="u"{{- if urlValueContains "t" "u" }} checked{{- end -}}/> Users</label>
+{{/* }}
+        <label><input type="checkbox" name="t[]" value="d"{{- if urlValueContains "t" "d" }} checked{{- end -}}/> Domains</label>
+        <label><input type="checkbox" name="t[]" value="t"{{- if urlValueContains "t" "t" }} checked{{- end -}}/> Tags</label>
+        <label><input type="checkbox" name="t[]" value="in"{{- if urlValueContains "t" "in" }} checked{{- end -}}/> Instances</label>
+{{ */}}
         <button type="submit">Filter</button>
     </form>
-{{ */}}
 </nav>
 {{ template "listing" . }}
