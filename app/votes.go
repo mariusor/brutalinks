@@ -67,7 +67,7 @@ func (v *Vote) AP() pub.Item {
 
 // Type
 func (v *Vote) Type() RenderType {
-	return Appreciation
+	return AppreciationType
 }
 
 // Date

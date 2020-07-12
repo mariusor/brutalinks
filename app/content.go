@@ -80,11 +80,11 @@ const Nay = "nay"
 type RenderType int
 
 const (
-	Comment RenderType = iota
-	Follow
-	Appreciation
-	Actor
-	Moderation
+	CommentType RenderType = iota
+	FollowType
+	AppreciationType
+	ActorType
+	ModerationType
 )
 
 type Renderable interface {
@@ -146,7 +146,7 @@ func (i *Item) Children() ItemPtrCollection {
 }
 
 func (i *Item) Type() RenderType {
-	return Comment
+	return CommentType
 }
 
 func (i Item) Date() time.Time {

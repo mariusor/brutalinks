@@ -186,7 +186,7 @@ func (a *Account) Deleted() bool {
 }
 
 func (a Account) Type() RenderType {
-	return Actor
+	return ActorType
 }
 
 func (a Account) Date() time.Time {

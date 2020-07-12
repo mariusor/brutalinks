@@ -61,7 +61,7 @@ func (f *FollowRequest) FromActivityPub(it pub.Item) error {
 
 // Type
 func (f *FollowRequest) Type() RenderType {
-	return Follow
+	return FollowType
 }
 
 // Date

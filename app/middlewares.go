@@ -401,13 +401,13 @@ func ThreadedListingMw(next http.Handler) http.Handler {
 		newitems := make([]Renderable, 0)
 		for _, ren := range c.items {
 			switch ren.Type() {
-			case Comment:
+			case CommentType:
 				for _, it := range comments {
 					if it == ren {
 						newitems = append(newitems, it)
 					}
 				}
-			case Actor:
+			case ActorType:
 				for _, ac := range accounts {
 					if ac == ren {
 						newitems = append(newitems, ac)

@@ -13,6 +13,74 @@ var ModerationActivityTypes = pub.ActivityVocabularyTypes{pub.BlockType, pub.Ign
 // ModerationRequests
 type ModerationRequests []ModerationRequest
 
+type Moderatable interface {
+	IsBlock() bool
+	IsReport() bool
+	IsIgnore() bool
+}
+
+type ModerationGroup struct {
+	Hash        Hash                 `json:"hash"`
+	Icon        template.HTML        `json:"-"`
+	SubmittedAt time.Time            `json:"-"`
+	Object      Renderable           `json:"-"`
+	Requests    []*ModerationRequest `json:"-"`
+}
+
+// Hash
+func (m *ModerationGroup) Private() bool {
+	return false
+}
+
+// Hash
+func (m *ModerationGroup) Deleted() bool {
+	return false
+}
+
+// Type
+func (m *ModerationGroup) Type() RenderType {
+	return ModerationType
+}
+
+// IsValid returns if the current follow request group has a hash with length greater than 0
+func (m *ModerationGroup) IsValid() bool {
+	return m != nil && m.Object.IsValid() && len(m.Requests) > 0
+}
+
+// AP returns the underlying actvitypub item
+func (m *ModerationGroup) AP() pub.Item {
+	return nil
+}
+
+// Date
+func (m ModerationGroup) Date() time.Time {
+	return m.Requests[0].SubmittedAt
+}
+
+// IsBlock returns true if current moderation request is a block
+func (m ModerationGroup) IsBlock() bool {
+	if len(m.Requests) == 0 {
+		return false
+	}
+	return m.Requests[0].IsBlock()
+}
+
+// IsIgnore returns true if current moderation request is a ignore
+func (m ModerationGroup) IsIgnore() bool {
+	if len(m.Requests) == 0 {
+		return false
+	}
+	return m.Requests[0].IsIgnore()
+}
+
+// IsReport returns true if current moderation request is a report
+func (m ModerationGroup) IsReport() bool {
+	if len(m.Requests) == 0 {
+		return false
+	}
+	return m.Requests[0].IsReport()
+}
+
 type ModerationRequest struct {
 	Hash        Hash              `json:"hash"`
 	Icon        template.HTML     `json:"-"`
@@ -28,7 +96,7 @@ type ModerationRequest struct {
 
 // Type
 func (m *ModerationRequest) Type() RenderType {
-	return Moderation
+	return ModerationType
 }
 
 // IsValid returns if the current follow request has a hash with length greater than 0
@@ -132,4 +200,48 @@ func (m *ModerationRequest) FromActivityPub(it pub.Item) error {
 
 		return nil
 	})
+}
+
+func moderationGroupAtIndex(groups []*ModerationGroup, r ModerationRequest) int {
+	for i, g := range groups {
+		gAP := g.Object.AP()
+		rAP := r.Object.AP()
+		if gAP.GetLink().Equals(rAP.GetLink(), false) && gAP.GetType() == rAP.GetType() {
+			return i
+		}
+	}
+	return -1
+}
+
+func moderationGroupFromRequest(r *ModerationRequest) *ModerationGroup {
+	mg := new(ModerationGroup)
+	mg.Object = r.Object
+	mg.Hash = r.Hash
+	mg.SubmittedAt = r.SubmittedAt
+	mg.Icon = r.Icon
+	mg.Requests = make([]*ModerationRequest, 1)
+	mg.Requests[0] = r
+	return mg
+}
+
+func aggregateModeration(rl ...Renderable) RenderableList {
+	groups := make([]*ModerationGroup, 0)
+	for _, r := range rl {
+		m, ok := r.(*ModerationRequest)
+		if !ok {
+			continue
+		}
+		if i := moderationGroupAtIndex(groups, *m); i < 0 {
+			groups = append(groups, moderationGroupFromRequest(m))
+		} else {
+			mg := groups[i]
+			mg.Requests = append(mg.Requests, m)
+		}
+	}
+
+	result := make(RenderableList, len(groups))
+	for i, m := range groups {
+		result[i] = m
+	}
+	return result
 }

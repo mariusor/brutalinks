@@ -137,7 +137,7 @@ func renderLabel(r Renderable) template.HTML {
 
 	lbl := "unknown"
 	switch t {
-	case Comment:
+	case CommentType:
 		lbl = "item"
 		if i, ok := r.(*Item); ok {
 			if i.IsTop() {
@@ -147,9 +147,9 @@ func renderLabel(r Renderable) template.HTML {
 			}
 		}
 
-	case Follow:
+	case FollowType:
 		lbl = "follow"
-	case Appreciation:
+	case AppreciationType:
 		if i, ok := r.(*Vote); ok {
 			if i.IsYay() {
 				lbl = "like"
@@ -157,10 +157,10 @@ func renderLabel(r Renderable) template.HTML {
 				lbl = "dislike"
 			}
 		}
-	case Actor:
+	case ActorType:
 		return "account"
-	case Moderation:
-		if i, ok := r.(*ModerationRequest); ok {
+	case ModerationType:
+		if i, ok := r.(Moderatable); ok {
 			if i.IsBlock() {
 				lbl = "block"
 			} else if i.IsIgnore() {
@@ -209,11 +209,11 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"title":                 func(t []byte) string { return string(t) },
 			"getProviders":          getAuthProviders,
 			"CurrentAccount":        accountFromRequest,
-			"IsComment":             func(t Renderable) bool { return t.Type() == Comment },
-			"IsFollowRequest":       func(t Renderable) bool { return t.Type() == Follow },
-			"IsVote":                func(t Renderable) bool { return t.Type() == Appreciation },
-			"IsAccount":             func(t Renderable) bool { return t.Type() == Actor },
-			"IsModeration":          func(t Renderable) bool { return t.Type() == Moderation },
+			"IsComment":             func(t Renderable) bool { return t.Type() == CommentType },
+			"IsFollowRequest":       func(t Renderable) bool { return t.Type() == FollowType },
+			"IsVote":                func(t Renderable) bool { return t.Type() == AppreciationType },
+			"IsAccount":             func(t Renderable) bool { return t.Type() == ActorType },
+			"IsModeration":          func(t Renderable) bool { return t.Type() == ModerationType },
 			"LoadFlashMessages":     loadFlashMessages(r, w, s),
 			"Mod10":                 mod10,
 			"ShowText":              showText(m),
@@ -281,6 +281,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 	})
 
 	if err = ren.HTML(w, http.StatusOK, name, m); err != nil {
+		v.errFn(log.Ctx{"err": err, "model": m})("failed to render template %s", name)
 		return errors.Annotatef(err, "failed to render template")
 	}
 	if Instance.Conf.SessionsEnabled && !isError {

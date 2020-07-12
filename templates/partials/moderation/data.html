@@ -1,7 +1,10 @@
-<a rel="mention" href="{{ .SubmittedBy | AccountPermaLink }}">{{ .SubmittedBy | ShowAccountHandle }}</a>
-{{ . | RenderLabel }}ed <a href="{{ .Object | PermaLink }}">this {{ .Object | RenderLabel }}</a>
+{{- /*}}<a rel="mention" href="{{ .SubmittedBy | AccountPermaLink }}">{{ .SubmittedBy | ShowAccountHandle }}</a> {{ */ -}}
+{{- $count := .Requests | len -}}
+{{ $count }} {{ $count | pluralize "user" }} {{ . | RenderLabel }}ed <a href="{{ .Object | PermaLink }}">this {{ .Object | RenderLabel }}</a>
+{{- range $reason := .Requests -}}
 <details><summary>Reason:</summary>
-{{- if eq .MimeType "text/html" -}}{{- .Data | HTML -}}{{- end -}}
-{{- if eq .MimeType "text/plain" -}}{{- .Data | Text -}}{{end}}
-{{- if eq .MimeType "text/markdown" -}}{{- .Data | Markdown -}}{{- end -}}
+{{- if eq .MimeType "text/html" -}}{{- $reason.Data | HTML -}}{{- end -}}
+{{- if eq .MimeType "text/plain" -}}{{- $reason.Data | Text -}}{{end}}
+{{- if eq .MimeType "text/markdown" -}}{{- $reason.Data | Markdown -}}{{- end -}}
 </details>
+{{- end -}}

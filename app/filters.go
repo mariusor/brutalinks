@@ -231,8 +231,14 @@ func ModerationFiltersMw(next http.Handler) http.Handler {
 	})
 }
 
-func AnonymizeListing(next http.Handler) http.Handler {
+func ModerationListing(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		c := ContextCursor(r.Context())
+		if c == nil {
+			next.ServeHTTP(w, r)
+			return
+		}
+		c.items = aggregateModeration(c.items...)
 		next.ServeHTTP(w, r)
 	})
 }
