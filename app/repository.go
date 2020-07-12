@@ -26,6 +26,9 @@ import (
 var nilIRI = EqualsString("-")
 var nilIRIs = CompStrs{nilIRI}
 
+var notNilIRI = DifferentThanString("-")
+var notNilIRIs = CompStrs{notNilIRI}
+
 type repository struct {
 	BaseURL string
 	SelfURL string

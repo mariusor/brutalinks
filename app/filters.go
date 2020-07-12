@@ -61,7 +61,7 @@ func DefaultFilters(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := FiltersFromRequest(r)
 		f.Type = CreateActivitiesFilter
-		f.Object = &Filters{}
+		f.Object = new(Filters)
 		f.Object.OP = nilIRIs
 		f.Object.Type = ActivityTypesFilter(ValidItemTypes...)
 		m := ContextListingModel(r.Context())
@@ -220,10 +220,35 @@ var ModerationActivitiesFilter = CompStrs{
 	CompStr{Str: string(pub.FlagType)},
 }
 
+type moderationFilter struct {
+	Mod  []string `qstring:"m"`
+	Type []string `qstring:"t"`
+}
+
 func ModerationFiltersMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := FiltersFromRequest(r)
 		f.Type = ModerationActivitiesFilter
+		modf := new(moderationFilter)
+		qstring.Unmarshal(r.URL.Query(), modf)
+		if len(modf.Type) > 0 {
+			f.Object = new(Filters)
+			f.Object.Type = make(CompStrs, 0)
+			showSubmissions := stringInSlice(modf.Type)("s")
+			showComments := stringInSlice(modf.Type)("c")
+			showUsers := stringInSlice(modf.Type)("u")
+			if showSubmissions || showComments {
+				f.Object.Type = append(f.Object.Type, ActivityTypesFilter(ValidItemTypes...)...)
+			}
+			if showUsers {
+				f.Object.Type = append(f.Object.Type, ActivityTypesFilter(pub.PersonType)...)
+			}
+			if showSubmissions && !showComments {
+				f.Object.InReplTo = nilIRIs
+			} else if showComments && !showSubmissions {
+				f.Object.InReplTo = notNilIRIs
+			}
+		}
 		m := ContextListingModel(r.Context())
 		m.Title = "Moderation log"
 		ctx := context.WithValue(context.WithValue(r.Context(), FilterCtxtKey, f), ModelCtxtKey, m)
