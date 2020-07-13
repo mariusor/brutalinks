@@ -239,6 +239,7 @@ func ModerationFiltersMw(next http.Handler) http.Handler {
 			showComments := stringInSlice(modf.Type)("c")
 			showUsers := stringInSlice(modf.Type)("u")
 			if showSubmissions || showComments {
+				f.Object.Type = append(f.Object.Type, ActivityTypesFilter(pub.TombstoneType)...)
 				f.Object.Type = append(f.Object.Type, ActivityTypesFilter(ValidItemTypes...)...)
 			}
 			if showUsers {
