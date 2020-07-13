@@ -259,7 +259,7 @@ func reportModelFromCtx(ctx context.Context) *moderationModel {
 	m := ContextModerationModel(ctx)
 	if m == nil {
 		m = new(moderationModel)
-		m.Content = new(ModerationRequest)
+		m.Content = new(ModerationOp)
 		m.Content.pub = &pub.Flag{Type: pub.FlagType}
 	}
 	m.Message.Editable = false
@@ -308,7 +308,7 @@ func blockModelFromCtx(ctx context.Context) *moderationModel {
 	m := ContextModerationModel(ctx)
 	if m == nil {
 		m = new(moderationModel)
-		m.Content = new(ModerationRequest)
+		m.Content = new(ModerationOp)
 		m.Content.pub = &pub.Block{Type: pub.BlockType}
 	}
 	m.Message.Editable = false

@@ -8,6 +8,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/mariusor/qstring"
 	"net/http"
+	"path"
 )
 
 type CompStr = qstring.ComparativeString
@@ -263,7 +264,28 @@ func ModerationListing(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		c.items = aggregateModeration(c.items...)
+
+		inReplyTo := make(pub.IRIs, 0)
+		for _, it := range c.items {
+			iri := it.AP().GetLink()
+			if !inReplyTo.Contains(iri) {
+				inReplyTo = append(inReplyTo, iri)
+			}
+		}
+		modActions := new(Filters)
+		modActions.Type = ActivityTypesFilter(pub.DeleteType, pub.UpdateType)
+		for _, iri := range inReplyTo {
+			u, _ := iri.URL()
+			modActions.InReplTo = append(modActions.InReplTo, LikeString(path.Base(u.Path)))
+		}
+		s := ContextRepository(r.Context())
+		if s == nil {
+			next.ServeHTTP(w, r)
+			return
+		}
+		followups, _ := s.loadModerationFollowups(modActions)
+		c.items = aggregateModeration(c.items, followups)
+
 		next.ServeHTTP(w, r)
 	})
 }

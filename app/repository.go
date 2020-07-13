@@ -856,7 +856,27 @@ func (r *repository) loadFollowsAuthors(items ...FollowRequest) ([]FollowRequest
 	return items, nil
 }
 
-func (r *repository) loadModerationDetails(items ...ModerationRequest) ([]ModerationRequest, error) {
+func (r *repository) loadModerationFollowups(f *Filters) ([]*ModerationOp, error) {
+	act, err := r.fedbox.Outbox(r.fedbox.Service(), Values(f))
+	if err != nil {
+		return nil, err
+	}
+	modFollowups := make([]*ModerationOp, 0)
+	err = pub.OnCollectionIntf(act, func(c pub.CollectionInterface) error {
+		for _, it := range c.Collection() {
+			m := new(ModerationOp)
+			err := m.FromActivityPub(it)
+			if err != nil {
+				continue
+			}
+			modFollowups = append(modFollowups, m)
+		}
+		return nil
+	})
+	return modFollowups, err
+}
+
+func (r *repository) loadModerationDetails(items ...ModerationOp) ([]ModerationOp, error) {
 	if len(items) == 0 {
 		return items, nil
 	}
@@ -1343,7 +1363,7 @@ func (r *repository) ActorCollection(fn CollectionFn, f *Filters) (Cursor, error
 							deferredActivities = append(deferredActivities, iri)
 						}
 					}
-					m := ModerationRequest{}
+					m := ModerationOp{}
 					m.FromActivityPub(a)
 					moderations = append(moderations, m)
 					relations[a.GetLink()] = a.GetLink()

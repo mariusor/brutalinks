@@ -22,7 +22,8 @@ type FollowRequest struct {
 
 // ActivityMetadata
 type ActivityMetadata struct {
-	ID string `json:"-"`
+	ID        string   `json:"-"`
+	InReplyTo pub.IRIs `json:"-"`
 }
 
 // FromActivityPub
@@ -52,9 +53,17 @@ func (f *FollowRequest) FromActivityPub(it pub.Item) error {
 		f.Object = &wed
 		f.SubmittedAt = a.Published
 		f.Metadata = &ActivityMetadata{
-			ID: string(a.ID),
+			ID:        string(a.ID),
 		}
-
+		if a.InReplyTo != nil {
+			f.Metadata.InReplyTo = make(pub.IRIs, 0)
+			pub.OnCollectionIntf(a.InReplyTo, func(col pub.CollectionInterface) error {
+				for _, it := range col.Collection() {
+					f.Metadata.InReplyTo = append(f.Metadata.InReplyTo, it.GetLink())
+				}
+				return nil
+			})
+		}
 		return nil
 	})
 }
@@ -71,12 +80,12 @@ func (f FollowRequest) Date() time.Time {
 
 // Private
 func (f *FollowRequest) Private() bool {
-	return f.Flags & FlagsPrivate == FlagsPrivate
+	return f.Flags&FlagsPrivate == FlagsPrivate
 }
 
 // Deleted
 func (f *FollowRequest) Deleted() bool {
-	return f.Flags & FlagsDeleted == FlagsDeleted
+	return f.Flags&FlagsDeleted == FlagsDeleted
 }
 
 // IsValid returns if the current follow request has a hash with length greater than 0

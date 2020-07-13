@@ -11,7 +11,7 @@ import (
 var ModerationActivityTypes = pub.ActivityVocabularyTypes{pub.BlockType, pub.IgnoreType, pub.FlagType}
 
 // ModerationRequests
-type ModerationRequests []ModerationRequest
+type ModerationRequests []ModerationOp
 
 type Moderatable interface {
 	IsBlock() bool
@@ -20,11 +20,12 @@ type Moderatable interface {
 }
 
 type ModerationGroup struct {
-	Hash        Hash                 `json:"hash"`
-	Icon        template.HTML        `json:"-"`
-	SubmittedAt time.Time            `json:"-"`
-	Object      Renderable           `json:"-"`
-	Requests    []*ModerationRequest `json:"-"`
+	Hash        Hash            `json:"hash"`
+	Icon        template.HTML   `json:"-"`
+	SubmittedAt time.Time       `json:"-"`
+	Object      Renderable      `json:"-"`
+	Requests    []*ModerationOp `json:"-"`
+	Followup    []*ModerationOp   `json:"-"`
 }
 
 // Hash
@@ -81,7 +82,7 @@ func (m ModerationGroup) IsReport() bool {
 	return m.Requests[0].IsReport()
 }
 
-type ModerationRequest struct {
+type ModerationOp struct {
 	Hash        Hash              `json:"hash"`
 	Icon        template.HTML     `json:"-"`
 	SubmittedAt time.Time         `json:"-"`
@@ -95,17 +96,17 @@ type ModerationRequest struct {
 }
 
 // Type
-func (m *ModerationRequest) Type() RenderType {
+func (m *ModerationOp) Type() RenderType {
 	return ModerationType
 }
 
 // IsValid returns if the current follow request has a hash with length greater than 0
-func (m *ModerationRequest) IsValid() bool {
+func (m *ModerationOp) IsValid() bool {
 	return m != nil && len(m.Hash) > 0
 }
 
 // IsBlock returns true if current moderation request is a block
-func (m ModerationRequest) IsBlock() bool {
+func (m ModerationOp) IsBlock() bool {
 	if m.pub == nil {
 		return false
 	}
@@ -113,7 +114,7 @@ func (m ModerationRequest) IsBlock() bool {
 }
 
 // IsIgnore returns true if current moderation request is a ignore
-func (m ModerationRequest) IsIgnore() bool {
+func (m ModerationOp) IsIgnore() bool {
 	if m.pub == nil {
 		return false
 	}
@@ -121,7 +122,7 @@ func (m ModerationRequest) IsIgnore() bool {
 }
 
 // IsReport returns true if current moderation request is a report
-func (m ModerationRequest) IsReport() bool {
+func (m ModerationOp) IsReport() bool {
 	if m.pub == nil {
 		return false
 	}
@@ -129,26 +130,26 @@ func (m ModerationRequest) IsReport() bool {
 }
 
 // AP returns the underlying actvitypub item
-func (m *ModerationRequest) AP() pub.Item {
+func (m *ModerationOp) AP() pub.Item {
 	return m.pub
 }
 
 // Date
-func (m ModerationRequest) Date() time.Time {
+func (m ModerationOp) Date() time.Time {
 	return m.SubmittedAt
 }
 
 // Private
-func (m *ModerationRequest) Private() bool {
+func (m *ModerationOp) Private() bool {
 	return m.Flags&FlagsPrivate == FlagsPrivate
 }
 
 // Deleted
-func (m *ModerationRequest) Deleted() bool {
+func (m *ModerationOp) Deleted() bool {
 	return m.Flags&FlagsDeleted == FlagsDeleted
 }
 
-func (m *ModerationRequest) FromActivityPub(it pub.Item) error {
+func (m *ModerationOp) FromActivityPub(it pub.Item) error {
 	if m == nil {
 		return nil
 	}
@@ -197,12 +198,21 @@ func (m *ModerationRequest) FromActivityPub(it pub.Item) error {
 		m.Metadata = &ActivityMetadata{
 			ID: string(a.ID),
 		}
+		if a.InReplyTo != nil {
+			m.Metadata.InReplyTo = make(pub.IRIs, 0)
+			pub.OnCollectionIntf(a.InReplyTo, func(col pub.CollectionInterface) error {
+				for _, it := range col.Collection() {
+					m.Metadata.InReplyTo = append(m.Metadata.InReplyTo, it.GetLink())
+				}
+				return nil
+			})
+		}
 
 		return nil
 	})
 }
 
-func moderationGroupAtIndex(groups []*ModerationGroup, r ModerationRequest) int {
+func moderationGroupAtIndex(groups []*ModerationGroup, r ModerationOp) int {
 	for i, g := range groups {
 		gAP := g.Object.AP()
 		rAP := r.Object.AP()
@@ -213,29 +223,36 @@ func moderationGroupAtIndex(groups []*ModerationGroup, r ModerationRequest) int 
 	return -1
 }
 
-func moderationGroupFromRequest(r *ModerationRequest) *ModerationGroup {
+func moderationGroupFromRequest(r *ModerationOp) *ModerationGroup {
 	mg := new(ModerationGroup)
 	mg.Object = r.Object
 	mg.Hash = r.Hash
 	mg.SubmittedAt = r.SubmittedAt
 	mg.Icon = r.Icon
-	mg.Requests = make([]*ModerationRequest, 1)
+	mg.Requests = make([]*ModerationOp, 1)
 	mg.Requests[0] = r
 	return mg
 }
 
-func aggregateModeration(rl ...Renderable) RenderableList {
+func aggregateModeration(rl RenderableList, followups []*ModerationOp) RenderableList {
 	groups := make([]*ModerationGroup, 0)
 	for _, r := range rl {
-		m, ok := r.(*ModerationRequest)
+		m, ok := r.(*ModerationOp)
 		if !ok {
 			continue
 		}
+		var mg *ModerationGroup
 		if i := moderationGroupAtIndex(groups, *m); i < 0 {
-			groups = append(groups, moderationGroupFromRequest(m))
+			mg = moderationGroupFromRequest(m)
+			groups = append(groups, mg)
 		} else {
-			mg := groups[i]
+			mg = groups[i]
 			mg.Requests = append(mg.Requests, m)
+		}
+		for _, fw := range followups {
+			if m.Metadata.InReplyTo.Contains(fw.AP().GetLink()) {
+				mg.Followup = append(mg.Followup, fw)
+			}
 		}
 	}
 

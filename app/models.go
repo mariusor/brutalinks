@@ -151,7 +151,7 @@ func (m *contentModel) SetCursor(c *Cursor) {
 type moderationModel struct {
 	Title        string
 	Hash         Hash
-	Content      *ModerationRequest
+	Content      *ModerationOp
 	ShowChildren bool
 	Message      mBox
 	after        Hash

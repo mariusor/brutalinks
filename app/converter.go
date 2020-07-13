@@ -580,8 +580,8 @@ func LoadFromActivityPubActivity(it pub.Item) (Renderable, error) {
 		case pub.BlockType:
 			fallthrough
 		case pub.IgnoreType:
-			// ModerationRequest
-			m := new(ModerationRequest)
+			// ModerationOp
+			m := new(ModerationOp)
 			err := m.FromActivityPub(act)
 			if err != nil {
 				return err
