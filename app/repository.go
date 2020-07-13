@@ -856,12 +856,26 @@ func (r *repository) loadFollowsAuthors(items ...FollowRequest) ([]FollowRequest
 	return items, nil
 }
 
-func (r *repository) loadModerationFollowups(f *Filters) ([]*ModerationOp, error) {
-	act, err := r.fedbox.Outbox(r.fedbox.Service(), Values(f))
+func (r *repository) loadModerationFollowups(items []Renderable) ([]ModerationOp, error) {
+	inReplyTo := make(pub.IRIs, 0)
+	for _, it := range items {
+		iri := it.AP().GetLink()
+		if !inReplyTo.Contains(iri) {
+			inReplyTo = append(inReplyTo, iri)
+		}
+	}
+
+	modActions := new(Filters)
+	modActions.Type = ActivityTypesFilter(pub.DeleteType, pub.UpdateType)
+	modActions.InReplTo = IRIsFilter(inReplyTo...)
+	modActions.Actor = &Filters {
+		IRI: notNilIRIs,
+	}
+	act, err := r.fedbox.Outbox(r.fedbox.Service(), Values(modActions))
 	if err != nil {
 		return nil, err
 	}
-	modFollowups := make([]*ModerationOp, 0)
+	modFollowups := make([]ModerationOp, 0)
 	err = pub.OnCollectionIntf(act, func(c pub.CollectionInterface) error {
 		for _, it := range c.Collection() {
 			m := new(ModerationOp)
@@ -869,7 +883,7 @@ func (r *repository) loadModerationFollowups(f *Filters) ([]*ModerationOp, error
 			if err != nil {
 				continue
 			}
-			modFollowups = append(modFollowups, m)
+			modFollowups = append(modFollowups, *m)
 		}
 		return nil
 	})

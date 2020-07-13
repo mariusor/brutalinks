@@ -1,9 +1,18 @@
 {{- $count := .Requests | len -}}
-{{ $count }} {{ $count | pluralize "user" }} {{ . | RenderLabel }}ed <a href="{{ .Object | PermaLink }}">this {{ .Object | RenderLabel }}</a>
+{{ $count }} {{ $count | pluralize "user" }} {{ . | RenderLabel | pasttensify }} <a href="{{ .Object | PermaLink }}">this {{ .Object | RenderLabel }}</a>
 {{- range $reason := .Requests -}}
 <details title="{{ $reason.SubmittedAt | TimeFmt }}"><summary>Reason:</summary>
 {{- if eq .MimeType "text/html" -}}{{- $reason.Data | HTML -}}{{- end -}}
 {{- if eq .MimeType "text/plain" -}}{{- $reason.Data | Text -}}{{end}}
 {{- if eq .MimeType "text/markdown" -}}{{- $reason.Data | Markdown -}}{{- end -}}
+</details>
+{{- end -}}
+{{- range $followup := .Followup -}}
+<details title="{{ $followup.SubmittedAt | TimeFmt }}"><summary>Followup:</summary>
+    {{ $followup | RenderLabel | pasttensify }} by <a rel="mention" href="{{ $followup.SubmittedBy | AccountPermaLink }}">{{ $followup.SubmittedBy | ShowAccountHandle }}</a>
+    with reason:<br/>
+    {{- if eq .MimeType "text/html" -}}{{- $followup.Data | HTML -}}{{- end -}}
+    {{- if eq .MimeType "text/plain" -}}{{- $followup.Data | Text -}}{{end}}
+    {{- if eq .MimeType "text/markdown" -}}{{- $followup.Data | Markdown -}}{{- end -}}
 </details>
 {{- end -}}

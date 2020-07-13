@@ -132,8 +132,21 @@ func ToTitle(s string) string {
 	}
 	return strings.ToUpper(s[0:1]) + s[1:]
 }
+func pastTenseVerb (s template.HTML) template.HTML {
+	l := len(s)
+	if l == 0 {
+		return ""
+	}
+	var tensed template.HTML
+	if s[len(s)-1] == 'e' {
+		tensed = s + "d"
+	} else {
+		tensed = s + "ed"
+	}
+	return tensed
+}
 
-func renderLabel(r Renderable) template.HTML {
+func renderActivityLabel(r Renderable) template.HTML {
 	t := r.Type()
 
 	lbl := "unknown"
@@ -168,6 +181,10 @@ func renderLabel(r Renderable) template.HTML {
 				lbl = "ignore"
 			} else if i.IsReport() {
 				lbl = "report"
+			} else if i.IsUpdate() {
+				lbl = "update"
+			} else if i.IsDelete() {
+				lbl = "delete"
 			}
 		}
 	}
@@ -271,6 +288,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"sameHash":              HashesEqual,
 			"fmtPubKey":             fmtPubKey,
 			"pluralize":             func(s string, cnt int) string { return pluralize(float64(cnt), s) },
+			"pasttensify":           pastTenseVerb,
 			"ShowFollowLink":        func(a *Account) bool { return showFollowLink(accountFromRequest(), a) },
 			"ShowAccountBlockLink":  func(a *Account) bool { return showAccountBlockLink(accountFromRequest(), a) },
 			"ShowAccountReportLink": func(a *Account) bool { return showAccountReportLink(accountFromRequest(), a) },
@@ -280,7 +298,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"AccountIsBlocked":      func(a *Account) bool { return AccountIsBlocked(accountFromRequest(), a) },
 			"AccountIsReported":     func(a *Account) bool { return AccountIsReported(accountFromRequest(), a) },
 			"ItemReported":          func(i *Item) bool { return ItemIsReported(accountFromRequest(), i) },
-			"RenderLabel":           renderLabel,
+			"RenderLabel":           renderActivityLabel,
 			csrf.TemplateTag:        func() template.HTML { return csrf.TemplateField(r) },
 			"ToTitle":               ToTitle,
 			//"ScoreFmt":          func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },

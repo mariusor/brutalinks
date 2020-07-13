@@ -14,6 +14,8 @@ var ModerationActivityTypes = pub.ActivityVocabularyTypes{pub.BlockType, pub.Ign
 type ModerationRequests []ModerationOp
 
 type Moderatable interface {
+	IsDelete() bool
+	IsUpdate() bool
 	IsBlock() bool
 	IsReport() bool
 	IsIgnore() bool
@@ -25,7 +27,7 @@ type ModerationGroup struct {
 	SubmittedAt time.Time       `json:"-"`
 	Object      Renderable      `json:"-"`
 	Requests    []*ModerationOp `json:"-"`
-	Followup    []*ModerationOp   `json:"-"`
+	Followup    []*ModerationOp `json:"-"`
 }
 
 // Hash
@@ -64,6 +66,22 @@ func (m ModerationGroup) IsBlock() bool {
 		return false
 	}
 	return m.Requests[0].IsBlock()
+}
+
+// IsDelete returns true if current moderation request is a delete
+func (m ModerationGroup) IsDelete() bool {
+	if len(m.Requests) == 0 {
+		return false
+	}
+	return m.Requests[0].IsDelete()
+}
+
+// IsUpdate returns true if current moderation request is an update
+func (m ModerationGroup) IsUpdate() bool {
+	if len(m.Requests) == 0 {
+		return false
+	}
+	return m.Requests[0].IsUpdate()
 }
 
 // IsIgnore returns true if current moderation request is a ignore
@@ -111,6 +129,22 @@ func (m ModerationOp) IsBlock() bool {
 		return false
 	}
 	return m.pub.GetType() == pub.BlockType
+}
+
+// IsBlock returns true if current moderation request is a delete
+func (m ModerationOp) IsDelete() bool {
+	if m.pub == nil {
+		return false
+	}
+	return m.pub.GetType() == pub.DeleteType
+}
+
+// IsUpdate returns true if current moderation request is an update
+func (m ModerationOp) IsUpdate() bool {
+	if m.pub == nil {
+		return false
+	}
+	return m.pub.GetType() == pub.UpdateType
 }
 
 // IsIgnore returns true if current moderation request is a ignore
@@ -234,7 +268,7 @@ func moderationGroupFromRequest(r *ModerationOp) *ModerationGroup {
 	return mg
 }
 
-func aggregateModeration(rl RenderableList, followups []*ModerationOp) RenderableList {
+func aggregateModeration(rl RenderableList, followups []ModerationOp) RenderableList {
 	groups := make([]*ModerationGroup, 0)
 	for _, r := range rl {
 		m, ok := r.(*ModerationOp)
@@ -250,8 +284,10 @@ func aggregateModeration(rl RenderableList, followups []*ModerationOp) Renderabl
 			mg.Requests = append(mg.Requests, m)
 		}
 		for _, fw := range followups {
-			if m.Metadata.InReplyTo.Contains(fw.AP().GetLink()) {
-				mg.Followup = append(mg.Followup, fw)
+			mObIRI := mg.Object.AP().GetLink()
+			fwIRI := fw.Object.AP().GetLink()
+			if mObIRI.Equals(fwIRI, false) {
+				mg.Followup = append(mg.Followup, &fw)
 			}
 		}
 	}

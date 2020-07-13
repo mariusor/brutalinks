@@ -18,6 +18,9 @@ type Converter interface {
 }
 
 func (h *Hash) FromActivityPub(it pub.Item) error {
+	if it == nil {
+		return nil
+	}
 	if it.GetLink() == pub.PublicNS {
 		*h = AnonymousHash
 		return nil
@@ -470,15 +473,15 @@ func host(u string) string {
 }
 
 func GetHashFromAP(obj pub.Item) Hash {
-	iri := obj.GetLink()
-	s := strings.Split(iri.String(), "/")
-	var hash string
-	if s[len(s)-1] == "object" {
-		hash = s[len(s)-2]
-	} else {
-		hash = s[len(s)-1]
+	if obj == nil {
+		return Hash("")
 	}
-	h := path.Base(hash)
+	iri := obj.GetLink()
+	if len(iri) == 0 {
+		return Hash("")
+	}
+	actor, _ := handlers.Split(iri)
+	h := path.Base(actor.String())
 	if h == "." {
 		h = ""
 	}
