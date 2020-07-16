@@ -44,13 +44,22 @@ func (f *FollowRequest) FromActivityPub(it pub.Item) error {
 		return nil
 	}
 	return pub.OnActivity(it, func(a *pub.Activity) error {
-		f.Hash.FromActivityPub(a)
-		wer := Account{}
-		wer.FromActivityPub(a.Actor)
-		f.SubmittedBy = &wer
-		wed := Account{}
-		wed.FromActivityPub(a.Object)
-		f.Object = &wed
+		err := f.Hash.FromActivityPub(a)
+		if err != nil {
+			return err
+		}
+		wer := new(Account)
+		err = wer.FromActivityPub(a.Actor)
+		if err != nil {
+			return err
+		}
+		f.SubmittedBy = wer
+		wed := new(Account)
+		err = wed.FromActivityPub(a.Object)
+		if err != nil {
+			return err
+		}
+		f.Object = wed
 		f.SubmittedAt = a.Published
 		f.Metadata = &ActivityMetadata{
 			ID:        string(a.ID),
