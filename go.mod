@@ -3,13 +3,12 @@ module github.com/mariusor/littr.go
 go 1.14
 
 require (
-	aletheia.icu/broccoli v1.0.4-0.20200422124233-8a596486092c // indirect
 	aletheia.icu/broccoli/fs v0.0.0-20200506212414-5bc1e2f86a59
 	github.com/captncraig/cors v0.0.0-20190703115713-e80254a89df1 // indirect
-	github.com/go-ap/activitypub v0.0.0-20200630113504-57c015a8e96f
-	github.com/go-ap/client v0.0.0-20200630120716-06b1bc0a973a
+	github.com/go-ap/activitypub v0.0.0-20200716195446-656c40c1a789
+	github.com/go-ap/client v0.0.0-20200716183858-cd94d5256bd2
 	github.com/go-ap/errors v0.0.0-20200702155720-f662512ba418
-	github.com/go-ap/handlers v0.0.0-20200714165411-130c59ae4147
+	github.com/go-ap/handlers v0.0.0-20200716184359-8b38444d9410
 	github.com/go-ap/jsonld v0.0.0-20200327122108-fafac2de2660
 	github.com/go-chi/chi v4.0.4+incompatible
 	github.com/gorilla/csrf v1.6.2
@@ -18,12 +17,12 @@ require (
 	github.com/mariusor/qstring v0.0.0-20200204164351-5a99d46de39d
 	github.com/openshift/osin v1.0.1
 	github.com/pborman/uuid v1.2.0
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/sirupsen/logrus v1.5.0
 	github.com/spacemonkeygo/httpsig v0.0.0-20181218213338-2605ae379e47
 	github.com/stretchr/testify v1.5.1 // indirect
 	github.com/tdewolff/minify v2.3.6+incompatible
 	github.com/tdewolff/parse v2.3.4+incompatible // indirect
+	github.com/tdewolff/test v1.0.6 // indirect
 	github.com/unrolled/render v1.0.2
 	github.com/writeas/go-nodeinfo v1.0.0
 	github.com/writeas/go-webfinger v0.0.0-20190106002315-85cf805c86d2 // indirect
