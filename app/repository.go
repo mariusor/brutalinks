@@ -1829,10 +1829,13 @@ func (r *repository) LoadFollowRequests(ed *Account, f *Filters) (FollowRequests
 }
 
 func (r *repository) SendFollowResponse(f FollowRequest, accept bool, reason *Item) error {
-	ed := f.Object
 	er := f.SubmittedBy
+	if !er.IsValid() {
+		return errors.Newf("invalid account to follow %s", er.Handle)
+	}
+	ed := f.Object
 	if !accountValidForC2S(ed) {
-		return errors.Unauthorizedf("invalid account %s", ed.Handle)
+		return errors.Unauthorizedf("invalid account for request %s", ed.Handle)
 	}
 
 	to := make(pub.ItemCollection, 0)
