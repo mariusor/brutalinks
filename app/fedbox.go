@@ -305,28 +305,40 @@ func (f fedbox) Objects(filters ...FilterFn) (pub.CollectionInterface, error) {
 	return f.collection(iri(objects.IRI(f.Service()), filters...))
 }
 
+func validateIRIForRequest(i pub.IRI) error {
+	u, err := i.URL()
+	if err != nil {
+		return err
+	}
+	if u.Host == "" {
+		return errors.Newf("Host is empty")
+	}
+	return nil
+}
+
+func (f fedbox) req(iri pub.IRI, a pub.Item) (pub.IRI, pub.Item, error) {
+	if err := validateIRIForRequest(iri); err != nil {
+		return "", nil, errors.Annotatef(err, "Invalid IRI to post to")
+	}
+	return f.client.ToCollection(iri, a)
+}
+
 func (f fedbox) ToOutbox(a pub.Item) (pub.IRI, pub.Item, error) {
-	url := pub.IRI("")
+	iri := pub.IRI("")
 	pub.OnActivity(a, func(a *pub.Activity) error {
-		url = outbox(a.Actor)
+		iri = outbox(a.Actor)
 		return nil
 	})
-	if len(url) == 0 {
-		return "", nil, errors.Newf("Invalid URL to post to")
-	}
-	return f.client.ToCollection(url, a)
+	return f.req(iri, a)
 }
 
 func (f fedbox) ToInbox(a pub.Item) (pub.IRI, pub.Item, error) {
-	url := pub.IRI("")
+	iri := pub.IRI("")
 	pub.OnActivity(a, func(a *pub.Activity) error {
-		url = inbox(a.Actor)
+		iri = inbox(a.Actor)
 		return nil
 	})
-	if len(url) == 0 {
-		return "", nil, errors.Newf("Invalid URL to post to")
-	}
-	return f.client.ToCollection(url, a)
+	return  f.req(iri, a)
 }
 
 func (f *fedbox) Service() *pub.Service {
