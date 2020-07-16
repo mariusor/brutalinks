@@ -327,7 +327,7 @@ func anonymousPerson(url string) *pub.Actor {
 }
 
 func loadAPPerson(a Account) *pub.Actor {
-	p := pub.Actor{}
+	p := new(pub.Actor)
 	p.Type = pub.PersonType
 	p.Name = pub.NaturalLanguageValuesNew()
 	p.PreferredUsername = pub.NaturalLanguageValuesNew()
@@ -404,7 +404,7 @@ func loadAPPerson(a Account) *pub.Actor {
 			PublicKeyPem: fmt.Sprintf("-----BEGIN PUBLIC KEY-----\n%s\n-----END PUBLIC KEY-----", base64.StdEncoding.EncodeToString(a.Metadata.Key.Public)),
 		}
 	}
-	return &p
+	return p
 }
 
 func getSigner(pubKeyID pub.ID, key crypto.PrivateKey) *httpsig.Signer {
@@ -1860,7 +1860,11 @@ func (r *repository) SendFollowResponse(f FollowRequest, accept bool, reason *It
 
 	_, _, err := r.fedbox.ToOutbox(response)
 	if err != nil {
-		r.errFn(nil)(err.Error())
+		r.errFn(log.Ctx{
+			"err": err,
+			"follower": er.Handle,
+			"followed": ed.Handle,
+		})("unable to respond to follow")
 		return err
 	}
 	return nil
@@ -1891,7 +1895,11 @@ func (r *repository) FollowAccount(er, ed Account, reason *Item) error {
 	follow.Actor = follower.GetLink()
 	_, _, err := r.fedbox.ToOutbox(follow)
 	if err != nil {
-		r.errFn(nil)(err.Error())
+		r.errFn(log.Ctx{
+			"err": err,
+			"follower": er.Handle,
+			"followed": ed.Handle,
+		})("Unable to follow")
 		return err
 	}
 	return nil
@@ -1927,8 +1935,10 @@ func (r *repository) SaveAccount(a Account) (Account, error) {
 		if len(id) == 0 {
 			err := errors.NotFoundf("item hash is empty, can not delete")
 			r.infoFn(log.Ctx{
-				"account": a.Hash,
-			})(err.Error())
+				"actor": a.GetLink(),
+				"author": author.GetLink(),
+				"err": err,
+			})("save failed")
 			return a, err
 		}
 		act.Type = pub.DeleteType
@@ -1946,12 +1956,19 @@ func (r *repository) SaveAccount(a Account) (Account, error) {
 
 	var ap pub.Item
 	if _, ap, err = r.fedbox.ToOutbox(act); err != nil {
-		r.errFn(nil)(err.Error())
+		r.errFn(log.Ctx{
+			"actor": ap.GetLink(),
+			"author": author.GetLink(),
+			"err": err,
+		})("save failed")
 		return a, err
 	}
 	err = a.FromActivityPub(ap)
 	if err != nil {
-		r.errFn(nil)(err.Error())
+		r.errFn(log.Ctx{
+			"actor": a.Handle,
+			"err": err,
+		})("loading of actor from JSON failed")
 	}
 	return a, err
 }
