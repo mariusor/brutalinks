@@ -1,5 +1,5 @@
 <aside class="score" data-score="{{if .Deleted}}-1{{else}}{{ .Score | ScoreFmt }}{{end}}" data-hash="{{.Hash}}">
-    <noscript display="none">Score: </noscript>
+    <noscript style="display:none">Score: </noscript>
     {{- $account := CurrentAccount -}}
     {{- $vote := $account.VotedOn . -}}
     {{ if Config.VotingEnabled }}<a href="{{if and (not .Deleted) $account.IsLogged }}{{ . | YayLink}}{{ else }}#{{ end }}" class="yay{{if and (not .Deleted) (IsYay $vote) }} ed{{end}}" data-action="yay" data-hash="{{.Hash}}" rel="nofollow" title="yay">{{icon "plus"}}</a>{{ end }}
