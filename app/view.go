@@ -132,7 +132,7 @@ func ToTitle(s string) string {
 	}
 	return strings.ToUpper(s[0:1]) + s[1:]
 }
-func pastTenseVerb (s template.HTML) template.HTML {
+func pastTenseVerb(s template.HTML) template.HTML {
 	l := len(s)
 	if l == 0 {
 		return ""
@@ -319,7 +319,8 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 	}
 	if Instance.Conf.SessionsEnabled && !isError {
 		if err := v.s.save(w, r); err != nil {
-			return err
+			v.HandleErrors(w, r, err)
+			return nil
 		}
 	}
 	return nil
@@ -570,8 +571,8 @@ func icon(icon string, c ...string) template.HTML {
 	cls = append(cls, icon)
 	cls = append(cls, c...)
 
-	buf := fmt.Sprintf(`<svg aria-hidden="true" class="icon icon-%s"><use xlink:href="#icon-%s" /></svg>`,
-		strings.Join(cls, " "), icon)
+	buf := fmt.Sprintf(`<svg aria-hidden="true" class="icon icon-%s"><use xlink:href="#icon-%s"><title>%s</title></use></svg>`,
+		strings.Join(cls, " "), icon, icon)
 
 	return template.HTML(buf)
 }
