@@ -120,7 +120,7 @@ func (h *handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 	url := ItemPermaLink(&p)
 	backUrl := r.Header.Get("Referer")
 	if !strings.Contains(backUrl, url) && strings.Contains(backUrl, Instance.BaseURL) {
-		url = fmt.Sprintf("%s#item-%s", backUrl, p.Hash)
+		url = fmt.Sprintf("%s#li-%s", backUrl, p.Hash)
 	}
 	p.Delete()
 	if p, err = repo.SaveItem(p); err != nil {
@@ -156,7 +156,7 @@ func (h *handler) HandleVoting(w http.ResponseWriter, r *http.Request) {
 	if acc.IsLogged() {
 		backUrl := r.Header.Get("Referer")
 		if !strings.Contains(backUrl, url) && strings.Contains(backUrl, Instance.BaseURL) {
-			url = fmt.Sprintf("%s#item-%s", backUrl, p.Hash)
+			url = fmt.Sprintf("%s#li-%s", backUrl, p.Hash)
 		}
 		v := Vote{
 			SubmittedBy: acc,
@@ -697,7 +697,7 @@ func (h *handler) ReportAccount(w http.ResponseWriter, r *http.Request) {
 
 	backUrl := r.Header.Get("Referer")
 	if !strings.Contains(backUrl, url) && strings.Contains(backUrl, Instance.BaseURL) {
-		url = fmt.Sprintf("%s#item-%s", backUrl, p.Hash)
+		url = fmt.Sprintf("%s#li-%s", backUrl, p.Hash)
 	}
 	h.v.Redirect(w, r, url, http.StatusFound)
 }
@@ -739,7 +739,7 @@ func (h *handler) ReportItem(w http.ResponseWriter, r *http.Request) {
 
 	backUrl := r.Header.Get("Referer")
 	if !strings.Contains(backUrl, url) && strings.Contains(backUrl, Instance.BaseURL) {
-		url = fmt.Sprintf("%s#item-%s", backUrl, p.Hash)
+		url = fmt.Sprintf("%s#li-%s", backUrl, p.Hash)
 	}
 	h.v.Redirect(w, r, url, http.StatusFound)
 }
