@@ -3,6 +3,7 @@ module github.com/mariusor/littr.go
 go 1.14
 
 require (
+	aletheia.icu/broccoli v1.0.4-0.20200506212414-5bc1e2f86a59 // indirect
 	aletheia.icu/broccoli/fs v0.0.0-20200506212414-5bc1e2f86a59
 	github.com/captncraig/cors v0.0.0-20190703115713-e80254a89df1 // indirect
 	github.com/go-ap/activitypub v0.0.0-20200716195446-656c40c1a789
