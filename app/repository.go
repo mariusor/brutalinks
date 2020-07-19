@@ -20,6 +20,7 @@ import (
 	"path"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -28,6 +29,26 @@ var nilIRIs = CompStrs{nilIRI}
 
 var notNilIRI = DifferentThanString("-")
 var notNilIRIs = CompStrs{notNilIRI}
+
+type cache struct {
+	m map[pub.IRI]pub.Item
+	s sync.RWMutex
+}
+
+func (c *cache) add(iri pub.IRI, it pub.Item) {
+	c.s.Lock()
+	defer c.s.Unlock()
+
+	c.m[iri] = it
+}
+
+func (c *cache) get(iri pub.IRI) (pub.Item, bool) {
+	c.s.RLock()
+	defer c.s.RUnlock()
+
+	it, ok := c.m[iri]
+	return it, ok
+}
 
 type repository struct {
 	BaseURL string
@@ -868,7 +889,7 @@ func (r *repository) loadModerationFollowups(items []Renderable) ([]ModerationOp
 	modActions := new(Filters)
 	modActions.Type = ActivityTypesFilter(pub.DeleteType, pub.UpdateType)
 	modActions.InReplTo = IRIsFilter(inReplyTo...)
-	modActions.Actor = &Filters {
+	modActions.Actor = &Filters{
 		IRI: notNilIRIs,
 	}
 	act, err := r.fedbox.Outbox(r.fedbox.Service(), Values(modActions))
@@ -912,7 +933,7 @@ func (r *repository) loadModerationDetails(items ...ModerationOp) ([]ModerationO
 			if !fActors.IRI.Contains(hash) {
 				fActors.IRI = append(fActors.IRI, hash)
 			}
-		} else if strings.Contains(itIRI, string(objects))  {
+		} else if strings.Contains(itIRI, string(objects)) {
 			iri := EqualsString(it.Object.AP().GetLink().String())
 			if !fObjects.IRI.Contains(iri) {
 				fObjects.IRI = append(fObjects.IRI, iri)
@@ -1861,7 +1882,7 @@ func (r *repository) SendFollowResponse(f FollowRequest, accept bool, reason *It
 	_, _, err := r.fedbox.ToOutbox(response)
 	if err != nil {
 		r.errFn(log.Ctx{
-			"err": err,
+			"err":      err,
 			"follower": er.Handle,
 			"followed": ed.Handle,
 		})("unable to respond to follow")
@@ -1896,7 +1917,7 @@ func (r *repository) FollowAccount(er, ed Account, reason *Item) error {
 	_, _, err := r.fedbox.ToOutbox(follow)
 	if err != nil {
 		r.errFn(log.Ctx{
-			"err": err,
+			"err":      err,
 			"follower": er.Handle,
 			"followed": ed.Handle,
 		})("Unable to follow")
@@ -1935,9 +1956,9 @@ func (r *repository) SaveAccount(a Account) (Account, error) {
 		if len(id) == 0 {
 			err := errors.NotFoundf("item hash is empty, can not delete")
 			r.infoFn(log.Ctx{
-				"actor": a.GetLink(),
+				"actor":  a.GetLink(),
 				"author": author.GetLink(),
-				"err": err,
+				"err":    err,
 			})("save failed")
 			return a, err
 		}
@@ -1957,9 +1978,9 @@ func (r *repository) SaveAccount(a Account) (Account, error) {
 	var ap pub.Item
 	if _, ap, err = r.fedbox.ToOutbox(act); err != nil {
 		r.errFn(log.Ctx{
-			"actor": ap.GetLink(),
+			"actor":  ap.GetLink(),
 			"author": author.GetLink(),
-			"err": err,
+			"err":    err,
 		})("save failed")
 		return a, err
 	}
@@ -1967,7 +1988,7 @@ func (r *repository) SaveAccount(a Account) (Account, error) {
 	if err != nil {
 		r.errFn(log.Ctx{
 			"actor": a.Handle,
-			"err": err,
+			"err":   err,
 		})("loading of actor from JSON failed")
 	}
 	return a, err
