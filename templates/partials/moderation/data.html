@@ -11,8 +11,8 @@
 <details title="{{ $followup.SubmittedAt | TimeFmt }}"><summary>Followup:</summary>
     {{ $followup | RenderLabel | pasttensify }} by <a rel="mention" href="{{ $followup.SubmittedBy | AccountPermaLink }}">{{ $followup.SubmittedBy | ShowAccountHandle }}</a>
     with reason:<br/>
-    {{- if eq .MimeType "text/html" -}}{{- $followup.Data | HTML -}}{{- end -}}
-    {{- if eq .MimeType "text/plain" -}}{{- $followup.Data | Text -}}{{end}}
-    {{- if eq .MimeType "text/markdown" -}}{{- $followup.Data | Markdown -}}{{- end -}}
+    {{- if eq .MimeType "text/html" -}}{{- replaceTags "text/html" $followup | HTML -}}{{- end -}}
+    {{- if eq .MimeType "text/markdown" -}}{{- replaceTags "text/markdown" $followup | Markdown -}}{{- end -}}
+    {{- if eq .MimeType "text/plain" -}}{{- $followup.Content | Text -}}{{end}}
 </details>
 {{- end -}}

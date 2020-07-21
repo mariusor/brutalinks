@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func Test_replaceTagsInItem(t *testing.T) {
+func Test_replaceTags(t *testing.T) {
 	type args struct {
 		cur Item
 	}
@@ -85,8 +85,8 @@ func Test_replaceTagsInItem(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := replaceTagsInItem(tt.args.cur); got != tt.want {
-				t.Errorf("replaceTagsInItem() =\n%v, want\n%v", got, tt.want)
+			if got := replaceTags(tt.args.cur); got != tt.want {
+				t.Errorf("replaceTags() =\n%v, want\n%v", got, tt.want)
 			}
 		})
 	}

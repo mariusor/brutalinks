@@ -51,8 +51,23 @@ func (i *Item) AP() pub.Item {
 	return i.pub
 }
 
+// Content returns the content of the Item
+func (i Item) Content() map[string]string {
+	return map[string]string{i.MimeType: i.Data}
+}
+
+// Tags returns the tags associated with the current Item
+func (i Item) Tags() TagCollection {
+	return i.Metadata.Tags
+}
+
+// Mentions returns the mentions associated with the current Item
+func (i Item) Mentions() TagCollection {
+	return i.Metadata.Mentions
+}
+
 func (i *Item) Deleted() bool {
-	return i != nil && (i.Flags & FlagsDeleted) == FlagsDeleted
+	return i != nil && (i.Flags&FlagsDeleted) == FlagsDeleted
 }
 
 // UnDelete remove the deleted flag from an item
@@ -66,11 +81,11 @@ func (i *Item) Delete() {
 }
 
 func (i *Item) Private() bool {
-	return i != nil && (i.Flags & FlagsPrivate) == FlagsPrivate
+	return i != nil && (i.Flags&FlagsPrivate) == FlagsPrivate
 }
 
 func (i *Item) Public() bool {
-	return i != nil && (i.Flags & FlagsPrivate) != FlagsPrivate
+	return i != nil && (i.Flags&FlagsPrivate) != FlagsPrivate
 }
 
 func (i *Item) MakePrivate() {

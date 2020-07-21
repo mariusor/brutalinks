@@ -5,9 +5,9 @@
 {{ template "partials/item/recipients" . }}
 {{- if .IsSelf -}}
 {{if or ShowText (not .Title) }}
-{{- if eq .MimeType "text/html" -}}{{- replaceTags . | HTML -}}{{- end -}}
+{{- if eq .MimeType "text/html" -}}{{- replaceTags "text/html" . | HTML -}}{{- end -}}
+{{- if eq .MimeType "text/markdown" -}}{{- replaceTags "text/markdown" . | Markdown -}}{{- end -}}
 {{- if eq .MimeType "text/plain" -}}{{- .Data | Text -}}{{end}}
-{{- if eq .MimeType "text/markdown" -}}{{- replaceTags . | Markdown -}}{{- end -}}
 {{end}}
 {{- end -}}
 {{- end -}}

@@ -94,6 +94,12 @@ type Renderable interface {
 	Date() time.Time
 }
 
+type HasContent interface {
+	Content() map[string]string
+	Tags() TagCollection
+	Mentions() TagCollection
+}
+
 type RenderableList []Renderable
 
 func (r RenderableList) Items() ItemCollection {
@@ -278,35 +284,49 @@ func replaceTag(d *string, t Tag, w string) {
 	}
 }
 
-func replaceTagsInItem(cur Item) string {
-	if !cur.HasMetadata() {
-		return cur.Data
+func replaceTags(mime string, r HasContent) string {
+	dataMap := r.Content()
+	if len(dataMap) == 0 || len(r.Tags())+len(r.Mentions()) == 0 {
+		return ""
 	}
+
+	var data string
+	for m, d := range dataMap {
+		if strings.ToLower(mime) == strings.ToLower(m) {
+			data = d
+			break
+		}
+	}
+	if len(data) == 0 {
+		return ""
+	}
+
 	replaces := make(map[string]string, 0)
-	if cur.Metadata.Tags != nil {
-		for _, t := range cur.Metadata.Tags {
+	tags := r.Tags()
+	if tags != nil {
+		for _, t := range tags {
 			name := fmt.Sprintf("#%s", t.Name)
 			if inRange(name, replaces) {
 				continue
 			}
-			replaces[name] = mimeTypeTagReplace(cur.MimeType, t)
+			replaces[name] = mimeTypeTagReplace(mime, t)
 		}
 	}
-	if cur.Metadata.Mentions != nil {
-		for idx, t := range cur.Metadata.Mentions {
+	mentions := r.Mentions()
+	if mentions != nil {
+		for idx, t := range mentions {
 			lbl := fmt.Sprintf(":::MENTION_%d:::", idx)
 			if inRange(lbl, replaces) {
 				continue
 			}
-			replaceTag(&cur.Data, t, lbl)
-			replaces[lbl] = mimeTypeTagReplace(cur.MimeType, t)
+			replaceTag(&data, t, lbl)
+			replaces[lbl] = mimeTypeTagReplace(mime, t)
 		}
 	}
-
 	for to, repl := range replaces {
-		cur.Data = strings.ReplaceAll(cur.Data, to, repl)
+		data = strings.ReplaceAll(data, to, repl)
 	}
-	return cur.Data
+	return data
 }
 
 func (c TagCollection) Contains(t Tag) bool {

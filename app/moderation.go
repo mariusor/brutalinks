@@ -101,16 +101,23 @@ func (m ModerationGroup) IsReport() bool {
 }
 
 type ModerationOp struct {
-	Hash        Hash              `json:"hash"`
-	Icon        template.HTML     `json:"-"`
-	SubmittedAt time.Time         `json:"-"`
-	Data        string            `json:"-"`
-	MimeType    string            `json:"-"`
-	SubmittedBy *Account          `json:"by,omitempty"`
-	Object      Renderable        `json:"-"`
-	Metadata    *ActivityMetadata `json:"-"`
-	pub         pub.Item          `json:"-"`
-	Flags       FlagBits          `json:"flags,omitempty"`
+	Hash        Hash                `json:"hash"`
+	Icon        template.HTML       `json:"-"`
+	SubmittedAt time.Time           `json:"-"`
+	Data        string              `json:"-"`
+	MimeType    string              `json:"-"`
+	SubmittedBy *Account            `json:"by,omitempty"`
+	Object      Renderable          `json:"-"`
+	Metadata    *ModerationMetadata `json:"-"`
+	pub         pub.Item            `json:"-"`
+	Flags       FlagBits            `json:"flags,omitempty"`
+}
+
+type ModerationMetadata struct {
+	ID        string        `json:"-"`
+	InReplyTo pub.IRIs      `json:"-"`
+	Tags      TagCollection `json:"tags,omitempty"`
+	Mentions  TagCollection `json:"mentions,omitempty"`
 }
 
 // Type
@@ -168,6 +175,21 @@ func (m *ModerationOp) AP() pub.Item {
 	return m.pub
 }
 
+// Content returns the reason for it
+func (m ModerationOp) Content() map[string]string {
+	return map[string]string{m.MimeType: m.Data}
+}
+
+// Tags returns the tags associated with the current ModerationOp
+func (m ModerationOp) Tags() TagCollection {
+	return m.Metadata.Tags
+}
+
+// Mentions returns the mentions associated with the current ModerationOp
+func (m ModerationOp) Mentions() TagCollection {
+	return m.Metadata.Mentions
+}
+
 // Date
 func (m ModerationOp) Date() time.Time {
 	return m.SubmittedAt
@@ -194,7 +216,7 @@ func (m *ModerationOp) FromActivityPub(it pub.Item) error {
 	if it.IsLink() {
 		iri := it.GetLink()
 		m.Hash.FromActivityPub(iri)
-		m.Metadata = &ActivityMetadata{
+		m.Metadata = &ModerationMetadata{
 			ID: iri.String(),
 		}
 		return nil
@@ -229,7 +251,7 @@ func (m *ModerationOp) FromActivityPub(it pub.Item) error {
 			m.MimeType = reason.MimeType
 		}
 		m.SubmittedAt = a.Published
-		m.Metadata = &ActivityMetadata{
+		m.Metadata = &ModerationMetadata{
 			ID: string(a.ID),
 		}
 		if a.InReplyTo != nil {

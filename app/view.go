@@ -248,7 +248,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"ShowText":              showText(m),
 			"HTML":                  html,
 			"Text":                  text,
-			"replaceTags":           replaceTagsInItem,
+			"replaceTags":           replaceTags,
 			"Markdown":              Markdown,
 			"AccountLocalLink":      AccountLocalLink,
 			"AccountPermaLink":      AccountPermaLink,
