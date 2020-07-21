@@ -263,6 +263,21 @@ func (m *ModerationOp) FromActivityPub(it pub.Item) error {
 				return nil
 			})
 		}
+		if a.Tag != nil && len(a.Tag) > 0 {
+			m.Metadata.Tags = make(TagCollection, 0)
+			m.Metadata.Mentions = make(TagCollection, 0)
+
+			tags := TagCollection{}
+			tags.FromActivityPub(a.Tag)
+			for _, t := range tags {
+				if t.Type == TagTag {
+					m.Metadata.Tags = append(m.Metadata.Tags, t)
+				}
+				if t.Type == TagMention {
+					m.Metadata.Mentions = append(m.Metadata.Mentions, t)
+				}
+			}
+		}
 
 		return nil
 	})

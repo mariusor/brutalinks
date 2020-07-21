@@ -2,9 +2,9 @@
 {{ $count }} {{ $count | pluralize "user" }} {{ . | RenderLabel | pasttensify }} <a href="{{ .Object | PermaLink }}">this {{ .Object | RenderLabel }}</a>
 {{- range $reason := .Requests -}}
 <details title="{{ $reason.SubmittedAt | TimeFmt }}"><summary>Reason:</summary>
-{{- if eq .MimeType "text/html" -}}{{- $reason.Data | HTML -}}{{- end -}}
-{{- if eq .MimeType "text/plain" -}}{{- $reason.Data | Text -}}{{end}}
-{{- if eq .MimeType "text/markdown" -}}{{- $reason.Data | Markdown -}}{{- end -}}
+    {{- if eq .MimeType "text/html" -}}{{- replaceTags "text/html" $reason | HTML -}}{{- end -}}
+    {{- if eq .MimeType "text/markdown" -}}{{- replaceTags "text/markdown" $reason | Markdown -}}{{- end -}}
+    {{- if eq .MimeType "text/plain" -}}{{- $reason.Data | Text -}}{{end}}
 </details>
 {{- end -}}
 {{- range $followup := .Followup -}}
