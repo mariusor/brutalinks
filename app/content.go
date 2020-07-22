@@ -286,7 +286,7 @@ func replaceTag(d *string, t Tag, w string) {
 
 func replaceTags(mime string, r HasContent) string {
 	dataMap := r.Content()
-	if len(dataMap) == 0 || len(r.Tags())+len(r.Mentions()) == 0 {
+	if len(dataMap) == 0 {
 		return ""
 	}
 
@@ -299,6 +299,9 @@ func replaceTags(mime string, r HasContent) string {
 	}
 	if len(data) == 0 {
 		return ""
+	}
+	if len(r.Tags())+len(r.Mentions()) == 0 {
+		return data
 	}
 
 	replaces := make(map[string]string, 0)
