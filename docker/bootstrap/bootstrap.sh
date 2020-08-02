@@ -1,17 +1,12 @@
 #!/bin/sh
+echo "# bootstrapped application $(date -u -Iseconds)" >> .env
+# create storage
+ctl bootstrap
 
-# create boltdb
-/bin/ctl bootstrap
-
-test -z ${OAUTH_PW} && exit 1
-test -z ${ADMIN_PW} && exit 1
+test -z "${OAUTH_PW}" && exit 1
+test -z "${ADMIN_PW}" && exit 1
+test -z "${HOSTNAME}" && exit 1
 
 # add oauth2 client for littr.me
-/bin/ctl oauth client add --redirectUri http://${HOSTNAME}/auth/fedbox/callback << ${OAUTH_PW} \
-${OAUTH_PW}
-
-# add admin user
-/bin/ctl actor add admin << ${ADMIN_PW} \
-${ADMIN_PW}
-
-
+echo OAUTH_KEY=$(setupkeys.sh "${OAUTH_PW}" "${HOSTNAME}" "${ADMIN_PW}" | grep Client | tail -1 | awk '{print $3}') >> .env
+echo OAUTH_PW="${OAUTH_PW}" >> .env

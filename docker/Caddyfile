@@ -1,21 +1,12 @@
-fedbox.git {
-    tls internal
-    reverse_proxy * https://fedbox:4000 {
-        to https://fedbox:4000
-        transport http {
-            tls
-            tls_insecure_skip_verify
-        }
-    }
+{
+    debug
+    local_certs
 }
-
-brutalinks.git {
+fedbox.docker.git {
     tls internal
-    reverse_proxy * http://brutalinks:3000 {
-        to http://brutalinks:3000
-        transport http {
-            tls
-            tls_insecure_skip_verify
-        }
-    }
+    reverse_proxy * http://fedbox:4000
+}
+brutalinks.docker.git {
+    tls internal
+    reverse_proxy * http://app:4001
 }

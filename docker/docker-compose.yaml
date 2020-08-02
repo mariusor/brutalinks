@@ -1,61 +1,48 @@
+---
 version: "3.8"
 services:
   fedbox:
-    image:
-      - fedbox/app:${ENV}
-      - quay.io/fedbox/fedbox:${ENV}
-    command: /bin/fedbox --env ${ENV}
+    image: quay.io/fedbox/fedbox:${ENV:-dev}
+    command: /bin/fedbox --env ${ENV:-dev}
     expose:
-      - 4000
+    - 4000
     environment:
-      - ENV=${ENV}
-      - LISTEN=:4000
+    - ENV=${ENV:-dev}
+    - LISTEN=:4000
     volumes:
-      - /tmp:/storage
-    networks:
-      - default
+    - /tmp:/storage
+    - ./.env:/.env
+    depends_on:
+    - bootstrap
   bootstrap:
-    image: quay.io/fedbox/fedbox:${ENV}
-    command: /bin/ctl --env ${ENV} bootstrap
+    build:
+      context: bootstrap
+      args:
+      - HOSTNAME=${HOSTNAME:-brutalinks.docker.git}
+      - ENV=${ENV:-dev}
+      - OAUTH_PW=${OAUTH_PW}
+      - ADMIN_PW=${ADMIN_PW}
+    command: /bin/bootstrap.sh && echo /.env
     volumes:
-      - /tmp:/storage
-    depends_on:
-      - fedbox
-  add_app:
-    image: quay.io/fedbox/fedbox:${ENV}
-    command: /bin/ctl --env ${ENV} oauth client add --redirectUri http://brutalinks.git/auth/fedbox/callback
-    volumes:
-      - /tmp:/storage
-    depends_on:
-      - bootstrap
+    - /tmp:/storage
+    - ./.env:/.env
   lb:
-    env_file: ./.env
     image: caddy
     ports:
-      - 80:80
-      - 443:443
+    - 8443:443
     links:
     - app
+    - fedbox
     volumes:
-    -  ./Caddyfile:/etc/caddy/Caddyfile
-    environment:
-    - VARNISH_BACKEND_ADDRESS=app
-    - VARNISH_BACKEND_PORT=${PORT}
-    networks:
-      - default
+    - ./Caddyfile:/etc/caddy/Caddyfile
   app:
-    env_file: ./.env
-    image: quay.io/fedbox/littr:${ENV}
-    depends_on:
-    - add_app
+    image: quay.io/fedbox/littr:${ENV:-dev}
+    volumes:
+    - ./.env:/.env
+    expose:
+    - 4001
     links:
     - fedbox
 #    - redis
 #    - es
-    command: /bin/littr -host ${HOSTNAME} -port ${PORT} -env ${ENV}
-    networks:
-      - default
-
-networks:
-  default:
-    internal: true
+    command: /bin/littr -host ${HOSTNAME} -port 4001 -env ${ENV:-dev}
