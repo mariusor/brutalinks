@@ -105,7 +105,7 @@ func ViewInit(c appConfig, infoFn, errFn CtxLogFn) (*view, error) {
 	}
 	switch strings.ToLower(c.SessionsBackend) {
 	case sessionsCookieBackend:
-		v.s.s, _ = initCookieSession(c.HostName, c.Env, c.Secure, c.SessionKeys...)
+		v.s.s, _ = initCookieSession(c)
 	case sessionsFSBackend:
 		fallthrough
 	default:
@@ -113,7 +113,7 @@ func ViewInit(c appConfig, infoFn, errFn CtxLogFn) (*view, error) {
 			v.infoFn(log.Ctx{"backend": c.SessionsBackend})("Invalid session backend, falling back to %s.", sessionsFSBackend)
 			c.SessionsBackend = sessionsFSBackend
 		}
-		v.s.s, _ = v.initFileSession(c.HostName, c.Env, c.Secure, c.SessionKeys...)
+		v.s.s, _ = v.initFileSession(c)
 	}
 	return &v, nil
 }

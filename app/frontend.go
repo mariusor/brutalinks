@@ -41,6 +41,7 @@ type appConfig struct {
 	BaseURL         string
 	SessionKeys     [][]byte
 	SessionsBackend string
+	SessionsPath    string
 	Logger          log.Logger
 }
 
@@ -67,6 +68,9 @@ func Init(c appConfig) (*handler, error) {
 	if c.SessionsBackend = os.Getenv("SESSIONS_BACKEND"); c.SessionsBackend == "" {
 		c.SessionsBackend = sessionsFSBackend
 	}
+	if c.SessionsPath = os.Getenv("SESSIONS_PATH"); c.SessionsPath == "" {
+		c.SessionsPath = os.TempDir()
+	}
 	c.SessionsBackend = strings.ToLower(c.SessionsBackend)
 	c.SessionKeys = loadEnvSessionKeys()
 	h.v, _ = ViewInit(c, h.infoFn, h.errFn)
@@ -84,7 +88,7 @@ func Init(c appConfig) (*handler, error) {
 		if err != nil {
 			h.errFn(nil)("Failed to load actor: %s", err)
 		}
-		if oauth != nil  {
+		if oauth != nil {
 			h.storage.app = new(Account)
 			h.storage.app.FromActivityPub(oauth)
 			config := GetOauth2Config("fedbox", h.conf.BaseURL)
@@ -107,24 +111,24 @@ func Init(c appConfig) (*handler, error) {
 	return h, err
 }
 
-func initCookieSession(h string, e config.EnvType, secure bool, k ...[]byte) (sessions.Store, error) {
-	ss := sessions.NewCookieStore(k...)
-	ss.Options.Domain = h
+func initCookieSession(c appConfig) (sessions.Store, error) {
+	ss := sessions.NewCookieStore(c.SessionKeys...)
+	ss.Options.Domain = c.HostName
 	ss.Options.Path = "/"
 	ss.Options.HttpOnly = true
-	ss.Options.Secure = secure
+	ss.Options.Secure = c.Secure
 	ss.Options.SameSite = http.SameSiteLaxMode
-	if e.IsProd() {
+	if c.Env.IsProd() {
 		ss.Options.SameSite = http.SameSiteStrictMode
 	}
-	if e.IsDev() {
+	if c.Env.IsDev() {
 		ss.Options.SameSite = http.SameSiteNoneMode
 	}
 	return ss, nil
 }
 
-func (v view) initFileSession(h string, e config.EnvType, secure bool, k ...[]byte) (sessions.Store, error) {
-	sessDir := fmt.Sprintf("%s/%s", os.TempDir(), h)
+func (v view) initFileSession(c appConfig) (sessions.Store, error) {
+	sessDir := fmt.Sprintf("%s/%s/%s", c.SessionsPath, c.Env, c.HostName)
 	if _, err := os.Stat(sessDir); err != nil {
 		if os.IsNotExist(err) {
 			if err := os.Mkdir(sessDir, 0700); err != nil {
@@ -135,16 +139,16 @@ func (v view) initFileSession(h string, e config.EnvType, secure bool, k ...[]by
 			return nil, err
 		}
 	}
-	ss := sessions.NewFilesystemStore(sessDir, k...)
-	ss.Options.Domain = h
+	ss := sessions.NewFilesystemStore(sessDir, c.SessionKeys...)
+	ss.Options.Domain = c.HostName
 	ss.Options.Path = "/"
 	ss.Options.HttpOnly = true
-	ss.Options.Secure = secure
+	ss.Options.Secure = c.Secure
 	ss.Options.SameSite = http.SameSiteLaxMode
-	if e.IsProd() {
+	if c.Env.IsProd() {
 		ss.Options.SameSite = http.SameSiteStrictMode
 	}
-	if e.IsDev() {
+	if c.Env.IsDev() {
 		ss.Options.SameSite = http.SameSiteNoneMode
 	}
 	return ss, nil
