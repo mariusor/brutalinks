@@ -25,7 +25,7 @@ clean:
 	@-$(RM) $(HOSTNAME).{key,crt,pem}
 
 build:
-	$(BUILD) --build-arg ENV=$(ENV) --build-arg LISTEN=:$(PORT) -f app/Dockerfile.$(ENV) -t $(HOSTNAME)/app:$(ENV) ..
+	$(BUILD) --build-arg ENV=$(ENV) --build-arg LISTEN=$(PORT) -f app/Dockerfile.$(ENV) -t $(HOSTNAME)/app:$(ENV) ..
 
 run: build
 	$(RUN) -e ENV=$(ENV) -e HOSTNAME=$(HOSTNAME) -p $(PORT):$(PORT) $(HOSTNAME)/app:$(ENV)
