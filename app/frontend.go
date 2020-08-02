@@ -74,7 +74,7 @@ func Init(c appConfig) (*handler, error) {
 	c.SessionsBackend = strings.ToLower(c.SessionsBackend)
 	c.SessionKeys = loadEnvSessionKeys()
 	h.v, _ = ViewInit(c, h.infoFn, h.errFn)
-	if h.v.s == nil {
+	if h.v.s.s == nil {
 		h.conf.SessionsEnabled = false
 	}
 	h.conf = c
@@ -328,7 +328,7 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 	}
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		h.storage.WithAccount(nil)
-		if h.v.s == nil {
+		if h.v.s.s == nil {
 			h.logger.Warn("missing session store, unable to load session")
 			return
 		}

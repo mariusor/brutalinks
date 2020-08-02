@@ -80,7 +80,7 @@ func (s *session) save(w http.ResponseWriter, r *http.Request) error {
 }
 
 type view struct {
-	s      *session
+	s      session
 	infoFn CtxLogFn
 	errFn  CtxLogFn
 }
@@ -99,7 +99,7 @@ func ViewInit(c appConfig, infoFn, errFn CtxLogFn) (*view, error) {
 		err := errors.NotImplementedf("no session encryption configuration, unable to use sessions")
 		return &v, err
 	}
-	v.s = &session{
+	v.s = session{
 		infoFn: infoFn,
 		errFn:  errFn,
 	}
