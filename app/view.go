@@ -563,7 +563,7 @@ func html(data string) template.HTML {
 }
 
 func text(data string) string {
-	return string(data)
+	return data
 }
 
 func icon(icon string, c ...string) template.HTML {
