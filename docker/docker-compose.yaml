@@ -45,4 +45,4 @@ services:
     - fedbox
 #    - redis
 #    - es
-    command: /bin/littr -host ${HOSTNAME} -port 4001 -env ${ENV:-dev}
+    command: /bin/littr -host app -port 4001 -env ${ENV:-dev}
