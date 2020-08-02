@@ -25,7 +25,7 @@ type AssetFiles map[string][]string
 func Files() []string {
 	names := make([]string, 0)
 	walkFsFn(templateDir, func(path string, info os.FileInfo, err error) error {
-		if !info.IsDir() {
+		if info != nil && !info.IsDir() {
 			names = append(names, path)
 		}
 		return nil
@@ -62,7 +62,7 @@ func Template(name string) ([]byte, error) {
 	return getFileContent(name)
 }
 
-func writeAsset(s AssetFiles, writeFn func (s string, w io.Writer, b []byte)) func(http.ResponseWriter, *http.Request) {
+func writeAsset(s AssetFiles, writeFn func(s string, w io.Writer, b []byte)) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		asset := filepath.Clean(chi.URLParam(r, "path"))
 		ext := path.Ext(r.RequestURI)
@@ -75,7 +75,7 @@ func writeAsset(s AssetFiles, writeFn func (s string, w io.Writer, b []byte)) fu
 		}
 
 		if writeFn == nil {
-			writeFn = func (s string, w io.Writer, b []byte) {
+			writeFn = func(s string, w io.Writer, b []byte) {
 				w.Write(b)
 			}
 		}
