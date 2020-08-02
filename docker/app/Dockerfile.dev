@@ -1,7 +1,6 @@
 FROM golang:1.14 as builder
 
 ARG ENV
-ARG PWD
 
 ENV GO111MODULE=on
 ENV ENV=${ENV:-dev}
@@ -15,21 +14,20 @@ RUN go mod download || true; \
 
 FROM gcr.io/distroless/base
 
-ARG HOSTNAME
-ARG LISTEN
+ARG HOSTNAME=brutalinks
+ARG PORT=3003
 
-EXPOSE $LISTEN
+EXPOSE ${PORT}
 
 ENV HOSTNAME $HOSTNAME
-ENV LISTEN $LISTEN
+ENV PORT $PORT
 ENV ENV $ENV
 
 COPY --from=builder /go/src/app/bin/app /bin/littr
-ADD ./templates /
-ADD ./assets /
+ADD ./templates /templates
+ADD ./assets /assets
 
 ADD docker/app/.env ./
 ADD docker/app/.env.dev ./
 
 CMD ["/bin/littr"]
-
