@@ -42,11 +42,22 @@ func Load(e EnvType) (*Configuration, error) {
 		env := os.Getenv("ENV")
 		e = EnvType(strings.ToLower(env))
 	}
-	if ValidEnv(e) {
-		c.Env = e
-		configs = append(configs, fmt.Sprintf(".env.%s", c.Env))
+	appendIfFile := func(typ EnvType) {
+		envFile := fmt.Sprintf(".env.%s", typ)
+		if _, err := os.Stat(envFile); err == nil {
+			configs = append(configs, envFile)
+		}
 	}
-
+	if !ValidEnv(e) {
+		for _, typ := range validEnvTypes {
+			appendIfFile(typ)
+		}
+	} else {
+		appendIfFile(e)
+	}
+	for _, f := range configs {
+		godotenv.Overload(f)
+	}
 	lvl := os.Getenv("LOG_LEVEL")
 	switch strings.ToLower(lvl) {
 	case "trace":
@@ -62,21 +73,12 @@ func Load(e EnvType) (*Configuration, error) {
 	default:
 		c.LogLevel = log.InfoLevel
 	}
-
-	for _, f := range configs {
-		if err := godotenv.Overload(f); err != nil {
-			return nil, err
-		}
-	}
 	c.HostName = os.Getenv("HOSTNAME")
 	c.Name = os.Getenv("NAME")
 	if c.Name == "" {
 		c.Name = c.HostName
 	}
 	c.ListenHost = os.Getenv("LISTEN_HOSTNAME")
-	if c.ListenHost == "" {
-		c.ListenHost = DefaultListenHost
-	}
 	if port, _ := strconv.ParseInt(os.Getenv("LISTEN_PORT"), 10, 32); port > 0 {
 		c.ListenPort = int(port)
 	} else {

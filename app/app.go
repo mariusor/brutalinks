@@ -96,7 +96,7 @@ func (a *Application) setUp(c *config.Configuration, host string, port int) erro
 	if host != "" {
 		c.HostName = host
 	}
-	if port != 0 {
+	if port != config.DefaultListenPort {
 		c.ListenPort = port
 	}
 	if c.APIURL == "" {
@@ -106,14 +106,17 @@ func (a *Application) setUp(c *config.Configuration, host string, port int) erro
 }
 
 func (a Application) Listen() string {
-	return fmt.Sprintf("%s:%d", a.Conf.ListenHost, a.Conf.ListenPort)
+	if len(a.Conf.ListenHost) > 0 {
+		return fmt.Sprintf("%s:%d", a.Conf.ListenHost, a.Conf.ListenPort)
+	}
+	return fmt.Sprintf(":%d", a.Conf.ListenPort)
 }
 
 func (a *Application) Front(r chi.Router) {
 	conf := appConfig{
 		Configuration: *a.Conf,
-		BaseURL:  a.BaseURL,
-		Logger:   a.Logger.New(log.Ctx{"package": "frontend"}),
+		BaseURL:       a.BaseURL,
+		Logger:        a.Logger.New(log.Ctx{"package": "frontend"}),
 	}
 	front, err := Init(conf)
 	if err != nil {
