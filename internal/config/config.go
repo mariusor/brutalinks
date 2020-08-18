@@ -73,6 +73,7 @@ func Load(e EnvType) (*Configuration, error) {
 	default:
 		c.LogLevel = log.InfoLevel
 	}
+	c.Env = EnvType(os.Getenv("ENV"))
 	c.HostName = os.Getenv("HOSTNAME")
 	c.Name = os.Getenv("NAME")
 	if c.Name == "" {
