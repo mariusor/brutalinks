@@ -47,9 +47,15 @@ type session struct {
 }
 
 func (s *session) new(r *http.Request) (*sessions.Session, error) {
+	if s.s == nil {
+		return nil, errors.Newf("invalid session")
+	}
 	return s.s.New(r, sessionName)
 }
 func (s *session) get(r *http.Request) (*sessions.Session, error) {
+	if s.s == nil {
+		return nil, errors.Newf("invalid session")
+	}
 	return s.s.Get(r, sessionName)
 }
 

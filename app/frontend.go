@@ -330,6 +330,7 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 		h.storage.WithAccount(nil)
 		if h.v.s.s == nil {
 			h.logger.Warn("missing session store, unable to load session")
+			next.ServeHTTP(w, r)
 			return
 		}
 		s, err := h.v.s.get(r)
