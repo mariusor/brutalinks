@@ -102,16 +102,16 @@ func ViewInit(c appConfig, infoFn, errFn CtxLogFn) (*view, error) {
 	gob.Register(flash{})
 
 	if len(c.SessionKeys) == 0 {
-		err := errors.NotImplementedf("no session encryption configuration, unable to use sessions")
-		return &v, err
+		return &v, errors.NotImplementedf("no session encryption keys, unable to use sessions")
 	}
 	v.s = session{
 		infoFn: infoFn,
 		errFn:  errFn,
 	}
+	var err error
 	switch strings.ToLower(c.SessionsBackend) {
 	case sessionsCookieBackend:
-		v.s.s, _ = initCookieSession(c)
+		v.s.s, err = v.initCookieSession(c)
 	case sessionsFSBackend:
 		fallthrough
 	default:
@@ -119,9 +119,9 @@ func ViewInit(c appConfig, infoFn, errFn CtxLogFn) (*view, error) {
 			v.infoFn(log.Ctx{"backend": c.SessionsBackend})("Invalid session backend, falling back to %s.", sessionsFSBackend)
 			c.SessionsBackend = sessionsFSBackend
 		}
-		v.s.s, _ = v.initFileSession(c)
+		v.s.s, err = v.initFileSession(c)
 	}
-	return &v, nil
+	return &v, err
 }
 
 func (v *view) addFlashMessage(typ flashType, r *http.Request, msgs ...string) {

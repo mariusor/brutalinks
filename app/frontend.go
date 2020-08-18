@@ -73,7 +73,12 @@ func Init(c appConfig) (*handler, error) {
 	}
 	c.SessionsBackend = strings.ToLower(c.SessionsBackend)
 	c.SessionKeys = loadEnvSessionKeys()
-	h.v, _ = ViewInit(c, h.infoFn, h.errFn)
+	h.v, err = ViewInit(c, h.infoFn, h.errFn)
+	if err != nil {
+		h.errFn(log.Ctx{
+			"err": err,
+		})("Error initializing view")
+	}
 	if h.v.s.s == nil {
 		h.conf.SessionsEnabled = false
 	}
@@ -111,13 +116,20 @@ func Init(c appConfig) (*handler, error) {
 	return h, err
 }
 
-func initCookieSession(c appConfig) (sessions.Store, error) {
+func (v view) initCookieSession(c appConfig) (sessions.Store, error) {
 	ss := sessions.NewCookieStore(c.SessionKeys...)
 	ss.Options.Domain = c.HostName
 	ss.Options.Path = "/"
 	ss.Options.HttpOnly = true
 	ss.Options.Secure = c.Secure
 	ss.Options.SameSite = http.SameSiteLaxMode
+
+	v.infoFn(log.Ctx{
+		"type": c.SessionsBackend,
+		"env": c.Env,
+		"keys": c.SessionKeys,
+		"domain": c.HostName,
+	})("Session settings")
 	if c.Env.IsProd() {
 		ss.Options.SameSite = http.SameSiteStrictMode
 	}
@@ -131,7 +143,7 @@ func (v view) initFileSession(c appConfig) (sessions.Store, error) {
 	sessDir := fmt.Sprintf("%s/%s/%s", c.SessionsPath, c.Env, c.HostName)
 	if _, err := os.Stat(sessDir); err != nil {
 		if os.IsNotExist(err) {
-			if err := os.Mkdir(sessDir, 0700); err != nil {
+			if err := os.MkdirAll(sessDir, 0700); err != nil {
 				return nil, err
 			}
 		} else {
@@ -139,6 +151,13 @@ func (v view) initFileSession(c appConfig) (sessions.Store, error) {
 			return nil, err
 		}
 	}
+	v.infoFn(log.Ctx{
+		"type": c.SessionsBackend,
+		"env": c.Env,
+		"path": sessDir,
+		"keys": c.SessionKeys,
+		"hostname": c.HostName,
+	})("Session settings")
 	ss := sessions.NewFilesystemStore(sessDir, c.SessionKeys...)
 	ss.Options.Domain = c.HostName
 	ss.Options.Path = "/"
