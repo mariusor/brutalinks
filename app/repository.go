@@ -1977,11 +1977,14 @@ func (r *repository) SaveAccount(a Account) (Account, error) {
 
 	var ap pub.Item
 	if _, ap, err = r.fedbox.ToOutbox(act); err != nil {
-		r.errFn(log.Ctx{
-			"actor":  ap.GetLink(),
+		ctx := log.Ctx{
 			"author": author.GetLink(),
 			"err":    err,
-		})("save failed")
+		}
+		if ap != nil {
+			ctx["activity"] = ap.GetLink()
+		}
+		r.errFn(ctx)("save failed")
 		return a, err
 	}
 	err = a.FromActivityPub(ap)
