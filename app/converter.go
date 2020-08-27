@@ -74,7 +74,7 @@ func FromActor(a *Account, p *pub.Actor) error {
 		a.UpdatedAt = p.Updated
 	}
 	pName := p.PreferredUsername.First().Value
-	if pName == "" {
+	if pName.Equals(pub.Content("")) {
 		pName = p.Name.First().Value
 	}
 	a.Handle = pName.String()

@@ -336,9 +336,9 @@ func loadAPItem(it pub.Item, item Item) error {
 
 var anonymousActor = &pub.Actor{
 	ID:                pub.PublicNS,
-	Name:              pub.NaturalLanguageValues{{pub.NilLangRef, Anonymous}},
+	Name:              pub.NaturalLanguageValues{{pub.NilLangRef, pub.Content(Anonymous)}},
 	Type:              pub.PersonType,
-	PreferredUsername: pub.NaturalLanguageValues{{pub.NilLangRef, Anonymous}},
+	PreferredUsername: pub.NaturalLanguageValues{{pub.NilLangRef, pub.Content(Anonymous)}},
 }
 
 func anonymousPerson(url string) *pub.Actor {
