@@ -33,7 +33,7 @@ func FromActor(a *Account, p *pub.Actor) error {
 	name := p.Name.First().Value
 	a.Hash.FromActivityPub(p)
 	if len(name) > 0 {
-		a.Handle = name
+		a.Handle = name.String()
 	}
 	a.Flags = FlagsNone
 	if a.Metadata == nil {
@@ -46,7 +46,7 @@ func FromActor(a *Account, p *pub.Actor) error {
 			a.Metadata.URL = p.URL.GetLink().String()
 		}
 		if !HostIsLocal(a.Metadata.ID) {
-			a.Metadata.Name = name
+			a.Metadata.Name = name.String()
 		}
 	}
 	if p.Icon != nil {
@@ -77,7 +77,7 @@ func FromActor(a *Account, p *pub.Actor) error {
 	if pName == "" {
 		pName = p.Name.First().Value
 	}
-	a.Handle = pName
+	a.Handle = pName.String()
 	if len(a.Metadata.URL) > 0 {
 		host := host(a.Metadata.URL)
 		a.Email = fmt.Sprintf("%s@%s", a.Handle, host)
@@ -167,7 +167,7 @@ func FromArticle(i *Item, a *pub.Object) error {
 
 	i.Hash.FromActivityPub(a)
 	if len(title) > 0 {
-		i.Title = title
+		i.Title = title.String()
 	}
 	i.MimeType = MimeTypeHTML
 	if a.Type == pub.PageType {
@@ -177,7 +177,7 @@ func FromArticle(i *Item, a *pub.Object) error {
 		if len(a.MediaType) > 0 {
 			i.MimeType = string(a.MediaType)
 		}
-		i.Data = a.Content.First().Value
+		i.Data = a.Content.First().Value.String()
 	}
 	i.SubmittedAt = a.Published
 	i.UpdatedAt = a.Updated
@@ -240,7 +240,7 @@ func FromArticle(i *Item, a *pub.Object) error {
 	// TODO(marius): here we seem to have a bug, when Source.Content is nil when it shouldn't
 	//    to repro, I used some copy/pasted comments from console javascript
 	if len(a.Source.Content) > 0 && len(a.Source.MediaType) > 0 {
-		i.Data = a.Source.Content.First().Value
+		i.Data = a.Source.Content.First().Value.String()
 		i.MimeType = string(a.Source.MediaType)
 	}
 	if a.Tag != nil && len(a.Tag) > 0 {
@@ -494,10 +494,10 @@ func (c *TagCollection) FromActivityPub(it pub.ItemCollection) error {
 	}
 	for _, t := range it {
 		if m, ok := t.(*pub.Mention); ok {
-			*c = append(*c, Tag{URL: t.GetID().String(), Type: TagMention, Name: m.Name.First().Value})
+			*c = append(*c, Tag{URL: t.GetID().String(), Type: TagMention, Name: m.Name.First().Value.String()})
 		}
 		if ob, ok := t.(*pub.Object); ok {
-			*c = append(*c, Tag{URL: t.GetID().String(), Type: TagTag, Name: ob.Name.First().Value})
+			*c = append(*c, Tag{URL: t.GetID().String(), Type: TagTag, Name: ob.Name.First().Value.String()})
 		}
 	}
 	return nil

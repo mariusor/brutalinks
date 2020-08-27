@@ -194,14 +194,14 @@ func loadAPItem(it pub.Item, item Item) error {
 				o.Source.MediaType = pub.MimeType(item.MimeType)
 				o.MediaType = MimeTypeHTML
 				if item.Data != "" {
-					o.Source.Content.Set("en", item.Data)
-					o.Content.Set("en", string(Markdown(item.Data)))
+					o.Source.Content.Set("en", pub.Content(item.Data))
+					o.Content.Set("en", pub.Content(Markdown(item.Data)))
 				}
 			case MimeTypeText:
 				fallthrough
 			case MimeTypeHTML:
 				o.MediaType = pub.MimeType(item.MimeType)
-				o.Content.Set("en", item.Data)
+				o.Content.Set("en", pub.Content(item.Data))
 			}
 		}
 
@@ -241,7 +241,7 @@ func loadAPItem(it pub.Item, item Item) error {
 		}
 
 		if item.Title != "" {
-			o.Name.Set("en", item.Title)
+			o.Name.Set("en", pub.Content(item.Title))
 		}
 		if item.SubmittedBy != nil {
 			o.AttributedTo = BuildActorID(*item.SubmittedBy)
@@ -312,7 +312,7 @@ func loadAPItem(it pub.Item, item Item) error {
 					t := pub.Object{
 						ID:   pub.ID(men.URL),
 						Type: pub.MentionType,
-						Name: pub.NaturalLanguageValues{{Ref: pub.NilLangRef, Value: men.Name}},
+						Name: pub.NaturalLanguageValues{{Ref: pub.NilLangRef, Value: pub.Content(men.Name)}},
 					}
 					o.Tag.Append(t)
 				}
@@ -320,7 +320,7 @@ func loadAPItem(it pub.Item, item Item) error {
 					t := pub.Object{
 						ID:   pub.ID(tag.URL),
 						Type: pub.ObjectType,
-						Name: pub.NaturalLanguageValues{{Ref: pub.NilLangRef, Value: tag.Name}},
+						Name: pub.NaturalLanguageValues{{Ref: pub.NilLangRef, Value: pub.Content(tag.Name)}},
 					}
 					o.Tag.Append(t)
 				}
@@ -356,7 +356,7 @@ func loadAPPerson(a Account) *pub.Actor {
 	if a.HasMetadata() {
 		if a.Metadata.Blurb != nil && len(a.Metadata.Blurb) > 0 {
 			p.Summary = pub.NaturalLanguageValuesNew()
-			p.Summary.Set(pub.NilLangRef, string(a.Metadata.Blurb))
+			p.Summary.Set(pub.NilLangRef, pub.Content(a.Metadata.Blurb))
 		}
 		if len(a.Metadata.Icon.URI) > 0 {
 			avatar := pub.ObjectNew(pub.ImageType)
@@ -366,12 +366,12 @@ func loadAPPerson(a Account) *pub.Actor {
 		}
 	}
 
-	p.PreferredUsername.Set(pub.NilLangRef, a.Handle)
+	p.PreferredUsername.Set(pub.NilLangRef, pub.Content(a.Handle))
 
 	if len(a.Hash) > 0 {
 		if a.IsFederated() {
 			p.ID = pub.ID(a.Metadata.ID)
-			p.Name.Set("en", a.Metadata.Name)
+			p.Name.Set("en", pub.Content(a.Metadata.Name))
 			if len(a.Metadata.InboxIRI) > 0 {
 				p.Inbox = pub.IRI(a.Metadata.InboxIRI)
 			}
@@ -391,7 +391,7 @@ func loadAPPerson(a Account) *pub.Actor {
 				p.URL = pub.IRI(a.Metadata.URL)
 			}
 		} else {
-			p.Name.Set("en", a.Handle)
+			p.Name.Set("en", pub.Content(a.Handle))
 
 			p.Outbox = BuildCollectionID(a, handlers.Outbox)
 			p.Inbox = BuildCollectionID(a, handlers.Inbox)
