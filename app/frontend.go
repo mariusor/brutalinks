@@ -73,15 +73,6 @@ func Init(c appConfig) (*handler, error) {
 	}
 	c.SessionsBackend = strings.ToLower(c.SessionsBackend)
 	c.SessionKeys = loadEnvSessionKeys()
-	h.v, err = ViewInit(c, h.infoFn, h.errFn)
-	if err != nil {
-		h.errFn(log.Ctx{
-			"err": err,
-		})("Error initializing view")
-	}
-	if h.v.s.s == nil {
-		h.conf.SessionsEnabled = false
-	}
 	h.conf = c
 
 	h.storage = ActivityPubService(c)
@@ -99,18 +90,24 @@ func Init(c appConfig) (*handler, error) {
 			config := GetOauth2Config("fedbox", h.conf.BaseURL)
 
 			handle := h.storage.app.Handle
-			tok, err := config.PasswordCredentialsToken(context.Background(), handle, pw)
-			if err != nil {
-				return h, err
+			if tok, err := config.PasswordCredentialsToken(context.Background(), handle, pw); err != nil {
+				h.conf.SessionsEnabled = false
+			} else {
+				if tok == nil {
+					h.conf.SessionsEnabled = false
+				}
+				h.storage.app.Metadata.OAuth.Provider = "fedbox"
+				h.storage.app.Metadata.OAuth.Token = tok.AccessToken
+				h.storage.app.Metadata.OAuth.TokenType = tok.TokenType
+				h.storage.app.Metadata.OAuth.RefreshToken = tok.RefreshToken
 			}
-			if tok == nil {
-				return h, err
-			}
-			h.storage.app.Metadata.OAuth.Provider = "fedbox"
-			h.storage.app.Metadata.OAuth.Token = tok.AccessToken
-			h.storage.app.Metadata.OAuth.TokenType = tok.TokenType
-			h.storage.app.Metadata.OAuth.RefreshToken = tok.RefreshToken
 		}
+	}
+	h.v, err = ViewInit(h.conf, h.infoFn, h.errFn)
+	if err != nil {
+		h.errFn(log.Ctx{
+			"err": err,
+		})("Error initializing view")
 	}
 
 	return h, err

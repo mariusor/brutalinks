@@ -41,18 +41,25 @@ type CtxLogFn func(log.Ctx) LogFn
 type LogFn func(string, ...interface{})
 
 type session struct {
-	s      sessions.Store
-	infoFn CtxLogFn
-	errFn  CtxLogFn
+	enabled bool
+	s       sessions.Store
+	infoFn  CtxLogFn
+	errFn   CtxLogFn
 }
 
 func (s *session) new(r *http.Request) (*sessions.Session, error) {
+	if !s.enabled {
+		return nil, nil
+	}
 	if s.s == nil {
 		return nil, errors.Newf("invalid session")
 	}
 	return s.s.New(r, sessionName)
 }
 func (s *session) get(r *http.Request) (*sessions.Session, error) {
+	if !s.enabled {
+		return nil, nil
+	}
 	if s.s == nil {
 		return nil, errors.Newf("invalid session")
 	}
@@ -60,6 +67,9 @@ func (s *session) get(r *http.Request) (*sessions.Session, error) {
 }
 
 func (s *session) save(w http.ResponseWriter, r *http.Request) error {
+	if !s.enabled {
+		return nil
+	}
 	clearSessionCookie := func(w http.ResponseWriter, r *http.Request) {
 		if c, _ := r.Cookie(sessionName); c != nil {
 			c.Value = ""
@@ -105,9 +115,13 @@ func ViewInit(c appConfig, infoFn, errFn CtxLogFn) (*view, error) {
 		return &v, errors.NotImplementedf("no session encryption keys, unable to use sessions")
 	}
 	v.s = session{
-		infoFn: infoFn,
-		errFn:  errFn,
+		enabled: c.SessionsEnabled,
 	}
+	if !v.s.enabled {
+		return &v, nil
+	}
+	v.infoFn = infoFn
+	v.errFn = errFn
 	var err error
 	switch strings.ToLower(c.SessionsBackend) {
 	case sessionsCookieBackend:
@@ -125,6 +139,9 @@ func ViewInit(c appConfig, infoFn, errFn CtxLogFn) (*view, error) {
 }
 
 func (v *view) addFlashMessage(typ flashType, r *http.Request, msgs ...string) {
+	if !v.s.enabled {
+		return
+	}
 	s, _ := v.s.get(r)
 	for _, msg := range msgs {
 		n := flash{typ, msg}
@@ -216,7 +233,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 	_, isError := m.(*errorModel)
 
 	layout := "layout"
-	if Instance.Conf.SessionsEnabled && !isError {
+	if !isError {
 		if s, err = v.s.get(r); err != nil {
 			v.errFn(log.Ctx{
 				"template": name,
@@ -323,7 +340,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 		v.errFn(log.Ctx{"err": err, "model": m})("failed to render template %s", name)
 		return errors.Annotatef(err, "failed to render template")
 	}
-	if Instance.Conf.SessionsEnabled && !isError {
+	if !isError {
 		if err := v.s.save(w, r); err != nil {
 			v.HandleErrors(w, r, err)
 			return nil
