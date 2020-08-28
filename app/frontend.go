@@ -91,10 +91,10 @@ func Init(c appConfig) (*handler, error) {
 
 			handle := h.storage.app.Handle
 			if tok, err := config.PasswordCredentialsToken(context.Background(), handle, pw); err != nil {
-				h.conf.SessionsEnabled = false
+				h.conf.UserCreatingEnabled = false
 			} else {
 				if tok == nil {
-					h.conf.SessionsEnabled = false
+					h.conf.UserCreatingEnabled = false
 				}
 				h.storage.app.Metadata.OAuth.Provider = "fedbox"
 				h.storage.app.Metadata.OAuth.Token = tok.AccessToken

@@ -96,6 +96,7 @@ func (s *session) save(w http.ResponseWriter, r *http.Request) error {
 }
 
 type view struct {
+	c      *config.Configuration
 	s      session
 	infoFn CtxLogFn
 	errFn  CtxLogFn
@@ -103,6 +104,7 @@ type view struct {
 
 func ViewInit(c appConfig, infoFn, errFn CtxLogFn) (*view, error) {
 	v := view{
+		c:      &c.Configuration,
 		infoFn: infoFn,
 		errFn:  errFn,
 	}
@@ -116,12 +118,12 @@ func ViewInit(c appConfig, infoFn, errFn CtxLogFn) (*view, error) {
 	}
 	v.s = session{
 		enabled: c.SessionsEnabled,
+		infoFn:  infoFn,
+		errFn:   errFn,
 	}
 	if !v.s.enabled {
 		return &v, nil
 	}
-	v.infoFn = infoFn
-	v.errFn = errFn
 	var err error
 	switch strings.ToLower(c.SessionsBackend) {
 	case sessionsCookieBackend:
@@ -248,6 +250,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 		return ac
 	}
 
+	version := Instance.Version
 	ren := render.New(render.Options{
 		AssetNames: assets.Files,
 		Asset:      assets.Template,
@@ -296,8 +299,8 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"NextPageLink":          nextPageLink,
 			"PrevPageLink":          prevPageLink,
 			"CanPaginate":           canPaginate,
-			"Config":                func() config.Configuration { return *Instance.Conf },
-			"Version":               func() string { return Instance.Version },
+			"Config":                func() config.Configuration { return *v.c },
+			"Version":               func() string { return version },
 			"Name":                  appName,
 			"Menu":                  func() []headerEl { return headerMenu(r) },
 			"icon":                  icon,
