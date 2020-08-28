@@ -92,9 +92,16 @@ func Init(c appConfig) (*handler, error) {
 			handle := h.storage.app.Handle
 			if tok, err := config.PasswordCredentialsToken(context.Background(), handle, pw); err != nil {
 				h.conf.UserCreatingEnabled = false
+				h.errFn(log.Ctx{
+					"handle": handle,
+					"err":    err,
+				})("Failed to authenticate client")
 			} else {
 				if tok == nil {
 					h.conf.UserCreatingEnabled = false
+					h.errFn(log.Ctx{
+						"handle": handle,
+					})("Failed to load a valid OAuth2 token for client")
 				}
 				h.storage.app.Metadata.OAuth.Provider = "fedbox"
 				h.storage.app.Metadata.OAuth.Token = tok.AccessToken
@@ -115,19 +122,19 @@ func Init(c appConfig) (*handler, error) {
 
 func (v view) initCookieSession(c appConfig) (sessions.Store, error) {
 	ss := sessions.NewCookieStore(c.SessionKeys...)
-	ss.Options.Domain = c.HostName
 	ss.Options.Path = "/"
 	ss.Options.HttpOnly = true
 	ss.Options.Secure = c.Secure
 	ss.Options.SameSite = http.SameSiteLaxMode
 
 	v.infoFn(log.Ctx{
-		"type": c.SessionsBackend,
-		"env": c.Env,
-		"keys": c.SessionKeys,
+		"type":   c.SessionsBackend,
+		"env":    c.Env,
+		"keys":   c.SessionKeys,
 		"domain": c.HostName,
 	})("Session settings")
 	if c.Env.IsProd() {
+		ss.Options.Domain = c.HostName
 		ss.Options.SameSite = http.SameSiteStrictMode
 	}
 	if c.Env.IsDev() {
@@ -149,19 +156,19 @@ func (v view) initFileSession(c appConfig) (sessions.Store, error) {
 		}
 	}
 	v.infoFn(log.Ctx{
-		"type": c.SessionsBackend,
-		"env": c.Env,
-		"path": sessDir,
-		"keys": c.SessionKeys,
+		"type":     c.SessionsBackend,
+		"env":      c.Env,
+		"path":     sessDir,
+		"keys":     c.SessionKeys,
 		"hostname": c.HostName,
 	})("Session settings")
 	ss := sessions.NewFilesystemStore(sessDir, c.SessionKeys...)
-	ss.Options.Domain = c.HostName
 	ss.Options.Path = "/"
 	ss.Options.HttpOnly = true
 	ss.Options.Secure = c.Secure
 	ss.Options.SameSite = http.SameSiteLaxMode
 	if c.Env.IsProd() {
+		ss.Options.Domain = c.HostName
 		ss.Options.SameSite = http.SameSiteStrictMode
 	}
 	if c.Env.IsDev() {

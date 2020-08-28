@@ -56,6 +56,7 @@ func (s *session) new(r *http.Request) (*sessions.Session, error) {
 	}
 	return s.s.New(r, sessionName)
 }
+
 func (s *session) get(r *http.Request) (*sessions.Session, error) {
 	if !s.enabled {
 		return nil, nil
@@ -157,6 +158,7 @@ func ToTitle(s string) string {
 	}
 	return strings.ToUpper(s[0:1]) + s[1:]
 }
+
 func pastTenseVerb(s template.HTML) template.HTML {
 	l := len(s)
 	if l == 0 {
@@ -269,7 +271,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"IsVote":                func(t Renderable) bool { return t.Type() == AppreciationType },
 			"IsAccount":             func(t Renderable) bool { return t.Type() == ActorType },
 			"IsModeration":          func(t Renderable) bool { return t.Type() == ModerationType },
-			"LoadFlashMessages":     loadFlashMessages(r, w, s),
+			"LoadFlashMessages":     v.loadFlashMessages(r, w, s),
 			"Mod10":                 mod10,
 			"ShowText":              showText(m),
 			"HTML":                  html,
@@ -406,10 +408,10 @@ func (v *view) Redirect(w http.ResponseWriter, r *http.Request, url string, stat
 	http.Redirect(w, r, url, status)
 }
 
-func loadFlashMessages(r *http.Request, w http.ResponseWriter, s *sessions.Session) func() []flash {
+func (v *view)loadFlashMessages(r *http.Request, w http.ResponseWriter, s *sessions.Session) func() []flash {
 	var flashData []flash
 	flashFn := func() []flash { return flashData }
-	if s == nil || !Instance.Conf.SessionsEnabled {
+	if s == nil || !v.c.SessionsEnabled {
 		return flashFn
 	}
 	flashes := s.Flashes()
@@ -422,7 +424,10 @@ func loadFlashMessages(r *http.Request, w http.ResponseWriter, s *sessions.Sessi
 			flashData = append(flashData, f)
 		}
 	}
-	s.Save(r, w)
+	err := s.Save(r, w)
+	if err != nil {
+		v.errFn(log.Ctx{"err": err})("")
+	}
 	return flashFn
 }
 
