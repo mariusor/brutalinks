@@ -6,10 +6,10 @@ require (
 	aletheia.icu/broccoli v1.0.4-0.20200506212414-5bc1e2f86a59 // indirect
 	aletheia.icu/broccoli/fs v0.0.0-20200506212414-5bc1e2f86a59
 	github.com/captncraig/cors v0.0.0-20190703115713-e80254a89df1 // indirect
-	github.com/go-ap/activitypub v0.0.0-20200827145927-e34990d72932
-	github.com/go-ap/client v0.0.0-20200827150217-0f4f21cdbcaf
+	github.com/go-ap/activitypub v0.0.0-20200830140334-e0b519daad28
+	github.com/go-ap/client v0.0.0-20200830140528-47b46740241a
 	github.com/go-ap/errors v0.0.0-20200702155720-f662512ba418
-	github.com/go-ap/handlers v0.0.0-20200827150601-7213521c2577
+	github.com/go-ap/handlers v0.0.0-20200830140800-f769ff168629
 	github.com/go-ap/jsonld v0.0.0-20200327122108-fafac2de2660
 	github.com/go-chi/chi v4.0.4+incompatible
 	github.com/gorilla/csrf v1.6.2
