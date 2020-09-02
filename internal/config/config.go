@@ -17,6 +17,8 @@ type Configuration struct {
 	ListenHost                 string
 	APIURL                     string
 	Secure                     bool
+	CertPath                   string
+	KeyPath                    string
 	Env                        EnvType
 	LogLevel                   log.Level
 	AdminContact               string
@@ -30,8 +32,49 @@ type Configuration struct {
 	MaintenanceMode            bool
 }
 
-const DefaultListenPort = 3000
-const DefaultListenHost = "localhost"
+const (
+	DefaultListenPort = 3000
+	DefaultListenHost = ""
+	Prefix            = "LITTR"
+)
+
+const (
+	KeyENV                        = "ENV"
+	KeyLogLevel                   = "LOG_LEVEL"
+	KeyHostname                   = "HOSTNAME"
+	KeyListenHostName             = "LISTEN_HOSTNAME"
+	KeyListenPort                 = "LISTEN_PORT"
+	KeyName                       = "NAME"
+	KeyHTTPS                      = "HTTPS"
+	KeyCertPath                   = "CERT_PATH"
+	KeyKeyPath                    = "KEY_PATH"
+	KeyAPIUrl                     = "API_URL"
+	KeyDisableVoting              = "DISABLE_VOTING"
+	KeyDisableDownoting           = "DISABLE_DOWNVOTING"
+	KeyDisableSessions            = "DISABLE_SESSIONS"
+	KeyDisableUserCreation        = "DISABLE_USER_CREATION"
+	KeyDisableAnonymousCommenting = "DISABLE_ANONYMOUS_COMMENTING"
+	KeyDisableUserFollowing       = "DISABLE_USER_FOLLOWING"
+	KeyDisableModeration          = "DISABLE_MODERATION"
+	KeyAdminContact               = "ADMIN_CONTACT"
+)
+
+func prefKey(k string) string {
+	if Prefix != "" {
+		return fmt.Sprintf("%s_%s", strings.ToUpper(Prefix), k)
+	}
+	return k
+}
+
+func loadKeyFromEnv(name, def string) string {
+	if val := os.Getenv(prefKey(name)); len(val) > 0 {
+		return val
+	}
+	if val := os.Getenv(name); len(val) > 0 {
+		return val
+	}
+	return def
+}
 
 func Load(e EnvType) (*Configuration, error) {
 	c := new(Configuration)
@@ -39,7 +82,7 @@ func Load(e EnvType) (*Configuration, error) {
 		".env",
 	}
 	if !ValidEnv(e) {
-		env := os.Getenv("ENV")
+		env := loadKeyFromEnv(KeyENV, "")
 		e = EnvType(strings.ToLower(env))
 	}
 	appendIfFile := func(typ EnvType) {
@@ -58,7 +101,7 @@ func Load(e EnvType) (*Configuration, error) {
 	for _, f := range configs {
 		godotenv.Overload(f)
 	}
-	lvl := os.Getenv("LOG_LEVEL")
+	lvl := loadKeyFromEnv(KeyLogLevel, "INFO")
 	switch strings.ToLower(lvl) {
 	case "trace":
 		c.LogLevel = log.TraceLevel
@@ -74,40 +117,39 @@ func Load(e EnvType) (*Configuration, error) {
 		c.LogLevel = log.InfoLevel
 	}
 	c.Env = EnvType(os.Getenv("ENV"))
-	c.HostName = os.Getenv("HOSTNAME")
-	c.Name = os.Getenv("NAME")
-	if c.Name == "" {
-		c.Name = c.HostName
-	}
-	c.ListenHost = os.Getenv("LISTEN_HOSTNAME")
-	if port, _ := strconv.ParseInt(os.Getenv("LISTEN_PORT"), 10, 32); port > 0 {
+	c.HostName = loadKeyFromEnv(KeyHostname, "")
+	c.Name = loadKeyFromEnv(KeyName, c.HostName)
+	c.ListenHost = loadKeyFromEnv(KeyListenHostName, DefaultListenHost)
+	if port, _ := strconv.ParseInt(loadKeyFromEnv(KeyListenPort, ""), 10, 32); port > 0 {
 		c.ListenPort = int(port)
 	} else {
 		c.ListenPort = DefaultListenPort
 	}
+	c.KeyPath = loadKeyFromEnv(KeyKeyPath, "")
+	c.CertPath = loadKeyFromEnv(KeyCertPath, "")
 
-	c.Secure, _ = strconv.ParseBool(os.Getenv("HTTPS"))
+	c.Secure, _ = strconv.ParseBool(loadKeyFromEnv(KeyHTTPS, ""))
 
-	votingDisabled, _ := strconv.ParseBool(os.Getenv("DISABLE_VOTING"))
+	votingDisabled, _ := strconv.ParseBool(loadKeyFromEnv(KeyDisableVoting, ""))
 	c.VotingEnabled = !votingDisabled
 	if c.VotingEnabled {
-		downvotingDisabled, _ := strconv.ParseBool(os.Getenv("DISABLE_DOWNVOTING"))
+		downvotingDisabled, _ := strconv.ParseBool(loadKeyFromEnv(KeyDisableDownoting, ""))
 		c.DownvotingEnabled = !downvotingDisabled
 	}
-	sessionsDisabled, _ := strconv.ParseBool(os.Getenv("DISABLE_SESSIONS"))
+	sessionsDisabled, _ := strconv.ParseBool(loadKeyFromEnv(KeyDisableSessions, ""))
 	c.SessionsEnabled = !sessionsDisabled
-	userCreationDisabled, _ := strconv.ParseBool(os.Getenv("DISABLE_USER_CREATION"))
+	userCreationDisabled, _ := strconv.ParseBool(loadKeyFromEnv(KeyDisableUserCreation, ""))
 	c.UserCreatingEnabled = !userCreationDisabled
 	// TODO(marius): this stopped working - as the anonymous user doesn't have a valid Outbox.
-	anonymousCommentingDisabled, _ := strconv.ParseBool(os.Getenv("DISABLE_ANONYMOUS_COMMENTING"))
+	anonymousCommentingDisabled, _ := strconv.ParseBool(loadKeyFromEnv(KeyDisableAnonymousCommenting, "")) // DISABLE_ANONYMOUS_COMMENTING
 	c.AnonymousCommentingEnabled = !anonymousCommentingDisabled
-	userFollowingDisabled, _ := strconv.ParseBool(os.Getenv("DISABLE_USER_FOLLOWING"))
+	userFollowingDisabled, _ := strconv.ParseBool(loadKeyFromEnv(KeyDisableUserFollowing, "")) // DISABLE_USER_FOLLOWING
 	c.UserFollowingEnabled = !userFollowingDisabled
-	moderationDisabled, _ := strconv.ParseBool(os.Getenv("DISABLE_MODERATION"))
+	moderationDisabled, _ := strconv.ParseBool(loadKeyFromEnv(KeyDisableModeration, "")) // DISABLE_MODERATION
 	c.ModerationEnabled = !moderationDisabled
-	c.AdminContact = os.Getenv("ADMIN_CONTACT")
+	c.AdminContact = loadKeyFromEnv(KeyAdminContact, "") // ADMIN_CONTACT
 
-	c.APIURL = os.Getenv("API_URL")
+	c.APIURL = loadKeyFromEnv(KeyAPIUrl, "")
 
 	return c, nil
 }
@@ -119,4 +161,11 @@ func (c *Configuration) CheckUserCreatingEnabled(next http.Handler) http.Handler
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+func (c Configuration) Listen() string {
+	if len(c.ListenHost) > 0 {
+		return fmt.Sprintf("%s:%d", c.ListenHost, c.ListenPort)
+	}
+	return fmt.Sprintf(":%d", c.ListenPort)
 }
