@@ -327,8 +327,10 @@ func loadCurrentAccountFromSession(s *sessions.Session, l CtxLogFn) Account {
 
 func SetSecurityHeaders(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload")
-		w.Header().Set("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline';")
+		if !Instance.Conf.Env.IsDev() && Instance.Conf.Secure {
+			w.Header().Set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload")
+		}
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'")
 		w.Header().Set("X-Frame-Options", "DENY")
 		w.Header().Set("X-Xss-Protection", "1; mode=block")
 		w.Header().Set("Referrer-Policy", "same-origin")
