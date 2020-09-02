@@ -3,6 +3,7 @@ package app
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"fmt"
 	"github.com/go-ap/errors"
 	"github.com/go-chi/chi"
@@ -105,13 +106,6 @@ func (a *Application) setUp(c *config.Configuration, host string, port int) erro
 	return nil
 }
 
-func (a Application) Listen() string {
-	if len(a.Conf.ListenHost) > 0 {
-		return fmt.Sprintf("%s:%d", a.Conf.ListenHost, a.Conf.ListenPort)
-	}
-	return fmt.Sprintf(":%d", a.Conf.ListenPort)
-}
-
 func (a *Application) Front(r chi.Router) {
 	conf := appConfig{
 		Configuration: *a.Conf,
@@ -211,16 +205,44 @@ func (ex *exit) wait() chan int {
 }
 
 // SetupHttpServer creates a new http server and returns the start and stop functions for it
-func SetupHttpServer(ctx context.Context, listen string, m http.Handler, wait time.Duration) (func() error, func() error) {
-	srv := &http.Server{
-		Addr:         listen,
-		WriteTimeout: wait,
-		ReadTimeout:  wait,
+func SetupHttpServer(ctx context.Context, conf config.Configuration, m http.Handler) (func() error, func() error) {
+	var serveFn func() error
+	var srv *http.Server
+	fileExists := func(dir string) bool {
+		if _, err := os.Stat(dir); os.IsNotExist(err) {
+			return false
+		}
+		return true
+	}
+
+	srv = &http.Server{
+		Addr:    conf.Listen(),
+		WriteTimeout: time.Second * 15,
+		ReadTimeout:  time.Second * 5,
 		IdleTimeout:  time.Second * 60,
 		Handler:      m,
 		ErrorLog:     golog.New(ioutil.Discard, "", 0),
 	}
-
+	if conf.Secure && fileExists(conf.CertPath) && fileExists(conf.KeyPath) {
+		srv.TLSConfig = &tls.Config{
+			MinVersion:               tls.VersionTLS12,
+			CurvePreferences:         []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
+			PreferServerCipherSuites: true,
+			CipherSuites: []uint16{
+				tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+				tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+				tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+				tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_RSA_WITH_AES_256_CBC_SHA,
+			},
+		}
+		serveFn = func() error {
+			return srv.ListenAndServeTLS(conf.CertPath, conf.KeyPath)
+		}
+	} else {
+		serveFn = srv.ListenAndServe
+	}
 	shutdown := func() error {
 		select {
 		case <-ctx.Done():
@@ -236,18 +258,18 @@ func SetupHttpServer(ctx context.Context, listen string, m http.Handler, wait ti
 	}
 
 	// Run our server in a goroutine so that it doesn't block.
-	return srv.ListenAndServe, shutdown
+	return serveFn, shutdown
 }
 
 // Run is the wrapper for starting the web-server and handling signals
 func (a *Application) Run(m http.Handler, wait time.Duration) {
 	a.Logger.WithContext(log.Ctx{
-		"listen": a.Listen(),
+		"listen": a.Conf.Listen(),
 		"host":   a.Conf.HostName,
 		"env":    a.Conf.Env,
 	}).Info("Started")
 
-	srvStart, srvShutdown := SetupHttpServer(context.Background(), a.Listen(), m, wait)
+	srvStart, srvShutdown := SetupHttpServer(context.Background(), *a.Conf, m)
 	defer srvShutdown()
 
 	// Run our server in a goroutine so that it doesn't block.
