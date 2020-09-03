@@ -67,32 +67,31 @@ func (s *session) get(r *http.Request) (*sessions.Session, error) {
 	return s.s.Get(r, sessionName)
 }
 
+func clearSessionCookie(w http.ResponseWriter, r *http.Request) {
+	if c, _ := r.Cookie(sessionName); c != nil {
+		c.Value = ""
+		c.MaxAge = 0
+		http.SetCookie(w, c)
+	}
+}
+
 func (s *session) save(w http.ResponseWriter, r *http.Request) error {
-	if !s.enabled {
-		return nil
-	}
-	clearSessionCookie := func(w http.ResponseWriter, r *http.Request) {
-		if c, _ := r.Cookie(sessionName); c != nil {
-			c.Value = ""
-			c.MaxAge = 0
-			http.SetCookie(w, c)
-		}
-	}
-	if s.s == nil {
+	if !s.enabled || s.s == nil {
 		clearSessionCookie(w, r)
-		return errors.Newf("missing session store, unable to save session")
+		return nil
 	}
 	ss, err := s.s.Get(r, sessionName)
 	if err != nil {
 		clearSessionCookie(w, r)
-		return errors.Annotatef(err, "failed to load session")
+		return nil
+	}
+	if len(ss.Values) == 0 {
+		ss.Options.MaxAge = -1
 	}
 	if err := s.s.Save(r, w, ss); err != nil {
 		clearSessionCookie(w, r)
 		return errors.Annotatef(err, "failed to save session")
 	}
-
-	s.infoFn(nil)("session saved")
 	return nil
 }
 
@@ -408,7 +407,7 @@ func (v *view) Redirect(w http.ResponseWriter, r *http.Request, url string, stat
 	http.Redirect(w, r, url, status)
 }
 
-func (v *view)loadFlashMessages(r *http.Request, w http.ResponseWriter, s *sessions.Session) func() []flash {
+func (v *view) loadFlashMessages(r *http.Request, w http.ResponseWriter, s *sessions.Session) func() []flash {
 	var flashData []flash
 	flashFn := func() []flash { return flashData }
 	if s == nil || !v.c.SessionsEnabled {

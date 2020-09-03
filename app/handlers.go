@@ -324,7 +324,7 @@ func (h *handler) HandleLogout(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.errFn(nil)("Error: %s", err)
 	} else {
-		s.Values[SessionUserKey] = nil
+		s.Values = nil
 	}
 	backUrl := "/"
 	if r.Header.Get("Referer") != "" {
