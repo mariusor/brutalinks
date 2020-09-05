@@ -116,7 +116,6 @@ func Init(c appConfig) (*handler, error) {
 			"err": err,
 		})("Error initializing view")
 	}
-
 	return h, err
 }
 
@@ -136,9 +135,6 @@ func (v view) initCookieSession(c appConfig) (sessions.Store, error) {
 	if c.Env.IsProd() {
 		ss.Options.Domain = c.HostName
 		ss.Options.SameSite = http.SameSiteStrictMode
-	}
-	if c.Env.IsDev() {
-		ss.Options.SameSite = http.SameSiteNoneMode
 	}
 	return ss, nil
 }
@@ -170,9 +166,6 @@ func (v view) initFileSession(c appConfig) (sessions.Store, error) {
 	if c.Env.IsProd() {
 		ss.Options.Domain = c.HostName
 		ss.Options.SameSite = http.SameSiteStrictMode
-	}
-	if c.Env.IsDev() {
-		ss.Options.SameSite = http.SameSiteNoneMode
 	}
 	return ss, nil
 }
