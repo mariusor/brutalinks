@@ -36,8 +36,6 @@ var listenHost string
 var listenPort int64
 var listenOn string
 
-const DefaultHost = "localhost"
-
 // Stats holds data for keeping compatibility with Mastodon instances
 type Stats struct {
 	DomainCount int  `json:"domain_count"`
@@ -267,6 +265,7 @@ func (a *Application) Run(m http.Handler, wait time.Duration) {
 		"listen": a.Conf.Listen(),
 		"host":   a.Conf.HostName,
 		"env":    a.Conf.Env,
+		"https":  a.Conf.Secure,
 	}).Info("Started")
 
 	srvStart, srvShutdown := SetupHttpServer(context.Background(), *a.Conf, m)
