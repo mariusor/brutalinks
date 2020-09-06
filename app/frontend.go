@@ -129,7 +129,7 @@ func (v view) initCookieSession(c appConfig) (sessions.Store, error) {
 	v.infoFn(log.Ctx{
 		"type":   c.SessionsBackend,
 		"env":    c.Env,
-		"keys":   c.SessionKeys,
+		"keys":   fmt.Sprintf("%s", c.SessionKeys),
 		"domain": c.HostName,
 	})("Session settings")
 	if c.Env.IsProd() {
@@ -155,7 +155,7 @@ func (v view) initFileSession(c appConfig) (sessions.Store, error) {
 		"type":     c.SessionsBackend,
 		"env":      c.Env,
 		"path":     sessDir,
-		"keys":     c.SessionKeys,
+		"keys":     fmt.Sprintf("%s", c.SessionKeys),
 		"hostname": c.HostName,
 	})("Session settings")
 	ss := sessions.NewFilesystemStore(sessDir, c.SessionKeys...)
