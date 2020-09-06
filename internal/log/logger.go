@@ -47,9 +47,10 @@ type Logger interface {
 type Ctx map[string]interface{}
 
 type logger struct {
-	l   logrus.FieldLogger
-	ctx Ctx
-	m   sync.RWMutex
+	l       logrus.FieldLogger
+	ctx     Ctx
+	prevCtx Ctx
+	m       sync.RWMutex
 }
 
 func Dev(lvl Level) Logger {
@@ -96,9 +97,8 @@ func (l logger) New(c ...interface{}) Logger {
 func (l *logger) WithContext(ctx ...interface{}) Logger {
 	l.m.Lock()
 	defer l.m.Unlock()
-	if l.ctx == nil {
-		l.ctx = make(Ctx, 0)
-	}
+	l.prevCtx = l.ctx
+	l.ctx = make(Ctx, 0)
 	for _, c := range ctx {
 		switch cc := c.(type) {
 		case Ctx:
@@ -113,43 +113,50 @@ func (l *logger) WithContext(ctx ...interface{}) Logger {
 
 func (l *logger) Debug(msg string) {
 	l.l.WithFields(context(l)).Debug(msg)
-	l.ctx = nil
+	l.ctx = l.prevCtx
+	l.prevCtx = nil
 }
 
 func (l *logger) Debugf(msg string, p ...interface{}) {
 	l.l.WithFields(context(l)).Debug(fmt.Sprintf(msg, p...))
-	l.ctx = nil
+	l.ctx = l.prevCtx
+	l.prevCtx = nil
 }
 
 func (l *logger) Info(msg string) {
 	l.l.WithFields(context(l)).Info(msg)
-	l.ctx = nil
+	l.ctx = l.prevCtx
+	l.prevCtx = nil
 }
 
 func (l *logger) Infof(msg string, p ...interface{}) {
-	l.ctx = nil
 	l.l.WithFields(context(l)).Info(fmt.Sprintf(msg, p...))
-	l.ctx = nil
+	l.ctx = l.prevCtx
+	l.prevCtx = nil
 }
 
 func (l *logger) Warn(msg string) {
 	l.l.WithFields(context(l)).Warn(msg)
-	l.ctx = nil
+	l.ctx = l.prevCtx
+	l.prevCtx = nil
 }
 
 func (l *logger) Warnf(msg string, p ...interface{}) {
 	l.l.WithFields(context(l)).Warn(fmt.Sprintf(msg, p...))
-	l.ctx = nil
+	l.ctx = l.prevCtx
+	l.prevCtx = nil
 }
 
 func (l *logger) Error(msg string) {
 	l.l.WithFields(context(l)).Error(msg)
-	l.ctx = nil
+	l.ctx = l.prevCtx
+	l.prevCtx = nil
 }
 
 func (l *logger) Errorf(msg string, p ...interface{}) {
 	l.l.WithFields(context(l)).Error(fmt.Sprintf(msg, p...))
-	l.ctx = nil
+	l.ctx = l.prevCtx
+	l.prevCtx = nil
 }
 
 func (l *logger) Crit(msg string) {
@@ -159,7 +166,8 @@ func (l *logger) Crit(msg string) {
 
 func (l *logger) Critf(msg string, p ...interface{}) {
 	l.l.WithFields(context(l)).Fatal(fmt.Sprintf(msg, p...))
-	l.ctx = nil
+	l.ctx = l.prevCtx
+	l.prevCtx = nil
 }
 
 func (l *logger) Print(i ...interface{}) {
