@@ -65,8 +65,8 @@ services:
     - LOG_LEVEL=${LOG_LEVEL:-trace}
     - HOSTNAME=${HOSTNAME:-brutalinks}
     - NAME=${NAME:-brutalinks (dev)}
-    - SESS_AUTH_KEY=${SESS_AUTH_KEY:-1234567887654321}
-    - SESS_ENC_KEY=${SESS_ENC_KEY:-0987654334567890}
+    - SESS_AUTH_KEY=${SESS_AUTH_KEY:-123456789O123456}
+    - SESS_ENC_KEY=${SESS_ENC_KEY:-1234567890l23666}
     volumes:
     - ${LOCAL_STORAGE:-/tmp}:/storage
     - ./.env.${ENV:-dev}:/.env

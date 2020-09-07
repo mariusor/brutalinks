@@ -8,11 +8,17 @@ PORT ?= 4001
 HOSTNAME ?= brutalinks.local
 FEDBOX_PORT ?= 4000
 FEDBOX_HOSTNAME ?= fedbox.local
-DEFAULT_CALLBACK_URL := https://$(HOSTNAME)/auth/fedbox/callback
-OAUTH2_CALLBACK_URL ?= $(DEFAULT_CALLBACK_URL)
-ENV_FILE ?= $(shell realpath .env.dev)
+ENV_FILE ?= $(shell realpath .env.$(ENV))
+ifeq ($(OAUTH2_CALLBACK_URL), )
+	override OAUTH2_CALLBACK_URL := https://$(HOSTNAME)/auth/fedbox/callback
+endif
+ifeq ($(API_URL), )
+	override API_URL := https://$(FEDBOX_HOSTNAME)
+endif
+export API_URL := $(API_URL)
+export OAUTH2_CALLBACK_URL := $(OAUTH2_CALLBACK_URL)
 
-.PHONY: imagebuilder clean images cert
+.PHONY: clean images cert build run push start
 
 HAVE_BUILDAH := $(shell buildah -v dot 2> /dev/null)
 ifdef HAVE_BUILDAH
