@@ -37,5 +37,16 @@ $ make run
 As a user in the docker group, just run:
 
 ```sh 
-$ make ENV={env} HOSTNAME={hostname} PORT={port} -C docker/ images
+$ make \
+    HOSTNAME={hostname} \
+    FEDBOX_HOSTNAME={fedbox_hostname} \
+    OAUTH2_SECRET={oauth_client_pass} \
+    ADMIN_PW={admin_pass} \ # optional
+    -C docker/ images
 ```
+
+The {hostname} and {fedbox_hostname} are the hosts that the loadbalancer listens for on port 8443.
+
+The {oauth_client_pass} is the password that we set-up for the littr application in fedbox.
+
+The {admin_pass} password can be missing and there's no default admin user created.
