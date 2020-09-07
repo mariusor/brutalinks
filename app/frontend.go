@@ -48,6 +48,17 @@ type appConfig struct {
 var defaultLogFn = func(string, ...interface{}) {}
 var defaultCtxLogFn = func(c log.Ctx) LogFn { return defaultLogFn }
 
+func hideString(s string) string {
+	l := len(s)
+
+	if l <= 3 {
+		return "***"
+	}
+	ss := strings.Repeat("*", l-3)
+
+	return ss + s[l-3:]
+}
+
 func Init(c appConfig) (*handler, error) {
 	var err error
 
@@ -76,45 +87,54 @@ func Init(c appConfig) (*handler, error) {
 	h.conf = c
 
 	h.storage = ActivityPubService(c)
-	key := os.Getenv("OAUTH2_KEY")
-	pw := os.Getenv("OAUTH2_SECRET")
-	if len(key) > 0 {
-		oIRI := actors.IRI(pub.IRI(h.storage.BaseURL)).AddPath(key)
+	config := GetOauth2Config("fedbox", h.conf.BaseURL)
+	if len(config.ClientID) > 0 {
+		oIRI := actors.IRI(pub.IRI(h.storage.BaseURL)).AddPath(config.ClientID)
 		oauth, err := h.storage.fedbox.Actor(oIRI)
 		if err != nil {
+			h.conf.UserCreatingEnabled = false
 			h.errFn(nil)("Failed to load actor: %s", err)
 		}
 		if oauth != nil {
 			h.storage.app = new(Account)
 			h.storage.app.FromActivityPub(oauth)
-			config := GetOauth2Config("fedbox", h.conf.BaseURL)
 
 			handle := h.storage.app.Handle
-			if tok, err := config.PasswordCredentialsToken(context.Background(), handle, pw); err != nil {
+			tok, err := config.PasswordCredentialsToken(context.Background(), handle, config.ClientSecret)
+			if err != nil {
 				h.conf.UserCreatingEnabled = false
 				h.errFn(log.Ctx{
 					"handle": handle,
 					"err":    err,
+					"conf":   config,
 				})("Failed to authenticate client")
 			} else {
 				if tok == nil {
 					h.conf.UserCreatingEnabled = false
 					h.errFn(log.Ctx{
 						"handle": handle,
+						"conf":   config,
 					})("Failed to load a valid OAuth2 token for client")
 				}
 				h.storage.app.Metadata.OAuth.Provider = "fedbox"
 				h.storage.app.Metadata.OAuth.Token = tok.AccessToken
 				h.storage.app.Metadata.OAuth.TokenType = tok.TokenType
 				h.storage.app.Metadata.OAuth.RefreshToken = tok.RefreshToken
+				h.infoFn(log.Ctx{
+					"handle": handle,
+					"oauth":  h.storage.app.Metadata.OAuth,
+					"conf":   config,
+				})("Loaded valid OAuth2 token for client")
+
 			}
 		}
+	} else {
+		h.conf.UserCreatingEnabled = false
+		h.errFn(log.Ctx{"conf": config})("Failed to load OAuth2 ClientID")
 	}
 	h.v, err = ViewInit(h.conf, h.infoFn, h.errFn)
 	if err != nil {
-		h.errFn(log.Ctx{
-			"err": err,
-		})("Error initializing view")
+		h.errFn(log.Ctx{"err": err})("Error initializing view")
 	}
 	return h, err
 }
