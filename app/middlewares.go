@@ -108,6 +108,7 @@ func LoadObjectFromInboxMw(next http.Handler) http.Handler {
 		col, err = repo.fedbox.Inbox(repo.fedbox.Service(), Values(f))
 		if err != nil {
 			// log
+			return
 		}
 		if col.Count() == 0 {
 			// if nothing found, try to load from the logged account's collections
@@ -118,20 +119,23 @@ func LoadObjectFromInboxMw(next http.Handler) http.Handler {
 				if err != nil {
 					// log
 				}
-				if col.Count() == 0 {
+				if col == nil || col.Count() == 0 {
 					// if the current user is logged, try to load from their outbox
 					col, err = repo.fedbox.Outbox(current.pub, Values(f))
 					if err != nil {
 						// log
+						return
 					}
 				}
 			}
 		}
 		i := Item{}
-		pub.OnOrderedCollection(col, func(c *pub.OrderedCollection) error {
-			i.FromActivityPub(c.OrderedItems.First())
-			return nil
-		})
+		if col != nil {
+			pub.OnOrderedCollection(col, func(c *pub.OrderedCollection) error {
+				i.FromActivityPub(c.OrderedItems.First())
+				return nil
+			})
+		}
 		if !i.IsValid() {
 			repo.errFn(nil)("unable to load item")
 			ctxtErr(next, w, r, errors.NotFoundf("Object not found"))
