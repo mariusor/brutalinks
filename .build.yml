@@ -1,31 +1,25 @@
 image: archlinux
 packages:
   - go
-  - postgresql
+  - buildah
 sources:
-  - https://github.com/mariusor/littr.go
+  - https://github.com/mariusor/go-littr
 environment:
   GO111MODULE: 'on'
 secrets:
   - 32610757-76e9-4671-adf1-98163ca8b594
+  - 0e431348-6a5c-4404-bd3e-5cdd5ea9e7d6
 tasks:
-  - setup: |
-      set +x
-      sudo -u postgres -- initdb --locale en_US.UTF-8 -E UTF8 -D /var/lib/postgres/data
-      sudo systemctl start postgresql.service
-      cd littr.go && go mod download
-  - versions: |
-      set +x
-      $(readlink -f /proc/$$/exe) --version | head -n1
-      pg_ctl --version
-      make --version | head -n1
-      go version
   - build: |
       set +x
-      cd littr.go
+      cd go-littr
       make all
   - tests: |
       set -a +x
       source ~/.env.test
-      cd littr.go
+      cd go-littr
       make test
+  - image: |
+      set -a +x
+      source ~/.buildah.env && sudo buildah login -u=${BUILDAH_USER} -p=${BUILDAH_SECRET} quay.io
+      cd go-littr && sudo make -C docker push

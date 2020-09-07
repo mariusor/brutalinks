@@ -34,21 +34,8 @@ $ make run
 
 # Docker
 
-Running with docker is no longer fully supported, since the move to using fedbox. 
-See [#26](https://github.com/mariusor/littr.go/issues/26). 
+As a user in the docker group, just run:
 
-<!--
-Go to the littr.go working directory and copy your `.env` file to the docker folder:
-
-```sh
-$ cp .env ./docker/
+```sh 
+$ make ENV={env} HOSTNAME={hostname} PORT={port} -C docker/ images
 ```
-
-In the `docker/.env` file we need to modify the `DB_HOST` value to match the name of the postgres container from the 
-[docker/docker-compose.yaml](../docker/docker-compose.yaml). The default is `db`.
-
-Then, as a user in the docker group, just run:
-```sh
-$ make compose
-```
--->

@@ -11,3 +11,4 @@ bin/*
 *.key
 tests/db
 internal/assets/assets.gen.go
+docker/Caddyfile

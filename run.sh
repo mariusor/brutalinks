@@ -1,11 +1,7 @@
 #!/bin/bash
+set -ax
 
-set -a
-. .env || exit 1
-set +a
+. .env.Docker || exit 1
+set +ax
 
-if [[ -x "$1" ]]; then
- ./$@
-else
-go run $@
-fi
+make -C docker/ images

@@ -4,30 +4,40 @@ services:
   fedbox:
     image: quay.io/fedbox/fedbox:${ENV:-dev}
     command: /bin/fedbox --env ${ENV:-dev}
+    container_name: brutal_fedbox
     expose:
     - 4000
     environment:
     - ENV=${ENV:-dev}
-    - LISTEN=:4000
+    - PORT=4000
+    - HOSTNAME=${FEDBOX_HOSTNAME:-fedbox}
+    - STORAGE=fs
+    - STORAGE_PATH=/storage
+    - LISTEN=fedbox:4000
+    - LOG_LEVEL=${FEDBOX_LOG_LEVEL:-info}
     volumes:
-    - /tmp:/storage
-    - ./.env:/.env
+    - ${LOCAL_STORAGE:-/tmp}:/storage
+    - ./.env.${ENV:-dev}:/.env
     depends_on:
     - bootstrap
   bootstrap:
     build:
       context: bootstrap
-      args:
-      - HOSTNAME=${HOSTNAME:-brutalinks.docker.git}
-      - ENV=${ENV:-dev}
-      - OAUTH_PW=${OAUTH_PW}
-      - ADMIN_PW=${ADMIN_PW}
-    command: /bin/bootstrap.sh && echo /.env
+    environment:
+    - ENV=${ENV:-dev}
+    - FEDBOX_HOSTNAME=${FEDBOX_HOSTNAME:-fedbox}
+    - STORAGE=fs
+    - STORAGE_PATH=/storage
+    - OAUTH2_SECRET=${OAUTH2_SECRET}
+    - ADMIN_PW=${ADMIN_PW}
+    - OAUTH2_CALLBACK_URL=${OAUTH2_CALLBACK_URL}
+    command: /bin/bootstrap.sh
     volumes:
-    - /tmp:/storage
-    - ./.env:/.env
+    - ${LOCAL_STORAGE:-/tmp}:/storage
+    - ./.env.${ENV:-dev}:/.env
   lb:
     image: caddy
+    container_name: brutal_lb
     ports:
     - 8443:443
     links:
@@ -36,13 +46,32 @@ services:
     volumes:
     - ./Caddyfile:/etc/caddy/Caddyfile
   app:
+    build:
+      context: ../
+      dockerfile: ./docker/app/Dockerfile.${ENV:-dev}
+      args:
+        ENV: ${ENV:-dev}
+        HOSTNAME: ${HOSTNAME:-brutalinks}
+        PORT: ${PORT:-4001}
     image: quay.io/fedbox/littr:${ENV:-dev}
+    container_name: brutal_app
+    environment:
+    - PORT=4001
+    - API_URL=https://fedbox:4000
+    - SESSIONS_BACKEND=fs
+    - SESSIONS_PATH=/storage
+    - LISTEN_HOSTNAME=app
+    - ENV=${ENV:-dev}
+    - LOG_LEVEL=${LOG_LEVEL:-trace}
+    - HOSTNAME=${HOSTNAME:-brutalinks}
+    - NAME=${NAME:-brutalinks (dev)}
+    - SESS_AUTH_KEY=${SESS_AUTH_KEY:-1234567887654321}
+    - SESS_ENC_KEY=${SESS_ENC_KEY:-0987654334567890}
     volumes:
-    - ./.env:/.env
+    - ${LOCAL_STORAGE:-/tmp}:/storage
+    - ./.env.${ENV:-dev}:/.env
     expose:
     - 4001
-    links:
+    depends_on:
     - fedbox
-#    - redis
-#    - es
-    command: /bin/littr -host app -port 4001 -env ${ENV:-dev}
+    - bootstrap
