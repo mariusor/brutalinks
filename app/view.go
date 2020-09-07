@@ -328,6 +328,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"RenderLabel":           renderActivityLabel,
 			csrf.TemplateTag:        func() template.HTML { return csrf.TemplateField(r) },
 			"ToTitle":               ToTitle,
+			"trimSuffix":            strings.TrimSuffix,
 			//"ScoreFmt":          func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
 			//"NumberFmt":         func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
 		}},
