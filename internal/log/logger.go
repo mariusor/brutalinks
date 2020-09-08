@@ -24,8 +24,8 @@ const (
 
 type Logger interface {
 	// Add ctx value pairs
-	WithContext(...interface{}) Logger
-	New(c ...interface{}) Logger
+	WithContext(...Ctx) Logger
+	New(c ...Ctx) Logger
 
 	Debug(string)
 	Info(string)
@@ -90,21 +90,18 @@ func context(l *logger) logrus.Fields {
 	return c
 }
 
-func (l logger) New(c ...interface{}) Logger {
-	return l.WithContext(c)
+func (l logger) New(c ...Ctx) Logger {
+	return l.WithContext(c...)
 }
 
-func (l *logger) WithContext(ctx ...interface{}) Logger {
+func (l *logger) WithContext(ctx ...Ctx) Logger {
 	l.m.Lock()
 	defer l.m.Unlock()
 	l.prevCtx = l.ctx
 	l.ctx = make(Ctx, 0)
 	for _, c := range ctx {
-		switch cc := c.(type) {
-		case Ctx:
-			for k, v := range cc {
-				l.ctx[k] = v
-			}
+		for k, v := range c {
+			l.ctx[k] = v
 		}
 	}
 

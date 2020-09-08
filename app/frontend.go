@@ -68,10 +68,10 @@ func Init(c appConfig) (*handler, error) {
 	h.errFn = defaultCtxLogFn
 	if c.Logger != nil {
 		h.infoFn = func(ctx ...log.Ctx) LogFn {
-			return c.Logger.WithContext(ctx).Infof
+			return c.Logger.WithContext(ctx...).Infof
 		}
 		h.errFn = func(ctx ...log.Ctx) LogFn {
-			return c.Logger.WithContext(ctx).Errorf
+			return c.Logger.WithContext(ctx...).Errorf
 		}
 		h.logger = c.Logger
 	}

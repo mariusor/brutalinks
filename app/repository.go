@@ -100,10 +100,10 @@ func ActivityPubService(c appConfig) *repository {
 	ObjectsURL = objects.IRI(pub.IRI(BaseURL))
 
 	infoFn := func(ctx ...log.Ctx) LogFn {
-		return c.Logger.WithContext(log.Ctx{"client": "api"}, ctx).Infof
+		return c.Logger.WithContext(append(ctx, log.Ctx{"client": "api"})...).Infof
 	}
 	errFn := func(ctx ...log.Ctx) LogFn {
-		return c.Logger.WithContext(log.Ctx{"client": "api"}, ctx).Errorf
+		return c.Logger.WithContext(append(ctx, log.Ctx{"client": "api"})...).Errorf
 	}
 	ua := fmt.Sprintf("%s-%s", c.HostName, Instance.Version)
 
