@@ -102,29 +102,31 @@ func Init(c appConfig) (*handler, error) {
 
 			handle := h.storage.app.Handle
 			tok, err := config.PasswordCredentialsToken(context.Background(), handle, config.ClientSecret)
+			ctx := log.Ctx{
+				"handle":   handle,
+				"provider": provider,
+				"client":   config.ClientID,
+				"pw":       hideString(config.ClientSecret),
+				"authURL":  config.Endpoint.AuthURL,
+				"tokURL":   config.Endpoint.TokenURL,
+				"redirURL": config.RedirectURL,
+			}
 			if err != nil {
 				h.conf.UserCreatingEnabled = false
-				h.errFn(log.Ctx{
-					"handle": handle,
-					"err":    err,
-					"conf":   config,
-				})("Failed to authenticate client")
+				h.errFn(log.Ctx{"err": err}, ctx)("Failed to authenticate client")
 			} else {
 				if tok == nil {
 					h.conf.UserCreatingEnabled = false
-					h.errFn(log.Ctx{
-						"handle": handle,
-						"conf":   config,
-					})("Failed to load a valid OAuth2 token for client")
+					h.errFn(ctx)("Failed to load a valid OAuth2 token for client")
 				}
-				h.storage.app.Metadata.OAuth.Provider = "fedbox"
+				h.storage.app.Metadata.OAuth.Provider = provider
 				h.storage.app.Metadata.OAuth.Token = tok.AccessToken
 				h.storage.app.Metadata.OAuth.TokenType = tok.TokenType
 				h.storage.app.Metadata.OAuth.RefreshToken = tok.RefreshToken
-				h.infoFn(log.Ctx{
-					"handle": handle,
-					"oauth":  h.storage.app.Metadata.OAuth,
-					"conf":   config,
+				h.infoFn(ctx, log.Ctx{
+					"token":    hideString(tok.AccessToken),
+					"type":     tok.TokenType,
+					"refresh":  hideString(tok.RefreshToken),
 				})("Loaded valid OAuth2 token for client")
 
 			}
