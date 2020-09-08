@@ -231,19 +231,10 @@ func stringInSlice(ss []string) func(v string) bool {
 func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name string, m Model) error {
 	var err error
 	var ac *Account
-	var s *sessions.Session
 
 	_, isError := m.(*errorModel)
 
 	layout := "layout"
-	if !isError {
-		if s, err = v.s.get(r); err != nil {
-			v.errFn(log.Ctx{
-				"template": name,
-				"model":    m,
-			})(err.Error())
-		}
-	}
 	accountFromRequest := func() *Account {
 		if ac == nil {
 			ac = loggedAccount(r)
@@ -270,7 +261,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"IsVote":                func(t Renderable) bool { return t.Type() == AppreciationType },
 			"IsAccount":             func(t Renderable) bool { return t.Type() == ActorType },
 			"IsModeration":          func(t Renderable) bool { return t.Type() == ModerationType },
-			"LoadFlashMessages":     v.loadFlashMessages(r, w, s),
+			"LoadFlashMessages":     v.loadFlashMessages(r, w),
 			"Mod10":                 mod10,
 			"ShowText":              showText(m),
 			"HTML":                  html,
@@ -408,10 +399,12 @@ func (v *view) Redirect(w http.ResponseWriter, r *http.Request, url string, stat
 	http.Redirect(w, r, url, status)
 }
 
-func (v *view) loadFlashMessages(r *http.Request, w http.ResponseWriter, s *sessions.Session) func() []flash {
+func (v *view) loadFlashMessages(r *http.Request, w http.ResponseWriter) func() []flash {
 	var flashData []flash
 	flashFn := func() []flash { return flashData }
-	if s == nil || !v.c.SessionsEnabled {
+
+	s, err := v.s.get(r)
+	if err != nil || s == nil || !v.c.SessionsEnabled {
 		return flashFn
 	}
 	flashes := s.Flashes()
@@ -424,9 +417,9 @@ func (v *view) loadFlashMessages(r *http.Request, w http.ResponseWriter, s *sess
 			flashData = append(flashData, f)
 		}
 	}
-	err := s.Save(r, w)
+	err = s.Save(r, w)
 	if err != nil {
-		v.errFn(log.Ctx{"err": err})("")
+		v.errFn(log.Ctx{"err": err})("Unable to save session after flash loading")
 	}
 	return flashFn
 }
