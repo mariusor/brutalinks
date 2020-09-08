@@ -37,7 +37,7 @@ type flash struct {
 	Msg  string
 }
 
-type CtxLogFn func(log.Ctx) LogFn
+type CtxLogFn func(...log.Ctx) LogFn
 type LogFn func(string, ...interface{})
 
 type session struct {

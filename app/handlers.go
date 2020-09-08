@@ -112,7 +112,7 @@ func (h *handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 	iri := ObjectsURL.AddPath(chi.URLParam(r, "hash"))
 	p, err := repo.LoadItem(iri)
 	if err != nil {
-		h.errFn(nil)("Error: %s", err)
+		h.errFn()("Error: %s", err)
 		h.v.HandleErrors(w, r, errors.NewNotFound(err, "not found"))
 		return
 	}
@@ -137,7 +137,7 @@ func (h *handler) HandleVoting(w http.ResponseWriter, r *http.Request) {
 	iri := ObjectsURL.AddPath(chi.URLParam(r, "hash"))
 	p, err := repo.LoadItem(iri)
 	if err != nil {
-		h.errFn(nil)("Error: %s", err)
+		h.errFn()("Error: %s", err)
 		h.v.HandleErrors(w, r, errors.NewNotFound(err, "not found"))
 		return
 	}
@@ -182,7 +182,7 @@ func (h *handler) FollowAccount(w http.ResponseWriter, r *http.Request) {
 	loggedAccount := loggedAccount(r)
 	if !loggedAccount.IsValid() {
 		err := errors.Unauthorizedf("invalid logged account")
-		h.errFn(nil)("Error: %s", err)
+		h.errFn()("Error: %s", err)
 		h.v.HandleErrors(w, r, err)
 		return
 	}
@@ -207,7 +207,7 @@ func (h *handler) HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
 	loggedAccount := loggedAccount(r)
 	if !loggedAccount.IsValid() {
 		err := errors.Unauthorizedf("invalid logged account")
-		h.errFn(nil)("Error: %s", err)
+		h.errFn()("Error: %s", err)
 		h.v.HandleErrors(w, r, err)
 		return
 	}
@@ -322,7 +322,7 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 func (h *handler) HandleLogout(w http.ResponseWriter, r *http.Request) {
 	s, err := h.v.s.get(r)
 	if err != nil {
-		h.errFn(nil)("Error: %s", err)
+		h.errFn()("Error: %s", err)
 	} else {
 		s.Values = nil
 	}
@@ -355,7 +355,7 @@ func (h *handler) ValidateLoggedIn(eh ErrorHandler) Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			if !loggedAccount(r).IsLogged() {
 				e := errors.Unauthorizedf("Please login to perform this action")
-				h.errFn(nil)("Error: %s", e)
+				h.errFn()("Error: %s", e)
 				eh(w, r, e)
 				return
 			}
@@ -496,7 +496,7 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	a.CreatedBy = app
 	a, err = h.storage.WithAccount(app).SaveAccount(a)
 	if err != nil {
-		h.errFn(nil)("Error: %s", err)
+		h.errFn()("Error: %s", err)
 		h.v.HandleErrors(w, r, err)
 		return
 	}
@@ -561,7 +561,7 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 
 	pwChRes, err := http.Post(u.String(), "application/x-www-form-urlencoded", strings.NewReader(form.Encode()))
 	if body, err = ioutil.ReadAll(pwChRes.Body); err != nil {
-		h.errFn(nil)("Error: %s", err)
+		h.errFn()("Error: %s", err)
 		h.v.HandleErrors(w, r, err)
 		return
 	}
@@ -597,7 +597,7 @@ func (h *handler) BlockAccount(w http.ResponseWriter, r *http.Request) {
 	loggedAccount := loggedAccount(r)
 	if !loggedAccount.IsValid() {
 		err := errors.Unauthorizedf("invalid logged account")
-		h.errFn(nil)("Error: %s", err)
+		h.errFn()("Error: %s", err)
 		h.v.HandleErrors(w, r, err)
 		return
 	}
@@ -631,7 +631,7 @@ func (h *handler) BlockItem(w http.ResponseWriter, r *http.Request) {
 	loggedAccount := loggedAccount(r)
 	if !loggedAccount.IsValid() {
 		err := errors.Unauthorizedf("invalid logged account")
-		h.errFn(nil)("Error: %s", err)
+		h.errFn()("Error: %s", err)
 		h.v.HandleErrors(w, r, err)
 		return
 	}
@@ -666,7 +666,7 @@ func (h *handler) ReportAccount(w http.ResponseWriter, r *http.Request) {
 	loggedAccount := loggedAccount(r)
 	if !loggedAccount.IsValid() {
 		err := errors.Unauthorizedf("invalid logged account")
-		h.errFn(nil)("Error: %s", err)
+		h.errFn()("Error: %s", err)
 		h.v.HandleErrors(w, r, err)
 		return
 	}
@@ -689,7 +689,7 @@ func (h *handler) ReportAccount(w http.ResponseWriter, r *http.Request) {
 	p := byHandleAccounts[0]
 	err = repo.ReportAccount(*loggedAccount, p, &reason)
 	if err != nil {
-		h.errFn(nil)("Error: %s", err)
+		h.errFn()("Error: %s", err)
 		h.v.HandleErrors(w, r, errors.NewNotFound(err, "not found"))
 		return
 	}
@@ -707,7 +707,7 @@ func (h *handler) ReportItem(w http.ResponseWriter, r *http.Request) {
 	loggedAccount := loggedAccount(r)
 	if !loggedAccount.IsValid() {
 		err := errors.Unauthorizedf("invalid logged account")
-		h.errFn(nil)("Error: %s", err)
+		h.errFn()("Error: %s", err)
 		h.v.HandleErrors(w, r, err)
 		return
 	}
@@ -731,7 +731,7 @@ func (h *handler) ReportItem(w http.ResponseWriter, r *http.Request) {
 	}
 	err = repo.ReportItem(*loggedAccount, p, &reason)
 	if err != nil {
-		h.errFn(nil)("Error: %s", err)
+		h.errFn()("Error: %s", err)
 		h.v.HandleErrors(w, r, errors.NewNotFound(err, "not found"))
 		return
 	}

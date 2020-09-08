@@ -46,7 +46,7 @@ type appConfig struct {
 }
 
 var defaultLogFn = func(string, ...interface{}) {}
-var defaultCtxLogFn = func(c log.Ctx) LogFn { return defaultLogFn }
+var defaultCtxLogFn = func(c ...log.Ctx) LogFn { return defaultLogFn }
 
 func hideString(s string) string {
 	l := len(s)
@@ -67,10 +67,10 @@ func Init(c appConfig) (*handler, error) {
 	h.infoFn = defaultCtxLogFn
 	h.errFn = defaultCtxLogFn
 	if c.Logger != nil {
-		h.infoFn = func(ctx log.Ctx) LogFn {
+		h.infoFn = func(ctx ...log.Ctx) LogFn {
 			return c.Logger.WithContext(ctx).Infof
 		}
-		h.errFn = func(ctx log.Ctx) LogFn {
+		h.errFn = func(ctx ...log.Ctx) LogFn {
 			return c.Logger.WithContext(ctx).Errorf
 		}
 		h.logger = c.Logger
@@ -87,13 +87,14 @@ func Init(c appConfig) (*handler, error) {
 	h.conf = c
 
 	h.storage = ActivityPubService(c)
-	config := GetOauth2Config("fedbox", h.conf.BaseURL)
+	provider := "fedbox"
+	config := GetOauth2Config(provider, h.conf.BaseURL)
 	if len(config.ClientID) > 0 {
 		oIRI := actors.IRI(pub.IRI(h.storage.BaseURL)).AddPath(config.ClientID)
 		oauth, err := h.storage.fedbox.Actor(oIRI)
 		if err != nil {
 			h.conf.UserCreatingEnabled = false
-			h.errFn(nil)("Failed to load actor: %s", err)
+			h.errFn()("Failed to load actor: %s", err)
 		}
 		if oauth != nil {
 			h.storage.app = new(Account)
@@ -167,7 +168,7 @@ func (v view) initFileSession(c appConfig) (sessions.Store, error) {
 				return nil, err
 			}
 		} else {
-			v.errFn(nil)("Invalid path %s for saving sessions: %s", sessDir, err)
+			v.errFn()("Invalid path %s for saving sessions: %s", sessDir, err)
 			return nil, err
 		}
 	}
@@ -230,7 +231,7 @@ func (h *handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
 	conf := GetOauth2Config(provider, h.conf.BaseURL)
 	tok, err := conf.Exchange(r.Context(), code)
 	if err != nil {
-		h.errFn(nil)("%s", err)
+		h.errFn()("%s", err)
 		h.v.HandleErrors(w, r, err)
 		return
 	}
@@ -373,9 +374,7 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 		}
 		s, err := h.v.s.get(r)
 		if err != nil {
-			h.logger.WithContext(log.Ctx{
-				"err": err,
-			}).Error("unable to load session")
+			h.logger.Warnf("unable to load session: %s", err)
 			if xerrors.Is(err, new(os.PathError)) {
 				h.v.s.new(r)
 			}
@@ -540,7 +539,7 @@ func (h handler) CSRF(next http.Handler) http.Handler {
 		authKey = h.conf.SessionKeys[0]
 	} else {
 		if h.conf.Env.IsProd() {
-			h.errFn(nil)("Invalid CSRF auth key")
+			h.errFn()("Invalid CSRF auth key")
 		}
 		// TODO(marius): WTF is this?
 		authKey = []byte{0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1}

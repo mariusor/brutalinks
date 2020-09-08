@@ -201,14 +201,14 @@ func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 		accounts, _, err := h.storage.LoadAccounts(ff)
 		if err != nil {
 			err := errors.NotFoundf("resource not found %s", res)
-			h.errFn(nil)("Error: %s", err)
+			h.errFn()("Error: %s", err)
 			errors.HandleError(err).ServeHTTP(w, r)
 			return
 		}
 		a, err := accounts.First()
 		if err != nil {
 			err := errors.NotFoundf("resource not found %s", res)
-			h.errFn(nil)("Error: %s", err)
+			h.errFn()("Error: %s", err)
 			errors.HandleError(err).ServeHTTP(w, r)
 			return
 		}

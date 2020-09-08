@@ -137,7 +137,7 @@ func LoadObjectFromInboxMw(next http.Handler) http.Handler {
 			})
 		}
 		if !i.IsValid() {
-			repo.errFn(nil)("unable to load item")
+			repo.errFn()("unable to load item")
 			ctxtErr(next, w, r, errors.NotFoundf("Object not found"))
 			return
 		}
@@ -147,10 +147,10 @@ func LoadObjectFromInboxMw(next http.Handler) http.Handler {
 			items = append(items, comments...)
 		}
 		if items, err = repo.loadItemsAuthors(items...); err != nil {
-			repo.errFn(nil)("unable to load item authors")
+			repo.errFn()("unable to load item authors")
 		}
 		if items, err = repo.loadItemsVotes(items...); err != nil {
-			repo.errFn(nil)("unable to load item votes")
+			repo.errFn()("unable to load item votes")
 		}
 		c := &Cursor{
 			items: make(RenderableList, len(items)),

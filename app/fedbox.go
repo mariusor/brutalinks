@@ -84,10 +84,10 @@ func NewClient(o ...OptionFn) (*fedbox, error) {
 		}
 	}
 	infoFn := func(s string, el ...interface{}) {
-		f.infoFn(nil)(s, el...)
+		f.infoFn()(s, el...)
 	}
 	errFn := func(s string, el ...interface{}) {
-		f.errFn(nil)(s, el...)
+		f.errFn()(s, el...)
 	}
 	f.client = client.New(
 		client.SetErrorLogger(errFn),
