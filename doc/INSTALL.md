@@ -34,21 +34,19 @@ $ make run
 
 # Docker
 
-Running with docker is no longer fully supported, since the move to using fedbox. 
-See [#26](https://github.com/mariusor/littr.go/issues/26). 
+As a user in the docker group, just run:
 
-<!--
-Go to the littr.go working directory and copy your `.env` file to the docker folder:
-
-```sh
-$ cp .env ./docker/
+```sh 
+$ make \
+    HOSTNAME={hostname} \
+    FEDBOX_HOSTNAME={fedbox_hostname} \
+    OAUTH2_SECRET={oauth_client_pass} \
+    ADMIN_PW={admin_pass} \ # optional
+    -C docker/ images
 ```
 
-In the `docker/.env` file we need to modify the `DB_HOST` value to match the name of the postgres container from the 
-[docker/docker-compose.yaml](../docker/docker-compose.yaml). The default is `db`.
+The {hostname} and {fedbox_hostname} are the hosts that the loadbalancer listens for on port 8443.
 
-Then, as a user in the docker group, just run:
-```sh
-$ make compose
-```
--->
+The {oauth_client_pass} is the password that we set-up for the littr application in fedbox.
+
+The {admin_pass} password can be missing and there's no default admin user created.

@@ -1,6 +1,7 @@
-FROM golang:1.14 as builder
+FROM golang:1.15 as builder
 
 ARG ENV
+ARG HOSTNAME
 
 ENV GO111MODULE=on
 ENV ENV=${ENV:-dev}
@@ -10,24 +11,29 @@ ADD ./ ./app/
 
 WORKDIR /go/src/app
 RUN go mod download || true; \
-    make all
+    make all && \
+    docker/gen-certs.sh app
 
 FROM gcr.io/distroless/base
 
-ARG HOSTNAME=brutalinks
-ARG PORT=3003
+ARG HOSTNAME
+ARG PORT
 
-EXPOSE $PORT
+ENV ENV ${ENV:-dev}
+ENV LISTEN_HOSTNAME ${HOSTNAME:-brutalinks}
+ENV LISTEN_PORT ${PORT:-3003}
+ENV KEY_PATH=/etc/ssl/certs/app.key
+ENV CERT_PATH=/etc/ssl/certs/app.crt
+ENV HTTPS=true
 
-ENV HOSTNAME $HOSTNAME
-ENV PORT $PORT
-ENV ENV $ENV
+EXPOSE ${PORT:-3003}
 
-COPY --from=builder /go/src/app/bin/app /bin/littr
+VOLUME /.env
+VOLUME /storage
+
+COPY --from=builder /go/src/app/*.key /go/src/app/*.crt /go/src/app/*.pem /etc/ssl/certs/
+COPY --from=builder /go/src/app/bin/app /bin/app
 ADD ./templates /templates
 ADD ./assets /assets
 
-ADD docker/app/.env ./
-ADD docker/app/.env.dev ./
-
-CMD ["/bin/littr"]
+CMD ["/bin/app"]

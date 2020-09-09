@@ -1,0 +1,25 @@
+{
+    debug
+    local_certs
+}
+
+localhost, * {
+    respond 404
+}
+
+fedbox, FEDBOX_HOSTNAME {
+    reverse_proxy https://fedbox:FEDBOX_PORT {
+        transport http {
+            tls
+            tls_insecure_skip_verify
+        }
+    }
+}
+app, APP_HOSTNAME {
+    reverse_proxy https://app:APP_PORT {
+        transport http {
+            tls
+            tls_insecure_skip_verify
+        }
+    }
+}
