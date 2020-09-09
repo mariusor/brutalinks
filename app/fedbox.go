@@ -6,6 +6,7 @@ import (
 	"github.com/go-ap/client"
 	"github.com/go-ap/errors"
 	"github.com/go-ap/handlers"
+	"github.com/mariusor/littr.go/internal/log"
 	"net/url"
 	"strings"
 )
@@ -73,6 +74,16 @@ func SetUA(s string) OptionFn {
 	}
 }
 
+var optionLogFn = func (fn CtxLogFn) func(ctx ...client.Ctx) client.LogFn {
+	return func(ctx ...client.Ctx) client.LogFn {
+		c := make([]log.Ctx, 0)
+		for _, v := range ctx {
+			c = append(c, log.Ctx(v))
+		}
+		return client.LogFn(fn(c...))
+	}
+}
+
 func NewClient(o ...OptionFn) (*fedbox, error) {
 	f := fedbox{
 		infoFn: defaultCtxLogFn,
@@ -83,15 +94,10 @@ func NewClient(o ...OptionFn) (*fedbox, error) {
 			return nil, err
 		}
 	}
-	infoFn := func(s string, el ...interface{}) {
-		f.infoFn()(s, el...)
-	}
-	errFn := func(s string, el ...interface{}) {
-		f.errFn()(s, el...)
-	}
+
 	f.client = client.New(
-		client.SetErrorLogger(errFn),
-		client.SetInfoLogger(infoFn),
+		client.SetErrorLogger(optionLogFn(f.errFn)),
+		client.SetInfoLogger(optionLogFn(f.infoFn)),
 	)
 	return &f, nil
 }
@@ -104,7 +110,8 @@ func (f fedbox) normaliseIRI(i pub.IRI) pub.IRI {
 }
 
 func (f fedbox) collection(i pub.IRI) (pub.CollectionInterface, error) {
-	it, err := f.client.LoadIRI(f.normaliseIRI(i))
+	i = f.normaliseIRI(i)
+	it, err := f.client.LoadIRI(i)
 	if err != nil {
 		return nil, errors.Annotatef(err, "Unable to load IRI: %s", i)
 	}
