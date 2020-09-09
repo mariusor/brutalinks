@@ -321,9 +321,12 @@ func aggregateModeration(rl RenderableList, followups []ModerationOp) Renderable
 			mg.Requests = append(mg.Requests, m)
 		}
 		for _, fw := range followups {
-			mObIRI := mg.Object.AP().GetLink()
-			fwIRI := fw.Object.AP().GetLink()
-			if mObIRI.Equals(fwIRI, false) {
+			if mg.Object == nil || fw.Object == nil {
+				continue
+			}
+			mObIRI := mg.Object.AP()
+			fwIRI := fw.Object.AP()
+			if mObIRI != nil && fwIRI != nil && mObIRI.GetLink().Equals(fwIRI.GetLink(), false) {
 				mg.Followup = append(mg.Followup, &fw)
 			}
 		}
