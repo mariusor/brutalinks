@@ -23,20 +23,6 @@ import (
 	"time"
 )
 
-type flashType string
-
-const (
-	Success flashType = "success"
-	Info    flashType = "info"
-	Warning flashType = "warning"
-	Error   flashType = "error"
-)
-
-type flash struct {
-	Type flashType
-	Msg  string
-}
-
 type CtxLogFn func(...log.Ctx) LogFn
 type LogFn func(string, ...interface{})
 
@@ -45,54 +31,6 @@ type session struct {
 	s       sessions.Store
 	infoFn  CtxLogFn
 	errFn   CtxLogFn
-}
-
-func (s *session) new(r *http.Request) (*sessions.Session, error) {
-	if !s.enabled {
-		return nil, nil
-	}
-	if s.s == nil {
-		return nil, errors.Newf("invalid session")
-	}
-	return s.s.New(r, sessionName)
-}
-
-func (s *session) get(r *http.Request) (*sessions.Session, error) {
-	if !s.enabled {
-		return nil, nil
-	}
-	if s.s == nil {
-		return nil, errors.Newf("invalid session")
-	}
-	return s.s.Get(r, sessionName)
-}
-
-func clearSessionCookie(w http.ResponseWriter, r *http.Request) {
-	if c, _ := r.Cookie(sessionName); c != nil {
-		c.Value = ""
-		c.MaxAge = 0
-		http.SetCookie(w, c)
-	}
-}
-
-func (s *session) save(w http.ResponseWriter, r *http.Request) error {
-	if !s.enabled || s.s == nil {
-		clearSessionCookie(w, r)
-		return nil
-	}
-	ss, err := s.s.Get(r, sessionName)
-	if err != nil {
-		clearSessionCookie(w, r)
-		return nil
-	}
-	if len(ss.Values) == 0 {
-		ss.Options.MaxAge = -1
-	}
-	if err := s.s.Save(r, w, ss); err != nil {
-		clearSessionCookie(w, r)
-		return errors.Annotatef(err, "failed to save session")
-	}
-	return nil
 }
 
 type view struct {
@@ -138,17 +76,6 @@ func ViewInit(c appConfig, infoFn, errFn CtxLogFn) (*view, error) {
 		v.s.s, err = v.initFileSession(c)
 	}
 	return &v, err
-}
-
-func (v *view) addFlashMessage(typ flashType, r *http.Request, msgs ...string) {
-	if !v.s.enabled {
-		return
-	}
-	s, _ := v.s.get(r)
-	for _, msg := range msgs {
-		n := flash{typ, msg}
-		s.AddFlash(n)
-	}
 }
 
 func ToTitle(s string) string {
@@ -261,7 +188,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"IsVote":                func(t Renderable) bool { return t.Type() == AppreciationType },
 			"IsAccount":             func(t Renderable) bool { return t.Type() == ActorType },
 			"IsModeration":          func(t Renderable) bool { return t.Type() == ModerationType },
-			"LoadFlashMessages":     v.loadFlashMessages(r, w),
+			"LoadFlashMessages":     v.loadFlashMessages(w, r),
 			"Mod10":                 mod10,
 			"ShowText":              showText(m),
 			"HTML":                  html,
@@ -368,7 +295,7 @@ func (v *view) HandleErrors(w http.ResponseWriter, r *http.Request, errs ...erro
 		if renderErrors {
 			status = httpErrorResponse(err)
 		} else {
-			v.addFlashMessage(Error, r, err.Error())
+			v.addFlashMessage(Error, w, r, err.Error())
 		}
 	}
 
@@ -392,34 +319,31 @@ func (v *view) Redirect(w http.ResponseWriter, r *http.Request, url string, stat
 		v.errFn(log.Ctx{
 			"status": status,
 			"url":    url,
-		})("Error: %s", err)
+		})("Failed to save session before redirect")
 		v.HandleErrors(w, r, err)
 		return
 	}
 	http.Redirect(w, r, url, status)
 }
 
-func (v *view) loadFlashMessages(r *http.Request, w http.ResponseWriter) func() []flash {
+func (v *view) addFlashMessage(typ flashType, w http.ResponseWriter, r *http.Request, msgs ...string) {
+	if !v.s.enabled {
+		return
+	}
+	v.s.addFlashMessages(typ, w, r, msgs...)
+}
+
+func (v *view) loadFlashMessages(w http.ResponseWriter, r *http.Request) func() []flash {
 	var flashData []flash
 	flashFn := func() []flash { return flashData }
 
-	s, err := v.s.get(r)
+	s, err := v.s.get(w, r)
 	if err != nil || s == nil || !v.c.SessionsEnabled {
 		return flashFn
 	}
-	flashes := s.Flashes()
-	// setting the local flashData value
-	for _, int := range flashes {
-		if int == nil {
-			continue
-		}
-		if f, ok := int.(flash); ok {
-			flashData = append(flashData, f)
-		}
-	}
-	err = s.Save(r, w)
+	flashFn, err = v.s.loadFlashMessages(w, r)
 	if err != nil {
-		v.errFn(log.Ctx{"err": err})("Unable to save session after flash loading")
+		v.errFn(log.Ctx{"err": err})("unable to load flash messages")
 	}
 	return flashFn
 }

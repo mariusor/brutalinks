@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	xerrors "errors"
 	"fmt"
 	pub "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
@@ -103,13 +102,13 @@ func Init(c appConfig) (*handler, error) {
 			handle := h.storage.app.Handle
 			tok, err := config.PasswordCredentialsToken(context.Background(), handle, config.ClientSecret)
 			ctx := log.Ctx{
-				"handle":   handle,
-				"provider": provider,
-				"client":   config.ClientID,
-				"pw":       hideString(config.ClientSecret),
-				"authURL":  config.Endpoint.AuthURL,
-				"tokURL":   config.Endpoint.TokenURL,
-				"redirURL": config.RedirectURL,
+				"handle":      handle,
+				"provider":    provider,
+				"client":      config.ClientID,
+				"pw":          hideString(config.ClientSecret),
+				"authURL":     config.Endpoint.AuthURL,
+				"tokURL":      config.Endpoint.TokenURL,
+				"redirectURL": config.RedirectURL,
 			}
 			if err != nil {
 				h.conf.UserCreatingEnabled = false
@@ -124,9 +123,9 @@ func Init(c appConfig) (*handler, error) {
 				h.storage.app.Metadata.OAuth.TokenType = tok.TokenType
 				h.storage.app.Metadata.OAuth.RefreshToken = tok.RefreshToken
 				h.infoFn(ctx, log.Ctx{
-					"token":    hideString(tok.AccessToken),
-					"type":     tok.TokenType,
-					"refresh":  hideString(tok.RefreshToken),
+					"token":   hideString(tok.AccessToken),
+					"type":    tok.TokenType,
+					"refresh": hideString(tok.RefreshToken),
 				})("Loaded valid OAuth2 token for client")
 
 			}
@@ -238,11 +237,8 @@ func (h *handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s, _ := h.v.s.get(r)
-	account := loadCurrentAccountFromSession(s, h.infoFn)
-	if account.Metadata == nil {
-		account.Metadata = &AccountMetadata{}
-	}
+	s, _ := h.v.s.get(w, r)
+	account := h.v.loadCurrentAccountFromSession(s)
 	account.Metadata.OAuth = OAuth{
 		State:        state,
 		Code:         code,
@@ -255,9 +251,9 @@ func (h *handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
 
 	s.Values[SessionUserKey] = account
 	if strings.ToLower(provider) != "local" {
-		h.v.addFlashMessage(Success, r, fmt.Sprintf("Login successful with %s", provider))
+		h.v.addFlashMessage(Success, w, r, fmt.Sprintf("Login successful with %s", provider))
 	} else {
-		h.v.addFlashMessage(Success, r, "Login successful")
+		h.v.addFlashMessage(Success, w, r, "Login successful")
 	}
 	h.v.Redirect(w, r, "/", http.StatusFound)
 }
@@ -331,7 +327,7 @@ func isInverted(r *http.Request) bool {
 	return false
 }
 
-func loadCurrentAccountFromSession(s *sessions.Session, l CtxLogFn) Account {
+func (v *view) loadCurrentAccountFromSession(s *sessions.Session) Account {
 	// load the current account from the session or setting it to anonymous
 	raw, ok := s.Values[SessionUserKey]
 	if !ok {
@@ -339,9 +335,13 @@ func loadCurrentAccountFromSession(s *sessions.Session, l CtxLogFn) Account {
 	}
 	a, ok := raw.(Account)
 	if !ok {
+		v.errFn(log.Ctx{
+			"handle": a.Handle,
+			"hash":   a.Hash,
+		})("unable to load account from session")
 		return defaultAccount
 	}
-	l(log.Ctx{
+	v.infoFn(log.Ctx{
 		"handle": a.Handle,
 		"hash":   a.Hash,
 	})("loaded account from session")
@@ -370,18 +370,16 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		h.storage.WithAccount(nil)
 		if h.v.s.s == nil {
-			h.logger.Warn("missing session store, unable to load session")
+			h.infoFn()("missing session store, unable to load session")
 			next.ServeHTTP(w, r)
 			return
 		}
-		s, err := h.v.s.get(r)
+		s, err := h.v.s.get(w, r)
 		if err != nil {
-			h.logger.Warnf("unable to load session: %s", err)
-			if xerrors.Is(err, new(os.PathError)) {
-				h.v.s.new(r)
-			}
+			clearSessionCookie(w, r)
+			h.infoFn(log.Ctx{"err": err})("unable to load session")
 		}
-		acc := loadCurrentAccountFromSession(s, h.infoFn)
+		acc := h.v.loadCurrentAccountFromSession(s)
 		m := acc.Metadata
 		if acc.IsLogged() {
 			f := &Filters{
@@ -395,12 +393,10 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 				"hash":   acc.Hash,
 			}
 			if err != nil {
-				h.v.s.new(r)
 				ctxtErr(next, w, r, err)
 				return
 			}
 			if len(accounts) == 0 {
-				h.v.s.new(r)
 				err := errors.NotFoundf("no accounts found for %v", f)
 				h.infoFn(ctx)("Error: %s", err)
 				ctxtErr(next, w, r, err)
@@ -443,14 +439,6 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	}
 	return http.HandlerFunc(fn)
-}
-
-func (h *handler) addFlashErrors(r *http.Request, errs ...error) {
-	msg := ""
-	for _, err := range errs {
-		msg += err.Error()
-	}
-	h.v.addFlashMessage(Error, r, msg)
 }
 
 func (h handler) NeedsSessions(next http.Handler) http.Handler {
@@ -513,11 +501,11 @@ func httpErrorResponse(e error) int {
 
 func loadEnvSessionKeys() [][]byte {
 	keys := make([][]byte, 0)
-	if authKey := []byte(os.Getenv("SESS_AUTH_KEY")); len(authKey) > 0 {
-		keys = append(keys, authKey)
+	if authKey := os.Getenv("SESS_AUTH_KEY"); len(authKey) >= 16 {
+		keys = append(keys, []byte(authKey[:16]))
 	}
-	if encKey := []byte(os.Getenv("SESS_ENC_KEY")); len(encKey) > 0 {
-		keys = append(keys, encKey)
+	if encKey := os.Getenv("SESS_ENC_KEY"); len(encKey) >= 16 {
+		keys = append(keys, []byte(encKey[:16]))
 	}
 	return keys
 }

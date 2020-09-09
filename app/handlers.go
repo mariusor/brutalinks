@@ -124,7 +124,7 @@ func (h *handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 	}
 	p.Delete()
 	if p, err = repo.SaveItem(p); err != nil {
-		h.v.addFlashMessage(Error, r, "unable to delete item as current user")
+		h.v.addFlashMessage(Error, w, r, "unable to delete item as current user")
 	}
 
 	h.v.Redirect(w, r, url, http.StatusFound)
@@ -170,10 +170,10 @@ func (h *handler) HandleVoting(w http.ResponseWriter, r *http.Request) {
 				"weight": v.Weight,
 				"error":  err,
 			})("Error: Unable to save vote")
-			h.v.addFlashMessage(Error, r, "Unable to save vote")
+			h.v.addFlashMessage(Error, w, r, "Unable to save vote")
 		}
 	} else {
-		h.v.addFlashMessage(Error, r, "unable to vote as current user")
+		h.v.addFlashMessage(Error, w, r, "unable to vote as current user")
 	}
 	h.v.Redirect(w, r, url, http.StatusFound)
 }
@@ -270,7 +270,7 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 	handleErr := func(msg string, f log.Ctx) {
 		h.errFn(f)("Error: %s", err)
-		h.v.addFlashMessage(Error, r, msg)
+		h.v.addFlashMessage(Error, w, r, msg)
 		h.v.Redirect(w, r, "/login", http.StatusSeeOther)
 	}
 	if err != nil || len(accts) == 0 {
@@ -304,7 +304,7 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	acct.Metadata.OAuth.Token = tok.AccessToken
 	acct.Metadata.OAuth.TokenType = tok.TokenType
 	acct.Metadata.OAuth.RefreshToken = tok.RefreshToken
-	s, err := h.v.s.get(r)
+	s, err := h.v.s.get(w, r)
 	if err != nil {
 		handleErr("Login failed: unable to save session", log.Ctx{
 			"handle": handle,
@@ -320,7 +320,7 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 // HandleLogout serves /logout requests
 func (h *handler) HandleLogout(w http.ResponseWriter, r *http.Request) {
-	s, err := h.v.s.get(r)
+	s, err := h.v.s.get(w, r)
 	if err != nil {
 		h.errFn()("Error: %s", err)
 	} else {
