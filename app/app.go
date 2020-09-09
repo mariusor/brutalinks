@@ -24,17 +24,24 @@ import (
 const (
 	// Anonymous label
 	Anonymous = "anonymous"
+	// System label
 	System    = "system"
 )
 
-// AnonymousHash is the sha hash for the anonymous account
-var AnonymousHash = Hash{}
-var AnonymousAccount = Account{Handle: Anonymous, Hash: AnonymousHash, Metadata: &AccountMetadata{}}
-var SystemAccount = Account{Handle: System, Hash: AnonymousHash, Metadata: &AccountMetadata{}}
+var (
+	// AnonymousHash is the sha hash for the anonymous account
+	AnonymousHash = Hash{}
+	// AnonymousAccount
+	AnonymousAccount = Account{Handle: Anonymous, Hash: AnonymousHash, Metadata: new(AccountMetadata)}
+	// SystemAccount
+	SystemAccount = Account{Handle: System, Hash: AnonymousHash, Metadata: new(AccountMetadata)}
+)
 
-var listenHost string
-var listenPort int64
-var listenOn string
+var (
+	listenHost string
+	listenPort int64
+	listenOn string
+)
 
 // Stats holds data for keeping compatibility with Mastodon instances
 type Stats struct {
