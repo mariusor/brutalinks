@@ -1,12 +1,10 @@
 package app
 
 import (
-	"encoding/gob"
 	"fmt"
 	pub "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
 	"github.com/gorilla/csrf"
-	"github.com/gorilla/sessions"
 	"github.com/mariusor/littr.go/internal/assets"
 	"github.com/mariusor/littr.go/internal/config"
 	"github.com/mariusor/littr.go/internal/log"
@@ -26,56 +24,22 @@ import (
 type CtxLogFn func(...log.Ctx) LogFn
 type LogFn func(string, ...interface{})
 
-type session struct {
-	enabled bool
-	s       sessions.Store
-	infoFn  CtxLogFn
-	errFn   CtxLogFn
-}
-
 type view struct {
 	c      *config.Configuration
-	s      session
+	s      sess
 	infoFn CtxLogFn
 	errFn  CtxLogFn
 }
 
 func ViewInit(c appConfig, infoFn, errFn CtxLogFn) (*view, error) {
-	v := view{
-		c:      &c.Configuration,
-		infoFn: infoFn,
-		errFn:  errFn,
-	}
+	v := new(view)
+	v.c = &c.Configuration
+	v.infoFn = infoFn
+	v.errFn = errFn
 
-	// session encoding for account and flash message objects
-	gob.Register(Account{})
-	gob.Register(flash{})
-
-	if len(c.SessionKeys) == 0 {
-		return &v, errors.NotImplementedf("no session encryption keys, unable to use sessions")
-	}
-	v.s = session{
-		enabled: c.SessionsEnabled,
-		infoFn:  infoFn,
-		errFn:   errFn,
-	}
-	if !v.s.enabled {
-		return &v, nil
-	}
 	var err error
-	switch strings.ToLower(c.SessionsBackend) {
-	case sessionsCookieBackend:
-		v.s.s, err = v.initCookieSession(c)
-	case sessionsFSBackend:
-		fallthrough
-	default:
-		if strings.ToLower(c.SessionsBackend) != sessionsFSBackend {
-			v.infoFn(log.Ctx{"backend": c.SessionsBackend})("Invalid session backend, falling back to %s.", sessionsFSBackend)
-			c.SessionsBackend = sessionsFSBackend
-		}
-		v.s.s, err = v.initFileSession(c)
-	}
-	return &v, err
+	v.s, err = initSession(c, infoFn, errFn)
+	return v, err
 }
 
 func ToTitle(s string) string {

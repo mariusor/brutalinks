@@ -1,9 +1,14 @@
 package app
 
 import (
+	"encoding/gob"
+	"fmt"
 	"github.com/go-ap/errors"
 	"github.com/gorilla/sessions"
+	"github.com/mariusor/littr.go/internal/log"
 	"net/http"
+	"os"
+	"strings"
 )
 
 type flashType string
@@ -20,7 +25,95 @@ type flash struct {
 	Msg  string
 }
 
-func (s *session) get(w http.ResponseWriter, r *http.Request) (*sessions.Session, error) {
+type sess struct {
+	enabled bool
+	s       sessions.Store
+	infoFn  CtxLogFn
+	errFn   CtxLogFn
+}
+
+func initSession(c appConfig, infoFn, errFn CtxLogFn) (sess, error) {
+	// session encoding for account and flash message objects
+	gob.Register(Account{})
+	gob.Register(flash{})
+
+	if len(c.SessionKeys) == 0 {
+		return sess{}, errors.NotImplementedf("no session encryption keys, unable to use sessions")
+	}
+	s := sess{
+		enabled: c.SessionsEnabled,
+		infoFn:  infoFn,
+		errFn:   errFn,
+	}
+
+	var err error
+	switch strings.ToLower(c.SessionsBackend) {
+	case sessionsCookieBackend:
+		s.s, err = initCookieSession(c, infoFn, errFn)
+	case sessionsFSBackend:
+		fallthrough
+	default:
+		if strings.ToLower(c.SessionsBackend) != sessionsFSBackend {
+			infoFn(log.Ctx{"backend": c.SessionsBackend})("Invalid session backend, falling back to %s.", sessionsFSBackend)
+			c.SessionsBackend = sessionsFSBackend
+		}
+		s.s, err = initFileSession(c, infoFn, errFn)
+	}
+	return s, err
+}
+
+func initCookieSession(c appConfig, infoFn, errFn CtxLogFn) (sessions.Store, error) {
+	ss := sessions.NewCookieStore(c.SessionKeys...)
+	ss.Options.Path = "/"
+	ss.Options.HttpOnly = true
+	ss.Options.Secure = c.Secure
+	ss.Options.SameSite = http.SameSiteLaxMode
+
+	infoFn(log.Ctx{
+		"type":   c.SessionsBackend,
+		"env":    c.Env,
+		"keys":   fmt.Sprintf("%s", c.SessionKeys),
+		"domain": c.HostName,
+	})("Session settings")
+	if c.Env.IsProd() {
+		ss.Options.Domain = c.HostName
+		ss.Options.SameSite = http.SameSiteStrictMode
+	}
+	return ss, nil
+}
+
+func initFileSession(c appConfig, infoFn, errFn CtxLogFn) (sessions.Store, error) {
+	sessDir := fmt.Sprintf("%s/%s/%s", c.SessionsPath, c.Env, c.HostName)
+	if _, err := os.Stat(sessDir); err != nil {
+		if os.IsNotExist(err) {
+			if err := os.MkdirAll(sessDir, 0700); err != nil {
+				return nil, err
+			}
+		} else {
+			errFn()("Invalid path %s for saving sessions: %s", sessDir, err)
+			return nil, err
+		}
+	}
+	infoFn(log.Ctx{
+		"type":     c.SessionsBackend,
+		"env":      c.Env,
+		"path":     sessDir,
+		"keys":     fmt.Sprintf("%s", c.SessionKeys),
+		"hostname": c.HostName,
+	})("Session settings")
+	ss := sessions.NewFilesystemStore(sessDir, c.SessionKeys...)
+	ss.Options.Path = "/"
+	ss.Options.HttpOnly = true
+	ss.Options.Secure = c.Secure
+	ss.Options.SameSite = http.SameSiteLaxMode
+	if c.Env.IsProd() {
+		ss.Options.Domain = c.HostName
+		ss.Options.SameSite = http.SameSiteStrictMode
+	}
+	return ss, nil
+}
+
+func (s *sess) get(w http.ResponseWriter, r *http.Request) (*sessions.Session, error) {
 	if !s.enabled {
 		return nil, nil
 	}
@@ -44,7 +137,7 @@ func clearSessionCookie(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *session) save(w http.ResponseWriter, r *http.Request) error {
+func (s *sess) save(w http.ResponseWriter, r *http.Request) error {
 	if !s.enabled || s.s == nil {
 		clearSessionCookie(w, r)
 		return nil
@@ -63,7 +156,7 @@ func (s *session) save(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func (s *session) addFlashMessages(typ flashType, w http.ResponseWriter, r *http.Request, msgs ...string) {
+func (s *sess) addFlashMessages(typ flashType, w http.ResponseWriter, r *http.Request, msgs ...string) {
 	ss, _ := s.get(w, r)
 	for _, msg := range msgs {
 		n := flash{typ, msg}
@@ -71,7 +164,7 @@ func (s *session) addFlashMessages(typ flashType, w http.ResponseWriter, r *http
 	}
 }
 
-func (s *session) loadFlashMessages(w http.ResponseWriter, r *http.Request) (func() []flash, error) {
+func (s *sess) loadFlashMessages(w http.ResponseWriter, r *http.Request) (func() []flash, error) {
 	var flashData []flash
 	flashFn := func() []flash { return flashData }
 

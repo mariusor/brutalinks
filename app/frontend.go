@@ -141,57 +141,6 @@ func Init(c appConfig) (*handler, error) {
 	return h, err
 }
 
-func (v view) initCookieSession(c appConfig) (sessions.Store, error) {
-	ss := sessions.NewCookieStore(c.SessionKeys...)
-	ss.Options.Path = "/"
-	ss.Options.HttpOnly = true
-	ss.Options.Secure = c.Secure
-	ss.Options.SameSite = http.SameSiteLaxMode
-
-	v.infoFn(log.Ctx{
-		"type":   c.SessionsBackend,
-		"env":    c.Env,
-		"keys":   fmt.Sprintf("%s", c.SessionKeys),
-		"domain": c.HostName,
-	})("Session settings")
-	if c.Env.IsProd() {
-		ss.Options.Domain = c.HostName
-		ss.Options.SameSite = http.SameSiteStrictMode
-	}
-	return ss, nil
-}
-
-func (v view) initFileSession(c appConfig) (sessions.Store, error) {
-	sessDir := fmt.Sprintf("%s/%s/%s", c.SessionsPath, c.Env, c.HostName)
-	if _, err := os.Stat(sessDir); err != nil {
-		if os.IsNotExist(err) {
-			if err := os.MkdirAll(sessDir, 0700); err != nil {
-				return nil, err
-			}
-		} else {
-			v.errFn()("Invalid path %s for saving sessions: %s", sessDir, err)
-			return nil, err
-		}
-	}
-	v.infoFn(log.Ctx{
-		"type":     c.SessionsBackend,
-		"env":      c.Env,
-		"path":     sessDir,
-		"keys":     fmt.Sprintf("%s", c.SessionKeys),
-		"hostname": c.HostName,
-	})("Session settings")
-	ss := sessions.NewFilesystemStore(sessDir, c.SessionKeys...)
-	ss.Options.Path = "/"
-	ss.Options.HttpOnly = true
-	ss.Options.Secure = c.Secure
-	ss.Options.SameSite = http.SameSiteLaxMode
-	if c.Env.IsProd() {
-		ss.Options.Domain = c.HostName
-		ss.Options.SameSite = http.SameSiteStrictMode
-	}
-	return ss, nil
-}
-
 type headerEl struct {
 	IsCurrent bool
 	Icon      string
