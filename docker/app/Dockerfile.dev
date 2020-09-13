@@ -35,5 +35,6 @@ COPY --from=builder /go/src/app/*.key /go/src/app/*.crt /go/src/app/*.pem /etc/s
 COPY --from=builder /go/src/app/bin/app /bin/app
 ADD ./templates /templates
 ADD ./assets /assets
+ADD ./README.md /README.md
 
 CMD ["/bin/app"]

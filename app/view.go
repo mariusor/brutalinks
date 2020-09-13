@@ -135,7 +135,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 
 	version := Instance.Version
 	ren := render.New(render.Options{
-		AssetNames: assets.Files,
+		AssetNames: assets.TemplateNames,
 		Asset:      assets.Template,
 		Layout:     layout,
 		Extensions: []string{".html"},

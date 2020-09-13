@@ -21,8 +21,13 @@ const (
 
 type AssetFiles map[string][]string
 
-// Files returns asset names necessary for unrolled.Render
-func Files() []string {
+// GetFullFile
+func GetFullFile(name string) ([]byte, error) {
+	return getFileContent(name)
+}
+
+// TemplateNames returns asset names necessary for unrolled.Render
+func TemplateNames() []string {
 	names := make([]string, 0)
 	walkFsFn(templateDir, func(path string, info os.FileInfo, err error) error {
 		if info != nil && !info.IsDir() {

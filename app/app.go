@@ -8,10 +8,10 @@ import (
 	"github.com/go-ap/errors"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	"github.com/mariusor/littr.go/internal/assets"
 	"github.com/mariusor/littr.go/internal/config"
 	"github.com/mariusor/littr.go/internal/log"
 	"github.com/writeas/go-nodeinfo"
-	"io"
 	"io/ioutil"
 	golog "log"
 	"net/http"
@@ -161,11 +161,8 @@ func (a Application) NodeInfo() WebInfo {
 		Version: a.Version,
 	}
 
-	if f, err := os.Open("./README.md"); err == nil {
-		st, _ := f.Stat()
-		rme := make([]byte, st.Size())
-		io.ReadFull(f, rme)
-		inf.Description = string(bytes.Trim(rme, "\x00"))
+	if desc, err := assets.GetFullFile("./README.md"); err == nil {
+		inf.Description = string(bytes.Trim(desc, "\x00"))
 	}
 	return inf
 }
