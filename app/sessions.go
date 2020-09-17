@@ -62,6 +62,14 @@ func initSession(c appConfig, infoFn, errFn CtxLogFn) (sess, error) {
 	return s, err
 }
 
+func hideSessionKeys(keys ...[]byte) []string {
+	hidden := make([]string, len(keys))
+	for i, k := range keys {
+		hidden[i] = hideString(string(k))
+	}
+	return hidden
+}
+
 func initCookieSession(c appConfig, infoFn, errFn CtxLogFn) (sessions.Store, error) {
 	ss := sessions.NewCookieStore(c.SessionKeys...)
 	ss.Options.Path = "/"
@@ -72,7 +80,7 @@ func initCookieSession(c appConfig, infoFn, errFn CtxLogFn) (sessions.Store, err
 	infoFn(log.Ctx{
 		"type":   c.SessionsBackend,
 		"env":    c.Env,
-		"keys":   fmt.Sprintf("%s", c.SessionKeys),
+		"keys":   hideSessionKeys(c.SessionKeys...),
 		"domain": c.HostName,
 	})("Session settings")
 	if c.Env.IsProd() {
@@ -98,7 +106,7 @@ func initFileSession(c appConfig, infoFn, errFn CtxLogFn) (sessions.Store, error
 		"type":     c.SessionsBackend,
 		"env":      c.Env,
 		"path":     sessDir,
-		"keys":     fmt.Sprintf("%s", c.SessionKeys),
+		"keys":     hideSessionKeys(c.SessionKeys...),
 		"hostname": c.HostName,
 	})("Session settings")
 	ss := sessions.NewFilesystemStore(sessDir, c.SessionKeys...)
