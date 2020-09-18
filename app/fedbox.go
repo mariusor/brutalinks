@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	pub "github.com/go-ap/activitypub"
 	"github.com/go-ap/client"
@@ -74,7 +75,7 @@ func SetUA(s string) OptionFn {
 	}
 }
 
-var optionLogFn = func (fn CtxLogFn) func(ctx ...client.Ctx) client.LogFn {
+var optionLogFn = func(fn CtxLogFn) func(ctx ...client.Ctx) client.LogFn {
 	return func(ctx ...client.Ctx) client.LogFn {
 		c := make([]log.Ctx, 0)
 		for _, v := range ctx {
@@ -87,7 +88,7 @@ var optionLogFn = func (fn CtxLogFn) func(ctx ...client.Ctx) client.LogFn {
 func NewClient(o ...OptionFn) (*fedbox, error) {
 	f := fedbox{
 		infoFn: defaultCtxLogFn,
-		errFn: defaultCtxLogFn,
+		errFn:  defaultCtxLogFn,
 	}
 	for _, fn := range o {
 		if err := fn(&f); err != nil {
@@ -111,7 +112,7 @@ func (f fedbox) normaliseIRI(i pub.IRI) pub.IRI {
 
 func (f fedbox) collection(i pub.IRI) (pub.CollectionInterface, error) {
 	i = f.normaliseIRI(i)
-	it, err := f.client.LoadIRI(i)
+	it, err := f.client.CtxLoadIRI(context.Background(), i)
 	if err != nil {
 		return nil, errors.Annotatef(err, "Unable to load IRI: %s", i)
 	}
@@ -138,7 +139,7 @@ func (f fedbox) collection(i pub.IRI) (pub.CollectionInterface, error) {
 }
 
 func (f fedbox) object(i pub.IRI) (pub.Item, error) {
-	return f.client.LoadIRI(i)
+	return f.client.CtxLoadIRI(context.Background(), i)
 }
 
 func rawFilterQuery(f ...FilterFn) string {
@@ -327,7 +328,7 @@ func (f fedbox) req(iri pub.IRI, a pub.Item) (pub.IRI, pub.Item, error) {
 	if err := validateIRIForRequest(iri); err != nil {
 		return "", nil, errors.Annotatef(err, "Invalid IRI to post to")
 	}
-	return f.client.ToCollection(iri, a)
+	return f.client.CtxToCollection(context.Background(), iri, a)
 }
 
 func (f fedbox) ToOutbox(a pub.Item) (pub.IRI, pub.Item, error) {
@@ -345,7 +346,7 @@ func (f fedbox) ToInbox(a pub.Item) (pub.IRI, pub.Item, error) {
 		iri = inbox(a.Actor)
 		return nil
 	})
-	return  f.req(iri, a)
+	return f.req(iri, a)
 }
 
 func (f *fedbox) Service() *pub.Service {
