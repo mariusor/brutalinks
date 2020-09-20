@@ -2,6 +2,7 @@ package app
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	pub "github.com/go-ap/activitypub"
 	"github.com/go-chi/chi"
@@ -211,7 +212,7 @@ func accountFromPost(r *http.Request) (Account, error) {
 	hash := r.PostFormValue("hash")
 	if len(hash) > 0 {
 		s := ContextRepository(r.Context())
-		a, err = s.LoadAccount(ActorsURL.AddPath(hash))
+		a, err = s.LoadAccount(context.Background(), ActorsURL.AddPath(hash))
 	}
 	if accountsEqual(a, AnonymousAccount) || err != nil {
 		a = Account{Metadata: &AccountMetadata{}}
@@ -247,7 +248,7 @@ func accountsFromRequestHandle(r *http.Request) ([]Account, error) {
 		Name: CompStrs{EqualsString(handle)},
 	}
 	repo := ContextRepository(r.Context())
-	return repo.accounts(fa)
+	return repo.accounts(context.Background(), fa)
 }
 
 type AccountPtrCollection []*Account

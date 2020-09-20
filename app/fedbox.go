@@ -110,9 +110,9 @@ func (f fedbox) normaliseIRI(i pub.IRI) pub.IRI {
 	return i
 }
 
-func (f fedbox) collection(i pub.IRI) (pub.CollectionInterface, error) {
+func (f fedbox) collection(ctx context.Context, i pub.IRI) (pub.CollectionInterface, error) {
 	i = f.normaliseIRI(i)
-	it, err := f.client.CtxLoadIRI(context.Background(), i)
+	it, err := f.client.CtxLoadIRI(ctx, i)
 	if err != nil {
 		return nil, errors.Annotatef(err, "Unable to load IRI: %s", i)
 	}
@@ -138,8 +138,8 @@ func (f fedbox) collection(i pub.IRI) (pub.CollectionInterface, error) {
 	return col, nil
 }
 
-func (f fedbox) object(i pub.IRI) (pub.Item, error) {
-	return f.client.CtxLoadIRI(context.Background(), i)
+func (f fedbox) object(ctx context.Context, i pub.IRI) (pub.Item, error) {
+	return f.client.CtxLoadIRI(ctx, i)
 }
 
 func rawFilterQuery(f ...FilterFn) string {
@@ -209,61 +209,61 @@ type FilterFn func() url.Values
 
 type CollectionFn func() (pub.CollectionInterface, error)
 
-func (f fedbox) Inbox(actor pub.Item, filters ...FilterFn) (pub.CollectionInterface, error) {
+func (f fedbox) Inbox(ctx context.Context, actor pub.Item, filters ...FilterFn) (pub.CollectionInterface, error) {
 	if err := validateActor(actor); err != nil {
 		return nil, err
 	}
-	return f.collection(inbox(actor, filters...))
+	return f.collection(ctx, inbox(actor, filters...))
 }
-func (f fedbox) Outbox(actor pub.Item, filters ...FilterFn) (pub.CollectionInterface, error) {
+func (f fedbox) Outbox(ctx context.Context, actor pub.Item, filters ...FilterFn) (pub.CollectionInterface, error) {
 	if err := validateActor(actor); err != nil {
 		return nil, err
 	}
-	return f.collection(outbox(actor, filters...))
+	return f.collection(ctx, outbox(actor, filters...))
 }
-func (f fedbox) Following(actor pub.Item, filters ...FilterFn) (pub.CollectionInterface, error) {
+func (f fedbox) Following(ctx context.Context, actor pub.Item, filters ...FilterFn) (pub.CollectionInterface, error) {
 	if err := validateActor(actor); err != nil {
 		return nil, err
 	}
-	return f.collection(following(actor, filters...))
+	return f.collection(ctx, following(actor, filters...))
 }
-func (f fedbox) Followers(actor pub.Item, filters ...FilterFn) (pub.CollectionInterface, error) {
+func (f fedbox) Followers(ctx context.Context, actor pub.Item, filters ...FilterFn) (pub.CollectionInterface, error) {
 	if err := validateActor(actor); err != nil {
 		return nil, err
 	}
-	return f.collection(followers(actor, filters...))
+	return f.collection(ctx, followers(actor, filters...))
 }
-func (f fedbox) Likes(object pub.Item, filters ...FilterFn) (pub.CollectionInterface, error) {
+func (f fedbox) Likes(ctx context.Context, object pub.Item, filters ...FilterFn) (pub.CollectionInterface, error) {
 	if err := validateObject(object); err != nil {
 		return nil, err
 	}
-	return f.collection(likes(object, filters...))
+	return f.collection(ctx, likes(object, filters...))
 }
-func (f fedbox) Liked(actor pub.Item, filters ...FilterFn) (pub.CollectionInterface, error) {
+func (f fedbox) Liked(ctx context.Context, actor pub.Item, filters ...FilterFn) (pub.CollectionInterface, error) {
 	if err := validateActor(actor); err != nil {
 		return nil, err
 	}
-	return f.collection(liked(actor, filters...))
+	return f.collection(ctx, liked(actor, filters...))
 }
-func (f fedbox) Replies(object pub.Item, filters ...FilterFn) (pub.CollectionInterface, error) {
+func (f fedbox) Replies(ctx context.Context, object pub.Item, filters ...FilterFn) (pub.CollectionInterface, error) {
 	if err := validateObject(object); err != nil {
 		return nil, err
 	}
-	return f.collection(replies(object, filters...))
+	return f.collection(ctx, replies(object, filters...))
 }
-func (f fedbox) Shares(object pub.Item, filters ...FilterFn) (pub.CollectionInterface, error) {
+func (f fedbox) Shares(ctx context.Context, object pub.Item, filters ...FilterFn) (pub.CollectionInterface, error) {
 	if err := validateObject(object); err != nil {
 		return nil, err
 	}
-	return f.collection(shares(object, filters...))
+	return f.collection(ctx, shares(object, filters...))
 }
 
-func (f fedbox) Collection(i pub.IRI, filters ...FilterFn) (pub.CollectionInterface, error) {
-	return f.collection(iri(i, filters...))
+func (f fedbox) Collection(ctx context.Context, i pub.IRI, filters ...FilterFn) (pub.CollectionInterface, error) {
+	return f.collection(ctx, iri(i, filters...))
 }
 
-func (f fedbox) Actor(iri pub.IRI) (*pub.Actor, error) {
-	it, err := f.object(iri)
+func (f fedbox) Actor(ctx context.Context, iri pub.IRI) (*pub.Actor, error) {
+	it, err := f.object(ctx, iri)
 	if err != nil {
 		return anonymousActor, errors.Annotatef(err, "Unable to load Actor: %s", iri)
 	}
@@ -275,8 +275,8 @@ func (f fedbox) Actor(iri pub.IRI) (*pub.Actor, error) {
 	return person, nil
 }
 
-func (f fedbox) Activity(iri pub.IRI) (*pub.Activity, error) {
-	it, err := f.object(iri)
+func (f fedbox) Activity(ctx context.Context, iri pub.IRI) (*pub.Activity, error) {
+	it, err := f.object(ctx, iri)
 	if err != nil {
 		return nil, errors.Annotatef(err, "Unable to load Activity: %s", iri)
 	}
@@ -288,8 +288,8 @@ func (f fedbox) Activity(iri pub.IRI) (*pub.Activity, error) {
 	return activity, nil
 }
 
-func (f fedbox) Object(iri pub.IRI) (*pub.Object, error) {
-	it, err := f.object(iri)
+func (f fedbox) Object(ctx context.Context, iri pub.IRI) (*pub.Object, error) {
+	it, err := f.object(ctx, iri)
 	if err != nil {
 		return nil, errors.Annotatef(err, "Unable to load Object: %s", iri)
 	}
@@ -301,16 +301,16 @@ func (f fedbox) Object(iri pub.IRI) (*pub.Object, error) {
 	return object, nil
 }
 
-func (f fedbox) Activities(filters ...FilterFn) (pub.CollectionInterface, error) {
-	return f.collection(iri(activities.IRI(f.Service()), filters...))
+func (f fedbox) Activities(ctx context.Context, filters ...FilterFn) (pub.CollectionInterface, error) {
+	return f.collection(ctx, iri(activities.IRI(f.Service()), filters...))
 }
 
-func (f fedbox) Actors(filters ...FilterFn) (pub.CollectionInterface, error) {
-	return f.collection(iri(actors.IRI(f.Service()), filters...))
+func (f fedbox) Actors(ctx context.Context, filters ...FilterFn) (pub.CollectionInterface, error) {
+	return f.collection(ctx, iri(actors.IRI(f.Service()), filters...))
 }
 
-func (f fedbox) Objects(filters ...FilterFn) (pub.CollectionInterface, error) {
-	return f.collection(iri(objects.IRI(f.Service()), filters...))
+func (f fedbox) Objects(ctx context.Context, filters ...FilterFn) (pub.CollectionInterface, error) {
+	return f.collection(ctx, iri(objects.IRI(f.Service()), filters...))
 }
 
 func validateIRIForRequest(i pub.IRI) error {
@@ -324,29 +324,29 @@ func validateIRIForRequest(i pub.IRI) error {
 	return nil
 }
 
-func (f fedbox) req(iri pub.IRI, a pub.Item) (pub.IRI, pub.Item, error) {
+func (f fedbox) req(ctx context.Context, iri pub.IRI, a pub.Item) (pub.IRI, pub.Item, error) {
 	if err := validateIRIForRequest(iri); err != nil {
 		return "", nil, errors.Annotatef(err, "Invalid IRI to post to")
 	}
-	return f.client.CtxToCollection(context.Background(), iri, a)
+	return f.client.CtxToCollection(ctx, iri, a)
 }
 
-func (f fedbox) ToOutbox(a pub.Item) (pub.IRI, pub.Item, error) {
+func (f fedbox) ToOutbox(ctx context.Context, a pub.Item) (pub.IRI, pub.Item, error) {
 	iri := pub.IRI("")
 	pub.OnActivity(a, func(a *pub.Activity) error {
 		iri = outbox(a.Actor)
 		return nil
 	})
-	return f.req(iri, a)
+	return f.req(ctx, iri, a)
 }
 
-func (f fedbox) ToInbox(a pub.Item) (pub.IRI, pub.Item, error) {
+func (f fedbox) ToInbox(ctx context.Context, a pub.Item) (pub.IRI, pub.Item, error) {
 	iri := pub.IRI("")
 	pub.OnActivity(a, func(a *pub.Activity) error {
 		iri = inbox(a.Actor)
 		return nil
 	})
-	return f.req(iri, a)
+	return f.req(ctx, iri, a)
 }
 
 func (f *fedbox) Service() *pub.Service {

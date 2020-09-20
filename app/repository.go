@@ -492,17 +492,17 @@ func (r *repository) withAccountS2S(a *Account) client.RequestSignFn {
 	return getSigner(p.PublicKey.ID, prv).Sign
 }
 
-func (r *repository) LoadItem(iri pub.IRI) (Item, error) {
+func (r *repository) LoadItem(ctx context.Context, iri pub.IRI) (Item, error) {
 	var item Item
-	art, err := r.fedbox.Object(iri)
+	art, err := r.fedbox.Object(ctx, iri)
 	if err != nil {
 		r.errFn()(err.Error())
 		return item, err
 	}
 	if err = item.FromActivityPub(art); err == nil {
 		var items ItemCollection
-		items, err = r.loadItemsAuthors(item)
-		items, err = r.loadItemsVotes(items...)
+		items, err = r.loadItemsAuthors(ctx, item)
+		items, err = r.loadItemsVotes(ctx, items...)
 		if len(items) > 0 {
 			item = items[0]
 		}
@@ -525,12 +525,12 @@ func hashesUnique(a Hashes) Hashes {
 	return u
 }
 
-func (r *repository) loadAccountsVotes(accounts ...Account) (AccountCollection, error) {
+func (r *repository) loadAccountsVotes(ctx context.Context, accounts ...Account) (AccountCollection, error) {
 	if len(accounts) == 0 {
 		return accounts, nil
 	}
 	for _, account := range accounts {
-		err := r.loadAccountVotes(&account, nil)
+		err := r.loadAccountVotes(ctx, &account, nil)
 		if err != nil {
 			r.errFn()(err.Error())
 		}
@@ -547,11 +547,11 @@ func accountInCollection(ac Account, col AccountCollection) bool {
 	return false
 }
 
-func (r *repository) loadAccountsFollowers(acc Account) (Account, error) {
+func (r *repository) loadAccountsFollowers(ctx context.Context, acc Account) (Account, error) {
 	if !acc.HasMetadata() || len(acc.Metadata.FollowersIRI) == 0 {
 		return acc, nil
 	}
-	it, err := r.fedbox.Collection(pub.IRI(acc.Metadata.FollowersIRI))
+	it, err := r.fedbox.Collection(ctx, pub.IRI(acc.Metadata.FollowersIRI))
 	if err != nil {
 		r.errFn()(err.Error())
 		return acc, nil
@@ -575,11 +575,11 @@ func (r *repository) loadAccountsFollowers(acc Account) (Account, error) {
 	return acc, nil
 }
 
-func (r *repository) loadAccountsOutbox(acc Account) (Account, error) {
+func (r *repository) loadAccountsOutbox(ctx context.Context, acc Account) (Account, error) {
 	if !acc.HasMetadata() || len(acc.Metadata.OutboxIRI) == 0 {
 		return acc, nil
 	}
-	it, err := r.fedbox.Collection(pub.IRI(acc.Metadata.OutboxIRI))
+	it, err := r.fedbox.Collection(ctx, pub.IRI(acc.Metadata.OutboxIRI))
 	if err != nil {
 		r.errFn()(err.Error())
 		return acc, nil
@@ -597,11 +597,11 @@ func (r *repository) loadAccountsOutbox(acc Account) (Account, error) {
 	return acc, nil
 }
 
-func (r *repository) loadAccountsFollowing(acc Account) (Account, error) {
+func (r *repository) loadAccountsFollowing(ctx context.Context, acc Account) (Account, error) {
 	if !acc.HasMetadata() || len(acc.Metadata.FollowersIRI) == 0 {
 		return acc, nil
 	}
-	it, err := r.fedbox.Collection(pub.IRI(acc.Metadata.FollowingIRI))
+	it, err := r.fedbox.Collection(ctx, pub.IRI(acc.Metadata.FollowingIRI))
 	if err != nil {
 		r.errFn()(err.Error())
 		return acc, nil
@@ -625,7 +625,7 @@ func (r *repository) loadAccountsFollowing(acc Account) (Account, error) {
 	return acc, nil
 }
 
-func (r *repository) loadAccountsBlockedIgnored(acc Account) (Account, error) {
+func (r *repository) loadAccountsBlockedIgnored(ctx context.Context, acc Account) (Account, error) {
 	if !acc.HasMetadata() || len(acc.Metadata.OutboxIRI) == 0 {
 		return acc, nil
 	}
@@ -634,7 +634,7 @@ func (r *repository) loadAccountsBlockedIgnored(acc Account) (Account, error) {
 	f := &Filters{
 		Type: ActivityTypesFilter(good...),
 	}
-	it, err := r.fedbox.Collection(pub.IRI(acc.Metadata.OutboxIRI), Values(f))
+	it, err := r.fedbox.Collection(ctx, pub.IRI(acc.Metadata.OutboxIRI), Values(f))
 	if err != nil {
 		r.errFn()(err.Error())
 		return acc, nil
@@ -689,7 +689,7 @@ func getRepliesOf(items ...Item) pub.IRIs {
 	return repliesTo
 }
 
-func (r *repository) loadItemsReplies(items ...Item) (ItemCollection, error) {
+func (r *repository) loadItemsReplies(ctx context.Context, items ...Item) (ItemCollection, error) {
 	if len(items) == 0 {
 		return nil, nil
 	}
@@ -701,7 +701,7 @@ func (r *repository) loadItemsReplies(items ...Item) (ItemCollection, error) {
 	f := &Filters{}
 	for _, top := range repliesTo {
 		collFn := func() (pub.CollectionInterface, error) {
-			return r.fedbox.Replies(top.GetLink(), Values(f))
+			return r.fedbox.Replies(ctx, top.GetLink(), Values(f))
 		}
 		err := LoadFromCollection(collFn, &colCursor{filters: f}, func(c pub.ItemCollection) (bool, error) {
 			for _, it := range c {
@@ -723,7 +723,7 @@ func (r *repository) loadItemsReplies(items ...Item) (ItemCollection, error) {
 	return allReplies, nil
 }
 
-func (r *repository) loadAccountVotes(acc *Account, items ItemCollection) error {
+func (r *repository) loadAccountVotes(ctx context.Context, acc *Account, items ItemCollection) error {
 	if acc == nil || acc.pub == nil {
 		return nil
 	}
@@ -736,7 +736,7 @@ func (r *repository) loadAccountVotes(acc *Account, items ItemCollection) error 
 		f.Object.IRI = append(f.Object.IRI, LikeString(it.Hash.String()))
 	}
 	collFn := func() (pub.CollectionInterface, error) {
-		return r.fedbox.Outbox(acc.pub, Values(f))
+		return r.fedbox.Outbox(ctx, acc.pub, Values(f))
 	}
 	return LoadFromCollection(collFn, &colCursor{filters: f}, func(col pub.ItemCollection) (bool, error) {
 		for _, it := range col {
@@ -752,7 +752,7 @@ func (r *repository) loadAccountVotes(acc *Account, items ItemCollection) error 
 	})
 }
 
-func (r *repository) loadItemsVotes(items ...Item) (ItemCollection, error) {
+func (r *repository) loadItemsVotes(ctx context.Context, items ...Item) (ItemCollection, error) {
 	if len(items) == 0 {
 		return items, nil
 	}
@@ -765,7 +765,7 @@ func (r *repository) loadItemsVotes(items ...Item) (ItemCollection, error) {
 		f.Object.IRI = append(f.Object.IRI, LikeString(it.Hash.String()))
 	}
 	collFn := func() (pub.CollectionInterface, error) {
-		return r.fedbox.Inbox(r.fedbox.Service(), Values(f))
+		return r.fedbox.Inbox(ctx, r.fedbox.Service(), Values(f))
 	}
 	err := LoadFromCollection(collFn, &colCursor{filters: f}, func(c pub.ItemCollection) (bool, error) {
 		for _, vAct := range c {
@@ -798,7 +798,7 @@ func ActivityTypesFilter(t ...pub.ActivityVocabularyType) CompStrs {
 	return r
 }
 
-func (r *repository) loadAccountsAuthors(accounts ...Account) ([]Account, error) {
+func (r *repository) loadAccountsAuthors(ctx context.Context, accounts ...Account) ([]Account, error) {
 	if len(accounts) == 0 {
 		return accounts, nil
 	}
@@ -818,7 +818,7 @@ func (r *repository) loadAccountsAuthors(accounts ...Account) ([]Account, error)
 	if len(fActors.IRI) == 0 {
 		return accounts, errors.Errorf("unable to load accounts authors")
 	}
-	authors, err := r.accounts(&fActors)
+	authors, err := r.accounts(ctx, &fActors)
 	if err != nil {
 		return accounts, errors.Annotatef(err, "unable to load accounts authors")
 	}
@@ -837,7 +837,7 @@ func (r *repository) loadAccountsAuthors(accounts ...Account) ([]Account, error)
 	return accounts, nil
 }
 
-func (r *repository) loadFollowsAuthors(items ...FollowRequest) ([]FollowRequest, error) {
+func (r *repository) loadFollowsAuthors(ctx context.Context, items ...FollowRequest) ([]FollowRequest, error) {
 	if len(items) == 0 {
 		return items, nil
 	}
@@ -857,7 +857,7 @@ func (r *repository) loadFollowsAuthors(items ...FollowRequest) ([]FollowRequest
 	if len(fActors.IRI) == 0 {
 		return items, errors.Errorf("unable to load items authors")
 	}
-	authors, err := r.accounts(&fActors)
+	authors, err := r.accounts(ctx, &fActors)
 	if err != nil {
 		return items, errors.Annotatef(err, "unable to load items authors")
 	}
@@ -871,7 +871,7 @@ func (r *repository) loadFollowsAuthors(items ...FollowRequest) ([]FollowRequest
 	return items, nil
 }
 
-func (r *repository) loadModerationFollowups(items []Renderable) ([]ModerationOp, error) {
+func (r *repository) loadModerationFollowups(ctx context.Context, items []Renderable) ([]ModerationOp, error) {
 	inReplyTo := make(pub.IRIs, 0)
 	for _, it := range items {
 		iri := it.AP().GetLink()
@@ -886,7 +886,7 @@ func (r *repository) loadModerationFollowups(items []Renderable) ([]ModerationOp
 	modActions.Actor = &Filters{
 		IRI: notNilIRIs,
 	}
-	act, err := r.fedbox.Outbox(r.fedbox.Service(), Values(modActions))
+	act, err := r.fedbox.Outbox(ctx, r.fedbox.Service(), Values(modActions))
 	if err != nil {
 		return nil, err
 	}
@@ -905,7 +905,7 @@ func (r *repository) loadModerationFollowups(items []Renderable) ([]ModerationOp
 	return modFollowups, err
 }
 
-func (r *repository) loadModerationDetails(items ...ModerationOp) ([]ModerationOp, error) {
+func (r *repository) loadModerationDetails(ctx context.Context, items ...ModerationOp) ([]ModerationOp, error) {
 	if len(items) == 0 {
 		return items, nil
 	}
@@ -938,11 +938,11 @@ func (r *repository) loadModerationDetails(items ...ModerationOp) ([]ModerationO
 	if len(fActors.IRI) == 0 {
 		return items, errors.Errorf("unable to load items authors")
 	}
-	authors, err := r.accounts(&fActors)
+	authors, err := r.accounts(ctx, &fActors)
 	if err != nil {
 		return items, errors.Annotatef(err, "unable to load items authors")
 	}
-	objects, err := r.objects(&fObjects)
+	objects, err := r.objects(ctx, &fObjects)
 	if err != nil {
 		return items, errors.Annotatef(err, "unable to load items objects")
 	}
@@ -969,7 +969,7 @@ func accountsEqual(a1, a2 Account) bool {
 	return bytes.Equal(a1.Hash, a2.Hash) || (len(a1.Handle)+len(a2.Handle) > 0 && a1.Handle == a2.Handle)
 }
 
-func (r *repository) loadItemsAuthors(items ...Item) (ItemCollection, error) {
+func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemCollection, error) {
 	if len(items) == 0 {
 		return items, nil
 	}
@@ -1011,7 +1011,7 @@ func (r *repository) loadItemsAuthors(items ...Item) (ItemCollection, error) {
 	if len(fActors.IRI) == 0 {
 		return items, nil
 	}
-	authors, err := r.accounts(&fActors)
+	authors, err := r.accounts(ctx, &fActors)
 	if err != nil {
 		return items, errors.Annotatef(err, "unable to load items authors")
 	}
@@ -1168,9 +1168,9 @@ func LoadFromCollection(f CollectionFn, cur *colCursor, accum func(pub.ItemColle
 	return err
 }
 
-func (r *repository) accounts(f *Filters) ([]Account, error) {
+func (r *repository) accounts(ctx context.Context, f *Filters) ([]Account, error) {
 	actors := func() (pub.CollectionInterface, error) {
-		return r.fedbox.Actors(Values(f))
+		return r.fedbox.Actors(ctx, Values(f))
 	}
 	accounts := make([]Account, 0)
 	err := LoadFromCollection(actors, &colCursor{filters: f}, func(col pub.ItemCollection) (bool, error) {
@@ -1191,9 +1191,9 @@ func (r *repository) accounts(f *Filters) ([]Account, error) {
 	return accounts, err
 }
 
-func (r *repository) objects(f *Filters) (ItemCollection, error) {
+func (r *repository) objects(ctx context.Context, f *Filters) (ItemCollection, error) {
 	objects := func() (pub.CollectionInterface, error) {
-		return r.fedbox.Objects(Values(f))
+		return r.fedbox.Objects(ctx, Values(f))
 	}
 	items := make(ItemCollection, 0)
 	err := LoadFromCollection(objects, &colCursor{filters: f}, func(c pub.ItemCollection) (bool, error) {
@@ -1208,9 +1208,9 @@ func (r *repository) objects(f *Filters) (ItemCollection, error) {
 	return items, err
 }
 
-func (r *repository) actors(f *Filters) (AccountCollection, error) {
+func (r *repository) actors(ctx context.Context, f *Filters) (AccountCollection, error) {
 	objects := func() (pub.CollectionInterface, error) {
-		return r.fedbox.Actors(Values(f))
+		return r.fedbox.Actors(ctx, Values(f))
 	}
 	accounts := make(AccountCollection, 0)
 	err := LoadFromCollection(objects, &colCursor{filters: f}, func(c pub.ItemCollection) (bool, error) {
@@ -1225,8 +1225,8 @@ func (r *repository) actors(f *Filters) (AccountCollection, error) {
 	return accounts, err
 }
 
-func (r *repository) Objects(f *Filters) (Cursor, error) {
-	items, err := r.objects(f)
+func (r *repository) Objects(ctx context.Context, f *Filters) (Cursor, error) {
+	items, err := r.objects(ctx, f)
 	if err != nil {
 		return emptyCursor, err
 	}
@@ -1325,7 +1325,7 @@ func orderRenderables(r RenderableList) {
 //  With the resulting Object IRIs we load from the objects collection with our matching filters
 //  With the resulting Actor IRIs we load from the accounts collection with matching filters
 // From the
-func (r *repository) ActorCollection(fn CollectionFn, f *Filters) (Cursor, error) {
+func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, f *Filters) (Cursor, error) {
 	items := make(ItemCollection, 0)
 	follows := make(FollowRequests, 0)
 	accounts := make(AccountCollection, 0)
@@ -1417,7 +1417,7 @@ func (r *repository) ActorCollection(fn CollectionFn, f *Filters) (Cursor, error
 		}
 		ff := f.Object
 		ff.IRI = deferredItems
-		objects, _ := r.objects(ff)
+		objects, _ := r.objects(ctx, ff)
 		for _, d := range objects {
 			if !items.Contains(d) {
 				items = append(items, d)
@@ -1438,7 +1438,7 @@ func (r *repository) ActorCollection(fn CollectionFn, f *Filters) (Cursor, error
 		}
 		ff := f.Actor
 		ff.IRI = deferredItems
-		accounts, _ := r.accounts(ff)
+		accounts, _ := r.accounts(ctx, ff)
 		for _, d := range accounts {
 			for _, m := range moderations {
 				modAc := m.SubmittedBy.AP()
@@ -1450,11 +1450,11 @@ func (r *repository) ActorCollection(fn CollectionFn, f *Filters) (Cursor, error
 			}
 		}
 	}
-	items, err = r.loadItemsAuthors(items...)
+	items, err = r.loadItemsAuthors(ctx, items...)
 	if err != nil {
 		return emptyCursor, err
 	}
-	items, err = r.loadItemsVotes(items...)
+	items, err = r.loadItemsVotes(ctx, items...)
 	if err != nil {
 		return emptyCursor, err
 	}
@@ -1462,15 +1462,15 @@ func (r *repository) ActorCollection(fn CollectionFn, f *Filters) (Cursor, error
 	//if err != nil {
 	//	return emptyCursor, err
 	//}
-	follows, err = r.loadFollowsAuthors(follows...)
+	follows, err = r.loadFollowsAuthors(ctx, follows...)
 	if err != nil {
 		return emptyCursor, err
 	}
-	accounts, err = r.loadAccountsAuthors(accounts...)
+	accounts, err = r.loadAccountsAuthors(ctx, accounts...)
 	if err != nil {
 		return emptyCursor, err
 	}
-	moderations, err = r.loadModerationDetails(moderations...)
+	moderations, err = r.loadModerationDetails(ctx, moderations...)
 	if err != nil {
 		return emptyCursor, err
 	}
@@ -1512,7 +1512,7 @@ func (r *repository) ActorCollection(fn CollectionFn, f *Filters) (Cursor, error
 	}, nil
 }
 
-func (r *repository) SaveVote(v Vote) (Vote, error) {
+func (r *repository) SaveVote(ctx context.Context, v Vote) (Vote, error) {
 	if !v.SubmittedBy.IsValid() || !v.SubmittedBy.HasMetadata() {
 		return Vote{}, errors.Newf("Invalid vote submitter")
 	}
@@ -1525,7 +1525,7 @@ func (r *repository) SaveVote(v Vote) (Vote, error) {
 	}
 
 	url := fmt.Sprintf("%s/%s", v.Item.Metadata.ID, "likes")
-	itemVotes, err := r.loadVotesCollection(pub.IRI(url), pub.IRI(v.SubmittedBy.Metadata.ID))
+	itemVotes, err := r.loadVotesCollection(ctx, pub.IRI(url), pub.IRI(v.SubmittedBy.Metadata.ID))
 	// first step is to verify if vote already exists:
 	if err != nil {
 		r.errFn(log.Ctx{
@@ -1555,7 +1555,7 @@ func (r *repository) SaveVote(v Vote) (Vote, error) {
 
 	if exists.HasMetadata() {
 		act.Object = pub.IRI(exists.Metadata.IRI)
-		if _, _, err := r.fedbox.ToOutbox(act); err != nil {
+		if _, _, err := r.fedbox.ToOutbox(ctx, act); err != nil {
 			r.errFn()(err.Error())
 		}
 	}
@@ -1569,7 +1569,7 @@ func (r *repository) SaveVote(v Vote) (Vote, error) {
 		act.Object = o.GetLink()
 	}
 
-	_, _, err = r.fedbox.ToOutbox(act)
+	_, _, err = r.fedbox.ToOutbox(ctx, act)
 	if err != nil {
 		r.errFn()(err.Error())
 		return v, err
@@ -1578,7 +1578,7 @@ func (r *repository) SaveVote(v Vote) (Vote, error) {
 	return v, err
 }
 
-func (r *repository) loadVotesCollection(iri pub.IRI, actors ...pub.IRI) ([]Vote, error) {
+func (r *repository) loadVotesCollection(ctx context.Context, iri pub.IRI, actors ...pub.IRI) ([]Vote, error) {
 	cntActors := len(actors)
 	f := &Filters{}
 	if cntActors > 0 {
@@ -1587,7 +1587,7 @@ func (r *repository) loadVotesCollection(iri pub.IRI, actors ...pub.IRI) ([]Vote
 			f.AttrTo[i] = LikeString(a.String())
 		}
 	}
-	likes, err := r.fedbox.Collection(iri, Values(f))
+	likes, err := r.fedbox.Collection(ctx, iri, Values(f))
 	// first step is to verify if vote already exists:
 	if err != nil {
 		return nil, err
@@ -1625,7 +1625,7 @@ func (r *repository) handlerErrorResponse(body []byte) error {
 	return errors.WrapWithStatus(err.Code, nil, err.Message)
 }
 
-func (r *repository) handleItemSaveSuccessResponse(it Item, body []byte) (Item, error) {
+func (r *repository) handleItemSaveSuccessResponse(ctx context.Context, it Item, body []byte) (Item, error) {
 	ap, err := pub.UnmarshalJSON(body)
 	if err != nil {
 		r.errFn()(err.Error())
@@ -1636,7 +1636,7 @@ func (r *repository) handleItemSaveSuccessResponse(it Item, body []byte) (Item, 
 		r.errFn()(err.Error())
 		return it, err
 	}
-	items, err := r.loadItemsAuthors(it)
+	items, err := r.loadItemsAuthors(ctx, it)
 	return items[0], err
 }
 
@@ -1660,7 +1660,7 @@ func (r *repository) getAuthorRequestURL(a *Account) string {
 	return reqURL
 }
 
-func (r *repository) SaveItem(it Item) (Item, error) {
+func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 	if it.SubmittedBy == nil || !it.SubmittedBy.HasMetadata() {
 		return Item{}, errors.Newf("invalid account")
 	}
@@ -1701,7 +1701,7 @@ func (r *repository) SaveItem(it Item) (Item, error) {
 				names = append(names, EqualsString(m.Name))
 			}
 			ff := &Filters{Name: names}
-			actors, _, err := r.LoadAccounts(ff)
+			actors, _, err := r.LoadAccounts(ctx, ff)
 			if err != nil {
 				r.errFn(log.Ctx{"err": err})("unable to load accounts from mentions")
 			}
@@ -1747,7 +1747,7 @@ func (r *repository) SaveItem(it Item) (Item, error) {
 		}
 	}
 	var ob pub.Item
-	_, ob, err = r.fedbox.ToOutbox(act)
+	_, ob, err = r.fedbox.ToOutbox(ctx, act)
 	if err != nil {
 		r.errFn()(err.Error())
 		return it, err
@@ -1758,14 +1758,14 @@ func (r *repository) SaveItem(it Item) (Item, error) {
 		return it, err
 	}
 	if loadAuthors {
-		items, err := r.loadItemsAuthors(it)
+		items, err := r.loadItemsAuthors(ctx, it)
 		return items[0], err
 	}
 	return it, err
 }
 
-func (r *repository) LoadAccounts(f *Filters) (AccountCollection, uint, error) {
-	it, err := r.fedbox.Actors(Values(f))
+func (r *repository) LoadAccounts(ctx context.Context, f *Filters) (AccountCollection, uint, error) {
+	it, err := r.fedbox.Actors(ctx, Values(f))
 	if err != nil {
 		r.errFn()(err.Error())
 		return nil, 0, err
@@ -1784,22 +1784,22 @@ func (r *repository) LoadAccounts(f *Filters) (AccountCollection, uint, error) {
 			}
 			accounts = append(accounts, acc)
 		}
-		accounts, err = r.loadAccountsVotes(accounts...)
+		accounts, err = r.loadAccountsVotes(ctx, accounts...)
 		return err
 	})
 	return accounts, count, nil
 }
 
-func (r *repository) LoadAccount(iri pub.IRI) (Account, error) {
+func (r *repository) LoadAccount(ctx context.Context, iri pub.IRI) (Account, error) {
 	var acc Account
-	act, err := r.fedbox.Actor(iri)
+	act, err := r.fedbox.Actor(ctx, iri)
 	if err != nil {
 		r.errFn()(err.Error())
 		return acc, err
 	}
 	if err = acc.FromActivityPub(act); err == nil {
 		var accounts AccountCollection
-		accounts, err = r.loadAccountsVotes(acc)
+		accounts, err = r.loadAccountsVotes(ctx, acc)
 		if len(accounts) > 0 {
 			acc = accounts[0]
 		}
@@ -1817,16 +1817,16 @@ func Values(f interface{}) func() url.Values {
 	}
 }
 
-func (r *repository) LoadFollowRequests(ed *Account, f *Filters) (FollowRequests, uint, error) {
+func (r *repository) LoadFollowRequests(ctx context.Context, ed *Account, f *Filters) (FollowRequests, uint, error) {
 	if len(f.Type) == 0 {
 		f.Type = ActivityTypesFilter(pub.FollowType)
 	}
 	var followReq pub.CollectionInterface
 	var err error
 	if ed == nil {
-		followReq, err = r.fedbox.Activities(Values(f))
+		followReq, err = r.fedbox.Activities(ctx, Values(f))
 	} else {
-		followReq, err = r.fedbox.Inbox(loadAPPerson(*ed), Values(f))
+		followReq, err = r.fedbox.Inbox(ctx, loadAPPerson(*ed), Values(f))
 	}
 	requests := make([]FollowRequest, 0)
 	if err == nil && len(followReq.Collection()) > 0 {
@@ -1838,12 +1838,12 @@ func (r *repository) LoadFollowRequests(ed *Account, f *Filters) (FollowRequests
 				}
 			}
 		}
-		requests, err = r.loadFollowsAuthors(requests...)
+		requests, err = r.loadFollowsAuthors(ctx, requests...)
 	}
 	return requests, uint(len(requests)), nil
 }
 
-func (r *repository) SendFollowResponse(f FollowRequest, accept bool, reason *Item) error {
+func (r *repository) SendFollowResponse(ctx context.Context, f FollowRequest, accept bool, reason *Item) error {
 	er := f.SubmittedBy
 	if !er.IsValid() {
 		return errors.Newf("invalid account to follow %s", er.Handle)
@@ -1873,7 +1873,7 @@ func (r *repository) SendFollowResponse(f FollowRequest, accept bool, reason *It
 		response.Type = pub.AcceptType
 	}
 
-	_, _, err := r.fedbox.ToOutbox(response)
+	_, _, err := r.fedbox.ToOutbox(ctx, response)
 	if err != nil {
 		r.errFn(log.Ctx{
 			"err":      err,
@@ -1885,7 +1885,7 @@ func (r *repository) SendFollowResponse(f FollowRequest, accept bool, reason *It
 	return nil
 }
 
-func (r *repository) FollowAccount(er, ed Account, reason *Item) error {
+func (r *repository) FollowAccount(ctx context.Context, er, ed Account, reason *Item) error {
 	follower := loadAPPerson(er)
 	followed := loadAPPerson(ed)
 	if !accountValidForC2S(&er) {
@@ -1908,7 +1908,7 @@ func (r *repository) FollowAccount(er, ed Account, reason *Item) error {
 	follow.BCC = bcc
 	follow.Object = followed.GetLink()
 	follow.Actor = follower.GetLink()
-	_, _, err := r.fedbox.ToOutbox(follow)
+	_, _, err := r.fedbox.ToOutbox(ctx, follow)
 	if err != nil {
 		r.errFn(log.Ctx{
 			"err":      err,
@@ -1920,7 +1920,7 @@ func (r *repository) FollowAccount(er, ed Account, reason *Item) error {
 	return nil
 }
 
-func (r *repository) SaveAccount(a Account) (Account, error) {
+func (r *repository) SaveAccount(ctx context.Context, a Account) (Account, error) {
 	p := loadAPPerson(a)
 	id := p.GetLink()
 
@@ -1970,15 +1970,15 @@ func (r *repository) SaveAccount(a Account) (Account, error) {
 	}
 
 	var ap pub.Item
-	if _, ap, err = r.fedbox.ToOutbox(act); err != nil {
-		ctx := log.Ctx{
+	if _, ap, err = r.fedbox.ToOutbox(ctx, act); err != nil {
+		ltx := log.Ctx{
 			"author": author.GetLink(),
 			"err":    err,
 		}
 		if ap != nil {
-			ctx["activity"] = ap.GetLink()
+			ltx["activity"] = ap.GetLink()
 		}
-		r.errFn(ctx)("save failed")
+		r.errFn(ltx)("save failed")
 		return a, err
 	}
 	err = a.FromActivityPub(ap)
@@ -1997,46 +1997,46 @@ func (r *repository) LoadInfo() (WebInfo, error) {
 	return Instance.NodeInfo(), nil
 }
 
-func (r *repository) LoadActorOutbox(actor pub.Item, f *Filters) (*Cursor, error) {
+func (r *repository) LoadActorOutbox(ctx context.Context, actor pub.Item, f *Filters) (*Cursor, error) {
 	if actor == nil {
 		return nil, errors.Errorf("Invalid actor")
 	}
 	outbox := func() (pub.CollectionInterface, error) {
-		return r.fedbox.Outbox(actor, Values(f))
+		return r.fedbox.Outbox(ctx, actor, Values(f))
 	}
-	cursor, err := r.ActorCollection(outbox, f)
+	cursor, err := r.ActorCollection(ctx, outbox, f)
 	if err != nil {
 		return nil, err
 	}
 	return &cursor, nil
 }
 
-func (r *repository) LoadActivities(f *Filters) (*Cursor, error) {
+func (r *repository) LoadActivities(ctx context.Context, f *Filters) (*Cursor, error) {
 	collFn := func() (pub.CollectionInterface, error) {
-		return r.fedbox.Activities(Values(f))
+		return r.fedbox.Activities(ctx, Values(f))
 	}
-	cursor, err := r.ActorCollection(collFn, f)
+	cursor, err := r.ActorCollection(ctx, collFn, f)
 	if err != nil {
 		return nil, err
 	}
 	return &cursor, nil
 }
 
-func (r *repository) LoadActorInbox(actor pub.Item, f *Filters) (*Cursor, error) {
+func (r *repository) LoadActorInbox(ctx context.Context, actor pub.Item, f *Filters) (*Cursor, error) {
 	if actor == nil {
 		return nil, errors.Errorf("Invalid actor")
 	}
 	collFn := func() (pub.CollectionInterface, error) {
-		return r.fedbox.Inbox(actor, Values(f))
+		return r.fedbox.Inbox(ctx, actor, Values(f))
 	}
-	cursor, err := r.ActorCollection(collFn, f)
+	cursor, err := r.ActorCollection(ctx, collFn, f)
 	if err != nil {
 		return nil, err
 	}
 	return &cursor, nil
 }
 
-func (r repository) moderationActivity(er *pub.Actor, ed pub.Item, reason *Item) (*pub.Activity, error) {
+func (r repository) moderationActivity(ctx context.Context, er *pub.Actor, ed pub.Item, reason *Item) (*pub.Activity, error) {
 	bcc := make(pub.ItemCollection, 0)
 	bcc = append(bcc, pub.IRI(BaseURL))
 
@@ -2047,7 +2047,7 @@ func (r repository) moderationActivity(er *pub.Actor, ed pub.Item, reason *Item)
 	}
 	pub.OnObject(ed, func(o *pub.Object) error {
 		if o.AttributedTo != nil {
-			auth, err := r.fedbox.Actor(o.AttributedTo.GetLink())
+			auth, err := r.fedbox.Actor(ctx, o.AttributedTo.GetLink())
 			if err == nil && auth.AttributedTo != nil &&
 				!(auth.AttributedTo.GetLink().Equals(auth.GetLink(), false) || auth.AttributedTo.GetLink().Equals(pub.PublicNS, true)) {
 				cc = append(cc, auth.AttributedTo.GetLink())
@@ -2067,34 +2067,34 @@ func (r repository) moderationActivity(er *pub.Actor, ed pub.Item, reason *Item)
 	return act, nil
 }
 
-func (r repository) moderationActivityOnItem(er Account, ed Item, reason *Item) (*pub.Activity, error) {
+func (r repository) moderationActivityOnItem(ctx context.Context, er Account, ed Item, reason *Item) (*pub.Activity, error) {
 	reporter := loadAPPerson(er)
 	reported := new(pub.Object)
 	loadAPItem(reported, ed)
 	if !accountValidForC2S(&er) {
 		return nil, errors.Unauthorizedf("invalid account %s", er.Handle)
 	}
-	return r.moderationActivity(reporter, reported, reason)
+	return r.moderationActivity(ctx, reporter, reported, reason)
 }
 
-func (r repository) moderationActivityOnAccount(er, ed Account, reason *Item) (*pub.Activity, error) {
+func (r repository) moderationActivityOnAccount(ctx context.Context, er, ed Account, reason *Item) (*pub.Activity, error) {
 	reporter := loadAPPerson(er)
 	reported := loadAPPerson(ed)
 	if !accountValidForC2S(&er) {
 		return nil, errors.Unauthorizedf("invalid account %s", er.Handle)
 	}
 
-	return r.moderationActivity(reporter, reported, reason)
+	return r.moderationActivity(ctx, reporter, reported, reason)
 }
 
-func (r *repository) BlockAccount(er, ed Account, reason *Item) error {
-	block, err := r.moderationActivityOnAccount(er, ed, reason)
+func (r *repository) BlockAccount(ctx context.Context, er, ed Account, reason *Item) error {
+	block, err := r.moderationActivityOnAccount(ctx, er, ed, reason)
 	if err != nil {
 		r.errFn()(err.Error())
 		return err
 	}
 	block.Type = pub.BlockType
-	_, _, err = r.fedbox.ToOutbox(block)
+	_, _, err = r.fedbox.ToOutbox(ctx, block)
 	if err != nil {
 		r.errFn()(err.Error())
 		return err
@@ -2102,14 +2102,14 @@ func (r *repository) BlockAccount(er, ed Account, reason *Item) error {
 	return nil
 }
 
-func (r *repository) BlockItem(er Account, ed Item, reason *Item) error {
-	block, err := r.moderationActivityOnItem(er, ed, reason)
+func (r *repository) BlockItem(ctx context.Context, er Account, ed Item, reason *Item) error {
+	block, err := r.moderationActivityOnItem(ctx, er, ed, reason)
 	if err != nil {
 		r.errFn()(err.Error())
 		return err
 	}
 	block.Type = pub.BlockType
-	_, _, err = r.fedbox.ToOutbox(block)
+	_, _, err = r.fedbox.ToOutbox(ctx, block)
 	if err != nil {
 		r.errFn()(err.Error())
 		return err
@@ -2117,14 +2117,14 @@ func (r *repository) BlockItem(er Account, ed Item, reason *Item) error {
 	return nil
 }
 
-func (r *repository) ReportItem(er Account, it Item, reason *Item) error {
-	flag, err := r.moderationActivityOnItem(er, it, reason)
+func (r *repository) ReportItem(ctx context.Context, er Account, it Item, reason *Item) error {
+	flag, err := r.moderationActivityOnItem(ctx, er, it, reason)
 	if err != nil {
 		r.errFn()(err.Error())
 		return err
 	}
 	flag.Type = pub.FlagType
-	_, _, err = r.fedbox.ToOutbox(flag)
+	_, _, err = r.fedbox.ToOutbox(ctx, flag)
 	if err != nil {
 		r.errFn()(err.Error())
 		return err
@@ -2132,14 +2132,14 @@ func (r *repository) ReportItem(er Account, it Item, reason *Item) error {
 	return nil
 }
 
-func (r *repository) ReportAccount(er, ed Account, reason *Item) error {
-	report, err := r.moderationActivityOnAccount(er, ed, reason)
+func (r *repository) ReportAccount(ctx context.Context, er, ed Account, reason *Item) error {
+	report, err := r.moderationActivityOnAccount(ctx, er, ed, reason)
 	if err != nil {
 		r.errFn()(err.Error())
 		return err
 	}
 	report.Type = pub.FlagType
-	_, _, err = r.fedbox.ToOutbox(report)
+	_, _, err = r.fedbox.ToOutbox(ctx, report)
 	if err != nil {
 		r.errFn()(err.Error())
 		return err

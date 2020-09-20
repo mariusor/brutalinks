@@ -37,7 +37,7 @@ func LoadOutboxMw(next http.Handler) http.Handler {
 		var cursor = new(Cursor)
 		cursor.items = make(RenderableList, 0)
 		for _, author := range authors {
-			c, err := repo.LoadActorOutbox(author.pub, f)
+			c, err := repo.LoadActorOutbox(context.Background(), author.pub, f)
 			if err != nil {
 				ctxtErr(next, w, r, errors.Annotatef(err, "unable to load actor's outbox"))
 				return
@@ -61,7 +61,7 @@ func LoadInboxMw(next http.Handler) http.Handler {
 			ctxtErr(next, w, r, errors.MethodNotAllowedf("nil account"))
 			return
 		}
-		cursor, err := repo.LoadActorInbox(acc.pub, f)
+		cursor, err := repo.LoadActorInbox(context.Background(), acc.pub, f)
 		if err != nil {
 			ctxtErr(next, w, r, errors.Annotatef(err, "unable to load the %s's inbox", acc.pub.GetType()))
 			return
@@ -75,7 +75,7 @@ func LoadServiceInboxMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := ContextActivityFilters(r.Context())
 		repo := ContextRepository(r.Context())
-		cursor, err := repo.LoadActorInbox(repo.fedbox.Service(), f)
+		cursor, err := repo.LoadActorInbox(context.Background(), repo.fedbox.Service(), f)
 		if err != nil {
 			ctxtErr(next, w, r, errors.Annotatef(err, "unable to load the %s's inbox", repo.fedbox.Service().Type))
 			return
@@ -103,9 +103,10 @@ func LoadObjectFromInboxMw(next http.Handler) http.Handler {
 
 		f := ContextActivityFilters(r.Context())
 		repo := ContextRepository(r.Context())
+		ctx := context.Background()
 
 		// we first try to load from the service's inbox
-		col, err = repo.fedbox.Inbox(repo.fedbox.Service(), Values(f))
+		col, err = repo.fedbox.Inbox(ctx, repo.fedbox.Service(), Values(f))
 		if err != nil {
 			// log
 			return
@@ -115,13 +116,13 @@ func LoadObjectFromInboxMw(next http.Handler) http.Handler {
 			current := ContextAccount(r.Context())
 			if current.IsLogged() {
 				// if the current user is logged, try to load from their inbox
-				col, err = repo.fedbox.Inbox(current.pub, Values(f))
+				col, err = repo.fedbox.Inbox(ctx, current.pub, Values(f))
 				if err != nil {
 					// log
 				}
 				if col == nil || col.Count() == 0 {
 					// if the current user is logged, try to load from their outbox
-					col, err = repo.fedbox.Outbox(current.pub, Values(f))
+					col, err = repo.fedbox.Outbox(ctx, current.pub, Values(f))
 					if err != nil {
 						// log
 						return
@@ -143,13 +144,13 @@ func LoadObjectFromInboxMw(next http.Handler) http.Handler {
 		}
 
 		items := ItemCollection{i}
-		if comments, err := repo.loadItemsReplies(i); err == nil {
+		if comments, err := repo.loadItemsReplies(ctx, i); err == nil {
 			items = append(items, comments...)
 		}
-		if items, err = repo.loadItemsAuthors(items...); err != nil {
+		if items, err = repo.loadItemsAuthors(ctx, items...); err != nil {
 			repo.errFn()("unable to load item authors")
 		}
-		if items, err = repo.loadItemsVotes(items...); err != nil {
+		if items, err = repo.loadItemsVotes(ctx, items...); err != nil {
 			repo.errFn()("unable to load item votes")
 		}
 		c := &Cursor{
@@ -163,8 +164,8 @@ func LoadObjectFromInboxMw(next http.Handler) http.Handler {
 		if len(i.Title) > 0 {
 			m.Title = fmt.Sprintf("%s: %s", m.Title, i.Title)
 		}
-		ctx := context.WithValue(context.WithValue(r.Context(), CursorCtxtKey, c), ModelCtxtKey, m)
-		next.ServeHTTP(w, r.WithContext(ctx))
+		rtx := context.WithValue(context.WithValue(r.Context(), CursorCtxtKey, c), ModelCtxtKey, m)
+		next.ServeHTTP(w, r.WithContext(rtx))
 	})
 }
 

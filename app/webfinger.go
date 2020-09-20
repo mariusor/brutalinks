@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
@@ -47,16 +48,16 @@ var (
 func NodeInfoResolverNew(f *fedbox) NodeInfoResolver {
 	n := NodeInfoResolver{}
 
-	us, _ := f.Actors(Values(actorsFilter))
+	us, _ := f.Actors(context.Background(), Values(actorsFilter))
 	if us != nil {
 		n.users = int(us.Count())
 	}
 
-	posts, _ := f.Objects(Values(postsFilter))
+	posts, _ := f.Objects(context.Background(), Values(postsFilter))
 	if posts != nil {
 		n.posts = int(posts.Count())
 	}
-	all, _ := f.Objects(Values(allFilter))
+	all, _ := f.Objects(context.Background(), Values(allFilter))
 
 	if all != nil {
 		n.comments = int(all.Count()) - n.posts
@@ -80,8 +81,8 @@ func (n NodeInfoResolver) Usage() (nodeinfo.Usage, error) {
 }
 
 const (
-	githubUrl = "https://github.com/mariusor/go-littr"
-	author    = "@mariusor@metalhead.club"
+	githubUrl    = "https://github.com/mariusor/go-littr"
+	author       = "@mariusor@metalhead.club"
 	softwareName = "go-littr"
 )
 
@@ -198,7 +199,7 @@ func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 			}(handle)
 		}
 		ff := &Filters{Name: CompStrs{EqualsString(handle)}}
-		accounts, _, err := h.storage.LoadAccounts(ff)
+		accounts, _, err := h.storage.LoadAccounts(context.Background(), ff)
 		if err != nil {
 			err := errors.NotFoundf("resource not found %s", res)
 			h.errFn()("Error: %s", err)

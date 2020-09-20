@@ -90,7 +90,7 @@ func Init(c appConfig) (*handler, error) {
 	config := GetOauth2Config(provider, h.conf.BaseURL)
 	if len(config.ClientID) > 0 {
 		oIRI := actors.IRI(pub.IRI(h.storage.BaseURL)).AddPath(config.ClientID)
-		oauth, err := h.storage.fedbox.Actor(oIRI)
+		oauth, err := h.storage.fedbox.Actor(context.Background(), oIRI)
 		if err != nil {
 			h.conf.UserCreatingEnabled = false
 			h.errFn()("Failed to load actor: %s", err)
@@ -336,8 +336,9 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 				//IRI:  CompStrs{EqualsString(acc.Hash.String())},
 				Type: ActivityTypesFilter(ValidActorTypes...),
 			}
-			accounts, err := h.storage.accounts(f)
-			ctx := log.Ctx{
+			ctx := context.Background()
+			accounts, err := h.storage.accounts(ctx, f)
+			ltx := log.Ctx{
 				"handle": acc.Handle,
 				"hash":   acc.Hash,
 			}
@@ -347,7 +348,7 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 			}
 			if len(accounts) == 0 {
 				err := errors.NotFoundf("no accounts found for %v", f)
-				h.infoFn(ctx)("Error: %s", err)
+				h.infoFn(ltx)("Error: %s", err)
 				ctxtErr(next, w, r, err)
 				return
 			}
@@ -360,27 +361,27 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 			acc.Metadata = m
 			h.storage.WithAccount(&acc)
 			// TODO(marius): this needs to be moved to where we're handling all Inbox activities, not on page load
-			acc, err = h.storage.loadAccountsFollowers(acc)
+			acc, err = h.storage.loadAccountsFollowers(ctx, acc)
 			if err != nil {
-				h.infoFn(ctx)("Error: %s", err)
+				h.infoFn(ltx)("Error: %s", err)
 			}
-			acc, err = h.storage.loadAccountsFollowing(acc)
+			acc, err = h.storage.loadAccountsFollowing(ctx, acc)
 			if err != nil {
-				h.infoFn(ctx)("Error: %s", err)
+				h.infoFn(ltx)("Error: %s", err)
 			}
-			acc, err = h.storage.loadAccountsBlockedIgnored(acc)
+			acc, err = h.storage.loadAccountsBlockedIgnored(ctx, acc)
 			if err != nil {
-				h.infoFn(ctx)("Error: %s", err)
+				h.infoFn(ltx)("Error: %s", err)
 			}
 
 			var items ItemCollection
 			if cursor := ContextCursor(r.Context()); cursor != nil {
 				items = cursor.items.Items()
 			}
-			h.storage.loadAccountVotes(&acc, items)
-			acc, err = h.storage.loadAccountsOutbox(acc)
+			h.storage.loadAccountVotes(ctx, &acc, items)
+			acc, err = h.storage.loadAccountsOutbox(ctx, acc)
 			if err != nil {
-				h.infoFn(ctx)("Error: %s", err)
+				h.infoFn(ltx)("Error: %s", err)
 			}
 			r = r.WithContext(context.WithValue(r.Context(), LoggedAccountCtxtKey, &acc))
 			h.storage.WithAccount(&acc)

@@ -167,9 +167,10 @@ func TagFiltersMw(next http.Handler) http.Handler {
 			return
 		}
 		f := FiltersFromRequest(r)
-		f.Type = CreateActivitiesFilter
+		//f.Type = append(CreateActivitiesFilter, ModerationActivitiesFilter...)
+		f.Cont = CompStrs{LikeString("#" + tag)}
 		f.Object = &Filters{}
-		f.Object.Type = ActivityTypesFilter(ValidItemTypes...)
+		//f.Object.Type = ActivityTypesFilter(ValidItemTypes...)
 		f.Object.Cont = CompStrs{LikeString("#" + tag)}
 		m := ContextListingModel(r.Context())
 		m.Title = fmt.Sprintf("Items tagged as #%s", tag)
@@ -265,12 +266,13 @@ func ModerationListing(next http.Handler) http.Handler {
 			return
 		}
 
+		ctx := context.Background()
 		s := ContextRepository(r.Context())
 		if s == nil {
 			next.ServeHTTP(w, r)
 			return
 		}
-		followups, _ := s.loadModerationFollowups(c.items)
+		followups, _ := s.loadModerationFollowups(ctx, c.items)
 		c.items = aggregateModeration(c.items, followups)
 
 		next.ServeHTTP(w, r)
@@ -289,7 +291,7 @@ func LoadInvitedMw(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		a, err := s.LoadAccount(ActorsURL.AddPath(hash))
+		a, err := s.LoadAccount(context.Background(), ActorsURL.AddPath(hash))
 		if err != nil {
 			ctxtErr(next, w, r, err)
 			return

@@ -27,6 +27,7 @@ import (
 // HandleSubmit handles POST /year/month/day/hash/edit requests
 func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	acc := loggedAccount(r)
+	ctx := context.Background()
 	n, err := ContentFromRequest(r, *acc)
 	if err != nil {
 		h.errFn(log.Ctx{
@@ -63,12 +64,12 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 		} else {
 			iri = ObjectsURL.AddPath(n.Hash.String())
 		}
-		if p, err := repo.LoadItem(iri); err == nil {
+		if p, err := repo.LoadItem(ctx, iri); err == nil {
 			n.Title = p.Title
 		}
 		saveVote = false
 	}
-	n, err = repo.SaveItem(n)
+	n, err = repo.SaveItem(ctx, n)
 	if err != nil {
 		h.errFn(log.Ctx{
 			"before": err,
@@ -83,7 +84,7 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 			Item:        &n,
 			Weight:      1 * ScoreMultiplier,
 		}
-		if _, err := repo.SaveVote(v); err != nil {
+		if _, err := repo.SaveVote(ctx, v); err != nil {
 			h.errFn(log.Ctx{
 				"hash":   v.Item.Hash,
 				"author": v.SubmittedBy.Handle,
@@ -110,7 +111,8 @@ func genitive(name string) string {
 func (h *handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 	repo := h.storage
 	iri := ObjectsURL.AddPath(chi.URLParam(r, "hash"))
-	p, err := repo.LoadItem(iri)
+	ctx := context.Background()
+	p, err := repo.LoadItem(ctx, iri)
 	if err != nil {
 		h.errFn()("Error: %s", err)
 		h.v.HandleErrors(w, r, errors.NewNotFound(err, "not found"))
@@ -123,7 +125,7 @@ func (h *handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 		url = fmt.Sprintf("%s#li-%s", backUrl, p.Hash)
 	}
 	p.Delete()
-	if p, err = repo.SaveItem(p); err != nil {
+	if p, err = repo.SaveItem(ctx, p); err != nil {
 		h.v.addFlashMessage(Error, w, r, "unable to delete item as current user")
 	}
 
@@ -134,8 +136,9 @@ func (h *handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 // HandleVoting serves /~{handle}/{direction} request
 func (h *handler) HandleVoting(w http.ResponseWriter, r *http.Request) {
 	repo := h.storage
+	ctx := context.Background()
 	iri := ObjectsURL.AddPath(chi.URLParam(r, "hash"))
-	p, err := repo.LoadItem(iri)
+	p, err := repo.LoadItem(ctx, iri)
 	if err != nil {
 		h.errFn()("Error: %s", err)
 		h.v.HandleErrors(w, r, errors.NewNotFound(err, "not found"))
@@ -163,7 +166,7 @@ func (h *handler) HandleVoting(w http.ResponseWriter, r *http.Request) {
 			Item:        &p,
 			Weight:      multiplier * ScoreMultiplier,
 		}
-		if _, err := repo.SaveVote(v); err != nil {
+		if _, err := repo.SaveVote(ctx, v); err != nil {
 			h.errFn(log.Ctx{
 				"hash":   v.Item.Hash,
 				"author": v.SubmittedBy.Handle,
@@ -195,7 +198,7 @@ func (h *handler) FollowAccount(w http.ResponseWriter, r *http.Request) {
 	}
 	fol := toFollow[0]
 	// todo(marius): load follow reason from POST request so we can show it to the followed user
-	err = repo.FollowAccount(*loggedAccount, fol, nil)
+	err = repo.FollowAccount(context.Background(), *loggedAccount, fol, nil)
 	if err != nil {
 		h.v.HandleErrors(w, r, err)
 		return
@@ -212,6 +215,7 @@ func (h *handler) HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ctx := context.Background()
 	repo := h.storage
 	followers := ContextAuthors(r.Context())
 	if len(followers) == 0 {
@@ -234,7 +238,7 @@ func (h *handler) HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 	// todo(marius): load response reason from POST request so we can show it to the followed user
-	followRequests, cnt, err := repo.LoadFollowRequests(loggedAccount, ff)
+	followRequests, cnt, err := repo.LoadFollowRequests(ctx, loggedAccount, ff)
 	if err != nil {
 		h.v.HandleErrors(w, r, err)
 		return
@@ -244,7 +248,7 @@ func (h *handler) HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	follow := followRequests[0]
-	err = repo.SendFollowResponse(follow, accept, nil)
+	err = repo.SendFollowResponse(ctx, follow, accept, nil)
 	if err != nil {
 		h.v.HandleErrors(w, r, err)
 		return
@@ -260,10 +264,11 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	pw := r.PostFormValue("pw")
 	handle := r.PostFormValue("handle")
 	state := r.PostFormValue("state")
+	ctx := context.Background()
 
 	config := GetOauth2Config("fedbox", h.conf.BaseURL)
 	// Try to load actor from handle
-	accts, err := h.storage.accounts(&Filters{
+	accts, err := h.storage.accounts(ctx, &Filters{
 		Name: CompStrs{EqualsString(handle)},
 		Type: ActivityTypesFilter(ValidActorTypes...),
 	})
@@ -296,7 +301,7 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 			"handle": handle,
 			"client": config.ClientID,
 			"state":  state,
-			"error":  err,
+			"error":  fmt.Sprintf("%s", err),
 		})
 		return
 	}
@@ -310,7 +315,7 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 			"handle": handle,
 			"client": config.ClientID,
 			"state":  state,
-			"error":  err,
+			"error":  fmt.Sprintf("%s", err),
 		})
 		return
 	}
@@ -367,6 +372,7 @@ func (h *handler) ValidateLoggedIn(eh ErrorHandler) Handler {
 
 func (h *handler) ValidateItemAuthor(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
+		ctx := context.Background()
 		acc := loggedAccount(r)
 		hash := chi.URLParam(r, "hash")
 		url := r.URL
@@ -374,7 +380,7 @@ func (h *handler) ValidateItemAuthor(next http.Handler) http.Handler {
 		if len(hash) > 0 && action != hash {
 			repo := h.storage
 			iri := ObjectsURL.AddPath(hash)
-			m, err := repo.LoadItem(iri)
+			m, err := repo.LoadItem(ctx, iri)
 			if err != nil {
 				ctxtErr(next, w, r, errors.NewNotFound(err, "item"))
 				return
@@ -394,7 +400,8 @@ func (h *handler) ValidateItemAuthor(next http.Handler) http.Handler {
 func (h *handler) HandleItemRedirect(w http.ResponseWriter, r *http.Request) {
 	repo := h.storage
 	iri := ObjectsURL.AddPath(chi.URLParam(r, "hash"))
-	p, err := repo.LoadItem(iri)
+	ctx := context.Background()
+	p, err := repo.LoadItem(ctx, iri)
 	if err != nil {
 		h.v.HandleErrors(w, r, errors.NewNotValid(err, "oops!"))
 		return
@@ -444,7 +451,7 @@ func (h *handler) HandleSendInvite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	invitee, err := h.storage.SaveAccount(Account{
+	invitee, err := h.storage.SaveAccount(context.Background(), Account{
 		Email:     email,
 		CreatedBy: acc,
 	})
@@ -469,7 +476,7 @@ func (h *handler) HandleSendInvite(w http.ResponseWriter, r *http.Request) {
 		Body:    fmt.Sprintf(bodyFmt, invitee.Email, h.conf.HostName, h.conf.BaseURL, u, acc.Handle),
 	}
 	q, _ := qstring.Marshal(&mailContent)
-	h.v.Redirect(w, r, fmt.Sprintf("mailto:%s?%s", invitee.Email, q.Encode()), http.StatusSeeOther)
+	h.v.Redirect(w, r, fmt.Sprintf("mailto:%s?%s", invitee.Email, q), http.StatusSeeOther)
 	return
 }
 
@@ -480,9 +487,10 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 		h.v.HandleErrors(w, r, err)
 		return
 	}
+	ctx := context.Background()
 
 	f := &Filters{Name: CompStrs{EqualsString(a.Handle)}}
-	maybeExists, err := h.storage.fedbox.Actors(Values(f))
+	maybeExists, err := h.storage.fedbox.Actors(ctx, Values(f))
 	if err != nil {
 		h.v.HandleErrors(w, r, err)
 		return
@@ -494,7 +502,7 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 
 	app := h.storage.app
 	a.CreatedBy = app
-	a, err = h.storage.WithAccount(app).SaveAccount(a)
+	a, err = h.storage.WithAccount(app).SaveAccount(ctx, a)
 	if err != nil {
 		h.errFn()("Error: %s", err)
 		h.v.HandleErrors(w, r, err)
@@ -618,7 +626,7 @@ func (h *handler) BlockAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	block := toBlock[0]
-	err = repo.BlockAccount(*loggedAccount, block, &reason)
+	err = repo.BlockAccount(context.Background(), *loggedAccount, block, &reason)
 	if err != nil {
 		h.v.HandleErrors(w, r, err)
 		return
@@ -645,15 +653,16 @@ func (h *handler) BlockItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	repo := h.storage
+	ctx := context.Background()
 
-	it, err := repo.LoadItem(ObjectsURL.AddPath(chi.URLParam(r, "hash")))
+	it, err := repo.LoadItem(ctx, ObjectsURL.AddPath(chi.URLParam(r, "hash")))
 	if err != nil {
 		h.errFn(log.Ctx{
 			"before": err,
 		})("invalid item to report")
 		h.v.HandleErrors(w, r, errors.NewNotFound(err, ""))
 	}
-	err = repo.BlockItem(*loggedAccount, it, &reason)
+	err = repo.BlockItem(ctx, *loggedAccount, it, &reason)
 	if err != nil {
 		h.v.HandleErrors(w, r, err)
 		return
@@ -687,7 +696,7 @@ func (h *handler) ReportAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	p := byHandleAccounts[0]
-	err = repo.ReportAccount(*loggedAccount, p, &reason)
+	err = repo.ReportAccount(context.Background(), *loggedAccount, p, &reason)
 	if err != nil {
 		h.errFn()("Error: %s", err)
 		h.v.HandleErrors(w, r, errors.NewNotFound(err, "not found"))
@@ -711,6 +720,7 @@ func (h *handler) ReportItem(w http.ResponseWriter, r *http.Request) {
 		h.v.HandleErrors(w, r, err)
 		return
 	}
+	ctx := context.Background()
 
 	reason, err := ContentFromRequest(r, *loggedAccount)
 	if err != nil {
@@ -722,14 +732,14 @@ func (h *handler) ReportItem(w http.ResponseWriter, r *http.Request) {
 	}
 	repo := h.storage
 
-	p, err := repo.LoadItem(ObjectsURL.AddPath(chi.URLParam(r, "hash")))
+	p, err := repo.LoadItem(ctx, ObjectsURL.AddPath(chi.URLParam(r, "hash")))
 	if err != nil {
 		h.errFn(log.Ctx{
 			"before": err,
 		})("invalid item to report")
 		h.v.HandleErrors(w, r, errors.NewNotFound(err, ""))
 	}
-	err = repo.ReportItem(*loggedAccount, p, &reason)
+	err = repo.ReportItem(ctx, *loggedAccount, p, &reason)
 	if err != nil {
 		h.errFn()("Error: %s", err)
 		h.v.HandleErrors(w, r, errors.NewNotFound(err, "not found"))
