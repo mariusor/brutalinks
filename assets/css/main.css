@@ -79,10 +79,6 @@ a[href="#"], a[href="#"]:visited {
 .h-mirror.v-mirror {
     transform: rotateY(180deg) rotateX(180deg);
 }
-svg.icon.icon-eraser {
-    width: 1.4em;
-    margin-left: -.2em;
-}
 .icon.icon-home, .icon.icon-star, .icon.icon-activitypub, .icon.icon-adjust,
 .icon.icon-lock, .icon.icon-flag, .icon.icon-block, .icon.icon-edit
 {
@@ -209,9 +205,6 @@ form textarea {
 form button {
     margin-top: .2em;
     padding: .2em;
-}
-form button svg {
-    margin-bottom: -.2em;
 }
 #reply, #new {
     max-width: 30rem;
