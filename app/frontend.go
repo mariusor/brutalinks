@@ -181,12 +181,18 @@ func (h *handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
 	conf := GetOauth2Config(provider, h.conf.BaseURL)
 	tok, err := conf.Exchange(r.Context(), code)
 	if err != nil {
-		h.errFn()("%s", err)
+		h.errFn(log.Ctx{"err": err})("Unable to load token")
 		h.v.HandleErrors(w, r, err)
 		return
 	}
 
 	s, _ := h.v.s.get(w, r)
+	s, err := h.v.s.get(w, r)
+	if err != nil {
+		h.errFn(log.Ctx{"err": err})("Unable to get new session")
+		h.v.HandleErrors(w, r, err)
+		return
+	}
 	account := h.v.loadCurrentAccountFromSession(s)
 	account.Metadata.OAuth = OAuth{
 		State:        state,
@@ -277,6 +283,9 @@ func isInverted(r *http.Request) bool {
 }
 
 func (v *view) loadCurrentAccountFromSession(s *sessions.Session) Account {
+	if s == nil {
+		return defaultAccount
+	}
 	// load the current account from the session or setting it to anonymous
 	raw, ok := s.Values[SessionUserKey]
 	if !ok {
