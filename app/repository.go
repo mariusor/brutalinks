@@ -700,10 +700,10 @@ func (r *repository) loadItemsReplies(ctx context.Context, items ...Item) (ItemC
 	allReplies := make(ItemCollection, 0)
 	f := &Filters{}
 	for _, top := range repliesTo {
-		collFn := func() (pub.CollectionInterface, error) {
+		collFn := func(ctx context.Context) (pub.CollectionInterface, error) {
 			return r.fedbox.Replies(ctx, top.GetLink(), Values(f))
 		}
-		err := LoadFromCollection(collFn, &colCursor{filters: f}, func(c pub.ItemCollection) (bool, error) {
+		err := LoadFromCollection(ctx, collFn, &colCursor{filters: f}, func(c pub.ItemCollection) (bool, error) {
 			for _, it := range c {
 				if !it.IsObject() {
 					continue
@@ -735,10 +735,10 @@ func (r *repository) loadAccountVotes(ctx context.Context, acc *Account, items I
 	for _, it := range items {
 		f.Object.IRI = append(f.Object.IRI, LikeString(it.Hash.String()))
 	}
-	collFn := func() (pub.CollectionInterface, error) {
+	collFn := func(ctx context.Context) (pub.CollectionInterface, error) {
 		return r.fedbox.Outbox(ctx, acc.pub, Values(f))
 	}
-	return LoadFromCollection(collFn, &colCursor{filters: f}, func(col pub.ItemCollection) (bool, error) {
+	return LoadFromCollection(ctx, collFn, &colCursor{filters: f}, func(col pub.ItemCollection) (bool, error) {
 		for _, it := range col {
 			if !it.IsObject() || !voteActivities.Contains(it.GetType()) {
 				continue
@@ -764,10 +764,10 @@ func (r *repository) loadItemsVotes(ctx context.Context, items ...Item) (ItemCol
 	for _, it := range items {
 		f.Object.IRI = append(f.Object.IRI, LikeString(it.Hash.String()))
 	}
-	collFn := func() (pub.CollectionInterface, error) {
+	collFn := func(ctx context.Context) (pub.CollectionInterface, error) {
 		return r.fedbox.Inbox(ctx, r.fedbox.Service(), Values(f))
 	}
-	err := LoadFromCollection(collFn, &colCursor{filters: f}, func(c pub.ItemCollection) (bool, error) {
+	err := LoadFromCollection(ctx, collFn, &colCursor{filters: f}, func(c pub.ItemCollection) (bool, error) {
 		for _, vAct := range c {
 			if !vAct.IsObject() || !voteActivities.Contains(vAct.GetType()) {
 				continue
@@ -1125,7 +1125,7 @@ const (
 )
 
 // LoadFromCollection iterates over a collection returned by the f function, until accum is satisfied
-func LoadFromCollection(f CollectionFn, cur *colCursor, accum func(pub.ItemCollection) (bool, error)) error {
+func LoadFromCollection(ctx context.Context, f CollectionFn, cur *colCursor, accum func(pub.ItemCollection) (bool, error)) error {
 	fetch := make(chan res)
 
 	var err error
@@ -1137,7 +1137,7 @@ func LoadFromCollection(f CollectionFn, cur *colCursor, accum func(pub.ItemColle
 			var status bool
 			var col pub.CollectionInterface
 
-			col, err = f()
+			col, err = f(ctx)
 			if err != nil {
 				fetch <- res{accumError, err}
 				return
@@ -1191,11 +1191,11 @@ func LoadFromCollection(f CollectionFn, cur *colCursor, accum func(pub.ItemColle
 }
 
 func (r *repository) accounts(ctx context.Context, f *Filters) ([]Account, error) {
-	actors := func() (pub.CollectionInterface, error) {
+	actors := func(ctx context.Context) (pub.CollectionInterface, error) {
 		return r.fedbox.Actors(ctx, Values(f))
 	}
 	accounts := make([]Account, 0)
-	err := LoadFromCollection(actors, &colCursor{filters: f}, func(col pub.ItemCollection) (bool, error) {
+	err := LoadFromCollection(ctx, actors, &colCursor{filters: f}, func(col pub.ItemCollection) (bool, error) {
 		for _, it := range col {
 			if !it.IsObject() || !ValidActorTypes.Contains(it.GetType()) {
 				continue
@@ -1214,11 +1214,11 @@ func (r *repository) accounts(ctx context.Context, f *Filters) ([]Account, error
 }
 
 func (r *repository) objects(ctx context.Context, f *Filters) (ItemCollection, error) {
-	objects := func() (pub.CollectionInterface, error) {
+	objects := func(ctx context.Context) (pub.CollectionInterface, error) {
 		return r.fedbox.Objects(ctx, Values(f))
 	}
 	items := make(ItemCollection, 0)
-	err := LoadFromCollection(objects, &colCursor{filters: f}, func(c pub.ItemCollection) (bool, error) {
+	err := LoadFromCollection(ctx, objects, &colCursor{filters: f}, func(c pub.ItemCollection) (bool, error) {
 		for _, it := range c {
 			i := new(Item)
 			if err := i.FromActivityPub(it); err == nil && i.IsValid() {
@@ -1231,11 +1231,11 @@ func (r *repository) objects(ctx context.Context, f *Filters) (ItemCollection, e
 }
 
 func (r *repository) actors(ctx context.Context, f *Filters) (AccountCollection, error) {
-	objects := func() (pub.CollectionInterface, error) {
+	objects := func(ctx context.Context) (pub.CollectionInterface, error) {
 		return r.fedbox.Actors(ctx, Values(f))
 	}
 	accounts := make(AccountCollection, 0)
-	err := LoadFromCollection(objects, &colCursor{filters: f}, func(c pub.ItemCollection) (bool, error) {
+	err := LoadFromCollection(ctx, objects, &colCursor{filters: f}, func(c pub.ItemCollection) (bool, error) {
 		for _, it := range c {
 			i := new(Account)
 			if err := i.FromActivityPub(it); err == nil && i.IsValid() {
@@ -1359,7 +1359,7 @@ func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, f *Fi
 	deferredActivities := make(CompStrs, 0)
 
 	result := make([]Renderable, 0)
-	err := LoadFromCollection(fn, &colCursor{filters: f}, func(col pub.ItemCollection) (bool, error) {
+	err := LoadFromCollection(ctx, fn, &colCursor{filters: f}, func(col pub.ItemCollection) (bool, error) {
 		for _, it := range col {
 			pub.OnActivity(it, func(a *pub.Activity) error {
 				typ := it.GetType()
@@ -2023,7 +2023,7 @@ func (r *repository) LoadActorOutbox(ctx context.Context, actor pub.Item, f *Fil
 	if actor == nil {
 		return nil, errors.Errorf("Invalid actor")
 	}
-	outbox := func() (pub.CollectionInterface, error) {
+	outbox := func(ctx context.Context) (pub.CollectionInterface, error) {
 		return r.fedbox.Outbox(ctx, actor, Values(f))
 	}
 	cursor, err := r.ActorCollection(ctx, outbox, f)
@@ -2034,7 +2034,7 @@ func (r *repository) LoadActorOutbox(ctx context.Context, actor pub.Item, f *Fil
 }
 
 func (r *repository) LoadActivities(ctx context.Context, f *Filters) (*Cursor, error) {
-	collFn := func() (pub.CollectionInterface, error) {
+	collFn := func(ctx context.Context) (pub.CollectionInterface, error) {
 		return r.fedbox.Activities(ctx, Values(f))
 	}
 	cursor, err := r.ActorCollection(ctx, collFn, f)
@@ -2048,7 +2048,7 @@ func (r *repository) LoadActorInbox(ctx context.Context, actor pub.Item, f *Filt
 	if actor == nil {
 		return nil, errors.Errorf("Invalid actor")
 	}
-	collFn := func() (pub.CollectionInterface, error) {
+	collFn := func(ctx context.Context) (pub.CollectionInterface, error) {
 		return r.fedbox.Inbox(ctx, actor, Values(f))
 	}
 	cursor, err := r.ActorCollection(ctx, collFn, f)
