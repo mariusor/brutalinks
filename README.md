@@ -1,29 +1,14 @@
 # About
 
-This project represents a new attempt at the social link aggregator paradigm.
+This project represents a new attempt at the social link aggregator service. It is modelled after (old)Reddit, HackerNews, and Lobste.rs trying to combine the good parts of these services while mapping them on the foundation of an [ActivityPub](https://www.w3.org/TR/activitypub) generic service.
 
-It leverages the [ActivityPub](https://www.w3.org/TR/activitypub) web specification for social networking
-and uses federation to prevent some of the problems that exist currently in similar communities.
+Targets small to medium communities which ideally focus on a single topic. At the same it allows reaching the "network effect" through the ability of federating with other similar services, but also with the rest of the fediverse ecosystem.
 
-<!-- The main problem it tries to solve is the dissolution over time of the community's interests and its split
-into groups with tighter focused interests and dissenting  -->
+Built using a performant stack, and with minimal dependencies, we try to provide an easy out of the box installation. We provide standalone statically compiled binaries and docker containers. Even though having some developer experience is useful, we've tried to make deployment as easy as possible.
 
-The main reason why link aggregators lose their appeal is the increasing number of users, 
-which more often than not, do not share the existing group's interests and philosophies. 
-As the number grows, the topics start to expand over a larger spectrum, people get flooded with irrelevant content, 
-while what is relevant gets buried. 
-<!--From the an old member's perspective it's the "eternal September" effect.--> 
-
-This is why the main component which will be missing in this implementation is the concept of using 
-the same instance for merging multiple interest groups and replacing it with the different instances themselves.
-This way every community will be able to create one of their own  and enforce (or not) 
-their own moderation rules and topic preferences.
-
-At the same time, through the federation mechanism between instances, the users can subscribe to other
-streams and will receive updates from them. As a plus, due to the interoperability that ActivityPub brings,
-they are not only limited to link aggregators, but can also interact with other AP capable services.
+The community can be built using an invitation based model, where a user shares the responsibility for moderating the other accounts they invited to the service. The moderation actions are kept public and presented in an anonymized layout.
 
 ___
 
 [![MIT Licensed](https://img.shields.io/github/license/mariusor/littr.go.svg)](https://raw.githubusercontent.com/mariusor/littr.go/master/LICENSE)
-[![Builds status](https://builds.sr.ht/~mariusor/littr.go.svg)](https://builds.sr.ht/~mariusor/littr.go?)
+[![Builds status](https://builds.sr.ht/~mariusor/go-littr.svg)](https://builds.sr.ht/~mariusor/go-littr)
