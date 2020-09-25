@@ -186,7 +186,6 @@ func (h *handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s, _ := h.v.s.get(w, r)
 	s, err := h.v.s.get(w, r)
 	if err != nil {
 		h.errFn(log.Ctx{"err": err})("Unable to get new session")
