@@ -1111,9 +1111,18 @@ func getCollectionPrevNext(col pub.CollectionInterface) (prev, next string) {
 }
 
 type res struct {
-	done bool
-	err  error
+	status accumStatus
+	err    error
 }
+
+type accumStatus int8
+
+const (
+	accumError accumStatus = -1
+	accumContinue accumStatus = iota
+	accumSuccess
+	accumEndOfCollection
+)
 
 // LoadFromCollection iterates over a collection returned by the f function, until accum is satisfied
 func LoadFromCollection(f CollectionFn, cur *colCursor, accum func(pub.ItemCollection) (bool, error)) error {
@@ -1130,7 +1139,7 @@ func LoadFromCollection(f CollectionFn, cur *colCursor, accum func(pub.ItemColle
 
 			col, err = f()
 			if err != nil {
-				fetch <- res{true, err}
+				fetch <- res{accumError, err}
 				return
 			}
 
@@ -1140,27 +1149,40 @@ func LoadFromCollection(f CollectionFn, cur *colCursor, accum func(pub.ItemColle
 				cur.filters.Prev = prev
 			}
 			if ocTypes.Contains(col.GetType()) {
-				pub.OnOrderedCollection(col, func(c *pub.OrderedCollection) error {
+				if err := pub.OnOrderedCollection(col, func(c *pub.OrderedCollection) error {
 					status, err = accum(c.OrderedItems)
-					return nil
-				})
+					return err
+				}); err != nil {
+					fetch <- res{accumError, err}
+					return
+				}
 			}
 			if cTypes.Contains(col.GetType()) {
-				pub.OnCollection(col, func(c *pub.Collection) error {
+				if err := pub.OnCollection(col, func(c *pub.Collection) error {
 					status, err = accum(c.Items)
-					return nil
-				})
+					return err
+				}); err != nil {
+					fetch <- res{accumError, err}
+					return
+				}
+			}
+			st := accumContinue
+			if len(cur.filters.Next) == 0 {
+				st = accumEndOfCollection
 			}
 			if err != nil {
-				status = true
+				st = accumError
 			} else {
 				processed += len(col.Collection())
 			}
-			fetch <- res{status || uint(processed) == col.Count(), err}
+			if status || uint(processed) == col.Count() {
+				st = accumSuccess
+			}
+			fetch <- res{st, err}
 		}()
 
 		r := <-fetch
-		if r.done || len(cur.filters.Next)+len(cur.filters.Prev) == 0 {
+		if r.status != accumContinue || len(cur.filters.Next)+len(cur.filters.Prev) == 0 {
 			break
 		}
 	}
