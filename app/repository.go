@@ -1055,6 +1055,7 @@ var emptyCursor = Cursor{}
 
 type colCursor struct {
 	filters *Filters
+	loaded  int
 	items   pub.ItemCollection
 }
 
@@ -1118,7 +1119,7 @@ type res struct {
 type accumStatus int8
 
 const (
-	accumError accumStatus = -1
+	accumError    accumStatus = -1
 	accumContinue accumStatus = iota
 	accumSuccess
 	accumEndOfCollection
@@ -1126,63 +1127,50 @@ const (
 
 // LoadFromCollection iterates over a collection returned by the f function, until accum is satisfied
 func LoadFromCollection(ctx context.Context, f CollectionFn, cur *colCursor, accum func(pub.ItemCollection) (bool, error)) error {
-	fetch := make(chan res)
-
 	var err error
 	ocTypes := pub.ActivityVocabularyTypes{pub.OrderedCollectionType, pub.OrderedCollectionPageType}
 	cTypes := pub.ActivityVocabularyTypes{pub.CollectionType, pub.CollectionPageType}
 
-	for processed := 0; ; {
-		go func() {
-			var status bool
-			var col pub.CollectionInterface
+	ttx, tCancel := context.WithTimeout(ctx, 10*time.Millisecond)
+	processed := 0
+	for {
+		var status bool
+		var col pub.CollectionInterface
 
-			col, err = f(ctx)
-			if err != nil {
-				fetch <- res{accumError, err}
-				return
-			}
+		col, err = f(ttx)
+		if err != nil {
+			return err
+		}
 
-			var prev string
-			prev, cur.filters.Next = getCollectionPrevNext(col)
-			if processed == 0 {
-				cur.filters.Prev = prev
-			}
-			if ocTypes.Contains(col.GetType()) {
-				if err := pub.OnOrderedCollection(col, func(c *pub.OrderedCollection) error {
-					status, err = accum(c.OrderedItems)
-					return err
-				}); err != nil {
-					fetch <- res{accumError, err}
-					return
-				}
-			}
-			if cTypes.Contains(col.GetType()) {
-				if err := pub.OnCollection(col, func(c *pub.Collection) error {
-					status, err = accum(c.Items)
-					return err
-				}); err != nil {
-					fetch <- res{accumError, err}
-					return
-				}
-			}
-			st := accumContinue
-			if len(cur.filters.Next) == 0 {
-				st = accumEndOfCollection
-			}
-			if err != nil {
-				st = accumError
-			} else {
-				processed += len(col.Collection())
-			}
-			if status || uint(processed) == col.Count() {
-				st = accumSuccess
-			}
-			fetch <- res{st, err}
-		}()
-
-		r := <-fetch
-		if r.status != accumContinue || len(cur.filters.Next)+len(cur.filters.Prev) == 0 {
+		var prev string
+		prev, cur.filters.Next = getCollectionPrevNext(col)
+		if processed == 0 {
+			cur.filters.Prev = prev
+		}
+		if ocTypes.Contains(col.GetType()) {
+			err = pub.OnOrderedCollection(col, func(c *pub.OrderedCollection) error {
+				status, err = accum(c.OrderedItems)
+				return err
+			})
+		} else if cTypes.Contains(col.GetType()) {
+			err = pub.OnCollection(col, func(c *pub.Collection) error {
+				status, err = accum(c.Items)
+				return err
+			})
+		}
+		if err != nil {
+			return err
+		}
+		processed += len(col.Collection())
+		st := accumContinue
+		if len(cur.filters.Next) == 0 || uint(processed) == col.Count() {
+			st = accumEndOfCollection
+		}
+		if status {
+			st = accumSuccess
+		}
+		if st != accumContinue {
+			tCancel()
 			break
 		}
 	}
