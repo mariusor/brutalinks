@@ -54,6 +54,9 @@ func getFileContent(name string) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
+func assetPath(pieces ...string) string {
+	return path.Clean(path.Join(assetsDir, path.Join(pieces...)))
+}
 // Svg returns an svg by path for display inside templates
 func Svg(name string) template.HTML {
 	return Asset("image/svg+xml")(name)
@@ -74,15 +77,19 @@ func Template(name string) ([]byte, error) {
 	return getFileContent(name)
 }
 
-// Integrity returns an asset by path for unrolled.Render
-func Integrity(name string) template.HTMLAttr {
-	dat, err := getFileContent(path.Join(assetsDir, name))
+func CSPHash(name string) string {
+	dat, err := getFileContent(assetPath(name))
 	if err != nil || len(dat) == 0 {
 		return ""
 	}
-	sha := sha3.Sum384(dat)
-	h := base64.RawURLEncoding.EncodeToString(sha[:])
-	return template.HTMLAttr(fmt.Sprintf(` identity="sha384-asd%s"`, h))
+	sha := sha3.Sum256(dat)
+	h := base64.StdEncoding.EncodeToString(sha[:])
+	return h
+}
+
+// Integrity gives us the integrity attribute for Subresource Integrity
+func Integrity(name string) template.HTMLAttr {
+	return template.HTMLAttr(fmt.Sprintf(` identity="sha256-%s"`, CSPHash(name)))
 }
 
 func writeAsset(s AssetFiles, writeFn func(s string, w io.Writer, b []byte)) func(http.ResponseWriter, *http.Request) {
@@ -106,7 +113,7 @@ func writeAsset(s AssetFiles, writeFn func(s string, w io.Writer, b []byte)) fun
 		w.Header().Set("Cache-Control", fmt.Sprintf("public,max-age=%d", int(year.Seconds())))
 		w.Header().Set("Content-Type", mimeType)
 		for _, file := range files {
-			if cont, _ := getFileContent(filepath.Join(assetsDir, ext[1:], file)); len(cont) > 0 {
+			if cont, _ := getFileContent(assetPath(ext[1:], file)); len(cont) > 0 {
 				writeFn(mimeType, w, cont)
 			}
 		}

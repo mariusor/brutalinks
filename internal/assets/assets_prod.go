@@ -14,7 +14,6 @@ import (
 	"html/template"
 	"io"
 	"net/http"
-	"path"
 	"path/filepath"
 	"regexp"
 	"time"
@@ -34,7 +33,7 @@ func Asset(mime string) func(string) template.HTML {
 	m.AddFuncRegexp(regexp.MustCompile("^(application|text)/(x-)?(java|ecma)script$"), js.Minify)
 
 	return func(name string) template.HTML {
-		b, _ := getFileContent(path.Join(assetsDir, name))
+		b, _ := getFileContent(assetPath(name))
 		o := bytes.Buffer{}
 		m.Minify(mime, &o, bytes.NewBuffer(b))
 		return template.HTML(o.Bytes())

@@ -8,7 +8,6 @@ import (
 	"html/template"
 	"net/http"
 	"os"
-	"path"
 	"path/filepath"
 	"time"
 )
@@ -20,7 +19,7 @@ var openFsFn = os.Open
 // it is mainly used for rendering the svg icons file
 func Asset(mime string) func(string) template.HTML {
 	return func(name string) template.HTML {
-		b, _ := getFileContent(path.Join(assetsDir, name))
+		b, _ := getFileContent(assetPath(name))
 		return template.HTML(b)
 	}
 }
