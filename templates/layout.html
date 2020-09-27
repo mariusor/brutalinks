@@ -15,7 +15,7 @@
 {{$js := "/js/main.js"}}
 <script type="application/json" id="currentUser">{{$account}}</script>
 <script type="application/json" id="flashMessages">{{LoadFlashMessages}}</script>
-<script src="{{$js}}" async {{- integrity $js -}} crossorigin="anonymous"></script>
+<script src="{{$js}}" async></script>
 {{ svg "icons.svg" }}
 </body>
 </html>

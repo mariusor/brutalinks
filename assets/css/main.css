@@ -21,9 +21,7 @@ article, aside, details, figcaption, figure,
 footer, header, hgroup, menu, nav, section {
     display: block;
 }
-:root {
-    height: 100%;
-}
+.score noscript { display: none; }
 h1 { font-size: 180%; }
 h2 { font-size: 160%; }
 h3 { font-size: 140%; }

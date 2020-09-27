@@ -59,7 +59,12 @@ func Svg(name string) template.HTML {
 	return Asset("image/svg+xml")(name)
 }
 
-// Svg returns an svg by path for display inside templates
+// Style returns a style by path for displaying inline
+func Style(name string) template.CSS {
+	return template.CSS(Asset("text/css")("css/" + name))
+}
+
+// Svg returns an svg by path for displaying inline
 func Js(name string) template.HTML {
 	return Asset("application/javascript")("js/" + name)
 }
