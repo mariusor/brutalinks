@@ -20,7 +20,6 @@ import (
 	"path"
 	"sort"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -29,26 +28,6 @@ var nilIRIs = CompStrs{nilIRI}
 
 var notNilIRI = DifferentThanString("-")
 var notNilIRIs = CompStrs{notNilIRI}
-
-type cache struct {
-	m map[pub.IRI]pub.Item
-	s sync.RWMutex
-}
-
-func (c *cache) add(iri pub.IRI, it pub.Item) {
-	c.s.Lock()
-	defer c.s.Unlock()
-
-	c.m[iri] = it
-}
-
-func (c *cache) get(iri pub.IRI) (pub.Item, bool) {
-	c.s.RLock()
-	defer c.s.RUnlock()
-
-	it, ok := c.m[iri]
-	return it, ok
-}
 
 type repository struct {
 	BaseURL string

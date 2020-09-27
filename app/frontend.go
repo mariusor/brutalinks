@@ -86,6 +86,7 @@ func Init(c appConfig) (*handler, error) {
 	h.conf = c
 
 	h.storage = ActivityPubService(c)
+
 	provider := "fedbox"
 	config := GetOauth2Config(provider, h.conf.BaseURL)
 	if len(config.ClientID) > 0 {
