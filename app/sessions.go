@@ -76,6 +76,7 @@ func initCookieSession(c appConfig, infoFn, errFn CtxLogFn) (sessions.Store, err
 	ss.Options.HttpOnly = true
 	ss.Options.Secure = c.Secure
 	ss.Options.SameSite = http.SameSiteLaxMode
+	ss.Options.Domain = c.HostName
 
 	infoFn(log.Ctx{
 		"type":   c.SessionsBackend,
@@ -84,7 +85,6 @@ func initCookieSession(c appConfig, infoFn, errFn CtxLogFn) (sessions.Store, err
 		"domain": c.HostName,
 	})("Session settings")
 	if c.Env.IsProd() {
-		ss.Options.Domain = c.HostName
 		ss.Options.SameSite = http.SameSiteStrictMode
 	}
 	return ss, nil
