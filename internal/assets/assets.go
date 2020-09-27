@@ -3,8 +3,10 @@ package assets
 import (
 	"bufio"
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"github.com/go-chi/chi"
+	"golang.org/x/crypto/sha3"
 	"html/template"
 	"io"
 	"mime"
@@ -65,6 +67,17 @@ func Js(name string) template.HTML {
 // Template returns an asset by path for unrolled.Render
 func Template(name string) ([]byte, error) {
 	return getFileContent(name)
+}
+
+// Integrity returns an asset by path for unrolled.Render
+func Integrity(name string) template.HTMLAttr {
+	dat, err := getFileContent(path.Join(assetsDir, name))
+	if err != nil || len(dat) == 0 {
+		return ""
+	}
+	sha := sha3.Sum384(dat)
+	h := base64.RawURLEncoding.EncodeToString(sha[:])
+	return template.HTMLAttr(fmt.Sprintf(` identity="sha384-asd%s"`, h))
 }
 
 func writeAsset(s AssetFiles, writeFn func(s string, w io.Writer, b []byte)) func(http.ResponseWriter, *http.Request) {

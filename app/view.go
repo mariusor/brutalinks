@@ -189,6 +189,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"icon":                  icon,
 			"svg":                   assets.Svg,
 			"js":                    assets.Js,
+			"integrity":             assets.Integrity,
 			"req":                   func() *http.Request { return r },
 			"url":                   func() url.Values { return r.URL.Query() },
 			"urlValue":              func(k string) []string { return r.URL.Query()[k] },
