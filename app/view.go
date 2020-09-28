@@ -242,21 +242,23 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 func (v view) SetCSP(m Model, w http.ResponseWriter) error {
 	styleSrc := "'unsafe-inline'"
 	scriptSrc := "'unsafe-inline'"
-	assets := make([]string, 0)
-	appendAsset := func(name string, assets *[]string) {
-		if hash, ok := v.assets.SubresourceIntegrityHash(name); ok {
-			*assets = append(*assets, fmt.Sprintf("sha256-%s", hash))
+	if v.c.Env.IsDev() {
+		assets := make([]string, 0)
+		appendAsset := func(name string, assets *[]string) {
+			if hash, ok := v.assets.SubresourceIntegrityHash(name); ok {
+				*assets = append(*assets, fmt.Sprintf("sha256-%s", hash))
+			}
 		}
-	}
-	if m != nil {
-		appendAsset(m.Template(), &assets)
-	} else {
-		for asset := range v.assets {
-			appendAsset(asset, &assets)
+		if m != nil {
+			appendAsset(m.Template(), &assets)
+		} else {
+			for asset := range v.assets {
+				appendAsset(asset, &assets)
+			}
 		}
-	}
-	if len(assets) > 0 {
-		styleSrc = fmt.Sprintf("'%s'", strings.Join(assets, "' '"))
+		if len(assets) > 0 {
+			styleSrc = fmt.Sprintf("'%s'", strings.Join(assets, "' '"))
+		}
 	}
 	cspHdrVal := fmt.Sprintf("default-src https: 'self'; style-src https: 'self' %s; script-src https: 'self' %s", styleSrc, scriptSrc)
 	w.Header().Set("Content-Security-Policy", cspHdrVal)
