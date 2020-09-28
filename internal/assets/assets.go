@@ -1,6 +1,7 @@
 package assets
 
 import (
+	"bufio"
 	"bytes"
 	"crypto/sha256"
 	"encoding/base64"
@@ -33,7 +34,7 @@ func (a AssetFiles) SubresourceIntegrityHash(name string) (string, bool) {
 		if len(ext) <= 1 {
 			continue
 		}
-		dat, err := getFileContent(assetPath(path.Ext(name)[1:], asset))
+		dat, err := getFileContent(assetPath(ext[1:], asset))
 		if err != nil {
 			continue
 		}
@@ -69,15 +70,15 @@ func getFileContent(name string) ([]byte, error) {
 		return nil, err
 	}
 	defer f.Close()
-	fi, err := f.Stat()
+	r := bufio.NewReader(f)
+	b := bytes.Buffer{}
+	_, err = r.WriteTo(&b)
 	if err != nil {
-		return nil, err
+		if err != nil {
+			return nil, err
+		}
 	}
-	b := make([]byte, fi.Size())
-	if _, err := f.Read(b); err != nil {
-		return nil, err
-	}
-	return b, nil
+	return b.Bytes(), nil
 }
 
 func assetPath(pieces ...string) string {
