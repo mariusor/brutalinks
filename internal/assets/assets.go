@@ -65,10 +65,10 @@ func TemplateNames() []string {
 
 func getFileContent(name string) ([]byte, error) {
 	f, err := openFsFn(name)
-	defer f.Close()
 	if err != nil {
 		return nil, err
 	}
+	defer f.Close()
 	fi, err := f.Stat()
 	if err != nil {
 		return nil, err
