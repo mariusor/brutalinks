@@ -1,10 +1,11 @@
 package assets
 
 import (
+	"bytes"
+	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
 	"github.com/go-chi/chi"
-	"golang.org/x/crypto/sha3"
 	"html/template"
 	"io"
 	"mime"
@@ -20,6 +21,30 @@ const (
 )
 
 type AssetFiles map[string][]string
+
+func (a AssetFiles) SubresourceIntegrityHash(name string) (string, bool) {
+	files, ok := a[name]
+	if !ok {
+		return "", false
+	}
+	buf := new(bytes.Buffer)
+	for _, asset := range files {
+		ext := path.Ext(name)
+		if len(ext) <= 1 {
+			continue
+		}
+		dat, err := getFileContent(assetPath(path.Ext(name)[1:], asset))
+		if err != nil {
+			continue
+		}
+		buf.Write(dat)
+	}
+	b := buf.Bytes()
+	if len(b) == 0 {
+		return "", false
+	}
+	return sha(b), true
+}
 
 // GetFullFile
 func GetFullFile(name string) ([]byte, error) {
@@ -79,19 +104,22 @@ func Template(name string) ([]byte, error) {
 	return getFileContent(name)
 }
 
-func CSPHash(name string) string {
+func sha(d []byte) string {
+	sha := sha256.Sum256(d)
+	return base64.StdEncoding.EncodeToString(sha[:])
+}
+
+func AssetSha(name string) string {
 	dat, err := getFileContent(assetPath(name))
 	if err != nil || len(dat) == 0 {
 		return ""
 	}
-	sha := sha3.Sum256(dat)
-	h := base64.StdEncoding.EncodeToString(sha[:])
-	return h
+	return sha(dat)
 }
 
 // Integrity gives us the integrity attribute for Subresource Integrity
 func Integrity(name string) template.HTMLAttr {
-	return template.HTMLAttr(fmt.Sprintf(` identity="sha256-%s"`, CSPHash(name)))
+	return template.HTMLAttr(fmt.Sprintf(` identity="sha256-%s"`, AssetSha(name)))
 }
 
 func writeAsset(s AssetFiles, writeFn func(s string, w io.Writer, b []byte)) func(http.ResponseWriter, *http.Request) {

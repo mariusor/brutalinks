@@ -306,13 +306,12 @@ func (v *view) loadCurrentAccountFromSession(s *sessions.Session) Account {
 	return a
 }
 
-func SetSecurityHeaders(next http.Handler) http.Handler {
+func (h *handler) SetSecurityHeaders(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		if !Instance.Conf.Env.IsDev() && Instance.Conf.Secure {
+		if !h.conf.Env.IsDev() && h.conf.Secure {
 			w.Header().Set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload")
 		}
-		// we need to iterate through assets and add the SRI to the proper style-src, script-src entries
-		w.Header().Set("Content-Security-Policy", "default-src https: 'self'; style-src https: 'self' 'unsafe-inline'; script-src https: 'self'")
+		h.v.SetCSP(ContextModel(r.Context()), w)
 		w.Header().Set("X-Frame-Options", "DENY")
 		w.Header().Set("X-Xss-Protection", "1; mode=block")
 		w.Header().Set("Referrer-Policy", "same-origin")

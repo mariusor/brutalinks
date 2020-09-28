@@ -9,18 +9,36 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"time"
 )
 
 func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 	return func(r chi.Router) {
 		r.Use(middleware.GetHead)
 		r.Use(ReqLogger(h.logger))
-		r.Use(SetSecurityHeaders)
+
+		workDir, _ := os.Getwd()
+		assetsDir := filepath.Join(workDir, "assets")
+		h.v.assets = assets.AssetFiles{
+			"moderate.css": []string{"main.css", "listing.css", "article.css", "moderate.css"},
+			"content.css": []string{"main.css", "article.css", "content.css"},
+			"listing.css": []string{"main.css", "listing.css", "article.css"},
+			"moderation.css": []string{"main.css", "listing.css", "article.css", "moderation.css"},
+			"user.css": []string{"main.css", "listing.css", "article.css", "user.css"},
+			"user-message.css": []string{"main.css", "listing.css", "article.css", "user-message.css"},
+			"new.css": []string{"main.css", "listing.css", "article.css"},
+			"404.css" : []string{"main.css", "error.css"},
+			"about.css": []string{"main.css", "about.css"},
+			"error.css": []string{"main.css", "error.css"},
+			"login.css": []string{"main.css", "login.css"},
+			"register.css": []string{"main.css", "login.css"},
+			"inline.css": []string{"inline.css"},
+			"main.js": []string{"base.js", "main.js"},
+		}
 
 		r.Group(func(r chi.Router) {
+			//r.Use(middleware.Timeout(60 * time.Millisecond))
+			r.Use(h.SetSecurityHeaders)
 			r.Use(h.LoadSession)
-			r.Use(middleware.Timeout(60 * time.Millisecond))
 			r.Use(h.OutOfOrderMw)
 
 			r.With(h.CSRF).Group(func(r chi.Router) {
@@ -107,6 +125,7 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 					Get("/~", h.HandleShow)
 			})
 
+			r.Get("/about", h.HandleAbout)
 			r.Route("/auth", func(r chi.Router) {
 				r.Use(h.NeedsSessions)
 				r.Get("/{provider}/callback", h.HandleCallback)
@@ -120,32 +139,13 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 			})
 		})
 
-		r.Get("/about", h.HandleAbout)
-		workDir, _ := os.Getwd()
-		assetsDir := filepath.Join(workDir, "assets")
-
-		styles := assets.AssetFiles{
-			"moderate.css": []string{"main.css", "listing.css", "article.css", "moderate.css"},
-			"content.css": []string{"main.css", "article.css", "content.css"},
-			"listing.css": []string{"main.css", "listing.css", "article.css"},
-			"moderation.css": []string{"main.css", "listing.css", "article.css", "moderation.css"},
-			"user.css": []string{"main.css", "listing.css", "article.css", "user.css"},
-			"user-message.css": []string{"main.css", "listing.css", "article.css", "user-message.css"},
-			"new.css": []string{"main.css", "listing.css", "article.css"},
-			"404.css" : []string{"main.css", "error.css"},
-			"about.css": []string{"main.css", "about.css"},
-			"error.css": []string{"main.css", "error.css"},
-			"login.css": []string{"main.css", "login.css"},
-			"register.css": []string{"main.css", "login.css"},
-			"main.js": []string{"base.js", "main.js"},
-		}
 		r.Group(func(r chi.Router) {
 			r.Get("/ns", assets.ServeStatic(filepath.Join(assetsDir, "/ns.json")))
 			r.Get("/favicon.ico", assets.ServeStatic(filepath.Join(assetsDir, "/favicon.ico")))
 			r.Get("/icons.svg", assets.ServeStatic(filepath.Join(assetsDir, "/icons.svg")))
 			r.Get("/robots.txt", assets.ServeStatic(filepath.Join(assetsDir, "/robots.txt")))
-			r.Get("/css/{path}", assets.ServeAsset(styles))
-			r.Get("/js/{path}", assets.ServeAsset(styles))
+			r.Get("/css/{path}", assets.ServeAsset(h.v.assets))
+			r.Get("/js/{path}", assets.ServeAsset(h.v.assets))
 		})
 	}
 }
