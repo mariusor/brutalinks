@@ -1,12 +1,12 @@
 svg.icon { height: 1em; width: 1em; fill: currentColor; }
 :root { height: 100%; }
-:root { --main-bg-color: Window; --main-fg-color: WindowText; --main-link-color: blue; --main-linkvisited-color: rebeccapurple; --main-linkactive-color: red;}
-:root.inverted { --main-bg-color: WindowText; --main-fg-color: Window; --main-link-color: dodgerblue; --main-linkvisited-color: mediumpurple; --main-linkactive-color: red;}
+:root { --main-bg-color: Window; --main-fg-color: WindowText; --main-link-color: blue; --main-linkvisited-color: rebeccapurple; --main-linkactive-color: red; }
+:root.inverted { --main-bg-color: WindowText; --main-fg-color: Window; --main-link-color: dodgerblue; --main-linkvisited-color: mediumpurple; --main-linkactive-color: red; }
 @media (prefers-color-scheme: light) {
-    :root {--main-bg-color: #EFF0F1; --main-fg-color: #232627; --main-link-color: blue; --main-linkvisited-color: rebeccapurple; --main-linkactive-color: red;}
-    :root.inverted { --main-bg-color: #232627; --main-fg-color: #EFF0F1; --main-link-color: dodgerblue; --main-linkvisited-color: mediumpurple; --main-linkactive-color: red;}
+    :root {--main-bg-color: #EFF0F1; --main-fg-color: #232627; --main-link-color: blue; --main-linkvisited-color: rebeccapurple; --main-linkactive-color: red; }
+    :root.inverted { --main-bg-color: #232627; --main-fg-color: #EFF0F1; --main-link-color: dodgerblue; --main-linkvisited-color: mediumpurple; --main-linkactive-color: red; }
 }
 @media (prefers-color-scheme: dark) {
     :root { --main-bg-color: #232627; --main-fg-color: #EFF0F1; --main-link-color: dodgerblue; --main-linkvisited-color: mediumpurple; --main-linkactive-color: red; }
-    :root.inverted { --main-bg-color: #EFF0F1; --main-fg-color: #232627; --main-link-color: blue; --main-linkvisited-color: rebeccapurple; --main-linkactive-color: red;}
+    :root.inverted { --main-bg-color: #EFF0F1; --main-fg-color: #232627; --main-link-color: blue; --main-linkvisited-color: rebeccapurple; --main-linkactive-color: red; }
 }
