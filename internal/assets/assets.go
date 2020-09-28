@@ -42,16 +42,19 @@ func TemplateNames() []string {
 
 func getFileContent(name string) ([]byte, error) {
 	f, err := openFsFn(name)
+	defer f.Close()
 	if err != nil {
 		return nil, err
 	}
-	r := bufio.NewReader(f)
-	b := bytes.Buffer{}
-	_, err = r.WriteTo(&b)
+	fi, err := f.Stat()
 	if err != nil {
 		return nil, err
 	}
-	return b.Bytes(), nil
+	b := make ([]byte, fi.Size())
+	if _, err := f.Read(b); err != nil {
+		return nil, err
+	}
+	return b, nil
 }
 
 func assetPath(pieces ...string) string {
