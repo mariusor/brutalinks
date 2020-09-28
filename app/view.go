@@ -239,26 +239,42 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 	return nil
 }
 
+func getCSPHashes(m Model, v view) (string, string) {
+	var (
+		assets = make([]string, 0); styles =  make([]string, 0); scripts =  make([]string, 0)
+		styleSrc = "'unsafe-inline'"; scriptSrc = "'unsafe-inline'"
+	)
+	if m != nil {
+		assets = append(assets, m.Template())
+	} else {
+		for asset := range v.assets {
+			assets = append(assets, asset)
+		}
+	}
+	for _, name := range assets {
+		if hash, ok := v.assets.SubresourceIntegrityHash(name); ok {
+			ext := path.Ext(name)
+			if ext == ".css" {
+				styles = append(styles, fmt.Sprintf("sha256-%s", hash))
+			} else if ext == ".js"{
+				scripts = append(scripts, fmt.Sprintf("sha256-%s", hash))
+			}
+		}
+	}
+	if len(styles) > 0 {
+		styleSrc = fmt.Sprintf("'%s'", strings.Join(styles, "' '"))
+	}
+	if len(scripts) > 0 {
+		scriptSrc = fmt.Sprintf("'%s'", strings.Join(scripts, "' '"))
+	}
+	return styleSrc, scriptSrc
+}
+
 func (v view) SetCSP(m Model, w http.ResponseWriter) error {
 	styleSrc := "'unsafe-inline'"
 	scriptSrc := "'unsafe-inline'"
 	if v.c.Env.IsDev() {
-		assets := make([]string, 0)
-		appendAsset := func(name string, assets *[]string) {
-			if hash, ok := v.assets.SubresourceIntegrityHash(name); ok {
-				*assets = append(*assets, fmt.Sprintf("sha256-%s", hash))
-			}
-		}
-		if m != nil {
-			appendAsset(m.Template(), &assets)
-		} else {
-			for asset := range v.assets {
-				appendAsset(asset, &assets)
-			}
-		}
-		if len(assets) > 0 {
-			styleSrc = fmt.Sprintf("'%s'", strings.Join(assets, "' '"))
-		}
+		styleSrc, scriptSrc = getCSPHashes(m, v)
 	}
 	cspHdrVal := fmt.Sprintf("default-src https: 'self'; style-src https: 'self' %s; script-src https: 'self' %s", styleSrc, scriptSrc)
 	w.Header().Set("Content-Security-Policy", cspHdrVal)
