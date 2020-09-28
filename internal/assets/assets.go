@@ -1,8 +1,6 @@
 package assets
 
 import (
-	"bufio"
-	"bytes"
 	"encoding/base64"
 	"fmt"
 	"github.com/go-chi/chi"
@@ -50,7 +48,7 @@ func getFileContent(name string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	b := make ([]byte, fi.Size())
+	b := make([]byte, fi.Size())
 	if _, err := f.Read(b); err != nil {
 		return nil, err
 	}
@@ -60,6 +58,7 @@ func getFileContent(name string) ([]byte, error) {
 func assetPath(pieces ...string) string {
 	return path.Clean(path.Join(assetsDir, path.Join(pieces...)))
 }
+
 // Svg returns an svg by path for display inside templates
 func Svg(name string) template.HTML {
 	return Asset("image/svg+xml")(name)

@@ -312,7 +312,7 @@ func SetSecurityHeaders(next http.Handler) http.Handler {
 			w.Header().Set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload")
 		}
 		// we need to iterate through assets and add the SRI to the proper style-src, script-src entries
-		w.Header().Set("Content-Security-Policy", "default-src https: 'self'; style-src https: 'self' 'sha256-WJoN65UDoEFDgGmPXbKEcsa8jMSWlR5SFquS+yItuiE='; script-src https: 'self'")
+		w.Header().Set("Content-Security-Policy", "default-src https: 'self'; style-src https: 'self' 'unsafe-inline'; script-src https: 'self'")
 		w.Header().Set("X-Frame-Options", "DENY")
 		w.Header().Set("X-Xss-Protection", "1; mode=block")
 		w.Header().Set("Referrer-Policy", "same-origin")
