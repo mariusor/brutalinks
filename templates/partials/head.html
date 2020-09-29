@@ -9,8 +9,7 @@
 {{end -}}
 {{end }}
 <style>{{ style "inline.css" }}</style>
-{{- $css := printf "/css/%s.css" current }}
-<link rel="stylesheet" href="{{$css}}" />
+<link rel="stylesheet" href="/css/{{- current -}}.css" />
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <meta name="theme-color" content="rebeccapurple" />
 <meta name="description" content="Link aggregator inspired by reddit and hacker news using ActivityPub federation."/>

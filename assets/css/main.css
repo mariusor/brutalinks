@@ -21,7 +21,6 @@ article, aside, details, figcaption, figure,
 footer, header, hgroup, menu, nav, section {
     display: block;
 }
-.score noscript { display: none; }
 h1 { font-size: 180%; }
 h2 { font-size: 160%; }
 h3 { font-size: 140%; }
@@ -77,6 +76,8 @@ a[href="#"], a[href="#"]:visited {
 .h-mirror.v-mirror {
     transform: rotateY(180deg) rotateX(180deg);
 }
+.score noscript { display: none; }
+svg.icon { vertical-align: inherit; }
 .icon.icon-home, .icon.icon-star, .icon.icon-activitypub, .icon.icon-adjust,
 .icon.icon-lock, .icon.icon-flag, .icon.icon-block, .icon.icon-edit
 {
@@ -93,6 +94,9 @@ body > header h1 a:hover,
 body > header h1 a:visited {
     color: var(--main-fg-color);
     text-decoration: none;
+}
+svg.icon.icon-home {
+    vertical-align: top;
 }
 body > header small {
     opacity: .7;
@@ -118,13 +122,11 @@ body > header nav:not(.tabs) {
     align-self: end;
     font-size: .8rem;
 }
-nav ul li a svg {
-    height: 1rem;
-    width: 1rem;
+nav.tabs ul li a {
+    margin-right: .5rem;
 }
-nav ul li a svg.icon-activitypub {
-    width: 1.2rem;
-    margin-left: .2rem;
+svg.icon.icon-activitypub {
+    width: 1.4rem;
 }
 body > main {
     grid-area: main;
