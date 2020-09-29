@@ -271,11 +271,7 @@ func getCSPHashes(m Model, v view) (string, string) {
 }
 
 func (v view) SetCSP(m Model, w http.ResponseWriter) error {
-	styleSrc := "'unsafe-inline'"
-	scriptSrc := "'unsafe-inline'"
-	if v.c.Env.IsDev() {
-		styleSrc, scriptSrc = getCSPHashes(m, v)
-	}
+	styleSrc, scriptSrc := getCSPHashes(m, v)
 	cspHdrVal := fmt.Sprintf("default-src https: 'self'; style-src https: 'self' %s; script-src https: 'self' %s", styleSrc, scriptSrc)
 	w.Header().Set("Content-Security-Policy", cspHdrVal)
 	return nil

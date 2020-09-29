@@ -14,11 +14,14 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"time"
 )
 
 const (
 	templateDir = "templates/"
 	assetsDir   = "assets/"
+
+	year = 8766 * time.Hour
 )
 
 type AssetFiles map[string][]string
@@ -148,5 +151,28 @@ func writeAsset(s AssetFiles, writeFn func(s string, w io.Writer, b []byte)) fun
 				writeFn(mimeType, w, cont)
 			}
 		}
+	}
+}
+
+func ServeAsset(s AssetFiles) func(w http.ResponseWriter, r *http.Request) {
+	return writeAsset(s, nil)
+}
+
+func ServeStatic(st string) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		path := filepath.Clean(chi.URLParam(r, "path"))
+		fullPath := filepath.Join(st, path)
+
+		w.Header().Set("Cache-Control", fmt.Sprintf("public,max-age=%d", int(year.Seconds())))
+		http.ServeFile(w, r, fullPath)
+	}
+}
+
+// Asset returns an asset by path for display inside templates
+// it is mainly used for rendering the svg icons file
+func Asset(mime string) func(string) template.HTML {
+	return func(name string) template.HTML {
+		b, _ := getFileContent(assetPath(name))
+		return template.HTML(b)
 	}
 }

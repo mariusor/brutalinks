@@ -2,9 +2,9 @@
 
 * Unify report/block/reply models, cursors.
 * Unify msg user/add new submission models, cursors.
-* Add local override of broccoli cli to allow minification at go generate time
 * Separate CSS for media queries to different files
 * When adding a new OAuth2 client from the command line, we shouldn't allow password flow by default, but based on a parameter when creating it.
+* ~~Add local override of broccoli cli to allow minification at go generate time~~
 * ~~Moderation page fails~~
 * ~~Ensure latest fedbox/go-littr works on qa/live~~
 * ~~Fix sessions handling when logging in~~
