@@ -142,7 +142,6 @@ func LoadObjectFromInboxMw(next http.Handler) http.Handler {
 			ctxtErr(next, w, r, errors.NotFoundf("Object not found"))
 			return
 		}
-
 		items := ItemCollection{i}
 		if comments, err := repo.loadItemsReplies(ctx, i); err == nil {
 			items = append(items, comments...)

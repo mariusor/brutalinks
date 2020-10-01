@@ -109,6 +109,17 @@ func renderActivityLabel(r Renderable) template.HTML {
 	return template.HTML(lbl)
 }
 
+func genitive(name string) string {
+	l := len(name)
+	if l == 0 {
+		return name
+	}
+	if name[l-1:l] != "s" {
+		return name + "'s"
+	}
+	return name + "'"
+}
+
 func stringInSlice(ss []string) func(v string) bool {
 	return func(v string) bool {
 		for _, vv := range ss {

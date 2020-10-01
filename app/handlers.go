@@ -95,17 +95,6 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	h.v.Redirect(w, r, ItemPermaLink(&n), http.StatusSeeOther)
 }
 
-func genitive(name string) string {
-	l := len(name)
-	if l == 0 {
-		return name
-	}
-	if name[l-1:l] != "s" {
-		return name + "'s"
-	}
-	return name + "'"
-}
-
 // HandleDelete serves /{year}/{month}/{day}/{hash}/rm POST request
 // HandleDelete serves /~{handle}/rm GET request
 func (h *handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
