@@ -1,7 +1,7 @@
 <details>
     <summary>
-        <h2 style="display: inline-block">
-            {{- if .HasIcon -}}<img src="{{.Metadata.Icon.URI}}" alt="{{.Handle}}" class="avatar" />{{- else -}}{{- icon "user" "avatar" -}}{{- end -}}
+        <h2>
+            {{- if .HasIcon -}}{{- Avatar .Metadata.Icon.MimeType .Metadata.Icon.URI -}}{{- else -}}{{- icon "user" "avatar" -}}{{- end -}}
             {{- .Handle -}}
         </h2>
         {{- if gt .Score 0 }}<data class="score {{- .Score | ScoreClass -}}">{{ .Score | ScoreFmt}}</data> {{ end -}}

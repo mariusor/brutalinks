@@ -16,6 +16,7 @@ require (
 	github.com/gorilla/sessions v1.2.1
 	github.com/joho/godotenv v1.3.0
 	github.com/mariusor/qstring v0.0.0-20200204164351-5a99d46de39d
+	github.com/microcosm-cc/bluemonday v1.0.4
 	github.com/openshift/osin v1.0.1
 	github.com/pborman/uuid v1.2.0
 	github.com/sirupsen/logrus v1.5.0

@@ -175,6 +175,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"Video":                 video,
 			"isVideo":               isVideo,
 			"Image":                 image,
+			"Avatar":                avatar,
 			"isImage":               isImage,
 			"Markdown":              Markdown,
 			"replaceTags":           replaceTags,
@@ -293,7 +294,7 @@ func getCSPHashes(m Model, v view) (string, string) {
 
 func (v view) SetCSP(m Model, w http.ResponseWriter) error {
 	styleSrc, scriptSrc := getCSPHashes(m, v)
-	cspHdrVal := fmt.Sprintf("default-src https: 'self'; style-src https: 'self' %s; script-src https: 'self' %s", styleSrc, scriptSrc)
+	cspHdrVal := fmt.Sprintf("default-src https: 'self'; style-src https: 'self' %s; script-src https: 'self' %s; media-src https: data: 'self'; img-src https: data: 'self'", styleSrc, scriptSrc)
 	w.Header().Set("Content-Security-Policy", cspHdrVal)
 	return nil
 }
@@ -559,6 +560,17 @@ func video(mime, data string) template.HTML {
 	return template.HTML(fmt.Sprintf("<video  src='data:%s;base64,%s'/>", mime, data))
 }
 
+func avatar(mime, data string) template.HTML {
+	if mime == "image/svg+xml" {
+		dec, err := base64.StdEncoding.DecodeString(data)
+		if err == nil {
+			data = string(dec)
+		}
+		return template.HTML(data)
+	}
+	return template.HTML(fmt.Sprintf("<image src='data:%s;base64,%s' width='48' height='48' class='icon avatar' />", mime, data))
+}
+
 func image(mime, data string) template.HTML {
 	if mime == "image/svg+xml" {
 		dec, err := base64.StdEncoding.DecodeString(data)
@@ -567,7 +579,7 @@ func image(mime, data string) template.HTML {
 		}
 		return template.HTML(data)
 	}
-	return template.HTML(fmt.Sprintf("<image src='data:%s;base64,%s'/>", mime, data))
+	return template.HTML(fmt.Sprintf("<image src='data:%s;base64,%s' />", mime, data))
 }
 
 func icon(icon string, c ...string) template.HTML {

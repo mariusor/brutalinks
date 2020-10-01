@@ -1,4 +1,4 @@
-svg.icon { height: 1em; width: 1em; fill: currentColor; vertical-align: middle; }
+svg.icon, img.icon { height: 1em; width: 1em; fill: currentColor; vertical-align: middle; }
 svg.icon.icon-activitypub { width: 1.4em; }
 :root { height: 100%; }
 :root { --main-bg-color: Window; --main-fg-color: WindowText; --main-link-color: blue; --main-linkvisited-color: rebeccapurple; --main-linkactive-color: red; }

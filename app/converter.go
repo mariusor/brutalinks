@@ -5,6 +5,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"github.com/go-ap/handlers"
+	"github.com/microcosm-cc/bluemonday"
 	"net/url"
 	"path"
 	"strings"
@@ -50,15 +51,9 @@ func FromActor(a *Account, p *pub.Actor) error {
 		}
 	}
 	if p.Icon != nil {
-		if p.Icon.IsObject() {
-			pub.OnObject(p.Icon, func(o *pub.Object) error {
-				a.Metadata.Icon.MimeType = string(o.MediaType)
-				if o.URL != nil {
-					a.Metadata.Icon.URI = string(o.URL.GetLink())
-				}
-				return nil
-			})
-		}
+		pub.OnObject(p.Icon, func(o *pub.Object) error {
+			return iconMetadataFromObject(&a.Metadata.Icon, o)
+		})
 	}
 	if a.Email == "" {
 		// @TODO(marius): this returns false positives when API_URL is set and different than
@@ -164,6 +159,34 @@ func (a *Account) FromActivityPub(it pub.Item) error {
 	return nil
 }
 
+func FromObjectWithBinaryData(i *Item, a *pub.Object) error {
+	err := FromArticle(i, a)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func iconMetadataFromObject(m *ImageMetadata, o *pub.Object) error {
+	if m == nil || o == nil {
+		return nil
+	}
+	m.MimeType = string(o.MediaType)
+	if o.URL != nil {
+		m.URI = o.URL.GetLink().String()
+	}
+	if o.Content != nil && len(o.Content) > 0 {
+		var cnt []byte = o.Content.First().Value
+		buf := make([]byte, base64.RawStdEncoding.DecodedLen(len(cnt)))
+		if _, err := base64.RawStdEncoding.Decode(buf, cnt); err != nil {
+			m.URI = base64.RawStdEncoding.EncodeToString(buf)
+		} else {
+			m.URI = string(cnt)
+		}
+	}
+	return nil
+}
+
 func FromArticle(i *Item, a *pub.Object) error {
 	title := a.Name.First().Value
 
@@ -172,7 +195,7 @@ func FromArticle(i *Item, a *pub.Object) error {
 		i.Title = title.String()
 	}
 	i.MimeType = MimeTypeHTML
-	if a.Type == pub.PageType {
+	if len(a.Content) == 0 && a.URL != nil && len(a.URL.GetLink()) > 0 {
 		i.Data = string(a.URL.GetLink())
 		i.MimeType = MimeTypeURL
 	} else {
@@ -201,16 +224,9 @@ func FromArticle(i *Item, a *pub.Object) error {
 		}
 	}
 	if a.Icon != nil {
-		if a.Icon.IsObject() {
-			if ic, ok := a.Icon.(*pub.Object); ok {
-				i.Metadata.Icon.MimeType = string(ic.MediaType)
-				i.Metadata.Icon.URI = ic.URL.GetLink().String()
-			}
-			if ic, ok := a.Icon.(pub.Object); ok {
-				i.Metadata.Icon.MimeType = string(ic.MediaType)
-				i.Metadata.Icon.URI = ic.URL.GetLink().String()
-			}
-		}
+		pub.OnObject(a.Icon, func(o *pub.Object) error {
+			return iconMetadataFromObject(&i.Metadata.Icon, o)
+		})
 	}
 	if a.Context != nil {
 		op := Item{}
@@ -239,10 +255,17 @@ func FromArticle(i *Item, a *pub.Object) error {
 			}
 		}
 	}
+	if len(i.Title) == 0 && a.InReplyTo == nil {
+		i.Title = fmt.Sprintf("Untitled %s", a.Type)
+
+		if a.Summary != nil && len(a.Summary) > 0 {
+			i.Title = new(bluemonday.Policy).Sanitize(a.Summary.First().Value.String())
+		}
+	}
 	// TODO(marius): here we seem to have a bug, when Source.Content is nil when it shouldn't
 	//    to repro, I used some copy/pasted comments from console javascript
 	if len(a.Source.Content) > 0 && len(a.Source.MediaType) > 0 {
-		i.Data = a.Source.Content.First().Value.String()
+		i.Data = bluemonday.StrictPolicy().Sanitize(a.Source.Content.First().Value.String())
 		i.MimeType = string(a.Source.MediaType)
 	}
 	if a.Tag != nil && len(a.Tag) > 0 {
@@ -332,11 +355,7 @@ func (i *Item) FromActivityPub(it pub.Item) error {
 			i.Delete()
 			return err
 		})
-	case pub.CreateType:
-		fallthrough
-	case pub.UpdateType:
-		fallthrough
-	case pub.ActivityType:
+	case pub.CreateType, pub.UpdateType, pub.ActivityType:
 		return pub.OnActivity(it, func(act *pub.Activity) error {
 			// TODO(marius): this logic is probably broken if the activity is anything else except a Create
 			good := pub.ActivityVocabularyTypes{pub.CreateType, pub.UpdateType}
@@ -352,15 +371,13 @@ func (i *Item) FromActivityPub(it pub.Item) error {
 			loadRecipients(i, act)
 			return err
 		})
-	case pub.ArticleType:
-		fallthrough
-	case pub.NoteType:
-		fallthrough
-	case pub.DocumentType:
-		fallthrough
-	case pub.PageType:
+	case pub.ArticleType, pub.NoteType, pub.DocumentType, pub.PageType:
 		return pub.OnObject(it, func(a *pub.Object) error {
 			return FromArticle(i, a)
+		})
+	case pub.ImageType, pub.VideoType, pub.AudioType:
+		return pub.OnObject(it, func(a *pub.Object) error {
+			return FromObjectWithBinaryData(i, a)
 		})
 	case pub.TombstoneType:
 		id := it.GetLink()

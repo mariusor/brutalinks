@@ -202,6 +202,12 @@ li footer nav ul li::before, nav ul li:first-child::before, nav dl dt:first-chil
 .item {
     line-height: 1.3em;
 }
+img.avatar {
+    object-fit: cover;
+    height: 1.4rem;
+    width: 1.4rem;
+    margin-right: .3rem;
+}
 nav dl dt::before, nav ul li::before {
     content: "\22c5";
     padding: 0 .4em 0 .2em;
