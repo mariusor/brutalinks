@@ -53,7 +53,9 @@ func FromActor(a *Account, p *pub.Actor) error {
 		if p.Icon.IsObject() {
 			pub.OnObject(p.Icon, func(o *pub.Object) error {
 				a.Metadata.Icon.MimeType = string(o.MediaType)
-				a.Metadata.Icon.URI = o.URL.GetLink().String()
+				if o.URL != nil {
+					a.Metadata.Icon.URI = string(o.URL.GetLink())
+				}
 				return nil
 			})
 		}

@@ -998,7 +998,7 @@ func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemC
 	for _, it := range items {
 		for a := range authors {
 			auth := authors[a]
-			if HashesEqual(it.SubmittedBy.Hash, auth.Hash) {
+			if it.SubmittedBy.IsValid() && HashesEqual(it.SubmittedBy.Hash, auth.Hash) {
 				it.SubmittedBy = &auth
 			}
 			if it.UpdatedBy.IsValid() && HashesEqual(it.UpdatedBy.Hash, auth.Hash) {
@@ -1008,12 +1008,12 @@ func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemC
 				continue
 			}
 			for i, to := range it.Metadata.To {
-				if HashesEqual(to.Hash, auth.Hash) {
+				if to.IsValid() && HashesEqual(to.Hash, auth.Hash) {
 					it.Metadata.To[i] = &auth
 				}
 			}
 			for i, cc := range it.Metadata.CC {
-				if HashesEqual(cc.Hash, auth.Hash) {
+				if cc.IsValid() && HashesEqual(cc.Hash, auth.Hash) {
 					it.Metadata.CC[i] = &auth
 				}
 			}
