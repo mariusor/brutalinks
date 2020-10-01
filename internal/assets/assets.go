@@ -8,8 +8,6 @@ import (
 	"fmt"
 	"github.com/go-chi/chi"
 	"html/template"
-	"io"
-	"mime"
 	"net/http"
 	"os"
 	"path"
@@ -25,6 +23,7 @@ const (
 )
 
 type AssetFiles map[string][]string
+type AssetContents map[string][]byte
 
 func (a AssetFiles) SubresourceIntegrityHash(name string) (string, bool) {
 	files, ok := a[name]
@@ -90,17 +89,17 @@ func assetPath(pieces ...string) string {
 
 // Svg returns an svg by path for display inside templates
 func Svg(name string) template.HTML {
-	return Asset("image/svg+xml")(name)
+	return Asset()(name)
 }
 
 // Style returns a style by path for displaying inline
 func Style(name string) template.CSS {
-	return template.CSS(Asset("text/css")("css/" + name))
+	return template.CSS(Asset()("css/" + name))
 }
 
 // Svg returns an svg by path for displaying inline
 func Js(name string) template.HTML {
-	return Asset("application/javascript")("js/" + name)
+	return Asset()("js/" + name)
 }
 
 // Template returns an asset by path for unrolled.Render
@@ -126,43 +125,13 @@ func Integrity(name string) template.HTMLAttr {
 	return template.HTMLAttr(fmt.Sprintf(` identity="sha256-%s"`, AssetSha(name)))
 }
 
-func writeAsset(s AssetFiles, writeFn func(s string, w io.Writer, b []byte)) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		asset := filepath.Clean(chi.URLParam(r, "path"))
-		ext := path.Ext(r.RequestURI)
-		mimeType := mime.TypeByExtension(ext)
-		files, ok := s[asset]
-		if !ok {
-			w.Write([]byte("not found"))
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
-
-		if writeFn == nil {
-			writeFn = func(s string, w io.Writer, b []byte) {
-				w.Write(b)
-			}
-		}
-
-		w.Header().Set("Cache-Control", fmt.Sprintf("public,max-age=%d", int(year.Seconds())))
-		w.Header().Set("Content-Type", mimeType)
-		for _, file := range files {
-			if cont, _ := getFileContent(assetPath(ext[1:], file)); len(cont) > 0 {
-				writeFn(mimeType, w, cont)
-			}
-		}
-	}
-}
-
 func ServeAsset(s AssetFiles) func(w http.ResponseWriter, r *http.Request) {
-	return writeAsset(s, nil)
+	return writeAsset(s)
 }
 
 func ServeStatic(st string) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		path := filepath.Clean(chi.URLParam(r, "path"))
-		fullPath := filepath.Join(st, path)
-
+		fullPath := filepath.Clean(filepath.Join(st, chi.URLParam(r, "path")))
 		w.Header().Set("Cache-Control", fmt.Sprintf("public,max-age=%d", int(year.Seconds())))
 		http.ServeFile(w, r, fullPath)
 	}
@@ -170,9 +139,4 @@ func ServeStatic(st string) func(w http.ResponseWriter, r *http.Request) {
 
 // Asset returns an asset by path for display inside templates
 // it is mainly used for rendering the svg icons file
-func Asset(mime string) func(string) template.HTML {
-	return func(name string) template.HTML {
-		b, _ := getFileContent(assetPath(name))
-		return template.HTML(b)
-	}
-}
+var Asset = assetLoad
