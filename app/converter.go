@@ -257,7 +257,6 @@ func FromArticle(i *Item, a *pub.Object) error {
 	}
 	if len(i.Title) == 0 && a.InReplyTo == nil {
 		i.Title = fmt.Sprintf("Untitled %s", a.Type)
-
 		if a.Summary != nil && len(a.Summary) > 0 {
 			i.Title = new(bluemonday.Policy).Sanitize(a.Summary.First().Value.String())
 		}
@@ -363,13 +362,16 @@ func (i *Item) FromActivityPub(it pub.Item) error {
 				return errors.Newf("Invalid activity to load from %s", act.Type)
 			}
 			err := i.FromActivityPub(act.Object)
+			if err != nil {
+				return err
+			}
 			i.SubmittedBy.FromActivityPub(act.Actor)
 			if i.Metadata == nil {
 				i.Metadata = &ItemMetadata{}
 			}
 			i.Metadata.AuthorURI = act.Actor.GetLink().String()
 			loadRecipients(i, act)
-			return err
+			return nil
 		})
 	case pub.ArticleType, pub.NoteType, pub.DocumentType, pub.PageType:
 		return pub.OnObject(it, func(a *pub.Object) error {
