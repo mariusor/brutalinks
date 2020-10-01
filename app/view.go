@@ -553,11 +553,11 @@ func isImage(mime string) bool {
 }
 
 func audio(mime, data string) template.HTML {
-	return template.HTML(fmt.Sprintf("<audio src='data:%s;base64,%s'/>", mime, data))
+	return template.HTML(fmt.Sprintf("<audio controls><source src='data:%s;base64,%s' type='%s'/></audio>", mime, data, mime))
 }
 
 func video(mime, data string) template.HTML {
-	return template.HTML(fmt.Sprintf("<video  src='data:%s;base64,%s'/>", mime, data))
+	return template.HTML(fmt.Sprintf("<video controls><source src='data:%s;base64,%s' type='%s'/></video>", mime, data, mime))
 }
 
 func avatar(mime, data string) template.HTML {
