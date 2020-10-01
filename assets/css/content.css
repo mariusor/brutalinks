@@ -86,10 +86,3 @@ main.content article {
     grid-template-columns: 1.6rem 11fr;
     grid-template-areas: "sidebar main";
 }
-.content article section footer * {
-    display: inline-block;
-}
-.content article section footer {
-    opacity: .6;
-    line-height: 1.12rem;
-}

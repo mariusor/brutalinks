@@ -77,7 +77,7 @@ a[href="#"], a[href="#"]:visited {
     transform: rotateY(180deg) rotateX(180deg);
 }
 .score noscript { display: none; }
-svg.icon { vertical-align: inherit; }
+svg.icon { vertical-align: text-top; }
 .icon.icon-home, .icon.icon-star, .icon.icon-activitypub, .icon.icon-adjust,
 .icon.icon-lock, .icon.icon-flag, .icon.icon-block, .icon.icon-edit
 {
@@ -189,8 +189,18 @@ dialog button.close {
     margin-right: -1em;
     float: right;
 }
+li section footer {
+    opacity: .6;
+    display: block;
+}
+li section footer * {
+    display: inline-block;
+}
 li footer nav ul li::before, nav ul li:first-child::before, nav dl dt:first-child::before {
     content: unset;
+}
+.item {
+    line-height: 1.3em;
 }
 nav dl dt::before, nav ul li::before {
     content: "\22c5";

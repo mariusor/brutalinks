@@ -61,9 +61,6 @@ section > header h2 small:last-child::before {
 section > header h2 small:last-child::after {
     content: ")";
 }
-.item {
-    line-height: 1.3em;
-}
 .data pre {
     line-height: 1.3rem;
     overflow: auto;
@@ -87,7 +84,6 @@ footer .icon-activitypub {
     width: 1.1em;
     display: none;
 }
-section footer,
 section footer nav,
 section footer nav ul,
 section footer nav ul li {

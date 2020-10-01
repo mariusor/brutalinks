@@ -3,9 +3,6 @@
     margin-top: .6rem;
     margin-left: .4rem;
 }
-main > ol > li .item {
-    align-self: start;
-}
 main > ol > li aside {
     min-height: 4.5em;
     align-content: center;
@@ -14,15 +11,14 @@ main > ol > li section {
     grid-area: main;
     align-self: center;
     margin-left: 1ex;
+    overflow-wrap: break-word;
+    word-break: break-word;
 }
 main > ol > li {
     display: grid;
     grid-template-columns: 1.6rem 11fr;
     grid-template-areas: "sidebar main";
     margin-bottom: .4em;
-}
-li section footer {
-    opacity: .6;
 }
 body > footer nav.pagination ul li:first-of-type {
     margin-right: .2em;
