@@ -11,8 +11,6 @@ main > ol > li section {
     grid-area: main;
     align-self: center;
     margin-left: 1ex;
-    overflow-wrap: break-word;
-    word-break: break-word;
 }
 main > ol > li {
     display: grid;

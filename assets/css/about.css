@@ -1,14 +1,15 @@
-.about main section {
-    opacity: .65;
-    margin-top: 1em;
-    line-height: 2em;
-}
-.about main section {
+main.about article {
+    opacity: .75;
     padding: 0 1rem;
+    margin-top: 1em;
 }
 header menu {
     display: none;
 }
-.about p {
+main.about article p:first-of-type {
+    margin-top: 0;
+}
+main.about article p {
     line-height: 1.6em;
+    margin-top: .8em;
 }
