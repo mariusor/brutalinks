@@ -486,7 +486,6 @@ func (r *repository) LoadItem(ctx context.Context, iri pub.IRI) (Item, error) {
 			item = items[0]
 		}
 	}
-
 	return item, err
 }
 
@@ -1389,9 +1388,9 @@ func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, f *Fi
 				return nil
 			})
 		}
-		foundAll := len(items)+len(follows)+len(accounts) >= f.MaxItems
+		foundAll := len(items)+len(follows)+len(accounts)+len(moderations) >= f.MaxItems
 		if !foundAll {
-			f.MaxItems -= len(items) + len(follows) + len(accounts)
+			f.MaxItems -= len(items) + len(follows) + len(accounts) + len(moderations)
 		}
 		// TODO(marius): this needs to be externalized also to a different function that we can pass from outer scope
 		//   This function implements the logic for breaking out of the collection iteration cycle and returns a bool
