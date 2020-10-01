@@ -1,6 +1,7 @@
 package app
 
 import (
+	"encoding/base64"
 	"fmt"
 	pub "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
@@ -169,8 +170,14 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"ShowText":              showText(m),
 			"HTML":                  html,
 			"Text":                  text,
-			"replaceTags":           replaceTags,
+			"isAudio":               isAudio,
+			"Audio":                 audio,
+			"Video":                 video,
+			"isVideo":               isVideo,
+			"Image":                 image,
+			"isImage":               isImage,
 			"Markdown":              Markdown,
+			"replaceTags":           replaceTags,
 			"AccountLocalLink":      AccountLocalLink,
 			"AccountPermaLink":      AccountPermaLink,
 			"ShowAccountHandle":     ShowAccountHandle,
@@ -252,8 +259,11 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 
 func getCSPHashes(m Model, v view) (string, string) {
 	var (
-		assets = make([]string, 0); styles =  make([]string, 0); scripts =  make([]string, 0)
-		styleSrc = "'unsafe-inline'"; scriptSrc = "'unsafe-inline'"
+		assets    = make([]string, 0)
+		styles    = make([]string, 0)
+		scripts   = make([]string, 0)
+		styleSrc  = "'unsafe-inline'"
+		scriptSrc = "'unsafe-inline'"
 	)
 	if m != nil {
 		assets = append(assets, m.Template())
@@ -267,7 +277,7 @@ func getCSPHashes(m Model, v view) (string, string) {
 			ext := path.Ext(name)
 			if ext == ".css" {
 				styles = append(styles, fmt.Sprintf("sha256-%s", hash))
-			} else if ext == ".js"{
+			} else if ext == ".js" {
 				scripts = append(scripts, fmt.Sprintf("sha256-%s", hash))
 			}
 		}
@@ -528,6 +538,36 @@ func html(data string) template.HTML {
 
 func text(data string) string {
 	return data
+}
+
+func isAudio(mime string) bool {
+	return strings.Contains(mime, "audio")
+}
+
+func isVideo(mime string) bool {
+	return strings.Contains(mime, "video")
+}
+func isImage(mime string) bool {
+	return strings.Contains(mime, "image")
+}
+
+func audio(mime, data string) template.HTML {
+	return template.HTML(fmt.Sprintf("<audio src='data:%s;base64,%s'/>", mime, data))
+}
+
+func video(mime, data string) template.HTML {
+	return template.HTML(fmt.Sprintf("<video  src='data:%s;base64,%s'/>", mime, data))
+}
+
+func image(mime, data string) template.HTML {
+	if mime == "image/svg+xml" {
+		dec, err := base64.StdEncoding.DecodeString(data)
+		if err == nil {
+			data = string(dec)
+		}
+		return template.HTML(data)
+	}
+	return template.HTML(fmt.Sprintf("<image src='data:%s;base64,%s'/>", mime, data))
 }
 
 func icon(icon string, c ...string) template.HTML {
