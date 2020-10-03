@@ -120,9 +120,7 @@ func Init(c appConfig) (*handler, error) {
 					h.errFn(ctx)("Failed to load a valid OAuth2 token for client")
 				}
 				h.storage.app.Metadata.OAuth.Provider = provider
-				h.storage.app.Metadata.OAuth.Token = tok.AccessToken
-				h.storage.app.Metadata.OAuth.TokenType = tok.TokenType
-				h.storage.app.Metadata.OAuth.RefreshToken = tok.RefreshToken
+				h.storage.app.Metadata.OAuth.Token = tok
 				h.infoFn(ctx, log.Ctx{
 					"token":   hideString(tok.AccessToken),
 					"type":    tok.TokenType,
@@ -198,10 +196,7 @@ func (h *handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
 		State:        state,
 		Code:         code,
 		Provider:     provider,
-		Token:        tok.AccessToken,
-		TokenType:    tok.TokenType,
-		RefreshToken: tok.RefreshToken,
-		Expiry:       tok.Expiry,
+		Token:        tok,
 	}
 
 	s.Values[SessionUserKey] = account

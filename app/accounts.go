@@ -7,6 +7,7 @@ import (
 	pub "github.com/go-ap/activitypub"
 	"github.com/go-chi/chi"
 	"github.com/pborman/uuid"
+	"golang.org/x/oauth2"
 	"net/http"
 	"time"
 
@@ -27,10 +28,7 @@ type ImageMetadata struct {
 type OAuth struct {
 	Provider     string
 	Code         string
-	Token        string
-	RefreshToken string
-	TokenType    string
-	Expiry       time.Time
+	Token        *oauth2.Token
 	State        string
 }
 

@@ -295,9 +295,7 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	acct.Metadata.OAuth.Provider = "fedbox"
-	acct.Metadata.OAuth.Token = tok.AccessToken
-	acct.Metadata.OAuth.TokenType = tok.TokenType
-	acct.Metadata.OAuth.RefreshToken = tok.RefreshToken
+	acct.Metadata.OAuth.Token = tok
 	s, err := h.v.s.get(w, r)
 	if err != nil {
 		handleErr("Login failed: unable to save session", log.Ctx{

@@ -420,7 +420,7 @@ func (r *repository) withAccountC2S(a *Account) client.RequestSignFn {
 		if !a.IsValid() || !a.IsLogged() {
 			return nil
 		}
-		if a.Metadata.OAuth.Token == "" {
+		if a.Metadata.OAuth.Token == nil {
 			r.errFn(log.Ctx{
 				"handle":   a.Handle,
 				"logged":   a.IsLogged(),
@@ -428,8 +428,7 @@ func (r *repository) withAccountC2S(a *Account) client.RequestSignFn {
 			})("account has no OAuth2 token")
 			return nil
 		}
-		tok := a.Metadata.OAuth.Token
-		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", tok))
+		a.Metadata.OAuth.Token.SetAuthHeader(req)
 		return nil
 	}
 }
