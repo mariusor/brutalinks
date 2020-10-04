@@ -3,7 +3,7 @@
 <nav class="pagination">View more:
     <ul>
         {{ if gt (len .PrevPage) 0 -}}
-            <li><a href="{{ .PrevPage | PrevPageLink }}" rel="prev prefetch">{{icon "angle-double-left"}}prev</a></li>
+            <li><a href="{{ .PrevPage | PrevPageLink }}" rel="prev prefetch">{{icon "angle-double-right" "v-mirror"}}prev</a></li>
         {{- end -}}
         {{ if gt (len .NextPage) 0 -}}
             <li><a href="{{.NextPage | NextPageLink }}" rel="next prefetch">next{{icon "angle-double-right"}}</a></li>
