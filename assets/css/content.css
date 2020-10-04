@@ -1,6 +1,5 @@
-.icon-reply.h-mirror,
-.icon-plus.deg-45 {
-    margin-bottom: -.2em;
+.icon-reply.h-mirror, .icon-plus.deg-45 {
+    vertical-align: text-bottom;
 }
 .comments details[open] { }
 .comments details:not([open]) {
