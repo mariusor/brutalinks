@@ -364,28 +364,35 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 			// TODO(marius): Fix this ugly hack where we need to not override OAuth2 metadata loaded at login
 			acc.Metadata = m
 			h.storage.WithAccount(&acc)
-			// TODO(marius): this needs to be moved to where we're handling all Inbox activities, not on page load
-			acc, err = h.storage.loadAccountsFollowers(ctx, acc)
-			if err != nil {
-				h.infoFn(ltx)("Error: %s", err)
+			if len(acc.Followers) == 0 {
+				// TODO(marius): this needs to be moved to where we're handling all Inbox activities, not on page load
+				acc, err = h.storage.loadAccountsFollowers(ctx, acc)
+				if err != nil {
+					h.infoFn(ltx)("Error: %s", err)
+				}
 			}
-			acc, err = h.storage.loadAccountsFollowing(ctx, acc)
-			if err != nil {
-				h.infoFn(ltx)("Error: %s", err)
+			if len(acc.Following) == 0 {
+				acc, err = h.storage.loadAccountsFollowing(ctx, acc)
+				if err != nil {
+					h.infoFn(ltx)("Error: %s", err)
+				}
 			}
-			acc, err = h.storage.loadAccountsBlockedIgnored(ctx, acc)
-			if err != nil {
-				h.infoFn(ltx)("Error: %s", err)
+			if len(acc.Blocked) + len(acc.Ignored) == 0 {
+				acc, err = h.storage.loadAccountsBlockedIgnored(ctx, acc)
+				if err != nil {
+					h.infoFn(ltx)("Error: %s", err)
+				}
 			}
-
-			var items ItemCollection
-			if cursor := ContextCursor(r.Context()); cursor != nil {
-				items = cursor.items.Items()
-			}
-			h.storage.loadAccountVotes(ctx, &acc, items)
-			acc, err = h.storage.loadAccountsOutbox(ctx, acc)
-			if err != nil {
-				h.infoFn(ltx)("Error: %s", err)
+			if len(acc.Votes) == 0 {
+				var items ItemCollection
+				if cursor := ContextCursor(r.Context()); cursor != nil {
+					items = cursor.items.Items()
+				}
+				h.storage.loadAccountVotes(ctx, &acc, items)
+				acc, err = h.storage.loadAccountsOutbox(ctx, acc)
+				if err != nil {
+					h.infoFn(ltx)("Error: %s", err)
+				}
 			}
 			r = r.WithContext(context.WithValue(r.Context(), LoggedAccountCtxtKey, &acc))
 			h.storage.WithAccount(&acc)

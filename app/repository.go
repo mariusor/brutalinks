@@ -1195,23 +1195,6 @@ func (r *repository) objects(ctx context.Context, f *Filters) (ItemCollection, e
 	return items, err
 }
 
-func (r *repository) actors(ctx context.Context, f *Filters) (AccountCollection, error) {
-	objects := func(ctx context.Context) (pub.CollectionInterface, error) {
-		return r.fedbox.Actors(ctx, Values(f))
-	}
-	accounts := make(AccountCollection, 0)
-	err := LoadFromCollection(ctx, objects, &colCursor{filters: f}, func(c pub.ItemCollection) (bool, error) {
-		for _, it := range c {
-			i := new(Account)
-			if err := i.FromActivityPub(it); err == nil && i.IsValid() {
-				accounts = append(accounts, *i)
-			}
-		}
-		return len(accounts) == f.MaxItems || len(f.Next) == 0, nil
-	})
-	return accounts, err
-}
-
 func (r *repository) Objects(ctx context.Context, f *Filters) (Cursor, error) {
 	items, err := r.objects(ctx, f)
 	if err != nil {
