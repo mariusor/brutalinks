@@ -79,7 +79,7 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 					r.Post("/", h.HandleSubmit)
 
 					r.Group(func(r chi.Router) {
-						r.Use(h.ValidateLoggedIn(h.v.HandleErrors))
+						r.Use(h.ValidateLoggedIn(h.v.RedirectToErrors))
 						r.Get("/yay", h.HandleVoting)
 						r.Get("/nay", h.HandleVoting)
 
@@ -117,7 +117,7 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 				r.With(TagFiltersMw, LoadServiceInboxMw).Get("/t/{tag}", h.HandleShow)
 				r.With(SelfFiltersMw, LoadServiceInboxMw).Get("/self", h.HandleShow)
 				r.With(FederatedFiltersMw, LoadServiceInboxMw).Get("/federated", h.HandleShow)
-				r.With(h.NeedsSessions, FollowedFiltersMw, h.ValidateLoggedIn(h.v.HandleErrors), LoadInboxMw).
+				r.With(h.NeedsSessions, FollowedFiltersMw, h.ValidateLoggedIn(h.v.RedirectToErrors), LoadInboxMw).
 					Get("/followed", h.HandleShow)
 				r.With(ModelMw(&listingModel{tpl: "moderation"}), ModerationFiltersMw, LoadServiceInboxMw, ModerationListing).
 					Get("/moderation", h.HandleShow)

@@ -299,6 +299,23 @@ func (v view) SetCSP(m Model, w http.ResponseWriter) error {
 	return nil
 }
 
+// RedirectToErrors redirects failed requests with a flash error
+func (v *view) RedirectToErrors(w http.ResponseWriter, r *http.Request, errs ...error) {
+	backURL := "/"
+	if refURLs, ok := r.Header["Referer"]; ok {
+		backURL = refURLs[0]
+	}
+
+	for _, err := range errs {
+		if err == nil {
+			continue
+		}
+		v.addFlashMessage(Error, w, r, err.Error())
+	}
+
+	v.Redirect(w, r, backURL, http.StatusFound)
+}
+
 // HandleErrors serves failed requests
 func (v *view) HandleErrors(w http.ResponseWriter, r *http.Request, errs ...error) {
 	d := &errorModel{
