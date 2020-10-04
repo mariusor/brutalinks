@@ -119,7 +119,6 @@ body > header nav.tabs ul li::before {
 }
 body > header nav:not(.tabs) {
     text-align: right;
-    align-self: end;
     font-size: .8rem;
 }
 nav.tabs ul li a {
