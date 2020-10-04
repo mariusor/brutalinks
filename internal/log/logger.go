@@ -98,7 +98,7 @@ func (l *logger) WithContext(ctx ...Ctx) Logger {
 	l.m.Lock()
 	defer l.m.Unlock()
 	l.prevCtx = l.ctx
-	l.ctx = make(Ctx, 0)
+	l.ctx = make(Ctx)
 	for _, c := range ctx {
 		for k, v := range c {
 			l.ctx[k] = v
@@ -206,19 +206,15 @@ func (l *log) Panic(v interface{}, stack []byte) {
 
 func (l *logger) NewLogEntry(r *http.Request) middleware.LogEntry {
 	ll := log{
-		c: Ctx{
-			"met":   r.Method,
-			"host":  r.Host,
-			"uri":   r.RequestURI,
-			"proto": r.Proto,
-			"https": false,
-		},
+		c: make(Ctx),
 		l: l,
 	}
-	reqID := middleware.GetReqID(r.Context())
-	l.m.Lock()
-	defer l.m.Unlock()
-	if reqID != "" {
+	ll.c["met"] = r.Method
+	ll.c["host"] = r.Host
+	ll.c["uri"] = r.RequestURI
+	ll.c["proto"] = r.Proto
+	ll.c["https"] = false
+	if reqID := middleware.GetReqID(r.Context()); reqID != "" {
 		ll.c["id"] = reqID
 	}
 	if r.TLS != nil {
