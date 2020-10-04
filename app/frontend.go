@@ -7,7 +7,6 @@ import (
 	"github.com/go-ap/errors"
 	"github.com/go-chi/chi"
 	"github.com/gorilla/csrf"
-	"github.com/gorilla/sessions"
 	"github.com/mariusor/littr.go/internal/config"
 	"github.com/mariusor/littr.go/internal/log"
 	"golang.org/x/oauth2"
@@ -185,25 +184,23 @@ func (h *handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s, err := h.v.s.get(w, r)
-	if err != nil {
-		h.errFn(log.Ctx{"err": err})("Unable to get new session")
-		h.v.HandleErrors(w, r, err)
-		return
-	}
-	account := h.v.loadCurrentAccountFromSession(s)
+	account := h.v.loadCurrentAccountFromSession(w, r)
 	account.Metadata.OAuth = OAuth{
-		State:        state,
-		Code:         code,
-		Provider:     provider,
-		Token:        tok,
+		State:    state,
+		Code:     code,
+		Provider: provider,
+		Token:    tok,
 	}
 
-	s.Values[SessionUserKey] = account
-	if strings.ToLower(provider) != "local" {
-		h.v.addFlashMessage(Success, w, r, fmt.Sprintf("Login successful with %s", provider))
+	if err := h.v.saveAccountToSession(w, r, account); err == nil {
+		if strings.ToLower(provider) != "local" {
+			h.v.addFlashMessage(Success, w, r, fmt.Sprintf("Login successful with %s", provider))
+		} else {
+			h.v.addFlashMessage(Success, w, r, "Login successful")
+		}
 	} else {
-		h.v.addFlashMessage(Success, w, r, "Login successful")
+		h.errFn()("Unable to save account to session")
+		//h.v.addFlashMessage(Success, w, r, fmt.Sprintf("Login successful with %s", provider))
 	}
 	h.v.Redirect(w, r, "/", http.StatusFound)
 }
@@ -277,28 +274,40 @@ func isInverted(r *http.Request) bool {
 	return false
 }
 
-func (v *view) loadCurrentAccountFromSession(s *sessions.Session) Account {
-	if s == nil {
+func (v *view) saveAccountToSession(w http.ResponseWriter, r *http.Request, a Account) error {
+	if !v.s.enabled || w == nil || r == nil {
+		return nil
+	}
+	s, err := v.s.get(w, r)
+	if err != nil {
+		return err
+	}
+	s.Values[SessionUserKey] = a
+	return s.Save(r, w)
+}
+
+func (v *view) loadCurrentAccountFromSession(w http.ResponseWriter, r *http.Request) Account {
+	if !v.s.enabled || w == nil || r == nil {
+		return defaultAccount
+	}
+	acc := defaultAccount
+	s, err := v.s.get(w, r)
+	if err != nil {
 		return defaultAccount
 	}
 	// load the current account from the session or setting it to anonymous
 	raw, ok := s.Values[SessionUserKey]
 	if !ok {
-		return defaultAccount
+		v.errFn(log.Ctx{"sess": s.Values})("no account data saved to session")
+	} else if acc, ok = raw.(Account); !ok {
+		v.errFn(log.Ctx{"sess": s.Values})("invalid account in session")
+	} else {
+		v.infoFn(log.Ctx{
+			"handle": acc.Handle,
+			"hash":   acc.Hash,
+		})("loaded account from session")
 	}
-	a, ok := raw.(Account)
-	if !ok {
-		v.errFn(log.Ctx{
-			"handle": a.Handle,
-			"hash":   a.Hash,
-		})("unable to load account from session")
-		return defaultAccount
-	}
-	v.infoFn(log.Ctx{
-		"handle": a.Handle,
-		"hash":   a.Hash,
-	})("loaded account from session")
-	return a
+	return acc
 }
 
 func (h *handler) SetSecurityHeaders(next http.Handler) http.Handler {
@@ -316,24 +325,66 @@ func (h *handler) SetSecurityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
+func loadAccountData(a *Account, b Account) {
+	if !HashesEqual(a.Hash, b.Hash) {
+		return
+	}
+	if len(a.Email) == 0 && len(b.Email) > 0 {
+		a.Email = b.Email
+	}
+	if len(a.Handle) == 0 && len(b.Handle) > 0 {
+		a.Handle = b.Handle
+	}
+	if a.CreatedAt.IsZero() && !b.CreatedAt.IsZero() {
+		a.CreatedAt = b.CreatedAt
+	}
+	if a.CreatedBy == nil && b.CreatedBy != nil {
+		a.CreatedBy = b.CreatedBy
+	}
+	if a.UpdatedAt.IsZero() && !b.UpdatedAt.IsZero() {
+		a.UpdatedAt = b.UpdatedAt
+	}
+	if a.Metadata == nil && b.Metadata != nil {
+		a.Metadata = b.Metadata
+	}
+	if a.pub == nil && b.pub != nil {
+		a.pub = b.pub
+	}
+	if len(a.Votes) == 0 && len(b.Votes) > 0 {
+		a.Votes = b.Votes
+	}
+	if len(a.Followers) == 0 && len(b.Followers) > 0 {
+		a.Followers = b.Followers
+	}
+	if len(a.Following) == 0 && len(b.Following) > 0 {
+		a.Following = b.Following
+	}
+	if len(a.Blocked) == 0 && len(b.Blocked) > 0 {
+		a.Blocked = b.Blocked
+	}
+	if len(a.Ignored) == 0 && len(b.Ignored) > 0 {
+		a.Ignored = b.Ignored
+	}
+	if a.Parent == nil && b.Parent != nil {
+		a.Parent = b.Parent
+	}
+	if len(a.Children) == 0 && len(b.Children) > 0 {
+		a.Children = b.Children
+	}
+}
+
 func (h *handler) LoadSession(next http.Handler) http.Handler {
 	if !h.conf.SessionsEnabled {
 		return next
 	}
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		h.storage.WithAccount(nil)
-		if h.v.s.s == nil {
-			h.infoFn()("missing session store, unable to load session")
-			next.ServeHTTP(w, r)
-			return
+		acc := AnonymousAccount
+		clearCookie := true
+		if h.v != nil {
+			acc = h.v.loadCurrentAccountFromSession(w, r)
+			clearCookie = false
 		}
-		s, err := h.v.s.get(w, r)
-		if err != nil {
-			clearSessionCookie(w, r)
-			h.infoFn(log.Ctx{"err": err})("unable to load session")
-		}
-		acc := h.v.loadCurrentAccountFromSession(s)
-		m := acc.Metadata
 		if acc.IsLogged() {
 			f := &Filters{
 				Name: CompStrs{EqualsString(acc.Handle)},
@@ -341,29 +392,25 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 				Type: ActivityTypesFilter(ValidActorTypes...),
 			}
 			ctx := context.Background()
-			accounts, err := h.storage.accounts(ctx, f)
 			ltx := log.Ctx{
 				"handle": acc.Handle,
 				"hash":   acc.Hash,
 			}
-			if err != nil {
+			if accounts, err := h.storage.accounts(ctx, f); err != nil {
 				ctxtErr(next, w, r, err)
-				return
+			} else {
+				if len(accounts) == 0 {
+					err := errors.NotFoundf("no accounts found for %v", f)
+					h.infoFn(ltx)("Error: %s", err)
+				}
+				if !accounts[0].IsValid() {
+					ctxtErr(next, w, r, errors.NotFoundf("Not found"))
+				}
+				loadAccountData(&acc, accounts[0])
 			}
-			if len(accounts) == 0 {
-				err := errors.NotFoundf("no accounts found for %v", f)
-				h.infoFn(ltx)("Error: %s", err)
-				ctxtErr(next, w, r, err)
-				return
-			}
-			if !accounts[0].IsValid() {
-				ctxtErr(next, w, r, errors.NotFoundf("Not found"))
-				return
-			}
-			acc = accounts[0]
-			// TODO(marius): Fix this ugly hack where we need to not override OAuth2 metadata loaded at login
-			acc.Metadata = m
+
 			h.storage.WithAccount(&acc)
+			var err error
 			if len(acc.Followers) == 0 {
 				// TODO(marius): this needs to be moved to where we're handling all Inbox activities, not on page load
 				acc, err = h.storage.loadAccountsFollowers(ctx, acc)
@@ -377,7 +424,7 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 					h.infoFn(ltx)("Error: %s", err)
 				}
 			}
-			if len(acc.Blocked) + len(acc.Ignored) == 0 {
+			if len(acc.Blocked) == 0 || len(acc.Ignored) == 0 {
 				acc, err = h.storage.loadAccountsBlockedIgnored(ctx, acc)
 				if err != nil {
 					h.infoFn(ltx)("Error: %s", err)
@@ -394,8 +441,18 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 					h.infoFn(ltx)("Error: %s", err)
 				}
 			}
-			r = r.WithContext(context.WithValue(r.Context(), LoggedAccountCtxtKey, &acc))
-			h.storage.WithAccount(&acc)
+		}
+		r = r.WithContext(context.WithValue(r.Context(), LoggedAccountCtxtKey, &acc))
+		if clearCookie {
+			clearSessionCookie(w, r)
+		} else if h.v != nil {
+			if err := h.v.saveAccountToSession(w, r, acc); err != nil {
+				h.errFn(log.Ctx{
+					"err":    err,
+					"handle": acc.Handle,
+					"hash":   acc.Hash,
+				})("unable to save account to session")
+			}
 		}
 		next.ServeHTTP(w, r)
 	}
