@@ -25,7 +25,7 @@ const (
 	// Anonymous label
 	Anonymous = "anonymous"
 	// System label
-	System    = "system"
+	System = "system"
 )
 
 var (

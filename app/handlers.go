@@ -90,6 +90,9 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 				"author": v.SubmittedBy.Handle,
 				"weight": v.Weight,
 			})("Error: %s", err)
+		} else {
+			acc.Votes = acc.Votes[:0]
+			h.v.saveAccountToSession(w, r, *acc)
 		}
 	}
 	h.v.Redirect(w, r, ItemPermaLink(&n), http.StatusSeeOther)
@@ -163,6 +166,9 @@ func (h *handler) HandleVoting(w http.ResponseWriter, r *http.Request) {
 				"error":  err,
 			})("Error: Unable to save vote")
 			h.v.addFlashMessage(Error, w, r, "Unable to save vote")
+		} else {
+			acc.Votes = acc.Votes[:0]
+			h.v.saveAccountToSession(w, r, *acc)
 		}
 	} else {
 		h.v.addFlashMessage(Error, w, r, "unable to vote as current user")
@@ -191,6 +197,9 @@ func (h *handler) FollowAccount(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.v.HandleErrors(w, r, err)
 		return
+	} else {
+		loggedAccount.Following = loggedAccount.Following[:0]
+		h.v.saveAccountToSession(w, r, *loggedAccount)
 	}
 	h.v.Redirect(w, r, AccountPermaLink(&fol), http.StatusSeeOther)
 }
@@ -241,6 +250,9 @@ func (h *handler) HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.v.HandleErrors(w, r, err)
 		return
+	} else {
+		loggedAccount.Followers = loggedAccount.Followers[:0]
+		h.v.saveAccountToSession(w, r, *loggedAccount)
 	}
 	backUrl := r.Header.Get("Referer")
 	h.v.Redirect(w, r, backUrl, http.StatusSeeOther)
@@ -617,6 +629,9 @@ func (h *handler) BlockAccount(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.v.HandleErrors(w, r, err)
 		return
+	} else {
+		loggedAccount.Blocked = loggedAccount.Blocked[:0]
+		h.v.saveAccountToSession(w, r, *loggedAccount)
 	}
 	h.v.Redirect(w, r, PermaLink(&block), http.StatusSeeOther)
 }
@@ -653,6 +668,9 @@ func (h *handler) BlockItem(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.v.HandleErrors(w, r, err)
 		return
+	} else {
+		loggedAccount.Blocked = loggedAccount.Blocked[:0]
+		h.v.saveAccountToSession(w, r, *loggedAccount)
 	}
 	h.v.Redirect(w, r, PermaLink(&it), http.StatusSeeOther)
 }
