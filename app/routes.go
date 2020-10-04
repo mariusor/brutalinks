@@ -60,17 +60,20 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 			r.With(h.LoadAuthorMw).Route("/~{handle}", func(r chi.Router) {
 				r.With(AccountListingModelMw, AccountFiltersMw, LoadOutboxMw).Get("/", h.HandleShow)
 
-				r.Get("/follow", h.FollowAccount)
-				r.Get("/follow/{action}", h.HandleFollowRequest)
+				r.Group(func(r chi.Router) {
+					r.Use(h.ValidateLoggedIn(h.v.RedirectToErrors))
+					r.Get("/follow", h.FollowAccount)
+					r.Get("/follow/{action}", h.HandleFollowRequest)
 
-				r.With(h.CSRF, MessageUserContentModelMw, AccountFiltersMw, LoadOutboxMw).Group(func(r chi.Router) {
-					r.Get("/message", h.HandleShow)
-					r.Post("/message", h.HandleSubmit)
+					r.With(h.CSRF, MessageUserContentModelMw, AccountFiltersMw, LoadOutboxMw).Group(func(r chi.Router) {
+						r.Get("/message", h.HandleShow)
+						r.Post("/message", h.HandleSubmit)
 
-					r.With(BlockAccountModelMw).Get("/block", h.HandleShow)
-					r.Post("/block", h.BlockAccount)
-					r.With(ReportAccountModelMw).Get("/bad", h.HandleShow)
-					r.Post("/bad", h.ReportAccount)
+						r.With(BlockAccountModelMw).Get("/block", h.HandleShow)
+						r.Post("/block", h.BlockAccount)
+						r.With(ReportAccountModelMw).Get("/bad", h.HandleShow)
+						r.Post("/bad", h.ReportAccount)
+					})
 				})
 
 				r.Route("/{hash}", func(r chi.Router) {
@@ -107,7 +110,7 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 			r.Get("/i/{hash}", h.HandleItemRedirect)
 
 			r.With(h.NeedsSessions).Get("/logout", h.HandleLogout)
-			r.With(h.NeedsSessions, h.ValidateLoggedIn(h.v.HandleErrors)).Post("/invite", h.HandleSendInvite)
+			r.With(h.NeedsSessions, h.ValidateLoggedIn(h.v.RedirectToErrors)).Post("/invite", h.HandleSendInvite)
 
 			r.With(ListingModelMw).Group(func(r chi.Router) {
 				// @todo(marius) :link_generation:
