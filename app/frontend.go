@@ -139,14 +139,6 @@ func Init(c appConfig) (*handler, error) {
 	return h, err
 }
 
-type headerEl struct {
-	IsCurrent bool
-	Icon      string
-	Auth      bool
-	Name      string
-	URL       string
-}
-
 func loggedAccount(r *http.Request) *Account {
 	if acct := ContextAccount(r.Context()); acct != nil {
 		return acct

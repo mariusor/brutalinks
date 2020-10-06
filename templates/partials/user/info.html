@@ -4,7 +4,8 @@
             {{- if .HasIcon -}}{{- Avatar .Metadata.Icon.MimeType .Metadata.Icon.URI -}}{{- else -}}{{- icon "user" "avatar" -}}{{- end -}}
             {{- .Handle -}}
         </h2>
-        {{- if gt .Score 0 }}<data class="score {{- .Score | ScoreClass -}}">{{ .Score | ScoreFmt}}</data> {{ end -}}
+        {{ $score := .Votes.Score }}
+        {{- if gt $score 0 }}<data class="score {{-  $score | ScoreClass -}}">{{  $score | ScoreFmt}}</data> {{ end -}}
     </summary>
 {{- if not .CreatedAt.IsZero }}
     <aside>

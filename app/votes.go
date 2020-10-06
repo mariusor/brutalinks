@@ -102,20 +102,18 @@ const (
 	ScoreAccount
 )
 
-type Score struct {
-	ID          int64
-	Max         int64
-	Ups         int64
-	Downs       int64
-	Key         Hash
-	Score       int64
-	SubmittedAt time.Time
-	Type        ScoreType
-}
-
 func (v VoteCollection) First() (*Vote, error) {
 	for _, vv := range v {
 		return &vv, nil
 	}
 	return nil, errors.Errorf("empty %T", v)
+}
+
+// Score
+func (v VoteCollection) Score() int {
+	score := 0
+	for _, vot := range v {
+		score += vot.Weight
+	}
+	return score
 }

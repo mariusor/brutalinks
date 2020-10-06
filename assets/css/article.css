@@ -98,8 +98,7 @@ section footer::before {
     content: '\2012';
 }
 .moderation-request + .score, .follow-request + .score, .account + .score {
-    grid-template-rows: 1.5em;
-    align-content: center;
+    grid-template-rows: 1.2em 1.5em;
 }
 .moderation-request + .score, .account + .score {
     opacity: .5;

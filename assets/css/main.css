@@ -77,7 +77,11 @@ a[href="#"], a[href="#"]:visited {
     transform: rotateY(180deg) rotateX(180deg);
 }
 .score noscript { display: none; }
-svg.icon { vertical-align: text-top; }
+svg.icon-trash-o, svg.icon-activitypub, svg.icon-star, svg.icon-edit, svg.icon-adjust,
+svg.icon-plus, svg.icon-minus, svg.icon-code, svg.icon-angle-double-right, svg.icon-clock-o,
+svg.icon-user, svg.icon-lock, svg.icon-check {
+    vertical-align: text-top;
+}
 .icon.icon-home, .icon.icon-star, .icon.icon-activitypub, .icon.icon-adjust,
 .icon.icon-lock, .icon.icon-flag, .icon.icon-block, .icon.icon-edit
 {
@@ -120,6 +124,12 @@ body > header nav.tabs ul li::before {
 body > header nav:not(.tabs) {
     text-align: right;
     font-size: .8rem;
+}
+nav ul li small data::before {
+    content: "(";
+}
+nav ul li small data::after {
+    content: ")";
 }
 nav.tabs ul li a {
     margin-right: .5rem;
@@ -278,7 +288,8 @@ form button {
     body > footer nav:not(.pagination) li,
     body > footer nav:not(.pagination) dl,
     body > header nav ul a span,
-    body > header nav:nth-of-type(2) li:not(.acct) {
+    body > header nav:nth-of-type(2) li data,
+    body > header nav:nth-of-type(2) li:last-of-type {
         display: none;
     }
 }
@@ -287,7 +298,8 @@ form button {
         font-size: 2.6vw;
     }
     section header h2 small,
-    body > header h1 a strong {
+    body > header h1 a strong,
+    body > header nav:nth-of-type(2) li data {
         display: none;
     }
 }

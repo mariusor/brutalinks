@@ -3,32 +3,29 @@
 <nav class="tabs"><ul>
 {{- range $key, $value := Menu -}}
 {{- if $value.IsCurrent }}
-    <li><a aria-current="page" href="#">{{ icon $value.Icon }} <span>/{{$value.Name}}</span></a></li>
+    <li><a aria-current="page" href="#">{{ icons $value.Icon }} <span>{{$value.Name}}</span></a></li>
 {{- else }}
 {{- if or (and $value.Auth $account.IsLogged) (not $value.Auth) }}
-    <li><a rel="directory" href="{{$value.URL}}">{{ icon $value.Icon }} <span>/{{$value.Name}}</span></a></li>
+    <li><a rel="directory" href="{{$value.URL}}">{{ icons $value.Icon }} <span>{{$value.Name}}</span></a></li>
 {{- end -}}
 {{- end -}}
 {{- end }}
 </ul></nav>
-{{- $providers := getProviders }}
 <nav><ul>
 {{- if $account.IsLogged }}
-        <li class="acct"><a rel="mention" href="{{ $account | AccountPermaLink }}">{{$account.Handle}}</a> {{/* }}<span class="score">{{$account.Score | ScoreFmt}}</span>{{ */}}</li>
-        <li class="acct"><a href="/logout">Log out</a></li>
-{{- end }}
-{{- if or $account.IsLogged Config.AnonymousCommentingEnabled }}
-        <li><a href="/submit">Add</a></li>
+{{ $score := $account.Votes.Score}}
+    <li>
+        <a rel="mention" href="{{ $account | AccountPermaLink }}">{{$account.Handle}}</a>
+        <small><data class="{{- $score | ScoreClass -}}" value="{{$score | NumberFmt }}">{{$account.Votes.Score | ScoreFmt}}</data></small>
+    </li>
+    <li><a href="/logout">Log out</a></li>
 {{- end }}
 {{- if Config.SessionsEnabled }}
 {{- if not $account.IsLogged }}
 {{- if Config.UserCreatingEnabled }}
-        <li class="acct register-local"><a href="/register" title="Register a new account" class="register littr">Register</a></li>
+    <li class="register-local"><a href="/register" title="Register a new account" class="register littr">Register</a></li>
 {{- end }}
-        <li class="acct auth-local"><a href="/login" title="Authentication" class="auth littr">Log in</a></li>
-{{- range $key, $value := $providers -}}
-        <li><a href="/auth/{{$key}}" title="{{$value}} auth" class="auth">{{ icon $key }}</a></li>
-{{ end -}}
+    <li><a href="/login" title="Authentication" class="auth local">Log in</a></li>
 {{- end -}}
 {{- end }}
 </ul></nav>

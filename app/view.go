@@ -207,6 +207,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"Name":                  appName,
 			"Menu":                  func() []headerEl { return headerMenu(r) },
 			"icon":                  icon,
+			"icons":                 icons,
 			"svg":                   assets.Svg,
 			"js":                    assets.Js,
 			"style":                 assets.Style,
@@ -467,24 +468,35 @@ func loadScoreFormat(s int) (string, string) {
 	return numberFormat("%3.1f", score), units
 }
 
+type headerEl struct {
+	IsCurrent bool
+	Icon      []string
+	Auth      bool
+	Name      string
+	URL       string
+}
+
 func headerMenu(r *http.Request) []headerEl {
-	sections := []string{"self", "federated", "followed"}
+	sections := []string{"/self", "/federated", "/followed", "submit"}
 	ret := make([]headerEl, 0)
 	for _, s := range sections {
 		el := headerEl{
 			Name: s,
-			URL:  fmt.Sprintf("/%s", s),
+			URL:  fmt.Sprintf("/%s", strings.Trim(s, "/")),
 		}
-		if path.Base(r.URL.Path) == s {
+		if path.Base(r.URL.Path) == path.Base(s) {
 			el.IsCurrent = true
 		}
 		switch strings.ToLower(s) {
-		case "self":
-			el.Icon = "home"
-		case "federated":
-			el.Icon = "activitypub"
-		case "followed":
-			el.Icon = "star"
+		case "/self":
+			el.Icon = []string{"home"}
+		case "/federated":
+			el.Icon = []string{"activitypub"}
+		case "/followed":
+			el.Icon = []string{"star"}
+			el.Auth = true
+		case "submit":
+			el.Icon = []string{"edit", "v-mirror"}
 			el.Auth = true
 		}
 		ret = append(ret, el)
@@ -599,13 +611,16 @@ func image(mime, data string) template.HTML {
 	return template.HTML(fmt.Sprintf("<image src='data:%s;base64,%s' />", mime, data))
 }
 
-func icon(icon string, c ...string) template.HTML {
-	cls := make([]string, 0)
-	cls = append(cls, icon)
-	cls = append(cls, c...)
+func icons(c []string) template.HTML {
+	return icon(c...)
+}
 
+func icon(c ...string) template.HTML {
+	if len(c) == 0 {
+		return ""
+	}
 	buf := fmt.Sprintf(`<svg aria-hidden="true" class="icon icon-%s"><use xlink:href="#icon-%s"><title>%s</title></use></svg>`,
-		strings.Join(cls, " "), icon, icon)
+		strings.Join(c, " "), c[0], c[0])
 
 	return template.HTML(buf)
 }
