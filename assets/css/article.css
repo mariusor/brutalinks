@@ -103,7 +103,7 @@ section footer::before {
 .moderation-request + .score, .account + .score {
     opacity: .5;
 }
-.score {
+aside.score {
     grid-template-rows: .6em 1.5em 1em;
     display: grid;
     grid-area: sidebar;

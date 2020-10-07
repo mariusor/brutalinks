@@ -125,10 +125,10 @@ body > header nav:not(.tabs) {
     text-align: right;
     font-size: .8rem;
 }
-nav ul li small data::before {
+small data.score::before {
     content: "(";
 }
-nav ul li small data::after {
+small data.score::after {
     content: ")";
 }
 nav.tabs ul li a {
