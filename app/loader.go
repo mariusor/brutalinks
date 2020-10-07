@@ -90,9 +90,9 @@ func ContextAccount(ctx context.Context) *Account {
 	return a
 }
 
-func ContextAuthors(ctx context.Context) []Account {
-	var a []Account
-	a, _ = ctx.Value(AuthorCtxtKey).([]Account)
+func ContextAuthors(ctx context.Context) []*Account {
+	var a []*Account
+	a, _ = ctx.Value(AuthorCtxtKey).([]*Account)
 	return a
 }
 

@@ -193,7 +193,7 @@ func (h *handler) FollowAccount(w http.ResponseWriter, r *http.Request) {
 	}
 	fol := toFollow[0]
 	// todo(marius): load follow reason from POST request so we can show it to the followed user
-	err = repo.FollowAccount(context.Background(), *loggedAccount, fol, nil)
+	err = repo.FollowAccount(context.Background(), *loggedAccount, *fol, nil)
 	if err != nil {
 		h.v.HandleErrors(w, r, err)
 		return
@@ -201,7 +201,7 @@ func (h *handler) FollowAccount(w http.ResponseWriter, r *http.Request) {
 		loggedAccount.Following = loggedAccount.Following[:0]
 		h.v.saveAccountToSession(w, r, *loggedAccount)
 	}
-	h.v.Redirect(w, r, AccountPermaLink(&fol), http.StatusSeeOther)
+	h.v.Redirect(w, r, AccountPermaLink(fol), http.StatusSeeOther)
 }
 
 func (h *handler) HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
@@ -625,7 +625,7 @@ func (h *handler) BlockAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	block := toBlock[0]
-	err = repo.BlockAccount(context.Background(), *loggedAccount, block, &reason)
+	err = repo.BlockAccount(context.Background(), *loggedAccount, *block, &reason)
 	if err != nil {
 		h.v.HandleErrors(w, r, err)
 		return
@@ -633,7 +633,7 @@ func (h *handler) BlockAccount(w http.ResponseWriter, r *http.Request) {
 		loggedAccount.Blocked = loggedAccount.Blocked[:0]
 		h.v.saveAccountToSession(w, r, *loggedAccount)
 	}
-	h.v.Redirect(w, r, PermaLink(&block), http.StatusSeeOther)
+	h.v.Redirect(w, r, PermaLink(block), http.StatusSeeOther)
 }
 
 // BlockItem processes a block request received at /~{handle}/{hash}/block
@@ -701,13 +701,13 @@ func (h *handler) ReportAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	p := byHandleAccounts[0]
-	err = repo.ReportAccount(context.Background(), *loggedAccount, p, &reason)
+	err = repo.ReportAccount(context.Background(), *loggedAccount, *p, &reason)
 	if err != nil {
 		h.errFn()("Error: %s", err)
 		h.v.HandleErrors(w, r, errors.NewNotFound(err, "not found"))
 		return
 	}
-	url := AccountPermaLink(&p)
+	url := AccountPermaLink(p)
 
 	backUrl := r.Header.Get("Referer")
 	if !strings.Contains(backUrl, url) && strings.Contains(backUrl, Instance.BaseURL) {
