@@ -56,6 +56,7 @@ var ValidItemTypes = pub.ActivityVocabularyTypes{
 	pub.AudioType,
 }
 
+// @deprecated
 var ValidActivityTypes = pub.ActivityVocabularyTypes{
 	pub.CreateType,
 	pub.LikeType,
@@ -704,10 +705,9 @@ func (r *repository) loadAccountVotes(ctx context.Context, acc *Account, items I
 	if acc == nil || acc.pub == nil {
 		return nil
 	}
-	voteActivities := pub.ActivityVocabularyTypes{pub.LikeType, pub.DislikeType, pub.UndoType}
 	f := &Filters{
 		Object: &Filters{},
-		Type:   ActivityTypesFilter(voteActivities...),
+		Type:   AppreciationActivitiesFilter,
 	}
 	for _, it := range items {
 		f.Object.IRI = append(f.Object.IRI, LikeString(it.Hash.String()))
@@ -717,7 +717,7 @@ func (r *repository) loadAccountVotes(ctx context.Context, acc *Account, items I
 	}
 	return LoadFromCollection(ctx, collFn, &colCursor{filters: f}, func(col pub.ItemCollection) (bool, error) {
 		for _, it := range col {
-			if !it.IsObject() || !voteActivities.Contains(it.GetType()) {
+			if !it.IsObject() || !ValidAppreciationTypes.Contains(it.GetType()) {
 				continue
 			}
 			v := new(Vote)
@@ -1300,6 +1300,7 @@ func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, f *Fi
 	follows := make(FollowRequests, 0)
 	accounts := make(AccountCollection, 0)
 	moderations := make(ModerationRequests, 0)
+	appreciations := make(VoteCollection, 0)
 	relations := make(map[pub.IRI]pub.IRI)
 
 	deferredItems := make(CompStrs, 0)
@@ -1345,7 +1346,7 @@ func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, f *Fi
 					follows = append(follows, f)
 					relations[a.GetLink()] = a.GetLink()
 				}
-				if ModerationActivityTypes.Contains(typ) {
+				if ValidModerationActivityTypes.Contains(typ) {
 					ob := a.Object
 					if ob == nil {
 						return nil
@@ -1365,6 +1366,12 @@ func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, f *Fi
 					m := ModerationOp{}
 					m.FromActivityPub(a)
 					moderations = append(moderations, m)
+					relations[a.GetLink()] = a.GetLink()
+				}
+				if ValidAppreciationTypes.Contains(typ) {
+					v := Vote{}
+					v.FromActivityPub(a)
+					appreciations = append(appreciations, v)
 					relations[a.GetLink()] = a.GetLink()
 				}
 				return nil
@@ -1467,6 +1474,12 @@ func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, f *Fi
 		}
 		for i := range moderations {
 			a := moderations[i]
+			if a.pub != nil && a.pub.GetLink() == rel {
+				result = append(result, &a)
+			}
+		}
+		for i := range appreciations {
+			a := appreciations[i]
 			if a.pub != nil && a.pub.GetLink() == rel {
 				result = append(result, &a)
 			}
@@ -1965,6 +1978,32 @@ func (r *repository) SaveAccount(ctx context.Context, a Account) (Account, error
 // but in the long term we might want to store some of this information in the DB
 func (r *repository) LoadInfo() (WebInfo, error) {
 	return Instance.NodeInfo(), nil
+}
+
+func (r *repository) LoadAccountWithDetails(ctx context.Context, actor *Account, f *Filters) (*Cursor, error) {
+	c, err := r.LoadActorOutbox(ctx, actor.pub, f)
+	if err != nil {
+		return c, err
+	}
+	remaining := make(RenderableList, 0)
+	for _, it := range c.items {
+		switch it.Type() {
+		case AppreciationType:
+			v, ok := it.(*Vote)
+			if !ok {
+				continue
+			}
+			if actor.Votes.Contains(*v) {
+				continue
+			}
+			actor.Votes = append(actor.Votes, *v)
+		default:
+			remaining = append(remaining, it)
+		}
+	}
+	c.items = remaining
+	c.total = uint(len(remaining))
+	return c, nil
 }
 
 func (r *repository) LoadActorOutbox(ctx context.Context, actor pub.Item, f *Filters) (*Cursor, error) {

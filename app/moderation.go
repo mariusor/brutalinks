@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-var ModerationActivityTypes = pub.ActivityVocabularyTypes{pub.BlockType, pub.IgnoreType, pub.FlagType}
+var ValidModerationActivityTypes = pub.ActivityVocabularyTypes{pub.BlockType, pub.IgnoreType, pub.FlagType}
 
 // ModerationRequests
 type ModerationRequests []ModerationOp

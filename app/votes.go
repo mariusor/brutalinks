@@ -16,6 +16,12 @@ const (
 	ScoreMaxB       = 10000000000.0
 )
 
+var ValidAppreciationTypes = pub.ActivityVocabularyTypes{
+	pub.LikeType,
+	pub.DislikeType,
+	pub.UndoType,
+}
+
 type VoteCollection []Vote
 
 type VoteMetadata struct {

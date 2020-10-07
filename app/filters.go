@@ -57,6 +57,8 @@ var CreateActivitiesFilter = CompStrs{
 	CompStr{Str: string(pub.CreateType)},
 }
 
+var AppreciationActivitiesFilter = ActivityTypesFilter(ValidAppreciationTypes...)
+
 func DefaultFilters(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := FiltersFromRequest(r)
@@ -198,7 +200,7 @@ func ItemFiltersMw(next http.Handler) http.Handler {
 func AccountFiltersMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := FiltersFromRequest(r)
-		f.Type = CreateActivitiesFilter
+		f.Type = append(CreateActivitiesFilter, AppreciationActivitiesFilter...)
 
 		authors := ContextAuthors(r.Context())
 		if len(authors) == 0 {

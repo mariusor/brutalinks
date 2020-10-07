@@ -37,7 +37,7 @@ func LoadOutboxMw(next http.Handler) http.Handler {
 		var cursor = new(Cursor)
 		cursor.items = make(RenderableList, 0)
 		for _, author := range authors {
-			c, err := repo.LoadActorOutbox(context.Background(), author.pub, f)
+			c, err := repo.LoadAccountWithDetails(context.Background(), author, f)
 			if err != nil {
 				ctxtErr(next, w, r, errors.Annotatef(err, "unable to load actor's outbox"))
 				return
