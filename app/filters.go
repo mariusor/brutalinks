@@ -68,14 +68,14 @@ func DefaultFilters(next http.Handler) http.Handler {
 		f.Object.Type = ActivityTypesFilter(ValidItemTypes...)
 		m := ContextListingModel(r.Context())
 		m.Title = "Newest items"
-		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
+		ctx := context.WithValue(context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f}), ModelCtxtKey, m)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
 // FiltersFromRequest loads the filters we use for generating storage queries from the HTTP request
-func ContextActivityFilters(ctx context.Context) *Filters {
-	if f, ok := ctx.Value(FilterCtxtKey).(*Filters); ok {
+func ContextActivityFilters(ctx context.Context) []*Filters {
+	if f, ok := ctx.Value(FilterCtxtKey).([]*Filters); ok {
 		return f
 	}
 	return nil
@@ -91,7 +91,7 @@ func SelfFiltersMw(next http.Handler) http.Handler {
 		f.IRI = CompStrs{LikeString(Instance.Conf.APIURL)}
 		m := ContextListingModel(r.Context())
 		m.Title = "Local instance items"
-		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
+		ctx := context.WithValue(context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f}), ModelCtxtKey, m)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -107,7 +107,7 @@ func FollowedFiltersMw(next http.Handler) http.Handler {
 		f.Type = CreateFollowActivitiesFilter
 		m := ContextListingModel(r.Context())
 		m.Title = "Followed items"
-		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
+		ctx := context.WithValue(context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f}), ModelCtxtKey, m)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -126,7 +126,7 @@ func FederatedFiltersMw(next http.Handler) http.Handler {
 		f.Object.Type = ActivityTypesFilter(ValidItemTypes...)
 		m := ContextListingModel(r.Context())
 		m.Title = "Federated items"
-		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
+		ctx := context.WithValue(context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f}), ModelCtxtKey, m)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -156,7 +156,7 @@ func DomainFiltersMw(next http.Handler) http.Handler {
 			m.Title = fmt.Sprintf("Discussion items")
 		}
 		f.Object.OP = nilIRIs
-		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
+		ctx := context.WithValue(context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f}), ModelCtxtKey, m)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -176,7 +176,7 @@ func TagFiltersMw(next http.Handler) http.Handler {
 		f.Object.Cont = CompStrs{LikeString("#" + tag)}
 		m := ContextListingModel(r.Context())
 		m.Title = fmt.Sprintf("Items tagged as #%s", tag)
-		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
+		ctx := context.WithValue(context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f}), ModelCtxtKey, m)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -192,7 +192,7 @@ func ItemFiltersMw(next http.Handler) http.Handler {
 
 		f.Object = &Filters{}
 		f.Object.IRI = CompStrs{LikeString(hash)}
-		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
+		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -212,7 +212,7 @@ func AccountFiltersMw(next http.Handler) http.Handler {
 			f.AttrTo = append(f.AttrTo, LikeString(author.Hash.String()))
 		}
 
-		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
+		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -255,7 +255,7 @@ func ModerationFiltersMw(next http.Handler) http.Handler {
 		}
 		m := ContextListingModel(r.Context())
 		m.Title = "Moderation log"
-		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
+		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -299,7 +299,7 @@ func LoadInvitedMw(next http.Handler) http.Handler {
 			return
 		}
 		if m := ContextRegisterModel(r.Context()); a.IsValid() && m != nil {
-			m.Account = *a
+			m.Account = a
 		}
 		next.ServeHTTP(w, r)
 	})
@@ -318,7 +318,7 @@ func ActorsFiltersMw(next http.Handler) http.Handler {
 		}
 		m := ContextListingModel(r.Context())
 		m.Title = "Account listing"
-		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
+		ctx := context.WithValue(r.Context(), FilterCtxtKey, f[]*Filters{f})
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

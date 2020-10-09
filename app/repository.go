@@ -688,8 +688,8 @@ func (r *repository) loadAccountVotes(ctx context.Context, acc *Account, items I
 	collFn := func(ctx context.Context, f *Filters) (pub.CollectionInterface, error) {
 		return r.fedbox.Outbox(ctx, acc.pub, Values(f))
 	}
-	return LoadFromCollection(ctx, collFn, &colCursor{filters: f}, func(col pub.CollectionInterface) (bool, error) {
-		for _, it := range col.Collection() {
+	return LoadFromCollection(ctx, collFn, &colCursor{filters: f}, func(col pub.ItemCollection) (bool, error) {
+		for _, it := range col {
 			if !it.IsObject() || !ValidAppreciationTypes.Contains(it.GetType()) {
 				continue
 			}
@@ -717,8 +717,8 @@ func (r *repository) loadItemsVotes(ctx context.Context, items ...Item) (ItemCol
 	collFn := func(ctx context.Context, f *Filters) (pub.CollectionInterface, error) {
 		return r.fedbox.Inbox(ctx, r.fedbox.Service(), Values(f))
 	}
-	err := LoadFromCollection(ctx, collFn, &colCursor{filters: f}, func(c pub.CollectionInterface) (bool, error) {
-		for _, vAct := range c.Collection() {
+	err := LoadFromCollection(ctx, collFn, &colCursor{filters: f}, func(c pub.ItemCollection) (bool, error) {
+		for _, vAct := range c {
 			if !vAct.IsObject() || !voteActivities.Contains(vAct.GetType()) {
 				continue
 			}
@@ -775,11 +775,8 @@ func (r *repository) loadAccountsAuthors(ctx context.Context, accounts ...Accoun
 	for k, ac := range accounts {
 		found := false
 		for i, auth := range authors {
-			if !auth.IsValid() {
-				continue
-			}
-			if accountsEqual(*ac.CreatedBy, *auth) {
-				accounts[k].CreatedBy = authors[i]
+			if accountsEqual(*ac.CreatedBy, auth) {
+				accounts[k].CreatedBy = &(authors[i])
 				found = true
 			}
 		}
@@ -1279,10 +1276,6 @@ func IRIsFilter(iris ...pub.IRI) CompStrs {
 	return r
 }
 
-// NOTE(marius): this needs to be made into an interface supporting Order(RenderableList)
-// and then we need to implement more types of ordering:
-//  1. by date
-//  2. by score
 func orderRenderables(r RenderableList) {
 	sort.SliceStable(r, func(i, j int) bool {
 		return r[i].Date().After(r[j].Date())
@@ -1312,8 +1305,8 @@ func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, ff ..
 	g, _ := errgroup.WithContext(ctx)
 	for _, f := range ff {
 		g.Go(func() error {
-			err := LoadFromCollection(ctx, fn, &colCursor{filters: f}, func(col pub.CollectionInterface) (bool, error) {
-				for _, it := range col.Collection() {
+			err := LoadFromCollection(ctx, fn, &colCursor{filters: f}, func(col pub.ItemCollection) (bool, error) {
+				for _, it := range col {
 					pub.OnActivity(it, func(a *pub.Activity) error {
 						typ := it.GetType()
 						if typ == pub.CreateType {
@@ -2024,8 +2017,8 @@ func (r *repository) LoadInfo() (WebInfo, error) {
 	return Instance.NodeInfo(), nil
 }
 
-func (r *repository) LoadAccountWithDetails(ctx context.Context, actor *Account, f *Filters) (*Cursor, error) {
-	c, err := r.LoadActorOutbox(ctx, pub.IRI(actor.Metadata.ID), f)
+func (r *repository) LoadAccountWithDetails(ctx context.Context, actor *Account, f ...*Filters) (*Cursor, error) {
+	c, err := r.LoadActorOutbox(ctx, actor.pub, f...)
 	if err != nil {
 		return c, err
 	}
