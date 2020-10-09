@@ -15,6 +15,7 @@ import (
 	"github.com/mariusor/littr.go/internal/log"
 	"github.com/mariusor/qstring"
 	"github.com/spacemonkeygo/httpsig"
+	"golang.org/x/sync/errgroup"
 	"net/http"
 	"net/url"
 	"path"
@@ -678,7 +679,7 @@ func (r *repository) loadItemsReplies(ctx context.Context, items ...Item) (ItemC
 	allReplies := make(ItemCollection, 0)
 	f := &Filters{}
 	for _, top := range repliesTo {
-		collFn := func(ctx context.Context) (pub.CollectionInterface, error) {
+		collFn := func(ctx context.Context, f *Filters) (pub.CollectionInterface, error) {
 			return r.fedbox.Replies(ctx, top.GetLink(), Values(f))
 		}
 		err := LoadFromCollection(ctx, collFn, &colCursor{filters: f}, func(c pub.ItemCollection) (bool, error) {
@@ -712,7 +713,7 @@ func (r *repository) loadAccountVotes(ctx context.Context, acc *Account, items I
 	for _, it := range items {
 		f.Object.IRI = append(f.Object.IRI, LikeString(it.Hash.String()))
 	}
-	collFn := func(ctx context.Context) (pub.CollectionInterface, error) {
+	collFn := func(ctx context.Context, f *Filters) (pub.CollectionInterface, error) {
 		return r.fedbox.Outbox(ctx, acc.pub, Values(f))
 	}
 	return LoadFromCollection(ctx, collFn, &colCursor{filters: f}, func(col pub.ItemCollection) (bool, error) {
@@ -741,7 +742,7 @@ func (r *repository) loadItemsVotes(ctx context.Context, items ...Item) (ItemCol
 	for _, it := range items {
 		f.Object.IRI = append(f.Object.IRI, LikeString(it.Hash.String()))
 	}
-	collFn := func(ctx context.Context) (pub.CollectionInterface, error) {
+	collFn := func(ctx context.Context, f *Filters) (pub.CollectionInterface, error) {
 		return r.fedbox.Inbox(ctx, r.fedbox.Service(), Values(f))
 	}
 	err := LoadFromCollection(ctx, collFn, &colCursor{filters: f}, func(c pub.ItemCollection) (bool, error) {
@@ -1114,7 +1115,7 @@ func LoadFromCollection(ctx context.Context, f CollectionFn, cur *colCursor, acc
 		var status bool
 		var col pub.CollectionInterface
 
-		col, err = f(ttx)
+		col, err = f(ttx, cur.filters)
 		if err != nil {
 			return err
 		}
@@ -1155,48 +1156,65 @@ func LoadFromCollection(ctx context.Context, f CollectionFn, cur *colCursor, acc
 	return err
 }
 
-func (r *repository) accounts(ctx context.Context, f *Filters) ([]Account, error) {
-	actors := func(ctx context.Context) (pub.CollectionInterface, error) {
+func (r *repository) accounts(ctx context.Context, ff ...*Filters) ([]Account, error) {
+	actors := func(ctx context.Context, f *Filters) (pub.CollectionInterface, error) {
 		return r.fedbox.Actors(ctx, Values(f))
 	}
 	accounts := make([]Account, 0)
-	err := LoadFromCollection(ctx, actors, &colCursor{filters: f}, func(col pub.ItemCollection) (bool, error) {
-		for _, it := range col {
-			if !it.IsObject() || !ValidActorTypes.Contains(it.GetType()) {
-				continue
-			}
-			a := new(Account)
-			if err := a.FromActivityPub(it); err == nil && a.IsValid() {
-				accounts = append(accounts, *a)
-			}
-		}
-		// TODO(marius): this needs to be externalized also to a different function that we can pass from outer scope
-		//   This function implements the logic for breaking out of the collection iteration cycle and returns a bool
-		return len(accounts) == f.MaxItems || len(f.Next) == 0, nil
-	})
-
-	return accounts, err
+	// TODO(marius): see how we can use the context returned by errgroup.WithContext()
+	g, _ := errgroup.WithContext(ctx)
+	for _, f := range ff {
+		g.Go(func() error {
+			return LoadFromCollection(ctx, actors, &colCursor{filters: f}, func(col pub.ItemCollection) (bool, error) {
+				for _, it := range col {
+					if !it.IsObject() || !ValidActorTypes.Contains(it.GetType()) {
+						continue
+					}
+					a := new(Account)
+					if err := a.FromActivityPub(it); err == nil && a.IsValid() {
+						accounts = append(accounts, *a)
+					}
+				}
+				// TODO(marius): this needs to be externalized also to a different function that we can pass from outer scope
+				//   This function implements the logic for breaking out of the collection iteration cycle and returns a bool
+				return len(accounts) == f.MaxItems || len(f.Next) == 0, nil
+			})
+		})
+	}
+	if err := g.Wait(); err != nil {
+		return nil, err
+	}
+	return accounts, nil
 }
 
-func (r *repository) objects(ctx context.Context, f *Filters) (ItemCollection, error) {
-	objects := func(ctx context.Context) (pub.CollectionInterface, error) {
+func (r *repository) objects(ctx context.Context, ff ...*Filters) (ItemCollection, error) {
+	objects := func(ctx context.Context, f *Filters) (pub.CollectionInterface, error) {
 		return r.fedbox.Objects(ctx, Values(f))
 	}
 	items := make(ItemCollection, 0)
-	err := LoadFromCollection(ctx, objects, &colCursor{filters: f}, func(c pub.ItemCollection) (bool, error) {
-		for _, it := range c {
-			i := new(Item)
-			if err := i.FromActivityPub(it); err == nil && i.IsValid() {
-				items = append(items, *i)
-			}
-		}
-		return len(items) == f.MaxItems || len(f.Next) == 0, nil
-	})
-	return items, err
+	// TODO(marius): see how we can use the context returned by errgroup.WithContext()
+	g, _ := errgroup.WithContext(ctx)
+	for _, f := range ff {
+		g.Go(func() error {
+			return LoadFromCollection(ctx, objects, &colCursor{filters: f}, func(c pub.ItemCollection) (bool, error) {
+				for _, it := range c {
+					i := new(Item)
+					if err := i.FromActivityPub(it); err == nil && i.IsValid() {
+						items = append(items, *i)
+					}
+				}
+				return len(items) == f.MaxItems || len(f.Next) == 0, nil
+			})
+		})
+	}
+	if err := g.Wait(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
-func (r *repository) Objects(ctx context.Context, f *Filters) (Cursor, error) {
-	items, err := r.objects(ctx, f)
+func (r *repository) Objects(ctx context.Context, ff ...*Filters) (Cursor, error) {
+	items, err := r.objects(ctx, ff...)
 	if err != nil {
 		return emptyCursor, err
 	}
@@ -1206,10 +1224,14 @@ func (r *repository) Objects(ctx context.Context, f *Filters) (Cursor, error) {
 			result = append(result, &it)
 		}
 	}
-
+	var next, prev Hash
+	for _, f := range ff {
+		next = Hash(f.Next)
+		prev = Hash(f.Prev)
+	}
 	return Cursor{
-		after:  Hash(f.Next),
-		before: Hash(f.Prev),
+		after:  next,
+		before: prev,
 		items:  result,
 		total:  uint(len(result)),
 	}, nil
@@ -1295,7 +1317,7 @@ func orderRenderables(r RenderableList) {
 //  With the resulting Object IRIs we load from the objects collection with our matching filters
 //  With the resulting Actor IRIs we load from the accounts collection with matching filters
 // From the
-func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, f *Filters) (Cursor, error) {
+func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, ff ...*Filters) (Cursor, error) {
 	items := make(ItemCollection, 0)
 	follows := make(FollowRequests, 0)
 	accounts := make(AccountCollection, 0)
@@ -1308,188 +1330,202 @@ func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, f *Fi
 	deferredActivities := make(CompStrs, 0)
 
 	result := make([]Renderable, 0)
-	err := LoadFromCollection(ctx, fn, &colCursor{filters: f}, func(col pub.ItemCollection) (bool, error) {
-		for _, it := range col {
-			pub.OnActivity(it, func(a *pub.Activity) error {
-				typ := it.GetType()
-				if typ == pub.CreateType {
-					ob := a.Object
-					if ob == nil {
-						return nil
-					}
-					if ob.IsObject() {
-						if ValidItemTypes.Contains(ob.GetType()) {
-							i := new(Item)
-							i.FromActivityPub(ob)
-							if validItem(*i, f) {
-								items = append(items, *i)
+	// TODO(marius): see how we can use the context returned by errgroup.WithContext()
+	g, _ := errgroup.WithContext(ctx)
+	for _, f := range ff {
+		g.Go(func() error {
+			err := LoadFromCollection(ctx, fn, &colCursor{filters: f}, func(col pub.ItemCollection) (bool, error) {
+				for _, it := range col {
+					pub.OnActivity(it, func(a *pub.Activity) error {
+						typ := it.GetType()
+						if typ == pub.CreateType {
+							ob := a.Object
+							if ob == nil {
+								return nil
 							}
+							if ob.IsObject() {
+								if ValidItemTypes.Contains(ob.GetType()) {
+									i := new(Item)
+									i.FromActivityPub(ob)
+									if validItem(*i, f) {
+										items = append(items, *i)
+									}
+								}
+								if ValidActorTypes.Contains(ob.GetType()) {
+									a := new(Account)
+									a.FromActivityPub(ob)
+									accounts = append(accounts, *a)
+								}
+							} else {
+								i := new(Item)
+								i.FromActivityPub(a)
+								uuid := LikeString(path.Base(ob.GetLink().String()))
+								if !deferredItems.Contains(uuid) && validItem(*i, f) {
+									deferredItems = append(deferredItems, uuid)
+								}
+							}
+							relations[a.GetLink()] = ob.GetLink()
 						}
-						if ValidActorTypes.Contains(ob.GetType()) {
-							a := new(Account)
-							a.FromActivityPub(ob)
-							accounts = append(accounts, *a)
+						if it.GetType() == pub.FollowType {
+							f := FollowRequest{}
+							f.FromActivityPub(a)
+							follows = append(follows, f)
+							relations[a.GetLink()] = a.GetLink()
 						}
-					} else {
-						i := new(Item)
-						i.FromActivityPub(a)
-						uuid := LikeString(path.Base(ob.GetLink().String()))
-						if !deferredItems.Contains(uuid) && validItem(*i, f) {
-							deferredItems = append(deferredItems, uuid)
+						if ValidModerationActivityTypes.Contains(typ) {
+							ob := a.Object
+							if ob == nil {
+								return nil
+							}
+							if !ob.IsObject() {
+								iri := EqualsString(ob.GetLink().String())
+								if strings.Contains(iri.String(), string(actors)) && !deferredActors.Contains(iri) {
+									deferredActors = append(deferredActors, iri)
+								}
+								if strings.Contains(iri.String(), string(objects)) && !deferredItems.Contains(iri) {
+									deferredItems = append(deferredItems, iri)
+								}
+								if strings.Contains(iri.String(), string(activities)) && !deferredActivities.Contains(iri) {
+									deferredActivities = append(deferredActivities, iri)
+								}
+							}
+							m := ModerationOp{}
+							m.FromActivityPub(a)
+							moderations = append(moderations, m)
+							relations[a.GetLink()] = a.GetLink()
 						}
-					}
-					relations[a.GetLink()] = ob.GetLink()
-				}
-				if it.GetType() == pub.FollowType {
-					f := FollowRequest{}
-					f.FromActivityPub(a)
-					follows = append(follows, f)
-					relations[a.GetLink()] = a.GetLink()
-				}
-				if ValidModerationActivityTypes.Contains(typ) {
-					ob := a.Object
-					if ob == nil {
+						if ValidAppreciationTypes.Contains(typ) {
+							v := Vote{}
+							v.FromActivityPub(a)
+							appreciations = append(appreciations, v)
+							relations[a.GetLink()] = a.GetLink()
+						}
 						return nil
-					}
-					if !ob.IsObject() {
-						iri := EqualsString(ob.GetLink().String())
-						if strings.Contains(iri.String(), string(actors)) && !deferredActors.Contains(iri) {
-							deferredActors = append(deferredActors, iri)
-						}
-						if strings.Contains(iri.String(), string(objects)) && !deferredItems.Contains(iri) {
-							deferredItems = append(deferredItems, iri)
-						}
-						if strings.Contains(iri.String(), string(activities)) && !deferredActivities.Contains(iri) {
-							deferredActivities = append(deferredActivities, iri)
-						}
-					}
-					m := ModerationOp{}
-					m.FromActivityPub(a)
-					moderations = append(moderations, m)
-					relations[a.GetLink()] = a.GetLink()
+					})
 				}
-				if ValidAppreciationTypes.Contains(typ) {
-					v := Vote{}
-					v.FromActivityPub(a)
-					appreciations = append(appreciations, v)
-					relations[a.GetLink()] = a.GetLink()
+				foundAll := len(items)+len(follows)+len(accounts)+len(moderations) >= f.MaxItems
+				if !foundAll {
+					f.MaxItems -= len(items) + len(follows) + len(accounts) + len(moderations)
 				}
-				return nil
+				// TODO(marius): this needs to be externalized also to a different function that we can pass from outer scope
+				//   This function implements the logic for breaking out of the collection iteration cycle and returns a bool
+				return foundAll || len(f.Next) == 0, nil
 			})
-		}
-		foundAll := len(items)+len(follows)+len(accounts)+len(moderations) >= f.MaxItems
-		if !foundAll {
-			f.MaxItems -= len(items) + len(follows) + len(accounts) + len(moderations)
-		}
-		// TODO(marius): this needs to be externalized also to a different function that we can pass from outer scope
-		//   This function implements the logic for breaking out of the collection iteration cycle and returns a bool
-		return foundAll || len(f.Next) == 0, nil
-	})
-	if err != nil {
-		return emptyCursor, err
-	}
-	if len(deferredItems) > 0 {
-		if f.Object == nil {
-			f.Object = new(Filters)
-		}
-		ff := f.Object
-		ff.IRI = deferredItems
-		objects, _ := r.objects(ctx, ff)
-		for _, d := range objects {
-			if !items.Contains(d) {
-				items = append(items, d)
+			if err != nil {
+				return err
 			}
-			for _, m := range moderations {
-				modIt := m.Object.AP()
-				defIt := d.pub
-				if modIt.GetLink().Equals(defIt.GetLink(), false) {
-					m.Object = &d
-					break
+			if len(deferredItems) > 0 {
+				if f.Object == nil {
+					f.Object = new(Filters)
+				}
+				ff := f.Object
+				ff.IRI = deferredItems
+				objects, _ := r.objects(ctx, ff)
+				for _, d := range objects {
+					if !items.Contains(d) {
+						items = append(items, d)
+					}
+					for _, m := range moderations {
+						modIt := m.Object.AP()
+						defIt := d.pub
+						if modIt.GetLink().Equals(defIt.GetLink(), false) {
+							m.Object = &d
+							break
+						}
+					}
 				}
 			}
-		}
-	}
-	if len(deferredActors) > 0 {
-		if f.Actor == nil {
-			f.Actor = new(Filters)
-		}
-		ff := f.Actor
-		ff.IRI = deferredItems
-		accounts, _ := r.accounts(ctx, ff)
-		for _, d := range accounts {
-			for _, m := range moderations {
-				modAc := m.SubmittedBy.AP()
-				defAc := d.pub
-				if modAc.GetLink().Equals(defAc.GetLink(), false) {
-					m.SubmittedBy = &d
-					break
+			if len(deferredActors) > 0 {
+				if f.Actor == nil {
+					f.Actor = new(Filters)
+				}
+				ff := f.Actor
+				ff.IRI = deferredItems
+				accounts, _ := r.accounts(ctx, ff)
+				for _, d := range accounts {
+					for _, m := range moderations {
+						modAc := m.SubmittedBy.AP()
+						defAc := d.pub
+						if modAc.GetLink().Equals(defAc.GetLink(), false) {
+							m.SubmittedBy = &d
+							break
+						}
+					}
 				}
 			}
-		}
-	}
-	items, err = r.loadItemsAuthors(ctx, items...)
-	if err != nil {
-		return emptyCursor, err
-	}
-	items, err = r.loadItemsVotes(ctx, items...)
-	if err != nil {
-		return emptyCursor, err
-	}
-	//items, err = r.loadItemsReplies(items...)
-	//if err != nil {
-	//	return emptyCursor, err
-	//}
-	follows, err = r.loadFollowsAuthors(ctx, follows...)
-	if err != nil {
-		return emptyCursor, err
-	}
-	accounts, err = r.loadAccountsAuthors(ctx, accounts...)
-	if err != nil {
-		return emptyCursor, err
-	}
-	moderations, err = r.loadModerationDetails(ctx, moderations...)
-	if err != nil {
-		return emptyCursor, err
-	}
+			items, err = r.loadItemsAuthors(ctx, items...)
+			if err != nil {
+				return err
+			}
+			items, err = r.loadItemsVotes(ctx, items...)
+			if err != nil {
+				return err
+			}
+			//items, err = r.loadItemsReplies(items...)
+			//if err != nil {
+			//	return emptyCursor, err
+			//}
+			follows, err = r.loadFollowsAuthors(ctx, follows...)
+			if err != nil {
+				return err
+			}
+			accounts, err = r.loadAccountsAuthors(ctx, accounts...)
+			if err != nil {
+				return err
+			}
+			moderations, err = r.loadModerationDetails(ctx, moderations...)
+			if err != nil {
+				return err
+			}
 
-	for _, rel := range relations {
-		for i := range items {
-			it := items[i]
-			if it.IsValid() && it.pub.GetLink() == rel {
-				result = append(result, &it)
-				break
+			for _, rel := range relations {
+				for i := range items {
+					it := items[i]
+					if it.IsValid() && it.pub.GetLink() == rel {
+						result = append(result, &it)
+						break
+					}
+				}
+				for i := range follows {
+					f := follows[i]
+					if f.pub != nil && f.pub.GetLink() == rel {
+						result = append(result, &f)
+					}
+				}
+				for i := range accounts {
+					a := accounts[i]
+					if a.pub != nil && a.pub.GetLink() == rel {
+						result = append(result, &a)
+					}
+				}
+				for i := range moderations {
+					a := moderations[i]
+					if a.pub != nil && a.pub.GetLink() == rel {
+						result = append(result, &a)
+					}
+				}
+				for i := range appreciations {
+					a := appreciations[i]
+					if a.pub != nil && a.pub.GetLink() == rel {
+						result = append(result, &a)
+					}
+				}
 			}
-		}
-		for i := range follows {
-			f := follows[i]
-			if f.pub != nil && f.pub.GetLink() == rel {
-				result = append(result, &f)
-			}
-		}
-		for i := range accounts {
-			a := accounts[i]
-			if a.pub != nil && a.pub.GetLink() == rel {
-				result = append(result, &a)
-			}
-		}
-		for i := range moderations {
-			a := moderations[i]
-			if a.pub != nil && a.pub.GetLink() == rel {
-				result = append(result, &a)
-			}
-		}
-		for i := range appreciations {
-			a := appreciations[i]
-			if a.pub != nil && a.pub.GetLink() == rel {
-				result = append(result, &a)
-			}
-		}
+			orderRenderables(result)
+			return nil
+		})
 	}
-	orderRenderables(result)
-
+	if err := g.Wait(); err != nil {
+		return emptyCursor, err
+	}
+	var next, prev Hash
+	for _, f := range ff {
+		next = Hash(f.Next)
+		prev = Hash(f.Prev)
+	}
 	return Cursor{
-		after:  Hash(f.Next),
-		before: Hash(f.Prev),
+		after:  next,
+		before: prev,
 		items:  result,
 		total:  uint(len(result)),
 	}, nil
@@ -1747,29 +1783,38 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 	return it, err
 }
 
-func (r *repository) LoadAccounts(ctx context.Context, f *Filters) (AccountCollection, uint, error) {
-	it, err := r.fedbox.Actors(ctx, Values(f))
-	if err != nil {
-		r.errFn()(err.Error())
-		return nil, 0, err
-	}
+func (r *repository) LoadAccounts(ctx context.Context, ff ...*Filters) (AccountCollection, uint, error) {
 	accounts := make(AccountCollection, 0)
 	var count uint = 0
-	pub.OnOrderedCollection(it, func(col *pub.OrderedCollection) error {
-		count = col.TotalItems
-		for _, it := range col.OrderedItems {
-			acc := Account{Metadata: &AccountMetadata{}}
-			if err := acc.FromActivityPub(it); err != nil {
-				r.errFn(log.Ctx{
-					"type": fmt.Sprintf("%T", it),
-				})(err.Error())
-				continue
+	// TODO(marius): see how we can use the context returned by errgroup.WithContext()
+	g, _ := errgroup.WithContext(ctx)
+	for _, f := range ff {
+		g.Go(func() error {
+			it, err := r.fedbox.Actors(ctx, Values(f))
+			if err != nil {
+				r.errFn()(err.Error())
+				return err
 			}
-			accounts = append(accounts, acc)
-		}
-		accounts, err = r.loadAccountsVotes(ctx, accounts...)
-		return err
-	})
+			return pub.OnOrderedCollection(it, func(col *pub.OrderedCollection) error {
+				count = col.TotalItems
+				for _, it := range col.OrderedItems {
+					acc := Account{Metadata: &AccountMetadata{}}
+					if err := acc.FromActivityPub(it); err != nil {
+						r.errFn(log.Ctx{
+							"type": fmt.Sprintf("%T", it),
+						})(err.Error())
+						continue
+					}
+					accounts = append(accounts, acc)
+				}
+				accounts, err = r.loadAccountsVotes(ctx, accounts...)
+				return err
+			})
+		})
+	}
+	if err := g.Wait(); err != nil {
+		return accounts, count, err
+	}
 	return accounts, count, nil
 }
 
@@ -2006,39 +2051,39 @@ func (r *repository) LoadAccountWithDetails(ctx context.Context, actor *Account,
 	return c, nil
 }
 
-func (r *repository) LoadActorOutbox(ctx context.Context, actor pub.Item, f *Filters) (*Cursor, error) {
+func (r *repository) LoadActorOutbox(ctx context.Context, actor pub.Item, f ...*Filters) (*Cursor, error) {
 	if actor == nil {
 		return nil, errors.Errorf("Invalid actor")
 	}
-	outbox := func(ctx context.Context) (pub.CollectionInterface, error) {
+	outbox := func(ctx context.Context, f *Filters) (pub.CollectionInterface, error) {
 		return r.fedbox.Outbox(ctx, actor, Values(f))
 	}
-	cursor, err := r.ActorCollection(ctx, outbox, f)
+	cursor, err := r.ActorCollection(ctx, outbox, f...)
 	if err != nil {
 		return nil, err
 	}
 	return &cursor, nil
 }
 
-func (r *repository) LoadActivities(ctx context.Context, f *Filters) (*Cursor, error) {
-	collFn := func(ctx context.Context) (pub.CollectionInterface, error) {
+func (r *repository) LoadActivities(ctx context.Context, ff ...*Filters) (*Cursor, error) {
+	collFn := func(ctx context.Context, f *Filters) (pub.CollectionInterface, error) {
 		return r.fedbox.Activities(ctx, Values(f))
 	}
-	cursor, err := r.ActorCollection(ctx, collFn, f)
+	cursor, err := r.ActorCollection(ctx, collFn, ff...)
 	if err != nil {
 		return nil, err
 	}
 	return &cursor, nil
 }
 
-func (r *repository) LoadActorInbox(ctx context.Context, actor pub.Item, f *Filters) (*Cursor, error) {
+func (r *repository) LoadActorInbox(ctx context.Context, actor pub.Item, f ...*Filters) (*Cursor, error) {
 	if actor == nil {
 		return nil, errors.Errorf("Invalid actor")
 	}
-	collFn := func(ctx context.Context) (pub.CollectionInterface, error) {
+	collFn := func(ctx context.Context, f *Filters) (pub.CollectionInterface, error) {
 		return r.fedbox.Inbox(ctx, actor, Values(f))
 	}
-	cursor, err := r.ActorCollection(ctx, collFn, f)
+	cursor, err := r.ActorCollection(ctx, collFn, f...)
 	if err != nil {
 		return nil, err
 	}
