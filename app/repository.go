@@ -21,6 +21,7 @@ import (
 	"path"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -1303,8 +1304,11 @@ func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, ff ..
 	result := make([]Renderable, 0)
 	// TODO(marius): see how we can use the context returned by errgroup.WithContext()
 	g, _ := errgroup.WithContext(ctx)
+	w := sync.RWMutex{}
 	for _, f := range ff {
 		g.Go(func() error {
+			w.Lock()
+			defer w.Unlock()
 			err := LoadFromCollection(ctx, fn, &colCursor{filters: f}, func(col pub.ItemCollection) (bool, error) {
 				for _, it := range col {
 					pub.OnActivity(it, func(a *pub.Activity) error {
