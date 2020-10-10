@@ -100,6 +100,8 @@ func (m ModerationGroup) IsReport() bool {
 	return m.Requests[0].IsReport()
 }
 
+type ModerationOps []ModerationOp
+
 type ModerationOp struct {
 	Hash        Hash                `json:"hash"`
 	Icon        template.HTML       `json:"-"`
@@ -337,4 +339,13 @@ func aggregateModeration(rl RenderableList, followups []ModerationOp) Renderable
 		result[i] = m
 	}
 	return result
+}
+
+func (m ModerationOps) Contains(mop ModerationOp) bool {
+	for _, vv := range m {
+		if HashesEqual(vv.Hash, mop.Hash) {
+			return true
+		}
+	}
+	return false
 }

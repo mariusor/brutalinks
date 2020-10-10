@@ -844,7 +844,7 @@ func (r *repository) loadModerationFollowups(ctx context.Context, items []Render
 	if err != nil {
 		return nil, err
 	}
-	modFollowups := make([]ModerationOp, 0)
+	modFollowups := make(ModerationOps, 0)
 	err = pub.OnCollectionIntf(act, func(c pub.CollectionInterface) error {
 		for _, it := range c.Collection() {
 			m := new(ModerationOp)
@@ -852,7 +852,9 @@ func (r *repository) loadModerationFollowups(ctx context.Context, items []Render
 			if err != nil {
 				continue
 			}
-			modFollowups = append(modFollowups, *m)
+			if !modFollowups.Contains(*m) {
+				modFollowups = append(modFollowups, *m)
+			}
 		}
 		return nil
 	})
@@ -1307,8 +1309,6 @@ func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, ff ..
 	w := sync.RWMutex{}
 	for _, f := range ff {
 		g.Go(func() error {
-			w.Lock()
-			defer w.Unlock()
 			err := LoadFromCollection(ctx, fn, &colCursor{filters: f}, func(col pub.ItemCollection) (bool, error) {
 				for _, it := range col {
 					pub.OnActivity(it, func(a *pub.Activity) error {
@@ -1451,7 +1451,8 @@ func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, ff ..
 			if err != nil {
 				return err
 			}
-
+			w.Lock()
+			defer w.Unlock()
 			for _, rel := range relations {
 				for i := range items {
 					it := items[i]
@@ -1485,17 +1486,21 @@ func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, ff ..
 					}
 				}
 			}
-			orderRenderables(result)
 			return nil
 		})
 	}
 	if err := g.Wait(); err != nil {
 		return emptyCursor, err
 	}
+	orderRenderables(result)
 	var next, prev Hash
 	for _, f := range ff {
-		next = Hash(f.Next)
-		prev = Hash(f.Prev)
+		if len(f.Next) > 0 {
+			next = Hash(f.Next)
+		}
+		if len(f.Prev) > 0 {
+			prev = Hash(f.Prev)
+		}
 	}
 	return Cursor{
 		after:  next,
