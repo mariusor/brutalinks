@@ -568,7 +568,27 @@ func (r *repository) loadAccountsOutbox(ctx context.Context, acc Account) (Accou
 	}
 	pub.OnOrderedCollection(it, func(o *pub.OrderedCollection) error {
 		for _, it := range o.Collection() {
+			acc.Metadata.outboxUpdated = o.Updated
 			acc.Metadata.outbox = append(acc.Metadata.outbox, it)
+			typ := it.GetType()
+			if ValidAppreciationTypes.Contains(typ) {
+				v := new(Vote)
+				if err := v.FromActivityPub(it); err == nil && !acc.Votes.Contains(*v) {
+					acc.Votes = append(acc.Votes, *v)
+				}
+			}
+			if ValidModerationActivityTypes.Contains(typ) {
+				p := new(Account)
+				if err := p.FromActivityPub(it); err != nil && !p.IsValid() {
+					continue
+				}
+				if typ == pub.BlockType {
+					acc.Blocked = append(acc.Blocked, *p)
+				}
+				if typ == pub.IgnoreType {
+					acc.Ignored = append(acc.Ignored, *p)
+				}
+			}
 		}
 		return nil
 	})

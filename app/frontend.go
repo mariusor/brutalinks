@@ -416,22 +416,9 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 					h.infoFn(ltx)("Error: %s", err)
 				}
 			}
-			if len(acc.Blocked) == 0 || len(acc.Ignored) == 0 {
-				acc, err = h.storage.loadAccountsBlockedIgnored(ctx, acc)
-				if err != nil {
-					h.infoFn(ltx)("Error: %s", err)
-				}
-			}
-			if len(acc.Votes) == 0 {
-				var items ItemCollection
-				if cursor := ContextCursor(r.Context()); cursor != nil {
-					items = cursor.items.Items()
-				}
-				h.storage.loadAccountVotes(ctx, &acc, items)
-				acc, err = h.storage.loadAccountsOutbox(ctx, acc)
-				if err != nil {
-					h.infoFn(ltx)("Error: %s", err)
-				}
+			acc, err = h.storage.loadAccountsOutbox(ctx, acc)
+			if err != nil {
+				h.infoFn(ltx)("Error: %s", err)
 			}
 		}
 		r = r.WithContext(context.WithValue(r.Context(), LoggedAccountCtxtKey, &acc))
