@@ -939,9 +939,9 @@ func AccountPermaLink(a *Account) string {
 	if a == nil {
 		return ""
 	}
-	if a.HasMetadata() && len(a.Metadata.URL) > 0 && a.Metadata.URL != a.Metadata.ID {
-		return a.Metadata.URL
-	}
+	//if a.HasMetadata() && len(a.Metadata.URL) > 0 && a.Metadata.URL != a.Metadata.ID {
+	//	return a.Metadata.URL
+	//}
 	return AccountLocalLink(a)
 }
 
