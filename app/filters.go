@@ -43,14 +43,14 @@ type Filters struct {
 
 // FiltersFromRequest loads the filters we use for generating storage queries from the HTTP request
 func FiltersFromRequest(r *http.Request) *Filters {
-	f := Filters{}
-	if err := qstring.Unmarshal(r.URL.Query(), &f); err != nil {
+	f := new(Filters)
+	if err := qstring.Unmarshal(r.URL.Query(), f); err != nil {
 		return nil
 	}
 	if f.MaxItems <= 0 || f.MaxItems > MaxContentItems {
 		f.MaxItems = MaxContentItems
 	}
-	return &f
+	return f
 }
 
 var CreateActivitiesFilter = CompStrs{
@@ -299,7 +299,7 @@ func LoadInvitedMw(next http.Handler) http.Handler {
 			return
 		}
 		if m := ContextRegisterModel(r.Context()); a.IsValid() && m != nil {
-			m.Account = a
+			m.Account = *a
 		}
 		next.ServeHTTP(w, r)
 	})

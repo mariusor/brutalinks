@@ -389,34 +389,36 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 				"hash":   acc.Hash,
 			}
 			if accounts, err := h.storage.accounts(ctx, f); err != nil {
+				h.errFn(ltx, log.Ctx{"err": err.Error()})("unable to load actor for session account")
 				ctxtErr(next, w, r, err)
 			} else {
 				if len(accounts) == 0 {
 					err := errors.NotFoundf("no accounts found for %v", f)
 					h.infoFn(ltx)("Error: %s", err)
 				}
-				if !accounts[0].IsValid() {
+				if accounts[0].IsValid() {
+					loadAccountData(&acc, *accounts[0])
+				} else {
 					ctxtErr(next, w, r, errors.NotFoundf("Not found"))
 				}
-				loadAccountData(&acc, accounts[0])
 			}
 
 			h.storage.WithAccount(&acc)
 			var err error
 			if len(acc.Followers) == 0 {
 				// TODO(marius): this needs to be moved to where we're handling all Inbox activities, not on page load
-				acc, err = h.storage.loadAccountsFollowers(ctx, acc)
+				err = h.storage.loadAccountsFollowers(ctx, &acc)
 				if err != nil {
 					h.infoFn(ltx)("Error: %s", err)
 				}
 			}
 			if len(acc.Following) == 0 {
-				acc, err = h.storage.loadAccountsFollowing(ctx, acc)
+				err = h.storage.loadAccountsFollowing(ctx, &acc)
 				if err != nil {
 					h.infoFn(ltx)("Error: %s", err)
 				}
 			}
-			acc, err = h.storage.loadAccountsOutbox(ctx, acc)
+			err = h.storage.loadAccountsOutbox(ctx, &acc)
 			if err != nil {
 				h.infoFn(ltx)("Error: %s", err)
 			}

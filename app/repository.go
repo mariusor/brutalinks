@@ -526,19 +526,19 @@ func accountInCollection(ac Account, col AccountCollection) bool {
 	return false
 }
 
-func (r *repository) loadAccountsFollowers(ctx context.Context, acc Account) (Account, error) {
+func (r *repository) loadAccountsFollowers(ctx context.Context, acc *Account) error {
 	if !acc.HasMetadata() || len(acc.Metadata.FollowersIRI) == 0 {
-		return acc, nil
+		return nil
 	}
 	it, err := r.fedbox.Collection(ctx, pub.IRI(acc.Metadata.FollowersIRI))
 	if err != nil {
 		r.errFn()(err.Error())
-		return acc, nil
+		return  nil
 	}
 	if !pub.CollectionTypes.Contains(it.GetType()) {
-		return acc, nil
+		return nil
 	}
-	pub.OnOrderedCollection(it, func(o *pub.OrderedCollection) error {
+	return pub.OnOrderedCollection(it, func(o *pub.OrderedCollection) error {
 		for _, fol := range o.Collection() {
 			if !pub.ActorTypes.Contains(fol.GetType()) {
 				continue
@@ -550,23 +550,22 @@ func (r *repository) loadAccountsFollowers(ctx context.Context, acc Account) (Ac
 		}
 		return nil
 	})
-
-	return acc, nil
 }
 
-func (r *repository) loadAccountsOutbox(ctx context.Context, acc Account) (Account, error) {
+func (r *repository) loadAccountsOutbox(ctx context.Context, acc *Account) error {
 	if !acc.HasMetadata() || len(acc.Metadata.OutboxIRI) == 0 {
-		return acc, nil
+		return nil
 	}
 	it, err := r.fedbox.Collection(ctx, pub.IRI(acc.Metadata.OutboxIRI))
 	if err != nil {
 		r.errFn()(err.Error())
-		return acc, nil
+		return nil
 	}
 	if !pub.CollectionTypes.Contains(it.GetType()) {
-		return acc, nil
+		return nil
 	}
-	pub.OnOrderedCollection(it, func(o *pub.OrderedCollection) error {
+	return pub.OnOrderedCollection(it, func(o *pub.OrderedCollection) error {
+		acc.Metadata.outboxUpdated = o.Updated
 		for _, it := range o.Collection() {
 			acc.Metadata.outboxUpdated = o.Updated
 			acc.Metadata.outbox = append(acc.Metadata.outbox, it)
@@ -592,21 +591,19 @@ func (r *repository) loadAccountsOutbox(ctx context.Context, acc Account) (Accou
 		}
 		return nil
 	})
-
-	return acc, nil
 }
 
-func (r *repository) loadAccountsFollowing(ctx context.Context, acc Account) (Account, error) {
+func (r *repository) loadAccountsFollowing(ctx context.Context, acc *Account) error {
 	if !acc.HasMetadata() || len(acc.Metadata.FollowersIRI) == 0 {
-		return acc, nil
+		return nil
 	}
 	it, err := r.fedbox.Collection(ctx, pub.IRI(acc.Metadata.FollowingIRI))
 	if err != nil {
 		r.errFn()(err.Error())
-		return acc, nil
+		return nil
 	}
 	if !pub.CollectionTypes.Contains(it.GetType()) {
-		return acc, nil
+		return nil
 	}
 	pub.OnOrderedCollection(it, func(o *pub.OrderedCollection) error {
 		for _, fol := range o.Collection() {
@@ -621,48 +618,7 @@ func (r *repository) loadAccountsFollowing(ctx context.Context, acc Account) (Ac
 		return nil
 	})
 
-	return acc, nil
-}
-
-func (r *repository) loadAccountsBlockedIgnored(ctx context.Context, acc Account) (Account, error) {
-	if !acc.HasMetadata() || len(acc.Metadata.OutboxIRI) == 0 {
-		return acc, nil
-	}
-
-	good := pub.ActivityVocabularyTypes{pub.BlockType, pub.IgnoreType}
-	f := &Filters{
-		Type: ActivityTypesFilter(good...),
-	}
-	it, err := r.fedbox.Collection(ctx, pub.IRI(acc.Metadata.OutboxIRI), Values(f))
-	if err != nil {
-		r.errFn()(err.Error())
-		return acc, nil
-	}
-	if !pub.CollectionTypes.Contains(it.GetType()) {
-		return acc, nil
-	}
-	pub.OnOrderedCollection(it, func(o *pub.OrderedCollection) error {
-		for _, it := range o.Collection() {
-			if !good.Contains(it.GetType()) {
-				continue
-			}
-			pub.OnActivity(it, func(act *pub.Activity) error {
-				p := new(Account)
-				if err := p.FromActivityPub(act.Object); err == nil && p.IsValid() {
-					if act.GetType() == pub.BlockType {
-						acc.Blocked = append(acc.Blocked, *p)
-					}
-					if act.GetType() == pub.IgnoreType {
-						acc.Ignored = append(acc.Ignored, *p)
-					}
-				}
-				return nil
-			})
-		}
-		return nil
-	})
-
-	return acc, nil
+	return nil
 }
 
 func getRepliesOf(items ...Item) pub.IRIs {
@@ -823,8 +779,11 @@ func (r *repository) loadAccountsAuthors(ctx context.Context, accounts ...Accoun
 	for k, ac := range accounts {
 		found := false
 		for i, auth := range authors {
-			if accountsEqual(*ac.CreatedBy, auth) {
-				accounts[k].CreatedBy = &(authors[i])
+			if !auth.IsValid() {
+				continue
+			}
+			if accountsEqual(*ac.CreatedBy, *auth) {
+				accounts[k].CreatedBy = authors[i]
 				found = true
 			}
 		}
@@ -861,8 +820,11 @@ func (r *repository) loadFollowsAuthors(ctx context.Context, items ...FollowRequ
 	}
 	for k, it := range items {
 		for i, auth := range authors {
-			if accountsEqual(*it.SubmittedBy, auth) {
-				items[k].SubmittedBy = &(authors[i])
+			if !auth.IsValid() {
+				continue
+			}
+			if accountsEqual(*it.SubmittedBy, *auth) {
+				items[k].SubmittedBy = authors[i]
 			}
 		}
 	}
@@ -946,11 +908,14 @@ func (r *repository) loadModerationDetails(ctx context.Context, items ...Moderat
 	}
 	for k, it := range items {
 		for i, auth := range authors {
-			if accountsEqual(*it.SubmittedBy, auth) {
-				items[k].SubmittedBy = &(authors[i])
+			if !auth.IsValid() {
+				continue
+			}
+			if accountsEqual(*it.SubmittedBy, *auth) {
+				items[k].SubmittedBy = authors[i]
 			}
 			if it.Object.AP().GetLink().Equals(auth.pub.GetLink(), false) {
-				items[k].Object = &(authors[i])
+				items[k].Object = authors[i]
 			}
 		}
 	}
@@ -1017,23 +982,26 @@ func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemC
 	for _, it := range items {
 		for a := range authors {
 			auth := authors[a]
+			if !auth.IsValid() {
+				continue
+			}
 			if it.SubmittedBy.IsValid() && HashesEqual(it.SubmittedBy.Hash, auth.Hash) {
-				it.SubmittedBy = &auth
+				it.SubmittedBy = auth
 			}
 			if it.UpdatedBy.IsValid() && HashesEqual(it.UpdatedBy.Hash, auth.Hash) {
-				it.UpdatedBy = &auth
+				it.UpdatedBy = auth
 			}
 			if !it.HasMetadata() {
 				continue
 			}
 			for i, to := range it.Metadata.To {
 				if to.IsValid() && HashesEqual(to.Hash, auth.Hash) {
-					it.Metadata.To[i] = &auth
+					it.Metadata.To[i] = auth
 				}
 			}
 			for i, cc := range it.Metadata.CC {
 				if cc.IsValid() && HashesEqual(cc.Hash, auth.Hash) {
-					it.Metadata.CC[i] = &auth
+					it.Metadata.CC[i] = auth
 				}
 			}
 		}
@@ -1176,11 +1144,11 @@ func LoadFromCollection(ctx context.Context, f CollectionFn, cur *colCursor, acc
 	return err
 }
 
-func (r *repository) accounts(ctx context.Context, ff ...*Filters) ([]Account, error) {
+func (r *repository) accounts(ctx context.Context, ff ...*Filters) ([]*Account, error) {
 	actors := func(ctx context.Context, f *Filters) (pub.CollectionInterface, error) {
 		return r.fedbox.Actors(ctx, Values(f))
 	}
-	accounts := make([]Account, 0)
+	accounts := make([]*Account, 0)
 	// TODO(marius): see how we can use the context returned by errgroup.WithContext()
 	g, _ := errgroup.WithContext(ctx)
 	for _, f := range ff {
@@ -1192,7 +1160,7 @@ func (r *repository) accounts(ctx context.Context, ff ...*Filters) ([]Account, e
 					}
 					a := new(Account)
 					if err := a.FromActivityPub(it); err == nil && a.IsValid() {
-						accounts = append(accounts, *a)
+						accounts = append(accounts, a)
 					}
 				}
 				// TODO(marius): this needs to be externalized also to a different function that we can pass from outer scope
@@ -1463,11 +1431,14 @@ func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, ff ..
 				ff.IRI = deferredItems
 				accounts, _ := r.accounts(ctx, ff)
 				for _, d := range accounts {
+					if !d.IsValid() {
+						continue
+					}
 					for _, m := range moderations {
 						modAc := m.SubmittedBy.AP()
 						defAc := d.pub
 						if modAc.GetLink().Equals(defAc.GetLink(), false) {
-							m.SubmittedBy = &d
+							m.SubmittedBy = d
 							break
 						}
 					}
@@ -1838,20 +1809,42 @@ func (r *repository) LoadAccounts(ctx context.Context, ff ...*Filters) (AccountC
 	return accounts, count, nil
 }
 
-func (r *repository) LoadAccount(ctx context.Context, iri pub.IRI) (Account, error) {
-	var acc Account
+func (r *repository) LoadAccountDetails(ctx context.Context, acc *Account) error {
+	r.WithAccount(acc)
+	ltx := log.Ctx{
+		"handle": acc.Handle,
+		"hash":   acc.Hash,
+	}
+	var err error
+	if len(acc.Followers) == 0 {
+		// TODO(marius): this needs to be moved to where we're handling all Inbox activities, not on page load
+		if err = r.loadAccountsFollowers(ctx, acc); err != nil {
+			r.infoFn(ltx, log.Ctx{"err": err.Error()})("unable to load followers")
+		}
+	}
+	if len(acc.Following) == 0 {
+		if err = r.loadAccountsFollowing(ctx, acc); err != nil {
+			r.infoFn(ltx, log.Ctx{"err": err.Error()})("unable to load following")
+		}
+	}
+	if err = r.loadAccountsOutbox(ctx, acc); err != nil {
+		r.infoFn(ltx, log.Ctx{"err": err.Error()})("unable to load outbox")
+	}
+	return nil
+}
+
+func (r *repository) LoadAccount(ctx context.Context, iri pub.IRI) (*Account, error) {
+	acc := new(Account)
 	act, err := r.fedbox.Actor(ctx, iri)
 	if err != nil {
 		r.errFn()(err.Error())
 		return acc, err
 	}
-	if err = acc.FromActivityPub(act); err == nil {
-		var accounts AccountCollection
-		accounts, err = r.loadAccountsVotes(ctx, acc)
-		if len(accounts) > 0 {
-			acc = accounts[0]
-		}
+	err = acc.FromActivityPub(act)
+	if err != nil {
+		return acc, err
 	}
+	err = r.LoadAccountDetails(ctx, acc)
 	return acc, err
 }
 
@@ -2046,7 +2039,7 @@ func (r *repository) LoadInfo() (WebInfo, error) {
 }
 
 func (r *repository) LoadAccountWithDetails(ctx context.Context, actor *Account, f *Filters) (*Cursor, error) {
-	c, err := r.LoadActorOutbox(ctx, actor.pub, f)
+	c, err := r.LoadActorOutbox(ctx, pub.IRI(actor.Metadata.ID), f)
 	if err != nil {
 		return c, err
 	}

@@ -14,18 +14,14 @@ func (h handler) LoadAuthorMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authors, err := accountsFromRequestHandle(r)
 		if err != nil {
-			h.ErrorHandler(err).ServeHTTP(w, r)
+			ctxtErr(next, w, r, err)
 			return
 		}
-		storAuthors := make([]*Account, 0)
 		if len(authors) == 0 {
-			storAuthors = append(storAuthors, &AnonymousAccount)
-		} else {
-			for _, auth := range authors {
-				storAuthors = append(storAuthors, &auth)
-			}
+			ctxtErr(next, w, r, errors.NotFoundf("account not found"))
+			return
 		}
-		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), AuthorCtxtKey, storAuthors)))
+		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), AuthorCtxtKey, authors)))
 	})
 }
 
@@ -42,15 +38,14 @@ func LoadOutboxMw(next http.Handler) http.Handler {
 		var cursor = new(Cursor)
 		cursor.items = make(RenderableList, 0)
 		for _, author := range authors {
-			c, err := repo.LoadAccountWithDetails(context.Background(), author, f)
-			if err != nil {
-				ctxtErr(next, w, r, errors.Annotatef(err, "unable to load actor's outbox"))
-				return
+			if c, err := repo.LoadAccountWithDetails(context.Background(), author, f); err != nil {
+				repo.errFn()("unable to load actor's outbox")
+			} else {
+				cursor.items = append(cursor.items, c.items...)
+				cursor.total += c.total
+				cursor.before = c.before
+				cursor.after = c.after
 			}
-			cursor.items = append(cursor.items, c.items...)
-			cursor.total += c.total
-			cursor.before = c.before
-			cursor.after = c.after
 		}
 		ctx := context.WithValue(r.Context(), CursorCtxtKey, cursor)
 		next.ServeHTTP(w, r.WithContext(ctx))
@@ -198,6 +193,10 @@ func AccountListingModelMw(next http.Handler) http.Handler {
 		m := new(listingModel)
 		m.tpl = "user"
 		authors := ContextAuthors(r.Context())
+		if len(authors) == 0 {
+			next.ServeHTTP(w, r)
+			return
+		}
 		auth := authors[0]
 		if len(authors) > 0 && auth.IsValid() {
 			m.User = auth

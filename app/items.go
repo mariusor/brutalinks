@@ -166,14 +166,17 @@ func ContentFromRequest(r *http.Request, author Account) (Item, error) {
 		return Item{}, errors.Errorf("invalid http method type")
 	}
 
-	var receivers []Account
+	var receivers []*Account
 	var err error
 	i := Item{}
 	i.Metadata = &ItemMetadata{}
 	if receivers, err = accountsFromRequestHandle(r); err == nil && chi.URLParam(r, "hash") == "" {
 		i.MakePrivate()
 		for _, rec := range receivers {
-			i.Metadata.To = append(i.Metadata.To, &rec)
+			if !rec.IsValid() {
+				continue
+			}
+			i.Metadata.To = append(i.Metadata.To, rec)
 		}
 	}
 

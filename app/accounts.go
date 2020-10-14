@@ -26,19 +26,19 @@ type ImageMetadata struct {
 }
 
 type OAuth struct {
-	Provider     string
-	Code         string
-	Token        *oauth2.Token
-	State        string
+	Provider string
+	Code     string
+	Token    *oauth2.Token
+	State    string
 }
 
 type AccountMetadata struct {
-	Password     []byte        `json:"pw,omitempty"`
-	Provider     string        `json:"provider,omitempty"`
-	Salt         []byte        `json:"salt,omitempty"`
-	Key          *SSHKey       `json:"key,omitempty"`
-	Blurb        []byte        `json:"blurb,omitempty"`
-	Icon         ImageMetadata `json:"icon,omitempty"`
+	Password      []byte        `json:"pw,omitempty"`
+	Provider      string        `json:"provider,omitempty"`
+	Salt          []byte        `json:"salt,omitempty"`
+	Key           *SSHKey       `json:"key,omitempty"`
+	Blurb         []byte        `json:"blurb,omitempty"`
+	Icon          ImageMetadata `json:"icon,omitempty"`
 	Name          string        `json:"name,omitempty"`
 	ID            string        `json:"id,omitempty"`
 	URL           string        `json:"url,omitempty"`
@@ -205,15 +205,16 @@ func accountFromPost(r *http.Request) (Account, error) {
 		return AnonymousAccount, errors.Errorf("invalid http method type")
 	}
 
-	var a Account
+	var a *Account
 	var err error
 	hash := r.PostFormValue("hash")
 	if len(hash) > 0 {
+		// NOTE(marius): coming from an invite
 		s := ContextRepository(r.Context())
 		a, err = s.LoadAccount(context.Background(), ActorsURL.AddPath(hash))
 	}
-	if accountsEqual(a, AnonymousAccount) || err != nil {
-		a = Account{Metadata: &AccountMetadata{}}
+	if accountsEqual(*a, AnonymousAccount) || err != nil {
+		*a = Account{Metadata: &AccountMetadata{}}
 	}
 	pw := r.PostFormValue("pw")
 	pwConfirm := r.PostFormValue("pw-confirm")
@@ -234,10 +235,10 @@ func accountFromPost(r *http.Request) (Account, error) {
 	a.Metadata = &AccountMetadata{
 		Password: []byte(pw),
 	}
-	return a, nil
+	return *a, nil
 }
 
-func accountsFromRequestHandle(r *http.Request) ([]Account, error) {
+func accountsFromRequestHandle(r *http.Request) ([]*Account, error) {
 	handle := chi.URLParam(r, "handle")
 	if handle == "" {
 		return nil, errors.NotFoundf("missing account handle %s", handle)
