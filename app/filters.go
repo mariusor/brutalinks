@@ -68,7 +68,7 @@ func DefaultFilters(next http.Handler) http.Handler {
 		f.Object.Type = ActivityTypesFilter(ValidItemTypes...)
 		m := ContextListingModel(r.Context())
 		m.Title = "Newest items"
-		ctx := context.WithValue(context.WithValue(r.Context(), FilterCtxtKey, f), ModelCtxtKey, m)
+		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -91,7 +91,7 @@ func SelfFiltersMw(next http.Handler) http.Handler {
 		f.IRI = CompStrs{LikeString(Instance.Conf.APIURL)}
 		m := ContextListingModel(r.Context())
 		m.Title = "Local instance items"
-		ctx := context.WithValue(context.WithValue(r.Context(), FilterCtxtKey, f), ModelCtxtKey, m)
+		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -107,7 +107,7 @@ func FollowedFiltersMw(next http.Handler) http.Handler {
 		f.Type = CreateFollowActivitiesFilter
 		m := ContextListingModel(r.Context())
 		m.Title = "Followed items"
-		ctx := context.WithValue(context.WithValue(r.Context(), FilterCtxtKey, f), ModelCtxtKey, m)
+		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -126,7 +126,7 @@ func FederatedFiltersMw(next http.Handler) http.Handler {
 		f.Object.Type = ActivityTypesFilter(ValidItemTypes...)
 		m := ContextListingModel(r.Context())
 		m.Title = "Federated items"
-		ctx := context.WithValue(context.WithValue(r.Context(), FilterCtxtKey, f), ModelCtxtKey, m)
+		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -156,7 +156,7 @@ func DomainFiltersMw(next http.Handler) http.Handler {
 			m.Title = fmt.Sprintf("Discussion items")
 		}
 		f.Object.OP = nilIRIs
-		ctx := context.WithValue(context.WithValue(r.Context(), FilterCtxtKey, f), ModelCtxtKey, m)
+		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -176,7 +176,7 @@ func TagFiltersMw(next http.Handler) http.Handler {
 		f.Object.Cont = CompStrs{LikeString("#" + tag)}
 		m := ContextListingModel(r.Context())
 		m.Title = fmt.Sprintf("Items tagged as #%s", tag)
-		ctx := context.WithValue(context.WithValue(r.Context(), FilterCtxtKey, f), ModelCtxtKey, m)
+		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -255,7 +255,7 @@ func ModerationFiltersMw(next http.Handler) http.Handler {
 		}
 		m := ContextListingModel(r.Context())
 		m.Title = "Moderation log"
-		ctx := context.WithValue(context.WithValue(r.Context(), FilterCtxtKey, f), ModelCtxtKey, m)
+		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -318,7 +318,7 @@ func ActorsFiltersMw(next http.Handler) http.Handler {
 		}
 		m := ContextListingModel(r.Context())
 		m.Title = "Account listing"
-		ctx := context.WithValue(context.WithValue(r.Context(), FilterCtxtKey, f), ModelCtxtKey, m)
+		ctx := context.WithValue(r.Context(), FilterCtxtKey, f)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

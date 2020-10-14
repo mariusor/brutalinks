@@ -163,7 +163,7 @@ func LoadObjectFromInboxMw(next http.Handler) http.Handler {
 		if len(i.Title) > 0 {
 			m.Title = fmt.Sprintf("%s: %s", m.Title, i.Title)
 		}
-		rtx := context.WithValue(context.WithValue(r.Context(), CursorCtxtKey, c), ModelCtxtKey, m)
+		rtx := context.WithValue(r.Context(), CursorCtxtKey, c)
 		next.ServeHTTP(w, r.WithContext(rtx))
 	})
 }
