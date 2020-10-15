@@ -16,7 +16,6 @@ endif
 export API_URL := $(API_URL)
 export OAUTH2_CALLBACK_URL := $(OAUTH2_CALLBACK_URL)
 
-
 APPSOURCES := $(wildcard ../app/*.go ../cli/*/*.go ../internal/*/*.go)
 
 HAVE_BUILDAH := $(shell buildah -v dot 2> /dev/null)
