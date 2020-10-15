@@ -1,11 +1,9 @@
 M4 = /usr/bin/m4
 M4_FLAGS =
 
-APPSOURCES := $(wildcard ../app/*.go ../cli/*/*.go ../internal/*/*.go)
-
 ENV ?= dev
-PORT ?= 4001
 HOSTNAME ?= brutalinks.local
+PORT ?= 4001
 FEDBOX_PORT ?= 4000
 FEDBOX_HOSTNAME ?= fedbox.local
 ENV_FILE ?= $(shell realpath .env.$(ENV))
@@ -18,23 +16,29 @@ endif
 export API_URL := $(API_URL)
 export OAUTH2_CALLBACK_URL := $(OAUTH2_CALLBACK_URL)
 
-.PHONY: clean images cert build run push start
+
+APPSOURCES := $(wildcard ../app/*.go ../cli/*/*.go ../internal/*/*.go)
 
 HAVE_BUILDAH := $(shell buildah -v dot 2> /dev/null)
 ifdef HAVE_BUILDAH
-	BUILD=buildah build-using-dockerfile
-	RUN=buildah run
-	TAG=buildah tag
-	PUSH=buildah push
+	BUILD_CMD=buildah bud
+	RUN_CMD=docker run
+	ENV_CMD=buildah tag
+	PUSH_CMD=buildah push
 else
-	BUILD=docker build
-	RUN=docker run
-	TAG=docker tag
-	PUSH=docker push
+	BUILD_CMD=docker build
+	RUN_CMD=docker run
+	ENV_CMD=docker tag
+	PUSH_CMD=docker push
 endif
 
+.PHONY: clean images cert build run push start
+
+$(ENV_FILE):
+	touch $(ENV_FILE)
+
 $(HOSTNAME).pem:
-	gen-certs.sh $(HOSTNAME)
+	./gen-certs.sh $(HOSTNAME)
 
 cert: $(HOSTNAME).pem
 
@@ -42,15 +46,12 @@ clean:
 	@-$(RM) $(HOSTNAME).{key,crt,pem} Caddyfile
 
 build: $(APPSOURCES)
-	$(BUILD) \
+	$(BUILD_CMD) \
 		--build-arg HOSTNAME=$(HOSTNAME) \
 		--build-arg ENV=$(ENV) \
 		--build-arg PORT=$(PORT) \
 		-f app/Dockerfile.$(ENV) \
 		-t fedbox/littr:$(ENV) ..
-
-$(ENV_FILE):
-	touch $(ENV_FILE)
 
 run: build $(ENV_FILE)
 	$(RUN) \
@@ -65,10 +66,18 @@ Caddyfile: Caddyfile.in
 		-DFEDBOX_HOSTNAME=$(FEDBOX_HOSTNAME) -DFEDBOX_PORT=$(FEDBOX_PORT) $< >$@
 
 push: build
-	$(TAG) fedbox/littr:$(ENV) quay.io/fedbox/littr:latest
-	$(TAG) fedbox/littr:$(ENV) quay.io/fedbox/littr:$(ENV)
-	$(PUSH) quay.io/fedbox/littr:latest
-	$(PUSH) quay.io/fedbox/littr:$(ENV)
+	$(ENV_CMD) fedbox/littr:$(ENV) quay.io/fedbox/littr:latest
+	$(ENV_CMD) fedbox/littr:$(ENV) quay.io/fedbox/littr:$(ENV)
+	$(PUSH_CMD) quay.io/fedbox/littr:latest
+	$(PUSH_CMD) quay.io/fedbox/littr:$(ENV)
+ifeq ($(ENV), dev)
+	$(ENV_CMD) $(HOSTNAME)/littr:$(ENV) quay.io/fedbox/littr:latest || true
+	$(PUSH_CMD) quay.io/fedbox/littr:latest || true
+endif
+ifneq ($(VERSION), )
+	$(ENV_CMD) $(HOSTNAME)/littr:$(ENV) quay.io/fedbox/littr:$(VERSION)-$(ENV) || true
+	$(PUSH_CMD) quay.io/fedbox/littr:$(VERSION)-$(ENV) || true
+endif
 
 start: Caddyfile
 	docker-compose up --detach && \

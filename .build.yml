@@ -22,4 +22,15 @@ tasks:
   - image: |
       set -a +x
       source ~/.buildah.env && sudo buildah login -u=${BUILDAH_USER} -p=${BUILDAH_SECRET} quay.io
-      cd go-littr && sudo make -C docker push
+      cd go-littr || exit
+
+      _branch=${GITHUB_REF#"refs/heads/"}
+      sudo make -C docker VERSION="${_branch}" push
+      if [ "${_branch}" == "master" ]; then
+        _branch=$(printf "%s-%s" "${_branch}" "$(git rev-parse --short HEAD)")
+        sudo make -C docker ENV=qa VERSION="${_branch}" push
+      fi
+      _tag=$(git describe --long --tags || true)
+      if [ -n "${_tag}" ]; then
+        sudo make -C docker ENV=prod VERSION="${_tag}" push
+      fi
