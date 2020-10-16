@@ -40,7 +40,7 @@ var (
 var (
 	listenHost string
 	listenPort int64
-	listenOn string
+	listenOn   string
 )
 
 // Stats holds data for keeping compatibility with Mastodon instances
@@ -218,12 +218,14 @@ func SetupHttpServer(ctx context.Context, conf config.Configuration, m http.Hand
 	}
 
 	srv = &http.Server{
-		Addr:    conf.Listen(),
-		WriteTimeout: time.Second * 15,
-		ReadTimeout:  time.Second * 5,
-		IdleTimeout:  time.Second * 60,
-		Handler:      m,
-		ErrorLog:     golog.New(ioutil.Discard, "", 0),
+		Addr:     conf.Listen(),
+		Handler:  m,
+		ErrorLog: golog.New(ioutil.Discard, "", 0),
+	}
+	if !conf.Env.IsDev() {
+		srv.WriteTimeout = time.Millisecond * 200
+		srv.ReadHeaderTimeout = time.Millisecond * 150
+		srv.IdleTimeout = time.Second * 60
 	}
 	if conf.Secure && fileExists(conf.CertPath) && fileExists(conf.KeyPath) {
 		srv.TLSConfig = &tls.Config{
