@@ -70,11 +70,11 @@ push: build
 	$(PUSH_CMD) quay.io/fedbox/littr:latest
 	$(PUSH_CMD) quay.io/fedbox/littr:$(ENV)
 ifeq ($(ENV), dev)
-	$(ENV_CMD) $(HOSTNAME)/littr:$(ENV) quay.io/fedbox/littr:latest || true
+	$(ENV_CMD) fedbox/littr:$(ENV) quay.io/fedbox/littr:latest || true
 	$(PUSH_CMD) quay.io/fedbox/littr:latest || true
 endif
 ifneq ($(VERSION), )
-	$(ENV_CMD) $(HOSTNAME)/littr:$(ENV) quay.io/fedbox/littr:$(VERSION)-$(ENV) || true
+	$(ENV_CMD) fedbox/littr:$(ENV) quay.io/fedbox/littr:$(VERSION)-$(ENV) || true
 	$(PUSH_CMD) quay.io/fedbox/littr:$(VERSION)-$(ENV) || true
 endif
 
