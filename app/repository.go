@@ -530,15 +530,10 @@ func (r *repository) loadAccountsFollowers(ctx context.Context, acc *Account) er
 	if !acc.HasMetadata() || len(acc.Metadata.FollowersIRI) == 0 {
 		return nil
 	}
-	it, err := r.fedbox.Collection(ctx, pub.IRI(acc.Metadata.FollowersIRI))
-	if err != nil {
-		r.errFn()(err.Error())
-		return nil
+	collFn := func(ctx context.Context, f *Filters) (pub.CollectionInterface, error) {
+		return r.fedbox.Collection(ctx, pub.IRI(acc.Metadata.FollowersIRI), Values(f))
 	}
-	if !pub.CollectionTypes.Contains(it.GetType()) {
-		return nil
-	}
-	return pub.OnOrderedCollection(it, func(o *pub.OrderedCollection) error {
+	return LoadFromCollection(ctx, collFn, &colCursor{filters: &Filters{}}, func(o pub.CollectionInterface) (bool, error) {
 		for _, fol := range o.Collection() {
 			if !pub.ActorTypes.Contains(fol.GetType()) {
 				continue
@@ -548,7 +543,28 @@ func (r *repository) loadAccountsFollowers(ctx context.Context, acc *Account) er
 				acc.Followers = append(acc.Followers, *p)
 			}
 		}
+		return true, nil
+	})
+}
+
+func (r *repository) loadAccountsFollowing(ctx context.Context, acc *Account) error {
+	if !acc.HasMetadata() || len(acc.Metadata.FollowersIRI) == 0 {
 		return nil
+	}
+	collFn := func(ctx context.Context, f *Filters) (pub.CollectionInterface, error) {
+		return r.fedbox.Collection(ctx, pub.IRI(acc.Metadata.FollowingIRI), Values(f))
+	}
+	return LoadFromCollection(ctx, collFn, &colCursor{filters: &Filters{}}, func(o pub.CollectionInterface) (bool, error) {
+		for _, fol := range o.Collection() {
+			if !pub.ActorTypes.Contains(fol.GetType()) {
+				continue
+			}
+			p := new(Account)
+			if err := p.FromActivityPub(fol); err == nil && p.IsValid() {
+				acc.Following = append(acc.Following, *p)
+			}
+		}
+		return true, nil
 	})
 }
 
@@ -556,18 +572,26 @@ func (r *repository) loadAccountsOutbox(ctx context.Context, acc *Account) error
 	if !acc.HasMetadata() || len(acc.Metadata.OutboxIRI) == 0 {
 		return nil
 	}
-	it, err := r.fedbox.Collection(ctx, pub.IRI(acc.Metadata.OutboxIRI))
-	if err != nil {
-		r.errFn()(err.Error())
-		return nil
+	collFn := func(ctx context.Context, f *Filters) (pub.CollectionInterface, error) {
+		return r.fedbox.Collection(ctx, pub.IRI(acc.Metadata.OutboxIRI), Values(f))
 	}
-	if !pub.CollectionTypes.Contains(it.GetType()) {
-		return nil
-	}
-	return pub.OnOrderedCollection(it, func(o *pub.OrderedCollection) error {
-		acc.Metadata.outboxUpdated = o.Updated
+	return LoadFromCollection(ctx, collFn, &colCursor{filters: &Filters{}}, func(o pub.CollectionInterface) (bool, error) {
+		ocTypes := pub.ActivityVocabularyTypes{pub.OrderedCollectionType, pub.OrderedCollectionPageType}
+		cTypes := pub.ActivityVocabularyTypes{pub.CollectionType, pub.CollectionPageType}
+
+		if ocTypes.Contains(o.GetType()) {
+			pub.OnOrderedCollection(o, func(oc *pub.OrderedCollection) error {
+				acc.Metadata.outboxUpdated = oc.Updated
+				return nil
+			})
+		}
+		if cTypes.Contains(o.GetType()) {
+			pub.OnCollection(o, func(c *pub.Collection) error {
+				acc.Metadata.outboxUpdated = c.Updated
+				return nil
+			})
+		}
 		for _, it := range o.Collection() {
-			acc.Metadata.outboxUpdated = o.Updated
 			acc.Metadata.outbox = append(acc.Metadata.outbox, it)
 			typ := it.GetType()
 			if ValidAppreciationTypes.Contains(typ) {
@@ -589,36 +613,8 @@ func (r *repository) loadAccountsOutbox(ctx context.Context, acc *Account) error
 				}
 			}
 		}
-		return nil
+		return true, nil
 	})
-}
-
-func (r *repository) loadAccountsFollowing(ctx context.Context, acc *Account) error {
-	if !acc.HasMetadata() || len(acc.Metadata.FollowersIRI) == 0 {
-		return nil
-	}
-	it, err := r.fedbox.Collection(ctx, pub.IRI(acc.Metadata.FollowingIRI))
-	if err != nil {
-		r.errFn()(err.Error())
-		return nil
-	}
-	if !pub.CollectionTypes.Contains(it.GetType()) {
-		return nil
-	}
-	pub.OnOrderedCollection(it, func(o *pub.OrderedCollection) error {
-		for _, fol := range o.Collection() {
-			if !pub.ActorTypes.Contains(fol.GetType()) {
-				continue
-			}
-			p := new(Account)
-			if err := p.FromActivityPub(fol); err == nil && p.IsValid() {
-				acc.Following = append(acc.Following, *p)
-			}
-		}
-		return nil
-	})
-
-	return nil
 }
 
 func getRepliesOf(items ...Item) pub.IRIs {
@@ -658,8 +654,8 @@ func (r *repository) loadItemsReplies(ctx context.Context, items ...Item) (ItemC
 		collFn := func(ctx context.Context, f *Filters) (pub.CollectionInterface, error) {
 			return r.fedbox.Replies(ctx, top.GetLink(), Values(f))
 		}
-		err := LoadFromCollection(ctx, collFn, &colCursor{filters: f}, func(c pub.ItemCollection) (bool, error) {
-			for _, it := range c {
+		err := LoadFromCollection(ctx, collFn, &colCursor{filters: f}, func(c pub.CollectionInterface) (bool, error) {
+			for _, it := range c.Collection() {
 				if !it.IsObject() {
 					continue
 				}
@@ -692,8 +688,8 @@ func (r *repository) loadAccountVotes(ctx context.Context, acc *Account, items I
 	collFn := func(ctx context.Context, f *Filters) (pub.CollectionInterface, error) {
 		return r.fedbox.Outbox(ctx, acc.pub, Values(f))
 	}
-	return LoadFromCollection(ctx, collFn, &colCursor{filters: f}, func(col pub.ItemCollection) (bool, error) {
-		for _, it := range col {
+	return LoadFromCollection(ctx, collFn, &colCursor{filters: f}, func(col pub.CollectionInterface) (bool, error) {
+		for _, it := range col.Collection() {
 			if !it.IsObject() || !ValidAppreciationTypes.Contains(it.GetType()) {
 				continue
 			}
@@ -721,8 +717,8 @@ func (r *repository) loadItemsVotes(ctx context.Context, items ...Item) (ItemCol
 	collFn := func(ctx context.Context, f *Filters) (pub.CollectionInterface, error) {
 		return r.fedbox.Inbox(ctx, r.fedbox.Service(), Values(f))
 	}
-	err := LoadFromCollection(ctx, collFn, &colCursor{filters: f}, func(c pub.ItemCollection) (bool, error) {
-		for _, vAct := range c {
+	err := LoadFromCollection(ctx, collFn, &colCursor{filters: f}, func(c pub.CollectionInterface) (bool, error) {
+		for _, vAct := range c.Collection() {
 			if !vAct.IsObject() || !voteActivities.Contains(vAct.GetType()) {
 				continue
 			}
@@ -1092,40 +1088,30 @@ const (
 )
 
 // LoadFromCollection iterates over a collection returned by the f function, until accum is satisfied
-func LoadFromCollection(ctx context.Context, f CollectionFn, cur *colCursor, accum func(pub.ItemCollection) (bool, error)) error {
-	var err error
-	ocTypes := pub.ActivityVocabularyTypes{pub.OrderedCollectionType, pub.OrderedCollectionPageType}
-	cTypes := pub.ActivityVocabularyTypes{pub.CollectionType, pub.CollectionPageType}
-
+func LoadFromCollection(ctx context.Context, f CollectionFn, cur *colCursor, accum func(pub.CollectionInterface) (bool, error)) error {
 	ttx, tCancel := context.WithTimeout(ctx, 10*time.Millisecond)
+	var err error
 	processed := 0
 	for {
 		var status bool
 		var col pub.CollectionInterface
 
-		col, err = f(ttx, cur.filters)
-		if err != nil {
+		if col, err = f(ttx, cur.filters); err != nil {
 			return err
 		}
 
 		var prev string
+		err = pub.OnCollectionIntf(col, func(c pub.CollectionInterface) error {
+			var err error
+			status, err = accum(c)
+			return err
+		})
+		if err != nil {
+			return err
+		}
 		prev, cur.filters.Next = getCollectionPrevNext(col)
 		if processed == 0 {
 			cur.filters.Prev = prev
-		}
-		if ocTypes.Contains(col.GetType()) {
-			err = pub.OnOrderedCollection(col, func(c *pub.OrderedCollection) error {
-				status, err = accum(c.OrderedItems)
-				return err
-			})
-		} else if cTypes.Contains(col.GetType()) {
-			err = pub.OnCollection(col, func(c *pub.Collection) error {
-				status, err = accum(c.Items)
-				return err
-			})
-		}
-		if err != nil {
-			return err
 		}
 		processed += len(col.Collection())
 		st := accumContinue
@@ -1153,8 +1139,8 @@ func (r *repository) accounts(ctx context.Context, ff ...*Filters) ([]*Account, 
 	g, _ := errgroup.WithContext(ctx)
 	for _, f := range ff {
 		g.Go(func() error {
-			return LoadFromCollection(ctx, actors, &colCursor{filters: f}, func(col pub.ItemCollection) (bool, error) {
-				for _, it := range col {
+			return LoadFromCollection(ctx, actors, &colCursor{filters: f}, func(col pub.CollectionInterface) (bool, error) {
+				for _, it := range col.Collection() {
 					if !it.IsObject() || !ValidActorTypes.Contains(it.GetType()) {
 						continue
 					}
@@ -1184,8 +1170,8 @@ func (r *repository) objects(ctx context.Context, ff ...*Filters) (ItemCollectio
 	g, _ := errgroup.WithContext(ctx)
 	for _, f := range ff {
 		g.Go(func() error {
-			return LoadFromCollection(ctx, objects, &colCursor{filters: f}, func(c pub.ItemCollection) (bool, error) {
-				for _, it := range c {
+			return LoadFromCollection(ctx, objects, &colCursor{filters: f}, func(c pub.CollectionInterface) (bool, error) {
+				for _, it := range c.Collection() {
 					i := new(Item)
 					if err := i.FromActivityPub(it); err == nil && i.IsValid() {
 						items = append(items, *i)
@@ -1293,6 +1279,10 @@ func IRIsFilter(iris ...pub.IRI) CompStrs {
 	return r
 }
 
+// NOTE(marius): this needs to be made into an interface supporting Order(RenderableList)
+// and then we need to implement more types of ordering:
+//  1. by date
+//  2. by score
 func orderRenderables(r RenderableList) {
 	sort.SliceStable(r, func(i, j int) bool {
 		return r[i].Date().After(r[j].Date())
@@ -1322,8 +1312,8 @@ func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, ff ..
 	g, _ := errgroup.WithContext(ctx)
 	for _, f := range ff {
 		g.Go(func() error {
-			err := LoadFromCollection(ctx, fn, &colCursor{filters: f}, func(col pub.ItemCollection) (bool, error) {
-				for _, it := range col {
+			err := LoadFromCollection(ctx, fn, &colCursor{filters: f}, func(col pub.CollectionInterface) (bool, error) {
+				for _, it := range col.Collection() {
 					pub.OnActivity(it, func(a *pub.Activity) error {
 						typ := it.GetType()
 						if typ == pub.CreateType {
