@@ -689,8 +689,8 @@ func (r *repository) loadAccountVotes(ctx context.Context, acc *Account, items I
 	collFn := func(ctx context.Context, f *Filters) (pub.CollectionInterface, error) {
 		return r.fedbox.Outbox(ctx, acc.pub, Values(f))
 	}
-	return LoadFromCollection(ctx, collFn, &colCursor{filters: f}, func(col pub.ItemCollection) (bool, error) {
-		for _, it := range col {
+	return LoadFromCollection(ctx, collFn, &colCursor{filters: f}, func(col pub.CollectionInterface) (bool, error) {
+		for _, it := range col.Collection() {
 			if !it.IsObject() || !ValidAppreciationTypes.Contains(it.GetType()) {
 				continue
 			}
@@ -718,8 +718,8 @@ func (r *repository) loadItemsVotes(ctx context.Context, items ...Item) (ItemCol
 	collFn := func(ctx context.Context, f *Filters) (pub.CollectionInterface, error) {
 		return r.fedbox.Inbox(ctx, r.fedbox.Service(), Values(f))
 	}
-	err := LoadFromCollection(ctx, collFn, &colCursor{filters: f}, func(c pub.ItemCollection) (bool, error) {
-		for _, vAct := range c {
+	err := LoadFromCollection(ctx, collFn, &colCursor{filters: f}, func(c pub.CollectionInterface) (bool, error) {
+		for _, vAct := range c.Collection() {
 			if !vAct.IsObject() || !voteActivities.Contains(vAct.GetType()) {
 				continue
 			}
@@ -776,8 +776,11 @@ func (r *repository) loadAccountsAuthors(ctx context.Context, accounts ...Accoun
 	for k, ac := range accounts {
 		found := false
 		for i, auth := range authors {
-			if accountsEqual(*ac.CreatedBy, auth) {
-				accounts[k].CreatedBy = &(authors[i])
+			if !auth.IsValid() {
+				continue
+			}
+			if accountsEqual(*ac.CreatedBy, *auth) {
+				accounts[k].CreatedBy = authors[i]
 				found = true
 			}
 		}
@@ -1309,8 +1312,8 @@ func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, ff ..
 	w := sync.RWMutex{}
 	for _, f := range ff {
 		g.Go(func() error {
-			err := LoadFromCollection(ctx, fn, &colCursor{filters: f}, func(col pub.ItemCollection) (bool, error) {
-				for _, it := range col {
+			err := LoadFromCollection(ctx, fn, &colCursor{filters: f}, func(col pub.CollectionInterface) (bool, error) {
+				for _, it := range col.Collection() {
 					pub.OnActivity(it, func(a *pub.Activity) error {
 						typ := it.GetType()
 						if typ == pub.CreateType {

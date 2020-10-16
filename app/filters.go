@@ -228,6 +228,21 @@ type moderationFilter struct {
 	Type []string `qstring:"t"`
 }
 
+var (
+	modSubmissionsObjectFilter = &Filters{
+		Type:     append(ActivityTypesFilter(pub.TombstoneType), ActivityTypesFilter(ValidItemTypes...)...),
+		InReplTo: nilIRIs,
+	}
+	modCommentsObjectFilter = &Filters{
+		Type:     append(ActivityTypesFilter(pub.TombstoneType), ActivityTypesFilter(ValidItemTypes...)...),
+		InReplTo: notNilIRIs,
+	}
+	modAccoutnsObjectFilter = &Filters{
+		Type:     ActivityTypesFilter(pub.PersonType),
+		InReplTo: notNilIRIs,
+	}
+)
+
 func ModerationFiltersMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := FiltersFromRequest(r)
@@ -299,7 +314,7 @@ func LoadInvitedMw(next http.Handler) http.Handler {
 			return
 		}
 		if m := ContextRegisterModel(r.Context()); a.IsValid() && m != nil {
-			m.Account = a
+			m.Account = *a
 		}
 		next.ServeHTTP(w, r)
 	})
@@ -318,7 +333,7 @@ func ActorsFiltersMw(next http.Handler) http.Handler {
 		}
 		m := ContextListingModel(r.Context())
 		m.Title = "Account listing"
-		ctx := context.WithValue(r.Context(), FilterCtxtKey, f[]*Filters{f})
+		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

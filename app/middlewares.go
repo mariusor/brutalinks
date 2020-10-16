@@ -22,7 +22,7 @@ func (h handler) LoadAuthorMw(next http.Handler) http.Handler {
 			storAuthors = append(storAuthors, &AnonymousAccount)
 		} else {
 			for _, auth := range authors {
-				storAuthors = append(storAuthors, &auth)
+				storAuthors = append(storAuthors, auth)
 			}
 		}
 		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), AuthorCtxtKey, storAuthors)))
