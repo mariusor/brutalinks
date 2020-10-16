@@ -343,7 +343,7 @@ func aggregateModeration(rl RenderableList, followups []ModerationOp) Renderable
 
 func (m ModerationOps) Contains(mop ModerationOp) bool {
 	for _, vv := range m {
-		if HashesEqual(vv.Hash, mop.Hash) {
+		if vv.Metadata.ID == mop.Metadata.ID {
 			return true
 		}
 	}
