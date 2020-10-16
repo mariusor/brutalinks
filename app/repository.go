@@ -533,7 +533,7 @@ func (r *repository) loadAccountsFollowers(ctx context.Context, acc *Account) er
 	it, err := r.fedbox.Collection(ctx, pub.IRI(acc.Metadata.FollowersIRI))
 	if err != nil {
 		r.errFn()(err.Error())
-		return  nil
+		return nil
 	}
 	if !pub.CollectionTypes.Contains(it.GetType()) {
 		return nil
@@ -1391,13 +1391,9 @@ func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, ff ..
 						return nil
 					})
 				}
-				foundAll := len(items)+len(follows)+len(accounts)+len(moderations) >= f.MaxItems
-				if !foundAll {
-					f.MaxItems -= len(items) + len(follows) + len(accounts) + len(moderations)
-				}
 				// TODO(marius): this needs to be externalized also to a different function that we can pass from outer scope
 				//   This function implements the logic for breaking out of the collection iteration cycle and returns a bool
-				return foundAll || len(f.Next) == 0, nil
+				return len(f.Next) == 0, nil
 			})
 			if err != nil {
 				return err
