@@ -73,8 +73,8 @@ func getFileContent(name string) ([]byte, error) {
 	}
 	defer f.Close()
 	r := bufio.NewReader(f)
-	b := bytes.Buffer{}
-	_, err = r.WriteTo(&b)
+	b := new(bytes.Buffer)
+	_, err = r.WriteTo(b)
 	if err != nil {
 		if err != nil {
 			return nil, err
