@@ -222,11 +222,6 @@ func SetupHttpServer(ctx context.Context, conf config.Configuration, m http.Hand
 		Handler:  m,
 		ErrorLog: golog.New(ioutil.Discard, "", 0),
 	}
-	if !conf.Env.IsDev() {
-		srv.WriteTimeout = time.Millisecond * 200
-		srv.ReadHeaderTimeout = time.Millisecond * 150
-		srv.IdleTimeout = time.Second * 60
-	}
 	if conf.Secure && fileExists(conf.CertPath) && fileExists(conf.KeyPath) {
 		srv.TLSConfig = &tls.Config{
 			MinVersion:               tls.VersionTLS12,
