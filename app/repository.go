@@ -868,8 +868,10 @@ func (r *repository) loadModerationDetails(ctx context.Context, items ...Moderat
 	if len(items) == 0 {
 		return items, nil
 	}
-	fActors := Filters{}
-	fObjects := Filters{}
+	fActors := new(Filters)
+	fObjects := new(Filters)
+	fActors.IRI = make(CompStrs,0)
+	fObjects.IRI = make(CompStrs,0)
 	for _, it := range items {
 		if !it.SubmittedBy.IsValid() {
 			continue
@@ -897,11 +899,11 @@ func (r *repository) loadModerationDetails(ctx context.Context, items ...Moderat
 	if len(fActors.IRI) == 0 {
 		return items, errors.Errorf("unable to load items authors")
 	}
-	authors, err := r.accounts(ctx, &fActors)
+	authors, err := r.accounts(ctx, fActors)
 	if err != nil {
 		return items, errors.Annotatef(err, "unable to load items authors")
 	}
-	objects, err := r.objects(ctx, &fObjects)
+	objects, err := r.objects(ctx, fObjects)
 	if err != nil {
 		return items, errors.Annotatef(err, "unable to load items objects")
 	}
