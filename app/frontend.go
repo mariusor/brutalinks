@@ -426,14 +426,13 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 		r = r.WithContext(context.WithValue(r.Context(), LoggedAccountCtxtKey, &acc))
 		if clearCookie {
 			clearSessionCookie(w, r)
-		} else if h.v != nil && acc.IsLogged() {
+		} else if h.v != nil {
 			if err := h.v.saveAccountToSession(w, r, acc); err != nil {
 				h.errFn(log.Ctx{
 					"err":    err,
 					"handle": acc.Handle,
 					"hash":   acc.Hash,
 				})("unable to save account to session")
-				clearSessionCookie(w, r)
 			}
 		}
 		next.ServeHTTP(w, r)
