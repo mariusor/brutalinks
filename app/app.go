@@ -2,8 +2,6 @@ package app
 
 import (
 	"bytes"
-	"context"
-	"crypto/tls"
 	"fmt"
 	"github.com/go-ap/errors"
 	"github.com/go-chi/chi"
@@ -12,13 +10,7 @@ import (
 	"github.com/mariusor/littr.go/internal/config"
 	"github.com/mariusor/littr.go/internal/log"
 	"github.com/writeas/go-nodeinfo"
-	"io/ioutil"
-	golog "log"
 	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
 )
 
 const (
@@ -70,6 +62,7 @@ type Application struct {
 	Conf    *config.Configuration
 	Logger  log.Logger
 	front   *handler
+	Mux     *chi.Mux
 }
 
 type Collection interface{}
@@ -78,12 +71,8 @@ type Collection interface{}
 var Instance Application
 
 // New instantiates a new Application
-func New(host string, port int, env config.EnvType, ver string) Application {
-	c, err := config.Load(env)
-	if err != nil {
-		c = &config.Default
-	}
-	app := Application{Version: ver, Conf: c}
+func New(c *config.Configuration, host string, port int, ver string, m *chi.Mux) Application {
+	app := Application{Version: ver, Mux: m}
 	app.setUp(c, host, port)
 	return app
 }
@@ -108,10 +97,12 @@ func (a *Application) setUp(c *config.Configuration, host string, port int) erro
 	if c.APIURL == "" {
 		c.APIURL = fmt.Sprintf("%s/api", a.BaseURL)
 	}
+	Instance = *a
+	a.Front()
 	return nil
 }
 
-func (a *Application) Front(r chi.Router) {
+func (a *Application) Front() error {
 	conf := appConfig{
 		Configuration: *a.Conf,
 		BaseURL:       a.BaseURL,
@@ -120,9 +111,11 @@ func (a *Application) Front(r chi.Router) {
 	front, err := Init(conf)
 	if err != nil {
 		a.Logger.Error(err.Error())
+		return err
 	}
 	a.front = front
 
+	r := a.Mux
 	// Frontend
 	r.With(front.Repository).Route("/", front.Routes(a.Conf))
 
@@ -145,6 +138,7 @@ func (a *Application) Front(r chi.Router) {
 	r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
 		front.v.HandleErrors(w, r, errors.MethodNotAllowedf("%s not allowed", r.Method))
 	})
+	return nil
 }
 
 type Cacheable interface {
@@ -165,155 +159,6 @@ func (a Application) NodeInfo() WebInfo {
 		inf.Description = string(bytes.Trim(desc, "\x00"))
 	}
 	return inf
-}
-
-type exit struct {
-	// signal is a channel which is waiting on user/os signals
-	signal chan os.Signal
-	// status is a channel on which we return exit codes for application
-	status chan int
-	// handlers is the mapping of signals to functions to execute
-	h signalHandlers
-}
-
-type signalHandlers map[os.Signal]func(*exit, os.Signal)
-
-// RegisterSignalHandlers sets up the signal handlers we want to use
-func RegisterSignalHandlers(handlers signalHandlers) *exit {
-	x := &exit{
-		signal: make(chan os.Signal, 1),
-		status: make(chan int, 1),
-		h:      handlers,
-	}
-	signals := make([]os.Signal, 0)
-	for sig := range handlers {
-		signals = append(signals, sig)
-	}
-	signal.Notify(x.signal, signals...)
-	return x
-}
-
-// handle reads signals received from the os and executes the handlers it has registered
-func (ex *exit) wait() chan int {
-	go func(ex *exit) {
-		for {
-			select {
-			case s := <-ex.signal:
-				ex.h[s](ex, s)
-			}
-		}
-	}(ex)
-	return ex.status
-}
-
-// SetupHttpServer creates a new http server and returns the start and stop functions for it
-func SetupHttpServer(ctx context.Context, conf config.Configuration, m http.Handler) (func() error, func() error) {
-	var serveFn func() error
-	var srv *http.Server
-	fileExists := func(dir string) bool {
-		if _, err := os.Stat(dir); os.IsNotExist(err) {
-			return false
-		}
-		return true
-	}
-
-	srv = &http.Server{
-		Addr:     conf.Listen(),
-		Handler:  m,
-		ErrorLog: golog.New(ioutil.Discard, "", 0),
-	}
-	if conf.Secure && fileExists(conf.CertPath) && fileExists(conf.KeyPath) {
-		srv.TLSConfig = &tls.Config{
-			MinVersion:               tls.VersionTLS12,
-			CurvePreferences:         []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
-			PreferServerCipherSuites: true,
-			CipherSuites: []uint16{
-				tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-				tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-				tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-				tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-				tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
-				tls.TLS_RSA_WITH_AES_256_CBC_SHA,
-			},
-		}
-		serveFn = func() error {
-			return srv.ListenAndServeTLS(conf.CertPath, conf.KeyPath)
-		}
-	} else {
-		serveFn = srv.ListenAndServe
-	}
-	shutdown := func() error {
-		select {
-		case <-ctx.Done():
-			if err := ctx.Err(); err != http.ErrServerClosed {
-				return err
-			}
-		}
-		err := srv.Shutdown(ctx)
-		if err != nil {
-			return err
-		}
-		return nil
-	}
-
-	// Run our server in a goroutine so that it doesn't block.
-	return serveFn, shutdown
-}
-
-// Run is the wrapper for starting the web-server and handling signals
-func (a *Application) Run(m http.Handler, wait time.Duration) {
-	a.Logger.WithContext(log.Ctx{
-		"listen": a.Conf.Listen(),
-		"host":   a.Conf.HostName,
-		"env":    a.Conf.Env,
-		"https":  a.Conf.Secure,
-	}).Info("Started")
-
-	srvStart, srvShutdown := SetupHttpServer(context.Background(), *a.Conf, m)
-	defer srvShutdown()
-
-	// Run our server in a goroutine so that it doesn't block.
-	go func() {
-		if err := srvStart(); err != nil {
-			a.Logger.Errorf("Error: %s", err)
-			os.Exit(1)
-		}
-	}()
-
-	// Set up the signal channel to tell us if the user/os requires us to stop
-	sigHandlerFns := signalHandlers{
-		syscall.SIGHUP: func(x *exit, s os.Signal) {
-			a.Logger.Info("SIGHUP received, reloading configuration")
-			if c, err := config.Load(a.Conf.Env); err == nil {
-				a.Conf = c
-			}
-		},
-		syscall.SIGUSR1: func(x *exit, s os.Signal) {
-			a.Logger.Info("SIGUSR1 received, switching to maintenance mode")
-			a.Conf.MaintenanceMode = !a.Conf.MaintenanceMode
-		},
-		syscall.SIGTERM: func(x *exit, s os.Signal) {
-			// kill -SIGTERM XXXX
-			a.Logger.Info("SIGTERM received, stopping")
-			x.status <- 0
-		},
-		syscall.SIGINT: func(x *exit, s os.Signal) {
-			// kill -SIGINT XXXX or Ctrl+c
-			a.Logger.Info("SIGINT received, stopping")
-			x.status <- 0
-		},
-		syscall.SIGQUIT: func(x *exit, s os.Signal) {
-			a.Logger.Error("SIGQUIT received, force stopping")
-			x.status <- -1
-		},
-	}
-
-	// Wait for OS signals asynchronously
-	code := <-RegisterSignalHandlers(sigHandlerFns).wait()
-	if code == 0 {
-		a.Logger.Info("Shutting down")
-	}
-	os.Exit(code)
 }
 
 func ReqLogger(f middleware.LogFormatter) Handler {

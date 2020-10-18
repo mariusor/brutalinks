@@ -76,8 +76,8 @@ func loadKeyFromEnv(name, def string) string {
 	return def
 }
 
-func Load(e EnvType) (*Configuration, error) {
-	c := new(Configuration)
+func Load(e EnvType) *Configuration {
+	c := &Default
 	configs := []string{
 		".env",
 	}
@@ -151,7 +151,7 @@ func Load(e EnvType) (*Configuration, error) {
 
 	c.APIURL = loadKeyFromEnv(KeyAPIUrl, "")
 
-	return c, nil
+	return c
 }
 
 func (c *Configuration) CheckUserCreatingEnabled(next http.Handler) http.Handler {
