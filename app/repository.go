@@ -880,6 +880,9 @@ func (r *repository) loadModerationDetails(ctx context.Context, items ...Moderat
 			fActors.IRI = append(fActors.IRI, hash)
 		}
 
+		if it.Object == nil {
+			continue
+		}
 		ap := it.Object.AP()
 		itIRI := ap.GetLink().String()
 		if strings.Contains(itIRI, string(actors)) {
@@ -914,14 +917,14 @@ func (r *repository) loadModerationDetails(ctx context.Context, items ...Moderat
 			if accountsEqual(*it.SubmittedBy, *auth) {
 				items[k].SubmittedBy = authors[i]
 			}
-			if it.Object.AP().GetLink().Equals(auth.pub.GetLink(), false) {
+			if it.Object != nil && it.Object.AP().GetLink().Equals(auth.pub.GetLink(), false) {
 				items[k].Object = authors[i]
 			}
 		}
 	}
 	for k, it := range items {
 		for i, obj := range objects {
-			if it.Object.AP().GetLink().Equals(obj.pub.GetLink(), false) {
+			if it.Object != nil && it.Object.AP().GetLink().Equals(obj.pub.GetLink(), false) {
 				items[k].Object = &(objects[i])
 			}
 		}

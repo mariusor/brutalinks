@@ -287,6 +287,9 @@ func (m *ModerationOp) FromActivityPub(it pub.Item) error {
 
 func moderationGroupAtIndex(groups []*ModerationGroup, r ModerationOp) int {
 	for i, g := range groups {
+		if g.Object == nil || r.Object == nil {
+			continue
+		}
 		gAP := g.Object.AP()
 		rAP := r.Object.AP()
 		if gAP.GetLink().Equals(rAP.GetLink(), false) && gAP.GetType() == rAP.GetType() {
@@ -336,7 +339,9 @@ func aggregateModeration(rl RenderableList, followups []ModerationOp) Renderable
 
 	result := make(RenderableList, len(groups))
 	for i, m := range groups {
-		result[i] = m
+		if m.Object != nil {
+			result[i] = m
+		}
 	}
 	return result
 }
