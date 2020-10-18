@@ -239,7 +239,7 @@ func GetOauth2Config(provider string, localBaseURL string) oauth2.Config {
 	case "fedbox":
 		fallthrough
 	default:
-		apiURL := os.Getenv("API_URL")
+		apiURL := strings.TrimRight(os.Getenv("API_URL"), "/")
 		config = oauth2.Config{
 			ClientID:     os.Getenv("OAUTH2_KEY"),
 			ClientSecret: os.Getenv("OAUTH2_SECRET"),
