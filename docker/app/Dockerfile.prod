@@ -14,7 +14,7 @@ RUN go mod download || true; \
     make all && \
     docker/gen-certs.sh app
 
-FROM gcr.io/distroless/base
+FROM gcr.io/distroless/static
 
 ARG HOSTNAME
 ARG PORT
