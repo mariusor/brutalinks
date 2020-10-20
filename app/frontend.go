@@ -317,6 +317,7 @@ func (h *handler) SetSecurityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
+// loadAccountData is used so we don't stomp over the values already stored in the session's account
 func loadAccountData(a *Account, b Account) {
 	if !HashesEqual(a.Hash, b.Hash) {
 		return
@@ -388,23 +389,18 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 				"handle": acc.Handle,
 				"hash":   acc.Hash,
 			}
-			if accounts, err := h.storage.accounts(ctx, f); err != nil {
+			accounts, err := h.storage.accounts(ctx, f)
+			if err != nil {
 				h.errFn(ltx, log.Ctx{"err": err.Error()})("unable to load actor for session account")
-				ctxtErr(next, w, r, err)
+				acc = AnonymousAccount
+			} else if len(accounts) == 0 || !accounts[0].IsValid() {
+				acc = AnonymousAccount
+				h.errFn(ltx)("actor not found")
 			} else {
-				if len(accounts) == 0 {
-					err := errors.NotFoundf("no accounts found for %v", f)
-					h.infoFn(ltx)("Error: %s", err)
-				}
-				if accounts[0].IsValid() {
-					loadAccountData(&acc, *accounts[0])
-				} else {
-					ctxtErr(next, w, r, errors.NotFoundf("Not found"))
-				}
+				loadAccountData(&acc, *accounts[0])
 			}
 
 			h.storage.WithAccount(&acc)
-			var err error
 			if len(acc.Followers) == 0 {
 				// TODO(marius): this needs to be moved to where we're handling all Inbox activities, not on page load
 				err = h.storage.loadAccountsFollowers(ctx, &acc)
