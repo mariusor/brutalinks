@@ -50,7 +50,7 @@ const (
 	KeyKeyPath                    = "KEY_PATH"
 	KeyAPIUrl                     = "API_URL"
 	KeyDisableVoting              = "DISABLE_VOTING"
-	KeyDisableDownoting           = "DISABLE_DOWNVOTING"
+	KeyDisableDownVoting          = "DISABLE_DOWNVOTING"
 	KeyDisableSessions            = "DISABLE_SESSIONS"
 	KeyDisableUserCreation        = "DISABLE_USER_CREATION"
 	KeyDisableAnonymousCommenting = "DISABLE_ANONYMOUS_COMMENTING"
@@ -133,7 +133,7 @@ func Load(e EnvType) *Configuration {
 	votingDisabled, _ := strconv.ParseBool(loadKeyFromEnv(KeyDisableVoting, ""))
 	c.VotingEnabled = !votingDisabled
 	if c.VotingEnabled {
-		downvotingDisabled, _ := strconv.ParseBool(loadKeyFromEnv(KeyDisableDownoting, ""))
+		downvotingDisabled, _ := strconv.ParseBool(loadKeyFromEnv(KeyDisableDownVoting, ""))
 		c.DownvotingEnabled = !downvotingDisabled
 	}
 	sessionsDisabled, _ := strconv.ParseBool(loadKeyFromEnv(KeyDisableSessions, ""))
