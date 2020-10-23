@@ -3,8 +3,8 @@ module github.com/mariusor/littr.go
 go 1.14
 
 require (
-	aletheia.icu/broccoli v1.0.4-0.20200506212414-5bc1e2f86a59 // indirect
 	aletheia.icu/broccoli/fs v0.0.0-20200506212414-5bc1e2f86a59
+	github.com/andybalholm/brotli v1.0.1 // indirect
 	github.com/captncraig/cors v0.0.0-20190703115713-e80254a89df1 // indirect
 	github.com/go-ap/activitypub v0.0.0-20200830140334-e0b519daad28
 	github.com/go-ap/client v0.0.0-20200930124242-e8ffb2a5509c
@@ -12,13 +12,15 @@ require (
 	github.com/go-ap/handlers v0.0.0-20201001145406-6c4f77a88773
 	github.com/go-ap/jsonld v0.0.0-20200327122108-fafac2de2660
 	github.com/go-chi/chi v4.0.4+incompatible
+	github.com/google/uuid v1.0.0
 	github.com/gorilla/csrf v1.6.2
 	github.com/gorilla/sessions v1.2.1
 	github.com/joho/godotenv v1.3.0
 	github.com/mariusor/qstring v0.0.0-20200204164351-5a99d46de39d
 	github.com/microcosm-cc/bluemonday v1.0.4
 	github.com/openshift/osin v1.0.1
-	github.com/pborman/uuid v1.2.0
+	github.com/pborman/uuid v1.2.1 // indirect
+	github.com/sabhiram/go-gitignore v0.0.0-20180611051255-d3107576ba94
 	github.com/sirupsen/logrus v1.5.0
 	github.com/spacemonkeygo/httpsig v0.0.0-20181218213338-2605ae379e47
 	github.com/stretchr/testify v1.5.1 // indirect

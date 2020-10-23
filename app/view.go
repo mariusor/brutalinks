@@ -217,7 +217,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"urlValue":              func(k string) []string { return r.URL.Query()[k] },
 			"urlValueContains":      func(k, v string) bool { return stringInSlice(r.URL.Query()[k])(v) },
 			"sameBase":              sameBasePath,
-			"sameHash":              HashesEqual,
+			"sameHash":              func(h1, h2 Hash) bool { return h1 == h2 },
 			"fmtPubKey":             fmtPubKey,
 			"pluralize":             func(s string, cnt int) string { return pluralize(float64(cnt), s) },
 			"pasttensify":           pastTenseVerb,
@@ -776,39 +776,19 @@ func InOutbox(a *Account, b pub.Item) bool {
 }
 
 func AccountFollows(a, by *Account) bool {
-	for _, acc := range a.Following {
-		if HashesEqual(acc.Hash, by.Hash) {
-			return true
-		}
-	}
-	return false
+	return a.Following.Contains(*by)
 }
 
 func AccountBlocks(by, b *Account) bool {
-	for _, acc := range by.Blocked {
-		if HashesEqual(acc.Hash, b.Hash) {
-			return true
-		}
-	}
-	return false
+	return by.Blocked.Contains(*b)
 }
 
 func AccountIgnores(by, b *Account) bool {
-	for _, acc := range by.Ignored {
-		if HashesEqual(acc.Hash, b.Hash) {
-			return true
-		}
-	}
-	return false
+	return by.Ignored.Contains(*b)
 }
 
 func AccountIsFollowed(a, by *Account) bool {
-	for _, acc := range a.Followers {
-		if HashesEqual(acc.Hash, by.Hash) {
-			return true
-		}
-	}
-	return false
+	return a.Followers.Contains(*by)
 }
 
 func AccountIsRejected(by, a *Account) bool {
@@ -819,21 +799,11 @@ func AccountIsRejected(by, a *Account) bool {
 }
 
 func AccountIsBlocked(by, a *Account) bool {
-	for _, acc := range by.Blocked {
-		if HashesEqual(acc.Hash, a.Hash) {
-			return true
-		}
-	}
-	return false
+	return by.Blocked.Contains(*a)
 }
 
 func AccountIsIgnored(by, a *Account) bool {
-	for _, acc := range by.Ignored {
-		if HashesEqual(acc.Hash, a.Hash) {
-			return true
-		}
-	}
-	return false
+	return by.Ignored.Contains(*a)
 }
 
 func AccountIsReported(by, a *Account) bool {
@@ -854,7 +824,7 @@ func showAccountBlockLink(by, current *Account) bool {
 	if !by.IsLogged() {
 		return false
 	}
-	if HashesEqual(by.Hash, current.Hash) {
+	if by.Hash == current.Hash {
 		return false
 	}
 	if InOutbox(by, pub.Block{
@@ -876,7 +846,7 @@ func showFollowLink(by, current *Account) bool {
 	if !by.IsLogged() {
 		return false
 	}
-	if HashesEqual(by.Hash, current.Hash) {
+	if by.Hash == current.Hash {
 		return false
 	}
 	if InOutbox(by, pub.Follow{
@@ -898,7 +868,7 @@ func showAccountReportLink(by, current *Account) bool {
 	if !by.IsLogged() {
 		return false
 	}
-	if HashesEqual(by.Hash, current.Hash) {
+	if by.Hash == current.Hash {
 		return false
 	}
 	if InOutbox(by, pub.Block{
@@ -971,9 +941,9 @@ func PermaLink(r Renderable) string {
 func ItemLocalLink(i *Item) string {
 	if i.SubmittedBy == nil {
 		// @todo(marius) :link_generation:
-		return fmt.Sprintf("/i/%s", i.Hash.Short())
+		return fmt.Sprintf("/i/%s", i.Hash.String())
 	}
-	return fmt.Sprintf("%s/%s", AccountLocalLink(i.SubmittedBy), i.Hash.Short())
+	return fmt.Sprintf("%s/%s", AccountLocalLink(i.SubmittedBy), i.Hash.String())
 }
 
 func followLink(f FollowRequest) string {

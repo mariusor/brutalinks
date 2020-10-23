@@ -57,7 +57,7 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if len(n.Hash) > 0 {
+	if n.Hash.Valid() {
 		var iri pub.IRI
 		if n.HasMetadata() && len(n.Metadata.ID) > 0 {
 			iri = pub.IRI(n.Metadata.ID)
@@ -384,7 +384,7 @@ func (h *handler) ValidateItemAuthor(next http.Handler) http.Handler {
 				ctxtErr(next, w, r, errors.NewNotFound(err, "item"))
 				return
 			}
-			if !HashesEqual(m.SubmittedBy.Hash, acc.Hash) {
+			if m.SubmittedBy.Hash != acc.Hash {
 				url.Path = path.Dir(url.Path)
 				h.v.Redirect(w, r, url.RequestURI(), http.StatusTemporaryRedirect)
 				return

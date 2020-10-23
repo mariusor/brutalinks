@@ -175,7 +175,7 @@ func (i Item) IsTop() bool {
 
 func (i ItemCollection) Contains(cc Item) bool {
 	for _, com := range i {
-		if HashesEqual(com.Hash, cc.Hash) {
+		if com.Hash == cc.Hash {
 			return true
 		}
 	}
@@ -392,7 +392,7 @@ type ItemPtrCollection []*Item
 
 func (h ItemPtrCollection) Contains(s Hash) bool {
 	for _, hh := range h {
-		if HashesEqual(hh.Hash, s) {
+		if hh.Hash == s {
 			return true
 		}
 	}
@@ -407,7 +407,7 @@ func reparentComments(allComments *ItemPtrCollection) {
 	parFn := func(t ItemPtrCollection, cur *Item) *Item {
 		for _, n := range t {
 			if cur.Parent.IsValid() {
-				if HashesEqual(cur.Parent.Hash, n.Hash) {
+				if cur.Parent.Hash == n.Hash {
 					return n
 				}
 			}

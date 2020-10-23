@@ -495,18 +495,18 @@ func host(u string) string {
 
 func GetHashFromAP(obj pub.Item) Hash {
 	if obj == nil {
-		return Hash("")
+		return Hash{}
 	}
 	iri := obj.GetLink()
 	if len(iri) == 0 {
-		return Hash("")
+		return Hash{}
 	}
 	actor, _ := handlers.Split(iri)
 	h := path.Base(actor.String())
 	if h == "." {
 		h = ""
 	}
-	return Hash(h)
+	return HashFromString(h)
 }
 
 func (c *TagCollection) FromActivityPub(it pub.ItemCollection) error {

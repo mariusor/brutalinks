@@ -319,7 +319,7 @@ func (h *handler) SetSecurityHeaders(next http.Handler) http.Handler {
 
 // loadAccountData is used so we don't stomp over the values already stored in the session's account
 func loadAccountData(a *Account, b Account) {
-	if !HashesEqual(a.Hash, b.Hash) {
+	if a.Hash != b.Hash {
 		return
 	}
 	if len(a.Email) == 0 && len(b.Email) > 0 {

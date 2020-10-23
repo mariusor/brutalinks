@@ -294,7 +294,7 @@ func ReportContentModelMw(next http.Handler) http.Handler {
 		m := reportModelFromCtx(ctx)
 		hash := chi.URLParam(r, "hash")
 		if hash != "" {
-			m.Hash = Hash(hash)
+			m.Hash = HashFromString(hash)
 		}
 
 		m.Title = "Report item"
@@ -362,7 +362,7 @@ func BlockContentModelMw(next http.Handler) http.Handler {
 		m := blockModelFromCtx(ctx)
 		hash := chi.URLParam(r, "hash")
 		if hash != "" {
-			m.Hash = Hash(hash)
+			m.Hash = HashFromString(hash)
 		}
 		next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, ModelCtxtKey, m)))
 	})

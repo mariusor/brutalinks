@@ -43,7 +43,7 @@ type Identifiable interface {
 }
 
 func (i *Item) IsValid() bool {
-	return i != nil && len(i.Hash) > 0
+	return i != nil && i.Hash.Valid()
 }
 
 // AP returns the underlying actvitypub item
@@ -203,15 +203,15 @@ func ContentFromRequest(r *http.Request, author Account) (Item, error) {
 	}
 	parent := r.PostFormValue("parent")
 	if len(parent) > 0 {
-		i.Parent = &Item{Hash: Hash(parent)}
+		i.Parent = &Item{Hash: HashFromString(parent)}
 	}
 	op := r.PostFormValue("op")
 	if len(op) > 0 {
-		i.OP = &Item{Hash: Hash(op)}
+		i.OP = &Item{Hash: HashFromString(op)}
 	}
 	hash := r.PostFormValue("hash")
 	if len(hash) > 0 {
-		i.Hash = Hash(hash)
+		i.Hash = HashFromString(hash)
 	}
 	return i, nil
 }

@@ -21,8 +21,6 @@ const (
 )
 
 var (
-	// AnonymousHash is the sha hash for the anonymous account
-	AnonymousHash = Hash{}
 	// AnonymousAccount
 	AnonymousAccount = Account{Handle: Anonymous, Hash: AnonymousHash, Metadata: new(AccountMetadata)}
 	// SystemAccount

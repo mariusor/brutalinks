@@ -1,7 +1,6 @@
 package app
 
 import (
-	"bytes"
 	"html/template"
 )
 
@@ -100,7 +99,7 @@ func getFromList(h Hash, items RenderableList) *Item {
 	var findOrDescendFn func(collection ItemPtrCollection) (*Item, bool)
 	findOrDescendFn = func(collection ItemPtrCollection) (*Item, bool) {
 		for _, com := range collection {
-			if bytes.Equal(h, com.Hash) {
+			if h == com.Hash {
 				return com, true
 			}
 			if cur, found := findOrDescendFn(com.children); found {
@@ -115,7 +114,7 @@ func getFromList(h Hash, items RenderableList) *Item {
 			continue
 		}
 		if it, ok := cur.(*Item); ok {
-			if bytes.Equal(h, it.Hash) {
+			if h == it.Hash {
 				return it
 			}
 			if cur, found := findOrDescendFn(it.children); found {

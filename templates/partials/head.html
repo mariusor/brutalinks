@@ -1,10 +1,10 @@
 <meta charset="UTF-8">
 <title>{{.Title}}</title>
 {{- if CanPaginate . -}}
-{{- if gt (len .PrevPage) 0 }}
+{{- if .PrevPage.Valid }}
 <link href="{{ .PrevPage | PrevPageLink }}" rel="prev prefetch" />
 {{end -}}
-{{- if gt (len .NextPage) 0 }}
+{{- if .NextPage.Valid }}
 <link href="{{ .NextPage | NextPageLink }}" rel="next prefetch" />
 {{end -}}
 {{end }}

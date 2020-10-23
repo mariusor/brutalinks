@@ -188,7 +188,7 @@ func ItemFiltersMw(next http.Handler) http.Handler {
 		hash := chi.URLParam(r, "hash")
 
 		m := ContextContentModel(r.Context())
-		m.Hash = Hash(hash)
+		m.Hash = HashFromString(hash)
 
 		f.Object = &Filters{}
 		f.Object.IRI = CompStrs{LikeString(hash)}

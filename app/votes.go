@@ -2,8 +2,6 @@ package app
 
 import (
 	pub "github.com/go-ap/activitypub"
-	"net/url"
-	"strings"
 	"time"
 
 	"github.com/go-ap/errors"
@@ -87,18 +85,6 @@ func (v VoteCollection) Contains(vot Vote) bool {
 		}
 	}
 	return false
-}
-
-func trimHash(s Hash) Hash {
-	h, err := url.PathUnescape(string(s))
-	if err != nil {
-		return Hash("")
-	}
-	h = strings.TrimSpace(h)
-	if len(h) == 0 {
-		return Hash("")
-	}
-	return Hash(h)
 }
 
 type ScoreType int

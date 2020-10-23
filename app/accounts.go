@@ -1,12 +1,10 @@
 package app
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	pub "github.com/go-ap/activitypub"
 	"github.com/go-chi/chi"
-	"github.com/pborman/uuid"
 	"golang.org/x/oauth2"
 	"net/http"
 	"time"
@@ -74,31 +72,6 @@ type Account struct {
 	Children  AccountPtrCollection `json:"-"`
 }
 
-// Hash is a local type for string, it should hold a [32]byte array actually
-type Hash uuid.UUID
-
-func HashesEqual(h1, h2 Hash) bool {
-	return uuid.Equal(uuid.UUID(h1), uuid.UUID(h2))
-}
-
-// String returns the hash as a string
-func (h Hash) String() string {
-	return string(h)
-}
-
-// Short returns a minimal valuable string value
-func (h Hash) Short() string {
-	//if len(h) > 10 {
-	//	return string(h[0:10])
-	//}
-	return string(h)
-}
-
-// MarshalText
-func (h Hash) MarshalText() ([]byte, error) {
-	return h, nil
-}
-
 // HasMetadata
 func (a *Account) HasMetadata() bool {
 	return a != nil && a.Metadata != nil
@@ -130,7 +103,7 @@ func (a *Account) HasPublicKey() bool {
 
 // IsValid returns if the current account has a handle or a hash with length greater than 0
 func (a *Account) IsValid() bool {
-	return a != nil && len(a.Hash) > 0
+	return a != nil && a.Hash.Valid()
 }
 
 // AP returns the underlying actvitypub item
@@ -155,7 +128,7 @@ func (a Account) VotedOn(i Item) *Vote {
 		if v.Item == nil {
 			continue
 		}
-		if bytes.Equal(v.Item.Hash, i.Hash) {
+		if v.Item.Hash == i.Hash {
 			return &v
 		}
 	}
@@ -171,7 +144,7 @@ func (a Account) GetLink() string {
 
 // IsLogged should show if current user was loaded from a session
 func (a *Account) IsLogged() bool {
-	return a != nil && (!a.CreatedAt.IsZero() || (!bytes.Equal(a.Hash, AnonymousHash) && a.Handle != Anonymous))
+	return a != nil && (!a.CreatedAt.IsZero() || (a.Hash != AnonymousHash && a.Handle != Anonymous))
 }
 
 // HasIcon
@@ -198,6 +171,15 @@ func (a AccountCollection) First() (*Account, error) {
 		return &act, nil
 	}
 	return nil, errors.Errorf("empty %T", a)
+}
+
+func (a AccountCollection) Contains(b Account) bool {
+	for _, acc := range a {
+		if acc.Hash == b.Hash {
+			return true
+		}
+	}
+	return false
 }
 
 func accountFromPost(r *http.Request) (Account, error) {
@@ -254,7 +236,7 @@ type AccountPtrCollection []*Account
 
 func (h AccountPtrCollection) Contains(s Hash) bool {
 	for _, hh := range h {
-		if HashesEqual(hh.Hash, s) {
+		if hh.Hash == s {
 			return true
 		}
 	}
@@ -292,7 +274,7 @@ func reparentAccounts(allAccounts *AccountPtrCollection) {
 	parFn := func(t AccountPtrCollection, cur *Account) *Account {
 		for _, n := range t {
 			if cur.CreatedBy.IsValid() {
-				if HashesEqual(cur.CreatedBy.Hash, n.Hash) {
+				if cur.CreatedBy.Hash == n.Hash {
 					return n
 				}
 			}

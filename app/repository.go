@@ -1,7 +1,6 @@
 package app
 
 import (
-	"bytes"
 	"context"
 	"crypto"
 	"crypto/x509"
@@ -112,7 +111,7 @@ var ActorsURL = actors.IRI(pub.IRI(BaseURL))
 var ObjectsURL = objects.IRI(pub.IRI(BaseURL))
 
 func apAccountID(a Account) pub.ID {
-	if len(a.Hash) >= 8 {
+	if a.Hash.Valid() {
 		return pub.ID(fmt.Sprintf("%s/%s", ActorsURL, a.Hash.String()))
 	}
 	return pub.ID(fmt.Sprintf("%s/anonymous", ActorsURL))
@@ -520,7 +519,7 @@ func (r *repository) loadAccountsVotes(ctx context.Context, accounts ...Account)
 
 func accountInCollection(ac Account, col AccountCollection) bool {
 	for _, fol := range col {
-		if HashesEqual(fol.Hash, ac.Hash) {
+		if fol.Hash == ac.Hash {
 			return true
 		}
 	}
@@ -726,7 +725,7 @@ func (r *repository) loadItemsVotes(ctx context.Context, items ...Item) (ItemCol
 			v := new(Vote)
 			if err := v.FromActivityPub(vAct); err == nil {
 				for k, ob := range items {
-					if bytes.Equal(v.Item.Hash, ob.Hash) {
+					if v.Item.Hash == ob.Hash {
 						items[k].Score += v.Weight
 					}
 				}
@@ -930,7 +929,7 @@ func (r *repository) loadModerationDetails(ctx context.Context, items ...Moderat
 	return items, nil
 }
 func accountsEqual(a1, a2 Account) bool {
-	return bytes.Equal(a1.Hash, a2.Hash) || (len(a1.Handle)+len(a2.Handle) > 0 && a1.Handle == a2.Handle)
+	return a1.Hash == a2.Hash || (len(a1.Handle)+len(a2.Handle) > 0 && a1.Handle == a2.Handle)
 }
 
 func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemCollection, error) {
@@ -986,22 +985,22 @@ func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemC
 			if !auth.IsValid() {
 				continue
 			}
-			if it.SubmittedBy.IsValid() && HashesEqual(it.SubmittedBy.Hash, auth.Hash) {
+			if it.SubmittedBy.IsValid() && it.SubmittedBy.Hash == auth.Hash {
 				it.SubmittedBy = auth
 			}
-			if it.UpdatedBy.IsValid() && HashesEqual(it.UpdatedBy.Hash, auth.Hash) {
+			if it.UpdatedBy.IsValid() && it.UpdatedBy.Hash == auth.Hash {
 				it.UpdatedBy = auth
 			}
 			if !it.HasMetadata() {
 				continue
 			}
 			for i, to := range it.Metadata.To {
-				if to.IsValid() && HashesEqual(to.Hash, auth.Hash) {
+				if to.IsValid() && to.Hash == auth.Hash {
 					it.Metadata.To[i] = auth
 				}
 			}
 			for i, cc := range it.Metadata.CC {
-				if cc.IsValid() && HashesEqual(cc.Hash, auth.Hash) {
+				if cc.IsValid() && cc.Hash == auth.Hash {
 					it.Metadata.CC[i] = auth
 				}
 			}
@@ -1190,8 +1189,8 @@ func (r *repository) Objects(ctx context.Context, ff ...*Filters) (Cursor, error
 	}
 	var next, prev Hash
 	for _, f := range ff {
-		next = Hash(f.Next)
-		prev = Hash(f.Prev)
+		next = HashFromString(f.Next)
+		prev = HashFromString(f.Prev)
 	}
 	return Cursor{
 		after:  next,
@@ -1486,10 +1485,10 @@ func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, ff ..
 	var next, prev Hash
 	for _, f := range ff {
 		if len(f.Next) > 0 {
-			next = Hash(f.Next)
+			next = HashFromString(f.Next)
 		}
 		if len(f.Prev) > 0 {
-			prev = Hash(f.Prev)
+			prev = HashFromString(f.Prev)
 		}
 	}
 	return Cursor{
@@ -1526,7 +1525,7 @@ func (r *repository) SaveVote(ctx context.Context, v Vote) (Vote, error) {
 		if !vot.SubmittedBy.IsValid() || !v.SubmittedBy.IsValid() {
 			continue
 		}
-		if bytes.Equal(vot.SubmittedBy.Hash, v.SubmittedBy.Hash) {
+		if vot.SubmittedBy.Hash == v.SubmittedBy.Hash {
 			exists = vot
 			break
 		}

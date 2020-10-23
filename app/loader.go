@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"strings"
 )
 
 type CtxtKey string
@@ -33,25 +32,6 @@ type WebInfo struct {
 type Filterable interface {
 	GetWhereClauses() ([]string, []interface{})
 	GetLimit() string
-}
-
-type Hashes []Hash
-
-func (h Hashes) Contains(s Hash) bool {
-	for _, hh := range h {
-		if HashesEqual(hh, s) {
-			return true
-		}
-	}
-	return false
-}
-
-func (h Hashes) String() string {
-	str := make([]string, len(h))
-	for i, hh := range h {
-		str[i] = string(hh)
-	}
-	return strings.Join(str, ", ")
 }
 
 func ContextModel(ctx context.Context) Model {
