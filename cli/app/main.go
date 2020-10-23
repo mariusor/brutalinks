@@ -5,8 +5,8 @@ import (
 	"crypto/tls"
 	"flag"
 	"github.com/go-ap/errors"
-	"github.com/mariusor/littr.go/internal/config"
-	"github.com/mariusor/littr.go/internal/log"
+	"github.com/mariusor/go-littr/internal/config"
+	"github.com/mariusor/go-littr/internal/log"
 	"io/ioutil"
 	golog "log"
 	"net/http"
@@ -18,7 +18,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 
-	"github.com/mariusor/littr.go/app"
+	"github.com/mariusor/go-littr/app"
 )
 
 var version = "HEAD"

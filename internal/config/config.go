@@ -3,7 +3,7 @@ package config
 import (
 	"fmt"
 	"github.com/joho/godotenv"
-	"github.com/mariusor/littr.go/internal/log"
+	"github.com/mariusor/go-littr/internal/log"
 	"net/http"
 	"os"
 	"strconv"

@@ -1,4 +1,4 @@
-module github.com/mariusor/littr.go
+module github.com/mariusor/go-littr
 
 go 1.14
 

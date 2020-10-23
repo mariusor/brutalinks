@@ -10,5 +10,5 @@ The community can be built using an invitation based model, where a user shares 
 
 ___
 
-[![MIT Licensed](https://img.shields.io/github/license/mariusor/littr.go.svg)](https://raw.githubusercontent.com/mariusor/littr.go/master/LICENSE)
+[![MIT Licensed](https://img.shields.io/github/license/mariusor/go-littr.svg)](https://raw.githubusercontent.com/mariusor/go-littr/master/LICENSE)
 [![Builds status](https://builds.sr.ht/~mariusor/go-littr.svg)](https://builds.sr.ht/~mariusor/go-littr)

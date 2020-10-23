@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/go-ap/errors"
 	"github.com/gorilla/sessions"
-	"github.com/mariusor/littr.go/internal/log"
+	"github.com/mariusor/go-littr/internal/log"
 	"net/http"
 	"os"
 	"strings"

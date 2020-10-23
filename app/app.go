@@ -6,9 +6,9 @@ import (
 	"github.com/go-ap/errors"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
-	"github.com/mariusor/littr.go/internal/assets"
-	"github.com/mariusor/littr.go/internal/config"
-	"github.com/mariusor/littr.go/internal/log"
+	"github.com/mariusor/go-littr/internal/assets"
+	"github.com/mariusor/go-littr/internal/config"
+	"github.com/mariusor/go-littr/internal/log"
 	"github.com/writeas/go-nodeinfo"
 	"net/http"
 )

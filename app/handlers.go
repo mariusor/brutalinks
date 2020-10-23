@@ -7,7 +7,7 @@ import (
 	pub "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
 	"github.com/gorilla/csrf"
-	"github.com/mariusor/littr.go/internal/log"
+	"github.com/mariusor/go-littr/internal/log"
 	"github.com/mariusor/qstring"
 	"github.com/openshift/osin"
 	"golang.org/x/oauth2"

@@ -2,12 +2,12 @@
 
 ## Pre-requisites
 
-The basic requirement for running [littr.go](https://github.com/mariusor/littr.go) locally is a 
+The basic requirement for running [go-littr](https://github.com/mariusor/go-littr) locally is a 
 go dev environment (version 1.11 or newer, as we require go modules support). 
 
 ```sh
-$ git clone https://github.com/mariusor/littr.go
-$ cd littr.go
+$ git clone https://github.com/mariusor/go-littr
+$ cd go-littr
 ```
 
 ### Running fed::BOX

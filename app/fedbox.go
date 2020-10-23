@@ -7,7 +7,7 @@ import (
 	"github.com/go-ap/client"
 	"github.com/go-ap/errors"
 	"github.com/go-ap/handlers"
-	"github.com/mariusor/littr.go/internal/log"
+	"github.com/mariusor/go-littr/internal/log"
 	"net/url"
 	"strings"
 )

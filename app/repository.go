@@ -11,7 +11,7 @@ import (
 	"github.com/go-ap/errors"
 	"github.com/go-ap/handlers"
 	j "github.com/go-ap/jsonld"
-	"github.com/mariusor/littr.go/internal/log"
+	"github.com/mariusor/go-littr/internal/log"
 	"github.com/mariusor/qstring"
 	"github.com/spacemonkeygo/httpsig"
 	"golang.org/x/sync/errgroup"
