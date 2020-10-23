@@ -178,8 +178,8 @@ func (m *ModerationOp) AP() pub.Item {
 }
 
 // Content returns the reason for it
-func (m ModerationOp) Content() map[string]string {
-	return map[string]string{m.MimeType: m.Data}
+func (m ModerationOp) Content() map[string][]byte {
+	return map[string][]byte{m.MimeType: []byte(m.Data)}
 }
 
 // Tags returns the tags associated with the current ModerationOp

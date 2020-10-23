@@ -1,6 +1,7 @@
 package app
 
 import (
+	"bytes"
 	"fmt"
 	pub "github.com/go-ap/activitypub"
 	"html/template"
@@ -95,7 +96,7 @@ type Renderable interface {
 }
 
 type HasContent interface {
-	Content() map[string]string
+	Content() map[string][]byte
 	Tags() TagCollection
 	Mentions() TagCollection
 }
@@ -213,14 +214,14 @@ func inRange(n string, nn map[string]string) bool {
 	return false
 }
 
-func replaceBetweenPos(d, r string, st, end int) string {
+func replaceBetweenPos(d, r []byte, st, end int) []byte {
 	if st < 0 || end > len(d) {
 		return d
 	}
 	if end < len(d) {
-		r += d[end:]
+		r = append(r, d[end:]...)
 	}
-	return d[:st] + r
+	return append(d[:st], r...)
 }
 
 func isWordDelimiter(b byte) bool {
@@ -229,8 +230,8 @@ func isWordDelimiter(b byte) bool {
 		unicode.Is(unicode.Punct, rune(b))
 }
 
-func replaceTag(d *string, t Tag, w string) {
-	inWord := func(d string, i, end int) bool {
+func replaceTag(d []byte, t Tag, w string) []byte {
+	inWord := func(d []byte, i, end int) bool {
 		dl := len(d)
 		if i < 1 || end > dl {
 			return false
@@ -265,23 +266,24 @@ func replaceTag(d *string, t Tag, w string) {
 	for _, s := range search {
 		end := 0
 		for {
-			if end >= len(*d) {
+			if end >= len(d) {
 				break
 			}
-			inx := strings.Index((*d)[end:], string(s))
+			inx := bytes.Index(d[end:], s)
 			if inx < 0 {
 				break
 			}
 			pos := end + inx
 			end = pos + len(s)
-			if end > len(*d) {
+			if end > len(d) {
 				break
 			}
-			if !inWord(*d, pos, end) {
-				*d = replaceBetweenPos(*d, w, pos, end)
+			if !inWord(d, pos, end) {
+				d = replaceBetweenPos(d, []byte(w), pos, end)
 			}
 		}
 	}
+	return d
 }
 
 func replaceTags(mime string, r HasContent) string {
@@ -290,7 +292,7 @@ func replaceTags(mime string, r HasContent) string {
 		return ""
 	}
 
-	var data string
+	var data []byte
 	for m, d := range dataMap {
 		if strings.ToLower(mime) == strings.ToLower(m) {
 			data = d
@@ -301,7 +303,7 @@ func replaceTags(mime string, r HasContent) string {
 		return ""
 	}
 	if len(r.Tags())+len(r.Mentions()) == 0 {
-		return data
+		return string(data)
 	}
 
 	replaces := make(map[string]string, 0)
@@ -322,14 +324,14 @@ func replaceTags(mime string, r HasContent) string {
 			if inRange(lbl, replaces) {
 				continue
 			}
-			replaceTag(&data, t, lbl)
+			data = replaceTag(data, t, lbl)
 			replaces[lbl] = mimeTypeTagReplace(mime, t)
 		}
 	}
 	for to, repl := range replaces {
-		data = strings.ReplaceAll(data, to, repl)
+		data = bytes.ReplaceAll(data, []byte(to), []byte(repl))
 	}
-	return data
+	return string(data)
 }
 
 func (c TagCollection) Contains(t Tag) bool {

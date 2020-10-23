@@ -52,8 +52,8 @@ func (i *Item) AP() pub.Item {
 }
 
 // Content returns the content of the Item
-func (i Item) Content() map[string]string {
-	return map[string]string{i.MimeType: i.Data}
+func (i Item) Content() map[string][]byte {
+	return map[string][]byte{i.MimeType: []byte(i.Data)}
 }
 
 // Tags returns the tags associated with the current Item
