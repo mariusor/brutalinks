@@ -101,8 +101,6 @@ type HasContent interface {
 	Mentions() TagCollection
 }
 
-type RenderableList []Renderable
-
 func (r RenderableList) Items() ItemCollection {
 	items := make(ItemCollection, 0)
 	for _, ren := range r {

@@ -1011,21 +1011,6 @@ func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemC
 	return col, nil
 }
 
-type Cursor struct {
-	after  Hash
-	before Hash
-	items  RenderableList
-	total  uint
-}
-
-var emptyCursor = Cursor{}
-
-type colCursor struct {
-	filters *Filters
-	loaded  int
-	items   pub.ItemCollection
-}
-
 func getCollectionPrevNext(col pub.CollectionInterface) (prev, next string) {
 	qFn := func(i pub.Item) url.Values {
 		if i == nil {
