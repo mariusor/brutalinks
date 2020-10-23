@@ -1,11 +1,20 @@
-export CGO_ENABLED=0
-export VERSION=(unknown)
-GO := go
+SHELL := bash
+.ONESHELL:
+.SHELLFLAGS := -eu -o pipefail -c
+.DELETE_ON_ERROR:
+
+PROJECT_NAME := $(shell basename $(PWD))
 ENV ?= dev
 LDFLAGS ?= -X main.version=$(VERSION)
 BUILDFLAGS ?= -trimpath -a -ldflags '$(LDFLAGS)'
+TEST_FLAGS ?= -count=1
+
+GO := go
 APPSOURCES := $(wildcard ./app/*.go internal/*/*.go)
 ASSETFILES := $(wildcard templates/* templates/partials/* templates/partials/*/* assets/*/* assets/*)
+
+export CGO_ENABLED=0
+export VERSION=(unknown)
 
 ifneq ($(ENV), dev)
 	LDFLAGS += -s -w -extldflags "-static"
@@ -46,5 +55,11 @@ clean:
 images:
 	$(MAKE) -C docker $@
 
+test: TEST_TARGET := ./{app,internal}/...
 test: app
-	$(TEST) ./{app,internal}/...
+	$(TEST) $(TEST_FLAGS) $(TEST_TARGET)
+
+coverage: TEST_TARGET := .
+coverage: TEST_FLAGS += -covermode=count -coverprofile $(PROJECT_NAME).coverprofile
+coverage: test
+
