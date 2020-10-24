@@ -15,6 +15,7 @@ import (
 	"github.com/mariusor/qstring"
 	"github.com/spacemonkeygo/httpsig"
 	"golang.org/x/sync/errgroup"
+	"math"
 	"net/http"
 	"net/url"
 	"path"
@@ -567,6 +568,10 @@ func (r *repository) loadAccountsFollowing(ctx context.Context, acc *Account) er
 		return true, nil
 	})
 }
+var (
+	ocTypes = pub.ActivityVocabularyTypes{pub.OrderedCollectionType, pub.OrderedCollectionPageType}
+	cTypes = pub.ActivityVocabularyTypes{pub.CollectionType, pub.CollectionPageType}
+)
 
 func (r *repository) loadAccountsOutbox(ctx context.Context, acc *Account) error {
 	if !acc.HasMetadata() || len(acc.Metadata.OutboxIRI) == 0 {
@@ -575,10 +580,7 @@ func (r *repository) loadAccountsOutbox(ctx context.Context, acc *Account) error
 	collFn := func(ctx context.Context, f *Filters) (pub.CollectionInterface, error) {
 		return r.fedbox.Collection(ctx, pub.IRI(acc.Metadata.OutboxIRI), Values(f))
 	}
-	return LoadFromCollection(ctx, collFn, &colCursor{filters: &Filters{}}, func(o pub.CollectionInterface) (bool, error) {
-		ocTypes := pub.ActivityVocabularyTypes{pub.OrderedCollectionType, pub.OrderedCollectionPageType}
-		cTypes := pub.ActivityVocabularyTypes{pub.CollectionType, pub.CollectionPageType}
-
+	return LoadFromCollection(ctx, collFn, &colCursor{filters: &Filters{MaxItems: math.MaxInt32}}, func(o pub.CollectionInterface) (bool, error) {
 		if ocTypes.Contains(o.GetType()) {
 			pub.OnOrderedCollection(o, func(oc *pub.OrderedCollection) error {
 				acc.Metadata.outboxUpdated = oc.Updated
@@ -1080,15 +1082,15 @@ const (
 )
 
 // LoadFromCollection iterates over a collection returned by the f function, until accum is satisfied
-func LoadFromCollection(ctx context.Context, f CollectionFn, cur *colCursor, accum func(pub.CollectionInterface) (bool, error)) error {
-	ttx, tCancel := context.WithTimeout(ctx, 10*time.Millisecond)
+func LoadFromCollection(ctx context.Context, loadColFn CollectionFn, cur *colCursor, accum func(pub.CollectionInterface) (bool, error)) error {
+	ttx, tCancel := context.WithTimeout(ctx, 100*time.Millisecond)
 	var err error
 	processed := 0
 	for {
 		var status bool
 		var col pub.CollectionInterface
 
-		if col, err = f(ttx, cur.filters); err != nil {
+		if col, err = loadColFn(ttx, cur.filters); err != nil {
 			return err
 		}
 
