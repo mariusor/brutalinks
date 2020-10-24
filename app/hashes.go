@@ -1,7 +1,10 @@
 package app
 
 import (
+	pub "github.com/go-ap/activitypub"
+	"github.com/go-ap/handlers"
 	"github.com/google/uuid"
+	"path"
 	"strings"
 )
 
@@ -10,6 +13,27 @@ type Hash uuid.UUID
 
 // AnonymousHash is the sha hash for the anonymous account
 var AnonymousHash = Hash{}
+
+func HashFromIRI(i pub.IRI) Hash {
+	_, h := path.Split(i.String())
+	return HashFromString(h)
+}
+
+func HashFromItem(obj pub.Item) Hash {
+	if obj == nil {
+		return Hash{}
+	}
+	iri := obj.GetLink()
+	if len(iri) == 0 {
+		return Hash{}
+	}
+	actor, _ := handlers.Split(iri)
+	h := path.Base(actor.String())
+	if h == "." {
+		h = ""
+	}
+	return HashFromString(h)
+}
 
 func HashFromString(s string) Hash {
 	if u, err := uuid.Parse(s); err == nil {

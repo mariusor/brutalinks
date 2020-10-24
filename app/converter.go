@@ -7,7 +7,6 @@ import (
 	"github.com/go-ap/handlers"
 	"github.com/microcosm-cc/bluemonday"
 	"net/url"
-	"path"
 	"strings"
 
 	pub "github.com/go-ap/activitypub"
@@ -26,7 +25,7 @@ func (h *Hash) FromActivityPub(it pub.Item) error {
 		*h = AnonymousHash
 		return nil
 	}
-	*h = GetHashFromAP(it.GetLink())
+	*h = HashFromItem(it.GetLink())
 	return nil
 }
 
@@ -491,22 +490,6 @@ func host(u string) string {
 		return pu.Host
 	}
 	return ""
-}
-
-func GetHashFromAP(obj pub.Item) Hash {
-	if obj == nil {
-		return Hash{}
-	}
-	iri := obj.GetLink()
-	if len(iri) == 0 {
-		return Hash{}
-	}
-	actor, _ := handlers.Split(iri)
-	h := path.Base(actor.String())
-	if h == "." {
-		h = ""
-	}
-	return HashFromString(h)
 }
 
 func (c *TagCollection) FromActivityPub(it pub.ItemCollection) error {

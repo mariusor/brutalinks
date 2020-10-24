@@ -417,7 +417,7 @@ func ThreadedListingMw(next http.Handler) http.Handler {
 		reparentAccounts(&accounts)
 		addLevelAccounts(accounts)
 
-		newitems := make([]Renderable, 0)
+		newitems := make(RenderableList, 0)
 		for _, ren := range c.items {
 			switch ren.Type() {
 			case CommentType:

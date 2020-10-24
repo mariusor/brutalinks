@@ -827,7 +827,7 @@ func (r *repository) loadFollowsAuthors(ctx context.Context, items ...FollowRequ
 	return items, nil
 }
 
-func (r *repository) loadModerationFollowups(ctx context.Context, items []Renderable) ([]ModerationOp, error) {
+func (r *repository) loadModerationFollowups(ctx context.Context, items RenderableList) ([]ModerationOp, error) {
 	inReplyTo := make(pub.IRIs, 0)
 	for _, it := range items {
 		iri := it.AP().GetLink()
@@ -1184,7 +1184,7 @@ func (r *repository) Objects(ctx context.Context, ff ...*Filters) (Cursor, error
 	if err != nil {
 		return emptyCursor, err
 	}
-	result := make([]Renderable, 0)
+	result := make(RenderableList, 0)
 	for _, it := range items {
 		if len(it.Hash) > 0 {
 			result = append(result, &it)
@@ -1295,7 +1295,7 @@ func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, ff ..
 	deferredActors := make(CompStrs, 0)
 	deferredActivities := make(CompStrs, 0)
 
-	result := make([]Renderable, 0)
+	result := make(RenderableList, 0)
 	// TODO(marius): see how we can use the context returned by errgroup.WithContext()
 	g, _ := errgroup.WithContext(ctx)
 	w := sync.RWMutex{}
