@@ -60,7 +60,21 @@ func (r RenderableList) Sorted() []Renderable {
 		rl = append(rl, rr)
 	}
 	sort.SliceStable(rl, func(i, j int) bool {
-		return rl[i].Date().After(rl[j].Date())
+		ri := rl[i]
+		rj := rl[j]
+		if ri.Type() == rj.Type() {
+			switch ri.Type() {
+			case CommentType:
+				ii, oki := ri.(*Item)
+				ij, okj := rj.(*Item)
+				return oki && okj && (ii.Score > ij.Score || (ii.Score == ij.Score && ii.SubmittedAt.After(ij.SubmittedAt)))
+			case ActorType:
+				ii, oki := ri.(*Account)
+				ij, okj := rj.(*Account)
+				return oki && okj && ii.Votes.Score() > ij.Votes.Score()
+			}
+		}
+		return ri.Date().After(rj.Date())
 	})
 	return rl
 }

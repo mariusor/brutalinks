@@ -7,6 +7,7 @@ import (
 	"html/template"
 	"net/url"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 	"unicode"
@@ -382,6 +383,15 @@ func (h ItemPtrCollection) Contains(s Hash) bool {
 		}
 	}
 	return false
+}
+
+func (h ItemPtrCollection) Sorted() ItemPtrCollection {
+	sort.SliceStable(h, func(i, j int) bool {
+		ii := h[i]
+		ij := h[j]
+		return ii.Score > ij.Score || (ii.Score == ij.Score && ii.SubmittedAt.After(ij.SubmittedAt))
+	})
+	return h
 }
 
 func reparentComments(allComments *ItemPtrCollection) {
