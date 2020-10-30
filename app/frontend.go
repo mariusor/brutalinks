@@ -414,6 +414,14 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 					h.infoFn(ltx)("Error: %s", err)
 				}
 			}
+			if len(acc.Votes) == 0 {
+				var items ItemCollection
+				if cursor := ContextCursor(r.Context()); cursor != nil {
+					items = cursor.items.Items()
+				}
+				h.storage.loadAccountVotes(ctx, &acc, items)
+			}
+
 			err = h.storage.loadAccountsOutbox(ctx, &acc)
 			if err != nil {
 				h.infoFn(ltx)("Error: %s", err)
