@@ -38,6 +38,10 @@ type Vote struct {
 	pub         *pub.Like     `json:"-"`
 }
 
+func (v Vote) ID() Hash {
+	return HashFromString(v.Metadata.IRI)
+}
+
 // HasMetadata
 func (v Vote) HasMetadata() bool {
 	return v.Metadata != nil

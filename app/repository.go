@@ -19,7 +19,6 @@ import (
 	"net/http"
 	"net/url"
 	"path"
-	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -568,9 +567,10 @@ func (r *repository) loadAccountsFollowing(ctx context.Context, acc *Account) er
 		return true, nil
 	})
 }
+
 var (
 	ocTypes = pub.ActivityVocabularyTypes{pub.OrderedCollectionType, pub.OrderedCollectionPageType}
-	cTypes = pub.ActivityVocabularyTypes{pub.CollectionType, pub.CollectionPageType}
+	cTypes  = pub.ActivityVocabularyTypes{pub.CollectionType, pub.CollectionPageType}
 )
 
 func (r *repository) loadAccountsOutbox(ctx context.Context, acc *Account) error {
@@ -871,8 +871,8 @@ func (r *repository) loadModerationDetails(ctx context.Context, items ...Moderat
 	}
 	fActors := new(Filters)
 	fObjects := new(Filters)
-	fActors.IRI = make(CompStrs,0)
-	fObjects.IRI = make(CompStrs,0)
+	fActors.IRI = make(CompStrs, 0)
+	fObjects.IRI = make(CompStrs, 0)
 	for _, it := range items {
 		if !it.SubmittedBy.IsValid() {
 			continue
@@ -1189,7 +1189,7 @@ func (r *repository) Objects(ctx context.Context, ff ...*Filters) (Cursor, error
 	result := make(RenderableList, 0)
 	for _, it := range items {
 		if len(it.Hash) > 0 {
-			result = append(result, &it)
+			result.Append(&it)
 		}
 	}
 	var next, prev Hash
@@ -1271,12 +1271,6 @@ func IRIsFilter(iris ...pub.IRI) CompStrs {
 		r[i] = EqualsString(iri.String())
 	}
 	return r
-}
-
-func orderRenderables(r RenderableList) {
-	sort.SliceStable(r, func(i, j int) bool {
-		return r[i].Date().After(r[j].Date())
-	})
 }
 
 // ActorCollection loads the service's collection returned by fn.
@@ -1451,32 +1445,32 @@ func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, ff ..
 				for i := range items {
 					it := items[i]
 					if it.IsValid() && it.pub.GetLink() == rel {
-						result = append(result, &it)
+						result.Append(&it)
 						break
 					}
 				}
 				for i := range follows {
 					f := follows[i]
 					if f.pub != nil && f.pub.GetLink() == rel {
-						result = append(result, &f)
+						result.Append(&f)
 					}
 				}
 				for i := range accounts {
 					a := accounts[i]
 					if a.pub != nil && a.pub.GetLink() == rel {
-						result = append(result, &a)
+						result.Append(&a)
 					}
 				}
 				for i := range moderations {
 					a := moderations[i]
 					if a.pub != nil && a.pub.GetLink() == rel {
-						result = append(result, &a)
+						result.Append(&a)
 					}
 				}
 				for i := range appreciations {
 					a := appreciations[i]
 					if a.pub != nil && a.pub.GetLink() == rel {
-						result = append(result, &a)
+						result.Append(&a)
 					}
 				}
 			}
@@ -1486,7 +1480,6 @@ func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, ff ..
 	if err := g.Wait(); err != nil {
 		return emptyCursor, err
 	}
-	orderRenderables(result)
 	var next, prev Hash
 	for _, f := range ff {
 		if len(f.Next) > 0 {
@@ -2038,7 +2031,7 @@ func (r *repository) LoadAccountWithDetails(ctx context.Context, actor *Account,
 			}
 			actor.Votes = append(actor.Votes, *v)
 		default:
-			remaining = append(remaining, it)
+			remaining.Append(it)
 		}
 	}
 	c.items = remaining

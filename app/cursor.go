@@ -1,6 +1,9 @@
 package app
 
-import pub "github.com/go-ap/activitypub"
+import (
+	pub "github.com/go-ap/activitypub"
+	"sort"
+)
 
 type Cursor struct {
 	after  Hash
@@ -17,7 +20,7 @@ type colCursor struct {
 	items   pub.ItemCollection
 }
 
-type RenderableList []Renderable
+type RenderableList map[Hash]Renderable
 
 func (r RenderableList) Items() ItemCollection {
 	items := make(ItemCollection, 0)
@@ -37,4 +40,27 @@ func (r RenderableList) Follows() FollowRequests {
 		}
 	}
 	return follows
+}
+
+func (r *RenderableList) Merge(other RenderableList) {
+	for k, it := range other {
+		(*r)[k] = it
+	}
+}
+
+func (r *RenderableList) Append(others ...Renderable) {
+	for _, o := range others {
+		(*r)[o.ID()] = o
+	}
+}
+
+func (r RenderableList) Sorted() []Renderable {
+	rl := make([]Renderable, 0)
+	for _, rr := range r {
+		rl = append(rl, rr)
+	}
+	sort.SliceStable(rl, func(i, j int) bool {
+		return rl[i].Date().After(rl[j].Date())
+	})
+	return rl
 }

@@ -30,6 +30,10 @@ type ModerationGroup struct {
 	Followup    []*ModerationOp `json:"-"`
 }
 
+func (m ModerationGroup) ID() Hash {
+	return m.Hash
+}
+
 // Hash
 func (m *ModerationGroup) Private() bool {
 	return false
@@ -52,7 +56,7 @@ func (m *ModerationGroup) IsValid() bool {
 
 // AP returns the underlying actvitypub item
 func (m *ModerationGroup) AP() pub.Item {
-	return nil
+	return m.Object.AP()
 }
 
 // Date
@@ -120,6 +124,10 @@ type ModerationMetadata struct {
 	InReplyTo pub.IRIs      `json:"-"`
 	Tags      TagCollection `json:"tags,omitempty"`
 	Mentions  TagCollection `json:"mentions,omitempty"`
+}
+
+func (m ModerationOp) ID() Hash {
+	return m.Hash
 }
 
 // Type
@@ -338,9 +346,9 @@ func aggregateModeration(rl RenderableList, followups []ModerationOp) Renderable
 	}
 
 	result := make(RenderableList, len(groups))
-	for i, m := range groups {
+	for _, m := range groups {
 		if m.Object != nil {
-			result[i] = m
+			result.Append(m)
 		}
 	}
 	return result

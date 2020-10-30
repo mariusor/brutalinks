@@ -89,6 +89,7 @@ const (
 )
 
 type Renderable interface {
+	ID() Hash
 	AP() pub.Item
 	IsValid() bool
 	Type() RenderType
@@ -121,6 +122,10 @@ type Item struct {
 	Level       uint8             `json:"-"`
 	Edit        bool              `json:"-"`
 	children    ItemPtrCollection `json:"-"`
+}
+
+func (i Item) ID() Hash {
+	return i.Hash
 }
 
 func (i *Item) Children() ItemPtrCollection {

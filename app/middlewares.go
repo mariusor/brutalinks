@@ -47,7 +47,7 @@ func LoadOutboxMw(next http.Handler) http.Handler {
 				ctxtErr(next, w, r, errors.Annotatef(err, "unable to load actor's outbox"))
 				return
 			}
-			cursor.items = append(cursor.items, c.items...)
+			cursor.items.Merge(c.items)
 			cursor.total += c.total
 			cursor.before = c.before
 			cursor.after = c.after
@@ -163,10 +163,10 @@ func LoadObjectFromInboxMw(next http.Handler) http.Handler {
 			repo.errFn()("unable to load item votes")
 		}
 		c := &Cursor{
-			items: make(RenderableList, len(items)),
+			items: make(RenderableList),
 		}
 		for k := range items {
-			c.items[k] = Renderable(&items[k])
+			c.items.Append(Renderable(&items[k]))
 		}
 		m := ContextContentModel(r.Context())
 		m.Title = fmt.Sprintf("Replies to %s item", genitive(i.SubmittedBy.Handle))
@@ -423,17 +423,17 @@ func ThreadedListingMw(next http.Handler) http.Handler {
 			case CommentType:
 				for _, it := range comments {
 					if it == ren {
-						newitems = append(newitems, it)
+						newitems.Append(it)
 					}
 				}
 			case ActorType:
 				for _, ac := range accounts {
 					if ac == ren {
-						newitems = append(newitems, ac)
+						newitems.Append(ac)
 					}
 				}
 			default:
-				newitems = append(newitems, ren)
+				newitems.Append(ren)
 			}
 		}
 		if len(newitems) > 0 {

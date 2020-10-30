@@ -26,6 +26,10 @@ type ActivityMetadata struct {
 	InReplyTo pub.IRIs `json:"-"`
 }
 
+func (f FollowRequest) ID() Hash {
+	return f.Hash
+}
+
 // FromActivityPub
 func (f *FollowRequest) FromActivityPub(it pub.Item) error {
 	if f == nil {
@@ -62,7 +66,7 @@ func (f *FollowRequest) FromActivityPub(it pub.Item) error {
 		f.Object = wed
 		f.SubmittedAt = a.Published
 		f.Metadata = &ActivityMetadata{
-			ID:        string(a.ID),
+			ID: string(a.ID),
 		}
 		if a.InReplyTo != nil {
 			f.Metadata.InReplyTo = make(pub.IRIs, 0)

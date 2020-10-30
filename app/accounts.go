@@ -72,6 +72,10 @@ type Account struct {
 	Children  AccountPtrCollection `json:"-"`
 }
 
+func (a Account) ID() Hash {
+	return a.Hash
+}
+
 // HasMetadata
 func (a *Account) HasMetadata() bool {
 	return a != nil && a.Metadata != nil
