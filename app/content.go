@@ -101,26 +101,6 @@ type HasContent interface {
 	Mentions() TagCollection
 }
 
-func (r RenderableList) Items() ItemCollection {
-	items := make(ItemCollection, 0)
-	for _, ren := range r {
-		if it, ok := ren.(*Item); ok {
-			items = append(items, *it)
-		}
-	}
-	return items
-}
-
-func (r RenderableList) Follows() FollowRequests {
-	follows := make(FollowRequests, 0)
-	for _, ren := range r {
-		if it, ok := ren.(*FollowRequest); ok {
-			follows = append(follows, *it)
-		}
-	}
-	return follows
-}
-
 // Item
 type Item struct {
 	Hash        Hash              `json:"hash"`
