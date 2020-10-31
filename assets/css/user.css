@@ -5,7 +5,7 @@
 .user details summary {
     margin: .2em 0;
 }
-.user details summary h2, .user details summary nav {
+details summary h2, details summary nav {
     display: inline-block;
     align-self: end;
 }
