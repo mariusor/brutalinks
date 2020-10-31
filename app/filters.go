@@ -168,15 +168,21 @@ func TagFiltersMw(next http.Handler) http.Handler {
 			ctxtErr(next, w, r, errors.NotFoundf("tag not found"))
 			return
 		}
-		f := FiltersFromRequest(r)
-		//f.Type = append(CreateActivitiesFilter, ModerationActivitiesFilter...)
-		f.Cont = CompStrs{LikeString("#" + tag)}
-		f.Object = &Filters{}
-		//f.Object.Type = ActivityTypesFilter(ValidItemTypes...)
-		f.Object.Cont = CompStrs{LikeString("#" + tag)}
+		fc := new(Filters)
+		fc.Type = CreateActivitiesFilter
+		fc.Object = new(Filters)
+		fc.Object.Type = ActivityTypesFilter(ValidItemTypes...)
+		fc.Object.Cont = CompStrs{LikeString("#" + tag)}
+
+		fa := new(Filters)
+		fa.Type = ModerationActivitiesFilter
+		fa.Cont = CompStrs{LikeString("#" + tag)}
+
+		allFilters := []*Filters{fc, fa}
+
 		m := ContextListingModel(r.Context())
 		m.Title = fmt.Sprintf("Items tagged as #%s", tag)
-		ctx := context.WithValue(context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f}), ModelCtxtKey, m)
+		ctx := context.WithValue(context.WithValue(r.Context(), FilterCtxtKey, allFilters), ModelCtxtKey, m)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

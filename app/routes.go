@@ -21,7 +21,7 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 		h.v.assets = assets.AssetFiles{
 			"moderate.css": []string{"main.css", "listing.css", "article.css", "moderate.css", "user.css"},
 			"content.css": []string{"main.css", "article.css", "content.css"},
-			"listing.css": []string{"main.css", "listing.css", "article.css"},
+			"listing.css": []string{"main.css", "listing.css", "article.css", "moderate.css"},
 			"moderation.css": []string{"main.css", "listing.css", "article.css", "moderation.css"},
 			"user.css": []string{"main.css", "listing.css", "article.css", "user.css"},
 			"user-message.css": []string{"main.css", "listing.css", "article.css", "user-message.css"},
@@ -117,7 +117,7 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 				r.With(DefaultFilters, LoadServiceInboxMw).Get("/", h.HandleShow)
 				r.With(DomainFiltersMw, LoadServiceInboxMw, middleware.StripSlashes).Get("/d", h.HandleShow)
 				r.With(DomainFiltersMw, LoadServiceInboxMw).Get("/d/{domain}", h.HandleShow)
-				r.With(TagFiltersMw, LoadServiceInboxMw).Get("/t/{tag}", h.HandleShow)
+				r.With(TagFiltersMw, LoadServiceInboxMw, ModerationListing).Get("/t/{tag}", h.HandleShow)
 				r.With(SelfFiltersMw, LoadServiceInboxMw).Get("/self", h.HandleShow)
 				r.With(FederatedFiltersMw, LoadServiceInboxMw).Get("/federated", h.HandleShow)
 				r.With(h.NeedsSessions, FollowedFiltersMw, h.ValidateLoggedIn(h.v.RedirectToErrors), LoadInboxMw).

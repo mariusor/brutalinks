@@ -320,7 +320,7 @@ func moderationGroupFromRequest(r *ModerationOp) *ModerationGroup {
 
 func aggregateModeration(rl RenderableList, followups []ModerationOp) RenderableList {
 	groups := make([]*ModerationGroup, 0)
-	for _, r := range rl {
+	for k, r := range rl {
 		m, ok := r.(*ModerationOp)
 		if !ok {
 			continue
@@ -343,15 +343,10 @@ func aggregateModeration(rl RenderableList, followups []ModerationOp) Renderable
 				mg.Followup = append(mg.Followup, &fw)
 			}
 		}
+		rl[k] = mg
 	}
 
-	result := make(RenderableList, len(groups))
-	for _, m := range groups {
-		if m.Object != nil {
-			result.Append(m)
-		}
-	}
-	return result
+	return rl
 }
 
 func (m ModerationOps) Contains(mop ModerationOp) bool {
