@@ -1295,7 +1295,8 @@ func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, ff ..
 	// TODO(marius): see how we can use the context returned by errgroup.WithContext()
 	g, _ := errgroup.WithContext(ctx)
 	w := sync.RWMutex{}
-	for _, f := range ff {
+	for j := range ff {
+		f := ff[j]
 		g.Go(func() error {
 			err := LoadFromCollection(ctx, fn, &colCursor{filters: f}, func(col pub.CollectionInterface) (bool, error) {
 				for _, it := range col.Collection() {
@@ -1415,70 +1416,71 @@ func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, ff ..
 					}
 				}
 			}
-			items, err = r.loadItemsAuthors(ctx, items...)
-			if err != nil {
-				return err
-			}
-			items, err = r.loadItemsVotes(ctx, items...)
-			if err != nil {
-				return err
-			}
-			//items, err = r.loadItemsReplies(items...)
-			//if err != nil {
-			//	return emptyCursor, err
-			//}
-			follows, err = r.loadFollowsAuthors(ctx, follows...)
-			if err != nil {
-				return err
-			}
-			accounts, err = r.loadAccountsAuthors(ctx, accounts...)
-			if err != nil {
-				return err
-			}
-			moderations, err = r.loadModerationDetails(ctx, moderations...)
-			if err != nil {
-				return err
-			}
-			w.Lock()
-			defer w.Unlock()
-			for _, rel := range relations {
-				for i := range items {
-					it := items[i]
-					if it.IsValid() && it.pub.GetLink() == rel {
-						result.Append(&it)
-						break
-					}
-				}
-				for i := range follows {
-					f := follows[i]
-					if f.pub != nil && f.pub.GetLink() == rel {
-						result.Append(&f)
-					}
-				}
-				for i := range accounts {
-					a := accounts[i]
-					if a.pub != nil && a.pub.GetLink() == rel {
-						result.Append(&a)
-					}
-				}
-				for i := range moderations {
-					a := moderations[i]
-					if a.pub != nil && a.pub.GetLink() == rel {
-						result.Append(&a)
-					}
-				}
-				for i := range appreciations {
-					a := appreciations[i]
-					if a.pub != nil && a.pub.GetLink() == rel {
-						result.Append(&a)
-					}
-				}
-			}
 			return nil
 		})
 	}
 	if err := g.Wait(); err != nil {
 		return emptyCursor, err
+	}
+	var err error
+	items, err = r.loadItemsAuthors(ctx, items...)
+	if err != nil {
+		return emptyCursor, err
+	}
+	items, err = r.loadItemsVotes(ctx, items...)
+	if err != nil {
+		return emptyCursor, err
+	}
+	//items, err = r.loadItemsReplies(items...)
+	//if err != nil {
+	//	return emptyCursor, err
+	//}
+	follows, err = r.loadFollowsAuthors(ctx, follows...)
+	if err != nil {
+		return emptyCursor, err
+	}
+	accounts, err = r.loadAccountsAuthors(ctx, accounts...)
+	if err != nil {
+		return emptyCursor, err
+	}
+	moderations, err = r.loadModerationDetails(ctx, moderations...)
+	if err != nil {
+		return emptyCursor, err
+	}
+	w.Lock()
+	defer w.Unlock()
+	for _, rel := range relations {
+		for i := range items {
+			it := items[i]
+			if it.IsValid() && it.pub.GetLink() == rel {
+				result.Append(&it)
+				break
+			}
+		}
+		for i := range follows {
+			f := follows[i]
+			if f.pub != nil && f.pub.GetLink() == rel {
+				result.Append(&f)
+			}
+		}
+		for i := range accounts {
+			a := accounts[i]
+			if a.pub != nil && a.pub.GetLink() == rel {
+				result.Append(&a)
+			}
+		}
+		for i := range moderations {
+			a := moderations[i]
+			if a.pub != nil && a.pub.GetLink() == rel {
+				result.Append(&a)
+			}
+		}
+		for i := range appreciations {
+			a := appreciations[i]
+			if a.pub != nil && a.pub.GetLink() == rel {
+				result.Append(&a)
+			}
+		}
 	}
 	var next, prev Hash
 	for _, f := range ff {
