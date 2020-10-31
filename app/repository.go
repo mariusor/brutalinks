@@ -160,7 +160,7 @@ func loadAPItem(it pub.Item, item Item) error {
 				o.Type = pub.NoteType
 			}
 
-			if len(item.Hash) > 0 {
+			if item.Hash.Valid() {
 				o.URL = pub.IRI(ItemPermaLink(&item))
 			}
 			o.Name = make(pub.NaturalLanguageValues, 0)
