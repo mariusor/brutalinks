@@ -47,7 +47,7 @@ func FiltersFromRequest(r *http.Request) *Filters {
 	if err := qstring.Unmarshal(r.URL.Query(), f); err != nil {
 		return nil
 	}
-	if f.MaxItems <= 0 || f.MaxItems > MaxContentItems {
+	if f.MaxItems <= 0 {
 		f.MaxItems = MaxContentItems
 	}
 	return f
@@ -237,9 +237,8 @@ var (
 		Type:     append(ActivityTypesFilter(pub.TombstoneType), ActivityTypesFilter(ValidItemTypes...)...),
 		InReplTo: notNilIRIs,
 	}
-	modAccoutnsObjectFilter = &Filters{
+	modAccountsObjectFilter = &Filters{
 		Type:     ActivityTypesFilter(pub.PersonType),
-		InReplTo: notNilIRIs,
 	}
 )
 
@@ -247,30 +246,34 @@ func ModerationFiltersMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := FiltersFromRequest(r)
 		f.Type = ModerationActivitiesFilter
-		modf := new(moderationFilter)
-		qstring.Unmarshal(r.URL.Query(), modf)
-		if len(modf.Type) > 0 {
-			f.Object = new(Filters)
-			f.Object.Type = make(CompStrs, 0)
-			showSubmissions := stringInSlice(modf.Type)("s")
-			showComments := stringInSlice(modf.Type)("c")
-			showUsers := stringInSlice(modf.Type)("u")
-			if showSubmissions || showComments {
-				f.Object.Type = append(f.Object.Type, ActivityTypesFilter(pub.TombstoneType)...)
-				f.Object.Type = append(f.Object.Type, ActivityTypesFilter(ValidItemTypes...)...)
+		mf := new(moderationFilter)
+		qstring.Unmarshal(r.URL.Query(), mf)
+		allFilters := make([]*Filters, 0)
+		showSubmissions := stringInSlice(mf.Type)("s")
+		showComments := stringInSlice(mf.Type)("c")
+		showUsers := stringInSlice(mf.Type)("a")
+		if len(mf.Type) > 0 {
+			if showSubmissions {
+				fs := *f
+				fs.Object = modSubmissionsObjectFilter
+				allFilters = append(allFilters, &fs)
+			}
+			if showComments {
+				fc := *f
+				fc.Object = modCommentsObjectFilter
+				allFilters = append(allFilters, &fc)
 			}
 			if showUsers {
-				f.Object.Type = append(f.Object.Type, ActivityTypesFilter(pub.PersonType)...)
+				fu := *f
+				fu.Object = modAccountsObjectFilter
+				allFilters = append(allFilters, &fu)
 			}
-			if showSubmissions && !showComments {
-				f.Object.InReplTo = nilIRIs
-			} else if showComments && !showSubmissions {
-				f.Object.InReplTo = notNilIRIs
-			}
+		} else {
+			allFilters = append(allFilters, f)
 		}
 		m := ContextListingModel(r.Context())
 		m.Title = "Moderation log"
-		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
+		ctx := context.WithValue(r.Context(), FilterCtxtKey, allFilters)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
