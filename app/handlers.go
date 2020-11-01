@@ -331,8 +331,9 @@ func (h *handler) HandleLogout(w http.ResponseWriter, r *http.Request) {
 		s.Values = nil
 	}
 	backUrl := "/"
-	if r.Header.Get("Referer") != "" {
-		backUrl = r.Header.Get("Referer")
+	refUrl := r.Header.Get("Referer")
+	if HostIsLocal(refUrl) && !strings.Contains(refUrl, "followed") {
+		backUrl = refUrl
 	}
 	h.v.Redirect(w, r, backUrl, http.StatusSeeOther)
 }
