@@ -120,7 +120,12 @@ func (a *Account) FromActivityPub(it pub.Item) error {
 		if iri == pub.PublicNS {
 			*a = AnonymousAccount
 		}
-		a.Hash.FromActivityPub(iri)
+		if iri.String() == Instance.Conf.APIURL {
+			*a = SystemAccount
+		}
+		if !a.Hash.Valid() {
+			a.Hash.FromActivityPub(iri)
+		}
 		a.Metadata = &AccountMetadata{
 			ID: iri.String(),
 		}
