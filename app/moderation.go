@@ -104,8 +104,6 @@ func (m ModerationGroup) IsReport() bool {
 	return m.Requests[0].IsReport()
 }
 
-type ModerationOps []ModerationOp
-
 type ModerationOp struct {
 	Hash        Hash                `json:"hash"`
 	Icon        template.HTML       `json:"-"`
@@ -131,7 +129,7 @@ func (m ModerationOp) ID() Hash {
 }
 
 // Type
-func (m *ModerationOp) Type() RenderType {
+func (m ModerationOp) Type() RenderType {
 	return ModerationType
 }
 
@@ -293,6 +291,15 @@ func (m *ModerationOp) FromActivityPub(it pub.Item) error {
 	})
 }
 
+func (m *ModerationGroup) FromActivityPub(it pub.Item) error {
+	op := new(ModerationOp)
+	if err := op.FromActivityPub(it); err != nil {
+		return err
+	}
+	m.Object = op
+	return nil
+}
+
 func moderationGroupAtIndex(groups []*ModerationGroup, r ModerationOp) int {
 	for i, g := range groups {
 		if g.Object == nil || r.Object == nil {
@@ -349,7 +356,7 @@ func aggregateModeration(rl RenderableList, followups []ModerationOp) Renderable
 	return rl
 }
 
-func (m ModerationOps) Contains(mop ModerationOp) bool {
+func (m ModerationRequests) Contains(mop ModerationOp) bool {
 	for _, vv := range m {
 		if vv.Metadata.ID == mop.Metadata.ID {
 			return true
