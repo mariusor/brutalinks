@@ -1309,22 +1309,22 @@ func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, ff ..
 							}
 							if ob.IsObject() {
 								if ValidItemTypes.Contains(ob.GetType()) {
-									i := new(Item)
+									i := Item{}
 									i.FromActivityPub(ob)
-									if validItem(*i, f) {
-										items = append(items, *i)
+									if validItem(i, f) {
+										items = append(items, i)
 									}
 								}
 								if ValidActorTypes.Contains(ob.GetType()) {
-									a := new(Account)
+									a := Account{}
 									a.FromActivityPub(ob)
-									accounts = append(accounts, *a)
+									accounts = append(accounts, a)
 								}
 							} else {
-								i := new(Item)
+								i := Item{}
 								i.FromActivityPub(a)
 								uuid := LikeString(path.Base(ob.GetLink().String()))
-								if !deferredItems.Contains(uuid) && validItem(*i, f) {
+								if !deferredItems.Contains(uuid) && validItem(i, f) {
 									deferredItems = append(deferredItems, uuid)
 								}
 							}
