@@ -848,7 +848,7 @@ func (r *repository) loadModerationFollowups(ctx context.Context, items Renderab
 	if err != nil {
 		return nil, err
 	}
-	modFollowups := make(ModerationOps, 0)
+	modFollowups := make(ModerationRequests, 0)
 	err = pub.OnCollectionIntf(act, func(c pub.CollectionInterface) error {
 		for _, it := range c.Collection() {
 			m := new(ModerationOp)
@@ -865,7 +865,7 @@ func (r *repository) loadModerationFollowups(ctx context.Context, items Renderab
 	return modFollowups, err
 }
 
-func (r *repository) loadModerationDetails(ctx context.Context, items ...ModerationOp) ([]ModerationOp, error) {
+func (r *repository) loadModerationDetails(ctx context.Context, items ...ModerationGroup) ([]ModerationGroup, error) {
 	if len(items) == 0 {
 		return items, nil
 	}
@@ -873,7 +873,8 @@ func (r *repository) loadModerationDetails(ctx context.Context, items ...Moderat
 	fObjects := new(Filters)
 	fActors.IRI = make(CompStrs, 0)
 	fObjects.IRI = make(CompStrs, 0)
-	for _, it := range items {
+	for _, g := range items {
+		it := g.Object.(*ModerationOp)
 		if !it.SubmittedBy.IsValid() {
 			continue
 		}
@@ -911,18 +912,23 @@ func (r *repository) loadModerationDetails(ctx context.Context, items ...Moderat
 	if err != nil {
 		return items, errors.Annotatef(err, "unable to load items objects")
 	}
-	for k, it := range items {
+	for k, g := range items {
+		it, ok := g.Object.(*ModerationOp)
+		if !ok {
+			continue
+		}
 		for i, auth := range authors {
 			if !auth.IsValid() {
 				continue
 			}
 			if accountsEqual(*it.SubmittedBy, *auth) {
-				items[k].SubmittedBy = authors[i]
+				it.SubmittedBy = authors[i]
 			}
 			if it.Object != nil && it.Object.AP().GetLink().Equals(auth.pub.GetLink(), false) {
-				items[k].Object = authors[i]
+				it.Object = authors[i]
 			}
 		}
+		items[k].Object = it
 	}
 	for k, it := range items {
 		for i, obj := range objects {
@@ -1278,7 +1284,6 @@ func IRIsFilter(iris ...pub.IRI) CompStrs {
 // Iterating over the activities in the resulting collection, we gather the objects and accounts
 //  With the resulting Object IRIs we load from the objects collection with our matching filters
 //  With the resulting Actor IRIs we load from the accounts collection with matching filters
-// From the
 func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, ff ...*Filters) (Cursor, error) {
 	items := make(ItemCollection, 0)
 	follows := make(FollowRequests, 0)
@@ -1291,6 +1296,21 @@ func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, ff ..
 	deferredActors := make(CompStrs, 0)
 	deferredActivities := make(CompStrs, 0)
 
+	appendToDeferred := func(ob pub.Item, filterFn func(string) CompStr) {
+		if ob.IsObject() {
+			return
+		}
+		iri := filterFn(ob.GetLink().String())
+		if strings.Contains(iri.String(), string(actors)) && !deferredActors.Contains(iri) {
+			deferredActors = append(deferredActors, iri)
+		}
+		if strings.Contains(iri.String(), string(objects)) && !deferredItems.Contains(iri) {
+			deferredItems = append(deferredItems, iri)
+		}
+		if strings.Contains(iri.String(), string(activities)) && !deferredActivities.Contains(iri) {
+			deferredActivities = append(deferredActivities, iri)
+		}
+	}
 	result := make(RenderableList, 0)
 	// TODO(marius): see how we can use the context returned by errgroup.WithContext()
 	g, _ := errgroup.WithContext(ctx)
@@ -1323,10 +1343,7 @@ func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, ff ..
 							} else {
 								i := Item{}
 								i.FromActivityPub(a)
-								uuid := LikeString(path.Base(ob.GetLink().String()))
-								if !deferredItems.Contains(uuid) && validItem(i, f) {
-									deferredItems = append(deferredItems, uuid)
-								}
+								appendToDeferred(ob, LikeString)
 							}
 							relations[a.GetLink()] = ob.GetLink()
 						}
@@ -1335,28 +1352,14 @@ func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, ff ..
 							f.FromActivityPub(a)
 							follows = append(follows, f)
 							relations[a.GetLink()] = a.GetLink()
+							appendToDeferred(a.Object, EqualsString)
 						}
 						if ValidModerationActivityTypes.Contains(typ) {
-							ob := a.Object
-							if ob == nil {
-								return nil
-							}
-							if !ob.IsObject() {
-								iri := EqualsString(ob.GetLink().String())
-								if strings.Contains(iri.String(), string(actors)) && !deferredActors.Contains(iri) {
-									deferredActors = append(deferredActors, iri)
-								}
-								if strings.Contains(iri.String(), string(objects)) && !deferredItems.Contains(iri) {
-									deferredItems = append(deferredItems, iri)
-								}
-								if strings.Contains(iri.String(), string(activities)) && !deferredActivities.Contains(iri) {
-									deferredActivities = append(deferredActivities, iri)
-								}
-							}
 							m := ModerationOp{}
 							m.FromActivityPub(a)
 							moderations = append(moderations, m)
 							relations[a.GetLink()] = a.GetLink()
+							appendToDeferred(a.Object, EqualsString)
 						}
 						if ValidAppreciationTypes.Contains(typ) {
 							v := Vote{}
@@ -1382,16 +1385,11 @@ func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, ff ..
 				ff.IRI = deferredItems
 				objects, _ := r.objects(ctx, ff)
 				for _, d := range objects {
+					if !d.IsValid() {
+						continue
+					}
 					if !items.Contains(d) {
 						items = append(items, d)
-					}
-					for _, m := range moderations {
-						modIt := m.Object.AP()
-						defIt := d.pub
-						if modIt.GetLink().Equals(defIt.GetLink(), false) {
-							m.Object = &d
-							break
-						}
 					}
 				}
 			}
@@ -1400,19 +1398,14 @@ func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, ff ..
 					f.Actor = new(Filters)
 				}
 				ff := f.Actor
-				ff.IRI = deferredItems
-				accounts, _ := r.accounts(ctx, ff)
-				for _, d := range accounts {
+				ff.IRI = deferredActors
+				acc, _ := r.accounts(ctx, ff)
+				for _, d := range acc {
 					if !d.IsValid() {
 						continue
 					}
-					for _, m := range moderations {
-						modAc := m.SubmittedBy.AP()
-						defAc := d.pub
-						if modAc.GetLink().Equals(defAc.GetLink(), false) {
-							m.SubmittedBy = d
-							break
-						}
+					if !accounts.Contains(*d) {
+						accounts = append(accounts, *d)
 					}
 				}
 			}
@@ -1431,10 +1424,6 @@ func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, ff ..
 	if err != nil {
 		return emptyCursor, err
 	}
-	//items, err = r.loadItemsReplies(items...)
-	//if err != nil {
-	//	return emptyCursor, err
-	//}
 	follows, err = r.loadFollowsAuthors(ctx, follows...)
 	if err != nil {
 		return emptyCursor, err
@@ -1443,12 +1432,38 @@ func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, ff ..
 	if err != nil {
 		return emptyCursor, err
 	}
+	/*
+	_, err = r.loadItemsReplies(ctx, items...)
+	if err != nil {
+			return emptyCursor, err
+	}
 	moderations, err = r.loadModerationDetails(ctx, moderations...)
 	if err != nil {
 		return emptyCursor, err
 	}
+	*/
+	for i := range moderations {
+		a := moderations[i]
+		op, ok := a.Object.(*ModerationOp)
+		if !ok {
+			continue
+		}
+		for _, d := range accounts {
+			if op.Hash == d.Hash {
+				op.SubmittedBy = &d
+				break
+			}
+		}
+		for _, d := range items {
+			if op.Hash == d.Hash {
+				op.Object = &d
+				break
+			}
+		}
+	}
 	w.Lock()
 	defer w.Unlock()
+
 	for _, rel := range relations {
 		for i := range items {
 			it := items[i]
@@ -1471,7 +1486,7 @@ func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, ff ..
 		}
 		for i := range moderations {
 			a := moderations[i]
-			if a.pub != nil && a.pub.GetLink() == rel {
+			if rel.Equals(a.AP().GetLink(), false) {
 				result.Append(&a)
 			}
 		}
@@ -1482,6 +1497,7 @@ func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, ff ..
 			}
 		}
 	}
+
 	var next, prev Hash
 	for _, f := range ff {
 		if len(f.Next) > 0 {
@@ -1491,6 +1507,7 @@ func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, ff ..
 			prev = HashFromString(f.Prev)
 		}
 	}
+
 	return Cursor{
 		after:  next,
 		before: prev,
