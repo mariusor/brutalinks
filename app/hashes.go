@@ -12,7 +12,10 @@ import (
 type Hash uuid.UUID
 
 // AnonymousHash is the sha hash for the anonymous account
-var AnonymousHash = Hash{}
+var (
+	AnonymousHash = Hash{}
+	SystemHash = Hash{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1}
+)
 
 func HashFromIRI(i pub.IRI) Hash {
 	_, h := path.Split(i.String())

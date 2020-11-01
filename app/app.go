@@ -24,7 +24,7 @@ var (
 	// AnonymousAccount
 	AnonymousAccount = Account{Handle: Anonymous, Hash: AnonymousHash, Metadata: new(AccountMetadata)}
 	// SystemAccount
-	SystemAccount = Account{Handle: System, Hash: AnonymousHash, Metadata: new(AccountMetadata)}
+	SystemAccount = Account{Handle: System, Hash: SystemHash, Metadata: new(AccountMetadata)}
 )
 
 var (
