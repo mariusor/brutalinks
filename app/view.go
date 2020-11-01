@@ -368,6 +368,9 @@ func (v *view) Redirect(w http.ResponseWriter, r *http.Request, url string, stat
 		v.HandleErrors(w, r, err)
 		return
 	}
+	if url == r.RequestURI {
+		url, _ = path.Split(url)
+	}
 	http.Redirect(w, r, url, status)
 }
 
@@ -709,7 +712,7 @@ func relTimeFmt(old time.Time) string {
 
 func scoreLink(i Item, dir string) string {
 	// @todo(marius) :link_generation:
-	return fmt.Sprintf("%s/%s", ItemPermaLink(&i), dir)
+	return path.Join(ItemLocalLink(&i), dir)
 }
 
 func yayLink(i Item) string {
@@ -721,11 +724,11 @@ func nayLink(i Item) string {
 }
 
 func acceptLink(f FollowRequest) string {
-	return fmt.Sprintf("%s/%s", followLink(f), "accept")
+	return path.Join(followLink(f), "accept")
 }
 
 func rejectLink(f FollowRequest) string {
-	return fmt.Sprintf("%s/%s", followLink(f), "reject")
+	return path.Join(followLink(f), "reject")
 }
 
 func nextPageLink(p Hash) template.HTML {
@@ -941,13 +944,13 @@ func PermaLink(r Renderable) string {
 func ItemLocalLink(i *Item) string {
 	if i.SubmittedBy == nil {
 		// @todo(marius) :link_generation:
-		return fmt.Sprintf("/i/%s", i.Hash.String())
+		return path.Join("/i", i.Hash.String())
 	}
-	return fmt.Sprintf("%s/%s", AccountLocalLink(i.SubmittedBy), i.Hash.String())
+	return path.Join(AccountLocalLink(i.SubmittedBy), i.Hash.String())
 }
 
 func followLink(f FollowRequest) string {
-	return fmt.Sprintf("%s/%s", AccountLocalLink(f.SubmittedBy), "follow")
+	return path.Join(AccountLocalLink(f.SubmittedBy), "follow")
 }
 
 // ShowAccountHandle
