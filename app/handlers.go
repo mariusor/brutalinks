@@ -57,7 +57,7 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if n.Hash.Valid() {
+	if n.Hash.IsValid() {
 		var iri pub.IRI
 		if n.HasMetadata() && len(n.Metadata.ID) > 0 {
 			iri = pub.IRI(n.Metadata.ID)

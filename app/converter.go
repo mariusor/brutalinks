@@ -123,7 +123,7 @@ func (a *Account) FromActivityPub(it pub.Item) error {
 		if iri.String() == Instance.Conf.APIURL {
 			*a = SystemAccount
 		}
-		if !a.Hash.Valid() {
+		if !a.Hash.IsValid() {
 			a.Hash.FromActivityPub(iri)
 		}
 		a.Metadata = &AccountMetadata{

@@ -55,7 +55,7 @@ func (h Hash) MarshalText() ([]byte, error) {
 	return []byte(h.String()), nil
 }
 
-func (h Hash) Valid() bool {
+func (h Hash) IsValid() bool {
 	return uuid.UUID(h).Time() > 0
 }
 

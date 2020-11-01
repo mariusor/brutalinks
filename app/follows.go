@@ -103,7 +103,7 @@ func (f *FollowRequest) Deleted() bool {
 
 // IsValid returns if the current follow request has a hash with length greater than 0
 func (f *FollowRequest) IsValid() bool {
-	return f != nil && f.Hash.Valid()
+	return f != nil && f.Hash.IsValid()
 }
 
 // AP returns the underlying actvitypub item

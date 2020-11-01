@@ -112,7 +112,7 @@ func TestHash_Valid(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.h.Valid(); got != tt.want {
+			if got := tt.h.IsValid(); got != tt.want {
 				t.Errorf("Valid(%s) = %v, want %v", tt.h, got, tt.want)
 			}
 		})

@@ -111,7 +111,7 @@ var ActorsURL = actors.IRI(pub.IRI(BaseURL))
 var ObjectsURL = objects.IRI(pub.IRI(BaseURL))
 
 func apAccountID(a Account) pub.ID {
-	if a.Hash.Valid() {
+	if a.Hash.IsValid() {
 		return pub.ID(fmt.Sprintf("%s/%s", ActorsURL, a.Hash.String()))
 	}
 	return pub.ID(fmt.Sprintf("%s/anonymous", ActorsURL))
@@ -160,7 +160,7 @@ func loadAPItem(it pub.Item, item Item) error {
 				o.Type = pub.NoteType
 			}
 
-			if item.Hash.Valid() {
+			if item.Hash.IsValid() {
 				o.URL = pub.IRI(ItemPermaLink(&item))
 			}
 			o.Name = make(pub.NaturalLanguageValues, 0)

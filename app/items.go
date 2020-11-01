@@ -43,7 +43,7 @@ type Identifiable interface {
 }
 
 func (i *Item) IsValid() bool {
-	return i != nil && i.Hash.Valid()
+	return i != nil && i.Hash.IsValid()
 }
 
 // AP returns the underlying actvitypub item
