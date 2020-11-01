@@ -3,6 +3,7 @@ package app
 import (
 	pub "github.com/go-ap/activitypub"
 	"sort"
+	"time"
 )
 
 type Cursor struct {
@@ -67,11 +68,9 @@ func (r RenderableList) Sorted() []Renderable {
 			case CommentType:
 				ii, oki := ri.(*Item)
 				ij, okj := rj.(*Item)
-				return oki && okj && (ii.Score > ij.Score || (ii.Score == ij.Score && ii.SubmittedAt.After(ij.SubmittedAt)))
-			case ActorType:
-				ii, oki := ri.(*Account)
-				ij, okj := rj.(*Account)
-				return oki && okj && ii.Votes.Score() > ij.Votes.Score()
+				hi := Hacker(int64(ii.Score), time.Now().Sub(ii.SubmittedAt))
+				hj := Hacker(int64(ij.Score), time.Now().Sub(ij.SubmittedAt))
+				return oki && okj && hi > hj
 			}
 		}
 		return ri.Date().After(rj.Date())
