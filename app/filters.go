@@ -205,20 +205,23 @@ func ItemFiltersMw(next http.Handler) http.Handler {
 
 func AccountFiltersMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		f := FiltersFromRequest(r)
-		f.Type = append(CreateActivitiesFilter, AppreciationActivitiesFilter...)
-
 		authors := ContextAuthors(r.Context())
 		if len(authors) == 0 {
 			next.ServeHTTP(w, r)
 			return
 		}
 
+		f := FiltersFromRequest(r)
 		for _, author := range authors {
 			f.AttrTo = append(f.AttrTo, LikeString(author.Hash.String()))
 		}
+		fc := *f
+		fc.Type = CreateActivitiesFilter
 
-		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
+		fv := *f
+		fv.Type = AppreciationActivitiesFilter
+
+		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{&fc, &fv})
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
