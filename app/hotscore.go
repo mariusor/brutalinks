@@ -10,7 +10,7 @@ import (
 var StatisticalConfidence = 1.94
 
 // represents how fast elapsed hours affect the order of an item
-var HNGravity = 1.2
+var HNGravity = 1.5
 
 // wilson score interval sort
 // http://www.evanmiller.org/how-not-to-sort-by-average-rating.html
@@ -30,7 +30,7 @@ func Wilson(ups, downs int64) float64 {
 }
 
 // hackernews' hot sort
-// http://amix.dk/blog/post/19574
+// https://medium.com/hacking-and-gonzo/how-hacker-news-ranking-algorithm-works-1d9b0cf2c08d
 func Hacker(votes int64, date time.Duration) float64 {
 	hoursAge := date.Hours()
 	return float64(votes-1) / math.Pow(hoursAge+2, HNGravity)
