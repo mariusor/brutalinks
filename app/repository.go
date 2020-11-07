@@ -865,7 +865,7 @@ func (r *repository) loadModerationFollowups(ctx context.Context, items Renderab
 	return modFollowups, err
 }
 
-func (r *repository) loadModerationDetails(ctx context.Context, items ...ModerationGroup) ([]ModerationGroup, error) {
+func (r *repository) loadModerationDetails(ctx context.Context, items ...ModerationOp) ([]ModerationOp, error) {
 	if len(items) == 0 {
 		return items, nil
 	}
@@ -873,8 +873,7 @@ func (r *repository) loadModerationDetails(ctx context.Context, items ...Moderat
 	fObjects := new(Filters)
 	fActors.IRI = make(CompStrs, 0)
 	fObjects.IRI = make(CompStrs, 0)
-	for _, g := range items {
-		it := g.Object.(*ModerationOp)
+	for _, it := range items {
 		if !it.SubmittedBy.IsValid() {
 			continue
 		}
@@ -1437,11 +1436,11 @@ func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, ff ..
 	if err != nil {
 			return emptyCursor, err
 	}
+	*/
 	moderations, err = r.loadModerationDetails(ctx, moderations...)
 	if err != nil {
 		return emptyCursor, err
 	}
-	*/
 	for i := range moderations {
 		a := moderations[i]
 		op, ok := a.Object.(*ModerationOp)
