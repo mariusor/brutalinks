@@ -1,5 +1,5 @@
 {{- if gt (len .Items) 0 -}}
-{{- template "partials/items" .Items.Sorted -}}
+{{- template "partials/items" (Sort .Items) -}}
 {{- else -}}
 <section id="no-items"><p>There's only dust here.</p></section>
 {{ end -}}

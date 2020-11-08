@@ -193,7 +193,9 @@ func ModelMw(m Model) Handler {
 
 func ListingModelMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := context.WithValue(r.Context(), ModelCtxtKey, new(listingModel))
+		m := new(listingModel)
+		m.sortFn = ByDate
+		ctx := context.WithValue(r.Context(), ModelCtxtKey, m)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -201,6 +203,7 @@ func ListingModelMw(next http.Handler) http.Handler {
 func AccountListingModelMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		m := new(listingModel)
+		m.sortFn = ByDate
 		m.tpl = "user"
 		authors := ContextAuthors(r.Context())
 		if len(authors) == 0 {
@@ -454,5 +457,28 @@ func (h *handler) OutOfOrderMw(next http.Handler) http.Handler {
 			Errors: []error{errors.Newf("Server in maintenance mode, please come back later.")},
 		}
 		h.v.RenderTemplate(r, w, "error", &em)
+	})
+}
+
+func SortByScore(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer next.ServeHTTP(w, r)
+
+		m := ContextListingModel(r.Context())
+		if m == nil {
+			return
+		}
+		m.sortFn = ByScore
+	})
+}
+
+func SortByDate(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer next.ServeHTTP(w, r)
+		m := ContextListingModel(r.Context())
+		if m == nil {
+			return
+		}
+		m.sortFn = ByDate
 	})
 }

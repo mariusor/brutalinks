@@ -234,6 +234,18 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			csrf.TemplateTag:        func() template.HTML { return csrf.TemplateField(r) },
 			"ToTitle":               ToTitle,
 			"trimSuffix":            strings.TrimSuffix,
+			"Sort":                  func(list RenderableList) []Renderable {
+				if list == nil {
+					return nil
+				}
+				if lModel, ok := m.(*listingModel); ok {
+					if lModel.sortFn == nil {
+						return ByDate(list)
+					}
+					return lModel.sortFn(list)
+				}
+				return nil
+			},
 			//"ScoreFmt":          func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
 			//"NumberFmt":         func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
 		}},

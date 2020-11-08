@@ -240,12 +240,16 @@ func (m *ModerationOp) FromActivityPub(it pub.Item) error {
 			ob := new(Account)
 			if err := ob.FromActivityPub(a.Object); err == nil {
 				m.Object = ob
+			} else {
+				m.Object = &DeletedAccount
 			}
 		}
 		if strings.Contains(a.Object.GetLink().String(), "objects") {
 			ob := new(Item)
 			if err := ob.FromActivityPub(a.Object); err == nil {
 				m.Object = ob
+			} else {
+				m.Object = &DeletedItem
 			}
 		}
 		reason := new(Item)
@@ -330,6 +334,9 @@ func aggregateModeration(rl RenderableList, followups []ModerationOp) Renderable
 	for k, r := range rl {
 		m, ok := r.(*ModerationOp)
 		if !ok {
+			continue
+		}
+		if m.Object == nil {
 			continue
 		}
 		var mg *ModerationGroup

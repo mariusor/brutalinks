@@ -3,6 +3,7 @@ package app
 import (
 	"bytes"
 	"fmt"
+	pub "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
@@ -14,6 +15,8 @@ import (
 )
 
 const (
+	// Deleted label
+	Deleted = "deleted"
 	// Anonymous label
 	Anonymous = "anonymous"
 	// System label
@@ -21,10 +24,14 @@ const (
 )
 
 var (
+	// DeletedAccount
+	DeletedAccount = Account{Handle: Anonymous, Hash: AnonymousHash, Metadata: new(AccountMetadata), pub: &pub.Tombstone{}}
 	// AnonymousAccount
 	AnonymousAccount = Account{Handle: Anonymous, Hash: AnonymousHash, Metadata: new(AccountMetadata)}
 	// SystemAccount
 	SystemAccount = Account{Handle: System, Hash: SystemHash, Metadata: new(AccountMetadata)}
+	// DeletedItem
+	DeletedItem = Item{Title: Deleted, Hash: AnonymousHash, Metadata: new(ItemMetadata), pub: &pub.Tombstone{} }
 )
 
 var (

@@ -29,9 +29,56 @@ func (h *Hash) FromActivityPub(it pub.Item) error {
 	return nil
 }
 
+func FromObject(a *Account, o *pub.Object) error {
+	a.Hash.FromActivityPub(o)
+	name := o.Name.First().Value
+	if len(name) > 0 {
+		a.Handle = name.String()
+	}
+	a.Flags = FlagsNone
+	if a.Metadata == nil {
+		a.Metadata = &AccountMetadata{}
+	}
+	if len(o.ID) > 0 {
+		iri := o.GetLink()
+		a.Metadata.ID = iri.String()
+		if o.URL != nil {
+			a.Metadata.URL = o.URL.GetLink().String()
+		}
+		if !HostIsLocal(a.Metadata.ID) {
+			a.Metadata.Name = name.String()
+		}
+	}
+	if o.Icon != nil {
+		pub.OnObject(o.Icon, func(o *pub.Object) error {
+			return iconMetadataFromObject(&a.Metadata.Icon, o)
+		})
+	}
+	if a.Email == "" {
+		// @TODO(marius): this returns false positives when API_URL is set and different than
+		host := host(a.Metadata.URL)
+		a.Email = fmt.Sprintf("%s@%s", a.Handle, host)
+	}
+	if o.GetType() == pub.TombstoneType {
+		a.Handle = Anonymous
+		a.Flags = a.Flags & FlagsDeleted
+	}
+	if !o.Published.IsZero() {
+		a.CreatedAt = o.Published
+	}
+	if !o.Updated.IsZero() {
+		a.UpdatedAt = o.Updated
+	}
+	if o.AttributedTo != nil {
+		a.CreatedBy = &Account{}
+		a.CreatedBy.FromActivityPub(o.AttributedTo)
+	}
+	return nil
+}
+
 func FromActor(a *Account, p *pub.Actor) error {
-	name := p.Name.First().Value
 	a.Hash.FromActivityPub(p)
+	name := p.Name.First().Value
 	if len(name) > 0 {
 		a.Handle = name.String()
 	}
@@ -69,6 +116,10 @@ func FromActor(a *Account, p *pub.Actor) error {
 	if !p.Updated.IsZero() {
 		a.UpdatedAt = p.Updated
 	}
+	if p.AttributedTo != nil {
+		a.CreatedBy = &Account{}
+		a.CreatedBy.FromActivityPub(p.AttributedTo)
+	}
 	pName := p.PreferredUsername.First().Value
 	if pName.Equals(pub.Content("")) {
 		pName = p.Name.First().Value
@@ -99,10 +150,6 @@ func FromActor(a *Account, p *pub.Actor) error {
 		a.Metadata.Key = &SSHKey{
 			Public: pub,
 		}
-	}
-	if p.AttributedTo != nil {
-		a.CreatedBy = &Account{}
-		a.CreatedBy.FromActivityPub(p.AttributedTo)
 	}
 	return nil
 }
@@ -147,7 +194,9 @@ func (a *Account) FromActivityPub(it pub.Item) error {
 	case pub.OrganizationType:
 		fallthrough
 	case pub.TombstoneType:
-		fallthrough
+		return pub.OnObject(it, func(o *pub.Object) error {
+			return FromObject(a, o)
+		})
 	case pub.PersonType:
 		return pub.OnActor(it, func(p *pub.Actor) error {
 			return FromActor(a, p)

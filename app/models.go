@@ -23,6 +23,7 @@ type listingModel struct {
 	ShowText bool
 	after    Hash
 	before   Hash
+	sortFn   func(list RenderableList) []Renderable
 }
 
 func (m listingModel) NextPage() Hash {
@@ -51,6 +52,10 @@ func (m listingModel) Template() string {
 		m.tpl = "listing"
 	}
 	return m.tpl
+}
+
+func (m listingModel) Sorted() []Renderable {
+	return m.sortFn(m.Items)
 }
 
 type mBox struct {

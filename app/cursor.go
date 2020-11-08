@@ -55,7 +55,30 @@ func (r *RenderableList) Append(others ...Renderable) {
 	}
 }
 
-func (r RenderableList) Sorted() []Renderable {
+func ByDate (r RenderableList) []Renderable {
+	rl := make([]Renderable, 0)
+	for _, rr := range r {
+		rl = append(rl, rr)
+	}
+	sort.SliceStable(rl, func(i, j int) bool {
+		ri := rl[i]
+		rj := rl[j]
+		if ri.Type() == rj.Type() {
+			switch ri.Type() {
+			case CommentType:
+				ii, oki := ri.(*Item)
+				ij, okj := rj.(*Item)
+				subOrder := ii.SubmittedAt.After(ij.SubmittedAt)
+				subSame := ii.SubmittedAt.Sub(ij.SubmittedAt) == 0
+				updOrder := ii.UpdatedAt.After(ij.UpdatedAt)
+				return oki && okj && ( subOrder || (subSame && updOrder))
+			}
+		}
+		return ri.Date().After(rj.Date())
+	})
+	return rl
+}
+func ByScore (r RenderableList) []Renderable {
 	rl := make([]Renderable, 0)
 	for _, rr := range r {
 		rl = append(rl, rr)
