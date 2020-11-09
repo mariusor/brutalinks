@@ -281,6 +281,9 @@ form button {
     :root {
         font-size: 2.4vw;
     }
+    nav li::before {
+        content: none !important;
+    }
     body > footer nav:nth-of-type(2) li:first-of-type {
         display:inline-block;
     }
@@ -288,9 +291,11 @@ form button {
     body > footer nav:not(.pagination) li,
     body > footer nav:not(.pagination) dl,
     body > header nav ul a span,
-    body > header nav:nth-of-type(2) li data,
-    body > header nav:nth-of-type(2) li:last-of-type {
+    body > header nav:last-of-type li {
         display: none;
+    }
+    body > header nav:last-of-type li:last-of-type {
+        display: unset;
     }
 }
 @media (max-width: 576px) {
@@ -299,7 +304,8 @@ form button {
     }
     section header h2 small,
     body > header h1 a strong,
-    body > header nav:nth-of-type(2) li data {
+    body > header h1 a small,
+    body > header nav li data {
         display: none;
     }
 }
