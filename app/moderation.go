@@ -135,7 +135,7 @@ func (m ModerationOp) Type() RenderType {
 
 // IsValid returns if the current follow request has a hash with length greater than 0
 func (m *ModerationOp) IsValid() bool {
-	return m != nil && len(m.Hash) > 0
+	return m != nil && m.Hash.IsValid()
 }
 
 // IsBlock returns true if current moderation request is a block

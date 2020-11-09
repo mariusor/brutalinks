@@ -343,7 +343,7 @@ func loadAPPerson(a Account) *pub.Actor {
 
 	p.PreferredUsername.Set(pub.NilLangRef, pub.Content(a.Handle))
 
-	if len(a.Hash) > 0 {
+	if a.Hash.IsValid() {
 		if a.IsFederated() {
 			p.ID = pub.ID(a.Metadata.ID)
 			p.Name.Set("en", pub.Content(a.Metadata.Name))
@@ -1193,7 +1193,7 @@ func (r *repository) Objects(ctx context.Context, ff ...*Filters) (Cursor, error
 	}
 	result := make(RenderableList, 0)
 	for _, it := range items {
-		if len(it.Hash) > 0 {
+		if it.Hash.IsValid() {
 			result.Append(&it)
 		}
 	}
