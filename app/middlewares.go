@@ -42,15 +42,12 @@ func LoadOutboxMw(next http.Handler) http.Handler {
 		var cursor = new(Cursor)
 		cursor.items = make(RenderableList, 0)
 		for _, author := range authors {
-			c, err := repo.LoadAccountWithDetails(context.Background(), author, f...)
-			if err != nil {
-				ctxtErr(next, w, r, errors.Annotatef(err, "unable to load actor's outbox"))
-				return
+			if c, err := repo.LoadAccountWithDetails(context.Background(), author, f...); err == nil {
+				cursor.items.Merge(c.items)
+				cursor.total += c.total
+				cursor.before = c.before
+				cursor.after = c.after
 			}
-			cursor.items.Merge(c.items)
-			cursor.total += c.total
-			cursor.before = c.before
-			cursor.after = c.after
 		}
 		ctx := context.WithValue(r.Context(), CursorCtxtKey, cursor)
 		next.ServeHTTP(w, r.WithContext(ctx))
