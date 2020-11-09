@@ -279,6 +279,7 @@ func getCSPHashes(m Model, v view) (string, string) {
 		styleSrc  = "'unsafe-inline'"
 		scriptSrc = "'unsafe-inline'"
 	)
+	return styleSrc, scriptSrc
 	if m != nil {
 		assets = append(assets, m.Template())
 	} else {

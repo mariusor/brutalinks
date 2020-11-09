@@ -304,15 +304,15 @@ func (v *view) loadCurrentAccountFromSession(w http.ResponseWriter, r *http.Requ
 
 func (h *handler) SetSecurityHeaders(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
+		next.ServeHTTP(w, r)
 		if !h.conf.Env.IsDev() && h.conf.Secure {
 			w.Header().Set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload")
 		}
-		h.v.SetCSP(ContextModel(r.Context()), w)
 		w.Header().Set("X-Frame-Options", "DENY")
 		w.Header().Set("X-Xss-Protection", "1; mode=block")
 		w.Header().Set("Referrer-Policy", "same-origin")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
-		next.ServeHTTP(w, r)
+		h.v.SetCSP(ContextModel(r.Context()), w)
 	}
 	return http.HandlerFunc(fn)
 }
