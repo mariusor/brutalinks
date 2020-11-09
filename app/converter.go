@@ -185,6 +185,10 @@ func (a *Account) FromActivityPub(it pub.Item) error {
 		return pub.OnActivity(it, func(act *pub.Activity) error {
 			return a.FromActivityPub(act.Actor)
 		})
+	case pub.TombstoneType:
+		return pub.OnObject(it, func(o *pub.Object) error {
+			return FromObject(a, o)
+		})
 	case pub.ServiceType:
 		fallthrough
 	case pub.GroupType:
@@ -193,10 +197,6 @@ func (a *Account) FromActivityPub(it pub.Item) error {
 		fallthrough
 	case pub.OrganizationType:
 		fallthrough
-	case pub.TombstoneType:
-		return pub.OnObject(it, func(o *pub.Object) error {
-			return FromObject(a, o)
-		})
 	case pub.PersonType:
 		return pub.OnActor(it, func(p *pub.Actor) error {
 			return FromActor(a, p)
