@@ -70,14 +70,16 @@ OnReady( function() {
             }
         });
     });
-    if (haveModals()) {
-        $("button.close").forEach(function (close) {
-            addEvent(close, "click", function(e) {
-                e.stopPropagation();
-                e.preventDefault();
-                let el = e.target.closest("dialog");
+    $("button.close").forEach(function (close) {
+        addEvent(close, "click", function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            let el = e.target.closest("dialog");
+            if (haveModals()) {
                 el.close();
-            });
+            } else {
+                el.remove();
+            }
         });
-    }
+    });
 });
