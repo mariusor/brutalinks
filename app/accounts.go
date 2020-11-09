@@ -191,15 +191,14 @@ func accountFromPost(r *http.Request) (Account, error) {
 		return AnonymousAccount, errors.Errorf("invalid http method type")
 	}
 
-	var a *Account
-	var err error
+	a := &AnonymousAccount
 	hash := r.PostFormValue("hash")
 	if len(hash) > 0 {
 		// NOTE(marius): coming from an invite
 		s := ContextRepository(r.Context())
-		a, err = s.LoadAccount(context.Background(), ActorsURL.AddPath(hash))
+		a, _ = s.LoadAccount(context.Background(), ActorsURL.AddPath(hash))
 	}
-	if accountsEqual(*a, AnonymousAccount) || err != nil {
+	if accountsEqual(*a, AnonymousAccount) {
 		*a = Account{Metadata: &AccountMetadata{}}
 	}
 	pw := r.PostFormValue("pw")
