@@ -323,6 +323,9 @@ func anonymousPerson(url string) *pub.Actor {
 }
 
 func loadAPPerson(a Account) *pub.Actor {
+	if act, ok := a.pub.(*pub.Actor); ok {
+		return act
+	}
 	p := new(pub.Actor)
 	p.Type = pub.PersonType
 	p.Name = pub.NaturalLanguageValuesNew()
