@@ -42,7 +42,7 @@ func LoadOutboxMw(next http.Handler) http.Handler {
 		var cursor = new(Cursor)
 		cursor.items = make(RenderableList, 0)
 		for _, author := range authors {
-			if c, err := repo.LoadAccountWithDetails(context.Background(), author, f...); err == nil {
+			if c, err := repo.LoadAccountWithDetails(context.TODO(), author, f...); err == nil {
 				cursor.items.Merge(c.items)
 				cursor.total += c.total
 				cursor.before = c.before
@@ -63,7 +63,7 @@ func LoadInboxMw(next http.Handler) http.Handler {
 			ctxtErr(next, w, r, errors.MethodNotAllowedf("nil account"))
 			return
 		}
-		cursor, err := repo.LoadActorInbox(context.Background(), acc.pub, f...)
+		cursor, err := repo.LoadActorInbox(context.TODO(), acc.pub, f...)
 		if err != nil {
 			ctxtErr(next, w, r, errors.Annotatef(err, "unable to load the %s's inbox", acc.pub.GetType()))
 			return
@@ -77,7 +77,7 @@ func LoadServiceInboxMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := ContextActivityFilters(r.Context())
 		repo := ContextRepository(r.Context())
-		cursor, err := repo.LoadActorInbox(context.Background(), repo.fedbox.Service(), f...)
+		cursor, err := repo.LoadActorInbox(context.TODO(), repo.fedbox.Service(), f...)
 		if err != nil {
 			ctxtErr(next, w, r, errors.Annotatef(err, "unable to load the %s's inbox", repo.fedbox.Service().Type))
 			return
@@ -105,7 +105,7 @@ func LoadObjectFromInboxMw(next http.Handler) http.Handler {
 
 		ff := ContextActivityFilters(r.Context())
 		repo := ContextRepository(r.Context())
-		ctx := context.Background()
+		ctx := context.TODO()
 
 		if len(ff) == 0 {
 			ctxtErr(next, w, r, errors.Newf("invalid filter"))

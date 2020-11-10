@@ -295,7 +295,7 @@ func ModerationListing(next http.Handler) http.Handler {
 			return
 		}
 
-		ctx := context.Background()
+		ctx := context.TODO()
 		s := ContextRepository(r.Context())
 		if s == nil {
 			next.ServeHTTP(w, r)
@@ -320,7 +320,7 @@ func LoadInvitedMw(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		a, err := s.LoadAccount(context.Background(), ActorsURL.AddPath(hash))
+		a, err := s.LoadAccount(context.TODO(), ActorsURL.AddPath(hash))
 		if err != nil {
 			ctxtErr(next, w, r, err)
 			return

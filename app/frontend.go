@@ -90,7 +90,7 @@ func Init(c appConfig) (*handler, error) {
 	config := GetOauth2Config(provider, h.conf.BaseURL)
 	if len(config.ClientID) > 0 {
 		oIRI := actors.IRI(pub.IRI(h.storage.BaseURL)).AddPath(config.ClientID)
-		oauth, err := h.storage.fedbox.Actor(context.Background(), oIRI)
+		oauth, err := h.storage.fedbox.Actor(context.TODO(), oIRI)
 		if err != nil {
 			h.conf.UserCreatingEnabled = false
 			h.errFn()("Failed to load actor: %s", err)
@@ -100,7 +100,7 @@ func Init(c appConfig) (*handler, error) {
 			h.storage.app.FromActivityPub(oauth)
 
 			handle := h.storage.app.Handle
-			tok, err := config.PasswordCredentialsToken(context.Background(), handle, config.ClientSecret)
+			tok, err := config.PasswordCredentialsToken(context.TODO(), handle, config.ClientSecret)
 			ctx := log.Ctx{
 				"handle":      handle,
 				"provider":    provider,
@@ -384,7 +384,7 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 				//IRI:  CompStrs{EqualsString(acc.Hash.String())},
 				Type: ActivityTypesFilter(ValidActorTypes...),
 			}
-			ctx := context.Background()
+			ctx := context.TODO()
 			ltx := log.Ctx{
 				"handle": acc.Handle,
 				"hash":   acc.Hash,

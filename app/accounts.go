@@ -196,7 +196,7 @@ func accountFromPost(r *http.Request) (Account, error) {
 	if len(hash) > 0 {
 		// NOTE(marius): coming from an invite
 		s := ContextRepository(r.Context())
-		a, _ = s.LoadAccount(context.Background(), ActorsURL.AddPath(hash))
+		a, _ = s.LoadAccount(context.TODO(), ActorsURL.AddPath(hash))
 	}
 	if accountsEqual(*a, AnonymousAccount) {
 		*a = Account{Metadata: &AccountMetadata{}}
@@ -232,7 +232,7 @@ func accountsFromRequestHandle(r *http.Request) ([]*Account, error) {
 		Name: CompStrs{EqualsString(handle)},
 	}
 	repo := ContextRepository(r.Context())
-	return repo.accounts(context.Background(), fa)
+	return repo.accounts(context.TODO(), fa)
 }
 
 type AccountPtrCollection []*Account

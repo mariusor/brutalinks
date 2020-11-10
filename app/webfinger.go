@@ -48,16 +48,16 @@ var (
 func NodeInfoResolverNew(f *fedbox) NodeInfoResolver {
 	n := NodeInfoResolver{}
 
-	us, _ := f.Actors(context.Background(), Values(actorsFilter))
+	us, _ := f.Actors(context.TODO(), Values(actorsFilter))
 	if us != nil {
 		n.users = int(us.Count())
 	}
 
-	posts, _ := f.Objects(context.Background(), Values(postsFilter))
+	posts, _ := f.Objects(context.TODO(), Values(postsFilter))
 	if posts != nil {
 		n.posts = int(posts.Count())
 	}
-	all, _ := f.Objects(context.Background(), Values(allFilter))
+	all, _ := f.Objects(context.TODO(), Values(allFilter))
 
 	if all != nil {
 		n.comments = int(all.Count()) - n.posts
@@ -199,7 +199,7 @@ func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 			}(handle)
 		}
 		ff := &Filters{Name: CompStrs{EqualsString(handle)}}
-		accounts, _, err := h.storage.LoadAccounts(context.Background(), ff)
+		accounts, _, err := h.storage.LoadAccounts(context.TODO(), ff)
 		if err != nil {
 			err := errors.NotFoundf("resource not found %s", res)
 			h.errFn()("Error: %s", err)
