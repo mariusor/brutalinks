@@ -74,7 +74,7 @@ func (h handler) Repository(next http.Handler) http.Handler {
 }
 
 func ActivityPubService(c appConfig) *repository {
-	pub.ItemTyperFunc = pub.JSONGetItemByType
+	pub.ItemTyperFunc = pub.GetItemByType
 
 	BaseURL = c.APIURL
 	ActorsURL = actors.IRI(pub.IRI(BaseURL))

@@ -8,11 +8,11 @@
 <link href="{{ .NextPage | NextPageLink }}" rel="next prefetch" />
 {{end -}}
 {{end }}
-{{- if and (eq current "user") .User.IsValid -}}
-{{- if gt (len .User.Metadata.AuthorizationEndPoint) 0 -}}
+{{- if and (eq current "user") -}}
+{{- if and .User.IsValid (gt (len .User.Metadata.AuthorizationEndPoint) 0) -}}
 <link href="{{ .User.Metadata.AuthorizationEndPoint }}" rel="authorization_endpoint" />
 {{ end -}}
-{{- if gt (len .User.Metadata.TokenEndPoint) 0 -}}
+{{- if and .User.IsValid (gt (len .User.Metadata.TokenEndPoint) 0) -}}
 <link href="{{ .User.Metadata.TokenEndPoint }}" rel="token_endpoint" />
 {{ end -}}
 {{- end -}}
