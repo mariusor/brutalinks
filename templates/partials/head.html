@@ -8,6 +8,14 @@
 <link href="{{ .NextPage | NextPageLink }}" rel="next prefetch" />
 {{end -}}
 {{end }}
+{{- if and (eq current "user") .User.IsValid -}}
+{{- if gt (len .User.Metadata.AuthorizationEndPoint) 0 -}}
+<link href="{{ .User.Metadata.AuthorizationEndPoint }}" rel="authorization_endpoint" />
+{{ end -}}
+{{- if gt (len .User.Metadata.TokenEndPoint) 0 -}}
+<link href="{{ .User.Metadata.TokenEndPoint }}" rel="token_endpoint" />
+{{ end -}}
+{{- end -}}
 <style>{{ style "inline.css" }}</style>
 <link rel="stylesheet" href="/css/{{- current -}}.css" />
 <meta name="viewport" content="width=device-width, initial-scale=1"/>

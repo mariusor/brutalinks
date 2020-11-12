@@ -151,6 +151,14 @@ func FromActor(a *Account, p *pub.Actor) error {
 			Public: pub,
 		}
 	}
+	if p.Endpoints != nil {
+		if p.Endpoints.OauthAuthorizationEndpoint != nil {
+			a.Metadata.AuthorizationEndPoint = p.Endpoints.OauthAuthorizationEndpoint.GetLink().String()
+		}
+		if p.Endpoints.OauthTokenEndpoint != nil {
+			a.Metadata.TokenEndPoint = p.Endpoints.OauthTokenEndpoint.GetLink().String()
+		}
+	}
 	return nil
 }
 
