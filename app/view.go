@@ -233,6 +233,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"RenderLabel":           renderActivityLabel,
 			csrf.TemplateTag:        func() template.HTML { return csrf.TemplateField(r) },
 			"ToTitle":               ToTitle,
+			"itemType":              itemType,
 			"trimSuffix":            strings.TrimSuffix,
 			"Sort":                  func(list RenderableList) []Renderable {
 				if list == nil {
@@ -596,8 +597,26 @@ func isImage(mime string) bool {
 	return strings.Contains(mime, "image")
 }
 
+func isDocument(mime string) bool {
+	return strings.Contains(mime, "url")
+}
+
 func audio(mime, data string) template.HTML {
 	return template.HTML(fmt.Sprintf("<audio controls><source src='data:%s;base64,%s' type='%s'/></audio>", mime, data, mime))
+}
+
+func itemType (mime string) template.HTML {
+	t := "item"
+	if isVideo(mime) {
+		t = "video"
+	}
+	if isAudio(mime) {
+		t = "audio"
+	}
+	if isImage(mime) {
+		t = "image"
+	}
+	return template.HTML(t)
 }
 
 func video(mime, data string) template.HTML {

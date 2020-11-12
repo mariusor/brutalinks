@@ -309,7 +309,6 @@ func FromArticle(i *Item, a *pub.Object) error {
 		}
 	}
 	if len(i.Title) == 0 && a.InReplyTo == nil {
-		i.Title = fmt.Sprintf("Untitled %s", a.Type)
 		if a.Summary != nil && len(a.Summary) > 0 {
 			i.Title = new(bluemonday.Policy).Sanitize(a.Summary.First().Value.String())
 		}

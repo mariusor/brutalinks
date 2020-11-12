@@ -3,7 +3,7 @@
 {{- else -}}
 {{- template "partials/item/title" . -}}
 {{ template "partials/item/recipients" . }}
-{{if or ShowText (not .Title) }}
+{{if ShowText }}
 {{- if .IsSelf -}}
 {{- if eq .MimeType "text/html" -}}{{- replaceTags "text/html" . | HTML -}}{{- end -}}
 {{- if eq .MimeType "text/markdown" -}}{{- replaceTags "text/markdown" . | Markdown -}}{{- end -}}

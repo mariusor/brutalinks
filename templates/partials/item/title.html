@@ -1,10 +1,10 @@
-{{- if .Title -}}
+{{- if not ShowText }}
 <header>
 <h2 data-hash="{{.Hash}}">
 {{- if .IsLink -}}
-    <a rel="external" data-hash="{{.Hash}}" href="{{.Data | printf "%s"}}">{{- .Title -}}</a>
+    <a rel="external" data-hash="{{.Hash}}" href="{{.Data | printf "%s"}}">{{- if .Title -}}{{- .Title -}}{{ else }} Untitled {{ itemType .MimeType -}} {{- end -}}</a>
 {{- else -}}
-    {{- .Title -}}
+    {{- if .Title -}}{{- .Title -}}{{ else }} Untitled {{ itemType .MimeType -}} {{- end -}}
 {{- end -}}
 {{ if and (eq current "listing") .Public }}
 {{- $domain := .GetDomain }}
