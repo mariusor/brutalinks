@@ -168,6 +168,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"LoadFlashMessages":     v.loadFlashMessages(w, r),
 			"Mod10":                 mod10,
 			"ShowText":              showText(m),
+			"ShowTitle":             showTitle(m),
 			"HTML":                  html,
 			"Text":                  text,
 			"isAudio":               isAudio,
@@ -235,7 +236,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"ToTitle":               ToTitle,
 			"itemType":              itemType,
 			"trimSuffix":            strings.TrimSuffix,
-			"Sort":                  func(list RenderableList) []Renderable {
+			"Sort": func(list RenderableList) []Renderable {
 				if list == nil {
 					return nil
 				}
@@ -541,6 +542,18 @@ func appName(n string) template.HTML {
 	return template.HTML(name.String())
 }
 
+func showTitle(m Model) func(i Item) bool {
+	return func(i Item) bool {
+		if mm, ok := m.(*listingModel); ok {
+			return !mm.ShowText
+		}
+		if _, ok := m.(*contentModel); ok {
+			return len(i.Title) > 0 && i.Parent == nil
+		}
+		return true
+	}
+}
+
 func showText(m Model) func() bool {
 	return func() bool {
 		if mm, ok := m.(*listingModel); ok {
@@ -605,7 +618,7 @@ func audio(mime, data string) template.HTML {
 	return template.HTML(fmt.Sprintf("<audio controls><source src='data:%s;base64,%s' type='%s'/></audio>", mime, data, mime))
 }
 
-func itemType (mime string) template.HTML {
+func itemType(mime string) template.HTML {
 	t := "item"
 	if isVideo(mime) {
 		t = "video"
