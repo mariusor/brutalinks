@@ -19,20 +19,20 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 		workDir, _ := os.Getwd()
 		assetsDir := filepath.Join(workDir, "assets")
 		h.v.assets = assets.AssetFiles{
-			"moderate.css": []string{"main.css", "listing.css", "article.css", "moderate.css", "user.css"},
-			"content.css": []string{"main.css", "article.css", "content.css"},
-			"listing.css": []string{"main.css", "listing.css", "article.css", "moderate.css"},
-			"moderation.css": []string{"main.css", "listing.css", "article.css", "moderation.css"},
-			"user.css": []string{"main.css", "listing.css", "article.css", "user.css"},
+			"moderate.css":     []string{"main.css", "listing.css", "article.css", "moderate.css", "user.css"},
+			"content.css":      []string{"main.css", "article.css", "content.css"},
+			"listing.css":      []string{"main.css", "listing.css", "article.css", "moderate.css"},
+			"moderation.css":   []string{"main.css", "listing.css", "article.css", "moderation.css"},
+			"user.css":         []string{"main.css", "listing.css", "article.css", "user.css"},
 			"user-message.css": []string{"main.css", "listing.css", "article.css", "user-message.css"},
-			"new.css": []string{"main.css", "listing.css", "article.css"},
-			"404.css" : []string{"main.css", "error.css"},
-			"about.css": []string{"main.css", "about.css"},
-			"error.css": []string{"main.css", "error.css"},
-			"login.css": []string{"main.css", "login.css"},
-			"register.css": []string{"main.css", "login.css"},
-			"inline.css": []string{"inline.css"},
-			"main.js": []string{"base.js", "main.js"},
+			"new.css":          []string{"main.css", "listing.css", "article.css"},
+			"404.css":          []string{"main.css", "error.css"},
+			"about.css":        []string{"main.css", "about.css"},
+			"error.css":        []string{"main.css", "error.css"},
+			"login.css":        []string{"main.css", "login.css"},
+			"register.css":     []string{"main.css", "login.css"},
+			"inline.css":       []string{"inline.css"},
+			"main.js":          []string{"base.js", "main.js"},
 		}
 
 		r.Group(func(r chi.Router) {
