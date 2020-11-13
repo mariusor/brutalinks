@@ -107,6 +107,7 @@ func FollowedFiltersMw(next http.Handler) http.Handler {
 		f.Type = CreateFollowActivitiesFilter
 		m := ContextListingModel(r.Context())
 		m.Title = "Followed items"
+		m.ShowText = true
 		ctx := context.WithValue(context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f}), ModelCtxtKey, m)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -247,7 +248,7 @@ var (
 		InReplTo: notNilIRIs,
 	}
 	modAccountsObjectFilter = &Filters{
-		Type:     ActivityTypesFilter(pub.PersonType),
+		Type: ActivityTypesFilter(pub.PersonType),
 	}
 )
 

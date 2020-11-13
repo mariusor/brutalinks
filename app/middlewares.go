@@ -202,6 +202,7 @@ func AccountListingModelMw(next http.Handler) http.Handler {
 		m := new(listingModel)
 		m.sortFn = ByDate
 		m.tpl = "user"
+		m.ShowText = true
 		authors := ContextAuthors(r.Context())
 		if len(authors) == 0 {
 			next.ServeHTTP(w, r)
