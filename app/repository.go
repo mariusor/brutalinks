@@ -1295,6 +1295,7 @@ func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, ff ..
 	moderations := make(ModerationRequests, 0)
 	appreciations := make(VoteCollection, 0)
 	relations := make(map[pub.IRI]pub.IRI)
+	relM := new(sync.RWMutex)
 
 	deferredItems := make(CompStrs, 0)
 	deferredActors := make(CompStrs, 0)
@@ -1316,15 +1317,18 @@ func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, ff ..
 		}
 	}
 	result := make(RenderableList, 0)
+	resM := new(sync.RWMutex)
 	// TODO(marius): see how we can use the context returned by errgroup.WithContext()
 	g, _ := errgroup.WithContext(ctx)
-	w := sync.RWMutex{}
 	for j := range ff {
 		f := ff[j]
 		g.Go(func() error {
 			err := LoadFromCollection(ctx, fn, &colCursor{filters: f}, func(col pub.CollectionInterface) (bool, error) {
 				for _, it := range col.Collection() {
 					pub.OnActivity(it, func(a *pub.Activity) error {
+						relM.Lock()
+						defer relM.Unlock()
+
 						typ := it.GetType()
 						if typ == pub.CreateType {
 							ob := a.Object
@@ -1465,15 +1469,16 @@ func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, ff ..
 			}
 		}
 	}
-	w.Lock()
-	defer w.Unlock()
 
+	relM.RLock()
+	defer relM.RUnlock()
+	resM.Lock()
+	defer resM.Unlock()
 	for _, rel := range relations {
 		for i := range items {
 			it := items[i]
 			if it.IsValid() && it.pub.GetLink() == rel {
 				result.Append(&it)
-				break
 			}
 		}
 		for i := range follows {
