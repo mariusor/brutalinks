@@ -545,7 +545,7 @@ func appName(n string) template.HTML {
 func showTitle(m Model) func(i Item) bool {
 	return func(i Item) bool {
 		if mm, ok := m.(*listingModel); ok {
-			return !mm.ShowText
+			return !mm.ShowText || i.Parent == nil
 		}
 		if _, ok := m.(*contentModel); ok {
 			return len(i.Title) > 0 && i.Parent == nil
