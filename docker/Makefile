@@ -21,7 +21,7 @@ APPSOURCES := $(wildcard ../app/*.go ../cli/*/*.go ../internal/*/*.go)
 HAVE_BUILDAH := $(shell buildah -v dot 2> /dev/null)
 ifdef HAVE_BUILDAH
 	BUILD_CMD=buildah bud
-	RUN_CMD=docker run
+	RUN_CMD=podman run
 	ENV_CMD=buildah tag
 	PUSH_CMD=buildah push
 else
