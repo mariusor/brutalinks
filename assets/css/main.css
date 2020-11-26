@@ -47,6 +47,9 @@ body {
     grid-gap: .5rem;
 }
 main {
+    max-width: 112ch;
+}
+main img {
     max-width: 100%;
 }
 a {
