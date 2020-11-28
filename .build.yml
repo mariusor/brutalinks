@@ -32,8 +32,13 @@ tasks:
           "https://codecov.io/upload/v2?commit=${GIT_SHA}&token=${LITTR_TOKEN}&branch=${GIT_BRANCH}&service=custom" || true
   - image: |
       set -a +x
-      sudo systemctl start docker.service
-      source ~/.buildah.env && sudo docker login -u=${BUILDAH_USER} -p=${BUILDAH_SECRET} quay.io
+      source ~/.buildah.env
+      if [ buildah -v dot 2> /dev/null ]; then
+        sudo systemctl start docker.service
+        sudo docker login -u=${BUILDAH_USER} -p=${BUILDAH_SECRET} quay.io
+      else
+        sudo buildah login -u=${BUILDAH_USER} -p=${BUILDAH_SECRET} quay.io
+      fi
       cd go-littr || exit
 
       _branch=${GITHUB_REF#"refs/heads/"}
