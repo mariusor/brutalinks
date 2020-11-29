@@ -309,6 +309,9 @@ func moderationGroupAtIndex(groups []*ModerationGroup, r ModerationOp) int {
 		if g.Object == nil || r.Object == nil {
 			continue
 		}
+		if g.AP().GetType() != r.AP().GetType() {
+			continue
+		}
 		gAP := g.Object.AP()
 		rAP := r.Object.AP()
 		if gAP.GetLink().Equals(rAP.GetLink(), false) && gAP.GetType() == rAP.GetType() {

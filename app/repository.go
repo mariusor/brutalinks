@@ -1450,25 +1450,6 @@ func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, ff ..
 	if err != nil {
 		return emptyCursor, err
 	}
-	for i := range moderations {
-		a := moderations[i]
-		op, ok := a.Object.(*ModerationOp)
-		if !ok {
-			continue
-		}
-		for _, d := range accounts {
-			if op.Hash == d.Hash {
-				op.SubmittedBy = &d
-				break
-			}
-		}
-		for _, d := range items {
-			if op.Hash == d.Hash {
-				op.Object = &d
-				break
-			}
-		}
-	}
 
 	relM.RLock()
 	defer relM.RUnlock()
