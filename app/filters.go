@@ -240,15 +240,15 @@ type moderationFilter struct {
 
 var (
 	modSubmissionsObjectFilter = &Filters{
-		Type:     append(ActivityTypesFilter(pub.TombstoneType), ActivityTypesFilter(ValidItemTypes...)...),
+		Type:     ActivityTypesFilter(ValidItemTypes...),
 		InReplTo: nilIRIs,
 	}
 	modCommentsObjectFilter = &Filters{
-		Type:     append(ActivityTypesFilter(pub.TombstoneType), ActivityTypesFilter(ValidItemTypes...)...),
+		Type:     ActivityTypesFilter(ValidItemTypes...),
 		InReplTo: notNilIRIs,
 	}
 	modAccountsObjectFilter = &Filters{
-		Type: ActivityTypesFilter(pub.PersonType),
+		Type: ActivityTypesFilter(ValidActorTypes...),
 	}
 )
 
