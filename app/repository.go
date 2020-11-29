@@ -1122,7 +1122,7 @@ func LoadFromCollection(ctx context.Context, loadColFn CollectionFn, cur *colCur
 		if len(cur.filters.Next) == 0 || uint(processed) == col.Count() {
 			st = accumEndOfCollection
 		}
-		if status {
+		if status && processed >= cur.filters.MaxItems {
 			st = accumSuccess
 		}
 		if st != accumContinue {
@@ -1380,7 +1380,7 @@ func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, ff ..
 				}
 				// TODO(marius): this needs to be externalized also to a different function that we can pass from outer scope
 				//   This function implements the logic for breaking out of the collection iteration cycle and returns a bool
-				return len(f.Next) == 0, nil
+				return true, nil
 			})
 			if err != nil {
 				return err

@@ -124,7 +124,7 @@ func (i ItemCollection) First() (*Item, error) {
 }
 
 const (
-	MaxContentItems = 25
+	MaxContentItems = 35
 )
 
 func detectMimeType(data string) string {
