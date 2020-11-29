@@ -34,10 +34,10 @@ tasks:
       set -a +x
       source ~/.buildah.env
       if [ buildah -v dot 2> /dev/null ]; then
+        sudo buildah login -u=${BUILDAH_USER} -p=${BUILDAH_SECRET} quay.io
+      else
         sudo systemctl start docker.service
         sudo docker login -u=${BUILDAH_USER} -p=${BUILDAH_SECRET} quay.io
-      else
-        sudo buildah login -u=${BUILDAH_USER} -p=${BUILDAH_SECRET} quay.io
       fi
       cd go-littr || exit
 
