@@ -306,10 +306,16 @@ func (m *ModerationGroup) FromActivityPub(it pub.Item) error {
 
 func moderationGroupAtIndex(groups []*ModerationGroup, r ModerationOp) int {
 	for i, g := range groups {
-		if g.Object == nil || r.Object == nil {
+		if g == nil || g.AP() == nil {
 			continue
 		}
-		if g.AP().GetType() != r.AP().GetType() {
+		if len(g.Requests) > 0 {
+			req := g.Requests[0]
+			if req.AP().GetType() != r.AP().GetType() || req.Hash == r.Hash {
+				continue
+			}
+		}
+		if g.Object == nil || r.Object == nil {
 			continue
 		}
 		gAP := g.Object.AP()
