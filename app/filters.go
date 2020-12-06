@@ -68,7 +68,7 @@ func DefaultFilters(next http.Handler) http.Handler {
 		f.Object.Type = ActivityTypesFilter(ValidItemTypes...)
 		m := ContextListingModel(r.Context())
 		m.Title = "Newest items"
-		ctx := context.WithValue(context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f}), ModelCtxtKey, m)
+		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -91,7 +91,7 @@ func SelfFiltersMw(next http.Handler) http.Handler {
 		f.IRI = CompStrs{LikeString(Instance.Conf.APIURL)}
 		m := ContextListingModel(r.Context())
 		m.Title = "Local instance items"
-		ctx := context.WithValue(context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f}), ModelCtxtKey, m)
+		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -108,7 +108,7 @@ func FollowedFiltersMw(next http.Handler) http.Handler {
 		m := ContextListingModel(r.Context())
 		m.Title = "Followed items"
 		m.ShowText = true
-		ctx := context.WithValue(context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f}), ModelCtxtKey, m)
+		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -127,7 +127,7 @@ func FederatedFiltersMw(next http.Handler) http.Handler {
 		f.Object.Type = ActivityTypesFilter(ValidItemTypes...)
 		m := ContextListingModel(r.Context())
 		m.Title = "Federated items"
-		ctx := context.WithValue(context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f}), ModelCtxtKey, m)
+		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -157,7 +157,7 @@ func DomainFiltersMw(next http.Handler) http.Handler {
 			m.Title = fmt.Sprintf("Discussion items")
 		}
 		f.Object.OP = nilIRIs
-		ctx := context.WithValue(context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f}), ModelCtxtKey, m)
+		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -182,8 +182,9 @@ func TagFiltersMw(next http.Handler) http.Handler {
 		allFilters := []*Filters{fc, fa}
 
 		m := ContextListingModel(r.Context())
+		m.ShowText = true
 		m.Title = fmt.Sprintf("Items tagged as #%s", tag)
-		ctx := context.WithValue(context.WithValue(r.Context(), FilterCtxtKey, allFilters), ModelCtxtKey, m)
+		ctx := context.WithValue(r.Context(), FilterCtxtKey, allFilters)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
