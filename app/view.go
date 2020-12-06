@@ -559,10 +559,10 @@ func showTitle(m Model) func(i Item) bool {
 
 func showText(m Model) func() bool {
 	return func() bool {
-		if mm, ok := m.(*listingModel); ok {
+		switch mm := m.(type) {
+		case *listingModel:
 			return mm.ShowText
-		}
-		if _, ok := m.(*contentModel); ok {
+		case *contentModel:
 			return true
 		}
 		return true
