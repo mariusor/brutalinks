@@ -544,10 +544,13 @@ func appName(n string) template.HTML {
 
 func showTitle(m Model) func(i Item) bool {
 	return func(i Item) bool {
-		if mm, ok := m.(*listingModel); ok {
+		switch mm := m.(type) {
+		case *listingModel:
+			if i.Private() {
+				return len(i.Title) > 0
+			}
 			return !mm.ShowText || i.Parent == nil
-		}
-		if _, ok := m.(*contentModel); ok {
+		case *contentModel:
 			return len(i.Title) > 0 && i.Parent == nil
 		}
 		return true
