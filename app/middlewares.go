@@ -65,7 +65,11 @@ func LoadInboxMw(next http.Handler) http.Handler {
 		}
 		cursor, err := repo.LoadActorInbox(context.TODO(), acc.pub, f...)
 		if err != nil {
-			ctxtErr(next, w, r, errors.Annotatef(err, "unable to load the %s's inbox", acc.pub.GetType()))
+			typ := "current account"
+			if acc.pub != nil {
+				typ = string(acc.pub.GetType())
+			}
+			ctxtErr(next, w, r, errors.Annotatef(err, "unable to load %s inbox", genitive(typ)))
 			return
 		}
 		ctx := context.WithValue(r.Context(), CursorCtxtKey, cursor)
