@@ -293,12 +293,11 @@ func (v *view) loadCurrentAccountFromSession(w http.ResponseWriter, r *http.Requ
 		v.errFn(log.Ctx{"sess": s.Values})("no account data saved to session")
 	} else if acc, ok = raw.(Account); !ok {
 		v.errFn(log.Ctx{"sess": s.Values})("invalid account in session")
-	} else {
-		v.infoFn(log.Ctx{
-			"handle": acc.Handle,
-			"hash":   acc.Hash,
-		})("loaded account from session")
 	}
+	v.infoFn(log.Ctx{
+		"handle": acc.Handle,
+		"hash":   acc.Hash,
+	})("loaded account from session")
 	return acc
 }
 
@@ -379,21 +378,24 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 			clearCookie = false
 		}
 		if acc.IsLogged() {
-			f := &Filters{
-				Name: CompStrs{EqualsString(acc.Handle)},
-				//IRI:  CompStrs{EqualsString(acc.Hash.String())},
-				Type: ActivityTypesFilter(ValidActorTypes...),
-			}
-			ctx := context.TODO()
 			ltx := log.Ctx{
 				"handle": acc.Handle,
 				"hash":   acc.Hash,
 			}
+			f := new(Filters)
+			if acc.HasMetadata() {
+				f.IRI = CompStrs{EqualsString(acc.Metadata.ID)}
+				ltx["iri"] = acc.Metadata.ID
+			} else {
+				f.Name = CompStrs{EqualsString(acc.Handle)}
+				f.Type = ActivityTypesFilter(ValidActorTypes...)
+			}
+			ctx := context.TODO()
 			accounts, err := h.storage.accounts(ctx, f)
 			if err != nil {
 				h.errFn(ltx, log.Ctx{"err": err.Error()})("unable to load actor for session account")
 				acc = AnonymousAccount
-			} else if len(accounts) == 0 || !accounts[0].IsValid() {
+			} else if len(accounts) == 0 || !accounts[0].IsValid() || accounts[0].Hash != acc.Hash {
 				acc = AnonymousAccount
 				h.errFn(ltx)("actor not found")
 			} else {
