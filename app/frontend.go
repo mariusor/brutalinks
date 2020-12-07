@@ -377,8 +377,9 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 			acc = h.v.loadCurrentAccountFromSession(w, r)
 			clearCookie = false
 		}
+		var ltx log.Ctx
 		if acc.IsLogged() {
-			ltx := log.Ctx{
+			ltx = log.Ctx{
 				"handle": acc.Handle,
 				"hash":   acc.Hash,
 			}
@@ -407,13 +408,13 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 				// TODO(marius): this needs to be moved to where we're handling all Inbox activities, not on page load
 				err = h.storage.loadAccountsFollowers(ctx, &acc)
 				if err != nil {
-					h.infoFn(ltx)("Error: %s", err)
+					h.infoFn(ltx, log.Ctx{"err": err.Error()})("Unable to load account's followers")
 				}
 			}
 			if len(acc.Following) == 0 {
 				err = h.storage.loadAccountsFollowing(ctx, &acc)
 				if err != nil {
-					h.infoFn(ltx)("Error: %s", err)
+					h.infoFn(ltx, log.Ctx{"err": err.Error()})("Unable to load account's following")
 				}
 			}
 			if len(acc.Votes) == 0 {
@@ -426,19 +427,15 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 
 			err = h.storage.loadAccountsOutbox(ctx, &acc)
 			if err != nil {
-				h.infoFn(ltx)("Error: %s", err)
+				h.infoFn(ltx, log.Ctx{"err": err.Error()})("Unable to load account's outbox")
 			}
 		}
 		r = r.WithContext(context.WithValue(r.Context(), LoggedAccountCtxtKey, &acc))
 		if clearCookie {
 			clearSessionCookie(w, r)
-		} else if h.v != nil {
+		} else if acc.IsLogged() && h.v != nil {
 			if err := h.v.saveAccountToSession(w, r, acc); err != nil {
-				h.errFn(log.Ctx{
-					"err":    err,
-					"handle": acc.Handle,
-					"hash":   acc.Hash,
-				})("unable to save account to session")
+				h.errFn(ltx, log.Ctx{"err": err.Error()})("unable to save account to session")
 			}
 		}
 		next.ServeHTTP(w, r)
