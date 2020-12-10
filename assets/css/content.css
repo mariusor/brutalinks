@@ -1,3 +1,6 @@
+main ol {
+    max-width: 112ch;
+}
 .icon-reply.h-mirror, .icon-plus.deg-45 {
     vertical-align: middle;
 }

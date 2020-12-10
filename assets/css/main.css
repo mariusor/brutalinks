@@ -21,6 +21,9 @@ article, aside, details, figcaption, figure,
 footer, header, hgroup, menu, nav, section {
     display: block;
 }
+img {
+    max-width: 100%;
+}
 h1 { font-size: 180%; }
 h2 { font-size: 160%; }
 h3 { font-size: 140%; }
@@ -45,12 +48,6 @@ body {
     grid-template-rows: auto minmax(min-content, 1fr) auto;
     grid-template-areas: "header" "main" "footer";
     grid-gap: .5rem;
-}
-main {
-    max-width: 112ch;
-}
-main img {
-    max-width: 100%;
 }
 a {
     color: var(--main-link-color);
