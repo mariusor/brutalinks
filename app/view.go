@@ -267,7 +267,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 	}
 	if !isError {
 		if err := v.s.save(w, r); err != nil {
-			v.HandleErrors(w, r, err)
+			v.errFn(log.Ctx{"err": err.Error()})("session save failed")
 			return nil
 		}
 	}

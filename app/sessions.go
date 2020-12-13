@@ -161,7 +161,7 @@ func (s *sess) get(w http.ResponseWriter, r *http.Request) (*sessions.Session, e
 		s.clear(w, r)
 		return s.s.New(r, s.name)
 	}
-	return ss, err
+	return ss, nil
 }
 
 func (s *sess) save(w http.ResponseWriter, r *http.Request) error {
@@ -172,8 +172,12 @@ func (s *sess) save(w http.ResponseWriter, r *http.Request) error {
 	ss, err := s.s.Get(r, s.name)
 	if err != nil {
 		s.clear(w, r)
+		return err
 	}
-	return s.s.Save(r, w, ss)
+	if len(ss.Values) > 0 || len(ss.Flashes()) > 0 {
+		return s.s.Save(r, w, ss)
+	}
+	return nil
 }
 
 func (s *sess) addFlashMessages(typ flashType, w http.ResponseWriter, r *http.Request, msgs ...string) {
