@@ -2,12 +2,12 @@ package app
 
 import (
 	"encoding/gob"
-	"fmt"
 	"github.com/go-ap/errors"
 	"github.com/gorilla/sessions"
 	"github.com/mariusor/go-littr/internal/log"
 	"net/http"
 	"os"
+	"path"
 	"strings"
 )
 
@@ -27,6 +27,8 @@ type flash struct {
 
 type sess struct {
 	enabled bool
+	path    string
+	name    string
 	s       sessions.Store
 	infoFn  CtxLogFn
 	errFn   CtxLogFn
@@ -41,6 +43,7 @@ func initSession(c appConfig, infoFn, errFn CtxLogFn) (sess, error) {
 		return sess{}, errors.NotImplementedf("no session encryption keys, unable to use sessions")
 	}
 	s := sess{
+		name:    sessionName,
 		enabled: c.SessionsEnabled,
 		infoFn:  infoFn,
 		errFn:   errFn,
@@ -57,7 +60,8 @@ func initSession(c appConfig, infoFn, errFn CtxLogFn) (sess, error) {
 			infoFn(log.Ctx{"backend": c.SessionsBackend})("Invalid session backend, falling back to %s.", sessionsFSBackend)
 			c.SessionsBackend = sessionsFSBackend
 		}
-		s.s, err = initFileSession(c, infoFn, errFn)
+		s.path = path.Join(c.SessionsPath, string(c.Env), c.HostName)
+		s.s, err = initFileSession(c, s.path, infoFn, errFn)
 	}
 	return s, err
 }
@@ -90,26 +94,25 @@ func initCookieSession(c appConfig, infoFn, errFn CtxLogFn) (sessions.Store, err
 	return ss, nil
 }
 
-func initFileSession(c appConfig, infoFn, errFn CtxLogFn) (sessions.Store, error) {
-	sessDir := fmt.Sprintf("%s/%s/%s", c.SessionsPath, c.Env, c.HostName)
-	if _, err := os.Stat(sessDir); err != nil {
+func initFileSession(c appConfig, path string, infoFn, errFn CtxLogFn) (sessions.Store, error) {
+	if _, err := os.Stat(path); err != nil {
 		if os.IsNotExist(err) {
-			if err := os.MkdirAll(sessDir, 0700); err != nil {
+			if err := os.MkdirAll(path, 0700); err != nil {
 				return nil, err
 			}
 		} else {
-			errFn()("Invalid path %s for saving sessions: %s", sessDir, err)
+			errFn()("Invalid path %s for saving sessions: %s", path, err)
 			return nil, err
 		}
 	}
 	infoFn(log.Ctx{
 		"type":     c.SessionsBackend,
 		"env":      c.Env,
-		"path":     sessDir,
+		"path":     path,
 		"keys":     hideSessionKeys(c.SessionKeys...),
 		"hostname": c.HostName,
 	})("Session settings")
-	ss := sessions.NewFilesystemStore(sessDir, c.SessionKeys...)
+	ss := sessions.NewFilesystemStore(path, c.SessionKeys...)
 	ss.Options.Path = "/"
 	ss.Options.HttpOnly = true
 	ss.Options.Secure = c.Secure
@@ -122,6 +125,19 @@ func initFileSession(c appConfig, infoFn, errFn CtxLogFn) (sessions.Store, error
 	return ss, nil
 }
 
+func (s *sess) clear(w http.ResponseWriter, r *http.Request) error {
+	if !s.enabled {
+		return nil
+	}
+	if s.s == nil {
+		return errors.Newf("invalid session")
+	}
+	ss, _ := s.s.Get(r, s.name)
+	ss.Options.MaxAge = -1
+	http.SetCookie(w, sessions.NewCookie(ss.Name(), "", ss.Options))
+	return nil
+}
+
 func (s *sess) get(w http.ResponseWriter, r *http.Request) (*sessions.Session, error) {
 	if !s.enabled {
 		return nil, nil
@@ -129,40 +145,24 @@ func (s *sess) get(w http.ResponseWriter, r *http.Request) (*sessions.Session, e
 	if s.s == nil {
 		return nil, errors.Newf("invalid session")
 	}
-	ss, err := s.s.Get(r, sessionName)
+	ss, err := s.s.Get(r, s.name)
 	if err != nil {
-		ss.Options.MaxAge = -1
-		s.s.Save(r, w, ss)
-		ss, err = s.s.New(r, sessionName)
+		s.clear(w, r)
+		ss, err = s.s.New(r, s.name)
 	}
 	return ss, err
 }
 
-func clearSessionCookie(w http.ResponseWriter, r *http.Request) {
-	if c, _ := r.Cookie(sessionName); c != nil {
-		c.Value = ""
-		c.MaxAge = -1
-		http.SetCookie(w, c)
-	}
-}
-
 func (s *sess) save(w http.ResponseWriter, r *http.Request) error {
 	if !s.enabled || s.s == nil {
-		clearSessionCookie(w, r)
+		s.clear(w, r)
 		return nil
 	}
-	ss, err := s.s.Get(r, sessionName)
+	ss, err := s.s.Get(r, s.name)
 	if err != nil {
-		clearSessionCookie(w, r)
-		return nil
+		s.clear(w, r)
 	}
-	if ss != nil && len(ss.Values) == 0 {
-		ss.Options.MaxAge = -1
-	}
-	if err := s.s.Save(r, w, ss); err != nil {
-		clearSessionCookie(w, r)
-	}
-	return nil
+	return s.s.Save(r, w, ss)
 }
 
 func (s *sess) addFlashMessages(typ flashType, w http.ResponseWriter, r *http.Request, msgs ...string) {
