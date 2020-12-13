@@ -165,6 +165,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"IsVote":                func(t Renderable) bool { return t.Type() == AppreciationType },
 			"IsAccount":             func(t Renderable) bool { return t.Type() == ActorType },
 			"IsModeration":          func(t Renderable) bool { return t.Type() == ModerationType },
+			"SessionEnabled":        func() bool { return v.s.enabled },
 			"LoadFlashMessages":     v.loadFlashMessages(w, r),
 			"Mod10":                 mod10,
 			"ShowText":              showText(m),
@@ -400,7 +401,7 @@ func (v *view) loadFlashMessages(w http.ResponseWriter, r *http.Request) func() 
 	flashFn := func() []flash { return flashData }
 
 	s, err := v.s.get(w, r)
-	if err != nil || s == nil || !v.c.SessionsEnabled {
+	if err != nil || s == nil || !v.s.enabled {
 		return flashFn
 	}
 	flashFn, err = v.s.loadFlashMessages(w, r)

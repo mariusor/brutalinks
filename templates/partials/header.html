@@ -20,7 +20,7 @@
     </li>
     <li><a href="/logout">Log out</a></li>
 {{- end }}
-{{- if Config.SessionsEnabled }}
+{{- if SessionEnabled }}
 {{- if not $account.IsLogged }}
 {{- if Config.UserCreatingEnabled }}
     <li class="register-local"><a href="/register" title="Register a new account" class="register littr">Register</a></li>

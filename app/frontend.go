@@ -366,7 +366,7 @@ func loadAccountData(a *Account, b Account) {
 }
 
 func (h *handler) LoadSession(next http.Handler) http.Handler {
-	if !h.conf.SessionsEnabled {
+	if !h.v.s.enabled {
 		return next
 	}
 	fn := func(w http.ResponseWriter, r *http.Request) {
@@ -445,7 +445,7 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 
 func (h handler) NeedsSessions(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		if !h.conf.SessionsEnabled {
+		if !h.v.s.enabled {
 			h.v.HandleErrors(w, r, errors.NotFoundf("sessions are disabled"))
 			return
 		}

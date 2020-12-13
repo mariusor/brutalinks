@@ -63,7 +63,10 @@ func initSession(c appConfig, infoFn, errFn CtxLogFn) (sess, error) {
 		s.path = path.Join(c.SessionsPath, string(c.Env), c.HostName)
 		s.s, err = initFileSession(c, s.path, infoFn, errFn)
 	}
-	return s, err
+	if err != nil {
+		s.enabled = false
+	}
+	return s, nil
 }
 
 func hideSessionKeys(keys ...[]byte) []string {
@@ -94,17 +97,25 @@ func initCookieSession(c appConfig, infoFn, errFn CtxLogFn) (sessions.Store, err
 	return ss, nil
 }
 
+func makeSessionsPath(path string) error {
+	err := os.MkdirAll(path, 0700)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func initFileSession(c appConfig, path string, infoFn, errFn CtxLogFn) (sessions.Store, error) {
-	if _, err := os.Stat(path); err != nil {
-		if os.IsNotExist(err) {
-			if err := os.MkdirAll(path, 0700); err != nil {
-				return nil, err
-			}
-		} else {
-			errFn()("Invalid path %s for saving sessions: %s", path, err)
+	if _, err := os.Stat(path); err != nil && os.IsNotExist(err) {
+		if err := makeSessionsPath(path); err != nil {
 			return nil, err
 		}
 	}
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	f.Close()
 	infoFn(log.Ctx{
 		"type":     c.SessionsBackend,
 		"env":      c.Env,
@@ -148,7 +159,7 @@ func (s *sess) get(w http.ResponseWriter, r *http.Request) (*sessions.Session, e
 	ss, err := s.s.Get(r, s.name)
 	if err != nil {
 		s.clear(w, r)
-		ss, err = s.s.New(r, s.name)
+		return s.s.New(r, s.name)
 	}
 	return ss, err
 }
