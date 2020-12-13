@@ -324,15 +324,9 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 // HandleLogout serves /logout requests
 func (h *handler) HandleLogout(w http.ResponseWriter, r *http.Request) {
-	s, err := h.v.s.get(w, r)
-	if err != nil {
-		h.errFn()("Error: %s", err)
-	} else {
-		s.Values = nil
-	}
+	h.v.s.clear(w, r)
 	backUrl := "/"
-	refUrl := r.Header.Get("Referer")
-	if HostIsLocal(refUrl) && !strings.Contains(refUrl, "followed") {
+	if refUrl := r.Header.Get("Referer"); HostIsLocal(refUrl) && !strings.Contains(refUrl, "followed") {
 		backUrl = refUrl
 	}
 	h.v.Redirect(w, r, backUrl, http.StatusSeeOther)
