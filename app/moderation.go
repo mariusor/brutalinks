@@ -320,7 +320,7 @@ func moderationGroupAtIndex(groups []*ModerationGroup, r ModerationOp) int {
 		}
 		gAP := g.Object.AP()
 		rAP := r.Object.AP()
-		if gAP.GetLink().Equals(rAP.GetLink(), false) && gAP.GetType() == rAP.GetType() {
+		if gAP.GetType() == rAP.GetType() && gAP.GetLink().Equals(rAP.GetLink(), false) {
 			return i
 		}
 	}
@@ -340,6 +340,7 @@ func moderationGroupFromRequest(r *ModerationOp) *ModerationGroup {
 
 func aggregateModeration(rl RenderableList, followups []ModerationOp) RenderableList {
 	groups := make([]*ModerationGroup, 0)
+	result := make(RenderableList)
 	for k, r := range rl {
 		m, ok := r.(*ModerationOp)
 		if !ok {
@@ -352,6 +353,7 @@ func aggregateModeration(rl RenderableList, followups []ModerationOp) Renderable
 		if i := moderationGroupAtIndex(groups, *m); i < 0 {
 			mg = moderationGroupFromRequest(m)
 			groups = append(groups, mg)
+			result[k] = mg
 		} else {
 			mg = groups[i]
 			mg.Requests = append(mg.Requests, m)
@@ -366,10 +368,9 @@ func aggregateModeration(rl RenderableList, followups []ModerationOp) Renderable
 				mg.Followup = append(mg.Followup, &fw)
 			}
 		}
-		rl[k] = mg
 	}
 
-	return rl
+	return result
 }
 
 func (m ModerationRequests) Contains(mop ModerationOp) bool {
