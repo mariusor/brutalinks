@@ -7,6 +7,7 @@ import (
 	"github.com/go-chi/chi"
 	"golang.org/x/oauth2"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/go-ap/errors"
@@ -215,7 +216,7 @@ func accountFromPost(r *http.Request) (Account, error) {
 			errs = append(errs, errors.Errorf("you must agree not to be a dick to other people"))
 		}
 	*/
-	handle := r.PostFormValue("handle")
+	handle := strings.TrimSpace(r.PostFormValue("handle"))
 	if len(handle) > 0 {
 		a.Handle = handle
 	}
