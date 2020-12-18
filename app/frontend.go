@@ -275,7 +275,7 @@ func (v *view) saveAccountToSession(w http.ResponseWriter, r *http.Request, a Ac
 		return err
 	}
 	s.Values[SessionUserKey] = a
-	return s.Save(r, w)
+	return nil
 }
 
 func (v *view) loadCurrentAccountFromSession(w http.ResponseWriter, r *http.Request) Account {

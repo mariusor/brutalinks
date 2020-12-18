@@ -157,11 +157,10 @@ func (s *sess) get(w http.ResponseWriter, r *http.Request) (*sessions.Session, e
 		return nil, errors.Newf("invalid session")
 	}
 	ss, err := s.s.Get(r, s.name)
-	if err != nil {
-		s.clear(w, r)
-		return s.s.New(r, s.name)
+	if os.IsNotExist(err) {
+		err = nil
 	}
-	return ss, nil
+	return ss, err
 }
 
 func (s *sess) save(w http.ResponseWriter, r *http.Request) error {
@@ -172,7 +171,6 @@ func (s *sess) save(w http.ResponseWriter, r *http.Request) error {
 	ss, err := s.s.Get(r, s.name)
 	if err != nil {
 		s.clear(w, r)
-		return err
 	}
 	if len(ss.Values) > 0 || len(ss.Flashes()) > 0 {
 		return s.s.Save(r, w, ss)
@@ -206,6 +204,5 @@ func (s *sess) loadFlashMessages(w http.ResponseWriter, r *http.Request) (func()
 			flashData = append(flashData, f)
 		}
 	}
-	err = ss.Save(r, w)
-	return flashFn, err
+	return flashFn, ss.Save(r, w)
 }
