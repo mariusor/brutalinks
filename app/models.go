@@ -140,7 +140,14 @@ func (m *contentModel) SetCursor(c *Cursor) {
 		return
 	}
 	if !m.Content.IsValid() {
-		m.Content = getFromList(m.Hash, c.items)
+		if m.Hash.IsValid() {
+			m.Content = getFromList(m.Hash, c.items)
+		} else {
+			for _, it := range c.items {
+				m.Content = it
+				break
+			}
+		}
 	}
 	if m.Content != nil {
 		if it, ok := m.Content.(*Item); ok {
