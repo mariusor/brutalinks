@@ -381,6 +381,7 @@ func (h *handler) ValidateItemAuthor(next http.Handler) http.Handler {
 			}
 			if m.SubmittedBy.Hash != acc.Hash {
 				url.Path = path.Dir(url.Path)
+				h.v.addFlashMessage(Error, w, r, "unable to delete item as current user")
 				h.v.Redirect(w, r, url.RequestURI(), http.StatusTemporaryRedirect)
 				return
 			}
