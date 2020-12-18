@@ -189,7 +189,7 @@ func TagFiltersMw(next http.Handler) http.Handler {
 	})
 }
 
-func ItemFiltersMw(next http.Handler) http.Handler {
+func (h handler) ItemFiltersMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := FiltersFromRequest(r)
 		f.Type = CreateActivitiesFilter
@@ -197,6 +197,10 @@ func ItemFiltersMw(next http.Handler) http.Handler {
 
 		m := ContextContentModel(r.Context())
 		m.Hash = HashFromString(hash)
+		if !m.Hash.IsValid() {
+			h.v.HandleErrors(w, r, errors.NotFoundf("%q item", hash))
+			return
+		}
 
 		f.Object = &Filters{}
 		f.Object.IRI = CompStrs{LikeString(hash)}

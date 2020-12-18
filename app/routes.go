@@ -77,7 +77,7 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 				})
 
 				r.Route("/{hash}", func(r chi.Router) {
-					r.Use(h.CSRF, ContentModelMw, ItemFiltersMw, LoadObjectFromInboxMw, ThreadedListingMw, SortByScore)
+					r.Use(h.CSRF, ContentModelMw, h.ItemFiltersMw, LoadObjectFromInboxMw, ThreadedListingMw, SortByScore)
 					r.Get("/", h.HandleShow)
 					r.Post("/", h.HandleSubmit)
 
