@@ -12,20 +12,25 @@ import (
 
 func (h handler) LoadAuthorMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		authors, err := accountsFromRequestHandle(r)
+		handle := chi.URLParam(r, "handle")
+		if handle == "" {
+			h.ErrorHandler(errors.NotValidf("missing account handle")).ServeHTTP(w, r)
+			return
+		}
+		fa := &Filters{
+			Name: CompStrs{EqualsString(handle)},
+		}
+		repo := ContextRepository(r.Context())
+		authors, err := repo.accounts(context.TODO(), fa)
 		if err != nil {
 			h.ErrorHandler(err).ServeHTTP(w, r)
 			return
 		}
-		storAuthors := make([]*Account, 0)
 		if len(authors) == 0 {
-			storAuthors = append(storAuthors, &AnonymousAccount)
-		} else {
-			for _, auth := range authors {
-				storAuthors = append(storAuthors, auth)
-			}
+			h.ErrorHandler(errors.NotFoundf("Account %q", chi.URLParam(r, "handle"))).ServeHTTP(w, r)
+			return
 		}
-		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), AuthorCtxtKey, storAuthors)))
+		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), AuthorCtxtKey, authors)))
 	})
 }
 
