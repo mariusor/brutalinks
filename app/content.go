@@ -145,8 +145,8 @@ func (i Item) Date() time.Time {
 }
 
 // IsTop returns true if current item is a top level submission
-func (i Item) IsTop() bool {
-	if i.pub == nil {
+func (i *Item) IsTop() bool {
+	if i == nil || i.pub == nil {
 		return false
 	}
 	isTop := false
