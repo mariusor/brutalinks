@@ -38,6 +38,7 @@ type Filters struct {
 	Prev       string   `qstring:"before,omitempty"`
 	MaxItems   int      `qstring:"maxItems,omitempty"`
 	Object     *Filters `qstring:"object,omitempty"`
+	Tag        *Filters `qstring:"tag,omitempty"`
 	Actor      *Filters `qstring:"actor,omitempty"`
 }
 
@@ -162,6 +163,13 @@ func DomainFiltersMw(next http.Handler) http.Handler {
 	})
 }
 
+func tagsFilter(tag string) *Filters {
+	f := new(Filters)
+	f.Type = ActivityTypesFilter(pub.ObjectType)
+	f.Name = CompStrs{EqualsString(tag)}
+	return f
+}
+
 func TagFiltersMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		tag := chi.URLParam(r, "tag")
@@ -173,11 +181,11 @@ func TagFiltersMw(next http.Handler) http.Handler {
 		fc.Type = CreateActivitiesFilter
 		fc.Object = new(Filters)
 		fc.Object.Type = ActivityTypesFilter(ValidItemTypes...)
-		fc.Object.Cont = CompStrs{LikeString("#" + tag)}
+		fc.Object.Tag = tagsFilter(tag)
 
 		fa := new(Filters)
 		fa.Type = ModerationActivitiesFilter
-		fa.Cont = CompStrs{LikeString("#" + tag)}
+		fa.Tag = tagsFilter(tag)
 
 		allFilters := []*Filters{fc, fa}
 
