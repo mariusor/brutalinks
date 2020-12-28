@@ -65,10 +65,12 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 					r.Get("/follow", h.FollowAccount)
 					r.Get("/follow/{action}", h.HandleFollowRequest)
 
-					r.With(h.CSRF, MessageUserContentModelMw, AccountFiltersMw, LoadOutboxMw).Group(func(r chi.Router) {
-						r.Get("/message", h.HandleShow)
-						r.Post("/message", h.HandleSubmit)
+					r.With(h.CSRF, MessageUserContentModelMw, MessageFiltersMw, LoadOutboxMw).Route("/message", func(r chi.Router) {
+						r.Get("/", h.HandleShow)
+						r.Post("/", h.HandleSubmit)
+					})
 
+					r.With(h.CSRF, MessageUserContentModelMw, AccountFiltersMw, LoadOutboxMw).Group(func(r chi.Router) {
 						r.With(BlockAccountModelMw).Get("/block", h.HandleShow)
 						r.Post("/block", h.BlockAccount)
 						r.With(ReportAccountModelMw).Get("/bad", h.HandleShow)

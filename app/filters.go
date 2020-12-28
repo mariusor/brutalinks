@@ -217,6 +217,32 @@ func (h handler) ItemFiltersMw(next http.Handler) http.Handler {
 	})
 }
 
+func MessageFiltersMw(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authors := ContextAuthors(r.Context())
+		if len(authors) == 0 {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		f := FiltersFromRequest(r)
+		if len(f.IRI) > 0 {
+			for _, author := range authors {
+				f.AttrTo = append(f.AttrTo, LikeString(author.Hash.String()))
+			}
+			fc := *f
+			fc.Type = CreateActivitiesFilter
+
+			fv := *f
+			fv.Type = AppreciationActivitiesFilter
+
+			ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{&fc, &fv})
+			r = r.WithContext(ctx)
+		}
+		next.ServeHTTP(w,r)
+	})
+}
+
 func AccountFiltersMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authors := ContextAuthors(r.Context())
