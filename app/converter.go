@@ -248,6 +248,42 @@ func iconMetadataFromObject(m *ImageMetadata, o *pub.Object) error {
 	return nil
 }
 
+func FromTag(t *Tag, a *pub.Object) error {
+	t.Hash.FromActivityPub(a)
+	if title := a.Name.First().Value; len(title) > 0 {
+		t.Name = title.String()
+	}
+	t.Type = TagTag
+	if a.Type == pub.MentionType {
+		t.Type = TagMention
+	}
+	t.SubmittedAt = a.Published
+	t.UpdatedAt = a.Updated
+	if t.Metadata == nil {
+		t.Metadata = &ItemMetadata{}
+	}
+
+	if a.AttributedTo != nil {
+		auth := Account{Metadata: &AccountMetadata{}}
+		auth.FromActivityPub(a.AttributedTo)
+		t.SubmittedBy = &auth
+		t.Metadata.AuthorURI = a.AttributedTo.GetLink().String()
+	}
+	if len(a.ID) > 0 {
+		iri := a.GetLink()
+		t.Metadata.ID = iri.String()
+		if a.URL != nil {
+			t.Metadata.URL = a.URL.GetLink().String()
+		}
+	}
+	if a.Icon != nil {
+		pub.OnObject(a.Icon, func(o *pub.Object) error {
+			return iconMetadataFromObject(&t.Metadata.Icon, o)
+		})
+	}
+	return nil
+}
+
 func FromArticle(i *Item, a *pub.Object) error {
 	title := a.Name.First().Value
 
@@ -394,8 +430,71 @@ func loadRecipients(i *Item, it pub.Item) error {
 	})
 }
 
+func (t *Tag) FromActivityPub(it pub.Item) error {
+	if it == nil {
+		return errors.Newf("nil tag received")
+	}
+	t.pub = it
+	if it.IsLink() {
+		t.Hash.FromActivityPub(it.GetLink())
+		t.Metadata = &ItemMetadata{
+			ID: it.GetLink().String(),
+		}
+		return nil
+	}
+	switch it.GetType() {
+	case pub.DeleteType:
+		return pub.OnActivity(it, func(act *pub.Activity) error {
+			return t.FromActivityPub(act.Object)
+		})
+	case pub.CreateType, pub.UpdateType, pub.ActivityType:
+		return pub.OnActivity(it, func(act *pub.Activity) error {
+			if (pub.ActivityVocabularyTypes{pub.CreateType, pub.UpdateType}).Contains(act.Type) {
+				return errors.Newf("Invalid activity to load from %s", act.Type)
+			}
+			if err := t.FromActivityPub(act.Object); err != nil {
+				return err
+			}
+			t.SubmittedBy.FromActivityPub(act.Actor)
+			if t.Metadata == nil {
+				t.Metadata = &ItemMetadata{}
+			}
+			t.Metadata.AuthorURI = act.Actor.GetLink().String()
+			return nil
+		})
+	case pub.ObjectType, pub.MentionType:
+		return pub.OnObject(it, func(a *pub.Object) error {
+			return FromTag(t, a)
+		})
+	case pub.TombstoneType:
+		id := it.GetLink()
+		t.Hash.FromActivityPub(id)
+		t.Type = TagTag
+		if t.Metadata == nil {
+			t.Metadata = &ItemMetadata{}
+		}
+		if len(id) > 0 {
+			t.Metadata.ID = id.String()
+		}
+		t.SubmittedBy = &AnonymousAccount
+		pub.OnTombstone(it, func(o *pub.Tombstone) error {
+			if o.FormerType == pub.MentionType {
+				t.Type = TagMention
+			}
+			return nil
+		})
+		pub.OnObject(it, func(o *pub.Object) error {
+			t.SubmittedAt = o.Published
+			t.UpdatedAt = o.Updated
+			return nil
+		})
+	default:
+		return errors.Newf("invalid object type %q", it.GetType())
+	}
+	return nil
+}
+
 func (i *Item) FromActivityPub(it pub.Item) error {
-	// TODO(marius): see that we seem to have this functionality duplicated in the FromArticle() function
 	if it == nil {
 		return errors.Newf("nil item received")
 	}
@@ -417,12 +516,10 @@ func (i *Item) FromActivityPub(it pub.Item) error {
 	case pub.CreateType, pub.UpdateType, pub.ActivityType:
 		return pub.OnActivity(it, func(act *pub.Activity) error {
 			// TODO(marius): this logic is probably broken if the activity is anything else except a Create
-			good := pub.ActivityVocabularyTypes{pub.CreateType, pub.UpdateType}
-			if !good.Contains(act.Type) {
+			if !(pub.ActivityVocabularyTypes{pub.CreateType, pub.UpdateType}).Contains(act.Type) {
 				return errors.Newf("Invalid activity to load from %s", act.Type)
 			}
-			err := i.FromActivityPub(act.Object)
-			if err != nil {
+			if err := i.FromActivityPub(act.Object); err != nil {
 				return err
 			}
 			i.SubmittedBy.FromActivityPub(act.Actor)
@@ -430,8 +527,7 @@ func (i *Item) FromActivityPub(it pub.Item) error {
 				i.Metadata = &ItemMetadata{}
 			}
 			i.Metadata.AuthorURI = act.Actor.GetLink().String()
-			loadRecipients(i, act)
-			return nil
+			return loadRecipients(i, act)
 		})
 	case pub.ArticleType, pub.NoteType, pub.DocumentType, pub.PageType:
 		return pub.OnObject(it, func(a *pub.Object) error {
@@ -483,8 +579,11 @@ func (i *Item) FromActivityPub(it pub.Item) error {
 			i.UpdatedAt = o.Updated
 			return nil
 		})
-
-		i.Flags = FlagsDeleted
+		pub.OnTombstone(it, func(t *pub.Tombstone) error {
+			i.UpdatedAt = t.Deleted
+			return nil
+		})
+		i.Delete()
 		i.SubmittedBy = &AnonymousAccount
 	default:
 		return errors.Newf("invalid object type %q", it.GetType())
@@ -553,17 +652,14 @@ func host(u string) string {
 	return ""
 }
 
-func (c *TagCollection) FromActivityPub(it pub.ItemCollection) error {
-	if it == nil || len(it) == 0 {
+func (c *TagCollection) FromActivityPub(col pub.ItemCollection) error {
+	if col == nil {
 		return errors.Newf("empty collection")
 	}
-	for _, t := range it {
-		if m, ok := t.(*pub.Mention); ok {
-			*c = append(*c, Tag{URL: t.GetID().String(), Type: TagMention, Name: m.Name.First().Value.String()})
-		}
-		if ob, ok := t.(*pub.Object); ok {
-			*c = append(*c, Tag{URL: t.GetID().String(), Type: TagTag, Name: ob.Name.First().Value.String()})
-		}
+	for _, it := range col {
+		t := Tag{}
+		t.FromActivityPub(it)
+		*c = append(*c, t)
 	}
 	return nil
 }

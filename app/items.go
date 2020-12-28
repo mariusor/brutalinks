@@ -2,7 +2,6 @@ package app
 
 import (
 	"bytes"
-	"fmt"
 	pub "github.com/go-ap/activitypub"
 	"github.com/go-chi/chi"
 	"net/http"
@@ -12,17 +11,6 @@ import (
 
 	"github.com/go-ap/errors"
 )
-
-const TagMention = "mention"
-const TagTag = "tag"
-
-type Tag struct {
-	Type string `json:"-"`
-	Name string `json:"name,omitempty"`
-	URL  string `json:"id,omitempty"`
-}
-
-type TagCollection []Tag
 
 type ItemMetadata struct {
 	To         []*Account    `json:"to,omitempty"`
@@ -133,32 +121,6 @@ func detectMimeType(data string) string {
 		return MimeTypeURL
 	}
 	return "text/plain"
-}
-
-func getTagFromBytes(d []byte) Tag {
-	var name, host []byte
-	t := Tag{}
-
-	if ind := bytes.LastIndex(d, []byte{'@'}); ind > 1 {
-		name = d[1:ind]
-		host = []byte(fmt.Sprintf("https://%s", d[ind+1:]))
-	} else {
-		name = d[1:]
-		host = []byte(Instance.BaseURL)
-	}
-	if d[0] == '@' || d[0] == '~' {
-		// mention
-		t.Type = TagMention
-		t.Name = string(name)
-		t.URL = fmt.Sprintf("%s/~%s", host, name)
-	}
-	if d[0] == '#' {
-		// @todo(marius) :link_generation: make the tag links be generated from the corresponding route
-		t.Type = TagTag
-		t.Name = string(name)
-		t.URL = fmt.Sprintf("%s/t/%s", host, name)
-	}
-	return t
 }
 
 func ContentFromRequest(r *http.Request, author Account) (Item, error) {
