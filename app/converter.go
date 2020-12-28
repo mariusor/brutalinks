@@ -273,7 +273,7 @@ func FromTag(t *Tag, a *pub.Object) error {
 		iri := a.GetLink()
 		t.Metadata.ID = iri.String()
 		if a.URL != nil {
-			t.Metadata.URL = a.URL.GetLink().String()
+			t.URL = a.URL.GetLink().String()
 		}
 	}
 	if a.Icon != nil {
