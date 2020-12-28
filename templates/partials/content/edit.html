@@ -11,19 +11,19 @@
     {{- $data = .Content.Data -}}
 {{- end -}}
 <form method="post">
-    <fieldset {{ if $hash }}data-reply="{{ $hash }}"{{end}}>
+    <fieldset {{ if $hash.IsValid }}data-reply="{{ $hash }}"{{end}}>
         <label for="submit-data">{{ $label }}</label><br/>
         <textarea {{if $readonly -}}disabled placeholder="You must authenticate to be able to comment" {{ end -}} name="data" id="submit-data" cols="80" rows="5" required>{{- if $edit -}}{{- $data -}}{{- end -}}</textarea><br/>
 {{- if $showTitle -}}
         <label for="submit-title">Title: </label><br/>
         <textarea {{if $readonly -}} disabled {{ end -}} name="title" id="submit-title" rows="2" required>{{- if $edit -}}{{- $data -}}{{- end -}}</textarea><br/>
 {{- end -}}
-{{- if $hash -}}
+{{- if $hash.IsValid -}}
 {{- if $edit }}
         <input type="hidden" name="hash" id="submit-self" value="{{ $hash }}"/>
 {{- else }}
         <input type="hidden" name="parent" id="submit-parent" value="{{ $hash }}"/>
-{{- if $op }}
+{{- if $op.IsValid }}
         <input type="hidden" name="op" id="submit-op" value="{{ $op }}"/>
 {{- end -}}
 {{- end -}}
