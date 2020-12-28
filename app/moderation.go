@@ -344,6 +344,7 @@ func aggregateModeration(rl RenderableList, followups []ModerationOp) Renderable
 	for k, r := range rl {
 		m, ok := r.(*ModerationOp)
 		if !ok {
+			result[k] = r
 			continue
 		}
 		if m.Object == nil {
