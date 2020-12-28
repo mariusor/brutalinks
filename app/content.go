@@ -119,9 +119,7 @@ type Item struct {
 	pub         pub.Item          `json:"-"`
 	Parent      *Item             `json:"-"`
 	OP          *Item             `json:"-"`
-	Voted       uint8             `json:"-"`
 	Level       uint8             `json:"-"`
-	Edit        bool              `json:"-"`
 	children    ItemPtrCollection `json:"-"`
 }
 

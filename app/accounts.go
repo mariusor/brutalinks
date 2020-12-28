@@ -33,8 +33,6 @@ type OAuth struct {
 
 type AccountMetadata struct {
 	Password              []byte        `json:"pw,omitempty"`
-	Provider              string        `json:"provider,omitempty"`
-	Salt                  []byte        `json:"salt,omitempty"`
 	Key                   *SSHKey       `json:"key,omitempty"`
 	Blurb                 []byte        `json:"blurb,omitempty"`
 	Icon                  ImageMetadata `json:"icon,omitempty"`
