@@ -248,6 +248,26 @@ func iconMetadataFromObject(m *ImageMetadata, o *pub.Object) error {
 	return nil
 }
 
+func FromMention(t *Tag, a *pub.Mention) error {
+	t.Hash.FromActivityPub(a)
+	if title := a.Name.First().Value; len(title) > 0 {
+		t.Name = title.String()
+	}
+	t.Type = TagMention
+	if t.Metadata == nil {
+		t.Metadata = &ItemMetadata{}
+	}
+
+	if len(a.ID) > 0 {
+		iri := a.GetLink()
+		t.Metadata.ID = iri.String()
+		if len(a.Href) > 0 {
+			t.URL = a.Href.GetLink().String()
+		}
+	}
+	return nil
+}
+
 func FromTag(t *Tag, a *pub.Object) error {
 	t.Hash.FromActivityPub(a)
 	if title := a.Name.First().Value; len(title) > 0 {
@@ -435,14 +455,15 @@ func (t *Tag) FromActivityPub(it pub.Item) error {
 		return errors.Newf("nil tag received")
 	}
 	t.pub = it
-	if it.IsLink() {
+	typ := it.GetType()
+	if it.IsLink() && typ != pub.MentionType {
 		t.Hash.FromActivityPub(it.GetLink())
 		t.Metadata = &ItemMetadata{
 			ID: it.GetLink().String(),
 		}
 		return nil
 	}
-	switch it.GetType() {
+	switch typ {
 	case pub.DeleteType:
 		return pub.OnActivity(it, func(act *pub.Activity) error {
 			return t.FromActivityPub(act.Object)
@@ -462,9 +483,13 @@ func (t *Tag) FromActivityPub(it pub.Item) error {
 			t.Metadata.AuthorURI = act.Actor.GetLink().String()
 			return nil
 		})
-	case pub.ObjectType, pub.MentionType:
-		return pub.OnObject(it, func(a *pub.Object) error {
-			return FromTag(t, a)
+	case pub.ObjectType :
+		return pub.OnObject(it, func(o *pub.Object) error {
+			return FromTag(t, o)
+		})
+	case pub.MentionType:
+		return pub.OnLink(it, func(m *pub.Mention) error {
+			return FromMention(t, m)
 		})
 	case pub.TombstoneType:
 		id := it.GetLink()
