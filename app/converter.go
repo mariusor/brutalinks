@@ -259,11 +259,10 @@ func FromMention(t *Tag, a *pub.Mention) error {
 	}
 
 	if len(a.ID) > 0 {
-		iri := a.GetLink()
-		t.Metadata.ID = iri.String()
-		if len(a.Href) > 0 {
-			t.URL = a.Href.GetLink().String()
-		}
+		t.Metadata.ID = a.ID.String()
+	}
+	if len(a.Href) > 0 {
+		t.URL = a.Href.String()
 	}
 	return nil
 }
@@ -290,11 +289,10 @@ func FromTag(t *Tag, a *pub.Object) error {
 		t.Metadata.AuthorURI = a.AttributedTo.GetLink().String()
 	}
 	if len(a.ID) > 0 {
-		iri := a.GetLink()
-		t.Metadata.ID = iri.String()
-		if a.URL != nil {
-			t.URL = a.URL.GetLink().String()
-		}
+		t.Metadata.ID = a.ID.String()
+	}
+	if a.URL != nil {
+		t.URL = a.URL.GetLink().String()
 	}
 	if a.Icon != nil {
 		pub.OnObject(a.Icon, func(o *pub.Object) error {
