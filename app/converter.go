@@ -354,13 +354,13 @@ func FromArticle(i *Item, a *pub.Object) error {
 	}
 	if len(i.Title) == 0 && a.InReplyTo == nil {
 		if a.Summary != nil && len(a.Summary) > 0 {
-			i.Title = new(bluemonday.Policy).Sanitize(a.Summary.First().Value.String())
+			i.Title = bluemonday.StrictPolicy().Sanitize(a.Summary.First().Value.String())
 		}
 	}
 	// TODO(marius): here we seem to have a bug, when Source.Content is nil when it shouldn't
 	//    to repro, I used some copy/pasted comments from console javascript
 	if len(a.Source.Content) > 0 && len(a.Source.MediaType) > 0 {
-		i.Data = bluemonday.StrictPolicy().Sanitize(a.Source.Content.First().Value.String())
+		i.Data = bluemonday.UGCPolicy().Sanitize(a.Source.Content.First().Value.String())
 		i.MimeType = string(a.Source.MediaType)
 	}
 	if a.Tag != nil && len(a.Tag) > 0 {
