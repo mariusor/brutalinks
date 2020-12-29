@@ -304,6 +304,30 @@ func FromTag(t *Tag, a *pub.Object) error {
 	return nil
 }
 
+var LocalHTMLPolicy = BlueMondayPolicy()
+
+func BlueMondayPolicy() *bluemonday.Policy {
+	p := bluemonday.StrictPolicy()
+	p.AllowStandardAttributes()
+	p.AllowStandardURLs()
+	p.AllowElements("section", "details")
+	p.AllowElements("wbr")
+
+	// The following are all inline phrasing elements
+	p.AllowElements("abbr", "acronym", "cite", "dfn", "mark", "var")
+
+	// "time" is permitted
+	p.AllowAttrs("datetime").Matching(bluemonday.ISO8601).OnElements("time")
+
+	// block and inline elements that impart no semantic meaning but style the
+	// document
+	p.AllowElements("small", "tt")
+
+	// "bdi" "bdo" are permitted
+	p.AllowAttrs("dir").Matching(bluemonday.Direction).OnElements("bdi", "bdo")
+	return p
+}
+
 func FromArticle(i *Item, a *pub.Object) error {
 	title := a.Name.First().Value
 
@@ -380,7 +404,8 @@ func FromArticle(i *Item, a *pub.Object) error {
 	// TODO(marius): here we seem to have a bug, when Source.Content is nil when it shouldn't
 	//    to repro, I used some copy/pasted comments from console javascript
 	if len(a.Source.Content) > 0 && len(a.Source.MediaType) > 0 {
-		i.Data = bluemonday.UGCPolicy().Sanitize(a.Source.Content.First().Value.String())
+		i.Data = LocalHTMLPolicy.Sanitize(a.Source.Content.First().Value.String())
+		i.Data = a.Source.Content.First().Value.String()
 		i.MimeType = string(a.Source.MediaType)
 	}
 	if a.Tag != nil && len(a.Tag) > 0 {
