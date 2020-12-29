@@ -30,18 +30,18 @@ func (f *FlagBits) FromInt64() error {
 
 type ItemCollection []Item
 
-func Markdown(data string) template.HTML {
-	md := mark.New(
-		mark.HTML(true),
-		mark.Tables(true),
-		mark.Linkify(false),
-		mark.Breaks(false),
-		mark.Typographer(true),
-		mark.XHTMLOutput(false),
-	)
+var MdPolicy = mark.New(
+	mark.HTML(true),
+	mark.Tables(true),
+	mark.Linkify(false),
+	mark.Breaks(false),
+	mark.Typographer(false),
+	mark.XHTMLOutput(false),
+)
 
-	h := md.RenderToString([]byte(data))
-	return template.HTML(h)
+// Markdown outputs the markdown render of a string
+func Markdown(data string) template.HTML {
+	return template.HTML(MdPolicy.RenderToString([]byte(data)))
 }
 
 // HasMetadata
