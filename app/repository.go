@@ -284,16 +284,17 @@ func loadAPItem(it pub.Item, item Item) error {
 				o.Tag = make(pub.ItemCollection, 0)
 				for _, men := range m.Mentions {
 					// todo(marius): retrieve object ids of each mention and add it to the CC of the object
-					t := pub.Object{
-						ID:   pub.ID(men.URL),
-						Type: pub.MentionType,
-						Name: pub.NaturalLanguageValues{{Ref: pub.NilLangRef, Value: pub.Content(men.Name)}},
+					t := pub.Mention{
+						Type:      pub.MentionType,
+						Name:      pub.NaturalLanguageValues{{Ref: pub.NilLangRef, Value: pub.Content(men.Name)}},
+						Href:      pub.IRI(men.URL),
 					}
 					o.Tag.Append(t)
 				}
 				for _, tag := range m.Tags {
 					t := pub.Object{
-						ID:   pub.ID(tag.URL),
+						URL:  pub.ID(tag.URL),
+						To:   pub.ItemCollection{pub.PublicNS},
 						Type: pub.ObjectType,
 						Name: pub.NaturalLanguageValues{{Ref: pub.NilLangRef, Value: pub.Content(tag.Name)}},
 					}
@@ -1689,12 +1690,12 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 				cc = append(cc, pub.IRI(rec.Metadata.ID))
 			}
 		}
-		if len(it.Metadata.Mentions) > 0 {
+		if len(m.Mentions) > 0 {
 			names := make(CompStrs, 0)
-			for _, m := range it.Metadata.Mentions {
+			for _, m := range m.Mentions {
 				names = append(names, EqualsString(m.Name))
 			}
-			ff := &Filters{Name: names}
+			ff := &Filters{Name: names, Type: ActivityTypesFilter(pub.PersonType)}
 			actors, _, err := r.LoadAccounts(ctx, ff)
 			if err != nil {
 				r.errFn(log.Ctx{"err": err})("unable to load accounts from mentions")
@@ -1758,6 +1759,38 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 	return it, err
 }
 
+func (r *repository) LoadTags(ctx context.Context, ff ...*Filters) (TagCollection, uint, error) {
+	tags := make(TagCollection, 0)
+	var count uint = 0
+	// TODO(marius): see how we can use the context returned by errgroup.WithContext()
+	g, _ := errgroup.WithContext(ctx)
+	for _, f := range ff {
+		g.Go(func() error {
+			it, err := r.fedbox.Objects(ctx, Values(f))
+			if err != nil {
+				r.errFn()(err.Error())
+				return err
+			}
+			return pub.OnOrderedCollection(it, func(col *pub.OrderedCollection) error {
+				count = col.TotalItems
+				for _, it := range col.OrderedItems {
+					tag := Tag{}
+					if err := tag.FromActivityPub(it); err != nil {
+						r.errFn(log.Ctx{ "type": fmt.Sprintf("%T", it) })(err.Error())
+						continue
+					}
+					tags = append(tags, tag)
+				}
+				return nil
+			})
+		})
+	}
+	if err := g.Wait(); err != nil {
+		return tags, count, err
+	}
+	return tags, count, nil
+}
+
 func (r *repository) LoadAccounts(ctx context.Context, ff ...*Filters) (AccountCollection, uint, error) {
 	accounts := make(AccountCollection, 0)
 	var count uint = 0
@@ -1775,9 +1808,7 @@ func (r *repository) LoadAccounts(ctx context.Context, ff ...*Filters) (AccountC
 				for _, it := range col.OrderedItems {
 					acc := Account{Metadata: &AccountMetadata{}}
 					if err := acc.FromActivityPub(it); err != nil {
-						r.errFn(log.Ctx{
-							"type": fmt.Sprintf("%T", it),
-						})(err.Error())
+						r.errFn(log.Ctx{ "type": fmt.Sprintf("%T", it)})(err.Error())
 						continue
 					}
 					accounts = append(accounts, acc)
