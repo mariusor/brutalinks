@@ -335,12 +335,12 @@ func ModerationListing(next http.Handler) http.Handler {
 			return
 		}
 
-		ctx := context.TODO()
 		s := ContextRepository(r.Context())
 		if s == nil {
 			next.ServeHTTP(w, r)
 			return
 		}
+		ctx := context.TODO()
 		followups, _ := s.loadModerationFollowups(ctx, c.items)
 		c.items = aggregateModeration(c.items, followups)
 
@@ -360,7 +360,8 @@ func LoadInvitedMw(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		a, err := s.LoadAccount(context.TODO(), ActorsURL.AddPath(hash))
+		ctx := context.TODO()
+		a, err := s.LoadAccount(ctx, ActorsURL.AddPath(hash))
 		if err != nil {
 			ctxtErr(next, w, r, err)
 			return

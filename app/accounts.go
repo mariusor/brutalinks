@@ -197,7 +197,8 @@ func accountFromPost(r *http.Request) (Account, error) {
 	if len(hash) > 0 {
 		// NOTE(marius): coming from an invite
 		s := ContextRepository(r.Context())
-		a, _ = s.LoadAccount(context.TODO(), ActorsURL.AddPath(hash))
+		ctx := context.TODO()
+		a, _ = s.LoadAccount(ctx, ActorsURL.AddPath(hash))
 	}
 	if accountsEqual(*a, AnonymousAccount) {
 		*a = Account{Metadata: &AccountMetadata{}}
