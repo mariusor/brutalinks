@@ -81,10 +81,10 @@ func ActivityPubService(c appConfig) *repository {
 	ObjectsURL = objects.IRI(pub.IRI(BaseURL))
 
 	infoFn := func(ctx ...log.Ctx) LogFn {
-		return c.Logger.WithContext(append(ctx, log.Ctx{"client": "api"})...).Infof
+		return c.Logger.WithContext(append(ctx, log.Ctx{"client": "api"})...).Debugf
 	}
 	errFn := func(ctx ...log.Ctx) LogFn {
-		return c.Logger.WithContext(append(ctx, log.Ctx{"client": "api"})...).Errorf
+		return c.Logger.WithContext(append(ctx, log.Ctx{"client": "api"})...).Warnf
 	}
 	ua := fmt.Sprintf("%s-%s", c.HostName, Instance.Version)
 
