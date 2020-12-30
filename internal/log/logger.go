@@ -53,18 +53,25 @@ type logger struct {
 	m       sync.RWMutex
 }
 
-func Dev(lvl Level) Logger {
-	l := logger{}
+var logFormatter = logrus.TextFormatter{
+	ForceColors:            true,
+	TimestampFormat:        time.StampMilli,
+	FullTimestamp:          true,
+	DisableSorting:         true,
+	DisableLevelTruncation: false,
+	PadLevelText:           true,
+	QuoteEmptyFields:       false,
+}
 
-	logrus.SetFormatter(&logrus.TextFormatter{
-		QuoteEmptyFields: true,
-		FullTimestamp:    false,
-	})
+func Dev(lvl Level) Logger {
+	l := new(logger)
+
 	logger := logrus.New()
+	logger.Formatter = &logFormatter
 	logger.Level = logrus.Level(lvl)
 	logger.Out = os.Stdout
 	l.l = logger
-	return &l
+	return l
 }
 
 func Prod() Logger {
