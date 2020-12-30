@@ -29,7 +29,7 @@ type OptionFn func(*fedbox) error
 
 func SetInfoLogger(logFn CtxLogFn) OptionFn {
 	return func(f *fedbox) error {
-		if logFn == nil {
+		if logFn != nil {
 			f.infoFn = logFn
 		}
 		return nil
