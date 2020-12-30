@@ -1094,14 +1094,13 @@ const (
 
 // LoadFromCollection iterates over a collection returned by the f function, until accum is satisfied
 func LoadFromCollection(ctx context.Context, loadColFn CollectionFn, cur *colCursor, accum func(pub.CollectionInterface) (bool, error)) error {
-	ttx, tCancel := context.WithTimeout(ctx, 100*time.Millisecond)
 	var err error
 	processed := 0
 	for {
 		var status bool
 		var col pub.CollectionInterface
 
-		if col, err = loadColFn(ttx, cur.filters); err != nil {
+		if col, err = loadColFn(ctx, cur.filters); err != nil {
 			return err
 		}
 
@@ -1127,7 +1126,6 @@ func LoadFromCollection(ctx context.Context, loadColFn CollectionFn, cur *colCur
 			st = accumSuccess
 		}
 		if st != accumContinue {
-			tCancel()
 			break
 		}
 	}
