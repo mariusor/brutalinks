@@ -8,11 +8,13 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type Configuration struct {
 	HostName                   string
 	Name                       string
+	TimeOut                    time.Duration
 	ListenPort                 int
 	ListenHost                 string
 	APIURL                     string
@@ -41,6 +43,7 @@ const (
 const (
 	KeyENV                        = "ENV"
 	KeyLogLevel                   = "LOG_LEVEL"
+	KeyTimeOut                    = "TIME_OUT"
 	KeyHostname                   = "HOSTNAME"
 	KeyListenHostName             = "LISTEN_HOSTNAME"
 	KeyListenPort                 = "LISTEN_PORT"
@@ -76,7 +79,7 @@ func loadKeyFromEnv(name, def string) string {
 	return def
 }
 
-func Load(e EnvType) *Configuration {
+func Load(e EnvType, wait time.Duration) *Configuration {
 	c := &Default
 	configs := []string{
 		".env",
@@ -115,6 +118,10 @@ func Load(e EnvType) *Configuration {
 		fallthrough
 	default:
 		c.LogLevel = log.InfoLevel
+	}
+	c.TimeOut = wait
+	if to, _ := time.ParseDuration(loadKeyFromEnv(KeyTimeOut, "")); to > 0 {
+		c.TimeOut = to
 	}
 	c.Env = EnvType(os.Getenv("ENV"))
 	c.HostName = loadKeyFromEnv(KeyHostname, "")

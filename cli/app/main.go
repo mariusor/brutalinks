@@ -120,12 +120,13 @@ func SetupHttpServer(ctx context.Context, conf config.Configuration, m http.Hand
 }
 
 // Run is the wrapper for starting the web-server and handling signals
-func Run(a app.Application, wait time.Duration) {
+func Run(a app.Application) {
 	a.Logger.WithContext(log.Ctx{
-		"listen": a.Conf.Listen(),
-		"host":   a.Conf.HostName,
-		"env":    a.Conf.Env,
-		"https":  a.Conf.Secure,
+		"listen":  a.Conf.Listen(),
+		"host":    a.Conf.HostName,
+		"env":     a.Conf.Env,
+		"https":   a.Conf.Secure,
+		"timeout": a.Conf.TimeOut,
 	}).Info("Started")
 
 	srvStart, srvShutdown := SetupHttpServer(context.Background(), *a.Conf, a.Mux)
@@ -143,7 +144,7 @@ func Run(a app.Application, wait time.Duration) {
 	sigHandlerFns := signalHandlers{
 		syscall.SIGHUP: func(x *exit, s os.Signal) {
 			a.Logger.Info("SIGHUP received, reloading configuration")
-			a.Conf = config.Load(a.Conf.Env)
+			a.Conf = config.Load(a.Conf.Env, a.Conf.TimeOut)
 		},
 		syscall.SIGUSR1: func(x *exit, s os.Signal) {
 			a.Logger.Info("SIGUSR1 received, switching to maintenance mode")
@@ -184,7 +185,7 @@ func main() {
 	flag.StringVar(&env, "env", "unknown", "the environment type")
 	flag.Parse()
 
-	c := config.Load(config.EnvType(env))
+	c := config.Load(config.EnvType(env), wait)
 	errors.IncludeBacktrace = c.Env.IsDev()
 
 	// Routes
@@ -195,6 +196,6 @@ func main() {
 		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	}
 
-	a := app.New(c, host, port,  version, r)
-	Run(a, wait)
+	a := app.New(c, host, port, version, r)
+	Run(a)
 }
