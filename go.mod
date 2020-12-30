@@ -7,10 +7,10 @@ require (
 	github.com/andybalholm/brotli v1.0.1 // indirect
 	github.com/buger/jsonparser v1.1.0 // indirect
 	github.com/captncraig/cors v0.0.0-20190703115713-e80254a89df1 // indirect
-	github.com/go-ap/activitypub v0.0.0-20201228165347-b1c270db5375
-	github.com/go-ap/client v0.0.0-20201128124038-ecde09fcd6ee
+	github.com/go-ap/activitypub v0.0.0-20201230131902-22a1b093fa24
+	github.com/go-ap/client v0.0.0-20201230132048-10ac27244ee3
 	github.com/go-ap/errors v0.0.0-20200702155720-f662512ba418
-	github.com/go-ap/handlers v0.0.0-20201128125041-9511d3bc0b53
+	github.com/go-ap/handlers v0.0.0-20201230132336-8007b20a294e
 	github.com/go-ap/jsonld v0.0.0-20200327122108-fafac2de2660
 	github.com/go-chi/chi v4.0.4+incompatible
 	github.com/google/uuid v1.0.0
