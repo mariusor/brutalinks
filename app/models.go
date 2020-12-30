@@ -152,7 +152,11 @@ func (m *contentModel) SetCursor(c *Cursor) {
 	if m.Content != nil {
 		if it, ok := m.Content.(*Item); ok {
 			if it.Private() {
-				m.Message.SubmitLabel = htmlf("%s Reply", icon("lock"))
+				lbl := "Reply"
+				if m.Message.Editable {
+					lbl = "Edit"
+				}
+				m.Message.SubmitLabel = htmlf("%s %s", icon("lock"), lbl)
 			}
 		}
 		m.Message.Back = PermaLink(m.Content)
