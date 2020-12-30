@@ -9,6 +9,7 @@ import (
 	"github.com/mariusor/go-littr/internal/log"
 	"io/ioutil"
 	golog "log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -24,7 +25,7 @@ import (
 var version = "HEAD"
 
 const defaultPort = config.DefaultListenPort
-const defaultTimeout = time.Second * 15
+const defaultTimeout = time.Second * 5
 
 type exit struct {
 	// signal is a channel which is waiting on user/os signals
@@ -77,9 +78,15 @@ func SetupHttpServer(ctx context.Context, conf config.Configuration, m http.Hand
 	}
 
 	srv = &http.Server{
-		Addr:     conf.Listen(),
-		Handler:  m,
-		ErrorLog: golog.New(ioutil.Discard, "", 0),
+		Addr:              conf.Listen(),
+		Handler:           m,
+		ErrorLog:          golog.New(ioutil.Discard, "", 0),
+		ReadHeaderTimeout: conf.TimeOut/20,
+		WriteTimeout:      conf.TimeOut,
+		ConnContext:       func(ctx context.Context, c net.Conn) context.Context {
+			ctx, _ = context.WithCancel(ctx)
+			return ctx
+		},
 	}
 	if conf.Secure && fileExists(conf.CertPath) && fileExists(conf.KeyPath) {
 		srv.TLSConfig = &tls.Config{
@@ -129,8 +136,12 @@ func Run(a app.Application) {
 		"timeout": a.Conf.TimeOut,
 	}).Info("Started")
 
-	srvStart, srvShutdown := SetupHttpServer(context.Background(), *a.Conf, a.Mux)
-	defer srvShutdown()
+	ctx, cancelFn := context.WithCancel(context.TODO())
+	srvStart, srvShutdown := SetupHttpServer(ctx, *a.Conf, a.Mux)
+	defer func() {
+		cancelFn()
+		srvShutdown()
+	}()
 
 	// Run our server in a goroutine so that it doesn't block.
 	go func() {
