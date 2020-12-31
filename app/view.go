@@ -321,6 +321,9 @@ func (v *view) RedirectToErrors(w http.ResponseWriter, r *http.Request, errs ...
 	if refURLs, ok := r.Header["Referer"]; ok {
 		backURL = refURLs[0]
 	}
+	if strings.Contains(backURL, r.RequestURI) {
+		backURL = "/"
+	}
 
 	for _, err := range errs {
 		if err == nil {
@@ -329,6 +332,7 @@ func (v *view) RedirectToErrors(w http.ResponseWriter, r *http.Request, errs ...
 		v.addFlashMessage(Error, w, r, err.Error())
 	}
 
+	v.infoFn(log.Ctx{"URL": backURL})("redirecting")
 	v.Redirect(w, r, backURL, http.StatusFound)
 }
 
