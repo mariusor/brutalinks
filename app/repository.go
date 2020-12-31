@@ -295,7 +295,6 @@ func loadAPItem(it pub.Item, item Item) error {
 					t := pub.Object{
 						URL:  pub.ID(tag.URL),
 						To:   pub.ItemCollection{pub.PublicNS},
-						Type: pub.ObjectType,
 						Name: pub.NaturalLanguageValues{{Ref: pub.NilLangRef, Value: pub.Content(tag.Name)}},
 					}
 					o.Tag.Append(t)
@@ -687,11 +686,10 @@ func (r *repository) loadAccountVotes(ctx context.Context, acc *Account, items I
 		return nil
 	}
 	f := &Filters{
-		Object: &Filters{},
+		Object: &Filters{
+			IRI: ItemHashFilter(items...),
+		},
 		Type:   AppreciationActivitiesFilter,
-	}
-	for _, it := range items {
-		f.Object.IRI = append(f.Object.IRI, LikeString(it.Hash.String()))
 	}
 	collFn := func(ctx context.Context, f *Filters) (pub.CollectionInterface, error) {
 		return r.fedbox.Outbox(ctx, acc.pub, Values(f))
@@ -748,6 +746,36 @@ func EqualsString(s string) CompStr {
 	return CompStr{Operator: "=", Str: s}
 }
 
+func ItemHashFilter(items ...Item) CompStrs {
+	filter := make(CompStrs, 0)
+	for _, it := range items {
+		if !it.Hash.IsValid() {
+			continue
+		}
+		hash := LikeString(it.Hash.String())
+		if len(hash.Str) == 0 || filter.Contains(hash) {
+			continue
+		}
+		filter = append(filter, hash)
+	}
+	return filter
+}
+
+func AccountHashFilter(accounts ...Account) CompStrs {
+	filter := make(CompStrs, 0)
+	for _, ac := range accounts {
+		if !ac.Hash.IsValid() {
+			continue
+		}
+		hash := LikeString(ac.Hash.String())
+		if len(hash.Str) == 0 || filter.Contains(hash) {
+			continue
+		}
+		filter = append(filter, hash)
+	}
+	return filter
+}
+
 func ActivityTypesFilter(t ...pub.ActivityVocabularyType) CompStrs {
 	r := make(CompStrs, len(t))
 	for i, typ := range t {
@@ -762,17 +790,8 @@ func (r *repository) loadAccountsAuthors(ctx context.Context, accounts ...Accoun
 	}
 	fActors := Filters{
 		Type: ActivityTypesFilter(ValidActorTypes...),
+		IRI:  AccountHashFilter(accounts...),
 	}
-	for _, ac := range accounts {
-		if !ac.CreatedBy.IsValid() {
-			continue
-		}
-		hash := LikeString(ac.CreatedBy.Hash.String())
-		if len(hash.Str) > 0 && !fActors.IRI.Contains(hash) {
-			fActors.IRI = append(fActors.IRI, hash)
-		}
-	}
-
 	if len(fActors.IRI) == 0 {
 		return accounts, errors.Errorf("unable to load accounts authors")
 	}
@@ -802,17 +821,15 @@ func (r *repository) loadFollowsAuthors(ctx context.Context, items ...FollowRequ
 	if len(items) == 0 {
 		return items, nil
 	}
+	submitters := make(AccountCollection, 0)
+	for _, it := range items {
+		if sub := *it.SubmittedBy; sub.IsValid() && !submitters.Contains(sub) {
+			submitters = append(submitters, sub)
+		}
+	}
 	fActors := Filters{
 		Type: ActivityTypesFilter(ValidActorTypes...),
-	}
-	for _, it := range items {
-		if !it.SubmittedBy.IsValid() {
-			continue
-		}
-		hash := LikeString(it.SubmittedBy.Hash.String())
-		if len(hash.Str) > 0 && !fActors.IRI.Contains(hash) {
-			fActors.IRI = append(fActors.IRI, hash)
-		}
+		IRI: AccountHashFilter(submitters...),
 	}
 
 	if len(fActors.IRI) == 0 {
@@ -968,20 +985,22 @@ func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemC
 			// Adding an item's recipients list (To and CC) to the list of accounts we want to load from the ActivityPub API
 			if len(it.Metadata.To) > 0 {
 				for _, to := range it.Metadata.To {
-					hash := LikeString(to.Hash.String())
-					if len(hash.Str) == 0 || fActors.IRI.Contains(hash) {
+					if !to.Hash.IsValid() {
 						continue
 					}
-					fActors.IRI = append(fActors.IRI, hash)
+					if hash := LikeString(to.Hash.String()); !fActors.IRI.Contains(hash) {
+						fActors.IRI = append(fActors.IRI, hash)
+					}
 				}
 			}
 			if len(it.Metadata.CC) > 0 {
 				for _, cc := range it.Metadata.CC {
-					hash := LikeString(cc.Hash.String())
-					if len(hash.Str) == 0 || fActors.IRI.Contains(hash) {
+					if !cc.Hash.IsValid() {
 						continue
 					}
-					fActors.IRI = append(fActors.IRI, hash)
+					if hash := LikeString(cc.Hash.String()); !fActors.IRI.Contains(hash) {
+						fActors.IRI = append(fActors.IRI, hash)
+					}
 				}
 			}
 		}
@@ -2128,7 +2147,7 @@ func (r repository) moderationActivity(ctx context.Context, er *pub.Actor, ed pu
 	pub.OnObject(ed, func(o *pub.Object) error {
 		if o.AttributedTo != nil {
 			auth, err := r.fedbox.Actor(ctx, o.AttributedTo.GetLink())
-			if err == nil && auth.AttributedTo != nil &&
+			if err == nil && auth != nil && auth.AttributedTo != nil &&
 				!(auth.AttributedTo.GetLink().Equals(auth.GetLink(), false) || auth.AttributedTo.GetLink().Equals(pub.PublicNS, true)) {
 				cc = append(cc, auth.AttributedTo.GetLink())
 			}

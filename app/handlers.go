@@ -229,10 +229,10 @@ func (h *handler) HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
 	follower := followers[0]
 	ff := &Filters{
 		Actor: &Filters{
-			IRI: CompStrs{LikeString(follower.Hash.String())},
+			IRI: AccountHashFilter(*follower),
 		},
 		Object: &Filters{
-			IRI: CompStrs{LikeString(loggedAccount.Hash.String())},
+			IRI: AccountHashFilter(*loggedAccount),
 		},
 	}
 	// todo(marius): load response reason from POST request so we can show it to the followed user
