@@ -978,41 +978,28 @@ func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemC
 	fActors := Filters{
 		Type: ActivityTypesFilter(ValidActorTypes...),
 	}
+
+	accounts := make(AccountCollection, 0)
 	for _, it := range items {
 		if it.SubmittedBy.IsValid() {
 			// Adding an item's author to the list of accounts we want to load from the ActivityPub API
-			hash := LikeString(it.SubmittedBy.Hash.String())
-			if len(hash.Str) > 0 && !fActors.IRI.Contains(hash) {
-				fActors.IRI = append(fActors.IRI, hash)
-			}
+			accounts = append(accounts, *it.SubmittedBy)
 		}
 		if it.HasMetadata() {
 			// Adding an item's recipients list (To and CC) to the list of accounts we want to load from the ActivityPub API
 			if len(it.Metadata.To) > 0 {
-				for _, to := range it.Metadata.To {
-					if !to.Hash.IsValid() {
-						continue
-					}
-					if hash := LikeString(to.Hash.String()); !fActors.IRI.Contains(hash) {
-						fActors.IRI = append(fActors.IRI, hash)
-					}
-				}
+				accounts = append(accounts, it.Metadata.To...)
 			}
 			if len(it.Metadata.CC) > 0 {
-				for _, cc := range it.Metadata.CC {
-					if !cc.Hash.IsValid() {
-						continue
-					}
-					if hash := LikeString(cc.Hash.String()); !fActors.IRI.Contains(hash) {
-						fActors.IRI = append(fActors.IRI, hash)
-					}
-				}
+				accounts = append(accounts, it.Metadata.CC...)
 			}
 		}
 	}
-
-	if len(fActors.IRI) == 0 {
-		return items, nil
+	if len(accounts) > 0 {
+		fActors.IRI = AccountHashFilter(accounts...)
+		if len(fActors.IRI) == 0 {
+			return items, nil
+		}
 	}
 	authors, err := r.accounts(ctx, &fActors)
 	if err != nil {
