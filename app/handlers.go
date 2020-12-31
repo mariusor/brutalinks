@@ -446,10 +446,7 @@ func (h *handler) HandleSendInvite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	invitee, err := h.storage.SaveAccount(context.TODO(), Account{
-		Email:     email,
-		CreatedBy: acc,
-	})
+	invitee, err := h.storage.SaveAccount(context.TODO(), Account{ CreatedBy: acc })
 
 	if err != nil {
 		h.v.HandleErrors(w, r, errors.NewBadRequest(err, "unable to save account"))
@@ -468,10 +465,10 @@ func (h *handler) HandleSendInvite(w http.ResponseWriter, r *http.Request) {
 		Body    string `qstring:body`
 	}{
 		Subject: fmt.Sprintf("You are invited to join %s", h.conf.HostName),
-		Body:    fmt.Sprintf(bodyFmt, invitee.Email, h.conf.HostName, h.conf.BaseURL, u, acc.Handle),
+		Body:    fmt.Sprintf(bodyFmt, email, h.conf.HostName, h.conf.BaseURL, u, acc.Handle),
 	}
 	q, _ := qstring.Marshal(&mailContent)
-	h.v.Redirect(w, r, fmt.Sprintf("mailto:%s?%s", invitee.Email, q), http.StatusSeeOther)
+	h.v.Redirect(w, r, fmt.Sprintf("mailto:%s?%s", email, q), http.StatusSeeOther)
 	return
 }
 

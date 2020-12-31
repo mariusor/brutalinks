@@ -54,7 +54,6 @@ type AccountMetadata struct {
 type AccountCollection []Account
 
 type Account struct {
-	Email     string               `json:"-"`
 	Hash      Hash                 `json:"hash,omitempty"`
 	Handle    string               `json:"handle,omitempty"`
 	CreatedAt time.Time            `json:"-"`

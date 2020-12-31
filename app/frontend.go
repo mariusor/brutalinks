@@ -321,9 +321,6 @@ func loadAccountData(a *Account, b Account) {
 	if a.Hash != b.Hash {
 		return
 	}
-	if len(a.Email) == 0 && len(b.Email) > 0 {
-		a.Email = b.Email
-	}
 	if len(a.Handle) == 0 && len(b.Handle) > 0 {
 		a.Handle = b.Handle
 	}

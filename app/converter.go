@@ -3,7 +3,6 @@ package app
 import (
 	"encoding/base64"
 	"encoding/pem"
-	"fmt"
 	"github.com/go-ap/handlers"
 	"github.com/microcosm-cc/bluemonday"
 	"net/url"
@@ -54,11 +53,6 @@ func FromObject(a *Account, o *pub.Object) error {
 			return iconMetadataFromObject(&a.Metadata.Icon, o)
 		})
 	}
-	if a.Email == "" {
-		// @TODO(marius): this returns false positives when API_URL is set and different than
-		host := host(a.Metadata.URL)
-		a.Email = fmt.Sprintf("%s@%s", a.Handle, host)
-	}
 	if o.GetType() == pub.TombstoneType {
 		a.Handle = Anonymous
 		a.Flags = a.Flags & FlagsDeleted
@@ -101,11 +95,6 @@ func FromActor(a *Account, p *pub.Actor) error {
 			return iconMetadataFromObject(&a.Metadata.Icon, o)
 		})
 	}
-	if a.Email == "" {
-		// @TODO(marius): this returns false positives when API_URL is set and different than
-		host := host(a.Metadata.URL)
-		a.Email = fmt.Sprintf("%s@%s", a.Handle, host)
-	}
 	if p.GetType() == pub.TombstoneType {
 		a.Handle = Anonymous
 		a.Flags = a.Flags & FlagsDeleted
@@ -125,10 +114,6 @@ func FromActor(a *Account, p *pub.Actor) error {
 		pName = p.Name.First().Value
 	}
 	a.Handle = pName.String()
-	if len(a.Metadata.URL) > 0 {
-		host := host(a.Metadata.URL)
-		a.Email = fmt.Sprintf("%s@%s", a.Handle, host)
-	}
 	if p.Inbox != nil {
 		a.Metadata.InboxIRI = p.Inbox.GetLink().String()
 	}
