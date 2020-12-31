@@ -400,7 +400,7 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 				acc = AnonymousAccount
 				h.errFn(ltx)("actor not found")
 			} else {
-				loadAccountData(&acc, *accounts[0])
+				loadAccountData(&acc, accounts[0])
 			}
 
 			h.storage.WithAccount(&acc)

@@ -805,8 +805,8 @@ func (r *repository) loadAccountsAuthors(ctx context.Context, accounts ...Accoun
 			if !auth.IsValid() {
 				continue
 			}
-			if accountsEqual(*ac.CreatedBy, *auth) {
-				accounts[k].CreatedBy = authors[i]
+			if accountsEqual(*ac.CreatedBy, auth) {
+				accounts[k].CreatedBy = &authors[i]
 				found = true
 			}
 		}
@@ -844,8 +844,8 @@ func (r *repository) loadFollowsAuthors(ctx context.Context, items ...FollowRequ
 			if !auth.IsValid() {
 				continue
 			}
-			if accountsEqual(*it.SubmittedBy, *auth) {
-				items[k].SubmittedBy = authors[i]
+			if accountsEqual(*it.SubmittedBy, auth) {
+				items[k].SubmittedBy = &authors[i]
 			}
 		}
 	}
@@ -943,11 +943,11 @@ func (r *repository) loadModerationDetails(ctx context.Context, items ...Moderat
 			if !auth.IsValid() {
 				continue
 			}
-			if accountsEqual(*it.SubmittedBy, *auth) {
-				it.SubmittedBy = authors[i]
+			if accountsEqual(*it.SubmittedBy, auth) {
+				it.SubmittedBy = &authors[i]
 			}
 			if it.Object != nil && it.Object.AP().GetLink().Equals(auth.pub.GetLink(), false) {
-				it.Object = authors[i]
+				it.Object = &authors[i]
 			}
 		}
 		items[k].Object = it
@@ -1021,10 +1021,10 @@ func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemC
 				continue
 			}
 			if it.SubmittedBy.IsValid() && it.SubmittedBy.Hash == auth.Hash {
-				it.SubmittedBy = auth
+				it.SubmittedBy = &auth
 			}
 			if it.UpdatedBy.IsValid() && it.UpdatedBy.Hash == auth.Hash {
-				it.UpdatedBy = auth
+				it.UpdatedBy = &auth
 			}
 			if !it.HasMetadata() {
 				continue
@@ -1152,11 +1152,11 @@ func LoadFromCollection(ctx context.Context, loadColFn CollectionFn, cur *colCur
 	return err
 }
 
-func (r *repository) accounts(ctx context.Context, ff ...*Filters) ([]*Account, error) {
+func (r *repository) accounts(ctx context.Context, ff ...*Filters) ([]Account, error) {
 	actors := func(ctx context.Context, f *Filters) (pub.CollectionInterface, error) {
 		return r.fedbox.Actors(ctx, Values(f))
 	}
-	accounts := make([]*Account, 0)
+	accounts := make([]Account, 0)
 	// TODO(marius): see how we can use the context returned by errgroup.WithContext()
 	g, _ := errgroup.WithContext(ctx)
 	for _, f := range ff {
@@ -1166,7 +1166,7 @@ func (r *repository) accounts(ctx context.Context, ff ...*Filters) ([]*Account, 
 					if !it.IsObject() || !ValidActorTypes.Contains(it.GetType()) {
 						continue
 					}
-					a := new(Account)
+					a := Account{}
 					if err := a.FromActivityPub(it); err == nil && a.IsValid() {
 						accounts = append(accounts, a)
 					}
@@ -1430,8 +1430,8 @@ func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, ff ..
 					if !d.IsValid() {
 						continue
 					}
-					if !accounts.Contains(*d) {
-						accounts = append(accounts, *d)
+					if !accounts.Contains(d) {
+						accounts = append(accounts, d)
 					}
 				}
 			}
@@ -2070,7 +2070,7 @@ func (r *repository) LoadInfo() (WebInfo, error) {
 	return Instance.NodeInfo(), nil
 }
 
-func (r *repository) LoadAccountWithDetails(ctx context.Context, actor *Account, f ...*Filters) (*Cursor, error) {
+func (r *repository) LoadAccountWithDetails(ctx context.Context, actor Account, f ...*Filters) (*Cursor, error) {
 	c, err := r.LoadActorOutbox(ctx, actor.pub, f...)
 	if err != nil {
 		return c, err

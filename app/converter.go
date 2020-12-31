@@ -426,8 +426,8 @@ func FromArticle(i *Item, a *pub.Object) error {
 	return nil
 }
 
-func loadRecipientsFrom(recipients pub.ItemCollection) ([]*Account, bool) {
-	result := make([]*Account, 0)
+func loadRecipientsFrom(recipients pub.ItemCollection) ([]Account, bool) {
+	result := make([]Account, 0)
 	isPublic := false
 	for _, rec := range recipients {
 		if rec == pub.PublicNS {
@@ -445,12 +445,12 @@ func loadRecipientsFrom(recipients pub.ItemCollection) ([]*Account, bool) {
 					ID: rec.GetLink().String(),
 				},
 			}
-			result = append(result, &acc)
+			result = append(result, acc)
 		} else {
 			acc := Account{}
 			acc.FromActivityPub(rec)
 			if acc.IsValid() {
-				result = append(result, &acc)
+				result = append(result, acc)
 			}
 		}
 	}

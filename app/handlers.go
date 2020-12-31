@@ -45,9 +45,9 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 			n.Parent = getFromList(n.Parent.Hash, c.items)
 		}
 		if len(n.Metadata.To) == 0 {
-			n.Metadata.To = make([]*Account, 0)
+			n.Metadata.To = make([]Account, 0)
 		}
-		n.Metadata.To = append(n.Metadata.To, n.Parent.SubmittedBy)
+		n.Metadata.To = append(n.Metadata.To, *n.Parent.SubmittedBy)
 		if n.Parent.Private() {
 			n.MakePrivate()
 			saveVote = false
@@ -193,7 +193,7 @@ func (h *handler) FollowAccount(w http.ResponseWriter, r *http.Request) {
 	}
 	fol := toFollow[0]
 	// todo(marius): load follow reason from POST request so we can show it to the followed user
-	err = repo.FollowAccount(context.TODO(), *loggedAccount, *fol, nil)
+	err = repo.FollowAccount(context.TODO(), *loggedAccount, fol, nil)
 	if err != nil {
 		h.v.HandleErrors(w, r, err)
 		return
@@ -201,7 +201,7 @@ func (h *handler) FollowAccount(w http.ResponseWriter, r *http.Request) {
 		loggedAccount.Following = loggedAccount.Following[:0]
 		h.v.saveAccountToSession(w, r, *loggedAccount)
 	}
-	h.v.Redirect(w, r, AccountPermaLink(fol), http.StatusSeeOther)
+	h.v.Redirect(w, r, AccountPermaLink(&fol), http.StatusSeeOther)
 }
 
 func (h *handler) HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
@@ -229,7 +229,7 @@ func (h *handler) HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
 	follower := followers[0]
 	ff := &Filters{
 		Actor: &Filters{
-			IRI: AccountHashFilter(*follower),
+			IRI: AccountHashFilter(follower),
 		},
 		Object: &Filters{
 			IRI: AccountHashFilter(*loggedAccount),
@@ -621,7 +621,7 @@ func (h *handler) BlockAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	block := toBlock[0]
-	err = repo.BlockAccount(context.TODO(), *loggedAccount, *block, &reason)
+	err = repo.BlockAccount(context.TODO(), *loggedAccount, block, &reason)
 	if err != nil {
 		h.v.HandleErrors(w, r, err)
 		return
@@ -629,7 +629,7 @@ func (h *handler) BlockAccount(w http.ResponseWriter, r *http.Request) {
 		loggedAccount.Blocked = loggedAccount.Blocked[:0]
 		h.v.saveAccountToSession(w, r, *loggedAccount)
 	}
-	h.v.Redirect(w, r, PermaLink(block), http.StatusSeeOther)
+	h.v.Redirect(w, r, PermaLink(&block), http.StatusSeeOther)
 }
 
 // BlockItem processes a block request received at /~{handle}/{hash}/block
@@ -697,13 +697,13 @@ func (h *handler) ReportAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	p := byHandleAccounts[0]
-	err = repo.ReportAccount(context.TODO(), *loggedAccount, *p, &reason)
+	err = repo.ReportAccount(context.TODO(), *loggedAccount, p, &reason)
 	if err != nil {
 		h.errFn()("Error: %s", err)
 		h.v.HandleErrors(w, r, errors.NewNotFound(err, "not found"))
 		return
 	}
-	url := AccountPermaLink(p)
+	url := AccountPermaLink(&p)
 
 	backUrl := r.Header.Get("Referer")
 	if !strings.Contains(backUrl, url) && strings.Contains(backUrl, Instance.BaseURL) {

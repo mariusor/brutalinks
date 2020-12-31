@@ -216,7 +216,7 @@ func AccountListingModelMw(next http.Handler) http.Handler {
 		}
 		auth := authors[0]
 		if len(authors) > 0 && auth.IsValid() {
-			m.User = auth
+			m.User = &auth
 		}
 		m.Title = fmt.Sprintf("%s submissions", genitive(auth.Handle))
 		ctx := context.WithValue(r.Context(), ModelCtxtKey, m)
@@ -319,12 +319,12 @@ func ReportAccountModelMw(next http.Handler) http.Handler {
 			return
 		}
 		auth := authors[0]
-		m.Content.Object = auth
+		m.Content.Object = &auth
 		m.Hash = auth.Hash
 		m.Title = fmt.Sprintf("Report %s", auth.Handle)
 		m.Message.Label = fmt.Sprintf("Report %s:", auth.Handle)
 		m.Title = "Report account"
-		m.Message.Back = PermaLink(auth)
+		m.Message.Back = PermaLink(&auth)
 		next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, ModelCtxtKey, m)))
 	})
 }
@@ -355,10 +355,10 @@ func BlockAccountModelMw(next http.Handler) http.Handler {
 			return
 		}
 		auth := authors[0]
-		m.Content.Object = auth
+		m.Content.Object = &auth
 		m.Title = fmt.Sprintf("Block %s", auth.Handle)
 		m.Message.Label = fmt.Sprintf("Block %s:", auth.Handle)
-		m.Message.Back = PermaLink(auth)
+		m.Message.Back = PermaLink(&auth)
 		next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, ModelCtxtKey, m)))
 	})
 }
@@ -392,7 +392,7 @@ func MessageUserContentModelMw(next http.Handler) http.Handler {
 		m.Title = fmt.Sprintf("Send user %s private message", auth.Handle)
 		m.Message.Editable = true
 		m.Message.Label = fmt.Sprintf("Message %s:", auth.Handle)
-		m.Message.Back = PermaLink(auth)
+		m.Message.Back = PermaLink(&auth)
 		m.Message.SubmitLabel = htmlf("%s Send", icon("lock"))
 		next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, ModelCtxtKey, m)))
 	})

@@ -13,17 +13,17 @@ import (
 )
 
 type ItemMetadata struct {
-	To         []*Account    `json:"to,omitempty"`
-	CC         []*Account    `json:"to,omitempty"`
-	Tags       TagCollection `json:"tags,omitempty"`
-	Mentions   TagCollection `json:"mentions,omitempty"`
-	ID         string        `json:"id,omitempty"`
-	URL        string        `json:"url,omitempty"`
-	RepliesURI string        `json:"replies,omitempty"`
-	LikesURI   string        `json:"likes,omitempty"`
-	SharesURI  string        `json:"shares,omitempty"`
-	AuthorURI  string        `json:"author,omitempty"`
-	Icon       ImageMetadata `json:"icon,omitempty"`
+	To         AccountCollection `json:"to,omitempty"`
+	CC         AccountCollection `json:"to,omitempty"`
+	Tags       TagCollection     `json:"tags,omitempty"`
+	Mentions   TagCollection     `json:"mentions,omitempty"`
+	ID         string            `json:"id,omitempty"`
+	URL        string            `json:"url,omitempty"`
+	RepliesURI string            `json:"replies,omitempty"`
+	LikesURI   string            `json:"likes,omitempty"`
+	SharesURI  string            `json:"shares,omitempty"`
+	AuthorURI  string            `json:"author,omitempty"`
+	Icon       ImageMetadata     `json:"icon,omitempty"`
 }
 
 type Identifiable interface {
@@ -128,7 +128,7 @@ func ContentFromRequest(r *http.Request, author Account) (Item, error) {
 		return Item{}, errors.Errorf("invalid http method type")
 	}
 
-	var receivers []*Account
+	var receivers []Account
 	var err error
 	i := Item{}
 	i.Metadata = &ItemMetadata{}
