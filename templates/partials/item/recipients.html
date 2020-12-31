@@ -3,13 +3,13 @@
 {{ if gt (len .Metadata.To) 0 -}}
     <dt>To:</dt>
 {{- range $it := .Metadata.To }}
-    <dd><a rel="mention" href="{{ $it | AccountPermaLink }}">{{ $it | ShowAccountHandle }}</a></dd>
+    <dd><a rel="mention" href="{{ $it | PermaLink }}">{{ $it | ShowAccountHandle }}</a></dd>
 {{ end -}}
 {{- end }}
 {{ if gt (len .Metadata.CC) 0 -}}
     <dt>CC:</dt>
 {{- range $it := .Metadata.CC }}
-    <dd><a rel="mention" href="{{ $it | AccountPermaLink }}">{{ $it | ShowAccountHandle }}</a></dd>
+    <dd><a rel="mention" href="{{ $it | PermaLink }}">{{ $it | ShowAccountHandle }}</a></dd>
 {{ end -}}
 {{- end }}
 </dl></nav>

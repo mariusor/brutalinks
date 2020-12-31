@@ -2,9 +2,9 @@
 {{- $it := . -}}
 <footer class="meta">
 <small>submitted{{ if not .Deleted}}{{- if ShowUpdate $it }}<time class="updated-at" datetime="{{ $it.UpdatedAt | ISOTimeFmt | html }}" title="updated at {{ $it.UpdatedAt | ISOTimeFmt }}"><sup>&#10033;</sup></time> {{- end }} <time class="submitted-at" datetime="{{ $it.SubmittedAt | ISOTimeFmt | html }}" title="{{ $it.SubmittedAt | ISOTimeFmt }}">{{ icon "clock-o" }}{{ $it.SubmittedAt | TimeFmt }}</time>{{- end -}}
-    {{- if and (ne current "user") $it.SubmittedBy.IsValid }} by <a rel="mention" href="{{ $it.SubmittedBy | AccountPermaLink }}">{{ $it.SubmittedBy | ShowAccountHandle }}</a>{{end}}</small>
+    {{- if and (ne current "user") $it.SubmittedBy.IsValid }} by <a rel="mention" href="{{ $it.SubmittedBy | PermaLink }}">{{ $it.SubmittedBy | ShowAccountHandle }}</a>{{end}}</small>
     <nav><ul>
-            {{- $link := (ItemLocalLink $it) -}}
+            {{- $link := (PermaLink $it) -}}
             {{- if not (sameBase req.URL.Path $link) -}}
                 {{- if eq current "content" }}
                     <li><small><a href="{{$link}}" rel="bookmark" title="Reply{{if .Title}}: {{$it.Title }}{{end}}">{{ if $it.Private }}{{icon "lock"}} {{ end -}} reply</a></small></li>
@@ -29,14 +29,14 @@
             {{- if and CurrentAccount.IsValid $it.SubmittedBy.IsValid -}}
                 {{- if (sameHash $it.SubmittedBy.Hash CurrentAccount.Hash) }}
                     {{- if not .Deleted }}
-                        <li><small><a href="{{$it | ItemLocalLink }}/edit" title="Edit{{if .Title}}: {{$it.Title }}{{end}}">{{/*icon "edit"*/}}edit</a></small></li>
-                        <li><small><a href="{{$it | ItemLocalLink }}/rm" class="rm" data-hash="{{ .Hash }}" title="Remove{{if .Title}}: {{$it.Title }}{{end}}">{{/*icon "eraser"*/}}rm</a></small></li>
+                        <li><small><a href="{{$it | PermaLink }}/edit" title="Edit{{if .Title}}: {{$it.Title }}{{end}}">{{/*icon "edit"*/}}edit</a></small></li>
+                        <li><small><a href="{{$it | PermaLink }}/rm" class="rm" data-hash="{{ .Hash }}" title="Remove{{if .Title}}: {{$it.Title }}{{end}}">{{/*icon "eraser"*/}}rm</a></small></li>
                     {{ end -}}
                 {{- else -}}
                 {{ if Config.ModerationEnabled }}
                 <li><small>
                 {{- if ItemReported $it }}reported{{- else -}}
-                <a href="{{$it | ItemLocalLink }}/bad" title="Report{{if .Title}}: {{$it.Title }}{{end}}"> <!--{{ icon "flag"}}-->report</a>{{- end -}}
+                <a href="{{$it | PermaLink }}/bad" title="Report{{if .Title}}: {{$it.Title }}{{end}}"> <!--{{ icon "flag"}}-->report</a>{{- end -}}
                 </small></li>{{ end }}
             {{ end -}}
             {{ end -}}

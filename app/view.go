@@ -182,10 +182,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"Markdown":              Markdown,
 			"replaceTags":           replaceTags,
 			"AccountLocalLink":      AccountLocalLink,
-			"AccountPermaLink":      AccountPermaLink,
 			"ShowAccountHandle":     ShowAccountHandle,
-			"ItemLocalLink":         ItemLocalLink,
-			"ItemPermaLink":         PermaLink,
 			"PermaLink":             PermaLink,
 			"ParentLink":            parentLink,
 			"OPLink":                opLink,
@@ -994,7 +991,7 @@ func PermaLink(r Renderable) string {
 
 // ItemLocalLink
 func ItemLocalLink(i *Item) string {
-	if i.SubmittedBy.Handle == Anonymous || i.SubmittedBy.Handle == "" {
+	if i.SubmittedBy == nil || i.SubmittedBy.Handle == Anonymous || i.SubmittedBy.Handle == "" {
 		// @todo(marius) :link_generation:
 		return path.Join("/i", i.Hash.String())
 	}

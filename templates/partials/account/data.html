@@ -1,5 +1,5 @@
 {{- if gt (len .Handle) 0 }}
-<a href="{{ AccountPermaLink . }}">
+<a href="{{ PermaLink . }}">
     {{- if .HasIcon -}}{{- Avatar .Metadata.Icon.MimeType .Metadata.Icon.URI -}}{{- else -}}{{- icon "user" "avatar" -}}{{- end -}}
     {{- .Handle -}}
 </a>

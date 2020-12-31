@@ -15,7 +15,7 @@
 {{- if $account.IsLogged }}
 {{ $score := $account.Votes.Score}}
     <li>
-        <a rel="mention" href="{{ $account | AccountPermaLink }}">{{$account.Handle}}</a>
+        <a rel="mention" href="{{ $account | PermaLink }}">{{$account.Handle}}</a>
         <small><data class="score {{ $score | ScoreClass -}}" value="{{$score | NumberFmt }}">{{$account.Votes.Score | ScoreFmt}}</data></small>
     </li>
     <li><a href="/logout">Log out</a></li>
