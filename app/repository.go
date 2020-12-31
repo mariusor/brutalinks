@@ -939,33 +939,51 @@ func (r *repository) loadModerationDetails(ctx context.Context, items ...Moderat
 		}
 	}
 	for k, g := range items {
-		it, ok := g.Object.(*ModerationOp)
-		if !ok {
-			continue
+		if it, ok := g.Object.(*ModerationOp); ok {
+			for i, auth := range authors {
+				if accountsEqual(*it.SubmittedBy, auth) {
+					it.SubmittedBy = &authors[i]
+				}
+				if it.Object != nil && it.Object.AP().GetLink().Equals(auth.pub.GetLink(), false) {
+					it.Object = &authors[i]
+				}
+			}
+			for i, obj := range objects {
+				if it.Object != nil && it.Object.AP().GetLink().Equals(obj.pub.GetLink(), false) {
+					it.Object = &(objects[i])
+				}
+			}
+			items[k].Object = it
 		}
-		for i, auth := range authors {
-			if !auth.IsValid() {
-				continue
+		if it, ok := g.Object.(*Account); ok {
+			for i, auth := range authors {
+				if accountsEqual(*it, auth) {
+					it = &authors[i]
+				}
 			}
-			if accountsEqual(*it.SubmittedBy, auth) {
-				it.SubmittedBy = &authors[i]
-			}
-			if it.Object != nil && it.Object.AP().GetLink().Equals(auth.pub.GetLink(), false) {
-				it.Object = &authors[i]
-			}
+			items[k].Object = it
 		}
-		for i, obj := range objects {
-			if !obj.IsValid() {
-				continue
+		if it, ok := g.Object.(*Item); ok {
+			for i, obj := range objects {
+				if itemsEqual(*it, obj) {
+					it = &objects[i]
+				}
 			}
-			if it.Object != nil && it.Object.AP().GetLink().Equals(obj.pub.GetLink(), false) {
-				it.Object = &(objects[i])
+			for i, auth := range authors {
+				if it.SubmittedBy != nil && accountsEqual(*it.SubmittedBy, auth) {
+					it.SubmittedBy = &authors[i]
+				}
 			}
+			items[k].Object = it
 		}
-		items[k].Object = it
 	}
 	return items, nil
 }
+
+func itemsEqual(i1, i2 Item) bool {
+	return i1.Hash == i2.Hash
+}
+
 func accountsEqual(a1, a2 Account) bool {
 	return a1.Hash == a2.Hash || (len(a1.Handle)+len(a2.Handle) > 0 && a1.Handle == a2.Handle)
 }
