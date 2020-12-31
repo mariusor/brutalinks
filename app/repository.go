@@ -875,8 +875,7 @@ func (r *repository) loadModerationFollowups(ctx context.Context, items Renderab
 	err = pub.OnCollectionIntf(act, func(c pub.CollectionInterface) error {
 		for _, it := range c.Collection() {
 			m := new(ModerationOp)
-			err := m.FromActivityPub(it)
-			if err != nil {
+			if err := m.FromActivityPub(it); err != nil {
 				continue
 			}
 			if !modFollowups.Contains(*m) {
@@ -888,37 +887,40 @@ func (r *repository) loadModerationFollowups(ctx context.Context, items Renderab
 	return modFollowups, err
 }
 
+func ModerationSubmittedByHashFilter(items ...ModerationOp) CompStrs {
+	accounts := make(AccountCollection,0)
+	for _, it := range items {
+		if !it.SubmittedBy.IsValid() || accounts.Contains(*it.SubmittedBy) {
+			continue
+		}
+		accounts = append(accounts, *it.SubmittedBy)
+	}
+	return AccountHashFilter(accounts...)
+}
+
 func (r *repository) loadModerationDetails(ctx context.Context, items ...ModerationOp) ([]ModerationOp, error) {
 	if len(items) == 0 {
 		return items, nil
 	}
 	fActors := new(Filters)
 	fObjects := new(Filters)
-	fActors.IRI = make(CompStrs, 0)
+	fActors.IRI = ModerationSubmittedByHashFilter(items...)
 	fObjects.IRI = make(CompStrs, 0)
 	for _, it := range items {
-		if !it.SubmittedBy.IsValid() {
+		if it.Object == nil || it.Object.AP() == nil {
 			continue
 		}
-		hash := LikeString(it.SubmittedBy.Hash.String())
-		if len(hash.Str) > 0 && !fActors.IRI.Contains(hash) {
-			fActors.IRI = append(fActors.IRI, hash)
-		}
-
-		if it.Object == nil {
-			continue
-		}
-		ap := it.Object.AP()
-		itIRI := ap.GetLink().String()
-		if strings.Contains(itIRI, string(actors)) {
-			hash = LikeString(path.Base(ap.GetLink().String()))
+		_, hash := path.Split(it.Object.AP().GetLink().String())
+		switch it.Object.Type() {
+		case ActorType:
+			hash := LikeString(hash)
 			if !fActors.IRI.Contains(hash) {
 				fActors.IRI = append(fActors.IRI, hash)
 			}
-		} else if strings.Contains(itIRI, string(objects)) {
-			iri := EqualsString(it.Object.AP().GetLink().String())
-			if !fObjects.IRI.Contains(iri) {
-				fObjects.IRI = append(fObjects.IRI, iri)
+		case CommentType:
+			hash := LikeString(hash)
+			if !fObjects.IRI.Contains(hash) {
+				fObjects.IRI = append(fObjects.IRI, hash)
 			}
 		}
 	}
@@ -930,9 +932,11 @@ func (r *repository) loadModerationDetails(ctx context.Context, items ...Moderat
 	if err != nil {
 		return items, errors.Annotatef(err, "unable to load items authors")
 	}
-	objects, err := r.objects(ctx, fObjects)
-	if err != nil {
-		return items, errors.Annotatef(err, "unable to load items objects")
+	var objects ItemCollection
+	if len(fObjects.IRI) > 0 {
+		if objects, err = r.objects(ctx, fObjects); err != nil {
+			return items, errors.Annotatef(err, "unable to load items objects")
+		}
 	}
 	for k, g := range items {
 		it, ok := g.Object.(*ModerationOp)
@@ -950,14 +954,15 @@ func (r *repository) loadModerationDetails(ctx context.Context, items ...Moderat
 				it.Object = &authors[i]
 			}
 		}
-		items[k].Object = it
-	}
-	for k, it := range items {
 		for i, obj := range objects {
+			if !obj.IsValid() {
+				continue
+			}
 			if it.Object != nil && it.Object.AP().GetLink().Equals(obj.pub.GetLink(), false) {
-				items[k].Object = &(objects[i])
+				it.Object = &(objects[i])
 			}
 		}
+		items[k].Object = it
 	}
 	return items, nil
 }
