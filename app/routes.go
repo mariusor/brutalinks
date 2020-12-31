@@ -11,6 +11,31 @@ import (
 	"path/filepath"
 )
 
+func (h *handler) ItemRoutes () func(chi.Router) {
+	return func(r chi.Router) {
+		r.Use(h.CSRF, ContentModelMw, h.ItemFiltersMw, LoadObjectFromInboxMw, ThreadedListingMw, SortByScore)
+		r.Get("/", h.HandleShow)
+		r.Post("/", h.HandleSubmit)
+
+		r.Group(func(r chi.Router) {
+			r.Use(h.ValidateLoggedIn(h.v.RedirectToErrors))
+			r.Get("/yay", h.HandleVoting)
+			r.Get("/nay", h.HandleVoting)
+
+			//r.Get("/bad", h.ShowReport)
+			r.With(ReportContentModelMw).Get("/bad", h.HandleShow)
+			r.Post("/bad", h.ReportItem)
+			r.With(BlockContentModelMw).Get("/block", h.HandleShow)
+			r.Post("/block", h.BlockItem)
+
+			r.With(h.ValidateItemAuthor).Group(func(r chi.Router) {
+				r.With(EditContentModelMw).Get("/edit", h.HandleShow)
+				r.Post("/edit", h.HandleSubmit)
+				r.Get("/rm", h.HandleDelete)
+			})
+		})
+	}
+}
 func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 	return func(r chi.Router) {
 		r.Use(middleware.GetHead)
@@ -78,35 +103,9 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 					})
 				})
 
-				r.Route("/{hash}", func(r chi.Router) {
-					r.Use(h.CSRF, ContentModelMw, h.ItemFiltersMw, LoadObjectFromInboxMw, ThreadedListingMw, SortByScore)
-					r.Get("/", h.HandleShow)
-					r.Post("/", h.HandleSubmit)
-
-					r.Group(func(r chi.Router) {
-						r.Use(h.ValidateLoggedIn(h.v.RedirectToErrors))
-						r.Get("/yay", h.HandleVoting)
-						r.Get("/nay", h.HandleVoting)
-
-						//r.Get("/bad", h.ShowReport)
-						r.With(ReportContentModelMw).Get("/bad", h.HandleShow)
-						r.Post("/bad", h.ReportItem)
-						r.With(BlockContentModelMw).Get("/block", h.HandleShow)
-						r.Post("/block", h.BlockItem)
-
-						r.With(h.ValidateItemAuthor).Group(func(r chi.Router) {
-							r.With(EditContentModelMw).Get("/edit", h.HandleShow)
-							r.Post("/edit", h.HandleSubmit)
-							r.Get("/rm", h.HandleDelete)
-						})
-					})
-				})
+				r.Route("/{hash}", h.ItemRoutes())
 			})
-
-			//r.Get("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/", frontend.HandleDate)
-			//r.Get("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}", h.ShowItem)
-			//r.Get("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}/{direction}", h.HandleVoting)
-			//r.Post("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}", h.HandleSubmit)
+			r.Route("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}", h.ItemRoutes())
 
 			// @todo(marius) :link_generation:
 			r.Get("/i/{hash}", h.HandleItemRedirect)

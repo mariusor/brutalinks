@@ -992,8 +992,7 @@ func PermaLink(r Renderable) string {
 // ItemLocalLink
 func ItemLocalLink(i *Item) string {
 	if i.SubmittedBy == nil || i.SubmittedBy.Handle == Anonymous || i.SubmittedBy.Handle == "" {
-		// @todo(marius) :link_generation:
-		return path.Join("/i", i.Hash.String())
+		return path.Join("/", i.SubmittedAt.Format("2006/01/02"), i.Hash.String())
 	}
 	return path.Join(AccountLocalLink(i.SubmittedBy), i.Hash.String())
 }
