@@ -609,11 +609,13 @@ func (i *Item) FromActivityPub(it pub.Item) error {
 				}
 			}
 			i.SubmittedAt = o.Published
-			i.UpdatedAt = o.Updated
 			return nil
 		})
 		pub.OnTombstone(it, func(t *pub.Tombstone) error {
 			i.UpdatedAt = t.Deleted
+			if i.SubmittedAt.IsZero() {
+				i.SubmittedAt = i.UpdatedAt
+			}
 			return nil
 		})
 		i.Delete()
