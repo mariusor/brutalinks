@@ -4,67 +4,27 @@ import (
 	"context"
 	"crypto/tls"
 	"flag"
-	"github.com/go-ap/errors"
-	"github.com/mariusor/go-littr/internal/config"
-	"github.com/mariusor/go-littr/internal/log"
 	"io/ioutil"
 	golog "log"
 	"net"
 	"net/http"
 	"os"
-	"os/signal"
 	"syscall"
 	"time"
 
+	"git.sr.ht/~mariusor/wrapper"
+	"github.com/go-ap/errors"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
-
 	"github.com/mariusor/go-littr/app"
+	"github.com/mariusor/go-littr/internal/config"
+	"github.com/mariusor/go-littr/internal/log"
 )
 
 var version = "HEAD"
 
 const defaultPort = config.DefaultListenPort
 const defaultTimeout = time.Second * 5
-
-type exit struct {
-	// signal is a channel which is waiting on user/os signals
-	signal chan os.Signal
-	// status is a channel on which we return exit codes for application
-	status chan int
-	// handlers is the mapping of signals to functions to execute
-	h signalHandlers
-}
-
-type signalHandlers map[os.Signal]func(*exit, os.Signal)
-
-// RegisterSignalHandlers sets up the signal handlers we want to use
-func RegisterSignalHandlers(handlers signalHandlers) *exit {
-	x := &exit{
-		signal: make(chan os.Signal, 1),
-		status: make(chan int, 1),
-		h:      handlers,
-	}
-	signals := make([]os.Signal, 0)
-	for sig := range handlers {
-		signals = append(signals, sig)
-	}
-	signal.Notify(x.signal, signals...)
-	return x
-}
-
-// handle reads signals received from the os and executes the handlers it has registered
-func (ex *exit) wait() chan int {
-	go func(ex *exit) {
-		for {
-			select {
-			case s := <-ex.signal:
-				ex.h[s](ex, s)
-			}
-		}
-	}(ex)
-	return ex.status
-}
 
 // SetupHttpServer creates a new http server and returns the start and stop functions for it
 func SetupHttpServer(ctx context.Context, conf config.Configuration, m http.Handler) (func() error, func() error) {
@@ -143,42 +103,42 @@ func Run(a app.Application) {
 		srvShutdown()
 	}()
 
-	// Run our server in a goroutine so that it doesn't block.
-	go func() {
+	runFn := func() {
+		// Run our server in a goroutine so that it doesn't block.
 		if err := srvStart(); err != nil {
 			a.Logger.Errorf("Error: %s", err)
 			os.Exit(1)
 		}
-	}()
+	}
 
-	// Set up the signal channel to tell us if the user/os requires us to stop
-	sigHandlerFns := signalHandlers{
-		syscall.SIGHUP: func(x *exit, s os.Signal) {
+	// Set up the signal handlers functions so the OS can tell us if the it requires us to stop
+	sigHandlerFns := wrapper.SignalHandlers {
+		syscall.SIGHUP: func(_ chan int) {
 			a.Logger.Info("SIGHUP received, reloading configuration")
 			a.Conf = config.Load(a.Conf.Env, a.Conf.TimeOut)
 		},
-		syscall.SIGUSR1: func(x *exit, s os.Signal) {
+		syscall.SIGUSR1: func(_ chan int) {
 			a.Logger.Info("SIGUSR1 received, switching to maintenance mode")
 			a.Conf.MaintenanceMode = !a.Conf.MaintenanceMode
 		},
-		syscall.SIGTERM: func(x *exit, s os.Signal) {
+		syscall.SIGTERM: func(status chan int) {
 			// kill -SIGTERM XXXX
 			a.Logger.Info("SIGTERM received, stopping")
-			x.status <- 0
+			status <- 0
 		},
-		syscall.SIGINT: func(x *exit, s os.Signal) {
+		syscall.SIGINT: func(status chan int) {
 			// kill -SIGINT XXXX or Ctrl+c
 			a.Logger.Info("SIGINT received, stopping")
-			x.status <- 0
+			status <- 0
 		},
-		syscall.SIGQUIT: func(x *exit, s os.Signal) {
+		syscall.SIGQUIT: func(status chan int) {
 			a.Logger.Error("SIGQUIT received, force stopping")
-			x.status <- -1
+			status <- -1
 		},
 	}
 
 	// Wait for OS signals asynchronously
-	code := <-RegisterSignalHandlers(sigHandlerFns).wait()
+	code := wrapper.RegisterSignalHandlers(sigHandlerFns).Exec(runFn)
 	if code == 0 {
 		a.Logger.Info("Shutting down")
 	}
