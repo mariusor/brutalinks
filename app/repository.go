@@ -731,7 +731,7 @@ func (r *repository) loadItemsVotes(ctx context.Context, items ...Item) (ItemCol
 			v := new(Vote)
 			if err := v.FromActivityPub(vAct); err == nil {
 				for k, ob := range items {
-					if v.Item.Hash == ob.Hash {
+					if itemsEqual(*v.Item, ob) {
 						items[k].Score += v.Weight
 					}
 				}

@@ -132,7 +132,7 @@ func (a Account) VotedOn(i Item) *Vote {
 		if v.Item == nil {
 			continue
 		}
-		if v.Item.Hash == i.Hash {
+		if itemsEqual(*v.Item, i) {
 			return &v
 		}
 	}
