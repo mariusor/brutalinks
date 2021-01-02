@@ -1,6 +1,6 @@
 <meta charset="UTF-8">
 <title>{{.Title}}</title>
-{{- if CanPaginate . -}}
+{{- if and (not Config.Env.IsDev) (CanPaginate .) -}}
 {{- if .PrevPage.IsValid }}
 <link href="{{ .PrevPage | PrevPageLink }}" rel="prev prefetch" />
 {{end -}}
@@ -8,7 +8,7 @@
 <link href="{{ .NextPage | NextPageLink }}" rel="next prefetch" />
 {{end -}}
 {{end }}
-{{- if and (eq current "user") -}}
+{{- if eq current "user" -}}
 {{- if and .User.HasMetadata (gt (len .User.Metadata.AuthorizationEndPoint) 0) -}}
 <link href="{{ .User.Metadata.AuthorizationEndPoint }}" rel="authorization_endpoint" />
 {{ end -}}
