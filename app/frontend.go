@@ -14,6 +14,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 )
 
 const (
@@ -378,7 +379,9 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 		if acc.IsLogged() {
 			ltx = log.Ctx{
 				"handle": acc.Handle,
-				"hash":   acc.Hash,
+			}
+			if acc.Hash.IsValid() {
+				ltx["hash"] = acc.Hash
 			}
 			f := new(Filters)
 			if acc.HasMetadata() {
@@ -389,28 +392,21 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 				f.Type = ActivityTypesFilter(ValidActorTypes...)
 			}
 			ctx := context.TODO()
-			accounts, err := h.storage.accounts(ctx, f)
-			if err != nil {
+			if account, err := h.storage.account(ctx, f); err != nil {
 				h.errFn(ltx, log.Ctx{"err": err.Error()})("unable to load actor for session account")
-				acc = AnonymousAccount
-			} else if len(accounts) == 0 || !accounts[0].IsValid() || accounts[0].Hash != acc.Hash {
-				acc = AnonymousAccount
-				h.errFn(ltx)("actor not found")
 			} else {
-				loadAccountData(&acc, accounts[0])
+				loadAccountData(&acc, account)
 			}
 
 			h.storage.WithAccount(&acc)
 			if len(acc.Followers) == 0 {
 				// TODO(marius): this needs to be moved to where we're handling all Inbox activities, not on page load
-				err = h.storage.loadAccountsFollowers(ctx, &acc)
-				if err != nil {
+				if err := h.storage.loadAccountsFollowers(ctx, &acc); err != nil {
 					h.infoFn(ltx, log.Ctx{"err": err.Error()})("Unable to load account's followers")
 				}
 			}
 			if len(acc.Following) == 0 {
-				err = h.storage.loadAccountsFollowing(ctx, &acc)
-				if err != nil {
+				if err := h.storage.loadAccountsFollowing(ctx, &acc); err != nil {
 					h.infoFn(ltx, log.Ctx{"err": err.Error()})("Unable to load account's following")
 				}
 			}
@@ -421,10 +417,12 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 				}
 				h.storage.loadAccountVotes(ctx, &acc, items)
 			}
-
-			err = h.storage.loadAccountsOutbox(ctx, &acc)
-			if err != nil {
-				h.infoFn(ltx, log.Ctx{"err": err.Error()})("Unable to load account's outbox")
+			if time.Now().Sub(acc.Metadata.OutboxUpdated) > 5 * time.Minute {
+				if err := h.storage.loadAccountsOutbox(ctx, &acc); err != nil {
+					h.errFn(ltx, log.Ctx{"err": err.Error()})("Unable to load account's Outbox")
+				}
+				h.infoFn(ltx, log.Ctx{"updated": acc.Metadata.OutboxUpdated.Format(time.StampMilli)})("Loaded account's outbox")
+				acc.Metadata.OutboxUpdated = time.Now()
 			}
 		}
 		r = r.WithContext(context.WithValue(r.Context(), LoggedAccountCtxtKey, &acc))

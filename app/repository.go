@@ -588,13 +588,13 @@ func (r *repository) loadAccountsOutbox(ctx context.Context, acc *Account) error
 	return LoadFromCollection(ctx, collFn, &colCursor{filters: &Filters{MaxItems: math.MaxInt32}}, func(o pub.CollectionInterface) (bool, error) {
 		if ocTypes.Contains(o.GetType()) {
 			pub.OnOrderedCollection(o, func(oc *pub.OrderedCollection) error {
-				acc.Metadata.outboxUpdated = oc.Updated
+				acc.Metadata.OutboxUpdated = oc.Updated
 				return nil
 			})
 		}
 		if cTypes.Contains(o.GetType()) {
 			pub.OnCollection(o, func(c *pub.Collection) error {
-				acc.Metadata.outboxUpdated = c.Updated
+				acc.Metadata.OutboxUpdated = c.Updated
 				return nil
 			})
 		}
@@ -1160,6 +1160,20 @@ func LoadFromCollection(ctx context.Context, loadColFn CollectionFn, cur *colCur
 	}
 
 	return err
+}
+
+func (r *repository) account(ctx context.Context, ff *Filters) (Account, error) {
+	accounts, err := r.accounts(ctx, ff)
+	if err != nil {
+		return AnonymousAccount, err
+	}
+	if len(accounts) == 0 {
+		return AnonymousAccount, errors.NotFoundf("account not found for %s", ff)
+	}
+	if len(accounts) > 1 {
+		return AnonymousAccount, errors.BadRequestf("too many accounts found for %s", ff)
+	}
+	return accounts[0], nil
 }
 
 func (r *repository) accounts(ctx context.Context, ff ...*Filters) ([]Account, error) {
