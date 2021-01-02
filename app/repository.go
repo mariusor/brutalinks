@@ -1168,10 +1168,10 @@ func (r *repository) account(ctx context.Context, ff *Filters) (Account, error) 
 		return AnonymousAccount, err
 	}
 	if len(accounts) == 0 {
-		return AnonymousAccount, errors.NotFoundf("account not found for %s", ff)
+		return AnonymousAccount, errors.NotFoundf("account not found for")
 	}
 	if len(accounts) > 1 {
-		return AnonymousAccount, errors.BadRequestf("too many accounts found for %s", ff)
+		return AnonymousAccount, errors.BadRequestf("too many accounts found for")
 	}
 	return accounts[0], nil
 }

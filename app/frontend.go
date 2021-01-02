@@ -393,7 +393,7 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 			}
 			ctx := context.TODO()
 			if account, err := h.storage.account(ctx, f); err != nil {
-				h.errFn(ltx, log.Ctx{"err": err.Error()})("unable to load actor for session account")
+				h.errFn(ltx, log.Ctx{"err": err.Error(), "filters": f})("unable to load actor for session account")
 			} else {
 				loadAccountData(&acc, account)
 			}
