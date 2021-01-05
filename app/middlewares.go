@@ -109,14 +109,13 @@ func LoadObjectFromInboxMw(next http.Handler) http.Handler {
 		var col pub.CollectionInterface
 
 		ff := ContextActivityFilters(r.Context())
+		repo := ContextRepository(r.Context())
+		ctx := context.TODO()
+
 		if len(ff) == 0 {
 			ctxtErr(next, w, r, errors.Newf("invalid filter"))
 			return
 		}
-
-		repo := ContextRepository(r.Context())
-		ctx := context.TODO()
-
 		f := ff[0]
 		// we first try to load from the service's inbox
 		col, err = repo.fedbox.Inbox(ctx, repo.fedbox.Service(), Values(f))

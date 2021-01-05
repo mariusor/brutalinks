@@ -263,7 +263,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 		return errors.Annotatef(err, "failed to render template")
 	}
 	if !isError {
-		if err := v.s.save(w, r); err != nil {
+		if err = v.s.save(w, r); err != nil {
 			v.errFn(log.Ctx{"err": err.Error()})("session save failed")
 			return nil
 		}
