@@ -375,17 +375,15 @@ func (v *view) HandleErrors(w http.ResponseWriter, r *http.Request, errs ...erro
 }
 
 func (v *view) Redirect(w http.ResponseWriter, r *http.Request, url string, status int) {
+	if url == r.RequestURI {
+		url, _ = path.Split(url)
+	}
 	if err := v.s.save(w, r); err != nil {
-		err := errors.Annotatef(err, "Failed to save session before redirect")
 		v.errFn(log.Ctx{
 			"status": status,
 			"url":    url,
+			"err":    err.Error(),
 		})("Failed to save session before redirect")
-		v.HandleErrors(w, r, err)
-		return
-	}
-	if url == r.RequestURI {
-		url, _ = path.Split(url)
 	}
 	http.Redirect(w, r, url, status)
 }

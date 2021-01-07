@@ -185,15 +185,13 @@ func (h *handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
 		Token:    tok,
 	}
 
-	if err := h.v.saveAccountToSession(w, r, account); err == nil {
-		if strings.ToLower(provider) != "local" {
-			h.v.addFlashMessage(Success, w, r, fmt.Sprintf("Login successful with %s", provider))
-		} else {
-			h.v.addFlashMessage(Success, w, r, "Login successful")
-		}
+	if strings.ToLower(provider) != "local" {
+		h.v.addFlashMessage(Success, w, r, fmt.Sprintf("Login successful with %s", provider))
 	} else {
+		h.v.addFlashMessage(Success, w, r, "Login successful")
+	}
+	if err := h.v.saveAccountToSession(w, r, account); err != nil {
 		h.errFn()("Unable to save account to session")
-		//h.v.addFlashMessage(Success, w, r, fmt.Sprintf("Login successful with %s", provider))
 	}
 	h.v.Redirect(w, r, "/", http.StatusFound)
 }
