@@ -96,11 +96,20 @@ func getDomain(u *url.URL) string {
 	if u == nil || len(u.Host) == 0 {
 		return unknownDomain
 	}
-	switch u.Host {
-	case githubDomain:
-		pathEl := strings.Split(strings.TrimLeft(u.Path, "/"), "/")
-		if len(pathEl) > 0 {
-			return fmt.Sprintf("%s/%s", u.Host, pathEl[0])
+	pathEl := strings.Split(strings.TrimLeft(u.Path, "/"), "/")
+	if len(pathEl) > 0 {
+		maybeUser := pathEl[0]
+		switch u.Host {
+		case githubDomain:
+			return fmt.Sprintf("%s/%s", u.Host, maybeUser)
+		}
+		if len(maybeUser) > 0 && maybeUser[0] == '~' {
+			// NOTE(marius): this handles websites that use ~user for home directories
+			// Eg, SourceHut, and other Brutalinks instances
+			if u.Host == Instance.BaseURL {
+				// TODO(marius): I need to generate local user link here instead of /d/$u.Host/$maybeUser
+			}
+			return fmt.Sprintf("%s/%s", u.Host, maybeUser)
 		}
 	}
 	return u.Host
