@@ -491,10 +491,6 @@ func (t *Tag) FromActivityPub(it pub.Item) error {
 			t.Metadata.AuthorURI = act.Actor.GetLink().String()
 			return nil
 		})
-	case pub.ObjectType :
-		return pub.OnObject(it, func(o *pub.Object) error {
-			return FromTag(t, o)
-		})
 	case pub.MentionType:
 		return pub.OnLink(it, func(m *pub.Mention) error {
 			return FromMention(t, m)
@@ -521,8 +517,12 @@ func (t *Tag) FromActivityPub(it pub.Item) error {
 			t.UpdatedAt = o.Updated
 			return nil
 		})
+	case pub.ObjectType:
+		fallthrough
 	default:
-		return errors.Newf("invalid object type %q", it.GetType())
+		return pub.OnObject(it, func(o *pub.Object) error {
+			return FromTag(t, o)
+		})
 	}
 	return nil
 }
