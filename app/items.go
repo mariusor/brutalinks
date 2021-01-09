@@ -91,6 +91,7 @@ func (i *Item) IsLink() bool {
 
 const unknownDomain = "unknown"
 const githubDomain = "github.com"
+const gitlabDomain = "gitlab.com"
 const twitchDomain = "twitch.tv"
 const twitterDomain = "twitter.com"
 
@@ -102,7 +103,9 @@ func getDomain(u *url.URL) string {
 	if len(pathEl) > 0 {
 		maybeUser := pathEl[0]
 		switch u.Host {
-		case githubDomain, "www." + githubDomain, twitterDomain, "www." + twitterDomain:
+		case twitterDomain, "www." + twitterDomain:
+			fallthrough
+		case githubDomain, "www." + githubDomain, gitlabDomain, "www." + gitlabDomain:
 			return fmt.Sprintf("%s/%s", u.Host, maybeUser)
 		case twitchDomain, "www." + twitchDomain:
 			if maybeUser != "directory" || maybeUser != "p" || maybeUser != "downloads" ||
