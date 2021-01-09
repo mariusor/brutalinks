@@ -91,6 +91,8 @@ func (i *Item) IsLink() bool {
 
 const unknownDomain = "unknown"
 const githubDomain = "github.com"
+const twitchDomain = "twitch.tv"
+const twitterDomain = "twitter.com"
 
 func getDomain(u *url.URL) string {
 	if u == nil || len(u.Host) == 0 {
@@ -100,8 +102,13 @@ func getDomain(u *url.URL) string {
 	if len(pathEl) > 0 {
 		maybeUser := pathEl[0]
 		switch u.Host {
-		case githubDomain:
+		case githubDomain, "www." + githubDomain, twitterDomain, "www." + twitterDomain:
 			return fmt.Sprintf("%s/%s", u.Host, maybeUser)
+		case twitchDomain, "www." + twitchDomain:
+			if maybeUser != "directory" || maybeUser != "p" || maybeUser != "downloads" ||
+				maybeUser != "jobs" || maybeUser != "store" || maybeUser != "turbo" {
+				return fmt.Sprintf("%s/%s", u.Host, maybeUser)
+			}
 		}
 		if len(maybeUser) > 0 && maybeUser[0] == '~' {
 			// NOTE(marius): this handles websites that use ~user for home directories
