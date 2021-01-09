@@ -24,6 +24,25 @@ footer, header, hgroup, menu, nav, section {
 img {
     max-width: 100%;
 }
+figure {
+    /*margin: 1em 0;*/
+    text-align: center;
+}
+figcaption {
+    font-size: small;
+}
+pre, code, samp, kbd {
+    font-family: monospace, monospace;
+    font-size: 0.9em;
+}
+pre code, pre samp, pre kbd {
+    font-size: 1em;
+}
+pre kbd { }
+pre {
+    padding: 0.5em;
+    overflow: auto;
+}
 h1 { font-size: 180%; }
 h2 { font-size: 160%; }
 h3 { font-size: 140%; }
@@ -188,6 +207,7 @@ form label.mime-type {
 }
 dialog {
     width: 60%;
+    z-index: 1;
 }
 dialog button.close {
     width: 1.5em;
