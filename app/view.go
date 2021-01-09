@@ -246,6 +246,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 				}
 				return nil
 			},
+			"urlPathEscape": url.PathEscape,
 			//"ScoreFmt":          func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
 			//"NumberFmt":         func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
 		}},

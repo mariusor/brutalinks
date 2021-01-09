@@ -2,6 +2,7 @@ package app
 
 import (
 	"bytes"
+	"fmt"
 	pub "github.com/go-ap/activitypub"
 	"github.com/go-chi/chi"
 	"net/http"
@@ -88,15 +89,32 @@ func (i *Item) IsLink() bool {
 	return i != nil && i.MimeType == MimeTypeURL
 }
 
+const unknownDomain = "unknown"
+const githubDomain = "github.com"
+
+func getDomain(u *url.URL) string {
+	if u == nil || len(u.Host) == 0 {
+		return unknownDomain
+	}
+	switch u.Host {
+	case githubDomain:
+		pathEl := strings.Split(strings.TrimLeft(u.Path, "/"), "/")
+		if len(pathEl) > 0 {
+			return fmt.Sprintf("%s/%s", u.Host, pathEl[0])
+		}
+	}
+	return u.Host
+}
+
 func (i Item) GetDomain() string {
 	if !i.IsLink() {
 		return ""
 	}
 	u, err := url.Parse(i.Data)
-	if err == nil && len(u.Host) > 0 {
-		return u.Host
+	if err != nil {
+		return unknownDomain
 	}
-	return "unknown"
+	return getDomain(u)
 }
 
 func (i Item) IsSelf() bool {
