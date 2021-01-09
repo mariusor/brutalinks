@@ -6,11 +6,12 @@ require (
 	aletheia.icu/broccoli/fs v0.0.0-20200506212414-5bc1e2f86a59
 	git.sr.ht/~mariusor/wrapper v0.0.0-20210101185305-dd7008ab1358
 	github.com/andybalholm/brotli v1.0.1 // indirect
+	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/captncraig/cors v0.0.0-20190703115713-e80254a89df1 // indirect
-	github.com/go-ap/activitypub v0.0.0-20201231093705-c478a2826802
-	github.com/go-ap/client v0.0.0-20201231093747-65d3179116cd
+	github.com/go-ap/activitypub v0.0.0-20210109173738-56bfed629b95
+	github.com/go-ap/client v0.0.0-20210109180226-efbf4fc6994e
 	github.com/go-ap/errors v0.0.0-20200702155720-f662512ba418
-	github.com/go-ap/handlers v0.0.0-20201231093954-2dccb2dd6c2e
+	github.com/go-ap/handlers v0.0.0-20210109180555-373cc1ca2e0c
 	github.com/go-ap/jsonld v0.0.0-20200327122108-fafac2de2660
 	github.com/go-chi/chi v4.0.4+incompatible
 	github.com/google/uuid v1.0.0
