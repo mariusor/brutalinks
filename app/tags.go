@@ -47,7 +47,11 @@ func mimeTypeTagReplace(m string, t Tag) string {
 		cls = "mention"
 	}
 
-	return fmt.Sprintf("<a href='%s' rel='%s'>%s</a>", t.URL, cls, t.Name)
+	name := t.Name
+	if len(name) > 1 && name[0] == '#' {
+		name = name[1:]
+	}
+	return fmt.Sprintf("<a href='%s' rel='%s'>%s</a>", t.URL, cls, name)
 }
 
 func replaceTag(d []byte, t Tag, w string) []byte {
@@ -130,7 +134,10 @@ func replaceTags(mime string, r HasContent) string {
 	tags := r.Tags()
 	if tags != nil {
 		for _, t := range tags {
-			name := fmt.Sprintf("#%s", t.Name)
+			name := t.Name
+			if len(name) > 1 && name[0] != '#' {
+				name = fmt.Sprintf("#%s", name)
+			}
 			if inRange(name, replaces) {
 				continue
 			}

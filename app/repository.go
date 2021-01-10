@@ -298,7 +298,7 @@ func loadAPItem(it pub.Item, item Item) error {
 					t := pub.Object{
 						URL:  pub.ID(tag.URL),
 						To:   pub.ItemCollection{pub.PublicNS},
-						Name: pub.NaturalLanguageValues{{Ref: pub.NilLangRef, Value: pub.Content(tag.Name)}},
+						Name: pub.NaturalLanguageValues{{Ref: pub.NilLangRef, Value: pub.Content("#"+tag.Name)}},
 					}
 					if tag.Metadata != nil && len(tag.Metadata.ID) > 0 {
 						t.ID = pub.IRI(tag.Metadata.ID)
