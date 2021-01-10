@@ -1043,6 +1043,10 @@ var githubValidUser = func(n string) bool {
 	})(n))
 }
 
+var gitlabValidUser = func(n string) bool {
+	return !(stringInSlice([]string{"users", "explore", "-", "dashboard", "help" })(n))
+}
+
 var twitterValidUser = func(n string) bool {
 	return !(stringInSlice([]string{ "home", "explore", "notifications", "messages", "bookmarks", "settings", "i",
 		"compose", "search", "tos", "privacy",
@@ -1058,8 +1062,14 @@ func getDomain(u *url.URL) string {
 		maybeUser := pathEl[0]
 		switch u.Host {
 		case twitterDomain, "www." + twitterDomain:
-			fallthrough
-		case githubDomain, "www." + githubDomain, gitlabDomain, "www." + gitlabDomain:
+			if twitterValidUser(maybeUser) {
+				return fmt.Sprintf("%s/%s", u.Host, maybeUser)
+			}
+		case gitlabDomain, "www."+gitlabDomain:
+			if gitlabValidUser(maybeUser) {
+				return fmt.Sprintf("%s/%s", u.Host, maybeUser)
+			}
+		case githubDomain, "www." + githubDomain:
 			if githubValidUser(maybeUser) {
 				return fmt.Sprintf("%s/%s", u.Host, maybeUser)
 			}
