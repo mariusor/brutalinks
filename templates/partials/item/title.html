@@ -7,8 +7,9 @@
     {{- if .Title -}}{{- .Title -}}{{ else }} Untitled {{ itemType .MimeType -}} {{- end -}}
 {{- end -}}
 {{ if and (eq current "listing") .Public }}
-{{- $domain := .GetDomain }}
-    <small><a rel="directory" href="/d{{- if .IsLink -}}/{{$domain | urlPathEscape }}{{- end -}}">{{- if .IsLink -}}{{$domain}}{{- else -}} discussion {{- end -}}</a></small>
+{{- $domainUrl := GetDomainURL . }}
+{{- $domainTitle := GetDomainTitle . }}
+    <small><a rel="directory" href="/d{{- if .IsLink -}}/{{$domainUrl}}{{- end -}}">{{- if .IsLink -}}{{$domainTitle}}{{- else -}} discussion {{- end -}}</a></small>
 {{ end -}}
 </h2>
 </header>

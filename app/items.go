@@ -2,7 +2,6 @@ package app
 
 import (
 	"bytes"
-	"fmt"
 	pub "github.com/go-ap/activitypub"
 	"github.com/go-chi/chi"
 	"net/http"
@@ -87,53 +86,6 @@ func (i *Item) MakePublic() {
 
 func (i *Item) IsLink() bool {
 	return i != nil && i.MimeType == MimeTypeURL
-}
-
-const unknownDomain = "unknown"
-const githubDomain = "github.com"
-const gitlabDomain = "gitlab.com"
-const twitchDomain = "twitch.tv"
-const twitterDomain = "twitter.com"
-
-func getDomain(u *url.URL) string {
-	if u == nil || len(u.Host) == 0 {
-		return unknownDomain
-	}
-	pathEl := strings.Split(strings.TrimLeft(u.Path, "/"), "/")
-	if len(pathEl) > 0 {
-		maybeUser := pathEl[0]
-		switch u.Host {
-		case twitterDomain, "www." + twitterDomain:
-			fallthrough
-		case githubDomain, "www." + githubDomain, gitlabDomain, "www." + gitlabDomain:
-			return fmt.Sprintf("%s/%s", u.Host, maybeUser)
-		case twitchDomain, "www." + twitchDomain:
-			if maybeUser != "directory" || maybeUser != "p" || maybeUser != "downloads" ||
-				maybeUser != "jobs" || maybeUser != "store" || maybeUser != "turbo" {
-				return fmt.Sprintf("%s/%s", u.Host, maybeUser)
-			}
-		}
-		if len(maybeUser) > 0 && maybeUser[0] == '~' {
-			// NOTE(marius): this handles websites that use ~user for home directories
-			// Eg, SourceHut, and other Brutalinks instances
-			if u.Host == Instance.BaseURL {
-				// TODO(marius): I need to generate local user link here instead of /d/$u.Host/$maybeUser
-			}
-			return fmt.Sprintf("%s/%s", u.Host, maybeUser)
-		}
-	}
-	return u.Host
-}
-
-func (i Item) GetDomain() string {
-	if !i.IsLink() {
-		return ""
-	}
-	u, err := url.Parse(i.Data)
-	if err != nil {
-		return unknownDomain
-	}
-	return getDomain(u)
 }
 
 func (i Item) IsSelf() bool {

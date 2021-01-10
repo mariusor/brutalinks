@@ -246,7 +246,8 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 				}
 				return nil
 			},
-			"urlPathEscape": url.PathEscape,
+			"GetDomainURL":   GetDomainURL,
+			"GetDomainTitle": GetDomainTitle,
 			//"ScoreFmt":          func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
 			//"NumberFmt":         func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
 		}},
@@ -1021,4 +1022,67 @@ func ShowAccountHandle(a *Account) string {
 func AccountLocalLink(a *Account) string {
 	// @todo(marius) :link_generation:
 	return fmt.Sprintf("/~%s", ShowAccountHandle(a))
+}
+
+const (
+	unknownDomain = "unknown"
+	githubDomain = "github.com"
+	gitlabDomain = "gitlab.com"
+	twitchDomain = "twitch.tv"
+	twitterDomain = "twitter.com"
+)
+
+var twitchValidUser = func(n string) bool {
+	return !(stringInSlice([]string{ "directory", "p", "downloads", "jobs", "store", "turbo" })(n))
+}
+
+func getDomain(u *url.URL) string {
+	if u == nil || len(u.Host) == 0 {
+		return unknownDomain
+	}
+	pathEl := strings.Split(strings.TrimLeft(u.Path, "/"), "/")
+	if len(pathEl) > 0 {
+		maybeUser := pathEl[0]
+		switch u.Host {
+		case twitterDomain, "www." + twitterDomain:
+			fallthrough
+		case githubDomain, "www." + githubDomain, gitlabDomain, "www." + gitlabDomain:
+			return fmt.Sprintf("%s/%s", u.Host, maybeUser)
+		case twitchDomain, "www." + twitchDomain:
+			if twitchValidUser(maybeUser) {
+				return fmt.Sprintf("%s/%s", u.Host, maybeUser)
+			}
+		}
+		if len(maybeUser) > 0 && maybeUser[0] == '~' {
+			// NOTE(marius): this handles websites that use ~user for home directories
+			// Eg, SourceHut, and other Brutalinks instances
+			if u.Host == Instance.BaseURL {
+				// TODO(marius): I need to generate local user link here instead of /d/$u.Host/$maybeUser
+			}
+			return fmt.Sprintf("%s/%s", u.Host, maybeUser)
+		}
+	}
+	return u.Host
+}
+
+func GetDomainTitle (i Item) template.HTML {
+	if !i.IsLink() {
+		return unknownDomain
+	}
+	u, err := url.Parse(i.Data)
+	if err != nil {
+		return unknownDomain
+	}
+	return template.HTML(getDomain(u))
+}
+
+func GetDomainURL(i Item) template.HTMLAttr {
+	if !i.IsLink() {
+		return unknownDomain
+	}
+	u, err := url.Parse(i.Data)
+	if err != nil {
+		return unknownDomain
+	}
+	return template.HTMLAttr(url.PathEscape(getDomain(u)))
 }

@@ -6,7 +6,6 @@ require (
 	aletheia.icu/broccoli/fs v0.0.0-20200506212414-5bc1e2f86a59
 	git.sr.ht/~mariusor/wrapper v0.0.0-20210101185305-dd7008ab1358
 	github.com/andybalholm/brotli v1.0.1 // indirect
-	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/captncraig/cors v0.0.0-20190703115713-e80254a89df1 // indirect
 	github.com/go-ap/activitypub v0.0.0-20210109173738-56bfed629b95
 	github.com/go-ap/client v0.0.0-20210109180226-efbf4fc6994e
