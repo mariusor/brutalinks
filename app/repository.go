@@ -289,6 +289,9 @@ func loadAPItem(it pub.Item, item Item) error {
 						Name:      pub.NaturalLanguageValues{{Ref: pub.NilLangRef, Value: pub.Content(men.Name)}},
 						Href:      pub.IRI(men.URL),
 					}
+					if men.Metadata != nil && len(men.Metadata.ID) > 0 {
+						t.ID = pub.IRI(men.Metadata.ID)
+					}
 					o.Tag.Append(t)
 				}
 				for _, tag := range m.Tags {
@@ -296,6 +299,9 @@ func loadAPItem(it pub.Item, item Item) error {
 						URL:  pub.ID(tag.URL),
 						To:   pub.ItemCollection{pub.PublicNS},
 						Name: pub.NaturalLanguageValues{{Ref: pub.NilLangRef, Value: pub.Content(tag.Name)}},
+					}
+					if tag.Metadata != nil && len(tag.Metadata.ID) > 0 {
+						t.ID = pub.IRI(tag.Metadata.ID)
 					}
 					o.Tag.Append(t)
 				}
@@ -1700,8 +1706,6 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 	if it.SubmittedBy == nil || !it.SubmittedBy.HasMetadata() {
 		return Item{}, errors.Newf("invalid account")
 	}
-	art := new(pub.Object)
-	loadAPItem(art, it)
 	var author *pub.Actor
 	if it.SubmittedBy.IsLogged() {
 		author = loadAPPerson(*it.SubmittedBy)
@@ -1717,7 +1721,7 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 	bcc := make(pub.ItemCollection, 0)
 
 	var err error
-	id := art.GetLink()
+
 
 	if it.HasMetadata() {
 		m := it.Metadata
@@ -1747,6 +1751,25 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 				}
 			}
 		}
+		if len(m.Tags) > 0 {
+			tagNames := make(CompStrs, 0)
+			for _, t := range m.Tags {
+				tagNames = append(tagNames, EqualsString(t.Name), EqualsString("#" + t.Name))
+			}
+			ff := &Filters{Name: tagNames}
+			tags, _, err := r.LoadTags(ctx, ff)
+			if err != nil {
+				r.errFn(log.Ctx{"err": err})("unable to load accounts from mentions")
+			}
+
+			for i, t := range m.Tags {
+				for _, tag := range tags {
+					if tag.Metadata != nil && len(tag.Metadata.ID) > 0 && strings.ToLower(t.Name) == strings.ToLower(tag.Name) {
+						m.Tags[i] = tag
+					}
+				}
+			}
+		}
 	}
 
 	if !it.Private() {
@@ -1756,6 +1779,10 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 		}
 		bcc = append(bcc, pub.IRI(BaseURL))
 	}
+
+	art := new(pub.Object)
+	loadAPItem(art, it)
+	id := art.GetLink()
 
 	act := &pub.Activity{
 		To:     to,
