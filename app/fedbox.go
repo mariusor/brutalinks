@@ -116,6 +116,9 @@ func (f fedbox) collection(ctx context.Context, i pub.IRI) (pub.CollectionInterf
 	if err != nil {
 		return nil, errors.Annotatef(err, "Unable to load IRI: %s", i)
 	}
+	if it == nil {
+		return nil, errors.Newf("Unable to load IRI, nil item: %s", i)
+	}
 	var col pub.CollectionInterface
 	typ := it.GetType()
 	if !pub.CollectionTypes.Contains(it.GetType()) {
