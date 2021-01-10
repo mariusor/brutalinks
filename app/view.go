@@ -1043,6 +1043,12 @@ var githubValidUser = func(n string) bool {
 	})(n))
 }
 
+var twitterValidUser = func(n string) bool {
+	return !(stringInSlice([]string{ "home", "explore", "notifications", "messages", "bookmarks", "settings", "i",
+		"compose", "search", "tos", "privacy",
+	})(n))
+}
+
 func getDomain(u *url.URL) string {
 	if u == nil || len(u.Host) == 0 {
 		return unknownDomain
