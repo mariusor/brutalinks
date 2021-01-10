@@ -293,10 +293,13 @@ func (v *view) loadCurrentAccountFromSession(w http.ResponseWriter, r *http.Requ
 	} else if acc, ok = raw.(Account); !ok {
 		v.errFn(log.Ctx{"sess": s.Values})("invalid account in session")
 	}
-	v.infoFn(log.Ctx{
+	lCtx := log.Ctx{
 		"handle": acc.Handle,
-		"hash":   acc.Hash,
-	})("loaded account from session")
+	}
+	if acc.IsLogged() {
+		lCtx["hash"] = acc.Hash
+	}
+	v.infoFn(lCtx)("loaded account from session")
 	return acc
 }
 
