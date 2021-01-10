@@ -1036,6 +1036,13 @@ var twitchValidUser = func(n string) bool {
 	return !(stringInSlice([]string{ "directory", "p", "downloads", "jobs", "store", "turbo" })(n))
 }
 
+var githubValidUser = func(n string) bool {
+	return !(stringInSlice([]string{ "features", "security", "team", "enterprise", "topics", "collections",
+		"trending", "events", "marketplace", "pricing", "nonprofit", "join", "contact", "about", "site", "git-guides",
+		"discussions", "pulls", "issues", "explore", "settings", "mine", "new", "import", "organizations",
+	})(n))
+}
+
 func getDomain(u *url.URL) string {
 	if u == nil || len(u.Host) == 0 {
 		return unknownDomain
@@ -1047,7 +1054,9 @@ func getDomain(u *url.URL) string {
 		case twitterDomain, "www." + twitterDomain:
 			fallthrough
 		case githubDomain, "www." + githubDomain, gitlabDomain, "www." + gitlabDomain:
-			return fmt.Sprintf("%s/%s", u.Host, maybeUser)
+			if githubValidUser(maybeUser) {
+				return fmt.Sprintf("%s/%s", u.Host, maybeUser)
+			}
 		case twitchDomain, "www." + twitchDomain:
 			if twitchValidUser(maybeUser) {
 				return fmt.Sprintf("%s/%s", u.Host, maybeUser)
