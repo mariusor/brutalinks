@@ -79,10 +79,6 @@ func (h handler) Repository(next http.Handler) http.Handler {
 func ActivityPubService(c appConfig) (*repository, error) {
 	pub.ItemTyperFunc = pub.GetItemByType
 
-	BaseURL = c.APIURL
-	ActorsURL = actors.IRI(pub.IRI(BaseURL))
-	ObjectsURL = objects.IRI(pub.IRI(BaseURL))
-
 	infoFn := func(ctx ...log.Ctx) LogFn {
 		return c.Logger.WithContext(append(ctx, log.Ctx{"client": "api"})...).Debugf
 	}
@@ -97,18 +93,11 @@ func ActivityPubService(c appConfig) (*repository, error) {
 		errFn:   errFn,
 	}
 	var err error
-	repo.fedbox, err = NewClient(SetURL(BaseURL), SetInfoLogger(infoFn), SetErrorLogger(errFn), SetUA(ua))
+	repo.fedbox, err = NewClient(SetURL(c.APIURL), SetInfoLogger(infoFn), SetErrorLogger(errFn), SetUA(ua))
 	if err != nil {
 		return repo, err
 	}
 	return repo, nil
-}
-
-func BuildCollectionID(a Account, o handlers.CollectionType) pub.ID {
-	if len(a.Handle) > 0 {
-		return pub.ID(fmt.Sprintf("%s/%s/%s", ActorsURL, url.PathEscape(a.Hash.String()), o))
-	}
-	return o.IRI(pub.IRI(BaseURL))
 }
 
 var BaseURL = "https://fedbox"
@@ -326,7 +315,7 @@ func anonymousPerson(url pub.IRI) *pub.Actor {
 	return p
 }
 
-func loadAPPerson(a Account) *pub.Actor {
+func (r *repository) loadAPPerson(a Account) *pub.Actor {
 	var p *pub.Actor
 	if act, ok := a.pub.(*pub.Actor); ok {
 		p = act
@@ -353,46 +342,29 @@ func loadAPPerson(a Account) *pub.Actor {
 	p.PreferredUsername.Set(pub.NilLangRef, pub.Content(a.Handle))
 
 	if a.Hash.IsValid() {
-		if a.IsFederated() {
-			p.ID = pub.ID(a.Metadata.ID)
-			p.Name.Set("en", pub.Content(a.Metadata.Name))
-			if len(a.Metadata.InboxIRI) > 0 {
-				p.Inbox = pub.IRI(a.Metadata.InboxIRI)
-			}
-			if len(a.Metadata.OutboxIRI) > 0 {
-				p.Outbox = pub.IRI(a.Metadata.OutboxIRI)
-			}
-			if len(a.Metadata.LikedIRI) > 0 {
-				p.Liked = pub.IRI(a.Metadata.LikedIRI)
-			}
-			if len(a.Metadata.FollowersIRI) > 0 {
-				p.Followers = pub.IRI(a.Metadata.FollowersIRI)
-			}
-			if len(a.Metadata.FollowingIRI) > 0 {
-				p.Following = pub.IRI(a.Metadata.FollowingIRI)
-			}
-			if len(a.Metadata.URL) > 0 {
-				p.URL = pub.IRI(a.Metadata.URL)
-			}
-		} else {
-			p.Name.Set("en", pub.Content(a.Handle))
-
-			p.Outbox = BuildCollectionID(a, handlers.Outbox)
-			p.Inbox = BuildCollectionID(a, handlers.Inbox)
-			p.Liked = BuildCollectionID(a, handlers.Liked)
-
-			p.URL = accountURL(a)
-
-			if !a.CreatedAt.IsZero() {
-				p.Published = a.CreatedAt
-			}
-			if !a.UpdatedAt.IsZero() {
-				p.Updated = a.UpdatedAt
-			}
+		p.ID = pub.ID(a.Metadata.ID)
+		p.Name.Set("en", pub.Content(a.Metadata.Name))
+		if len(a.Metadata.InboxIRI) > 0 {
+			p.Inbox = pub.IRI(a.Metadata.InboxIRI)
+		}
+		if len(a.Metadata.OutboxIRI) > 0 {
+			p.Outbox = pub.IRI(a.Metadata.OutboxIRI)
+		}
+		if len(a.Metadata.LikedIRI) > 0 {
+			p.Liked = pub.IRI(a.Metadata.LikedIRI)
+		}
+		if len(a.Metadata.FollowersIRI) > 0 {
+			p.Followers = pub.IRI(a.Metadata.FollowersIRI)
+		}
+		if len(a.Metadata.FollowingIRI) > 0 {
+			p.Following = pub.IRI(a.Metadata.FollowingIRI)
+		}
+		if len(a.Metadata.URL) > 0 {
+			p.URL = pub.IRI(a.Metadata.URL)
 		}
 		oauthURL := strings.Replace(BaseURL, "api", "oauth", 1)
 		p.Endpoints = &pub.Endpoints{
-			SharedInbox:                handlers.Inbox.IRI(pub.IRI(BaseURL)),
+			SharedInbox:                r.fedbox.pub.Inbox,
 			OauthAuthorizationEndpoint: pub.IRI(fmt.Sprintf("%s/authorize", oauthURL)),
 			OauthTokenEndpoint:         pub.IRI(fmt.Sprintf("%s/token", oauthURL)),
 		}
@@ -474,7 +446,7 @@ func (r *repository) withAccountS2S(a *Account) client.RequestSignFn {
 		})(err.Error())
 		return nil
 	}
-	p := *loadAPPerson(*a)
+	p := *r.loadAPPerson(*a)
 	return getSigner(p.PublicKey.ID, prv).Sign
 }
 
@@ -1556,7 +1528,7 @@ func (r *repository) SaveVote(ctx context.Context, v Vote) (Vote, error) {
 	if !v.Item.IsValid() || !v.Item.HasMetadata() {
 		return Vote{}, errors.Newf("Invalid vote item")
 	}
-	author := loadAPPerson(*v.SubmittedBy)
+	author := r.loadAPPerson(*v.SubmittedBy)
 	if !accountValidForC2S(v.SubmittedBy) {
 		return v, errors.Unauthorizedf("invalid account %s", v.SubmittedBy.Handle)
 	}
@@ -1586,7 +1558,7 @@ func (r *repository) SaveVote(ctx context.Context, v Vote) (Vote, error) {
 	act := &pub.Activity{
 		Type:  pub.UndoType,
 		To:    pub.ItemCollection{pub.PublicNS},
-		BCC:   pub.ItemCollection{pub.IRI(BaseURL)},
+		BCC:   pub.ItemCollection{r.fedbox.pub.ID},
 		Actor: author.GetLink(),
 	}
 
@@ -1684,7 +1656,7 @@ func accountValidForC2S(a *Account) bool {
 func (r *repository) getAuthorRequestURL(a *Account) string {
 	var reqURL string
 	if a.IsValid() && a.IsLogged() {
-		author := loadAPPerson(*a)
+		author := r.loadAPPerson(*a)
 		if a.IsLocal() {
 			reqURL = author.Outbox.GetLink().String()
 		} else {
@@ -1703,7 +1675,7 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 	}
 	var author *pub.Actor
 	if it.SubmittedBy.IsLogged() {
-		author = loadAPPerson(*it.SubmittedBy)
+		author = r.loadAPPerson(*it.SubmittedBy)
 	} else {
 		author = anonymousPerson(r.BaseURL())
 	}
@@ -1772,7 +1744,7 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 		if it.Parent == nil && it.SubmittedBy.HasMetadata() && len(it.SubmittedBy.Metadata.FollowersIRI) > 0 {
 			cc = append(cc, pub.IRI(it.SubmittedBy.Metadata.FollowersIRI))
 		}
-		bcc = append(bcc, pub.IRI(BaseURL))
+		bcc = append(bcc, r.fedbox.pub.ID)
 	}
 
 	art := new(pub.Object)
@@ -1945,7 +1917,7 @@ func (r *repository) LoadFollowRequests(ctx context.Context, ed *Account, f *Fil
 	if ed == nil {
 		followReq, err = r.fedbox.Activities(ctx, Values(f))
 	} else {
-		followReq, err = r.fedbox.Inbox(ctx, loadAPPerson(*ed), Values(f))
+		followReq, err = r.fedbox.Inbox(ctx, r.loadAPPerson(*ed), Values(f))
 	}
 	requests := make([]FollowRequest, 0)
 	if err == nil && len(followReq.Collection()) > 0 {
@@ -1976,7 +1948,7 @@ func (r *repository) SendFollowResponse(ctx context.Context, f FollowRequest, ac
 	bcc := make(pub.ItemCollection, 0)
 
 	to = append(to, pub.IRI(er.Metadata.ID))
-	bcc = append(bcc, pub.IRI(BaseURL))
+	bcc = append(bcc, r.fedbox.pub.ID)
 
 	response := new(pub.Activity)
 	if reason != nil {
@@ -2005,8 +1977,8 @@ func (r *repository) SendFollowResponse(ctx context.Context, f FollowRequest, ac
 }
 
 func (r *repository) FollowAccount(ctx context.Context, er, ed Account, reason *Item) error {
-	follower := loadAPPerson(er)
-	followed := loadAPPerson(ed)
+	follower := r.loadAPPerson(er)
+	followed := r.loadAPPerson(ed)
 	if !accountValidForC2S(&er) {
 		return errors.Unauthorizedf("invalid account %s", er.Handle)
 	}
@@ -2016,7 +1988,7 @@ func (r *repository) FollowAccount(ctx context.Context, er, ed Account, reason *
 
 	//to = append(to, follower.GetLink())
 	to = append(to, pub.PublicNS)
-	bcc = append(bcc, pub.IRI(BaseURL))
+	bcc = append(bcc, r.fedbox.pub.ID)
 
 	follow := new(pub.Follow)
 	if reason != nil {
@@ -2040,7 +2012,7 @@ func (r *repository) FollowAccount(ctx context.Context, er, ed Account, reason *
 }
 
 func (r *repository) SaveAccount(ctx context.Context, a Account) (Account, error) {
-	p := loadAPPerson(a)
+	p := r.loadAPPerson(a)
 	id := p.GetLink()
 
 	now := time.Now().UTC()
@@ -2059,7 +2031,7 @@ func (r *repository) SaveAccount(ctx context.Context, a Account) (Account, error
 
 	parent := fedbox
 	if a.CreatedBy != nil {
-		parent = loadAPPerson(*a.CreatedBy)
+		parent = r.loadAPPerson(*a.CreatedBy)
 	}
 	act.AttributedTo = parent.GetLink()
 	act.Actor = parent.GetLink()
@@ -2176,7 +2148,7 @@ func (r *repository) LoadActorInbox(ctx context.Context, actor pub.Item, f ...*F
 
 func (r repository) moderationActivity(ctx context.Context, er *pub.Actor, ed pub.Item, reason *Item) (*pub.Activity, error) {
 	bcc := make(pub.ItemCollection, 0)
-	bcc = append(bcc, pub.IRI(BaseURL))
+	bcc = append(bcc, r.fedbox.pub.ID)
 
 	// We need to add the ed/er accounts' creators to the CC list
 	cc := make(pub.ItemCollection, 0)
@@ -2206,7 +2178,7 @@ func (r repository) moderationActivity(ctx context.Context, er *pub.Actor, ed pu
 }
 
 func (r repository) moderationActivityOnItem(ctx context.Context, er Account, ed Item, reason *Item) (*pub.Activity, error) {
-	reporter := loadAPPerson(er)
+	reporter := r.loadAPPerson(er)
 	reported := new(pub.Object)
 	loadAPItem(reported, ed)
 	if !accountValidForC2S(&er) {
@@ -2216,8 +2188,8 @@ func (r repository) moderationActivityOnItem(ctx context.Context, er Account, ed
 }
 
 func (r repository) moderationActivityOnAccount(ctx context.Context, er, ed Account, reason *Item) (*pub.Activity, error) {
-	reporter := loadAPPerson(er)
-	reported := loadAPPerson(ed)
+	reporter := r.loadAPPerson(er)
+	reported := r.loadAPPerson(ed)
 	if !accountValidForC2S(&er) {
 		return nil, errors.Unauthorizedf("invalid account %s", er.Handle)
 	}
