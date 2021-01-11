@@ -482,12 +482,13 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	ctx := context.TODO()
 
 	f := &Filters{Name: CompStrs{EqualsString(a.Handle)}}
-	maybeExists, err := h.storage.fedbox.Actors(ctx, Values(f))
-	if err != nil {
-		h.v.HandleErrors(w, r, err)
+	maybeExists, err := h.storage.account(ctx, f)
+	if err != nil && !errors.IsNotFound(err) {
+		h.logger.WithContext(log.Ctx{"handle": a.Handle, "err": err}).Warnf("error when trying to load account")
+		h.v.HandleErrors(w, r, errors.NewBadRequest(err, "error when trying to load account %s", a.Handle))
 		return
 	}
-	if maybeExists.Count() > 0 {
+	if maybeExists.IsValid() {
 		h.v.HandleErrors(w, r, errors.BadRequestf("account %s already exists", a.Handle))
 		return
 	}
