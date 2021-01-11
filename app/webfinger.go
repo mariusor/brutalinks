@@ -218,7 +218,7 @@ func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 		}
 		wf.Aliases = []string{
 			string(BuildActorID(*a)),
-			fmt.Sprintf("%s/%s", ActorsURL, a.Handle),
+			fmt.Sprintf("%s/%s", "fedbox.test", a.Handle),
 		}
 		wf.Subject = res
 		wf.Links = []link{

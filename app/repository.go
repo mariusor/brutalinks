@@ -100,10 +100,6 @@ func ActivityPubService(c appConfig) (*repository, error) {
 	return repo, nil
 }
 
-var BaseURL = "https://fedbox"
-var ActorsURL = actors.IRI(pub.IRI(BaseURL))
-var ObjectsURL = objects.IRI(pub.IRI(BaseURL))
-
 func accountURL(acc Account) pub.IRI {
 	return pub.IRI(fmt.Sprintf("%s%s", Instance.BaseURL, AccountLocalLink(&acc)))
 }
@@ -115,17 +111,14 @@ func BuildIDFromItem(i Item) (pub.ID, bool) {
 	if i.HasMetadata() && len(i.Metadata.ID) > 0 {
 		return pub.ID(i.Metadata.ID), true
 	}
-	return pub.ID(fmt.Sprintf("%s/%s", ObjectsURL, url.PathEscape(i.Hash.String()))), true
+	return "", false
 }
 
 func BuildActorID(a Account) pub.ID {
 	if !a.IsValid() {
-		return pub.ID(pub.PublicNS)
+		return pub.PublicNS
 	}
-	if a.HasMetadata() && len(a.Metadata.ID) > 0 {
-		return pub.ID(a.Metadata.ID)
-	}
-	return pub.ID(fmt.Sprintf("%s/%s", ActorsURL, url.PathEscape(a.Hash.String())))
+	return pub.ID(a.Metadata.ID)
 }
 
 func loadAPItem(it pub.Item, item Item) error {
@@ -251,7 +244,6 @@ func loadAPItem(it pub.Item, item Item) error {
 		// TODO(marius): add proper dynamic recipients to this based on some selector in the frontend
 		if !item.Private() {
 			to = append(to, pub.PublicNS)
-			bcc = append(bcc, pub.IRI(BaseURL))
 		}
 		if item.Metadata != nil {
 			m := item.Metadata
@@ -362,11 +354,10 @@ func (r *repository) loadAPPerson(a Account) *pub.Actor {
 		if len(a.Metadata.URL) > 0 {
 			p.URL = pub.IRI(a.Metadata.URL)
 		}
-		oauthURL := strings.Replace(BaseURL, "api", "oauth", 1)
 		p.Endpoints = &pub.Endpoints{
-			SharedInbox:                r.fedbox.pub.Inbox,
-			OauthAuthorizationEndpoint: pub.IRI(fmt.Sprintf("%s/authorize", oauthURL)),
-			OauthTokenEndpoint:         pub.IRI(fmt.Sprintf("%s/token", oauthURL)),
+			SharedInbox:                r.fedbox.Service().Inbox,
+			OauthAuthorizationEndpoint: r.fedbox.Service().Endpoints.OauthAuthorizationEndpoint,
+			OauthTokenEndpoint:         r.fedbox.Service().Endpoints.OauthTokenEndpoint,
 		}
 	}
 
@@ -1558,7 +1549,7 @@ func (r *repository) SaveVote(ctx context.Context, v Vote) (Vote, error) {
 	act := &pub.Activity{
 		Type:  pub.UndoType,
 		To:    pub.ItemCollection{pub.PublicNS},
-		BCC:   pub.ItemCollection{r.fedbox.pub.ID},
+		BCC:   pub.ItemCollection{r.fedbox.Service().ID},
 		Actor: author.GetLink(),
 	}
 
@@ -1744,7 +1735,7 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 		if it.Parent == nil && it.SubmittedBy.HasMetadata() && len(it.SubmittedBy.Metadata.FollowersIRI) > 0 {
 			cc = append(cc, pub.IRI(it.SubmittedBy.Metadata.FollowersIRI))
 		}
-		bcc = append(bcc, r.fedbox.pub.ID)
+		bcc = append(bcc, r.fedbox.Service().ID)
 	}
 
 	art := new(pub.Object)
@@ -1948,7 +1939,7 @@ func (r *repository) SendFollowResponse(ctx context.Context, f FollowRequest, ac
 	bcc := make(pub.ItemCollection, 0)
 
 	to = append(to, pub.IRI(er.Metadata.ID))
-	bcc = append(bcc, r.fedbox.pub.ID)
+	bcc = append(bcc, r.fedbox.Service().ID)
 
 	response := new(pub.Activity)
 	if reason != nil {
@@ -1988,7 +1979,7 @@ func (r *repository) FollowAccount(ctx context.Context, er, ed Account, reason *
 
 	//to = append(to, follower.GetLink())
 	to = append(to, pub.PublicNS)
-	bcc = append(bcc, r.fedbox.pub.ID)
+	bcc = append(bcc, r.fedbox.Service().ID)
 
 	follow := new(pub.Follow)
 	if reason != nil {
@@ -2148,7 +2139,7 @@ func (r *repository) LoadActorInbox(ctx context.Context, actor pub.Item, f ...*F
 
 func (r repository) moderationActivity(ctx context.Context, er *pub.Actor, ed pub.Item, reason *Item) (*pub.Activity, error) {
 	bcc := make(pub.ItemCollection, 0)
-	bcc = append(bcc, r.fedbox.pub.ID)
+	bcc = append(bcc, r.fedbox.Service().ID)
 
 	// We need to add the ed/er accounts' creators to the CC list
 	cc := make(pub.ItemCollection, 0)

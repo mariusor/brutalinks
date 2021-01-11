@@ -360,7 +360,7 @@ func LoadInvitedMw(next http.Handler) http.Handler {
 			return
 		}
 		ctx := context.TODO()
-		a, err := s.LoadAccount(ctx, ActorsURL.AddPath(hash))
+		a, err := s.LoadAccount(ctx, actors.IRI(s.fedbox.Service()).AddPath(hash))
 		if err != nil {
 			ctxtErr(next, w, r, err)
 			return

@@ -62,7 +62,7 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 		if n.HasMetadata() && len(n.Metadata.ID) > 0 {
 			iri = pub.IRI(n.Metadata.ID)
 		} else {
-			iri = ObjectsURL.AddPath(n.Hash.String())
+			iri = objects.IRI(h.storage.fedbox.Service()).AddPath(n.Hash.String())
 		}
 		if p, err := repo.LoadItem(ctx, iri); err == nil {
 			n.Title = p.Title
@@ -102,7 +102,7 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 // HandleDelete serves /~{handle}/rm GET request
 func (h *handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 	repo := h.storage
-	iri := ObjectsURL.AddPath(chi.URLParam(r, "hash"))
+	iri := objects.IRI(h.storage.fedbox.Service()).AddPath(chi.URLParam(r, "hash"))
 	ctx := context.TODO()
 	p, err := repo.LoadItem(ctx, iri)
 	if err != nil {
@@ -129,7 +129,7 @@ func (h *handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 func (h *handler) HandleVoting(w http.ResponseWriter, r *http.Request) {
 	repo := h.storage
 	ctx := context.TODO()
-	iri := ObjectsURL.AddPath(chi.URLParam(r, "hash"))
+	iri := objects.IRI(h.storage.fedbox.Service()).AddPath(chi.URLParam(r, "hash"))
 	p, err := repo.LoadItem(ctx, iri)
 	if err != nil {
 		h.errFn()("Error: %s", err)
@@ -373,8 +373,7 @@ func (h *handler) ValidateItemAuthor(next http.Handler) http.Handler {
 		action := path.Base(url.Path)
 		if len(hash) > 0 && action != hash {
 			repo := h.storage
-			iri := ObjectsURL.AddPath(hash)
-			m, err := repo.LoadItem(ctx, iri)
+			m, err := repo.LoadItem(ctx, objects.IRI(repo.fedbox.Service()).AddPath(hash))
 			if err != nil {
 				ctxtErr(next, w, r, errors.NewNotFound(err, "item"))
 				return
@@ -394,9 +393,8 @@ func (h *handler) ValidateItemAuthor(next http.Handler) http.Handler {
 // HandleItemRedirect serves /i/{hash} request
 func (h *handler) HandleItemRedirect(w http.ResponseWriter, r *http.Request) {
 	repo := h.storage
-	iri := ObjectsURL.AddPath(chi.URLParam(r, "hash"))
 	ctx := context.TODO()
-	p, err := repo.LoadItem(ctx, iri)
+	p, err := repo.LoadItem(ctx, objects.IRI(repo.fedbox.Service()).AddPath(chi.URLParam(r, "hash")))
 	if err != nil {
 		h.v.HandleErrors(w, r, errors.NewNotValid(err, "oops!"))
 		return
@@ -649,9 +647,9 @@ func (h *handler) BlockItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	repo := h.storage
+	
 	ctx := context.TODO()
-
-	it, err := repo.LoadItem(ctx, ObjectsURL.AddPath(chi.URLParam(r, "hash")))
+	it, err := repo.LoadItem(ctx, objects.IRI(repo.fedbox.Service()).AddPath(chi.URLParam(r, "hash")))
 	if err != nil {
 		h.errFn(log.Ctx{
 			"before": err,
@@ -729,9 +727,9 @@ func (h *handler) ReportItem(w http.ResponseWriter, r *http.Request) {
 		h.v.HandleErrors(w, r, errors.NewMethodNotAllowed(err, ""))
 		return
 	}
-	repo := h.storage
 
-	p, err := repo.LoadItem(ctx, ObjectsURL.AddPath(chi.URLParam(r, "hash")))
+	repo := h.storage
+	p, err := repo.LoadItem(ctx, objects.IRI(repo.fedbox.Service()).AddPath(chi.URLParam(r, "hash")))
 	if err != nil {
 		h.errFn(log.Ctx{
 			"before": err,
