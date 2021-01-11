@@ -19,7 +19,8 @@ const (
 )
 
 type fedbox struct {
-	baseURL *url.URL
+	baseURL pub.IRI
+	pub     *pub.Actor
 	client  client.ActivityPub
 	infoFn  CtxLogFn
 	errFn   CtxLogFn
@@ -45,11 +46,11 @@ func SetErrorLogger(errFn CtxLogFn) OptionFn {
 }
 func SetURL(s string) OptionFn {
 	return func(f *fedbox) error {
-		u, err := url.Parse(s)
+		_, err := url.Parse(s)
 		if err != nil {
 			return err
 		}
-		f.baseURL = u
+		f.baseURL = pub.IRI(s)
 		return nil
 	}
 }
@@ -100,12 +101,21 @@ func NewClient(o ...OptionFn) (*fedbox, error) {
 		client.SetErrorLogger(optionLogFn(f.errFn)),
 		client.SetInfoLogger(optionLogFn(f.infoFn)),
 	)
+	service, err := f.client.LoadIRI(f.baseURL)
+	if err != nil {
+		return nil, err
+	}
+	pub.OnActor(service, func(a *pub.Actor) error {
+		f.pub = a
+		return nil
+	})
 	return &f, nil
 }
 
 func (f fedbox) normaliseIRI(i pub.IRI) pub.IRI {
-	if u, e := i.URL(); e == nil && u.Scheme != f.baseURL.Scheme {
-		return pub.IRI(strings.Replace(i.String(), u.Scheme, f.baseURL.Scheme, 1))
+	baseURL, _ := i.URL()
+	if u, e := i.URL(); e == nil && u.Scheme != baseURL.Scheme {
+		return pub.IRI(strings.Replace(i.String(), u.Scheme, baseURL.Scheme, 1))
 	}
 	return i
 }
@@ -353,13 +363,5 @@ func (f fedbox) ToInbox(ctx context.Context, a pub.Item) (pub.IRI, pub.Item, err
 }
 
 func (f *fedbox) Service() *pub.Service {
-	iri := strings.TrimRight(f.baseURL.String(), "/")
-	s := &pub.Service{
-		ID:   pub.ID(iri),
-		Type: pub.ServiceType,
-		URL:  pub.IRI(iri),
-	}
-	s.Inbox = inbox(s)
-
-	return s
+	return f.pub
 }

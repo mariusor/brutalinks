@@ -167,19 +167,19 @@ func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 
 		id := h.storage.BaseURL
 		wf.Aliases = []string{
-			id,
+			id.String(),
 		}
 		wf.Subject = inf.URI
 		wf.Links = []link{
 			{
 				Rel:  "self",
 				Type: "application/activity+json",
-				Href: id,
+				Href: id.String(),
 			},
 			{
 				Rel:  "service",
 				Type: "application/activity+json",
-				Href: id,
+				Href: id.String(),
 			},
 			{
 				Rel:  "service",

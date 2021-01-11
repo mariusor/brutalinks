@@ -31,7 +31,7 @@ var notNilIRI = DifferentThanString("-")
 var notNilIRIs = CompStrs{notNilIRI}
 
 type repository struct {
-	BaseURL string
+	BaseURL pub.IRI
 	SelfURL string
 	app     *Account
 	fedbox  *fedbox
@@ -91,7 +91,7 @@ func ActivityPubService(c appConfig) *repository {
 	f, _ := NewClient(SetURL(BaseURL), SetInfoLogger(infoFn), SetErrorLogger(errFn), SetUA(ua))
 
 	return &repository{
-		BaseURL: c.APIURL,
+		BaseURL: f.pub.ID,
 		SelfURL: c.BaseURL,
 		fedbox:  f,
 		infoFn:  infoFn,
@@ -109,13 +109,6 @@ func BuildCollectionID(a Account, o handlers.CollectionType) pub.ID {
 var BaseURL = "http://fedbox.git"
 var ActorsURL = actors.IRI(pub.IRI(BaseURL))
 var ObjectsURL = objects.IRI(pub.IRI(BaseURL))
-
-func apAccountID(a Account) pub.ID {
-	if a.Hash.IsValid() {
-		return pub.ID(fmt.Sprintf("%s/%s", ActorsURL, a.Hash.String()))
-	}
-	return pub.ID(fmt.Sprintf("%s/anonymous", ActorsURL))
-}
 
 func accountURL(acc Account) pub.IRI {
 	return pub.IRI(fmt.Sprintf("%s%s", Instance.BaseURL, AccountLocalLink(&acc)))
@@ -322,9 +315,9 @@ var anonymousActor = &pub.Actor{
 	PreferredUsername: pub.NaturalLanguageValues{{pub.NilLangRef, pub.Content(Anonymous)}},
 }
 
-func anonymousPerson(url string) *pub.Actor {
+func anonymousPerson(url pub.IRI) *pub.Actor {
 	p := anonymousActor
-	p.Inbox = handlers.Inbox.IRI(pub.IRI(url))
+	p.Inbox = handlers.Inbox.IRI(url)
 	return p
 }
 
@@ -342,7 +335,7 @@ func loadAPPerson(a Account) *pub.Actor {
 	if a.HasMetadata() {
 		if a.Metadata.Blurb != nil && len(a.Metadata.Blurb) > 0 {
 			p.Summary = pub.NaturalLanguageValuesNew()
-			p.Summary.Set(pub.NilLangRef, pub.Content(a.Metadata.Blurb))
+			p.Summary.Set(pub.NilLangRef, a.Metadata.Blurb)
 		}
 		if len(a.Metadata.Icon.URI) > 0 {
 			avatar := pub.ObjectNew(pub.ImageType)
@@ -391,9 +384,6 @@ func loadAPPerson(a Account) *pub.Actor {
 			if !a.UpdatedAt.IsZero() {
 				p.Updated = a.UpdatedAt
 			}
-		}
-		if len(a.Hash) >= 8 {
-			p.ID = apAccountID(a)
 		}
 		oauthURL := strings.Replace(BaseURL, "api", "oauth", 1)
 		p.Endpoints = &pub.Endpoints{
@@ -1174,10 +1164,10 @@ func (r *repository) account(ctx context.Context, ff *Filters) (Account, error) 
 		return AnonymousAccount, err
 	}
 	if len(accounts) == 0 {
-		return AnonymousAccount, errors.NotFoundf("account not found for")
+		return AnonymousAccount, errors.NotFoundf("account not found")
 	}
 	if len(accounts) > 1 {
-		return AnonymousAccount, errors.BadRequestf("too many accounts found for")
+		return AnonymousAccount, errors.BadRequestf("too many accounts found")
 	}
 	return accounts[0], nil
 }
@@ -2055,27 +2045,26 @@ func (r *repository) SaveAccount(ctx context.Context, a Account) (Account, error
 	}
 	p.Updated = now
 
+	fedbox :=  r.fedbox.Service()
 	act := &pub.Activity{
 		To:      pub.ItemCollection{pub.PublicNS},
-		BCC:     pub.ItemCollection{pub.IRI(BaseURL)},
+		BCC:     pub.ItemCollection{fedbox.ID},
 		Updated: now,
 	}
 
-	var author *pub.Actor
+	parent := fedbox
 	if a.CreatedBy != nil {
-		author = loadAPPerson(*a.CreatedBy)
-	} else {
-		author = r.fedbox.Service()
+		parent = loadAPPerson(*a.CreatedBy)
 	}
-	act.AttributedTo = author.GetLink()
-	act.Actor = author.GetLink()
+	act.AttributedTo = parent.GetLink()
+	act.Actor = parent.GetLink()
 	var err error
 	if a.Deleted() {
 		if len(id) == 0 {
 			err := errors.NotFoundf("item hash is empty, can not delete")
 			r.infoFn(log.Ctx{
 				"actor":  a.GetLink(),
-				"author": author.GetLink(),
+				"parent": parent.GetLink(),
 				"err":    err,
 			})("save failed")
 			return a, err
@@ -2085,7 +2074,7 @@ func (r *repository) SaveAccount(ctx context.Context, a Account) (Account, error
 	} else {
 		act.Object = p
 		p.To = pub.ItemCollection{pub.PublicNS}
-		p.BCC = pub.ItemCollection{pub.IRI(BaseURL)}
+		p.BCC = pub.ItemCollection{fedbox.ID}
 		if len(id) == 0 {
 			act.Type = pub.CreateType
 		} else {
@@ -2094,25 +2083,19 @@ func (r *repository) SaveAccount(ctx context.Context, a Account) (Account, error
 	}
 
 	var ap pub.Item
+	ltx := log.Ctx{"actor": a.Handle}
 	if _, ap, err = r.fedbox.ToOutbox(ctx, act); err != nil {
-		ltx := log.Ctx{
-			"author": author.GetLink(),
-			"err":    err,
-		}
+		ltx["parent"] = parent.GetLink()
 		if ap != nil {
 			ltx["activity"] = ap.GetLink()
 		}
-		r.errFn(ltx)("save failed")
+		r.errFn(ltx, log.Ctx{"err": err})("save failed")
 		return a, err
 	}
-	err = a.FromActivityPub(ap)
-	if err != nil {
-		r.errFn(log.Ctx{
-			"actor": a.Handle,
-			"err":   err,
-		})("loading of actor from JSON failed")
+	if err := a.FromActivityPub(ap); err != nil {
+		r.errFn(ltx, log.Ctx{"err": err})("loading of actor from JSON failed")
 	}
-	return a, err
+	return a, nil
 }
 
 // LoadInfo this method is here to keep compatibility with the repository interfaces
