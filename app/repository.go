@@ -31,12 +31,15 @@ var notNilIRI = DifferentThanString("-")
 var notNilIRIs = CompStrs{notNilIRI}
 
 type repository struct {
-	BaseURL pub.IRI
 	SelfURL string
 	app     *Account
 	fedbox  *fedbox
 	infoFn  CtxLogFn
 	errFn   CtxLogFn
+}
+
+func (r repository) BaseURL() pub.IRI {
+	return r.fedbox.baseURL
 }
 
 var ValidActorTypes = pub.ActivityVocabularyTypes{
@@ -73,7 +76,7 @@ func (h handler) Repository(next http.Handler) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
-func ActivityPubService(c appConfig) *repository {
+func ActivityPubService(c appConfig) (*repository, error) {
 	pub.ItemTyperFunc = pub.GetItemByType
 
 	BaseURL = c.APIURL
@@ -88,15 +91,17 @@ func ActivityPubService(c appConfig) *repository {
 	}
 	ua := fmt.Sprintf("%s-%s", c.HostName, Instance.Version)
 
-	f, _ := NewClient(SetURL(BaseURL), SetInfoLogger(infoFn), SetErrorLogger(errFn), SetUA(ua))
-
-	return &repository{
-		BaseURL: f.pub.ID,
+	repo := &repository{
 		SelfURL: c.BaseURL,
-		fedbox:  f,
 		infoFn:  infoFn,
 		errFn:   errFn,
 	}
+	var err error
+	repo.fedbox, err = NewClient(SetURL(BaseURL), SetInfoLogger(infoFn), SetErrorLogger(errFn), SetUA(ua))
+	if err != nil {
+		return repo, err
+	}
+	return repo, nil
 }
 
 func BuildCollectionID(a Account, o handlers.CollectionType) pub.ID {
@@ -106,7 +111,7 @@ func BuildCollectionID(a Account, o handlers.CollectionType) pub.ID {
 	return o.IRI(pub.IRI(BaseURL))
 }
 
-var BaseURL = "http://fedbox.git"
+var BaseURL = "https://fedbox"
 var ActorsURL = actors.IRI(pub.IRI(BaseURL))
 var ObjectsURL = objects.IRI(pub.IRI(BaseURL))
 
@@ -1686,7 +1691,7 @@ func (r *repository) getAuthorRequestURL(a *Account) string {
 			reqURL = author.Inbox.GetLink().String()
 		}
 	} else {
-		author := anonymousPerson(r.BaseURL)
+		author := anonymousPerson(r.BaseURL())
 		reqURL = author.Inbox.GetLink().String()
 	}
 	return reqURL
@@ -1700,7 +1705,7 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 	if it.SubmittedBy.IsLogged() {
 		author = loadAPPerson(*it.SubmittedBy)
 	} else {
-		author = anonymousPerson(r.BaseURL)
+		author = anonymousPerson(r.BaseURL())
 	}
 	if !accountValidForC2S(it.SubmittedBy) {
 		return it, errors.Unauthorizedf("invalid account %s", it.SubmittedBy.Handle)

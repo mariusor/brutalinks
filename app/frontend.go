@@ -3,18 +3,18 @@ package app
 import (
 	"context"
 	"fmt"
-	pub "github.com/go-ap/activitypub"
+	"net/http"
+	"net/url"
+	"os"
+	"strings"
+	"time"
+
 	"github.com/go-ap/errors"
 	"github.com/go-chi/chi"
 	"github.com/gorilla/csrf"
 	"github.com/mariusor/go-littr/internal/config"
 	"github.com/mariusor/go-littr/internal/log"
 	"golang.org/x/oauth2"
-	"net/http"
-	"net/url"
-	"os"
-	"strings"
-	"time"
 )
 
 const (
@@ -85,53 +85,56 @@ func Init(c appConfig) (*handler, error) {
 	c.SessionKeys = loadEnvSessionKeys()
 	h.conf = c
 
-	h.storage = ActivityPubService(c)
-
-	provider := "fedbox"
-	config := GetOauth2Config(provider, h.conf.BaseURL)
-	if len(config.ClientID) > 0 {
-		oIRI := actors.IRI(pub.IRI(h.storage.BaseURL)).AddPath(config.ClientID)
-		oauth, err := h.storage.fedbox.Actor(context.TODO(), oIRI)
-		if err != nil {
-			h.conf.UserCreatingEnabled = false
-			h.errFn()("Failed to load actor: %s", err)
-		}
-		if oauth != nil {
-			h.storage.app = new(Account)
-			h.storage.app.FromActivityPub(oauth)
-
-			handle := h.storage.app.Handle
-			tok, err := config.PasswordCredentialsToken(context.TODO(), handle, config.ClientSecret)
-			ctx := log.Ctx{
-				"handle":      handle,
-				"provider":    provider,
-				"client":      config.ClientID,
-				"pw":          hideString(config.ClientSecret),
-				"authURL":     config.Endpoint.AuthURL,
-				"tokURL":      config.Endpoint.TokenURL,
-				"redirectURL": config.RedirectURL,
-			}
+	h.storage, err = ActivityPubService(c)
+	if err != nil {
+		h.conf.UserCreatingEnabled = false
+		h.errFn()("Failed to load actor: %s", err)
+	} else {
+		provider := "fedbox"
+		config := GetOauth2Config(provider, h.conf.BaseURL)
+		if len(config.ClientID) > 0 {
+			oauth, err := h.storage.fedbox.Actor(context.TODO(), actors.IRI(h.storage.BaseURL()).AddPath(config.ClientID))
 			if err != nil {
 				h.conf.UserCreatingEnabled = false
-				h.errFn(log.Ctx{"err": err}, ctx)("Failed to authenticate client")
-			} else {
-				if tok == nil {
-					h.conf.UserCreatingEnabled = false
-					h.errFn(ctx)("Failed to load a valid OAuth2 token for client")
-				}
-				h.storage.app.Metadata.OAuth.Provider = provider
-				h.storage.app.Metadata.OAuth.Token = tok
-				h.infoFn(ctx, log.Ctx{
-					"token":   hideString(tok.AccessToken),
-					"type":    tok.TokenType,
-					"refresh": hideString(tok.RefreshToken),
-				})("Loaded valid OAuth2 token for client")
-
+				h.errFn()("Failed to load actor: %s", err)
 			}
+			if oauth != nil {
+				h.storage.app = new(Account)
+				h.storage.app.FromActivityPub(oauth)
+
+				handle := h.storage.app.Handle
+				tok, err := config.PasswordCredentialsToken(context.TODO(), handle, config.ClientSecret)
+				ctx := log.Ctx{
+					"handle":      handle,
+					"provider":    provider,
+					"client":      config.ClientID,
+					"pw":          hideString(config.ClientSecret),
+					"authURL":     config.Endpoint.AuthURL,
+					"tokURL":      config.Endpoint.TokenURL,
+					"redirectURL": config.RedirectURL,
+				}
+				if err != nil {
+					h.conf.UserCreatingEnabled = false
+					h.errFn(log.Ctx{"err": err}, ctx)("Failed to authenticate client")
+				} else {
+					if tok == nil {
+						h.conf.UserCreatingEnabled = false
+						h.errFn(ctx)("Failed to load a valid OAuth2 token for client")
+					}
+					h.storage.app.Metadata.OAuth.Provider = provider
+					h.storage.app.Metadata.OAuth.Token = tok
+					h.infoFn(ctx, log.Ctx{
+						"token":   hideString(tok.AccessToken),
+						"type":    tok.TokenType,
+						"refresh": hideString(tok.RefreshToken),
+					})("Loaded valid OAuth2 token for client")
+
+				}
+			}
+		} else {
+			h.conf.UserCreatingEnabled = false
+			h.errFn(log.Ctx{"conf": config})("Failed to load OAuth2 ClientID")
 		}
-	} else {
-		h.conf.UserCreatingEnabled = false
-		h.errFn(log.Ctx{"conf": config})("Failed to load OAuth2 ClientID")
 	}
 	h.v, err = ViewInit(h.conf, h.infoFn, h.errFn)
 	if err != nil {
@@ -418,7 +421,7 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 				}
 				h.storage.loadAccountVotes(ctx, &acc, items)
 			}
-			if time.Now().Sub(acc.Metadata.OutboxUpdated) > 5 * time.Minute {
+			if time.Now().Sub(acc.Metadata.OutboxUpdated) > 5*time.Minute {
 				if err := h.storage.loadAccountsOutbox(ctx, &acc); err != nil {
 					h.errFn(ltx, log.Ctx{"err": err.Error()})("Unable to load account's Outbox")
 				}

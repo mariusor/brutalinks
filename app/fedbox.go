@@ -9,7 +9,7 @@ import (
 	"github.com/go-ap/handlers"
 	"github.com/mariusor/go-littr/internal/log"
 	"net/url"
-	"strings"
+	"path"
 )
 
 const (
@@ -103,21 +103,26 @@ func NewClient(o ...OptionFn) (*fedbox, error) {
 	)
 	service, err := f.client.LoadIRI(f.baseURL)
 	if err != nil {
-		return nil, err
+		return &f, err
 	}
-	pub.OnActor(service, func(a *pub.Actor) error {
+	return &f, pub.OnActor(service, func(a *pub.Actor) error {
 		f.pub = a
 		return nil
 	})
-	return &f, nil
 }
 
 func (f fedbox) normaliseIRI(i pub.IRI) pub.IRI {
-	baseURL, _ := i.URL()
-	if u, e := i.URL(); e == nil && u.Scheme != baseURL.Scheme {
-		return pub.IRI(strings.Replace(i.String(), u.Scheme, baseURL.Scheme, 1))
+	baseURL, eb := f.baseURL.URL()
+	u, e := i.URL();
+	if e != nil || eb != nil {
+		return i
 	}
-	return i
+	u.Host = baseURL.Host
+	u.Path = path.Clean(u.Path)
+	if u.Scheme != baseURL.Scheme {
+		u.Scheme = baseURL.Scheme
+	}
+	return pub.IRI(u.String())
 }
 
 func (f fedbox) collection(ctx context.Context, i pub.IRI) (pub.CollectionInterface, error) {
@@ -152,7 +157,7 @@ func (f fedbox) collection(ctx context.Context, i pub.IRI) (pub.CollectionInterf
 }
 
 func (f fedbox) object(ctx context.Context, i pub.IRI) (pub.Item, error) {
-	return f.client.CtxLoadIRI(ctx, i)
+	return f.client.CtxLoadIRI(ctx, f.normaliseIRI(i))
 }
 
 func rawFilterQuery(f ...FilterFn) string {
@@ -341,7 +346,7 @@ func (f fedbox) req(ctx context.Context, iri pub.IRI, a pub.Item) (pub.IRI, pub.
 	if err := validateIRIForRequest(iri); err != nil {
 		return "", nil, errors.Annotatef(err, "Invalid IRI to post to")
 	}
-	return f.client.CtxToCollection(ctx, iri, a)
+	return f.client.CtxToCollection(ctx, f.normaliseIRI(iri), a)
 }
 
 func (f fedbox) ToOutbox(ctx context.Context, a pub.Item) (pub.IRI, pub.Item, error) {
@@ -363,5 +368,8 @@ func (f fedbox) ToInbox(ctx context.Context, a pub.Item) (pub.IRI, pub.Item, err
 }
 
 func (f *fedbox) Service() *pub.Service {
+	if f.pub == nil {
+		return &pub.Actor{ ID: f.baseURL, Type: pub.ServiceType }
+	}
 	return f.pub
 }

@@ -47,6 +47,9 @@ var (
 
 func NodeInfoResolverNew(f *fedbox) NodeInfoResolver {
 	n := NodeInfoResolver{}
+	if f == nil {
+		return n
+	}
 
 	us, _ := f.Actors(context.TODO(), Values(actorsFilter))
 	if us != nil {
@@ -165,7 +168,7 @@ func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		id := h.storage.BaseURL
+		id := h.storage.BaseURL()
 		wf.Aliases = []string{
 			id.String(),
 		}

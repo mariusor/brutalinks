@@ -474,7 +474,7 @@ func (h *handler) HandleSendInvite(w http.ResponseWriter, r *http.Request) {
 
 // HandleRegister handles POST /register requests
 func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
-	a, err := accountFromPost(r)
+	a, err := h.accountFromPost(r)
 	if err != nil {
 		h.v.HandleErrors(w, r, err)
 		return
@@ -548,7 +548,7 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// pos
-	pwChURL := fmt.Sprintf("%s/oauth/pw", h.storage.BaseURL)
+	pwChURL := fmt.Sprintf("%s/oauth/pw", h.storage.BaseURL())
 	u, _ := url.Parse(pwChURL)
 	q := u.Query()
 	q.Set("s", d.Code)

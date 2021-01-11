@@ -186,7 +186,7 @@ func (a AccountCollection) Contains(b Account) bool {
 	return false
 }
 
-func accountFromPost(r *http.Request) (Account, error) {
+func (h *handler)accountFromPost(r *http.Request) (Account, error) {
 	if r.Method != http.MethodPost {
 		return AnonymousAccount, errors.Errorf("invalid http method type")
 	}
@@ -195,9 +195,8 @@ func accountFromPost(r *http.Request) (Account, error) {
 	hash := r.PostFormValue("hash")
 	if len(hash) > 0 {
 		// NOTE(marius): coming from an invite
-		s := ContextRepository(r.Context())
-		ctx := context.TODO()
-		a, _ = s.LoadAccount(ctx, ActorsURL.AddPath(hash))
+		s := h.storage
+		a, _ = s.LoadAccount(context.TODO(), actors.IRI(s.BaseURL()).AddPath(hash))
 	}
 	if accountsEqual(*a, AnonymousAccount) {
 		*a = Account{Metadata: &AccountMetadata{}}
