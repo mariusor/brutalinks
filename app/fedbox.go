@@ -3,13 +3,14 @@ package app
 import (
 	"context"
 	"fmt"
+	"net/url"
+	"path"
+
 	pub "github.com/go-ap/activitypub"
 	"github.com/go-ap/client"
 	"github.com/go-ap/errors"
 	"github.com/go-ap/handlers"
 	"github.com/mariusor/go-littr/internal/log"
-	"net/url"
-	"path"
 )
 
 const (
@@ -21,7 +22,7 @@ const (
 type fedbox struct {
 	baseURL pub.IRI
 	pub     *pub.Actor
-	client  client.ActivityPub
+	client  *client.C
 	infoFn  CtxLogFn
 	errFn   CtxLogFn
 }
@@ -112,22 +113,21 @@ func NewClient(o ...OptionFn) (*fedbox, error) {
 }
 
 func (f fedbox) normaliseIRI(i pub.IRI) pub.IRI {
-	baseURL, eb := f.baseURL.URL()
-	u, e := i.URL();
-	if e != nil || eb != nil {
+	bu, be := f.baseURL.URL()
+	iu, ie := i.URL()
+	if ie != nil || be != nil {
 		return i
 	}
-	u.Host = baseURL.Host
-	u.Path = path.Clean(u.Path)
-	if u.Scheme != baseURL.Scheme {
-		u.Scheme = baseURL.Scheme
+	iu.Host = bu.Host
+	iu.Path = path.Clean(iu.Path)
+	if iu.Scheme != bu.Scheme {
+		iu.Scheme = bu.Scheme
 	}
-	return pub.IRI(u.String())
+	return pub.IRI(iu.String())
 }
 
 func (f fedbox) collection(ctx context.Context, i pub.IRI) (pub.CollectionInterface, error) {
-	i = f.normaliseIRI(i)
-	it, err := f.client.CtxLoadIRI(ctx, i)
+	it, err := f.client.CtxLoadIRI(ctx, f.normaliseIRI(i))
 	if err != nil {
 		return nil, errors.Annotatef(err, "Unable to load IRI: %s", i)
 	}
@@ -160,7 +160,7 @@ func (f fedbox) object(ctx context.Context, i pub.IRI) (pub.Item, error) {
 	return f.client.CtxLoadIRI(ctx, f.normaliseIRI(i))
 }
 
-func rawFilterQuery(f ...FilterFn) string {
+func rawFilterQuery(f ...client.FilterFn) string {
 	if len(f) == 0 {
 		return ""
 	}
@@ -177,31 +177,40 @@ func rawFilterQuery(f ...FilterFn) string {
 
 	return "?" + q.Encode()
 }
-func iri(i pub.IRI, f ...FilterFn) pub.IRI {
+
+func iri(i pub.IRI, f ...client.FilterFn) pub.IRI {
 	return pub.IRI(fmt.Sprintf("%s%s", i, rawFilterQuery(f...)))
 }
-func inbox(a pub.Item, f ...FilterFn) pub.IRI {
+
+func inbox(a pub.Item, f ...client.FilterFn) pub.IRI {
 	return iri(handlers.Inbox.IRI(a), f...)
 }
-func outbox(a pub.Item, f ...FilterFn) pub.IRI {
+
+func outbox(a pub.Item, f ...client.FilterFn) pub.IRI {
 	return iri(handlers.Outbox.IRI(a), f...)
 }
-func following(a pub.Item, f ...FilterFn) pub.IRI {
+
+func following(a pub.Item, f ...client.FilterFn) pub.IRI {
 	return iri(handlers.Following.IRI(a), f...)
 }
-func followers(a pub.Item, f ...FilterFn) pub.IRI {
+
+func followers(a pub.Item, f ...client.FilterFn) pub.IRI {
 	return iri(handlers.Followers.IRI(a), f...)
 }
-func liked(a pub.Item, f ...FilterFn) pub.IRI {
+
+func liked(a pub.Item, f ...client.FilterFn) pub.IRI {
 	return iri(handlers.Liked.IRI(a), f...)
 }
-func likes(o pub.Item, f ...FilterFn) pub.IRI {
+
+func likes(o pub.Item, f ...client.FilterFn) pub.IRI {
 	return iri(handlers.Likes.IRI(o), f...)
 }
-func shares(o pub.Item, f ...FilterFn) pub.IRI {
+
+func shares(o pub.Item, f ...client.FilterFn) pub.IRI {
 	return iri(handlers.Shares.IRI(o), f...)
 }
-func replies(o pub.Item, f ...FilterFn) pub.IRI {
+
+func replies(o pub.Item, f ...client.FilterFn) pub.IRI {
 	return iri(handlers.Replies.IRI(o), f...)
 }
 func validateActor(a pub.Item) error {
@@ -223,61 +232,66 @@ func validateObject(o pub.Item) error {
 	return nil
 }
 
-type FilterFn func() url.Values
-
 type CollectionFn func(context.Context, *Filters) (pub.CollectionInterface, error)
 
-func (f fedbox) Inbox(ctx context.Context, actor pub.Item, filters ...FilterFn) (pub.CollectionInterface, error) {
+func (f fedbox) Inbox(ctx context.Context, actor pub.Item, filters ...client.FilterFn) (pub.CollectionInterface, error) {
 	if err := validateActor(actor); err != nil {
 		return nil, err
 	}
 	return f.collection(ctx, inbox(actor, filters...))
 }
-func (f fedbox) Outbox(ctx context.Context, actor pub.Item, filters ...FilterFn) (pub.CollectionInterface, error) {
+
+func (f fedbox) Outbox(ctx context.Context, actor pub.Item, filters ...client.FilterFn) (pub.CollectionInterface, error) {
 	if err := validateActor(actor); err != nil {
 		return nil, err
 	}
 	return f.collection(ctx, outbox(actor, filters...))
 }
-func (f fedbox) Following(ctx context.Context, actor pub.Item, filters ...FilterFn) (pub.CollectionInterface, error) {
+
+func (f fedbox) Following(ctx context.Context, actor pub.Item, filters ...client.FilterFn) (pub.CollectionInterface, error) {
 	if err := validateActor(actor); err != nil {
 		return nil, err
 	}
 	return f.collection(ctx, following(actor, filters...))
 }
-func (f fedbox) Followers(ctx context.Context, actor pub.Item, filters ...FilterFn) (pub.CollectionInterface, error) {
+
+func (f fedbox) Followers(ctx context.Context, actor pub.Item, filters ...client.FilterFn) (pub.CollectionInterface, error) {
 	if err := validateActor(actor); err != nil {
 		return nil, err
 	}
 	return f.collection(ctx, followers(actor, filters...))
 }
-func (f fedbox) Likes(ctx context.Context, object pub.Item, filters ...FilterFn) (pub.CollectionInterface, error) {
+
+func (f fedbox) Likes(ctx context.Context, object pub.Item, filters ...client.FilterFn) (pub.CollectionInterface, error) {
 	if err := validateObject(object); err != nil {
 		return nil, err
 	}
 	return f.collection(ctx, likes(object, filters...))
 }
-func (f fedbox) Liked(ctx context.Context, actor pub.Item, filters ...FilterFn) (pub.CollectionInterface, error) {
+
+func (f fedbox) Liked(ctx context.Context, actor pub.Item, filters ...client.FilterFn) (pub.CollectionInterface, error) {
 	if err := validateActor(actor); err != nil {
 		return nil, err
 	}
 	return f.collection(ctx, liked(actor, filters...))
 }
-func (f fedbox) Replies(ctx context.Context, object pub.Item, filters ...FilterFn) (pub.CollectionInterface, error) {
+
+func (f fedbox) Replies(ctx context.Context, object pub.Item, filters ...client.FilterFn) (pub.CollectionInterface, error) {
 	if err := validateObject(object); err != nil {
 		return nil, err
 	}
 	return f.collection(ctx, replies(object, filters...))
 }
-func (f fedbox) Shares(ctx context.Context, object pub.Item, filters ...FilterFn) (pub.CollectionInterface, error) {
+
+func (f fedbox) Shares(ctx context.Context, object pub.Item, filters ...client.FilterFn) (pub.CollectionInterface, error) {
 	if err := validateObject(object); err != nil {
 		return nil, err
 	}
 	return f.collection(ctx, shares(object, filters...))
 }
 
-func (f fedbox) Collection(ctx context.Context, i pub.IRI, filters ...FilterFn) (pub.CollectionInterface, error) {
-	return f.collection(ctx, iri(i, filters...))
+func (f fedbox) Collection(ctx context.Context, i pub.IRI, filters ...client.FilterFn) (pub.CollectionInterface, error) {
+	return f.collection(ctx, iri(f.normaliseIRI(i), filters...))
 }
 
 func (f fedbox) Actor(ctx context.Context, iri pub.IRI) (*pub.Actor, error) {
@@ -319,15 +333,15 @@ func (f fedbox) Object(ctx context.Context, iri pub.IRI) (*pub.Object, error) {
 	return object, nil
 }
 
-func (f fedbox) Activities(ctx context.Context, filters ...FilterFn) (pub.CollectionInterface, error) {
+func (f fedbox) Activities(ctx context.Context, filters ...client.FilterFn) (pub.CollectionInterface, error) {
 	return f.collection(ctx, iri(activities.IRI(f.Service()), filters...))
 }
 
-func (f fedbox) Actors(ctx context.Context, filters ...FilterFn) (pub.CollectionInterface, error) {
+func (f fedbox) Actors(ctx context.Context, filters ...client.FilterFn) (pub.CollectionInterface, error) {
 	return f.collection(ctx, iri(actors.IRI(f.Service()), filters...))
 }
 
-func (f fedbox) Objects(ctx context.Context, filters ...FilterFn) (pub.CollectionInterface, error) {
+func (f fedbox) Objects(ctx context.Context, filters ...client.FilterFn) (pub.CollectionInterface, error) {
 	return f.collection(ctx, iri(objects.IRI(f.Service()), filters...))
 }
 
@@ -342,20 +356,16 @@ func validateIRIForRequest(i pub.IRI) error {
 	return nil
 }
 
-func (f fedbox) req(ctx context.Context, iri pub.IRI, a pub.Item) (pub.IRI, pub.Item, error) {
-	if err := validateIRIForRequest(iri); err != nil {
-		return "", nil, errors.Annotatef(err, "Invalid IRI to post to")
-	}
-	return f.client.CtxToCollection(ctx, f.normaliseIRI(iri), a)
-}
-
 func (f fedbox) ToOutbox(ctx context.Context, a pub.Item) (pub.IRI, pub.Item, error) {
 	iri := pub.IRI("")
 	pub.OnActivity(a, func(a *pub.Activity) error {
 		iri = outbox(a.Actor)
 		return nil
 	})
-	return f.req(ctx, iri, a)
+	if err := validateIRIForRequest(iri); err != nil {
+		return "", nil, errors.Annotatef(err, "Invalid Outbox IRI")
+	}
+	return f.client.CtxToCollection(ctx, f.normaliseIRI(iri), a)
 }
 
 func (f fedbox) ToInbox(ctx context.Context, a pub.Item) (pub.IRI, pub.Item, error) {
@@ -364,7 +374,10 @@ func (f fedbox) ToInbox(ctx context.Context, a pub.Item) (pub.IRI, pub.Item, err
 		iri = inbox(a.Actor)
 		return nil
 	})
-	return f.req(ctx, iri, a)
+	if err := validateIRIForRequest(iri); err != nil {
+		return "", nil, errors.Annotatef(err, "Invalid Inbox IRI")
+	}
+	return f.client.CtxToCollection(ctx, f.normaliseIRI(iri), a)
 }
 
 func (f *fedbox) Service() *pub.Service {
