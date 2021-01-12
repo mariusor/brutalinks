@@ -1171,6 +1171,21 @@ func (r *repository) accounts(ctx context.Context, ff ...*Filters) ([]Account, e
 	return accounts, nil
 }
 
+func (r *repository) object(ctx context.Context, ff *Filters) (Item, error) {
+	objects, err := r.objects(ctx, ff)
+	if err != nil {
+		return Item{}, err
+	}
+	if len(objects) == 0 {
+		return Item{}, errors.NotFoundf("object not found")
+	}
+	if len(objects) > 1 {
+		return Item{}, errors.BadRequestf("too many objects found")
+	}
+	return objects[0], nil
+
+}
+
 func (r *repository) objects(ctx context.Context, ff ...*Filters) (ItemCollection, error) {
 	objects := func(ctx context.Context, f *Filters) (pub.CollectionInterface, error) {
 		return r.fedbox.Objects(ctx, Values(f))

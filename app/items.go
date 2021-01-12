@@ -112,15 +112,17 @@ func detectMimeType(data string) string {
 	return "text/plain"
 }
 
-func ContentFromRequest(r *http.Request, author Account) (Item, error) {
+func updateItemFromRequest(r *http.Request, author Account, i *Item) error {
 	if r.Method != http.MethodPost {
-		return Item{}, errors.Errorf("invalid http method type")
+		return errors.Errorf("invalid http method type")
 	}
 
 	var receivers []Account
 	var err error
-	i := Item{}
-	i.Metadata = &ItemMetadata{}
+
+	if i.Metadata == nil {
+		i.Metadata = new(ItemMetadata)
+	}
 	if receivers, err = accountsFromRequestHandle(r); err == nil && chi.URLParam(r, "hash") == "" {
 		i.MakePrivate()
 		for _, rec := range receivers {
@@ -164,5 +166,10 @@ func ContentFromRequest(r *http.Request, author Account) (Item, error) {
 	if len(hash) > 0 {
 		i.Hash = HashFromString(hash)
 	}
-	return i, nil
+	return nil
+}
+
+func ContentFromRequest(r *http.Request, author Account) (Item, error) {
+	i := Item{}
+	return i, updateItemFromRequest(r, author, &i)
 }

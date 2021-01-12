@@ -28,17 +28,23 @@ import (
 func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	acc := loggedAccount(r)
 	ctx := context.TODO()
-	n, err := ContentFromRequest(r, *acc)
-	if err != nil {
-		h.errFn(log.Ctx{
-			"before": err,
-		})("Error: wrong http method")
-		h.v.HandleErrors(w, r, errors.NewMethodNotAllowed(err, ""))
-		return
-	}
 	saveVote := true
 
 	repo := h.storage
+	f := new(Filters)
+	f.IRI = CompStrs{LikeString(r.FormValue("hash"))}
+	n, err := repo.object(ctx, f)
+	if err != nil {
+		h.errFn(log.Ctx{ "err": err.Error() })("could not find item")
+		h.v.HandleErrors(w, r, errors.NewNotFound(err, ""))
+		return
+	}
+
+	if err := updateItemFromRequest(r, *acc, &n); err != nil {
+		h.errFn(log.Ctx{ "err": err.Error() })("Error: wrong http method")
+		h.v.HandleErrors(w, r, errors.NewMethodNotAllowed(err, ""))
+		return
+	}
 	if n.Parent.IsValid() {
 		c := ContextCursor(r.Context())
 		if len(c.items) > 0 {
@@ -69,11 +75,8 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 		}
 		saveVote = false
 	}
-	n, err = repo.SaveItem(ctx, n)
-	if err != nil {
-		h.errFn(log.Ctx{
-			"before": err,
-		})("Error: unable to save item")
+	if n, err = repo.SaveItem(ctx, n); err != nil {
+		h.errFn(log.Ctx{"err": err.Error()})("unable to save item")
 		h.v.HandleErrors(w, r, err)
 		return
 	}
@@ -86,10 +89,11 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 		}
 		if _, err := repo.SaveVote(ctx, v); err != nil {
 			h.errFn(log.Ctx{
+				"err":    err.Error(),
 				"hash":   v.Item.Hash,
 				"author": v.SubmittedBy.Handle,
 				"weight": v.Weight,
-			})("Error: %s", err)
+			})("unable to save vote for item")
 		} else {
 			acc.Votes = acc.Votes[:0]
 			h.v.saveAccountToSession(w, r, *acc)
