@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	pub "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
 	"github.com/gorilla/csrf"
 	"github.com/mariusor/go-littr/internal/log"
@@ -35,54 +34,38 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 		err error
 	)
 
-	repo := h.storage
-	f := new(Filters)
-
-	if hash := r.FormValue("hash"); len(hash) > 0 {
-		f.IRI = CompStrs{LikeString(hash)}
-		n, err = repo.object(ctx, f)
-		if err != nil {
-			h.errFn(log.Ctx{ "err": err.Error() })("could not find item")
-			h.v.HandleErrors(w, r, errors.NewNotFound(err, ""))
-			return
+	c := ContextCursor(r.Context())
+	if c != nil && len(c.items) > 0 {
+		if hash := HashFromString(r.FormValue("hash")); hash.IsValid() {
+			n = *getFromList(hash, c.items)
+			saveVote = false
 		}
 	}
-
 	if err := updateItemFromRequest(r, *acc, &n); err != nil {
 		h.errFn(log.Ctx{ "err": err.Error() })("Error: wrong http method")
 		h.v.HandleErrors(w, r, errors.NewMethodNotAllowed(err, ""))
 		return
 	}
-	if n.Parent.IsValid() {
-		c := ContextCursor(r.Context())
-		if len(c.items) > 0 {
-			n.Parent = getFromList(n.Parent.Hash, c.items)
-		}
-		if len(n.Metadata.To) == 0 {
-			n.Metadata.To = make([]Account, 0)
-		}
-		n.Metadata.To = append(n.Metadata.To, *n.Parent.SubmittedBy)
-		if n.Parent.Private() {
-			n.MakePrivate()
-			saveVote = false
-		}
-		if n.Parent.OP.IsValid() {
-			n.OP = n.Parent.OP
+	if c!= nil && len(c.items) > 0 && n.Parent.IsValid() {
+		if parent := getFromList(n.Parent.Hash, c.items); parent.IsValid() {
+			n.Parent = parent
+			if n.Parent.SubmittedBy.IsValid() {
+				if len(n.Metadata.To) == 0 {
+					n.Metadata.To = make([]Account, 0)
+				}
+				n.Metadata.To = append(n.Metadata.To, *n.Parent.SubmittedBy)
+			}
+			if n.Parent.Private() {
+				n.MakePrivate()
+				saveVote = false
+			}
+			if n.Parent.OP.IsValid() {
+				n.OP = n.Parent.OP
+			}
 		}
 	}
 
-	if n.Hash.IsValid() {
-		var iri pub.IRI
-		if n.HasMetadata() && len(n.Metadata.ID) > 0 {
-			iri = pub.IRI(n.Metadata.ID)
-		} else {
-			iri = objects.IRI(h.storage.fedbox.Service()).AddPath(n.Hash.String())
-		}
-		if p, err := repo.LoadItem(ctx, iri); err == nil {
-			n.Title = p.Title
-		}
-		saveVote = false
-	}
+	repo := h.storage
 	if n, err = repo.SaveItem(ctx, n); err != nil {
 		h.errFn(log.Ctx{"err": err.Error()})("unable to save item")
 		h.v.HandleErrors(w, r, err)

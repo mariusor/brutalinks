@@ -1209,6 +1209,14 @@ func (r *repository) objects(ctx context.Context, ff ...*Filters) (ItemCollectio
 	if err := g.Wait(); err != nil {
 		return nil, err
 	}
+
+	var err error
+	if items, err = r.loadItemsAuthors(ctx, items...); err != nil {
+		return nil, err
+	}
+	if items, err = r.loadItemsVotes(ctx, items...); err != nil {
+		return nil, err
+	}
 	return items, nil
 }
 

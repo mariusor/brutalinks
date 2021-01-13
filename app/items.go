@@ -132,13 +132,10 @@ func updateItemFromRequest(r *http.Request, author Account, i *Item) error {
 			i.Metadata.To = append(i.Metadata.To, rec)
 		}
 	}
-
-	tit := r.PostFormValue("title")
-	if len(tit) > 0 {
+	if tit := r.PostFormValue("title"); len(tit) > 0 {
 		i.Title = tit
 	}
-	dat := r.PostFormValue("data")
-	if len(dat) > 0 {
+	if dat := r.PostFormValue("data"); len(dat) > 0 {
 		i.Data = dat
 	}
 
@@ -154,17 +151,18 @@ func updateItemFromRequest(r *http.Request, author Account, i *Item) error {
 		i.SubmittedAt = now
 		i.UpdatedAt = now
 	}
-	parent := r.PostFormValue("parent")
-	if len(parent) > 0 {
-		i.Parent = &Item{Hash: HashFromString(parent)}
+	if parent := HashFromString(r.PostFormValue("parent")); parent.IsValid() {
+		if i.Parent == nil || i.Parent.Hash != parent {
+			i.Parent = &Item{Hash: parent}
+		}
 	}
-	op := r.PostFormValue("op")
-	if len(op) > 0 {
-		i.OP = &Item{Hash: HashFromString(op)}
+	if op := HashFromString(r.PostFormValue("op")); op.IsValid() {
+		if i.OP != nil || i.OP.Hash != op {
+			i.OP = &Item{Hash: op}
+		}
 	}
-	hash := r.PostFormValue("hash")
-	if len(hash) > 0 {
-		i.Hash = HashFromString(hash)
+	if hash := HashFromString(r.PostFormValue("hash")); hash.IsValid() {
+		i.Hash = hash
 	}
 	return nil
 }
