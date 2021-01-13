@@ -30,14 +30,22 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	ctx := context.TODO()
 	saveVote := true
 
+	var (
+		n   Item
+		err error
+	)
+
 	repo := h.storage
 	f := new(Filters)
-	f.IRI = CompStrs{LikeString(r.FormValue("hash"))}
-	n, err := repo.object(ctx, f)
-	if err != nil {
-		h.errFn(log.Ctx{ "err": err.Error() })("could not find item")
-		h.v.HandleErrors(w, r, errors.NewNotFound(err, ""))
-		return
+
+	if hash := r.FormValue("hash"); len(hash) > 0 {
+		f.IRI = CompStrs{LikeString(hash)}
+		n, err = repo.object(ctx, f)
+		if err != nil {
+			h.errFn(log.Ctx{ "err": err.Error() })("could not find item")
+			h.v.HandleErrors(w, r, errors.NewNotFound(err, ""))
+			return
+		}
 	}
 
 	if err := updateItemFromRequest(r, *acc, &n); err != nil {
