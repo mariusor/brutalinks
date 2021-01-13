@@ -37,7 +37,7 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	c := ContextCursor(r.Context())
 	if c != nil && len(c.items) > 0 {
 		if hash := HashFromString(r.FormValue("hash")); hash.IsValid() {
-			n = *getFromList(hash, c.items)
+			n = *getItemFromList(hash, c.items)
 			saveVote = false
 		}
 	}
@@ -47,7 +47,7 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if c!= nil && len(c.items) > 0 && n.Parent.IsValid() {
-		if parent := getFromList(n.Parent.Hash, c.items); parent.IsValid() {
+		if parent := getItemFromList(n.Parent.Hash, c.items); parent.IsValid() {
 			n.Parent = parent
 			if n.Parent.SubmittedBy.IsValid() {
 				if len(n.Metadata.To) == 0 {

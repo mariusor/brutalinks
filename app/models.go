@@ -100,7 +100,7 @@ func (m contentModel) Template() string {
 	return m.tpl
 }
 
-func getFromList(h Hash, items RenderableList) *Item {
+func getItemFromList(h Hash, items RenderableList) *Item {
 	var findOrDescendFn func(collection ItemPtrCollection) (*Item, bool)
 	findOrDescendFn = func(collection ItemPtrCollection) (*Item, bool) {
 		for _, com := range collection {
@@ -141,7 +141,7 @@ func (m *contentModel) SetCursor(c *Cursor) {
 	}
 	if !m.Content.IsValid() {
 		if m.Hash.IsValid() {
-			m.Content = getFromList(m.Hash, c.items)
+			m.Content = getItemFromList(m.Hash, c.items)
 		} else {
 			for _, it := range c.items {
 				m.Content = it
@@ -199,7 +199,7 @@ func (m *moderationModel) SetCursor(c *Cursor) {
 		return
 	}
 	if m.Content.Object == nil || !m.Content.Object.IsValid() {
-		m.Content.Object = getFromList(m.Hash, c.items)
+		m.Content.Object = getItemFromList(m.Hash, c.items)
 	}
 	if m.Content.Object != nil && len(m.Message.Back) == 0 {
 		m.Message.Back = PermaLink(m.Content.Object)
