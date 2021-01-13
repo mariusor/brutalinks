@@ -572,7 +572,7 @@ func (h *handler) HandleShow(w http.ResponseWriter, r *http.Request) {
 	m := ContextModel(r.Context())
 	if m == nil {
 		m = &errorModel{
-			Status:     404,
+			Status:     http.StatusInternalServerError,
 			StatusText: "Oops!!",
 			Title:      "Oops!!",
 		}

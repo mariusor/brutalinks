@@ -280,6 +280,9 @@ func AddModelMw(next http.Handler) http.Handler {
 }
 
 func reportModelFromCtx(ctx context.Context) *moderationModel {
+	if _, ok := ContextModel(ctx).(*errorModel); ok {
+		return nil
+	}
 	m := ContextModerationModel(ctx)
 	if m == nil {
 		m = new(moderationModel)
@@ -298,9 +301,11 @@ func ReportContentModelMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		m := reportModelFromCtx(ctx)
-		hash := chi.URLParam(r, "hash")
-		if hash != "" {
-			m.Hash = HashFromString(hash)
+		if m == nil {
+			next.ServeHTTP(w, r)
+		}
+		if hash := HashFromString(chi.URLParam(r, "hash")); hash.IsValid() {
+			m.Hash = hash
 		}
 
 		m.Title = "Report item"
@@ -312,6 +317,9 @@ func ReportAccountModelMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		m := reportModelFromCtx(ctx)
+		if m == nil {
+			next.ServeHTTP(w, r)
+		}
 		authors := ContextAuthors(ctx)
 		if len(authors) == 0 {
 			next.ServeHTTP(w, r)
@@ -329,6 +337,9 @@ func ReportAccountModelMw(next http.Handler) http.Handler {
 }
 
 func blockModelFromCtx(ctx context.Context) *moderationModel {
+	if _, ok := ContextModel(ctx).(*errorModel); ok {
+		return nil
+	}
 	m := ContextModerationModel(ctx)
 	if m == nil {
 		m = new(moderationModel)
@@ -348,6 +359,9 @@ func BlockAccountModelMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		m := blockModelFromCtx(ctx)
+		if m == nil {
+			next.ServeHTTP(w, r)
+		}
 		authors := ContextAuthors(ctx)
 		if len(authors) == 0 {
 			next.ServeHTTP(w, r)
@@ -365,9 +379,12 @@ func BlockAccountModelMw(next http.Handler) http.Handler {
 func BlockContentModelMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
+		if c := ContextCursor(ctx); c == nil {
+			next.ServeHTTP(w, r)
+			return
+		}
 		m := blockModelFromCtx(ctx)
-		hash := chi.URLParam(r, "hash")
-		if hash != "" {
+		if hash := chi.URLParam(r, "hash"); hash != "" {
 			m.Hash = HashFromString(hash)
 		}
 		next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, ModelCtxtKey, m)))

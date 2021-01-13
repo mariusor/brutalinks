@@ -123,6 +123,9 @@ func updateItemFromRequest(r *http.Request, author Account, i *Item) error {
 	if i.Metadata == nil {
 		i.Metadata = new(ItemMetadata)
 	}
+	if hash := HashFromString(r.PostFormValue("hash")); hash.IsValid() {
+		i.Hash = hash
+	}
 	if receivers, err = accountsFromRequestHandle(r); err == nil && chi.URLParam(r, "hash") == "" {
 		i.MakePrivate()
 		for _, rec := range receivers {
@@ -160,9 +163,6 @@ func updateItemFromRequest(r *http.Request, author Account, i *Item) error {
 		if i.OP != nil || i.OP.Hash != op {
 			i.OP = &Item{Hash: op}
 		}
-	}
-	if hash := HashFromString(r.PostFormValue("hash")); hash.IsValid() {
-		i.Hash = hash
 	}
 	return nil
 }
