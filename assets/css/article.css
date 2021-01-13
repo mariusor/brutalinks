@@ -105,7 +105,7 @@ section footer::before {
     opacity: .5;
 }
 aside.score {
-    grid-template-rows: .6em 1.5em 1em;
+    grid-template-rows: 1.5ex 2ex 2ex;
     display: grid;
     grid-area: sidebar;
     min-height: 3.2em;
