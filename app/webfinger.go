@@ -151,7 +151,12 @@ func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 		if len(ar) != 2 {
 			return "", ""
 		}
-		return ar[0], ar[1]
+		typ := ar[0]
+		handle := ar[1]
+		if handle[0] == '@' && len(handle) > 1 {
+			handle = handle[1:]
+		}
+		return typ, handle
 	}(res)
 
 	if typ == "" || handle == "" {
@@ -216,26 +221,25 @@ func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 			errors.HandleError(err).ServeHTTP(w, r)
 			return
 		}
-		wf.Aliases = []string{
-			string(BuildActorID(*a)),
-			fmt.Sprintf("%s/%s", "fedbox.test", a.Handle),
-		}
+		id := string(BuildActorID(*a))
+		url := accountURL(*a).String()
+		wf.Aliases = []string{id, url}
 		wf.Subject = res
 		wf.Links = []link{
 			{
 				Rel:  "self",
 				Type: "application/activity+json",
-				Href: string(BuildActorID(*a)),
+				Href: id,
 			},
 			{
 				Rel:  "http://webfinger.net/rel/profile-page",
 				Type: "application/activity+json",
-				Href: string(BuildActorID(*a)),
+				Href: id,
 			},
 			{
 				Rel:  "http://webfinger.net/rel/profile-page",
 				Type: "text/html",
-				Href: accountURL(*a).String(),
+				Href: url,
 			},
 		}
 	}
