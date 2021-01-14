@@ -218,11 +218,6 @@ func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 		},
 		{
 			Rel:  "http://webfinger.net/rel/profile-page",
-			Type: "application/activity+json",
-			Href: id,
-		},
-		{
-			Rel:  "http://webfinger.net/rel/profile-page",
 			Type: "text/html",
 			Href: url,
 		},
