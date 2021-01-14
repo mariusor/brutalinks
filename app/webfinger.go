@@ -3,8 +3,8 @@ package app
 import (
 	"context"
 	"encoding/json"
-	"encoding/xml"
 	"fmt"
+	pub "github.com/go-ap/activitypub"
 	"github.com/writeas/go-nodeinfo"
 	"net/http"
 	"regexp"
@@ -131,12 +131,14 @@ func (h handler) HandleHostMeta(w http.ResponseWriter, r *http.Request) {
 			},
 		},
 	}
-	dat, _ := xml.Marshal(hm)
+	dat, _ := json.Marshal(hm)
 
 	w.Header().Set("Content-Type", "application/jrd+json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(dat)
 }
+
+const selfName = "self"
 
 // HandleWebFinger serves /.well-known/webfinger/
 func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
@@ -165,47 +167,28 @@ func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 	}
 
 	wf := node{}
-	if handle == "self" {
-		var err error
-		var inf WebInfo
-		if inf, err = h.storage.LoadInfo(); err != nil {
-			errors.HandleError(errors.NewNotValid(err, "ooops!")).ServeHTTP(w, r)
+	if strings.Contains(handle, "@") {
+		handle, _ = func(s string) (string, string) {
+			split := "@"
+			ar := strings.Split(s, split)
+			if len(ar) != 2 {
+				return "", ""
+			}
+			return ar[0], ar[1]
+		}(handle)
+	}
+	var a *Account
+	fedbox := h.storage.fedbox.Service()
+	handleIRI := pub.IRI(fmt.Sprintf("https://%s/", handle))
+	if fedbox.GetLink().Equals(handleIRI, false) || handle == selfName {
+		a = new(Account)
+		if err := a.FromActivityPub(fedbox); err != nil {
+			err := errors.NotFoundf("resource not found %s", res)
+			h.errFn()("Error: %s", err)
+			errors.HandleError(err).ServeHTTP(w, r)
 			return
 		}
-
-		id := h.storage.BaseURL()
-		wf.Aliases = []string{
-			id.String(),
-		}
-		wf.Subject = inf.URI
-		wf.Links = []link{
-			{
-				Rel:  "self",
-				Type: "application/activity+json",
-				Href: id.String(),
-			},
-			{
-				Rel:  "service",
-				Type: "application/activity+json",
-				Href: id.String(),
-			},
-			{
-				Rel:  "service",
-				Type: "text/html",
-				Href: inf.URI,
-			},
-		}
 	} else {
-		if strings.Contains(handle, "@") {
-			handle, _ = func(s string) (string, string) {
-				split := "@"
-				ar := strings.Split(s, split)
-				if len(ar) != 2 {
-					return "", ""
-				}
-				return ar[0], ar[1]
-			}(handle)
-		}
 		ff := &Filters{Name: CompStrs{EqualsString(handle)}}
 		accounts, _, err := h.storage.LoadAccounts(context.TODO(), ff)
 		if err != nil {
@@ -214,34 +197,42 @@ func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 			errors.HandleError(err).ServeHTTP(w, r)
 			return
 		}
-		a, err := accounts.First()
+		a, err = accounts.First()
 		if err != nil {
 			err := errors.NotFoundf("resource not found %s", res)
 			h.errFn()("Error: %s", err)
 			errors.HandleError(err).ServeHTTP(w, r)
 			return
 		}
-		id := string(BuildActorID(*a))
-		url := accountURL(*a).String()
-		wf.Aliases = []string{id, url}
-		wf.Subject = res
-		wf.Links = []link{
-			{
-				Rel:  "self",
-				Type: "application/activity+json",
-				Href: id,
-			},
-			{
-				Rel:  "http://webfinger.net/rel/profile-page",
-				Type: "application/activity+json",
-				Href: id,
-			},
-			{
-				Rel:  "http://webfinger.net/rel/profile-page",
-				Type: "text/html",
-				Href: url,
-			},
-		}
+	}
+	id := a.GetLink()
+	url := accountURL(*a).String()
+	url1 := a.Metadata.URL
+	wf.Aliases = []string{id, url}
+	wf.Subject = res
+	wf.Links = []link{
+		{
+			Rel:  "self",
+			Type: "application/activity+json",
+			Href: id,
+		},
+		{
+			Rel:  "http://webfinger.net/rel/profile-page",
+			Type: "application/activity+json",
+			Href: id,
+		},
+		{
+			Rel:  "http://webfinger.net/rel/profile-page",
+			Type: "text/html",
+			Href: url,
+		},
+	}
+	if url1 != url && url1 != id {
+		wf.Links = append(wf.Links, link{
+			Rel:  "http://webfinger.net/rel/profile-page",
+			Type: "text/html",
+			Href: url1,
+		})
 	}
 
 	dat, _ := json.Marshal(wf)
