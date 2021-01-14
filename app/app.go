@@ -130,7 +130,7 @@ func (a *Application) Front() error {
 	// Web-Finger
 	r.Route("/.well-known", func(r chi.Router) {
 		r.Get("/webfinger", front.HandleWebFinger)
-		//r.Get("/host-meta", h.HandleHostMeta)
+		r.Get("/host-meta", front.HandleHostMeta)
 		r.Get("/nodeinfo", ni.NodeInfoDiscover)
 		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 			errors.HandleError(errors.NotFoundf("%s", r.RequestURI)).ServeHTTP(w, r)
