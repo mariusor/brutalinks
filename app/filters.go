@@ -252,7 +252,12 @@ func AccountFiltersMw(next http.Handler) http.Handler {
 
 		f := FiltersFromRequest(r)
 		for _, author := range authors {
-			f.AttrTo = append(f.AttrTo, LikeString(author.Hash.String()))
+			if author.Hash.IsValid() {
+				f.AttrTo = append(f.AttrTo, LikeString(author.Hash.String()))
+			}
+			if author.HasMetadata() && author.Metadata.ID != "" {
+				f.AttrTo = append(f.AttrTo, EqualsString(author.Metadata.ID))
+			}
 		}
 		fc := *f
 		fc.Type = CreateActivitiesFilter

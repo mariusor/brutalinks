@@ -107,7 +107,7 @@ func (a *Account) HasPublicKey() bool {
 
 // IsValid returns if the current account has a handle or a hash with length greater than 0
 func (a *Account) IsValid() bool {
-	return a != nil && a.Hash.IsValid()
+	return a != nil && (a.Hash.IsValid() || a.Handle == selfName)
 }
 
 // AP returns the underlying actvitypub item

@@ -17,14 +17,22 @@ func (h handler) LoadAuthorMw(next http.Handler) http.Handler {
 			h.ErrorHandler(errors.NotValidf("missing account handle")).ServeHTTP(w, r)
 			return
 		}
-		fa := &Filters{
-			Name: CompStrs{EqualsString(handle)},
-		}
-		repo := ContextRepository(r.Context())
-		authors, err := repo.accounts(context.TODO(), fa)
-		if err != nil {
-			h.ErrorHandler(err).ServeHTTP(w, r)
-			return
+		var authors []Account
+		if handle == selfName {
+			self := Account{}
+			self.FromActivityPub(h.storage.fedbox.Service())
+			authors = []Account { self }
+		} else {
+			var err error
+			fa := &Filters{
+				Name: CompStrs{EqualsString(handle)},
+			}
+			repo := ContextRepository(r.Context())
+			authors, err = repo.accounts(context.TODO(), fa)
+			if err != nil {
+				h.ErrorHandler(err).ServeHTTP(w, r)
+				return
+			}
 		}
 		if len(authors) == 0 {
 			h.ErrorHandler(errors.NotFoundf("Account %q", chi.URLParam(r, "handle"))).ServeHTTP(w, r)

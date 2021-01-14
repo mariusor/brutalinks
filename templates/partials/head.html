@@ -9,11 +9,14 @@
 {{end -}}
 {{end }}
 {{- if eq current "user" -}}
-{{- if and .User.HasMetadata (gt (len .User.Metadata.AuthorizationEndPoint) 0) -}}
-<link href="{{ .User.Metadata.AuthorizationEndPoint }}" rel="authorization_endpoint" />
+{{- $user := .User -}}
+{{- if $user.HasMetadata -}}
+{{- if gt (len $user.Metadata.AuthorizationEndPoint) 0 -}}
+<link href="{{ $user.Metadata.AuthorizationEndPoint }}" rel="authorization_endpoint" />
 {{ end -}}
-{{- if and .User.HasMetadata (gt (len .User.Metadata.TokenEndPoint) 0) -}}
-<link href="{{ .User.Metadata.TokenEndPoint }}" rel="token_endpoint" />
+{{- if gt (len $user.Metadata.TokenEndPoint) 0 -}}
+<link href="{{ $user.Metadata.TokenEndPoint }}" rel="token_endpoint" />
+{{ end -}}
 {{ end -}}
 {{- end -}}
 <style>{{ style "inline.css" }}</style>
