@@ -4,7 +4,7 @@ go 1.14
 
 require (
 	aletheia.icu/broccoli/fs v0.0.0-20200506212414-5bc1e2f86a59
-	git.sr.ht/~mariusor/wrapper v0.0.0-20210101185305-dd7008ab1358
+	git.sr.ht/~mariusor/wrapper v0.0.0-20210115104709-99415538f4b7
 	github.com/andybalholm/brotli v1.0.1 // indirect
 	github.com/captncraig/cors v0.0.0-20190703115713-e80254a89df1 // indirect
 	github.com/go-ap/activitypub v0.0.0-20210110195435-cc0968f78b0e

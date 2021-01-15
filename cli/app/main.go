@@ -4,15 +4,12 @@ import (
 	"context"
 	"crypto/tls"
 	"flag"
-	"io/ioutil"
-	golog "log"
-	"net"
 	"net/http"
 	"os"
 	"syscall"
 	"time"
 
-	"git.sr.ht/~mariusor/wrapper"
+	w "git.sr.ht/~mariusor/wrapper"
 	"github.com/go-ap/errors"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
@@ -26,93 +23,38 @@ var version = "HEAD"
 const defaultPort = config.DefaultListenPort
 const defaultTimeout = time.Second * 5
 
-// SetupHttpServer creates a new http server and returns the start and stop functions for it
-func SetupHttpServer(ctx context.Context, conf config.Configuration, m http.Handler) (func() error, func() error) {
-	var serveFn func() error
-	var srv *http.Server
-	fileExists := func(dir string) bool {
-		if _, err := os.Stat(dir); os.IsNotExist(err) {
-			return false
-		}
-		return true
-	}
-
-	srv = &http.Server{
-		Addr:              conf.Listen(),
-		Handler:           m,
-		ErrorLog:          golog.New(ioutil.Discard, "", 0),
-		ReadHeaderTimeout: conf.TimeOut/20,
-		WriteTimeout:      conf.TimeOut,
-		ConnContext:       func(ctx context.Context, c net.Conn) context.Context {
-			ctx, _ = context.WithCancel(ctx)
-			return ctx
-		},
-	}
-	if conf.Secure && fileExists(conf.CertPath) && fileExists(conf.KeyPath) {
-		srv.TLSConfig = &tls.Config{
-			MinVersion:               tls.VersionTLS12,
-			CurvePreferences:         []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
-			PreferServerCipherSuites: true,
-			CipherSuites: []uint16{
-				tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-				tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-				tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-				tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-				tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
-				tls.TLS_RSA_WITH_AES_256_CBC_SHA,
-			},
-		}
-		serveFn = func() error {
-			return srv.ListenAndServeTLS(conf.CertPath, conf.KeyPath)
-		}
-	} else {
-		serveFn = srv.ListenAndServe
-	}
-	shutdown := func() error {
-		select {
-		case <-ctx.Done():
-			if err := ctx.Err(); err != http.ErrServerClosed {
-				return err
-			}
-		}
-		err := srv.Shutdown(ctx)
-		if err != nil {
-			return err
-		}
-		return nil
-	}
-
-	// Run our server in a goroutine so that it doesn't block.
-	return serveFn, shutdown
-}
-
 // Run is the wrapper for starting the web-server and handling signals
-func Run(a app.Application) {
+func Run(a app.Application) int {
 	a.Logger.WithContext(log.Ctx{
 		"listen":  a.Conf.Listen(),
 		"host":    a.Conf.HostName,
 		"env":     a.Conf.Env,
 		"https":   a.Conf.Secure,
 		"timeout": a.Conf.TimeOut,
+		"cert":    a.Conf.CertPath,
+		"key":     a.Conf.KeyPath,
 	}).Info("Started")
 
 	ctx, cancelFn := context.WithCancel(context.TODO())
-	srvStart, srvShutdown := SetupHttpServer(ctx, *a.Conf, a.Mux)
+	srvRun, srvStop := w.HttpServer(ctx, w.Handler(a.Mux), w.ListenOn(a.Conf.Listen()), w.SSL(a.Conf.CertPath, a.Conf.KeyPath))
 	defer func() {
 		cancelFn()
-		srvShutdown()
+		if err := srvStop(); err != nil {
+			a.Logger.Errorf("Error: %s", err)
+		}
 	}()
 
-	runFn := func() {
+	runFn := func() error {
 		// Run our server in a goroutine so that it doesn't block.
-		if err := srvStart(); err != nil {
+		if err := srvRun(); err != nil {
 			a.Logger.Errorf("Error: %s", err)
-			os.Exit(1)
+			return err
 		}
+		return nil
 	}
 
 	// Set up the signal handlers functions so the OS can tell us if the it requires us to stop
-	sigHandlerFns := wrapper.SignalHandlers {
+	sigHandlerFns := w.SignalHandlers {
 		syscall.SIGHUP: func(_ chan int) {
 			a.Logger.Info("SIGHUP received, reloading configuration")
 			a.Conf = config.Load(a.Conf.Env, a.Conf.TimeOut)
@@ -138,11 +80,11 @@ func Run(a app.Application) {
 	}
 
 	// Wait for OS signals asynchronously
-	code := wrapper.RegisterSignalHandlers(sigHandlerFns).Exec(runFn)
+	code := w.RegisterSignalHandlers(sigHandlerFns).Exec(runFn)
 	if code == 0 {
 		a.Logger.Info("Shutting down")
 	}
-	os.Exit(code)
+	return code
 }
 func main() {
 	var wait time.Duration
@@ -166,7 +108,5 @@ func main() {
 		r.Use(middleware.Recoverer)
 		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	}
-
-	a := app.New(c, host, port, version, r)
-	Run(a)
+	os.Exit(Run(app.New(c, host, port, version, r)))
 }
