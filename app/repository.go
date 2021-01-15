@@ -264,9 +264,9 @@ func loadAPItem(it pub.Item, item Item) error {
 				for _, men := range m.Mentions {
 					// todo(marius): retrieve object ids of each mention and add it to the CC of the object
 					t := pub.Mention{
-						Type:      pub.MentionType,
-						Name:      pub.NaturalLanguageValues{{Ref: pub.NilLangRef, Value: pub.Content(men.Name)}},
-						Href:      pub.IRI(men.URL),
+						Type: pub.MentionType,
+						Name: pub.NaturalLanguageValues{{Ref: pub.NilLangRef, Value: pub.Content(men.Name)}},
+						Href: pub.IRI(men.URL),
 					}
 					if men.Metadata != nil && len(men.Metadata.ID) > 0 {
 						t.ID = pub.IRI(men.Metadata.ID)
@@ -277,7 +277,7 @@ func loadAPItem(it pub.Item, item Item) error {
 					t := pub.Object{
 						URL:  pub.ID(tag.URL),
 						To:   pub.ItemCollection{pub.PublicNS},
-						Name: pub.NaturalLanguageValues{{Ref: pub.NilLangRef, Value: pub.Content("#"+tag.Name)}},
+						Name: pub.NaturalLanguageValues{{Ref: pub.NilLangRef, Value: pub.Content("#" + tag.Name)}},
 					}
 					if tag.Metadata != nil && len(tag.Metadata.ID) > 0 {
 						t.ID = pub.IRI(tag.Metadata.ID)
@@ -653,7 +653,7 @@ func (r *repository) loadAccountVotes(ctx context.Context, acc *Account, items I
 		Object: &Filters{
 			IRI: ItemHashFilter(items...),
 		},
-		Type:   AppreciationActivitiesFilter,
+		Type: AppreciationActivitiesFilter,
 	}
 	collFn := func(ctx context.Context, f *Filters) (pub.CollectionInterface, error) {
 		return r.fedbox.Outbox(ctx, acc.pub, Values(f))
@@ -793,7 +793,7 @@ func (r *repository) loadFollowsAuthors(ctx context.Context, items ...FollowRequ
 	}
 	fActors := Filters{
 		Type: ActivityTypesFilter(ValidActorTypes...),
-		IRI: AccountHashFilter(submitters...),
+		IRI:  AccountHashFilter(submitters...),
 	}
 
 	if len(fActors.IRI) == 0 {
@@ -852,7 +852,7 @@ func (r *repository) loadModerationFollowups(ctx context.Context, items Renderab
 }
 
 func ModerationSubmittedByHashFilter(items ...ModerationOp) CompStrs {
-	accounts := make(AccountCollection,0)
+	accounts := make(AccountCollection, 0)
 	for _, it := range items {
 		if !it.SubmittedBy.IsValid() || accounts.Contains(*it.SubmittedBy) {
 			continue
@@ -1470,10 +1470,10 @@ func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, ff ..
 		return emptyCursor, err
 	}
 	/*
-	_, err = r.loadItemsReplies(ctx, items...)
-	if err != nil {
-			return emptyCursor, err
-	}
+		_, err = r.loadItemsReplies(ctx, items...)
+		if err != nil {
+				return emptyCursor, err
+		}
 	*/
 	moderations, err = r.loadModerationDetails(ctx, moderations...)
 	if err != nil {
@@ -1703,7 +1703,6 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 
 	var err error
 
-
 	if it.HasMetadata() {
 		m := it.Metadata
 		if len(m.To) > 0 {
@@ -1735,7 +1734,7 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 		if len(m.Tags) > 0 {
 			tagNames := make(CompStrs, 0)
 			for _, t := range m.Tags {
-				tagNames = append(tagNames, EqualsString(t.Name), EqualsString("#" + t.Name))
+				tagNames = append(tagNames, EqualsString(t.Name), EqualsString("#"+t.Name))
 			}
 			ff := &Filters{Name: tagNames}
 			tags, _, err := r.LoadTags(ctx, ff)
@@ -1825,7 +1824,7 @@ func (r *repository) LoadTags(ctx context.Context, ff ...*Filters) (TagCollectio
 				for _, it := range col.OrderedItems {
 					tag := Tag{}
 					if err := tag.FromActivityPub(it); err != nil {
-						r.errFn(log.Ctx{ "type": fmt.Sprintf("%T", it) })(err.Error())
+						r.errFn(log.Ctx{"type": fmt.Sprintf("%T", it)})(err.Error())
 						continue
 					}
 					tags = append(tags, tag)
@@ -1857,7 +1856,7 @@ func (r *repository) LoadAccounts(ctx context.Context, ff ...*Filters) (AccountC
 				for _, it := range col.OrderedItems {
 					acc := Account{Metadata: &AccountMetadata{}}
 					if err := acc.FromActivityPub(it); err != nil {
-						r.errFn(log.Ctx{ "type": fmt.Sprintf("%T", it)})(err.Error())
+						r.errFn(log.Ctx{"type": fmt.Sprintf("%T", it)})(err.Error())
 						continue
 					}
 					accounts = append(accounts, acc)
@@ -2036,7 +2035,7 @@ func (r *repository) SaveAccount(ctx context.Context, a Account) (Account, error
 	}
 	p.Updated = now
 
-	fedbox :=  r.fedbox.Service()
+	fedbox := r.fedbox.Service()
 	act := &pub.Activity{
 		To:      pub.ItemCollection{pub.PublicNS},
 		BCC:     pub.ItemCollection{fedbox.ID},

@@ -92,27 +92,27 @@ func Init(c appConfig) (*handler, error) {
 	} else {
 		provider := "fedbox"
 		config := GetOauth2Config(provider, h.conf.BaseURL)
+		ctx := log.Ctx{
+			"provider":    provider,
+			"client":      config.ClientID,
+			"pw":          hideString(config.ClientSecret),
+			"authURL":     config.Endpoint.AuthURL,
+			"tokURL":      config.Endpoint.TokenURL,
+			"redirectURL": config.RedirectURL,
+		}
 		if len(config.ClientID) > 0 {
 			oauth, err := h.storage.fedbox.Actor(context.TODO(), actors.IRI(h.storage.BaseURL()).AddPath(config.ClientID))
 			if err != nil {
 				h.conf.UserCreatingEnabled = false
-				h.errFn()("Failed to load actor: %s", err)
+				h.errFn(log.Ctx{"err": err}, ctx)("Failed to authenticate client")
 			}
 			if oauth != nil {
 				h.storage.app = new(Account)
 				h.storage.app.FromActivityPub(oauth)
 
 				handle := h.storage.app.Handle
+				ctx["handle"] = handle
 				tok, err := config.PasswordCredentialsToken(context.TODO(), handle, config.ClientSecret)
-				ctx := log.Ctx{
-					"handle":      handle,
-					"provider":    provider,
-					"client":      config.ClientID,
-					"pw":          hideString(config.ClientSecret),
-					"authURL":     config.Endpoint.AuthURL,
-					"tokURL":      config.Endpoint.TokenURL,
-					"redirectURL": config.RedirectURL,
-				}
 				if err != nil {
 					h.conf.UserCreatingEnabled = false
 					h.errFn(log.Ctx{"err": err}, ctx)("Failed to authenticate client")
