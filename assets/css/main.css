@@ -157,6 +157,8 @@ svg.icon.icon-activitypub {
     width: 1.4rem;
 }
 body > main {
+    vertical-align: top;
+    align-self: start;
     grid-area: main;
 }
 body > footer {

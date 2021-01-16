@@ -120,6 +120,7 @@ aside.score {
     text-decoration: none;
 }
 .score data {
+    padding-top: 2px;
     font-size: .7em;
 }
 .score data.inf {
