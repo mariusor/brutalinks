@@ -119,8 +119,8 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 				r.With(DomainFiltersMw, LoadServiceInboxMw, middleware.StripSlashes, SortByScore).Get("/d", h.HandleShow)
 				r.With(DomainFiltersMw, LoadServiceInboxMw, SortByScore).Get("/d/{domain}", h.HandleShow)
 				r.With(TagFiltersMw, LoadServiceInboxMw, ModerationListing, SortByScore).Get("/t/{tag}", h.HandleShow)
-				r.With(SelfFiltersMw, LoadServiceInboxMw, SortByScore).Get("/self", h.HandleShow)
-				r.With(FederatedFiltersMw, LoadServiceInboxMw, SortByScore).Get("/federated", h.HandleShow)
+				r.With(SelfFiltersMw(h.storage.fedbox.Service().ID), LoadServiceInboxMw, SortByScore).Get("/self", h.HandleShow)
+				r.With(FederatedFiltersMw(h.storage.fedbox.Service().ID), LoadServiceInboxMw, SortByScore).Get("/federated", h.HandleShow)
 				r.With(h.NeedsSessions, FollowedFiltersMw, h.ValidateLoggedIn(h.v.RedirectToErrors), LoadInboxMw).
 					Get("/followed", h.HandleShow)
 				r.With(ModelMw(&listingModel{tpl: "moderation", sortFn: ByDate}), ModerationFiltersMw, LoadServiceInboxMw, ModerationListing).

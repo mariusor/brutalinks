@@ -82,19 +82,17 @@ func ContextActivityFilters(ctx context.Context) []*Filters {
 	return nil
 }
 
-func SelfFiltersMw(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		f := FiltersFromRequest(r)
-		f.Type = CreateActivitiesFilter
-		f.Object = &Filters{}
-		f.Object.OP = nilIRIs
-		f.Object.Type = ActivityTypesFilter(ValidItemTypes...)
-		f.IRI = CompStrs{LikeString(Instance.Conf.APIURL)}
-		m := ContextListingModel(r.Context())
-		m.Title = "Local instance items"
-		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
+func SelfFiltersMw(id pub.IRI) func (next http.Handler) http.Handler {
+	return func (next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			f := fedFilters(r)
+			f.Actor.IRI = CompStrs{LikeString(id.String())}
+			m := ContextListingModel(r.Context())
+			m.Title = "Local instance items"
+			ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
 }
 
 var CreateFollowActivitiesFilter = CompStrs{
@@ -118,19 +116,27 @@ func DifferentThanString(s string) CompStr {
 	return CompStr{Operator: "!", Str: s}
 }
 
-func FederatedFiltersMw(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		f := FiltersFromRequest(r)
-		f.Type = CreateActivitiesFilter
-		f.IRI = CompStrs{DifferentThanString(Instance.Conf.APIURL)}
-		f.Object = &Filters{}
-		f.Object.OP = nilIRIs
-		f.Object.Type = ActivityTypesFilter(ValidItemTypes...)
-		m := ContextListingModel(r.Context())
-		m.Title = "Federated items"
-		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
+func fedFilters(r *http.Request) *Filters {
+	f := FiltersFromRequest(r)
+	f.Type = CreateActivitiesFilter
+	f.Object = &Filters{}
+	f.Object.OP = nilIRIs
+	f.Object.Type = ActivityTypesFilter(ValidItemTypes...)
+	f.Actor = &Filters{}
+	return f
+}
+
+func FederatedFiltersMw(id pub.IRI) func (next http.Handler) http.Handler {
+	return func (next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			f := fedFilters(r)
+			f.Actor.IRI = CompStrs{DifferentThanString(id.String())}
+			m := ContextListingModel(r.Context())
+			m.Title = "Federated items"
+			ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
 }
 
 func LikeString(s string) CompStr {
