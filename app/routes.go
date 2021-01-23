@@ -15,7 +15,7 @@ func (h *handler) ItemRoutes () func(chi.Router) {
 	return func(r chi.Router) {
 		r.Use(h.CSRF, ContentModelMw, h.ItemFiltersMw, LoadObjectFromInboxMw, ThreadedListingMw, SortByScore)
 		r.Get("/", h.HandleShow)
-		r.Post("/", h.HandleSubmit)
+		r.With(h.ValidateLoggedIn(h.v.RedirectToErrors)).Post("/", h.HandleSubmit)
 
 		r.Group(func(r chi.Router) {
 			r.Use(h.ValidateLoggedIn(h.v.RedirectToErrors))
@@ -28,10 +28,10 @@ func (h *handler) ItemRoutes () func(chi.Router) {
 			r.With(BlockContentModelMw).Get("/block", h.HandleShow)
 			r.Post("/block", h.BlockItem)
 
-			r.With(h.ValidateItemAuthor).Group(func(r chi.Router) {
-				r.With(EditContentModelMw).Get("/edit", h.HandleShow)
-				r.Post("/edit", h.HandleSubmit)
-				r.Get("/rm", h.HandleDelete)
+			r.Group(func(r chi.Router) {
+				r.With(h.ValidateItemAuthor("edit"), EditContentModelMw).Get("/edit", h.HandleShow)
+				r.With(h.ValidateItemAuthor("edit")).Post("/edit", h.HandleSubmit)
+				r.With(h.ValidateItemAuthor("delete")).Get("/rm", h.HandleDelete)
 			})
 		})
 	}

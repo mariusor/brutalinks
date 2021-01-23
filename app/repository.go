@@ -2256,13 +2256,13 @@ func (r *repository) ReportItem(ctx context.Context, er Account, it Item, reason
 }
 
 func (r *repository) ReportAccount(ctx context.Context, er, ed Account, reason *Item) error {
-	report, err := r.moderationActivityOnAccount(ctx, er, ed, reason)
+	flag, err := r.moderationActivityOnAccount(ctx, er, ed, reason)
 	if err != nil {
 		r.errFn()(err.Error())
 		return err
 	}
-	report.Type = pub.FlagType
-	_, _, err = r.fedbox.ToOutbox(ctx, report)
+	flag.Type = pub.FlagType
+	_, _, err = r.fedbox.ToOutbox(ctx, flag)
 	if err != nil {
 		r.errFn()(err.Error())
 		return err

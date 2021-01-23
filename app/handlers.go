@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-ap/errors"
+	"github.com/go-chi/chi"
 	"github.com/gorilla/csrf"
 	"github.com/mariusor/go-littr/internal/log"
 	"github.com/mariusor/qstring"
@@ -15,8 +16,7 @@ import (
 	"net/url"
 	"path"
 	"strings"
-
-	"github.com/go-chi/chi"
+	"time"
 )
 
 // HandleSubmit handles POST /submit requests
@@ -27,11 +27,11 @@ import (
 func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	acc := loggedAccount(r)
 	ctx := context.TODO()
-	saveVote := true
 
 	var (
 		n   Item
 		err error
+		saveVote = true
 	)
 
 	c := ContextCursor(r.Context())
@@ -41,7 +41,7 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 			saveVote = false
 		}
 	}
-	if err := updateItemFromRequest(r, *acc, &n); err != nil {
+	if err = updateItemFromRequest(r, *acc, &n); err != nil {
 		h.errFn(log.Ctx{ "err": err.Error() })("Error: wrong http method")
 		h.v.HandleErrors(w, r, errors.NewMethodNotAllowed(err, ""))
 		return
@@ -85,17 +85,16 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 				"author": v.SubmittedBy.Handle,
 				"weight": v.Weight,
 			})("unable to save vote for item")
-		} else {
-			acc.Votes = acc.Votes[:0]
-			h.v.saveAccountToSession(w, r, *acc)
 		}
 	}
+	acc.Metadata.OutboxUpdated = time.Time{}
 	h.v.Redirect(w, r, ItemPermaLink(&n), http.StatusSeeOther)
 }
 
 // HandleDelete serves /{year}/{month}/{day}/{hash}/rm POST request
 // HandleDelete serves /~{handle}/rm GET request
 func (h *handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
+	acc := loggedAccount(r)
 	repo := h.storage
 	iri := objects.IRI(h.storage.fedbox.Service()).AddPath(chi.URLParam(r, "hash"))
 	ctx := context.TODO()
@@ -116,12 +115,14 @@ func (h *handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 		h.v.addFlashMessage(Error, w, r, "unable to delete item as current user")
 	}
 
+	acc.Metadata.OutboxUpdated = time.Time{}
 	h.v.Redirect(w, r, url, http.StatusFound)
 }
 
 // HandleVoting serves /{year}/{month}/{day}/{hash}/{direction} request
 // HandleVoting serves /~{handle}/{direction} request
 func (h *handler) HandleVoting(w http.ResponseWriter, r *http.Request) {
+	acc := loggedAccount(r)
 	repo := h.storage
 	ctx := context.TODO()
 	iri := objects.IRI(h.storage.fedbox.Service()).AddPath(chi.URLParam(r, "hash"))
@@ -142,7 +143,6 @@ func (h *handler) HandleVoting(w http.ResponseWriter, r *http.Request) {
 	}
 	url := ItemPermaLink(&p)
 
-	acc := loggedAccount(r)
 	if acc.IsLogged() {
 		backUrl := r.Header.Get("Referer")
 		if !strings.Contains(backUrl, url) && strings.Contains(backUrl, Instance.BaseURL) {
@@ -168,17 +168,12 @@ func (h *handler) HandleVoting(w http.ResponseWriter, r *http.Request) {
 	} else {
 		h.v.addFlashMessage(Error, w, r, "unable to vote as current user")
 	}
+	acc.Metadata.OutboxUpdated = time.Time{}
 	h.v.Redirect(w, r, url, http.StatusFound)
 }
 
 func (h *handler) FollowAccount(w http.ResponseWriter, r *http.Request) {
-	loggedAccount := loggedAccount(r)
-	if !loggedAccount.IsValid() {
-		err := errors.Unauthorizedf("invalid logged account")
-		h.errFn()("Error: %s", err)
-		h.v.HandleErrors(w, r, err)
-		return
-	}
+	acc := loggedAccount(r)
 	repo := h.storage
 	var err error
 	toFollow := ContextAuthors(r.Context())
@@ -188,26 +183,16 @@ func (h *handler) FollowAccount(w http.ResponseWriter, r *http.Request) {
 	}
 	fol := toFollow[0]
 	// todo(marius): load follow reason from POST request so we can show it to the followed user
-	err = repo.FollowAccount(context.TODO(), *loggedAccount, fol, nil)
-	if err != nil {
+	if err = repo.FollowAccount(context.TODO(), *acc, fol, nil); err != nil {
 		h.v.HandleErrors(w, r, err)
 		return
-	} else {
-		loggedAccount.Following = loggedAccount.Following[:0]
-		h.v.saveAccountToSession(w, r, *loggedAccount)
 	}
+	acc.Metadata.OutboxUpdated = time.Time{}
 	h.v.Redirect(w, r, AccountPermaLink(&fol), http.StatusSeeOther)
 }
 
 func (h *handler) HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
-	loggedAccount := loggedAccount(r)
-	if !loggedAccount.IsValid() {
-		err := errors.Unauthorizedf("invalid logged account")
-		h.errFn()("Error: %s", err)
-		h.v.HandleErrors(w, r, err)
-		return
-	}
-
+	acc := loggedAccount(r)
 	ctx := context.TODO()
 	repo := h.storage
 	followers := ContextAuthors(r.Context())
@@ -227,11 +212,11 @@ func (h *handler) HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
 			IRI: AccountHashFilter(follower),
 		},
 		Object: &Filters{
-			IRI: AccountHashFilter(*loggedAccount),
+			IRI: AccountHashFilter(*acc),
 		},
 	}
 	// todo(marius): load response reason from POST request so we can show it to the followed user
-	followRequests, cnt, err := repo.LoadFollowRequests(ctx, loggedAccount, ff)
+	followRequests, cnt, err := repo.LoadFollowRequests(ctx, acc, ff)
 	if err != nil {
 		h.v.HandleErrors(w, r, err)
 		return
@@ -241,16 +226,130 @@ func (h *handler) HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	follow := followRequests[0]
-	err = repo.SendFollowResponse(ctx, follow, accept, nil)
-	if err != nil {
+	if err = repo.SendFollowResponse(ctx, follow, accept, nil); err != nil {
 		h.v.HandleErrors(w, r, err)
 		return
-	} else {
-		loggedAccount.Followers = loggedAccount.Followers[:0]
-		h.v.saveAccountToSession(w, r, *loggedAccount)
 	}
+	acc.Metadata.OutboxUpdated = time.Time{}
 	backUrl := r.Header.Get("Referer")
 	h.v.Redirect(w, r, backUrl, http.StatusSeeOther)
+}
+
+// BlockAccount processes a report request received at /~{handle}/block
+func (h *handler) BlockAccount(w http.ResponseWriter, r *http.Request) {
+	acc := loggedAccount(r)
+
+	reason, err := ContentFromRequest(r, *acc)
+	if err != nil {
+		h.errFn(log.Ctx{ "before": err })("wrong http method")
+		h.v.HandleErrors(w, r, errors.NewMethodNotAllowed(err, ""))
+		return
+	}
+	repo := h.storage
+
+	toBlock := ContextAuthors(r.Context())
+	if len(toBlock) == 0 {
+		h.v.HandleErrors(w, r, errors.NotFoundf("account not found"))
+		return
+	}
+	block := toBlock[0]
+	if err = repo.BlockAccount(context.TODO(), *acc, block, &reason); err != nil {
+		h.v.HandleErrors(w, r, err)
+		return
+	}
+	acc.Metadata.OutboxUpdated = time.Time{}
+	h.v.Redirect(w, r, PermaLink(&block), http.StatusSeeOther)
+}
+
+// BlockItem processes a block request received at /~{handle}/{hash}/block
+func (h *handler) BlockItem(w http.ResponseWriter, r *http.Request) {
+	acc := loggedAccount(r)
+
+	reason, err := ContentFromRequest(r, *acc)
+	if err != nil {
+		h.errFn(log.Ctx{ "before": err })("wrong http method")
+		h.v.HandleErrors(w, r, errors.NewMethodNotAllowed(err, ""))
+		return
+	}
+	repo := h.storage
+
+	ctx := context.TODO()
+	it, err := repo.LoadItem(ctx, objects.IRI(repo.fedbox.Service()).AddPath(chi.URLParam(r, "hash")))
+	if err != nil {
+		h.errFn(log.Ctx{ "before": err })("invalid item to report")
+		h.v.HandleErrors(w, r, errors.NewNotFound(err, ""))
+	}
+	if err = repo.BlockItem(ctx, *acc, it, &reason); err != nil {
+		h.v.HandleErrors(w, r, err)
+		return
+	}
+	acc.Metadata.OutboxUpdated = time.Time{}
+	h.v.Redirect(w, r, PermaLink(&it), http.StatusSeeOther)
+}
+
+// ReportAccount processes a report request received at /~{handle}/block
+func (h *handler) ReportAccount(w http.ResponseWriter, r *http.Request) {
+	acc := loggedAccount(r)
+	reason, err := ContentFromRequest(r, *acc)
+	if err != nil {
+		h.errFn(log.Ctx{ "before": err })("Error: wrong http method")
+		h.v.HandleErrors(w, r, errors.NewMethodNotAllowed(err, ""))
+		return
+	}
+	repo := h.storage
+
+	byHandleAccounts := ContextAuthors(r.Context())
+	if len(byHandleAccounts) == 0 {
+		h.v.HandleErrors(w, r, errors.NotFoundf("account not found"))
+		return
+	}
+	p := byHandleAccounts[0]
+	if err = repo.ReportAccount(context.TODO(), *acc, p, &reason); err != nil {
+		h.errFn()("Error: %s", err)
+		h.v.HandleErrors(w, r, errors.NewNotFound(err, "not found"))
+		return
+	}
+	url := AccountPermaLink(&p)
+
+	backUrl := r.Header.Get("Referer")
+	if !strings.Contains(backUrl, url) && strings.Contains(backUrl, Instance.BaseURL) {
+		url = fmt.Sprintf("%s#li-%s", backUrl, p.Hash)
+	}
+	acc.Metadata.OutboxUpdated = time.Time{}
+	h.v.Redirect(w, r, url, http.StatusFound)
+}
+
+// ReportItem processes a report request received at /~{handle}/{hash}/bad
+func (h *handler) ReportItem(w http.ResponseWriter, r *http.Request) {
+	acc := loggedAccount(r)
+	ctx := context.TODO()
+
+	reason, err := ContentFromRequest(r, *acc)
+	if err != nil {
+		h.errFn(log.Ctx{ "before": err })("Error: wrong http method")
+		h.v.HandleErrors(w, r, errors.NewMethodNotAllowed(err, ""))
+		return
+	}
+
+	repo := h.storage
+	p, err := repo.LoadItem(ctx, objects.IRI(repo.fedbox.Service()).AddPath(chi.URLParam(r, "hash")))
+	if err != nil {
+		h.errFn(log.Ctx{ "before": err })("invalid item to report")
+		h.v.HandleErrors(w, r, errors.NewNotFound(err, ""))
+	}
+	if err = repo.ReportItem(ctx, *acc, p, &reason); err != nil {
+		h.errFn()("Error: %s", err)
+		h.v.HandleErrors(w, r, errors.NewNotFound(err, "not found"))
+		return
+	}
+	url := ItemPermaLink(&p)
+
+	backUrl := r.Header.Get("Referer")
+	if !strings.Contains(backUrl, url) && strings.Contains(backUrl, Instance.BaseURL) {
+		url = fmt.Sprintf("%s#li-%s", backUrl, p.Hash)
+	}
+	acc.Metadata.OutboxUpdated = time.Time{}
+	h.v.Redirect(w, r, url, http.StatusFound)
 }
 
 const SessionUserKey = "__current_acct"
@@ -327,19 +426,6 @@ func (h *handler) HandleLogout(w http.ResponseWriter, r *http.Request) {
 	h.v.Redirect(w, r, backUrl, http.StatusSeeOther)
 }
 
-func (h *handler) ValidatePermissions(actions ...string) func(http.Handler) http.Handler {
-	if len(actions) == 0 {
-		return h.ValidateItemAuthor
-	}
-	// @todo(marius): implement permission logic
-	return func(next http.Handler) http.Handler {
-		fn := func(w http.ResponseWriter, r *http.Request) {
-			next.ServeHTTP(w, r)
-		}
-		return http.HandlerFunc(fn)
-	}
-}
-
 func (h *handler) RedirectToLogin(w http.ResponseWriter, r *http.Request, errs ...error) {
 	h.v.Redirect(w, r, "/login", http.StatusMovedPermanently)
 }
@@ -359,30 +445,32 @@ func (h *handler) ValidateLoggedIn(eh ErrorHandler) Handler {
 	}
 }
 
-func (h *handler) ValidateItemAuthor(next http.Handler) http.Handler {
-	fn := func(w http.ResponseWriter, r *http.Request) {
-		ctx := context.TODO()
-		acc := loggedAccount(r)
-		hash := chi.URLParam(r, "hash")
-		url := r.URL
-		action := path.Base(url.Path)
-		if len(hash) > 0 && action != hash {
-			repo := h.storage
-			m, err := repo.LoadItem(ctx, objects.IRI(repo.fedbox.Service()).AddPath(hash))
-			if err != nil {
-				ctxtErr(next, w, r, errors.NewNotFound(err, "item"))
-				return
+func (h *handler) ValidateItemAuthor(op string) Handler {
+	return func (next http.Handler) http.Handler {
+		fn := func(w http.ResponseWriter, r *http.Request) {
+			ctx := context.TODO()
+			acc := loggedAccount(r)
+			hash := chi.URLParam(r, "hash")
+			url := r.URL
+			action := path.Base(url.Path)
+			if len(hash) > 0 && action != hash {
+				repo := h.storage
+				m, err := repo.LoadItem(ctx, objects.IRI(repo.fedbox.Service()).AddPath(hash))
+				if err != nil {
+					ctxtErr(next, w, r, errors.NewNotFound(err, "item"))
+					return
+				}
+				if m.SubmittedBy.Hash != acc.Hash {
+					url.Path = path.Dir(url.Path)
+					h.v.addFlashMessage(Error, w, r, fmt.Sprintf("Unable to %s item as current user", op))
+					h.v.Redirect(w, r, url.RequestURI(), http.StatusTemporaryRedirect)
+					return
+				}
+				next.ServeHTTP(w, r)
 			}
-			if m.SubmittedBy.Hash != acc.Hash {
-				url.Path = path.Dir(url.Path)
-				h.v.addFlashMessage(Error, w, r, "unable to delete item as current user")
-				h.v.Redirect(w, r, url.RequestURI(), http.StatusTemporaryRedirect)
-				return
-			}
-			next.ServeHTTP(w, r)
 		}
+		return http.HandlerFunc(fn)
 	}
-	return http.HandlerFunc(fn)
 }
 
 // HandleItemRedirect serves /i/{hash} request
@@ -584,164 +672,4 @@ func (h *handler) HandleShow(w http.ResponseWriter, r *http.Request) {
 	if err := h.v.RenderTemplate(r, w, m.Template(), m); err != nil {
 		h.v.HandleErrors(w, r, err)
 	}
-}
-
-// BlockAccount processes a report request received at /~{handle}/block
-func (h *handler) BlockAccount(w http.ResponseWriter, r *http.Request) {
-	loggedAccount := loggedAccount(r)
-	if !loggedAccount.IsValid() {
-		err := errors.Unauthorizedf("invalid logged account")
-		h.errFn()("Error: %s", err)
-		h.v.HandleErrors(w, r, err)
-		return
-	}
-
-	reason, err := ContentFromRequest(r, *loggedAccount)
-	if err != nil {
-		h.errFn(log.Ctx{
-			"before": err,
-		})("wrong http method")
-		h.v.HandleErrors(w, r, errors.NewMethodNotAllowed(err, ""))
-		return
-	}
-	repo := h.storage
-
-	toBlock := ContextAuthors(r.Context())
-	if len(toBlock) == 0 {
-		h.v.HandleErrors(w, r, errors.NotFoundf("account not found"))
-		return
-	}
-	block := toBlock[0]
-	err = repo.BlockAccount(context.TODO(), *loggedAccount, block, &reason)
-	if err != nil {
-		h.v.HandleErrors(w, r, err)
-		return
-	} else {
-		loggedAccount.Blocked = loggedAccount.Blocked[:0]
-		h.v.saveAccountToSession(w, r, *loggedAccount)
-	}
-	h.v.Redirect(w, r, PermaLink(&block), http.StatusSeeOther)
-}
-
-// BlockItem processes a block request received at /~{handle}/{hash}/block
-func (h *handler) BlockItem(w http.ResponseWriter, r *http.Request) {
-	loggedAccount := loggedAccount(r)
-	if !loggedAccount.IsValid() {
-		err := errors.Unauthorizedf("invalid logged account")
-		h.errFn()("Error: %s", err)
-		h.v.HandleErrors(w, r, err)
-		return
-	}
-
-	reason, err := ContentFromRequest(r, *loggedAccount)
-	if err != nil {
-		h.errFn(log.Ctx{
-			"before": err,
-		})("wrong http method")
-		h.v.HandleErrors(w, r, errors.NewMethodNotAllowed(err, ""))
-		return
-	}
-	repo := h.storage
-	
-	ctx := context.TODO()
-	it, err := repo.LoadItem(ctx, objects.IRI(repo.fedbox.Service()).AddPath(chi.URLParam(r, "hash")))
-	if err != nil {
-		h.errFn(log.Ctx{
-			"before": err,
-		})("invalid item to report")
-		h.v.HandleErrors(w, r, errors.NewNotFound(err, ""))
-	}
-	err = repo.BlockItem(ctx, *loggedAccount, it, &reason)
-	if err != nil {
-		h.v.HandleErrors(w, r, err)
-		return
-	} else {
-		loggedAccount.Blocked = loggedAccount.Blocked[:0]
-		h.v.saveAccountToSession(w, r, *loggedAccount)
-	}
-	h.v.Redirect(w, r, PermaLink(&it), http.StatusSeeOther)
-}
-
-// ReportAccount processes a report request received at /~{handle}/block
-func (h *handler) ReportAccount(w http.ResponseWriter, r *http.Request) {
-	loggedAccount := loggedAccount(r)
-	if !loggedAccount.IsValid() {
-		err := errors.Unauthorizedf("invalid logged account")
-		h.errFn()("Error: %s", err)
-		h.v.HandleErrors(w, r, err)
-		return
-	}
-
-	reason, err := ContentFromRequest(r, *loggedAccount)
-	if err != nil {
-		h.errFn(log.Ctx{
-			"before": err,
-		})("Error: wrong http method")
-		h.v.HandleErrors(w, r, errors.NewMethodNotAllowed(err, ""))
-		return
-	}
-	repo := h.storage
-
-	byHandleAccounts := ContextAuthors(r.Context())
-	if len(byHandleAccounts) == 0 {
-		h.v.HandleErrors(w, r, errors.NotFoundf("account not found"))
-		return
-	}
-	p := byHandleAccounts[0]
-	err = repo.ReportAccount(context.TODO(), *loggedAccount, p, &reason)
-	if err != nil {
-		h.errFn()("Error: %s", err)
-		h.v.HandleErrors(w, r, errors.NewNotFound(err, "not found"))
-		return
-	}
-	url := AccountPermaLink(&p)
-
-	backUrl := r.Header.Get("Referer")
-	if !strings.Contains(backUrl, url) && strings.Contains(backUrl, Instance.BaseURL) {
-		url = fmt.Sprintf("%s#li-%s", backUrl, p.Hash)
-	}
-	h.v.Redirect(w, r, url, http.StatusFound)
-}
-
-// ReportItem processes a report request received at /~{handle}/{hash}/bad
-func (h *handler) ReportItem(w http.ResponseWriter, r *http.Request) {
-	loggedAccount := loggedAccount(r)
-	if !loggedAccount.IsValid() {
-		err := errors.Unauthorizedf("invalid logged account")
-		h.errFn()("Error: %s", err)
-		h.v.HandleErrors(w, r, err)
-		return
-	}
-	ctx := context.TODO()
-
-	reason, err := ContentFromRequest(r, *loggedAccount)
-	if err != nil {
-		h.errFn(log.Ctx{
-			"before": err,
-		})("Error: wrong http method")
-		h.v.HandleErrors(w, r, errors.NewMethodNotAllowed(err, ""))
-		return
-	}
-
-	repo := h.storage
-	p, err := repo.LoadItem(ctx, objects.IRI(repo.fedbox.Service()).AddPath(chi.URLParam(r, "hash")))
-	if err != nil {
-		h.errFn(log.Ctx{
-			"before": err,
-		})("invalid item to report")
-		h.v.HandleErrors(w, r, errors.NewNotFound(err, ""))
-	}
-	err = repo.ReportItem(ctx, *loggedAccount, p, &reason)
-	if err != nil {
-		h.errFn()("Error: %s", err)
-		h.v.HandleErrors(w, r, errors.NewNotFound(err, "not found"))
-		return
-	}
-	url := ItemPermaLink(&p)
-
-	backUrl := r.Header.Get("Referer")
-	if !strings.Contains(backUrl, url) && strings.Contains(backUrl, Instance.BaseURL) {
-		url = fmt.Sprintf("%s#li-%s", backUrl, p.Hash)
-	}
-	h.v.Redirect(w, r, url, http.StatusFound)
 }
