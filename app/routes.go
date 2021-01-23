@@ -116,12 +116,12 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 			r.With(ListingModelMw).Group(func(r chi.Router) {
 				// @todo(marius) :link_generation:
 				r.With(DefaultFilters, LoadServiceInboxMw, SortByScore).Get("/", h.HandleShow)
-				r.With(DomainFiltersMw, LoadServiceInboxMw, middleware.StripSlashes, SortByScore).Get("/d", h.HandleShow)
-				r.With(DomainFiltersMw, LoadServiceInboxMw, SortByScore).Get("/d/{domain}", h.HandleShow)
-				r.With(TagFiltersMw, LoadServiceInboxMw, ModerationListing, SortByScore).Get("/t/{tag}", h.HandleShow)
+				r.With(DomainFiltersMw, LoadServiceInboxMw, middleware.StripSlashes, SortByDate).Get("/d", h.HandleShow)
+				r.With(DomainFiltersMw, LoadServiceInboxMw, SortByDate).Get("/d/{domain}", h.HandleShow)
+				r.With(TagFiltersMw, LoadServiceInboxMw, ModerationListing, SortByDate).Get("/t/{tag}", h.HandleShow)
 				r.With(SelfFiltersMw(h.storage.fedbox.Service().ID), LoadServiceInboxMw, SortByScore).Get("/self", h.HandleShow)
 				r.With(FederatedFiltersMw(h.storage.fedbox.Service().ID), LoadServiceInboxMw, SortByScore).Get("/federated", h.HandleShow)
-				r.With(h.NeedsSessions, FollowedFiltersMw, h.ValidateLoggedIn(h.v.RedirectToErrors), LoadInboxMw).
+				r.With(h.NeedsSessions, FollowedFiltersMw, h.ValidateLoggedIn(h.v.RedirectToErrors), LoadInboxMw, SortByDate).
 					Get("/followed", h.HandleShow)
 				r.With(ModelMw(&listingModel{tpl: "moderation", sortFn: ByDate}), ModerationFiltersMw, LoadServiceInboxMw, ModerationListing).
 					Get("/moderation", h.HandleShow)
