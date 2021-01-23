@@ -2161,7 +2161,7 @@ func (r *repository) LoadActorInbox(ctx context.Context, actor pub.Item, f ...*F
 
 func (r repository) moderationActivity(ctx context.Context, er *pub.Actor, ed pub.Item, reason *Item) (*pub.Activity, error) {
 	bcc := make(pub.ItemCollection, 0)
-	bcc = append(bcc, r.fedbox.Service().ID)
+	bcc = append(bcc, r.fedbox.Service().ID, pub.PublicNS)
 
 	// We need to add the ed/er accounts' creators to the CC list
 	cc := make(pub.ItemCollection, 0)
