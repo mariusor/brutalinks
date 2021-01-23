@@ -2217,8 +2217,7 @@ func (r *repository) BlockAccount(ctx context.Context, er, ed Account, reason *I
 		return err
 	}
 	block.Type = pub.BlockType
-	_, _, err = r.fedbox.ToOutbox(ctx, block)
-	if err != nil {
+	if _, _, err = r.fedbox.ToOutbox(ctx, block); err != nil {
 		r.errFn()(err.Error())
 		return err
 	}
@@ -2232,8 +2231,7 @@ func (r *repository) BlockItem(ctx context.Context, er Account, ed Item, reason 
 		return err
 	}
 	block.Type = pub.BlockType
-	_, _, err = r.fedbox.ToOutbox(ctx, block)
-	if err != nil {
+	if _, _, err = r.fedbox.ToOutbox(ctx, block); err != nil {
 		r.errFn()(err.Error())
 		return err
 	}
@@ -2247,8 +2245,7 @@ func (r *repository) ReportItem(ctx context.Context, er Account, it Item, reason
 		return err
 	}
 	flag.Type = pub.FlagType
-	_, _, err = r.fedbox.ToOutbox(ctx, flag)
-	if err != nil {
+	if _, _, err = r.fedbox.ToOutbox(ctx, flag); err != nil {
 		r.errFn()(err.Error())
 		return err
 	}
@@ -2262,8 +2259,7 @@ func (r *repository) ReportAccount(ctx context.Context, er, ed Account, reason *
 		return err
 	}
 	flag.Type = pub.FlagType
-	_, _, err = r.fedbox.ToOutbox(ctx, flag)
-	if err != nil {
+	if _, _, err = r.fedbox.ToOutbox(ctx, flag); err != nil {
 		r.errFn()(err.Error())
 		return err
 	}
