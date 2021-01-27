@@ -26,6 +26,22 @@ type ItemMetadata struct {
 	Icon       ImageMetadata     `json:"icon,omitempty"`
 }
 
+var ValidContentTypes = pub.ActivityVocabularyTypes{
+	pub.ArticleType,
+	pub.NoteType,
+	pub.LinkType,
+	pub.PageType,
+	pub.DocumentType,
+	pub.VideoType,
+	pub.AudioType,
+}
+
+var ValidContentManagementTypes = pub.ActivityVocabularyTypes{
+	pub.UpdateType,
+	pub.CreateType,
+	pub.DeleteType,
+}
+
 type Identifiable interface {
 	Id() int64
 }

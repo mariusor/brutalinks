@@ -213,6 +213,29 @@ func (m *ModerationOp) Deleted() bool {
 	return m.Flags&FlagsDeleted == FlagsDeleted
 }
 
+func GetRenderableByType(typ pub.ActivityVocabularyType) Renderable {
+	var result Renderable
+	if ValidAppreciationTypes.Contains(typ) {
+		result = new(Vote) 
+	}
+	if ValidModerationActivityTypes.Contains(typ) {
+		result = new(ModerationOp)
+	}
+	if ValidActorTypes.Contains(typ) {
+		result = new(Account)
+	}
+	if ValidContentTypes.Contains(typ) {
+		result = new(Item)
+	}
+	return result
+}
+
+
+func loadItemActorOrActivityFromModerationActivityObject (it pub.Item) Renderable {
+	result, _ := LoadFromActivityPubItem(it)
+	return result
+}
+
 func (m *ModerationOp) FromActivityPub(it pub.Item) error {
 	if m == nil {
 		return nil
@@ -236,21 +259,13 @@ func (m *ModerationOp) FromActivityPub(it pub.Item) error {
 		m.Icon = icon(strings.ToLower(string(a.Type)))
 		wer.FromActivityPub(a.Actor)
 		m.SubmittedBy = wer
-		if strings.Contains(a.Object.GetLink().String(), "actors") {
-			ob := new(Account)
-			if err := ob.FromActivityPub(a.Object); err == nil {
-				m.Object = ob
-			} else {
-				m.Object = &DeletedAccount
-			}
-		}
-		if strings.Contains(a.Object.GetLink().String(), "objects") {
-			ob := new(Item)
-			if err := ob.FromActivityPub(a.Object); err == nil {
-				m.Object = ob
-			} else {
-				m.Object = &DeletedItem
-			}
+		if a.Object.IsCollection() {
+			pub.OnCollectionIntf(a.Object, func(c pub.CollectionInterface) error {
+				m.Object = loadItemActorOrActivityFromModerationActivityObject(c.Collection().First())
+				return nil
+			})
+		} else {
+			m.Object = loadItemActorOrActivityFromModerationActivityObject(a.Object)
 		}
 		reason := new(Item)
 		pub.OnObject(a, func(o *pub.Object) error {

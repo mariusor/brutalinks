@@ -66,7 +66,7 @@ func DefaultFilters(next http.Handler) http.Handler {
 		f.Type = CreateActivitiesFilter
 		f.Object = new(Filters)
 		f.Object.OP = nilIRIs
-		f.Object.Type = ActivityTypesFilter(ValidItemTypes...)
+		f.Object.Type = ActivityTypesFilter(ValidContentTypes...)
 		m := ContextListingModel(r.Context())
 		m.Title = "Newest items"
 		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
@@ -121,7 +121,7 @@ func fedFilters(r *http.Request) *Filters {
 	f.Type = CreateActivitiesFilter
 	f.Object = &Filters{}
 	f.Object.OP = nilIRIs
-	f.Object.Type = ActivityTypesFilter(ValidItemTypes...)
+	f.Object.Type = ActivityTypesFilter(ValidContentTypes...)
 	f.Actor = &Filters{}
 	return f
 }
@@ -160,7 +160,7 @@ func DomainFiltersMw(next http.Handler) http.Handler {
 				EqualsString(MimeTypeText),
 				EqualsString(MimeTypeHTML),
 			}
-			f.Object.Type = ActivityTypesFilter(ValidItemTypes...)
+			f.Object.Type = ActivityTypesFilter(ValidContentTypes...)
 			m.Title = fmt.Sprintf("Discussion items")
 		}
 		f.Object.OP = nilIRIs
@@ -185,7 +185,7 @@ func TagFiltersMw(next http.Handler) http.Handler {
 		fc := new(Filters)
 		fc.Type = CreateActivitiesFilter
 		fc.Object = new(Filters)
-		fc.Object.Type = ActivityTypesFilter(ValidItemTypes...)
+		fc.Object.Type = ActivityTypesFilter(ValidContentTypes...)
 		fc.Object.Tag = tagsFilter(tag)
 
 		fa := new(Filters)
@@ -288,11 +288,11 @@ type moderationFilter struct {
 
 var (
 	modSubmissionsObjectFilter = &Filters{
-		Type:     ActivityTypesFilter(ValidItemTypes...),
+		Type:     ActivityTypesFilter(ValidContentTypes...),
 		InReplTo: nilIRIs,
 	}
 	modCommentsObjectFilter = &Filters{
-		Type:     ActivityTypesFilter(ValidItemTypes...),
+		Type:     ActivityTypesFilter(ValidContentTypes...),
 		InReplTo: notNilIRIs,
 	}
 	modAccountsObjectFilter = &Filters{

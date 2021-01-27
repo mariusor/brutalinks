@@ -705,95 +705,42 @@ func (c *TagCollection) FromActivityPub(col pub.ItemCollection) error {
 	return nil
 }
 
-func LoadFromActivityPubObject(it pub.Item) (Renderable, error) {
-	if it == nil {
-		return nil, errors.Newf("nil ActivityPub object")
-	}
-	typ := it.GetType()
-	if !(pub.ObjectTypes.Contains(typ) || pub.ActorTypes.Contains(typ)) {
-		return nil, errors.Newf("invalid ActivityPub object")
-	}
-	var result Renderable
-	var err error
-	if pub.ObjectTypes.Contains(typ) {
-		err = pub.OnObject(it, func(ob *pub.Object) error {
-			i := new(Item)
-			if err = i.FromActivityPub(ob); err == nil {
-				result = i
-			}
-			return err
-		})
-	}
-	if pub.ActorTypes.Contains(typ) {
-		err = pub.OnActor(it, func(ac *pub.Actor) error {
-			var err error
-			a := new(Account)
-			if err = a.FromActivityPub(ac); err == nil {
-				result = a
-			}
-			return err
-		})
-	}
-	return result, err
-}
+func LoadFromActivityPubItem(it pub.Item) (Renderable, error) {
+	var (
+		result Renderable
+		err error
+		typ = it.GetType()
+	)
 
-func LoadFromActivityPubActivity(it pub.Item) (Renderable, error) {
-	if it == nil {
-		return nil, errors.Newf("nil ActivityPub item")
+	if typ == pub.FollowType {
+		f := new(FollowRequest)
+		err = f.FromActivityPub(it)
+		result = f
 	}
-	typ := it.GetType()
-
-	if !pub.ActivityTypes.Contains(typ) {
-		return LoadFromActivityPubObject(it)
+	if ValidContentManagementTypes.Contains(typ) {
+		item := new(Item)
+		err = item.FromActivityPub(it)
+		result = item
 	}
-	var result Renderable
-	err := pub.OnActivity(it, func(act *pub.Activity) error {
-		ob := act.Object
-		switch typ {
-		case pub.DeleteType:
-			fallthrough
-		case pub.UpdateType:
-			fallthrough
-		case pub.CreateType:
-			// Item or Account
-			if ob.IsObject() {
-				var err error
-				result, err = LoadFromActivityPubObject(ob)
-				return err
-			}
-		case pub.LikeType:
-			fallthrough
-		case pub.DislikeType:
-			// Vote
-			v := new(Vote)
-			err := v.FromActivityPub(act)
-			if err != nil {
-				return err
-			}
-			result = v
-		case pub.FollowType:
-			// FollowRequest
-			f := new(FollowRequest)
-			err := f.FromActivityPub(act)
-			if err != nil {
-				return err
-			}
-			result = f
-			break
-		case pub.FlagType:
-			fallthrough
-		case pub.BlockType:
-			fallthrough
-		case pub.IgnoreType:
-			// ModerationOp
-			m := new(ModerationOp)
-			err := m.FromActivityPub(act)
-			if err != nil {
-				return err
-			}
-			result = m
-		}
-		return nil
-	})
+	if ValidAppreciationTypes.Contains(typ) {
+		vot := new(Vote)
+		err = vot.FromActivityPub(it)
+		result = vot
+	}
+	if ValidModerationActivityTypes.Contains(typ) {
+		op := new(ModerationOp)
+		err = op.FromActivityPub(it)
+		result = op
+	}
+	if ValidActorTypes.Contains(typ) {
+		acc := new(Account)
+		err = acc.FromActivityPub(it)
+		result = acc
+	}
+	if ValidContentTypes.Contains(typ) {
+		item := new(Item)
+		err = item.FromActivityPub(it)
+		result = item
+	}
 	return result, err
 }

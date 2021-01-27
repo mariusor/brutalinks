@@ -42,31 +42,6 @@ func (r repository) BaseURL() pub.IRI {
 	return r.fedbox.baseURL
 }
 
-var ValidActorTypes = pub.ActivityVocabularyTypes{
-	pub.PersonType,
-	pub.ServiceType,
-	pub.GroupType,
-	pub.ApplicationType,
-	pub.OrganizationType,
-}
-
-var ValidItemTypes = pub.ActivityVocabularyTypes{
-	pub.ArticleType,
-	pub.NoteType,
-	pub.LinkType,
-	pub.PageType,
-	pub.DocumentType,
-	pub.VideoType,
-	pub.AudioType,
-}
-
-// @deprecated
-var ValidActivityTypes = pub.ActivityVocabularyTypes{
-	pub.CreateType,
-	pub.LikeType,
-	pub.FollowType,
-}
-
 // Repository middleware
 func (h handler) Repository(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
@@ -1365,7 +1340,7 @@ func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, ff ..
 								return nil
 							}
 							if ob.IsObject() {
-								if ValidItemTypes.Contains(ob.GetType()) {
+								if ValidContentTypes.Contains(ob.GetType()) {
 									i := Item{}
 									i.FromActivityPub(ob)
 									if validItem(i, f) {

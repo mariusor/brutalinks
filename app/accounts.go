@@ -72,6 +72,14 @@ type Account struct {
 	Children  AccountPtrCollection `json:"-"`
 }
 
+var ValidActorTypes = pub.ActivityVocabularyTypes{
+	pub.PersonType,
+	pub.ServiceType,
+	pub.GroupType,
+	pub.ApplicationType,
+	pub.OrganizationType,
+}
+
 func (a Account) ID() Hash {
 	return a.Hash
 }

@@ -37,11 +37,11 @@ var (
 		Type: ActivityTypesFilter(ValidActorTypes...),
 	}
 	postsFilter = &Filters{
-		Type: ActivityTypesFilter(ValidItemTypes...),
+		Type: ActivityTypesFilter(ValidContentTypes...),
 		OP:   nilIRIs,
 	}
 	allFilter = &Filters{
-		Type: ActivityTypesFilter(ValidItemTypes...),
+		Type: ActivityTypesFilter(ValidContentTypes...),
 	}
 )
 
