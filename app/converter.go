@@ -717,6 +717,12 @@ func LoadFromActivityPubItem(it pub.Item) (Renderable, error) {
 		err = f.FromActivityPub(it)
 		result = f
 	}
+	if typ == pub.TombstoneType {
+		pub.OnTombstone(it, func(t *pub.Tombstone) error {
+			typ = t.FormerType
+			return nil
+		})
+	}
 	if ValidContentManagementTypes.Contains(typ) {
 		item := new(Item)
 		err = item.FromActivityPub(it)
