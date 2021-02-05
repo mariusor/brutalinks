@@ -45,6 +45,7 @@ clean:
 	@-$(RM) $(HOSTNAME).{key,crt,pem} Caddyfile
 
 build: $(APPSOURCES)
+	go mod vendor
 	$(BUILD_CMD) \
 		--build-arg HOSTNAME=$(HOSTNAME) \
 		--build-arg ENV=$(ENV) \
