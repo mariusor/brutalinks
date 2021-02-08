@@ -38,4 +38,5 @@ require (
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
 	golang.org/x/sys v0.0.0-20200327173247-9dae0f8f5775 // indirect
 	golang.org/x/text v0.3.2
+	sourcegraph.com/sourcegraph/go-selenium v0.0.0-20170113155244-3da7d00aac9c
 )
