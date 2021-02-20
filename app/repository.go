@@ -329,10 +329,12 @@ func (r *repository) loadAPPerson(a Account) *pub.Actor {
 		if len(a.Metadata.URL) > 0 {
 			p.URL = pub.IRI(a.Metadata.URL)
 		}
-		p.Endpoints = &pub.Endpoints{
-			SharedInbox:                r.fedbox.Service().Inbox,
-			OauthAuthorizationEndpoint: r.fedbox.Service().Endpoints.OauthAuthorizationEndpoint,
-			OauthTokenEndpoint:         r.fedbox.Service().Endpoints.OauthTokenEndpoint,
+		if r.fedbox.Service().Endpoints != nil {
+			p.Endpoints = &pub.Endpoints{
+				SharedInbox:                r.fedbox.Service().Inbox,
+				OauthAuthorizationEndpoint: r.fedbox.Service().Endpoints.OauthAuthorizationEndpoint,
+				OauthTokenEndpoint:         r.fedbox.Service().Endpoints.OauthTokenEndpoint,
+			}
 		}
 	}
 
