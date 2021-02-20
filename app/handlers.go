@@ -593,7 +593,7 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	param := oauth2.SetAuthURLParam("actor", a.Metadata.ID)
 	sessUrl := config.AuthCodeURL(csrf.Token(r), param)
 
-	res, err := http.Get(sessUrl)
+	res, err := h.storage.fedbox.client.Get(sessUrl)
 	if err != nil {
 		h.v.HandleErrors(w, r, err)
 		return
