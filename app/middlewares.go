@@ -179,7 +179,10 @@ func LoadObjectFromInboxMw(next http.Handler) http.Handler {
 			c.items.Append(Renderable(&items[k]))
 		}
 		m := ContextContentModel(r.Context())
-		m.Title = fmt.Sprintf("Replies to %s item", genitive(i.SubmittedBy.Handle))
+		m.Title = "Replies to item"
+		if i.SubmittedBy != nil {
+			m.Title = fmt.Sprintf("Replies to %s item", genitive(i.SubmittedBy.Handle))
+		}
 		if len(i.Title) > 0 {
 			m.Title = fmt.Sprintf("%s: %s", m.Title, i.Title)
 		}
