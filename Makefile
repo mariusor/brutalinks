@@ -32,17 +32,20 @@ endif
 BUILD := $(GO) build $(BUILDFLAGS)
 TEST := $(GO) test $(BUILDFLAGS)
 
-.PHONY: all run clean images test assets
+.PHONY: all run clean images test assets download
 
 all: app
 
-assets:
+download:
+	$(GO) mod download
 
-internal/assets/assets.gen.go: $(ASSETFILES)
+assets: internal/assets/assets.gen.go
+
+internal/assets/assets.gen.go: download $(ASSETFILES)
 	go generate -tags $(ENV) ./assets.go
 
 app: bin/app
-bin/app: go.mod ./cli/app/main.go $(APPSOURCES)
+bin/app: go.mod download ./cli/app/main.go $(APPSOURCES)
 	$(BUILD) -tags $(ENV) -o $@ ./cli/app/main.go
 
 run: app
