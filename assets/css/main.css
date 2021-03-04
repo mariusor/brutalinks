@@ -293,6 +293,14 @@ form button {
     :root {
         font-size: 2vw;
     }
+    a[rel="mention"] {
+        max-width: 100px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: inline-block;
+        vertical-align: bottom;
+    }
     body > header nav ul a span {
         display: unset;
     }
@@ -301,7 +309,7 @@ form button {
     :root {
         font-size: 2.4vw;
     }
-    nav li::before {
+    nav:not(.pagination) li::before {
         content: none !important;
     }
     body > footer nav:nth-of-type(2) li:first-of-type {
