@@ -1444,6 +1444,10 @@ func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, ff ..
 	if err != nil {
 		return emptyCursor, err
 	}
+	_, err = r.loadItemsReplies(ctx, items...)
+	if err != nil {
+		return emptyCursor, err
+	}
 	follows, err = r.loadFollowsAuthors(ctx, follows...)
 	if err != nil {
 		return emptyCursor, err
@@ -1452,12 +1456,6 @@ func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, ff ..
 	if err != nil {
 		return emptyCursor, err
 	}
-	/*
-		_, err = r.loadItemsReplies(ctx, items...)
-		if err != nil {
-				return emptyCursor, err
-		}
-	*/
 	moderations, err = r.loadModerationDetails(ctx, moderations...)
 	if err != nil {
 		return emptyCursor, err
