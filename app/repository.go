@@ -540,7 +540,7 @@ func (r *repository) loadAccountsOutbox(ctx context.Context, acc *Account) error
 			})
 		}
 		for _, it := range o.Collection() {
-			acc.Metadata.outbox = append(acc.Metadata.outbox, it)
+			acc.Metadata.Outbox = append(acc.Metadata.Outbox, it)
 			typ := it.GetType()
 			if ValidAppreciationTypes.Contains(typ) {
 				v := new(Vote)

@@ -824,7 +824,7 @@ func InOutbox(a *Account, b pub.Item) bool {
 	if !a.HasMetadata() {
 		return false
 	}
-	return a.Metadata.outbox.Contains(b)
+	return a.Metadata.Outbox.Contains(b)
 }
 
 func AccountFollows(a, by *Account) bool {

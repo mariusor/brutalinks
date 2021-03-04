@@ -708,8 +708,8 @@ func (c *TagCollection) FromActivityPub(col pub.ItemCollection) error {
 func LoadFromActivityPubItem(it pub.Item) (Renderable, error) {
 	var (
 		result Renderable
-		err error
-		typ = it.GetType()
+		err    error
+		typ    = it.GetType()
 	)
 
 	if typ == pub.FollowType {

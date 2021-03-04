@@ -48,7 +48,7 @@ type AccountMetadata struct {
 	AuthorizationEndPoint string             `json:-`
 	TokenEndPoint         string             `json:-`
 	OutboxUpdated         time.Time          `json:-`
-	outbox                pub.ItemCollection
+	Outbox                pub.ItemCollection
 }
 
 type AccountCollection []Account
