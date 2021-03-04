@@ -15,7 +15,6 @@ import (
 	"github.com/mariusor/qstring"
 	"github.com/spacemonkeygo/httpsig"
 	"golang.org/x/sync/errgroup"
-	"math"
 	"net/http"
 	"net/url"
 	"path"
@@ -526,7 +525,9 @@ func (r *repository) loadAccountsOutbox(ctx context.Context, acc *Account) error
 	collFn := func(ctx context.Context, f *Filters) (pub.CollectionInterface, error) {
 		return r.fedbox.Collection(ctx, pub.IRI(acc.Metadata.OutboxIRI), Values(f))
 	}
-	return LoadFromCollection(ctx, collFn, &colCursor{filters: &Filters{MaxItems: math.MaxInt32}}, func(o pub.CollectionInterface) (bool, error) {
+	latest := time.Now().Add(-2 * 30 * 24 * time.Hour).UTC()
+	max := MaxContentItems * 10 // NOTE(marius): this affects how big the session stored value for an account can get
+	return LoadFromCollection(ctx, collFn, &colCursor{filters: &Filters{MaxItems: max}}, func(o pub.CollectionInterface) (bool, error) {
 		if ocTypes.Contains(o.GetType()) {
 			pub.OnOrderedCollection(o, func(oc *pub.OrderedCollection) error {
 				acc.Metadata.OutboxUpdated = oc.Updated
@@ -540,7 +541,12 @@ func (r *repository) loadAccountsOutbox(ctx context.Context, acc *Account) error
 			})
 		}
 		for _, it := range o.Collection() {
-			acc.Metadata.Outbox = append(acc.Metadata.Outbox, it)
+			pub.OnObject(it, func(o *pub.Object) error {
+				if len(acc.Metadata.Outbox) < max || o.Updated.Sub(latest) > 0 {
+					acc.Metadata.Outbox = append(acc.Metadata.Outbox, it)
+				}
+				return nil
+			})
 			typ := it.GetType()
 			if ValidAppreciationTypes.Contains(typ) {
 				v := new(Vote)
