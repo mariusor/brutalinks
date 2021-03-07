@@ -1362,7 +1362,7 @@ func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, ff ..
 							} else {
 								i := Item{}
 								i.FromActivityPub(a)
-								appendToDeferred(ob, LikeString)
+								appendToDeferred(ob, EqualsString)
 							}
 							relations[a.GetLink()] = ob.GetLink()
 						}
