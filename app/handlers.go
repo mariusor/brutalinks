@@ -61,6 +61,8 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 			}
 			if n.Parent.OP.IsValid() {
 				n.OP = n.Parent.OP
+			} else {
+				n.OP = n.Parent
 			}
 		}
 	}
