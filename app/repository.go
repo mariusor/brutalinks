@@ -1774,12 +1774,16 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 			act.Type = pub.UpdateType
 		}
 	}
-	var ob pub.Item
-	_, ob, err = r.fedbox.ToOutbox(ctx, act)
+	var (
+		i pub.IRI
+		ob pub.Item
+	)
+	i, ob, err = r.fedbox.ToOutbox(ctx, act)
 	if err != nil {
 		r.errFn()(err.Error())
 		return it, err
 	}
+	r.infoFn(log.Ctx{"act": i, "obj": ob.GetLink(), "type": ob.GetType()})("saved activity")
 	err = it.FromActivityPub(ob)
 	if err != nil {
 		r.errFn()(err.Error())
