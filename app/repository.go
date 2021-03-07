@@ -337,7 +337,6 @@ func (r *repository) loadAPPerson(a Account) *pub.Actor {
 		}
 	}
 
-	//p.Score = a.Score
 	if a.IsValid() && a.HasMetadata() && a.Metadata.Key != nil && a.Metadata.Key.Public != nil {
 		p.PublicKey = pub.PublicKey{
 			ID:           pub.ID(fmt.Sprintf("%s#main-key", p.ID)),
@@ -1573,11 +1572,16 @@ func (r *repository) SaveVote(ctx context.Context, v Vote) (Vote, error) {
 		act.Object = o.GetLink()
 	}
 
-	_, _, err = r.fedbox.ToOutbox(ctx, act)
+	var (
+		iri pub.IRI
+		it pub.Item
+	)
+	iri, it, err = r.fedbox.ToOutbox(ctx, act)
 	if err != nil {
 		r.errFn()(err.Error())
 		return v, err
 	}
+	r.infoFn(log.Ctx{"act": iri, "obj": it.GetLink(), "type": it.GetType()})("saved activity")
 	err = v.FromActivityPub(act)
 	return v, err
 }

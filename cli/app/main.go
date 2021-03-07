@@ -54,7 +54,7 @@ func Run(a app.Application) int {
 	}
 
 	// Set up the signal handlers functions so the OS can tell us if the it requires us to stop
-	sigHandlerFns := w.SignalHandlers {
+	sigHandlerFns := w.SignalHandlers{
 		syscall.SIGHUP: func(_ chan int) {
 			a.Logger.Info("SIGHUP received, reloading configuration")
 			a.Conf = config.Load(a.Conf.Env, a.Conf.TimeOut)
