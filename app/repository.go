@@ -1080,12 +1080,11 @@ func LoadFromCollection(ctx context.Context, loadColFn CollectionFn, cur *colCur
 		}
 
 		var prev string
-		err = pub.OnCollectionIntf(col, func(c pub.CollectionInterface) error {
+		if err = pub.OnCollectionIntf(col, func(c pub.CollectionInterface) error {
 			var err error
 			status, err = accum(c)
 			return err
-		})
-		if err != nil {
+		}); err != nil {
 			return err
 		}
 		prev, cur.filters.Next = getCollectionPrevNext(col)
