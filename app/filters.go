@@ -270,7 +270,9 @@ func AccountFiltersMw(next http.Handler) http.Handler {
 		fv := *f
 		fv.Type = AppreciationActivitiesFilter
 
-		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{&fc, &fv})
+		// NOTE(marius): having two very different filters here introduces bugs
+		// with the next/previous cursor key (the votes filter can be removed)
+		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{/*&fv,*/ &fc})
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
