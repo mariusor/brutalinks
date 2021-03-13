@@ -306,6 +306,9 @@ var (
 func ModerationFiltersMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := FiltersFromRequest(r)
+		f.Object = &Filters{
+			IRI: CompStrs{DifferentThanString("-")},
+		}
 		f.Type = ModerationActivitiesFilter
 		mf := new(moderationFilter)
 		qstring.Unmarshal(r.URL.Query(), mf)
@@ -313,7 +316,7 @@ func ModerationFiltersMw(next http.Handler) http.Handler {
 		showSubmissions := stringInSlice(mf.Type)("s")
 		showComments := stringInSlice(mf.Type)("c")
 		showUsers := stringInSlice(mf.Type)("a")
-		if len(mf.Type) > 0 {
+		if len(mf.Type) > 0 && !(showSubmissions == showComments && showSubmissions == showUsers) {
 			if showSubmissions {
 				fs := *f
 				fs.Object = modSubmissionsObjectFilter
