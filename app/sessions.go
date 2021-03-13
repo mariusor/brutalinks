@@ -42,6 +42,7 @@ func initSession(c appConfig, infoFn, errFn CtxLogFn) (sess, error) {
 	gob.Register(activitypub.Activity{})
 	gob.Register(activitypub.IRI(""))
 	gob.Register(activitypub.Object{})
+	gob.Register(activitypub.Actor{})
 	gob.Register(activitypub.ItemCollection{})
 	gob.Register(activitypub.Link{})
 
