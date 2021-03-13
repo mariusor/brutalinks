@@ -820,11 +820,16 @@ func fmtPubKey(pub []byte) string {
 	return s.String()
 }
 
-func InOutbox(a *Account, b pub.Item) bool {
+func InOutbox(a *Account, it ...pub.Item) bool {
 	if !a.HasMetadata() {
 		return false
 	}
-	return a.Metadata.Outbox.Contains(b)
+	for _, b := range it {
+		if a.Metadata.Outbox.Contains(b) {
+			return true
+		}
+	}
+	return false
 }
 
 func AccountFollows(a, by *Account) bool {
@@ -901,10 +906,15 @@ func showFollowLink(by, current *Account) bool {
 	if by.Hash == current.Hash {
 		return false
 	}
-	if InOutbox(by, pub.Follow{
+	b := pub.Block{
+		Type:   pub.BlockType,
+		Object: current.pub.GetLink(),
+	}
+	f := pub.Follow{
 		Type:   pub.FollowType,
 		Object: current.pub.GetLink(),
-	}) {
+	}
+	if InOutbox(by, f, b) {
 		return false
 	}
 	if AccountFollows(by, current) {
