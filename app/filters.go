@@ -3,11 +3,12 @@ package app
 import (
 	"context"
 	"fmt"
+	"net/http"
+
 	pub "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
 	"github.com/go-chi/chi"
 	"github.com/mariusor/qstring"
-	"net/http"
 )
 
 type CompStr = qstring.ComparativeString
@@ -65,7 +66,7 @@ func DefaultFilters(next http.Handler) http.Handler {
 		f := FiltersFromRequest(r)
 		f.Type = CreateActivitiesFilter
 		f.Object = new(Filters)
-		f.Object.OP = nilIRIs
+		f.Object.InReplTo = nilIRIs
 		f.Object.Type = ActivityTypesFilter(ValidContentTypes...)
 		m := ContextListingModel(r.Context())
 		m.Title = "Newest items"
