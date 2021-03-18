@@ -2044,7 +2044,7 @@ func (r *repository) SaveAccount(ctx context.Context, a Account) (Account, error
 				"actor":  a.GetLink(),
 				"parent": parent.GetLink(),
 				"err":    err,
-			})("save failed")
+			})("account save failed")
 			return a, err
 		}
 		act.Type = pub.DeleteType
@@ -2067,7 +2067,7 @@ func (r *repository) SaveAccount(ctx context.Context, a Account) (Account, error
 		if ap != nil {
 			ltx["activity"] = ap.GetLink()
 		}
-		r.errFn(ltx, log.Ctx{"err": err})("save failed")
+		r.errFn(ltx, log.Ctx{"err": err})("account save failed")
 		return a, err
 	}
 	if err := a.FromActivityPub(ap); err != nil {
