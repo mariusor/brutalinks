@@ -132,7 +132,7 @@ func ServeAsset(s AssetFiles) func(w http.ResponseWriter, r *http.Request) {
 func ServeStatic(st string) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fullPath := filepath.Clean(filepath.Join(st, chi.URLParam(r, "path")))
-		w.Header().Set("Cache-Control", fmt.Sprintf("public,max-age=%d", int(year.Seconds())))
+		w.Header().Set("Cache-Control", fmt.Sprintf("public, max-age=%d, immutable", int(year.Seconds())))
 		http.ServeFile(w, r, fullPath)
 	}
 }
