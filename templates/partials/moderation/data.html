@@ -1,7 +1,7 @@
 {{- $count := .Requests | len -}}
 {{ $count }} {{ $count | pluralize "user" }} {{ . | RenderLabel | pasttensify }} <a href="{{ .Object | PermaLink }}">this {{ .Object | RenderLabel }}</a>
 {{- range $reason := .Requests -}}
-<details title="{{ $reason.SubmittedAt | TimeFmt }}"><summary>Reason:</summary>
+<details title="{{ $reason.SubmittedAt | TimeFmt }}" {{if ShowText}}open{{end}}><summary>Reason:</summary>
     {{- if eq .MimeType "text/html" -}}{{- replaceTags "text/html" $reason | HTML -}}{{- end -}}
     {{- if eq .MimeType "text/markdown" -}}{{- replaceTags "text/markdown" $reason | Markdown -}}{{- end -}}
     {{- if eq .MimeType "text/plain" -}}{{- $reason.Data | Text -}}{{end}}
