@@ -4,6 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"net/url"
+	"path"
+	"strings"
+	"time"
+
 	"github.com/go-ap/errors"
 	"github.com/go-chi/chi"
 	"github.com/gorilla/csrf"
@@ -11,12 +18,6 @@ import (
 	"github.com/mariusor/qstring"
 	"github.com/openshift/osin"
 	"golang.org/x/oauth2"
-	"io/ioutil"
-	"net/http"
-	"net/url"
-	"path"
-	"strings"
-	"time"
 )
 
 // HandleSubmit handles POST /submit requests
@@ -356,7 +357,7 @@ func (h *handler) ReportItem(w http.ResponseWriter, r *http.Request) {
 
 const SessionUserKey = "__current_acct"
 
-// ShowLogin handles POST /login requests
+// HandleLogin handles POST /login requests
 func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	pw := r.PostFormValue("pw")
 	handle := r.PostFormValue("handle")
@@ -375,16 +376,17 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		h.v.addFlashMessage(Error, w, r, msg)
 		h.v.Redirect(w, r, "/login", http.StatusSeeOther)
 	}
+	lCtx := log.Ctx{
+		"handle": handle,
+		"client": config.ClientID,
+		"state":  state,
+	}
 	if err != nil || len(accts) == 0 {
 		if err == nil {
-			err = errors.NotFoundf("%s", handle)
+			err = errors.NotFoundf(handle)
 		}
-		handleErr(fmt.Sprintf("Login failed: %s", err), log.Ctx{
-			"handle": handle,
-			"client": config.ClientID,
-			"state":  state,
-			"err":    err,
-		})
+		lCtx["err"] = err.Error()
+		handleErr("Login failed: invalid username or password", lCtx)
 		return
 	}
 	acct := accts[0]
@@ -394,24 +396,16 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		if err == nil {
 			err = errors.Errorf("nil token received")
 		}
-		handleErr("Login failed: invalid username or password", log.Ctx{
-			"handle": handle,
-			"client": config.ClientID,
-			"state":  state,
-			"error":  fmt.Sprintf("%s", err),
-		})
+		lCtx["err"] = err.Error()
+		handleErr("Login failed: invalid username or password", lCtx)
 		return
 	}
 	acct.Metadata.OAuth.Provider = "fedbox"
 	acct.Metadata.OAuth.Token = tok
 	s, err := h.v.s.get(w, r)
 	if err != nil {
-		handleErr("Login failed: unable to save session", log.Ctx{
-			"handle": handle,
-			"client": config.ClientID,
-			"state":  state,
-			"error":  fmt.Sprintf("%s", err),
-		})
+		lCtx["err"] = err.Error()
+		handleErr("Login failed: unable to save session", lCtx)
 		return
 	}
 	s.Values[SessionUserKey] = acct
