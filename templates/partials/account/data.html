@@ -4,6 +4,11 @@
     {{- .Handle -}}
 </a>
 {{- else -}}
-<span>Pending invitation</span>
+<span>
+    Pending invitation
+{{ if Config.UserCreatingEnabled -}}
+    <a title="Open email client" href="{{ invitationLink . CurrentAccount }}">{{icon "email" }}</a>
+{{- end }}
+</span>
 {{- end -}}
 <br/>

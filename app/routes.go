@@ -89,6 +89,7 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 					r.Use(h.ValidateLoggedIn(h.v.RedirectToErrors))
 					r.Get("/follow", h.FollowAccount)
 					r.Get("/follow/{action}", h.HandleFollowRequest)
+					r.With(h.NeedsSessions, h.ValidateLoggedIn(h.v.RedirectToErrors)).Post("/invite", h.HandleCreateInvitation)
 
 					r.With(h.CSRF, MessageUserContentModelMw, MessageFiltersMw, LoadOutboxMw).Route("/message", func(r chi.Router) {
 						r.Get("/", h.HandleShow)
@@ -111,7 +112,6 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 			r.Get("/i/{hash}", h.HandleItemRedirect)
 
 			r.With(h.NeedsSessions).Get("/logout", h.HandleLogout)
-			r.With(h.NeedsSessions, h.ValidateLoggedIn(h.v.RedirectToErrors)).Post("/invite", h.HandleSendInvite)
 
 			r.With(ListingModelMw).Group(func(r chi.Router) {
 				// @todo(marius) :link_generation:

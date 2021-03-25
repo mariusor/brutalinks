@@ -366,6 +366,7 @@ func blockModelFromCtx(ctx context.Context) *moderationModel {
 
 	return m
 }
+
 func BlockAccountModelMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()

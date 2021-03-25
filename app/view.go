@@ -9,6 +9,7 @@ import (
 	"github.com/mariusor/go-littr/internal/assets"
 	"github.com/mariusor/go-littr/internal/config"
 	"github.com/mariusor/go-littr/internal/log"
+	"github.com/mariusor/qstring"
 	"github.com/unrolled/render"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
@@ -250,6 +251,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"GetDomainTitle": GetDomainTitle,
 			//"ScoreFmt":          func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
 			//"NumberFmt":         func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
+			"invitationLink": GetInviteLink(v),
 		}},
 		Delims:                    render.Delims{Left: "{{", Right: "}}"},
 		Charset:                   "UTF-8",
@@ -1120,4 +1122,21 @@ func GetDomainURL(i Item) template.HTMLAttr {
 		return unknownDomain
 	}
 	return template.HTMLAttr(url.PathEscape(getDomain(u)))
+}
+
+func GetInviteLink(v *view) func(invitee *Account, by *Account) template.HTMLAttr {
+	return func(invitee *Account, by *Account) template.HTMLAttr {
+		u := fmt.Sprintf("%s/register/%s", Instance.BaseURL, invitee.Hash)
+		// @todo(marius): :link_generation:
+		bodyFmt := "Hello,\n\nThis is an invitation to join %s.\n\nTo accept this invitation and create an account, visit the URL below: %s\n\n/%s"
+		mailContent := struct {
+			Subject string `qstring:subject`
+			Body    string `qstring:body`
+		}{
+			Subject: fmt.Sprintf("You are invited to join %s", v.c.HostName),
+			Body:    fmt.Sprintf(bodyFmt, Instance.BaseURL, u, by.Handle),
+		}
+		q, _ := qstring.Marshal(&mailContent)
+		return template.HTMLAttr(fmt.Sprintf("mailto:?%s", q.Encode()))
+	}
 }

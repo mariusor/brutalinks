@@ -20,7 +20,7 @@
 </details>
 {{- if CurrentAccount.IsLogged }}
 {{- if sameHash .Hash CurrentAccount.Hash }}
-    {{ template "partials/user/invite" -}}
+    {{ template "partials/user/invite" . -}}
 {{ else }}
     <nav>
         <ul>

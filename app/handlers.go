@@ -15,7 +15,6 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/gorilla/csrf"
 	"github.com/mariusor/go-littr/internal/log"
-	"github.com/mariusor/qstring"
 	"github.com/openshift/osin"
 	"golang.org/x/oauth2"
 )
@@ -515,16 +514,14 @@ func getPassCode(h *handler, acc *Account, invitee *Account, r *http.Request) (s
 }
 
 // HandleSendInvite handles POST /invite requests
-func (h *handler) HandleSendInvite(w http.ResponseWriter, r *http.Request) {
-	acc := loggedAccount(r)
-	email := r.PostFormValue("email")
-	if len(email) == 0 {
-		h.v.HandleErrors(w, r, errors.BadRequestf("invalid email"))
+func (h *handler) HandleCreateInvitation(w http.ResponseWriter, r *http.Request) {
+	if !h.conf.UserCreatingEnabled {
+		h.v.HandleErrors(w, r, errors.BadRequestf("unable to invite user"))
 		return
 	}
+	acc := loggedAccount(r)
 
 	invitee, err := h.storage.SaveAccount(context.TODO(), Account{ CreatedBy: acc })
-
 	if err != nil {
 		h.v.HandleErrors(w, r, errors.NewBadRequest(err, "unable to save account"))
 		return
@@ -534,19 +531,8 @@ func (h *handler) HandleSendInvite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// @todo(marius): :link_generation:
-	u := fmt.Sprintf("%s/register/%s", h.conf.BaseURL, invitee.Hash)
-	bodyFmt := "Hello %s,\nThis is an invitation to join %s: %s.\nTo accept this invitation and create an account, visit the URL below: %s\n/%s"
-	mailContent := struct {
-		Subject string `qstring:subject`
-		Body    string `qstring:body`
-	}{
-		Subject: fmt.Sprintf("You are invited to join %s", h.conf.HostName),
-		Body:    fmt.Sprintf(bodyFmt, email, h.conf.HostName, h.conf.BaseURL, u, acc.Handle),
-	}
-	q, _ := qstring.Marshal(&mailContent)
-	h.v.Redirect(w, r, fmt.Sprintf("mailto:%s?%s", email, q), http.StatusSeeOther)
-	return
+	h.v.addFlashMessage(Info, w, r, "Invitation generated successfully.\nYou can now send an email to the person you want to invite by clicking the envelope icon.")
+	h.v.Redirect(w, r, PermaLink(acc), http.StatusPermanentRedirect)
 }
 
 // HandleRegister handles POST /register requests
