@@ -1124,8 +1124,8 @@ func GetDomainURL(i Item) template.HTMLAttr {
 	return template.HTMLAttr(url.PathEscape(getDomain(u)))
 }
 
-func GetInviteLink(v *view) func(invitee *Account, by *Account) template.HTMLAttr {
-	return func(invitee *Account, by *Account) template.HTMLAttr {
+func GetInviteLink(v *view) func(invitee *Account) template.HTMLAttr {
+	return func(invitee *Account) template.HTMLAttr {
 		u := fmt.Sprintf("%s/register/%s", Instance.BaseURL, invitee.Hash)
 		// @todo(marius): :link_generation:
 		bodyFmt := "Hello,\n\nThis is an invitation to join %s.\n\nTo accept this invitation and create an account, visit the URL below: %s\n\n/%s"
@@ -1134,7 +1134,7 @@ func GetInviteLink(v *view) func(invitee *Account, by *Account) template.HTMLAtt
 			Body    string `qstring:body`
 		}{
 			Subject: fmt.Sprintf("You are invited to join %s", v.c.HostName),
-			Body:    fmt.Sprintf(bodyFmt, Instance.BaseURL, u, by.Handle),
+			Body:    fmt.Sprintf(bodyFmt, Instance.BaseURL, u, invitee.CreatedBy.Handle),
 		}
 		q, _ := qstring.Marshal(&mailContent)
 		return template.HTMLAttr(fmt.Sprintf("mailto:?%s", q.Encode()))

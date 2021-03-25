@@ -519,8 +519,8 @@ func (h *handler) HandleCreateInvitation(w http.ResponseWriter, r *http.Request)
 		h.v.HandleErrors(w, r, errors.BadRequestf("unable to invite user"))
 		return
 	}
-	acc := loggedAccount(r)
 
+	acc := loggedAccount(r)
 	invitee, err := h.storage.SaveAccount(context.TODO(), Account{ CreatedBy: acc })
 	if err != nil {
 		h.v.HandleErrors(w, r, errors.NewBadRequest(err, "unable to save account"))
