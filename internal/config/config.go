@@ -29,6 +29,7 @@ type Configuration struct {
 	VotingEnabled              bool
 	DownvotingEnabled          bool
 	UserCreatingEnabled        bool
+	UserInvitesEnabled         bool
 	UserFollowingEnabled       bool
 	ModerationEnabled          bool
 	MaintenanceMode            bool
@@ -56,6 +57,7 @@ const (
 	KeyDisableDownVoting          = "DISABLE_DOWNVOTING"
 	KeyDisableSessions            = "DISABLE_SESSIONS"
 	KeyDisableUserCreation        = "DISABLE_USER_CREATION"
+	KeyDisableUserInvites         = "DISABLE_USER_INVITES"
 	KeyDisableAnonymousCommenting = "DISABLE_ANONYMOUS_COMMENTING"
 	KeyDisableUserFollowing       = "DISABLE_USER_FOLLOWING"
 	KeyDisableModeration          = "DISABLE_MODERATION"
@@ -147,6 +149,8 @@ func Load(e EnvType, wait time.Duration) *Configuration {
 	c.SessionsEnabled = !sessionsDisabled
 	userCreationDisabled, _ := strconv.ParseBool(loadKeyFromEnv(KeyDisableUserCreation, ""))
 	c.UserCreatingEnabled = !userCreationDisabled
+	userInvitesDisabled, _ := strconv.ParseBool(loadKeyFromEnv(KeyDisableUserInvites, ""))
+	c.UserInvitesEnabled = !userInvitesDisabled
 	// TODO(marius): this stopped working - as the anonymous user doesn't have a valid Outbox.
 	anonymousCommentingDisabled, _ := strconv.ParseBool(loadKeyFromEnv(KeyDisableAnonymousCommenting, "")) // DISABLE_ANONYMOUS_COMMENTING
 	c.AnonymousCommentingEnabled = !anonymousCommentingDisabled
