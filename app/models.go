@@ -66,6 +66,7 @@ type mBox struct {
 	Hash        Hash
 	OP          Hash
 	Title       string
+	Content     string
 	Back        string
 	SubmitLabel template.HTML
 }
