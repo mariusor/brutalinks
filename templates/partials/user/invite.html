@@ -1,3 +1,3 @@
-{{- if Config.UserCreatingEnabled }}
+{{- if Config.UserInvitesEnabled }}
 <form method="post" action="{{ printf "%s/%s" (PermaLink .) "invite" }}"> <button type="submit">{{ icon "users"}} New invitation</button> </form>
 {{- end -}}
