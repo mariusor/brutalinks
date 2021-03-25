@@ -736,8 +736,12 @@ func (r *repository) loadAccountsAuthors(ctx context.Context, accounts ...Accoun
 	}
 	fActors := Filters{
 		Type: ActivityTypesFilter(ValidActorTypes...),
-		IRI:  AccountHashFilter(accounts...),
 	}
+	creators := make([]Account, 0)
+	for _, ac := range accounts {
+		creators = append(creators, *ac.CreatedBy)
+	}
+	fActors.IRI = AccountHashFilter(creators...)
 	if len(fActors.IRI) == 0 {
 		return accounts, errors.Errorf("unable to load accounts authors")
 	}
