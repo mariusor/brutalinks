@@ -128,7 +128,8 @@ func LoadObjectFromInboxMw(next http.Handler) http.Handler {
 		// we first try to load from the service's inbox
 		col, err = repo.fedbox.Inbox(ctx, repo.fedbox.Service(), Values(f))
 		if err != nil {
-			// log
+			repo.errFn()("unable to load item")
+			ctxtErr(next, w, r, errors.NotFoundf("Object not found"))
 			return
 		}
 		if col.Count() == 0 {
