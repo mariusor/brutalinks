@@ -513,9 +513,9 @@ func getPassCode(h *handler, acc *Account, invitee *Account, r *http.Request) (s
 	return d.Code, nil
 }
 
-// HandleSendInvite handles POST /invite requests
+// HandleCreateInvitation handles POST ~handle/invite requests
 func (h *handler) HandleCreateInvitation(w http.ResponseWriter, r *http.Request) {
-	if !h.conf.UserCreatingEnabled {
+	if !h.conf.UserInvitesEnabled {
 		h.v.HandleErrors(w, r, errors.BadRequestf("unable to invite user"))
 		return
 	}
