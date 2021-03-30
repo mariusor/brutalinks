@@ -1,17 +1,18 @@
 package app
 
 import (
+	"net/http"
+	"os"
+	"path/filepath"
+
 	"github.com/go-ap/errors"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/mariusor/go-littr/internal/assets"
 	"github.com/mariusor/go-littr/internal/config"
-	"net/http"
-	"os"
-	"path/filepath"
 )
 
-func (h *handler) ItemRoutes () func(chi.Router) {
+func (h *handler) ItemRoutes() func(chi.Router) {
 	return func(r chi.Router) {
 		r.Use(h.CSRF, ContentModelMw, h.ItemFiltersMw, LoadObjectFromInboxMw, ThreadedListingMw, SortByScore)
 		r.Get("/", h.HandleShow)
@@ -36,6 +37,7 @@ func (h *handler) ItemRoutes () func(chi.Router) {
 		})
 	}
 }
+
 func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 	return func(r chi.Router) {
 		r.Use(middleware.GetHead)
