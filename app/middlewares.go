@@ -6,6 +6,7 @@ import (
 	pub "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
 	"github.com/go-chi/chi"
+	"github.com/mariusor/go-littr/internal/log"
 	"html/template"
 	"net/http"
 )
@@ -135,18 +136,22 @@ func LoadObjectFromInboxMw(next http.Handler) http.Handler {
 		if col.Count() == 0 {
 			// if nothing found, try to load from the logged account's collections
 			current := ContextAccount(r.Context())
-			if current.IsLogged() {
+			// TODO(marius): probably the nil check on .pub needs to be moved to IsLogged.
+			if current.IsLogged() && current.pub != nil {
+				logCtx := log.Ctx{
+					"actor": current.pub.GetLink(),
+					"filter": f,
+				}
 				// if the current user is logged, try to load from their inbox
-				col, err = repo.fedbox.Inbox(ctx, current.pub, Values(f))
-				if err != nil {
-					// log
+				if col, err = repo.fedbox.Inbox(ctx, current.pub, Values(f)); err != nil {
+					logCtx["from"] = "actor inbox"
+					repo.errFn(logCtx)("unable to load item")
 				}
 				if col == nil || col.Count() == 0 {
 					// if the current user is logged, try to load from their outbox
-					col, err = repo.fedbox.Outbox(ctx, current.pub, Values(f))
-					if err != nil {
-						// log
-						return
+					if col, err = repo.fedbox.Outbox(ctx, current.pub, Values(f)); err != nil {
+						logCtx["from"] = "actor outbox"
+						repo.errFn(logCtx)("unable to load item")
 					}
 				}
 			}
