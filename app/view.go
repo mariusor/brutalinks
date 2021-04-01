@@ -1140,3 +1140,16 @@ func GetInviteLink(v *view) func(invitee *Account) template.HTMLAttr {
 		return template.HTMLAttr(fmt.Sprintf("mailto:?%s", q.Encode()))
 	}
 }
+
+func (v *view) FailWithMessage(successFn func () (bool, string)) func (http.Handler) http.Handler {
+	return func (next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if success, failMsg := successFn(); !success {
+				v.addFlashMessage(Error, w, r, failMsg)
+				http.Redirect(w, r, "/", http.StatusSeeOther)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}

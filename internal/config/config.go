@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/joho/godotenv"
 	"github.com/mariusor/go-littr/internal/log"
-	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -163,24 +162,6 @@ func Load(e EnvType, wait time.Duration) *Configuration {
 	c.APIURL = loadKeyFromEnv(KeyAPIUrl, "")
 
 	return c
-}
-
-func (c *Configuration) CheckUserCreatingEnabled(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !c.UserCreatingEnabled {
-			http.Redirect(w, r, "/", http.StatusSeeOther)
-		}
-		next.ServeHTTP(w, r)
-	})
-}
-
-func (c *Configuration) CheckUserInvitesEnabled(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !c.UserInvitesEnabled {
-			http.Redirect(w, r, "/", http.StatusSeeOther)
-		}
-		next.ServeHTTP(w, r)
-	})
 }
 
 func (c Configuration) Listen() string {

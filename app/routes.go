@@ -68,15 +68,24 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 			r.Use(h.LoadSession)
 			r.Use(h.OutOfOrderMw)
 
+			usersEnabledFn := func() (bool, string) {
+				return c.UserCreatingEnabled, "Account creation is disabled"
+			}
+			usersInvitesFn := func() (bool, string) {
+				return c.UserInvitesEnabled, "Account invites are disabled"
+			}
+			usersEnabledOrInvitesFn := func() (bool, string) {
+				return c.UserInvitesEnabled || c.UserCreatingEnabled, "Unable to create account"
+			}
 			r.With(h.CSRF).Group(func(r chi.Router) {
 				r.With(AddModelMw).Get("/submit", h.HandleShow)
 				r.Post("/submit", h.HandleSubmit)
 				r.Route("/register", func(r chi.Router) {
 					r.Group(func(r chi.Router) {
-						r.With(c.CheckUserCreatingEnabled, ModelMw(&registerModel{Title: "Register new account"})).Get("/", h.HandleShow)
-						r.With(c.CheckUserInvitesEnabled, ModelMw(&registerModel{Title: "Register account from invite"}), LoadInvitedMw).Get("/{hash}", h.HandleShow)
+						r.With(h.v.FailWithMessage(usersEnabledFn), ModelMw(&registerModel{Title: "Register new account"})).Get("/", h.HandleShow)
+						r.With(h.v.FailWithMessage(usersInvitesFn), ModelMw(&registerModel{Title: "Register account from invite"}), LoadInvitedMw).Get("/{hash}", h.HandleShow)
 					})
-					r.Post("/", h.HandleRegister)
+					r.With(h.v.FailWithMessage(usersEnabledOrInvitesFn)).Post("/", h.HandleRegister)
 				})
 				r.With(h.NeedsSessions).Group(func(r chi.Router) {
 					r.With(ModelMw(&loginModel{Title: "Local authentication"})).Get("/login", h.HandleShow)
