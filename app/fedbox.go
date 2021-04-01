@@ -20,11 +20,12 @@ const (
 )
 
 type fedbox struct {
-	baseURL pub.IRI
-	pub     *pub.Actor
-	client  *client.C
-	infoFn  CtxLogFn
-	errFn   CtxLogFn
+	baseURL       pub.IRI
+	skipTLSVerify bool
+	pub           *pub.Actor
+	client        *client.C
+	infoFn        CtxLogFn
+	errFn         CtxLogFn
 }
 
 type OptionFn func(*fedbox) error
@@ -77,6 +78,13 @@ func SetUA(s string) OptionFn {
 	}
 }
 
+func SkipTLSCheck(skip bool) OptionFn {
+	return func(f *fedbox) error {
+		f.skipTLSVerify = skip
+		return nil
+	}
+}
+
 var optionLogFn = func(fn CtxLogFn) func(ctx ...client.Ctx) client.LogFn {
 	return func(ctx ...client.Ctx) client.LogFn {
 		c := make([]log.Ctx, 0)
@@ -101,6 +109,7 @@ func NewClient(o ...OptionFn) (*fedbox, error) {
 	f.client = client.New(
 		client.SetErrorLogger(optionLogFn(f.errFn)),
 		client.SetInfoLogger(optionLogFn(f.infoFn)),
+		client.SkipTLSValidation(f.skipTLSVerify),
 	)
 	service, err := f.client.LoadIRI(f.baseURL)
 	if err != nil {
