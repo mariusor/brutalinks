@@ -71,10 +71,10 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 			r.With(h.CSRF).Group(func(r chi.Router) {
 				r.With(AddModelMw).Get("/submit", h.HandleShow)
 				r.Post("/submit", h.HandleSubmit)
-				r.With(c.CheckUserCreatingEnabled).Route("/register", func(r chi.Router) {
+				r.Route("/register", func(r chi.Router) {
 					r.Group(func(r chi.Router) {
-						r.With(ModelMw(&registerModel{Title: "Register new account"})).Get("/", h.HandleShow)
-						r.With(ModelMw(&registerModel{Title: "Register account from invite"}), LoadInvitedMw).Get("/{hash}", h.HandleShow)
+						r.With(c.CheckUserCreatingEnabled, ModelMw(&registerModel{Title: "Register new account"})).Get("/", h.HandleShow)
+						r.With(c.CheckUserInvitesEnabled, ModelMw(&registerModel{Title: "Register account from invite"}), LoadInvitedMw).Get("/{hash}", h.HandleShow)
 					})
 					r.Post("/", h.HandleRegister)
 				})

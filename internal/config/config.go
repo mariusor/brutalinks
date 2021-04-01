@@ -174,6 +174,15 @@ func (c *Configuration) CheckUserCreatingEnabled(next http.Handler) http.Handler
 	})
 }
 
+func (c *Configuration) CheckUserInvitesEnabled(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !c.UserInvitesEnabled {
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 func (c Configuration) Listen() string {
 	if len(c.ListenHost) > 0 {
 		return fmt.Sprintf("%s:%d", c.ListenHost, c.ListenPort)
