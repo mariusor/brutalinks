@@ -67,7 +67,13 @@ func ActivityPubService(c appConfig) (*repository, error) {
 		errFn:   errFn,
 	}
 	var err error
-	repo.fedbox, err = NewClient(SetURL(c.APIURL), SetInfoLogger(infoFn), SetErrorLogger(errFn), SetUA(ua))
+	repo.fedbox, err = NewClient(
+		SetURL(c.APIURL),
+		SetInfoLogger(infoFn),
+		SetErrorLogger(errFn),
+		SetUA(ua),
+		SkipTLSCheck(!c.Env.IsProd()),
+	)
 	if err != nil {
 		return repo, err
 	}
@@ -288,16 +294,16 @@ func (r *repository) loadAPPerson(a Account) *pub.Actor {
 	} else {
 		p = new(pub.Actor)
 	}
-	p.Type = pub.PersonType
-	p.Name = pub.NaturalLanguageValuesNew()
-	p.PreferredUsername = pub.NaturalLanguageValuesNew()
+	if p.Type == "" {
+		p.Type = pub.PersonType
+	}
 
 	if a.HasMetadata() {
-		if a.Metadata.Blurb != nil && len(a.Metadata.Blurb) > 0 {
+		if p.Summary.Count() == 0 && a.Metadata.Blurb != nil && len(a.Metadata.Blurb) > 0 {
 			p.Summary = pub.NaturalLanguageValuesNew()
 			p.Summary.Set(pub.NilLangRef, a.Metadata.Blurb)
 		}
-		if len(a.Metadata.Icon.URI) > 0 {
+		if p.Icon == nil && len(a.Metadata.Icon.URI) > 0 {
 			avatar := pub.ObjectNew(pub.ImageType)
 			avatar.MediaType = pub.MimeType(a.Metadata.Icon.MimeType)
 			avatar.URL = pub.IRI(a.Metadata.Icon.URI)
@@ -305,30 +311,38 @@ func (r *repository) loadAPPerson(a Account) *pub.Actor {
 		}
 	}
 
-	p.PreferredUsername.Set(pub.NilLangRef, pub.Content(a.Handle))
+	if p.PreferredUsername.Count() == 0 {
+		p.PreferredUsername = pub.NaturalLanguageValuesNew()
+		p.PreferredUsername.Set(pub.NilLangRef, pub.Content(a.Handle))
+	}
 
 	if a.Hash.IsValid() {
-		p.ID = pub.ID(a.Metadata.ID)
-		p.Name.Set("en", pub.Content(a.Metadata.Name))
-		if len(a.Metadata.InboxIRI) > 0 {
+		if p.ID == "" {
+			p.ID = pub.ID(a.Metadata.ID)
+		}
+		if p.Name.Count() == 0 && a.Metadata.Name != "" {
+			p.Name = pub.NaturalLanguageValuesNew()
+			p.Name.Set("en", pub.Content(a.Metadata.Name))
+		}
+		if p.Inbox == nil && len(a.Metadata.InboxIRI) > 0 {
 			p.Inbox = pub.IRI(a.Metadata.InboxIRI)
 		}
-		if len(a.Metadata.OutboxIRI) > 0 {
+		if p.Outbox == nil && len(a.Metadata.OutboxIRI) > 0 {
 			p.Outbox = pub.IRI(a.Metadata.OutboxIRI)
 		}
-		if len(a.Metadata.LikedIRI) > 0 {
+		if p.Liked == nil && len(a.Metadata.LikedIRI) > 0 {
 			p.Liked = pub.IRI(a.Metadata.LikedIRI)
 		}
-		if len(a.Metadata.FollowersIRI) > 0 {
+		if p.Followers == nil && len(a.Metadata.FollowersIRI) > 0 {
 			p.Followers = pub.IRI(a.Metadata.FollowersIRI)
 		}
-		if len(a.Metadata.FollowingIRI) > 0 {
+		if p.Following == nil && len(a.Metadata.FollowingIRI) > 0 {
 			p.Following = pub.IRI(a.Metadata.FollowingIRI)
 		}
-		if len(a.Metadata.URL) > 0 {
+		if p.URL == nil && len(a.Metadata.URL) > 0 {
 			p.URL = pub.IRI(a.Metadata.URL)
 		}
-		if r.fedbox.Service().Endpoints != nil {
+		if p.Endpoints == nil && r.fedbox.Service().Endpoints != nil {
 			p.Endpoints = &pub.Endpoints{
 				SharedInbox:                r.fedbox.Service().Inbox,
 				OauthAuthorizationEndpoint: r.fedbox.Service().Endpoints.OauthAuthorizationEndpoint,
@@ -337,7 +351,7 @@ func (r *repository) loadAPPerson(a Account) *pub.Actor {
 		}
 	}
 
-	if a.IsValid() && a.HasMetadata() && a.Metadata.Key != nil && a.Metadata.Key.Public != nil {
+	if p.PublicKey.ID == "" && a.IsValid() && a.HasMetadata() && a.Metadata.Key != nil && a.Metadata.Key.Public != nil {
 		p.PublicKey = pub.PublicKey{
 			ID:           pub.ID(fmt.Sprintf("%s#main-key", p.ID)),
 			Owner:        p.ID,
@@ -2027,14 +2041,14 @@ func (r *repository) SaveAccount(ctx context.Context, a Account) (Account, error
 	}
 	p.Updated = now
 
-	fedbox := r.fedbox.Service()
+	fx := r.fedbox.Service()
 	act := &pub.Activity{
 		To:      pub.ItemCollection{pub.PublicNS},
-		BCC:     pub.ItemCollection{fedbox.ID},
+		BCC:     pub.ItemCollection{fx.ID},
 		Updated: now,
 	}
 
-	parent := fedbox
+	parent := fx
 	if a.CreatedBy != nil {
 		parent = r.loadAPPerson(*a.CreatedBy)
 	}
@@ -2056,7 +2070,7 @@ func (r *repository) SaveAccount(ctx context.Context, a Account) (Account, error
 	} else {
 		act.Object = p
 		p.To = pub.ItemCollection{pub.PublicNS}
-		p.BCC = pub.ItemCollection{fedbox.ID}
+		p.BCC = pub.ItemCollection{fx.ID}
 		if len(id) == 0 {
 			act.Type = pub.CreateType
 		} else {
