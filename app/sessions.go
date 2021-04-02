@@ -45,6 +45,7 @@ func initSession(c appConfig, infoFn, errFn CtxLogFn) (sess, error) {
 	gob.Register(activitypub.Actor{})
 	gob.Register(activitypub.ItemCollection{})
 	gob.Register(activitypub.Link{})
+	gob.Register(activitypub.Tombstone{})
 
 	if len(c.SessionKeys) == 0 {
 		return sess{}, errors.NotImplementedf("no session encryption keys, unable to use sessions")
