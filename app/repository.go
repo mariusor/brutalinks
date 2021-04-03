@@ -554,17 +554,13 @@ func (r *repository) loadAccountsOutbox(ctx context.Context, acc *Account) error
 			})
 		}
 		for _, it := range o.Collection() {
-			pub.OnObject(it, func(o *pub.Object) error {
-				if len(acc.Metadata.Outbox) < max || o.Updated.Sub(latest) > 0 {
-					acc.Metadata.Outbox = append(acc.Metadata.Outbox, it)
-				}
-				return nil
-			})
+			skipOutbox := false
 			typ := it.GetType()
 			if ValidAppreciationTypes.Contains(typ) {
 				v := new(Vote)
 				if err := v.FromActivityPub(it); err == nil && !acc.Votes.Contains(*v) {
 					acc.Votes = append(acc.Votes, *v)
+					skipOutbox = true
 				}
 			}
 			if ValidModerationActivityTypes.Contains(typ) {
@@ -572,13 +568,21 @@ func (r *repository) loadAccountsOutbox(ctx context.Context, acc *Account) error
 				if err := p.FromActivityPub(it); err != nil && !p.IsValid() {
 					continue
 				}
+				skipOutbox = true
 				if typ == pub.BlockType {
 					acc.Blocked = append(acc.Blocked, *p)
 				}
 				if typ == pub.IgnoreType {
 					acc.Ignored = append(acc.Ignored, *p)
 				}
+				skipOutbox = true
 			}
+			pub.OnObject(it, func(o *pub.Object) error {
+				if len(acc.Metadata.Outbox) < max || o.Updated.Sub(latest) > 0 && !skipOutbox {
+					acc.Metadata.Outbox = append(acc.Metadata.Outbox, it)
+				}
+				return nil
+			})
 		}
 		return true, nil
 	})
