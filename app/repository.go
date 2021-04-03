@@ -6,6 +6,13 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"fmt"
+	"net/http"
+	"net/url"
+	"path"
+	"strings"
+	"sync"
+	"time"
+
 	pub "github.com/go-ap/activitypub"
 	"github.com/go-ap/client"
 	"github.com/go-ap/errors"
@@ -15,12 +22,6 @@ import (
 	"github.com/mariusor/qstring"
 	"github.com/spacemonkeygo/httpsig"
 	"golang.org/x/sync/errgroup"
-	"net/http"
-	"net/url"
-	"path"
-	"strings"
-	"sync"
-	"time"
 )
 
 var nilIRI = EqualsString("-")
@@ -568,7 +569,6 @@ func (r *repository) loadAccountsOutbox(ctx context.Context, acc *Account) error
 				if err := p.FromActivityPub(it); err != nil && !p.IsValid() {
 					continue
 				}
-				skipOutbox = true
 				if typ == pub.BlockType {
 					acc.Blocked = append(acc.Blocked, *p)
 				}
@@ -577,12 +577,13 @@ func (r *repository) loadAccountsOutbox(ctx context.Context, acc *Account) error
 				}
 				skipOutbox = true
 			}
-			pub.OnObject(it, func(o *pub.Object) error {
-				if len(acc.Metadata.Outbox) < max || o.Updated.Sub(latest) > 0 && !skipOutbox {
-					acc.Metadata.Outbox = append(acc.Metadata.Outbox, it)
-				}
+			pub.OnActivity(it, func(a *pub.Activity) error {
+				skipOutbox = skipOutbox || a.Updated.Sub(latest) > 0
 				return nil
 			})
+			if len(acc.Metadata.Outbox) < max && !skipOutbox {
+				acc.Metadata.Outbox = append(acc.Metadata.Outbox, pub.FlattenProperties(it))
+			}
 		}
 		return true, nil
 	})

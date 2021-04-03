@@ -409,6 +409,20 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 			}
 
 			h.storage.WithAccount(&acc)
+			if time.Now().Sub(acc.Metadata.OutboxUpdated) > 5*time.Minute {
+				if err := h.storage.loadAccountsOutbox(ctx, &acc); err != nil {
+					h.errFn(ltx, log.Ctx{"err": err.Error()})("Unable to load account's Outbox")
+				}
+				h.infoFn(ltx, log.Ctx{"updated": acc.Metadata.OutboxUpdated.Format(time.StampMilli)})("Loaded account's outbox")
+				acc.Metadata.OutboxUpdated = time.Now()
+			}
+			if len(acc.Votes) == 0 {
+				var items ItemCollection
+				if cursor := ContextCursor(r.Context()); cursor != nil {
+					items = cursor.items.Items()
+				}
+				h.storage.loadAccountVotes(ctx, &acc, items)
+			}
 			if len(acc.Followers) == 0 {
 				// TODO(marius): this needs to be moved to where we're handling all Inbox activities, not on page load
 				if err := h.storage.loadAccountsFollowers(ctx, &acc); err != nil {
@@ -419,20 +433,6 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 				if err := h.storage.loadAccountsFollowing(ctx, &acc); err != nil {
 					h.infoFn(ltx, log.Ctx{"err": err.Error()})("Unable to load account's following")
 				}
-			}
-			if len(acc.Votes) == 0 {
-				var items ItemCollection
-				if cursor := ContextCursor(r.Context()); cursor != nil {
-					items = cursor.items.Items()
-				}
-				h.storage.loadAccountVotes(ctx, &acc, items)
-			}
-			if time.Now().Sub(acc.Metadata.OutboxUpdated) > 5*time.Minute {
-				if err := h.storage.loadAccountsOutbox(ctx, &acc); err != nil {
-					h.errFn(ltx, log.Ctx{"err": err.Error()})("Unable to load account's Outbox")
-				}
-				h.infoFn(ltx, log.Ctx{"updated": acc.Metadata.OutboxUpdated.Format(time.StampMilli)})("Loaded account's outbox")
-				acc.Metadata.OutboxUpdated = time.Now()
 			}
 		}
 		r = r.WithContext(context.WithValue(r.Context(), LoggedAccountCtxtKey, &acc))

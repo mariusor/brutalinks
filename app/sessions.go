@@ -41,6 +41,7 @@ func initSession(c appConfig, infoFn, errFn CtxLogFn) (sess, error) {
 	gob.Register(flash{})
 	gob.Register(activitypub.Activity{})
 	gob.Register(activitypub.IRI(""))
+	gob.Register(activitypub.NaturalLanguageValues{})
 	gob.Register(activitypub.Object{})
 	gob.Register(activitypub.Actor{})
 	gob.Register(activitypub.ItemCollection{})
