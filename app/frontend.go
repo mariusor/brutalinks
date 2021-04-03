@@ -287,6 +287,8 @@ func (v *view) loadCurrentAccountFromSession(w http.ResponseWriter, r *http.Requ
 	acc := defaultAccount
 	s, err := v.s.get(w, r)
 	if err != nil {
+		v.errFn(log.Ctx{"err": err})("session load error")
+		v.s.clear(w, r)
 		return defaultAccount
 	}
 	// load the current account from the session or setting it to anonymous
