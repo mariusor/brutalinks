@@ -32,7 +32,6 @@ var notNilIRIs = CompStrs{notNilIRI}
 
 type repository struct {
 	SelfURL string
-	cache   *cache
 	app     *Account
 	fedbox  *fedbox
 	infoFn  CtxLogFn
@@ -65,7 +64,6 @@ func ActivityPubService(c appConfig) (*repository, error) {
 
 	repo := &repository{
 		SelfURL: c.BaseURL,
-		cache:   caches(),
 		infoFn:  infoFn,
 		errFn:   errFn,
 	}
@@ -541,7 +539,7 @@ func (r *repository) loadAccountsOutbox(ctx context.Context, acc *Account) error
 	collFn := func(ctx context.Context, f *Filters) (pub.CollectionInterface, error) {
 		return r.fedbox.Collection(ctx, pub.IRI(acc.Metadata.OutboxIRI), Values(f))
 	}
-	latest := time.Now().Add(-2 * 30 * 24 * time.Hour).UTC()
+	latest := time.Now().Add(-6 * 30 * 24 * time.Hour).UTC()
 	max := MaxContentItems * 25 // NOTE(marius): this affects how big the session stored value for an account can get
 	return LoadFromCollection(ctx, collFn, &colCursor{filters: &Filters{MaxItems: max}}, func(o pub.CollectionInterface) (bool, error) {
 		if ocTypes.Contains(o.GetType()) {
