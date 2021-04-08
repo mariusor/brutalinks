@@ -218,12 +218,10 @@ dialog button.close {
     margin-right: -1em;
     float: right;
 }
+article section footer,
 li section footer {
     opacity: .6;
     display: block;
-}
-li section footer * {
-    display: inline-block;
 }
 li footer nav ul li::before, nav ul li:first-child::before, nav dl dt:first-child::before {
     content: unset;
