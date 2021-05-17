@@ -172,7 +172,7 @@ func DomainFiltersMw(next http.Handler) http.Handler {
 
 func tagsFilter(tag string) *Filters {
 	f := new(Filters)
-	f.Name = CompStrs{EqualsString(tag), EqualsString("#"+tag)}
+	f.Name = CompStrs{EqualsString("#"+tag)}
 	return f
 }
 
