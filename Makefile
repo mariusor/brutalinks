@@ -19,7 +19,10 @@ export VERSION=(unknown)
 ifneq ($(ENV), dev)
 	LDFLAGS += -s -w -extldflags "-static"
 	APPSOURCES += internal/assets/assets.gen.go
+
 assets: internal/assets/assets.gen.go
+else:
+assets:
 endif
 
 ifeq ($(shell git describe --always > /dev/null 2>&1 ; echo $$?), 0)
@@ -39,14 +42,12 @@ all: app
 download:
 	$(GO) mod download
 
-assets: internal/assets/assets.gen.go
-
 internal/assets/assets.gen.go: download $(ASSETFILES)
 	go generate -tags $(ENV) ./assets.go
 
 app: bin/app
-bin/app: go.mod download ./cli/app/main.go $(APPSOURCES)
-	$(BUILD) -tags $(ENV) -o $@ ./cli/app/main.go
+bin/app: go.mod download cmd/app/main.go $(APPSOURCES)
+	$(BUILD) -tags $(ENV) -o $@ ./cmd/app/main.go
 
 run: app
 	@./bin/app
@@ -65,4 +66,3 @@ test: app
 coverage: TEST_TARGET := .
 coverage: TEST_FLAGS += -covermode=count -coverprofile $(PROJECT_NAME).coverprofile
 coverage: test
-
