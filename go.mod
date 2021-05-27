@@ -13,7 +13,7 @@ require (
 	github.com/go-ap/errors v0.0.0-20210527074045-78cc5b9dcc94
 	github.com/go-ap/handlers v0.0.0-20210527074728-1c14ce8a3768
 	github.com/go-ap/jsonld v0.0.0-20200327122108-fafac2de2660
-	github.com/go-chi/chi v4.0.4+incompatible
+	github.com/go-chi/chi v4.1.2+incompatible
 	github.com/google/uuid v1.0.0
 	github.com/gorilla/csrf v1.6.2
 	github.com/gorilla/sessions v1.2.1

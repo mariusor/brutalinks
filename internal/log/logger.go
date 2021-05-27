@@ -187,7 +187,7 @@ type log struct {
 	l *logger
 }
 
-func (l *log) Write(status, bytes int, elapsed time.Duration) {
+func (l *log) Write(status, bytes int, h http.Header, elapsed time.Duration, _ interface{}) {
 	l.m.Lock()
 	defer l.m.Unlock()
 
