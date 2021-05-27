@@ -110,7 +110,7 @@ func Init(c appConfig) (*handler, error) {
 				h.storage.app = new(Account)
 				h.storage.app.FromActivityPub(oauth)
 
-				handle := h.storage.app.Handle
+				handle := oauth.ID.String()
 				ctx["handle"] = handle
 				tok, err := config.PasswordCredentialsToken(context.TODO(), handle, config.ClientSecret)
 				if err != nil {
