@@ -9,9 +9,9 @@ require (
 	github.com/captncraig/cors v0.0.0-20190703115713-e80254a89df1 // indirect
 	github.com/cucumber/godog v0.11.0
 	github.com/go-ap/activitypub v0.0.0-20210403114333-558da3636016
-	github.com/go-ap/client v0.0.0-20210403114520-1b89283e01f0
-	github.com/go-ap/errors v0.0.0-20210218123445-4466eca2f4ec
-	github.com/go-ap/handlers v0.0.0-20210403114447-058e93c4936c
+	github.com/go-ap/client v0.0.0-20210527075003-0c5e4963d914
+	github.com/go-ap/errors v0.0.0-20210527074045-78cc5b9dcc94
+	github.com/go-ap/handlers v0.0.0-20210527074728-1c14ce8a3768
 	github.com/go-ap/jsonld v0.0.0-20200327122108-fafac2de2660
 	github.com/go-chi/chi v4.0.4+incompatible
 	github.com/google/uuid v1.0.0

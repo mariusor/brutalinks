@@ -3,12 +3,13 @@ package app
 import (
 	"context"
 	"fmt"
+	"html/template"
+	"net/http"
+
 	pub "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
 	"github.com/go-chi/chi"
 	"github.com/mariusor/go-littr/internal/log"
-	"html/template"
-	"net/http"
 )
 
 func (h handler) LoadAuthorMw(next http.Handler) http.Handler {
@@ -102,7 +103,7 @@ func LoadServiceInboxMw(next http.Handler) http.Handler {
 }
 
 func ctxtErr(next http.Handler, w http.ResponseWriter, r *http.Request, err error) {
-	status, _ := errors.HttpErrors(err)
+	status := errors.HttpStatus(err)
 	ctx := context.WithValue(r.Context(), ModelCtxtKey, &errorModel{
 		Status:     status,
 		Title:      fmt.Sprintf("Error %d", status),
