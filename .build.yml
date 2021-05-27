@@ -8,7 +8,7 @@ environment:
   GO111MODULE: 'on'
 secrets:
   - 32610757-76e9-4671-adf1-98163ca8b594
-  - 0e431348-6a5c-4404-bd3e-5cdd5ea9e7d6
+  - 3f30fd61-e33d-4198-aafb-0ff341e9db1c
   - 90ecf226-098f-4d66-befe-1fe462027432
 tasks:
   - build: |

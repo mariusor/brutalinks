@@ -66,17 +66,17 @@ Caddyfile: Caddyfile.in
 		-DFEDBOX_HOSTNAME=$(FEDBOX_HOSTNAME) -DFEDBOX_PORT=$(FEDBOX_PORT) $< >$@
 
 push: build
-	$(ENV_CMD) fedbox/littr:$(ENV) quay.io/fedbox/littr:latest
-	$(ENV_CMD) fedbox/littr:$(ENV) quay.io/fedbox/littr:$(ENV)
-	$(PUSH_CMD) quay.io/fedbox/littr:latest
-	$(PUSH_CMD) quay.io/fedbox/littr:$(ENV)
+	$(ENV_CMD) fedbox/littr:$(ENV) quay.io/go-ap/go-littr:latest
+	$(ENV_CMD) fedbox/littr:$(ENV) quay.io/go-ap/go-littr:$(ENV)
+	$(PUSH_CMD) quay.io/go-ap/go-littr:latest
+	$(PUSH_CMD) quay.io/go-ap/go-littr:$(ENV)
 ifeq ($(ENV), dev)
-	$(ENV_CMD) fedbox/littr:$(ENV) quay.io/fedbox/littr:latest || true
-	$(PUSH_CMD) quay.io/fedbox/littr:latest || true
+	$(ENV_CMD) fedbox/littr:$(ENV) quay.io/go-ap/go-littr:latest || true
+	$(PUSH_CMD) quay.io/go-ap/go-littr:latest || true
 endif
 ifneq ($(VERSION), )
-	$(ENV_CMD) fedbox/littr:$(ENV) quay.io/fedbox/littr:$(VERSION)-$(ENV) || true
-	$(PUSH_CMD) quay.io/fedbox/littr:$(VERSION)-$(ENV) || true
+	$(ENV_CMD) fedbox/littr:$(ENV) quay.io/go-ap/go-littr:$(VERSION)-$(ENV) || true
+	$(PUSH_CMD) quay.io/go-ap/go-littr:$(VERSION)-$(ENV) || true
 endif
 
 start: Caddyfile
