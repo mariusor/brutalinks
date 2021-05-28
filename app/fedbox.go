@@ -2,7 +2,10 @@ package app
 
 import (
 	"context"
+	"crypto"
+	"crypto/x509"
 	"fmt"
+	"net/http"
 	"net/url"
 	"path"
 
@@ -57,18 +60,62 @@ func SetURL(s string) OptionFn {
 	}
 }
 
-func SetSignFn(signer client.RequestSignFn) OptionFn {
+func withAccountC2S(a *Account) (client.RequestSignFn, error) {
+	if !a.IsValid() || !a.IsLogged() {
+		return nil, errors.Newf("invalid local account")
+	}
+	if a.Metadata.OAuth.Token == nil {
+		return nil, errors.Newf("invalid local account")
+	}
+	return func(req *http.Request) error {
+		// TODO(marius): this needs to be added to the federated requests, which we currently don't support
+		a.Metadata.OAuth.Token.SetAuthHeader(req)
+		return nil
+	}, nil
+}
+
+func withAccountS2S(a *Account) (client.RequestSignFn, error) {
+	// TODO(marius): this needs to be added to the federated requests, which we currently don't support
+	if !a.IsValid() || !a.IsLogged() {
+		return nil, nil
+	}
+	k := a.Metadata.Key
+	if k == nil {
+		return nil, nil
+	}
+	var prv crypto.PrivateKey
+	var err error
+	if k.ID == "id-rsa" {
+		prv, err = x509.ParsePKCS8PrivateKey(k.Private)
+	}
+	if err != nil {
+		return nil, err
+	}
+	if k.ID == "id-ecdsa" {
+		prv, err = x509.ParseECPrivateKey(k.Private)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return getSigner(k.ID, prv).Sign, nil
+}
+
+func SetSignFn(signer *Account) OptionFn {
 	return func(f *fedbox) error {
-		f.client.SignFn(signer)
+		f.SignBy(signer)
 		return nil
 	}
 }
 
-func (f *fedbox) SignFn(signer client.RequestSignFn) {
+func (f *fedbox) SignBy(signer *Account) {
 	if signer == nil {
 		return
 	}
-	f.client.SignFn(signer)
+	signFn, err := withAccountC2S(signer)
+	if err != nil {
+		f.errFn()(err.Error())
+	}
+	f.client.SignFn(signFn)
 }
 
 func SetUA(s string) OptionFn {

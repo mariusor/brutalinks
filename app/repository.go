@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"crypto"
-	"crypto/x509"
 	"encoding/base64"
 	"fmt"
 	"net/http"
@@ -14,7 +13,6 @@ import (
 	"time"
 
 	pub "github.com/go-ap/activitypub"
-	"github.com/go-ap/client"
 	"github.com/go-ap/errors"
 	"github.com/go-ap/handlers"
 	j "github.com/go-ap/jsonld"
@@ -362,73 +360,17 @@ func (r *repository) loadAPPerson(a Account) *pub.Actor {
 	return p
 }
 
-func getSigner(pubKeyID pub.ID, key crypto.PrivateKey) *httpsig.Signer {
+func getSigner(pubKeyID string, key crypto.PrivateKey) *httpsig.Signer {
 	hdrs := []string{"(request-target)", "host", "date"}
-	return httpsig.NewSigner(string(pubKeyID), key, httpsig.RSASHA256, hdrs)
+	return httpsig.NewSigner(pubKeyID, key, httpsig.RSASHA256, hdrs)
 }
 
 // @todo(marius): the decision which sign function to use (the one for S2S or the one for C2S)
 //   should be made in fedbox, because that's the place where we know if the request we're signing
 //   is addressed to an IRI belonging to that specific fedbox instance or to another ActivityPub server
 func (r *repository) WithAccount(a *Account) *repository {
-	r.fedbox.SignFn(r.withAccountC2S(a))
+	r.fedbox.SignBy(a)
 	return r
-}
-
-func (r *repository) withAccountC2S(a *Account) client.RequestSignFn {
-	return func(req *http.Request) error {
-		// TODO(marius): this needs to be added to the federated requests, which we currently don't support
-		if !a.IsValid() || !a.IsLogged() {
-			return nil
-		}
-		if a.Metadata.OAuth.Token == nil {
-			r.errFn(log.Ctx{
-				"handle":   a.Handle,
-				"logged":   a.IsLogged(),
-				"metadata": a.Metadata,
-			})("account has no OAuth2 token")
-			return nil
-		}
-		a.Metadata.OAuth.Token.SetAuthHeader(req)
-		return nil
-	}
-}
-
-func (r *repository) withAccountS2S(a *Account) client.RequestSignFn {
-	// TODO(marius): this needs to be added to the federated requests, which we currently don't support
-	if !a.IsValid() || !a.IsLogged() {
-		return nil
-	}
-
-	k := a.Metadata.Key
-	if k == nil {
-		return nil
-	}
-	var prv crypto.PrivateKey
-	var err error
-	if k.ID == "id-rsa" {
-		prv, err = x509.ParsePKCS8PrivateKey(k.Private)
-	}
-	if err != nil {
-		r.errFn(log.Ctx{
-			"handle":   a.Handle,
-			"logged":   a.IsLogged(),
-			"metadata": a.Metadata,
-		})(err.Error())
-		return nil
-	}
-	if k.ID == "id-ecdsa" {
-		//prv, err = x509.ParseECPrivateKey(k.Private)
-		err := errors.Errorf("unsupported private key type %s", k.ID)
-		r.errFn(log.Ctx{
-			"handle":   a.Handle,
-			"logged":   a.IsLogged(),
-			"metadata": a.Metadata,
-		})(err.Error())
-		return nil
-	}
-	p := *r.loadAPPerson(*a)
-	return getSigner(p.PublicKey.ID, prv).Sign
 }
 
 func (r *repository) LoadItem(ctx context.Context, iri pub.IRI) (Item, error) {
