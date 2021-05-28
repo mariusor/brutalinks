@@ -2134,6 +2134,7 @@ func (r repository) moderationActivity(ctx context.Context, er *pub.Actor, ed pu
 
 	act := new(pub.Activity)
 	if reason != nil {
+		reason.MakePrivate()
 		loadAPItem(act, *reason)
 	}
 	act.BCC = bcc
