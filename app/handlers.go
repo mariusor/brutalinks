@@ -388,19 +388,27 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		handleErr("Login failed: invalid username or password", lCtx)
 		return
 	}
-	acct := accts[0]
 
-	tok, err := config.PasswordCredentialsToken(context.TODO(), handle, pw)
-	if err != nil || tok == nil {
+	var (
+		tok *oauth2.Token
+		acct = AnonymousAccount
+	)
+	for _, cur := range accts {
+		if tok, err = config.PasswordCredentialsToken(context.TODO(), cur.Metadata.ID, pw); tok != nil {
+			acct = cur
+			acct.Metadata.OAuth.Provider = "fedbox"
+			acct.Metadata.OAuth.Token = tok
+			break
+		}
+	}
+	if !acct.IsLogged() {
 		if err == nil {
-			err = errors.Errorf("nil token received")
+			err = errors.Errorf("unable to authenticate account")
 		}
 		lCtx["err"] = err.Error()
 		handleErr("Login failed: invalid username or password", lCtx)
 		return
 	}
-	acct.Metadata.OAuth.Provider = "fedbox"
-	acct.Metadata.OAuth.Token = tok
 	s, err := h.v.s.get(w, r)
 	if err != nil {
 		lCtx["err"] = err.Error()
