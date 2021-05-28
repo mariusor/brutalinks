@@ -102,6 +102,21 @@ func LoadServiceInboxMw(next http.Handler) http.Handler {
 	})
 }
 
+func LoadServiceWithSelfAuthInboxMw(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		f := ContextActivityFilters(r.Context())
+		repo := ContextRepository(r.Context())
+		repo.fedbox.SignFn(repo.withAccountC2S(repo.app))
+		cursor, err := repo.LoadActorInbox(context.TODO(), repo.fedbox.Service(), f...)
+		if err != nil {
+			ctxtErr(next, w, r, errors.Annotatef(err, "unable to load the %s's inbox", repo.fedbox.Service().Type))
+			return
+		}
+		ctx := context.WithValue(r.Context(), CursorCtxtKey, cursor)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
 func ctxtErr(next http.Handler, w http.ResponseWriter, r *http.Request, err error) {
 	status := errors.HttpStatus(err)
 	ctx := context.WithValue(r.Context(), ModelCtxtKey, &errorModel{
