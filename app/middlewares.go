@@ -163,7 +163,7 @@ func LoadObjectFromInboxMw(next http.Handler) http.Handler {
 					logCtx["from"] = "actor inbox"
 					repo.errFn(logCtx)("unable to load item")
 				}
-				if col == nil || col.Count() == 0 {
+				if col.Count() == 0 {
 					// if the current user is logged, try to load from their outbox
 					if col, err = repo.fedbox.Outbox(ctx, current.pub, Values(f)); err != nil {
 						logCtx["from"] = "actor outbox"
