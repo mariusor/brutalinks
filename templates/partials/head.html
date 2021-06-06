@@ -7,11 +7,11 @@
 {{- if .NextPage.IsValid }}
 <link href="{{ .NextPage | NextPageLink }}" rel="next prefetch" />
 {{end -}}
-{{end }}
+{{end -}}
 {{- if eq current "user" -}}
 {{- $user := .User -}}
 {{- if $user.HasMetadata -}}
-{{- if gt (len $user.Metadata.AuthorizationEndPoint) 0 -}}
+{{- if gt (len $user.Metadata.AuthorizationEndPoint) 0 }}
 <link href="{{ $user.Metadata.AuthorizationEndPoint }}" rel="authorization_endpoint" />
 {{ end -}}
 {{- if gt (len $user.Metadata.TokenEndPoint) 0 -}}
