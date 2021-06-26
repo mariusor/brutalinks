@@ -650,21 +650,16 @@ func avatar(typ, data string) template.HTML {
 		typ = m
 	}
 	if typ == MimeTypeSVG {
-		if dec, err := base64.StdEncoding.DecodeString(data); err == nil {
-			data = string(dec)
-		}
-		return template.HTML(data)
+		dec, _ := base64.RawStdEncoding.DecodeString(data)
+		return template.HTML(dec)
 	}
 	return template.HTML(fmt.Sprintf("<image src='data:%s;base64,%s' width='48' height='48' class='icon avatar' />", typ, data))
 }
 
 func image(mime, data string) template.HTML {
 	if mime == "image/svg+xml" {
-		dec, err := base64.StdEncoding.DecodeString(data)
-		if err == nil {
-			data = string(dec)
-		}
-		return template.HTML(data)
+		dec, _ := base64.RawStdEncoding.DecodeString(data)
+		return template.HTML(dec)
 	}
 	return template.HTML(fmt.Sprintf("<image src='data:%s;base64,%s' />", mime, data))
 }
