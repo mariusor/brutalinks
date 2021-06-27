@@ -642,7 +642,7 @@ func itemType(mime string) template.HTML {
 }
 
 func video(mime, data string) template.HTML {
-	return template.HTML(fmt.Sprintf("<video controls><source src='data:%s;base64,%s' type='%s'/></video>", mime, data, mime))
+	return template.HTML(fmt.Sprintf("<video controls width='90%%'><source src='data:%s;base64,%s' type='%s'/></video>", mime, data, mime))
 }
 
 func avatar(typ, data string) template.HTML {
