@@ -3,8 +3,8 @@
         <legend>Local authentication</legend>
         {{ csrfField }}
         <label for="auth-handle">Handle:</label><br/>
-        <input name="handle" id="auth-handle" type="text" autocomplete="username" size="40" required/><br/>
-        <label for="auth-pw">Password: </label><br/>
+        <input name="handle" id="auth-handle" type="text" autocomplete="username" size="40" required autofocus /><br/>
+        <label for="auth-pw">Password:</label><br/>
         <input name="pw" id="auth-pw" type="password" autocomplete="current-password" size="40" required/><br/>
         <button type="submit">{{ icon "sign-in" }} Log in</button>
     </fieldset>
