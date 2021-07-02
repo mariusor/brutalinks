@@ -3,6 +3,16 @@ package app
 import (
 	"encoding/base64"
 	"fmt"
+	"html/template"
+	"math"
+	"mime"
+	"net/http"
+	"net/url"
+	"os"
+	"path"
+	"strings"
+	"time"
+
 	pub "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
 	"github.com/gorilla/csrf"
@@ -13,14 +23,6 @@ import (
 	"github.com/unrolled/render"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
-	"html/template"
-	"math"
-	"net/http"
-	"net/url"
-	"os"
-	"path"
-	"strings"
-	"time"
 )
 
 type CtxLogFn func(...log.Ctx) LogFn
@@ -643,15 +645,17 @@ func video(mime, data string) template.HTML {
 	return template.HTML(fmt.Sprintf("<video controls><source src='data:%s;base64,%s' type='%s'/></video>", mime, data, mime))
 }
 
-func avatar(mime, data string) template.HTML {
-	if mime == "image/svg+xml" {
-		dec, err := base64.StdEncoding.DecodeString(data)
-		if err == nil {
+func avatar(typ, data string) template.HTML {
+	if m, _, err := mime.ParseMediaType(typ); err == nil {
+		typ = m
+	}
+	if typ == MimeTypeSVG {
+		if dec, err := base64.StdEncoding.DecodeString(data); err == nil {
 			data = string(dec)
 		}
 		return template.HTML(data)
 	}
-	return template.HTML(fmt.Sprintf("<image src='data:%s;base64,%s' width='48' height='48' class='icon avatar' />", mime, data))
+	return template.HTML(fmt.Sprintf("<image src='data:%s;base64,%s' width='48' height='48' class='icon avatar' />", typ, data))
 }
 
 func image(mime, data string) template.HTML {
@@ -669,12 +673,27 @@ func icons(c []string) template.HTML {
 	return icon(c...)
 }
 
+func accountDefaultAvatar (act *Account) ImageMetadata {
+	initial := act.Handle[0:1]
+	img := fmt.Sprintf(avatarFmt, "#000", "#fff", 28, initial)
+	return ImageMetadata{
+		URI:      img,
+		MimeType: MimeTypeSVG,
+	}
+}
+
+const (
+	iconFmt = `<svg aria-hidden="true" class="icon icon-%s"><use xlink:href="#icon-%s"><title>%s</title></use></svg>`
+	avatarFmt = `<svg aria-hidden="true" class="icon avatar" width="48" height="48" viewBox="0 0 50 50">
+  <rect width="100%%" height="100%%" fill="%s"/> <text fill="%s" font-size="%d" font-weight="800" x="50%%" y="55%%" dominant-baseline="middle" text-anchor="middle">%s</text>
+</svg> `
+)
+
 func icon(c ...string) template.HTML {
 	if len(c) == 0 {
 		return ""
 	}
-	buf := fmt.Sprintf(`<svg aria-hidden="true" class="icon icon-%s"><use xlink:href="#icon-%s"><title>%s</title></use></svg>`,
-		strings.Join(c, " "), c[0], c[0])
+	buf := fmt.Sprintf(iconFmt, strings.Join(c, " "), c[0], c[0])
 
 	return template.HTML(buf)
 }

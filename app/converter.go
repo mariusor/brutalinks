@@ -129,6 +129,23 @@ func FromActor(a *Account, p *pub.Actor) error {
 	if p.Liked != nil {
 		a.Metadata.LikedIRI = p.Liked.GetLink().String()
 	}
+	if p.Icon != nil {
+		pub.OnObject(p.Icon, func(ic *pub.Object) error {
+			a.Metadata.Icon = ImageMetadata{
+				MimeType: string(ic.MediaType),
+			}
+			if ic.Content != nil {
+				a.Metadata.Icon.URI = ic.Content.First().String()
+			} else if ic.URL != nil {
+				a.Metadata.Icon.URI = ic.URL.GetLink().String()
+			} else {
+				a.Metadata.Icon.URI = ic.GetLink().String()
+			}
+			return nil
+		})
+	} else {
+		a.Metadata.Icon = accountDefaultAvatar(a)
+	}
 	if block, _ := pem.Decode([]byte(p.PublicKey.PublicKeyPem)); block != nil {
 		pub := make([]byte, base64.StdEncoding.EncodedLen(len(block.Bytes)))
 		base64.StdEncoding.Encode(pub, block.Bytes)
