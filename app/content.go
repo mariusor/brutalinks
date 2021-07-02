@@ -19,10 +19,13 @@ const (
 	FlagsNone = FlagBits(0)
 )
 
-const MimeTypeURL = "application/url"
-const MimeTypeHTML = "text/html"
-const MimeTypeMarkdown = "text/markdown"
-const MimeTypeText = "text/plain"
+const (
+	MimeTypeURL      = "application/url"
+	MimeTypeHTML     = "text/html"
+	MimeTypeMarkdown = "text/markdown"
+	MimeTypeText     = "text/plain"
+	MimeTypeSVG      = "image/svg+xml"
+)
 
 func (f *FlagBits) FromInt64() error {
 	return nil
