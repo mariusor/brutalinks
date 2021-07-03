@@ -4,13 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	pub "github.com/go-ap/activitypub"
-	"github.com/writeas/go-nodeinfo"
 	"net/http"
 	"regexp"
 	"strings"
 
+	pub "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
+	"github.com/writeas/go-nodeinfo"
 )
 
 type link struct {

@@ -1,9 +1,10 @@
 package app
 
 import (
-	pub "github.com/go-ap/activitypub"
 	"sort"
 	"time"
+
+	pub "github.com/go-ap/activitypub"
 )
 
 type Cursor struct {

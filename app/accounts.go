@@ -3,14 +3,14 @@ package app
 import (
 	"context"
 	"fmt"
-	pub "github.com/go-ap/activitypub"
-	"github.com/go-chi/chi"
-	"golang.org/x/oauth2"
 	"net/http"
 	"strings"
 	"time"
 
+	pub "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
+	"github.com/go-chi/chi"
+	"golang.org/x/oauth2"
 )
 
 type SSHKey struct {

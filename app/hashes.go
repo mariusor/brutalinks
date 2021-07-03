@@ -1,11 +1,12 @@
 package app
 
 import (
+	"path"
+	"strings"
+
 	pub "github.com/go-ap/activitypub"
 	"github.com/go-ap/handlers"
 	"github.com/google/uuid"
-	"path"
-	"strings"
 )
 
 // Hash is a local type for string, it should hold a [32]byte array actually
@@ -77,4 +78,3 @@ func (h Hashes) String() string {
 	}
 	return strings.Join(str, ", ")
 }
-

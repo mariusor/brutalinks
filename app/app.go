@@ -3,6 +3,8 @@ package app
 import (
 	"bytes"
 	"fmt"
+	"net/http"
+
 	pub "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
 	"github.com/go-chi/chi"
@@ -11,7 +13,6 @@ import (
 	"github.com/mariusor/go-littr/internal/config"
 	"github.com/mariusor/go-littr/internal/log"
 	"github.com/writeas/go-nodeinfo"
-	"net/http"
 )
 
 const (

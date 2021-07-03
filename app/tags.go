@@ -3,11 +3,12 @@ package app
 import (
 	"bytes"
 	"fmt"
-	pub "github.com/go-ap/activitypub"
 	"net/url"
 	"regexp"
 	"strings"
 	"time"
+
+	pub "github.com/go-ap/activitypub"
 )
 
 const TagMention = "mention"

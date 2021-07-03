@@ -1,9 +1,9 @@
 package app
 
 import (
-	pub "github.com/go-ap/activitypub"
 	"time"
 
+	pub "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
 )
 

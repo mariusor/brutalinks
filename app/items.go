@@ -2,14 +2,14 @@ package app
 
 import (
 	"bytes"
-	pub "github.com/go-ap/activitypub"
-	"github.com/go-chi/chi"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
 
+	pub "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
+	"github.com/go-chi/chi"
 )
 
 type ItemMetadata struct {

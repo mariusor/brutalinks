@@ -1,11 +1,12 @@
 package app
 
 import (
-	pub "github.com/go-ap/activitypub"
-	"github.com/go-ap/errors"
 	"html/template"
 	"strings"
 	"time"
+
+	pub "github.com/go-ap/activitypub"
+	"github.com/go-ap/errors"
 )
 
 var ValidModerationActivityTypes = pub.ActivityVocabularyTypes{pub.BlockType, pub.IgnoreType, pub.FlagType}

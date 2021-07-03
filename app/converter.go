@@ -3,13 +3,13 @@ package app
 import (
 	"encoding/base64"
 	"encoding/pem"
-	"github.com/go-ap/handlers"
-	"github.com/microcosm-cc/bluemonday"
 	"net/url"
 	"strings"
 
 	pub "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
+	"github.com/go-ap/handlers"
+	"github.com/microcosm-cc/bluemonday"
 )
 
 type Converter interface {

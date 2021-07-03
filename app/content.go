@@ -1,12 +1,12 @@
 package app
 
 import (
-	pub "github.com/go-ap/activitypub"
 	"html/template"
 	"sort"
 	"time"
 	"unicode"
 
+	pub "github.com/go-ap/activitypub"
 	mark "gitlab.com/golang-commonmark/markdown"
 )
 

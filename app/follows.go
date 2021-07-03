@@ -1,9 +1,10 @@
 package app
 
 import (
+	"time"
+
 	pub "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
-	"time"
 )
 
 // FollowRequests
