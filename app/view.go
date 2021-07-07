@@ -673,6 +673,9 @@ func icons(c []string) template.HTML {
 }
 
 func accountDefaultAvatar (act *Account) ImageMetadata {
+	if len(act.Handle) == 0 {
+		return ImageMetadata{}
+	}
 	initial := act.Handle[0:1]
 	img := fmt.Sprintf(avatarSvgFmt, "#000", "#fff", 28, initial)
 	return ImageMetadata{
