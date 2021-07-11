@@ -1632,26 +1632,90 @@ func (r *repository) getAuthorRequestURL(a *Account) string {
 	return reqURL
 }
 
-func loadMentionsIfExisting(r *repository, ctx context.Context, incoming []Tag) pub.ItemCollection {
+func loadCCsFromMentions(incoming []Tag) pub.ItemCollection {
 	if len(incoming) == 0 {
 		return nil
 	}
-	names := make(CompStrs, 0)
-	for _, m := range incoming {
-		names = append(names, EqualsString(m.Name))
-	}
-	ff := &Filters{Name: names, Type: ActivityTypesFilter(pub.PersonType)}
-	actors, _, err := r.LoadAccounts(ctx, ff)
-	if err != nil {
-		r.errFn(log.Ctx{"err": err})("unable to load accounts from mentions")
-	}
+
 	iris := make(pub.ItemCollection, 0)
-	for _, actor := range actors {
-		if actor.HasMetadata() && len(actor.Metadata.ID) > 0 {
-			iris = append(iris, pub.IRI(actor.Metadata.ID))
+	for _, inc := range incoming {
+		if inc.Metadata != nil {
+			iris = append(iris, pub.IRI(inc.Metadata.ID))
 		}
 	}
+
 	return iris
+}
+
+func loadMentionsIfExisting (r *repository, ctx context.Context, incoming TagCollection) TagCollection {
+	if len(incoming) == 0 {
+		return incoming
+	}
+
+	remoteFilters := make([]*Filters, 0)
+	for _, m := range incoming {
+		// TODO(marius): we need to make a distinction between FedBOX remote servers and Webfinger remote servers
+		u, err := url.ParseRequestURI(m.URL)
+		if err != nil {
+			continue
+		}
+		host := fmt.Sprintf("%s://%s", u.Scheme, u.Hostname())
+		if strings.Contains(r.SelfURL, host) {
+			host = r.fedbox.baseURL.String()
+		}
+		urlFilter := EqualsString(host)
+		var (
+			filter *Filters
+			add bool
+		)
+		for i, fil := range remoteFilters {
+			if fil.URL.Contains(urlFilter) {
+				filter = remoteFilters[i]
+			}
+		}
+		if filter == nil {
+			filter = &Filters{Type: ActivityTypesFilter(pub.PersonType)}
+			filter.IRI = append(filter.IRI, urlFilter)
+			add = true
+		}
+		nameFilter := EqualsString(m.Name)
+		if !filter.Name.Contains(nameFilter) {
+			filter.Name = append(filter.Name, nameFilter)
+		}
+		if add {
+			remoteFilters = append(remoteFilters, filter)
+		}
+	}
+
+	for _, filter := range remoteFilters {
+		actorsIRI := actors.IRI(pub.IRI(filter.IRI[0].Str))
+		filter.IRI = nil
+		col, err := r.fedbox.client.Collection(ctx, actorsIRI, Values(filter))
+		if err != nil {
+			r.errFn(log.Ctx{"err": err})("unable to load accounts from mentions")
+			continue
+		}
+		pub.OnCollectionIntf(col, func(col pub.CollectionInterface) error {
+			for _, it := range col.Collection() {
+				for i, t := range incoming {
+					pub.OnActor(it, func(act *pub.Actor) error {
+						if strings.ToLower(t.Name) == strings.ToLower(string(act.Name.Get("-"))) ||
+							strings.ToLower(t.Name) == strings.ToLower(string(act.PreferredUsername.Get("-"))) {
+							incoming[i].Metadata = &ItemMetadata{
+								ID: act.ID.String(),
+								URL: act.URL.GetLink().String(),
+							}
+							incoming[i].URL = act.URL.GetLink().String()
+						}
+						return nil
+					})
+				}
+			}
+			return nil
+		})
+	}
+
+	return incoming
 }
 
 func loadTagsIfExisting (r *repository, ctx context.Context, incoming TagCollection) TagCollection {
@@ -1715,8 +1779,9 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 				cc = append(cc, pub.IRI(rec.Metadata.ID))
 			}
 		}
-		cc = append(cc, loadMentionsIfExisting(r, ctx, m.Mentions)...)
 		m.Tags = loadTagsIfExisting(r, ctx, m.Tags)
+		m.Mentions = loadMentionsIfExisting(r, ctx, m.Mentions)
+		cc = append(cc, loadCCsFromMentions(m.Mentions)...)
 		it.Metadata = m
 	}
 
