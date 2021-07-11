@@ -1632,6 +1632,57 @@ func (r *repository) getAuthorRequestURL(a *Account) string {
 	return reqURL
 }
 
+func loadMentionsIfExisting(r *repository, ctx context.Context, incoming []Tag) pub.ItemCollection {
+	if len(incoming) == 0 {
+		return nil
+	}
+	names := make(CompStrs, 0)
+	for _, m := range incoming {
+		names = append(names, EqualsString(m.Name))
+	}
+	ff := &Filters{Name: names, Type: ActivityTypesFilter(pub.PersonType)}
+	actors, _, err := r.LoadAccounts(ctx, ff)
+	if err != nil {
+		r.errFn(log.Ctx{"err": err})("unable to load accounts from mentions")
+	}
+	iris := make(pub.ItemCollection, 0)
+	for _, actor := range actors {
+		if actor.HasMetadata() && len(actor.Metadata.ID) > 0 {
+			iris = append(iris, pub.IRI(actor.Metadata.ID))
+		}
+	}
+	return iris
+}
+
+func loadTagsIfExisting (r *repository, ctx context.Context, incoming TagCollection) TagCollection {
+	if len(incoming) == 0 {
+		return incoming
+	}
+
+	tagNames := make(CompStrs, 0)
+	for _, t := range incoming {
+		tagNames = append(tagNames, EqualsString(t.Name), EqualsString("#"+t.Name))
+	}
+	ff := &Filters{Name: tagNames}
+	tags, _, err := r.LoadTags(ctx, ff)
+	if err != nil {
+		r.errFn(log.Ctx{"err": err})("unable to load accounts from mentions")
+	}
+
+	for i, t := range incoming {
+		for _, tag := range tags {
+			if tag.Metadata == nil || len(tag.Metadata.ID) == 0 {
+				continue
+			}
+			if strings.ToLower(t.Name) == strings.ToLower(tag.Name) ||
+				strings.ToLower("#" + t.Name) == strings.ToLower(tag.Name) {
+				incoming[i] = tag
+			}
+		}
+	}
+	return incoming
+}
+
 func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 	if it.SubmittedBy == nil || !it.SubmittedBy.HasMetadata() {
 		return Item{}, errors.Newf("invalid account")
@@ -1664,41 +1715,9 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 				cc = append(cc, pub.IRI(rec.Metadata.ID))
 			}
 		}
-		if len(m.Mentions) > 0 {
-			names := make(CompStrs, 0)
-			for _, m := range m.Mentions {
-				names = append(names, EqualsString(m.Name))
-			}
-			ff := &Filters{Name: names, Type: ActivityTypesFilter(pub.PersonType)}
-			actors, _, err := r.LoadAccounts(ctx, ff)
-			if err != nil {
-				r.errFn(log.Ctx{"err": err})("unable to load accounts from mentions")
-			}
-			for _, actor := range actors {
-				if actor.HasMetadata() && len(actor.Metadata.ID) > 0 {
-					cc = append(cc, pub.IRI(actor.Metadata.ID))
-				}
-			}
-		}
-		if len(m.Tags) > 0 {
-			tagNames := make(CompStrs, 0)
-			for _, t := range m.Tags {
-				tagNames = append(tagNames, EqualsString(t.Name), EqualsString("#"+t.Name))
-			}
-			ff := &Filters{Name: tagNames}
-			tags, _, err := r.LoadTags(ctx, ff)
-			if err != nil {
-				r.errFn(log.Ctx{"err": err})("unable to load accounts from mentions")
-			}
-
-			for i, t := range m.Tags {
-				for _, tag := range tags {
-					if tag.Metadata != nil && len(tag.Metadata.ID) > 0 && strings.ToLower(t.Name) == strings.ToLower(tag.Name) {
-						m.Tags[i] = tag
-					}
-				}
-			}
-		}
+		cc = append(cc, loadMentionsIfExisting(r, ctx, m.Mentions)...)
+		m.Tags = loadTagsIfExisting(r, ctx, m.Tags)
+		it.Metadata = m
 	}
 
 	if !it.Private() {

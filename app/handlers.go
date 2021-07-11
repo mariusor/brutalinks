@@ -240,6 +240,7 @@ func (h *handler) HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
 // BlockAccount processes a report request received at /~{handle}/block
 func (h *handler) BlockAccount(w http.ResponseWriter, r *http.Request) {
 	acc := loggedAccount(r)
+	ctx := context.TODO()
 
 	reason, err := ContentFromRequest(r, *acc)
 	if err != nil {
@@ -248,6 +249,7 @@ func (h *handler) BlockAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	repo := h.storage
+	reason.Metadata.Tags = loadTagsIfExisting(repo, ctx, reason.Metadata.Tags)
 
 	toBlock := ContextAuthors(r.Context())
 	if len(toBlock) == 0 {
@@ -266,6 +268,7 @@ func (h *handler) BlockAccount(w http.ResponseWriter, r *http.Request) {
 // BlockItem processes a block request received at /~{handle}/{hash}/block
 func (h *handler) BlockItem(w http.ResponseWriter, r *http.Request) {
 	acc := loggedAccount(r)
+	ctx := context.TODO()
 
 	reason, err := ContentFromRequest(r, *acc)
 	if err != nil {
@@ -274,8 +277,8 @@ func (h *handler) BlockItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	repo := h.storage
+	reason.Metadata.Tags = loadTagsIfExisting(repo, ctx, reason.Metadata.Tags)
 
-	ctx := context.TODO()
 	it, err := repo.LoadItem(ctx, objects.IRI(repo.fedbox.Service()).AddPath(chi.URLParam(r, "hash")))
 	if err != nil {
 		h.errFn(log.Ctx{ "before": err })("invalid item to report")
@@ -292,6 +295,8 @@ func (h *handler) BlockItem(w http.ResponseWriter, r *http.Request) {
 // ReportAccount processes a report request received at /~{handle}/block
 func (h *handler) ReportAccount(w http.ResponseWriter, r *http.Request) {
 	acc := loggedAccount(r)
+	ctx := context.TODO()
+
 	reason, err := ContentFromRequest(r, *acc)
 	if err != nil {
 		h.errFn(log.Ctx{ "before": err })("Error: wrong http method")
@@ -299,6 +304,7 @@ func (h *handler) ReportAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	repo := h.storage
+	reason.Metadata.Tags = loadTagsIfExisting(repo, ctx, reason.Metadata.Tags)
 
 	byHandleAccounts := ContextAuthors(r.Context())
 	if len(byHandleAccounts) == 0 {
@@ -334,6 +340,8 @@ func (h *handler) ReportItem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	repo := h.storage
+	reason.Metadata.Tags = loadTagsIfExisting(repo, ctx, reason.Metadata.Tags)
+
 	p, err := repo.LoadItem(ctx, objects.IRI(repo.fedbox.Service()).AddPath(chi.URLParam(r, "hash")))
 	if err != nil {
 		h.errFn(log.Ctx{ "before": err })("invalid item to report")
