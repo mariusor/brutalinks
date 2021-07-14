@@ -1701,11 +1701,12 @@ func loadMentionsIfExisting (r *repository, ctx context.Context, incoming TagCol
 					pub.OnActor(it, func(act *pub.Actor) error {
 						if strings.ToLower(t.Name) == strings.ToLower(string(act.Name.Get("-"))) ||
 							strings.ToLower(t.Name) == strings.ToLower(string(act.PreferredUsername.Get("-"))) {
-							incoming[i].Metadata = &ItemMetadata{
-								ID: act.ID.String(),
-								URL: act.URL.GetLink().String(),
+							url := act.ID.String()
+							if act.URL != nil {
+								url = act.URL.GetLink().String()
 							}
-							incoming[i].URL = act.URL.GetLink().String()
+							incoming[i].Metadata = &ItemMetadata{ID: act.ID.String(), URL: url}
+							incoming[i].URL = url
 						}
 						return nil
 					})
