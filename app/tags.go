@@ -169,7 +169,7 @@ func loadTags(data string) (TagCollection, TagCollection) {
 	tags := make(TagCollection, 0)
 	mentions := make(TagCollection, 0)
 
-	r := regexp.MustCompile(`(?:\A|\s)((?:[~@]\w+)(?:@\w+.\w+)?|(?:#[\w-]{3,}))`)
+	r := regexp.MustCompile(`(?:\A|\s)((?:[~@]\w+)(?:@[\w-]+.?\w*)?|(?:#[\w-]{3,}))`)
 	matches := r.FindAllSubmatch([]byte(data), -1)
 
 	for _, sub := range matches {
