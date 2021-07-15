@@ -131,7 +131,7 @@ func FederatedFiltersMw(id pub.IRI) func (next http.Handler) http.Handler {
 	return func (next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			f := fedFilters(r)
-			f.Actor.IRI = CompStrs{DifferentThanString(id.String())}
+			f.IRI = CompStrs{DifferentThanString(id.String())}
 			m := ContextListingModel(r.Context())
 			m.Title = "Federated items"
 			ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
