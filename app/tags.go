@@ -70,10 +70,10 @@ func replaceTag(d []byte, t Tag, w string) []byte {
 	}
 
 	var base []string
-	base = append(base, t.Name)
 	if u, err := url.Parse(t.URL); err == nil && len(u.Host) > 0 {
 		base = append(base, t.Name+`@`+u.Host)
 	}
+	base = append(base, t.Name)
 
 	var pref [][]byte
 	if t.Type == TagMention {
@@ -132,29 +132,23 @@ func replaceTags(mime string, r HasContent) string {
 	}
 
 	replaces := make(map[string]string, 0)
-	tags := r.Tags()
-	if tags != nil {
-		for _, t := range tags {
-			name := t.Name
-			if len(name) > 1 && name[0] != '#' {
-				name = fmt.Sprintf("#%s", name)
-			}
-			if inRange(name, replaces) {
-				continue
-			}
-			replaces[name] = mimeTypeTagReplace(mime, t)
+	for _, t := range r.Tags() {
+		name := t.Name
+		if len(name) > 1 && name[0] != '#' {
+			name = fmt.Sprintf("#%s", name)
 		}
+		if inRange(name, replaces) {
+			continue
+		}
+		replaces[name] = mimeTypeTagReplace(mime, t)
 	}
-	mentions := r.Mentions()
-	if mentions != nil {
-		for idx, t := range mentions {
-			lbl := fmt.Sprintf(":::MENTION_%d:::", idx)
-			if inRange(lbl, replaces) {
-				continue
-			}
-			data = replaceTag(data, t, lbl)
-			replaces[lbl] = mimeTypeTagReplace(mime, t)
+	for idx, t := range r.Mentions() {
+		lbl := fmt.Sprintf(":::MENTION_%d:::", idx)
+		if inRange(lbl, replaces) {
+			continue
 		}
+		data = replaceTag(data, t, lbl)
+		replaces[lbl] = mimeTypeTagReplace(mime, t)
 	}
 	for to, repl := range replaces {
 		data = bytes.ReplaceAll(data, []byte(to), []byte(repl))

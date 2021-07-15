@@ -183,9 +183,7 @@ func (a *Account) FromActivityPub(it pub.Item) error {
 		if !a.Hash.IsValid() {
 			a.Hash.FromActivityPub(iri)
 		}
-		a.Metadata = &AccountMetadata{
-			ID: iri.String(),
-		}
+		a.Metadata = &AccountMetadata{ID: iri.String()}
 		return nil
 	}
 	switch it.GetType() {
@@ -262,6 +260,7 @@ func FromMention(t *Tag, a *pub.Mention) error {
 
 	if len(a.ID) > 0 {
 		t.Metadata.ID = a.ID.String()
+		t.Metadata.URL = a.ID.String()
 	}
 	if len(a.Href) > 0 {
 		t.URL = a.Href.String()
