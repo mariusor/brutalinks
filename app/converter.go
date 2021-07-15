@@ -149,16 +149,16 @@ func FromActor(a *Account, p *pub.Actor) error {
 	if block, _ := pem.Decode([]byte(p.PublicKey.PublicKeyPem)); block != nil {
 		pub := make([]byte, base64.StdEncoding.EncodedLen(len(block.Bytes)))
 		base64.StdEncoding.Encode(pub, block.Bytes)
-		a.Metadata.Key = &SSHKey{
-			Public: pub,
-		}
+		a.Metadata.Key = &SSHKey{Public: pub}
 	}
 	if p.Endpoints != nil {
 		if p.Endpoints.OauthAuthorizationEndpoint != nil {
-			a.Metadata.AuthorizationEndPoint = p.Endpoints.OauthAuthorizationEndpoint.GetLink().String()
+			u, _ := p.Endpoints.OauthAuthorizationEndpoint.GetLink().URL()
+			a.Metadata.AuthorizationEndPoint = u.String()
 		}
 		if p.Endpoints.OauthTokenEndpoint != nil {
-			a.Metadata.TokenEndPoint = p.Endpoints.OauthTokenEndpoint.GetLink().String()
+			u, _ := p.Endpoints.OauthTokenEndpoint.GetLink().URL()
+			a.Metadata.TokenEndPoint = u.String()
 		}
 	}
 	return nil
