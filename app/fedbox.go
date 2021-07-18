@@ -169,16 +169,18 @@ func NewClient(o ...OptionFn) (*fedbox, error) {
 }
 
 func (f fedbox) normaliseIRI(i pub.IRI) pub.IRI {
-	bu, be := f.baseURL.URL()
 	iu, ie := i.URL()
-	if ie != nil || be != nil {
-		return i
+	if i.Contains(f.baseURL, false) {
+		bu, be := f.baseURL.URL()
+		if ie != nil || be != nil {
+			return i
+		}
+		iu.Host = bu.Host
+		if iu.Scheme != bu.Scheme {
+			iu.Scheme = bu.Scheme
+		}
 	}
-	iu.Host = bu.Host
 	iu.Path = path.Clean(iu.Path)
-	if iu.Scheme != bu.Scheme {
-		iu.Scheme = bu.Scheme
-	}
 	return pub.IRI(iu.String())
 }
 
@@ -347,7 +349,7 @@ func (f fedbox) Shares(ctx context.Context, object pub.Item, filters ...client.F
 }
 
 func (f fedbox) Collection(ctx context.Context, i pub.IRI, filters ...client.FilterFn) (pub.CollectionInterface, error) {
-	return f.collection(ctx, iri(f.normaliseIRI(i), filters...))
+	return f.collection(ctx, iri(i, filters...))
 }
 
 func (f fedbox) Actor(ctx context.Context, iri pub.IRI) (*pub.Actor, error) {
