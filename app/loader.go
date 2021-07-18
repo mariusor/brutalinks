@@ -82,10 +82,19 @@ func ContextCursor(ctx context.Context) *Cursor {
 	return c
 }
 
-func ContextContent(ctx context.Context) *Item {
+func ContextItem(ctx context.Context) *Item {
 	var i *Item
-	i, _ = ctx.Value(ContentCtxtKey).(*Item)
-	return i
+	if i, _ = ctx.Value(ContentCtxtKey).(*Item); i != nil {
+		return i
+	}
+	if c := ContextCursor(ctx); c != nil {
+		for _, it := range c.items {
+			if i, ok := it.(*Item); ok {
+				return i
+			}
+		}
+	}
+	return nil
 }
 
 func ContextRegisterModel(ctx context.Context) *registerModel {

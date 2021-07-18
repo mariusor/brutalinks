@@ -127,8 +127,8 @@ func (h *handler) HandleVoting(w http.ResponseWriter, r *http.Request) {
 	acc := loggedAccount(r)
 	repo := h.storage
 	ctx := context.TODO()
-	iri := objects.IRI(h.storage.fedbox.Service()).AddPath(chi.URLParam(r, "hash"))
-	p, err := repo.LoadItem(ctx, iri)
+
+	p, err := ItemFromReq(r.Context(), repo, chi.URLParam(r, "hash"))
 	if err != nil {
 		h.errFn()("Error: %s", err)
 		h.v.HandleErrors(w, r, errors.NewNotFound(err, "not found"))
@@ -482,6 +482,13 @@ func (h *handler) ValidateItemAuthor(op string) Handler {
 		}
 		return http.HandlerFunc(fn)
 	}
+}
+
+func ItemFromReq(ctx context.Context, repo *repository, hash string) (Item, error)  {
+	if p := ContextItem(ctx); p != nil {
+		return *p, nil
+	}
+	return repo.LoadItem(context.Background(), objects.IRI(repo.fedbox.Service()).AddPath(hash))
 }
 
 // HandleItemRedirect serves /i/{hash} request
