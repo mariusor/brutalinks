@@ -910,7 +910,7 @@ func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemC
 
 	accounts := make(AccountCollection, 0)
 	for _, it := range items {
-		if it.SubmittedBy.IsValid() {
+		if it.SubmittedBy.IsValid() && it.SubmittedBy.Handle != "" {
 			// Adding an item's author to the list of accounts we want to load from the ActivityPub API
 			accounts = append(accounts, *it.SubmittedBy)
 		}
@@ -1534,6 +1534,16 @@ func (r *repository) SaveVote(ctx context.Context, v Vote) (Vote, error) {
 	if v.Weight < 0 && exists.Weight >= 0 {
 		act.Type = pub.DislikeType
 		act.Object = o.GetLink()
+	}
+	if v.Item.SubmittedBy != nil {
+		auth := v.Item.SubmittedBy.AP()
+		if !auth.GetLink().Contains(r.BaseURL(), false) {
+			// NOTE(marius): this assumes that the instance the user is from has a shared inbox at {instance_hostname}/inbox
+			u, _ := auth.GetLink().URL()
+			u.Path = ""
+			act.BCC = append(act.BCC, pub.IRI(u.String()))
+		}
+		act.To = append(act.To, auth.GetLink())
 	}
 
 	var (
