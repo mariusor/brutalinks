@@ -494,10 +494,11 @@ func ItemFromReq(ctx context.Context, repo *repository, hash string) (Item, erro
 // HandleItemRedirect serves /i/{hash} request
 func (h *handler) HandleItemRedirect(w http.ResponseWriter, r *http.Request) {
 	repo := h.storage
-	ctx := context.TODO()
-	p, err := repo.LoadItem(ctx, objects.IRI(repo.fedbox.Service()).AddPath(chi.URLParam(r, "hash")))
+
+	p, err := ItemFromReq(r.Context(), repo, chi.URLParam(r, "hash"))
 	if err != nil {
-		h.v.HandleErrors(w, r, errors.NewNotValid(err, "oops!"))
+		h.errFn()("Error: %s", err)
+		h.v.HandleErrors(w, r, errors.NewNotFound(err, "not found"))
 		return
 	}
 	url := ItemPermaLink(&p)

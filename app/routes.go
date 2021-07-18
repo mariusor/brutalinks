@@ -120,7 +120,7 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 			r.Route("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}", h.ItemRoutes())
 
 			// @todo(marius) :link_generation:
-			r.Get("/i/{hash}", h.HandleItemRedirect)
+			r.With(ContentModelMw, h.ItemFiltersMw, LoadObjectFromInboxMw).Get("/i/{hash}", h.HandleItemRedirect)
 
 			r.With(h.NeedsSessions).Get("/logout", h.HandleLogout)
 
