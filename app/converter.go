@@ -440,6 +440,7 @@ func loadRecipientsFrom(recipients pub.ItemCollection) ([]Account, bool) {
 		}
 		_, maybeCol := handlers.Split(rec.GetLink())
 		if handlers.ValidCollection(maybeCol) {
+			continue
 			if maybeCol != handlers.Followers && maybeCol != handlers.Following {
 				// we don't know how to handle collections that don't contain accounts
 				continue
