@@ -25,13 +25,13 @@ const (
 )
 
 var (
-	// DeletedAccount
+	// DeletedAccount is a default static value for a deleted account
 	DeletedAccount = Account{Handle: Anonymous, Hash: AnonymousHash, Metadata: new(AccountMetadata), pub: &pub.Tombstone{}}
-	// AnonymousAccount
+	// AnonymousAccount is a default static value for the anonymous account
 	AnonymousAccount = Account{Handle: Anonymous, Hash: AnonymousHash, Metadata: new(AccountMetadata)}
-	// SystemAccount
+	// SystemAccount is a default static value for the system account
 	SystemAccount = Account{Handle: System, Hash: SystemHash, Metadata: new(AccountMetadata)}
-	// DeletedItem
+	// DeletedItem is a default static value for a deleted item
 	DeletedItem = Item{Title: Deleted, Hash: AnonymousHash, Metadata: new(ItemMetadata), pub: &pub.Tombstone{} }
 )
 
