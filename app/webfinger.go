@@ -190,7 +190,7 @@ func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		ff := &Filters{Name: CompStrs{EqualsString(handle)}}
-		accounts, _, err := h.storage.LoadAccounts(context.TODO(), ff)
+		accounts, _, err := h.storage.LoadAccounts(context.TODO(), nil, ff)
 		if err != nil {
 			err := errors.NotFoundf("resource not found %s", res)
 			h.errFn()("Error: %s", err)

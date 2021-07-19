@@ -998,9 +998,9 @@ func AccountPermaLink(a *Account) string {
 	if a == nil {
 		return ""
 	}
-	//if a.HasMetadata() && len(a.Metadata.URL) > 0 && a.Metadata.URL != a.Metadata.ID {
-	//	return a.Metadata.URL
-	//}
+	if a.HasMetadata() && len(a.Metadata.URL) > 0 && a.Metadata.URL != a.Metadata.ID {
+		return a.Metadata.URL
+	}
 	return AccountLocalLink(a)
 }
 
@@ -1009,7 +1009,7 @@ func ItemPermaLink(i *Item) string {
 	if i == nil {
 		return ""
 	}
-	if !i.IsLink() && i.HasMetadata() && len(i.Metadata.URL) > 0 {
+	if !i.IsLink() && i.HasMetadata() && len(i.Metadata.URL) > 0 || i.IsFederated() {
 		return i.Metadata.URL
 	}
 	return ItemLocalLink(i)
@@ -1028,7 +1028,7 @@ func PermaLink(r Renderable) string {
 
 // ItemLocalLink
 func ItemLocalLink(i *Item) string {
-	if i.SubmittedBy == nil || i.SubmittedBy.Handle == Anonymous || i.SubmittedBy.Handle == "" {
+	if i.SubmittedBy == nil || i.SubmittedBy.Handle == Anonymous || i.SubmittedBy.Handle == ""  || i.SubmittedBy.IsFederated() {
 		return path.Join("/", i.SubmittedAt.UTC().Format("2006/01/02"), i.Hash.String())
 	}
 	return path.Join(AccountLocalLink(i.SubmittedBy), i.Hash.String())
@@ -1040,18 +1040,18 @@ func followLink(f FollowRequest) string {
 
 // ShowAccountHandle
 func ShowAccountHandle(a *Account) string {
-	//if strings.Contains(a.Handle, "@") {
-	//	// @TODO(marius): simplify this at a higher level in the stack, see Account::FromActivityPub
-	//	if parts := strings.SplitAfter(a.Handle, "@"); len(parts) > 1 {
-	//		if strings.Contains(parts[1], app.Instance.HostName) {
-	//			handle := parts[0]
-	//			a.Handle = handle[:len(handle)-1]
-	//		}
-	//	}
-	//}
 	handle := Anonymous
 	if len(a.Handle) > 0 {
 		handle = a.Handle
+	}
+	if a.IsFederated() {
+		var h string
+		if a.HasMetadata() && a.Metadata.URL != "" {
+			h = host(a.Metadata.URL)
+		} else if a.pub != nil {
+			h = host(a.pub.GetLink().String())
+		}
+		return handle + "@" + h
 	}
 	return handle
 }

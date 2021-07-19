@@ -13,6 +13,7 @@ import (
 	"time"
 
 	pub "github.com/go-ap/activitypub"
+	"github.com/go-ap/client"
 	"github.com/go-ap/errors"
 	"github.com/go-ap/handlers"
 	j "github.com/go-ap/jsonld"
@@ -671,14 +672,19 @@ func ItemHashFilter(items ...Item) CompStrs {
 func AccountHashFilter(accounts ...Account) CompStrs {
 	filter := make(CompStrs, 0)
 	for _, ac := range accounts {
-		if !ac.Hash.IsValid() {
-			continue
+		if ac.pub == nil || ac.pub.GetLink().Contains(pub.IRI(Instance.Conf.APIURL), false) {
+			if !ac.Hash.IsValid() {
+				continue
+			}
+			hash := LikeString(ac.Hash.String())
+			if len(hash.Str) == 0 || filter.Contains(hash) {
+				continue
+			}
+			filter = append(filter, hash)
+		} else {
+			iri := EqualsString(ac.pub.GetLink().String())
+			filter = append(filter, iri)
 		}
-		hash := LikeString(ac.Hash.String())
-		if len(hash.Str) == 0 || filter.Contains(hash) {
-			continue
-		}
-		filter = append(filter, hash)
 	}
 	return filter
 }
@@ -904,41 +910,61 @@ func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemC
 		return items, nil
 	}
 
+	accounts := make(map[pub.IRI]AccountCollection)
+
 	fActors := Filters{
 		Type: ActivityTypesFilter(ValidActorTypes...),
 	}
 
-	accounts := make(AccountCollection, 0)
+	baseIRI := func (iri pub.IRI) pub.IRI {
+		u, _ := iri.URL()
+		u.Path = ""
+		return pub.IRI(u.String())
+	}
 	for _, it := range items {
-		if it.SubmittedBy.IsValid() && it.SubmittedBy.Handle != "" {
+		if it.SubmittedBy.IsValid() {
+			iri := baseIRI(it.SubmittedBy.AP().GetLink())
 			// Adding an item's author to the list of accounts we want to load from the ActivityPub API
-			accounts = append(accounts, *it.SubmittedBy)
+			accounts[iri] = append(accounts[iri], *it.SubmittedBy)
 		}
 		if it.HasMetadata() {
 			// Adding an item's recipients list (To and CC) to the list of accounts we want to load from the ActivityPub API
 			if len(it.Metadata.To) > 0 {
-				accounts = append(accounts, it.Metadata.To...)
+				iri := baseIRI(it.SubmittedBy.AP().GetLink())
+				accounts[iri] = append(accounts[iri], it.Metadata.To...)
 			}
 			if len(it.Metadata.CC) > 0 {
-				accounts = append(accounts, it.Metadata.CC...)
+				for _, cc := range it.Metadata.CC {
+					iri := baseIRI(cc.AP().GetLink())
+					accounts[iri] = append(accounts[iri], it.Metadata.CC...)
+				}
 			}
 		}
 	}
+
+	authors := make([]Account, 0)
 	if len(accounts) > 0 {
-		fActors.IRI = AccountHashFilter(accounts...)
-		if len(fActors.IRI) == 0 {
-			return items, nil
+		for iri, acc := range accounts {
+			ff := fActors
+			ff.IRI = AccountHashFilter(acc...)
+			f := &Filters{ Actor: &ff}
+
+			iriFn := func(ctx context.Context, fns ...client.FilterFn) (pub.CollectionInterface, error) {
+				return r.fedbox.Inbox(ctx, iri, fns...)
+			}
+			auth, _, err := r.LoadAccounts(ctx, iriFn, f)
+			if err != nil {
+				return items, errors.Annotatef(err, "unable to load items authors")
+			}
+			authors = append(authors, auth...)
 		}
 	}
-	authors, err := r.accounts(ctx, &fActors)
-	if err != nil {
-		return items, errors.Annotatef(err, "unable to load items authors")
-	}
+
 	col := make(ItemCollection, 0)
 	for _, it := range items {
 		for a := range authors {
 			auth := authors[a]
-			if !auth.IsValid() {
+			if !auth.IsValid() || auth.Handle == "" {
 				continue
 			}
 			if it.SubmittedBy.IsValid() && it.SubmittedBy.Hash == auth.Hash {
@@ -1887,14 +1913,21 @@ func (r *repository) LoadTags(ctx context.Context, ff ...*Filters) (TagCollectio
 	return tags, count, nil
 }
 
-func (r *repository) LoadAccounts(ctx context.Context, ff ...*Filters) (AccountCollection, uint, error) {
+type CollectionFilterFn func(context.Context, ...client.FilterFn) (pub.CollectionInterface, error)
+
+func (r *repository) LoadAccounts(ctx context.Context, colFn CollectionFilterFn, ff ...*Filters) (AccountCollection, uint, error) {
 	accounts := make(AccountCollection, 0)
 	var count uint = 0
+
+	if colFn == nil {
+		colFn = r.fedbox.Actors
+	}
+
 	// TODO(marius): see how we can use the context returned by errgroup.WithContext()
 	g, _ := errgroup.WithContext(ctx)
 	for _, f := range ff {
 		g.Go(func() error {
-			it, err := r.fedbox.Actors(ctx, Values(f))
+			it, err := colFn(ctx, Values(f))
 			if err != nil {
 				r.errFn()(err.Error())
 				return err
