@@ -4,8 +4,6 @@ packages:
   - docker
 sources:
   - https://github.com/mariusor/go-littr
-environment:
-  GO111MODULE: 'on'
 secrets:
   - 32610757-76e9-4671-adf1-98163ca8b594
   - 3f30fd61-e33d-4198-aafb-0ff341e9db1c
@@ -14,13 +12,12 @@ tasks:
   - build: |
       set +x
       cd go-littr
-      go mod vendor
-      make all
+      make download all
   - tests: |
       set -a +x
       source ~/.env.test
       cd go-littr
-      make test
+      make download test
   - coverage: |
       set -a +x
       cd go-littr && make coverage
@@ -34,21 +31,30 @@ tasks:
   - image: |
       set -a +x
       source ~/.buildah.env
+
+      _user=$(id -un)
+
       if [ buildah -v dot 2> /dev/null ]; then
+        echo 'unqualified-search-registries = ["docker.io"]' | sudo tee /etc/containers/registries.conf.d/unq-search.conf
+        echo "${_user}:10000:65536" | sudo tee /etc/subuid
+        echo "${_user}:10000:65536" | sudo tee /etc/subgid
         sudo buildah login -u=${BUILDAH_USER} -p=${BUILDAH_SECRET} quay.io
       else
         sudo systemctl start docker.service
-        sudo docker login -u=${BUILDAH_USER} -p=${BUILDAH_SECRET} quay.io
+        sudo gpasswd -a ${_user} docker
+        docker login -u=${BUILDAH_USER} -p=${BUILDAH_SECRET} quay.io
       fi
+
       cd go-littr || exit
+      make -C docker builder
 
       _branch=${GITHUB_REF#"refs/heads/"}
-      sudo make -C docker VERSION="${_branch}" push
+      make -C docker VERSION="${_branch}" push
       if [ "${_branch}" == "master" ]; then
         _branch=$(printf "%s-%s" "${_branch}" "$(git rev-parse --short HEAD)")
-        sudo make -C docker ENV=qa VERSION="${_branch}" push
+        make -C docker ENV=qa VERSION="${_branch}" push
       fi
       _tag=$(git describe --long --tags || true)
       if [ -n "${_tag}" ]; then
-        sudo make -C docker ENV=prod VERSION="${_tag}" push
+        make -C docker ENV=prod VERSION="${_tag}" push
       fi

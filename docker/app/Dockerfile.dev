@@ -1,4 +1,4 @@
-FROM golang:1.15 as builder
+FROM littr-builder AS builder
 
 ARG ENV
 ARG HOSTNAME
@@ -10,8 +10,7 @@ WORKDIR /go/src/
 ADD ./ ./app/
 
 WORKDIR /go/src/app
-RUN go mod download || true; \
-    make all && \
+RUN make all && \
     docker/gen-certs.sh app
 
 FROM gcr.io/distroless/static

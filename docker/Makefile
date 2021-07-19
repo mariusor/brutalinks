@@ -16,8 +16,6 @@ endif
 export API_URL := $(API_URL)
 export OAUTH2_CALLBACK_URL := $(OAUTH2_CALLBACK_URL)
 
-APPSOURCES := $(wildcard ../app/*.go ../cli/*/*.go ../internal/*/*.go)
-
 HAVE_BUILDAH := $(shell buildah -v dot 2> /dev/null)
 ifdef HAVE_BUILDAH
 	BUILD_CMD=buildah bud
@@ -31,7 +29,7 @@ else
 	PUSH_CMD=docker push
 endif
 
-.PHONY: clean images cert build run push start
+.PHONY: clean images cert build builder run push start
 
 $(ENV_FILE):
 	touch $(ENV_FILE)
@@ -44,8 +42,10 @@ cert: $(HOSTNAME).pem
 clean:
 	@-$(RM) $(HOSTNAME).{key,crt,pem} Caddyfile
 
-build: $(APPSOURCES)
-	go mod vendor
+builder:
+	$(BUILD_CMD) -f Dockerfile.build -t littr-builder ..
+
+build:
 	$(BUILD_CMD) \
 		--build-arg HOSTNAME=$(HOSTNAME) \
 		--build-arg ENV=$(ENV) \

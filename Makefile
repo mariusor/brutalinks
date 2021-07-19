@@ -40,13 +40,13 @@ TEST := $(GO) test $(BUILDFLAGS)
 all: app
 
 download:
-	$(GO) mod download
+	$(GO) mod tidy
 
-internal/assets/assets.gen.go: download $(ASSETFILES)
+internal/assets/assets.gen.go: $(ASSETFILES)
 	go generate -tags $(ENV) ./assets.go
 
 app: bin/app
-bin/app: go.mod download cmd/app/main.go $(APPSOURCES)
+bin/app: go.mod cmd/app/main.go $(APPSOURCES)
 	$(BUILD) -tags $(ENV) -o $@ ./cmd/app/main.go
 
 run: app
