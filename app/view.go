@@ -1009,7 +1009,7 @@ func ItemPermaLink(i *Item) string {
 	if i == nil {
 		return ""
 	}
-	if !i.IsLink() && i.HasMetadata() && len(i.Metadata.URL) > 0 || i.IsFederated() {
+	if (!i.IsLink() || i.IsFederated()) && i.HasMetadata() && len(i.Metadata.URL) > 0 {
 		return i.Metadata.URL
 	}
 	return ItemLocalLink(i)
