@@ -3,7 +3,6 @@ package app
 import (
 	"bytes"
 	"fmt"
-	"net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -39,20 +38,30 @@ func (c TagCollection) Contains(t Tag) bool {
 }
 
 func mimeTypeTagReplace(m string, t Tag) string {
-	var cls string
-
-	if t.Type == TagTag {
-		cls = "tag"
-	}
-	if t.Type == TagMention {
-		cls = "mention"
-	}
+	// TODO(marius): this should be put through the PermaLink and AccountHandle functions so the logic
+	//   of federated vs. local actors is handled in a single place.
+	var relType string
 
 	name := t.Name
-	if len(name) > 1 && name[0] == '#' {
-		name = name[1:]
+	if t.Type == TagTag {
+		relType = "tag"
+		if len(name) > 1 && name[0] == '#' {
+			name = name[1:]
+		}
 	}
-	return fmt.Sprintf("<a href='%s' rel='%s'>%s</a>", t.URL, cls, name)
+	if t.Type == TagMention {
+		relType = "mention"
+		if !HostIsLocal(t.URL) {
+			relType += " external"
+			name = t.Name + "@" + host(t.URL)
+		} else {
+			// NOTE(marius) this is a kludge way of generating a local URL for an actor that belongs
+			// to our main FedBOX instance
+			t.URL = fmt.Sprintf("/~%s", name)
+		}
+	}
+
+	return fmt.Sprintf("<a href='%s' rel='%s'>%s</a>", t.URL, relType, name)
 }
 
 func replaceTag(d []byte, t Tag, w string) []byte {
@@ -70,8 +79,8 @@ func replaceTag(d []byte, t Tag, w string) []byte {
 	}
 
 	var base []string
-	if u, err := url.Parse(t.URL); err == nil && len(u.Host) > 0 {
-		base = append(base, t.Name+`@`+u.Host)
+	if !HostIsLocal(t.URL) {
+		base = append(base, t.Name+`@`+host(t.URL))
 	}
 	base = append(base, t.Name)
 
