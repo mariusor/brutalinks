@@ -57,7 +57,7 @@ func mimeTypeTagReplace(m string, t Tag) string {
 		} else {
 			// NOTE(marius) this is a kludge way of generating a local URL for an actor that belongs
 			// to our main FedBOX instance
-			t.URL = fmt.Sprintf("/~%s", name)
+			t.URL = fmt.Sprintf("%s/~%s", Instance.BaseURL, name)
 		}
 	}
 

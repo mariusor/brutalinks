@@ -696,6 +696,9 @@ func (v *Vote) FromActivityPub(it pub.Item) error {
 }
 
 func HostIsLocal(s string) bool {
+	if Instance.Conf == nil {
+		return false
+	}
 	return host(s) == Instance.Conf.HostName || host(s) == host(Instance.Conf.APIURL)
 }
 

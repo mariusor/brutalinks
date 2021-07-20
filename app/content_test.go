@@ -1,6 +1,7 @@
 package app
 
 import (
+	"github.com/mariusor/go-littr/internal/config"
 	"reflect"
 	"testing"
 )
@@ -83,6 +84,8 @@ func Test_replaceTags(t *testing.T) {
 			want: `some <a href='https://brutalinks.git/t/tag' rel='tag'>tag</a>-`,
 		},
 	}
+	Instance.BaseURL = "https://brutalinks.git"
+	Instance.Conf = &config.Configuration{HostName: "brutalinks.git"}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := replaceTags(tt.args.cur.MimeType, tt.args.cur); got != tt.want {
@@ -284,6 +287,9 @@ This is a very important step forward in removing the need for a custom "activit
 			wantMentions: TagCollection{},
 		},
 	}
+	// TODO(marius): stop relying on global state
+	Instance.BaseURL = ""
+	Instance.Conf = nil
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tags, mentions := loadTags(tt.data)
