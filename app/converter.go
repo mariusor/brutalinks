@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"net/url"
-	"strings"
 
 	pub "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
@@ -697,7 +696,7 @@ func (v *Vote) FromActivityPub(it pub.Item) error {
 }
 
 func HostIsLocal(s string) bool {
-	return strings.Contains(host(s), Instance.Conf.HostName) || strings.Contains(host(s), host(Instance.Conf.APIURL))
+	return host(s) == Instance.Conf.HostName || host(s) == host(Instance.Conf.APIURL)
 }
 
 func host(u string) string {
