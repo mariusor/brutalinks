@@ -121,7 +121,7 @@ func loadAPItem(it pub.Item, item Item) error {
 			}
 
 			if item.Hash.IsValid() {
-				o.URL = pub.IRI(ItemPermaLink(&item))
+				o.URL = pub.IRI(ItemLocalLink(&item))
 			}
 			o.Name = make(pub.NaturalLanguageValues, 0)
 			switch item.MimeType {
