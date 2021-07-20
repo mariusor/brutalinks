@@ -82,6 +82,10 @@ func replaceTag(d []byte, t Tag, w string) []byte {
 	if !HostIsLocal(t.URL) {
 		base = append(base, t.Name+`@`+host(t.URL))
 	}
+	if t.Metadata != nil && len(t.Metadata.ID) > 0 {
+		base = append(base, t.Name+`@`+host(t.Metadata.ID))
+
+	}
 	base = append(base, t.Name)
 
 	var pref [][]byte
