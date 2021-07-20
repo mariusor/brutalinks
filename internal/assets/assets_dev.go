@@ -5,13 +5,14 @@ package assets
 import (
 	"bytes"
 	"fmt"
-	"github.com/go-chi/chi"
 	"html/template"
 	"mime"
 	"net/http"
 	"os"
 	"path"
 	"path/filepath"
+
+	"github.com/go-chi/chi"
 )
 
 var walkFsFn = filepath.Walk
@@ -20,8 +21,11 @@ var openFsFn = os.Open
 func writeAsset(s AssetFiles) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		asset := filepath.Clean(chi.URLParam(r, "path"))
-		ext := path.Ext(r.RequestURI)
-		mimeType := mime.TypeByExtension(ext)
+		if asset == "." {
+			_, asset = filepath.Split(r.RequestURI)
+		}
+		mimeType := mime.TypeByExtension(path.Ext(r.RequestURI))
+
 		files, ok := s[asset]
 		if !ok {
 			w.Write([]byte("not found"))
@@ -31,7 +35,10 @@ func writeAsset(s AssetFiles) func(http.ResponseWriter, *http.Request) {
 
 		buf := bytes.Buffer{}
 		for _, file := range files {
-			if piece, _ := getFileContent(assetPath(ext[1:], file)); len(piece) > 0 {
+			if len(mimeType) == 0 {
+				mimeType = mime.TypeByExtension(path.Ext(file))
+			}
+			if piece, _ := getFileContent(assetPath(file)); len(piece) > 0 {
 				buf.Write(piece)
 			}
 		}

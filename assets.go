@@ -4,15 +4,9 @@
 package main
 
 import (
-	"aletheia.icu/broccoli/fs"
 	"bytes"
 	"flag"
 	"fmt"
-	ignore "github.com/sabhiram/go-gitignore"
-	"github.com/tdewolff/minify"
-	"github.com/tdewolff/minify/css"
-	"github.com/tdewolff/minify/js"
-	"github.com/tdewolff/minify/svg"
 	"go/ast"
 	"go/build"
 	"go/importer"
@@ -27,6 +21,13 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"aletheia.icu/broccoli/fs"
+	ignore "github.com/sabhiram/go-gitignore"
+	"github.com/tdewolff/minify"
+	"github.com/tdewolff/minify/css"
+	"github.com/tdewolff/minify/js"
+	"github.com/tdewolff/minify/svg"
 )
 
 // Generator collects the necessary info about the package and

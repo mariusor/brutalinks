@@ -177,7 +177,6 @@ a[rel="mention external"]::before, a[rel="mention"]::before,
 a[rel="tag"]::before {
     opacity: .7;
     font-weight: bold;
-    font-size: .9em;
 }
 a[rel="mention external"]::before, a[rel="mention"]::before {
     content: "~";

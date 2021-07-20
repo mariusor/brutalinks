@@ -5,12 +5,13 @@ package assets
 import (
 	"bytes"
 	"fmt"
-	"github.com/go-chi/chi"
 	"html/template"
 	"mime"
 	"net/http"
 	"path"
 	"path/filepath"
+
+	"github.com/go-chi/chi"
 )
 
 // generated with custom broccoli - see /assets.go
@@ -34,7 +35,7 @@ func writeAsset(s AssetFiles) func(http.ResponseWriter, *http.Request) {
 		if !ok {
 			buf := bytes.Buffer{}
 			for _, file := range files {
-				if piece, _ := getFileContent(assetPath(ext[1:], file)); len(piece) > 0 {
+				if piece, _ := getFileContent(assetPath(file)); len(piece) > 0 {
 					buf.Write(piece)
 				}
 			}
