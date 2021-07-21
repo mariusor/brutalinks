@@ -108,7 +108,14 @@ func loadAPItem(it pub.Item, item Item) error {
 		}
 		if item.MimeType == MimeTypeURL {
 			o.Type = pub.PageType
-			o.URL = pub.IRI(item.Data)
+			if item.Hash.IsValid() {
+				o.URL = pub.ItemCollection{
+					pub.IRI(item.Data),
+					pub.IRI(ItemLocalLink(&item)),
+				}
+			} else {
+				o.URL = pub.IRI(item.Data)
+			}
 		} else {
 			wordCount := strings.Count(item.Data, " ") +
 				strings.Count(item.Data, "\t") +
