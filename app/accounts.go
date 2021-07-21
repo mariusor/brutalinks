@@ -120,6 +120,9 @@ func (a *Account) IsValid() bool {
 
 // AP returns the underlying actvitypub item
 func (a *Account) AP() pub.Item {
+	if a == nil {
+		return nil
+	}
 	return a.pub
 }
 
