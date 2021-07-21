@@ -929,12 +929,15 @@ func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemC
 		}
 		if it.HasMetadata() {
 			// Adding an item's recipients list (To and CC) to the list of accounts we want to load from the ActivityPub API
-			if len(it.Metadata.To) > 0 {
+			if len(it.Metadata.To) > 0 && it.SubmittedBy.AP() != nil {
 				iri := baseIRI(it.SubmittedBy.AP().GetLink())
 				accounts[iri] = append(accounts[iri], it.Metadata.To...)
 			}
 			if len(it.Metadata.CC) > 0 {
 				for _, cc := range it.Metadata.CC {
+					if cc.AP() == nil {
+						continue
+					}
 					iri := baseIRI(cc.AP().GetLink())
 					accounts[iri] = append(accounts[iri], it.Metadata.CC...)
 				}
@@ -942,21 +945,44 @@ func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemC
 		}
 	}
 
-	authors := make([]Account, 0)
+	authors := make(AccountCollection, 0)
 	if len(accounts) > 0 {
-		for iri, acc := range accounts {
+		searches := make(RemoteLoads)
+		for i, acc := range accounts {
 			ff := fActors
 			ff.IRI = AccountHashFilter(acc...)
-			f := &Filters{ Actor: &ff}
-
-			iriFn := func(ctx context.Context, fns ...client.FilterFn) (pub.CollectionInterface, error) {
-				return r.fedbox.Inbox(ctx, iri, fns...)
+			f := &Filters{ Object: &ff }
+			f.Type = ActivityTypesFilter(pub.CreateType)
+			actors := func (a pub.Item, f ...client.FilterFn) pub.IRI {
+				return iri(actors.IRI(a), f...)
 			}
-			auth, _, err := r.LoadAccounts(ctx, iriFn, f)
+			searches[i] = []RemoteLoad{
+				{
+					loadFn: actors,
+					filters: []Filters{ff},
+				},
+				//{
+				//	loadFn: inbox,
+				//	filters: []Filters{*f},
+				//},
+			}
+
+			err := LoadFromSearches(r, searches, func(col pub.CollectionInterface) error {
+				for _, it := range col.Collection() {
+					acc := Account{Metadata: &AccountMetadata{}}
+					if err := acc.FromActivityPub(it); err != nil {
+						r.errFn(log.Ctx{"type": fmt.Sprintf("%T", it)})(err.Error())
+						continue
+					}
+					if acc.IsValid() && !authors.Contains(acc) {
+						authors = append(authors, acc)
+					}
+				}
+				return nil
+			})
 			if err != nil {
 				return items, errors.Annotatef(err, "unable to load items authors")
 			}
-			authors = append(authors, auth...)
 		}
 	}
 
@@ -1992,7 +2018,7 @@ func (r *repository) LoadAccount(ctx context.Context, iri pub.IRI) (*Account, er
 	return acc, err
 }
 
-func Values(f interface{}) func() url.Values {
+func Values(f interface{}) client.FilterFn {
 	return func() url.Values {
 		v, e := qstring.Marshal(f)
 		if e != nil {

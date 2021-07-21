@@ -236,6 +236,8 @@ func rawFilterQuery(f ...client.FilterFn) string {
 	return "?" + q.Encode()
 }
 
+type LoadFn func(pub.Item, ...client.FilterFn) pub.IRI
+
 func iri(i pub.IRI, f ...client.FilterFn) pub.IRI {
 	return pub.IRI(fmt.Sprintf("%s%s", i, rawFilterQuery(f...)))
 }
@@ -271,6 +273,7 @@ func shares(o pub.Item, f ...client.FilterFn) pub.IRI {
 func replies(o pub.Item, f ...client.FilterFn) pub.IRI {
 	return iri(handlers.Replies.IRI(o), f...)
 }
+
 func validateActor(a pub.Item) error {
 	if a == nil {
 		return errors.Errorf("Actor is nil")
@@ -280,6 +283,7 @@ func validateActor(a pub.Item) error {
 	}
 	return nil
 }
+
 func validateObject(o pub.Item) error {
 	if o == nil {
 		return errors.Errorf("object is nil")

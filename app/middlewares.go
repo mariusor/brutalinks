@@ -128,64 +128,87 @@ func ctxtErr(next http.Handler, w http.ResponseWriter, r *http.Request, err erro
 	next.ServeHTTP(w, r.WithContext(ctx))
 }
 
+type CollectionLoadFn func(pub.CollectionInterface) error
+
+type RemoteLoad struct {
+	loadFn  LoadFn
+	filters []Filters
+}
+
+type RemoteLoads map[pub.IRI][]RemoteLoad
+
+func LoadFromSearches(repo *repository, loads RemoteLoads, fn pub.WithCollectionInterfaceFn) error {
+	ctx := context.TODO()
+
+	for iri, load := range loads {
+		for _, search := range load {
+			for _, f := range search.filters {
+				col, err := repo.fedbox.collection(ctx, search.loadFn(iri, Values(f)))
+				if err != nil {
+					repo.errFn(log.Ctx{"iri": iri, "err": err})("unable to load search")
+					continue
+				}
+				if col.Count() == 0 {
+					repo.errFn(log.Ctx{"iri": iri})("empty search")
+					continue
+				}
+				err = pub.OnCollectionIntf(col, fn)
+				if err != nil {
+					repo.errFn(log.Ctx{"err": err})("search didn't return a collection")
+				}
+			}
+		}
+	}
+	return nil
+}
+
 func LoadObjectFromInboxMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var err error
-		var col pub.CollectionInterface
-
-		ff := ContextActivityFilters(r.Context())
-		repo := ContextRepository(r.Context())
 		ctx := context.TODO()
 
+		repo := ContextRepository(r.Context())
+		current := ContextAccount(r.Context())
+		ff := ContextActivityFilters(r.Context())
 		if len(ff) == 0 {
 			ctxtErr(next, w, r, errors.Newf("invalid filter"))
 			return
 		}
-		f := ff[0]
-		// we first try to load from the service's inbox
-		col, err = repo.fedbox.Inbox(ctx, repo.fedbox.Service(), Values(f))
-		if err != nil {
-			repo.errFn()("unable to load item")
-			ctxtErr(next, w, r, errors.NotFoundf("Object not found"))
-			return
+		fff := make([]Filters, len(ff))
+		for i, f := range ff {
+			fff[i] = *f
 		}
-		if col.Count() == 0 {
-			// if nothing found, try to load from the logged account's collections
-			current := ContextAccount(r.Context())
-			// TODO(marius): probably the nil check on .pub needs to be moved to IsLogged.
-			if current.IsLogged() && current.pub != nil {
-				logCtx := log.Ctx{
-					"actor": current.pub.GetLink(),
-					"filter": f,
-				}
-				// if the current user is logged, try to load from their inbox
-				if col, err = repo.fedbox.Inbox(ctx, current.pub, Values(f)); err != nil {
-					logCtx["from"] = "actor inbox"
-					repo.errFn(logCtx)("unable to load item")
-				}
-				if col.Count() == 0 {
-					// if the current user is logged, try to load from their outbox
-					if col, err = repo.fedbox.Outbox(ctx, current.pub, Values(f)); err != nil {
-						logCtx["from"] = "actor outbox"
-						repo.errFn(logCtx)("unable to load item")
-					}
-				}
+
+		searchIn := RemoteLoads{
+			repo.fedbox.Service().GetLink(): []RemoteLoad{{loadFn: inbox, filters: fff}},
+		}
+		if current.IsLogged() {
+			searchIn[current.pub.GetLink()] = []RemoteLoad{
+				{loadFn: inbox, filters: fff},
+				{loadFn: outbox, filters: fff},
 			}
 		}
-		i := Item{}
-		if col != nil {
-			pub.OnOrderedCollection(col, func(c *pub.OrderedCollection) error {
-				i.FromActivityPub(c.OrderedItems.First())
-				return nil
-			})
-		}
-		if !i.IsValid() {
-			repo.errFn()("unable to load item")
+
+		var items ItemCollection
+		err = LoadFromSearches(repo, searchIn, func (c pub.CollectionInterface) error {
+			for _, it := range c.Collection() {
+				i := Item{}
+				i.FromActivityPub(it)
+				if !i.IsValid() {
+					repo.errFn(log.Ctx{"iri": it.GetLink()})("unable to load item")
+				}
+				if !items.Contains(i) {
+					items = append(items, i)
+				}
+			}
+			return nil
+		})
+
+		if err != nil || len(items) == 0 {
 			ctxtErr(next, w, r, errors.NotFoundf("Object not found"))
 			return
 		}
-		items := ItemCollection{i}
-		if comments, err := repo.loadItemsReplies(ctx, i); err == nil {
+		if comments, err := repo.loadItemsReplies(ctx, items...); err == nil {
 			items = append(items, comments...)
 		}
 		if items, err = repo.loadItemsAuthors(ctx, items...); err != nil {
@@ -200,6 +223,8 @@ func LoadObjectFromInboxMw(next http.Handler) http.Handler {
 		for k := range items {
 			c.items.Append(Renderable(&items[k]))
 		}
+
+		i, _ := items.First()
 		m := ContextContentModel(r.Context())
 		m.Title = "Replies to item"
 		if i.SubmittedBy != nil {
