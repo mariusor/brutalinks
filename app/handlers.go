@@ -128,7 +128,7 @@ func (h *handler) HandleVoting(w http.ResponseWriter, r *http.Request) {
 	repo := h.storage
 	ctx := context.TODO()
 
-	p, err := ItemFromReq(r.Context(), repo, chi.URLParam(r, "hash"))
+	p, err := ItemFromContext(r.Context(), repo, chi.URLParam(r, "hash"))
 	if err != nil {
 		h.errFn()("Error: %s", err)
 		h.v.HandleErrors(w, r, errors.NewNotFound(err, "not found"))
@@ -279,17 +279,18 @@ func (h *handler) BlockItem(w http.ResponseWriter, r *http.Request) {
 	repo := h.storage
 	reason.Metadata.Tags = loadTagsIfExisting(repo, ctx, reason.Metadata.Tags)
 
-	it, err := repo.LoadItem(ctx, objects.IRI(repo.fedbox.Service()).AddPath(chi.URLParam(r, "hash")))
+	p, err := ItemFromContext(r.Context(), repo, chi.URLParam(r, "hash"))
 	if err != nil {
-		h.errFn(log.Ctx{ "before": err })("invalid item to report")
-		h.v.HandleErrors(w, r, errors.NewNotFound(err, ""))
+		h.errFn()("Error: %s", err)
+		h.v.HandleErrors(w, r, errors.NewNotFound(err, "not found"))
+		return
 	}
-	if err = repo.BlockItem(ctx, *acc, it, &reason); err != nil {
+	if err = repo.BlockItem(ctx, *acc, p, &reason); err != nil {
 		h.v.HandleErrors(w, r, err)
 		return
 	}
 	acc.Metadata.OutboxUpdated = time.Time{}
-	h.v.Redirect(w, r, PermaLink(&it), http.StatusSeeOther)
+	h.v.Redirect(w, r, PermaLink(&p), http.StatusSeeOther)
 }
 
 // ReportAccount processes a report request received at /~{handle}/block
@@ -342,10 +343,11 @@ func (h *handler) ReportItem(w http.ResponseWriter, r *http.Request) {
 	repo := h.storage
 	reason.Metadata.Tags = loadTagsIfExisting(repo, ctx, reason.Metadata.Tags)
 
-	p, err := repo.LoadItem(ctx, objects.IRI(repo.fedbox.Service()).AddPath(chi.URLParam(r, "hash")))
+	p, err := ItemFromContext(r.Context(), repo, chi.URLParam(r, "hash"))
 	if err != nil {
-		h.errFn(log.Ctx{ "before": err })("invalid item to report")
-		h.v.HandleErrors(w, r, errors.NewNotFound(err, ""))
+		h.errFn()("Error: %s", err)
+		h.v.HandleErrors(w, r, errors.NewNotFound(err, "not found"))
+		return
 	}
 	if err = repo.ReportItem(ctx, *acc, p, &reason); err != nil {
 		h.errFn()("Error: %s", err)
@@ -459,19 +461,18 @@ func (h *handler) ValidateLoggedIn(eh ErrorHandler) Handler {
 func (h *handler) ValidateItemAuthor(op string) Handler {
 	return func (next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
-			ctx := context.TODO()
 			acc := loggedAccount(r)
 			hash := chi.URLParam(r, "hash")
 			url := r.URL
 			action := path.Base(url.Path)
 			if len(hash) > 0 && action != hash {
 				repo := h.storage
-				m, err := repo.LoadItem(ctx, objects.IRI(repo.fedbox.Service()).AddPath(hash))
+				p, err := ItemFromContext(r.Context(), repo, chi.URLParam(r, "hash"))
 				if err != nil {
 					ctxtErr(next, w, r, errors.NewNotFound(err, "item"))
 					return
 				}
-				if m.SubmittedBy.Hash != acc.Hash {
+				if p.SubmittedBy.Hash != acc.Hash {
 					url.Path = path.Dir(url.Path)
 					h.v.addFlashMessage(Error, w, r, fmt.Sprintf("Unable to %s item as current user", op))
 					h.v.Redirect(w, r, url.RequestURI(), http.StatusTemporaryRedirect)
@@ -484,18 +485,18 @@ func (h *handler) ValidateItemAuthor(op string) Handler {
 	}
 }
 
-func ItemFromReq(ctx context.Context, repo *repository, hash string) (Item, error)  {
+func ItemFromContext(ctx context.Context, repo *repository, hash string) (Item, error)  {
 	if p := ContextItem(ctx); p != nil {
 		return *p, nil
 	}
-	return repo.LoadItem(context.Background(), objects.IRI(repo.fedbox.Service()).AddPath(hash))
+	return Item{}, errors.NotFoundf(hash)
 }
 
 // HandleItemRedirect serves /i/{hash} request
 func (h *handler) HandleItemRedirect(w http.ResponseWriter, r *http.Request) {
 	repo := h.storage
 
-	p, err := ItemFromReq(r.Context(), repo, chi.URLParam(r, "hash"))
+	p, err := ItemFromContext(r.Context(), repo, chi.URLParam(r, "hash"))
 	if err != nil {
 		h.errFn()("Error: %s", err)
 		h.v.HandleErrors(w, r, errors.NewNotFound(err, "not found"))
@@ -599,7 +600,7 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	param := oauth2.SetAuthURLParam("actor", a.Metadata.ID)
 	sessUrl := config.AuthCodeURL(csrf.Token(r), param)
 
-	res, err := h.storage.fedbox.client.Get(sessUrl)
+	res, err := http.Get(sessUrl)
 	if err != nil {
 		h.v.HandleErrors(w, r, err)
 		return
