@@ -83,8 +83,8 @@ func ContextActivityFilters(ctx context.Context) []*Filters {
 	return nil
 }
 
-func SelfFiltersMw(id pub.IRI) func (next http.Handler) http.Handler {
-	return func (next http.Handler) http.Handler {
+func SelfFiltersMw(id pub.IRI) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			f := fedFilters(r)
 			f.Actor.IRI = CompStrs{LikeString(id.String())}
@@ -127,8 +127,8 @@ func fedFilters(r *http.Request) *Filters {
 	return f
 }
 
-func FederatedFiltersMw(id pub.IRI) func (next http.Handler) http.Handler {
-	return func (next http.Handler) http.Handler {
+func FederatedFiltersMw(id pub.IRI) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			f := fedFilters(r)
 			f.IRI = CompStrs{DifferentThanString(id.String())}
@@ -172,7 +172,7 @@ func DomainFiltersMw(next http.Handler) http.Handler {
 
 func tagsFilter(tag string) *Filters {
 	f := new(Filters)
-	f.Name = CompStrs{EqualsString("#"+tag)}
+	f.Name = CompStrs{EqualsString("#" + tag)}
 	return f
 }
 
@@ -245,7 +245,7 @@ func MessageFiltersMw(next http.Handler) http.Handler {
 			ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{&fc, &fv})
 			r = r.WithContext(ctx)
 		}
-		next.ServeHTTP(w,r)
+		next.ServeHTTP(w, r)
 	})
 }
 
@@ -273,7 +273,7 @@ func AccountFiltersMw(next http.Handler) http.Handler {
 
 		// NOTE(marius): having two very different filters here introduces bugs
 		// with the next/previous cursor key (the votes filter can be removed)
-		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{/*&fv,*/ &fc})
+		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{ /*&fv,*/ &fc})
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
