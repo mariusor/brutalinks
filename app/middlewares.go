@@ -132,7 +132,7 @@ type CollectionLoadFn func(pub.CollectionInterface) error
 
 type RemoteLoad struct {
 	loadFn  LoadFn
-	filters []Filters
+	filters []*Filters
 }
 
 type RemoteLoads map[pub.IRI][]RemoteLoad
@@ -152,8 +152,7 @@ func LoadFromSearches(repo *repository, loads RemoteLoads, fn pub.WithCollection
 					repo.errFn(log.Ctx{"iri": iri})("empty search")
 					continue
 				}
-				err = pub.OnCollectionIntf(col, fn)
-				if err != nil {
+				if err = pub.OnCollectionIntf(col, fn); err != nil {
 					repo.errFn(log.Ctx{"err": err})("search didn't return a collection")
 				}
 			}
@@ -174,9 +173,9 @@ func LoadObjectFromInboxMw(next http.Handler) http.Handler {
 			ctxtErr(next, w, r, errors.Newf("invalid filter"))
 			return
 		}
-		fff := make([]Filters, len(ff))
+		fff := make([]*Filters, len(ff))
 		for i, f := range ff {
-			fff[i] = *f
+			fff[i] = f
 		}
 
 		searchIn := RemoteLoads{
@@ -193,9 +192,13 @@ func LoadObjectFromInboxMw(next http.Handler) http.Handler {
 		err = LoadFromSearches(repo, searchIn, func (c pub.CollectionInterface) error {
 			for _, it := range c.Collection() {
 				i := Item{}
-				i.FromActivityPub(it)
-				if !i.IsValid() {
+				if err := i.FromActivityPub(it); err != nil {
 					repo.errFn(log.Ctx{"iri": it.GetLink()})("unable to load item")
+					continue
+				}
+				if !i.IsValid() {
+					repo.errFn(log.Ctx{"iri": it.GetLink()})("item is invalid")
+					continue
 				}
 				if !items.Contains(i) {
 					items = append(items, i)

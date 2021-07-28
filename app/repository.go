@@ -679,19 +679,19 @@ func ItemHashFilter(items ...Item) CompStrs {
 func AccountHashFilter(accounts ...Account) CompStrs {
 	filter := make(CompStrs, 0)
 	for _, ac := range accounts {
+		var f CompStr
 		if ac.pub == nil || ac.pub.GetLink().Contains(pub.IRI(Instance.Conf.APIURL), false) {
 			if !ac.Hash.IsValid() {
 				continue
 			}
-			hash := LikeString(ac.Hash.String())
-			if len(hash.Str) == 0 || filter.Contains(hash) {
-				continue
-			}
-			filter = append(filter, hash)
+			f = LikeString(ac.Hash.String())
 		} else {
-			iri := EqualsString(ac.pub.GetLink().String())
-			filter = append(filter, iri)
+			f = EqualsString(ac.pub.GetLink().String())
 		}
+		if len(f.Str) == 0 || filter.Contains(f) {
+			continue
+		}
+		filter = append(filter, f)
 	}
 	return filter
 }
@@ -919,7 +919,7 @@ func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemC
 
 	accounts := make(map[pub.IRI]AccountCollection)
 
-	fActors := Filters{
+	fActors := &Filters{
 		Type: ActivityTypesFilter(ValidActorTypes...),
 	}
 
@@ -958,20 +958,20 @@ func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemC
 		for i, acc := range accounts {
 			ff := fActors
 			ff.IRI = AccountHashFilter(acc...)
-			f := &Filters{ Object: &ff }
+			f := &Filters{ Object: ff }
 			f.Type = ActivityTypesFilter(pub.CreateType)
-			actors := func (a pub.Item, f ...client.FilterFn) pub.IRI {
+			actorsCol := func (a pub.Item, f ...client.FilterFn) pub.IRI {
 				return iri(actors.IRI(a), f...)
 			}
 			searches[i] = []RemoteLoad{
 				{
-					loadFn: actors,
-					filters: []Filters{ff},
+					loadFn:  actorsCol,
+					filters: []*Filters{ff},
 				},
-				//{
-				//	loadFn: inbox,
-				//	filters: []Filters{*f},
-				//},
+				{
+					loadFn: inbox,
+					filters: []*Filters{f},
+				},
 			}
 
 			err := LoadFromSearches(r, searches, func(col pub.CollectionInterface) error {
