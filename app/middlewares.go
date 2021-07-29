@@ -139,21 +139,47 @@ type RemoteLoads map[pub.IRI][]RemoteLoad
 
 func LoadFromSearches(repo *repository, loads RemoteLoads, fn pub.WithCollectionInterfaceFn) error {
 	ctx := context.TODO()
+	var err error
+	processed := 0
 
 	for iri, load := range loads {
 		for _, search := range load {
+		newSearch:
 			for _, f := range search.filters {
-				col, err := repo.fedbox.collection(ctx, search.loadFn(iri, Values(f)))
-				if err != nil {
-					repo.errFn(log.Ctx{"iri": iri, "err": err})("unable to load search")
-					continue
-				}
-				if col.Count() == 0 {
-					repo.errFn(log.Ctx{"iri": iri})("empty search")
-					continue
-				}
-				if err = pub.OnCollectionIntf(col, fn); err != nil {
-					repo.errFn(log.Ctx{"err": err})("search didn't return a collection")
+				for {
+					var status bool
+					var col pub.CollectionInterface
+
+					col, err = repo.fedbox.collection(ctx, search.loadFn(iri, Values(f)))
+					if err != nil {
+						repo.errFn(log.Ctx{"iri": iri, "err": err})("unable to load search")
+						continue newSearch
+					}
+					if col.Count() == 0 {
+						repo.errFn(log.Ctx{"iri": iri})("empty search")
+						continue newSearch
+					}
+
+					var prev string
+					if err = pub.OnCollectionIntf(col, fn); err != nil {
+						repo.errFn(log.Ctx{"err": err})("search didn't return a collection")
+						continue newSearch
+					}
+					prev, f.Next = getCollectionPrevNext(col)
+					if processed == 0 {
+						f.Prev = prev
+					}
+					processed += len(col.Collection())
+					st := accumContinue
+					if len(f.Next) == 0 || uint(processed) == col.Count() {
+						st = accumEndOfCollection
+					}
+					if status && processed >= f.MaxItems {
+						st = accumSuccess
+					}
+					if st != accumContinue {
+						break newSearch
+					}
 				}
 			}
 		}
