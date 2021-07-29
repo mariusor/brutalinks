@@ -442,7 +442,7 @@ func (r *repository) loadAccountsFollowers(ctx context.Context, acc *Account) er
 	collFn := func(ctx context.Context, f *Filters) (pub.CollectionInterface, error) {
 		return r.fedbox.Collection(ctx, pub.IRI(acc.Metadata.FollowersIRI), Values(f))
 	}
-	return LoadFromCollection(ctx, collFn, &colCursor{filters: &Filters{}}, func(o pub.CollectionInterface) (bool, error) {
+	return LoadFromCollection(ctx, collFn, &colCursor{filters: &Filters{}}, func(o pub.CollectionInterface) error {
 		for _, fol := range o.Collection() {
 			if !pub.ActorTypes.Contains(fol.GetType()) {
 				continue
@@ -452,7 +452,7 @@ func (r *repository) loadAccountsFollowers(ctx context.Context, acc *Account) er
 				acc.Followers = append(acc.Followers, *p)
 			}
 		}
-		return true, nil
+		return nil
 	})
 }
 
@@ -463,7 +463,7 @@ func (r *repository) loadAccountsFollowing(ctx context.Context, acc *Account) er
 	collFn := func(ctx context.Context, f *Filters) (pub.CollectionInterface, error) {
 		return r.fedbox.Collection(ctx, pub.IRI(acc.Metadata.FollowingIRI), Values(f))
 	}
-	return LoadFromCollection(ctx, collFn, &colCursor{filters: &Filters{}}, func(o pub.CollectionInterface) (bool, error) {
+	return LoadFromCollection(ctx, collFn, &colCursor{filters: &Filters{}}, func(o pub.CollectionInterface) error {
 		for _, fol := range o.Collection() {
 			if !pub.ActorTypes.Contains(fol.GetType()) {
 				continue
@@ -473,7 +473,7 @@ func (r *repository) loadAccountsFollowing(ctx context.Context, acc *Account) er
 				acc.Following = append(acc.Following, *p)
 			}
 		}
-		return true, nil
+		return nil
 	})
 }
 
@@ -491,7 +491,7 @@ func (r *repository) loadAccountsOutbox(ctx context.Context, acc *Account) error
 	}
 	latest := time.Now().Add(-6 * 30 * 24 * time.Hour).UTC()
 	max := MaxContentItems * 25 // NOTE(marius): this affects how big the session stored value for an account can get
-	return LoadFromCollection(ctx, collFn, &colCursor{filters: &Filters{MaxItems: max}}, func(o pub.CollectionInterface) (bool, error) {
+	return LoadFromCollection(ctx, collFn, &colCursor{filters: &Filters{MaxItems: max}}, func(o pub.CollectionInterface) error {
 		if ocTypes.Contains(o.GetType()) {
 			pub.OnOrderedCollection(o, func(oc *pub.OrderedCollection) error {
 				acc.Metadata.OutboxUpdated = oc.Updated
@@ -535,7 +535,7 @@ func (r *repository) loadAccountsOutbox(ctx context.Context, acc *Account) error
 				acc.Metadata.Outbox = append(acc.Metadata.Outbox, pub.FlattenProperties(it))
 			}
 		}
-		return true, nil
+		return nil
 	})
 }
 
@@ -576,7 +576,7 @@ func (r *repository) loadItemsReplies(ctx context.Context, items ...Item) (ItemC
 		collFn := func(ctx context.Context, f *Filters) (pub.CollectionInterface, error) {
 			return r.fedbox.Replies(ctx, top.GetLink(), Values(f))
 		}
-		err := LoadFromCollection(ctx, collFn, &colCursor{filters: f}, func(c pub.CollectionInterface) (bool, error) {
+		err := LoadFromCollection(ctx, collFn, &colCursor{filters: f}, func(c pub.CollectionInterface) error {
 			for _, it := range c.Collection() {
 				if !it.IsObject() {
 					continue
@@ -586,7 +586,7 @@ func (r *repository) loadItemsReplies(ctx context.Context, items ...Item) (ItemC
 					allReplies = append(allReplies, *i)
 				}
 			}
-			return true, nil
+			return nil
 		})
 		if err != nil {
 			r.errFn()(err.Error())
@@ -609,7 +609,7 @@ func (r *repository) loadAccountVotes(ctx context.Context, acc *Account, items I
 	collFn := func(ctx context.Context, f *Filters) (pub.CollectionInterface, error) {
 		return r.fedbox.Outbox(ctx, acc.pub, Values(f))
 	}
-	return LoadFromCollection(ctx, collFn, &colCursor{filters: f}, func(col pub.CollectionInterface) (bool, error) {
+	return LoadFromCollection(ctx, collFn, &colCursor{filters: f}, func(col pub.CollectionInterface) error {
 		for _, it := range col.Collection() {
 			if !it.IsObject() || !ValidAppreciationTypes.Contains(it.GetType()) {
 				continue
@@ -619,7 +619,7 @@ func (r *repository) loadAccountVotes(ctx context.Context, acc *Account, items I
 				acc.Votes = append(acc.Votes, *v)
 			}
 		}
-		return false, nil
+		return nil
 	})
 }
 
@@ -638,7 +638,7 @@ func (r *repository) loadItemsVotes(ctx context.Context, items ...Item) (ItemCol
 	collFn := func(ctx context.Context, f *Filters) (pub.CollectionInterface, error) {
 		return r.fedbox.Inbox(ctx, r.fedbox.Service(), Values(f))
 	}
-	err := LoadFromCollection(ctx, collFn, &colCursor{filters: f}, func(c pub.CollectionInterface) (bool, error) {
+	err := LoadFromCollection(ctx, collFn, &colCursor{filters: f}, func(c pub.CollectionInterface) error {
 		for _, vAct := range c.Collection() {
 			if !vAct.IsObject() || !voteActivities.Contains(vAct.GetType()) {
 				continue
@@ -652,7 +652,7 @@ func (r *repository) loadItemsVotes(ctx context.Context, items ...Item) (ItemCol
 				}
 			}
 		}
-		return true, nil
+		return nil
 	})
 	return items, err
 }
@@ -1092,7 +1092,7 @@ const (
 )
 
 // LoadFromCollection iterates over a collection returned by the f function, until accum is satisfied
-func LoadFromCollection(ctx context.Context, loadColFn CollectionFn, cur *colCursor, accum func(pub.CollectionInterface) (bool, error)) error {
+func LoadFromCollection(ctx context.Context, loadColFn CollectionFn, cur *colCursor, accum func(pub.CollectionInterface) error) error {
 	var err error
 	processed := 0
 	for {
@@ -1104,11 +1104,7 @@ func LoadFromCollection(ctx context.Context, loadColFn CollectionFn, cur *colCur
 		}
 
 		var prev string
-		if err = pub.OnCollectionIntf(col, func(c pub.CollectionInterface) error {
-			var err error
-			status, err = accum(c)
-			return err
-		}); err != nil {
+		if err = pub.OnCollectionIntf(col, accum); err != nil {
 			return err
 		}
 		prev, cur.filters.Next = getCollectionPrevNext(col)
@@ -1154,7 +1150,7 @@ func (r *repository) accounts(ctx context.Context, ff ...*Filters) ([]Account, e
 	g, _ := errgroup.WithContext(ctx)
 	for _, f := range ff {
 		g.Go(func() error {
-			return LoadFromCollection(ctx, actors, &colCursor{filters: f}, func(col pub.CollectionInterface) (bool, error) {
+			return LoadFromCollection(ctx, actors, &colCursor{filters: f}, func(col pub.CollectionInterface) error {
 				for _, it := range col.Collection() {
 					if !it.IsObject() || !ValidActorTypes.Contains(it.GetType()) {
 						continue
@@ -1166,7 +1162,7 @@ func (r *repository) accounts(ctx context.Context, ff ...*Filters) ([]Account, e
 				}
 				// TODO(marius): this needs to be externalized also to a different function that we can pass from outer scope
 				//   This function implements the logic for breaking out of the collection iteration cycle and returns a bool
-				return len(accounts) == f.MaxItems || len(f.Next) == 0, nil
+				return nil
 			})
 		})
 	}
@@ -1200,14 +1196,14 @@ func (r *repository) objects(ctx context.Context, ff ...*Filters) (ItemCollectio
 	g, _ := errgroup.WithContext(ctx)
 	for _, f := range ff {
 		g.Go(func() error {
-			return LoadFromCollection(ctx, objects, &colCursor{filters: f}, func(c pub.CollectionInterface) (bool, error) {
+			return LoadFromCollection(ctx, objects, &colCursor{filters: f}, func(c pub.CollectionInterface) error {
 				for _, it := range c.Collection() {
 					i := new(Item)
 					if err := i.FromActivityPub(it); err == nil && i.IsValid() {
 						items = append(items, *i)
 					}
 				}
-				return len(items) == f.MaxItems || len(f.Next) == 0, nil
+				return nil
 			})
 		})
 	}
@@ -1357,7 +1353,7 @@ func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, ff ..
 	for j := range ff {
 		f := ff[j]
 		g.Go(func() error {
-			err := LoadFromCollection(ctx, fn, &colCursor{filters: f}, func(col pub.CollectionInterface) (bool, error) {
+			err := LoadFromCollection(ctx, fn, &colCursor{filters: f}, func(col pub.CollectionInterface) error {
 				for _, it := range col.Collection() {
 					pub.OnActivity(it, func(a *pub.Activity) error {
 						relM.Lock()
@@ -1414,7 +1410,7 @@ func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, ff ..
 				}
 				// TODO(marius): this needs to be externalized also to a different function that we can pass from outer scope
 				//   This function implements the logic for breaking out of the collection iteration cycle and returns a bool
-				return true, nil
+				return nil
 			})
 			if err != nil {
 				return err
