@@ -43,13 +43,16 @@ func ValidEnv(env EnvType) bool {
 func (e EnvType) IsProd() bool {
 	return strings.Contains(string(e), string(PROD))
 }
+
 func (e EnvType) IsQA() bool {
 	return strings.Contains(string(e), string(QA))
 }
+
 func (e EnvType) IsTest() bool {
 	return strings.Contains(string(e), string(TEST))
 }
+
 func (e EnvType) IsDev() bool {
-	return strings.Contains(string(e), string(DEV))
+	return strings.Contains(string(e), string(DEV)) || strings.Contains(string(e), string(TEST))
 }
 
