@@ -32,6 +32,7 @@ var notNilIRIs = CompStrs{notNilIRI}
 
 type repository struct {
 	SelfURL string
+	cache   *cache
 	app     *Account
 	fedbox  *fedbox
 	infoFn  CtxLogFn
@@ -66,6 +67,7 @@ func ActivityPubService(c appConfig) (*repository, error) {
 		SelfURL: c.BaseURL,
 		infoFn:  infoFn,
 		errFn:   errFn,
+		cache:   caches(c.Env.IsDev()),
 	}
 	var err error
 	repo.fedbox, err = NewClient(
@@ -78,6 +80,14 @@ func ActivityPubService(c appConfig) (*repository, error) {
 	if err != nil {
 		return repo, err
 	}
+	if c.Env.IsDev() {
+		go func() {
+			if err := repo.WarmupCaches(repo.fedbox.Service()); err != nil {
+				c.Logger.WithContext(log.Ctx{"err": err.Error()}).Warnf("Unable to warmup cache")
+			}
+		}()
+	}
+
 	return repo, nil
 }
 
@@ -2337,6 +2347,15 @@ func (s StopSearchErr) Error() string {
 
 var stop = StopSearchErr("stop")
 
+func (r *repository) loadCollectionFromCacheOrIRI(ctx context.Context, iri pub.IRI) (pub.CollectionInterface, error) {
+	if it, okCache := r.cache.get(iri); okCache {
+		if c, okIntf := it.(pub.CollectionInterface); okIntf {
+			return c, nil
+		}
+	}
+	return r.fedbox.collection(ctx, iri)
+}
+
 func LoadFromSearches(c context.Context, repo *repository, loads RemoteLoads, fn pub.WithCollectionInterfaceFn) error {
 	ctx, cancelFn := context.WithCancel(c)
 
@@ -2352,17 +2371,13 @@ func LoadFromSearches(c context.Context, repo *repository, loads RemoteLoads, fn
 				f := search.filters[fi]
 				iri := search.loadFn(search.actor, Values(f))
 				g.Go(func() error {
-					col, err := repo.fedbox.collection(gtx, iri)
+					col, err := repo.loadCollectionFromCacheOrIRI(gtx, iri)
 					if err != nil {
 						st.status <- accumError
 						st.err = errors.Annotatef(err, "failed to load search: %s", iri)
 						return nil
 					}
-					if col.Count() == 0 {
-						st.status <- accumError
-						st.err = errors.Annotatef(err, "empty search: %s", iri)
-						return nil
-					}
+
 					if err = pub.OnCollectionIntf(col, fn); err != nil {
 						// TODO(marius): abusing an error type for gracefully terminating the collection load looks bad
 						if xerrors.Is(err, stop) {
@@ -2380,6 +2395,7 @@ func LoadFromSearches(c context.Context, repo *repository, loads RemoteLoads, fn
 						return nil
 					}
 					st.status <- accumContinue
+					repo.cache.add(iri, col)
 					return nil
 				})
 			}
