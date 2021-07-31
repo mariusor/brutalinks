@@ -2,17 +2,13 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
 	"flag"
-	"net/http"
 	"os"
 	"syscall"
 	"time"
 
 	w "git.sr.ht/~mariusor/wrapper"
 	"github.com/go-ap/errors"
-	"github.com/go-chi/chi"
-	"github.com/go-chi/chi/middleware"
 	"github.com/mariusor/go-littr/app"
 	"github.com/mariusor/go-littr/internal/config"
 	"github.com/mariusor/go-littr/internal/log"
@@ -101,12 +97,5 @@ func main() {
 	c := config.Load(config.EnvType(env), wait)
 	errors.IncludeBacktrace = c.Env.IsDev()
 
-	// Routes
-	r := chi.NewRouter()
-	r.Use(middleware.RequestID)
-	if !c.Env.IsProd() {
-		r.Use(middleware.Recoverer)
-		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	}
-	os.Exit(Run(app.New(c, host, port, version, r)))
+	os.Exit(Run(app.New(c, host, port, version)))
 }

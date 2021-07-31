@@ -2,13 +2,14 @@ package app
 
 import (
 	"bytes"
+	"crypto/tls"
 	"fmt"
 	"net/http"
 
 	pub "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
-	"github.com/go-chi/chi"
-	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/mariusor/go-littr/internal/assets"
 	"github.com/mariusor/go-littr/internal/config"
 	"github.com/mariusor/go-littr/internal/log"
@@ -77,8 +78,8 @@ type Collection interface{}
 var Instance Application
 
 // New instantiates a new Application
-func New(c *config.Configuration, host string, port int, ver string, m *chi.Mux) Application {
-	app := Application{Version: ver, Mux: m}
+func New(c *config.Configuration, host string, port int, ver string) Application {
+	app := Application{Version: ver}
 	app.setUp(c, host, port)
 	return app
 }
@@ -121,7 +122,14 @@ func (a *Application) Front() error {
 	}
 	a.front = front
 
-	r := a.Mux
+	// Routes
+	r := chi.NewRouter()
+	r.Use(middleware.RequestID)
+	if !a.Conf.Env.IsProd() {
+		r.Use(middleware.Recoverer)
+		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	}
+	a.Mux = r
 	// Frontend
 	r.With(front.Repository).Route("/", front.Routes(a.Conf))
 
