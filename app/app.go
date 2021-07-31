@@ -127,7 +127,7 @@ func (a *Application) Front() error {
 
 	// .well-known
 	cfg := NodeInfoConfig()
-	ni := nodeinfo.NewService(cfg, NodeInfoResolverNew(front.storage.fedbox))
+	ni := nodeinfo.NewService(cfg, NodeInfoResolverNew(front.storage, front.conf.Env))
 	// Web-Finger
 	r.Route("/.well-known", func(r chi.Router) {
 		r.Get("/webfinger", front.HandleWebFinger)

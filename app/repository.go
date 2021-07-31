@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto"
 	"encoding/base64"
+	xerrors "errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -439,11 +440,12 @@ func (r *repository) loadAccountsFollowers(ctx context.Context, acc *Account) er
 	if !acc.HasMetadata() || len(acc.Metadata.FollowersIRI) == 0 {
 		return nil
 	}
-	collFn := func(ctx context.Context, f *Filters) (pub.CollectionInterface, error) {
-		return r.fedbox.Collection(ctx, pub.IRI(acc.Metadata.FollowersIRI), Values(f))
+	f := &Filters{}
+	searches := RemoteLoads{
+		r.fedbox.Service().GetLink(): []RemoteLoad{{actor: acc.pub, loadFn: followers, filters: []*Filters{f}}},
 	}
-	return LoadFromCollection(ctx, collFn, &colCursor{filters: &Filters{}}, func(o pub.CollectionInterface) error {
-		for _, fol := range o.Collection() {
+	return LoadFromSearches(ctx, r, searches, func(c pub.CollectionInterface) error {
+		for _, fol := range c.Collection() {
 			if !pub.ActorTypes.Contains(fol.GetType()) {
 				continue
 			}
@@ -460,11 +462,12 @@ func (r *repository) loadAccountsFollowing(ctx context.Context, acc *Account) er
 	if !acc.HasMetadata() || len(acc.Metadata.FollowersIRI) == 0 {
 		return nil
 	}
-	collFn := func(ctx context.Context, f *Filters) (pub.CollectionInterface, error) {
-		return r.fedbox.Collection(ctx, pub.IRI(acc.Metadata.FollowingIRI), Values(f))
+	f := &Filters{}
+	searches := RemoteLoads{
+		r.fedbox.Service().GetLink(): []RemoteLoad{{actor: acc.pub, loadFn: following, filters: []*Filters{f}}},
 	}
-	return LoadFromCollection(ctx, collFn, &colCursor{filters: &Filters{}}, func(o pub.CollectionInterface) error {
-		for _, fol := range o.Collection() {
+	return LoadFromSearches(ctx, r, searches, func(c pub.CollectionInterface) error {
+		for _, fol := range c.Collection() {
 			if !pub.ActorTypes.Contains(fol.GetType()) {
 				continue
 			}
@@ -486,25 +489,26 @@ func (r *repository) loadAccountsOutbox(ctx context.Context, acc *Account) error
 	if !acc.HasMetadata() || len(acc.Metadata.OutboxIRI) == 0 {
 		return nil
 	}
-	collFn := func(ctx context.Context, f *Filters) (pub.CollectionInterface, error) {
-		return r.fedbox.Collection(ctx, pub.IRI(acc.Metadata.OutboxIRI), Values(f))
-	}
 	latest := time.Now().Add(-6 * 30 * 24 * time.Hour).UTC()
 	max := MaxContentItems * 25 // NOTE(marius): this affects how big the session stored value for an account can get
-	return LoadFromCollection(ctx, collFn, &colCursor{filters: &Filters{MaxItems: max}}, func(o pub.CollectionInterface) error {
-		if ocTypes.Contains(o.GetType()) {
-			pub.OnOrderedCollection(o, func(oc *pub.OrderedCollection) error {
+	f := &Filters{}
+	searches := RemoteLoads{
+		r.fedbox.Service().GetLink(): []RemoteLoad{{actor: acc.pub, loadFn: outbox, filters: []*Filters{f}}},
+	}
+	return LoadFromSearches(ctx, r, searches, func(c pub.CollectionInterface) error {
+		if ocTypes.Contains(c.GetType()) {
+			pub.OnOrderedCollection(c, func(oc *pub.OrderedCollection) error {
 				acc.Metadata.OutboxUpdated = oc.Updated
 				return nil
 			})
 		}
-		if cTypes.Contains(o.GetType()) {
-			pub.OnCollection(o, func(c *pub.Collection) error {
+		if cTypes.Contains(c.GetType()) {
+			pub.OnCollection(c, func(c *pub.Collection) error {
 				acc.Metadata.OutboxUpdated = c.Updated
 				return nil
 			})
 		}
-		for _, it := range o.Collection() {
+		for _, it := range c.Collection() {
 			skipOutbox := false
 			typ := it.GetType()
 			if ValidAppreciationTypes.Contains(typ) {
@@ -572,11 +576,12 @@ func (r *repository) loadItemsReplies(ctx context.Context, items ...Item) (ItemC
 	}
 	allReplies := make(ItemCollection, 0)
 	f := &Filters{}
+
+	searches := RemoteLoads{}
 	for _, top := range repliesTo {
-		collFn := func(ctx context.Context, f *Filters) (pub.CollectionInterface, error) {
-			return r.fedbox.Replies(ctx, top.GetLink(), Values(f))
-		}
-		err := LoadFromCollection(ctx, collFn, &colCursor{filters: f}, func(c pub.CollectionInterface) error {
+		searches[baseIRI(top)] = []RemoteLoad{{actor: top, loadFn: replies, filters: []*Filters{f}}}
+	}
+	err := LoadFromSearches(ctx, r, searches, func(c pub.CollectionInterface) error {
 			for _, it := range c.Collection() {
 				if !it.IsObject() {
 					continue
@@ -587,10 +592,9 @@ func (r *repository) loadItemsReplies(ctx context.Context, items ...Item) (ItemC
 				}
 			}
 			return nil
-		})
-		if err != nil {
-			r.errFn()(err.Error())
-		}
+	})
+	if err != nil {
+		r.errFn()(err.Error())
 	}
 	// TODO(marius): probably we can thread the replies right here
 	return allReplies, nil
@@ -606,11 +610,11 @@ func (r *repository) loadAccountVotes(ctx context.Context, acc *Account, items I
 		},
 		Type: AppreciationActivitiesFilter,
 	}
-	collFn := func(ctx context.Context, f *Filters) (pub.CollectionInterface, error) {
-		return r.fedbox.Outbox(ctx, acc.pub, Values(f))
+	searches := RemoteLoads{
+		r.fedbox.Service().GetLink(): []RemoteLoad{{actor: r.fedbox.Service(), loadFn: outbox, filters: []*Filters{f}}},
 	}
-	return LoadFromCollection(ctx, collFn, &colCursor{filters: f}, func(col pub.CollectionInterface) error {
-		for _, it := range col.Collection() {
+	return LoadFromSearches(ctx, r, searches, func(c pub.CollectionInterface) error {
+		for _, it := range c.Collection() {
 			if !it.IsObject() || !ValidAppreciationTypes.Contains(it.GetType()) {
 				continue
 			}
@@ -635,10 +639,10 @@ func (r *repository) loadItemsVotes(ctx context.Context, items ...Item) (ItemCol
 	for _, it := range items {
 		f.Object.IRI = append(f.Object.IRI, LikeString(it.Hash.String()))
 	}
-	collFn := func(ctx context.Context, f *Filters) (pub.CollectionInterface, error) {
-		return r.fedbox.Inbox(ctx, r.fedbox.Service(), Values(f))
+	searches := RemoteLoads{
+		r.fedbox.Service().GetLink(): []RemoteLoad{{actor: r.fedbox.Service(), loadFn: inbox, filters: []*Filters{f}}},
 	}
-	err := LoadFromCollection(ctx, collFn, &colCursor{filters: f}, func(c pub.CollectionInterface) error {
+	err := LoadFromSearches(ctx, r, searches, func(c pub.CollectionInterface) error {
 		for _, vAct := range c.Collection() {
 			if !vAct.IsObject() || !voteActivities.Contains(vAct.GetType()) {
 				continue
@@ -912,87 +916,99 @@ func accountsEqual(a1, a2 Account) bool {
 	return a1.Hash == a2.Hash || (len(a1.Handle)+len(a2.Handle) > 0 && a1.Handle == a2.Handle)
 }
 
+func  baseIRI (iri pub.IRI) pub.IRI {
+	u, _ := iri.URL()
+	u.Path = ""
+	return pub.IRI(u.String())
+}
 func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemCollection, error) {
 	if len(items) == 0 {
 		return items, nil
 	}
 
+
 	accounts := make(map[pub.IRI]AccountCollection)
-
-	fActors := &Filters{
-		Type: ActivityTypesFilter(ValidActorTypes...),
-	}
-
-	baseIRI := func (iri pub.IRI) pub.IRI {
-		u, _ := iri.URL()
-		u.Path = ""
-		return pub.IRI(u.String())
-	}
 	for _, it := range items {
 		if it.SubmittedBy.IsValid() {
 			iri := baseIRI(it.SubmittedBy.AP().GetLink())
-			// Adding an item's author to the list of accounts we want to load from the ActivityPub API
-			accounts[iri] = append(accounts[iri], *it.SubmittedBy)
+			if !accounts[iri].Contains(*it.SubmittedBy) {
+				// Adding an item's author to the list of accounts we want to load from the ActivityPub API
+				accounts[iri] = append(accounts[iri], *it.SubmittedBy)
+			}
 		}
 		if it.HasMetadata() {
 			// Adding an item's recipients list (To and CC) to the list of accounts we want to load from the ActivityPub API
-			if len(it.Metadata.To) > 0 && it.SubmittedBy.AP() != nil {
-				iri := baseIRI(it.SubmittedBy.AP().GetLink())
-				accounts[iri] = append(accounts[iri], it.Metadata.To...)
-			}
-			if len(it.Metadata.CC) > 0 {
-				for _, cc := range it.Metadata.CC {
-					if cc.AP() == nil {
-						continue
-					}
-					iri := baseIRI(cc.AP().GetLink())
-					accounts[iri] = append(accounts[iri], it.Metadata.CC...)
+			for _, to := range it.Metadata.To {
+				if to.AP() == nil {
+					continue
+				}
+				iri := baseIRI(to.AP().GetLink())
+				if !accounts[iri].Contains(to) {
+					accounts[iri] = append(accounts[iri], to)
 				}
 			}
+			for _, cc := range it.Metadata.CC {
+				if cc.AP() == nil {
+					continue
+				}
+				iri := baseIRI(cc.AP().GetLink())
+				if !accounts[iri].Contains(cc) {
+					accounts[iri] = append(accounts[iri], cc)
+				}
+			}
+		}
+	}
+
+	if len(accounts) == 0 {
+		return items, nil
+	}
+
+	fActors := Filters{ Type: ActivityTypesFilter(ValidActorTypes...) }
+	requiredAuthorsCount := 0
+	searches := RemoteLoads{}
+	for i, acc := range accounts {
+		ff := fActors
+		ff.IRI = AccountHashFilter(acc...)
+		requiredAuthorsCount += len(ff.IRI)
+		f := Filters{ Object: &ff }
+		f.Type = ActivityTypesFilter(pub.CreateType)
+		actorsCol := func (a pub.Item, f ...client.FilterFn) pub.IRI {
+			return iri(actors.IRI(a), f...)
+		}
+		searches[i] = []RemoteLoad{
+			{
+				actor: i,
+				loadFn:  actorsCol,
+				filters: []*Filters{&ff},
+			},
+			{
+				actor: i,
+				loadFn: inbox,
+				filters: []*Filters{&f},
+			},
 		}
 	}
 
 	authors := make(AccountCollection, 0)
-	if len(accounts) > 0 {
-		searches := make(RemoteLoads)
-		for i, acc := range accounts {
-			ff := fActors
-			ff.IRI = AccountHashFilter(acc...)
-			f := &Filters{ Object: ff }
-			f.Type = ActivityTypesFilter(pub.CreateType)
-			actorsCol := func (a pub.Item, f ...client.FilterFn) pub.IRI {
-				return iri(actors.IRI(a), f...)
+	err := LoadFromSearches(ctx, r, searches, func(col pub.CollectionInterface) error {
+		for _, it := range col.Collection() {
+			acc := Account{Metadata: &AccountMetadata{}}
+			if err := acc.FromActivityPub(it); err != nil {
+				r.errFn(log.Ctx{"type": fmt.Sprintf("%T", it)})(err.Error())
+				continue
 			}
-			searches[i] = []RemoteLoad{
-				{
-					loadFn:  actorsCol,
-					filters: []*Filters{ff},
-				},
-				{
-					loadFn: inbox,
-					filters: []*Filters{f},
-				},
+			if acc.IsValid() && !authors.Contains(acc) {
+				authors = append(authors, acc)
 			}
-
-			err := LoadFromSearches(r, searches, func(col pub.CollectionInterface) error {
-				for _, it := range col.Collection() {
-					acc := Account{Metadata: &AccountMetadata{}}
-					if err := acc.FromActivityPub(it); err != nil {
-						r.errFn(log.Ctx{"type": fmt.Sprintf("%T", it)})(err.Error())
-						continue
-					}
-					if acc.IsValid() && !authors.Contains(acc) {
-						authors = append(authors, acc)
-					}
-				}
-				return nil
-			})
-			if err != nil {
-				return items, errors.Annotatef(err, "unable to load items authors")
+			if len(authors) == requiredAuthorsCount {
+				return stop
 			}
 		}
+		return nil
+	})
+	if err != nil {
+		return items, errors.Annotatef(err, "unable to load items authors")
 	}
-
 	col := make(ItemCollection, 0)
 	for _, it := range items {
 		for a := range authors {
@@ -1078,7 +1094,7 @@ func getCollectionPrevNext(col pub.CollectionInterface) (prev, next string) {
 }
 
 type res struct {
-	status accumStatus
+	status chan accumStatus
 	err    error
 }
 
@@ -1090,42 +1106,6 @@ const (
 	accumSuccess
 	accumEndOfCollection
 )
-
-// LoadFromCollection iterates over a collection returned by the f function, until accum is satisfied
-func LoadFromCollection(ctx context.Context, loadColFn CollectionFn, cur *colCursor, accum func(pub.CollectionInterface) error) error {
-	var err error
-	processed := 0
-	for {
-		var status bool
-		var col pub.CollectionInterface
-
-		if col, err = loadColFn(ctx, cur.filters); err != nil {
-			return err
-		}
-
-		var prev string
-		if err = pub.OnCollectionIntf(col, accum); err != nil {
-			return err
-		}
-		prev, cur.filters.Next = getCollectionPrevNext(col)
-		if processed == 0 {
-			cur.filters.Prev = prev
-		}
-		processed += len(col.Collection())
-		st := accumContinue
-		if len(cur.filters.Next) == 0 || uint(processed) == col.Count() {
-			st = accumEndOfCollection
-		}
-		if status && processed >= cur.filters.MaxItems {
-			st = accumSuccess
-		}
-		if st != accumContinue {
-			break
-		}
-	}
-
-	return err
-}
 
 func (r *repository) account(ctx context.Context, ff *Filters) (Account, error) {
 	accounts, err := r.accounts(ctx, ff)
@@ -1142,34 +1122,25 @@ func (r *repository) account(ctx context.Context, ff *Filters) (Account, error) 
 }
 
 func (r *repository) accounts(ctx context.Context, ff ...*Filters) ([]Account, error) {
-	actors := func(ctx context.Context, f *Filters) (pub.CollectionInterface, error) {
-		return r.fedbox.Actors(ctx, Values(f))
-	}
 	accounts := make([]Account, 0)
-	// TODO(marius): see how we can use the context returned by errgroup.WithContext()
-	g, _ := errgroup.WithContext(ctx)
-	for _, f := range ff {
-		g.Go(func() error {
-			return LoadFromCollection(ctx, actors, &colCursor{filters: f}, func(col pub.CollectionInterface) error {
-				for _, it := range col.Collection() {
-					if !it.IsObject() || !ValidActorTypes.Contains(it.GetType()) {
-						continue
-					}
-					a := Account{}
-					if err := a.FromActivityPub(it); err == nil && a.IsValid() {
-						accounts = append(accounts, a)
-					}
-				}
-				// TODO(marius): this needs to be externalized also to a different function that we can pass from outer scope
-				//   This function implements the logic for breaking out of the collection iteration cycle and returns a bool
-				return nil
-			})
-		})
+	searches := RemoteLoads{
+		r.fedbox.Service().GetLink(): []RemoteLoad{{actor: r.fedbox.Service(), loadFn: colIRI(actors), filters: ff}},
 	}
-	if err := g.Wait(); err != nil {
-		return nil, err
-	}
-	return accounts, nil
+	err := LoadFromSearches(ctx, r, searches, func(col pub.CollectionInterface) error {
+		for _, it := range col.Collection() {
+			if !it.IsObject() || !ValidActorTypes.Contains(it.GetType()) {
+				continue
+			}
+			a := Account{}
+			if err := a.FromActivityPub(it); err == nil && a.IsValid() {
+				accounts = append(accounts, a)
+			}
+		}
+		// TODO(marius): this needs to be externalized also to a different function that we can pass from outer scope
+		//   This function implements the logic for breaking out of the collection iteration cycle and returns a bool
+		return nil
+	})
+	return accounts, err
 }
 
 func (r *repository) object(ctx context.Context, ff *Filters) (Item, error) {
@@ -1188,30 +1159,20 @@ func (r *repository) object(ctx context.Context, ff *Filters) (Item, error) {
 }
 
 func (r *repository) objects(ctx context.Context, ff ...*Filters) (ItemCollection, error) {
-	objects := func(ctx context.Context, f *Filters) (pub.CollectionInterface, error) {
-		return r.fedbox.Objects(ctx, Values(f))
-	}
-	items := make(ItemCollection, 0)
-	// TODO(marius): see how we can use the context returned by errgroup.WithContext()
-	g, _ := errgroup.WithContext(ctx)
-	for _, f := range ff {
-		g.Go(func() error {
-			return LoadFromCollection(ctx, objects, &colCursor{filters: f}, func(c pub.CollectionInterface) error {
-				for _, it := range c.Collection() {
-					i := new(Item)
-					if err := i.FromActivityPub(it); err == nil && i.IsValid() {
-						items = append(items, *i)
-					}
-				}
-				return nil
-			})
-		})
-	}
-	if err := g.Wait(); err != nil {
-		return nil, err
+	searches := RemoteLoads{
+		r.fedbox.Service().GetLink(): []RemoteLoad{{actor: r.fedbox.Service(), loadFn: colIRI(objects), filters: ff}},
 	}
 
-	var err error
+	items := make(ItemCollection, 0)
+	err := LoadFromSearches(ctx, r, searches, func(c pub.CollectionInterface) error {
+		for _, it := range c.Collection() {
+			i := new(Item)
+			if err := i.FromActivityPub(it); err == nil && i.IsValid() {
+				items = append(items, *i)
+			}
+		}
+		return nil
+	})
 	if items, err = r.loadItemsAuthors(ctx, items...); err != nil {
 		return nil, err
 	}
@@ -1317,8 +1278,8 @@ func IRIsFilter(iris ...pub.IRI) CompStrs {
 // First step is to load the Create activities from the inbox
 // Iterating over the activities in the resulting collection, we gather the objects and accounts
 //  With the resulting Object IRIs we load from the objects collection with our matching filters
-//  With the resulting Actor IRIs we load from the accounts collection with matching filters
-func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, ff ...*Filters) (Cursor, error) {
+//  With the resulting Actor IRIs we load from the actors collection with matching filters
+func (r *repository) ActorCollection(ctx context.Context, searches RemoteLoads) (Cursor, error) {
 	items := make(ItemCollection, 0)
 	follows := make(FollowRequests, 0)
 	accounts := make(AccountCollection, 0)
@@ -1348,112 +1309,105 @@ func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, ff ..
 	}
 	result := make(RenderableList, 0)
 	resM := new(sync.RWMutex)
-	// TODO(marius): see how we can use the context returned by errgroup.WithContext()
-	g, _ := errgroup.WithContext(ctx)
-	for j := range ff {
-		f := ff[j]
-		g.Go(func() error {
-			err := LoadFromCollection(ctx, fn, &colCursor{filters: f}, func(col pub.CollectionInterface) error {
-				for _, it := range col.Collection() {
-					pub.OnActivity(it, func(a *pub.Activity) error {
-						relM.Lock()
-						defer relM.Unlock()
 
-						typ := it.GetType()
-						if typ == pub.CreateType {
-							ob := a.Object
-							if ob == nil {
-								return nil
-							}
-							if ob.IsObject() {
-								if ValidContentTypes.Contains(ob.GetType()) {
-									i := Item{}
-									i.FromActivityPub(ob)
-									if validItem(i, f) {
-										items = append(items, i)
-									}
-								}
-								if ValidActorTypes.Contains(ob.GetType()) {
-									a := Account{}
-									a.FromActivityPub(ob)
-									accounts = append(accounts, a)
-								}
-							} else {
-								i := Item{}
-								i.FromActivityPub(a)
-								appendToDeferred(ob, EqualsString)
-							}
-							relations[a.GetLink()] = ob.GetLink()
-						}
-						if it.GetType() == pub.FollowType {
-							f := FollowRequest{}
-							f.FromActivityPub(a)
-							follows = append(follows, f)
-							relations[a.GetLink()] = a.GetLink()
-							appendToDeferred(a.Object, EqualsString)
-						}
-						if ValidModerationActivityTypes.Contains(typ) {
-							m := ModerationOp{}
-							m.FromActivityPub(a)
-							moderations = append(moderations, m)
-							relations[a.GetLink()] = a.GetLink()
-							appendToDeferred(a.Object, EqualsString)
-						}
-						if ValidAppreciationTypes.Contains(typ) {
-							v := Vote{}
-							v.FromActivityPub(a)
-							appreciations = append(appreciations, v)
-							relations[a.GetLink()] = a.GetLink()
-						}
+	f := &Filters{}
+	var next, prev string
+	err := LoadFromSearches(ctx, r, searches, func(col pub.CollectionInterface) error {
+		prev, next = getCollectionPrevNext(col)
+		for _, it := range col.Collection() {
+			pub.OnActivity(it, func(a *pub.Activity) error {
+				relM.Lock()
+				defer relM.Unlock()
+
+				typ := it.GetType()
+				if typ == pub.CreateType {
+					ob := a.Object
+					if ob == nil {
 						return nil
-					})
+					}
+					if ob.IsObject() {
+						if ValidContentTypes.Contains(ob.GetType()) {
+							i := Item{}
+							i.FromActivityPub(ob)
+							if validItem(i, f) {
+								items = append(items, i)
+							}
+						}
+						if ValidActorTypes.Contains(ob.GetType()) {
+							a := Account{}
+							a.FromActivityPub(ob)
+							accounts = append(accounts, a)
+						}
+					} else {
+						i := Item{}
+						i.FromActivityPub(a)
+						appendToDeferred(ob, EqualsString)
+					}
+					relations[a.GetLink()] = ob.GetLink()
 				}
-				// TODO(marius): this needs to be externalized also to a different function that we can pass from outer scope
-				//   This function implements the logic for breaking out of the collection iteration cycle and returns a bool
+				if it.GetType() == pub.FollowType {
+					f := FollowRequest{}
+					f.FromActivityPub(a)
+					follows = append(follows, f)
+					relations[a.GetLink()] = a.GetLink()
+					appendToDeferred(a.Object, EqualsString)
+				}
+				if ValidModerationActivityTypes.Contains(typ) {
+					m := ModerationOp{}
+					m.FromActivityPub(a)
+					moderations = append(moderations, m)
+					relations[a.GetLink()] = a.GetLink()
+					appendToDeferred(a.Object, EqualsString)
+				}
+				if ValidAppreciationTypes.Contains(typ) {
+					v := Vote{}
+					v.FromActivityPub(a)
+					appreciations = append(appreciations, v)
+					relations[a.GetLink()] = a.GetLink()
+				}
 				return nil
 			})
-			if err != nil {
-				return err
-			}
-			if len(deferredItems) > 0 {
-				if f.Object == nil {
-					f.Object = new(Filters)
-				}
-				ff := f.Object
-				ff.IRI = deferredItems
-				objects, _ := r.objects(ctx, ff)
-				for _, d := range objects {
-					if !d.IsValid() {
-						continue
-					}
-					if !items.Contains(d) {
-						items = append(items, d)
-					}
-				}
-			}
-			if len(deferredActors) > 0 {
-				if f.Actor == nil {
-					f.Actor = new(Filters)
-				}
-				ff := f.Actor
-				ff.IRI = deferredActors
-				acc, _ := r.accounts(ctx, ff)
-				for _, d := range acc {
-					if !d.IsValid() {
-						continue
-					}
-					if !accounts.Contains(d) {
-						accounts = append(accounts, d)
-					}
-				}
-			}
-			return nil
-		})
-	}
-	if err := g.Wait(); err != nil {
+		}
+		// TODO(marius): this needs to be externalized also to a different function that we can pass from outer scope
+		//   This function implements the logic for breaking out of the collection iteration cycle and returns a bool
+		return nil
+	})
+	if err != nil {
 		return emptyCursor, err
 	}
-	var err error
+	if len(deferredItems) > 0 {
+		if f.Object == nil {
+			f.Object = new(Filters)
+		}
+		ff := f.Object
+		ff.IRI = deferredItems
+		objects, _ := r.objects(ctx, ff)
+		for _, d := range objects {
+			if !d.IsValid() {
+				continue
+			}
+			if !items.Contains(d) {
+				items = append(items, d)
+			}
+		}
+	}
+	if len(deferredActors) > 0 {
+		if f.Actor == nil {
+			f.Actor = new(Filters)
+		}
+		ff := f.Actor
+		ff.IRI = deferredActors
+		acc, _ := r.accounts(ctx, ff)
+		for _, d := range acc {
+			if !d.IsValid() {
+				continue
+			}
+			if !accounts.Contains(d) {
+				accounts = append(accounts, d)
+			}
+		}
+	}
+
 	items, err = r.loadItemsAuthors(ctx, items...)
 	if err != nil {
 		return emptyCursor, err
@@ -1516,19 +1470,9 @@ func (r *repository) ActorCollection(ctx context.Context, fn CollectionFn, ff ..
 		}
 	}
 
-	var next, prev Hash
-	for _, f := range ff {
-		if len(f.Next) > 0 {
-			next = HashFromString(f.Next)
-		}
-		if len(f.Prev) > 0 {
-			prev = HashFromString(f.Prev)
-		}
-	}
-
 	return Cursor{
-		after:  next,
-		before: prev,
+		after:  HashFromString(next),
+		before: HashFromString(prev),
 		items:  result,
 		total:  uint(len(result)),
 	}, nil
@@ -2234,10 +2178,10 @@ func (r *repository) LoadActorOutbox(ctx context.Context, actor pub.Item, f ...*
 	if actor == nil {
 		return nil, errors.Errorf("Invalid actor")
 	}
-	outbox := func(ctx context.Context, f *Filters) (pub.CollectionInterface, error) {
-		return r.fedbox.Outbox(ctx, actor, Values(f))
+	searches := RemoteLoads{
+		r.fedbox.Service().GetLink(): []RemoteLoad{{actor: r.fedbox.Service(), loadFn: outbox, filters: f}},
 	}
-	cursor, err := r.ActorCollection(ctx, outbox, f...)
+	cursor, err := r.ActorCollection(ctx, searches)
 	if err != nil {
 		return nil, err
 	}
@@ -2245,10 +2189,10 @@ func (r *repository) LoadActorOutbox(ctx context.Context, actor pub.Item, f ...*
 }
 
 func (r *repository) LoadActivities(ctx context.Context, ff ...*Filters) (*Cursor, error) {
-	collFn := func(ctx context.Context, f *Filters) (pub.CollectionInterface, error) {
-		return r.fedbox.Activities(ctx, Values(f))
+	searches := RemoteLoads{
+		r.fedbox.Service().GetLink(): []RemoteLoad{{actor: r.fedbox.Service(), loadFn: colIRI(activities), filters: ff}},
 	}
-	cursor, err := r.ActorCollection(ctx, collFn, ff...)
+	cursor, err := r.ActorCollection(ctx, searches)
 	if err != nil {
 		return nil, err
 	}
@@ -2259,10 +2203,10 @@ func (r *repository) LoadActorInbox(ctx context.Context, actor pub.Item, f ...*F
 	if actor == nil {
 		return nil, errors.Errorf("Invalid actor")
 	}
-	collFn := func(ctx context.Context, f *Filters) (pub.CollectionInterface, error) {
-		return r.fedbox.Inbox(ctx, actor, Values(f))
+	searches := RemoteLoads{
+		r.fedbox.Service().GetLink(): []RemoteLoad{{actor: r.fedbox.Service(), loadFn: inbox, filters: f}},
 	}
-	cursor, err := r.ActorCollection(ctx, collFn, f...)
+	cursor, err := r.ActorCollection(ctx, searches)
 	if err != nil {
 		return nil, err
 	}
@@ -2373,6 +2317,92 @@ func (r *repository) ReportAccount(ctx context.Context, er, ed Account, reason *
 	if _, _, err = r.fedbox.ToOutbox(ctx, flag); err != nil {
 		r.errFn()(err.Error())
 		return err
+	}
+	return nil
+}
+
+type RemoteLoads map[pub.IRI][]RemoteLoad
+
+type RemoteLoad struct {
+	actor   pub.Item
+	loadFn  LoadFn
+	filters []*Filters
+}
+
+type StopSearchErr string
+
+func (s StopSearchErr) Error() string {
+	return string(s)
+}
+
+var stop = StopSearchErr("stop")
+
+func LoadFromSearches(c context.Context, repo *repository, loads RemoteLoads, fn pub.WithCollectionInterfaceFn) error {
+	ctx, cancelFn := context.WithCancel(c)
+
+	st := res{
+		status: make(chan accumStatus, 5),
+	}
+
+	g, gtx := errgroup.WithContext(ctx)
+	for _, colSearch := range loads {
+		for si := range colSearch {
+			search := colSearch[si]
+			for fi := range search.filters {
+				f := search.filters[fi]
+				iri := search.loadFn(search.actor, Values(f))
+				g.Go(func() error {
+					col, err := repo.fedbox.collection(gtx, iri)
+					if err != nil {
+						st.status <- accumError
+						st.err = errors.Annotatef(err, "failed to load search: %s", iri)
+						return nil
+					}
+					if col.Count() == 0 {
+						st.status <- accumError
+						st.err = errors.Annotatef(err, "empty search: %s", iri)
+						return nil
+					}
+					if err = pub.OnCollectionIntf(col, fn); err != nil {
+						// TODO(marius): abusing an error type for gracefully terminating the collection load looks bad
+						if xerrors.Is(err, stop) {
+							st.status <- accumSuccess
+						} else {
+							st.err = errors.Annotatef(err, "search didn't return a collection: %s", iri)
+							st.status <- accumError
+						}
+						return nil
+					}
+
+					f.Prev, f.Next = getCollectionPrevNext(col)
+					if len(f.Next) == 0 {
+						st.status <- accumEndOfCollection
+						return nil
+					}
+					st.status <- accumContinue
+					return nil
+				})
+			}
+		}
+	}
+	if err := g.Wait(); err != nil {
+		repo.errFn(log.Ctx{"err":err.Error()})("failed when loading collection")
+	}
+	select {
+	case status := <- st.status:
+		switch status {
+		case accumSuccess:
+			fallthrough
+		case accumEndOfCollection:
+			// All ok
+			repo.infoFn()("Reached end of collection, stopping")
+			cancelFn()
+		case accumError:
+			repo.errFn(log.Ctx{"err": st.err})("Unable to load IRI")
+		case accumContinue:
+			fallthrough
+		default:
+		}
 	}
 	return nil
 }

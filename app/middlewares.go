@@ -130,63 +130,6 @@ func ctxtErr(next http.Handler, w http.ResponseWriter, r *http.Request, err erro
 
 type CollectionLoadFn func(pub.CollectionInterface) error
 
-type RemoteLoad struct {
-	loadFn  LoadFn
-	filters []*Filters
-}
-
-type RemoteLoads map[pub.IRI][]RemoteLoad
-
-func LoadFromSearches(repo *repository, loads RemoteLoads, fn pub.WithCollectionInterfaceFn) error {
-	ctx := context.TODO()
-	var err error
-	processed := 0
-
-	for iri, load := range loads {
-		for _, search := range load {
-		newSearch:
-			for _, f := range search.filters {
-				for {
-					var status bool
-					var col pub.CollectionInterface
-
-					col, err = repo.fedbox.collection(ctx, search.loadFn(iri, Values(f)))
-					if err != nil {
-						repo.errFn(log.Ctx{"iri": iri, "err": err})("unable to load search")
-						continue newSearch
-					}
-					if col.Count() == 0 {
-						repo.errFn(log.Ctx{"iri": iri})("empty search")
-						continue newSearch
-					}
-
-					var prev string
-					if err = pub.OnCollectionIntf(col, fn); err != nil {
-						repo.errFn(log.Ctx{"err": err})("search didn't return a collection")
-						continue newSearch
-					}
-					prev, f.Next = getCollectionPrevNext(col)
-					if processed == 0 {
-						f.Prev = prev
-					}
-					processed += len(col.Collection())
-					st := accumContinue
-					if len(f.Next) == 0 || uint(processed) == col.Count() {
-						st = accumEndOfCollection
-					}
-					if status && processed >= f.MaxItems {
-						st = accumSuccess
-					}
-					if st != accumContinue {
-						break newSearch
-					}
-				}
-			}
-		}
-	}
-	return nil
-}
-
 func LoadObjectFromInboxMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var err error
@@ -205,38 +148,38 @@ func LoadObjectFromInboxMw(next http.Handler) http.Handler {
 		}
 
 		searchIn := RemoteLoads{
-			repo.fedbox.Service().GetLink(): []RemoteLoad{{loadFn: inbox, filters: fff}},
+			repo.fedbox.Service().GetLink(): []RemoteLoad{{actor: repo.fedbox.Service(), loadFn: inbox, filters: fff}},
 		}
 		if current.IsLogged() {
 			searchIn[current.pub.GetLink()] = []RemoteLoad{
-				{loadFn: inbox, filters: fff},
-				{loadFn: outbox, filters: fff},
+				{actor: current.pub, loadFn: inbox, filters: fff},
+				{actor: current.pub, loadFn: outbox, filters: fff},
 			}
 		}
 
-		var items ItemCollection
-		err = LoadFromSearches(repo, searchIn, func (c pub.CollectionInterface) error {
+		var item Item
+		err = LoadFromSearches(ctx, repo, searchIn, func (c pub.CollectionInterface) error {
 			for _, it := range c.Collection() {
 				i := Item{}
 				if err := i.FromActivityPub(it); err != nil {
 					repo.errFn(log.Ctx{"iri": it.GetLink()})("unable to load item")
-					continue
+					return err
 				}
 				if !i.IsValid() {
 					repo.errFn(log.Ctx{"iri": it.GetLink()})("item is invalid")
-					continue
+					return err
 				}
-				if !items.Contains(i) {
-					items = append(items, i)
-				}
+				item = i
 			}
-			return nil
+			return stop
 		})
-
-		if err != nil || len(items) == 0 {
+		if err != nil {
 			ctxtErr(next, w, r, errors.NotFoundf("Object not found"))
 			return
 		}
+
+		items := ItemCollection{item}
+
 		if comments, err := repo.loadItemsReplies(ctx, items...); err == nil {
 			items = append(items, comments...)
 		}

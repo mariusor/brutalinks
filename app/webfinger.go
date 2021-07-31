@@ -10,6 +10,7 @@ import (
 
 	pub "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
+	"github.com/mariusor/go-littr/internal/config"
 	"github.com/writeas/go-nodeinfo"
 )
 
@@ -45,22 +46,25 @@ var (
 	}
 )
 
-func NodeInfoResolverNew(f *fedbox) NodeInfoResolver {
+func NodeInfoResolverNew(r *repository, env config.EnvType) NodeInfoResolver {
 	n := NodeInfoResolver{}
-	if f == nil {
+	if r == nil {
 		return n
 	}
 
-	us, _ := f.Actors(context.TODO(), Values(actorsFilter))
+	if env.IsDev() {
+		return n
+	}
+	us, _ := r.fedbox.Actors(context.TODO(), Values(actorsFilter))
 	if us != nil {
 		n.users = int(us.Count())
 	}
 
-	posts, _ := f.Objects(context.TODO(), Values(postsFilter))
+	posts, _ := r.fedbox.Objects(context.TODO(), Values(postsFilter))
 	if posts != nil {
 		n.posts = int(posts.Count())
 	}
-	all, _ := f.Objects(context.TODO(), Values(allFilter))
+	all, _ := r.fedbox.Objects(context.TODO(), Values(allFilter))
 
 	if all != nil {
 		n.comments = int(all.Count()) - n.posts
@@ -217,17 +221,17 @@ func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 			Href: id,
 		},
 		{
-			Rel:  "http://webfinger.net/rel/profile-page",
+			Rel:  "https://webfinger.net/rel/profile-page",
 			Type: "text/html",
 			Href: url,
 		},
 		{
-			Rel: "http://ostatus.org/schema/1.0/subscribe",
+			Rel: "https://ostatus.org/schema/1.0/subscribe",
 		},
 	}
 	if url1 != url && url1 != id {
 		wf.Links = append(wf.Links, link{
-			Rel:  "http://webfinger.net/rel/profile-page",
+			Rel:  "https://webfinger.net/rel/profile-page",
 			Type: "text/html",
 			Href: url1,
 		})
