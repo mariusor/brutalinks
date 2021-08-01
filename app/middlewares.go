@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"strings"
 
 	pub "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
@@ -156,21 +157,23 @@ func LoadObjectFromInboxMw(next http.Handler) http.Handler {
 		var item Item
 		err = LoadFromSearches(ctx, repo, searchIn, func (c pub.CollectionInterface) error {
 			for _, it := range c.Collection() {
-				i := Item{}
-				if err := i.FromActivityPub(it); err != nil {
+				if err := item.FromActivityPub(it); err != nil {
 					repo.errFn(log.Ctx{"iri": it.GetLink()})("unable to load item")
-					return err
+					continue
 				}
-				if !i.IsValid() {
-					repo.errFn(log.Ctx{"iri": it.GetLink()})("item is invalid")
-					return err
+				if item.IsValid() {
+					return stop
 				}
-				item = i
 			}
-			return stop
+			return nil
 		})
-		if err != nil {
-			ctxtErr(next, w, r, errors.NotFoundf("Object not found"))
+		if err != nil || !item.IsValid() {
+			var ctx log.Ctx
+			if err != nil {
+				ctx = log.Ctx{"err": err.Error()}
+			}
+			repo.errFn(ctx)("item not found")
+			ctxtErr(next, w, r, errors.NotFoundf(strings.TrimLeft(r.URL.Path, "/")))
 			return
 		}
 
