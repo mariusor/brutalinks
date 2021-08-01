@@ -14,6 +14,10 @@ type Cursor struct {
 	total  uint
 }
 
+func NewCursor() *Cursor {
+	return &Cursor{ items: make(RenderableList) }
+}
+
 var emptyCursor = Cursor{}
 
 type colCursor struct {

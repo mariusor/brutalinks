@@ -75,7 +75,7 @@ func DefaultFilters(next http.Handler) http.Handler {
 	})
 }
 
-// FiltersFromRequest loads the filters we use for generating storage queries from the HTTP request
+// ContextActivityFilters loads the filters we use for generating storage queries from the HTTP request
 func ContextActivityFilters(ctx context.Context) []*Filters {
 	if f, ok := ctx.Value(FilterCtxtKey).([]*Filters); ok {
 		return f

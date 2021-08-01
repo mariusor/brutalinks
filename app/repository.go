@@ -2389,7 +2389,7 @@ func LoadFromSearches(c context.Context, repo *repository, loads RemoteLoads, fn
 						return nil
 					}
 
-					f.Prev, f.Next = getCollectionPrevNext(col)
+					_, f.Next = getCollectionPrevNext(col)
 					if len(f.Next) == 0 {
 						st.status <- accumEndOfCollection
 						return nil
