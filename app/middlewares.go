@@ -142,18 +142,14 @@ func LoadObjectFromInboxMw(next http.Handler) http.Handler {
 			ctxtErr(next, w, r, errors.Newf("invalid filter"))
 			return
 		}
-		fff := make([]*Filters, len(ff))
-		for i, f := range ff {
-			fff[i] = f
-		}
 
 		searchIn := RemoteLoads{
-			repo.fedbox.Service().GetLink(): []RemoteLoad{{actor: repo.fedbox.Service(), loadFn: inbox, filters: fff}},
+			repo.fedbox.Service().GetLink(): []RemoteLoad{{actor: repo.fedbox.Service(), loadFn: inbox, filters: ff}},
 		}
 		if current.IsLogged() {
 			searchIn[current.pub.GetLink()] = []RemoteLoad{
-				{actor: current.pub, loadFn: inbox, filters: fff},
-				{actor: current.pub, loadFn: outbox, filters: fff},
+				{actor: current.pub, loadFn: inbox, filters: ff},
+				{actor: current.pub, loadFn: outbox, filters: ff},
 			}
 		}
 
