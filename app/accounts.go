@@ -80,7 +80,10 @@ var ValidActorTypes = pub.ActivityVocabularyTypes{
 	pub.OrganizationType,
 }
 
-func (a Account) ID() Hash {
+func (a *Account) ID() Hash {
+	if a == nil {
+		return AnonymousHash
+	}
 	return a.Hash
 }
 

@@ -27,10 +27,10 @@
                 {{- end }}
             {{- end }}
             {{- if and CurrentAccount.IsValid $it.SubmittedBy.IsValid -}}
-                {{- if (sameHash $it.SubmittedBy.Hash CurrentAccount.Hash) }}
+                {{- if (sameHash $it.SubmittedBy.ID CurrentAccount.ID) }}
                     {{- if not .Deleted }}
                         <li><small><a href="{{$it | PermaLink }}/edit" title="Edit{{if .Title}}: {{$it.Title }}{{end}}">{{/*icon "edit"*/}}edit</a></small></li>
-                        <li><small><a href="{{$it | PermaLink }}/rm" class="rm" data-hash="{{ .Hash }}" title="Remove{{if .Title}}: {{$it.Title }}{{end}}">{{/*icon "eraser"*/}}rm</a></small></li>
+                        <li><small><a href="{{$it | PermaLink }}/rm" class="rm" data-hash="{{ .ID }}" title="Remove{{if .Title}}: {{$it.Title }}{{end}}">{{/*icon "eraser"*/}}rm</a></small></li>
                     {{ end -}}
                 {{- else -}}
                 {{ if Config.ModerationEnabled }}
@@ -41,7 +41,7 @@
             {{ end -}}
             {{ end -}}
             {{/* - if not $it.Private }}
-            <li><a href="{{ $it.Metadata.ID }}" data-hash="{{ .Hash }}" title="ActivityPub link{{if .Title}}: {{$it.Title }}{{end}}">{{icon "activitypub"}}</a></li>
+            <li><a href="{{ $it.Metadata.ID }}" data-hash="{{ .ID }}" title="ActivityPub link{{if .Title}}: {{$it.Title }}{{end}}">{{icon "activitypub"}}</a></li>
 {{- end */}}
     </ul></nav>
 </footer>

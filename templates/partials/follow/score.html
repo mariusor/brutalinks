@@ -1,4 +1,4 @@
-<aside class="score" id="f-{{.Hash}}" data-hash="{{.Hash}}">
+<aside class="score" id="f-{{.ID}}" data-hash="{{.ID}}">
     <a href="{{ . | AcceptLink }}" {{- if AccountIsFollowed .SubmittedBy }} class="yay ed"{{- end -}}>{{ icon "check" }}</a>
     <a href="{{ . | RejectLink }}" {{- if AccountIsRejected .SubmittedBy }} class="nay ed"{{- end -}}>{{ icon "plus" "deg-45" }}</a>
 </aside>

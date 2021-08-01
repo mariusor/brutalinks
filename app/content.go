@@ -121,7 +121,10 @@ type Item struct {
 	children    ItemPtrCollection `json:"-"`
 }
 
-func (i Item) ID() Hash {
+func (i *Item) ID() Hash {
+	if i == nil {
+		return AnonymousHash
+	}
 	return i.Hash
 }
 

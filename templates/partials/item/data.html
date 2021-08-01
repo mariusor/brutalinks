@@ -1,5 +1,5 @@
 {{- if .Deleted -}}
-<del class="titles" data-hash="{{.Hash}}">deleted</del>
+<del class="titles" data-hash="{{.ID}}">deleted</del>
 {{- else -}}
 {{- template "partials/item/title" . -}}
 {{ template "partials/item/recipients" . }}

@@ -27,7 +27,10 @@ type ActivityMetadata struct {
 	InReplyTo pub.IRIs `json:"-"`
 }
 
-func (f FollowRequest) ID() Hash {
+func (f *FollowRequest) ID() Hash {
+	if f == nil {
+		return AnonymousHash
+	}
 	return f.Hash
 }
 

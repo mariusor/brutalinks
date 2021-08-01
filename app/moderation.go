@@ -31,7 +31,10 @@ type ModerationGroup struct {
 	Followup    []*ModerationOp `json:"-"`
 }
 
-func (m ModerationGroup) ID() Hash {
+func (m *ModerationGroup) ID() Hash {
+	if m == nil {
+		return AnonymousHash
+	}
 	return m.Hash
 }
 

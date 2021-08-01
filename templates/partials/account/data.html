@@ -6,7 +6,7 @@
 {{- else -}}
 <span>
     Pending invitation
-{{ if and (eq current "user") (sameHash .CreatedBy.Hash CurrentAccount.Hash) -}}
+{{ if and (eq current "user") (sameHash .CreatedBy.ID CurrentAccount.ID) -}}
     <a title="Open email client" href="{{ invitationLink . }}">{{icon "email" }}</a>
 {{- end }}
 </span>

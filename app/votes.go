@@ -38,7 +38,10 @@ type Vote struct {
 	pub         *pub.Like     `json:"-"`
 }
 
-func (v Vote) ID() Hash {
+func (v *Vote) ID() Hash {
+	if v == nil {
+		return AnonymousHash
+	}
 	return HashFromString(v.Metadata.IRI)
 }
 

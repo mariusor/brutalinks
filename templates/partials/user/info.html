@@ -19,12 +19,12 @@
     </aside>
 </details>
 {{- if CurrentAccount.IsLogged }}
-{{- if sameHash .Hash CurrentAccount.Hash }}
+{{- if sameHash .ID CurrentAccount.ID }}
     {{ template "partials/user/invite" . -}}
 {{ else }}
     <nav>
         <ul>
-            {{ if not (sameHash .Hash CurrentAccount.Hash) }}<li><a title="Message user {{ .Handle }}" href="{{ . | PermaLink }}/message">{{ icon "edit" "v-mirror" }} Message</a></li>{{- end -}}
+            {{ if not (sameHash .ID CurrentAccount.ID) }}<li><a title="Message user {{ .Handle }}" href="{{ . | PermaLink }}/message">{{ icon "edit" "v-mirror" }} Message</a></li>{{- end -}}
             {{- if or (ShowFollowLink .) (AccountFollows .) }}
                 <li>
                     {{- if ShowFollowLink . -}} <a title="Follow user {{ .Handle }}" href="{{ . | PermaLink }}/follow">{{ icon "star" }} Follow</a>{{- end -}}
