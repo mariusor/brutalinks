@@ -157,6 +157,7 @@ func NewClient(o ...OptionFn) (*fedbox, error) {
 		client.SetErrorLogger(optionLogFn(f.errFn)),
 		client.SetInfoLogger(optionLogFn(f.infoFn)),
 		client.SkipTLSValidation(f.skipTLSVerify),
+		client.SetDefaultHTTPClient(),
 	)
 	service, err := f.client.LoadIRI(f.baseURL)
 	if err != nil {
