@@ -66,8 +66,9 @@ func DefaultFilters(next http.Handler) http.Handler {
 		f := FiltersFromRequest(r)
 		f.Type = CreateActivitiesFilter
 		f.Object = new(Filters)
-		f.Object.InReplTo = nilIRIs
+		f.Object.InReplTo = nilFilters
 		f.Object.Type = ActivityTypesFilter(ValidContentTypes...)
+		f.Actor = &Filters{IRI: notNilFilters}
 		m := ContextListingModel(r.Context())
 		m.Title = "Newest items"
 		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
@@ -105,6 +106,7 @@ func FollowedFiltersMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := FiltersFromRequest(r)
 		f.Type = CreateFollowActivitiesFilter
+		f.Actor = &Filters{IRI: notNilFilters}
 		m := ContextListingModel(r.Context())
 		m.Title = "Followed items"
 		m.ShowText = true
@@ -121,9 +123,9 @@ func fedFilters(r *http.Request) *Filters {
 	f := FiltersFromRequest(r)
 	f.Type = CreateActivitiesFilter
 	f.Object = &Filters{}
-	f.Object.OP = nilIRIs
+	f.Object.OP = nilFilters
 	f.Object.Type = ActivityTypesFilter(ValidContentTypes...)
-	f.Actor = &Filters{}
+	f.Actor = &Filters{IRI: notNilFilters}
 	return f
 }
 
@@ -164,7 +166,8 @@ func DomainFiltersMw(next http.Handler) http.Handler {
 			f.Object.Type = ActivityTypesFilter(ValidContentTypes...)
 			m.Title = fmt.Sprintf("Discussion items")
 		}
-		f.Object.OP = nilIRIs
+		f.Object.OP = nilFilters
+		f.Actor = &Filters{IRI: notNilFilters}
 		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -216,8 +219,8 @@ func (h handler) ItemFiltersMw(next http.Handler) http.Handler {
 			return
 		}
 
-		f.Object = &Filters{}
-		f.Object.IRI = CompStrs{LikeString(hash)}
+		f.Object = &Filters{IRI: CompStrs{LikeString(hash)}}
+		f.Actor = &Filters{IRI: notNilFilters}
 		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -236,13 +239,10 @@ func MessageFiltersMw(next http.Handler) http.Handler {
 			for _, author := range authors {
 				f.AttrTo = append(f.AttrTo, LikeString(author.Hash.String()))
 			}
-			fc := *f
-			fc.Type = CreateActivitiesFilter
+			f.Type = append(CreateActivitiesFilter, AppreciationActivitiesFilter...)
+			f.Actor = &Filters{IRI: notNilFilters}
 
-			fv := *f
-			fv.Type = AppreciationActivitiesFilter
-
-			ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{&fc, &fv})
+			ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
 			r = r.WithContext(ctx)
 		}
 		next.ServeHTTP(w, r)
@@ -265,15 +265,13 @@ func AccountFiltersMw(next http.Handler) http.Handler {
 				f.AttrTo = append(f.AttrTo, EqualsString(author.Metadata.ID))
 			}
 		}
-		fc := *f
-		fc.Type = CreateActivitiesFilter
-
-		fv := *f
-		fv.Type = AppreciationActivitiesFilter
+		f.Type = append(CreateActivitiesFilter, AppreciationActivitiesFilter...)
+		f.Object = &Filters{IRI: notNilFilters}
+		f.Actor = &Filters{IRI: notNilFilters}
 
 		// NOTE(marius): having two very different filters here introduces bugs
 		// with the next/previous cursor key (the votes filter can be removed)
-		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{ /*&fv,*/ &fc})
+		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -292,24 +290,27 @@ type moderationFilter struct {
 var (
 	modSubmissionsObjectFilter = &Filters{
 		Type:     ActivityTypesFilter(ValidContentTypes...),
-		InReplTo: nilIRIs,
+		InReplTo: nilFilters,
+		Actor:    &Filters{IRI: notNilFilters},
 	}
 	modCommentsObjectFilter = &Filters{
 		Type:     ActivityTypesFilter(ValidContentTypes...),
-		InReplTo: notNilIRIs,
+		InReplTo: notNilFilters,
+		Actor:    &Filters{IRI: notNilFilters},
 	}
 	modAccountsObjectFilter = &Filters{
-		Type: ActivityTypesFilter(ValidActorTypes...),
+		Type:  ActivityTypesFilter(ValidActorTypes...),
+		Actor: &Filters{IRI: notNilFilters},
 	}
 )
 
 func ModerationFiltersMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := FiltersFromRequest(r)
-		f.Object = &Filters{
-			IRI: CompStrs{DifferentThanString("-")},
-		}
 		f.Type = ModerationActivitiesFilter
+		f.Object = &Filters{ IRI: notNilFilters }
+		f.Actor = &Filters{IRI: notNilFilters}
+
 		mf := new(moderationFilter)
 		qstring.Unmarshal(r.URL.Query(), mf)
 		allFilters := make([]*Filters, 0)
@@ -396,9 +397,8 @@ func ActorsFiltersMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := FiltersFromRequest(r)
 		f.Type = CreateActivitiesFilter
-		f.Object = &Filters{
-			Type: ActorsFilters,
-		}
+		f.Object = &Filters{Type: ActorsFilters}
+		f.Actor = &Filters{IRI: notNilFilters}
 		m := ContextListingModel(r.Context())
 		m.Title = "Account listing"
 		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})

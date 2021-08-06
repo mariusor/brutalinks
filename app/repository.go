@@ -24,11 +24,13 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-var nilIRI = EqualsString("-")
-var nilIRIs = CompStrs{nilIRI}
+var (
+	nilFilter = EqualsString("-")
+	nilFilters = CompStrs{nilFilter}
 
-var notNilIRI = DifferentThanString("-")
-var notNilIRIs = CompStrs{notNilIRI}
+	notNilFilter = DifferentThanString("-")
+	notNilFilters = CompStrs{notNilFilter}
+)
 
 type repository struct {
 	SelfURL string
@@ -615,10 +617,9 @@ func (r *repository) loadAccountVotes(ctx context.Context, acc *Account, items I
 		return nil
 	}
 	f := &Filters{
-		Object: &Filters{
-			IRI: ItemHashFilter(items...),
-		},
-		Type: AppreciationActivitiesFilter,
+		Type:   AppreciationActivitiesFilter,
+		Object: &Filters{IRI: ItemHashFilter(items...)},
+		Actor:  &Filters{IRI: notNilFilters},
 	}
 	searches := RemoteLoads{
 		r.fedbox.Service().GetLink(): []RemoteLoad{{actor: r.fedbox.Service(), loadFn: outbox, filters: []*Filters{f}}},
@@ -643,8 +644,9 @@ func (r *repository) loadItemsVotes(ctx context.Context, items ...Item) (ItemCol
 	}
 	voteActivities := pub.ActivityVocabularyTypes{pub.LikeType, pub.DislikeType, pub.UndoType}
 	f := &Filters{
-		Object: &Filters{},
 		Type:   ActivityTypesFilter(voteActivities...),
+		Object: &Filters{IRI: notNilFilters},
+		Actor:  &Filters{IRI: notNilFilters},
 	}
 	for _, it := range items {
 		f.Object.IRI = append(f.Object.IRI, LikeString(it.Hash.String()))
@@ -766,8 +768,9 @@ func (r *repository) loadFollowsAuthors(ctx context.Context, items ...FollowRequ
 		}
 	}
 	fActors := Filters{
-		Type: ActivityTypesFilter(ValidActorTypes...),
-		IRI:  AccountHashFilter(submitters...),
+		Type:  ActivityTypesFilter(ValidActorTypes...),
+		IRI:   AccountHashFilter(submitters...),
+		Actor: &Filters{IRI: notNilFilters},
 	}
 
 	if len(fActors.IRI) == 0 {
@@ -802,9 +805,7 @@ func (r *repository) loadModerationFollowups(ctx context.Context, items Renderab
 	modActions := new(Filters)
 	modActions.Type = ActivityTypesFilter(pub.DeleteType, pub.UpdateType)
 	modActions.InReplTo = IRIsFilter(inReplyTo...)
-	modActions.Actor = &Filters{
-		IRI: notNilIRIs,
-	}
+	modActions.Actor = &Filters{IRI: notNilFilters}
 	act, err := r.fedbox.Outbox(ctx, r.fedbox.Service(), Values(modActions))
 	if err != nil {
 		return nil, err
@@ -982,6 +983,7 @@ func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemC
 		requiredAuthorsCount += len(ff.IRI)
 		f := Filters{ Object: &ff }
 		f.Type = ActivityTypesFilter(pub.CreateType)
+		f.Actor = &Filters{IRI: notNilFilters}
 		actorsCol := func (a pub.Item, f ...client.FilterFn) pub.IRI {
 			return iri(actors.IRI(a), f...)
 		}
@@ -1226,7 +1228,7 @@ func validFederated(i Item, f *Filters) bool {
 			if i.pub == nil || ob.Generator == nil {
 				continue
 			}
-			if g == nilIRI {
+			if g == nilFilter {
 				if ob.Generator.GetLink().Equals(pub.IRI(Instance.BaseURL), false) {
 					return false
 				}
@@ -1988,6 +1990,7 @@ func Values(f interface{}) client.FilterFn {
 func (r *repository) LoadFollowRequests(ctx context.Context, ed *Account, f *Filters) (FollowRequests, uint, error) {
 	if len(f.Type) == 0 {
 		f.Type = ActivityTypesFilter(pub.FollowType)
+		f.Actor = &Filters{IRI: notNilFilters}
 	}
 	var followReq pub.CollectionInterface
 	var err error

@@ -378,6 +378,7 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	accts, err := h.storage.accounts(ctx, &Filters{
 		Name: CompStrs{EqualsString(handle)},
 		Type: ActivityTypesFilter(ValidActorTypes...),
+		Actor: &Filters{IRI: notNilFilters},
 	})
 
 	handleErr := func(msg string, f log.Ctx) {

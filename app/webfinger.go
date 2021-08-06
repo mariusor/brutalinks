@@ -39,7 +39,7 @@ var (
 	}
 	postsFilter = &Filters{
 		Type: ActivityTypesFilter(ValidContentTypes...),
-		OP:   nilIRIs,
+		OP:   nilFilters,
 	}
 	allFilter = &Filters{
 		Type: ActivityTypesFilter(ValidContentTypes...),

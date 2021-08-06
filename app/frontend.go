@@ -400,6 +400,7 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 			} else {
 				f.Name = CompStrs{EqualsString(acc.Handle)}
 				f.Type = ActivityTypesFilter(ValidActorTypes...)
+				f.Actor = &Filters{IRI: notNilFilters}
 			}
 			ctx := context.TODO()
 			if account, err := h.storage.account(ctx, f); err != nil {

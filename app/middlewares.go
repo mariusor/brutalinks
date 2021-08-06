@@ -155,7 +155,7 @@ func LoadObjectFromInboxMw(next http.Handler) http.Handler {
 		}
 
 		var item Item
-		err = LoadFromSearches(ctx, repo, searchIn, func (c pub.CollectionInterface) error {
+		err = LoadFromSearches(ctx, repo, searchIn, func (c pub.CollectionInterface, f *Filters) error {
 			for _, it := range c.Collection() {
 				if err := item.FromActivityPub(it); err != nil {
 					repo.errFn(log.Ctx{"iri": it.GetLink()})("unable to load item")
