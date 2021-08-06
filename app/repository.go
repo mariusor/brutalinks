@@ -1344,15 +1344,15 @@ func (r *repository) ActorCollection(ctx context.Context, searches RemoteLoads) 
 					if ob.IsObject() {
 						if ValidContentTypes.Contains(ob.GetType()) {
 							i := Item{}
-							i.FromActivityPub(ob)
+							i.FromActivityPub(a)
 							if validItem(i, f) {
 								items = append(items, i)
 							}
 						}
 						if ValidActorTypes.Contains(ob.GetType()) {
-							a := Account{}
-							a.FromActivityPub(ob)
-							accounts = append(accounts, a)
+							act := Account{}
+							act.FromActivityPub(a)
+							accounts = append(accounts, act)
 						}
 					} else {
 						i := Item{}
