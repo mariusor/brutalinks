@@ -2198,14 +2198,8 @@ func (r *repository) LoadActorOutbox(ctx context.Context, actor pub.Item, f ...*
 		return nil, errors.Errorf("Invalid actor")
 	}
 
-	searches := make(RemoteLoads, 0)
-
-	fAct := &Filters{IRI: CompStrs{EqualsString(actor.GetLink().String())}}
-	if HostIsLocal(actor.GetLink().String()) {
-		searches[r.fedbox.Service().GetLink()] = []RemoteLoad{{actor: r.fedbox.Service(), loadFn: outbox, filters: []*Filters{fAct}}}
-	} else {
-		searches[r.fedbox.Service().GetLink()] = []RemoteLoad{{actor: r.fedbox.Service(), loadFn: inbox, filters: []*Filters{fAct}}}
-	}
+	searches := make(RemoteLoads)
+	searches[r.fedbox.Service().GetLink()] = []RemoteLoad{{actor: actor.GetLink(), loadFn: outbox, filters: f}}
 
 	cursor, err := r.ActorCollection(ctx, searches)
 	if err != nil {
@@ -2229,9 +2223,10 @@ func (r *repository) LoadActorInbox(ctx context.Context, actor pub.Item, f ...*F
 	if actor == nil {
 		return nil, errors.Errorf("Invalid actor")
 	}
-	searches := RemoteLoads{
-		r.fedbox.Service().GetLink(): []RemoteLoad{{actor: r.fedbox.Service(), loadFn: inbox, filters: f}},
-	}
+
+	searches := make(RemoteLoads, 0)
+	searches[r.fedbox.Service().GetLink()] = []RemoteLoad{{actor: r.fedbox.Service(), loadFn: inbox, filters: f}}
+
 	cursor, err := r.ActorCollection(ctx, searches)
 	if err != nil {
 		return nil, err
