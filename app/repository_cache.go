@@ -5,6 +5,7 @@ import (
 	"github.com/go-ap/client"
 	"github.com/go-ap/handlers"
 	"sync"
+	"time"
 
 	pub "github.com/go-ap/activitypub"
 )
@@ -51,8 +52,8 @@ func (c *cache) loadFromSearches(repo *repository, search RemoteLoads) error {
 	if !c.enabled {
 		return nil
 	}
-	ctx := context.TODO()
-	return LoadFromSearches(ctx, repo, search, func (col pub.CollectionInterface) error {
+	ctx, _ := context.WithTimeout(context.TODO(), time.Second)
+	return LoadFromSearches(ctx, repo, search, func (col pub.CollectionInterface, f *Filters) error {
 		for _, it := range col.Collection() {
 			c.add(it.GetLink(), it)
 		}

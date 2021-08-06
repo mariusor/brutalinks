@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"net/http"
 	"strings"
+	"time"
 
 	pub "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
@@ -57,8 +58,9 @@ func LoadOutboxMw(next http.Handler) http.Handler {
 
 		var cursor = new(Cursor)
 		cursor.items = make(RenderableList, 0)
+		ctxt, _ := context.WithTimeout(r.Context(), time.Second)
 		for _, author := range authors {
-			if c, err := repo.LoadAccountWithDetails(context.TODO(), author, f...); err == nil {
+			if c, err := repo.LoadAccountWithDetails(ctxt, author, f...); err == nil {
 				cursor.items.Merge(c.items)
 				cursor.total += c.total
 				cursor.before = c.before
