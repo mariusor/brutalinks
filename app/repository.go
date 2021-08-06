@@ -2188,9 +2188,16 @@ func (r *repository) LoadActorOutbox(ctx context.Context, actor pub.Item, f ...*
 	if actor == nil {
 		return nil, errors.Errorf("Invalid actor")
 	}
-	searches := RemoteLoads{
-		r.fedbox.Service().GetLink(): []RemoteLoad{{actor: r.fedbox.Service(), loadFn: outbox, filters: f}},
+
+	searches := make(RemoteLoads, 0)
+
+	fAct := &Filters{IRI: CompStrs{EqualsString(actor.GetLink().String())}}
+	if HostIsLocal(actor.GetLink().String()) {
+		searches[r.fedbox.Service().GetLink()] = []RemoteLoad{{actor: r.fedbox.Service(), loadFn: outbox, filters: []*Filters{fAct}}}
+	} else {
+		searches[r.fedbox.Service().GetLink()] = []RemoteLoad{{actor: r.fedbox.Service(), loadFn: inbox, filters: []*Filters{fAct}}}
 	}
+
 	cursor, err := r.ActorCollection(ctx, searches)
 	if err != nil {
 		return nil, err
