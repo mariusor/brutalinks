@@ -1107,6 +1107,7 @@ func getCollectionPrevNext(col pub.CollectionInterface) (prev, next string) {
 type res struct {
 	status chan accumStatus
 	iri    pub.IRI
+	f      *Filters
 	err    error
 }
 
@@ -2364,57 +2365,62 @@ func (r *repository) loadCollectionFromCacheOrIRI(ctx context.Context, iri pub.I
 
 type searchFn func(col pub.CollectionInterface, f *Filters) error
 
-func LoadFromSearches(c context.Context, repo *repository, loads RemoteLoads, fn searchFn) error {
-	ctx, cancelFn := context.WithCancel(c)
-
-	st := res{status: make(chan accumStatus, 5)}
+func LoadFromSearches(ctx context.Context, repo *repository, loads RemoteLoads, fn searchFn) error {
+	st := res{status: make(chan accumStatus)}
+	searchCnt := 0
 
 	g, gtx := errgroup.WithContext(ctx)
+	ctx, cancelFn := context.WithCancel(gtx)
+
+	loadColFn := func(st *res, it *int) func() error {
+		*it++
+		curIRI := st.iri
+		f := st.f
+		return func() error {
+			repo.infoFn()("running[%d] %s", *it, curIRI)
+			col, err := repo.loadCollectionFromCacheOrIRI(ctx, curIRI)
+			if err != nil {
+				st.status <- accumError
+				st.err = errors.Annotatef(err, "failed to load search: %s", curIRI)
+				return nil
+			}
+
+			runOnColFn := func(c pub.CollectionInterface) error {
+				return fn(c, f)
+			}
+			if err = pub.OnCollectionIntf(col, runOnColFn); err != nil {
+				// TODO(marius): abusing an error type for gracefully terminating the collection load looks bad
+				if xerrors.Is(err, stop) {
+					st.status <- accumSuccess
+				} else {
+					st.err = errors.Annotatef(err, "search didn't return a collection")
+					st.status <- accumError
+				}
+				return nil
+			}
+
+			if _, st.f.Next = getCollectionPrevNext(col); len(st.f.Next) == 0 {
+				st.status <- accumEndOfCollection
+				return nil
+			}
+			st.status <- accumContinue
+			repo.cache.add(curIRI, col)
+			return nil
+		}
+	}
+
 	for _, colSearch := range loads {
-		for si := range colSearch {
-			search := colSearch[si]
-			for fi := range search.filters {
-				f := search.filters[fi]
-				curIRI := search.loadFn(search.actor, Values(f))
-				st.iri = curIRI
-				g.Go(func() error {
-					col, err := repo.loadCollectionFromCacheOrIRI(gtx, curIRI)
-					if err != nil {
-						st.status <- accumError
-						st.err = errors.Annotatef(err, "failed to load search: %s", curIRI)
-						return nil
-					}
+		for _, search := range colSearch {
+			for _, f := range search.filters {
+				st.f = f
+				st.iri = search.loadFn(search.actor, Values(st.f))
 
-					runOnColFn := func (c pub.CollectionInterface) error {
-						return fn(c, f)
-					}
-					if err = pub.OnCollectionIntf(col, runOnColFn); err != nil {
-						// TODO(marius): abusing an error type for gracefully terminating the collection load looks bad
-						if xerrors.Is(err, stop) {
-							st.status <- accumSuccess
-						} else {
-							st.err = errors.Annotatef(err, "search didn't return a collection")
-							st.status <- accumError
-						}
-						return nil
-					}
-
-					if _, f.Next = getCollectionPrevNext(col); len(f.Next) == 0 {
-						st.status <- accumEndOfCollection
-						return nil
-					}
-					st.status <- accumContinue
-					repo.cache.add(curIRI, col)
-					return nil
-				})
+				g.Go(loadColFn(&st, &searchCnt))
 			}
 		}
 	}
-	if err := g.Wait(); err != nil {
-		repo.errFn(log.Ctx{"err":err.Error()})("failed when loading collection")
-	}
 	select {
-	case status := <- st.status:
+	case status := <-st.status:
 		switch status {
 		case accumSuccess:
 			fallthrough
@@ -2427,6 +2433,7 @@ func LoadFromSearches(c context.Context, repo *repository, loads RemoteLoads, fn
 		case accumContinue:
 			fallthrough
 		default:
+			g.Go(loadColFn(&st, &searchCnt))
 		}
 	}
 	return nil
