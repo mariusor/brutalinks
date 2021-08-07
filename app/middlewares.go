@@ -32,7 +32,8 @@ func (h handler) LoadAuthorMw(next http.Handler) http.Handler {
 				Name: CompStrs{EqualsString(handle)},
 			}
 			repo := ContextRepository(r.Context())
-			authors, err = repo.accounts(context.TODO(), fa)
+			ctx, _ := context.WithTimeout(context.Background(), time.Second)
+			authors, err = repo.accounts(ctx, fa)
 			if err != nil {
 				h.ErrorHandler(err).ServeHTTP(w, r)
 				return
@@ -42,7 +43,8 @@ func (h handler) LoadAuthorMw(next http.Handler) http.Handler {
 			h.ErrorHandler(errors.NotFoundf("Account %q", chi.URLParam(r, "handle"))).ServeHTTP(w, r)
 			return
 		}
-		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), AuthorCtxtKey, authors)))
+		ctx := context.WithValue(r.Context(), AuthorCtxtKey, authors)
+		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 

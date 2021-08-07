@@ -237,14 +237,13 @@ func MessageFiltersMw(next http.Handler) http.Handler {
 		f := FiltersFromRequest(r)
 		if len(f.IRI) > 0 {
 			for _, author := range authors {
-				f.AttrTo = append(f.AttrTo, LikeString(author.Hash.String()))
+				f.AttrTo = append(f.AttrTo, EqualsString(author.pub.GetID().String()))
 			}
 			f.Type = append(CreateActivitiesFilter, AppreciationActivitiesFilter...)
 			f.Actor = &Filters{IRI: notNilFilters}
-
-			ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
-			r = r.WithContext(ctx)
 		}
+		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
+		r = r.WithContext(ctx)
 		next.ServeHTTP(w, r)
 	})
 }

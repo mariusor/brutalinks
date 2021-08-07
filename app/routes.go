@@ -104,12 +104,12 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 					r.Get("/follow/{action}", h.HandleFollowRequest)
 					r.With(h.NeedsSessions, h.ValidateLoggedIn(h.v.RedirectToErrors)).Post("/invite", h.HandleCreateInvitation)
 
-					r.With(h.CSRF, MessageUserContentModelMw, MessageFiltersMw, LoadOutboxMw).Route("/message", func(r chi.Router) {
-						r.Get("/", h.HandleShow)
-						r.Post("/", h.HandleSubmit)
-					})
+					r.With(h.CSRF, MessageUserContentModelMw).Group(func(r chi.Router) {
+						r.Route("/message", func(r chi.Router) {
+							r.Get("/", h.HandleShow)
+							r.Post("/", h.HandleSubmit)
+						})
 
-					r.With(h.CSRF, MessageUserContentModelMw, AccountFiltersMw, LoadOutboxMw).Group(func(r chi.Router) {
 						r.With(BlockAccountModelMw).Get("/block", h.HandleShow)
 						r.Post("/block", h.BlockAccount)
 						r.With(ReportAccountModelMw).Get("/bad", h.HandleShow)
@@ -127,7 +127,7 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 			r.With(h.NeedsSessions).Get("/logout", h.HandleLogout)
 
 			r.With(ListingModelMw).Group(func(r chi.Router) {
-				// @todo(marius) :link_generation:
+				// todo(marius) :link_generation:
 				r.With(DefaultFilters, LoadServiceInboxMw, SortByScore).Get("/", h.HandleShow)
 				r.With(DomainFiltersMw, LoadServiceInboxMw, middleware.StripSlashes, SortByDate).Get("/d", h.HandleShow)
 				r.With(DomainFiltersMw, LoadServiceInboxMw, SortByDate).Get("/d/{domain}", h.HandleShow)
