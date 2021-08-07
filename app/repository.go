@@ -25,10 +25,10 @@ import (
 )
 
 var (
-	nilFilter = EqualsString("-")
+	nilFilter  = EqualsString("-")
 	nilFilters = CompStrs{nilFilter}
 
-	notNilFilter = DifferentThanString("-")
+	notNilFilter  = DifferentThanString("-")
 	notNilFilters = CompStrs{notNilFilter}
 )
 
@@ -643,8 +643,8 @@ func (r *repository) loadItemsVotes(ctx context.Context, items ...Item) (ItemCol
 	}
 
 	f := &Filters{
-		Type:   ActivityTypesFilter(ValidAppreciationTypes...),
-		Object: &Filters{IRI: ItemHashFilter(items...)},
+		Type:     ActivityTypesFilter(ValidAppreciationTypes...),
+		Object:   &Filters{IRI: ItemHashFilter(items...)},
 		MaxItems: 500,
 	}
 	searches := RemoteLoads{
@@ -927,7 +927,7 @@ func accountsEqual(a1, a2 Account) bool {
 	return a1.Hash == a2.Hash || (len(a1.Handle)+len(a2.Handle) > 0 && a1.Handle == a2.Handle)
 }
 
-func  baseIRI (iri pub.IRI) pub.IRI {
+func baseIRI(iri pub.IRI) pub.IRI {
 	u, _ := iri.URL()
 	u.Path = ""
 	return pub.IRI(u.String())
@@ -936,7 +936,6 @@ func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemC
 	if len(items) == 0 {
 		return items, nil
 	}
-
 
 	accounts := make(map[pub.IRI]AccountCollection)
 	for _, it := range items {
@@ -974,28 +973,28 @@ func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemC
 		return items, nil
 	}
 
-	fActors := Filters{ Type: ActivityTypesFilter(ValidActorTypes...) }
+	fActors := Filters{Type: ActivityTypesFilter(ValidActorTypes...)}
 	requiredAuthorsCount := 0
 	searches := RemoteLoads{}
 	for i, acc := range accounts {
 		ff := fActors
 		ff.IRI = AccountHashFilter(acc...)
 		requiredAuthorsCount += len(ff.IRI)
-		f := Filters{ Object: &ff }
+		f := Filters{Object: &ff}
 		f.Type = ActivityTypesFilter(pub.CreateType)
 		f.Actor = &Filters{IRI: notNilFilters}
-		actorsCol := func (a pub.Item, f ...client.FilterFn) pub.IRI {
+		actorsCol := func(a pub.Item, f ...client.FilterFn) pub.IRI {
 			return iri(actors.IRI(a), f...)
 		}
 		searches[i] = []RemoteLoad{
 			{
-				actor: i,
+				actor:   i,
 				loadFn:  actorsCol,
 				filters: []*Filters{&ff},
 			},
 			{
-				actor: i,
-				loadFn: inbox,
+				actor:   i,
+				loadFn:  inbox,
 				filters: []*Filters{&f},
 			},
 		}
@@ -1561,7 +1560,7 @@ func (r *repository) SaveVote(ctx context.Context, v Vote) (Vote, error) {
 
 	var (
 		iri pub.IRI
-		it pub.Item
+		it  pub.Item
 	)
 	iri, it, err = r.fedbox.ToOutbox(ctx, act)
 	if err != nil {
@@ -1670,7 +1669,7 @@ func loadCCsFromMentions(incoming []Tag) pub.ItemCollection {
 	return iris
 }
 
-func loadMentionsIfExisting (r *repository, ctx context.Context, incoming TagCollection) TagCollection {
+func loadMentionsIfExisting(r *repository, ctx context.Context, incoming TagCollection) TagCollection {
 	if len(incoming) == 0 {
 		return incoming
 	}
@@ -1689,7 +1688,7 @@ func loadMentionsIfExisting (r *repository, ctx context.Context, incoming TagCol
 		urlFilter := EqualsString(host)
 		var (
 			filter *Filters
-			add bool
+			add    bool
 		)
 		for i, fil := range remoteFilters {
 			if fil.URL.Contains(urlFilter) {
@@ -1742,7 +1741,7 @@ func loadMentionsIfExisting (r *repository, ctx context.Context, incoming TagCol
 	return incoming
 }
 
-func loadTagsIfExisting (r *repository, ctx context.Context, incoming TagCollection) TagCollection {
+func loadTagsIfExisting(r *repository, ctx context.Context, incoming TagCollection) TagCollection {
 	if len(incoming) == 0 {
 		return incoming
 	}
@@ -1763,7 +1762,7 @@ func loadTagsIfExisting (r *repository, ctx context.Context, incoming TagCollect
 				continue
 			}
 			if strings.ToLower(t.Name) == strings.ToLower(tag.Name) ||
-				strings.ToLower("#" + t.Name) == strings.ToLower(tag.Name) {
+				strings.ToLower("#"+t.Name) == strings.ToLower(tag.Name) {
 				incoming[i] = tag
 			}
 		}
@@ -1847,7 +1846,7 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 		}
 	}
 	var (
-		i pub.IRI
+		i  pub.IRI
 		ob pub.Item
 	)
 	i, ob, err = r.fedbox.ToOutbox(ctx, act)
