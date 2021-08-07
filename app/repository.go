@@ -594,16 +594,16 @@ func (r *repository) loadItemsReplies(ctx context.Context, items ...Item) (ItemC
 		searches[baseIRI(top)] = []RemoteLoad{{actor: top, loadFn: replies, filters: []*Filters{f}}}
 	}
 	err := LoadFromSearches(ctx, r, searches, func(c pub.CollectionInterface, f *Filters) error {
-			for _, it := range c.Collection() {
-				if !it.IsObject() {
-					continue
-				}
-				i := new(Item)
-				if err := i.FromActivityPub(it); err == nil && !allReplies.Contains(*i) {
-					allReplies = append(allReplies, *i)
-				}
+		for _, it := range c.Collection() {
+			if !it.IsObject() {
+				continue
 			}
-			return nil
+			i := new(Item)
+			if err := i.FromActivityPub(it); err == nil && !allReplies.Contains(*i) {
+				allReplies = append(allReplies, *i)
+			}
+		}
+		return nil
 	})
 	if err != nil {
 		r.errFn()(err.Error())
