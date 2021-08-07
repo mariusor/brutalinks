@@ -619,10 +619,9 @@ func (r *repository) loadAccountVotes(ctx context.Context, acc *Account, items I
 	f := &Filters{
 		Type:   AppreciationActivitiesFilter,
 		Object: &Filters{IRI: ItemHashFilter(items...)},
-		Actor:  &Filters{IRI: notNilFilters},
 	}
 	searches := RemoteLoads{
-		r.fedbox.Service().GetLink(): []RemoteLoad{{actor: r.fedbox.Service(), loadFn: outbox, filters: []*Filters{f}}},
+		r.fedbox.Service().GetLink(): []RemoteLoad{{actor: acc.pub, loadFn: outbox, filters: []*Filters{f}}},
 	}
 	return LoadFromSearches(ctx, r, searches, func(c pub.CollectionInterface, f *Filters) error {
 		for _, it := range c.Collection() {
@@ -642,14 +641,11 @@ func (r *repository) loadItemsVotes(ctx context.Context, items ...Item) (ItemCol
 	if len(items) == 0 {
 		return items, nil
 	}
-	voteActivities := pub.ActivityVocabularyTypes{pub.LikeType, pub.DislikeType, pub.UndoType}
+
 	f := &Filters{
-		Type:   ActivityTypesFilter(voteActivities...),
-		Object: &Filters{IRI: notNilFilters},
-		Actor:  &Filters{IRI: notNilFilters},
-	}
-	for _, it := range items {
-		f.Object.IRI = append(f.Object.IRI, LikeString(it.Hash.String()))
+		Type:   ActivityTypesFilter(ValidAppreciationTypes...),
+		Object: &Filters{IRI: ItemHashFilter(items...)},
+		MaxItems: 500,
 	}
 	searches := RemoteLoads{
 		r.fedbox.Service().GetLink(): []RemoteLoad{{actor: r.fedbox.Service(), loadFn: inbox, filters: []*Filters{f}}},
@@ -657,7 +653,7 @@ func (r *repository) loadItemsVotes(ctx context.Context, items ...Item) (ItemCol
 	votes := make(VoteCollection, 0)
 	err := LoadFromSearches(ctx, r, searches, func(c pub.CollectionInterface, f *Filters) error {
 		for _, vAct := range c.Collection() {
-			if !vAct.IsObject() || !voteActivities.Contains(vAct.GetType()) {
+			if !vAct.IsObject() || !ValidAppreciationTypes.Contains(vAct.GetType()) {
 				continue
 			}
 			v := Vote{}
@@ -1552,8 +1548,8 @@ func (r *repository) SaveVote(ctx context.Context, v Vote) (Vote, error) {
 		act.Type = pub.DislikeType
 		act.Object = o.GetLink()
 	}
-	if v.Item.SubmittedBy != nil {
-		auth := v.Item.SubmittedBy.AP()
+	if v.Item.SubmittedBy != nil && v.Item.SubmittedBy.pub != nil {
+		auth := v.Item.SubmittedBy.pub
 		if !auth.GetLink().Contains(r.BaseURL(), false) {
 			// NOTE(marius): this assumes that the instance the user is from has a shared inbox at {instance_hostname}/inbox
 			u, _ := auth.GetLink().URL()
