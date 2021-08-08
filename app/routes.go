@@ -33,7 +33,7 @@ var assetFiles = assets.AssetFiles{
 
 func (h *handler) ItemRoutes() func(chi.Router) {
 	return func(r chi.Router) {
-		r.Use(h.CSRF, ContentModelMw, h.ItemFiltersMw, LoadObjectFromInboxMw, ThreadedListingMw, SortByScore)
+		r.Use(h.CSRF, ContentModelMw, h.ItemFiltersMw, searchesInCollectionsMw, LoadSingleObjectMw, ThreadedListingMw, SortByScore)
 		r.Get("/", h.HandleShow)
 		r.With(h.ValidateLoggedIn(h.v.RedirectToErrors)).Post("/", h.HandleSubmit)
 
@@ -122,7 +122,7 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 			r.Route("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}", h.ItemRoutes())
 
 			// @todo(marius) :link_generation:
-			r.With(ContentModelMw, h.ItemFiltersMw, LoadObjectFromInboxMw).Get("/i/{hash}", h.HandleItemRedirect)
+			r.With(ContentModelMw, h.ItemFiltersMw, searchesInCollectionsMw, LoadSingleObjectMw).Get("/i/{hash}", h.HandleItemRedirect)
 
 			r.With(h.NeedsSessions).Get("/logout", h.HandleLogout)
 

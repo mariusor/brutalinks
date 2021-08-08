@@ -135,31 +135,39 @@ func ctxtErr(next http.Handler, w http.ResponseWriter, r *http.Request, err erro
 
 type CollectionLoadFn func(pub.CollectionInterface) error
 
-func LoadObjectFromInboxMw(next http.Handler) http.Handler {
+func searchesInCollectionsMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var err error
-		ctx := context.TODO()
-
 		repo := ContextRepository(r.Context())
 		current := ContextAccount(r.Context())
 		ff := ContextActivityFilters(r.Context())
-		if len(ff) == 0 {
-			ctxtErr(next, w, r, errors.Newf("invalid filter"))
-			return
-		}
 
+		service := repo.fedbox.Service().GetLink()
 		searchIn := RemoteLoads{
-			repo.fedbox.Service().GetLink(): []RemoteLoad{{actor: repo.fedbox.Service(), loadFn: inbox, filters: ff}},
+			service: []RemoteLoad{{actor: repo.fedbox.Service(), loadFn: inbox, filters: ff}},
 		}
 		if current.IsLogged() {
-			searchIn[current.pub.GetLink()] = []RemoteLoad{
-				{actor: current.pub, loadFn: inbox, filters: ff},
-				{actor: current.pub, loadFn: outbox, filters: ff},
-			}
+			searchIn[service] = append(
+				searchIn[service],
+				RemoteLoad{actor: current.pub, loadFn: inbox, filters: ff},
+				RemoteLoad{actor: current.pub, loadFn: outbox, filters: ff},
+			)
 		}
+		rtx := context.WithValue(r.Context(), LoadsCtxtKey, searchIn)
+		next.ServeHTTP(w, r.WithContext(rtx))
+	})
+}
+
+func LoadSingleObjectMw(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var err error
+
+		ctx := context.TODO()
+
+		repo := ContextRepository(r.Context())
+		searchIn := ContextLoads(r.Context())
 
 		var item Item
-		err = LoadFromSearches(ctx, repo, searchIn, func (c pub.CollectionInterface, f *Filters) error {
+		LoadFromSearches(ctx, repo, searchIn, func(c pub.CollectionInterface, f *Filters) error {
 			for _, it := range c.Collection() {
 				if err := item.FromActivityPub(it); err != nil {
 					repo.errFn(log.Ctx{"iri": it.GetLink()})("unable to load item")
