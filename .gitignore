@@ -12,3 +12,5 @@ bin/*
 tests/db
 internal/assets/assets.gen.go
 docker/Caddyfile
+node_modules/
+.cache
