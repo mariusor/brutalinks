@@ -498,20 +498,21 @@ func ThreadedListingMw(next http.Handler) http.Handler {
 		}
 	})
 }
+var maintenanceModel = &errorModel{
+	Status: http.StatusOK,
+	Title:  "Maintenance",
+	Errors: []error{errors.Newf("Server in maintenance mode, please come back later.")},
+}
 
-func (h *handler) OutOfOrderMw(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !h.conf.MaintenanceMode {
-			next.ServeHTTP(w, r)
-			return
+func OutOfOrderMw (v *view) func (next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		if !v.c.MaintenanceMode {
+			return next
 		}
-		em := errorModel{
-			Status: http.StatusOK,
-			Title:  "Maintenance",
-			Errors: []error{errors.Newf("Server in maintenance mode, please come back later.")},
-		}
-		h.v.RenderTemplate(r, w, "error", &em)
-	})
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			v.RenderTemplate(r, w, "error", maintenanceModel)
+		})
+	}
 }
 
 func SortByScore(next http.Handler) http.Handler {
