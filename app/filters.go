@@ -76,6 +76,14 @@ func DefaultFilters(next http.Handler) http.Handler {
 	})
 }
 
+// ContextLoads loads the searches we use for generating storage queries from the HTTP request
+func ContextLoads(ctx context.Context) RemoteLoads {
+	if f, ok := ctx.Value(LoadsCtxtKey).(RemoteLoads); ok {
+		return f
+	}
+	return nil
+}
+
 // ContextActivityFilters loads the filters we use for generating storage queries from the HTTP request
 func ContextActivityFilters(ctx context.Context) []*Filters {
 	if f, ok := ctx.Value(FilterCtxtKey).([]*Filters); ok {

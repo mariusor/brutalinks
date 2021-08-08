@@ -11,6 +11,7 @@ var (
 	LoggedAccountCtxtKey CtxtKey = "__acct"
 	RepositoryCtxtKey    CtxtKey = "__repository"
 	FilterCtxtKey        CtxtKey = "__filter"
+	LoadsCtxtKey         CtxtKey = "__loads"
 	ModelCtxtKey         CtxtKey = "__model"
 	AuthorCtxtKey        CtxtKey = "__author"
 	CursorCtxtKey        CtxtKey = "__cursor"
