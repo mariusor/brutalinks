@@ -59,32 +59,35 @@ func ContextModerationModel(ctx context.Context) *moderationModel {
 }
 
 func ContextRepository(ctx context.Context) *repository {
-	var r *repository
-	r, _ = ctx.Value(RepositoryCtxtKey).(*repository)
-	return r
+	if r, ok := ctx.Value(RepositoryCtxtKey).(*repository); ok {
+		return r
+	}
+	return nil
 }
 
 func ContextAccount(ctx context.Context) *Account {
-	var a *Account
-	a, _ = ctx.Value(LoggedAccountCtxtKey).(*Account)
-	return a
+	if a, ok := ctx.Value(LoggedAccountCtxtKey).(*Account); ok {
+		return a
+	}
+	return nil
 }
 
 func ContextAuthors(ctx context.Context) []Account {
-	var a []Account
-	a, _ = ctx.Value(AuthorCtxtKey).([]Account)
-	return a
+	if a, ok := ctx.Value(AuthorCtxtKey).([]Account); ok {
+		return a
+	}
+	return nil
 }
 
 func ContextCursor(ctx context.Context) *Cursor {
-	var c *Cursor
-	c, _ = ctx.Value(CursorCtxtKey).(*Cursor)
-	return c
+	if c, ok := ctx.Value(CursorCtxtKey).(*Cursor); ok {
+		return c
+	}
+	return nil
 }
 
 func ContextItem(ctx context.Context) *Item {
-	var i *Item
-	if i, _ = ctx.Value(ContentCtxtKey).(*Item); i != nil {
+	if i, ok := ctx.Value(ContentCtxtKey).(*Item); ok {
 		return i
 	}
 	if c := ContextCursor(ctx); c != nil {
@@ -98,7 +101,8 @@ func ContextItem(ctx context.Context) *Item {
 }
 
 func ContextRegisterModel(ctx context.Context) *registerModel {
-	var r *registerModel
-	r, _ = ctx.Value(ModelCtxtKey).(*registerModel)
-	return r
+	if r, ok := ctx.Value(ModelCtxtKey).(*registerModel); ok {
+		return r
+	}
+	return nil
 }
