@@ -431,8 +431,7 @@ func (r *repository) loadAccountsVotes(ctx context.Context, accounts ...Account)
 		return accounts, nil
 	}
 	for _, account := range accounts {
-		err := r.loadAccountVotes(ctx, &account, nil)
-		if err != nil {
+		if err := r.loadAccountVotes(ctx, &account, nil); err != nil {
 			r.errFn()(err.Error())
 		}
 	}
@@ -1104,22 +1103,6 @@ func getCollectionPrevNext(col pub.CollectionInterface) (prev, next string) {
 	return prev, next
 }
 
-type res struct {
-	status chan accumStatus
-	iri    pub.IRI
-	f      *Filters
-	err    error
-}
-
-type accumStatus int8
-
-const (
-	accumError    accumStatus = -1
-	accumContinue accumStatus = iota
-	accumSuccess
-	accumEndOfCollection
-)
-
 func (r *repository) account(ctx context.Context, ff *Filters) (Account, error) {
 	accounts, err := r.accounts(ctx, ff)
 	if err != nil {
@@ -1382,6 +1365,9 @@ func (r *repository) ActorCollection(ctx context.Context, searches RemoteLoads) 
 		}
 		// TODO(marius): this needs to be externalized also to a different function that we can pass from outer scope
 		//   This function implements the logic for breaking out of the collection iteration cycle and returns a bool
+		if len(items) - f.MaxItems < 5 {
+			return stop
+		}
 		return nil
 	})
 	if err != nil {
@@ -2356,7 +2342,7 @@ var stop = StopSearchErr("stop")
 
 func (r *repository) loadCollectionFromCacheOrIRI(ctx context.Context, iri pub.IRI) (pub.CollectionInterface, error) {
 	if it, okCache := r.cache.get(iri); okCache {
-		if c, okIntf := it.(pub.CollectionInterface); okIntf {
+		if c, okCol := it.(pub.CollectionInterface); okCol {
 			return c, nil
 		}
 	}
@@ -2365,76 +2351,54 @@ func (r *repository) loadCollectionFromCacheOrIRI(ctx context.Context, iri pub.I
 
 type searchFn func(col pub.CollectionInterface, f *Filters) error
 
-func LoadFromSearches(ctx context.Context, repo *repository, loads RemoteLoads, fn searchFn) error {
-	st := res{status: make(chan accumStatus)}
+func (r *repository) searchFn(ctx context.Context, g *errgroup.Group, curIRI pub.IRI, f *Filters, fn searchFn, it *int) func() error {
+	return func() error {
+		*it++
+		loadIRI := iri(curIRI, Values(f))
+		r.infoFn()("running[%d] %s", *it, loadIRI)
+		col, err := r.loadCollectionFromCacheOrIRI(ctx, loadIRI)
+		if err != nil {
+			return errors.Annotatef(err, "failed to load search: %s", loadIRI)
+		}
+
+		maxItems := 0
+		err = pub.OnCollectionIntf(col, func(c pub.CollectionInterface) error {
+			maxItems = int(c.Count())
+			return fn(c, f)
+		})
+		if err != nil {
+			return err
+		}
+
+		if maxItems > f.MaxItems {
+			if _, f.Next = getCollectionPrevNext(col); len(f.Next) > 0 {
+				g.Go(r.searchFn(ctx, g, curIRI, f, fn, it))
+			}
+		}
+
+		r.cache.add(curIRI, col)
+		return nil
+	}
+}
+
+func LoadFromSearches(c context.Context, repo *repository, loads RemoteLoads, fn searchFn) error {
 	searchCnt := 0
 
+	ctx, cancelFn := context.WithCancel(c)
 	g, gtx := errgroup.WithContext(ctx)
-	ctx, cancelFn := context.WithCancel(gtx)
 
-	loadColFn := func(st *res, it *int) func() error {
-		*it++
-		curIRI := st.iri
-		f := st.f
-		return func() error {
-			repo.infoFn()("running[%d] %s", *it, curIRI)
-			col, err := repo.loadCollectionFromCacheOrIRI(ctx, curIRI)
-			if err != nil {
-				st.status <- accumError
-				st.err = errors.Annotatef(err, "failed to load search: %s", curIRI)
-				return nil
-			}
-
-			runOnColFn := func(c pub.CollectionInterface) error {
-				return fn(c, f)
-			}
-			if err = pub.OnCollectionIntf(col, runOnColFn); err != nil {
-				// TODO(marius): abusing an error type for gracefully terminating the collection load looks bad
-				if xerrors.Is(err, stop) {
-					st.status <- accumSuccess
-				} else {
-					st.err = errors.Annotatef(err, "search didn't return a collection")
-					st.status <- accumError
-				}
-				return nil
-			}
-
-			if _, st.f.Next = getCollectionPrevNext(col); len(st.f.Next) == 0 {
-				st.status <- accumEndOfCollection
-				return nil
-			}
-			st.status <- accumContinue
-			repo.cache.add(curIRI, col)
-			return nil
-		}
-	}
-
-	for _, colSearch := range loads {
-		for _, search := range colSearch {
+	for _, searches := range loads {
+		for _, search := range searches {
 			for _, f := range search.filters {
-				st.f = f
-				st.iri = search.loadFn(search.actor, Values(st.f))
-
-				g.Go(loadColFn(&st, &searchCnt))
+				g.Go(repo.searchFn(gtx, g, search.loadFn(search.actor), f, fn, &searchCnt))
 			}
 		}
 	}
-	select {
-	case status := <-st.status:
-		switch status {
-		case accumSuccess:
-			fallthrough
-		case accumEndOfCollection:
-			// All ok
-			repo.infoFn(log.Ctx{"iri": st.iri})("Reached end of collection, stopping")
+	if err := g.Wait(); err != nil {
+		if xerrors.Is(err, stop) {
 			cancelFn()
-		case accumError:
-			repo.errFn(log.Ctx{"err": st.err})("Unable to load IRI")
-		case accumContinue:
-			fallthrough
-		default:
-			g.Go(loadColFn(&st, &searchCnt))
 		}
+		repo.errFn(log.Ctx{"err": err})("Failed to load search")
 	}
 	return nil
 }
