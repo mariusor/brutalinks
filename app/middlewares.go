@@ -28,12 +28,9 @@ func (h handler) LoadAuthorMw(next http.Handler) http.Handler {
 			authors = []Account { self }
 		} else {
 			var err error
-			fa := &Filters{
-				Name: CompStrs{EqualsString(handle)},
-			}
 			repo := ContextRepository(r.Context())
-			ctx, _ := context.WithTimeout(context.Background(), time.Second)
-			authors, err = repo.accounts(ctx, fa)
+			ctx, _ := context.WithTimeout(context.TODO(), time.Second)
+			authors, err = repo.accounts(ctx, FilterAccountByHandle(handle))
 			if err != nil {
 				h.ErrorHandler(err).ServeHTTP(w, r)
 				return
@@ -60,7 +57,7 @@ func LoadOutboxMw(next http.Handler) http.Handler {
 
 		var cursor = new(Cursor)
 		cursor.items = make(RenderableList, 0)
-		ctxt, _ := context.WithTimeout(r.Context(), time.Second)
+		ctxt, _ := context.WithTimeout(context.TODO(), time.Second)
 		for _, author := range authors {
 			if c, err := repo.LoadAccountWithDetails(ctxt, author, f...); err == nil {
 				cursor.items.Merge(c.items)

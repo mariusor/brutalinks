@@ -242,11 +242,8 @@ func accountsFromRequestHandle(r *http.Request) ([]Account, error) {
 	if handle == "" {
 		return nil, errors.NotFoundf("missing account handle %s", handle)
 	}
-	fa := &Filters{
-		Name: CompStrs{EqualsString(handle)},
-	}
 	repo := ContextRepository(r.Context())
-	return repo.accounts(context.TODO(), fa)
+	return repo.accounts(context.TODO(), FilterAccountByHandle(handle))
 }
 
 type AccountPtrCollection []*Account

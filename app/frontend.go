@@ -393,14 +393,10 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 			if acc.Hash.IsValid() {
 				ltx["hash"] = acc.Hash
 			}
-			f := new(Filters)
+			f := FilterAccountByHandle(acc.Handle)
 			if acc.HasMetadata() {
 				f.IRI = CompStrs{EqualsString(acc.Metadata.ID)}
 				ltx["iri"] = acc.Metadata.ID
-			} else {
-				f.Name = CompStrs{EqualsString(acc.Handle)}
-				f.Type = ActivityTypesFilter(ValidActorTypes...)
-				f.Actor = &Filters{IRI: notNilFilters}
 			}
 			ctx := context.TODO()
 			if account, err := h.storage.account(ctx, f); err != nil {

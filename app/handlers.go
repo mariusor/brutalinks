@@ -366,6 +366,13 @@ func (h *handler) ReportItem(w http.ResponseWriter, r *http.Request) {
 
 const SessionUserKey = "__current_acct"
 
+func FilterAccountByHandle  (handle string) *Filters {
+	return &Filters{
+		Name: CompStrs{EqualsString(handle)},
+		Type: ActivityTypesFilter(ValidActorTypes...),
+	}
+}
+
 // HandleLogin handles POST /login requests
 func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	pw := r.PostFormValue("pw")
@@ -373,13 +380,11 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	state := r.PostFormValue("state")
 	ctx := context.TODO()
 
+	repo := ContextRepository(r.Context())
+
 	config := GetOauth2Config("fedbox", h.conf.BaseURL)
 	// Try to load actor from handle
-	accts, err := h.storage.accounts(ctx, &Filters{
-		Name: CompStrs{EqualsString(handle)},
-		Type: ActivityTypesFilter(ValidActorTypes...),
-		Actor: &Filters{IRI: notNilFilters},
-	})
+	accts, err := repo.accounts(ctx, FilterAccountByHandle(handle))
 
 	handleErr := func(msg string, f log.Ctx) {
 		h.errFn(f)("Error: %s", err)
@@ -570,8 +575,8 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := context.TODO()
 
-	f := &Filters{Name: CompStrs{EqualsString(a.Handle)}}
-	maybeExists, err := h.storage.account(ctx, f)
+	repo := ContextRepository(r.Context())
+	maybeExists, err := repo.account(ctx, FilterAccountByHandle(a.Handle))
 	if err != nil && !errors.IsNotFound(err) {
 		h.logger.WithContext(log.Ctx{"handle": a.Handle, "err": err}).Warnf("error when trying to load account")
 		h.v.HandleErrors(w, r, errors.NewBadRequest(err, "error when trying to load account %s", a.Handle))
