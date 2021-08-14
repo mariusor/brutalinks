@@ -156,6 +156,9 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 			})
 		})
 
+		if c.Env.IsDev() && !c.Secure {
+			r.Mount("/debug", middleware.Profiler())
+		}
 		r.Group(func(r chi.Router) {
 			r.Get("/{path}", assets.ServeAsset(h.v.assets))
 			r.Get("/css/{path}", assets.ServeAsset(h.v.assets))
