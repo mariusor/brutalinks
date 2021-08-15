@@ -21,18 +21,14 @@ const defaultTimeout = time.Second * 5
 
 // Run is the wrapper for starting the web-server and handling signals
 func Run(a app.Application) int {
-	a.Logger.WithContext(log.Ctx{
-		"listen":  a.Conf.Listen(),
-		"host":    a.Conf.HostName,
-		"env":     a.Conf.Env,
-		"https":   a.Conf.Secure,
-		"timeout": a.Conf.TimeOut,
-		"cert":    a.Conf.CertPath,
-		"key":     a.Conf.KeyPath,
-	}).Info("Started")
-
 	ctx, cancelFn := context.WithCancel(context.TODO())
-	srvRun, srvStop := w.HttpServer(ctx, w.Handler(a.Mux), w.ListenOn(a.Conf.Listen()), w.SSL(a.Conf.CertPath, a.Conf.KeyPath))
+
+	setters := []w.SetFn{w.Handler(a.Mux), w.ListenOn(a.Conf.Listen())}
+	if a.Conf.Secure && len(a.Conf.CertPath) > 0 && len(a.Conf.KeyPath) > 0 {
+		setters = append(setters, w.SSL(a.Conf.CertPath, a.Conf.KeyPath))
+	}
+	srvRun, srvStop := w.HttpServer(ctx, setters...)
+
 	defer func() {
 		cancelFn()
 		if err := srvStop(); err != nil {
@@ -48,6 +44,16 @@ func Run(a app.Application) int {
 		}
 		return nil
 	}
+
+	a.Logger.WithContext(log.Ctx{
+		"listen":  a.Conf.Listen(),
+		"host":    a.Conf.HostName,
+		"env":     a.Conf.Env,
+		"https":   a.Conf.Secure,
+		"timeout": a.Conf.TimeOut,
+		"cert":    a.Conf.CertPath,
+		"key":     a.Conf.KeyPath,
+	}).Info("Started")
 
 	// Set up the signal handlers functions so the OS can tell us if the it requires us to stop
 	sigHandlerFns := w.SignalHandlers{
