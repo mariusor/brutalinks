@@ -83,11 +83,11 @@ func ActivityPubService(c appConfig) (*repository, error) {
 		return repo, err
 	}
 	if c.Env.IsDev() {
-		go func() {
+		new(sync.Once).Do(func() {
 			if err := repo.WarmupCaches(repo.fedbox.Service()); err != nil {
 				c.Logger.WithContext(log.Ctx{"err": err.Error()}).Warnf("Unable to warmup cache")
 			}
-		}()
+		})
 	}
 
 	return repo, nil

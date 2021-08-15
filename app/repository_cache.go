@@ -66,6 +66,7 @@ func colIRI (hc handlers.CollectionType) func(it pub.Item, fn ...client.FilterFn
 		return iri(hc.IRI(it), fn...)
 	}
 }
+
 func (r *repository) WarmupCaches(self pub.Item) error {
 	f := new(Filters)
 	f.MaxItems = 250
