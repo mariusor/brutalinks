@@ -8,10 +8,10 @@ require (
 	github.com/andybalholm/brotli v1.0.1 // indirect
 	github.com/captncraig/cors v0.0.0-20190703115713-e80254a89df1 // indirect
 	github.com/cucumber/godog v0.11.0
-	github.com/go-ap/activitypub v0.0.0-20210721173251-e7844f6e2bba
-	github.com/go-ap/client v0.0.0-20210804135459-f4ea26d90115
-	github.com/go-ap/errors v0.0.0-20210527074045-78cc5b9dcc94
-	github.com/go-ap/handlers v0.0.0-20210731170504-f9cc94ae3980
+	github.com/go-ap/activitypub v0.0.0-20210815171118-06ac3605b817
+	github.com/go-ap/client v0.0.0-20210815171859-991616ee1205
+	github.com/go-ap/errors v0.0.0-20210814172742-e0897299dceb
+	github.com/go-ap/handlers v0.0.0-20210815171806-8901b7e3f01f
 	github.com/go-ap/jsonld v0.0.0-20200327122108-fafac2de2660
 	github.com/go-chi/chi/v5 v5.0.3
 	github.com/google/uuid v1.0.0
