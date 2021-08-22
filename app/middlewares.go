@@ -154,68 +154,79 @@ func searchesInCollectionsMw(next http.Handler) http.Handler {
 	})
 }
 
-func LoadSingleObjectMw(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var err error
+var LoadObjectForRenderMw = loadSingleObjectMw(true, true, true)
+var LoadObjectForRedirectMw = loadSingleObjectMw(false, false, false)
 
-		ctx := context.TODO()
+func loadSingleObjectMw(loadReplies, loadAuthors, loadVotes bool) func (next http.Handler) http.Handler {
+	return func (next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			var err error
 
-		repo := ContextRepository(r.Context())
-		searchIn := ContextLoads(r.Context())
+			ctx := context.TODO()
 
-		var item Item
-		LoadFromSearches(ctx, repo, searchIn, func(c pub.CollectionInterface, f *Filters) error {
-			for _, it := range c.Collection() {
-				if err := item.FromActivityPub(it); err != nil {
-					repo.errFn(log.Ctx{"iri": it.GetLink()})("unable to load item")
-					continue
+			repo := ContextRepository(r.Context())
+			searchIn := ContextLoads(r.Context())
+
+			var item Item
+			LoadFromSearches(ctx, repo, searchIn, func(c pub.CollectionInterface, f *Filters) error {
+				for _, it := range c.Collection() {
+					if err := item.FromActivityPub(it); err != nil {
+						repo.errFn(log.Ctx{"iri": it.GetLink()})("unable to load item")
+						continue
+					}
+					if item.IsValid() {
+						return stop
+					}
 				}
-				if item.IsValid() {
-					return stop
+				return nil
+			})
+			if err != nil || !item.IsValid() {
+				var ctx log.Ctx
+				if err != nil {
+					ctx = log.Ctx{"err": err.Error()}
+				}
+				repo.errFn(ctx)("item not found")
+				ctxtErr(next, w, r, errors.NotFoundf(strings.TrimLeft(r.URL.Path, "/")))
+				return
+			}
+
+			items := ItemCollection{item}
+
+			if loadReplies {
+				if comments, err := repo.loadItemsReplies(ctx, items...); err == nil {
+					items = append(items, comments...)
 				}
 			}
-			return nil
+			if loadAuthors {
+				if items, err = repo.loadItemsAuthors(ctx, items...); err != nil {
+					repo.errFn()("unable to load item authors")
+				}
+			}
+			if loadVotes {
+				if items, err = repo.loadItemsVotes(ctx, items...); err != nil {
+					repo.errFn()("unable to load item votes")
+				}
+			}
+			c := &Cursor{
+				items: make(RenderableList),
+			}
+			for k := range items {
+				c.items.Append(Renderable(&items[k]))
+			}
+
+			i, _ := items.First()
+			m := ContextContentModel(r.Context())
+			m.Title = "Replies to item"
+			if i.SubmittedBy != nil {
+				m.Title = fmt.Sprintf("Replies to %s item", genitive(i.SubmittedBy.Handle))
+			}
+			if len(i.Title) > 0 {
+				m.Title = fmt.Sprintf("%s: %s", m.Title, i.Title)
+			}
+			rtx := context.WithValue(r.Context(), CursorCtxtKey, c)
+			next.ServeHTTP(w, r.WithContext(rtx))
 		})
-		if err != nil || !item.IsValid() {
-			var ctx log.Ctx
-			if err != nil {
-				ctx = log.Ctx{"err": err.Error()}
-			}
-			repo.errFn(ctx)("item not found")
-			ctxtErr(next, w, r, errors.NotFoundf(strings.TrimLeft(r.URL.Path, "/")))
-			return
-		}
-
-		items := ItemCollection{item}
-
-		if comments, err := repo.loadItemsReplies(ctx, items...); err == nil {
-			items = append(items, comments...)
-		}
-		if items, err = repo.loadItemsAuthors(ctx, items...); err != nil {
-			repo.errFn()("unable to load item authors")
-		}
-		if items, err = repo.loadItemsVotes(ctx, items...); err != nil {
-			repo.errFn()("unable to load item votes")
-		}
-		c := &Cursor{
-			items: make(RenderableList),
-		}
-		for k := range items {
-			c.items.Append(Renderable(&items[k]))
-		}
-
-		i, _ := items.First()
-		m := ContextContentModel(r.Context())
-		m.Title = "Replies to item"
-		if i.SubmittedBy != nil {
-			m.Title = fmt.Sprintf("Replies to %s item", genitive(i.SubmittedBy.Handle))
-		}
-		if len(i.Title) > 0 {
-			m.Title = fmt.Sprintf("%s: %s", m.Title, i.Title)
-		}
-		rtx := context.WithValue(r.Context(), CursorCtxtKey, c)
-		next.ServeHTTP(w, r.WithContext(rtx))
-	})
+	}
 }
 
 func ModelMw(m Model) Handler {

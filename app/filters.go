@@ -219,6 +219,7 @@ func (h handler) ItemFiltersMw(next http.Handler) http.Handler {
 		f := FiltersFromRequest(r)
 		f.Type = CreateActivitiesFilter
 		hash := chi.URLParam(r, "hash")
+		f.MaxItems = 1
 
 		m := ContextContentModel(r.Context())
 		m.Hash = HashFromString(hash)
