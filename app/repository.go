@@ -1078,24 +1078,26 @@ func getCollectionPrevNext(col pub.CollectionInterface) (prev, next string) {
 	case pub.OrderedCollectionPageType:
 		if c, ok := col.(*pub.OrderedCollectionPage); ok {
 			prev = beforeFn(c.Prev)
-			next = afterFn(c.Next)
+			if int(c.TotalItems) > len(c.OrderedItems) {
+				next = afterFn(c.Next)
+			}
 		}
 	case pub.OrderedCollectionType:
 		if c, ok := col.(*pub.OrderedCollection); ok {
-			next = afterFn(c.First)
-			if next == "" && len(c.OrderedItems) > 0 {
+			if len(c.OrderedItems) > 0 && int(c.TotalItems) > len(c.OrderedItems) {
 				next = nextFromLastFn(c.OrderedItems[len(c.OrderedItems)-1])
 			}
 		}
 	case pub.CollectionPageType:
 		if c, ok := col.(*pub.CollectionPage); ok {
 			prev = beforeFn(c.Prev)
-			next = afterFn(c.Next)
+			if int(c.TotalItems) > len(c.Items) {
+				next = afterFn(c.Next)
+			}
 		}
 	case pub.CollectionType:
 		if c, ok := col.(*pub.Collection); ok {
-			next = afterFn(c.First)
-			if next == "" && len(c.Items) > 0 {
+			if len(c.Items) > 0 && int(c.TotalItems) > len(c.Items) {
 				next = nextFromLastFn(c.Items[len(c.Items)-1])
 			}
 		}
