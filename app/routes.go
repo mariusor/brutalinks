@@ -34,7 +34,7 @@ var assetFiles = assets.AssetFiles{
 func (h *handler) ItemRoutes() func(chi.Router) {
 	return func(r chi.Router) {
 		r.Use(h.CSRF, ContentModelMw, h.ItemFiltersMw, searchesInCollectionsMw, LoadSingleObjectMw, SingleItemModelMw)
-		r.With(LoadSingleItemRepliesMw, ThreadedListingMw, SortByScore, ).Get("/", h.HandleShow)
+		r.With(LoadSingleItemRepliesMw, ThreadedListingMw, SortByScore).Get("/", h.HandleShow)
 		r.With(h.ValidateLoggedIn(h.v.RedirectToErrors), LoadSingleItemRepliesMw).Post("/", h.HandleSubmit)
 
 		r.Group(func(r chi.Router) {

@@ -198,6 +198,10 @@ func LoadSingleItemRepliesMw(next http.Handler) http.Handler {
 func SingleItemModelMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		m := ContextContentModel(r.Context())
+		if m == nil {
+			next.ServeHTTP(w, r)
+			return
+		}
 		item := ContextItem(r.Context())
 
 		m.Title = "Replies to item"
