@@ -33,9 +33,9 @@ var assetFiles = assets.AssetFiles{
 
 func (h *handler) ItemRoutes() func(chi.Router) {
 	return func(r chi.Router) {
-		r.Use(h.CSRF, ContentModelMw, h.ItemFiltersMw, searchesInCollectionsMw, LoadObjectForRenderMw, ThreadedListingMw, SortByScore)
-		r.Get("/", h.HandleShow)
-		r.With(h.ValidateLoggedIn(h.v.RedirectToErrors)).Post("/", h.HandleSubmit)
+		r.Use(h.CSRF, ContentModelMw, h.ItemFiltersMw, searchesInCollectionsMw, LoadSingleObjectMw, SingleItemModelMw)
+		r.With(LoadSingleItemRepliesMw, ThreadedListingMw, SortByScore, ).Get("/", h.HandleShow)
+		r.With(h.ValidateLoggedIn(h.v.RedirectToErrors), LoadSingleItemRepliesMw).Post("/", h.HandleSubmit)
 
 		r.Group(func(r chi.Router) {
 			r.Use(h.ValidateLoggedIn(h.v.RedirectToErrors))
@@ -43,14 +43,14 @@ func (h *handler) ItemRoutes() func(chi.Router) {
 			r.Get("/nay", h.HandleVoting)
 
 			//r.Get("/bad", h.ShowReport)
-			r.With(ReportContentModelMw).Get("/bad", h.HandleShow)
+			r.With(LoadSingleItemRepliesMw, ThreadedListingMw, ReportContentModelMw).Get("/bad", h.HandleShow)
 			r.Post("/bad", h.ReportItem)
-			r.With(BlockContentModelMw).Get("/block", h.HandleShow)
+			r.With(LoadSingleItemRepliesMw, ThreadedListingMw, BlockContentModelMw).Get("/block", h.HandleShow)
 			r.Post("/block", h.BlockItem)
 
 			r.Group(func(r chi.Router) {
-				r.With(h.ValidateItemAuthor("edit"), EditContentModelMw).Get("/edit", h.HandleShow)
-				r.With(h.ValidateItemAuthor("edit")).Post("/edit", h.HandleSubmit)
+				r.With(h.ValidateItemAuthor("edit"), LoadSingleItemRepliesMw, ThreadedListingMw,  EditContentModelMw).Get("/edit", h.HandleShow)
+				r.With(h.ValidateItemAuthor("edit"), LoadSingleItemRepliesMw).Post("/edit", h.HandleSubmit)
 				r.With(h.ValidateItemAuthor("delete")).Get("/rm", h.HandleDelete)
 			})
 		})
@@ -122,7 +122,7 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 			r.Route("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}", h.ItemRoutes())
 
 			// @todo(marius) :link_generation:
-			r.With(ContentModelMw, h.ItemFiltersMw, searchesInCollectionsMw, LoadObjectForRedirectMw).Get("/i/{hash}", h.HandleItemRedirect)
+			r.With(ContentModelMw, h.ItemFiltersMw, searchesInCollectionsMw, LoadSingleObjectMw).Get("/i/{hash}", h.HandleItemRedirect)
 
 			r.With(h.NeedsSessions).Get("/logout", h.HandleLogout)
 
