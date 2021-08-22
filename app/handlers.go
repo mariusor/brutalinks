@@ -35,8 +35,8 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	)
 
 	c := ContextCursor(r.Context())
-	if path.Base(r.URL.Path) != "submit" {
-		saveVote = true
+	if path.Base(r.URL.Path) == "edit" {
+		saveVote = false
 		n = *ContextItem(r.Context())
 	}
 
