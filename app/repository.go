@@ -1556,6 +1556,7 @@ func (r *repository) SaveVote(ctx context.Context, v Vote) (Vote, error) {
 		r.errFn()(err.Error())
 		return v, err
 	}
+	r.cache.clear()
 	r.infoFn(log.Ctx{"act": iri, "obj": it.GetLink(), "type": it.GetType()})("saved activity")
 	err = v.FromActivityPub(act)
 	return v, err
@@ -1853,6 +1854,7 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 		items, err := r.loadItemsAuthors(ctx, it)
 		return items[0], err
 	}
+	r.cache.clear()
 	return it, err
 }
 
@@ -2043,6 +2045,7 @@ func (r *repository) SendFollowResponse(ctx context.Context, f FollowRequest, ac
 		})("unable to respond to follow")
 		return err
 	}
+	r.cache.clear()
 	return nil
 }
 
@@ -2142,6 +2145,7 @@ func (r *repository) SaveAccount(ctx context.Context, a Account) (Account, error
 	if err := a.FromActivityPub(ap); err != nil {
 		r.errFn(ltx, log.Ctx{"err": err})("loading of actor from JSON failed")
 	}
+	r.cache.clear()
 	return a, nil
 }
 
@@ -2281,6 +2285,7 @@ func (r *repository) BlockAccount(ctx context.Context, er, ed Account, reason *I
 		r.errFn()(err.Error())
 		return err
 	}
+	r.cache.clear()
 	return nil
 }
 
@@ -2295,6 +2300,7 @@ func (r *repository) BlockItem(ctx context.Context, er Account, ed Item, reason 
 		r.errFn()(err.Error())
 		return err
 	}
+	r.cache.clear()
 	return nil
 }
 
@@ -2309,6 +2315,7 @@ func (r *repository) ReportItem(ctx context.Context, er Account, it Item, reason
 		r.errFn()(err.Error())
 		return err
 	}
+	r.cache.clear()
 	return nil
 }
 
@@ -2323,6 +2330,7 @@ func (r *repository) ReportAccount(ctx context.Context, er, ed Account, reason *
 		r.errFn()(err.Error())
 		return err
 	}
+	r.cache.clear()
 	return nil
 }
 
@@ -2357,7 +2365,7 @@ func (r *repository) searchFn(ctx context.Context, g *errgroup.Group, curIRI pub
 	return func() error {
 		*it++
 		loadIRI := iri(curIRI, Values(f))
-		r.infoFn()("running[%d] %s", *it, loadIRI)
+
 		col, err := r.loadCollectionFromCacheOrIRI(ctx, loadIRI)
 		if err != nil {
 			return errors.Annotatef(err, "failed to load search: %s", loadIRI)
@@ -2371,6 +2379,7 @@ func (r *repository) searchFn(ctx context.Context, g *errgroup.Group, curIRI pub
 		if err != nil {
 			return err
 		}
+		r.cache.add(loadIRI, col)
 
 		if maxItems > f.MaxItems {
 			if _, f.Next = getCollectionPrevNext(col); len(f.Next) > 0 {
@@ -2378,7 +2387,6 @@ func (r *repository) searchFn(ctx context.Context, g *errgroup.Group, curIRI pub
 			}
 		}
 
-		r.cache.add(curIRI, col)
 		return nil
 	}
 }

@@ -24,6 +24,12 @@ type cache struct {
 	s       sync.RWMutex
 }
 
+func (c *cache) clear() {
+	for k := range c.m {
+		delete(c.m, k)
+	}
+}
+
 func (c *cache) add(iri pub.IRI, it pub.Item) {
 	if !c.enabled {
 		return
