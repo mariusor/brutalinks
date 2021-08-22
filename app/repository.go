@@ -274,10 +274,14 @@ func loadAPItem(it pub.Item, item Item) error {
 					o.Tag.Append(t)
 				}
 				for _, tag := range m.Tags {
+					name := "#" + tag.Name
+					if tag.Name[0] == '#' {
+						name = tag.Name
+					}
 					t := pub.Object{
 						URL:  pub.ID(tag.URL),
 						To:   pub.ItemCollection{pub.PublicNS},
-						Name: pub.NaturalLanguageValues{{Ref: pub.NilLangRef, Value: pub.Content("#" + tag.Name)}},
+						Name: pub.NaturalLanguageValues{{Ref: pub.NilLangRef, Value: pub.Content(name)}},
 					}
 					if tag.Metadata != nil && len(tag.Metadata.ID) > 0 {
 						t.ID = pub.IRI(tag.Metadata.ID)
@@ -1850,11 +1854,11 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 		r.errFn()(err.Error())
 		return it, err
 	}
+	r.cache.clear()
 	if loadAuthors {
 		items, err := r.loadItemsAuthors(ctx, it)
 		return items[0], err
 	}
-	r.cache.clear()
 	return it, err
 }
 
