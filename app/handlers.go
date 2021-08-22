@@ -35,12 +35,11 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	)
 
 	c := ContextCursor(r.Context())
-	if c != nil && len(c.items) > 0 {
-		if hash := HashFromString(r.FormValue("hash")); hash.IsValid() {
-			n = *getItemFromList(hash, c.items)
-			saveVote = false
-		}
+	if path.Base(r.URL.Path) != "submit" {
+		saveVote = true
+		n = *ContextItem(r.Context())
 	}
+
 	if err = updateItemFromRequest(r, *acc, &n); err != nil {
 		h.errFn(log.Ctx{ "err": err.Error() })("Error: wrong http method")
 		h.v.HandleErrors(w, r, errors.NewMethodNotAllowed(err, ""))
