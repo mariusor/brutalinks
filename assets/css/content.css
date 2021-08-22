@@ -88,3 +88,12 @@ main.content article {
     grid-template-columns: 1.6rem 11fr;
     grid-template-areas: "sidebar main";
 }
+video {
+    max-width: 90%;
+    max-height: 32ex;
+}
+@media (max-width: 768px) {
+    video {
+        width: 100%;
+    }
+}

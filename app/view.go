@@ -687,7 +687,7 @@ func accountDefaultAvatar (act *Account) ImageMetadata {
 const (
 	imageFmt     = `<image src='data:%s;base64,%s' />`
 	avatarFmt    = `<image src='data:%s;base64,%s' width='48' height='48' class='icon avatar' />`
-	videoFmt     = `<video controls width='90%%'><source src='data:%s;base64,%s' type='%s'/></video>`
+	videoFmt     = `<video controls><source src='data:%s;base64,%s' type='%s'/></video>`
 	audioFmt     = `<audio controls><source src='data:%s;base64,%s' type='%s'/></audio>`
 	iconFmt      = `<svg aria-hidden="true" class="icon icon-%s"><use xlink:href="#icon-%s"><title>%s</title></use></svg>`
 	avatarSvgFmt = `<svg aria-hidden="true" class="icon avatar" width="48" height="48" viewBox="0 0 50 50">
