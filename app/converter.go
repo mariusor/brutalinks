@@ -190,7 +190,7 @@ func (a *Account) FromActivityPub(it pub.Item) error {
 		fallthrough
 	case pub.UpdateType:
 		return pub.OnActivity(it, func(act *pub.Activity) error {
-			return a.FromActivityPub(act.Actor)
+			return a.FromActivityPub(act.Object)
 		})
 	case pub.TombstoneType:
 		return pub.OnObject(it, func(o *pub.Object) error {
