@@ -293,10 +293,10 @@ func (v *view) loadCurrentAccountFromSession(w http.ResponseWriter, r *http.Requ
 	}
 	// load the current account from the session or setting it to anonymous
 	raw, ok := s.Values[SessionUserKey]
-	if !ok {
-		v.errFn(log.Ctx{"sess": s.Values})("no account data saved to session")
-	} else if acc, ok = raw.(Account); !ok {
-		v.errFn(log.Ctx{"sess": s.Values})("invalid account in session")
+	if ok  {
+		if acc, ok = raw.(Account); !ok {
+			v.errFn(log.Ctx{"sess": s.Values})("invalid account in session")
+		}
 	}
 	lCtx := log.Ctx{
 		"handle": acc.Handle,
