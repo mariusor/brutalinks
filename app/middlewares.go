@@ -66,7 +66,7 @@ func LoadOutboxMw(next http.Handler) http.Handler {
 				cursor.after = c.after
 			}
 		}
-		ctx := context.WithValue(r.Context(), CursorCtxtKey, cursor)
+		ctx := context.WithValue(r.Context(), CursorCtxtKey, &cursor)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -85,7 +85,7 @@ func LoadInboxMw(next http.Handler) http.Handler {
 			ctxtErr(next, w, r, errors.Annotatef(err, "unable to load current account's inbox"))
 			return
 		}
-		ctx := context.WithValue(r.Context(), CursorCtxtKey, cursor)
+		ctx := context.WithValue(r.Context(), CursorCtxtKey, &cursor)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -99,7 +99,7 @@ func LoadServiceInboxMw(next http.Handler) http.Handler {
 			ctxtErr(next, w, r, errors.Annotatef(err, "unable to load the %s's inbox", repo.fedbox.Service().Type))
 			return
 		}
-		ctx := context.WithValue(r.Context(), CursorCtxtKey, cursor)
+		ctx := context.WithValue(r.Context(), CursorCtxtKey, &cursor)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -114,7 +114,7 @@ func LoadServiceWithSelfAuthInboxMw(next http.Handler) http.Handler {
 			ctxtErr(next, w, r, errors.Annotatef(err, "unable to load the %s's inbox", repo.fedbox.Service().Type))
 			return
 		}
-		ctx := context.WithValue(r.Context(), CursorCtxtKey, cursor)
+		ctx := context.WithValue(r.Context(), CursorCtxtKey, &cursor)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -182,14 +182,14 @@ func LoadSingleItemRepliesMw(next http.Handler) http.Handler {
 		if items, err = repo.loadItemsVotes(ctx, items...); err != nil {
 			repo.errFn()("unable to load item votes")
 		}
-		c := &Cursor{
+		c := Cursor{
 			items: make(RenderableList),
 		}
 		for k := range items {
 			c.items.Append(Renderable(&items[k]))
 		}
 
-		rtx := context.WithValue(r.Context(), CursorCtxtKey, c)
+		rtx := context.WithValue(r.Context(), CursorCtxtKey, &c)
 		next.ServeHTTP(w, r.WithContext(rtx))
 	})
 

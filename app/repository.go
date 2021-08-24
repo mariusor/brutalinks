@@ -2167,7 +2167,7 @@ func (r *repository) LoadInfo() (WebInfo, error) {
 	return Instance.NodeInfo(), nil
 }
 
-func (r *repository) LoadAccountWithDetails(ctx context.Context, actor Account, f ...*Filters) (*Cursor, error) {
+func (r *repository) LoadAccountWithDetails(ctx context.Context, actor Account, f ...*Filters) (Cursor, error) {
 	c, err := r.LoadActorOutbox(ctx, actor.pub, f...)
 	if err != nil {
 		return c, err
@@ -2193,19 +2193,15 @@ func (r *repository) LoadAccountWithDetails(ctx context.Context, actor Account, 
 	return c, nil
 }
 
-func (r *repository) LoadActorOutbox(ctx context.Context, actor pub.Item, f ...*Filters) (*Cursor, error) {
+func (r *repository) LoadActorOutbox(ctx context.Context, actor pub.Item, f ...*Filters) (Cursor, error) {
 	if actor == nil {
-		return nil, errors.Errorf("Invalid actor")
+		return emptyCursor, errors.Errorf("Invalid actor")
 	}
 
 	searches := make(RemoteLoads)
 	searches[r.fedbox.Service().GetLink()] = []RemoteLoad{{actor: actor.GetLink(), loadFn: outbox, filters: f}}
 
-	cursor, err := r.ActorCollection(ctx, searches)
-	if err != nil {
-		return nil, err
-	}
-	return &cursor, nil
+	return r.ActorCollection(ctx, searches)
 }
 
 func (r *repository) LoadActivities(ctx context.Context, ff ...*Filters) (*Cursor, error) {
@@ -2219,19 +2215,15 @@ func (r *repository) LoadActivities(ctx context.Context, ff ...*Filters) (*Curso
 	return &cursor, nil
 }
 
-func (r *repository) LoadActorInbox(ctx context.Context, actor pub.Item, f ...*Filters) (*Cursor, error) {
+func (r *repository) LoadActorInbox(ctx context.Context, actor pub.Item, f ...*Filters) (Cursor, error) {
 	if actor == nil {
-		return nil, errors.Errorf("Invalid actor")
+		return emptyCursor, errors.Errorf("Invalid actor")
 	}
 
 	searches := make(RemoteLoads, 0)
 	searches[r.fedbox.Service().GetLink()] = []RemoteLoad{{actor: actor, loadFn: inbox, filters: f}}
 
-	cursor, err := r.ActorCollection(ctx, searches)
-	if err != nil {
-		return nil, err
-	}
-	return &cursor, nil
+	return r.ActorCollection(ctx, searches)
 }
 
 func (r repository) moderationActivity(ctx context.Context, er *pub.Actor, ed pub.Item, reason *Item) (*pub.Activity, error) {
