@@ -226,14 +226,14 @@ func LoadSingleObjectMw(next http.Handler) http.Handler {
 		searchIn := ContextLoads(r.Context())
 
 		var item Item
-		LoadFromSearches(ctx, repo, searchIn, func(c pub.CollectionInterface, f *Filters) error {
+		LoadFromSearches(ctx, repo, searchIn, func(ctx context.Context, c pub.CollectionInterface, f *Filters) error {
 			for _, it := range c.Collection() {
 				if err := item.FromActivityPub(it); err != nil {
 					repo.errFn(log.Ctx{"iri": it.GetLink()})("unable to load item")
 					continue
 				}
 				if item.IsValid() {
-					return stop
+					ctx.Done()
 				}
 			}
 			return nil

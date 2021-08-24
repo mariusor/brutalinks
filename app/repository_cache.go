@@ -59,7 +59,7 @@ func (c *cache) loadFromSearches(repo *repository, search RemoteLoads) error {
 		return nil
 	}
 	ctx, _ := context.WithTimeout(context.TODO(), time.Second)
-	return LoadFromSearches(ctx, repo, search, func (col pub.CollectionInterface, f *Filters) error {
+	return LoadFromSearches(ctx, repo, search, func (_ context.Context, col pub.CollectionInterface, f *Filters) error {
 		for _, it := range col.Collection() {
 			c.add(it.GetLink(), it)
 		}
