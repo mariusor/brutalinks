@@ -2387,7 +2387,11 @@ func (r *repository) searchFn(ctx context.Context, g *errgroup.Group, curIRI pub
 		if maxItems > f.MaxItems {
 			if _, f.Next = getCollectionPrevNext(col); len(f.Next) > 0 {
 				g.Go(r.searchFn(ctx, g, curIRI, f, fn, it))
+			} else {
+				ctx.Done()
 			}
+		} else {
+			ctx.Done()
 		}
 
 		return nil
