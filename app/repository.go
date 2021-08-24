@@ -1105,6 +1105,14 @@ func getCollectionPrevNext(col pub.CollectionInterface) (prev, next string) {
 			}
 		}
 	}
+	// NOTE(marius): we check if current Collection id contains a cursor, and if `next` points to the same URL
+	//   we don't take it into consideration.
+	if next != "" {
+		f := struct{Next string `qstring:"after"`}{}
+		if err := qstring.Unmarshal(qFn(col.GetLink()), &f); err == nil && next == f.Next {
+			next = ""
+		}
+	}
 	return prev, next
 }
 
