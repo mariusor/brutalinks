@@ -2225,7 +2225,7 @@ func (r *repository) LoadActorInbox(ctx context.Context, actor pub.Item, f ...*F
 	}
 
 	searches := make(RemoteLoads, 0)
-	searches[r.fedbox.Service().GetLink()] = []RemoteLoad{{actor: r.fedbox.Service(), loadFn: inbox, filters: f}}
+	searches[r.fedbox.Service().GetLink()] = []RemoteLoad{{actor: actor, loadFn: inbox, filters: f}}
 
 	cursor, err := r.ActorCollection(ctx, searches)
 	if err != nil {
