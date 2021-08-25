@@ -670,6 +670,20 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+func flatItems(items ItemPtrCollection) ItemCollection {
+	if len(items) == 0 {
+		return nil
+	}
+	ret := make(ItemCollection, 0)
+	for _, it := range items {
+		ret = append(ret, *it)
+		if len(it.Children()) > 0 {
+			ret = append(ret, flatItems(it.Children())...)
+		}
+	}
+	return ret
+}
+
 // HandleShow serves most of the GET requests
 func (h *handler) HandleShow(w http.ResponseWriter, r *http.Request) {
 	m := ContextModel(r.Context())
@@ -680,9 +694,17 @@ func (h *handler) HandleShow(w http.ResponseWriter, r *http.Request) {
 			Title:      "Oops!!",
 		}
 	}
-	cursor := ContextCursor(r.Context())
-	if mod, ok := m.(Paginator); ok && cursor != nil {
-		mod.SetCursor(cursor)
+	if cursor := ContextCursor(r.Context()); cursor != nil {
+		if mod, ok := m.(Paginator); ok {
+			mod.SetCursor(cursor)
+		}
+		if acc := loggedAccount(r); acc != nil {
+			items := cursor.items.Items()
+			for _, it := range cursor.items.Items() {
+				items = append(items, flatItems(it.Children())...)
+			}
+			h.storage.loadAccountVotes(context.TODO(), acc, items)
+		}
 	}
 	if err := h.v.RenderTemplate(r, w, m.Template(), m); err != nil {
 		h.v.HandleErrors(w, r, err)

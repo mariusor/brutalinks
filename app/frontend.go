@@ -413,13 +413,6 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 				h.infoFn(ltx, log.Ctx{"updated": acc.Metadata.OutboxUpdated.Format(time.StampMilli)})("Loaded account's outbox")
 				acc.Metadata.OutboxUpdated = time.Now()
 			}
-			if len(acc.Votes) == 0 {
-				var items ItemCollection
-				if cursor := ContextCursor(r.Context()); cursor != nil {
-					items = cursor.items.Items()
-				}
-				h.storage.loadAccountVotes(ctx, &acc, items)
-			}
 			if len(acc.Followers) == 0 {
 				// TODO(marius): this needs to be moved to where we're handling all Inbox activities, not on page load
 				if err := h.storage.loadAccountsFollowers(ctx, &acc); err != nil {
@@ -441,6 +434,20 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 			}
 		}
 		next.ServeHTTP(w, r)
+	}
+	return http.HandlerFunc(fn)
+}
+
+func loadLoggedAccountItemsVotes(next http.Handler) http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		if st := ContextRepository(r.Context()); st != nil {
+			if cursor := ContextCursor(r.Context()); cursor != nil {
+				if acc := loggedAccount(r); acc != nil {
+					st.loadAccountVotes(context.TODO(), acc, cursor.items.Items())
+				}
+			}
+			next.ServeHTTP(w, r)
+		}
 	}
 	return http.HandlerFunc(fn)
 }
