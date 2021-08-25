@@ -11,6 +11,14 @@
     <aside>
         Joined <time datetime="{{ .CreatedAt | ISOTimeFmt | html }}" title="{{ .CreatedAt | ISOTimeFmt }}">{{ .CreatedAt | TimeFmt }}</time><br/>
 {{- end }}
+{{- if gt (len .Metadata.Tags) 0 }}
+    Tags: <ul>
+        {{- range $tag := .Metadata.Tags -}}
+        {{ if gt (len $tag.Name) 0 -}} <li> {{$tag | outputTag }} </li>{{- end -}}
+
+        {{- end -}}
+    </ul>
+{{ end -}}
 {{- if CurrentAccount.IsLogged }}
     {{- if .HasPublicKey }}
         <section class="pub-key"><details><summary>PublicKey</summary><pre>{{.Metadata.Key.Public | fmtPubKey }}</pre></details></section>

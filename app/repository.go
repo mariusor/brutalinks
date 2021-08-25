@@ -1135,6 +1135,7 @@ func (r *repository) accounts(ctx context.Context, ff ...*Filters) ([]Account, e
 	searches := RemoteLoads{
 		r.fedbox.Service().GetLink(): []RemoteLoad{{actor: r.fedbox.Service(), loadFn: colIRI(actors), filters: ff}},
 	}
+	deferredTagLoads := make(CompStrs, 0)
 	err := LoadFromSearches(ctx, r, searches, func(_ context.Context, col pub.CollectionInterface, f *Filters) error {
 		for _, it := range col.Collection() {
 			if !it.IsObject() || !ValidActorTypes.Contains(it.GetType()) {
@@ -1142,11 +1143,43 @@ func (r *repository) accounts(ctx context.Context, ff ...*Filters) ([]Account, e
 			}
 			a := Account{}
 			if err := a.FromActivityPub(it); err == nil && a.IsValid() {
+				if len(a.Metadata.Tags) > 0 {
+					for _, t := range a.Metadata.Tags {
+						if t.Name == "" && t.Metadata.ID != "" {
+							deferredTagLoads = append(deferredTagLoads, EqualsString(t.Metadata.ID))
+						}
+					}
+				}
 				accounts = append(accounts, a)
 			}
 		}
+
 		// TODO(marius): this needs to be externalized also to a different function that we can pass from outer scope
 		//   This function implements the logic for breaking out of the collection iteration cycle and returns a bool
+		return nil
+	})
+	if err != nil {
+		return accounts, err
+	}
+	tagSearches := RemoteLoads{
+		r.fedbox.Service().GetLink(): []RemoteLoad{{
+			actor: r.fedbox.Service(),
+			loadFn: colIRI(objects),
+			filters: []*Filters{{IRI: deferredTagLoads}},
+		}},
+	}
+	err = LoadFromSearches(ctx, r, tagSearches, func(_ context.Context, col pub.CollectionInterface, f *Filters) error {
+		for _, it := range col.Collection() {
+			for _, a := range accounts {
+				for i, t := range a.Metadata.Tags {
+					if it.GetID().Equals(pub.IRI(t.Metadata.ID), true) {
+						tt := Tag{}
+						tt.FromActivityPub(it)
+						a.Metadata.Tags[i] = tt
+					}
+				}
+			}
+		}
 		return nil
 	})
 	return accounts, err
