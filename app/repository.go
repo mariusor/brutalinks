@@ -2384,7 +2384,7 @@ func (r *repository) searchFn(ctx context.Context, g *errgroup.Group, curIRI pub
 		}
 		r.cache.add(loadIRI, col)
 
-		if maxItems > f.MaxItems {
+		if maxItems - f.MaxItems < 5 {
 			if _, f.Next = getCollectionPrevNext(col); len(f.Next) > 0 {
 				g.Go(r.searchFn(ctx, g, curIRI, f, fn, it))
 			} else {
