@@ -63,12 +63,7 @@ var AppreciationActivitiesFilter = ActivityTypesFilter(ValidAppreciationTypes...
 
 func DefaultFilters(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		f := FiltersFromRequest(r)
-		f.Type = CreateActivitiesFilter
-		f.Object = new(Filters)
-		f.Object.InReplTo = nilFilters
-		f.Object.Type = ActivityTypesFilter(ValidContentTypes...)
-		f.Actor = &Filters{IRI: notNilFilters}
+		f := defaultFilters(r)
 		m := ContextListingModel(r.Context())
 		m.Title = "Newest items"
 		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
@@ -95,7 +90,7 @@ func ContextActivityFilters(ctx context.Context) []*Filters {
 func SelfFiltersMw(id pub.IRI) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			f := fedFilters(r)
+			f := defaultFilters(r)
 			f.Actor.IRI = CompStrs{LikeString(id.String())}
 			m := ContextListingModel(r.Context())
 			m.Title = "Local instance items"
@@ -127,11 +122,11 @@ func DifferentThanString(s string) CompStr {
 	return CompStr{Operator: "!", Str: s}
 }
 
-func fedFilters(r *http.Request) *Filters {
+func defaultFilters(r *http.Request) *Filters {
 	f := FiltersFromRequest(r)
 	f.Type = CreateActivitiesFilter
-	f.Object = &Filters{}
-	f.Object.OP = nilFilters
+	f.Object = new(Filters)
+	f.Object.InReplTo = nilFilters
 	f.Object.Type = ActivityTypesFilter(ValidContentTypes...)
 	f.Actor = &Filters{IRI: notNilFilters}
 	return f
@@ -140,7 +135,7 @@ func fedFilters(r *http.Request) *Filters {
 func FederatedFiltersMw(id pub.IRI) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			f := fedFilters(r)
+			f := defaultFilters(r)
 			f.IRI = CompStrs{DifferentThanString(id.String())}
 			m := ContextListingModel(r.Context())
 			m.Title = "Federated items"
