@@ -68,3 +68,7 @@ details#invites summary,
 .acct-info section {
     margin-top: 1em;
 }
+.user details aside ul {
+    display: inline-block;
+    list-style: none;
+}
