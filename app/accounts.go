@@ -39,6 +39,7 @@ type AccountMetadata struct {
 	Name                  string             `json:"name,omitempty"`
 	ID                    string             `json:"id,omitempty"`
 	URL                   string             `json:"url,omitempty"`
+	Tags                  TagCollection      `json:"tags,omitempty"`
 	InboxIRI              string             `json:"inbox,omitempty"`
 	OutboxIRI             string             `json:"outbox,omitempty"`
 	LikedIRI              string             `json:"liked,omitempty"`

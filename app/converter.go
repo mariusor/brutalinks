@@ -160,6 +160,16 @@ func FromActor(a *Account, p *pub.Actor) error {
 			a.Metadata.TokenEndPoint = u.String()
 		}
 	}
+	if p.Tag != nil {
+		a.Metadata.Tags = make(TagCollection, 0)
+		tags := TagCollection{}
+		tags.FromActivityPub(p.Tag)
+		for _, t := range tags {
+			if t.Type == TagTag {
+				a.Metadata.Tags = append(a.Metadata.Tags, t)
+			}
+		}
+	}
 	return nil
 }
 
@@ -409,7 +419,7 @@ func FromArticle(i *Item, a *pub.Object) error {
 		i.Data = a.Source.Content.First().Value.String()
 		i.MimeType = string(a.Source.MediaType)
 	}
-	if a.Tag != nil && len(a.Tag) > 0 {
+	if a.Tag != nil {
 		i.Metadata.Tags = make(TagCollection, 0)
 		i.Metadata.Mentions = make(TagCollection, 0)
 
@@ -485,6 +495,7 @@ func (t *Tag) FromActivityPub(it pub.Item) error {
 	typ := it.GetType()
 	if it.IsLink() && typ != pub.MentionType {
 		t.Hash.FromActivityPub(it.GetLink())
+		t.Type = TagTag
 		t.Metadata = &ItemMetadata{
 			ID: it.GetLink().String(),
 		}
@@ -709,16 +720,26 @@ func host(u string) string {
 	return ""
 }
 
-func (c *TagCollection) FromActivityPub(col pub.ItemCollection) error {
-	if col == nil {
+func (c *TagCollection) FromActivityPub(tag pub.Item) error {
+	if tag == nil {
 		return errors.Newf("empty collection")
 	}
-	for _, it := range col {
+	appendTag := func(it pub.Item) error {
 		t := Tag{}
 		t.FromActivityPub(it)
 		*c = append(*c, t)
+		return nil
 	}
-	return nil
+	if tag.IsCollection() {
+		return pub.OnCollectionIntf(tag, func(c pub.CollectionInterface) error {
+			for _, it := range c.Collection() {
+				appendTag(it)
+			}
+			return nil
+		})
+	} else {
+		return appendTag(tag)
+	}
 }
 
 func LoadFromActivityPubItem(it pub.Item) (Renderable, error) {
