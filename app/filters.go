@@ -279,12 +279,6 @@ func AccountFiltersMw(next http.Handler) http.Handler {
 	})
 }
 
-var ModerationActivitiesFilter = CompStrs{
-	CompStr{Str: string(pub.BlockType)},
-	CompStr{Str: string(pub.IgnoreType)},
-	CompStr{Str: string(pub.FlagType)},
-}
-
 type moderationFilter struct {
 	Mod  []string `qstring:"m"`
 	Type []string `qstring:"t"`

@@ -11,6 +11,8 @@ import (
 
 var ValidModerationActivityTypes = pub.ActivityVocabularyTypes{pub.BlockType, pub.IgnoreType, pub.FlagType}
 
+var ModerationActivitiesFilter = ActivityTypesFilter(ValidModerationActivityTypes...)
+
 // ModerationRequests
 type ModerationRequests []ModerationOp
 

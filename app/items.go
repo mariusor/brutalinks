@@ -42,6 +42,8 @@ var ValidContentManagementTypes = pub.ActivityVocabularyTypes{
 	pub.DeleteType,
 }
 
+var ContentManagementActivitiesFilter = ActivityTypesFilter(ValidContentManagementTypes...)
+
 type Identifiable interface {
 	Id() int64
 }
