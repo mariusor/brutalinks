@@ -494,42 +494,35 @@ func (r *repository) loadAccountsFollowing(ctx context.Context, acc *Account) er
 	})
 }
 
-var (
-	ocTypes = pub.ActivityVocabularyTypes{pub.OrderedCollectionType, pub.OrderedCollectionPageType}
-	cTypes  = pub.ActivityVocabularyTypes{pub.CollectionType, pub.CollectionPageType}
-)
+func getItemUpdatedTime(it pub.Item) time.Time {
+	var updated time.Time
+	pub.OnObject(it, func(ob *pub.Object) error {
+		updated = ob.Updated
+		return nil
+	})
+	return updated
+}
 
 func (r *repository) loadAccountsOutbox(ctx context.Context, acc *Account) error {
 	if !acc.HasMetadata() || len(acc.Metadata.OutboxIRI) == 0 {
 		return nil
 	}
-	latest := time.Now().Add(-6 * 30 * 24 * time.Hour).UTC()
-	max := MaxContentItems * 25 // NOTE(marius): this affects how big the session stored value for an account can get
-	f := &Filters{}
+	latest := time.Now().Add(-12 * 30 * 24 * time.Hour).UTC()
+	f := new(Filters)
+	f.Type = append(append(AppreciationActivitiesFilter, ContentManagementActivitiesFilter...), ModerationActivitiesFilter...)
+	f.Object = &Filters{IRI:notNilFilters}
 	searches := RemoteLoads{
 		r.fedbox.Service().GetLink(): []RemoteLoad{{actor: acc.pub, loadFn: outbox, filters: []*Filters{f}}},
 	}
-	return LoadFromSearches(ctx, r, searches, func(_ context.Context, c pub.CollectionInterface, f *Filters) error {
-		if ocTypes.Contains(c.GetType()) {
-			pub.OnOrderedCollection(c, func(oc *pub.OrderedCollection) error {
-				acc.Metadata.OutboxUpdated = oc.Updated
-				return nil
-			})
-		}
-		if cTypes.Contains(c.GetType()) {
-			pub.OnCollection(c, func(c *pub.Collection) error {
-				acc.Metadata.OutboxUpdated = c.Updated
-				return nil
-			})
-		}
+	return LoadFromSearches(ctx, r, searches, func(ctx context.Context, c pub.CollectionInterface, f *Filters) error {
+		acc.Metadata.OutboxUpdated = getItemUpdatedTime(c)
+		stop := acc.Metadata.OutboxUpdated.Sub(latest) < 0
 		for _, it := range c.Collection() {
-			skipOutbox := false
 			typ := it.GetType()
 			if ValidAppreciationTypes.Contains(typ) {
 				v := new(Vote)
 				if err := v.FromActivityPub(it); err == nil && !acc.Votes.Contains(*v) {
 					acc.Votes = append(acc.Votes, *v)
-					skipOutbox = true
 				}
 			}
 			if ValidModerationActivityTypes.Contains(typ) {
@@ -543,15 +536,11 @@ func (r *repository) loadAccountsOutbox(ctx context.Context, acc *Account) error
 				if typ == pub.IgnoreType {
 					acc.Ignored = append(acc.Ignored, *p)
 				}
-				skipOutbox = true
 			}
-			pub.OnActivity(it, func(a *pub.Activity) error {
-				skipOutbox = skipOutbox || a.Updated.Sub(latest) > 0
-				return nil
-			})
-			if len(acc.Metadata.Outbox) < max && !skipOutbox {
-				acc.Metadata.Outbox = append(acc.Metadata.Outbox, pub.FlattenProperties(it))
-			}
+			acc.Metadata.Outbox = append(acc.Metadata.Outbox, pub.FlattenProperties(it))
+		}
+		if stop {
+			ctx.Done()
 		}
 		return nil
 	})

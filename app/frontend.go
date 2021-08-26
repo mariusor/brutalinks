@@ -407,7 +407,7 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 
 			h.storage.WithAccount(&acc)
 			if time.Now().Sub(acc.Metadata.OutboxUpdated) > 5*time.Minute {
-				if err := loadAccount(ctx, h.storage, &acc); err != nil {
+				if err := h.storage.LoadAccountDetails(ctx, &acc); err != nil {
 					h.errFn(ltx, log.Ctx{"err": err.Error()})("unable to load account")
 				}
 			}
@@ -421,40 +421,6 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 			}
 		}
 		next.ServeHTTP(w, r)
-	}
-	return http.HandlerFunc(fn)
-}
-
-func loadAccount(ctx context.Context, st *repository, acc *Account) error {
-	if len(acc.Followers) == 0 {
-		// TODO(marius): this needs to be moved to where we're handling all Inbox activities, not on page load
-		if err := st.loadAccountsFollowers(ctx, acc); err != nil {
-			return errors.Annotatef(err, "unable to load account's followers")
-		}
-	}
-	if len(acc.Following) == 0 {
-		if err := st.loadAccountsFollowing(ctx, acc); err != nil {
-			return errors.Annotatef(err, "unable to load account's following")
-		}
-	}
-	if len(acc.Votes) == 0 {
-		if err := st.loadAccountVotes(ctx, acc, nil); err != nil {
-			return errors.Annotatef(err, "unable to load account's votes")
-		}
-	}
-	return nil
-}
-
-func loadLoggedAccountItemsVotes(next http.Handler) http.Handler {
-	fn := func(w http.ResponseWriter, r *http.Request) {
-		if st := ContextRepository(r.Context()); st != nil {
-			if cursor := ContextCursor(r.Context()); cursor != nil {
-				if acc := loggedAccount(r); acc != nil {
-					st.loadAccountVotes(context.TODO(), acc, cursor.items.Items())
-				}
-			}
-			next.ServeHTTP(w, r)
-		}
 	}
 	return http.HandlerFunc(fn)
 }
