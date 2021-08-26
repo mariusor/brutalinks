@@ -46,7 +46,7 @@ internal/assets/assets.gen.go: $(ASSETFILES)
 	go generate -tags $(ENV) ./assets.go
 
 app: bin/app
-bin/app: go.mod cmd/app/main.go $(APPSOURCES)
+bin/app: download go.mod cmd/app/main.go $(APPSOURCES)
 	$(BUILD) -tags $(ENV) -o $@ ./cmd/app/main.go
 
 run: app
