@@ -196,9 +196,9 @@ func (a *Account) FromActivityPub(it pub.Item) error {
 		return nil
 	}
 	switch it.GetType() {
-	case pub.CreateType:
+	case pub.IgnoreType, pub.BlockType, pub.FlagType:
 		fallthrough
-	case pub.UpdateType:
+	case pub.CreateType, pub.UpdateType:
 		return pub.OnActivity(it, func(act *pub.Activity) error {
 			return a.FromActivityPub(act.Object)
 		})
