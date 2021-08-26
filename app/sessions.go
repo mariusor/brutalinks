@@ -142,7 +142,7 @@ func initFileSession(c appConfig, path string, infoFn, errFn CtxLogFn) (sessions
 		ss.Options.Domain = c.HostName
 		ss.Options.SameSite = http.SameSiteStrictMode
 	}
-	ss.MaxLength(1 << 20)
+	ss.MaxLength(1 << 24)
 	return ss, nil
 }
 
