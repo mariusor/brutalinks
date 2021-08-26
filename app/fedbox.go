@@ -275,6 +275,14 @@ func replies(o pub.Item, f ...client.FilterFn) pub.IRI {
 	return iri(handlers.Replies.IRI(o), f...)
 }
 
+func blocked(a pub.Item, f ...client.FilterFn) pub.IRI {
+	return iri(handlers.CollectionType("blocked").IRI(a), f...)
+}
+
+func ignored(a pub.Item, f ...client.FilterFn) pub.IRI {
+	return iri(handlers.CollectionType("ignored").IRI(a), f...)
+}
+
 func validateActor(a pub.Item) error {
 	if a == nil {
 		return errors.Errorf("Actor is nil")
