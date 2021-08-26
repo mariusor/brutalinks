@@ -293,7 +293,7 @@ func (v *view) loadCurrentAccountFromSession(w http.ResponseWriter, r *http.Requ
 	}
 	// load the current account from the session or setting it to anonymous
 	raw, ok := s.Values[SessionUserKey]
-	if ok  {
+	if ok {
 		if acc, ok = raw.(Account); !ok {
 			v.errFn(log.Ctx{"sess": s.Values})("invalid account in session")
 		}
@@ -407,21 +407,8 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 
 			h.storage.WithAccount(&acc)
 			if time.Now().Sub(acc.Metadata.OutboxUpdated) > 5*time.Minute {
-				if err := h.storage.loadAccountsOutbox(ctx, &acc); err != nil {
-					h.errFn(ltx, log.Ctx{"err": err.Error()})("Unable to load account's Outbox")
-				}
-				h.infoFn(ltx, log.Ctx{"updated": acc.Metadata.OutboxUpdated.Format(time.StampMilli)})("Loaded account's outbox")
-				acc.Metadata.OutboxUpdated = time.Now()
-			}
-			if len(acc.Followers) == 0 {
-				// TODO(marius): this needs to be moved to where we're handling all Inbox activities, not on page load
-				if err := h.storage.loadAccountsFollowers(ctx, &acc); err != nil {
-					h.infoFn(ltx, log.Ctx{"err": err.Error()})("Unable to load account's followers")
-				}
-			}
-			if len(acc.Following) == 0 {
-				if err := h.storage.loadAccountsFollowing(ctx, &acc); err != nil {
-					h.infoFn(ltx, log.Ctx{"err": err.Error()})("Unable to load account's following")
+				if err := loadAccount(ctx, h.storage, &acc); err != nil {
+					h.errFn(ltx, log.Ctx{"err": err.Error()})("unable to load account")
 				}
 			}
 		}
@@ -436,6 +423,26 @@ func (h *handler) LoadSession(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	}
 	return http.HandlerFunc(fn)
+}
+
+func loadAccount(ctx context.Context, st *repository, acc *Account) error {
+	if len(acc.Followers) == 0 {
+		// TODO(marius): this needs to be moved to where we're handling all Inbox activities, not on page load
+		if err := st.loadAccountsFollowers(ctx, acc); err != nil {
+			return errors.Annotatef(err, "unable to load account's followers")
+		}
+	}
+	if len(acc.Following) == 0 {
+		if err := st.loadAccountsFollowing(ctx, acc); err != nil {
+			return errors.Annotatef(err, "unable to load account's following")
+		}
+	}
+	if len(acc.Votes) == 0 {
+		if err := st.loadAccountVotes(ctx, acc, nil); err != nil {
+			return errors.Annotatef(err, "unable to load account's votes")
+		}
+	}
+	return nil
 }
 
 func loadLoggedAccountItemsVotes(next http.Handler) http.Handler {

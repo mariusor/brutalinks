@@ -618,9 +618,12 @@ func (r *repository) loadAccountVotes(ctx context.Context, acc *Account, items I
 	if acc == nil || acc.pub == nil {
 		return nil
 	}
-	f := &Filters{
-		Type:   AppreciationActivitiesFilter,
-		Object: &Filters{IRI: ItemHashFilter(items...)},
+	f := new(Filters)
+	f.Type = AppreciationActivitiesFilter
+	f.MaxItems = 500
+
+	if len(items) > 0 {
+		f.Object = &Filters{IRI: ItemHashFilter(items...)}
 	}
 	searches := RemoteLoads{
 		r.fedbox.Service().GetLink(): []RemoteLoad{{actor: acc.pub, loadFn: outbox, filters: []*Filters{f}}},
