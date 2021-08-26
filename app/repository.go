@@ -2381,7 +2381,7 @@ func (s StopSearchErr) Error() string {
 
 func (r *repository) loadCollectionFromCacheOrIRI(ctx context.Context, iri pub.IRI) (pub.CollectionInterface, error) {
 	if it, okCache := r.cache.get(iri); okCache {
-		if c, okCol := it.(pub.CollectionInterface); okCol {
+		if c, okCol := it.(pub.CollectionInterface); okCol && getItemUpdatedTime(it).Sub(time.Now()) < 10 * time.Minute {
 			return c, nil
 		}
 	}
