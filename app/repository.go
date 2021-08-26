@@ -2379,6 +2379,15 @@ func (s StopSearchErr) Error() string {
 	return string(s)
 }
 
+func (r *repository) loadItemFromCacheOrIRI(ctx context.Context, iri pub.IRI) (pub.Item, error) {
+	if it, okCache := r.cache.get(iri); okCache {
+		if getItemUpdatedTime(it).Sub(time.Now()) < 10 * time.Minute {
+			return it, nil
+		}
+	}
+	return r.fedbox.client.CtxLoadIRI(ctx, iri)
+}
+
 func (r *repository) loadCollectionFromCacheOrIRI(ctx context.Context, iri pub.IRI) (pub.CollectionInterface, error) {
 	if it, okCache := r.cache.get(iri); okCache {
 		if c, okCol := it.(pub.CollectionInterface); okCol && getItemUpdatedTime(it).Sub(time.Now()) < 10 * time.Minute {
