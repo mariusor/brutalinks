@@ -49,7 +49,7 @@ func (h *handler) ItemRoutes() func(chi.Router) {
 			r.Post("/block", h.BlockItem)
 
 			r.Group(func(r chi.Router) {
-				r.With(h.ValidateItemAuthor("edit"), LoadSingleItemRepliesMw, ThreadedListingMw,  EditContentModelMw).Get("/edit", h.HandleShow)
+				r.With(h.ValidateItemAuthor("edit"), LoadSingleItemRepliesMw, ThreadedListingMw, EditContentModelMw).Get("/edit", h.HandleShow)
 				r.With(h.ValidateItemAuthor("edit"), LoadSingleItemRepliesMw).Post("/edit", h.HandleSubmit)
 				r.With(h.ValidateItemAuthor("delete")).Get("/rm", h.HandleDelete)
 			})

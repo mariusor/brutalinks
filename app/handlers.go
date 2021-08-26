@@ -29,8 +29,8 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	ctx := context.TODO()
 
 	var (
-		n   Item
-		err error
+		n        Item
+		err      error
 		saveVote = true
 	)
 
@@ -41,11 +41,11 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = updateItemFromRequest(r, *acc, &n); err != nil {
-		h.errFn(log.Ctx{ "err": err.Error() })("Error: wrong http method")
+		h.errFn(log.Ctx{"err": err.Error()})("Error: wrong http method")
 		h.v.HandleErrors(w, r, errors.NewMethodNotAllowed(err, ""))
 		return
 	}
-	if c!= nil && len(c.items) > 0 && n.Parent.IsValid() {
+	if c != nil && len(c.items) > 0 && n.Parent.IsValid() {
 		if parent := getItemFromList(n.Parent.Hash, c.items); parent.IsValid() {
 			n.Parent = parent
 			if n.Parent.SubmittedBy.IsValid() {
@@ -246,7 +246,7 @@ func (h *handler) BlockAccount(w http.ResponseWriter, r *http.Request) {
 
 	reason, err := ContentFromRequest(r, *acc)
 	if err != nil {
-		h.errFn(log.Ctx{ "before": err })("wrong http method")
+		h.errFn(log.Ctx{"before": err})("wrong http method")
 		h.v.HandleErrors(w, r, errors.NewMethodNotAllowed(err, ""))
 		return
 	}
@@ -274,7 +274,7 @@ func (h *handler) BlockItem(w http.ResponseWriter, r *http.Request) {
 
 	reason, err := ContentFromRequest(r, *acc)
 	if err != nil {
-		h.errFn(log.Ctx{ "before": err })("wrong http method")
+		h.errFn(log.Ctx{"before": err})("wrong http method")
 		h.v.HandleErrors(w, r, errors.NewMethodNotAllowed(err, ""))
 		return
 	}
@@ -302,7 +302,7 @@ func (h *handler) ReportAccount(w http.ResponseWriter, r *http.Request) {
 
 	reason, err := ContentFromRequest(r, *acc)
 	if err != nil {
-		h.errFn(log.Ctx{ "before": err })("Error: wrong http method")
+		h.errFn(log.Ctx{"before": err})("Error: wrong http method")
 		h.v.HandleErrors(w, r, errors.NewMethodNotAllowed(err, ""))
 		return
 	}
@@ -337,7 +337,7 @@ func (h *handler) ReportItem(w http.ResponseWriter, r *http.Request) {
 
 	reason, err := ContentFromRequest(r, *acc)
 	if err != nil {
-		h.errFn(log.Ctx{ "before": err })("Error: wrong http method")
+		h.errFn(log.Ctx{"before": err})("Error: wrong http method")
 		h.v.HandleErrors(w, r, errors.NewMethodNotAllowed(err, ""))
 		return
 	}
@@ -368,7 +368,7 @@ func (h *handler) ReportItem(w http.ResponseWriter, r *http.Request) {
 
 const SessionUserKey = "__current_acct"
 
-func FilterAccountByHandle  (handle string) *Filters {
+func FilterAccountByHandle(handle string) *Filters {
 	return &Filters{
 		Name: CompStrs{EqualsString(handle)},
 		Type: ActivityTypesFilter(ValidActorTypes...),
@@ -408,7 +408,7 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var (
-		tok *oauth2.Token
+		tok  *oauth2.Token
 		acct = AnonymousAccount
 	)
 	for _, cur := range accts {
@@ -467,7 +467,7 @@ func (h *handler) ValidateLoggedIn(eh ErrorHandler) Handler {
 }
 
 func (h *handler) ValidateItemAuthor(op string) Handler {
-	return func (next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			acc := loggedAccount(r)
 			hash := chi.URLParam(r, "hash")
@@ -493,7 +493,7 @@ func (h *handler) ValidateItemAuthor(op string) Handler {
 	}
 }
 
-func ItemFromContext(ctx context.Context, repo *repository, hash string) (Item, error)  {
+func ItemFromContext(ctx context.Context, repo *repository, hash string) (Item, error) {
 	if p := ContextItem(ctx); p != nil {
 		return *p, nil
 	}
@@ -554,7 +554,7 @@ func (h *handler) HandleCreateInvitation(w http.ResponseWriter, r *http.Request)
 	}
 
 	acc := loggedAccount(r)
-	invitee, err := h.storage.SaveAccount(context.TODO(), Account{ CreatedBy: acc })
+	invitee, err := h.storage.SaveAccount(context.TODO(), Account{CreatedBy: acc})
 	if err != nil {
 		h.v.HandleErrors(w, r, errors.NewBadRequest(err, "unable to save account"))
 		return

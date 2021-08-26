@@ -1111,7 +1111,9 @@ func getCollectionPrevNext(col pub.CollectionInterface) (prev, next string) {
 	// NOTE(marius): we check if current Collection id contains a cursor, and if `next` points to the same URL
 	//   we don't take it into consideration.
 	if next != "" {
-		f := struct{Next string `qstring:"after"`}{}
+		f := struct {
+			Next string `qstring:"after"`
+		}{}
 		if err := qstring.Unmarshal(qFn(col.GetLink()), &f); err == nil && next == f.Next {
 			next = ""
 		}
@@ -1166,8 +1168,8 @@ func (r *repository) accounts(ctx context.Context, ff ...*Filters) ([]Account, e
 	}
 	tagSearches := RemoteLoads{
 		r.fedbox.Service().GetLink(): []RemoteLoad{{
-			actor: r.fedbox.Service(),
-			loadFn: colIRI(objects),
+			actor:   r.fedbox.Service(),
+			loadFn:  colIRI(objects),
 			filters: []*Filters{{IRI: deferredTagLoads}},
 		}},
 	}
@@ -1415,7 +1417,7 @@ func (r *repository) ActorCollection(ctx context.Context, searches RemoteLoads) 
 		}
 		// TODO(marius): this needs to be externalized also to a different function that we can pass from outer scope
 		//   This function implements the logic for breaking out of the collection iteration cycle and returns a bool
-		if len(items) - f.MaxItems < 5 {
+		if len(items)-f.MaxItems < 5 {
 			ctx.Done()
 		}
 		return nil
@@ -2413,14 +2415,14 @@ func (r *repository) searchFn(ctx context.Context, g *errgroup.Group, curIRI pub
 		maxItems := 0
 		err = pub.OnCollectionIntf(col, func(c pub.CollectionInterface) error {
 			maxItems = int(c.Count())
-			return fn(ntx , c, f)
+			return fn(ntx, c, f)
 		})
 		if err != nil {
 			return err
 		}
 		r.cache.add(loadIRI, col)
 
-		if maxItems - f.MaxItems < 5 {
+		if maxItems-f.MaxItems < 5 {
 			if _, f.Next = getCollectionPrevNext(col); len(f.Next) > 0 {
 				g.Go(r.searchFn(ctx, g, curIRI, f, fn, it))
 			} else {
