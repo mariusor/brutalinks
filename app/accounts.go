@@ -201,6 +201,26 @@ func (a AccountCollection) Contains(b Account) bool {
 	return false
 }
 
+func (a AccountCollection) Split(pieceCount int) []AccountCollection {
+	l := len(a)
+	if l <= pieceCount {
+		return []AccountCollection{a}
+	}
+	ret := make([]AccountCollection, 0)
+	for i := 0; i <= l / pieceCount; i++ {
+		st := i*pieceCount
+		if st > l {
+			break
+		}
+		end := (i+1)*pieceCount
+		if end > l {
+			end = l
+		}
+		ret = append(ret, a[st:end])
+	}
+	return ret
+}
+
 func (h *handler)accountFromPost(r *http.Request) (Account, error) {
 	if r.Method != http.MethodPost {
 		return AnonymousAccount, errors.Errorf("invalid http method type")

@@ -118,6 +118,26 @@ func (i ItemCollection) First() (*Item, error) {
 	return nil, errors.Errorf("empty %T", i)
 }
 
+func (i ItemCollection) Split(pieceCount int) []ItemCollection {
+	l := len(i)
+	if l <= pieceCount {
+		return []ItemCollection{i}
+	}
+	ret := make([]ItemCollection, 0)
+	for it := 0; it <= l / pieceCount; it++ {
+		st := it *pieceCount
+		if st > l {
+			break
+		}
+		end := (it +1)*pieceCount
+		if end > l {
+			end = l
+		}
+		ret = append(ret, i[st:end])
+	}
+	return ret
+}
+
 const (
 	MaxContentItems = 35
 )
