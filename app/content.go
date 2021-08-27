@@ -107,7 +107,7 @@ type Item struct {
 	Title       string            `json:"-"`
 	MimeType    string            `json:"-"`
 	Data        string            `json:"-"`
-	Score       int               `json:"-"`
+	Votes       VoteCollection    `json:"-"`
 	SubmittedAt time.Time         `json:"-"`
 	SubmittedBy *Account          `json:"by,omitempty"`
 	UpdatedAt   time.Time         `json:"-"`
@@ -141,6 +141,10 @@ func (i *Item) Type() RenderType {
 
 func (i Item) Date() time.Time {
 	return i.SubmittedAt
+}
+
+func (i Item) Score() int {
+	return i.Votes.Score()
 }
 
 // IsTop returns true if current item is a top level submission
@@ -240,7 +244,7 @@ func (h ItemPtrCollection) Sorted() ItemPtrCollection {
 	sort.SliceStable(h, func(i, j int) bool {
 		ii := h[i]
 		ij := h[j]
-		return ii.Score > ij.Score || (ii.Score == ij.Score && ii.SubmittedAt.After(ij.SubmittedAt))
+		return ii.Votes.Score()> ij.Votes.Score() || (ii.Votes.Score() == ij.Votes.Score() && ii.SubmittedAt.After(ij.SubmittedAt))
 	})
 	return h
 }

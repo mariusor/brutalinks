@@ -83,6 +83,7 @@ func ByDate (r RenderableList) []Renderable {
 	})
 	return rl
 }
+
 func ByScore (r RenderableList) []Renderable {
 	rl := make([]Renderable, 0)
 	for _, rr := range r {
@@ -96,8 +97,8 @@ func ByScore (r RenderableList) []Renderable {
 			case CommentType:
 				ii, oki := ri.(*Item)
 				ij, okj := rj.(*Item)
-				hi := Hacker(int64(ii.Score), time.Now().Sub(ii.SubmittedAt))
-				hj := Hacker(int64(ij.Score), time.Now().Sub(ij.SubmittedAt))
+				hi := Hacker(int64(ii.Votes.Score()), time.Now().Sub(ii.SubmittedAt))
+				hj := Hacker(int64(ij.Votes.Score()), time.Now().Sub(ij.SubmittedAt))
 				return oki && okj && hi > hj
 			}
 		}

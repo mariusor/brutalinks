@@ -636,13 +636,15 @@ func (r *repository) loadItemsVotes(ctx context.Context, items ...Item) (ItemCol
 		return items, nil
 	}
 
+	ff := make([]*Filters, 0)
 	f := &Filters{
 		Type:     ActivityTypesFilter(ValidAppreciationTypes...),
 		Object:   &Filters{IRI: ItemHashFilter(items...)},
 		MaxItems: 500,
 	}
+	ff = append(ff, f)
 	searches := RemoteLoads{
-		r.fedbox.Service().GetLink(): []RemoteLoad{{actor: r.fedbox.Service(), loadFn: inbox, filters: []*Filters{f}}},
+		r.fedbox.Service().GetLink(): []RemoteLoad{{actor: r.fedbox.Service(), loadFn: inbox, filters: ff}},
 	}
 	votes := make(VoteCollection, 0)
 	err := LoadFromSearches(ctx, r, searches, func(_ context.Context, c pub.CollectionInterface, f *Filters) error {
@@ -651,7 +653,7 @@ func (r *repository) loadItemsVotes(ctx context.Context, items ...Item) (ItemCol
 				continue
 			}
 			v := Vote{}
-			if err := v.FromActivityPub(vAct); err == nil {
+			if err := v.FromActivityPub(vAct); err == nil && !votes.Contains(v) {
 				votes = append(votes, v)
 			}
 		}
@@ -660,7 +662,7 @@ func (r *repository) loadItemsVotes(ctx context.Context, items ...Item) (ItemCol
 	for k, ob := range items {
 		for _, v := range votes {
 			if itemsEqual(*v.Item, ob) {
-				items[k].Score += v.Weight
+				items[k].Votes = append(items[k].Votes, v)
 			}
 		}
 	}
