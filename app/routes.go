@@ -11,7 +11,7 @@ import (
 )
 
 var assetFiles = assets.AssetFiles{
-	"moderate.css":     {"css/main.css", "css/listing.css", "css/article.css", "css/moderate.css", "css/user.css"},
+	"moderate.css":     {"css/main.css", "css/listing.css", "css/content.css", "css/article.css", "css/moderate.css", "css/user.css"},
 	"content.css":      {"css/main.css", "css/article.css", "css/content.css"},
 	"listing.css":      {"css/main.css", "css/listing.css", "css/article.css", "css/moderate.css"},
 	"moderation.css":   {"css/main.css", "css/listing.css", "css/article.css", "css/moderation.css"},
