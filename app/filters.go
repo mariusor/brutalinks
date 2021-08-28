@@ -288,16 +288,13 @@ var (
 	modSubmissionsObjectFilter = &Filters{
 		Type:     ActivityTypesFilter(ValidContentTypes...),
 		InReplTo: nilFilters,
-		Actor:    &Filters{IRI: notNilFilters},
 	}
 	modCommentsObjectFilter = &Filters{
 		Type:     ActivityTypesFilter(ValidContentTypes...),
 		InReplTo: notNilFilters,
-		Actor:    &Filters{IRI: notNilFilters},
 	}
 	modAccountsObjectFilter = &Filters{
 		Type:  ActivityTypesFilter(ValidActorTypes...),
-		Actor: &Filters{IRI: notNilFilters},
 	}
 )
 
