@@ -2200,32 +2200,6 @@ func (r *repository) LoadInfo() (WebInfo, error) {
 	return Instance.NodeInfo(), nil
 }
 
-func (r *repository) LoadAccountWithDetails(ctx context.Context, actor Account, f ...*Filters) (Cursor, error) {
-	c, err := r.LoadActorOutbox(ctx, actor.pub, f...)
-	if err != nil {
-		return c, err
-	}
-	remaining := make(RenderableList, 0)
-	for _, it := range c.items {
-		switch it.Type() {
-		case AppreciationType:
-			v, ok := it.(*Vote)
-			if !ok {
-				continue
-			}
-			if actor.Votes.Contains(*v) {
-				continue
-			}
-			actor.Votes = append(actor.Votes, *v)
-		default:
-			remaining.Append(it)
-		}
-	}
-	c.items = remaining
-	c.total = uint(len(remaining))
-	return c, nil
-}
-
 func (r *repository) LoadActorOutbox(ctx context.Context, actor pub.Item, f ...*Filters) (Cursor, error) {
 	if actor == nil {
 		return emptyCursor, errors.Errorf("Invalid actor")

@@ -57,16 +57,18 @@ func LoadOutboxMw(next http.Handler) http.Handler {
 
 		var cursor = new(Cursor)
 		cursor.items = make(RenderableList, 0)
-		ctxt, _ := context.WithTimeout(context.TODO(), time.Second)
 		for _, author := range authors {
-			if c, err := repo.LoadAccountWithDetails(ctxt, author, f...); err == nil {
-				cursor.items.Merge(c.items)
-				cursor.total += c.total
-				cursor.before = c.before
-				cursor.after = c.after
+			c, err := repo.LoadActorOutbox(context.TODO(), author.pub, f...)
+			if err != nil {
+				repo.errFn(log.Ctx{"author": author.Handle, "err": err.Error()})("Unable to load outbox")
+				continue
 			}
+			cursor.items.Merge(c.items)
+			cursor.total += c.total
+			cursor.before = c.before
+			cursor.after = c.after
 		}
-		ctx := context.WithValue(r.Context(), CursorCtxtKey, &cursor)
+		ctx := context.WithValue(r.Context(), CursorCtxtKey, cursor)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
