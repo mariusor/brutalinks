@@ -226,7 +226,7 @@ func LoadSingleObjectMw(next http.Handler) http.Handler {
 		searchIn := ContextLoads(r.Context())
 
 		var item Item
-		LoadFromSearches(ctx, repo, searchIn, func(ctx context.Context, c pub.CollectionInterface, f *Filters) error {
+		err = LoadFromSearches(ctx, repo, searchIn, func(ctx context.Context, c pub.CollectionInterface, f *Filters) error {
 			for _, it := range c.Collection() {
 				if err := item.FromActivityPub(it); err != nil {
 					repo.errFn(log.Ctx{"iri": it.GetLink()})("unable to load item")
@@ -234,6 +234,7 @@ func LoadSingleObjectMw(next http.Handler) http.Handler {
 				}
 				if item.IsValid() {
 					ctx.Done()
+					break
 				}
 			}
 			return nil
