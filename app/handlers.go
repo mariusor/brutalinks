@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"path"
 	"strings"
-	"time"
 
 	"github.com/go-ap/errors"
 	"github.com/go-chi/chi/v5"
@@ -89,7 +88,6 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	acc.Votes = acc.Votes[:0]
-	acc.Metadata.OutboxUpdated = time.Time{}
 	acc.Metadata.Outbox = acc.Metadata.Outbox[:0]
 	h.v.Redirect(w, r, ItemPermaLink(&n), http.StatusSeeOther)
 }
@@ -97,7 +95,6 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 // HandleDelete serves /{year}/{month}/{day}/{hash}/rm POST request
 // HandleDelete serves /~{handle}/rm GET request
 func (h *handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
-	acc := loggedAccount(r)
 	repo := h.storage
 	iri := objects.IRI(h.storage.fedbox.Service()).AddPath(chi.URLParam(r, "hash"))
 	ctx := context.TODO()
@@ -118,7 +115,6 @@ func (h *handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 		h.v.addFlashMessage(Error, w, r, "unable to delete item as current user")
 	}
 
-	acc.Metadata.OutboxUpdated = time.Time{}
 	h.v.Redirect(w, r, url, http.StatusFound)
 }
 
@@ -165,13 +161,12 @@ func (h *handler) HandleVoting(w http.ResponseWriter, r *http.Request) {
 			})("Error: Unable to save vote")
 			h.v.addFlashMessage(Error, w, r, "Unable to save vote")
 		} else {
-			h.v.saveAccountToSession(w, r, *acc)
+			h.v.saveAccountToSession(w, r, acc)
 		}
 	} else {
 		h.v.addFlashMessage(Error, w, r, "unable to vote as current user")
 	}
 	acc.Votes = acc.Votes[:0]
-	acc.Metadata.OutboxUpdated = time.Time{}
 	acc.Metadata.Outbox = acc.Metadata.Outbox[:0]
 	h.v.Redirect(w, r, url, http.StatusFound)
 }
@@ -191,7 +186,6 @@ func (h *handler) FollowAccount(w http.ResponseWriter, r *http.Request) {
 		h.v.HandleErrors(w, r, err)
 		return
 	}
-	acc.Metadata.OutboxUpdated = time.Time{}
 	h.v.Redirect(w, r, AccountPermaLink(&fol), http.StatusSeeOther)
 }
 
@@ -234,7 +228,6 @@ func (h *handler) HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
 		h.v.HandleErrors(w, r, err)
 		return
 	}
-	acc.Metadata.OutboxUpdated = time.Time{}
 	backUrl := r.Header.Get("Referer")
 	h.v.Redirect(w, r, backUrl, http.StatusSeeOther)
 }
@@ -263,7 +256,6 @@ func (h *handler) BlockAccount(w http.ResponseWriter, r *http.Request) {
 		h.v.HandleErrors(w, r, err)
 		return
 	}
-	acc.Metadata.OutboxUpdated = time.Time{}
 	h.v.Redirect(w, r, PermaLink(&block), http.StatusSeeOther)
 }
 
@@ -291,7 +283,6 @@ func (h *handler) BlockItem(w http.ResponseWriter, r *http.Request) {
 		h.v.HandleErrors(w, r, err)
 		return
 	}
-	acc.Metadata.OutboxUpdated = time.Time{}
 	h.v.Redirect(w, r, PermaLink(&p), http.StatusSeeOther)
 }
 
@@ -326,7 +317,6 @@ func (h *handler) ReportAccount(w http.ResponseWriter, r *http.Request) {
 	if !strings.Contains(backUrl, url) && strings.Contains(backUrl, Instance.BaseURL) {
 		url = fmt.Sprintf("%s#li-%s", backUrl, p.Hash)
 	}
-	acc.Metadata.OutboxUpdated = time.Time{}
 	h.v.Redirect(w, r, url, http.StatusFound)
 }
 
@@ -362,7 +352,6 @@ func (h *handler) ReportItem(w http.ResponseWriter, r *http.Request) {
 	if !strings.Contains(backUrl, url) && strings.Contains(backUrl, Instance.BaseURL) {
 		url = fmt.Sprintf("%s#li-%s", backUrl, p.Hash)
 	}
-	acc.Metadata.OutboxUpdated = time.Time{}
 	h.v.Redirect(w, r, url, http.StatusFound)
 }
 
@@ -697,13 +686,6 @@ func (h *handler) HandleShow(w http.ResponseWriter, r *http.Request) {
 	if cursor := ContextCursor(r.Context()); cursor != nil {
 		if mod, ok := m.(Paginator); ok {
 			mod.SetCursor(cursor)
-		}
-		if acc := loggedAccount(r); acc != nil {
-			items := cursor.items.Items()
-			for _, it := range cursor.items.Items() {
-				items = append(items, flatItems(it.Children())...)
-			}
-			h.storage.loadAccountVotes(context.TODO(), acc, items)
 		}
 	}
 	if err := h.v.RenderTemplate(r, w, m.Template(), m); err != nil {

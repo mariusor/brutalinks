@@ -137,17 +137,12 @@ func stringInSlice(ss []string) func(v string) bool {
 
 func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name string, m Model) error {
 	var err error
-	var ac *Account
 
 	_, isError := m.(*errorModel)
 
 	layout := "layout"
-	accountFromRequest := func() *Account {
-		if ac == nil {
-			ac = loggedAccount(r)
-		}
-		return ac
-	}
+	acc := loggedAccount(r)
+	accountFromRequest := func() *Account { return acc }
 
 	version := Instance.Version
 	ren := render.New(render.Options{
@@ -265,15 +260,19 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 		DisableHTTPErrorRendering: true,
 	})
 
+	if !isError {
+		if acc.IsLogged() {
+			if err = v.saveAccountToSession(w, r, acc); err != nil {
+				v.errFn(log.Ctx{"err": err.Error()})("adding user to session failed")
+			}
+		}
+		if err = v.s.save(w, r); err != nil {
+			v.errFn(log.Ctx{"err": err.Error()})("session save failed")
+		}
+	}
 	if err = ren.HTML(w, http.StatusOK, name, m); err != nil {
 		v.errFn(log.Ctx{"err": err, "model": m})("failed to render template %s", name)
 		return errors.Annotatef(err, "failed to render template")
-	}
-	if !isError {
-		if err = v.s.save(w, r); err != nil {
-			v.errFn(log.Ctx{"err": err.Error()})("session save failed")
-			return nil
-		}
 	}
 	return nil
 }

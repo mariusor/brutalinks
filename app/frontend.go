@@ -7,7 +7,6 @@ import (
 	"net/url"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/go-ap/errors"
 	"github.com/go-chi/chi/v5"
@@ -32,8 +31,6 @@ type handler struct {
 	infoFn  CtxLogFn
 	errFn   CtxLogFn
 }
-
-var defaultAccount = AnonymousAccount
 
 type appConfig struct {
 	config.Configuration
@@ -147,7 +144,7 @@ func loggedAccount(r *http.Request) *Account {
 	if acct := ContextAccount(r.Context()); acct != nil {
 		return acct
 	}
-	return &defaultAccount
+	return &AnonymousAccount
 }
 
 // HandleCallback serves /auth/{provider}/callback request
@@ -179,22 +176,26 @@ func (h *handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
 		h.v.HandleErrors(w, r, err)
 		return
 	}
-
-	account := h.v.loadCurrentAccountFromSession(w, r)
-	account.Metadata.OAuth = OAuth{
-		State:    state,
-		Code:     code,
-		Provider: provider,
-		Token:    tok,
-	}
-
-	if strings.ToLower(provider) != "local" {
-		h.v.addFlashMessage(Success, w, r, fmt.Sprintf("Login successful with %s", provider))
+	account, err := h.v.loadCurrentAccountFromSession(w, r)
+	if err != nil {
+		h.errFn(log.Ctx{"err": err.Error()})("Failed to load account from session")
+		h.v.addFlashMessage(Error, w, r, fmt.Sprintf("Failed to login with %s", provider))
 	} else {
-		h.v.addFlashMessage(Success, w, r, "Login successful")
-	}
-	if err := h.v.saveAccountToSession(w, r, account); err != nil {
-		h.errFn()("Unable to save account to session")
+		account.Metadata.OAuth = OAuth{
+			State:    state,
+			Code:     code,
+			Provider: provider,
+			Token:    tok,
+		}
+
+		if strings.ToLower(provider) != "local" {
+			h.v.addFlashMessage(Success, w, r, fmt.Sprintf("Login successful with %s", provider))
+		} else {
+			h.v.addFlashMessage(Success, w, r, "Login successful")
+		}
+		if err := h.v.saveAccountToSession(w, r, account); err != nil {
+			h.errFn()("Unable to save account to session")
+		}
 	}
 	h.v.Redirect(w, r, "/", http.StatusFound)
 }
@@ -268,7 +269,7 @@ func isInverted(r *http.Request) bool {
 	return false
 }
 
-func (v *view) saveAccountToSession(w http.ResponseWriter, r *http.Request, a Account) error {
+func (v *view) saveAccountToSession(w http.ResponseWriter, r *http.Request, a *Account) error {
 	if !v.s.enabled || w == nil || r == nil {
 		return nil
 	}
@@ -276,42 +277,53 @@ func (v *view) saveAccountToSession(w http.ResponseWriter, r *http.Request, a Ac
 	if err != nil {
 		return err
 	}
-	s.Values[SessionUserKey] = a
+	s.Values[SessionUserKey] = *a
 	return nil
 }
 
-func (v *view) loadCurrentAccountFromSession(w http.ResponseWriter, r *http.Request) Account {
+func (v *view) loadCurrentAccountFromSession(w http.ResponseWriter, r *http.Request) (*Account, error) {
+	acc := AnonymousAccount
 	if !v.s.enabled || w == nil || r == nil {
-		return defaultAccount
+		return &acc, nil
 	}
-	acc := defaultAccount
 	s, err := v.s.get(w, r)
 	if err != nil {
-		v.errFn(log.Ctx{"err": err})("session load error")
 		v.s.clear(w, r)
-		return defaultAccount
+		return &acc, errors.Annotatef(err, "session load error")
 	}
 	// load the current account from the session or setting it to anonymous
-	raw, ok := s.Values[SessionUserKey]
-	if ok {
+	if raw, ok := s.Values[SessionUserKey]; ok {
 		if acc, ok = raw.(Account); !ok {
 			v.errFn(log.Ctx{"sess": s.Values})("invalid account in session")
 		}
 	}
-	lCtx := log.Ctx{
-		"handle": acc.Handle,
-	}
+	lCtx := log.Ctx{"handle": acc.Handle}
 	if acc.IsLogged() {
 		lCtx["hash"] = acc.Hash
 	}
+
+	var f *Filters
+	if acc.IsLogged() && acc.HasMetadata() {
+		f = new(Filters)
+		f.IRI = CompStrs{EqualsString(acc.Metadata.ID)}
+		lCtx["iri"] = acc.Metadata.ID
+	} else {
+		f = FilterAccountByHandle(acc.Handle)
+	}
+	repo := ContextRepository(r.Context())
+	a, err := repo.account(context.TODO(), f)
+	if err != nil {
+		return &acc, errors.Annotatef(err, "unable to load actor for session account")
+	}
+	loadAccountData(&acc, *a)
 	v.infoFn(lCtx)("loaded account from session")
-	return acc
+	return &acc, nil
 }
 
-func (h *handler) SetSecurityHeaders(next http.Handler) http.Handler {
+func (v *view) SetSecurityHeaders(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		if h.conf.Secure {
-			if h.conf.Env.IsProd() {
+		if conf := v.c; conf.Secure {
+			if conf.Env.IsProd() {
 				w.Header().Set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload")
 			} else {
 				w.Header().Set("Strict-Transport-Security", "max-age=0")
@@ -321,7 +333,7 @@ func (h *handler) SetSecurityHeaders(next http.Handler) http.Handler {
 		w.Header().Set("X-Xss-Protection", "1; mode=block")
 		w.Header().Set("Referrer-Policy", "same-origin")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
-		h.v.SetCSP(ContextModel(r.Context()), w)
+		v.SetCSP(ContextModel(r.Context()), w)
 		next.ServeHTTP(w, r)
 	}
 	return http.HandlerFunc(fn)
@@ -346,6 +358,62 @@ func loadAccountData(a *Account, b Account) {
 	}
 	if a.Metadata == nil && b.Metadata != nil {
 		a.Metadata = b.Metadata
+	}
+	if a.Metadata != nil && b.Metadata != nil {
+		if len(a.Metadata.ID) == 0 && len(b.Metadata.ID) > 0 {
+			a.Metadata.ID = b.Metadata.ID
+		}
+		if a.Metadata.Key == nil && b.Metadata.Key != nil {
+			a.Metadata.Key = b.Metadata.Key
+		}
+		if a.Metadata.OutboxUpdated.IsZero() && !b.Metadata.OutboxUpdated.IsZero() {
+			a.Metadata.OutboxUpdated = b.Metadata.OutboxUpdated
+		}
+		if len(b.Metadata.Outbox) > 0 {
+			a.Metadata.Outbox = append(a.Metadata.Outbox, b.Metadata.Outbox...)
+		}
+		if len(b.Metadata.Tags) > 0 {
+			a.Metadata.Tags = append(a.Metadata.Tags, b.Metadata.Tags...)
+		}
+		if len(a.Metadata.Name) == 0 && len(b.Metadata.Name) > 0 {
+			a.Metadata.Name = b.Metadata.Name
+		}
+		if len(a.Metadata.Blurb) == 0 && len(b.Metadata.Blurb) > 0 {
+			a.Metadata.Blurb = b.Metadata.Blurb
+		}
+		if len(a.Metadata.AuthorizationEndPoint) == 0 && len(b.Metadata.AuthorizationEndPoint) > 0 {
+			a.Metadata.AuthorizationEndPoint = b.Metadata.AuthorizationEndPoint
+		}
+		if len(a.Metadata.FollowersIRI) == 0 && len(b.Metadata.FollowersIRI) > 0 {
+			a.Metadata.FollowersIRI = b.Metadata.FollowersIRI
+		}
+		if len(a.Metadata.FollowingIRI) == 0 && len(b.Metadata.FollowingIRI) > 0 {
+			a.Metadata.FollowingIRI = b.Metadata.FollowingIRI
+		}
+		if len(a.Metadata.InboxIRI) == 0 && len(b.Metadata.InboxIRI) > 0 {
+			a.Metadata.InboxIRI = b.Metadata.InboxIRI
+		}
+		if len(a.Metadata.OutboxIRI) == 0 && len(b.Metadata.OutboxIRI) > 0 {
+			a.Metadata.OutboxIRI = b.Metadata.OutboxIRI
+		}
+		if len(a.Metadata.LikedIRI) == 0 && len(b.Metadata.LikedIRI) > 0 {
+			a.Metadata.LikedIRI = b.Metadata.LikedIRI
+		}
+		if len(a.Metadata.URL) == 0 && len(b.Metadata.URL) > 0 {
+			a.Metadata.URL = b.Metadata.URL
+		}
+		if a.Metadata.OAuth.Token == nil && b.Metadata.OAuth.Token != nil {
+			a.Metadata.OAuth.Token = b.Metadata.OAuth.Token
+		}
+		if len(a.Metadata.OAuth.Code) == 0 && len(b.Metadata.OAuth.Code) > 0 {
+			a.Metadata.OAuth.Code = b.Metadata.OAuth.Code
+		}
+		if len(a.Metadata.OAuth.State) == 0 && len(b.Metadata.OAuth.State) > 0 {
+			a.Metadata.OAuth.State = b.Metadata.OAuth.State
+		}
+		if len(a.Metadata.OAuth.Provider) == 0 && len(b.Metadata.OAuth.Provider) > 0 {
+			a.Metadata.OAuth.Provider = b.Metadata.OAuth.Provider
+		}
 	}
 	if a.pub == nil && b.pub != nil {
 		a.pub = b.pub
@@ -373,53 +441,34 @@ func loadAccountData(a *Account, b Account) {
 	}
 }
 
-func (h *handler) LoadSession(next http.Handler) http.Handler {
-	if !h.v.s.enabled {
+func (v *view) LoadSession(next http.Handler) http.Handler {
+	if !v.s.enabled {
 		return next
 	}
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		h.storage.WithAccount(nil)
-		acc := AnonymousAccount
-		clearCookie := true
-		if h.v != nil {
-			acc = h.v.loadCurrentAccountFromSession(w, r)
-			clearCookie = false
+		var (
+			storage = ContextRepository(r.Context())
+			clearSession bool
+			err          error
+			ltx          log.Ctx
+		)
+		acc, err := v.loadCurrentAccountFromSession(w, r)
+		if err != nil {
+			acc = &AnonymousAccount
+			v.errFn(log.Ctx{"err": err.Error()})("unable to load actor from session")
 		}
-		var ltx log.Ctx
 		if acc.IsLogged() {
-			ltx = log.Ctx{
-				"handle": acc.Handle,
-			}
-			if acc.Hash.IsValid() {
-				ltx["hash"] = acc.Hash
-			}
-			f := FilterAccountByHandle(acc.Handle)
-			if acc.HasMetadata() {
-				f.IRI = CompStrs{EqualsString(acc.Metadata.ID)}
-				ltx["iri"] = acc.Metadata.ID
-			}
-			ctx := context.TODO()
-			if account, err := h.storage.account(ctx, f); err != nil {
-				h.errFn(ltx, log.Ctx{"err": err.Error(), "filters": f})("unable to load actor for session account")
+			if err = storage.LoadAccountDetails(context.TODO(), acc); err != nil {
+				clearSession = true
+				v.errFn(ltx, log.Ctx{"err": err.Error()})("unable to load account")
 			} else {
-				loadAccountData(&acc, account)
-			}
-
-			h.storage.WithAccount(&acc)
-			if time.Now().Sub(acc.Metadata.OutboxUpdated) > 5*time.Minute {
-				if err := h.storage.LoadAccountDetails(ctx, &acc); err != nil {
-					h.errFn(ltx, log.Ctx{"err": err.Error()})("unable to load account")
-				}
+				storage.WithAccount(acc)
 			}
 		}
-		r = r.WithContext(context.WithValue(r.Context(), LoggedAccountCtxtKey, &acc))
-		if clearCookie {
-			h.v.s.clear(w, r)
-		} else if acc.IsLogged() && h.v != nil {
-			if err := h.v.saveAccountToSession(w, r, acc); err != nil {
-				h.errFn(ltx, log.Ctx{"err": err.Error()})("unable to save account to session")
-			}
+		if clearSession {
+			v.s.clear(w, r)
 		}
+		r = r.WithContext(context.WithValue(r.Context(), LoggedAccountCtxtKey, acc))
 		next.ServeHTTP(w, r)
 	}
 	return http.HandlerFunc(fn)

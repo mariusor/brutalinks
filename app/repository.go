@@ -511,12 +511,12 @@ func (r *repository) loadAccountsOutbox(ctx context.Context, acc *Account) error
 	f := new(Filters)
 	f.Type = append(append(AppreciationActivitiesFilter, ContentManagementActivitiesFilter...), ModerationActivitiesFilter...)
 	f.Object = &Filters{IRI:notNilFilters}
+	f.MaxItems = 1000
 	searches := RemoteLoads{
 		r.fedbox.Service().GetLink(): []RemoteLoad{{actor: acc.pub, loadFn: outbox, filters: []*Filters{f}}},
 	}
 	return LoadFromSearches(ctx, r, searches, func(ctx context.Context, c pub.CollectionInterface, f *Filters) error {
-		acc.Metadata.OutboxUpdated = getItemUpdatedTime(c)
-		stop := acc.Metadata.OutboxUpdated.Sub(latest) < 0
+		stop := getItemUpdatedTime(c).Sub(latest) < 0
 		for _, it := range c.Collection() {
 			typ := it.GetType()
 			if ValidAppreciationTypes.Contains(typ) {
@@ -1112,18 +1112,18 @@ func getCollectionPrevNext(col pub.CollectionInterface) (prev, next string) {
 	return prev, next
 }
 
-func (r *repository) account(ctx context.Context, ff *Filters) (Account, error) {
+func (r *repository) account(ctx context.Context, ff *Filters) (*Account, error) {
 	accounts, err := r.accounts(ctx, ff)
 	if err != nil {
-		return AnonymousAccount, err
+		return &AnonymousAccount, err
 	}
 	if len(accounts) == 0 {
-		return AnonymousAccount, errors.NotFoundf("account not found")
+		return &AnonymousAccount, errors.NotFoundf("account not found")
 	}
 	if len(accounts) > 1 {
-		return AnonymousAccount, errors.BadRequestf("too many accounts found")
+		return &AnonymousAccount, errors.BadRequestf("too many accounts found")
 	}
-	return accounts[0], nil
+	return &accounts[0], nil
 }
 
 func (r *repository) accounts(ctx context.Context, ff ...*Filters) ([]Account, error) {
@@ -1598,6 +1598,7 @@ func (r *repository) SaveVote(ctx context.Context, v Vote) (Vote, error) {
 		return v, err
 	}
 	r.cache.clear()
+	v.SubmittedBy.Metadata.InvalidateOutbox()
 	r.infoFn(log.Ctx{"act": iri, "obj": it.GetLink(), "type": it.GetType()})("saved activity")
 	err = v.FromActivityPub(act)
 	return v, err
@@ -1892,6 +1893,7 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 		return it, err
 	}
 	r.cache.clear()
+	it.SubmittedBy.Metadata.InvalidateOutbox()
 	if loadAuthors {
 		items, err := r.loadItemsAuthors(ctx, it)
 		return items[0], err
@@ -1960,7 +1962,6 @@ func (r *repository) LoadAccounts(ctx context.Context, colFn CollectionFilterFn,
 					}
 					accounts = append(accounts, acc)
 				}
-				accounts, err = r.loadAccountsVotes(ctx, accounts...)
 				return err
 			})
 		})
@@ -1973,11 +1974,18 @@ func (r *repository) LoadAccounts(ctx context.Context, colFn CollectionFilterFn,
 
 func (r *repository) LoadAccountDetails(ctx context.Context, acc *Account) error {
 	r.WithAccount(acc)
-	ltx := log.Ctx{
-		"handle": acc.Handle,
-		"hash":   acc.Hash,
+	now := time.Now().UTC()
+	lastUpdated := acc.Metadata.OutboxUpdated
+	if now.Sub(lastUpdated) - 5*time.Minute < 0 {
+		return nil
 	}
 	var err error
+	ltx := log.Ctx{"handle": acc.Handle, "hash": acc.Hash}
+	r.infoFn(ltx)("loading account details")
+
+	if err = r.loadAccountsOutbox(ctx, acc); err != nil {
+		r.infoFn(ltx, log.Ctx{"err": err.Error()})("unable to load outbox")
+	}
 	if len(acc.Followers) == 0 {
 		// TODO(marius): this needs to be moved to where we're handling all Inbox activities, not on page load
 		if err = r.loadAccountsFollowers(ctx, acc); err != nil {
@@ -1989,9 +1997,7 @@ func (r *repository) LoadAccountDetails(ctx context.Context, acc *Account) error
 			r.infoFn(ltx, log.Ctx{"err": err.Error()})("unable to load following")
 		}
 	}
-	if err = r.loadAccountsOutbox(ctx, acc); err != nil {
-		r.infoFn(ltx, log.Ctx{"err": err.Error()})("unable to load outbox")
-	}
+	acc.Metadata.OutboxUpdated = now
 	return nil
 }
 
@@ -2087,6 +2093,7 @@ func (r *repository) SendFollowResponse(ctx context.Context, f FollowRequest, ac
 		return err
 	}
 	r.cache.clear()
+	er.Metadata.InvalidateOutbox()
 	return nil
 }
 
@@ -2122,6 +2129,7 @@ func (r *repository) FollowAccount(ctx context.Context, er, ed Account, reason *
 		})("Unable to follow")
 		return err
 	}
+	er.Metadata.InvalidateOutbox()
 	return nil
 }
 
@@ -2319,6 +2327,7 @@ func (r *repository) BlockAccount(ctx context.Context, er, ed Account, reason *I
 		return err
 	}
 	r.cache.clear()
+	er.Metadata.InvalidateOutbox()
 	return nil
 }
 
@@ -2334,6 +2343,7 @@ func (r *repository) BlockItem(ctx context.Context, er Account, ed Item, reason 
 		return err
 	}
 	r.cache.clear()
+	er.Metadata.InvalidateOutbox()
 	return nil
 }
 
@@ -2349,6 +2359,7 @@ func (r *repository) ReportItem(ctx context.Context, er Account, it Item, reason
 		return err
 	}
 	r.cache.clear()
+	er.Metadata.InvalidateOutbox()
 	return nil
 }
 
@@ -2364,6 +2375,7 @@ func (r *repository) ReportAccount(ctx context.Context, er, ed Account, reason *
 		return err
 	}
 	r.cache.clear()
+	er.Metadata.InvalidateOutbox()
 	return nil
 }
 

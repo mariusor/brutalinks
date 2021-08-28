@@ -48,8 +48,12 @@ type AccountMetadata struct {
 	OAuth                 OAuth              `json:-`
 	AuthorizationEndPoint string             `json:-`
 	TokenEndPoint         string             `json:-`
-	OutboxUpdated         time.Time          `json:-`
+	OutboxUpdated         time.Time          `json:"outboxUpdated"`
 	Outbox                pub.ItemCollection
+}
+
+func (m *AccountMetadata) InvalidateOutbox() {
+	m.OutboxUpdated = time.Time{}
 }
 
 type AccountCollection []Account
@@ -61,7 +65,7 @@ type Account struct {
 	CreatedBy *Account             `json:"-"`
 	UpdatedAt time.Time            `json:"-"`
 	Flags     FlagBits             `json:"flags,omitempty"`
-	Metadata  *AccountMetadata     `json:"-"`
+	Metadata  *AccountMetadata     `json:"metadata,omitempty"`
 	pub       pub.Item             `json:"-"`
 	Votes     VoteCollection       `json:"-"`
 	Followers AccountCollection    `json:"followers,omitempty"`

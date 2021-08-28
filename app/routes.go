@@ -66,9 +66,8 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 		r.Use(middleware.GetHead)
 
 		r.Group(func(r chi.Router) {
-			//r.Use(middleware.Timeout(60 * time.Millisecond))
-			r.Use(h.SetSecurityHeaders)
-			r.Use(h.LoadSession)
+			r.Use(h.v.SetSecurityHeaders)
+			r.Use(h.v.LoadSession)
 
 			usersEnabledFn := func() (bool, string) {
 				return c.UserCreatingEnabled, "Account creation is disabled"

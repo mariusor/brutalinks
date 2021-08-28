@@ -65,7 +65,7 @@ func withAccountC2S(a *Account) (client.RequestSignFn, error) {
 		return nil, errors.Newf("invalid local account")
 	}
 	if a.Metadata.OAuth.Token == nil {
-		return nil, errors.Newf("invalid local account")
+		return nil, errors.Newf("local account is missing authentication token")
 	}
 	return func(req *http.Request) error {
 		// TODO(marius): this needs to be added to the federated requests, which we currently don't support
@@ -186,19 +186,19 @@ func (f fedbox) normaliseIRI(i pub.IRI) pub.IRI {
 }
 
 func (f fedbox) collection(ctx context.Context, i pub.IRI) (pub.CollectionInterface, error) {
-	it, err := f.client.CtxLoadIRI(ctx, f.normaliseIRI(i))
+	it, err := f.client.CtxLoadIRI(ctx, i)
 	if err != nil {
 		return nil, errors.Annotatef(err, "Unable to load IRI: %s", i)
 	}
 	if it == nil {
 		return nil, errors.Newf("Unable to load IRI, nil item: %s", i)
 	}
-	var col pub.CollectionInterface
 	typ := it.GetType()
 	if !pub.CollectionTypes.Contains(it.GetType()) {
 		return nil, errors.Errorf("Response item type is not a valid collection: %s", typ)
 	}
 	var ok bool
+	var col pub.CollectionInterface
 	switch typ {
 	case pub.CollectionType:
 		col, ok = it.(*pub.Collection)
