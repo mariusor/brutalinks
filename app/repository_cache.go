@@ -60,6 +60,7 @@ func (c *cache) loadFromSearches(repo *repository, search RemoteLoads) error {
 	}
 	ctx, _ := context.WithTimeout(context.TODO(), time.Second)
 	return LoadFromSearches(ctx, repo, search, func (_ context.Context, col pub.CollectionInterface, f *Filters) error {
+		c.add(col.GetLink(), col)
 		for _, it := range col.Collection() {
 			c.add(it.GetLink(), it)
 		}
@@ -75,7 +76,6 @@ func colIRI (hc handlers.CollectionType) func(it pub.Item, fn ...client.FilterFn
 
 func (r *repository) WarmupCaches(self pub.Item) error {
 	f := new(Filters)
-	f.MaxItems = 250
 	r.infoFn()("Warming up caches")
 
 	search := RemoteLoads{
