@@ -88,13 +88,14 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	acc.Votes = acc.Votes[:0]
-	acc.Metadata.Outbox = acc.Metadata.Outbox[:0]
+	acc.Metadata.InvalidateOutbox()
 	h.v.Redirect(w, r, ItemPermaLink(&n), http.StatusSeeOther)
 }
 
 // HandleDelete serves /{year}/{month}/{day}/{hash}/rm POST request
 // HandleDelete serves /~{handle}/rm GET request
 func (h *handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
+	acc := loggedAccount(r)
 	repo := h.storage
 	iri := objects.IRI(h.storage.fedbox.Service()).AddPath(chi.URLParam(r, "hash"))
 	ctx := context.TODO()
@@ -115,6 +116,7 @@ func (h *handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 		h.v.addFlashMessage(Error, w, r, "unable to delete item as current user")
 	}
 
+	acc.Metadata.InvalidateOutbox()
 	h.v.Redirect(w, r, url, http.StatusFound)
 }
 
@@ -167,7 +169,7 @@ func (h *handler) HandleVoting(w http.ResponseWriter, r *http.Request) {
 		h.v.addFlashMessage(Error, w, r, "unable to vote as current user")
 	}
 	acc.Votes = acc.Votes[:0]
-	acc.Metadata.Outbox = acc.Metadata.Outbox[:0]
+	acc.Metadata.InvalidateOutbox()
 	h.v.Redirect(w, r, url, http.StatusFound)
 }
 
@@ -186,6 +188,7 @@ func (h *handler) FollowAccount(w http.ResponseWriter, r *http.Request) {
 		h.v.HandleErrors(w, r, err)
 		return
 	}
+	acc.Metadata.InvalidateOutbox()
 	h.v.Redirect(w, r, AccountPermaLink(&fol), http.StatusSeeOther)
 }
 
@@ -228,6 +231,7 @@ func (h *handler) HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
 		h.v.HandleErrors(w, r, err)
 		return
 	}
+	acc.Metadata.InvalidateOutbox()
 	backUrl := r.Header.Get("Referer")
 	h.v.Redirect(w, r, backUrl, http.StatusSeeOther)
 }
@@ -256,6 +260,7 @@ func (h *handler) BlockAccount(w http.ResponseWriter, r *http.Request) {
 		h.v.HandleErrors(w, r, err)
 		return
 	}
+	acc.Metadata.InvalidateOutbox()
 	h.v.Redirect(w, r, PermaLink(&block), http.StatusSeeOther)
 }
 
@@ -283,6 +288,7 @@ func (h *handler) BlockItem(w http.ResponseWriter, r *http.Request) {
 		h.v.HandleErrors(w, r, err)
 		return
 	}
+	acc.Metadata.InvalidateOutbox()
 	h.v.Redirect(w, r, PermaLink(&p), http.StatusSeeOther)
 }
 
@@ -317,6 +323,7 @@ func (h *handler) ReportAccount(w http.ResponseWriter, r *http.Request) {
 	if !strings.Contains(backUrl, url) && strings.Contains(backUrl, Instance.BaseURL) {
 		url = fmt.Sprintf("%s#li-%s", backUrl, p.Hash)
 	}
+	acc.Metadata.InvalidateOutbox()
 	h.v.Redirect(w, r, url, http.StatusFound)
 }
 
@@ -352,6 +359,7 @@ func (h *handler) ReportItem(w http.ResponseWriter, r *http.Request) {
 	if !strings.Contains(backUrl, url) && strings.Contains(backUrl, Instance.BaseURL) {
 		url = fmt.Sprintf("%s#li-%s", backUrl, p.Hash)
 	}
+	acc.Metadata.InvalidateOutbox()
 	h.v.Redirect(w, r, url, http.StatusFound)
 }
 
@@ -553,6 +561,7 @@ func (h *handler) HandleCreateInvitation(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	acc.Metadata.InvalidateOutbox()
 	h.v.addFlashMessage(Info, w, r, "Invitation generated successfully.\nYou can now send an email to the person you want to invite by clicking the envelope icon.")
 	h.v.Redirect(w, r, PermaLink(acc), http.StatusPermanentRedirect)
 }

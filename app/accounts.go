@@ -54,6 +54,7 @@ type AccountMetadata struct {
 
 func (m *AccountMetadata) InvalidateOutbox() {
 	m.OutboxUpdated = time.Time{}
+	m.Outbox = m.Outbox[:0]
 }
 
 type AccountCollection []Account

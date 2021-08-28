@@ -1598,7 +1598,6 @@ func (r *repository) SaveVote(ctx context.Context, v Vote) (Vote, error) {
 		return v, err
 	}
 	r.cache.clear()
-	v.SubmittedBy.Metadata.InvalidateOutbox()
 	r.infoFn(log.Ctx{"act": iri, "obj": it.GetLink(), "type": it.GetType()})("saved activity")
 	err = v.FromActivityPub(act)
 	return v, err
@@ -1893,7 +1892,6 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 		return it, err
 	}
 	r.cache.clear()
-	it.SubmittedBy.Metadata.InvalidateOutbox()
 	if loadAuthors {
 		items, err := r.loadItemsAuthors(ctx, it)
 		return items[0], err
@@ -2093,7 +2091,6 @@ func (r *repository) SendFollowResponse(ctx context.Context, f FollowRequest, ac
 		return err
 	}
 	r.cache.clear()
-	er.Metadata.InvalidateOutbox()
 	return nil
 }
 
@@ -2129,7 +2126,6 @@ func (r *repository) FollowAccount(ctx context.Context, er, ed Account, reason *
 		})("Unable to follow")
 		return err
 	}
-	er.Metadata.InvalidateOutbox()
 	return nil
 }
 
@@ -2327,7 +2323,6 @@ func (r *repository) BlockAccount(ctx context.Context, er, ed Account, reason *I
 		return err
 	}
 	r.cache.clear()
-	er.Metadata.InvalidateOutbox()
 	return nil
 }
 
@@ -2343,7 +2338,6 @@ func (r *repository) BlockItem(ctx context.Context, er Account, ed Item, reason 
 		return err
 	}
 	r.cache.clear()
-	er.Metadata.InvalidateOutbox()
 	return nil
 }
 
@@ -2359,7 +2353,6 @@ func (r *repository) ReportItem(ctx context.Context, er Account, it Item, reason
 		return err
 	}
 	r.cache.clear()
-	er.Metadata.InvalidateOutbox()
 	return nil
 }
 
@@ -2375,7 +2368,6 @@ func (r *repository) ReportAccount(ctx context.Context, er, ed Account, reason *
 		return err
 	}
 	r.cache.clear()
-	er.Metadata.InvalidateOutbox()
 	return nil
 }
 
