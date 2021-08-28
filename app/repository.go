@@ -456,7 +456,7 @@ func (r *repository) loadAccountsFollowers(ctx context.Context, acc *Account) er
 	}
 	f := &Filters{}
 	searches := RemoteLoads{
-		r.fedbox.Service().GetLink(): []RemoteLoad{{actor: acc.pub, loadFn: followers, filters: []*Filters{f}}},
+		baseIRI(acc.pub.GetLink()): []RemoteLoad{{actor: acc.pub, loadFn: followers, filters: []*Filters{f}}},
 	}
 	return LoadFromSearches(ctx, r, searches, func(_ context.Context, c pub.CollectionInterface, f *Filters) error {
 		for _, fol := range c.Collection() {
@@ -478,7 +478,7 @@ func (r *repository) loadAccountsFollowing(ctx context.Context, acc *Account) er
 	}
 	f := &Filters{}
 	searches := RemoteLoads{
-		r.fedbox.Service().GetLink(): []RemoteLoad{{actor: acc.pub, loadFn: following, filters: []*Filters{f}}},
+		baseIRI(acc.pub.GetLink()): []RemoteLoad{{actor: acc.pub, loadFn: following, filters: []*Filters{f}}},
 	}
 	return LoadFromSearches(ctx, r, searches, func(_ context.Context, c pub.CollectionInterface, f *Filters) error {
 		for _, fol := range c.Collection() {
@@ -513,7 +513,7 @@ func (r *repository) loadAccountsOutbox(ctx context.Context, acc *Account) error
 	f.Object = &Filters{IRI:notNilFilters}
 	f.MaxItems = 1000
 	searches := RemoteLoads{
-		r.fedbox.Service().GetLink(): []RemoteLoad{{actor: acc.pub, loadFn: outbox, filters: []*Filters{f}}},
+		baseIRI(acc.pub.GetLink()): []RemoteLoad{{actor: acc.pub, loadFn: outbox, filters: []*Filters{f}}},
 	}
 	return LoadFromSearches(ctx, r, searches, func(ctx context.Context, c pub.CollectionInterface, f *Filters) error {
 		stop := getItemUpdatedTime(c).Sub(latest) < 0
@@ -615,7 +615,7 @@ func (r *repository) loadAccountVotes(ctx context.Context, acc *Account, items I
 		f.Object = &Filters{IRI: ItemHashFilter(items...)}
 	}
 	searches := RemoteLoads{
-		r.fedbox.Service().GetLink(): []RemoteLoad{{actor: acc.pub, loadFn: outbox, filters: []*Filters{f}}},
+		baseIRI(acc.pub.GetLink()): []RemoteLoad{{actor: acc.pub, loadFn: outbox, filters: []*Filters{f}}},
 	}
 	return LoadFromSearches(ctx, r, searches, func(_ context.Context, c pub.CollectionInterface, f *Filters) error {
 		for _, it := range c.Collection() {
@@ -2206,7 +2206,7 @@ func (r *repository) LoadActorOutbox(ctx context.Context, actor pub.Item, f ...*
 	}
 
 	searches := make(RemoteLoads)
-	searches[r.fedbox.Service().GetLink()] = []RemoteLoad{{actor: actor.GetLink(), loadFn: outbox, filters: f}}
+	searches[baseIRI(actor.GetLink())] = []RemoteLoad{{actor: actor.GetLink(), loadFn: outbox, filters: f}}
 
 	return r.ActorCollection(ctx, searches)
 }
