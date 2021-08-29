@@ -178,7 +178,7 @@ a[rel="tag"]::before {
     opacity: .7;
     font-weight: bold;
 }
-a[rel="mention external"]::before, a[rel="mention"]::before {
+a[rel="mention external"]::before, a[rel="mention"]::before, del.mention::before {
     content: "~";
 }
 a[rel="mention external"] {
@@ -190,7 +190,7 @@ a[rel="tag"]::before {
 footer time {
     text-decoration: underline dotted;
 }
-del {
+del.title {
     line-height: 2rem;
     padding-left: 2ex;
     letter-spacing: .3ex;

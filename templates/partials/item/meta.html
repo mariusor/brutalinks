@@ -1,8 +1,17 @@
 {{- $count := .Children | len -}}
 {{- $it := . -}}
+{{- $deleted := $it.Deleted -}}
+{{- $authorDeleted := $it.SubmittedBy.Deleted -}}
 <footer class="meta">
-<small>submitted{{ if not .Deleted}}{{- if ShowUpdate $it }}<time class="updated-at" datetime="{{ $it.UpdatedAt | ISOTimeFmt | html }}" title="updated at {{ $it.UpdatedAt | ISOTimeFmt }}"><sup>&#10033;</sup></time> {{- end }} <time class="submitted-at" datetime="{{ $it.SubmittedAt | ISOTimeFmt | html }}" title="{{ $it.SubmittedAt | ISOTimeFmt }}">{{ icon "clock-o" }}{{ $it.SubmittedAt | TimeFmt }}</time>{{- end -}}
-    {{- if and (ne current "user") $it.SubmittedBy.IsValid }} by <a rel="mention" href="{{ $it.SubmittedBy | PermaLink }}">{{ $it.SubmittedBy | ShowAccountHandle }}</a>{{end}}</small>
+<small>submitted{{ if not $deleted}}{{- if ShowUpdate $it }}<time class="updated-at" datetime="{{ $it.UpdatedAt | ISOTimeFmt | html }}" title="updated at {{ $it.UpdatedAt | ISOTimeFmt }}"><sup>&#10033;</sup></time> {{- end }} <time class="submitted-at" datetime="{{ $it.SubmittedAt | ISOTimeFmt | html }}" title="{{ $it.SubmittedAt | ISOTimeFmt }}">{{ icon "clock-o" }}{{ $it.SubmittedAt | TimeFmt }}</time>{{- end -}}
+    {{- if and (ne current "user") $it.SubmittedBy.IsValid }} by
+{{- if $authorDeleted }}
+    <del class="mention">{{ $it.SubmittedBy | ShowAccountHandle }}</del>
+{{ else -}}
+    <a rel="mention" href="{{ $it.SubmittedBy | PermaLink }}">{{ $it.SubmittedBy | ShowAccountHandle }}</a>
+{{- end }}
+{{- end -}}
+</small>
     <nav><ul>
             {{- $link := (PermaLink $it) -}}
             {{- if not (sameBase req.URL.Path $link) -}}

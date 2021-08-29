@@ -1028,10 +1028,11 @@ func PermaLink(r Renderable) string {
 
 // ItemLocalLink
 func ItemLocalLink(i *Item) string {
-	if i.SubmittedBy == nil || i.SubmittedBy.Handle == Anonymous || i.SubmittedBy.Handle == ""  || i.SubmittedBy.IsFederated() {
+	auth := i.SubmittedBy
+	if auth == nil || auth.Deleted() || auth.Handle == Anonymous || auth.Handle == ""  || auth.IsFederated() {
 		return path.Join("/", i.SubmittedAt.UTC().Format("2006/01/02"), i.Hash.String())
 	}
-	return path.Join(AccountLocalLink(i.SubmittedBy), i.Hash.String())
+	return path.Join(AccountLocalLink(auth), i.Hash.String())
 }
 
 func followLink(f FollowRequest) string {

@@ -210,10 +210,10 @@ func (h *handler) HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
 	follower := followers[0]
 	ff := &Filters{
 		Actor: &Filters{
-			IRI: AccountHashFilter(follower),
+			IRI: AccountsHashFilter(follower),
 		},
 		Object: &Filters{
-			IRI: AccountHashFilter(*acc),
+			IRI: AccountsHashFilter(*acc),
 		},
 	}
 	// todo(marius): load response reason from POST request so we can show it to the followed user

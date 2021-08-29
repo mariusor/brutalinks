@@ -688,7 +688,19 @@ func ItemHashFilter(items ...Item) CompStrs {
 	return filter
 }
 
-func AccountHashFilter(accounts ...Account) CompStrs {
+func AccountsIRIFilter(accounts ...Account) CompStrs {
+	filter := make(CompStrs, 0)
+	for _, ac := range accounts {
+		f := EqualsString(ac.pub.GetLink().String())
+		if len(f.Str) == 0 || filter.Contains(f) {
+			continue
+		}
+		filter = append(filter, f)
+	}
+	return filter
+}
+
+func AccountsHashFilter(accounts ...Account) CompStrs {
 	filter := make(CompStrs, 0)
 	for _, ac := range accounts {
 		var f CompStr
@@ -720,14 +732,18 @@ func (r *repository) loadAccountsAuthors(ctx context.Context, accounts ...Accoun
 	if len(accounts) == 0 {
 		return accounts, nil
 	}
-	fActors := Filters{
-		Type: ActivityTypesFilter(ValidActorTypes...),
-	}
+	fActors := Filters{Type: ActivityTypesFilter(ValidActorTypes...)}
 	creators := make([]Account, 0)
 	for _, ac := range accounts {
+		if ac.CreatedBy == nil {
+			continue
+		}
 		creators = append(creators, *ac.CreatedBy)
 	}
-	fActors.IRI = AccountHashFilter(creators...)
+	if len(creators) == 0 {
+		return accounts, nil
+	}
+	fActors.IRI = AccountsIRIFilter(creators...)
 	if len(fActors.IRI) == 0 {
 		return accounts, errors.Errorf("unable to load accounts authors")
 	}
@@ -765,7 +781,7 @@ func (r *repository) loadFollowsAuthors(ctx context.Context, items ...FollowRequ
 	}
 	fActors := Filters{
 		Type:  ActivityTypesFilter(ValidActorTypes...),
-		IRI:   AccountHashFilter(submitters...),
+		IRI:   AccountsHashFilter(submitters...),
 		Actor: &Filters{IRI: notNilFilters},
 	}
 
@@ -830,7 +846,7 @@ func ModerationSubmittedByHashFilter(items ...ModerationOp) CompStrs {
 		}
 		accounts = append(accounts, *it.SubmittedBy)
 	}
-	return AccountHashFilter(accounts...)
+	return AccountsHashFilter(accounts...)
 }
 
 func (r *repository) loadModerationDetails(ctx context.Context, items ...ModerationOp) ([]ModerationOp, error) {
@@ -969,16 +985,15 @@ func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemC
 		return items, nil
 	}
 
-	fActors := Filters{Type: ActivityTypesFilter(ValidActorTypes...)}
+	fActors := Filters{}
 	requiredAuthorsCount := 0
 	searches := RemoteLoads{}
 	for i, acc := range accounts {
 		ff := fActors
-		ff.IRI = AccountHashFilter(acc...)
+		ff.IRI = AccountsIRIFilter(acc...)
 		requiredAuthorsCount += len(ff.IRI)
 		f := Filters{Object: &ff}
 		f.Type = ActivityTypesFilter(pub.CreateType)
-		f.Actor = &Filters{IRI: notNilFilters}
 		actorsCol := func(a pub.Item, f ...client.FilterFn) pub.IRI {
 			return iri(actors.IRI(a), f...)
 		}
@@ -999,7 +1014,7 @@ func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemC
 	authors := make(AccountCollection, 0)
 	err := LoadFromSearches(ctx, r, searches, func(ctx context.Context, col pub.CollectionInterface, f *Filters) error {
 		for _, it := range col.Collection() {
-			acc := Account{Metadata: &AccountMetadata{}}
+			acc := Account{}
 			if err := acc.FromActivityPub(it); err != nil {
 				r.errFn(log.Ctx{"type": fmt.Sprintf("%T", it)})(err.Error())
 				continue
@@ -2228,7 +2243,7 @@ func (r *repository) LoadActorInbox(ctx context.Context, actor pub.Item, f ...*F
 	}
 
 	searches := make(RemoteLoads, 0)
-	searches[r.fedbox.Service().GetLink()] = []RemoteLoad{{actor: actor, loadFn: inbox, filters: f}}
+	searches[baseIRI(actor.GetLink())] = []RemoteLoad{{actor: actor, loadFn: inbox, filters: f}}
 
 	return r.ActorCollection(ctx, searches)
 }

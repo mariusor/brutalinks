@@ -1,8 +1,13 @@
 {{- if gt (len .Handle) 0 }}
+{{- if .Deleted }}
+<del class="title">{{- if .HasIcon -}}{{- Avatar .Metadata.Icon.MimeType .Metadata.Icon.URI -}}{{- else -}}{{- icon "user" "avatar" -}}{{- end -}}
+{{- .Handle -}}</del>
+{{- else -}}
 <a href="{{ PermaLink . }}">
     {{- if .HasIcon -}}{{- Avatar .Metadata.Icon.MimeType .Metadata.Icon.URI -}}{{- else -}}{{- icon "user" "avatar" -}}{{- end -}}
     {{- .Handle -}}
 </a>
+{{- end -}}
 {{- else -}}
 <span>
     Pending invitation
