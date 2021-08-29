@@ -53,8 +53,8 @@ func FromObject(a *Account, o *pub.Object) error {
 		})
 	}
 	if o.GetType() == pub.TombstoneType {
-		a.Handle = Anonymous
-		a.Flags = a.Flags & FlagsDeleted
+		a.Handle = Deleted
+		a.Flags = a.Flags | FlagsDeleted
 	}
 	if !o.Published.IsZero() {
 		a.CreatedAt = o.Published
@@ -95,8 +95,8 @@ func FromActor(a *Account, p *pub.Actor) error {
 		})
 	}
 	if p.GetType() == pub.TombstoneType {
-		a.Handle = Anonymous
-		a.Flags = a.Flags & FlagsDeleted
+		a.Handle = Deleted
+		a.Flags = a.Flags | FlagsDeleted
 	}
 	if !p.Published.IsZero() {
 		a.CreatedAt = p.Published
