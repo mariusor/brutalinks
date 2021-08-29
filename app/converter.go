@@ -439,8 +439,8 @@ func FromArticle(i *Item, a *pub.Object) error {
 	return nil
 }
 
-func loadRecipientsFrom(recipients pub.ItemCollection) ([]Account, bool) {
-	result := make([]Account, 0)
+func loadRecipientsFrom(recipients pub.ItemCollection) (AccountCollection, bool) {
+	result := make(AccountCollection, 0)
 	isPublic := false
 	for _, rec := range recipients {
 		if rec == pub.PublicNS {

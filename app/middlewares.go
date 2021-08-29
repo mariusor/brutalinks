@@ -21,11 +21,11 @@ func (h handler) LoadAuthorMw(next http.Handler) http.Handler {
 			h.ErrorHandler(errors.NotValidf("missing account handle")).ServeHTTP(w, r)
 			return
 		}
-		var authors []Account
+		var authors AccountCollection
 		if handle == selfName {
 			self := Account{}
 			self.FromActivityPub(h.storage.fedbox.Service())
-			authors = []Account { self }
+			authors = AccountCollection { self }
 		} else {
 			var err error
 			repo := ContextRepository(r.Context())

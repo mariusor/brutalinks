@@ -699,12 +699,12 @@ func ActivityTypesFilter(t ...pub.ActivityVocabularyType) CompStrs {
 	return r
 }
 
-func (r *repository) loadAccountsAuthors(ctx context.Context, accounts ...Account) ([]Account, error) {
+func (r *repository) loadAccountsAuthors(ctx context.Context, accounts ...Account) (AccountCollection, error) {
 	if len(accounts) == 0 {
 		return accounts, nil
 	}
 	fActors := Filters{}
-	creators := make([]Account, 0)
+	creators := make(AccountCollection, 0)
 	for _, ac := range accounts {
 		if ac.CreatedBy == nil {
 			continue
@@ -715,12 +715,13 @@ func (r *repository) loadAccountsAuthors(ctx context.Context, accounts ...Accoun
 		return accounts, nil
 	}
 	fActors.IRI = AccountsIRIFilter(creators...)
-	if len(fActors.IRI) == 0 {
-		return accounts, errors.Errorf("unable to load accounts authors")
-	}
-	authors, err := r.accounts(ctx, &fActors)
-	if err != nil {
-		return accounts, errors.Annotatef(err, "unable to load accounts authors")
+	var authors AccountCollection
+	if len(fActors.IRI) > 0 {
+		var err error
+		authors, err = r.accounts(ctx, &fActors)
+		if err != nil {
+			return accounts, errors.Annotatef(err, "unable to load accounts authors")
+		}
 	}
 	for k, ac := range accounts {
 		found := false
@@ -1111,8 +1112,8 @@ func (r *repository) account(ctx context.Context, ff *Filters) (*Account, error)
 	return &accounts[0], nil
 }
 
-func (r *repository) accounts(ctx context.Context, ff ...*Filters) ([]Account, error) {
-	accounts := make([]Account, 0)
+func (r *repository) accounts(ctx context.Context, ff ...*Filters) (AccountCollection, error) {
+	accounts := make(AccountCollection, 0)
 	searches := RemoteLoads{
 		r.fedbox.Service().GetLink(): []RemoteLoad{{actor: r.fedbox.Service(), loadFn: colIRI(actors), filters: ff}},
 	}

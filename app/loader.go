@@ -73,8 +73,8 @@ func ContextAccount(ctx context.Context) *Account {
 	return nil
 }
 
-func ContextAuthors(ctx context.Context) []Account {
-	if a, ok := ctx.Value(AuthorCtxtKey).([]Account); ok {
+func ContextAuthors(ctx context.Context) AccountCollection {
+	if a, ok := ctx.Value(AuthorCtxtKey).(AccountCollection); ok {
 		return a
 	}
 	return nil

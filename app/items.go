@@ -155,7 +155,7 @@ func updateItemFromRequest(r *http.Request, author Account, i *Item) error {
 		return errors.Errorf("invalid http method type")
 	}
 
-	var receivers []Account
+	var receivers AccountCollection
 	var err error
 
 	if i.Metadata == nil {

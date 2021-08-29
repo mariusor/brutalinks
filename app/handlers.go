@@ -49,7 +49,7 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 			n.Parent = parent
 			if n.Parent.SubmittedBy.IsValid() {
 				if len(n.Metadata.To) == 0 {
-					n.Metadata.To = make([]Account, 0)
+					n.Metadata.To = make(AccountCollection, 0)
 				}
 				n.Metadata.To = append(n.Metadata.To, *n.Parent.SubmittedBy)
 			}

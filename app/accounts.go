@@ -290,7 +290,7 @@ func (h *handler)accountFromPost(r *http.Request) (Account, error) {
 	return *a, nil
 }
 
-func accountsFromRequestHandle(r *http.Request) ([]Account, error) {
+func accountsFromRequestHandle(r *http.Request) (AccountCollection, error) {
 	handle := chi.URLParam(r, "handle")
 	if handle == "" {
 		return nil, errors.NotFoundf("missing account handle %s", handle)
