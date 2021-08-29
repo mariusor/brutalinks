@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
@@ -68,7 +69,6 @@ type Account struct {
 	Flags     FlagBits             `json:"flags,omitempty"`
 	Metadata  *AccountMetadata     `json:"metadata,omitempty"`
 	pub       pub.Item             `json:"-"`
-	Votes     VoteCollection       `json:"-"`
 	Followers AccountCollection    `json:"followers,omitempty"`
 	Following AccountCollection    `json:"following,omitempty"`
 	Blocked   AccountCollection    `json:"-"`
@@ -140,6 +140,26 @@ func (a *Account) Private() bool {
 	return a != nil && a.Flags&FlagsPrivate == FlagsPrivate
 }
 
+func (a Account) Votes() VoteCollection {
+	votes := make(VoteCollection, 0)
+	for _, it := range a.Metadata.Outbox {
+		if !ValidAppreciationTypes.Contains(it.GetType()) {
+			continue
+		}
+		v := Vote{}
+		if err := v.FromActivityPub(it); err != nil {
+			continue
+		}
+		if v.Item == nil {
+			continue
+		}
+		if !votes.Contains(v) {
+			votes = append(votes, v)
+		}
+	}
+	return votes
+}
+
 // Deletable
 type Deletable interface {
 	Deleted() bool
@@ -148,15 +168,22 @@ type Deletable interface {
 }
 
 func (a Account) VotedOn(i Item) *Vote {
-	for _, v := range a.Votes {
+	allVotes := make(VoteCollection, 0)
+	for _, v := range a.Votes() {
 		if v.Item == nil {
 			continue
 		}
 		if itemsEqual(*v.Item, i) {
-			return &v
+			allVotes = append(allVotes, v)
 		}
 	}
-	return nil
+	sort.Slice(allVotes, func(i, j int) bool {
+		return allVotes[i].SubmittedAt.Sub(allVotes[j].SubmittedAt) > 0
+	})
+	if len(allVotes) == 0 {
+		return nil
+	}
+	return &allVotes[0]
 }
 
 func (a Account) GetLink() string {

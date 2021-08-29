@@ -87,7 +87,6 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 			})("unable to save vote for item")
 		}
 	}
-	acc.Votes = acc.Votes[:0]
 	acc.Metadata.InvalidateOutbox()
 	h.v.Redirect(w, r, ItemPermaLink(&n), http.StatusSeeOther)
 }
@@ -168,7 +167,6 @@ func (h *handler) HandleVoting(w http.ResponseWriter, r *http.Request) {
 	} else {
 		h.v.addFlashMessage(Error, w, r, "unable to vote as current user")
 	}
-	acc.Votes = acc.Votes[:0]
 	acc.Metadata.InvalidateOutbox()
 	h.v.Redirect(w, r, url, http.StatusFound)
 }

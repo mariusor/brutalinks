@@ -519,12 +519,6 @@ func (r *repository) loadAccountsOutbox(ctx context.Context, acc *Account) error
 		stop := getItemUpdatedTime(c).Sub(latest) < 0
 		for _, it := range c.Collection() {
 			typ := it.GetType()
-			if ValidAppreciationTypes.Contains(typ) {
-				v := new(Vote)
-				if err := v.FromActivityPub(it); err == nil && !acc.Votes.Contains(*v) {
-					acc.Votes = append(acc.Votes, *v)
-				}
-			}
 			if ValidModerationActivityTypes.Contains(typ) {
 				p := new(Account)
 				if err := p.FromActivityPub(it); err != nil && !p.IsValid() {
@@ -537,7 +531,7 @@ func (r *repository) loadAccountsOutbox(ctx context.Context, acc *Account) error
 					acc.Ignored = append(acc.Ignored, *p)
 				}
 			}
-			acc.Metadata.Outbox = append(acc.Metadata.Outbox, pub.FlattenProperties(it))
+			acc.Metadata.Outbox.Append(pub.FlattenProperties(it))
 		}
 		if stop {
 			ctx.Done()
@@ -622,10 +616,7 @@ func (r *repository) loadAccountVotes(ctx context.Context, acc *Account, items I
 			if !it.IsObject() || !ValidAppreciationTypes.Contains(it.GetType()) {
 				continue
 			}
-			v := new(Vote)
-			if err := v.FromActivityPub(it); err == nil && !acc.Votes.Contains(*v) {
-				acc.Votes = append(acc.Votes, *v)
-			}
+			acc.Metadata.Outbox.Append(pub.FlattenProperties(it))
 		}
 		return nil
 	})
@@ -639,7 +630,7 @@ func (r *repository) loadItemsVotes(ctx context.Context, items ...Item) (ItemCol
 	ff := make([]*Filters, 0)
 	f := &Filters{
 		Type:     ActivityTypesFilter(ValidAppreciationTypes...),
-		Object:   &Filters{IRI: ItemHashFilter(items...)},
+		Object:   &Filters{IRI: ItemIRIFilter(items...)},
 		MaxItems: 500,
 	}
 	ff = append(ff, f)
@@ -1618,7 +1609,7 @@ func (r *repository) SaveVote(ctx context.Context, v Vote) (Vote, error) {
 	return v, err
 }
 
-func (r *repository) loadVotesCollection(ctx context.Context, iri pub.IRI, actors ...pub.IRI) ([]Vote, error) {
+func (r *repository) loadVotesCollection(ctx context.Context, iri pub.IRI, actors ...pub.IRI) (VoteCollection, error) {
 	cntActors := len(actors)
 	f := &Filters{}
 	if cntActors > 0 {
@@ -1632,12 +1623,17 @@ func (r *repository) loadVotesCollection(ctx context.Context, iri pub.IRI, actor
 	if err != nil {
 		return nil, err
 	}
-	votes := make([]Vote, 0)
+	votes := make(VoteCollection, 0)
 	err = pub.OnOrderedCollection(likes, func(col *pub.OrderedCollection) error {
 		for _, like := range col.OrderedItems {
+			if !like.IsObject() || !ValidAppreciationTypes.Contains(like.GetType()) {
+				continue
+			}
 			vote := Vote{}
 			vote.FromActivityPub(like)
-			votes = append(votes, vote)
+			if !votes.Contains(vote) {
+				votes = append(votes, vote)
+			}
 		}
 		return nil
 	})

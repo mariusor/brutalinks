@@ -418,9 +418,6 @@ func loadAccountData(a *Account, b Account) {
 	if a.pub == nil && b.pub != nil {
 		a.pub = b.pub
 	}
-	if len(a.Votes) == 0 && len(b.Votes) > 0 {
-		a.Votes = b.Votes
-	}
 	if len(a.Followers) == 0 && len(b.Followers) > 0 {
 		a.Followers = b.Followers
 	}
