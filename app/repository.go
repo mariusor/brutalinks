@@ -679,8 +679,11 @@ func ItemIRIFilter(items ...Item) CompStrs {
 func AccountsIRIFilter(accounts ...Account) CompStrs {
 	filter := make(CompStrs, 0)
 	for _, ac := range accounts {
+		if ac.pub == nil {
+			continue
+		}
 		f := EqualsString(ac.pub.GetLink().String())
-		if len(f.Str) == 0 || filter.Contains(f) {
+		if filter.Contains(f) {
 			continue
 		}
 		filter = append(filter, f)
