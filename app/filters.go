@@ -302,7 +302,7 @@ func ModerationFiltersMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := FiltersFromRequest(r)
 		f.Type = ModerationActivitiesFilter
-		f.Object = &Filters{ IRI: notNilFilters }
+		f.Object = &Filters{IRI: notNilFilters}
 		f.Actor = &Filters{IRI: notNilFilters}
 
 		mf := new(moderationFilter)

@@ -606,7 +606,7 @@ func (r *repository) loadAccountVotes(ctx context.Context, acc *Account, items I
 	f.MaxItems = 500
 
 	if len(items) > 0 {
-		f.Object = &Filters{IRI: ItemHashFilter(items...)}
+		f.Object = &Filters{IRI: ItemIRIFilter(items...)}
 	}
 	searches := RemoteLoads{
 		baseIRI(acc.pub.GetLink()): []RemoteLoad{{actor: acc.pub, loadFn: outbox, filters: []*Filters{f}}},
@@ -664,13 +664,10 @@ func EqualsString(s string) CompStr {
 	return CompStr{Operator: "=", Str: s}
 }
 
-func ItemHashFilter(items ...Item) CompStrs {
+func ItemIRIFilter(items ...Item) CompStrs {
 	filter := make(CompStrs, 0)
 	for _, it := range items {
-		if !it.Hash.IsValid() {
-			continue
-		}
-		hash := LikeString(it.Hash.String())
+		hash := EqualsString(it.Metadata.ID)
 		if len(hash.Str) == 0 || filter.Contains(hash) {
 			continue
 		}
@@ -691,26 +688,6 @@ func AccountsIRIFilter(accounts ...Account) CompStrs {
 	return filter
 }
 
-func AccountsHashFilter(accounts ...Account) CompStrs {
-	filter := make(CompStrs, 0)
-	for _, ac := range accounts {
-		var f CompStr
-		if ac.pub == nil || ac.pub.GetLink().Contains(pub.IRI(Instance.Conf.APIURL), false) {
-			if !ac.Hash.IsValid() {
-				continue
-			}
-			f = LikeString(ac.Hash.String())
-		} else {
-			f = EqualsString(ac.pub.GetLink().String())
-		}
-		if len(f.Str) == 0 || filter.Contains(f) {
-			continue
-		}
-		filter = append(filter, f)
-	}
-	return filter
-}
-
 func ActivityTypesFilter(t ...pub.ActivityVocabularyType) CompStrs {
 	r := make(CompStrs, len(t))
 	for i, typ := range t {
@@ -723,7 +700,7 @@ func (r *repository) loadAccountsAuthors(ctx context.Context, accounts ...Accoun
 	if len(accounts) == 0 {
 		return accounts, nil
 	}
-	fActors := Filters{Type: ActivityTypesFilter(ValidActorTypes...)}
+	fActors := Filters{}
 	creators := make([]Account, 0)
 	for _, ac := range accounts {
 		if ac.CreatedBy == nil {
@@ -771,8 +748,7 @@ func (r *repository) loadFollowsAuthors(ctx context.Context, items ...FollowRequ
 		}
 	}
 	fActors := Filters{
-		Type:  ActivityTypesFilter(ValidActorTypes...),
-		IRI:   AccountsHashFilter(submitters...),
+		IRI:   AccountsIRIFilter(submitters...),
 		Actor: &Filters{IRI: notNilFilters},
 	}
 
@@ -837,7 +813,7 @@ func ModerationSubmittedByHashFilter(items ...ModerationOp) CompStrs {
 		}
 		accounts = append(accounts, *it.SubmittedBy)
 	}
-	return AccountsHashFilter(accounts...)
+	return AccountsIRIFilter(accounts...)
 }
 
 func (r *repository) loadModerationDetails(ctx context.Context, items ...ModerationOp) ([]ModerationOp, error) {
