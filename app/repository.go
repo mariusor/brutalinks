@@ -652,7 +652,7 @@ func (r *repository) loadItemsVotes(ctx context.Context, items ...Item) (ItemCol
 	})
 	for k, ob := range items {
 		for _, v := range votes {
-			if itemsEqual(*v.Item, ob) {
+			if itemsEqual(*v.Item, ob) && !items[k].Votes.Contains(v) {
 				items[k].Votes = append(items[k].Votes, v)
 			}
 		}
