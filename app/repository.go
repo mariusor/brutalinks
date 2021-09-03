@@ -1816,18 +1816,36 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 		m := it.Metadata
 		if len(m.To) > 0 {
 			for _, rec := range m.To {
-				to = append(to, pub.IRI(rec.Metadata.ID))
+				if rr := pub.IRI(rec.Metadata.ID); !cc.Contains(rr) {
+					to = append(to, rr)
+				}
 			}
 		}
 		if len(m.CC) > 0 {
 			for _, rec := range m.CC {
-				cc = append(cc, pub.IRI(rec.Metadata.ID))
+				if rr := pub.IRI(rec.Metadata.ID); !cc.Contains(rr) {
+					cc = append(cc, rr)
+				}
 			}
 		}
 		m.Tags = loadTagsIfExisting(r, ctx, m.Tags)
 		m.Mentions = loadMentionsIfExisting(r, ctx, m.Mentions)
-		cc = append(cc, loadCCsFromMentions(m.Mentions)...)
+		for _, mm := range loadCCsFromMentions(m.Mentions) {
+			if !cc.Contains(mm) {
+				cc = append(cc, mm)
+			}
+		}
 		it.Metadata = m
+	}
+	par := it.Parent
+	for {
+		if par == nil {
+			break
+		}
+		if auth := par.SubmittedBy; auth != nil && !cc.Contains(auth.pub.GetLink()) {
+			cc = append(cc, par.SubmittedBy.pub.GetLink())
+		}
+		par = par.Parent
 	}
 
 	if !it.Private() {
