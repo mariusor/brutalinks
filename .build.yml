@@ -1,7 +1,7 @@
 image: archlinux
 packages:
   - go
-  - docker
+  - buildah
 sources:
   - https://github.com/mariusor/go-littr
 secrets:
@@ -45,12 +45,14 @@ tasks:
       source ~/.buildah.env
 
       _user=$(id -un)
+      _what=""
 
-      if [ buildah -v dot 2> /dev/null ]; then
+      if buildah -v > /dev/null; then
         echo 'unqualified-search-registries = ["docker.io"]' | sudo tee /etc/containers/registries.conf.d/unq-search.conf
         echo "${_user}:10000:65536" | sudo tee /etc/subuid
         echo "${_user}:10000:65536" | sudo tee /etc/subgid
         sudo buildah login -u=${BUILDAH_USER} -p=${BUILDAH_SECRET} quay.io
+        _what="_buildah"
       else
         sudo systemctl start docker.service
         sudo gpasswd -a ${_user} docker
@@ -65,12 +67,12 @@ tasks:
       make -C docker builder
 
       _branch=${GIT_BRANCH#"refs/heads/"}
-      make -C docker VERSION="${_branch}" push
+      make -C docker VERSION="${_branch}" push${_what}
       if [ "${_branch}" == "master" ]; then
         _branch=$(printf "%s-%s" "${_branch}" "${GIT_SHA}")
-        make -C docker ENV=qa VERSION="${_branch}" push
+        make -C docker ENV=qa VERSION="${_branch}" push${_what}
       fi
       _tag=$(git describe --long --tags || true)
       if [ -n "${_tag}" ]; then
-        make -C docker ENV=prod VERSION="${_tag}" push
+        make -C docker ENV=prod VERSION="${_tag}" push${_what}
       fi

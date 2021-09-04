@@ -20,12 +20,12 @@ HAVE_BUILDAH := $(shell buildah -v dot 2> /dev/null)
 ifdef HAVE_BUILDAH
 	BUILD_CMD=buildah bud
 	RUN_CMD=podman run
-	ENV_CMD=buildah tag
+	TAG_CMD=buildah tag
 	PUSH_CMD=buildah push
 else
 	BUILD_CMD=docker build
 	RUN_CMD=docker run
-	ENV_CMD=docker tag
+	TAG_CMD=docker tag
 	PUSH_CMD=docker push
 endif
 
@@ -66,17 +66,27 @@ Caddyfile: Caddyfile.in
 		-DFEDBOX_HOSTNAME=$(FEDBOX_HOSTNAME) -DFEDBOX_PORT=$(FEDBOX_PORT) $< >$@
 
 push: build
-	$(ENV_CMD) fedbox/littr:$(ENV) quay.io/go-ap/go-littr:latest
-	$(ENV_CMD) fedbox/littr:$(ENV) quay.io/go-ap/go-littr:$(ENV)
-	$(PUSH_CMD) quay.io/go-ap/go-littr:latest
-	$(PUSH_CMD) quay.io/go-ap/go-littr:$(ENV)
+	docker tag fedbox/littr:$(ENV) quay.io/go-ap/go-littr:latest
+	docker tag fedbox/littr:$(ENV) quay.io/go-ap/go-littr:$(ENV)
+	docker push quay.io/go-ap/go-littr:latest
+	docker push quay.io/go-ap/go-littr:$(ENV)
 ifeq ($(ENV), dev)
-	$(ENV_CMD) fedbox/littr:$(ENV) quay.io/go-ap/go-littr:latest || true
+	$(TAG_CMD) fedbox/littr:$(ENV) quay.io/go-ap/go-littr:latest || true
 	$(PUSH_CMD) quay.io/go-ap/go-littr:latest || true
 endif
 ifneq ($(VERSION), )
-	$(ENV_CMD) fedbox/littr:$(ENV) quay.io/go-ap/go-littr:$(VERSION)-$(ENV) || true
+	$(TAG_CMD) fedbox/littr:$(ENV) quay.io/go-ap/go-littr:$(VERSION)-$(ENV) || true
 	$(PUSH_CMD) quay.io/go-ap/go-littr:$(VERSION)-$(ENV) || true
+endif
+
+push_buildah: build
+	buildah push fedbox/littr:$(ENV) docker://quay.io/go-ap/go-littr:latest
+	buildah push fedbox/littr:$(ENV) docker://quay.io/go-ap/go-littr:$(ENV)
+ifeq ($(ENV), dev)
+	buildah push fedbox/littr:$(ENV) docker://quay.io/go-ap/go-littr:latest || true
+endif
+ifneq ($(VERSION), )
+	buildah push fedbox/littr:$(ENV) docker://quay.io/go-ap/go-littr:$(VERSION)-$(ENV) || true
 endif
 
 start: Caddyfile
