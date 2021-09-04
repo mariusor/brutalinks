@@ -25,11 +25,11 @@ func HashFromIRI(i pub.IRI) Hash {
 
 func HashFromItem(obj pub.Item) Hash {
 	if obj == nil {
-		return Hash{}
+		return AnonymousHash
 	}
 	iri := obj.GetLink()
 	if len(iri) == 0 {
-		return Hash{}
+		return AnonymousHash
 	}
 	actor, _ := handlers.Split(iri)
 	h := path.Base(actor.String())
@@ -43,7 +43,7 @@ func HashFromString(s string) Hash {
 	if u, err := uuid.Parse(s); err == nil {
 		return Hash(u)
 	}
-	return Hash{}
+	return AnonymousHash
 }
 
 // String returns the hash as a string
