@@ -1,5 +1,5 @@
 ARG ENV
-FROM quay.io/fedbox/fedbox:${ENV:-dev} as fedbox
+FROM quay.io/go-ap/fedbox:${ENV:-dev} as fedbox
 
 FROM alpine
 
