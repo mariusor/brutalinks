@@ -5,6 +5,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/mariusor/go-littr/internal/log"
 	"os"
+	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -133,8 +134,8 @@ func Load(e EnvType, wait time.Duration) *Configuration {
 	} else {
 		c.ListenPort = DefaultListenPort
 	}
-	c.KeyPath = loadKeyFromEnv(KeyKeyPath, "")
-	c.CertPath = loadKeyFromEnv(KeyCertPath, "")
+	c.KeyPath = path.Clean(loadKeyFromEnv(KeyKeyPath, ""))
+	c.CertPath = path.Clean(loadKeyFromEnv(KeyCertPath, ""))
 
 	c.Secure, _ = strconv.ParseBool(loadKeyFromEnv(KeyHTTPS, ""))
 

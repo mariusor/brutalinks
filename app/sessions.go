@@ -70,7 +70,7 @@ func initSession(c appConfig, infoFn, errFn CtxLogFn) (sess, error) {
 			infoFn(log.Ctx{"backend": c.SessionsBackend})("Invalid session backend, falling back to %s.", sessionsFSBackend)
 			c.SessionsBackend = sessionsFSBackend
 		}
-		s.path = path.Join(c.SessionsPath, string(c.Env), c.HostName)
+		s.path = path.Clean(path.Join(c.SessionsPath, string(c.Env), c.HostName))
 		s.s, err = initFileSession(c, s.path, infoFn, errFn)
 	}
 	if err != nil {
