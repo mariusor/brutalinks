@@ -70,9 +70,13 @@ body {
 }
 a {
     color: var(--main-link-color);
+    text-decoration: none;
 }
 a:visited {
     color: var(--main-linkvisited-color);
+}
+a:hover {
+    text-decoration: underline;
 }
 a[href="#"], a[href="#"]:visited {
     color: var(--main-fg-color);
