@@ -1,7 +1,7 @@
 image: archlinux
 packages:
   - go
-  - buildah
+  - docker
 sources:
   - https://github.com/mariusor/go-littr
 secrets:
