@@ -2,7 +2,7 @@
 <header>
 <h2 data-hash="{{.ID}}">
 {{- if .IsLink -}}
-    {{- if .Title -}}{{- .Title -}}{{ else }} Untitled {{ itemType .MimeType -}} {{- end }} <a rel="external" data-hash="{{.ID}}" href="{{ .Data | printf "%s" }}">&#167;</a>
+    <a rel="external" data-hash="{{.Hash}}" href="{{.Data | printf "%s"}}">{{- if .Title -}}{{- .Title -}}{{ else }} Untitled {{ itemType .MimeType -}} {{- end -}}</a>
 {{- else -}}
     {{- if .Title -}}{{- .Title -}}{{ else }} Untitled {{ itemType .MimeType -}} {{- end -}}
 {{- end -}}

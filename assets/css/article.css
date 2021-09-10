@@ -57,9 +57,6 @@ section > header h2 small {
     margin: 0 0 0 1ex;
     padding: 0;
 }
-a[rel="external"] + small {
-    margin: 0;
-}
 section > header h2 small:last-child::before {
     content: "(";
 }
