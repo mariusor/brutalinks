@@ -1488,18 +1488,9 @@ func (r *repository) ActorCollection(ctx context.Context, searches RemoteLoads) 
 	if err != nil {
 		return emptyCursor, err
 	}
-	follows, err = r.loadFollowsAuthors(ctx, follows...)
-	if err != nil {
-		return emptyCursor, err
-	}
-	accounts, err = r.loadAccountsAuthors(ctx, accounts...)
-	if err != nil {
-		return emptyCursor, err
-	}
-	moderations, err = r.loadModerationDetails(ctx, moderations...)
-	if err != nil {
-		return emptyCursor, err
-	}
+	follows, _ = r.loadFollowsAuthors(ctx, follows...)
+	accounts, _ = r.loadAccountsAuthors(ctx, accounts...)
+	moderations, _ = r.loadModerationDetails(ctx, moderations...)
 
 	relM.RLock()
 	defer relM.RUnlock()
