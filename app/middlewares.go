@@ -162,6 +162,7 @@ func LoadSingleItemRepliesMw(next http.Handler) http.Handler {
 
 		ctx := context.TODO()
 
+		deps := ContextDependentLoads(r.Context())
 		repo := ContextRepository(r.Context())
 		item := ContextItem(r.Context())
 		if err != nil || !item.IsValid() {
@@ -175,14 +176,20 @@ func LoadSingleItemRepliesMw(next http.Handler) http.Handler {
 		}
 
 		items := ItemCollection{*item}
-		if comments, err := repo.loadItemsReplies(ctx, items...); err == nil {
-			items = append(items, comments...)
+		if deps.Replies {
+			if comments, err := repo.loadItemsReplies(ctx, items...); err == nil {
+				items = append(items, comments...)
+			}
 		}
-		if items, err = repo.loadItemsAuthors(ctx, items...); err != nil {
-			repo.errFn()("unable to load item authors")
+		if deps.Authors {
+			if items, err = repo.loadItemsAuthors(ctx, items...); err != nil {
+				repo.errFn()("unable to load item authors")
+			}
 		}
-		if items, err = repo.loadItemsVotes(ctx, items...); err != nil {
-			repo.errFn()("unable to load item votes")
+		if deps.Votes {
+			if items, err = repo.loadItemsVotes(ctx, items...); err != nil {
+				repo.errFn()("unable to load item votes")
+			}
 		}
 		c := Cursor{
 			items: make(RenderableList),
@@ -592,5 +599,41 @@ func SortByDate(next http.Handler) http.Handler {
 			return
 		}
 		m.sortFn = ByDate
+	})
+}
+
+type deps struct {
+	Votes   bool
+	Authors bool
+	Replies bool
+}
+
+func LoadItemsVotes(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		deps := ContextDependentLoads(ctx)
+		deps.Votes = true
+
+		next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, DependenciesCtxtKey, deps)))
+	})
+}
+
+func LoadItemsAuthors(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		deps := ContextDependentLoads(ctx)
+		deps.Authors = true
+
+		next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, DependenciesCtxtKey, deps)))
+	})
+}
+
+func LoadItemsReplies(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		deps := ContextDependentLoads(ctx)
+		deps.Replies = true
+
+		next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, DependenciesCtxtKey, deps)))
 	})
 }

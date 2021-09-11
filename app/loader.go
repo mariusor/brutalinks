@@ -16,6 +16,7 @@ var (
 	AuthorCtxtKey        CtxtKey = "__author"
 	CursorCtxtKey        CtxtKey = "__cursor"
 	ContentCtxtKey       CtxtKey = "__content"
+	DependenciesCtxtKey  CtxtKey = "__deps"
 )
 
 type WebInfo struct {
@@ -106,4 +107,11 @@ func ContextRegisterModel(ctx context.Context) *registerModel {
 		return r
 	}
 	return nil
+}
+
+func ContextDependentLoads(ctx context.Context) *deps {
+	if r, ok := ctx.Value(DependenciesCtxtKey).(*deps); ok {
+		return r
+	}
+	return &deps{}
 }
