@@ -297,11 +297,14 @@ func (v *view) loadCurrentAccountFromSession(w http.ResponseWriter, r *http.Requ
 			v.errFn(log.Ctx{"sess": s.Values})("invalid account in session")
 		}
 	}
-	lCtx := log.Ctx{"handle": acc.Handle}
-	if acc.IsLogged() {
-		lCtx["hash"] = acc.Hash
+	if !acc.IsLogged() {
+		return &acc, nil
 	}
 
+	lCtx := log.Ctx{
+		"handle": acc.Handle,
+		"hash":   acc.Hash,
+	}
 	var f *Filters
 	if acc.IsLogged() && acc.HasMetadata() {
 		f = new(Filters)
