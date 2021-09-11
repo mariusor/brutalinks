@@ -561,7 +561,7 @@ func (h *handler) HandleCreateInvitation(w http.ResponseWriter, r *http.Request)
 
 	acc.Metadata.InvalidateOutbox()
 	h.v.addFlashMessage(Info, w, r, "Invitation generated successfully.\nYou can now send an email to the person you want to invite by clicking the envelope icon.")
-	h.v.Redirect(w, r, PermaLink(acc), http.StatusPermanentRedirect)
+	h.v.Redirect(w, r, PermaLink(acc), http.StatusMovedPermanently)
 }
 
 // HandleRegister handles POST /register requests
