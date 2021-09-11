@@ -113,6 +113,51 @@ func BuildActorID(a Account) pub.ID {
 	return pub.ID(a.Metadata.ID)
 }
 
+func appendReplies(repl *pub.ItemCollection, it pub.Item) error {
+	if it == nil {
+		return nil
+	}
+	if it.IsLink() {
+		if !repl.Contains(it.GetLink()) {
+			*repl = append(*repl, it.GetLink())
+		}
+		return nil
+	}
+	return pub.OnObject(it, func(ob *pub.Object) error {
+		if !repl.Contains(ob.GetLink()) {
+			*repl = append(*repl, ob.GetLink())
+		}
+		if pub.IsItemCollection(ob.InReplyTo) {
+			return pub.OnItemCollection(ob.InReplyTo, func(col *pub.ItemCollection) error {
+				for _, r := range *col {
+					if !repl.Contains(r.GetLink()) {
+						*repl = append(*repl, r.GetLink())
+					}
+				}
+				return nil
+			})
+		}
+		return pub.OnObject(ob.InReplyTo, func(r *pub.Object) error {
+			if !repl.Contains(r.GetLink()) {
+				*repl = append(*repl, r.GetLink())
+			}
+			return nil
+		})
+		return nil
+	})
+}
+
+func loadFromParent(ob *pub.Object, it pub.Item) error {
+	if it == nil {
+		return nil
+	}
+	repl := make(pub.ItemCollection, 0)
+	if err := appendReplies(&repl, it); err == nil {
+		ob.InReplyTo = repl
+	}
+	return nil
+}
+
 func loadAPItem(it pub.Item, item Item) error {
 	return pub.OnObject(it, func(o *pub.Object) error {
 		if id, ok := BuildIDFromItem(item); ok {
@@ -1851,6 +1896,9 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 
 	art := new(pub.Object)
 	loadAPItem(art, it)
+	if it.Parent.pub != nil {
+		loadFromParent(art, it.Parent.pub)
+	}
 	id := art.GetLink()
 
 	act := &pub.Activity{
