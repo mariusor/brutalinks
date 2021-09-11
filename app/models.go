@@ -116,9 +116,6 @@ func getItemFromList(h Hash, items RenderableList) *Item {
 	}
 
 	for _, cur := range items {
-		if cur.Type() != CommentType {
-			continue
-		}
 		if it, ok := cur.(*Item); ok {
 			if h == it.Hash {
 				return it
