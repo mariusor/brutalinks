@@ -617,7 +617,7 @@ func (r *repository) loadItemsReplies(ctx context.Context, items ...Item) (ItemC
 		return nil, nil
 	}
 	allReplies := make(ItemCollection, 0)
-	f := &Filters{}
+	f := &Filters{Type: CompStrs{DifferentThanString(string(pub.TombstoneType))}}
 
 	searches := RemoteLoads{}
 	for _, top := range repliesTo {
@@ -960,6 +960,7 @@ func baseIRI(iri pub.IRI) pub.IRI {
 	u.Path = ""
 	return pub.IRI(u.String())
 }
+
 func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemCollection, error) {
 	if len(items) == 0 {
 		return items, nil
