@@ -1197,12 +1197,11 @@ func (r *repository) objects(ctx context.Context, ff ...*Filters) (ItemCollectio
 		}
 		return nil
 	})
-	if items, err = r.loadItemsAuthors(ctx, items...); err != nil {
-		return nil, err
+	if err != nil {
+		return items, err
 	}
-	if items, err = r.loadItemsVotes(ctx, items...); err != nil {
-		return nil, err
-	}
+	items, _ = r.loadItemsAuthors(ctx, items...)
+	items, _ = r.loadItemsVotes(ctx, items...)
 	return items, nil
 }
 
@@ -1437,14 +1436,8 @@ func (r *repository) ActorCollection(ctx context.Context, searches RemoteLoads) 
 		}
 	}
 
-	items, err = r.loadItemsAuthors(ctx, items...)
-	if err != nil {
-		return emptyCursor, err
-	}
-	items, err = r.loadItemsVotes(ctx, items...)
-	if err != nil {
-		return emptyCursor, err
-	}
+	items, _ = r.loadItemsAuthors(ctx, items...)
+	items, _ = r.loadItemsVotes(ctx, items...)
 	_, err = r.loadItemsReplies(ctx, items...)
 	if err != nil {
 		return emptyCursor, err
