@@ -230,9 +230,24 @@ func LoadSingleObjectMw(next http.Handler) http.Handler {
 		var item Item
 		err = LoadFromSearches(ctx, repo, searchIn, func(ctx context.Context, c pub.CollectionInterface, f *Filters) error {
 			for _, it := range c.Collection() {
-				if err := item.FromActivityPub(it); err != nil {
+				err := pub.OnActivity(it, func(act *pub.Activity) error {
+					if act.Object.IsLink() {
+						ob, err := repo.fedbox.Object(ctx, act.Object.GetLink())
+						if err != nil {
+							repo.errFn(log.Ctx{"iri": act.Object.GetLink()})("unable to load item")
+							return err
+						}
+						it = ob
+					}
+					if err := item.FromActivityPub(act.Object); err != nil {
+						repo.errFn(log.Ctx{"iri": act.Object.GetLink()})("unable to load item")
+						return err
+					}
+					return nil
+				})
+				if err != nil {
 					repo.errFn(log.Ctx{"iri": it.GetLink()})("unable to load item")
-					continue
+					return err
 				}
 				if item.IsValid() {
 					ctx.Done()
