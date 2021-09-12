@@ -113,25 +113,46 @@ func BuildActorID(a Account) pub.ID {
 	return pub.ID(a.Metadata.ID)
 }
 
-func appendReplies(repl *pub.ItemCollection, it pub.Item) error {
+func appendRecipients(rec *pub.ItemCollection, it pub.Item) error {
 	if it == nil {
 		return nil
 	}
+	if pub.IsItemCollection(it) {
+		return pub.OnItemCollection(it, func(col *pub.ItemCollection) error {
+			for _, r := range *col {
+				if !rec.Contains(r.GetLink()) {
+					*rec = append(*rec, r.GetLink())
+				}
+			}
+			return nil
+		})
+	}
+	if !rec.Contains(it.GetLink()) {
+		*rec = append(*rec, it.GetLink())
+	}
+	return nil
+}
+
+func appendReplies(it pub.Item) (pub.ItemCollection, error) {
+	if it == nil {
+		return nil, nil
+	}
+	repl := make(pub.ItemCollection, 0)
 	if it.IsLink() {
 		if !repl.Contains(it.GetLink()) {
-			*repl = append(*repl, it.GetLink())
+			repl = append(repl, it.GetLink())
 		}
-		return nil
+		return repl, nil
 	}
-	return pub.OnObject(it, func(ob *pub.Object) error {
+	err := pub.OnObject(it, func(ob *pub.Object) error {
 		if !repl.Contains(ob.GetLink()) {
-			*repl = append(*repl, ob.GetLink())
+			repl = append(repl, ob.GetLink())
 		}
 		if pub.IsItemCollection(ob.InReplyTo) {
 			return pub.OnItemCollection(ob.InReplyTo, func(col *pub.ItemCollection) error {
 				for _, r := range *col {
 					if !repl.Contains(r.GetLink()) {
-						*repl = append(*repl, r.GetLink())
+						repl = append(repl, r.GetLink())
 					}
 				}
 				return nil
@@ -139,22 +160,30 @@ func appendReplies(repl *pub.ItemCollection, it pub.Item) error {
 		}
 		return pub.OnObject(ob.InReplyTo, func(r *pub.Object) error {
 			if !repl.Contains(r.GetLink()) {
-				*repl = append(*repl, r.GetLink())
+				repl = append(repl, r.GetLink())
 			}
 			return nil
 		})
 		return nil
 	})
+	return repl, err
 }
 
 func loadFromParent(ob *pub.Object, it pub.Item) error {
 	if it == nil {
 		return nil
 	}
-	repl := make(pub.ItemCollection, 0)
-	if err := appendReplies(&repl, it); err == nil {
+	if repl, err := appendReplies(it); err == nil {
 		ob.InReplyTo = repl
 	}
+	pub.OnObject(it, func(p *pub.Object) error {
+		appendRecipients(&ob.To, p.To)
+		appendRecipients(&ob.Bto, p.Bto)
+		appendRecipients(&ob.CC, p.CC)
+		appendRecipients(&ob.BCC, p.BCC)
+		return nil
+	})
+
 	return nil
 }
 
