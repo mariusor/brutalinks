@@ -1888,7 +1888,7 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 
 	art := new(pub.Object)
 	loadAPItem(art, it)
-	if it.Parent.pub != nil {
+	if it.Parent != nil && it.Parent.pub != nil {
 		loadFromParent(art, it.Parent.pub)
 	}
 	id := art.GetLink()
