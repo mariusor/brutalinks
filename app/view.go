@@ -1163,7 +1163,9 @@ func GetInviteLink(v *view) func(invitee *Account) template.HTMLAttr {
 			Body:    fmt.Sprintf(bodyFmt, Instance.BaseURL, u, invitee.CreatedBy.Handle),
 		}
 		q, _ := qstring.Marshal(&mailContent)
-		return template.HTMLAttr(fmt.Sprintf("mailto:?%s", q.Encode()))
+		// NOTE(marius): acceptable to hardcode replacing '+' to '%20' as we don't have any standalone ones in the message
+		// It's still a bummer that Thunderbird doesn't escape '+' values found in the query parameters as space (as it should). :(
+		return template.HTMLAttr(fmt.Sprintf("mailto:?%s", strings.Replace(q.Encode(), "+", "%20", -1)))
 	}
 }
 
