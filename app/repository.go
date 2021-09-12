@@ -1606,6 +1606,9 @@ func (r *repository) SaveVote(ctx context.Context, v Vote) (Vote, error) {
 		BCC:   pub.ItemCollection{r.fedbox.Service().ID},
 		Actor: author.GetLink(),
 	}
+	pub.OnObject(act, func(ob *pub.Object) error {
+		return loadFromParent(ob, v.Item.pub)
+	})
 
 	if exists.HasMetadata() {
 		act.Object = pub.IRI(exists.Metadata.IRI)
@@ -1917,7 +1920,7 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 
 	art := new(pub.Object)
 	loadAPItem(art, it)
-	if it.Parent != nil && it.Parent.pub != nil {
+	if it.Parent != nil {
 		loadFromParent(art, it.Parent.pub)
 	}
 	id := art.GetLink()
