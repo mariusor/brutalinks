@@ -126,6 +126,7 @@ func defaultFilters(r *http.Request) *Filters {
 	f := FiltersFromRequest(r)
 	f.Type = CreateActivitiesFilter
 	f.Object = new(Filters)
+	f.Object.Name = notNilFilters
 	f.Object.InReplTo = nilFilters
 	f.Object.Type = ActivityTypesFilter(ValidContentTypes...)
 	f.Actor = &Filters{IRI: notNilFilters}
