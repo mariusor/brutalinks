@@ -249,21 +249,50 @@ func (h ItemPtrCollection) Sorted() ItemPtrCollection {
 	return h
 }
 
+func parentByPub (t ItemPtrCollection, cur *Item) *Item {
+	var inReplyTo pub.ItemCollection
+	pub.OnObject(cur.pub, func(ob *pub.Object) error {
+		if ob.InReplyTo != nil {
+			pub.OnCollectionIntf(ob.InReplyTo, func(col pub.CollectionInterface) error {
+				inReplyTo = col.Collection()
+				return nil
+			})
+		}
+		return nil
+	})
+	if len(inReplyTo) == 0 {
+		return nil
+	}
+	for _, n := range t {
+		for _, pp := range inReplyTo {
+			if n.pub == nil {
+				continue
+			}
+			if pp.GetLink().Equals(n.pub.GetLink(), false) {
+				return n
+			}
+		}
+	}
+	return nil
+}
+
+func parentByHash (t ItemPtrCollection, cur *Item) *Item {
+	for _, n := range t {
+		if cur.Parent.IsValid() {
+			if cur.Parent.Hash == n.Hash {
+				return n
+			}
+		}
+	}
+	return nil
+}
+
 func reparentComments(allComments *ItemPtrCollection) {
 	if len(*allComments) == 0 {
 		return
 	}
 
-	parFn := func(t ItemPtrCollection, cur *Item) *Item {
-		for _, n := range t {
-			if cur.Parent.IsValid() {
-				if cur.Parent.Hash == n.Hash {
-					return n
-				}
-			}
-		}
-		return nil
-	}
+	var parFn = parentByHash
 
 	retComments := make(ItemPtrCollection, 0)
 	for _, cur := range *allComments {
