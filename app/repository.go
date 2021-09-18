@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto"
 	"encoding/base64"
+	xerrors "errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -554,6 +555,7 @@ func (r *repository) loadAccountsFollowing(ctx context.Context, acc *Account) er
 	searches := RemoteLoads{
 		baseIRI(acc.pub.GetLink()): []RemoteLoad{{actor: acc.pub, loadFn: following, filters: []*Filters{f}}},
 	}
+
 	return LoadFromSearches(ctx, r, searches, func(_ context.Context, c pub.CollectionInterface, f *Filters) error {
 		for _, fol := range c.Collection() {
 			if !pub.ActorTypes.Contains(fol.GetType()) {
@@ -608,7 +610,7 @@ func (r *repository) loadAccountsOutbox(ctx context.Context, acc *Account) error
 			acc.Metadata.Outbox.Append(pub.FlattenProperties(it))
 		}
 		if stop {
-			ctx.Done()
+			return StopLoad{}
 		}
 		return nil
 	})
@@ -1469,7 +1471,7 @@ func (r *repository) ActorCollection(ctx context.Context, searches RemoteLoads) 
 		// TODO(marius): this needs to be externalized also to a different function that we can pass from outer scope
 		//   This function implements the logic for breaking out of the collection iteration cycle and returns a bool
 		if len(items)-f.MaxItems < 5 {
-			ctx.Done()
+			return StopLoad{}
 		}
 		return nil
 	})
@@ -2419,6 +2421,12 @@ func (r *repository) ReportAccount(ctx context.Context, er, ed Account, reason *
 	return nil
 }
 
+type StopLoad struct{}
+
+func (s StopLoad) Error() string {
+	return "this is the end"
+}
+
 type RemoteLoads map[pub.IRI][]RemoteLoad
 
 type RemoteLoad struct {
@@ -2478,10 +2486,10 @@ func (r *repository) searchFn(ctx context.Context, g *errgroup.Group, curIRI pub
 			if _, f.Next = getCollectionPrevNext(col); len(f.Next) > 0 {
 				g.Go(r.searchFn(ctx, g, curIRI, f, fn, it))
 			} else {
-				ctx.Done()
+				return StopLoad{}
 			}
 		} else {
-			ctx.Done()
+			return StopLoad{}
 		}
 
 		return nil
@@ -2502,8 +2510,10 @@ func LoadFromSearches(c context.Context, repo *repository, loads RemoteLoads, fn
 		}
 	}
 	if err := g.Wait(); err != nil {
-		repo.errFn(log.Ctx{"err": err})("Failed to load search")
-		cancelFn()
+		if xerrors.Is(err, StopLoad{}) {
+			cancelFn()
+		}
+		repo.errFn(log.Ctx{"err": err.Error()})("Failed to load search")
 	}
 	return nil
 }
