@@ -262,16 +262,16 @@ func AccountFiltersMw(next http.Handler) http.Handler {
 		}
 
 		f := FiltersFromRequest(r)
-		for _, author := range authors {
-			if author.Hash.IsValid() {
-				f.AttrTo = append(f.AttrTo, LikeString(author.Hash.String()))
-			} else if author.HasMetadata() && author.Metadata.ID != "" {
-				f.AttrTo = append(f.AttrTo, EqualsString(author.Metadata.ID))
-			}
-		}
 		f.Type = append(CreateActivitiesFilter, AppreciationActivitiesFilter...)
 		f.Object = &Filters{IRI: notNilFilters}
 		f.Actor = &Filters{IRI: notNilFilters}
+		for _, author := range authors {
+			if author.Hash.IsValid() {
+				f.Object.AttrTo = append(f.Object.AttrTo, LikeString(author.Hash.String()))
+			} else if author.HasMetadata() && author.Metadata.ID != "" {
+				f.Object.AttrTo = append(f.Object.AttrTo, EqualsString(author.Metadata.ID))
+			}
+		}
 
 		// NOTE(marius): having two very different filters here introduces bugs
 		// with the next/previous cursor key (the votes filter can be removed)
