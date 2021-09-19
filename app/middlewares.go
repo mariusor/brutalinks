@@ -46,34 +46,6 @@ func (h handler) LoadAuthorMw(next http.Handler) http.Handler {
 	})
 }
 
-func LoadOutboxMw(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		authors := ContextAuthors(r.Context())
-		if len(authors) == 0 {
-			ctxtErr(next, w, r, errors.NotFoundf("actor not found"))
-			return
-		}
-		f := ContextActivityFilters(r.Context())
-		repo := ContextRepository(r.Context())
-
-		ltx := context.WithValue(context.TODO(), LoggedAccountCtxtKey, ContextAccount(r.Context()))
-		var cursor = new(Cursor)
-		cursor.items = make(RenderableList, 0)
-		for _, author := range authors {
-			c, err := repo.LoadActorOutbox(ltx, author.pub, f...)
-			if err != nil {
-				repo.errFn(log.Ctx{"author": author.Handle, "err": err.Error()})("Unable to load outbox")
-				continue
-			}
-			cursor.items.Merge(c.items)
-			cursor.total += c.total
-			cursor.before = c.before
-			cursor.after = c.after
-		}
-		ctx := context.WithValue(r.Context(), CursorCtxtKey, cursor)
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
-}
 
 func LoadInboxMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
