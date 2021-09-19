@@ -504,27 +504,6 @@ func hashesUnique(a Hashes) Hashes {
 	return u
 }
 
-func (r *repository) loadAccountsVotes(ctx context.Context, accounts ...Account) (AccountCollection, error) {
-	if len(accounts) == 0 {
-		return accounts, nil
-	}
-	for _, account := range accounts {
-		if err := r.loadAccountVotes(ctx, &account, nil); err != nil {
-			r.errFn()(err.Error())
-		}
-	}
-	return accounts, nil
-}
-
-func accountInCollection(ac Account, col AccountCollection) bool {
-	for _, fol := range col {
-		if fol.Hash == ac.Hash {
-			return true
-		}
-	}
-	return false
-}
-
 func (r *repository) loadAccountsFollowers(ctx context.Context, acc *Account) error {
 	if !acc.HasMetadata() || len(acc.Metadata.FollowersIRI) == 0 {
 		return nil
@@ -671,31 +650,6 @@ func (r *repository) loadItemsReplies(ctx context.Context, items ...Item) (ItemC
 	}
 	// TODO(marius): probably we can thread the replies right here
 	return allReplies, nil
-}
-
-func (r *repository) loadAccountVotes(ctx context.Context, acc *Account, items ItemCollection) error {
-	if acc == nil || acc.pub == nil {
-		return nil
-	}
-	f := new(Filters)
-	f.Type = AppreciationActivitiesFilter
-	f.MaxItems = 500
-
-	if len(items) > 0 {
-		f.Object = &Filters{IRI: ItemIRIFilter(items...)}
-	}
-	searches := RemoteLoads{
-		baseIRI(acc.pub.GetLink()): []RemoteLoad{{actor: acc.pub, loadFn: outbox, filters: []*Filters{f}}},
-	}
-	return LoadFromSearches(ctx, r, searches, func(_ context.Context, c pub.CollectionInterface, f *Filters) error {
-		for _, it := range c.Collection() {
-			if !it.IsObject() || !ValidAppreciationTypes.Contains(it.GetType()) {
-				continue
-			}
-			acc.Metadata.Outbox.Append(pub.FlattenProperties(it))
-		}
-		return nil
-	})
 }
 
 func (r *repository) loadItemsVotes(ctx context.Context, items ...Item) (ItemCollection, error) {
@@ -1244,21 +1198,6 @@ func (r *repository) accounts(ctx context.Context, ff ...*Filters) (AccountColle
 	return accounts, err
 }
 
-func (r *repository) object(ctx context.Context, ff *Filters) (Item, error) {
-	objects, err := r.objects(ctx, ff)
-	if err != nil {
-		return Item{}, err
-	}
-	if len(objects) == 0 {
-		return Item{}, errors.NotFoundf("object not found")
-	}
-	if len(objects) > 1 {
-		return Item{}, errors.BadRequestf("too many objects found")
-	}
-	return objects[0], nil
-
-}
-
 func (r *repository) objects(ctx context.Context, ff ...*Filters) (ItemCollection, error) {
 	searches := RemoteLoads{
 		r.fedbox.Service().GetLink(): []RemoteLoad{{actor: r.fedbox.Service(), loadFn: colIRI(objects), filters: ff}},
@@ -1280,30 +1219,6 @@ func (r *repository) objects(ctx context.Context, ff ...*Filters) (ItemCollectio
 	items, _ = r.loadItemsAuthors(ctx, items...)
 	items, _ = r.loadItemsVotes(ctx, items...)
 	return items, nil
-}
-
-func (r *repository) Objects(ctx context.Context, ff ...*Filters) (Cursor, error) {
-	items, err := r.objects(ctx, ff...)
-	if err != nil {
-		return emptyCursor, err
-	}
-	result := make(RenderableList, 0)
-	for _, it := range items {
-		if it.Hash.IsValid() {
-			result.Append(&it)
-		}
-	}
-	var next, prev Hash
-	for _, f := range ff {
-		next = HashFromString(f.Next)
-		prev = HashFromString(f.Prev)
-	}
-	return Cursor{
-		after:  next,
-		before: prev,
-		items:  result,
-		total:  uint(len(result)),
-	}, nil
 }
 
 func validFederated(i Item, f *Filters) bool {
@@ -2285,17 +2200,6 @@ func (r *repository) LoadActorOutbox(ctx context.Context, actor pub.Item, f ...*
 	searches[baseIRI(actor.GetLink())] = []RemoteLoad{{actor: actor.GetLink(), loadFn: outbox, filters: f}}
 
 	return r.ActorCollection(ctx, searches)
-}
-
-func (r *repository) LoadActivities(ctx context.Context, ff ...*Filters) (*Cursor, error) {
-	searches := RemoteLoads{
-		r.fedbox.Service().GetLink(): []RemoteLoad{{actor: r.fedbox.Service(), loadFn: colIRI(activities), filters: ff}},
-	}
-	cursor, err := r.ActorCollection(ctx, searches)
-	if err != nil {
-		return nil, err
-	}
-	return &cursor, nil
 }
 
 func (r *repository) LoadActorInbox(ctx context.Context, actor pub.Item, f ...*Filters) (Cursor, error) {
