@@ -464,10 +464,10 @@ func getSigner(pubKeyID string, key crypto.PrivateKey) *httpsig.Signer {
 	return httpsig.NewSigner(pubKeyID, key, httpsig.RSASHA256, hdrs)
 }
 
-// @todo(marius): the decision which sign function to use (the one for S2S or the one for C2S)
-//   should be made in fedbox, because that's the place where we know if the request we're signing
-//   is addressed to an IRI belonging to that specific fedbox instance or to another ActivityPub server
 func (r *repository) WithAccount(a *Account) *repository {
+	// TODO(marius): the decision which sign function to use (the one for S2S or the one for C2S)
+	//   should be made in FedBOX, because that's the place where we know if the request we're signing
+	//   is addressed to an IRI belonging to that specific FedBOX instance or to another ActivityPub server
 	r.fedbox.SignBy(a)
 	return r
 }
@@ -2437,8 +2437,10 @@ func LoadFromSearches(c context.Context, repo *repository, loads RemoteLoads, fn
 	if err := g.Wait(); err != nil {
 		if xerrors.Is(err, StopLoad{}) {
 			cancelFn()
+			repo.infoFn()("stop loading search")
+		} else {
+			repo.errFn(log.Ctx{"err": err.Error()})("Failed to load search")
 		}
-		repo.errFn(log.Ctx{"err": err.Error()})("Failed to load search")
 	}
 	return nil
 }
