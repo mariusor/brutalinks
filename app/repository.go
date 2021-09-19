@@ -526,6 +526,15 @@ func (r *repository) loadAccountsFollowers(ctx context.Context, acc *Account) er
 	})
 }
 
+func accountInCollection(ac Account, col AccountCollection) bool {
+	for _, fol := range col {
+		if fol.Hash == ac.Hash {
+			return true
+		}
+	}
+	return false
+}
+
 func (r *repository) loadAccountsFollowing(ctx context.Context, acc *Account) error {
 	if !acc.HasMetadata() || len(acc.Metadata.FollowersIRI) == 0 {
 		return nil
