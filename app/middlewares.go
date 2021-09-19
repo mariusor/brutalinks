@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	xerrors "errors"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -243,13 +244,12 @@ func LoadSingleObjectMw(next http.Handler) http.Handler {
 					return err
 				}
 				if item.IsValid() {
-					ctx.Done()
-					break
+					return StopLoad{}
 				}
 			}
 			return nil
 		})
-		if err != nil || !item.IsValid() {
+		if (err != nil && !xerrors.Is(err, StopLoad{})) || !item.IsValid() {
 			var ctx log.Ctx
 			if err != nil {
 				ctx = log.Ctx{"err": err.Error()}

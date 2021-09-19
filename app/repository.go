@@ -1034,12 +1034,12 @@ func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemC
 				authors = append(authors, acc)
 			}
 			if len(authors) == requiredAuthorsCount {
-				ctx.Done()
+				return StopLoad{}
 			}
 		}
 		return nil
 	})
-	if err != nil {
+	if err != nil && !xerrors.Is(err, StopLoad{}){
 		return items, errors.Annotatef(err, "unable to load items authors")
 	}
 	col := make(ItemCollection, 0)
