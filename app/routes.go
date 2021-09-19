@@ -163,5 +163,9 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 			r.Get("/css/{path}", assets.ServeAsset(h.v.assets))
 			r.Get("/js/{path}", assets.ServeAsset(h.v.assets))
 		})
+
+		if !c.Env.IsDev() {
+			r.Mount("/debug", middleware.Profiler())
+		}
 	}
 }
