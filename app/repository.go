@@ -2364,8 +2364,8 @@ func (r *repository) loadItemFromCacheOrIRI(ctx context.Context, iri pub.IRI) (p
 }
 
 func (r *repository) loadCollectionFromCacheOrIRI(ctx context.Context, iri pub.IRI) (pub.CollectionInterface, error) {
-	if it, okCache := r.cache.get(iri); okCache {
-		if c, okCol := it.(pub.CollectionInterface); okCol && getItemUpdatedTime(it).Sub(time.Now()) < 10 * time.Minute {
+	if it, okCache := r.cache.get(cacheKey(iri, ContextAccount(ctx))); okCache {
+		if c, okCol := it.(pub.CollectionInterface); okCol && getItemUpdatedTime(it).Sub(time.Now()) < 10 * time.Minute && c.Count() > 0 {
 			return c, nil
 		}
 	}
@@ -2390,10 +2390,10 @@ func (r *repository) searchFn(ctx context.Context, g *errgroup.Group, curIRI pub
 			maxItems = int(c.Count())
 			return fn(ntx, c, f)
 		})
+		r.cache.add(cacheKey(loadIRI, ContextAccount(ntx)), col)
 		if err != nil {
 			return err
 		}
-		r.cache.add(loadIRI, col)
 
 		if maxItems-f.MaxItems < 5 {
 			if _, f.Next = getCollectionPrevNext(col); len(f.Next) > 0 {
@@ -2407,6 +2407,18 @@ func (r *repository) searchFn(ctx context.Context, g *errgroup.Group, curIRI pub
 
 		return nil
 	}
+}
+
+func cacheKey(i pub.IRI, a *Account) pub.IRI {
+	if a == nil || !a.IsLogged() {
+		return i
+	}
+	u, err := i.URL()
+	if err != nil {
+		return i
+	}
+	u.User = url.User(a.Hash.String())
+	return pub.IRI(u.String())
 }
 
 func LoadFromSearches(c context.Context, repo *repository, loads RemoteLoads, fn searchFn) error {

@@ -29,7 +29,8 @@ func (h handler) LoadAuthorMw(next http.Handler) http.Handler {
 		} else {
 			var err error
 			repo := ContextRepository(r.Context())
-			ctx, _ := context.WithTimeout(context.TODO(), time.Second)
+			ctx, _ := context.WithTimeout(r.Context(), time.Second)
+			ctx = context.WithValue(ctx, LoggedAccountCtxtKey, ContextAccount(r.Context()))
 			authors, err = repo.accounts(ctx, FilterAccountByHandle(handle))
 			if err != nil {
 				h.ErrorHandler(err).ServeHTTP(w, r)
@@ -55,10 +56,11 @@ func LoadOutboxMw(next http.Handler) http.Handler {
 		f := ContextActivityFilters(r.Context())
 		repo := ContextRepository(r.Context())
 
+		ltx := context.WithValue(context.TODO(), LoggedAccountCtxtKey, ContextAccount(r.Context()))
 		var cursor = new(Cursor)
 		cursor.items = make(RenderableList, 0)
 		for _, author := range authors {
-			c, err := repo.LoadActorOutbox(context.TODO(), author.pub, f...)
+			c, err := repo.LoadActorOutbox(ltx, author.pub, f...)
 			if err != nil {
 				repo.errFn(log.Ctx{"author": author.Handle, "err": err.Error()})("Unable to load outbox")
 				continue
@@ -82,7 +84,7 @@ func LoadInboxMw(next http.Handler) http.Handler {
 			ctxtErr(next, w, r, errors.MethodNotAllowedf("nil account"))
 			return
 		}
-		cursor, err := repo.LoadActorInbox(context.TODO(), acc.pub, f...)
+		cursor, err := repo.LoadActorInbox(r.Context(), acc.pub, f...)
 		if err != nil {
 			ctxtErr(next, w, r, errors.Annotatef(err, "unable to load current account's inbox"))
 			return
@@ -96,7 +98,7 @@ func LoadServiceInboxMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := ContextActivityFilters(r.Context())
 		repo := ContextRepository(r.Context())
-		cursor, err := repo.LoadActorInbox(context.TODO(), repo.fedbox.Service(), f...)
+		cursor, err := repo.LoadActorInbox(r.Context(), repo.fedbox.Service(), f...)
 		if err != nil {
 			ctxtErr(next, w, r, errors.Annotatef(err, "unable to load the %s's inbox", repo.fedbox.Service().Type))
 			return
@@ -111,7 +113,8 @@ func LoadServiceWithSelfAuthInboxMw(next http.Handler) http.Handler {
 		f := ContextActivityFilters(r.Context())
 		repo := ContextRepository(r.Context())
 		repo.fedbox.SignBy(repo.app)
-		cursor, err := repo.LoadActorInbox(context.TODO(), repo.fedbox.Service(), f...)
+
+		cursor, err := repo.LoadActorInbox(r.Context(), repo.fedbox.Service(), f...)
 		if err != nil {
 			ctxtErr(next, w, r, errors.Annotatef(err, "unable to load the %s's inbox", repo.fedbox.Service().Type))
 			return
@@ -138,9 +141,8 @@ func LoadMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		repo := ContextRepository(r.Context())
 		searches := ContextLoads(r.Context())
-		logged := ContextAccount(r.Context())
 
-		c, err := repo.ActorCollection(context.WithValue(context.TODO(), LoggedAccountCtxtKey, logged), searches)
+		c, err := repo.ActorCollection(r.Context(), searches)
 		if err != nil {
 			ctxtErr(next, w, r, errors.NotFoundf(strings.TrimLeft(r.URL.Path, "/")))
 			return
@@ -176,8 +178,6 @@ func LoadSingleItemRepliesMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var err error
 
-		ctx := context.TODO()
-
 		deps := ContextDependentLoads(r.Context())
 		repo := ContextRepository(r.Context())
 		item := ContextItem(r.Context())
@@ -193,17 +193,17 @@ func LoadSingleItemRepliesMw(next http.Handler) http.Handler {
 
 		items := ItemCollection{*item}
 		if deps.Replies {
-			if comments, err := repo.loadItemsReplies(ctx, items...); err == nil {
+			if comments, err := repo.loadItemsReplies(r.Context(), items...); err == nil {
 				items = append(items, comments...)
 			}
 		}
 		if deps.Authors {
-			if items, err = repo.loadItemsAuthors(ctx, items...); err != nil {
+			if items, err = repo.loadItemsAuthors(r.Context(), items...); err != nil {
 				repo.errFn()("unable to load item authors")
 			}
 		}
 		if deps.Votes {
-			if items, err = repo.loadItemsVotes(ctx, items...); err != nil {
+			if items, err = repo.loadItemsVotes(r.Context(), items...); err != nil {
 				repo.errFn()("unable to load item votes")
 			}
 		}
@@ -245,13 +245,11 @@ func LoadSingleObjectMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var err error
 
-		ctx := context.TODO()
-
 		repo := ContextRepository(r.Context())
 		searchIn := ContextLoads(r.Context())
 
 		var item Item
-		err = LoadFromSearches(ctx, repo, searchIn, func(ctx context.Context, c pub.CollectionInterface, f *Filters) error {
+		err = LoadFromSearches(r.Context(), repo, searchIn, func(ctx context.Context, c pub.CollectionInterface, f *Filters) error {
 			for _, it := range c.Collection() {
 				err := pub.OnActivity(it, func(act *pub.Activity) error {
 					if act.Object.IsLink() {

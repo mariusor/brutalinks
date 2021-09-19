@@ -1,7 +1,6 @@
 package app
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"sort"
@@ -253,7 +252,7 @@ func (a AccountCollection) Split(pieceCount int) []AccountCollection {
 	return ret
 }
 
-func (h *handler)accountFromPost(r *http.Request) (Account, error) {
+func (h *handler) accountFromPost(r *http.Request) (Account, error) {
 	if r.Method != http.MethodPost {
 		return AnonymousAccount, errors.Errorf("invalid http method type")
 	}
@@ -263,7 +262,7 @@ func (h *handler)accountFromPost(r *http.Request) (Account, error) {
 	if len(hash) > 0 {
 		// NOTE(marius): coming from an invite
 		s := h.storage
-		a, _ = s.LoadAccount(context.TODO(), actors.IRI(s.BaseURL()).AddPath(hash))
+		a, _ = s.LoadAccount(r.Context(), actors.IRI(s.BaseURL()).AddPath(hash))
 	}
 	if accountsEqual(*a, AnonymousAccount) {
 		*a = Account{Metadata: &AccountMetadata{}}
@@ -296,7 +295,8 @@ func accountsFromRequestHandle(r *http.Request) (AccountCollection, error) {
 		return nil, errors.NotFoundf("missing account handle %s", handle)
 	}
 	repo := ContextRepository(r.Context())
-	return repo.accounts(context.TODO(), FilterAccountByHandle(handle))
+
+	return repo.accounts(r.Context(), FilterAccountByHandle(handle))
 }
 
 type AccountPtrCollection []*Account

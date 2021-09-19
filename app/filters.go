@@ -353,8 +353,7 @@ func ModerationListing(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		ctx := context.TODO()
-		followups, _ := s.loadModerationFollowups(ctx, c.items)
+		followups, _ := s.loadModerationFollowups(r.Context(), c.items)
 		c.items = aggregateModeration(c.items, followups)
 
 		next.ServeHTTP(w, r)
@@ -373,8 +372,7 @@ func LoadInvitedMw(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		ctx := context.TODO()
-		a, err := s.LoadAccount(ctx, actors.IRI(s.fedbox.Service()).AddPath(hash))
+		a, err := s.LoadAccount(r.Context(), actors.IRI(s.fedbox.Service()).AddPath(hash))
 		if err != nil {
 			ctxtErr(next, w, r, err)
 			return
