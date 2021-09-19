@@ -265,7 +265,7 @@ func AccountSearchesMw(next http.Handler) http.Handler {
 		f.Type = CreateActivitiesFilter
 		f.Object = &Filters{IRI: notNilFilters}
 
-		searches := make(RemoteLoads)
+		searches := RemoteLoads{}
 		for _, author := range authors {
 			if author.pub == nil {
 				continue
@@ -273,6 +273,7 @@ func AccountSearchesMw(next http.Handler) http.Handler {
 			auth := author.pub.GetLink()
 			domainSearches := searches[baseIRI(auth)]
 			domainSearches = append(domainSearches, RemoteLoad{actor: auth, loadFn: outbox, filters: []*Filters{f}})
+			searches[baseIRI(auth)] = domainSearches
 		}
 
 		// NOTE(marius): having two very different filters here introduces bugs
