@@ -134,6 +134,22 @@ func ctxtErr(next http.Handler, w http.ResponseWriter, r *http.Request, err erro
 
 type CollectionLoadFn func(pub.CollectionInterface) error
 
+func LoadMw(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		repo := ContextRepository(r.Context())
+		searches := ContextLoads(r.Context())
+		logged := ContextAccount(r.Context())
+
+		c, err := repo.ActorCollection(context.WithValue(context.TODO(), LoggedAccountCtxtKey, logged), searches)
+		if err != nil {
+			ctxtErr(next, w, r, errors.NotFoundf(strings.TrimLeft(r.URL.Path, "/")))
+			return
+		}
+		ctx := context.WithValue(r.Context(), CursorCtxtKey, &c)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
 func searchesInCollectionsMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		repo := ContextRepository(r.Context())

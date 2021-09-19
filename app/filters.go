@@ -253,7 +253,7 @@ func MessageFiltersMw(next http.Handler) http.Handler {
 	})
 }
 
-func AccountFiltersMw(next http.Handler) http.Handler {
+func AccountSearchesMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authors := ContextAuthors(r.Context())
 		if len(authors) == 0 {
@@ -262,20 +262,22 @@ func AccountFiltersMw(next http.Handler) http.Handler {
 		}
 
 		f := FiltersFromRequest(r)
-		f.Type = append(CreateActivitiesFilter, AppreciationActivitiesFilter...)
+		f.Type = CreateActivitiesFilter
 		f.Object = &Filters{IRI: notNilFilters}
-		f.Actor = &Filters{IRI: notNilFilters}
+
+		searches := make(RemoteLoads)
 		for _, author := range authors {
-			if author.Hash.IsValid() {
-				f.Object.AttrTo = append(f.Object.AttrTo, LikeString(author.Hash.String()))
-			} else if author.HasMetadata() && author.Metadata.ID != "" {
-				f.Object.AttrTo = append(f.Object.AttrTo, EqualsString(author.Metadata.ID))
+			if author.pub == nil {
+				continue
 			}
+			auth := author.pub.GetLink()
+			domainSearches := searches[baseIRI(auth)]
+			domainSearches = append(domainSearches, RemoteLoad{actor: auth, loadFn: outbox, filters: []*Filters{f}})
 		}
 
 		// NOTE(marius): having two very different filters here introduces bugs
 		// with the next/previous cursor key (the votes filter can be removed)
-		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
+		ctx := context.WithValue(r.Context(), LoadsCtxtKey, searches)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
