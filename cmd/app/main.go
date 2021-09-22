@@ -23,15 +23,19 @@ const defaultTimeout = time.Second * 5
 func Run(a app.Application) int {
 	ctx, cancelFn := context.WithCancel(context.TODO())
 
-	setters := []w.SetFn{w.Handler(a.Mux), w.ListenOn(a.Conf.Listen())}
-	if a.Conf.Secure && len(a.Conf.CertPath) > 0 && len(a.Conf.KeyPath) > 0 {
-		setters = append(setters, w.SSL(a.Conf.CertPath, a.Conf.KeyPath))
+	setters := []w.SetFn{w.Handler(a.Mux)}
+	if a.Conf.ListenHost == "" {
+		setters = append(setters, w.Socket())
+	} else if a.Conf.Secure && len(a.Conf.CertPath) > 0 && len(a.Conf.KeyPath) > 0 {
+		setters = append(setters, w.HTTPS(a.Conf.Listen(), a.Conf.CertPath, a.Conf.KeyPath))
+	} else {
+		setters = append(setters, w.HTTP(a.Conf.Listen()))
 	}
-	srvRun, srvStop := w.HttpServer(ctx, setters...)
+	srvRun, srvStop := w.HttpServer(setters...)
 
 	defer func() {
 		cancelFn()
-		if err := srvStop(); err != nil {
+		if err := srvStop(ctx); err != nil {
 			a.Logger.Errorf("Error: %s", err)
 		}
 	}()
