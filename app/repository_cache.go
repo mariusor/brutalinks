@@ -2,12 +2,12 @@ package app
 
 import (
 	"context"
-	"github.com/go-ap/client"
-	"github.com/go-ap/handlers"
 	"sync"
 	"time"
 
 	pub "github.com/go-ap/activitypub"
+	"github.com/go-ap/client"
+	"github.com/go-ap/handlers"
 )
 
 type cacheEntries map[pub.IRI]pub.Item
