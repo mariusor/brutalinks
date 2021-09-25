@@ -2363,13 +2363,14 @@ func (r *repository) loadItemFromCacheOrIRI(ctx context.Context, iri pub.IRI) (p
 	return r.fedbox.client.CtxLoadIRI(ctx, iri)
 }
 
-func (r *repository) loadCollectionFromCacheOrIRI(ctx context.Context, iri pub.IRI) (pub.CollectionInterface, error) {
+func (r *repository) loadCollectionFromCacheOrIRI(ctx context.Context, iri pub.IRI) (pub.CollectionInterface, bool, error) {
 	if it, okCache := r.cache.get(cacheKey(iri, ContextAccount(ctx))); okCache {
 		if c, okCol := it.(pub.CollectionInterface); okCol && getItemUpdatedTime(it).Sub(time.Now()) < 10 * time.Minute && c.Count() > 0 {
-			return c, nil
+			return c, true, nil
 		}
 	}
-	return r.fedbox.collection(ctx, iri)
+	col, err := r.fedbox.collection(ctx, iri)
+	return col, false, err
 }
 
 type searchFn func(ctx context.Context, col pub.CollectionInterface, f *Filters) error
@@ -2380,7 +2381,7 @@ func (r *repository) searchFn(ctx context.Context, g *errgroup.Group, curIRI pub
 		loadIRI := iri(curIRI, Values(f))
 
 		ntx, _ := context.WithCancel(ctx)
-		col, err := r.loadCollectionFromCacheOrIRI(ntx, loadIRI)
+		col, fromCache, err := r.loadCollectionFromCacheOrIRI(ntx, loadIRI)
 		if err != nil {
 			return errors.Annotatef(err, "failed to load search: %s", loadIRI)
 		}
@@ -2390,7 +2391,9 @@ func (r *repository) searchFn(ctx context.Context, g *errgroup.Group, curIRI pub
 			maxItems = int(c.Count())
 			return fn(ntx, c, f)
 		})
-		r.cache.add(cacheKey(loadIRI, ContextAccount(ntx)), col)
+		if !fromCache {
+			r.cache.add(cacheKey(loadIRI, ContextAccount(ctx)), col)
+		}
 		if err != nil {
 			return err
 		}
