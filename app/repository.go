@@ -69,7 +69,7 @@ func ActivityPubService(c appConfig) (*repository, error) {
 		SelfURL: c.BaseURL,
 		infoFn:  infoFn,
 		errFn:   errFn,
-		cache:   caches(c.Env.IsDev()),
+		cache:   caches(!c.Env.IsDev()),
 	}
 	var err error
 	repo.fedbox, err = NewClient(
