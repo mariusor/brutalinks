@@ -717,7 +717,7 @@ func host(u string) string {
 	if pu, err := url.Parse(u); err == nil {
 		return pu.Host
 	}
-	return ""
+	return u
 }
 
 func (c *TagCollection) FromActivityPub(tag pub.Item) error {
