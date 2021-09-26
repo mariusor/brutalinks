@@ -60,44 +60,54 @@ func SetURL(s string) OptionFn {
 	}
 }
 
-func withAccountC2S(a *Account) (client.RequestSignFn, error) {
-	if !a.IsValid() || !a.IsLogged() {
-		return nil, errors.Newf("invalid local account")
-	}
+func c2sSign(a *Account, req *http.Request) error {
 	if a.Metadata.OAuth.Token == nil {
-		return nil, errors.Newf("local account is missing authentication token")
+		return errors.Newf("local account is missing authentication token")
 	}
-	return func(req *http.Request) error {
-		// TODO(marius): this needs to be added to the federated requests, which we currently don't support
-		a.Metadata.OAuth.Token.SetAuthHeader(req)
-		return nil
-	}, nil
+	a.Metadata.OAuth.Token.SetAuthHeader(req)
+	return nil
 }
 
-func withAccountS2S(a *Account) (client.RequestSignFn, error) {
-	// TODO(marius): this needs to be added to the federated requests, which we currently don't support
-	if !a.IsValid() || !a.IsLogged() {
-		return nil, nil
-	}
+func s2sSign(a *Account, req *http.Request) error {
 	k := a.Metadata.Key
 	if k == nil {
-		return nil, nil
+		return nil
 	}
 	var prv crypto.PrivateKey
 	var err error
 	if k.ID == "id-rsa" {
 		prv, err = x509.ParsePKCS8PrivateKey(k.Private)
-	}
-	if err != nil {
-		return nil, err
+		if err != nil {
+			return err
+		}
 	}
 	if k.ID == "id-ecdsa" {
 		prv, err = x509.ParseECPrivateKey(k.Private)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
-	return getSigner(k.ID, prv).Sign, nil
+	return getSigner(k.ID, prv).Sign(req)
+}
+
+func withAccount(a *Account) (client.RequestSignFn, error) {
+	if !a.IsValid() || !a.IsLogged() {
+		return nil, errors.Newf("invalid local account")
+	}
+	return func(req *http.Request) error {
+			if HostIsLocal(req.URL.String()) {
+				return c2sSign(a, req)
+			} else {
+				collection := handlers.CollectionType(path.Base(req.URL.Path))
+				if collection == handlers.Inbox {
+					return s2sSign(a, req)
+				}
+				if collection == handlers.Outbox {
+					return c2sSign(a, req)
+				}
+			}
+		return nil
+	}, nil
 }
 
 func SetSignFn(signer *Account) OptionFn {
@@ -111,7 +121,8 @@ func (f *fedbox) SignBy(signer *Account) {
 	if signer == nil {
 		return
 	}
-	signFn, err := withAccountC2S(signer)
+
+	signFn, err := withAccount(signer)
 	if err != nil {
 		f.errFn()(err.Error())
 	}
