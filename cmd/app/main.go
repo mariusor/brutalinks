@@ -63,7 +63,9 @@ func Run(a app.Application) int {
 	sigHandlerFns := w.SignalHandlers{
 		syscall.SIGHUP: func(_ chan int) {
 			a.Logger.Info("SIGHUP received, reloading configuration")
-			a.Conf = config.Load(a.Conf.Env, a.Conf.TimeOut)
+			if err := a.Reload(); err != nil {
+				a.Logger.Errorf("Failed to reload: %s", err.Error())
+			}
 		},
 		syscall.SIGUSR1: func(_ chan int) {
 			a.Logger.Info("SIGUSR1 received, switching to maintenance mode")

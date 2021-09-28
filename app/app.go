@@ -33,7 +33,7 @@ var (
 	// SystemAccount is a default static value for the system account
 	SystemAccount = Account{Handle: System, Hash: SystemHash, Metadata: new(AccountMetadata)}
 	// DeletedItem is a default static value for a deleted item
-	DeletedItem = Item{Title: Deleted, Hash: AnonymousHash, Metadata: new(ItemMetadata), pub: &pub.Tombstone{} }
+	DeletedItem = Item{Title: Deleted, Hash: AnonymousHash, Metadata: new(ItemMetadata), pub: &pub.Tombstone{}}
 )
 
 var (
@@ -82,6 +82,12 @@ func New(c *config.Configuration, host string, port int, ver string) Application
 	app := Application{Version: ver}
 	app.setUp(c, host, port)
 	return app
+}
+
+func (a *Application) Reload() error {
+	a.Conf = config.Load(a.Conf.Env, a.Conf.TimeOut)
+	a.front.storage.cache.clear()
+	return nil
 }
 
 func (a *Application) setUp(c *config.Configuration, host string, port int) error {
