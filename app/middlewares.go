@@ -147,7 +147,7 @@ func searchesInCollectionsMw(next http.Handler) http.Handler {
 	})
 }
 
-func LoadSingleItemRepliesMw(next http.Handler) http.Handler {
+func LoadSingleItemDependenciesMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var err error
 
