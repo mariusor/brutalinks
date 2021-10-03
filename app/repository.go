@@ -666,16 +666,35 @@ func (r *repository) loadItemsVotes(ctx context.Context, items ...Item) (ItemCol
 		return items, nil
 	}
 
-	ff := make([]*Filters, 0)
-	f := &Filters{
-		Type:     ActivityTypesFilter(ValidAppreciationTypes...),
-		Object:   &Filters{IRI: ItemIRIFilter(items...)},
-		MaxItems: 500,
+	g := make(map[pub.IRI]pub.IRIs)
+	for _, it := range items {
+		if it.Deleted() {
+			continue
+		}
+		h := baseIRI(it.pub.GetLink())
+		m, ok := g[h]
+		if !ok {
+			m = make(pub.IRIs, 0)
+		}
+		m = append(m, it.pub.GetLink())
+		g[h] = m
 	}
-	ff = append(ff, f)
-	searches := RemoteLoads{
-		r.fedbox.Service().GetLink(): []RemoteLoad{{actor: r.fedbox.Service(), loadFn: inbox, filters: ff}},
+	load := RemoteLoad{
+		loadFn:  inbox,
+		filters: []*Filters{{
+			Type:     ActivityTypesFilter(ValidAppreciationTypes...),
+			MaxItems: 500,
+		}},
 	}
+	searches := RemoteLoads{}
+	for i, iris := range g {
+		l := load
+		l.filters[0].Object = &Filters{
+			IRI:  IRIsFilter(iris...),
+		}
+		searches[i] = []RemoteLoad{l}
+	}
+
 	votes := make(VoteCollection, 0)
 	err := LoadFromSearches(ctx, r, searches, func(_ context.Context, c pub.CollectionInterface, f *Filters) error {
 		for _, vAct := range c.Collection() {
@@ -1504,17 +1523,15 @@ func (r *repository) SaveVote(ctx context.Context, v Vote) (Vote, error) {
 		return v, errors.Unauthorizedf("invalid account %s", v.SubmittedBy.Handle)
 	}
 
-	url := fmt.Sprintf("%s/%s", v.Item.Metadata.ID, "likes")
-	itemVotes, err := r.loadVotesCollection(ctx, pub.IRI(url), pub.IRI(v.SubmittedBy.Metadata.ID))
+	item := *v.Item
+	loadedItems, err := r.loadItemsVotes(ctx, item)
+	item = loadedItems[0]
 	// first step is to verify if vote already exists:
 	if err != nil {
-		r.errFn(log.Ctx{
-			"url": url,
-			"err": err,
-		})(err.Error())
+		r.errFn(log.Ctx{"err": err})("unable to load item votes")
 	}
 	var exists Vote
-	for _, vot := range itemVotes {
+	for _, vot := range item.Votes {
 		if !vot.SubmittedBy.IsValid() || !v.SubmittedBy.IsValid() {
 			continue
 		}
@@ -1546,10 +1563,11 @@ func (r *repository) SaveVote(ctx context.Context, v Vote) (Vote, error) {
 	if v.Weight > 0 && exists.Weight <= 0 {
 		act.Type = pub.LikeType
 		act.Object = o.GetLink()
-	}
-	if v.Weight < 0 && exists.Weight >= 0 {
+	} else if v.Weight < 0 && exists.Weight >= 0 {
 		act.Type = pub.DislikeType
 		act.Object = o.GetLink()
+	} else {
+		return v, nil
 	}
 	if v.Item.SubmittedBy != nil && v.Item.SubmittedBy.pub != nil {
 		auth := v.Item.SubmittedBy.pub
@@ -1575,40 +1593,6 @@ func (r *repository) SaveVote(ctx context.Context, v Vote) (Vote, error) {
 	r.infoFn(log.Ctx{"act": iri, "obj": it.GetLink(), "type": it.GetType()})("saved activity")
 	err = v.FromActivityPub(act)
 	return v, err
-}
-
-func (r *repository) loadVotesCollection(ctx context.Context, iri pub.IRI, actors ...pub.IRI) (VoteCollection, error) {
-	cntActors := len(actors)
-	f := &Filters{}
-	if cntActors > 0 {
-		f.AttrTo = make(CompStrs, cntActors)
-		for i, a := range actors {
-			f.AttrTo[i] = LikeString(a.String())
-		}
-	}
-	likes, err := r.fedbox.Collection(ctx, iri, Values(f))
-	// first step is to verify if vote already exists:
-	if err != nil {
-		return nil, err
-	}
-	votes := make(VoteCollection, 0)
-	err = pub.OnOrderedCollection(likes, func(col *pub.OrderedCollection) error {
-		for _, like := range col.OrderedItems {
-			if !like.IsObject() || !ValidAppreciationTypes.Contains(like.GetType()) {
-				continue
-			}
-			vote := Vote{}
-			vote.FromActivityPub(like)
-			if !votes.Contains(vote) {
-				votes = append(votes, vote)
-			}
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	return votes, nil
 }
 
 type _errors struct {
