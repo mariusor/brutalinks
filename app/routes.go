@@ -43,9 +43,9 @@ func (h *handler) ItemRoutes() func(chi.Router) {
 			r.Get("/nay", h.HandleVoting)
 
 			//r.Get("/bad", h.ShowReport)
-			r.With(LoadSingleItemRepliesMw, ThreadedListingMw, ReportContentModelMw).Get("/bad", h.HandleShow)
+			r.With(LoadItemsVotes, LoadItemsAuthors, LoadSingleItemRepliesMw, ThreadedListingMw, ReportContentModelMw).Get("/bad", h.HandleShow)
 			r.Post("/bad", h.ReportItem)
-			r.With(LoadSingleItemRepliesMw, ThreadedListingMw, BlockContentModelMw).Get("/block", h.HandleShow)
+			r.With(LoadItemsVotes, LoadItemsAuthors, LoadSingleItemRepliesMw, ThreadedListingMw, BlockContentModelMw).Get("/block", h.HandleShow)
 			r.Post("/block", h.BlockItem)
 
 			r.Group(func(r chi.Router) {
