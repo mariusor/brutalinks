@@ -154,12 +154,7 @@ func LoadSingleItemDependenciesMw(next http.Handler) http.Handler {
 		deps := ContextDependentLoads(r.Context())
 		repo := ContextRepository(r.Context())
 		item := ContextItem(r.Context())
-		if err != nil || !item.IsValid() {
-			var ctx log.Ctx
-			if err != nil {
-				ctx = log.Ctx{"err": err.Error()}
-			}
-			repo.errFn(ctx)("item not found")
+		if !item.IsValid() {
 			ctxtErr(next, w, r, errors.NotFoundf(strings.TrimLeft(r.URL.Path, "/")))
 			return
 		}
@@ -216,13 +211,11 @@ func SingleItemModelMw(next http.Handler) http.Handler {
 
 func LoadSingleObjectMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var err error
-
 		repo := ContextRepository(r.Context())
 		searchIn := ContextLoads(r.Context())
 
 		var item Item
-		err = LoadFromSearches(r.Context(), repo, searchIn, func(ctx context.Context, c pub.CollectionInterface, f *Filters) error {
+		err := LoadFromSearches(r.Context(), repo, searchIn, func(ctx context.Context, c pub.CollectionInterface, f *Filters) error {
 			for _, it := range c.Collection() {
 				err := pub.OnActivity(it, func(act *pub.Activity) error {
 					if act.Object.IsLink() {
@@ -250,9 +243,9 @@ func LoadSingleObjectMw(next http.Handler) http.Handler {
 			return nil
 		})
 		if (err != nil && !xerrors.Is(err, StopLoad{})) || !item.IsValid() {
-			var ctx log.Ctx
+			ctx := log.Ctx{}
 			if err != nil {
-				ctx = log.Ctx{"err": err.Error()}
+				ctx["err"] = err.Error()
 			}
 			repo.errFn(ctx)("item not found")
 			ctxtErr(next, w, r, errors.NotFoundf(strings.TrimLeft(r.URL.Path, "/")))
