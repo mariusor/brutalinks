@@ -1619,8 +1619,7 @@ func (r *repository) handleItemSaveSuccessResponse(ctx context.Context, it Item,
 		r.errFn()(err.Error())
 		return it, err
 	}
-	err = it.FromActivityPub(ap)
-	if err != nil {
+	if err = it.FromActivityPub(ap); err != nil {
 		r.errFn()(err.Error())
 		return it, err
 	}
@@ -2414,9 +2413,12 @@ func LoadFromSearches(c context.Context, repo *repository, loads RemoteLoads, fn
 	ctx, cancelFn := context.WithCancel(c)
 	g, gtx := errgroup.WithContext(ctx)
 
-	for _, searches := range loads {
+	for service, searches := range loads {
 		for _, search := range searches {
 			for _, f := range search.filters {
+				if search.actor == nil {
+					search.actor = service
+				}
 				g.Go(repo.searchFn(gtx, g, search.loadFn(search.actor), f, fn, &searchCnt))
 			}
 		}
