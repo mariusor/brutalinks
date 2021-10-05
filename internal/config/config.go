@@ -32,6 +32,7 @@ type Configuration struct {
 	UserInvitesEnabled         bool
 	UserFollowingEnabled       bool
 	ModerationEnabled          bool
+	CacheEnabled               bool
 	MaintenanceMode            bool
 }
 
@@ -61,6 +62,7 @@ const (
 	KeyDisableAnonymousCommenting = "DISABLE_ANONYMOUS_COMMENTING"
 	KeyDisableUserFollowing       = "DISABLE_USER_FOLLOWING"
 	KeyDisableModeration          = "DISABLE_MODERATION"
+	KeyDisableCache               = "DISABLE_CACHE"
 	KeyAdminContact               = "ADMIN_CONTACT"
 )
 
@@ -158,6 +160,9 @@ func Load(e EnvType, wait time.Duration) *Configuration {
 	c.UserFollowingEnabled = !userFollowingDisabled
 	moderationDisabled, _ := strconv.ParseBool(loadKeyFromEnv(KeyDisableModeration, "")) // DISABLE_MODERATION
 	c.ModerationEnabled = !moderationDisabled
+	cacheDisabled, _ := strconv.ParseBool(loadKeyFromEnv(KeyDisableCache, ""))
+	c.CacheEnabled = !cacheDisabled
+
 	c.AdminContact = loadKeyFromEnv(KeyAdminContact, "") // ADMIN_CONTACT
 
 	c.APIURL = loadKeyFromEnv(KeyAPIUrl, "")
