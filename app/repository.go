@@ -1589,7 +1589,7 @@ func (r *repository) SaveVote(ctx context.Context, v Vote) (Vote, error) {
 		r.errFn()(err.Error())
 		return v, err
 	}
-	r.cache.clear()
+	r.cache.remove()
 	r.infoFn(log.Ctx{"act": iri, "obj": it.GetLink(), "type": it.GetType()})("saved activity")
 	err = v.FromActivityPub(act)
 	return v, err
@@ -1874,7 +1874,7 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 		r.errFn()(err.Error())
 		return it, err
 	}
-	r.cache.clear()
+	r.cache.remove()
 	if loadAuthors {
 		items, err := r.loadItemsAuthors(ctx, it)
 		return items[0], err
@@ -2073,7 +2073,7 @@ func (r *repository) SendFollowResponse(ctx context.Context, f FollowRequest, ac
 		})("unable to respond to follow")
 		return err
 	}
-	r.cache.clear()
+	r.cache.remove()
 	return nil
 }
 
@@ -2173,7 +2173,7 @@ func (r *repository) SaveAccount(ctx context.Context, a Account) (Account, error
 	if err := a.FromActivityPub(ap); err != nil {
 		r.errFn(ltx, log.Ctx{"err": err})("loading of actor from JSON failed")
 	}
-	r.cache.clear()
+	r.cache.remove()
 	return a, nil
 }
 
@@ -2268,7 +2268,7 @@ func (r *repository) BlockAccount(ctx context.Context, er, ed Account, reason *I
 		r.errFn()(err.Error())
 		return err
 	}
-	r.cache.clear()
+	r.cache.remove()
 	return nil
 }
 
@@ -2283,7 +2283,7 @@ func (r *repository) BlockItem(ctx context.Context, er Account, ed Item, reason 
 		r.errFn()(err.Error())
 		return err
 	}
-	r.cache.clear()
+	r.cache.remove()
 	return nil
 }
 
@@ -2298,7 +2298,7 @@ func (r *repository) ReportItem(ctx context.Context, er Account, it Item, reason
 		r.errFn()(err.Error())
 		return err
 	}
-	r.cache.clear()
+	r.cache.remove()
 	return nil
 }
 
@@ -2313,7 +2313,7 @@ func (r *repository) ReportAccount(ctx context.Context, er, ed Account, reason *
 		r.errFn()(err.Error())
 		return err
 	}
-	r.cache.clear()
+	r.cache.remove()
 	return nil
 }
 

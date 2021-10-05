@@ -24,9 +24,22 @@ type cache struct {
 	s       sync.RWMutex
 }
 
-func (c *cache) clear() {
+func (c *cache) remove(iris ...pub.IRI) {
+	removeForIRI := func(toRemove pub.IRI) bool {
+		if len(iris) == 0 {
+			return true
+		}
+		for _, iri := range iris {
+			if iri.Equals(toRemove, false) {
+				return true
+			}
+		}
+		return false
+	}
 	for k := range c.m {
-		delete(c.m, k)
+		if removeForIRI(k) {
+			delete(c.m, k)
+		}
 	}
 }
 
@@ -59,7 +72,7 @@ func (c *cache) loadFromSearches(repo *repository, search RemoteLoads) error {
 		return nil
 	}
 	ctx, _ := context.WithTimeout(context.TODO(), time.Second)
-	return LoadFromSearches(ctx, repo, search, func (_ context.Context, col pub.CollectionInterface, f *Filters) error {
+	return LoadFromSearches(ctx, repo, search, func(_ context.Context, col pub.CollectionInterface, f *Filters) error {
 		c.add(col.GetLink(), col)
 		for _, it := range col.Collection() {
 			c.add(it.GetLink(), it)
@@ -68,7 +81,7 @@ func (c *cache) loadFromSearches(repo *repository, search RemoteLoads) error {
 	})
 }
 
-func colIRI (hc handlers.CollectionType) func(it pub.Item, fn ...client.FilterFn) pub.IRI {
+func colIRI(hc handlers.CollectionType) func(it pub.Item, fn ...client.FilterFn) pub.IRI {
 	return func(it pub.Item, fn ...client.FilterFn) pub.IRI {
 		return iri(hc.IRI(it), fn...)
 	}

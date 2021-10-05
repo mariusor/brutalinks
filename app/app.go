@@ -86,7 +86,7 @@ func New(c *config.Configuration, host string, port int, ver string) Application
 
 func (a *Application) Reload() error {
 	a.Conf = config.Load(a.Conf.Env, a.Conf.TimeOut)
-	a.front.storage.cache.clear()
+	a.front.storage.cache.remove()
 	return nil
 }
 
