@@ -18,7 +18,7 @@ Follow the project's [install instructions]((https://github.com/go-ap/fedbox/blo
 ### Editing the configuration 
 
 ```sh
-$ cp .env.example .env
+$ cp .env.dist .env
 $ $EDITOR .env
 ```
 
