@@ -574,7 +574,7 @@ func (r *repository) loadAccountsOutbox(ctx context.Context, acc *Account) error
 	latest := time.Now().Add(-12 * 30 * 24 * time.Hour).UTC()
 	f := new(Filters)
 	f.Type = append(append(AppreciationActivitiesFilter, ContentManagementActivitiesFilter...), ModerationActivitiesFilter...)
-	f.Object = &Filters{IRI:notNilFilters}
+	f.Object = &Filters{IRI: notNilFilters}
 	f.MaxItems = 1000
 	searches := RemoteLoads{
 		baseIRI(acc.pub.GetLink()): []RemoteLoad{{actor: acc.pub, loadFn: outbox, filters: []*Filters{f}}},
@@ -680,7 +680,7 @@ func (r *repository) loadItemsVotes(ctx context.Context, items ...Item) (ItemCol
 		g[h] = m
 	}
 	load := RemoteLoad{
-		loadFn:  inbox,
+		loadFn: inbox,
 		filters: []*Filters{{
 			Type:     ActivityTypesFilter(ValidAppreciationTypes...),
 			MaxItems: 500,
@@ -690,7 +690,7 @@ func (r *repository) loadItemsVotes(ctx context.Context, items ...Item) (ItemCol
 	for i, iris := range g {
 		l := load
 		l.filters[0].Object = &Filters{
-			IRI:  IRIsFilter(iris...),
+			IRI: IRIsFilter(iris...),
 		}
 		searches[i] = []RemoteLoad{l}
 	}
@@ -1058,7 +1058,7 @@ func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemC
 		}
 		return nil
 	})
-	if err != nil && !xerrors.Is(err, StopLoad{}){
+	if err != nil && !xerrors.Is(err, StopLoad{}) {
 		return items, errors.Annotatef(err, "unable to load items authors")
 	}
 	col := make(ItemCollection, 0)
@@ -1957,7 +1957,7 @@ func (r *repository) LoadAccountDetails(ctx context.Context, acc *Account) error
 	r.WithAccount(acc)
 	now := time.Now().UTC()
 	lastUpdated := acc.Metadata.OutboxUpdated
-	if now.Sub(lastUpdated) - 5*time.Minute < 0 {
+	if now.Sub(lastUpdated)-5*time.Minute < 0 {
 		return nil
 	}
 	var err error
@@ -2339,7 +2339,7 @@ func (s StopSearchErr) Error() string {
 
 func (r *repository) loadItemFromCacheOrIRI(ctx context.Context, iri pub.IRI) (pub.Item, error) {
 	if it, okCache := r.cache.get(iri); okCache {
-		if getItemUpdatedTime(it).Sub(time.Now()) < 10 * time.Minute {
+		if getItemUpdatedTime(it).Sub(time.Now()) < 10*time.Minute {
 			return it, nil
 		}
 	}
@@ -2348,7 +2348,7 @@ func (r *repository) loadItemFromCacheOrIRI(ctx context.Context, iri pub.IRI) (p
 
 func (r *repository) loadCollectionFromCacheOrIRI(ctx context.Context, iri pub.IRI) (pub.CollectionInterface, bool, error) {
 	if it, okCache := r.cache.get(cacheKey(iri, ContextAccount(ctx))); okCache {
-		if c, okCol := it.(pub.CollectionInterface); okCol && getItemUpdatedTime(it).Sub(time.Now()) < 10 * time.Minute && c.Count() > 0 {
+		if c, okCol := it.(pub.CollectionInterface); okCol && getItemUpdatedTime(it).Sub(time.Now()) < 10*time.Minute && c.Count() > 0 {
 			return c, true, nil
 		}
 	}
@@ -2358,13 +2358,11 @@ func (r *repository) loadCollectionFromCacheOrIRI(ctx context.Context, iri pub.I
 
 type searchFn func(ctx context.Context, col pub.CollectionInterface, f *Filters) error
 
-func (r *repository) searchFn(ctx context.Context, g *errgroup.Group, curIRI pub.IRI, f *Filters, fn searchFn, it *int) func() error {
+func (r *repository) searchFn(ctx context.Context, g *errgroup.Group, curIRI pub.IRI, f *Filters, fn searchFn) func() error {
 	return func() error {
-		*it++
 		loadIRI := iri(curIRI, Values(f))
 
-		ntx, _ := context.WithCancel(ctx)
-		col, fromCache, err := r.loadCollectionFromCacheOrIRI(ntx, loadIRI)
+		col, fromCache, err := r.loadCollectionFromCacheOrIRI(ctx, loadIRI)
 		if err != nil {
 			return errors.Annotatef(err, "failed to load search: %s", loadIRI)
 		}
@@ -2372,7 +2370,7 @@ func (r *repository) searchFn(ctx context.Context, g *errgroup.Group, curIRI pub
 		maxItems := 0
 		err = pub.OnCollectionIntf(col, func(c pub.CollectionInterface) error {
 			maxItems = int(c.Count())
-			return fn(ntx, c, f)
+			return fn(ctx, c, f)
 		})
 		if !fromCache {
 			r.cache.add(cacheKey(loadIRI, ContextAccount(ctx)), col)
@@ -2383,9 +2381,7 @@ func (r *repository) searchFn(ctx context.Context, g *errgroup.Group, curIRI pub
 
 		if maxItems-f.MaxItems < 5 {
 			if _, f.Next = getCollectionPrevNext(col); len(f.Next) > 0 {
-				g.Go(r.searchFn(ctx, g, curIRI, f, fn, it))
-			} else {
-				return StopLoad{}
+				g.Go(r.searchFn(ctx, g, curIRI, f, fn))
 			}
 		} else {
 			return StopLoad{}
@@ -2407,10 +2403,10 @@ func cacheKey(i pub.IRI, a *Account) pub.IRI {
 	return pub.IRI(u.String())
 }
 
-func LoadFromSearches(c context.Context, repo *repository, loads RemoteLoads, fn searchFn) error {
-	searchCnt := 0
+func LoadFromSearches(ctx context.Context, repo *repository, loads RemoteLoads, fn searchFn) error {
+	var cancelFn func()
 
-	ctx, cancelFn := context.WithCancel(c)
+	ctx, cancelFn = context.WithCancel(ctx)
 	g, gtx := errgroup.WithContext(ctx)
 
 	for service, searches := range loads {
@@ -2419,14 +2415,14 @@ func LoadFromSearches(c context.Context, repo *repository, loads RemoteLoads, fn
 				if search.actor == nil {
 					search.actor = service
 				}
-				g.Go(repo.searchFn(gtx, g, search.loadFn(search.actor), f, fn, &searchCnt))
+				g.Go(repo.searchFn(gtx, g, search.loadFn(search.actor), f, fn))
 			}
 		}
 	}
 	if err := g.Wait(); err != nil {
 		if xerrors.Is(err, StopLoad{}) {
+			repo.infoFn()("stopped loading search")
 			cancelFn()
-			repo.infoFn()("stop loading search")
 		} else {
 			repo.errFn(log.Ctx{"err": err.Error()})("Failed to load search")
 		}

@@ -26,7 +26,7 @@ func (h handler) LoadAuthorMw(next http.Handler) http.Handler {
 		if handle == selfName {
 			self := Account{}
 			self.FromActivityPub(h.storage.fedbox.Service())
-			authors = AccountCollection { self }
+			authors = AccountCollection{self}
 		} else {
 			var err error
 			repo := ContextRepository(r.Context())
@@ -46,7 +46,6 @@ func (h handler) LoadAuthorMw(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
-
 
 func LoadInboxMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -227,13 +226,11 @@ func LoadSingleObjectMw(next http.Handler) http.Handler {
 						it = ob
 					}
 					if err := item.FromActivityPub(act.Object); err != nil {
-						repo.errFn(log.Ctx{"iri": act.Object.GetLink()})("unable to load item")
 						return err
 					}
 					return nil
 				})
 				if err != nil {
-					repo.errFn(log.Ctx{"iri": it.GetLink()})("unable to load item")
 					return err
 				}
 				if item.IsValid() {
@@ -541,13 +538,14 @@ func ThreadedListingMw(next http.Handler) http.Handler {
 		}
 	})
 }
+
 var maintenanceModel = &errorModel{
 	Status: http.StatusOK,
 	Title:  "Maintenance",
 	Errors: []error{errors.Newf("Server in maintenance mode, please come back later.")},
 }
 
-func OutOfOrderMw (v *view) func (next http.Handler) http.Handler {
+func OutOfOrderMw(v *view) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		if !v.c.MaintenanceMode {
 			return next
