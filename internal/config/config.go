@@ -32,7 +32,7 @@ type Configuration struct {
 	UserInvitesEnabled         bool
 	UserFollowingEnabled       bool
 	ModerationEnabled          bool
-	CacheEnabled               bool
+	CachingEnabled             bool
 	MaintenanceMode            bool
 }
 
@@ -62,7 +62,7 @@ const (
 	KeyDisableAnonymousCommenting = "DISABLE_ANONYMOUS_COMMENTING"
 	KeyDisableUserFollowing       = "DISABLE_USER_FOLLOWING"
 	KeyDisableModeration          = "DISABLE_MODERATION"
-	KeyDisableCache               = "DISABLE_CACHE"
+	KeyDisableCaching             = "DISABLE_CACHING"
 	KeyAdminContact               = "ADMIN_CONTACT"
 )
 
@@ -154,14 +154,14 @@ func Load(e EnvType, wait time.Duration) *Configuration {
 	userInvitesDisabled, _ := strconv.ParseBool(loadKeyFromEnv(KeyDisableUserInvites, ""))
 	c.UserInvitesEnabled = !userInvitesDisabled
 	// TODO(marius): this stopped working - as the anonymous user doesn't have a valid Outbox.
-	anonymousCommentingDisabled, _ := strconv.ParseBool(loadKeyFromEnv(KeyDisableAnonymousCommenting, "")) // DISABLE_ANONYMOUS_COMMENTING
+	anonymousCommentingDisabled, _ := strconv.ParseBool(loadKeyFromEnv(KeyDisableAnonymousCommenting, ""))
 	c.AnonymousCommentingEnabled = !anonymousCommentingDisabled
-	userFollowingDisabled, _ := strconv.ParseBool(loadKeyFromEnv(KeyDisableUserFollowing, "")) // DISABLE_USER_FOLLOWING
+	userFollowingDisabled, _ := strconv.ParseBool(loadKeyFromEnv(KeyDisableUserFollowing, ""))
 	c.UserFollowingEnabled = !userFollowingDisabled
-	moderationDisabled, _ := strconv.ParseBool(loadKeyFromEnv(KeyDisableModeration, "")) // DISABLE_MODERATION
+	moderationDisabled, _ := strconv.ParseBool(loadKeyFromEnv(KeyDisableModeration, ""))
 	c.ModerationEnabled = !moderationDisabled
-	cacheDisabled, _ := strconv.ParseBool(loadKeyFromEnv(KeyDisableCache, ""))
-	c.CacheEnabled = !cacheDisabled
+	cachingDisabled, _ := strconv.ParseBool(loadKeyFromEnv(KeyDisableCaching, ""))
+	c.CachingEnabled = !cachingDisabled
 
 	c.AdminContact = loadKeyFromEnv(KeyAdminContact, "") // ADMIN_CONTACT
 
