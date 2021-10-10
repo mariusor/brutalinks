@@ -179,7 +179,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"isImage":               isImage,
 			"Markdown":              Markdown,
 			"replaceTags":           replaceTags,
-			"outputTag":             func(t Tag) template.HTML { return template.HTML(mimeTypeTagReplace("text/html", t))},
+			"outputTag":             func(t Tag) template.HTML { return template.HTML(mimeTypeTagReplace("text/html", t)) },
 			"AccountLocalLink":      AccountLocalLink,
 			"ShowAccountHandle":     ShowAccountHandle,
 			"PermaLink":             PermaLink,
@@ -187,6 +187,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"OPLink":                opLink,
 			"IsYay":                 isYay,
 			"IsNay":                 isNay,
+			"IsReadOnly":            isReadOnly,
 			"ScoreFmt":              scoreFmt,
 			"NumberFmt":             func(i int) string { return numberFormat("%d", i) },
 			"TimeFmt":               relTimeFmt,
@@ -672,7 +673,7 @@ func icons(c []string) template.HTML {
 	return icon(c...)
 }
 
-func accountDefaultAvatar (act *Account) ImageMetadata {
+func accountDefaultAvatar(act *Account) ImageMetadata {
 	if len(act.Handle) == 0 {
 		return ImageMetadata{}
 	}
@@ -1015,6 +1016,13 @@ func ItemPermaLink(i *Item) string {
 	return ItemLocalLink(i)
 }
 
+func isReadOnly(r Renderable) bool {
+	if i, ok := r.(*Item); ok {
+		return i.SubmittedAt.Sub(oneYearishAgo) < 0 || i.Deleted()
+	}
+	return false
+}
+
 // PermaLink
 func PermaLink(r Renderable) string {
 	if i, ok := r.(*Item); ok {
@@ -1029,7 +1037,7 @@ func PermaLink(r Renderable) string {
 // ItemLocalLink
 func ItemLocalLink(i *Item) string {
 	auth := i.SubmittedBy
-	if auth == nil || auth.Deleted() || auth.Handle == Anonymous || auth.Handle == ""  || auth.IsFederated() {
+	if auth == nil || auth.Deleted() || auth.Handle == Anonymous || auth.Handle == "" || auth.IsFederated() {
 		return path.Join("/", i.SubmittedAt.UTC().Format("2006/01/02"), i.Hash.String())
 	}
 	return path.Join(AccountLocalLink(auth), i.Hash.String())
@@ -1064,29 +1072,29 @@ func AccountLocalLink(a *Account) string {
 
 const (
 	unknownDomain = "unknown"
-	githubDomain = "github.com"
-	gitlabDomain = "gitlab.com"
-	twitchDomain = "twitch.tv"
+	githubDomain  = "github.com"
+	gitlabDomain  = "gitlab.com"
+	twitchDomain  = "twitch.tv"
 	twitterDomain = "twitter.com"
 )
 
 var twitchValidUser = func(n string) bool {
-	return !(stringInSlice([]string{ "directory", "p", "downloads", "jobs", "store", "turbo" })(n))
+	return !(stringInSlice([]string{"directory", "p", "downloads", "jobs", "store", "turbo"})(n))
 }
 
 var githubValidUser = func(n string) bool {
-	return !(stringInSlice([]string{ "features", "security", "team", "enterprise", "topics", "collections",
+	return !(stringInSlice([]string{"features", "security", "team", "enterprise", "topics", "collections",
 		"trending", "events", "marketplace", "pricing", "nonprofit", "join", "contact", "about", "site", "git-guides",
 		"discussions", "pulls", "issues", "explore", "settings", "mine", "new", "import", "organizations",
 	})(n))
 }
 
 var gitlabValidUser = func(n string) bool {
-	return !(stringInSlice([]string{"users", "explore", "-", "dashboard", "help" })(n))
+	return !(stringInSlice([]string{"users", "explore", "-", "dashboard", "help"})(n))
 }
 
 var twitterValidUser = func(n string) bool {
-	return !(stringInSlice([]string{ "home", "explore", "notifications", "messages", "bookmarks", "settings", "i",
+	return !(stringInSlice([]string{"home", "explore", "notifications", "messages", "bookmarks", "settings", "i",
 		"compose", "search", "tos", "privacy",
 	})(n))
 }
@@ -1103,7 +1111,7 @@ func getDomain(u *url.URL) string {
 			if twitterValidUser(maybeUser) {
 				return fmt.Sprintf("%s/%s", u.Host, maybeUser)
 			}
-		case gitlabDomain, "www."+gitlabDomain:
+		case gitlabDomain, "www." + gitlabDomain:
 			if gitlabValidUser(maybeUser) {
 				return fmt.Sprintf("%s/%s", u.Host, maybeUser)
 			}
@@ -1128,7 +1136,7 @@ func getDomain(u *url.URL) string {
 	return u.Host
 }
 
-func GetDomainTitle (i Item) template.HTML {
+func GetDomainTitle(i Item) template.HTML {
 	if !i.IsLink() {
 		return unknownDomain
 	}
@@ -1169,8 +1177,8 @@ func GetInviteLink(v *view) func(invitee *Account) template.HTMLAttr {
 	}
 }
 
-func (v *view) RedirectWithFailMessage(successFn func () (bool, string)) func (http.Handler) http.Handler {
-	return func (next http.Handler) http.Handler {
+func (v *view) RedirectWithFailMessage(successFn func() (bool, string)) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if success, failMsg := successFn(); !success {
 				v.addFlashMessage(Error, w, r, failMsg)

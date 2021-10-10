@@ -1,4 +1,4 @@
-{{- $readonly := not (or CurrentAccount.IsLogged Config.AnonymousCommentingEnabled) -}}
+{{- $readonly := or (not (or CurrentAccount.IsLogged Config.AnonymousCommentingEnabled)) (.Content | IsReadOnly) -}}
 {{- $label := .Message.Label -}}
 {{- $hash := .Hash -}}
 {{- $edit := .Message.Editable -}}
@@ -13,7 +13,7 @@
 <form method="post">
     <fieldset {{ if $hash.IsValid }}data-reply="{{ $hash }}"{{end}}>
         <label for="submit-data">{{ $label }}</label><br/>
-        <textarea {{if $readonly -}}disabled placeholder="You must authenticate to be able to comment" {{ end -}} name="data" id="submit-data" cols="80" rows="5" required>{{- if $edit -}}{{- $data -}}{{- end -}}</textarea><br/>
+        <textarea {{if $readonly -}} disabled placeholder="Commenting is closed at this time." {{ end -}} name="data" id="submit-data" cols="80" rows="5" required>{{- if $edit -}}{{- $data -}}{{- end -}}</textarea><br/>
 {{- if $showTitle -}}
         <label for="submit-title">Title: </label><br/>
         <textarea {{if $readonly -}} disabled {{ end -}} name="title" id="submit-title" rows="2" required>{{- if $edit -}}{{- $data -}}{{- end -}}</textarea><br/>

@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
+	"time"
 
 	pub "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
@@ -34,12 +35,9 @@ var (
 	SystemAccount = Account{Handle: System, Hash: SystemHash, Metadata: new(AccountMetadata)}
 	// DeletedItem is a default static value for a deleted item
 	DeletedItem = Item{Title: Deleted, Hash: AnonymousHash, Metadata: new(ItemMetadata), pub: &pub.Tombstone{}}
-)
 
-var (
-	listenHost string
-	listenPort int64
-	listenOn   string
+	// cut off date for disallowing interactions with items
+	oneYearishAgo = time.Now().Add(-12 * 30 * 24 * time.Hour).UTC()
 )
 
 // Stats holds data for keeping compatibility with Mastodon instances
