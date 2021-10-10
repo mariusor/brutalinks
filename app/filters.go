@@ -55,11 +55,10 @@ func FiltersFromRequest(r *http.Request) *Filters {
 	return f
 }
 
-var CreateActivitiesFilter = CompStrs{
-	CompStr{Str: string(pub.CreateType)},
-}
-
-var AppreciationActivitiesFilter = ActivityTypesFilter(ValidAppreciationTypes...)
+var (
+	CreateActivitiesFilter       = ActivityTypesFilter(pub.CreateType)
+	AppreciationActivitiesFilter = ActivityTypesFilter(pub.LikeType)
+)
 
 func DefaultFilters(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -298,7 +297,7 @@ var (
 		InReplTo: notNilFilters,
 	}
 	modAccountsObjectFilter = &Filters{
-		Type:  ActivityTypesFilter(ValidActorTypes...),
+		Type: ActivityTypesFilter(ValidActorTypes...),
 	}
 )
 

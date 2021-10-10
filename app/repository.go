@@ -571,34 +571,66 @@ func (r *repository) loadAccountsOutbox(ctx context.Context, acc *Account) error
 	if !acc.HasMetadata() || len(acc.Metadata.OutboxIRI) == 0 {
 		return nil
 	}
-	latest := time.Now().Add(-12 * 30 * 24 * time.Hour).UTC()
-	f := new(Filters)
-	f.Type = append(append(AppreciationActivitiesFilter, ContentManagementActivitiesFilter...), ModerationActivitiesFilter...)
-	f.Object = &Filters{IRI: notNilFilters}
-	f.MaxItems = 1000
+
+	f := Filters{
+		Object:   &Filters{IRI: notNilFilters},
+		MaxItems: 300,
+	}
+
+	fa := f
+	fa.Type = AppreciationActivitiesFilter
+	fm := f
+	fm.Type = ModerationActivitiesFilter
+	fc := f
+	fc.Type = CreateActivitiesFilter
+
 	searches := RemoteLoads{
-		baseIRI(acc.pub.GetLink()): []RemoteLoad{{actor: acc.pub, loadFn: outbox, filters: []*Filters{f}}},
+		baseIRI(acc.pub.GetLink()): []RemoteLoad{
+			{actor: acc.pub, loadFn: outbox, filters: []*Filters{&fa, &fc, &fm}},
+		},
 	}
 	return LoadFromSearches(ctx, r, searches, func(ctx context.Context, c pub.CollectionInterface, f *Filters) error {
-		stop := getItemUpdatedTime(c).Sub(latest) < 0
+		var stop bool
 		for _, it := range c.Collection() {
-			typ := it.GetType()
-			if ValidModerationActivityTypes.Contains(typ) {
-				p := new(Account)
-				if err := p.FromActivityPub(it); err != nil && !p.IsValid() {
-					continue
-				}
-				if typ == pub.BlockType {
-					acc.Blocked = append(acc.Blocked, *p)
-				}
-				if typ == pub.IgnoreType {
-					acc.Ignored = append(acc.Ignored, *p)
-				}
-			}
 			acc.Metadata.Outbox.Append(pub.FlattenProperties(it))
-		}
-		if stop {
-			return StopLoad{}
+			pub.OnActivity(it, func(a *pub.Activity) error {
+				stop = a.Published.Sub(oneYearishAgo) < 0
+				typ := it.GetType()
+				if typ == pub.CreateType {
+					ob := a.Object
+					if ob == nil {
+						return nil
+					}
+					if ob.IsObject() {
+						if ValidActorTypes.Contains(ob.GetType()) {
+							act := Account{}
+							act.FromActivityPub(a)
+							acc.Children = append(act.Children, &act)
+						}
+					}
+				}
+				if ValidModerationActivityTypes.Contains(typ) {
+					m := ModerationOp{}
+					m.FromActivityPub(a)
+					if m.Object.Type() != ActorType {
+						return nil
+					}
+					dude, ok := m.Object.(*Account)
+					if !ok {
+						return nil
+					}
+					if typ == pub.BlockType {
+						acc.Blocked = append(acc.Blocked, *dude)
+					}
+					if typ == pub.IgnoreType {
+						acc.Ignored = append(acc.Ignored, *dude)
+					}
+				}
+				return nil
+			})
+			if stop {
+				return nil
+			}
 		}
 		return nil
 	})
