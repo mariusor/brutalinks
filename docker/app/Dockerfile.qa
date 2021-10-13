@@ -31,6 +31,6 @@ VOLUME /.env
 VOLUME /storage
 
 COPY --from=builder /go/src/app/*.key /go/src/app/*.crt /go/src/app/*.pem /etc/ssl/certs/
-COPY --from=builder /go/src/app/bin/app /bin/app
+COPY --from=builder /go/src/app/bin/brutalinks /bin/brutalinks
 
-CMD ["/bin/app"]
+CMD ["/bin/brutalinks"]

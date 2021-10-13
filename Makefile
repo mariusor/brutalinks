@@ -37,7 +37,7 @@ TEST := $(GO) test $(BUILDFLAGS)
 
 .PHONY: all run clean images test assets download
 
-all: app
+all: brutalinks
 
 download:
 	$(GO) mod tidy
@@ -45,12 +45,12 @@ download:
 internal/assets/assets.gen.go: $(ASSETFILES)
 	go generate -tags $(ENV) ./assets.go
 
-app: bin/app
-bin/app: download go.mod cmd/app/main.go $(APPSOURCES)
-	$(BUILD) -tags $(ENV) -o $@ ./cmd/app/main.go
+brutalinks: bin/brutalinks
+bin/brutalinks: download go.mod cmd/brutalinks/main.go $(APPSOURCES)
+	$(BUILD) -tags $(ENV) -o $@ ./cmd/brutalinks/main.go
 
-run: app
-	@./bin/app
+run: brutalinks
+	@./bin/brutalinks
 
 clean:
 	-$(RM) bin/* internal/assets/assets.gen.go
@@ -60,7 +60,7 @@ images:
 	$(MAKE) -C docker $@
 
 test: TEST_TARGET := ./{app,internal}/...
-test: app
+test:
 	$(TEST) $(TEST_FLAGS) $(TEST_TARGET)
 
 coverage: TEST_TARGET := .
