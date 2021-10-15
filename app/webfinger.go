@@ -52,23 +52,26 @@ func NodeInfoResolverNew(r *repository, env config.EnvType) NodeInfoResolver {
 		return n
 	}
 
-	if env.IsDev() {
-		return n
-	}
-	us, _ := r.fedbox.Actors(context.TODO(), Values(actorsFilter))
-	if us != nil {
-		n.users = int(us.Count())
+	base := baseIRI(r.fedbox.Service().GetLink())
+	loadFn := func(f *Filters, fn pub.WithOrderedCollectionFn) error {
+		ff := []*Filters{{Type: CreateActivitiesFilter, Object: f}}
+		return LoadFromSearches(context.TODO(), r, RemoteLoads{base: {{loadFn: inbox, filters: ff}}}, func(ctx context.Context, c pub.CollectionInterface, f *Filters) error {
+			return pub.OnOrderedCollection(c, fn)
+		})
 	}
 
-	posts, _ := r.fedbox.Objects(context.TODO(), Values(postsFilter))
-	if posts != nil {
-		n.posts = int(posts.Count())
-	}
-	all, _ := r.fedbox.Objects(context.TODO(), Values(allFilter))
-
-	if all != nil {
-		n.comments = int(all.Count()) - n.posts
-	}
+	loadFn(actorsFilter, func(col *pub.OrderedCollection) error {
+		n.users = int(col.TotalItems)
+		return nil
+	})
+	loadFn(postsFilter, func(col *pub.OrderedCollection) error {
+		n.posts = int(col.TotalItems)
+		return nil
+	})
+	loadFn(allFilter, func(col *pub.OrderedCollection) error {
+		n.comments = int(col.TotalItems) - n.posts
+		return nil
+	})
 	return n
 }
 
