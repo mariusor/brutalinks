@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"path"
 	"regexp"
 	"strings"
 
@@ -91,9 +92,8 @@ func (n NodeInfoResolver) Usage() (nodeinfo.Usage, error) {
 }
 
 const (
-	githubUrl    = "https://github.com/mariusor/go-littr"
-	author       = "@mariusor@metalhead.club"
-	softwareName = "go-littr"
+	sourceURL = "https://git.sr.ht/~mariusor/brutalinks"
+	author    = "@mariusor@metalhead.club"
 )
 
 func NodeInfoConfig() nodeinfo.Config {
@@ -104,11 +104,11 @@ func NodeInfoConfig() nodeinfo.Config {
 		Metadata: nodeinfo.Metadata{
 			NodeName:        string(regexp.MustCompile(`<[\/\w]+>`).ReplaceAll([]byte(Instance.NodeInfo().Title), []byte{})),
 			NodeDescription: Instance.NodeInfo().Summary,
-			Private:         false,
+			Private:         !Instance.Conf.UserCreatingEnabled,
 			Software: nodeinfo.SoftwareMeta{
-				GitHub:   githubUrl,
+				GitHub:   sourceURL,
 				HomePage: Instance.BaseURL,
-				Follow:   author,
+				Follow:   Instance.Conf.AdminContact,
 			},
 		},
 		Protocols: []nodeinfo.NodeProtocol{
@@ -116,10 +116,10 @@ func NodeInfoConfig() nodeinfo.Config {
 		},
 		Services: nodeinfo.Services{
 			Inbound:  []nodeinfo.NodeService{},
-			Outbound: []nodeinfo.NodeService{nodeinfo.ServiceAtom},
+			Outbound: []nodeinfo.NodeService{nodeinfo.ServiceAtom, nodeinfo.ServiceRSS},
 		},
 		Software: nodeinfo.SoftwareInfo{
-			Name:    softwareName,
+			Name:    path.Base(sourceURL),
 			Version: Instance.NodeInfo().Version,
 		},
 	}
