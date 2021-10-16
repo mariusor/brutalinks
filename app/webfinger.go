@@ -147,27 +147,28 @@ func (h handler) HandleHostMeta(w http.ResponseWriter, r *http.Request) {
 
 const selfName = "self"
 
+func splitResourceString(res string) (string, string) {
+	split := ":"
+	if strings.Contains(res, "://") {
+		split = "://"
+	}
+	ar := strings.Split(res, split)
+	if len(ar) != 2 {
+		return "", ""
+	}
+	typ := ar[0]
+	handle := ar[1]
+	if handle[0] == '@' && len(handle) > 1 {
+		handle = handle[1:]
+	}
+	return typ, handle
+}
+
 // HandleWebFinger serves /.well-known/webfinger/
 func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 	res := r.URL.Query().Get("resource")
 
-	typ, handle := func(res string) (string, string) {
-		split := ":"
-		if strings.Contains(res, "://") {
-			split = "://"
-		}
-		ar := strings.Split(res, split)
-		if len(ar) != 2 {
-			return "", ""
-		}
-		typ := ar[0]
-		handle := ar[1]
-		if handle[0] == '@' && len(handle) > 1 {
-			handle = handle[1:]
-		}
-		return typ, handle
-	}(res)
-
+	typ, handle := splitResourceString(res)
 	if typ == "" || handle == "" {
 		errors.HandleError(errors.BadRequestf("invalid resource %s", res)).ServeHTTP(w, r)
 		return
