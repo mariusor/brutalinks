@@ -1203,59 +1203,85 @@ func (r *repository) account(ctx context.Context, ff *Filters) (*Account, error)
 	return &accounts[0], nil
 }
 
-func (r *repository) accounts(ctx context.Context, ff ...*Filters) (AccountCollection, error) {
+func accumulateAccountsFromCollection(col pub.CollectionInterface) (AccountCollection, CompStrs, error) {
 	accounts := make(AccountCollection, 0)
+	deferredTagLoads := make(CompStrs, 0)
+	for _, it := range col.Collection() {
+		if !it.IsObject() || !ValidActorTypes.Contains(it.GetType()) {
+			continue
+		}
+		a := Account{}
+		if err := a.FromActivityPub(it); err == nil && a.IsValid() {
+			if len(a.Metadata.Tags) > 0 && deferredTagLoads != nil {
+				for _, t := range a.Metadata.Tags {
+					if t.Name == "" && t.Metadata.ID != "" {
+						deferredTagLoads = append(deferredTagLoads, EqualsString(t.Metadata.ID))
+					}
+				}
+			}
+			accounts = append(accounts, a)
+		}
+	}
+	return accounts, deferredTagLoads, nil
+}
+
+func assignTagsToAccounts(accounts AccountCollection, col pub.CollectionInterface) error {
+	for _, it := range col.Collection() {
+		for _, a := range accounts {
+			for i, t := range a.Metadata.Tags {
+				if it.GetID().Equals(pub.IRI(t.Metadata.ID), true) {
+					tt := Tag{}
+					tt.FromActivityPub(it)
+					a.Metadata.Tags[i] = tt
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func (r *repository) accountsFromRemote(ctx context.Context, remote pub.Item, ff ...*Filters) (AccountCollection, error) {
+	accounts := make(AccountCollection, 0)
+	localBase := baseIRI(r.fedbox.Service().GetLink())
 	searches := RemoteLoads{
-		r.fedbox.Service().GetLink(): []RemoteLoad{{actor: r.fedbox.Service(), loadFn: colIRI(actors), filters: ff}},
+		localBase: []RemoteLoad{{actor: r.fedbox.Service(), loadFn: colIRI(actors), filters: ff}},
+	}
+	if remote != nil {
+		searches[remote.GetLink()] = []RemoteLoad{{actor: remote, loadFn: colIRI(actors), filters: ff}}
 	}
 	deferredTagLoads := make(CompStrs, 0)
 	err := LoadFromSearches(ctx, r, searches, func(_ context.Context, col pub.CollectionInterface, f *Filters) error {
-		for _, it := range col.Collection() {
-			if !it.IsObject() || !ValidActorTypes.Contains(it.GetType()) {
-				continue
-			}
-			a := Account{}
-			if err := a.FromActivityPub(it); err == nil && a.IsValid() {
-				if len(a.Metadata.Tags) > 0 {
-					for _, t := range a.Metadata.Tags {
-						if t.Name == "" && t.Metadata.ID != "" {
-							deferredTagLoads = append(deferredTagLoads, EqualsString(t.Metadata.ID))
-						}
-					}
-				}
-				accounts = append(accounts, a)
-			}
-		}
-
 		// TODO(marius): this needs to be externalized also to a different function that we can pass from outer scope
 		//   This function implements the logic for breaking out of the collection iteration cycle and returns a bool
-		return nil
+		acc, tags, err := accumulateAccountsFromCollection(col)
+		accounts = append(accounts, acc...)
+		deferredTagLoads = append(deferredTagLoads, tags...)
+		return err
 	})
 	if err != nil {
 		return accounts, err
 	}
 	tagSearches := RemoteLoads{
-		r.fedbox.Service().GetLink(): []RemoteLoad{{
+		localBase: []RemoteLoad{{
 			actor:   r.fedbox.Service(),
 			loadFn:  colIRI(objects),
 			filters: []*Filters{{IRI: deferredTagLoads}},
 		}},
 	}
-	err = LoadFromSearches(ctx, r, tagSearches, func(_ context.Context, col pub.CollectionInterface, f *Filters) error {
-		for _, it := range col.Collection() {
-			for _, a := range accounts {
-				for i, t := range a.Metadata.Tags {
-					if it.GetID().Equals(pub.IRI(t.Metadata.ID), true) {
-						tt := Tag{}
-						tt.FromActivityPub(it)
-						a.Metadata.Tags[i] = tt
-					}
-				}
-			}
-		}
-		return nil
+	if remote != nil {
+		tagSearches[remote.GetLink()] = []RemoteLoad{{
+			actor:   remote,
+			loadFn:  colIRI(objects),
+			filters: []*Filters{{IRI: deferredTagLoads}},
+		}}
+	}
+	return accounts, LoadFromSearches(ctx, r, tagSearches, func(_ context.Context, col pub.CollectionInterface, f *Filters) error {
+		return assignTagsToAccounts(accounts, col)
 	})
-	return accounts, err
+}
+
+func (r *repository) accounts(ctx context.Context, ff ...*Filters) (AccountCollection, error) {
+	return r.accountsFromRemote(ctx, r.fedbox.Service().GetLink(), ff...)
 }
 
 func (r *repository) objects(ctx context.Context, ff ...*Filters) (ItemCollection, error) {

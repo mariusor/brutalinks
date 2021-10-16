@@ -994,6 +994,15 @@ func opLink(c Item) string {
 	return ""
 }
 
+func splitRemoteHandle(res string) (string, string) {
+	split := "@"
+	ar := strings.Split(res, split)
+	if len(ar) != 2 {
+		return "", ""
+	}
+	return ar[0], ar[1]
+}
+
 // AccountPermaLink
 func AccountPermaLink(a *Account) string {
 	if a == nil {
@@ -1054,13 +1063,7 @@ func ShowAccountHandle(a *Account) string {
 		handle = a.Handle
 	}
 	if a.IsFederated() {
-		var h string
-		if a.HasMetadata() && a.Metadata.URL != "" {
-			h = host(a.Metadata.URL)
-		} else if a.pub != nil {
-			h = host(a.pub.GetLink().String())
-		}
-		return handle + "@" + h
+		return handle + "@" + host(a.pub.GetLink().String())
 	}
 	return handle
 }
