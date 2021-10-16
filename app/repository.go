@@ -1243,10 +1243,11 @@ func assignTagsToAccounts(accounts AccountCollection, col pub.CollectionInterfac
 func (r *repository) accountsFromRemote(ctx context.Context, remote pub.Item, ff ...*Filters) (AccountCollection, error) {
 	accounts := make(AccountCollection, 0)
 	localBase := baseIRI(r.fedbox.Service().GetLink())
+	isRemote := remote != nil && !remote.GetLink().Contains(localBase, true)
 	searches := RemoteLoads{
 		localBase: []RemoteLoad{{actor: r.fedbox.Service(), loadFn: colIRI(actors), filters: ff}},
 	}
-	if remote != nil {
+	if isRemote {
 		searches[remote.GetLink()] = []RemoteLoad{{actor: remote, loadFn: colIRI(actors), filters: ff}}
 	}
 	deferredTagLoads := make(CompStrs, 0)
@@ -1268,7 +1269,7 @@ func (r *repository) accountsFromRemote(ctx context.Context, remote pub.Item, ff
 			filters: []*Filters{{IRI: deferredTagLoads}},
 		}},
 	}
-	if remote != nil {
+	if isRemote {
 		tagSearches[remote.GetLink()] = []RemoteLoad{{
 			actor:   remote,
 			loadFn:  colIRI(objects),
