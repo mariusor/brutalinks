@@ -130,7 +130,7 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 				r.With(DefaultFilters, LoadServiceInboxMw, SortByScore).Get("/", h.HandleShow)
 				r.With(DomainFiltersMw, LoadServiceInboxMw, middleware.StripSlashes, SortByDate).Get("/d", h.HandleShow)
 				r.With(DomainFiltersMw, LoadServiceInboxMw, SortByDate).Get("/d/{domain}", h.HandleShow)
-				r.With(TagFiltersMw, LoadServiceInboxMw, ModerationListing, SortByDate).Get("/t/{tag}", h.HandleShow)
+				r.With(TagFiltersMw, searchesInCollectionsMw, LoadMw, ModerationListing, SortByDate).Get("/t/{tag}", h.HandleShow)
 				r.With(SelfFiltersMw(h.storage.fedbox.Service().ID), LoadServiceInboxMw, SortByScore).Get("/self", h.HandleShow)
 				r.With(FederatedFiltersMw(h.storage.fedbox.Service().ID), LoadServiceInboxMw, SortByScore).Get("/federated", h.HandleShow)
 				r.With(h.NeedsSessions, FollowedFiltersMw, h.ValidateLoggedIn(h.v.RedirectToErrors), LoadInboxMw, SortByDate).

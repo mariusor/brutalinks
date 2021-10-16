@@ -138,12 +138,13 @@ func searchesInCollectionsMw(next http.Handler) http.Handler {
 		ff := ContextActivityFilters(r.Context())
 
 		service := repo.fedbox.Service().GetLink()
+		base := baseIRI(service)
 		searchIn := RemoteLoads{
-			service: []RemoteLoad{{actor: repo.fedbox.Service(), loadFn: inbox, filters: ff}},
+			base: []RemoteLoad{{actor: repo.fedbox.Service(), loadFn: inbox, filters: ff}},
 		}
 		if current.IsLogged() {
-			searchIn[service] = append(
-				searchIn[service],
+			searchIn[base] = append(
+				searchIn[base],
 				RemoteLoad{actor: current.pub, loadFn: inbox, filters: ff},
 				RemoteLoad{actor: current.pub, loadFn: outbox, filters: ff},
 			)

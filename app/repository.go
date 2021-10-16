@@ -1471,7 +1471,7 @@ func (r *repository) ActorCollection(ctx context.Context, searches RemoteLoads) 
 		}
 		// TODO(marius): this needs to be externalized also to a different function that we can pass from outer scope
 		//   This function implements the logic for breaking out of the collection iteration cycle and returns a bool
-		if len(items)-f.MaxItems < 5 {
+		if f.MaxItems > 0 && len(items)-f.MaxItems < 5 {
 			return StopLoad{}
 		}
 		return nil
