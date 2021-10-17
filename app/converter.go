@@ -200,7 +200,11 @@ func (a *Account) FromActivityPub(it pub.Item) error {
 		fallthrough
 	case pub.CreateType, pub.UpdateType:
 		return pub.OnActivity(it, func(act *pub.Activity) error {
-			return a.FromActivityPub(act.Object)
+			err := a.FromActivityPub(act.Object)
+			if !a.CreatedBy.IsValid() {
+				a.CreatedBy.FromActivityPub(act.Actor)
+			}
+			return err
 		})
 	case pub.TombstoneType:
 		return pub.OnObject(it, func(o *pub.Object) error {
