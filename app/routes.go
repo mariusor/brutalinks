@@ -33,7 +33,7 @@ var assetFiles = assets.AssetFiles{
 
 func (h *handler) ItemRoutes() func(chi.Router) {
 	return func(r chi.Router) {
-		r.Use(h.CSRF, ContentModelMw, h.ItemFiltersMw, searchesInCollectionsMw, LoadSingleObjectMw, SingleItemModelMw)
+		r.Use(h.CSRF, ContentModelMw, h.ItemFiltersMw, SearchInLoggedAccountCollectionsMw, LoadSingleObjectMw, SingleItemModelMw)
 		r.With(LoadVotes, LoadReplies, LoadAuthors, LoadSingleItemDependenciesMw, ThreadedListingMw, SortByScore).Get("/", h.HandleShow)
 		r.With(h.ValidateLoggedIn(h.v.RedirectToErrors), LoadSingleItemDependenciesMw).Post("/", h.HandleSubmit)
 
@@ -123,29 +123,29 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 			r.Route("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}", h.ItemRoutes())
 
 			// @todo(marius) :link_generation:
-			r.With(ContentModelMw, h.ItemFiltersMw, searchesInCollectionsMw, LoadSingleObjectMw).
+			r.With(ContentModelMw, h.ItemFiltersMw, SearchInServiceInbox, LoadSingleObjectMw).
 				Get("/i/{hash}", h.HandleItemRedirect)
 
 			r.With(h.NeedsSessions).Get("/logout", h.HandleLogout)
 
 			r.With(ListingModelMw, LoadVotes, LoadReplies).Group(func(r chi.Router) {
 				// todo(marius) :link_generation:
-				r.With(DefaultFilters, searchesInCollectionsMw, LoadMw, SortByScore).Get("/", h.HandleShow)
-				r.With(DomainFiltersMw, searchesInCollectionsMw, LoadMw, middleware.StripSlashes, SortByDate).
+				r.With(DefaultFilters, SearchInServiceInbox, LoadMw, SortByScore).Get("/", h.HandleShow)
+				r.With(DomainFiltersMw, SearchInServiceInbox, LoadMw, middleware.StripSlashes, SortByDate).
 					Get("/d", h.HandleShow)
-				r.With(DomainFiltersMw, searchesInCollectionsMw, LoadMw, SortByDate).
+				r.With(DomainFiltersMw, SearchInServiceInbox, LoadMw, SortByDate).
 					Get("/d/{domain}", h.HandleShow)
-				r.With(TagFiltersMw, searchesInCollectionsMw, LoadMw, ModerationListing, SortByDate).
+				r.With(TagFiltersMw, SearchInServiceInbox, LoadMw, ModerationListing, SortByDate).
 					Get("/t/{tag}", h.HandleShow)
-				r.With(SelfFiltersMw(h.storage.fedbox.Service().ID), searchesInCollectionsMw, LoadMw, SortByScore).
+				r.With(SelfFiltersMw(h.storage.fedbox.Service().ID), SearchInServiceInbox, LoadMw, SortByScore).
 					Get("/self", h.HandleShow)
-				r.With(FederatedFiltersMw(h.storage.fedbox.Service().ID), searchesInCollectionsMw, LoadMw, SortByScore).
+				r.With(FederatedFiltersMw(h.storage.fedbox.Service().ID), SearchInServiceInbox, LoadMw, SortByScore).
 					Get("/federated", h.HandleShow)
 				r.With(h.NeedsSessions, FollowedFiltersMw, h.ValidateLoggedIn(h.v.RedirectToErrors), LoadInboxMw, SortByDate).
 					Get("/followed", h.HandleShow)
-				r.With(ModelMw(&listingModel{tpl: "moderation", sortFn: ByDate}), ModerationFiltersMw, LoadServiceWithSelfAuthInboxMw, ModerationListing).
+				r.With(ModelMw(&listingModel{tpl: "moderation", sortFn: ByDate}), ModerationFiltersMw, SearchInServiceInbox, SearchInLoggedAccountCollectionsMw, LoadMw, ModerationListing).
 					Get("/moderation", h.HandleShow)
-				r.With(ModelMw(&listingModel{tpl: "listing", sortFn: ByDate}), ActorsFiltersMw, searchesInCollectionsMw, LoadMw, ThreadedListingMw).
+				r.With(ModelMw(&listingModel{tpl: "listing", sortFn: ByDate}), ActorsFiltersMw, SearchInServiceInbox, LoadMw, ThreadedListingMw).
 					Get("/~", h.HandleShow)
 			})
 

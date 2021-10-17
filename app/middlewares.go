@@ -118,17 +118,43 @@ func LoadMw(next http.Handler) http.Handler {
 	})
 }
 
-func searchesInCollectionsMw(next http.Handler) http.Handler {
+func SearchInServiceInbox(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		repo := ContextRepository(r.Context())
+		ff := ContextActivityFilters(r.Context())
+		searchIn := ContextLoads(r.Context())
+		storeSearches := false
+		if searchIn == nil {
+			searchIn = RemoteLoads{}
+			storeSearches = true
+		}
+
+		service := repo.fedbox.Service().GetLink()
+		base := baseIRI(service)
+		searchIn[base] = append(searchIn[base], RemoteLoad{actor: repo.fedbox.Service(), loadFn: inbox, filters: ff})
+		if storeSearches {
+			rtx := context.WithValue(r.Context(), LoadsCtxtKey, searchIn)
+			next.ServeHTTP(w, r.WithContext(rtx))
+		} else {
+			next.ServeHTTP(w, r)
+		}
+	})
+}
+
+func SearchInLoggedAccountCollectionsMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		repo := ContextRepository(r.Context())
 		current := ContextAccount(r.Context())
 		ff := ContextActivityFilters(r.Context())
+		searchIn := ContextLoads(r.Context())
+		storeSearches := false
+		if searchIn == nil {
+			searchIn = RemoteLoads{}
+			storeSearches = true
+		}
 
 		service := repo.fedbox.Service().GetLink()
 		base := baseIRI(service)
-		searchIn := RemoteLoads{
-			base: []RemoteLoad{{actor: repo.fedbox.Service(), loadFn: inbox, filters: ff}},
-		}
 		if current.IsLogged() {
 			searchIn[base] = append(
 				searchIn[base],
@@ -136,8 +162,12 @@ func searchesInCollectionsMw(next http.Handler) http.Handler {
 				RemoteLoad{actor: current.pub, loadFn: outbox, filters: ff},
 			)
 		}
-		rtx := context.WithValue(r.Context(), LoadsCtxtKey, searchIn)
-		next.ServeHTTP(w, r.WithContext(rtx))
+		if storeSearches {
+			rtx := context.WithValue(r.Context(), LoadsCtxtKey, searchIn)
+			next.ServeHTTP(w, r.WithContext(rtx))
+		} else {
+			next.ServeHTTP(w, r)
+		}
 	})
 }
 
