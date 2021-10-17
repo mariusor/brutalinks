@@ -2,6 +2,8 @@
 {{- $it := . -}}
 {{- $deleted := $it.Deleted -}}
 {{- $authorDeleted := $it.SubmittedBy.Deleted -}}
+{{- $readonly := IsReadOnly $it -}}
+{{- $showReply := and (eq current "content") CurrentAccount.IsValid }}
 <footer class="meta">
     <small>submitted
         {{- if not $deleted -}}
@@ -12,7 +14,7 @@
     <nav><ul>
             {{- $link := (PermaLink $it) -}}
             {{- if not (sameBase req.URL.Path $link) -}}
-                {{- if and CurrentAccount.IsValid (eq current "content") }}
+                {{- if and $showReply (not $readonly) }}
         <li><small><a href="{{$link}}" rel="bookmark" title="Reply{{if .Title}}: {{$it.Title }}{{end}}">{{ if $it.Private }}{{icon "lock"}} {{ end -}} reply</a></small></li>
                 {{- else -}}
         <li><small><a href="{{$link}}" rel="bookmark" title="Permalink{{if .Title}}: {{$it.Title }}{{end}}">{{ if $it.Private }}{{icon "lock"}} {{ end -}} permalink</a></small></li>
@@ -34,7 +36,7 @@
             {{- end }}
             {{- if and CurrentAccount.IsValid $it.SubmittedBy.IsValid -}}
                 {{- if (sameHash $it.SubmittedBy.ID CurrentAccount.ID) }}
-                    {{- if not .Deleted }}
+                    {{- if not $readonly }}
         <li><small><a href="{{$it | PermaLink }}/edit" title="Edit{{if .Title}}: {{$it.Title }}{{end}}">{{/*icon "edit"*/}}edit</a></small></li>
         <li><small><a href="{{$it | PermaLink }}/rm" class="rm" data-hash="{{ .ID }}" title="Remove{{if .Title}}: {{$it.Title }}{{end}}">{{/*icon "eraser"*/}}rm</a></small></li>
                     {{ end -}}
