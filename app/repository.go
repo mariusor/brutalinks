@@ -1366,9 +1366,9 @@ func IRIsFilter(iris ...pub.IRI) CompStrs {
 	return r
 }
 
-// LoadItemsFromSearches loads all elements from RemoteLoads
+// LoadSearches loads all elements from RemoteLoads
 // Iterating over the activities in the resulting collections, we gather the objects and accounts
-func (r *repository) LoadItemsFromSearches(ctx context.Context, searches RemoteLoads, deps deps) (Cursor, error) {
+func (r *repository) LoadSearches(ctx context.Context, searches RemoteLoads, deps deps) (Cursor, error) {
 	items := make(ItemCollection, 0)
 	follows := make(FollowRequests, 0)
 	accounts := make(AccountCollection, 0)
@@ -1461,7 +1461,8 @@ func (r *repository) LoadItemsFromSearches(ctx context.Context, searches RemoteL
 		}
 		// TODO(marius): this needs to be externalized also to a different function that we can pass from outer scope
 		//   This function implements the logic for breaking out of the collection iteration cycle and returns a bool
-		if f.MaxItems > 0 && len(items)-f.MaxItems < 5 {
+		loadedCount := len(items) + len(follows) + len(accounts) + len(moderations) + len(appreciations)
+		if f.MaxItems > 0 && loadedCount > 0 && loadedCount-f.MaxItems < 5 {
 			return StopLoad{}
 		}
 		return nil
@@ -2240,17 +2241,6 @@ func (r *repository) LoadInfo() (WebInfo, error) {
 }
 
 var allDeps = deps{Votes: true, Authors: true, Replies: true, Follows: true}
-
-func (r *repository) LoadActorInbox(ctx context.Context, actor pub.Item, f ...*Filters) (Cursor, error) {
-	if actor == nil {
-		return emptyCursor, errors.Errorf("Invalid actor")
-	}
-
-	searches := make(RemoteLoads, 0)
-	searches[baseIRI(actor.GetLink())] = []RemoteLoad{{actor: actor, loadFn: inbox, filters: f}}
-
-	return r.LoadItemsFromSearches(ctx, searches, allDeps)
-}
 
 func (r repository) moderationActivity(ctx context.Context, er *pub.Actor, ed pub.Item, reason *Item) (*pub.Activity, error) {
 	bcc := make(pub.ItemCollection, 0)
