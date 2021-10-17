@@ -252,7 +252,7 @@ func MessageFiltersMw(next http.Handler) http.Handler {
 	})
 }
 
-func AccountSearchesMw(next http.Handler) http.Handler {
+func SearchForAuthors(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authors := ContextAuthors(r.Context())
 		if len(authors) == 0 {
@@ -264,7 +264,12 @@ func AccountSearchesMw(next http.Handler) http.Handler {
 		f.Type = CreateActivitiesFilter
 		f.Object = &Filters{IRI: notNilFilters}
 
-		searches := RemoteLoads{}
+		saveSearches := false
+		searches := ContextLoads(r.Context())
+		if searches == nil {
+			saveSearches = true
+			searches = RemoteLoads{}
+		}
 		for _, author := range authors {
 			if author.pub == nil {
 				continue
@@ -277,8 +282,12 @@ func AccountSearchesMw(next http.Handler) http.Handler {
 
 		// NOTE(marius): having two very different filters here introduces bugs
 		// with the next/previous cursor key (the votes filter can be removed)
-		ctx := context.WithValue(r.Context(), LoadsCtxtKey, searches)
-		next.ServeHTTP(w, r.WithContext(ctx))
+		if saveSearches {
+			ctx := context.WithValue(r.Context(), LoadsCtxtKey, searches)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		} else {
+			next.ServeHTTP(w, r)
+		}
 	})
 }
 

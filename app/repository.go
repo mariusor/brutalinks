@@ -2237,17 +2237,6 @@ func (r *repository) LoadInfo() (WebInfo, error) {
 	return Instance.NodeInfo(), nil
 }
 
-func (r *repository) LoadActorOutbox(ctx context.Context, actor pub.Item, f ...*Filters) (Cursor, error) {
-	if actor == nil {
-		return emptyCursor, errors.Errorf("Invalid actor")
-	}
-
-	searches := make(RemoteLoads)
-	searches[baseIRI(actor.GetLink())] = []RemoteLoad{{actor: actor.GetLink(), loadFn: outbox, filters: f}}
-
-	return r.LoadItemsFromSearches(ctx, searches, allDeps)
-}
-
 var allDeps = deps{Votes: true, Authors: true, Replies: true, Follows: true}
 
 func (r *repository) LoadActorInbox(ctx context.Context, actor pub.Item, f ...*Filters) (Cursor, error) {
