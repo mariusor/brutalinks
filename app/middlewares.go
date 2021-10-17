@@ -171,7 +171,7 @@ func SearchInLoggedAccountCollectionsMw(next http.Handler) http.Handler {
 	})
 }
 
-func LoadSingleItemDependenciesMw(next http.Handler) http.Handler {
+func LoadSingleItemMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var err error
 

@@ -33,9 +33,9 @@ var assetFiles = assets.AssetFiles{
 
 func (h *handler) ItemRoutes() func(chi.Router) {
 	return func(r chi.Router) {
-		r.Use(h.CSRF, ContentModelMw, h.ItemFiltersMw, SearchInLoggedAccountCollectionsMw, LoadSingleObjectMw, SingleItemModelMw)
-		r.With(LoadVotes, LoadReplies, LoadAuthors, LoadSingleItemDependenciesMw, ThreadedListingMw, SortByScore).Get("/", h.HandleShow)
-		r.With(h.ValidateLoggedIn(h.v.RedirectToErrors), LoadSingleItemDependenciesMw).Post("/", h.HandleSubmit)
+		r.Use(h.CSRF, ContentModelMw, h.ItemFiltersMw, SearchInServiceInbox, SearchInLoggedAccountCollectionsMw, LoadSingleObjectMw, SingleItemModelMw)
+		r.With(LoadVotes, LoadReplies, LoadAuthors, LoadSingleItemMw, ThreadedListingMw, SortByScore).Get("/", h.HandleShow)
+		r.With(h.ValidateLoggedIn(h.v.RedirectToErrors), LoadSingleItemMw).Post("/", h.HandleSubmit)
 
 		r.Group(func(r chi.Router) {
 			r.Use(h.ValidateLoggedIn(h.v.RedirectToErrors))
@@ -43,14 +43,14 @@ func (h *handler) ItemRoutes() func(chi.Router) {
 			r.Get("/nay", h.HandleVoting)
 
 			//r.Get("/bad", h.ShowReport)
-			r.With(LoadVotes, LoadAuthors, LoadSingleItemDependenciesMw, ThreadedListingMw, ReportContentModelMw).Get("/bad", h.HandleShow)
+			r.With(LoadVotes, LoadAuthors, LoadSingleItemMw, ThreadedListingMw, ReportContentModelMw).Get("/bad", h.HandleShow)
 			r.Post("/bad", h.ReportItem)
-			r.With(LoadVotes, LoadAuthors, LoadSingleItemDependenciesMw, ThreadedListingMw, BlockContentModelMw).Get("/block", h.HandleShow)
+			r.With(LoadVotes, LoadAuthors, LoadSingleItemMw, ThreadedListingMw, BlockContentModelMw).Get("/block", h.HandleShow)
 			r.Post("/block", h.BlockItem)
 
 			r.Group(func(r chi.Router) {
-				r.With(h.ValidateItemAuthor("edit"), LoadSingleItemDependenciesMw, ThreadedListingMw, EditContentModelMw).Get("/edit", h.HandleShow)
-				r.With(h.ValidateItemAuthor("edit"), LoadSingleItemDependenciesMw).Post("/edit", h.HandleSubmit)
+				r.With(h.ValidateItemAuthor("edit"), LoadSingleItemMw, ThreadedListingMw, EditContentModelMw).Get("/edit", h.HandleShow)
+				r.With(h.ValidateItemAuthor("edit"), LoadSingleItemMw).Post("/edit", h.HandleSubmit)
 				r.With(h.ValidateItemAuthor("delete")).Get("/rm", h.HandleDelete)
 			})
 		})
