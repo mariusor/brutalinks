@@ -97,7 +97,7 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 			})
 
 			r.With(h.LoadAuthorMw).Route("/~{handle}", func(r chi.Router) {
-				r.With(AccountListingModelMw, LoadVotes, SearchForAuthors, LoadMw).Get("/", h.HandleShow)
+				r.With(AccountListingModelMw, LoadAuthors, LoadVotes, SearchForAuthors, LoadMw).Get("/", h.HandleShow)
 
 				r.Group(func(r chi.Router) {
 					r.Use(h.ValidateLoggedIn(h.v.RedirectToErrors))
