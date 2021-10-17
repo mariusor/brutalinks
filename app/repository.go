@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	xerrors "errors"
 	"fmt"
-	"net/http"
 	"net/url"
 	"path"
 	"strings"
@@ -43,15 +42,6 @@ type repository struct {
 
 func (r repository) BaseURL() pub.IRI {
 	return r.fedbox.baseURL
-}
-
-// Repository middleware
-func (h handler) Repository(next http.Handler) http.Handler {
-	fn := func(w http.ResponseWriter, r *http.Request) {
-		ctx := context.WithValue(r.Context(), RepositoryCtxtKey, h.storage)
-		next.ServeHTTP(w, r.WithContext(ctx))
-	}
-	return http.HandlerFunc(fn)
 }
 
 func ActivityPubService(c appConfig) (*repository, error) {

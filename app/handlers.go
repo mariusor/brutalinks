@@ -692,3 +692,12 @@ func (h *handler) HandleShow(w http.ResponseWriter, r *http.Request) {
 		h.v.HandleErrors(w, r, err)
 	}
 }
+
+// Repository middleware
+func (h handler) Repository(next http.Handler) http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		ctx := context.WithValue(r.Context(), RepositoryCtxtKey, h.storage)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	}
+	return http.HandlerFunc(fn)
+}
