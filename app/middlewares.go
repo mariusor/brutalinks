@@ -111,7 +111,10 @@ func getServiceFn(r *http.Request) pub.ItemCollection {
 }
 
 func getLoggedActorFn(r *http.Request) pub.ItemCollection {
-	return pub.ItemCollection{ContextAccount(r.Context()).pub}
+	if logged := ContextAccount(r.Context()); logged.IsLogged() {
+		return pub.ItemCollection{logged.pub}
+	}
+	return nil
 }
 
 func SearchInCollectionsMw(getActorsFn func(r *http.Request) pub.ItemCollection, collections ...LoadFn) func(next http.Handler) http.Handler {
