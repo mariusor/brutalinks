@@ -71,9 +71,7 @@ func AllFilters(next http.Handler) http.Handler {
 
 func DefaultFilters(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		f := defaultFilters(r)
-		f.Object.Name = notNilFilters
-		f.Object.InReplTo = nilFilters
+		f := topLevelFilters(r)
 		m := ContextListingModel(r.Context())
 		m.Title = "Newest items"
 		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
@@ -100,7 +98,7 @@ func ContextActivityFilters(ctx context.Context) []*Filters {
 func SelfFiltersMw(id pub.IRI) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			f := defaultFilters(r)
+			f := topLevelFilters(r)
 			f.Actor.IRI = CompStrs{LikeString(id.String())}
 			m := ContextListingModel(r.Context())
 			m.Title = "Local instance items"
@@ -141,10 +139,17 @@ func defaultFilters(r *http.Request) *Filters {
 	return f
 }
 
+func topLevelFilters(r *http.Request) *Filters {
+	f := defaultFilters(r)
+	f.Object.Name = notNilFilters
+	f.Object.InReplTo = nilFilters
+	return f
+}
+
 func FederatedFiltersMw(id pub.IRI) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			f := defaultFilters(r)
+			f := topLevelFilters(r)
 			f.IRI = CompStrs{DifferentThanString(id.String())}
 			m := ContextListingModel(r.Context())
 			m.Title = "Federated items"
