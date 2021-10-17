@@ -1401,7 +1401,9 @@ func (r *repository) LoadItemsFromSearches(ctx context.Context, searches RemoteL
 
 	var next, prev string
 	err := LoadFromSearches(ctx, r, searches, func(ctx context.Context, col pub.CollectionInterface, f *Filters) error {
-		prev, next = getCollectionPrevNext(col)
+		if len(col.Collection()) > 0 {
+			prev, next = getCollectionPrevNext(col)
+		}
 		r.infoFn(log.Ctx{"col": col.GetID()})("loading")
 		for _, it := range col.Collection() {
 			pub.OnActivity(it, func(a *pub.Activity) error {
