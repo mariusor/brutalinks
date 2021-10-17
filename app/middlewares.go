@@ -73,20 +73,6 @@ func LoadInboxMw(next http.Handler) http.Handler {
 	})
 }
 
-func LoadServiceInboxMw(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		f := ContextActivityFilters(r.Context())
-		repo := ContextRepository(r.Context())
-		cursor, err := repo.LoadActorInbox(r.Context(), repo.fedbox.Service(), f...)
-		if err != nil {
-			ctxtErr(next, w, r, errors.Annotatef(err, "unable to load the %s's inbox", repo.fedbox.Service().Type))
-			return
-		}
-		ctx := context.WithValue(r.Context(), CursorCtxtKey, &cursor)
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
-}
-
 func LoadServiceWithSelfAuthInboxMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := ContextActivityFilters(r.Context())
@@ -120,8 +106,9 @@ func LoadMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		repo := ContextRepository(r.Context())
 		searches := ContextLoads(r.Context())
+		deps := ContextDependentLoads(r.Context())
 
-		c, err := repo.ActorCollection(r.Context(), searches)
+		c, err := repo.LoadItemsFromSearches(r.Context(), searches, *deps)
 		if err != nil {
 			ctxtErr(next, w, r, errors.NotFoundf(strings.TrimLeft(r.URL.Path, "/")))
 			return
@@ -591,9 +578,10 @@ type deps struct {
 	Votes   bool
 	Authors bool
 	Replies bool
+	Follows bool
 }
 
-func LoadItemsVotes(next http.Handler) http.Handler {
+func LoadVotes(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		deps := ContextDependentLoads(ctx)
@@ -603,7 +591,7 @@ func LoadItemsVotes(next http.Handler) http.Handler {
 	})
 }
 
-func LoadItemsAuthors(next http.Handler) http.Handler {
+func LoadAuthors(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		deps := ContextDependentLoads(ctx)
@@ -613,7 +601,7 @@ func LoadItemsAuthors(next http.Handler) http.Handler {
 	})
 }
 
-func LoadItemsReplies(next http.Handler) http.Handler {
+func LoadReplies(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		deps := ContextDependentLoads(ctx)

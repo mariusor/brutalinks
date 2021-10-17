@@ -1376,12 +1376,9 @@ func IRIsFilter(iris ...pub.IRI) CompStrs {
 	return r
 }
 
-// ActorCollection loads the service's collection returned by fn.
-// First step is to load the Create activities from the inbox
-// Iterating over the activities in the resulting collection, we gather the objects and accounts
-//  With the resulting Object IRIs we load from the objects collection with our matching filters
-//  With the resulting Actor IRIs we load from the actors collection with matching filters
-func (r *repository) ActorCollection(ctx context.Context, searches RemoteLoads) (Cursor, error) {
+// LoadItemsFromSearches loads all elements from RemoteLoads
+// Iterating over the activities in the resulting collections, we gather the objects and accounts
+func (r *repository) LoadItemsFromSearches(ctx context.Context, searches RemoteLoads, deps deps) (Cursor, error) {
 	items := make(ItemCollection, 0)
 	follows := make(FollowRequests, 0)
 	accounts := make(AccountCollection, 0)
@@ -1515,14 +1512,22 @@ func (r *repository) ActorCollection(ctx context.Context, searches RemoteLoads) 
 		}
 	}
 
-	items, _ = r.loadItemsAuthors(ctx, items...)
-	items, _ = r.loadItemsVotes(ctx, items...)
-	_, err = r.loadItemsReplies(ctx, items...)
-	if err != nil {
-		return emptyCursor, err
+	if deps.Authors {
+		items, _ = r.loadItemsAuthors(ctx, items...)
+		accounts, _ = r.loadAccountsAuthors(ctx, accounts...)
 	}
-	follows, _ = r.loadFollowsAuthors(ctx, follows...)
-	accounts, _ = r.loadAccountsAuthors(ctx, accounts...)
+	if deps.Votes {
+		items, _ = r.loadItemsVotes(ctx, items...)
+	}
+	if deps.Replies {
+		_, err = r.loadItemsReplies(ctx, items...)
+		if err != nil {
+			return emptyCursor, err
+		}
+	}
+	if deps.Follows {
+		follows, _ = r.loadFollowsAuthors(ctx, follows...)
+	}
 	moderations, _ = r.loadModerationDetails(ctx, moderations...)
 
 	relM.RLock()
@@ -2250,8 +2255,10 @@ func (r *repository) LoadActorOutbox(ctx context.Context, actor pub.Item, f ...*
 	searches := make(RemoteLoads)
 	searches[baseIRI(actor.GetLink())] = []RemoteLoad{{actor: actor.GetLink(), loadFn: outbox, filters: f}}
 
-	return r.ActorCollection(ctx, searches)
+	return r.LoadItemsFromSearches(ctx, searches, allDeps)
 }
+
+var allDeps = deps{Votes: true, Authors: true, Replies: true, Follows: true}
 
 func (r *repository) LoadActorInbox(ctx context.Context, actor pub.Item, f ...*Filters) (Cursor, error) {
 	if actor == nil {
@@ -2261,7 +2268,7 @@ func (r *repository) LoadActorInbox(ctx context.Context, actor pub.Item, f ...*F
 	searches := make(RemoteLoads, 0)
 	searches[baseIRI(actor.GetLink())] = []RemoteLoad{{actor: actor, loadFn: inbox, filters: f}}
 
-	return r.ActorCollection(ctx, searches)
+	return r.LoadItemsFromSearches(ctx, searches, allDeps)
 }
 
 func (r repository) moderationActivity(ctx context.Context, er *pub.Actor, ed pub.Item, reason *Item) (*pub.Activity, error) {

@@ -34,7 +34,7 @@ var assetFiles = assets.AssetFiles{
 func (h *handler) ItemRoutes() func(chi.Router) {
 	return func(r chi.Router) {
 		r.Use(h.CSRF, ContentModelMw, h.ItemFiltersMw, searchesInCollectionsMw, LoadSingleObjectMw, SingleItemModelMw)
-		r.With(LoadItemsVotes, LoadItemsReplies, LoadItemsAuthors, LoadSingleItemDependenciesMw, ThreadedListingMw, SortByScore).Get("/", h.HandleShow)
+		r.With(LoadVotes, LoadReplies, LoadAuthors, LoadSingleItemDependenciesMw, ThreadedListingMw, SortByScore).Get("/", h.HandleShow)
 		r.With(h.ValidateLoggedIn(h.v.RedirectToErrors), LoadSingleItemDependenciesMw).Post("/", h.HandleSubmit)
 
 		r.Group(func(r chi.Router) {
@@ -43,9 +43,9 @@ func (h *handler) ItemRoutes() func(chi.Router) {
 			r.Get("/nay", h.HandleVoting)
 
 			//r.Get("/bad", h.ShowReport)
-			r.With(LoadItemsVotes, LoadItemsAuthors, LoadSingleItemDependenciesMw, ThreadedListingMw, ReportContentModelMw).Get("/bad", h.HandleShow)
+			r.With(LoadVotes, LoadAuthors, LoadSingleItemDependenciesMw, ThreadedListingMw, ReportContentModelMw).Get("/bad", h.HandleShow)
 			r.Post("/bad", h.ReportItem)
-			r.With(LoadItemsVotes, LoadItemsAuthors, LoadSingleItemDependenciesMw, ThreadedListingMw, BlockContentModelMw).Get("/block", h.HandleShow)
+			r.With(LoadVotes, LoadAuthors, LoadSingleItemDependenciesMw, ThreadedListingMw, BlockContentModelMw).Get("/block", h.HandleShow)
 			r.Post("/block", h.BlockItem)
 
 			r.Group(func(r chi.Router) {
@@ -83,8 +83,10 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 				r.Post("/submit", h.HandleSubmit)
 				r.Route("/register", func(r chi.Router) {
 					r.Group(func(r chi.Router) {
-						r.With(h.v.RedirectWithFailMessage(usersEnabledFn), ModelMw(&registerModel{Title: "Register new account"})).Get("/", h.HandleShow)
-						r.With(h.v.RedirectWithFailMessage(usersInvitesFn), ModelMw(&registerModel{Title: "Register account from invite"}), LoadInvitedMw).Get("/{hash}", h.HandleShow)
+						r.With(h.v.RedirectWithFailMessage(usersEnabledFn), ModelMw(&registerModel{Title: "Register new account"})).
+							Get("/", h.HandleShow)
+						r.With(h.v.RedirectWithFailMessage(usersInvitesFn), ModelMw(&registerModel{Title: "Register account from invite"}), LoadInvitedMw).
+							Get("/{hash}", h.HandleShow)
 					})
 					r.With(h.v.RedirectWithFailMessage(usersEnabledOrInvitesFn)).Post("/", h.HandleRegister)
 				})
@@ -121,23 +123,29 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 			r.Route("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}", h.ItemRoutes())
 
 			// @todo(marius) :link_generation:
-			r.With(ContentModelMw, h.ItemFiltersMw, searchesInCollectionsMw, LoadSingleObjectMw).Get("/i/{hash}", h.HandleItemRedirect)
+			r.With(ContentModelMw, h.ItemFiltersMw, searchesInCollectionsMw, LoadSingleObjectMw).
+				Get("/i/{hash}", h.HandleItemRedirect)
 
 			r.With(h.NeedsSessions).Get("/logout", h.HandleLogout)
 
-			r.With(ListingModelMw).Group(func(r chi.Router) {
+			r.With(ListingModelMw, LoadVotes, LoadReplies).Group(func(r chi.Router) {
 				// todo(marius) :link_generation:
-				r.With(DefaultFilters, LoadServiceInboxMw, SortByScore).Get("/", h.HandleShow)
-				r.With(DomainFiltersMw, LoadServiceInboxMw, middleware.StripSlashes, SortByDate).Get("/d", h.HandleShow)
-				r.With(DomainFiltersMw, LoadServiceInboxMw, SortByDate).Get("/d/{domain}", h.HandleShow)
-				r.With(TagFiltersMw, searchesInCollectionsMw, LoadMw, ModerationListing, SortByDate).Get("/t/{tag}", h.HandleShow)
-				r.With(SelfFiltersMw(h.storage.fedbox.Service().ID), LoadServiceInboxMw, SortByScore).Get("/self", h.HandleShow)
-				r.With(FederatedFiltersMw(h.storage.fedbox.Service().ID), LoadServiceInboxMw, SortByScore).Get("/federated", h.HandleShow)
+				r.With(DefaultFilters, searchesInCollectionsMw, LoadMw, SortByScore).Get("/", h.HandleShow)
+				r.With(DomainFiltersMw, searchesInCollectionsMw, LoadMw, middleware.StripSlashes, SortByDate).
+					Get("/d", h.HandleShow)
+				r.With(DomainFiltersMw, searchesInCollectionsMw, LoadMw, SortByDate).
+					Get("/d/{domain}", h.HandleShow)
+				r.With(TagFiltersMw, searchesInCollectionsMw, LoadMw, ModerationListing, SortByDate).
+					Get("/t/{tag}", h.HandleShow)
+				r.With(SelfFiltersMw(h.storage.fedbox.Service().ID), searchesInCollectionsMw, LoadMw, SortByScore).
+					Get("/self", h.HandleShow)
+				r.With(FederatedFiltersMw(h.storage.fedbox.Service().ID), searchesInCollectionsMw, LoadMw, SortByScore).
+					Get("/federated", h.HandleShow)
 				r.With(h.NeedsSessions, FollowedFiltersMw, h.ValidateLoggedIn(h.v.RedirectToErrors), LoadInboxMw, SortByDate).
 					Get("/followed", h.HandleShow)
 				r.With(ModelMw(&listingModel{tpl: "moderation", sortFn: ByDate}), ModerationFiltersMw, LoadServiceWithSelfAuthInboxMw, ModerationListing).
 					Get("/moderation", h.HandleShow)
-				r.With(ModelMw(&listingModel{tpl: "listing", sortFn: ByDate}), ActorsFiltersMw, LoadServiceInboxMw, ThreadedListingMw).
+				r.With(ModelMw(&listingModel{tpl: "listing", sortFn: ByDate}), ActorsFiltersMw, searchesInCollectionsMw, LoadMw, ThreadedListingMw).
 					Get("/~", h.HandleShow)
 			})
 
