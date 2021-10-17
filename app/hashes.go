@@ -15,7 +15,7 @@ type Hash uuid.UUID
 // AnonymousHash is the sha hash for the anonymous account
 var (
 	AnonymousHash = Hash{}
-	SystemHash = Hash{0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0}
+	SystemHash    = Hash{0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 )
 
 func HashFromIRI(i pub.IRI) Hash {
