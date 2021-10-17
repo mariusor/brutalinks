@@ -57,7 +57,7 @@ func FiltersFromRequest(r *http.Request) *Filters {
 
 var (
 	CreateActivitiesFilter       = ActivityTypesFilter(pub.CreateType)
-	AppreciationActivitiesFilter = ActivityTypesFilter(pub.LikeType)
+	AppreciationActivitiesFilter = ActivityTypesFilter(pub.LikeType, pub.DislikeType)
 )
 
 func DefaultFilters(next http.Handler) http.Handler {
