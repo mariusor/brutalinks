@@ -60,9 +60,20 @@ var (
 	AppreciationActivitiesFilter = ActivityTypesFilter(pub.LikeType, pub.DislikeType)
 )
 
+func AllFilters(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		f := defaultFilters(r)
+		f.Object = &Filters{IRI: notNilFilters}
+		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
 func DefaultFilters(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := defaultFilters(r)
+		f.Object.Name = notNilFilters
+		f.Object.InReplTo = nilFilters
 		m := ContextListingModel(r.Context())
 		m.Title = "Newest items"
 		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
@@ -125,8 +136,6 @@ func defaultFilters(r *http.Request) *Filters {
 	f := FiltersFromRequest(r)
 	f.Type = CreateActivitiesFilter
 	f.Object = new(Filters)
-	f.Object.Name = notNilFilters
-	f.Object.InReplTo = nilFilters
 	f.Object.Type = ActivityTypesFilter(ValidContentTypes...)
 	f.Actor = &Filters{IRI: notNilFilters}
 	return f
@@ -249,45 +258,6 @@ func MessageFiltersMw(next http.Handler) http.Handler {
 		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
 		r = r.WithContext(ctx)
 		next.ServeHTTP(w, r)
-	})
-}
-
-func SearchForAuthors(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		authors := ContextAuthors(r.Context())
-		if len(authors) == 0 {
-			next.ServeHTTP(w, r)
-			return
-		}
-
-		f := FiltersFromRequest(r)
-		f.Type = CreateActivitiesFilter
-		f.Object = &Filters{IRI: notNilFilters}
-
-		saveSearches := false
-		searches := ContextLoads(r.Context())
-		if searches == nil {
-			saveSearches = true
-			searches = RemoteLoads{}
-		}
-		for _, author := range authors {
-			if author.pub == nil {
-				continue
-			}
-			auth := author.pub.GetLink()
-			domainSearches := searches[baseIRI(auth)]
-			domainSearches = append(domainSearches, RemoteLoad{actor: auth, loadFn: outbox, filters: []*Filters{f}})
-			searches[baseIRI(auth)] = domainSearches
-		}
-
-		// NOTE(marius): having two very different filters here introduces bugs
-		// with the next/previous cursor key (the votes filter can be removed)
-		if saveSearches {
-			ctx := context.WithValue(r.Context(), LoadsCtxtKey, searches)
-			next.ServeHTTP(w, r.WithContext(ctx))
-		} else {
-			next.ServeHTTP(w, r)
-		}
 	})
 }
 

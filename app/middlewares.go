@@ -54,41 +54,6 @@ func (h handler) LoadAuthorMw(next http.Handler) http.Handler {
 	})
 }
 
-func LoadInboxMw(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		f := ContextActivityFilters(r.Context())
-		repo := ContextRepository(r.Context())
-		acc := loggedAccount(r)
-		if acc == nil {
-			ctxtErr(next, w, r, errors.MethodNotAllowedf("nil account"))
-			return
-		}
-		cursor, err := repo.LoadActorInbox(r.Context(), acc.pub, f...)
-		if err != nil {
-			ctxtErr(next, w, r, errors.Annotatef(err, "unable to load current account's inbox"))
-			return
-		}
-		ctx := context.WithValue(r.Context(), CursorCtxtKey, &cursor)
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
-}
-
-func LoadServiceWithSelfAuthInboxMw(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		f := ContextActivityFilters(r.Context())
-		repo := ContextRepository(r.Context())
-		repo.fedbox.SignBy(repo.app)
-
-		cursor, err := repo.LoadActorInbox(r.Context(), repo.fedbox.Service(), f...)
-		if err != nil {
-			ctxtErr(next, w, r, errors.Annotatef(err, "unable to load the %s's inbox", repo.fedbox.Service().Type))
-			return
-		}
-		ctx := context.WithValue(r.Context(), CursorCtxtKey, &cursor)
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
-}
-
 func ctxtErr(next http.Handler, w http.ResponseWriter, r *http.Request, err error) {
 	status := errors.HttpStatus(err)
 	ctx := context.WithValue(r.Context(), ModelCtxtKey, &errorModel{
@@ -118,57 +83,70 @@ func LoadMw(next http.Handler) http.Handler {
 	})
 }
 
-func SearchInServiceInbox(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		repo := ContextRepository(r.Context())
-		ff := ContextActivityFilters(r.Context())
-		searchIn := ContextLoads(r.Context())
-		storeSearches := false
-		if searchIn == nil {
-			searchIn = RemoteLoads{}
-			storeSearches = true
-		}
+func requestHandleSearches(r *http.Request) pub.ItemCollection {
+	authors := ContextAuthors(r.Context())
+	if len(authors) == 0 {
+		return nil
+	}
 
-		service := repo.fedbox.Service().GetLink()
-		base := baseIRI(service)
-		searchIn[base] = append(searchIn[base], RemoteLoad{actor: repo.fedbox.Service(), loadFn: inbox, filters: ff})
-		if storeSearches {
-			rtx := context.WithValue(r.Context(), LoadsCtxtKey, searchIn)
-			next.ServeHTTP(w, r.WithContext(rtx))
-		} else {
-			next.ServeHTTP(w, r)
+	actors := make(pub.ItemCollection, 0)
+	for _, author := range authors {
+		if author.pub == nil {
+			continue
 		}
-	})
+		actors = append(actors, author.pub)
+	}
+	return actors
 }
 
-func SearchInLoggedAccountCollectionsMw(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		repo := ContextRepository(r.Context())
-		current := ContextAccount(r.Context())
-		ff := ContextActivityFilters(r.Context())
-		searchIn := ContextLoads(r.Context())
-		storeSearches := false
-		if searchIn == nil {
-			searchIn = RemoteLoads{}
-			storeSearches = true
-		}
+func loggedAccountSearches(collections ...LoadFn) func(http.Handler) http.Handler {
+	return SearchInCollectionsMw(getLoggedActorFn, collections...)
+}
+func serviceSearches(collections ...LoadFn) func(http.Handler) http.Handler {
+	return SearchInCollectionsMw(getServiceFn, collections...)
+}
 
-		service := repo.fedbox.Service().GetLink()
-		base := baseIRI(service)
-		if current.IsLogged() {
-			searchIn[base] = append(
-				searchIn[base],
-				RemoteLoad{actor: current.pub, loadFn: inbox, filters: ff},
-				RemoteLoad{actor: current.pub, loadFn: outbox, filters: ff},
-			)
-		}
-		if storeSearches {
-			rtx := context.WithValue(r.Context(), LoadsCtxtKey, searchIn)
-			next.ServeHTTP(w, r.WithContext(rtx))
-		} else {
-			next.ServeHTTP(w, r)
-		}
-	})
+func getServiceFn(r *http.Request) pub.ItemCollection {
+	return pub.ItemCollection{ContextRepository(r.Context()).fedbox.Service()}
+}
+
+func getLoggedActorFn(r *http.Request) pub.ItemCollection {
+	return pub.ItemCollection{ContextAccount(r.Context()).pub}
+}
+
+func SearchInCollectionsMw(getActorsFn func(r *http.Request) pub.ItemCollection, collections ...LoadFn) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ff := ContextActivityFilters(r.Context())
+			searchIn := ContextLoads(r.Context())
+			storeSearches := false
+			if searchIn == nil {
+				searchIn = RemoteLoads{}
+				storeSearches = true
+			}
+
+			actors := getActorsFn(r)
+			if actors == nil {
+				next.ServeHTTP(w, r)
+				return
+			}
+			for _, current := range actors {
+				base := baseIRI(current.GetLink())
+				for _, collectionFn := range collections {
+					searchIn[base] = append(
+						searchIn[base],
+						RemoteLoad{actor: current, loadFn: collectionFn, filters: ff},
+					)
+				}
+			}
+			if storeSearches {
+				rtx := context.WithValue(r.Context(), LoadsCtxtKey, searchIn)
+				next.ServeHTTP(w, r.WithContext(rtx))
+			} else {
+				next.ServeHTTP(w, r)
+			}
+		})
+	}
 }
 
 func LoadSingleItemMw(next http.Handler) http.Handler {
