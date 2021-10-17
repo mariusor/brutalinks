@@ -131,6 +131,9 @@ func SearchInCollectionsMw(getActorsFn func(r *http.Request) pub.ItemCollection,
 				return
 			}
 			for _, current := range actors {
+				if current == nil {
+					continue
+				}
 				base := baseIRI(current.GetLink())
 				for _, collectionFn := range collections {
 					searchIn[base] = append(
