@@ -144,7 +144,7 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 					Get("/federated", h.HandleShow)
 				r.With(h.NeedsSessions, h.ValidateLoggedIn(h.v.RedirectToErrors), FollowedFiltersMw, loggedAccountSearches(inbox), LoadMw, SortByDate).
 					Get("/followed", h.HandleShow)
-				r.With(ModelMw(&listingModel{tpl: "moderation", sortFn: ByDate}), ModerationFiltersMw, serviceSearches(inbox, outbox), loggedAccountSearches(inbox, outbox), LoadMw, ModerationListing).
+				r.With(ModelMw(&listingModel{tpl: "moderation", sortFn: ByDate}), ModerationFiltersMw, serviceSearches(inbox, outbox), loggedAccountSearches(outbox), LoadMw, ModerationListing).
 					Get("/moderation", h.HandleShow)
 				r.With(ModelMw(&listingModel{tpl: "listing", sortFn: ByDate}), ActorsFiltersMw, serviceSearches(inbox), LoadMw, ThreadedListingMw).
 					Get("/~", h.HandleShow)
