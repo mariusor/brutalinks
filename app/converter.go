@@ -89,11 +89,6 @@ func FromActor(a *Account, p *pub.Actor) error {
 			a.Metadata.Name = name.String()
 		}
 	}
-	if p.Icon != nil {
-		pub.OnObject(p.Icon, func(o *pub.Object) error {
-			return iconMetadataFromObject(&a.Metadata.Icon, o)
-		})
-	}
 	if p.GetType() == pub.TombstoneType {
 		a.Handle = Deleted
 		a.Flags = a.Flags | FlagsDeleted
@@ -112,6 +107,10 @@ func FromActor(a *Account, p *pub.Actor) error {
 	if pName.Equals(pub.Content("")) {
 		pName = p.Name.First().Value
 	}
+	sum := p.Summary.First().Value
+	if len(sum) > 0 {
+		a.Metadata.Blurb = string(sum)
+	}
 	a.Handle = pName.String()
 	if p.Inbox != nil {
 		a.Metadata.InboxIRI = p.Inbox.GetLink().String()
@@ -127,6 +126,11 @@ func FromActor(a *Account, p *pub.Actor) error {
 	}
 	if p.Liked != nil {
 		a.Metadata.LikedIRI = p.Liked.GetLink().String()
+	}
+	if p.Icon != nil {
+		pub.OnObject(p.Icon, func(o *pub.Object) error {
+			return iconMetadataFromObject(&a.Metadata.Icon, o)
+		})
 	}
 	if p.Icon != nil {
 		pub.OnObject(p.Icon, func(ic *pub.Object) error {

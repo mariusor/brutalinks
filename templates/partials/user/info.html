@@ -10,6 +10,7 @@
 {{- if not .CreatedAt.IsZero }}
     <aside>
         Joined <time datetime="{{ .CreatedAt | ISOTimeFmt | html }}" title="{{ .CreatedAt | ISOTimeFmt }}">{{ .CreatedAt | TimeFmt }}</time><br/>
+        {{ if gt (len .Metadata.Blurb) 0 }}{{ .Metadata.Blurb | HTML}}<br/>{{ end }}
 {{- end }}
 {{- if gt (len .Metadata.Tags) 0 }}
     Tags: <ul>

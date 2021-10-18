@@ -387,9 +387,9 @@ func (r *repository) loadAPPerson(a Account) *pub.Actor {
 	}
 
 	if a.HasMetadata() {
-		if p.Summary.Count() == 0 && a.Metadata.Blurb != nil && len(a.Metadata.Blurb) > 0 {
+		if p.Summary.Count() == 0 && len(a.Metadata.Blurb) > 0 {
 			p.Summary = pub.NaturalLanguageValuesNew()
-			p.Summary.Set(pub.NilLangRef, a.Metadata.Blurb)
+			p.Summary.Set(pub.NilLangRef, pub.Content(a.Metadata.Blurb))
 		}
 		if p.Icon == nil && len(a.Metadata.Icon.URI) > 0 {
 			avatar := pub.ObjectNew(pub.ImageType)

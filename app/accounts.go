@@ -32,23 +32,23 @@ type OAuth struct {
 }
 
 type AccountMetadata struct {
-	Password              []byte             `json:"pw,omitempty"`
-	Key                   *SSHKey            `json:"key,omitempty"`
-	Blurb                 []byte             `json:"blurb,omitempty"`
-	Icon                  ImageMetadata      `json:"icon,omitempty"`
-	Name                  string             `json:"name,omitempty"`
-	ID                    string             `json:"id,omitempty"`
-	URL                   string             `json:"url,omitempty"`
-	Tags                  TagCollection      `json:"tags,omitempty"`
-	InboxIRI              string             `json:"inbox,omitempty"`
-	OutboxIRI             string             `json:"outbox,omitempty"`
-	LikedIRI              string             `json:"liked,omitempty"`
-	FollowersIRI          string             `json:"followers,omitempty"`
-	FollowingIRI          string             `json:"following,omitempty"`
-	OAuth                 OAuth              `json:-`
-	AuthorizationEndPoint string             `json:-`
-	TokenEndPoint         string             `json:-`
-	OutboxUpdated         time.Time          `json:"outboxUpdated"`
+	Password              []byte        `json:"pw,omitempty"`
+	Key                   *SSHKey       `json:"key,omitempty"`
+	Blurb                 string        `json:"blurb,omitempty"`
+	Icon                  ImageMetadata `json:"icon,omitempty"`
+	Name                  string        `json:"name,omitempty"`
+	ID                    string        `json:"id,omitempty"`
+	URL                   string        `json:"url,omitempty"`
+	Tags                  TagCollection `json:"tags,omitempty"`
+	InboxIRI              string        `json:"inbox,omitempty"`
+	OutboxIRI             string        `json:"outbox,omitempty"`
+	LikedIRI              string        `json:"liked,omitempty"`
+	FollowersIRI          string        `json:"followers,omitempty"`
+	FollowingIRI          string        `json:"following,omitempty"`
+	OAuth                 OAuth         `json:-`
+	AuthorizationEndPoint string        `json:-`
+	TokenEndPoint         string        `json:-`
+	OutboxUpdated         time.Time     `json:"outboxUpdated"`
 	Outbox                pub.ItemCollection
 }
 
@@ -238,12 +238,12 @@ func (a AccountCollection) Split(pieceCount int) []AccountCollection {
 		return []AccountCollection{a}
 	}
 	ret := make([]AccountCollection, 0)
-	for i := 0; i <= l / pieceCount; i++ {
-		st := i*pieceCount
+	for i := 0; i <= l/pieceCount; i++ {
+		st := i * pieceCount
 		if st > l {
 			break
 		}
-		end := (i+1)*pieceCount
+		end := (i + 1) * pieceCount
 		if end > l {
 			end = l
 		}
