@@ -662,7 +662,15 @@ func (r *repository) loadItemsReplies(ctx context.Context, items ...Item) (ItemC
 
 	searches := RemoteLoads{}
 	for _, top := range repliesTo {
-		searches[baseIRI(top)] = []RemoteLoad{{actor: top, loadFn: replies, filters: []*Filters{f}}}
+		fg := &Filters{
+			Type:   CreateActivitiesFilter,
+			Object: f,
+		}
+		fg.Object.InReplTo = IRIsLikeFilter(top)
+		searches[baseIRI(top)] = []RemoteLoad{
+			//{actor: baseIRI(top), loadFn: inbox, filters: []*Filters{fg}},
+			{actor: top, loadFn: replies, filters: []*Filters{f}},
+		}
 	}
 	err := LoadFromSearches(ctx, r, searches, func(_ context.Context, c pub.CollectionInterface, f *Filters) error {
 		for _, it := range c.Collection() {
@@ -1356,6 +1364,14 @@ func filterItems(items ItemCollection, f *Filters) ItemCollection {
 	}
 
 	return result
+}
+
+func IRIsLikeFilter(iris ...pub.IRI) CompStrs {
+	r := make(CompStrs, len(iris))
+	for i, iri := range iris {
+		r[i] = LikeString(iri.String())
+	}
+	return r
 }
 
 func IRIsFilter(iris ...pub.IRI) CompStrs {
