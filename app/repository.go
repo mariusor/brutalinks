@@ -658,18 +658,19 @@ func (r *repository) loadItemsReplies(ctx context.Context, items ...Item) (ItemC
 		return nil, nil
 	}
 	allReplies := make(ItemCollection, 0)
-	f := &Filters{Type: CompStrs{DifferentThanString(string(pub.TombstoneType))}}
+	f := Filters{Type: CompStrs{DifferentThanString(string(pub.TombstoneType))}}
 
 	searches := RemoteLoads{}
 	for _, top := range repliesTo {
+		ff := f
 		fg := &Filters{
 			Type:   CreateActivitiesFilter,
-			Object: f,
+			Object: &ff,
 		}
 		fg.Object.InReplTo = IRIsLikeFilter(top)
 		searches[baseIRI(top)] = []RemoteLoad{
-			//{actor: baseIRI(top), loadFn: inbox, filters: []*Filters{fg}},
-			{actor: top, loadFn: replies, filters: []*Filters{f}},
+			{actor: baseIRI(top), loadFn: inbox, filters: []*Filters{fg}},
+			{actor: top, loadFn: replies, filters: []*Filters{&f}},
 		}
 	}
 	err := LoadFromSearches(ctx, r, searches, func(_ context.Context, c pub.CollectionInterface, f *Filters) error {
