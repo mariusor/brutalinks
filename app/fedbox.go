@@ -95,26 +95,19 @@ func withAccount(a *Account) (client.RequestSignFn, error) {
 		return func(req *http.Request) error { return nil }, errors.Newf("invalid local account")
 	}
 	return func(req *http.Request) error {
-			if HostIsLocal(req.URL.String()) {
-				return c2sSign(a, req)
-			} else {
-				collection := handlers.CollectionType(path.Base(req.URL.Path))
-				if collection == handlers.Inbox {
-					return s2sSign(a, req)
-				}
-				if collection == handlers.Outbox {
-					return c2sSign(a, req)
-				}
+		if HostIsLocal(req.URL.String()) {
+			return c2sSign(a, req)
+		} else {
+			collection := handlers.CollectionType(path.Base(req.URL.Path))
+			if collection == handlers.Inbox {
+				return s2sSign(a, req)
 			}
+			if collection == handlers.Outbox {
+				return c2sSign(a, req)
+			}
+		}
 		return nil
 	}, nil
-}
-
-func SetSignFn(signer *Account) OptionFn {
-	return func(f *fedbox) error {
-		f.SignBy(signer)
-		return nil
-	}
 }
 
 func (f *fedbox) SignBy(signer *Account) {
@@ -464,7 +457,7 @@ func (f fedbox) ToInbox(ctx context.Context, a pub.Item) (pub.IRI, pub.Item, err
 
 func (f *fedbox) Service() *pub.Service {
 	if f.pub == nil {
-		return &pub.Actor{ ID: f.baseURL, Type: pub.ServiceType }
+		return &pub.Actor{ID: f.baseURL, Type: pub.ServiceType}
 	}
 	return f.pub
 }
