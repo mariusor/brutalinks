@@ -710,19 +710,22 @@ func (r *repository) loadItemsVotes(ctx context.Context, items ...Item) (ItemCol
 		m = append(m, it.pub.GetLink())
 		g[h] = m
 	}
+	ff := Filters{
+		Type:     ActivityTypesFilter(ValidAppreciationTypes...),
+		MaxItems: 500,
+	}
 	load := RemoteLoad{
-		loadFn: inbox,
-		filters: []*Filters{{
-			Type:     ActivityTypesFilter(ValidAppreciationTypes...),
-			MaxItems: 500,
-		}},
+		loadFn:  inbox,
+		filters: []*Filters{},
 	}
 	searches := RemoteLoads{}
 	for i, iris := range g {
 		l := load
-		l.filters[0].Object = &Filters{
+		f := ff
+		f.Object = &Filters{
 			IRI: IRIsFilter(iris...),
 		}
+		l.filters = append(l.filters, &f)
 		searches[i] = []RemoteLoad{l}
 	}
 
