@@ -433,6 +433,7 @@ func (h *handler) HandleLogout(w http.ResponseWriter, r *http.Request) {
 	}
 	// TODO(marius): this doesn't need as drastic cache clear as this, we need to implement a prefix based clear
 	h.storage.cache.remove()
+	h.storage.WithAccount(&AnonymousAccount)
 	h.v.Redirect(w, r, backUrl, http.StatusSeeOther)
 }
 

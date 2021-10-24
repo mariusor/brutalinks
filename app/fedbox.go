@@ -92,7 +92,7 @@ func s2sSign(a *Account, req *http.Request) error {
 
 func withAccount(a *Account) (client.RequestSignFn, error) {
 	if !a.IsValid() || !a.IsLogged() {
-		return nil, errors.Newf("invalid local account")
+		return func(req *http.Request) error { return nil }, errors.Newf("invalid local account")
 	}
 	return func(req *http.Request) error {
 			if HostIsLocal(req.URL.String()) {
