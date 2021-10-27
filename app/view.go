@@ -1027,7 +1027,7 @@ func ItemPermaLink(i *Item) string {
 
 func isReadOnly(r Renderable) bool {
 	if i, ok := r.(*Item); ok {
-		return i.SubmittedAt.Sub(oneYearishAgo) < 0 || i.Deleted()
+		return (!i.SubmittedAt.IsZero() && i.SubmittedAt.Sub(oneYearishAgo) < 0) || i.Deleted()
 	}
 	return false
 }

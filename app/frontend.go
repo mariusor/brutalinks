@@ -447,7 +447,7 @@ func (v *view) LoadSession(next http.Handler) http.Handler {
 	}
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		var (
-			storage = ContextRepository(r.Context())
+			storage      = ContextRepository(r.Context())
 			clearSession bool
 			err          error
 			ltx          log.Ctx
