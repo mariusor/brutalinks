@@ -102,6 +102,7 @@ func requestHandleSearches(r *http.Request) pub.ItemCollection {
 func loggedAccountSearches(collections ...LoadFn) func(http.Handler) http.Handler {
 	return SearchInCollectionsMw(getLoggedActorFn, collections...)
 }
+
 func serviceSearches(collections ...LoadFn) func(http.Handler) http.Handler {
 	return SearchInCollectionsMw(getServiceFn, collections...)
 }
@@ -232,7 +233,7 @@ func LoadSingleObjectMw(next http.Handler) http.Handler {
 							repo.errFn(log.Ctx{"iri": act.Object.GetLink()})("unable to load item")
 							return err
 						}
-						it = ob
+						act.Object = ob
 					}
 					if err := item.FromActivityPub(act.Object); err != nil {
 						return err
