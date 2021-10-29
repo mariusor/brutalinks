@@ -690,7 +690,7 @@ const (
 	avatarFmt    = `<image src='data:%s;base64,%s' width='48' height='48' class='icon avatar' />`
 	videoFmt     = `<video controls><source src='data:%s;base64,%s' type='%s'/></video>`
 	audioFmt     = `<audio controls><source src='data:%s;base64,%s' type='%s'/></audio>`
-	iconFmt      = `<svg aria-hidden="true" class="icon icon-%s"><use xlink:href="#icon-%s"><title>%s</title></use></svg>`
+	iconFmt      = `<svg aria-hidden="true" class="icon icon-%s"><use xlink:href="/icons.svg#icon-%s"><title>%s</title></use></svg>`
 	avatarSvgFmt = `<svg aria-hidden="true" class="icon avatar" width="48" height="48" viewBox="0 0 50 50">
   <rect width="100%%" height="100%%" fill="%s"/> <text fill="%s" font-size="%d" font-weight="800" x="50%%" y="55%%" dominant-baseline="middle" text-anchor="middle">%s</text>
 </svg> `
