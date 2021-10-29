@@ -764,7 +764,7 @@ func relTimeFmt(old time.Time) string {
 		val = hours / 168
 		unit = "week"
 	} else if hours < 8760 {
-		val = hours / 672
+		val = hours / 730
 		unit = "month"
 	} else if hours < 87600 {
 		val = hours / 8760
