@@ -2460,6 +2460,86 @@ func cacheKey(i pub.IRI, a *Account) pub.IRI {
 	return pub.IRI(u.String())
 }
 
+func splitCompStrs(ss CompStrs) []CompStrs {
+	if len(ss) == 0 {
+		return nil
+	}
+	sss := make([]CompStrs, 0)
+	maxItems := MaxContentItems / 3
+	if len(ss) > maxItems {
+		for i := 0; i <= len(ss); i = i + maxItems {
+			max := i + maxItems
+			if max > len(ss) {
+				max = len(ss)
+			}
+			sss = append(sss, ss[i:max])
+		}
+	}
+	if len(sss) == 0 {
+		sss = append(sss, ss)
+	}
+	return sss
+}
+
+func splitFilters(f *Filters) []*Filters {
+	if f == nil {
+		return nil
+	}
+	ff := make([]*Filters, 0)
+
+	for _, iris := range splitCompStrs(f.IRI) {
+		fi := *f
+		fi.IRI = iris
+		ff = append(ff, &fi)
+	}
+	for _, names := range splitCompStrs(f.Name) {
+		fi := *f
+		fi.Name = names
+		ff = append(ff, &fi)
+	}
+	for _, cont := range splitCompStrs(f.Cont) {
+		fi := *f
+		fi.Cont = cont
+		ff = append(ff, &fi)
+	}
+	for _, url := range splitCompStrs(f.URL) {
+		fi := *f
+		fi.URL = url
+		ff = append(ff, &fi)
+	}
+	for _, attr := range splitCompStrs(f.AttrTo) {
+		fi := *f
+		fi.AttrTo = attr
+		ff = append(ff, &fi)
+	}
+	for _, rec := range splitCompStrs(f.Recipients) {
+		fi := *f
+		fi.Recipients = rec
+		ff = append(ff, &fi)
+	}
+
+	for _, fo := range splitFilters(f.Object) {
+		fi := *f
+		fi.Object = fo
+		ff = append(ff, &fi)
+	}
+	for _, fa := range splitFilters(f.Actor) {
+		fi := *f
+		fi.Actor = fa
+		ff = append(ff, &fi)
+	}
+	for _, ft := range splitFilters(f.Tag) {
+		fi := *f
+		fi.Tag = ft
+		ff = append(ff, &fi)
+	}
+
+	if len(ff) == 0 {
+		ff = append(ff, f)
+	}
+	return ff
+}
+
 func LoadFromSearches(ctx context.Context, repo *repository, loads RemoteLoads, fn searchFn) error {
 	var cancelFn func()
 
@@ -2472,7 +2552,9 @@ func LoadFromSearches(ctx context.Context, repo *repository, loads RemoteLoads, 
 				if search.actor == nil {
 					search.actor = service
 				}
-				g.Go(repo.searchFn(gtx, g, search.loadFn(search.actor), f, fn))
+				for _, ff := range splitFilters(f) {
+					g.Go(repo.searchFn(gtx, g, search.loadFn(search.actor), ff, fn))
+				}
 			}
 		}
 	}
