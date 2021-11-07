@@ -140,6 +140,9 @@ func (a *Account) Private() bool {
 }
 
 func (a Account) Votes() VoteCollection {
+	if !a.IsLogged() {
+		return nil
+	}
 	votes := make(VoteCollection, 0)
 	for _, it := range a.Metadata.Outbox {
 		if !ValidAppreciationTypes.Contains(it.GetType()) {
