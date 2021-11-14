@@ -139,6 +139,11 @@ func (a *Account) Private() bool {
 	return a != nil && a.Flags&FlagsPrivate == FlagsPrivate
 }
 
+// IsModerator
+func (a *Account) IsModerator() bool {
+	return a != nil && (a.Flags&FlagsModerator == FlagsModerator || a.Flags&FlagsOperator == FlagsOperator)
+}
+
 func (a Account) Votes() VoteCollection {
 	if !a.IsLogged() {
 		return nil

@@ -10,8 +10,13 @@ import (
 	pub "github.com/go-ap/activitypub"
 )
 
-const TagMention = "mention"
-const TagTag = "tag"
+const (
+	TagMention = "mention"
+	TagTag     = "tag"
+
+	tagNameSysOP     = "#sysop"
+	tagNameModerator = "#moderator"
+)
 
 type Tag struct {
 	Hash        Hash          `json:"hash"`
