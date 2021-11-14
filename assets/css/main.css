@@ -136,7 +136,6 @@ body > header nav.tabs ul {
 nav ul, nav ul li, nav dl, nav dl dd, nav dl dt {
     display: inline-block;
 }
-body > header nav ul li:first-child::before,
 body > header nav.tabs ul li::before {
     content: unset;
 }
@@ -226,9 +225,6 @@ li section footer {
     opacity: .6;
     display: block;
 }
-li footer nav ul li::before, nav ul li:first-child::before, nav dl dt:first-child::before {
-    content: unset;
-}
 .item {
     line-height: 1.3em;
 }
@@ -238,7 +234,7 @@ img.avatar {
     width: 1.4rem;
     margin-right: .3rem;
 }
-nav dl dt::before, nav ul li::before {
+nav dl dt:not(:first-child)::before, nav ul li:not(:first-child)::before {
     content: "\22c5";
     padding: 0 .4em 0 .2em;
 }
@@ -311,7 +307,7 @@ form button {
         font-size: 2.4vw;
     }
     nav:not(.pagination) li::before {
-        content: none !important;
+        content: unset !important;
     }
     body > footer nav:nth-of-type(2) li:first-of-type {
         display:inline-block;

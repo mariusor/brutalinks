@@ -72,3 +72,10 @@ details#invites summary,
     display: inline-block;
     list-style: none;
 }
+.user details aside ul li {
+    display: inline;
+    padding-right: 0;
+}
+.user details aside ul li:not(:last-child)::after {
+    content: "\22c5";
+}

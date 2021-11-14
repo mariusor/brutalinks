@@ -94,7 +94,7 @@ section footer nav ul li {
 .item footer nav ul li::before {
     content: unset;
 }
-section footer::before {
+section footer:not(:first-child)::before {
     content: '\2012';
 }
 .moderation-request + .score, .follow-request + .score, .account + .score {
@@ -194,6 +194,6 @@ form fieldset {
         font-size: .75em;
     }
     section footer::before {
-        content: "";
+        content: unset;
     }
 }
