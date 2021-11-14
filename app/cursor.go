@@ -15,7 +15,7 @@ type Cursor struct {
 }
 
 func NewCursor() *Cursor {
-	return &Cursor{ items: make(RenderableList) }
+	return &Cursor{items: make(RenderableList)}
 }
 
 var emptyCursor = Cursor{}
@@ -60,7 +60,7 @@ func (r *RenderableList) Append(others ...Renderable) {
 	}
 }
 
-func ByDate (r RenderableList) []Renderable {
+func ByDate(r RenderableList) []Renderable {
 	rl := make([]Renderable, 0)
 	for _, rr := range r {
 		rl = append(rl, rr)
@@ -76,7 +76,7 @@ func ByDate (r RenderableList) []Renderable {
 				subOrder := ii.SubmittedAt.After(ij.SubmittedAt)
 				subSame := ii.SubmittedAt.Sub(ij.SubmittedAt) == 0
 				updOrder := ii.UpdatedAt.After(ij.UpdatedAt)
-				return oki && okj && ( subOrder || (subSame && updOrder))
+				return oki && okj && (subOrder || (subSame && updOrder))
 			}
 		}
 		return ri.Date().After(rj.Date())
@@ -84,7 +84,7 @@ func ByDate (r RenderableList) []Renderable {
 	return rl
 }
 
-func ByScore (r RenderableList) []Renderable {
+func ByScore(r RenderableList) []Renderable {
 	rl := make([]Renderable, 0)
 	for _, rr := range r {
 		rl = append(rl, rr)

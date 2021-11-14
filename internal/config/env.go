@@ -55,4 +55,3 @@ func (e EnvType) IsTest() bool {
 func (e EnvType) IsDev() bool {
 	return strings.Contains(string(e), string(DEV)) || strings.Contains(string(e), string(TEST))
 }
-

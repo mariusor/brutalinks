@@ -1,3 +1,4 @@
+//go:build prod || qa
 // +build prod qa
 
 package assets

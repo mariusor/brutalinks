@@ -222,7 +222,7 @@ func (m *ModerationOp) Deleted() bool {
 func GetRenderableByType(typ pub.ActivityVocabularyType) Renderable {
 	var result Renderable
 	if ValidAppreciationTypes.Contains(typ) {
-		result = new(Vote) 
+		result = new(Vote)
 	}
 	if ValidModerationActivityTypes.Contains(typ) {
 		result = new(ModerationOp)
@@ -236,8 +236,7 @@ func GetRenderableByType(typ pub.ActivityVocabularyType) Renderable {
 	return result
 }
 
-
-func loadItemActorOrActivityFromModerationActivityObject (it pub.Item) Renderable {
+func loadItemActorOrActivityFromModerationActivityObject(it pub.Item) Renderable {
 	result, _ := LoadFromActivityPubItem(it)
 	return result
 }

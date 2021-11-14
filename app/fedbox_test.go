@@ -36,7 +36,7 @@ func Test_RawFilterQuery(t *testing.T) {
 		}
 		var func2 = func() url.Values {
 			return url.Values{
-				"iri": {"foo", "bar"},
+				"iri":  {"foo", "bar"},
 				"type": {"typ"},
 			}
 		}

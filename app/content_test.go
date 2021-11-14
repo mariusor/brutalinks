@@ -69,7 +69,7 @@ func Test_replaceTags(t *testing.T) {
 			args: args{
 				Item{
 					MimeType: "text/markdown",
-					Data: `some #tag-`,
+					Data:     `some #tag-`,
 					Metadata: &ItemMetadata{
 						Tags: TagCollection{
 							Tag{
@@ -115,8 +115,8 @@ func Test_loadTags(t *testing.T) {
 			wantMentions: TagCollection{},
 		},
 		{
-			name: "an-at-mention",
-			data: "a @mention",
+			name:     "an-at-mention",
+			data:     "a @mention",
 			wantTags: TagCollection{},
 			wantMentions: TagCollection{
 				Tag{
@@ -127,8 +127,8 @@ func Test_loadTags(t *testing.T) {
 			},
 		},
 		{
-			name: "an-at-with-instance-mention",
-			data: "a @mention@brutalinks.git",
+			name:     "an-at-with-instance-mention",
+			data:     "a @mention@brutalinks.git",
 			wantTags: TagCollection{},
 			wantMentions: TagCollection{
 				Tag{
@@ -139,8 +139,8 @@ func Test_loadTags(t *testing.T) {
 			},
 		},
 		{
-			name: "a-tilde-mention",
-			data: "another ~mention",
+			name:     "a-tilde-mention",
+			data:     "another ~mention",
 			wantTags: TagCollection{},
 			wantMentions: TagCollection{
 				Tag{
@@ -151,8 +151,8 @@ func Test_loadTags(t *testing.T) {
 			},
 		},
 		{
-			name: "a-tilde-with-instance-mention",
-			data: "another ~mention@brutalinks.git",
+			name:     "a-tilde-with-instance-mention",
+			data:     "another ~mention@brutalinks.git",
 			wantTags: TagCollection{},
 			wantMentions: TagCollection{
 				Tag{

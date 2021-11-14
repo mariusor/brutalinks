@@ -17,7 +17,7 @@ func TestHashFromString(t *testing.T) {
 		{
 			name: "random valid value",
 			val:  "6435b2b5-26df-434c-87ca-58ddab49fcc8",
-			want: Hash{ 100, 53 , 178, 181, 38 , 223, 67 , 76 , 135, 202, 88, 221, 171, 73, 252, 200 },
+			want: Hash{100, 53, 178, 181, 38, 223, 67, 76, 135, 202, 88, 221, 171, 73, 252, 200},
 		},
 		{
 			name: "invalid value",
@@ -48,7 +48,7 @@ func TestHash_MarshalText(t *testing.T) {
 	}{
 		{
 			name:    "valid value",
-			h:       Hash{ 100, 53 , 178, 181, 38 , 223, 67 , 76 , 135, 202, 88, 221, 171, 73, 252, 200 },
+			h:       Hash{100, 53, 178, 181, 38, 223, 67, 76, 135, 202, 88, 221, 171, 73, 252, 200},
 			want:    []byte("6435b2b5-26df-434c-87ca-58ddab49fcc8"),
 			wantErr: false,
 		},
@@ -74,9 +74,9 @@ func TestHash_String(t *testing.T) {
 		want string
 	}{
 		{
-			name:    "valid value",
-			h:       Hash{ 100, 53 , 178, 181, 38 , 223, 67 , 76 , 135, 202, 88, 221, 171, 73, 252, 200 },
-			want:    "6435b2b5-26df-434c-87ca-58ddab49fcc8",
+			name: "valid value",
+			h:    Hash{100, 53, 178, 181, 38, 223, 67, 76, 135, 202, 88, 221, 171, 73, 252, 200},
+			want: "6435b2b5-26df-434c-87ca-58ddab49fcc8",
 		},
 	}
 	for _, tt := range tests {
@@ -95,19 +95,19 @@ func TestHash_Valid(t *testing.T) {
 		want bool
 	}{
 		{
-			name:    "valid value",
-			h:       Hash{ 100, 53 , 178, 181, 38 , 223, 67 , 76 , 135, 202, 88, 221, 171, 73, 252, 200 },
-			want:    true,
+			name: "valid value",
+			h:    Hash{100, 53, 178, 181, 38, 223, 67, 76, 135, 202, 88, 221, 171, 73, 252, 200},
+			want: true,
 		},
 		{
-			name:    "invalid value",
-			h:       Hash{},
-			want:    false,
+			name: "invalid value",
+			h:    Hash{},
+			want: false,
 		},
 		{
-			name:    "valid value, but mostly nils",
-			h:       Hash{100},
-			want:    true,
+			name: "valid value, but mostly nils",
+			h:    Hash{100},
+			want: true,
 		},
 	}
 	for _, tt := range tests {
@@ -130,16 +130,16 @@ func TestHashes_Contains(t *testing.T) {
 		want bool
 	}{
 		{
-			name:    "value contained",
-			h:       Hashes{Hash{ 100, 53 , 178, 181, 38 , 223, 67 , 76 , 135, 202, 88, 221, 171, 73, 252, 200 }},
-			args:    args{Hash{ 100, 53 , 178, 181, 38 , 223, 67 , 76 , 135, 202, 88, 221, 171, 73, 252, 200 }},
-			want:    true,
+			name: "value contained",
+			h:    Hashes{Hash{100, 53, 178, 181, 38, 223, 67, 76, 135, 202, 88, 221, 171, 73, 252, 200}},
+			args: args{Hash{100, 53, 178, 181, 38, 223, 67, 76, 135, 202, 88, 221, 171, 73, 252, 200}},
+			want: true,
 		},
 		{
-			name:    "value not contained",
-			h:       Hashes{Hash{ 100, 53 , 178, 181, 38 , 223, 67 , 76 , 135, 202, 88, 221, 171, 73, 252, 200 }},
-			args:    args{Hash{ 101, 53 , 178, 181, 38 , 223, 67 , 76 , 135, 202, 88, 221, 171, 73, 252, 200 }},
-			want:    false,
+			name: "value not contained",
+			h:    Hashes{Hash{100, 53, 178, 181, 38, 223, 67, 76, 135, 202, 88, 221, 171, 73, 252, 200}},
+			args: args{Hash{101, 53, 178, 181, 38, 223, 67, 76, 135, 202, 88, 221, 171, 73, 252, 200}},
+			want: false,
 		},
 	}
 	for _, tt := range tests {
@@ -158,17 +158,17 @@ func TestHashes_String(t *testing.T) {
 		want string
 	}{
 		{
-			name:    "one value",
-			h:       Hashes{Hash{ 100, 53 , 178, 181, 38 , 223, 67 , 76 , 135, 202, 88, 221, 171, 73, 252, 200 }},
-			want:    "6435b2b5-26df-434c-87ca-58ddab49fcc8",
+			name: "one value",
+			h:    Hashes{Hash{100, 53, 178, 181, 38, 223, 67, 76, 135, 202, 88, 221, 171, 73, 252, 200}},
+			want: "6435b2b5-26df-434c-87ca-58ddab49fcc8",
 		},
 		{
-			name:    "two values",
-			h:       Hashes{
-				Hash{ 100, 53 , 178, 181, 38 , 223, 67 , 76 , 135, 202, 88, 221, 171, 73, 252, 200 },
-				Hash{ 101, 53 , 178, 181, 38 , 223, 67 , 76 , 135, 202, 88, 221, 171, 73, 252, 200 },
+			name: "two values",
+			h: Hashes{
+				Hash{100, 53, 178, 181, 38, 223, 67, 76, 135, 202, 88, 221, 171, 73, 252, 200},
+				Hash{101, 53, 178, 181, 38, 223, 67, 76, 135, 202, 88, 221, 171, 73, 252, 200},
 			},
-			want:    "6435b2b5-26df-434c-87ca-58ddab49fcc8, 6535b2b5-26df-434c-87ca-58ddab49fcc8",
+			want: "6435b2b5-26df-434c-87ca-58ddab49fcc8, 6535b2b5-26df-434c-87ca-58ddab49fcc8",
 		},
 	}
 	for _, tt := range tests {

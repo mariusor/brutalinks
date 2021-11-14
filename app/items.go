@@ -124,12 +124,12 @@ func (i ItemCollection) Split(pieceCount int) []ItemCollection {
 		return []ItemCollection{i}
 	}
 	ret := make([]ItemCollection, 0)
-	for it := 0; it <= l / pieceCount; it++ {
-		st := it *pieceCount
+	for it := 0; it <= l/pieceCount; it++ {
+		st := it * pieceCount
 		if st > l {
 			break
 		}
-		end := (it +1)*pieceCount
+		end := (it + 1) * pieceCount
 		if end > l {
 			end = l
 		}

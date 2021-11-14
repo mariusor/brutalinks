@@ -246,12 +246,12 @@ func (h ItemPtrCollection) Sorted() ItemPtrCollection {
 	sort.SliceStable(h, func(i, j int) bool {
 		ii := h[i]
 		ij := h[j]
-		return ii.Votes.Score()> ij.Votes.Score() || (ii.Votes.Score() == ij.Votes.Score() && ii.SubmittedAt.After(ij.SubmittedAt))
+		return ii.Votes.Score() > ij.Votes.Score() || (ii.Votes.Score() == ij.Votes.Score() && ii.SubmittedAt.After(ij.SubmittedAt))
 	})
 	return h
 }
 
-func parentByPub (t ItemPtrCollection, cur *Item) *Item {
+func parentByPub(t ItemPtrCollection, cur *Item) *Item {
 	var inReplyTo pub.ItemCollection
 	pub.OnObject(cur.pub, func(ob *pub.Object) error {
 		if ob.InReplyTo != nil {
@@ -278,7 +278,7 @@ func parentByPub (t ItemPtrCollection, cur *Item) *Item {
 	return nil
 }
 
-func parentByHash (t ItemPtrCollection, cur *Item) *Item {
+func parentByHash(t ItemPtrCollection, cur *Item) *Item {
 	for _, n := range t {
 		if cur.Parent.IsValid() {
 			if cur.Parent.Hash == n.Hash {
