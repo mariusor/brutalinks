@@ -1901,6 +1901,7 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 		if it.Parent == nil && it.SubmittedBy.HasMetadata() && len(it.SubmittedBy.Metadata.FollowersIRI) > 0 {
 			cc = append(cc, pub.IRI(it.SubmittedBy.Metadata.FollowersIRI))
 		}
+		cc = append(cc, r.app.pub.GetLink())
 		bcc = append(bcc, r.fedbox.Service().ID)
 	}
 
@@ -2122,9 +2123,11 @@ func (r *repository) SendFollowResponse(ctx context.Context, f FollowRequest, ac
 	}
 
 	to := make(pub.ItemCollection, 0)
+	cc := make(pub.ItemCollection, 0)
 	bcc := make(pub.ItemCollection, 0)
 
 	to = append(to, pub.IRI(er.Metadata.ID))
+	cc = append(cc, r.app.pub.GetLink())
 	bcc = append(bcc, r.fedbox.Service().ID)
 
 	response := new(pub.Activity)
@@ -2133,6 +2136,7 @@ func (r *repository) SendFollowResponse(ctx context.Context, f FollowRequest, ac
 	}
 	response.To = to
 	response.Type = pub.RejectType
+	response.CC = cc
 	response.BCC = bcc
 	response.Object = pub.IRI(f.Metadata.ID)
 	response.Actor = pub.IRI(ed.Metadata.ID)
@@ -2162,10 +2166,11 @@ func (r *repository) FollowAccount(ctx context.Context, er, ed Account, reason *
 	}
 
 	to := make(pub.ItemCollection, 0)
+	cc := make(pub.ItemCollection, 0)
 	bcc := make(pub.ItemCollection, 0)
 
-	//to = append(to, follower.GetLink())
 	to = append(to, pub.PublicNS)
+	cc = append(cc, r.app.pub.GetLink())
 	bcc = append(bcc, r.fedbox.Service().ID)
 
 	follow := new(pub.Follow)
@@ -2174,6 +2179,7 @@ func (r *repository) FollowAccount(ctx context.Context, er, ed Account, reason *
 	}
 	follow.Type = pub.FollowType
 	follow.To = to
+	follow.CC = cc
 	follow.BCC = bcc
 	follow.Object = followed.GetLink()
 	follow.Actor = follower.GetLink()
@@ -2264,10 +2270,11 @@ var allDeps = deps{Votes: true, Authors: true, Replies: true, Follows: true}
 
 func (r repository) moderationActivity(ctx context.Context, er *pub.Actor, ed pub.Item, reason *Item) (*pub.Activity, error) {
 	bcc := make(pub.ItemCollection, 0)
-	bcc = append(bcc, r.fedbox.Service().ID, r.app.pub.GetLink())
+	bcc = append(bcc, r.fedbox.Service().ID)
 
 	// We need to add the ed/er accounts' creators to the CC list
 	cc := make(pub.ItemCollection, 0)
+	cc = append(cc, r.app.pub.GetLink())
 	if er.AttributedTo != nil && !er.AttributedTo.GetLink().Equals(pub.PublicNS, true) {
 		cc = append(cc, er.AttributedTo.GetLink())
 	}

@@ -107,8 +107,16 @@ func serviceSearches(collections ...LoadFn) func(http.Handler) http.Handler {
 	return SearchInCollectionsMw(getServiceFn, collections...)
 }
 
+func applicationSearches(collections ...LoadFn) func(http.Handler) http.Handler {
+	return SearchInCollectionsMw(getApplicationFn, collections...)
+}
+
 func getServiceFn(r *http.Request) pub.ItemCollection {
 	return pub.ItemCollection{ContextRepository(r.Context()).fedbox.Service()}
+}
+
+func getApplicationFn(r *http.Request) pub.ItemCollection {
+	return pub.ItemCollection{ContextRepository(r.Context()).app.pub}
 }
 
 func getLoggedActorFn(r *http.Request) pub.ItemCollection {
