@@ -1901,7 +1901,7 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 		if it.Parent == nil && it.SubmittedBy.HasMetadata() && len(it.SubmittedBy.Metadata.FollowersIRI) > 0 {
 			cc = append(cc, pub.IRI(it.SubmittedBy.Metadata.FollowersIRI))
 		}
-		cc = append(cc, r.app.pub.GetLink())
+		cc = append(cc, r.app.pub.GetLink(), handlers.Followers.IRI(r.app.pub))
 		bcc = append(bcc, r.fedbox.Service().ID)
 	}
 
@@ -2127,7 +2127,7 @@ func (r *repository) SendFollowResponse(ctx context.Context, f FollowRequest, ac
 	bcc := make(pub.ItemCollection, 0)
 
 	to = append(to, pub.IRI(er.Metadata.ID))
-	cc = append(cc, r.app.pub.GetLink())
+	cc = append(cc, r.app.pub.GetLink(), handlers.Followers.IRI(r.app.pub))
 	bcc = append(bcc, r.fedbox.Service().ID)
 
 	response := new(pub.Activity)
@@ -2170,7 +2170,7 @@ func (r *repository) FollowAccount(ctx context.Context, er, ed Account, reason *
 	bcc := make(pub.ItemCollection, 0)
 
 	to = append(to, pub.PublicNS)
-	cc = append(cc, r.app.pub.GetLink())
+	cc = append(cc, r.app.pub.GetLink(), handlers.Followers.IRI(r.app.pub))
 	bcc = append(bcc, r.fedbox.Service().ID)
 
 	follow := new(pub.Follow)
@@ -2274,7 +2274,7 @@ func (r repository) moderationActivity(ctx context.Context, er *pub.Actor, ed pu
 
 	// We need to add the ed/er accounts' creators to the CC list
 	cc := make(pub.ItemCollection, 0)
-	cc = append(cc, r.app.pub.GetLink())
+	cc = append(cc, r.app.pub.GetLink(), handlers.Followers.IRI(r.app.pub))
 	if er.AttributedTo != nil && !er.AttributedTo.GetLink().Equals(pub.PublicNS, true) {
 		cc = append(cc, er.AttributedTo.GetLink())
 	}
