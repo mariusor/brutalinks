@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"os"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -24,8 +25,10 @@ func Run(a app.Application) int {
 	ctx, cancelFn := context.WithCancel(context.TODO())
 
 	setters := []w.SetFn{w.Handler(a.Mux)}
-	if a.Conf.ListenHost == "" {
-		setters = append(setters, w.Socket())
+	dir, _ := filepath.Split(a.Conf.ListenHost)
+	if _, err := os.Stat(dir); err == nil {
+		setters = append(setters, w.Socket(a.Conf.ListenHost))
+		defer func() { os.RemoveAll(a.Conf.ListenHost) }()
 	} else if a.Conf.Secure && len(a.Conf.CertPath) > 0 && len(a.Conf.KeyPath) > 0 {
 		setters = append(setters, w.HTTPS(a.Conf.Listen(), a.Conf.CertPath, a.Conf.KeyPath))
 	} else {
