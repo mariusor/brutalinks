@@ -229,9 +229,6 @@ func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 			Type: "text/html",
 			Href: url,
 		},
-		{
-			Rel: "https://ostatus.org/schema/1.0/subscribe",
-		},
 	}
 	if url1 != url && url1 != id.String() {
 		wf.Links = append(wf.Links, link{
