@@ -116,7 +116,10 @@ func getServiceFn(r *http.Request) pub.ItemCollection {
 }
 
 func getApplicationFn(r *http.Request) pub.ItemCollection {
-	return pub.ItemCollection{ContextRepository(r.Context()).app.pub}
+	if a := ContextRepository(r.Context()).app; a != nil {
+		return pub.ItemCollection{a.pub}
+	}
+	return pub.ItemCollection{}
 }
 
 func getLoggedActorFn(r *http.Request) pub.ItemCollection {
