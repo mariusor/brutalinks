@@ -213,16 +213,16 @@ func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	id := a.GetLink()
+	id := a.pub.GetID()
 	url := accountURL(*a).String()
 	url1 := a.Metadata.URL
-	wf.Aliases = []string{id, url}
+	wf.Aliases = []string{url}
 	wf.Subject = res
 	wf.Links = []link{
 		{
 			Rel:  "self",
 			Type: "application/activity+json",
-			Href: id,
+			Href: id.String(),
 		},
 		{
 			Rel:  "https://webfinger.net/rel/profile-page",
@@ -233,7 +233,7 @@ func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 			Rel: "https://ostatus.org/schema/1.0/subscribe",
 		},
 	}
-	if url1 != url && url1 != id {
+	if url1 != url && url1 != id.String() {
 		wf.Links = append(wf.Links, link{
 			Rel:  "https://webfinger.net/rel/profile-page",
 			Type: "text/html",
