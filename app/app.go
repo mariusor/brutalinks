@@ -119,12 +119,11 @@ func (a *Application) Front() error {
 		BaseURL:       a.BaseURL,
 		Logger:        a.Logger.New(log.Ctx{"package": "frontend"}),
 	}
-	front, err := Init(conf)
-	if err != nil {
+	a.front = new(handler)
+	if err := a.front.init(conf); err != nil {
 		a.Logger.Error(err.Error())
 		return err
 	}
-	a.front = front
 
 	// Routes
 	r := chi.NewRouter()
@@ -135,15 +134,15 @@ func (a *Application) Front() error {
 	}
 	a.Mux = r
 	// Frontend
-	r.With(front.Repository).Route("/", front.Routes(a.Conf))
+	r.With(a.front.Repository).Route("/", a.front.Routes(a.Conf))
 
 	// .well-known
 	cfg := NodeInfoConfig()
-	ni := nodeinfo.NewService(cfg, NodeInfoResolverNew(front.storage, front.conf.Env))
+	ni := nodeinfo.NewService(cfg, NodeInfoResolverNew(a.front.storage, a.front.conf.Env))
 	// Web-Finger
 	r.Route("/.well-known", func(r chi.Router) {
-		r.Get("/webfinger", front.HandleWebFinger)
-		r.Get("/host-meta", front.HandleHostMeta)
+		r.Get("/webfinger", a.front.HandleWebFinger)
+		r.Get("/host-meta", a.front.HandleHostMeta)
 		r.Get("/nodeinfo", ni.NodeInfoDiscover)
 		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 			errors.HandleError(errors.NotFoundf("%s", r.RequestURI)).ServeHTTP(w, r)
@@ -151,10 +150,10 @@ func (a *Application) Front() error {
 	})
 	r.Get("/nodeinfo", ni.NodeInfo)
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
-		front.v.HandleErrors(w, r, errors.NotFoundf("%s", r.RequestURI))
+		a.front.v.HandleErrors(w, r, errors.NotFoundf("%s", r.RequestURI))
 	})
 	r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
-		front.v.HandleErrors(w, r, errors.MethodNotAllowedf("%s not allowed", r.Method))
+		a.front.v.HandleErrors(w, r, errors.MethodNotAllowedf("%s not allowed", r.Method))
 	})
 	return nil
 }

@@ -55,10 +55,8 @@ func hideString(s string) string {
 	return ss + s[l-3:]
 }
 
-func Init(c appConfig) (*handler, error) {
+func (h *handler) init(c appConfig) error {
 	var err error
-
-	h := new(handler)
 
 	h.infoFn = defaultCtxLogFn
 	h.errFn = defaultCtxLogFn
@@ -137,7 +135,7 @@ func Init(c appConfig) (*handler, error) {
 	if err != nil {
 		h.errFn(log.Ctx{"err": err})("Error initializing view")
 	}
-	return h, err
+	return err
 }
 
 func loggedAccount(r *http.Request) *Account {
