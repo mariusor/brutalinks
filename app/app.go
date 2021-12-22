@@ -52,13 +52,15 @@ type Application struct {
 type Collection interface{}
 
 // Instance is the default instance of our application
-var Instance Application
+var Instance *Application
 
 // New instantiates a new Application
-func New(c *config.Configuration, host string, port int, ver string) Application {
-	app := Application{Version: ver}
-	app.init(c, host, port)
-	return app
+func New(c *config.Configuration, l log.Logger, host string, port int, ver string) (*Application, error) {
+	Instance = &Application{Version: ver}
+	if err := Instance.init(c, l, host, port); err != nil {
+		return nil, err
+	}
+	return Instance, nil
 }
 
 func (a *Application) Reload() error {
@@ -67,9 +69,9 @@ func (a *Application) Reload() error {
 	return nil
 }
 
-func (a *Application) init(c *config.Configuration, host string, port int) error {
+func (a *Application) init(c *config.Configuration, l log.Logger, host string, port int) error {
 	a.Conf = c
-	a.Logger = log.Dev(c.LogLevel)
+	a.Logger = l
 	if c.Secure {
 		a.BaseURL = fmt.Sprintf("https://%s", c.HostName)
 	} else {
@@ -87,10 +89,10 @@ func (a *Application) init(c *config.Configuration, host string, port int) error
 	if c.APIURL == "" {
 		c.APIURL = fmt.Sprintf("%s/api", a.BaseURL)
 	}
-	Instance = *a
 	if err := a.Front(); err != nil {
 		return err
 	}
+	a.Routes()
 	return nil
 }
 
@@ -106,7 +108,10 @@ func (a *Application) Front() error {
 		return err
 	}
 	a.ModTags = a.front.storage.modTags
+	return nil
+}
 
+func (a *Application) Routes() {
 	// Routes
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
@@ -137,7 +142,6 @@ func (a *Application) Front() error {
 	r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
 		a.front.v.HandleErrors(w, r, errors.MethodNotAllowedf("%s not allowed", r.Method))
 	})
-	return nil
 }
 
 type Cacheable interface {

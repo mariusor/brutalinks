@@ -21,7 +21,7 @@ const defaultPort = config.DefaultListenPort
 const defaultTimeout = time.Second * 5
 
 // Run is the wrapper for starting the web-server and handling signals
-func Run(a app.Application) int {
+func Run(a *app.Application) int {
 	ctx, cancelFn := context.WithCancel(context.TODO())
 
 	setters := []w.SetFn{w.Handler(a.Mux)}
@@ -97,6 +97,7 @@ func Run(a app.Application) int {
 	}
 	return code
 }
+
 func main() {
 	var wait time.Duration
 	var port int
@@ -111,6 +112,11 @@ func main() {
 
 	c := config.Load(config.EnvType(env), wait)
 	errors.IncludeBacktrace = c.Env.IsDev()
+	l := log.Dev(c.LogLevel)
 
-	os.Exit(Run(app.New(c, host, port, version)))
+	a, err := app.New(c, l, host, port, version)
+	if err != nil {
+		l.Errorf("Failed to start application: %s", err.Error())
+	}
+	os.Exit(Run(a))
 }
