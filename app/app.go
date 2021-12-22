@@ -40,26 +40,6 @@ var (
 	oneYearishAgo = time.Now().Add(-12 * 30 * 24 * time.Hour).UTC()
 )
 
-// Stats holds data for keeping compatibility with Mastodon instances
-type Stats struct {
-	DomainCount int  `json:"domain_count"`
-	UserCount   uint `json:"user_count"`
-	StatusCount uint `json:"status_count"`
-}
-
-// Desc holds data for keeping compatibility with Mastodon instances
-type Desc struct {
-	Description string   `json:"description"`
-	Email       string   `json:"email"`
-	Stats       Stats    `json:"stats"`
-	Thumbnail   string   `json:"thumbnail,omitempty"`
-	Title       string   `json:"title"`
-	Lang        []string `json:"languages"`
-	URI         string   `json:"uri"`
-	Urls        []string `json:"urls,omitempty"`
-	Version     string   `json:"version"`
-}
-
 // Application is the global state of our application
 type Application struct {
 	Version string
