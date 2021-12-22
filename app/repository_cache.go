@@ -87,7 +87,7 @@ func colIRI(hc handlers.CollectionType) func(it pub.Item, fn ...client.FilterFn)
 	}
 }
 
-func (r *repository) WarmupCaches(self pub.Item) error {
+func WarmupCaches(r *repository, self pub.Item) error {
 	f := new(Filters)
 	r.infoFn()("Warming up caches")
 
