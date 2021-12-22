@@ -127,10 +127,10 @@ func Load(e EnvType, wait time.Duration) *Configuration {
 	if to, _ := time.ParseDuration(loadKeyFromEnv(KeyTimeOut, "")); to > 0 {
 		c.TimeOut = to
 	}
-	c.Env = EnvType(os.Getenv("ENV"))
-	c.HostName = loadKeyFromEnv(KeyHostname, "")
-	c.Name = loadKeyFromEnv(KeyName, c.HostName)
+	c.Env = EnvType(loadKeyFromEnv(KeyENV, "dev"))
 	c.ListenHost = loadKeyFromEnv(KeyListenHostName, DefaultListenHost)
+	c.HostName = loadKeyFromEnv(KeyHostname, c.ListenHost)
+	c.Name = loadKeyFromEnv(KeyName, c.HostName)
 	if port, _ := strconv.ParseInt(loadKeyFromEnv(KeyListenPort, ""), 10, 32); port > 0 {
 		c.ListenPort = int(port)
 	} else {
