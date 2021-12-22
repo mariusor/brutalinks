@@ -14,8 +14,8 @@ const (
 	TagMention = "mention"
 	TagTag     = "tag"
 
+	tagNameModerator = "#mod"
 	tagNameSysOP     = "#sysop"
-	tagNameModerator = "#moderator"
 )
 
 type Tag struct {
