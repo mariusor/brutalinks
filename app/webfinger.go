@@ -1,6 +1,7 @@
 package app
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 
 	pub "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
+	"github.com/mariusor/go-littr/internal/assets"
 	"github.com/mariusor/go-littr/internal/config"
 	"github.com/writeas/go-nodeinfo"
 )
@@ -242,4 +244,20 @@ func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/jrd+json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(dat)
+}
+
+func (a Application) NodeInfo() WebInfo {
+	// Name formats the name of the current Application
+	inf := WebInfo{
+		Title:   a.Conf.Name,
+		Summary: "Link aggregator inspired by reddit and hacker news using ActivityPub federation.",
+		Email:   a.Conf.AdminContact,
+		URI:     a.BaseURL,
+		Version: a.Version,
+	}
+
+	if desc, err := assets.GetFullFile("./README.md"); err == nil {
+		inf.Description = string(bytes.Trim(desc, "\x00"))
+	}
+	return inf
 }

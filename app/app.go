@@ -1,7 +1,6 @@
 package app
 
 import (
-	"bytes"
 	"crypto/tls"
 	"fmt"
 	"net/http"
@@ -11,7 +10,6 @@ import (
 	"github.com/go-ap/errors"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/mariusor/go-littr/internal/assets"
 	"github.com/mariusor/go-littr/internal/config"
 	"github.com/mariusor/go-littr/internal/log"
 	"github.com/writeas/go-nodeinfo"
@@ -144,22 +142,6 @@ func (a *Application) Front() error {
 
 type Cacheable interface {
 	GetAge() int
-}
-
-func (a Application) NodeInfo() WebInfo {
-	// Name formats the name of the current Application
-	inf := WebInfo{
-		Title:   a.Conf.Name,
-		Summary: "Link aggregator inspired by reddit and hacker news using ActivityPub federation.",
-		Email:   a.Conf.AdminContact,
-		URI:     a.BaseURL,
-		Version: a.Version,
-	}
-
-	if desc, err := assets.GetFullFile("./README.md"); err == nil {
-		inf.Description = string(bytes.Trim(desc, "\x00"))
-	}
-	return inf
 }
 
 func ReqLogger(f middleware.LogFormatter) Handler {
