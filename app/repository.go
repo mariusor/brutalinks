@@ -36,6 +36,7 @@ type repository struct {
 	cache   *cache
 	app     *Account
 	fedbox  *fedbox
+	modTags TagCollection
 	infoFn  CtxLogFn
 	errFn   CtxLogFn
 }
@@ -83,7 +84,22 @@ func ActivityPubService(c appConfig) (*repository, error) {
 	if repo.app, err = AuthorizeOAuthClient(repo, c.BaseURL); err != nil {
 		return repo, fmt.Errorf("failed to authenticate client: %w", err)
 	}
+
+	if repo.modTags, err = LoadModeratorTags(repo); err != nil {
+		return repo, fmt.Errorf("failed to authenticate client: %w", err)
+	}
+
 	return repo, nil
+}
+
+func LoadModeratorTags(repo *repository) (TagCollection, error) {
+	ff := &Filters{
+		Name: CompStrs{EqualsString(tagNameModerator), EqualsString(tagNameSysOP)},
+		//Type:   nilFilters, // TODO(marius): this seems to have a problem currently on FedBOX
+		AttrTo: CompStrs{EqualsString(repo.app.pub.GetID().String())},
+	}
+	tags, _, err := repo.LoadTags(context.Background(), ff)
+	return tags, err
 }
 
 func accountURL(acc Account) pub.IRI {

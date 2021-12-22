@@ -90,7 +90,9 @@ func (a *Application) init(c *config.Configuration, host string, port int) error
 		c.APIURL = fmt.Sprintf("%s/api", a.BaseURL)
 	}
 	Instance = *a
-	a.Front()
+	if err := a.Front(); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -105,6 +107,7 @@ func (a *Application) Front() error {
 		a.Logger.Error(err.Error())
 		return err
 	}
+	a.ModTags = a.front.storage.modTags
 
 	// Routes
 	r := chi.NewRouter()
