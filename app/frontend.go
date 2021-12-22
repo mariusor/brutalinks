@@ -55,6 +55,8 @@ func hideString(s string) string {
 	return ss + s[l-3:]
 }
 
+const fedboxProvider = "fedbox"
+
 func (h *handler) init(c appConfig) error {
 	var err error
 
@@ -80,62 +82,54 @@ func (h *handler) init(c appConfig) error {
 	c.SessionKeys = loadEnvSessionKeys()
 	h.conf = c
 
+	if err := ConnectFedBOX(h, h.conf); err != nil {
+		h.errFn(log.Ctx{"err": err.Error()})("Error connecting to ActivityPub service")
+		return err
+	}
+	if h.v, err = ViewInit(h.conf, h.infoFn, h.errFn); err != nil {
+		h.errFn(log.Ctx{"err": err.Error()})("Error initializing view")
+		return err
+	}
+	return nil
+}
+
+func ConnectFedBOX(h *handler, c appConfig) error {
+	var err error
 	h.storage, err = ActivityPubService(c)
 	if err != nil {
-		h.conf.UserCreatingEnabled = false
-		h.errFn()("Failed to load actor: %s", err)
-	} else {
-		provider := "fedbox"
-		config := GetOauth2Config(provider, h.conf.BaseURL)
-		ctx := log.Ctx{
-			"provider":    provider,
-			"client":      config.ClientID,
-			"pw":          hideString(config.ClientSecret),
-			"authURL":     config.Endpoint.AuthURL,
-			"tokURL":      config.Endpoint.TokenURL,
-			"redirectURL": config.RedirectURL,
-		}
-		if len(config.ClientID) > 0 {
-			oauth, err := h.storage.fedbox.Actor(context.TODO(), actors.IRI(h.storage.BaseURL()).AddPath(config.ClientID))
-			if err != nil {
-				h.conf.UserCreatingEnabled = false
-				h.errFn(log.Ctx{"err": err}, ctx)("Failed to authenticate client")
-			}
-			if oauth != nil {
-				h.storage.app = new(Account)
-				h.storage.app.FromActivityPub(oauth)
-
-				handle := oauth.ID.String()
-				ctx["handle"] = handle
-				tok, err := config.PasswordCredentialsToken(context.TODO(), handle, config.ClientSecret)
-				if err != nil {
-					h.conf.UserCreatingEnabled = false
-					h.errFn(log.Ctx{"err": err}, ctx)("Failed to authenticate client")
-				} else {
-					if tok == nil {
-						h.conf.UserCreatingEnabled = false
-						h.errFn(ctx)("Failed to load a valid OAuth2 token for client")
-					}
-					h.storage.app.Metadata.OAuth.Provider = provider
-					h.storage.app.Metadata.OAuth.Token = tok
-					h.infoFn(ctx, log.Ctx{
-						"token":   hideString(tok.AccessToken),
-						"type":    tok.TokenType,
-						"refresh": hideString(tok.RefreshToken),
-					})("Loaded valid OAuth2 token for client")
-
-				}
-			}
-		} else {
-			h.conf.UserCreatingEnabled = false
-			h.errFn(log.Ctx{"conf": config})("Failed to load OAuth2 ClientID")
-		}
+		return fmt.Errorf("failed to load actor: %w", err)
 	}
-	h.v, err = ViewInit(h.conf, h.infoFn, h.errFn)
+	h.conf.UserCreatingEnabled = true
+	return nil
+}
+
+func AuthorizeOAuthClient(storage *repository, baseURL string) (*Account, error) {
+	config := GetOauth2Config(fedboxProvider, baseURL)
+	if len(config.ClientID) == 0 {
+		return nil, errors.Newf("invalid OAuth2 configuration")
+	}
+	oauth, err := storage.fedbox.Actor(context.TODO(), actors.IRI(storage.BaseURL()).AddPath(config.ClientID))
 	if err != nil {
-		h.errFn(log.Ctx{"err": err})("Error initializing view")
+		return nil, err
 	}
-	return err
+	if oauth == nil {
+		return nil, errors.Newf("unable to load OAuth2 client application actor")
+	}
+	app := new(Account)
+	app.FromActivityPub(oauth)
+
+	handle := oauth.ID.String()
+	tok, err := config.PasswordCredentialsToken(context.TODO(), handle, config.ClientSecret)
+	if err != nil {
+		return app, err
+	} else {
+		if tok == nil {
+			return app, errors.Newf("Failed to load a valid OAuth2 token for client")
+		}
+		app.Metadata.OAuth.Provider = fedboxProvider
+		app.Metadata.OAuth.Token = tok
+	}
+	return app, nil
 }
 
 func loggedAccount(r *http.Request) *Account {

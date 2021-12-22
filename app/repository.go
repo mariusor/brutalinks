@@ -80,6 +80,9 @@ func ActivityPubService(c appConfig) (*repository, error) {
 		})
 	}
 
+	if repo.app, err = AuthorizeOAuthClient(repo, c.BaseURL); err != nil {
+		return repo, fmt.Errorf("failed to authenticate client: %w", err)
+	}
 	return repo, nil
 }
 
