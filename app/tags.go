@@ -32,13 +32,16 @@ type Tag struct {
 }
 
 func (t Tag) IsLocal() bool {
-	return strings.Contains(t.URL, Instance.BaseURL) || Instance.ModTags.Contains(t)
+	return strings.Contains(t.URL, Instance.BaseURL)
 }
 
 type TagCollection []Tag
 
 func (c TagCollection) Contains(t Tag) bool {
 	for _, tt := range c {
+		if tt.Metadata.ID == t.Metadata.ID {
+			return true
+		}
 		if tt.Type == t.Type && tt.Name == t.Name && tt.URL == t.URL {
 			return true
 		}

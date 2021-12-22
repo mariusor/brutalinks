@@ -175,6 +175,17 @@ func FromActor(a *Account, p *pub.Actor) error {
 		}
 
 		for _, t := range tags {
+			if !Instance.ModTags.Contains(t) {
+				continue
+			}
+			for _, tt := range Instance.ModTags {
+				if tt.Name == tagNameSysOP && t.Metadata.ID == tt.Metadata.ID {
+					a.Flags = a.Flags | FlagsOperator
+				}
+				if tt.Name == tagNameModerator && t.Metadata.ID == tt.Metadata.ID {
+					a.Flags = a.Flags | FlagsModerator
+				}
+			}
 			if t.Name == tagNameSysOP && t.IsLocal() {
 				a.Flags = a.Flags | FlagsOperator
 			}
