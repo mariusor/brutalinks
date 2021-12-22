@@ -78,7 +78,7 @@ var Instance Application
 // New instantiates a new Application
 func New(c *config.Configuration, host string, port int, ver string) Application {
 	app := Application{Version: ver}
-	app.setUp(c, host, port)
+	app.init(c, host, port)
 	return app
 }
 
@@ -88,7 +88,7 @@ func (a *Application) Reload() error {
 	return nil
 }
 
-func (a *Application) setUp(c *config.Configuration, host string, port int) error {
+func (a *Application) init(c *config.Configuration, host string, port int) error {
 	a.Conf = c
 	a.Logger = log.Dev(c.LogLevel)
 	if c.Secure {
