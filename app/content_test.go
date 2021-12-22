@@ -84,6 +84,7 @@ func Test_replaceTags(t *testing.T) {
 			want: `some <a href='https://brutalinks.git/t/tag' rel='tag'>tag</a>-`,
 		},
 	}
+	Instance = new(Application)
 	Instance.BaseURL = "https://brutalinks.git"
 	Instance.Conf = &config.Configuration{HostName: "brutalinks.git"}
 	for _, tt := range tests {

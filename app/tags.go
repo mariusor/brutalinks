@@ -39,7 +39,7 @@ type TagCollection []Tag
 
 func (c TagCollection) Contains(t Tag) bool {
 	for _, tt := range c {
-		if tt.Metadata.ID == t.Metadata.ID {
+		if tt.Metadata != nil && t.Metadata != nil && tt.Metadata.ID == t.Metadata.ID {
 			return true
 		}
 		if tt.Type == t.Type && tt.Name == t.Name && tt.URL == t.URL {
