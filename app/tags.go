@@ -31,6 +31,10 @@ type Tag struct {
 	pub         pub.Item      `json:"-"`
 }
 
+func (t Tag) IsLocal() bool {
+	return strings.Contains(t.URL, Instance.BaseURL) || Instance.ModTags.Contains(t)
+}
+
 type TagCollection []Tag
 
 func (c TagCollection) Contains(t Tag) bool {

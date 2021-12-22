@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"net/url"
-	"strings"
 
 	pub "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
@@ -176,10 +175,10 @@ func FromActor(a *Account, p *pub.Actor) error {
 		}
 
 		for _, t := range tags {
-			if t.Name == tagNameSysOP && strings.Contains(t.URL, Instance.BaseURL) {
+			if t.Name == tagNameSysOP && t.IsLocal() {
 				a.Flags = a.Flags | FlagsOperator
 			}
-			if t.Name == tagNameModerator && strings.Contains(t.URL, Instance.BaseURL) {
+			if t.Name == tagNameModerator && t.IsLocal() {
 				a.Flags = a.Flags | FlagsModerator
 			}
 		}

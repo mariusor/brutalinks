@@ -45,6 +45,7 @@ type Application struct {
 	Version string
 	BaseURL string
 	Conf    *config.Configuration
+	ModTags TagCollection
 	Logger  log.Logger
 	front   *handler
 	Mux     *chi.Mux
