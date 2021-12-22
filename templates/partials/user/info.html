@@ -15,8 +15,7 @@
 {{- if gt (len .Metadata.Tags) 0 }}
     Tags: <ul>
         {{- range $tag := .Metadata.Tags -}}
-        {{ if gt (len $tag.Name) 0 -}} <li> {{$tag | outputTag }} </li>{{- end -}}
-
+        {{ if gt (len $tag.Name) 0 -}} <li> {{$tag | outputTag }} </li>{{- end }}
         {{- end -}}
     </ul>
 {{ end -}}

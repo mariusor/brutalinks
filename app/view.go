@@ -179,7 +179,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"isImage":               isImage,
 			"Markdown":              Markdown,
 			"replaceTags":           replaceTags,
-			"outputTag":             func(t Tag) template.HTML { return template.HTML(mimeTypeTagReplace("text/html", t)) },
+			"outputTag":             renderTag,
 			"AccountLocalLink":      AccountLocalLink,
 			"ShowAccountHandle":     ShowAccountHandle,
 			"PermaLink":             PermaLink,
