@@ -289,6 +289,18 @@ func ModerationFiltersMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := FiltersFromRequest(r)
 		f.Type = ModerationActivitiesFilter
+		f.IRI = CompStrs{LikeString(chi.URLParam(r, "hash"))}
+		f.MaxItems = 1
+
+		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func ModerationListingFiltersMw(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		f := FiltersFromRequest(r)
+		f.Type = ModerationActivitiesFilter
 		f.Object = &Filters{IRI: notNilFilters}
 		f.Actor = &Filters{IRI: notNilFilters}
 

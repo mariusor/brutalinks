@@ -149,8 +149,12 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 					Get("/federated", h.HandleShow)
 				r.With(h.NeedsSessions, h.ValidateLoggedIn(h.v.RedirectToErrors), FollowedFiltersMw, loggedAccountSearchFns, LoadMw, SortByDate).
 					Get("/followed", h.HandleShow)
-				r.With(ModelMw(&listingModel{tpl: "moderation", sortFn: ByDate}), ModerationFiltersMw, instanceSearchFns, loggedAccountSearchFns, LoadMw, ModerationListing).
-					Get("/moderation", h.HandleShow)
+				r.Route("/moderation", func(r chi.Router) {
+					r.With(ModelMw(&listingModel{tpl: "moderation", sortFn: ByDate}), ModerationListingFiltersMw, instanceSearchFns, loggedAccountSearchFns, LoadMw, ModerationListing).
+						Get("/", h.HandleShow)
+					r.With(h.ValidateModerator(), ModerationFiltersMw, instanceSearchFns, loggedAccountSearchFns, LoadMw).Get("/{hash}/rm", h.HandleModerationDelete)
+				})
+
 				r.With(ModelMw(&listingModel{tpl: "listing", sortFn: ByDate}), ActorsFiltersMw, instanceSearchFns, LoadMw, ThreadedListingMw).
 					Get("/~", h.HandleShow)
 			})

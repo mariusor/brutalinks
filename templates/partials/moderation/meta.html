@@ -1,4 +1,8 @@
 {{- $it := . -}}
 <footer class="meta">
-    <small>{{ if not .Deleted}}sent <time class="submitted-at" datetime="{{ $it.SubmittedAt | ISOTimeFmt | html }}" title="{{ $it.SubmittedAt | ISOTimeFmt }}">{{ icon "clock-o" }}{{ $it.SubmittedAt | TimeFmt }}</time>{{- end -}}</small>
+    {{/* <small>{{ if not .Deleted}}sent <time class="submitted-at" datetime="{{ $it.SubmittedAt | ISOTimeFmt | html }}" title="{{ $it.SubmittedAt | ISOTimeFmt }}">{{ icon "clock-o" }}{{ $it.SubmittedAt | TimeFmt }}</time>{{- end -}}</small> */}}
+    <small>Moderator actions:</small>
+    <nav><ul>
+        <li><small><a href="/moderation/{{$it.ID}}/rm" class="rm" data-hash="{{ $it.ID }}">{{/*icon "eraser"*/}}rm</a></small></li>
+    </ul></nav>
 </footer>

@@ -900,7 +900,7 @@ func (r *repository) loadModerationFollowups(ctx context.Context, items Renderab
 	modActions.Type = ActivityTypesFilter(pub.DeleteType, pub.UpdateType)
 	modActions.InReplTo = IRIsFilter(inReplyTo...)
 	modActions.Actor = &Filters{IRI: notNilFilters}
-	act, err := r.fedbox.Outbox(ctx, r.fedbox.Service(), Values(modActions))
+	act, err := r.fedbox.Outbox(ctx, r.app.pub, Values(modActions))
 	if err != nil {
 		return nil, err
 	}
@@ -1859,6 +1859,126 @@ func loadTagsIfExisting(r *repository, ctx context.Context, incoming TagCollecti
 	return incoming
 }
 
+func (r *repository) ModerateDelete(ctx context.Context, mod ModerationOp, author *Account) (ModerationOp, error) {
+	var it *Item
+	switch p := mod.Object.(type) {
+	case *Item:
+		it = p
+	case *Account:
+		// TODO(marius): implement account deletion
+		return ModerationOp{}, errors.Newf("invalid moderation op for account")
+	default:
+		return ModerationOp{}, errors.Newf("invalid moderation type object")
+	}
+	// we operate on the current item as the application
+	r.WithAccount(author)
+
+	submittedBy := author.pub
+	if !accountValidForC2S(author) {
+		return mod, errors.Unauthorizedf("invalid account %s", author.Handle)
+	}
+
+	to := make(pub.ItemCollection, 0)
+	cc := make(pub.ItemCollection, 0)
+	bcc := make(pub.ItemCollection, 0)
+
+	var err error
+	it.Delete()
+
+	if it.HasMetadata() {
+		m := it.Metadata
+		if len(m.To) > 0 {
+			for _, rec := range m.To {
+				if rr := pub.IRI(rec.Metadata.ID); !cc.Contains(rr) {
+					to = append(to, rr)
+				}
+			}
+		}
+		if len(m.CC) > 0 {
+			for _, rec := range m.CC {
+				if rr := pub.IRI(rec.Metadata.ID); !cc.Contains(rr) {
+					cc = append(cc, rr)
+				}
+			}
+		}
+		m.Tags = loadTagsIfExisting(r, ctx, m.Tags)
+		m.Mentions = loadMentionsIfExisting(r, ctx, m.Mentions)
+		for _, mm := range loadCCsFromMentions(m.Mentions) {
+			if !cc.Contains(mm) {
+				cc = append(cc, mm)
+			}
+		}
+		it.Metadata = m
+	}
+	par := it.Parent
+	for {
+		// Appending parents' authors to the CC of current activity
+		if par == nil {
+			break
+		}
+		if parAuth := par.SubmittedBy; parAuth != nil && !cc.Contains(parAuth.pub.GetLink()) {
+			cc = append(cc, parAuth.pub.GetLink())
+		}
+		par = par.Parent
+	}
+
+	if !it.Private() {
+		to = append(to, pub.PublicNS)
+		if it.Parent == nil && it.SubmittedBy.HasMetadata() && len(it.SubmittedBy.Metadata.FollowersIRI) > 0 {
+			cc = append(cc, pub.IRI(it.SubmittedBy.Metadata.FollowersIRI))
+		}
+		cc = append(cc, r.app.pub.GetLink(), handlers.Followers.IRI(r.app.pub))
+		bcc = append(bcc, r.fedbox.Service().ID)
+	}
+
+	art := new(pub.Object)
+	loadAPItem(art, *it)
+	if it.Parent != nil {
+		loadFromParent(art, it.Parent.pub)
+	}
+	id := art.GetLink()
+
+	act := &pub.Activity{
+		To:        to,
+		CC:        cc,
+		BCC:       bcc,
+		InReplyTo: mod.pub.GetLink(),
+		Actor:     submittedBy.GetLink(),
+		Object:    art,
+	}
+	if it.Deleted() {
+		if len(id) == 0 {
+			r.errFn(log.Ctx{"item": it.Hash})(err.Error())
+			return mod, errors.NotFoundf("item hash is empty, can not delete")
+		}
+		act.Object = id
+		act.Type = pub.DeleteType
+	} else {
+		if len(id) == 0 {
+			act.Type = pub.CreateType
+		} else {
+			act.Type = pub.UpdateType
+		}
+	}
+	var (
+		i  pub.IRI
+		ob pub.Item
+	)
+	i, ob, err = r.fedbox.ToOutbox(ctx, act)
+	if err != nil {
+		r.errFn()(err.Error())
+		return mod, err
+	}
+	r.infoFn(log.Ctx{"act": i, "obj": ob.GetLink(), "type": ob.GetType()})("saved activity")
+	err = it.FromActivityPub(ob)
+	if err != nil {
+		r.errFn()(err.Error())
+		return mod, err
+	}
+	r.cache.remove()
+	return mod, err
+}
+
 func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 	if it.SubmittedBy == nil || !it.SubmittedBy.HasMetadata() {
 		return Item{}, errors.Newf("invalid account")
@@ -1906,11 +2026,12 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 	}
 	par := it.Parent
 	for {
+		// Appending parents' authors to the CC of current activity
 		if par == nil {
 			break
 		}
-		if auth := par.SubmittedBy; auth != nil && !cc.Contains(auth.pub.GetLink()) {
-			cc = append(cc, par.SubmittedBy.pub.GetLink())
+		if parAuth := par.SubmittedBy; parAuth != nil && !cc.Contains(parAuth.pub.GetLink()) {
+			cc = append(cc, parAuth.pub.GetLink())
 		}
 		par = par.Parent
 	}
@@ -1941,9 +2062,7 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 	loadAuthors := true
 	if it.Deleted() {
 		if len(id) == 0 {
-			r.errFn(log.Ctx{
-				"item": it.Hash,
-			})(err.Error())
+			r.errFn(log.Ctx{"item": it.Hash})(err.Error())
 			return it, errors.NotFoundf("item hash is empty, can not delete")
 		}
 		act.Object = id

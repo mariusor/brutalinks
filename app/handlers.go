@@ -90,6 +90,34 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	h.v.Redirect(w, r, ItemPermaLink(&n), http.StatusSeeOther)
 }
 
+// HandleModerationDelete serves /moderation/{hash}/rm GET request
+func (h *handler) HandleModerationDelete(w http.ResponseWriter, r *http.Request) {
+	acc := loggedAccount(r)
+	repo := h.storage
+
+	cur := ContextCursor(r.Context())
+	if cur == nil || cur.total == 0 {
+		url := r.URL
+		url.Path = path.Dir(path.Dir(url.Path))
+		h.v.Redirect(w, r, url.RequestURI(), http.StatusTemporaryRedirect)
+		return
+	}
+	var mod *ModerationOp
+	for _, m := range cur.items {
+		if op, ok := m.(*ModerationOp); ok {
+			mod = op
+		}
+	}
+
+	backUrl := r.Header.Get("Referer")
+	if _, err := repo.ModerateDelete(r.Context(), *mod, repo.app); err != nil {
+		h.v.addFlashMessage(Error, w, r, "unable to delete item as current user")
+	}
+
+	acc.Metadata.InvalidateOutbox()
+	h.v.Redirect(w, r, backUrl, http.StatusFound)
+}
+
 // HandleDelete serves /{year}/{month}/{day}/{hash}/rm POST request
 // HandleDelete serves /~{handle}/rm GET request
 func (h *handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
@@ -447,6 +475,23 @@ func (h *handler) ValidateLoggedIn(eh ErrorHandler) Handler {
 				e := errors.Unauthorizedf("Please login to perform this action")
 				h.errFn()("Error: %s", e)
 				eh(w, r, e)
+				return
+			}
+			next.ServeHTTP(w, r)
+		}
+		return http.HandlerFunc(fn)
+	}
+}
+
+func (h *handler) ValidateModerator() Handler {
+	return func(next http.Handler) http.Handler {
+		fn := func(w http.ResponseWriter, r *http.Request) {
+			acc := loggedAccount(r)
+			url := r.URL
+			if !acc.IsModerator() {
+				url.Path = path.Dir(url.Path)
+				h.v.addFlashMessage(Error, w, r, "Current user is not allowed to moderate")
+				h.v.Redirect(w, r, url.RequestURI(), http.StatusTemporaryRedirect)
 				return
 			}
 			next.ServeHTTP(w, r)
