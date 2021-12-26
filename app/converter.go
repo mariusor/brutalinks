@@ -788,7 +788,7 @@ func LoadFromActivityPubItem(it pub.Item) (Renderable, error) {
 			return nil
 		})
 	}
-	if ValidContentManagementTypes.Contains(typ) {
+	if ValidContentManagementTypes.Contains(typ) || typ == "" {
 		item := new(Item)
 		err = item.FromActivityPub(it)
 		result = item
