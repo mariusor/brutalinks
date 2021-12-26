@@ -141,7 +141,12 @@ func (a *Account) Private() bool {
 
 // IsModerator
 func (a *Account) IsModerator() bool {
-	return a != nil && (a.Flags&FlagsModerator == FlagsModerator || a.Flags&FlagsOperator == FlagsOperator)
+	return a != nil && (a.Flags&FlagsModerator == FlagsModerator || a.IsOperator())
+}
+
+// IsOperator
+func (a *Account) IsOperator() bool {
+	return a != nil && a.Flags&FlagsOperator == FlagsOperator
 }
 
 func (a Account) Votes() VoteCollection {
