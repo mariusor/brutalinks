@@ -1,10 +1,10 @@
 <nav class="moderation-hdr">
     <form method="get">
-        <label for="which-moderators">Moderator</label>
+{{/*        <label for="which-moderators">Moderator</label>
         <select name="m" id="which-moderators">
             <option value="">(all)</option>
             <option value="users"{{- if urlValueContains "m" "users" }} selected{{- end -}}>(users)</option>
-        </select>
+        </select> */}}
         <label><input type="checkbox" name="t" value="s"{{- if urlValueContains "t" "s" }} checked{{- end -}}/> Submissions</label>
         <label><input type="checkbox" name="t" value="c"{{- if urlValueContains "t" "c" }} checked{{- end -}}/> Comments</label>
         <label><input type="checkbox" name="t" value="a"{{- if urlValueContains "t" "a" }} checked{{- end -}}/> Accounts</label>
