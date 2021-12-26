@@ -109,8 +109,11 @@ func (h *handler) HandleModerationDelete(w http.ResponseWriter, r *http.Request)
 		}
 	}
 
+	// we operate on the current item as the application
+	repo.WithAccount(repo.app)
+
 	backUrl := r.Header.Get("Referer")
-	if _, err := repo.ModerateDelete(r.Context(), *mod, repo.app); err != nil {
+	if _, err := repo.ModerateDelete(r.Context(), *mod, acc); err != nil {
 		h.v.addFlashMessage(Error, w, r, "unable to delete item as current user")
 	}
 

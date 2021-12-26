@@ -175,6 +175,12 @@ func FromActor(a *Account, p *pub.Actor) error {
 		}
 
 		for _, t := range tags {
+			if t.Name == tagNameSysOP && t.IsLocal() {
+				a.Flags = a.Flags | FlagsOperator
+			}
+			if t.Name == tagNameModerator && t.IsLocal() {
+				a.Flags = a.Flags | FlagsModerator
+			}
 			if !Instance.ModTags.Contains(t) {
 				continue
 			}
@@ -185,12 +191,6 @@ func FromActor(a *Account, p *pub.Actor) error {
 				if tt.Name == tagNameModerator && t.Metadata.ID == tt.Metadata.ID {
 					a.Flags = a.Flags | FlagsModerator
 				}
-			}
-			if t.Name == tagNameSysOP && t.IsLocal() {
-				a.Flags = a.Flags | FlagsOperator
-			}
-			if t.Name == tagNameModerator && t.IsLocal() {
-				a.Flags = a.Flags | FlagsModerator
 			}
 		}
 	}

@@ -1870,13 +1870,8 @@ func (r *repository) ModerateDelete(ctx context.Context, mod ModerationOp, autho
 	default:
 		return ModerationOp{}, errors.Newf("invalid moderation type object")
 	}
-	// we operate on the current item as the application
-	r.WithAccount(author)
 
 	submittedBy := author.pub
-	if !accountValidForC2S(author) {
-		return mod, errors.Unauthorizedf("invalid account %s", author.Handle)
-	}
 
 	to := make(pub.ItemCollection, 0)
 	cc := make(pub.ItemCollection, 0)
@@ -1939,12 +1934,13 @@ func (r *repository) ModerateDelete(ctx context.Context, mod ModerationOp, autho
 	id := art.GetLink()
 
 	act := &pub.Activity{
-		To:        to,
-		CC:        cc,
-		BCC:       bcc,
-		InReplyTo: mod.pub.GetLink(),
-		Actor:     submittedBy.GetLink(),
-		Object:    art,
+		To:           to,
+		CC:           cc,
+		BCC:          bcc,
+		AttributedTo: submittedBy,
+		InReplyTo:    mod.pub.GetLink(),
+		Actor:        r.app.pub.GetLink(),
+		Object:       art,
 	}
 	if it.Deleted() {
 		if len(id) == 0 {
