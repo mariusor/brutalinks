@@ -1,4 +1,7 @@
+{{- $userIsMod := CurrentAccount.IsModerator }}
+{{- $showFollowupActions := and (eq (len .Followup) 0) $userIsMod -}}
 {{- $count := .Requests | len -}}
+{{- $it := .Object -}}
 {{ $count }} {{ $count | pluralize "user" }} {{ . | RenderLabel | pasttensify }} <a href="{{ .Object | PermaLink }}">this {{ .Object | RenderLabel }}</a>
 {{- range $reason := .Requests -}}
 <details title="{{ $reason.SubmittedAt | TimeFmt }}" {{if ShowText}}open{{end}}><summary>Reason:</summary>
@@ -7,6 +10,14 @@
     {{- if eq .MimeType "text/plain" -}}{{- $reason.Data | Text -}}{{end}}
 </details>
 {{- end -}}
+{{- if $showFollowupActions }}
+<footer class="meta">
+    <small>Followup:</small>
+    <nav><ul>
+        <li><small><a href="{{$it | PermaLink }}/rm" class="rm" data-hash="{{ $it.ID }}">{{/*icon "eraser"*/}}rm</a></small></li>
+    </ul></nav>
+</footer>
+{{ end -}}
 {{- range $followup := .Followup -}}
 <details title="{{ $followup.SubmittedAt | TimeFmt }}"><summary>Followup:</summary>
     {{ $followup | RenderLabel | pasttensify }} by <a rel="mention" href="{{ $followup.SubmittedBy | PermaLink }}">{{ $followup.SubmittedBy | ShowAccountHandle }}</a>
