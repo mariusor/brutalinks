@@ -429,6 +429,9 @@ func loadAccountData(a *Account, b Account) {
 	if len(a.Children) == 0 && len(b.Children) > 0 {
 		a.Children = b.Children
 	}
+	if a.Flags == 0 && b.Flags > 0 {
+		a.Flags = b.Flags
+	}
 }
 
 func (v *view) LoadSession(next http.Handler) http.Handler {
