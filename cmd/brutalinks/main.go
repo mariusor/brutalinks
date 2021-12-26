@@ -117,6 +117,7 @@ func main() {
 	a, err := app.New(c, l, host, port, version)
 	if err != nil {
 		l.Errorf("Failed to start application: %s", err.Error())
+		os.Exit(1)
 	}
 	os.Exit(Run(a))
 }

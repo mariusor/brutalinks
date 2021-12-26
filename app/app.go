@@ -104,7 +104,6 @@ func (a *Application) Front() error {
 	}
 	a.front = new(handler)
 	if err := a.front.init(conf); err != nil {
-		a.Logger.Error(err.Error())
 		return err
 	}
 	a.ModTags = a.front.storage.modTags
