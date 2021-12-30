@@ -183,7 +183,7 @@ func (s *sess) save(w http.ResponseWriter, r *http.Request) error {
 		s.clear(w, r)
 	}
 	if len(ss.Values) > 0 || len(ss.Flashes()) > 0 {
-		return s.s.Save(r, w, ss)
+		return ss.Save(r, w)
 	}
 	return nil
 }
@@ -214,5 +214,7 @@ func (s *sess) loadFlashMessages(w http.ResponseWriter, r *http.Request) (func()
 			flashData = append(flashData, f)
 		}
 	}
+	// NOTE(marius): this last save is used to ensure the flash messages are removed between page loads
+	// There should be a better way to achieve this.
 	return flashFn, ss.Save(r, w)
 }
