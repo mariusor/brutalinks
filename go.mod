@@ -44,3 +44,5 @@ require (
 	google.golang.org/protobuf v1.27.1 // indirect
 	sourcegraph.com/sourcegraph/go-selenium v0.0.0-20170113155244-3da7d00aac9c
 )
+
+replace github.com/gorilla/sessions => github.com/mariusor/sessions v1.2.2-0.20211229142436-b33eb696f35b
