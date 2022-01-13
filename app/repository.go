@@ -621,18 +621,20 @@ func (r *repository) loadAccountsOutbox(ctx context.Context, acc *Account) error
 				if ValidModerationActivityTypes.Contains(typ) {
 					m := ModerationOp{}
 					m.FromActivityPub(a)
-					if m.Object.Type() != ActorType {
-						return nil
-					}
-					dude, ok := m.Object.(*Account)
-					if !ok {
-						return nil
-					}
-					if typ == pub.BlockType {
-						acc.Blocked = append(acc.Blocked, *dude)
-					}
-					if typ == pub.IgnoreType {
-						acc.Ignored = append(acc.Ignored, *dude)
+					if m.Object != nil {
+						if m.Object.Type() != ActorType {
+							return nil
+						}
+						dude, ok := m.Object.(*Account)
+						if !ok {
+							return nil
+						}
+						if typ == pub.BlockType {
+							acc.Blocked = append(acc.Blocked, *dude)
+						}
+						if typ == pub.IgnoreType {
+							acc.Ignored = append(acc.Ignored, *dude)
+						}
 					}
 				}
 				return nil
