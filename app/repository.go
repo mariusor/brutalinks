@@ -23,14 +23,6 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-var (
-	nilFilter  = EqualsString("-")
-	nilFilters = CompStrs{nilFilter}
-
-	notNilFilter  = DifferentThanString("-")
-	notNilFilters = CompStrs{notNilFilter}
-)
-
 type repository struct {
 	SelfURL string
 	cache   *cache

@@ -11,6 +11,16 @@ import (
 	"github.com/mariusor/qstring"
 )
 
+var (
+	nilFilter  = EqualsString("-")
+	nilFilters = CompStrs{nilFilter}
+
+	notNilFilter  = DifferentThanString("-")
+	notNilFilters = CompStrs{notNilFilter}
+
+	derefIRIFilters = &Filters{IRI: notNilFilters}
+)
+
 type CompStr = qstring.ComparativeString
 type CompStrs []CompStr
 
@@ -63,7 +73,7 @@ var (
 func AllFilters(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := defaultFilters(r)
-		f.Object = &Filters{IRI: notNilFilters}
+		f.Object = derefIRIFilters
 		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -117,7 +127,7 @@ func FollowedFiltersMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := FiltersFromRequest(r)
 		f.Type = CreateFollowActivitiesFilter
-		f.Actor = &Filters{IRI: notNilFilters}
+		f.Actor = derefIRIFilters
 		m := ContextListingModel(r.Context())
 		m.Title = "Followed items"
 		m.ShowText = true
@@ -135,7 +145,7 @@ func defaultFilters(r *http.Request) *Filters {
 	f.Type = CreateActivitiesFilter
 	f.Object = new(Filters)
 	f.Object.Type = ActivityTypesFilter(ValidContentTypes...)
-	f.Actor = &Filters{IRI: notNilFilters}
+	f.Actor = derefIRIFilters
 	return f
 }
 
@@ -184,7 +194,7 @@ func DomainFiltersMw(next http.Handler) http.Handler {
 			m.Title = fmt.Sprintf("Discussion items")
 		}
 		f.Object.OP = nilFilters
-		f.Actor = &Filters{IRI: notNilFilters}
+		f.Actor = derefIRIFilters
 		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -238,7 +248,7 @@ func (h handler) ItemFiltersMw(next http.Handler) http.Handler {
 		}
 
 		f.Object = &Filters{IRI: CompStrs{LikeString(hash)}}
-		f.Actor = &Filters{IRI: notNilFilters}
+		f.Actor = derefIRIFilters
 		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -258,7 +268,7 @@ func MessageFiltersMw(next http.Handler) http.Handler {
 				f.AttrTo = append(f.AttrTo, EqualsString(author.pub.GetID().String()))
 			}
 			f.Type = append(CreateActivitiesFilter, AppreciationActivitiesFilter...)
-			f.Actor = &Filters{IRI: notNilFilters}
+			f.Actor = derefIRIFilters
 		}
 		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
 		r = r.WithContext(ctx)
@@ -291,6 +301,8 @@ func ModerationFiltersMw(next http.Handler) http.Handler {
 		f.Type = ModerationActivitiesFilter
 		f.IRI = CompStrs{LikeString(chi.URLParam(r, "hash"))}
 		f.MaxItems = 1
+		f.Object = derefIRIFilters
+		f.Actor = derefIRIFilters
 
 		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
 		next.ServeHTTP(w, r.WithContext(ctx))
@@ -301,8 +313,8 @@ func ModerationListingFiltersMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := FiltersFromRequest(r)
 		f.Type = ModerationActivitiesFilter
-		f.Object = &Filters{IRI: notNilFilters}
-		f.Actor = &Filters{IRI: notNilFilters}
+		f.Object = derefIRIFilters
+		f.Actor = derefIRIFilters
 
 		mf := new(moderationFilter)
 		qstring.Unmarshal(r.URL.Query(), mf)
@@ -385,7 +397,7 @@ func ActorsFiltersMw(next http.Handler) http.Handler {
 		f := FiltersFromRequest(r)
 		f.Type = CreateActivitiesFilter
 		f.Object = &Filters{Type: ActivityTypesFilter(pub.PersonType)}
-		f.Actor = &Filters{IRI: notNilFilters}
+		f.Actor = derefIRIFilters
 		m := ContextListingModel(r.Context())
 		m.Title = "Account listing"
 		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
