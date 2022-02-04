@@ -574,7 +574,7 @@ func (r *repository) loadAccountsOutbox(ctx context.Context, acc *Account) error
 	}
 
 	f := Filters{
-		Object:   &Filters{IRI: notNilFilters},
+		Object:   derefIRIFilters,
 		MaxItems: 300,
 	}
 
@@ -858,7 +858,7 @@ func (r *repository) loadFollowsAuthors(ctx context.Context, items ...FollowRequ
 	}
 	fActors := Filters{
 		IRI:   AccountsIRIFilter(submitters...),
-		Actor: &Filters{IRI: notNilFilters},
+		Actor: derefIRIFilters,
 	}
 
 	if len(fActors.IRI) == 0 {
@@ -893,7 +893,8 @@ func (r *repository) loadModerationFollowups(ctx context.Context, items Renderab
 	modActions := new(Filters)
 	modActions.Type = ActivityTypesFilter(pub.DeleteType, pub.UpdateType)
 	modActions.InReplTo = IRIsFilter(inReplyTo...)
-	modActions.Actor = &Filters{IRI: notNilFilters}
+	modActions.Actor = derefIRIFilters
+	modActions.Object = derefIRIFilters
 	act, err := r.fedbox.Outbox(ctx, r.app.pub, Values(modActions))
 	if err != nil {
 		return nil, err
@@ -2216,7 +2217,7 @@ func Values(f interface{}) client.FilterFn {
 func (r *repository) LoadFollowRequests(ctx context.Context, ed *Account, f *Filters) (FollowRequests, uint, error) {
 	if len(f.Type) == 0 {
 		f.Type = ActivityTypesFilter(pub.FollowType)
-		f.Actor = &Filters{IRI: notNilFilters}
+		f.Actor = derefIRIFilters
 	}
 	var followReq pub.CollectionInterface
 	var err error
