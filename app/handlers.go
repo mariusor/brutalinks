@@ -114,7 +114,8 @@ func (h *handler) HandleModerationDelete(w http.ResponseWriter, r *http.Request)
 
 	backUrl := r.Header.Get("Referer")
 	if _, err := repo.ModerateDelete(r.Context(), *mod, acc); err != nil {
-		h.v.addFlashMessage(Error, w, r, "unable to delete item as current user")
+		h.errFn(log.Ctx{"err": err})("unable to delete item")
+		h.v.addFlashMessage(Error, w, r, "unable to delete item")
 	}
 
 	acc.Metadata.InvalidateOutbox()
