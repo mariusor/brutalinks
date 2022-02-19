@@ -368,21 +368,22 @@ func BlueMondayPolicy() *bluemonday.Policy {
 }
 
 func FromArticle(i *Item, a *pub.Object) error {
-	title := a.Name.First().Value
 
 	i.Hash.FromActivityPub(a)
-	if len(title) > 0 {
-		i.Title = title.String()
+	if len(a.Name) > 0 {
+		i.Title = a.Name.First().Value.String()
 	}
-	i.MimeType = MimeTypeHTML
-	if len(a.Content) == 0 && a.URL != nil && len(a.URL.GetLink()) > 0 {
-		i.Data = string(a.URL.GetLink())
-		i.MimeType = MimeTypeURL
-	} else {
-		if len(a.MediaType) > 0 {
-			i.MimeType = string(a.MediaType)
+	if len(a.Content) > 0 {
+		i.MimeType = MimeTypeHTML
+		if len(a.Content) == 0 && a.URL != nil && len(a.URL.GetLink()) > 0 {
+			i.Data = string(a.URL.GetLink())
+			i.MimeType = MimeTypeURL
+		} else {
+			if len(a.MediaType) > 0 {
+				i.MimeType = string(a.MediaType)
+			}
+			i.Data = a.Content.First().Value.String()
 		}
-		i.Data = a.Content.First().Value.String()
 	}
 	i.SubmittedAt = a.Published
 	i.UpdatedAt = a.Updated

@@ -15,9 +15,10 @@
 {{- range $followup := .Followup -}}
 <details title="{{ $followup.SubmittedAt | TimeFmt }}"><summary>Followup:</summary>
     {{ $followup | RenderLabel | pasttensify }} by <a rel="mention" href="{{ $followup.SubmittedBy | PermaLink }}">{{ $followup.SubmittedBy | ShowAccountHandle }}</a>
-    with reason:<br/>
+    {{ if gt (len $followup.Data) 0 }}with reason:<br/>
     {{- if eq .MimeType "text/html" -}}{{- replaceTags "text/html" $followup | HTML -}}{{- end -}}
     {{- if eq .MimeType "text/markdown" -}}{{- replaceTags "text/markdown" $followup | Markdown -}}{{- end -}}
     {{- if eq .MimeType "text/plain" -}}{{- $followup.Content | Text -}}{{end}}
+    {{- end -}}
 </details>
 {{- end -}}
