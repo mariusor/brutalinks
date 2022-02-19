@@ -160,6 +160,7 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 					Get("/~", h.HandleShow)
 			})
 
+			r.Post("/follow", h.HandleFollowInstanceRequest)
 			r.Get("/about", h.HandleAbout)
 			r.Route("/auth", func(r chi.Router) {
 				r.Use(h.NeedsSessions)

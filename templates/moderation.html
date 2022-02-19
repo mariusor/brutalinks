@@ -1,3 +1,7 @@
+{{- $account := CurrentAccount }}
+{{- if $account.IsOperator }}
+{{ template "partials/sysop/sysop" }}
+{{- end -}}
 <nav class="moderation-hdr">
     <form method="get">
 {{/*        <label for="which-moderators">Moderator</label>

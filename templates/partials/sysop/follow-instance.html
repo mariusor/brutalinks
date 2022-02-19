@@ -1,0 +1,7 @@
+<form method="post" action="/follow">
+    {{ csrfField }}
+    <label>
+        Follow new instance: <input name="url" type="url" /></label>
+        <button type="submit">{{ icon "star"}} Follow</button>
+    </label>
+</form>

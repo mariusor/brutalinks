@@ -263,6 +263,17 @@ func (h *handler) HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
 	h.v.Redirect(w, r, backUrl, http.StatusSeeOther)
 }
 
+func (h *handler) HandleFollowInstanceRequest(w http.ResponseWriter, r *http.Request) {
+	instanceURL := r.FormValue("url")
+	if len(instanceURL) == 0 {
+		h.v.HandleErrors(w, r, errors.NotValidf("Error: Empty instance URL"))
+		return
+	}
+	h.v.addFlashMessage(Success, w, r, fmt.Sprintf("Successfully sent follow request to instance %q", instanceURL))
+	backUrl := r.Header.Get("Referer")
+	h.v.Redirect(w, r, backUrl, http.StatusSeeOther)
+}
+
 // BlockAccount processes a report request received at /~{handle}/block
 func (h *handler) BlockAccount(w http.ResponseWriter, r *http.Request) {
 	acc := loggedAccount(r)
