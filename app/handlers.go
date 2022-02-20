@@ -10,6 +10,7 @@ import (
 	"path"
 	"strings"
 
+	pub "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
 	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/csrf"
@@ -266,7 +267,31 @@ func (h *handler) HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
 func (h *handler) HandleFollowInstanceRequest(w http.ResponseWriter, r *http.Request) {
 	instanceURL := r.FormValue("url")
 	if len(instanceURL) == 0 {
-		h.v.HandleErrors(w, r, errors.NotValidf("Error: Empty instance URL"))
+		h.v.HandleErrors(w, r, errors.NotValidf("Empty instance URL"))
+		return
+	}
+	if instanceURL == h.conf.APIURL {
+		h.v.HandleErrors(w, r, errors.NotValidf("Invalid instance URL, trying to add already configured instance"))
+		return
+	}
+	repo := ContextRepository(r.Context())
+	// Load instance actor
+	fol, err := repo.fedbox.Actor(context.TODO(), pub.IRI(instanceURL))
+	if err != nil {
+		h.v.HandleErrors(w, r, err)
+		return
+	}
+	if fol.PublicKey.ID == "" {
+		// NOTE(marius): if the actor that we want to follow with doesn't have a public key, it can't federate
+		h.v.HandleErrors(w, r, errors.NotValidf("Current instance doesn't support federation"))
+		return
+	}
+	// we operate on the current item as the application
+	repo.WithAccount(repo.app)
+
+	acc := repo.loadAPPerson(*repo.app)
+	if err = repo.FollowActor(r.Context(), acc, fol, nil); err != nil {
+		h.v.HandleErrors(w, r, err)
 		return
 	}
 	h.v.addFlashMessage(Success, w, r, fmt.Sprintf("Successfully sent follow request to instance %q", instanceURL))

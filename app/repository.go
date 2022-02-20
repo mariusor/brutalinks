@@ -2288,12 +2288,21 @@ func (r *repository) SendFollowResponse(ctx context.Context, f FollowRequest, ac
 }
 
 func (r *repository) FollowAccount(ctx context.Context, er, ed Account, reason *Item) error {
-	follower := r.loadAPPerson(er)
-	followed := r.loadAPPerson(ed)
 	if !accountValidForC2S(&er) {
 		return errors.Unauthorizedf("invalid account %s", er.Handle)
 	}
+	follower := r.loadAPPerson(er)
+	followed := r.loadAPPerson(ed)
+	err := r.FollowActor(ctx, follower, followed, reason)
+	r.errFn(log.Ctx{
+		"err":      err,
+		"follower": er.Handle,
+		"followed": ed.Handle,
+	})("Unable to follow")
+	return err
+}
 
+func (r *repository) FollowActor(ctx context.Context, follower, followed *pub.Actor, reason *Item) error {
 	to := make(pub.ItemCollection, 0)
 	cc := make(pub.ItemCollection, 0)
 	bcc := make(pub.ItemCollection, 0)
@@ -2314,11 +2323,6 @@ func (r *repository) FollowAccount(ctx context.Context, er, ed Account, reason *
 	follow.Actor = follower.GetLink()
 	_, _, err := r.fedbox.ToOutbox(ctx, follow)
 	if err != nil {
-		r.errFn(log.Ctx{
-			"err":      err,
-			"follower": er.Handle,
-			"followed": ed.Handle,
-		})("Unable to follow")
 		return err
 	}
 	return nil
