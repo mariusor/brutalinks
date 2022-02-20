@@ -185,7 +185,9 @@ func (f fedbox) normaliseIRI(i pub.IRI) pub.IRI {
 			iu.Scheme = bu.Scheme
 		}
 	}
-	iu.Path = path.Clean(iu.Path)
+	if iu.Path != "" {
+		iu.Path = path.Clean(iu.Path)
+	}
 	return pub.IRI(iu.String())
 }
 
