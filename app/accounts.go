@@ -32,24 +32,24 @@ type OAuth struct {
 }
 
 type AccountMetadata struct {
-	Password              []byte        `json:"pw,omitempty"`
-	Key                   *SSHKey       `json:"key,omitempty"`
-	Blurb                 string        `json:"blurb,omitempty"`
-	Icon                  ImageMetadata `json:"icon,omitempty"`
-	Name                  string        `json:"name,omitempty"`
-	ID                    string        `json:"id,omitempty"`
-	URL                   string        `json:"url,omitempty"`
-	Tags                  TagCollection `json:"tags,omitempty"`
-	InboxIRI              string        `json:"inbox,omitempty"`
-	OutboxIRI             string        `json:"outbox,omitempty"`
-	LikedIRI              string        `json:"liked,omitempty"`
-	FollowersIRI          string        `json:"followers,omitempty"`
-	FollowingIRI          string        `json:"following,omitempty"`
-	OAuth                 OAuth         `json:-`
-	AuthorizationEndPoint string        `json:-`
-	TokenEndPoint         string        `json:-`
-	OutboxUpdated         time.Time     `json:"outboxUpdated"`
-	Outbox                pub.ItemCollection
+	Password              []byte             `json:"pw,omitempty"`
+	Key                   *SSHKey            `json:"key,omitempty"`
+	Blurb                 string             `json:"blurb,omitempty"`
+	Icon                  ImageMetadata      `json:"icon,omitempty"`
+	Name                  string             `json:"name,omitempty"`
+	ID                    string             `json:"id,omitempty"`
+	URL                   string             `json:"url,omitempty"`
+	Tags                  TagCollection      `json:"tags,omitempty"`
+	InboxIRI              string             `json:"inbox,omitempty"`
+	OutboxIRI             string             `json:"outbox,omitempty"`
+	LikedIRI              string             `json:"liked,omitempty"`
+	FollowersIRI          string             `json:"followers,omitempty"`
+	FollowingIRI          string             `json:"following,omitempty"`
+	OAuth                 OAuth              `json:-`
+	AuthorizationEndPoint string             `json:-`
+	TokenEndPoint         string             `json:-`
+	OutboxUpdated         time.Time          `json:"outboxUpdated"`
+	Outbox                pub.ItemCollection `json:"outboxData"`
 }
 
 func (m *AccountMetadata) InvalidateOutbox() {
