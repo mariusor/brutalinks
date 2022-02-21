@@ -2612,6 +2612,9 @@ func LoadFromSearches(ctx context.Context, repo *repository, loads RemoteLoads, 
 				if search.actor == nil {
 					search.actor = service
 				}
+				if search.loadFn == nil {
+					continue
+				}
 				g.Go(repo.searchFn(gtx, g, search.loadFn(search.actor), f, fn))
 			}
 		}
