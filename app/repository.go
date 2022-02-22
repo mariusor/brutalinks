@@ -2609,11 +2609,11 @@ func LoadFromSearches(ctx context.Context, repo *repository, loads RemoteLoads, 
 	for service, searches := range loads {
 		for _, search := range searches {
 			for _, f := range search.filters {
-				if search.actor == nil {
-					search.actor = service
-				}
 				if search.loadFn == nil {
 					continue
+				}
+				if search.actor == nil {
+					search.actor = service
 				}
 				g.Go(repo.searchFn(gtx, g, search.loadFn(search.actor), f, fn))
 			}

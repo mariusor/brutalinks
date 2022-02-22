@@ -107,6 +107,30 @@ func serviceSearches(collections ...LoadFn) func(http.Handler) http.Handler {
 	return SearchInCollectionsMw(getServiceFn, collections...)
 }
 
+func OperatorSearches(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		searchIn := ContextLoads(r.Context())
+		repo := ContextRepository(r.Context())
+
+		base := baseIRI(repo.app.pub.GetLink())
+		ff := new(Filters)
+		ff.Type = ActivityTypesFilter(pub.FollowType)
+		opSearch := RemoteLoad{
+			actor:   repo.app.pub,
+			loadFn:  outbox,
+			filters: []*Filters{ff},
+		}
+		searches, ok := searchIn[base]
+		if !ok {
+			searches = make([]RemoteLoad, 0)
+		}
+		searches = append(searches, opSearch)
+		searchIn[base] = searches
+
+		next.ServeHTTP(w, r)
+	})
+}
+
 func applicationSearches(collections ...LoadFn) func(http.Handler) http.Handler {
 	return SearchInCollectionsMw(getApplicationFn, collections...)
 }
