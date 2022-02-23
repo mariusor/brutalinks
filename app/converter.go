@@ -375,15 +375,13 @@ func FromArticle(i *Item, a *pub.Object) error {
 	}
 	if len(a.Content) > 0 {
 		i.MimeType = MimeTypeHTML
-		if len(a.Content) == 0 && a.URL != nil && len(a.URL.GetLink()) > 0 {
-			i.Data = string(a.URL.GetLink())
-			i.MimeType = MimeTypeURL
-		} else {
-			if len(a.MediaType) > 0 {
-				i.MimeType = string(a.MediaType)
-			}
-			i.Data = a.Content.First().Value.String()
+		if len(a.MediaType) > 0 {
+			i.MimeType = string(a.MediaType)
 		}
+		i.Data = a.Content.First().Value.String()
+	} else if a.URL != nil && len(a.URL.GetLink()) > 0 {
+		i.Data = string(a.URL.GetLink())
+		i.MimeType = MimeTypeURL
 	}
 	i.SubmittedAt = a.Published
 	i.UpdatedAt = a.Updated
