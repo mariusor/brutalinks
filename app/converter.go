@@ -368,7 +368,6 @@ func BlueMondayPolicy() *bluemonday.Policy {
 }
 
 func FromArticle(i *Item, a *pub.Object) error {
-
 	i.Hash.FromActivityPub(a)
 	if len(a.Name) > 0 {
 		i.Title = a.Name.First().Value.String()

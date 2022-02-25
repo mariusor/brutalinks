@@ -36,7 +36,7 @@ func (h handler) LoadAuthorMw(next http.Handler) http.Handler {
 			instance := repo.fedbox.Service().GetLink()
 			if strings.Contains(handle, "@") {
 				var inst string
-				handle, inst = splitRemoteHandle(handle)
+				_, inst = splitRemoteHandle(handle)
 				instance = pub.IRI(fmt.Sprintf("https://%s", inst))
 			}
 			authors, err = repo.accountsFromRemote(ctx, instance, FilterAccountByHandle(handle))
