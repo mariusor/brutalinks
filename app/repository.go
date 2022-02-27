@@ -2070,14 +2070,12 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 		i  pub.IRI
 		ob pub.Item
 	)
-	i, ob, err = r.fedbox.ToOutbox(ctx, act)
-	if err != nil {
+	if i, ob, err = r.fedbox.ToOutbox(ctx, act); err != nil {
 		r.errFn()(err.Error())
 		return it, err
 	}
 	r.infoFn(log.Ctx{"act": i, "obj": ob.GetLink(), "type": ob.GetType()})("saved activity")
-	err = it.FromActivityPub(ob)
-	if err != nil {
+	if err = it.FromActivityPub(ob); err != nil {
 		r.errFn()(err.Error())
 		return it, err
 	}
