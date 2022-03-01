@@ -1,6 +1,6 @@
 {{- $account := CurrentAccount }}
 {{- if $account.IsOperator }}
-{{ template "partials/sysop/sysop" }}
+{{ template "partials/instance/sysop" }}
 {{- end -}}
 <nav class="moderation-hdr">
     <form method="get">
