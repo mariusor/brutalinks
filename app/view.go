@@ -135,6 +135,23 @@ func stringInSlice(ss []string) func(v string) bool {
 	}
 }
 
+func isParentAccount(a *Account, r Renderable) bool {
+	var parent *Account
+	switch it := r.(type) {
+	case *Item:
+		if it.SubmittedBy != nil {
+			parent = it.SubmittedBy.Parent
+		}
+	case *Account:
+		parent = it.Parent
+	}
+	return parent != nil && a.Hash == parent.Hash
+}
+
+func canUserModerate(a *Account, g ModerationGroup) bool {
+	return a.IsModerator() || isParentAccount(a, g.Object)
+}
+
 func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name string, m Model) error {
 	var err error
 
@@ -143,6 +160,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 	layout := "layout"
 	acc := loggedAccount(r)
 	accountFromRequest := func() *Account { return acc }
+	canModerate := func(g ModerationGroup) bool { return canUserModerate(acc, g) }
 
 	version := Instance.Version
 	ren := render.New(render.Options{
@@ -220,6 +238,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"fmtPubKey":             fmtPubKey,
 			"pluralize":             func(s string, cnt int) string { return pluralize(float64(cnt), s) },
 			"pasttensify":           pastTenseVerb,
+			"CanModerate":           canModerate,
 			"ShowFollowLink":        func(a *Account) bool { return showFollowLink(accountFromRequest(), a) },
 			"ShowAccountBlockLink":  func(a *Account) bool { return showAccountBlockLink(accountFromRequest(), a) },
 			"ShowAccountReportLink": func(a *Account) bool { return showAccountReportLink(accountFromRequest(), a) },
