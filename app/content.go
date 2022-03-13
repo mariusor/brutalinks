@@ -16,6 +16,9 @@ const (
 	FlagsDeleted = FlagBits(1 << iota)
 	FlagsOperator
 	FlagsModerator
+	FlagsApplication
+	FlagsGroup
+	FlagsService
 	FlagsPrivate
 
 	FlagsNone = FlagBits(0)

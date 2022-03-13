@@ -149,6 +149,21 @@ func (a *Account) IsOperator() bool {
 	return a != nil && a.Flags&FlagsOperator == FlagsOperator
 }
 
+// IsApplication
+func (a *Account) IsApplication() bool {
+	return a != nil && a.Flags&FlagsApplication == FlagsApplication
+}
+
+// IsGroup
+func (a *Account) IsGroup() bool {
+	return a != nil && a.Flags&FlagsGroup == FlagsGroup
+}
+
+// IsService
+func (a *Account) IsService() bool {
+	return a != nil && a.Flags&FlagsService == FlagsService
+}
+
 func (a Account) Votes() VoteCollection {
 	if !a.IsLogged() {
 		return nil

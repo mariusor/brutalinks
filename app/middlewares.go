@@ -131,6 +131,10 @@ func OperatorSearches(next http.Handler) http.Handler {
 	})
 }
 
+func instanceSearches(collections ...LoadFn) func(http.Handler) http.Handler {
+	return SearchInCollectionsMw(getServiceFn, collections...)
+}
+
 func applicationSearches(collections ...LoadFn) func(http.Handler) http.Handler {
 	return SearchInCollectionsMw(getApplicationFn, collections...)
 }

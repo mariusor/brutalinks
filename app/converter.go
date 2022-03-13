@@ -89,9 +89,16 @@ func FromActor(a *Account, p *pub.Actor) error {
 			a.Metadata.Name = name.String()
 		}
 	}
-	if p.GetType() == pub.TombstoneType {
+	switch p.GetType() {
+	case pub.TombstoneType:
 		a.Handle = Deleted
 		a.Flags = a.Flags | FlagsDeleted
+	case pub.GroupType:
+		a.Flags = a.Flags | FlagsGroup
+	case pub.ApplicationType:
+		a.Flags = a.Flags | FlagsApplication
+	case pub.ServiceType:
+		a.Flags = a.Flags | FlagsService
 	}
 	if !p.Published.IsZero() {
 		a.CreatedAt = p.Published

@@ -1,12 +1,17 @@
+{{- $isPerson := not (or .IsApplication (or .IsGroup .IsService)) -}}
 {{- if gt (len .Handle) 0 }}
 {{- if .Deleted }}
 <del class="title">{{- if .HasIcon -}}{{- Avatar .Metadata.Icon.MimeType .Metadata.Icon.URI -}}{{- else -}}{{- icon "user" "avatar" -}}{{- end -}}
 {{- .Handle -}}</del>
 {{- else -}}
+{{ if $isPerson }}
 <a href="{{ PermaLink . }}">
     {{- if .HasIcon -}}{{- Avatar .Metadata.Icon.MimeType .Metadata.Icon.URI -}}{{- else -}}{{- icon "user" "avatar" -}}{{- end -}}
     {{- .Handle -}}
 </a>
+{{- else -}}
+{{- .Handle -}}
+{{- end -}}
 {{- end -}}
 {{- else -}}
 <span>
