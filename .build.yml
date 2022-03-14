@@ -17,6 +17,7 @@ tasks:
       cd go-littr
       git remote add srht git@git.sr.ht:~mariusor/brutalinks
       git push srht --force --all
+      complete-build
   - build: |
       test ${BUILD_SUBMITTER} = "dispatch.sr.ht" && exit 0
       set +x
