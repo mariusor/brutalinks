@@ -9,10 +9,10 @@ require (
 	github.com/captncraig/cors v0.0.0-20190703115713-e80254a89df1 // indirect
 	github.com/cucumber/godog v0.11.0
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
-	github.com/go-ap/activitypub v0.0.0-20220301152214-16bd1c8aa0b3
-	github.com/go-ap/client v0.0.0-20220301152450-ecde1e987b19
+	github.com/go-ap/activitypub v0.0.0-20220316105155-826f263bfec3
+	github.com/go-ap/client v0.0.0-20220318130527-00e93c8a0a99
 	github.com/go-ap/errors v0.0.0-20211205144917-1b5bb9681d99
-	github.com/go-ap/handlers v0.0.0-20220301152424-9bb086e17a50
+	github.com/go-ap/handlers v0.0.0-20220318130434-b284abadbfe8
 	github.com/go-ap/jsonld v0.0.0-20200327122108-fafac2de2660
 	github.com/go-chi/chi/v5 v5.0.4
 	github.com/golang/protobuf v1.5.2 // indirect
