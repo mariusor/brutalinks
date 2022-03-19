@@ -123,6 +123,10 @@ func (h *handler) HandleModerationDelete(w http.ResponseWriter, r *http.Request)
 	h.v.Redirect(w, r, backUrl, http.StatusFound)
 }
 
+// HandleModerationDelete serves /moderation/{hash}/discuss GET request
+func (h *handler) HandleModerationDiscuss(w http.ResponseWriter, r *http.Request) {
+}
+
 // HandleDelete serves /{year}/{month}/{day}/{hash}/rm POST request
 // HandleDelete serves /~{handle}/rm GET request
 func (h *handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
