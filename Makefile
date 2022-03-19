@@ -42,7 +42,7 @@ all: brutalinks
 download:
 	$(GO) mod download all
 
-internal/assets/assets.gen.go: $(ASSETFILES)
+internal/assets/assets.gen.go: $(ASSETFILES) download
 	go generate -tags $(ENV) ./assets.go
 
 brutalinks: bin/brutalinks

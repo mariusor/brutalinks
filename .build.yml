@@ -22,13 +22,13 @@ tasks:
       test ${BUILD_SUBMITTER} = "dispatch.sr.ht" && exit 0
       set +x
       cd go-littr
-      make download all
+      make all
   - tests: |
       test ${BUILD_SUBMITTER} = "dispatch.sr.ht" && exit 0
       set -a +x
       source ~/.env.test
       cd go-littr
-      make download test
+      make test
   - coverage: |
       test ${BUILD_SUBMITTER} = "dispatch.sr.ht" && exit 0
       set -a +x
