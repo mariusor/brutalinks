@@ -40,7 +40,7 @@ TEST := $(GO) test $(BUILDFLAGS)
 all: brutalinks
 
 download:
-	$(GO) mod tidy
+	$(GO) mod download all
 
 internal/assets/assets.gen.go: $(ASSETFILES)
 	go generate -tags $(ENV) ./assets.go
