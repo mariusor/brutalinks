@@ -9,7 +9,7 @@ LDFLAGS ?= -X main.version=$(VERSION)
 BUILDFLAGS ?= -trimpath -a -ldflags '$(LDFLAGS)'
 TEST_FLAGS ?= -count=1
 
-GO := go
+GO ?= go
 APPSOURCES := $(wildcard ./app/*.go internal/*/*.go)
 ASSETFILES := $(wildcard templates/* templates/partials/* templates/partials/*/* assets/*/* assets/*)
 
@@ -60,7 +60,7 @@ images:
 	$(MAKE) -C docker $@
 
 test: TEST_TARGET := ./{app,internal}/...
-test:
+test: download
 	$(TEST) $(TEST_FLAGS) $(TEST_TARGET)
 
 coverage: TEST_TARGET := .
