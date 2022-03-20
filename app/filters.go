@@ -216,7 +216,6 @@ func TagFiltersMw(next http.Handler) http.Handler {
 		fc.MaxItems = MaxContentItems
 		fc.Type = CreateActivitiesFilter
 		fc.Object = new(Filters)
-		fc.Object.Type = ActivityTypesFilter(ValidContentTypes...)
 		fc.Object.Tag = tagsFilter(tag)
 
 		fa := new(Filters)
