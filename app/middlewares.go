@@ -103,6 +103,10 @@ func loggedAccountSearches(collections ...LoadFn) func(http.Handler) http.Handle
 	return SearchInCollectionsMw(getLoggedActorFn, collections...)
 }
 
+func namedAccountSearches(collections ...LoadFn) func(http.Handler) http.Handler {
+	return SearchInCollectionsMw(getNamedActorFn, collections...)
+}
+
 func serviceSearches(collections ...LoadFn) func(http.Handler) http.Handler {
 	return SearchInCollectionsMw(getServiceFn, collections...)
 }
@@ -157,6 +161,13 @@ func getLoggedActorFn(r *http.Request) pub.ItemCollection {
 	return nil
 }
 
+func getNamedActorFn(r *http.Request) pub.ItemCollection {
+	named := make(pub.ItemCollection, 0)
+	for _, auth := range ContextAuthors(r.Context()) {
+		named = append(named, auth.pub)
+	}
+	return named
+}
 func SearchInCollectionsMw(getActorsFn func(r *http.Request) pub.ItemCollection, collections ...LoadFn) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

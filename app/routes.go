@@ -35,12 +35,14 @@ var (
 	instanceSearchFns      = instanceSearches(inbox, outbox)
 	applicationSearchFns   = applicationSearches(inbox, outbox)
 	loggedAccountSearchFns = loggedAccountSearches(inbox, outbox)
+	namedAccountSearchFns  = namedAccountSearches(inbox, outbox)
 )
 
 func (h *handler) ItemRoutes() func(chi.Router) {
 	return func(r chi.Router) {
-		r.Use(h.CSRF, ContentModelMw, h.ItemFiltersMw, applicationSearchFns, loggedAccountSearchFns, LoadSingleObjectMw, SingleItemModelMw)
-		r.With(LoadVotes, LoadReplies, LoadAuthors, LoadSingleItemMw, ThreadedListingMw, SortByScore).Get("/", h.HandleShow)
+		r.Use(h.CSRF, ContentModelMw, h.ItemFiltersMw, applicationSearches(inbox), namedAccountSearches(outbox), LoadSingleObjectMw, SingleItemModelMw)
+		r.With(LoadVotes, LoadReplies, LoadAuthors, LoadSingleItemMw, ThreadedListingMw, SortByScore).
+			Get("/", h.HandleShow)
 		r.With(h.ValidateLoggedIn(h.v.RedirectToErrors), LoadSingleItemMw).Post("/", h.HandleSubmit)
 
 		r.Group(func(r chi.Router) {
