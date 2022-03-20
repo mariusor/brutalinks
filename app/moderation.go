@@ -265,8 +265,11 @@ func (m *ModerationOp) FromActivityPub(it pub.Item) error {
 		wer.FromActivityPub(a.Actor)
 		m.SubmittedBy = wer
 		if a.Object.IsCollection() {
+			cc := make([]Renderable, 0)
 			pub.OnCollectionIntf(a.Object, func(c pub.CollectionInterface) error {
-				m.Object = loadItemActorOrActivityFromModerationActivityObject(c.Collection().First())
+				for _, it := range c.Collection() {
+					cc = append(cc, loadItemActorOrActivityFromModerationActivityObject(it))
+				}
 				return nil
 			})
 		} else {

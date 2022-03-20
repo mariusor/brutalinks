@@ -213,12 +213,14 @@ func TagFiltersMw(next http.Handler) http.Handler {
 			return
 		}
 		fc := new(Filters)
+		fc.MaxItems = MaxContentItems
 		fc.Type = CreateActivitiesFilter
 		fc.Object = new(Filters)
 		fc.Object.Type = ActivityTypesFilter(ValidContentTypes...)
 		fc.Object.Tag = tagsFilter(tag)
 
 		fa := new(Filters)
+		fa.MaxItems = MaxContentItems
 		fa.Type = ModerationActivitiesFilter
 		fa.Tag = tagsFilter(tag)
 
@@ -361,7 +363,9 @@ func ModerationListing(next http.Handler) http.Handler {
 			return
 		}
 		followups, _ := s.loadModerationFollowups(r.Context(), c.items)
-		c.items = aggregateModeration(c.items, followups)
+		if withFollowups := aggregateModeration(c.items, followups); len(withFollowups) > 0 {
+			c.items = withFollowups
+		}
 
 		next.ServeHTTP(w, r)
 	})

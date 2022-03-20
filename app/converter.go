@@ -781,7 +781,11 @@ func LoadFromActivityPubItem(it pub.Item) (Renderable, error) {
 		err    error
 		typ    = it.GetType()
 	)
-
+	if pub.IsIRI(it) {
+		item := new(Item)
+		err = item.FromActivityPub(it)
+		result = item
+	}
 	if typ == pub.FollowType {
 		f := new(FollowRequest)
 		err = f.FromActivityPub(it)
