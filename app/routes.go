@@ -139,7 +139,7 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 
 			r.With(ListingModelMw, LoadVotes, LoadReplies, LoadAuthors).Group(func(r chi.Router) {
 				// todo(marius) :link_generation:
-				r.With(DefaultFilters, applicationSearchFns, LoadMw, SortByScore).Get("/", h.HandleShow)
+				r.With(DefaultFilters, applicationSearches(inbox), LoadMw, SortByScore).Get("/", h.HandleShow)
 				r.With(DomainFiltersMw, applicationSearchFns, LoadMw, middleware.StripSlashes, SortByDate).
 					Get("/d", h.HandleShow)
 				r.With(DomainFiltersMw, applicationSearchFns, LoadMw, SortByDate).
@@ -150,7 +150,7 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 					Get("/self", h.HandleShow)
 				r.With(FederatedFiltersMw(h.storage.fedbox.Service().ID), applicationSearchFns, LoadMw, SortByScore).
 					Get("/federated", h.HandleShow)
-				r.With(h.NeedsSessions, h.ValidateLoggedIn(h.v.RedirectToErrors), FollowedFiltersMw, loggedAccountSearchFns, LoadMw, SortByDate).
+				r.With(h.NeedsSessions, h.ValidateLoggedIn(h.v.RedirectToErrors), FollowedFiltersMw, loggedAccountSearches(inbox), LoadMw, SortByDate).
 					Get("/followed", h.HandleShow)
 				r.Route("/moderation", func(r chi.Router) {
 					r.With(ModelMw(&listingModel{tpl: "moderation", sortFn: ByDate}), ModerationListingFiltersMw, applicationSearchFns, loggedAccountSearchFns, OperatorSearches, LoadMw, ModerationListing).
