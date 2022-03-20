@@ -222,6 +222,7 @@ func TagFiltersMw(next http.Handler) http.Handler {
 		fa.MaxItems = MaxContentItems
 		fa.Type = ModerationActivitiesFilter
 		fa.Tag = tagsFilter(tag)
+		fa.Object = derefIRIFilters
 
 		allFilters := []*Filters{fc, fa}
 
@@ -315,6 +316,7 @@ func ModerationListingFiltersMw(next http.Handler) http.Handler {
 		f.Type = ModerationActivitiesFilter
 		f.Object = derefIRIFilters
 		f.Actor = derefIRIFilters
+		f.MaxItems = MaxContentItems
 
 		mf := new(moderationFilter)
 		qstring.Unmarshal(r.URL.Query(), mf)
