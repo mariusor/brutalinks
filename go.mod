@@ -6,10 +6,10 @@ require (
 	aletheia.icu/broccoli/fs v0.0.0-20210820105650-3e2e00017061
 	git.sr.ht/~mariusor/wrapper v0.0.0-20211204195804-3033a1099e0f
 	github.com/cucumber/godog v0.11.0
-	github.com/go-ap/activitypub v0.0.0-20220319193000-0b791c7c7fd9
-	github.com/go-ap/client v0.0.0-20220319194101-38839aec3e64
+	github.com/go-ap/activitypub v0.0.0-20220320141507-109a45e9a0bc
+	github.com/go-ap/client v0.0.0-20220320141814-62d91189647c
 	github.com/go-ap/errors v0.0.0-20211205144917-1b5bb9681d99
-	github.com/go-ap/handlers v0.0.0-20220319193821-b3d780857903
+	github.com/go-ap/handlers v0.0.0-20220320141738-fd0bfa95ef38
 	github.com/go-ap/jsonld v0.0.0-20200327122108-fafac2de2660
 	github.com/go-chi/chi/v5 v5.0.4
 	github.com/google/uuid v1.3.0
@@ -40,7 +40,7 @@ require (
 	github.com/cucumber/gherkin-go/v11 v11.0.0 // indirect
 	github.com/cucumber/messages-go/v10 v10.0.3 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
-	github.com/go-ap/storage v0.0.0-20220319193711-c4e7072539bb // indirect
+	github.com/go-ap/storage v0.0.0-20220320141632-4ddb1f8732ce // indirect
 	github.com/gofrs/uuid v3.3.0+incompatible // indirect
 	github.com/gogo/protobuf v1.3.1 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
