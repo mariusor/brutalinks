@@ -85,22 +85,25 @@ func ByDate(r RenderableList) []Renderable {
 }
 
 func ByScore(r RenderableList) []Renderable {
-	rl := make([]Renderable, 0)
+	rl := make([]Renderable, 0, len(r))
 	for _, rr := range r {
 		rl = append(rl, rr)
 	}
 	sort.SliceStable(rl, func(i, j int) bool {
+		var hi, hj float64
+
 		ri := rl[i]
+		ii, oki := ri.(*Item)
+		if oki {
+			hi = Hacker(int64(ii.Votes.Score()), time.Now().Sub(ii.SubmittedAt))
+		}
 		rj := rl[j]
-		if ri.Type() == rj.Type() {
-			switch ri.Type() {
-			case CommentType:
-				ii, oki := ri.(*Item)
-				ij, okj := rj.(*Item)
-				hi := Hacker(int64(ii.Votes.Score()), time.Now().Sub(ii.SubmittedAt))
-				hj := Hacker(int64(ij.Votes.Score()), time.Now().Sub(ij.SubmittedAt))
-				return oki && okj && hi > hj
-			}
+		ij, okj := rj.(*Item)
+		if okj {
+			hj = Hacker(int64(ij.Votes.Score()), time.Now().Sub(ij.SubmittedAt))
+		}
+		if oki && okj {
+			return hi > hj
 		}
 		return ri.Date().After(rj.Date())
 	})
