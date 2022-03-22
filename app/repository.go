@@ -1051,6 +1051,13 @@ func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemC
 				}
 			}
 		}
+		for _, com := range it.Children() {
+			if auth := com.SubmittedBy; !auth.IsValid() {
+				if iri := baseIRI(auth.AP().GetLink()); !accounts[iri].Contains(*auth) {
+					accounts[iri] = append(accounts[iri], *auth)
+				}
+			}
+		}
 	}
 
 	if len(accounts) == 0 {
@@ -1127,6 +1134,11 @@ func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemC
 			for i, cc := range it.Metadata.CC {
 				if cc.IsValid() && cc.Hash == auth.Hash {
 					it.Metadata.CC[i] = auth
+				}
+			}
+			for i, com := range it.children {
+				if com.IsValid() && com.SubmittedBy.Hash == auth.Hash {
+					it.children[i].SubmittedBy = &auth
 				}
 			}
 		}
@@ -1541,9 +1553,8 @@ func (r *repository) LoadSearches(ctx context.Context, searches RemoteLoads, dep
 		items, _ = r.loadItemsVotes(ctx, items...)
 	}
 	if deps.Replies {
-		_, err = r.loadItemsReplies(ctx, items...)
-		if err != nil {
-			return emptyCursor, err
+		if comments, err := r.loadItemsReplies(ctx, items...); err == nil {
+			items = append(items, comments...)
 		}
 	}
 	if deps.Follows {
