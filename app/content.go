@@ -236,9 +236,9 @@ func addLevelComments(allComments []*Item) {
 
 type ItemPtrCollection []*Item
 
-func (h ItemPtrCollection) Contains(s Hash) bool {
+func (h ItemPtrCollection) Contains(it Item) bool {
 	for _, hh := range h {
-		if hh.Hash == s {
+		if hh.Hash == it.Hash {
 			return true
 		}
 	}
@@ -302,13 +302,13 @@ func reparentComments(allComments *ItemPtrCollection) {
 	retComments := make(ItemPtrCollection, 0)
 	for _, cur := range *allComments {
 		if par := parFn(*allComments, cur); par != nil {
-			if par.children.Contains(cur.Hash) {
+			if par.children.Contains(*cur) {
 				continue
 			}
 			par.children = append(par.children, cur)
 			cur.Parent = par
 		} else {
-			if cur == nil || retComments.Contains(cur.Hash) {
+			if cur == nil || retComments.Contains(*cur) {
 				continue
 			}
 			retComments = append(retComments, cur)
