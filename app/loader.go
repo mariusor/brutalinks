@@ -31,11 +31,6 @@ type WebInfo struct {
 	Version     string   `json:"version"`
 }
 
-type Filterable interface {
-	GetWhereClauses() ([]string, []interface{})
-	GetLimit() string
-}
-
 func ContextModel(ctx context.Context) Model {
 	var m Model
 	m, _ = ctx.Value(ModelCtxtKey).(Model)

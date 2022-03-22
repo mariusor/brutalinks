@@ -49,8 +49,6 @@ type Application struct {
 	Mux     *chi.Mux
 }
 
-type Collection interface{}
-
 // Instance is the default instance of our application
 var Instance *Application
 
