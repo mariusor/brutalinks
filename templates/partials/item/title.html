@@ -9,7 +9,7 @@
 {{ if and (eq current "listing") .Public }}
 {{- $domainUrl := GetDomainURL . }}
 {{- $domainTitle := GetDomainTitle . }}
-    <small><a rel="directory" href="/d{{- if .IsLink -}}/{{$domainUrl}}{{- end -}}">{{- if .IsLink -}}{{$domainTitle}}{{- else -}} discussion {{- end -}}</a></small>
+    <small><noscript> - from </noscript><a rel="directory" href="/d{{- if .IsLink -}}/{{$domainUrl}}{{- end -}}">{{- if .IsLink -}}{{$domainTitle}}{{- else -}} discussion {{- end -}}</a></small>
 {{ end -}}
 </h2>
 </header>
