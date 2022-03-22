@@ -672,35 +672,13 @@ func (r *repository) loadItemsReplies(ctx context.Context, items ...Item) (ItemC
 	}
 	allReplies := make(ItemCollection, 0)
 	f := Filters{
-		Type:     CompStrs{DifferentThanString(string(pub.TombstoneType))},
-		InReplTo: IRIsFilter(repliesTo...),
+		Type: CompStrs{DifferentThanString(string(pub.TombstoneType))},
 	}
 
-	actor := r.app.pub
-	searches := RemoteLoads{
-		baseIRI(actor.GetLink()): []RemoteLoad{
-			{actor: actor, loadFn: replies, filters: []*Filters{&f}},
-		},
-	}
-	instanceFilters := make(map[pub.IRI][]*Filters)
+	searches := RemoteLoads{}
 	for _, top := range repliesTo {
-		fg := &Filters{
-			Type: CreateActivitiesFilter,
-			Object: &Filters{
-				Type:     CompStrs{DifferentThanString(string(pub.TombstoneType))},
-				InReplTo: IRIsFilter(top),
-			},
-		}
 		base := baseIRI(top)
-		if _, ok := instanceFilters[base]; !ok {
-			instanceFilters[base] = make([]*Filters, 0)
-		}
-		instanceFilters[base] = append(instanceFilters[base], fg)
-	}
-	for base, filters := range instanceFilters {
-		searches[base] = append(searches[base],
-			RemoteLoad{actor: actor, loadFn: inbox, filters: filters},
-		)
+		searches[base] = append(searches[base], RemoteLoad{actor: top, loadFn: replies, filters: []*Filters{&f}})
 	}
 	err := LoadFromSearches(ctx, r, searches, func(_ context.Context, c pub.CollectionInterface, f *Filters) error {
 		for _, it := range c.Collection() {
