@@ -548,6 +548,46 @@ func MessageUserContentModelMw(next http.Handler) http.Handler {
 	})
 }
 
+func reparentRenderableList(items RenderableList) RenderableList {
+	comments := make(ItemPtrCollection, 0)
+	accounts := make(AccountPtrCollection, 0)
+	for _, ren := range items {
+		if it, ok := ren.(*Item); ok {
+			comments = append(comments, it)
+		}
+		if ac, ok := ren.(*Account); ok {
+			accounts = append(accounts, ac)
+		}
+	}
+
+	reparentComments(&comments)
+	addLevelComments(comments)
+
+	reparentAccounts(&accounts)
+	addLevelAccounts(accounts)
+
+	newitems := make(RenderableList, 0)
+	for _, ren := range items {
+		switch ren.Type() {
+		case CommentType:
+			for _, it := range comments {
+				if it == ren {
+					newitems.Append(it)
+				}
+			}
+		case ActorType:
+			for _, ac := range accounts {
+				if ac == ren {
+					newitems.Append(ac)
+				}
+			}
+		default:
+			newitems.Append(ren)
+		}
+	}
+	return newitems
+}
+
 func ThreadedListingMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer next.ServeHTTP(w, r)
@@ -557,45 +597,7 @@ func ThreadedListingMw(next http.Handler) http.Handler {
 			return
 		}
 
-		comments := make(ItemPtrCollection, 0)
-		accounts := make(AccountPtrCollection, 0)
-		for _, ren := range c.items {
-			if it, ok := ren.(*Item); ok {
-				comments = append(comments, it)
-			}
-			if ac, ok := ren.(*Account); ok {
-				accounts = append(accounts, ac)
-			}
-		}
-
-		reparentComments(&comments)
-		addLevelComments(comments)
-
-		reparentAccounts(&accounts)
-		addLevelAccounts(accounts)
-
-		newitems := make(RenderableList, 0)
-		for _, ren := range c.items {
-			switch ren.Type() {
-			case CommentType:
-				for _, it := range comments {
-					if it == ren {
-						newitems.Append(it)
-					}
-				}
-			case ActorType:
-				for _, ac := range accounts {
-					if ac == ren {
-						newitems.Append(ac)
-					}
-				}
-			default:
-				newitems.Append(ren)
-			}
-		}
-		if len(newitems) > 0 {
-			c.items = newitems
-		}
+		c.items = reparentRenderableList(c.items)
 	})
 }
 
