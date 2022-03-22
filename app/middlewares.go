@@ -639,6 +639,18 @@ func SortByDate(next http.Handler) http.Handler {
 	})
 }
 
+func SortByRecentActivity(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer next.ServeHTTP(w, r)
+
+		m := ContextListingModel(r.Context())
+		if m == nil {
+			return
+		}
+		m.sortFn = ByRecentActivity
+	})
+}
+
 type deps struct {
 	Votes   bool
 	Authors bool

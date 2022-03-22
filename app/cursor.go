@@ -109,3 +109,32 @@ func ByScore(r RenderableList) []Renderable {
 	})
 	return rl
 }
+
+func ByRecentActivity(r RenderableList) []Renderable {
+	rl := make([]Renderable, 0, len(r))
+	for _, rr := range r {
+		rl = append(rl, rr)
+	}
+	sort.SliceStable(rl, func(i, j int) bool {
+		ri := rl[i]
+		rj := rl[j]
+		iMaxDate := ri.Date()
+		jMaxDate := rj.Date()
+		if ii, oki := ri.(*Item); oki {
+			for _, ic := range ii.Children() {
+				if ic.Date().After(iMaxDate) {
+					iMaxDate = ic.Date()
+				}
+			}
+		}
+		if ij, okj := rj.(*Item); okj {
+			for _, jc := range ij.Children() {
+				if jc.Date().After(jMaxDate) {
+					jMaxDate = jc.Date()
+				}
+			}
+		}
+		return iMaxDate.After(jMaxDate)
+	})
+	return rl
+}
