@@ -89,7 +89,15 @@ func Prod() Logger {
 }
 
 func context(l *logger) logrus.Fields {
-	return logrus.Fields(l.ctx)
+	l.m.RLock()
+	defer l.m.RUnlock()
+
+	c := make(logrus.Fields, len(l.ctx))
+	for k, v := range l.ctx {
+		c[k] = v
+	}
+
+	return c
 }
 
 func (l logger) New(c ...Ctx) Logger {
