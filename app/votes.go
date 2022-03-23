@@ -17,7 +17,6 @@ const (
 var ValidAppreciationTypes = pub.ActivityVocabularyTypes{
 	pub.LikeType,
 	pub.DislikeType,
-	pub.UndoType,
 }
 
 type VoteCollection []Vote
@@ -87,6 +86,9 @@ func (v Vote) Date() time.Time {
 }
 func (v VoteCollection) Contains(vot Vote) bool {
 	for _, vv := range v {
+		if !vv.HasMetadata() || !vot.HasMetadata() {
+			continue
+		}
 		if vv.Metadata.IRI == vot.Metadata.IRI {
 			return true
 		}

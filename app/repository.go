@@ -699,43 +699,83 @@ func (r *repository) loadItemsReplies(ctx context.Context, items ...Item) (ItemC
 	return allReplies, nil
 }
 
-func (r *repository) loadItemsVotes(ctx context.Context, items ...Item) (ItemCollection, error) {
-	if len(items) == 0 {
-		return items, nil
-	}
-
-	g := make(map[pub.IRI]pub.IRIs)
-	for _, it := range items {
-		if it.Deleted() {
-			continue
-		}
-		h := baseIRI(it.pub.GetLink())
-		m, ok := g[h]
-		if !ok {
-			m = make(pub.IRIs, 0)
-		}
-		m = append(m, it.pub.GetLink())
-		g[h] = m
-	}
+func likesFilter(iris pub.IRIs) RemoteLoads {
 	ff := Filters{
 		Type:     ActivityTypesFilter(ValidAppreciationTypes...),
 		MaxItems: 500,
 	}
 	load := RemoteLoad{
+		loadFn:  likes,
+		filters: []*Filters{},
+	}
+	searches := RemoteLoads{}
+	for _, iri := range iris {
+		l := load
+		l.actor = iri
+		f := ff
+		l.filters = append(l.filters, &f)
+		base := baseIRI(iri)
+		if _, ok := searches[base]; !ok {
+			searches[base] = make([]RemoteLoad, 0)
+		}
+		searches[base] = append(searches[base], l)
+	}
+	return searches
+}
+
+func mixedLikesFilter(iris pub.IRIs) RemoteLoads {
+	g := make(map[pub.IRI]pub.IRIs)
+	for _, iri := range iris {
+		base := baseIRI(iri)
+		if _, ok := g[base]; !ok {
+			g[base] = make(pub.IRIs, 0)
+		}
+		g[base] = append(g[base], iri)
+	}
+	ff := Filters{
+		Type:     ActivityTypesFilter(ValidAppreciationTypes...),
+		MaxItems: MaxContentItems * 100,
+	}
+	load := RemoteLoad{
+		actor:   Instance.front.storage.app.pub,
 		loadFn:  inbox,
 		filters: []*Filters{},
 	}
 	searches := RemoteLoads{}
-	for i, iris := range g {
+	for b, iris := range g {
 		l := load
 		f := ff
 		f.Object = &Filters{
 			IRI: IRIsFilter(iris...),
 		}
 		l.filters = append(l.filters, &f)
-		searches[i] = []RemoteLoad{l}
+		searches[b] = append(searches[b], l)
+	}
+	return searches
+}
+
+func irisFromItems(items ...Item) pub.IRIs {
+	iris := make(pub.IRIs, 0)
+	for _, it := range items {
+		if it.Deleted() {
+			continue
+		}
+		iris = append(iris, it.pub.GetLink())
+	}
+	return iris
+}
+
+func (r *repository) loadItemsVotes(ctx context.Context, items ...Item) (ItemCollection, error) {
+	if len(items) == 0 {
+		return items, nil
 	}
 
+	var searches RemoteLoads
+	if Instance.Conf.DownvotingEnabled {
+		searches = mixedLikesFilter(irisFromItems(items...))
+	} else {
+		searches = likesFilter(irisFromItems(items...))
+	}
 	votes := make(VoteCollection, 0)
 	err := LoadFromSearches(ctx, r, searches, func(_ context.Context, c pub.CollectionInterface, f *Filters) error {
 		for _, vAct := range c.Collection() {
