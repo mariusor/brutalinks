@@ -241,15 +241,7 @@ func (a *Account) FromActivityPub(it pub.Item) error {
 		return pub.OnObject(it, func(o *pub.Object) error {
 			return FromObject(a, o)
 		})
-	case pub.ServiceType:
-		fallthrough
-	case pub.GroupType:
-		fallthrough
-	case pub.ApplicationType:
-		fallthrough
-	case pub.OrganizationType:
-		fallthrough
-	case pub.PersonType:
+	case pub.ServiceType, pub.GroupType, pub.ApplicationType, pub.OrganizationType, pub.PersonType:
 		return pub.OnActor(it, func(p *pub.Actor) error {
 			return FromActor(a, p)
 		})
@@ -699,11 +691,7 @@ func (v *Vote) FromActivityPub(it pub.Item) error {
 		return errors.Newf("unable to load from IRI")
 	}
 	switch it.GetType() {
-	case pub.UndoType:
-		fallthrough
-	case pub.LikeType:
-		fallthrough
-	case pub.DislikeType:
+	case pub.UndoType, pub.LikeType, pub.DislikeType:
 		fromAct := func(act pub.Activity, v *Vote) {
 			on := Item{}
 			on.FromActivityPub(act.Object)
