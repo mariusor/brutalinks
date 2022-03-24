@@ -400,7 +400,7 @@ func ActorsFiltersMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := FiltersFromRequest(r)
 		f.Type = CreateActivitiesFilter
-		f.Object = &Filters{Type: ActivityTypesFilter(pub.PersonType)}
+		f.Object = &Filters{Type: ActivityTypesFilter(ValidActorTypes...)}
 		f.Actor = derefIRIFilters
 		m := ContextListingModel(r.Context())
 		m.Title = "Account listing"
