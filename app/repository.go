@@ -791,6 +791,12 @@ func (r *repository) loadItemsVotes(ctx context.Context, items ...Item) (ItemCol
 	})
 	for k, ob := range items {
 		for _, v := range votes {
+			if v.Item == nil {
+				continue
+			}
+			if items[k].Votes == nil {
+				items[k].Votes = make(VoteCollection, 0)
+			}
 			if itemsEqual(*v.Item, ob) && !items[k].Votes.Contains(v) {
 				items[k].Votes = append(items[k].Votes, v)
 			}
