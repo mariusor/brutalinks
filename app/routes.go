@@ -12,7 +12,8 @@ import (
 
 var assetFiles = assets.AssetFiles{
 	"moderate.css":     {"css/main.css", "css/listing.css", "css/content.css", "css/article.css", "css/moderate.css", "css/user.css"},
-	"content.css":      {"css/main.css", "css/article.css", "css/content.css"},
+	"content.css":      {"css/main.css", "css/article.css", "css/threaded.css", "css/content.css"},
+	"accounts.css":     {"css/main.css", "css/listing.css", "css/threaded.css", "css/accounts.css"},
 	"listing.css":      {"css/main.css", "css/listing.css", "css/article.css", "css/moderate.css"},
 	"moderation.css":   {"css/main.css", "css/listing.css", "css/article.css", "css/moderation.css"},
 	"user.css":         {"css/main.css", "css/listing.css", "css/article.css", "css/user.css"},
@@ -162,7 +163,7 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 						Get("/{hash}/discuss", h.HandleShow)
 				})
 
-				r.With(ModelMw(&listingModel{tpl: "listing", sortFn: ByDate}), ActorsFiltersMw, instanceSearchFns, LoadMw, ThreadedListingMw).
+				r.With(ModelMw(&listingModel{tpl: "accounts", ShowChildren: true, sortFn: ByDate}), ActorsFiltersMw, instanceSearchFns, LoadMw, ThreadedListingMw).
 					Get("/~", h.HandleShow)
 			})
 

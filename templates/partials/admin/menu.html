@@ -1,0 +1,8 @@
+<nav>
+  {{ if .IsOperator }}
+  <form method="post">
+    <label>Link to new instance: <input name="new-instance" type="url" /></label>
+    <button type="submit">Add</button>
+  </form>
+  {{ end }}
+</nav>

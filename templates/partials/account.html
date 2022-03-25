@@ -1,5 +1,6 @@
 <section class="account {{if .Deleted }} deleted{{end}}{{ if .Private }} private{{ end }}" id="a-{{.ID}}" data-hash="{{.ID}}">
 {{- template "partials/account/data" . -}}
 {{- template "partials/account/meta" . -}}
-</section>
 {{- template "partials/account/score" . -}}
+</section>
+{{- template "listing" . }}

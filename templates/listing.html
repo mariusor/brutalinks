@@ -1,5 +1,11 @@
-{{- if gt (len .Items) 0 -}}
-{{- template "partials/items" (Sort .Items) -}}
+{{ $count := len .Children }}
+{{- if gt $count 0 -}}
+{{- $items := Sort .Children -}}
+<ol class="children lvl-{{ .Level | Mod10 }}" data-parent="{{ .ID }}" id="c-{{ .ID }}">
+    {{- range $key, $value := $items -}}
+    <li data-index="{{$key}}" data-hash="{{.ID}}" id="li-{{.ID}}">{{ template "partials/list-item" $value }}</li>
+    {{- end }}
+</ol>
 {{- else -}}
 <section id="no-items"><p>There's only dust here.</p></section>
 {{ end -}}

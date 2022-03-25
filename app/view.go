@@ -184,6 +184,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"SessionEnabled":        func() bool { return v.s.enabled },
 			"LoadFlashMessages":     v.loadFlashMessages(w, r),
 			"Mod10":                 mod10,
+			"showChildren":          showChildren(m),
 			"ShowText":              showText(m),
 			"ShowTitle":             showTitle(m),
 			"HTML":                  html,
@@ -583,6 +584,17 @@ func showTitle(m Model) func(i Item) bool {
 	}
 }
 
+func showChildren(m Model) func() bool {
+	return func() bool {
+		switch mm := m.(type) {
+		case *listingModel:
+			return mm.ShowChildren
+		case *contentModel:
+			return mm.ShowChildren
+		}
+		return true
+	}
+}
 func showText(m Model) func() bool {
 	return func() bool {
 		switch mm := m.(type) {

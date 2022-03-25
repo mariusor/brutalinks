@@ -3,20 +3,15 @@
     margin-top: .6rem;
     margin-left: .4rem;
 }
-main > ol > li aside {
+ol.children > li {
+    list-style: none;
+}
+ol.children > li aside {
     min-height: 4.5em;
     align-content: center;
 }
-main > ol > li section {
-    grid-area: main;
-    align-self: center;
-    margin-left: 1ex;
-}
-main > ol > li {
-    display: grid;
-    grid-template-columns: 1.6rem 11fr;
-    grid-template-areas: "sidebar main";
-    margin-bottom: .4em;
+ol.children {
+    grid-area: footer;
 }
 body > footer nav.pagination ul li:first-of-type {
     margin-right: .2em;

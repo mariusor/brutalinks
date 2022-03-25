@@ -1,13 +1,13 @@
-{{- $count := .Children | len -}}
+{{- $count := len .Children -}}
 <article>
 {{- template "partials/item" . -}}
 </article>
-{{- if $count -}}
+{{- if and $count showChildren -}}
 {{- if gt $count 1 -}}
 <details open>
     <summary class="lvl-{{ .Level | Mod10  }}"><small>{{$count}} child{{if $count | ne 1 }}ren{{end}}</small></summary>
 {{ end -}}
-{{- template "partials/content/comments" . -}}
+{{- template "listing" . -}}
 {{ end -}}
 {{ if $count -}}
 {{ if gt $count 1}}

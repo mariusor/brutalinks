@@ -1,0 +1,4 @@
+{{- if IsComment . }} {{- template "partials/item" . -}} {{ end -}}
+{{- if IsFollowRequest . }} {{- template "partials/follow" . }} {{ end -}}
+{{- if IsAccount . }} {{- template "partials/account" . }} {{ end -}}
+{{- if IsModeration . }} {{- template "partials/moderation" . }} {{ end -}}
