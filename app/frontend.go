@@ -426,8 +426,8 @@ func loadAccountData(a *Account, b Account) {
 	if a.Parent == nil && b.Parent != nil {
 		a.Parent = b.Parent
 	}
-	if len(a.Children) == 0 && len(b.Children) > 0 {
-		a.Children = b.Children
+	if len(a.children) == 0 && len(b.children) > 0 {
+		a.children = b.children
 	}
 	if a.Flags == 0 && b.Flags > 0 {
 		a.Flags = b.Flags

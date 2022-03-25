@@ -45,8 +45,8 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if c != nil && len(c.items) > 0 && n.Parent.IsValid() {
-		if parent := getItemFromList(n.Parent.Hash, c.items); parent.IsValid() {
-			n.Parent = parent
+		if parent := getItemFromList(n.Parent.ID(), c.items); parent.IsValid() {
+			n.Parent = parent.(*Item)
 			if n.Parent.SubmittedBy.IsValid() {
 				if len(n.Metadata.To) == 0 {
 					n.Metadata.To = make(AccountCollection, 0)
@@ -746,20 +746,6 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	}
 	h.v.Redirect(w, r, "/", http.StatusSeeOther)
 	return
-}
-
-func flatItems(items ItemPtrCollection) ItemCollection {
-	if len(items) == 0 {
-		return nil
-	}
-	ret := make(ItemCollection, 0)
-	for _, it := range items {
-		ret = append(ret, *it)
-		if len(it.Children()) > 0 {
-			ret = append(ret, flatItems(it.Children())...)
-		}
-	}
-	return ret
 }
 
 // HandleShow serves most of the GET requests

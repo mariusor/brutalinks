@@ -95,6 +95,10 @@ func (f FollowRequest) Date() time.Time {
 	return f.SubmittedAt
 }
 
+func (f *FollowRequest) Children() *RenderableList {
+	return nil
+}
+
 // Private
 func (f *FollowRequest) Private() bool {
 	return f.Flags&FlagsPrivate == FlagsPrivate

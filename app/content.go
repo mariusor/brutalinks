@@ -98,6 +98,7 @@ type Renderable interface {
 	IsValid() bool
 	Type() RenderType
 	Date() time.Time
+	Children() *RenderableList
 }
 
 type HasContent interface {
@@ -108,22 +109,22 @@ type HasContent interface {
 
 // Item
 type Item struct {
-	Hash        Hash              `json:"hash"`
-	Title       string            `json:"-"`
-	MimeType    string            `json:"-"`
-	Data        string            `json:"-"`
-	Votes       VoteCollection    `json:"-"`
-	SubmittedAt time.Time         `json:"-"`
-	SubmittedBy *Account          `json:"by,omitempty"`
-	UpdatedAt   time.Time         `json:"-"`
-	UpdatedBy   *Account          `json:"-"`
-	Flags       FlagBits          `json:"-"`
-	Metadata    *ItemMetadata     `json:"-"`
-	pub         pub.Item          `json:"-"`
-	Parent      *Item             `json:"-"`
-	OP          *Item             `json:"-"`
-	Level       uint8             `json:"-"`
-	children    ItemPtrCollection `json:"-"`
+	Hash        Hash           `json:"hash"`
+	Title       string         `json:"-"`
+	MimeType    string         `json:"-"`
+	Data        string         `json:"-"`
+	Votes       VoteCollection `json:"-"`
+	SubmittedAt time.Time      `json:"-"`
+	SubmittedBy *Account       `json:"by,omitempty"`
+	UpdatedAt   time.Time      `json:"-"`
+	UpdatedBy   *Account       `json:"-"`
+	Flags       FlagBits       `json:"-"`
+	Metadata    *ItemMetadata  `json:"-"`
+	pub         pub.Item       `json:"-"`
+	Parent      *Item          `json:"-"`
+	OP          *Item          `json:"-"`
+	Level       uint8          `json:"-"`
+	children    RenderableList `json:"-"`
 }
 
 func (i *Item) ID() Hash {
@@ -133,11 +134,8 @@ func (i *Item) ID() Hash {
 	return i.Hash
 }
 
-func (i *Item) Children() ItemPtrCollection {
-	if i != nil {
-		return i.children
-	}
-	return nil
+func (i *Item) Children() *RenderableList {
+	return &i.children
 }
 
 func (i *Item) Type() RenderType {
@@ -209,29 +207,30 @@ func isWordDelimiter(b byte) bool {
 		unicode.Is(unicode.Punct, rune(b))
 }
 
-func addLevelComments(allComments []*Item) {
+func addLevels(allComments RenderableList) RenderableList {
 	if len(allComments) == 0 {
-		return
+		return nil
 	}
 
 	leveled := make(Hashes, 0)
-	var setLevel func([]*Item)
+	var setLevel func(RenderableList)
 
-	setLevel = func(com []*Item) {
+	setLevel = func(com RenderableList) {
 		for _, cur := range com {
-			if cur == nil || leveled.Contains(cur.Hash) {
+			if cur == nil || leveled.Contains(cur.ID()) {
 				break
 			}
-			leveled = append(leveled, cur.Hash)
-			if len(cur.children) > 0 {
-				for _, child := range cur.children {
-					child.Level = cur.Level + 1
-					setLevel(cur.children)
+			leveled = append(leveled, cur.ID())
+			for _, child := range *cur.Children() {
+				if c, ok := child.(*Item); ok {
+					c.Level = c.Level + 1
+					setLevel(c.children)
 				}
 			}
 		}
 	}
 	setLevel(allComments)
+	return allComments
 }
 
 type ItemPtrCollection []*Item
@@ -281,38 +280,52 @@ func parentByPub(t ItemPtrCollection, cur *Item) *Item {
 	return nil
 }
 
-func parentByHash(t ItemPtrCollection, cur *Item) *Item {
+func parentByHash(t RenderableList, cur Renderable) Renderable {
 	for _, n := range t {
-		if cur.Parent.IsValid() {
-			if cur.Parent.Hash == n.Hash {
-				return n
+		switch c := cur.(type) {
+		case *Item:
+			if c.Parent.IsValid() {
+				if c.Parent.ID() == n.ID() {
+					return n
+				}
+			}
+		case *Account:
+			if c.CreatedBy.IsValid() {
+				if c.CreatedBy.Hash == n.ID() {
+					return n
+				}
 			}
 		}
 	}
 	return nil
 }
 
-func reparentComments(allComments *ItemPtrCollection) {
-	if len(*allComments) == 0 {
-		return
+func reparentRenderables(allComments RenderableList) RenderableList {
+	if len(allComments) == 0 {
+		return nil
 	}
 
 	var parFn = parentByHash
 
-	retComments := make(ItemPtrCollection, 0)
-	for _, cur := range *allComments {
-		if par := parFn(*allComments, cur); par != nil {
-			if par.children.Contains(*cur) {
+	retComments := make(RenderableList, 0)
+	for _, cur := range allComments {
+		if par := parFn(allComments, cur); par != nil {
+			if par.Children().Contains(cur) {
 				continue
 			}
-			par.children = append(par.children, cur)
-			cur.Parent = par
+			par.Children().Append(cur)
+			switch c := cur.(type) {
+			case *Item:
+				c.Parent, _ = par.(*Item)
+			case *Account:
+				c.Parent, _ = par.(*Account)
+			}
 		} else {
-			if cur == nil || retComments.Contains(*cur) {
+			if cur == nil || retComments.Contains(cur) {
 				continue
 			}
 			retComments = append(retComments, cur)
 		}
 	}
-	*allComments = retComments
+	return retComments
 }

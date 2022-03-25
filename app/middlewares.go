@@ -235,7 +235,7 @@ func LoadSingleItemMw(next http.Handler) http.Handler {
 			}
 		}
 		c := Cursor{
-			items: make(RenderableList),
+			items: make(RenderableList, 0),
 		}
 		for k := range items {
 			c.items.Append(Renderable(&items[k]))
@@ -549,43 +549,7 @@ func MessageUserContentModelMw(next http.Handler) http.Handler {
 }
 
 func reparentRenderableList(items RenderableList) RenderableList {
-	comments := make(ItemPtrCollection, 0)
-	accounts := make(AccountPtrCollection, 0)
-	for _, ren := range items {
-		if it, ok := ren.(*Item); ok {
-			comments = append(comments, it)
-		}
-		if ac, ok := ren.(*Account); ok {
-			accounts = append(accounts, ac)
-		}
-	}
-
-	reparentComments(&comments)
-	addLevelComments(comments)
-
-	reparentAccounts(&accounts)
-	addLevelAccounts(accounts)
-
-	newitems := make(RenderableList, 0)
-	for _, ren := range items {
-		switch ren.Type() {
-		case CommentType:
-			for _, it := range comments {
-				if it == ren {
-					newitems.Append(it)
-				}
-			}
-		case ActorType:
-			for _, ac := range accounts {
-				if ac == ren {
-					newitems.Append(ac)
-				}
-			}
-		default:
-			newitems.Append(ren)
-		}
-	}
-	return newitems
+	return addLevels(reparentRenderables(items))
 }
 
 func ThreadedListingMw(next http.Handler) http.Handler {

@@ -606,7 +606,7 @@ func (r *repository) loadAccountsOutbox(ctx context.Context, acc *Account) error
 						if ValidActorTypes.Contains(ob.GetType()) {
 							act := Account{}
 							act.FromActivityPub(a)
-							acc.Children = append(act.Children, &act)
+							acc.children = append(act.children, &act)
 						}
 					}
 				}
@@ -1097,11 +1097,14 @@ func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemC
 				}
 			}
 		}
-		for _, com := range it.Children() {
-			if auth := com.SubmittedBy; !auth.IsValid() {
-				if iri := baseIRI(auth.AP().GetLink()); !accounts[iri].Contains(*auth) {
-					accounts[iri] = append(accounts[iri], *auth)
+		for _, com := range *it.Children() {
+			if ob, ok := com.(*Item); ok {
+				if auth := ob.SubmittedBy; !auth.IsValid() {
+					if iri := baseIRI(auth.AP().GetLink()); !accounts[iri].Contains(*auth) {
+						accounts[iri] = append(accounts[iri], *auth)
+					}
 				}
+
 			}
 		}
 	}
@@ -1183,8 +1186,11 @@ func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemC
 				}
 			}
 			for i, com := range it.children {
-				if com.IsValid() && com.SubmittedBy.Hash == auth.Hash {
-					it.children[i].SubmittedBy = &auth
+				if ob, ok := com.(*Item); ok {
+					if com.IsValid() && ob.SubmittedBy.Hash == auth.Hash {
+						ob.SubmittedBy = &auth
+						it.children[i] = ob
+					}
 				}
 			}
 		}

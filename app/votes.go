@@ -84,6 +84,10 @@ func (v *Vote) Type() RenderType {
 func (v Vote) Date() time.Time {
 	return v.SubmittedAt
 }
+func (v *Vote) Children() *RenderableList {
+	return nil
+}
+
 func (v VoteCollection) Contains(vot Vote) bool {
 	for _, vv := range v {
 		if !vv.HasMetadata() || !vot.HasMetadata() {

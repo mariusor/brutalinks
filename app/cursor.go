@@ -14,10 +14,6 @@ type Cursor struct {
 	total  uint
 }
 
-func NewCursor() *Cursor {
-	return &Cursor{items: make(RenderableList)}
-}
-
 var emptyCursor = Cursor{}
 
 type colCursor struct {
@@ -26,7 +22,7 @@ type colCursor struct {
 	items   pub.ItemCollection
 }
 
-type RenderableList map[Hash]Renderable
+type RenderableList []Renderable
 
 func (r RenderableList) Items() ItemCollection {
 	items := make(ItemCollection, 0)
@@ -36,6 +32,15 @@ func (r RenderableList) Items() ItemCollection {
 		}
 	}
 	return items
+}
+
+func (r RenderableList) Contains(ren Renderable) bool {
+	for _, rr := range r {
+		if rr.Type() == ren.Type() && rr.ID() == ren.ID() {
+			return true
+		}
+	}
+	return false
 }
 
 func (r RenderableList) Follows() FollowRequests {
@@ -56,7 +61,7 @@ func (r *RenderableList) Merge(other RenderableList) {
 
 func (r *RenderableList) Append(others ...Renderable) {
 	for _, o := range others {
-		(*r)[o.ID()] = o
+		*r = append(*r, o)
 	}
 }
 
@@ -116,7 +121,7 @@ func lastUpdatedInThread(it Renderable) time.Time {
 	if !ok {
 		return maxDate
 	}
-	for _, ic := range ob.Children() {
+	for _, ic := range *ob.Children() {
 		if threadLastUpdate := lastUpdatedInThread(ic); threadLastUpdate.After(maxDate) {
 			maxDate = threadLastUpdate
 		}

@@ -16,14 +16,23 @@ type Model interface {
 }
 
 type listingModel struct {
-	Title    string
-	tpl      string
-	User     *Account
-	Items    RenderableList
-	ShowText bool
-	after    Hash
-	before   Hash
-	sortFn   func(list RenderableList) []Renderable
+	Title        string
+	tpl          string
+	User         *Account
+	ShowChildren bool
+	Children     RenderableList
+	ShowText     bool
+	after        Hash
+	before       Hash
+	sortFn       func(list RenderableList) []Renderable
+}
+
+func (m listingModel) ID() Hash {
+	return Hash{}
+}
+
+func (m listingModel) Level() uint8 {
+	return 99
 }
 
 func (m listingModel) NextPage() Hash {
@@ -38,7 +47,7 @@ func (m *listingModel) SetCursor(c *Cursor) {
 	if c == nil {
 		return
 	}
-	m.Items = c.items
+	m.Children = c.items
 	m.after = c.after
 	m.before = c.before
 }
@@ -55,7 +64,7 @@ func (m listingModel) Template() string {
 }
 
 func (m listingModel) Sorted() []Renderable {
-	return m.sortFn(m.Items)
+	return m.sortFn(m.Children)
 }
 
 type mBox struct {
@@ -82,6 +91,10 @@ type contentModel struct {
 	before       Hash
 }
 
+func (m contentModel) ID() Hash {
+	return Hash{}
+}
+
 func (m contentModel) NextPage() Hash {
 	return m.after
 }
@@ -101,14 +114,14 @@ func (m contentModel) Template() string {
 	return m.tpl
 }
 
-func getItemFromList(h Hash, items RenderableList) *Item {
-	var findOrDescendFn func(collection ItemPtrCollection) (*Item, bool)
-	findOrDescendFn = func(collection ItemPtrCollection) (*Item, bool) {
+func getItemFromList(h Hash, items RenderableList) Renderable {
+	var findOrDescendFn func(collection RenderableList) (Renderable, bool)
+	findOrDescendFn = func(collection RenderableList) (Renderable, bool) {
 		for _, com := range collection {
-			if h == com.Hash {
+			if h == com.ID() {
 				return com, true
 			}
-			if cur, found := findOrDescendFn(com.children); found {
+			if cur, found := findOrDescendFn(*com.Children()); found {
 				return cur, found
 			}
 		}

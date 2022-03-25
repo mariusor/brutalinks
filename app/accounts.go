@@ -60,21 +60,21 @@ func (m *AccountMetadata) InvalidateOutbox() {
 type AccountCollection []Account
 
 type Account struct {
-	Hash      Hash                 `json:"hash,omitempty"`
-	Handle    string               `json:"handle,omitempty"`
-	CreatedAt time.Time            `json:"-"`
-	CreatedBy *Account             `json:"-"`
-	UpdatedAt time.Time            `json:"-"`
-	Flags     FlagBits             `json:"flags,omitempty"`
-	Metadata  *AccountMetadata     `json:"metadata,omitempty"`
-	pub       pub.Item             `json:"-"`
-	Followers AccountCollection    `json:"followers,omitempty"`
-	Following AccountCollection    `json:"following,omitempty"`
-	Blocked   AccountCollection    `json:"-"`
-	Ignored   AccountCollection    `json:"-"`
-	Level     uint8                `json:"-"`
-	Parent    *Account             `json:"-"`
-	Children  AccountPtrCollection `json:"-"`
+	Hash      Hash              `json:"hash,omitempty"`
+	Handle    string            `json:"handle,omitempty"`
+	CreatedAt time.Time         `json:"-"`
+	CreatedBy *Account          `json:"-"`
+	UpdatedAt time.Time         `json:"-"`
+	Flags     FlagBits          `json:"flags,omitempty"`
+	Metadata  *AccountMetadata  `json:"metadata,omitempty"`
+	pub       pub.Item          `json:"-"`
+	Followers AccountCollection `json:"followers,omitempty"`
+	Following AccountCollection `json:"following,omitempty"`
+	Blocked   AccountCollection `json:"-"`
+	Ignored   AccountCollection `json:"-"`
+	Level     uint8             `json:"-"`
+	Parent    *Account          `json:"-"`
+	children  RenderableList    `json:"-"`
 }
 
 var ValidActorTypes = pub.ActivityVocabularyTypes{
@@ -243,6 +243,10 @@ func (a Account) Date() time.Time {
 	return a.CreatedAt
 }
 
+func (a *Account) Children() *RenderableList {
+	return &a.children
+}
+
 // First
 func (a AccountCollection) First() (*Account, error) {
 	for _, act := range a {
@@ -338,30 +342,6 @@ func (h AccountPtrCollection) Contains(s Hash) bool {
 	return false
 }
 
-func addLevelAccounts(allAccounts AccountPtrCollection) {
-	if len(allAccounts) == 0 {
-		return
-	}
-	leveled := make(Hashes, 0)
-	var setLevel func(AccountPtrCollection)
-
-	setLevel = func(com AccountPtrCollection) {
-		for _, cur := range com {
-			if cur == nil || leveled.Contains(cur.Hash) {
-				break
-			}
-			leveled = append(leveled, cur.Hash)
-			if len(cur.Children) > 0 {
-				for _, child := range cur.Children {
-					child.Level = cur.Level + 1
-					setLevel(cur.Children)
-				}
-			}
-		}
-	}
-	setLevel(allAccounts)
-}
-
 func reparentAccounts(allAccounts *AccountPtrCollection) {
 	if len(*allAccounts) == 0 {
 		return
@@ -380,7 +360,7 @@ func reparentAccounts(allAccounts *AccountPtrCollection) {
 	retAccounts := make(AccountPtrCollection, 0)
 	for _, cur := range *allAccounts {
 		if par := parFn(*allAccounts, cur); par != nil {
-			par.Children = append(par.Children, cur)
+			par.children.Append(cur)
 			cur.Parent = par
 		} else {
 			retAccounts = append(retAccounts, cur)

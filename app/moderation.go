@@ -70,6 +70,10 @@ func (m ModerationGroup) Date() time.Time {
 	return m.Requests[0].SubmittedAt
 }
 
+func (m *ModerationGroup) Children() *RenderableList {
+	return nil
+}
+
 // IsBlock returns true if current moderation request is a block
 func (m ModerationGroup) IsBlock() bool {
 	if len(m.Requests) == 0 {
@@ -202,6 +206,10 @@ func (m ModerationOp) Tags() TagCollection {
 // Mentions returns the mentions associated with the current ModerationOp
 func (m ModerationOp) Mentions() TagCollection {
 	return m.Metadata.Mentions
+}
+
+func (m *ModerationOp) Children() *RenderableList {
+	return nil
 }
 
 // Date
@@ -363,11 +371,11 @@ func moderationGroupFromRequest(r *ModerationOp) *ModerationGroup {
 
 func aggregateModeration(rl RenderableList, followups []ModerationOp) RenderableList {
 	groups := make([]*ModerationGroup, 0)
-	result := make(RenderableList)
-	for k, r := range rl {
+	result := make(RenderableList, 0)
+	for _, r := range rl {
 		m, ok := r.(*ModerationOp)
 		if !ok {
-			result[k] = r
+			result = append(result, r)
 			continue
 		}
 		if m.Object == nil {
@@ -377,7 +385,7 @@ func aggregateModeration(rl RenderableList, followups []ModerationOp) Renderable
 		if i := moderationGroupAtIndex(groups, *m); i < 0 {
 			mg = moderationGroupFromRequest(m)
 			groups = append(groups, mg)
-			result[k] = mg
+			result = append(result, mg)
 		} else {
 			mg = groups[i]
 			mg.Requests = append(mg.Requests, m)
