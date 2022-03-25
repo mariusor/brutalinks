@@ -1,66 +1,65 @@
-section nav dl, section nav ul, section nav ol {
+article nav dl, article nav ul, article nav ol {
     margin-left: 0;
 }
-section dl, section ul, section ol {
+article dl, article ul, article ol {
     margin-left: 1.3rem;
 }
-section blockquote,
-section q {
+article blockquote, article q {
     quotes: none;
     border-left: 2px solid var(--main-fg-color);
     padding-left: .6em;
     margin-bottom: .3em;
     opacity: .75;
 }
-section p + p, section p + ul, section p + ol, section p + dl,
-section p + div, section p + h1, section p + h2, section p + h3, section p + h4, section p + h5, section p + h6,
-section p + blockquote, section p + pre {
+article p + p, article p + ul, article p + ol, article p + dl,
+article p + div, article p + h1, article p + h2, article p + h3, article p + h4, article p + h5, article p + h6,
+article p + blockquote, article p + pre {
     margin-top: .6rem;
 }
-section h1, section h2, section h3,
-section h4, section h5, section h6 {
+article h1, article h2, article h3,
+article h4, article h5, article h6 {
     font-weight: 600;
 }
-section h1 {
+article h1 {
     font-size: 1.32em;
     line-height: 1.44em;
 }
-section h2 {
+article h2 {
     font-size: 1.20em;
     line-height: 1.32em;
 }
-section h3 {
+article h3 {
     font-size: 1.11em;
     line-height: 1.32em;
 }
-section h4 {
+article h4 {
     font-size: 1em;
     line-height: 1.3em;
 }
-section h5 {
+article h5 {
     line-height: 1.1em;
     font-size: .96em;
 }
-section h6 {
+article h6 {
     line-height: 1em;
     font-size: .94em;
 }
-section > header h2 {
+article > header h2 {
     font-size: 1.24em;
     font-weight: 400;
     overflow-wrap: break-word;
     word-break: break-word;
 }
-section > header h2 small {
+article > header h2 small {
     font-size: .75em;
     opacity: .8;
     margin: 0 0 0 1ex;
     padding: 0;
 }
-section > header h2 small:last-child::before {
+article > header h2 small:last-child::before {
     content: "(";
 }
-section > header h2 small:last-child::after {
+article > header h2 small:last-child::after {
     content: ")";
 }
 .data pre {
@@ -86,9 +85,7 @@ footer .icon-activitypub {
     width: 1.1em;
     display: none;
 }
-section footer nav,
-section footer nav ul,
-section footer nav ul li {
+article footer nav, article footer nav ul, article footer nav ul li {
     display: inline-block;
 }
 .item footer nav ul li::before {
@@ -105,16 +102,19 @@ section footer:not(:first-child)::before {
     opacity: .5;
 }
 aside.score {
-    grid-template-rows: 1.5ex 2ex 2ex;
+    grid-template-rows: 1em 1em 1em;
     display: grid;
     grid-area: sidebar;
     min-height: 3.2em;
-    align-content: start;
-    margin-top: .5em;
 }
 .score * {
     justify-self: center;
     align-self: center;
+}
+.score a {
+    display: block;
+    height: 1em;
+    width: 1em;
 }
 .score a:hover {
     text-decoration: none;
@@ -135,9 +135,7 @@ aside.score {
 .score .icon-recycle {
     opacity: .6;
 }
-.deleted .score a.ed,
-.score a[href="#"],
-.score a[href="#"]:visited {
+.deleted .score a.ed, .score a[href="#"], .score a[href="#"]:visited {
     opacity: .3;
     color: var(--main-fg-color);
 }
@@ -163,8 +161,7 @@ summary:focus {
     white-space: normal;
     font-family: revert;
 }
-dl.recipients dt,
-dl.recipients dd {
+dl.recipients dt, dl.recipients dd {
     opacity: .8;
     display: inline;
     font-size: .8rem;
@@ -179,8 +176,7 @@ dl.recipients dd {
     position: relative;
     top: 3px;
 }
-button svg.icon.icon-reply,
-button svg.icon.icon-sign-in {
+button svg.icon.icon-reply, button svg.icon.icon-sign-in {
     height: .9em;
     width: .9em;
 }

@@ -7,18 +7,17 @@ main ol {
 .child > article {
     margin-left: -.2rem;
 }
-.children > li {
-    /*margin-bottom: .4em;*/
-}
-main.content article section {
+main.content article {
     grid-area: main;
-    align-self: center;
     margin-left: 1ex;
 }
-main.content article {
+main.content {
     display: grid;
     grid-template-columns: 1.6rem 11fr;
-    grid-template-areas: "sidebar main";
+    grid-template-areas: "sidebar main" "footer footer";
+}
+.content > * {
+    grid-area: footer;
 }
 video {
     max-width: 90%;

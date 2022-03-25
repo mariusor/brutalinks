@@ -1,5 +1,5 @@
-<section class="item{{if .Deleted }} deleted{{end}}{{ if .Private }} private{{ end }}{{ if .IsTop }} op{{end}}" id="i-{{.ID}}" data-hash="{{.ID}}">
+<article class="item{{if .Deleted }} deleted{{end}}{{ if .Private }} private{{ end }}{{ if .IsTop }} op{{end}}" id="i-{{.ID}}" data-hash="{{.ID}}">
 {{- template "partials/item/data" . -}}
 {{- template "partials/item/meta" . -}}
-</section>
+</article>
 {{- template "partials/item/score" . -}}

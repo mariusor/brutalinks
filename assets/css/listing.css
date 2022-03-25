@@ -3,15 +3,30 @@
     margin-top: .6rem;
     margin-left: .4rem;
 }
+ol.children {
+    margin-top: .3em;
+    padding: 0 0 0 .6em;
+}
 ol.children > li {
     list-style: none;
+    display: grid;
+    grid-template-columns: 1.6rem 11fr;
+    grid-template-areas: "sidebar main";
+    padding: .2em 0;
 }
-ol.children > li aside {
-    min-height: 4.5em;
-    align-content: center;
+.children > li aside {
+    min-height: 3.5em;
+    grid-area: sidebar;
+    align-content: start;
 }
-ol.children {
-    grid-area: footer;
+.children > li section {
+    min-height: 3.5em;
+    grid-area: main;
+    align-self: start;
+    margin-left: 1ex;
+}
+.children > li section * {
+    align-self: center;
 }
 body > footer nav.pagination ul li:first-of-type {
     margin-right: .2em;

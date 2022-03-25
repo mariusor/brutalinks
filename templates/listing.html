@@ -1,11 +1,17 @@
 {{ $count := len .Children }}
 {{- if gt $count 0 -}}
 {{- $items := Sort .Children -}}
-<ol class="children lvl-{{ .Level | Mod10 }}" data-parent="{{ .ID }}" id="c-{{ .ID }}">
+{{- $class := "children" -}}
+{{- if gt .Level 90 }}
+{{- $class := "top-level" -}}
+{{- end -}}
+<ol class="{{ $class }} lvl-{{ .Level | Mod10 }}" {{- if .ID.IsValid }} data-parent="{{ .ID }}" id="c-{{ .ID }}"{{- end -}}>
     {{- range $key, $value := $items -}}
     <li data-index="{{$key}}" data-hash="{{.ID}}" id="li-{{.ID}}">{{ template "partials/list-item" $value }}</li>
     {{- end }}
 </ol>
 {{- else -}}
+{{- if eq .Level 99 }}
 <section id="no-items"><p>There's only dust here.</p></section>
+{{ end -}}
 {{ end -}}
