@@ -19,6 +19,41 @@ import (
 	"golang.org/x/oauth2"
 )
 
+func enhanceItem(c *Cursor, n *Item) (saveVote bool) {
+	saveVote = true
+	if c == nil || len(c.items) == 0 || !n.Parent.IsValid() {
+		return
+	}
+	np, npok := n.Parent.(*Item)
+	if !npok {
+		return
+	}
+	parent := getItemFromList(np, c.items)
+	if !parent.IsValid() {
+		return
+	}
+	pi, piok := parent.(*Item)
+	if !piok {
+		return
+	}
+	if pi.SubmittedBy.IsValid() {
+		if len(n.Metadata.To) == 0 {
+			n.Metadata.To = make(AccountCollection, 0)
+		}
+	}
+	n.Metadata.To = append(n.Metadata.To, *np.SubmittedBy)
+	if pi.Private() {
+		n.MakePrivate()
+		saveVote = false
+	}
+	if np.OP.IsValid() {
+		n.OP = np.OP
+	} else {
+		n.OP = n.Parent
+	}
+	return
+}
+
 // HandleSubmit handles POST /submit requests
 // HandleSubmit handles POST /~handler/hash requests
 // HandleSubmit handles POST /year/month/day/hash requests
@@ -44,27 +79,7 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 		h.v.HandleErrors(w, r, errors.NewMethodNotAllowed(err, ""))
 		return
 	}
-	if c != nil && len(c.items) > 0 && n.Parent.IsValid() {
-		if parent := getItemFromList(n.Parent.ID(), c.items); parent.IsValid() {
-			n.Parent = parent.(*Item)
-			if n.Parent.SubmittedBy.IsValid() {
-				if len(n.Metadata.To) == 0 {
-					n.Metadata.To = make(AccountCollection, 0)
-				}
-				n.Metadata.To = append(n.Metadata.To, *n.Parent.SubmittedBy)
-			}
-			if n.Parent.Private() {
-				n.MakePrivate()
-				saveVote = false
-			}
-			if n.Parent.OP.IsValid() {
-				n.OP = n.Parent.OP
-			} else {
-				n.OP = n.Parent
-			}
-		}
-	}
-
+	saveVote = enhanceItem(c, &n)
 	repo := h.storage
 	if n, err = repo.SaveItem(r.Context(), n); err != nil {
 		h.errFn(log.Ctx{"err": err.Error()})("unable to save item")

@@ -63,7 +63,7 @@ type Account struct {
 	Hash      Hash              `json:"hash,omitempty"`
 	Handle    string            `json:"handle,omitempty"`
 	CreatedAt time.Time         `json:"-"`
-	CreatedBy *Account          `json:"-"`
+	CreatedBy Renderable        `json:"-"`
 	UpdatedAt time.Time         `json:"-"`
 	Flags     FlagBits          `json:"flags,omitempty"`
 	Metadata  *AccountMetadata  `json:"metadata,omitempty"`
@@ -73,7 +73,7 @@ type Account struct {
 	Blocked   AccountCollection `json:"-"`
 	Ignored   AccountCollection `json:"-"`
 	Level     uint8             `json:"-"`
-	Parent    *Account          `json:"-"`
+	Parent    Renderable        `json:"-"`
 	children  RenderableList    `json:"-"`
 }
 
@@ -349,7 +349,7 @@ func reparentAccounts(allAccounts *AccountPtrCollection) {
 	parFn := func(t AccountPtrCollection, cur *Account) *Account {
 		for _, n := range t {
 			if cur.CreatedBy.IsValid() {
-				if cur.CreatedBy.Hash == n.Hash {
+				if cur.CreatedBy.ID() == n.ID() {
 					return n
 				}
 			}

@@ -114,11 +114,18 @@ func (m contentModel) Template() string {
 	return m.tpl
 }
 
-func getItemFromList(h Hash, items RenderableList) Renderable {
+func (m contentModel) Level() uint8 {
+	return 99
+}
+
+func getItemFromList(p Renderable, items RenderableList) Renderable {
+	if p == nil {
+		return nil
+	}
 	var findOrDescendFn func(collection RenderableList) (Renderable, bool)
 	findOrDescendFn = func(collection RenderableList) (Renderable, bool) {
 		for _, com := range collection {
-			if h == com.ID() {
+			if p.ID() == com.ID() {
 				return com, true
 			}
 			if cur, found := findOrDescendFn(*com.Children()); found {
@@ -129,13 +136,11 @@ func getItemFromList(h Hash, items RenderableList) Renderable {
 	}
 
 	for _, cur := range items {
-		if it, ok := cur.(*Item); ok {
-			if h == it.Hash {
-				return it
-			}
-			if cur, found := findOrDescendFn(it.children); found {
-				return cur
-			}
+		if p.ID() == cur.ID() {
+			return cur
+		}
+		if cur, found := findOrDescendFn(*cur.Children()); found {
+			return cur
 		}
 	}
 	return nil
@@ -152,7 +157,7 @@ func (m *contentModel) SetCursor(c *Cursor) {
 	}
 	if !m.Content.IsValid() {
 		if m.Hash.IsValid() {
-			m.Content = getItemFromList(m.Hash, c.items)
+			m.Content = getItemFromList(&Item{Hash: m.Hash}, c.items)
 		} else {
 			for _, it := range c.items {
 				m.Content = it
@@ -210,7 +215,7 @@ func (m *moderationModel) SetCursor(c *Cursor) {
 		return
 	}
 	if m.Content.Object == nil || !m.Content.Object.IsValid() {
-		m.Content.Object = getItemFromList(m.Hash, c.items)
+		m.Content.Object = getItemFromList(&Item{Hash: m.Hash}, c.items)
 	}
 	if m.Content.Object != nil && len(m.Message.Back) == 0 {
 		m.Message.Back = PermaLink(m.Content.Object)

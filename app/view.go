@@ -135,8 +135,8 @@ func stringInSlice(ss []string) func(v string) bool {
 	}
 }
 
-func isParentAccount(a *Account, r Renderable) bool {
-	var parent *Account
+func isParentAccount(a Renderable, r Renderable) bool {
+	var parent Renderable
 	switch it := r.(type) {
 	case *Item:
 		if it.SubmittedBy != nil {
@@ -145,7 +145,7 @@ func isParentAccount(a *Account, r Renderable) bool {
 	case *Account:
 		parent = it.Parent
 	}
-	return parent != nil && a.Hash == parent.Hash
+	return parent.IsValid() && a.ID() == parent.ID()
 }
 
 func canUserModerate(a *Account, g ModerationGroup) bool {
@@ -1012,7 +1012,7 @@ func isNay(v *Vote) bool {
 func parentLink(c Item) string {
 	if c.Parent != nil {
 		// @todo(marius) :link_generation:
-		return fmt.Sprintf("/i/%s", c.Parent.Hash)
+		return fmt.Sprintf("/i/%s", c.Parent.ID())
 	}
 	return ""
 }
@@ -1020,7 +1020,7 @@ func parentLink(c Item) string {
 func opLink(c Item) string {
 	if c.OP != nil {
 		// @todo(marius) :link_generation:
-		return fmt.Sprintf("/i/%s", c.OP.Hash)
+		return fmt.Sprintf("/i/%s", c.OP.ID())
 	}
 	return ""
 }
@@ -1195,6 +1195,10 @@ func GetDomainURL(i Item) template.HTMLAttr {
 func GetInviteLink(v *view) func(invitee *Account) template.HTMLAttr {
 	return func(invitee *Account) template.HTMLAttr {
 		u := fmt.Sprintf("%s/register/%s", Instance.BaseURL, invitee.Hash)
+		handle := Anonymous
+		if par, ok := invitee.CreatedBy.(*Account); ok {
+			handle = par.Handle
+		}
 		// @todo(marius): :link_generation:
 		bodyFmt := "Hello,\n\nThis is an invitation to join %s.\n\nTo accept this invitation and create an account, visit the URL below: %s\n\n/%s"
 		mailContent := struct {
@@ -1202,7 +1206,7 @@ func GetInviteLink(v *view) func(invitee *Account) template.HTMLAttr {
 			Body    string `qstring:body`
 		}{
 			Subject: fmt.Sprintf("You are invited to join %s", v.c.HostName),
-			Body:    fmt.Sprintf(bodyFmt, Instance.BaseURL, u, invitee.CreatedBy.Handle),
+			Body:    fmt.Sprintf(bodyFmt, Instance.BaseURL, u, handle),
 		}
 		q, _ := qstring.Marshal(&mailContent)
 		// NOTE(marius): acceptable to hardcode replacing '+' to '%20' as we don't have any standalone ones in the message

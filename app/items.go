@@ -193,12 +193,12 @@ func updateItemFromRequest(r *http.Request, author Account, i *Item) error {
 		i.UpdatedAt = now
 	}
 	if parent := HashFromString(r.PostFormValue("parent")); parent.IsValid() {
-		if i.Parent == nil || i.Parent.Hash != parent {
+		if i.Parent == nil || i.Parent.ID() != parent {
 			i.Parent = &Item{Hash: parent}
 		}
 	}
 	if op := HashFromString(r.PostFormValue("op")); op.IsValid() {
-		if i.OP != nil || i.OP.Hash != op {
+		if i.OP != nil || i.OP.ID() != op {
 			i.OP = &Item{Hash: op}
 		}
 	}

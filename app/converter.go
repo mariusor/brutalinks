@@ -63,8 +63,9 @@ func FromObject(a *Account, o *pub.Object) error {
 		a.UpdatedAt = o.Updated
 	}
 	if o.AttributedTo != nil {
-		a.CreatedBy = &Account{}
-		a.CreatedBy.FromActivityPub(o.AttributedTo)
+		act := Account{}
+		act.FromActivityPub(o.AttributedTo)
+		a.CreatedBy = &act
 	}
 	return nil
 }
@@ -107,8 +108,9 @@ func FromActor(a *Account, p *pub.Actor) error {
 		a.UpdatedAt = p.Updated
 	}
 	if p.AttributedTo != nil {
-		a.CreatedBy = &Account{}
-		a.CreatedBy.FromActivityPub(p.AttributedTo)
+		act := Account{}
+		act.FromActivityPub(p.AttributedTo)
+		a.CreatedBy = &act
 	}
 	pName := p.PreferredUsername.First().Value
 	if pName.Equals(pub.Content("")) {
@@ -233,7 +235,9 @@ func (a *Account) FromActivityPub(it pub.Item) error {
 		return pub.OnActivity(it, func(act *pub.Activity) error {
 			err := a.FromActivityPub(act.Object)
 			if !a.CreatedBy.IsValid() {
-				a.CreatedBy.FromActivityPub(act.Actor)
+				acc := Account{}
+				acc.FromActivityPub(act.Actor)
+				a.CreatedBy = &acc
 			}
 			return err
 		})

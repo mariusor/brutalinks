@@ -98,6 +98,14 @@ func accountURL(acc Account) pub.IRI {
 	return pub.IRI(fmt.Sprintf("%s%s", Instance.BaseURL, AccountLocalLink(&acc)))
 }
 
+func BuildID(r Renderable) (pub.ID, bool) {
+	switch ob := r.(type) {
+	case *Item:
+		return BuildIDFromItem(*ob)
+	}
+	return "", false
+}
+
 func BuildIDFromItem(i Item) (pub.ID, bool) {
 	if !i.IsValid() {
 		return "", false
@@ -108,11 +116,11 @@ func BuildIDFromItem(i Item) (pub.ID, bool) {
 	return "", false
 }
 
-func BuildActorID(a Account) pub.ID {
+func GetID(a Renderable) pub.ID {
 	if !a.IsValid() {
 		return pub.PublicNS
 	}
-	return pub.ID(a.Metadata.ID)
+	return a.AP().GetID()
 }
 
 func appendRecipients(rec *pub.ItemCollection, it pub.Item) error {
@@ -247,7 +255,7 @@ func loadAPItem(it pub.Item, item Item) error {
 			}
 			repl := make(pub.ItemCollection, 0)
 			if item.Parent != nil {
-				if par, ok := BuildIDFromItem(*item.Parent); ok {
+				if par, ok := BuildID(item.Parent); ok {
 					repl = append(repl, par)
 				}
 				if item.OP == nil {
@@ -255,7 +263,7 @@ func loadAPItem(it pub.Item, item Item) error {
 				}
 			}
 			if item.OP != nil {
-				if op, ok := BuildIDFromItem(*item.OP); ok {
+				if op, ok := BuildID(item.OP); ok {
 					del.Context = op
 					if !repl.Contains(op) {
 						repl = append(repl, op)
@@ -274,7 +282,7 @@ func loadAPItem(it pub.Item, item Item) error {
 			o.Name.Set("en", pub.Content(item.Title))
 		}
 		if item.SubmittedBy != nil {
-			o.AttributedTo = BuildActorID(*item.SubmittedBy)
+			o.AttributedTo = GetID(item.SubmittedBy)
 		}
 
 		to := make(pub.ItemCollection, 0)
@@ -286,11 +294,15 @@ func loadAPItem(it pub.Item, item Item) error {
 			p := item.Parent
 			first := true
 			for {
-				if par, ok := BuildIDFromItem(*p); ok {
+				if par, ok := BuildID(p); ok {
 					repl = append(repl, par)
 				}
-				if p.SubmittedBy.IsValid() {
-					if pAuth := BuildActorID(*p.SubmittedBy); !pub.PublicNS.Equals(pAuth, true) {
+				par, ok := p.(*Item)
+				if !ok {
+					continue
+				}
+				if par.SubmittedBy.IsValid() {
+					if pAuth := GetID(par.SubmittedBy); !pub.PublicNS.Equals(pAuth, true) {
 						if first {
 							if !to.Contains(pAuth) {
 								to = append(to, pAuth)
@@ -301,14 +313,14 @@ func loadAPItem(it pub.Item, item Item) error {
 						}
 					}
 				}
-				if p.Parent == nil {
+				if par.Parent == nil {
 					break
 				}
-				p = p.Parent
+				p = par.Parent
 			}
 		}
 		if item.OP != nil {
-			if op, ok := BuildIDFromItem(*item.OP); ok {
+			if op, ok := BuildID(item.OP); ok {
 				o.Context = op
 			}
 		}
@@ -651,11 +663,10 @@ func getRepliesOf(items ...Item) pub.IRIs {
 		return ""
 	}
 	for _, it := range items {
-		if it.OP.IsValid() {
-			it = *it.OP
+		if it.IsValid() && it.OP != nil && it.OP.IsValid() {
+			it = *it.OP.(*Item)
 		}
-		iri := iriFn(it)
-		if len(iri) > 0 && !repliesTo.Contains(iri) {
+		if iri := iriFn(it); len(iri) > 0 && !repliesTo.Contains(iri) {
 			repliesTo = append(repliesTo, iri)
 		}
 	}
@@ -854,7 +865,7 @@ func (r *repository) loadAccountsAuthors(ctx context.Context, accounts ...Accoun
 		if ac.CreatedBy == nil {
 			continue
 		}
-		creators = append(creators, *ac.CreatedBy)
+		creators = append(creators, *ac.CreatedBy.(*Account))
 	}
 	if len(creators) == 0 {
 		return accounts, nil
@@ -874,7 +885,7 @@ func (r *repository) loadAccountsAuthors(ctx context.Context, accounts ...Accoun
 			if !auth.IsValid() {
 				continue
 			}
-			if accountsEqual(*ac.CreatedBy, auth) {
+			if renderablesEqual(ac.CreatedBy, &auth) {
 				accounts[k].CreatedBy = &authors[i]
 				found = true
 			}
@@ -1048,6 +1059,9 @@ func (r *repository) loadModerationDetails(ctx context.Context, items ...Moderat
 	return items, nil
 }
 
+func renderablesEqual(r1, r2 Renderable) bool {
+	return r1.ID() == r2.ID()
+}
 func itemsEqual(i1, i2 Item) bool {
 	return i1.Hash == i2.Hash
 }
@@ -1963,10 +1977,14 @@ func (r *repository) ModerateDelete(ctx context.Context, mod ModerationOp, autho
 		if par == nil {
 			break
 		}
-		if parAuth := par.SubmittedBy; parAuth != nil && !cc.Contains(parAuth.pub.GetLink()) {
+		p, ok := par.(*Item)
+		if !ok {
+			continue
+		}
+		if parAuth := p.SubmittedBy; parAuth != nil && !cc.Contains(parAuth.pub.GetLink()) {
 			cc = append(cc, parAuth.pub.GetLink())
 		}
-		par = par.Parent
+		par = p.Parent
 	}
 
 	if !it.Private() {
@@ -1981,7 +1999,7 @@ func (r *repository) ModerateDelete(ctx context.Context, mod ModerationOp, autho
 	art := new(pub.Object)
 	loadAPItem(art, *it)
 	if it.Parent != nil {
-		loadFromParent(art, it.Parent.pub)
+		loadFromParent(art, it.Parent.AP())
 	}
 	id := art.GetLink()
 
@@ -2078,10 +2096,14 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 		if par == nil {
 			break
 		}
-		if parAuth := par.SubmittedBy; parAuth != nil && !cc.Contains(parAuth.pub.GetLink()) {
+		p, ok := par.(*Item)
+		if !ok {
+			continue
+		}
+		if parAuth := p.SubmittedBy; parAuth != nil && !cc.Contains(parAuth.pub.GetLink()) {
 			cc = append(cc, parAuth.pub.GetLink())
 		}
-		par = par.Parent
+		par = p.Parent
 	}
 
 	if !it.Private() {
@@ -2096,7 +2118,7 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 	art := new(pub.Object)
 	loadAPItem(art, it)
 	if it.Parent != nil {
-		loadFromParent(art, it.Parent.pub)
+		loadFromParent(art, it.Parent.AP())
 	}
 	id := art.GetLink()
 
@@ -2403,7 +2425,7 @@ func (r *repository) SaveAccount(ctx context.Context, a Account) (Account, error
 
 	parent := fx
 	if a.CreatedBy != nil {
-		parent = r.loadAPPerson(*a.CreatedBy)
+		parent = r.loadAPPerson(*a.CreatedBy.(*Account))
 	}
 	act.AttributedTo = parent.GetLink()
 	act.Actor = parent.GetLink()

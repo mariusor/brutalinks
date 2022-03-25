@@ -121,8 +121,8 @@ type Item struct {
 	Flags       FlagBits       `json:"-"`
 	Metadata    *ItemMetadata  `json:"-"`
 	pub         pub.Item       `json:"-"`
-	Parent      *Item          `json:"-"`
-	OP          *Item          `json:"-"`
+	Parent      Renderable     `json:"-"`
+	OP          Renderable     `json:"-"`
 	Level       uint8          `json:"-"`
 	children    RenderableList `json:"-"`
 }
@@ -284,14 +284,14 @@ func parentByHash(t RenderableList, cur Renderable) Renderable {
 	for _, n := range t {
 		switch c := cur.(type) {
 		case *Item:
-			if c.Parent.IsValid() {
+			if c.Parent != nil && c.Parent.IsValid() {
 				if c.Parent.ID() == n.ID() {
 					return n
 				}
 			}
 		case *Account:
 			if c.CreatedBy.IsValid() {
-				if c.CreatedBy.Hash == n.ID() {
+				if c.CreatedBy.ID() == n.ID() {
 					return n
 				}
 			}
