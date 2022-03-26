@@ -1,3 +1,10 @@
+.item {
+    line-height: 1.3em;
+}
+article section footer, li section footer {
+    opacity: .6;
+    display: block;
+}
 article nav dl, article nav ul, article nav ol {
     margin-left: 0;
 }
@@ -100,6 +107,13 @@ section footer:not(:first-child)::before {
 }
 .moderation-request + .score, .account + .score {
     opacity: .5;
+}
+.score noscript { display: none; }
+small data.score::before {
+    content: "(";
+}
+small data.score::after {
+    content: ")";
 }
 aside.score {
     grid-template-rows: 1em 1em 1em;

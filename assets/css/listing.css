@@ -3,31 +3,36 @@
     margin-top: .6rem;
     margin-left: .4rem;
 }
-ol.children {
+ol.top-level {
+    margin-left: 1.4em;
+}
+/*
+.children {
     margin-top: .3em;
     padding: 0 0 0 .6em;
 }
-ol.children > li {
+.children > li, .top-level > li {
     list-style: none;
     display: grid;
     grid-template-columns: 1.6rem 11fr;
     grid-template-areas: "sidebar main";
     padding: .2em 0;
 }
-.children > li aside {
+.children > li aside, .top-level > li aside {
     min-height: 3.5em;
     grid-area: sidebar;
     align-content: start;
 }
-.children > li section {
+.children > li section, .top-level > li section {
     min-height: 3.5em;
     grid-area: main;
     align-self: start;
     margin-left: 1ex;
 }
-.children > li section * {
+.children > li section *, .top-level > li section * {
     align-self: center;
 }
+ */
 body > footer nav.pagination ul li:first-of-type {
     margin-right: .2em;
 }

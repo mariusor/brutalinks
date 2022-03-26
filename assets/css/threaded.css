@@ -1,3 +1,4 @@
+/*
 ol.children {
     grid-area: footer;
 }
@@ -5,9 +6,9 @@ li ol {
     margin-left: .6em;
 }
 .children > li {
-    /*padding: .7rem 0 0 0;*/
+    padding: .7rem 0 0 0;
     display: grid;
-    /*grid-template-columns: 1.6rem 11fr;*/
+    grid-template-columns: 1.6rem 11fr;
     grid-template-areas: "main" "footer";
 }
 .children.lvl-0 {}
@@ -37,6 +38,7 @@ li ol {
 .child {
     font-size: .9rem;
 }
+ */
 .lvl-0 {
     border-color: #ebebebaa;
 }

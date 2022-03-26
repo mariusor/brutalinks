@@ -6,11 +6,6 @@
 {{- else -}}
     {{- if .Title -}}{{- .Title -}}{{ else }} Untitled {{ itemType .MimeType -}} {{- end -}}
 {{- end -}}
-{{ if and (eq current "listing") .Public }}
-{{- $domainUrl := GetDomainURL . }}
-{{- $domainTitle := GetDomainTitle . }}
-    <small><noscript> - from </noscript><a rel="directory" href="/d{{- if .IsLink -}}/{{$domainUrl}}{{- end -}}">{{- if .IsLink -}}{{$domainTitle}}{{- else -}} discussion {{- end -}}</a></small>
-{{ end -}}
 </h2>
 </header>
 {{- end -}}

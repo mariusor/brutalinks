@@ -1,0 +1,14 @@
+/*
+body > footer {
+    grid-area: footer;
+    padding-bottom: 1em;
+    text-align: right;
+}
+body > footer nav {
+    margin-top: .5rem;
+    float: left;
+}
+body > footer nav:not(.pagination) {
+    float: right;
+}
+*/

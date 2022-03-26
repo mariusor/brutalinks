@@ -1,63 +1,3 @@
-@charset "UTF-8";
-html, body, div, span, applet, object, iframe,
-h1, h2, h3, h4, h5, h6, p, blockquote, pre,
-abbr, acronym, address, big, cite, code,
-del, dfn, em, img, ins, kbd, q, s, samp,
-small, strike, strong, tt, var,
-b, u, i, center, a, details,
-dl, dt, dd, ol, ul, li,
-table, caption, tbody, tfoot, thead, tr, th, td,
-article, aside, canvas, details, embed,
-figure, figcaption, footer, header, hgroup,
-menu, nav, output, ruby, section, summary,
-time, mark, audio, video {
-    margin: 0;
-    padding: 0;
-    border: 0;
-    vertical-align: baseline;
-}
-/* HTML5 display-role reset for older browsers */
-article, aside, details, figcaption, figure,
-footer, header, hgroup, menu, nav, section {
-    display: block;
-}
-img {
-    max-width: 100%;
-}
-figure {
-    /*margin: 1em 0;*/
-    text-align: center;
-}
-figcaption {
-    font-size: small;
-}
-pre, code, samp, kbd {
-    font-family: monospace, monospace;
-    font-size: 0.9em;
-}
-pre code, pre samp, pre kbd {
-    font-size: 1em;
-}
-pre kbd { }
-pre {
-    padding: 0.5em;
-    overflow: auto;
-}
-h1 { font-size: 180%; }
-h2 { font-size: 160%; }
-h3 { font-size: 140%; }
-h3 { font-size: 125%; }
-h3 { font-size: 118%; }
-h4 { font-size: 102%; }
-h5 { font-size: 96%; }
-h6 { font-size: 92%; }
-body {
-    font-family: sans-serif;
-}
-table {
-    border-collapse: collapse;
-    border-spacing: 0;
-}
 body {
     background-color: var(--main-bg-color);
     color: var(--main-fg-color);
@@ -95,7 +35,6 @@ a[href="#"], a[href="#"]:visited {
 .h-mirror.v-mirror {
     transform: rotateY(180deg) rotateX(180deg);
 }
-.score noscript { display: none; }
 svg.icon-trash-o, svg.icon-activitypub, svg.icon-star, svg.icon-edit, svg.icon-adjust,
 svg.icon-plus, svg.icon-minus, svg.icon-code, svg.icon-angle-double-right, svg.icon-clock-o,
 svg.icon-user, svg.icon-lock, svg.icon-check {
@@ -106,69 +45,11 @@ svg.icon-user, svg.icon-lock, svg.icon-check {
 {
     margin-right: -.1em;
 }
-body > header {
-    display: grid;
-    grid-template-columns: auto auto 5fr;
-    grid-area: header;
-    margin: .5rem 0 0 0;
-}
-body > header h1 a,
-body > header h1 a:hover,
-body > header h1 a:visited {
-    color: var(--main-fg-color);
-    text-decoration: none;
-}
-svg.icon.icon-home {
-    vertical-align: top;
-}
-body > header small {
-    opacity: .7;
-    font-weight: lighter;
-}
-body > header nav ul {
-    padding-top: .72rem;
-    margin-left: 1rem;
-    text-align: right;
-}
-body > header nav.tabs ul {
-    font-size: 1em;
-}
 nav ul, nav ul li, nav dl, nav dl dd, nav dl dt {
     display: inline-block;
 }
-body > header nav.tabs ul li::before {
-    content: unset;
-}
-body > header nav:not(.tabs) {
-    text-align: right;
-    font-size: .8rem;
-}
-small data.score::before {
-    content: "(";
-}
-small data.score::after {
-    content: ")";
-}
-nav.tabs ul li a {
-    margin-right: .5rem;
-}
-svg.icon.icon-activitypub {
-    width: 1.4rem;
-}
 body > main {
     grid-area: main;
-}
-body > footer {
-    grid-area: footer;
-    padding-bottom: 1em;
-    text-align: right;
-}
-body > footer nav {
-    margin-top: .5rem;
-    float: left;
-}
-body > footer nav:not(.pagination) {
-    float: right;
 }
 .deleted {
     opacity: .7;
@@ -219,14 +100,6 @@ dialog button.close {
     margin-top: -1em;
     margin-right: -1em;
     float: right;
-}
-article section footer,
-li section footer {
-    opacity: .6;
-    display: block;
-}
-.item {
-    line-height: 1.3em;
 }
 img.avatar {
     object-fit: cover;

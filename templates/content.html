@@ -1,9 +1,11 @@
-{{- if not .Message.Editable -}}
+<main class="{{current}}">
+    {{- if not .Message.Editable -}}
 {{ template "partials/item" .Content }}
 {{- end -}}
 {{- if not .Content.Deleted -}}
 <section id="reply">{{template "partials/content/edit" . }}</section>
 {{- end }}
+</main>
 <hr />
 {{- if .Content.IsValid -}}
 {{- if gt (len .Content.Children) 0 }}

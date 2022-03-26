@@ -1,0 +1,43 @@
+/*
+body > header > figure {
+    text-align: center;
+}
+body > header {
+    display: grid;
+    grid-template-columns: auto auto 5fr;
+    grid-area: header;
+    margin: .5rem 0 0 0;
+}
+body > header h1 a, body > header h1 a:hover, body > header h1 a:visited {
+    color: var(--main-fg-color);
+    text-decoration: none;
+}
+svg.icon.icon-home {
+    vertical-align: top;
+}
+body > header small {
+    opacity: .7;
+    font-weight: lighter;
+}
+body > header nav ul {
+    padding-top: .72rem;
+    margin-left: 1rem;
+    text-align: right;
+}
+body > header nav.tabs ul {
+    font-size: 1em;
+}
+body > header nav.tabs ul li::before {
+    content: unset;
+}
+body > header nav:not(.tabs) {
+    text-align: right;
+    font-size: .8rem;
+}
+nav.tabs ul li a {
+    margin-right: .5rem;
+}
+svg.icon.icon-activitypub {
+    width: 1.4rem;
+}
+*/
