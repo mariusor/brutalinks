@@ -63,7 +63,7 @@ type Account struct {
 	Hash      Hash              `json:"hash,omitempty"`
 	Handle    string            `json:"handle,omitempty"`
 	CreatedAt time.Time         `json:"-"`
-	CreatedBy Renderable        `json:"-"`
+	CreatedBy *Account          `json:"-"`
 	UpdatedAt time.Time         `json:"-"`
 	Flags     FlagBits          `json:"flags,omitempty"`
 	Metadata  *AccountMetadata  `json:"metadata,omitempty"`

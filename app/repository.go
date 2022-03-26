@@ -865,7 +865,7 @@ func (r *repository) loadAccountsAuthors(ctx context.Context, accounts ...Accoun
 		if ac.CreatedBy == nil {
 			continue
 		}
-		creators = append(creators, *ac.CreatedBy.(*Account))
+		creators = append(creators, *ac.CreatedBy)
 	}
 	if len(creators) == 0 {
 		return accounts, nil
@@ -2425,7 +2425,7 @@ func (r *repository) SaveAccount(ctx context.Context, a Account) (Account, error
 
 	parent := fx
 	if a.CreatedBy != nil {
-		parent = r.loadAPPerson(*a.CreatedBy.(*Account))
+		parent = r.loadAPPerson(*a.CreatedBy)
 	}
 	act.AttributedTo = parent.GetLink()
 	act.Actor = parent.GetLink()
