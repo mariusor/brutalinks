@@ -210,7 +210,7 @@ func (a *Account) FromActivityPub(it pub.Item) error {
 	if a == nil {
 		return nil
 	}
-	a.pub = it
+	a.Pub = it
 	if it == nil {
 		return errors.Newf("nil item received")
 	}
@@ -520,7 +520,7 @@ func (t *Tag) FromActivityPub(it pub.Item) error {
 	if it == nil {
 		return errors.Newf("nil tag received")
 	}
-	t.pub = it
+	t.Pub = it
 	typ := it.GetType()
 	if it.IsLink() && typ != pub.MentionType {
 		t.Hash.FromActivityPub(it.GetLink())
@@ -590,7 +590,7 @@ func (i *Item) FromActivityPub(it pub.Item) error {
 	if it == nil {
 		return errors.Newf("nil item received")
 	}
-	i.pub = it
+	i.Pub = it
 	if it.IsLink() {
 		i.Hash.FromActivityPub(it.GetLink())
 		i.Metadata = &ItemMetadata{
@@ -690,7 +690,7 @@ func (v *Vote) FromActivityPub(it pub.Item) error {
 	if it == nil {
 		return errors.Newf("nil item received")
 	}
-	v.pub, _ = it.(*pub.Activity)
+	v.Pub, _ = it.(*pub.Activity)
 	if it.IsLink() {
 		return errors.Newf("unable to load from IRI")
 	}

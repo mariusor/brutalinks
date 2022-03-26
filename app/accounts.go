@@ -67,7 +67,7 @@ type Account struct {
 	UpdatedAt time.Time         `json:"-"`
 	Flags     FlagBits          `json:"flags,omitempty"`
 	Metadata  *AccountMetadata  `json:"metadata,omitempty"`
-	pub       pub.Item          `json:"-"`
+	Pub       pub.Item          `json:"pub,omitempty"`
 	Followers AccountCollection `json:"followers,omitempty"`
 	Following AccountCollection `json:"following,omitempty"`
 	Blocked   AccountCollection `json:"-"`
@@ -131,7 +131,7 @@ func (a *Account) AP() pub.Item {
 	if a == nil {
 		return nil
 	}
-	return a.pub
+	return a.Pub
 }
 
 // Private

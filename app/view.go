@@ -910,7 +910,7 @@ func AccountIsFollowed(a, by *Account) bool {
 func AccountIsRejected(by, a *Account) bool {
 	return InOutbox(by, pub.Block{
 		Type:   pub.BlockType,
-		Object: a.pub.GetLink(),
+		Object: a.Pub.GetLink(),
 	})
 }
 
@@ -929,7 +929,7 @@ func AccountIsReported(by, a *Account) bool {
 func ItemIsReported(by *Account, i *Item) bool {
 	return InOutbox(by, pub.Flag{
 		Type:   pub.FlagType,
-		Object: i.pub.GetLink(),
+		Object: i.Pub.GetLink(),
 	})
 }
 
@@ -945,7 +945,7 @@ func showAccountBlockLink(by, current *Account) bool {
 	}
 	if InOutbox(by, pub.Block{
 		Type:   pub.BlockType,
-		Object: current.pub.GetLink(),
+		Object: current.Pub.GetLink(),
 	}) {
 		return false
 	}
@@ -967,11 +967,11 @@ func showFollowLink(by, current *Account) bool {
 	}
 	b := pub.Block{
 		Type:   pub.BlockType,
-		Object: current.pub.GetLink(),
+		Object: current.Pub.GetLink(),
 	}
 	f := pub.Follow{
 		Type:   pub.FollowType,
-		Object: current.pub.GetLink(),
+		Object: current.Pub.GetLink(),
 	}
 	if InOutbox(by, f, b) {
 		return false
@@ -994,7 +994,7 @@ func showAccountReportLink(by, current *Account) bool {
 	}
 	if InOutbox(by, pub.Block{
 		Type:   pub.FlagType,
-		Object: current.pub.GetLink(),
+		Object: current.Pub.GetLink(),
 	}) {
 		return false
 	}
@@ -1094,7 +1094,7 @@ func ShowAccountHandle(a *Account) string {
 		handle = a.Handle
 	}
 	if a.IsFederated() {
-		return handle + "@" + host(a.pub.GetLink().String())
+		return handle + "@" + host(a.Pub.GetLink().String())
 	}
 	return handle
 }

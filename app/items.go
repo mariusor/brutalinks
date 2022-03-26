@@ -54,7 +54,7 @@ func (i *Item) IsValid() bool {
 
 // AP returns the underlying actvitypub item
 func (i *Item) AP() pub.Item {
-	return i.pub
+	return i.Pub
 }
 
 // Content returns the content of the Item

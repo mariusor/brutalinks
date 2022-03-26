@@ -34,7 +34,7 @@ type Vote struct {
 	Item        *Item         `json:"on"`
 	Flags       FlagBits      `json:"-"`
 	Metadata    *VoteMetadata `json:"-"`
-	pub         *pub.Like     `json:"-"`
+	Pub         *pub.Like     `json:"-"`
 }
 
 func (v *Vote) ID() Hash {
@@ -56,23 +56,23 @@ func (v *Vote) IsValid() bool {
 
 // IsYay returns true if current vote is a Yay
 func (v Vote) IsYay() bool {
-	if v.pub == nil {
+	if v.Pub == nil {
 		return false
 	}
-	return v.pub.GetType() == pub.LikeType
+	return v.Pub.GetType() == pub.LikeType
 }
 
 // IsNay returns true if current vote is a Nay
 func (v Vote) IsNay() bool {
-	if v.pub == nil {
+	if v.Pub == nil {
 		return false
 	}
-	return v.pub.GetType() == pub.DislikeType
+	return v.Pub.GetType() == pub.DislikeType
 }
 
 // AP returns the underlying actvitypub item
 func (v *Vote) AP() pub.Item {
-	return v.pub
+	return v.Pub
 }
 
 // Type

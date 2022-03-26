@@ -617,7 +617,7 @@ func getPassCode(h *handler, acc *Account, invitee *Account, r *http.Request) (s
 	// TODO(marius): Start oauth2 authorize session
 	config := GetOauth2Config("fedbox", h.conf.BaseURL)
 	config.Scopes = []string{scopeAnonymousUserCreate}
-	param := oauth2.SetAuthURLParam("actor", invitee.pub.GetLink().String())
+	param := oauth2.SetAuthURLParam("actor", invitee.AP().GetLink().String())
 	sessUrl := config.AuthCodeURL(csrf.Token(r), param)
 	res, err := http.Get(sessUrl)
 	if err != nil {

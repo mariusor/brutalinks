@@ -120,7 +120,7 @@ type Item struct {
 	UpdatedBy   *Account       `json:"-"`
 	Flags       FlagBits       `json:"-"`
 	Metadata    *ItemMetadata  `json:"-"`
-	pub         pub.Item       `json:"-"`
+	Pub         pub.Item       `json:"-"`
 	Parent      Renderable     `json:"-"`
 	OP          Renderable     `json:"-"`
 	Level       uint8          `json:"-"`
@@ -152,11 +152,11 @@ func (i Item) Score() int {
 
 // IsTop returns true if current item is a top level submission
 func (i *Item) IsTop() bool {
-	if i == nil || i.pub == nil {
+	if i == nil || i.Pub == nil {
 		return false
 	}
 	isTop := false
-	pub.OnObject(i.pub, func(o *pub.Object) error {
+	pub.OnObject(i.Pub, func(o *pub.Object) error {
 		if o.InReplyTo == nil {
 			isTop = true
 		}
@@ -255,7 +255,7 @@ func (h ItemPtrCollection) Sorted() ItemPtrCollection {
 
 func parentByPub(t ItemPtrCollection, cur *Item) *Item {
 	var inReplyTo pub.ItemCollection
-	pub.OnObject(cur.pub, func(ob *pub.Object) error {
+	pub.OnObject(cur.Pub, func(ob *pub.Object) error {
 		if ob.InReplyTo != nil {
 			pub.OnCollectionIntf(ob.InReplyTo, func(col pub.CollectionInterface) error {
 				inReplyTo = col.Collection()
@@ -269,10 +269,10 @@ func parentByPub(t ItemPtrCollection, cur *Item) *Item {
 	}
 	for _, n := range t {
 		for _, pp := range inReplyTo {
-			if n.pub == nil {
+			if n.Pub == nil {
 				continue
 			}
-			if pp.GetLink().Equals(n.pub.GetLink(), false) {
+			if pp.GetLink().Equals(n.Pub.GetLink(), false) {
 				return n
 			}
 		}

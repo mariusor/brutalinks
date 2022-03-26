@@ -88,7 +88,7 @@ func LoadModeratorTags(repo *repository) (TagCollection, error) {
 	ff := &Filters{
 		Name: CompStrs{EqualsString(tagNameModerator), EqualsString(tagNameSysOP)},
 		//Type:   nilFilters, // TODO(marius): this seems to have a problem currently on FedBOX
-		AttrTo: CompStrs{EqualsString(repo.app.pub.GetID().String())},
+		AttrTo: CompStrs{EqualsString(repo.app.AP().GetID().String())},
 	}
 	tags, _, err := repo.LoadTags(context.Background(), ff)
 	return tags, err
@@ -400,7 +400,7 @@ func anonymousPerson(url pub.IRI) *pub.Actor {
 
 func (r *repository) loadAPPerson(a Account) *pub.Actor {
 	var p *pub.Actor
-	if act, ok := a.pub.(*pub.Actor); ok {
+	if act, ok := a.Pub.(*pub.Actor); ok {
 		p = act
 	} else {
 		p = new(pub.Actor)
@@ -518,12 +518,13 @@ func hashesUnique(a Hashes) Hashes {
 }
 
 func (r *repository) loadAccountsFollowers(ctx context.Context, acc *Account) error {
-	if !acc.HasMetadata() || len(acc.Metadata.FollowersIRI) == 0 {
+	if !acc.HasMetadata() || len(acc.Metadata.FollowersIRI) == 0 || acc.AP() == nil {
 		return nil
 	}
+	ac := acc.AP()
 	f := &Filters{}
 	searches := RemoteLoads{
-		baseIRI(acc.pub.GetLink()): []RemoteLoad{{actor: acc.pub, loadFn: followers, filters: []*Filters{f}}},
+		baseIRI(ac.GetLink()): []RemoteLoad{{actor: ac, loadFn: followers, filters: []*Filters{f}}},
 	}
 	return LoadFromSearches(ctx, r, searches, func(_ context.Context, c pub.CollectionInterface, f *Filters) error {
 		for _, fol := range c.Collection() {
@@ -549,12 +550,13 @@ func accountInCollection(ac Account, col AccountCollection) bool {
 }
 
 func (r *repository) loadAccountsFollowing(ctx context.Context, acc *Account) error {
-	if !acc.HasMetadata() || len(acc.Metadata.FollowersIRI) == 0 {
+	if !acc.HasMetadata() || len(acc.Metadata.FollowersIRI) == 0 || acc.AP() == nil {
 		return nil
 	}
+	ac := acc.AP()
 	f := &Filters{}
 	searches := RemoteLoads{
-		baseIRI(acc.pub.GetLink()): []RemoteLoad{{actor: acc.pub, loadFn: following, filters: []*Filters{f}}},
+		baseIRI(ac.GetLink()): []RemoteLoad{{actor: ac, loadFn: following, filters: []*Filters{f}}},
 	}
 
 	return LoadFromSearches(ctx, r, searches, func(_ context.Context, c pub.CollectionInterface, f *Filters) error {
@@ -581,10 +583,11 @@ func getItemUpdatedTime(it pub.Item) time.Time {
 }
 
 func (r *repository) loadAccountsOutbox(ctx context.Context, acc *Account) error {
-	if !acc.HasMetadata() || len(acc.Metadata.OutboxIRI) == 0 {
+	if !acc.HasMetadata() || len(acc.Metadata.OutboxIRI) == 0 || acc.AP() == nil {
 		return nil
 	}
 
+	ac := acc.AP()
 	f := Filters{
 		Object:   derefIRIFilters,
 		MaxItems: 300,
@@ -598,8 +601,8 @@ func (r *repository) loadAccountsOutbox(ctx context.Context, acc *Account) error
 	fc.Type = CreateActivitiesFilter
 
 	searches := RemoteLoads{
-		baseIRI(acc.pub.GetLink()): []RemoteLoad{
-			{actor: acc.pub, loadFn: outbox, filters: []*Filters{&fa, &fc, &fm}},
+		baseIRI(ac.GetLink()): []RemoteLoad{
+			{actor: ac, loadFn: outbox, filters: []*Filters{&fa, &fc, &fm}},
 		},
 	}
 	return LoadFromSearches(ctx, r, searches, func(ctx context.Context, c pub.CollectionInterface, f *Filters) error {
@@ -654,8 +657,8 @@ func (r *repository) loadAccountsOutbox(ctx context.Context, acc *Account) error
 func getRepliesOf(items ...Item) pub.IRIs {
 	repliesTo := make(pub.IRIs, 0)
 	iriFn := func(it Item) pub.IRI {
-		if it.pub != nil {
-			return it.pub.GetLink()
+		if it.Pub != nil {
+			return it.Pub.GetLink()
 		}
 		if id, ok := BuildIDFromItem(it); ok {
 			return id
@@ -748,7 +751,7 @@ func mixedLikesFilter(iris pub.IRIs) RemoteLoads {
 		MaxItems: MaxContentItems * 100,
 	}
 	load := RemoteLoad{
-		actor:   Instance.front.storage.app.pub,
+		actor:   Instance.front.storage.app.Pub,
 		loadFn:  inbox,
 		filters: []*Filters{},
 	}
@@ -771,7 +774,7 @@ func irisFromItems(items ...Item) pub.IRIs {
 		if it.Deleted() {
 			continue
 		}
-		iris = append(iris, it.pub.GetLink())
+		iris = append(iris, it.Pub.GetLink())
 	}
 	return iris
 }
@@ -835,10 +838,10 @@ func ItemIRIFilter(items ...Item) CompStrs {
 func AccountsIRIFilter(accounts ...Account) CompStrs {
 	filter := make(CompStrs, 0)
 	for _, ac := range accounts {
-		if ac.pub == nil {
+		if ac.Pub == nil {
 			continue
 		}
-		f := EqualsString(ac.pub.GetLink().String())
+		f := EqualsString(ac.Pub.GetLink().String())
 		if filter.Contains(f) {
 			continue
 		}
@@ -946,7 +949,7 @@ func (r *repository) loadModerationFollowups(ctx context.Context, items Renderab
 	modActions.InReplTo = IRIsFilter(inReplyTo...)
 	modActions.Actor = derefIRIFilters
 	modActions.Object = derefIRIFilters
-	act, err := r.fedbox.Outbox(ctx, r.app.pub, Values(modActions))
+	act, err := r.fedbox.Outbox(ctx, r.app.Pub, Values(modActions))
 	if err != nil {
 		return nil, err
 	}
@@ -1023,12 +1026,12 @@ func (r *repository) loadModerationDetails(ctx context.Context, items ...Moderat
 				if accountsEqual(*it.SubmittedBy, auth) {
 					it.SubmittedBy = &authors[i]
 				}
-				if it.Object != nil && it.Object.AP().GetLink().Equals(auth.pub.GetLink(), false) {
+				if it.Object != nil && it.Object.AP().GetLink().Equals(auth.AP().GetLink(), false) {
 					it.Object = &authors[i]
 				}
 			}
 			for i, obj := range objects {
-				if it.Object != nil && it.Object.AP().GetLink().Equals(obj.pub.GetLink(), false) {
+				if it.Object != nil && it.Object.AP().GetLink().Equals(obj.AP().GetLink(), false) {
 					it.Object = &(objects[i])
 				}
 			}
@@ -1397,13 +1400,13 @@ func (r *repository) objects(ctx context.Context, ff ...*Filters) (ItemCollectio
 }
 
 func validFederated(i Item, f *Filters) bool {
-	ob, err := pub.ToObject(i.pub)
+	ob, err := pub.ToObject(i.Pub)
 	if err != nil {
 		return false
 	}
 	if len(f.Generator) > 0 {
 		for _, g := range f.Generator {
-			if i.pub == nil || ob.Generator == nil {
+			if i.Pub == nil || ob.Generator == nil {
 				continue
 			}
 			if g == nilFilter {
@@ -1635,7 +1638,7 @@ func (r *repository) LoadSearches(ctx context.Context, searches RemoteLoads, dep
 	for _, rel := range relations {
 		for i := range items {
 			it := items[i]
-			if it.IsValid() && it.pub.GetLink() == rel {
+			if it.IsValid() && it.Pub.GetLink() == rel {
 				result.Append(&it)
 			}
 		}
@@ -1647,7 +1650,7 @@ func (r *repository) LoadSearches(ctx context.Context, searches RemoteLoads, dep
 		}
 		for i := range accounts {
 			a := accounts[i]
-			if a.pub != nil && a.pub.GetLink() == rel {
+			if a.Pub != nil && a.AP().GetLink() == rel {
 				result.Append(&a)
 			}
 		}
@@ -1659,7 +1662,7 @@ func (r *repository) LoadSearches(ctx context.Context, searches RemoteLoads, dep
 		}
 		for i := range appreciations {
 			a := appreciations[i]
-			if a.pub != nil && a.pub.GetLink() == rel {
+			if a.Pub != nil && a.AP().GetLink() == rel {
 				result.Append(&a)
 			}
 		}
@@ -1712,7 +1715,7 @@ func (r *repository) SaveVote(ctx context.Context, v Vote) (Vote, error) {
 		Actor: author.GetLink(),
 	}
 	pub.OnObject(act, func(ob *pub.Object) error {
-		return loadFromParent(ob, v.Item.pub)
+		return loadFromParent(ob, v.Item.Pub)
 	})
 
 	if exists.HasMetadata() {
@@ -1731,8 +1734,8 @@ func (r *repository) SaveVote(ctx context.Context, v Vote) (Vote, error) {
 	} else {
 		return v, nil
 	}
-	if v.Item.SubmittedBy != nil && v.Item.SubmittedBy.pub != nil {
-		auth := v.Item.SubmittedBy.pub
+	if v.Item.SubmittedBy != nil && v.Item.SubmittedBy.Pub != nil {
+		auth := v.Item.SubmittedBy.Pub
 		if !auth.GetLink().Contains(r.BaseURL(), false) {
 			// NOTE(marius): this assumes that the instance the user is from has a shared inbox at {instance_hostname}/inbox
 			u, _ := auth.GetLink().URL()
@@ -1937,7 +1940,7 @@ func (r *repository) ModerateDelete(ctx context.Context, mod ModerationOp, autho
 		return ModerationOp{}, errors.Newf("invalid moderation type object")
 	}
 
-	submittedBy := author.pub
+	submittedBy := author.Pub
 
 	to := make(pub.ItemCollection, 0)
 	cc := make(pub.ItemCollection, 0)
@@ -1981,8 +1984,8 @@ func (r *repository) ModerateDelete(ctx context.Context, mod ModerationOp, autho
 		if !ok {
 			continue
 		}
-		if parAuth := p.SubmittedBy; parAuth != nil && !cc.Contains(parAuth.pub.GetLink()) {
-			cc = append(cc, parAuth.pub.GetLink())
+		if parAuth := p.SubmittedBy; parAuth != nil && !cc.Contains(parAuth.Pub.GetLink()) {
+			cc = append(cc, parAuth.Pub.GetLink())
 		}
 		par = p.Parent
 	}
@@ -1992,7 +1995,7 @@ func (r *repository) ModerateDelete(ctx context.Context, mod ModerationOp, autho
 		if it.Parent == nil && it.SubmittedBy.HasMetadata() && len(it.SubmittedBy.Metadata.FollowersIRI) > 0 {
 			cc = append(cc, pub.IRI(it.SubmittedBy.Metadata.FollowersIRI))
 		}
-		cc = append(cc, r.app.pub.GetLink(), handlers.Followers.IRI(r.app.pub))
+		cc = append(cc, r.app.Pub.GetLink(), handlers.Followers.IRI(r.app.Pub))
 		bcc = append(bcc, r.fedbox.Service().ID)
 	}
 
@@ -2008,8 +2011,8 @@ func (r *repository) ModerateDelete(ctx context.Context, mod ModerationOp, autho
 		CC:           cc,
 		BCC:          bcc,
 		AttributedTo: submittedBy,
-		InReplyTo:    mod.pub.GetLink(),
-		Actor:        r.app.pub.GetLink(),
+		InReplyTo:    mod.Pub.GetLink(),
+		Actor:        r.app.Pub.GetLink(),
 		Object:       art,
 	}
 	if it.Deleted() {
@@ -2100,8 +2103,8 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 		if !ok {
 			continue
 		}
-		if parAuth := p.SubmittedBy; parAuth != nil && !cc.Contains(parAuth.pub.GetLink()) {
-			cc = append(cc, parAuth.pub.GetLink())
+		if parAuth := p.SubmittedBy; parAuth != nil && !cc.Contains(parAuth.Pub.GetLink()) {
+			cc = append(cc, parAuth.Pub.GetLink())
 		}
 		par = p.Parent
 	}
@@ -2111,7 +2114,7 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 		if it.Parent == nil && it.SubmittedBy.HasMetadata() && len(it.SubmittedBy.Metadata.FollowersIRI) > 0 {
 			cc = append(cc, pub.IRI(it.SubmittedBy.Metadata.FollowersIRI))
 		}
-		cc = append(cc, r.app.pub.GetLink(), handlers.Followers.IRI(r.app.pub))
+		cc = append(cc, r.app.Pub.GetLink(), handlers.Followers.IRI(r.app.Pub))
 		bcc = append(bcc, r.fedbox.Service().ID)
 	}
 
@@ -2333,7 +2336,7 @@ func (r *repository) SendFollowResponse(ctx context.Context, f FollowRequest, ac
 	bcc := make(pub.ItemCollection, 0)
 
 	to = append(to, pub.IRI(er.Metadata.ID))
-	cc = append(cc, r.app.pub.GetLink(), handlers.Followers.IRI(r.app.pub))
+	cc = append(cc, r.app.Pub.GetLink(), handlers.Followers.IRI(r.app.Pub))
 	bcc = append(bcc, r.fedbox.Service().ID)
 
 	response := new(pub.Activity)
@@ -2385,7 +2388,7 @@ func (r *repository) FollowActor(ctx context.Context, follower, followed *pub.Ac
 	bcc := make(pub.ItemCollection, 0)
 
 	to = append(to, pub.PublicNS)
-	cc = append(cc, r.app.pub.GetLink(), handlers.Followers.IRI(r.app.pub))
+	cc = append(cc, r.app.Pub.GetLink(), handlers.Followers.IRI(r.app.Pub))
 	bcc = append(bcc, r.fedbox.Service().ID)
 
 	follow := new(pub.Follow)
@@ -2484,7 +2487,7 @@ func (r repository) moderationActivity(ctx context.Context, er *pub.Actor, ed pu
 
 	// We need to add the ed/er accounts' creators to the CC list
 	cc := make(pub.ItemCollection, 0)
-	cc = append(cc, r.app.pub.GetLink(), handlers.Followers.IRI(r.app.pub))
+	cc = append(cc, r.app.Pub.GetLink(), handlers.Followers.IRI(r.app.Pub))
 	if er.AttributedTo != nil && !er.AttributedTo.GetLink().Equals(pub.PublicNS, true) {
 		cc = append(cc, er.AttributedTo.GetLink())
 	}

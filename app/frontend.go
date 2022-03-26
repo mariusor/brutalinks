@@ -408,8 +408,8 @@ func loadAccountData(a *Account, b Account) {
 			a.Metadata.OAuth.Provider = b.Metadata.OAuth.Provider
 		}
 	}
-	if a.pub == nil && b.pub != nil {
-		a.pub = b.pub
+	if a.Pub == nil && b.Pub != nil {
+		a.Pub = b.Pub
 	}
 	if len(a.Followers) == 0 && len(b.Followers) > 0 {
 		a.Followers = b.Followers

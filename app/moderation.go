@@ -123,7 +123,7 @@ type ModerationOp struct {
 	SubmittedBy *Account            `json:"by,omitempty"`
 	Object      Renderable          `json:"-"`
 	Metadata    *ModerationMetadata `json:"-"`
-	pub         pub.Item            `json:"-"`
+	Pub         pub.Item            `json:"-"`
 	Flags       FlagBits            `json:"flags,omitempty"`
 }
 
@@ -150,47 +150,47 @@ func (m *ModerationOp) IsValid() bool {
 
 // IsBlock returns true if current moderation request is a block
 func (m ModerationOp) IsBlock() bool {
-	if m.pub == nil {
+	if m.Pub == nil {
 		return false
 	}
-	return m.pub.GetType() == pub.BlockType
+	return m.Pub.GetType() == pub.BlockType
 }
 
 // IsBlock returns true if current moderation request is a delete
 func (m ModerationOp) IsDelete() bool {
-	if m.pub == nil {
+	if m.Pub == nil {
 		return false
 	}
-	return m.pub.GetType() == pub.DeleteType
+	return m.Pub.GetType() == pub.DeleteType
 }
 
 // IsUpdate returns true if current moderation request is an update
 func (m ModerationOp) IsUpdate() bool {
-	if m.pub == nil {
+	if m.Pub == nil {
 		return false
 	}
-	return m.pub.GetType() == pub.UpdateType
+	return m.Pub.GetType() == pub.UpdateType
 }
 
 // IsIgnore returns true if current moderation request is a ignore
 func (m ModerationOp) IsIgnore() bool {
-	if m.pub == nil {
+	if m.Pub == nil {
 		return false
 	}
-	return m.pub.GetType() == pub.IgnoreType
+	return m.Pub.GetType() == pub.IgnoreType
 }
 
 // IsReport returns true if current moderation request is a report
 func (m ModerationOp) IsReport() bool {
-	if m.pub == nil {
+	if m.Pub == nil {
 		return false
 	}
-	return m.pub.GetType() == pub.FlagType
+	return m.Pub.GetType() == pub.FlagType
 }
 
 // AP returns the underlying actvitypub item
 func (m *ModerationOp) AP() pub.Item {
-	return m.pub
+	return m.Pub
 }
 
 // Content returns the reason for it
@@ -256,7 +256,7 @@ func (m *ModerationOp) FromActivityPub(it pub.Item) error {
 	if it == nil {
 		return errors.Newf("nil item received")
 	}
-	m.pub = it
+	m.Pub = it
 	if it.IsLink() {
 		iri := it.GetLink()
 		m.Hash.FromActivityPub(iri)

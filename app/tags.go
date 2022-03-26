@@ -30,7 +30,7 @@ type Tag struct {
 	UpdatedAt   time.Time     `json:"-"`
 	UpdatedBy   *Account      `json:"-"`
 	Metadata    *ItemMetadata `json:"-"`
-	pub         pub.Item      `json:"-"`
+	Pub         pub.Item      `json:"-"`
 }
 
 func (t Tag) IsLocal() bool {

@@ -26,13 +26,13 @@ const (
 
 var (
 	// DeletedAccount is a default static value for a deleted account
-	DeletedAccount = Account{Handle: Anonymous, Hash: AnonymousHash, Metadata: new(AccountMetadata), pub: &pub.Tombstone{}}
+	DeletedAccount = Account{Handle: Anonymous, Hash: AnonymousHash, Metadata: new(AccountMetadata), Pub: &pub.Tombstone{}}
 	// AnonymousAccount is a default static value for the anonymous account
 	AnonymousAccount = Account{Handle: Anonymous, Hash: AnonymousHash, Metadata: new(AccountMetadata)}
 	// SystemAccount is a default static value for the system account
 	SystemAccount = Account{Handle: System, Hash: SystemHash, Metadata: new(AccountMetadata)}
 	// DeletedItem is a default static value for a deleted item
-	DeletedItem = Item{Title: Deleted, Hash: AnonymousHash, Metadata: new(ItemMetadata), pub: &pub.Tombstone{}}
+	DeletedItem = Item{Title: Deleted, Hash: AnonymousHash, Metadata: new(ItemMetadata), Pub: &pub.Tombstone{}}
 
 	// cut off date for disallowing interactions with items
 	oneYearishAgo = time.Now().Add(-12 * 30 * 24 * time.Hour).UTC()

@@ -266,7 +266,7 @@ func MessageFiltersMw(next http.Handler) http.Handler {
 		f := FiltersFromRequest(r)
 		if len(f.IRI) > 0 {
 			for _, author := range authors {
-				f.AttrTo = append(f.AttrTo, EqualsString(author.pub.GetID().String()))
+				f.AttrTo = append(f.AttrTo, EqualsString(author.AP().GetID().String()))
 			}
 			f.Type = append(CreateActivitiesFilter, AppreciationActivitiesFilter...)
 			f.Actor = derefIRIFilters

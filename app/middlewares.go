@@ -91,10 +91,10 @@ func requestHandleSearches(r *http.Request) pub.ItemCollection {
 
 	actors := make(pub.ItemCollection, 0)
 	for _, author := range authors {
-		if author.pub == nil {
+		if author.Pub == nil {
 			continue
 		}
-		actors = append(actors, author.pub)
+		actors = append(actors, author.Pub)
 	}
 	return actors
 }
@@ -116,11 +116,11 @@ func OperatorSearches(next http.Handler) http.Handler {
 		searchIn := ContextLoads(r.Context())
 		repo := ContextRepository(r.Context())
 
-		base := baseIRI(repo.app.pub.GetLink())
+		base := baseIRI(repo.app.Pub.GetLink())
 		ff := new(Filters)
 		ff.Type = ActivityTypesFilter(pub.FollowType)
 		opSearch := RemoteLoad{
-			actor:   repo.app.pub,
+			actor:   repo.app.Pub,
 			loadFn:  outbox,
 			filters: []*Filters{ff},
 		}
@@ -149,14 +149,14 @@ func getServiceFn(r *http.Request) pub.ItemCollection {
 
 func getApplicationFn(r *http.Request) pub.ItemCollection {
 	if a := ContextRepository(r.Context()).app; a != nil {
-		return pub.ItemCollection{a.pub}
+		return pub.ItemCollection{a.Pub}
 	}
 	return pub.ItemCollection{}
 }
 
 func getLoggedActorFn(r *http.Request) pub.ItemCollection {
 	if logged := ContextAccount(r.Context()); logged.IsLogged() {
-		return pub.ItemCollection{logged.pub}
+		return pub.ItemCollection{logged.Pub}
 	}
 	return nil
 }
@@ -164,7 +164,7 @@ func getLoggedActorFn(r *http.Request) pub.ItemCollection {
 func getNamedActorFn(r *http.Request) pub.ItemCollection {
 	named := make(pub.ItemCollection, 0)
 	for _, auth := range ContextAuthors(r.Context()) {
-		named = append(named, auth.pub)
+		named = append(named, auth.Pub)
 	}
 	return named
 }
@@ -420,7 +420,7 @@ func reportModelFromCtx(ctx context.Context) *moderationModel {
 	if m == nil {
 		m = new(moderationModel)
 		m.Content = new(ModerationOp)
-		m.Content.pub = &pub.Flag{Type: pub.FlagType}
+		m.Content.Pub = &pub.Flag{Type: pub.FlagType}
 	}
 	m.Message.Editable = false
 	m.Message.SubmitLabel = htmlf("%s Report", icon("flag"))
@@ -477,7 +477,7 @@ func blockModelFromCtx(ctx context.Context) *moderationModel {
 	if m == nil {
 		m = new(moderationModel)
 		m.Content = new(ModerationOp)
-		m.Content.pub = &pub.Block{Type: pub.BlockType}
+		m.Content.Pub = &pub.Block{Type: pub.BlockType}
 	}
 	m.Message.Editable = false
 	m.Title = fmt.Sprintf("Block item")
