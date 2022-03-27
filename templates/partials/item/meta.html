@@ -4,10 +4,7 @@
 {{- $authorDeleted := $it.SubmittedBy.Deleted -}}
 {{- $readonly := IsReadOnly $it -}}
 {{- $showReply := and (eq current "content") CurrentAccount.IsValid }}
-<nav><ul>
-    <li>{{- template "partials/item/domain" . -}}</li>
-    <li>{{- template "partials/item/score" . -}}</li>
-</ul></nav>
+{{- template "partials/item/score" . -}}
 <nav><ul>
     <li><small>submitted
     {{- if not $deleted -}}

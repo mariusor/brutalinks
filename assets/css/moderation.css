@@ -7,3 +7,10 @@
     clear: both;
     margin: .3em 0 .5em 0;
 }
+.moderation-request + .score, .follow-request + .score, .account + .score {
+    grid-template-rows: 1.2em 1.5em;
+    min-height: 2.6em;
+}
+.moderation-request + .score, .account + .score {
+    opacity: .5;
+}

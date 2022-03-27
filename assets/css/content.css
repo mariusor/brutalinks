@@ -1,5 +1,5 @@
-/*
-main ol {
+/* content.css */
+main ol.children {
     max-width: 120ch;
 }
 .icon-reply.h-mirror, .icon-plus.deg-45 {
@@ -8,18 +8,29 @@ main ol {
 .child > article {
     margin-left: -.2rem;
 }
-main.content article {
-    grid-area: main;
-    margin-left: 1ex;
-}
-main.content {
+main.content section {
     display: grid;
-    grid-template-columns: 1.6rem 11fr;
-    grid-template-areas: "sidebar main" "footer footer";
+    margin: .3rem 0 1rem 0;
+    grid-template-columns: 1.6rem 11fr ;
+    grid-template-rows: 1.4rem 1.2em;
+    grid-template-areas: "sidebar main" "sidebar footer";
 }
-.content > * {
+main.content section span.score {
+    min-height: 3.5em;
+    grid-area: sidebar;
+    align-content: start;
+}
+main.content section article {
+    grid-area: main;
+    align-self: center;
+    /*margin-left: 1ex;*/
+}
+main.content section nav {
     grid-area: footer;
+    margin-left: .4em;
+    align-self: start;
 }
+/*
 video {
     max-width: 90%;
     max-height: 32ex;

@@ -1,5 +1,9 @@
+/* article.css */
 .item {
     line-height: 1.3em;
+}
+article > header > h2 {
+    display: inline;
 }
 article section footer, li section footer {
     opacity: .6;
@@ -57,16 +61,16 @@ article > header h2 {
     overflow-wrap: break-word;
     word-break: break-word;
 }
-article > header h2 small {
+article > header small {
     font-size: .75em;
     opacity: .8;
     margin: 0 0 0 1ex;
     padding: 0;
 }
-article > header h2 small:last-child::before {
+article > header small:last-child::before {
     content: "(";
 }
-article > header h2 small:last-child::after {
+article > header small:last-child::after {
     content: ")";
 }
 .data pre {
@@ -101,13 +105,6 @@ article footer nav, article footer nav ul, article footer nav ul li {
 section footer:not(:first-child)::before {
     content: '\2012';
 }
-.moderation-request + .score, .follow-request + .score, .account + .score {
-    grid-template-rows: 1.2em 1.5em;
-    min-height: 2.6em;
-}
-.moderation-request + .score, .account + .score {
-    opacity: .5;
-}
 .score noscript { display: none; }
 small data.score::before {
     content: "(";
@@ -115,11 +112,12 @@ small data.score::before {
 small data.score::after {
     content: ")";
 }
-aside.score {
+.score {
     grid-template-rows: 1em 1em 1em;
     display: grid;
     grid-area: sidebar;
-    min-height: 3.2em;
+    min-height: 3em;
+    margin-top: -.2em;
 }
 .score * {
     justify-self: center;

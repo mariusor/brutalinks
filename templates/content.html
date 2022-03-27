@@ -1,11 +1,12 @@
 <main class="{{current}}">
-    {{- if not .Message.Editable -}}
+<section>
+{{- if not .Message.Editable -}}
 {{ template "partials/item" .Content }}
 {{- end -}}
+</section>
 {{- if not .Content.Deleted -}}
 <section id="reply">{{template "partials/content/edit" . }}</section>
 {{- end }}
-</main>
 <hr />
 {{- if .Content.IsValid -}}
 {{- if gt (len .Content.Children) 0 }}
@@ -14,3 +15,4 @@
 <section id="no-items"><p>There's only dust here.</p></section>
 {{ end -}}
 {{- end -}}
+</main>

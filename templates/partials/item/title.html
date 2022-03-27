@@ -7,5 +7,6 @@
     {{- if .Title -}}{{- .Title -}}{{ else }} Untitled {{ itemType .MimeType -}} {{- end -}}
 {{- end -}}
 </h2>
+{{- template "partials/item/domain" . -}}
 </header>
 {{- end -}}
