@@ -216,9 +216,7 @@ func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	id := a.pub.GetID()
-	url := accountURL(*a).String()
-	url1 := a.Metadata.URL
-	wf.Aliases = []string{url}
+
 	wf.Subject = res
 	wf.Links = []link{
 		{
@@ -226,18 +224,33 @@ func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 			Type: "application/activity+json",
 			Href: id.String(),
 		},
-		{
-			Rel:  "https://webfinger.net/rel/profile-page",
-			Type: "text/html",
-			Href: url,
-		},
 	}
-	if url1 != url && url1 != id.String() {
-		wf.Links = append(wf.Links, link{
-			Rel:  "https://webfinger.net/rel/profile-page",
-			Type: "text/html",
-			Href: url1,
-		})
+	existsOnInstance := false
+	pub.OnActor(a.pub, func(act *pub.Actor) error {
+		urls := make(pub.ItemCollection, 0)
+		if pub.IsItemCollection(act.URL) {
+			urls = append(urls, act.URL.(pub.ItemCollection)...)
+		} else {
+			urls = append(urls, act.URL.(pub.IRI))
+		}
+
+		for _, u := range urls {
+			url := u.GetLink().String()
+			existsOnInstance = existsOnInstance || strings.Contains(url, Instance.BaseURL)
+			wf.Aliases = append(wf.Aliases, url)
+			wf.Links = append(wf.Links, link{
+				Rel:  "https://webfinger.net/rel/profile-page",
+				Type: "text/html",
+				Href: url,
+			})
+		}
+		return nil
+	})
+	if !existsOnInstance {
+		err := errors.NotFoundf("resource not found %s", res)
+		h.errFn()("Error: %s", err)
+		errors.HandleError(err).ServeHTTP(w, r)
+		return
 	}
 
 	dat, _ := json.Marshal(wf)
