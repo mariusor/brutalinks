@@ -175,10 +175,11 @@ func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 		errors.HandleError(errors.BadRequestf("invalid resource %s", res)).ServeHTTP(w, r)
 		return
 	}
+	var host string
 
 	wf := node{}
 	if strings.Contains(handle, "@") {
-		handle, _ = func(s string) (string, string) {
+		handle, host = func(s string) (string, string) {
 			split := "@"
 			ar := strings.Split(s, split)
 			if len(ar) != 2 {
@@ -217,7 +218,10 @@ func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 	}
 	id := a.pub.GetID()
 
-	wf.Subject = res
+	if host == "" {
+		host = h.conf.HostName
+	}
+	wf.Subject = fmt.Sprintf("%s@%s", handle, host)
 	wf.Links = []link{
 		{
 			Rel:  "self",
@@ -225,9 +229,9 @@ func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 			Href: id.String(),
 		},
 	}
+	urls := make(pub.ItemCollection, 0)
 	existsOnInstance := false
 	pub.OnActor(a.pub, func(act *pub.Actor) error {
-		urls := make(pub.ItemCollection, 0)
 		if pub.IsItemCollection(act.URL) {
 			urls = append(urls, act.URL.(pub.ItemCollection)...)
 		} else {
@@ -252,6 +256,7 @@ func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 		errors.HandleError(err).ServeHTTP(w, r)
 		return
 	}
+	wf.Aliases = append(wf.Aliases, id.String())
 
 	dat, _ := json.Marshal(wf)
 	w.Header().Set("Content-Type", "application/jrd+json")
