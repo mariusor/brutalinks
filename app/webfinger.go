@@ -217,8 +217,7 @@ func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	id := a.pub.GetID()
-
+	id := a.AP().GetID()
 	if host == "" {
 		host = h.conf.HostName
 	}
@@ -230,9 +229,8 @@ func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 			Href: id.String(),
 		},
 	}
-	urls := make(pub.ItemCollection, 0)
 	existsOnInstance := false
-	pub.OnActor(a.pub, func(act *pub.Actor) error {
+	pub.OnActor(a.AP(), func(act *pub.Actor) error {
 		urls := make(pub.ItemCollection, 0)
 		if pub.IsItemCollection(act.URL) {
 			urls = append(urls, act.URL.(pub.ItemCollection)...)
