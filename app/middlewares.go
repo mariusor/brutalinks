@@ -367,6 +367,7 @@ func ContentModelMw(next http.Handler) http.Handler {
 		m.Content = new(Item)
 		m.Message.Label = "Reply:"
 		m.Message.Back = "/"
+		m.ShowChildren = true
 		m.Message.SubmitLabel = htmlf("Reply %s", icon("reply", "h-mirror"))
 		next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, ModelCtxtKey, m)))
 	})
