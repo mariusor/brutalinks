@@ -258,13 +258,11 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 				if list == nil {
 					return nil
 				}
-				if lModel, ok := m.(*listingModel); ok {
-					if lModel.sortFn == nil {
-						return ByDate(list)
-					}
-					return lModel.sortFn(list)
+				var sortFn = ByDate
+				if lModel, ok := m.(*listingModel); ok && lModel.sortFn != nil {
+					sortFn = lModel.sortFn
 				}
-				return nil
+				return sortFn(list)
 			},
 			"GetDomainURL":   GetDomainURL,
 			"GetDomainTitle": GetDomainTitle,
