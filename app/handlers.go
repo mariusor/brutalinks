@@ -36,20 +36,22 @@ func enhanceItem(c *Cursor, n *Item) (saveVote bool) {
 	if !piok {
 		return
 	}
+	n.Parent = pi
+	n.OP = pi
 	if pi.SubmittedBy.IsValid() {
 		if len(n.Metadata.To) == 0 {
 			n.Metadata.To = make(AccountCollection, 0)
 		}
+		n.Metadata.To = append(n.Metadata.To, *pi.SubmittedBy)
 	}
-	n.Metadata.To = append(n.Metadata.To, *np.SubmittedBy)
 	if pi.Private() {
 		n.MakePrivate()
 		saveVote = false
 	}
-	if np.OP.IsValid() {
-		n.OP = np.OP
+	if pi.OP != nil && pi.OP.IsValid() {
+		n.OP = pi.OP
 	} else {
-		n.OP = n.Parent
+		n.OP = pi.Parent
 	}
 	return
 }
