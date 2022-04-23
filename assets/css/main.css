@@ -46,6 +46,18 @@ svg.icon-user, svg.icon-lock, svg.icon-check {
 {
     margin-right: -.1em;
 }
+body > header > nav {
+    display:grid;
+    grid-template-columns: auto 5fr;
+    align-items: end;
+    grid-column-gap: 1.2em;
+}
+body > header > nav ul:last-child {
+    text-align: right;
+}
+body > header .score {
+    display: inline;
+}
 nav ul, nav ul li, nav dl, nav dl dd, nav dl dt {
     display: inline-block;
 }
