@@ -1,25 +1,25 @@
-{{- $account := CurrentAccount }}
-{{- if $account.IsOperator }}
-{{ template "partials/instance/sysop" }}
-{{- end -}}
-<nav class="moderation-hdr">
-    <form method="get">
-{{/*        <label for="which-moderators">Moderator</label>
-        <select name="m" id="which-moderators">
-            <option value="">(all)</option>
-            <option value="users"{{- if urlValueContains "m" "users" }} selected{{- end -}}>(users)</option>
-        </select> */}}
-        <label><input type="checkbox" name="t" value="s"{{- if urlValueContains "t" "s" }} checked{{- end -}}/> Submissions</label>
-        <label><input type="checkbox" name="t" value="c"{{- if urlValueContains "t" "c" }} checked{{- end -}}/> Comments</label>
-        <label><input type="checkbox" name="t" value="a"{{- if urlValueContains "t" "a" }} checked{{- end -}}/> Accounts</label>
-{{/* }}
-        <label><input type="checkbox" name="t[]" value="d"{{- if urlValueContains "t" "d" }} checked{{- end -}}/> Domains</label>
-        <label><input type="checkbox" name="t[]" value="t"{{- if urlValueContains "t" "t" }} checked{{- end -}}/> Tags</label>
-        <label><input type="checkbox" name="t[]" value="in"{{- if urlValueContains "t" "in" }} checked{{- end -}}/> Instances</label>
-{{ */}}
-        <button type="submit">Filter</button>
-    </form>
-</nav>
 <main class="{{ current }}">
+    {{- $account := CurrentAccount }}
+    {{- if $account.IsOperator }}
+    {{ template "partials/instance/sysop" }}
+    {{- end -}}
+    <nav class="moderation-hdr">
+        <form method="get">
+            {{/*        <label for="which-moderators">Moderator</label>
+            <select name="m" id="which-moderators">
+                <option value="">(all)</option>
+                <option value="users"{{- if urlValueContains "m" "users" }} selected{{- end -}}>(users)</option>
+            </select> */}}
+            <label><input type="checkbox" name="t" value="s"{{- if urlValueContains "t" "s" }} checked{{- end -}}/> Submissions</label>
+            <label><input type="checkbox" name="t" value="c"{{- if urlValueContains "t" "c" }} checked{{- end -}}/> Comments</label>
+            <label><input type="checkbox" name="t" value="a"{{- if urlValueContains "t" "a" }} checked{{- end -}}/> Accounts</label>
+            {{/* }}
+            <label><input type="checkbox" name="t[]" value="d"{{- if urlValueContains "t" "d" }} checked{{- end -}}/> Domains</label>
+            <label><input type="checkbox" name="t[]" value="t"{{- if urlValueContains "t" "t" }} checked{{- end -}}/> Tags</label>
+            <label><input type="checkbox" name="t[]" value="in"{{- if urlValueContains "t" "in" }} checked{{- end -}}/> Instances</label>
+            {{ */}}
+            <button type="submit">Filter</button>
+        </form>
+    </nav>
 {{ template "listing" . }}
 </main>

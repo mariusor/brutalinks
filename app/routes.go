@@ -13,7 +13,7 @@ import (
 var basicStyles = []string{"css/reset.css", "css/main.css", "css/header.css", "css/footer.css"}
 var assetFiles = assets.AssetFiles{
 	"moderate.css":     append(basicStyles, "css/listing.css", "css/content.css", "css/article.css", "css/moderate.css", "css/user.css"),
-	"content.css":      append(basicStyles, "css/article.css", "css/threaded.css", "css/content.css"),
+	"content.css":      append(basicStyles, "css/article.css", "css/listing.css", "css/threaded.css", "css/content.css"),
 	"accounts.css":     append(basicStyles, "css/listing.css", "css/threaded.css", "css/accounts.css"),
 	"listing.css":      append(basicStyles, "css/listing.css", "css/article.css", "css/moderate.css"),
 	"moderation.css":   append(basicStyles, "css/listing.css", "css/article.css", "css/moderation.css"),

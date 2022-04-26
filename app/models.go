@@ -302,3 +302,16 @@ func (errorModel) Template() string {
 	return "error"
 }
 func (*errorModel) SetCursor(c *Cursor) {}
+
+func sortModel(m Model) func(list RenderableList) []Renderable {
+	return func(list RenderableList) []Renderable {
+		if list == nil {
+			return nil
+		}
+		var sortFn = ByDate
+		if lModel, ok := m.(*listingModel); ok && lModel.sortFn != nil {
+			sortFn = lModel.sortFn
+		}
+		return sortFn(list)
+	}
+}

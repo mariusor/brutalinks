@@ -254,18 +254,9 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"ToTitle":               ToTitle,
 			"itemType":              itemType,
 			"trimSuffix":            strings.TrimSuffix,
-			"Sort": func(list RenderableList) []Renderable {
-				if list == nil {
-					return nil
-				}
-				var sortFn = ByDate
-				if lModel, ok := m.(*listingModel); ok && lModel.sortFn != nil {
-					sortFn = lModel.sortFn
-				}
-				return sortFn(list)
-			},
-			"GetDomainURL":   GetDomainURL,
-			"GetDomainTitle": GetDomainTitle,
+			"Sort":                  sortModel(m),
+			"GetDomainURL":          GetDomainURL,
+			"GetDomainTitle":        GetDomainTitle,
 			//"ScoreFmt":          func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
 			//"NumberFmt":         func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
 			"invitationLink": GetInviteLink(v),
