@@ -1,7 +1,0 @@
-<ol class="children lvl-{{ .Level | Mod10 }}" data-parent="{{ .ID }}" id="c-{{.ID}}">
-{{- range $key, $value := .Children | Sort }}
-    <li data-index="{{$key}}" class="child" data-hash="{{.ID}}" id="item-{{.ID}}">
-        {{ template "partials/list-item" $value }}
-    </li>
-{{ end -}}
-</ol>

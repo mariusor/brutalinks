@@ -9,14 +9,8 @@
 {{template "partials/content/edit" . }}
 </section>
 {{- end }}
+<hr/>
 {{- if .Content.IsValid -}}
-{{- if gt (len .Content.Children) 0 }}
-<section id="items">
-<hr />
-{{ template "partials/content/comments" .Content }}
-</section>
-{{- else }}
-<section id="no-items"> <hr /> <p>There's only dust here.</p> </section>
-{{ end -}}
+{{ template "listing" .Content }}
 {{- end -}}
 </main>
