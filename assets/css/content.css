@@ -1,29 +1,29 @@
 /* content.css */
-main section:first-child {
-    grid-area: title;
-    display: grid;
-    margin: .3rem 0 1rem 0;
-    grid-template-columns: 1.6rem 11fr ;
-    grid-template-rows: 1.4rem 1.2em;
-    grid-template-areas: "sidebar main" "sidebar footer";
-}
-main section#reply {
-    grid-area: reply;
-}
-main section#no-items, main section#items {
-    grid-area: comments;
-}
-main ol.children {
-    max-width: 120ch;
-    grid-area: comments;
-}
+/*main section:first-child {*/
+/*    grid-area: title;*/
+/*    display: grid;*/
+/*    margin: .3rem 0 1rem 0;*/
+/*    grid-template-columns: 1.6rem 11fr ;*/
+/*    grid-template-rows: 1.4rem 1.2em;*/
+/*    grid-template-areas: "sidebar main" "sidebar footer";*/
+/*}*/
+/*main section#reply {*/
+/*    grid-area: reply;*/
+/*}*/
+/*main section#no-items, main section#items {*/
+/*    grid-area: comments;*/
+/*}*/
+/*main ol.children {*/
+/*    max-width: 120ch;*/
+/*    grid-area: comments;*/
+/*}*/
+/*.child > article {*/
+/*    margin-left: -.2rem;*/
+/*}*/
+/*main.content section {*/
+/*}*/
 .icon-reply.h-mirror, .icon-plus.deg-45 {
     vertical-align: middle;
-}
-.child > article {
-    margin-left: -.2rem;
-}
-main.content section {
 }
 main.content section span.score {
     min-height: 3.5em;

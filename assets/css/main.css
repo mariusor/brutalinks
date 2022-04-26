@@ -49,12 +49,12 @@ svg.icon-user, svg.icon-lock, svg.icon-check {
 nav ul, nav ul li, nav dl, nav dl dd, nav dl dt {
     display: inline-block;
 }
-body > main {
-    grid-area: main;
-    display: grid;
-    grid-template-areas: "title" "reply" "comments";
-    grid-template-rows: min-content min-content auto;
-}
+/*body > main {*/
+/*    grid-area: main;*/
+/*    display: grid;*/
+/*    grid-template-areas: "title" "reply" "comments";*/
+/*    grid-template-rows: min-content min-content auto;*/
+/*}*/
 .deleted {
     opacity: .7;
 }

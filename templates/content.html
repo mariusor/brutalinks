@@ -1,9 +1,8 @@
 <main class="{{current}}">
-<section>
 {{- if not .Message.Editable -}}
 {{ template "partials/item" .Content }}
 {{- end -}}
-</section>
+</main>
 {{- if not .Content.Deleted -}}
 <section id="reply">
 {{template "partials/content/edit" . }}
@@ -13,4 +12,3 @@
 {{- if .Content.IsValid -}}
 {{ template "listing" .Content }}
 {{- end -}}
-</main>
