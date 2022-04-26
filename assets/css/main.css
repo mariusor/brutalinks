@@ -46,18 +46,6 @@ svg.icon-user, svg.icon-lock, svg.icon-check {
 {
     margin-right: -.1em;
 }
-body > header > nav {
-    display:grid;
-    grid-template-columns: auto 5fr;
-    align-items: end;
-    grid-column-gap: 1.2em;
-}
-body > header > nav ul:last-child {
-    text-align: right;
-}
-body > header .score {
-    display: inline;
-}
 nav ul, nav ul li, nav dl, nav dl dd, nav dl dt {
     display: inline-block;
 }
@@ -123,10 +111,9 @@ img.avatar {
     width: 1.4rem;
     margin-right: .3rem;
 }
-nav dl dt:not(:first-child)::before, nav ul li:not(:first-child)::before {
-    content: "\22c5";
-    padding: 0 .4em 0 .2em;
-}
+/*nav dl dt:not(:first-child)::before, nav ul li:not(:first-child)::before {*/
+/*    content: "\22c5";*/
+/*}*/
 p {
     word-break: break-word;
 }

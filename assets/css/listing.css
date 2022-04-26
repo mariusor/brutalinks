@@ -4,12 +4,6 @@
     margin-top: .6rem;
     margin-left: .4rem;
 }
-ol.top-level {
-    margin-left: 1.4em;
-}
-ol.children > li {
-    list-style: none;
-}
 ol.children > li, ol.top-level > li {
     display: grid;
     margin: .3rem 0 1rem 0;

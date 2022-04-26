@@ -1,4 +1,3 @@
-/*
 body > footer {
     grid-area: footer;
     padding-bottom: 1em;
@@ -11,4 +10,3 @@ body > footer nav {
 body > footer nav:not(.pagination) {
     float: right;
 }
-*/
