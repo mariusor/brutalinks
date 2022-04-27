@@ -46,10 +46,11 @@ internal/assets/assets.gen.go: $(ASSETFILES) download
 	go generate -tags $(ENV) ./assets.go
 
 brutalinks: bin/brutalinks
+
 bin/brutalinks: download go.mod cmd/brutalinks/main.go $(APPSOURCES)
 	$(BUILD) -tags $(ENV) -o $@ ./cmd/brutalinks/main.go
 
-run: brutalinks
+run: ./bin/brutalinks
 	@./bin/brutalinks
 
 clean:
