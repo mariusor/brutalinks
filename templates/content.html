@@ -1,8 +1,6 @@
-<main class="{{current}}">
 {{- if not .Message.Editable -}}
 {{ template "partials/item" .Content }}
 {{- end -}}
-</main>
 {{- if not .Content.Deleted -}}
 <section id="reply">
 {{template "partials/content/edit" . }}

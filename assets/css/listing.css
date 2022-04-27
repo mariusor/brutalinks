@@ -4,11 +4,14 @@
     margin-top: .6rem;
     margin-left: .4rem;
 }
-ol.children > li, ol.top-level > li {
+ol.top-level > li {
+	margin-left: 1.4em;
+}
+article.item {
     display: grid;
-    margin: .3rem 0 1rem 0;
+    margin: .3rem 0;
     grid-template-columns: 1.6rem 11fr ;
-    grid-template-rows: 1.4rem 1.2em;
+    grid-template-rows: 1.8rem auto;
     grid-template-areas: "sidebar main" "sidebar footer";
 }
 .children > li span.score, .top-level > li span.score {

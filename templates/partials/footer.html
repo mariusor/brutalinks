@@ -13,19 +13,17 @@
 {{ end -}}
 {{ end -}}
 {{ $version := Version -}}
-<nav>
-    <ul>
-        <li><small><a id="invert" title="Invert colours" href="/#invert">{{ icon "adjust" }} Invert colours</a></small></li>
-        <li><small><a href="/about">About</a></small></li>
-        {{- if Config.ModerationEnabled }}
-        <li><small><a title="Moderation log" href="/moderation">Moderation</a></small></li>{{ end }}
-    </ul><br/>
-    <ul>
-        <li><small>Content: <a href="https://creativecommons.org/licenses/by-sa/4.0/" rel="license">CC-BY-SA 4.0</a></small></li>
-        <li><small>Source code:
-            <a href="https://github.com/mariusor/go-littr/blob/master/LICENSE" rel="license">MIT</a> &ndash;
-            {{ if $version }}<a title="Version" href="https://github.com/mariusor/go-littr/commits/{{ trimSuffix $version "-git" }}">{{ icon "code" }} {{$version}}</a>{{- else -}}
-            <a title="The code" href="https://github.com/mariusor/go-littr">{{ icon "github" }}</a>{{- end }}</small>
-        </li>
-    </ul>
-</nav>
+<ul>
+    <li><small><a id="invert" title="Invert colours" href="/#invert">{{ icon "adjust" }} Invert colours</a></small></li>
+    <li><small><a href="/about">About</a></small></li>
+    {{- if Config.ModerationEnabled }}
+    <li><small><a title="Moderation log" href="/moderation">Moderation</a></small></li>{{ end }}
+</ul><br/>
+<ul>
+    <li><small>Content: <a href="https://creativecommons.org/licenses/by-sa/4.0/" rel="license">CC-BY-SA 4.0</a></small></li>
+    <li><small>Source code:
+        <a href="https://github.com/mariusor/go-littr/blob/master/LICENSE" rel="license">MIT</a> &ndash;
+        {{ if $version }}<a title="Version" href="https://github.com/mariusor/go-littr/commits/{{ trimSuffix $version "-git" }}">{{ icon "code" }} {{$version}}</a>{{- else -}}
+        <a title="The code" href="https://github.com/mariusor/go-littr">{{ icon "github" }}</a>{{- end }}</small>
+    </li>
+</ul>

@@ -12,9 +12,6 @@ article section footer, li section footer {
 article nav dl, article nav ul, article nav ol {
     margin-left: 0;
 }
-article dl, article ul, article ol {
-    margin-left: 1.3rem;
-}
 article blockquote, article q {
     quotes: none;
     border-left: 2px solid var(--main-fg-color);
@@ -96,7 +93,7 @@ footer .icon-activitypub {
     width: 1.1em;
     display: none;
 }
-article footer nav, article footer nav ul, article footer nav ul li {
+article footer ul, article footer ul li {
     display: inline-block;
 }
 .item footer nav ul li::before {
@@ -113,11 +110,11 @@ small data.score::after {
     content: ")";
 }
 .score {
-    grid-template-rows: 1em 1em 1em;
+    grid-template-rows: 2ex 2ex 1.6ex;
     display: grid;
     grid-area: sidebar;
-    min-height: 3em;
-    margin-top: -.2em;
+    min-height: 5ex;
+    /*margin-top: -.2em;*/
 }
 .score * {
     justify-self: center;

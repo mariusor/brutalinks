@@ -3,7 +3,7 @@ body > header {
 }
 body > header > nav {
     display:grid;
-    grid-template-columns: auto 5fr;
+    grid-template-columns: auto auto 5fr;
     align-items: end;
     grid-column-gap: 1.2em;
 }

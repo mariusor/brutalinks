@@ -46,8 +46,11 @@ svg.icon-user, svg.icon-lock, svg.icon-check {
 {
     margin-right: -.1em;
 }
-nav ul, nav ul li, nav dl, nav dl dd, nav dl dt {
+nav ul, nav ul li, nav dl, nav dl dd, nav dl dt, footer ul, footer ul li {
     display: inline-block;
+}
+li footer ul li {
+    margin-left: .2rem;
 }
 /*body > main {*/
 /*    grid-area: main;*/

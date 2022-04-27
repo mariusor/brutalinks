@@ -1,6 +1,4 @@
-<main class="{{current}}">
-    <h1>{{ .StatusText }}</h1>
-    {{range $error := .Errors}}
-        <p>{{$error.Error | ToTitle }}</p>
-    {{end}}
-</main>
+<h1>{{ .StatusText }}</h1>
+{{range $error := .Errors}}
+<p>{{$error.Error | ToTitle }}</p>
+{{end}}

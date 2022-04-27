@@ -1,7 +1,7 @@
 {{- $account := CurrentAccount -}}
 {{- $score := .Score -}}
 {{- $readonly := or ( . | IsReadOnly) (not $account.IsLogged) -}}
-<span class="score" data-score="{{if .Deleted}}-1{{else}}{{ $score | ScoreFmt }}{{end}}" data-hash="{{.ID}}">
+<aside class="score" data-score="{{if .Deleted}}-1{{else}}{{ $score | ScoreFmt }}{{end}}" data-hash="{{.ID}}">
     <noscript>score </noscript>
     {{- $vote := $account.VotedOn . -}}
     {{ if Config.VotingEnabled }}<a href="{{if not $readonly }}{{ . | YayLink}}{{ else }}#{{ end }}" class="yay{{if and (not .Deleted) (IsYay $vote) }} ed{{end}}" data-action="yay" data-hash="{{.ID}}" rel="nofollow" title="yay">{{- icon "plus" -}}</a>{{ end }}
@@ -9,4 +9,4 @@
         <small>{{- if .Deleted}}{{ icon "recycle" }}{{else}}{{ $score | ScoreFmt }}{{end -}}</small>
     </data>
     {{ if Config.VotingEnabled }}{{ if Config.DownvotingEnabled }}<a href="{{if not $readonly }}{{ . | NayLink}}{{ else }}#{{ end }}" class="nay{{if and (not .Deleted) (IsNay $vote) }} ed{{end}}" data-action="nay" data-hash="{{.ID}}" rel="nofollow" title="nay">{{- icon "minus" -}}</a>{{ end }}{{ end }}
-</span>
+</aside>
