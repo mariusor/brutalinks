@@ -24,6 +24,7 @@ var assetFiles = assets.AssetFiles{
 	"login.css":        {"css/main.css", "css/login.css"},
 	"register.css":     {"css/main.css", "css/login.css"},
 	"inline.css":       {"css/inline.css"},
+	"simple.css":       {"css/simple.css"},
 	"main.js":          {"js/base.js", "js/main.js"},
 	"robots.txt":       {"robots.txt"},
 	"ns":               {"ns.json"},
