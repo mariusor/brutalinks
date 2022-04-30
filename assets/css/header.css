@@ -1,5 +1,18 @@
+body > header > menu, body > header > h1, body > header > ul, body > header > * li{
+    display: inline-block;
+}
+body > header > menu {
+    min-width: 60%;
+}
+body > header > ul {
+    width: 20%;
+    text-align: right;
+}
 body > header {
-    margin-top: .4rem;
+    margin-top: 1rem;
+}
+body > footer {
+    margin-bottom: 1rem;
 }
 body > header > nav {
     display:grid;

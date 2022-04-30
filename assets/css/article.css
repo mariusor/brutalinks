@@ -1,5 +1,5 @@
 /* article.css */
-.item {
+article {
     line-height: 1.3em;
 }
 article > header > h2 {
@@ -112,9 +112,9 @@ small data.score::after {
 .score {
     grid-template-rows: 2ex 2ex 1.6ex;
     display: grid;
-    grid-area: sidebar;
-    min-height: 5ex;
-    /*margin-top: -.2em;*/
+    align-self: start;
+    grid-row-start: 1;
+    grid-row-end: -1;
 }
 .score * {
     justify-self: center;

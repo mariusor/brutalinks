@@ -4,10 +4,13 @@ body {
     color: var(--main-fg-color);
     min-height: 100%;
     display: grid;
-    padding: 0 .8rem;
-    grid-template-rows: auto minmax(min-content, 1fr) auto;
+    padding: 0 1rem;
+    grid-template-rows: [first-line]auto minmax(min-content, 1fr) [last-line]auto;
     grid-template-areas: "header" "main" "footer";
     grid-gap: .5rem;
+}
+ul, ol {
+    list-style: none;
 }
 a {
     color: var(--main-link-color);

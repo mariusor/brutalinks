@@ -4,15 +4,18 @@
     margin-top: .6rem;
     margin-left: .4rem;
 }
-ol.top-level > li {
-	margin-left: 1.4em;
+article.item.op {
+    /*grid-template-rows: minmax(0, min-content) 1rem;*/
 }
 article.item {
     display: grid;
-    margin: .3rem 0;
-    grid-template-columns: 1.6rem 11fr ;
-    grid-template-rows: 1.8rem auto;
-    grid-template-areas: "sidebar main" "sidebar footer";
+    justify-items: start;
+    align-items: baseline;
+    grid-template-columns: 1.4rem 18fr;
+    grid-template-rows: 1.4rem minmax(0, min-content) 1rem;
+}
+.top-level li {
+    margin-bottom: .2rem;
 }
 .children > li span.score, .top-level > li span.score {
     min-height: 3.5em;

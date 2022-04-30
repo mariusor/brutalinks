@@ -70,7 +70,6 @@ details#invites summary,
 }
 .user details aside ul {
     display: inline-block;
-    list-style: none;
 }
 .user details aside ul li {
     display: inline;

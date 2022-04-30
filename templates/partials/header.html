@@ -1,7 +1,6 @@
 {{- $account := CurrentAccount }}
-<nav>
-    <h1><a href="/">{{ Config.Name | Name }}</a></h1>
-    <ul>
+<h1><a href="/">{{ Config.Name | Name }}</a></h1>
+<menu>
 {{- range $key, $value := Menu -}}
 {{- if $value.IsCurrent }}
     <li><a aria-current="page" href="#">{{ icons $value.Icon }} <span>{{$value.Name}}</span></a></li>
@@ -11,7 +10,8 @@
 {{- end -}}
 {{- end -}}
 {{- end }}
-</ul><ul>
+</menu>
+<ul>
 {{- if $account.IsLogged }}
 {{ $score := $account.Votes.Score}}
     <li>
@@ -28,5 +28,5 @@
     <li><a href="/login" title="Authentication" class="auth local">Log in</a></li>
 {{- end -}}
 {{- end }}
-</ul></nav>
+</ul></menu>
 {{ template "partials/flash" -}}

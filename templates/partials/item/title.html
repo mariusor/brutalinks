@@ -1,3 +1,6 @@
+{{- if .Deleted -}}
+<del class="title" data-hash="{{.ID}}">deleted</del>
+{{- else -}}
 {{- if ShowTitle . }}
 <header>
 <h2 data-hash="{{.ID}}">
@@ -9,4 +12,5 @@
 </h2>
 {{- template "partials/item/domain" . -}}
 </header>
+{{- end -}}
 {{- end -}}

@@ -1,0 +1,14 @@
+{{ template "partials/item/recipients" . }}
+{{if ShowText -}}
+<main>
+{{- if .IsSelf -}}
+{{- if eq .MimeType "text/html" -}}{{- replaceTags "text/html" . | HTML -}}{{- end -}}
+{{- if eq .MimeType "text/markdown" -}}{{- replaceTags "text/markdown" . | Markdown -}}{{- end -}}
+{{- if eq .MimeType "text/plain" -}}{{- .Data | Text -}}{{end}}
+{{- else -}}
+{{- if isAudio .MimeType -}}{{- Audio .MimeType .Data  -}}{{end}}
+{{- if isVideo .MimeType -}}{{- Video .MimeType .Data  -}}{{end}}
+{{- if isImage .MimeType -}}{{- Image .MimeType .Data  -}}{{end}}
+{{- end -}}
+</main>
+{{- end -}}

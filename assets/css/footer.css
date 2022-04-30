@@ -1,6 +1,5 @@
 body > footer {
     grid-area: footer;
-    padding-bottom: 1em;
     text-align: right;
 }
 body > footer nav {

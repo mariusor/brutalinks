@@ -1,17 +1,1 @@
-{{- if .Deleted -}}
-<del class="title" data-hash="{{.ID}}">deleted</del>
-{{- else -}}
 {{- template "partials/item/title" . -}}
-{{ template "partials/item/recipients" . }}
-{{if ShowText }}
-{{- if .IsSelf -}}
-{{- if eq .MimeType "text/html" -}}{{- replaceTags "text/html" . | HTML -}}{{- end -}}
-{{- if eq .MimeType "text/markdown" -}}{{- replaceTags "text/markdown" . | Markdown -}}{{- end -}}
-{{- if eq .MimeType "text/plain" -}}{{- .Data | Text -}}{{end}}
-{{- else -}}
-{{- if isAudio .MimeType -}}{{- Audio .MimeType .Data  -}}{{end}}
-{{- if isVideo .MimeType -}}{{- Video .MimeType .Data  -}}{{end}}
-{{- if isImage .MimeType -}}{{- Image .MimeType .Data  -}}{{end}}
-{{end}}
-{{- end -}}
-{{- end -}}
