@@ -12,7 +12,7 @@ article.item {
     justify-items: start;
     align-items: baseline;
     grid-template-columns: 1.4rem 18fr;
-    grid-template-rows: 1.4rem minmax(0, min-content) 1rem;
+    grid-template-rows: minmax(1.4rem, min-content) minmax(0, min-content) minmax(0, min-content);
 }
 .top-level li {
     margin-bottom: .2rem;
