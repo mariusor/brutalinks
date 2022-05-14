@@ -10,8 +10,6 @@
 {{- end -}}
 {{- end -}}
 {{- end }}
-</menu>
-<ul>
 {{- if $account.IsLogged }}
 {{ $score := $account.Votes.Score}}
     <li>
@@ -28,5 +26,5 @@
     <li><a href="/login" title="Authentication" class="auth local">Log in</a></li>
 {{- end -}}
 {{- end }}
-</ul></menu>
+</menu>
 {{ template "partials/flash" -}}
