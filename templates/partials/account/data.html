@@ -6,8 +6,8 @@
 {{- else -}}
 {{ if $isPerson }}
 <a href="{{ PermaLink . }}">
-    {{- if .HasIcon -}}{{- Avatar .Metadata.Icon.MimeType .Metadata.Icon.URI -}}{{- else -}}{{- icon "user" "avatar" -}}{{- end -}}
-    {{- .Handle -}}
+{{- if .HasIcon -}}{{- Avatar .Metadata.Icon.MimeType .Metadata.Icon.URI -}}{{- else -}}{{- icon "user" "avatar" -}}{{- end -}}
+{{- .Handle -}}
 </a>
 {{- else -}}
 {{- .Handle -}}
@@ -21,4 +21,4 @@
 {{- end }}
 </span>
 {{- end -}}
-<br/>
+{{- template "partials/account/meta" . -}}

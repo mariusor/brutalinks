@@ -1,3 +1,4 @@
+<section>
 {{- $userIsMod := CurrentAccount.IsModerator }}
 {{- $showFollowupActions := and (eq (len .Followup) 0) $userIsMod -}}
 {{- $count := .Requests | len -}}
@@ -22,3 +23,4 @@
     {{- end -}}
 </details>
 {{- end -}}
+</section>

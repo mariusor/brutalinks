@@ -4,7 +4,7 @@
     margin-top: .6rem;
     margin-left: .4rem;
 }
-article.item {
+article.item, article.account, article.moderation-request {
     display: grid;
     justify-items: start;
     align-items: baseline;
