@@ -1,33 +1,48 @@
-body > header > menu, body > header > h1, body > header > ul, body > header > * li{
+body > header > menu, body > header > h1, body > header > ul, body > header > * li {
     display: inline-block;
 }
-body > header > menu {
-    min-width: 60%;
-}
-body > header > ul {
-    width: 20%;
-    text-align: right;
-}
 body > header {
-    margin-top: 1rem;
-}
-body > footer {
-    margin-bottom: 1rem;
-}
-body > header > nav {
-    display:grid;
+    display: grid;
     grid-template-columns: auto auto 5fr;
-    align-items: end;
-    grid-column-gap: 1.2em;
-}
-body > header > nav > ul:last-child {
-    /*font-size: .9em;*/
-}
-body > header > nav ul:last-child {
-    text-align: right;
+    grid-area: header;
+    margin: .5rem 0 0 0;
 }
 body > header .score {
     display: inline;
+}
+body > header h1 a, body > header h1 a:hover, body > header h1 a:visited {
+    color: var(--main-fg-color);
+    text-decoration: none;
+}
+body > header h1 {
+    margin-left: -.2em;
+}
+body > header menu.tabs li {
+    margin-right: .5em;
+}
+body > header menu.tabs > li::before {
+    content: unset;
+}
+svg.icon.icon-home {
+    vertical-align: top;
+}
+body > header small {
+    opacity: .7;
+    font-weight: lighter;
+}
+body > header menu {
+    padding-top: .72rem;
+    margin-left: 1rem;
+    text-align: right;
+}
+small data.score::before {
+    content: "(";
+}
+small data.score::after {
+    content: ")";
+}
+svg.icon.icon-activitypub {
+    width: 1.4rem;
 }
 svg.icon.icon-home {
     vertical-align: top;
@@ -40,6 +55,6 @@ body > header h1 a, body > header h1 a:hover, body > header h1 a:visited {
     color: var(--main-fg-color);
     text-decoration: none;
 }
-svg.icon.icon-activitypub {
-    width: 1.4rem;
+body > footer {
+    margin-bottom: 1rem;
 }
