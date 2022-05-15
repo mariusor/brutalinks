@@ -1,15 +1,7 @@
-/*
-ol.children {
-    grid-area: footer;
-}
-li ol {
-    margin-left: .6em;
-}
+li ol { }
+ol.children { }
 .children > li {
-    padding: .7rem 0 0 0;
-    display: grid;
-    grid-template-columns: 1.6rem 11fr;
-    grid-template-areas: "main" "footer";
+    padding: .5rem 0 .5rem 1rem;
 }
 .children.lvl-0 {}
 .children details[open] { }
@@ -38,7 +30,6 @@ li ol {
 .child {
     font-size: .9rem;
 }
- */
 .lvl-0 {
     border-color: #ebebebaa;
 }
