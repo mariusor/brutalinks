@@ -33,5 +33,4 @@ article.item, article.account, article.moderation-request {
     align-self: start;
 }
 body > footer nav.pagination ul li:first-of-type {
-    margin-right: .2em;
 }

@@ -29,9 +29,6 @@ body > header > nav ul:last-child {
 body > header .score {
     display: inline;
 }
-nav ul li a {
-    margin-right: .5rem;
-}
 svg.icon.icon-home {
     vertical-align: top;
 }

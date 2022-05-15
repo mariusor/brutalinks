@@ -110,9 +110,13 @@ img.avatar {
     width: 1.4rem;
     margin-right: .3rem;
 }
-/*nav dl dt:not(:first-child)::before, nav ul li:not(:first-child)::before {*/
-/*    content: "\22c5";*/
-/*}*/
+menu li:not(:first-child)::before, nav ul li:not(:first-child)::before {
+    content: "\22c5";
+    margin-right: .2em;
+}
+nav ul li a {
+    margin-right: .2em;
+}
 p {
     word-break: break-word;
 }
