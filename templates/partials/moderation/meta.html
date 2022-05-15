@@ -3,9 +3,9 @@
     {{/* <small>{{ if not .Deleted}}sent <time class="submitted-at" datetime="{{ $it.SubmittedAt | ISOTimeFmt | html }}" title="{{ $it.SubmittedAt | ISOTimeFmt }}">{{ icon "clock-o" }}{{ $it.SubmittedAt | TimeFmt }}</time>{{- end -}}</small> */}}
     {{- if CanModerate $it }}
     <small>Moderator actions:</small>
-    <nav><ul>
+    <ul>
         <li><small><a href="/moderation/{{$it.ID}}/rm" class="rm" data-hash="{{ $it.ID }}">{{/*icon "eraser"*/}}rm</a></small></li>
         <li><small><a href="/moderation/{{$it.ID}}/discuss" class="discuss" data-hash="{{ $it.ID }}">{{/*icon "eraser"*/}}discuss</a></small></li>
-    </ul></nav>
+    </ul>
     {{- end }}
 </footer>
