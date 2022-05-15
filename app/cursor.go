@@ -24,6 +24,10 @@ type colCursor struct {
 
 type RenderableList []Renderable
 
+func (r *RenderableList) Valid() bool {
+	return r != nil && len(*r) > 0
+}
+
 func (r RenderableList) Items() ItemCollection {
 	items := make(ItemCollection, 0)
 	for _, ren := range r {

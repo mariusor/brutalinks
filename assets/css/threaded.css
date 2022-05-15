@@ -1,5 +1,4 @@
 li ol { }
-ol.children { }
 .children > li {
     padding: .5rem 0 .5rem 1rem;
 }
@@ -9,9 +8,11 @@ ol.children { }
 .children details {
     margin: .3em 0 .6em 0;
 }
+.children {
+    margin-left: .5em;
+}
 .children details > summary {
-    margin-left: .6em;
-    margin-bottom: -.3em;
+    margin-left: .5em;
     padding: .3em 0 .3em .6em;
 }
 .children details > summary span {

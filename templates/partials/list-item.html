@@ -1,4 +1,11 @@
+{{- $valid := .Children.Valid -}}
 {{- if IsComment . }} {{- template "partials/item" . -}} {{ end -}}
 {{- if IsFollowRequest . }} {{- template "partials/follow" . }} {{ end -}}
 {{- if IsAccount . }} {{- template "partials/account" . }} {{ end -}}
 {{- if IsModeration . }} {{- template "partials/moderation" . }} {{ end -}}
+{{- if and $valid showChildren -}}
+{{- $count := len .Children -}}
+{{- if ge $count 1 -}} <details open> <summary class="lvl-{{ .Level | Mod10  }}"><small>{{$count}} child{{if ne $count 1 }}ren{{end}}</small></summary> {{ end -}}
+    {{- template "listing" . -}}
+{{ if ge $count 1 }} </details> {{end -}}
+{{end -}}

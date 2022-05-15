@@ -5,7 +5,7 @@ article {
 article > header > h2 {
     display: inline;
 }
-article section footer, li section footer {
+article footer {
     opacity: .6;
     display: block;
 }
