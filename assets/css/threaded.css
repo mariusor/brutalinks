@@ -6,14 +6,14 @@ li ol { }
 .children details[open] { }
 .children details:not([open]) { }
 .children details {
-    margin: .3em 0 .6em 0;
+    margin: .3em 0 0 0;
 }
 .children {
-    margin-left: .5em;
+    margin-left: .2em;
 }
 .children details > summary {
-    margin-left: .5em;
-    padding: .3em 0 .3em .6em;
+    margin-left: .2em;
+    padding: 0 0 0 1em;
 }
 .children details > summary span {
     opacity: .6;

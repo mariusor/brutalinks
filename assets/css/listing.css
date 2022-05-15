@@ -4,9 +4,6 @@
     margin-top: .6rem;
     margin-left: .4rem;
 }
-article.item.op {
-    /*grid-template-rows: minmax(0, min-content) 1rem;*/
-}
 article.item {
     display: grid;
     justify-items: start;
@@ -14,13 +11,16 @@ article.item {
     grid-template-columns: 1.4rem 18fr;
     grid-template-rows: minmax(1.4rem, min-content) minmax(0, min-content) minmax(0, min-content);
 }
-.top-level li {
-    margin-bottom: .2rem;
+.top-level > li {
+    margin-bottom: 1em;
 }
 .children > li span.score, .top-level > li span.score {
     min-height: 3.5em;
     grid-area: sidebar;
     align-content: start;
+}
+.children > li article {
+    margin-left: -.2em;
 }
 .children > li article, .top-level > li article {
     grid-area: main;
