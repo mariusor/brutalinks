@@ -29,7 +29,7 @@ func enhanceItem(c *Cursor, n *Item) (saveVote bool) {
 		return
 	}
 	parent := getItemFromList(np, c.items)
-	if !parent.IsValid() {
+	if parent == nil || !parent.IsValid() {
 		return
 	}
 	pi, piok := parent.(*Item)
