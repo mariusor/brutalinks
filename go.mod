@@ -5,7 +5,7 @@ go 1.18
 require (
 	aletheia.icu/broccoli/fs v0.0.0-20210820105650-3e2e00017061
 	git.sr.ht/~mariusor/wrapper v0.0.0-20211204195804-3033a1099e0f
-	github.com/cucumber/godog v0.11.0
+	github.com/cucumber/godog v0.12.5
 	github.com/go-ap/activitypub v0.0.0-20220420091113-4837641dc83b
 	github.com/go-ap/client v0.0.0-20220420091414-cc6486886d23
 	github.com/go-ap/errors v0.0.0-20220407124202-394efeb1ec53
@@ -38,12 +38,11 @@ require (
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/blang/semver v3.5.1+incompatible // indirect
 	github.com/captncraig/cors v0.0.0-20190703115713-e80254a89df1 // indirect
-	github.com/cucumber/gherkin-go/v11 v11.0.0 // indirect
-	github.com/cucumber/messages-go/v10 v10.0.3 // indirect
+	github.com/cucumber/gherkin-go/v19 v19.0.3 // indirect
+	github.com/cucumber/messages-go/v16 v16.0.1 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/go-ap/storage v0.0.0-20220420091247-5a9edd34862b // indirect
-	github.com/gofrs/uuid v3.3.0+incompatible // indirect
-	github.com/gogo/protobuf v1.3.1 // indirect
+	github.com/gofrs/uuid v4.0.0+incompatible // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/gorilla/css v1.0.0 // indirect
 	github.com/gorilla/securecookie v1.1.1 // indirect

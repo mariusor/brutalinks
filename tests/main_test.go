@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -15,7 +16,7 @@ const (
 	// These paths will be different on your system.
 	seleniumPath    = "/usr/share/selenium-server/selenium-server-standalone.jar"
 	geckoDriverPath = "vendor/geckodriver-v0.18.0-linux64"
-	seleniumPort    = 8080
+	seleniumPort    = 8666
 )
 
 var service *selenium.Service
@@ -49,23 +50,27 @@ var caps = selenium.Capabilities{"browserName": "firefox"}
 var wd selenium.WebDriver
 
 func InitializeScenario(ctx *godog.ScenarioContext) {
-	ctx.BeforeScenario(func(sc *godog.Scenario) {
+	ctx.Before(func(ctx context.Context, sc *godog.Scenario) (context.Context, error) {
 		// Connect to the WebDriver instance running locally.
 		var err error
 		wd, err = selenium.NewRemote(caps, fmt.Sprintf("http://localhost:%d/wd/hub", seleniumPort))
-		if err != nil {
-			panic(err)
-		}
+		return ctx, err
 	})
-	ctx.AfterScenario(func(sc *godog.Scenario, err error) {
-		wd.Quit()
+	ctx.After(func(ctx context.Context, sc *godog.Scenario, err error) (context.Context, error) {
+		return ctx, wd.Quit()
 	})
 	ctx.Step(`^I visit (\w+)$`, iVisit)
 	ctx.Step(`^site is up$`, func() {})
 	ctx.Step(`^I should get "(\w+)"$`, func(status string) {})
 }
 
-var opts = godog.Options{Output: colors.Colored(os.Stdout), Format: "pretty"}
+var opts = godog.Options{
+	StopOnFailure: true,
+	Format:        "pretty",
+	Paths:         []string{"features"},
+	Output:        colors.Colored(os.Stdout),
+}
+
 var executorURL = "https://brutalinks.tech"
 
 func iVisit(url string) error {
