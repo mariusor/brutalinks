@@ -13,7 +13,7 @@ secrets:
   - 53ebbaf9-664b-4241-9d07-f2f12feee80c
 tasks:
   - push_to_srht: |
-      test ${BUILD_SUBMITTER} = "git.sr.ht" && exit 0
+      test ${BUILD_SUBMITTER} = "git.sr.ht" && complete-build
       set -a +x
       ssh-keyscan -H git.sr.ht >> ~/.ssh/known_hosts
       cd go-littr
@@ -21,24 +21,19 @@ tasks:
       git push srht --force --all
       complete-build
   - build: |
-      test ${BUILD_SUBMITTER} = "dispatch.sr.ht" && exit 0
+      test ${BUILD_SUBMITTER} = "dispatch.sr.ht" && complete-build
       set +x
       cd go-littr
       make all
   - tests: |
-      test ${BUILD_SUBMITTER} = "dispatch.sr.ht" && exit 0
+      test ${BUILD_SUBMITTER} = "dispatch.sr.ht" && complete-build
       set -a +x
       source ~/.env.test
       cd go-littr
       make test
-  - tests: |
-      test ${BUILD_SUBMITTER} = "dispatch.sr.ht" && exit 0
-      set -a +x
-      source ~/.env.test
-      cd go-littr/tests
-      make test
+      make C tests test
   - coverage: |
-      test ${BUILD_SUBMITTER} = "dispatch.sr.ht" && exit 0
+      test ${BUILD_SUBMITTER} = "dispatch.sr.ht" && complete-build
       set -a +x
       cd go-littr && make coverage
       GIT_SHA=$(git rev-parse --verify HEAD)
@@ -49,7 +44,7 @@ tasks:
            -H 'Accept: application/json' \
           "https://codecov.io/upload/v2?commit=${GIT_SHA}&token=${LITTR_TOKEN}&branch=${GIT_BRANCH}&service=custom" || true
   - image: |
-      test ${BUILD_SUBMITTER} = "dispatch.sr.ht" && exit 0
+      test ${BUILD_SUBMITTER} = "dispatch.sr.ht" && complete-build
       set -a +x
       source ~/.buildah.env
 
