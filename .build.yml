@@ -36,7 +36,7 @@ tasks:
       set -a +x
       source ~/.env.test
       cd go-littr/tests
-      go test .
+      make test
   - coverage: |
       test ${BUILD_SUBMITTER} = "dispatch.sr.ht" && exit 0
       set -a +x

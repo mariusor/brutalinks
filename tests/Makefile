@@ -12,7 +12,10 @@ TEST := $(GO) test $(BUILDFLAGS)
 
 .PHONY: test integration
 
-test:
+download:
+	$(GO) mod download all
+
+test: download
 	$(TEST) $(TEST_FLAGS) -tags "$(TAGS)" $(TEST_TARGET)
 
 integration: test

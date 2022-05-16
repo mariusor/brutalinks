@@ -22,9 +22,9 @@ var service *selenium.Service
 
 func InitializeSelenium() {
 	sOpts := []selenium.ServiceOption{
-		selenium.StartFrameBufferWithOptions(selenium.FrameBufferOptions{}), // Start an X frame buffer for the browser to run in.
-		selenium.GeckoDriver(geckoDriverPath),                               // Specify the path to GeckoDriver in order to use Firefox.
-		selenium.Output(opts.Output),                                        // Output debug information to godog's writer.
+		selenium.StartFrameBuffer(),           // Start an X frame buffer for the browser to run in.
+		selenium.GeckoDriver(geckoDriverPath), // Specify the path to GeckoDriver in order to use Firefox.
+		selenium.Output(opts.Output),          // Output debug information to godog's writer.
 	}
 	selenium.SetDebug(true)
 
@@ -37,7 +37,11 @@ func InitializeSelenium() {
 
 func InitializeTestSuite(ctx *godog.TestSuiteContext) {
 	ctx.BeforeSuite(func() {
+		InitializeSelenium()
 		// initialize fedbox and go-littr
+	})
+	ctx.AfterSuite(func() {
+		service.Stop()
 	})
 }
 
@@ -75,9 +79,6 @@ func iVisit(url string) error {
 func TestMain(m *testing.M) {
 	flag.Parse()
 	opts.Paths = flag.Args()
-
-	InitializeSelenium()
-	defer service.Stop()
 
 	status := godog.TestSuite{
 		Name:                 "littr",
