@@ -10,12 +10,13 @@ TEST_TARGET = ./main_test.go
 
 TEST := $(GO) test $(BUILDFLAGS)
 
-.PHONY: test integration
+.PHONY: test integration download
 
-download:
-	$(GO) mod download all
+integration: test
 
 test: download
 	$(TEST) $(TEST_FLAGS) -tags "$(TAGS)" $(TEST_TARGET)
 
-integration: test
+download:
+	$(GO) mod download all
+
