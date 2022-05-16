@@ -13,7 +13,7 @@ secrets:
   - 53ebbaf9-664b-4241-9d07-f2f12feee80c
 tasks:
   - push_to_srht: |
-      test ${BUILD_SUBMITTER} = "git.sr.ht" && complete-build
+      test ${BUILD_SUBMITTER} = "git.sr.ht" && exit 0
       set -a +x
       ssh-keyscan -H git.sr.ht >> ~/.ssh/known_hosts
       cd go-littr
