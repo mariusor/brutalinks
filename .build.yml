@@ -31,7 +31,7 @@ tasks:
       source ~/.env.test
       cd go-littr
       make test
-      make C tests test
+      make -C tests test
   - coverage: |
       test ${BUILD_SUBMITTER} = "dispatch.sr.ht" && complete-build
       set -a +x
