@@ -141,7 +141,7 @@ small data.score::after {
     font-weight: lighter;
     font-size: .6em;
 }
-.score .icon-recycle {
+.score .icon-flag, .score .icon-users, .score .icon-recycle {
     opacity: .6;
 }
 .deleted .score a.ed, .score a[href="#"], .score a[href="#"]:visited {

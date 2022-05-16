@@ -11,6 +11,3 @@
     grid-template-rows: 1.2em 1.5em;
     min-height: 2.6em;
 }
-.moderation-request + .score, .account + .score {
-    opacity: .5;
-}
