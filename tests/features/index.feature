@@ -3,5 +3,5 @@ Feature: main page
 
     Scenario: Visit main page
         Given site is up
-        When I visit /
+        When I visit "/"
         Then I should get status "200 OK"

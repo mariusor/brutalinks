@@ -66,9 +66,9 @@ func (s *suite) InitializeScenario(t *testing.T) func(ctx *godog.ScenarioContext
 			t.Logf("shutting-down web-driver")
 			return ctx, s.wd.Quit()
 		})
-		ctx.Step(`^I visit (\w+)$`, s.iVisit)
-		ctx.Step(`^site is up$`, func() {})
-		ctx.Step(`^I should get "(\w+)"$`, func(status string) {})
+		ctx.Step(`^I visit "([^"]*)"$`, s.iVisit)
+		ctx.Step(`^I should get status "([^"]*)"$`, s.iShouldGetStatus)
+		ctx.Step(`^site is up$`, s.siteIsUp)
 	}
 }
 
@@ -80,6 +80,18 @@ var opts = godog.Options{
 }
 
 var executorURL = "https://brutalinks.tech"
+
+func (s *suite) siteIsUp() error {
+	return godog.ErrPending
+}
+
+func (s *suite) iShouldGetStatus(status string) error {
+	if err != nil {
+		return err
+	}
+	st.
+	return nil
+}
 
 func (s *suite) iVisit(url string) error {
 	// Navigate to the simple playground interface.
