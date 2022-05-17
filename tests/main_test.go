@@ -14,9 +14,9 @@ import (
 
 const (
 	// These paths will be different on your system.
-	seleniumPath    = "/usr/share/selenium-server/selenium-server-standalone.jar"
-	geckoDriverPath = "vendor/geckodriver-v0.18.0-linux64"
-	seleniumPort    = 4666
+	seleniumPath = "/usr/share/selenium-server/selenium-server-standalone.jar"
+	driverPath   = "/usr/bin/chromedriver"
+	seleniumPort = 4666
 )
 
 type suite struct {
@@ -28,9 +28,9 @@ var service *selenium.Service
 
 func initSuite() (suite, error) {
 	sOpts := []selenium.ServiceOption{
-		selenium.StartFrameBuffer(),           // Start an X frame buffer for the browser to run in.
-		selenium.GeckoDriver(geckoDriverPath), // Specify the path to GeckoDriver in order to use Firefox.
-		selenium.Output(opts.Output),          // Output debug information to godog's writer.
+		selenium.StartFrameBuffer(),       // Start an X frame buffer for the browser to run in.
+		selenium.ChromeDriver(driverPath), // Specify the path to GeckoDriver in order to use Firefox.
+		selenium.Output(opts.Output),      // Output debug information to godog's writer.
 	}
 	selenium.SetDebug(true)
 
@@ -50,7 +50,7 @@ func (s *suite) InitializeTestSuite(t *testing.T) func(ctx *godog.TestSuiteConte
 	}
 }
 
-var caps = selenium.Capabilities{"browserName": "firefox"}
+var caps = selenium.Capabilities{"browserName": "chrome"}
 var wd selenium.WebDriver
 
 func (s *suite) InitializeScenario(t *testing.T) func(ctx *godog.ScenarioContext) {
@@ -64,9 +64,9 @@ func (s *suite) InitializeScenario(t *testing.T) func(ctx *godog.ScenarioContext
 		})
 		ctx.After(func(ctx context.Context, sc *godog.Scenario, err error) (context.Context, error) {
 			t.Logf("shutting-down web-driver")
-			return ctx, wd.Quit()
+			return ctx, s.wd.Quit()
 		})
-		ctx.Step(`^I visit (\w+)$`, iVisit)
+		ctx.Step(`^I visit (\w+)$`, s.iVisit)
 		ctx.Step(`^site is up$`, func() {})
 		ctx.Step(`^I should get "(\w+)"$`, func(status string) {})
 	}
@@ -81,9 +81,9 @@ var opts = godog.Options{
 
 var executorURL = "https://brutalinks.tech"
 
-func iVisit(url string) error {
+func (s *suite) iVisit(url string) error {
 	// Navigate to the simple playground interface.
-	if err := wd.Get(fmt.Sprintf("%s%s", executorURL, url)); err != nil {
+	if err := s.wd.Get(fmt.Sprintf("%s%s", executorURL, url)); err != nil {
 		return err
 	}
 	return nil

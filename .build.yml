@@ -4,6 +4,7 @@ packages:
   - docker
   - selenium-server-standalone
   - xorg-server-xvfb
+  - chromedriver
 sources:
   - https://github.com/mariusor/go-littr
 secrets:
