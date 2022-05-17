@@ -1,5 +1,5 @@
 Feature: main page
-    Visit main page
+    Visit main page and check elements.
 
     Scenario: Visit main page
         Given site is up

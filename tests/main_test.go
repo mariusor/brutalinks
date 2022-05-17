@@ -25,12 +25,18 @@ const (
 )
 
 type suite struct {
-	sl *selenium.Service
-	wd selenium.WebDriver
+	brutalinksStartFn func() error
+	brutalinksStopFn  func() error
+	sl                *selenium.Service
+	wd                selenium.WebDriver
 }
 
 var service *selenium.Service
 
+func (s suite) stop() {
+	s.sl.Stop()
+	s.brutalinksStopFn()
+}
 func initSuite() (suite, error) {
 	sOpts := []selenium.ServiceOption{
 		selenium.StartFrameBuffer(),       // Start an X frame buffer for the browser to run in.
@@ -41,17 +47,14 @@ func initSuite() (suite, error) {
 
 	var err error
 	s.sl, err = selenium.NewSeleniumService(seleniumPath, seleniumPort, sOpts...)
+	s.brutalinksStartFn, s.brutalinksStopFn = initBrutalinks()
 	return s, err
 }
 
 func (s *suite) InitializeTestSuite(t *testing.T) func(ctx *godog.TestSuiteContext) {
 	return func(ctx *godog.TestSuiteContext) {
-		ctx.BeforeSuite(func() {
-			t.Logf("starting suite")
-		})
-		ctx.AfterSuite(func() {
-			t.Logf("ending suite")
-		})
+		//ctx.BeforeSuite(func() { })
+		//ctx.AfterSuite(func() { })
 	}
 }
 
@@ -61,14 +64,12 @@ var wd selenium.WebDriver
 func (s *suite) InitializeScenario(t *testing.T) func(ctx *godog.ScenarioContext) {
 	return func(ctx *godog.ScenarioContext) {
 		ctx.Before(func(ctx context.Context, sc *godog.Scenario) (context.Context, error) {
-			// Connect to the WebDriver instance running locally.
 			var err error
-			t.Logf("initializing web-driver")
 			s.wd, err = selenium.NewRemote(caps, fmt.Sprintf("http://localhost:%d/wd/hub", seleniumPort))
+			t.Errorf("Failed to start web driver: %s", err)
 			return ctx, err
 		})
 		ctx.After(func(ctx context.Context, sc *godog.Scenario, err error) (context.Context, error) {
-			t.Logf("shutting-down web-driver")
 			return ctx, s.wd.Quit()
 		})
 		ctx.Step(`^site is up$`, s.siteIsUp)
@@ -84,34 +85,36 @@ var opts = godog.Options{
 	Output:        colors.Colored(os.Stdout),
 }
 
-var executorURL = "https://brutalinks.tech"
+var executorURL = "https://brutalinks.local"
+var apiURL = "https://fedbox.local"
 
-func initBrutalinks() error {
+func initBrutalinks() (func() error, func() error) {
 	c := config.Load(config.TEST, 10)
+	c.APIURL = apiURL
 	errors.IncludeBacktrace = true
 	l := log.Dev(log.TraceLevel)
 
 	a, err := app.New(c, l, "localhost", 5443, "-test-head")
 	if err != nil {
-		return fmt.Errorf("failed to start application: %w", err)
+		return func() error {
+				return err
+			},
+			func() error {
+				return nil
+			}
 	}
 	ctx, cancelFn := context.WithCancel(context.TODO())
 	srvRun, srvStop := w.HttpServer(w.Handler(a.Mux), w.HTTP(a.Conf.Listen()))
 
-	defer func() {
-		err = srvStop(ctx)
-		cancelFn()
-	}()
+	stopFn := func() error {
+		defer cancelFn()
+		return srvStop(ctx)
+	}
 
-	// Wait for OS signals asynchronously
-	w.RegisterSignalHandlers(w.SignalHandlers{}).Exec(srvRun)
-	return err
+	return srvRun, stopFn
 }
 
 func (s *suite) siteIsUp() error {
-	//if err := initBrutalinks(); err != nil {
-	//	return err
-	//}
 	return nil
 }
 
@@ -128,7 +131,6 @@ func (s *suite) iShouldGetTheLogo(expected string) error {
 	if content != expected {
 		return fmt.Errorf("logo content is not equal: %q, expected %q", content, expected)
 	}
-
 	return nil
 }
 
@@ -170,7 +172,7 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		panic(err)
 	}
-	defer s.sl.Stop()
+	defer s.stop()
 	status := m.Run()
 	os.Exit(status)
 }
