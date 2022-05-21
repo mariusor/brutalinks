@@ -1,12 +1,20 @@
 {{- $account := CurrentAccount -}}
 {{- $score := .Score -}}
 {{- $readonly := or ( . | IsReadOnly) (not $account.IsLogged) -}}
-<aside class="score" data-score="{{if .Deleted}}-1{{else}}{{ $score | ScoreFmt }}{{end}}" data-hash="{{.ID}}">
+{{- if .Private -}}
+<aside class="score" data-hash="{{.ID}}"> {{ icon "lock" }} </aside>
+{{- else -}}
+{{- if .Deleted -}}
+<aside class="score" data-hash="{{.ID}}"> {{ icon "recycle" }} </aside>
+{{- else -}}
+<aside class="score" data-score="{{ $score | ScoreFmt }}" data-hash="{{.ID}}">
     <noscript>score </noscript>
     {{- $vote := $account.VotedOn . -}}
-    {{ if Config.VotingEnabled }}<a href="{{if not $readonly }}{{ . | YayLink}}{{ else }}#{{ end }}" class="yay{{if and (not .Deleted) (IsYay $vote) }} ed{{end}}" data-action="yay" data-hash="{{.ID}}" rel="nofollow" title="yay">{{- icon "plus" -}}</a>{{ end }}
-    <data{{if not .Deleted}} class="{{- $score | ScoreClass -}}" value="{{.Score | NumberFmt }}"{{end}}>
-        <small>{{- if .Deleted}}{{ icon "recycle" }}{{else}}{{ $score | ScoreFmt }}{{end -}}</small>
+    {{ if Config.VotingEnabled }}<a href="{{if not $readonly }}{{ . | YayLink}}{{ else }}#{{ end }}" class="yay{{if IsYay $vote }} ed{{end}}" data-action="yay" data-hash="{{.ID}}" rel="nofollow" title="yay">{{- icon "plus" -}}</a>{{ end }}
+    <data class="{{- $score | ScoreClass -}}" value="{{.Score | NumberFmt }}">
+        <small>{{ $score | ScoreFmt }}</small>
     </data>
-    {{ if Config.VotingEnabled }}{{ if Config.DownvotingEnabled }}<a href="{{if not $readonly }}{{ . | NayLink}}{{ else }}#{{ end }}" class="nay{{if and (not .Deleted) (IsNay $vote) }} ed{{end}}" data-action="nay" data-hash="{{.ID}}" rel="nofollow" title="nay">{{- icon "minus" -}}</a>{{ end }}{{ end }}
+    {{ if Config.VotingEnabled }}{{ if Config.DownvotingEnabled }}<a href="{{if not $readonly }}{{ . | NayLink}}{{ else }}#{{ end }}" class="nay{{if IsNay $vote }} ed{{end}}" data-action="nay" data-hash="{{.ID}}" rel="nofollow" title="nay">{{- icon "minus" -}}</a>{{ end }}{{ end }}
 </aside>
+{{- end -}}
+{{- end -}}
