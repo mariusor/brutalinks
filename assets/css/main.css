@@ -52,7 +52,7 @@ svg.icon-user, svg.icon-lock, svg.icon-check {
 nav ul, nav ul li, nav dl, nav dl dd, nav dl dt, footer ul, footer ul li {
     display: inline-block;
 }
-li footer ul li {
+.item footer ul li {
     margin-left: .2rem;
 }
 .deleted {
