@@ -55,6 +55,10 @@ nav ul, nav ul li, nav dl, nav dl dd, nav dl dt, footer ul, footer ul li {
 .item footer ul li {
     margin-left: .2rem;
 }
+.item main > ul, .item main > ol {
+    list-style: unset;
+    margin-left: 1.2em;
+}
 .deleted {
     opacity: .7;
 }
