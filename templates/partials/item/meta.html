@@ -1,15 +1,17 @@
 {{- $count := .Children | len -}}
 {{- $it := . -}}
 {{- $deleted := $it.Deleted -}}
-{{- $authorDeleted := $it.SubmittedBy.Deleted -}}
+{{- $author := $it.SubmittedBy -}}
+{{- $authorDeleted := $author.Deleted -}}
 {{- $readonly := IsReadOnly $it -}}
-{{- $showReply := and (eq current "content") CurrentAccount.IsValid }}
+{{- $showReply := and (eq current "content") CurrentAccount.IsValid -}}
+{{- $showAnything := or $author.IsValid (not $deleted) -}}
 <footer><ul>
-    <li><small>submitted
+    <li><small>{{- if $showAnything  }}submitted{{ end }}
     {{- if not $deleted -}}
         {{- if ShowUpdate $it }}<time class="updated-at" datetime="{{ $it.UpdatedAt | ISOTimeFmt | html }}" title="updated at {{ $it.UpdatedAt | ISOTimeFmt }}"><sup>&#10033;</sup></time> {{- end }} <time class="submitted-at" datetime="{{ $it.SubmittedAt | ISOTimeFmt | html }}" title="{{ $it.SubmittedAt | ISOTimeFmt }}">{{ icon "clock-o" }}{{ $it.SubmittedAt | TimeFmt }}</time>{{- end -}}
     </small></li>
-    {{- if and (ne current "user") $it.SubmittedBy.IsValid }}<li><small>by {{ if $authorDeleted }}<del class="mention">{{ $it.SubmittedBy | ShowAccountHandle }}</del>{{- else -}}<a rel="mention" href="{{ $it.SubmittedBy | AccountLocalLink }}">{{ $it.SubmittedBy | ShowAccountHandle }}</a></small></li>{{- end }}
+    {{- if and (ne current "user") $author.IsValid }}<li><small>by {{ if $authorDeleted }}<del class="mention">{{ $author | ShowAccountHandle }}</del>{{- else -}}<a rel="mention" href="{{ $it.SubmittedBy | AccountLocalLink }}">{{ $it.SubmittedBy | ShowAccountHandle }}</a></small></li>{{- end }}
     {{- end -}}
         {{- $link := (PermaLink $it) -}}
         {{- if not (sameBase req.URL.Path $link) -}}
