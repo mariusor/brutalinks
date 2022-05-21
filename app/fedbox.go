@@ -203,22 +203,11 @@ func (f fedbox) collection(ctx context.Context, i pub.IRI) (pub.CollectionInterf
 	if !pub.CollectionTypes.Contains(it.GetType()) {
 		return nil, errors.Errorf("Response item type is not a valid collection: %s", typ)
 	}
-	var ok bool
-	var col pub.CollectionInterface
-	switch typ {
-	case pub.CollectionType:
-		col, ok = it.(*pub.Collection)
-	case pub.CollectionPageType:
-		col, ok = it.(*pub.CollectionPage)
-	case pub.OrderedCollectionType:
-		col, ok = it.(*pub.OrderedCollection)
-	case pub.OrderedCollectionPageType:
-		col, ok = it.(*pub.OrderedCollectionPage)
-	}
-	if !ok {
+
+	if !pub.CollectionTypes.Contains(typ) {
 		return nil, errors.Errorf("Unable to convert item type %s to any of the collection types", typ)
 	}
-	return col, nil
+	return it.(pub.CollectionInterface), nil
 }
 
 func (f fedbox) object(ctx context.Context, i pub.IRI) (pub.Item, error) {
