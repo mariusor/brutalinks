@@ -114,6 +114,20 @@ func serviceSearches(collections ...LoadFn) func(http.Handler) http.Handler {
 	return SearchInCollectionsMw(getServiceFn, collections...)
 }
 
+func SignByAppMw(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		repo := ContextRepository(r.Context())
+		searches := ContextLoads(r.Context())
+		for _, loads := range searches {
+			for i := range loads {
+				loads[i].signFn, _ = withAccount(repo.app)
+			}
+		}
+		//ctx := context.WithValue(r.Context(), LoadsCtxtKey, searches)
+		next.ServeHTTP(w, r /*.WithContext(ctx)*/)
+	})
+}
+
 func OperatorSearches(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if current := ContextAccount(r.Context()); !current.IsOperator() {

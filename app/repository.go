@@ -2604,6 +2604,7 @@ type RemoteLoads map[pub.IRI][]RemoteLoad
 
 type RemoteLoad struct {
 	actor   pub.Item
+	signFn  client.RequestSignFn
 	loadFn  LoadFn
 	filters []*Filters
 }
@@ -2694,6 +2695,10 @@ func LoadFromSearches(ctx context.Context, repo *repository, loads RemoteLoads, 
 				}
 				if search.actor == nil {
 					search.actor = service
+				}
+				if search.signFn != nil {
+					// NOTE(marius): this should be added in a cleaner way
+					repo.fedbox.client.SignFn(search.signFn)
 				}
 				g.Go(repo.searchFn(gtx, g, search.loadFn(search.actor), f, fn))
 			}
