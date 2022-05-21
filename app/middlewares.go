@@ -116,9 +116,13 @@ func serviceSearches(collections ...LoadFn) func(http.Handler) http.Handler {
 
 func OperatorSearches(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if current := ContextAccount(r.Context()); !current.IsOperator() {
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		searchIn := ContextLoads(r.Context())
 		repo := ContextRepository(r.Context())
-
 		base := baseIRI(repo.app.Pub.GetLink())
 		ff := new(Filters)
 		ff.Type = ActivityTypesFilter(pub.FollowType)
