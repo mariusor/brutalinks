@@ -221,6 +221,9 @@ func addLevels(allComments RenderableList) RenderableList {
 				break
 			}
 			leveled = append(leveled, cur.ID())
+			if cur.Children() == nil {
+				break
+			}
 			for _, child := range *cur.Children() {
 				if c, ok := child.(*Item); ok {
 					c.Level = c.Level + 1
