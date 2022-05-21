@@ -78,6 +78,9 @@ func LoadMw(next http.Handler) http.Handler {
 			ctxtErr(next, w, r, errors.NotFoundf(strings.TrimLeft(r.URL.Path, "/")))
 			return
 		}
+
+		c.items = reparentRenderables(c.items)
+
 		ctx := context.WithValue(r.Context(), CursorCtxtKey, &c)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -240,6 +243,8 @@ func LoadSingleItemMw(next http.Handler) http.Handler {
 		for k := range items {
 			c.items.Append(Renderable(&items[k]))
 		}
+
+		c.items = reparentRenderables(c.items)
 
 		rtx := context.WithValue(r.Context(), CursorCtxtKey, &c)
 		next.ServeHTTP(w, r.WithContext(rtx))
@@ -546,23 +551,6 @@ func MessageUserContentModelMw(next http.Handler) http.Handler {
 		m.Message.Back = PermaLink(&auth)
 		m.Message.SubmitLabel = htmlf("%s Send", icon("lock"))
 		next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, ModelCtxtKey, m)))
-	})
-}
-
-func reparentRenderableList(items RenderableList) RenderableList {
-	return addLevels(reparentRenderables(items))
-}
-
-func ThreadedListingMw(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		defer next.ServeHTTP(w, r)
-
-		c := ContextCursor(r.Context())
-		if c == nil {
-			return
-		}
-
-		c.items = reparentRenderableList(c.items)
 	})
 }
 

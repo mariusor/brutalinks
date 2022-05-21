@@ -47,7 +47,7 @@ var (
 func (h *handler) ItemRoutes() func(chi.Router) {
 	return func(r chi.Router) {
 		r.Use(h.CSRF, ContentModelMw, h.ItemFiltersMw, applicationSearches(inbox), namedAccountSearches(outbox), LoadSingleObjectMw, SingleItemModelMw)
-		r.With(LoadVotes, LoadReplies, LoadAuthors, LoadSingleItemMw, ThreadedListingMw, SortByScore).
+		r.With(LoadVotes, LoadReplies, LoadAuthors, LoadSingleItemMw, SortByScore).
 			Get("/", h.HandleShow)
 		r.With(h.ValidateLoggedIn(h.v.RedirectToErrors), LoadSingleItemMw).Post("/", h.HandleSubmit)
 
@@ -57,13 +57,13 @@ func (h *handler) ItemRoutes() func(chi.Router) {
 			r.Get("/nay", h.HandleVoting)
 
 			//r.Get("/bad", h.ShowReport)
-			r.With(LoadVotes, LoadAuthors, LoadSingleItemMw, ThreadedListingMw, ReportContentModelMw).Get("/bad", h.HandleShow)
+			r.With(LoadVotes, LoadAuthors, LoadSingleItemMw, ReportContentModelMw).Get("/bad", h.HandleShow)
 			r.Post("/bad", h.ReportItem)
-			r.With(LoadVotes, LoadAuthors, LoadSingleItemMw, ThreadedListingMw, BlockContentModelMw).Get("/block", h.HandleShow)
+			r.With(LoadVotes, LoadAuthors, LoadSingleItemMw, BlockContentModelMw).Get("/block", h.HandleShow)
 			r.Post("/block", h.BlockItem)
 
 			r.Group(func(r chi.Router) {
-				r.With(h.ValidateItemAuthor("edit"), LoadSingleItemMw, ThreadedListingMw, EditContentModelMw).Get("/edit", h.HandleShow)
+				r.With(h.ValidateItemAuthor("edit"), LoadSingleItemMw, EditContentModelMw).Get("/edit", h.HandleShow)
 				r.With(h.ValidateItemAuthor("edit"), LoadSingleItemMw).Post("/edit", h.HandleSubmit)
 				r.With(h.ValidateItemAuthor("delete")).Get("/rm", h.HandleDelete)
 			})
@@ -167,7 +167,7 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 						Get("/{hash}/discuss", h.HandleShow)
 				})
 
-				r.With(ModelMw(&listingModel{ShowChildren: true, sortFn: ByDate}), ActorsFiltersMw, instanceSearchFns, LoadMw, ThreadedListingMw).
+				r.With(ModelMw(&listingModel{ShowChildren: true, sortFn: ByDate}), ActorsFiltersMw, instanceSearchFns, LoadMw).
 					Get("/~", h.HandleShow)
 			})
 

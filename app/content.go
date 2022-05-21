@@ -327,5 +327,5 @@ func reparentRenderables(allComments RenderableList) RenderableList {
 			retComments = append(retComments, cur)
 		}
 	}
-	return retComments
+	return addLevels(retComments)
 }
