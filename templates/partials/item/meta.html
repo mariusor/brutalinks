@@ -50,5 +50,6 @@
         {{/* - if not $it.Private }}
     <li><a href="{{ $it.Metadata.ID }}" data-hash="{{ .ID }}" title="ActivityPub link{{if .Title}}: {{$it.Title }}{{end}}">{{icon "activitypub"}}</a></li>
 {{- end */}}
+    <li>{{ template "partials/item/recipients" . }}</li>
 </ul>
 </footer>
