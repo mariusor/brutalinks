@@ -21,6 +21,7 @@ import (
 	"github.com/mariusor/go-littr/internal/log"
 	"github.com/mariusor/qstring"
 	"github.com/unrolled/render"
+	"gitlab.com/golang-commonmark/puny"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
 )
@@ -1156,7 +1157,8 @@ func getDomain(u *url.URL) string {
 			return fmt.Sprintf("%s/%s", u.Host, maybeUser)
 		}
 	}
-	return u.Host
+	return puny.ToUnicode(u.Host)
+
 }
 
 func GetDomainTitle(i Item) template.HTML {
