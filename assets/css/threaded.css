@@ -25,6 +25,24 @@ li ol { }
     border-left-width: 1px;
     border-left-style: solid;
 }
+.children > li span.score, .top-level > li span.score {
+    min-height: 3.5em;
+    grid-area: sidebar;
+    align-content: start;
+}
+.children > li article {
+    margin-left: -.2em;
+}
+.children > li article, .top-level > li article {
+    grid-area: main;
+    align-self: center;
+    /*margin-left: 1ex;*/
+}
+.children > li nav, .top-level > li nav {
+    grid-area: footer;
+    margin-left: .4em;
+    align-self: start;
+}
 .children .data, #content .data {
     border: none;
 }
