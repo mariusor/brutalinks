@@ -1186,7 +1186,7 @@ func GetDomainURL(i Item) template.HTMLAttr {
 func GetInviteLink(v *view) func(invitee *Account) template.HTMLAttr {
 	return func(invitee *Account) template.HTMLAttr {
 		u := fmt.Sprintf("%s/register/%s", Instance.BaseURL, invitee.Hash)
-		handle := invitee.CreatedBy
+		handle := invitee.CreatedBy.Handle
 		// @todo(marius): :link_generation:
 		bodyFmt := "Hello,\n\nThis is an invitation to join %s.\n\nTo accept this invitation and create an account, visit the URL below: %s\n\n/%s"
 		mailContent := struct {
