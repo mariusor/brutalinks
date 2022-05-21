@@ -2,9 +2,6 @@ image: archlinux
 packages:
   - go
   - docker
-  - selenium-server-standalone
-  - xorg-server-xvfb
-  - chromedriver
 sources:
   - https://github.com/mariusor/go-littr
 secrets:
@@ -32,7 +29,6 @@ tasks:
       source ~/.env.test
       cd go-littr
       make test
-      make -C tests test
   - coverage: |
       test ${BUILD_SUBMITTER} = "dispatch.sr.ht" && complete-build
       set -a +x
