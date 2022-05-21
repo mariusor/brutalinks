@@ -19,8 +19,7 @@ import (
 	"golang.org/x/oauth2"
 )
 
-func enhanceItem(c *Cursor, n *Item) (saveVote bool) {
-	saveVote = true
+func enhanceItem(c *Cursor, n *Item) {
 	if c == nil || len(c.items) == 0 || !n.Parent.IsValid() {
 		return
 	}
@@ -46,7 +45,6 @@ func enhanceItem(c *Cursor, n *Item) (saveVote bool) {
 	}
 	if pi.Private() {
 		n.MakePrivate()
-		saveVote = false
 	}
 	if pi.OP != nil && pi.OP.IsValid() {
 		n.OP = pi.OP
@@ -81,7 +79,7 @@ func (h *handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 		h.v.HandleErrors(w, r, errors.NewMethodNotAllowed(err, ""))
 		return
 	}
-	saveVote = enhanceItem(c, &n)
+	enhanceItem(c, &n)
 	repo := h.storage
 	if n, err = repo.SaveItem(r.Context(), n); err != nil {
 		h.errFn(log.Ctx{"err": err.Error()})("unable to save item")
