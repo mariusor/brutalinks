@@ -47,7 +47,7 @@ var (
 func (h *handler) ItemRoutes() func(chi.Router) {
 	return func(r chi.Router) {
 		r.Use(h.CSRF, ContentModelMw, h.ItemFiltersMw, applicationSearches(inbox), namedAccountSearches(outbox), LoadSingleObjectMw, SingleItemModelMw)
-		r.With(LoadVotes, LoadReplies, LoadAuthors, LoadSingleItemMw, SortByScore).
+		r.With(Deps(Votes, Replies, Authors), LoadSingleItemMw, SortByScore).
 			Get("/", h.HandleShow)
 		r.With(h.ValidateLoggedIn(h.v.RedirectToErrors), LoadSingleItemMw).Post("/", h.HandleSubmit)
 
@@ -57,9 +57,9 @@ func (h *handler) ItemRoutes() func(chi.Router) {
 			r.Get("/nay", h.HandleVoting)
 
 			//r.Get("/bad", h.ShowReport)
-			r.With(LoadVotes, LoadAuthors, LoadSingleItemMw, ReportContentModelMw).Get("/bad", h.HandleShow)
+			r.With(Deps(Votes, Authors), LoadSingleItemMw, ReportContentModelMw).Get("/bad", h.HandleShow)
 			r.Post("/bad", h.ReportItem)
-			r.With(LoadVotes, LoadAuthors, LoadSingleItemMw, BlockContentModelMw).Get("/block", h.HandleShow)
+			r.With(Deps(Votes, Authors), LoadSingleItemMw, BlockContentModelMw).Get("/block", h.HandleShow)
 			r.Post("/block", h.BlockItem)
 
 			r.Group(func(r chi.Router) {
@@ -111,7 +111,7 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 			})
 
 			r.With(h.LoadAuthorMw).Route("/~{handle}", func(r chi.Router) {
-				r.With(AccountListingModelMw, AllFilters, LoadAuthors, LoadVotes, SearchInCollectionsMw(requestHandleSearches, outbox), LoadMw).
+				r.With(AccountListingModelMw, AllFilters, Deps(Authors, Votes), SearchInCollectionsMw(requestHandleSearches, outbox), LoadMw).
 					Get("/", h.HandleShow)
 
 				r.Group(func(r chi.Router) {
@@ -143,23 +143,23 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 
 			r.With(h.NeedsSessions).Get("/logout", h.HandleLogout)
 
-			r.With(ListingModelMw, LoadVotes, LoadReplies, LoadAuthors).Group(func(r chi.Router) {
+			r.With(ListingModelMw, Deps(Votes, Replies, Authors)).Group(func(r chi.Router) {
 				// todo(marius) :link_generation:
 				r.With(DefaultFilters, applicationSearches(inbox), LoadMw, SortByScore).Get("/", h.HandleShow)
 				r.With(DomainFiltersMw, applicationSearchFns, LoadMw, middleware.StripSlashes, SortByDate).
 					Get("/d", h.HandleShow)
 				r.With(DomainFiltersMw, applicationSearchFns, LoadMw, SortByDate).
 					Get("/d/{domain}", h.HandleShow)
-				r.With(TagFiltersMw, applicationSearchFns, LoadMw, ModerationListing, SortByDate).
+				r.With(TagFiltersMw, applicationSearchFns, LoadMw, Deps(Moderations), ModerationListing, SortByDate).
 					Get("/t/{tag}", h.HandleShow)
 				r.With(SelfFiltersMw(h.storage.fedbox.Service().ID), applicationSearchFns, LoadMw, SortByScore).
 					Get("/self", h.HandleShow)
 				r.With(FederatedFiltersMw(h.storage.fedbox.Service().ID), applicationSearchFns, LoadMw, SortByScore).
 					Get("/federated", h.HandleShow)
-				r.With(h.NeedsSessions, h.ValidateLoggedIn(h.v.RedirectToErrors), FollowedFiltersMw, loggedAccountSearches(inbox), LoadMw, SortByDate).
+				r.With(h.NeedsSessions, h.ValidateLoggedIn(h.v.RedirectToErrors), Deps(Follows), FollowedFiltersMw, loggedAccountSearches(inbox), LoadMw, SortByDate).
 					Get("/followed", h.HandleShow)
 				r.Route("/moderation", func(r chi.Router) {
-					r.With(ModelMw(&listingModel{tpl: "moderation", sortFn: ByDate}), ModerationListingFiltersMw, applicationSearches(inbox), OperatorSearches, SignByAppMw, LoadMw, ModerationListing).
+					r.With(ModelMw(&listingModel{tpl: "moderation", sortFn: ByDate}), Deps(Moderations), ModerationListingFiltersMw, applicationSearches(inbox), OperatorSearches, SignByAppMw, LoadMw, ModerationListing).
 						Get("/", h.HandleShow)
 					r.With(h.ValidateModerator(), ModerationFiltersMw, applicationSearchFns, loggedAccountSearchFns, LoadMw).
 						Get("/{hash}/rm", h.HandleModerationDelete)

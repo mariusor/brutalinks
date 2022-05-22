@@ -625,38 +625,53 @@ func SortByRecentActivity(next http.Handler) http.Handler {
 }
 
 type deps struct {
-	Votes   bool
-	Authors bool
-	Replies bool
-	Follows bool
+	Votes       bool
+	Authors     bool
+	Replies     bool
+	Follows     bool
+	Moderations bool
 }
 
-func LoadVotes(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		deps := ContextDependentLoads(ctx)
-		deps.Votes = true
-
-		next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, DependenciesCtxtKey, deps)))
-	})
+func depsSetterFunc(r *http.Request, setterFn func(*deps)) (*deps, bool) {
+	ctx := r.Context()
+	setContext := false
+	d := ContextDependentLoads(ctx)
+	if d == nil {
+		setContext = true
+		d = new(deps)
+	}
+	setterFn(d)
+	return d, setContext
 }
 
-func LoadAuthors(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		deps := ContextDependentLoads(ctx)
-		deps.Authors = true
-
-		next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, DependenciesCtxtKey, deps)))
-	})
+func Votes(d *deps) {
+	d.Votes = true
 }
 
-func LoadReplies(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		deps := ContextDependentLoads(ctx)
-		deps.Replies = true
+func Authors(d *deps) {
+	d.Authors = true
+}
 
-		next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, DependenciesCtxtKey, deps)))
-	})
+func Replies(d *deps) {
+	d.Replies = true
+}
+
+func Follows(d *deps) {
+	d.Follows = true
+}
+
+func Moderations(d *deps) {
+	d.Moderations = true
+}
+func Deps(depsSetFn ...func(*deps)) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			for _, setFn := range depsSetFn {
+				if d, needsSave := depsSetterFunc(r, setFn); needsSave {
+					r = r.WithContext(context.WithValue(r.Context(), DependenciesCtxtKey, d))
+				}
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
 }
