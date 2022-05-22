@@ -126,7 +126,9 @@ var CreateFollowActivitiesFilter = CompStrs{
 
 func FollowedFiltersMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		f := defaultFilters(r)
+		f := new(Filters)
+		f.Object = derefIRIFilters
+		f.Actor = derefIRIFilters
 		f.Type = CreateFollowActivitiesFilter
 		m := ContextListingModel(r.Context())
 		m.Title = "Followed items"
