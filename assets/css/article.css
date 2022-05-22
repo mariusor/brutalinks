@@ -147,20 +147,20 @@ article.item aside.score {
     font-weight: lighter;
     font-size: .6em;
 }
-.score .icon-flag, .score .icon-users, .score .icon-recycle {
+aside .icon-flag, .score .icon-users, .score .icon-recycle {
     opacity: .6;
 }
-.deleted .score a.ed, .score a[href="#"], .score a[href="#"]:visited {
+.deleted aside a.ed, aside a[href="#"], aside a[href="#"]:visited {
     opacity: .3;
     color: var(--main-fg-color);
 }
-.score a.ed {
+aside a.ed {
     color: var(--main-linkvisited-color);
 }
-.score a.ed:visited {
+aside a.ed:visited {
     color: var(--main-linkvisited-color);
 }
-.score a:visited {
+aside a:visited {
     color: var(--main-link-color);
 }
 summary:focus {
