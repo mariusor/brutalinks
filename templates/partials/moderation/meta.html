@@ -1,7 +1,8 @@
 {{- $it := . -}}
+{{- $readonly :=  IsReadOnly $it -}}
 <footer class="meta">
     {{/* <small>{{ if not .Deleted}}sent <time class="submitted-at" datetime="{{ $it.SubmittedAt | ISOTimeFmt | html }}" title="{{ $it.SubmittedAt | ISOTimeFmt }}">{{ icon "clock-o" }}{{ $it.SubmittedAt | TimeFmt }}</time>{{- end -}}</small> */}}
-    {{- if CanModerate $it }}
+    {{- if or (not $readonly) (CanModerate $it) }}
     <small>Moderator actions:</small>
     <ul>
         <li><small><a href="/moderation/{{$it.ID}}/rm" class="rm" data-hash="{{ $it.ID }}">{{/*icon "eraser"*/}}rm</a></small></li>
