@@ -12,12 +12,13 @@ article footer {
 article nav dl, article nav ul, article nav ol {
     margin-left: 0;
 }
-article blockquote, article q {
-    quotes: none;
-    border-left: 2px solid var(--main-fg-color);
-    padding-left: .6em;
+article q, article blockquote  {
     margin-bottom: .3em;
     opacity: .75;
+}
+article blockquote {
+    border-left: 2px solid var(--main-fg-color);
+    padding-left: .6em;
 }
 article p + p, article p + ul, article p + ol, article p + dl,
 article p + div, article p + h1, article p + h2, article p + h3, article p + h4, article p + h5, article p + h6,
