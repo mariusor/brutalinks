@@ -1,5 +1,5 @@
-<section class="follow-request{{if .Deleted }} deleted {{end}}{{ if .Private }} private{{ end }}">
+<article class="follow-request{{if .Deleted }} deleted {{end}}{{ if .Private }} private{{ end }}">
 {{ template "partials/follow/data" .}}
 {{ template "partials/follow/meta" .}}
-</section>
 {{ template "partials/follow/score" . }}
+</article>

@@ -2,10 +2,10 @@
 {{- $score := .Score -}}
 {{- $readonly := or ( . | IsReadOnly) (not $account.IsLogged) -}}
 {{- if .Private -}}
-<aside class="score" data-hash="{{.ID}}"> {{ icon "lock" }} </aside>
+<aside data-hash="{{.ID}}"> {{ icon "lock" }} </aside>
 {{- else -}}
 {{- if .Deleted -}}
-<aside class="score" data-hash="{{.ID}}"> {{ icon "recycle" }} </aside>
+<aside data-hash="{{.ID}}"> {{ icon "recycle" }} </aside>
 {{- else -}}
 <aside class="score" data-score="{{ $score | ScoreFmt }}" data-hash="{{.ID}}">
     <noscript>score </noscript>

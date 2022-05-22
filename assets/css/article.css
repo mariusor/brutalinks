@@ -109,12 +109,18 @@ small data.score::before {
 small data.score::after {
     content: ")";
 }
-.score {
-    grid-template-rows: 2ex 2ex 1.6ex;
-    display: grid;
+article aside svg {
+    align-self: baseline;
+}
+article aside {
+    height: 100%;
     align-self: start;
     grid-row-start: 1;
     grid-row-end: -1;
+}
+article.item aside.score {
+    display: grid;
+    grid-template-rows: 2ex 2ex 1.6ex;
 }
 .score * {
     justify-self: center;

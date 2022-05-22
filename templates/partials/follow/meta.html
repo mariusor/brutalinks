@@ -1,4 +1,4 @@
 {{- $it := . -}}
-<footer class="meta">
+<footer>
     <small>{{ if not .Deleted}}sent <time class="submitted-at" datetime="{{ $it.SubmittedAt | ISOTimeFmt | html }}" title="{{ $it.SubmittedAt | ISOTimeFmt }}">{{ icon "clock-o" }}{{ $it.SubmittedAt | TimeFmt }}</time>{{- end -}}</small>
 </footer>
