@@ -1,6 +1,8 @@
 <article class="item{{if .Deleted }} deleted{{end}}{{ if .Private }} private{{ end }}{{ if .IsTop }} op{{end}}" id="i-{{.ID}}" data-hash="{{.ID}}">
 {{- template "partials/item/data" . -}}
+{{if not .Deleted }}
 {{- template "partials/item/text" . -}}
+{{- end -}}
 {{- template "partials/item/meta" . -}}
 {{- template "partials/item/score" . -}}
 </article>
