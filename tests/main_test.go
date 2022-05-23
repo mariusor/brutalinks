@@ -63,12 +63,16 @@ func (s *suite) InitializeScenario(t *testing.T) func(ctx *godog.ScenarioContext
 	return func(ctx *godog.ScenarioContext) {
 		ctx.Before(func(ctx context.Context, sc *godog.Scenario) (context.Context, error) {
 			var err error
-			s.wd, err = selenium.NewRemote(caps, fmt.Sprintf("http://localhost:%d/wd/hub", seleniumPort))
-			t.Errorf("Failed to start web driver: %s", err)
+			if s.wd, err = selenium.NewRemote(caps, fmt.Sprintf("http://localhost:%d/wd/hub", seleniumPort)); err != nil {
+				t.Errorf("Failed to start web driver: %s", err)
+			}
 			return ctx, err
 		})
 		ctx.After(func(ctx context.Context, sc *godog.Scenario, err error) (context.Context, error) {
-			return ctx, s.wd.Quit()
+			if err = s.wd.Quit(); err != nil {
+				t.Errorf("Failed to stop web driver: %s", err)
+			}
+			return ctx, err
 		})
 		ctx.Step(`^site is up$`, s.siteIsUp)
 		ctx.Step(`^I visit "([^"]*)"$`, s.iVisit)
