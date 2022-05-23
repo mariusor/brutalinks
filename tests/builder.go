@@ -6,8 +6,6 @@ import (
 	pub "github.com/go-ap/activitypub"
 )
 
-var root = &builder{}
-
 type builder struct {
 	col          map[string]*builder
 	id           pub.ID

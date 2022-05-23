@@ -12,33 +12,37 @@ import (
 	pub "github.com/go-ap/activitypub"
 )
 
-var service = ap("https://localhost:6667").Type(pub.ServiceType)
-var fedboxCollections = map[string]*builder{
-	"actors": ap("https://localhost:6667/actors").
-		Type(pub.OrderedCollectionType).
-		Items(
-			ap("https://localhost:6667/actors/1").Type(pub.PersonType),
-			ap("https://localhost:6667/actors/2").Type(pub.PersonType),
-			ap("https://localhost:6667/actors/3").Type(pub.PersonType),
-		),
-	"activities": ap("https://localhost:6667/activities").
-		Type(pub.OrderedCollectionType).
-		Items(
-			ap("https://localhost:6667/activities/1").Type(pub.CreateType),
-		),
-	"objects": ap("https://localhost:6667/objects").
-		Type(pub.OrderedCollectionType).
-		Items(
-			ap("https://localhost:6667/objects/1").Type(pub.NoteType),
-		),
+var root = fedbox{
+	service: ap("https://localhost:6667").Type(pub.ServiceType),
+	collections: map[string]*builder{
+		"actors": ap("https://localhost:6667/actors").
+			Type(pub.OrderedCollectionType).
+			Items(
+				ap("https://localhost:6667/actors/1").Type(pub.PersonType),
+				ap("https://localhost:6667/actors/2").Type(pub.PersonType),
+				ap("https://localhost:6667/actors/3").Type(pub.PersonType),
+			),
+		"activities": ap("https://localhost:6667/activities").
+			Type(pub.OrderedCollectionType).
+			Items(
+				ap("https://localhost:6667/activities/1").Type(pub.CreateType),
+			),
+		"objects": ap("https://localhost:6667/objects").
+			Type(pub.OrderedCollectionType).
+			Items(
+				ap("https://localhost:6667/objects/1").Type(pub.NoteType),
+			),
+	},
 }
 
-type fedbox struct{}
+type fedbox struct {
+	service     *builder
+	collections map[string]*builder
+}
 
 func apiMockURL() string {
 	listen := "localhost:6667"
-	m := fedbox{}
-	go http.ListenAndServe(listen, m)
+	go http.ListenAndServe(listen, root)
 	time.Sleep(time.Second)
 	return fmt.Sprintf("http://%s", listen)
 }
@@ -61,14 +65,14 @@ func readJson(it pub.Item) io.ReadSeeker {
 	return bytes.NewReader(data)
 }
 
-func content(name string) (time.Time, io.ReadSeeker) {
+func (f fedbox) content(name string) (time.Time, io.ReadSeeker) {
 	dir, base := path.Split(name)
 	if base == "" && dir == "/" {
-		s := service.Build()
+		s := f.service.Build()
 		return time.Now(), readJson(s)
 	}
 	if contains(validFedboxCollections, base) {
-		return time.Now(), readJson(fedboxCollections[base].Build())
+		return time.Now(), readJson(f.collections[base].Build())
 	}
 	if contains(validObjectCollections, base) {
 		return time.Now(), readJson(pub.OrderedCollectionPage{})
@@ -82,6 +86,6 @@ func content(name string) (time.Time, io.ReadSeeker) {
 
 func (f fedbox) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	name := r.URL.Path
-	modTime, content := content(r.URL.Path)
+	modTime, content := f.content(r.URL.Path)
 	http.ServeContent(w, r, name, modTime, content)
 }
