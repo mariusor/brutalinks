@@ -35,6 +35,7 @@ func (s suite) stop() {
 	s.sl.Stop()
 	s.brutalinksStopFn()
 }
+
 func initSuite() (suite, error) {
 	sOpts := []selenium.ServiceOption{
 		selenium.StartFrameBuffer(),       // Start an X frame buffer for the browser to run in.
@@ -87,7 +88,13 @@ var apiURL = "https://fedbox.local"
 
 func initBrutalinks() (func() error, func() error) {
 	c := config.Load(config.TEST, 10)
-	c.APIURL = apiURL
+	// NOTE(marius): we need to mock FedBOX to return just some expected values
+	// Should I look into having brutalinks support connecting over a socket?
+	c.APIURL = apiMockURL()
+	//c.Secure = strings.Contains(c.APIURL, "https://")
+	//c.KeyPath = ""
+	//c.CertPath = ""
+
 	errors.IncludeBacktrace = true
 	l := log.Dev(log.TraceLevel)
 

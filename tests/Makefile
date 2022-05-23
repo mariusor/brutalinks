@@ -6,7 +6,7 @@ STORAGE ?= all
 ENV ?= test
 BUILDFLAGS ?= -a
 TAGS =
-TEST_TARGET = ./main_test.go
+TEST_TARGET = .
 
 TEST := $(GO) test $(BUILDFLAGS)
 
