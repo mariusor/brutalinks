@@ -135,10 +135,11 @@ func (b *builder) ID(id pub.ID) *builder {
 //}
 
 func (b *builder) Items(it ...pub.Item) *builder {
-	if b.items == nil {
+	if b.items == nil && len(it) > 0 {
 		b.items = make(pub.ItemCollection, 0)
 	}
 	b.items = append(b.items, it...)
+	b.totalItems = len(it)
 	return b
 }
 
