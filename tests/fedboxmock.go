@@ -13,24 +13,24 @@ import (
 )
 
 var root = fedbox{
-	service: ap("https://localhost:6667").Type(pub.ServiceType),
+	service: ap("http://localhost:6667").Type(pub.ServiceType),
 	collections: map[string]*builder{
-		"actors": ap("https://localhost:6667/actors").
+		"actors": ap("http://localhost:6667/actors").
 			Type(pub.OrderedCollectionType).
 			Items(
-				ap("https://localhost:6667/actors/1").Type(pub.PersonType),
-				ap("https://localhost:6667/actors/2").Type(pub.PersonType),
-				ap("https://localhost:6667/actors/3").Type(pub.PersonType),
+				ap("http://localhost:6667/actors/1").Type(pub.PersonType),
+				ap("http://localhost:6667/actors/2").Type(pub.PersonType),
+				ap("http://localhost:6667/actors/3").Type(pub.PersonType),
 			),
-		"activities": ap("https://localhost:6667/activities").
+		"activities": ap("http://localhost:6667/activities").
 			Type(pub.OrderedCollectionType).
 			Items(
-				ap("https://localhost:6667/activities/1").Type(pub.CreateType),
+				ap("http://localhost:6667/activities/1").Type(pub.CreateType),
 			),
-		"objects": ap("https://localhost:6667/objects").
+		"objects": ap("http://localhost:6667/objects").
 			Type(pub.OrderedCollectionType).
 			Items(
-				ap("https://localhost:6667/objects/1").Type(pub.NoteType),
+				ap("http://localhost:6667/objects/1").Type(pub.NoteType),
 			),
 	},
 }
@@ -80,7 +80,7 @@ func (f fedbox) content(name string) (time.Time, io.ReadSeeker) {
 	if contains(validActorCollections, base) {
 		return time.Now(), readJson(pub.OrderedCollectionPage{})
 	}
-
+	//localhost
 	return time.Now(), bytes.NewReader([]byte{})
 }
 
