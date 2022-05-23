@@ -31,8 +31,6 @@ type suite struct {
 	wd                selenium.WebDriver
 }
 
-var service *selenium.Service
-
 func (s suite) stop() {
 	s.sl.Stop()
 	s.brutalinksStopFn()
@@ -59,7 +57,6 @@ func (s *suite) InitializeTestSuite(t *testing.T) func(ctx *godog.TestSuiteConte
 }
 
 var caps = selenium.Capabilities{"browserName": "chrome"}
-var wd selenium.WebDriver
 
 func (s *suite) InitializeScenario(t *testing.T) func(ctx *godog.ScenarioContext) {
 	return func(ctx *godog.ScenarioContext) {
