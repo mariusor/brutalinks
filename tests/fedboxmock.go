@@ -12,11 +12,25 @@ import (
 	pub "github.com/go-ap/activitypub"
 )
 
-var service = ap(pub.ServiceType).ID("https://localhost:6667")
+var service = ap("https://localhost:6667").Type(pub.ServiceType)
 var fedboxCollections = map[string]*builder{
-	"actors":     ap(pub.OrderedCollectionType).ID("https://localhost:6667/actors"),
-	"activities": ap(pub.OrderedCollectionType).ID("https://localhost:6667/activities"),
-	"objects":    ap(pub.OrderedCollectionType).ID("https://localhost:6667/objects"),
+	"actors": ap("https://localhost:6667/actors").
+		Type(pub.OrderedCollectionType).
+		Items(
+			ap("https://localhost:6667/actors/1").Type(pub.PersonType),
+			ap("https://localhost:6667/actors/2").Type(pub.PersonType),
+			ap("https://localhost:6667/actors/3").Type(pub.PersonType),
+		),
+	"activities": ap("https://localhost:6667/activities").
+		Type(pub.OrderedCollectionType).
+		Items(
+			ap("https://localhost:6667/activities/1").Type(pub.CreateType),
+		),
+	"objects": ap("https://localhost:6667/objects").
+		Type(pub.OrderedCollectionType).
+		Items(
+			ap("https://localhost:6667/objects/1").Type(pub.NoteType),
+		),
 }
 
 type fedbox struct{}

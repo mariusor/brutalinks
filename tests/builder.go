@@ -66,9 +66,35 @@ type builder struct {
 	prev       pub.IRI
 }
 
-func ap(t pub.ActivityVocabularyType) *builder {
+var _ pub.Item = &builder{}
+
+func (b *builder) GetID() pub.ID {
+	return b.id
+}
+
+func (b *builder) GetLink() pub.IRI {
+	return b.id
+}
+
+func (b *builder) IsCollection() bool {
+	return b.Build().IsCollection()
+}
+
+func (b *builder) GetType() pub.ActivityVocabularyType {
+	return b.typ
+}
+
+func (b *builder) IsObject() bool {
+	return b.Build().IsObject()
+}
+
+func (b *builder) IsLink() bool {
+	return b.Build().IsLink()
+}
+
+func ap(id pub.ID) *builder {
 	b := new(builder)
-	return b.Type(t)
+	return b.ID(id)
 }
 
 func (b *builder) Type(t pub.ActivityVocabularyType) *builder {
@@ -104,8 +130,17 @@ func (b *builder) ID(id pub.ID) *builder {
 	b.id = id
 	return b
 }
-func (b *builder) collection(name string, cb *builder) *builder {
-	b.col[name] = cb
+
+//func (b *builder) collection(name string, cb *builder) *builder {
+//	b.col[name] = cb
+//	return b
+//}
+
+func (b *builder) Items(it ...pub.Item) *builder {
+	if b.items == nil {
+		b.items = make(pub.ItemCollection, 0)
+	}
+	b.items = append(b.items, it...)
 	return b
 }
 
