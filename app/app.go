@@ -70,6 +70,9 @@ func (a *Application) Reload() error {
 func (a *Application) init(c *config.Configuration, l log.Logger, host string, port int) error {
 	a.Conf = c
 	a.Logger = l
+	if len(c.HostName) == 0 {
+		c.HostName = host
+	}
 	if c.Secure {
 		a.BaseURL = fmt.Sprintf("https://%s", c.HostName)
 	} else {
