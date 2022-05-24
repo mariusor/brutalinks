@@ -33,7 +33,6 @@ type suite struct {
 
 func (s suite) stop() {
 	s.sl.Stop()
-	s.brutalinksStopFn()
 }
 
 func initSuite() (suite, error) {
@@ -46,14 +45,22 @@ func initSuite() (suite, error) {
 
 	var err error
 	s.sl, err = selenium.NewSeleniumService(seleniumPath, seleniumPort, sOpts...)
-	s.brutalinksStartFn, s.brutalinksStopFn = initBrutalinks()
 	return s, err
 }
 
 func (s *suite) InitializeTestSuite(t *testing.T) func(ctx *godog.TestSuiteContext) {
+	s.brutalinksStartFn, s.brutalinksStopFn = initBrutalinks()
 	return func(ctx *godog.TestSuiteContext) {
-		//ctx.BeforeSuite(func() { })
-		//ctx.AfterSuite(func() { })
+		ctx.BeforeSuite(func() {
+			if err := s.brutalinksStartFn(); err != nil {
+				t.Errorf("unable to start brutalinks: %s", err)
+			}
+		})
+		ctx.AfterSuite(func() {
+			if err := s.brutalinksStopFn(); err != nil {
+				t.Errorf("unable to stop brutalinks: %s", err)
+			}
+		})
 	}
 }
 
@@ -169,6 +176,14 @@ func Test_Features(t *testing.T) {
 		TestSuiteInitializer: s.InitializeTestSuite(t),
 		ScenarioInitializer:  s.InitializeScenario(t),
 	}
+
+	var err error
+	s, err = initSuite()
+	if err != nil {
+		t.Errorf("unable to initialize suite: %s", err)
+	}
+	defer s.stop()
+
 	if status := cucumber.Run(); status != 0 {
 		t.Errorf("Invalid cucumber return value %d, expected 0", status)
 	}
@@ -178,12 +193,6 @@ func TestMain(m *testing.M) {
 	flag.Parse()
 	opts.Paths = flag.Args()
 
-	var err error
-	s, err = initSuite()
-	if err != nil {
-		panic(err)
-	}
-	defer s.stop()
 	status := m.Run()
 	os.Exit(status)
 }
