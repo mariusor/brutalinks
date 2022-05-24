@@ -183,8 +183,8 @@ func DomainFiltersMw(next http.Handler) http.Handler {
 		f.Object = &Filters{}
 		m := ContextListingModel(r.Context())
 		if len(domain) > 0 {
-			domain = puny.ToASCII(domain)
-			f.Object.URL = CompStrs{LikeString(fmt.Sprintf("https://%s", domain)), LikeString(fmt.Sprintf("http://%s", domain))}
+			domainFilter := fmt.Sprintf("https://%s", puny.ToASCII(domain))
+			f.Object.URL = CompStrs{LikeString(domainFilter), LikeString(domainFilter)}
 			f.Object.Type = CompStrs{EqualsString(string(pub.PageType))}
 			m.Title = fmt.Sprintf("Items pointing to %s", domain)
 		} else {
