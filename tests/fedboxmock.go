@@ -1,19 +1,18 @@
 package main
 
 import (
-	"bytes"
+	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"path"
 	"strings"
 	"time"
 
+	pub "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
 	"github.com/go-ap/handlers"
 	"github.com/go-ap/jsonld"
-
-	pub "github.com/go-ap/activitypub"
+	"github.com/mariusor/go-littr/app"
 )
 
 func langRef(s string) pub.LangRefValue {
@@ -41,6 +40,7 @@ func newFedBOX(listen string) *fedbox {
 			"actors": ap(baseIRI("actors")).
 				Type(pub.OrderedCollectionType).
 				Items(
+					ap(baseIRI("actors/mock-app-1")).Type(pub.ApplicationType).Name(langRef("mock-app")),
 					ap(baseIRI("actors/1")).Type(pub.PersonType).Name(langRef("marius")),
 					ap(baseIRI("actors/2")).Type(pub.PersonType).Name(langRef("admin")),
 					ap(baseIRI("actors/3")).Type(pub.PersonType).Name(langRef("rwar")),
@@ -79,62 +79,65 @@ func contains[T ~string](sl []T, el T) bool {
 	return false
 }
 
-func errJson(err error) io.ReadSeeker {
-	b, _ := jsonld.Marshal(err)
-	return bytes.NewReader(b)
-}
-
-func readJson(it pub.Item) io.ReadSeeker {
-	data, _ := pub.MarshalJSON(it)
-	return bytes.NewReader(data)
-}
-
-func (f fedbox) resolve(name string) pub.Item {
+func (f fedbox) resolve(name string, ff *app.Filters) (pub.Item, error) {
 	dir, base := path.Split(name)
 	if base == "" && dir == "/" {
-		return f.service.Build()
+		return f.service.Build(), nil
 	}
 	if contains(validFedBOXCollections, base) {
-		return f.collections[base]
+		return f.collections[base].Build(), nil
 	} else {
 		// name = "actors/1/inbox -> dir=actors/1 base=inbox
 		for _, collection := range f.collections {
 			for _, it := range collection.items {
-				if it.GetID().String() == dir {
+				ui, _ := it.GetID().URL()
+				if ui.Path == name {
 					if contains(validActivityPubCollections, base) {
 						// it's an object's collection
-						return handlers.CollectionType(base).Of(it)
+						return handlers.CollectionType(base).Of(it), nil
 					} else {
-						// it's an object
-						return it
+						// it's an object builder
+						return it.Build(), nil
 					}
 				}
 			}
 		}
 	}
-	return nil
-}
-
-func (f fedbox) content(name string) (time.Time, io.ReadSeeker) {
-	it := f.resolve(name)
-	if it == nil {
-		return time.Time{}, errJson(errors.NotFoundf("%s not found", name))
-	}
-	mod := time.Now()
-	pub.OnObject(it, func(ob *pub.Object) error {
-		if !ob.Published.IsZero() {
-			mod = ob.Published
-		}
-		if !ob.Updated.IsZero() {
-			mod = ob.Updated
-		}
-		return nil
-	})
-	return mod, readJson(it)
+	return nil, errors.NotFoundf("%s not found", name)
 }
 
 func (f fedbox) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	name := r.URL.Path
-	modTime, content := f.content(r.URL.Path)
-	http.ServeContent(w, r, name, modTime, content)
+	var content []byte
+
+	status := http.StatusOK
+	if strings.Contains(name, "oauth") {
+		t := struct {
+			AccessToken string `json:"access_token"`
+			TokenType   string `json:"token_type"`
+		}{
+			AccessToken: "ok",
+			TokenType:   "huh?",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(status)
+		content, _ = json.Marshal(t)
+		w.Write(content)
+		return
+	}
+	it, err := f.resolve(name, app.FiltersFromRequest(r))
+	if err != nil {
+		status = errors.HttpStatus(err)
+		content, _ = jsonld.Marshal(it)
+		w.WriteHeader(status)
+		w.Write(content)
+		return
+	}
+
+	if content, err = jsonld.Marshal(it); err != nil {
+		status = errors.HttpStatus(err)
+		content, _ = jsonld.Marshal(it)
+	}
+	w.WriteHeader(status)
+	w.Write(content)
 }
