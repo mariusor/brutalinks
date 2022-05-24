@@ -108,6 +108,8 @@ func initBrutalinks(t *testing.T) (func() error, func() error) {
 	os.Setenv(config.KeyFedBOXOAuthKey, "mock-app-1")
 	os.Setenv(config.KeyFedBOXOAuthSecret, "mockpw")
 
+	os.Setenv(config.KeySessionAuthKey, "1234567890123456")
+	os.Setenv(config.KeySessionAuthKey, "9876543210987654")
 	c := config.Load(config.TEST, 10)
 	c.CachingEnabled = false
 	// NOTE(marius): we need to mock FedBOX to return just some expected values

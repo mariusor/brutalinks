@@ -70,6 +70,9 @@ const (
 
 	KeyFedBOXOAuthKey    = "OAUTH2_KEY"
 	KeyFedBOXOAuthSecret = "OAUTH2_SECRET"
+
+	KeySessionAuthKey = "SESS_AUTH_KEY"
+	KeySessionEncKey  = "SESS_ENC_KEY"
 )
 
 func prefKey(k string) string {

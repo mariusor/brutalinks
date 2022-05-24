@@ -70,6 +70,7 @@ func (h *handler) init(c appConfig) error {
 		h.logger = c.Logger
 	}
 
+	// TODO(marius): this should also be moved to the internal config package
 	if c.SessionsBackend = os.Getenv("SESSIONS_BACKEND"); c.SessionsBackend == "" {
 		c.SessionsBackend = sessionsFSBackend
 	}
@@ -473,10 +474,10 @@ func httpErrorResponse(e error) int {
 
 func loadEnvSessionKeys() [][]byte {
 	keys := make([][]byte, 0)
-	if authKey := os.Getenv("SESS_AUTH_KEY"); len(authKey) >= 16 {
+	if authKey := os.Getenv(config.KeySessionAuthKey); len(authKey) >= 16 {
 		keys = append(keys, []byte(authKey[:16]))
 	}
-	if encKey := os.Getenv("SESS_ENC_KEY"); len(encKey) >= 16 {
+	if encKey := os.Getenv(config.KeySessionEncKey); len(encKey) >= 16 {
 		keys = append(keys, []byte(encKey[:16]))
 	}
 	return keys
