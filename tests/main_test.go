@@ -103,14 +103,19 @@ var opts = godog.Options{
 var executorURL = "https://brutalinks.local"
 var apiURL = "https://fedbox.local"
 
-func initBrutalinks() (func() error, func() error) {
+func initBrutalinks(t *testing.T) (func() error, func() error) {
+	// NOTE(marius): needs to match the actor that we use in fedboxmock
+	os.Setenv(config.KeyFedBOXOAuthKey, "mock-app-1")
+	os.Setenv(config.KeyFedBOXOAuthSecret, "mockpw")
+
 	c := config.Load(config.TEST, 10)
+	c.CachingEnabled = false
 	// NOTE(marius): we need to mock FedBOX to return just some expected values
 	// Should I look into having brutalinks support connecting over a socket?
 	c.APIURL = apiMockURL()
-	//c.Secure = strings.Contains(c.APIURL, "https://")
-	//c.KeyPath = ""
-	//c.CertPath = ""
+	c.Secure = false
+	c.KeyPath = ""
+	c.CertPath = ""
 
 	errors.IncludeBacktrace = true
 	l := log.Dev(log.TraceLevel)
