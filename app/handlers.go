@@ -458,7 +458,7 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 	repo := ContextRepository(r.Context())
 
-	config := GetOauth2Config("fedbox", h.conf.BaseURL)
+	config := h.conf.GetOauth2Config("fedbox", h.conf.BaseURL)
 	// Try to load actor from handle
 	accts, err := repo.accounts(r.Context(), FilterAccountByHandle(handle))
 
@@ -615,7 +615,7 @@ func getPassCode(h *handler, acc *Account, invitee *Account, r *http.Request) (s
 	}
 
 	// TODO(marius): Start oauth2 authorize session
-	config := GetOauth2Config("fedbox", h.conf.BaseURL)
+	config := h.conf.GetOauth2Config("fedbox", h.conf.BaseURL)
 	config.Scopes = []string{scopeAnonymousUserCreate}
 	param := oauth2.SetAuthURLParam("actor", invitee.AP().GetLink().String())
 	sessUrl := config.AuthCodeURL(csrf.Token(r), param)
@@ -696,7 +696,7 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// TODO(marius): Start oauth2 authorize session
-	config := GetOauth2Config("fedbox", h.conf.BaseURL)
+	config := h.conf.GetOauth2Config("fedbox", h.conf.BaseURL)
 	config.Scopes = []string{scopeAnonymousUserCreate}
 	param := oauth2.SetAuthURLParam("actor", a.Metadata.ID)
 	sessUrl := config.AuthCodeURL(csrf.Token(r), param)

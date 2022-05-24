@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"net/url"
 	"os"
 	"strings"
 
@@ -13,7 +12,6 @@ import (
 	"github.com/gorilla/csrf"
 	"github.com/mariusor/go-littr/internal/config"
 	"github.com/mariusor/go-littr/internal/log"
-	"golang.org/x/oauth2"
 )
 
 const (
@@ -101,8 +99,8 @@ func ConnectFedBOX(h *handler, c appConfig) error {
 	return nil
 }
 
-func AuthorizeOAuthClient(storage *repository, baseURL string) (*Account, error) {
-	config := GetOauth2Config(fedboxProvider, baseURL)
+func AuthorizeOAuthClient(storage *repository, c appConfig) (*Account, error) {
+	config := c.GetOauth2Config(fedboxProvider, c.BaseURL)
 	if len(config.ClientID) == 0 {
 		return nil, errors.Newf("invalid OAuth2 configuration")
 	}
@@ -159,7 +157,7 @@ func (h *handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	conf := GetOauth2Config(provider, h.conf.BaseURL)
+	conf := h.conf.GetOauth2Config(provider, h.conf.BaseURL)
 	tok, err := conf.Exchange(r.Context(), code)
 	if err != nil {
 		h.errFn(log.Ctx{"err": err})("Unable to load token")
@@ -188,65 +186,6 @@ func (h *handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	h.v.Redirect(w, r, "/", http.StatusFound)
-}
-
-func GetOauth2Config(provider string, localBaseURL string) oauth2.Config {
-	var config oauth2.Config
-	switch strings.ToLower(provider) {
-	case "github":
-		config = oauth2.Config{
-			ClientID:     os.Getenv("GITHUB_KEY"),
-			ClientSecret: os.Getenv("GITHUB_SECRET"),
-			Endpoint: oauth2.Endpoint{
-				AuthURL:  "https://github.com/login/oauth/authorize",
-				TokenURL: "https://github.com/login/oauth/access_token",
-			},
-		}
-	case "gitlab":
-		config = oauth2.Config{
-			ClientID:     os.Getenv("GITLAB_KEY"),
-			ClientSecret: os.Getenv("GITLAB_SECRET"),
-			Endpoint: oauth2.Endpoint{
-				AuthURL:  "https://gitlab.com/login/oauth/authorize",
-				TokenURL: "https://gitlab.com/login/oauth/access_token",
-			},
-		}
-	case "facebook":
-		config = oauth2.Config{
-			ClientID:     os.Getenv("FACEBOOK_KEY"),
-			ClientSecret: os.Getenv("FACEBOOK_SECRET"),
-			Endpoint: oauth2.Endpoint{
-				AuthURL:  "https://graph.facebook.com/oauth/authorize",
-				TokenURL: "https://graph.facebook.com/oauth/access_token",
-			},
-		}
-	case "google":
-		config = oauth2.Config{
-			ClientID:     os.Getenv("GOOGLE_KEY"),
-			ClientSecret: os.Getenv("GOOGLE_SECRET"),
-			Endpoint: oauth2.Endpoint{
-				AuthURL:  "https://accounts.google.com/o/oauth2/auth", // access_type=offline
-				TokenURL: "https://accounts.google.com/o/oauth2/token",
-			},
-		}
-	case "fedbox":
-		fallthrough
-	default:
-		apiURL := strings.TrimRight(os.Getenv("API_URL"), "/")
-		config = oauth2.Config{
-			ClientID:     os.Getenv("OAUTH2_KEY"),
-			ClientSecret: os.Getenv("OAUTH2_SECRET"),
-			Endpoint: oauth2.Endpoint{
-				AuthURL:  fmt.Sprintf("%s/oauth/authorize", apiURL),
-				TokenURL: fmt.Sprintf("%s/oauth/token", apiURL),
-			},
-		}
-	}
-	confOauth2URL := os.Getenv("OAUTH2_URL")
-	if u, err := url.Parse(confOauth2URL); err != nil || u.Host == "" {
-		config.RedirectURL = fmt.Sprintf("%s/auth/%s/callback", localBaseURL, provider)
-	}
-	return config
 }
 
 func isInverted(r *http.Request) bool {

@@ -2,13 +2,16 @@ package config
 
 import (
 	"fmt"
-	"github.com/joho/godotenv"
-	"github.com/mariusor/go-littr/internal/log"
+	"net/url"
 	"os"
 	"path"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/joho/godotenv"
+	"github.com/mariusor/go-littr/internal/log"
+	"golang.org/x/oauth2"
 )
 
 type Configuration struct {
@@ -64,6 +67,9 @@ const (
 	KeyDisableModeration          = "DISABLE_MODERATION"
 	KeyDisableCaching             = "DISABLE_CACHING"
 	KeyAdminContact               = "ADMIN_CONTACT"
+
+	KeyFedBOXOAuthKey    = "OAUTH2_KEY"
+	KeyFedBOXOAuthSecret = "OAUTH2_SECRET"
 )
 
 func prefKey(k string) string {
@@ -175,4 +181,53 @@ func (c Configuration) Listen() string {
 		return fmt.Sprintf("%s:%d", c.ListenHost, c.ListenPort)
 	}
 	return fmt.Sprintf(":%d", c.ListenPort)
+}
+
+func (c Configuration) GetOauth2Config(provider string, localBaseURL string) oauth2.Config {
+	var conf oauth2.Config
+	switch strings.ToLower(provider) {
+	case "github":
+		conf.ClientID = os.Getenv("GITHUB_KEY")
+		conf.ClientSecret = os.Getenv("GITHUB_SECRET")
+		conf.Endpoint = oauth2.Endpoint{
+			AuthURL:  "https://github.com/login/oauth/authorize",
+			TokenURL: "https://github.com/login/oauth/access_token",
+		}
+	case "gitlab":
+		conf.ClientID = os.Getenv("GITLAB_KEY")
+		conf.ClientSecret = os.Getenv("GITLAB_SECRET")
+		conf.Endpoint = oauth2.Endpoint{
+			AuthURL:  "https://gitlab.com/login/oauth/authorize",
+			TokenURL: "https://gitlab.com/login/oauth/access_token",
+		}
+	case "facebook":
+		conf.ClientID = os.Getenv("FACEBOOK_KEY")
+		conf.ClientSecret = os.Getenv("FACEBOOK_SECRET")
+		conf.Endpoint = oauth2.Endpoint{
+			AuthURL:  "https://graph.facebook.com/oauth/authorize",
+			TokenURL: "https://graph.facebook.com/oauth/access_token",
+		}
+	case "google":
+		conf.ClientID = os.Getenv("GOOGLE_KEY")
+		conf.ClientSecret = os.Getenv("GOOGLE_SECRET")
+		conf.Endpoint = oauth2.Endpoint{
+			AuthURL:  "https://accounts.google.com/o/oauth2/auth", // access_type=offline
+			TokenURL: "https://accounts.google.com/o/oauth2/token",
+		}
+	case "fedbox":
+		fallthrough
+	default:
+		apiURL := strings.TrimRight(c.APIURL, "/")
+		conf.ClientID = os.Getenv(KeyFedBOXOAuthKey)
+		conf.ClientSecret = os.Getenv(KeyFedBOXOAuthSecret)
+		conf.Endpoint = oauth2.Endpoint{
+			AuthURL:  fmt.Sprintf("%s/oauth/authorize", apiURL),
+			TokenURL: fmt.Sprintf("%s/oauth/token", apiURL),
+		}
+	}
+	confOauth2URL := os.Getenv("OAUTH2_URL")
+	if u, err := url.Parse(confOauth2URL); err != nil || u.Host == "" {
+		conf.RedirectURL = fmt.Sprintf("%s/auth/%s/callback", localBaseURL, provider)
+	}
+	return conf
 }
