@@ -13,51 +13,51 @@ type builder struct {
 	name         pub.NaturalLanguageValues
 	summary      pub.NaturalLanguageValues
 	content      pub.NaturalLanguageValues
-	attachment   pub.ItemCollection
-	attributedTo pub.ItemCollection
-	audience     pub.ItemCollection
-	context      pub.ItemCollection
+	attachment   *builder
+	attributedTo *builder
+	audience     []*builder
+	context      *builder
 	mediaType    pub.MimeType
 	endTime      time.Time
-	generator    pub.ItemCollection
-	icon         pub.ItemCollection
-	image        pub.ItemCollection
-	inReplyTo    pub.ItemCollection
-	location     pub.ItemCollection
-	preview      pub.ItemCollection
+	generator    *builder
+	icon         *builder
+	image        *builder
+	inReplyTo    *builder
+	location     *builder
+	preview      *builder
 	published    time.Time
-	replies      pub.ItemCollection
+	replies      *builder
 	startTime    time.Time
-	tag          pub.ItemCollection
+	tag          []*builder
 	updated      time.Time
-	url          pub.ItemCollection
+	url          *builder
 	duration     time.Duration
 	source       pub.Source
 	// Recipients
-	to  pub.ItemCollection
-	bto pub.ItemCollection
-	cc  pub.ItemCollection
-	bcc pub.ItemCollection
+	to  []*builder
+	bto []*builder
+	cc  []*builder
+	bcc []*builder
 	// Object collections
-	likes  pub.ItemCollection
-	shares pub.ItemCollection
+	likes  *builder
+	shares *builder
 	// Actor collections
-	inbox     pub.OrderedCollection
-	outbox    pub.OrderedCollection
-	following pub.OrderedCollection
-	followers pub.OrderedCollection
-	liked     pub.OrderedCollection
+	inbox     *builder
+	outbox    *builder
+	following *builder
+	followers *builder
+	liked     *builder
 	// Actor stuff
 	endpoints pub.Endpoints
-	streams   pub.ItemCollection
+	streams   []*builder
 	publicKey pub.PublicKey
 	// Activity stuff
-	object pub.ItemCollection
-	actor  pub.ItemCollection
-	target pub.ItemCollection
+	object *builder
+	actor  *builder
+	target *builder
 	// Collection stuff
 	totalItems int
-	items      pub.ItemCollection
+	items      []*builder
 	first      pub.IRI
 	last       pub.IRI
 	next       pub.IRI
@@ -134,27 +134,27 @@ func (b *builder) ID(id pub.ID) *builder {
 //	return b
 //}
 
-func (b *builder) Items(it ...pub.Item) *builder {
+func (b *builder) Items(it ...*builder) *builder {
 	if b.items == nil && len(it) > 0 {
-		b.items = make(pub.ItemCollection, 0)
+		b.items = make([]*builder, 0)
 	}
 	b.items = append(b.items, it...)
 	b.totalItems = len(it)
 	return b
 }
 
-func (b *builder) copyToCollection(col *pub.OrderedCollectionPage) error {
+func (b *builder) copyToCollection(col *pub.OrderedCollection) error {
 	col.TotalItems = uint(b.totalItems)
-	col.OrderedItems = b.items
+	for _, b := range b.items {
+		col.OrderedItems = append(col.OrderedItems, b.Build())
+	}
 	col.First = b.first
 	col.Last = b.last
-	col.Next = b.next
-	col.Prev = b.prev
 	return pub.OnObject(col, b.copyToObject)
 }
 
 func (b *builder) copyToActivity(act *pub.Activity) error {
-	act.Actor = b.actor
+	act.Actor = b.actor.Build()
 	act.Object = b.object
 	act.Target = b.target
 	return pub.OnObject(act, b.copyToObject)
@@ -168,7 +168,9 @@ func (b *builder) copyToActor(act *pub.Actor) error {
 	act.Following = b.following
 	act.Followers = b.followers
 	act.Liked = b.liked
-	act.Streams = b.streams
+	for _, ba := range b.streams {
+		act.Streams = append(act.Streams, ba.Build())
+	}
 	act.PublicKey = b.publicKey
 	return pub.OnObject(act, b.copyToObject)
 }
@@ -186,7 +188,9 @@ func (b *builder) copyToObject(ob *pub.Object) error {
 	ob.AttributedTo = b.attributedTo
 	ob.InReplyTo = b.inReplyTo
 	ob.Location = b.location
-	ob.Audience = b.audience
+	for _, ba := range b.audience {
+		ob.Audience = append(ob.Audience, ba.Build())
+	}
 	ob.Context = b.context
 	ob.MediaType = b.mediaType
 	ob.Generator = b.generator
@@ -195,11 +199,21 @@ func (b *builder) copyToObject(ob *pub.Object) error {
 	ob.Preview = b.preview
 	ob.Published = b.published
 	ob.Updated = b.updated
-	ob.To = b.to
-	ob.CC = b.cc
-	ob.Bto = b.bto
-	ob.BCC = b.bcc
-	ob.Tag = b.tag
+	for _, bt := range b.to {
+		ob.To = append(ob.To, bt.Build())
+	}
+	for _, bt := range b.cc {
+		ob.CC = append(ob.CC, bt.Build())
+	}
+	for _, bt := range b.bto {
+		ob.Bto = append(ob.Bto, bt.Build())
+	}
+	for _, bt := range b.bcc {
+		ob.BCC = append(ob.BCC, bt.Build())
+	}
+	for _, bt := range b.tag {
+		ob.Tag = append(ob.Tag, bt.Build())
+	}
 	ob.Shares = b.shares
 	ob.Likes = b.likes
 	ob.Source = b.source
@@ -209,7 +223,7 @@ func (b *builder) copyToObject(ob *pub.Object) error {
 func (b *builder) Build() pub.Item {
 	it, _ := pub.GetItemByType(b.typ)
 	if contains(pub.CollectionTypes, b.typ) {
-		pub.OnOrderedCollectionPage(it, b.copyToCollection)
+		pub.OnOrderedCollection(it, b.copyToCollection)
 	}
 	if contains(pub.ActivityTypes, b.typ) {
 		pub.OnActivity(it, b.copyToActivity)
