@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"runtime"
 	"testing"
 
 	w "git.sr.ht/~mariusor/wrapper"
@@ -39,9 +40,9 @@ func initSuite() (suite, error) {
 	sOpts := []selenium.ServiceOption{
 		selenium.StartFrameBuffer(),       // Start an X frame buffer for the browser to run in.
 		selenium.ChromeDriver(driverPath), // Specify the path to GeckoDriver in order to use Firefox.
-		selenium.Output(opts.Output),      // Output debug information to godog's writer.
+		//selenium.Output(opts.Output),      // Output debug information to godog's writer.
 	}
-	selenium.SetDebug(false)
+	selenium.SetDebug(true)
 
 	var err error
 	s.sl, err = selenium.NewSeleniumService(seleniumPath, seleniumPort, sOpts...)
@@ -49,16 +50,18 @@ func initSuite() (suite, error) {
 }
 
 func (s *suite) InitializeTestSuite(t *testing.T) func(ctx *godog.TestSuiteContext) {
-	s.brutalinksStartFn, s.brutalinksStopFn = initBrutalinks()
+	s.brutalinksStartFn, s.brutalinksStopFn = initBrutalinks(t)
 	return func(ctx *godog.TestSuiteContext) {
 		ctx.BeforeSuite(func() {
 			if err := s.brutalinksStartFn(); err != nil {
 				t.Errorf("unable to start brutalinks: %s", err)
+				os.Exit(1)
 			}
 		})
 		ctx.AfterSuite(func() {
 			if err := s.brutalinksStopFn(); err != nil {
 				t.Errorf("unable to stop brutalinks: %s", err)
+				os.Exit(1)
 			}
 		})
 	}
@@ -112,14 +115,9 @@ func initBrutalinks() (func() error, func() error) {
 	errors.IncludeBacktrace = true
 	l := log.Dev(log.TraceLevel)
 
-	a, err := app.New(c, l, "localhost", 5443, "-test-head")
+	a, err := app.New(c, l, "localhost", 5443, runtime.Version())
 	if err != nil {
-		return func() error {
-				return err
-			},
-			func() error {
-				return nil
-			}
+		return func() error { return err }, func() error { return nil }
 	}
 	ctx, cancelFn := context.WithCancel(context.TODO())
 	srvRun, srvStop := w.HttpServer(w.Handler(a.Mux), w.HTTP(a.Conf.Listen()))
