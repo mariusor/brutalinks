@@ -14,7 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func apiMockURL(t *testing.T) string {
+func apiMockURL(t *testing.T) (string, func()) {
 	listen := "127.0.0.1:6667"
 	cwd, _ := os.Getwd()
 	mockPath := path.Join(cwd, "mocks")
@@ -35,7 +35,7 @@ func apiMockURL(t *testing.T) string {
 		t.Errorf("unable to initialize FedBOX storage: %s", err)
 		os.Exit(1)
 	}
-	or := authfs.New(authfs.Config{Path: c.StoragePath})
+	or := authfs.New(authfs.Config{Path: path.Join(c.StoragePath, listen)})
 
 	f, err := fb.New(logrus.New(), runtime.Version(), c, r, or)
 	if err != nil {
@@ -44,5 +44,5 @@ func apiMockURL(t *testing.T) string {
 	}
 	go f.Run(context.TODO())
 	time.Sleep(500 * time.Millisecond)
-	return f.Config().BaseURL
+	return f.Config().BaseURL, f.Stop
 }

@@ -114,7 +114,8 @@ func initBrutalinks(t *testing.T) (func() error, func() error) {
 	c.CachingEnabled = false
 	// NOTE(marius): we need to mock FedBOX to return just some expected values
 	// Should I look into having brutalinks support connecting over a socket?
-	c.APIURL = apiMockURL(t)
+	var fedboxStopFn func()
+	c.APIURL, fedboxStopFn = apiMockURL(t)
 	c.Secure = false
 	c.KeyPath = ""
 	c.CertPath = ""
@@ -132,6 +133,7 @@ func initBrutalinks(t *testing.T) (func() error, func() error) {
 
 	stopFn := func() error {
 		defer cancelFn()
+		fedboxStopFn()
 		return srvStop(ctx)
 	}
 
