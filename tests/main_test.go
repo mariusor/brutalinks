@@ -105,8 +105,8 @@ var apiURL = "https://fedbox.local"
 
 func initBrutalinks(t *testing.T) (func() error, func() error) {
 	// NOTE(marius): needs to match the actor that we use in fedboxmock
-	os.Setenv(config.KeyFedBOXOAuthKey, "mock-app-1")
-	os.Setenv(config.KeyFedBOXOAuthSecret, "mockpw")
+	os.Setenv(config.KeyFedBOXOAuthKey, "c4cdfe54-9919-4dd4-8a71-63beafe12b8c")
+	os.Setenv(config.KeyFedBOXOAuthSecret, "asd")
 
 	os.Setenv(config.KeySessionAuthKey, "1234567890123456")
 	os.Setenv(config.KeySessionAuthKey, "9876543210987654")
@@ -114,7 +114,7 @@ func initBrutalinks(t *testing.T) (func() error, func() error) {
 	c.CachingEnabled = false
 	// NOTE(marius): we need to mock FedBOX to return just some expected values
 	// Should I look into having brutalinks support connecting over a socket?
-	c.APIURL = apiMockURL()
+	c.APIURL = apiMockURL(t)
 	c.Secure = false
 	c.KeyPath = ""
 	c.CertPath = ""
@@ -122,9 +122,10 @@ func initBrutalinks(t *testing.T) (func() error, func() error) {
 	errors.IncludeBacktrace = true
 	l := log.Dev(log.TraceLevel)
 
-	a, err := app.New(c, l, "localhost", 5443, runtime.Version())
+	a, err := app.New(c, l, "127.0.0.1", 5443, runtime.Version())
 	if err != nil {
-		return func() error { return err }, func() error { return nil }
+		t.Errorf("unable to start brutalinks: %s", err)
+		os.Exit(1)
 	}
 	ctx, cancelFn := context.WithCancel(context.TODO())
 	srvRun, srvStop := w.HttpServer(w.Handler(a.Mux), w.HTTP(a.Conf.Listen()))

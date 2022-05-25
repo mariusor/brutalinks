@@ -51,7 +51,7 @@ func SetErrorLogger(errFn CtxLogFn) OptionFn {
 }
 func SetURL(s string) OptionFn {
 	return func(f *fedbox) error {
-		_, err := url.Parse(s)
+		_, err := url.ParseRequestURI(s)
 		if err != nil {
 			return err
 		}
