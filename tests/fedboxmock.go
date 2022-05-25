@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"os"
 	"path"
 	"runtime"
@@ -14,7 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func apiMockURL(t *testing.T) (string, func()) {
+func mockFedBOX(t *testing.T) (*fb.FedBOX, error) {
 	listen := "127.0.0.1:6667"
 	cwd, _ := os.Getwd()
 	mockPath := path.Join(cwd, "mocks")
@@ -22,7 +21,7 @@ func apiMockURL(t *testing.T) (string, func()) {
 	os.Setenv("HTTPS", "false")
 	os.Setenv("HOSTNAME", listen)
 	os.Setenv("LISTEN", listen)
-	os.Setenv("LOG_OUTPUT", "json")
+	os.Setenv("LOG_OUTPUT", "text")
 	os.Setenv("FEDBOX_DISABLE_CACHE", "true")
 	os.Setenv("STORAGE_PATH", mockPath)
 	c, err := fb.Config("test", time.Second)
@@ -37,12 +36,5 @@ func apiMockURL(t *testing.T) (string, func()) {
 	}
 	or := authfs.New(authfs.Config{Path: path.Join(c.StoragePath, listen)})
 
-	f, err := fb.New(logrus.New(), runtime.Version(), c, r, or)
-	if err != nil {
-		t.Errorf("unable to initialize FedBOX: %s", err)
-		os.Exit(1)
-	}
-	go f.Run(context.TODO())
-	time.Sleep(500 * time.Millisecond)
-	return f.Config().BaseURL, f.Stop
+	return fb.New(logrus.StandardLogger(), runtime.Version(), c, r, or)
 }

@@ -4,10 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"os"
-	"runtime"
-	"testing"
-
 	w "git.sr.ht/~mariusor/wrapper"
 	"github.com/cucumber/godog"
 	"github.com/cucumber/godog/colors"
@@ -16,6 +12,11 @@ import (
 	"github.com/mariusor/go-littr/internal/config"
 	"github.com/mariusor/go-littr/internal/log"
 	"github.com/tebeka/selenium"
+	"golang.org/x/sync/errgroup"
+	"os"
+	"runtime"
+	"testing"
+	"time"
 )
 
 const (
@@ -26,10 +27,10 @@ const (
 )
 
 type suite struct {
-	brutalinksStartFn func() error
-	brutalinksStopFn  func() error
-	sl                *selenium.Service
-	wd                selenium.WebDriver
+	beginFn func() error
+	endFn   func() error
+	sl      *selenium.Service
+	wd      selenium.WebDriver
 }
 
 func (s suite) stop() {
@@ -50,17 +51,29 @@ func initSuite() (suite, error) {
 }
 
 func (s *suite) InitializeTestSuite(t *testing.T) func(ctx *godog.TestSuiteContext) {
-	s.brutalinksStartFn, s.brutalinksStopFn = initBrutalinks(t)
+	s.beginFn, s.endFn = mockBrutalinks(t)
 	return func(ctx *godog.TestSuiteContext) {
 		ctx.BeforeSuite(func() {
-			if err := s.brutalinksStartFn(); err != nil {
+			err := s.beginFn()
+			if err != nil {
 				t.Errorf("unable to start brutalinks: %s", err)
+				os.Exit(1)
+			}
+			if s.wd, err = selenium.NewRemote(caps, fmt.Sprintf("http://localhost:%d/wd/hub", seleniumPort)); err != nil {
+				t.Errorf("Failed to start web driver: %s", err)
 				os.Exit(1)
 			}
 		})
 		ctx.AfterSuite(func() {
-			if err := s.brutalinksStopFn(); err != nil {
+			if err := s.endFn(); err != nil {
 				t.Errorf("unable to stop brutalinks: %s", err)
+				os.Exit(1)
+			}
+			if s.wd == nil {
+				return
+			}
+			if err := s.wd.Quit(); err != nil {
+				t.Errorf("Failed to stop web driver: %s", err)
 				os.Exit(1)
 			}
 		})
@@ -72,18 +85,11 @@ var caps = selenium.Capabilities{"browserName": "chrome"}
 func (s *suite) InitializeScenario(t *testing.T) func(ctx *godog.ScenarioContext) {
 	return func(ctx *godog.ScenarioContext) {
 		ctx.Before(func(ctx context.Context, sc *godog.Scenario) (context.Context, error) {
-			var err error
-			if s.wd, err = selenium.NewRemote(caps, fmt.Sprintf("http://localhost:%d/wd/hub", seleniumPort)); err != nil {
-				t.Errorf("Failed to start web driver: %s", err)
-			}
-			return ctx, err
+			return ctx, nil
 		})
 		ctx.After(func(ctx context.Context, sc *godog.Scenario, err error) (context.Context, error) {
 			if err != nil {
 				t.Errorf("Error after: %s", err)
-			}
-			if err = s.wd.Quit(); err != nil {
-				t.Errorf("Failed to stop web driver: %s", err)
 			}
 			return ctx, err
 		})
@@ -103,7 +109,7 @@ var opts = godog.Options{
 var executorURL = "https://brutalinks.local"
 var apiURL = "https://fedbox.local"
 
-func initBrutalinks(t *testing.T) (func() error, func() error) {
+func mockBrutalinks(t *testing.T) (func() error, func() error) {
 	// NOTE(marius): needs to match the actor that we use in fedboxmock
 	os.Setenv(config.KeyFedBOXOAuthKey, "c4cdfe54-9919-4dd4-8a71-63beafe12b8c")
 	os.Setenv(config.KeyFedBOXOAuthSecret, "asd")
@@ -114,30 +120,43 @@ func initBrutalinks(t *testing.T) (func() error, func() error) {
 	c.CachingEnabled = false
 	// NOTE(marius): we need to mock FedBOX to return just some expected values
 	// Should I look into having brutalinks support connecting over a socket?
-	var fedboxStopFn func()
-	c.APIURL, fedboxStopFn = apiMockURL(t)
+	fedbox, err := mockFedBOX(t)
+	if err != nil {
+		t.Errorf("unable to start brutalinks: %s", err)
+		os.Exit(1)
+	}
+	c.APIURL = fedbox.Config().BaseURL
 	c.Secure = false
 	c.KeyPath = ""
 	c.CertPath = ""
 
 	errors.IncludeBacktrace = true
-	l := log.Dev(log.TraceLevel)
+	l := log.Dev(log.DebugLevel).WithContext(log.Ctx{"app": "brutalinks"})
+
+	rg, dtx := errgroup.WithContext(context.Background())
+	rg.Go(func() error { return fedbox.Run(dtx) })
+
+	time.Sleep(100 * time.Millisecond)
 
 	a, err := app.New(c, l, "127.0.0.1", 5443, runtime.Version())
 	if err != nil {
 		t.Errorf("unable to start brutalinks: %s", err)
 		os.Exit(1)
 	}
-	ctx, cancelFn := context.WithCancel(context.TODO())
+	ctx, cancelFn := context.WithCancel(dtx)
 	srvRun, srvStop := w.HttpServer(w.Handler(a.Mux), w.HTTP(a.Conf.Listen()))
 
+	startFn := func() error {
+		go srvRun()
+		return nil
+	}
 	stopFn := func() error {
 		defer cancelFn()
-		fedboxStopFn()
+		fedbox.Stop()
 		return srvStop(ctx)
 	}
 
-	return srvRun, stopFn
+	return startFn, stopFn
 }
 
 func (s *suite) siteIsUp() error {
