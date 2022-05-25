@@ -9,7 +9,7 @@ require (
 	github.com/go-ap/activitypub v0.0.0-20220525124636-1c635844632e
 	github.com/go-ap/client v0.0.0-20220525124938-e4f9fd1b45f7
 	github.com/go-ap/errors v0.0.0-20220522120501-423698972a61
-	github.com/go-ap/fedbox v0.0.0-20220525135019-227512419bf5
+	github.com/go-ap/fedbox v0.0.0-20220525153622-514adba4ec39
 	github.com/go-ap/handlers v0.0.0-20220525124910-f3dbe6e62181
 	github.com/go-ap/jsonld v0.0.0-20200327122108-fafac2de2660
 	github.com/go-chi/chi/v5 v5.0.4
