@@ -1,5 +1,4 @@
 //go:build prod || qa
-// +build prod qa
 
 package assets
 
@@ -15,7 +14,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-// generated with custom broccoli - see /assets.go
+// generated with the aletheia.icu/broccoli/fs package - see /assets.go
 var walkFsFn = assets.Walk
 var openFsFn = assets.Open
 

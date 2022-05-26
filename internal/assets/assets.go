@@ -16,10 +16,12 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-const (
-	templateDir = "templates/"
-	assetsDir   = "assets/"
+var (
+	TemplateDir = "templates/"
+	AssetsDir   = "assets/"
+)
 
+const (
 	year = 8766 * time.Hour
 )
 
@@ -37,7 +39,7 @@ func (a AssetFiles) SubresourceIntegrityHash(name string) (string, bool) {
 		if len(ext) <= 1 {
 			continue
 		}
-		dat, err := getFileContent(assetPath(ext[1:], asset))
+		dat, err := getFileContent(assetPath(asset))
 		if err != nil {
 			continue
 		}
@@ -58,7 +60,7 @@ func GetFullFile(name string) ([]byte, error) {
 // TemplateNames returns asset names necessary for unrolled.Render
 func TemplateNames() []string {
 	names := make([]string, 0)
-	walkFsFn(templateDir, func(path string, info os.FileInfo, err error) error {
+	walkFsFn(TemplateDir, func(path string, info os.FileInfo, err error) error {
 		if info != nil && !info.IsDir() {
 			names = append(names, path)
 		}
@@ -85,7 +87,7 @@ func getFileContent(name string) ([]byte, error) {
 }
 
 func assetPath(pieces ...string) string {
-	return path.Clean(path.Join(assetsDir, path.Join(pieces...)))
+	return path.Clean(path.Join(AssetsDir, path.Join(pieces...)))
 }
 
 // Svg returns an svg by path for display inside templates
@@ -98,7 +100,7 @@ func Style(name string) template.CSS {
 	return template.CSS(Asset()("css/" + name))
 }
 
-// Svg returns an svg by path for displaying inline
+// Js returns a javascript file by path for displaying inline
 func Js(name string) template.HTML {
 	return Asset()("js/" + name)
 }
