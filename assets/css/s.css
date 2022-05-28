@@ -1,0 +1,64 @@
+@media (max-width: 860px) {
+    :root {
+        font-size: 2vw;
+    }
+    a[rel="mention"] {
+        max-width: 100px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: inline-block;
+        vertical-align: bottom;
+    }
+    body > header menu a span {
+        display: none;
+    }
+}
+@media (max-width: 768px) {
+    :root {
+        font-size: 2.4vw;
+    }
+    nav:not(.pagination) li::before {
+        content: unset !important;
+    }
+    body > footer menu li:first-of-type {
+        display:inline-block;
+    }
+    section footer nav li a:not([rel="bookmark"]),
+    body > footer nav:not(.pagination) li,
+    body > header ul a span,
+    video {
+        width: 100%;
+    }
+}
+@media (max-width: 576px) {
+    :root {
+        font-size: 2.6vw;
+    }
+    section header h2 small,
+    body > header h1 a strong,
+    body > header h1 a small,
+    body > header nav li data {
+        display: none;
+    }
+    section footer {
+        font-size: .75em;
+    }
+    section footer::before {
+        content: unset;
+    }
+}
+@media (max-width: 480px) {
+    :root {
+        font-size: 3.6vw;
+    }
+    footer time svg,
+    body > header h1 a small {
+        display: none;
+    }
+}
+@media (max-width: 400px) {
+    :root {
+        font-size: 4.2vw;
+    }
+}

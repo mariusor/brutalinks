@@ -1,0 +1,15 @@
+@media (min-width: 2201px) {
+    :root {
+        font-size: .78vw;
+    }
+}
+@media (max-width: 2200px) {
+    :root {
+        font-size: .86vw;
+    }
+}
+@media (max-width: 1800px) {
+    :root {
+        font-size: 1.05vw;
+    }
+}

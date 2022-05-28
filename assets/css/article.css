@@ -201,11 +201,3 @@ form fieldset {
     padding: 0;
     margin: 0;
 }
-@media (max-width: 576px) {
-    section footer {
-        font-size: .75em;
-    }
-    section footer::before {
-        content: unset;
-    }
-}
