@@ -4,6 +4,11 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"os"
+	"runtime"
+	"testing"
+	"time"
+
 	w "git.sr.ht/~mariusor/wrapper"
 	"github.com/cucumber/godog"
 	"github.com/cucumber/godog/colors"
@@ -13,10 +18,6 @@ import (
 	"github.com/mariusor/go-littr/internal/log"
 	"github.com/tebeka/selenium"
 	"golang.org/x/sync/errgroup"
-	"os"
-	"runtime"
-	"testing"
-	"time"
 )
 
 const (
