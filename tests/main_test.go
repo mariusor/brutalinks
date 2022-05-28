@@ -25,6 +25,9 @@ const (
 	seleniumPath = "/usr/share/selenium-server/selenium-server-standalone.jar"
 	driverPath   = "/usr/bin/chromedriver"
 	seleniumPort = 4666
+
+	brutalinksPort = 5443
+	brutalinksHost = "127.0.0.1"
 )
 
 type suite struct {
@@ -118,6 +121,7 @@ func mockBrutalinks(t *testing.T) (func() error, func() error) {
 	os.Setenv(config.KeySessionAuthKey, "1234567890123456")
 	os.Setenv(config.KeySessionAuthKey, "9876543210987654")
 	c := config.Load(config.TEST, 10)
+	c.HostName = "brutalinks-test"
 	c.CachingEnabled = false
 	// NOTE(marius): we need to mock FedBOX to return just some expected values
 	// Should I look into having brutalinks support connecting over a socket?
@@ -136,10 +140,9 @@ func mockBrutalinks(t *testing.T) (func() error, func() error) {
 
 	rg, dtx := errgroup.WithContext(context.Background())
 	rg.Go(func() error { return fedbox.Run(dtx) })
-
 	time.Sleep(100 * time.Millisecond)
 
-	a, err := app.New(c, l, "127.0.0.1", 5443, runtime.Version())
+	a, err := app.New(c, l, brutalinksHost, brutalinksPort, runtime.Version())
 	if err != nil {
 		t.Errorf("unable to start brutalinks: %s", err)
 		os.Exit(1)

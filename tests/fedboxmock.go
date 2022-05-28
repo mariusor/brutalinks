@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path"
 	"runtime"
@@ -13,8 +14,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	fedboxHost = "127.0.0.1"
+	fedboxPort = 6667
+)
+
 func mockFedBOX(t *testing.T) (*fb.FedBOX, error) {
-	listen := "127.0.0.1:6667"
+	listen := fmt.Sprintf("%s:%d", fedboxHost, fedboxPort)
 	cwd, _ := os.Getwd()
 	mockPath := path.Join(cwd, "mocks")
 

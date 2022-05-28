@@ -67,3 +67,8 @@ test: download
 coverage: TEST_TARGET := .
 coverage: TEST_FLAGS += -covermode=count -coverprofile $(PROJECT_NAME).coverprofile
 coverage: test
+
+integration: ENV=prod
+integration: internal/assets/assets.gen.go download
+	make -C tests
+
