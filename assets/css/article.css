@@ -6,7 +6,7 @@ article > header > h2 {
     display: inline;
 }
 article footer {
-    opacity: .6;
+    opacity: .8;
     display: block;
 }
 article nav dl, article nav ul, article nav ol {
@@ -148,7 +148,7 @@ article.item aside.score {
     font-weight: lighter;
     font-size: .6em;
 }
-aside .icon-flag, .score .icon-users, .score .icon-recycle {
+aside .icon-flag, .score .icon-users, .score .icon-recycle, aside .icon-lock {
     opacity: .6;
 }
 .deleted aside a.ed, aside a[href="#"], aside a[href="#"]:visited {
