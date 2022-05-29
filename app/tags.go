@@ -24,9 +24,9 @@ type Tag struct {
 	Hash        Hash          `json:"hash"`
 	Type        string        `json:"-"`
 	Name        string        `json:"name,omitempty"`
-	URL         string        `json:"id,omitempty"`
+	URL         string        `json:"url,omitempty"`
 	SubmittedAt time.Time     `json:"-"`
-	SubmittedBy *Account      `json:"by,omitempty"`
+	SubmittedBy *Account      `json:"-"`
 	UpdatedAt   time.Time     `json:"-"`
 	UpdatedBy   *Account      `json:"-"`
 	Metadata    *ItemMetadata `json:"-"`

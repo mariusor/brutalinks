@@ -46,9 +46,9 @@ type AccountMetadata struct {
 	FollowersIRI          string             `json:"followers,omitempty"`
 	FollowingIRI          string             `json:"following,omitempty"`
 	OAuth                 OAuth              `json:"-"`
-	AuthorizationEndPoint string             `json:"-"`
-	TokenEndPoint         string             `json:"-"`
-	OutboxUpdated         time.Time          `json:"outboxUpdated"`
+	AuthorizationEndPoint string             `json:"authorizationEndPoint,omitempty"`
+	TokenEndPoint         string             `json:"tokenEndPoint,omitempty"`
+	OutboxUpdated         time.Time          `json:"outboxUpdated,omitempty"`
 	Outbox                pub.ItemCollection `json:"-"`
 }
 
