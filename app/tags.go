@@ -41,6 +41,9 @@ type TagCollection []Tag
 
 func (c TagCollection) Contains(t Tag) bool {
 	for _, tt := range c {
+		if tt.Hash.IsValid() && tt.Hash.String() == t.Hash.String() {
+			return true
+		}
 		if tt.Metadata != nil && t.Metadata != nil && tt.Metadata.ID == t.Metadata.ID {
 			return true
 		}

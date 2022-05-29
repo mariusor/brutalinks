@@ -178,7 +178,7 @@ func FromActor(a *Account, p *pub.Actor) error {
 		tags := TagCollection{}
 		tags.FromActivityPub(p.Tag)
 		for _, t := range tags {
-			if t.Type == TagTag {
+			if t.Type == TagTag && !a.Metadata.Tags.Contains(t) {
 				a.Metadata.Tags = append(a.Metadata.Tags, t)
 			}
 		}

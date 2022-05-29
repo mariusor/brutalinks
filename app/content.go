@@ -3,6 +3,7 @@ package app
 import (
 	"html/template"
 	"sort"
+	"strings"
 	"time"
 	"unicode"
 
@@ -34,6 +35,35 @@ const (
 
 func (f *FlagBits) FromInt64() error {
 	return nil
+}
+
+func (f FlagBits) MarshalJSON() ([]byte, error) {
+	pieces := make([]string, 0)
+	if f|FlagsDeleted == f {
+		pieces = append(pieces, "Deleted")
+	}
+	if f|FlagsOperator == f {
+		pieces = append(pieces, "Operator")
+	}
+	if f|FlagsModerator == f {
+		pieces = append(pieces, "Moderator")
+	}
+	if f|FlagsApplication == f {
+		pieces = append(pieces, "Application")
+	}
+	if f|FlagsGroup == f {
+		pieces = append(pieces, "Group")
+	}
+	if f|FlagsService == f {
+		pieces = append(pieces, "Service")
+	}
+	if f|FlagsPrivate == f {
+		pieces = append(pieces, "Private")
+	}
+	if len(pieces) == 0 {
+		return []byte("None"), nil
+	}
+	return []byte(`"` + strings.Join(pieces, "|") + `"`), nil
 }
 
 type ItemCollection []Item

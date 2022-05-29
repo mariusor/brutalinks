@@ -303,10 +303,18 @@ func loadAccountData(a *Account, b Account) {
 			a.Metadata.OutboxUpdated = b.Metadata.OutboxUpdated
 		}
 		if len(b.Metadata.Outbox) > 0 {
-			a.Metadata.Outbox = append(a.Metadata.Outbox, b.Metadata.Outbox...)
+			for _, ob := range b.Metadata.Outbox {
+				if !a.Metadata.Outbox.Contains(ob) {
+					a.Metadata.Outbox = append(a.Metadata.Outbox, b.Metadata.Outbox...)
+				}
+			}
 		}
 		if len(b.Metadata.Tags) > 0 {
-			a.Metadata.Tags = append(a.Metadata.Tags, b.Metadata.Tags...)
+			for _, tt := range b.Metadata.Tags {
+				if !a.Metadata.Tags.Contains(tt) {
+					a.Metadata.Tags = append(a.Metadata.Tags, tt)
+				}
+			}
 		}
 		if len(a.Metadata.Name) == 0 && len(b.Metadata.Name) > 0 {
 			a.Metadata.Name = b.Metadata.Name

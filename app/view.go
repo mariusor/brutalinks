@@ -2,6 +2,7 @@ package app
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"math"
@@ -259,6 +260,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"GetDomainURL":          GetDomainURL,
 			"GetDomainTitle":        GetDomainTitle,
 			"invitationLink":        GetInviteLink(v),
+			"accountJSON":           renderableMarshalJSON(v.errFn()),
 			//"ScoreFmt":          func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
 			//"NumberFmt":         func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
 		}},
@@ -1220,5 +1222,18 @@ func (v *view) RedirectWithFailMessage(successFn func() (bool, string)) func(htt
 			}
 			next.ServeHTTP(w, r)
 		})
+	}
+}
+
+func renderableMarshalJSON(logFn LogFn) func(r Renderable) template.JS {
+	return func(r Renderable) template.JS {
+		b, err := json.Marshal(r)
+		if err != nil {
+			logFn("unable to marshal account: %+v", err)
+		}
+		if b == nil {
+			return "null"
+		}
+		return template.JS(b)
 	}
 }

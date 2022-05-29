@@ -1322,8 +1322,9 @@ func assignTagsToAccounts(accounts AccountCollection, col pub.CollectionInterfac
 			for i, t := range a.Metadata.Tags {
 				if it.GetID().Equals(pub.IRI(t.Metadata.ID), true) {
 					tt := Tag{}
-					tt.FromActivityPub(it)
-					a.Metadata.Tags[i] = tt
+					if err := tt.FromActivityPub(it); err == nil && !a.Metadata.Tags.Contains(tt) {
+						a.Metadata.Tags[i] = tt
+					}
 				}
 			}
 		}

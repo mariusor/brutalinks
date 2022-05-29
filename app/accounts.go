@@ -45,11 +45,11 @@ type AccountMetadata struct {
 	LikedIRI              string             `json:"liked,omitempty"`
 	FollowersIRI          string             `json:"followers,omitempty"`
 	FollowingIRI          string             `json:"following,omitempty"`
-	OAuth                 OAuth              `json:-`
-	AuthorizationEndPoint string             `json:-`
-	TokenEndPoint         string             `json:-`
+	OAuth                 OAuth              `json:"-"`
+	AuthorizationEndPoint string             `json:"-"`
+	TokenEndPoint         string             `json:"-"`
 	OutboxUpdated         time.Time          `json:"outboxUpdated"`
-	Outbox                pub.ItemCollection `json:"outboxData"`
+	Outbox                pub.ItemCollection `json:"-"`
 }
 
 func (m *AccountMetadata) InvalidateOutbox() {
@@ -67,9 +67,9 @@ type Account struct {
 	UpdatedAt time.Time         `json:"-"`
 	Flags     FlagBits          `json:"flags,omitempty"`
 	Metadata  *AccountMetadata  `json:"metadata,omitempty"`
-	Pub       pub.Item          `json:"pub,omitempty"`
-	Followers AccountCollection `json:"followers,omitempty"`
-	Following AccountCollection `json:"following,omitempty"`
+	Pub       pub.Item          `json:"-"`
+	Followers AccountCollection `json:"-"`
+	Following AccountCollection `json:"-"`
 	Blocked   AccountCollection `json:"-"`
 	Ignored   AccountCollection `json:"-"`
 	Level     uint8             `json:"-"`

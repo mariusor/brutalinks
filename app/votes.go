@@ -34,7 +34,7 @@ type Vote struct {
 	Item        *Item         `json:"on"`
 	Flags       FlagBits      `json:"-"`
 	Metadata    *VoteMetadata `json:"-"`
-	Pub         *pub.Like     `json:"-"`
+	Pub         *pub.Activity `json:"-"`
 }
 
 func (v *Vote) ID() Hash {

@@ -10,7 +10,7 @@
 <main id={{current}}>{{ yield -}}</main>
 <footer>{{- template "partials/footer" . -}}</footer>
 {{$js := "/js/main.js"}}
-<script type="application/json" id="currentUser">{{- if $account.IsLogged -}}{{$account}}{{- else -}}null{{- end -}}</script>
+<script type="application/json" id="currentUser">{{- if $account.IsLogged -}}{{$account | accountJSON }}{{- else -}}null{{- end -}}</script>
 <script type="application/json" id="flashMessages">{{- LoadFlashMessages -}}</script>
 <script src="{{$js}}" async></script>
 </body>
