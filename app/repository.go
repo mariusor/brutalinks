@@ -608,6 +608,9 @@ func (r *repository) loadAccountsOutbox(ctx context.Context, acc *Account) error
 	return LoadFromSearches(ctx, r, searches, func(ctx context.Context, c pub.CollectionInterface, f *Filters) error {
 		var stop bool
 		for _, it := range c.Collection() {
+			if iri := it.GetLink(); !acc.Metadata.Outbox.Contains(iri) {
+				acc.Metadata.Outbox = append(acc.Metadata.Outbox, pub.FlattenProperties(it))
+			}
 			pub.OnActivity(it, func(a *pub.Activity) error {
 				stop = a.Published.Sub(oneYearishAgo) < 0
 				typ := it.GetType()
