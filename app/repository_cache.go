@@ -7,7 +7,6 @@ import (
 
 	pub "github.com/go-ap/activitypub"
 	"github.com/go-ap/client"
-	"github.com/go-ap/handlers"
 )
 
 type cacheEntries map[pub.IRI]pub.Item
@@ -81,7 +80,7 @@ func (c *cache) loadFromSearches(repo *repository, search RemoteLoads) error {
 	})
 }
 
-func colIRI(hc handlers.CollectionType) func(it pub.Item, fn ...client.FilterFn) pub.IRI {
+func colIRI(hc pub.CollectionPath) func(it pub.Item, fn ...client.FilterFn) pub.IRI {
 	return func(it pub.Item, fn ...client.FilterFn) pub.IRI {
 		return iri(hc.IRI(it), fn...)
 	}

@@ -7,7 +7,6 @@ import (
 
 	pub "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
-	"github.com/go-ap/handlers"
 	"github.com/microcosm-cc/bluemonday"
 )
 
@@ -476,10 +475,10 @@ func loadRecipientsFrom(recipients pub.ItemCollection) (AccountCollection, bool)
 			isPublic = true
 			continue
 		}
-		_, maybeCol := handlers.Split(rec.GetLink())
-		if handlers.ValidCollection(maybeCol) {
+		_, maybeCol := pub.Split(rec.GetLink())
+		if pub.ValidCollection(maybeCol) {
 			continue
-			if maybeCol != handlers.Followers && maybeCol != handlers.Following {
+			if maybeCol != pub.Followers && maybeCol != pub.Following {
 				// we don't know how to handle collections that don't contain accounts
 				continue
 			}

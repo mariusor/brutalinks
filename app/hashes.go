@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	pub "github.com/go-ap/activitypub"
-	"github.com/go-ap/handlers"
 	"github.com/google/uuid"
 )
 
@@ -31,7 +30,7 @@ func HashFromItem(obj pub.Item) Hash {
 	if len(iri) == 0 {
 		return AnonymousHash
 	}
-	actor, _ := handlers.Split(iri)
+	actor, _ := pub.Split(iri)
 	h := path.Base(actor.String())
 	if h == "." {
 		h = ""

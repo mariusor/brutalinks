@@ -15,7 +15,6 @@ import (
 	pub "github.com/go-ap/activitypub"
 	"github.com/go-ap/client"
 	"github.com/go-ap/errors"
-	"github.com/go-ap/handlers"
 	j "github.com/go-ap/jsonld"
 	"github.com/mariusor/go-littr/internal/log"
 	"github.com/mariusor/qstring"
@@ -394,7 +393,7 @@ var anonymousActor = &pub.Actor{
 
 func anonymousPerson(url pub.IRI) *pub.Actor {
 	p := anonymousActor
-	p.Inbox = handlers.Inbox.IRI(url)
+	p.Inbox = pub.Inbox.IRI(url)
 	return p
 }
 
@@ -1998,7 +1997,7 @@ func (r *repository) ModerateDelete(ctx context.Context, mod ModerationOp, autho
 		if it.Parent == nil && it.SubmittedBy.HasMetadata() && len(it.SubmittedBy.Metadata.FollowersIRI) > 0 {
 			cc = append(cc, pub.IRI(it.SubmittedBy.Metadata.FollowersIRI))
 		}
-		cc = append(cc, r.app.Pub.GetLink(), handlers.Followers.IRI(r.app.Pub))
+		cc = append(cc, r.app.Pub.GetLink(), pub.Followers.IRI(r.app.Pub))
 		bcc = append(bcc, r.fedbox.Service().ID)
 	}
 
@@ -2117,7 +2116,7 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 		if it.Parent == nil && it.SubmittedBy.HasMetadata() && len(it.SubmittedBy.Metadata.FollowersIRI) > 0 {
 			cc = append(cc, pub.IRI(it.SubmittedBy.Metadata.FollowersIRI))
 		}
-		cc = append(cc, r.app.Pub.GetLink(), handlers.Followers.IRI(r.app.Pub))
+		cc = append(cc, r.app.Pub.GetLink(), pub.Followers.IRI(r.app.Pub))
 		bcc = append(bcc, r.fedbox.Service().ID)
 	}
 
@@ -2339,7 +2338,7 @@ func (r *repository) SendFollowResponse(ctx context.Context, f FollowRequest, ac
 	bcc := make(pub.ItemCollection, 0)
 
 	to = append(to, pub.IRI(er.Metadata.ID))
-	cc = append(cc, r.app.Pub.GetLink(), handlers.Followers.IRI(r.app.Pub))
+	cc = append(cc, r.app.Pub.GetLink(), pub.Followers.IRI(r.app.Pub))
 	bcc = append(bcc, r.fedbox.Service().ID)
 
 	response := new(pub.Activity)
@@ -2391,7 +2390,7 @@ func (r *repository) FollowActor(ctx context.Context, follower, followed *pub.Ac
 	bcc := make(pub.ItemCollection, 0)
 
 	to = append(to, pub.PublicNS)
-	cc = append(cc, r.app.Pub.GetLink(), handlers.Followers.IRI(r.app.Pub))
+	cc = append(cc, r.app.Pub.GetLink(), pub.Followers.IRI(r.app.Pub))
 	bcc = append(bcc, r.fedbox.Service().ID)
 
 	follow := new(pub.Follow)
@@ -2490,7 +2489,7 @@ func (r repository) moderationActivity(ctx context.Context, er *pub.Actor, ed pu
 
 	// We need to add the ed/er accounts' creators to the CC list
 	cc := make(pub.ItemCollection, 0)
-	cc = append(cc, r.app.Pub.GetLink(), handlers.Followers.IRI(r.app.Pub))
+	cc = append(cc, r.app.Pub.GetLink(), pub.Followers.IRI(r.app.Pub))
 	if er.AttributedTo != nil && !er.AttributedTo.GetLink().Equals(pub.PublicNS, true) {
 		cc = append(cc, er.AttributedTo.GetLink())
 	}

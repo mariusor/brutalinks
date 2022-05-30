@@ -12,14 +12,13 @@ import (
 	pub "github.com/go-ap/activitypub"
 	"github.com/go-ap/client"
 	"github.com/go-ap/errors"
-	"github.com/go-ap/handlers"
 	"github.com/mariusor/go-littr/internal/log"
 )
 
 const (
-	activities = handlers.CollectionType("activities")
-	actors     = handlers.CollectionType("actors")
-	objects    = handlers.CollectionType("objects")
+	activities = pub.CollectionPath("activities")
+	actors     = pub.CollectionPath("actors")
+	objects    = pub.CollectionPath("objects")
 )
 
 type fedbox struct {
@@ -98,11 +97,11 @@ func withAccount(a *Account) (client.RequestSignFn, error) {
 		if HostIsLocal(req.URL.String()) {
 			return c2sSign(a, req)
 		} else {
-			collection := handlers.CollectionType(path.Base(req.URL.Path))
-			if collection == handlers.Inbox {
+			collection := pub.CollectionPath(path.Base(req.URL.Path))
+			if collection == pub.Inbox {
 				return s2sSign(a, req)
 			}
-			if collection == handlers.Outbox {
+			if collection == pub.Outbox {
 				return c2sSign(a, req)
 			}
 		}
@@ -239,43 +238,43 @@ func iri(i pub.IRI, f ...client.FilterFn) pub.IRI {
 }
 
 func inbox(a pub.Item, f ...client.FilterFn) pub.IRI {
-	return iri(handlers.Inbox.IRI(a), f...)
+	return iri(pub.Inbox.IRI(a), f...)
 }
 
 func outbox(a pub.Item, f ...client.FilterFn) pub.IRI {
-	return iri(handlers.Outbox.IRI(a), f...)
+	return iri(pub.Outbox.IRI(a), f...)
 }
 
 func following(a pub.Item, f ...client.FilterFn) pub.IRI {
-	return iri(handlers.Following.IRI(a), f...)
+	return iri(pub.Following.IRI(a), f...)
 }
 
 func followers(a pub.Item, f ...client.FilterFn) pub.IRI {
-	return iri(handlers.Followers.IRI(a), f...)
+	return iri(pub.Followers.IRI(a), f...)
 }
 
 func liked(a pub.Item, f ...client.FilterFn) pub.IRI {
-	return iri(handlers.Liked.IRI(a), f...)
+	return iri(pub.Liked.IRI(a), f...)
 }
 
 func likes(o pub.Item, f ...client.FilterFn) pub.IRI {
-	return iri(handlers.Likes.IRI(o), f...)
+	return iri(pub.Likes.IRI(o), f...)
 }
 
 func shares(o pub.Item, f ...client.FilterFn) pub.IRI {
-	return iri(handlers.Shares.IRI(o), f...)
+	return iri(pub.Shares.IRI(o), f...)
 }
 
 func replies(o pub.Item, f ...client.FilterFn) pub.IRI {
-	return iri(handlers.Replies.IRI(o), f...)
+	return iri(pub.Replies.IRI(o), f...)
 }
 
 func blocked(a pub.Item, f ...client.FilterFn) pub.IRI {
-	return iri(handlers.CollectionType("blocked").IRI(a), f...)
+	return iri(pub.CollectionPath("blocked").IRI(a), f...)
 }
 
 func ignored(a pub.Item, f ...client.FilterFn) pub.IRI {
-	return iri(handlers.CollectionType("ignored").IRI(a), f...)
+	return iri(pub.CollectionPath("ignored").IRI(a), f...)
 }
 
 func validateActor(a pub.Item) error {

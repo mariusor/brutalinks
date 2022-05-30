@@ -6,12 +6,11 @@ require (
 	aletheia.icu/broccoli/fs v0.0.0-20210820105650-3e2e00017061
 	git.sr.ht/~mariusor/wrapper v0.0.0-20211204195804-3033a1099e0f
 	github.com/cucumber/godog v0.12.5
-	github.com/go-ap/activitypub v0.0.0-20220529131953-897ab70990db
+	github.com/go-ap/activitypub v0.0.0-20220530124813-495ce2ea6660
 	github.com/go-ap/auth v0.0.0-20220525125009-d1fc4077ea0d
-	github.com/go-ap/client v0.0.0-20220529132740-811964b0313e
+	github.com/go-ap/client v0.0.0-20220530125359-8bbea236a927
 	github.com/go-ap/errors v0.0.0-20220529131844-4c7dbeabb369
 	github.com/go-ap/fedbox v0.0.0-20220525153622-514adba4ec39
-	github.com/go-ap/handlers v0.0.0-20220529132534-5e6616a8d55b
 	github.com/go-ap/jsonld v0.0.0-20200327122108-fafac2de2660
 	github.com/go-chi/chi/v5 v5.0.4
 	github.com/google/uuid v1.3.0
@@ -49,6 +48,7 @@ require (
 	github.com/dgraph-io/ristretto v0.1.0 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
+	github.com/go-ap/handlers v0.0.0-20220529132534-5e6616a8d55b // indirect
 	github.com/go-ap/httpsig v0.0.0-20210714162115-62a09257db51 // indirect
 	github.com/go-ap/processing v0.0.0-20220525125052-f0f14c6df872 // indirect
 	github.com/go-ap/storage v0.0.0-20220529132413-43d0dcf851c6 // indirect
