@@ -41,6 +41,7 @@ all: brutalinks
 
 download:
 	$(GO) mod download all
+	$(GO) mod tidy
 
 internal/assets/assets.gen.go: $(ASSETFILES) download
 	go generate -tags $(ENV) ./assets.go
