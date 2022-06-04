@@ -6,9 +6,9 @@ require (
 	aletheia.icu/broccoli/fs v0.0.0-20210820105650-3e2e00017061
 	git.sr.ht/~mariusor/wrapper v0.0.0-20211204195804-3033a1099e0f
 	github.com/cucumber/godog v0.12.5
-	github.com/go-ap/activitypub v0.0.0-20220530124813-495ce2ea6660
+	github.com/go-ap/activitypub v0.0.0-20220604144731-6917e06269f5
 	github.com/go-ap/auth v0.0.0-20220530132005-b4f76bb7566d
-	github.com/go-ap/client v0.0.0-20220530144553-cf78a2abf269
+	github.com/go-ap/client v0.0.0-20220604145041-2fd7a6529cc2
 	github.com/go-ap/errors v0.0.0-20220529131844-4c7dbeabb369
 	github.com/go-ap/fedbox v0.0.0-20220530140511-572a67748b49
 	github.com/go-ap/jsonld v0.0.0-20200327122108-fafac2de2660
