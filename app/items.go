@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	pub "github.com/go-ap/activitypub"
+	vocab "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
 	"github.com/go-chi/chi/v5"
 )
@@ -26,20 +26,20 @@ type ItemMetadata struct {
 	Icon       ImageMetadata     `json:"icon,omitempty"`
 }
 
-var ValidContentTypes = pub.ActivityVocabularyTypes{
-	pub.ArticleType,
-	pub.NoteType,
-	pub.LinkType,
-	pub.PageType,
-	pub.DocumentType,
-	pub.VideoType,
-	pub.AudioType,
+var ValidContentTypes = vocab.ActivityVocabularyTypes{
+	vocab.ArticleType,
+	vocab.NoteType,
+	vocab.LinkType,
+	vocab.PageType,
+	vocab.DocumentType,
+	vocab.VideoType,
+	vocab.AudioType,
 }
 
-var ValidContentManagementTypes = pub.ActivityVocabularyTypes{
-	pub.UpdateType,
-	pub.CreateType,
-	pub.DeleteType,
+var ValidContentManagementTypes = vocab.ActivityVocabularyTypes{
+	vocab.UpdateType,
+	vocab.CreateType,
+	vocab.DeleteType,
 }
 
 var ContentManagementActivitiesFilter = ActivityTypesFilter(ValidContentManagementTypes...)
@@ -53,7 +53,7 @@ func (i *Item) IsValid() bool {
 }
 
 // AP returns the underlying actvitypub item
-func (i *Item) AP() pub.Item {
+func (i *Item) AP() vocab.Item {
 	return i.Pub
 }
 

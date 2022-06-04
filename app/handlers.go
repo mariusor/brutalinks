@@ -10,7 +10,7 @@ import (
 	"path"
 	"strings"
 
-	pub "github.com/go-ap/activitypub"
+	vocab "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
 	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/csrf"
@@ -295,7 +295,7 @@ func (h *handler) HandleFollowInstanceRequest(w http.ResponseWriter, r *http.Req
 	}
 	repo := ContextRepository(r.Context())
 	// Load instance actor
-	fol, err := repo.fedbox.Actor(context.TODO(), pub.IRI(instanceURL))
+	fol, err := repo.fedbox.Actor(context.TODO(), vocab.IRI(instanceURL))
 	if err != nil {
 		h.v.HandleErrors(w, r, err)
 		return

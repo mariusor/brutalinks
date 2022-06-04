@@ -5,20 +5,20 @@ import (
 	"encoding/pem"
 	"net/url"
 
-	pub "github.com/go-ap/activitypub"
+	vocab "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
 	"github.com/microcosm-cc/bluemonday"
 )
 
 type Converter interface {
-	FromActivityPub(ob pub.Item) error
+	FromActivityPub(ob vocab.Item) error
 }
 
-func (h *Hash) FromActivityPub(it pub.Item) error {
+func (h *Hash) FromActivityPub(it vocab.Item) error {
 	if it == nil {
 		return nil
 	}
-	if it.GetLink() == pub.PublicNS {
+	if it.GetLink() == vocab.PublicNS {
 		*h = AnonymousHash
 		return nil
 	}
@@ -26,7 +26,7 @@ func (h *Hash) FromActivityPub(it pub.Item) error {
 	return nil
 }
 
-func FromObject(a *Account, o *pub.Object) error {
+func FromObject(a *Account, o *vocab.Object) error {
 	a.Hash.FromActivityPub(o)
 	name := o.Name.First().Value
 	if len(name) > 0 {
@@ -47,11 +47,11 @@ func FromObject(a *Account, o *pub.Object) error {
 		}
 	}
 	if o.Icon != nil {
-		pub.OnObject(o.Icon, func(o *pub.Object) error {
+		vocab.OnObject(o.Icon, func(o *vocab.Object) error {
 			return iconMetadataFromObject(&a.Metadata.Icon, o)
 		})
 	}
-	if o.GetType() == pub.TombstoneType {
+	if o.GetType() == vocab.TombstoneType {
 		a.Handle = Deleted
 		a.Flags = a.Flags | FlagsDeleted
 	}
@@ -69,7 +69,7 @@ func FromObject(a *Account, o *pub.Object) error {
 	return nil
 }
 
-func FromActor(a *Account, p *pub.Actor) error {
+func FromActor(a *Account, p *vocab.Actor) error {
 	a.Hash.FromActivityPub(p)
 	name := p.Name.First().Value
 	if len(name) > 0 {
@@ -90,14 +90,14 @@ func FromActor(a *Account, p *pub.Actor) error {
 		}
 	}
 	switch p.GetType() {
-	case pub.TombstoneType:
+	case vocab.TombstoneType:
 		a.Handle = Deleted
 		a.Flags = a.Flags | FlagsDeleted
-	case pub.GroupType:
+	case vocab.GroupType:
 		a.Flags = a.Flags | FlagsGroup
-	case pub.ApplicationType:
+	case vocab.ApplicationType:
 		a.Flags = a.Flags | FlagsApplication
-	case pub.ServiceType:
+	case vocab.ServiceType:
 		a.Flags = a.Flags | FlagsService
 	}
 	if !p.Published.IsZero() {
@@ -112,7 +112,7 @@ func FromActor(a *Account, p *pub.Actor) error {
 		a.CreatedBy = &act
 	}
 	pName := p.PreferredUsername.First().Value
-	if pName.Equals(pub.Content("")) {
+	if pName.Equals(vocab.Content("")) {
 		pName = p.Name.First().Value
 	}
 	sum := p.Summary.First().Value
@@ -136,12 +136,12 @@ func FromActor(a *Account, p *pub.Actor) error {
 		a.Metadata.LikedIRI = p.Liked.GetLink().String()
 	}
 	if p.Icon != nil {
-		pub.OnObject(p.Icon, func(o *pub.Object) error {
+		vocab.OnObject(p.Icon, func(o *vocab.Object) error {
 			return iconMetadataFromObject(&a.Metadata.Icon, o)
 		})
 	}
 	if p.Icon != nil {
-		pub.OnObject(p.Icon, func(ic *pub.Object) error {
+		vocab.OnObject(p.Icon, func(ic *vocab.Object) error {
 			a.Metadata.Icon = ImageMetadata{
 				MimeType: string(ic.MediaType),
 			}
@@ -205,7 +205,7 @@ func FromActor(a *Account, p *pub.Actor) error {
 	return nil
 }
 
-func (a *Account) FromActivityPub(it pub.Item) error {
+func (a *Account) FromActivityPub(it vocab.Item) error {
 	if a == nil {
 		return nil
 	}
@@ -215,7 +215,7 @@ func (a *Account) FromActivityPub(it pub.Item) error {
 	}
 	if it.IsLink() {
 		iri := it.GetLink()
-		if iri == pub.PublicNS {
+		if iri == vocab.PublicNS {
 			*a = AnonymousAccount
 		}
 		if iri.String() == Instance.Conf.APIURL {
@@ -228,10 +228,10 @@ func (a *Account) FromActivityPub(it pub.Item) error {
 		return nil
 	}
 	switch it.GetType() {
-	case pub.IgnoreType, pub.BlockType, pub.FlagType:
+	case vocab.IgnoreType, vocab.BlockType, vocab.FlagType:
 		fallthrough
-	case pub.CreateType, pub.UpdateType:
-		return pub.OnActivity(it, func(act *pub.Activity) error {
+	case vocab.CreateType, vocab.UpdateType:
+		return vocab.OnActivity(it, func(act *vocab.Activity) error {
 			err := a.FromActivityPub(act.Object)
 			if !a.CreatedBy.IsValid() {
 				acc := Account{}
@@ -240,12 +240,12 @@ func (a *Account) FromActivityPub(it pub.Item) error {
 			}
 			return err
 		})
-	case pub.TombstoneType:
-		return pub.OnObject(it, func(o *pub.Object) error {
+	case vocab.TombstoneType:
+		return vocab.OnObject(it, func(o *vocab.Object) error {
 			return FromObject(a, o)
 		})
-	case pub.ServiceType, pub.GroupType, pub.ApplicationType, pub.OrganizationType, pub.PersonType:
-		return pub.OnActor(it, func(p *pub.Actor) error {
+	case vocab.ServiceType, vocab.GroupType, vocab.ApplicationType, vocab.OrganizationType, vocab.PersonType:
+		return vocab.OnActor(it, func(p *vocab.Actor) error {
 			return FromActor(a, p)
 		})
 	default:
@@ -259,7 +259,7 @@ func (a *Account) FromActivityPub(it pub.Item) error {
 	return nil
 }
 
-func FromObjectWithBinaryData(i *Item, a *pub.Object) error {
+func FromObjectWithBinaryData(i *Item, a *vocab.Object) error {
 	err := FromArticle(i, a)
 	if err != nil {
 		return err
@@ -267,7 +267,7 @@ func FromObjectWithBinaryData(i *Item, a *pub.Object) error {
 	return nil
 }
 
-func iconMetadataFromObject(m *ImageMetadata, o *pub.Object) error {
+func iconMetadataFromObject(m *ImageMetadata, o *vocab.Object) error {
 	if m == nil || o == nil {
 		return nil
 	}
@@ -287,7 +287,7 @@ func iconMetadataFromObject(m *ImageMetadata, o *pub.Object) error {
 	return nil
 }
 
-func FromMention(t *Tag, a *pub.Mention) error {
+func FromMention(t *Tag, a *vocab.Mention) error {
 	t.Hash.FromActivityPub(a)
 	if title := a.Name.First().Value; len(title) > 0 {
 		t.Name = title.String()
@@ -307,13 +307,13 @@ func FromMention(t *Tag, a *pub.Mention) error {
 	return nil
 }
 
-func FromTag(t *Tag, a *pub.Object) error {
+func FromTag(t *Tag, a *vocab.Object) error {
 	t.Hash.FromActivityPub(a)
 	if title := a.Name.First().Value; len(title) > 0 {
 		t.Name = title.String()
 	}
 	t.Type = TagTag
-	if a.Type == pub.MentionType {
+	if a.Type == vocab.MentionType {
 		t.Type = TagMention
 	}
 	t.SubmittedAt = a.Published
@@ -338,7 +338,7 @@ func FromTag(t *Tag, a *pub.Object) error {
 		t.URL = tUrl.String()
 	}
 	if a.Icon != nil {
-		pub.OnObject(a.Icon, func(o *pub.Object) error {
+		vocab.OnObject(a.Icon, func(o *vocab.Object) error {
 			return iconMetadataFromObject(&t.Metadata.Icon, o)
 		})
 	}
@@ -369,7 +369,7 @@ func BlueMondayPolicy() *bluemonday.Policy {
 	return p
 }
 
-func FromArticle(i *Item, a *pub.Object) error {
+func FromArticle(i *Item, a *vocab.Object) error {
 	i.Hash.FromActivityPub(a)
 	if len(a.Name) > 0 {
 		i.Title = a.Name.First().Value.String()
@@ -404,7 +404,7 @@ func FromArticle(i *Item, a *pub.Object) error {
 		}
 	}
 	if a.Icon != nil {
-		pub.OnObject(a.Icon, func(o *pub.Object) error {
+		vocab.OnObject(a.Icon, func(o *vocab.Object) error {
 			return iconMetadataFromObject(&i.Metadata.Icon, o)
 		})
 	}
@@ -414,7 +414,7 @@ func FromArticle(i *Item, a *pub.Object) error {
 		i.OP = &op
 	}
 	if a.InReplyTo != nil {
-		if repl, ok := a.InReplyTo.(pub.ItemCollection); ok {
+		if repl, ok := a.InReplyTo.(vocab.ItemCollection); ok {
 			if len(repl) >= 1 {
 				first := repl.First()
 				if first != nil {
@@ -467,18 +467,18 @@ func FromArticle(i *Item, a *pub.Object) error {
 	return nil
 }
 
-func loadRecipientsFrom(recipients pub.ItemCollection) (AccountCollection, bool) {
+func loadRecipientsFrom(recipients vocab.ItemCollection) (AccountCollection, bool) {
 	result := make(AccountCollection, 0)
 	isPublic := false
 	for _, rec := range recipients {
-		if rec == pub.PublicNS {
+		if rec == vocab.PublicNS {
 			isPublic = true
 			continue
 		}
-		_, maybeCol := pub.Split(rec.GetLink())
-		if pub.ValidCollection(maybeCol) {
+		_, maybeCol := vocab.Split(rec.GetLink())
+		if vocab.ValidCollection(maybeCol) {
 			continue
-			if maybeCol != pub.Followers && maybeCol != pub.Following {
+			if maybeCol != vocab.Followers && maybeCol != vocab.Following {
 				// we don't know how to handle collections that don't contain accounts
 				continue
 			}
@@ -499,9 +499,9 @@ func loadRecipientsFrom(recipients pub.ItemCollection) (AccountCollection, bool)
 	return result, isPublic
 }
 
-func loadRecipients(i *Item, it pub.Item) error {
+func loadRecipients(i *Item, it vocab.Item) error {
 	i.MakePrivate()
-	return pub.OnObject(it, func(o *pub.Object) error {
+	return vocab.OnObject(it, func(o *vocab.Object) error {
 		isPublic := false
 		i.Metadata.To, isPublic = loadRecipientsFrom(o.To)
 		if isPublic {
@@ -515,13 +515,13 @@ func loadRecipients(i *Item, it pub.Item) error {
 	})
 }
 
-func (t *Tag) FromActivityPub(it pub.Item) error {
+func (t *Tag) FromActivityPub(it vocab.Item) error {
 	if it == nil {
 		return errors.Newf("nil tag received")
 	}
 	t.Pub = it
 	typ := it.GetType()
-	if it.IsLink() && typ != pub.MentionType {
+	if it.IsLink() && typ != vocab.MentionType {
 		t.Hash.FromActivityPub(it.GetLink())
 		t.Type = TagTag
 		t.Metadata = &ItemMetadata{
@@ -530,13 +530,13 @@ func (t *Tag) FromActivityPub(it pub.Item) error {
 		return nil
 	}
 	switch typ {
-	case pub.DeleteType:
-		return pub.OnActivity(it, func(act *pub.Activity) error {
+	case vocab.DeleteType:
+		return vocab.OnActivity(it, func(act *vocab.Activity) error {
 			return t.FromActivityPub(act.Object)
 		})
-	case pub.CreateType, pub.UpdateType, pub.ActivityType:
-		return pub.OnActivity(it, func(act *pub.Activity) error {
-			if (pub.ActivityVocabularyTypes{pub.CreateType, pub.UpdateType}).Contains(act.Type) {
+	case vocab.CreateType, vocab.UpdateType, vocab.ActivityType:
+		return vocab.OnActivity(it, func(act *vocab.Activity) error {
+			if (vocab.ActivityVocabularyTypes{vocab.CreateType, vocab.UpdateType}).Contains(act.Type) {
 				return errors.Newf("Invalid activity to load from %s", act.Type)
 			}
 			if err := t.FromActivityPub(act.Object); err != nil {
@@ -549,11 +549,11 @@ func (t *Tag) FromActivityPub(it pub.Item) error {
 			t.Metadata.AuthorURI = act.Actor.GetLink().String()
 			return nil
 		})
-	case pub.MentionType:
-		return pub.OnLink(it, func(m *pub.Mention) error {
+	case vocab.MentionType:
+		return vocab.OnLink(it, func(m *vocab.Mention) error {
 			return FromMention(t, m)
 		})
-	case pub.TombstoneType:
+	case vocab.TombstoneType:
 		id := it.GetLink()
 		t.Hash.FromActivityPub(id)
 		t.Type = TagTag
@@ -564,28 +564,28 @@ func (t *Tag) FromActivityPub(it pub.Item) error {
 			t.Metadata.ID = id.String()
 		}
 		t.SubmittedBy = &AnonymousAccount
-		pub.OnTombstone(it, func(o *pub.Tombstone) error {
-			if o.FormerType == pub.MentionType {
+		vocab.OnTombstone(it, func(o *vocab.Tombstone) error {
+			if o.FormerType == vocab.MentionType {
 				t.Type = TagMention
 			}
 			return nil
 		})
-		pub.OnObject(it, func(o *pub.Object) error {
+		vocab.OnObject(it, func(o *vocab.Object) error {
 			t.SubmittedAt = o.Published
 			t.UpdatedAt = o.Updated
 			return nil
 		})
-	case pub.ObjectType:
+	case vocab.ObjectType:
 		fallthrough
 	default:
-		return pub.OnObject(it, func(o *pub.Object) error {
+		return vocab.OnObject(it, func(o *vocab.Object) error {
 			return FromTag(t, o)
 		})
 	}
 	return nil
 }
 
-func (i *Item) FromActivityPub(it pub.Item) error {
+func (i *Item) FromActivityPub(it vocab.Item) error {
 	if it == nil {
 		return errors.Newf("nil item received")
 	}
@@ -598,16 +598,16 @@ func (i *Item) FromActivityPub(it pub.Item) error {
 		return nil
 	}
 	switch it.GetType() {
-	case pub.DeleteType:
-		return pub.OnActivity(it, func(act *pub.Activity) error {
+	case vocab.DeleteType:
+		return vocab.OnActivity(it, func(act *vocab.Activity) error {
 			err := i.FromActivityPub(act.Object)
 			i.Delete()
 			return err
 		})
-	case pub.CreateType, pub.UpdateType, pub.ActivityType:
-		return pub.OnActivity(it, func(act *pub.Activity) error {
+	case vocab.CreateType, vocab.UpdateType, vocab.ActivityType:
+		return vocab.OnActivity(it, func(act *vocab.Activity) error {
 			// TODO(marius): this logic is probably broken if the activity is anything else except a Create
-			if !(pub.ActivityVocabularyTypes{pub.CreateType, pub.UpdateType}).Contains(act.Type) {
+			if !(vocab.ActivityVocabularyTypes{vocab.CreateType, vocab.UpdateType}).Contains(act.Type) {
 				return errors.Newf("Invalid activity to load from %s", act.Type)
 			}
 			if err := i.FromActivityPub(act.Object); err != nil {
@@ -620,15 +620,15 @@ func (i *Item) FromActivityPub(it pub.Item) error {
 			i.Metadata.AuthorURI = act.Actor.GetLink().String()
 			return loadRecipients(i, act)
 		})
-	case pub.ArticleType, pub.NoteType, pub.DocumentType, pub.PageType:
-		return pub.OnObject(it, func(a *pub.Object) error {
+	case vocab.ArticleType, vocab.NoteType, vocab.DocumentType, vocab.PageType:
+		return vocab.OnObject(it, func(a *vocab.Object) error {
 			return FromArticle(i, a)
 		})
-	case pub.ImageType, pub.VideoType, pub.AudioType:
-		return pub.OnObject(it, func(a *pub.Object) error {
+	case vocab.ImageType, vocab.VideoType, vocab.AudioType:
+		return vocab.OnObject(it, func(a *vocab.Object) error {
 			return FromObjectWithBinaryData(i, a)
 		})
-	case pub.TombstoneType:
+	case vocab.TombstoneType:
 		id := it.GetLink()
 		i.Hash.FromActivityPub(id)
 		if i.Metadata == nil {
@@ -637,7 +637,7 @@ func (i *Item) FromActivityPub(it pub.Item) error {
 		if len(id) > 0 {
 			i.Metadata.ID = id.String()
 		}
-		pub.OnObject(it, func(o *pub.Object) error {
+		vocab.OnObject(it, func(o *vocab.Object) error {
 			if o.Context != nil {
 				op := new(Item)
 				if err := op.FromActivityPub(o.Context); err == nil {
@@ -645,7 +645,7 @@ func (i *Item) FromActivityPub(it pub.Item) error {
 				}
 			}
 			if o.InReplyTo != nil {
-				if repl, ok := o.InReplyTo.(pub.ItemCollection); ok {
+				if repl, ok := o.InReplyTo.(vocab.ItemCollection); ok {
 					first := repl.First()
 					if first != nil {
 						par := new(Item)
@@ -669,7 +669,7 @@ func (i *Item) FromActivityPub(it pub.Item) error {
 			i.SubmittedAt = o.Published
 			return nil
 		})
-		pub.OnTombstone(it, func(t *pub.Tombstone) error {
+		vocab.OnTombstone(it, func(t *vocab.Tombstone) error {
 			i.UpdatedAt = t.Deleted
 			if i.SubmittedAt.IsZero() {
 				i.SubmittedAt = i.UpdatedAt
@@ -685,17 +685,17 @@ func (i *Item) FromActivityPub(it pub.Item) error {
 	return nil
 }
 
-func (v *Vote) FromActivityPub(it pub.Item) error {
+func (v *Vote) FromActivityPub(it vocab.Item) error {
 	if it == nil {
 		return errors.Newf("nil item received")
 	}
-	v.Pub, _ = it.(*pub.Activity)
+	v.Pub, _ = it.(*vocab.Activity)
 	if it.IsLink() {
 		return errors.Newf("unable to load from IRI")
 	}
 	switch it.GetType() {
-	case pub.UndoType, pub.LikeType, pub.DislikeType:
-		fromAct := func(act pub.Activity, v *Vote) {
+	case vocab.UndoType, vocab.LikeType, vocab.DislikeType:
+		fromAct := func(act vocab.Activity, v *Vote) {
 			on := Item{}
 			on.FromActivityPub(act.Object)
 			v.Item = &on
@@ -710,18 +710,18 @@ func (v *Vote) FromActivityPub(it pub.Item) error {
 				IRI: act.GetLink().String(),
 			}
 
-			if act.Type == pub.LikeType {
+			if act.Type == vocab.LikeType {
 				v.Weight = 1
 			}
-			if act.Type == pub.DislikeType {
+			if act.Type == vocab.DislikeType {
 				v.Weight = -1
 			}
-			if act.Type == pub.UndoType {
+			if act.Type == vocab.UndoType {
 				v.Weight = 0
 				v.Metadata.OriginalIRI = act.Object.GetLink().String()
 			}
 		}
-		pub.OnActivity(it, func(act *pub.Activity) error {
+		vocab.OnActivity(it, func(act *vocab.Activity) error {
 			fromAct(*act, v)
 			return nil
 		})
@@ -744,18 +744,18 @@ func host(u string) string {
 	return u
 }
 
-func (c *TagCollection) FromActivityPub(tag pub.Item) error {
+func (c *TagCollection) FromActivityPub(tag vocab.Item) error {
 	if tag == nil {
 		return errors.Newf("empty collection")
 	}
-	appendTag := func(it pub.Item) error {
+	appendTag := func(it vocab.Item) error {
 		t := Tag{}
 		t.FromActivityPub(it)
 		*c = append(*c, t)
 		return nil
 	}
 	if tag.IsCollection() {
-		return pub.OnCollectionIntf(tag, func(c pub.CollectionInterface) error {
+		return vocab.OnCollectionIntf(tag, func(c vocab.CollectionInterface) error {
 			for _, it := range c.Collection() {
 				appendTag(it)
 			}
@@ -766,24 +766,24 @@ func (c *TagCollection) FromActivityPub(tag pub.Item) error {
 	}
 }
 
-func LoadFromActivityPubItem(it pub.Item) (Renderable, error) {
+func LoadFromActivityPubItem(it vocab.Item) (Renderable, error) {
 	var (
 		result Renderable
 		err    error
 		typ    = it.GetType()
 	)
-	if pub.IsIRI(it) {
+	if vocab.IsIRI(it) {
 		item := new(Item)
 		err = item.FromActivityPub(it)
 		result = item
 	}
-	if typ == pub.FollowType {
+	if typ == vocab.FollowType {
 		f := new(FollowRequest)
 		err = f.FromActivityPub(it)
 		result = f
 	}
-	if typ == pub.TombstoneType {
-		pub.OnTombstone(it, func(t *pub.Tombstone) error {
+	if typ == vocab.TombstoneType {
+		vocab.OnTombstone(it, func(t *vocab.Tombstone) error {
 			typ = t.FormerType
 			return nil
 		})

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	pub "github.com/go-ap/activitypub"
+	vocab "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
 	"github.com/go-chi/chi/v5"
 	"github.com/mariusor/qstring"
@@ -67,8 +67,8 @@ func FiltersFromRequest(r *http.Request) *Filters {
 }
 
 var (
-	CreateActivitiesFilter       = ActivityTypesFilter(pub.CreateType)
-	AppreciationActivitiesFilter = ActivityTypesFilter(pub.LikeType, pub.DislikeType)
+	CreateActivitiesFilter       = ActivityTypesFilter(vocab.CreateType)
+	AppreciationActivitiesFilter = ActivityTypesFilter(vocab.LikeType, vocab.DislikeType)
 )
 
 func AllFilters(next http.Handler) http.Handler {
@@ -106,7 +106,7 @@ func ContextActivityFilters(ctx context.Context) []*Filters {
 	return nil
 }
 
-func SelfFiltersMw(id pub.IRI) func(next http.Handler) http.Handler {
+func SelfFiltersMw(id vocab.IRI) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			f := topLevelFilters(r)
@@ -120,8 +120,8 @@ func SelfFiltersMw(id pub.IRI) func(next http.Handler) http.Handler {
 }
 
 var CreateFollowActivitiesFilter = CompStrs{
-	CompStr{Str: string(pub.CreateType)},
-	CompStr{Str: string(pub.FollowType)},
+	CompStr{Str: string(vocab.CreateType)},
+	CompStr{Str: string(vocab.FollowType)},
 }
 
 func FollowedFiltersMw(next http.Handler) http.Handler {
@@ -158,7 +158,7 @@ func topLevelFilters(r *http.Request) *Filters {
 	return f
 }
 
-func FederatedFiltersMw(id pub.IRI) func(next http.Handler) http.Handler {
+func FederatedFiltersMw(id vocab.IRI) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			f := topLevelFilters(r)
@@ -185,7 +185,7 @@ func DomainFiltersMw(next http.Handler) http.Handler {
 		if len(domain) > 0 {
 			domainFilter := fmt.Sprintf("https://%s", puny.ToASCII(domain))
 			f.Object.URL = CompStrs{LikeString(domainFilter), LikeString(domainFilter)}
-			f.Object.Type = CompStrs{EqualsString(string(pub.PageType))}
+			f.Object.Type = CompStrs{EqualsString(string(vocab.PageType))}
 			m.Title = fmt.Sprintf("Items pointing to %s", domain)
 		} else {
 			f.Object.MedTypes = CompStrs{

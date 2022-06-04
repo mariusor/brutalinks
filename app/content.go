@@ -7,7 +7,7 @@ import (
 	"time"
 	"unicode"
 
-	pub "github.com/go-ap/activitypub"
+	vocab "github.com/go-ap/activitypub"
 	mark "gitlab.com/golang-commonmark/markdown"
 )
 
@@ -124,7 +124,7 @@ const (
 
 type Renderable interface {
 	ID() Hash
-	AP() pub.Item
+	AP() vocab.Item
 	IsValid() bool
 	Type() RenderType
 	Date() time.Time
@@ -149,9 +149,9 @@ type Item struct {
 	UpdatedAt   time.Time      `json:"-"`
 	UpdatedBy   *Account       `json:"-"`
 	Flags       FlagBits       `json:"-"`
-	Metadata    *ItemMetadata  `json:"-"`
-	Pub         pub.Item       `json:"-"`
-	Parent      Renderable     `json:"-"`
+	Metadata *ItemMetadata `json:"-"`
+	Pub      vocab.Item    `json:"-"`
+	Parent   Renderable    `json:"-"`
 	OP          Renderable     `json:"-"`
 	Level       uint8          `json:"-"`
 	children    RenderableList `json:"-"`
@@ -186,7 +186,7 @@ func (i *Item) IsTop() bool {
 		return false
 	}
 	isTop := false
-	pub.OnObject(i.Pub, func(o *pub.Object) error {
+	vocab.OnObject(i.Pub, func(o *vocab.Object) error {
 		if o.InReplyTo == nil {
 			isTop = true
 		}
@@ -287,10 +287,10 @@ func (h ItemPtrCollection) Sorted() ItemPtrCollection {
 }
 
 func parentByPub(t ItemPtrCollection, cur *Item) *Item {
-	var inReplyTo pub.ItemCollection
-	pub.OnObject(cur.Pub, func(ob *pub.Object) error {
+	var inReplyTo vocab.ItemCollection
+	vocab.OnObject(cur.Pub, func(ob *vocab.Object) error {
 		if ob.InReplyTo != nil {
-			pub.OnCollectionIntf(ob.InReplyTo, func(col pub.CollectionInterface) error {
+			vocab.OnCollectionIntf(ob.InReplyTo, func(col vocab.CollectionInterface) error {
 				inReplyTo = col.Collection()
 				return nil
 			})

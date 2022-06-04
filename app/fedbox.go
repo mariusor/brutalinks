@@ -9,22 +9,22 @@ import (
 	"net/url"
 	"path"
 
-	pub "github.com/go-ap/activitypub"
+	vocab "github.com/go-ap/activitypub"
 	"github.com/go-ap/client"
 	"github.com/go-ap/errors"
 	"github.com/mariusor/go-littr/internal/log"
 )
 
 const (
-	activities = pub.CollectionPath("activities")
-	actors     = pub.CollectionPath("actors")
-	objects    = pub.CollectionPath("objects")
+	activities = vocab.CollectionPath("activities")
+	actors     = vocab.CollectionPath("actors")
+	objects    = vocab.CollectionPath("objects")
 )
 
 type fedbox struct {
-	baseURL       pub.IRI
+	baseURL       vocab.IRI
 	skipTLSVerify bool
-	pub           *pub.Actor
+	pub           *vocab.Actor
 	client        *client.C
 	infoFn        CtxLogFn
 	errFn         CtxLogFn
@@ -54,7 +54,7 @@ func SetURL(s string) OptionFn {
 		if err != nil {
 			return err
 		}
-		f.baseURL = pub.IRI(s)
+		f.baseURL = vocab.IRI(s)
 		return nil
 	}
 }
@@ -97,11 +97,11 @@ func withAccount(a *Account) (client.RequestSignFn, error) {
 		if HostIsLocal(req.URL.String()) {
 			return c2sSign(a, req)
 		} else {
-			collection := pub.CollectionPath(path.Base(req.URL.Path))
-			if collection == pub.Inbox {
+			collection := vocab.CollectionPath(path.Base(req.URL.Path))
+			if collection == vocab.Inbox {
 				return s2sSign(a, req)
 			}
-			if collection == pub.Outbox {
+			if collection == vocab.Outbox {
 				return c2sSign(a, req)
 			}
 		}
@@ -166,13 +166,13 @@ func NewClient(o ...OptionFn) (*fedbox, error) {
 	if err != nil {
 		return &f, err
 	}
-	return &f, pub.OnActor(service, func(a *pub.Actor) error {
+	return &f, vocab.OnActor(service, func(a *vocab.Actor) error {
 		f.pub = a
 		return nil
 	})
 }
 
-func (f fedbox) normaliseIRI(i pub.IRI) pub.IRI {
+func (f fedbox) normaliseIRI(i vocab.IRI) vocab.IRI {
 	iu, ie := i.URL()
 	if i.Contains(f.baseURL, false) {
 		bu, be := f.baseURL.URL()
@@ -187,10 +187,10 @@ func (f fedbox) normaliseIRI(i pub.IRI) pub.IRI {
 	if iu.Path != "" {
 		iu.Path = path.Clean(iu.Path)
 	}
-	return pub.IRI(iu.String())
+	return vocab.IRI(iu.String())
 }
 
-func (f fedbox) collection(ctx context.Context, i pub.IRI) (pub.CollectionInterface, error) {
+func (f fedbox) collection(ctx context.Context, i vocab.IRI) (vocab.CollectionInterface, error) {
 	it, err := f.client.CtxLoadIRI(ctx, i)
 	if err != nil {
 		return nil, errors.Annotatef(err, "Unable to load IRI: %s", i)
@@ -199,17 +199,17 @@ func (f fedbox) collection(ctx context.Context, i pub.IRI) (pub.CollectionInterf
 		return nil, errors.Newf("Unable to load IRI, nil item: %s", i)
 	}
 	typ := it.GetType()
-	if !pub.CollectionTypes.Contains(it.GetType()) {
+	if !vocab.CollectionTypes.Contains(it.GetType()) {
 		return nil, errors.Errorf("Response item type is not a valid collection: %s", typ)
 	}
 
-	if !pub.CollectionTypes.Contains(typ) {
+	if !vocab.CollectionTypes.Contains(typ) {
 		return nil, errors.Errorf("Unable to convert item type %s to any of the collection types", typ)
 	}
-	return it.(pub.CollectionInterface), nil
+	return it.(vocab.CollectionInterface), nil
 }
 
-func (f fedbox) object(ctx context.Context, i pub.IRI) (pub.Item, error) {
+func (f fedbox) object(ctx context.Context, i vocab.IRI) (vocab.Item, error) {
 	return f.client.CtxLoadIRI(ctx, f.normaliseIRI(i))
 }
 
@@ -231,186 +231,186 @@ func rawFilterQuery(f ...client.FilterFn) string {
 	return "?" + q.Encode()
 }
 
-type LoadFn func(pub.Item, ...client.FilterFn) pub.IRI
+type LoadFn func(vocab.Item, ...client.FilterFn) vocab.IRI
 
-func iri(i pub.IRI, f ...client.FilterFn) pub.IRI {
-	return pub.IRI(fmt.Sprintf("%s%s", i, rawFilterQuery(f...)))
+func iri(i vocab.IRI, f ...client.FilterFn) vocab.IRI {
+	return vocab.IRI(fmt.Sprintf("%s%s", i, rawFilterQuery(f...)))
 }
 
-func inbox(a pub.Item, f ...client.FilterFn) pub.IRI {
-	return iri(pub.Inbox.IRI(a), f...)
+func inbox(a vocab.Item, f ...client.FilterFn) vocab.IRI {
+	return iri(vocab.Inbox.IRI(a), f...)
 }
 
-func outbox(a pub.Item, f ...client.FilterFn) pub.IRI {
-	return iri(pub.Outbox.IRI(a), f...)
+func outbox(a vocab.Item, f ...client.FilterFn) vocab.IRI {
+	return iri(vocab.Outbox.IRI(a), f...)
 }
 
-func following(a pub.Item, f ...client.FilterFn) pub.IRI {
-	return iri(pub.Following.IRI(a), f...)
+func following(a vocab.Item, f ...client.FilterFn) vocab.IRI {
+	return iri(vocab.Following.IRI(a), f...)
 }
 
-func followers(a pub.Item, f ...client.FilterFn) pub.IRI {
-	return iri(pub.Followers.IRI(a), f...)
+func followers(a vocab.Item, f ...client.FilterFn) vocab.IRI {
+	return iri(vocab.Followers.IRI(a), f...)
 }
 
-func liked(a pub.Item, f ...client.FilterFn) pub.IRI {
-	return iri(pub.Liked.IRI(a), f...)
+func liked(a vocab.Item, f ...client.FilterFn) vocab.IRI {
+	return iri(vocab.Liked.IRI(a), f...)
 }
 
-func likes(o pub.Item, f ...client.FilterFn) pub.IRI {
-	return iri(pub.Likes.IRI(o), f...)
+func likes(o vocab.Item, f ...client.FilterFn) vocab.IRI {
+	return iri(vocab.Likes.IRI(o), f...)
 }
 
-func shares(o pub.Item, f ...client.FilterFn) pub.IRI {
-	return iri(pub.Shares.IRI(o), f...)
+func shares(o vocab.Item, f ...client.FilterFn) vocab.IRI {
+	return iri(vocab.Shares.IRI(o), f...)
 }
 
-func replies(o pub.Item, f ...client.FilterFn) pub.IRI {
-	return iri(pub.Replies.IRI(o), f...)
+func replies(o vocab.Item, f ...client.FilterFn) vocab.IRI {
+	return iri(vocab.Replies.IRI(o), f...)
 }
 
-func blocked(a pub.Item, f ...client.FilterFn) pub.IRI {
-	return iri(pub.CollectionPath("blocked").IRI(a), f...)
+func blocked(a vocab.Item, f ...client.FilterFn) vocab.IRI {
+	return iri(vocab.CollectionPath("blocked").IRI(a), f...)
 }
 
-func ignored(a pub.Item, f ...client.FilterFn) pub.IRI {
-	return iri(pub.CollectionPath("ignored").IRI(a), f...)
+func ignored(a vocab.Item, f ...client.FilterFn) vocab.IRI {
+	return iri(vocab.CollectionPath("ignored").IRI(a), f...)
 }
 
-func validateActor(a pub.Item) error {
+func validateActor(a vocab.Item) error {
 	if a == nil {
 		return errors.Errorf("Actor is nil")
 	}
-	if a.IsObject() && !pub.ActorTypes.Contains(a.GetType()) {
+	if a.IsObject() && !vocab.ActorTypes.Contains(a.GetType()) {
 		return errors.Errorf("Invalid Actor type %s", a.GetType())
 	}
 	return nil
 }
 
-func validateObject(o pub.Item) error {
+func validateObject(o vocab.Item) error {
 	if o == nil {
 		return errors.Errorf("object is nil")
 	}
-	if o.IsObject() && !pub.ObjectTypes.Contains(o.GetType()) {
+	if o.IsObject() && !vocab.ObjectTypes.Contains(o.GetType()) {
 		return errors.Errorf("invalid Object type %q", o.GetType())
 	}
 	return nil
 }
 
-type CollectionFn func(context.Context, *Filters) (pub.CollectionInterface, error)
+type CollectionFn func(context.Context, *Filters) (vocab.CollectionInterface, error)
 
-func (f fedbox) Inbox(ctx context.Context, actor pub.Item, filters ...client.FilterFn) (pub.CollectionInterface, error) {
+func (f fedbox) Inbox(ctx context.Context, actor vocab.Item, filters ...client.FilterFn) (vocab.CollectionInterface, error) {
 	if err := validateActor(actor); err != nil {
 		return nil, err
 	}
 	return f.collection(ctx, inbox(actor, filters...))
 }
 
-func (f fedbox) Outbox(ctx context.Context, actor pub.Item, filters ...client.FilterFn) (pub.CollectionInterface, error) {
+func (f fedbox) Outbox(ctx context.Context, actor vocab.Item, filters ...client.FilterFn) (vocab.CollectionInterface, error) {
 	if err := validateActor(actor); err != nil {
 		return nil, err
 	}
 	return f.collection(ctx, outbox(actor, filters...))
 }
 
-func (f fedbox) Following(ctx context.Context, actor pub.Item, filters ...client.FilterFn) (pub.CollectionInterface, error) {
+func (f fedbox) Following(ctx context.Context, actor vocab.Item, filters ...client.FilterFn) (vocab.CollectionInterface, error) {
 	if err := validateActor(actor); err != nil {
 		return nil, err
 	}
 	return f.collection(ctx, following(actor, filters...))
 }
 
-func (f fedbox) Followers(ctx context.Context, actor pub.Item, filters ...client.FilterFn) (pub.CollectionInterface, error) {
+func (f fedbox) Followers(ctx context.Context, actor vocab.Item, filters ...client.FilterFn) (vocab.CollectionInterface, error) {
 	if err := validateActor(actor); err != nil {
 		return nil, err
 	}
 	return f.collection(ctx, followers(actor, filters...))
 }
 
-func (f fedbox) Likes(ctx context.Context, object pub.Item, filters ...client.FilterFn) (pub.CollectionInterface, error) {
+func (f fedbox) Likes(ctx context.Context, object vocab.Item, filters ...client.FilterFn) (vocab.CollectionInterface, error) {
 	if err := validateObject(object); err != nil {
 		return nil, err
 	}
 	return f.collection(ctx, likes(object, filters...))
 }
 
-func (f fedbox) Liked(ctx context.Context, actor pub.Item, filters ...client.FilterFn) (pub.CollectionInterface, error) {
+func (f fedbox) Liked(ctx context.Context, actor vocab.Item, filters ...client.FilterFn) (vocab.CollectionInterface, error) {
 	if err := validateActor(actor); err != nil {
 		return nil, err
 	}
 	return f.collection(ctx, liked(actor, filters...))
 }
 
-func (f fedbox) Replies(ctx context.Context, object pub.Item, filters ...client.FilterFn) (pub.CollectionInterface, error) {
+func (f fedbox) Replies(ctx context.Context, object vocab.Item, filters ...client.FilterFn) (vocab.CollectionInterface, error) {
 	if err := validateObject(object); err != nil {
 		return nil, err
 	}
 	return f.collection(ctx, replies(object, filters...))
 }
 
-func (f fedbox) Shares(ctx context.Context, object pub.Item, filters ...client.FilterFn) (pub.CollectionInterface, error) {
+func (f fedbox) Shares(ctx context.Context, object vocab.Item, filters ...client.FilterFn) (vocab.CollectionInterface, error) {
 	if err := validateObject(object); err != nil {
 		return nil, err
 	}
 	return f.collection(ctx, shares(object, filters...))
 }
 
-func (f fedbox) Collection(ctx context.Context, i pub.IRI, filters ...client.FilterFn) (pub.CollectionInterface, error) {
+func (f fedbox) Collection(ctx context.Context, i vocab.IRI, filters ...client.FilterFn) (vocab.CollectionInterface, error) {
 	return f.collection(ctx, iri(i, filters...))
 }
 
-func (f fedbox) Actor(ctx context.Context, iri pub.IRI) (*pub.Actor, error) {
+func (f fedbox) Actor(ctx context.Context, iri vocab.IRI) (*vocab.Actor, error) {
 	it, err := f.object(ctx, iri)
 	if err != nil {
 		return anonymousActor, errors.Annotatef(err, "Unable to load Actor: %s", iri)
 	}
-	var person *pub.Actor
-	pub.OnActor(it, func(p *pub.Actor) error {
+	var person *vocab.Actor
+	vocab.OnActor(it, func(p *vocab.Actor) error {
 		person = p
 		return nil
 	})
 	return person, nil
 }
 
-func (f fedbox) Activity(ctx context.Context, iri pub.IRI) (*pub.Activity, error) {
+func (f fedbox) Activity(ctx context.Context, iri vocab.IRI) (*vocab.Activity, error) {
 	it, err := f.object(ctx, iri)
 	if err != nil {
 		return nil, errors.Annotatef(err, "Unable to load Activity: %s", iri)
 	}
-	var activity *pub.Activity
-	pub.OnActivity(it, func(a *pub.Activity) error {
+	var activity *vocab.Activity
+	vocab.OnActivity(it, func(a *vocab.Activity) error {
 		activity = a
 		return nil
 	})
 	return activity, nil
 }
 
-func (f fedbox) Object(ctx context.Context, iri pub.IRI) (*pub.Object, error) {
+func (f fedbox) Object(ctx context.Context, iri vocab.IRI) (*vocab.Object, error) {
 	it, err := f.object(ctx, iri)
 	if err != nil {
 		return nil, errors.Annotatef(err, "Unable to load Object: %s", iri)
 	}
-	var object *pub.Object
-	pub.OnObject(it, func(o *pub.Object) error {
+	var object *vocab.Object
+	vocab.OnObject(it, func(o *vocab.Object) error {
 		object = o
 		return nil
 	})
 	return object, nil
 }
 
-func (f fedbox) Activities(ctx context.Context, filters ...client.FilterFn) (pub.CollectionInterface, error) {
+func (f fedbox) Activities(ctx context.Context, filters ...client.FilterFn) (vocab.CollectionInterface, error) {
 	return f.collection(ctx, iri(activities.IRI(f.Service()), filters...))
 }
 
-func (f fedbox) Actors(ctx context.Context, filters ...client.FilterFn) (pub.CollectionInterface, error) {
+func (f fedbox) Actors(ctx context.Context, filters ...client.FilterFn) (vocab.CollectionInterface, error) {
 	return f.collection(ctx, iri(actors.IRI(f.Service()), filters...))
 }
 
-func (f fedbox) Objects(ctx context.Context, filters ...client.FilterFn) (pub.CollectionInterface, error) {
+func (f fedbox) Objects(ctx context.Context, filters ...client.FilterFn) (vocab.CollectionInterface, error) {
 	return f.collection(ctx, iri(objects.IRI(f.Service()), filters...))
 }
 
-func validateIRIForRequest(i pub.IRI) error {
+func validateIRIForRequest(i vocab.IRI) error {
 	u, err := i.URL()
 	if err != nil {
 		return err
@@ -421,9 +421,9 @@ func validateIRIForRequest(i pub.IRI) error {
 	return nil
 }
 
-func (f fedbox) ToOutbox(ctx context.Context, a pub.Item) (pub.IRI, pub.Item, error) {
-	iri := pub.IRI("")
-	pub.OnActivity(a, func(a *pub.Activity) error {
+func (f fedbox) ToOutbox(ctx context.Context, a vocab.Item) (vocab.IRI, vocab.Item, error) {
+	iri := vocab.IRI("")
+	vocab.OnActivity(a, func(a *vocab.Activity) error {
 		iri = outbox(a.Actor)
 		return nil
 	})
@@ -433,9 +433,9 @@ func (f fedbox) ToOutbox(ctx context.Context, a pub.Item) (pub.IRI, pub.Item, er
 	return f.client.CtxToCollection(ctx, f.normaliseIRI(iri), a)
 }
 
-func (f fedbox) ToInbox(ctx context.Context, a pub.Item) (pub.IRI, pub.Item, error) {
-	iri := pub.IRI("")
-	pub.OnActivity(a, func(a *pub.Activity) error {
+func (f fedbox) ToInbox(ctx context.Context, a vocab.Item) (vocab.IRI, vocab.Item, error) {
+	iri := vocab.IRI("")
+	vocab.OnActivity(a, func(a *vocab.Activity) error {
 		iri = inbox(a.Actor)
 		return nil
 	})
@@ -445,9 +445,9 @@ func (f fedbox) ToInbox(ctx context.Context, a pub.Item) (pub.IRI, pub.Item, err
 	return f.client.CtxToCollection(ctx, f.normaliseIRI(iri), a)
 }
 
-func (f *fedbox) Service() *pub.Service {
+func (f *fedbox) Service() *vocab.Service {
 	if f.pub == nil {
-		return &pub.Actor{ID: f.baseURL, Type: pub.ServiceType}
+		return &vocab.Actor{ID: f.baseURL, Type: vocab.ServiceType}
 	}
 	return f.pub
 }

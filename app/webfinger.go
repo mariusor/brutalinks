@@ -10,7 +10,7 @@ import (
 	"regexp"
 	"strings"
 
-	pub "github.com/go-ap/activitypub"
+	vocab "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
 	"github.com/mariusor/go-littr/internal/assets"
 	"github.com/mariusor/go-littr/internal/config"
@@ -56,22 +56,22 @@ func NodeInfoResolverNew(r *repository, env config.EnvType) NodeInfoResolver {
 	}
 
 	base := baseIRI(r.fedbox.Service().GetLink())
-	loadFn := func(f *Filters, fn pub.WithOrderedCollectionFn) error {
+	loadFn := func(f *Filters, fn vocab.WithOrderedCollectionFn) error {
 		ff := []*Filters{{Type: CreateActivitiesFilter, Object: f}}
-		return LoadFromSearches(context.TODO(), r, RemoteLoads{base: {{loadFn: inbox, filters: ff}}}, func(ctx context.Context, c pub.CollectionInterface, f *Filters) error {
-			return pub.OnOrderedCollection(c, fn)
+		return LoadFromSearches(context.TODO(), r, RemoteLoads{base: {{loadFn: inbox, filters: ff}}}, func(ctx context.Context, c vocab.CollectionInterface, f *Filters) error {
+			return vocab.OnOrderedCollection(c, fn)
 		})
 	}
 
-	loadFn(actorsFilter, func(col *pub.OrderedCollection) error {
+	loadFn(actorsFilter, func(col *vocab.OrderedCollection) error {
 		n.users = int(col.TotalItems)
 		return nil
 	})
-	loadFn(postsFilter, func(col *pub.OrderedCollection) error {
+	loadFn(postsFilter, func(col *vocab.OrderedCollection) error {
 		n.posts = int(col.TotalItems)
 		return nil
 	})
-	loadFn(allFilter, func(col *pub.OrderedCollection) error {
+	loadFn(allFilter, func(col *vocab.OrderedCollection) error {
 		n.comments = int(col.TotalItems) - n.posts
 		return nil
 	})
@@ -190,7 +190,7 @@ func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 	}
 	var a *Account
 	fedbox := h.storage.fedbox.Service()
-	handleIRI := pub.IRI(fmt.Sprintf("https://%s/", handle))
+	handleIRI := vocab.IRI(fmt.Sprintf("https://%s/", handle))
 	if fedbox.GetLink().Equals(handleIRI, false) || handle == selfName {
 		a = new(Account)
 		if err := a.FromActivityPub(fedbox); err != nil {
@@ -230,12 +230,12 @@ func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 	existsOnInstance := false
-	pub.OnActor(a.AP(), func(act *pub.Actor) error {
-		urls := make(pub.ItemCollection, 0)
-		if pub.IsItemCollection(act.URL) {
-			urls = append(urls, act.URL.(pub.ItemCollection)...)
+	vocab.OnActor(a.AP(), func(act *vocab.Actor) error {
+		urls := make(vocab.ItemCollection, 0)
+		if vocab.IsItemCollection(act.URL) {
+			urls = append(urls, act.URL.(vocab.ItemCollection)...)
 		} else {
-			urls = append(urls, act.URL.(pub.IRI))
+			urls = append(urls, act.URL.(vocab.IRI))
 		}
 
 		for _, u := range urls {

@@ -4,7 +4,7 @@ import (
 	"path"
 	"strings"
 
-	pub "github.com/go-ap/activitypub"
+	vocab "github.com/go-ap/activitypub"
 	"github.com/google/uuid"
 )
 
@@ -17,12 +17,12 @@ var (
 	SystemHash    = Hash{0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 )
 
-func HashFromIRI(i pub.IRI) Hash {
+func HashFromIRI(i vocab.IRI) Hash {
 	_, h := path.Split(i.String())
 	return HashFromString(h)
 }
 
-func HashFromItem(obj pub.Item) Hash {
+func HashFromItem(obj vocab.Item) Hash {
 	if obj == nil {
 		return AnonymousHash
 	}
@@ -30,7 +30,7 @@ func HashFromItem(obj pub.Item) Hash {
 	if len(iri) == 0 {
 		return AnonymousHash
 	}
-	actor, _ := pub.Split(iri)
+	actor, _ := vocab.Split(iri)
 	h := path.Base(actor.String())
 	if h == "." {
 		h = ""

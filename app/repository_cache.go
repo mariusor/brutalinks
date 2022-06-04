@@ -5,11 +5,11 @@ import (
 	"sync"
 	"time"
 
-	pub "github.com/go-ap/activitypub"
+	vocab "github.com/go-ap/activitypub"
 	"github.com/go-ap/client"
 )
 
-type cacheEntries map[pub.IRI]pub.Item
+type cacheEntries map[vocab.IRI]vocab.Item
 
 func caches(enabled bool) *cache {
 	f := new(cache)
@@ -23,8 +23,8 @@ type cache struct {
 	s       sync.RWMutex
 }
 
-func (c *cache) remove(iris ...pub.IRI) {
-	removeForIRI := func(toRemove pub.IRI) bool {
+func (c *cache) remove(iris ...vocab.IRI) {
+	removeForIRI := func(toRemove vocab.IRI) bool {
 		if len(iris) == 0 {
 			return true
 		}
@@ -42,7 +42,7 @@ func (c *cache) remove(iris ...pub.IRI) {
 	}
 }
 
-func (c *cache) add(iri pub.IRI, it pub.Item) {
+func (c *cache) add(iri vocab.IRI, it vocab.Item) {
 	if !c.enabled {
 		return
 	}
@@ -55,7 +55,7 @@ func (c *cache) add(iri pub.IRI, it pub.Item) {
 	c.m[iri] = it
 }
 
-func (c *cache) get(iri pub.IRI) (pub.Item, bool) {
+func (c *cache) get(iri vocab.IRI) (vocab.Item, bool) {
 	if !c.enabled {
 		return nil, false
 	}
@@ -71,7 +71,7 @@ func (c *cache) loadFromSearches(repo *repository, search RemoteLoads) error {
 		return nil
 	}
 	ctx, _ := context.WithTimeout(context.TODO(), time.Second)
-	return LoadFromSearches(ctx, repo, search, func(_ context.Context, col pub.CollectionInterface, f *Filters) error {
+	return LoadFromSearches(ctx, repo, search, func(_ context.Context, col vocab.CollectionInterface, f *Filters) error {
 		c.add(col.GetLink(), col)
 		for _, it := range col.Collection() {
 			c.add(it.GetLink(), it)
@@ -80,13 +80,13 @@ func (c *cache) loadFromSearches(repo *repository, search RemoteLoads) error {
 	})
 }
 
-func colIRI(hc pub.CollectionPath) func(it pub.Item, fn ...client.FilterFn) pub.IRI {
-	return func(it pub.Item, fn ...client.FilterFn) pub.IRI {
+func colIRI(hc vocab.CollectionPath) func(it vocab.Item, fn ...client.FilterFn) vocab.IRI {
+	return func(it vocab.Item, fn ...client.FilterFn) vocab.IRI {
 		return iri(hc.IRI(it), fn...)
 	}
 }
 
-func WarmupCaches(r *repository, self pub.Item) error {
+func WarmupCaches(r *repository, self vocab.Item) error {
 	f := new(Filters)
 	r.infoFn()("Warming up caches")
 

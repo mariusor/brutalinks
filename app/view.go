@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	pub "github.com/go-ap/activitypub"
+	vocab "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
 	"github.com/gorilla/csrf"
 	"github.com/mariusor/go-littr/internal/assets"
@@ -871,7 +871,7 @@ func fmtPubKey(pub []byte) string {
 	return s.String()
 }
 
-func InOutbox(a *Account, it ...pub.Item) bool {
+func InOutbox(a *Account, it ...vocab.Item) bool {
 	if !a.HasMetadata() {
 		return false
 	}
@@ -900,8 +900,8 @@ func AccountIsFollowed(a, by *Account) bool {
 }
 
 func AccountIsRejected(by, a *Account) bool {
-	return InOutbox(by, pub.Block{
-		Type:   pub.BlockType,
+	return InOutbox(by, vocab.Block{
+		Type:   vocab.BlockType,
 		Object: a.Pub.GetLink(),
 	})
 }
@@ -919,8 +919,8 @@ func AccountIsReported(by, a *Account) bool {
 }
 
 func ItemIsReported(by *Account, i *Item) bool {
-	return InOutbox(by, pub.Flag{
-		Type:   pub.FlagType,
+	return InOutbox(by, vocab.Flag{
+		Type:   vocab.FlagType,
 		Object: i.Pub.GetLink(),
 	})
 }
@@ -935,8 +935,8 @@ func showAccountBlockLink(by, current *Account) bool {
 	if by.Hash == current.Hash {
 		return false
 	}
-	if InOutbox(by, pub.Block{
-		Type:   pub.BlockType,
+	if InOutbox(by, vocab.Block{
+		Type:   vocab.BlockType,
 		Object: current.Pub.GetLink(),
 	}) {
 		return false
@@ -957,12 +957,12 @@ func showFollowLink(by, current *Account) bool {
 	if by.Hash == current.Hash {
 		return false
 	}
-	b := pub.Block{
-		Type:   pub.BlockType,
+	b := vocab.Block{
+		Type:   vocab.BlockType,
 		Object: current.Pub.GetLink(),
 	}
-	f := pub.Follow{
-		Type:   pub.FollowType,
+	f := vocab.Follow{
+		Type:   vocab.FollowType,
 		Object: current.Pub.GetLink(),
 	}
 	if InOutbox(by, f, b) {
@@ -984,8 +984,8 @@ func showAccountReportLink(by, current *Account) bool {
 	if by.Hash == current.Hash {
 		return false
 	}
-	if InOutbox(by, pub.Block{
-		Type:   pub.FlagType,
+	if InOutbox(by, vocab.Block{
+		Type:   vocab.FlagType,
 		Object: current.Pub.GetLink(),
 	}) {
 		return false

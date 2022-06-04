@@ -3,7 +3,7 @@ package app
 import (
 	"time"
 
-	pub "github.com/go-ap/activitypub"
+	vocab "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
 )
 
@@ -14,9 +14,9 @@ const (
 	ScoreMaxB       = 10000000000.0
 )
 
-var ValidAppreciationTypes = pub.ActivityVocabularyTypes{
-	pub.LikeType,
-	pub.DislikeType,
+var ValidAppreciationTypes = vocab.ActivityVocabularyTypes{
+	vocab.LikeType,
+	vocab.DislikeType,
 }
 
 type VoteCollection []Vote
@@ -33,8 +33,8 @@ type Vote struct {
 	Weight      int           `json:"weight"`
 	Item        *Item         `json:"on"`
 	Flags       FlagBits      `json:"-"`
-	Metadata    *VoteMetadata `json:"-"`
-	Pub         *pub.Activity `json:"-"`
+	Metadata    *VoteMetadata   `json:"-"`
+	Pub         *vocab.Activity `json:"-"`
 }
 
 func (v *Vote) ID() Hash {
@@ -59,7 +59,7 @@ func (v Vote) IsYay() bool {
 	if v.Pub == nil {
 		return false
 	}
-	return v.Pub.GetType() == pub.LikeType
+	return v.Pub.GetType() == vocab.LikeType
 }
 
 // IsNay returns true if current vote is a Nay
@@ -67,11 +67,11 @@ func (v Vote) IsNay() bool {
 	if v.Pub == nil {
 		return false
 	}
-	return v.Pub.GetType() == pub.DislikeType
+	return v.Pub.GetType() == vocab.DislikeType
 }
 
 // AP returns the underlying actvitypub item
-func (v *Vote) AP() pub.Item {
+func (v *Vote) AP() vocab.Item {
 	return v.Pub
 }
 

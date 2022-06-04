@@ -1,14 +1,15 @@
 package app
 
 import (
-	pub "github.com/go-ap/activitypub"
 	"testing"
+
+	vocab "github.com/go-ap/activitypub"
 )
 
 func Test_cacheAddGet(t *testing.T) {
 	type args struct {
-		k pub.IRI
-		v pub.Item
+		k vocab.IRI
+		v vocab.Item
 	}
 	tests := []struct {
 		name string
@@ -17,15 +18,15 @@ func Test_cacheAddGet(t *testing.T) {
 		{
 			"test",
 			args{
-				pub.IRI("test"),
-				new(pub.Object),
+				vocab.IRI("test"),
+				new(vocab.Object),
 			},
 		},
 	}
 
 	c := cache{
 		enabled: true,
-		m:       make(map[pub.IRI]pub.Item),
+		m:       make(map[vocab.IRI]vocab.Item),
 	}
 
 	if len(c.m) != 0 {

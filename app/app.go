@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	pub "github.com/go-ap/activitypub"
+	vocab "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -26,13 +26,13 @@ const (
 
 var (
 	// DeletedAccount is a default static value for a deleted account
-	DeletedAccount = Account{Handle: Anonymous, Hash: AnonymousHash, Metadata: new(AccountMetadata), Pub: &pub.Tombstone{}}
+	DeletedAccount = Account{Handle: Anonymous, Hash: AnonymousHash, Metadata: new(AccountMetadata), Pub: &vocab.Tombstone{}}
 	// AnonymousAccount is a default static value for the anonymous account
 	AnonymousAccount = Account{Handle: Anonymous, Hash: AnonymousHash, Metadata: new(AccountMetadata)}
 	// SystemAccount is a default static value for the system account
 	SystemAccount = Account{Handle: System, Hash: SystemHash, Metadata: new(AccountMetadata)}
 	// DeletedItem is a default static value for a deleted item
-	DeletedItem = Item{Title: Deleted, Hash: AnonymousHash, Metadata: new(ItemMetadata), Pub: &pub.Tombstone{}}
+	DeletedItem = Item{Title: Deleted, Hash: AnonymousHash, Metadata: new(ItemMetadata), Pub: &vocab.Tombstone{}}
 
 	// cut off date for disallowing interactions with items
 	oneYearishAgo = time.Now().Add(-12 * 30 * 24 * time.Hour).UTC()

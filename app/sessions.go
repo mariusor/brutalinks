@@ -7,7 +7,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/go-ap/activitypub"
+	vocab "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
 	"github.com/gorilla/sessions"
 	"github.com/mariusor/go-littr/internal/log"
@@ -40,14 +40,14 @@ func initSession(c appConfig, infoFn, errFn CtxLogFn) (sess, error) {
 	// session encoding for account and flash message objects
 	gob.Register(Account{})
 	gob.Register(flash{})
-	gob.Register(activitypub.Activity{})
-	gob.Register(activitypub.IRI(""))
-	gob.Register(activitypub.NaturalLanguageValues{})
-	gob.Register(activitypub.Object{})
-	gob.Register(activitypub.Actor{})
-	gob.Register(activitypub.ItemCollection{})
-	gob.Register(activitypub.Link{})
-	gob.Register(activitypub.Tombstone{})
+	gob.Register(vocab.Activity{})
+	gob.Register(vocab.IRI(""))
+	gob.Register(vocab.NaturalLanguageValues{})
+	gob.Register(vocab.Object{})
+	gob.Register(vocab.Actor{})
+	gob.Register(vocab.ItemCollection{})
+	gob.Register(vocab.Link{})
+	gob.Register(vocab.Tombstone{})
 
 	if len(c.SessionKeys) == 0 {
 		return sess{}, errors.NotImplementedf("no session encryption keys, unable to use sessions")

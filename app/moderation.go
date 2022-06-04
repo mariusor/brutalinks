@@ -5,11 +5,11 @@ import (
 	"strings"
 	"time"
 
-	pub "github.com/go-ap/activitypub"
+	vocab "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
 )
 
-var ValidModerationActivityTypes = pub.ActivityVocabularyTypes{pub.BlockType, pub.IgnoreType, pub.FlagType}
+var ValidModerationActivityTypes = vocab.ActivityVocabularyTypes{vocab.BlockType, vocab.IgnoreType, vocab.FlagType}
 
 var ModerationActivitiesFilter = ActivityTypesFilter(ValidModerationActivityTypes...)
 
@@ -61,7 +61,7 @@ func (m *ModerationGroup) IsValid() bool {
 }
 
 // AP returns the underlying actvitypub item
-func (m *ModerationGroup) AP() pub.Item {
+func (m *ModerationGroup) AP() vocab.Item {
 	return m.Object.AP()
 }
 
@@ -122,14 +122,14 @@ type ModerationOp struct {
 	MimeType    string              `json:"-"`
 	SubmittedBy *Account            `json:"by,omitempty"`
 	Object      Renderable          `json:"-"`
-	Metadata    *ModerationMetadata `json:"-"`
-	Pub         pub.Item            `json:"-"`
-	Flags       FlagBits            `json:"flags,omitempty"`
+	Metadata *ModerationMetadata `json:"-"`
+	Pub      vocab.Item          `json:"-"`
+	Flags    FlagBits            `json:"flags,omitempty"`
 }
 
 type ModerationMetadata struct {
 	ID        string        `json:"-"`
-	InReplyTo pub.IRIs      `json:"-"`
+	InReplyTo vocab.IRIs    `json:"-"`
 	Tags      TagCollection `json:"tags,omitempty"`
 	Mentions  TagCollection `json:"mentions,omitempty"`
 }
@@ -153,7 +153,7 @@ func (m ModerationOp) IsBlock() bool {
 	if m.Pub == nil {
 		return false
 	}
-	return m.Pub.GetType() == pub.BlockType
+	return m.Pub.GetType() == vocab.BlockType
 }
 
 // IsBlock returns true if current moderation request is a delete
@@ -161,7 +161,7 @@ func (m ModerationOp) IsDelete() bool {
 	if m.Pub == nil {
 		return false
 	}
-	return m.Pub.GetType() == pub.DeleteType
+	return m.Pub.GetType() == vocab.DeleteType
 }
 
 // IsUpdate returns true if current moderation request is an update
@@ -169,7 +169,7 @@ func (m ModerationOp) IsUpdate() bool {
 	if m.Pub == nil {
 		return false
 	}
-	return m.Pub.GetType() == pub.UpdateType
+	return m.Pub.GetType() == vocab.UpdateType
 }
 
 // IsIgnore returns true if current moderation request is a ignore
@@ -177,7 +177,7 @@ func (m ModerationOp) IsIgnore() bool {
 	if m.Pub == nil {
 		return false
 	}
-	return m.Pub.GetType() == pub.IgnoreType
+	return m.Pub.GetType() == vocab.IgnoreType
 }
 
 // IsReport returns true if current moderation request is a report
@@ -185,11 +185,11 @@ func (m ModerationOp) IsReport() bool {
 	if m.Pub == nil {
 		return false
 	}
-	return m.Pub.GetType() == pub.FlagType
+	return m.Pub.GetType() == vocab.FlagType
 }
 
 // AP returns the underlying actvitypub item
-func (m *ModerationOp) AP() pub.Item {
+func (m *ModerationOp) AP() vocab.Item {
 	return m.Pub
 }
 
@@ -227,7 +227,7 @@ func (m *ModerationOp) Deleted() bool {
 	return m.Flags&FlagsDeleted == FlagsDeleted
 }
 
-func GetRenderableByType(typ pub.ActivityVocabularyType) Renderable {
+func GetRenderableByType(typ vocab.ActivityVocabularyType) Renderable {
 	var result Renderable
 	if ValidAppreciationTypes.Contains(typ) {
 		result = new(Vote)
@@ -244,12 +244,12 @@ func GetRenderableByType(typ pub.ActivityVocabularyType) Renderable {
 	return result
 }
 
-func loadItemActorOrActivityFromModerationActivityObject(it pub.Item) Renderable {
+func loadItemActorOrActivityFromModerationActivityObject(it vocab.Item) Renderable {
 	result, _ := LoadFromActivityPubItem(it)
 	return result
 }
 
-func (m *ModerationOp) FromActivityPub(it pub.Item) error {
+func (m *ModerationOp) FromActivityPub(it vocab.Item) error {
 	if m == nil {
 		return nil
 	}
@@ -265,7 +265,7 @@ func (m *ModerationOp) FromActivityPub(it pub.Item) error {
 		}
 		return nil
 	}
-	return pub.OnActivity(it, func(a *pub.Activity) error {
+	return vocab.OnActivity(it, func(a *vocab.Activity) error {
 		m.Hash.FromActivityPub(a)
 		wer := new(Account)
 
@@ -274,7 +274,7 @@ func (m *ModerationOp) FromActivityPub(it pub.Item) error {
 		m.SubmittedBy = wer
 		if a.Object.IsCollection() {
 			cc := make([]Renderable, 0)
-			pub.OnCollectionIntf(a.Object, func(c pub.CollectionInterface) error {
+			vocab.OnCollectionIntf(a.Object, func(c vocab.CollectionInterface) error {
 				for _, it := range c.Collection() {
 					cc = append(cc, loadItemActorOrActivityFromModerationActivityObject(it))
 				}
@@ -284,7 +284,7 @@ func (m *ModerationOp) FromActivityPub(it pub.Item) error {
 			m.Object = loadItemActorOrActivityFromModerationActivityObject(a.Object)
 		}
 		reason := new(Item)
-		pub.OnObject(a, func(o *pub.Object) error {
+		vocab.OnObject(a, func(o *vocab.Object) error {
 			return FromArticle(reason, o)
 		})
 		if len(reason.Data) > 0 {
@@ -298,8 +298,8 @@ func (m *ModerationOp) FromActivityPub(it pub.Item) error {
 			ID: string(a.ID),
 		}
 		if a.InReplyTo != nil {
-			m.Metadata.InReplyTo = make(pub.IRIs, 0)
-			pub.OnCollectionIntf(a.InReplyTo, func(col pub.CollectionInterface) error {
+			m.Metadata.InReplyTo = make(vocab.IRIs, 0)
+			vocab.OnCollectionIntf(a.InReplyTo, func(col vocab.CollectionInterface) error {
 				for _, it := range col.Collection() {
 					m.Metadata.InReplyTo = append(m.Metadata.InReplyTo, it.GetLink())
 				}
@@ -326,7 +326,7 @@ func (m *ModerationOp) FromActivityPub(it pub.Item) error {
 	})
 }
 
-func (m *ModerationGroup) FromActivityPub(it pub.Item) error {
+func (m *ModerationGroup) FromActivityPub(it vocab.Item) error {
 	op := new(ModerationOp)
 	if err := op.FromActivityPub(it); err != nil {
 		return err

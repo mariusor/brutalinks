@@ -3,7 +3,7 @@ package app
 import (
 	"time"
 
-	pub "github.com/go-ap/activitypub"
+	vocab "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
 )
 
@@ -16,15 +16,15 @@ type FollowRequest struct {
 	SubmittedAt time.Time         `json:"-"`
 	SubmittedBy *Account          `json:"by,omitempty"`
 	Object      *Account          `json:"-"`
-	Metadata    *ActivityMetadata `json:"-"`
-	pub         pub.Item          `json:"-"`
-	Flags       FlagBits          `json:"flags,omitempty"`
+	Metadata *ActivityMetadata `json:"-"`
+	pub      vocab.Item        `json:"-"`
+	Flags    FlagBits          `json:"flags,omitempty"`
 }
 
 // ActivityMetadata
 type ActivityMetadata struct {
-	ID        string   `json:"-"`
-	InReplyTo pub.IRIs `json:"-"`
+	ID        string     `json:"-"`
+	InReplyTo vocab.IRIs `json:"-"`
 }
 
 func (f *FollowRequest) ID() Hash {
@@ -35,7 +35,7 @@ func (f *FollowRequest) ID() Hash {
 }
 
 // FromActivityPub
-func (f *FollowRequest) FromActivityPub(it pub.Item) error {
+func (f *FollowRequest) FromActivityPub(it vocab.Item) error {
 	if f == nil {
 		return nil
 	}
@@ -51,7 +51,7 @@ func (f *FollowRequest) FromActivityPub(it pub.Item) error {
 		}
 		return nil
 	}
-	return pub.OnActivity(it, func(a *pub.Activity) error {
+	return vocab.OnActivity(it, func(a *vocab.Activity) error {
 		err := f.Hash.FromActivityPub(a)
 		if err != nil {
 			return err
@@ -73,8 +73,8 @@ func (f *FollowRequest) FromActivityPub(it pub.Item) error {
 			ID: string(a.ID),
 		}
 		if a.InReplyTo != nil {
-			f.Metadata.InReplyTo = make(pub.IRIs, 0)
-			pub.OnCollectionIntf(a.InReplyTo, func(col pub.CollectionInterface) error {
+			f.Metadata.InReplyTo = make(vocab.IRIs, 0)
+			vocab.OnCollectionIntf(a.InReplyTo, func(col vocab.CollectionInterface) error {
 				for _, it := range col.Collection() {
 					f.Metadata.InReplyTo = append(f.Metadata.InReplyTo, it.GetLink())
 				}
@@ -115,6 +115,6 @@ func (f *FollowRequest) IsValid() bool {
 }
 
 // AP returns the underlying actvitypub item
-func (f *FollowRequest) AP() pub.Item {
+func (f *FollowRequest) AP() vocab.Item {
 	return f.pub
 }

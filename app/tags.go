@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	pub "github.com/go-ap/activitypub"
+	vocab "github.com/go-ap/activitypub"
 )
 
 const (
@@ -29,8 +29,8 @@ type Tag struct {
 	SubmittedBy *Account      `json:"-"`
 	UpdatedAt   time.Time     `json:"-"`
 	UpdatedBy   *Account      `json:"-"`
-	Metadata    *ItemMetadata `json:"-"`
-	Pub         pub.Item      `json:"-"`
+	Metadata *ItemMetadata `json:"-"`
+	Pub      vocab.Item    `json:"-"`
 }
 
 func (t Tag) IsLocal() bool {

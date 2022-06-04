@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	pub "github.com/go-ap/activitypub"
+	vocab "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
 	"github.com/go-chi/chi/v5"
 	"github.com/mariusor/go-littr/internal/log"
@@ -37,7 +37,7 @@ func (h handler) LoadAuthorMw(next http.Handler) http.Handler {
 			if strings.Contains(handle, "@") {
 				var inst string
 				_, inst = splitRemoteHandle(handle)
-				instance = pub.IRI(fmt.Sprintf("https://%s", inst))
+				instance = vocab.IRI(fmt.Sprintf("https://%s", inst))
 			}
 			authors, err = repo.accountsFromRemote(ctx, instance, FilterAccountByHandle(handle))
 			if err != nil {
@@ -65,7 +65,7 @@ func ctxtErr(next http.Handler, w http.ResponseWriter, r *http.Request, err erro
 	next.ServeHTTP(w, r.WithContext(ctx))
 }
 
-type CollectionLoadFn func(pub.CollectionInterface) error
+type CollectionLoadFn func(vocab.CollectionInterface) error
 
 func LoadMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -86,13 +86,13 @@ func LoadMw(next http.Handler) http.Handler {
 	})
 }
 
-func requestHandleSearches(r *http.Request) pub.ItemCollection {
+func requestHandleSearches(r *http.Request) vocab.ItemCollection {
 	authors := ContextAuthors(r.Context())
 	if len(authors) == 0 {
 		return nil
 	}
 
-	actors := make(pub.ItemCollection, 0)
+	actors := make(vocab.ItemCollection, 0)
 	for _, author := range authors {
 		if author.Pub == nil {
 			continue
@@ -139,7 +139,7 @@ func OperatorSearches(next http.Handler) http.Handler {
 		repo := ContextRepository(r.Context())
 		base := baseIRI(repo.app.Pub.GetLink())
 		ff := new(Filters)
-		ff.Type = ActivityTypesFilter(pub.FollowType)
+		ff.Type = ActivityTypesFilter(vocab.FollowType)
 		opSearch := RemoteLoad{
 			actor:   repo.app.Pub,
 			loadFn:  outbox,
@@ -164,32 +164,32 @@ func applicationSearches(collections ...LoadFn) func(http.Handler) http.Handler 
 	return SearchInCollectionsMw(getApplicationFn, collections...)
 }
 
-func getServiceFn(r *http.Request) pub.ItemCollection {
-	return pub.ItemCollection{ContextRepository(r.Context()).fedbox.Service()}
+func getServiceFn(r *http.Request) vocab.ItemCollection {
+	return vocab.ItemCollection{ContextRepository(r.Context()).fedbox.Service()}
 }
 
-func getApplicationFn(r *http.Request) pub.ItemCollection {
+func getApplicationFn(r *http.Request) vocab.ItemCollection {
 	if a := ContextRepository(r.Context()).app; a != nil {
-		return pub.ItemCollection{a.Pub}
+		return vocab.ItemCollection{a.Pub}
 	}
-	return pub.ItemCollection{}
+	return vocab.ItemCollection{}
 }
 
-func getLoggedActorFn(r *http.Request) pub.ItemCollection {
+func getLoggedActorFn(r *http.Request) vocab.ItemCollection {
 	if logged := ContextAccount(r.Context()); logged.IsLogged() {
-		return pub.ItemCollection{logged.Pub}
+		return vocab.ItemCollection{logged.Pub}
 	}
 	return nil
 }
 
-func getNamedActorFn(r *http.Request) pub.ItemCollection {
-	named := make(pub.ItemCollection, 0)
+func getNamedActorFn(r *http.Request) vocab.ItemCollection {
+	named := make(vocab.ItemCollection, 0)
 	for _, auth := range ContextAuthors(r.Context()) {
 		named = append(named, auth.Pub)
 	}
 	return named
 }
-func SearchInCollectionsMw(getActorsFn func(r *http.Request) pub.ItemCollection, collections ...LoadFn) func(next http.Handler) http.Handler {
+func SearchInCollectionsMw(getActorsFn func(r *http.Request) vocab.ItemCollection, collections ...LoadFn) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ff := ContextActivityFilters(r.Context())
@@ -297,9 +297,9 @@ func LoadSingleObjectMw(next http.Handler) http.Handler {
 		searchIn := ContextLoads(r.Context())
 
 		var item Item
-		err := LoadFromSearches(r.Context(), repo, searchIn, func(ctx context.Context, c pub.CollectionInterface, f *Filters) error {
+		err := LoadFromSearches(r.Context(), repo, searchIn, func(ctx context.Context, c vocab.CollectionInterface, f *Filters) error {
 			for _, it := range c.Collection() {
-				err := pub.OnActivity(it, func(act *pub.Activity) error {
+				err := vocab.OnActivity(it, func(act *vocab.Activity) error {
 					if act.Object.IsLink() {
 						ob, err := repo.fedbox.Object(ctx, act.Object.GetLink())
 						if err != nil {
@@ -444,7 +444,7 @@ func reportModelFromCtx(ctx context.Context) *moderationModel {
 	if m == nil {
 		m = new(moderationModel)
 		m.Content = new(ModerationOp)
-		m.Content.Pub = &pub.Flag{Type: pub.FlagType}
+		m.Content.Pub = &vocab.Flag{Type: vocab.FlagType}
 	}
 	m.Message.Editable = false
 	m.Message.SubmitLabel = htmlf("%s Report", icon("flag"))
@@ -501,7 +501,7 @@ func blockModelFromCtx(ctx context.Context) *moderationModel {
 	if m == nil {
 		m = new(moderationModel)
 		m.Content = new(ModerationOp)
-		m.Content.Pub = &pub.Block{Type: pub.BlockType}
+		m.Content.Pub = &vocab.Block{Type: vocab.BlockType}
 	}
 	m.Message.Editable = false
 	m.Title = fmt.Sprintf("Block item")

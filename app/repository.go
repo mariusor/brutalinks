@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	pub "github.com/go-ap/activitypub"
+	vocab "github.com/go-ap/activitypub"
 	"github.com/go-ap/client"
 	"github.com/go-ap/errors"
 	j "github.com/go-ap/jsonld"
@@ -32,12 +32,12 @@ type repository struct {
 	errFn   CtxLogFn
 }
 
-func (r repository) BaseURL() pub.IRI {
+func (r repository) BaseURL() vocab.IRI {
 	return r.fedbox.baseURL
 }
 
 func ActivityPubService(c appConfig) (*repository, error) {
-	pub.ItemTyperFunc = pub.GetItemByType
+	vocab.ItemTyperFunc = vocab.GetItemByType
 
 	infoFn := func(ctx ...log.Ctx) LogFn {
 		return c.Logger.WithContext(append(ctx, log.Ctx{"client": "api"})...).Debugf
@@ -93,11 +93,11 @@ func LoadModeratorTags(repo *repository) (TagCollection, error) {
 	return tags, err
 }
 
-func accountURL(acc Account) pub.IRI {
-	return pub.IRI(fmt.Sprintf("%s%s", Instance.BaseURL, AccountLocalLink(&acc)))
+func accountURL(acc Account) vocab.IRI {
+	return vocab.IRI(fmt.Sprintf("%s%s", Instance.BaseURL, AccountLocalLink(&acc)))
 }
 
-func BuildID(r Renderable) (pub.ID, bool) {
+func BuildID(r Renderable) (vocab.ID, bool) {
 	switch ob := r.(type) {
 	case *Item:
 		return BuildIDFromItem(*ob)
@@ -105,29 +105,29 @@ func BuildID(r Renderable) (pub.ID, bool) {
 	return "", false
 }
 
-func BuildIDFromItem(i Item) (pub.ID, bool) {
+func BuildIDFromItem(i Item) (vocab.ID, bool) {
 	if !i.IsValid() {
 		return "", false
 	}
 	if i.HasMetadata() && len(i.Metadata.ID) > 0 {
-		return pub.ID(i.Metadata.ID), true
+		return vocab.ID(i.Metadata.ID), true
 	}
 	return "", false
 }
 
-func GetID(a Renderable) pub.ID {
+func GetID(a Renderable) vocab.ID {
 	if !a.IsValid() {
-		return pub.PublicNS
+		return vocab.PublicNS
 	}
 	return a.AP().GetID()
 }
 
-func appendRecipients(rec *pub.ItemCollection, it pub.Item) error {
+func appendRecipients(rec *vocab.ItemCollection, it vocab.Item) error {
 	if it == nil {
 		return nil
 	}
-	if pub.IsItemCollection(it) {
-		return pub.OnItemCollection(it, func(col *pub.ItemCollection) error {
+	if vocab.IsItemCollection(it) {
+		return vocab.OnItemCollection(it, func(col *vocab.ItemCollection) error {
 			for _, r := range *col {
 				if !rec.Contains(r.GetLink()) {
 					*rec = append(*rec, r.GetLink())
@@ -142,23 +142,23 @@ func appendRecipients(rec *pub.ItemCollection, it pub.Item) error {
 	return nil
 }
 
-func appendReplies(it pub.Item) (pub.ItemCollection, error) {
+func appendReplies(it vocab.Item) (vocab.ItemCollection, error) {
 	if it == nil {
 		return nil, nil
 	}
-	repl := make(pub.ItemCollection, 0)
+	repl := make(vocab.ItemCollection, 0)
 	if it.IsLink() {
 		if !repl.Contains(it.GetLink()) {
 			repl = append(repl, it.GetLink())
 		}
 		return repl, nil
 	}
-	err := pub.OnObject(it, func(ob *pub.Object) error {
+	err := vocab.OnObject(it, func(ob *vocab.Object) error {
 		if !repl.Contains(ob.GetLink()) {
 			repl = append(repl, ob.GetLink())
 		}
-		if pub.IsItemCollection(ob.InReplyTo) {
-			return pub.OnItemCollection(ob.InReplyTo, func(col *pub.ItemCollection) error {
+		if vocab.IsItemCollection(ob.InReplyTo) {
+			return vocab.OnItemCollection(ob.InReplyTo, func(col *vocab.ItemCollection) error {
 				for _, r := range *col {
 					if !repl.Contains(r.GetLink()) {
 						repl = append(repl, r.GetLink())
@@ -167,7 +167,7 @@ func appendReplies(it pub.Item) (pub.ItemCollection, error) {
 				return nil
 			})
 		}
-		return pub.OnObject(ob.InReplyTo, func(r *pub.Object) error {
+		return vocab.OnObject(ob.InReplyTo, func(r *vocab.Object) error {
 			if !repl.Contains(r.GetLink()) {
 				repl = append(repl, r.GetLink())
 			}
@@ -178,14 +178,14 @@ func appendReplies(it pub.Item) (pub.ItemCollection, error) {
 	return repl, err
 }
 
-func loadFromParent(ob *pub.Object, it pub.Item) error {
+func loadFromParent(ob *vocab.Object, it vocab.Item) error {
 	if it == nil {
 		return nil
 	}
 	if repl, err := appendReplies(it); err == nil {
 		ob.InReplyTo = repl
 	}
-	pub.OnObject(it, func(p *pub.Object) error {
+	vocab.OnObject(it, func(p *vocab.Object) error {
 		appendRecipients(&ob.To, p.To)
 		appendRecipients(&ob.Bto, p.Bto)
 		appendRecipients(&ob.CC, p.CC)
@@ -196,20 +196,20 @@ func loadFromParent(ob *pub.Object, it pub.Item) error {
 	return nil
 }
 
-func loadAPItem(it pub.Item, item Item) error {
-	return pub.OnObject(it, func(o *pub.Object) error {
+func loadAPItem(it vocab.Item, item Item) error {
+	return vocab.OnObject(it, func(o *vocab.Object) error {
 		if id, ok := BuildIDFromItem(item); ok {
 			o.ID = id
 		}
 		if item.MimeType == MimeTypeURL {
-			o.Type = pub.PageType
+			o.Type = vocab.PageType
 			if item.Hash.IsValid() {
-				o.URL = pub.ItemCollection{
-					pub.IRI(item.Data),
-					pub.IRI(ItemLocalLink(&item)),
+				o.URL = vocab.ItemCollection{
+					vocab.IRI(item.Data),
+					vocab.IRI(ItemLocalLink(&item)),
 				}
 			} else {
-				o.URL = pub.IRI(item.Data)
+				o.URL = vocab.IRI(item.Data)
 			}
 		} else {
 			wordCount := strings.Count(item.Data, " ") +
@@ -217,28 +217,28 @@ func loadAPItem(it pub.Item, item Item) error {
 				strings.Count(item.Data, "\n") +
 				strings.Count(item.Data, "\r\n")
 			if wordCount > 300 {
-				o.Type = pub.ArticleType
+				o.Type = vocab.ArticleType
 			} else {
-				o.Type = pub.NoteType
+				o.Type = vocab.NoteType
 			}
 
 			if item.Hash.IsValid() {
-				o.URL = pub.IRI(ItemLocalLink(&item))
+				o.URL = vocab.IRI(ItemLocalLink(&item))
 			}
-			o.Name = make(pub.NaturalLanguageValues, 0)
+			o.Name = make(vocab.NaturalLanguageValues, 0)
 			switch item.MimeType {
 			case MimeTypeMarkdown:
-				o.Source.MediaType = pub.MimeType(item.MimeType)
+				o.Source.MediaType = vocab.MimeType(item.MimeType)
 				o.MediaType = MimeTypeHTML
 				if item.Data != "" {
-					o.Source.Content.Set("en", pub.Content(item.Data))
-					o.Content.Set("en", pub.Content(Markdown(item.Data)))
+					o.Source.Content.Set("en", vocab.Content(item.Data))
+					o.Content.Set("en", vocab.Content(Markdown(item.Data)))
 				}
 			case MimeTypeText:
 				fallthrough
 			case MimeTypeHTML:
-				o.MediaType = pub.MimeType(item.MimeType)
-				o.Content.Set("en", pub.Content(item.Data))
+				o.MediaType = vocab.MimeType(item.MimeType)
+				o.Content.Set("en", vocab.Content(item.Data))
 			}
 		}
 
@@ -246,13 +246,13 @@ func loadAPItem(it pub.Item, item Item) error {
 		o.Updated = item.UpdatedAt
 
 		if item.Deleted() {
-			del := pub.Tombstone{
+			del := vocab.Tombstone{
 				ID:         o.ID,
-				Type:       pub.TombstoneType,
+				Type:       vocab.TombstoneType,
 				FormerType: o.Type,
 				Deleted:    o.Updated,
 			}
-			repl := make(pub.ItemCollection, 0)
+			repl := make(vocab.ItemCollection, 0)
 			if item.Parent != nil {
 				if par, ok := BuildID(item.Parent); ok {
 					repl = append(repl, par)
@@ -278,16 +278,16 @@ func loadAPItem(it pub.Item, item Item) error {
 		}
 
 		if item.Title != "" {
-			o.Name.Set("en", pub.Content(item.Title))
+			o.Name.Set("en", vocab.Content(item.Title))
 		}
 		if item.SubmittedBy != nil {
 			o.AttributedTo = GetID(item.SubmittedBy)
 		}
 
-		to := make(pub.ItemCollection, 0)
-		bcc := make(pub.ItemCollection, 0)
-		cc := make(pub.ItemCollection, 0)
-		repl := make(pub.ItemCollection, 0)
+		to := make(vocab.ItemCollection, 0)
+		bcc := make(vocab.ItemCollection, 0)
+		cc := make(vocab.ItemCollection, 0)
+		repl := make(vocab.ItemCollection, 0)
 
 		if item.Parent != nil {
 			p := item.Parent
@@ -301,7 +301,7 @@ func loadAPItem(it pub.Item, item Item) error {
 					continue
 				}
 				if par.SubmittedBy.IsValid() {
-					if pAuth := GetID(par.SubmittedBy); !pub.PublicNS.Equals(pAuth, true) {
+					if pAuth := GetID(par.SubmittedBy); !vocab.PublicNS.Equals(pAuth, true) {
 						if first {
 							if !to.Contains(pAuth) {
 								to = append(to, pAuth)
@@ -329,33 +329,33 @@ func loadAPItem(it pub.Item, item Item) error {
 
 		// TODO(marius): add proper dynamic recipients to this based on some selector in the frontend
 		if !item.Private() {
-			to = append(to, pub.PublicNS)
+			to = append(to, vocab.PublicNS)
 		}
 		if item.Metadata != nil {
 			m := item.Metadata
 			for _, rec := range m.To {
-				mto := pub.IRI(rec.Metadata.ID)
+				mto := vocab.IRI(rec.Metadata.ID)
 				if !to.Contains(mto) {
 					to = append(to, mto)
 				}
 			}
 			for _, rec := range m.CC {
-				mcc := pub.IRI(rec.Metadata.ID)
+				mcc := vocab.IRI(rec.Metadata.ID)
 				if !cc.Contains(mcc) {
 					cc = append(cc, mcc)
 				}
 			}
 			if m.Mentions != nil || m.Tags != nil {
-				o.Tag = make(pub.ItemCollection, 0)
+				o.Tag = make(vocab.ItemCollection, 0)
 				for _, men := range m.Mentions {
 					// todo(marius): retrieve object ids of each mention and add it to the CC of the object
-					t := pub.Mention{
-						Type: pub.MentionType,
-						Name: pub.NaturalLanguageValues{{Ref: pub.NilLangRef, Value: pub.Content(men.Name)}},
-						Href: pub.IRI(men.URL),
+					t := vocab.Mention{
+						Type: vocab.MentionType,
+						Name: vocab.NaturalLanguageValues{{Ref: vocab.NilLangRef, Value: vocab.Content(men.Name)}},
+						Href: vocab.IRI(men.URL),
 					}
 					if men.Metadata != nil && len(men.Metadata.ID) > 0 {
-						t.ID = pub.IRI(men.Metadata.ID)
+						t.ID = vocab.IRI(men.Metadata.ID)
 					}
 					o.Tag.Append(t)
 				}
@@ -364,13 +364,13 @@ func loadAPItem(it pub.Item, item Item) error {
 					if tag.Name[0] == '#' {
 						name = tag.Name
 					}
-					t := pub.Object{
-						URL:  pub.ID(tag.URL),
-						To:   pub.ItemCollection{pub.PublicNS},
-						Name: pub.NaturalLanguageValues{{Ref: pub.NilLangRef, Value: pub.Content(name)}},
+					t := vocab.Object{
+						URL:  vocab.ID(tag.URL),
+						To:   vocab.ItemCollection{vocab.PublicNS},
+						Name: vocab.NaturalLanguageValues{{Ref: vocab.NilLangRef, Value: vocab.Content(name)}},
 					}
 					if tag.Metadata != nil && len(tag.Metadata.ID) > 0 {
-						t.ID = pub.IRI(tag.Metadata.ID)
+						t.ID = vocab.IRI(tag.Metadata.ID)
 					}
 					o.Tag.Append(t)
 				}
@@ -384,76 +384,76 @@ func loadAPItem(it pub.Item, item Item) error {
 	})
 }
 
-var anonymousActor = &pub.Actor{
-	ID:                pub.PublicNS,
-	Name:              pub.NaturalLanguageValues{{pub.NilLangRef, pub.Content(Anonymous)}},
-	Type:              pub.PersonType,
-	PreferredUsername: pub.NaturalLanguageValues{{pub.NilLangRef, pub.Content(Anonymous)}},
+var anonymousActor = &vocab.Actor{
+	ID:                vocab.PublicNS,
+	Name:              vocab.NaturalLanguageValues{{vocab.NilLangRef, vocab.Content(Anonymous)}},
+	Type:              vocab.PersonType,
+	PreferredUsername: vocab.NaturalLanguageValues{{vocab.NilLangRef, vocab.Content(Anonymous)}},
 }
 
-func anonymousPerson(url pub.IRI) *pub.Actor {
+func anonymousPerson(url vocab.IRI) *vocab.Actor {
 	p := anonymousActor
-	p.Inbox = pub.Inbox.IRI(url)
+	p.Inbox = vocab.Inbox.IRI(url)
 	return p
 }
 
-func (r *repository) loadAPPerson(a Account) *pub.Actor {
-	var p *pub.Actor
-	if act, ok := a.Pub.(*pub.Actor); ok {
+func (r *repository) loadAPPerson(a Account) *vocab.Actor {
+	var p *vocab.Actor
+	if act, ok := a.Pub.(*vocab.Actor); ok {
 		p = act
 	} else {
-		p = new(pub.Actor)
+		p = new(vocab.Actor)
 	}
 	if p.Type == "" {
-		p.Type = pub.PersonType
+		p.Type = vocab.PersonType
 	}
 
 	if a.HasMetadata() {
 		if p.Summary.Count() == 0 && len(a.Metadata.Blurb) > 0 {
-			p.Summary = pub.NaturalLanguageValuesNew()
-			p.Summary.Set(pub.NilLangRef, pub.Content(a.Metadata.Blurb))
+			p.Summary = vocab.NaturalLanguageValuesNew()
+			p.Summary.Set(vocab.NilLangRef, vocab.Content(a.Metadata.Blurb))
 		}
 		if p.Icon == nil && len(a.Metadata.Icon.URI) > 0 {
-			avatar := pub.ObjectNew(pub.ImageType)
-			avatar.MediaType = pub.MimeType(a.Metadata.Icon.MimeType)
-			avatar.URL = pub.IRI(a.Metadata.Icon.URI)
+			avatar := vocab.ObjectNew(vocab.ImageType)
+			avatar.MediaType = vocab.MimeType(a.Metadata.Icon.MimeType)
+			avatar.URL = vocab.IRI(a.Metadata.Icon.URI)
 			p.Icon = avatar
 		}
 	}
 
 	if p.PreferredUsername.Count() == 0 {
-		p.PreferredUsername = pub.NaturalLanguageValuesNew()
-		p.PreferredUsername.Set(pub.NilLangRef, pub.Content(a.Handle))
+		p.PreferredUsername = vocab.NaturalLanguageValuesNew()
+		p.PreferredUsername.Set(vocab.NilLangRef, vocab.Content(a.Handle))
 	}
 
 	if a.Hash.IsValid() {
 		if p.ID == "" {
-			p.ID = pub.ID(a.Metadata.ID)
+			p.ID = vocab.ID(a.Metadata.ID)
 		}
 		if p.Name.Count() == 0 && a.Metadata.Name != "" {
-			p.Name = pub.NaturalLanguageValuesNew()
-			p.Name.Set("en", pub.Content(a.Metadata.Name))
+			p.Name = vocab.NaturalLanguageValuesNew()
+			p.Name.Set("en", vocab.Content(a.Metadata.Name))
 		}
 		if p.Inbox == nil && len(a.Metadata.InboxIRI) > 0 {
-			p.Inbox = pub.IRI(a.Metadata.InboxIRI)
+			p.Inbox = vocab.IRI(a.Metadata.InboxIRI)
 		}
 		if p.Outbox == nil && len(a.Metadata.OutboxIRI) > 0 {
-			p.Outbox = pub.IRI(a.Metadata.OutboxIRI)
+			p.Outbox = vocab.IRI(a.Metadata.OutboxIRI)
 		}
 		if p.Liked == nil && len(a.Metadata.LikedIRI) > 0 {
-			p.Liked = pub.IRI(a.Metadata.LikedIRI)
+			p.Liked = vocab.IRI(a.Metadata.LikedIRI)
 		}
 		if p.Followers == nil && len(a.Metadata.FollowersIRI) > 0 {
-			p.Followers = pub.IRI(a.Metadata.FollowersIRI)
+			p.Followers = vocab.IRI(a.Metadata.FollowersIRI)
 		}
 		if p.Following == nil && len(a.Metadata.FollowingIRI) > 0 {
-			p.Following = pub.IRI(a.Metadata.FollowingIRI)
+			p.Following = vocab.IRI(a.Metadata.FollowingIRI)
 		}
 		if p.URL == nil && len(a.Metadata.URL) > 0 {
-			p.URL = pub.IRI(a.Metadata.URL)
+			p.URL = vocab.IRI(a.Metadata.URL)
 		}
 		if p.Endpoints == nil && r.fedbox.Service().Endpoints != nil {
-			p.Endpoints = &pub.Endpoints{
+			p.Endpoints = &vocab.Endpoints{
 				SharedInbox:                r.fedbox.Service().Inbox,
 				OauthAuthorizationEndpoint: r.fedbox.Service().Endpoints.OauthAuthorizationEndpoint,
 				OauthTokenEndpoint:         r.fedbox.Service().Endpoints.OauthTokenEndpoint,
@@ -462,8 +462,8 @@ func (r *repository) loadAPPerson(a Account) *pub.Actor {
 	}
 
 	if p.PublicKey.ID == "" && a.IsValid() && a.HasMetadata() && a.Metadata.Key != nil && a.Metadata.Key.Public != nil {
-		p.PublicKey = pub.PublicKey{
-			ID:           pub.ID(fmt.Sprintf("%s#main-key", p.ID)),
+		p.PublicKey = vocab.PublicKey{
+			ID:           vocab.ID(fmt.Sprintf("%s#main-key", p.ID)),
 			Owner:        p.ID,
 			PublicKeyPem: fmt.Sprintf("-----BEGIN PUBLIC KEY-----\n%s\n-----END PUBLIC KEY-----", base64.StdEncoding.EncodeToString(a.Metadata.Key.Public)),
 		}
@@ -484,7 +484,7 @@ func (r *repository) WithAccount(a *Account) *repository {
 	return r
 }
 
-func (r *repository) LoadItem(ctx context.Context, iri pub.IRI) (Item, error) {
+func (r *repository) LoadItem(ctx context.Context, iri vocab.IRI) (Item, error) {
 	var item Item
 	art, err := r.fedbox.Object(ctx, iri)
 	if err != nil {
@@ -525,9 +525,9 @@ func (r *repository) loadAccountsFollowers(ctx context.Context, acc *Account) er
 	searches := RemoteLoads{
 		baseIRI(ac.GetLink()): []RemoteLoad{{actor: ac, loadFn: followers, filters: []*Filters{f}}},
 	}
-	return LoadFromSearches(ctx, r, searches, func(_ context.Context, c pub.CollectionInterface, f *Filters) error {
+	return LoadFromSearches(ctx, r, searches, func(_ context.Context, c vocab.CollectionInterface, f *Filters) error {
 		for _, fol := range c.Collection() {
-			if !pub.ActorTypes.Contains(fol.GetType()) {
+			if !vocab.ActorTypes.Contains(fol.GetType()) {
 				continue
 			}
 			p := new(Account)
@@ -558,9 +558,9 @@ func (r *repository) loadAccountsFollowing(ctx context.Context, acc *Account) er
 		baseIRI(ac.GetLink()): []RemoteLoad{{actor: ac, loadFn: following, filters: []*Filters{f}}},
 	}
 
-	return LoadFromSearches(ctx, r, searches, func(_ context.Context, c pub.CollectionInterface, f *Filters) error {
+	return LoadFromSearches(ctx, r, searches, func(_ context.Context, c vocab.CollectionInterface, f *Filters) error {
 		for _, fol := range c.Collection() {
-			if !pub.ActorTypes.Contains(fol.GetType()) {
+			if !vocab.ActorTypes.Contains(fol.GetType()) {
 				continue
 			}
 			p := new(Account)
@@ -572,9 +572,9 @@ func (r *repository) loadAccountsFollowing(ctx context.Context, acc *Account) er
 	})
 }
 
-func getItemUpdatedTime(it pub.Item) time.Time {
+func getItemUpdatedTime(it vocab.Item) time.Time {
 	var updated time.Time
-	pub.OnObject(it, func(ob *pub.Object) error {
+	vocab.OnObject(it, func(ob *vocab.Object) error {
 		updated = ob.Updated
 		return nil
 	})
@@ -604,16 +604,16 @@ func (r *repository) loadAccountsOutbox(ctx context.Context, acc *Account) error
 			{actor: ac, loadFn: outbox, filters: []*Filters{&fa, &fc, &fm}},
 		},
 	}
-	return LoadFromSearches(ctx, r, searches, func(ctx context.Context, c pub.CollectionInterface, f *Filters) error {
+	return LoadFromSearches(ctx, r, searches, func(ctx context.Context, c vocab.CollectionInterface, f *Filters) error {
 		var stop bool
 		for _, it := range c.Collection() {
 			if iri := it.GetLink(); !acc.Metadata.Outbox.Contains(iri) {
-				acc.Metadata.Outbox = append(acc.Metadata.Outbox, pub.FlattenProperties(it))
+				acc.Metadata.Outbox = append(acc.Metadata.Outbox, vocab.FlattenProperties(it))
 			}
-			pub.OnActivity(it, func(a *pub.Activity) error {
+			vocab.OnActivity(it, func(a *vocab.Activity) error {
 				stop = a.Published.Sub(oneYearishAgo) < 0
 				typ := it.GetType()
-				if typ == pub.CreateType {
+				if typ == vocab.CreateType {
 					ob := a.Object
 					if ob == nil {
 						return nil
@@ -637,10 +637,10 @@ func (r *repository) loadAccountsOutbox(ctx context.Context, acc *Account) error
 						if !ok {
 							return nil
 						}
-						if typ == pub.BlockType {
+						if typ == vocab.BlockType {
 							acc.Blocked = append(acc.Blocked, *dude)
 						}
-						if typ == pub.IgnoreType {
+						if typ == vocab.IgnoreType {
 							acc.Ignored = append(acc.Ignored, *dude)
 						}
 					}
@@ -655,9 +655,9 @@ func (r *repository) loadAccountsOutbox(ctx context.Context, acc *Account) error
 	})
 }
 
-func getRepliesOf(items ...Item) pub.IRIs {
-	repliesTo := make(pub.IRIs, 0)
-	iriFn := func(it Item) pub.IRI {
+func getRepliesOf(items ...Item) vocab.IRIs {
+	repliesTo := make(vocab.IRIs, 0)
+	iriFn := func(it Item) vocab.IRI {
 		if it.Pub != nil {
 			return it.Pub.GetLink()
 		}
@@ -687,7 +687,7 @@ func (r *repository) loadItemsReplies(ctx context.Context, items ...Item) (ItemC
 	}
 	allReplies := make(ItemCollection, 0)
 	f := Filters{
-		Type: CompStrs{DifferentThanString(string(pub.TombstoneType))},
+		Type: CompStrs{DifferentThanString(string(vocab.TombstoneType))},
 	}
 
 	searches := RemoteLoads{}
@@ -695,7 +695,7 @@ func (r *repository) loadItemsReplies(ctx context.Context, items ...Item) (ItemC
 		base := baseIRI(top)
 		searches[base] = append(searches[base], RemoteLoad{actor: top, loadFn: replies, filters: []*Filters{&f}})
 	}
-	err := LoadFromSearches(ctx, r, searches, func(_ context.Context, c pub.CollectionInterface, f *Filters) error {
+	err := LoadFromSearches(ctx, r, searches, func(_ context.Context, c vocab.CollectionInterface, f *Filters) error {
 		for _, it := range c.Collection() {
 			if !it.IsObject() {
 				continue
@@ -714,7 +714,7 @@ func (r *repository) loadItemsReplies(ctx context.Context, items ...Item) (ItemC
 	return allReplies, nil
 }
 
-func likesFilter(iris pub.IRIs) RemoteLoads {
+func likesFilter(iris vocab.IRIs) RemoteLoads {
 	ff := Filters{
 		Type:     ActivityTypesFilter(ValidAppreciationTypes...),
 		MaxItems: 500,
@@ -738,12 +738,12 @@ func likesFilter(iris pub.IRIs) RemoteLoads {
 	return searches
 }
 
-func mixedLikesFilter(iris pub.IRIs) RemoteLoads {
-	g := make(map[pub.IRI]pub.IRIs)
+func mixedLikesFilter(iris vocab.IRIs) RemoteLoads {
+	g := make(map[vocab.IRI]vocab.IRIs)
 	for _, iri := range iris {
 		base := baseIRI(iri)
 		if _, ok := g[base]; !ok {
-			g[base] = make(pub.IRIs, 0)
+			g[base] = make(vocab.IRIs, 0)
 		}
 		g[base] = append(g[base], iri)
 	}
@@ -769,8 +769,8 @@ func mixedLikesFilter(iris pub.IRIs) RemoteLoads {
 	return searches
 }
 
-func irisFromItems(items ...Item) pub.IRIs {
-	iris := make(pub.IRIs, 0)
+func irisFromItems(items ...Item) vocab.IRIs {
+	iris := make(vocab.IRIs, 0)
 	for _, it := range items {
 		if it.Deleted() {
 			continue
@@ -792,7 +792,7 @@ func (r *repository) loadItemsVotes(ctx context.Context, items ...Item) (ItemCol
 		searches = likesFilter(irisFromItems(items...))
 	}
 	votes := make(VoteCollection, 0)
-	err := LoadFromSearches(ctx, r, searches, func(_ context.Context, c pub.CollectionInterface, f *Filters) error {
+	err := LoadFromSearches(ctx, r, searches, func(_ context.Context, c vocab.CollectionInterface, f *Filters) error {
 		for _, vAct := range c.Collection() {
 			if !vAct.IsObject() || !ValidAppreciationTypes.Contains(vAct.GetType()) {
 				continue
@@ -851,7 +851,7 @@ func AccountsIRIFilter(accounts ...Account) CompStrs {
 	return filter
 }
 
-func ActivityTypesFilter(t ...pub.ActivityVocabularyType) CompStrs {
+func ActivityTypesFilter(t ...vocab.ActivityVocabularyType) CompStrs {
 	r := make(CompStrs, len(t))
 	for i, typ := range t {
 		r[i] = EqualsString(string(typ))
@@ -937,7 +937,7 @@ func (r *repository) loadFollowsAuthors(ctx context.Context, items ...FollowRequ
 }
 
 func (r *repository) loadModerationFollowups(ctx context.Context, items RenderableList) ([]ModerationOp, error) {
-	inReplyTo := make(pub.IRIs, 0)
+	inReplyTo := make(vocab.IRIs, 0)
 	for _, it := range items {
 		iri := it.AP().GetLink()
 		if !inReplyTo.Contains(iri) {
@@ -946,7 +946,7 @@ func (r *repository) loadModerationFollowups(ctx context.Context, items Renderab
 	}
 
 	modActions := new(Filters)
-	modActions.Type = ActivityTypesFilter(pub.DeleteType, pub.UpdateType)
+	modActions.Type = ActivityTypesFilter(vocab.DeleteType, vocab.UpdateType)
 	modActions.InReplTo = IRIsFilter(inReplyTo...)
 	modActions.Actor = derefIRIFilters
 	modActions.Object = derefIRIFilters
@@ -955,7 +955,7 @@ func (r *repository) loadModerationFollowups(ctx context.Context, items Renderab
 		return nil, err
 	}
 	modFollowups := make(ModerationRequests, 0)
-	err = pub.OnCollectionIntf(act, func(c pub.CollectionInterface) error {
+	err = vocab.OnCollectionIntf(act, func(c vocab.CollectionInterface) error {
 		for _, it := range c.Collection() {
 			m := new(ModerationOp)
 			if err := m.FromActivityPub(it); err != nil {
@@ -1074,10 +1074,10 @@ func accountsEqual(a1, a2 Account) bool {
 	return a1.Hash == a2.Hash || (len(a1.Handle)+len(a2.Handle) > 0 && a1.Handle == a2.Handle)
 }
 
-func baseIRI(iri pub.IRI) pub.IRI {
+func baseIRI(iri vocab.IRI) vocab.IRI {
 	u, _ := iri.URL()
 	u.Path = ""
-	return pub.IRI(u.String())
+	return vocab.IRI(u.String())
 }
 
 func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemCollection, error) {
@@ -1085,7 +1085,7 @@ func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemC
 		return items, nil
 	}
 
-	accounts := make(map[pub.IRI]AccountCollection)
+	accounts := make(map[vocab.IRI]AccountCollection)
 	for _, it := range items {
 		if it.SubmittedBy.IsValid() {
 			iri := baseIRI(it.SubmittedBy.AP().GetLink())
@@ -1139,8 +1139,8 @@ func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemC
 		ff.IRI = AccountsIRIFilter(acc...)
 		requiredAuthorsCount += len(ff.IRI)
 		f := Filters{Object: &ff}
-		f.Type = ActivityTypesFilter(pub.CreateType)
-		actorsCol := func(a pub.Item, f ...client.FilterFn) pub.IRI {
+		f.Type = ActivityTypesFilter(vocab.CreateType)
+		actorsCol := func(a vocab.Item, f ...client.FilterFn) vocab.IRI {
 			return iri(actors.IRI(a), f...)
 		}
 		searches[i] = []RemoteLoad{
@@ -1158,7 +1158,7 @@ func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemC
 	}
 
 	authors := make(AccountCollection, 0)
-	err := LoadFromSearches(ctx, r, searches, func(ctx context.Context, col pub.CollectionInterface, f *Filters) error {
+	err := LoadFromSearches(ctx, r, searches, func(ctx context.Context, col vocab.CollectionInterface, f *Filters) error {
 		for _, it := range col.Collection() {
 			acc := Account{}
 			if err := acc.FromActivityPub(it); err != nil {
@@ -1217,8 +1217,8 @@ func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemC
 	return col, nil
 }
 
-func getCollectionPrevNext(col pub.CollectionInterface) (prev, next string) {
-	qFn := func(i pub.Item) url.Values {
+func getCollectionPrevNext(col vocab.CollectionInterface) (prev, next string) {
+	qFn := func(i vocab.Item) url.Values {
 		if i == nil {
 			return url.Values{}
 		}
@@ -1227,13 +1227,13 @@ func getCollectionPrevNext(col pub.CollectionInterface) (prev, next string) {
 		}
 		return url.Values{}
 	}
-	beforeFn := func(i pub.Item) string {
+	beforeFn := func(i vocab.Item) string {
 		return qFn(i).Get("before")
 	}
-	afterFn := func(i pub.Item) string {
+	afterFn := func(i vocab.Item) string {
 		return qFn(i).Get("after")
 	}
-	nextFromLastFn := func(i pub.Item) string {
+	nextFromLastFn := func(i vocab.Item) string {
 		if u, err := i.GetLink().URL(); err == nil {
 			_, next = path.Split(u.Path)
 			return next
@@ -1241,28 +1241,28 @@ func getCollectionPrevNext(col pub.CollectionInterface) (prev, next string) {
 		return ""
 	}
 	switch col.GetType() {
-	case pub.OrderedCollectionPageType:
-		if c, ok := col.(*pub.OrderedCollectionPage); ok {
+	case vocab.OrderedCollectionPageType:
+		if c, ok := col.(*vocab.OrderedCollectionPage); ok {
 			prev = beforeFn(c.Prev)
 			if int(c.TotalItems) > len(c.OrderedItems) {
 				next = afterFn(c.Next)
 			}
 		}
-	case pub.OrderedCollectionType:
-		if c, ok := col.(*pub.OrderedCollection); ok {
+	case vocab.OrderedCollectionType:
+		if c, ok := col.(*vocab.OrderedCollection); ok {
 			if len(c.OrderedItems) > 0 && int(c.TotalItems) > len(c.OrderedItems) {
 				next = nextFromLastFn(c.OrderedItems[len(c.OrderedItems)-1])
 			}
 		}
-	case pub.CollectionPageType:
-		if c, ok := col.(*pub.CollectionPage); ok {
+	case vocab.CollectionPageType:
+		if c, ok := col.(*vocab.CollectionPage); ok {
 			prev = beforeFn(c.Prev)
 			if int(c.TotalItems) > len(c.Items) {
 				next = afterFn(c.Next)
 			}
 		}
-	case pub.CollectionType:
-		if c, ok := col.(*pub.Collection); ok {
+	case vocab.CollectionType:
+		if c, ok := col.(*vocab.Collection); ok {
 			if len(c.Items) > 0 && int(c.TotalItems) > len(c.Items) {
 				next = nextFromLastFn(c.Items[len(c.Items)-1])
 			}
@@ -1295,7 +1295,7 @@ func (r *repository) account(ctx context.Context, ff *Filters) (*Account, error)
 	return &accounts[0], nil
 }
 
-func accumulateAccountsFromCollection(col pub.CollectionInterface) (AccountCollection, CompStrs, error) {
+func accumulateAccountsFromCollection(col vocab.CollectionInterface) (AccountCollection, CompStrs, error) {
 	accounts := make(AccountCollection, 0)
 	deferredTagLoads := make(CompStrs, 0)
 	for _, it := range col.Collection() {
@@ -1317,11 +1317,11 @@ func accumulateAccountsFromCollection(col pub.CollectionInterface) (AccountColle
 	return accounts, deferredTagLoads, nil
 }
 
-func assignTagsToAccounts(accounts AccountCollection, col pub.CollectionInterface) error {
+func assignTagsToAccounts(accounts AccountCollection, col vocab.CollectionInterface) error {
 	for _, it := range col.Collection() {
 		for _, a := range accounts {
 			for i, t := range a.Metadata.Tags {
-				if it.GetID().Equals(pub.IRI(t.Metadata.ID), true) {
+				if it.GetID().Equals(vocab.IRI(t.Metadata.ID), true) {
 					tt := Tag{}
 					if err := tt.FromActivityPub(it); err == nil && !a.Metadata.Tags.Contains(tt) {
 						a.Metadata.Tags[i] = tt
@@ -1333,7 +1333,7 @@ func assignTagsToAccounts(accounts AccountCollection, col pub.CollectionInterfac
 	return nil
 }
 
-func (r *repository) accountsFromRemote(ctx context.Context, remote pub.Item, ff ...*Filters) (AccountCollection, error) {
+func (r *repository) accountsFromRemote(ctx context.Context, remote vocab.Item, ff ...*Filters) (AccountCollection, error) {
 	accounts := make(AccountCollection, 0)
 	localBase := baseIRI(r.fedbox.Service().GetLink())
 	isRemote := remote != nil && !remote.GetLink().Contains(localBase, true)
@@ -1344,7 +1344,7 @@ func (r *repository) accountsFromRemote(ctx context.Context, remote pub.Item, ff
 		searches[remote.GetLink()] = []RemoteLoad{{actor: remote, loadFn: colIRI(actors), filters: ff}}
 	}
 	deferredTagLoads := make(CompStrs, 0)
-	err := LoadFromSearches(ctx, r, searches, func(_ context.Context, col pub.CollectionInterface, f *Filters) error {
+	err := LoadFromSearches(ctx, r, searches, func(_ context.Context, col vocab.CollectionInterface, f *Filters) error {
 		// TODO(marius): this needs to be externalized also to a different function that we can pass from outer scope
 		//   This function implements the logic for breaking out of the collection iteration cycle and returns a bool
 		acc, tags, err := accumulateAccountsFromCollection(col)
@@ -1369,7 +1369,7 @@ func (r *repository) accountsFromRemote(ctx context.Context, remote pub.Item, ff
 			filters: []*Filters{{IRI: deferredTagLoads}},
 		}}
 	}
-	return accounts, LoadFromSearches(ctx, r, tagSearches, func(_ context.Context, col pub.CollectionInterface, f *Filters) error {
+	return accounts, LoadFromSearches(ctx, r, tagSearches, func(_ context.Context, col vocab.CollectionInterface, f *Filters) error {
 		return assignTagsToAccounts(accounts, col)
 	})
 }
@@ -1384,7 +1384,7 @@ func (r *repository) objects(ctx context.Context, ff ...*Filters) (ItemCollectio
 	}
 
 	items := make(ItemCollection, 0)
-	err := LoadFromSearches(ctx, r, searches, func(_ context.Context, c pub.CollectionInterface, f *Filters) error {
+	err := LoadFromSearches(ctx, r, searches, func(_ context.Context, c vocab.CollectionInterface, f *Filters) error {
 		for _, it := range c.Collection() {
 			i := new(Item)
 			if err := i.FromActivityPub(it); err == nil && i.IsValid() {
@@ -1402,7 +1402,7 @@ func (r *repository) objects(ctx context.Context, ff ...*Filters) (ItemCollectio
 }
 
 func validFederated(i Item, f *Filters) bool {
-	ob, err := pub.ToObject(i.Pub)
+	ob, err := vocab.ToObject(i.Pub)
 	if err != nil {
 		return false
 	}
@@ -1412,12 +1412,12 @@ func validFederated(i Item, f *Filters) bool {
 				continue
 			}
 			if g == nilFilter {
-				if ob.Generator.GetLink().Equals(pub.IRI(Instance.BaseURL), false) {
+				if ob.Generator.GetLink().Equals(vocab.IRI(Instance.BaseURL), false) {
 					return false
 				}
 				return true
 			}
-			if ob.Generator.GetLink().Equals(pub.IRI(g.Str), false) {
+			if ob.Generator.GetLink().Equals(vocab.IRI(g.Str), false) {
 				return true
 			}
 		}
@@ -1429,7 +1429,7 @@ func validFederated(i Item, f *Filters) bool {
 func validRecipients(i Item, f *Filters) bool {
 	if len(f.Recipients) > 0 {
 		for _, r := range f.Recipients {
-			if pub.IRI(r.Str).Equals(pub.PublicNS, false) && i.Private() {
+			if vocab.IRI(r.Str).Equals(vocab.PublicNS, false) && i.Private() {
 				return false
 			}
 		}
@@ -1461,7 +1461,7 @@ func filterItems(items ItemCollection, f *Filters) ItemCollection {
 	return result
 }
 
-func IRIsLikeFilter(iris ...pub.IRI) CompStrs {
+func IRIsLikeFilter(iris ...vocab.IRI) CompStrs {
 	r := make(CompStrs, len(iris))
 	for i, iri := range iris {
 		r[i] = LikeString(iri.String())
@@ -1469,7 +1469,7 @@ func IRIsLikeFilter(iris ...pub.IRI) CompStrs {
 	return r
 }
 
-func IRIsFilter(iris ...pub.IRI) CompStrs {
+func IRIsFilter(iris ...vocab.IRI) CompStrs {
 	r := make(CompStrs, len(iris))
 	for i, iri := range iris {
 		r[i] = EqualsString(iri.String())
@@ -1485,13 +1485,13 @@ func (r *repository) LoadSearches(ctx context.Context, searches RemoteLoads, dep
 	accounts := make(AccountCollection, 0)
 	moderations := make(ModerationRequests, 0)
 	appreciations := make(VoteCollection, 0)
-	relations := make(map[pub.IRI]pub.IRI)
+	relations := make(map[vocab.IRI]vocab.IRI)
 	relM := new(sync.RWMutex)
 
 	deferredItems := make(CompStrs, 0)
 	deferredActors := make(CompStrs, 0)
 	deferredActivities := make(CompStrs, 0)
-	appendToDeferred := func(ob pub.Item, filterFn func(string) CompStr) {
+	appendToDeferred := func(ob vocab.Item, filterFn func(string) CompStr) {
 		if ob.IsObject() {
 			return
 		}
@@ -1511,18 +1511,18 @@ func (r *repository) LoadSearches(ctx context.Context, searches RemoteLoads, dep
 	resM := new(sync.RWMutex)
 
 	var next, prev string
-	err := LoadFromSearches(ctx, r, searches, func(ctx context.Context, col pub.CollectionInterface, f *Filters) error {
+	err := LoadFromSearches(ctx, r, searches, func(ctx context.Context, col vocab.CollectionInterface, f *Filters) error {
 		if len(col.Collection()) > 0 {
 			prev, next = getCollectionPrevNext(col)
 		}
 		r.infoFn(log.Ctx{"col": col.GetID()})("loading")
 		for _, it := range col.Collection() {
-			pub.OnActivity(it, func(a *pub.Activity) error {
+			vocab.OnActivity(it, func(a *vocab.Activity) error {
 				relM.Lock()
 				defer relM.Unlock()
 
 				typ := it.GetType()
-				if typ == pub.CreateType {
+				if typ == vocab.CreateType {
 					ob := a.Object
 					if ob == nil {
 						return nil
@@ -1547,7 +1547,7 @@ func (r *repository) LoadSearches(ctx context.Context, searches RemoteLoads, dep
 					}
 					relations[a.GetLink()] = ob.GetLink()
 				}
-				if it.GetType() == pub.FollowType {
+				if it.GetType() == vocab.FollowType {
 					f := FollowRequest{}
 					f.FromActivityPub(a)
 					follows = append(follows, f)
@@ -1708,30 +1708,30 @@ func (r *repository) SaveVote(ctx context.Context, v Vote) (Vote, error) {
 		}
 	}
 
-	o := new(pub.Object)
+	o := new(vocab.Object)
 	loadAPItem(o, *v.Item)
-	act := &pub.Activity{
-		Type:  pub.UndoType,
-		To:    pub.ItemCollection{pub.PublicNS},
-		BCC:   pub.ItemCollection{r.fedbox.Service().ID},
+	act := &vocab.Activity{
+		Type:  vocab.UndoType,
+		To:    vocab.ItemCollection{vocab.PublicNS},
+		BCC:   vocab.ItemCollection{r.fedbox.Service().ID},
 		Actor: author.GetLink(),
 	}
-	pub.OnObject(act, func(ob *pub.Object) error {
+	vocab.OnObject(act, func(ob *vocab.Object) error {
 		return loadFromParent(ob, v.Item.Pub)
 	})
 
 	if exists.HasMetadata() {
-		act.Object = pub.IRI(exists.Metadata.IRI)
+		act.Object = vocab.IRI(exists.Metadata.IRI)
 		if _, _, err := r.fedbox.ToOutbox(ctx, act); err != nil {
 			r.errFn()(err.Error())
 		}
 	}
 
 	if v.Weight > 0 && exists.Weight <= 0 {
-		act.Type = pub.LikeType
+		act.Type = vocab.LikeType
 		act.Object = o.GetLink()
 	} else if v.Weight < 0 && exists.Weight >= 0 {
-		act.Type = pub.DislikeType
+		act.Type = vocab.DislikeType
 		act.Object = o.GetLink()
 	} else {
 		return v, nil
@@ -1742,14 +1742,14 @@ func (r *repository) SaveVote(ctx context.Context, v Vote) (Vote, error) {
 			// NOTE(marius): this assumes that the instance the user is from has a shared inbox at {instance_hostname}/inbox
 			u, _ := auth.GetLink().URL()
 			u.Path = ""
-			act.BCC = append(act.BCC, pub.IRI(u.String()))
+			act.BCC = append(act.BCC, vocab.IRI(u.String()))
 		}
 		act.To = append(act.To, auth.GetLink())
 	}
 
 	var (
-		iri pub.IRI
-		it  pub.Item
+		iri vocab.IRI
+		it  vocab.Item
 	)
 	iri, it, err = r.fedbox.ToOutbox(ctx, act)
 	if err != nil {
@@ -1781,7 +1781,7 @@ func (r *repository) handlerErrorResponse(body []byte) error {
 }
 
 func (r *repository) handleItemSaveSuccessResponse(ctx context.Context, it Item, body []byte) (Item, error) {
-	ap, err := pub.UnmarshalJSON(body)
+	ap, err := vocab.UnmarshalJSON(body)
 	if err != nil {
 		r.errFn()(err.Error())
 		return it, err
@@ -1814,15 +1814,15 @@ func (r *repository) getAuthorRequestURL(a *Account) string {
 	return reqURL
 }
 
-func loadCCsFromMentions(incoming []Tag) pub.ItemCollection {
+func loadCCsFromMentions(incoming []Tag) vocab.ItemCollection {
 	if len(incoming) == 0 {
 		return nil
 	}
 
-	iris := make(pub.ItemCollection, 0)
+	iris := make(vocab.ItemCollection, 0)
 	for _, inc := range incoming {
 		if inc.Metadata != nil {
-			iris = append(iris, pub.IRI(inc.Metadata.ID))
+			iris = append(iris, vocab.IRI(inc.Metadata.ID))
 		}
 	}
 
@@ -1856,7 +1856,7 @@ func loadMentionsIfExisting(r *repository, ctx context.Context, incoming TagColl
 			}
 		}
 		if filter == nil {
-			filter = &Filters{Type: ActivityTypesFilter(pub.PersonType)}
+			filter = &Filters{Type: ActivityTypesFilter(vocab.PersonType)}
 			filter.IRI = append(filter.IRI, urlFilter)
 			add = true
 		}
@@ -1870,17 +1870,17 @@ func loadMentionsIfExisting(r *repository, ctx context.Context, incoming TagColl
 	}
 
 	for _, filter := range remoteFilters {
-		actorsIRI := actors.IRI(pub.IRI(filter.IRI[0].Str))
+		actorsIRI := actors.IRI(vocab.IRI(filter.IRI[0].Str))
 		filter.IRI = nil
 		col, err := r.fedbox.client.Collection(ctx, actorsIRI, Values(filter))
 		if err != nil {
 			r.errFn(log.Ctx{"err": err})("unable to load accounts from mentions")
 			continue
 		}
-		pub.OnCollectionIntf(col, func(col pub.CollectionInterface) error {
+		vocab.OnCollectionIntf(col, func(col vocab.CollectionInterface) error {
 			for _, it := range col.Collection() {
 				for i, t := range incoming {
-					pub.OnActor(it, func(act *pub.Actor) error {
+					vocab.OnActor(it, func(act *vocab.Actor) error {
 						if strings.ToLower(t.Name) == strings.ToLower(string(act.Name.Get("-"))) ||
 							strings.ToLower(t.Name) == strings.ToLower(string(act.PreferredUsername.Get("-"))) {
 							url := act.ID.String()
@@ -1944,9 +1944,9 @@ func (r *repository) ModerateDelete(ctx context.Context, mod ModerationOp, autho
 
 	submittedBy := author.Pub
 
-	to := make(pub.ItemCollection, 0)
-	cc := make(pub.ItemCollection, 0)
-	bcc := make(pub.ItemCollection, 0)
+	to := make(vocab.ItemCollection, 0)
+	cc := make(vocab.ItemCollection, 0)
+	bcc := make(vocab.ItemCollection, 0)
 
 	var err error
 	it.Delete()
@@ -1955,14 +1955,14 @@ func (r *repository) ModerateDelete(ctx context.Context, mod ModerationOp, autho
 		m := it.Metadata
 		if len(m.To) > 0 {
 			for _, rec := range m.To {
-				if rr := pub.IRI(rec.Metadata.ID); !cc.Contains(rr) {
+				if rr := vocab.IRI(rec.Metadata.ID); !cc.Contains(rr) {
 					to = append(to, rr)
 				}
 			}
 		}
 		if len(m.CC) > 0 {
 			for _, rec := range m.CC {
-				if rr := pub.IRI(rec.Metadata.ID); !cc.Contains(rr) {
+				if rr := vocab.IRI(rec.Metadata.ID); !cc.Contains(rr) {
 					cc = append(cc, rr)
 				}
 			}
@@ -1993,22 +1993,22 @@ func (r *repository) ModerateDelete(ctx context.Context, mod ModerationOp, autho
 	}
 
 	if !it.Private() {
-		to = append(to, pub.PublicNS)
+		to = append(to, vocab.PublicNS)
 		if it.Parent == nil && it.SubmittedBy.HasMetadata() && len(it.SubmittedBy.Metadata.FollowersIRI) > 0 {
-			cc = append(cc, pub.IRI(it.SubmittedBy.Metadata.FollowersIRI))
+			cc = append(cc, vocab.IRI(it.SubmittedBy.Metadata.FollowersIRI))
 		}
-		cc = append(cc, r.app.Pub.GetLink(), pub.Followers.IRI(r.app.Pub))
+		cc = append(cc, r.app.Pub.GetLink(), vocab.Followers.IRI(r.app.Pub))
 		bcc = append(bcc, r.fedbox.Service().ID)
 	}
 
-	art := new(pub.Object)
+	art := new(vocab.Object)
 	loadAPItem(art, *it)
 	if it.Parent != nil {
 		loadFromParent(art, it.Parent.AP())
 	}
 	id := art.GetLink()
 
-	act := &pub.Activity{
+	act := &vocab.Activity{
 		To:           to,
 		CC:           cc,
 		BCC:          bcc,
@@ -2023,17 +2023,17 @@ func (r *repository) ModerateDelete(ctx context.Context, mod ModerationOp, autho
 			return mod, errors.NotFoundf("item hash is empty, can not delete")
 		}
 		act.Object = id
-		act.Type = pub.DeleteType
+		act.Type = vocab.DeleteType
 	} else {
 		if len(id) == 0 {
-			act.Type = pub.CreateType
+			act.Type = vocab.CreateType
 		} else {
-			act.Type = pub.UpdateType
+			act.Type = vocab.UpdateType
 		}
 	}
 	var (
-		i  pub.IRI
-		ob pub.Item
+		i  vocab.IRI
+		ob vocab.Item
 	)
 	i, ob, err = r.fedbox.ToOutbox(ctx, act)
 	if err != nil {
@@ -2054,7 +2054,7 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 	if it.SubmittedBy == nil || !it.SubmittedBy.HasMetadata() {
 		return Item{}, errors.Newf("invalid account")
 	}
-	var author *pub.Actor
+	var author *vocab.Actor
 	if it.SubmittedBy.IsLogged() {
 		author = r.loadAPPerson(*it.SubmittedBy)
 	} else {
@@ -2064,9 +2064,9 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 		return it, errors.Unauthorizedf("invalid account %s", it.SubmittedBy.Handle)
 	}
 
-	to := make(pub.ItemCollection, 0)
-	cc := make(pub.ItemCollection, 0)
-	bcc := make(pub.ItemCollection, 0)
+	to := make(vocab.ItemCollection, 0)
+	cc := make(vocab.ItemCollection, 0)
+	bcc := make(vocab.ItemCollection, 0)
 
 	var err error
 
@@ -2074,14 +2074,14 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 		m := it.Metadata
 		if len(m.To) > 0 {
 			for _, rec := range m.To {
-				if rr := pub.IRI(rec.Metadata.ID); !cc.Contains(rr) {
+				if rr := vocab.IRI(rec.Metadata.ID); !cc.Contains(rr) {
 					to = append(to, rr)
 				}
 			}
 		}
 		if len(m.CC) > 0 {
 			for _, rec := range m.CC {
-				if rr := pub.IRI(rec.Metadata.ID); !cc.Contains(rr) {
+				if rr := vocab.IRI(rec.Metadata.ID); !cc.Contains(rr) {
 					cc = append(cc, rr)
 				}
 			}
@@ -2112,22 +2112,22 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 	}
 
 	if !it.Private() {
-		to = append(to, pub.PublicNS)
+		to = append(to, vocab.PublicNS)
 		if it.Parent == nil && it.SubmittedBy.HasMetadata() && len(it.SubmittedBy.Metadata.FollowersIRI) > 0 {
-			cc = append(cc, pub.IRI(it.SubmittedBy.Metadata.FollowersIRI))
+			cc = append(cc, vocab.IRI(it.SubmittedBy.Metadata.FollowersIRI))
 		}
-		cc = append(cc, r.app.Pub.GetLink(), pub.Followers.IRI(r.app.Pub))
+		cc = append(cc, r.app.Pub.GetLink(), vocab.Followers.IRI(r.app.Pub))
 		bcc = append(bcc, r.fedbox.Service().ID)
 	}
 
-	art := new(pub.Object)
+	art := new(vocab.Object)
 	loadAPItem(art, it)
 	if it.Parent != nil {
 		loadFromParent(art, it.Parent.AP())
 	}
 	id := art.GetLink()
 
-	act := &pub.Activity{
+	act := &vocab.Activity{
 		To:     to,
 		CC:     cc,
 		BCC:    bcc,
@@ -2141,18 +2141,18 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 			return it, errors.NotFoundf("item hash is empty, can not delete")
 		}
 		act.Object = id
-		act.Type = pub.DeleteType
+		act.Type = vocab.DeleteType
 		loadAuthors = false
 	} else {
 		if len(id) == 0 {
-			act.Type = pub.CreateType
+			act.Type = vocab.CreateType
 		} else {
-			act.Type = pub.UpdateType
+			act.Type = vocab.UpdateType
 		}
 	}
 	var (
-		i  pub.IRI
-		ob pub.Item
+		i  vocab.IRI
+		ob vocab.Item
 	)
 	if i, ob, err = r.fedbox.ToOutbox(ctx, act); err != nil {
 		r.errFn()(err.Error())
@@ -2183,7 +2183,7 @@ func (r *repository) LoadTags(ctx context.Context, ff ...*Filters) (TagCollectio
 				r.errFn()(err.Error())
 				return err
 			}
-			return pub.OnOrderedCollection(it, func(col *pub.OrderedCollection) error {
+			return vocab.OnOrderedCollection(it, func(col *vocab.OrderedCollection) error {
 				count = col.TotalItems
 				for _, it := range col.OrderedItems {
 					tag := Tag{}
@@ -2203,7 +2203,7 @@ func (r *repository) LoadTags(ctx context.Context, ff ...*Filters) (TagCollectio
 	return tags, count, nil
 }
 
-type CollectionFilterFn func(context.Context, ...client.FilterFn) (pub.CollectionInterface, error)
+type CollectionFilterFn func(context.Context, ...client.FilterFn) (vocab.CollectionInterface, error)
 
 func (r *repository) LoadAccounts(ctx context.Context, colFn CollectionFilterFn, ff ...*Filters) (AccountCollection, uint, error) {
 	accounts := make(AccountCollection, 0)
@@ -2222,7 +2222,7 @@ func (r *repository) LoadAccounts(ctx context.Context, colFn CollectionFilterFn,
 				r.errFn()(err.Error())
 				return err
 			}
-			return pub.OnOrderedCollection(it, func(col *pub.OrderedCollection) error {
+			return vocab.OnOrderedCollection(it, func(col *vocab.OrderedCollection) error {
 				count = col.TotalItems
 				for _, it := range col.OrderedItems {
 					acc := Account{Metadata: &AccountMetadata{}}
@@ -2271,7 +2271,7 @@ func (r *repository) LoadAccountDetails(ctx context.Context, acc *Account) error
 	return nil
 }
 
-func (r *repository) LoadAccount(ctx context.Context, iri pub.IRI) (*Account, error) {
+func (r *repository) LoadAccount(ctx context.Context, iri vocab.IRI) (*Account, error) {
 	acc := new(Account)
 	act, err := r.fedbox.Actor(ctx, iri)
 	if err != nil {
@@ -2298,10 +2298,10 @@ func Values(f interface{}) client.FilterFn {
 
 func (r *repository) LoadFollowRequests(ctx context.Context, ed *Account, f *Filters) (FollowRequests, uint, error) {
 	if len(f.Type) == 0 {
-		f.Type = ActivityTypesFilter(pub.FollowType)
+		f.Type = ActivityTypesFilter(vocab.FollowType)
 		f.Actor = derefIRIFilters
 	}
-	var followReq pub.CollectionInterface
+	var followReq vocab.CollectionInterface
 	var err error
 	if ed == nil {
 		followReq, err = r.fedbox.Activities(ctx, Values(f))
@@ -2333,27 +2333,27 @@ func (r *repository) SendFollowResponse(ctx context.Context, f FollowRequest, ac
 		return errors.Unauthorizedf("invalid account for request %s", ed.Handle)
 	}
 
-	to := make(pub.ItemCollection, 0)
-	cc := make(pub.ItemCollection, 0)
-	bcc := make(pub.ItemCollection, 0)
+	to := make(vocab.ItemCollection, 0)
+	cc := make(vocab.ItemCollection, 0)
+	bcc := make(vocab.ItemCollection, 0)
 
-	to = append(to, pub.IRI(er.Metadata.ID))
-	cc = append(cc, r.app.Pub.GetLink(), pub.Followers.IRI(r.app.Pub))
+	to = append(to, vocab.IRI(er.Metadata.ID))
+	cc = append(cc, r.app.Pub.GetLink(), vocab.Followers.IRI(r.app.Pub))
 	bcc = append(bcc, r.fedbox.Service().ID)
 
-	response := new(pub.Activity)
+	response := new(vocab.Activity)
 	if reason != nil {
 		loadAPItem(response, *reason)
 	}
 	response.To = to
-	response.Type = pub.RejectType
+	response.Type = vocab.RejectType
 	response.CC = cc
 	response.BCC = bcc
-	response.Object = pub.IRI(f.Metadata.ID)
-	response.Actor = pub.IRI(ed.Metadata.ID)
+	response.Object = vocab.IRI(f.Metadata.ID)
+	response.Actor = vocab.IRI(ed.Metadata.ID)
 	if accept {
-		to = append(to, pub.PublicNS)
-		response.Type = pub.AcceptType
+		to = append(to, vocab.PublicNS)
+		response.Type = vocab.AcceptType
 	}
 
 	_, _, err := r.fedbox.ToOutbox(ctx, response)
@@ -2384,20 +2384,20 @@ func (r *repository) FollowAccount(ctx context.Context, er, ed Account, reason *
 	return err
 }
 
-func (r *repository) FollowActor(ctx context.Context, follower, followed *pub.Actor, reason *Item) error {
-	to := make(pub.ItemCollection, 0)
-	cc := make(pub.ItemCollection, 0)
-	bcc := make(pub.ItemCollection, 0)
+func (r *repository) FollowActor(ctx context.Context, follower, followed *vocab.Actor, reason *Item) error {
+	to := make(vocab.ItemCollection, 0)
+	cc := make(vocab.ItemCollection, 0)
+	bcc := make(vocab.ItemCollection, 0)
 
-	to = append(to, pub.PublicNS)
-	cc = append(cc, r.app.Pub.GetLink(), pub.Followers.IRI(r.app.Pub))
+	to = append(to, vocab.PublicNS)
+	cc = append(cc, r.app.Pub.GetLink(), vocab.Followers.IRI(r.app.Pub))
 	bcc = append(bcc, r.fedbox.Service().ID)
 
-	follow := new(pub.Follow)
+	follow := new(vocab.Follow)
 	if reason != nil {
 		loadAPItem(follow, *reason)
 	}
-	follow.Type = pub.FollowType
+	follow.Type = vocab.FollowType
 	follow.To = to
 	follow.CC = cc
 	follow.BCC = bcc
@@ -2422,9 +2422,9 @@ func (r *repository) SaveAccount(ctx context.Context, a Account) (Account, error
 	p.Updated = now
 
 	fx := r.fedbox.Service()
-	act := &pub.Activity{
-		To:      pub.ItemCollection{pub.PublicNS},
-		BCC:     pub.ItemCollection{fx.ID},
+	act := &vocab.Activity{
+		To:      vocab.ItemCollection{vocab.PublicNS},
+		BCC:     vocab.ItemCollection{fx.ID},
 		Updated: now,
 	}
 
@@ -2445,20 +2445,20 @@ func (r *repository) SaveAccount(ctx context.Context, a Account) (Account, error
 			})("account save failed")
 			return a, err
 		}
-		act.Type = pub.DeleteType
+		act.Type = vocab.DeleteType
 		act.Object = id
 	} else {
 		act.Object = p
-		p.To = pub.ItemCollection{pub.PublicNS}
-		p.BCC = pub.ItemCollection{fx.ID}
+		p.To = vocab.ItemCollection{vocab.PublicNS}
+		p.BCC = vocab.ItemCollection{fx.ID}
 		if len(id) == 0 {
-			act.Type = pub.CreateType
+			act.Type = vocab.CreateType
 		} else {
-			act.Type = pub.UpdateType
+			act.Type = vocab.UpdateType
 		}
 	}
 
-	var ap pub.Item
+	var ap vocab.Item
 	ltx := log.Ctx{"actor": a.Handle}
 	if _, ap, err = r.fedbox.ToOutbox(ctx, act); err != nil {
 		ltx["parent"] = parent.GetLink()
@@ -2483,28 +2483,28 @@ func (r *repository) LoadInfo() (WebInfo, error) {
 
 var allDeps = deps{Votes: true, Authors: true, Replies: true, Follows: true}
 
-func (r repository) moderationActivity(ctx context.Context, er *pub.Actor, ed pub.Item, reason *Item) (*pub.Activity, error) {
-	bcc := make(pub.ItemCollection, 0)
+func (r repository) moderationActivity(ctx context.Context, er *vocab.Actor, ed vocab.Item, reason *Item) (*vocab.Activity, error) {
+	bcc := make(vocab.ItemCollection, 0)
 	bcc = append(bcc, r.fedbox.Service().ID)
 
 	// We need to add the ed/er accounts' creators to the CC list
-	cc := make(pub.ItemCollection, 0)
-	cc = append(cc, r.app.Pub.GetLink(), pub.Followers.IRI(r.app.Pub))
-	if er.AttributedTo != nil && !er.AttributedTo.GetLink().Equals(pub.PublicNS, true) {
+	cc := make(vocab.ItemCollection, 0)
+	cc = append(cc, r.app.Pub.GetLink(), vocab.Followers.IRI(r.app.Pub))
+	if er.AttributedTo != nil && !er.AttributedTo.GetLink().Equals(vocab.PublicNS, true) {
 		cc = append(cc, er.AttributedTo.GetLink())
 	}
-	pub.OnObject(ed, func(o *pub.Object) error {
+	vocab.OnObject(ed, func(o *vocab.Object) error {
 		if o.AttributedTo != nil {
 			auth, err := r.fedbox.Actor(ctx, o.AttributedTo.GetLink())
 			if err == nil && auth != nil && auth.AttributedTo != nil &&
-				!(auth.AttributedTo.GetLink().Equals(auth.GetLink(), false) || auth.AttributedTo.GetLink().Equals(pub.PublicNS, true)) {
+				!(auth.AttributedTo.GetLink().Equals(auth.GetLink(), false) || auth.AttributedTo.GetLink().Equals(vocab.PublicNS, true)) {
 				cc = append(cc, auth.AttributedTo.GetLink())
 			}
 		}
 		return nil
 	})
 
-	act := new(pub.Activity)
+	act := new(vocab.Activity)
 	if reason != nil {
 		reason.MakePrivate()
 		loadAPItem(act, *reason)
@@ -2516,9 +2516,9 @@ func (r repository) moderationActivity(ctx context.Context, er *pub.Actor, ed pu
 	return act, nil
 }
 
-func (r repository) moderationActivityOnItem(ctx context.Context, er Account, ed Item, reason *Item) (*pub.Activity, error) {
+func (r repository) moderationActivityOnItem(ctx context.Context, er Account, ed Item, reason *Item) (*vocab.Activity, error) {
 	reporter := r.loadAPPerson(er)
-	reported := new(pub.Object)
+	reported := new(vocab.Object)
 	loadAPItem(reported, ed)
 	if !accountValidForC2S(&er) {
 		return nil, errors.Unauthorizedf("invalid account %s", er.Handle)
@@ -2526,7 +2526,7 @@ func (r repository) moderationActivityOnItem(ctx context.Context, er Account, ed
 	return r.moderationActivity(ctx, reporter, reported, reason)
 }
 
-func (r repository) moderationActivityOnAccount(ctx context.Context, er, ed Account, reason *Item) (*pub.Activity, error) {
+func (r repository) moderationActivityOnAccount(ctx context.Context, er, ed Account, reason *Item) (*vocab.Activity, error) {
 	reporter := r.loadAPPerson(er)
 	reported := r.loadAPPerson(ed)
 	if !accountValidForC2S(&er) {
@@ -2542,7 +2542,7 @@ func (r *repository) BlockAccount(ctx context.Context, er, ed Account, reason *I
 		r.errFn()(err.Error())
 		return err
 	}
-	block.Type = pub.BlockType
+	block.Type = vocab.BlockType
 	if _, _, err = r.fedbox.ToOutbox(ctx, block); err != nil {
 		r.errFn()(err.Error())
 		return err
@@ -2557,7 +2557,7 @@ func (r *repository) BlockItem(ctx context.Context, er Account, ed Item, reason 
 		r.errFn()(err.Error())
 		return err
 	}
-	block.Type = pub.BlockType
+	block.Type = vocab.BlockType
 	if _, _, err = r.fedbox.ToOutbox(ctx, block); err != nil {
 		r.errFn()(err.Error())
 		return err
@@ -2572,7 +2572,7 @@ func (r *repository) ReportItem(ctx context.Context, er Account, it Item, reason
 		r.errFn()(err.Error())
 		return err
 	}
-	flag.Type = pub.FlagType
+	flag.Type = vocab.FlagType
 	if _, _, err = r.fedbox.ToOutbox(ctx, flag); err != nil {
 		r.errFn()(err.Error())
 		return err
@@ -2587,7 +2587,7 @@ func (r *repository) ReportAccount(ctx context.Context, er, ed Account, reason *
 		r.errFn()(err.Error())
 		return err
 	}
-	flag.Type = pub.FlagType
+	flag.Type = vocab.FlagType
 	if _, _, err = r.fedbox.ToOutbox(ctx, flag); err != nil {
 		r.errFn()(err.Error())
 		return err
@@ -2602,10 +2602,10 @@ func (s StopLoad) Error() string {
 	return "this is the end"
 }
 
-type RemoteLoads map[pub.IRI][]RemoteLoad
+type RemoteLoads map[vocab.IRI][]RemoteLoad
 
 type RemoteLoad struct {
-	actor   pub.Item
+	actor   vocab.Item
 	signFn  client.RequestSignFn
 	loadFn  LoadFn
 	filters []*Filters
@@ -2617,7 +2617,7 @@ func (s StopSearchErr) Error() string {
 	return string(s)
 }
 
-func (r *repository) loadItemFromCacheOrIRI(ctx context.Context, iri pub.IRI) (pub.Item, error) {
+func (r *repository) loadItemFromCacheOrIRI(ctx context.Context, iri vocab.IRI) (vocab.Item, error) {
 	if it, okCache := r.cache.get(iri); okCache {
 		if getItemUpdatedTime(it).Sub(time.Now()) < 10*time.Minute {
 			return it, nil
@@ -2626,9 +2626,9 @@ func (r *repository) loadItemFromCacheOrIRI(ctx context.Context, iri pub.IRI) (p
 	return r.fedbox.client.CtxLoadIRI(ctx, iri)
 }
 
-func (r *repository) loadCollectionFromCacheOrIRI(ctx context.Context, iri pub.IRI) (pub.CollectionInterface, bool, error) {
+func (r *repository) loadCollectionFromCacheOrIRI(ctx context.Context, iri vocab.IRI) (vocab.CollectionInterface, bool, error) {
 	if it, okCache := r.cache.get(cacheKey(iri, ContextAccount(ctx))); okCache {
-		if c, okCol := it.(pub.CollectionInterface); okCol && getItemUpdatedTime(it).Sub(time.Now()) < 10*time.Minute && c.Count() > 0 {
+		if c, okCol := it.(vocab.CollectionInterface); okCol && getItemUpdatedTime(it).Sub(time.Now()) < 10*time.Minute && c.Count() > 0 {
 			return c, true, nil
 		}
 	}
@@ -2636,9 +2636,9 @@ func (r *repository) loadCollectionFromCacheOrIRI(ctx context.Context, iri pub.I
 	return col, false, err
 }
 
-type searchFn func(ctx context.Context, col pub.CollectionInterface, f *Filters) error
+type searchFn func(ctx context.Context, col vocab.CollectionInterface, f *Filters) error
 
-func (r *repository) searchFn(ctx context.Context, g *errgroup.Group, curIRI pub.IRI, f *Filters, fn searchFn) func() error {
+func (r *repository) searchFn(ctx context.Context, g *errgroup.Group, curIRI vocab.IRI, f *Filters, fn searchFn) func() error {
 	return func() error {
 		loadIRI := iri(curIRI, Values(f))
 
@@ -2648,7 +2648,7 @@ func (r *repository) searchFn(ctx context.Context, g *errgroup.Group, curIRI pub
 		}
 
 		maxItems := 0
-		err = pub.OnCollectionIntf(col, func(c pub.CollectionInterface) error {
+		err = vocab.OnCollectionIntf(col, func(c vocab.CollectionInterface) error {
 			maxItems = int(c.Count())
 			return fn(ctx, c, f)
 		})
@@ -2671,7 +2671,7 @@ func (r *repository) searchFn(ctx context.Context, g *errgroup.Group, curIRI pub
 	}
 }
 
-func cacheKey(i pub.IRI, a *Account) pub.IRI {
+func cacheKey(i vocab.IRI, a *Account) vocab.IRI {
 	if a == nil || !a.IsLogged() {
 		return i
 	}
@@ -2680,7 +2680,7 @@ func cacheKey(i pub.IRI, a *Account) pub.IRI {
 		return i
 	}
 	u.User = url.User(a.Hash.String())
-	return pub.IRI(u.String())
+	return vocab.IRI(u.String())
 }
 
 func LoadFromSearches(ctx context.Context, repo *repository, loads RemoteLoads, fn searchFn) error {

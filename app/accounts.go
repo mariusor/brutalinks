@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	pub "github.com/go-ap/activitypub"
+	vocab "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
 	"github.com/go-chi/chi/v5"
 	"golang.org/x/oauth2"
@@ -32,24 +32,24 @@ type OAuth struct {
 }
 
 type AccountMetadata struct {
-	Password              []byte             `json:"pw,omitempty"`
-	Key                   *SSHKey            `json:"key,omitempty"`
-	Blurb                 string             `json:"blurb,omitempty"`
-	Icon                  ImageMetadata      `json:"icon,omitempty"`
-	Name                  string             `json:"name,omitempty"`
-	ID                    string             `json:"id,omitempty"`
-	URL                   string             `json:"url,omitempty"`
-	Tags                  TagCollection      `json:"tags,omitempty"`
-	InboxIRI              string             `json:"inbox,omitempty"`
-	OutboxIRI             string             `json:"outbox,omitempty"`
-	LikedIRI              string             `json:"liked,omitempty"`
-	FollowersIRI          string             `json:"followers,omitempty"`
-	FollowingIRI          string             `json:"following,omitempty"`
-	OAuth                 OAuth              `json:"-"`
-	AuthorizationEndPoint string             `json:"authorizationEndPoint,omitempty"`
-	TokenEndPoint         string             `json:"tokenEndPoint,omitempty"`
-	OutboxUpdated         time.Time          `json:"outboxUpdated,omitempty"`
-	Outbox                pub.ItemCollection `json:"-"`
+	Password              []byte               `json:"pw,omitempty"`
+	Key                   *SSHKey              `json:"key,omitempty"`
+	Blurb                 string               `json:"blurb,omitempty"`
+	Icon                  ImageMetadata        `json:"icon,omitempty"`
+	Name                  string               `json:"name,omitempty"`
+	ID                    string               `json:"id,omitempty"`
+	URL                   string               `json:"url,omitempty"`
+	Tags                  TagCollection        `json:"tags,omitempty"`
+	InboxIRI              string               `json:"inbox,omitempty"`
+	OutboxIRI             string               `json:"outbox,omitempty"`
+	LikedIRI              string               `json:"liked,omitempty"`
+	FollowersIRI          string               `json:"followers,omitempty"`
+	FollowingIRI          string               `json:"following,omitempty"`
+	OAuth                 OAuth                `json:"-"`
+	AuthorizationEndPoint string               `json:"authorizationEndPoint,omitempty"`
+	TokenEndPoint         string               `json:"tokenEndPoint,omitempty"`
+	OutboxUpdated         time.Time            `json:"outboxUpdated,omitempty"`
+	Outbox                vocab.ItemCollection `json:"-"`
 }
 
 func (m *AccountMetadata) InvalidateOutbox() {
@@ -67,7 +67,7 @@ type Account struct {
 	UpdatedAt time.Time         `json:"-"`
 	Flags     FlagBits          `json:"flags,omitempty"`
 	Metadata  *AccountMetadata  `json:"metadata,omitempty"`
-	Pub       pub.Item          `json:"-"`
+	Pub       vocab.Item        `json:"-"`
 	Followers AccountCollection `json:"-"`
 	Following AccountCollection `json:"-"`
 	Blocked   AccountCollection `json:"-"`
@@ -77,12 +77,12 @@ type Account struct {
 	children  RenderableList    `json:"-"`
 }
 
-var ValidActorTypes = pub.ActivityVocabularyTypes{
-	pub.PersonType,
-	pub.ServiceType,
-	pub.GroupType,
-	pub.ApplicationType,
-	pub.OrganizationType,
+var ValidActorTypes = vocab.ActivityVocabularyTypes{
+	vocab.PersonType,
+	vocab.ServiceType,
+	vocab.GroupType,
+	vocab.ApplicationType,
+	vocab.OrganizationType,
 }
 
 func (a *Account) ID() Hash {
@@ -127,7 +127,7 @@ func (a *Account) IsValid() bool {
 }
 
 // AP returns the underlying actvitypub item
-func (a *Account) AP() pub.Item {
+func (a *Account) AP() vocab.Item {
 	if a == nil {
 		return nil
 	}

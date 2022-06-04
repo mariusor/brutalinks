@@ -4,7 +4,7 @@ import (
 	"sort"
 	"time"
 
-	pub "github.com/go-ap/activitypub"
+	vocab "github.com/go-ap/activitypub"
 )
 
 type Cursor struct {
@@ -18,8 +18,8 @@ var emptyCursor = Cursor{}
 
 type colCursor struct {
 	filters *Filters
-	loaded  int
-	items   pub.ItemCollection
+	loaded int
+	items  vocab.ItemCollection
 }
 
 type RenderableList []Renderable
