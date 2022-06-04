@@ -5,7 +5,7 @@ STORAGE ?= all
 
 ENV ?= test
 BUILDFLAGS ?= -a
-TAGS ?= prod
+TAGS =
 TEST_TARGET = .
 
 TEST := $(GO) test $(BUILDFLAGS)
@@ -14,10 +14,7 @@ TEST := $(GO) test $(BUILDFLAGS)
 
 integration: test
 
-../internal/assets/assets.gen.go:
-	error(failure)
-
-test: ../internal/assets/assets.gen.go download
+test: download
 	$(TEST) $(TEST_FLAGS) -tags "$(TAGS)" $(TEST_TARGET)
 
 download:
