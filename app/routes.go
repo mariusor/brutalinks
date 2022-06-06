@@ -46,7 +46,8 @@ var (
 
 func (h *handler) ItemRoutes() func(chi.Router) {
 	return func(r chi.Router) {
-		r.Use(h.CSRF, ContentModelMw, h.ItemFiltersMw, applicationSearches(inbox), namedAccountSearches(outbox), LoadSingleObjectMw, SingleItemModelMw)
+		r.Use(h.CSRF, Deps(), ContentModelMw, h.ItemFiltersMw, applicationSearches(inbox), namedAccountSearches(outbox),
+			LoadSingleObjectMw, SingleItemModelMw)
 		r.With(Deps(Votes, Replies, Authors), LoadSingleItemMw, SortByScore).
 			Get("/", h.HandleShow)
 		r.With(h.ValidateLoggedIn(h.v.RedirectToErrors), LoadSingleItemMw).Post("/", h.HandleSubmit)
