@@ -29,8 +29,8 @@ type Tag struct {
 	SubmittedBy *Account      `json:"-"`
 	UpdatedAt   time.Time     `json:"-"`
 	UpdatedBy   *Account      `json:"-"`
-	Metadata *ItemMetadata `json:"-"`
-	Pub      vocab.Item    `json:"-"`
+	Metadata    *ItemMetadata `json:"-"`
+	Pub         vocab.Item    `json:"-"`
 }
 
 func (t Tag) IsLocal() bool {
@@ -210,6 +210,15 @@ func replaceTags(mime string, r HasContent) string {
 	return string(data)
 }
 
+func stringSliceContains[T ~string](sl []T, value T) bool {
+	for _, chk := range sl {
+		if chk == value {
+			return true
+		}
+	}
+	return false
+}
+
 func loadTags(data string) (TagCollection, TagCollection) {
 	if !strings.ContainsAny(data, "#@~") {
 		return nil, nil
@@ -220,8 +229,13 @@ func loadTags(data string) (TagCollection, TagCollection) {
 	r := regexp.MustCompile(`(?:\A|\s)((?:[~@]\w+)(?:@[\w-]+.?\w*)?|(?:#[\w-]{3,}))`)
 	matches := r.FindAllSubmatch([]byte(data), -1)
 
+	invalidTags := []string{"#include", "#define"}
 	for _, sub := range matches {
-		t := getTagFromBytes(sub[1])
+		ttext := sub[1]
+		if stringSliceContains(invalidTags, string(ttext)) {
+			continue
+		}
+		t := getTagFromBytes(ttext)
 		if t.Type == TagMention && !mentions.Contains(t) {
 			mentions = append(mentions, t)
 		}
