@@ -6,11 +6,11 @@ require (
 	aletheia.icu/broccoli/fs v0.0.0-20210820105650-3e2e00017061
 	git.sr.ht/~mariusor/wrapper v0.0.0-20211204195804-3033a1099e0f
 	github.com/cucumber/godog v0.12.5
-	github.com/go-ap/activitypub v0.0.0-20220604144731-6917e06269f5
-	github.com/go-ap/auth v0.0.0-20220530132005-b4f76bb7566d
-	github.com/go-ap/client v0.0.0-20220604145041-2fd7a6529cc2
+	github.com/go-ap/activitypub v0.0.0-20220606130025-d23c21aea068
+	github.com/go-ap/auth v0.0.0-20220606151841-a024eccba6f5
+	github.com/go-ap/client v0.0.0-20220606151729-71cb4df77c23
 	github.com/go-ap/errors v0.0.0-20220529131844-4c7dbeabb369
-	github.com/go-ap/fedbox v0.0.0-20220530140511-572a67748b49
+	github.com/go-ap/fedbox v0.0.0-20220606180913-b55a834a805c
 	github.com/go-ap/jsonld v0.0.0-20200327122108-fafac2de2660
 	github.com/go-chi/chi/v5 v5.0.4
 	github.com/google/uuid v1.3.0
@@ -49,7 +49,7 @@ require (
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/go-ap/httpsig v0.0.0-20210714162115-62a09257db51 // indirect
-	github.com/go-ap/processing v0.0.0-20220530125546-d415b93c273d // indirect
+	github.com/go-ap/processing v0.0.0-20220606151950-21607c76bf76 // indirect
 	github.com/go-chi/chi v4.1.2+incompatible // indirect
 	github.com/gofrs/uuid v4.0.0+incompatible // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
