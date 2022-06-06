@@ -108,5 +108,5 @@ func ContextDependentLoads(ctx context.Context) *deps {
 	if r, ok := ctx.Value(DependenciesCtxtKey).(*deps); ok {
 		return r
 	}
-	return nil
+	return &deps{}
 }

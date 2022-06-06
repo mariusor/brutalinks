@@ -231,7 +231,7 @@ func LoadSingleItemMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var err error
 
-		deps := ContextDependentLoads(r.Context())
+		d := ContextDependentLoads(r.Context())
 		repo := ContextRepository(r.Context())
 		item := ContextItem(r.Context())
 		if !item.IsValid() {
@@ -240,17 +240,17 @@ func LoadSingleItemMw(next http.Handler) http.Handler {
 		}
 
 		items := ItemCollection{*item}
-		if deps.Replies {
+		if d.Replies {
 			if comments, err := repo.loadItemsReplies(r.Context(), items...); err == nil {
 				items = append(items, comments...)
 			}
 		}
-		if deps.Authors {
+		if d.Authors {
 			if items, err = repo.loadItemsAuthors(r.Context(), items...); err != nil {
 				repo.errFn()("unable to load item authors")
 			}
 		}
-		if deps.Votes {
+		if d.Votes {
 			if items, err = repo.loadItemsVotes(r.Context(), items...); err != nil {
 				repo.errFn()("unable to load item votes")
 			}

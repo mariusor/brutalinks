@@ -20,7 +20,7 @@ import (
 )
 
 func enhanceItem(c *Cursor, n *Item) {
-	if c == nil || len(c.items) == 0 || !n.Parent.IsValid() {
+	if c == nil || len(c.items) == 0 || n == nil || n.Parent == nil || !n.Parent.IsValid() {
 		return
 	}
 	np, npok := n.Parent.(*Item)
