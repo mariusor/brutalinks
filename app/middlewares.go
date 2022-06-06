@@ -71,9 +71,12 @@ func LoadMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		repo := ContextRepository(r.Context())
 		searches := ContextLoads(r.Context())
-		deps := ContextDependentLoads(r.Context())
+		d := ContextDependentLoads(r.Context())
+		if d == nil {
+			d = &deps{}
+		}
 
-		c, err := repo.LoadSearches(r.Context(), searches, *deps)
+		c, err := repo.LoadSearches(r.Context(), searches, *d)
 		if err != nil {
 			ctxtErr(next, w, r, errors.NotFoundf(strings.TrimLeft(r.URL.Path, "/")))
 			return
@@ -232,6 +235,9 @@ func LoadSingleItemMw(next http.Handler) http.Handler {
 		var err error
 
 		d := ContextDependentLoads(r.Context())
+		if d == nil {
+			d = &deps{}
+		}
 		repo := ContextRepository(r.Context())
 		item := ContextItem(r.Context())
 		if !item.IsValid() {
