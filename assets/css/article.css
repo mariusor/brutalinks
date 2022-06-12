@@ -148,7 +148,7 @@ article.item aside.score {
     font-weight: lighter;
     font-size: .6em;
 }
-aside .icon-flag, .score .icon-users, .score .icon-recycle, aside .icon-lock {
+aside .icon:not(.icon-plus):not(.icon-minus) {
     opacity: .6;
 }
 .deleted aside a.ed, aside a[href="#"], aside a[href="#"]:visited {
