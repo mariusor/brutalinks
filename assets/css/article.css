@@ -144,7 +144,7 @@ article.item aside.score {
     margin: 0;
     padding: 0;
 }
-.score data.K, .score data.M,  .score data.B {
+.score data.K, .score data.M, .score data.B {
     font-weight: lighter;
     font-size: .6em;
 }
