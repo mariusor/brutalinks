@@ -364,12 +364,7 @@ func (f fedbox) Actor(ctx context.Context, iri vocab.IRI) (*vocab.Actor, error) 
 	if err != nil {
 		return anonymousActor, errors.Annotatef(err, "Unable to load Actor: %s", iri)
 	}
-	var person *vocab.Actor
-	vocab.OnActor(it, func(p *vocab.Actor) error {
-		person = p
-		return nil
-	})
-	return person, nil
+	return vocab.ToActor(it)
 }
 
 func (f fedbox) Activity(ctx context.Context, iri vocab.IRI) (*vocab.Activity, error) {
@@ -377,12 +372,7 @@ func (f fedbox) Activity(ctx context.Context, iri vocab.IRI) (*vocab.Activity, e
 	if err != nil {
 		return nil, errors.Annotatef(err, "Unable to load Activity: %s", iri)
 	}
-	var activity *vocab.Activity
-	vocab.OnActivity(it, func(a *vocab.Activity) error {
-		activity = a
-		return nil
-	})
-	return activity, nil
+	return vocab.ToActivity(it)
 }
 
 func (f fedbox) Object(ctx context.Context, iri vocab.IRI) (*vocab.Object, error) {
@@ -390,12 +380,7 @@ func (f fedbox) Object(ctx context.Context, iri vocab.IRI) (*vocab.Object, error
 	if err != nil {
 		return nil, errors.Annotatef(err, "Unable to load Object: %s", iri)
 	}
-	var object *vocab.Object
-	vocab.OnObject(it, func(o *vocab.Object) error {
-		object = o
-		return nil
-	})
-	return object, nil
+	return vocab.ToObject(it)
 }
 
 func (f fedbox) Activities(ctx context.Context, filters ...client.FilterFn) (vocab.CollectionInterface, error) {
