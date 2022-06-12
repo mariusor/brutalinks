@@ -11,11 +11,13 @@ import (
 	"strings"
 
 	vocab "github.com/go-ap/activitypub"
+	"github.com/go-ap/client"
 	"github.com/go-ap/errors"
 	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/csrf"
 	"github.com/mariusor/go-littr/internal/log"
 	"github.com/openshift/osin"
+	"github.com/writeas/go-nodeinfo"
 	"golang.org/x/oauth2"
 )
 
@@ -283,6 +285,76 @@ func (h *handler) HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
 	h.v.Redirect(w, r, backUrl, http.StatusSeeOther)
 }
 
+const (
+	DiasporaProfile = "http://nodeinfo.diaspora.software/ns/schema"
+	Mastodon        = "mastodon"
+)
+
+func (r *repository) loadInstanceActorFromIRI(ctx context.Context, iri vocab.IRI) (*vocab.Actor, error) {
+	actor, err := r.fedbox.Actor(ctx, iri)
+	if err == nil {
+		return actor, nil
+	}
+	nodeInfoURL := fmt.Sprintf("%s/.well-known/nodeinfo", iri)
+	loadFromURL := func(url string, what any) error {
+		resp, err := r.fedbox.client.Get(url)
+		if err != nil {
+			return err
+		}
+		defer resp.Body.Close()
+
+		var body []byte
+		if body, err = ioutil.ReadAll(resp.Body); err != nil {
+			return err
+		}
+		if resp.StatusCode != http.StatusGone && resp.StatusCode >= http.StatusBadRequest {
+			msg := "invalid status received: %d"
+			if errors, err := errors.UnmarshalJSON(body); err == nil {
+				if len(errors) > 0 && len(errors[0].Error()) > 0 {
+					for _, retErr := range errors {
+						msg = msg + ", " + retErr.Error()
+					}
+				}
+			}
+			return errors.WrapWithStatus(resp.StatusCode, nil, msg)
+		}
+		if err := json.Unmarshal(body, what); err != nil {
+			return err
+		}
+		return nil
+	}
+	meta := node{}
+	if err := loadFromURL(nodeInfoURL, &meta); err != nil {
+		return nil, err
+	}
+
+	ni := nodeinfo.NodeInfo{}
+	for _, l := range meta.Links {
+		if strings.Contains(l.Rel, DiasporaProfile) {
+			if err := loadFromURL(l.Href, &ni); err != nil {
+				return nil, err
+			}
+		}
+	}
+	if ni.Software.Name == Mastodon || ni.Software.Name == softwareName {
+		u, err := iri.URL()
+		if err != nil {
+			return nil, err
+		}
+		webFingerURL := fmt.Sprintf("%s/.well-known/webfinger?resource=acct:%s@%s", iri, u.Host, u.Host)
+		wf := node{}
+		if err := loadFromURL(webFingerURL, &wf); err != nil {
+			return nil, err
+		}
+		for _, l := range wf.Links {
+			if l.Rel == selfName && l.Type == client.ContentTypeActivityJson {
+				return r.fedbox.Actor(ctx, vocab.IRI(l.Href))
+			}
+		}
+	}
+	return nil, errors.Errorf("unable to find a suitable instance url")
+}
+
 func (h *handler) HandleFollowInstanceRequest(w http.ResponseWriter, r *http.Request) {
 	instanceURL := r.FormValue("url")
 	if len(instanceURL) == 0 {
@@ -295,7 +367,7 @@ func (h *handler) HandleFollowInstanceRequest(w http.ResponseWriter, r *http.Req
 	}
 	repo := ContextRepository(r.Context())
 	// Load instance actor
-	fol, err := repo.fedbox.Actor(context.TODO(), vocab.IRI(instanceURL))
+	fol, err := repo.loadInstanceActorFromIRI(context.TODO(), vocab.IRI(instanceURL))
 	if err != nil {
 		h.v.HandleErrors(w, r, err)
 		return
