@@ -13,7 +13,6 @@ import (
 	vocab "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
 	"github.com/mariusor/go-littr/internal/assets"
-	"github.com/mariusor/go-littr/internal/config"
 	"github.com/writeas/go-nodeinfo"
 )
 
@@ -49,7 +48,7 @@ var (
 	}
 )
 
-func NodeInfoResolverNew(r *repository, env config.EnvType) NodeInfoResolver {
+func NodeInfoResolverNew(r *repository) NodeInfoResolver {
 	n := NodeInfoResolver{}
 	if r == nil {
 		return n
@@ -94,8 +93,9 @@ func (n NodeInfoResolver) Usage() (nodeinfo.Usage, error) {
 }
 
 const (
-	sourceURL = "https://git.sr.ht/~mariusor/brutalinks"
-	author    = "@mariusor@metalhead.club"
+	softwareName = "brutalinks"
+	sourceURL    = "https://git.sr.ht/~mariusor/brutalinks"
+	author       = "@mariusor@metalhead.club"
 )
 
 func NodeInfoConfig() nodeinfo.Config {
@@ -121,7 +121,7 @@ func NodeInfoConfig() nodeinfo.Config {
 			Outbound: []nodeinfo.NodeService{nodeinfo.ServiceAtom, nodeinfo.ServiceRSS},
 		},
 		Software: nodeinfo.SoftwareInfo{
-			Name:    path.Base(sourceURL),
+			Name:    path.Base(softwareName),
 			Version: Instance.NodeInfo().Version,
 		},
 	}

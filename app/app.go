@@ -125,7 +125,7 @@ func (a *Application) Routes() {
 
 	// .well-known
 	cfg := NodeInfoConfig()
-	ni := nodeinfo.NewService(cfg, NodeInfoResolverNew(a.front.storage, a.front.conf.Env))
+	ni := nodeinfo.NewService(cfg, NodeInfoResolverNew(a.front.storage))
 	// Web-Finger
 	r.Route("/.well-known", func(r chi.Router) {
 		r.Get("/webfinger", a.front.HandleWebFinger)
