@@ -1930,48 +1930,75 @@ func loadTagsIfExisting(r *repository, ctx context.Context, incoming TagCollecti
 	return incoming
 }
 
-func (r *repository) ModerateDelete(ctx context.Context, mod ModerationOp, author *Account) (ModerationOp, error) {
-	var it *Item
-	switch p := mod.Object.(type) {
-	case *Item:
-		it = p
-	case *Account:
-		// TODO(marius): implement account deletion
-		return ModerationOp{}, errors.Newf("invalid moderation op for account")
-	default:
-		return ModerationOp{}, errors.Newf("invalid moderation type object")
+func (r *repository) loadFromAccountForDelete(ctx context.Context, art *vocab.Actor, it *Account) error {
+	if it.HasMetadata() {
+		m := it.Metadata
+		m.Tags = loadTagsIfExisting(r, ctx, m.Tags)
+		it.Metadata = m
+	}
+	par := it.Parent
+	for {
+		// Appending parents' authors to the CC of current activity
+		if par == nil {
+			break
+		}
+		p, ok := par.(*Item)
+		if !ok {
+			continue
+		}
+		if parAuth := p.SubmittedBy; parAuth != nil && !art.CC.Contains(parAuth.Pub.GetLink()) {
+			art.CC = append(art.CC, parAuth.Pub.GetLink())
+		}
+		par = p.Parent
 	}
 
-	submittedBy := author.Pub
+	if !it.Private() {
+		art.To = append(art.To, vocab.PublicNS)
+		if it.Parent == nil && it.CreatedBy.HasMetadata() && len(it.CreatedBy.Metadata.FollowersIRI) > 0 {
+			art.CC = append(art.CC, vocab.IRI(it.CreatedBy.Metadata.FollowersIRI))
+		}
+		art.CC = append(art.CC, r.app.Pub.GetLink(), vocab.Followers.IRI(r.app.Pub))
+		art.BCC = append(art.BCC, r.fedbox.Service().ID)
+	}
 
-	to := make(vocab.ItemCollection, 0)
-	cc := make(vocab.ItemCollection, 0)
-	bcc := make(vocab.ItemCollection, 0)
+	*art = *r.loadAPPerson(*it)
+	if it.Parent != nil {
+		vocab.OnObject(it.Parent.AP(), func(p *vocab.Object) error {
+			appendRecipients(&art.To, p.To)
+			appendRecipients(&art.Bto, p.Bto)
+			appendRecipients(&art.CC, p.CC)
+			appendRecipients(&art.BCC, p.BCC)
+			return nil
+		})
+	}
 
-	var err error
+	return nil
+}
+
+func (r *repository) loadFromItemForDelete(ctx context.Context, art *vocab.Object, it *Item) error {
 	it.Delete()
 
 	if it.HasMetadata() {
 		m := it.Metadata
 		if len(m.To) > 0 {
 			for _, rec := range m.To {
-				if rr := vocab.IRI(rec.Metadata.ID); !cc.Contains(rr) {
-					to = append(to, rr)
+				if rr := vocab.IRI(rec.Metadata.ID); !art.CC.Contains(rr) {
+					art.To = append(art.To, rr)
 				}
 			}
 		}
 		if len(m.CC) > 0 {
 			for _, rec := range m.CC {
-				if rr := vocab.IRI(rec.Metadata.ID); !cc.Contains(rr) {
-					cc = append(cc, rr)
+				if rr := vocab.IRI(rec.Metadata.ID); !art.CC.Contains(rr) {
+					art.CC = append(art.CC, rr)
 				}
 			}
 		}
 		m.Tags = loadTagsIfExisting(r, ctx, m.Tags)
 		m.Mentions = loadMentionsIfExisting(r, ctx, m.Mentions)
 		for _, mm := range loadCCsFromMentions(m.Mentions) {
-			if !cc.Contains(mm) {
-				cc = append(cc, mm)
+			if !art.CC.Contains(mm) {
+				art.CC = append(art.CC, mm)
 			}
 		}
 		it.Metadata = m
@@ -1986,66 +2013,66 @@ func (r *repository) ModerateDelete(ctx context.Context, mod ModerationOp, autho
 		if !ok {
 			continue
 		}
-		if parAuth := p.SubmittedBy; parAuth != nil && !cc.Contains(parAuth.Pub.GetLink()) {
-			cc = append(cc, parAuth.Pub.GetLink())
+		if parAuth := p.SubmittedBy; parAuth != nil && !art.CC.Contains(parAuth.Pub.GetLink()) {
+			art.CC = append(art.CC, parAuth.Pub.GetLink())
 		}
 		par = p.Parent
 	}
 
 	if !it.Private() {
-		to = append(to, vocab.PublicNS)
+		art.To = append(art.To, vocab.PublicNS)
 		if it.Parent == nil && it.SubmittedBy.HasMetadata() && len(it.SubmittedBy.Metadata.FollowersIRI) > 0 {
-			cc = append(cc, vocab.IRI(it.SubmittedBy.Metadata.FollowersIRI))
+			art.CC = append(art.CC, vocab.IRI(it.SubmittedBy.Metadata.FollowersIRI))
 		}
-		cc = append(cc, r.app.Pub.GetLink(), vocab.Followers.IRI(r.app.Pub))
-		bcc = append(bcc, r.fedbox.Service().ID)
+		art.CC = append(art.CC, r.app.Pub.GetLink(), vocab.Followers.IRI(r.app.Pub))
+		art.BCC = append(art.BCC, r.fedbox.Service().ID)
 	}
 
-	art := new(vocab.Object)
 	loadAPItem(art, *it)
 	if it.Parent != nil {
-		loadFromParent(art, it.Parent.AP())
+		return loadFromParent(art, it.Parent.AP())
 	}
-	id := art.GetLink()
+
+	return nil
+}
+
+func (r *repository) ModerateDelete(ctx context.Context, mod ModerationOp, author *Account) (ModerationOp, error) {
+	var (
+		err      error
+		toDelete vocab.Item
+		actType  = vocab.DeleteType
+	)
+	if len(mod.Object.ID()) == 0 {
+		r.errFn(log.Ctx{"item": mod.Object})(err.Error())
+		return mod, errors.NotFoundf("item hash is empty, can not delete")
+	}
+	switch p := mod.Object.(type) {
+	case *Item:
+		ob := new(vocab.Object)
+		err = r.loadFromItemForDelete(ctx, ob, p)
+		toDelete = ob
+	case *Account:
+		act := new(vocab.Actor)
+		err = r.loadFromAccountForDelete(ctx, act, p)
+		toDelete = act
+	default:
+		return ModerationOp{}, errors.Newf("invalid moderation type object")
+	}
 
 	act := &vocab.Activity{
-		To:           to,
-		CC:           cc,
-		BCC:          bcc,
-		AttributedTo: submittedBy,
-		InReplyTo:    mod.Pub.GetLink(),
-		Actor:        r.app.Pub.GetLink(),
-		Object:       art,
+		AttributedTo: author.AP(),
+		InReplyTo:    mod.AP().GetLink(),
+		Actor:        r.app.AP().GetLink(),
+		Type:         actType,
+		Object:       toDelete.GetID(),
 	}
-	if it.Deleted() {
-		if len(id) == 0 {
-			r.errFn(log.Ctx{"item": it.Hash})(err.Error())
-			return mod, errors.NotFoundf("item hash is empty, can not delete")
-		}
-		act.Object = id
-		act.Type = vocab.DeleteType
-	} else {
-		if len(id) == 0 {
-			act.Type = vocab.CreateType
-		} else {
-			act.Type = vocab.UpdateType
-		}
-	}
-	var (
-		i  vocab.IRI
-		ob vocab.Item
-	)
-	i, ob, err = r.fedbox.ToOutbox(ctx, act)
+
+	i, tombstone, err := r.fedbox.ToOutbox(ctx, act)
 	if err != nil {
 		r.errFn()(err.Error())
 		return mod, err
 	}
-	r.infoFn(log.Ctx{"act": i, "obj": ob.GetLink(), "type": ob.GetType()})("saved activity")
-	err = it.FromActivityPub(ob)
-	if err != nil {
-		r.errFn()(err.Error())
-		return mod, err
-	}
+	r.infoFn(log.Ctx{"act": i, "obj": tombstone.GetLink(), "type": tombstone.GetType()})("saved activity")
 	r.cache.remove()
 	return mod, err
 }
