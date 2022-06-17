@@ -1722,9 +1722,11 @@ func (r *repository) SaveVote(ctx context.Context, v Vote) (Vote, error) {
 
 	if exists.HasMetadata() {
 		act.Object = vocab.IRI(exists.Metadata.IRI)
-		if _, _, err := r.fedbox.ToOutbox(ctx, act); err != nil {
+		i, it, err := r.fedbox.ToOutbox(ctx, act)
+		if err != nil {
 			r.errFn()(err.Error())
 		}
+		r.cache.removeRelated(i, it, act)
 	}
 
 	if v.Weight > 0 && exists.Weight <= 0 {
@@ -1756,7 +1758,7 @@ func (r *repository) SaveVote(ctx context.Context, v Vote) (Vote, error) {
 		r.errFn()(err.Error())
 		return v, err
 	}
-	r.cache.remove()
+	r.cache.removeRelated(iri, it, act)
 	r.infoFn(log.Ctx{"act": iri, "obj": it.GetLink(), "type": it.GetType()})("saved activity")
 	err = v.FromActivityPub(act)
 	return v, err
@@ -2073,7 +2075,7 @@ func (r *repository) ModerateDelete(ctx context.Context, mod ModerationOp, autho
 		return mod, err
 	}
 	r.infoFn(log.Ctx{"act": i, "obj": tombstone.GetLink(), "type": tombstone.GetType()})("saved activity")
-	r.cache.remove()
+	r.cache.removeRelated(act, tombstone)
 	return mod, err
 }
 
@@ -2181,16 +2183,17 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 		i  vocab.IRI
 		ob vocab.Item
 	)
-	if i, ob, err = r.fedbox.ToOutbox(ctx, act); err != nil {
+	i, ob, err = r.fedbox.ToOutbox(ctx, act)
+	if err != nil {
 		r.errFn()(err.Error())
 		return it, err
 	}
+	r.cache.removeRelated(i, ob, act)
 	r.infoFn(log.Ctx{"act": i, "obj": ob.GetLink(), "type": ob.GetType()})("saved activity")
 	if err = it.FromActivityPub(ob); err != nil {
 		r.errFn()(err.Error())
 		return it, err
 	}
-	r.cache.remove()
 	if loadAuthors {
 		items, err := r.loadItemsAuthors(ctx, it)
 		return items[0], err
@@ -2383,7 +2386,7 @@ func (r *repository) SendFollowResponse(ctx context.Context, f FollowRequest, ac
 		response.Type = vocab.AcceptType
 	}
 
-	_, _, err := r.fedbox.ToOutbox(ctx, response)
+	i, it, err := r.fedbox.ToOutbox(ctx, response)
 	if err != nil {
 		r.errFn(log.Ctx{
 			"err":      err,
@@ -2392,7 +2395,7 @@ func (r *repository) SendFollowResponse(ctx context.Context, f FollowRequest, ac
 		})("unable to respond to follow")
 		return err
 	}
-	r.cache.remove()
+	r.cache.removeRelated(i, it, response)
 	return nil
 }
 
@@ -2487,7 +2490,8 @@ func (r *repository) SaveAccount(ctx context.Context, a Account) (Account, error
 
 	var ap vocab.Item
 	ltx := log.Ctx{"actor": a.Handle}
-	if _, ap, err = r.fedbox.ToOutbox(ctx, act); err != nil {
+	i, ap, err := r.fedbox.ToOutbox(ctx, act)
+	if err != nil {
 		ltx["parent"] = parent.GetLink()
 		if ap != nil {
 			ltx["activity"] = ap.GetLink()
@@ -2495,10 +2499,10 @@ func (r *repository) SaveAccount(ctx context.Context, a Account) (Account, error
 		r.errFn(ltx, log.Ctx{"err": err})("account save failed")
 		return a, err
 	}
+	r.cache.removeRelated(i, ap, act)
 	if err := a.FromActivityPub(ap); err != nil {
 		r.errFn(ltx, log.Ctx{"err": err})("loading of actor from JSON failed")
 	}
-	r.cache.remove()
 	return a, nil
 }
 
@@ -2570,11 +2574,12 @@ func (r *repository) BlockAccount(ctx context.Context, er, ed Account, reason *I
 		return err
 	}
 	block.Type = vocab.BlockType
-	if _, _, err = r.fedbox.ToOutbox(ctx, block); err != nil {
+	i, ob, err := r.fedbox.ToOutbox(ctx, block)
+	if err != nil {
 		r.errFn()(err.Error())
 		return err
 	}
-	r.cache.remove()
+	r.cache.removeRelated(i, ob)
 	return nil
 }
 
@@ -2585,11 +2590,12 @@ func (r *repository) BlockItem(ctx context.Context, er Account, ed Item, reason 
 		return err
 	}
 	block.Type = vocab.BlockType
-	if _, _, err = r.fedbox.ToOutbox(ctx, block); err != nil {
+	i, ob, err := r.fedbox.ToOutbox(ctx, block)
+	if err != nil {
 		r.errFn()(err.Error())
 		return err
 	}
-	r.cache.remove()
+	r.cache.removeRelated(i, ob, block)
 	return nil
 }
 
@@ -2600,11 +2606,12 @@ func (r *repository) ReportItem(ctx context.Context, er Account, it Item, reason
 		return err
 	}
 	flag.Type = vocab.FlagType
-	if _, _, err = r.fedbox.ToOutbox(ctx, flag); err != nil {
+	i, ob, err := r.fedbox.ToOutbox(ctx, flag)
+	if err != nil {
 		r.errFn()(err.Error())
 		return err
 	}
-	r.cache.remove()
+	r.cache.removeRelated(i, ob, flag)
 	return nil
 }
 
@@ -2615,11 +2622,12 @@ func (r *repository) ReportAccount(ctx context.Context, er, ed Account, reason *
 		return err
 	}
 	flag.Type = vocab.FlagType
-	if _, _, err = r.fedbox.ToOutbox(ctx, flag); err != nil {
+	i, ob, err := r.fedbox.ToOutbox(ctx, flag)
+	if err != nil {
 		r.errFn()(err.Error())
 		return err
 	}
-	r.cache.remove()
+	r.cache.removeRelated(i, ob, flag)
 	return nil
 }
 
