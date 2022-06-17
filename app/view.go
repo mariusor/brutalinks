@@ -1109,6 +1109,7 @@ const (
 	gitlabDomain  = "gitlab.com"
 	twitchDomain  = "twitch.tv"
 	twitterDomain = "twitter.com"
+	redditDomain  = "reddit.com"
 )
 
 var twitchValidUser = func(n string) bool {
@@ -1132,6 +1133,10 @@ var twitterValidUser = func(n string) bool {
 	})(n))
 }
 
+var redditValidSubreddit = func(n string) bool {
+	return strings.Contains(n, "r/")
+}
+
 func getDomain(u *url.URL) string {
 	if u == nil || len(u.Host) == 0 {
 		return unknownDomain
@@ -1140,6 +1145,13 @@ func getDomain(u *url.URL) string {
 	if len(pathEl) > 0 {
 		maybeUser := pathEl[0]
 		switch u.Host {
+		case redditDomain, "www." + redditDomain, "old." + redditDomain:
+			if len(pathEl) >= 2 {
+				subreddit := path.Join(pathEl[:2]...)
+				if redditValidSubreddit(subreddit) {
+					return fmt.Sprintf("%s/%s", u.Host, subreddit)
+				}
+			}
 		case twitterDomain, "www." + twitterDomain:
 			if twitterValidUser(maybeUser) {
 				return fmt.Sprintf("%s/%s", u.Host, maybeUser)
