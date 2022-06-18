@@ -7,10 +7,10 @@ require (
 	git.sr.ht/~mariusor/wrapper v0.0.0-20211204195804-3033a1099e0f
 	github.com/cucumber/godog v0.12.5
 	github.com/go-ap/activitypub v0.0.0-20220615144428-48208c70483b
-	github.com/go-ap/auth v0.0.0-20220612142939-5ede3db1b1bd
-	github.com/go-ap/client v0.0.0-20220615144543-8f9821f1974c
-	github.com/go-ap/errors v0.0.0-20220615144307-e8bc4a40ae9f
-	github.com/go-ap/fedbox v0.0.0-20220612143541-79a08133851b
+	github.com/go-ap/auth v0.0.0-20220615144634-9e069f633ffc
+	github.com/go-ap/client v0.0.0-20220618131302-7552b8309fb7
+	github.com/go-ap/errors v0.0.0-20220618122732-319f41ac54e1
+	github.com/go-ap/fedbox v0.0.0-20220615152057-e381b4994b3e
 	github.com/go-ap/jsonld v0.0.0-20220615144122-1d862b15410d
 	github.com/go-chi/chi/v5 v5.0.4
 	github.com/google/uuid v1.3.0
@@ -49,7 +49,7 @@ require (
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/go-ap/httpsig v0.0.0-20210714162115-62a09257db51 // indirect
-	github.com/go-ap/processing v0.0.0-20220612143022-570d4fc352a7 // indirect
+	github.com/go-ap/processing v0.0.0-20220615151818-1c5a0a04a26e // indirect
 	github.com/go-chi/chi v4.1.2+incompatible // indirect
 	github.com/gofrs/uuid v4.0.0+incompatible // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
@@ -82,7 +82,7 @@ require (
 	golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e // indirect
 	golang.org/x/mod v0.5.1 // indirect
 	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect
-	golang.org/x/sys v0.0.0-20220610221304-9f5ed59c137d // indirect
+	golang.org/x/sys v0.0.0-20220614162138-6c1b26c55098 // indirect
 	golang.org/x/tools v0.1.9 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	google.golang.org/appengine v1.6.7 // indirect

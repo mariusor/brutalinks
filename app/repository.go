@@ -2070,7 +2070,7 @@ func (r *repository) ModerateDelete(ctx context.Context, mod ModerationOp, autho
 	}
 
 	i, tombstone, err := r.fedbox.ToOutbox(ctx, act)
-	if err != nil {
+	if err != nil && !errors.IsGone(err) {
 		r.errFn()(err.Error())
 		return mod, err
 	}
@@ -2184,7 +2184,7 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 		ob vocab.Item
 	)
 	i, ob, err = r.fedbox.ToOutbox(ctx, act)
-	if err != nil {
+	if err != nil && !(it.Deleted() && errors.IsGone(err)) {
 		r.errFn()(err.Error())
 		return it, err
 	}
@@ -2387,7 +2387,7 @@ func (r *repository) SendFollowResponse(ctx context.Context, f FollowRequest, ac
 	}
 
 	i, it, err := r.fedbox.ToOutbox(ctx, response)
-	if err != nil {
+	if err != nil && !errors.IsConflict(err) {
 		r.errFn(log.Ctx{
 			"err":      err,
 			"follower": er.Handle,
