@@ -122,9 +122,9 @@ type ModerationOp struct {
 	MimeType    string              `json:"-"`
 	SubmittedBy *Account            `json:"by,omitempty"`
 	Object      Renderable          `json:"-"`
-	Metadata *ModerationMetadata `json:"-"`
-	Pub      vocab.Item          `json:"-"`
-	Flags    FlagBits            `json:"flags,omitempty"`
+	Metadata    *ModerationMetadata `json:"-"`
+	Pub         vocab.Item          `json:"-"`
+	Flags       FlagBits            `json:"flags,omitempty"`
 }
 
 type ModerationMetadata struct {
@@ -144,8 +144,8 @@ func (m ModerationOp) Type() RenderType {
 }
 
 // IsValid returns if the current follow request has a hash with length greater than 0
-func (m *ModerationOp) IsValid() bool {
-	return m != nil && m.Hash.IsValid()
+func (m ModerationOp) IsValid() bool {
+	return m.Hash.IsValid()
 }
 
 // IsBlock returns true if current moderation request is a block
@@ -189,7 +189,7 @@ func (m ModerationOp) IsReport() bool {
 }
 
 // AP returns the underlying actvitypub item
-func (m *ModerationOp) AP() vocab.Item {
+func (m ModerationOp) AP() vocab.Item {
 	return m.Pub
 }
 
@@ -208,8 +208,8 @@ func (m ModerationOp) Mentions() TagCollection {
 	return m.Metadata.Mentions
 }
 
-func (m *ModerationOp) Children() *RenderableList {
-	return nil
+func (m ModerationOp) Children() *RenderableList {
+	return &RenderableList{m.Object}
 }
 
 // Date
@@ -403,13 +403,4 @@ func aggregateModeration(rl RenderableList, followups []ModerationOp) Renderable
 	}
 
 	return result
-}
-
-func (m ModerationRequests) Contains(mop ModerationOp) bool {
-	for _, vv := range m {
-		if vv.Metadata.ID == mop.Metadata.ID {
-			return true
-		}
-	}
-	return false
 }

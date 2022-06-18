@@ -961,7 +961,7 @@ func (r *repository) loadModerationFollowups(ctx context.Context, items Renderab
 			if err := m.FromActivityPub(it); err != nil {
 				continue
 			}
-			if !modFollowups.Contains(*m) {
+			if !Contains(modFollowups, *m) {
 				modFollowups = append(modFollowups, *m)
 			}
 		}
