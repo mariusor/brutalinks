@@ -298,9 +298,9 @@ func loadAPItem(it vocab.Item, item Item) error {
 				}
 				par, ok := p.(*Item)
 				if !ok {
-					continue
+					break
 				}
-				if par.SubmittedBy.IsValid() {
+				if par.SubmittedBy != nil && par.SubmittedBy.IsValid() {
 					if pAuth := GetID(par.SubmittedBy); !vocab.PublicNS.Equals(pAuth, true) {
 						if first {
 							if !to.Contains(pAuth) {
@@ -907,7 +907,7 @@ func (r *repository) loadFollowsAuthors(ctx context.Context, items ...FollowRequ
 	}
 	submitters := make(AccountCollection, 0)
 	for _, it := range items {
-		if sub := *it.SubmittedBy; sub.IsValid() && !submitters.Contains(sub) {
+		if sub := *it.SubmittedBy; sub.IsValid() && !Contains(submitters, sub) {
 			submitters = append(submitters, sub)
 		}
 	}
@@ -973,7 +973,7 @@ func (r *repository) loadModerationFollowups(ctx context.Context, items Renderab
 func ModerationSubmittedByHashFilter(items ...ModerationOp) CompStrs {
 	accounts := make(AccountCollection, 0)
 	for _, it := range items {
-		if !it.SubmittedBy.IsValid() || accounts.Contains(*it.SubmittedBy) {
+		if !it.SubmittedBy.IsValid() || Contains(accounts, *it.SubmittedBy) {
 			continue
 		}
 		accounts = append(accounts, *it.SubmittedBy)
@@ -1089,7 +1089,7 @@ func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemC
 	for _, it := range items {
 		if it.SubmittedBy.IsValid() {
 			iri := baseIRI(it.SubmittedBy.AP().GetLink())
-			if !accounts[iri].Contains(*it.SubmittedBy) {
+			if !Contains(accounts[iri], *it.SubmittedBy) {
 				// Adding an item's author to the list of accounts we want to load from the ActivityPub API
 				accounts[iri] = append(accounts[iri], *it.SubmittedBy)
 			}
@@ -1101,7 +1101,7 @@ func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemC
 					continue
 				}
 				iri := baseIRI(to.AP().GetLink())
-				if !accounts[iri].Contains(to) {
+				if !Contains(accounts[iri], to) {
 					accounts[iri] = append(accounts[iri], to)
 				}
 			}
@@ -1110,7 +1110,7 @@ func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemC
 					continue
 				}
 				iri := baseIRI(cc.AP().GetLink())
-				if !accounts[iri].Contains(cc) {
+				if !Contains(accounts[iri], cc) {
 					accounts[iri] = append(accounts[iri], cc)
 				}
 			}
@@ -1118,7 +1118,7 @@ func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemC
 		for _, com := range *it.Children() {
 			if ob, ok := com.(*Item); ok {
 				if auth := ob.SubmittedBy; !auth.IsValid() {
-					if iri := baseIRI(auth.AP().GetLink()); !accounts[iri].Contains(*auth) {
+					if iri := baseIRI(auth.AP().GetLink()); !Contains(accounts[iri], *auth) {
 						accounts[iri] = append(accounts[iri], *auth)
 					}
 				}
@@ -1165,7 +1165,7 @@ func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemC
 				r.errFn(log.Ctx{"type": fmt.Sprintf("%T", it)})(err.Error())
 				continue
 			}
-			if acc.IsValid() && !authors.Contains(acc) {
+			if acc.IsValid() && !Contains(authors, acc) {
 				authors = append(authors, acc)
 			}
 			if len(authors) == requiredAuthorsCount {
@@ -1187,7 +1187,7 @@ func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemC
 			if it.SubmittedBy.IsValid() && it.SubmittedBy.Hash == auth.Hash {
 				it.SubmittedBy = &auth
 			}
-			if it.UpdatedBy.IsValid() && it.UpdatedBy.Hash == auth.Hash {
+			if it.UpdatedBy != nil && it.UpdatedBy.IsValid() && it.UpdatedBy.Hash == auth.Hash {
 				it.UpdatedBy = &auth
 			}
 			if !it.HasMetadata() {
@@ -1610,7 +1610,7 @@ func (r *repository) LoadSearches(ctx context.Context, searches RemoteLoads, dep
 			if !d.IsValid() {
 				continue
 			}
-			if !accounts.Contains(d) {
+			if !Contains(accounts, d) {
 				accounts = append(accounts, d)
 			}
 		}

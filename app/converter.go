@@ -233,7 +233,7 @@ func (a *Account) FromActivityPub(it vocab.Item) error {
 	case vocab.CreateType, vocab.UpdateType:
 		return vocab.OnActivity(it, func(act *vocab.Activity) error {
 			err := a.FromActivityPub(act.Object)
-			if !a.CreatedBy.IsValid() {
+			if a.CreatedBy != nil && !a.CreatedBy.IsValid() {
 				acc := Account{}
 				acc.FromActivityPub(act.Actor)
 				a.CreatedBy = &acc
@@ -689,7 +689,13 @@ func (v *Vote) FromActivityPub(it vocab.Item) error {
 	if it == nil {
 		return errors.Newf("nil item received")
 	}
-	v.Pub, _ = it.(*vocab.Activity)
+	if vocab.IsIRI(it) {
+		v.Pub = &vocab.Activity{ID: it.GetLink()}
+	}
+	var err error
+	if v.Pub, err = vocab.ToActivity(it); err != nil {
+		return errors.Newf("unable to convert to Activity")
+	}
 	if it.IsLink() {
 		return errors.Newf("unable to load from IRI")
 	}

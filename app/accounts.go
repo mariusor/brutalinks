@@ -85,8 +85,8 @@ var ValidActorTypes = vocab.ActivityVocabularyTypes{
 	vocab.OrganizationType,
 }
 
-func (a *Account) ID() Hash {
-	if a == nil {
+func (a Account) ID() Hash {
+	if len(a.Metadata.ID) == 0 {
 		return AnonymousHash
 	}
 	return a.Hash
@@ -122,15 +122,12 @@ func (a *Account) HasPublicKey() bool {
 }
 
 // IsValid returns if the current account has a handle or a hash with length greater than 0
-func (a *Account) IsValid() bool {
-	return a != nil && (a.Hash.IsValid() || a.Handle == selfName)
+func (a Account) IsValid() bool {
+	return a.Hash.IsValid() || a.Handle == selfName
 }
 
 // AP returns the underlying actvitypub item
-func (a *Account) AP() vocab.Item {
-	if a == nil {
-		return nil
-	}
+func (a Account) AP() vocab.Item {
 	return a.Pub
 }
 
@@ -243,7 +240,7 @@ func (a Account) Date() time.Time {
 	return a.CreatedAt
 }
 
-func (a *Account) Children() *RenderableList {
+func (a Account) Children() *RenderableList {
 	return &a.children
 }
 
@@ -253,15 +250,6 @@ func (a AccountCollection) First() (*Account, error) {
 		return &act, nil
 	}
 	return nil, errors.Errorf("empty %T", a)
-}
-
-func (a AccountCollection) Contains(b Account) bool {
-	for _, acc := range a {
-		if acc.Hash == b.Hash {
-			return true
-		}
-	}
-	return false
 }
 
 func (a AccountCollection) Split(pieceCount int) []AccountCollection {
