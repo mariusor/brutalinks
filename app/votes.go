@@ -27,18 +27,18 @@ type VoteMetadata struct {
 }
 
 type Vote struct {
-	SubmittedBy *Account      `json:"-"`
-	SubmittedAt time.Time     `json:"-"`
-	UpdatedAt   time.Time     `json:"-"`
-	Weight      int           `json:"weight"`
-	Item        *Item         `json:"on"`
-	Flags       FlagBits      `json:"-"`
+	SubmittedBy *Account        `json:"-"`
+	SubmittedAt time.Time       `json:"-"`
+	UpdatedAt   time.Time       `json:"-"`
+	Weight      int             `json:"weight"`
+	Item        *Item           `json:"on"`
+	Flags       FlagBits        `json:"-"`
 	Metadata    *VoteMetadata   `json:"-"`
 	Pub         *vocab.Activity `json:"-"`
 }
 
-func (v *Vote) ID() Hash {
-	if v == nil {
+func (v Vote) ID() Hash {
+	if len(v.Metadata.IRI) == 0 {
 		return AnonymousHash
 	}
 	return HashFromString(v.Metadata.IRI)
@@ -50,8 +50,8 @@ func (v Vote) HasMetadata() bool {
 }
 
 // IsValid
-func (v *Vote) IsValid() bool {
-	return v != nil && v.Item.IsValid()
+func (v Vote) IsValid() bool {
+	return v.Item.IsValid()
 }
 
 // IsYay returns true if current vote is a Yay
@@ -71,12 +71,12 @@ func (v Vote) IsNay() bool {
 }
 
 // AP returns the underlying actvitypub item
-func (v *Vote) AP() vocab.Item {
+func (v Vote) AP() vocab.Item {
 	return v.Pub
 }
 
 // Type
-func (v *Vote) Type() RenderType {
+func (v Vote) Type() RenderType {
 	return AppreciationType
 }
 
@@ -84,20 +84,9 @@ func (v *Vote) Type() RenderType {
 func (v Vote) Date() time.Time {
 	return v.SubmittedAt
 }
-func (v *Vote) Children() *RenderableList {
-	return nil
-}
 
-func (v VoteCollection) Contains(vot Vote) bool {
-	for _, vv := range v {
-		if !vv.HasMetadata() || !vot.HasMetadata() {
-			continue
-		}
-		if vv.Metadata.IRI == vot.Metadata.IRI {
-			return true
-		}
-	}
-	return false
+func (v Vote) Children() *RenderableList {
+	return nil
 }
 
 type ScoreType int
