@@ -24,25 +24,25 @@ type cache struct {
 	s       sync.RWMutex
 }
 
-func removeAccum(toRemove *vocab.IRIs, iri vocab.IRI, col vocab.CollectionPath) {
+func accum(toRemove *vocab.IRIs, iri vocab.IRI, col vocab.CollectionPath) {
 	if repl := col.IRI(iri); !toRemove.Contains(repl) {
 		*toRemove = append(*toRemove, repl)
 	}
 }
 
-func accumForProperty(it vocab.Item, toRemove *vocab.IRIs, col vocab.CollectionPath) {
+func accumItem(it vocab.Item, toRemove *vocab.IRIs, col vocab.CollectionPath) {
 	if vocab.IsNil(it) {
 		return
 	}
 	if vocab.IsItemCollection(it) {
 		vocab.OnItemCollection(it, func(c *vocab.ItemCollection) error {
 			for _, ob := range c.Collection() {
-				removeAccum(toRemove, ob.GetLink(), col)
+				accum(toRemove, ob.GetLink(), col)
 			}
 			return nil
 		})
 	} else {
-		removeAccum(toRemove, it.GetLink(), col)
+		accum(toRemove, it.GetLink(), col)
 	}
 }
 
@@ -52,12 +52,12 @@ func (c *cache) removeRelated(items ...vocab.Item) {
 		if vocab.IsNil(it) {
 			continue
 		}
-		if vocab.IsObject(it) || vocab.IsItemCollection(it) {
+		if vocab.IsObject(it) || vocab.IsItemCollection(it) && len(it.GetLink()) > 0 {
 			typ := it.GetType()
 			if vocab.ActivityTypes.Contains(typ) || vocab.IntransitiveActivityTypes.Contains(typ) {
-				vocab.OnActivity(it, aggregateActivityIRIs(&toRemove))
+				vocab.OnActivity(it, accumActivityIRIs(&toRemove))
 			} else {
-				vocab.OnObject(it, aggregateObjectIRIs(&toRemove))
+				vocab.OnObject(it, accumObjectIRIs(&toRemove))
 			}
 		}
 
@@ -68,20 +68,24 @@ func (c *cache) removeRelated(items ...vocab.Item) {
 	c.remove(toRemove...)
 }
 
-func aggregateActivityIRIs(toRemove *vocab.IRIs) func(activity *vocab.Activity) error {
+func accumRecipientIRIs(r vocab.Item, toRemove *vocab.IRIs) {
+	if r.GetLink().Equals(vocab.PublicNS, false) {
+		return
+	}
+	if iri := r.GetLink(); vocab.ValidCollectionIRI(iri) {
+		// TODO(marius): for followers, following collections this should dereference the members
+		if !toRemove.Contains(iri) {
+			*toRemove = append(*toRemove, iri)
+		}
+	} else {
+		accumItem(r, toRemove, vocab.Inbox)
+	}
+}
+
+func accumActivityIRIs(toRemove *vocab.IRIs) func(activity *vocab.Activity) error {
 	return func(a *vocab.Activity) error {
 		for _, r := range a.Recipients() {
-			if r.GetLink().Equals(vocab.PublicNS, false) {
-				continue
-			}
-			if iri := r.GetLink(); vocab.ValidCollectionIRI(iri) {
-				// TODO(marius): for followers, following collections this should dereference the members
-				if !toRemove.Contains(iri) {
-					*toRemove = append(*toRemove, iri)
-				}
-			} else {
-				accumForProperty(r, toRemove, vocab.Inbox)
-			}
+			accumRecipientIRIs(r, toRemove)
 		}
 		if destCol := vocab.Outbox.IRI(a.Actor); !toRemove.Contains(destCol) {
 			*toRemove = append(*toRemove, destCol)
@@ -92,11 +96,11 @@ func aggregateActivityIRIs(toRemove *vocab.IRIs) func(activity *vocab.Activity) 
 			base := path.Dir(a.Object.GetLink().String())
 			*toRemove = append(*toRemove, vocab.IRI(base), a.Object.GetLink())
 		}
-		return vocab.OnObject(a.Object, aggregateObjectIRIs(toRemove))
+		return vocab.OnObject(a.Object, accumObjectIRIs(toRemove))
 	}
 }
 
-func aggregateObjectIRIs(toRemove *vocab.IRIs) func(*vocab.Object) error {
+func accumObjectIRIs(toRemove *vocab.IRIs) func(*vocab.Object) error {
 	return func(ob *vocab.Object) error {
 		if ob == nil {
 			return nil
@@ -107,8 +111,11 @@ func aggregateObjectIRIs(toRemove *vocab.IRIs) func(*vocab.Object) error {
 		if obIRI := ob.GetLink(); len(obIRI) > 0 && !toRemove.Contains(obIRI) {
 			*toRemove = append(*toRemove, obIRI)
 		}
-		accumForProperty(ob.InReplyTo, toRemove, vocab.Replies)
-		accumForProperty(ob.AttributedTo, toRemove, vocab.Outbox)
+		for _, r := range ob.Recipients() {
+			accumRecipientIRIs(r, toRemove)
+		}
+		accumItem(ob.InReplyTo, toRemove, vocab.Replies)
+		accumItem(ob.AttributedTo, toRemove, vocab.Outbox)
 		return nil
 	}
 }
