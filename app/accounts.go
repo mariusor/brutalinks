@@ -321,15 +321,6 @@ func accountsFromRequestHandle(r *http.Request) (AccountCollection, error) {
 
 type AccountPtrCollection []*Account
 
-func (h AccountPtrCollection) Contains(s Hash) bool {
-	for _, hh := range h {
-		if hh.Hash == s {
-			return true
-		}
-	}
-	return false
-}
-
 func reparentAccounts(allAccounts *AccountPtrCollection) {
 	if len(*allAccounts) == 0 {
 		return

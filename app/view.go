@@ -147,7 +147,7 @@ func isParentAccount(a Renderable, r Renderable) bool {
 	case *Account:
 		parent = it.Parent
 	}
-	return parent.IsValid() && a.ID() == parent.ID()
+	return parent != nil && parent.IsValid() && a.ID() == parent.ID()
 }
 
 func canUserModerate(a *Account, g ModerationGroup) bool {

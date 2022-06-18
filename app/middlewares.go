@@ -240,7 +240,7 @@ func LoadSingleItemMw(next http.Handler) http.Handler {
 		}
 		repo := ContextRepository(r.Context())
 		item := ContextItem(r.Context())
-		if !item.IsValid() {
+		if item == nil || !item.IsValid() {
 			ctxtErr(next, w, r, errors.NotFoundf(strings.TrimLeft(r.URL.Path, "/")))
 			return
 		}

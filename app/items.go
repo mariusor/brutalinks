@@ -48,12 +48,12 @@ type Identifiable interface {
 	Id() int64
 }
 
-func (i *Item) IsValid() bool {
-	return i != nil && i.Hash.IsValid()
+func (i Item) IsValid() bool {
+	return i.Hash.IsValid()
 }
 
 // AP returns the underlying actvitypub item
-func (i *Item) AP() vocab.Item {
+func (i Item) AP() vocab.Item {
 	return i.Pub
 }
 
