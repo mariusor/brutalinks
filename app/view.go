@@ -884,19 +884,19 @@ func InOutbox(a *Account, it ...vocab.Item) bool {
 }
 
 func AccountFollows(a, by *Account) bool {
-	return Contains(a.Following, *by)
+	return a.Following.Contains(*by)
 }
 
 func AccountBlocks(by, b *Account) bool {
-	return Contains(by.Blocked, *b)
+	return by.Blocked.Contains(*b)
 }
 
 func AccountIgnores(by, b *Account) bool {
-	return Contains(by.Ignored, *b)
+	return by.Ignored.Contains(*b)
 }
 
 func AccountIsFollowed(a, by *Account) bool {
-	return Contains(a.Followers, *by)
+	return a.Followers.Contains(*by)
 }
 
 func AccountIsRejected(by, a *Account) bool {
@@ -907,11 +907,11 @@ func AccountIsRejected(by, a *Account) bool {
 }
 
 func AccountIsBlocked(by, a *Account) bool {
-	return Contains(by.Blocked, *a)
+	return by.Blocked.Contains(*a)
 }
 
 func AccountIsIgnored(by, a *Account) bool {
-	return Contains(by.Ignored, *a)
+	return by.Ignored.Contains(*a)
 }
 
 func AccountIsReported(by, a *Account) bool {
