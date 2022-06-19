@@ -157,12 +157,12 @@ type ErrorHandler func(http.ResponseWriter, *http.Request, ...error)
 type ErrorHandlerFn func(eh ErrorHandler) Handler
 
 func Contains[T Renderable](sl []T, it T) bool {
-	if !it.IsValid() || it.AP() == nil {
+	if !it.IsValid() || vocab.IsNil(it.AP()) {
 		return false
 	}
 	itIRI := it.AP().GetLink()
 	for _, vv := range sl {
-		if ap := vv.AP(); ap != nil && ap.GetLink() == itIRI {
+		if ap := vv.AP(); !vocab.IsNil(ap) && ap.GetLink() == itIRI {
 			return true
 		}
 	}
