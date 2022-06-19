@@ -798,7 +798,7 @@ func (r *repository) loadItemsVotes(ctx context.Context, items ...Item) (ItemCol
 				continue
 			}
 			v := Vote{}
-			if err := v.FromActivityPub(vAct); err == nil && !Contains(votes, v) {
+			if err := v.FromActivityPub(vAct); err == nil && !votes.Contains(v) {
 				votes = append(votes, v)
 			}
 		}
@@ -812,7 +812,7 @@ func (r *repository) loadItemsVotes(ctx context.Context, items ...Item) (ItemCol
 			if items[k].Votes == nil {
 				items[k].Votes = make(VoteCollection, 0)
 			}
-			if itemsEqual(*v.Item, ob) && !Contains(items[k].Votes, v) {
+			if itemsEqual(*v.Item, ob) && !items[k].Votes.Contains(v) {
 				items[k].Votes = append(items[k].Votes, v)
 			}
 		}

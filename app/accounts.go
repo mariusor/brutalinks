@@ -180,7 +180,7 @@ func (a Account) Votes() VoteCollection {
 		if v.Item == nil {
 			continue
 		}
-		if !Contains(votes, v) {
+		if !votes.Contains(v) {
 			votes = append(votes, v)
 		}
 	}
