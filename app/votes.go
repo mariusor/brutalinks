@@ -27,14 +27,14 @@ type VoteMetadata struct {
 }
 
 type Vote struct {
-	SubmittedBy *Account        `json:"-"`
-	SubmittedAt time.Time       `json:"-"`
-	UpdatedAt   time.Time       `json:"-"`
-	Weight      int             `json:"weight"`
-	Item        *Item           `json:"on"`
-	Flags       FlagBits        `json:"-"`
-	Metadata    *VoteMetadata   `json:"-"`
-	Pub         *vocab.Activity `json:"-"`
+	SubmittedBy *Account      `json:"-"`
+	SubmittedAt time.Time     `json:"-"`
+	UpdatedAt   time.Time     `json:"-"`
+	Weight      int           `json:"weight"`
+	Item        *Item         `json:"on"`
+	Flags       FlagBits      `json:"-"`
+	Metadata    *VoteMetadata `json:"-"`
+	Pub         vocab.Item    `json:"-"`
 }
 
 func (v Vote) ID() Hash {
