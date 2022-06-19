@@ -176,6 +176,11 @@ func (m *contentModel) SetCursor(c *Cursor) {
 			}
 		}
 		m.Message.Back = PermaLink(m.Content)
+	} else {
+		missing := DeletedItem
+		missing.Hash = m.Hash
+		missing.children = c.items
+		m.Content = &missing
 	}
 }
 
