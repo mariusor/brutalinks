@@ -51,7 +51,7 @@ func (v Vote) HasMetadata() bool {
 
 // IsValid
 func (v Vote) IsValid() bool {
-	return v.Item != nil && v.Item.IsValid()
+	return v.Item.IsValid()
 }
 
 // IsYay returns true if current vote is a Yay

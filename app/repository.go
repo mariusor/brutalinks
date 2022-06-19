@@ -701,7 +701,7 @@ func (r *repository) loadItemsReplies(ctx context.Context, items ...Item) (ItemC
 				continue
 			}
 			i := new(Item)
-			if err := i.FromActivityPub(it); err == nil && !Contains(allReplies, *i) {
+			if err := i.FromActivityPub(it); err == nil && !allReplies.Contains(*i) {
 				allReplies = append(allReplies, *i)
 			}
 		}
@@ -1205,7 +1205,7 @@ func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemC
 			}
 			for i, com := range it.children {
 				if ob, ok := com.(*Item); ok {
-					if com != nil && com.IsValid() && ob.SubmittedBy.Hash == auth.Hash {
+					if com.IsValid() && ob.SubmittedBy.Hash == auth.Hash {
 						ob.SubmittedBy = &auth
 						it.children[i] = ob
 					}
@@ -1594,7 +1594,7 @@ func (r *repository) LoadSearches(ctx context.Context, searches RemoteLoads, dep
 			if !d.IsValid() {
 				continue
 			}
-			if !Contains(items, d) {
+			if !items.Contains(d) {
 				items = append(items, d)
 			}
 		}
@@ -1682,7 +1682,7 @@ func (r *repository) SaveVote(ctx context.Context, v Vote) (Vote, error) {
 	if !v.SubmittedBy.IsValid() || !v.SubmittedBy.HasMetadata() {
 		return Vote{}, errors.Newf("Invalid vote submitter")
 	}
-	if v.Item == nil || !v.Item.IsValid() || !v.Item.HasMetadata() {
+	if !v.Item.IsValid() || !v.Item.HasMetadata() {
 		return Vote{}, errors.Newf("Invalid vote item")
 	}
 	author := r.loadAPPerson(*v.SubmittedBy)

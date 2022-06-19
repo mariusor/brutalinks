@@ -149,23 +149,26 @@ type Item struct {
 	UpdatedAt   time.Time      `json:"-"`
 	UpdatedBy   *Account       `json:"-"`
 	Flags       FlagBits       `json:"-"`
-	Metadata    *ItemMetadata  `json:"-"`
-	Pub         vocab.Item     `json:"-"`
-	Parent      Renderable     `json:"-"`
+	Metadata *ItemMetadata `json:"-"`
+	Pub      vocab.Item    `json:"-"`
+	Parent   Renderable    `json:"-"`
 	OP          Renderable     `json:"-"`
 	Level       uint8          `json:"-"`
 	children    RenderableList `json:"-"`
 }
 
-func (i Item) ID() Hash {
+func (i *Item) ID() Hash {
+	if i == nil {
+		return AnonymousHash
+	}
 	return i.Hash
 }
 
-func (i Item) Children() *RenderableList {
+func (i *Item) Children() *RenderableList {
 	return &i.children
 }
 
-func (i Item) Type() RenderType {
+func (i *Item) Type() RenderType {
 	return CommentType
 }
 
@@ -190,6 +193,15 @@ func (i *Item) IsTop() bool {
 		return nil
 	})
 	return isTop
+}
+
+func (i ItemCollection) Contains(cc Item) bool {
+	for _, com := range i {
+		if com.Hash == cc.Hash {
+			return true
+		}
+	}
+	return false
 }
 
 func (i ItemCollection) getItemsHashes() Hashes {

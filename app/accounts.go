@@ -332,3 +332,30 @@ func accountsFromRequestHandle(r *http.Request) (AccountCollection, error) {
 }
 
 type AccountPtrCollection []*Account
+
+func reparentAccounts(allAccounts *AccountPtrCollection) {
+	if len(*allAccounts) == 0 {
+		return
+	}
+	parFn := func(t AccountPtrCollection, cur *Account) *Account {
+		for _, n := range t {
+			if cur.CreatedBy.IsValid() {
+				if cur.CreatedBy.ID() == n.ID() {
+					return n
+				}
+			}
+		}
+		return nil
+	}
+
+	retAccounts := make(AccountPtrCollection, 0)
+	for _, cur := range *allAccounts {
+		if par := parFn(*allAccounts, cur); par != nil {
+			par.children.Append(cur)
+			cur.Parent = par
+		} else {
+			retAccounts = append(retAccounts, cur)
+		}
+	}
+	*allAccounts = retAccounts
+}

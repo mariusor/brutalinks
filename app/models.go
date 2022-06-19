@@ -155,7 +155,7 @@ func (m *contentModel) SetCursor(c *Cursor) {
 	if len(c.items) == 0 {
 		return
 	}
-	if m.Content == nil || !m.Content.IsValid() {
+	if !m.Content.IsValid() {
 		if m.Hash.IsValid() {
 			m.Content = getItemFromList(&Item{Hash: m.Hash}, c.items)
 		} else {
