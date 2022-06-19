@@ -1141,6 +1141,7 @@ func getDomain(u *url.URL) string {
 	if u == nil || len(u.Host) == 0 {
 		return unknownDomain
 	}
+	u.Host = puny.ToUnicode(u.Host)
 	pathEl := strings.Split(strings.TrimLeft(u.Path, "/"), "/")
 	if len(pathEl) > 0 {
 		maybeUser := pathEl[0]
@@ -1169,16 +1170,19 @@ func getDomain(u *url.URL) string {
 				return fmt.Sprintf("%s/%s", u.Host, maybeUser)
 			}
 		}
-		if len(maybeUser) > 0 && maybeUser[0] == '~' {
-			// NOTE(marius): this handles websites that use ~user for home directories
-			// Eg, SourceHut, and other Brutalinks instances
-			if u.Host == Instance.BaseURL {
-				// TODO(marius): I need to generate local user link here instead of /d/$u.Host/$maybeUser
+		if len(maybeUser) > 0 {
+			if maybeUser[0] == '~' {
+				// NOTE(marius): this handles websites that use ~user for home directories
+				// Eg, SourceHut, and other Brutalinks instances
+				return fmt.Sprintf("%s/%s", u.Host, maybeUser)
 			}
-			return fmt.Sprintf("%s/%s", u.Host, maybeUser)
+			if maybeUser[0] == '@' {
+				// NOTE(marius): fediverse instances that use the https://host.name/@user format
+				return fmt.Sprintf("%s/%s", u.Host, maybeUser)
+			}
 		}
 	}
-	return puny.ToUnicode(u.Host)
+	return u.Host
 
 }
 
