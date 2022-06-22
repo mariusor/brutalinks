@@ -31,6 +31,7 @@ const (
 	MimeTypeMarkdown = "text/markdown"
 	MimeTypeText     = "text/plain"
 	MimeTypeSVG      = "image/svg+xml"
+	MimeTypeCss      = "text/css"
 )
 
 func (f *FlagBits) FromInt64() error {
@@ -149,9 +150,9 @@ type Item struct {
 	UpdatedAt   time.Time      `json:"-"`
 	UpdatedBy   *Account       `json:"-"`
 	Flags       FlagBits       `json:"-"`
-	Metadata *ItemMetadata `json:"-"`
-	Pub      vocab.Item    `json:"-"`
-	Parent   Renderable    `json:"-"`
+	Metadata    *ItemMetadata  `json:"-"`
+	Pub         vocab.Item     `json:"-"`
+	Parent      Renderable     `json:"-"`
 	OP          Renderable     `json:"-"`
 	Level       uint8          `json:"-"`
 	children    RenderableList `json:"-"`
