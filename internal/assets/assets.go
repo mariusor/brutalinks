@@ -1,7 +1,6 @@
 package assets
 
 import (
-	"bufio"
 	"bytes"
 	"crypto/sha256"
 	"encoding/base64"
@@ -11,6 +10,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -69,21 +69,28 @@ func TemplateNames() []string {
 	return names
 }
 
+var m sync.Mutex
+
 func getFileContent(name string) ([]byte, error) {
+	m.Lock()
+	defer m.Unlock()
+
 	f, err := openFsFn(name)
 	if err != nil {
 		return nil, err
 	}
 	defer f.Close()
-	r := bufio.NewReader(f)
-	b := new(bytes.Buffer)
-	_, err = r.WriteTo(b)
+
+	fi, err := f.Stat()
 	if err != nil {
-		if err != nil {
-			return nil, err
-		}
+		return nil, err
 	}
-	return b.Bytes(), nil
+
+	b := make([]byte, fi.Size())
+	if _, err = f.Read(b); err != nil {
+		return nil, err
+	}
+	return b, nil
 }
 
 func assetPath(pieces ...string) string {
