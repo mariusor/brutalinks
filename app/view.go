@@ -257,8 +257,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"itemType":              itemType,
 			"trimSuffix":            strings.TrimSuffix,
 			"Sort":                  sortModel(m),
-			"GetDomainURL":          GetDomainURL,
-			"GetDomainTitle":        GetDomainTitle,
+			"GetDomainLinks":        GetDomainLinks,
 			"invitationLink":        GetInviteLink(v),
 			"accountJSON":           renderableMarshalJSON(v.errFn()),
 			//"ScoreFmt":          func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
@@ -1133,75 +1132,95 @@ var redditValidSubreddit = func(n string) bool {
 	return strings.Contains(n, "r/")
 }
 
-func getDomain(u *url.URL) string {
-	if u == nil || len(u.Host) == 0 {
-		return unknownDomain
+type domainLink struct {
+	Name template.HTML
+	Href template.HTMLAttr
+}
+type Links []domainLink
+
+var unknownDomainLink = Links{domainLink{}}
+var discussionLink = Links{domainLink{Name: "discussion"}}
+
+func GetDomainLinks(i Item) Links {
+	if i.IsSelf() {
+		return discussionLink
 	}
-	u.Host = puny.ToUnicode(u.Host)
+	u, err := url.Parse(i.Data)
+	if err != nil {
+		return unknownDomainLink
+	}
 	pathEl := strings.Split(strings.TrimLeft(u.Path, "/"), "/")
-	if len(pathEl) > 0 {
-		maybeUser := pathEl[0]
-		switch u.Host {
-		case redditDomain, "www." + redditDomain, "old." + redditDomain:
-			if len(pathEl) >= 2 {
-				subreddit := path.Join(pathEl[:2]...)
-				if redditValidSubreddit(subreddit) {
-					return fmt.Sprintf("%s/%s", u.Host, subreddit)
+	if len(pathEl) == 0 {
+		return Links{
+			domainLink{Name: template.HTML(puny.ToUnicode(u.Host)), Href: template.HTMLAttr(u.Host)},
+		}
+	}
+
+	domain := domainLink{Name: template.HTML(puny.ToUnicode(u.Host)), Href: "/" + template.HTMLAttr(u.Host)}
+	maybeUser := pathEl[0]
+	var pathLink domainLink
+	switch u.Host {
+	case redditDomain, "www." + redditDomain, "old." + redditDomain:
+		if len(pathEl) >= 2 {
+			subreddit := path.Join(pathEl[:2]...)
+			if redditValidSubreddit(subreddit) {
+				pathLink = domainLink{
+					Name: template.HTML(subreddit),
+					Href: template.HTMLAttr("/" + url.PathEscape(path.Join(u.Host, subreddit))),
 				}
 			}
-		case twitterDomain, "www." + twitterDomain:
-			if twitterValidUser(maybeUser) {
-				return fmt.Sprintf("%s/%s", u.Host, maybeUser)
-			}
-		case gitlabDomain, "www." + gitlabDomain:
-			if gitlabValidUser(maybeUser) {
-				return fmt.Sprintf("%s/%s", u.Host, maybeUser)
-			}
-		case githubDomain, "www." + githubDomain:
-			if githubValidUser(maybeUser) {
-				return fmt.Sprintf("%s/%s", u.Host, maybeUser)
-			}
-		case twitchDomain, "www." + twitchDomain:
-			if twitchValidUser(maybeUser) {
-				return fmt.Sprintf("%s/%s", u.Host, maybeUser)
+		}
+	case twitterDomain, "www." + twitterDomain:
+		if twitterValidUser(maybeUser) {
+			pathLink = domainLink{
+				Name: template.HTML(maybeUser),
+				Href: template.HTMLAttr("/" + url.PathEscape(path.Join(u.Host, maybeUser))),
 			}
 		}
-		if len(maybeUser) > 0 {
-			if maybeUser[0] == '~' {
-				// NOTE(marius): this handles websites that use ~user for home directories
-				// Eg, SourceHut, and other Brutalinks instances
-				return fmt.Sprintf("%s/%s", u.Host, maybeUser)
+	case gitlabDomain, "www." + gitlabDomain:
+		if gitlabValidUser(maybeUser) {
+			pathLink = domainLink{
+				Name: template.HTML(maybeUser),
+				Href: template.HTMLAttr("/" + url.PathEscape(path.Join(u.Host, maybeUser))),
 			}
-			if maybeUser[0] == '@' {
-				// NOTE(marius): fediverse instances that use the https://host.name/@user format
-				return fmt.Sprintf("%s/%s", u.Host, maybeUser)
+		}
+	case githubDomain, "www." + githubDomain:
+		if githubValidUser(maybeUser) {
+			pathLink = domainLink{
+				Name: template.HTML(maybeUser),
+				Href: template.HTMLAttr("/" + url.PathEscape(path.Join(u.Host, maybeUser))),
+			}
+		}
+	case twitchDomain, "www." + twitchDomain:
+		if twitchValidUser(maybeUser) {
+			pathLink = domainLink{
+				Name: template.HTML(maybeUser),
+				Href: template.HTMLAttr("/" + url.PathEscape(path.Join(u.Host, maybeUser))),
 			}
 		}
 	}
-	return u.Host
-
-}
-
-func GetDomainTitle(i Item) template.HTML {
-	if !i.IsLink() {
-		return unknownDomain
+	if len(maybeUser) > 0 {
+		if maybeUser[0] == '~' {
+			// NOTE(marius): this handles websites that use ~user for home directories
+			// Eg, SourceHut, and other Brutalinks instances
+			pathLink = domainLink{
+				Name: template.HTML(maybeUser),
+				Href: template.HTMLAttr("/" + url.PathEscape(path.Join(u.Host, maybeUser))),
+			}
+		}
+		if maybeUser[0] == '@' {
+			// NOTE(marius): fediverse instances that use the https://example.com/@user format
+			pathLink = domainLink{
+				Name: template.HTML(maybeUser),
+				Href: template.HTMLAttr("/" + url.PathEscape(path.Join(u.Host, maybeUser))),
+			}
+		}
 	}
-	u, err := url.Parse(i.Data)
-	if err != nil {
-		return unknownDomain
+	if len(pathLink.Name) == 0 {
+		return Links{domain}
 	}
-	return template.HTML(getDomain(u))
-}
-
-func GetDomainURL(i Item) template.HTMLAttr {
-	if !i.IsLink() {
-		return unknownDomain
-	}
-	u, err := url.Parse(i.Data)
-	if err != nil {
-		return unknownDomain
-	}
-	return template.HTMLAttr(url.PathEscape(getDomain(u)))
+	domain.Name = domain.Name + "/"
+	return Links{domain, pathLink}
 }
 
 func GetInviteLink(v *view) func(invitee *Account) template.HTMLAttr {
