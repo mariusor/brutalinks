@@ -647,8 +647,8 @@ func isDocument(mime string) bool {
 	return strings.Contains(mime, "url")
 }
 
-func audio(mime, data string) template.HTML {
-	return template.HTML(fmt.Sprintf(audioFmt, mime, data, mime))
+func audio(mime, bytes string) template.HTML {
+	return template.HTML(fmt.Sprintf(audioFmt, data(mime, bytes), mime))
 }
 
 func itemType(mime string) template.HTML {
@@ -665,31 +665,26 @@ func itemType(mime string) template.HTML {
 	return template.HTML(t)
 }
 
-func video(mime, data string) template.HTML {
-	return template.HTML(fmt.Sprintf(videoFmt, mime, data, mime))
+func video(mime, bytes string) template.HTML {
+	return template.HTML(fmt.Sprintf(videoFmt, data(mime, bytes), mime))
 }
 
-func avatar(typ, data string) template.HTML {
+func avatar(typ, bytes string) template.HTML {
 	if m, _, err := mime.ParseMediaType(typ); err == nil {
 		typ = m
 	}
-	if typ == MimeTypeSVG {
-		if dec, err := base64.RawStdEncoding.DecodeString(data); err == nil {
-			data = string(dec)
-		}
-		return template.HTML(data)
-	}
-	return template.HTML(fmt.Sprintf(avatarFmt, typ, data))
+	return template.HTML(fmt.Sprintf(avatarFmt, data(typ, bytes)))
 }
 
-func image(mime, data string) template.HTML {
-	if mime == MimeTypeSVG {
-		if dec, err := base64.RawStdEncoding.DecodeString(data); err == nil {
-			data = string(dec)
-		}
-		return template.HTML(data)
+func data(mime, bytes string) template.HTMLAttr {
+	if dec, err := base64.RawStdEncoding.DecodeString(bytes); err == nil {
+		bytes = string(dec)
 	}
-	return template.HTML(fmt.Sprintf(imageFmt, mime, data))
+	return template.HTMLAttr(fmt.Sprintf(dataFmt, mime, bytes))
+}
+
+func image(mime, bytes string) template.HTML {
+	return template.HTML(fmt.Sprintf(imageFmt, data(mime, bytes)))
 }
 
 func icons(c []string) template.HTML {
@@ -709,10 +704,11 @@ func accountDefaultAvatar(act *Account) ImageMetadata {
 }
 
 const (
-	imageFmt     = `<image src='data:%s;base64,%s' />`
-	avatarFmt    = `<image src='data:%s;base64,%s' width='48' height='48' class='icon avatar' />`
-	videoFmt     = `<video controls><source src='data:%s;base64,%s' type='%s'/></video>`
-	audioFmt     = `<audio controls><source src='data:%s;base64,%s' type='%s'/></audio>`
+	dataFmt      = `data:%s;base64,%s`
+	imageFmt     = `<image src='%s' />`
+	avatarFmt    = `<image src='%s' width='48' height='48' class='icon avatar' />`
+	videoFmt     = `<video controls><source src='%s' type='%s'/></video>`
+	audioFmt     = `<audio controls><source src='%s' type='%s'/></audio>`
 	iconFmt      = `<svg aria-hidden="true" class="icon icon-%s"><use xlink:href="/icons.svg#icon-%s"><title>%s</title></use></svg>`
 	avatarSvgFmt = `<svg aria-hidden="true" class="icon avatar" width="48" height="48" viewBox="0 0 50 50">
   <rect width="100%%" height="100%%" fill="%s"/> <text fill="%s" font-size="%d" font-weight="800" x="50%%" y="55%%" dominant-baseline="middle" text-anchor="middle">%s</text>
