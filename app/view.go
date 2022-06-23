@@ -672,13 +672,16 @@ func avatar(typ, bytes string) template.HTML {
 	if m, _, err := mime.ParseMediaType(typ); err == nil {
 		typ = m
 	}
+	if typ == MimeTypeSVG {
+		if dec, err := base64.RawStdEncoding.DecodeString(bytes); err == nil {
+			bytes = string(dec)
+		}
+		return template.HTML(bytes)
+	}
 	return template.HTML(fmt.Sprintf(avatarFmt, data(typ, bytes)))
 }
 
 func data(mime, bytes string) template.HTMLAttr {
-	if dec, err := base64.RawStdEncoding.DecodeString(bytes); err == nil {
-		bytes = string(dec)
-	}
 	return template.HTMLAttr(fmt.Sprintf(dataFmt, mime, bytes))
 }
 
