@@ -386,7 +386,7 @@ func (v *view) HandleErrors(w http.ResponseWriter, r *http.Request, errs ...erro
 		w.Header().Set("Pragma", " no-cache")
 		w.Header().Set("Expires", " 0")
 		w.WriteHeader(status)
-		v.RenderTemplate(r, w, "error", d)
+		_ = v.RenderTemplate(r, w, "error", d)
 	} else {
 		v.Redirect(w, r, backURL, http.StatusFound)
 	}
@@ -830,14 +830,14 @@ func rejectLink(f FollowRequest) string {
 }
 
 func nextPageLink(p Hash) template.HTML {
-	if len(p) > 0 {
+	if p.String() != "" {
 		return template.HTML(fmt.Sprintf("?after=%s", p))
 	}
 	return ""
 }
 
 func prevPageLink(p Hash) template.HTML {
-	if len(p) > 0 {
+	if p.String() != "" {
 		return template.HTML(fmt.Sprintf("?before=%s", p))
 	}
 	return ""
