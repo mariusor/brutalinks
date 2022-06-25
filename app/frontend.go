@@ -96,7 +96,6 @@ func ConnectFedBOX(h *handler, c appConfig) error {
 	if err != nil {
 		return fmt.Errorf("failed to load actor: %w", err)
 	}
-	h.conf.UserCreatingEnabled = true
 	return nil
 }
 
