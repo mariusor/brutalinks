@@ -238,11 +238,14 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"urlValueContains":      func(k, v string) bool { return stringInSlice(r.URL.Query()[k])(v) },
 			"sameBase":              sameBasePath,
 			"sameHash":              func(h1, h2 Hash) bool { return h1 == h2 },
+			"sameAccount":           func(a1, a2 Account) bool { return a1.Hash == a2.Hash },
 			"fmtPubKey":             fmtPubKey,
 			"pluralize":             func(s string, cnt int) string { return pluralize(float64(cnt), s) },
 			"pasttensify":           pastTenseVerb,
 			"CanModerate":           canModerate,
 			"ShowFollowLink":        func(a *Account) bool { return showFollowLink(accountFromRequest(), a) },
+			"ShowFollowVerb":        followVerb,
+			"ShowFollowDirection":   followDirection,
 			"ShowAccountBlockLink":  func(a *Account) bool { return showAccountBlockLink(accountFromRequest(), a) },
 			"ShowAccountReportLink": func(a *Account) bool { return showAccountReportLink(accountFromRequest(), a) },
 			"AccountFollows":        func(a *Account) bool { return AccountFollows(a, accountFromRequest()) },
@@ -943,6 +946,25 @@ func showAccountBlockLink(by, current *Account) bool {
 		return false
 	}
 	return true
+}
+
+func followDirection(f *FollowRequest) template.HTML {
+	sender := f.SubmittedBy
+	receiver := f.Object
+	if sender.IsLocal() && receiver.IsFederated() {
+		return "to"
+	}
+	return "from"
+}
+
+func followVerb(f *FollowRequest) template.HTML {
+	sender := f.SubmittedBy
+	receiver := f.Object
+	if sender.IsLocal() && receiver.IsFederated() {
+		return "sent"
+	}
+
+	return "received"
 }
 
 func showFollowLink(by, current *Account) bool {

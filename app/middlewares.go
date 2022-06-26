@@ -143,6 +143,8 @@ func OperatorSearches(next http.Handler) http.Handler {
 		base := baseIRI(repo.app.Pub.GetLink())
 		ff := new(Filters)
 		ff.Type = ActivityTypesFilter(vocab.FollowType)
+		ff.Object = derefIRIFilters
+		ff.Actor = derefIRIFilters
 		opSearch := RemoteLoad{
 			actor:   repo.app.Pub,
 			loadFn:  outbox,
