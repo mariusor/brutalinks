@@ -1113,6 +1113,7 @@ func ShowAccountHandle(a *Account) string {
 	if a.IsFederated() {
 		host := host(a.Pub.GetLink().String())
 		if handle != host {
+			// NOTE(marius): Mastodon application actor has this format
 			return handle + "@" + host
 		}
 		return host
