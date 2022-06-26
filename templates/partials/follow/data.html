@@ -1,3 +1,1 @@
-{{- $action := ShowFollowVerb . -}}
-{{- $direction := ShowFollowDirection . -}}
-<p>{{- if sameAccount CurrentAccount .Object -}}You{{- else -}}<a rel="mention" href="{{ .Object | PermaLink }}">{{ .SubmittedBy | ShowAccountHandle }}</a>{{- end }} {{ $action }} a follow request {{ $direction }} <a rel="mention" href="{{ .SubmittedBy | PermaLink }}">{{ .SubmittedBy | ShowAccountHandle }}</a> </p>
+<p>{{- if sameAccount CurrentAccount .Object -}}You{{- else -}}<a rel="mention" href="{{ .Object | PermaLink }}">{{ .Object | ShowAccountHandle }}</a>{{- end }} received a follow request from <a rel="mention" href="{{ .SubmittedBy | PermaLink }}">{{ .SubmittedBy | ShowAccountHandle }}</a> </p>

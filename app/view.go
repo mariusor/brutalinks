@@ -244,8 +244,6 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"pasttensify":           pastTenseVerb,
 			"CanModerate":           canModerate,
 			"ShowFollowLink":        func(a *Account) bool { return showFollowLink(accountFromRequest(), a) },
-			"ShowFollowVerb":        followVerb,
-			"ShowFollowDirection":   followDirection,
 			"ShowAccountBlockLink":  func(a *Account) bool { return showAccountBlockLink(accountFromRequest(), a) },
 			"ShowAccountReportLink": func(a *Account) bool { return showAccountReportLink(accountFromRequest(), a) },
 			"AccountFollows":        func(a *Account) bool { return AccountFollows(a, accountFromRequest()) },
@@ -1113,7 +1111,11 @@ func ShowAccountHandle(a *Account) string {
 		handle = a.Handle
 	}
 	if a.IsFederated() {
-		return handle + "@" + host(a.Pub.GetLink().String())
+		host := host(a.Pub.GetLink().String())
+		if handle != host {
+			return handle + "@" + host
+		}
+		return host
 	}
 	return handle
 }
