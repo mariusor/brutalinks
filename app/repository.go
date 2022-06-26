@@ -1488,6 +1488,7 @@ func (r *repository) LoadSearches(ctx context.Context, searches RemoteLoads, dep
 	relations := make(map[vocab.IRI]vocab.IRI)
 	relM := new(sync.RWMutex)
 
+	deferredRemote := make(vocab.IRIs, 0)
 	deferredItems := make(CompStrs, 0)
 	deferredActors := make(CompStrs, 0)
 	deferredActivities := make(CompStrs, 0)
@@ -1498,12 +1499,12 @@ func (r *repository) LoadSearches(ctx context.Context, searches RemoteLoads, dep
 		iri := filterFn(ob.GetLink().String())
 		if strings.Contains(iri.String(), string(actors)) && !deferredActors.Contains(iri) {
 			deferredActors = append(deferredActors, iri)
-		}
-		if strings.Contains(iri.String(), string(objects)) && !deferredItems.Contains(iri) {
-			deferredItems = append(deferredItems, iri)
-		}
-		if strings.Contains(iri.String(), string(activities)) && !deferredActivities.Contains(iri) {
+		} else if strings.Contains(iri.String(), string(activities)) && !deferredActivities.Contains(iri) {
 			deferredActivities = append(deferredActivities, iri)
+		} else if strings.Contains(iri.String(), string(objects)) && !deferredItems.Contains(iri) {
+			deferredItems = append(deferredItems, iri)
+		} else if !deferredRemote.Contains(ob.GetLink()) {
+			deferredRemote = append(deferredRemote, ob.GetLink())
 		}
 	}
 
@@ -1615,6 +1616,27 @@ func (r *repository) LoadSearches(ctx context.Context, searches RemoteLoads, dep
 			}
 		}
 	}
+	if len(deferredRemote) > 0 {
+		for _, iri := range deferredRemote {
+			ob, err := r.fedbox.client.LoadIRI(iri)
+			if err != nil {
+				continue
+			}
+			typ := ob.GetType()
+			if vocab.ActorTypes.Contains(typ) {
+				ac := Account{}
+				if err := ac.FromActivityPub(ob); err == nil {
+					accounts = append(accounts, ac)
+				}
+			}
+			if vocab.ObjectTypes.Contains(typ) {
+				it := Item{}
+				if err := it.FromActivityPub(ob); err == nil {
+					items = append(items, it)
+				}
+			}
+		}
+	}
 
 	if deps.Authors {
 		items, _ = r.loadItemsAuthors(ctx, items...)
@@ -1630,6 +1652,16 @@ func (r *repository) LoadSearches(ctx context.Context, searches RemoteLoads, dep
 	}
 	if deps.Follows {
 		follows, _ = r.loadFollowsAuthors(ctx, follows...)
+		for i, follow := range follows {
+			for j, auth := range accounts {
+				fpub := follow.Object.AP()
+				apub := auth.AP()
+				if fpub != nil && apub != nil && fpub.GetLink().Equals(apub.GetLink(), false) {
+					// NOTE(marius): this looks suspicious as fuck
+					follows[i].Object = &accounts[j]
+				}
+			}
+		}
 	}
 	moderations, _ = r.loadModerationDetails(ctx, moderations...)
 
