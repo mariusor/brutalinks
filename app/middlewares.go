@@ -145,16 +145,21 @@ func OperatorSearches(next http.Handler) http.Handler {
 		ff.Type = ActivityTypesFilter(vocab.FollowType)
 		ff.Object = derefIRIFilters
 		ff.Actor = derefIRIFilters
-		opSearch := RemoteLoad{
+		outgoing := RemoteLoad{
 			actor:   repo.app.Pub,
 			loadFn:  outbox,
+			filters: []*Filters{ff},
+		}
+		incoming := RemoteLoad{
+			actor:   repo.app.Pub,
+			loadFn:  inbox,
 			filters: []*Filters{ff},
 		}
 		searches, ok := searchIn[base]
 		if !ok {
 			searches = make([]RemoteLoad, 0)
 		}
-		searches = append(searches, opSearch)
+		searches = append(searches, outgoing, incoming)
 		searchIn[base] = searches
 
 		next.ServeHTTP(w, r)
