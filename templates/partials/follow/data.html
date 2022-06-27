@@ -1,1 +1,5 @@
-<p>{{- if sameAccount CurrentAccount .Object -}}You{{- else -}}<a rel="mention" href="{{ .Object | PermaLink }}">{{ .Object | ShowAccountHandle }}</a>{{- end }} received a follow request from <a rel="mention" href="{{ .SubmittedBy | PermaLink }}">{{ .SubmittedBy | ShowAccountHandle }}</a> </p>
+{{- if sameAccount CurrentAccount .Object -}}
+<p>You received a follow request from <a rel="mention" href="{{ .SubmittedBy | PermaLink }}">{{ .SubmittedBy | ShowAccountHandle }}</a> </p>
+{{- else -}}
+<p><a rel="mention" href="{{ .SubmittedBy | PermaLink }}">{{ .SubmittedBy | ShowAccountHandle }}</a> sent a follow request to <a rel="mention" href="{{ .Object | PermaLink }}">{{ .Object | ShowAccountHandle }}</a></p>
+{{- end }}
