@@ -907,6 +907,9 @@ func (r *repository) loadFollowsAuthors(ctx context.Context, items ...FollowRequ
 	}
 	submitters := make(AccountCollection, 0)
 	for _, it := range items {
+		if it.SubmittedBy == nil {
+			continue
+		}
 		if sub := *it.SubmittedBy; sub.IsValid() && !submitters.Contains(sub) {
 			submitters = append(submitters, sub)
 		}
