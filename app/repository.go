@@ -1496,6 +1496,10 @@ func (r *repository) LoadSearches(ctx context.Context, searches RemoteLoads, dep
 		if ob.IsObject() {
 			return
 		}
+		if !HostIsLocal(ob.GetLink().String()) {
+			deferredRemote = append(deferredRemote, ob.GetLink())
+			return
+		}
 		iri := filterFn(ob.GetLink().String())
 		if strings.Contains(iri.String(), string(actors)) && !deferredActors.Contains(iri) {
 			deferredActors = append(deferredActors, iri)
