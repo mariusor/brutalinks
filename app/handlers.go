@@ -308,15 +308,13 @@ func (r *repository) loadInstanceActorFromIRI(ctx context.Context, iri vocab.IRI
 			return err
 		}
 		if resp.StatusCode != http.StatusGone && resp.StatusCode >= http.StatusBadRequest {
-			msg := "invalid status received: %d"
-			if errors, err := errors.UnmarshalJSON(body); err == nil {
-				if len(errors) > 0 && len(errors[0].Error()) > 0 {
-					for _, retErr := range errors {
-						msg = msg + ", " + retErr.Error()
-					}
+			errs, err := errors.UnmarshalJSON(body)
+			if err == nil {
+				for _, retErr := range errs {
+					err = fmt.Errorf("%w", retErr)
 				}
 			}
-			return errors.WrapWithStatus(resp.StatusCode, nil, msg)
+			return errors.WrapWithStatus(resp.StatusCode, err, "invalid status received when trying to load remote account")
 		}
 		if err := json.Unmarshal(body, what); err != nil {
 			return err

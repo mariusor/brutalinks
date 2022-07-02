@@ -13,6 +13,7 @@ import (
 	vocab "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
 	"github.com/mariusor/go-littr/internal/assets"
+	"github.com/mariusor/go-littr/internal/log"
 	"github.com/writeas/go-nodeinfo"
 )
 
@@ -203,14 +204,14 @@ func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 		ff := &Filters{Name: CompStrs{EqualsString(handle)}}
 		accounts, _, err := h.storage.LoadAccounts(context.TODO(), nil, ff)
 		if err != nil {
-			err := errors.NotFoundf("resource not found %s", res)
-			h.errFn()("Error: %s", err)
+			err = errors.NewNotFound(err, "resource not found %s", res)
+			h.errFn(log.Ctx{"err": err})("unable to load %s", handle)
 			errors.HandleError(err).ServeHTTP(w, r)
 			return
 		}
 		a, err = accounts.First()
 		if err != nil {
-			err := errors.NotFoundf("resource not found %s", res)
+			err = errors.NewNotFound(err, "resource not found %s", res)
 			h.errFn()("Error: %s", err)
 			errors.HandleError(err).ServeHTTP(w, r)
 			return
