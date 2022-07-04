@@ -16,9 +16,9 @@ type FollowRequest struct {
 	SubmittedAt time.Time         `json:"-"`
 	SubmittedBy *Account          `json:"by,omitempty"`
 	Object      *Account          `json:"-"`
-	Metadata *ActivityMetadata `json:"-"`
-	pub      vocab.Item        `json:"-"`
-	Flags    FlagBits          `json:"flags,omitempty"`
+	Metadata    *ActivityMetadata `json:"-"`
+	pub         vocab.Item        `json:"-"`
+	Flags       FlagBits          `json:"flags,omitempty"`
 }
 
 // ActivityMetadata

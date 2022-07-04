@@ -1660,12 +1660,13 @@ func (r *repository) LoadSearches(ctx context.Context, searches RemoteLoads, dep
 	if deps.Follows {
 		follows, _ = r.loadFollowsAuthors(ctx, follows...)
 		for i, follow := range follows {
-			for j, auth := range accounts {
+			for _, auth := range accounts {
+				auth := auth
 				fpub := follow.Object.AP()
 				apub := auth.AP()
 				if fpub != nil && apub != nil && fpub.GetLink().Equals(apub.GetLink(), false) {
 					// NOTE(marius): this looks suspicious as fuck
-					follows[i].Object = &accounts[j]
+					follows[i].Object = &auth
 				}
 			}
 		}

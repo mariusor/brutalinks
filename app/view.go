@@ -141,7 +141,7 @@ func isParentAccount(a Renderable, r Renderable) bool {
 	var parent Renderable
 	switch it := r.(type) {
 	case *Item:
-		if it.SubmittedBy != nil {
+		if it.SubmittedBy.IsValid() {
 			parent = it.SubmittedBy.Parent
 		}
 	case *Account:

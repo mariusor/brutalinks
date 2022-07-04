@@ -141,19 +141,22 @@ func OperatorSearches(next http.Handler) http.Handler {
 		searchIn := ContextLoads(r.Context())
 		repo := ContextRepository(r.Context())
 		base := baseIRI(repo.app.Pub.GetLink())
-		ff := new(Filters)
+		ff := Filters{}
+		followFilter := Filters{IRI: CompStrs{EqualsString(repo.app.GetLink())}}
 		ff.Type = ActivityTypesFilter(vocab.FollowType)
+		ff.Actor = &followFilter
 		ff.Object = derefIRIFilters
-		ff.Actor = derefIRIFilters
 		outgoing := RemoteLoad{
 			actor:   repo.app.Pub,
 			loadFn:  outbox,
-			filters: []*Filters{ff},
+			filters: []*Filters{&ff},
 		}
+		ff.Actor = derefIRIFilters
+		ff.Object = &followFilter
 		incoming := RemoteLoad{
 			actor:   repo.app.Pub,
 			loadFn:  inbox,
-			filters: []*Filters{ff},
+			filters: []*Filters{&ff},
 		}
 		searches, ok := searchIn[base]
 		if !ok {
