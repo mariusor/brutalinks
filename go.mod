@@ -6,9 +6,9 @@ require (
 	aletheia.icu/broccoli/fs v0.0.0-20210820105650-3e2e00017061
 	git.sr.ht/~mariusor/wrapper v0.0.0-20211204195804-3033a1099e0f
 	github.com/cucumber/godog v0.12.5
-	github.com/go-ap/activitypub v0.0.0-20220615144428-48208c70483b
+	github.com/go-ap/activitypub v0.0.0-20220706134811-0c84d76ce535
 	github.com/go-ap/auth v0.0.0-20220619165022-01dd3c0f25d9
-	github.com/go-ap/client v0.0.0-20220619164837-990ea74c7d5d
+	github.com/go-ap/client v0.0.0-20220706141149-15223abba03f
 	github.com/go-ap/errors v0.0.0-20220618122732-319f41ac54e1
 	github.com/go-ap/fedbox v0.0.0-20220626183822-5ea7bef211b8
 	github.com/go-ap/jsonld v0.0.0-20220615144122-1d862b15410d
@@ -35,7 +35,7 @@ require (
 )
 
 require (
-	git.sr.ht/~mariusor/go-xsd-duration v0.0.0-20200411073322-f0bcc40f0bf2 // indirect
+	git.sr.ht/~mariusor/go-xsd-duration v0.0.0-20220703122237-02e73435a078 // indirect
 	github.com/andybalholm/brotli v1.0.4 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/blang/semver v3.5.1+incompatible // indirect
