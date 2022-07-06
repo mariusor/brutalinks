@@ -2459,8 +2459,8 @@ func (r *repository) FollowActor(ctx context.Context, follower, followed *vocab.
 	cc := make(vocab.ItemCollection, 0)
 	bcc := make(vocab.ItemCollection, 0)
 
-	to = append(to, vocab.PublicNS)
-	cc = append(cc, r.app.Pub.GetLink(), vocab.Followers.IRI(r.app.Pub))
+	to = append(to, vocab.PublicNS, followed.GetLink())
+	cc = append(cc, r.app.AP().GetLink(), vocab.Followers.IRI(r.app.AP()))
 	bcc = append(bcc, r.fedbox.Service().ID)
 
 	follow := new(vocab.Follow)
