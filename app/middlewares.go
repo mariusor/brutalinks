@@ -138,7 +138,12 @@ func OperatorSearches(next http.Handler) http.Handler {
 			return
 		}
 
+		storeSearches := false
 		searchIn := ContextLoads(r.Context())
+		if searchIn == nil {
+			searchIn = RemoteLoads{}
+			storeSearches = true
+		}
 		repo := ContextRepository(r.Context())
 		base := baseIRI(repo.app.Pub.GetLink())
 		ff := Filters{}
@@ -165,7 +170,12 @@ func OperatorSearches(next http.Handler) http.Handler {
 		searches = append(searches, outgoing, incoming)
 		searchIn[base] = searches
 
-		next.ServeHTTP(w, r)
+		if storeSearches {
+			rtx := context.WithValue(r.Context(), LoadsCtxtKey, searchIn)
+			next.ServeHTTP(w, r.WithContext(rtx))
+		} else {
+			next.ServeHTTP(w, r)
+		}
 	})
 }
 
