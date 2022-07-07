@@ -145,9 +145,10 @@ func OperatorSearches(next http.Handler) http.Handler {
 			storeSearches = true
 		}
 		repo := ContextRepository(r.Context())
-		base := baseIRI(repo.app.Pub.GetLink())
+		appIRI := repo.app.Pub.GetLink()
+		base := baseIRI(appIRI)
 		ff := Filters{}
-		followFilter := Filters{IRI: CompStrs{EqualsString(repo.app.GetLink())}}
+		followFilter := Filters{IRI: CompStrs{EqualsString(appIRI.String())}}
 		ff.Type = ActivityTypesFilter(vocab.FollowType)
 		ff.Actor = &followFilter
 		ff.Object = derefIRIFilters
