@@ -157,15 +157,17 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 					Get("/self", h.HandleShow)
 				r.With(FederatedFiltersMw(h.storage.fedbox.Service().ID), applicationSearchFns, LoadMw, SortByScore).
 					Get("/federated", h.HandleShow)
-				r.With(h.NeedsSessions, h.ValidateLoggedIn(h.v.RedirectToErrors), Deps(Follows), FollowedFiltersMw, loggedAccountSearches(inbox), LoadMw, SortByDate).
+				r.With(h.NeedsSessions, h.ValidateLoggedIn(h.v.RedirectToErrors), Deps(Follows), FollowedFiltersMw,
+					loggedAccountSearches(inbox), LoadMw, SortByDate).
 					Get("/followed", h.HandleShow)
 				r.Route("/moderation", func(r chi.Router) {
-					r.With(ModelMw(&listingModel{tpl: "moderation", sortFn: ByDate}), Deps(Moderations, Follows), ModerationListingFiltersMw, applicationSearches(inbox), OperatorSearches, SignByAppMw, LoadMw, ModerationListing).
-						Get("/", h.HandleShow)
-					r.With(h.ValidateModerator(), ModerationFiltersMw, applicationSearchFns, loggedAccountSearchFns, LoadMw).
-						Get("/{hash}/rm", h.HandleModerationDelete)
-					r.With(h.ValidateModerator(), ModerationFiltersMw, applicationSearchFns, loggedAccountSearchFns, LoadMw).
-						Get("/{hash}/discuss", h.HandleShow)
+					r.With(ModelMw(&listingModel{tpl: "moderation", sortFn: ByDate}), Deps(Moderations, Follows),
+						ModerationListingFiltersMw, applicationSearches(inbox), OperatorSearches, SignByAppMw, LoadMw,
+						ModerationListing).Get("/", h.HandleShow)
+					r.With(h.ValidateModerator(), ModerationFiltersMw, applicationSearchFns, loggedAccountSearchFns,
+						LoadMw).Get("/{hash}/rm", h.HandleModerationDelete)
+					r.With(h.ValidateModerator(), ModerationFiltersMw, applicationSearchFns, loggedAccountSearchFns,
+						LoadMw).Get("/{hash}/discuss", h.HandleShow)
 				})
 
 				r.With(ModelMw(&listingModel{ShowChildren: true, sortFn: ByDate}), ActorsFiltersMw, instanceSearchFns, LoadMw).

@@ -906,12 +906,18 @@ func (r *repository) loadFollowsAuthors(ctx context.Context, items ...FollowRequ
 		return items, nil
 	}
 	submitters := make(AccountCollection, 0)
+	remoteSubmitters := make(AccountCollection, 0)
 	for _, it := range items {
 		if it.SubmittedBy == nil {
 			continue
 		}
-		if sub := *it.SubmittedBy; sub.IsValid() && !submitters.Contains(sub) {
-			submitters = append(submitters, sub)
+		if sub := *it.SubmittedBy; sub.IsValid() {
+			if sub.IsLocal() && !submitters.Contains(sub) {
+				submitters = append(submitters, sub)
+			}
+			if sub.IsFederated() && !remoteSubmitters.Contains(sub) {
+				remoteSubmitters = append(remoteSubmitters, sub)
+			}
 		}
 	}
 	fActors := Filters{
@@ -919,12 +925,19 @@ func (r *repository) loadFollowsAuthors(ctx context.Context, items ...FollowRequ
 		Actor: derefIRIFilters,
 	}
 
-	if len(fActors.IRI) == 0 {
-		return items, errors.Errorf("unable to load items authors")
+	var authors AccountCollection
+	if len(fActors.IRI) > 0 {
+		authors, _ = r.accounts(ctx, &fActors)
 	}
-	authors, err := r.accounts(ctx, &fActors)
-	if err != nil {
-		return items, errors.Annotatef(err, "unable to load items authors")
+	for _, remoteAcc := range remoteSubmitters {
+		it, err := r.fedbox.Actor(ctx, remoteAcc.AP().GetLink())
+		if err != nil {
+			continue
+		}
+		remoteAcc.FromActivityPub(it)
+		if !authors.Contains(remoteAcc) {
+			authors = append(authors, remoteAcc)
+		}
 	}
 	for k, it := range items {
 		for i, auth := range authors {
@@ -1480,6 +1493,62 @@ func IRIsFilter(iris ...vocab.IRI) CompStrs {
 	return r
 }
 
+func appendToIRIs(iris *vocab.IRIs, props ...vocab.Item) {
+	append := func(iris *vocab.IRIs, prop vocab.Item) {
+		if vocab.IsNil(prop) {
+			return
+		}
+		iri := prop.GetLink()
+		if iri == "" || iri == vocab.PublicNS {
+			return
+		}
+		if _, col := vocab.Split(iri); vocab.ValidActivityCollection(col) || iris.Contains(iri) {
+			return
+		}
+		*iris = append(*iris, iri)
+	}
+	for _, prop := range props {
+		if vocab.IsObject(prop) {
+			continue
+		}
+		if vocab.IsItemCollection(prop) {
+			vocab.OnItemCollection(prop, func(col *vocab.ItemCollection) error {
+				for _, it := range col.Collection() {
+					append(iris, it)
+				}
+				return nil
+			})
+		} else {
+			append(iris, prop)
+		}
+	}
+}
+
+func accumulateItemIRIs(it vocab.Item, deps deps) vocab.IRIs {
+	if vocab.IsNil(it) {
+		return nil
+	}
+	if vocab.IsIRI(it) {
+		return vocab.IRIs{it.GetLink()}
+	}
+	iris := make(vocab.IRIs, 0)
+
+	vocab.OnObject(it, func(o *vocab.Object) error {
+		if deps.Authors {
+			appendToIRIs(&iris, o.AttributedTo)
+		}
+		if deps.Replies {
+			appendToIRIs(&iris, o.AttributedTo)
+		}
+		appendToIRIs(&iris, o.AttributedTo, o.InReplyTo)
+		return nil
+	})
+	if withRecipients, ok := it.(vocab.HasRecipients); ok {
+		appendToIRIs(&iris, withRecipients.Recipients())
+	}
+	return iris
+}
+
 // LoadSearches loads all elements from RemoteLoads
 // Iterating over the activities in the resulting collections, we gather the objects and accounts
 func (r *repository) LoadSearches(ctx context.Context, searches RemoteLoads, deps deps) (Cursor, error) {
@@ -1492,28 +1561,6 @@ func (r *repository) LoadSearches(ctx context.Context, searches RemoteLoads, dep
 	relM := new(sync.RWMutex)
 
 	deferredRemote := make(vocab.IRIs, 0)
-	deferredItems := make(CompStrs, 0)
-	deferredActors := make(CompStrs, 0)
-	deferredActivities := make(CompStrs, 0)
-	appendToDeferred := func(ob vocab.Item, filterFn func(string) CompStr) {
-		if ob.IsObject() {
-			return
-		}
-		if !HostIsLocal(ob.GetLink().String()) {
-			deferredRemote = append(deferredRemote, ob.GetLink())
-			return
-		}
-		iri := filterFn(ob.GetLink().String())
-		if strings.Contains(iri.String(), string(actors)) && !deferredActors.Contains(iri) {
-			deferredActors = append(deferredActors, iri)
-		} else if strings.Contains(iri.String(), string(activities)) && !deferredActivities.Contains(iri) {
-			deferredActivities = append(deferredActivities, iri)
-		} else if strings.Contains(iri.String(), string(objects)) && !deferredItems.Contains(iri) {
-			deferredItems = append(deferredItems, iri)
-		} else if !deferredRemote.Contains(ob.GetLink()) {
-			deferredRemote = append(deferredRemote, ob.GetLink())
-		}
-	}
 
 	result := make(RenderableList, 0)
 	resM := new(sync.RWMutex)
@@ -1525,7 +1572,7 @@ func (r *repository) LoadSearches(ctx context.Context, searches RemoteLoads, dep
 		}
 		r.infoFn(log.Ctx{"col": col.GetID()})("loading")
 		for _, it := range col.Collection() {
-			vocab.OnActivity(it, func(a *vocab.Activity) error {
+			err := vocab.OnActivity(it, func(a *vocab.Activity) error {
 				relM.Lock()
 				defer relM.Unlock()
 
@@ -1533,50 +1580,66 @@ func (r *repository) LoadSearches(ctx context.Context, searches RemoteLoads, dep
 				if typ == vocab.CreateType {
 					ob := a.Object
 					if ob == nil {
-						return nil
+						return errors.Newf("nil activity object")
 					}
 					if ob.IsObject() {
 						if ValidContentTypes.Contains(ob.GetType()) {
 							i := Item{}
-							i.FromActivityPub(a)
+							if err := i.FromActivityPub(a); err != nil {
+								return err
+							}
 							if validItem(i, f) {
 								items = append(items, i)
 							}
 						}
 						if ValidActorTypes.Contains(ob.GetType()) {
 							act := Account{}
-							act.FromActivityPub(a)
+							if err := act.FromActivityPub(a); err != nil {
+								return err
+							}
 							accounts = append(accounts, act)
 						}
 					} else {
 						i := Item{}
-						i.FromActivityPub(a)
-						appendToDeferred(ob, EqualsString)
+						if err := i.FromActivityPub(a); err != nil {
+							return err
+						}
 					}
 					relations[a.GetLink()] = ob.GetLink()
 				}
 				if it.GetType() == vocab.FollowType {
 					f := FollowRequest{}
-					f.FromActivityPub(a)
+					if err := f.FromActivityPub(a); err != nil {
+						return err
+					}
 					follows = append(follows, f)
 					relations[a.GetLink()] = a.GetLink()
-					appendToDeferred(a.Object, EqualsString)
 				}
 				if ValidModerationActivityTypes.Contains(typ) {
 					m := ModerationOp{}
-					m.FromActivityPub(a)
+					if err := m.FromActivityPub(a); err != nil {
+						return err
+					}
 					moderations = append(moderations, m)
 					relations[a.GetLink()] = a.GetLink()
-					appendToDeferred(a.Object, EqualsString)
 				}
 				if ValidAppreciationTypes.Contains(typ) {
 					v := Vote{}
-					v.FromActivityPub(a)
+					if err := v.FromActivityPub(a); err != nil {
+						return err
+					}
 					appreciations = append(appreciations, v)
 					relations[a.GetLink()] = a.GetLink()
 				}
 				return nil
 			})
+			if err == nil {
+				for _, rem := range accumulateItemIRIs(it, deps) {
+					if !deferredRemote.Contains(rem) {
+						deferredRemote = append(deferredRemote, rem)
+					}
+				}
+			}
 		}
 		// TODO(marius): this needs to be externalized also to a different function that we can pass from outer scope
 		//   This function implements the logic for breaking out of the collection iteration cycle and returns a bool
@@ -1590,43 +1653,10 @@ func (r *repository) LoadSearches(ctx context.Context, searches RemoteLoads, dep
 		return emptyCursor, err
 	}
 
-	f := new(Filters)
-	if len(deferredItems) > 0 {
-		if f.Object == nil {
-			f.Object = new(Filters)
-		}
-		ff := f.Object
-		ff.IRI = deferredItems
-		objects, _ := r.objects(ctx, ff)
-		for _, d := range objects {
-			if !d.IsValid() {
-				continue
-			}
-			if !items.Contains(d) {
-				items = append(items, d)
-			}
-		}
-	}
-	if len(deferredActors) > 0 {
-		if f.Actor == nil {
-			f.Actor = new(Filters)
-		}
-		ff := f.Actor
-		ff.IRI = deferredActors
-		acc, _ := r.accounts(ctx, ff)
-		for _, d := range acc {
-			if !d.IsValid() {
-				continue
-			}
-			if !accounts.Contains(d) {
-				accounts = append(accounts, d)
-			}
-		}
-	}
 	if len(deferredRemote) > 0 {
 		for _, iri := range deferredRemote {
 			ob, err := r.fedbox.client.LoadIRI(iri)
-			if err != nil {
+			if err != nil || vocab.IsNil(ob) {
 				continue
 			}
 			typ := ob.GetType()
