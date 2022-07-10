@@ -242,7 +242,7 @@ func (h *handler) FollowAccount(w http.ResponseWriter, r *http.Request) {
 	h.v.Redirect(w, r, AccountPermaLink(&fol), http.StatusSeeOther)
 }
 
-func (h *handler) HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
+func (h *handler) HandleFollowResponseRequest(w http.ResponseWriter, r *http.Request) {
 	acc := loggedAccount(r)
 	repo := h.storage
 	followers := ContextAuthors(r.Context())

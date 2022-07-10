@@ -118,7 +118,7 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 				r.Group(func(r chi.Router) {
 					r.Use(h.ValidateLoggedIn(h.v.RedirectToErrors))
 					r.Get("/follow", h.FollowAccount)
-					r.Get("/follow/{action}", h.HandleFollowRequest)
+					r.Get("/follow/{action}", h.HandleFollowResponseRequest)
 					r.With(h.NeedsSessions, h.ValidateLoggedIn(h.v.RedirectToErrors)).Post("/invite", h.HandleCreateInvitation)
 
 					r.With(h.CSRF, MessageUserContentModelMw).Group(func(r chi.Router) {
