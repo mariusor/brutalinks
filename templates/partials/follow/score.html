@@ -1,6 +1,6 @@
 {{- $readonly :=  IsReadOnly . -}}
 <aside id="f-{{.ID}}" data-hash="{{.ID}}">
-    {{- if sameAccount CurrentAccount .Object -}}
+    {{- if or (sameAccount CurrentAccount .Object) CurrentAccount.IsModerator -}}
     <a href="{{if not $readonly }}{{ . | AcceptLink }}{{ else }}#{{ end }}" {{- if AccountIsFollowed .SubmittedBy }} class="yay ed"{{- end -}}>{{ icon "check" }}</a>
     <a href="{{if not $readonly }}{{ . | RejectLink }}{{ else }}#{{ end }}" {{- if AccountIsRejected .SubmittedBy }} class="nay ed"{{- end -}}>{{ icon "plus" "deg-45" }}</a>
     {{- end -}}
