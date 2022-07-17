@@ -124,15 +124,28 @@ var CreateFollowActivitiesFilter = CompStrs{
 	CompStr{Str: string(vocab.FollowType)},
 }
 
+func FollowFilterMw(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		f := new(Filters)
+		f.IRI = CompStrs{LikeString(chi.URLParam(r, "hash"))}
+		f.Object = derefIRIFilters
+		f.Actor = derefIRIFilters
+		f.Type = ActivityTypesFilter(vocab.FollowType)
+		f.MaxItems = 1
+		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
 func FollowedFiltersMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := new(Filters)
 		f.Object = derefIRIFilters
 		f.Actor = derefIRIFilters
 		f.Type = CreateFollowActivitiesFilter
-		m := ContextListingModel(r.Context())
-		m.Title = "Followed items"
-		m.ShowText = true
+		if m := ContextListingModel(r.Context()); m != nil {
+			m.Title = "Followed items"
+			m.ShowText = true
+		}
 		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -347,8 +360,9 @@ func ModerationListingFiltersMw(next http.Handler) http.Handler {
 		} else {
 			allFilters = append(allFilters, f)
 		}
-		m := ContextListingModel(r.Context())
-		m.Title = "Moderation log"
+		if m := ContextListingModel(r.Context()); m != nil {
+			m.Title = "Moderation log"
+		}
 		ctx := context.WithValue(r.Context(), FilterCtxtKey, allFilters)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})

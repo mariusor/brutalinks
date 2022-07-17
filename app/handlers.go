@@ -181,7 +181,7 @@ func (h *handler) HandleVoting(w http.ResponseWriter, r *http.Request) {
 	p, err := ItemFromContext(r.Context(), repo, chi.URLParam(r, "hash"))
 	if err != nil {
 		h.errFn()("Error: %s", err)
-		h.v.HandleErrors(w, r, errors.NewNotFound(err, "not found"))
+		h.v.HandleErrors(w, r, errors.NewNotFound(err, "Item not found"))
 		return
 	}
 
@@ -233,7 +233,7 @@ func (h *handler) FollowAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fol := toFollow[0]
-	// todo(marius): load follow reason from POST request so we can show it to the followed user
+	// TODO(marius): load follow reason from POST request so we can show it to the followed user
 	if err = repo.FollowAccount(r.Context(), *acc, fol, nil); err != nil {
 		h.v.HandleErrors(w, r, err)
 		return
@@ -245,37 +245,23 @@ func (h *handler) FollowAccount(w http.ResponseWriter, r *http.Request) {
 func (h *handler) HandleFollowResponseRequest(w http.ResponseWriter, r *http.Request) {
 	acc := loggedAccount(r)
 	repo := h.storage
-	followers := ContextAuthors(r.Context())
-	if len(followers) == 0 {
-		h.v.HandleErrors(w, r, errors.NotFoundf("account not found"))
-		return
-	}
+
 	accept := false
 	action := chi.URLParam(r, "action")
 	if action == "accept" {
 		accept = true
 	}
 
-	follower := followers[0]
-	ff := &Filters{
-		Actor: &Filters{
-			IRI: AccountsIRIFilter(follower),
-		},
-		Object: &Filters{
-			IRI: AccountsIRIFilter(*acc),
-		},
-	}
-	// todo(marius): load response reason from POST request so we can show it to the followed user
-	followRequests, cnt, err := repo.LoadFollowRequests(r.Context(), acc, ff)
+	follow, err := FollowRequestFromContext(r.Context(), chi.URLParam(r, "hash"))
 	if err != nil {
-		h.v.HandleErrors(w, r, err)
+		h.errFn()("Error: %s", err)
+		h.v.HandleErrors(w, r, errors.NewNotFound(err, "Follow request not found"))
 		return
 	}
-	if cnt == 0 {
-		h.v.HandleErrors(w, r, errors.NotFoundf("follow request not found"))
+	if follow.Object == nil {
+		h.v.HandleErrors(w, r, errors.NotFoundf("account not found"))
 		return
 	}
-	follow := followRequests[0]
 	if err = repo.SendFollowResponse(r.Context(), follow, accept, nil); err != nil {
 		h.v.HandleErrors(w, r, err)
 		return
@@ -661,6 +647,26 @@ func ItemFromContext(ctx context.Context, repo *repository, hash string) (Item, 
 		return *p, nil
 	}
 	return Item{}, errors.NotFoundf(hash)
+}
+
+func ContextFollowRequest(ctx context.Context) *FollowRequest {
+	if f, ok := ctx.Value(ContentCtxtKey).(*FollowRequest); ok {
+		return f
+	}
+	if c := ContextCursor(ctx); c != nil {
+		for _, it := range c.items {
+			if f, ok := it.(*FollowRequest); ok {
+				return f
+			}
+		}
+	}
+	return nil
+}
+func FollowRequestFromContext(ctx context.Context, hash string) (FollowRequest, error) {
+	if p := ContextFollowRequest(ctx); p != nil && p.Hash.String() == hash {
+		return *p, nil
+	}
+	return FollowRequest{}, errors.NotFoundf(hash)
 }
 
 // HandleItemRedirect serves /i/{hash} request

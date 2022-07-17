@@ -1101,7 +1101,7 @@ func ItemLocalLink(i *Item) string {
 }
 
 func followLink(f FollowRequest) string {
-	return path.Join(AccountLocalLink(f.SubmittedBy), "follow")
+	return path.Join("follow", f.Hash.String())
 }
 
 // ShowAccountHandle

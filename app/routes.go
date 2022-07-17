@@ -110,6 +110,9 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 					r.Post("/login", h.HandleLogin)
 				})
 			})
+			r.With(h.ValidateLoggedIn(h.v.RedirectToErrors), Deps(Authors, Follows), FollowFilterMw,
+				SearchInCollectionsMw(requestHandleSearches, inbox), applicationSearches(inbox), OperatorSearches, LoadMw).
+				Get("/follow/{hash}/{action}", h.HandleFollowResponseRequest)
 
 			r.With(h.LoadAuthorMw).Route("/~{handle}", func(r chi.Router) {
 				r.With(AccountListingModelMw, AllFilters, Deps(Authors, Votes), SearchInCollectionsMw(requestHandleSearches, outbox), LoadMw).
@@ -118,7 +121,6 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 				r.Group(func(r chi.Router) {
 					r.Use(h.ValidateLoggedIn(h.v.RedirectToErrors))
 					r.Get("/follow", h.FollowAccount)
-					r.Get("/follow/{action}", h.HandleFollowResponseRequest)
 					r.With(h.NeedsSessions, h.ValidateLoggedIn(h.v.RedirectToErrors)).Post("/invite", h.HandleCreateInvitation)
 
 					r.With(h.CSRF, MessageUserContentModelMw).Group(func(r chi.Router) {
