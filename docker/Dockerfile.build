@@ -1,6 +1,7 @@
 FROM docker.io/library/golang:1.18
 
 ENV GO111MODULE=on
+ENV GOWORK=off
 
 ADD ./ /go/src/app
 
