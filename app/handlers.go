@@ -286,7 +286,7 @@ func (h *handler) HandleFollowResponseRequest(w http.ResponseWriter, r *http.Req
 }
 
 const (
-	DiasporaProfile = "http://nodeinfo.diaspora.software/ns/schema"
+	DiasporaProfile = "https://nodeinfo.diaspora.software/ns/schema"
 	Mastodon        = "mastodon"
 )
 
