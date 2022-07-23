@@ -262,6 +262,9 @@ func (h *handler) HandleFollowResponseRequest(w http.ResponseWriter, r *http.Req
 		h.v.HandleErrors(w, r, errors.NotFoundf("account not found"))
 		return
 	}
+
+	// we operate on the current item as the application
+	repo.WithAccount(repo.app)
 	if err = repo.SendFollowResponse(r.Context(), follow, accept, nil); err != nil {
 		h.v.HandleErrors(w, r, err)
 		return
