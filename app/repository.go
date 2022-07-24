@@ -2442,19 +2442,19 @@ func (r *repository) SendFollowResponse(ctx context.Context, f FollowRequest, ac
 	bcc = append(bcc, r.fedbox.Service().ID)
 
 	response := new(vocab.Activity)
-	if reason != nil {
-		loadAPItem(response, *reason)
-	}
-	response.To = to
 	response.Type = vocab.RejectType
-	response.CC = cc
-	response.BCC = bcc
-	response.Object = vocab.IRI(f.Metadata.ID)
-	response.Actor = vocab.IRI(ed.Metadata.ID)
 	if accept {
 		to = append(to, vocab.PublicNS)
 		response.Type = vocab.AcceptType
 	}
+	if reason != nil {
+		loadAPItem(response, *reason)
+	}
+	response.To = to
+	response.CC = cc
+	response.BCC = bcc
+	response.Object = vocab.IRI(f.Metadata.ID)
+	response.Actor = vocab.IRI(ed.Metadata.ID)
 
 	i, it, err := r.fedbox.ToOutbox(ctx, response)
 	if err != nil && !errors.IsConflict(err) {
