@@ -275,7 +275,7 @@ func (h *handler) HandleFollowResponseRequest(w http.ResponseWriter, r *http.Req
 }
 
 const (
-	DiasporaProfile = "https://nodeinfo.diaspora.software/ns/schema"
+	DiasporaProfile = vocab.IRI("https://nodeinfo.diaspora.software/ns/schema")
 	Mastodon        = "mastodon"
 )
 
@@ -317,7 +317,7 @@ func (r *repository) loadInstanceActorFromIRI(ctx context.Context, iri vocab.IRI
 
 	ni := nodeinfo.NodeInfo{}
 	for _, l := range meta.Links {
-		if strings.Contains(l.Rel, DiasporaProfile) {
+		if vocab.IRI(l.Rel).Contains(DiasporaProfile, false) {
 			if err := loadFromURL(l.Href, &ni); err != nil {
 				return nil, err
 			}
