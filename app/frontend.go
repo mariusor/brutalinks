@@ -82,7 +82,7 @@ func (h *handler) init(c appConfig) error {
 	h.conf = c
 
 	if err := ConnectFedBOX(h, h.conf); err != nil {
-		return errors.Annotatef(err, "error connecting to ActivityPub service")
+		return errors.Annotatef(err, "error connecting to ActivityPub service: %s", h.conf.APIURL)
 	}
 	if h.v, err = ViewInit(h.conf, h.infoFn, h.errFn); err != nil {
 		return errors.Annotatef(err, "error initializing view")
