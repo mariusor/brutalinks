@@ -20,10 +20,9 @@ article blockquote {
     border-left: 2px solid var(--main-fg-color);
     padding-left: .6em;
 }
-article p + p, article p + ul, article p + ol, article p + dl,
-article p + div, article p + h1, article p + h2, article p + h3, article p + h4, article p + h5, article p + h6,
-article p + blockquote, article p + pre, article p + cite {
-    margin-top: .6rem;
+article * + * {
+    margin-top: .4rem;
+    margin-bottom: .4rem;
 }
 article h1, article h2, article h3,
 article h4, article h5, article h6 {
