@@ -22,7 +22,7 @@ article blockquote {
 }
 article p + p, article p + ul, article p + ol, article p + dl,
 article p + div, article p + h1, article p + h2, article p + h3, article p + h4, article p + h5, article p + h6,
-article p + blockquote, article p + pre {
+article p + blockquote, article p + pre, article p + cite {
     margin-top: .6rem;
 }
 article h1, article h2, article h3,
