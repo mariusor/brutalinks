@@ -344,12 +344,13 @@ func (r *repository) loadInstanceActorFromIRI(ctx context.Context, iri vocab.IRI
 
 func (h *handler) HandleFollowInstanceRequest(w http.ResponseWriter, r *http.Request) {
 	instanceURL := r.FormValue("url")
+	backURL := r.Header.Get("Referer")
 	if len(instanceURL) == 0 {
 		h.v.HandleErrors(w, r, errors.NotValidf("Empty instance URL"))
 		return
 	}
 	if instanceURL == h.conf.APIURL {
-		h.v.HandleErrors(w, r, errors.NotValidf("Invalid instance URL, trying to add already configured instance"))
+		h.v.Redirect(w, r, backURL, http.StatusSeeOther)
 		return
 	}
 	repo := ContextRepository(r.Context())
@@ -361,7 +362,7 @@ func (h *handler) HandleFollowInstanceRequest(w http.ResponseWriter, r *http.Req
 	}
 	if fol.PublicKey.ID == "" {
 		// NOTE(marius): if the actor that we want to follow with doesn't have a public key, it can't federate
-		h.v.HandleErrors(w, r, errors.NotValidf("Current instance doesn't support federation"))
+		h.v.HandleErrors(w, r, errors.NotValidf("Instance doesn't support federation: %s", instanceURL))
 		return
 	}
 	// we operate on the current item as the application
@@ -372,9 +373,8 @@ func (h *handler) HandleFollowInstanceRequest(w http.ResponseWriter, r *http.Req
 		h.v.HandleErrors(w, r, err)
 		return
 	}
-	h.v.addFlashMessage(Success, w, r, fmt.Sprintf("Successfully sent follow request to instance %q", instanceURL))
-	backUrl := r.Header.Get("Referer")
-	h.v.Redirect(w, r, backUrl, http.StatusSeeOther)
+	h.v.addFlashMessage(Success, w, r, fmt.Sprintf("Successfully sent a follow request to instance: %s", instanceURL))
+	h.v.Redirect(w, r, backURL, http.StatusSeeOther)
 }
 
 // BlockAccount processes a report request received at /~{handle}/block
