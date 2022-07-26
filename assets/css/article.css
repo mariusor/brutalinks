@@ -12,43 +12,43 @@ article footer {
 article nav dl, article nav ul, article nav ol {
     margin-left: 0;
 }
-article q, article blockquote  {
+article > main q, article > main blockquote  {
     margin-bottom: .3em;
     opacity: .75;
 }
-article blockquote {
+article > main blockquote {
     border-left: 2px solid var(--main-fg-color);
     padding-left: .6em;
 }
-article * + * {
+article > main * + * {
     margin-top: .4rem;
     margin-bottom: .4rem;
 }
-article h1, article h2, article h3,
-article h4, article h5, article h6 {
+article > main h1, article > main h2, article > main h3,
+article > main h4, article > main h5, article > main h6 {
     font-weight: 600;
 }
-article h1 {
+article > main h1 {
     font-size: 1.32em;
     line-height: 1.44em;
 }
-article h2 {
+article > main h2 {
     font-size: 1.20em;
     line-height: 1.32em;
 }
-article h3 {
+article > main h3 {
     font-size: 1.11em;
     line-height: 1.32em;
 }
-article h4 {
+article > main h4 {
     font-size: 1em;
     line-height: 1.3em;
 }
-article h5 {
+article > main h5 {
     line-height: 1.1em;
     font-size: .96em;
 }
-article h6 {
+article > main h6 {
     line-height: 1em;
     font-size: .94em;
 }
