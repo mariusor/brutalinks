@@ -2138,6 +2138,13 @@ func (r *repository) ModerateDelete(ctx context.Context, mod ModerationOp, autho
 		Type:         actType,
 		Object:       toDelete.GetID(),
 	}
+	vocab.OnObject(toDelete, func(ob *vocab.Object) error {
+		act.To = ob.To
+		act.Bto = ob.Bto
+		act.CC = ob.CC
+		act.BCC = ob.BCC
+		return nil
+	})
 
 	i, tombstone, err := r.fedbox.ToOutbox(ctx, act)
 	if err != nil && !errors.IsGone(err) {
