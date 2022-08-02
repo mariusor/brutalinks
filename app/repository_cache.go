@@ -55,9 +55,9 @@ func (c *cache) removeRelated(items ...vocab.Item) {
 		if vocab.IsObject(it) || vocab.IsItemCollection(it) && len(it.GetLink()) > 0 {
 			typ := it.GetType()
 			if vocab.ActivityTypes.Contains(typ) || vocab.IntransitiveActivityTypes.Contains(typ) {
-				vocab.OnActivity(it, accumActivityIRIs(&toRemove))
+				vocab.OnActivity(it, c.accumActivityIRIs(&toRemove))
 			} else {
-				vocab.OnObject(it, accumObjectIRIs(&toRemove))
+				vocab.OnObject(it, c.accumObjectIRIs(&toRemove))
 			}
 		}
 
@@ -68,24 +68,40 @@ func (c *cache) removeRelated(items ...vocab.Item) {
 	c.remove(toRemove...)
 }
 
-func accumRecipientIRIs(r vocab.Item, toRemove *vocab.IRIs) {
-	if r.GetLink().Equals(vocab.PublicNS, false) {
+func (c *cache) accumRecipientIRIs(r vocab.Item, toRemove *vocab.IRIs) {
+	iri := r.GetLink()
+	if iri.Equals(vocab.PublicNS, false) {
 		return
 	}
-	if iri := r.GetLink(); vocab.ValidCollectionIRI(iri) {
-		// TODO(marius): for followers, following collections this should dereference the members
-		if !toRemove.Contains(iri) {
+
+	_, col := vocab.Split(iri)
+
+	toDeref := vocab.CollectionPaths{vocab.Followers, vocab.Following}
+	if toDeref.Contains(col) {
+		if iris, isCached := c.get(iri); isCached {
+			vocab.OnCollectionIntf(iris, func(col vocab.CollectionInterface) error {
+				for _, it := range col.Collection() {
+					accumItem(it.GetLink(), toRemove, vocab.Outbox)
+				}
+				return nil
+			})
+		}
+		return
+	}
+	toAppend := vocab.CollectionPaths{vocab.Inbox, vocab.Outbox}
+	if toAppend.Contains(col) {
+		if toRemove.Contains(iri) {
 			*toRemove = append(*toRemove, iri)
 		}
-	} else {
-		accumItem(r, toRemove, vocab.Inbox)
+		return
 	}
+	accumItem(r, toRemove, vocab.Inbox)
 }
 
-func accumActivityIRIs(toRemove *vocab.IRIs) func(activity *vocab.Activity) error {
+func (c *cache) accumActivityIRIs(toRemove *vocab.IRIs) func(activity *vocab.Activity) error {
 	return func(a *vocab.Activity) error {
 		for _, r := range a.Recipients() {
-			accumRecipientIRIs(r, toRemove)
+			c.accumRecipientIRIs(r, toRemove)
 		}
 		if destCol := vocab.Outbox.IRI(a.Actor); !toRemove.Contains(destCol) {
 			*toRemove = append(*toRemove, destCol)
@@ -96,11 +112,11 @@ func accumActivityIRIs(toRemove *vocab.IRIs) func(activity *vocab.Activity) erro
 			base := path.Dir(a.Object.GetLink().String())
 			*toRemove = append(*toRemove, vocab.IRI(base), a.Object.GetLink())
 		}
-		return vocab.OnObject(a.Object, accumObjectIRIs(toRemove))
+		return vocab.OnObject(a.Object, c.accumObjectIRIs(toRemove))
 	}
 }
 
-func accumObjectIRIs(toRemove *vocab.IRIs) func(*vocab.Object) error {
+func (c *cache) accumObjectIRIs(toRemove *vocab.IRIs) func(*vocab.Object) error {
 	return func(ob *vocab.Object) error {
 		if ob == nil {
 			return nil
@@ -112,7 +128,7 @@ func accumObjectIRIs(toRemove *vocab.IRIs) func(*vocab.Object) error {
 			*toRemove = append(*toRemove, obIRI)
 		}
 		for _, r := range ob.Recipients() {
-			accumRecipientIRIs(r, toRemove)
+			c.accumRecipientIRIs(r, toRemove)
 		}
 		accumItem(ob.InReplyTo, toRemove, vocab.Replies)
 		accumItem(ob.AttributedTo, toRemove, vocab.Outbox)
@@ -121,19 +137,19 @@ func accumObjectIRIs(toRemove *vocab.IRIs) func(*vocab.Object) error {
 }
 
 func (c *cache) remove(iris ...vocab.IRI) {
-	removeForIRI := func(toRemove vocab.IRI) bool {
-		if len(iris) == 0 {
-			return true
-		}
+	if len(iris) == 0 {
+		return
+	}
+	irisContain := func(toRemove vocab.IRI) bool {
 		for _, iri := range iris {
-			if iri.Equals(toRemove, false) {
+			if toRemove.Contains(iri, false) {
 				return true
 			}
 		}
 		return false
 	}
 	for k := range c.m {
-		if removeForIRI(k) {
+		if irisContain(k) {
 			delete(c.m, k)
 		}
 	}
