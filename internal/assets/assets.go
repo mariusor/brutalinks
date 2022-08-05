@@ -6,8 +6,8 @@ import (
 	"encoding/base64"
 	"fmt"
 	"html/template"
+	"io/fs"
 	"net/http"
-	"os"
 	"path"
 	"path/filepath"
 	"sync"
@@ -60,7 +60,7 @@ func GetFullFile(name string) ([]byte, error) {
 // TemplateNames returns asset names necessary for unrolled.Render
 func TemplateNames() []string {
 	names := make([]string, 0)
-	walkFsFn(TemplateDir, func(path string, info os.FileInfo, err error) error {
+	fs.WalkDir(assets, TemplateDir, func(path string, info fs.DirEntry, err error) error {
 		if info != nil && !info.IsDir() {
 			names = append(names, path)
 		}

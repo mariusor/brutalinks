@@ -14,8 +14,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-// generated with the aletheia.icu/broccoli/fs package - see /assets.go
-var walkFsFn = assets.Walk
+// generated with the git.sr.ht/~mariusor/assets/fs package - see /assets.go
 var openFsFn = assets.Open
 
 func writeAsset(s AssetFiles) func(http.ResponseWriter, *http.Request) {

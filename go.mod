@@ -3,7 +3,7 @@ module github.com/mariusor/go-littr
 go 1.18
 
 require (
-	aletheia.icu/broccoli/fs v0.0.0-20210820105650-3e2e00017061
+	git.sr.ht/~mariusor/assets v0.0.0-20220805130958-65d2da0654e0
 	git.sr.ht/~mariusor/wrapper v0.0.0-20211204195804-3033a1099e0f
 	github.com/cucumber/godog v0.12.5
 	github.com/go-ap/activitypub v0.0.0-20220706134811-0c84d76ce535
@@ -36,7 +36,6 @@ require (
 
 require (
 	git.sr.ht/~mariusor/go-xsd-duration v0.0.0-20220703122237-02e73435a078 // indirect
-	github.com/andybalholm/brotli v1.0.4 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/blang/semver v3.5.1+incompatible // indirect
 	github.com/captncraig/cors v0.0.0-20190703115713-e80254a89df1 // indirect
