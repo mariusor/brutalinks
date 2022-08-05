@@ -43,7 +43,7 @@ clean:
 	@-$(RM) $(HOSTNAME).{key,crt,pem} Caddyfile
 
 builder:
-	$(BUILD_CMD) -f Dockerfile.build -t littr-builder ..
+	$(BUILD_CMD) -f Dockerfile.build -t littr/builder ..
 
 build:
 	$(BUILD_CMD) \

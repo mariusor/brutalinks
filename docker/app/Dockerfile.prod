@@ -1,4 +1,4 @@
-FROM littr-builder AS builder
+FROM littr/builder AS builder
 
 ARG ENV
 ARG HOSTNAME
