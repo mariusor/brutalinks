@@ -4,7 +4,6 @@ package assets
 
 import (
 	"bytes"
-	"embed"
 	"fmt"
 	"html/template"
 	"mime"
@@ -16,12 +15,8 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-var openFsFn = os.Open
-
-//go:embed assets/*
-//go:embed templates/*
-//go:embed README.md
-var assets embed.FS
+var local, _ = filepath.Abs(".")
+var assets = os.DirFS(local)
 
 func writeAsset(s AssetFiles) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {

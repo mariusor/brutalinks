@@ -75,29 +75,14 @@ func getFileContent(name string) ([]byte, error) {
 	m.Lock()
 	defer m.Unlock()
 
-	f, err := openFsFn(name)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
-	fi, err := f.Stat()
-	if err != nil {
-		return nil, err
-	}
-
-	b := make([]byte, fi.Size())
-	if _, err = f.Read(b); err != nil {
-		return nil, err
-	}
-	return b, nil
+	return fs.ReadFile(assets, name)
 }
 
 func assetPath(pieces ...string) string {
 	return path.Clean(path.Join(AssetsDir, path.Join(pieces...)))
 }
 
-// Svg returns an svg by path for display inside templates
+// Svg returns an SVG by path for display inside templates
 func Svg(name string) template.HTML {
 	return Asset()(name)
 }
