@@ -74,8 +74,8 @@ func (g *Generator) generate() ([]byte, error) {
 	)
 
 	m := minify.New()
-	m.AddFunc(app.MimeTypeSVG, svg.Minify)
-	m.AddFunc(app.MimeTypeCss, css.Minify)
+	m.AddFunc("image/svg+xml", svg.Minify)
+	m.AddFunc("text/css", css.Minify)
 	m.AddFuncRegexp(regexp.MustCompile("^(application|text)/(x-)?(java|ecma)script$"), js.Minify)
 
 	if g.includeGlob != "" {
