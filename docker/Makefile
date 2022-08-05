@@ -1,7 +1,7 @@
 M4 = /usr/bin/m4
 M4_FLAGS =
 
-ENV ?= dev
+ENV ?= prod
 HOSTNAME ?= brutalinks.local
 PORT ?= 4001
 FEDBOX_PORT ?= 4000
