@@ -15,7 +15,8 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-var local, _ = filepath.Abs(".")
+var appWd, _ = os.Getwd()
+var local, _ = filepath.Abs(appWd)
 var assets = os.DirFS(local)
 
 func writeAsset(s AssetFiles) func(http.ResponseWriter, *http.Request) {

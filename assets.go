@@ -1,6 +1,6 @@
 //go:build !dev
 
-//go:generate go run -tags $(ENV) assets.go -build "prod qa" -src ./templates,./assets,./README.md -var assets -o internal/assets/assets.gen.go
+//go:generate go run -tags $(ENV) assets.go -build "prod qa" -glob templates/*,templates/partials/*,templates/partials/*/*,assets/*,assets/css/*,assets/js/*,README.md -var assets -o internal/assets/assets.gen.go
 
 package main
 
@@ -8,308 +8,31 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"go/ast"
-	"go/build"
-	"go/importer"
-	"go/parser"
-	"go/token"
-	"go/types"
 	"log"
 	"mime"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
-	"time"
 
-	"git.sr.ht/~mariusor/assets/fs"
-	ignore "github.com/sabhiram/go-gitignore"
+	assets "git.sr.ht/~mariusor/assets/fs"
 	"github.com/tdewolff/minify"
 	"github.com/tdewolff/minify/css"
 	"github.com/tdewolff/minify/js"
 	"github.com/tdewolff/minify/svg"
 )
 
-// Generator collects the necessary info about the package and
-// bundles the provided assets according to provided flags.
-type Generator struct {
-	pkg *Package
-
-	inputFiles   []string // list of source dirs
-	includeGlob  string   // files to be included
-	excludeGlob  string   // files to be excluded
-	useGitignore bool     // .gitignore files will be parsed
-}
-
-const template = `%s
-package %s
-
-import "git.sr.ht/~mariusor/assets/fs"
-
-var %s = fs.New([]byte(%q))
-`
-
-type wildcards []wildcard
-
-func (w wildcards) test(path string, info os.FileInfo) bool {
-	for _, card := range w {
-		if !card.test(info) {
-			if *verbose {
-				log.Println("ignoring", path)
-			}
-			return false
-		}
-	}
-
-	return true
-}
-
-func (g *Generator) generate() ([]byte, error) {
-	var (
-		files []*fs.File
-		cards wildcards
-		state = map[string]bool{}
-
-		total int64
-	)
-
-	m := minify.New()
-	m.AddFunc("image/svg+xml", svg.Minify)
-	m.AddFunc("text/css", css.Minify)
-	m.AddFuncRegexp(regexp.MustCompile("^(application|text)/(x-)?(java|ecma)script$"), js.Minify)
-
-	if g.includeGlob != "" {
-		cards = append(cards, wildcardFrom(true, g.includeGlob))
-	} else if g.excludeGlob != "" {
-		cards = append(cards, wildcardFrom(false, g.excludeGlob))
-	}
-
-	if g.useGitignore {
-		ignores, err := g.parseGitignores()
-		if err != nil {
-			return nil, fmt.Errorf("cannot open .gitignore: %w", err)
-		}
-		cards = append(cards, ignores...)
-	}
-
-	for _, input := range g.inputFiles {
-		info, err := os.Stat(input)
-		if err != nil {
-			return nil, fmt.Errorf("file or directory %s not found", input)
-		}
-
-		var f *fs.File
-		if !info.IsDir() {
-			if _, ok := state[input]; ok {
-				return nil, fmt.Errorf("duplicate path in the input: %s", input)
-			}
-			state[input] = true
-
-			f, err = fs.NewFile(input)
-			if err != nil {
-				return nil, fmt.Errorf("cannot open file or directory: %w", err)
-			}
-			ext := filepath.Ext(input)
-			if ext == ".css" || ext == ".js" || ext == ".svg" {
-				o := bytes.Buffer{}
-				m.Minify(mime.TypeByExtension(ext), &o, bytes.NewBuffer(f.Data))
-				f.Data = o.Bytes()
-				f.Fsize = int64(o.Len())
-			}
-
-			total += f.Fsize
-			files = append(files, f)
-			continue
-		}
-
-		err = filepath.Walk(input, func(path string, info os.FileInfo, _ error) error {
-			if !cards.test(path, info) {
-				return nil
-			}
-
-			if info.IsDir() {
-				return nil
-			}
-			f, err := fs.NewFile(path)
-			if err != nil {
-				return err
-			}
-			if _, ok := state[path]; ok {
-				return fmt.Errorf("duplicate path in the input: %s", path)
-			}
-			ext := filepath.Ext(path)
-			if ext == ".css" || ext == ".js" || ext == ".svg" {
-				o := bytes.Buffer{}
-				m.Minify(mime.TypeByExtension(ext), &o, bytes.NewBuffer(f.Data))
-				f.Data = o.Bytes()
-				f.Fsize = int64(o.Len())
-			}
-
-			total += f.Fsize
-			state[path] = true
-			files = append(files, f)
-			return nil
-		})
-
-		if err != nil {
-			return nil, fmt.Errorf("cannot open file or directory: %w", err)
-		}
-	}
-
-	if *verbose {
-		log.Println("total bytes read:", total)
-	}
-
-	bundle, err := fs.Pack(files)
-	if err != nil {
-		return nil, fmt.Errorf("could not compress the input: %w", err)
-	}
-
-	if *verbose {
-		log.Println("total bytes compressed:", len(bundle))
-	}
-
-	return bundle, nil
-}
-
-type wildcard interface {
-	test(os.FileInfo) bool
-}
-
-type includeWildcard struct {
-	include  bool
-	patterns []string
-}
-
-func (w includeWildcard) test(info os.FileInfo) bool {
-	if info.IsDir() {
-		return true
-	}
-
-	pass := !w.include
-	for _, pattern := range w.patterns {
-		match, err := filepath.Match(pattern, info.Name())
-		if err != nil {
-			log.Fatal("invalid wildcard:", pattern)
-		}
-
-		if match {
-			pass = w.include
-			break
-		}
-	}
-
-	return pass
-}
-
-func wildcardFrom(include bool, patterns string) wildcard {
-	w := strings.Split(patterns, ",")
-	for i, v := range w {
-		w[i] = strings.Trim(v, ` "`)
-	}
-
-	return includeWildcard{include, w}
-}
-
-type gitignoreWildcard struct {
-	ign *ignore.GitIgnore
-}
-
-func (w gitignoreWildcard) test(info os.FileInfo) bool {
-	return !w.ign.MatchesPath(info.Name())
-}
-
-func (g *Generator) parseGitignores() (cards []wildcard, err error) {
-	err = filepath.Walk(".", func(path string, info os.FileInfo, _ error) error {
-		if !info.IsDir() && info.Name() == ".gitignore" {
-			ign, err := ignore.CompileIgnoreFile(path)
-			if err != nil {
-				return err
-			}
-			cards = append(cards, gitignoreWildcard{ign: ign})
-		}
-		return nil
-	})
-	return
-}
-
-// Package holds information about a Go package
-type Package struct {
-	dir      string
-	name     string
-	defs     map[*ast.Ident]types.Object
-	typesPkg *types.Package
-}
-
-func (g *Generator) parsePackage() {
-	pkg, err := build.Default.ImportDir(".", 0)
-	if err != nil {
-		log.Fatalln("cannot parse package:", err)
-	}
-
-	var names []string
-	names = append(names, pkg.GoFiles...)
-	names = append(names, pkg.CgoFiles...)
-	names = append(names, pkg.SFiles...)
-
-	var astFiles []*ast.File
-	g.pkg = new(Package)
-	set := token.NewFileSet()
-	for _, name := range names {
-		if !strings.HasSuffix(name, ".go") {
-			continue
-		}
-		parsedFile, err := parser.ParseFile(set, name, nil, parser.ParseComments)
-		if err != nil {
-			log.Fatalf("parsing package: %s: %s\n", name, err)
-		}
-		astFiles = append(astFiles, parsedFile)
-	}
-	if len(astFiles) == 0 {
-		log.Fatalln("no buildable Go files")
-	}
-	g.pkg.name = astFiles[0].Name.Name
-	g.pkg.dir = "."
-
-	// Type check the package.
-	g.pkg.check(set, astFiles)
-}
-
-// check type-checks the package.
-func (pkg *Package) check(fs *token.FileSet, astFiles []*ast.File) {
-	pkg.defs = make(map[*ast.Ident]types.Object)
-	config := types.Config{Importer: defaultImporter(), FakeImportC: true}
-	info := &types.Info{
-		Defs: pkg.defs,
-	}
-	typesPkg, err := config.Check(pkg.dir, fs, astFiles, info)
-	if err != nil {
-		log.Println("checking package:", err)
-		log.Println("proceeding anyway...")
-	}
-
-	pkg.typesPkg = typesPkg
-}
-
-func defaultImporter() types.Importer {
-	return importer.For("source", nil)
-}
-
 var (
-	flagInput       = flag.String("src", "public", "")
+	flagInput       = flag.String("glob", "public/*", "")
 	flagOutput      = flag.String("o", "", "")
 	flagVariable    = flag.String("var", "br", "")
-	flagInclude     = flag.String("include", "", "")
-	flagExclude     = flag.String("exclude", "", "")
 	flagBuild       = flag.String("build", "", "")
 	flagGitignore   = flag.Bool("gitignore", false, "")
 	flagPackageName = flag.String("package", "assets", "")
-
-	verbose = flag.Bool("v", false, "")
 )
 
 const (
-	constInput = "public"
+	constInput = "assets"
 )
 
 const help = `Usage: minify [options]
@@ -317,33 +40,22 @@ const help = `Usage: minify [options]
 Minify uses gzip compression and minification to embed a virtual file system in the Go executables.
 
 Options:
-	-src folder[,file,file2]
-		The input files and directories, "public" by default.
+	-glob folder/*[,folder1/*/*.ext]
+		The glob paths to scan for files. It uses the path.Match patterns. Defaults to public/*
 	-o
 		Name of the generated file, follows input by default.
-	-var br
-		Name of the exposed variable, "br" by default.
-	-include *.html,*.css
-		Wildcard for the files to include, no default.
-	-exclude *.wasm
-		Wildcard for the files to exclude, no default.
+	-var assets
+		Name of the exposed variable, "assets" by default.
 	-build "linux,386 darwin,!cgo"
 		Compiler build tags for the generated file, none by default.
 	-package "assets"
 		The package for the generated file.
-	-opt
-		Optional decompression: if enabled, files will only be decompressed
-		on the first time they are read.
 	-gitignore
 		Enables .gitignore rules parsing in each directory, disabled by default.
-	-quality [level]
-		Brotli compression level (1-11), the highest by default.
 
 Generate a minify.gen.go file with the variable minify:
-	//go:generate minify -src assets -o minify -var minify
-
-Generate a regular public.gen.go file, but include all *.wasm files:
-	//go:generate minify -src public -include="*.wasm"`
+	//go:generate minify -glob assets/* -var minify
+`
 
 var goIdentifier = regexp.MustCompile(`^\p{L}[\p{L}0-9_]*$`)
 
@@ -351,7 +63,7 @@ func main() {
 	log.SetFlags(0)
 	log.SetPrefix("minify: ")
 	flag.Usage = func() {
-		fmt.Fprintln(os.Stderr, help)
+		fmt.Fprint(os.Stderr, help)
 	}
 
 	flag.Parse()
@@ -380,38 +92,44 @@ func main() {
 		log.Fatalln(variable, "is not a valid Go identifier")
 	}
 
-	includeGlob := *flagInclude
-	excludeGlob := *flagExclude
-	if includeGlob != "" && excludeGlob != "" {
-		log.Fatal("mutually exclusive options -include and -exclude found")
-	}
-
-	g := Generator{
-		inputFiles:   inputs,
-		includeGlob:  includeGlob,
-		excludeGlob:  excludeGlob,
-		useGitignore: *flagGitignore,
-	}
-
-	g.parsePackage()
-
-	bundle, err := g.generate()
+	bundle, err := assets.Glob(inputs...).Pack(minifier().pack)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	header := "// Code generated by minify at %v."
-	header = fmt.Sprintf(header, time.Now().Format(time.RFC3339))
-
-	buildTags := *flagBuild
-	if buildTags != "" {
-		header = "// +build " + buildTags + "\n\n" + header
-	}
-
-	code := fmt.Sprintf(template, header, *flagPackageName, variable, bundle)
-
-	err = os.WriteFile(output, []byte(code), 0644)
+	code, err := assets.GenerateCode(*flagPackageName, variable, *flagBuild, bundle)
 	if err != nil {
+		log.Fatalf("could not buildFiles file: %v\n", err)
+	}
+	if err = os.WriteFile(output, code, 0644); err != nil {
 		log.Fatalf("could not write to %s: %v\n", output, err)
 	}
+}
+
+type m struct {
+	*minify.M
+}
+
+func minifier() *m {
+	m := new(m)
+	m.M = minify.New()
+	m.AddFunc("image/svg+xml", svg.Minify)
+	m.AddFunc("text/css", css.Minify)
+	m.AddFuncRegexp(regexp.MustCompile("^(application|text)/(x-)?(java|ecma)script$"), js.Minify)
+	return m
+}
+
+func (m *m) pack(f *assets.File) error {
+	ext := filepath.Ext(f.Fpath)
+	if !(ext == ".css" || ext == ".js" || ext == ".svg") {
+		return nil
+	}
+	o := bytes.Buffer{}
+	if err := m.Minify(mime.TypeByExtension(ext), &o, bytes.NewBuffer(f.Data)); err != nil {
+		return err
+	}
+	log.Printf("minified file: %s", f.Fpath)
+	f.Data = o.Bytes()
+	f.Fsize = int64(o.Len())
+	return nil
 }

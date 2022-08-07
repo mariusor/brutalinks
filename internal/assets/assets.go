@@ -17,8 +17,8 @@ import (
 )
 
 var (
-	TemplateDir = "templates/"
-	AssetsDir   = "assets/"
+	TemplateDir = "templates"
+	AssetsDir   = "assets"
 )
 
 const (
@@ -75,7 +75,7 @@ func getFileContent(name string) ([]byte, error) {
 	m.Lock()
 	defer m.Unlock()
 
-	return fs.ReadFile(assets, name)
+	return fs.ReadFile(assets, filepath.Clean(name))
 }
 
 func assetPath(pieces ...string) string {

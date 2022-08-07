@@ -3,14 +3,14 @@ module github.com/mariusor/go-littr
 go 1.18
 
 require (
-	git.sr.ht/~mariusor/assets v0.0.0-20220805130958-65d2da0654e0
+	git.sr.ht/~mariusor/assets v0.0.0-20220807132956-77361ad15ac4
 	git.sr.ht/~mariusor/wrapper v0.0.0-20211204195804-3033a1099e0f
 	github.com/cucumber/godog v0.12.5
 	github.com/go-ap/activitypub v0.0.0-20220706134811-0c84d76ce535
-	github.com/go-ap/auth v0.0.0-20220706141943-fd80752cdcfb
+	github.com/go-ap/auth v0.0.0-20220803170606-e386dddbe395
 	github.com/go-ap/client v0.0.0-20220706141149-15223abba03f
 	github.com/go-ap/errors v0.0.0-20220618122732-319f41ac54e1
-	github.com/go-ap/fedbox v0.0.0-20220724091807-5bde17aa3564
+	github.com/go-ap/fedbox v0.0.0-20220805202038-d9aba91b8fd9
 	github.com/go-ap/jsonld v0.0.0-20220615144122-1d862b15410d
 	github.com/go-chi/chi/v5 v5.0.4
 	github.com/google/uuid v1.3.0
@@ -20,7 +20,6 @@ require (
 	github.com/mariusor/qstring v0.0.0-20200204164351-5a99d46de39d
 	github.com/microcosm-cc/bluemonday v1.0.16
 	github.com/openshift/osin v1.0.1
-	github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spacemonkeygo/httpsig v0.0.0-20181218213338-2605ae379e47
 	github.com/tdewolff/minify v2.3.6+incompatible
@@ -30,7 +29,7 @@ require (
 	gitlab.com/golang-commonmark/markdown v0.0.0-20191127184510-91b5b3c99c19
 	gitlab.com/golang-commonmark/puny v0.0.0-20191124015043-9f83538fa04f
 	golang.org/x/oauth2 v0.0.0-20211005180243-6b3c2da341f1
-	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
+	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4
 	golang.org/x/text v0.3.7
 )
 
@@ -48,7 +47,7 @@ require (
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
 	github.com/go-ap/httpsig v0.0.0-20210714162115-62a09257db51 // indirect
-	github.com/go-ap/processing v0.0.0-20220724084316-a459d386dd90 // indirect
+	github.com/go-ap/processing v0.0.0-20220731141240-152d866df8c7 // indirect
 	github.com/go-chi/chi v4.1.2+incompatible // indirect
 	github.com/gofrs/uuid v4.0.0+incompatible // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
@@ -79,22 +78,22 @@ require (
 	go.etcd.io/bbolt v1.3.6 // indirect
 	go.opencensus.io v0.22.5 // indirect
 	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa // indirect
-	golang.org/x/mod v0.5.1 // indirect
-	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect
-	golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f // indirect
-	golang.org/x/tools v0.1.9 // indirect
-	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
+	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
+	golang.org/x/net v0.0.0-20220722155237-a158d28d115b // indirect
+	golang.org/x/sys v0.0.0-20220731174439-a90be440212d // indirect
+	golang.org/x/tools v0.1.12 // indirect
+	golang.org/x/xerrors v0.0.0-20220609144429-65e65417b02f // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
 	lukechampine.com/uint128 v1.2.0 // indirect
-	modernc.org/cc/v3 v3.36.0 // indirect
-	modernc.org/ccgo/v3 v3.16.6 // indirect
-	modernc.org/libc v1.16.7 // indirect
+	modernc.org/cc/v3 v3.36.1 // indirect
+	modernc.org/ccgo/v3 v3.16.8 // indirect
+	modernc.org/libc v1.16.19 // indirect
 	modernc.org/mathutil v1.4.1 // indirect
 	modernc.org/memory v1.1.1 // indirect
-	modernc.org/opt v0.1.1 // indirect
-	modernc.org/sqlite v1.17.2 // indirect
-	modernc.org/strutil v1.1.1 // indirect
+	modernc.org/opt v0.1.3 // indirect
+	modernc.org/sqlite v1.18.0 // indirect
+	modernc.org/strutil v1.1.2 // indirect
 	modernc.org/token v1.0.0 // indirect
 )
 
