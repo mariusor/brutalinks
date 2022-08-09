@@ -75,11 +75,14 @@ func (h *handler) ItemRoutes() func(chi.Router) {
 
 func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 	h.v.assets = assetFiles
-	assetFs, err := ass.New(assets.AssetFS)
-	if err != nil {
-		assetFs.Overlay(assetFiles)
+
+	if assetFs, err := ass.New(assets.AssetFS); err == nil {
+		if err := assetFs.Overlay(assetFiles); err == nil {
+			h.v.fs = assetFs
+		}
+	} else {
+		panic(err)
 	}
-	h.v.fs = assetFs
 
 	return func(r chi.Router) {
 		r.Use(ReqLogger(h.logger))

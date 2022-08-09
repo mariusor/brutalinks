@@ -169,8 +169,8 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 
 	version := Instance.Version
 	ren := render.New(render.Options{
-		AssetNames: assets.TemplateNames,
-		Asset:      assets.Template,
+		Directory:  "templates",
+		FileSystem: render.FS(assets.TemplateFS),
 		Layout:     layout,
 		Extensions: []string{".html"},
 		Funcs: []template.FuncMap{{
@@ -231,10 +231,10 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"Menu":                  func() []headerEl { return headerMenu(r) },
 			"icon":                  icon,
 			"icons":                 icons,
-			"svg":                   assets.Svg,
-			"js":                    assets.Js,
-			"style":                 assets.Style,
-			"integrity":             assets.Integrity,
+			"svg":                   v.svg,
+			"js":                    v.js,
+			"style":                 v.style,
+			"integrity":             ass.Integrity,
 			"req":                   func() *http.Request { return r },
 			"url":                   func() url.Values { return r.URL.Query() },
 			"urlValue":              func(k string) []string { return r.URL.Query()[k] },
@@ -325,6 +325,18 @@ func getCSPHashes(m Model, v view) (string, string) {
 		scriptSrc = fmt.Sprintf("'%s'", strings.Join(scripts, "' '"))
 	}
 	return styleSrc, scriptSrc
+}
+
+func (v *view) style(name string) template.CSS {
+	return ass.Style(v.fs, name)
+}
+
+func (v *view) js(name string) template.HTML {
+	return ass.Script(v.fs, name)
+}
+
+func (v *view) svg(name string) template.HTML {
+	return ass.Svg(v.fs, name)
 }
 
 func (v view) SetCSP(m Model, w http.ResponseWriter) error {

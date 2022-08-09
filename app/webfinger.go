@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"net/http"
 	"path"
 	"regexp"
@@ -275,7 +276,7 @@ func (a Application) NodeInfo() WebInfo {
 		Version: a.Version,
 	}
 
-	if desc, err := assets.GetFullFile("./README.md"); err == nil {
+	if desc, err := fs.ReadFile(assets.AssetFS, "README.md"); err == nil {
 		inf.Description = string(bytes.Trim(desc, "\x00"))
 	}
 	return inf

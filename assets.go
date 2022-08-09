@@ -1,6 +1,7 @@
 //go:build !dev
 
-//go:generate go run -tags $(ENV) assets.go -build "prod qa" -glob templates/*,templates/partials/*,templates/partials/*/*,assets/*,assets/css/*,assets/js/*,README.md -var AssetFS -o internal/assets/assets.gen.go
+//go:generate go run -tags $(ENV) assets.go -build "prod qa" -glob templates/*,templates/partials/*,templates/partials/*/* -var TemplateFS -o internal/assets/templates.gen.go
+//go:generate go run -tags $(ENV) assets.go -build "prod qa" -glob assets/*,assets/css/*,assets/js/*,README.md -var AssetFS -o internal/assets/assets.gen.go
 
 package main
 
@@ -92,7 +93,12 @@ func main() {
 		log.Fatalln(variable, "is not a valid Go identifier")
 	}
 
-	bundle, err := assets.Glob(inputs...).Pack(minifier().pack)
+	stripAssetPrefix := func(f *assets.File) error {
+		f.Fpath = strings.TrimPrefix(f.Fpath, "assets/")
+		return nil
+	}
+
+	bundle, err := assets.Glob(inputs...).Pack(stripAssetPrefix, minifier().pack)
 	if err != nil {
 		log.Fatal(err)
 	}
