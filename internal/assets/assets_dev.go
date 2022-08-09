@@ -16,5 +16,5 @@ var AssetFS = assetFS.Aggregate(
 	os.DirFS(readme),
 )
 
-var templateDir, _ = filepath.Abs("./templates")
+var templateDir, _ = filepath.Abs("./")
 var TemplateFS = os.DirFS(templateDir)
