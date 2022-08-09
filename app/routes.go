@@ -77,9 +77,8 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 	h.v.assets = assetFiles
 
 	if assetFs, err := ass.New(assets.AssetFS); err == nil {
-		if err := assetFs.Overlay(assetFiles); err == nil {
-			h.v.fs = assetFs
-		}
+		assetFs.Overlay(assetFiles)
+		h.v.fs = assetFs
 	} else {
 		panic(err)
 	}
