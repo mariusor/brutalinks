@@ -1,6 +1,6 @@
 //go:build !dev
 
-//go:generate go run -tags $(ENV) assets.go -build "prod qa" -glob templates/*,templates/partials/*,templates/partials/*/*,assets/*,assets/css/*,assets/js/*,README.md -var assets -o internal/assets/assets.gen.go
+//go:generate go run -tags $(ENV) assets.go -build "prod qa" -glob templates/*,templates/partials/*,templates/partials/*/*,assets/*,assets/css/*,assets/js/*,README.md -var AssetFS -o internal/assets/assets.gen.go
 
 package main
 

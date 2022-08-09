@@ -14,9 +14,6 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-// generated with the git.sr.ht/~mariusor/assets/fs package - see /assets.go
-var openFsFn = assets.Open
-
 func writeAsset(s AssetFiles) func(http.ResponseWriter, *http.Request) {
 	assetContents := make(AssetContents)
 	return func(w http.ResponseWriter, r *http.Request) {

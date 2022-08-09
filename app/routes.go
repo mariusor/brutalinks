@@ -3,6 +3,7 @@ package app
 import (
 	"net/http"
 
+	ass "git.sr.ht/~mariusor/assets"
 	"github.com/go-ap/errors"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -11,30 +12,30 @@ import (
 )
 
 var basicStyles = []string{"css/reset.css", "css/main.css", "css/header.css", "css/footer.css"}
-var assetFiles = assets.AssetFiles{
-	"moderate.css":     append(basicStyles, "css/listing.css", "css/content.css", "css/article.css", "css/moderate.css", "css/user.css"),
-	"content.css":      append(basicStyles, "css/article.css", "css/listing.css", "css/threaded.css", "css/content.css"),
-	"accounts.css":     append(basicStyles, "css/listing.css", "css/threaded.css", "css/accounts.css"),
-	"listing.css":      append(basicStyles, "css/listing.css", "css/article.css", "css/threaded.css", "css/moderate.css"),
-	"moderation.css":   append(basicStyles, "css/listing.css", "css/article.css", "css/moderation.css"),
-	"user.css":         append(basicStyles, "css/listing.css", "css/article.css", "css/user.css"),
-	"user-message.css": append(basicStyles, "css/listing.css", "css/article.css", "css/user-message.css"),
-	"new.css":          append(basicStyles, "css/listing.css", "css/article.css"),
-	"404.css":          append(basicStyles, "css/article.css", "css/error.css"),
-	"about.css":        append(basicStyles, "css/article.css", "css/about.css"),
-	"error.css":        append(basicStyles, "css/error.css"),
-	"login.css":        append(basicStyles, "css/login.css"),
-	"register.css":     append(basicStyles, "css/login.css"),
-	"inline.css":       {"css/inline.css"},
-	"simple.css":       {"css/simple.css"},
-	"l.css":            {"css/l.css"},
-	"m.css":            {"css/m.css"},
-	"s.css":            {"css/s.css"},
-	"main.js":          {"js/base.js", "js/main.js"},
-	"robots.txt":       {"robots.txt"},
-	"ns":               {"ns.json"},
-	"favicon.ico":      {"favicon.ico"},
-	"icons.svg":        {"icons.svg"},
+var assetFiles = ass.Map{
+	"/css/moderate.css":     append(basicStyles, "css/listing.css", "css/content.css", "css/article.css", "css/moderate.css", "css/user.css"),
+	"/css/content.css":      append(basicStyles, "css/article.css", "css/listing.css", "css/threaded.css", "css/content.css"),
+	"/css/accounts.css":     append(basicStyles, "css/listing.css", "css/threaded.css", "css/accounts.css"),
+	"/css/listing.css":      append(basicStyles, "css/listing.css", "css/article.css", "css/threaded.css", "css/moderate.css"),
+	"/css/moderation.css":   append(basicStyles, "css/listing.css", "css/article.css", "css/moderation.css"),
+	"/css/user.css":         append(basicStyles, "css/listing.css", "css/article.css", "css/user.css"),
+	"/css/user-message.css": append(basicStyles, "css/listing.css", "css/article.css", "css/user-message.css"),
+	"/css/new.css":          append(basicStyles, "css/listing.css", "css/article.css"),
+	"/css/404.css":          append(basicStyles, "css/article.css", "css/error.css"),
+	"/css/about.css":        append(basicStyles, "css/article.css", "css/about.css"),
+	"/css/error.css":        append(basicStyles, "css/error.css"),
+	"/css/login.css":        append(basicStyles, "css/login.css"),
+	"/css/register.css":     append(basicStyles, "css/login.css"),
+	"/css/inline.css":       {"css/inline.css"},
+	"/css/simple.css":       {"css/simple.css"},
+	"/css/l.css":            {"css/l.css"},
+	"/css/m.css":            {"css/m.css"},
+	"/css/s.css":            {"css/s.css"},
+	"/js/main.js":           {"js/base.js", "js/main.js"},
+	"/robots.txt":           {"robots.txt"},
+	"/ns":                   {"ns.json"},
+	"/favicon.ico":          {"favicon.ico"},
+	"/icons.svg":            {"icons.svg"},
 }
 
 var (
@@ -74,6 +75,11 @@ func (h *handler) ItemRoutes() func(chi.Router) {
 
 func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 	h.v.assets = assetFiles
+	assetFs, err := ass.New(assets.AssetFS)
+	if err != nil {
+		assetFs.Overlay(assetFiles)
+	}
+	h.v.fs = assetFs
 
 	return func(r chi.Router) {
 		r.Use(ReqLogger(h.logger))
@@ -195,9 +201,9 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 			r.Mount("/debug", middleware.Profiler())
 		}
 		r.Group(func(r chi.Router) {
-			r.Get("/{path}", assets.ServeAsset(h.v.assets))
-			r.Get("/css/{path}", assets.ServeAsset(h.v.assets))
-			r.Get("/js/{path}", assets.ServeAsset(h.v.assets))
+			r.Get("/{path}", ass.Handler(h.v.fs))
+			r.Get("/css/{path}", ass.Handler(h.v.fs))
+			r.Get("/js/{path}", ass.Handler(h.v.fs))
 		})
 
 		if !c.Env.IsDev() {

@@ -17,7 +17,7 @@ import (
 
 var appWd, _ = os.Getwd()
 var local, _ = filepath.Abs(appWd)
-var assets = os.DirFS(local)
+var AssetFS = os.DirFS(local)
 
 func writeAsset(s AssetFiles) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {

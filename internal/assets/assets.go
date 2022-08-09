@@ -60,7 +60,7 @@ func GetFullFile(name string) ([]byte, error) {
 // TemplateNames returns asset names necessary for unrolled.Render
 func TemplateNames() []string {
 	names := make([]string, 0)
-	fs.WalkDir(assets, TemplateDir, func(path string, info fs.DirEntry, err error) error {
+	fs.WalkDir(AssetFS, TemplateDir, func(path string, info fs.DirEntry, err error) error {
 		if info != nil && !info.IsDir() {
 			names = append(names, path)
 		}
@@ -75,7 +75,7 @@ func getFileContent(name string) ([]byte, error) {
 	m.Lock()
 	defer m.Unlock()
 
-	return fs.ReadFile(assets, filepath.Clean(name))
+	return fs.ReadFile(AssetFS, filepath.Clean(name))
 }
 
 func assetPath(pieces ...string) string {

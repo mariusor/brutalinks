@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"io/fs"
 	"math"
 	"mime"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	ass "git.sr.ht/~mariusor/assets"
 	vocab "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
 	"github.com/gorilla/csrf"
@@ -32,7 +34,8 @@ type LogFn func(string, ...interface{})
 
 type view struct {
 	c      *config.Configuration
-	assets assets.AssetFiles
+	fs     fs.FS
+	assets ass.Map
 	s      sess
 	infoFn CtxLogFn
 	errFn  CtxLogFn
@@ -306,7 +309,7 @@ func getCSPHashes(m Model, v view) (string, string) {
 		}
 	}
 	for _, name := range assets {
-		if hash, ok := v.assets.SubresourceIntegrityHash(name); ok {
+		if hash, ok := ass.SubresourceIntegrityHash(v.fs, name); ok {
 			ext := path.Ext(name)
 			if ext == ".css" {
 				styles = append(styles, fmt.Sprintf("sha256-%s", hash))
