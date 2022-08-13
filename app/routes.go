@@ -203,9 +203,9 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 			r.Mount("/debug", middleware.Profiler())
 		}
 		r.Group(func(r chi.Router) {
-			r.Get("/{path}", ass.Handler(h.v.fs))
-			r.Get("/css/{path}", ass.Handler(h.v.fs))
-			r.Get("/js/{path}", ass.Handler(h.v.fs))
+			r.Get("/{path}", h.v.assetHandler)
+			r.Get("/css/{path}", h.v.assetHandler)
+			r.Get("/js/{path}", h.v.assetHandler)
 		})
 
 		if !c.Env.IsDev() {

@@ -1311,3 +1311,7 @@ func renderableMarshalJSON(logFn LogFn) func(r Renderable) template.JS {
 		return template.JS(b)
 	}
 }
+
+func (v *view) assetHandler(w http.ResponseWriter, r *http.Request) {
+	assets.Write(v.fs)(w, r)
+}
