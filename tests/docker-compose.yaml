@@ -9,7 +9,7 @@ services:
     ports:
       - "4000:443"
     volumes:
-      - ./fedbox/.env:/.env
+      - ./fedbox/env:/.env
       - ./fedbox:/storage
   brutalinks:
     image: quay.io/go-ap/go-littr:qa
@@ -19,7 +19,7 @@ services:
       - LISTEN_PORT=443
     volumes:
       - ./brutalinks:/storage
-      - ./brutalinks/.env:/.env
+      - ./brutalinks/env:/.env
     ports:
       - "4001:443"
     expose:
