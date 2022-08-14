@@ -16,18 +16,21 @@ APPSOURCES := $(wildcard ./app/*.go internal/*/*.go)
 ASSETFILES := $(wildcard templates/* templates/partials/* templates/partials/*/* assets/*/* assets/*)
 
 export CGO_ENABLED=0
-export VERSION=HEAD
 
 ifneq ($(ENV), dev)
 	LDFLAGS += -s -w -extldflags "-static"
 	BUILDFLAGS += -trimpath
 endif
 
-ifeq ($(shell git describe --always > /dev/null 2>&1 ; echo $$?), 0)
-export VERSION = $(shell git describe --always --dirty=-git)
-endif
-ifeq ($(shell git describe --tags > /dev/null 2>&1 ; echo $$?), 0)
-export VERSION = $(shell git describe --tags)
+ifeq ($(VERSION), )
+	ifeq ($(shell git describe --always > /dev/null 2>&1 ; echo $$?), 0)
+		BRANCH=$(shell git rev-parse --abbrev-ref HEAD | tr '/' '-')
+		HASH=$(shell git rev-parse --short HEAD)
+		VERSION ?= $(shell printf "%s-%s" "$(BRANCH)" "$(HASH)")
+	endif
+	ifeq ($(shell git describe --tags > /dev/null 2>&1 ; echo $$?), 0)
+		VERSION ?= $(shell git describe --tags | tr '/' '-')
+	endif
 endif
 
 BUILD := $(GO) build $(BUILDFLAGS)
