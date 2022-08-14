@@ -7,18 +7,16 @@ export const options = {
     thresholds: {},
     scenarios: {
         RegularBrowsing: {
-            executor: 'ramping-vus',
-            gracefulStop: '30s',
-            stages: [
-                { target: 20, duration: '1m' },
-            ],
-            gracefulRampDown: '30s',
+            executor: 'per-vu-iterations',
+            vus: 2,
+            iterations: 10,
+            maxDuration: '1s',
             exec: 'regular_browsing',
         },
     },
 }
 
-const BASE_URL = "https://brutalinks.git";
+const BASE_URL = "https://127.0.0.1:4001";
 /*
 const PASSWORD = 'Sup3rS3cretS3cr3tP4ssW0rd!';
 export function setup() {
@@ -51,6 +49,10 @@ export function setup() {
 */
 
 const mapping = {
+    'About': {
+        'path': '/about',
+        'title': 'About',
+    },
     'Homepage': {
         'path': '/',
         'title': 'Newest items',
@@ -63,6 +65,14 @@ const mapping = {
         'path': '/federated',
         'title': 'Federated items',
     },
+    'Tags': {
+        'path': '/t/tags',
+        'title': 'Items tagged as #tags',
+    },
+    'Discussions': {
+        'path': '/d',
+        'title': 'Discussion items',
+    },
     'Login': {
         'path': '/login',
         'title': 'Local authentication',
@@ -74,6 +84,10 @@ const mapping = {
     'Users listing': {
         'path': '/~',
         'title': 'Account listing',
+    },
+    'Moderation': {
+        'path': '/moderation',
+        'title': 'Moderation log',
     },
     /*
     'Followed tab': {
@@ -100,8 +114,7 @@ function checkAssets(doc) {
                 group(`${styleURL}`, function() {
                     let response = http.get(`${BASE_URL}${styleURL}`)
                     check(response, {
-                        'is status 200': (r) => r.status === 200,
-                        'is css': (r) => r.headers["Content-Type"] === 'text/css; charset=utf-8',
+                        'OK': (r) => r.status === 200 && r.headers["Content-Type"] === 'text/css; charset=utf-8',
                     });
                 });
             });
@@ -115,8 +128,7 @@ function checkAssets(doc) {
             group(`${scriptURL}`, function() {
                 let response = http.get(`${BASE_URL}${scriptURL}`)
                 check(response, {
-                    'is status 200': (r) => r.status === 200,
-                    'is js': (r) => r.headers["Content-Type"] === 'text/javascript; charset=utf-8',
+                    'OK': (r) => r.status === 200 && r.headers["Content-Type"] === 'text/javascript; charset=utf-8',
                 });
             });
         });

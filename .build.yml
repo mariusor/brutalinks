@@ -1,7 +1,11 @@
 image: archlinux
 packages:
   - go
-  - docker
+  - podman
+  - podman-compose
+  - buildah
+  - aardvark-dns
+  - k6-bin
 sources:
   - https://github.com/mariusor/go-littr
 secrets:
@@ -25,7 +29,7 @@ tasks:
       make all
   - tests: |
       test ${BUILD_SUBMITTER} = "dispatch.sr.ht" && complete-build
-      set -a +x
+      set -a
       source ~/.env.test
       cd go-littr
       make test
@@ -46,20 +50,15 @@ tasks:
       source ~/.buildah.env
 
       _user=$(id -un)
-      _what=""
 
-      if buildah -v > /dev/null; then
-        echo 'unqualified-search-registries = ["docker.io"]' | sudo tee /etc/containers/registries.conf.d/unq-search.conf
-        echo "${_user}:10000:65536" | sudo tee /etc/subuid
-        echo "${_user}:10000:65536" | sudo tee /etc/subgid
-        sudo buildah login -u=${BUILDAH_USER} -p=${BUILDAH_SECRET} quay.io
-        _what="_buildah"
-      else
-        sudo systemctl start docker.service
-        sudo gpasswd -a ${_user} docker
-        docker login -u=${BUILDAH_USER} -p=${BUILDAH_SECRET} quay.io
-      fi
+      echo 'unqualified-search-registries = ["docker.io"]' | sudo tee /etc/containers/registries.conf.d/unq-search.conf
+      echo "${_user}:10000:65536" | sudo tee /etc/subuid
+      echo "${_user}:10000:65536" | sudo tee /etc/subgid
+      podman system migrate
 
+      podman login -u="${BUILDAH_USER}" -p="${BUILDAH_SECRET}" quay.io
+
+      set --
       cd go-littr || exit
 
       GIT_SHA=$(git rev-parse --verify --short HEAD)
@@ -68,12 +67,20 @@ tasks:
       make -C docker builder
 
       _branch=${GIT_BRANCH#"refs/heads/"}
-      make -C docker VERSION="${_branch}" push${_what}
+      make -C docker VERSION="${_branch}" push
       if [ "${_branch}" == "master" ]; then
         _branch=$(printf "%s-%s" "${_branch}" "${GIT_SHA}")
-        make -C docker ENV=qa VERSION="${_branch}" push${_what}
+        make -C docker ENV=qa VERSION="${_branch}" push
       fi
       _tag=$(git describe --long --tags || true)
       if [ -n "${_tag}" ]; then
-        make -C docker ENV=prod VERSION="${_tag}" push${_what}
+        make -C docker ENV=prod VERSION="${_tag}" push
       fi
+  - integration: |
+      test ${BUILD_SUBMITTER} = "dispatch.sr.ht" && complete-build
+      set -a +x
+      source ~/.env.test
+
+      cd go-littr
+      make -C tests test
+

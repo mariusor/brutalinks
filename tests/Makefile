@@ -1,35 +1,16 @@
-export CGO_ENABLED=0
-GO := go
-TEST_FLAGS ?= -count=1 -v
-STORAGE ?= all
-
-ENV ?= test
-BUILDFLAGS ?= -a
-TAGS =
-TEST_TARGET = .
-
-TEST := $(GO) test $(BUILDFLAGS)
-
 mkfile_path := $(abspath $(lastword $(MAKEFILE_LIST)))
 pwd := $(abspath $(dir mkfile_path))
 
-HAVE_PODMAN_COMPOSE := $(shell podman-compose -v &2> /dev/null)
-ifdef HAVE_PODMAN_COMPOSE
-	COMPOSE_UP=podman-compose up
-	COMPOSE_DOWN=podman-compose down
-else
-	COMPOSE_UP=docker-compose up
-	COMPOSE_DOWN=docker-compose down
-endif
+COMPOSE=podman-compose
 
-.PHONY: test integration fedbox brutalinks
+.PHONY: test integration compose
 
 integration: test
 
 test: compose
-	podman ps
-	#$(COMPOSE_DOWN)
+	k6 run ./script.js || exit 1
+	$(COMPOSE) down
 
 compose:
-	$(COMPOSE_UP) -d
+	$(COMPOSE) up -d
 

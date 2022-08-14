@@ -16,18 +16,11 @@ endif
 export API_URL := $(API_URL)
 export OAUTH2_CALLBACK_URL := $(OAUTH2_CALLBACK_URL)
 
-HAVE_BUILDAH := $(shell buildah -v dot 2> /dev/null)
-ifdef HAVE_BUILDAH
-	BUILD_CMD=buildah bud
-	RUN_CMD=podman run
-	TAG_CMD=buildah tag
-	PUSH_CMD=buildah push
-else
-	BUILD_CMD=docker build
-	RUN_CMD=docker run
-	TAG_CMD=docker tag
-	PUSH_CMD=docker push
-endif
+BUILD_CMD=buildah bud
+RUN_CMD=podman run
+TAG_CMD=podman tag
+PUSH_CMD=podman push
+COMPOSE_CMD=podman-compose
 
 .PHONY: clean images cert build builder run push start
 
@@ -54,7 +47,7 @@ build:
 		-t fedbox/littr:$(ENV) ..
 
 run: build $(ENV_FILE)
-	$(RUN) \
+	$(RUN_CMD) \
 		-v $(ENV_FILE):/.env \
 		-e API_URL=$(API_URL) \
 		-p $(PORT):$(PORT) \
@@ -66,12 +59,10 @@ Caddyfile: Caddyfile.in
 		-DFEDBOX_HOSTNAME=$(FEDBOX_HOSTNAME) -DFEDBOX_PORT=$(FEDBOX_PORT) $< >$@
 
 push: build
-	docker tag fedbox/littr:$(ENV) quay.io/go-ap/go-littr:latest
-	docker tag fedbox/littr:$(ENV) quay.io/go-ap/go-littr:$(ENV)
-	docker push quay.io/go-ap/go-littr:latest
-	docker push quay.io/go-ap/go-littr:$(ENV)
+	$(TAG_CMD) fedbox/littr:$(ENV) quay.io/go-ap/go-littr:$(ENV)
+	$(PUSH_CMD) quay.io/go-ap/go-littr:$(ENV)
 ifeq ($(ENV), dev)
-	$(TAG_CMD) fedbox/littr:$(ENV) quay.io/go-ap/go-littr:latest || true
+	$(TAG_CMD) fedbox/littr:$(ENV) quay.io/go-ap/go-littr:latest
 	$(PUSH_CMD) quay.io/go-ap/go-littr:latest || true
 endif
 ifneq ($(VERSION), )
@@ -79,20 +70,10 @@ ifneq ($(VERSION), )
 	$(PUSH_CMD) quay.io/go-ap/go-littr:$(VERSION)-$(ENV) || true
 endif
 
-push_buildah: build
-	buildah push fedbox/littr:$(ENV) docker://quay.io/go-ap/go-littr:latest
-	buildah push fedbox/littr:$(ENV) docker://quay.io/go-ap/go-littr:$(ENV)
-ifeq ($(ENV), dev)
-	buildah push fedbox/littr:$(ENV) docker://quay.io/go-ap/go-littr:latest || true
-endif
-ifneq ($(VERSION), )
-	buildah push fedbox/littr:$(ENV) docker://quay.io/go-ap/go-littr:$(VERSION)-$(ENV) || true
-endif
-
 start: Caddyfile
-	docker-compose up --detach && \
-	docker-compose logs -f
+	$(COMPOSE_CMD) up --detach && \
+	$(COMPOSE_CMD) logs -f
 
 images: Caddyfile
-	docker-compose up --build --detach && \
-	docker-compose logs -f
+	$(COMPOSE_CMD) up --build --detach && \
+	$(COMPOSE_CMD) logs -f
