@@ -16,6 +16,7 @@ services:
     command: /bin/brutalinks --env test --host brutalinks --port 443
     environment:
       - LISTEN_HOSTNAME=brutalinks
+      - LISTEN_PORT=443
     volumes:
       - ./brutalinks:/storage
       - ./brutalinks/.env:/.env

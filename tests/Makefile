@@ -28,7 +28,7 @@ integration: test
 
 test: compose
 	podman ps
-	$(COMPOSE_DOWN)
+	#$(COMPOSE_DOWN)
 
 compose:
 	$(COMPOSE_UP) -d
