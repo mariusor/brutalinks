@@ -25,7 +25,7 @@ ENV KEY_PATH=/etc/ssl/certs/app.key
 ENV CERT_PATH=/etc/ssl/certs/app.crt
 ENV HTTPS=true
 
-EXPOSE ${PORT:-3003}
+EXPOSE ${LISTEN_PORT:-3003}
 
 VOLUME /.env
 VOLUME /storage
