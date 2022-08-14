@@ -5,6 +5,7 @@ import (
 	"flag"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"syscall"
 	"time"
 
@@ -113,6 +114,10 @@ func main() {
 	c := config.Load(config.EnvType(env), wait)
 	errors.IncludeBacktrace = c.Env.IsDev()
 	l := log.Dev(c.LogLevel)
+
+	if i, ok := debug.ReadBuildInfo(); ok && version == "HEAD" {
+		version = i.Main.Version
+	}
 
 	a, err := app.New(c, l, host, port, version)
 	if err != nil {
