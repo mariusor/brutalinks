@@ -1,0 +1,27 @@
+---
+version: "3.8"
+services:
+  fedbox:
+    image: quay.io/go-ap/fedbox:qa-fs
+    command: /bin/fedbox --env test
+    expose:
+      - 443
+    ports:
+      - "4000:443"
+    volumes:
+      - ./fedbox/.env:/.env
+      - ./fedbox:/storage
+  brutalinks:
+    image: quay.io/go-ap/go-littr:qa
+    command: /bin/brutalinks --env test --host brutalinks --port 443
+    environment:
+      - LISTEN_HOSTNAME=brutalinks
+    volumes:
+      - ./brutalinks:/storage
+      - ./brutalinks/.env:/.env
+    ports:
+      - "4001:443"
+    expose:
+      - 443
+    depends_on:
+      - fedbox
