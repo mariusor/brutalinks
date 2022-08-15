@@ -2,16 +2,16 @@ M4 = /usr/bin/m4
 M4_FLAGS =
 
 ENV ?= prod
-HOSTNAME ?= brutalinks.local
+APP_HOSTNAME ?= brutalinks.local
 PORT ?= 4001
 FEDBOX_PORT ?= 4000
-FEDBOX_HOSTNAME ?= fedbox.local
+SERVER_HOSTNAME ?= fedbox.local
 ENV_FILE ?= $(shell realpath .env.$(ENV))
 ifeq ($(OAUTH2_CALLBACK_URL), )
-	override OAUTH2_CALLBACK_URL := https://$(HOSTNAME)/auth/fedbox/callback
+	override OAUTH2_CALLBACK_URL := https://$(APP_HOSTNAME)/auth/fedbox/callback
 endif
 ifeq ($(API_URL), )
-	override API_URL := https://$(FEDBOX_HOSTNAME)
+	override API_URL := https://$(SERVER_HOSTNAME)
 endif
 export API_URL := $(API_URL)
 export OAUTH2_CALLBACK_URL := $(OAUTH2_CALLBACK_URL)
@@ -27,36 +27,31 @@ COMPOSE_CMD=podman-compose
 $(ENV_FILE):
 	touch $(ENV_FILE)
 
-$(HOSTNAME).pem:
-	./gen-certs.sh $(HOSTNAME)
+brutalinks.pem:
+	./gen-certs.sh brutalinks
 
-cert: $(HOSTNAME).pem
+cert: brutalinks.pem
 
 clean:
-	@-$(RM) $(HOSTNAME).{key,crt,pem} Caddyfile
+	@-$(RM) brutalinks.{key,crt,pem} Caddyfile
 
 builder:
-	$(BUILD_CMD) -f Dockerfile.build -t littr/builder ..
+	./build.sh .. littr/builder
 
 build:
-	$(BUILD_CMD) \
-		--build-arg HOSTNAME=$(HOSTNAME) \
-		--build-arg ENV=$(ENV) \
-		--build-arg PORT=$(PORT) \
-		-f app/Dockerfile.$(ENV) \
-		-t fedbox/littr:$(ENV) ..
+	ENV=$(ENV) VERSION=$(VERSION) STORAGE=$(STORAGE) PORT=$(PORT) APP_HOSTNAME=$(APP_HOSTNAME) ./image.sh fedbox/littr:$(ENV)
 
 run: build $(ENV_FILE)
 	$(RUN_CMD) \
 		-v $(ENV_FILE):/.env \
 		-e API_URL=$(API_URL) \
 		-p $(PORT):$(PORT) \
-		-h $(HOSTNAME) \
+		-h $(APP_HOSTNAME) \
 		fedbox/littr:$(ENV)
 
 Caddyfile: Caddyfile.in
-	$(M4) -DAPP_HOSTNAME=$(HOSTNAME) -DAPP_PORT=$(PORT) \
-		-DFEDBOX_HOSTNAME=$(FEDBOX_HOSTNAME) -DFEDBOX_PORT=$(FEDBOX_PORT) $< >$@
+	$(M4) -DAPP_HOSTNAME=$(APP_HOSTNAME) -DAPP_PORT=$(PORT) \
+		-DSERVER_HOSTNAME=$(SERVER_HOSTNAME) -DFEDBOX_PORT=$(FEDBOX_PORT) $< >$@
 
 push: build
 	$(TAG_CMD) fedbox/littr:$(ENV) quay.io/go-ap/go-littr:$(ENV)

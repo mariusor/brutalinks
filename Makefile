@@ -5,7 +5,7 @@ SHELL := bash
 MAKEFLAGS += --warn-undefined-variables
 MAKEFLAGS += --no-builtin-rules
 
-PROJECT_NAME := $(shell basename $(PWD))
+PROJECT_NAME := brutalinks
 ENV ?= dev
 LDFLAGS ?= -X main.version=$(VERSION)
 BUILDFLAGS ?= -a -ldflags '$(LDFLAGS)'
@@ -62,10 +62,10 @@ run: ./bin/brutalinks
 clean:
 	-$(RM) bin/* internal/assets/*.gen.go
 	$(GO) build clean
-	$(MAKE) -C docker $@
+	$(MAKE) -C images $@
 
 images:
-	$(MAKE) -C docker $@
+	$(MAKE) -C images $@
 
 test: TEST_TARGET := ./{app,internal}/...
 test: download

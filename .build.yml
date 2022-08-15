@@ -64,17 +64,17 @@ tasks:
       GIT_SHA=$(git rev-parse --verify --short HEAD)
       GIT_BRANCH=$(git name-rev --name-only HEAD)
 
-      make -C docker builder
+      make -C images builder
 
       _branch=${GIT_BRANCH#"refs/heads/"}
-      make -C docker VERSION="${_branch}" push
+      make -C images VERSION="${_branch}" push
       if [ "${_branch}" == "master" ]; then
         _branch=$(printf "%s-%s" "${_branch}" "${GIT_SHA}")
-        make -C docker ENV=qa VERSION="${_branch}" push
+        make -C images ENV=qa VERSION="${_branch}" push
       fi
       _tag=$(git describe --long --tags || true)
       if [ -n "${_tag}" ]; then
-        make -C docker ENV=prod VERSION="${_tag}" push
+        make -C images ENV=prod VERSION="${_tag}" push
       fi
   - integration: |
       test ${BUILD_SUBMITTER} = "dispatch.sr.ht" && complete-build
