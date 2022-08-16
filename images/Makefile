@@ -1,11 +1,18 @@
+SHELL := bash
+.ONESHELL:
+.SHELLFLAGS := -eu -o pipefail -c
+.DELETE_ON_ERROR:
+MAKEFLAGS += --warn-undefined-variables
+MAKEFLAGS += --no-builtin-rules
+
 M4 = /usr/bin/m4
 M4_FLAGS =
 
 ENV ?= prod
 APP_HOSTNAME ?= brutalinks.local
+SERVER_HOSTNAME ?= fedbox.local
 PORT ?= 4001
 FEDBOX_PORT ?= 4000
-SERVER_HOSTNAME ?= fedbox.local
 ENV_FILE ?= $(shell realpath .env.$(ENV))
 ifeq ($(OAUTH2_CALLBACK_URL), )
 	override OAUTH2_CALLBACK_URL := https://$(APP_HOSTNAME)/auth/fedbox/callback
