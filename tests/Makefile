@@ -15,7 +15,7 @@ COMPOSE=podman-compose
 integration: test
 
 test: compose
-	k6 run -w --no-color --no-usage-report ./script.js
+	k6 run --no-usage-report ./script.js || echo "failed"
 	$(COMPOSE) down
 
 compose:
