@@ -5,11 +5,10 @@
 _environment=${ENV:-dev}
 _hostname=${APP_HOSTNAME:-brutalinks}
 _listen_port=${PORT:-3003}
-_storage=${STORAGE:-all}
 _version=${VERSION}
 
-_image_name=${1:-fedbox:${_environment}-${_storage}}
-_build_name=${2:-localhost/littr/builder}
+_image_name=${1:-brutalinks:${_environment}}
+_build_name=${2:-localhost/brutalinks/builder}
 
 #FROM littr/builder AS builder
 _builder=$(buildah from ${_build_name}:latest)
@@ -28,7 +27,7 @@ echo "Building image ${_image_name} for host=${_hostname} env:${_environment} po
 
 #RUN make all && \
 #    docker/gen-certs.sh app
-buildah run ${_builder} make all
+buildah run ${_builder} make ENV=${_environment} all
 buildah run ${_builder} ./images/gen-certs.sh brutalinks
 
 #FROM gcr.io/distroless/static
@@ -65,15 +64,16 @@ buildah copy --from ${_builder} ${_image} /go/src/app/brutalinks.key /etc/ssl/ce
 buildah copy --from ${_builder} ${_image} /go/src/app/brutalinks.crt /etc/ssl/certs/
 buildah copy --from ${_builder} ${_image} /go/src/app/brutalinks.pem /etc/ssl/certs/
 
-if [[ ${ENV} -eq "dev" ]]; then
+if [[ ${_environment} -eq "dev" ]]; then
   #ADD ./templates /templates
   buildah copy --from ${_builder} ${_image} /go/src/app/templates /templates
   #ADD ./assets /assets
   buildah copy --from ${_builder} ${_image} /go/src/app/assets /assts
   #ADD ./README.md /README.md
-  buildah copy --from ${_builder} ${_image} /go/src/app/README /README.md
+  buildah copy --from ${_builder} ${_image} /go/src/app/README.md /README.md
 fi
 
+buildah config --workingdir / ${_image}
 #CMD ["/bin/brutalinks"]
 buildah config --entrypoint '["/bin/brutalinks"]' ${_image}
 

@@ -36,10 +36,10 @@ clean:
 	@-$(RM) brutalinks.{key,crt,pem} Caddyfile
 
 builder:
-	./build.sh .. littr/builder
+	./build.sh .. brutalinks/builder
 
 build:
-	ENV=$(ENV) VERSION=$(VERSION) STORAGE=$(STORAGE) PORT=$(PORT) APP_HOSTNAME=$(APP_HOSTNAME) ./image.sh fedbox/littr:$(ENV)
+	ENV=$(ENV) VERSION=$(VERSION) PORT=$(PORT) APP_HOSTNAME=$(APP_HOSTNAME) ./image.sh brutalinks/app:$(ENV)
 
 run: build $(ENV_FILE)
 	$(RUN_CMD) \
@@ -47,21 +47,21 @@ run: build $(ENV_FILE)
 		-e API_URL=$(API_URL) \
 		-p $(PORT):$(PORT) \
 		-h $(APP_HOSTNAME) \
-		fedbox/littr:$(ENV)
+		brutalinks/app:$(ENV)
 
 Caddyfile: Caddyfile.in
 	$(M4) -DAPP_HOSTNAME=$(APP_HOSTNAME) -DAPP_PORT=$(PORT) \
 		-DSERVER_HOSTNAME=$(SERVER_HOSTNAME) -DFEDBOX_PORT=$(FEDBOX_PORT) $< >$@
 
 push: build
-	$(TAG_CMD) fedbox/littr:$(ENV) quay.io/go-ap/go-littr:$(ENV)
+	$(TAG_CMD) brutalinks/app:$(ENV) quay.io/go-ap/go-littr:$(ENV)
 	$(PUSH_CMD) quay.io/go-ap/go-littr:$(ENV)
 ifeq ($(ENV), dev)
-	$(TAG_CMD) fedbox/littr:$(ENV) quay.io/go-ap/go-littr:latest
+	$(TAG_CMD) brutalinks/app:$(ENV) quay.io/go-ap/go-littr:latest
 	$(PUSH_CMD) quay.io/go-ap/go-littr:latest || true
 endif
 ifneq ($(VERSION), )
-	$(TAG_CMD) fedbox/littr:$(ENV) quay.io/go-ap/go-littr:$(VERSION)-$(ENV) || true
+	$(TAG_CMD) brutalinks/app:$(ENV) quay.io/go-ap/go-littr:$(VERSION)-$(ENV) || true
 	$(PUSH_CMD) quay.io/go-ap/go-littr:$(VERSION)-$(ENV) || true
 endif
 
