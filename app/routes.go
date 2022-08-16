@@ -80,7 +80,7 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 		assetFs.Overlay(assetFiles)
 		h.v.fs = assetFs
 	} else {
-		panic(err)
+		h.errFn()("%s: %s", assets.AssetFS, err)
 	}
 
 	return func(r chi.Router) {
