@@ -6,7 +6,9 @@ export const options = {
     insecureSkipTLSVerify: true,
     thresholds: {
         http_req_failed: ['rate<0.01'], // http errors should be less than 1%
-        http_req_duration: ['p(95)<200'], // 95% of requests should be below 200ms
+        'http_req_duration{type:content}': ['p(95)<200'], // threshold on API requests only
+        'http_req_duration{type:static}': ['p(95)<100'], // threshold on static content only
+
   },
     scenarios: {
         RegularBrowsing: {
@@ -115,7 +117,7 @@ function checkAssets(doc) {
             group(`stylesheets[${styles.size()}]`, function () {
                 let styleURL = el.attr('href');
                 group(`${styleURL}`, function() {
-                    let response = http.get(`${BASE_URL}${styleURL}`)
+                    let response = http.get(`${BASE_URL}${styleURL}`, {tags: { type: 'static' }})
                     check(response, {
                         'OK': (r) => r.status === 200 && r.headers["Content-Type"] === 'text/css; charset=utf-8',
                     });
@@ -129,7 +131,7 @@ function checkAssets(doc) {
         group(`scripts[${scripts.size()}]`, function () {
             let scriptURL = el.attr('src');
             group(`${scriptURL}`, function() {
-                let response = http.get(`${BASE_URL}${scriptURL}`)
+                let response = http.get(`${BASE_URL}${scriptURL}`, {tags: { type: 'static' }})
                 check(response, {
                     'OK': (r) => r.status === 200 && r.headers["Content-Type"] === 'text/javascript; charset=utf-8',
                 });
@@ -140,7 +142,7 @@ function checkAssets(doc) {
 
 export function regular_browsing() {
     group('/icons.svg', function () {
-        let response = http.get(`${BASE_URL}/icons.svg`)
+        let response = http.get(`${BASE_URL}/icons.svg`, {tags: { type: 'static' }})
         check(response, {
             'is status 200': (r) => r.status === 200,
             'is svg': (r) => r.headers["Content-Type"] === 'image/svg+xml',
@@ -149,7 +151,7 @@ export function regular_browsing() {
 
     for (let m in mapping) {
         group(m, function () {
-            let response = http.get(`${BASE_URL}${mapping[m].path}`);
+            let response = http.get(`${BASE_URL}${mapping[m].path}`, {tags: { type: 'content' }});
             check(response, {
                 'is status 200': r => r.status === 200,
             });
