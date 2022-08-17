@@ -10,14 +10,11 @@ pwd := $(abspath $(dir mkfile_path))
 
 COMPOSE=podman-compose
 
-.PHONY: test integration compose
+.PHONY: up down
 
-integration: test
-
-test: compose
-	k6 run --no-usage-report ./script.js || echo "failed"
+down:
 	$(COMPOSE) down
 
-compose:
+up:
 	$(COMPOSE) up -d
 

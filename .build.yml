@@ -58,7 +58,6 @@ tasks:
 
       podman login -u="${BUILDAH_USER}" -p="${BUILDAH_SECRET}" quay.io
 
-      set --
       cd go-littr || exit
 
       GIT_SHA=$(git rev-parse --verify --short HEAD)
@@ -80,7 +79,10 @@ tasks:
       test ${BUILD_SUBMITTER} = "dispatch.sr.ht" && complete-build
       set -a +x
       source ~/.env.test
+      set +a -xe
 
       cd go-littr
-      make -C tests test
+      make -C tests up
+      k6 run --no-usage-report ./tests/script.js
+      make -C tests down
 
