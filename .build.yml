@@ -2,7 +2,6 @@ image: archlinux
 packages:
   - go
   - podman
-  - podman-compose
   - buildah
   - aardvark-dns
   - k6-bin
@@ -82,7 +81,5 @@ tasks:
       set +a -xe
 
       cd go-littr
-      make -C tests up
-      k6 run --no-usage-report ./tests/script.js
-      make -C tests down
+      make -C tests test
 

@@ -8,13 +8,9 @@ MAKEFLAGS += --no-builtin-rules
 mkfile_path := $(abspath $(lastword $(MAKEFILE_LIST)))
 pwd := $(abspath $(dir mkfile_path))
 
-COMPOSE=podman-compose
+.PHONY: test
 
-.PHONY: up down
-
-down:
-	$(COMPOSE) down
-
-up:
-	$(COMPOSE) up -d
+test:
+	./run-pods.sh
+	k6 run --no-usage-report ./script.js
 

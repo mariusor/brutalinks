@@ -5,7 +5,7 @@ import http from 'k6/http';
 export const options = {
     insecureSkipTLSVerify: true,
     thresholds: {
-        http_req_failed: ['rate<0.01'], // http errors should be less than 1%
+        http_req_failed: ['rate<0.04'], // http errors should be less than 4%
         'http_req_duration{type:content}': ['p(95)<200'], // threshold on API requests only
         'http_req_duration{type:static}': ['p(95)<100'], // threshold on static content only
 
@@ -162,6 +162,7 @@ export function regular_browsing() {
                 'has correct title': (s) => s === mapping[m].title,
             });
             checkAssets(doc);
+            sleep(0.1);
         });
 
     }
