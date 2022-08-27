@@ -12,7 +12,7 @@ BUILDFLAGS ?= -a -ldflags '$(LDFLAGS)'
 TEST_FLAGS ?= -count=1
 
 GO ?= go
-APPSOURCES := $(wildcard ./app/*.go internal/*/*.go)
+APPSOURCES := $(wildcard ./*.go internal/*/*.go)
 ASSETFILES := $(wildcard templates/* templates/partials/* templates/partials/*/* assets/*/* assets/*)
 
 export CGO_ENABLED=0
