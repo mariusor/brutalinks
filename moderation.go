@@ -1,4 +1,4 @@
-package app
+package go_littr
 
 import (
 	"html/template"
@@ -122,9 +122,9 @@ type ModerationOp struct {
 	MimeType    string              `json:"-"`
 	SubmittedBy *Account            `json:"by,omitempty"`
 	Object      Renderable          `json:"-"`
-	Metadata *ModerationMetadata `json:"-"`
-	Pub      vocab.Item          `json:"-"`
-	Flags    FlagBits            `json:"flags,omitempty"`
+	Metadata    *ModerationMetadata `json:"-"`
+	Pub         vocab.Item          `json:"-"`
+	Flags       FlagBits            `json:"flags,omitempty"`
 }
 
 type ModerationMetadata struct {

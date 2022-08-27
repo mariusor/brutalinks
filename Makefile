@@ -67,7 +67,7 @@ clean:
 images:
 	$(MAKE) -C images $@
 
-test: TEST_TARGET := ./{app,internal}/...
+test: TEST_TARGET := . ./internal/...
 test: download
 	$(TEST) $(TEST_FLAGS) $(TEST_TARGET)
 

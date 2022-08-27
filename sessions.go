@@ -1,4 +1,4 @@
-package app
+package go_littr
 
 import (
 	"encoding/gob"

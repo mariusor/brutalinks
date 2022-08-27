@@ -1,4 +1,4 @@
-package app
+package go_littr
 
 import (
 	"sort"
@@ -18,8 +18,8 @@ var emptyCursor = Cursor{}
 
 type colCursor struct {
 	filters *Filters
-	loaded int
-	items  vocab.ItemCollection
+	loaded  int
+	items   vocab.ItemCollection
 }
 
 type RenderableList []Renderable

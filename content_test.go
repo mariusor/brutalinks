@@ -1,4 +1,4 @@
-package app
+package go_littr
 
 import (
 	"github.com/mariusor/go-littr/internal/config"

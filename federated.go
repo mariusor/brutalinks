@@ -1,4 +1,4 @@
-package app
+package go_littr
 
 type FedInstance struct {
 	BaseURL     string
