@@ -68,7 +68,7 @@ if [[ ${_environment} -eq "dev" ]]; then
   #ADD ./templates /templates
   buildah copy --from ${_builder} ${_image} /go/src/app/templates /templates
   #ADD ./assets /assets
-  buildah copy --from ${_builder} ${_image} /go/src/app/assets /assts
+  buildah copy --from ${_builder} ${_image} /go/src/app/assets /assets
   #ADD ./README.md /README.md
   buildah copy --from ${_builder} ${_image} /go/src/app/README.md /README.md
 fi
