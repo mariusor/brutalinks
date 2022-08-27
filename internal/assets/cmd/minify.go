@@ -1,7 +1,7 @@
 //go:build !dev
 
-//go:generate go run -tags $(ENV) assets.go -build "prod || qa" -glob templates/*,templates/partials/*,templates/partials/*/* -var TemplateFS -o internal/assets/templates.gen.go
-//go:generate go run -tags $(ENV) assets.go -build "prod || qa" -glob assets/*,assets/css/*,assets/js/*,README.md -var AssetFS -o internal/assets/assets.gen.go
+//go:generate go run -tags $(ENV) minify.go -build "prod || qa" -glob templates/*,templates/partials/*,templates/partials/*/* -var TemplateFS -o ../templates.gen.go
+//go:generate go run -tags $(ENV) minify.go -build "prod || qa" -glob assets/*,assets/css/*,assets/js/*,README.md -var AssetFS -o ../assets.gen.go
 
 package main
 
@@ -107,6 +107,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not buildFiles file: %v\n", err)
 	}
+	outputPath, err := os.Getwd()
+	if err != nil {
+		log.Fatalf("could not write to %s: %v\n", output, err)
+	}
+	output = filepath.Clean(filepath.Join(outputPath, output))
 	if err = os.WriteFile(output, code, 0644); err != nil {
 		log.Fatalf("could not write to %s: %v\n", output, err)
 	}

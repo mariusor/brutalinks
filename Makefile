@@ -48,7 +48,7 @@ download:
 
 ifneq ($(ENV), dev)
 assets: $(ASSETFILES) download
-	go generate -tags $(ENV) ./assets.go
+	go generate -tags $(ENV) ./internal/assets/cmd/minify.go
 else
 assets:
 endif
