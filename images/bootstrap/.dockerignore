@@ -1,2 +1,4 @@
 .cache/
 doc/
+tests/fedbox/fs/test/fedbox/oauth/access/*
+tests/fedbox/fs/test/fedbox/oauth/refresh/*
