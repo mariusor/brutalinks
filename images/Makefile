@@ -13,6 +13,7 @@ APP_HOSTNAME ?= brutalinks.local
 SERVER_HOSTNAME ?= fedbox.local
 PORT ?= 4001
 FEDBOX_PORT ?= 4000
+VERSION ?= (HEAD)
 ENV_FILE ?= $(shell realpath .env.$(ENV))
 ifeq ($(OAUTH2_CALLBACK_URL), )
 	override OAUTH2_CALLBACK_URL := https://$(APP_HOSTNAME)/auth/fedbox/callback
