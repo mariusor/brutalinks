@@ -48,7 +48,8 @@ download:
 
 ifneq ($(ENV), dev)
 assets: $(ASSETFILES) download
-	go generate -tags $(ENV) ./internal/assets/cmd/minify.go
+	$(GO) run -tags $(ENV) ./internal/assets/cmd/minify.go -build "prod || qa" -glob templates/*,templates/partials/*,templates/partials/*/* -var TemplateFS -o ./internal/assets/templates.gen.go
+	$(GO) run -tags $(ENV) ./internal/assets/cmd/minify.go -build "prod || qa" -glob assets/*,assets/css/*,assets/js/*,README.md -var AssetFS -o ./internal/assets/assets.gen.go
 else
 assets:
 endif

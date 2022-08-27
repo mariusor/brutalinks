@@ -1,8 +1,5 @@
 //go:build !dev
 
-//go:generate go run -tags $(ENV) minify.go -build "prod || qa" -glob templates/*,templates/partials/*,templates/partials/*/* -var TemplateFS -o ../templates.gen.go
-//go:generate go run -tags $(ENV) minify.go -build "prod || qa" -glob assets/*,assets/css/*,assets/js/*,README.md -var AssetFS -o ../assets.gen.go
-
 package main
 
 import (
@@ -28,7 +25,6 @@ var (
 	flagOutput      = flag.String("o", "", "")
 	flagVariable    = flag.String("var", "br", "")
 	flagBuild       = flag.String("build", "", "")
-	flagGitignore   = flag.Bool("gitignore", false, "")
 	flagPackageName = flag.String("package", "assets", "")
 )
 
@@ -51,8 +47,6 @@ Options:
 		Compiler build tags for the generated file, none by default.
 	-package "assets"
 		The package for the generated file.
-	-gitignore
-		Enables .gitignore rules parsing in each directory, disabled by default.
 
 Generate a minify.gen.go file with the variable minify:
 	//go:generate minify -glob assets/* -var minify
@@ -72,6 +66,11 @@ func main() {
 		flag.Usage()
 		return
 	}
+	bp, err := os.Getwd()
+	if err != nil {
+		log.Panicf("unable to determine current path: %s", err)
+	}
+	log.Printf("starting in %s", bp)
 
 	var inputs []string
 	if flagInput == nil {
