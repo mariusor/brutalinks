@@ -25,7 +25,6 @@ podman run -d \
     --net tests_default \
     --network-alias fedbox \
     --expose 443 \
-    -p 4000:443 \
     quay.io/go-ap/fedbox:qa-fs \
     /bin/fedbox
 
@@ -37,7 +36,6 @@ podman run -d \
     --net tests_default \
     --network-alias brutalinks \
     --expose 443 \
-    -p 4001:443 \
+    -p "${TEST_PORT}:443" \
     quay.io/go-ap/go-littr:qa \
     /bin/brutalinks
-

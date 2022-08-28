@@ -21,7 +21,7 @@ export const options = {
     },
 }
 
-const BASE_URL = "https://127.0.0.1:4001";
+const BASE_URL = `https://${__ENV.TEST_HOST}:${__ENV.TEST_PORT}`;
 /*
 const PASSWORD = 'Sup3rS3cretS3cr3tP4ssW0rd!';
 export function setup() {
