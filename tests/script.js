@@ -22,8 +22,10 @@ export const options = {
 }
 
 const BASE_URL = `https://${__ENV.TEST_HOST}:${__ENV.TEST_PORT}`;
+
 /*
 const PASSWORD = 'Sup3rS3cretS3cr3tP4ssW0rd!';
+
 export function setup() {
     for (let i = 1; i <= 10; i++) {
         let response = http.get(`${BASE_URL}/register/`);
@@ -51,9 +53,31 @@ export function setup() {
         });
     }
 }
+
+function authenticate() {
+    let response = http.get(`${BASE_URL}/login`);
+    check(response, {
+            'login page': (r) => r.status === 200
+        }
+    );
+
+    response = response.submitForm({
+        formSelector: 'form',
+        fields: {
+            'handle': "marius",
+            'pw': "asd",
+        },
+    });
+    check(response, {
+        'is status 200': r => r.status === 200,
+        'has auth cookie': r => function (r) {
+            console.log(r);
+        },
+    })
+}
 */
 
-const mapping = {
+const anonymousBrowsing = {
     'About': {
         'path': '/about',
         'title': 'About',
@@ -90,11 +114,13 @@ const mapping = {
         'path': '/~',
         'title': 'Account listing',
     },
+};
+
+const authenticatedBrowsing = {
     'Moderation': {
         'path': '/moderation',
         'title': 'Moderation log',
     },
-    /*
     'Followed tab': {
         'path': '/followed',
         'title': 'Followed items',
@@ -107,7 +133,6 @@ const mapping = {
         'path': '/submit',
         'title': 'Add new submission',
     },
-     */
 };
 
 function checkAssets(doc) {
@@ -149,9 +174,10 @@ export function regular_browsing() {
         });
     });
 
-    for (let m in mapping) {
+    for (let m in anonymousBrowsing) {
+        let test = anonymousBrowsing[m];
         group(m, function () {
-            let response = http.get(`${BASE_URL}${mapping[m].path}`, {tags: { type: 'content' }});
+            let response = http.get(`${BASE_URL}${test.path}`, {tags: { type: 'content' }});
             check(response, {
                 'is status 200': r => r.status === 200,
             });
@@ -159,11 +185,33 @@ export function regular_browsing() {
             const doc = parseHTML(response.body);
             // Check title matches
             check(doc.find('head title').text(), {
-                'has correct title': (s) => s === mapping[m].title,
+                'has correct title': (s) => s === test.title,
             });
             checkAssets(doc);
             sleep(0.1);
         });
-
     }
+
+
+    /*
+    authenticate();
+
+    for (let m in authenticatedBrowsing) {
+        let test = authenticatedBrowsing[m];
+        group(m, function () {
+            let response = http.get(`${BASE_URL}${test.path}`, {tags: { type: 'content' }});
+            check(response, {
+                'is status 200': r => r.status === 200,
+            });
+
+            const doc = parseHTML(response.body);
+            // Check title matches
+            check(doc.find('head title').text(), {
+                'has correct title': (s) => s === test.title,
+            });
+            checkAssets(doc);
+            sleep(0.1);
+        });
+    }
+    */
 };
