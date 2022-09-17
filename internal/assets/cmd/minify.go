@@ -13,7 +13,7 @@ import (
 	"regexp"
 	"strings"
 
-	assets "git.sr.ht/~mariusor/assets/fs"
+	"git.sr.ht/~mariusor/assets"
 	"github.com/tdewolff/minify"
 	"github.com/tdewolff/minify/css"
 	"github.com/tdewolff/minify/js"

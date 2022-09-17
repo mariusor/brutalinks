@@ -3,7 +3,7 @@ module github.com/mariusor/go-littr
 go 1.18
 
 require (
-	git.sr.ht/~mariusor/assets v0.0.0-20220809155828-400671d4f174
+	git.sr.ht/~mariusor/assets v0.0.0-20220903082417-c9a1eccd9a8e
 	git.sr.ht/~mariusor/wrapper v0.0.0-20211204195804-3033a1099e0f
 	github.com/go-ap/activitypub v0.0.0-20220706134811-0c84d76ce535
 	github.com/go-ap/client v0.0.0-20220706141149-15223abba03f

@@ -4,7 +4,6 @@ package assets
 
 import (
 	"fmt"
-	assetFS "git.sr.ht/~mariusor/assets/fs"
 	"io/fs"
 	"mime"
 	"net/http"
@@ -12,12 +11,14 @@ import (
 	"path"
 	"path/filepath"
 	"time"
+
+	"git.sr.ht/~mariusor/assets"
 )
 
 var (
 	assetDir, _ = filepath.Abs("./assets")
 	readme, _   = filepath.Abs("./README.md")
-	AssetFS     = assetFS.Aggregate(os.DirFS(assetDir), os.DirFS(readme))
+	AssetFS     = assets.Aggregate(os.DirFS(assetDir), os.DirFS(readme))
 
 	templateDir, _ = filepath.Abs("./")
 	TemplateFS     = os.DirFS(templateDir)
