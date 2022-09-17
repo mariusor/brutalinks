@@ -22,7 +22,7 @@ const defaultPort = config.DefaultListenPort
 const defaultTimeout = time.Second * 5
 
 // Run is the wrapper for starting the web-server and handling signals
-func Run(a *go_littr.Application) int {
+func Run(a *brutalinks.Application) int {
 	ctx, cancelFn := context.WithCancel(context.TODO())
 
 	setters := []w.SetFn{w.Handler(a.Mux)}
@@ -119,7 +119,7 @@ func main() {
 		version = i.Main.Version
 	}
 
-	a, err := go_littr.New(c, l, host, port, version)
+	a, err := brutalinks.New(c, l, host, port, version)
 	if err != nil {
 		l.Errorf("Failed to start application: %s", err.Error())
 		os.Exit(1)

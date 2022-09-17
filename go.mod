@@ -5,10 +5,10 @@ go 1.18
 require (
 	git.sr.ht/~mariusor/assets v0.0.0-20220903082417-c9a1eccd9a8e
 	git.sr.ht/~mariusor/wrapper v0.0.0-20211204195804-3033a1099e0f
-	github.com/go-ap/activitypub v0.0.0-20220706134811-0c84d76ce535
-	github.com/go-ap/client v0.0.0-20220706141149-15223abba03f
-	github.com/go-ap/errors v0.0.0-20220618122732-319f41ac54e1
-	github.com/go-ap/jsonld v0.0.0-20220615144122-1d862b15410d
+	github.com/go-ap/activitypub v0.0.0-20220917143152-e4e7018838c0
+	github.com/go-ap/client v0.0.0-20220917143634-73d671c1b49e
+	github.com/go-ap/errors v0.0.0-20220917143055-4283ea5dae18
+	github.com/go-ap/jsonld v0.0.0-20220917142617-76bf51585778
 	github.com/go-chi/chi/v5 v5.0.4
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/csrf v1.7.1

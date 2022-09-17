@@ -1,4 +1,4 @@
-package go_littr
+package brutalinks
 
 import (
 	"net/http"

@@ -1,4 +1,4 @@
-package go_littr
+package brutalinks
 
 import (
 	"github.com/mariusor/go-littr/internal/config"
