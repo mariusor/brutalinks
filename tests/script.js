@@ -4,17 +4,17 @@ import http from 'k6/http';
 
 export const options = {
     thresholds: {
-        http_req_failed: ['rate<0.04'], // http errors should be less than 4%
-        'http_req_duration{type:content}': ['p(95)<200'], // threshold on API requests only
-        'http_req_duration{type:static}': ['p(95)<100'], // threshold on static content only
+        'http_req_failed{type:content}': ['rate<0.03'], // http errors should be less than 4%
+        'http_req_failed{type:static}': ['rate<0.01'], // http errors should be less than 1%
+        'http_req_duration{type:content}': ['p(50)<150'], // threshold on API requests only
+        'http_req_duration{type:static}': ['p(50)<5'], // threshold on static content only
 
     },
     scenarios: {
-        RegularBrowsing: {
-            executor: 'per-vu-iterations',
-            vus: 2,
-            iterations: 10,
-            maxDuration: '1s',
+        regular_browsing: {
+            executor: 'constant-vus',
+            vus: 4,
+            duration: '5s',
             exec: 'regularBrowsing',
         },
     },
@@ -25,12 +25,12 @@ const BASE_URL = __ENV.TEST_HOST;
 export function setup() {
     for (let i in users) {
         let u = users[i];
-        let response = http.get(`${BASE_URL}/register/`);
-        check(response, {
-                'user was created': (r) => r.status === 200
-            }
-        );
-
+        let response = http.get(`${BASE_URL}/~${u.handle}`);
+        if (check(response, {
+            'is status 200': r => r.status === 200,
+        })) {
+            return;
+        }
         response = response.submitForm({
             formSelector: 'form',
             fields: {
@@ -53,6 +53,10 @@ export function setup() {
 const PASSWORD = 'Sup3rS3cretS3cr3tP4ssW0rd!';
 const users = [
     {
+        handle: 'admin',
+        pw: PASSWORD,
+    },
+    {
         handle: 'user_test_0',
         pw: PASSWORD,
     }
@@ -60,68 +64,338 @@ const users = [
 
 
 const pages = {
+    '/css/moderate.css': {
+        path: '/css/moderate.css',
+        tags: {type: 'static'},
+        checks: {
+            'is status 200': isOK,
+            'is CSS': isCSS,
+        }
+    },
+    '/css/content.css': {
+        path: '/css/content.css',
+        tags: {type: 'static'},
+        checks: {
+            'is status 200': isOK,
+            'is CSS': isCSS,
+        }
+    },
+    '/css/accounts.css': {
+        path: '/css/accounts.css',
+        tags: {type: 'static'},
+        checks: {
+            'is status 200': isOK,
+            'is CSS': isCSS,
+        }
+    },
+    '/css/listing.css': {
+        path: '/css/listing.css',
+        tags: {type: 'static'},
+        checks: {
+            'is status 200': isOK,
+            'is CSS': isCSS,
+        }
+    },
+    '/css/moderation.css': {
+        path: '/css/moderation.css',
+        tags: {type: 'static'},
+        checks: {
+            'is status 200': isOK,
+            'is CSS': isCSS,
+        }
+    },
+    '/css/user.css': {
+        path: '/css/user.css',
+        tags: {type: 'static'},
+        checks: {
+            'is status 200': isOK,
+            'is CSS': isCSS,
+        }
+    },
+    '/css/user-message.css': {
+        path: '/css/user-message.css',
+        tags: {type: 'static'},
+        checks: {
+            'is status 200': isOK,
+            'is CSS': isCSS,
+        }
+    },
+    '/css/new.css': {
+        path: '/css/new.css',
+        tags: {type: 'static'},
+        checks: {
+            'is status 200': isOK,
+            'is CSS': isCSS,
+        }
+    },
+    '/css/404.css': {
+        path: '/css/404.css',
+        tags: {type: 'static'},
+        checks: {
+            'is status 200': isOK,
+            'is CSS': isCSS,
+        }
+    },
+    '/css/about.css': {
+        path: '/css/about.css',
+        tags: {type: 'static'},
+        checks: {
+            'is status 200': isOK,
+            'is CSS': isCSS,
+        }
+    },
+    '/css/error.css': {
+        path: '/css/error.css',
+        tags: {type: 'static'},
+        checks: {
+            'is status 200': isOK,
+            'is CSS': isCSS,
+        }
+    },
+    '/css/login.css': {
+        path: '/css/login.css',
+        tags: {type: 'static'},
+        checks: {
+            'is status 200': isOK,
+            'is CSS': isCSS,
+        }
+    },
+    '/css/register.css': {
+        path: '/css/register.css',
+        tags: {type: 'static'},
+        checks: {
+            'is status 200': isOK,
+            'is CSS': isCSS,
+        }
+    },
+    '/css/inline.css': {
+        path: '/css/inline.css',
+        tags: {type: 'static'},
+        checks: {
+            'is status 200': isOK,
+            'is CSS': isCSS,
+        }
+    },
+    '/css/simple.css': {
+        path: '/css/simple.css',
+        tags: {type: 'static'},
+        checks: {
+            'is status 200': isOK,
+            'is CSS': isCSS,
+        }
+    },
+    '/css/l.css': {
+        path: '/css/l.css',
+        tags: {type: 'static'},
+        checks: {
+            'is status 200': isOK,
+            'is CSS': isCSS,
+        }
+    },
+    '/css/m.css': {
+        path: '/css/m.css',
+        tags: {type: 'static'},
+        checks: {
+            'is status 200': isOK,
+            'is CSS': isCSS,
+        }
+    },
+    '/css/s.css': {
+        path: '/css/s.css',
+        tags: {type: 'static'},
+        checks: {
+            'is status 200': isOK,
+            'is CSS': isCSS,
+        }
+    },
+    '/js/main.js': {
+        path: '/js/main.js',
+        tags: {type: 'static'},
+        checks: {
+            'is status 200': isOK,
+            'is JavaScript': isJavaScript,
+        }
+    },
+    '/robots.txt': {
+        path: '/robots.txt',
+        tags: {type: 'static'},
+        checks: {
+            'is status 200': isOK,
+            'is text': isPlainText,
+        }
+    },
+    '/ns': {
+        path: '/ns',
+        tags: {type: 'static'},
+        checks: {
+            'is status 200': isOK,
+            'is ns': isPlainText,
+        }
+    },
+    '/favicon.ico': {
+        path: '/favicon.ico',
+        tags: {type: 'static'},
+        checks: { 'is status 200': isOK }
+    },
+    '/icons.svg': {
+        path: '/icons.svg',
+        tags: {type: 'static'},
+        checks: {
+            'is status 200': isOK,
+            'is svg': isSVG,
+        }
+    },
     'About': {
         path: '/about',
-        title: 'About',
+        tags: {type: 'content'},
+        checks: {
+            'status 200': isOK,
+            'is HTML': isHTML,
+            'has correct title': hasTitle( 'About'),
+        },
     },
     'Homepage': {
         path: '/',
-        title: 'Newest items',
+        tags: {type: 'content'},
+        checks: {
+            'status 200': isOK,
+            'is HTML': isHTML,
+            'has correct title': hasTitle( 'Newest items')
+        },
     },
     'Local tab': {
         path: '/self',
-        title: 'Local instance items',
+        tags: {type: 'content'},
+        checks: {
+            'status 200': isOK,
+            'is HTML': isHTML,
+            'has correct title': hasTitle( 'Local instance items'),
+        },
     },
     'Federated tab': {
         path: '/federated',
-        title: 'Federated items',
+        tags: {type: 'content'},
+        checks: {
+            'status 200': isOK,
+            'is HTML': isHTML,
+            'has correct title': hasTitle( 'Federated items'),
+        },
     },
     'Tags': {
         path: '/t/tags',
-        title: 'Items tagged as #tags',
+        tags: {type: 'content'},
+        checks: {
+            'status 200': isOK,
+            'is HTML': isHTML,
+            'has correct title': hasTitle( 'Items tagged as #tags'),
+        },
     },
     'Discussions': {
         path: '/d',
-        title: 'Discussion items',
+        tags: {type: 'content'},
+        checks: {
+            'status 200': isOK,
+            'is HTML': isHTML,
+            'has correct title': hasTitle( 'Discussion items'),
+        },
     },
     'Login': {
         path: '/login',
-        title: 'Local authentication',
+        tags: {type: 'content'},
+        checks: {
+            'status 200': isOK,
+            'is HTML': isHTML,
+            'has correct title': hasTitle( 'Local authentication'),
+        },
     },
     'Register': {
         path: '/register',
-        title: 'Register new account',
+        tags: {type: 'content'},
+        checks: {
+            'status 200': isOK,
+            'is HTML': isHTML,
+            'has correct title': hasTitle( 'Register new account'),
+        },
     },
     'Users listing': {
         path: '/~',
-        title: 'Account listing',
+        tags: {type: 'content'},
+        checks: {
+            'status 200': isOK,
+            'is HTML': isHTML,
+            'has correct title': hasTitle('Account listing'),
+        },
     },
     'Moderation': {
         path: '/moderation',
-        title: 'Moderation log',
+        tags: {type: 'content'},
+        checks: {
+            'status 200': isOK,
+            'is HTML': isHTML,
+            'has correct title': hasTitle( 'Moderation log'),
+        },
         user: users[0],
     },
     'Followed tab': {
         path: '/followed',
-        title: 'Followed items',
+        tags: {type: 'content'},
+        checks: {
+            'status 200': isOK,
+            'is HTML': isHTML,
+            'has correct title': hasTitle( 'Followed items'),
+        },
         user: users[0],
     },
     'User page': {
         path: `/~${users[0].handle}`,
-        title: `${users[0].handle}'s submissions`,
+        tags: {type: 'content'},
+        checks: {
+            'status 200': isOK,
+            'is HTML': isHTML,
+            'has correct title': hasTitle( `${users[0].handle}'s submissions`),
+        },
         user: users[0],
     },
     'New submission page': {
         path: '/submit',
-        title: 'Add new submission',
+        tags: {type: 'content'},
+        checks: {
+            'status 200': isOK,
+            'is HTML': isHTML,
+            'has correct title': hasTitle('Add new submission'),
+        },
         user: users[0],
     },
 };
 
+function isOK(r) {
+    return r.status === 200
+}
+function isSVG(r) {
+    return contentTypeIs(r) === 'image/svg+xml'
+}
+function isHTML(r) {
+    return contentTypeIs(r) === 'text/html; charset=utf-8';
+}
+function isPlainText(r) {
+    return contentTypeIs(r) === 'text/plain';
+}
+function isJavaScript(r) {
+    return contentTypeIs(r) === 'text/javascript; charset=utf-8';
+}
+function isCSS(r) {
+  return contentTypeIs(r) == 'text/css; charset=utf-8';
+}
+function hasTitle(s) {
+    return (r) => titleTextIs(r) === s
+}
+const contentTypeIs = (r) => r.headers["Content-Type"].toLowerCase();
+const titleTextIs = (r) => parseHTML(r.body).find('head title').text();
+
 function authenticate(u) {
     let response = http.get(`${BASE_URL}/login`);
     check(response, {
-            'login page': (r) => r.status === 200
+            'login page': isOK
         }
     );
 
@@ -137,76 +411,26 @@ function authenticate(u) {
     })
 };
 
-function checkTitle(test, doc) {
-    // Check title matches
-    let tit = doc.find('head title').text();
-    if (!check(tit, {
-        'has correct title': (s) => s === test.title,
-    })) {
-        fail(`Title "${tit}", expected "${test.title}"`)
-    }
-}
-
-function checkAssets(test, doc) {
-    let styles = doc.find('link[rel=stylesheet]');
-    styles.map(
-        function (idx, el) {
-            group(`stylesheets[${styles.size()}]`, function () {
-                let styleURL = el.attr('href');
-                group(`${styleURL}`, function () {
-                    let response = http.get(`${BASE_URL}${styleURL}`, {tags: {type: 'static'}})
-                    check(response, {
-                        'OK': (r) => r.status === 200 && r.headers["Content-Type"] === 'text/css; charset=utf-8',
-                    });
-                });
-            });
-        }
-    );
-
-    let scripts = doc.find('script[src]');
-    scripts.map((idx, el) => {
-        group(`scripts[${scripts.size()}]`, function () {
-            let scriptURL = el.attr('src');
-            group(`${scriptURL}`, function () {
-                let response = http.get(`${BASE_URL}${scriptURL}`, {tags: {type: 'static'}})
-                check(response, {
-                    'OK': (r) => r.status === 200 && r.headers["Content-Type"] === 'text/javascript; charset=utf-8',
-                });
-            });
-        });
-    });
-}
-
-function pageAssertions(test) {
-    return function () {
-        let response = http.get(`${BASE_URL}${test.path}`, {tags: {type: 'content'}});
-        check(response, {
-            'is status 200': r => r.status === 200,
-        });
-
-        const doc = parseHTML(response.body);
-        checkTitle(test, doc);
-        checkAssets(test, doc);
-    }
-};
-
 export function regularBrowsing() {
-    group('/icons.svg', function () {
-        let response = http.get(`${BASE_URL}/icons.svg`, {tags: {type: 'static'}})
-        check(response, {
-            'is status 200': (r) => r.status === 200,
-            'is svg': (r) => r.headers["Content-Type"] === 'image/svg+xml',
-        });
-    });
-
     for (let m in pages) {
         let test = pages[m];
-        if (test.hasOwnProperty("user")) {
-            let u = test.user;
-            authenticate(u);
-            m = `${m}: ${u.handle}`
+        if (!test.hasOwnProperty("path")) {
+            fail('invalid test element, missing "path" property')
         }
-        group(m, pageAssertions(test));
+        if (!test.hasOwnProperty("checks")) {
+            fail('invalid test element, missing "checks" property')
+        }
+        group(m, function () {
+            if (test.hasOwnProperty("user")) {
+                authenticate(test.user);
+                m = `${m}: ${test.user.handle}`
+            }
+
+            check(
+                http.get(`${BASE_URL}${test.path}`, {tags: test.tags}),
+                test.checks
+            );
+        });
         sleep(0.1);
     }
 };
