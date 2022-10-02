@@ -3,7 +3,6 @@ import {parseHTML} from 'k6/html';
 import http from 'k6/http';
 
 export const options = {
-    insecureSkipTLSVerify: true,
     thresholds: {
         http_req_failed: ['rate<0.04'], // http errors should be less than 4%
         'http_req_duration{type:content}': ['p(95)<200'], // threshold on API requests only
@@ -28,7 +27,7 @@ export const options = {
     },
 }
 
-const BASE_URL = `https://${__ENV.TEST_HOST}:${__ENV.TEST_PORT}`;
+const BASE_URL = __ENV.TEST_HOST;
 
 export function setup() {
     for (let i in users) {
