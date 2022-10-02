@@ -15,5 +15,5 @@ pwd := $(abspath $(dir mkfile_path))
 
 test:
 	TEST_PORT=$(TEST_PORT) ./run-pods.sh
-	k6 run --no-usage-report --insecure-skip-tls-verify --no-summary \
+	k6 run --no-usage-report --insecure-skip-tls-verify \
 		--env TEST_HOST=https://$(TEST_HOST):$(TEST_PORT) ./script.js
