@@ -17,13 +17,6 @@ export const options = {
             maxDuration: '1s',
             exec: 'regularBrowsing',
         },
-        AuthenticatedBrowsing: {
-            executor: 'per-vu-iterations',
-            vus: 2,
-            iterations: 10,
-            maxDuration: '1s',
-            exec: 'authenticatedBrowsing',
-        },
     },
 }
 
@@ -57,46 +50,104 @@ export function setup() {
     }
 }
 
-const anonymousPages = {
+const PASSWORD = 'Sup3rS3cretS3cr3tP4ssW0rd!';
+const users = [
+    {
+        handle: 'user_test_0',
+        pw: PASSWORD,
+    }
+];
+
+
+const pages = {
     'About': {
-        'path': '/about',
-        'title': 'About',
+        path: '/about',
+        title: 'About',
     },
     'Homepage': {
-        'path': '/',
-        'title': 'Newest items',
+        path: '/',
+        title: 'Newest items',
     },
     'Local tab': {
-        'path': '/self',
-        'title': 'Local instance items',
+        path: '/self',
+        title: 'Local instance items',
     },
     'Federated tab': {
-        'path': '/federated',
-        'title': 'Federated items',
+        path: '/federated',
+        title: 'Federated items',
     },
     'Tags': {
-        'path': '/t/tags',
-        'title': 'Items tagged as #tags',
+        path: '/t/tags',
+        title: 'Items tagged as #tags',
     },
     'Discussions': {
-        'path': '/d',
-        'title': 'Discussion items',
+        path: '/d',
+        title: 'Discussion items',
     },
     'Login': {
-        'path': '/login',
-        'title': 'Local authentication',
+        path: '/login',
+        title: 'Local authentication',
     },
     'Register': {
-        'path': '/register',
-        'title': 'Register new account',
+        path: '/register',
+        title: 'Register new account',
     },
     'Users listing': {
-        'path': '/~',
-        'title': 'Account listing',
+        path: '/~',
+        title: 'Account listing',
+    },
+    'Moderation': {
+        path: '/moderation',
+        title: 'Moderation log',
+        user: users[0],
+    },
+    'Followed tab': {
+        path: '/followed',
+        title: 'Followed items',
+        user: users[0],
+    },
+    'User page': {
+        path: `/~${users[0].handle}`,
+        title: `${users[0].handle}'s submissions`,
+        user: users[0],
+    },
+    'New submission page': {
+        path: '/submit',
+        title: 'Add new submission',
+        user: users[0],
     },
 };
 
-function checkAssets(doc) {
+function authenticate(u) {
+    let response = http.get(`${BASE_URL}/login`);
+    check(response, {
+            'login page': (r) => r.status === 200
+        }
+    );
+
+    response = response.submitForm({
+        formSelector: 'form',
+        fields: u,
+    });
+    check(response, {
+        'is status 200': r => r.status === 200,
+        'has auth cookie': r => function (r) {
+            console.log(r);
+        },
+    })
+};
+
+function checkTitle(test, doc) {
+    // Check title matches
+    let tit = doc.find('head title').text();
+    if (!check(tit, {
+        'has correct title': (s) => s === test.title,
+    })) {
+        fail(`Title "${tit}", expected "${test.title}"`)
+    }
+}
+
+function checkAssets(test, doc) {
     let styles = doc.find('link[rel=stylesheet]');
     styles.map(
         function (idx, el) {
@@ -134,12 +185,8 @@ function pageAssertions(test) {
         });
 
         const doc = parseHTML(response.body);
-        // Check title matches
-        check(doc.find('head title').text(), {
-            'has correct title': (s) => s === test.title,
-        });
-        checkAssets(doc);
-        sleep(0.1);
+        checkTitle(test, doc);
+        checkAssets(test, doc);
     }
 };
 
@@ -152,74 +199,15 @@ export function regularBrowsing() {
         });
     });
 
-    for (let m in anonymousPages) {
-        let test = anonymousPages[m];
+    for (let m in pages) {
+        let test = pages[m];
+        if (test.hasOwnProperty("user")) {
+            let u = test.user;
+            authenticate(u);
+            m = `${m}: ${u.handle}`
+        }
         group(m, pageAssertions(test));
+        sleep(0.1);
     }
 };
 
-const PASSWORD = 'Sup3rS3cretS3cr3tP4ssW0rd!';
-const users = [
-    {
-        handle: 'user_test_0',
-        pw: PASSWORD,
-    }
-];
-
-const authenticatedPages = {
-    'Moderation': {
-        path: '/moderation',
-        title: 'Moderation log',
-        user: users[0],
-    },
-    'Followed tab': {
-        path: '/followed',
-        title: 'Followed items',
-        user: users[0],
-    },
-    'User page': {
-        path: `/~${users[0].handle}`,
-        title: `${users[0].handle}&#39;s submissions`,
-        user: users[0],
-    },
-    'New submission page': {
-        path: '/submit',
-        title: 'Add new submission',
-        user: users[0],
-    },
-};
-
-function authenticate(u) {
-    let response = http.get(`${BASE_URL}/login`);
-    check(response, {
-            'login page': (r) => r.status === 200
-        }
-    );
-
-    response = response.submitForm({
-        formSelector: 'form',
-        fields: u,
-    });
-    check(response, {
-        'is status 200': r => r.status === 200,
-        'has auth cookie': r => function (r) {
-            console.log(r);
-        },
-    })
-}
-
-export function authenticatedBrowsing() {
-    for (let m in authenticatedPages) {
-        let test = authenticatedPages[m];
-
-        if (test.user == null) {
-            fail("invalid user");
-            return;
-        }
-        let u = test.user;
-
-        authenticate(u);
-
-        group(`${m}: ${u.handle}`, pageAssertions(test));
-    }
-};
