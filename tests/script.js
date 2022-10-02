@@ -229,20 +229,23 @@ const pages = {
         tags: {type: 'static'},
         checks: {
             'is status 200': isOK,
-            'is ns': isPlainText,
+            'is ns': (r) => contentType(r) === 'application/xrd+json; charset=utf-8',
         }
     },
     '/favicon.ico': {
         path: '/favicon.ico',
         tags: {type: 'static'},
-        checks: { 'is status 200': isOK }
+        checks: {
+            'is status 200': isOK,
+            'is ns': (r) => contentType(r) === ' image/vnd.microsoft.icon',
+        }
     },
     '/icons.svg': {
         path: '/icons.svg',
         tags: {type: 'static'},
         checks: {
             'is status 200': isOK,
-            'is svg': isSVG,
+            'is svg': (r) => contentType(r) === 'image/svg+xml',
         }
     },
     'About': {
@@ -371,26 +374,23 @@ const pages = {
 function isOK(r) {
     return r.status === 200
 }
-function isSVG(r) {
-    return contentTypeIs(r) === 'image/svg+xml'
-}
 function isHTML(r) {
-    return contentTypeIs(r) === 'text/html; charset=utf-8';
+    return contentType(r) === 'text/html; charset=utf-8';
 }
 function isPlainText(r) {
-    return contentTypeIs(r) === 'text/plain';
+    return contentType(r) === 'text/plain; charset=utf-8';
 }
 function isJavaScript(r) {
-    return contentTypeIs(r) === 'text/javascript; charset=utf-8';
+    return contentType(r) === 'text/javascript; charset=utf-8';
 }
 function isCSS(r) {
-  return contentTypeIs(r) == 'text/css; charset=utf-8';
+  return contentType(r) == 'text/css; charset=utf-8';
 }
 function hasTitle(s) {
-    return (r) => titleTextIs(r) === s
+    return (r) => htmlTitle(r) === s
 }
-const contentTypeIs = (r) => r.headers["Content-Type"].toLowerCase();
-const titleTextIs = (r) => parseHTML(r.body).find('head title').text();
+const contentType = (r) => r.headers["Content-Type"].toLowerCase();
+const htmlTitle = (r) => parseHTML(r.body).find('head title').text();
 
 function authenticate(u) {
     let response = http.get(`${BASE_URL}/login`);
