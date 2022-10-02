@@ -16,7 +16,7 @@ func Write(s fs.FS) func(http.ResponseWriter, *http.Request) {
 
 	assetContents := make(map[string][]byte)
 	mime.AddExtensionType(".ico", "image/vnd.microsoft.icon")
-	mime.AddExtensionType(".text", "text/plain; charset=utf-8")
+	mime.AddExtensionType(".txt", "text/plain; charset=utf-8")
 	return func(w http.ResponseWriter, r *http.Request) {
 		asset := r.RequestURI
 

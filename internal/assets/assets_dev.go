@@ -27,7 +27,7 @@ func Write(s fs.FS) func(http.ResponseWriter, *http.Request) {
 	const cacheTime = 8766 * time.Hour
 
 	mime.AddExtensionType(".ico", "image/vnd.microsoft.icon")
-	mime.AddExtensionType(".text", "text/plain; charset=utf-8")
+	mime.AddExtensionType(".txt", "text/plain; charset=utf-8")
 	return func(w http.ResponseWriter, r *http.Request) {
 		asset := r.RequestURI
 		mimeType := mime.TypeByExtension(filepath.Ext(asset))
