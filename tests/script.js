@@ -8,14 +8,14 @@ export const options = {
         'http_req_failed{type:static}': ['rate<0.01'], // http errors should be less than 1%
         'http_req_duration{type:content}': ['p(50)<150'], // threshold on API requests only
         'http_req_duration{type:static}': ['p(50)<5'], // threshold on static content only
-
     },
     scenarios: {
         regular_browsing: {
             executor: 'constant-vus',
             vus: 4,
-            duration: '5s',
+            duration: '10s',
             exec: 'regularBrowsing',
+            gracefulStop: 0,
         },
     },
 }
@@ -25,13 +25,13 @@ const BASE_URL = __ENV.TEST_HOST;
 export function setup() {
     for (let i in users) {
         let u = users[i];
-        let response = http.get(`${BASE_URL}/~${u.handle}`);
-        if (check(response, {
-            'is status 200': r => r.status === 200,
+        if (check(http.get(`${BASE_URL}/~${u.handle}`), {
+            'user exists': (r) => r.status === 200,
         })) {
             return;
         }
-        response = response.submitForm({
+
+        let response = http.get(`${BASE_URL}/register`).submitForm({
             formSelector: 'form',
             fields: {
                 'handle': u.handle,
@@ -40,12 +40,12 @@ export function setup() {
             },
         });
         check(response, {
-            'is status 200': r => r.status === 200,
+            'user created': r => r.status === 200,
         })
 
         response = http.get(`${BASE_URL}/~${u.handle}`);
         check(response, {
-            'is status 200': r => r.status === 200,
+            'user exists': r => r.status === 200,
         });
     }
 }
@@ -389,7 +389,7 @@ function isCSS(r) {
 function hasTitle(s) {
     return (r) => htmlTitle(r) === s
 }
-const contentType = (r) => r.headers["Content-Type"].toLowerCase();
+const contentType = (r) => r.headers.hasOwnProperty('Content-Type') ? r.headers['Content-Type'].toLowerCase() : '';
 const htmlTitle = (r) => parseHTML(r.body).find('head title').text();
 
 function authenticate(u) {
