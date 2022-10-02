@@ -6,8 +6,8 @@ export const options = {
     thresholds: {
         'http_req_failed{type:content}': ['rate<0.03'], // http errors should be less than 4%
         'http_req_failed{type:static}': ['rate<0.01'], // http errors should be less than 1%
-        'http_req_duration{type:content}': ['p(50)<150'], // threshold on API requests only
-        'http_req_duration{type:static}': ['p(50)<5'], // threshold on static content only
+        'http_req_duration{type:content}': ['p(50)<150'], // threshold on API requests only under 150ms
+        'http_req_duration{type:static}': ['p(50)<5'], // threshold on static content only under 5ms
     },
     scenarios: {
         regular_browsing: {
@@ -67,146 +67,92 @@ const pages = {
     '/css/moderate.css': {
         path: '/css/moderate.css',
         tags: {type: 'static'},
-        checks: {
-            'is status 200': isOK,
-            'is CSS': isCSS,
-        }
+        checks: CSSChecks(),
     },
     '/css/content.css': {
         path: '/css/content.css',
         tags: {type: 'static'},
-        checks: {
-            'is status 200': isOK,
-            'is CSS': isCSS,
-        }
+        checks: CSSChecks(),
     },
     '/css/accounts.css': {
         path: '/css/accounts.css',
         tags: {type: 'static'},
-        checks: {
-            'is status 200': isOK,
-            'is CSS': isCSS,
-        }
+        checks: CSSChecks(),
     },
     '/css/listing.css': {
         path: '/css/listing.css',
         tags: {type: 'static'},
-        checks: {
-            'is status 200': isOK,
-            'is CSS': isCSS,
-        }
+        checks: CSSChecks(),
     },
     '/css/moderation.css': {
         path: '/css/moderation.css',
         tags: {type: 'static'},
-        checks: {
-            'is status 200': isOK,
-            'is CSS': isCSS,
-        }
+        checks: CSSChecks(),
     },
     '/css/user.css': {
         path: '/css/user.css',
         tags: {type: 'static'},
-        checks: {
-            'is status 200': isOK,
-            'is CSS': isCSS,
-        }
+        checks: CSSChecks(),
     },
     '/css/user-message.css': {
         path: '/css/user-message.css',
         tags: {type: 'static'},
-        checks: {
-            'is status 200': isOK,
-            'is CSS': isCSS,
-        }
+        checks: CSSChecks(),
     },
     '/css/new.css': {
         path: '/css/new.css',
         tags: {type: 'static'},
-        checks: {
-            'is status 200': isOK,
-            'is CSS': isCSS,
-        }
+        checks: CSSChecks(),
     },
     '/css/404.css': {
         path: '/css/404.css',
         tags: {type: 'static'},
-        checks: {
-            'is status 200': isOK,
-            'is CSS': isCSS,
-        }
+        checks: CSSChecks(),
     },
     '/css/about.css': {
         path: '/css/about.css',
         tags: {type: 'static'},
-        checks: {
-            'is status 200': isOK,
-            'is CSS': isCSS,
-        }
+        checks: CSSChecks(),
     },
     '/css/error.css': {
         path: '/css/error.css',
         tags: {type: 'static'},
-        checks: {
-            'is status 200': isOK,
-            'is CSS': isCSS,
-        }
+        checks: CSSChecks(),
     },
     '/css/login.css': {
         path: '/css/login.css',
         tags: {type: 'static'},
-        checks: {
-            'is status 200': isOK,
-            'is CSS': isCSS,
-        }
+        checks: CSSChecks(),
     },
     '/css/register.css': {
         path: '/css/register.css',
         tags: {type: 'static'},
-        checks: {
-            'is status 200': isOK,
-            'is CSS': isCSS,
-        }
+        checks: CSSChecks(),
     },
     '/css/inline.css': {
         path: '/css/inline.css',
         tags: {type: 'static'},
-        checks: {
-            'is status 200': isOK,
-            'is CSS': isCSS,
-        }
+        checks: CSSChecks(),
     },
     '/css/simple.css': {
         path: '/css/simple.css',
         tags: {type: 'static'},
-        checks: {
-            'is status 200': isOK,
-            'is CSS': isCSS,
-        }
+        checks: CSSChecks(),
     },
     '/css/l.css': {
         path: '/css/l.css',
         tags: {type: 'static'},
-        checks: {
-            'is status 200': isOK,
-            'is CSS': isCSS,
-        }
+        checks: CSSChecks(),
     },
     '/css/m.css': {
         path: '/css/m.css',
         tags: {type: 'static'},
-        checks: {
-            'is status 200': isOK,
-            'is CSS': isCSS,
-        }
+        checks: CSSChecks(),
     },
     '/css/s.css': {
         path: '/css/s.css',
         tags: {type: 'static'},
-        checks: {
-            'is status 200': isOK,
-            'is CSS': isCSS,
-        }
+        checks: CSSChecks(),
     },
     '/js/main.js': {
         path: '/js/main.js',
@@ -251,163 +197,132 @@ const pages = {
     'About': {
         path: '/about',
         tags: {type: 'content'},
-        checks: {
-            'status 200': isOK,
-            'is HTML': isHTML,
-            'has correct title': hasTitle( 'About'),
-        },
+        checks: HTMLChecks('About'),
     },
     'Homepage': {
         path: '/',
         tags: {type: 'content'},
-        checks: {
-            'status 200': isOK,
-            'is HTML': isHTML,
-            'has correct title': hasTitle( 'Newest items')
-        },
+        checks: HTMLChecks('Newest items')
     },
     'Local tab': {
         path: '/self',
         tags: {type: 'content'},
-        checks: {
-            'status 200': isOK,
-            'is HTML': isHTML,
-            'has correct title': hasTitle( 'Local instance items'),
-        },
+        checks: HTMLChecks('Local instance items'),
     },
     'Federated tab': {
         path: '/federated',
         tags: {type: 'content'},
-        checks: {
-            'status 200': isOK,
-            'is HTML': isHTML,
-            'has correct title': hasTitle( 'Federated items'),
-        },
+        checks: HTMLChecks('Federated items'),
     },
     'Tags': {
         path: '/t/tags',
         tags: {type: 'content'},
-        checks: {
-            'status 200': isOK,
-            'is HTML': isHTML,
-            'has correct title': hasTitle( 'Items tagged as #tags'),
-        },
+        checks: HTMLChecks('Items tagged as #tags'),
     },
     'Discussions': {
         path: '/d',
         tags: {type: 'content'},
-        checks: {
-            'status 200': isOK,
-            'is HTML': isHTML,
-            'has correct title': hasTitle( 'Discussion items'),
-        },
+        checks: HTMLChecks('Discussion items'),
     },
     'Login': {
         path: '/login',
         tags: {type: 'content'},
-        checks: {
-            'status 200': isOK,
-            'is HTML': isHTML,
-            'has correct title': hasTitle( 'Local authentication'),
-        },
+        checks: HTMLChecks('Local authentication'),
     },
     'Register': {
         path: '/register',
         tags: {type: 'content'},
-        checks: {
-            'status 200': isOK,
-            'is HTML': isHTML,
-            'has correct title': hasTitle( 'Register new account'),
-        },
+        checks: HTMLChecks('Register new account'),
     },
     'Users listing': {
         path: '/~',
         tags: {type: 'content'},
-        checks: {
-            'status 200': isOK,
-            'is HTML': isHTML,
-            'has correct title': hasTitle('Account listing'),
-        },
+        checks: HTMLChecks('Account listing'),
     },
     'Moderation': {
         path: '/moderation',
         tags: {type: 'content'},
-        checks: {
-            'status 200': isOK,
-            'is HTML': isHTML,
-            'has correct title': hasTitle( 'Moderation log'),
-        },
+        checks: HTMLChecks('Moderation log'),
         user: users[0],
     },
     'Followed tab': {
         path: '/followed',
         tags: {type: 'content'},
-        checks: {
-            'status 200': isOK,
-            'is HTML': isHTML,
-            'has correct title': hasTitle( 'Followed items'),
-        },
+        checks: HTMLChecks('Followed items'),
         user: users[0],
     },
     'User page': {
         path: `/~${users[0].handle}`,
         tags: {type: 'content'},
-        checks: {
-            'status 200': isOK,
-            'is HTML': isHTML,
-            'has correct title': hasTitle( `${users[0].handle}'s submissions`),
-        },
+        checks: HTMLChecks(`${users[0].handle}'s submissions`),
         user: users[0],
     },
     'New submission page': {
         path: '/submit',
         tags: {type: 'content'},
-        checks: {
-            'status 200': isOK,
-            'is HTML': isHTML,
-            'has correct title': hasTitle('Add new submission'),
-        },
+        checks: HTMLChecks('Add new submission'),
         user: users[0],
     },
 };
 
+function HTMLChecks(title) {
+    return {
+        'status 200': isOK,
+        'is HTML': isHTML,
+        'has correct title': hasTitle(title),
+    }
+}
+
+function CSSChecks() {
+    return {
+        'is status 200': isOK,
+        'is CSS': isCSS,
+    }
+}
+
 function isOK(r) {
     return r.status === 200
 }
+
 function isHTML(r) {
     return contentType(r) === 'text/html; charset=utf-8';
 }
+
 function isPlainText(r) {
     return contentType(r) === 'text/plain; charset=utf-8';
 }
+
 function isJavaScript(r) {
     return contentType(r) === 'text/javascript; charset=utf-8';
 }
-function isCSS(r) {
-  return contentType(r) == 'text/css; charset=utf-8';
-}
+
 function hasTitle(s) {
     return (r) => htmlTitle(r) === s
 }
+
+function isCSS(r) {
+    return contentType(r) == 'text/css; charset=utf-8';
+}
+
 const contentType = (r) => r.headers.hasOwnProperty('Content-Type') ? r.headers['Content-Type'].toLowerCase() : '';
 const htmlTitle = (r) => parseHTML(r.body).find('head title').text();
 
 function authenticate(u) {
     let response = http.get(`${BASE_URL}/login`);
-    check(response, {
-            'login page': isOK
-        }
-    );
+    if (!check(response, { 'login page': isOK } )) {
+        fail('invalid login response');
+        return;
+    }
 
     response = response.submitForm({
         formSelector: 'form',
         fields: u,
     });
+
+    const cookiesForURL = http.cookieJar().cookiesForURL(response.url);
     check(response, {
-        'is status 200': r => r.status === 200,
-        'has auth cookie': r => function (r) {
-            console.log(r);
-        },
+        'is status 200': isOK,
+        'has session cookie': () => cookiesForURL._s.length > 0,
     })
 };
 
