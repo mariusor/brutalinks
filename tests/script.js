@@ -170,14 +170,6 @@ const pages = {
             'is text': isPlainText,
         }
     },
-    '/ns': {
-        path: '/ns',
-        tags: {type: 'static'},
-        checks: {
-            'is status 200': isOK,
-            'is ns': (r) => contentType(r) === 'application/xrd+json; charset=utf-8',
-        }
-    },
     '/favicon.ico': {
         path: '/favicon.ico',
         tags: {type: 'static'},

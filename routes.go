@@ -33,7 +33,6 @@ var assetFiles = ass.Map{
 	"/css/s.css":            {"css/s.css"},
 	"/js/main.js":           {"js/base.js", "js/main.js"},
 	"/robots.txt":           {"robots.txt"},
-	"/ns":                   {"ns.json"},
 	"/favicon.ico":          {"favicon.ico"},
 	"/icons.svg":            {"icons.svg"},
 }

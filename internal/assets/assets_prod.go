@@ -19,11 +19,8 @@ func Write(s fs.FS) func(http.ResponseWriter, *http.Request) {
 	mime.AddExtensionType(".txt", "text/plain; charset=utf-8")
 	return func(w http.ResponseWriter, r *http.Request) {
 		asset := r.RequestURI
-
 		mimeType := mime.TypeByExtension(filepath.Ext(asset))
-		if asset == "/ns" {
-			mimeType = "application/xrd+json; charset=utf-8"
-		}
+
 		buf, ok := assetContents[asset]
 		if !ok {
 			cont, err := fs.ReadFile(s, asset)
