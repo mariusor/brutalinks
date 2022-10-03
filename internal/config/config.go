@@ -123,7 +123,7 @@ func Load(e EnvType, wait time.Duration) *Configuration {
 		appendIfFile(e)
 	}
 	for _, f := range configs {
-		godotenv.Overload(f)
+		godotenv.Load(f)
 	}
 	lvl := loadKeyFromEnv(KeyLogLevel, "INFO")
 	switch strings.ToLower(lvl) {
