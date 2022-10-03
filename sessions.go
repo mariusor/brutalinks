@@ -10,6 +10,7 @@ import (
 	vocab "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
 	"github.com/gorilla/sessions"
+	"github.com/mariusor/go-littr/internal/config"
 	"github.com/mariusor/go-littr/internal/log"
 )
 
@@ -61,14 +62,14 @@ func initSession(c appConfig, infoFn, errFn CtxLogFn) (sess, error) {
 
 	var err error
 	switch strings.ToLower(c.SessionsBackend) {
-	case sessionsCookieBackend:
+	case config.SessionsCookieBackend:
 		s.s, err = initCookieSession(c, infoFn, errFn)
-	case sessionsFSBackend:
+	case config.SessionsFSBackend:
 		fallthrough
 	default:
-		if strings.ToLower(c.SessionsBackend) != sessionsFSBackend {
-			infoFn(log.Ctx{"backend": c.SessionsBackend})("Invalid session backend, falling back to %s.", sessionsFSBackend)
-			c.SessionsBackend = sessionsFSBackend
+		if strings.ToLower(c.SessionsBackend) != config.SessionsFSBackend {
+			infoFn(log.Ctx{"backend": c.SessionsBackend})("Invalid session backend, falling back to %s.", config.SessionsFSBackend)
+			c.SessionsBackend = config.SessionsFSBackend
 		}
 		s.path = path.Clean(path.Join(c.SessionsPath, string(c.Env), c.HostName))
 		s.s, err = initFileSession(c, s.path, infoFn, errFn)

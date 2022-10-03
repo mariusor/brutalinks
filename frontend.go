@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/go-ap/errors"
@@ -15,10 +14,8 @@ import (
 )
 
 const (
-	sessionName           = "_s"
-	csrfName              = "_c"
-	sessionsCookieBackend = "cookie"
-	sessionsFSBackend     = "fs"
+	sessionName = "_s"
+	csrfName    = "_c"
 )
 
 type handler struct {
@@ -32,11 +29,8 @@ type handler struct {
 
 type appConfig struct {
 	config.Configuration
-	BaseURL         string
-	SessionKeys     [][]byte
-	SessionsBackend string
-	SessionsPath    string
-	Logger          log.Logger
+	BaseURL string
+	Logger  log.Logger
 }
 
 var defaultLogFn = func(string, ...interface{}) {}
@@ -70,15 +64,6 @@ func (h *handler) init(c appConfig) error {
 		h.logger = c.Logger
 	}
 
-	// TODO(marius): this should also be moved to the internal config package
-	if c.SessionsBackend = os.Getenv("SESSIONS_BACKEND"); c.SessionsBackend == "" {
-		c.SessionsBackend = sessionsFSBackend
-	}
-	if c.SessionsPath = os.Getenv("SESSIONS_PATH"); c.SessionsPath == "" {
-		c.SessionsPath = os.TempDir()
-	}
-	c.SessionsBackend = strings.ToLower(c.SessionsBackend)
-	c.SessionKeys = loadEnvSessionKeys()
 	h.conf = c
 
 	if err := ConnectFedBOX(h, h.conf); err != nil {
@@ -476,17 +461,6 @@ func httpErrorResponse(e error) int {
 		return http.StatusInternalServerError
 	}
 	return http.StatusInternalServerError
-}
-
-func loadEnvSessionKeys() [][]byte {
-	keys := make([][]byte, 0)
-	if authKey := os.Getenv(config.KeySessionAuthKey); len(authKey) >= 16 {
-		keys = append(keys, []byte(authKey[:16]))
-	}
-	if encKey := os.Getenv(config.KeySessionEncKey); len(encKey) >= 16 {
-		keys = append(keys, []byte(encKey[:16]))
-	}
-	return keys
 }
 
 func (h *handler) ErrorHandler(errs ...error) http.Handler {

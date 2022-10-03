@@ -37,12 +37,18 @@ type Configuration struct {
 	ModerationEnabled          bool
 	CachingEnabled             bool
 	MaintenanceMode            bool
+	SessionKeys                [][]byte
+	SessionsBackend            string
+	SessionsPath               string
 }
 
 const (
 	DefaultListenPort = 3000
 	DefaultListenHost = ""
 	Prefix            = "LITTR"
+
+	SessionsCookieBackend = "cookie"
+	SessionsFSBackend     = "fs"
 )
 
 const (
@@ -73,6 +79,8 @@ const (
 
 	KeySessionAuthKey = "SESS_AUTH_KEY"
 	KeySessionEncKey  = "SESS_ENC_KEY"
+	KeySessionBackend = "SESSIONS_BACKEND"
+	KeySessionPath    = "SESSIONS_PATH"
 )
 
 func prefKey(k string) string {
@@ -172,10 +180,19 @@ func Load(e EnvType, wait time.Duration) *Configuration {
 	cachingDisabled, _ := strconv.ParseBool(loadKeyFromEnv(KeyDisableCaching, ""))
 	c.CachingEnabled = !cachingDisabled
 
-	c.AdminContact = loadKeyFromEnv(KeyAdminContact, "") // ADMIN_CONTACT
+	c.AdminContact = loadKeyFromEnv(KeyAdminContact, "")
 
 	c.APIURL = loadKeyFromEnv(KeyAPIUrl, "")
 
+	c.SessionsBackend = loadKeyFromEnv(KeySessionBackend, SessionsFSBackend)
+	c.SessionsPath = loadKeyFromEnv(KeySessionPath, os.TempDir())
+
+	if authKey := loadKeyFromEnv(KeySessionAuthKey, ""); len(authKey) >= 16 {
+		c.SessionKeys = append(c.SessionKeys, []byte(authKey[:16]))
+	}
+	if encKey := loadKeyFromEnv(KeySessionEncKey, ""); len(encKey) >= 16 {
+		c.SessionKeys = append(c.SessionKeys, []byte(encKey[:16]))
+	}
 	return c
 }
 
