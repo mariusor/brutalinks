@@ -40,7 +40,9 @@ func Write(s fs.FS) func(http.ResponseWriter, *http.Request) {
 		}
 
 		w.Header().Set("Cache-Control", fmt.Sprintf("public,max-age=%d", int(cacheTime.Seconds())))
-		w.Header().Set("Content-Type", mimeType)
+		if mimeType != "" {
+			w.Header().Set("Content-Type", mimeType)
+		}
 		w.Write(buf)
 	}
 }
