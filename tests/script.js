@@ -189,79 +189,149 @@ const pages = {
     'About': {
         path: '/about',
         tags: {type: 'content'},
-        checks: HTMLChecks('About'),
+        checks: Object.assign(
+            HTMLChecks('About'),
+            TabChecks('/self', '/federated'),
+            checkAboutPage()
+        ),
     },
     'Homepage': {
         path: '/',
         tags: {type: 'content'},
-        checks: HTMLChecks('Newest items')
+        checks: Object.assign(
+            HTMLChecks('Newest items'),
+            TabChecks('/self', '/federated'),
+        ),
     },
     'Local tab': {
         path: '/self',
         tags: {type: 'content'},
-        checks: HTMLChecks('Local instance items'),
+        checks: Object.assign(
+            HTMLChecks('Local instance items'),
+            TabChecks('/self', '/federated'),
+        ),
     },
     'Federated tab': {
         path: '/federated',
         tags: {type: 'content'},
-        checks: HTMLChecks('Federated items'),
+        checks: Object.assign(
+            HTMLChecks('Federated items'),
+            TabChecks('/self', '/federated'),
+        ),
     },
     'Tags': {
         path: '/t/tags',
         tags: {type: 'content'},
-        checks: HTMLChecks('Items tagged as #tags'),
+        checks: Object.assign(
+            HTMLChecks('Items tagged as #tags'),
+            TabChecks('/self', '/federated'),
+        ),
     },
     'Discussions': {
         path: '/d',
         tags: {type: 'content'},
-        checks: HTMLChecks('Discussion items'),
+        checks: Object.assign(
+            HTMLChecks('Discussion items'),
+            TabChecks('/self', '/federated'),
+        ),
     },
     'Login': {
         path: '/login',
         tags: {type: 'content'},
-        checks: HTMLChecks('Local authentication'),
+        checks: Object.assign(
+            HTMLChecks('Local authentication'),
+            TabChecks('/self', '/federated'),
+        ),
     },
     'Register': {
         path: '/register',
         tags: {type: 'content'},
-        checks: HTMLChecks('Register new account'),
+        checks: Object.assign(
+            HTMLChecks('Register new account'),
+            TabChecks('/self', '/federated'),
+        ),
     },
     'Users listing': {
         path: '/~',
         tags: {type: 'content'},
-        checks: HTMLChecks('Account listing'),
+        checks: Object.assign(
+            HTMLChecks('Account listing'),
+            TabChecks('/self', '/federated'),
+        ),
     },
     'Moderation': {
         path: '/moderation',
         tags: {type: 'content'},
-        checks: HTMLChecks('Moderation log'),
+        checks: Object.assign(
+            HTMLChecks('Moderation log'),
+            TabChecks('/self', '/federated', '/followed', '/submit'),
+        ),
         user: users[0],
     },
     'Followed tab': {
         path: '/followed',
         tags: {type: 'content'},
-        checks: HTMLChecks('Followed items'),
+        checks: Object.assign(
+            HTMLChecks('Followed items'),
+            TabChecks('/self', '/federated', '/followed', '/submit'),
+        ),
         user: users[0],
     },
-    'User page': {
+    'Logged user\'s page': {
         path: `/~${users[0].handle}`,
         tags: {type: 'content'},
-        checks: HTMLChecks(`${users[0].handle}'s submissions`),
+        checks: Object.assign(
+            HTMLChecks(`${users[0].handle}'s submissions`),
+            TabChecks('/self', '/federated', '/followed', '/submit'),
+        ),
         user: users[0],
     },
     'New submission page': {
         path: '/submit',
         tags: {type: 'content'},
-        checks: HTMLChecks('Add new submission'),
+        checks: Object.assign(
+            HTMLChecks('Add new submission'),
+            TabChecks('/self', '/federated', '/followed', '/submit'),
+        ),
         user: users[0],
     },
 };
 
+function checkAboutPage() {
+    return {
+        "main#about exists": (r) => parseHTML(r.body).find('main#about').size() === 1,
+        "main#about content": (r) => parseHTML(r.body).find('main#about h1').text() === 'About',
+    }
+}
+
+function hasLogo() {
+    return (r) => {
+        let logo = parseHTML(r.body).find('body header h1 svg title');
+        let header = parseHTML(r.body).find('body header h1 a').children(':not(svg)');
+        return header.text() === 'brutalinks(test)' && logo.text() === 'trash-o'
+    }
+}
+
+function TabChecks() {
+    const tabCount = arguments.length;
+
+    let checks = {
+        'has tabs': (r) => parseHTML(r.body).find('body header menu.tabs li').size() === tabCount
+    };
+
+    for (let i = 0; i < arguments.length; i++) {
+        const key = `has tab: "${arguments[i]}"`;
+        checks[key] = (r) => parseHTML(r.body).find('body header menu.tabs li a href=' + arguments[i]).size() === 1;
+    }
+
+    return checks;
+}
 function HTMLChecks(title) {
     return {
         'status 200': isOK,
         'is HTML': isHTML,
         'has correct title': hasTitle(title),
+        'has logo': hasLogo(),
     }
 }
 
@@ -321,16 +391,16 @@ function authenticate(u) {
 export function regularBrowsing() {
     for (let m in pages) {
         let test = pages[m];
-        if (!test.hasOwnProperty("path")) {
-            fail('invalid test element, missing "path" property')
+        if (!test.hasOwnProperty('path')) {
+            fail('invalid test element, missing "path" property');
         }
-        if (!test.hasOwnProperty("checks")) {
-            fail('invalid test element, missing "checks" property')
+        if (!test.hasOwnProperty('checks')) {
+            fail('invalid test element, missing "checks" property');
         }
         group(m, function () {
-            if (test.hasOwnProperty("user")) {
+            if (test.hasOwnProperty('user')) {
                 authenticate(test.user);
-                m = `${m}: ${test.user.handle}`
+                m = `${m}: ${test.user.handle}`;
             }
 
             check(
@@ -338,7 +408,6 @@ export function regularBrowsing() {
                 test.checks
             );
         });
-        sleep(0.1);
+        sleep(0.2);
     }
 };
-
