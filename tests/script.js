@@ -1,9 +1,9 @@
 import {check, fail, group, sleep} from 'k6';
 import {parseHTML} from 'k6/html';
 import http from 'k6/http';
-import { Counter } from 'k6/metrics';
+import { Rate } from 'k6/metrics';
 
-const errors = new Counter('errors');
+const errors = new Rate('error_rate');
 
 export const options = {
     thresholds: {
@@ -11,21 +11,21 @@ export const options = {
         'http_req_failed{type:static}': ['rate<0.01'], // http errors should be less than 1%
         'http_req_duration{type:content}': ['p(50)<150'], // threshold on API requests only under 150ms
         'http_req_duration{type:static}': ['p(50)<5'], // threshold on static content only under 5ms
-        'errors': ['count<=10'],
-        'errors{type:responseStatusError}': ['count<=2'],
-        'errors{type:contentTypeError}': ['count<=2'],
-        'errors{type:titleError}': ['count<=2'],
-        'errors{type:cookieMissingError}': ['count<=2'],
-        'errors{type:authorizationError}': ['count<=2'],
-        'errors{type:contentError}': ['count<=2'],
+        'error_rate': [ { threshold: 'rate < 0.1', abortOnFail: true, delayAbortEval: '1m' } ],
+        'error_rate{errorType:responseStatusError}': [ { threshold: 'rate < 0.1', }, ],
+        'error_rate{errorType:contentTypeError}': [ { threshold: 'rate < 0.1', }, ],
+        'error_rate{errorType:titleError}': [ { threshold: 'rate < 0.1', }, ],
+        'error_rate{errorType:cookieMissingError}': [ { threshold: 'rate < 0.1', }, ],
+        'error_rate{errorType:authorizationError}': [ { threshold: 'rate < 0.1', }, ],
+        'error_rate{errorType:contentError}': [ { threshold: 'rate < 0.1', }, ],
     },
     scenarios: {
         regular_browsing: {
             executor: 'constant-vus',
-            vus: 2,
+            vus: 3,
             duration: '20s',
             exec: 'regularBrowsing',
-            gracefulStop: 2,
+            gracefulStop: '2s',
         },
     },
 }
@@ -73,7 +73,7 @@ const users = [
 ];
 
 
-const pages = {
+const staticResources = {
     '/css/moderate.css': {
         path: '/css/moderate.css',
         tags: {type: 'static'},
@@ -185,7 +185,7 @@ const pages = {
         tags: {type: 'static'},
         checks: {
             'is status 200': isOK,
-            'is ns': (r) => contentType(r) === ' image/vnd.microsoft.icon',
+            'is favicon': isFavicon,
         }
     },
     '/icons.svg': {
@@ -193,9 +193,12 @@ const pages = {
         tags: {type: 'static'},
         checks: {
             'is status 200': isOK,
-            'is svg': (r) => contentType(r) === 'image/svg+xml',
+            'is svg': isSvg,
         }
     },
+};
+
+const pages = {
     'About': {
         path: '/about',
         tags: {type: 'content'},
@@ -314,34 +317,34 @@ function checkAboutPage() {
     }
 }
 
-function hasLogo() {
-    return (r) => {
-        let logo = parseHTML(r.body).find('body header h1 svg title');
-        let header = parseHTML(r.body).find('body header h1 a').children(':not(svg)');
+function hasLogo (r) {
+    let logo = parseHTML(r.body).find('body header h1 svg title');
+    let header = parseHTML(r.body).find('body header h1 a').children(':not(svg)');
 
-        let status = header.text() === 'brutalinks(test)' && logo.text() === 'trash-o';
-        errors.add(!status, {type: 'contentError'});
-        return status;
-    }
+    let status = header.text() === 'brutalinks(test)' && logo.text() === 'trash-o';
+    errors.add(!status, {errorType: 'contentError'});
+    return status;
 }
 
 function TabChecks() {
     const tabCount = arguments.length;
+    const tabNames = arguments;
 
     let checks = {
         'has tabs': (r) => {
             let status = parseHTML(r.body).find('body header menu.tabs li').size() === tabCount;
-            errors.add(!status, {type: 'contentError'});
+            errors.add(!status, {errorType: 'contentError'});
             return status;
         }
     };
 
     for (let i = 0; i < arguments.length; i++) {
-        const key = `has tab: "${arguments[i]}"`;
+        const currentTab = tabNames[i]
+        const key = `has tab: "${currentTab}"`;
         checks[key] = (r) => {
-            let a = parseHTML(r.body).find('body header menu.tabs li a href=' + arguments[i]);
-            let status = a.size() === 1 && a.children(':not(svg)').text() === arguments[i];
-            errors.add(!status, {type: 'contentError'});
+            let span = parseHTML(r.body).find('body header menu.tabs li a[href="' + currentTab+'"] span');
+            let status = span.size() === 1 && span.text().replace('/', '') === currentTab.replace('/', '');
+            errors.add(!status, {errorType: 'contentError'});
             return status;
         }
     }
@@ -353,7 +356,7 @@ function HTMLChecks(title) {
         'status 200': isOK,
         'is HTML': isHTML,
         'has correct title': hasTitle(title),
-        'has logo': hasLogo(),
+        'has logo': hasLogo,
     }
 }
 
@@ -366,39 +369,51 @@ function CSSChecks() {
 
 function isOK(r) {
     let status = r.status === 200
-    errors.add(!status, {type: 'responseStatusError'});
+    errors.add(!status, {errorType: 'responseStatusError'});
     return status;
 }
 
 function isHTML(r) {
     let status = contentType(r) === 'text/html; charset=utf-8';
-    errors.add(!status, {type: 'contentTypeError'});
+    errors.add(!status, {errorType: 'contentTypeError'});
+    return status;
+}
+
+function isSvg(r) {
+    let status = contentType(r) === 'image/svg+xml';
+    errors.add(!status, {errorType: 'contentTypeError'});
+    return status;
+}
+
+function isFavicon(r) {
+    let status = contentType(r) === 'image/vnd.microsoft.icon';
+    errors.add(!status, {errorType: 'contentTypeError'});
     return status;
 }
 
 function isPlainText(r) {
     let status = contentType(r) === 'text/plain; charset=utf-8';
-    errors.add(!status, {type: 'contentTypeError'});
+    errors.add(!status, {errorType: 'contentTypeError'});
     return status;
 }
 
 function isJavaScript(r) {
     let status = contentType(r) === 'text/javascript; charset=utf-8';
-    errors.add(!status, {type: 'contentTypeError'});
+    errors.add(!status, {errorType: 'contentTypeError'});
     return status;
 }
 
 function hasTitle(s) {
     return (r) => {
         let status = htmlTitle(r) === s;
-        errors.add(!status, {type: 'titleError'});
+        errors.add(!status, {errorType: 'titleError'});
         return status;
     }
 }
 
 function isCSS(r) {
     let status = contentType(r) == 'text/css; charset=utf-8';
-    errors.add(!status, {type: 'contentTypeError'});
+    errors.add(!status, {errorType: 'contentTypeError'});
     return status;
 }
 
@@ -409,7 +424,7 @@ function authenticate(u) {
     let response = http.get(`${BASE_URL}/login`);
     if (!check(response, { 'login page': isOK } )) {
         fail('invalid login response');
-        errors.add(1, {type: 'authorizationError'});
+        errors.add(1, {errorType: 'authorizationError'});
         return;
     }
 
@@ -423,34 +438,41 @@ function authenticate(u) {
         'is status 200': isOK,
         'has session cookie': () => {
             let status = cookiesForURL._s.length > 0;
-            errors.add(!status, {type: 'authorizationError'});
+            errors.add(!status, {errorType: 'authorizationError'});
             return status;
         },
     })
 };
 
-export function regularBrowsing() {
-    for (let m in pages) {
-        let test = pages[m];
-        if (!test.hasOwnProperty('path')) {
-            fail('invalid test element, missing "path" property');
-            return;
-        }
-        if (!test.hasOwnProperty('checks')) {
-            fail('invalid test element, missing "checks" property');
-            return;
-        }
-        group(m, function () {
-            if (test.hasOwnProperty('user')) {
-                authenticate(test.user);
-                m = `${m}: ${test.user.handle}`;
+function runSuite(pages, sleepTime = 0) {
+    return () => {
+        for (let m in pages) {
+            let test = pages[m];
+            if (!test.hasOwnProperty('path')) {
+                fail('invalid test element, missing "path" property');
+                return;
             }
+            if (!test.hasOwnProperty('checks')) {
+                fail('invalid test element, missing "checks" property');
+                return;
+            }
+            group(m, function () {
+                if (test.hasOwnProperty('user')) {
+                    authenticate(test.user);
+                    m = `${m}: ${test.user.handle}`;
+                }
 
-            check(
-                http.get(`${BASE_URL}${test.path}`, {tags: test.tags}),
-                test.checks
-            );
-        });
-        sleep(1);
+                check(
+                    http.get(`${BASE_URL}${test.path}`, {tags: test.tags}),
+                    test.checks
+                );
+                sleep(sleepTime);
+            });
+        }
     }
+}
+
+export function regularBrowsing() {
+    group('StaticResources', runSuite(staticResources));
+    group('Content', runSuite(pages), 0.1);
 };
