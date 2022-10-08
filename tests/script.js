@@ -1,6 +1,9 @@
 import {check, fail, group, sleep} from 'k6';
 import {parseHTML} from 'k6/html';
 import http from 'k6/http';
+import { Counter } from 'k6/metrics';
+
+const errors = new Counter('errors');
 
 export const options = {
     thresholds: {
@@ -8,14 +11,21 @@ export const options = {
         'http_req_failed{type:static}': ['rate<0.01'], // http errors should be less than 1%
         'http_req_duration{type:content}': ['p(50)<150'], // threshold on API requests only under 150ms
         'http_req_duration{type:static}': ['p(50)<5'], // threshold on static content only under 5ms
+        'errors': ['count<=10'],
+        'errors{type:responseStatusError}': ['count<=2'],
+        'errors{type:contentTypeError}': ['count<=2'],
+        'errors{type:titleError}': ['count<=2'],
+        'errors{type:cookieMissingError}': ['count<=2'],
+        'errors{type:authorizationError}': ['count<=2'],
+        'errors{type:contentError}': ['count<=2'],
     },
     scenarios: {
         regular_browsing: {
             executor: 'constant-vus',
-            vus: 4,
-            duration: '10s',
+            vus: 2,
+            duration: '20s',
             exec: 'regularBrowsing',
-            gracefulStop: 0,
+            gracefulStop: 2,
         },
     },
 }
@@ -308,7 +318,10 @@ function hasLogo() {
     return (r) => {
         let logo = parseHTML(r.body).find('body header h1 svg title');
         let header = parseHTML(r.body).find('body header h1 a').children(':not(svg)');
-        return header.text() === 'brutalinks(test)' && logo.text() === 'trash-o'
+
+        let status = header.text() === 'brutalinks(test)' && logo.text() === 'trash-o';
+        errors.add(!status, {type: 'contentError'});
+        return status;
     }
 }
 
@@ -316,12 +329,21 @@ function TabChecks() {
     const tabCount = arguments.length;
 
     let checks = {
-        'has tabs': (r) => parseHTML(r.body).find('body header menu.tabs li').size() === tabCount
+        'has tabs': (r) => {
+            let status = parseHTML(r.body).find('body header menu.tabs li').size() === tabCount;
+            errors.add(!status, {type: 'contentError'});
+            return status;
+        }
     };
 
     for (let i = 0; i < arguments.length; i++) {
         const key = `has tab: "${arguments[i]}"`;
-        checks[key] = (r) => parseHTML(r.body).find('body header menu.tabs li a href=' + arguments[i]).size() === 1;
+        checks[key] = (r) => {
+            let a = parseHTML(r.body).find('body header menu.tabs li a href=' + arguments[i]);
+            let status = a.size() === 1 && a.children(':not(svg)').text() === arguments[i];
+            errors.add(!status, {type: 'contentError'});
+            return status;
+        }
     }
 
     return checks;
@@ -343,27 +365,41 @@ function CSSChecks() {
 }
 
 function isOK(r) {
-    return r.status === 200
+    let status = r.status === 200
+    errors.add(!status, {type: 'responseStatusError'});
+    return status;
 }
 
 function isHTML(r) {
-    return contentType(r) === 'text/html; charset=utf-8';
+    let status = contentType(r) === 'text/html; charset=utf-8';
+    errors.add(!status, {type: 'contentTypeError'});
+    return status;
 }
 
 function isPlainText(r) {
-    return contentType(r) === 'text/plain; charset=utf-8';
+    let status = contentType(r) === 'text/plain; charset=utf-8';
+    errors.add(!status, {type: 'contentTypeError'});
+    return status;
 }
 
 function isJavaScript(r) {
-    return contentType(r) === 'text/javascript; charset=utf-8';
+    let status = contentType(r) === 'text/javascript; charset=utf-8';
+    errors.add(!status, {type: 'contentTypeError'});
+    return status;
 }
 
 function hasTitle(s) {
-    return (r) => htmlTitle(r) === s
+    return (r) => {
+        let status = htmlTitle(r) === s;
+        errors.add(!status, {type: 'titleError'});
+        return status;
+    }
 }
 
 function isCSS(r) {
-    return contentType(r) == 'text/css; charset=utf-8';
+    let status = contentType(r) == 'text/css; charset=utf-8';
+    errors.add(!status, {type: 'contentTypeError'});
+    return status;
 }
 
 const contentType = (r) => r.headers.hasOwnProperty('Content-Type') ? r.headers['Content-Type'].toLowerCase() : '';
@@ -373,6 +409,7 @@ function authenticate(u) {
     let response = http.get(`${BASE_URL}/login`);
     if (!check(response, { 'login page': isOK } )) {
         fail('invalid login response');
+        errors.add(1, {type: 'authorizationError'});
         return;
     }
 
@@ -384,7 +421,11 @@ function authenticate(u) {
     const cookiesForURL = http.cookieJar().cookiesForURL(response.url);
     check(response, {
         'is status 200': isOK,
-        'has session cookie': () => cookiesForURL._s.length > 0,
+        'has session cookie': () => {
+            let status = cookiesForURL._s.length > 0;
+            errors.add(!status, {type: 'authorizationError'});
+            return status;
+        },
     })
 };
 
@@ -393,9 +434,11 @@ export function regularBrowsing() {
         let test = pages[m];
         if (!test.hasOwnProperty('path')) {
             fail('invalid test element, missing "path" property');
+            return;
         }
         if (!test.hasOwnProperty('checks')) {
             fail('invalid test element, missing "checks" property');
+            return;
         }
         group(m, function () {
             if (test.hasOwnProperty('user')) {
@@ -408,6 +451,6 @@ export function regularBrowsing() {
                 test.checks
             );
         });
-        sleep(0.2);
+        sleep(1);
     }
 };
