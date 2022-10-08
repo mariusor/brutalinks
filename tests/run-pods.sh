@@ -2,6 +2,8 @@
 
 set -e
 
+TEST_PORT=${TEST_PORT:-4499}
+
 if podman container exists tests_fedbox; then
     podman stop tests_fedbox
     podman rm tests_fedbox
@@ -18,10 +20,13 @@ fi
 podman network create tests_default
 
 podman run -d \
+    --pull always \
     --name=tests_fedbox \
     -v $(pwd)/fedbox/env:/.env \
     -v $(pwd)/fedbox:/storage \
     -e ENV=test \
+    -e LISTEN=:443 \
+    -e HOSTNAME=fedbox \
     --net tests_default \
     --network-alias fedbox \
     --expose 443 \
@@ -29,6 +34,7 @@ podman run -d \
     /bin/fedbox
 
 podman run -d \
+    --pull always \
     --name=tests_brutalinks \
     -v $(pwd)/brutalinks/env:/.env \
     -v $(pwd)/brutalinks:/storage \
