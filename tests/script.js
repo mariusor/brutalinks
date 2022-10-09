@@ -14,7 +14,6 @@ export const options = {
         'error_rate': [ { threshold: 'rate < 0.1', abortOnFail: true, delayAbortEval: '1s' } ],
         'error_rate{errorType:responseStatusError}': [ { threshold: 'rate < 0.1', }, ],
         'error_rate{errorType:contentTypeError}': [ { threshold: 'rate < 0.1', }, ],
-        'error_rate{errorType:titleError}': [ { threshold: 'rate < 0.1', }, ],
         'error_rate{errorType:cookieMissingError}': [ { threshold: 'rate < 0.1', }, ],
         'error_rate{errorType:authorizationError}': [ { threshold: 'rate < 0.1', }, ],
         'error_rate{errorType:contentError}': [ { threshold: 'rate < 0.1', }, ],
@@ -214,6 +213,7 @@ const pages = {
         checks: Object.assign(
             HTMLChecks('Newest items'),
             TabChecks('/self', '/federated'),
+            checkHomepage(),
         ),
     },
     'Local tab': {
@@ -310,20 +310,54 @@ const pages = {
     },
 };
 
+function checkOrContentErr() {
+    for (let i = 0; i < arguments.length; i++) {
+        if (!arguments[i]) {
+            errors.add(1, {errorType: 'contentError'});
+            return false;
+        }
+    }
+    return true;
+}
+
 function checkAboutPage() {
     return {
-        "main#about exists": (r) => parseHTML(r.body).find('main#about').size() === 1,
-        "main#about content": (r) => parseHTML(r.body).find('main#about h1').text() === 'About',
+        "main#about exists": (r) => checkOrContentErr(parseHTML(r.body).find('main#about').size() === 1),
+        "main#about content": (r) => checkOrContentErr(parseHTML(r.body).find('main#about h1').text() === 'About')
+    }
+}
+
+function checkHomepage() {
+    return {
+        "main#listing exists": (r) => checkOrContentErr(parseHTML(r.body).find('main#listing').size() === 1),
+        "ol.top-level exists": (r) => checkOrContentErr(parseHTML(r.body).find('ol.top-level').size() === 1),
+        "listing has one element": (r) => checkOrContentErr(parseHTML(r.body).find('ol.top-level > li').size() === 1),
+        "element has article": (r) => checkOrContentErr(
+            parseHTML(r.body).find('ol.top-level > li > article').size() === 1,
+            parseHTML(r.body).find('ol.top-level > li > article > header').size() === 1,
+            parseHTML(r.body).find('ol.top-level > li > article > header > h2').size() === 1,
+        ),
+        "item has correct title": (r) => checkOrContentErr(
+            parseHTML(r.body).find('ol.top-level > li > article > header > h2').text() === 'Tag test'
+        ),
+        // "item has correct submit date": (r) => {
+        //      return checkOrContentErr(
+        //          parseHTML(r.body).find('ol.top-level > li > article footer time').each(function (i, n) {
+        //            return n.getAttribute('datetime') === '2022-02-25T16:47:16.000+00:00'
+        //          })
+        //     )
+        // },
+        "item has correct author": (r) => checkOrContentErr(
+            parseHTML(r.body).find('ol.top-level > li > article > footer a[rel="mention"]').text() === 'admin'
+        ),
     }
 }
 
 function hasLogo (r) {
-    let logo = parseHTML(r.body).find('body header h1 svg title');
-    let header = parseHTML(r.body).find('body header h1 a').children(':not(svg)');
-
-    let status = header.text() === 'brutalinks(test)' && logo.text() === 'trash-o';
-    errors.add(!status, {errorType: 'contentError'});
-    return status;
+    return checkOrContentErr(
+        parseHTML(r.body).find('body header h1 a').children(':not(svg)').text() === 'brutalinks(test)',
+        parseHTML(r.body).find('body header h1 svg title').text() === 'trash-o'
+    );
 }
 
 function TabChecks() {
@@ -331,11 +365,7 @@ function TabChecks() {
     const tabNames = arguments;
 
     let checks = {
-        'has tabs': (r) => {
-            let status = parseHTML(r.body).find('body header menu.tabs li').size() === tabCount;
-            errors.add(!status, {errorType: 'contentError'});
-            return status;
-        }
+        'has tabs': (r) => checkOrContentErr(parseHTML(r.body).find('body header menu.tabs li').size() === tabCount),
     };
 
     for (let i = 0; i < arguments.length; i++) {
@@ -343,9 +373,10 @@ function TabChecks() {
         const key = `has tab: "${currentTab}"`;
         checks[key] = (r) => {
             let span = parseHTML(r.body).find('body header menu.tabs li a[href="' + currentTab+'"] span');
-            let status = span.size() === 1 && span.text().replace('/', '') === currentTab.replace('/', '');
-            errors.add(!status, {errorType: 'contentError'});
-            return status;
+            return checkOrContentErr(
+                span.size() === 1,
+                span.text().replace('/', '') === currentTab.replace('/', '')
+            );
         }
     }
 
@@ -362,7 +393,7 @@ function HTMLChecks(title) {
 
 function CSSChecks() {
     return {
-        'is status 200': isOK,
+        'status 200': isOK,
         'is CSS': isCSS,
     }
 }
@@ -404,11 +435,7 @@ function isJavaScript(r) {
 }
 
 function hasTitle(s) {
-    return (r) => {
-        let status = htmlTitle(r) === s;
-        errors.add(!status, {errorType: 'titleError'});
-        return status;
-    }
+    return (r) => checkOrContentErr(htmlTitle(r) === s);
 }
 
 function isCSS(r) {
