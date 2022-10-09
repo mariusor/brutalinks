@@ -11,7 +11,7 @@ export const options = {
         'http_req_failed{type:static}': ['rate<0.01'], // http errors should be less than 1%
         'http_req_duration{type:content}': ['p(50)<150'], // threshold on API requests only under 150ms
         'http_req_duration{type:static}': ['p(50)<5'], // threshold on static content only under 5ms
-        'error_rate': [ { threshold: 'rate < 0.1', abortOnFail: true, delayAbortEval: '1m' } ],
+        'error_rate': [ { threshold: 'rate < 0.1', abortOnFail: true, delayAbortEval: '1s' } ],
         'error_rate{errorType:responseStatusError}': [ { threshold: 'rate < 0.1', }, ],
         'error_rate{errorType:contentTypeError}': [ { threshold: 'rate < 0.1', }, ],
         'error_rate{errorType:titleError}': [ { threshold: 'rate < 0.1', }, ],
@@ -22,8 +22,8 @@ export const options = {
     scenarios: {
         regular_browsing: {
             executor: 'constant-vus',
-            vus: 3,
-            duration: '20s',
+            vus: 2,
+            duration: '15s',
             exec: 'regularBrowsing',
             gracefulStop: '2s',
         },
@@ -474,5 +474,5 @@ function runSuite(pages, sleepTime = 0) {
 
 export function regularBrowsing() {
     group('StaticResources', runSuite(staticResources));
-    group('Content', runSuite(pages), 0.1);
+    group('Content', runSuite(pages));
 };
