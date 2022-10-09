@@ -13,7 +13,8 @@ TEST_FLAGS ?= -count=1
 
 GO ?= go
 APPSOURCES := $(wildcard ./*.go internal/*/*.go)
-ASSETFILES := $(wildcard templates/* templates/partials/* templates/partials/*/* assets/*/* assets/*)
+TEMPLATEFILES := $(wildcard templates/* templates/partials/* templates/partials/*/*)
+ASSETFILES := $(wildcard assets/*/* assets/*)
 
 export CGO_ENABLED=0
 
@@ -47,12 +48,16 @@ download:
 	$(GO) mod tidy
 
 ifneq ($(ENV), dev)
-assets: $(ASSETFILES) download
-	$(GO) run -tags $(ENV) ./internal/assets/cmd/minify.go -build "prod || qa" -glob templates/*,templates/partials/*,templates/partials/*/* -var TemplateFS -o ./internal/assets/templates.gen.go
-	$(GO) run -tags $(ENV) ./internal/assets/cmd/minify.go -build "prod || qa" -glob assets/*,assets/css/*,assets/js/*,README.md -var AssetFS -o ./internal/assets/assets.gen.go
+assets:  internal/assets/assets.gen.go internal/assets/templates.gen.go
 else
 assets:
 endif
+
+internal/assets/templates.gen.go: $(TEMPLATEFILES)
+	$(GO) run -tags $(ENV) ./internal/assets/cmd/minify.go -build "prod || qa" -glob templates/*,templates/partials/*,templates/partials/*/* -var TemplateFS -o ./internal/assets/templates.gen.go
+
+internal/assets/assets.gen.go: $(ASSETFILES)
+	$(GO) run -tags $(ENV) ./internal/assets/cmd/minify.go -build "prod || qa" -glob assets/*,assets/css/*,assets/js/*,README.md -var AssetFS -o ./internal/assets/assets.gen.go
 
 bin/brutalinks: download assets go.mod cmd/brutalinks/main.go $(APPSOURCES)
 	$(BUILD) -tags $(ENV) -o $@ ./cmd/brutalinks/main.go
