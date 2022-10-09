@@ -4,8 +4,18 @@
 {{- $author := $it.SubmittedBy -}}
 {{- $authorDeleted := $author.Deleted -}}
 {{- $readonly := IsReadOnly $it -}}
-{{- $showReply := and (eq current "content") CurrentAccount.IsValid -}}
 {{- $showAnything := or $author.IsValid (not $deleted) -}}
+{{- $permaLinkTitle := "Permalink"}}
+{{- $permaLinkName := "permalink"}}
+{{- if eq current "listing" -}}
+{{- $permaLinkTitle = "Join the discussion"}}
+{{- $permaLinkName = "discussion"}}
+{{- else -}}
+{{- if and (and (eq current "content") CurrentAccount.IsValid) (not $readonly) }}
+{{- $permaLinkTitle = "Reply"}}
+{{- $permaLinkName = "reply"}}
+{{- end -}}
+{{- end -}}
 <footer><ul>
     <li><small>{{- if $showAnything  }}submitted{{ end }}
     {{- if not $deleted -}}
@@ -16,11 +26,7 @@
     {{- end -}}
         {{- $link := (PermaLink $it) -}}
         {{- if not (sameBase req.URL.Path $link) -}}
-            {{- if and $showReply (not $readonly) }}
-    <li><small><a href="{{$link}}" rel="bookmark" title="Reply{{if .Title}}: {{$it.Title }}{{end}}">{{ if $it.Private }}{{icon "lock"}} {{ end -}} reply</a></small></li>
-            {{- else -}}
-    <li><small><a href="{{$link}}" rel="bookmark" title="Permalink{{if .Title}}: {{$it.Title }}{{end}}">{{ if $it.Private }}{{icon "lock"}} {{ end -}} permalink</a></small></li>
-            {{- end -}}
+    <li><small><a href="{{$link}}" rel="bookmark" title="{{$permaLinkTitle}}{{if .Title}}: {{$it.Title }}{{end}}">{{ if $it.Private }}{{icon "lock"}} {{ end -}} {{ $permaLinkName }}</a></small></li>
         {{- end -}}
         {{- if not $it.IsTop }}
             {{- if $it.Parent -}}
