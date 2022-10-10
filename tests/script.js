@@ -311,13 +311,14 @@ const pages = {
 };
 
 function checkOrContentErr() {
+    let status = true;
     for (let i = 0; i < arguments.length; i++) {
-        if (!arguments[i]) {
-            errors.add(1, {errorType: 'contentError'});
-            return false;
+        if (arguments[i] !== true) {
+            status &= arguments[i];
         }
     }
-    return true;
+    errors.add(!status, {errorType: 'contentError'});
+    return status;
 }
 
 function checkAboutPage() {
@@ -372,7 +373,7 @@ function TabChecks() {
         const currentTab = tabNames[i]
         const key = `has tab: "${currentTab}"`;
         checks[key] = (r) => {
-            let span = parseHTML(r.body).find('body header menu.tabs li a[href="' + currentTab+'"] span');
+            let span = parseHTML(r.body).find('body header menu.tabs li a[href="' + currentTab + '"] span');
             return checkOrContentErr(
                 span.size() === 1,
                 span.text().replace('/', '') === currentTab.replace('/', '')
