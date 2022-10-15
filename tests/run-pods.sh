@@ -20,7 +20,7 @@ fi
 podman network create tests_default
 
 podman run -d \
-    --pull always \
+    --pull newer \
     --name=tests_fedbox \
     -v $(pwd)/fedbox/env:/.env \
     -v $(pwd)/fedbox:/storage \
@@ -34,7 +34,7 @@ podman run -d \
     /bin/fedbox
 
 podman run -d \
-    --pull always \
+    --pull newer \
     --name=tests_brutalinks \
     -v $(pwd)/brutalinks/env:/.env \
     -v $(pwd)/brutalinks:/storage \
