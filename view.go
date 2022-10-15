@@ -34,6 +34,7 @@ type LogFn func(string, ...interface{})
 
 type view struct {
 	c      *config.Configuration
+	ren    *render.Render
 	fs     fs.FS
 	assets ass.Map
 	s      sess
@@ -46,6 +47,85 @@ func ViewInit(c appConfig, infoFn, errFn CtxLogFn) (*view, error) {
 	v.c = &c.Configuration
 	v.infoFn = infoFn
 	v.errFn = errFn
+
+	v.ren = render.New(render.Options{
+		Directory:                 "templates",
+		Layout:                    "layout",
+		Extensions:                []string{".html"},
+		FileSystem:                render.FS(assets.TemplateFS),
+		IsDevelopment:             Instance.Conf.Env.IsDev(),
+		DisableHTTPErrorRendering: true,
+		UseMutexLock:              true,
+		Funcs: []template.FuncMap{{
+			"sluggify":          sluggify,
+			"title":             func(t []byte) string { return string(t) },
+			"getProviders":      getAuthProviders,
+			"IsComment":         func(t Renderable) bool { return t.Type() == CommentType },
+			"IsFollowRequest":   func(t Renderable) bool { return t.Type() == FollowType },
+			"IsVote":            func(t Renderable) bool { return t.Type() == AppreciationType },
+			"IsAccount":         func(t Renderable) bool { return t.Type() == ActorType },
+			"IsModeration":      func(t Renderable) bool { return t.Type() == ModerationType },
+			"SessionEnabled":    func() bool { return v.s.enabled },
+			"Mod10":             mod10,
+			"HTML":              html,
+			"Text":              text,
+			"isAudio":           isAudio,
+			"Audio":             audio,
+			"Video":             video,
+			"isVideo":           isVideo,
+			"Image":             image,
+			"Avatar":            avatar,
+			"isImage":           isImage,
+			"Markdown":          Markdown,
+			"replaceTags":       replaceTags,
+			"outputTag":         renderTag,
+			"AccountLocalLink":  AccountLocalLink,
+			"ShowAccountHandle": ShowAccountHandle,
+			"PermaLink":         PermaLink,
+			"ParentLink":        parentLink,
+			"OPLink":            opLink,
+			"IsYay":             isYay,
+			"IsNay":             isNay,
+			"IsReadOnly":        isReadOnly,
+			"ScoreFmt":          scoreFmt,
+			"NumberFmt":         func(i int) string { return numberFormat("%d", i) },
+			"TimeFmt":           relTimeFmt,
+			"ISOTimeFmt":        isoTimeFmt,
+			"ShowUpdate":        showUpdateTime,
+			"ScoreClass":        scoreClass,
+			"YayLink":           yayLink,
+			"NayLink":           nayLink,
+			"AcceptLink":        acceptLink,
+			"RejectLink":        rejectLink,
+			"NextPageLink":      nextPageLink,
+			"PrevPageLink":      prevPageLink,
+			"CanPaginate":       canPaginate,
+			"Config":            func() config.Configuration { return *v.c },
+			"Version":           func() string { return Instance.Version },
+			"Name":              appName,
+			"icon":              icon,
+			"icons":             icons,
+			"svg":               v.svg,
+			"js":                v.js,
+			"style":             v.style,
+			"integrity":         ass.Integrity,
+			"sameBase":          sameBasePath,
+			"sameHash":          func(h1, h2 Hash) bool { return h1 == h2 },
+			"sameAccount":       func(a1, a2 Account) bool { return a1.Hash == a2.Hash },
+			"fmtPubKey":         fmtPubKey,
+			"pluralize":         func(s string, cnt int) string { return pluralize(float64(cnt), s) },
+			"pasttensify":       pastTenseVerb,
+			"RenderLabel":       renderActivityLabel,
+			"ToTitle":           ToTitle,
+			"itemType":          itemType,
+			"trimSuffix":        strings.TrimSuffix,
+			"GetDomainLinks":    GetDomainLinks,
+			"invitationLink":    GetInviteLink(v),
+			"accountJSON":       renderableMarshalJSON(v.errFn()),
+			//"ScoreFmt":          func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
+			//"NumberFmt":         func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
+		}},
+	})
 
 	var err error
 	v.s, err = initSession(c, infoFn, errFn)
@@ -162,91 +242,24 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 
 	_, isError := m.(*errorModel)
 
-	layout := "layout"
 	acc := loggedAccount(r)
 	accountFromRequest := func() *Account { return acc }
-	canModerate := func(g ModerationGroup) bool { return canUserModerate(acc, g) }
-
-	version := Instance.Version
-	ren := render.New(render.Options{
-		Directory:  "templates",
-		FileSystem: render.FS(assets.TemplateFS),
-		Layout:     layout,
-		Extensions: []string{".html"},
-		UseMutexLock:                true,
-		Funcs: []template.FuncMap{{
+	opts := render.HTMLOptions{
+		Layout: "layout",
+		Funcs: template.FuncMap{
+			// Request related functions
 			//"urlParam":          func(s string) string { return chi.URLParam(r, s) },
 			//"get":               func(s string) string { return r.URL.Query().Get(s) },
+			csrf.TemplateTag:        func() template.HTML { return csrf.TemplateField(r) },
 			"isInverted":            func() bool { return isInverted(r) },
-			"sluggify":              sluggify,
-			"title":                 func(t []byte) string { return string(t) },
-			"getProviders":          getAuthProviders,
 			"CurrentAccount":        accountFromRequest,
-			"IsComment":             func(t Renderable) bool { return t.Type() == CommentType },
-			"IsFollowRequest":       func(t Renderable) bool { return t.Type() == FollowType },
-			"IsVote":                func(t Renderable) bool { return t.Type() == AppreciationType },
-			"IsAccount":             func(t Renderable) bool { return t.Type() == ActorType },
-			"IsModeration":          func(t Renderable) bool { return t.Type() == ModerationType },
-			"SessionEnabled":        func() bool { return v.s.enabled },
 			"LoadFlashMessages":     v.loadFlashMessages(w, r),
-			"Mod10":                 mod10,
-			"showChildren":          showChildren(m),
-			"ShowText":              showText(m),
-			"ShowTitle":             showTitle(m),
-			"HTML":                  html,
-			"Text":                  text,
-			"isAudio":               isAudio,
-			"Audio":                 audio,
-			"Video":                 video,
-			"isVideo":               isVideo,
-			"Image":                 image,
-			"Avatar":                avatar,
-			"isImage":               isImage,
-			"Markdown":              Markdown,
-			"replaceTags":           replaceTags,
-			"outputTag":             renderTag,
-			"AccountLocalLink":      AccountLocalLink,
-			"ShowAccountHandle":     ShowAccountHandle,
-			"PermaLink":             PermaLink,
-			"ParentLink":            parentLink,
-			"OPLink":                opLink,
-			"IsYay":                 isYay,
-			"IsNay":                 isNay,
-			"IsReadOnly":            isReadOnly,
-			"ScoreFmt":              scoreFmt,
-			"NumberFmt":             func(i int) string { return numberFormat("%d", i) },
-			"TimeFmt":               relTimeFmt,
-			"ISOTimeFmt":            isoTimeFmt,
-			"ShowUpdate":            showUpdateTime,
-			"ScoreClass":            scoreClass,
-			"YayLink":               yayLink,
-			"NayLink":               nayLink,
-			"AcceptLink":            acceptLink,
-			"RejectLink":            rejectLink,
-			"NextPageLink":          nextPageLink,
-			"PrevPageLink":          prevPageLink,
-			"CanPaginate":           canPaginate,
-			"Config":                func() config.Configuration { return *v.c },
-			"Version":               func() string { return version },
-			"Name":                  appName,
 			"Menu":                  func() []headerEl { return headerMenu(r) },
-			"icon":                  icon,
-			"icons":                 icons,
-			"svg":                   v.svg,
-			"js":                    v.js,
-			"style":                 v.style,
-			"integrity":             ass.Integrity,
 			"req":                   func() *http.Request { return r },
 			"url":                   func() url.Values { return r.URL.Query() },
 			"urlValue":              func(k string) []string { return r.URL.Query()[k] },
 			"urlValueContains":      func(k, v string) bool { return stringInSlice(r.URL.Query()[k])(v) },
-			"sameBase":              sameBasePath,
-			"sameHash":              func(h1, h2 Hash) bool { return h1 == h2 },
-			"sameAccount":           func(a1, a2 Account) bool { return a1.Hash == a2.Hash },
-			"fmtPubKey":             fmtPubKey,
-			"pluralize":             func(s string, cnt int) string { return pluralize(float64(cnt), s) },
-			"pasttensify":           pastTenseVerb,
-			"CanModerate":           canModerate,
+			"CanModerate":           func(g ModerationGroup) bool { return canUserModerate(acc, g) },
 			"ShowFollowLink":        func(a *Account) bool { return showFollowLink(accountFromRequest(), a) },
 			"ShowAccountBlockLink":  func(a *Account) bool { return showAccountBlockLink(accountFromRequest(), a) },
 			"ShowAccountReportLink": func(a *Account) bool { return showAccountReportLink(accountFromRequest(), a) },
@@ -256,26 +269,13 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			"AccountIsBlocked":      func(a *Account) bool { return AccountIsBlocked(accountFromRequest(), a) },
 			"AccountIsReported":     func(a *Account) bool { return AccountIsReported(accountFromRequest(), a) },
 			"ItemReported":          func(i *Item) bool { return ItemIsReported(accountFromRequest(), i) },
-			"RenderLabel":           renderActivityLabel,
-			csrf.TemplateTag:        func() template.HTML { return csrf.TemplateField(r) },
-			"ToTitle":               ToTitle,
-			"itemType":              itemType,
-			"trimSuffix":            strings.TrimSuffix,
-			"Sort":                  sortModel(m),
-			"GetDomainLinks":        GetDomainLinks,
-			"invitationLink":        GetInviteLink(v),
-			"accountJSON":           renderableMarshalJSON(v.errFn()),
-			//"ScoreFmt":          func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
-			//"NumberFmt":         func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
-		}},
-		Delims:                    render.Delims{Left: "{{", Right: "}}"},
-		Charset:                   "UTF-8",
-		DisableCharset:            false,
-		BinaryContentType:         "application/octet-stream",
-		HTMLContentType:           "text/html",
-		IsDevelopment:             Instance.Conf.Env.IsDev(),
-		DisableHTTPErrorRendering: true,
-	})
+			// Model related functions
+			"showChildren": showChildren(m),
+			"ShowText":     showText(m),
+			"ShowTitle":    showTitle(m),
+			"Sort":         sortModel(m),
+		},
+	}
 
 	if !isError {
 		if acc.IsLogged() {
@@ -287,7 +287,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			v.errFn(log.Ctx{"err": err.Error()})("session save failed")
 		}
 	}
-	if err = ren.HTML(w, http.StatusOK, name, m); err != nil {
+	if err = v.ren.HTML(w, http.StatusOK, name, m, opts); err != nil {
 		v.errFn(log.Ctx{"err": err, "model": m})("failed to render template %s", name)
 		return errors.Annotatef(err, "failed to render template")
 	}

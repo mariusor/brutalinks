@@ -33,7 +33,6 @@ require (
 	git.sr.ht/~mariusor/go-xsd-duration v0.0.0-20220703122237-02e73435a078 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/captncraig/cors v0.0.0-20190703115713-e80254a89df1 // indirect
-	github.com/fsnotify/fsnotify v1.5.4 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/gorilla/css v1.0.0 // indirect
@@ -55,3 +54,5 @@ require (
 )
 
 replace github.com/gorilla/sessions => github.com/mariusor/sessions v1.2.2-0.20211229142436-b33eb696f35b
+
+replace github.com/unrolled/render => github.com/mariusor/render v1.5.1-0.20221015183938-0945c87146be
