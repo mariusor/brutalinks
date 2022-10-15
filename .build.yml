@@ -81,5 +81,5 @@ tasks:
       set +a -xe
 
       cd go-littr
-      make -C tests test
+      make integration
 
