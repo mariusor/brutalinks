@@ -173,6 +173,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 		FileSystem: render.FS(assets.TemplateFS),
 		Layout:     layout,
 		Extensions: []string{".html"},
+		UseMutexLock:                true,
 		Funcs: []template.FuncMap{{
 			//"urlParam":          func(s string) string { return chi.URLParam(r, s) },
 			//"get":               func(s string) string { return r.URL.Query().Get(s) },
