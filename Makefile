@@ -83,4 +83,4 @@ coverage: test
 
 integration: ENV=prod
 integration: assets download
-	make -C tests
+	make -C tests pods test

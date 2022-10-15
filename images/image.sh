@@ -26,7 +26,7 @@ echo "Building image ${_image_name} for host=${_hostname} env:${_environment} po
 #ENV ENV=${ENV:-dev}
 
 #RUN make all && \
-#    docker/gen-certs.sh app
+#    images/gen-certs.sh app
 buildah run "${_builder}" make ENV="${_environment}" all
 buildah run "${_builder}" ./images/gen-certs.sh brutalinks
 
