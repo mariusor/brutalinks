@@ -82,5 +82,5 @@ coverage: TEST_FLAGS += -covermode=count -coverprofile $(PROJECT_NAME).coverprof
 coverage: test
 
 integration: ENV=prod
-integration: assets download
+integration:
 	make -C tests pods test
