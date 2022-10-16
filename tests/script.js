@@ -281,6 +281,19 @@ const pages = {
             TabChecks('/self', '/federated'),
         ),
     },
+    'Anonymous followed': {
+        path: '/followed',
+        tags: {type: 'content'},
+        checks: RedirectChecks('/'),
+    },
+    'Anonymous submit': {
+        path: '/submit',
+        tags: {type: 'content'},
+        checks: RedirectChecks('/'),
+    },
+};
+
+const logged = {
     'Followed tab': {
         path: '/followed',
         tags: {type: 'content'},
@@ -400,6 +413,27 @@ function CSSChecks() {
     }
 }
 
+function RedirectChecks(to) {
+    return {
+        'is Redirect': isRedirect,
+        'has valid Location': locationMatches(to),
+    }
+}
+
+function isRedirect(r) {
+    let status = (r.status === 302 || r.status === 303);
+    errors.add(!status, {errorType: 'responseStatusError'});
+    return status;
+}
+
+function locationMatches(to) {
+    return (r) => {
+        let status = getHeader('Location')(r) === to;
+        errors.add(!status, {errorType: 'responseStatusError'});
+        return status;
+    }
+}
+
 function isOK(r) {
     let status = r.status === 200;
     errors.add(!status, {errorType: 'responseStatusError'});
@@ -507,5 +541,6 @@ function runSuite(pages, sleepTime = 0) {
 
 export function regularBrowsing() {
     group('StaticResources', runSuite(staticResources));
-    group('Content', runSuite(pages));
+    group('AnonymousContent', runSuite(pages));
+    //group('LoggedContent', runSuite(logged));
 };
