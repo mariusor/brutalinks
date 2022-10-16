@@ -16,7 +16,7 @@ export const options = {
         'error_rate{errorType:contentTypeError}': [ { threshold: 'rate < 0.1', }, ],
         'error_rate{errorType:cookieMissingError}': [ { threshold: 'rate < 0.1', }, ],
         'error_rate{errorType:authorizationError}': [ { threshold: 'rate < 0.1', }, ],
-        'error_rate{errorType:contentError}': [ { threshold: 'rate < 0.1', }, ],
+        'error_rate{errorType:contentError}': [ { threshold: 'rate < 0.2', }, ],
     },
     scenarios: {
         regular_browsing: {
