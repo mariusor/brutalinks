@@ -492,7 +492,7 @@ function authenticate(u) {
     if (!check(response, {'login page': isOK})) {
         fail('invalid login response');
         errors.add(1, {errorType: 'authorizationError'});
-        return;
+        return false;
     }
 
     response = response.submitForm({
@@ -500,10 +500,10 @@ function authenticate(u) {
         fields: u,
     });
 
-    const cookiesForURL = http.cookieJar().cookiesForURL(response.url);
-    check(response, {
+    return check(response, {
         'is status 200': isOK,
-        'has session cookie': () => {
+        'has session cookie': (r) => {
+            const cookiesForURL = http.cookieJar().cookiesForURL(r.url);
             let status = cookiesForURL._s.length > 0;
             errors.add(!status, {errorType: 'authorizationError'});
             return status;
@@ -525,7 +525,10 @@ function runSuite(pages, sleepTime = 0) {
             }
             group(m, function () {
                 if (test.hasOwnProperty('user')) {
-                    authenticate(test.user);
+                    let status = authenticate(test.user);
+                    if (!status) {
+                        return;
+                    }
                     m = `${m}: ${test.user.handle}`;
                 }
 
@@ -542,5 +545,6 @@ function runSuite(pages, sleepTime = 0) {
 export function regularBrowsing() {
     group('StaticResources', runSuite(staticResources));
     group('AnonymousContent', runSuite(pages));
+    // TODO(marius): currently registration/login fail
     //group('LoggedContent', runSuite(logged));
 };
