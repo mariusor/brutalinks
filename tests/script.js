@@ -336,6 +336,22 @@ const logged = {
     },
 };
 
+function checkArticleAuthor(r) {
+    return parseHTML(r.body).find('ol.top-level > li > article > footer a[rel="mention"]').text() === 'admin';
+}
+
+function checkArticleTime(r) {
+    let status = false;
+    parseHTML(r.body).find('ol.top-level > li > article footer time').each(function (i, n) {
+         status = n.getAttribute('datetime') === '2022-02-25T16:47:16.000+00:00'
+     })
+    return status;
+}
+
+function checkArticleTitle(r) {
+    return parseHTML(r.body).find('ol.top-level > li > article > header > h2').text() === 'Tag test';
+}
+
 function checkOrContentErr() {
     let status = true;
     for (let i = 0; i < arguments.length; i++) {
@@ -373,19 +389,9 @@ function checkListingWithSingleElement() {
             parseHTML(r.body).find('ol.top-level > li > article > header').size() === 1,
             parseHTML(r.body).find('ol.top-level > li > article > header > h2').size() === 1,
         ),
-        "item has correct title": (r) => checkOrContentErr(
-            parseHTML(r.body).find('ol.top-level > li > article > header > h2').text() === 'Tag test'
-        ),
-        // "item has correct submit date": (r) => {
-        //      return checkOrContentErr(
-        //          parseHTML(r.body).find('ol.top-level > li > article footer time').each(function (i, n) {
-        //            return n.getAttribute('datetime') === '2022-02-25T16:47:16.000+00:00'
-        //          })
-        //     )
-        // },
-        "item has correct author": (r) => checkOrContentErr(
-            parseHTML(r.body).find('ol.top-level > li > article > footer a[rel="mention"]').text() === 'admin'
-        ),
+        "item has correct title": (r) => checkOrContentErr(checkArticleTitle(r)),
+        "item has correct submit date": (r) => checkOrContentErr(checkArticleTime(r)),
+        "item has correct author": (r) => checkOrContentErr(checkArticleAuthor(r)),
     }
 }
 
