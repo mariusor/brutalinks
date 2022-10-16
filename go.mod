@@ -55,4 +55,4 @@ require (
 
 replace github.com/gorilla/sessions => github.com/mariusor/sessions v1.2.2-0.20211229142436-b33eb696f35b
 
-replace github.com/unrolled/render => github.com/mariusor/render v1.5.1-0.20221015183938-0945c87146be
+replace github.com/unrolled/render => github.com/mariusor/render v1.5.1-0.20221016120107-df99e3977ca0
