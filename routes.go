@@ -91,18 +91,21 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 			r.Use(h.v.SetSecurityHeaders)
 			r.Use(h.v.LoadSession)
 
-			usersEnabledFn := func() (bool, string) {
+			submissionsEnabledFn := func(r *http.Request) (bool, string) {
+				return c.AnonymousCommentingEnabled || loggedAccount(r).IsLogged(), "Anonymous submissions are disabled"
+			}
+			usersEnabledFn := func(_ *http.Request) (bool, string) {
 				return c.UserCreatingEnabled, "Account creation is disabled"
 			}
-			usersInvitesFn := func() (bool, string) {
+			usersInvitesFn := func(_ *http.Request) (bool, string) {
 				return c.UserInvitesEnabled, "Account invites are disabled"
 			}
-			usersEnabledOrInvitesFn := func() (bool, string) {
+			usersEnabledOrInvitesFn := func(_ *http.Request) (bool, string) {
 				return c.UserInvitesEnabled || c.UserCreatingEnabled, "Unable to create account"
 			}
 			r.With(h.CSRF).Group(func(r chi.Router) {
-				r.With(AddModelMw).Get("/submit", h.HandleShow)
-				r.Post("/submit", h.HandleSubmit)
+				r.With(AddModelMw, h.v.RedirectWithFailMessage(submissionsEnabledFn)).Get("/submit", h.HandleShow)
+				r.With(h.v.RedirectWithFailMessage(submissionsEnabledFn)).Post("/submit", h.HandleSubmit)
 				r.Route("/register", func(r chi.Router) {
 					r.Group(func(r chi.Router) {
 						r.With(h.v.RedirectWithFailMessage(usersEnabledFn), ModelMw(&registerModel{Title: "Register new account"})).

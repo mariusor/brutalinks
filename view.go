@@ -1287,10 +1287,10 @@ func GetInviteLink(v *view) func(invitee *Account) template.HTMLAttr {
 	}
 }
 
-func (v *view) RedirectWithFailMessage(successFn func() (bool, string)) func(http.Handler) http.Handler {
+func (v *view) RedirectWithFailMessage(successFn func(r *http.Request) (bool, string)) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if success, failMsg := successFn(); !success {
+			if success, failMsg := successFn(r); !success {
 				v.addFlashMessage(Error, w, r, failMsg)
 				http.Redirect(w, r, "/", http.StatusSeeOther)
 				return
