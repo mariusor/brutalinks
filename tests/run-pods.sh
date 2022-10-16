@@ -3,6 +3,7 @@
 set -e
 
 TEST_PORT=${TEST_PORT:-4499}
+IMAGE=${IMAGE:-quay.io/go-ap/go-littr:qa}
 
 if podman container exists tests_fedbox; then
     podman stop tests_fedbox
@@ -43,5 +44,5 @@ podman run -d \
     --network-alias brutalinks \
     --expose 443 \
     -p "${TEST_PORT}:443" \
-    quay.io/go-ap/go-littr:qa \
+    "${IMAGE}" \
     /bin/brutalinks
