@@ -22,7 +22,7 @@ export const options = {
         regular_browsing: {
             executor: 'constant-vus',
             vus: 2,
-            duration: '15s',
+            duration: '3s',
             exec: 'regularBrowsing',
             gracefulStop: '2s',
         },
