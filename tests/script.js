@@ -1,7 +1,7 @@
 import {check, fail, group, sleep} from 'k6';
 import {parseHTML} from 'k6/html';
 import http from 'k6/http';
-import { Rate } from 'k6/metrics';
+import {Rate} from 'k6/metrics';
 
 const errors = new Rate('error_rate');
 
@@ -11,12 +11,12 @@ export const options = {
         'http_req_failed{type:static}': ['rate<0.01'], // http errors should be less than 1%
         'http_req_duration{type:content}': ['p(50)<150'], // threshold on API requests only under 150ms
         'http_req_duration{type:static}': ['p(50)<5'], // threshold on static content only under 5ms
-        'error_rate': [ { threshold: 'rate < 0.1', abortOnFail: true, delayAbortEval: '1s' } ],
-        'error_rate{errorType:responseStatusError}': [ { threshold: 'rate < 0.1', }, ],
-        'error_rate{errorType:contentTypeError}': [ { threshold: 'rate < 0.1', }, ],
-        'error_rate{errorType:cookieMissingError}': [ { threshold: 'rate < 0.1', }, ],
-        'error_rate{errorType:authorizationError}': [ { threshold: 'rate < 0.1', }, ],
-        'error_rate{errorType:contentError}': [ { threshold: 'rate < 0.2', }, ],
+        'error_rate': [{threshold: 'rate < 0.1', abortOnFail: true, delayAbortEval: '1s'}],
+        'error_rate{errorType:responseStatusError}': [{threshold: 'rate < 0.1'}],
+        'error_rate{errorType:contentTypeError}': [{threshold: 'rate < 0.1'}],
+        'error_rate{errorType:cookieMissingError}': [{threshold: 'rate < 0.1'}],
+        'error_rate{errorType:authorizationError}': [{threshold: 'rate < 0.1'}],
+        'error_rate{errorType:contentError}': [{threshold: 'rate < 0.2'}],
     },
     scenarios: {
         regular_browsing: {
@@ -27,6 +27,7 @@ export const options = {
             gracefulStop: '2s',
         },
     },
+    maxRedirects: 0,
 }
 
 const BASE_URL = __ENV.TEST_HOST;
@@ -277,9 +278,8 @@ const pages = {
         tags: {type: 'content'},
         checks: Object.assign(
             HTMLChecks('Moderation log'),
-            TabChecks('/self', '/federated', '/followed', '/submit'),
+            TabChecks('/self', '/federated'),
         ),
-        user: users[0],
     },
     'Followed tab': {
         path: '/followed',
@@ -354,7 +354,7 @@ function checkHomepage() {
     }
 }
 
-function hasLogo (r) {
+function hasLogo(r) {
     return checkOrContentErr(
         parseHTML(r.body).find('body header h1 a').children(':not(svg)').text() === 'brutalinks(test)',
         parseHTML(r.body).find('body header h1 svg title').text() === 'trash-o'
@@ -383,6 +383,7 @@ function TabChecks() {
 
     return checks;
 }
+
 function HTMLChecks(title) {
     return {
         'status 200': isOK,
@@ -400,7 +401,7 @@ function CSSChecks() {
 }
 
 function isOK(r) {
-    let status = r.status === 200
+    let status = r.status === 200;
     errors.add(!status, {errorType: 'responseStatusError'});
     return status;
 }
@@ -445,12 +446,16 @@ function isCSS(r) {
     return status;
 }
 
-const contentType = (r) => r.headers.hasOwnProperty('Content-Type') ? r.headers['Content-Type'].toLowerCase() : '';
+function getHeader(hdr) {
+    return (r) => r.headers.hasOwnProperty(hdr) ? r.headers[hdr].toLowerCase() : '';
+}
+
+const contentType = getHeader('Content-Type');
 const htmlTitle = (r) => parseHTML(r.body).find('head title').text();
 
 function authenticate(u) {
     let response = http.get(`${BASE_URL}/login`);
-    if (!check(response, { 'login page': isOK } )) {
+    if (!check(response, {'login page': isOK})) {
         fail('invalid login response');
         errors.add(1, {errorType: 'authorizationError'});
         return;
