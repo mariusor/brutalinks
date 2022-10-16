@@ -281,6 +281,14 @@ const pages = {
             TabChecks('/self', '/federated'),
         ),
     },
+    'Users page': {
+        path: '/~',
+        tags: {type: 'content'},
+        checks: Object.assign(
+            HTMLChecks('Account listing'),
+            TabChecks('/self', '/federated'),
+        ),
+    },
     'Anonymous followed': {
         path: '/followed',
         tags: {type: 'content'},
