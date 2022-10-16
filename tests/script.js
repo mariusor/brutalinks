@@ -214,7 +214,7 @@ const pages = {
         checks: Object.assign(
             HTMLChecks('Newest items'),
             TabChecks('/self', '/federated'),
-            checkHomepage(),
+            checkListingWithSingleElement(),
         ),
     },
     'Local tab': {
@@ -223,6 +223,7 @@ const pages = {
         checks: Object.assign(
             HTMLChecks('Local instance items'),
             TabChecks('/self', '/federated'),
+            checkListingWithSingleElement(),
         ),
     },
     'Federated tab': {
@@ -231,6 +232,7 @@ const pages = {
         checks: Object.assign(
             HTMLChecks('Federated items'),
             TabChecks('/self', '/federated'),
+            checkEmptyListing(),
         ),
     },
     'Tags': {
@@ -239,6 +241,7 @@ const pages = {
         checks: Object.assign(
             HTMLChecks('Items tagged as #tags'),
             TabChecks('/self', '/federated'),
+            checkListingWithSingleElement(),
         ),
     },
     'Discussions': {
@@ -247,6 +250,7 @@ const pages = {
         checks: Object.assign(
             HTMLChecks('Discussion items'),
             TabChecks('/self', '/federated'),
+            checkListingWithSingleElement(),
         ),
     },
     'Login': {
@@ -350,7 +354,16 @@ function checkAboutPage() {
     }
 }
 
-function checkHomepage() {
+function checkEmptyListing() {
+    return {
+        "main#listing exists": (r) => checkOrContentErr(parseHTML(r.body).find('main#listing').size() === 1),
+        "main#listing has one element": (r) => checkOrContentErr(parseHTML(r.body).find('main#listing').children().size() === 1),
+        "ol.top-level doesn't exist": (r) => checkOrContentErr(parseHTML(r.body).find('ol.top-level').size() === 0),
+        "listing has no elements": (r) => checkOrContentErr(parseHTML(r.body).find('ol.top-level > li').size() === 0),
+    }
+}
+
+function checkListingWithSingleElement() {
     return {
         "main#listing exists": (r) => checkOrContentErr(parseHTML(r.body).find('main#listing').size() === 1),
         "ol.top-level exists": (r) => checkOrContentErr(parseHTML(r.body).find('ol.top-level').size() === 1),
