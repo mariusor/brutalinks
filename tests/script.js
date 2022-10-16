@@ -271,6 +271,7 @@ const pages = {
         checks: Object.assign(
             HTMLChecks('Account listing'),
             TabChecks('/self', '/federated'),
+            checkUsersListingPage(),
         ),
     },
     'Moderation': {
@@ -375,6 +376,16 @@ function checkHomepage() {
     }
 }
 
+function checkUsersListingPage() {
+    return {
+        "main#listing exists": (r) => checkOrContentErr(parseHTML(r.body).find('main#listing').size() === 1),
+        "ol.top-level exists": (r) => checkOrContentErr(parseHTML(r.body).find('ol.top-level').size() === 1),
+        "listing has one element": (r) => checkOrContentErr(parseHTML(r.body).find('ol.top-level > li').size() === 1),
+        "element has article": (r) => checkOrContentErr(
+            parseHTML(r.body).find('ol.top-level > li > article').size() === 1,
+        ),
+    }
+}
 function hasLogo(r) {
     return checkOrContentErr(
         parseHTML(r.body).find('body header h1 a').children(':not(svg)').text() === 'brutalinks(test)',
