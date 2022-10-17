@@ -52,10 +52,9 @@ func ViewInit(c appConfig, infoFn, errFn CtxLogFn) (*view, error) {
 		Directory:                 "templates",
 		Layout:                    "layout",
 		Extensions:                []string{".html"},
-		FileSystem:                render.FS(assets.TemplateFS),
+		FileSystem:                assets.TemplateFS,
 		IsDevelopment:             Instance.Conf.Env.IsDev(),
 		DisableHTTPErrorRendering: true,
-		UseMutexLock:              true,
 		Funcs: []template.FuncMap{{
 			"sluggify":          sluggify,
 			"title":             func(t []byte) string { return string(t) },
