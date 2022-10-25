@@ -23,7 +23,7 @@ import (
 	"github.com/mariusor/go-littr/internal/config"
 	"github.com/mariusor/go-littr/internal/log"
 	"github.com/mariusor/qstring"
-	"github.com/unrolled/render"
+	"github.com/mariusor/render"
 	"gitlab.com/golang-commonmark/puny"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
@@ -47,84 +47,6 @@ func ViewInit(c appConfig, infoFn, errFn CtxLogFn) (*view, error) {
 	v.c = &c.Configuration
 	v.infoFn = infoFn
 	v.errFn = errFn
-
-	v.ren = render.New(render.Options{
-		Directory:                 "templates",
-		Layout:                    "layout",
-		Extensions:                []string{".html"},
-		FileSystem:                assets.TemplateFS,
-		IsDevelopment:             Instance.Conf.Env.IsDev(),
-		DisableHTTPErrorRendering: true,
-		Funcs: []template.FuncMap{{
-			"sluggify":          sluggify,
-			"title":             func(t []byte) string { return string(t) },
-			"getProviders":      getAuthProviders,
-			"IsComment":         func(t Renderable) bool { return t.Type() == CommentType },
-			"IsFollowRequest":   func(t Renderable) bool { return t.Type() == FollowType },
-			"IsVote":            func(t Renderable) bool { return t.Type() == AppreciationType },
-			"IsAccount":         func(t Renderable) bool { return t.Type() == ActorType },
-			"IsModeration":      func(t Renderable) bool { return t.Type() == ModerationType },
-			"SessionEnabled":    func() bool { return v.s.enabled },
-			"Mod10":             mod10,
-			"HTML":              html,
-			"Text":              text,
-			"isAudio":           isAudio,
-			"Audio":             audio,
-			"Video":             video,
-			"isVideo":           isVideo,
-			"Image":             image,
-			"Avatar":            avatar,
-			"isImage":           isImage,
-			"Markdown":          Markdown,
-			"replaceTags":       replaceTags,
-			"outputTag":         renderTag,
-			"AccountLocalLink":  AccountLocalLink,
-			"ShowAccountHandle": ShowAccountHandle,
-			"PermaLink":         PermaLink,
-			"ParentLink":        parentLink,
-			"OPLink":            opLink,
-			"IsYay":             isYay,
-			"IsNay":             isNay,
-			"IsReadOnly":        isReadOnly,
-			"ScoreFmt":          scoreFmt,
-			"NumberFmt":         func(i int) string { return numberFormat("%d", i) },
-			"TimeFmt":           relTimeFmt,
-			"ISOTimeFmt":        isoTimeFmt,
-			"ShowUpdate":        showUpdateTime,
-			"ScoreClass":        scoreClass,
-			"YayLink":           yayLink,
-			"NayLink":           nayLink,
-			"AcceptLink":        acceptLink,
-			"RejectLink":        rejectLink,
-			"NextPageLink":      nextPageLink,
-			"PrevPageLink":      prevPageLink,
-			"CanPaginate":       canPaginate,
-			"Config":            func() config.Configuration { return *v.c },
-			"Version":           func() string { return Instance.Version },
-			"Name":              appName,
-			"icon":              icon,
-			"icons":             icons,
-			"svg":               v.svg,
-			"js":                v.js,
-			"style":             v.style,
-			"integrity":         ass.Integrity,
-			"sameBase":          sameBasePath,
-			"sameHash":          func(h1, h2 Hash) bool { return h1 == h2 },
-			"sameAccount":       func(a1, a2 Account) bool { return a1.Hash == a2.Hash },
-			"fmtPubKey":         fmtPubKey,
-			"pluralize":         func(s string, cnt int) string { return pluralize(float64(cnt), s) },
-			"pasttensify":       pastTenseVerb,
-			"RenderLabel":       renderActivityLabel,
-			"ToTitle":           ToTitle,
-			"itemType":          itemType,
-			"trimSuffix":        strings.TrimSuffix,
-			"GetDomainLinks":    GetDomainLinks,
-			"invitationLink":    GetInviteLink(v),
-			"accountJSON":       renderableMarshalJSON(v.errFn()),
-			//"ScoreFmt":          func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
-			//"NumberFmt":         func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
-		}},
-	})
 
 	var err error
 	v.s, err = initSession(c, infoFn, errFn)
@@ -241,39 +163,113 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 
 	_, isError := m.(*errorModel)
 
+	v.ren = render.New(render.Options{
+		Directory:                 "templates",
+		Layout:                    "layout",
+		Extensions:                []string{".html"},
+		FileSystem:                assets.TemplateFS,
+		IsDevelopment:             Instance.Conf.Env.IsDev(),
+		DisableHTTPErrorRendering: true,
+		Funcs: []template.FuncMap{{
+			"sluggify":          sluggify,
+			"title":             func(t []byte) string { return string(t) },
+			"getProviders":      getAuthProviders,
+			"IsComment":         func(t Renderable) bool { return t.Type() == CommentType },
+			"IsFollowRequest":   func(t Renderable) bool { return t.Type() == FollowType },
+			"IsVote":            func(t Renderable) bool { return t.Type() == AppreciationType },
+			"IsAccount":         func(t Renderable) bool { return t.Type() == ActorType },
+			"IsModeration":      func(t Renderable) bool { return t.Type() == ModerationType },
+			"SessionEnabled":    func() bool { return v.s.enabled },
+			"Mod10":             mod10,
+			"HTML":              html,
+			"Text":              text,
+			"isAudio":           isAudio,
+			"Audio":             audio,
+			"Video":             video,
+			"isVideo":           isVideo,
+			"Image":             image,
+			"Avatar":            avatar,
+			"isImage":           isImage,
+			"Markdown":          Markdown,
+			"replaceTags":       replaceTags,
+			"outputTag":         renderTag,
+			"AccountLocalLink":  AccountLocalLink,
+			"ShowAccountHandle": ShowAccountHandle,
+			"PermaLink":         PermaLink,
+			"ParentLink":        parentLink,
+			"OPLink":            opLink,
+			"IsYay":             isYay,
+			"IsNay":             isNay,
+			"IsReadOnly":        isReadOnly,
+			"ScoreFmt":          scoreFmt,
+			"NumberFmt":         func(i int) string { return numberFormat("%d", i) },
+			"TimeFmt":           relTimeFmt,
+			"ISOTimeFmt":        isoTimeFmt,
+			"ShowUpdate":        showUpdateTime,
+			"ScoreClass":        scoreClass,
+			"YayLink":           yayLink,
+			"NayLink":           nayLink,
+			"AcceptLink":        acceptLink,
+			"RejectLink":        rejectLink,
+			"NextPageLink":      nextPageLink,
+			"PrevPageLink":      prevPageLink,
+			"CanPaginate":       canPaginate,
+			"Config":            func() config.Configuration { return *v.c },
+			"Version":           func() string { return Instance.Version },
+			"Name":              appName,
+			"icon":              icon,
+			"icons":             icons,
+			"svg":               v.svg,
+			"js":                v.js,
+			"style":             v.style,
+			"integrity":         ass.Integrity,
+			"sameBase":          sameBasePath,
+			"sameHash":          func(h1, h2 Hash) bool { return h1 == h2 },
+			"sameAccount":       func(a1, a2 Account) bool { return a1.Hash == a2.Hash },
+			"fmtPubKey":         fmtPubKey,
+			"pluralize":         func(s string, cnt int) string { return pluralize(float64(cnt), s) },
+			"pasttensify":       pastTenseVerb,
+			"RenderLabel":       renderActivityLabel,
+			"ToTitle":           ToTitle,
+			"itemType":          itemType,
+			"trimSuffix":        strings.TrimSuffix,
+			"GetDomainLinks":    GetDomainLinks,
+			"invitationLink":    GetInviteLink(v),
+			"accountJSON":       renderableMarshalJSON(v.errFn()),
+			//"ScoreFmt":          func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
+			//"NumberFmt":         func(i int64) string { return humanize.FormatInteger("#\u202F###", int(i)) },
+		}},
+	})
 	acc := loggedAccount(r)
 	accountFromRequest := func() *Account { return acc }
-	opts := render.HTMLOptions{
-		Layout: "layout",
-		Funcs: template.FuncMap{
-			// Request related functions
-			//"urlParam":          func(s string) string { return chi.URLParam(r, s) },
-			//"get":               func(s string) string { return r.URL.Query().Get(s) },
-			csrf.TemplateTag:        func() template.HTML { return csrf.TemplateField(r) },
-			"isInverted":            func() bool { return isInverted(r) },
-			"CurrentAccount":        accountFromRequest,
-			"LoadFlashMessages":     v.loadFlashMessages(w, r),
-			"Menu":                  func() []headerEl { return headerMenu(r) },
-			"req":                   func() *http.Request { return r },
-			"url":                   func() url.Values { return r.URL.Query() },
-			"urlValue":              func(k string) []string { return r.URL.Query()[k] },
-			"urlValueContains":      func(k, v string) bool { return stringInSlice(r.URL.Query()[k])(v) },
-			"CanModerate":           func(g ModerationGroup) bool { return canUserModerate(acc, g) },
-			"ShowFollowLink":        func(a *Account) bool { return showFollowLink(accountFromRequest(), a) },
-			"ShowAccountBlockLink":  func(a *Account) bool { return showAccountBlockLink(accountFromRequest(), a) },
-			"ShowAccountReportLink": func(a *Account) bool { return showAccountReportLink(accountFromRequest(), a) },
-			"AccountFollows":        func(a *Account) bool { return AccountFollows(a, accountFromRequest()) },
-			"AccountIsFollowed":     func(a *Account) bool { return AccountIsFollowed(accountFromRequest(), a) },
-			"AccountIsRejected":     func(a *Account) bool { return AccountIsRejected(accountFromRequest(), a) },
-			"AccountIsBlocked":      func(a *Account) bool { return AccountIsBlocked(accountFromRequest(), a) },
-			"AccountIsReported":     func(a *Account) bool { return AccountIsReported(accountFromRequest(), a) },
-			"ItemReported":          func(i *Item) bool { return ItemIsReported(accountFromRequest(), i) },
-			// Model related functions
-			"showChildren": showChildren(m),
-			"ShowText":     showText(m),
-			"ShowTitle":    showTitle(m),
-			"Sort":         sortModel(m),
-		},
+	funcs := template.FuncMap{
+		// Request related functions
+		//"urlParam":          func(s string) string { return chi.URLParam(r, s) },
+		//"get":               func(s string) string { return r.URL.Query().Get(s) },
+		csrf.TemplateTag:        func() template.HTML { return csrf.TemplateField(r) },
+		"isInverted":            func() bool { return isInverted(r) },
+		"CurrentAccount":        accountFromRequest,
+		"LoadFlashMessages":     v.loadFlashMessages(w, r),
+		"Menu":                  func() []headerEl { return headerMenu(r) },
+		"req":                   func() *http.Request { return r },
+		"url":                   func() url.Values { return r.URL.Query() },
+		"urlValue":              func(k string) []string { return r.URL.Query()[k] },
+		"urlValueContains":      func(k, v string) bool { return stringInSlice(r.URL.Query()[k])(v) },
+		"CanModerate":           func(g ModerationGroup) bool { return canUserModerate(acc, g) },
+		"ShowFollowLink":        func(a *Account) bool { return showFollowLink(accountFromRequest(), a) },
+		"ShowAccountBlockLink":  func(a *Account) bool { return showAccountBlockLink(accountFromRequest(), a) },
+		"ShowAccountReportLink": func(a *Account) bool { return showAccountReportLink(accountFromRequest(), a) },
+		"AccountFollows":        func(a *Account) bool { return AccountFollows(a, accountFromRequest()) },
+		"AccountIsFollowed":     func(a *Account) bool { return AccountIsFollowed(accountFromRequest(), a) },
+		"AccountIsRejected":     func(a *Account) bool { return AccountIsRejected(accountFromRequest(), a) },
+		"AccountIsBlocked":      func(a *Account) bool { return AccountIsBlocked(accountFromRequest(), a) },
+		"AccountIsReported":     func(a *Account) bool { return AccountIsReported(accountFromRequest(), a) },
+		"ItemReported":          func(i *Item) bool { return ItemIsReported(accountFromRequest(), i) },
+		// Model related functions
+		"showChildren": showChildren(m),
+		"ShowText":     showText(m),
+		"ShowTitle":    showTitle(m),
+		"Sort":         sortModel(m),
 	}
 
 	if !isError {
@@ -286,7 +282,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			v.errFn(log.Ctx{"err": err.Error()})("session save failed")
 		}
 	}
-	if err = v.ren.HTML(w, http.StatusOK, name, m, opts); err != nil {
+	if err = v.ren.HTML(w, http.StatusOK, name, m, render.HTMLOptions{Funcs: funcs}); err != nil {
 		v.errFn(log.Ctx{"err": err, "model": m})("failed to render template %s", name)
 		return errors.Annotatef(err, "failed to render template")
 	}
@@ -340,8 +336,10 @@ func (v *view) svg(name string) template.HTML {
 }
 
 func (v view) SetCSP(m Model, w http.ResponseWriter) error {
+
 	styleSrc, scriptSrc := getCSPHashes(m, v)
 	cspHdrVal := fmt.Sprintf("default-src https: 'self'; style-src https: 'self' %s; script-src https: 'self' %s; media-src https: data: 'self'; img-src https: data: 'self'", styleSrc, scriptSrc)
+
 	w.Header().Set("Content-Security-Policy", cspHdrVal)
 	return nil
 }

@@ -15,12 +15,12 @@ require (
 	github.com/gorilla/sessions v1.2.1
 	github.com/joho/godotenv v1.4.0
 	github.com/mariusor/qstring v0.0.0-20200204164351-5a99d46de39d
+	github.com/mariusor/render v1.5.1-0.20221025115835-94ed25cc22b6
 	github.com/microcosm-cc/bluemonday v1.0.21
 	github.com/openshift/osin v1.0.1
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spacemonkeygo/httpsig v0.0.0-20181218213338-2605ae379e47
 	github.com/tdewolff/minify v2.3.6+incompatible
-	github.com/unrolled/render v1.5.0
 	github.com/writeas/go-nodeinfo v1.0.0
 	gitlab.com/golang-commonmark/markdown v0.0.0-20211110145824-bf3e522c626a
 	gitlab.com/golang-commonmark/puny v0.0.0-20191124015043-9f83538fa04f
@@ -42,9 +42,9 @@ require (
 	github.com/tdewolff/parse v2.3.4+incompatible // indirect
 	github.com/tdewolff/test v1.0.7 // indirect
 	github.com/valyala/fastjson v1.6.3 // indirect
-	github.com/writeas/go-webfinger v0.0.0-20190106002315-85cf805c86d2 // indirect
+	github.com/writeas/go-webfinger v1.1.0 // indirect
 	gitlab.com/golang-commonmark/html v0.0.0-20191124015941-a22733972181 // indirect
-	gitlab.com/golang-commonmark/linkify v0.0.0-20200225224916-64bca66f6ad3 // indirect
+	gitlab.com/golang-commonmark/linkify v0.0.0-20191026162114-a0c2df6c8f82 // indirect
 	gitlab.com/golang-commonmark/mdurl v0.0.0-20191124015652-932350d1cb84 // indirect
 	golang.org/x/net v0.0.0-20221004154528-8021a29435af // indirect
 	golang.org/x/sys v0.0.0-20221006211917-84dc82d7e875 // indirect
@@ -54,5 +54,3 @@ require (
 )
 
 replace github.com/gorilla/sessions => github.com/mariusor/sessions v1.2.2-0.20211229142436-b33eb696f35b
-
-replace github.com/unrolled/render => github.com/mariusor/render v1.5.1-0.20221017090504-81b397079953
