@@ -10,12 +10,12 @@ import (
 	"path"
 	"strings"
 
+	log "git.sr.ht/~mariusor/lw"
 	vocab "github.com/go-ap/activitypub"
 	"github.com/go-ap/client"
 	"github.com/go-ap/errors"
 	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/csrf"
-	"github.com/mariusor/go-littr/internal/log"
 	"github.com/openshift/osin"
 	"github.com/writeas/go-nodeinfo"
 	"golang.org/x/oauth2"

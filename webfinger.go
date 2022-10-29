@@ -11,10 +11,10 @@ import (
 	"regexp"
 	"strings"
 
+	log "git.sr.ht/~mariusor/lw"
 	vocab "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
 	"github.com/mariusor/go-littr/internal/assets"
-	"github.com/mariusor/go-littr/internal/log"
 	"github.com/writeas/go-nodeinfo"
 )
 

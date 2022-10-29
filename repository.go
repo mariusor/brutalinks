@@ -12,11 +12,11 @@ import (
 	"sync"
 	"time"
 
+	log "git.sr.ht/~mariusor/lw"
 	vocab "github.com/go-ap/activitypub"
 	"github.com/go-ap/client"
 	"github.com/go-ap/errors"
 	j "github.com/go-ap/jsonld"
-	"github.com/mariusor/go-littr/internal/log"
 	"github.com/mariusor/qstring"
 	"github.com/spacemonkeygo/httpsig"
 	"golang.org/x/sync/errgroup"

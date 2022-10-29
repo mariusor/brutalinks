@@ -6,11 +6,11 @@ import (
 	"net/http"
 	"strings"
 
+	log "git.sr.ht/~mariusor/lw"
 	"github.com/go-ap/errors"
 	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/csrf"
 	"github.com/mariusor/go-littr/internal/config"
-	"github.com/mariusor/go-littr/internal/log"
 )
 
 const (

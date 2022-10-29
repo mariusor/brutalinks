@@ -16,12 +16,12 @@ import (
 	"time"
 
 	ass "git.sr.ht/~mariusor/assets"
+	log "git.sr.ht/~mariusor/lw"
 	vocab "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
 	"github.com/gorilla/csrf"
 	"github.com/mariusor/go-littr/internal/assets"
 	"github.com/mariusor/go-littr/internal/config"
-	"github.com/mariusor/go-littr/internal/log"
 	"github.com/mariusor/qstring"
 	"github.com/mariusor/render"
 	"gitlab.com/golang-commonmark/puny"

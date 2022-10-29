@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
+	log "git.sr.ht/~mariusor/lw"
 	"github.com/joho/godotenv"
-	"github.com/mariusor/go-littr/internal/log"
 	"golang.org/x/oauth2"
 )
 

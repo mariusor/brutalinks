@@ -4,6 +4,7 @@ go 1.18
 
 require (
 	git.sr.ht/~mariusor/assets v0.0.0-20220830142251-15a3530ff8fd
+	git.sr.ht/~mariusor/lw v0.0.0-20221029115357-f74f856c5d31
 	git.sr.ht/~mariusor/wrapper v0.0.0-20211204195804-3033a1099e0f
 	github.com/go-ap/activitypub v0.0.0-20220917143152-e4e7018838c0
 	github.com/go-ap/client v0.0.0-20220917143634-73d671c1b49e
@@ -18,7 +19,6 @@ require (
 	github.com/mariusor/render v1.5.1-0.20221026090743-ab78c1b3aa95
 	github.com/microcosm-cc/bluemonday v1.0.21
 	github.com/openshift/osin v1.0.1
-	github.com/sirupsen/logrus v1.9.0
 	github.com/spacemonkeygo/httpsig v0.0.0-20181218213338-2605ae379e47
 	github.com/tdewolff/minify v2.3.6+incompatible
 	github.com/writeas/go-nodeinfo v1.0.0
@@ -39,6 +39,7 @@ require (
 	github.com/gorilla/securecookie v1.1.1 // indirect
 	github.com/pborman/uuid v1.2.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/tdewolff/parse v2.3.4+incompatible // indirect
 	github.com/tdewolff/test v1.0.7 // indirect
 	github.com/valyala/fastjson v1.6.3 // indirect
