@@ -3,13 +3,13 @@ module github.com/mariusor/go-littr
 go 1.18
 
 require (
-	git.sr.ht/~mariusor/assets v0.0.0-20220830142251-15a3530ff8fd
-	git.sr.ht/~mariusor/lw v0.0.0-20221029115357-f74f856c5d31
-	git.sr.ht/~mariusor/wrapper v0.0.0-20211204195804-3033a1099e0f
-	github.com/go-ap/activitypub v0.0.0-20220917143152-e4e7018838c0
-	github.com/go-ap/client v0.0.0-20220917143634-73d671c1b49e
+	git.sr.ht/~mariusor/assets v0.0.0-20220903082417-c9a1eccd9a8e
+	git.sr.ht/~mariusor/lw v0.0.0-20221030084619-c7813ea7e638
+	git.sr.ht/~mariusor/wrapper v0.0.0-20221008121056-186252a01934
+	github.com/go-ap/activitypub v0.0.0-20221030091545-e2b6e01b277c
+	github.com/go-ap/client v0.0.0-20221030091733-9f80b7f1efcc
 	github.com/go-ap/errors v0.0.0-20220917143055-4283ea5dae18
-	github.com/go-ap/jsonld v0.0.0-20220917142617-76bf51585778
+	github.com/go-ap/jsonld v0.0.0-20221030091449-f2a191312c73
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/csrf v1.7.1
@@ -48,7 +48,7 @@ require (
 	gitlab.com/golang-commonmark/linkify v0.0.0-20191026162114-a0c2df6c8f82 // indirect
 	gitlab.com/golang-commonmark/mdurl v0.0.0-20191124015652-932350d1cb84 // indirect
 	golang.org/x/net v0.0.0-20221004154528-8021a29435af // indirect
-	golang.org/x/sys v0.0.0-20221006211917-84dc82d7e875 // indirect
+	golang.org/x/sys v0.1.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect

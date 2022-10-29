@@ -113,7 +113,7 @@ func main() {
 
 	c := config.Load(config.EnvType(env), wait)
 	errors.IncludeBacktrace = c.Env.IsDev()
-	l := log.Dev(c.LogLevel)
+	l := log.Dev(log.SetLevel(c.LogLevel))
 
 	if i, ok := debug.ReadBuildInfo(); ok && version == "HEAD" {
 		version = i.Main.Version
