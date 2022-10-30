@@ -6,45 +6,37 @@ packages:
   - aardvark-dns
   - k6-bin
 sources:
-  - https://github.com/mariusor/go-littr
+  - https://git.sr.ht/~mariusor/brutalinks
 secrets:
   - 32610757-76e9-4671-adf1-98163ca8b594
   - 3f30fd61-e33d-4198-aafb-0ff341e9db1c
   - 90ecf226-098f-4d66-befe-1fe462027432
   - 53ebbaf9-664b-4241-9d07-f2f12feee80c
 tasks:
-  - push_to_srht: |
-      test ${BUILD_SUBMITTER} = "git.sr.ht" && exit 0
-      set -a +x
-      ssh-keyscan -H git.sr.ht >> ~/.ssh/known_hosts
-      cd go-littr
-      git remote add srht git@git.sr.ht:~mariusor/brutalinks
-      git push srht --force --all
-      complete-build
   - build: |
-      test ${BUILD_SUBMITTER} = "dispatch.sr.ht" && complete-build
+      test ${BUILD_SUBMITTER} != "git.sr.ht" && complete-build
       set +x
-      cd go-littr
+      cd brutalinks
       make all
   - tests: |
-      test ${BUILD_SUBMITTER} = "dispatch.sr.ht" && complete-build
+      test ${BUILD_SUBMITTER} != "git.sr.ht" && complete-build
       set -a
       source ~/.env.test
-      cd go-littr
+      cd brutalinks
       make test
   - coverage: |
-      test ${BUILD_SUBMITTER} = "dispatch.sr.ht" && complete-build
+      test ${BUILD_SUBMITTER} != "git.sr.ht" && complete-build
       set -a +x
-      cd go-littr && make coverage
+      cd brutalinks && make coverage
       GIT_SHA=$(git rev-parse --verify HEAD)
       GIT_BRANCH=$(git name-rev --name-only HEAD)
       source ~/.code-cov.sh
       curl -X POST \
-          --data-binary @go-littr.coverprofile \
+          --data-binary @brutalinks.coverprofile \
            -H 'Accept: application/json' \
           "https://codecov.io/upload/v2?commit=${GIT_SHA}&token=${LITTR_TOKEN}&branch=${GIT_BRANCH}&service=custom" || true
   - image: |
-      test ${BUILD_SUBMITTER} = "dispatch.sr.ht" && complete-build
+      test ${BUILD_SUBMITTER} != "git.sr.ht" && complete-build
       set -a +x
       source ~/.buildah.env
 
@@ -57,7 +49,7 @@ tasks:
 
       podman login -u="${BUILDAH_USER}" -p="${BUILDAH_SECRET}" quay.io
 
-      cd go-littr || exit
+      cd brutalinks || exit
 
       GIT_SHA=$(git rev-parse --verify --short HEAD)
       GIT_BRANCH=$(git name-rev --name-only HEAD)
@@ -75,11 +67,17 @@ tasks:
         make -C images ENV=prod VERSION="${_tag}" push
       fi
   - integration: |
-      test ${BUILD_SUBMITTER} = "dispatch.sr.ht" && complete-build
+      test ${BUILD_SUBMITTER} != "git.sr.ht" && complete-build
       set -a +x
       source ~/.env.test
       set +a -xe
 
-      cd go-littr
+      cd brutalinks
       make integration
-
+  - push_to_github: |
+      test ${BUILD_SUBMITTER} = "git.sr.ht" && complete-build
+      set -a +x
+      ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+      cd brutalinks
+      git remote add hub git@github.com:mariusor/brutalinks
+      git push hub --force --all
