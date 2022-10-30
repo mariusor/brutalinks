@@ -2,6 +2,7 @@ package brutalinks
 
 import (
 	"context"
+	"embed"
 	"fmt"
 	"net/http"
 	"strings"
@@ -17,6 +18,9 @@ const (
 	sessionName = "_s"
 	csrfName    = "_c"
 )
+
+//go:embed templates
+var templateFs embed.FS
 
 type handler struct {
 	conf    appConfig

@@ -52,7 +52,7 @@ func ViewInit(c appConfig, infoFn, errFn CtxLogFn) (*view, error) {
 		Directory:                 "templates",
 		Layout:                    "layout",
 		Extensions:                []string{".html"},
-		FileSystem:                assets.TemplateFS,
+		FileSystem:                templateFs,
 		IsDevelopment:             Instance.Conf.Env.IsDev(),
 		DisableHTTPErrorRendering: true,
 		Funcs: []template.FuncMap{{
