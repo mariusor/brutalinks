@@ -148,10 +148,6 @@ type Cacheable interface {
 	GetAge() int
 }
 
-func ReqLogger(f middleware.LogFormatter) Handler {
-	return middleware.RequestLogger(f)
-}
-
 type Handler func(http.Handler) http.Handler
 type ErrorHandler func(http.ResponseWriter, *http.Request, ...error)
 type ErrorHandlerFn func(eh ErrorHandler) Handler

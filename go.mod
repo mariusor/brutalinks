@@ -3,9 +3,9 @@ module github.com/mariusor/go-littr
 go 1.18
 
 require (
-	git.sr.ht/~mariusor/assets v0.0.0-20220903082417-c9a1eccd9a8e
-	git.sr.ht/~mariusor/lw v0.0.0-20221030084619-c7813ea7e638
-	git.sr.ht/~mariusor/wrapper v0.0.0-20221008121056-186252a01934
+	git.sr.ht/~mariusor/assets v0.0.0-20220830142251-15a3530ff8fd
+	git.sr.ht/~mariusor/lw v0.0.0-20221102084913-34fb8eae441e
+	git.sr.ht/~mariusor/wrapper v0.0.0-20211204195804-3033a1099e0f
 	github.com/go-ap/activitypub v0.0.0-20221030091545-e2b6e01b277c
 	github.com/go-ap/client v0.0.0-20221030091733-9f80b7f1efcc
 	github.com/go-ap/errors v0.0.0-20220917143055-4283ea5dae18
@@ -37,9 +37,12 @@ require (
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/gorilla/css v1.0.0 // indirect
 	github.com/gorilla/securecookie v1.1.1 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/mattn/go-isatty v0.0.16 // indirect
 	github.com/pborman/uuid v1.2.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/sirupsen/logrus v1.9.0 // indirect
+	github.com/rs/xid v1.4.0 // indirect
+	github.com/rs/zerolog v1.28.0 // indirect
 	github.com/tdewolff/parse v2.3.4+incompatible // indirect
 	github.com/tdewolff/test v1.0.7 // indirect
 	github.com/valyala/fastjson v1.6.3 // indirect
@@ -51,7 +54,6 @@ require (
 	golang.org/x/sys v0.1.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
-	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect
 )
 
 replace github.com/gorilla/sessions => github.com/mariusor/sessions v1.2.2-0.20211229142436-b33eb696f35b

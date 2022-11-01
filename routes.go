@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	ass "git.sr.ht/~mariusor/assets"
+	"git.sr.ht/~mariusor/lw"
 	"github.com/go-ap/errors"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -83,7 +84,7 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 	}
 
 	return func(r chi.Router) {
-		r.Use(ReqLogger(h.logger))
+		r.Use(lw.Middlewares(h.logger)...)
 		r.Use(OutOfOrderMw(h.v))
 		r.Use(middleware.GetHead)
 

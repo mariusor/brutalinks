@@ -61,32 +61,32 @@ func Run(a *brutalinks.Application) int {
 		"timeout": a.Conf.TimeOut,
 		"cert":    a.Conf.CertPath,
 		"key":     a.Conf.KeyPath,
-	}).Info("Started")
+	}).Infof("Started")
 
 	// Set up the signal handlers functions so the OS can tell us if the it requires us to stop
 	sigHandlerFns := w.SignalHandlers{
 		syscall.SIGHUP: func(_ chan int) {
-			a.Logger.Info("SIGHUP received, reloading configuration")
+			a.Logger.Infof("SIGHUP received, reloading configuration")
 			if err := a.Reload(); err != nil {
 				a.Logger.Errorf("Failed to reload: %s", err.Error())
 			}
 		},
 		syscall.SIGUSR1: func(_ chan int) {
-			a.Logger.Info("SIGUSR1 received, switching to maintenance mode")
+			a.Logger.Infof("SIGUSR1 received, switching to maintenance mode")
 			a.Conf.MaintenanceMode = !a.Conf.MaintenanceMode
 		},
 		syscall.SIGTERM: func(status chan int) {
 			// kill -SIGTERM XXXX
-			a.Logger.Info("SIGTERM received, stopping")
+			a.Logger.Infof("SIGTERM received, stopping")
 			status <- 0
 		},
 		syscall.SIGINT: func(status chan int) {
 			// kill -SIGINT XXXX or Ctrl+c
-			a.Logger.Info("SIGINT received, stopping")
+			a.Logger.Infof("SIGINT received, stopping")
 			status <- 0
 		},
 		syscall.SIGQUIT: func(status chan int) {
-			a.Logger.Error("SIGQUIT received, force stopping")
+			a.Logger.Errorf("SIGQUIT received, force stopping")
 			status <- -1
 		},
 	}
@@ -94,7 +94,7 @@ func Run(a *brutalinks.Application) int {
 	// Wait for OS signals asynchronously
 	code := w.RegisterSignalHandlers(sigHandlerFns).Exec(runFn)
 	if code == 0 {
-		a.Logger.Info("Shutting down")
+		a.Logger.Infof("Shutting down")
 	}
 	return code
 }
