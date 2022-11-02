@@ -40,10 +40,10 @@ func ActivityPubService(c appConfig) (*repository, error) {
 	vocab.ItemTyperFunc = vocab.GetItemByType
 
 	infoFn := func(ctx ...log.Ctx) LogFn {
-		return c.Logger.WithContext(append(ctx, log.Ctx{"client": "api"})...).Debugf
+		return c.Logger.New(append(ctx, log.Ctx{"client": "api"})...).Debugf
 	}
 	errFn := func(ctx ...log.Ctx) LogFn {
-		return c.Logger.WithContext(append(ctx, log.Ctx{"client": "api"})...).Warnf
+		return c.Logger.New(append(ctx, log.Ctx{"client": "api"})...).Warnf
 	}
 	ua := fmt.Sprintf("%s-%s", c.HostName, Instance.Version)
 
