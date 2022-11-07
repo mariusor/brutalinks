@@ -39,10 +39,11 @@ var assetFiles = ass.Map{
 }
 
 var (
-	instanceSearchFns      = instanceSearches(inbox, outbox)
-	applicationSearchFns   = applicationSearches(inbox, outbox)
-	loggedAccountSearchFns = loggedAccountSearches(inbox, outbox)
-	namedAccountSearchFns  = namedAccountSearches(inbox, outbox)
+	instanceSearchFns        = instanceSearches(inbox, outbox)
+	applicationInboxSearchFn = applicationSearches(inbox)
+	applicationSearchFns     = applicationSearches(inbox, outbox)
+	loggedAccountSearchFns   = loggedAccountSearches(inbox, outbox)
+	namedAccountSearchFns    = namedAccountSearches(inbox, outbox)
 )
 
 func (h *handler) ItemRoutes() func(chi.Router) {
@@ -168,7 +169,7 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 					Get("/t/{tag}", h.HandleShow)
 				r.With(SelfFiltersMw(h.storage.fedbox.Service().ID), applicationSearchFns, LoadMw, SortByScore).
 					Get("/self", h.HandleShow)
-				r.With(FederatedFiltersMw(h.storage.fedbox.Service().ID), applicationSearchFns, LoadMw, SortByScore).
+				r.With(FederatedFiltersMw(h.storage.fedbox.Service().ID), applicationInboxSearchFn, LoadMw, SortByScore).
 					Get("/federated", h.HandleShow)
 				r.With(h.NeedsSessions, h.ValidateLoggedIn(h.v.RedirectToErrors), Deps(Follows), FollowedFiltersMw,
 					loggedAccountSearches(inbox), LoadMw, SortByDate).
