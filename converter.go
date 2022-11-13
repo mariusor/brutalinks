@@ -4,6 +4,8 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"net/url"
+	"path/filepath"
+	"strings"
 
 	vocab "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
@@ -331,12 +333,10 @@ func FromTag(t *Tag, a *vocab.Object) error {
 	if len(a.ID) > 0 {
 		t.Metadata.ID = a.ID.String()
 	}
-	if a.URL != nil {
-		local, _ := url.Parse(Instance.BaseURL)
-		tUrl, _ := a.URL.GetLink().URL()
-		tUrl.Host = local.Host
-		t.URL = tUrl.String()
-	}
+	local := Instance.BaseURL
+	local.Path = filepath.Join("t", strings.TrimPrefix(t.Name, "#"))
+	t.URL = local.String()
+
 	if a.Icon != nil {
 		vocab.OnObject(a.Icon, func(o *vocab.Object) error {
 			return iconMetadataFromObject(&t.Metadata.Icon, o)
