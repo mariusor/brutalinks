@@ -2,6 +2,7 @@ package brutalinks
 
 import (
 	"github.com/mariusor/go-littr/internal/config"
+	"net/url"
 	"reflect"
 	"testing"
 )
@@ -85,7 +86,8 @@ func Test_replaceTags(t *testing.T) {
 		},
 	}
 	Instance = new(Application)
-	Instance.BaseURL = "https://brutalinks.git"
+	brut, _ := url.ParseRequestURI("https://brutalinks.git")
+	Instance.BaseURL = *brut
 	Instance.Conf = &config.Configuration{HostName: "brutalinks.git"}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -289,7 +291,7 @@ This is a very important step forward in removing the need for a custom "activit
 		},
 	}
 	// TODO(marius): stop relying on global state
-	Instance.BaseURL = ""
+	Instance.BaseURL = url.URL{}
 	Instance.Conf = nil
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

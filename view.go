@@ -1266,7 +1266,7 @@ func GetDomainLinks(i Item) Links {
 
 func GetInviteLink(v *view) func(invitee *Account) template.HTMLAttr {
 	return func(invitee *Account) template.HTMLAttr {
-		u := fmt.Sprintf("%s/register/%s", Instance.BaseURL, invitee.Hash)
+		u := fmt.Sprintf("%s/register/%s", Instance.BaseURL.String(), invitee.Hash)
 		handle := invitee.CreatedBy.Handle
 		// @todo(marius): :link_generation:
 		bodyFmt := "Hello,\n\nThis is an invitation to join %s.\n\nTo accept this invitation and create an account, visit the URL below: %s\n\n/%s"
@@ -1275,7 +1275,7 @@ func GetInviteLink(v *view) func(invitee *Account) template.HTMLAttr {
 			Body    string `qstring:body`
 		}{
 			Subject: fmt.Sprintf("You are invited to join %s", v.c.HostName),
-			Body:    fmt.Sprintf(bodyFmt, Instance.BaseURL, u, handle),
+			Body:    fmt.Sprintf(bodyFmt, Instance.BaseURL.String(), u, handle),
 		}
 		q, _ := qstring.Marshal(&mailContent)
 		// NOTE(marius): acceptable to hardcode replacing '+' to '%20' as we don't have any standalone ones in the message

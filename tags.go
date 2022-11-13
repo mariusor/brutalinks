@@ -34,7 +34,7 @@ type Tag struct {
 }
 
 func (t Tag) IsLocal() bool {
-	return strings.Contains(t.URL, Instance.BaseURL)
+	return strings.Contains(t.URL, Instance.BaseURL.String())
 }
 
 type TagCollection []Tag
@@ -90,7 +90,7 @@ func mimeTypeTagReplace(m string, t Tag) string {
 		} else if t.URL == "" {
 			// NOTE(marius) this is a kludge way of generating a local URL for an actor that belongs
 			// to our main FedBOX instance
-			t.URL = fmt.Sprintf("%s/~%s", Instance.BaseURL, name)
+			t.URL = fmt.Sprintf("%s/~%s", Instance.BaseURL.String(), name)
 		}
 	}
 
@@ -255,7 +255,7 @@ func getTagFromBytes(d []byte) Tag {
 		host = []byte(fmt.Sprintf("https://%s", d[ind+1:]))
 	} else {
 		name = d[1:]
-		host = []byte(Instance.BaseURL)
+		host = []byte(Instance.BaseURL.String())
 	}
 	if d[0] == '@' || d[0] == '~' {
 		// mention

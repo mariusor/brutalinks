@@ -2,8 +2,8 @@ package brutalinks
 
 import (
 	"crypto/tls"
-	"fmt"
 	"net/http"
+	"net/url"
 	"time"
 
 	log "git.sr.ht/~mariusor/lw"
@@ -41,7 +41,7 @@ var (
 // Application is the global state of our application
 type Application struct {
 	Version string
-	BaseURL string
+	BaseURL url.URL
 	Conf    *config.Configuration
 	ModTags TagCollection
 	Logger  log.Logger
@@ -73,10 +73,9 @@ func (a *Application) init(c *config.Configuration, l log.Logger, host string, p
 	if len(c.HostName) == 0 {
 		c.HostName = host
 	}
+	a.BaseURL = url.URL{Scheme: "http", Host: c.HostName} //fmt.Sprintf("https://%s", c.HostName)
 	if c.Secure {
-		a.BaseURL = fmt.Sprintf("https://%s", c.HostName)
-	} else {
-		a.BaseURL = fmt.Sprintf("http://%s", c.HostName)
+		a.BaseURL.Scheme = "https"
 	}
 	if c.AdminContact == "" {
 		c.AdminContact = author
@@ -86,9 +85,6 @@ func (a *Application) init(c *config.Configuration, l log.Logger, host string, p
 	}
 	if port != config.DefaultListenPort {
 		c.ListenPort = port
-	}
-	if c.APIURL == "" {
-		c.APIURL = fmt.Sprintf("%s/api", a.BaseURL)
 	}
 	if err := a.Front(); err != nil {
 		return err
@@ -100,7 +96,7 @@ func (a *Application) init(c *config.Configuration, l log.Logger, host string, p
 func (a *Application) Front() error {
 	conf := appConfig{
 		Configuration: *a.Conf,
-		BaseURL:       a.BaseURL,
+		BaseURL:       a.BaseURL.String(),
 		Logger:        a.Logger.New(log.Ctx{"package": "frontend"}),
 	}
 	a.front = new(handler)

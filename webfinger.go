@@ -102,7 +102,7 @@ const (
 
 func NodeInfoConfig() nodeinfo.Config {
 	return nodeinfo.Config{
-		BaseURL: Instance.BaseURL,
+		BaseURL: Instance.BaseURL.String(),
 		InfoURL: "/nodeinfo",
 
 		Metadata: nodeinfo.Metadata{
@@ -111,7 +111,7 @@ func NodeInfoConfig() nodeinfo.Config {
 			Private:         !Instance.Conf.UserCreatingEnabled,
 			Software: nodeinfo.SoftwareMeta{
 				GitHub:   sourceURL,
-				HomePage: Instance.BaseURL,
+				HomePage: Instance.BaseURL.String(),
 				Follow:   Instance.Conf.AdminContact,
 			},
 		},
@@ -242,7 +242,7 @@ func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
 
 		for _, u := range urls {
 			url := u.GetLink().String()
-			existsOnInstance = existsOnInstance || strings.Contains(url, Instance.BaseURL)
+			existsOnInstance = existsOnInstance || strings.Contains(url, Instance.BaseURL.String())
 			wf.Aliases = append(wf.Aliases, url)
 			wf.Links = append(wf.Links, link{
 				Rel:  "https://webfinger.net/rel/profile-page",
@@ -272,7 +272,7 @@ func (a Application) NodeInfo() WebInfo {
 		Title:   a.Conf.Name,
 		Summary: "Link aggregator inspired by reddit and hacker news using ActivityPub federation.",
 		Email:   a.Conf.AdminContact,
-		URI:     a.BaseURL,
+		URI:     a.BaseURL.String(),
 		Version: a.Version,
 	}
 

@@ -160,7 +160,7 @@ func (h *handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 
 	url := ItemPermaLink(&p)
 	backUrl := r.Header.Get("Referer")
-	if !strings.Contains(backUrl, url) && strings.Contains(backUrl, Instance.BaseURL) {
+	if !strings.Contains(backUrl, url) && strings.Contains(backUrl, Instance.BaseURL.String()) {
 		url = fmt.Sprintf("%s#li-%s", backUrl, p.Hash)
 	}
 	p.Delete()
@@ -197,7 +197,7 @@ func (h *handler) HandleVoting(w http.ResponseWriter, r *http.Request) {
 
 	if acc.IsLogged() {
 		backUrl := r.Header.Get("Referer")
-		if !strings.Contains(backUrl, url) && strings.Contains(backUrl, Instance.BaseURL) {
+		if !strings.Contains(backUrl, url) && strings.Contains(backUrl, Instance.BaseURL.String()) {
 			url = fmt.Sprintf("%s#li-%s", backUrl, p.Hash)
 		}
 		v := Vote{
@@ -458,7 +458,7 @@ func (h *handler) ReportAccount(w http.ResponseWriter, r *http.Request) {
 	url := AccountPermaLink(&p)
 
 	backUrl := r.Header.Get("Referer")
-	if !strings.Contains(backUrl, url) && strings.Contains(backUrl, Instance.BaseURL) {
+	if !strings.Contains(backUrl, url) && strings.Contains(backUrl, Instance.BaseURL.String()) {
 		url = fmt.Sprintf("%s#li-%s", backUrl, p.Hash)
 	}
 	acc.Metadata.InvalidateOutbox()
@@ -493,7 +493,7 @@ func (h *handler) ReportItem(w http.ResponseWriter, r *http.Request) {
 	url := ItemPermaLink(&p)
 
 	backUrl := r.Header.Get("Referer")
-	if !strings.Contains(backUrl, url) && strings.Contains(backUrl, Instance.BaseURL) {
+	if !strings.Contains(backUrl, url) && strings.Contains(backUrl, Instance.BaseURL.String()) {
 		url = fmt.Sprintf("%s#li-%s", backUrl, p.Hash)
 	}
 	acc.Metadata.InvalidateOutbox()

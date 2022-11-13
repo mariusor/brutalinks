@@ -94,7 +94,7 @@ func LoadModeratorTags(repo *repository) (TagCollection, error) {
 }
 
 func accountURL(acc Account) vocab.IRI {
-	return vocab.IRI(fmt.Sprintf("%s%s", Instance.BaseURL, AccountLocalLink(&acc)))
+	return vocab.IRI(fmt.Sprintf("%s%s", Instance.BaseURL.String(), AccountLocalLink(&acc)))
 }
 
 func BuildID(r Renderable) (vocab.ID, bool) {
@@ -1428,7 +1428,7 @@ func validFederated(i Item, f *Filters) bool {
 				continue
 			}
 			if g == nilFilter {
-				if ob.Generator.GetLink().Equals(vocab.IRI(Instance.BaseURL), false) {
+				if ob.Generator.GetLink().Equals(vocab.IRI(Instance.BaseURL.String()), false) {
 					return false
 				}
 				return true
