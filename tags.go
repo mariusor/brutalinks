@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"net/url"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -101,7 +102,10 @@ func mimeTypeTagReplace(m string, t Tag) string {
 	return fmt.Sprintf(`<a href="%s"%s>%s</a>`, t.URL, renderParams(params), name)
 }
 
-func replaceTag(d []byte, t Tag, w string) []byte {
+func replaceRemoteMentions(d []byte, t Tag, w string) []byte {
+	if t.Type != TagMention {
+		return d
+	}
 	inWord := func(d []byte, i, end int) bool {
 		dl := len(d)
 		if i < 1 || end > dl {
@@ -125,12 +129,7 @@ func replaceTag(d []byte, t Tag, w string) []byte {
 	}
 	base = append(base, t.Name)
 
-	var pref [][]byte
-	if t.Type == TagMention {
-		pref = [][]byte{{'~'}, {'@'}}
-	} else {
-		pref = [][]byte{{'#'}}
-	}
+	pref := [][]byte{{'~'}, {'@'}}
 	var search [][]byte
 	for _, p := range pref {
 		for _, b := range base {
@@ -185,27 +184,19 @@ func replaceTags(mime string, r HasContent) string {
 		return string(data)
 	}
 
-	replaces := make(map[string]string, 0)
-	for _, t := range r.Tags() {
+	tags := r.Tags()
+	sort.SliceStable(tags, func(i, j int) bool {
+		return len(tags[i].Name) >= len(tags[j].Name)
+	})
+	for _, t := range tags {
 		name := t.Name
 		if len(name) > 1 && name[0] != '#' {
-			name = fmt.Sprintf("#%s", name)
+			t.Name = fmt.Sprintf("#%s", name)
 		}
-		if inRange(name, replaces) {
-			continue
-		}
-		replaces[name] = mimeTypeTagReplace(mime, t)
+		data = bytes.ReplaceAll(data, []byte(t.Name), []byte(mimeTypeTagReplace(mime, t)))
 	}
-	for idx, t := range r.Mentions() {
-		lbl := fmt.Sprintf(":::MENTION_%d:::", idx)
-		if inRange(lbl, replaces) {
-			continue
-		}
-		data = replaceTag(data, t, lbl)
-		replaces[lbl] = mimeTypeTagReplace(mime, t)
-	}
-	for to, repl := range replaces {
-		data = bytes.ReplaceAll(data, []byte(to), []byte(repl))
+	for _, t := range r.Mentions() {
+		data = replaceRemoteMentions(data, t, mimeTypeTagReplace(mime, t))
 	}
 	return string(data)
 }
