@@ -1776,6 +1776,7 @@ func (r *repository) SaveVote(ctx context.Context, v Vote) (Vote, error) {
 	act := &vocab.Activity{
 		Type:  vocab.UndoType,
 		To:    vocab.ItemCollection{vocab.PublicNS},
+		CC:    vocab.ItemCollection{r.app.Pub.GetLink()},
 		BCC:   vocab.ItemCollection{r.fedbox.Service().ID},
 		Actor: author.GetLink(),
 	}
