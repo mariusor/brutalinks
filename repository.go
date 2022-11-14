@@ -2,7 +2,6 @@ package brutalinks
 
 import (
 	"context"
-	"crypto"
 	"encoding/base64"
 	xerrors "errors"
 	"fmt"
@@ -18,7 +17,6 @@ import (
 	"github.com/go-ap/errors"
 	j "github.com/go-ap/jsonld"
 	"github.com/mariusor/qstring"
-	"github.com/spacemonkeygo/httpsig"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -469,11 +467,6 @@ func (r *repository) loadAPPerson(a Account) *vocab.Actor {
 		}
 	}
 	return p
-}
-
-func getSigner(pubKeyID string, key crypto.PrivateKey) *httpsig.Signer {
-	hdrs := []string{"(request-target)", "host", "date"}
-	return httpsig.NewSigner(pubKeyID, key, httpsig.RSASHA256, hdrs)
 }
 
 func (r *repository) WithAccount(a *Account) *repository {

@@ -19,7 +19,6 @@ require (
 	github.com/mariusor/render v1.5.1-0.20221026090743-ab78c1b3aa95
 	github.com/microcosm-cc/bluemonday v1.0.21
 	github.com/openshift/osin v1.0.1
-	github.com/spacemonkeygo/httpsig v0.0.0-20181218213338-2605ae379e47
 	github.com/tdewolff/minify v2.3.6+incompatible
 	github.com/writeas/go-nodeinfo v1.0.0
 	gitlab.com/golang-commonmark/markdown v0.0.0-20211110145824-bf3e522c626a
