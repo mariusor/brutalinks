@@ -123,7 +123,7 @@ func SignByAppMw(next http.Handler) http.Handler {
 		searches := ContextLoads(r.Context())
 		for _, loads := range searches {
 			for i := range loads {
-				loads[i].signFn, _ = withAccount(repo.app)
+				loads[i].signFn = withAccount(repo.app)
 			}
 		}
 		//ctx := context.WithValue(r.Context(), LoadsCtxtKey, searches)

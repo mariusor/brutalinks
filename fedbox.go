@@ -65,22 +65,25 @@ func c2sSign(a *Account, req *http.Request) error {
 	return nil
 }
 
-func withAccount(a *Account) (client.RequestSignFn, error) {
+func sameHostForAccountAndURL(a *Account, u *url.URL) bool {
+	au, _ := url.ParseRequestURI(a.Metadata.ID)
+	return au.Hostname() == u.Hostname()
+}
+
+func withAccount(a *Account) client.RequestSignFn {
 	if !a.IsValid() || !a.IsLogged() || !a.IsLocal() {
-		return func(req *http.Request) error { return nil }, errors.Newf("invalid local account")
+		return func(req *http.Request) error { return nil }
 	}
 	return func(req *http.Request) error {
-		if HostIsLocal(req.URL.String()) {
-			return c2sSign(a, req)
-		} else {
+		if !sameHostForAccountAndURL(a, req.URL) {
 			Instance.Logger.WithContext(log.Ctx{
 				"url":       req.URL.String(),
 				"account":   a.Handle,
 				"accountID": a.Metadata.ID,
 			}).Warnf("trying to sign S2S request from client")
 		}
-		return nil
-	}, nil
+		return c2sSign(a, req)
+	}
 }
 
 func (f *fedbox) SignBy(signer *Account) {
@@ -88,11 +91,7 @@ func (f *fedbox) SignBy(signer *Account) {
 		return
 	}
 
-	signFn, err := withAccount(signer)
-	if err != nil {
-		f.errFn()(err.Error())
-	}
-	f.client.SignFn(signFn)
+	f.client.SignFn(withAccount(signer))
 }
 
 func SkipTLSCheck(skip bool) OptionFn {
