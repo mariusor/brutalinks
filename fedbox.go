@@ -2,8 +2,6 @@ package brutalinks
 
 import (
 	"context"
-	"crypto"
-	"crypto/x509"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -67,43 +65,19 @@ func c2sSign(a *Account, req *http.Request) error {
 	return nil
 }
 
-func s2sSign(a *Account, req *http.Request) error {
-	k := a.Metadata.Key
-	if k == nil {
-		return nil
-	}
-	var prv crypto.PrivateKey
-	var err error
-	if k.ID == "id-rsa" {
-		prv, err = x509.ParsePKCS8PrivateKey(k.Private)
-		if err != nil {
-			return err
-		}
-	}
-	if k.ID == "id-ecdsa" {
-		prv, err = x509.ParseECPrivateKey(k.Private)
-		if err != nil {
-			return err
-		}
-	}
-	return getSigner(k.ID, prv).Sign(req)
-}
-
 func withAccount(a *Account) (client.RequestSignFn, error) {
-	if !a.IsValid() || !a.IsLogged() {
+	if !a.IsValid() || !a.IsLogged() || !a.IsLocal() {
 		return func(req *http.Request) error { return nil }, errors.Newf("invalid local account")
 	}
 	return func(req *http.Request) error {
 		if HostIsLocal(req.URL.String()) {
 			return c2sSign(a, req)
 		} else {
-			collection := vocab.CollectionPath(path.Base(req.URL.Path))
-			if collection == vocab.Inbox {
-				return s2sSign(a, req)
-			}
-			if collection == vocab.Outbox {
-				return c2sSign(a, req)
-			}
+			Instance.Logger.WithContext(log.Ctx{
+				"url":       req.URL.String(),
+				"account":   a.Handle,
+				"accountID": a.Metadata.ID,
+			}).Warnf("trying to sign S2S request from client")
 		}
 		return nil
 	}, nil
@@ -121,16 +95,16 @@ func (f *fedbox) SignBy(signer *Account) {
 	f.client.SignFn(signFn)
 }
 
-func SetUA(s string) OptionFn {
+func SkipTLSCheck(skip bool) OptionFn {
 	return func(f *fedbox) error {
-		client.UserAgent = s
+		f.skipTLSVerify = skip
 		return nil
 	}
 }
 
-func SkipTLSCheck(skip bool) OptionFn {
+func SetUA(s string) OptionFn {
 	return func(f *fedbox) error {
-		f.skipTLSVerify = skip
+		client.UserAgent = s
 		return nil
 	}
 }
