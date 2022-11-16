@@ -112,12 +112,9 @@ func main() {
 	flag.Parse()
 
 	c := config.Load(config.EnvType(env), wait)
-	var l log.Logger
+	l := log.Dev(log.SetLevel(c.LogLevel))
 	if c.Env.IsDev() {
 		errors.IncludeBacktrace = c.Env.IsDev()
-		l = log.Dev(log.SetLevel(c.LogLevel))
-	} else {
-		l = log.Prod(log.SetLevel(c.LogLevel))
 	}
 
 	if i, ok := debug.ReadBuildInfo(); ok && version == "HEAD" {
