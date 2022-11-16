@@ -63,7 +63,7 @@ func Run(a *brutalinks.Application) int {
 		"key":     a.Conf.KeyPath,
 	}).Infof("Started")
 
-	// Set up the signal handlers functions so the OS can tell us if the it requires us to stop
+	// Set up the signal handlers functions so the OS can tell us if it requires us to stop
 	sigHandlerFns := w.SignalHandlers{
 		syscall.SIGHUP: func(_ chan int) {
 			a.Logger.Infof("SIGHUP received, reloading configuration")
@@ -117,8 +117,10 @@ func main() {
 		errors.IncludeBacktrace = c.Env.IsDev()
 	}
 
-	if i, ok := debug.ReadBuildInfo(); ok && version == "HEAD" {
-		version = i.Main.Version
+	if i, ok := debug.ReadBuildInfo(); ok {
+		if version == "HEAD" && i.Main.Version != "(devel)" {
+			version = i.Main.Version
+		}
 	}
 
 	a, err := brutalinks.New(c, l, host, port, version)
