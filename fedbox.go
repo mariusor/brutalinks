@@ -81,6 +81,7 @@ func withAccount(a *Account) client.RequestSignFn {
 				"account":   a.Handle,
 				"accountID": a.Metadata.ID,
 			}).Warnf("trying to sign S2S request from client")
+			return nil
 		}
 		return c2sSign(a, req)
 	}
