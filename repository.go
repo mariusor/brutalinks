@@ -6,7 +6,7 @@ import (
 	xerrors "errors"
 	"fmt"
 	"net/url"
-	"path"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -74,11 +74,62 @@ func ActivityPubService(c appConfig) (*repository, error) {
 		return repo, fmt.Errorf("failed to authenticate client: %w", err)
 	}
 
-	if repo.modTags, err = LoadModeratorTags(repo); err != nil {
-		return repo, fmt.Errorf("failed to authenticate client: %w", err)
+	repo.modTags, err = SaveModeratorTags(repo)
+	if err != nil {
+		return repo, fmt.Errorf("failed to create mod tag objects: %w", err)
 	}
 
 	return repo, nil
+}
+
+func SaveModeratorTags(repo *repository) (TagCollection, error) {
+	modTags := TagCollection{
+		Tag{
+			Type:        TagTag,
+			Name:        tagNameModerator,
+			URL:         repo.SelfURL + filepath.Join("/", "t", strings.TrimLeft(tagNameModerator, "#")),
+		},
+		Tag{
+			Type:        TagTag,
+			Name:        tagNameSysOP,
+			URL:         repo.SelfURL + filepath.Join("/", "t", strings.TrimLeft(tagNameSysOP, "#")),
+		},
+	}
+	tags, err := LoadModeratorTags(repo)
+	if err != nil {
+		repo.errFn()("unable to load moderation tags from remote instance: %s", err)
+	}
+	toSaveTags := make(TagCollection, 0)
+	for _, mTag := range modTags {
+		if !tags.Contains(mTag) {
+			toSaveTags = append(toSaveTags, mTag)
+		}
+	}
+
+	repo.fedbox.SignBy(repo.app)
+	for i, tag := range toSaveTags {
+		ap := buildAPTagObject(tag, repo)
+		create := wrapItemInCreate(ap, repo.app.Pub)
+		create.To, _, create.CC, create.BCC = repo.defaultRecipientsList(true)
+		_, tagIt, err := repo.fedbox.ToOutbox(context.TODO(), create)
+		if err != nil {
+			repo.errFn()("unable to save moderation tag %q on remote instance: %s", tag.Name, err)
+		}
+		if err = tag.FromActivityPub(tagIt); err != nil {
+			repo.errFn()("unable to save moderation tag %q on remote instance: %s", tag.Name, err)
+		}
+		toSaveTags[i] = tag
+	}
+	return toSaveTags, nil
+}
+
+func buildAPTagObject(tag Tag, repo *repository) *vocab.Object {
+	t := new(vocab.Object)
+	t.AttributedTo = repo.app.Pub.GetLink()
+	t.Name.Set(vocab.NilLangRef, vocab.Content(tag.Name))
+	t.Summary.Set(vocab.NilLangRef, vocab.Content(fmt.Sprintf("Moderator tag for instance %s", repo.SelfURL)))
+	t.URL = vocab.IRI(tag.URL)
+	return t
 }
 
 func LoadModeratorTags(repo *repository) (TagCollection, error) {
@@ -680,7 +731,8 @@ func (r *repository) loadItemsReplies(ctx context.Context, items ...Item) (ItemC
 	}
 	allReplies := make(ItemCollection, 0)
 	f := Filters{
-		Type: CompStrs{DifferentThanString(string(vocab.TombstoneType))},
+		Type:     CompStrs{DifferentThanString(string(vocab.TombstoneType))},
+		MaxItems: MaxContentItems,
 	}
 
 	searches := RemoteLoads{}
@@ -1002,7 +1054,7 @@ func (r *repository) loadModerationDetails(ctx context.Context, items ...Moderat
 		if it.Object == nil || it.Object.AP() == nil {
 			continue
 		}
-		_, hash := path.Split(it.Object.AP().GetLink().String())
+		_, hash := filepath.Split(it.Object.AP().GetLink().String())
 		switch it.Object.Type() {
 		case ActorType:
 			hash := LikeString(hash)
@@ -1244,7 +1296,7 @@ func getCollectionPrevNext(col vocab.CollectionInterface) (prev, next string) {
 	}
 	nextFromLastFn := func(i vocab.Item) string {
 		if u, err := i.GetLink().URL(); err == nil {
-			_, next = path.Split(u.Path)
+			_, next = filepath.Split(u.Path)
 			return next
 		}
 		return ""
@@ -2150,6 +2202,28 @@ func (r *repository) ModerateDelete(ctx context.Context, mod ModerationOp, autho
 	return mod, err
 }
 
+func (r *repository) defaultRecipientsList(withPublic bool) (vocab.ItemCollection, vocab.ItemCollection, vocab.ItemCollection, vocab.ItemCollection) {
+	to := make(vocab.ItemCollection, 0)
+	bto := make(vocab.ItemCollection, 0)
+	cc := make(vocab.ItemCollection, 0)
+	bcc := make(vocab.ItemCollection, 0)
+	if withPublic {
+		to = append(to, vocab.PublicNS)
+	}
+	cc = append(cc, r.app.Pub.GetLink(), vocab.Followers.IRI(r.app.Pub))
+	bcc = append(bcc, r.fedbox.Service().ID)
+
+	return to, bto, cc, bcc
+}
+func wrapItemInCreate(it vocab.Item, author vocab.Item) *vocab.Activity {
+	act := &vocab.Activity{
+		Type: vocab.CreateType,
+		Actor:  author.GetLink(),
+		Object: it,
+	}
+	return act
+}
+
 func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 	if it.SubmittedBy == nil || !it.SubmittedBy.HasMetadata() {
 		return Item{}, errors.Newf("invalid account")
@@ -2164,9 +2238,7 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 		return it, errors.Unauthorizedf("invalid account %s", it.SubmittedBy.Handle)
 	}
 
-	to := make(vocab.ItemCollection, 0)
-	cc := make(vocab.ItemCollection, 0)
-	bcc := make(vocab.ItemCollection, 0)
+	to, _, cc, bcc := r.defaultRecipientsList(it.Public())
 
 	var err error
 
@@ -2212,12 +2284,9 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 	}
 
 	if !it.Private() {
-		to = append(to, vocab.PublicNS)
 		if it.Parent == nil && it.SubmittedBy.HasMetadata() && len(it.SubmittedBy.Metadata.FollowersIRI) > 0 {
 			cc = append(cc, vocab.IRI(it.SubmittedBy.Metadata.FollowersIRI))
 		}
-		cc = append(cc, r.app.Pub.GetLink(), vocab.Followers.IRI(r.app.Pub))
-		bcc = append(bcc, r.fedbox.Service().ID)
 	}
 
 	art := new(vocab.Object)
