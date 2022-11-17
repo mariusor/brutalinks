@@ -4,6 +4,7 @@
             {{- if .HasIcon -}}{{- Avatar .Metadata.Icon.MimeType .Metadata.Icon.URI -}}{{- else -}}{{- icon "user" "avatar" -}}{{- end -}}
             {{- .Handle -}}
         </h2>
+        {{- if and CurrentAccount.IsLogged .HasPublicKey }} <a download="{{ .Handle }}.pub" href="{{ . | PermaLink }}.pub">{{ icon "key" }}PublicKey</a> {{ end -}}
         {{ $score := .Votes.Score -}}
         {{- if gt $score 0 }}<small><data class="score {{ $score | ScoreClass -}}">{{  $score | ScoreFmt}}</data></small>{{ end -}}
     </summary>
@@ -18,11 +19,6 @@
         {{ if gt (len $tag.Name) 0 -}} <li> {{$tag | outputTag }} </li>{{- end }}
         {{- end -}}
     </ul>
-{{ end -}}
-{{- if CurrentAccount.IsLogged }}
-    {{- if .HasPublicKey }}
-        <section class="pub-key"><details><summary>PublicKey</summary><pre>{{.Metadata.Key.Public | fmtPubKey }}</pre></details></section>
-    {{- end -}}
 {{ end -}}
     </aside>
 </details>

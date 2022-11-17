@@ -842,6 +842,27 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+func (h *handler) ShowPublicKey(w http.ResponseWriter, r *http.Request) {
+	authors := ContextAuthors(r.Context())
+	if len(authors) != 1 {
+		m := &errorModel{
+			Status:     http.StatusNotFound,
+			StatusText: "Account not found",
+			Title:      "Not found",
+		}
+		if err := h.v.RenderTemplate(r, w, m.Template(), m); err != nil {
+			h.v.HandleErrors(w, r, err)
+		}
+		return
+	}
+	account, _ := authors.First()
+	k := account.Metadata.Key.Public
+
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/x-pem-file")
+	w.Write(k)
+}
+
 // HandleShow serves most of the GET requests
 func (h *handler) HandleShow(w http.ResponseWriter, r *http.Request) {
 	m := ContextModel(r.Context())

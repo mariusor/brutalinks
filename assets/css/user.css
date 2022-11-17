@@ -1,39 +1,15 @@
-.user details {
+#user > details {
     display: inline-block;
 }
-.user details aside,
-.user details summary {
+#user > details aside, #user details summary {
     margin: .2em 0;
 }
-details summary h2, details summary nav {
+#user > details summary h2, details summary nav {
     display: inline-block;
     align-self: end;
 }
-.user details aside nav {
+#user > details aside nav {
     margin-top: .4em;
-}
-.user details svg.icon-star {
-}
-#private-message fieldset {
-    border: 0;
-    padding: 0;
-    margin: 0;
-}
-#private-message, #reply, #register, #new, #login {
-    max-width: 30rem;
-}
-#private-message textarea {
-    width: 100%;
-}
-#private-message label,
-#login label {
-}
-.acct-info {
-    float: right;
-    min-width: 33%;
-}
-.acct-info details {
-    margin-top: .5rem;
 }
 #invites {
     height: 3rem;
@@ -42,16 +18,11 @@ details#invites summary {
     margin-right: .3rem;
     margin-top: .3rem;
 }
-details#invites summary,
-#invites form {
+details#invites summary, #invites form {
     float: left;
 }
-.acct-info #private-message {
-    width: 100%;
-    max-width: 22rem;
-    margin: 1rem 0;
-}
 .pub-key details[open] {
+    clear: both;
 }
 .pub-key details[open] pre {
     max-width: 65ex;
@@ -65,16 +36,13 @@ details#invites summary,
     box-shadow: 0 0 2px -2px var(--main-fg-color);
     background-color: var(--main-bg-color);
 }
-.acct-info section {
-    margin-top: 1em;
-}
-.user details aside ul {
+#user details aside ul {
     display: inline-block;
 }
-.user details aside ul li {
+#user details aside ul li {
     display: inline;
     padding-right: 0;
 }
-.user details aside ul li:not(:last-child)::after {
+#user details aside ul li:not(:last-child)::after {
     content: "\22c5";
 }

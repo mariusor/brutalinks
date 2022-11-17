@@ -126,6 +126,9 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 				SearchInCollectionsMw(requestHandleSearches, inbox), applicationSearches(inbox), OperatorSearches, LoadMw).
 				Get("/follow/{hash}/{action}", h.HandleFollowResponseRequest)
 
+			r.With(h.LoadAuthorMw, SearchInCollectionsMw(requestHandleSearches, outbox), LoadMw).
+				Get("/~{handle}.pub", h.ShowPublicKey)
+
 			r.With(h.LoadAuthorMw).Route("/~{handle}", func(r chi.Router) {
 				r.With(AccountListingModelMw, AllFilters, Deps(Authors, Votes), SearchInCollectionsMw(requestHandleSearches, outbox), LoadMw).
 					Get("/", h.HandleShow)

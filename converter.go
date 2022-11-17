@@ -2,7 +2,6 @@ package brutalinks
 
 import (
 	"encoding/base64"
-	"encoding/pem"
 	"net/url"
 	"path/filepath"
 	"strings"
@@ -159,11 +158,7 @@ func FromActor(a *Account, p *vocab.Actor) error {
 	} else {
 		a.Metadata.Icon = accountDefaultAvatar(a)
 	}
-	if block, _ := pem.Decode([]byte(p.PublicKey.PublicKeyPem)); block != nil {
-		pub := make([]byte, base64.StdEncoding.EncodedLen(len(block.Bytes)))
-		base64.StdEncoding.Encode(pub, block.Bytes)
-		a.Metadata.Key = &SSHKey{Public: pub}
-	}
+	a.Metadata.Key = &SSHKey{Public: []byte(p.PublicKey.PublicKeyPem)}
 	if p.Endpoints != nil {
 		if p.Endpoints.OauthAuthorizationEndpoint != nil {
 			u, _ := p.Endpoints.OauthAuthorizationEndpoint.GetLink().URL()
