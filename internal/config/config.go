@@ -171,8 +171,8 @@ func Load(e EnvType, wait time.Duration) *Configuration {
 	userInvitesDisabled, _ := strconv.ParseBool(loadKeyFromEnv(KeyDisableUserInvites, ""))
 	c.UserInvitesEnabled = !userInvitesDisabled
 	// TODO(marius): this stopped working - as the anonymous user doesn't have a valid Outbox.
-	anonymousCommentingDisabled, _ := strconv.ParseBool(loadKeyFromEnv(KeyDisableAnonymousCommenting, ""))
-	c.AnonymousCommentingEnabled = !anonymousCommentingDisabled
+	//anonymousCommentingDisabled, _ := strconv.ParseBool(loadKeyFromEnv(KeyDisableAnonymousCommenting, "true"))
+	c.AnonymousCommentingEnabled = false //!anonymousCommentingDisabled
 	userFollowingDisabled, _ := strconv.ParseBool(loadKeyFromEnv(KeyDisableUserFollowing, ""))
 	c.UserFollowingEnabled = !userFollowingDisabled
 	moderationDisabled, _ := strconv.ParseBool(loadKeyFromEnv(KeyDisableModeration, ""))
