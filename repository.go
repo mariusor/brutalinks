@@ -2168,7 +2168,6 @@ func (r *repository) ModerateDelete(ctx context.Context, mod ModerationOp, autho
 
 	act := &vocab.Activity{
 		AttributedTo: author.AP(),
-		InReplyTo:    mod.AP().GetLink(),
 		Actor:        r.app.AP().GetLink(),
 		Type:         actType,
 		Object:       toDelete.GetID(),
