@@ -6,7 +6,7 @@
         </h2>
         {{- if and CurrentAccount.IsLogged .HasPublicKey }} <a download="{{ .Handle }}.pub" href="{{ . | PermaLink }}.pub">{{ icon "key" }}PublicKey</a> {{ end -}}
         {{ $score := .Votes.Score -}}
-        {{- if gt $score 0 }}<small><data class="score {{ $score | ScoreClass -}}">{{  $score | ScoreFmt}}</data></small>{{ end -}}
+        {{- if gt $score 0 }}<small><data class="score {{ $score | ScoreClass -}}">{{ $score | ScoreFmt }}</data></small>{{ end -}}
     </summary>
 {{- if not .CreatedAt.IsZero }}
     <aside>
