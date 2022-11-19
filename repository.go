@@ -2203,8 +2203,9 @@ func (r *repository) ModerateDelete(ctx context.Context, mod ModerationOp, autho
 }
 
 func (r *repository) defaultRecipientsList(withPublic bool) (vocab.ItemCollection, vocab.ItemCollection, vocab.ItemCollection, vocab.ItemCollection) {
+	var bto vocab.ItemCollection = nil
+
 	to := make(vocab.ItemCollection, 0)
-	bto := make(vocab.ItemCollection, 0)
 	cc := make(vocab.ItemCollection, 0)
 	bcc := make(vocab.ItemCollection, 0)
 	if withPublic {
@@ -2215,6 +2216,7 @@ func (r *repository) defaultRecipientsList(withPublic bool) (vocab.ItemCollectio
 
 	return to, bto, cc, bcc
 }
+
 func wrapItemInCreate(it vocab.Item, author vocab.Item) *vocab.Activity {
 	act := &vocab.Activity{
 		Type: vocab.CreateType,
