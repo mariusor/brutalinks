@@ -191,24 +191,39 @@ func appendRecipients(rec *vocab.ItemCollection, it vocab.Item) error {
 	return nil
 }
 
-func appendReplies(it vocab.Item) (vocab.ItemCollection, error) {
-	if it == nil {
+func appendReplies(parent vocab.Item) (vocab.ItemCollection, error) {
+	if parent == nil {
 		return nil, nil
 	}
 	repl := make(vocab.ItemCollection, 0)
-	if it.IsLink() {
-		if !repl.Contains(it.GetLink()) {
-			repl = append(repl, it.GetLink())
+	if parent.IsLink() {
+		if !repl.Contains(parent.GetLink()) {
+			repl = append(repl, parent.GetLink())
 		}
 		return repl, nil
 	}
-	err := vocab.OnObject(it, func(ob *vocab.Object) error {
+	err := vocab.OnObject(parent, func(ob *vocab.Object) error {
 		if !repl.Contains(ob.GetLink()) {
 			repl = append(repl, ob.GetLink())
 		}
-		if vocab.IsItemCollection(ob.InReplyTo) {
-			return vocab.OnItemCollection(ob.InReplyTo, func(col *vocab.ItemCollection) error {
-				for _, r := range *col {
+		if ob.InReplyTo == nil {
+			return nil
+		}
+		if vocab.IsIRI(ob.InReplyTo) {
+			if !repl.Contains(ob.InReplyTo.GetLink()) {
+				repl = append(repl, ob.InReplyTo.GetLink())
+				return nil
+			}
+		} else if vocab.IsObject(ob.InReplyTo) {
+			return vocab.OnObject(ob.InReplyTo, func(r *vocab.Object) error {
+				if !repl.Contains(r.GetLink()) {
+					repl = append(repl, r.GetLink())
+				}
+				return nil
+			})
+		} else if vocab.IsItemCollection(ob.InReplyTo) {
+			return vocab.OnCollectionIntf(ob.InReplyTo, func(col vocab.CollectionInterface) error {
+				for _, r := range col.Collection() {
 					if !repl.Contains(r.GetLink()) {
 						repl = append(repl, r.GetLink())
 					}
@@ -216,12 +231,6 @@ func appendReplies(it vocab.Item) (vocab.ItemCollection, error) {
 				return nil
 			})
 		}
-		return vocab.OnObject(ob.InReplyTo, func(r *vocab.Object) error {
-			if !repl.Contains(r.GetLink()) {
-				repl = append(repl, r.GetLink())
-			}
-			return nil
-		})
 		return nil
 	})
 	return repl, err
@@ -724,7 +733,8 @@ func (r *repository) loadItemsReplies(ctx context.Context, items ...Item) (ItemC
 	}
 	allReplies := make(ItemCollection, 0)
 	f := Filters{
-		Type:     CompStrs{DifferentThanString(string(vocab.TombstoneType))},
+		Type:     ActivityTypesFilter(ValidContentTypes...),
+		IRI:      CompStrs{notNilFilter},
 		MaxItems: MaxContentItems,
 	}
 
@@ -1824,7 +1834,13 @@ func (r *repository) SaveVote(ctx context.Context, v Vote) (Vote, error) {
 	}
 	act.To, act.Bto, act.CC, act.BCC = r.defaultRecipientsList(true)
 	vocab.OnObject(act, func(ob *vocab.Object) error {
-		return loadFromParent(ob, v.Item.Pub)
+		return vocab.OnObject(v.Item.Pub, func(p *vocab.Object) error {
+			appendRecipients(&ob.To, p.To)
+			appendRecipients(&ob.Bto, p.Bto)
+			appendRecipients(&ob.CC, p.CC)
+			appendRecipients(&ob.BCC, p.BCC)
+			return nil
+		})
 	})
 
 	if exists.HasMetadata() {
