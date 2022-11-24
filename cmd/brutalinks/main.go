@@ -125,7 +125,7 @@ func main() {
 
 	a, err := brutalinks.New(c, l, host, port, version)
 	if err != nil {
-		l.Errorf("Failed to start application: %s", err.Error())
+		l.Errorf("Failed to start application: %+s", err)
 		os.Exit(1)
 	}
 	os.Exit(Run(a))

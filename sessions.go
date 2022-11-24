@@ -4,7 +4,7 @@ import (
 	"encoding/gob"
 	"net/http"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 
 	log "git.sr.ht/~mariusor/lw"
@@ -71,7 +71,7 @@ func initSession(c appConfig, infoFn, errFn CtxLogFn) (sess, error) {
 			infoFn(log.Ctx{"backend": c.SessionsBackend})("Invalid session backend, falling back to %s.", config.SessionsFSBackend)
 			c.SessionsBackend = config.SessionsFSBackend
 		}
-		s.path = path.Clean(path.Join(c.SessionsPath, string(c.Env), c.HostName))
+		s.path = filepath.Clean(filepath.Join(c.SessionsPath, string(c.Env), c.HostName))
 		s.s, err = initFileSession(c, s.path, infoFn, errFn)
 	}
 	if err != nil {
