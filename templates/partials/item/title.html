@@ -5,7 +5,7 @@
 <header>
 <h2 data-hash="{{.ID}}">
 {{- if .IsLink -}}
-    <a rel="external" data-hash="{{.Hash}}" href="{{.Data | printf "%s"}}">{{- if .Title -}}{{- .Title -}}{{ else }} Untitled {{ itemType .MimeType -}} {{- end -}}</a>
+    <a rel="external noreferrer" data-hash="{{.Hash}}" href="{{.Data | printf "%s"}}">{{- if .Title -}}{{- .Title -}}{{ else }} Untitled {{ itemType .MimeType -}} {{- end -}}</a>
 {{- else -}}
     {{- if .Title -}}{{- .Title -}}{{ else }} Untitled {{ itemType .MimeType -}} {{- end -}}
 {{- end -}}
