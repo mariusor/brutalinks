@@ -206,9 +206,10 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 			})
 		})
 
-		if c.Env.IsDev() && !c.Secure {
-			r.Mount("/debug", middleware.Profiler())
+		if c.Env.IsDev() {
+			r.With(middleware.BasicAuth("debug", map[string]string{"debug": "#debug$"})).Mount("/debug", middleware.Profiler())
 		}
+
 		r.Group(func(r chi.Router) {
 			r.Get("/{path}", h.v.assetHandler)
 			r.Get("/css/{path}", h.v.assetHandler)
