@@ -27,8 +27,19 @@ type handler struct {
 	v       *view
 	storage *repository
 	logger  log.Logger
-	infoFn  CtxLogFn
-	errFn   CtxLogFn
+}
+
+func (h handler) infoFn(ctx ...log.Ctx) LogFn {
+	if h.logger == nil {
+		return defaultLogFn
+	}
+	return h.logger.WithContext(ctx...).Infof
+}
+func (h handler) errFn(ctx ...log.Ctx) LogFn {
+	if h.logger == nil {
+		return defaultLogFn
+	}
+	return h.logger.WithContext(ctx...).Errorf
 }
 
 type appConfig struct {
@@ -56,16 +67,8 @@ const fedboxProvider = "fedbox"
 func (h *handler) init(c appConfig) error {
 	var err error
 
-	h.infoFn = defaultCtxLogFn
-	h.errFn = defaultCtxLogFn
 	if c.Logger != nil {
-		h.infoFn = func(ctx ...log.Ctx) LogFn {
-			return c.Logger.WithContext(ctx...).Infof
-		}
-		h.errFn = func(ctx ...log.Ctx) LogFn {
-			return c.Logger.WithContext(ctx...).Errorf
-		}
-		h.logger = c.Logger
+		h.logger = c.Logger.WithContext(log.Ctx{"log": "handlers"})
 	}
 
 	h.conf = c
@@ -73,7 +76,7 @@ func (h *handler) init(c appConfig) error {
 	if err := ConnectFedBOX(h, h.conf); err != nil {
 		return errors.Annotatef(err, "error connecting to ActivityPub service: %s", h.conf.APIURL)
 	}
-	if h.v, err = ViewInit(h.conf, h.infoFn, h.errFn); err != nil {
+	if h.v, err = ViewInit(h.conf, h.logger); err != nil {
 		return errors.Annotatef(err, "error initializing view")
 	}
 	return nil

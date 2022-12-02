@@ -42,11 +42,16 @@ type view struct {
 	errFn  CtxLogFn
 }
 
-func ViewInit(c appConfig, infoFn, errFn CtxLogFn) (*view, error) {
+func ViewInit(c appConfig, l log.Logger) (*view, error) {
 	v := new(view)
 	v.c = &c.Configuration
-	v.infoFn = infoFn
-	v.errFn = errFn
+
+	v.infoFn = func(ctx ...log.Ctx) LogFn {
+		return l.WithContext(ctx...).Infof
+	}
+	v.errFn = func(ctx ...log.Ctx) LogFn {
+		return l.WithContext(ctx...).Errorf
+	}
 
 	v.ren = render.New(render.Options{
 		Directory:                 "templates",
@@ -126,7 +131,7 @@ func ViewInit(c appConfig, infoFn, errFn CtxLogFn) (*view, error) {
 		}},
 	})
 	var err error
-	v.s, err = initSession(c, infoFn, errFn)
+	v.s, err = initSession(c, v.infoFn, v.errFn)
 	return v, err
 }
 

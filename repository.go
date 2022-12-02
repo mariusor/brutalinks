@@ -37,11 +37,12 @@ func (r repository) BaseURL() vocab.IRI {
 func ActivityPubService(c appConfig) (*repository, error) {
 	vocab.ItemTyperFunc = vocab.GetItemByType
 
+	l := c.Logger.WithContext(log.Ctx{"log": "api"})
 	infoFn := func(ctx ...log.Ctx) LogFn {
-		return c.Logger.WithContext(append(ctx, log.Ctx{"client": "api"})...).Debugf
+		return l.WithContext(ctx...).Debugf
 	}
 	errFn := func(ctx ...log.Ctx) LogFn {
-		return c.Logger.WithContext(append(ctx, log.Ctx{"client": "api"})...).Warnf
+		return l.WithContext(ctx...).Warnf
 	}
 	ua := fmt.Sprintf("%s-%s", c.HostName, Instance.Version)
 

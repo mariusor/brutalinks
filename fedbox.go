@@ -23,7 +23,7 @@ type fedbox struct {
 	baseURL       vocab.IRI
 	skipTLSVerify bool
 	pub           *vocab.Actor
-	client        *client.C
+	client        client.C
 	l             log.Logger
 	infoFn        CtxLogFn
 	errFn         CtxLogFn
@@ -120,8 +120,8 @@ func NewClient(o ...OptionFn) (*fedbox, error) {
 		}
 	}
 
-	f.client = client.New(
-		client.WithLogger(f.l),
+	f.client = *client.New(
+		client.WithLogger(f.l.WithContext(log.Ctx{"log": "client"})),
 		client.SkipTLSValidation(f.skipTLSVerify),
 		client.SetDefaultHTTPClient(),
 	)

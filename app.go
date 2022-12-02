@@ -97,7 +97,7 @@ func (a *Application) Front() error {
 	conf := appConfig{
 		Configuration: *a.Conf,
 		BaseURL:       a.BaseURL.String(),
-		Logger:        a.Logger.New(log.Ctx{"package": "frontend"}),
+		Logger:        a.Logger.New(log.Ctx{"log": "frontend"}),
 	}
 	a.front = new(handler)
 	if err := a.front.init(conf); err != nil {
