@@ -38,10 +38,10 @@ func ActivityPubService(c appConfig) (*repository, error) {
 	vocab.ItemTyperFunc = vocab.GetItemByType
 
 	infoFn := func(ctx ...log.Ctx) LogFn {
-		return c.Logger.New(append(ctx, log.Ctx{"client": "api"})...).Debugf
+		return c.Logger.WithContext(append(ctx, log.Ctx{"client": "api"})...).Debugf
 	}
 	errFn := func(ctx ...log.Ctx) LogFn {
-		return c.Logger.New(append(ctx, log.Ctx{"client": "api"})...).Warnf
+		return c.Logger.WithContext(append(ctx, log.Ctx{"client": "api"})...).Warnf
 	}
 	ua := fmt.Sprintf("%s-%s", c.HostName, Instance.Version)
 
@@ -53,10 +53,9 @@ func ActivityPubService(c appConfig) (*repository, error) {
 	}
 	var err error
 	repo.fedbox, err = NewClient(
-		SetURL(c.APIURL),
-		SetInfoLogger(infoFn),
-		SetErrorLogger(errFn),
-		SetUA(ua),
+		WithURL(c.APIURL),
+		WithLogger(c.Logger),
+		WithUA(ua),
 		SkipTLSCheck(!c.Env.IsProd()),
 	)
 	if err != nil {
@@ -1332,7 +1331,7 @@ func getCollectionPrevNext(col vocab.CollectionInterface) (prev, next string) {
 			}
 		}
 	}
-	// NOTE(marius): we check if current Collection id contains a cursor, and if `next` points to the same URL
+	// NOTE(marius): we check if current Collection id contains a cursor, and if `after` points to the same URL
 	//   we don't take it into consideration.
 	if next != "" {
 		f := struct {

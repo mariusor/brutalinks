@@ -24,29 +24,29 @@ type fedbox struct {
 	skipTLSVerify bool
 	pub           *vocab.Actor
 	client        *client.C
+	l             log.Logger
 	infoFn        CtxLogFn
 	errFn         CtxLogFn
 }
 
 type OptionFn func(*fedbox) error
 
-func SetInfoLogger(logFn CtxLogFn) OptionFn {
+func WithLogger(l log.Logger) OptionFn {
 	return func(f *fedbox) error {
-		if logFn != nil {
-			f.infoFn = logFn
+		f.l = l
+		if l != nil {
+			f.infoFn = func(ctx ...log.Ctx) LogFn {
+				return l.WithContext(ctx...).Debugf
+			}
+			f.errFn = func(ctx ...log.Ctx) LogFn {
+				return l.WithContext(ctx...).Warnf
+			}
 		}
 		return nil
 	}
 }
-func SetErrorLogger(errFn CtxLogFn) OptionFn {
-	return func(f *fedbox) error {
-		if errFn != nil {
-			f.errFn = errFn
-		}
-		return nil
-	}
-}
-func SetURL(s string) OptionFn {
+
+func WithURL(s string) OptionFn {
 	return func(f *fedbox) error {
 		_, err := url.ParseRequestURI(s)
 		if err != nil {
@@ -102,20 +102,10 @@ func SkipTLSCheck(skip bool) OptionFn {
 	}
 }
 
-func SetUA(s string) OptionFn {
+func WithUA(s string) OptionFn {
 	return func(f *fedbox) error {
 		client.UserAgent = s
 		return nil
-	}
-}
-
-var optionLogFn = func(fn CtxLogFn) func(ctx ...client.Ctx) client.LogFn {
-	return func(ctx ...client.Ctx) client.LogFn {
-		c := make([]log.Ctx, 0)
-		for _, v := range ctx {
-			c = append(c, log.Ctx(v))
-		}
-		return client.LogFn(fn(c...))
 	}
 }
 
@@ -131,8 +121,7 @@ func NewClient(o ...OptionFn) (*fedbox, error) {
 	}
 
 	f.client = client.New(
-		client.SetErrorLogger(optionLogFn(f.errFn)),
-		client.SetInfoLogger(optionLogFn(f.infoFn)),
+		client.WithLogger(f.l),
 		client.SkipTLSValidation(f.skipTLSVerify),
 		client.SetDefaultHTTPClient(),
 	)

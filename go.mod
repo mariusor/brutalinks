@@ -6,9 +6,9 @@ require (
 	git.sr.ht/~mariusor/assets v0.0.0-20220830142251-15a3530ff8fd
 	git.sr.ht/~mariusor/lw v0.0.0-20221124080058-e91ea2c1fdc2
 	git.sr.ht/~mariusor/wrapper v0.0.0-20211204195804-3033a1099e0f
-	github.com/go-ap/activitypub v0.0.0-20221129071730-d68022eb490b
-	github.com/go-ap/client v0.0.0-20221129072953-019c2679a04b
-	github.com/go-ap/errors v0.0.0-20221115052505-8aaa26f930b4
+	github.com/go-ap/activitypub v0.0.0-20221201100613-364a4fe06e5e
+	github.com/go-ap/client v0.0.0-20221202064034-36157863a2f1
+	github.com/go-ap/errors v0.0.0-20221201010224-09b9c5d09ea9
 	github.com/go-ap/jsonld v0.0.0-20221030091449-f2a191312c73
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/google/uuid v1.3.0
