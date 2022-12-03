@@ -70,13 +70,13 @@ func sameHostForAccountAndURL(a *Account, u *url.URL) bool {
 	return au.Hostname() == u.Hostname()
 }
 
-func withAccount(a *Account) client.RequestSignFn {
+func (f fedbox) withAccount(a *Account) client.RequestSignFn {
 	if !a.IsValid() || !a.IsLogged() || !a.IsLocal() {
 		return func(req *http.Request) error { return nil }
 	}
 	return func(req *http.Request) error {
 		if !sameHostForAccountAndURL(a, req.URL) {
-			Instance.Logger.WithContext(log.Ctx{
+			f.l.WithContext(log.Ctx{
 				"url":       req.URL.String(),
 				"account":   a.Handle,
 				"accountID": a.Metadata.ID,
@@ -92,7 +92,7 @@ func (f *fedbox) SignBy(signer *Account) {
 		return
 	}
 
-	f.client.SignFn(withAccount(signer))
+	f.client.SignFn(f.withAccount(signer))
 }
 
 func SkipTLSCheck(skip bool) OptionFn {
