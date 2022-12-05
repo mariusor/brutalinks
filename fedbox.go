@@ -76,11 +76,20 @@ func (f fedbox) withAccount(a *Account) client.RequestSignFn {
 	}
 	return func(req *http.Request) error {
 		if !sameHostForAccountAndURL(a, req.URL) {
+			// NOTE(marius): we don't have access to the actor's private key,
+			// so we can't sign requests going to other instances
+			// If at any point we decide to keep the private key here, we can use it
+			// to sign S2S requests:
+			//
+			// if a.Metadata.PrivateKey != nil {
+			//      s2sSign(a.Metadata.PrivateKey, req)
+			// }
 			f.l.WithContext(log.Ctx{
-				"url":       req.URL.String(),
-				"account":   a.Handle,
-				"accountID": a.Metadata.ID,
-			}).Warnf("trying to sign S2S request from client")
+				"method": req.Method,
+				"url":    req.URL.String(),
+				"handle": a.Handle,
+				"IRI":    a.Metadata.ID,
+			}).Debugf("skip signing cross server request")
 			return nil
 		}
 		return c2sSign(a, req)
