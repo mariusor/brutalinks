@@ -110,7 +110,7 @@ func SaveModeratorTags(repo *repository) (TagCollection, error) {
 	for i, tag := range toSaveTags {
 		ap := buildAPTagObject(tag, repo)
 		create := wrapItemInCreate(ap, repo.app.Pub)
-		create.To, _, create.CC, create.BCC = repo.defaultRecipientsList(true)
+		create.To, _, create.CC, create.BCC = repo.defaultRecipientsList(repo.app.Pub, true)
 		_, tagIt, err := repo.fedbox.ToOutbox(context.TODO(), create)
 		if err != nil {
 			repo.errFn()("unable to save moderation tag %q on remote instance: %s", tag.Name, err)
@@ -342,7 +342,7 @@ func (r *repository) loadAPItem(it vocab.Item, item Item) error {
 			o.AttributedTo = GetID(item.SubmittedBy)
 		}
 
-		to, _, cc, bcc := r.defaultRecipientsList(item.Public())
+		to, _, cc, bcc := r.defaultRecipientsList(nil, item.Public())
 		repl := make(vocab.ItemCollection, 0)
 
 		if item.Parent != nil {
@@ -1832,7 +1832,7 @@ func (r *repository) SaveVote(ctx context.Context, v Vote) (Vote, error) {
 		Type:  vocab.UndoType,
 		Actor: author.GetLink(),
 	}
-	act.To, act.Bto, act.CC, act.BCC = r.defaultRecipientsList(true)
+	act.To, act.Bto, act.CC, act.BCC = r.defaultRecipientsList(v.SubmittedBy.Pub, true)
 	vocab.OnObject(act, func(ob *vocab.Object) error {
 		return vocab.OnObject(v.Item.Pub, func(p *vocab.Object) error {
 			appendRecipients(&ob.To, p.To)
@@ -1877,13 +1877,18 @@ func (r *repository) SaveVote(ctx context.Context, v Vote) (Vote, error) {
 		it  vocab.Item
 	)
 	iri, it, err = r.fedbox.ToOutbox(ctx, act)
-	if err != nil {
+	if err != nil && !errors.IsConflict(err) {
 		r.errFn()(err.Error())
 		return v, err
 	}
-	r.cache.removeRelated(iri, it, act)
-	r.infoFn(log.Ctx{"act": iri, "obj": it.GetLink(), "type": it.GetType()})("saved activity")
+	lCtx := log.Ctx{"act": iri}
+	if it != nil {
+		lCtx["obj"] = it.GetLink()
+		lCtx["type"] = it.GetType()
+		r.cache.removeRelated(iri, it, act)
+	}
 	err = v.FromActivityPub(act)
+	r.infoFn()("saved activity")
 	return v, err
 }
 
@@ -2062,7 +2067,7 @@ func (r *repository) loadFromAccountForDelete(ctx context.Context, art *vocab.Ac
 		it.Metadata = m
 	}
 	par := it.Parent
-	art.To, art.Bto, art.CC, art.BCC = r.defaultRecipientsList(!it.Private())
+	art.To, art.Bto, art.CC, art.BCC = r.defaultRecipientsList(nil, !it.Private())
 	for {
 		// Appending parents' authors to the CC of current activity
 		if par == nil {
@@ -2072,19 +2077,10 @@ func (r *repository) loadFromAccountForDelete(ctx context.Context, art *vocab.Ac
 		if !ok {
 			continue
 		}
-		if parAuth := p.SubmittedBy; parAuth != nil && !art.CC.Contains(parAuth.Pub.GetLink()) {
-			art.CC = append(art.CC, parAuth.Pub.GetLink())
+		if parAuth := p.SubmittedBy; parAuth != nil {
+			art.CC.Append(parAuth.Pub.GetLink())
 		}
 		par = p.Parent
-	}
-
-	if !it.Private() {
-		art.To = append(art.To, vocab.PublicNS)
-		if it.Parent == nil && it.CreatedBy.HasMetadata() && len(it.CreatedBy.Metadata.FollowersIRI) > 0 {
-			art.CC = append(art.CC, vocab.IRI(it.CreatedBy.Metadata.FollowersIRI))
-		}
-		art.CC = append(art.CC, r.app.Pub.GetLink(), vocab.Followers.IRI(r.app.Pub))
-		art.BCC = append(art.BCC, r.fedbox.Service().ID)
 	}
 
 	*art = *r.loadAPPerson(*it)
@@ -2206,17 +2202,20 @@ func (r *repository) ModerateDelete(ctx context.Context, mod ModerationOp, autho
 	return mod, err
 }
 
-func (r *repository) defaultRecipientsList(withPublic bool) (vocab.ItemCollection, vocab.ItemCollection, vocab.ItemCollection, vocab.ItemCollection) {
+func (r *repository) defaultRecipientsList(act vocab.Item, withPublic bool) (vocab.ItemCollection, vocab.ItemCollection, vocab.ItemCollection, vocab.ItemCollection) {
 	var bto vocab.ItemCollection = nil
 
 	to := make(vocab.ItemCollection, 0)
 	cc := make(vocab.ItemCollection, 0)
 	bcc := make(vocab.ItemCollection, 0)
 	if withPublic {
-		to = append(to, vocab.PublicNS)
+		to.Append(vocab.PublicNS)
 	}
-	cc = append(cc, r.app.Pub.GetLink(), vocab.Followers.IRI(r.app.Pub))
-	bcc = append(bcc, r.fedbox.Service().ID)
+	cc.Append(r.app.Pub.GetLink(), vocab.Followers.IRI(r.app.Pub))
+	if act != nil {
+		cc.Append(vocab.Followers.IRI(act))
+	}
+	bcc.Append(r.fedbox.Service().ID)
 
 	return to, bto, cc, bcc
 }
@@ -2244,7 +2243,7 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 		return it, errors.Unauthorizedf("invalid account %s", it.SubmittedBy.Handle)
 	}
 
-	to, _, cc, bcc := r.defaultRecipientsList(it.Public())
+	to, _, cc, bcc := r.defaultRecipientsList(author, it.Public())
 
 	var err error
 
@@ -2510,7 +2509,7 @@ func (r *repository) SendFollowResponse(ctx context.Context, f FollowRequest, ac
 	}
 
 	response := new(vocab.Activity)
-	response.To, _, response.CC, response.BCC = r.defaultRecipientsList(accept)
+	response.To, _, response.CC, response.BCC = r.defaultRecipientsList(er.Pub, accept)
 	appendRecipients(&response.To, vocab.IRI(er.Metadata.ID))
 	response.Type = vocab.RejectType
 	if accept {
@@ -2552,7 +2551,7 @@ func (r *repository) FollowAccount(ctx context.Context, er, ed Account, reason *
 
 func (r *repository) FollowActor(ctx context.Context, follower, followed *vocab.Actor, reason *Item) error {
 	follow := new(vocab.Follow)
-	follow.To, _, follow.CC, follow.BCC = r.defaultRecipientsList(true)
+	follow.To, _, follow.CC, follow.BCC = r.defaultRecipientsList(follower, true)
 	appendRecipients(&follow.To, followed.GetLink())
 	if reason != nil {
 		r.loadAPItem(follow, *reason)
@@ -2579,13 +2578,14 @@ func (r *repository) SaveAccount(ctx context.Context, a Account) (Account, error
 	p.Updated = now
 
 	fx := r.fedbox.Service()
-	act := vocab.Activity{Updated: now}
-	act.To, _, act.CC, act.BCC = r.defaultRecipientsList(true)
-
 	parent := fx
 	if a.CreatedBy != nil {
 		parent = r.loadAPPerson(*a.CreatedBy)
 	}
+
+	act := vocab.Activity{Updated: now}
+	act.To, _, act.CC, act.BCC = r.defaultRecipientsList(parent, true)
+
 	act.AttributedTo = parent.GetLink()
 	act.Actor = parent.GetLink()
 	var err error
@@ -2640,7 +2640,7 @@ var allDeps = deps{Votes: true, Authors: true, Replies: true, Follows: true}
 
 func (r repository) moderationActivity(ctx context.Context, er *vocab.Actor, ed vocab.Item, reason *Item) (*vocab.Activity, error) {
 	act := new(vocab.Activity)
-	act.To, _, act.CC, act.BCC = r.defaultRecipientsList(false)
+	act.To, _, act.CC, act.BCC = r.defaultRecipientsList(er, false)
 
 	// We need to add the ed/er accounts' creators to the CC list
 	if er.AttributedTo != nil && !er.AttributedTo.GetLink().Equals(vocab.PublicNS, true) {
