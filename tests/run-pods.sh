@@ -34,6 +34,12 @@ podman run -d \
     quay.io/go-ap/fedbox:qa-fs \
     /bin/fedbox
 
+_fedbox_running=$(podman ps --filter name=tests_fedbox --format '{{ .Names }}' )
+if [ -s ${_fedbox_running} ]; then
+    echo "Unable to run test pod for fedbox"
+    exit 1
+fi
+
 podman run -d \
     --pull newer \
     --name=tests_brutalinks \
@@ -46,3 +52,9 @@ podman run -d \
     -p "${TEST_PORT}:443" \
     "${IMAGE}" \
     /bin/brutalinks
+
+_brutalinks_running=$(podman ps --filter name=tests_brutalinks --format '{{ .Names }}' )
+if [ -s ${_brutalinks_running} ]; then
+    echo "Unable to run test pod for brutalinks"
+    exit 1
+fi
