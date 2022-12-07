@@ -2199,7 +2199,7 @@ func (r *repository) ModerateDelete(ctx context.Context, mod ModerationOp, autho
 	}
 	lCtx := log.Ctx{"iri": i}
 	if !vocab.IsNil(tombstone) {
-		lCtx["obj"] = tombstone.GetLink()
+		lCtx["tombstone"] = tombstone.GetLink()
 		lCtx["type"] = tombstone.GetType()
 	}
 	r.infoFn()("saved activity")
@@ -2334,14 +2334,19 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 		ob vocab.Item
 	)
 	i, ob, err = r.fedbox.ToOutbox(ctx, act)
+	lCtx := log.Ctx{"act": i}
+	if !vocab.IsNil(ob) {
+		lCtx["obj"] = ob.GetLink()
+		lCtx["type"] = ob.GetType()
+	}
 	if err != nil && !(it.Deleted() && errors.IsGone(err)) {
-		r.errFn()(err.Error())
+		r.errFn(lCtx)(err.Error())
 		return it, err
 	}
 	r.cache.removeRelated(i, ob, act)
-	r.infoFn(log.Ctx{"act": i, "obj": ob.GetLink(), "type": ob.GetType()})("saved activity")
+	r.infoFn(lCtx)("saved activity")
 	if err = it.FromActivityPub(ob); err != nil {
-		r.errFn()(err.Error())
+		r.errFn(lCtx)(err.Error())
 		return it, err
 	}
 	if loadAuthors {
@@ -2698,8 +2703,14 @@ func (r *repository) BlockAccount(ctx context.Context, er, ed Account, reason *I
 	}
 	block.Type = vocab.BlockType
 	i, ob, err := r.fedbox.ToOutbox(ctx, block)
+
+	lCtx := log.Ctx{"activity": i}
+	if !vocab.IsNil(ob) {
+		lCtx["object"] = ob.GetLink()
+		lCtx["type"] = ob.GetType()
+	}
 	if err != nil {
-		r.errFn()(err.Error())
+		r.errFn(lCtx)(err.Error())
 		return err
 	}
 	r.cache.removeRelated(i, ob)
@@ -2714,8 +2725,13 @@ func (r *repository) BlockItem(ctx context.Context, er Account, ed Item, reason 
 	}
 	block.Type = vocab.BlockType
 	i, ob, err := r.fedbox.ToOutbox(ctx, block)
+	lCtx := log.Ctx{"activity": i}
+	if !vocab.IsNil(ob) {
+		lCtx["object"] = ob.GetLink()
+		lCtx["type"] = ob.GetType()
+	}
 	if err != nil {
-		r.errFn()(err.Error())
+		r.errFn(lCtx)(err.Error())
 		return err
 	}
 	r.cache.removeRelated(i, ob, block)
