@@ -1401,11 +1401,11 @@ func (r *repository) accountsFromRemote(ctx context.Context, remote vocab.Item, 
 	accounts := make(AccountCollection, 0)
 	localBase := baseIRI(r.fedbox.Service().GetLink())
 	isRemote := remote != nil && !remote.GetLink().Contains(localBase, true)
-	searches := RemoteLoads{
-		localBase: []RemoteLoad{{actor: r.fedbox.Service(), loadFn: colIRI(actors), filters: ff}},
-	}
+	searches := RemoteLoads{}
 	if isRemote {
 		searches[remote.GetLink()] = []RemoteLoad{{actor: remote, loadFn: colIRI(actors), filters: ff}}
+	} else {
+		searches[localBase] = []RemoteLoad{{actor: r.fedbox.Service(), loadFn: colIRI(actors), filters: ff}}
 	}
 	deferredTagLoads := make(CompStrs, 0)
 	err := LoadFromSearches(ctx, r, searches, func(_ context.Context, col vocab.CollectionInterface, f *Filters) error {

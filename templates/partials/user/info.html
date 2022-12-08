@@ -2,7 +2,7 @@
     <summary>
         <h2>
             {{- if .HasIcon -}}{{- Avatar .Metadata.Icon.MimeType .Metadata.Icon.URI -}}{{- else -}}{{- icon "user" "avatar" -}}{{- end -}}
-            {{- .Handle -}}
+            {{- . | ShowAccountHandle -}}
         </h2>
         {{- if and CurrentAccount.IsLogged .HasPublicKey }} <a download="{{ .Handle }}.pub" href="{{ . | PermaLink }}.pub">{{ icon "key" }}PublicKey</a> {{ end -}}
         {{ $score := .Votes.Score -}}
