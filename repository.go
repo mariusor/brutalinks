@@ -2202,7 +2202,7 @@ func (r *repository) ModerateDelete(ctx context.Context, mod ModerationOp, autho
 		lCtx["tombstone"] = tombstone.GetLink()
 		lCtx["type"] = tombstone.GetType()
 	}
-	r.infoFn()("saved activity")
+	r.infoFn(lCtx)("saved activity")
 	r.cache.removeRelated(act, tombstone)
 	return mod, err
 }
