@@ -190,6 +190,9 @@ func FromActor(a *Account, p *vocab.Actor) error {
 				continue
 			}
 			for _, tt := range Instance.ModTags {
+				if t.Metadata == nil || tt.Metadata == nil {
+					continue
+				}
 				if tt.Name == tagNameSysOP && t.Metadata.ID == tt.Metadata.ID {
 					a.Flags = a.Flags | FlagsOperator
 				}
