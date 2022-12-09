@@ -1877,15 +1877,15 @@ func (r *repository) SaveVote(ctx context.Context, v Vote) (Vote, error) {
 		it  vocab.Item
 	)
 	iri, it, err = r.fedbox.ToOutbox(ctx, act)
-	if err != nil && !errors.IsConflict(err) {
-		r.errFn()(err.Error())
-		return v, err
-	}
 	lCtx := log.Ctx{"act": iri}
 	if it != nil {
 		lCtx["obj"] = it.GetLink()
 		lCtx["type"] = it.GetType()
 		r.cache.removeRelated(iri, it, act)
+	}
+	if err != nil && !errors.IsConflict(err) {
+		r.errFn(lCtx)(err.Error())
+		return v, err
 	}
 	err = v.FromActivityPub(act)
 	r.infoFn()("saved activity")
