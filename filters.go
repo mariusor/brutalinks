@@ -199,7 +199,7 @@ func DomainFiltersMw(next http.Handler) http.Handler {
 			domainFilter := fmt.Sprintf("https://%s", puny.ToASCII(domain))
 			f.Object.URL = CompStrs{LikeString(domainFilter), LikeString(domainFilter)}
 			f.Object.Type = CompStrs{EqualsString(string(vocab.PageType))}
-			m.Title = fmt.Sprintf("Items pointing to %s", domain)
+			m.Title = htmlf("Items pointing to %s", domain)
 		} else {
 			f.Object.MedTypes = CompStrs{
 				EqualsString(MimeTypeMarkdown),
@@ -207,7 +207,7 @@ func DomainFiltersMw(next http.Handler) http.Handler {
 				EqualsString(MimeTypeHTML),
 			}
 			f.Object.Type = ActivityTypesFilter(ValidContentTypes...)
-			m.Title = fmt.Sprintf("Discussion items")
+			m.Title = htmlf("Discussion items")
 		}
 		f.Object.OP = nilFilters
 		f.Actor = derefIRIFilters
@@ -245,7 +245,7 @@ func TagFiltersMw(next http.Handler) http.Handler {
 
 		m := ContextListingModel(r.Context())
 		m.ShowText = true
-		m.Title = fmt.Sprintf("Items tagged as #%s", tag)
+		m.Title = htmlf("Items tagged as #%s", tag)
 		ctx := context.WithValue(r.Context(), FilterCtxtKey, allFilters)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})

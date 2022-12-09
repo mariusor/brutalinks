@@ -16,7 +16,7 @@ type Model interface {
 }
 
 type listingModel struct {
-	Title        string
+	Title        template.HTML
 	tpl          string
 	User         *Account
 	ShowChildren bool
@@ -53,7 +53,7 @@ func (m *listingModel) SetCursor(c *Cursor) {
 }
 
 func (m *listingModel) SetTitle(s string) {
-	m.Title = s
+	m.Title = template.HTML(s)
 }
 
 func (m listingModel) Template() string {
@@ -71,18 +71,18 @@ type mBox struct {
 	Readonly    bool
 	Editable    bool
 	ShowTitle   bool
-	Label       string
+	Label       template.HTML
 	Hash        Hash
 	OP          Hash
-	Title       string
-	Content     string
-	Back        string
+	Title       template.HTML
+	Content     template.HTML
+	Back        template.HTML
 	SubmitLabel template.HTML
 }
 
 type contentModel struct {
 	tpl          string
-	Title        string
+	Title        template.HTML
 	Hash         Hash
 	Content      Renderable
 	ShowChildren bool
@@ -104,7 +104,7 @@ func (m contentModel) PrevPage() Hash {
 }
 
 func (m *contentModel) SetTitle(s string) {
-	m.Title = s
+	m.Title = template.HTML(s)
 }
 
 func (m contentModel) Template() string {
@@ -175,7 +175,7 @@ func (m *contentModel) SetCursor(c *Cursor) {
 				m.Message.SubmitLabel = htmlf("%s %s", icon("lock"), lbl)
 			}
 		}
-		m.Message.Back = PermaLink(m.Content)
+		m.Message.Back = htmlf(PermaLink(m.Content))
 	} else {
 		missing := DeletedItem
 		missing.Hash = m.Hash
@@ -185,7 +185,7 @@ func (m *contentModel) SetCursor(c *Cursor) {
 }
 
 type moderationModel struct {
-	Title        string
+	Title        template.HTML
 	Hash         Hash
 	Content      *ModerationOp
 	ShowChildren bool
@@ -203,7 +203,7 @@ func (m moderationModel) PrevPage() Hash {
 }
 
 func (m *moderationModel) SetTitle(s string) {
-	m.Title = s
+	m.Title = template.HTML(s)
 }
 
 func (m moderationModel) Template() string {
@@ -223,18 +223,18 @@ func (m *moderationModel) SetCursor(c *Cursor) {
 		m.Content.Object = getItemFromList(&Item{Hash: m.Hash}, c.items)
 	}
 	if m.Content.Object != nil && len(m.Message.Back) == 0 {
-		m.Message.Back = PermaLink(m.Content.Object)
+		m.Message.Back = htmlf(PermaLink(m.Content.Object))
 	}
 }
 
 type loginModel struct {
-	Title   string
+	Title   template.HTML
 	Account Account
 	OAuth   bool
 }
 
 func (m *loginModel) SetTitle(s string) {
-	m.Title = s
+	m.Title = template.HTML(s)
 }
 
 func (loginModel) Template() string {
@@ -244,12 +244,12 @@ func (loginModel) Template() string {
 func (*loginModel) SetCursor(c *Cursor) {}
 
 type registerModel struct {
-	Title   string
+	Title   template.HTML
 	Account Account
 }
 
 func (m *registerModel) SetTitle(s string) {
-	m.Title = s
+	m.Title = template.HTML(s)
 }
 
 func (registerModel) Template() string {
@@ -278,12 +278,12 @@ type Desc struct {
 }
 
 type aboutModel struct {
-	Title string
+	Title template.HTML
 	Desc  Desc
 }
 
 func (m *aboutModel) SetTitle(s string) {
-	m.Title = s
+	m.Title = template.HTML(s)
 }
 
 func (m aboutModel) Template() string {
@@ -295,12 +295,12 @@ func (*aboutModel) SetCursor(c *Cursor) {}
 type errorModel struct {
 	Status     int
 	StatusText string
-	Title      string
+	Title      template.HTML
 	Errors     []error
 }
 
 func (m *errorModel) SetTitle(s string) {
-	m.Title = s
+	m.Title = template.HTML(s)
 }
 
 func (errorModel) Template() string {

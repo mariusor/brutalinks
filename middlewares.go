@@ -58,7 +58,7 @@ func ctxtErr(next http.Handler, w http.ResponseWriter, r *http.Request, err erro
 	status := errors.HttpStatus(err)
 	ctx := context.WithValue(r.Context(), ModelCtxtKey, &errorModel{
 		Status:     status,
-		Title:      fmt.Sprintf("Error %d", status),
+		Title:      htmlf("Error %d", status),
 		StatusText: http.StatusText(status),
 		Errors:     []error{err},
 	})
@@ -308,10 +308,10 @@ func SingleItemModelMw(next http.Handler) http.Handler {
 
 		m.Title = "Replies to item"
 		if item.SubmittedBy != nil {
-			m.Title = fmt.Sprintf("Replies to %s item", genitive(item.SubmittedBy.Handle))
+			m.Title = htmlf("Replies to %s item", genitive(item.SubmittedBy.Handle))
 		}
 		if len(item.Title) > 0 {
-			m.Title = fmt.Sprintf("%s: %s", m.Title, item.Title)
+			m.Title = htmlf("%s: %s", m.Title, item.Title)
 		}
 		ctx := context.WithValue(r.Context(), ModelCtxtKey, m)
 		next.ServeHTTP(w, r.WithContext(ctx))
@@ -400,7 +400,7 @@ func AccountListingModelMw(next http.Handler) http.Handler {
 		if len(authors) > 0 && auth.IsValid() {
 			m.User = &auth
 		}
-		m.Title = fmt.Sprintf("%s submissions", genitive(auth.Handle))
+		m.Title = htmlf("%s submissions", genitive(auth.Handle))
 		ctx := context.WithValue(r.Context(), ModelCtxtKey, m)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -512,10 +512,10 @@ func ReportAccountModelMw(next http.Handler) http.Handler {
 		auth := authors[0]
 		m.Content.Object = &auth
 		m.Hash = auth.Hash
-		m.Title = fmt.Sprintf("Report %s", auth.Handle)
-		m.Message.Label = fmt.Sprintf("Report %s:", auth.Handle)
+		m.Title = htmlf("Report %s", auth.Handle)
+		m.Message.Label = htmlf("Report %s:", auth.Handle)
 		m.Title = "Report account"
-		m.Message.Back = PermaLink(&auth)
+		m.Message.Back = htmlf(PermaLink(&auth))
 		next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, ModelCtxtKey, m)))
 	})
 }
@@ -531,8 +531,8 @@ func blockModelFromCtx(ctx context.Context) *moderationModel {
 		m.Content.Pub = &vocab.Block{Type: vocab.BlockType}
 	}
 	m.Message.Editable = false
-	m.Title = fmt.Sprintf("Block item")
-	m.Message.Label = fmt.Sprintf("Block item:")
+	m.Title = htmlf("Block item")
+	m.Message.Label = htmlf("Block item:")
 	m.Message.SubmitLabel = htmlf("%s Block", icon("block"))
 	m.Message.Label = "Please add your reason for blocking:"
 	m.Message.Back = "/"
@@ -554,9 +554,9 @@ func BlockAccountModelMw(next http.Handler) http.Handler {
 		}
 		auth := authors[0]
 		m.Content.Object = &auth
-		m.Title = fmt.Sprintf("Block %s", auth.Handle)
-		m.Message.Label = fmt.Sprintf("Block %s:", auth.Handle)
-		m.Message.Back = PermaLink(&auth)
+		m.Title = htmlf("Block %s", auth.Handle)
+		m.Message.Label = htmlf("Block %s:", auth.Handle)
+		m.Message.Back = htmlf(PermaLink(&auth))
 		next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, ModelCtxtKey, m)))
 	})
 }
@@ -590,10 +590,10 @@ func MessageUserContentModelMw(next http.Handler) http.Handler {
 			return
 		}
 		auth := authors[0]
-		m.Title = fmt.Sprintf("Send user %s private message", auth.Handle)
+		m.Title = htmlf("Send user %s private message", auth.Handle)
 		m.Message.Editable = true
-		m.Message.Label = fmt.Sprintf("Message %s:", auth.Handle)
-		m.Message.Back = PermaLink(&auth)
+		m.Message.Label = htmlf("Message %s:", auth.Handle)
+		m.Message.Back = htmlf(PermaLink(&auth))
 		m.Message.SubmitLabel = htmlf("%s Send", icon("lock"))
 		next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, ModelCtxtKey, m)))
 	})

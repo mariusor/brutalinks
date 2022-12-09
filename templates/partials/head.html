@@ -1,5 +1,5 @@
 <meta charset="UTF-8">
-<title>{{.Title}}</title>
+<title>{{ .Title }}</title>
 {{- if and (not Config.Env.IsDev) (CanPaginate .) -}}
 {{- if .PrevPage.IsValid }}
 <link href="{{ .PrevPage | PrevPageLink }}" rel="prev prefetch" />

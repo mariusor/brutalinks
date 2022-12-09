@@ -399,11 +399,11 @@ func (v *view) HandleErrors(w http.ResponseWriter, r *http.Request, errs ...erro
 
 	if renderErrors {
 		d.Status = status
-		d.Title = fmt.Sprintf("Error %d", status)
+		d.Title = htmlf("Error %d", status)
 		d.StatusText = http.StatusText(d.Status)
-		w.Header().Set("Cache-Control", " no-store, must-revalidate")
-		w.Header().Set("Pragma", " no-cache")
-		w.Header().Set("Expires", " 0")
+		w.Header().Set("Cache-Control", "no-store, must-revalidate")
+		w.Header().Set("Pragma", "no-cache")
+		w.Header().Set("Expires", "0")
 		w.WriteHeader(status)
 		_ = v.RenderTemplate(r, w, "error", d)
 	} else {
