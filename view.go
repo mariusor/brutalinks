@@ -1,10 +1,12 @@
 package brutalinks
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"io"
 	"io/fs"
 	"math"
 	"mime"
@@ -287,10 +289,13 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 			v.errFn(log.Ctx{"err": err.Error()})("session save failed")
 		}
 	}
-	if err = v.ren.HTML(w, http.StatusOK, name, m, render.HTMLOptions{Funcs: funcs}); err != nil {
+
+	wrt := bytes.Buffer{}
+	if err = v.ren.HTML(&wrt, http.StatusOK, name, m, render.HTMLOptions{Funcs: funcs}); err != nil {
 		v.errFn(log.Ctx{"err": err, "model": m})("failed to render template %s", name)
 		return errors.Annotatef(err, "failed to render template")
 	}
+	io.Copy(w, &wrt)
 	return nil
 }
 
