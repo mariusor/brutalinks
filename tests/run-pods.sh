@@ -3,7 +3,7 @@
 set -e
 
 TEST_PORT=${TEST_PORT:-4499}
-IMAGE=${IMAGE:-quay.io/go-ap/go-littr:qa}
+IMAGE=${IMAGE:-quay.io/go-ap/brutalinks:qa}
 
 if podman container exists tests_fedbox; then
     podman stop tests_fedbox

@@ -62,15 +62,15 @@ Caddyfile: Caddyfile.in
 		-DSERVER_HOSTNAME=$(SERVER_HOSTNAME) -DFEDBOX_PORT=$(FEDBOX_PORT) $< >$@
 
 push: build
-	$(TAG_CMD) brutalinks/app:$(ENV) quay.io/go-ap/go-littr:$(ENV)
-	$(PUSH_CMD) quay.io/go-ap/go-littr:$(ENV)
+	$(TAG_CMD) brutalinks/app:$(ENV) quay.io/go-ap/brutalinks:$(ENV)
+	$(PUSH_CMD) quay.io/go-ap/brutalinks:$(ENV)
 ifeq ($(ENV), dev)
-	$(TAG_CMD) brutalinks/app:$(ENV) quay.io/go-ap/go-littr:latest
-	$(PUSH_CMD) quay.io/go-ap/go-littr:latest || true
+	$(TAG_CMD) brutalinks/app:$(ENV) quay.io/go-ap/brutalinks:latest
+	$(PUSH_CMD) quay.io/go-ap/brutalinks:latest || true
 endif
 ifneq ($(VERSION), )
-	$(TAG_CMD) brutalinks/app:$(ENV) quay.io/go-ap/go-littr:$(VERSION)-$(ENV) || true
-	$(PUSH_CMD) quay.io/go-ap/go-littr:$(VERSION)-$(ENV) || true
+	$(TAG_CMD) brutalinks/app:$(ENV) quay.io/go-ap/brutalinks:$(VERSION)-$(ENV) || true
+	$(PUSH_CMD) quay.io/go-ap/brutalinks:$(VERSION)-$(ENV) || true
 endif
 
 start: Caddyfile
