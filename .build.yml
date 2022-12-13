@@ -51,16 +51,15 @@ tasks:
 
       cd brutalinks || exit
 
-      GIT_SHA=$(git rev-parse --verify --short HEAD)
-      GIT_BRANCH=$(git name-rev --name-only HEAD)
+      _sha=$(git rev-parse --short HEAD)
+      _branch=$(git branch --points-at=${_sha} | tail -n1 | tr -d '* ')
+      _version=$(printf "%s-%s" "${_branch}" "${_sha}")
 
-      make -C images builder
+      make -C images cert builder
 
-      _branch=${GIT_BRANCH#"refs/heads/"}
-      make -C images VERSION="${_branch}" push
-      if [ "${_branch}" == "master" ]; then
-        _branch=$(printf "%s-%s" "${_branch}" "${GIT_SHA}")
-        make -C images ENV=qa VERSION="${_branch}" push
+      make -C images ENV=dev VERSION="${_version}" push
+      if [ "${_branch}" = "master" ]; then
+        make -C images ENV=qa VERSION="${_version}" push
       fi
       _tag=$(git describe --long --tags || true)
       if [ -n "${_tag}" ]; then
