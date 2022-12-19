@@ -262,9 +262,16 @@ func (h *handler) HandleFollowResponseRequest(w http.ResponseWriter, r *http.Req
 		h.v.HandleErrors(w, r, errors.NotFoundf("account not found"))
 		return
 	}
+	if follow.Object.Hash.String() == repo.app.Hash.String() {
+		// we operate on the current item as the application
+		repo.WithAccount(repo.app)
+	} else if follow.Object.Hash.String() == acc.Hash.String() {
+		repo.WithAccount(acc)
+	} else {
+		h.v.HandleErrors(w, r, errors.NotFoundf("unable to reply to follow as current account"))
+		return
+	}
 
-	// we operate on the current item as the application
-	repo.WithAccount(repo.app)
 	if err = repo.SendFollowResponse(r.Context(), follow, accept, nil); err != nil {
 		h.v.HandleErrors(w, r, err)
 		return
@@ -656,18 +663,20 @@ func ContextFollowRequest(ctx context.Context) *FollowRequest {
 	if f, ok := ctx.Value(ContentCtxtKey).(*FollowRequest); ok {
 		return f
 	}
-	if c := ContextCursor(ctx); c != nil {
-		for _, it := range c.items {
-			if f, ok := it.(*FollowRequest); ok {
-				return f
-			}
-		}
-	}
 	return nil
 }
 func FollowRequestFromContext(ctx context.Context, hash string) (FollowRequest, error) {
-	if p := ContextFollowRequest(ctx); p != nil && p.Hash.String() == hash {
+	p := ContextFollowRequest(ctx)
+	if p != nil && p.Hash.String() == hash {
 		return *p, nil
+	}
+
+	if c := ContextCursor(ctx); c != nil {
+		for _, it := range c.items {
+			if f, ok := it.(*FollowRequest); ok && f.Hash.String() == hash {
+				return *f, nil
+			}
+		}
 	}
 	return FollowRequest{}, errors.NotFoundf(hash)
 }
