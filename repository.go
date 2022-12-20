@@ -1965,6 +1965,7 @@ func loadMentionsIfExisting(r *repository, ctx context.Context, incoming TagColl
 	}
 
 	remoteFilters := make([]*Filters, 0)
+	remoteWebfinger := make(map[string][]string, 0)
 	for _, m := range incoming {
 		// TODO(marius): we need to make a distinction between FedBOX remote servers and Webfinger remote servers
 		u, err := url.ParseRequestURI(m.URL)
@@ -1972,6 +1973,11 @@ func loadMentionsIfExisting(r *repository, ctx context.Context, incoming TagColl
 			continue
 		}
 		host := fmt.Sprintf("%s://%s", u.Scheme, u.Hostname())
+		if strings.Contains(m.URL, "@"+m.Name) {
+			// use webfinger
+			remoteWebfinger[host] = append(remoteWebfinger[host], m.Name+"@"+u.Hostname())
+			continue
+		}
 		if strings.Contains(r.SelfURL, host) {
 			host = r.fedbox.baseURL.String()
 		}
@@ -2026,6 +2032,28 @@ func loadMentionsIfExisting(r *repository, ctx context.Context, incoming TagColl
 			}
 			return nil
 		})
+	}
+
+	for h, accts := range remoteWebfinger {
+		for _, acct := range accts {
+			act, err := r.loadWebfingerActorFromIRI(context.TODO(), h, acct)
+			if err != nil {
+				r.errFn(log.Ctx{"err": err, "host": h, "account": acct})("unable to load account")
+				continue
+			}
+
+			for i, t := range incoming {
+				if strings.ToLower(t.Name) == strings.ToLower(string(act.Name.Get("-"))) ||
+					strings.ToLower(t.Name) == strings.ToLower(string(act.PreferredUsername.Get("-"))) {
+					url := act.ID.String()
+					if act.URL != nil {
+						url = act.URL.GetLink().String()
+					}
+					incoming[i].Metadata = &ItemMetadata{ID: act.ID.String(), URL: url}
+					incoming[i].URL = url
+				}
+			}
+		}
 	}
 
 	return incoming

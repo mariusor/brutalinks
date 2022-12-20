@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -286,6 +286,50 @@ const (
 	Mastodon        = "mastodon"
 )
 
+func (r *repository) loadWebfingerActorFromIRI(ctx context.Context, host, acct string) (*vocab.Actor, error) {
+	loadFromURL := func(url string, what any) error {
+		resp, err := r.fedbox.client.Get(url)
+		if err != nil {
+			return err
+		}
+		defer resp.Body.Close()
+
+		var body []byte
+		if body, err = io.ReadAll(resp.Body); err != nil {
+			return err
+		}
+		if resp.StatusCode != http.StatusGone && resp.StatusCode >= http.StatusBadRequest {
+			errs, err := errors.UnmarshalJSON(body)
+			if err == nil {
+				for _, retErr := range errs {
+					err = fmt.Errorf("%w", retErr)
+				}
+			}
+			return errors.WrapWithStatus(resp.StatusCode, err, "invalid status received when trying to load remote account")
+		}
+		if err := json.Unmarshal(body, what); err != nil {
+			return err
+		}
+		return nil
+	}
+	meta := node{}
+
+	nodeInfoURL := fmt.Sprintf("%s/.well-known/webfinger?resource=acct:%s", host, acct)
+	if err := loadFromURL(nodeInfoURL, &meta); err != nil {
+		return nil, err
+	}
+
+	for _, l := range meta.Links {
+		if l.Type == client.ContentTypeActivityJson {
+			actor := vocab.Actor{}
+			if err := loadFromURL(l.Href, &actor); err == nil {
+				return &actor, nil
+			}
+		}
+	}
+	return nil, errors.Errorf("unable to find webfinger actor")
+
+}
 func (r *repository) loadInstanceActorFromIRI(ctx context.Context, iri vocab.IRI) (*vocab.Actor, error) {
 	actor, err := r.fedbox.Actor(ctx, iri)
 	if err == nil {
@@ -300,7 +344,7 @@ func (r *repository) loadInstanceActorFromIRI(ctx context.Context, iri vocab.IRI
 		defer resp.Body.Close()
 
 		var body []byte
-		if body, err = ioutil.ReadAll(resp.Body); err != nil {
+		if body, err = io.ReadAll(resp.Body); err != nil {
 			return err
 		}
 		if resp.StatusCode != http.StatusGone && resp.StatusCode >= http.StatusBadRequest {
@@ -713,7 +757,7 @@ func getPassCode(h *handler, acc *Account, invitee *Account, r *http.Request) (s
 	}
 
 	var body []byte
-	if body, err = ioutil.ReadAll(res.Body); err != nil {
+	if body, err = io.ReadAll(res.Body); err != nil {
 		return "", err
 	}
 	d := osin.AuthorizeData{}
@@ -796,7 +840,7 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var body []byte
-	if body, err = ioutil.ReadAll(res.Body); err != nil {
+	if body, err = io.ReadAll(res.Body); err != nil {
 		h.v.HandleErrors(w, r, err)
 		return
 	}
@@ -838,7 +882,7 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	form.Add("pw-confirm", pwConfirm)
 
 	pwChRes, err := http.Post(u.String(), "application/x-www-form-urlencoded", strings.NewReader(form.Encode()))
-	if body, err = ioutil.ReadAll(pwChRes.Body); err != nil {
+	if body, err = io.ReadAll(pwChRes.Body); err != nil {
 		h.errFn()("Error: %s", err)
 		h.v.HandleErrors(w, r, err)
 		return

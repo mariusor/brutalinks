@@ -137,7 +137,7 @@ func Test_loadTags(t *testing.T) {
 				Tag{
 					Type: TagMention,
 					Name: "mention",
-					URL:  "https://brutalinks.git/~mention",
+					URL:  "https://brutalinks.git/@mention",
 				},
 			},
 		},

@@ -241,14 +241,21 @@ func getTagFromBytes(d []byte) Tag {
 	var name, host []byte
 	t := Tag{}
 
+	isLocal := false
 	if ind := bytes.LastIndex(d, []byte{'@'}); ind > 1 {
 		name = d[1:ind]
 		host = []byte(fmt.Sprintf("https://%s", d[ind+1:]))
 	} else {
 		name = d[1:]
 		host = []byte(Instance.BaseURL.String())
+		isLocal = true
 	}
-	if d[0] == '@' || d[0] == '~' {
+	if d[0] == '@' && !isLocal {
+		t.Type = TagMention
+		t.Name = string(name)
+		t.URL = fmt.Sprintf("%s/@%s", host, name)
+	}
+	if d[0] == '~' || (isLocal && d[0] == '@') {
 		// mention
 		t.Type = TagMention
 		t.Name = string(name)
