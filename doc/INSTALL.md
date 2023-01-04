@@ -6,14 +6,29 @@ The basic requirement for running [go-littr](https://github.com/mariusor/go-litt
 go dev environment (version 1.11 or newer, as we require go modules support).
 
 ```sh
-$ git clone https://github.com/mariusor/go-littr
-$ cd go-littr
+$ git clone https://git.sr.ht/~mariusor/brutalinks
+$ cd brutalinks
 ```
 
-### Running fed::BOX
+### Running Fed::BOX
 
 We are now using [fedbox](https://github.com/go-ap/fedbox) as an *ActivityPub* backend.
 Follow the project's [install instructions]((https://github.com/go-ap/fedbox/blob/master/doc/INSTALL.md)) to get the instance running.
+
+After Fed::BOX is running, you need to create the required brutalinks actors:
+
+```sh
+# This creates an OAuth2 account and ActivityPub Application actor for Brutalinks.
+$ fedboxctl oauth client add --redirectUri https://brutalinks.example.com/callback
+client's pw:
+pw again:
+
+# This creates a Person actor with an admin tag
+$ fedboxctl ap actor add admin -tags #sysop
+admin's pw:
+pw again:
+
+```
 
 ### Editing the configuration
 
@@ -22,7 +37,7 @@ $ cp .env.dist .env
 $ $EDITOR .env
 ```
 
-You need to set `API_URL` environment variable to the fedbox url from the previous step.
+You need to set `API_URL` environment variable to the URL at which FedBOX can be reached at.
 
 ## Running
 
@@ -31,20 +46,3 @@ Running the application in development mode is as simple as:
 ```sh
 $ make run
 ```
-
-# Containers
-
-```sh
-$ make \
-    APP_HOSTNAME={hostname} \
-    SERVER_HOSTNAME={fedbox_hostname} \
-    OAUTH2_SECRET={oauth_client_pass} \
-    ADMIN_PW={admin_pass} \ # optional
-    -C images/ images
-```
-
-The {hostname} and {fedbox_hostname} are the hosts that the loadbalancer listens for on port 8443.
-
-The {oauth_client_pass} is the password that we set-up for the littr application in fedbox.
-
-The {admin_pass} password can be missing and there's no default admin user created.

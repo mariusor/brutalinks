@@ -7,15 +7,15 @@ IMAGE=${IMAGE:-quay.io/go-ap/brutalinks:qa}
 
 if podman container exists tests_fedbox; then
     podman stop tests_fedbox
-    podman rm tests_fedbox
+    podman rm -f tests_fedbox
 fi
 if podman container exists tests_brutalinks; then
     podman stop tests_brutalinks
-    podman rm tests_brutalinks
+    podman rm -f tests_brutalinks
 fi
 
 if podman network exists tests_network; then
-    podman network rm tests_network
+    podman network rm -f tests_network
 fi
 
 podman network create tests_network
