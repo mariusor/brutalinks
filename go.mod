@@ -3,11 +3,11 @@ module github.com/mariusor/go-littr
 go 1.18
 
 require (
-	git.sr.ht/~mariusor/assets v0.0.0-20220830142251-15a3530ff8fd
+	git.sr.ht/~mariusor/assets v0.0.0-20220903082417-c9a1eccd9a8e
 	git.sr.ht/~mariusor/lw v0.0.0-20221202111053-2dd31f3348e7
-	git.sr.ht/~mariusor/wrapper v0.0.0-20211204195804-3033a1099e0f
+	git.sr.ht/~mariusor/wrapper v0.0.0-20230104101555-9bfc303f6588
 	github.com/go-ap/activitypub v0.0.0-20221209114049-1ceafda50f9f
-	github.com/go-ap/client v0.0.0-20221209114704-ee9adde8b2c2
+	github.com/go-ap/client v0.0.0-20221211133508-e3087682099e
 	github.com/go-ap/errors v0.0.0-20221205040414-01c1adfc98ea
 	github.com/go-ap/jsonld v0.0.0-20221030091449-f2a191312c73
 	github.com/go-chi/chi/v5 v5.0.7
@@ -37,14 +37,14 @@ require (
 	github.com/gorilla/css v1.0.0 // indirect
 	github.com/gorilla/securecookie v1.1.1 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/mattn/go-isatty v0.0.16 // indirect
+	github.com/mattn/go-isatty v0.0.17 // indirect
 	github.com/pborman/uuid v1.2.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rs/xid v1.4.0 // indirect
 	github.com/rs/zerolog v1.28.0 // indirect
 	github.com/tdewolff/parse v2.3.4+incompatible // indirect
 	github.com/tdewolff/test v1.0.7 // indirect
-	github.com/valyala/fastjson v1.6.3 // indirect
+	github.com/valyala/fastjson v1.6.4 // indirect
 	github.com/writeas/go-webfinger v1.1.0 // indirect
 	gitlab.com/golang-commonmark/html v0.0.0-20191124015941-a22733972181 // indirect
 	gitlab.com/golang-commonmark/linkify v0.0.0-20191026162114-a0c2df6c8f82 // indirect

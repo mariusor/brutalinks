@@ -26,14 +26,19 @@ func Run(a *brutalinks.Application) int {
 	ctx, cancelFn := context.WithCancel(context.TODO())
 
 	setters := []w.SetFn{w.Handler(a.Mux)}
-	dir, _ := filepath.Split(a.Conf.ListenHost)
-	if _, err := os.Stat(dir); err == nil {
-		setters = append(setters, w.Socket(a.Conf.ListenHost))
-		defer func() { os.RemoveAll(a.Conf.ListenHost) }()
-	} else if a.Conf.Secure && len(a.Conf.CertPath) > 0 && len(a.Conf.KeyPath) > 0 {
-		setters = append(setters, w.HTTPS(a.Conf.Listen(), a.Conf.CertPath, a.Conf.KeyPath))
+	if a.Conf.Secure && len(a.Conf.CertPath) > 0 && len(a.Conf.KeyPath) > 0 {
+		setters = append(setters, w.WithTLSCert(a.Conf.CertPath, a.Conf.KeyPath))
+	}
+	if a.Conf.ListenHost == "systemd" {
+		setters = append(setters, w.OnSystemd())
 	} else {
-		setters = append(setters, w.HTTP(a.Conf.Listen()))
+		dir, _ := filepath.Split(a.Conf.ListenHost)
+		if _, err := os.Stat(dir); err == nil {
+			setters = append(setters, w.OnSocket(a.Conf.ListenHost))
+			defer func() { os.RemoveAll(a.Conf.ListenHost) }()
+		} else {
+			setters = append(setters, w.OnTCP(a.Conf.Listen()))
+		}
 	}
 	srvRun, srvStop := w.HttpServer(setters...)
 
