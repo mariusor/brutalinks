@@ -12,7 +12,7 @@ import (
 	log "git.sr.ht/~mariusor/lw"
 	w "git.sr.ht/~mariusor/wrapper"
 	"github.com/go-ap/errors"
-	"github.com/mariusor/go-littr"
+	brutalinks "github.com/mariusor/go-littr"
 	"github.com/mariusor/go-littr/internal/config"
 )
 
@@ -31,15 +31,16 @@ func Run(a *brutalinks.Application) int {
 	}
 	if a.Conf.ListenHost == "systemd" {
 		setters = append(setters, w.OnSystemd())
-	} else {
+	} else if filepath.IsAbs(a.Conf.ListenHost) {
 		dir, _ := filepath.Split(a.Conf.ListenHost)
 		if _, err := os.Stat(dir); err == nil {
 			setters = append(setters, w.OnSocket(a.Conf.ListenHost))
 			defer func() { os.RemoveAll(a.Conf.ListenHost) }()
-		} else {
-			setters = append(setters, w.OnTCP(a.Conf.Listen()))
 		}
+	} else {
+		setters = append(setters, w.OnTCP(a.Conf.Listen()))
 	}
+
 	srvRun, srvStop := w.HttpServer(setters...)
 
 	defer func() {
