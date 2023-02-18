@@ -16,7 +16,7 @@ import (
 
 var (
 	assetDir, _ = filepath.Abs("./assets")
-	readme, _   = filepath.Abs("./README.md")
+	readme, _   = filepath.Abs("./")
 	AssetFS     = assets.Aggregate(os.DirFS(assetDir), os.DirFS(readme))
 
 	templateDir, _ = filepath.Abs("./")

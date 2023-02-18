@@ -101,13 +101,14 @@ const (
 )
 
 func NodeInfoConfig() nodeinfo.Config {
+	ni := Instance.NodeInfo()
 	return nodeinfo.Config{
 		BaseURL: Instance.BaseURL.String(),
 		InfoURL: "/nodeinfo",
 
 		Metadata: nodeinfo.Metadata{
-			NodeName:        string(regexp.MustCompile(`<[\/\w]+>`).ReplaceAll([]byte(Instance.NodeInfo().Title), []byte{})),
-			NodeDescription: Instance.NodeInfo().Summary,
+			NodeName:        string(regexp.MustCompile(`<[\/\w]+>`).ReplaceAll([]byte(ni.Title), []byte{})),
+			NodeDescription: ni.Summary,
 			Private:         !Instance.Conf.UserCreatingEnabled,
 			Software: nodeinfo.SoftwareMeta{
 				GitHub:   sourceURL,
@@ -124,7 +125,7 @@ func NodeInfoConfig() nodeinfo.Config {
 		},
 		Software: nodeinfo.SoftwareInfo{
 			Name:    path.Base(softwareName),
-			Version: Instance.NodeInfo().Version,
+			Version: ni.Version,
 		},
 	}
 }
@@ -278,6 +279,8 @@ func (a Application) NodeInfo() WebInfo {
 
 	if desc, err := fs.ReadFile(assets.AssetFS, "README.md"); err == nil {
 		inf.Description = string(bytes.Trim(desc, "\x00"))
+	} else {
+		a.Logger.WithContext(log.Ctx{"err": err}).Errorf("unable to load README.md file from fs: %s", assets.AssetFS)
 	}
 	return inf
 }

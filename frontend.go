@@ -431,8 +431,7 @@ func (h *handler) HandleAbout(w http.ResponseWriter, r *http.Request) {
 	repo := h.storage
 	info, err := repo.LoadInfo()
 	if err != nil {
-		h.v.HandleErrors(w, r, errors.NewNotValid(err, "oops!"))
-		return
+		h.logger.WithContext(log.Ctx{"err": err}).Errorf("unable to load service actor for FedBOX")
 	}
 	m.Desc.Description = info.Description
 
