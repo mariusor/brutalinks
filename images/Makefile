@@ -5,15 +5,12 @@ SHELL := bash
 MAKEFLAGS += --warn-undefined-variables
 MAKEFLAGS += --no-builtin-rules
 
-M4 = /usr/bin/m4
-M4_FLAGS =
-
 ENV ?= dev
 APP_HOSTNAME ?= brutalinks.local
 SERVER_HOSTNAME ?= fedbox.local
 PORT ?= 4001
 FEDBOX_PORT ?= 4000
-VERSION ?= (HEAD)
+VERSION ?= HEAD
 ENV_FILE ?= $(shell realpath .env.$(ENV))
 ifeq ($(OAUTH2_CALLBACK_URL), )
 	override OAUTH2_CALLBACK_URL := https://$(APP_HOSTNAME)/auth/fedbox/callback
@@ -64,11 +61,11 @@ Caddyfile: Caddyfile.in
 push: build
 	$(TAG_CMD) brutalinks/app:$(ENV) quay.io/go-ap/brutalinks:$(ENV)
 	$(PUSH_CMD) quay.io/go-ap/brutalinks:$(ENV)
-ifeq ($(ENV), dev)
+ifeq ($(ENV),dev)
 	$(TAG_CMD) brutalinks/app:$(ENV) quay.io/go-ap/brutalinks:latest
 	$(PUSH_CMD) quay.io/go-ap/brutalinks:latest || true
 endif
-ifneq ($(VERSION), )
+ifneq ($(VERSION),)
 	$(TAG_CMD) brutalinks/app:$(ENV) quay.io/go-ap/brutalinks:$(VERSION)-$(ENV) || true
 	$(PUSH_CMD) quay.io/go-ap/brutalinks:$(VERSION)-$(ENV) || true
 endif

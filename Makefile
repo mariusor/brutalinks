@@ -7,6 +7,7 @@ MAKEFLAGS += --no-builtin-rules
 
 PROJECT_NAME := brutalinks
 ENV ?= dev
+
 LDFLAGS ?= -X main.version=$(VERSION)
 BUILDFLAGS ?= -a -ldflags '$(LDFLAGS)'
 TEST_FLAGS ?= -count=1
@@ -22,15 +23,13 @@ ifneq ($(ENV), dev)
 	BUILDFLAGS += -trimpath
 endif
 
-ifeq ($(VERSION), )
-	ifeq ($(shell git describe --always > /dev/null 2>&1 ; echo $$?), 0)
-		BRANCH=$(shell git rev-parse --abbrev-ref HEAD | tr '/' '-')
-		HASH=$(shell git rev-parse --short HEAD)
-		VERSION ?= $(shell printf "%s-%s" "$(BRANCH)" "$(HASH)")
-	endif
-	ifeq ($(shell git describe --tags > /dev/null 2>&1 ; echo $$?), 0)
-		VERSION ?= $(shell git describe --tags | tr '/' '-')
-	endif
+ifeq ($(shell git describe --always > /dev/null 2>&1 ; echo $$?), 0)
+	BRANCH=$(shell git rev-parse --abbrev-ref HEAD | tr '/' '-')
+	HASH=$(shell git rev-parse --short HEAD)
+	VERSION ?= $(shell printf "%s-%s" "$(BRANCH)" "$(HASH)")
+endif
+ifeq ($(shell git describe --tags > /dev/null 2>&1 ; echo $$?), 0)
+	VERSION ?= $(shell git describe --tags | tr '/' '-')
 endif
 
 BUILD := $(GO) build $(BUILDFLAGS)
@@ -46,7 +45,7 @@ download:
 	$(GO) mod download all
 	$(GO) mod tidy
 
-ifneq ($(ENV), dev)
+ifneq ($(ENV),dev)
 assets:  internal/assets/assets.gen.go
 else
 assets:
