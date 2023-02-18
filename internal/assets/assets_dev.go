@@ -15,12 +15,12 @@ import (
 )
 
 var (
-	assetDir, _ = filepath.Abs("./assets")
-	readme, _   = filepath.Abs("./")
-	AssetFS     = assets.Aggregate(os.DirFS(assetDir), os.DirFS(readme))
+	rootPath, _ = filepath.Abs("./")
+	rootFS      = os.DirFS(rootPath)
+	assetFS, _  = fs.Sub(rootFS, "assets")
+	AssetFS     = assets.Aggregate(assetFS, rootFS)
 
-	templateDir, _ = filepath.Abs("./")
-	TemplateFS     = os.DirFS(templateDir)
+	TemplateFS = rootFS
 )
 
 func Write(s fs.FS) func(http.ResponseWriter, *http.Request) {
