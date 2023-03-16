@@ -26,6 +26,9 @@
 <link rel="stylesheet" media="screen and (min-width: 1501px)" href="/css/l.css" />
 <link rel="stylesheet" media="screen and (min-width: 861px) and (max-width: 1500px)" href="/css/m.css" />
 <link rel="stylesheet" media="screen and (max-width: 860px)" href="/css/s.css" />
+{{ if eq current "content" -}}
+<link href="{{ .Content.AP.GetID }}" rel="alternate" type="application/activity+json" />
+{{ end -}}
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <meta name="theme-color" content="rebeccapurple" />
 <meta name="description" content="Link aggregator inspired by reddit and hacker news using ActivityPub federation."/>
