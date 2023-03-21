@@ -86,10 +86,10 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 
 	return func(r chi.Router) {
 		r.Use(lw.Middlewares(h.logger)...)
-		r.Use(OutOfOrderMw(h.v))
 		r.Use(middleware.GetHead)
 
 		r.Group(func(r chi.Router) {
+			r.Use(OutOfOrderMw(h.v))
 			r.Use(h.v.SetSecurityHeaders)
 			r.Use(h.v.LoadSession)
 

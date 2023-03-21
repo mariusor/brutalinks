@@ -74,6 +74,8 @@ const (
 	KeyDisableCaching             = "DISABLE_CACHING"
 	KeyAdminContact               = "ADMIN_CONTACT"
 
+	KeyMaintenanceMode = "MAINTENANCE_MODE"
+
 	KeyFedBOXOAuthKey    = "OAUTH2_KEY"
 	KeyFedBOXOAuthSecret = "OAUTH2_SECRET"
 
@@ -193,6 +195,8 @@ func Load(e EnvType, wait time.Duration) *Configuration {
 	if encKey := loadKeyFromEnv(KeySessionEncKey, ""); len(encKey) >= 16 {
 		c.SessionKeys = append(c.SessionKeys, []byte(encKey[:16]))
 	}
+	c.MaintenanceMode, _ = strconv.ParseBool(loadKeyFromEnv(KeyMaintenanceMode, ""))
+
 	return c
 }
 
