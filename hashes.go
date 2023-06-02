@@ -18,7 +18,7 @@ var (
 )
 
 func HashFromIRI(i vocab.IRI) Hash {
-	_, h := path.Split(i.String())
+	_, h := path.Split(strings.TrimRight(i.String(), "/"))
 	return HashFromString(h)
 }
 
@@ -30,12 +30,7 @@ func HashFromItem(obj vocab.Item) Hash {
 	if len(iri) == 0 {
 		return AnonymousHash
 	}
-	actor, _ := vocab.Split(iri)
-	h := path.Base(actor.String())
-	if h == "." {
-		h = ""
-	}
-	return HashFromString(h)
+	return HashFromIRI(iri)
 }
 
 func HashFromString(s string) Hash {
