@@ -14,5 +14,3 @@ internal/assets/*.gen.go
 docker/Caddyfile
 node_modules/
 .cache
-tests/fedbox/fs/test/oauth/access/*
-tests/fedbox/fs/test/oauth/refresh/*
