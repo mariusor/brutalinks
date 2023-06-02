@@ -65,10 +65,6 @@ const users = [
     {
         handle: 'admin',
         pw: PASSWORD,
-    },
-    {
-        handle: 'user_test_0',
-        pw: PASSWORD,
     }
 ];
 
@@ -307,6 +303,26 @@ const pages = {
 };
 
 const logged = {
+    'About': {
+        path: '/about',
+        tags: {type: 'content'},
+        checks: Object.assign(
+            HTMLChecks('About'),
+            TabChecks('/self', '/federated', '/followed', '/submit'),
+            checkAboutPage()
+        ),
+        user: users[0],
+    },
+    'Homepage': {
+        path: '/',
+        tags: {type: 'content'},
+        checks: Object.assign(
+            HTMLChecks('Newest items'),
+            TabChecks('/self', '/federated', '/followed', '/submit'),
+            checkListingWithSingleElement(),
+        ),
+        user: users[0],
+    },
     'Followed tab': {
         path: '/followed',
         tags: {type: 'content'},
@@ -421,13 +437,18 @@ function TabChecks() {
     };
 
     for (let i = 0; i < arguments.length; i++) {
-        const currentTab = tabNames[i]
-        const key = `has tab: "${currentTab}"`;
+        let tabName = tabNames[i];
+        let isActive = false;
+
+        const key = `has tab: "${tabName}"`;
         checks[key] = (r) => {
-            let span = parseHTML(r.body).find('body header menu.tabs li a[href="' + currentTab + '"] span');
+            isActive = r.url.endsWith(tabName);
+
+            let span = parseHTML(r.body).find(`body header menu.tabs li a[href="${isActive ? '#' : tabName}"] span`);
+            //console.error(`Tab: ${tabName} - active: ${isActive}, span: ${span.text()}`);
             return checkOrContentErr(
                 span.size() === 1,
-                span.text().replace('/', '') === currentTab.replace('/', '')
+                span.text().replace('/', '') === tabName.replace('/', '')
             );
         }
     }
@@ -566,8 +587,10 @@ function runSuite(pages, sleepTime = 0) {
                 if (test.hasOwnProperty('user')) {
                     let status = authenticate(test.user);
                     if (!status) {
+                        fail(`${m}: unable to authenticate for ${test.user.handle}`);
                         return;
                     }
+                    sleep(sleepTime);
                     m = `${m}: ${test.user.handle}`;
                 }
 
