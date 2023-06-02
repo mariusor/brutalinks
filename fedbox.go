@@ -66,6 +66,9 @@ func c2sSign(a *Account, req *http.Request) error {
 }
 
 func sameHostForAccountAndURL(a *Account, u *url.URL) bool {
+	if (a == nil || a.Metadata == nil || a.Metadata.ID == "") || u != nil {
+		return false
+	}
 	au, _ := url.ParseRequestURI(a.Metadata.ID)
 	return au.Hostname() == u.Hostname()
 }
