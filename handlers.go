@@ -794,6 +794,107 @@ func (h *handler) HandleCreateInvitation(w http.ResponseWriter, r *http.Request)
 	h.v.Redirect(w, r, PermaLink(acc), http.StatusMovedPermanently)
 }
 
+// HandleChangePassword handles POST /pw requests
+func (h *handler) HandleChangePassword(w http.ResponseWriter, r *http.Request) {
+	a, err := h.accountFromPost(r)
+	if err != nil {
+		h.v.HandleErrors(w, r, err)
+		return
+	}
+
+	repo := ContextRepository(r.Context())
+	maybeExists, err := repo.account(r.Context(), FilterAccountByHandle(a.Handle))
+	if err != nil && !errors.IsNotFound(err) {
+		h.logger.WithContext(log.Ctx{"handle": a.Handle, "err": err}).Warnf("error when trying to load account")
+		h.v.HandleErrors(w, r, errors.NewBadRequest(err, "error when trying to load account %s", a.Handle))
+		return
+	}
+	if !maybeExists.IsValid() {
+		h.v.HandleErrors(w, r, errors.BadRequestf("could not find account %s", a.Handle))
+		return
+	}
+
+	app := h.storage.app
+	a.CreatedBy = app
+	a, err = h.storage.WithAccount(app).SaveAccount(r.Context(), a)
+	if err != nil {
+		h.errFn()("Error: %s", err)
+		h.v.HandleErrors(w, r, err)
+		return
+	}
+	if !a.IsValid() || !a.HasMetadata() || a.Metadata.ID == "" {
+		h.v.HandleErrors(w, r, errors.Newf("unable to save actor"))
+		return
+	}
+
+	// TODO(marius): Start oauth2 authorize session
+	config := h.conf.GetOauth2Config("fedbox", h.conf.BaseURL)
+	config.Scopes = []string{scopeAnonymousUserCreate}
+	param := oauth2.SetAuthURLParam("actor", a.Metadata.ID)
+	sessUrl := config.AuthCodeURL(csrf.Token(r), param)
+
+	res, err := http.Get(sessUrl)
+	if err != nil {
+		h.v.HandleErrors(w, r, err)
+		return
+	}
+
+	var body []byte
+	if body, err = io.ReadAll(res.Body); err != nil {
+		h.v.HandleErrors(w, r, err)
+		return
+	}
+	if res.StatusCode != http.StatusOK {
+		incoming, e := errors.UnmarshalJSON(body)
+		var errs []error
+		if e == nil {
+			errs = make([]error, len(incoming))
+			for i := range incoming {
+				errs[i] = incoming[i]
+			}
+		} else {
+			errs = []error{errors.WrapWithStatus(res.StatusCode, errors.Newf(""), "invalid response")}
+		}
+		h.v.HandleErrors(w, r, errs...)
+		return
+	}
+	d := osin.AuthorizeData{}
+	if err := json.Unmarshal(body, &d); err != nil {
+		h.v.HandleErrors(w, r, err)
+		return
+	}
+	if d.Code == "" {
+		h.v.HandleErrors(w, r, errors.NotValidf("unable to get session token for setting the user's password"))
+		return
+	}
+
+	// pos
+	pwChURL := fmt.Sprintf("%s/oauth/pw", h.storage.BaseURL())
+	u, _ := url.Parse(pwChURL)
+	q := u.Query()
+	q.Set("s", d.Code)
+	u.RawQuery = q.Encode()
+	form := url.Values{}
+	pw := r.PostFormValue("pw")
+	pwConfirm := r.PostFormValue("pw-confirm")
+
+	form.Add("pw", pw)
+	form.Add("pw-confirm", pwConfirm)
+
+	pwChRes, err := http.Post(u.String(), "application/x-www-form-urlencoded", strings.NewReader(form.Encode()))
+	if body, err = io.ReadAll(pwChRes.Body); err != nil {
+		h.errFn()("Error: %s", err)
+		h.v.HandleErrors(w, r, err)
+		return
+	}
+	if pwChRes.StatusCode != http.StatusOK {
+		h.v.HandleErrors(w, r, h.storage.handlerErrorResponse(body))
+		return
+	}
+	h.v.Redirect(w, r, "/", http.StatusSeeOther)
+	return
+}
+
 // HandleRegister handles POST /register requests
 func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	a, err := h.accountFromPost(r)

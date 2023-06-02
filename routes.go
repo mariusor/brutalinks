@@ -133,6 +133,10 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 				r.With(AccountListingModelMw, AllFilters, Deps(Authors, Votes), SearchInCollectionsMw(requestHandleSearches, outbox), LoadMw).
 					Get("/", h.HandleShow)
 
+				r.With(h.CSRF).Route("/changepw/{hash}", func(r chi.Router) {
+					r.With(ModelMw(&registerModel{Title: "Change password"}), LoadInvitedMw).Get("/", h.HandleShow)
+					r.Post("/", h.HandleChangePassword)
+				})
 				r.Group(func(r chi.Router) {
 					r.Use(h.ValidateLoggedIn(h.v.RedirectToErrors))
 					r.Get("/follow", h.FollowAccount)
