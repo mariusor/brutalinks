@@ -10,5 +10,5 @@ Built using a performant stack, and with minimal dependencies, it tries to provi
 
 ___
 
-[![MIT Licensed](https://img.shields.io/github/license/mariusor/go-littr.svg)](https://raw.githubusercontent.com/mariusor/go-littr/master/LICENSE)
+[![MIT Licensed](https://img.shields.io/github/license/mariusor/go-littr.svg)](https://git.sr.ht/~mariusor/brutalinks/blob/master/LICENSE)
 [![Builds status](https://builds.sr.ht/~mariusor/go-littr.svg)](https://builds.sr.ht/~mariusor/go-littr)

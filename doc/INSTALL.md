@@ -2,8 +2,8 @@
 
 ## Pre-requisites
 
-The basic requirement for running [go-littr](https://github.com/mariusor/go-littr) locally is a
-go dev environment (version 1.11 or newer, as we require go modules support).
+The basic requirement for running [BrutaLinks](https://git.sr./~mariusor/brutalinks) locally is a
+go dev environment (version 1.18 or newer).
 
 ```sh
 $ git clone https://git.sr.ht/~mariusor/brutalinks
@@ -15,7 +15,7 @@ $ cd brutalinks
 We are now using [fedbox](https://github.com/go-ap/fedbox) as an *ActivityPub* backend.
 Follow the project's [install instructions]((https://github.com/go-ap/fedbox/blob/master/doc/INSTALL.md)) to get the instance running. We'll assume your instance is https://fedbox.example.com
 
-After Fed::BOX is running, you need to create the required brutalinks actors:
+After FedBOX is running, you need to create the required brutalinks actors:
 
 ```sh
 # This creates an OAuth2 account and ActivityPub Application Actor for Brutalinks.
