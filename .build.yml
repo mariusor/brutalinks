@@ -10,8 +10,7 @@ sources:
 secrets:
   - 32610757-76e9-4671-adf1-98163ca8b594
   - 3f30fd61-e33d-4198-aafb-0ff341e9db1c
-  - 90ecf226-098f-4d66-befe-1fe462027432
-  - 53ebbaf9-664b-4241-9d07-f2f12feee80c
+  - 3dcea276-38d6-4a7e-85e5-20cbc903e1ea
 tasks:
   - build: |
       test ${BUILD_SUBMITTER} != "git.sr.ht" && complete-build
@@ -28,13 +27,6 @@ tasks:
       test ${BUILD_SUBMITTER} != "git.sr.ht" && complete-build
       set -a +x
       cd brutalinks && make coverage
-      GIT_SHA=$(git rev-parse --verify HEAD)
-      GIT_BRANCH=$(git name-rev --name-only HEAD)
-      source ~/.code-cov.sh
-      curl -X POST \
-          --data-binary @brutalinks.coverprofile \
-           -H 'Accept: application/json' \
-          "https://codecov.io/upload/v2?commit=${GIT_SHA}&token=${LITTR_TOKEN}&branch=${GIT_BRANCH}&service=custom" || true
   - image: |
       test ${BUILD_SUBMITTER} != "git.sr.ht" && complete-build
       set -a +x
@@ -74,9 +66,10 @@ tasks:
       cd brutalinks
       make integration
   - push_to_github: |
-      test ${BUILD_SUBMITTER} = "git.sr.ht" && complete-build
+      test ${BUILD_SUBMITTER} != "git.sr.ht" && complete-build
       set -a +x
       ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+
       cd brutalinks
-      git remote add hub git@github.com:mariusor/brutalinks
+      git remote add hub git@github.com:mariusor/go-littr
       git push hub --force --all
