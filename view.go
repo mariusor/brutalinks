@@ -1083,7 +1083,10 @@ func ItemPermaLink(i *Item) string {
 	if i == nil {
 		return ""
 	}
-	return ItemLocalLink(i)
+	if i.IsLocal() {
+		return ItemLocalLink(i)
+	}
+	return i.Pub.GetLink().String()
 }
 
 func isReadOnly(r Renderable) bool {
