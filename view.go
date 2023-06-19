@@ -277,6 +277,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 		"ShowText":     showText(m),
 		"ShowTitle":    showTitle(m),
 		"Sort":         sortModel(m),
+		"PageID":       v.GetCurrentPageID(m, r),
 	}
 
 	if !isError {
@@ -1322,4 +1323,25 @@ func renderableMarshalJSON(logFn LogFn) func(r Renderable) template.JS {
 
 func (v *view) assetHandler(w http.ResponseWriter, r *http.Request) {
 	assets.Write(v.fs)(w, r)
+}
+
+func (v *view) GetCurrentPageID(m Model, r *http.Request) func() template.HTMLAttr {
+	return func() template.HTMLAttr {
+		var pub vocab.IRI
+		switch mm := m.(type) {
+		case *contentModel:
+			pub = mm.Content.AP().GetID()
+		case *listingModel:
+			if mm.tpl == "user" {
+				if auth, err := ContextAuthors(r.Context()).First(); err == nil {
+					pub = auth.AP().GetID()
+				}
+			} else {
+				if r.URL.Path == "/" || r.URL.Path == "" {
+					pub = Instance.front.storage.app.AP().GetID()
+				}
+			}
+		}
+		return template.HTMLAttr(pub)
+	}
 }

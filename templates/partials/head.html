@@ -1,5 +1,6 @@
 <meta charset="UTF-8">
 <title>{{ .Title }}</title>
+<style>{{- style "/css/inline.css" -}}</style>
 {{- if and (not Config.Env.IsDev) (CanPaginate .) -}}
 {{- if .PrevPage.IsValid }}
 <link href="{{ .PrevPage | PrevPageLink }}" rel="prev prefetch" />
@@ -19,16 +20,16 @@
 {{ end -}}
 {{ end -}}
 {{- end -}}
+{{- $pageId := PageID -}}
+{{ if ne $pageId "" -}}
+<link rel="alternate" type="application/activity+json" href="{{ $pageId }}" />
+{{- end -}}
 <link rel="icon" href="data:image/svg+xml,%3csvg%3e %3c/svg%3e">
-<style>{{- style "/css/inline.css" -}}</style>
 <link rel="alternate stylesheet" tile="simple" href="/css/simple.css" />
 <link rel="stylesheet" media="screen" tile="default" href="/css/{{- current -}}.css" />
 <link rel="stylesheet" media="screen and (min-width: 1501px)" href="/css/l.css" />
 <link rel="stylesheet" media="screen and (min-width: 861px) and (max-width: 1500px)" href="/css/m.css" />
 <link rel="stylesheet" media="screen and (max-width: 860px)" href="/css/s.css" />
-{{ if eq current "content" -}}
-<link href="{{ .Content.AP.GetID }}" rel="alternate" type="application/activity+json" />
-{{ end -}}
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <meta name="theme-color" content="rebeccapurple" />
 <meta name="description" content="Link aggregator inspired by reddit and hacker news using ActivityPub federation."/>
