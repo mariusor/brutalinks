@@ -1330,7 +1330,9 @@ func (v *view) GetCurrentPageID(m Model, r *http.Request) func() template.HTMLAt
 		var pub vocab.IRI
 		switch mm := m.(type) {
 		case *contentModel:
-			pub = mm.Content.AP().GetID()
+			if mm.tpl == "content" {
+				pub = mm.Content.AP().GetID()
+			}
 		case *listingModel:
 			if mm.tpl == "user" {
 				if auth, err := ContextAuthors(r.Context()).First(); err == nil {
