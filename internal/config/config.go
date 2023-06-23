@@ -31,6 +31,7 @@ type Configuration struct {
 	SessionsEnabled            bool
 	VotingEnabled              bool
 	DownvotingEnabled          bool
+	PublicVotingEnabled        bool
 	UserCreatingEnabled        bool
 	UserInvitesEnabled         bool
 	UserFollowingEnabled       bool
@@ -65,6 +66,7 @@ const (
 	KeyAPIUrl                     = "API_URL"
 	KeyDisableVoting              = "DISABLE_VOTING"
 	KeyDisableDownVoting          = "DISABLE_DOWNVOTING"
+	KeyDisablePublicVoting        = "DISABLE_PUBLIC_VOTING"
 	KeyDisableSessions            = "DISABLE_SESSIONS"
 	KeyDisableUserCreation        = "DISABLE_USER_CREATION"
 	KeyDisableUserInvites         = "DISABLE_USER_INVITES"
@@ -163,6 +165,9 @@ func Load(e EnvType, wait time.Duration) *Configuration {
 	votingDisabled, _ := strconv.ParseBool(loadKeyFromEnv(KeyDisableVoting, ""))
 	c.VotingEnabled = !votingDisabled
 	if c.VotingEnabled {
+		publicVotingDisabled, _ := strconv.ParseBool(loadKeyFromEnv(KeyDisablePublicVoting, ""))
+		c.PublicVotingEnabled = !publicVotingDisabled
+
 		downvotingDisabled, _ := strconv.ParseBool(loadKeyFromEnv(KeyDisableDownVoting, ""))
 		c.DownvotingEnabled = !downvotingDisabled
 	}

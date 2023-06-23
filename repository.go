@@ -1832,16 +1832,19 @@ func (r *repository) SaveVote(ctx context.Context, v Vote) (Vote, error) {
 		Type:  vocab.UndoType,
 		Actor: author.GetLink(),
 	}
-	act.To, act.Bto, act.CC, act.BCC = r.defaultRecipientsList(v.SubmittedBy.Pub, true)
-	vocab.OnObject(act, func(ob *vocab.Object) error {
-		return vocab.OnObject(v.Item.Pub, func(p *vocab.Object) error {
-			appendRecipients(&ob.To, p.To)
-			appendRecipients(&ob.Bto, p.Bto)
-			appendRecipients(&ob.CC, p.CC)
-			appendRecipients(&ob.BCC, p.BCC)
-			return nil
+	act.To, act.Bto, act.CC, act.BCC = r.defaultRecipientsList(v.SubmittedBy.Pub, Instance.Conf.PublicVotingEnabled)
+	if Instance.Conf.PublicVotingEnabled {
+		// NOTE(marius): if public voting is enabled we can append the recipients of the voted on object
+		vocab.OnObject(act, func(ob *vocab.Object) error {
+			return vocab.OnObject(v.Item.Pub, func(p *vocab.Object) error {
+				appendRecipients(&ob.To, p.To)
+				appendRecipients(&ob.Bto, p.Bto)
+				appendRecipients(&ob.CC, p.CC)
+				appendRecipients(&ob.BCC, p.BCC)
+				return nil
+			})
 		})
-	})
+	}
 
 	if exists.HasMetadata() {
 		act.Object = vocab.IRI(exists.Metadata.IRI)
@@ -2241,14 +2244,16 @@ func (r *repository) defaultRecipientsList(act vocab.Item, withPublic bool) (voc
 	to := make(vocab.ItemCollection, 0)
 	cc := make(vocab.ItemCollection, 0)
 	bcc := make(vocab.ItemCollection, 0)
+
 	if withPublic {
 		to.Append(vocab.PublicNS)
+		if act != nil {
+			cc.Append(vocab.Followers.IRI(act))
+		}
+		bcc.Append(r.fedbox.Service().ID)
 	}
+	// NOTE(marius): we publish the activity just to the instance and its followers
 	cc.Append(r.app.Pub.GetLink(), vocab.Followers.IRI(r.app.Pub))
-	if act != nil {
-		cc.Append(vocab.Followers.IRI(act))
-	}
-	bcc.Append(r.fedbox.Service().ID)
 
 	return to, bto, cc, bcc
 }
