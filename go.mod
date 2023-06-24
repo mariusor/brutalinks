@@ -3,7 +3,7 @@ module github.com/mariusor/go-littr
 go 1.18
 
 require (
-	git.sr.ht/~mariusor/assets v0.0.0-20230127131019-f411b9009e81
+	git.sr.ht/~mariusor/assets v0.0.0-20220903082417-c9a1eccd9a8e
 	git.sr.ht/~mariusor/lw v0.0.0-20230317075520-07e173563bf8
 	git.sr.ht/~mariusor/wrapper v0.0.0-20230104101555-9bfc303f6588
 	github.com/go-ap/activitypub v0.0.0-20230623140027-da408bbcc578
@@ -32,6 +32,8 @@ require (
 	git.sr.ht/~mariusor/go-xsd-duration v0.0.0-20220703122237-02e73435a078 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/captncraig/cors v0.0.0-20190703115713-e80254a89df1 // indirect
+	github.com/go-ap/handlers v0.0.0-20220529132534-5e6616a8d55b // indirect
+	github.com/go-ap/storage v0.0.0-20220529132413-43d0dcf851c6 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/gorilla/css v1.0.0 // indirect
