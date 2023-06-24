@@ -7,11 +7,11 @@ import (
 	"path/filepath"
 	"strings"
 
+	"git.sr.ht/~mariusor/brutalinks/internal/config"
 	log "git.sr.ht/~mariusor/lw"
 	vocab "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
 	"github.com/gorilla/sessions"
-	"github.com/mariusor/go-littr/internal/config"
 )
 
 type flashType string

@@ -9,11 +9,11 @@ import (
 	"syscall"
 	"time"
 
+	"git.sr.ht/~mariusor/brutalinks"
+	"git.sr.ht/~mariusor/brutalinks/internal/config"
 	log "git.sr.ht/~mariusor/lw"
 	w "git.sr.ht/~mariusor/wrapper"
 	"github.com/go-ap/errors"
-	brutalinks "github.com/mariusor/go-littr"
-	"github.com/mariusor/go-littr/internal/config"
 )
 
 var version = "HEAD"

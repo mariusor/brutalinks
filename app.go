@@ -6,12 +6,12 @@ import (
 	"net/url"
 	"time"
 
+	"git.sr.ht/~mariusor/brutalinks/internal/config"
 	log "git.sr.ht/~mariusor/lw"
 	vocab "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/mariusor/go-littr/internal/config"
 	"github.com/writeas/go-nodeinfo"
 )
 

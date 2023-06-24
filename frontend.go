@@ -7,11 +7,11 @@ import (
 	"net/http"
 	"strings"
 
+	"git.sr.ht/~mariusor/brutalinks/internal/config"
 	log "git.sr.ht/~mariusor/lw"
 	"github.com/go-ap/errors"
 	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/csrf"
-	"github.com/mariusor/go-littr/internal/config"
 )
 
 const (

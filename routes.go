@@ -4,12 +4,12 @@ import (
 	"net/http"
 
 	ass "git.sr.ht/~mariusor/assets"
+	"git.sr.ht/~mariusor/brutalinks/internal/assets"
+	"git.sr.ht/~mariusor/brutalinks/internal/config"
 	"git.sr.ht/~mariusor/lw"
 	"github.com/go-ap/errors"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/mariusor/go-littr/internal/assets"
-	"github.com/mariusor/go-littr/internal/config"
 )
 
 var basicStyles = []string{"css/reset.css", "css/main.css", "css/header.css", "css/footer.css"}

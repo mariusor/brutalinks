@@ -74,7 +74,7 @@ type Account struct {
 	Ignored   AccountCollection `json:"-"`
 	Level     uint8             `json:"-"`
 	Parent    Renderable        `json:"-"`
-	children  RenderableList    `json:"-"`
+	children  RenderableList
 }
 
 var ValidActorTypes = vocab.ActivityVocabularyTypes{

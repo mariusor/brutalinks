@@ -1,7 +1,7 @@
 package brutalinks
 
 import (
-	"github.com/mariusor/go-littr/internal/config"
+	"git.sr.ht/~mariusor/brutalinks/internal/config"
 	"net/url"
 	"reflect"
 	"testing"
