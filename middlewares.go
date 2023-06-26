@@ -416,6 +416,7 @@ func ContentModelMw(next http.Handler) http.Handler {
 			m.Content = new(Item)
 		}
 		m.Content = new(Item)
+		m.tpl = "content"
 		m.Message.Label = "Reply:"
 		m.Message.Back = "/"
 		m.ShowChildren = true
