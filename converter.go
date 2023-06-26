@@ -687,7 +687,7 @@ func (v *Vote) FromActivityPub(it vocab.Item) error {
 	if it == nil {
 		return errors.Newf("nil item received")
 	}
-	v.Pub, _ = it.(*vocab.Activity)
+	v.Pub, _ = vocab.ToActivity(it)
 	if it.IsLink() {
 		return errors.Newf("unable to load from IRI")
 	}
