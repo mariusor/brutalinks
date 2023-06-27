@@ -368,7 +368,7 @@ func ModerationListingFiltersMw(next http.Handler) http.Handler {
 	})
 }
 
-func ModerationListing(next http.Handler) http.Handler {
+func (h handler) ModerationListing(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		c := ContextCursor(r.Context())
 		if c == nil {
@@ -386,7 +386,40 @@ func ModerationListing(next http.Handler) http.Handler {
 			c.items = withFollowups
 		}
 
-		next.ServeHTTP(w, r)
+		defer next.ServeHTTP(w, r)
+
+		if Instance.Conf.AutoAcceptFollows {
+			fol, err := vocab.ToActor(s.app.AP())
+			if err != nil || fol.PublicKey.ID == "" {
+				return
+			}
+
+			for _, ren := range c.items {
+				maybeFollow, ok := ren.(*FollowRequest)
+				if !ok || maybeFollow == nil {
+					continue
+				}
+				follow := maybeFollow.AP()
+				if follow == nil {
+					continue
+				}
+				if !accountsEqual(*s.app, *maybeFollow.Object) {
+					continue
+				}
+				followerIRI := maybeFollow.SubmittedBy.Metadata.URL
+				if follow.GetType() != vocab.FollowType || AccountIsFollowed(s.app, maybeFollow.SubmittedBy) {
+					continue
+				}
+
+				s.WithAccount(s.app)
+				if err = s.SendFollowResponse(r.Context(), *maybeFollow, true, nil); err != nil {
+					h.v.addFlashMessage(Error, w, r, fmt.Sprintf("Unable to accept the follow request from %s", followerIRI))
+					return
+				}
+				s.app.Followers = append(s.app.Followers, *maybeFollow.SubmittedBy)
+				h.v.addFlashMessage(Success, w, r, fmt.Sprintf("Successfully accepted the follow request from %s", followerIRI))
+			}
+		}
 	})
 }
 

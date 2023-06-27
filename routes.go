@@ -172,7 +172,7 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 					Get("/d", h.HandleShow)
 				r.With(DomainFiltersMw, applicationSearchFns, LoadMw, SortByDate).
 					Get("/d/{domain}", h.HandleShow)
-				r.With(TagFiltersMw, applicationSearchFns, LoadMw, Deps(Moderations), ModerationListing, SortByDate).
+				r.With(TagFiltersMw, applicationSearchFns, LoadMw, Deps(Moderations), h.ModerationListing, SortByDate).
 					Get("/t/{tag}", h.HandleShow)
 				r.With(SelfFiltersMw(h.storage.fedbox.Service().ID), applicationSearchFns, LoadMw, SortByScore).
 					Get("/self", h.HandleShow)
@@ -184,7 +184,7 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 				r.Route("/moderation", func(r chi.Router) {
 					r.With(ModelMw(&listingModel{tpl: "moderation", sortFn: ByDate}), Deps(Moderations, Follows),
 						ModerationListingFiltersMw, applicationSearches(inbox), OperatorSearches, SignByAppMw, LoadMw,
-						ModerationListing).Get("/", h.HandleShow)
+						h.ModerationListing).Get("/", h.HandleShow)
 					r.With(h.ValidateModerator(), ModerationFiltersMw, applicationSearchFns, loggedAccountSearchFns,
 						LoadMw).Get("/{hash}/rm", h.HandleModerationDelete)
 					r.With(h.ValidateModerator(), ModerationFiltersMw, applicationSearchFns, loggedAccountSearchFns,

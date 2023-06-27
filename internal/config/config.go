@@ -37,6 +37,7 @@ type Configuration struct {
 	UserFollowingEnabled       bool
 	ModerationEnabled          bool
 	CachingEnabled             bool
+	AutoAcceptFollows          bool
 	MaintenanceMode            bool
 	SessionKeys                [][]byte
 	SessionsBackend            string
@@ -74,6 +75,7 @@ const (
 	KeyDisableUserFollowing       = "DISABLE_USER_FOLLOWING"
 	KeyDisableModeration          = "DISABLE_MODERATION"
 	KeyDisableCaching             = "DISABLE_CACHING"
+	KeyAutoAcceptFollows          = "AUTO_ACCEPT_FOLLOWS"
 	KeyAdminContact               = "ADMIN_CONTACT"
 
 	KeyMaintenanceMode = "MAINTENANCE_MODE"
@@ -200,6 +202,7 @@ func Load(e EnvType, wait time.Duration) *Configuration {
 	if encKey := loadKeyFromEnv(KeySessionEncKey, ""); len(encKey) >= 16 {
 		c.SessionKeys = append(c.SessionKeys, []byte(encKey[:16]))
 	}
+	c.AutoAcceptFollows, _ = strconv.ParseBool(loadKeyFromEnv(KeyAutoAcceptFollows, ""))
 	c.MaintenanceMode, _ = strconv.ParseBool(loadKeyFromEnv(KeyMaintenanceMode, ""))
 
 	return c
