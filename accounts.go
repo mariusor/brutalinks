@@ -123,7 +123,10 @@ func (a *Account) HasPublicKey() bool {
 
 // IsValid returns if the current account has a handle or a hash with length greater than 0
 func (a *Account) IsValid() bool {
-	return a != nil && (a.Hash.IsValid() || a.Handle == selfName)
+	if a == nil {
+		return false
+	}
+	return a.IsLocal() && (a.Hash.IsValid() || a.Handle == selfName) || a.IsFederated() && a.Pub != nil
 }
 
 // AP returns the underlying actvitypub item
