@@ -103,16 +103,19 @@ func ByScore(r RenderableList) []Renderable {
 
 		ri := rl[i]
 		ii, oki := ri.(*Item)
-		if oki {
-			hi = Hacker(int64(ii.Votes.Score()), time.Now().Sub(ii.SubmittedAt))
-		}
+
 		rj := rl[j]
 		ij, okj := rj.(*Item)
-		if okj {
-			hj = Hacker(int64(ij.Votes.Score()), time.Now().Sub(ij.SubmittedAt))
-		}
-		if oki && okj {
-			return hi > hj
+		if Instance.Conf.VotingEnabled {
+			if oki {
+				hi = Hacker(int64(ii.Votes.Score()), time.Now().Sub(ii.SubmittedAt))
+			}
+			if okj {
+				hj = Hacker(int64(ij.Votes.Score()), time.Now().Sub(ij.SubmittedAt))
+			}
+			if oki && okj {
+				return hi > hj
+			}
 		}
 		return ri.Date().After(rj.Date())
 	})

@@ -674,7 +674,7 @@ func depsSetterFunc(r *http.Request, setterFn func(*deps)) (*deps, bool) {
 }
 
 func Votes(d *deps) {
-	d.Votes = true
+	d.Votes = Instance.Conf.VotingEnabled
 }
 
 func Authors(d *deps) {

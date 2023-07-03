@@ -2679,8 +2679,6 @@ func (r *repository) LoadInfo() (WebInfo, error) {
 	return Instance.NodeInfo(), nil
 }
 
-var allDeps = deps{Votes: true, Authors: true, Replies: true, Follows: true}
-
 func (r repository) moderationActivity(ctx context.Context, er *vocab.Actor, ed vocab.Item, reason *Item) (*vocab.Activity, error) {
 	act := new(vocab.Activity)
 	act.To, _, act.CC, act.BCC = r.defaultRecipientsList(er, false)

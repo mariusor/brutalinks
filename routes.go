@@ -165,7 +165,7 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 
 			r.With(h.NeedsSessions).Get("/logout", h.HandleLogout)
 
-			r.With(ListingModelMw, Deps(Votes, Replies, Authors)).Group(func(r chi.Router) {
+			r.With(ListingModelMw, Deps(Votes)).Group(func(r chi.Router) {
 				// todo(marius) :link_generation:
 				r.With(DefaultFilters, applicationSearches(inbox), LoadMw, SortByScore).Get("/", h.HandleShow)
 				r.With(DomainFiltersMw, applicationSearchFns, LoadMw, middleware.StripSlashes, SortByDate).
