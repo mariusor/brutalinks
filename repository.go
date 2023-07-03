@@ -1149,13 +1149,12 @@ func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemC
 		return items, nil
 	}
 
-	accounts := make(map[vocab.IRI]AccountCollection)
+	accounts := make(vocab.IRIs, 0)
 	for _, it := range items {
 		if it.SubmittedBy.IsValid() {
-			iri := baseIRI(it.SubmittedBy.AP().GetLink())
-			if !accounts[iri].Contains(*it.SubmittedBy) {
+			if !accounts.Contains(it.SubmittedBy.AP().GetLink()) {
 				// Adding an item's author to the list of accounts we want to load from the ActivityPub API
-				accounts[iri] = append(accounts[iri], *it.SubmittedBy)
+				accounts = append(accounts, it.SubmittedBy.AP().GetLink())
 			}
 		}
 		if it.HasMetadata() {
@@ -1164,26 +1163,24 @@ func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemC
 				if to.AP() == nil {
 					continue
 				}
-				iri := baseIRI(to.AP().GetLink())
-				if !accounts[iri].Contains(to) {
-					accounts[iri] = append(accounts[iri], to)
+				if !accounts.Contains(to.AP().GetLink()) {
+					accounts = append(accounts, to.AP().GetLink())
 				}
 			}
 			for _, cc := range it.Metadata.CC {
 				if cc.AP() == nil {
 					continue
 				}
-				iri := baseIRI(cc.AP().GetLink())
-				if !accounts[iri].Contains(cc) {
-					accounts[iri] = append(accounts[iri], cc)
+				if !accounts.Contains(cc.AP().GetLink()) {
+					accounts = append(accounts, cc.AP().GetLink())
 				}
 			}
 		}
 		for _, com := range *it.Children() {
 			if ob, ok := com.(*Item); ok {
 				if auth := ob.SubmittedBy; !auth.IsValid() {
-					if iri := baseIRI(auth.AP().GetLink()); !accounts[iri].Contains(*auth) {
-						accounts[iri] = append(accounts[iri], *auth)
+					if !accounts.Contains(auth.AP().GetLink()) {
+						accounts = append(accounts, auth.AP().GetLink())
 					}
 				}
 
@@ -1195,51 +1192,21 @@ func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemC
 		return items, nil
 	}
 
-	fActors := Filters{}
-	requiredAuthorsCount := 0
-	searches := RemoteLoads{}
-	for i, acc := range accounts {
-		ff := fActors
-		ff.IRI = AccountsIRIFilter(acc...)
-		requiredAuthorsCount += len(ff.IRI)
-		f := Filters{Object: &ff}
-		f.Type = ActivityTypesFilter(vocab.CreateType)
-		actorsCol := func(a vocab.Item, f ...client.FilterFn) vocab.IRI {
-			return iri(actors.IRI(a), f...)
-		}
-		searches[i] = []RemoteLoad{
-			{
-				actor:   i,
-				loadFn:  actorsCol,
-				filters: []*Filters{&ff},
-			},
-			{
-				actor:   i,
-				loadFn:  inbox,
-				filters: []*Filters{&f},
-			},
-		}
-	}
-
 	authors := make(AccountCollection, 0)
-	err := LoadFromSearches(ctx, r, searches, func(ctx context.Context, col vocab.CollectionInterface, f *Filters) error {
-		for _, it := range col.Collection() {
-			acc := Account{}
-			if err := acc.FromActivityPub(it); err != nil {
-				r.errFn(log.Ctx{"type": fmt.Sprintf("%T", it)})(err.Error())
-				continue
-			}
-			if acc.IsValid() && !authors.Contains(acc) {
-				authors = append(authors, acc)
-			}
-			if len(authors) == requiredAuthorsCount {
-				return StopLoad{}
-			}
+	for _, auth := range accounts {
+		it, err := r.fedbox.client.Actor(ctx, auth.GetLink())
+		if err != nil {
+			r.errFn(log.Ctx{"type": fmt.Sprintf("%T", it)})(err.Error())
+			continue
 		}
-		return nil
-	})
-	if err != nil && !xerrors.Is(err, StopLoad{}) {
-		return items, errors.Annotatef(err, "unable to load items authors")
+		acc := Account{}
+		if err := acc.FromActivityPub(it); err != nil {
+			r.errFn(log.Ctx{"type": fmt.Sprintf("%T", it)})(err.Error())
+			continue
+		}
+		if acc.IsValid() && !authors.Contains(acc) {
+			authors = append(authors, acc)
+		}
 	}
 	col := make(ItemCollection, 0)
 	for _, it := range items {
