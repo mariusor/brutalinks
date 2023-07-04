@@ -210,7 +210,7 @@ const pages = {
         checks: Object.assign(
             HTMLChecks('Newest items'),
             TabChecks('/self', '/federated'),
-            checkListingWithSingleElement(),
+            checkListingWithExpectedArticle(),
         ),
     },
     'Local tab': {
@@ -219,7 +219,7 @@ const pages = {
         checks: Object.assign(
             HTMLChecks('Local instance items'),
             TabChecks('/self', '/federated'),
-            checkListingWithSingleElement(),
+            checkListingWithExpectedArticle(),
         ),
     },
     'Federated tab': {
@@ -237,7 +237,7 @@ const pages = {
         checks: Object.assign(
             HTMLChecks('Items tagged as #tags'),
             TabChecks('/self', '/federated'),
-            checkListingWithSingleElement(),
+            checkListingWithExpectedArticle(),
         ),
     },
     'Discussions': {
@@ -246,7 +246,7 @@ const pages = {
         checks: Object.assign(
             HTMLChecks('Discussion items'),
             TabChecks('/self', '/federated'),
-            checkListingWithSingleElement(),
+            checkListingWithExpectedArticle(),
         ),
     },
     'Login': {
@@ -319,7 +319,7 @@ const logged = {
         checks: Object.assign(
             HTMLChecks('Newest items'),
             TabChecks('/self', '/federated', '/followed', '/submit'),
-            checkListingWithSingleElement(),
+            checkListingWithExpectedArticle(),
         ),
         user: users[0],
     },
@@ -395,7 +395,7 @@ function checkEmptyListing() {
     }
 }
 
-function checkListingWithSingleElement() {
+function checkListingWithExpectedArticle() {
     return {
         "main#listing exists": (r) => checkOrContentErr(parseHTML(r.body).find('main#listing').size() === 1),
         "ol.top-level exists": (r) => checkOrContentErr(parseHTML(r.body).find('ol.top-level').size() === 1),
