@@ -47,7 +47,7 @@ type Configuration struct {
 const (
 	DefaultListenPort = 3000
 	DefaultListenHost = ""
-	Prefix            = "LITTR"
+	Prefix            = "BRUTAL"
 
 	SessionsCookieBackend = "cookie"
 	SessionsFSBackend     = "fs"
