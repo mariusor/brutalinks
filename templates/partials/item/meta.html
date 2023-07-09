@@ -9,7 +9,7 @@
 {{- $permaLinkName := "permalink"}}
 {{- if eq current "listing" -}}
 {{- $permaLinkTitle = "Join the discussion"}}
-{{- $permaLinkName = "discussion"}}
+{{- $permaLinkName = "comments"}}
 {{- else -}}
 {{- if and (and (eq current "content") CurrentAccount.IsValid) (not $readonly) }}
 {{- $permaLinkTitle = "Reply"}}

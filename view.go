@@ -1191,7 +1191,7 @@ type domainLink struct {
 type Links []domainLink
 
 var unknownDomainLink = Links{domainLink{}}
-var discussionLink = Links{domainLink{Name: "discussion"}}
+var discussionLink = Links{domainLink{Name: "discussions"}}
 
 func GetDomainLinks(i Item) Links {
 	if i.IsSelf() {
