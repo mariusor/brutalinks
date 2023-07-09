@@ -709,6 +709,7 @@ func ContextFollowRequest(ctx context.Context) *FollowRequest {
 	}
 	return nil
 }
+
 func FollowRequestFromContext(ctx context.Context, hash string) (FollowRequest, error) {
 	p := ContextFollowRequest(ctx)
 	if p != nil && p.Hash.String() == hash {
@@ -717,7 +718,11 @@ func FollowRequestFromContext(ctx context.Context, hash string) (FollowRequest, 
 
 	if c := ContextCursor(ctx); c != nil {
 		for _, it := range c.items {
-			if f, ok := it.(*FollowRequest); ok && f.Hash.String() == hash {
+			if it.Type() != FollowType {
+				continue
+			}
+			f, ok := it.(*FollowRequest)
+			if ok && strings.Contains(f.AP().GetLink().String(), hash) {
 				return *f, nil
 			}
 		}

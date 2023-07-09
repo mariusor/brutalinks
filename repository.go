@@ -2511,7 +2511,7 @@ func (r *repository) LoadFollowRequests(ctx context.Context, ed *Account, f *Fil
 func (r *repository) SendFollowResponse(ctx context.Context, f FollowRequest, accept bool, reason *Item) error {
 	er := f.SubmittedBy
 	if !er.IsValid() {
-		return errors.Newf("invalid account to follow %s", er.Handle)
+		return errors.Newf("invalid account that wants to follow %s", er.Handle)
 	}
 	ed := f.Object
 	if !accountValidForC2S(ed) {
