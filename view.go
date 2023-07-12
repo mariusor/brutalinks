@@ -257,6 +257,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 		"isInverted":            func() bool { return isInverted(r) },
 		"CurrentAccount":        accountFromRequest,
 		"LoadFlashMessages":     v.loadFlashMessages(w, r),
+		"CurrentTab":            CurrentTab(r),
 		"Menu":                  func() []headerEl { return headerMenu(r) },
 		"req":                   func() *http.Request { return r },
 		"url":                   func() url.Values { return r.URL.Query() },
@@ -529,11 +530,17 @@ func loadScoreFormat(s int) (string, string) {
 }
 
 type headerEl struct {
-	IsCurrent bool
-	Icon      []string
-	Auth      bool
-	Name      string
-	URL       string
+	Icon []string
+	Auth bool
+	Name string
+	URL  string
+	r    *http.Request
+}
+
+func CurrentTab(r *http.Request) func(h headerEl) bool {
+	return func(h headerEl) bool {
+		return path.Base(r.URL.Path) == path.Base(h.URL)
+	}
 }
 
 func headerMenu(r *http.Request) []headerEl {
@@ -542,10 +549,8 @@ func headerMenu(r *http.Request) []headerEl {
 	for _, s := range sections {
 		el := headerEl{
 			Name: s,
+			r:    r,
 			URL:  fmt.Sprintf("/%s", strings.Trim(s, "/")),
-		}
-		if path.Base(r.URL.Path) == path.Base(s) {
-			el.IsCurrent = true
 		}
 		switch strings.ToLower(s) {
 		case "/self":
