@@ -1597,7 +1597,7 @@ func (r *repository) LoadSearches(ctx context.Context, searches RemoteLoads, dep
 					if ob == nil {
 						return errors.Newf("nil activity object")
 					}
-					if ob.IsObject() {
+					if vocab.IsObject(ob) {
 						if ValidContentTypes.Contains(ob.GetType()) {
 							i := Item{}
 							if err := i.FromActivityPub(a); err != nil {
@@ -1725,31 +1725,31 @@ func (r *repository) LoadSearches(ctx context.Context, searches RemoteLoads, dep
 	for _, rel := range relations {
 		for i := range items {
 			it := items[i]
-			if it.IsValid() && it.Pub.GetLink() == rel {
+			if it.Pub != nil && rel.Equals(it.AP().GetLink(), true) {
 				result.Append(&it)
 			}
 		}
 		for i := range follows {
 			f := follows[i]
-			if f.pub != nil && f.pub.GetLink() == rel {
+			if f.pub != nil && rel.Equals(f.AP().GetLink(), true) {
 				result.Append(&f)
 			}
 		}
 		for i := range accounts {
 			a := accounts[i]
-			if a.Pub != nil && a.AP().GetLink() == rel {
+			if a.Pub != nil && rel.Equals(a.AP().GetLink(), true) {
 				result.Append(&a)
 			}
 		}
 		for i := range moderations {
 			a := moderations[i]
-			if rel.Equals(a.AP().GetLink(), false) {
+			if rel.Equals(a.AP().GetLink(), true) {
 				result.Append(&a)
 			}
 		}
 		for i := range appreciations {
 			a := appreciations[i]
-			if a.Pub != nil && a.AP().GetLink() == rel {
+			if a.Pub != nil && rel.Equals(a.AP().GetLink(), true) {
 				result.Append(&a)
 			}
 		}

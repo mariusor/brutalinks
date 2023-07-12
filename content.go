@@ -336,7 +336,7 @@ func parentByHash(t RenderableList, cur Renderable) Renderable {
 
 func reparentRenderables(allComments RenderableList) RenderableList {
 	if len(allComments) == 0 {
-		return nil
+		return allComments
 	}
 
 	var parFn = parentByHash
