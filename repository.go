@@ -12,6 +12,7 @@ import (
 	"time"
 
 	log "git.sr.ht/~mariusor/lw"
+	"github.com/carlmjohnson/flowmatic"
 	vocab "github.com/go-ap/activitypub"
 	"github.com/go-ap/client"
 	"github.com/go-ap/errors"
@@ -2810,7 +2811,7 @@ func (r *repository) loadCollectionFromCacheOrIRI(ctx context.Context, iri vocab
 
 type searchFn func(ctx context.Context, col vocab.CollectionInterface, f *Filters) error
 
-func (r *repository) searchFn(ctx context.Context, g *errgroup.Group, curIRI vocab.IRI, f *Filters, fn searchFn) func() error {
+func (r *repository) searchFn(ctx context.Context, curIRI vocab.IRI, f *Filters, fn searchFn) func() error {
 	return func() error {
 		loadIRI := iri(curIRI, Values(f))
 
@@ -2833,7 +2834,9 @@ func (r *repository) searchFn(ctx context.Context, g *errgroup.Group, curIRI voc
 
 		if maxItems-f.MaxItems < 5 {
 			if _, f.Next = getCollectionPrevNext(col); len(f.Next) > 0 {
-				g.Go(r.searchFn(ctx, g, curIRI, f, fn))
+				if err = flowmatic.Do(r.searchFn(ctx, curIRI, f, fn)); err != nil {
+					return err
+				}
 			}
 		} else {
 			return StopLoad{}
@@ -2859,8 +2862,8 @@ func LoadFromSearches(ctx context.Context, repo *repository, loads RemoteLoads, 
 	var cancelFn func()
 
 	ctx, cancelFn = context.WithCancel(ctx)
-	g, gtx := errgroup.WithContext(ctx)
 
+	var err error
 	for service, searches := range loads {
 		for _, search := range searches {
 			for _, f := range search.filters {
@@ -2874,11 +2877,11 @@ func LoadFromSearches(ctx context.Context, repo *repository, loads RemoteLoads, 
 					// NOTE(marius): this should be added in a cleaner way
 					repo.fedbox.client.SignFn(search.signFn)
 				}
-				g.Go(repo.searchFn(gtx, g, search.loadFn(search.actor), f, fn))
+				err = flowmatic.Do(repo.searchFn(ctx, search.loadFn(search.actor), f, fn))
 			}
 		}
 	}
-	if err := g.Wait(); err != nil {
+	if err != nil {
 		if xerrors.Is(err, StopLoad{}) {
 			repo.infoFn()("stopped loading search")
 			cancelFn()
