@@ -352,8 +352,12 @@ const logged = {
     },
 };
 
-function checkArticleAuthor(r) {
-    return parseHTML(r.body).find('ol.top-level > li > article > footer a[rel="mention"]').text() === 'admin';
+function checkArticleAuthor(r, name) {
+    return parseHTML(r.body).find('ol.top-level > li > article > footer a[rel="mention"]').text() === (name || 'admin');
+}
+
+function checkItemType(r, type) {
+    return parseHTML(r.body).find('ol.top-level > li > article > header small a').text() === (type || 'discussion');
 }
 
 function checkArticleTime(r) {
@@ -364,8 +368,12 @@ function checkArticleTime(r) {
     return status;
 }
 
-function checkArticleTitle(r) {
-    return parseHTML(r.body).find('ol.top-level > li > article > header > h2').text() === 'Tag test';
+function checkArticleTitle(r, title) {
+    return parseHTML(r.body).find('ol.top-level > li > article > header > h2').text() === (title || 'Tag test');
+}
+
+function checkUserName(r, title) {
+    return parseHTML(r.body).find('ol.top-level > li > article > header').text() === (title || 'brutalinks');
 }
 
 function checkOrContentErr() {
@@ -408,6 +416,7 @@ function checkListingWithExpectedArticle() {
         "item has correct title": (r) => checkOrContentErr(checkArticleTitle(r)),
         "item has correct submit date": (r) => checkOrContentErr(checkArticleTime(r)),
         "item has correct author": (r) => checkOrContentErr(checkArticleAuthor(r)),
+        "item is discussion": (r) => checkOrContentErr(checkItemType(r, "discussion")),
     }
 }
 
@@ -416,9 +425,10 @@ function checkUsersListingPage() {
         "main#listing exists": (r) => checkOrContentErr(parseHTML(r.body).find('main#listing').size() === 1),
         "ol.top-level exists": (r) => checkOrContentErr(parseHTML(r.body).find('ol.top-level').size() === 1),
         "listing has one element": (r) => checkOrContentErr(parseHTML(r.body).find('ol.top-level > li').size() === 1),
-        "element has article": (r) => checkOrContentErr(
+        "element is an user": (r) => checkOrContentErr(
             parseHTML(r.body).find('ol.top-level > li > article').size() === 1,
         ),
+        "user has correct name": (r) => checkOrContentErr(checkUserName(r, 'brutalinks')),
     }
 }
 function hasLogo(r) {
