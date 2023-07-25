@@ -18,7 +18,6 @@ import (
 	"github.com/go-ap/errors"
 	j "github.com/go-ap/jsonld"
 	"github.com/mariusor/qstring"
-	"golang.org/x/sync/errgroup"
 )
 
 type repository struct {
@@ -2360,10 +2359,10 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 func (r *repository) LoadTags(ctx context.Context, ff ...*Filters) (TagCollection, uint, error) {
 	tags := make(TagCollection, 0)
 	var count uint = 0
-	// TODO(marius): see how we can use the context returned by errgroup.WithContext()
-	g, _ := errgroup.WithContext(ctx)
+
+	fns := make([]func() error, 0)
 	for _, f := range ff {
-		g.Go(func() error {
+		fns = append(fns, func() error {
 			it, err := r.fedbox.Objects(ctx, Values(f))
 			if err != nil {
 				r.errFn()(err.Error())
@@ -2383,7 +2382,7 @@ func (r *repository) LoadTags(ctx context.Context, ff ...*Filters) (TagCollectio
 			})
 		})
 	}
-	if err := g.Wait(); err != nil {
+	if err := flowmatic.Do(fns...); err != nil {
 		return tags, count, err
 	}
 	return tags, count, nil
@@ -2399,10 +2398,9 @@ func (r *repository) LoadAccounts(ctx context.Context, colFn CollectionFilterFn,
 		colFn = r.fedbox.Actors
 	}
 
-	// TODO(marius): see how we can use the context returned by errgroup.WithContext()
-	g, _ := errgroup.WithContext(ctx)
+	fns := make([]func() error, 0)
 	for _, f := range ff {
-		g.Go(func() error {
+		fns = append(fns, func() error {
 			it, err := colFn(ctx, Values(f))
 			if err != nil {
 				r.errFn()(err.Error())
@@ -2422,7 +2420,8 @@ func (r *repository) LoadAccounts(ctx context.Context, colFn CollectionFilterFn,
 			})
 		})
 	}
-	if err := g.Wait(); err != nil {
+
+	if err := flowmatic.Do(fns...); err != nil {
 		return accounts, count, err
 	}
 	return accounts, count, nil
