@@ -1,14 +1,12 @@
-article {
-    opacity: .75;
-    padding: 0 1rem;
-    margin-top: 1em;
-}
 header menu {
     display: none;
 }
 article {
     max-width: 72vw;
     text-align: justify;
+    opacity: .75;
+    padding: 0 1rem;
+    margin-top: 1em;
 }
 article p:first-of-type {
     margin-top: 0;
@@ -18,9 +16,9 @@ article p {
     line-height: 1.6em;
     margin-top: .8em;
 }
-h1 {
-    padding: 0 0 .8em 2.4rem;
+article h1 {
+    padding: 0 0 .4em 2.4rem;
 }
-hr {
+article hr {
     margin: 1.8rem 0;
 }
