@@ -1,4 +1,4 @@
-.about article {
+#about article {
     opacity: .75;
     padding: 0 1rem;
     margin-top: 1em;
@@ -6,10 +6,16 @@
 header menu {
     display: none;
 }
-.about article p:first-of-type {
+#about article p:first-of-type {
     margin-top: 0;
 }
-.about article p {
+#about article p {
     line-height: 1.6em;
     margin-top: .8em;
+}
+h1 {
+    padding: .4rem 0;
+}
+hr {
+    margin: 1.8rem 0;
 }
