@@ -6,6 +6,10 @@ article {
 header menu {
     display: none;
 }
+article {
+    max-width: 72vw;
+    text-align: justify;
+}
 article p:first-of-type {
     margin-top: 0;
 }
