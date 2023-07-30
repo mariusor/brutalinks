@@ -1327,7 +1327,7 @@ func renderableMarshalJSON(logFn LogFn) func(r Renderable) template.JS {
 }
 
 func (v *view) assetHandler(w http.ResponseWriter, r *http.Request) {
-	assets.Write(v.fs)(w, r)
+	assets.Write(v.fs, v.HandleErrors)(w, r)
 }
 
 func (v *view) GetCurrentPageID(m Model, r *http.Request) func() template.HTMLAttr {

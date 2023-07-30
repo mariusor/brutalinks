@@ -7,11 +7,12 @@ import (
 	"io/fs"
 	"mime"
 	"net/http"
+	"os"
 	"path/filepath"
 	"time"
 )
 
-func Write(s fs.FS) func(http.ResponseWriter, *http.Request) {
+func Write(s fs.FS, errFn func(http.ResponseWriter, *http.Response, ...error)) func(http.ResponseWriter, *http.Request) {
 	const cacheTime = 8766 * time.Hour
 
 	assetContents := make(map[string][]byte)
@@ -25,8 +26,10 @@ func Write(s fs.FS) func(http.ResponseWriter, *http.Request) {
 		if !ok {
 			cont, err := fs.ReadFile(s, asset)
 			if err != nil {
-				w.Write([]byte(fmt.Sprintf("not found: %s", err)))
-				w.WriteHeader(http.StatusNotFound)
+				if errors.Is(err, os.ErrNotExist) {
+					err = errors.NewNotFound(err, asset)
+				}
+				errFn(w, r, err)
 				return
 			}
 			buf = cont

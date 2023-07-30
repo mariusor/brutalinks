@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"git.sr.ht/~mariusor/assets"
+	"github.com/go-ap/errors"
 )
 
 var (
@@ -23,7 +24,7 @@ var (
 	TemplateFS = rootFS
 )
 
-func Write(s fs.FS) func(http.ResponseWriter, *http.Request) {
+func Write(s fs.FS, errFn func(http.ResponseWriter, *http.Request, ...error)) func(http.ResponseWriter, *http.Request) {
 	const cacheTime = 8766 * time.Hour
 
 	mime.AddExtensionType(".ico", "image/vnd.microsoft.icon")
@@ -34,8 +35,10 @@ func Write(s fs.FS) func(http.ResponseWriter, *http.Request) {
 
 		buf, err := fs.ReadFile(s, asset)
 		if err != nil {
-			w.Write([]byte(fmt.Sprintf("not found: %s", err)))
-			w.WriteHeader(http.StatusNotFound)
+			if errors.Is(err, os.ErrNotExist) {
+				err = errors.NewNotFound(err, asset)
+			}
+			errFn(w, r, err)
 			return
 		}
 

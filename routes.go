@@ -202,12 +202,6 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 				r.Get("/{provider}/callback", h.HandleCallback)
 			})
 
-			r.NotFound(func(w http.ResponseWriter, r *http.Request) {
-				h.v.HandleErrors(w, r, errors.NotFoundf("%q", r.RequestURI))
-			})
-			r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
-				h.v.HandleErrors(w, r, errors.MethodNotAllowedf("invalid %q request", r.Method))
-			})
 		})
 
 		if c.Env.IsDev() {
@@ -218,6 +212,12 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 			r.Get("/{path}", h.v.assetHandler)
 			r.Get("/css/{path}", h.v.assetHandler)
 			r.Get("/js/{path}", h.v.assetHandler)
+		})
+		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
+			h.v.HandleErrors(w, r, errors.NotFoundf("%q", r.RequestURI))
+		})
+		r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
+			h.v.HandleErrors(w, r, errors.MethodNotAllowedf("invalid %q request", r.Method))
 		})
 
 		if !c.Env.IsDev() {
