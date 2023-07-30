@@ -10,9 +10,11 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/go-ap/errors"
 )
 
-func Write(s fs.FS, errFn func(http.ResponseWriter, *http.Response, ...error)) func(http.ResponseWriter, *http.Request) {
+func Write(s fs.FS, errFn func(http.ResponseWriter, *http.Request, ...error)) func(http.ResponseWriter, *http.Request) {
 	const cacheTime = 8766 * time.Hour
 
 	assetContents := make(map[string][]byte)

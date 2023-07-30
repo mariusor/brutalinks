@@ -33,8 +33,6 @@ require (
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/captncraig/cors v0.0.0-20190703115713-e80254a89df1 // indirect
 	github.com/carlmjohnson/deque v0.22.0 // indirect
-	github.com/go-ap/handlers v0.0.0-20220529132534-5e6616a8d55b // indirect
-	github.com/go-ap/storage v0.0.0-20220529132413-43d0dcf851c6 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/gorilla/css v1.0.0 // indirect
 	github.com/gorilla/securecookie v1.1.1 // indirect
