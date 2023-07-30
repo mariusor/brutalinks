@@ -7,8 +7,8 @@ require (
 	git.sr.ht/~mariusor/lw v0.0.0-20230317075520-07e173563bf8
 	git.sr.ht/~mariusor/wrapper v0.0.0-20230104101555-9bfc303f6588
 	github.com/carlmjohnson/flowmatic v0.23.2
-	github.com/go-ap/activitypub v0.0.0-20230729190052-737f716a1548
-	github.com/go-ap/client v0.0.0-20230729190142-0973061e567a
+	github.com/go-ap/activitypub v0.0.0-20230730144252-88f76b2af358
+	github.com/go-ap/client v0.0.0-20230730144342-64d59bd2e88c
 	github.com/go-ap/errors v0.0.0-20221205040414-01c1adfc98ea
 	github.com/go-ap/jsonld v0.0.0-20221030091449-f2a191312c73
 	github.com/go-chi/chi/v5 v5.0.7
@@ -33,6 +33,8 @@ require (
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/captncraig/cors v0.0.0-20190703115713-e80254a89df1 // indirect
 	github.com/carlmjohnson/deque v0.22.0 // indirect
+	github.com/go-ap/handlers v0.0.0-20220529132534-5e6616a8d55b // indirect
+	github.com/go-ap/storage v0.0.0-20220529132413-43d0dcf851c6 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/gorilla/css v1.0.0 // indirect
 	github.com/gorilla/securecookie v1.1.1 // indirect
