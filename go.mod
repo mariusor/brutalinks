@@ -3,12 +3,12 @@ module git.sr.ht/~mariusor/brutalinks
 go 1.18
 
 require (
-	git.sr.ht/~mariusor/assets v0.0.0-20230127131019-f411b9009e81
+	git.sr.ht/~mariusor/assets v0.0.0-20220903082417-c9a1eccd9a8e
 	git.sr.ht/~mariusor/lw v0.0.0-20230317075520-07e173563bf8
-	git.sr.ht/~mariusor/wrapper v0.0.0-20230710102058-fc38877da4fe
+	git.sr.ht/~mariusor/wrapper v0.0.0-20230104101555-9bfc303f6588
 	github.com/carlmjohnson/flowmatic v0.23.2
-	github.com/go-ap/activitypub v0.0.0-20230719093539-2b6a6f3a25ee
-	github.com/go-ap/client v0.0.0-20230719093625-24a71df51b10
+	github.com/go-ap/activitypub v0.0.0-20230729190052-737f716a1548
+	github.com/go-ap/client v0.0.0-20230729190142-0973061e567a
 	github.com/go-ap/errors v0.0.0-20221205040414-01c1adfc98ea
 	github.com/go-ap/jsonld v0.0.0-20221030091449-f2a191312c73
 	github.com/go-chi/chi/v5 v5.0.7
@@ -41,7 +41,7 @@ require (
 	github.com/pborman/uuid v1.2.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rs/xid v1.5.0 // indirect
-	github.com/rs/zerolog v1.29.1 // indirect
+	github.com/rs/zerolog v1.30.0 // indirect
 	github.com/tdewolff/parse v2.3.4+incompatible // indirect
 	github.com/tdewolff/test v1.0.7 // indirect
 	github.com/valyala/fastjson v1.6.4 // indirect
