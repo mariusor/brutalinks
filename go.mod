@@ -3,9 +3,9 @@ module git.sr.ht/~mariusor/brutalinks
 go 1.18
 
 require (
-	git.sr.ht/~mariusor/assets v0.0.0-20220903082417-c9a1eccd9a8e
+	git.sr.ht/~mariusor/assets v0.0.0-20230127131019-f411b9009e81
 	git.sr.ht/~mariusor/lw v0.0.0-20230317075520-07e173563bf8
-	git.sr.ht/~mariusor/wrapper v0.0.0-20230104101555-9bfc303f6588
+	git.sr.ht/~mariusor/wrapper v0.0.0-20230710102058-fc38877da4fe
 	github.com/carlmjohnson/flowmatic v0.23.2
 	github.com/go-ap/activitypub v0.0.0-20230730144252-88f76b2af358
 	github.com/go-ap/client v0.0.0-20230730144342-64d59bd2e88c
@@ -24,8 +24,8 @@ require (
 	github.com/writeas/go-nodeinfo v1.0.0
 	gitlab.com/golang-commonmark/markdown v0.0.0-20211110145824-bf3e522c626a
 	gitlab.com/golang-commonmark/puny v0.0.0-20191124015043-9f83538fa04f
-	golang.org/x/oauth2 v0.10.0
-	golang.org/x/text v0.11.0
+	golang.org/x/oauth2 v0.11.0
+	golang.org/x/text v0.12.0
 )
 
 require (
@@ -50,8 +50,8 @@ require (
 	gitlab.com/golang-commonmark/linkify v0.0.0-20191026162114-a0c2df6c8f82 // indirect
 	gitlab.com/golang-commonmark/mdurl v0.0.0-20191124015652-932350d1cb84 // indirect
 	golang.org/x/exp v0.0.0-20230116083435-1de6713980de // indirect
-	golang.org/x/net v0.12.0 // indirect
-	golang.org/x/sys v0.10.0 // indirect
+	golang.org/x/net v0.14.0 // indirect
+	golang.org/x/sys v0.11.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 )
