@@ -14,7 +14,7 @@ require (
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/csrf v1.7.1
-	github.com/gorilla/sessions v1.2.1
+	github.com/gorilla/sessions v1.2.2-0.20230817170540-dd83328c14c8
 	github.com/joho/godotenv v1.4.0
 	github.com/mariusor/qstring v0.0.0-20200204164351-5a99d46de39d
 	github.com/mariusor/render v1.5.1-0.20221026090743-ab78c1b3aa95
@@ -55,5 +55,3 @@ require (
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 )
-
-replace github.com/gorilla/sessions => github.com/mariusor/sessions v1.2.2-0.20211229142436-b33eb696f35b
