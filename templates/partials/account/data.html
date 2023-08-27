@@ -18,7 +18,9 @@
     Pending invitation
 {{ if and (eq current "user") (sameHash .CreatedBy.ID CurrentAccount.ID) -}}
     <a title="Open email client" href="{{ invitationLink . }}">{{icon "email" }}</a>
-    <small>(This action requires you to have a mail client set up to handle "mailto:" links)</small>
+</span>
+<span>
+    <small>(Clicking the envelope link requires you to have a mail client set up to handle "mailto:" links)</small>
 {{- end }}
 </span>
 {{- end -}}
