@@ -39,7 +39,7 @@ func (f *FollowRequest) FromActivityPub(it vocab.Item) error {
 	if f == nil {
 		return nil
 	}
-	if it == nil {
+	if vocab.IsNil(it) {
 		return errors.Newf("nil item received")
 	}
 	f.pub = it

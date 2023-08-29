@@ -170,7 +170,7 @@ func (f fedbox) collection(ctx context.Context, i vocab.IRI) (vocab.CollectionIn
 	if err != nil {
 		return nil, errors.Annotatef(err, "Unable to load IRI: %s", i)
 	}
-	if it == nil {
+	if vocab.IsNil(it) {
 		return nil, errors.Newf("Unable to load IRI, nil item: %s", i)
 	}
 	typ := it.GetType()

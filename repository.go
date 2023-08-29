@@ -172,7 +172,7 @@ func GetID(a Renderable) vocab.ID {
 }
 
 func appendRecipients(rec *vocab.ItemCollection, it vocab.Item) error {
-	if it == nil {
+	if vocab.IsNil(it) || rec == nil {
 		return nil
 	}
 	if vocab.IsItemCollection(it) {
@@ -237,7 +237,7 @@ func appendReplies(parent vocab.Item) (vocab.ItemCollection, error) {
 }
 
 func loadFromParent(ob *vocab.Object, it vocab.Item) error {
-	if it == nil {
+	if vocab.IsNil(it) || ob == nil {
 		return nil
 	}
 	if repl, err := appendReplies(it); err == nil {

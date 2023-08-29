@@ -16,7 +16,7 @@ type Converter interface {
 }
 
 func (h *Hash) FromActivityPub(it vocab.Item) error {
-	if it == nil {
+	if vocab.IsNil(it) {
 		return nil
 	}
 	if it.GetLink() == vocab.PublicNS {
@@ -209,10 +209,10 @@ func (a *Account) FromActivityPub(it vocab.Item) error {
 	if a == nil {
 		return nil
 	}
-	a.Pub = it
-	if it == nil {
+	if vocab.IsNil(it) {
 		return errors.Newf("nil item received")
 	}
+	a.Pub = it
 	if it.IsLink() {
 		iri := it.GetLink()
 		if iri == vocab.PublicNS {
@@ -514,7 +514,7 @@ func loadRecipients(i *Item, it vocab.Item) error {
 }
 
 func (t *Tag) FromActivityPub(it vocab.Item) error {
-	if it == nil {
+	if vocab.IsNil(it) {
 		return errors.Newf("nil tag received")
 	}
 	t.Pub = it
@@ -584,7 +584,7 @@ func (t *Tag) FromActivityPub(it vocab.Item) error {
 }
 
 func (i *Item) FromActivityPub(it vocab.Item) error {
-	if it == nil {
+	if vocab.IsNil(it) {
 		return errors.Newf("nil item received")
 	}
 	i.Pub = it
@@ -684,7 +684,7 @@ func (i *Item) FromActivityPub(it vocab.Item) error {
 }
 
 func (v *Vote) FromActivityPub(it vocab.Item) error {
-	if it == nil {
+	if vocab.IsNil(it) {
 		return errors.Newf("nil item received")
 	}
 	v.Pub, _ = vocab.ToActivity(it)
