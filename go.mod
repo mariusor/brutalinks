@@ -2,8 +2,6 @@ module git.sr.ht/~mariusor/brutalinks
 
 go 1.21
 
-toolchain go1.21.1
-
 require (
 	git.sr.ht/~mariusor/assets v0.0.0-20230127131019-f411b9009e81
 	git.sr.ht/~mariusor/lw v0.0.0-20230317075520-07e173563bf8
@@ -20,13 +18,13 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/mariusor/qstring v0.0.0-20200204164351-5a99d46de39d
 	github.com/mariusor/render v1.5.1-0.20221026090743-ab78c1b3aa95
-	github.com/microcosm-cc/bluemonday v1.0.25
+	github.com/microcosm-cc/bluemonday v1.0.26
 	github.com/openshift/osin v1.0.1
 	github.com/tdewolff/minify v2.3.6+incompatible
 	github.com/writeas/go-nodeinfo v1.0.0
 	gitlab.com/golang-commonmark/markdown v0.0.0-20211110145824-bf3e522c626a
 	gitlab.com/golang-commonmark/puny v0.0.0-20191124015043-9f83538fa04f
-	golang.org/x/oauth2 v0.12.0
+	golang.org/x/oauth2 v0.13.0
 	golang.org/x/text v0.13.0
 )
 
@@ -39,7 +37,7 @@ require (
 	github.com/gorilla/css v1.0.0 // indirect
 	github.com/gorilla/securecookie v1.1.1 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/mattn/go-isatty v0.0.19 // indirect
+	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/pborman/uuid v1.2.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rs/xid v1.5.0 // indirect
@@ -51,9 +49,8 @@ require (
 	gitlab.com/golang-commonmark/html v0.0.0-20191124015941-a22733972181 // indirect
 	gitlab.com/golang-commonmark/linkify v0.0.0-20200225224916-64bca66f6ad3 // indirect
 	gitlab.com/golang-commonmark/mdurl v0.0.0-20191124015652-932350d1cb84 // indirect
-	golang.org/x/exp v0.0.0-20230905200255-921286631fa9 // indirect
-	golang.org/x/net v0.15.0 // indirect
-	golang.org/x/sys v0.12.0 // indirect
+	golang.org/x/net v0.17.0 // indirect
+	golang.org/x/sys v0.13.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 )
