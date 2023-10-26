@@ -1572,8 +1572,7 @@ func (r *repository) LoadSearches(ctx context.Context, searches RemoteLoads, dep
 	accounts := make(AccountCollection, 0)
 	moderations := make(ModerationRequests, 0)
 	appreciations := make(VoteCollection, 0)
-	relations := make(map[vocab.IRI]vocab.IRI)
-	relM := new(sync.RWMutex)
+	relations := sync.Map{}
 
 	deferredRemote := make(vocab.IRIs, 0)
 
@@ -1588,9 +1587,6 @@ func (r *repository) LoadSearches(ctx context.Context, searches RemoteLoads, dep
 		r.infoFn(log.Ctx{"col": col.GetID()})("loading")
 		for _, it := range col.Collection() {
 			err := vocab.OnActivity(it, func(a *vocab.Activity) error {
-				relM.Lock()
-				defer relM.Unlock()
-
 				typ := it.GetType()
 				if typ == vocab.CreateType {
 					ob := a.Object
@@ -1620,7 +1616,7 @@ func (r *repository) LoadSearches(ctx context.Context, searches RemoteLoads, dep
 							return err
 						}
 					}
-					relations[a.GetLink()] = ob.GetLink()
+					relations.Store(a.GetLink(), ob.GetLink())
 				}
 				if it.GetType() == vocab.FollowType {
 					f := FollowRequest{}
@@ -1628,7 +1624,7 @@ func (r *repository) LoadSearches(ctx context.Context, searches RemoteLoads, dep
 						return err
 					}
 					follows = append(follows, f)
-					relations[a.GetLink()] = a.GetLink()
+					relations.Store(a.GetLink(), a.GetLink())
 				}
 				if ValidModerationActivityTypes.Contains(typ) {
 					m := ModerationOp{}
@@ -1636,7 +1632,7 @@ func (r *repository) LoadSearches(ctx context.Context, searches RemoteLoads, dep
 						return err
 					}
 					moderations = append(moderations, m)
-					relations[a.GetLink()] = a.GetLink()
+					relations.Store(a.GetLink(), a.GetLink())
 				}
 				if ValidAppreciationTypes.Contains(typ) {
 					v := Vote{}
@@ -1644,7 +1640,7 @@ func (r *repository) LoadSearches(ctx context.Context, searches RemoteLoads, dep
 						return err
 					}
 					appreciations = append(appreciations, v)
-					relations[a.GetLink()] = a.GetLink()
+					relations.Store(a.GetLink(), a.GetLink())
 				}
 				return nil
 			})
@@ -1718,11 +1714,10 @@ func (r *repository) LoadSearches(ctx context.Context, searches RemoteLoads, dep
 	}
 	moderations, _ = r.loadModerationDetails(ctx, moderations...)
 
-	relM.RLock()
-	defer relM.RUnlock()
 	resM.Lock()
 	defer resM.Unlock()
-	for _, rel := range relations {
+	relations.Range(func(_, value any) bool {
+		rel, _ := value.(vocab.IRI)
 		for i := range items {
 			it := items[i]
 			if it.Pub != nil && rel.Equals(it.AP().GetLink(), true) {
@@ -1753,7 +1748,8 @@ func (r *repository) LoadSearches(ctx context.Context, searches RemoteLoads, dep
 				result.Append(&a)
 			}
 		}
-	}
+		return true
+	})
 
 	return Cursor{
 		after:  HashFromString(next),
