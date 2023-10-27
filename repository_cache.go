@@ -10,8 +10,8 @@ import (
 	"github.com/go-ap/client"
 )
 
-func caches(enabled bool) *cache {
-	f := new(cache)
+func caches(enabled bool) cache {
+	f := cache{}
 	f.enabled = enabled
 	return f
 }

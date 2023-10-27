@@ -22,7 +22,7 @@ import (
 
 type repository struct {
 	SelfURL string
-	cache   *cache
+	cache   cache
 	app     *Account
 	fedbox  *fedbox
 	modTags TagCollection
