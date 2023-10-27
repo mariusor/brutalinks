@@ -10,10 +10,10 @@ import (
 	"github.com/go-ap/client"
 )
 
-func caches(enabled bool) cache {
+func caches(enabled bool) *cache {
 	f := cache{}
 	f.enabled = enabled
-	return f
+	return &f
 }
 
 type cache struct {
