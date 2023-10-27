@@ -1,6 +1,7 @@
 package brutalinks
 
 import (
+	"sync"
 	"testing"
 
 	vocab "github.com/go-ap/activitypub"
@@ -26,17 +27,13 @@ func Test_cacheAddGet(t *testing.T) {
 
 	c := cache{
 		enabled: true,
-		m:       make(map[vocab.IRI]vocab.Item),
-	}
-
-	if len(c.m) != 0 {
-		t.Errorf("invalid initalization for cache map, len = %d, expected %d", len(c.m), 0)
+		m:       sync.Map{},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c.add(tt.args.k, tt.args.v)
-			v, ok := c.m[tt.args.k]
+			v, ok := c.m.Load(tt.args.k)
 			if !ok {
 				t.Errorf("Could not retrieve key %s", tt.args.k)
 			}

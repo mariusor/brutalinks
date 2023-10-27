@@ -10,8 +10,6 @@ import (
 	"github.com/go-ap/client"
 )
 
-type cacheEntries map[vocab.IRI]vocab.Item
-
 func caches(enabled bool) *cache {
 	f := new(cache)
 	f.enabled = enabled
@@ -20,8 +18,7 @@ func caches(enabled bool) *cache {
 
 type cache struct {
 	enabled bool
-	m       cacheEntries
-	s       sync.RWMutex
+	m       sync.Map
 }
 
 func accum(toRemove *vocab.IRIs, iri vocab.IRI, col vocab.CollectionPath) {
@@ -140,18 +137,8 @@ func (c *cache) remove(iris ...vocab.IRI) {
 	if len(iris) == 0 {
 		return
 	}
-	irisContain := func(toRemove vocab.IRI) bool {
-		for _, iri := range iris {
-			if toRemove.Contains(iri, false) {
-				return true
-			}
-		}
-		return false
-	}
-	for k := range c.m {
-		if irisContain(k) {
-			delete(c.m, k)
-		}
+	for _, iri := range iris {
+		c.m.Delete(iri)
 	}
 }
 
@@ -159,23 +146,20 @@ func (c *cache) add(iri vocab.IRI, it vocab.Item) {
 	if !c.enabled {
 		return
 	}
-	if c.m == nil {
-		c.m = make(cacheEntries)
-	}
-	c.s.Lock()
-	defer c.s.Unlock()
 
-	c.m[iri] = it
+	c.m.Store(iri, it)
 }
 
 func (c *cache) get(iri vocab.IRI) (vocab.Item, bool) {
 	if !c.enabled {
 		return nil, false
 	}
-	c.s.RLock()
-	defer c.s.RUnlock()
 
-	it, ok := c.m[iri]
+	v, found := c.m.Load(iri)
+	if !found {
+		return nil, false
+	}
+	it, ok := v.(vocab.Item)
 	return it, ok
 }
 
