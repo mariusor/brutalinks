@@ -1,10 +1,10 @@
 package brutalinks
 
 import (
-	"sync"
 	"testing"
 
 	vocab "github.com/go-ap/activitypub"
+	"github.com/go-ap/cache"
 )
 
 func Test_cacheAddGet(t *testing.T) {
@@ -25,26 +25,17 @@ func Test_cacheAddGet(t *testing.T) {
 		},
 	}
 
-	c := cache{
-		enabled: true,
-		m:       sync.Map{},
-	}
+	c := cache.New(true)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c.add(tt.args.k, tt.args.v)
-			v, ok := c.m.Load(tt.args.k)
-			if !ok {
-				t.Errorf("Could not retrieve key %s", tt.args.k)
-			}
+			c.Store(tt.args.k, tt.args.v)
+			v := c.Load(tt.args.k)
 			if v != tt.args.v {
 				t.Errorf("Value retrieved is different: %v, expected %v", v, tt.args.v)
 			}
 
-			vv, vok := c.get(tt.args.k)
-			if !vok {
-				t.Errorf("Getter could not retrieve key %s", tt.args.k)
-			}
+			vv := c.Load(tt.args.k)
 			if vv != tt.args.v {
 				t.Errorf("Value the getter retrieved is different: %v, expected %v", vv, tt.args.v)
 			}
