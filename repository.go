@@ -2786,7 +2786,7 @@ func (s StopSearchErr) Error() string {
 }
 
 func (r *repository) loadItemFromCacheOrIRI(ctx context.Context, iri vocab.IRI) (vocab.Item, error) {
-	if it, okCache := r.cache.get(iri); okCache {
+	if it := r.cache.get(iri); !vocab.IsNil(it) {
 		if getItemUpdatedTime(it).Sub(time.Now()) < 10*time.Minute {
 			return it, nil
 		}
@@ -2795,7 +2795,7 @@ func (r *repository) loadItemFromCacheOrIRI(ctx context.Context, iri vocab.IRI) 
 }
 
 func (r *repository) loadCollectionFromCacheOrIRI(ctx context.Context, iri vocab.IRI) (vocab.CollectionInterface, bool, error) {
-	if it, okCache := r.cache.get(cacheKey(iri, ContextAccount(ctx))); okCache {
+	if it := r.cache.get(cacheKey(iri, ContextAccount(ctx))); !vocab.IsNil(it) {
 		if c, okCol := it.(vocab.CollectionInterface); okCol && getItemUpdatedTime(it).Sub(time.Now()) < 10*time.Minute && c.Count() > 0 {
 			return c, true, nil
 		}

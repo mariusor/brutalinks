@@ -30,13 +30,12 @@ func Test_cacheAddGet(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c.Store(tt.args.k, tt.args.v)
-			v := c.Load(tt.args.k)
-			if v != tt.args.v {
+
+			if v := c.Load(tt.args.k); v != tt.args.v {
 				t.Errorf("Value retrieved is different: %v, expected %v", v, tt.args.v)
 			}
 
-			vv := c.Load(tt.args.k)
-			if vv != tt.args.v {
+			if vv := c.Load(tt.args.k); vv != tt.args.v {
 				t.Errorf("Value the getter retrieved is different: %v, expected %v", vv, tt.args.v)
 			}
 		})

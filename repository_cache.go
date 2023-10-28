@@ -73,7 +73,7 @@ func (c *cc) accumRecipientIRIs(r vocab.Item, toRemove *vocab.IRIs) {
 
 	toDeref := vocab.CollectionPaths{vocab.Followers, vocab.Following}
 	if toDeref.Contains(col) {
-		if iris, isCached := c.get(iri); isCached {
+		if iris := c.get(iri); !vocab.IsNil(iris) {
 			vocab.OnCollectionIntf(iris, func(col vocab.CollectionInterface) error {
 				for _, it := range col.Collection() {
 					accumItem(it.GetLink(), toRemove, vocab.Outbox)
@@ -142,9 +142,8 @@ func (c *cc) add(iri vocab.IRI, it vocab.Item) {
 	c.c.Store(iri, it)
 }
 
-func (c *cc) get(iri vocab.IRI) (vocab.Item, bool) {
-	it := c.c.Load(iri)
-	return it, !vocab.IsNil(it)
+func (c *cc) get(iri vocab.IRI) vocab.Item {
+	return c.c.Load(iri)
 }
 
 func (c *cc) loadFromSearches(repo *repository, search RemoteLoads) error {
