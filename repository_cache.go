@@ -3,22 +3,20 @@ package brutalinks
 import (
 	"context"
 	"path"
-	"sync"
 	"time"
 
 	vocab "github.com/go-ap/activitypub"
+	"github.com/go-ap/cache"
 	"github.com/go-ap/client"
 )
 
-func caches(enabled bool) *cache {
-	f := cache{}
-	f.enabled = enabled
-	return &f
+func caches(enabled bool) *cc {
+	c := cache.New(enabled)
+	return &cc{c}
 }
 
-type cache struct {
-	enabled bool
-	m       sync.Map
+type cc struct {
+	c cache.CanStore
 }
 
 func accum(toRemove *vocab.IRIs, iri vocab.IRI, col vocab.CollectionPath) {
@@ -43,7 +41,7 @@ func accumItem(it vocab.Item, toRemove *vocab.IRIs, col vocab.CollectionPath) {
 	}
 }
 
-func (c *cache) removeRelated(items ...vocab.Item) {
+func (c *cc) removeRelated(items ...vocab.Item) {
 	toRemove := make(vocab.IRIs, 0)
 	for _, it := range items {
 		if vocab.IsNil(it) {
@@ -65,7 +63,7 @@ func (c *cache) removeRelated(items ...vocab.Item) {
 	c.remove(toRemove...)
 }
 
-func (c *cache) accumRecipientIRIs(r vocab.Item, toRemove *vocab.IRIs) {
+func (c *cc) accumRecipientIRIs(r vocab.Item, toRemove *vocab.IRIs) {
 	iri := r.GetLink()
 	if iri.Equals(vocab.PublicNS, false) {
 		return
@@ -95,7 +93,7 @@ func (c *cache) accumRecipientIRIs(r vocab.Item, toRemove *vocab.IRIs) {
 	accumItem(r, toRemove, vocab.Inbox)
 }
 
-func (c *cache) accumActivityIRIs(toRemove *vocab.IRIs) func(activity *vocab.Activity) error {
+func (c *cc) accumActivityIRIs(toRemove *vocab.IRIs) func(activity *vocab.Activity) error {
 	return func(a *vocab.Activity) error {
 		for _, r := range a.Recipients() {
 			c.accumRecipientIRIs(r, toRemove)
@@ -113,7 +111,7 @@ func (c *cache) accumActivityIRIs(toRemove *vocab.IRIs) func(activity *vocab.Act
 	}
 }
 
-func (c *cache) accumObjectIRIs(toRemove *vocab.IRIs) func(*vocab.Object) error {
+func (c *cc) accumObjectIRIs(toRemove *vocab.IRIs) func(*vocab.Object) error {
 	return func(ob *vocab.Object) error {
 		if ob == nil {
 			return nil
@@ -133,40 +131,23 @@ func (c *cache) accumObjectIRIs(toRemove *vocab.IRIs) func(*vocab.Object) error 
 	}
 }
 
-func (c *cache) remove(iris ...vocab.IRI) {
+func (c *cc) remove(iris ...vocab.IRI) {
 	if len(iris) == 0 {
 		return
 	}
-	for _, iri := range iris {
-		c.m.Delete(iri)
-	}
+	c.c.Delete(iris...)
 }
 
-func (c *cache) add(iri vocab.IRI, it vocab.Item) {
-	if !c.enabled {
-		return
-	}
-
-	c.m.Store(iri, it)
+func (c *cc) add(iri vocab.IRI, it vocab.Item) {
+	c.c.Store(iri, it)
 }
 
-func (c *cache) get(iri vocab.IRI) (vocab.Item, bool) {
-	if !c.enabled {
-		return nil, false
-	}
-
-	v, found := c.m.Load(iri)
-	if !found {
-		return nil, false
-	}
-	it, ok := v.(vocab.Item)
-	return it, ok
+func (c *cc) get(iri vocab.IRI) (vocab.Item, bool) {
+	it := c.c.Load(iri)
+	return it, !vocab.IsNil(it)
 }
 
-func (c *cache) loadFromSearches(repo *repository, search RemoteLoads) error {
-	if !c.enabled {
-		return nil
-	}
+func (c *cc) loadFromSearches(repo *repository, search RemoteLoads) error {
 	ctx, _ := context.WithTimeout(context.TODO(), time.Second)
 	return LoadFromSearches(ctx, repo, search, func(_ context.Context, col vocab.CollectionInterface, f *Filters) error {
 		c.add(col.GetLink(), col)
