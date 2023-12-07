@@ -44,7 +44,7 @@ builder:
 	./build.sh .. brutalinks/builder
 
 build:
-	ENV=$(ENV) VERSION=$(VERSION) PORT=$(PORT) APP_HOSTNAME=$(APP_HOSTNAME) ./image.sh brutalinks/app:$(ENV)
+	ENV="$(ENV)" VERSION="$(VERSION)" PORT="$(PORT)" APP_HOSTNAME="$(APP_HOSTNAME)" ./image.sh "brutalinks/app:$(ENV)"
 
 run: build $(ENV_FILE)
 	$(RUN_CMD) \
