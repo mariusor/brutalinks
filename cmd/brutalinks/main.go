@@ -43,12 +43,13 @@ func Run(a *brutalinks.Application) int {
 
 	srvRun, srvStop := w.HttpServer(setters...)
 
-	defer func() {
+	stopFn := func() {
 		cancelFn()
 		if err := srvStop(ctx); err != nil {
 			a.Logger.Errorf("Error: %s", err)
 		}
-	}()
+		a.Logger.Infof("Stopped")
+	}
 
 	runFn := func() error {
 		// Run our server in a goroutine so that it doesn't block.
@@ -69,6 +70,7 @@ func Run(a *brutalinks.Application) int {
 		"key":     a.Conf.KeyPath,
 	}).Infof("Started")
 
+	defer stopFn()
 	// Set up the signal handlers functions so the OS can tell us if it requires us to stop
 	sigHandlerFns := w.SignalHandlers{
 		syscall.SIGHUP: func(_ chan int) {
