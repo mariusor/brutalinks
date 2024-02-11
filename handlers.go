@@ -566,11 +566,12 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	handle := r.PostFormValue("handle")
 	state := r.PostFormValue("state")
 
+	ctx := context.Background()
 	repo := ContextRepository(r.Context())
 
 	config := h.conf.GetOauth2Config("fedbox", h.conf.BaseURL)
 	// Try to load actor from handle
-	accts, err := repo.accounts(r.Context(), FilterAccountByHandle(handle))
+	accts, err := repo.accounts(ctx, FilterAccountByHandle(handle))
 
 	handleErr := func(msg string, f log.Ctx) {
 		h.errFn(f)("Error: %s", err)
@@ -596,7 +597,7 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		acct = AnonymousAccount
 	)
 	for _, cur := range accts {
-		if tok, err = config.PasswordCredentialsToken(r.Context(), cur.Metadata.ID, pw); tok != nil {
+		if tok, err = config.PasswordCredentialsToken(ctx, cur.Metadata.ID, pw); tok != nil {
 			acct = cur
 			acct.Metadata.OAuth.Provider = "fedbox"
 			acct.Metadata.OAuth.Token = tok
