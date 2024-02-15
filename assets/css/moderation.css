@@ -11,3 +11,14 @@
     grid-template-rows: 1.2em 1.5em;
     min-height: 2.6em;
 }
+.moderation-request details {
+    padding: .2em 0;
+    margin-top: .2em;
+}
+.moderation-request details+details {
+    margin-top:0;
+}
+.moderation-request summary {
+    font-weight: bold;
+    margin-bottom: .2em;
+}
