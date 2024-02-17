@@ -1379,7 +1379,11 @@ func (r *repository) accountsFromRemote(ctx context.Context, remote vocab.Item, 
 		// TODO(marius): this needs to be externalized also to a different function that we can pass from outer scope
 		//   This function implements the logic for breaking out of the collection iteration cycle and returns a bool
 		acc, tags, err := accumulateAccountsFromCollection(col)
-		accounts = append(accounts, acc...)
+		for _, a := range acc {
+			if !accounts.Contains(a) {
+				accounts = append(accounts, a)
+			}
+		}
 		deferredTagLoads = append(deferredTagLoads, tags...)
 		return err
 	})
