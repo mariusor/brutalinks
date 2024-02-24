@@ -560,66 +560,107 @@ func FilterAccountByHandle(handle string) *Filters {
 	}
 }
 
-// HandleLogin handles POST /login requests
-func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
-	pw := r.PostFormValue("pw")
-	handle := r.PostFormValue("handle")
-	state := r.PostFormValue("state")
-
-	ctx := context.Background()
-	repo := ContextRepository(r.Context())
-
-	config := h.conf.GetOauth2Config("fedbox", h.conf.BaseURL)
-	// Try to load actor from handle
-	accts, err := repo.accounts(ctx, FilterAccountByHandle(handle))
-
-	handleErr := func(msg string, f log.Ctx) {
-		h.errFn(f)("Error: %s", err)
-		h.v.addFlashMessage(Error, w, r, msg)
-		h.v.Redirect(w, r, "/login", http.StatusSeeOther)
-	}
-	lCtx := log.Ctx{
-		"handle": handle,
-		"client": config.ClientID,
-		"state":  state,
-	}
-	if err != nil || len(accts) == 0 {
-		if err == nil {
-			err = errors.NotFoundf(handle)
-		}
-		lCtx["err"] = err.Error()
-		handleErr("Login failed: invalid username or password", lCtx)
-		return
-	}
+func (h handler) loadAccountsByPw(ctx context.Context, accts AccountCollection, pw string) Account {
+	config := h.conf.GetOauth2Config(fedboxProvider, h.conf.BaseURL)
 
 	var (
 		tok  *oauth2.Token
 		acct = AnonymousAccount
 	)
 	for _, cur := range accts {
-		if tok, err = config.PasswordCredentialsToken(ctx, cur.Metadata.ID, pw); tok != nil {
+		if tok, _ = config.PasswordCredentialsToken(ctx, cur.Metadata.ID, pw); tok != nil {
 			acct = cur
-			acct.Metadata.OAuth.Provider = "fedbox"
+			acct.Metadata.OAuth.Provider = fedboxProvider
 			acct.Metadata.OAuth.Token = tok
 			break
 		}
 	}
-	if !acct.IsLogged() {
-		if err == nil {
-			err = errors.Errorf("unable to authenticate account")
+	return acct
+}
+
+// HandleLogin handles POST /login requests
+func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
+	pw := r.PostFormValue("pw")
+	handle := r.PostFormValue("handle")
+	wf := r.PostFormValue("webfinger")
+	state := r.PostFormValue("state")
+
+	ctx := context.Background()
+	repo := ContextRepository(r.Context())
+
+	var err error
+
+	lCtx := log.Ctx{
+		"handle": handle,
+		//"client": config.ClientID,
+		"state": state,
+	}
+	handleErr := func(msg string, f log.Ctx) {
+		h.errFn(f)("Error: %s", msg)
+		h.v.addFlashMessage(Error, w, r, msg)
+		h.v.Redirect(w, r, "/login", http.StatusSeeOther)
+	}
+
+	accts := make([]Account, 0)
+	// Try to load actor from handle
+	if acc, err := repo.accounts(ctx, FilterAccountByHandle(handle)); err == nil {
+		accts = append(accts, acc...)
+	}
+	if len(wf) > 0 {
+		host := h.conf.APIURL
+		if pieces := strings.Split(strings.TrimPrefix(wf, "@"), "@"); len(pieces) > 0 {
+			handle = pieces[0]
+			if len(pieces) > 1 {
+				host = fmt.Sprintf("https://%s", pieces[1])
+			}
 		}
-		lCtx["err"] = err.Error()
-		handleErr("Login failed: invalid username or password", lCtx)
-		return
+		var a *vocab.Actor
+		if a, err = repo.loadWebfingerActorFromIRI(ctx, host, handle); err == nil {
+			acct := Account{}
+			acct.FromActivityPub(a)
+			accts = append(accts, acct)
+		}
 	}
-	s, err := h.v.s.get(w, r)
-	if err != nil {
-		lCtx["err"] = err.Error()
-		handleErr("Login failed: unable to save session", lCtx)
-		return
+	var acct Account
+	if len(pw) > 0 {
+		acct = h.loadAccountsByPw(ctx, accts, pw)
+		if !acct.IsLogged() {
+			if err == nil {
+				err = errors.Errorf("unable to authenticate account")
+			}
+			lCtx["err"] = err.Error()
+			handleErr("Login failed: invalid authentication data", lCtx)
+			return
+		}
+		s, err := h.v.s.get(w, r)
+		if err != nil {
+			lCtx["err"] = err.Error()
+			handleErr("Login failed: unable to save session", lCtx)
+			return
+		}
+		s.Values[SessionUserKey] = acct
+		h.v.Redirect(w, r, "/", http.StatusSeeOther)
 	}
-	s.Values[SessionUserKey] = acct
-	h.v.Redirect(w, r, "/", http.StatusSeeOther)
+	for _, acct = range accts {
+		var config oauth2.Config
+		vocab.OnActor(acct.AP(), func(a *vocab.Actor) error {
+			if a.Endpoints == nil {
+				return nil
+			}
+			config = h.conf.GetOauth2Config(fedboxProvider, h.conf.BaseURL)
+			if !vocab.IsNil(a.Endpoints.OauthAuthorizationEndpoint) {
+				config.Endpoint.AuthURL = a.Endpoints.OauthAuthorizationEndpoint.GetLink().String()
+			}
+			if !vocab.IsNil(a.Endpoints.OauthTokenEndpoint) {
+				config.Endpoint.TokenURL = a.Endpoints.OauthTokenEndpoint.GetLink().String()
+			}
+			return nil
+		})
+		h.v.Redirect(w, r, config.AuthCodeURL(state), http.StatusSeeOther)
+		break
+	}
+	lCtx["err"] = "unable to find account"
+	handleErr("Login failed: unable to authorize using account", lCtx)
 }
 
 // HandleLogout serves /logout requests
@@ -753,7 +794,7 @@ func getPassCode(h *handler, acc *Account, invitee *Account, r *http.Request) (s
 	}
 
 	// TODO(marius): Start oauth2 authorize session
-	config := h.conf.GetOauth2Config("fedbox", h.conf.BaseURL)
+	config := h.conf.GetOauth2Config(fedboxProvider, h.conf.BaseURL)
 	config.Scopes = []string{scopeAnonymousUserCreate}
 	param := oauth2.SetAuthURLParam("actor", invitee.AP().GetLink().String())
 	sessUrl := config.AuthCodeURL(csrf.Token(r), param)
@@ -834,7 +875,7 @@ func (h *handler) HandleChangePassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// TODO(marius): Start oauth2 authorize session
-	config := h.conf.GetOauth2Config("fedbox", h.conf.BaseURL)
+	config := h.conf.GetOauth2Config(fedboxProvider, h.conf.BaseURL)
 	config.Scopes = []string{scopeAnonymousUserCreate}
 	param := oauth2.SetAuthURLParam("actor", a.Metadata.ID)
 	sessUrl := config.AuthCodeURL(csrf.Token(r), param)
@@ -935,7 +976,7 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// TODO(marius): Start oauth2 authorize session
-	config := h.conf.GetOauth2Config("fedbox", h.conf.BaseURL)
+	config := h.conf.GetOauth2Config(fedboxProvider, h.conf.BaseURL)
 	config.Scopes = []string{scopeAnonymousUserCreate}
 	param := oauth2.SetAuthURLParam("actor", a.Metadata.ID)
 	sessUrl := config.AuthCodeURL(csrf.Token(r), param)
