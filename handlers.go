@@ -654,10 +654,10 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 			if !vocab.IsNil(a.Endpoints.OauthTokenEndpoint) {
 				config.Endpoint.TokenURL = a.Endpoints.OauthTokenEndpoint.GetLink().String()
 			}
-			return nil
+			return h.v.saveAccountToSession(w, r, &acct)
 		})
 		h.v.Redirect(w, r, config.AuthCodeURL(state), http.StatusSeeOther)
-		break
+		return
 	}
 	lCtx["err"] = "unable to find account"
 	handleErr("Login failed: unable to authorize using account", lCtx)
