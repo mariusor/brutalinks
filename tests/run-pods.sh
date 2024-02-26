@@ -9,6 +9,10 @@ if podman container exists tests_fedbox; then
     podman stop tests_fedbox
     podman rm -f tests_fedbox
 fi
+if podman container exists tests_fedbox_auth; then
+    podman stop tests_fedbox_auth
+    podman rm -f tests_fedbox_auth
+fi
 if podman container exists tests_brutalinks; then
     podman stop tests_brutalinks
     podman rm -f tests_brutalinks
@@ -37,6 +41,22 @@ podman run -d \
 _fedbox_running=$(podman ps --filter name=tests_fedbox --format '{{ .Names }}' )
 if [ -s ${_fedbox_running} ]; then
     echo "Unable to run test pod for fedbox"
+    exit 1
+fi
+
+podman run -d \
+    --pull newer \
+    --name=tests_fedbox_auth \
+    -v $(pwd)/fedbox:/storage \
+    --net tests_network \
+    --network-alias fedbox-auth \
+    --expose 444 \
+    quay.io/go-ap/auth:qa \
+    --env test --listen :444 --storage fs:///storage/%storage%/%env%
+
+_fedbox_auth_running=$(podman ps --filter name=tests_fedbox_auth --format '{{ .Names }}' )
+if [ -s ${_fedbox_auth_running} ]; then
+    echo "Unable to run test pod for fedbox OAuth2"
     exit 1
 fi
 
