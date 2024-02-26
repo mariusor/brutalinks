@@ -27,6 +27,14 @@ tasks:
       test ${BUILD_SUBMITTER} != "git.sr.ht" && complete-build
       set -a +x
       cd brutalinks && make coverage
+  - push_to_github: |
+      test ${BUILD_SUBMITTER} != "git.sr.ht" && complete-build
+      set -a +x
+      ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+
+      cd brutalinks
+      git remote add hub git@github.com:mariusor/go-littr
+      git push hub --force --all
   - image: |
       test ${BUILD_SUBMITTER} != "git.sr.ht" && complete-build
       set -a +x
@@ -65,11 +73,4 @@ tasks:
 
       cd brutalinks
       make integration
-  - push_to_github: |
-      test ${BUILD_SUBMITTER} != "git.sr.ht" && complete-build
-      set -a +x
-      ssh-keyscan -H github.com >> ~/.ssh/known_hosts
 
-      cd brutalinks
-      git remote add hub git@github.com:mariusor/go-littr
-      git push hub --force --all
