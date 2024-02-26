@@ -3,7 +3,7 @@
 set -e
 
 TEST_PORT=${TEST_PORT:-4499}
-IMAGE=${IMAGE:-quay.io/go-ap/brutalinks:qa}
+IMAGE=${IMAGE:-localhost/brutalinks/app:qa}
 
 if podman network exists tests_network; then
     podman network rm -f tests_network
@@ -33,16 +33,16 @@ fi
 
 podman run -d --replace \
     --pull newer \
-    --name=tests_fedbox_auth \
+    --name=tests_auth \
     -v $(pwd)/fedbox:/storage \
     --net tests_network \
-    --network-alias fedbox_auth \
+    --network-alias auth \
     --expose 8443 \
     quay.io/go-ap/auth:qa \
     --env test --listen :8443 --storage fs:///storage/%storage%/%env%
 
-_fedbox_auth_running=$(podman ps --filter name=tests_fedbox_auth --format '{{ .Names }}' )
-if [ -s ${_fedbox_auth_running} ]; then
+_auth_running=$(podman ps --filter name=tests_auth --format '{{ .Names }}' )
+if [ -s ${_auth_running} ]; then
     echo "Unable to run test pod for fedbox OAuth2"
     exit 1
 fi
