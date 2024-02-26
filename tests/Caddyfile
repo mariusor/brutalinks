@@ -1,0 +1,32 @@
+{
+	local_certs
+}
+
+fedbox {
+	handle /oauth/* {
+		reverse_proxy http://fedbox_auth:8443 {
+			transport http 
+		}
+	}
+	handle /actors/*/oauth/* {
+		reverse_proxy http://fedbox_auth:8443 {
+			transport http 
+		}
+	}
+
+	reverse_proxy https://fedbox_pub:8443 {
+		transport http {
+			tls
+			tls_insecure_skip_verify
+		}
+	}
+}
+
+brutalinks {
+	reverse_proxy https://brutalinks:8443 {
+		transport http {
+			tls
+			tls_insecure_skip_verify
+		}
+	}
+}
