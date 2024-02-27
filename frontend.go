@@ -413,14 +413,13 @@ func (v *view) LoadSession(next http.Handler) http.Handler {
 }
 
 func (h handler) NeedsSessions(next http.Handler) http.Handler {
-	fn := func(w http.ResponseWriter, r *http.Request) {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !h.v.s.enabled {
 			h.v.HandleErrors(w, r, errors.NotFoundf("sessions are disabled"))
 			return
 		}
 		next.ServeHTTP(w, r)
-	}
-	return http.HandlerFunc(fn)
+	})
 }
 
 // HandleAbout serves /about request

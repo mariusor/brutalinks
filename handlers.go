@@ -601,24 +601,35 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		h.v.Redirect(w, r, "/login", http.StatusSeeOther)
 	}
 
+	var host string
 	accts := make([]Account, 0)
-	// Try to load actor from handle
-	if acc, err := repo.accounts(ctx, FilterAccountByHandle(handle)); err == nil {
-		accts = append(accts, acc...)
-	}
 	if len(wf) > 0 {
-		host := h.conf.APIURL
+		host = h.conf.APIURL
 		if pieces := strings.Split(strings.TrimPrefix(wf, "@"), "@"); len(pieces) > 0 {
 			handle = pieces[0]
 			if len(pieces) > 1 {
 				host = fmt.Sprintf("https://%s", pieces[1])
 			}
 		}
+	}
+	// Try to load actor from handle
+	if acc, err := repo.accounts(ctx, FilterAccountByHandle(handle)); err == nil {
+		for _, acct := range acc {
+			if accountInCollection(acct, accts) {
+				continue
+			}
+			accts = append(accts, acct)
+		}
+	}
+
+	if len(wf) > 0 {
 		var a *vocab.Actor
 		if a, err = repo.loadWebfingerActorFromIRI(ctx, host, handle); err == nil {
 			acct := Account{}
 			acct.FromActivityPub(a)
-			accts = append(accts, acct)
+			if !accountInCollection(acct, accts) {
+				accts = append(accts, acct)
+			}
 		}
 	}
 	var acct Account
