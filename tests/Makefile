@@ -5,7 +5,7 @@ SHELL := bash
 MAKEFLAGS += --warn-undefined-variables
 MAKEFLAGS += --no-builtin-rules
 
-TEST_HOST ?= 127.0.0.1
+TEST_HOST ?= brutalinks
 TEST_PORT ?= 4499
 
 mkfile_path := $(abspath $(lastword $(MAKEFILE_LIST)))
@@ -19,3 +19,17 @@ pods:
 test:
 	k6 run --no-usage-report --insecure-skip-tls-verify \
 		--env TEST_HOST=https://$(TEST_HOST):$(TEST_PORT) ./script.js
+
+test-podman:
+	podman run --replace \
+		--interactive \
+		--pull newer \
+		--rm \
+		--name=tests_k6 \
+		--net tests_network \
+		--network-alias k6 \
+		--add-host fedbox:10.6.6.61 \
+		--add-host brutalinks:10.6.6.66 \
+		grafana/k6 \
+		--no-usage-report --insecure-skip-tls-verify \
+		--env TEST_HOST=https://brutalinks run - <script.js

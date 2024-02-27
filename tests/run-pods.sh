@@ -9,7 +9,7 @@ if podman network exists tests_network; then
     podman network rm -f tests_network
 fi
 
-podman network create tests_network
+podman network create --subnet 10.6.6.0/24 --gateway 10.6.6.1 tests_network
 
 podman run -d --replace \
     --pull newer \
@@ -20,10 +20,10 @@ podman run -d --replace \
     -e LISTEN=:8443 \
     -e HOSTNAME=fedbox \
     --net tests_network \
-    --network-alias fedbox_pub \
+    --network-alias pub \
+    --ip 10.6.6.61 \
     --expose 8443 \
-    quay.io/go-ap/fedbox:qa-fs \
-    /bin/fedbox
+    quay.io/go-ap/fedbox:qa-fs
 
 _fedbox_running=$(podman ps --filter name=tests_fedbox --format '{{ .Names }}' )
 if [ -s ${_fedbox_running} ]; then
@@ -37,9 +37,10 @@ podman run -d --replace \
     -v $(pwd)/fedbox:/storage \
     --net tests_network \
     --network-alias auth \
-    --expose 8443 \
+    --ip 10.6.6.3 \
+    --expose 8080 \
     quay.io/go-ap/auth:qa \
-    --env test --listen :8443 --storage fs:///storage/%storage%/%env%
+    --env test --listen :8080 --storage fs:///storage/%storage%/%env%
 
 _auth_running=$(podman ps --filter name=tests_auth --format '{{ .Names }}' )
 if [ -s ${_auth_running} ]; then
@@ -52,26 +53,31 @@ podman run --replace -d \
     --name=tests_caddy \
     -v $(pwd)/Caddyfile:/etc/caddy/Caddyfile \
     -v caddy_data:/data \
+    --net tests_network \
+    --network-alias fedbox \
+    --ip 10.6.6.4 \
     --expose 443 \
-    caddy
+    --expose 80 \
+    docker.io/library/caddy:2.7
+
 _caddy_running=$(podman ps --filter name=tests_caddy --format '{{ .Names }}' )
 if [ -s ${_caddy_running} ]; then
     echo "Unable to run test pod for Caddy"
     exit 1
 fi
 
-set -x
 podman run -d --replace \
     --pull newer \
     --name=tests_brutalinks \
     -v $(pwd)/brutalinks/env:/.env \
     -v $(pwd)/brutalinks:/storage \
-    -e LISTEN_HOST= \
+    -e LISTEN_HOST=brutalinks \
     --net tests_network \
     --network-alias brutalinks \
+    --add-host fedbox:10.6.6.4 \
+    --ip 10.6.6.66 \
     --expose 8443 \
-    "${IMAGE}" \
-    /bin/brutalinks
+    "${IMAGE}"
 
 _brutalinks_running=$(podman ps --filter name=tests_brutalinks --format '{{ .Names }}' )
 if [ -s ${_brutalinks_running} ]; then

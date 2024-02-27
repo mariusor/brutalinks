@@ -78,4 +78,4 @@ coverage: test
 
 integration: ENV=prod
 integration:
-	make -C tests pods test
+	make -C tests pods test-podman

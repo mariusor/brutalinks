@@ -1,20 +1,23 @@
+# https://caddyserver.com/docs/caddyfile
 {
+	debug
 	local_certs
+	log {
+		output stdout
+		format console
+		level debug
+	}
 }
 
 fedbox {
 	handle /oauth/* {
-		reverse_proxy http://fedbox_auth:8443 {
-			transport http 
-		}
+		reverse_proxy http://auth:8080
 	}
 	handle /actors/*/oauth/* {
-		reverse_proxy http://fedbox_auth:8443 {
-			transport http 
-		}
+		reverse_proxy http://auth:8080
 	}
 
-	reverse_proxy https://fedbox_pub:8443 {
+	reverse_proxy https://pub:8443 {
 		transport http {
 			tls
 			tls_insecure_skip_verify

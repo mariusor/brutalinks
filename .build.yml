@@ -4,7 +4,6 @@ packages:
   - podman
   - buildah
   - aardvark-dns
-  - k6-bin
 sources:
   - https://git.sr.ht/~mariusor/brutalinks
 secrets:
