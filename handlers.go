@@ -590,11 +590,6 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 
-	lCtx := log.Ctx{
-		"handle": handle,
-		//"client": config.ClientID,
-		"state": state,
-	}
 	handleErr := func(msg string, f log.Ctx) {
 		h.errFn(f)("Error: %s", msg)
 		h.v.addFlashMessage(Error, w, r, msg)
@@ -631,6 +626,15 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 				accts = append(accts, acct)
 			}
 		}
+	}
+	lCtx := log.Ctx{
+		"handle": handle,
+		"state":  state,
+	}
+	if len(accts) == 0 {
+		lCtx["err"] = "unable to find account"
+		handleErr("Login failed: unable to find account for authorization", lCtx)
+		return
 	}
 	var acct Account
 	if len(pw) > 0 {
@@ -670,8 +674,6 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		h.v.Redirect(w, r, config.AuthCodeURL(state), http.StatusSeeOther)
 		return
 	}
-	lCtx["err"] = "unable to find account"
-	handleErr("Login failed: unable to authorize using account", lCtx)
 }
 
 // HandleLogout serves /logout requests
