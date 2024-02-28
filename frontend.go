@@ -130,20 +130,20 @@ func loggedAccount(r *http.Request) *Account {
 
 // HandleCallback serves /auth/{provider}/callback request
 func (h *handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
-	q := r.URL.Query()
-	provider := chi.URLParam(r, "provider")
-	providerErr := q["error"]
-
 	redirWithError := func(errs ...error) {
 		h.v.addFlashMessage(Error, w, r, xerrors.Join(errs...).Error())
 		h.v.saveAccountToSession(w, r, &AnonymousAccount)
 		h.v.Redirect(w, r, "/login", http.StatusFound)
 	}
 
-	if providerErr != nil {
+	q := r.URL.Query()
+
+	provider := chi.URLParam(r, "provider")
+
+	if q.Has("error") {
 		errDescriptions := q["error_description"]
 		errs := make([]error, len(errDescriptions)+1)
-		errs[0] = errors.Newf("Error for provider %s:", provider)
+		errs[0] = errors.Newf("%s OAuth2 error:", provider)
 		for i, errDesc := range errDescriptions {
 			errs[i+1] = errors.Errorf(errDesc)
 		}
