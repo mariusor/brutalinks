@@ -3,7 +3,7 @@
         <legend>Remote authentication</legend>
         {{ csrfField }}
         <label for="webfinger-handle">Handle:</label><br/>
-        <input name="webfinger" id="webfinger-handle" type="text" autocomplete="username" size="50" required autofocus /><br/>
-        <button type="submit">{{ icon "sign-in" }} Log in using remote server</button>
+        <input name="webfinger" id="webfinger-handle" type="text" autocomplete="username" size="50" required autofocus />
+        <button type="submit">{{ icon "sign-in" }} Log in using {{ .Provider }} </button>
     </fieldset>
 </form>

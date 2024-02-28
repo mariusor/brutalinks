@@ -118,7 +118,7 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 					r.With(h.v.RedirectWithFailMessage(usersEnabledOrInvitesFn)).Post("/", h.HandleRegister)
 				})
 				r.With(h.NeedsSessions).Group(func(r chi.Router) {
-					r.With(ModelMw(&loginModel{Title: "Local authentication"})).Get("/login", h.HandleShow)
+					r.With(ModelMw(&loginModel{Title: "Authentication", Provider: fedboxProvider})).Get("/login", h.HandleShow)
 					r.Post("/login", h.HandleLogin)
 				})
 			})

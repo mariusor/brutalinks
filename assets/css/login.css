@@ -4,3 +4,6 @@ form button {
 form fieldset {
     border-width: 2px;
 }
+form input {
+    padding: .2em;
+}

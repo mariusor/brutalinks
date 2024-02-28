@@ -228,9 +228,10 @@ func (m *moderationModel) SetCursor(c *Cursor) {
 }
 
 type loginModel struct {
-	Title   template.HTML
-	Account Account
-	OAuth   bool
+	Title    template.HTML
+	Account  Account
+	Provider string
+	OAuth    bool
 }
 
 func (m *loginModel) SetTitle(s string) {
