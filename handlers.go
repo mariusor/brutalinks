@@ -316,7 +316,7 @@ func (r *repository) loadWebfingerActorFromIRI(ctx context.Context, host, acct s
 
 	nodeInfoURL := fmt.Sprintf("%s/.well-known/webfinger?resource=acct:%s", host, acct)
 	if err := loadFromURL(nodeInfoURL, &meta); err != nil {
-		return nil, err
+		r.errFn(log.Ctx{"url": nodeInfoURL, "err": err})("unable to load webfinger resource")
 	}
 
 	for _, l := range meta.Links {
@@ -596,10 +596,8 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		h.v.Redirect(w, r, "/login", http.StatusSeeOther)
 	}
 
-	var host string
-	accts := make([]Account, 0)
+	host := h.conf.APIURL
 	if len(wf) > 0 {
-		host = h.conf.APIURL
 		if pieces := strings.Split(strings.TrimPrefix(wf, "@"), "@"); len(pieces) > 0 {
 			handle = pieces[0]
 			if len(pieces) > 1 {
@@ -607,24 +605,21 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+
+	accts := make([]Account, 0)
 	// Try to load actor from handle
-	if acc, err := repo.accounts(ctx, FilterAccountByHandle(handle)); err == nil {
-		for _, acct := range acc {
-			if accountInCollection(acct, accts) {
-				continue
-			}
-			accts = append(accts, acct)
-		}
+	f := FilterAccountByHandle(handle)
+	f.IRI = CompStrs{LikeString(host)}
+	if acc, err := repo.accounts(ctx, f); err == nil {
+		accts = append(accts, acc...)
 	}
 
 	if len(wf) > 0 {
 		var a *vocab.Actor
-		if a, err = repo.loadWebfingerActorFromIRI(ctx, host, handle); err == nil {
+		if a, err = repo.loadWebfingerActorFromIRI(ctx, host, wf); err == nil {
 			acct := Account{}
 			acct.FromActivityPub(a)
-			if !accountInCollection(acct, accts) {
-				accts = append(accts, acct)
-			}
+			accts = append(accts, acct)
 		}
 	}
 	lCtx := log.Ctx{
@@ -674,6 +669,8 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		h.v.Redirect(w, r, config.AuthCodeURL(state), http.StatusSeeOther)
 		return
 	}
+	lCtx["err"] = "unable to find account"
+	handleErr("Login failed: unable to authorize using account", lCtx)
 }
 
 // HandleLogout serves /logout requests
