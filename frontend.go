@@ -3,6 +3,7 @@ package brutalinks
 import (
 	"context"
 	"embed"
+	xerrors "errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -132,20 +133,27 @@ func (h *handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	provider := chi.URLParam(r, "provider")
 	providerErr := q["error"]
+
+	redirWithError := func(errs ...error) {
+		h.v.addFlashMessage(Error, w, r, xerrors.Join(errs...).Error())
+		h.v.saveAccountToSession(w, r, &AnonymousAccount)
+		h.v.Redirect(w, r, "/login", http.StatusFound)
+	}
+
 	if providerErr != nil {
 		errDescriptions := q["error_description"]
-		var errs = make([]error, 1)
-		errs[0] = errors.Errorf("Error for provider %q:\n", provider)
-		for _, errDesc := range errDescriptions {
-			errs = append(errs, errors.Errorf(errDesc))
+		errs := make([]error, len(errDescriptions)+1)
+		errs[0] = errors.Newf("Error for provider %s:", provider)
+		for i, errDesc := range errDescriptions {
+			errs[i+1] = errors.Errorf(errDesc)
 		}
-		h.v.HandleErrors(w, r, errs...)
+		redirWithError(errs...)
 		return
 	}
 	code := q.Get("code")
 	state := q.Get("state")
 	if len(code) == 0 {
-		h.v.HandleErrors(w, r, errors.Forbiddenf("%s error: Empty authentication token", provider))
+		redirWithError(errors.Newf("%s error: Empty authentication token", provider))
 		return
 	}
 
@@ -153,13 +161,14 @@ func (h *handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
 	tok, err := conf.Exchange(r.Context(), code)
 	if err != nil {
 		h.errFn(log.Ctx{"err": err})("Unable to load token")
-		h.v.HandleErrors(w, r, err)
+		redirWithError(err)
 		return
 	}
 	account, err := h.v.loadCurrentAccountFromSession(w, r)
 	if err != nil {
 		h.errFn(log.Ctx{"err": err.Error()})("Failed to load account from session")
-		h.v.addFlashMessage(Error, w, r, fmt.Sprintf("Failed to login with %s", provider))
+		redirWithError(errors.Newf("Failed to login with %s", provider))
+		return
 	} else {
 		account.Metadata.OAuth = OAuth{
 			State:    state,
@@ -173,9 +182,9 @@ func (h *handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
 		} else {
 			h.v.addFlashMessage(Success, w, r, "Login successful")
 		}
-		if err := h.v.saveAccountToSession(w, r, account); err != nil {
-			h.errFn()("Unable to save account to session")
-		}
+	}
+	if err := h.v.saveAccountToSession(w, r, account); err != nil {
+		h.errFn()("Unable to save account to session")
 	}
 	h.v.Redirect(w, r, "/", http.StatusFound)
 }
