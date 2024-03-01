@@ -3,7 +3,6 @@ package brutalinks
 import (
 	"context"
 	"embed"
-	xerrors "errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -11,7 +10,6 @@ import (
 	"git.sr.ht/~mariusor/brutalinks/internal/config"
 	log "git.sr.ht/~mariusor/lw"
 	"github.com/go-ap/errors"
-	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/csrf"
 )
 
@@ -126,67 +124,6 @@ func loggedAccount(r *http.Request) *Account {
 		return acct
 	}
 	return &AnonymousAccount
-}
-
-// HandleCallback serves /auth/{provider}/callback request
-func (h *handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
-	redirWithError := func(errs ...error) {
-		h.v.addFlashMessage(Error, w, r, xerrors.Join(errs...).Error())
-		h.v.saveAccountToSession(w, r, &AnonymousAccount)
-		h.v.Redirect(w, r, "/login", http.StatusFound)
-	}
-
-	q := r.URL.Query()
-
-	provider := chi.URLParam(r, "provider")
-
-	if q.Has("error") {
-		errDescriptions := q["error_description"]
-		errs := make([]error, len(errDescriptions)+1)
-		errs[0] = errors.Newf("%s OAuth2 error:", provider)
-		for i, errDesc := range errDescriptions {
-			errs[i+1] = errors.Errorf(errDesc)
-		}
-		redirWithError(errs...)
-		return
-	}
-	code := q.Get("code")
-	state := q.Get("state")
-	if len(code) == 0 {
-		redirWithError(errors.Newf("%s error: Empty authentication token", provider))
-		return
-	}
-
-	conf := h.conf.GetOauth2Config(provider, h.conf.BaseURL)
-	tok, err := conf.Exchange(r.Context(), code)
-	if err != nil {
-		h.errFn(log.Ctx{"err": err})("Unable to load token")
-		redirWithError(err)
-		return
-	}
-	account, err := h.v.loadCurrentAccountFromSession(w, r)
-	if err != nil {
-		h.errFn(log.Ctx{"err": err.Error()})("Failed to load account from session")
-		redirWithError(errors.Newf("Failed to login with %s", provider))
-		return
-	} else {
-		account.Metadata.OAuth = OAuth{
-			State:    state,
-			Code:     code,
-			Provider: provider,
-			Token:    tok,
-		}
-
-		if strings.ToLower(provider) != "local" {
-			h.v.addFlashMessage(Success, w, r, fmt.Sprintf("Login successful with %s", provider))
-		} else {
-			h.v.addFlashMessage(Success, w, r, "Login successful")
-		}
-	}
-	if err := h.v.saveAccountToSession(w, r, account); err != nil {
-		h.errFn()("Unable to save account to session")
-	}
-	h.v.Redirect(w, r, "/", http.StatusFound)
 }
 
 func isInverted(r *http.Request) bool {

@@ -2,13 +2,21 @@ package brutalinks
 
 import (
 	"context"
+	"crypto"
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
+	xerrors "errors"
 	"fmt"
+	"hash/crc32"
 	"io"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"path"
+	"strconv"
 	"strings"
+	"time"
 
 	log "git.sr.ht/~mariusor/lw"
 	vocab "github.com/go-ap/activitypub"
@@ -578,12 +586,23 @@ func (h handler) loadAccountsByPw(ctx context.Context, accts AccountCollection, 
 	return acct
 }
 
+func publicKey(data []byte) crypto.PublicKey {
+	b, _ := pem.Decode(data)
+	if b == nil {
+		panic("failed decoding pem")
+	}
+	pubKey, err := x509.ParsePKIXPublicKey(b.Bytes)
+	if err != nil {
+		panic(fmt.Sprintf("%+v", err))
+	}
+	return pubKey
+}
+
 // HandleLogin handles POST /login requests
 func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	pw := r.PostFormValue("pw")
 	handle := r.PostFormValue("handle")
 	wf := r.PostFormValue("webfinger")
-	state := r.PostFormValue("state")
 
 	ctx := context.Background()
 	repo := ContextRepository(r.Context())
@@ -622,10 +641,8 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 			accts = append(accts, acct)
 		}
 	}
-	lCtx := log.Ctx{
-		"handle": handle,
-		"state":  state,
-	}
+
+	lCtx := log.Ctx{"handle": handle, "count": len(accts)}
 	if len(accts) == 0 {
 		lCtx["err"] = "unable to find account"
 		handleErr("Login failed: unable to find account for authorization", lCtx)
@@ -651,24 +668,26 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		s.Values[SessionUserKey] = acct
 		h.v.Redirect(w, r, "/", http.StatusSeeOther)
 	}
+	config := h.conf.GetOauth2Config(fedboxProvider, h.conf.BaseURL)
+	var state string
 	for _, acct = range accts {
-		var config oauth2.Config
 		vocab.OnActor(acct.AP(), func(a *vocab.Actor) error {
 			if a.Endpoints == nil {
 				return nil
 			}
-			config = h.conf.GetOauth2Config(fedboxProvider, h.conf.BaseURL)
 			if !vocab.IsNil(a.Endpoints.OauthAuthorizationEndpoint) {
 				config.Endpoint.AuthURL = a.Endpoints.OauthAuthorizationEndpoint.GetLink().String()
 			}
 			if !vocab.IsNil(a.Endpoints.OauthTokenEndpoint) {
 				config.Endpoint.TokenURL = a.Endpoints.OauthTokenEndpoint.GetLink().String()
 			}
+			state = genStateForAccount(acct)
 			return h.v.saveAccountToSession(w, r, &acct)
 		})
 		h.v.Redirect(w, r, config.AuthCodeURL(state), http.StatusSeeOther)
 		return
 	}
+
 	lCtx["err"] = "unable to find account"
 	handleErr("Login failed: unable to authorize using account", lCtx)
 }
@@ -797,36 +816,6 @@ func (h *handler) HandleItemRedirect(w http.ResponseWriter, r *http.Request) {
 }
 
 var scopeAnonymousUserCreate = "anonUserCreate"
-
-func getPassCode(h *handler, acc *Account, invitee *Account, r *http.Request) (string, error) {
-	if !acc.IsLogged() {
-		acc = h.storage.app
-	}
-
-	// TODO(marius): Start oauth2 authorize session
-	config := h.conf.GetOauth2Config(fedboxProvider, h.conf.BaseURL)
-	config.Scopes = []string{scopeAnonymousUserCreate}
-	param := oauth2.SetAuthURLParam("actor", invitee.AP().GetLink().String())
-	sessUrl := config.AuthCodeURL(csrf.Token(r), param)
-	res, err := http.Get(sessUrl)
-	if err != nil {
-		return "", err
-	}
-
-	var body []byte
-	if body, err = io.ReadAll(res.Body); err != nil {
-		return "", err
-	}
-	d := osin.AuthorizeData{}
-	if err := json.Unmarshal(body, &d); err != nil {
-		return "", err
-	}
-
-	if d.Code == "" {
-		return "", errors.NotValidf("unable to get session token for setting the user's password")
-	}
-	return d.Code, nil
-}
 
 // HandleCreateInvitation handles POST ~handle/invite requests
 func (h *handler) HandleCreateInvitation(w http.ResponseWriter, r *http.Request) {
@@ -1051,6 +1040,82 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	}
 	h.v.Redirect(w, r, "/", http.StatusSeeOther)
 	return
+}
+
+func genStateForAccount(acct Account) string {
+	if !acct.HasPublicKey() {
+		// NOTE(marius): we generate a random number to make it harder for matches
+		return fmt.Sprintf("%2x", rand.Int31())
+	}
+	data := strconv.AppendInt(acct.Metadata.Key.Public, time.Now().UTC().Truncate(10*time.Minute).Unix(), 10)
+	return fmt.Sprintf("%2x", crc32.ChecksumIEEE(data))
+}
+
+// HandleCallback serves /auth/{provider}/callback request
+func (h *handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
+	redirWithError := func(errs ...error) {
+		h.v.addFlashMessage(Error, w, r, xerrors.Join(errs...).Error())
+		h.v.saveAccountToSession(w, r, &AnonymousAccount)
+		h.v.Redirect(w, r, "/login", http.StatusFound)
+	}
+
+	q := r.URL.Query()
+
+	provider := chi.URLParam(r, "provider")
+
+	if q.Has("error") {
+		errDescriptions := q["error_description"]
+		errs := make([]error, len(errDescriptions)+1)
+		errs[0] = errors.Newf("%s OAuth2 error:", provider)
+		for i, errDesc := range errDescriptions {
+			errs[i+1] = errors.Errorf(errDesc)
+		}
+		redirWithError(errs...)
+		return
+	}
+
+	state := q.Get("state")
+	code := q.Get("code")
+	if len(code) == 0 {
+		redirWithError(errors.Newf("%s error: Empty authentication token", provider))
+		return
+	}
+
+	conf := h.conf.GetOauth2Config(provider, h.conf.BaseURL)
+	tok, err := conf.Exchange(r.Context(), code)
+	if err != nil {
+		h.errFn(log.Ctx{"err": err})("Unable to load token")
+		redirWithError(err)
+		return
+	}
+	acct, err := h.v.loadCurrentAccountFromSession(w, r)
+	if err != nil {
+		h.errFn(log.Ctx{"err": err.Error()})("Failed to load account from session")
+		redirWithError(errors.Newf("Failed to login with %s", provider))
+		return
+	} else {
+		if expected := genStateForAccount(*acct); expected != state {
+			h.errFn(log.Ctx{"received": state, "expected": expected})("Failed to validate state received from OAuth2 provider")
+			redirWithError(errors.Newf("Failed to login with %s", provider))
+			return
+		}
+		acct.Metadata.OAuth = OAuth{
+			State:    state,
+			Code:     code,
+			Provider: provider,
+			Token:    tok,
+		}
+
+		if strings.ToLower(provider) != "local" {
+			h.v.addFlashMessage(Success, w, r, fmt.Sprintf("Login successful with %s", provider))
+		} else {
+			h.v.addFlashMessage(Success, w, r, "Login successful")
+		}
+	}
+	if err := h.v.saveAccountToSession(w, r, acct); err != nil {
+		h.errFn()("Unable to save account to session")
+	}
+	h.v.Redirect(w, r, "/", http.StatusFound)
 }
 
 func (h *handler) ShowPublicKey(w http.ResponseWriter, r *http.Request) {
