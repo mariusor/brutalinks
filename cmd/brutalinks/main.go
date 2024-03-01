@@ -125,10 +125,8 @@ func main() {
 		errors.IncludeBacktrace = c.Env.IsDev()
 	}
 
-	if i, ok := debug.ReadBuildInfo(); ok {
-		if version == "HEAD" && i.Main.Version != "(devel)" {
-			version = i.Main.Version
-		}
+	if build, ok := debug.ReadBuildInfo(); ok && version == "HEAD" && build.Main.Version != "(devel)" {
+		version = build.Main.Version
 	}
 
 	a, err := brutalinks.New(c, l, host, port, version)

@@ -55,6 +55,15 @@ var Instance *Application
 // New instantiates a new Application
 func New(c *config.Configuration, l log.Logger, host string, port int, ver string) (*Application, error) {
 	Instance = &Application{Version: ver}
+
+	logCtx := log.Ctx{
+		"URL":      host,
+		"version":  ver,
+		"listenOn": c.Listen,
+		"TLS":      c.Secure,
+	}
+	l = l.WithContext(logCtx)
+
 	if err := Instance.init(c, l, host, port); err != nil {
 		return nil, err
 	}
