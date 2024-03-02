@@ -61,10 +61,8 @@ func Run(a *brutalinks.Application) int {
 	}
 
 	a.Logger.WithContext(log.Ctx{
-		"listen":  a.Conf.Listen(),
 		"host":    a.Conf.HostName,
 		"env":     a.Conf.Env,
-		"https":   a.Conf.Secure,
 		"timeout": a.Conf.TimeOut,
 		"cert":    a.Conf.CertPath,
 		"key":     a.Conf.KeyPath,

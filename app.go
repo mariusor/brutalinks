@@ -57,7 +57,6 @@ func New(c *config.Configuration, l log.Logger, host string, port int, ver strin
 	Instance = &Application{Version: ver}
 
 	logCtx := log.Ctx{
-		"URL":      host,
 		"version":  ver,
 		"listenOn": c.Listen(),
 		"TLS":      c.Secure,
