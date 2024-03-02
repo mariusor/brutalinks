@@ -13,7 +13,7 @@ BUILDFLAGS ?= -a -ldflags '$(LDFLAGS)'
 TEST_FLAGS ?= -count=1
 
 GO ?= go
-APPSOURCES := $(wildcard ./*.go internal/*/*.go)
+APPSOURCES := $(wildcard ./*.go internal/*/*.go cmd/brutalinks/*.go)
 ASSETFILES := $(wildcard assets/*/* assets/*)
 
 export CGO_ENABLED=0
@@ -35,13 +35,15 @@ endif
 BUILD := $(GO) build $(BUILDFLAGS)
 TEST := $(GO) test $(BUILDFLAGS)
 
-.PHONY: all run clean images test assets download
+.PHONY: all brutalinks download run clean images test assets
 
 all: brutalinks
 
+download: go.sum
+
 brutalinks: bin/brutalinks
 
-download:
+go.sum: go.mod
 	$(GO) mod download all
 	$(GO) mod tidy
 
@@ -54,8 +56,8 @@ endif
 internal/assets/assets.gen.go: $(ASSETFILES)
 	$(GO) run -tags $(ENV) ./internal/assets/cmd/minify.go -build "prod || qa" -glob assets/*,assets/css/*,assets/js/*,README.md -var AssetFS -o ./internal/assets/assets.gen.go
 
-bin/brutalinks: download assets go.mod cmd/brutalinks/main.go $(APPSOURCES)
-	$(BUILD) -tags $(ENV) -o $@ ./cmd/brutalinks/main.go
+bin/brutalinks: go.mod go.sum $(APPSOURCES) assets
+	$(BUILD) -tags $(ENV) -o $@ ./cmd/brutalinks
 
 run: ./bin/brutalinks
 	@./bin/brutalinks
@@ -69,7 +71,7 @@ images:
 	$(MAKE) -C images $@
 
 test: TEST_TARGET := . ./internal/...
-test: download
+test: go.sum
 	$(TEST) $(TEST_FLAGS) $(TEST_TARGET)
 
 coverage: TEST_TARGET := .

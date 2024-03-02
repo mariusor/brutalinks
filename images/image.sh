@@ -19,15 +19,15 @@ fi
 echo "Building image ${_image_name} for host:${_hostname} env:${_environment} port:${_listen_port} version:${_version}"
 
 buildah run "${_builder}" make ENV="${_environment}" VERSION="${_version}" all
-buildah run "${_builder}" ./images/gen-certs.sh brutalinks
+buildah run "${_builder}" ./images/gen-certs.sh ${_hostname}
 
 _image=$(buildah from gcr.io/distroless/static:latest)
 
 buildah config --env ENV="${_environment}" "${_image}"
 buildah config --env APP_HOSTNAME="${_hostname}" "${_image}"
 buildah config --env LISTEN=:"${_listen_port}" "${_image}"
-buildah config --env KEY_PATH=/etc/ssl/certs/brutalinks.key "${_image}"
-buildah config --env CERT_PATH=/etc/ssl/certs/brutalinks.crt "${_image}"
+buildah config --env KEY_PATH=/etc/ssl/certs/${_hostname}.key "${_image}"
+buildah config --env CERT_PATH=/etc/ssl/certs/${_hostname}.crt "${_image}"
 buildah config --env HTTPS=true "${_image}"
 
 buildah config --port "${_listen_port}" "${_image}"
@@ -36,9 +36,9 @@ buildah config --volume /storage "${_image}"
 buildah config --volume /.env "${_image}"
 
 buildah copy --from "${_builder}" "${_image}" /go/src/app/bin/* /bin/
-buildah copy --from "${_builder}" "${_image}" /go/src/app/brutalinks.key /etc/ssl/certs/
-buildah copy --from "${_builder}" "${_image}" /go/src/app/brutalinks.crt /etc/ssl/certs/
-buildah copy --from "${_builder}" "${_image}" /go/src/app/brutalinks.pem /etc/ssl/certs/
+buildah copy --from "${_builder}" "${_image}" /go/src/app/${_hostname}.key /etc/ssl/certs/
+buildah copy --from "${_builder}" "${_image}" /go/src/app/${_hostname}.crt /etc/ssl/certs/
+buildah copy --from "${_builder}" "${_image}" /go/src/app/${_hostname}.pem /etc/ssl/certs/
 
 if [[ "${_environment}" = "dev" ]]; then
   buildah copy --from "${_builder}" "${_image}" /go/src/app/templates /templates
