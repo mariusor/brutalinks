@@ -59,7 +59,7 @@ func New(c *config.Configuration, l log.Logger, host string, port int, ver strin
 	logCtx := log.Ctx{
 		"URL":      host,
 		"version":  ver,
-		"listenOn": c.Listen,
+		"listenOn": c.Listen(),
 		"TLS":      c.Secure,
 	}
 	l = l.WithContext(logCtx)
