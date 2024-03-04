@@ -9,6 +9,7 @@ import (
 
 	"git.sr.ht/~mariusor/brutalinks/internal/config"
 	log "git.sr.ht/~mariusor/lw"
+	vocab "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
 	"github.com/gorilla/csrf"
 )
@@ -95,7 +96,11 @@ func AuthorizeOAuthClient(storage *repository, c appConfig) (*Account, error) {
 	if len(config.ClientID) == 0 {
 		return nil, errors.Newf("invalid OAuth2 configuration")
 	}
-	oauth, err := storage.fedbox.Actor(context.TODO(), actors.IRI(storage.BaseURL()).AddPath(config.ClientID))
+	appURL := vocab.IRI(config.ClientID)
+	if u, err := appURL.URL(); err != nil || u.Hostname() == "" {
+		appURL = actors.IRI(storage.BaseURL()).AddPath(config.ClientID)
+	}
+	oauth, err := storage.fedbox.Actor(context.TODO(), appURL)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +110,7 @@ func AuthorizeOAuthClient(storage *repository, c appConfig) (*Account, error) {
 	app := new(Account)
 	app.FromActivityPub(oauth)
 
-	handle := oauth.ID.String()
+	handle := oauth.GetLink().String()
 	tok, err := config.PasswordCredentialsToken(context.TODO(), handle, config.ClientSecret)
 	if err != nil {
 		return app, err

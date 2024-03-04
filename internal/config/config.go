@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -80,6 +81,7 @@ const (
 
 	KeyMaintenanceMode = "MAINTENANCE_MODE"
 
+	KeyFedBOXOAuthApp    = "OAUTH2_APP"
 	KeyFedBOXOAuthKey    = "OAUTH2_KEY"
 	KeyFedBOXOAuthSecret = "OAUTH2_SECRET"
 
@@ -257,8 +259,14 @@ func (c Configuration) GetOauth2Config(provider string, localBaseURL string) oau
 			TokenURL: fmt.Sprintf("%s/oauth/token", apiURL),
 		}
 	}
-	confOauth2URL := os.Getenv("OAUTH2_URL")
-	if u, err := url.Parse(confOauth2URL); err != nil || u.Host == "" {
+	if u, err := url.Parse(os.Getenv("OAUTH2_APP")); err == nil && u.Host != "" {
+		if u.Path != "" {
+			conf.ClientID = filepath.Base(u.Path)
+		}
+	}
+	if u, err := url.Parse(os.Getenv("OAUTH2_URL")); err == nil && u.Host != "" {
+		conf.RedirectURL = u.String()
+	} else {
 		conf.RedirectURL = fmt.Sprintf("%s/auth/%s/callback", localBaseURL, provider)
 	}
 	return conf
