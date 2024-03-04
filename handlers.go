@@ -1,6 +1,7 @@
 package brutalinks
 
 import (
+	"bytes"
 	"context"
 	"crypto"
 	"crypto/x509"
@@ -10,7 +11,6 @@ import (
 	"fmt"
 	"hash/crc32"
 	"io"
-	"math/rand"
 	"net/http"
 	"net/url"
 	"path"
@@ -1043,11 +1043,14 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 }
 
 func genStateForAccount(acct Account) string {
-	if !acct.HasPublicKey() {
-		// NOTE(marius): we generate a random number to make it harder for matches
-		return fmt.Sprintf("%2x", rand.Int31())
+	buf := bytes.Buffer{}
+	buf.WriteString(acct.Handle)
+	buf.WriteString("\n")
+	if acct.HasPublicKey() {
+		buf.Write(acct.Metadata.Key.Public)
+		buf.WriteString("\n")
 	}
-	data := strconv.AppendInt(acct.Metadata.Key.Public, time.Now().UTC().Truncate(10*time.Minute).Unix(), 10)
+	data := strconv.AppendInt(buf.Bytes(), time.Now().UTC().Truncate(10*time.Minute).Unix(), 10)
 	return fmt.Sprintf("%2x", crc32.ChecksumIEEE(data))
 }
 
