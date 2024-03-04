@@ -7,10 +7,10 @@ require (
 	git.sr.ht/~mariusor/lw v0.0.0-20230317075520-07e173563bf8
 	git.sr.ht/~mariusor/wrapper v0.0.0-20240210113306-c862d947a747
 	github.com/carlmjohnson/flowmatic v0.23.4
-	github.com/go-ap/activitypub v0.0.0-20240211124657-820024a66b78
-	github.com/go-ap/cache v0.0.0-20240211125123-3bb4d1c6309b
+	github.com/go-ap/activitypub v0.0.0-20240304122919-ef7a45e2d04a
+	github.com/go-ap/cache v0.0.0-20240304123124-5d953b368fbf
 	github.com/go-ap/client v0.0.0-20240211124832-961fcce8d438
-	github.com/go-ap/errors v0.0.0-20231003111023-183eef4b31b7
+	github.com/go-ap/errors v0.0.0-20240304112515-6077fa9c17b0
 	github.com/go-ap/jsonld v0.0.0-20221030091449-f2a191312c73
 	github.com/go-chi/chi/v5 v5.0.10
 	github.com/google/uuid v1.3.1
@@ -51,7 +51,7 @@ require (
 	gitlab.com/golang-commonmark/linkify v0.0.0-20200225224916-64bca66f6ad3 // indirect
 	gitlab.com/golang-commonmark/mdurl v0.0.0-20191124015652-932350d1cb84 // indirect
 	golang.org/x/net v0.21.0 // indirect
-	golang.org/x/sys v0.17.0 // indirect
+	golang.org/x/sys v0.18.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/protobuf v1.32.0 // indirect
 )
