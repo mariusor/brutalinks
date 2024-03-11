@@ -110,8 +110,7 @@ func AuthorizeOAuthClient(storage *repository, c appConfig) (*Account, error) {
 	app := new(Account)
 	app.FromActivityPub(oauth)
 
-	handle := oauth.GetLink().String()
-	tok, err := config.PasswordCredentialsToken(context.TODO(), handle, config.ClientSecret)
+	tok, err := config.PasswordCredentialsToken(context.TODO(), config.ClientID, config.ClientSecret)
 	if err != nil {
 		return app, err
 	} else {

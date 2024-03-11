@@ -5,7 +5,6 @@ import (
 	"net/url"
 	"os"
 	"path"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -252,16 +251,17 @@ func (c Configuration) GetOauth2Config(provider string, localBaseURL string) oau
 		fallthrough
 	default:
 		apiURL := strings.TrimRight(c.APIURL, "/")
-		conf.ClientID = os.Getenv(KeyFedBOXOAuthKey)
+		clientID := os.Getenv(KeyFedBOXOAuthKey)
+		if clientID == "" {
+			if u, err := url.Parse(os.Getenv(KeyFedBOXOAuthApp)); err == nil {
+				clientID = u.String()
+			}
+		}
+		conf.ClientID = clientID
 		conf.ClientSecret = os.Getenv(KeyFedBOXOAuthSecret)
 		conf.Endpoint = oauth2.Endpoint{
 			AuthURL:  fmt.Sprintf("%s/oauth/authorize", apiURL),
 			TokenURL: fmt.Sprintf("%s/oauth/token", apiURL),
-		}
-	}
-	if u, err := url.Parse(os.Getenv("OAUTH2_APP")); err == nil && u.Host != "" {
-		if u.Path != "" {
-			conf.ClientID = filepath.Base(u.Path)
 		}
 	}
 	if u, err := url.Parse(os.Getenv("OAUTH2_URL")); err == nil && u.Host != "" {
