@@ -1,11 +1,11 @@
 @media (min-width: 2201px) {
     :root {
-        font-size: .78vw;
+        font-size: .8vw;
     }
 }
 @media (max-width: 2200px) {
     :root {
-        font-size: .86vw;
+        font-size: .88vw;
     }
 }
 @media (max-width: 1800px) {
