@@ -3,7 +3,9 @@
 set -e
 
 TEST_PORT=${TEST_PORT:-4499}
-IMAGE=${IMAGE:-localhost/brutalinks/app:qa}
+AUTH_IMAGE=${AUTH_IMAGE:-localhost/auth/app:dev}
+FEDBOX_IMAGE=${FEDBOX_IMAGE:-localhost/fedbox/app:dev}
+IMAGE=${IMAGE:-localhost/brutalinks/app:dev}
 
 if podman network exists tests_network; then
     podman network rm -f tests_network
@@ -17,13 +19,14 @@ podman run -d --replace \
     -v $(pwd)/fedbox/env:/.env \
     -v $(pwd)/fedbox:/storage \
     -e ENV=test \
+    -e STORAGE=fs \
     -e LISTEN=:8443 \
     -e HOSTNAME=fedbox \
     --net tests_network \
-    --network-alias pub \
+    --network-alias fedbox-internal \
     --ip 10.6.6.61 \
     --expose 8443 \
-    quay.io/go-ap/fedbox:qa-fs
+    ${FEDBOX_IMAGE}
 
 _fedbox_running=$(podman ps --filter name=tests_fedbox --format '{{ .Names }}' )
 if [ -s ${_fedbox_running} ]; then
@@ -36,10 +39,10 @@ podman run -d --replace \
     --name=tests_auth \
     -v $(pwd)/fedbox:/storage \
     --net tests_network \
-    --network-alias auth \
-    --ip 10.6.6.3 \
+    --ip 10.6.6.62 \
+    --network-alias auth-internal \
     --expose 8080 \
-    quay.io/go-ap/auth:qa \
+    ${AUTH_IMAGE} \
     --env test --listen :8080 --storage fs:///storage/%storage%/%env%
 
 _auth_running=$(podman ps --filter name=tests_auth --format '{{ .Names }}' )
@@ -55,7 +58,9 @@ podman run --replace -d \
     -v caddy_data:/data \
     --net tests_network \
     --network-alias fedbox \
-    --ip 10.6.6.4 \
+    --network-alias brutalinks \
+    --network-alias auth \
+    --ip 10.6.6.6 \
     --expose 443 \
     --expose 80 \
     docker.io/library/caddy:2.7
@@ -73,8 +78,9 @@ podman run -d --replace \
     -v $(pwd)/brutalinks:/storage \
     -e LISTEN_HOST=brutalinks \
     --net tests_network \
-    --network-alias brutalinks \
-    --add-host fedbox:10.6.6.4 \
+    --add-host fedbox:10.6.6.6 \
+    --add-host auth:10.6.6.6 \
+    --network-alias brutalinks-internal \
     --ip 10.6.6.66 \
     --expose 8443 \
     "${IMAGE}"

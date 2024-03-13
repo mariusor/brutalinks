@@ -12,6 +12,7 @@ PORT ?= 4001
 FEDBOX_PORT ?= 4000
 VERSION ?= HEAD
 ENV_FILE ?= $(shell realpath .env.$(ENV))
+GO_VERSION ?= 1.21
 ifeq ($(OAUTH2_CALLBACK_URL), )
 	override OAUTH2_CALLBACK_URL := https://$(APP_HOSTNAME)/auth/fedbox/callback
 endif

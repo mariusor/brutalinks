@@ -28,8 +28,8 @@ test-podman:
 		--name=tests_k6 \
 		--net tests_network \
 		--network-alias k6 \
-		--add-host fedbox:10.6.6.61 \
-		--add-host brutalinks:10.6.6.66 \
+		--add-host fedbox:10.6.6.6 \
+		--add-host brutalinks:10.6.6.6 \
 		grafana/k6 \
 		--no-usage-report --insecure-skip-tls-verify \
 		--env TEST_HOST=https://brutalinks run - <script.js
