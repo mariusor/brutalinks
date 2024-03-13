@@ -16,8 +16,8 @@ podman network create --subnet 10.6.6.0/24 --gateway 10.6.6.1 tests_network
 podman run -d --replace \
     --pull newer \
     --name=tests_fedbox \
-    -v $(pwd)/fedbox/env:/.env \
-    -v $(pwd)/fedbox:/storage \
+    -v $(pwd)/mocks/fedbox/env:/.env \
+    -v $(pwd)/mocks/fedbox:/storage \
     -e ENV=test \
     -e STORAGE=fs \
     -e LISTEN=:8443 \
@@ -37,7 +37,7 @@ fi
 podman run -d --replace \
     --pull newer \
     --name=tests_auth \
-    -v $(pwd)/fedbox:/storage \
+    -v $(pwd)/mocks/fedbox:/storage \
     --net tests_network \
     --ip 10.6.6.62 \
     --network-alias auth-internal \
@@ -54,7 +54,7 @@ fi
 podman run --replace -d \
     -p ${TEST_PORT}:443 \
     --name=tests_caddy \
-    -v $(pwd)/Caddyfile:/etc/caddy/Caddyfile \
+    -v $(pwd)/mocks/Caddyfile:/etc/caddy/Caddyfile \
     -v caddy_data:/data \
     --net tests_network \
     --network-alias fedbox \
@@ -74,8 +74,8 @@ fi
 podman run -d --replace \
     --pull newer \
     --name=tests_brutalinks \
-    -v $(pwd)/brutalinks/env:/.env \
-    -v $(pwd)/brutalinks:/storage \
+    -v $(pwd)/mocks/brutalinks/env:/.env \
+    -v $(pwd)/mocks/brutalinks:/storage \
     -e LISTEN_HOST=brutalinks \
     --net tests_network \
     --add-host fedbox:10.6.6.6 \
