@@ -44,9 +44,10 @@ if [[ "${_environment}" = "dev" ]]; then
   buildah copy --from "${_builder}" "${_image}" /go/src/app/templates /templates
   buildah copy --from "${_builder}" "${_image}" /go/src/app/assets /assets
   buildah copy --from "${_builder}" "${_image}" /go/src/app/README.md /README.md
+
+  buildah config --workingdir / "${_image}"
 fi
 
-buildah config --workingdir / "${_image}"
 buildah config --entrypoint '["/bin/brutalinks"]' "${_image}"
 
 # commit
