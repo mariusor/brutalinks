@@ -1,2 +1,1 @@
-mocks/127.0.0.1:6667/oauth/access
-mocks/127.0.0.1:6667/oauth/refresh
+tests/fedbox/fs/test/oauth/clients/fedbox/actors/c4cdfe54-9919-4dd4-8a71-63beafe12b8c/

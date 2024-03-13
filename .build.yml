@@ -71,5 +71,7 @@ tasks:
       set +a -xe
 
       cd brutalinks
-      make integration
+      make IMAGE=quay.io/go-ap/brutalinks:qa integration
+
+
 
