@@ -4,7 +4,7 @@ go 1.21
 
 require (
 	git.sr.ht/~mariusor/assets v0.0.0-20230127131019-f411b9009e81
-	git.sr.ht/~mariusor/lw v0.0.0-20240310135138-67bdb0a4f8db
+	git.sr.ht/~mariusor/lw v0.0.0-20240313133110-12d501eee7f3
 	git.sr.ht/~mariusor/wrapper v0.0.0-20240210113306-c862d947a747
 	github.com/carlmjohnson/flowmatic v0.23.4
 	github.com/go-ap/activitypub v0.0.0-20240311125533-442f6c0264c8
