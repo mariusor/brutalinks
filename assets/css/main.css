@@ -9,6 +9,9 @@ body {
     grid-template-areas: "header" "main" "footer";
     grid-gap: .5rem;
 }
+:root {
+  font-size: calc(1rem + 0.25vw);
+}
 ul, ol {
     list-style: none;
 }
