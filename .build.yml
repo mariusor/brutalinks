@@ -3,6 +3,7 @@ packages:
   - go
   - podman
   - buildah
+  - passt
   - aardvark-dns
 sources:
   - https://git.sr.ht/~mariusor/brutalinks
