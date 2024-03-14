@@ -3,7 +3,7 @@ article {
     line-height: 1.3em;
 }
 article > header > h2 {
-    display: inline;
+    display: inline-block;
 }
 article footer {
     opacity: .8;

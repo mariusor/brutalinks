@@ -27,6 +27,12 @@
     }
 }
 @media (max-width: 576px) {
+    body {
+        padding:0 .2rem;
+    }
+    article > header h2 {
+        font-size: 1.1em;
+    }
     section header h2 small,
     body > header menu a span,
     body > header h1 a strong,
