@@ -12,7 +12,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-var basicStyles = []string{"css/reset.css", "css/main.css", "css/header.css", "css/footer.css"}
+var basicStyles = []string{"css/reset.css", "css/main.css", "css/s.css", "css/header.css", "css/footer.css"}
 var assetFiles = ass.Map{
 	"/css/moderate.css":     append(basicStyles, "css/listing.css", "css/content.css", "css/article.css", "css/moderate.css", "css/user.css"),
 	"/css/content.css":      append(basicStyles, "css/article.css", "css/listing.css", "css/threaded.css", "css/content.css"),
@@ -29,9 +29,6 @@ var assetFiles = ass.Map{
 	"/css/register.css":     append(basicStyles, "css/login.css"),
 	"/css/inline.css":       {"css/inline.css"},
 	"/css/simple.css":       {"css/simple.css"},
-	"/css/l.css":            {"css/l.css"},
-	"/css/m.css":            {"css/m.css"},
-	"/css/s.css":            {"css/s.css"},
 	"/js/main.js":           {"js/base.js", "js/main.js"},
 	"/robots.txt":           {"robots.txt"},
 	"/favicon.ico":          {"favicon.ico"},

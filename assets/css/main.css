@@ -1,4 +1,7 @@
 /* main.css */
+:root {
+    font-size: calc(1.4*1rem + .00105vw);
+}
 body {
     background-color: var(--main-bg-color);
     color: var(--main-fg-color);
@@ -9,11 +12,6 @@ body {
     grid-template-areas: "header" "main" "footer";
     grid-gap: .5rem;
 }
-/*
-:root {
-  font-size: calc(1rem + 0.33vw);
-}
-*/
 ul, ol {
     list-style: none;
 }

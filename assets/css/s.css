@@ -1,7 +1,4 @@
 @media (max-width: 860px) {
-    :root {
-        font-size: 2.1vw;
-    }
     a[rel="mention"] {
         max-width: 100px;
         white-space: nowrap;
@@ -15,9 +12,6 @@
     }
 }
 @media (max-width: 768px) {
-    :root {
-        font-size: 2.33vw;
-    }
     nav:not(.pagination) li::before {
         content: unset !important;
     }
@@ -33,9 +27,6 @@
     }
 }
 @media (max-width: 576px) {
-    :root {
-        font-size: 3.1vw;
-    }
     section header h2 small,
     body > header menu a span,
     body > header h1 a strong,
@@ -51,16 +42,10 @@
     }
 }
 @media (max-width: 480px) {
-    :root {
-        font-size: 3.7vw;
-    }
     footer time svg,
     body > header h1 a small {
         display: none;
     }
 }
 @media (max-width: 400px) {
-    :root {
-        font-size: 4.4vw;
-    }
 }

@@ -145,21 +145,6 @@ const staticResources = {
         tags: {type: 'static'},
         checks: CSSChecks(),
     },
-    '/css/l.css': {
-        path: '/css/l.css',
-        tags: {type: 'static'},
-        checks: CSSChecks(),
-    },
-    '/css/m.css': {
-        path: '/css/m.css',
-        tags: {type: 'static'},
-        checks: CSSChecks(),
-    },
-    '/css/s.css': {
-        path: '/css/s.css',
-        tags: {type: 'static'},
-        checks: CSSChecks(),
-    },
     '/js/main.js': {
         path: '/js/main.js',
         tags: {type: 'static'},
