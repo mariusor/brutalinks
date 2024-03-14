@@ -1,6 +1,6 @@
 /* main.css */
 :root {
-    font-size: calc(1.4*1rem + .00105vw);
+    font-size: calc(1.075rem + .00095vw);
 }
 body {
     background-color: var(--main-bg-color);
