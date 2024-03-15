@@ -54,4 +54,10 @@
     }
 }
 @media (max-width: 400px) {
+    body > header menu li a[rel=mention]::before {
+        content: none;
+    }
+    body > header menu small {
+        display: none;
+    }
 }
