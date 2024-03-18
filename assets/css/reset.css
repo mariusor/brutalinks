@@ -31,14 +31,12 @@ pre {
     padding: 0.5em;
     overflow: auto;
 }
-h1 { font-size: 180%; }
-h2 { font-size: 160%; }
-h3 { font-size: 140%; }
+h1 { font-size: 160%; }
+h2 { font-size: 140%; }
 h3 { font-size: 125%; }
-h3 { font-size: 118%; }
-h4 { font-size: 102%; }
-h5 { font-size: 96%; }
-h6 { font-size: 92%; }
+h4 { font-size: 112%; }
+h5 { font-size: 98%; }
+h6 { font-size: 95%; }
 body {
     font-family: sans-serif;
 }

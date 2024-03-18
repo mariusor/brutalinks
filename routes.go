@@ -12,7 +12,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-var basicStyles = []string{"css/reset.css", "css/main.css", "css/s.css", "css/header.css", "css/footer.css"}
+var basicStyles = []string{"css/reset.css", "css/main.css", "css/header.css", "css/footer.css", "css/s.css"}
 var assetFiles = ass.Map{
 	"/css/moderate.css":     append(basicStyles, "css/listing.css", "css/content.css", "css/article.css", "css/moderate.css", "css/user.css"),
 	"/css/content.css":      append(basicStyles, "css/article.css", "css/listing.css", "css/threaded.css", "css/content.css"),

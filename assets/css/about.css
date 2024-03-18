@@ -12,13 +12,17 @@ article p:first-of-type {
     margin-top: 0;
 }
 article p {
-    text-indent: 2.4em;
-    line-height: 1.6em;
+    text-indent: 2.2em;
+    line-height: 1.5em;
     margin-top: .8em;
 }
 article h1 {
-    padding: 0 0 .4em 2.4rem;
+    padding: 0 0 .6em 0;
 }
 article hr {
-    margin: 1.8rem 0;
+    margin: 1.8em 0;
+}
+@media (max-width: 576px) {
+    main article { max-width: unset; }
+    article h1 { text-align: center; }
 }

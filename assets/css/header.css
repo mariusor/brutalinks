@@ -1,11 +1,11 @@
-body > header > menu, body > header > h1, body > header > ul, body > header > * li {
+body > header > menu, body > header > ul, body > header > * li {
     display: inline-block;
 }
 body > header {
     display: grid;
     grid-template-columns: auto auto 5fr;
     grid-area: header;
-    margin: .5rem 0 0 0;
+    margin: .4rem 0 0 0;
 }
 body > header .score {
     display: inline;
@@ -14,11 +14,8 @@ body > header h1 a, body > header h1 a:hover, body > header h1 a:visited {
     color: var(--main-fg-color);
     text-decoration: none;
 }
-body > header h1 {
-    margin-left: -.2em;
-}
 body > header menu.tabs li {
-    margin-right: .5em;
+    margin-right: .4em;
 }
 body > header menu.tabs > li::before {
     content: unset;
@@ -31,8 +28,8 @@ body > header small {
     font-weight: lighter;
 }
 body > header menu {
-    padding-top: .72rem;
-    margin-left: 1rem;
+    align-self: end;
+    margin-left: .4rem;
     text-align: right;
 }
 small data.score::before {

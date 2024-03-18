@@ -10,54 +10,60 @@
     body > header h1 a small, body > header h1 a strong {
         display: none;
     }
+    body > header menu.tabs li {
+        margin: 0 .4em .2em 0;
+    }
 }
 @media (max-width: 768px) {
     nav:not(.pagination) li::before {
         content: unset !important;
     }
     body > footer menu li:first-of-type {
-        display:inline-block;
+        display: inline-block;
+    }
+    main article > header h2 {
+        font-size: 1.16em;
     }
     section footer nav li a:not([rel="bookmark"]),
-    body > footer nav:not(.pagination) li{
+    body > footer nav:not(.pagination) li {
         display: none;
     }
-    video {
-        width: 100%;
-    }
+    video { width: 100%; }
 }
 @media (max-width: 576px) {
-    body {
-        padding:0 .4rem;
-    }
-    article > header h2 {
-        font-size: 1.1em;
-    }
-    section header h2 small,
-    body > header menu a span,
-    body > header h1 a strong,
-    body > header h1 a small,
-    body > header nav li data {
+    body { padding: 0 .4rem; }
+    h1 { font-size: 140%; }
+    h2 { font-size: 130%; }
+    h3 { font-size: 120%; }
+    h4 { font-size: 100%; }
+    h5 { font-size: 96%; }
+    h6 { font-size: 92%; }
+    section header h2 small, body > header menu a span, body > header h1 a strong,
+    body > header h1 a small, body > header nav li data {
         display: none;
     }
-    section footer {
-        font-size: .75em;
+    body > header {
+        margin: .4rem 0 .8rem 0;
+    }
+    footer {
+        font-size: .9em;
     }
     section footer::before {
         content: unset;
     }
 }
 @media (max-width: 480px) {
-    footer time svg,
-    body > header h1 a small {
-        display: none;
+    body > header menu li a[rel=mention]::before,
+    body > header menu:not(.tabs) li::before {
+        content: unset;
     }
-}
-@media (max-width: 400px) {
-    body > header menu li a[rel=mention]::before {
-        content: none;
+    body > header menu:not(.tabs) li a, form fieldset {
+        font-size: .9em;
     }
-    body > header menu small {
+    form label {
+        font-size: .8em;
+    }
+    footer time svg, body > header h1 a small {
         display: none;
     }
 }
