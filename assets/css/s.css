@@ -28,7 +28,7 @@
 }
 @media (max-width: 576px) {
     body {
-        padding:0 .2rem;
+        padding:0 .4rem;
     }
     article > header h2 {
         font-size: 1.1em;
