@@ -1,6 +1,7 @@
 .children {
-    font-size: .94em;
     margin-left: .3em;
+    border-left-width: 1px;
+    border-left-style: solid;
 }
 main > .children {
     margin-left: unset;
@@ -11,32 +12,26 @@ li details .children > li {
 main > .children > li {
     padding: .5rem 0 .5rem 0;
 }
-main > .children, main > .children summary {
+main > .children {
     border-left-width: unset;
     border-left-style: unset;
 }
 main > .children details > summary {
     margin-left: unset;
-    padding: unset;
 }
 .children details[open] { }
 .children details:not([open]) { }
 .children details {
-    margin: .3em 0 0 1rem;
+    margin: .3em 0 0 0;
 }
 .children details > summary {
-    margin-left: .3em;
-    padding: 0 0 0 1em;
+    margin-left: 1em;
 }
 .children details > summary span {
     opacity: .6;
 }
 .children details > summary::-webkit-details-marker {
     opacity: .3;
-}
-.children, .children summary {
-    border-left-width: 1px;
-    border-left-style: solid;
 }
 .children > li span.score, .top-level > li span.score {
     min-height: 3.5em;
@@ -49,18 +44,11 @@ main > .children details > summary {
 .children > li article, .top-level > li article {
     grid-area: main;
     align-self: center;
-    /*margin-left: 1ex;*/
 }
 .children > li nav, .top-level > li nav {
     grid-area: footer;
     margin-left: .4em;
     align-self: start;
-}
-.children .data, #content .data {
-    border: none;
-}
-.child {
-    font-size: .9rem;
 }
 .lvl-0 {
     border-color: #ebebebaa;
