@@ -244,26 +244,28 @@ func addLevels(allComments RenderableList) RenderableList {
 	}
 
 	leveled := make(Hashes, 0)
-	var setLevel func(RenderableList)
+	var setLevel func(RenderableList, uint8)
 
-	setLevel = func(com RenderableList) {
+	setLevel = func(com RenderableList, pL uint8) {
 		for _, cur := range com {
 			if cur == nil || leveled.Contains(cur.ID()) {
-				break
+				continue
+			}
+			if cur.Children() == nil {
+				continue
+			}
+			switch c := cur.(type) {
+			case *Item:
+				c.Level = pL
+				setLevel(c.children, pL+1)
+			case *Account:
+				c.Level = pL
+				setLevel(c.children, pL+1)
 			}
 			leveled = append(leveled, cur.ID())
-			if cur.Children() == nil {
-				break
-			}
-			for _, child := range *cur.Children() {
-				if c, ok := child.(*Item); ok {
-					c.Level = c.Level + 1
-					setLevel(c.children)
-				}
-			}
 		}
 	}
-	setLevel(allComments)
+	setLevel(allComments, 0)
 	return allComments
 }
 

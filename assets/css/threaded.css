@@ -1,17 +1,30 @@
-.children > li {
+.children {
+    margin-left: .3em;
+}
+main > .children {
+    margin-left: unset;
+}
+li details .children > li {
     padding: .5rem 0 .5rem 1rem;
 }
-.children.lvl-0 {}
+main > .children > li {
+    padding: .5rem 0 .5rem 0;
+}
+main > .children, main > .children summary {
+    border-left-width: unset;
+    border-left-style: unset;
+}
+main > .children details > summary {
+    margin-left: unset;
+    padding: unset;
+}
 .children details[open] { }
 .children details:not([open]) { }
 .children details {
-    margin: .3em 0 0 0;
-}
-.children {
-    margin-left: .2em;
+    margin: .3em 0 0 1rem;
 }
 .children details > summary {
-    margin-left: .2em;
+    margin-left: .3em;
     padding: 0 0 0 1em;
 }
 .children details > summary span {
