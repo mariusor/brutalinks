@@ -7,6 +7,7 @@ MAKEFLAGS += --no-builtin-rules
 
 TEST_HOST ?= brutalinks
 TEST_PORT ?= 4499
+ENV ?= dev
 
 mkfile_path := $(abspath $(lastword $(MAKEFILE_LIST)))
 pwd := $(abspath $(dir mkfile_path))

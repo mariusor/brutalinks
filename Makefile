@@ -78,6 +78,6 @@ coverage: TEST_TARGET := .
 coverage: TEST_FLAGS += -covermode=count -coverprofile $(PROJECT_NAME).coverprofile
 coverage: test
 
-integration: ENV=prod
 integration:
-	make -C tests pods test-podman
+	make ENV=qa -C images builder build
+	make ENV=qa -C tests pods test-podman

@@ -2,10 +2,11 @@
 
 set -e
 
+ENV=${ENV:-dev}
 TEST_PORT=${TEST_PORT:-4499}
-AUTH_IMAGE=${AUTH_IMAGE:-localhost/auth/app:dev}
-FEDBOX_IMAGE=${FEDBOX_IMAGE:-localhost/fedbox/app:dev}
-IMAGE=${IMAGE:-localhost/brutalinks/app:dev}
+AUTH_IMAGE=${AUTH_IMAGE:-quay.io/go-ap/auth:qa}
+FEDBOX_IMAGE=${FEDBOX_IMAGE:-quay.io/go-ap/fedbox:qa-fs}
+IMAGE=${IMAGE:-localhost/brutalinks/app:${ENV}}
 
 if podman network exists tests_network; then
     podman network rm -f tests_network
@@ -30,7 +31,7 @@ podman run -d --replace \
 
 _fedbox_running=$(podman ps --filter name=tests_fedbox --format '{{ .Names }}' )
 if [ -s ${_fedbox_running} ]; then
-    echo "Unable to run test pod for fedbox"
+    echo "Unable to run fedbox test pod: ${FEDBOX_IMAGE}"
     exit 1
 fi
 
@@ -47,7 +48,7 @@ podman run -d --replace \
 
 _auth_running=$(podman ps --filter name=tests_auth --format '{{ .Names }}' )
 if [ -s ${_auth_running} ]; then
-    echo "Unable to run test pod for fedbox OAuth2"
+    echo "Unable to run test fedbox OAuth2 pod: ${AUTH_IMAGE}"
     exit 1
 fi
 
@@ -87,6 +88,8 @@ podman run -d --replace \
 
 _brutalinks_running=$(podman ps --filter name=tests_brutalinks --format '{{ .Names }}' )
 if [ -s ${_brutalinks_running} ]; then
-    echo "Unable to run test pod for brutalinks"
+    echo "Unable to run brutalinks test pod: ${IMAGE}"
     exit 1
 fi
+echo "Brutalinks pod running: ${IMAGE}"
+
