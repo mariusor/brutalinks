@@ -72,11 +72,8 @@ tasks:
       set +a -xe
 
       cd brutalinks
-      make \
-      IMAGE=quay.io/go-ap/brutalinks:qa \
-      AUTH_IMAGE=quay.io/go-ap/auth:qa \
-      FEDBOX_IMAGE=quay.io/go-ap/fedbox:qa-fs \
-      integration || podman logs -tn tests_brutalinks tests_fedbox tests_auth
+      make IMAGE=quay.io/go-ap/brutalinks:qa integration || \
+      podman logs -tn --tail=100 tests_brutalinks tests_fedbox tests_auth
 
 
 
