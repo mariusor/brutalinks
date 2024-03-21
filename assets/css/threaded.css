@@ -1,6 +1,6 @@
 .children {
-    margin-left:.35em;
-    border-left-width: 1px;
+    margin-left:.3em;
+    border-left-width: 3px;
     border-left-style: solid;
 }
 main > .children {
@@ -56,32 +56,32 @@ details > summary small {
     align-self: start;
 }
 .lvl-0 {
-    border-color: #ebebebaa;
+    border-color: rgb(from var(--main-fg-color) r g b / 1);
 }
 .lvl-1 {
-    border-color: #d7d7d7aa;
+    border-color: rgb(from var(--main-fg-color) r g b / 0.9);
 }
 .lvl-2 {
-    border-color: #c4c4c4aa;
+    border-color: rgb(from var(--main-fg-color) r g b / 0.8);
 }
 .lvl-3 {
-    border-color: #b0b0b0aa;
+    border-color: rgb(from var(--main-fg-color) r g b/ 0.7);
 }
 .lvl-4 {
-    border-color: #9c9c9caa;
+    border-color: rgb(from var(--main-fg-color) r g b / 0.6);
 }
 .lvl-5 {
-    border-color: #898989aa;
+    border-color: rgb(from var(--main-fg-color) r g b / 0.5);
 }
 .lvl-6 {
-    border-color: #757575aa;
+    border-color: rgb(from var(--main-fg-color) r g b / 0.4);
 }
 .lvl-7 {
-    border-color: #626262aa;
+    border-color: rgb(from var(--main-fg-color) r g b / 0.3);
 }
 .lvl-8 {
-    border-color: #4e4e4eaa;
+    border-color: rgb(from var(--main-fg-color) r g b / 0.2);
 }
 .lvl-9 {
-    border-color: #3a3a3aaa;
+    border-color: rgb(from var(--main-fg-color) r g b / 0.1);
 }
