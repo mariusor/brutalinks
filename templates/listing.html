@@ -5,7 +5,7 @@
 {{- if le .Level 10 }}
 {{- $class = "children" -}}
 {{- end -}}
-<ol class="{{ $class }}{{- if le .Level 10}} lvl-{{ .Level | Mod10 }}{{- end -}}" {{- if .ID.IsValid }} data-parent="{{ .ID }}" id="c-{{ .ID }}"{{- end -}}>
+<ol class="{{ $class }} {{ . | Level }}" {{- if .ID.IsValid }} data-parent="{{ .ID }}" id="c-{{ .ID }}"{{- end -}}>
     {{- range $key, $value := $items -}}
     <li data-index="{{$key}}" data-hash="{{.ID}}" id="li-{{.ID}}">{{ template "partials/list-item" $value }}</li>
     {{- end }}

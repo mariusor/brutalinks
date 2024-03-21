@@ -72,7 +72,7 @@ func ViewInit(c appConfig, l log.Logger) (*view, error) {
 			"IsAccount":         func(t Renderable) bool { return t.Type() == ActorType },
 			"IsModeration":      func(t Renderable) bool { return t.Type() == ModerationType },
 			"SessionEnabled":    func() bool { return v.s.enabled },
-			"Mod10":             mod10,
+			"Level":             level,
 			"HTML":              html,
 			"Text":              text,
 			"isAudio":           isAudio,
@@ -454,8 +454,15 @@ func (v *view) loadFlashMessages(w http.ResponseWriter, r *http.Request) func() 
 	return flashFn
 }
 
-func mod10(lvl uint8) float64 {
-	return math.Mod(float64(lvl), float64(10))
+func level(r Renderable) template.HTMLAttr {
+	var lvl uint8
+	switch i := r.(type) {
+	case *Account:
+		lvl = i.Level
+	case *Item:
+		lvl = i.Level
+	}
+	return template.HTMLAttr(fmt.Sprintf("lvl-%d", int(math.Mod(float64(lvl), float64(5)))))
 }
 
 const minShowUpdateTime = 2 * time.Second
