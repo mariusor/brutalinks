@@ -72,6 +72,7 @@ func ViewInit(c appConfig, l log.Logger) (*view, error) {
 			"IsAccount":         func(t Renderable) bool { return t.Type() == ActorType },
 			"IsModeration":      func(t Renderable) bool { return t.Type() == ModerationType },
 			"SessionEnabled":    func() bool { return v.s.enabled },
+			"ListingClass":      listingClass,
 			"Level":             level,
 			"HTML":              html,
 			"Text":              text,
@@ -452,6 +453,16 @@ func (v *view) loadFlashMessages(w http.ResponseWriter, r *http.Request) func() 
 		v.errFn(log.Ctx{"err": err})("unable to load flash messages")
 	}
 	return flashFn
+}
+
+func listingClass(m any) template.HTMLAttr {
+	switch m.(type) {
+	case *Account:
+		return "children"
+	case *Item:
+		return "children"
+	}
+	return "top-level"
 }
 
 func level(r Renderable) template.HTMLAttr {

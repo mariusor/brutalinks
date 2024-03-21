@@ -2,6 +2,9 @@ package brutalinks
 
 import (
 	"html/template"
+	"time"
+
+	vocab "github.com/go-ap/activitypub"
 )
 
 type Paginator interface {
@@ -20,19 +23,37 @@ type listingModel struct {
 	tpl          string
 	User         *Account
 	ShowChildren bool
-	Children     RenderableList
+	children     RenderableList
 	ShowText     bool
 	after        Hash
 	before       Hash
 	sortFn       func(list RenderableList) []Renderable
 }
 
-func (m listingModel) ID() Hash {
-	return Hash{}
+func (m listingModel) AP() vocab.Item {
+	return nil
 }
 
-func (m listingModel) Level() uint8 {
-	return 99
+func (m listingModel) IsValid() bool {
+	return false
+}
+
+func (m listingModel) Type() RenderType {
+	return UnknownType
+}
+
+func (m listingModel) Date() time.Time {
+	return time.Now().UTC()
+}
+
+func (m listingModel) Children() *RenderableList {
+	return &m.children
+}
+
+var _ Renderable = listingModel{}
+
+func (m listingModel) ID() Hash {
+	return Hash{}
 }
 
 func (m listingModel) NextPage() Hash {
@@ -47,7 +68,7 @@ func (m *listingModel) SetCursor(c *Cursor) {
 	if c == nil {
 		return
 	}
-	m.Children = c.items
+	m.children = c.items
 	m.after = c.after
 	m.before = c.before
 }
@@ -64,7 +85,7 @@ func (m listingModel) Template() string {
 }
 
 func (m listingModel) Sorted() []Renderable {
-	return m.sortFn(m.Children)
+	return m.sortFn(m.children)
 }
 
 type mBox struct {

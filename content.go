@@ -116,6 +116,8 @@ const Nay = "nay"
 type RenderType int
 
 const (
+	UnknownType RenderType = -1
+
 	CommentType RenderType = iota
 	FollowType
 	AppreciationType
