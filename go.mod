@@ -1,6 +1,6 @@
 module git.sr.ht/~mariusor/brutalinks
 
-go 1.21
+go 1.22
 
 require (
 	git.sr.ht/~mariusor/assets v0.0.0-20230127131019-f411b9009e81

@@ -10,7 +10,7 @@ APP_HOSTNAME ?= brutalinks.local
 PORT ?= 4001
 VERSION ?= HEAD
 ENV_FILE ?= $(shell realpath .env.$(ENV))
-GO_VERSION ?= 1.21
+GO_VERSION ?= 1.22
 
 TAG_CMD=podman tag
 PUSH_CMD=podman push
