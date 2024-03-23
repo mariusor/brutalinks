@@ -19,17 +19,13 @@ main > .children details > summary {
     margin-left: unset;
 }
 details > summary {
-    list-style-type: '⯈';
     opacity: .7;
     font-size: .9em;
     line-height: 1.2em;
 }
-details[open] > summary {
-    list-style-type: '⯆';
-}
+details[open] > summary {}
 details > summary small {
     font-size: .85em;
-    margin-left: .5em;
 }
 .children details[open] { }
 .children details:not([open]) { }

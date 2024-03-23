@@ -30,6 +30,12 @@ a[href="#"], a[href="#"]:visited {
     cursor: text;
     text-decoration: none;
 }
+details > summary {
+    list-style-type: '⯈ ';
+}
+details[open] > summary {
+    list-style-type: '⯆ ';
+}
 .deg-45 {
     transform: rotate(45deg);
 }
