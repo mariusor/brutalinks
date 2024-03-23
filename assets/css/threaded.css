@@ -1,6 +1,6 @@
 .children {
-    margin-left:.3em;
-    border-left-width: 3px;
+    margin-left: 7px;
+    border-left-width: 1px;
     border-left-style: solid;
 }
 main > .children {
@@ -19,16 +19,17 @@ main > .children details > summary {
     margin-left: unset;
 }
 details > summary {
-    list-style-type: '⊞';
-    line-height: 1.1em;
+    list-style-type: '⯈';
     opacity: .7;
     font-size: .9em;
+    line-height: 1.2em;
 }
 details[open] > summary {
-    list-style-type: '⊟';
+    list-style-type: '⯆';
 }
 details > summary small {
-    margin-left: .3em;
+    font-size: .85em;
+    margin-left: .5em;
 }
 .children details[open] { }
 .children details:not([open]) { }
