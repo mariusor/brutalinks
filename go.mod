@@ -4,12 +4,12 @@ go 1.21
 
 require (
 	git.sr.ht/~mariusor/assets v0.0.0-20230127131019-f411b9009e81
-	git.sr.ht/~mariusor/lw v0.0.0-20240313142800-531789c76b6d
+	git.sr.ht/~mariusor/lw v0.0.0-20240323171419-d538df4af052
 	git.sr.ht/~mariusor/wrapper v0.0.0-20240210113306-c862d947a747
 	github.com/carlmjohnson/flowmatic v0.23.4
-	github.com/go-ap/activitypub v0.0.0-20240316125321-b61fd6a83225
-	github.com/go-ap/cache v0.0.0-20240316125445-3a1ff1ae4942
-	github.com/go-ap/client v0.0.0-20240316125535-27e8db2c2547
+	github.com/go-ap/activitypub v0.0.0-20240323154407-e2e30475b980
+	github.com/go-ap/cache v0.0.0-20240323154621-7d2e4a7185b6
+	github.com/go-ap/client v0.0.0-20240323154701-a45ab836e28a
 	github.com/go-ap/errors v0.0.0-20240304112515-6077fa9c17b0
 	github.com/go-ap/jsonld v0.0.0-20221030091449-f2a191312c73
 	github.com/go-chi/chi/v5 v5.0.12
