@@ -1248,7 +1248,7 @@ func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemC
 	return col, nil
 }
 
-func getCollectionPrevNext(col vocab.CollectionInterface) (prev, next string) {
+func getCollectionPrevNext(col vocab.CollectionInterface) (prev, next vocab.IRI) {
 	qFn := func(i vocab.Item) url.Values {
 		if i == nil {
 			return url.Values{}
@@ -1258,18 +1258,14 @@ func getCollectionPrevNext(col vocab.CollectionInterface) (prev, next string) {
 		}
 		return url.Values{}
 	}
-	beforeFn := func(i vocab.Item) string {
-		return qFn(i).Get("before")
+	beforeFn := func(i vocab.Item) vocab.IRI {
+		return vocab.IRI(qFn(i).Get("before"))
 	}
-	afterFn := func(i vocab.Item) string {
-		return qFn(i).Get("after")
+	afterFn := func(i vocab.Item) vocab.IRI {
+		return vocab.IRI(qFn(i).Get("after"))
 	}
-	nextFromLastFn := func(i vocab.Item) string {
-		if u, err := i.GetLink().URL(); err == nil {
-			_, next = filepath.Split(u.Path)
-			return next
-		}
-		return ""
+	nextFromLastFn := func(i vocab.Item) vocab.IRI {
+		return i.GetLink()
 	}
 	switch col.GetType() {
 	case vocab.OrderedCollectionPageType:
@@ -1303,9 +1299,9 @@ func getCollectionPrevNext(col vocab.CollectionInterface) (prev, next string) {
 	//   we don't take it into consideration.
 	if next != "" {
 		f := struct {
-			Next string `qstring:"after"`
+			Next vocab.IRI `qstring:"after"`
 		}{}
-		if err := qstring.Unmarshal(qFn(col.GetLink()), &f); err == nil && next == f.Next {
+		if err := qstring.Unmarshal(qFn(col.GetLink()), &f); err == nil && next.Equals(f.Next, true) {
 			next = ""
 		}
 	}
@@ -1583,7 +1579,7 @@ func (r *repository) LoadSearches(ctx context.Context, searches RemoteLoads, dep
 	result := make(RenderableList, 0)
 	resM := new(sync.RWMutex)
 
-	var next, prev string
+	var next, prev vocab.IRI
 	err := LoadFromSearches(ctx, r, searches, func(ctx context.Context, col vocab.CollectionInterface, f *Filters) error {
 		if len(col.Collection()) > 0 {
 			prev, next = getCollectionPrevNext(col)
@@ -1756,8 +1752,8 @@ func (r *repository) LoadSearches(ctx context.Context, searches RemoteLoads, dep
 	})
 
 	return Cursor{
-		after:  HashFromString(next),
-		before: HashFromString(prev),
+		after:  HashFromIRI(next),
+		before: HashFromIRI(prev),
 		items:  result,
 		total:  uint(len(result)),
 	}, nil

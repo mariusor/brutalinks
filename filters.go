@@ -35,23 +35,23 @@ func (cs CompStrs) Contains(f CompStr) bool {
 }
 
 type Filters struct {
-	Name       CompStrs `qstring:"name,omitempty"`
-	Cont       CompStrs `qstring:"content,omitempty"`
-	MedTypes   CompStrs `qstring:"mediaType,omitempty"`
-	URL        CompStrs `qstring:"url,omitempty"`
-	IRI        CompStrs `qstring:"iri,omitempty"`
-	Generator  CompStrs `qstring:"generator,omitempty"`
-	Type       CompStrs `qstring:"type,omitempty"`
-	AttrTo     CompStrs `qstring:"attributedTo,omitempty"`
-	InReplTo   CompStrs `qstring:"inReplyTo,omitempty"`
-	OP         CompStrs `qstring:"context,omitempty"`
-	Recipients CompStrs `qstring:"recipients,omitempty"`
-	Next       string   `qstring:"after,omitempty"`
-	Prev       string   `qstring:"before,omitempty"`
-	MaxItems   int      `qstring:"maxItems,omitempty"`
-	Object     *Filters `qstring:"object,omitempty"`
-	Tag        *Filters `qstring:"tag,omitempty"`
-	Actor      *Filters `qstring:"actor,omitempty"`
+	Name       CompStrs  `qstring:"name,omitempty"`
+	Cont       CompStrs  `qstring:"content,omitempty"`
+	MedTypes   CompStrs  `qstring:"mediaType,omitempty"`
+	URL        CompStrs  `qstring:"url,omitempty"`
+	IRI        CompStrs  `qstring:"iri,omitempty"`
+	Generator  CompStrs  `qstring:"generator,omitempty"`
+	Type       CompStrs  `qstring:"type,omitempty"`
+	AttrTo     CompStrs  `qstring:"attributedTo,omitempty"`
+	InReplTo   CompStrs  `qstring:"inReplyTo,omitempty"`
+	OP         CompStrs  `qstring:"context,omitempty"`
+	Recipients CompStrs  `qstring:"recipients,omitempty"`
+	Next       vocab.IRI `qstring:"after,omitempty"`
+	Prev       vocab.IRI `qstring:"before,omitempty"`
+	MaxItems   int       `qstring:"maxItems,omitempty"`
+	Object     *Filters  `qstring:"object,omitempty"`
+	Tag        *Filters  `qstring:"tag,omitempty"`
+	Actor      *Filters  `qstring:"actor,omitempty"`
 }
 
 // FiltersFromRequest loads the filters we use for generating storage queries from the HTTP request
