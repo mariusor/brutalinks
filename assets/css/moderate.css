@@ -1,3 +1,16 @@
+#moderate > details {
+    display: inline-block;
+}
+#moderate > details aside, #user details summary {
+    margin: .2em 0;
+}
+#moderate > details summary h2, details summary nav {
+    display: inline-block;
+    align-self: end;
+}
+#moderate > details aside nav {
+    margin-top: .4em;
+}
 .moderate article section {
     grid-area: main;
     align-self: center;

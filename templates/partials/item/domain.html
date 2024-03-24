@@ -1,3 +1,3 @@
-<small><noscript>from </noscript>
-{{- range $link := GetDomainLinks . -}}<a rel="directory" href="/d{{$link.Href}}">{{$link.Name}}</a>{{- end -}}
+<small>
+{{- range $link := GetDomainLinks . -}}<noscript>from </noscript><a rel="directory" href="/d{{$link.Href}}">{{$link.Name}}</a>{{- end -}}
 </small>
