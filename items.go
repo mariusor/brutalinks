@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
 
 	vocab "github.com/go-ap/activitypub"
@@ -102,13 +101,12 @@ func (i *Item) MakePublic() {
 	i.Flags ^= FlagsPrivate
 }
 
-func (i *Item) IsLink() bool {
-	return i != nil && i.MimeType == MimeTypeURL
+func (i Item) IsLink() bool {
+	return isDocument(i.MimeType)
 }
 
 func (i Item) IsSelf() bool {
-	mimeComponents := strings.Split(i.MimeType, "/")
-	return mimeComponents[0] == "text"
+	return !isDocument(i.MimeType)
 }
 
 func (i ItemCollection) First() (*Item, error) {

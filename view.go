@@ -686,8 +686,13 @@ func isAudio(mime string) bool {
 func isVideo(mime string) bool {
 	return strings.Contains(mime, "video")
 }
+
 func isImage(mime string) bool {
 	return strings.Contains(mime, "image")
+}
+
+func isSvg(mime string) bool {
+	return strings.Contains(mime, "svg")
 }
 
 func isDocument(mime string) bool {
@@ -706,7 +711,7 @@ func itemType(mime string) template.HTML {
 	if isAudio(mime) {
 		t = "audio"
 	}
-	if isImage(mime) {
+	if isImage(mime) || isSvg(mime) {
 		t = "image"
 	}
 	return template.HTML(t)
