@@ -7,9 +7,9 @@ require (
 	git.sr.ht/~mariusor/lw v0.0.0-20240323171419-d538df4af052
 	git.sr.ht/~mariusor/wrapper v0.0.0-20240210113306-c862d947a747
 	github.com/carlmjohnson/flowmatic v0.23.4
-	github.com/go-ap/activitypub v0.0.0-20240323154407-e2e30475b980
-	github.com/go-ap/cache v0.0.0-20240323154621-7d2e4a7185b6
-	github.com/go-ap/client v0.0.0-20240323154701-a45ab836e28a
+	github.com/go-ap/activitypub v0.0.0-20240327073638-93645bda3b18
+	github.com/go-ap/cache v0.0.0-20240324143953-1247d54db1bc
+	github.com/go-ap/client v0.0.0-20240327112549-6abf62c47e46
 	github.com/go-ap/errors v0.0.0-20240304112515-6077fa9c17b0
 	github.com/go-ap/jsonld v0.0.0-20221030091449-f2a191312c73
 	github.com/go-chi/chi/v5 v5.0.12
