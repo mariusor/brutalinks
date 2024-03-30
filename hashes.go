@@ -1,7 +1,7 @@
 package brutalinks
 
 import (
-	"parse/strconv"
+	"strconv"
 	"strings"
 
 	vocab "github.com/go-ap/activitypub"
@@ -44,7 +44,7 @@ func HashFromString(s string) Hash {
 	if len(s) == 0 {
 		return AnonymousHash
 	}
-	if _, e := strconv.Parse([]byte(s)); e == len(s) {
+	if _, err := strconv.ParseInt(s, 10, 64); err == nil {
 		hh := [16]byte{}
 		bs := []byte(s)
 		st := len(bs) - 1
