@@ -5,6 +5,7 @@ go 1.22
 require (
 	git.sr.ht/~mariusor/assets v0.0.0-20230127131019-f411b9009e81
 	git.sr.ht/~mariusor/lw v0.0.0-20240323171419-d538df4af052
+	git.sr.ht/~mariusor/mask v0.0.0-20240327084502-ef2a9438457e
 	git.sr.ht/~mariusor/wrapper v0.0.0-20240210113306-c862d947a747
 	github.com/carlmjohnson/flowmatic v0.23.4
 	github.com/go-ap/activitypub v0.0.0-20240327073638-93645bda3b18

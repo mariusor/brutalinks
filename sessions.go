@@ -9,6 +9,7 @@ import (
 
 	"git.sr.ht/~mariusor/brutalinks/internal/config"
 	log "git.sr.ht/~mariusor/lw"
+	"git.sr.ht/~mariusor/mask"
 	vocab "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
 	"github.com/gorilla/sessions"
@@ -80,10 +81,10 @@ func initSession(c appConfig, infoFn, errFn CtxLogFn) (sess, error) {
 	return s, nil
 }
 
-func hideSessionKeys(keys ...[]byte) []string {
+func maskSessionKeys(keys ...[]byte) []string {
 	hidden := make([]string, len(keys))
 	for i, k := range keys {
-		hidden[i] = hideString(string(k))
+		hidden[i] = mask.B(k).String()
 	}
 	return hidden
 }
@@ -99,7 +100,7 @@ func initCookieSession(c appConfig, infoFn, errFn CtxLogFn) (sessions.Store, err
 	infoFn(log.Ctx{
 		"type":   c.SessionsBackend,
 		"env":    c.Env,
-		"keys":   hideSessionKeys(c.SessionKeys...),
+		"keys":   maskSessionKeys(c.SessionKeys...),
 		"domain": c.HostName,
 	})("Session settings")
 	if c.Env.IsProd() {
@@ -131,7 +132,7 @@ func initFileSession(c appConfig, path string, infoFn, errFn CtxLogFn) (sessions
 		"type":     c.SessionsBackend,
 		"env":      c.Env,
 		"path":     path,
-		"keys":     hideSessionKeys(c.SessionKeys...),
+		"keys":     maskSessionKeys(c.SessionKeys...),
 		"hostname": c.HostName,
 	})("Session settings")
 	ss := sessions.NewFilesystemStore(path, c.SessionKeys...)

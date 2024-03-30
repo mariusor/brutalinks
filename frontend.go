@@ -5,7 +5,6 @@ import (
 	"embed"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"git.sr.ht/~mariusor/brutalinks/internal/config"
 	log "git.sr.ht/~mariusor/lw"
@@ -50,17 +49,6 @@ type appConfig struct {
 
 var defaultLogFn = func(string, ...interface{}) {}
 var defaultCtxLogFn = func(c ...log.Ctx) LogFn { return defaultLogFn }
-
-func hideString(s string) string {
-	l := len(s)
-
-	if l <= 3 {
-		return "***"
-	}
-	ss := strings.Repeat("*", l-3)
-
-	return ss + s[l-3:]
-}
 
 const fedboxProvider = "fedbox"
 
