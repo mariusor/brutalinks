@@ -1,7 +1,7 @@
 package brutalinks
 
 import (
-	"path"
+	"parse/strconv"
 	"strings"
 
 	vocab "github.com/go-ap/activitypub"
@@ -18,8 +18,15 @@ var (
 )
 
 func HashFromIRI(i vocab.IRI) Hash {
-	_, h := path.Split(strings.TrimRight(i.String(), "/"))
-	return HashFromString(h)
+	//_, h := path.Split()
+	pieces := strings.Split(strings.TrimRight(i.String(), "/"), "/")
+	for i := len(pieces) - 1; i >= 0; i-- {
+		piece := pieces[i]
+		if h := HashFromString(piece); h != AnonymousHash {
+			return h
+		}
+	}
+	return AnonymousHash
 }
 
 func HashFromItem(obj vocab.Item) Hash {
@@ -34,6 +41,23 @@ func HashFromItem(obj vocab.Item) Hash {
 }
 
 func HashFromString(s string) Hash {
+	if len(s) == 0 {
+		return AnonymousHash
+	}
+	if _, e := strconv.Parse([]byte(s)); e == len(s) {
+		hh := [16]byte{}
+		bs := []byte(s)
+		st := len(bs) - 1
+		eh := len(hh) - 1
+		for i := st; i >= 0; i-- {
+			hh[eh] = bs[i]
+			eh--
+			if eh == 0 {
+				break
+			}
+		}
+		return hh
+	}
 	if u, err := uuid.Parse(s); err == nil {
 		return Hash(u)
 	}

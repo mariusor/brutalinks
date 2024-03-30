@@ -214,6 +214,7 @@ func getNamedActorFn(r *http.Request) vocab.ItemCollection {
 	}
 	return named
 }
+
 func SearchInCollectionsMw(getActorsFn func(r *http.Request) vocab.ItemCollection, collections ...LoadFn) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
