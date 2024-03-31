@@ -9,10 +9,12 @@ import (
 	"net/http"
 	"path"
 	"regexp"
+	"strings"
 
 	"git.sr.ht/~mariusor/brutalinks/internal/assets"
 	log "git.sr.ht/~mariusor/lw"
 	vocab "github.com/go-ap/activitypub"
+	"github.com/go-ap/errors"
 	"github.com/writeas/go-nodeinfo"
 )
 
@@ -149,6 +151,121 @@ func (h handler) HandleHostMeta(w http.ResponseWriter, r *http.Request) {
 }
 
 const selfName = "self"
+
+func splitResourceString(res string) (string, string) {
+	split := ":"
+	if strings.Contains(res, "://") {
+		split = "://"
+	}
+	ar := strings.Split(res, split)
+	if len(ar) != 2 {
+		return "", ""
+	}
+	typ := ar[0]
+	handle := ar[1]
+	if handle[0] == '@' && len(handle) > 1 {
+		handle = handle[1:]
+	}
+	return typ, handle
+}
+
+// HandleWebFinger serves /.well-known/webfinger/
+func (h handler) HandleWebFinger(w http.ResponseWriter, r *http.Request) {
+	res := r.URL.Query().Get("resource")
+
+	typ, handle := splitResourceString(res)
+	if typ == "" || handle == "" {
+		errors.HandleError(errors.BadRequestf("invalid resource %s", res)).ServeHTTP(w, r)
+		return
+	}
+	var host string
+
+	wf := node{}
+	if strings.Contains(handle, "@") {
+		handle, host = func(s string) (string, string) {
+			split := "@"
+			ar := strings.Split(s, split)
+			if len(ar) != 2 {
+				return "", ""
+			}
+			return ar[0], ar[1]
+		}(handle)
+	}
+	var a *Account
+	fedbox := h.storage.fedbox.Service()
+	handleIRI := vocab.IRI(fmt.Sprintf("https://%s/", handle))
+	if fedbox.GetLink().Equals(handleIRI, false) || handle == selfName {
+		a = new(Account)
+		if err := a.FromActivityPub(fedbox); err != nil {
+			err := errors.NotFoundf("resource not found %s", res)
+			h.errFn()("Error: %s", err)
+			errors.HandleError(err).ServeHTTP(w, r)
+			return
+		}
+	} else {
+		ff := &Filters{Name: CompStrs{EqualsString(handle)}}
+		accounts, _, err := h.storage.LoadAccounts(context.TODO(), nil, ff)
+		if err != nil {
+			err = errors.NewNotFound(err, "resource not found %s", res)
+			h.errFn(log.Ctx{"err": err})("unable to load %s", handle)
+			errors.HandleError(err).ServeHTTP(w, r)
+			return
+		}
+		a, err = accounts.First()
+		if err != nil {
+			err = errors.NewNotFound(err, "resource not found %s", res)
+			h.errFn()("Error: %s", err)
+			errors.HandleError(err).ServeHTTP(w, r)
+			return
+		}
+	}
+
+	id := a.AP().GetID()
+	if host == "" {
+		host = h.conf.HostName
+	}
+	wf.Subject = fmt.Sprintf("%s@%s", handle, host)
+	wf.Links = []link{
+		{
+			Rel:  "self",
+			Type: "application/activity+json",
+			Href: id.String(),
+		},
+	}
+	existsOnInstance := false
+	vocab.OnActor(a.AP(), func(act *vocab.Actor) error {
+		urls := make(vocab.ItemCollection, 0)
+		if vocab.IsItemCollection(act.URL) {
+			urls = append(urls, act.URL.(vocab.ItemCollection)...)
+		} else {
+			urls = append(urls, act.URL.(vocab.IRI))
+		}
+
+		for _, u := range urls {
+			url := u.GetLink().String()
+			existsOnInstance = existsOnInstance || strings.Contains(url, Instance.BaseURL.String())
+			wf.Aliases = append(wf.Aliases, url)
+			wf.Links = append(wf.Links, link{
+				Rel:  "https://webfinger.net/rel/profile-page",
+				Type: "text/html",
+				Href: url,
+			})
+		}
+		return nil
+	})
+	if !existsOnInstance {
+		err := errors.NotFoundf("resource not found %s", res)
+		h.errFn()("Error: %s", err)
+		errors.HandleError(err).ServeHTTP(w, r)
+		return
+	}
+	wf.Aliases = append(wf.Aliases, id.String())
+
+	dat, _ := json.Marshal(wf)
+	w.Header().Set("Content-Type", "application/jrd+json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(dat)
+}
 
 func (a Application) NodeInfo() WebInfo {
 	// Name formats the name of the current Application

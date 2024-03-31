@@ -125,6 +125,7 @@ func (a *Application) Routes() {
 	ni := nodeinfo.NewService(cfg, NodeInfoResolverNew(a.front.storage))
 	// Web-Finger
 	r.Route("/.well-known", func(r chi.Router) {
+		r.Get("/webfinger", a.front.HandleWebFinger)
 		r.Get("/host-meta", a.front.HandleHostMeta)
 		r.Get("/nodeinfo", ni.NodeInfoDiscover)
 		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
