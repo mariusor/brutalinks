@@ -18,7 +18,3 @@
 .moderation-request details+details {
     margin-top: 0;
 }
-.moderation-request summary {
-    font-weight: bold;
-    margin-bottom: .2em;
-}

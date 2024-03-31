@@ -31,6 +31,9 @@ a[href="#"], a[href="#"]:visited {
     text-decoration: none;
 }
 details > summary {
+    opacity: .7;
+    font-size: .9em;
+    line-height: 1.2em;
     list-style-type: '⯈ ';
 }
 details[open] > summary {

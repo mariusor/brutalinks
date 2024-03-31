@@ -18,7 +18,7 @@ var assetFiles = ass.Map{
 	"/css/content.css":      append(basicStyles, "css/article.css", "css/listing.css", "css/threaded.css", "css/content.css"),
 	"/css/accounts.css":     append(basicStyles, "css/listing.css", "css/threaded.css", "css/accounts.css"),
 	"/css/listing.css":      append(basicStyles, "css/listing.css", "css/article.css", "css/threaded.css", "css/moderate.css"),
-	"/css/moderation.css":   append(basicStyles, "css/listing.css", "css/article.css", "css/moderation.css"),
+	"/css/moderation.css":   append(basicStyles, "css/listing.css", "css/article.css", "css/threaded.css", "css/moderation.css"),
 	"/css/user.css":         append(basicStyles, "css/listing.css", "css/article.css", "css/user.css"),
 	"/css/user-message.css": append(basicStyles, "css/listing.css", "css/article.css", "css/user-message.css"),
 	"/css/new.css":          append(basicStyles, "css/listing.css", "css/article.css"),
