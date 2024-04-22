@@ -43,9 +43,10 @@ var (
 	namedAccountSearchFns    = namedAccountSearches(inbox, outbox)
 )
 
-func (h *handler) ItemRoutes() func(chi.Router) {
+func (h *handler) ItemRoutes(extra ...func(http.Handler) http.Handler) func(chi.Router) {
 	return func(r chi.Router) {
-		r.Use(h.CSRF, ContentModelMw, h.ItemFiltersMw, applicationSearches(inbox), namedAccountSearches(outbox),
+		r.Use(extra...)
+		r.Use(ContentModelMw, h.ItemFiltersMw, applicationSearches(inbox), namedAccountSearches(outbox),
 			LoadSingleObjectMw, SingleItemModelMw)
 		r.With(Deps(Votes, Replies, Authors), LoadSingleItemMw, SortByScore).
 			Get("/", h.HandleShow)
@@ -81,6 +82,7 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 		h.errFn()("%s: %s", assets.AssetFS, err)
 	}
 
+	csrf := h.CSRF()
 	return func(r chi.Router) {
 		r.Use(lw.Middlewares(h.logger)...)
 		r.Use(middleware.GetHead)
@@ -102,7 +104,7 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 			usersEnabledOrInvitesFn := func(_ *http.Request) (bool, string) {
 				return c.UserInvitesEnabled || c.UserCreatingEnabled, "Unable to create account"
 			}
-			r.With(h.CSRF).Group(func(r chi.Router) {
+			r.With(csrf).Group(func(r chi.Router) {
 				r.With(AddModelMw, h.v.RedirectWithFailMessage(submissionsEnabledFn)).Get("/submit", h.HandleShow)
 				r.With(h.v.RedirectWithFailMessage(submissionsEnabledFn)).Post("/submit", h.HandleSubmit)
 				r.Route("/register", func(r chi.Router) {
@@ -130,7 +132,7 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 				r.With(AccountListingModelMw, AllFilters, Deps(Authors, Votes), SearchInCollectionsMw(requestHandleSearches, outbox), LoadMw).
 					Get("/", h.HandleShow)
 
-				r.With(h.CSRF).Route("/changepw/{hash}", func(r chi.Router) {
+				r.With(csrf).Route("/changepw/{hash}", func(r chi.Router) {
 					r.With(ModelMw(&registerModel{Title: "Change password"}), LoadInvitedMw).Get("/", h.HandleShow)
 					r.Post("/", h.HandleChangePassword)
 				})
@@ -139,7 +141,7 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 					r.Get("/follow", h.FollowAccount)
 					r.With(h.NeedsSessions, h.ValidateLoggedIn(h.v.RedirectToErrors)).Post("/invite", h.HandleCreateInvitation)
 
-					r.With(h.CSRF, MessageUserContentModelMw).Group(func(r chi.Router) {
+					r.With(csrf, MessageUserContentModelMw).Group(func(r chi.Router) {
 						r.Route("/message", func(r chi.Router) {
 							r.Get("/", h.HandleShow)
 							r.Post("/", h.HandleSubmit)
@@ -152,9 +154,9 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 					})
 				})
 
-				r.Route("/{hash}", h.ItemRoutes())
+				r.Route("/{hash}", h.ItemRoutes(csrf))
 			})
-			r.Route("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}", h.ItemRoutes())
+			r.Route("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}", h.ItemRoutes(csrf))
 
 			// @todo(marius) :link_generation:
 			r.With(ContentModelMw, h.ItemFiltersMw, applicationSearchFns, loggedAccountSearchFns, LoadSingleObjectMw).

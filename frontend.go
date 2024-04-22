@@ -8,6 +8,7 @@ import (
 
 	"git.sr.ht/~mariusor/brutalinks/internal/config"
 	log "git.sr.ht/~mariusor/lw"
+	"git.sr.ht/~mariusor/mask"
 	vocab "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
 	"github.com/gorilla/csrf"
@@ -406,8 +407,6 @@ func httpErrorResponse(e error) int {
 	return http.StatusInternalServerError
 }
 
-var defaultSessionKey = []byte{0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1}
-
 func (h *handler) ErrorHandler(errs ...error) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		h.v.HandleErrors(w, r, errs...)
@@ -415,7 +414,13 @@ func (h *handler) ErrorHandler(errs ...error) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
-func (h handler) CSRF(next http.Handler) http.Handler {
+func (h handler) CSRF() func(http.Handler) http.Handler {
+	passThrough := func(next http.Handler) http.Handler {
+		return next
+	}
+	if h.conf.Env.IsDev() {
+		return passThrough
+	}
 	opts := []csrf.Option{
 		csrf.CookieName(csrfName),
 		csrf.FieldName(csrfName),
@@ -423,14 +428,11 @@ func (h handler) CSRF(next http.Handler) http.Handler {
 		csrf.ErrorHandler(h.ErrorHandler(errors.Forbiddenf("Invalid request token"))),
 	}
 	var authKey []byte
-	if len(h.conf.SessionKeys) > 0 {
-		authKey = h.conf.SessionKeys[0]
-	} else {
-		if h.conf.Env.IsProd() {
-			h.errFn()("Invalid CSRF auth key")
-		}
-		// TODO(marius): WTF is this?
-		authKey = defaultSessionKey
+	if len(h.conf.SessionKeys) <= 0 {
+		h.logger.Errorf("Invalid CSRF auth key, removing CSRF support")
+		return passThrough
 	}
-	return csrf.Protect(authKey, opts...)(next)
+	authKey = h.conf.SessionKeys[0]
+	h.logger.WithContext(log.Ctx{"key": mask.B(authKey)}).Debugf("CSRF was set successfully")
+	return csrf.Protect(authKey, opts...)
 }
