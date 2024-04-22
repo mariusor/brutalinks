@@ -107,6 +107,12 @@ form label.mime-type {
     font-size: .8em;
     float: right;
 }
+[popover] {
+    padding: 20px;
+}
+[popover]:-internal-popover-in-top-layer::backdrop {
+    background: rgba(0, 0, 0, .5);
+}
 dialog {
     width: 60%;
     z-index: 1;
