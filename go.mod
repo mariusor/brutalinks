@@ -6,7 +6,7 @@ require (
 	git.sr.ht/~mariusor/assets v0.0.0-20230127131019-f411b9009e81
 	git.sr.ht/~mariusor/lw v0.0.0-20240323171419-d538df4af052
 	git.sr.ht/~mariusor/mask v0.0.0-20240327084502-ef2a9438457e
-	git.sr.ht/~mariusor/wrapper v0.0.0-20240210113306-c862d947a747
+	git.sr.ht/~mariusor/wrapper v0.0.0-20240514112730-225be473fdf4
 	github.com/carlmjohnson/flowmatic v0.23.4
 	github.com/go-ap/activitypub v0.0.0-20240408091739-ba76b44c2594
 	github.com/go-ap/cache v0.0.0-20240408093337-846e6272444d
@@ -26,7 +26,7 @@ require (
 	github.com/writeas/go-nodeinfo v1.0.0
 	gitlab.com/golang-commonmark/markdown v0.0.0-20211110145824-bf3e522c626a
 	gitlab.com/golang-commonmark/puny v0.0.0-20191124015043-9f83538fa04f
-	golang.org/x/oauth2 v0.19.0
+	golang.org/x/oauth2 v0.20.0
 	golang.org/x/text v0.14.0
 )
 
@@ -35,7 +35,6 @@ require (
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/captncraig/cors v0.0.0-20190703115713-e80254a89df1 // indirect
 	github.com/carlmjohnson/deque v0.23.1 // indirect
-	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/gorilla/css v1.0.1 // indirect
 	github.com/gorilla/securecookie v1.1.2 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
@@ -51,7 +50,5 @@ require (
 	gitlab.com/golang-commonmark/linkify v0.0.0-20200225224916-64bca66f6ad3 // indirect
 	gitlab.com/golang-commonmark/mdurl v0.0.0-20191124015652-932350d1cb84 // indirect
 	golang.org/x/net v0.22.0 // indirect
-	golang.org/x/sys v0.19.0 // indirect
-	google.golang.org/appengine v1.6.8 // indirect
-	google.golang.org/protobuf v1.33.0 // indirect
+	golang.org/x/sys v0.20.0 // indirect
 )

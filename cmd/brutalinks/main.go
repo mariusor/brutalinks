@@ -54,56 +54,49 @@ func Run(a *brutalinks.Application) int {
 		"key":      a.Conf.KeyPath,
 	})
 
-	stopFn := func() {
-		cancelFn()
+	stopFn := func(ctx context.Context) {
 		if err := srvStop(ctx); err != nil {
 			l.Errorf("Error: %s", err)
 		}
 		l.Infof("Stopped")
 	}
 
-	runFn := func() error {
-		// Run our server in a goroutine so that it doesn't block.
-		if err := srvRun(); err != nil {
-			l.Errorf("Error: %s", err)
-			return err
-		}
-		return nil
-	}
-
 	l.Infof("Started")
 
-	defer stopFn()
+	defer stopFn(ctx)
 	// Set up the signal handlers functions so the OS can tell us if it requires us to stop
 	sigHandlerFns := w.SignalHandlers{
-		syscall.SIGHUP: func(_ chan int) {
+		syscall.SIGHUP: func(_ chan<- int) {
 			l.Infof("SIGHUP received, reloading configuration")
 			if err := a.Reload(); err != nil {
 				l.Errorf("Failed to reload: %s", err.Error())
 			}
 		},
-		syscall.SIGUSR1: func(_ chan int) {
+		syscall.SIGUSR1: func(_ chan<- int) {
 			l.Infof("SIGUSR1 received, switching to maintenance mode")
 			a.Conf.MaintenanceMode = !a.Conf.MaintenanceMode
 		},
-		syscall.SIGTERM: func(status chan int) {
+		syscall.SIGTERM: func(status chan<- int) {
 			// kill -SIGTERM XXXX
 			l.Infof("SIGTERM received, stopping")
+			cancelFn()
 			status <- 0
 		},
-		syscall.SIGINT: func(status chan int) {
+		syscall.SIGINT: func(status chan<- int) {
 			// kill -SIGINT XXXX or Ctrl+c
 			l.Infof("SIGINT received, stopping")
+			cancelFn()
 			status <- 0
 		},
-		syscall.SIGQUIT: func(status chan int) {
+		syscall.SIGQUIT: func(status chan<- int) {
 			l.Errorf("SIGQUIT received, force stopping")
+			cancelFn()
 			status <- -1
 		},
 	}
 
 	// Wait for OS signals asynchronously
-	code := w.RegisterSignalHandlers(sigHandlerFns).Exec(runFn)
+	code := w.RegisterSignalHandlers(sigHandlerFns).Exec(ctx, srvRun)
 	if code == 0 {
 		l.Infof("Shutting down")
 	}
