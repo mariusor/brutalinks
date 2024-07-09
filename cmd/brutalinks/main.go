@@ -22,7 +22,7 @@ const defaultPort = config.DefaultListenPort
 const defaultTimeout = time.Second * 5
 
 // Run is the wrapper for starting the web-server and handling signals
-func Run(a *brutalinks.Application) int {
+func Run(a *brutalinks.Application) error {
 	ctx, cancelFn := context.WithCancel(context.TODO())
 
 	setters := []w.SetFn{w.Handler(a.Mux)}
@@ -66,41 +66,39 @@ func Run(a *brutalinks.Application) int {
 	defer stopFn(ctx)
 	// Set up the signal handlers functions so the OS can tell us if it requires us to stop
 	sigHandlerFns := w.SignalHandlers{
-		syscall.SIGHUP: func(_ chan<- int) {
+		syscall.SIGHUP: func(_ chan<- error) {
 			l.Infof("SIGHUP received, reloading configuration")
 			if err := a.Reload(); err != nil {
 				l.Errorf("Failed to reload: %s", err.Error())
 			}
 		},
-		syscall.SIGUSR1: func(_ chan<- int) {
+		syscall.SIGUSR1: func(_ chan<- error) {
 			l.Infof("SIGUSR1 received, switching to maintenance mode")
 			a.Conf.MaintenanceMode = !a.Conf.MaintenanceMode
 		},
-		syscall.SIGTERM: func(status chan<- int) {
+		syscall.SIGTERM: func(status chan<- error) {
 			// kill -SIGTERM XXXX
 			l.Infof("SIGTERM received, stopping")
-			cancelFn()
-			status <- 0
+			status <- nil
 		},
-		syscall.SIGINT: func(status chan<- int) {
+		syscall.SIGINT: func(status chan<- error) {
 			// kill -SIGINT XXXX or Ctrl+c
 			l.Infof("SIGINT received, stopping")
-			cancelFn()
-			status <- 0
+			status <- nil
 		},
-		syscall.SIGQUIT: func(status chan<- int) {
-			l.Errorf("SIGQUIT received, force stopping")
+		syscall.SIGQUIT: func(status chan<- error) {
+			l.Warnf("SIGQUIT received, force stopping")
 			cancelFn()
-			status <- -1
+			status <- nil
 		},
 	}
 
 	// Wait for OS signals asynchronously
-	code := w.RegisterSignalHandlers(sigHandlerFns).Exec(ctx, srvRun)
-	if code == 0 {
+	err := w.RegisterSignalHandlers(sigHandlerFns).Exec(ctx, srvRun)
+	if err != nil {
 		l.Infof("Shutting down")
 	}
-	return code
+	return err
 }
 
 func main() {
@@ -130,5 +128,9 @@ func main() {
 		l.Errorf("Failed to start application: %+s", err)
 		os.Exit(1)
 	}
-	os.Exit(Run(a))
+	if err = Run(a); err != nil {
+		l.Errorf("Error: %+s", err)
+		os.Exit(1)
+	}
+	os.Exit(0)
 }
