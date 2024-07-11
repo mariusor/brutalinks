@@ -10,7 +10,7 @@ require (
 	github.com/carlmjohnson/flowmatic v0.23.4
 	github.com/go-ap/activitypub v0.0.0-20240408091739-ba76b44c2594
 	github.com/go-ap/cache v0.0.0-20240408093337-846e6272444d
-	github.com/go-ap/client v0.0.0-20240408093509-f0721baa55c2
+	github.com/go-ap/client v0.0.0-20240710145250-eec2de3441ed
 	github.com/go-ap/errors v0.0.0-20240304112515-6077fa9c17b0
 	github.com/go-ap/jsonld v0.0.0-20221030091449-f2a191312c73
 	github.com/go-chi/chi/v5 v5.1.0
@@ -31,6 +31,7 @@ require (
 )
 
 require (
+	git.sr.ht/~mariusor/cache v0.0.0-20240710145102-0547ec402138 // indirect
 	git.sr.ht/~mariusor/go-xsd-duration v0.0.0-20220703122237-02e73435a078 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/captncraig/cors v0.0.0-20190703115713-e80254a89df1 // indirect
