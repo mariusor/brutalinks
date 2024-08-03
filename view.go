@@ -250,7 +250,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 
 	acc := loggedAccount(r)
 	accountFromRequest := func() *Account { return acc }
-	funcs := template.FuncMap{
+	fns := template.FuncMap{
 		// Request related functions
 		//"urlParam":          func(s string) string { return chi.URLParam(r, s) },
 		//"get":               func(s string) string { return r.URL.Query().Get(s) },
@@ -294,7 +294,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 	}
 
 	wrt := bytes.Buffer{}
-	if err = v.ren.HTML(&wrt, http.StatusOK, name, m, render.HTMLOptions{Funcs: funcs}); err != nil {
+	if err = v.ren.HTML(&wrt, http.StatusOK, name, m, render.HTMLOptions{Funcs: fns}); err != nil {
 		v.errFn(log.Ctx{"err": err, "model": m})("failed to render template %s", name)
 		return errors.Annotatef(err, "failed to render template")
 	}
