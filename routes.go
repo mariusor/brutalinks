@@ -200,12 +200,7 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 				r.Use(h.NeedsSessions)
 				r.Get("/{provider}/callback", h.HandleCallback)
 			})
-
 		})
-
-		if c.Env.IsDev() {
-			r.With(middleware.BasicAuth("debug", map[string]string{"debug": "#debug$"})).Mount("/debug", middleware.Profiler())
-		}
 
 		r.Group(func(r chi.Router) {
 			r.Get("/{path}", h.v.assetHandler)
@@ -219,8 +214,8 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 			h.v.HandleErrors(w, r, errors.MethodNotAllowedf("invalid %q request", r.Method))
 		})
 
-		if !c.Env.IsDev() {
-			r.Mount("/debug", middleware.Profiler())
+		if c.Env.IsDev() {
+			r.With(middleware.BasicAuth("debug", map[string]string{"debug": "#debug$"})).Mount("/debug", middleware.Profiler())
 		}
 	}
 }
