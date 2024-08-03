@@ -35,22 +35,25 @@ endif
 BUILD := $(GO) build $(BUILDFLAGS)
 TEST := $(GO) test $(BUILDFLAGS)
 
-.PHONY: all brutalinks download run clean images test assets
+.PHONY: all brutalinks download run clean images test assets help
+.DEFAULT_GOAL := help
+help: ## Help target that shows this message.
+	@sed -rn 's/^([^:]+):.*[ ]##[ ](.+)/\1:\2/p' $(MAKEFILE_LIST) | column -ts: -l2
 
 all: brutalinks
 
 download: go.sum
 
-brutalinks: bin/brutalinks
-
 go.sum: go.mod
 	$(GO) mod download all
 	$(GO) mod tidy
 
+brutalinks: bin/brutalinks ## Builds the brutalinks binary.
+
 ifneq ($(ENV),dev)
 assets:  internal/assets/assets.gen.go
 else
-assets:
+assets: ## Builds static javascript and css files for embedding in the production binaries.
 endif
 
 internal/assets/assets.gen.go: $(ASSETFILES)
@@ -59,25 +62,25 @@ internal/assets/assets.gen.go: $(ASSETFILES)
 bin/brutalinks: go.mod go.sum $(APPSOURCES) assets
 	$(BUILD) -tags $(ENV) -o $@ ./cmd/brutalinks
 
-run: ./bin/brutalinks
+run: ./bin/brutalinks ## Runs the brutalinks binary.
 	@./bin/brutalinks
 
-clean:
+clean: ## Cleanup the build workspace.
 	-$(RM) bin/* internal/assets/*.gen.go
 	$(GO) build clean
 	$(MAKE) -C images $@
 
-images:
+images: ## Build podman images.
 	$(MAKE) -C images $@
 
 test: TEST_TARGET := . ./internal/...
-test: go.sum
+test: download go.sum ## Run unit tests for the service.
 	$(TEST) $(TEST_FLAGS) $(TEST_TARGET)
 
 coverage: TEST_TARGET := .
 coverage: TEST_FLAGS += -covermode=count -coverprofile $(PROJECT_NAME).coverprofile
-coverage: test
+coverage: test ## Run unit tests for the service with coverage.
 
-integration:
+integration: download ## Run integration tests for the service.
 	make ENV=qa -C images builder build
 	make ENV=qa -C tests pods test-podman
