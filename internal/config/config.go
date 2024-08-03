@@ -151,7 +151,7 @@ func Load(e EnvType, wait time.Duration) *Configuration {
 	if to, _ := time.ParseDuration(loadKeyFromEnv(KeyTimeOut, "")); to > 0 {
 		c.TimeOut = to
 	}
-	c.Env = EnvType(loadKeyFromEnv(KeyENV, "dev"))
+	c.Env = EnvType(strings.ToLower(loadKeyFromEnv(KeyENV, "dev")))
 	c.ListenHost = loadKeyFromEnv(KeyListenHostName, DefaultListenHost)
 	c.HostName = loadKeyFromEnv(KeyHostname, c.ListenHost)
 	c.Name = loadKeyFromEnv(KeyName, c.HostName)
