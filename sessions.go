@@ -52,6 +52,7 @@ func initSession(c appConfig, infoFn, errFn CtxLogFn) (sess, error) {
 	gob.Register(vocab.Tombstone{})
 
 	if len(c.SessionKeys) == 0 {
+		c.SessionsEnabled = false
 		return sess{}, errors.NotImplementedf("no session encryption keys, unable to use sessions")
 	}
 	s := sess{
@@ -103,7 +104,7 @@ func initCookieSession(c appConfig, infoFn, errFn CtxLogFn) (sessions.Store, err
 		"keys":   maskSessionKeys(c.SessionKeys...),
 		"domain": c.HostName,
 	})("Session settings")
-	if c.Env.IsProd() {
+	if !c.Env.IsDev() {
 		ss.Options.SameSite = http.SameSiteStrictMode
 	}
 	return ss, nil
@@ -200,7 +201,9 @@ func (s *sess) addFlashMessages(typ flashType, w http.ResponseWriter, r *http.Re
 
 func (s *sess) loadFlashMessages(w http.ResponseWriter, r *http.Request) (func() []flash, error) {
 	var flashData []flash
-	flashFn := func() []flash { return flashData }
+	flashFn := func() []flash {
+		return flashData
+	}
 
 	ss, err := s.get(w, r)
 	if err != nil || ss == nil {

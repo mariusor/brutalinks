@@ -30,7 +30,7 @@ type repository struct {
 	errFn   CtxLogFn
 }
 
-func (r repository) BaseURL() vocab.IRI {
+func (r *repository) BaseURL() vocab.IRI {
 	return r.fedbox.baseURL
 }
 
@@ -2423,6 +2423,32 @@ func (r *repository) LoadAccounts(ctx context.Context, colFn CollectionFilterFn,
 	return accounts, count, nil
 }
 
+func (r *repository) ValidateRemoteAccount(ctx context.Context, acc *Account) error {
+	r.WithAccount(acc)
+	now := time.Now().UTC()
+	lastUpdated := acc.Metadata.OutboxUpdated
+	if now.Sub(lastUpdated)-5*time.Minute < 0 {
+		return nil
+	}
+
+	ltx := log.Ctx{"handle": acc.Handle, "hash": acc.Hash}
+	r.infoFn(ltx)("loading account details")
+
+	it, err := r.fedbox.Actor(ctx, acc.AP().GetLink())
+	if err != nil {
+		return err
+	}
+
+	a := Account{}
+	if err = a.FromActivityPub(it); err != nil {
+		return err
+	}
+	if !a.IsValid() || !accountsEqual(a, *acc) {
+		return errors.Errorf("invalid actor")
+	}
+	return nil
+}
+
 func (r *repository) LoadAccountDetails(ctx context.Context, acc *Account) error {
 	r.WithAccount(acc)
 	now := time.Now().UTC()
@@ -2449,7 +2475,7 @@ func (r *repository) LoadAccountDetails(ctx context.Context, acc *Account) error
 		}
 	}
 	acc.Metadata.OutboxUpdated = now
-	return nil
+	return err
 }
 
 func (r *repository) LoadAccount(ctx context.Context, iri vocab.IRI) (*Account, error) {
@@ -2463,7 +2489,7 @@ func (r *repository) LoadAccount(ctx context.Context, iri vocab.IRI) (*Account, 
 	if err != nil {
 		return acc, err
 	}
-	err = r.LoadAccountDetails(ctx, acc)
+	err = r.ValidateRemoteAccount(ctx, acc)
 	return acc, err
 }
 
@@ -2642,7 +2668,7 @@ func (r *repository) LoadInfo() (WebInfo, error) {
 	return Instance.NodeInfo(), nil
 }
 
-func (r repository) moderationActivity(ctx context.Context, er *vocab.Actor, ed vocab.Item, reason *Item) (*vocab.Activity, error) {
+func (r *repository) moderationActivity(ctx context.Context, er *vocab.Actor, ed vocab.Item, reason *Item) (*vocab.Activity, error) {
 	act := new(vocab.Activity)
 	act.To, _, act.CC, act.BCC = r.defaultRecipientsList(er, false)
 
@@ -2669,7 +2695,7 @@ func (r repository) moderationActivity(ctx context.Context, er *vocab.Actor, ed 
 	return act, nil
 }
 
-func (r repository) moderationActivityOnItem(ctx context.Context, er Account, ed Item, reason *Item) (*vocab.Activity, error) {
+func (r *repository) moderationActivityOnItem(ctx context.Context, er Account, ed Item, reason *Item) (*vocab.Activity, error) {
 	reporter := r.loadAPPerson(er)
 	reported := new(vocab.Object)
 	r.loadAPItem(reported, ed)
@@ -2679,7 +2705,7 @@ func (r repository) moderationActivityOnItem(ctx context.Context, er Account, ed
 	return r.moderationActivity(ctx, reporter, reported, reason)
 }
 
-func (r repository) moderationActivityOnAccount(ctx context.Context, er, ed Account, reason *Item) (*vocab.Activity, error) {
+func (r *repository) moderationActivityOnAccount(ctx context.Context, er, ed Account, reason *Item) (*vocab.Activity, error) {
 	reporter := r.loadAPPerson(er)
 	reported := r.loadAPPerson(ed)
 	if !accountValidForC2S(&er) {

@@ -694,13 +694,14 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 // HandleLogout serves /logout requests
 func (h *handler) HandleLogout(w http.ResponseWriter, r *http.Request) {
-	h.v.s.clear(w, r)
+	h.v.saveAccountToSession(w, r, &AnonymousAccount)
 	backUrl := "/"
 	if refUrl := r.Header.Get("Referer"); HostIsLocal(refUrl) && !strings.Contains(refUrl, "followed") {
 		backUrl = refUrl
 	}
 	// TODO(marius): this doesn't need as drastic cache clear as this, we need to implement a prefix based clear
 	h.storage.cache.remove()
+	h.v.s.clear(w, r)
 	h.v.Redirect(w, r, backUrl, http.StatusSeeOther)
 }
 

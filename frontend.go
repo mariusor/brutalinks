@@ -317,12 +317,9 @@ func (v *view) LoadSession(next http.Handler) http.Handler {
 		return next
 	}
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		var (
-			storage      = ContextRepository(r.Context())
-			clearSession bool
-			err          error
-			ltx          log.Ctx
-		)
+		ltx := log.Ctx{}
+		clearAccount := true
+		storage := ContextRepository(r.Context())
 		acc, err := v.loadCurrentAccountFromSession(w, r)
 		if err != nil {
 			acc = &AnonymousAccount
@@ -336,15 +333,16 @@ func (v *view) LoadSession(next http.Handler) http.Handler {
 			}()
 			ctx := context.WithValue(r.Context(), LoggedAccountCtxtKey, acc)
 			if err = storage.LoadAccountDetails(ctx, acc); err != nil {
-				clearSession = true
 				v.errFn(ltx, log.Ctx{"err": err.Error()})("unable to load account")
 			} else {
 				storage.WithAccount(acc)
+				clearAccount = false
 			}
 		}
-		if clearSession {
-			v.s.clear(w, r)
+		if clearAccount {
+			acc = &AnonymousAccount
 		}
+		v.saveAccountToSession(w, r, acc)
 		r = r.WithContext(context.WithValue(r.Context(), LoggedAccountCtxtKey, acc))
 		next.ServeHTTP(w, r)
 	}
