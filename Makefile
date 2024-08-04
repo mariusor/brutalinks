@@ -36,7 +36,9 @@ BUILD := $(GO) build $(BUILDFLAGS)
 TEST := $(GO) test $(BUILDFLAGS)
 
 .PHONY: all brutalinks download run clean images test assets help
+
 .DEFAULT_GOAL := help
+
 help: ## Help target that shows this message.
 	@sed -rn 's/^([^:]+):.*[ ]##[ ](.+)/\1:\2/p' $(MAKEFILE_LIST) | column -ts: -l2
 

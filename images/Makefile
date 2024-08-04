@@ -17,24 +17,29 @@ PUSH_CMD=podman push
 
 .PHONY: clean images cert build builder run push start
 
+.DEFAULT_GOAL := help
+
+help: ## Help target that shows this message.
+	@sed -rn 's/^([^:]+):.*[ ]##[ ](.+)/\1:\2/p' $(MAKEFILE_LIST) | column -ts: -l2
+
 $(ENV_FILE):
 	touch $(ENV_FILE)
 
 brutalinks.pem:
 	./gen-certs.sh brutalinks
 
-cert: brutalinks.pem
+cert: brutalinks.pem ## Builds the certificate to include in the image.
 
-clean:
+clean: ## Clean the workspace.
 	@-$(RM) brutalinks.{key,crt,pem}
 
-builder:
+builder: ## Build the builder image for compiling the Brutalinks application.
 	./build.sh .. brutalinks/builder
 
-build:
+build: ## Build the Brutalinks application.
 	ENV="$(ENV)" VERSION="$(VERSION)" PORT="$(PORT)" APP_HOSTNAME="$(APP_HOSTNAME)" ./image.sh "brutalinks/app:$(ENV)"
 
-push: build
+push: build ## Push the Brutalinks application images to Quay.io.
 	$(TAG_CMD) brutalinks/app:$(ENV) quay.io/go-ap/brutalinks:$(ENV)
 	$(PUSH_CMD) quay.io/go-ap/brutalinks:$(ENV)
 ifeq ($(ENV),dev)
