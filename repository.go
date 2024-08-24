@@ -5,12 +5,14 @@ import (
 	"encoding/base64"
 	xerrors "errors"
 	"fmt"
+	"net/http"
 	"net/url"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
+	"git.sr.ht/~mariusor/cache"
 	log "git.sr.ht/~mariusor/lw"
 	"github.com/carlmjohnson/flowmatic"
 	vocab "github.com/go-ap/activitypub"
@@ -44,7 +46,7 @@ func ActivityPubService(c appConfig) (*repository, error) {
 	errFn := func(ctx ...log.Ctx) LogFn {
 		return l.WithContext(ctx...).Warnf
 	}
-	ua := fmt.Sprintf("%s-%s", c.HostName, Instance.Version)
+	ua := fmt.Sprintf("%s:%s (%s)", c.Name, c.Version, c.HostName)
 
 	repo := &repository{
 		SelfURL: c.BaseURL,
@@ -53,10 +55,12 @@ func ActivityPubService(c appConfig) (*repository, error) {
 		cache:   caches(c.CachingEnabled),
 	}
 	var err error
+
 	repo.fedbox, err = NewClient(
 		WithURL(c.APIURL),
-		WithLogger(c.Logger),
+		WithHTTPTransport(cache.Wrap(http.DefaultTransport, cache.FS(c.SessionsPath, time.Hour))),
 		WithUA(ua),
+		WithLogger(c.Logger),
 		SkipTLSCheck(!c.Env.IsProd()),
 	)
 	if err != nil {

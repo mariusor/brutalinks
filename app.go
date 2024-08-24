@@ -97,6 +97,7 @@ func (a *Application) init(c *config.Configuration, l log.Logger, host string, p
 func (a *Application) Front() error {
 	conf := appConfig{
 		Configuration: *a.Conf,
+		Version:       a.Version,
 		BaseURL:       a.BaseURL.String(),
 		Logger:        a.Logger.New(log.Ctx{"log": "frontend"}),
 	}

@@ -22,6 +22,7 @@ const (
 type fedbox struct {
 	baseURL       vocab.IRI
 	skipTLSVerify bool
+	transport     http.RoundTripper
 	pub           *vocab.Actor
 	client        client.C
 	l             log.Logger
@@ -121,6 +122,13 @@ func WithUA(s string) OptionFn {
 	}
 }
 
+func WithHTTPTransport(t http.RoundTripper) OptionFn {
+	return func(f *fedbox) error {
+		f.transport = t
+		return nil
+	}
+}
+
 func NewClient(o ...OptionFn) (*fedbox, error) {
 	f := fedbox{
 		infoFn: defaultCtxLogFn,
@@ -132,11 +140,18 @@ func NewClient(o ...OptionFn) (*fedbox, error) {
 		}
 	}
 
-	f.client = *client.New(
+	options := make([]client.OptionFn, 0)
+	if f.transport != nil {
+		cl := http.DefaultClient
+		cl.Transport = f.transport
+		options = append(options, client.WithHTTPClient(cl))
+	}
+	options = append(options,
 		client.WithLogger(f.l.WithContext(log.Ctx{"log": "client"})),
 		client.SkipTLSValidation(f.skipTLSVerify),
 		client.SetDefaultHTTPClient(),
 	)
+	f.client = *client.New(options...)
 	service, err := f.client.LoadIRI(f.baseURL)
 	if err != nil {
 		return &f, err

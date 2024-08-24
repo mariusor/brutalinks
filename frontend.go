@@ -44,6 +44,7 @@ func (h handler) errFn(ctx ...log.Ctx) LogFn {
 
 type appConfig struct {
 	config.Configuration
+	Version string
 	BaseURL string
 	Logger  log.Logger
 }
@@ -101,7 +102,7 @@ func AuthorizeOAuthClient(storage *repository, c appConfig) (*Account, error) {
 
 	tok, err := config.PasswordCredentialsToken(context.TODO(), config.ClientID, config.ClientSecret)
 	if err != nil {
-		return app, err
+		return app, errors.NewUnauthorized(err, "invalid OAuth2 client authorization")
 	} else {
 		if tok == nil {
 			return app, errors.Newf("Failed to load a valid OAuth2 token for client")
