@@ -54,11 +54,13 @@ func ActivityPubService(c appConfig) (*repository, error) {
 		errFn:   errFn,
 		cache:   caches(c.CachingEnabled),
 	}
-	var err error
 
+	var err error
 	repo.fedbox, err = NewClient(
 		WithURL(c.APIURL),
-		WithHTTPTransport(cache.Wrap(http.DefaultTransport, cache.FS(c.SessionsPath, time.Hour))),
+		WithHTTPTransport(
+			cache.Wrap(http.DefaultTransport, cache.FS(filepath.Join(c.SessionsPath, "cache"), time.Hour)),
+		),
 		WithUA(ua),
 		WithLogger(c.Logger),
 		SkipTLSCheck(!c.Env.IsProd()),
