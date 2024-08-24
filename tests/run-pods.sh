@@ -4,8 +4,8 @@ set -e
 
 ENV=${ENV:-dev}
 TEST_PORT=${TEST_PORT:-4499}
-AUTH_IMAGE=${AUTH_IMAGE:-quay.io/go-ap/auth:qa}
-FEDBOX_IMAGE=${FEDBOX_IMAGE:-quay.io/go-ap/fedbox:qa-fs}
+AUTH_IMAGE=${AUTH_IMAGE:-localhost/auth/app:dev}
+FEDBOX_IMAGE=${FEDBOX_IMAGE:-localhost/fedbox/app:dev}
 IMAGE=${IMAGE:-localhost/brutalinks/app:${ENV}}
 
 if podman network exists tests_network; then
@@ -67,7 +67,7 @@ podman run --replace -d \
     docker.io/library/caddy:2.7
 
 _caddy_running=$(podman ps --filter name=tests_caddy --format '{{ .Names }}' )
-if [ -s ${_caddy_running} ]; then
+if [ -s "${_caddy_running}" ]; then
     echo "Unable to run test pod for Caddy"
     exit 1
 fi
@@ -87,8 +87,8 @@ podman run -d --replace \
     "${IMAGE}"
 
 _brutalinks_running=$(podman ps --filter name=tests_brutalinks --format '{{ .Names }}' )
-if [ -s ${_brutalinks_running} ]; then
-    echo "Unable to run brutalinks test pod: ${IMAGE}"
+if [ -s "${_brutalinks_running}" ]; then
+    echo "Unable to run Brutalinks test pod: ${IMAGE}"
     exit 1
 fi
 echo "Brutalinks pod running: ${IMAGE}"

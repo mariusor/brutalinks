@@ -4,11 +4,11 @@
 
 _workdir=${1:-../}
 _image_name=${2:-brutalinks/builder}
-_go_version=${GO_VERSION:-1.22}
+_go_version=${GO_VERSION:-1.23}
 
 _context=$(realpath "${_workdir}")
 
-_builder=$(buildah from docker.io/library/golang:${_go_version})
+_builder=$(buildah from "docker.io/library/golang:${_go_version}")
 
 buildah config --env GO111MODULE=on "${_builder}"
 buildah config --env GOWORK=off "${_builder}"
