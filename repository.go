@@ -46,7 +46,7 @@ func ActivityPubService(c appConfig) (*repository, error) {
 	errFn := func(ctx ...log.Ctx) LogFn {
 		return l.WithContext(ctx...).Warnf
 	}
-	ua := fmt.Sprintf("%s:%s (%s)", c.Name, c.Version, c.HostName)
+	ua := fmt.Sprintf("%s:%s (https://github.com/mariusor/brutalinks)", c.HostName, c.Version)
 
 	repo := &repository{
 		SelfURL: c.BaseURL,
