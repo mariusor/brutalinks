@@ -7,7 +7,6 @@ import (
 	"html/template"
 	"net/http"
 	"strings"
-	"time"
 
 	log "git.sr.ht/~mariusor/lw"
 	vocab "github.com/go-ap/activitypub"
@@ -30,8 +29,7 @@ func (h handler) LoadAuthorMw(next http.Handler) http.Handler {
 		} else {
 			var err error
 			repo := ContextRepository(r.Context())
-			ctx, _ := context.WithTimeout(r.Context(), time.Second)
-			ctx = context.WithValue(ctx, LoggedAccountCtxtKey, ContextAccount(r.Context()))
+			ctx := context.WithValue(r.Context(), LoggedAccountCtxtKey, ContextAccount(r.Context()))
 
 			instance := repo.fedbox.Service().GetLink()
 			authors, err = repo.accountsFromRemote(ctx, instance, FilterAccountByHandle(handle))

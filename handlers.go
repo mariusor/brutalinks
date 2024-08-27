@@ -1149,7 +1149,7 @@ func (h *handler) HandleShow(w http.ResponseWriter, r *http.Request) {
 	if m == nil {
 		m = &errorModel{
 			Status:     http.StatusInternalServerError,
-			StatusText: "Oops!!",
+			StatusText: "Unable to load the page.",
 			Title:      "Oops!!",
 		}
 	}
