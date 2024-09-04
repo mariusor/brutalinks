@@ -125,7 +125,7 @@ func ViewInit(c appConfig, l log.Logger) (*view, error) {
 			"RenderLabel":       renderActivityLabel,
 			"ToTitle":           ToTitle,
 			"itemType":          itemType,
-			"trimSuffix":        strings.TrimSuffix,
+			"Hash":              Instance.Hash,
 			"GetDomainLinks":    GetDomainLinks,
 			"invitationLink":    GetInviteLink(v),
 			"accountJSON":       renderableMarshalJSON(v.errFn()),

@@ -119,8 +119,18 @@ func main() {
 		errors.IncludeBacktrace = c.Env.IsDev()
 	}
 
-	if build, ok := debug.ReadBuildInfo(); ok && version == "HEAD" && build.Main.Version != "(devel)" {
-		version = build.Main.Version
+	if build, ok := debug.ReadBuildInfo(); ok && version == "HEAD" {
+		if build.Main.Version != "(devel)" {
+			version = build.Main.Version
+		}
+		for _, bs := range build.Settings {
+			if bs.Key == "vcs.revision" {
+				version = bs.Value[:8]
+			}
+			if bs.Key == "vcs.modified" {
+				version += "-git"
+			}
+		}
 	}
 
 	a, err := brutalinks.New(c, l, host, port, version)

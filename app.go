@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"git.sr.ht/~mariusor/brutalinks/internal/config"
@@ -51,6 +52,17 @@ type Application struct {
 
 // Instance is the default instance of our application
 var Instance *Application
+
+func (a Application) Hash() string {
+	v := strings.TrimSuffix(a.Version, "-git")
+	if ei := strings.Index(v, "-"); ei > 0 {
+		v = v[ei+1:]
+	}
+	if len(v) > 8 {
+		v = v[:8]
+	}
+	return v
+}
 
 // New instantiates a new Application
 func New(c *config.Configuration, l log.Logger, host string, port int, ver string) (*Application, error) {
