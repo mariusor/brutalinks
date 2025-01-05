@@ -24,6 +24,7 @@ type Configuration struct {
 	Secure                     bool
 	CertPath                   string
 	KeyPath                    string
+	StoragePath                string
 	Env                        EnvType
 	LogLevel                   log.Level
 	AdminContact               string
@@ -42,6 +43,9 @@ type Configuration struct {
 	SessionKeys                [][]byte
 	SessionsBackend            string
 	SessionsPath               string
+	OAuth2App                  string
+	OAuth2Secret               string
+	OAuth2URL                  string
 }
 
 const (
@@ -64,6 +68,7 @@ const (
 	KeyHTTPS                      = "HTTPS"
 	KeyCertPath                   = "CERT_PATH"
 	KeyKeyPath                    = "KEY_PATH"
+	KeyStoragePath                = "STORAGE_PATH"
 	KeyAPIUrl                     = "API_URL"
 	KeyDisableVoting              = "DISABLE_VOTING"
 	KeyDisableDownVoting          = "DISABLE_DOWNVOTING"
@@ -80,9 +85,10 @@ const (
 
 	KeyMaintenanceMode = "MAINTENANCE_MODE"
 
-	KeyFedBOXOAuthApp    = "OAUTH2_APP"
-	KeyFedBOXOAuthKey    = "OAUTH2_KEY"
-	KeyFedBOXOAuthSecret = "OAUTH2_SECRET"
+	KeyOAuth2App       = "OAUTH2_APP"
+	KeyFedBOXKey       = "OAUTH2_KEY"
+	KeyOAuth2Secret    = "OAUTH2_SECRET"
+	KeyOAuth2ReturnURL = "OAUTH2_URL"
 
 	KeySessionAuthKey = "SESS_AUTH_KEY"
 	KeySessionEncKey  = "SESS_ENC_KEY"
@@ -162,7 +168,9 @@ func Load(e EnvType, wait time.Duration) *Configuration {
 	}
 	c.KeyPath = path.Clean(loadKeyFromEnv(KeyKeyPath, ""))
 	c.CertPath = path.Clean(loadKeyFromEnv(KeyCertPath, ""))
-
+	if sp := path.Clean(loadKeyFromEnv(KeyStoragePath, "")); sp != "." {
+		c.StoragePath = sp
+	}
 	c.Secure, _ = strconv.ParseBool(loadKeyFromEnv(KeyHTTPS, ""))
 
 	votingDisabled, _ := strconv.ParseBool(loadKeyFromEnv(KeyDisableVoting, ""))
@@ -205,6 +213,14 @@ func Load(e EnvType, wait time.Duration) *Configuration {
 	}
 	c.AutoAcceptFollows, _ = strconv.ParseBool(loadKeyFromEnv(KeyAutoAcceptFollows, ""))
 	c.MaintenanceMode, _ = strconv.ParseBool(loadKeyFromEnv(KeyMaintenanceMode, ""))
+
+	c.OAuth2Secret = loadKeyFromEnv(KeyOAuth2Secret, "")
+	if u, err := url.Parse(loadKeyFromEnv(KeyOAuth2App, "")); err == nil {
+		c.OAuth2App = u.String()
+	}
+	if u, err := url.Parse(loadKeyFromEnv(KeyOAuth2ReturnURL, "")); err == nil {
+		c.OAuth2URL = u.String()
+	}
 
 	return c
 }
@@ -251,14 +267,14 @@ func (c Configuration) GetOauth2Config(provider string, localBaseURL string) oau
 		fallthrough
 	default:
 		apiURL := strings.TrimRight(c.APIURL, "/")
-		clientID := os.Getenv(KeyFedBOXOAuthKey)
+		clientID := os.Getenv(KeyFedBOXKey)
 		if clientID == "" {
-			if u, err := url.Parse(os.Getenv(KeyFedBOXOAuthApp)); err == nil {
+			if u, err := url.Parse(os.Getenv(KeyOAuth2App)); err == nil {
 				clientID = u.String()
 			}
 		}
 		conf.ClientID = clientID
-		conf.ClientSecret = os.Getenv(KeyFedBOXOAuthSecret)
+		conf.ClientSecret = os.Getenv(KeyOAuth2Secret)
 		conf.Endpoint = oauth2.Endpoint{
 			AuthURL:  fmt.Sprintf("%s/oauth/authorize", apiURL),
 			TokenURL: fmt.Sprintf("%s/oauth/token", apiURL),
