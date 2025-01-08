@@ -237,37 +237,25 @@ func DomainChecksMw(next http.Handler) http.Handler {
 	})
 }
 
-func tagsFilter(tag string) *Filters {
-	f := new(Filters)
-	f.Name = CompStrs{EqualsString("#" + tag)}
-	return f
-}
-
-func TagFiltersMw(next http.Handler) http.Handler {
+func TagChecks(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		tag := chi.URLParam(r, "tag")
 		if len(tag) == 0 {
 			ctxtErr(next, w, r, errors.NotFoundf("tag not found"))
 			return
 		}
-		fc := new(Filters)
-		fc.MaxItems = MaxContentItems
-		fc.Type = CreateActivitiesFilter
-		fc.Object = new(Filters)
-		fc.Object.Tag = tagsFilter(tag)
 
-		fa := new(Filters)
-		fa.MaxItems = MaxContentItems
-		fa.Type = ModerationActivitiesFilter
-		fa.Tag = tagsFilter(tag)
-		fa.Object = derefIRIFilters
-
-		allFilters := []*Filters{fc, fa}
+		validTypes := append(append(ValidContentTypes, ValidModerationActivityTypes...), ValidActorTypes...)
+		checks := filters.All(
+			filters.HasType(validTypes...),
+			filters.Tag(filters.NameIs("#"+tag)),
+			filters.WithMaxCount(MaxContentItems),
+		)
 
 		m := ContextListingModel(r.Context())
 		m.ShowText = true
 		m.Title = htmlf("Items tagged as #%s", tag)
-		ctx := context.WithValue(r.Context(), FilterCtxtKey, allFilters)
+		ctx := context.WithValue(r.Context(), FilterV2CtxtKey, checks)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

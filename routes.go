@@ -171,7 +171,7 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 
 				r.With(DomainChecksMw, LoadV2Mw, SortByDate).Get("/d/{domain}", h.HandleShow)
 
-				r.With(TagFiltersMw, applicationSearchFns, LoadMw, Deps(Moderations), h.ModerationListing, SortByDate).
+				r.With(TagChecks, LoadV2Mw, Deps(Moderations), h.ModerationListing, SortByDate).
 					Get("/t/{tag}", h.HandleShow)
 
 				r.With(SelfFiltersMw(h.storage.fedbox.Service().ID), applicationSearchFns, LoadMw, SortByScore).
