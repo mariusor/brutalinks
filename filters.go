@@ -115,14 +115,14 @@ func ContextActivityFiltersV2(ctx context.Context) filters.Check {
 	return nil
 }
 
-func SelfFiltersMw(id vocab.IRI) func(next http.Handler) http.Handler {
+func SelfChecks(id vocab.IRI) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			f := topLevelFilters(r)
-			f.Actor.IRI = CompStrs{LikeString(id.String())}
 			m := ContextListingModel(r.Context())
 			m.Title = "Local instance items"
-			ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
+
+			checks := append(topLevelChecks(r), filters.IRILike(id.String()))
+			ctx := context.WithValue(r.Context(), FilterV2CtxtKey, filters.All(checks...))
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

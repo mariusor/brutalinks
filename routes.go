@@ -174,8 +174,7 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 				r.With(TagChecks, LoadV2Mw, Deps(Moderations), h.ModerationListing, SortByDate).
 					Get("/t/{tag}", h.HandleShow)
 
-				r.With(SelfFiltersMw(h.storage.fedbox.Service().ID), applicationSearchFns, LoadMw, SortByScore).
-					Get("/self", h.HandleShow)
+				r.With(SelfChecks(h.storage.fedbox.Service().ID), LoadV2Mw, SortByScore).Get("/self", h.HandleShow)
 
 				r.With(FederatedFiltersMw(h.storage.fedbox.Service().ID), applicationInboxSearchFn, LoadMw, SortByScore).
 					Get("/federated", h.HandleShow)
