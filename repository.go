@@ -1557,7 +1557,7 @@ func accumulateItemIRIs(it vocab.Item, deps deps) vocab.IRIs {
 	}
 	iris := make(vocab.IRIs, 0)
 
-	vocab.OnObject(it, func(o *vocab.Object) error {
+	_ = vocab.OnObject(it, func(o *vocab.Object) error {
 		if deps.Authors {
 			appendToIRIs(&iris, o.AttributedTo)
 		}
@@ -1599,62 +1599,85 @@ func (r *repository) LoadSearchesV2(ctx context.Context, deps deps, checks ...fi
 		if !ok {
 			continue
 		}
-		err := vocab.OnActivity(it, func(a *vocab.Activity) error {
-			typ := it.GetType()
-			if typ == vocab.CreateType {
-				ob := a.Object
-				if ob == nil {
-					return errors.Newf("nil activity object")
+		typ := it.GetType()
+		switch {
+		case ValidContentTypes.Contains(typ):
+			err = vocab.OnObject(it, func(o *vocab.Object) error {
+				i := Item{}
+				if err := i.FromActivityPub(o); err != nil {
+					return err
 				}
-				if vocab.IsObject(ob) {
-					if ValidContentTypes.Contains(ob.GetType()) {
+				items = append(items, i)
+				relations.Store(o.GetLink(), o.GetLink())
+				return nil
+			})
+		case ValidActorTypes.Contains(typ):
+			err = vocab.OnActor(it, func(a *vocab.Actor) error {
+				act := Account{}
+				if err := act.FromActivityPub(a); err != nil {
+					return err
+				}
+				accounts = append(accounts, act)
+				relations.Store(a.GetLink(), a.GetLink())
+				return nil
+			})
+		case vocab.IntransitiveActivityTypes.Contains(typ), vocab.ActivityTypes.Contains(typ):
+			err = vocab.OnActivity(it, func(a *vocab.Activity) error {
+				if typ == vocab.CreateType {
+					ob := a.Object
+					if ob == nil {
+						return errors.Newf("nil activity object")
+					}
+					if vocab.IsObject(ob) {
+						if ValidContentTypes.Contains(ob.GetType()) {
+							i := Item{}
+							if err := i.FromActivityPub(a); err != nil {
+								return err
+							}
+							items = append(items, i)
+						}
+						if ValidActorTypes.Contains(ob.GetType()) {
+							act := Account{}
+							if err := act.FromActivityPub(a); err != nil {
+								return err
+							}
+							accounts = append(accounts, act)
+						}
+					} else {
 						i := Item{}
 						if err := i.FromActivityPub(a); err != nil {
 							return err
 						}
-						items = append(items, i)
 					}
-					if ValidActorTypes.Contains(ob.GetType()) {
-						act := Account{}
-						if err := act.FromActivityPub(a); err != nil {
-							return err
-						}
-						accounts = append(accounts, act)
-					}
-				} else {
-					i := Item{}
-					if err := i.FromActivityPub(a); err != nil {
+					relations.Store(a.GetLink(), ob.GetLink())
+				}
+				if it.GetType() == vocab.FollowType {
+					f := FollowRequest{}
+					if err := f.FromActivityPub(a); err != nil {
 						return err
 					}
+					follows = append(follows, f)
+					relations.Store(a.GetLink(), a.GetLink())
 				}
-				relations.Store(a.GetLink(), ob.GetLink())
-			}
-			if it.GetType() == vocab.FollowType {
-				f := FollowRequest{}
-				if err := f.FromActivityPub(a); err != nil {
-					return err
+				if ValidModerationActivityTypes.Contains(typ) {
+					m := ModerationOp{}
+					if err := m.FromActivityPub(a); err != nil {
+						return err
+					}
+					moderations = append(moderations, m)
+					relations.Store(a.GetLink(), a.GetLink())
 				}
-				follows = append(follows, f)
-				relations.Store(a.GetLink(), a.GetLink())
-			}
-			if ValidModerationActivityTypes.Contains(typ) {
-				m := ModerationOp{}
-				if err := m.FromActivityPub(a); err != nil {
-					return err
+				if ValidAppreciationTypes.Contains(typ) {
+					v := Vote{}
+					if err := v.FromActivityPub(a); err != nil {
+						return err
+					}
+					appreciations = append(appreciations, v)
+					relations.Store(a.GetLink(), a.GetLink())
 				}
-				moderations = append(moderations, m)
-				relations.Store(a.GetLink(), a.GetLink())
-			}
-			if ValidAppreciationTypes.Contains(typ) {
-				v := Vote{}
-				if err := v.FromActivityPub(a); err != nil {
-					return err
-				}
-				appreciations = append(appreciations, v)
-				relations.Store(a.GetLink(), a.GetLink())
-			}
-			return nil
-		})
+				return nil
+			})
+		}
 		if err == nil {
 			for _, rem := range accumulateItemIRIs(it, deps) {
 				if !deferredRemote.Contains(rem) {
@@ -1669,9 +1692,18 @@ func (r *repository) LoadSearchesV2(ctx context.Context, deps deps, checks ...fi
 	}
 
 	if len(deferredRemote) > 0 {
+		searchIRIs := make(filters.Checks, 0, len(deferredRemote))
 		for _, iri := range deferredRemote {
-			ob, err := r.fedbox.client.LoadIRI(iri)
-			if err != nil || vocab.IsNil(ob) {
+			searchIRIs = append(searchIRIs, filters.SameIRI(iri))
+		}
+
+		res, err := r.b.Search(filters.Any(searchIRIs...))
+		if err != nil {
+			return emptyCursor, err
+		}
+		for _, li := range res {
+			ob, ok := li.(vocab.Item)
+			if !ok || vocab.IsNil(ob) {
 				continue
 			}
 			typ := ob.GetType()

@@ -434,13 +434,10 @@ func LoadInvitedMw(next http.Handler) http.Handler {
 
 func ActorsFiltersMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		f := FiltersFromRequest(r)
-		f.Type = CreateActivitiesFilter
-		f.Object = &Filters{Type: ActivityTypesFilter(ValidActorTypes...)}
-		f.Actor = derefIRIFilters
 		m := ContextListingModel(r.Context())
 		m.Title = "Account listing"
-		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
+		checks := filters.HasType(ValidActorTypes...)
+		ctx := context.WithValue(r.Context(), FilterV2CtxtKey, checks)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

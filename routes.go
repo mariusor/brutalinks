@@ -186,7 +186,7 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 					r.With(h.ValidateModerator(), ModerationFiltersMw, LoadV2Mw).Get("/{hash}/discuss", h.HandleShow)
 				})
 
-				r.With(ModelMw(&listingModel{ShowChildren: true, sortFn: ByDate}), ActorsFiltersMw, instanceSearchFns, LoadMw).
+				r.With(ModelMw(&listingModel{ShowChildren: true, sortFn: ByDate}), ActorsFiltersMw, LoadV2Mw).
 					Get("/~", h.HandleShow)
 			})
 
