@@ -265,12 +265,11 @@ func (h handler) ItemFiltersMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		hash := chi.URLParam(r, "hash")
 
-		//checks := filters.FromValues(r.URL.Query())
-		itemFind := filters.All(
+		checks := filters.All(
 			filters.HasType(ValidContentTypes...),
 			filters.IRILike(hash),
 		)
-		ctx := context.WithValue(r.Context(), FilterV2CtxtKey, itemFind)
+		ctx := context.WithValue(r.Context(), FilterV2CtxtKey, checks)
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -303,71 +302,53 @@ type moderationFilter struct {
 	Type []string `qstring:"t"`
 }
 
-var (
-	modSubmissionsObjectFilter = &Filters{
-		Type:     ActivityTypesFilter(ValidContentTypes...),
-		InReplTo: nilFilters,
-	}
-	modCommentsObjectFilter = &Filters{
-		Type:     ActivityTypesFilter(ValidContentTypes...),
-		InReplTo: notNilFilters,
-	}
-	modAccountsObjectFilter = &Filters{
-		Type: ActivityTypesFilter(ValidActorTypes...),
-	}
-)
-
 func ModerationFiltersMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		f := FiltersFromRequest(r)
-		f.Type = ModerationActivitiesFilter
-		f.IRI = CompStrs{LikeString(chi.URLParam(r, "hash"))}
-		f.MaxItems = 1
-		f.Object = derefIRIFilters
-		f.Actor = derefIRIFilters
+		check := filters.All(
+			filters.IRILike(chi.URLParam(r, "hash")),
+			filters.HasType(ValidModerationActivityTypes...),
+		)
 
-		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
+		ctx := context.WithValue(r.Context(), FilterV2CtxtKey, check)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
 func ModerationListingFiltersMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		f := FiltersFromRequest(r)
-		f.Type = ModerationActivitiesFilter
-		f.Object = derefIRIFilters
-		f.Actor = derefIRIFilters
-		f.MaxItems = MaxContentItems
+		checks := filters.FromValues(r.URL.Query())
 
 		mf := new(moderationFilter)
-		qstring.Unmarshal(r.URL.Query(), mf)
-		allFilters := make([]*Filters, 0)
+		_ = qstring.Unmarshal(r.URL.Query(), mf)
+
 		showSubmissions := stringInSlice(mf.Type)("s")
 		showComments := stringInSlice(mf.Type)("c")
 		showUsers := stringInSlice(mf.Type)("a")
+
+		checks = append(checks, filters.HasType(ValidModerationActivityTypes...))
 		if len(mf.Type) > 0 && !(showSubmissions == showComments && showSubmissions == showUsers) {
 			if showSubmissions {
-				fs := *f
-				fs.Object = modSubmissionsObjectFilter
-				allFilters = append(allFilters, &fs)
+				checks = append(checks, filters.Object(
+					filters.HasType(ValidContentTypes...),
+					filters.NilInReplyTo,
+				))
 			}
 			if showComments {
-				fc := *f
-				fc.Object = modCommentsObjectFilter
-				allFilters = append(allFilters, &fc)
+				checks = append(checks, filters.Object(
+					filters.HasType(ValidContentTypes...),
+					filters.Not(filters.NilInReplyTo),
+				))
 			}
 			if showUsers {
-				fu := *f
-				fu.Object = modAccountsObjectFilter
-				allFilters = append(allFilters, &fu)
+				checks = append(checks, filters.Object(
+					filters.HasType(ValidActorTypes...),
+				))
 			}
-		} else {
-			allFilters = append(allFilters, f)
 		}
 		if m := ContextListingModel(r.Context()); m != nil {
 			m.Title = "Moderation log"
 		}
-		ctx := context.WithValue(r.Context(), FilterCtxtKey, allFilters)
+		ctx := context.WithValue(r.Context(), FilterV2CtxtKey, filters.All(checks...))
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

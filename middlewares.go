@@ -65,6 +65,27 @@ func ctxtErr(next http.Handler, w http.ResponseWriter, r *http.Request, err erro
 
 type CollectionLoadFn func(vocab.CollectionInterface) error
 
+func LoadV2Mw(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		repo := ContextRepository(r.Context())
+		checks := ContextActivityFiltersV2(r.Context())
+		d := ContextDependentLoads(r.Context())
+		if d == nil {
+			d = &deps{}
+		}
+
+		c, err := repo.LoadSearchesV2(r.Context(), *d, checks)
+		if err != nil {
+			ctxtErr(next, w, r, errors.NotFoundf(strings.TrimLeft(r.URL.Path, "/")))
+			return
+		}
+		c.items = reparentRenderables(c.items)
+
+		ctx := context.WithValue(r.Context(), CursorCtxtKey, &c)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
 func LoadMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		repo := ContextRepository(r.Context())

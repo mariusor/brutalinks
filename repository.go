@@ -119,16 +119,8 @@ func ActivityPubService(c appConfig) (*repository, error) {
 		repo.fedbox.client = *cred.Client(context.Background(), cache.FS(filepath.Join(c.SessionsPath, "cache")))
 	}
 
-	//if c.CachingEnabled && c.Env.IsDev() {
-	//	new(sync.Once).Do(func() {
-	//		if err := WarmupCaches(repo, repo.fedbox.Service()); err != nil {
-	//			c.Logger.WithContext(log.Ctx{"err": err.Error()}).Warnf("Unable to warmup cache")
-	//		}
-	//	})
-	//}
-
 	go func() {
-		// NOTE(marius): this is the new brutalinks long polling mechanism that fetches
+		// NOTE(marius): this is the new BrutaLinks long polling mechanism that fetches
 		// the relevant collections for the instance actor every minute.
 		ctx := context.TODO()
 		if err := repo.b.Follow(ctx, repo.b.BuildCollectionFetches(ctx)...); err != nil {
@@ -1019,38 +1011,39 @@ func (r *repository) loadFollowsAuthors(ctx context.Context, items ...FollowRequ
 	return items, nil
 }
 
-func (r *repository) loadModerationFollowups(ctx context.Context, items RenderableList) ([]ModerationOp, error) {
-	inReplyTo := make(vocab.IRIs, 0)
+func (r *repository) loadModerationFollowups(ctx context.Context, items RenderableList) (ModerationRequests, error) {
+	inReplyTos := make(vocab.IRIs, 0, len(items))
 	for _, it := range items {
-		iri := it.AP().GetLink()
-		if !inReplyTo.Contains(iri) {
-			inReplyTo = append(inReplyTo, iri)
+		if iri := it.AP().GetLink(); !inReplyTos.Contains(iri) {
+			inReplyTos = append(inReplyTos, iri)
 		}
 	}
 
-	modActions := new(Filters)
-	modActions.Type = ActivityTypesFilter(vocab.DeleteType, vocab.UpdateType)
-	modActions.InReplTo = IRIsFilter(inReplyTo...)
-	modActions.Actor = derefIRIFilters
-	modActions.Object = derefIRIFilters
-	act, err := r.fedbox.Outbox(ctx, r.app.Pub, Values(modActions))
+	checks := make(filters.Checks, 0, len(inReplyTos))
+	for _, iri := range inReplyTos {
+		checks = append(checks, filters.SameInReplyTo(iri))
+	}
+	followups, err := r.b.Search(filters.HasType(vocab.DeleteType, vocab.UpdateType), filters.Any(checks...))
 	if err != nil {
 		return nil, err
 	}
-	modFollowups := make(ModerationRequests, 0)
-	err = vocab.OnCollectionIntf(act, func(c vocab.CollectionInterface) error {
-		for _, it := range c.Collection() {
-			m := new(ModerationOp)
-			if err := m.FromActivityPub(it); err != nil {
-				continue
-			}
-			if !modFollowups.Contains(*m) {
-				modFollowups = append(modFollowups, *m)
-			}
+
+	modFollowups := make(ModerationRequests, 0, len(followups))
+	for _, li := range followups {
+		ob, oka := li.(vocab.Item)
+		if !oka {
+			continue
 		}
-		return nil
-	})
-	return modFollowups, err
+		m := new(ModerationOp)
+		if err := m.FromActivityPub(ob); err != nil {
+			continue
+		}
+		if !modFollowups.Contains(*m) {
+			modFollowups = append(modFollowups, *m)
+		}
+	}
+
+	return modFollowups, nil
 }
 
 func ModerationSubmittedByHashFilter(items ...ModerationOp) CompStrs {
@@ -1068,85 +1061,67 @@ func (r *repository) loadModerationDetails(ctx context.Context, items ...Moderat
 	if len(items) == 0 {
 		return items, nil
 	}
-	fActors := new(Filters)
-	fObjects := new(Filters)
-	fActors.IRI = ModerationSubmittedByHashFilter(items...)
-	fObjects.IRI = make(CompStrs, 0)
+
+	iris := make(vocab.IRIs, 0, len(items)*2)
 	for _, it := range items {
-		if it.Object == nil || it.Object.AP() == nil {
-			continue
-		}
-		_, hash := filepath.Split(it.Object.AP().GetLink().String())
-		switch it.Object.Type() {
-		case ActorType:
-			hash := LikeString(hash)
-			if !fActors.IRI.Contains(hash) {
-				fActors.IRI = append(fActors.IRI, hash)
+		if it.Object != nil && it.Object.AP() != nil {
+			if iri := it.Object.AP().GetLink(); !iris.Contains(iri) {
+				iris = append(iris, iri)
 			}
-		case CommentType:
-			hash := LikeString(hash)
-			if !fObjects.IRI.Contains(hash) {
-				fObjects.IRI = append(fObjects.IRI, hash)
+		}
+		if it.SubmittedBy != nil && it.SubmittedBy.AP() != nil {
+			if iri := it.SubmittedBy.AP().GetLink(); !iris.Contains(iri) {
+				iris = append(iris, iri)
 			}
 		}
 	}
 
-	if len(fActors.IRI) == 0 {
-		return items, errors.Errorf("unable to load items authors")
+	checks := make(filters.Checks, 0, len(iris))
+	for _, iri := range iris {
+		checks = append(checks, filters.SameIRI(iri))
 	}
-	authors, err := r.accounts(ctx, fActors)
+
+	result, err := r.b.Search(filters.Any(checks...))
 	if err != nil {
-		return items, errors.Annotatef(err, "unable to load items authors")
+		return items, err
 	}
-	var objects ItemCollection
-	if len(fObjects.IRI) > 0 {
-		if objects, err = r.objects(ctx, fObjects); err != nil {
-			return items, errors.Annotatef(err, "unable to load items objects")
+
+	for _, li := range result {
+		ob, oka := li.(vocab.Item)
+		if !oka {
+			continue
 		}
-	}
-	for k, g := range items {
-		if it, ok := g.Object.(*ModerationOp); ok {
-			for i, auth := range authors {
-				if accountsEqual(*it.SubmittedBy, auth) {
-					it.SubmittedBy = &authors[i]
-				}
-				if it.Object != nil && it.Object.AP().GetLink().Equals(auth.AP().GetLink(), false) {
-					it.Object = &authors[i]
+		for i, mod := range items {
+			if ValidContentTypes.Contains(ob.GetType()) {
+				it := Item{}
+				if err := it.FromActivityPub(ob); err == nil {
+					if renderablesEqual(mod.Object, &it) {
+						mod.Object = &it
+					}
 				}
 			}
-			for i, obj := range objects {
-				if it.Object != nil && it.Object.AP().GetLink().Equals(obj.AP().GetLink(), false) {
-					it.Object = &(objects[i])
+			if ValidActorTypes.Contains(ob.GetType()) {
+				auth := Account{}
+				if err := auth.FromActivityPub(ob); err == nil {
+					if renderablesEqual(mod.Object, &auth) {
+						mod.Object = &auth
+					}
+					if renderablesEqual(mod.SubmittedBy, &auth) {
+						mod.SubmittedBy = &auth
+					}
 				}
 			}
-			items[k].Object = it
-		}
-		if it, ok := g.Object.(*Account); ok {
-			for i, auth := range authors {
-				if accountsEqual(*it, auth) {
-					it = &authors[i]
-				}
-			}
-			items[k].Object = it
-		}
-		if it, ok := g.Object.(*Item); ok {
-			for i, obj := range objects {
-				if itemsEqual(*it, obj) {
-					it = &objects[i]
-				}
-			}
-			for i, auth := range authors {
-				if it.SubmittedBy != nil && accountsEqual(*it.SubmittedBy, auth) {
-					it.SubmittedBy = &authors[i]
-				}
-			}
-			items[k].Object = it
+			items[i] = mod
 		}
 	}
+
 	return items, nil
 }
 
 func renderablesEqual(r1, r2 Renderable) bool {
+	if r1 == nil || r2 == nil {
+		return false
+	}
 	return r1.ID() == r2.ID()
 }
 func itemsEqual(i1, i2 Item) bool {
@@ -1596,6 +1571,196 @@ func accumulateItemIRIs(it vocab.Item, deps deps) vocab.IRIs {
 		appendToIRIs(&iris, withRecipients.Recipients())
 	}
 	return iris
+}
+
+// LoadSearchesV2 loads all elements from RemoteLoads
+// Iterating over the activities in the resulting collections, we gather the objects and accounts
+func (r *repository) LoadSearchesV2(ctx context.Context, deps deps, checks ...filters.Check) (Cursor, error) {
+	items := make(ItemCollection, 0)
+	follows := make(FollowRequests, 0)
+	accounts := make(AccountCollection, 0)
+	moderations := make(ModerationRequests, 0)
+	appreciations := make(VoteCollection, 0)
+	relations := sync.Map{}
+
+	deferredRemote := make(vocab.IRIs, 0)
+
+	result := make(RenderableList, 0)
+	resM := new(sync.RWMutex)
+
+	var next, prev vocab.IRI
+
+	results, err := r.b.Search(checks...)
+	if err != nil {
+		return emptyCursor, err
+	}
+	for _, res := range results {
+		it, ok := res.(vocab.Item)
+		if !ok {
+			continue
+		}
+		err := vocab.OnActivity(it, func(a *vocab.Activity) error {
+			typ := it.GetType()
+			if typ == vocab.CreateType {
+				ob := a.Object
+				if ob == nil {
+					return errors.Newf("nil activity object")
+				}
+				if vocab.IsObject(ob) {
+					if ValidContentTypes.Contains(ob.GetType()) {
+						i := Item{}
+						if err := i.FromActivityPub(a); err != nil {
+							return err
+						}
+						items = append(items, i)
+					}
+					if ValidActorTypes.Contains(ob.GetType()) {
+						act := Account{}
+						if err := act.FromActivityPub(a); err != nil {
+							return err
+						}
+						accounts = append(accounts, act)
+					}
+				} else {
+					i := Item{}
+					if err := i.FromActivityPub(a); err != nil {
+						return err
+					}
+				}
+				relations.Store(a.GetLink(), ob.GetLink())
+			}
+			if it.GetType() == vocab.FollowType {
+				f := FollowRequest{}
+				if err := f.FromActivityPub(a); err != nil {
+					return err
+				}
+				follows = append(follows, f)
+				relations.Store(a.GetLink(), a.GetLink())
+			}
+			if ValidModerationActivityTypes.Contains(typ) {
+				m := ModerationOp{}
+				if err := m.FromActivityPub(a); err != nil {
+					return err
+				}
+				moderations = append(moderations, m)
+				relations.Store(a.GetLink(), a.GetLink())
+			}
+			if ValidAppreciationTypes.Contains(typ) {
+				v := Vote{}
+				if err := v.FromActivityPub(a); err != nil {
+					return err
+				}
+				appreciations = append(appreciations, v)
+				relations.Store(a.GetLink(), a.GetLink())
+			}
+			return nil
+		})
+		if err == nil {
+			for _, rem := range accumulateItemIRIs(it, deps) {
+				if !deferredRemote.Contains(rem) {
+					deferredRemote = append(deferredRemote, rem)
+				}
+			}
+		}
+	}
+
+	if err != nil {
+		return emptyCursor, err
+	}
+
+	if len(deferredRemote) > 0 {
+		for _, iri := range deferredRemote {
+			ob, err := r.fedbox.client.LoadIRI(iri)
+			if err != nil || vocab.IsNil(ob) {
+				continue
+			}
+			typ := ob.GetType()
+			if vocab.ActorTypes.Contains(typ) {
+				ac := Account{}
+				if err := ac.FromActivityPub(ob); err == nil {
+					accounts = append(accounts, ac)
+				}
+			}
+			if vocab.ObjectTypes.Contains(typ) {
+				it := Item{}
+				if err := it.FromActivityPub(ob); err == nil {
+					items = append(items, it)
+				}
+			}
+		}
+	}
+
+	if deps.Authors {
+		items, _ = r.loadItemsAuthors(ctx, items...)
+		accounts, _ = r.loadAccountsAuthors(ctx, accounts...)
+	}
+	if deps.Votes {
+		items, _ = r.loadItemsVotes(ctx, items...)
+	}
+	if deps.Replies {
+		if comments, err := r.loadItemsReplies(ctx, items...); err == nil {
+			items = append(items, comments...)
+		}
+	}
+	if deps.Follows {
+		follows, _ = r.loadFollowsAuthors(ctx, follows...)
+		for i, follow := range follows {
+			for _, auth := range accounts {
+				auth := auth
+				fpub := follow.Object.AP()
+				apub := auth.AP()
+				if fpub != nil && apub != nil && fpub.GetLink().Equals(apub.GetLink(), false) {
+					// NOTE(marius): this looks suspicious as fuck
+					follows[i].Object = &auth
+				}
+			}
+		}
+	}
+	moderations, _ = r.loadModerationDetails(ctx, moderations...)
+
+	resM.Lock()
+	defer resM.Unlock()
+	relations.Range(func(_, value any) bool {
+		rel, _ := value.(vocab.IRI)
+		for i := range items {
+			it := items[i]
+			if it.Pub != nil && rel.Equals(it.AP().GetLink(), true) {
+				result.Append(&it)
+			}
+		}
+		for i := range follows {
+			f := follows[i]
+			if f.pub != nil && rel.Equals(f.AP().GetLink(), true) {
+				result.Append(&f)
+			}
+		}
+		for i := range accounts {
+			a := accounts[i]
+			if a.Pub != nil && rel.Equals(a.AP().GetLink(), true) {
+				result.Append(&a)
+			}
+		}
+		for i := range moderations {
+			a := moderations[i]
+			if rel.Equals(a.AP().GetLink(), true) {
+				result.Append(&a)
+			}
+		}
+		for i := range appreciations {
+			a := appreciations[i]
+			if a.Pub != nil && rel.Equals(a.AP().GetLink(), true) {
+				result.Append(&a)
+			}
+		}
+		return true
+	})
+
+	return Cursor{
+		after:  HashFromIRI(next),
+		before: HashFromIRI(prev),
+		items:  result,
+		total:  uint(len(result)),
+	}, nil
 }
 
 // LoadSearches loads all elements from RemoteLoads
