@@ -192,21 +192,14 @@ func topLevelChecks(r *http.Request) filters.Checks {
 	return checks
 }
 
-func topLevelFilters(r *http.Request) *Filters {
-	f := defaultFilters(r)
-	f.Object.Name = notNilFilters
-	f.Object.InReplTo = nilFilters
-	return f
-}
-
-func FederatedFiltersMw(id vocab.IRI) func(next http.Handler) http.Handler {
+func FederatedChecks(id vocab.IRI) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			f := topLevelFilters(r)
-			f.IRI = CompStrs{DifferentThanString(id.String())}
 			m := ContextListingModel(r.Context())
 			m.Title = "Federated items"
-			ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
+
+			checks := append(topLevelChecks(r), filters.Not(filters.IRILike(id.String())))
+			ctx := context.WithValue(r.Context(), FilterV2CtxtKey, filters.All(checks...))
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
