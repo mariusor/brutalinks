@@ -46,7 +46,7 @@ var (
 func (h *handler) ItemRoutes(extra ...func(http.Handler) http.Handler) func(chi.Router) {
 	return func(r chi.Router) {
 		r.Use(extra...)
-		r.Use(ContentModelMw, h.ItemFiltersMw, LoadSingleObjectMw, SingleItemModelMw)
+		r.Use(ContentModelMw, h.ItemChecks, LoadSingleObjectMw, SingleItemModelMw)
 		r.With(Deps(Votes, Replies, Authors), LoadSingleItemMw, SortByScore).
 			Get("/", h.HandleShow)
 		r.With(h.ValidateLoggedIn(h.v.RedirectToErrors), LoadSingleItemMw).Post("/", h.HandleSubmit)
@@ -158,20 +158,18 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 			r.Route("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}", h.ItemRoutes(csrf))
 
 			// @todo(marius) :link_generation:
-			r.With(ContentModelMw, h.ItemFiltersMw, LoadSingleObjectMw).
+			r.With(ContentModelMw, h.ItemChecks, LoadSingleObjectMw).
 				Get("/i/{hash}", h.HandleItemRedirect)
 
 			r.With(h.NeedsSessions).Get("/logout", h.HandleLogout)
 
-			r.With(ListingModelMw, Deps(Votes)).Group(func(r chi.Router) {
+			r.With(ListingModelMw, Deps(Authors, Votes)).Group(func(r chi.Router) {
 				// todo(marius) :link_generation:
 				r.With(DefaultChecks, LoadV2Mw, SortByScore).Get("/", h.HandleShow)
 
-				r.With(DomainFiltersMw, applicationSearchFns, LoadMw, middleware.StripSlashes, SortByDate).
-					Get("/d", h.HandleShow)
+				r.With(DomainChecksMw, LoadV2Mw, middleware.StripSlashes, SortByDate).Get("/d", h.HandleShow)
 
-				r.With(DomainFiltersMw, applicationSearchFns, LoadMw, SortByDate).
-					Get("/d/{domain}", h.HandleShow)
+				r.With(DomainChecksMw, LoadV2Mw, SortByDate).Get("/d/{domain}", h.HandleShow)
 
 				r.With(TagFiltersMw, applicationSearchFns, LoadMw, Deps(Moderations), h.ModerationListing, SortByDate).
 					Get("/t/{tag}", h.HandleShow)
@@ -189,9 +187,10 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 				r.Route("/moderation", func(r chi.Router) {
 					r.With(ModelMw(&listingModel{tpl: "moderation", sortFn: ByDate}), Deps(Moderations, Follows),
 						ModerationListingFiltersMw, LoadV2Mw, h.ModerationListing).Get("/", h.HandleShow)
-					rr := r.With(h.ValidateModerator(), ModerationFiltersMw, LoadV2Mw)
-					rr.Get("/{hash}/rm", h.HandleModerationDelete)
-					rr.Get("/{hash}/discuss", h.HandleShow)
+					r.With(h.ValidateModerator(), ModerationFiltersMw, LoadV2Mw).Group(func(r chi.Router) {
+						r.Get("/{hash}/rm", h.HandleModerationDelete)
+						r.Get("/{hash}/discuss", h.HandleShow)
+					})
 				})
 
 				r.With(ModelMw(&listingModel{ShowChildren: true, sortFn: ByDate}), ActorsFiltersMw, LoadV2Mw).

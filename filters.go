@@ -176,12 +176,18 @@ func defaultFilters(r *http.Request) *Filters {
 
 func defaultChecks(r *http.Request) filters.Checks {
 	checks := filters.FromURL(*r.URL)
+	checks = append(checks, filters.Recipients(vocab.PublicNS), filters.WithMaxCount(MaxContentItems))
+	return checks
+}
+
+func contentChecks(r *http.Request) filters.Checks {
+	checks := defaultChecks(r)
 	checks = append(checks, filters.HasType(ValidContentTypes...))
 	return checks
 }
 
 func topLevelChecks(r *http.Request) filters.Checks {
-	checks := defaultChecks(r)
+	checks := contentChecks(r)
 	checks = append(checks, filters.Not(filters.NameEmpty), filters.NilInReplyTo)
 	return checks
 }
@@ -210,30 +216,23 @@ func LikeString(s string) CompStr {
 	return CompStr{Operator: "~", Str: s}
 }
 
-func DomainFiltersMw(next http.Handler) http.Handler {
+func DomainChecksMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		domain := chi.URLParam(r, "domain")
-		f := FiltersFromRequest(r)
-		f.Type = CreateActivitiesFilter
-		f.Object = &Filters{}
 		m := ContextListingModel(r.Context())
+		checks := defaultChecks(r)
+		checks = append(checks, filters.NilInReplyTo)
 		if len(domain) > 0 {
-			domainFilter := fmt.Sprintf("https://%s", puny.ToASCII(domain))
-			f.Object.URL = CompStrs{LikeString(domainFilter)}
-			f.Object.Type = CompStrs{EqualsString(string(vocab.PageType))}
 			m.Title = htmlf("Items pointing to %s", domain)
+			domainFilter := fmt.Sprintf("https://%s", puny.ToASCII(domain))
+			checks = append(checks, filters.HasType(vocab.PageType), filters.URLLike(domainFilter))
 		} else {
-			f.Object.MedTypes = CompStrs{
-				EqualsString(MimeTypeMarkdown),
-				EqualsString(MimeTypeText),
-				EqualsString(MimeTypeHTML),
-			}
-			f.Object.Type = ActivityTypesFilter(ValidContentTypes...)
 			m.Title = htmlf("Discussion items")
+			// TODO(marius): add filters.MediaTypeXXX to support
+			//   filtering by MimeTypeMarkdown, MimeTypeText, MimeTypeHTML
+			checks = append(checks, filters.HasType(vocab.ArticleType, vocab.NoteType))
 		}
-		f.Object.OP = nilFilters
-		f.Actor = derefIRIFilters
-		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
+		ctx := context.WithValue(r.Context(), FilterV2CtxtKey, filters.All(checks...))
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -273,11 +272,12 @@ func TagFiltersMw(next http.Handler) http.Handler {
 	})
 }
 
-func (h handler) ItemFiltersMw(next http.Handler) http.Handler {
+func (h handler) ItemChecks(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		hash := chi.URLParam(r, "hash")
 
 		checks := filters.All(
+			filters.Recipients(vocab.PublicNS),
 			filters.HasType(ValidContentTypes...),
 			filters.IRILike(hash),
 		)
