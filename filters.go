@@ -81,12 +81,12 @@ func AllFilters(next http.Handler) http.Handler {
 	})
 }
 
-func DefaultFilters(next http.Handler) http.Handler {
+func DefaultChecks(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		f := topLevelFilters(r)
+		checks := topLevelChecks(r)
 		m := ContextListingModel(r.Context())
 		m.Title = "Newest items"
-		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
+		ctx := context.WithValue(r.Context(), FilterV2CtxtKey, filters.All(checks...))
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -172,6 +172,18 @@ func defaultFilters(r *http.Request) *Filters {
 	f.Object.Type = ActivityTypesFilter(ValidContentTypes...)
 	f.Actor = derefIRIFilters
 	return f
+}
+
+func defaultChecks(r *http.Request) filters.Checks {
+	checks := filters.FromURL(*r.URL)
+	checks = append(checks, filters.HasType(ValidContentTypes...))
+	return checks
+}
+
+func topLevelChecks(r *http.Request) filters.Checks {
+	checks := defaultChecks(r)
+	checks = append(checks, filters.Not(filters.NameEmpty), filters.NilInReplyTo)
+	return checks
 }
 
 func topLevelFilters(r *http.Request) *Filters {

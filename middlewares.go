@@ -23,7 +23,7 @@ func (h handler) LoadAuthorMw(next http.Handler) http.Handler {
 		var authors AccountCollection
 		if handle == selfName {
 			self := Account{}
-			self.FromActivityPub(h.storage.fedbox.Service())
+			_ = self.FromActivityPub(h.storage.fedbox.Service())
 			authors = AccountCollection{self}
 		} else {
 			var err error

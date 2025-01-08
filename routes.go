@@ -165,25 +165,33 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 
 			r.With(ListingModelMw, Deps(Votes)).Group(func(r chi.Router) {
 				// todo(marius) :link_generation:
-				r.With(DefaultFilters, applicationSearches(inbox), LoadMw, SortByScore).Get("/", h.HandleShow)
+				r.With(DefaultChecks, LoadV2Mw, SortByScore).Get("/", h.HandleShow)
+
 				r.With(DomainFiltersMw, applicationSearchFns, LoadMw, middleware.StripSlashes, SortByDate).
 					Get("/d", h.HandleShow)
+
 				r.With(DomainFiltersMw, applicationSearchFns, LoadMw, SortByDate).
 					Get("/d/{domain}", h.HandleShow)
+
 				r.With(TagFiltersMw, applicationSearchFns, LoadMw, Deps(Moderations), h.ModerationListing, SortByDate).
 					Get("/t/{tag}", h.HandleShow)
+
 				r.With(SelfFiltersMw(h.storage.fedbox.Service().ID), applicationSearchFns, LoadMw, SortByScore).
 					Get("/self", h.HandleShow)
+
 				r.With(FederatedFiltersMw(h.storage.fedbox.Service().ID), applicationInboxSearchFn, LoadMw, SortByScore).
 					Get("/federated", h.HandleShow)
+
 				r.With(h.NeedsSessions, h.ValidateLoggedIn(h.v.RedirectToErrors), Deps(Follows), FollowedFiltersMw,
 					loggedAccountSearches(inbox), LoadMw, SortByDate).
 					Get("/followed", h.HandleShow)
+
 				r.Route("/moderation", func(r chi.Router) {
 					r.With(ModelMw(&listingModel{tpl: "moderation", sortFn: ByDate}), Deps(Moderations, Follows),
 						ModerationListingFiltersMw, LoadV2Mw, h.ModerationListing).Get("/", h.HandleShow)
-					r.With(h.ValidateModerator(), ModerationFiltersMw, LoadV2Mw).Get("/{hash}/rm", h.HandleModerationDelete)
-					r.With(h.ValidateModerator(), ModerationFiltersMw, LoadV2Mw).Get("/{hash}/discuss", h.HandleShow)
+					rr := r.With(h.ValidateModerator(), ModerationFiltersMw, LoadV2Mw)
+					rr.Get("/{hash}/rm", h.HandleModerationDelete)
+					rr.Get("/{hash}/discuss", h.HandleShow)
 				})
 
 				r.With(ModelMw(&listingModel{ShowChildren: true, sortFn: ByDate}), ActorsFiltersMw, LoadV2Mw).
