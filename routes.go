@@ -158,8 +158,7 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 			r.Route("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}", h.ItemRoutes(csrf))
 
 			// @todo(marius) :link_generation:
-			r.With(ContentModelMw, h.ItemChecks, LoadSingleObjectMw).
-				Get("/i/{hash}", h.HandleItemRedirect)
+			r.With(ContentModelMw, h.ItemChecks, LoadSingleObjectMw).Get("/i/{hash}", h.HandleItemRedirect)
 
 			r.With(h.NeedsSessions).Get("/logout", h.HandleLogout)
 
@@ -184,14 +183,14 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 
 				r.Route("/moderation", func(r chi.Router) {
 					r.With(ModelMw(&listingModel{tpl: "moderation", sortFn: ByDate}), Deps(Moderations, Follows),
-						ModerationListingFiltersMw, LoadV2Mw, h.ModerationListing).Get("/", h.HandleShow)
-					r.With(h.ValidateModerator(), ModerationFiltersMw, LoadV2Mw).Group(func(r chi.Router) {
+						ModerationListingChecks, LoadV2Mw, h.ModerationListing).Get("/", h.HandleShow)
+					r.With(h.ValidateModerator(), ModerationChecks, LoadV2Mw).Group(func(r chi.Router) {
 						r.Get("/{hash}/rm", h.HandleModerationDelete)
 						r.Get("/{hash}/discuss", h.HandleShow)
 					})
 				})
 
-				r.With(ModelMw(&listingModel{ShowChildren: true, sortFn: ByDate}), ActorsFiltersMw, LoadV2Mw).
+				r.With(ModelMw(&listingModel{ShowChildren: true, sortFn: ByDate}), ActorsChecks, LoadV2Mw).
 					Get("/~", h.HandleShow)
 			})
 

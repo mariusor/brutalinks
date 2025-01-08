@@ -295,7 +295,7 @@ type moderationFilter struct {
 	Type []string `qstring:"t"`
 }
 
-func ModerationFiltersMw(next http.Handler) http.Handler {
+func ModerationChecks(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		check := filters.All(
 			filters.IRILike(chi.URLParam(r, "hash")),
@@ -307,7 +307,7 @@ func ModerationFiltersMw(next http.Handler) http.Handler {
 	})
 }
 
-func ModerationListingFiltersMw(next http.Handler) http.Handler {
+func ModerationListingChecks(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		checks := filters.FromValues(r.URL.Query())
 
@@ -425,7 +425,7 @@ func LoadInvitedMw(next http.Handler) http.Handler {
 	})
 }
 
-func ActorsFiltersMw(next http.Handler) http.Handler {
+func ActorsChecks(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		m := ContextListingModel(r.Context())
 		m.Title = "Account listing"
