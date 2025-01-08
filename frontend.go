@@ -9,7 +9,6 @@ import (
 	"git.sr.ht/~mariusor/brutalinks/internal/config"
 	log "git.sr.ht/~mariusor/lw"
 	"git.sr.ht/~mariusor/mask"
-	vocab "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
 	"github.com/gorilla/csrf"
 )
@@ -27,6 +26,10 @@ type handler struct {
 	v       *view
 	storage *repository
 	logger  log.Logger
+}
+
+func (h *handler) Close() error {
+	return h.storage.Close()
 }
 
 func (h handler) infoFn(ctx ...log.Ctx) LogFn {
@@ -63,7 +66,7 @@ func (h *handler) init(c appConfig) error {
 
 	h.conf = c
 
-	if err := ConnectFedBOX(h, h.conf); err != nil {
+	if err = ConnectFedBOX(h, h.conf); err != nil {
 		return errors.Annotatef(err, "error connecting to ActivityPub service: %s", h.conf.APIURL)
 	}
 	if h.v, err = ViewInit(h.conf, h.logger); err != nil {
@@ -79,38 +82,6 @@ func ConnectFedBOX(h *handler, c appConfig) error {
 		return fmt.Errorf("failed to load actor: %w", err)
 	}
 	return nil
-}
-
-func AuthorizeOAuthClient(storage *repository, c appConfig) (*Account, error) {
-	config := c.GetOauth2Config(fedboxProvider, c.BaseURL)
-	if len(config.ClientID) == 0 {
-		return nil, errors.Newf("invalid OAuth2 configuration")
-	}
-	appURL := vocab.IRI(config.ClientID)
-	if u, err := appURL.URL(); err != nil || u.Hostname() == "" {
-		appURL = actors.IRI(storage.BaseURL()).AddPath(config.ClientID)
-	}
-	oauth, err := storage.fedbox.Actor(context.TODO(), appURL)
-	if err != nil {
-		return nil, err
-	}
-	if oauth == nil {
-		return nil, errors.Newf("unable to load OAuth2 client application actor")
-	}
-	app := new(Account)
-	app.FromActivityPub(oauth)
-
-	tok, err := config.PasswordCredentialsToken(context.TODO(), config.ClientID, config.ClientSecret)
-	if err != nil {
-		return app, errors.NewUnauthorized(err, "invalid OAuth2 client authorization")
-	} else {
-		if tok == nil {
-			return app, errors.Newf("Failed to load a valid OAuth2 token for client")
-		}
-		app.Metadata.OAuth.Provider = fedboxProvider
-		app.Metadata.OAuth.Token = tok
-	}
-	return app, nil
 }
 
 func loggedAccount(r *http.Request) *Account {

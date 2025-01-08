@@ -121,6 +121,10 @@ func (a *Application) Front() error {
 	return nil
 }
 
+func (a *Application) Close() error {
+	return a.front.Close()
+}
+
 func (a *Application) Routes() {
 	// Routes
 	r := chi.NewRouter()

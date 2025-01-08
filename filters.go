@@ -7,6 +7,7 @@ import (
 
 	vocab "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
+	"github.com/go-ap/filters"
 	"github.com/go-chi/chi/v5"
 	"github.com/mariusor/qstring"
 	"gitlab.com/golang-commonmark/puny"
@@ -106,6 +107,14 @@ func ContextActivityFilters(ctx context.Context) []*Filters {
 	return nil
 }
 
+// ContextActivityFiltersV2 loads the filters we use for generating storage queries from the HTTP request
+func ContextActivityFiltersV2(ctx context.Context) filters.Check {
+	if f, ok := ctx.Value(FilterV2CtxtKey).(filters.Check); ok {
+		return f
+	}
+	return nil
+}
+
 func SelfFiltersMw(id vocab.IRI) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -136,6 +145,7 @@ func FollowFilterMw(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
+
 func FollowedFiltersMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := new(Filters)
@@ -253,21 +263,15 @@ func TagFiltersMw(next http.Handler) http.Handler {
 
 func (h handler) ItemFiltersMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		f := FiltersFromRequest(r)
-		f.Type = CreateActivitiesFilter
 		hash := chi.URLParam(r, "hash")
-		f.MaxItems = 1
 
-		m := ContextContentModel(r.Context())
-		m.Hash = HashFromString(hash)
-		if !m.Hash.IsValid() {
-			h.v.HandleErrors(w, r, errors.NotFoundf("%q item", hash))
-			return
-		}
+		//checks := filters.FromValues(r.URL.Query())
+		itemFind := filters.All(
+			filters.HasType(ValidContentTypes...),
+			filters.IRILike(hash),
+		)
+		ctx := context.WithValue(r.Context(), FilterV2CtxtKey, itemFind)
 
-		f.Object = &Filters{IRI: CompStrs{LikeString(hash)}}
-		f.Actor = derefIRIFilters
-		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

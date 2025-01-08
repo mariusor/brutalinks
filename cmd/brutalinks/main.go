@@ -58,6 +58,8 @@ func Run(a *brutalinks.Application) error {
 		if err := srvStop(ctx); err != nil {
 			l.Errorf("Error: %s", err)
 		}
+		// NOTE(marius): close the storage repository
+		a.Close()
 		l.Infof("Stopped")
 	}
 

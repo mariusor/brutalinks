@@ -324,7 +324,7 @@ func (r *repository) loadWebfingerActorFromIRI(ctx context.Context, host, acct s
 
 	nodeInfoURL := fmt.Sprintf("%s/.well-known/webfinger?resource=acct:%s", host, acct)
 	if err := loadFromURL(nodeInfoURL, &meta); err != nil {
-		r.errFn(log.Ctx{"url": nodeInfoURL, "err": err})("unable to load webfinger resource")
+		r.errFn(log.Ctx{"url": nodeInfoURL, "err": err.Error()})("unable to load WebFinger resource")
 	}
 
 	for _, l := range meta.Links {

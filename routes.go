@@ -46,8 +46,7 @@ var (
 func (h *handler) ItemRoutes(extra ...func(http.Handler) http.Handler) func(chi.Router) {
 	return func(r chi.Router) {
 		r.Use(extra...)
-		r.Use(ContentModelMw, h.ItemFiltersMw, applicationSearches(inbox), namedAccountSearches(outbox),
-			LoadSingleObjectMw, SingleItemModelMw)
+		r.Use(ContentModelMw, h.ItemFiltersMw, LoadSingleObjectMw, SingleItemModelMw)
 		r.With(Deps(Votes, Replies, Authors), LoadSingleItemMw, SortByScore).
 			Get("/", h.HandleShow)
 		r.With(h.ValidateLoggedIn(h.v.RedirectToErrors), LoadSingleItemMw).Post("/", h.HandleSubmit)
@@ -76,7 +75,7 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 	h.v.assets = assetFiles
 
 	if assetFs, err := ass.New(assets.AssetFS); err == nil {
-		assetFs.Overlay(assetFiles)
+		_ = assetFs.Overlay(assetFiles)
 		h.v.fs = assetFs
 	} else {
 		h.errFn()("%s: %s", assets.AssetFS, err)
@@ -159,7 +158,7 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 			r.Route("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}", h.ItemRoutes(csrf))
 
 			// @todo(marius) :link_generation:
-			r.With(ContentModelMw, h.ItemFiltersMw, applicationSearchFns, loggedAccountSearchFns, LoadSingleObjectMw).
+			r.With(ContentModelMw, h.ItemFiltersMw, LoadSingleObjectMw).
 				Get("/i/{hash}", h.HandleItemRedirect)
 
 			r.With(h.NeedsSessions).Get("/logout", h.HandleLogout)

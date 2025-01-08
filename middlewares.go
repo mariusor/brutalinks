@@ -2,7 +2,6 @@ package brutalinks
 
 import (
 	"context"
-	xerrors "errors"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -294,7 +293,6 @@ func LoadSingleItemMw(next http.Handler) http.Handler {
 		rtx := context.WithValue(r.Context(), CursorCtxtKey, &c)
 		next.ServeHTTP(w, r.WithContext(rtx))
 	})
-
 }
 
 func SingleItemModelMw(next http.Handler) http.Handler {
@@ -305,6 +303,10 @@ func SingleItemModelMw(next http.Handler) http.Handler {
 			return
 		}
 		item := ContextItem(r.Context())
+		if item == nil {
+			ctxtErr(next, w, r, errors.NotFoundf(strings.TrimLeft(r.URL.Path, "/")))
+			return
+		}
 
 		m.Title = "Replies to item"
 		if item.SubmittedBy != nil {
@@ -321,35 +323,9 @@ func SingleItemModelMw(next http.Handler) http.Handler {
 func LoadSingleObjectMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		repo := ContextRepository(r.Context())
-		searchIn := ContextLoads(r.Context())
-
-		var item Item
-		err := LoadFromSearches(r.Context(), repo, searchIn, func(ctx context.Context, c vocab.CollectionInterface, f *Filters) error {
-			for _, it := range c.Collection() {
-				err := vocab.OnActivity(it, func(act *vocab.Activity) error {
-					if act.Object.IsLink() {
-						ob, err := repo.fedbox.Object(ctx, act.Object.GetLink())
-						if err != nil {
-							repo.errFn(log.Ctx{"iri": act.Object.GetLink()})("unable to load item")
-							return err
-						}
-						act.Object = ob
-					}
-					if err := item.FromActivityPub(act.Object); err != nil {
-						return err
-					}
-					return nil
-				})
-				if err != nil {
-					return err
-				}
-				if item.IsValid() {
-					return StopLoad{}
-				}
-			}
-			return nil
-		})
-		if (err != nil && !xerrors.Is(err, StopLoad{})) || !item.IsValid() {
+		checks := ContextActivityFiltersV2(r.Context())
+		items, err := repo.b.Search(checks)
+		if err != nil || len(items) != 1 {
 			ctx := log.Ctx{}
 			if err != nil {
 				ctx["err"] = err.Error()
@@ -358,7 +334,19 @@ func LoadSingleObjectMw(next http.Handler) http.Handler {
 			ctxtErr(next, w, r, errors.NotFoundf(strings.TrimLeft(r.URL.Path, "/")))
 			return
 		}
-		rtx := context.WithValue(r.Context(), ContentCtxtKey, &item)
+
+		content := Item{}
+		// NOTE(marius): need to improve the type assertion so it doesn't panic
+		if err := content.FromActivityPub(items[0].(vocab.Item)); err != nil {
+			ctx := log.Ctx{}
+			if err != nil {
+				ctx["err"] = err.Error()
+			}
+			repo.errFn(ctx)("item not found")
+			ctxtErr(next, w, r, errors.NotFoundf(strings.TrimLeft(r.URL.Path, "/")))
+			return
+		}
+		rtx := context.WithValue(r.Context(), ContentCtxtKey, &content)
 		next.ServeHTTP(w, r.WithContext(rtx))
 	})
 }

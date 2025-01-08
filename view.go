@@ -348,13 +348,12 @@ func (v *view) svg(name string) template.HTML {
 	return ass.Svg(v.fs, name)
 }
 
-func (v view) SetCSP(m Model, w http.ResponseWriter) error {
+func (v view) SetCSP(m Model, w http.ResponseWriter) {
 
 	styleSrc, scriptSrc := getCSPHashes(m, v)
 	cspHdrVal := fmt.Sprintf("default-src https: 'self'; style-src https: 'self' %s; script-src https: 'self' %s; media-src https: data: 'self'; img-src https: data: 'self'", styleSrc, scriptSrc)
 
 	w.Header().Set("Content-Security-Policy", cspHdrVal)
-	return nil
 }
 
 // RedirectToErrors redirects failed requests with a flash error

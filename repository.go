@@ -7,23 +7,30 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
+	"git.sr.ht/~mariusor/box"
 	"git.sr.ht/~mariusor/cache"
 	log "git.sr.ht/~mariusor/lw"
 	"github.com/carlmjohnson/flowmatic"
 	vocab "github.com/go-ap/activitypub"
 	"github.com/go-ap/client"
+	"github.com/go-ap/client/credentials"
 	"github.com/go-ap/errors"
+	"github.com/go-ap/filters"
 	j "github.com/go-ap/jsonld"
 	"github.com/mariusor/qstring"
+	"golang.org/x/oauth2"
 )
 
 type repository struct {
 	SelfURL string
+	b       *box.Client
+	cred    *credentials.C2S
 	cache   *cc
 	app     *Account
 	fedbox  *fedbox
@@ -34,6 +41,10 @@ type repository struct {
 
 func (r *repository) BaseURL() vocab.IRI {
 	return r.fedbox.baseURL
+}
+
+func (r *repository) Close() error {
+	return r.b.Close()
 }
 
 func ActivityPubService(c appConfig) (*repository, error) {
@@ -55,7 +66,22 @@ func ActivityPubService(c appConfig) (*repository, error) {
 		cache:   caches(c.CachingEnabled),
 	}
 
+	storeFn := box.UseXDGPaths(c.HostName)
+	if c.StoragePath != "" {
+		storeFn = box.UseBasePath(c.StoragePath)
+	}
+
 	var err error
+	repo.b, err = box.New(storeFn, box.UseLogger(c.Logger.WithContext(log.Ctx{"log": "box"})))
+	if err != nil {
+		return repo, err
+	}
+	repo.b.Open()
+
+	if c.OAuth2App == "" {
+		return repo, fmt.Errorf("invalid OAuth2 application name %s", c.OAuth2App)
+	}
+
 	repo.fedbox, err = NewClient(
 		WithURL(c.APIURL),
 		WithHTTPTransport(
@@ -65,23 +91,52 @@ func ActivityPubService(c appConfig) (*repository, error) {
 		WithLogger(c.Logger),
 		SkipTLSCheck(!c.Env.IsProd()),
 	)
+
 	if err != nil {
 		return repo, err
 	}
-	if c.CachingEnabled && c.Env.IsDev() {
-		new(sync.Once).Do(func() {
-			if err := WarmupCaches(repo, repo.fedbox.Service()); err != nil {
-				c.Logger.WithContext(log.Ctx{"err": err.Error()}).Warnf("Unable to warmup cache")
-			}
-		})
+
+	cred, err := box.LoadCredentials(repo.b, c.OAuth2App)
+	if os.IsNotExist(err) {
+		auth := oauth2.Config{
+			ClientID:     c.OAuth2App,
+			ClientSecret: c.OAuth2Secret,
+			RedirectURL:  fmt.Sprintf("%s/auth/%s/callback", c.BaseURL, "fedbox"),
+		}
+		if cred, err = credentials.Authorize(context.Background(), c.OAuth2App, auth); err != nil {
+			return repo, fmt.Errorf("unable to load credentials or authorize Actor: %w", err)
+		}
+		_ = box.SaveCredentials(repo.b, *cred)
 	}
 
-	if repo.app, err = AuthorizeOAuthClient(repo, c); err != nil {
-		return repo, fmt.Errorf("failed to authenticate client: %w", err)
+	if actor := box.Author(repo.b, cred); actor != nil {
+		repo.app = new(Account)
+		if err := repo.app.FromActivityPub(actor); err != nil {
+			l.WithContext(log.Ctx{"err": err.Error()}).Errorf("unable to load instance Actor")
+		}
+
+		repo.cred = cred
+		repo.fedbox.client = *cred.Client(context.Background(), cache.FS(filepath.Join(c.SessionsPath, "cache")))
 	}
 
-	repo.modTags, err = SaveModeratorTags(repo)
-	if err != nil {
+	//if c.CachingEnabled && c.Env.IsDev() {
+	//	new(sync.Once).Do(func() {
+	//		if err := WarmupCaches(repo, repo.fedbox.Service()); err != nil {
+	//			c.Logger.WithContext(log.Ctx{"err": err.Error()}).Warnf("Unable to warmup cache")
+	//		}
+	//	})
+	//}
+
+	go func() {
+		// NOTE(marius): this is the new brutalinks long polling mechanism that fetches
+		// the relevant collections for the instance actor every minute.
+		ctx := context.TODO()
+		if err := repo.b.Follow(ctx, repo.b.BuildCollectionFetches(ctx)...); err != nil {
+			c.Logger.WithContext(log.Ctx{"err": err.Error()}).Warnf("error fetching remotes")
+		}
+	}()
+
+	if repo.modTags, err = SaveModeratorTags(repo); err != nil {
 		return repo, fmt.Errorf("failed to create mod tag objects: %w", err)
 	}
 
@@ -572,23 +627,26 @@ func (r *repository) loadAccountsFollowers(ctx context.Context, acc *Account) er
 	if !acc.HasMetadata() || len(acc.Metadata.FollowersIRI) == 0 || acc.AP() == nil {
 		return nil
 	}
+
 	ac := acc.AP()
-	f := &Filters{}
-	searches := RemoteLoads{
-		baseIRI(ac.GetLink()): []RemoteLoad{{actor: ac, loadFn: followers, filters: []*Filters{f}}},
+	result, err := r.b.SearchInCollection(followers(ac.GetLink()))
+	if err != nil {
+		return err
 	}
-	return LoadFromSearches(ctx, r, searches, func(_ context.Context, c vocab.CollectionInterface, f *Filters) error {
-		for _, fol := range c.Collection() {
-			if !vocab.ActorTypes.Contains(fol.GetType()) {
-				continue
-			}
-			p := new(Account)
-			if err := p.FromActivityPub(fol); err == nil && p.IsValid() {
-				acc.Followers = append(acc.Followers, *p)
-			}
+	for _, res := range result {
+		fol, ok := res.(vocab.Item)
+		if !ok {
+			continue
 		}
-		return nil
-	})
+		if !vocab.ActorTypes.Contains(fol.GetType()) {
+			continue
+		}
+		p := Account{}
+		if err := p.FromActivityPub(fol); err == nil && p.IsValid() {
+			acc.Followers = append(acc.Followers, p)
+		}
+	}
+	return nil
 }
 
 func accountInCollection(ac Account, col AccountCollection) bool {
@@ -662,7 +720,7 @@ func (r *repository) loadAccountsOutbox(ctx context.Context, acc *Account) error
 			if iri := it.GetLink(); !acc.Metadata.Outbox.Contains(iri) {
 				acc.Metadata.Outbox = append(acc.Metadata.Outbox, vocab.FlattenProperties(it))
 			}
-			vocab.OnActivity(it, func(a *vocab.Activity) error {
+			_ = vocab.OnActivity(it, func(a *vocab.Activity) error {
 				stop = a.Published.Sub(oneYearishAgo) < 0
 				typ := it.GetType()
 				if typ == vocab.CreateType {
@@ -737,90 +795,44 @@ func (r *repository) loadItemsReplies(ctx context.Context, items ...Item) (ItemC
 	if len(repliesTo) == 0 {
 		return nil, nil
 	}
-	allReplies := make(ItemCollection, 0)
-	f := Filters{
-		Type:     ActivityTypesFilter(ValidContentTypes...),
-		IRI:      CompStrs{notNilFilter},
-		MaxItems: MaxContentItems,
+	inReplyTo := make([]filters.Check, 0, len(repliesTo))
+	for _, rr := range repliesTo {
+		inReplyTo = append(inReplyTo, filters.SameInReplyTo(rr.GetLink()))
 	}
 
-	searches := RemoteLoads{}
-	for _, top := range repliesTo {
-		base := baseIRI(top)
-		searches[base] = append(searches[base], RemoteLoad{actor: top, loadFn: replies, filters: []*Filters{&f}})
-	}
-	err := LoadFromSearches(ctx, r, searches, func(_ context.Context, c vocab.CollectionInterface, f *Filters) error {
-		for _, it := range c.Collection() {
-			if !it.IsObject() {
-				continue
-			}
-			i := new(Item)
-			if err := i.FromActivityPub(it); err == nil && !allReplies.Contains(*i) {
-				allReplies = append(allReplies, *i)
-			}
-		}
-		return nil
-	})
+	allReplies := make(ItemCollection, 0)
+	checks := filters.All(
+		filters.HasType(ValidContentTypes...),
+		filters.Any(inReplyTo...),
+	)
+
+	repl, err := r.b.Search(checks)
 	if err != nil {
 		r.errFn()(err.Error())
+	}
+	for _, rr := range repl {
+		if it, ok := rr.(vocab.Item); ok {
+			ob := Item{}
+			if err := ob.FromActivityPub(it); err == nil {
+				allReplies = append(allReplies, ob)
+			}
+		}
 	}
 	// TODO(marius): probably we can thread the replies right here
 	return allReplies, nil
 }
 
-func likesFilter(iris vocab.IRIs) RemoteLoads {
-	ff := Filters{
-		Type:     ActivityTypesFilter(ValidAppreciationTypes...),
-		MaxItems: 500,
-	}
-	load := RemoteLoad{
-		loadFn:  likes,
-		filters: []*Filters{},
-	}
-	searches := RemoteLoads{}
-	for _, iri := range iris {
-		l := load
-		l.actor = iri
-		f := ff
-		l.filters = append(l.filters, &f)
-		base := baseIRI(iri)
-		if _, ok := searches[base]; !ok {
-			searches[base] = make([]RemoteLoad, 0)
-		}
-		searches[base] = append(searches[base], l)
-	}
-	return searches
-}
+func likesFilter(iris vocab.IRIs, types ...vocab.ActivityVocabularyType) filters.Check {
+	byIRIChecks := make(filters.Checks, 0, len(iris))
 
-func mixedLikesFilter(iris vocab.IRIs) RemoteLoads {
-	g := make(map[vocab.IRI]vocab.IRIs)
 	for _, iri := range iris {
-		base := baseIRI(iri)
-		if _, ok := g[base]; !ok {
-			g[base] = make(vocab.IRIs, 0)
-		}
-		g[base] = append(g[base], iri)
+		byIRIChecks = append(byIRIChecks, filters.SameIRI(iri))
 	}
-	ff := Filters{
-		Type:     ActivityTypesFilter(ValidAppreciationTypes...),
-		MaxItems: MaxContentItems * 100,
-	}
-	load := RemoteLoad{
-		actor:   Instance.front.storage.app.Pub,
-		loadFn:  inbox,
-		filters: []*Filters{},
-	}
-	searches := RemoteLoads{}
-	for b, iris := range g {
-		l := load
-		f := ff
-		f.Object = &Filters{
-			IRI: IRIsFilter(iris...),
-		}
-		l.filters = append(l.filters, &f)
-		searches[b] = append(searches[b], l)
-	}
-	return searches
+
+	return filters.All(
+		filters.HasType(types...),
+		filters.Object(filters.Any(byIRIChecks...)),
+	)
 }
 
 func irisFromItems(items ...Item) vocab.IRIs {
@@ -839,25 +851,26 @@ func (r *repository) loadItemsVotes(ctx context.Context, items ...Item) (ItemCol
 		return items, nil
 	}
 
-	var searches RemoteLoads
+	activeAppreciationTypes := vocab.ActivityVocabularyTypes{vocab.LikeType}
 	if Instance.Conf.DownvotingEnabled {
-		searches = mixedLikesFilter(irisFromItems(items...))
-	} else {
-		searches = likesFilter(irisFromItems(items...))
+		activeAppreciationTypes = ValidAppreciationTypes
 	}
+
+	searches := likesFilter(irisFromItems(items...), activeAppreciationTypes...)
 	votes := make(VoteCollection, 0)
-	err := LoadFromSearches(ctx, r, searches, func(_ context.Context, c vocab.CollectionInterface, f *Filters) error {
-		for _, vAct := range c.Collection() {
-			if !vAct.IsObject() || !ValidAppreciationTypes.Contains(vAct.GetType()) {
-				continue
-			}
-			v := Vote{}
-			if err := v.FromActivityPub(vAct); err == nil && !votes.Contains(v) {
-				votes = append(votes, v)
-			}
+	results, err := r.b.Search(searches)
+	for _, res := range results {
+		it, ok := res.(vocab.Item)
+		if !ok {
+			continue
 		}
-		return nil
-	})
+		vv := Vote{}
+		if err := vv.FromActivityPub(it); err != nil {
+			continue
+		}
+		votes = append(votes, vv)
+	}
+
 	for k, ob := range items {
 		for _, v := range votes {
 			if v.Item == nil {
@@ -1150,12 +1163,8 @@ func baseIRI(iri vocab.IRI) vocab.IRI {
 	return vocab.IRI(u.String())
 }
 
-func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemCollection, error) {
-	if len(items) == 0 {
-		return items, nil
-	}
-
-	accounts := make(vocab.IRIs, 0)
+func getAuthors(items ItemCollection) vocab.IRIs {
+	accounts := make(vocab.IRIs, 0, len(items))
 	for _, it := range items {
 		if it.SubmittedBy.IsValid() {
 			if !accounts.Contains(it.SubmittedBy.AP().GetLink()) {
@@ -1182,6 +1191,7 @@ func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemC
 				}
 			}
 		}
+
 		for _, com := range *it.Children() {
 			if ob, ok := com.(*Item); ok {
 				if auth := ob.SubmittedBy; !auth.IsValid() {
@@ -1189,19 +1199,37 @@ func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemC
 						accounts = append(accounts, auth.AP().GetLink())
 					}
 				}
-
 			}
 		}
 	}
 
+	return accounts
+}
+
+func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemCollection, error) {
+	if len(items) == 0 {
+		return items, nil
+	}
+
+	accounts := getAuthors(items)
 	if len(accounts) == 0 {
 		return items, nil
 	}
 
-	authors := make(AccountCollection, 0)
+	checks := make(filters.Checks, 0, len(accounts))
 	for _, auth := range accounts {
-		it, err := r.fedbox.client.Actor(ctx, auth.GetLink())
-		if err != nil {
+		checks = append(checks, filters.SameIRI(auth.GetLink()))
+	}
+
+	found, err := r.b.Search(filters.Any(checks...))
+	if err != nil {
+		r.errFn()(err.Error())
+	}
+
+	authors := make(AccountCollection, 0)
+	for _, auth := range found {
+		it, ok := auth.(vocab.Item)
+		if !ok {
 			r.errFn(log.Ctx{"type": fmt.Sprintf("%T", it)})(err.Error())
 			continue
 		}
@@ -2466,15 +2494,15 @@ func (r *repository) LoadAccountDetails(ctx context.Context, acc *Account) error
 	ltx := log.Ctx{"handle": acc.Handle, "hash": acc.Hash}
 	r.infoFn(ltx)("loading account details")
 
-	if err = r.loadAccountsOutbox(ctx, acc); err != nil {
-		r.infoFn(ltx, log.Ctx{"err": err.Error()})("unable to load outbox")
+	//if err = r.loadAccountsOutbox(ctx, acc); err != nil {
+	//	r.infoFn(ltx, log.Ctx{"err": err.Error()})("unable to load outbox")
+	//}
+	//if len(acc.Followers) == 0 {
+	// TODO(marius): this needs to be moved to where we're handling all Inbox activities, not on page load
+	if err = r.loadAccountsFollowers(ctx, acc); err != nil {
+		r.infoFn(ltx, log.Ctx{"err": err.Error()})("unable to load followers")
 	}
-	if len(acc.Followers) == 0 {
-		// TODO(marius): this needs to be moved to where we're handling all Inbox activities, not on page load
-		if err = r.loadAccountsFollowers(ctx, acc); err != nil {
-			r.infoFn(ltx, log.Ctx{"err": err.Error()})("unable to load followers")
-		}
-	}
+	//}
 	if len(acc.Following) == 0 {
 		if err = r.loadAccountsFollowing(ctx, acc); err != nil {
 			r.infoFn(ltx, log.Ctx{"err": err.Error()})("unable to load following")
@@ -2889,6 +2917,7 @@ func LoadFromSearches(ctx context.Context, repo *repository, loads RemoteLoads, 
 	var cancelFn func()
 
 	ctx, cancelFn = context.WithCancel(ctx)
+	defer cancelFn()
 
 	var err error
 	for service, searches := range loads {
@@ -2911,7 +2940,6 @@ func LoadFromSearches(ctx context.Context, repo *repository, loads RemoteLoads, 
 	if err != nil {
 		if xerrors.Is(err, StopLoad{}) {
 			repo.infoFn()("stopped loading search")
-			cancelFn()
 		} else {
 			repo.errFn(log.Ctx{"err": err.Error()})("Failed to load search")
 		}
