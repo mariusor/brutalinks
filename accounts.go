@@ -8,6 +8,7 @@ import (
 	"time"
 
 	vocab "github.com/go-ap/activitypub"
+	"github.com/go-ap/client/credentials"
 	"github.com/go-ap/errors"
 	"github.com/go-chi/chi/v5"
 	"golang.org/x/oauth2"
@@ -361,4 +362,20 @@ func reparentAccounts(allAccounts *AccountPtrCollection) {
 		}
 	}
 	*allAccounts = retAccounts
+}
+
+func (a *Account) Credentials() credentials.C2S {
+	conf := oauth2.Config{
+		ClientID:     Instance.Conf.OAuth2App,
+		ClientSecret: Instance.Conf.OAuth2Secret,
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  a.Metadata.AuthorizationEndPoint,
+			TokenURL: a.Metadata.TokenEndPoint,
+		},
+	}
+	return credentials.C2S{
+		IRI:  vocab.IRI(a.Metadata.ID),
+		Conf: conf,
+		Tok:  a.Metadata.OAuth.Token,
+	}
 }

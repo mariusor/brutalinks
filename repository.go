@@ -159,12 +159,11 @@ func SaveModeratorTags(repo *repository) (TagCollection, error) {
 		}
 	}
 
-	repo.fedbox.SignBy(repo.app)
 	for i, tag := range toSaveTags {
 		ap := buildAPTagObject(tag, repo)
 		create := wrapItemInCreate(ap, repo.app.Pub)
 		create.To, _, create.CC, create.BCC = repo.defaultRecipientsList(repo.app.Pub, true)
-		_, tagIt, err := repo.fedbox.ToOutbox(context.TODO(), create)
+		_, tagIt, err := repo.ToOutbox(context.TODO(), *repo.cred, create)
 		if err != nil {
 			repo.errFn()("unable to save moderation tag %q on remote instance: %s", tag.Name, err)
 		}
@@ -2021,7 +2020,7 @@ func (r *repository) SaveVote(ctx context.Context, v Vote) (Vote, error) {
 	}
 
 	o := new(vocab.Object)
-	r.loadAPItem(o, *v.Item)
+	_ = r.loadAPItem(o, *v.Item)
 	act := &vocab.Activity{
 		Type:  vocab.UndoType,
 		Actor: author.GetLink(),
@@ -2029,12 +2028,12 @@ func (r *repository) SaveVote(ctx context.Context, v Vote) (Vote, error) {
 	act.To, act.Bto, act.CC, act.BCC = r.defaultRecipientsList(v.SubmittedBy.Pub, Instance.Conf.PublicVotingEnabled)
 	if Instance.Conf.PublicVotingEnabled {
 		// NOTE(marius): if public voting is enabled we can append the recipients of the voted on object
-		vocab.OnObject(act, func(ob *vocab.Object) error {
+		_ = vocab.OnObject(act, func(ob *vocab.Object) error {
 			return vocab.OnObject(v.Item.Pub, func(p *vocab.Object) error {
-				appendRecipients(&ob.To, p.To)
-				appendRecipients(&ob.Bto, p.Bto)
-				appendRecipients(&ob.CC, p.CC)
-				appendRecipients(&ob.BCC, p.BCC)
+				_ = appendRecipients(&ob.To, p.To)
+				_ = appendRecipients(&ob.Bto, p.Bto)
+				_ = appendRecipients(&ob.CC, p.CC)
+				_ = appendRecipients(&ob.BCC, p.BCC)
 				return nil
 			})
 		})
@@ -2042,7 +2041,7 @@ func (r *repository) SaveVote(ctx context.Context, v Vote) (Vote, error) {
 
 	if exists.HasMetadata() {
 		act.Object = vocab.IRI(exists.Metadata.IRI)
-		i, it, err := r.fedbox.ToOutbox(ctx, act)
+		i, it, err := r.ToOutbox(ctx, v.SubmittedBy.Credentials(), act)
 		if err != nil {
 			r.errFn()(err.Error())
 		}
@@ -2073,7 +2072,7 @@ func (r *repository) SaveVote(ctx context.Context, v Vote) (Vote, error) {
 		iri vocab.IRI
 		it  vocab.Item
 	)
-	iri, it, err = r.fedbox.ToOutbox(ctx, act)
+	iri, it, err = r.ToOutbox(ctx, v.SubmittedBy.Credentials(), act)
 	lCtx := log.Ctx{"act": iri}
 	if it != nil {
 		lCtx["obj"] = it.GetLink()
@@ -2210,18 +2209,18 @@ func loadMentionsIfExisting(r *repository, ctx context.Context, incoming TagColl
 			r.errFn(log.Ctx{"err": err})("unable to load accounts from mentions")
 			continue
 		}
-		vocab.OnCollectionIntf(col, func(col vocab.CollectionInterface) error {
+		_ = vocab.OnCollectionIntf(col, func(col vocab.CollectionInterface) error {
 			for _, it := range col.Collection() {
 				for i, t := range incoming {
-					vocab.OnActor(it, func(act *vocab.Actor) error {
+					_ = vocab.OnActor(it, func(act *vocab.Actor) error {
 						if strings.ToLower(t.Name) == strings.ToLower(string(act.Name.Get("-"))) ||
 							strings.ToLower(t.Name) == strings.ToLower(string(act.PreferredUsername.Get("-"))) {
-							url := act.ID.String()
+							u := act.ID.String()
 							if act.URL != nil {
-								url = act.URL.GetLink().String()
+								u = act.URL.GetLink().String()
 							}
-							incoming[i].Metadata = &ItemMetadata{ID: act.ID.String(), URL: url}
-							incoming[i].URL = url
+							incoming[i].Metadata = &ItemMetadata{ID: act.ID.String(), URL: u}
+							incoming[i].URL = u
 						}
 						return nil
 					})
@@ -2242,12 +2241,12 @@ func loadMentionsIfExisting(r *repository, ctx context.Context, incoming TagColl
 			for i, t := range incoming {
 				if strings.ToLower(t.Name) == strings.ToLower(string(act.Name.Get("-"))) ||
 					strings.ToLower(t.Name) == strings.ToLower(string(act.PreferredUsername.Get("-"))) {
-					url := act.ID.String()
+					u := act.ID.String()
 					if act.URL != nil {
-						url = act.URL.GetLink().String()
+						u = act.URL.GetLink().String()
 					}
-					incoming[i].Metadata = &ItemMetadata{ID: act.ID.String(), URL: url}
-					incoming[i].URL = url
+					incoming[i].Metadata = &ItemMetadata{ID: act.ID.String(), URL: u}
+					incoming[i].URL = u
 				}
 			}
 		}
@@ -2303,18 +2302,18 @@ func (r *repository) loadFromAccountForDelete(ctx context.Context, art *vocab.Ac
 			continue
 		}
 		if parAuth := p.SubmittedBy; parAuth != nil {
-			art.CC.Append(parAuth.Pub.GetLink())
+			_ = art.CC.Append(parAuth.Pub.GetLink())
 		}
 		par = p.Parent
 	}
 
 	*art = *r.loadAPPerson(*it)
 	if it.Parent != nil {
-		vocab.OnObject(it.Parent.AP(), func(p *vocab.Object) error {
-			appendRecipients(&art.To, p.To)
-			appendRecipients(&art.Bto, p.Bto)
-			appendRecipients(&art.CC, p.CC)
-			appendRecipients(&art.BCC, p.BCC)
+		_ = vocab.OnObject(it.Parent.AP(), func(p *vocab.Object) error {
+			_ = appendRecipients(&art.To, p.To)
+			_ = appendRecipients(&art.Bto, p.Bto)
+			_ = appendRecipients(&art.CC, p.CC)
+			_ = appendRecipients(&art.BCC, p.BCC)
 			return nil
 		})
 	}
@@ -2372,7 +2371,7 @@ func (r *repository) loadFromItemForDelete(ctx context.Context, art *vocab.Objec
 		}
 	}
 
-	r.loadAPItem(art, *it)
+	_ = r.loadAPItem(art, *it)
 	if it.Parent != nil {
 		return loadFromParent(art, it.Parent.AP())
 	}
@@ -2386,7 +2385,7 @@ func (r *repository) ModerateDelete(ctx context.Context, mod ModerationOp, autho
 		toDelete vocab.Item
 		actType  = vocab.DeleteType
 	)
-	if len(mod.Object.ID()) == 0 {
+	if mod.Object.ID() != AnonymousHash {
 		r.errFn(log.Ctx{"item": mod.Object})(err.Error())
 		return mod, errors.NotFoundf("item hash is empty, can not delete")
 	}
@@ -2409,7 +2408,7 @@ func (r *repository) ModerateDelete(ctx context.Context, mod ModerationOp, autho
 		Type:         actType,
 		Object:       toDelete.GetID(),
 	}
-	vocab.OnObject(toDelete, func(ob *vocab.Object) error {
+	_ = vocab.OnObject(toDelete, func(ob *vocab.Object) error {
 		act.To = ob.To
 		act.Bto = ob.Bto
 		act.CC = ob.CC
@@ -2417,7 +2416,7 @@ func (r *repository) ModerateDelete(ctx context.Context, mod ModerationOp, autho
 		return nil
 	})
 
-	i, tombstone, err := r.fedbox.ToOutbox(ctx, act)
+	i, tombstone, err := r.ToOutbox(ctx, author.Credentials(), act)
 	if err != nil && !errors.IsGone(err) {
 		r.errFn()(err.Error())
 		return mod, err
@@ -2440,14 +2439,14 @@ func (r *repository) defaultRecipientsList(act vocab.Item, withPublic bool) (voc
 	bcc := make(vocab.ItemCollection, 0)
 
 	if withPublic {
-		to.Append(vocab.PublicNS)
+		_ = to.Append(vocab.PublicNS)
 		if act != nil {
-			cc.Append(vocab.Followers.IRI(act))
+			_ = cc.Append(vocab.Followers.IRI(act))
 		}
-		bcc.Append(r.fedbox.Service().ID)
+		_ = bcc.Append(r.fedbox.Service().ID)
 	}
 	// NOTE(marius): we publish the activity just to the instance and its followers
-	cc.Append(r.app.Pub.GetLink(), vocab.Followers.IRI(r.app.Pub))
+	_ = cc.Append(r.app.Pub.GetLink(), vocab.Followers.IRI(r.app.Pub))
 
 	return to, bto, cc, bcc
 }
@@ -2527,9 +2526,9 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 	}
 
 	art := new(vocab.Object)
-	r.loadAPItem(art, it)
+	_ = r.loadAPItem(art, it)
 	if it.Parent != nil {
-		loadFromParent(art, it.Parent.AP())
+		_ = loadFromParent(art, it.Parent.AP())
 	}
 	id := art.GetLink()
 
@@ -2560,7 +2559,7 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 		i  vocab.IRI
 		ob vocab.Item
 	)
-	i, ob, err = r.fedbox.ToOutbox(ctx, act)
+	i, ob, err = r.ToOutbox(ctx, it.SubmittedBy.Credentials(), act)
 	lCtx := log.Ctx{"act": i}
 	if !vocab.IsNil(ob) {
 		lCtx["obj"] = ob.GetLink()
@@ -2735,6 +2734,9 @@ func Values(f interface{}) client.FilterFn {
 }
 
 func (r *repository) LoadFollowRequests(ctx context.Context, ed *Account, f *Filters) (FollowRequests, uint, error) {
+	if ed == nil {
+		return nil, 1, fmt.Errorf("invalid nil followed account")
+	}
 	if len(f.Type) == 0 {
 		f.Type = ActivityTypesFilter(vocab.FollowType)
 		f.Actor = derefIRIFilters
@@ -2784,7 +2786,7 @@ func (r *repository) SendFollowResponse(ctx context.Context, f FollowRequest, ac
 	response.Object = vocab.IRI(f.Metadata.ID)
 	response.Actor = vocab.IRI(ed.Metadata.ID)
 
-	i, it, err := r.fedbox.ToOutbox(ctx, response)
+	i, it, err := r.ToOutbox(ctx, f.SubmittedBy.Credentials(), response)
 	if err != nil && !errors.IsConflict(err) {
 		r.errFn(log.Ctx{
 			"err":      err,
@@ -2801,9 +2803,7 @@ func (r *repository) FollowAccount(ctx context.Context, er, ed Account, reason *
 	if !accountValidForC2S(&er) {
 		return errors.Unauthorizedf("invalid account %s", er.Handle)
 	}
-	follower := r.loadAPPerson(er)
-	followed := r.loadAPPerson(ed)
-	err := r.FollowActor(ctx, follower, followed, reason)
+	err := r.FollowActor(ctx, er, ed, reason)
 	r.errFn(log.Ctx{
 		"err":      err,
 		"follower": er.Handle,
@@ -2812,17 +2812,20 @@ func (r *repository) FollowAccount(ctx context.Context, er, ed Account, reason *
 	return err
 }
 
-func (r *repository) FollowActor(ctx context.Context, follower, followed *vocab.Actor, reason *Item) error {
+func (r *repository) FollowActor(ctx context.Context, er, ed Account, reason *Item) error {
+	follower := r.loadAPPerson(er)
+	followed := r.loadAPPerson(ed)
+
 	follow := new(vocab.Follow)
 	follow.To, _, follow.CC, follow.BCC = r.defaultRecipientsList(follower, true)
-	appendRecipients(&follow.To, followed.GetLink())
+	_ = appendRecipients(&follow.To, followed.GetLink())
 	if reason != nil {
-		r.loadAPItem(follow, *reason)
+		_ = r.loadAPItem(follow, *reason)
 	}
 	follow.Type = vocab.FollowType
 	follow.Object = followed.GetLink()
 	follow.Actor = follower.GetLink()
-	_, _, err := r.fedbox.ToOutbox(ctx, follow)
+	_, _, err := r.ToOutbox(ctx, er.Credentials(), follow)
 	if err != nil {
 		return err
 	}
@@ -2877,7 +2880,7 @@ func (r *repository) SaveAccount(ctx context.Context, a Account) (Account, error
 
 	var ap vocab.Item
 	ltx := log.Ctx{"actor": a.Handle}
-	i, ap, err := r.fedbox.ToOutbox(ctx, act)
+	i, ap, err := r.ToOutbox(ctx, a.Credentials(), act)
 	if err != nil {
 		ltx["parent"] = parent.GetLink()
 		if ap != nil {
@@ -2953,7 +2956,7 @@ func (r *repository) BlockAccount(ctx context.Context, er, ed Account, reason *I
 		return err
 	}
 	block.Type = vocab.BlockType
-	i, ob, err := r.fedbox.ToOutbox(ctx, block)
+	i, ob, err := r.ToOutbox(ctx, er.Credentials(), block)
 
 	lCtx := log.Ctx{"activity": i}
 	if !vocab.IsNil(ob) {
@@ -2975,7 +2978,7 @@ func (r *repository) BlockItem(ctx context.Context, er Account, ed Item, reason 
 		return err
 	}
 	block.Type = vocab.BlockType
-	i, ob, err := r.fedbox.ToOutbox(ctx, block)
+	i, ob, err := r.ToOutbox(ctx, er.Credentials(), block)
 	lCtx := log.Ctx{"activity": i}
 	if !vocab.IsNil(ob) {
 		lCtx["object"] = ob.GetLink()
@@ -2996,7 +2999,7 @@ func (r *repository) ReportItem(ctx context.Context, er Account, it Item, reason
 		return err
 	}
 	flag.Type = vocab.FlagType
-	i, ob, err := r.fedbox.ToOutbox(ctx, flag)
+	i, ob, err := r.ToOutbox(ctx, er.Credentials(), flag)
 	if err != nil {
 		r.errFn()(err.Error())
 		return err
@@ -3012,7 +3015,7 @@ func (r *repository) ReportAccount(ctx context.Context, er, ed Account, reason *
 		return err
 	}
 	flag.Type = vocab.FlagType
-	i, ob, err := r.fedbox.ToOutbox(ctx, flag)
+	i, ob, err := r.ToOutbox(ctx, er.Credentials(), flag)
 	if err != nil {
 		r.errFn()(err.Error())
 		return err

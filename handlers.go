@@ -414,12 +414,12 @@ func (h *handler) HandleFollowInstanceRequest(w http.ResponseWriter, r *http.Req
 	}
 	repo := ContextRepository(r.Context())
 	// Load instance actor
-	fol, err := repo.loadInstanceActorFromIRI(context.TODO(), vocab.IRI(instanceURL))
+	rem, err := repo.loadInstanceActorFromIRI(context.TODO(), vocab.IRI(instanceURL))
 	if err != nil {
 		h.v.HandleErrors(w, r, err)
 		return
 	}
-	if fol.PublicKey.ID == "" {
+	if rem.PublicKey.ID == "" {
 		// NOTE(marius): if the actor that we want to follow with doesn't have a public key, it can't federate
 		h.v.HandleErrors(w, r, errors.NotValidf("Instance doesn't support federation: %s", instanceURL))
 		return
@@ -427,8 +427,10 @@ func (h *handler) HandleFollowInstanceRequest(w http.ResponseWriter, r *http.Req
 	// we operate on the current item as the application
 	repo.WithAccount(repo.app)
 
-	acc := repo.loadAPPerson(*repo.app)
-	if err = repo.FollowActor(r.Context(), acc, fol, nil); err != nil {
+	fol := Account{}
+	_ = fol.FromActivityPub(rem)
+
+	if err = repo.FollowActor(r.Context(), *repo.app, fol, nil); err != nil {
 		h.v.HandleErrors(w, r, err)
 		return
 	}

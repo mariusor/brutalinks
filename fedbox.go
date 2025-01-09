@@ -6,10 +6,13 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"path/filepath"
 
+	"git.sr.ht/~mariusor/cache"
 	log "git.sr.ht/~mariusor/lw"
 	vocab "github.com/go-ap/activitypub"
 	"github.com/go-ap/client"
+	"github.com/go-ap/client/credentials"
 	"github.com/go-ap/errors"
 )
 
@@ -162,11 +165,14 @@ func NewClient(o ...OptionFn) (*fedbox, error) {
 	})
 }
 
-func (f fedbox) normaliseIRI(i vocab.IRI) vocab.IRI {
+func (f *fedbox) normaliseIRI(i vocab.IRI) vocab.IRI {
 	iu, ie := i.URL()
+	if ie != nil {
+		return i
+	}
 	if i.Contains(f.baseURL, false) {
 		bu, be := f.baseURL.URL()
-		if ie != nil || be != nil {
+		if be != nil {
 			return i
 		}
 		iu.Host = bu.Host
@@ -396,28 +402,27 @@ func validateIRIForRequest(i vocab.IRI) error {
 	return nil
 }
 
-func (f fedbox) ToOutbox(ctx context.Context, a vocab.Item) (vocab.IRI, vocab.Item, error) {
-	iri := vocab.IRI("")
-	vocab.OnActivity(a, func(a *vocab.Activity) error {
-		iri = outbox(a.Actor)
+func (r *repository) ToOutbox(ctx context.Context, cred credentials.C2S, a vocab.Item) (vocab.IRI, vocab.Item, error) {
+	sendTo := vocab.IRI("")
+	_ = vocab.OnActivity(a, func(a *vocab.Activity) error {
+		sendTo = outbox(a.Actor)
 		return nil
 	})
-	if err := validateIRIForRequest(iri); err != nil {
+	if err := validateIRIForRequest(sendTo); err != nil {
 		return "", nil, errors.Annotatef(err, "Invalid Outbox IRI")
 	}
-	return f.client.CtxToCollection(ctx, f.normaliseIRI(iri), a)
-}
 
-func (f fedbox) ToInbox(ctx context.Context, a vocab.Item) (vocab.IRI, vocab.Item, error) {
-	iri := vocab.IRI("")
-	vocab.OnActivity(a, func(a *vocab.Activity) error {
-		iri = inbox(a.Actor)
-		return nil
-	})
-	if err := validateIRIForRequest(iri); err != nil {
-		return "", nil, errors.Annotatef(err, "Invalid Inbox IRI")
+	sendTo = r.fedbox.normaliseIRI(sendTo)
+	cl := cred.Client(ctx, cache.FS(filepath.Join(Instance.Conf.StoragePath, "cache")))
+
+	var i vocab.IRI
+	var err error
+	i, a, err = cl.CtxToCollection(ctx, sendTo, a)
+	if err != nil {
+		return i, a, err
 	}
-	return f.client.CtxToCollection(ctx, f.normaliseIRI(iri), a)
+
+	return i, a, nil
 }
 
 func (f *fedbox) Service() *vocab.Service {

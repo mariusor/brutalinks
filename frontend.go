@@ -314,7 +314,7 @@ func (v *view) LoadSession(next http.Handler) http.Handler {
 		if clearAccount {
 			acc = &AnonymousAccount
 		}
-		v.saveAccountToSession(w, r, acc)
+		_ = v.saveAccountToSession(w, r, acc)
 		r = r.WithContext(context.WithValue(r.Context(), LoggedAccountCtxtKey, acc))
 		next.ServeHTTP(w, r)
 	}
