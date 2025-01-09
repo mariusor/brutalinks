@@ -654,23 +654,25 @@ func (r *repository) loadAccountsFollowing(ctx context.Context, acc *Account) er
 		return nil
 	}
 	ac := acc.AP()
-	f := &Filters{}
-	searches := RemoteLoads{
-		baseIRI(ac.GetLink()): []RemoteLoad{{actor: ac, loadFn: following, filters: []*Filters{f}}},
+	res, err := r.b.SearchInCollection(vocab.Followers.Of(ac).GetLink())
+	if err != nil {
+		return err
 	}
 
-	return LoadFromSearches(ctx, r, searches, func(_ context.Context, c vocab.CollectionInterface, f *Filters) error {
-		for _, fol := range c.Collection() {
-			if !vocab.ActorTypes.Contains(fol.GetType()) {
-				continue
-			}
-			p := new(Account)
-			if err := p.FromActivityPub(fol); err == nil && p.IsValid() {
-				acc.Following = append(acc.Following, *p)
-			}
+	for _, li := range res {
+		fol, ok := li.(vocab.Item)
+		if !ok {
+			continue
 		}
-		return nil
-	})
+		if !vocab.ActorTypes.Contains(fol.GetType()) {
+			continue
+		}
+		p := Account{}
+		if err := p.FromActivityPub(fol); err == nil && p.IsValid() {
+			acc.Following = append(acc.Following, p)
+		}
+	}
+	return nil
 }
 
 func getItemUpdatedTime(it vocab.Item) time.Time {
@@ -688,72 +690,59 @@ func (r *repository) loadAccountsOutbox(ctx context.Context, acc *Account) error
 	}
 
 	ac := acc.AP()
-	f := Filters{
-		Object:   derefIRIFilters,
-		MaxItems: 300,
-	}
 
-	fa := f
-	fa.Type = AppreciationActivitiesFilter
-	fm := f
-	fm.Type = ModerationActivitiesFilter
-	fc := f
-	fc.Type = CreateActivitiesFilter
-
-	searches := RemoteLoads{
-		baseIRI(ac.GetLink()): []RemoteLoad{
-			{actor: ac, loadFn: outbox, filters: []*Filters{&fa, &fc, &fm}},
-		},
+	validTypes := append(append(ValidAppreciationTypes, ValidModerationActivityTypes...), vocab.CreateType)
+	check := filters.HasType(validTypes...)
+	result, err := r.b.SearchInCollection(vocab.Outbox.Of(ac).GetLink(), check)
+	if err != nil {
+		return err
 	}
-	return LoadFromSearches(ctx, r, searches, func(ctx context.Context, c vocab.CollectionInterface, f *Filters) error {
-		var stop bool
-		for _, it := range c.Collection() {
-			if iri := it.GetLink(); !acc.Metadata.Outbox.Contains(iri) {
-				acc.Metadata.Outbox = append(acc.Metadata.Outbox, vocab.FlattenProperties(it))
+	for _, res := range result {
+		it, ok := res.(vocab.Item)
+		if !ok {
+			continue
+		}
+		if iri := it.GetLink(); !acc.Metadata.Outbox.Contains(iri) {
+			acc.Metadata.Outbox = append(acc.Metadata.Outbox, vocab.FlattenProperties(it))
+		}
+		_ = vocab.OnActivity(it, func(a *vocab.Activity) error {
+			typ := it.GetType()
+			if typ == vocab.CreateType {
+				ob := a.Object
+				if ob == nil {
+					return nil
+				}
+				if ob.IsObject() {
+					if ValidActorTypes.Contains(ob.GetType()) {
+						act := Account{}
+						_ = act.FromActivityPub(a)
+						acc.children = append(act.children, &act)
+					}
+				}
 			}
-			_ = vocab.OnActivity(it, func(a *vocab.Activity) error {
-				stop = a.Published.Sub(oneYearishAgo) < 0
-				typ := it.GetType()
-				if typ == vocab.CreateType {
-					ob := a.Object
-					if ob == nil {
+			if ValidModerationActivityTypes.Contains(typ) {
+				m := ModerationOp{}
+				_ = m.FromActivityPub(a)
+				if m.Object != nil {
+					if m.Object.Type() != ActorType {
 						return nil
 					}
-					if ob.IsObject() {
-						if ValidActorTypes.Contains(ob.GetType()) {
-							act := Account{}
-							act.FromActivityPub(a)
-							acc.children = append(act.children, &act)
-						}
+					dude, dok := m.Object.(*Account)
+					if !dok {
+						return nil
+					}
+					if typ == vocab.BlockType {
+						acc.Blocked = append(acc.Blocked, *dude)
+					}
+					if typ == vocab.IgnoreType {
+						acc.Ignored = append(acc.Ignored, *dude)
 					}
 				}
-				if ValidModerationActivityTypes.Contains(typ) {
-					m := ModerationOp{}
-					m.FromActivityPub(a)
-					if m.Object != nil {
-						if m.Object.Type() != ActorType {
-							return nil
-						}
-						dude, ok := m.Object.(*Account)
-						if !ok {
-							return nil
-						}
-						if typ == vocab.BlockType {
-							acc.Blocked = append(acc.Blocked, *dude)
-						}
-						if typ == vocab.IgnoreType {
-							acc.Ignored = append(acc.Ignored, *dude)
-						}
-					}
-				}
-				return nil
-			})
-			if stop {
-				return nil
 			}
-		}
-		return nil
-	})
+			return nil
+		})
+	}
+	return nil
 }
 
 func getRepliesOf(items ...Item) vocab.IRIs {
@@ -2690,15 +2679,15 @@ func (r *repository) LoadAccountDetails(ctx context.Context, acc *Account) error
 	ltx := log.Ctx{"handle": acc.Handle, "hash": acc.Hash}
 	r.infoFn(ltx)("loading account details")
 
-	//if err = r.loadAccountsOutbox(ctx, acc); err != nil {
-	//	r.infoFn(ltx, log.Ctx{"err": err.Error()})("unable to load outbox")
-	//}
-	//if len(acc.Followers) == 0 {
-	// TODO(marius): this needs to be moved to where we're handling all Inbox activities, not on page load
-	if err = r.loadAccountsFollowers(ctx, acc); err != nil {
-		r.infoFn(ltx, log.Ctx{"err": err.Error()})("unable to load followers")
+	if err = r.loadAccountsOutbox(ctx, acc); err != nil {
+		r.infoFn(ltx, log.Ctx{"err": err.Error()})("unable to load outbox")
 	}
-	//}
+	if len(acc.Followers) == 0 {
+		// TODO(marius): this needs to be moved to where we're handling all Inbox activities, not on page load
+		if err = r.loadAccountsFollowers(ctx, acc); err != nil {
+			r.infoFn(ltx, log.Ctx{"err": err.Error()})("unable to load followers")
+		}
+	}
 	if len(acc.Following) == 0 {
 		if err = r.loadAccountsFollowing(ctx, acc); err != nil {
 			r.infoFn(ltx, log.Ctx{"err": err.Error()})("unable to load following")
