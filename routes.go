@@ -112,15 +112,13 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 					r.Post("/login", h.HandleLogin)
 				})
 			})
-			r.With(h.ValidateLoggedIn(h.v.RedirectToErrors), Deps(Authors, Follows), FollowFilterMw,
-				SearchInCollectionsMw(requestHandleSearches, inbox), applicationSearches(inbox), OperatorSearches, LoadMw).
+			r.With(h.ValidateLoggedIn(h.v.RedirectToErrors), Deps(Authors, Follows), FollowChecks, LoadV2Mw).
 				Get("/follow/{hash}/{action}", h.HandleFollowResponseRequest)
 
-			r.With(h.LoadAuthorMw, SearchInCollectionsMw(requestHandleSearches, outbox), LoadMw).
-				Get("/~{handle}.pub", h.ShowPublicKey)
+			r.With(h.LoadAuthorMw, LoadV2Mw).Get("/~{handle}.pub", h.ShowPublicKey)
 
 			r.With(h.LoadAuthorMw).Route("/~{handle}", func(r chi.Router) {
-				r.With(AccountListingModelMw, AllFilters, Deps(Authors, Votes), SearchInCollectionsMw(requestHandleSearches, outbox), LoadMw).
+				r.With(AccountListingModelMw, AuthorChecks, Deps(Authors, Votes), LoadV2Mw).
 					Get("/", h.HandleShow)
 
 				r.With(csrf).Route("/changepw/{hash}", func(r chi.Router) {

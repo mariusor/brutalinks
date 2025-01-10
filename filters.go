@@ -72,11 +72,15 @@ var (
 	AppreciationActivitiesFilter = ActivityTypesFilter(vocab.LikeType, vocab.DislikeType)
 )
 
-func AllFilters(next http.Handler) http.Handler {
+func AuthorChecks(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		f := defaultFilters(r)
-		f.Object = derefIRIFilters
-		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
+		auth := ContextAuthors(r.Context())
+		checks := make(filters.Checks, 0, len(auth))
+		for _, a := range auth {
+			checks = append(checks, filters.SameAttributedTo(a.AP().GetLink()))
+		}
+		checks = append(defaultChecks(r), checks...)
+		ctx := context.WithValue(r.Context(), FilterV2CtxtKey, filters.All(checks...))
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -128,20 +132,14 @@ func SelfChecks(id vocab.IRI) func(next http.Handler) http.Handler {
 	}
 }
 
-var CreateFollowActivitiesFilter = CompStrs{
-	CompStr{Str: string(vocab.CreateType)},
-	CompStr{Str: string(vocab.FollowType)},
-}
-
-func FollowFilterMw(next http.Handler) http.Handler {
+func FollowChecks(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		f := new(Filters)
-		f.IRI = CompStrs{LikeString(chi.URLParam(r, "hash"))}
-		f.Object = derefIRIFilters
-		f.Actor = derefIRIFilters
-		f.Type = ActivityTypesFilter(vocab.FollowType)
-		f.MaxItems = 1
-		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
+		checks := filters.All(
+			filters.HasType(vocab.FollowType),
+			filters.IRILike(chi.URLParam(r, "hash")),
+		)
+
+		ctx := context.WithValue(r.Context(), FilterV2CtxtKey, checks)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
