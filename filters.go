@@ -14,8 +14,7 @@ import (
 )
 
 var (
-	nilFilter  = EqualsString("-")
-	nilFilters = CompStrs{nilFilter}
+	nilFilter = EqualsString("-")
 
 	notNilFilter  = DifferentThanString("-")
 	notNilFilters = CompStrs{notNilFilter}
@@ -55,23 +54,6 @@ type Filters struct {
 	Actor      *Filters  `qstring:"actor,omitempty"`
 }
 
-// FiltersFromRequest loads the filters we use for generating storage queries from the HTTP request
-func FiltersFromRequest(r *http.Request) *Filters {
-	f := new(Filters)
-	if err := qstring.Unmarshal(r.URL.Query(), f); err != nil {
-		return nil
-	}
-	if f.MaxItems <= 0 {
-		f.MaxItems = MaxContentItems
-	}
-	return f
-}
-
-var (
-	CreateActivitiesFilter       = ActivityTypesFilter(vocab.CreateType)
-	AppreciationActivitiesFilter = ActivityTypesFilter(vocab.LikeType, vocab.DislikeType)
-)
-
 func AuthorChecks(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		auth := ContextAuthors(r.Context())
@@ -95,24 +77,8 @@ func DefaultChecks(next http.Handler) http.Handler {
 	})
 }
 
-// ContextLoads loads the searches we use for generating storage queries from the HTTP request
-func ContextLoads(ctx context.Context) RemoteLoads {
-	if f, ok := ctx.Value(LoadsCtxtKey).(RemoteLoads); ok {
-		return f
-	}
-	return nil
-}
-
-// ContextActivityFilters loads the filters we use for generating storage queries from the HTTP request
-func ContextActivityFilters(ctx context.Context) []*Filters {
-	if f, ok := ctx.Value(FilterCtxtKey).([]*Filters); ok {
-		return f
-	}
-	return nil
-}
-
-// ContextActivityFiltersV2 loads the filters we use for generating storage queries from the HTTP request
-func ContextActivityFiltersV2(ctx context.Context) filters.Check {
+// ContextActivityChecks loads the filters we use for generating storage queries from the HTTP request
+func ContextActivityChecks(ctx context.Context) filters.Check {
 	if f, ok := ctx.Value(FilterV2CtxtKey).(filters.Check); ok {
 		return f
 	}
@@ -168,15 +134,6 @@ func FollowedChecks(next http.Handler) http.Handler {
 
 func DifferentThanString(s string) CompStr {
 	return CompStr{Operator: "!", Str: s}
-}
-
-func defaultFilters(r *http.Request) *Filters {
-	f := FiltersFromRequest(r)
-	f.Type = CreateActivitiesFilter
-	f.Object = new(Filters)
-	f.Object.Type = ActivityTypesFilter(ValidContentTypes...)
-	f.Actor = derefIRIFilters
-	return f
 }
 
 func defaultChecks(r *http.Request) filters.Checks {
@@ -270,28 +227,6 @@ func (h handler) ItemChecks(next http.Handler) http.Handler {
 		ctx := context.WithValue(r.Context(), FilterV2CtxtKey, checks)
 
 		next.ServeHTTP(w, r.WithContext(ctx))
-	})
-}
-
-func MessageFiltersMw(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		authors := ContextAuthors(r.Context())
-		if len(authors) == 0 {
-			next.ServeHTTP(w, r)
-			return
-		}
-
-		f := FiltersFromRequest(r)
-		if len(f.IRI) > 0 {
-			for _, author := range authors {
-				f.AttrTo = append(f.AttrTo, EqualsString(author.AP().GetID().String()))
-			}
-			f.Type = append(CreateActivitiesFilter, AppreciationActivitiesFilter...)
-			f.Actor = derefIRIFilters
-		}
-		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
-		r = r.WithContext(ctx)
-		next.ServeHTTP(w, r)
 	})
 }
 

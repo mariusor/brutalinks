@@ -65,13 +65,13 @@ type CollectionLoadFn func(vocab.CollectionInterface) error
 func LoadV2Mw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		repo := ContextRepository(r.Context())
-		checks := ContextActivityFiltersV2(r.Context())
+		checks := ContextActivityChecks(r.Context())
 		d := ContextDependentLoads(r.Context())
 		if d == nil {
 			d = &deps{}
 		}
 
-		c, err := repo.LoadSearchesV2(r.Context(), *d, checks)
+		c, err := repo.LoadSearches(r.Context(), *d, checks)
 		if err != nil {
 			ctxtErr(next, w, r, errors.NotFoundf(strings.TrimLeft(r.URL.Path, "/")))
 			return
@@ -81,191 +81,6 @@ func LoadV2Mw(next http.Handler) http.Handler {
 		ctx := context.WithValue(r.Context(), CursorCtxtKey, &c)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
-}
-
-func LoadMw(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		repo := ContextRepository(r.Context())
-		searches := ContextLoads(r.Context())
-		d := ContextDependentLoads(r.Context())
-		if d == nil {
-			d = &deps{}
-		}
-
-		c, err := repo.LoadSearches(r.Context(), searches, *d)
-		if err != nil {
-			ctxtErr(next, w, r, errors.NotFoundf(strings.TrimLeft(r.URL.Path, "/")))
-			return
-		}
-
-		c.items = reparentRenderables(c.items)
-
-		ctx := context.WithValue(r.Context(), CursorCtxtKey, &c)
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
-}
-
-func requestHandleSearches(r *http.Request) vocab.ItemCollection {
-	authors := ContextAuthors(r.Context())
-	if len(authors) == 0 {
-		return nil
-	}
-
-	actors := make(vocab.ItemCollection, 0)
-	for _, author := range authors {
-		if author.Pub == nil {
-			continue
-		}
-		actors = append(actors, author.Pub)
-	}
-	return actors
-}
-
-func loggedAccountSearches(collections ...LoadFn) func(http.Handler) http.Handler {
-	return SearchInCollectionsMw(getLoggedActorFn, collections...)
-}
-
-func namedAccountSearches(collections ...LoadFn) func(http.Handler) http.Handler {
-	return SearchInCollectionsMw(getNamedActorFn, collections...)
-}
-
-func serviceSearches(collections ...LoadFn) func(http.Handler) http.Handler {
-	return SearchInCollectionsMw(getServiceFn, collections...)
-}
-
-func SignByAppMw(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		repo := ContextRepository(r.Context())
-		searches := ContextLoads(r.Context())
-		for _, loads := range searches {
-			for i := range loads {
-				loads[i].signFn = repo.fedbox.withAccount(repo.app)
-			}
-		}
-		//ctx := context.WithValue(r.Context(), LoadsCtxtKey, searches)
-		next.ServeHTTP(w, r /*.WithContext(ctx)*/)
-	})
-}
-
-func OperatorSearches(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if current := ContextAccount(r.Context()); !current.IsOperator() {
-			next.ServeHTTP(w, r)
-			return
-		}
-
-		storeSearches := false
-		searchIn := ContextLoads(r.Context())
-		if searchIn == nil {
-			searchIn = RemoteLoads{}
-			storeSearches = true
-		}
-		repo := ContextRepository(r.Context())
-		appIRI := repo.app.Pub.GetLink()
-		base := baseIRI(appIRI)
-		ff := Filters{}
-		followFilter := Filters{IRI: CompStrs{EqualsString(appIRI.String())}}
-		ff.Type = ActivityTypesFilter(vocab.FollowType)
-		ff.Actor = &followFilter
-		ff.Object = derefIRIFilters
-		outgoing := RemoteLoad{
-			actor:   repo.app.Pub,
-			loadFn:  outbox,
-			filters: []*Filters{&ff},
-		}
-		ff.Actor = derefIRIFilters
-		ff.Object = &followFilter
-		incoming := RemoteLoad{
-			actor:   repo.app.Pub,
-			loadFn:  inbox,
-			filters: []*Filters{&ff},
-		}
-		searches, ok := searchIn[base]
-		if !ok {
-			searches = make([]RemoteLoad, 0)
-		}
-		searches = append(searches, outgoing, incoming)
-		searchIn[base] = searches
-
-		if storeSearches {
-			rtx := context.WithValue(r.Context(), LoadsCtxtKey, searchIn)
-			next.ServeHTTP(w, r.WithContext(rtx))
-		} else {
-			next.ServeHTTP(w, r)
-		}
-	})
-}
-
-func instanceSearches(collections ...LoadFn) func(http.Handler) http.Handler {
-	return SearchInCollectionsMw(getServiceFn, collections...)
-}
-
-func applicationSearches(collections ...LoadFn) func(http.Handler) http.Handler {
-	return SearchInCollectionsMw(getApplicationFn, collections...)
-}
-
-func getServiceFn(r *http.Request) vocab.ItemCollection {
-	return vocab.ItemCollection{ContextRepository(r.Context()).fedbox.Service()}
-}
-
-func getApplicationFn(r *http.Request) vocab.ItemCollection {
-	if a := ContextRepository(r.Context()).app; a != nil {
-		return vocab.ItemCollection{a.Pub}
-	}
-	return vocab.ItemCollection{}
-}
-
-func getLoggedActorFn(r *http.Request) vocab.ItemCollection {
-	if logged := ContextAccount(r.Context()); logged.IsLogged() {
-		return vocab.ItemCollection{logged.Pub}
-	}
-	return nil
-}
-
-func getNamedActorFn(r *http.Request) vocab.ItemCollection {
-	named := make(vocab.ItemCollection, 0)
-	for _, auth := range ContextAuthors(r.Context()) {
-		named = append(named, auth.Pub)
-	}
-	return named
-}
-
-func SearchInCollectionsMw(getActorsFn func(r *http.Request) vocab.ItemCollection, collections ...LoadFn) func(next http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ff := ContextActivityFilters(r.Context())
-			searchIn := ContextLoads(r.Context())
-			storeSearches := false
-			if searchIn == nil {
-				searchIn = RemoteLoads{}
-				storeSearches = true
-			}
-
-			actors := getActorsFn(r)
-			if actors == nil {
-				next.ServeHTTP(w, r)
-				return
-			}
-			for _, current := range actors {
-				if current == nil {
-					continue
-				}
-				base := baseIRI(current.GetLink())
-				for _, collectionFn := range collections {
-					searchIn[base] = append(
-						searchIn[base],
-						RemoteLoad{actor: current, loadFn: collectionFn, filters: ff},
-					)
-				}
-			}
-			if storeSearches {
-				rtx := context.WithValue(r.Context(), LoadsCtxtKey, searchIn)
-				next.ServeHTTP(w, r.WithContext(rtx))
-			} else {
-				next.ServeHTTP(w, r)
-			}
-		})
-	}
 }
 
 func LoadSingleItemMw(next http.Handler) http.Handler {
@@ -341,7 +156,7 @@ func SingleItemModelMw(next http.Handler) http.Handler {
 func LoadSingleObjectMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		repo := ContextRepository(r.Context())
-		checks := ContextActivityFiltersV2(r.Context())
+		checks := ContextActivityChecks(r.Context())
 		items, err := repo.b.Search(checks)
 		if err != nil || len(items) != 1 {
 			ctx := log.Ctx{}
@@ -619,7 +434,7 @@ func OutOfOrderMw(v *view) func(next http.Handler) http.Handler {
 			return next
 		}
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			v.RenderTemplate(r, w, "error", maintenanceModel)
+			_ = v.RenderTemplate(r, w, "error", maintenanceModel)
 		})
 	}
 }

@@ -3,7 +3,6 @@ package brutalinks
 import (
 	"context"
 	"encoding/base64"
-	xerrors "errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -574,38 +573,6 @@ func (r *repository) loadAPPerson(a Account) *vocab.Actor {
 	return p
 }
 
-func (r *repository) LoadItem(ctx context.Context, iri vocab.IRI) (Item, error) {
-	var item Item
-	art, err := r.fedbox.Object(ctx, iri)
-	if err != nil {
-		r.errFn()(err.Error())
-		return item, err
-	}
-	if err = item.FromActivityPub(art); err == nil {
-		var items ItemCollection
-		items, err = r.loadItemsAuthors(ctx, item)
-		items, err = r.loadItemsVotes(ctx, items...)
-		if len(items) > 0 {
-			item = items[0]
-		}
-	}
-	return item, err
-}
-
-func hashesUnique(a Hashes) Hashes {
-	u := make([]Hash, 0, len(a))
-	m := make(map[string]bool)
-
-	for _, val := range a {
-		k := val.String()
-		if _, ok := m[k]; !ok {
-			m[k] = true
-			u = append(u, val)
-		}
-	}
-	return u
-}
-
 func (r *repository) loadAccountsFollowers(ctx context.Context, acc *Account) error {
 	if !acc.HasMetadata() || len(acc.Metadata.FollowersIRI) == 0 || acc.AP() == nil {
 		return nil
@@ -669,7 +636,7 @@ func (r *repository) loadAccountsFollowing(ctx context.Context, acc *Account) er
 
 func getItemUpdatedTime(it vocab.Item) time.Time {
 	var updated time.Time
-	vocab.OnObject(it, func(ob *vocab.Object) error {
+	_ = vocab.OnObject(it, func(ob *vocab.Object) error {
 		updated = ob.Updated
 		return nil
 	})
@@ -1358,29 +1325,6 @@ func (r *repository) accounts(ctx context.Context, ff ...filters.Check) (Account
 	return r.accountsFromRemote(ctx, ff...)
 }
 
-func (r *repository) objects(ctx context.Context, ff ...*Filters) (ItemCollection, error) {
-	searches := RemoteLoads{
-		r.fedbox.Service().GetLink(): []RemoteLoad{{actor: r.fedbox.Service(), loadFn: colIRI(objects), filters: ff}},
-	}
-
-	items := make(ItemCollection, 0)
-	err := LoadFromSearches(ctx, r, searches, func(_ context.Context, c vocab.CollectionInterface, f *Filters) error {
-		for _, it := range c.Collection() {
-			i := new(Item)
-			if err := i.FromActivityPub(it); err == nil && i.IsValid() {
-				items = append(items, *i)
-			}
-		}
-		return nil
-	})
-	if err != nil {
-		return items, err
-	}
-	items, _ = r.loadItemsAuthors(ctx, items...)
-	items, _ = r.loadItemsVotes(ctx, items...)
-	return items, nil
-}
-
 func validFederated(i Item, f *Filters) bool {
 	ob, err := vocab.ToObject(i.Pub)
 	if err != nil {
@@ -1441,22 +1385,6 @@ func filterItems(items ItemCollection, f *Filters) ItemCollection {
 	return result
 }
 
-func IRIsLikeFilter(iris ...vocab.IRI) CompStrs {
-	r := make(CompStrs, len(iris))
-	for i, iri := range iris {
-		r[i] = LikeString(iri.String())
-	}
-	return r
-}
-
-func IRIsFilter(iris ...vocab.IRI) CompStrs {
-	r := make(CompStrs, len(iris))
-	for i, iri := range iris {
-		r[i] = EqualsString(iri.String())
-	}
-	return r
-}
-
 func appendToIRIs(iris *vocab.IRIs, props ...vocab.Item) {
 	append := func(iris *vocab.IRIs, prop vocab.Item) {
 		if vocab.IsNil(prop) {
@@ -1476,7 +1404,7 @@ func appendToIRIs(iris *vocab.IRIs, props ...vocab.Item) {
 			continue
 		}
 		if vocab.IsItemCollection(prop) {
-			vocab.OnItemCollection(prop, func(col *vocab.ItemCollection) error {
+			_ = vocab.OnItemCollection(prop, func(col *vocab.ItemCollection) error {
 				for _, it := range col.Collection() {
 					append(iris, it)
 				}
@@ -1513,9 +1441,9 @@ func accumulateItemIRIs(it vocab.Item, deps deps) vocab.IRIs {
 	return iris
 }
 
-// LoadSearchesV2 loads all elements from RemoteLoads
+// LoadSearches loads all elements from checks
 // Iterating over the activities in the resulting collections, we gather the objects and accounts
-func (r *repository) LoadSearchesV2(ctx context.Context, deps deps, checks ...filters.Check) (Cursor, error) {
+func (r *repository) LoadSearches(ctx context.Context, deps deps, checks ...filters.Check) (Cursor, error) {
 	items := make(ItemCollection, 0)
 	follows := make(FollowRequests, 0)
 	accounts := make(AccountCollection, 0)
@@ -1641,201 +1569,6 @@ func (r *repository) LoadSearchesV2(ctx context.Context, deps deps, checks ...fi
 		for _, li := range res {
 			ob, ok := li.(vocab.Item)
 			if !ok || vocab.IsNil(ob) {
-				continue
-			}
-			typ := ob.GetType()
-			if vocab.ActorTypes.Contains(typ) {
-				ac := Account{}
-				if err := ac.FromActivityPub(ob); err == nil {
-					accounts = append(accounts, ac)
-				}
-			}
-			if vocab.ObjectTypes.Contains(typ) {
-				it := Item{}
-				if err := it.FromActivityPub(ob); err == nil {
-					items = append(items, it)
-				}
-			}
-		}
-	}
-
-	if deps.Authors {
-		items, _ = r.loadItemsAuthors(ctx, items...)
-		accounts, _ = r.loadAccountsAuthors(ctx, accounts...)
-	}
-	if deps.Votes {
-		items, _ = r.loadItemsVotes(ctx, items...)
-	}
-	if deps.Replies {
-		if comments, err := r.loadItemsReplies(ctx, items...); err == nil {
-			items = append(items, comments...)
-		}
-	}
-	if deps.Follows {
-		follows, _ = r.loadFollowsAuthors(ctx, follows...)
-		for i, follow := range follows {
-			for _, auth := range accounts {
-				auth := auth
-				fpub := follow.Object.AP()
-				apub := auth.AP()
-				if fpub != nil && apub != nil && fpub.GetLink().Equals(apub.GetLink(), false) {
-					// NOTE(marius): this looks suspicious as fuck
-					follows[i].Object = &auth
-				}
-			}
-		}
-	}
-	moderations, _ = r.loadModerationDetails(ctx, moderations...)
-
-	resM.Lock()
-	defer resM.Unlock()
-	relations.Range(func(_, value any) bool {
-		rel, _ := value.(vocab.IRI)
-		for i := range items {
-			it := items[i]
-			if it.Pub != nil && rel.Equals(it.AP().GetLink(), true) {
-				result.Append(&it)
-			}
-		}
-		for i := range follows {
-			f := follows[i]
-			if f.pub != nil && rel.Equals(f.AP().GetLink(), true) {
-				result.Append(&f)
-			}
-		}
-		for i := range accounts {
-			a := accounts[i]
-			if a.Pub != nil && rel.Equals(a.AP().GetLink(), true) {
-				result.Append(&a)
-			}
-		}
-		for i := range moderations {
-			a := moderations[i]
-			if rel.Equals(a.AP().GetLink(), true) {
-				result.Append(&a)
-			}
-		}
-		for i := range appreciations {
-			a := appreciations[i]
-			if a.Pub != nil && rel.Equals(a.AP().GetLink(), true) {
-				result.Append(&a)
-			}
-		}
-		return true
-	})
-
-	return Cursor{
-		after:  HashFromIRI(next),
-		before: HashFromIRI(prev),
-		items:  result,
-		total:  uint(len(result)),
-	}, nil
-}
-
-// LoadSearches loads all elements from RemoteLoads
-// Iterating over the activities in the resulting collections, we gather the objects and accounts
-func (r *repository) LoadSearches(ctx context.Context, searches RemoteLoads, deps deps) (Cursor, error) {
-	items := make(ItemCollection, 0)
-	follows := make(FollowRequests, 0)
-	accounts := make(AccountCollection, 0)
-	moderations := make(ModerationRequests, 0)
-	appreciations := make(VoteCollection, 0)
-	relations := sync.Map{}
-
-	deferredRemote := make(vocab.IRIs, 0)
-
-	result := make(RenderableList, 0)
-	resM := new(sync.RWMutex)
-
-	var next, prev vocab.IRI
-	err := LoadFromSearches(ctx, r, searches, func(ctx context.Context, col vocab.CollectionInterface, f *Filters) error {
-		if len(col.Collection()) > 0 {
-			prev, next = getCollectionPrevNext(col)
-		}
-		r.infoFn(log.Ctx{"col": col.GetID()})("loading")
-		for _, it := range col.Collection() {
-			err := vocab.OnActivity(it, func(a *vocab.Activity) error {
-				typ := it.GetType()
-				if typ == vocab.CreateType {
-					ob := a.Object
-					if ob == nil {
-						return errors.Newf("nil activity object")
-					}
-					if vocab.IsObject(ob) {
-						if ValidContentTypes.Contains(ob.GetType()) {
-							i := Item{}
-							if err := i.FromActivityPub(a); err != nil {
-								return err
-							}
-							if validItem(i, f) {
-								items = append(items, i)
-							}
-						}
-						if ValidActorTypes.Contains(ob.GetType()) {
-							act := Account{}
-							if err := act.FromActivityPub(a); err != nil {
-								return err
-							}
-							accounts = append(accounts, act)
-						}
-					} else {
-						i := Item{}
-						if err := i.FromActivityPub(a); err != nil {
-							return err
-						}
-					}
-					relations.Store(a.GetLink(), ob.GetLink())
-				}
-				if it.GetType() == vocab.FollowType {
-					f := FollowRequest{}
-					if err := f.FromActivityPub(a); err != nil {
-						return err
-					}
-					follows = append(follows, f)
-					relations.Store(a.GetLink(), a.GetLink())
-				}
-				if ValidModerationActivityTypes.Contains(typ) {
-					m := ModerationOp{}
-					if err := m.FromActivityPub(a); err != nil {
-						return err
-					}
-					moderations = append(moderations, m)
-					relations.Store(a.GetLink(), a.GetLink())
-				}
-				if ValidAppreciationTypes.Contains(typ) {
-					v := Vote{}
-					if err := v.FromActivityPub(a); err != nil {
-						return err
-					}
-					appreciations = append(appreciations, v)
-					relations.Store(a.GetLink(), a.GetLink())
-				}
-				return nil
-			})
-			if err == nil {
-				for _, rem := range accumulateItemIRIs(it, deps) {
-					if !deferredRemote.Contains(rem) {
-						deferredRemote = append(deferredRemote, rem)
-					}
-				}
-			}
-		}
-		// TODO(marius): this needs to be externalized also to a different function that we can pass from outer scope
-		//   This function implements the logic for breaking out of the collection iteration cycle and returns a bool
-		loadedCount := len(items) + len(follows) + len(accounts) + len(moderations) + len(appreciations)
-		if f.MaxItems > 0 && loadedCount > 0 && loadedCount-f.MaxItems < 5 {
-			return StopLoad{}
-		}
-		return nil
-	})
-	if err != nil {
-		return emptyCursor, err
-	}
-
-	if len(deferredRemote) > 0 {
-		for _, iri := range deferredRemote {
-			ob, err := r.fedbox.client.LoadIRI(iri)
-			if err != nil || vocab.IsNil(ob) {
 				continue
 			}
 			typ := ob.GetType()
@@ -3047,38 +2780,4 @@ func cacheKey(i vocab.IRI, a *Account) vocab.IRI {
 	}
 	u.User = url.User(a.Hash.String())
 	return vocab.IRI(u.String())
-}
-
-func LoadFromSearches(ctx context.Context, repo *repository, loads RemoteLoads, fn searchFn) error {
-	var cancelFn func()
-
-	ctx, cancelFn = context.WithCancel(ctx)
-	defer cancelFn()
-
-	var err error
-	for service, searches := range loads {
-		for _, search := range searches {
-			for _, f := range search.filters {
-				if search.loadFn == nil {
-					continue
-				}
-				if search.actor == nil {
-					search.actor = service
-				}
-				if search.signFn != nil {
-					// NOTE(marius): this should be added in a cleaner way
-					repo.fedbox.client.SignFn(search.signFn)
-				}
-				err = flowmatic.Do(repo.searchFn(ctx, search.loadFn(search.actor), f, fn))
-			}
-		}
-	}
-	if err != nil {
-		if xerrors.Is(err, StopLoad{}) {
-			repo.infoFn()("stopped loading search")
-		} else {
-			repo.errFn(log.Ctx{"err": err.Error()})("Failed to load search")
-		}
-	}
-	return nil
 }

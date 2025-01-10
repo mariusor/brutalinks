@@ -1,13 +1,10 @@
 package brutalinks
 
 import (
-	"context"
-	"path"
-	"time"
+	"path/filepath"
 
 	vocab "github.com/go-ap/activitypub"
 	"github.com/go-ap/cache"
-	"github.com/go-ap/client"
 )
 
 func caches(enabled bool) *cc {
@@ -104,7 +101,7 @@ func (c *cc) accumActivityIRIs(toRemove *vocab.IRIs) func(activity *vocab.Activi
 		typ := a.Type
 		withSideEffects := vocab.ActivityVocabularyTypes{vocab.UpdateType, vocab.UndoType, vocab.DeleteType}
 		if withSideEffects.Contains(typ) {
-			base := path.Dir(a.Object.GetLink().String())
+			base := filepath.Dir(a.Object.GetLink().String())
 			*toRemove = append(*toRemove, vocab.IRI(base), a.Object.GetLink())
 		}
 		return vocab.OnObject(a.Object, c.accumObjectIRIs(toRemove))
@@ -144,35 +141,4 @@ func (c *cc) add(iri vocab.IRI, it vocab.Item) {
 
 func (c *cc) get(iri vocab.IRI) vocab.Item {
 	return c.c.Load(iri)
-}
-
-func (c *cc) loadFromSearches(repo *repository, search RemoteLoads) error {
-	ctx, _ := context.WithTimeout(context.TODO(), time.Second)
-	return LoadFromSearches(ctx, repo, search, func(_ context.Context, col vocab.CollectionInterface, f *Filters) error {
-		c.add(col.GetLink(), col)
-		for _, it := range col.Collection() {
-			c.add(it.GetLink(), it)
-		}
-		return nil
-	})
-}
-
-func colIRI(hc vocab.CollectionPath) func(it vocab.Item, fn ...client.FilterFn) vocab.IRI {
-	return func(it vocab.Item, fn ...client.FilterFn) vocab.IRI {
-		return iri(hc.IRI(it), fn...)
-	}
-}
-
-func WarmupCaches(r *repository, self vocab.Item) error {
-	f := new(Filters)
-	r.infoFn()("Warming up caches")
-
-	search := RemoteLoads{
-		self.GetLink(): []RemoteLoad{
-			{actor: r.fedbox.Service(), loadFn: colIRI(actors), filters: []*Filters{f}},
-			{actor: r.fedbox.Service(), loadFn: colIRI(objects), filters: []*Filters{f}},
-			{actor: r.fedbox.Service(), loadFn: colIRI(activities), filters: []*Filters{f}},
-		},
-	}
-	return r.cache.loadFromSearches(r, search)
 }
