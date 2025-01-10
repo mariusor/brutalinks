@@ -424,6 +424,7 @@ func ContentModelMw(next http.Handler) http.Handler {
 		m.tpl = "content"
 		m.Message.Label = "Reply:"
 		m.Message.Back = "/"
+		m.Hash = HashFromString(chi.URLParam(r, "hash"))
 		m.ShowChildren = true
 		m.Message.SubmitLabel = htmlf("Reply %s", icon("reply", "h-mirror"))
 		next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, ModelCtxtKey, m)))
