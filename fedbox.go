@@ -422,6 +422,8 @@ func (r *repository) ToOutbox(ctx context.Context, cred credentials.C2S, a vocab
 		return i, a, err
 	}
 
+	r.b.Save()
+
 	return i, a, nil
 }
 
