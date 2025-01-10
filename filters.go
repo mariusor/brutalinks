@@ -161,6 +161,7 @@ func FollowedChecks(next http.Handler) http.Handler {
 		check := filters.All(
 			filters.HasType(validTypes...),
 			filters.Recipients(loggedUser.AP().GetLink()),
+			filters.Not(filters.SameAttributedTo(loggedUser.AP().GetLink())),
 		)
 		ctx := context.WithValue(r.Context(), FilterV2CtxtKey, check)
 		next.ServeHTTP(w, r.WithContext(ctx))
