@@ -389,7 +389,6 @@ func (h handler) ModerationListing(next http.Handler) http.Handler {
 					continue
 				}
 
-				s.WithAccount(s.app)
 				if err = s.SendFollowResponse(r.Context(), *maybeFollow, true, nil); err != nil {
 					h.v.addFlashMessage(Error, w, r, fmt.Sprintf("Unable to accept the follow request from %s", followerIRI))
 					return

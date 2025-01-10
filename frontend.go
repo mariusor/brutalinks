@@ -301,13 +301,11 @@ func (v *view) LoadSession(next http.Handler) http.Handler {
 			v.infoFn(log.Ctx{"handle": acc.Handle})("Setting FedBOX logged account")
 			defer func() {
 				v.infoFn()("Unsetting FedBOX logged account")
-				storage.WithAccount(&AnonymousAccount)
 			}()
 			ctx := context.WithValue(r.Context(), LoggedAccountCtxtKey, acc)
 			if err = storage.LoadAccountDetails(ctx, acc); err != nil {
 				v.errFn(ltx, log.Ctx{"err": err.Error()})("unable to load account")
 			} else {
-				storage.WithAccount(acc)
 				clearAccount = false
 			}
 		}

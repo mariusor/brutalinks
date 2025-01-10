@@ -135,9 +135,6 @@ func (h *handler) HandleModerationDelete(w http.ResponseWriter, r *http.Request)
 		}
 	}
 
-	// we operate on the current item as the application
-	repo.WithAccount(repo.app)
-
 	backUrl := r.Header.Get("Referer")
 	if _, err := repo.ModerateDelete(r.Context(), *mod, acc); err != nil {
 		h.errFn(log.Ctx{"err": err})("unable to delete item")
@@ -272,9 +269,9 @@ func (h *handler) HandleFollowResponseRequest(w http.ResponseWriter, r *http.Req
 	}
 	if follow.Object.Hash.String() == repo.app.Hash.String() {
 		// we operate on the current item as the application
-		repo.WithAccount(repo.app)
+		follow.SubmittedBy = repo.app
 	} else if follow.Object.Hash.String() == acc.Hash.String() {
-		repo.WithAccount(acc)
+		follow.SubmittedBy = acc
 	} else {
 		h.v.HandleErrors(w, r, errors.NotFoundf("unable to reply to follow as current account"))
 		return
@@ -424,8 +421,6 @@ func (h *handler) HandleFollowInstanceRequest(w http.ResponseWriter, r *http.Req
 		h.v.HandleErrors(w, r, errors.NotValidf("Instance doesn't support federation: %s", instanceURL))
 		return
 	}
-	// we operate on the current item as the application
-	repo.WithAccount(repo.app)
 
 	fol := Account{}
 	_ = fol.FromActivityPub(rem)
@@ -865,7 +860,7 @@ func (h *handler) HandleChangePassword(w http.ResponseWriter, r *http.Request) {
 
 	app := h.storage.app
 	a.CreatedBy = app
-	a, err = h.storage.WithAccount(app).SaveAccount(r.Context(), a)
+	a, err = h.storage.SaveAccount(r.Context(), a)
 	if err != nil {
 		h.errFn()("Error: %s", err)
 		h.v.HandleErrors(w, r, err)
@@ -966,7 +961,7 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 
 	app := h.storage.app
 	a.CreatedBy = app
-	a, err = h.storage.WithAccount(app).SaveAccount(r.Context(), a)
+	a, err = h.storage.SaveAccount(r.Context(), a)
 	if err != nil {
 		h.errFn()("Error: %s", err)
 		h.v.HandleErrors(w, r, err)

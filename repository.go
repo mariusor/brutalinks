@@ -574,14 +574,6 @@ func (r *repository) loadAPPerson(a Account) *vocab.Actor {
 	return p
 }
 
-func (r *repository) WithAccount(a *Account) *repository {
-	// TODO(marius): the decision which sign function to use (the one for S2S or the one for C2S)
-	//   should be made in FedBOX, because that's the place where we know if the request we're signing
-	//   is addressed to an IRI belonging to that specific FedBOX instance or to another ActivityPub server
-	r.fedbox.SignBy(a)
-	return r
-}
-
 func (r *repository) LoadItem(ctx context.Context, iri vocab.IRI) (Item, error) {
 	var item Item
 	art, err := r.fedbox.Object(ctx, iri)
@@ -2643,7 +2635,6 @@ func (r *repository) LoadAccounts(ctx context.Context, colFn CollectionFilterFn,
 }
 
 func (r *repository) ValidateRemoteAccount(ctx context.Context, acc *Account) error {
-	r.WithAccount(acc)
 	now := time.Now().UTC()
 	lastUpdated := acc.Metadata.OutboxUpdated
 	if now.Sub(lastUpdated)-5*time.Minute < 0 {
@@ -2669,7 +2660,6 @@ func (r *repository) ValidateRemoteAccount(ctx context.Context, acc *Account) er
 }
 
 func (r *repository) LoadAccountDetails(ctx context.Context, acc *Account) error {
-	r.WithAccount(acc)
 	now := time.Now().UTC()
 	lastUpdated := acc.Metadata.OutboxUpdated
 	if now.Sub(lastUpdated)-5*time.Minute < 0 {
