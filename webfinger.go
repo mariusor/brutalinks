@@ -2,7 +2,6 @@ package brutalinks
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io/fs"
@@ -12,7 +11,7 @@ import (
 
 	"git.sr.ht/~mariusor/brutalinks/internal/assets"
 	log "git.sr.ht/~mariusor/lw"
-	vocab "github.com/go-ap/activitypub"
+	"github.com/go-ap/filters"
 	"github.com/writeas/go-nodeinfo"
 )
 
@@ -36,16 +35,12 @@ type NodeInfoResolver struct {
 }
 
 var (
-	actorsFilter = &Filters{
-		Type: ActivityTypesFilter(ValidActorTypes...),
-	}
-	postsFilter = &Filters{
-		Type: ActivityTypesFilter(ValidContentTypes...),
-		OP:   nilFilters,
-	}
-	allFilter = &Filters{
-		Type: ActivityTypesFilter(ValidContentTypes...),
-	}
+	actorsFilter = filters.HasType(ValidActorTypes...)
+	postsFilter  = filters.All(
+		filters.HasType(ValidContentTypes...),
+		filters.Not(filters.NilInReplyTo),
+	)
+	allFilter = filters.HasType(ValidContentTypes...)
 )
 
 func NodeInfoResolverNew(r *repository) NodeInfoResolver {
@@ -54,24 +49,24 @@ func NodeInfoResolverNew(r *repository) NodeInfoResolver {
 		return n
 	}
 
-	base := baseIRI(r.fedbox.Service().GetLink())
-	loadFn := func(f *Filters, fn vocab.WithOrderedCollectionFn) error {
-		ff := []*Filters{{Type: CreateActivitiesFilter, Object: f}}
-		return LoadFromSearches(context.TODO(), r, RemoteLoads{base: {{loadFn: inbox, filters: ff}}}, func(ctx context.Context, c vocab.CollectionInterface, f *Filters) error {
-			return vocab.OnOrderedCollection(c, fn)
-		})
+	loadFn := func(f filters.Check, fn func(int) error) error {
+		res, err := r.b.Search(f)
+		if err != nil {
+			return err
+		}
+		return fn(len(res))
 	}
 
-	loadFn(actorsFilter, func(col *vocab.OrderedCollection) error {
-		n.users = int(col.TotalItems)
+	_ = loadFn(actorsFilter, func(cnt int) error {
+		n.users = cnt
 		return nil
 	})
-	loadFn(postsFilter, func(col *vocab.OrderedCollection) error {
-		n.posts = int(col.TotalItems)
+	_ = loadFn(postsFilter, func(cnt int) error {
+		n.posts = cnt
 		return nil
 	})
-	loadFn(allFilter, func(col *vocab.OrderedCollection) error {
-		n.comments = int(col.TotalItems) - n.posts
+	_ = loadFn(allFilter, func(cnt int) error {
+		n.comments = cnt - n.posts
 		return nil
 	})
 	return n
@@ -145,7 +140,7 @@ func (h handler) HandleHostMeta(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/jrd+json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(dat)
+	_, _ = w.Write(dat)
 }
 
 const selfName = "self"
