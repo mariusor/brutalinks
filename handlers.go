@@ -558,11 +558,11 @@ func (h *handler) ReportItem(w http.ResponseWriter, r *http.Request) {
 
 const SessionUserKey = "__current_acct"
 
-func FilterAccountByHandle(handle string) *Filters {
-	return &Filters{
-		Name: CompStrs{EqualsString(handle)},
-		Type: ActivityTypesFilter(ValidActorTypes...),
-	}
+func AccountByHandleCheck(handle string) filters.Check {
+	return filters.All(
+		filters.NameIs(handle),
+		filters.HasType(ValidActorTypes...),
+	)
 }
 
 func (h handler) loadAccountsByPw(ctx context.Context, accts AccountCollection, pw string) Account {
@@ -624,8 +624,8 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 	accts := make([]Account, 0)
 	// Try to load actor from handle
-	f := FilterAccountByHandle(handle)
-	f.IRI = CompStrs{LikeString(host)}
+	f := AccountByHandleCheck(handle)
+	f = filters.All(f, filters.IRILike(host))
 	if acc, err := repo.accounts(ctx, f); err == nil {
 		accts = append(accts, acc...)
 	}
@@ -847,7 +847,7 @@ func (h *handler) HandleChangePassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	repo := ContextRepository(r.Context())
-	maybeExists, err := repo.account(r.Context(), FilterAccountByHandle(a.Handle))
+	maybeExists, err := repo.account(r.Context(), AccountByHandleCheck(a.Handle))
 	if err != nil && !errors.IsNotFound(err) {
 		h.logger.WithContext(log.Ctx{"handle": a.Handle, "err": err}).Warnf("error when trying to load account")
 		h.v.HandleErrors(w, r, errors.NewBadRequest(err, "error when trying to load account %s", a.Handle))
@@ -948,7 +948,7 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	}
 
 	repo := ContextRepository(r.Context())
-	maybeExists, err := repo.account(r.Context(), FilterAccountByHandle(a.Handle))
+	maybeExists, err := repo.account(r.Context(), AccountByHandleCheck(a.Handle))
 	if err != nil && !errors.IsNotFound(err) {
 		h.logger.WithContext(log.Ctx{"handle": a.Handle, "err": err}).Warnf("error when trying to load account")
 		h.v.HandleErrors(w, r, errors.NewBadRequest(err, "error when trying to load account %s", a.Handle))

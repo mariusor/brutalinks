@@ -146,17 +146,23 @@ func FollowFilterMw(next http.Handler) http.Handler {
 	})
 }
 
-func FollowedFiltersMw(next http.Handler) http.Handler {
+func FollowedChecks(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		f := new(Filters)
-		f.Object = derefIRIFilters
-		f.Actor = derefIRIFilters
-		f.Type = CreateFollowActivitiesFilter
 		if m := ContextListingModel(r.Context()); m != nil {
 			m.Title = "Followed items"
 			m.ShowText = true
 		}
-		ctx := context.WithValue(r.Context(), FilterCtxtKey, []*Filters{f})
+
+		// TODO(marius): this needs more work, as just the recipients list is not enough
+		//  for establishing if an object should be in the Followed tab.
+		//  We probably need to fetch everything in the actor's outbox collection and work from there.
+		loggedUser := loggedAccount(r)
+		validTypes := append(ValidContentTypes, vocab.FollowType)
+		check := filters.All(
+			filters.HasType(validTypes...),
+			filters.Recipients(loggedUser.AP().GetLink()),
+		)
+		ctx := context.WithValue(r.Context(), FilterV2CtxtKey, check)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

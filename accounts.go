@@ -332,7 +332,7 @@ func accountsFromRequestHandle(r *http.Request) (AccountCollection, error) {
 	}
 	repo := ContextRepository(r.Context())
 
-	return repo.accounts(r.Context(), FilterAccountByHandle(handle))
+	return repo.accounts(r.Context(), AccountByHandleCheck(handle))
 }
 
 type AccountPtrCollection []*Account

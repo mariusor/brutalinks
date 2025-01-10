@@ -30,14 +30,11 @@ func (h handler) LoadAuthorMw(next http.Handler) http.Handler {
 			repo := ContextRepository(r.Context())
 			ctx := context.WithValue(r.Context(), LoggedAccountCtxtKey, ContextAccount(r.Context()))
 
-			instance := repo.fedbox.Service().GetLink()
-			authors, err = repo.accountsFromRemote(ctx, instance, FilterAccountByHandle(handle))
+			authors, err = repo.accountsFromRemote(ctx, AccountByHandleCheck(handle))
 			if len(authors) == 0 && strings.Contains(handle, "@") {
-				var inst string
-				handle, inst = splitRemoteHandle(handle)
-				instance = vocab.IRI(fmt.Sprintf("https://%s", inst))
+				handle, _ = splitRemoteHandle(handle)
 			}
-			authors, err = repo.accountsFromRemote(ctx, instance, FilterAccountByHandle(handle))
+			authors, err = repo.accountsFromRemote(ctx, AccountByHandleCheck(handle))
 			if err != nil {
 				h.ErrorHandler(err).ServeHTTP(w, r)
 				return

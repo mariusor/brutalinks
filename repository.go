@@ -863,31 +863,15 @@ func EqualsString(s string) CompStr {
 	return CompStr{Operator: "=", Str: s}
 }
 
-func ItemIRIFilter(items ...Item) CompStrs {
-	filter := make(CompStrs, 0)
-	for _, it := range items {
-		hash := EqualsString(it.Metadata.ID)
-		if len(hash.Str) == 0 || filter.Contains(hash) {
-			continue
-		}
-		filter = append(filter, hash)
-	}
-	return filter
-}
-
-func AccountsIRIFilter(accounts ...Account) CompStrs {
-	filter := make(CompStrs, 0)
+func AccountIRIChecks(accounts ...Account) filters.Check {
+	filter := make(filters.Checks, 0, len(accounts))
 	for _, ac := range accounts {
 		if ac.Pub == nil {
 			continue
 		}
-		f := EqualsString(ac.Pub.GetLink().String())
-		if filter.Contains(f) {
-			continue
-		}
-		filter = append(filter, f)
+		filter = append(filter, filters.SameIRI(ac.AP().GetLink()))
 	}
-	return filter
+	return filters.Any(filter...)
 }
 
 func ActivityTypesFilter(t ...vocab.ActivityVocabularyType) CompStrs {
@@ -902,7 +886,7 @@ func (r *repository) loadAccountsAuthors(ctx context.Context, accounts ...Accoun
 	if len(accounts) == 0 {
 		return accounts, nil
 	}
-	fActors := Filters{}
+
 	creators := make(AccountCollection, 0)
 	for _, ac := range accounts {
 		if ac.CreatedBy == nil {
@@ -913,15 +897,12 @@ func (r *repository) loadAccountsAuthors(ctx context.Context, accounts ...Accoun
 	if len(creators) == 0 {
 		return accounts, nil
 	}
-	fActors.IRI = AccountsIRIFilter(creators...)
-	var authors AccountCollection
-	if len(fActors.IRI) > 0 {
-		var err error
-		authors, err = r.accounts(ctx, &fActors)
-		if err != nil {
-			return accounts, errors.Annotatef(err, "unable to load accounts authors")
-		}
+
+	authors, err := r.accounts(ctx, AccountIRIChecks(creators...))
+	if err != nil {
+		return accounts, errors.Annotatef(err, "unable to load accounts authors")
 	}
+
 	for k, ac := range accounts {
 		found := false
 		for i, auth := range authors {
@@ -959,21 +940,14 @@ func (r *repository) loadFollowsAuthors(ctx context.Context, items ...FollowRequ
 			}
 		}
 	}
-	fActors := Filters{
-		IRI:   AccountsIRIFilter(submitters...),
-		Actor: derefIRIFilters,
-	}
 
-	var authors AccountCollection
-	if len(fActors.IRI) > 0 {
-		authors, _ = r.accounts(ctx, &fActors)
-	}
+	authors, _ := r.accounts(ctx, AccountIRIChecks(submitters...))
 	for _, remoteAcc := range remoteSubmitters {
 		it, err := r.fedbox.Actor(ctx, remoteAcc.AP().GetLink())
 		if err != nil {
 			continue
 		}
-		remoteAcc.FromActivityPub(it)
+		_ = remoteAcc.FromActivityPub(it)
 		if !authors.Contains(remoteAcc) {
 			authors = append(authors, remoteAcc)
 		}
@@ -1024,17 +998,6 @@ func (r *repository) loadModerationFollowups(ctx context.Context, items Renderab
 	}
 
 	return modFollowups, nil
-}
-
-func ModerationSubmittedByHashFilter(items ...ModerationOp) CompStrs {
-	accounts := make(AccountCollection, 0)
-	for _, it := range items {
-		if !it.SubmittedBy.IsValid() || accounts.Contains(*it.SubmittedBy) {
-			continue
-		}
-		accounts = append(accounts, *it.SubmittedBy)
-	}
-	return AccountsIRIFilter(accounts...)
 }
 
 func (r *repository) loadModerationDetails(ctx context.Context, items ...ModerationOp) ([]ModerationOp, error) {
@@ -1297,8 +1260,8 @@ func getCollectionPrevNext(col vocab.CollectionInterface) (prev, next vocab.IRI)
 	return prev, next
 }
 
-func (r *repository) account(ctx context.Context, ff *Filters) (*Account, error) {
-	accounts, err := r.accounts(ctx, ff)
+func (r *repository) account(ctx context.Context, ff ...filters.Check) (*Account, error) {
+	accounts, err := r.accounts(ctx, ff...)
 	if err != nil {
 		return &AnonymousAccount, err
 	}
@@ -1311,9 +1274,9 @@ func (r *repository) account(ctx context.Context, ff *Filters) (*Account, error)
 	return &accounts[0], nil
 }
 
-func accumulateAccountsFromCollection(col vocab.CollectionInterface) (AccountCollection, CompStrs, error) {
+func accumulateAccountsFromCollection(col vocab.CollectionInterface) (AccountCollection, vocab.IRIs, error) {
 	accounts := make(AccountCollection, 0)
-	deferredTagLoads := make(CompStrs, 0)
+	deferredTagLoads := make(vocab.IRIs, 0)
 	for _, it := range col.Collection() {
 		if !it.IsObject() || !ValidActorTypes.Contains(it.GetType()) {
 			continue
@@ -1323,7 +1286,7 @@ func accumulateAccountsFromCollection(col vocab.CollectionInterface) (AccountCol
 			if len(a.Metadata.Tags) > 0 && deferredTagLoads != nil {
 				for _, t := range a.Metadata.Tags {
 					if t.Name == "" && t.Metadata.ID != "" {
-						deferredTagLoads = append(deferredTagLoads, EqualsString(t.Metadata.ID))
+						deferredTagLoads = append(deferredTagLoads, vocab.IRI(t.Metadata.ID))
 					}
 				}
 			}
@@ -1333,7 +1296,7 @@ func accumulateAccountsFromCollection(col vocab.CollectionInterface) (AccountCol
 	return accounts, deferredTagLoads, nil
 }
 
-func assignTagsToAccounts(accounts AccountCollection, col vocab.CollectionInterface) error {
+func assignTagsToAccounts(accounts AccountCollection, col vocab.ItemCollection) error {
 	for _, it := range col.Collection() {
 		for _, a := range accounts {
 			for i, t := range a.Metadata.Tags {
@@ -1349,53 +1312,50 @@ func assignTagsToAccounts(accounts AccountCollection, col vocab.CollectionInterf
 	return nil
 }
 
-func (r *repository) accountsFromRemote(ctx context.Context, remote vocab.Item, ff ...*Filters) (AccountCollection, error) {
+func (r *repository) accountsFromRemote(ctx context.Context, ff ...filters.Check) (AccountCollection, error) {
 	accounts := make(AccountCollection, 0)
-	localBase := baseIRI(r.fedbox.Service().GetLink())
-	isRemote := remote != nil && !remote.GetLink().Contains(localBase, true)
-	searches := RemoteLoads{}
-	if isRemote {
-		searches[remote.GetLink()] = []RemoteLoad{{actor: remote, loadFn: colIRI(actors), filters: ff}}
-	} else {
-		searches[localBase] = []RemoteLoad{{actor: r.fedbox.Service(), loadFn: colIRI(actors), filters: ff}}
-	}
-	deferredTagLoads := make(CompStrs, 0)
-	err := LoadFromSearches(ctx, r, searches, func(_ context.Context, col vocab.CollectionInterface, f *Filters) error {
-		// TODO(marius): this needs to be externalized also to a different function that we can pass from outer scope
-		//   This function implements the logic for breaking out of the collection iteration cycle and returns a bool
-		acc, tags, err := accumulateAccountsFromCollection(col)
-		for _, a := range acc {
-			if !accounts.Contains(a) {
-				accounts = append(accounts, a)
-			}
-		}
-		deferredTagLoads = append(deferredTagLoads, tags...)
-		return err
-	})
+	res, err := r.b.Search(ff...)
 	if err != nil {
 		return accounts, err
 	}
-	tagSearches := RemoteLoads{
-		localBase: []RemoteLoad{{
-			actor:   r.fedbox.Service(),
-			loadFn:  colIRI(objects),
-			filters: []*Filters{{IRI: deferredTagLoads}},
-		}},
+
+	deferredTagLoads := make(vocab.IRIs, 0)
+	col := make(vocab.ItemCollection, 0, len(res))
+	for _, li := range res {
+		if it, ok := li.(vocab.Item); ok {
+			col = append(col, it)
+		}
 	}
-	if isRemote {
-		tagSearches[remote.GetLink()] = []RemoteLoad{{
-			actor:   remote,
-			loadFn:  colIRI(objects),
-			filters: []*Filters{{IRI: deferredTagLoads}},
-		}}
+
+	acc, tags, err := accumulateAccountsFromCollection(&col)
+	for _, a := range acc {
+		if !accounts.Contains(a) {
+			accounts = append(accounts, a)
+		}
 	}
-	return accounts, LoadFromSearches(ctx, r, tagSearches, func(_ context.Context, col vocab.CollectionInterface, f *Filters) error {
-		return assignTagsToAccounts(accounts, col)
-	})
+	deferredTagLoads = append(deferredTagLoads, tags...)
+
+	tagSearches := make(filters.Checks, 0, len(deferredTagLoads))
+	for _, tag := range deferredTagLoads {
+		tagSearches = append(tagSearches, filters.SameIRI(tag))
+	}
+
+	rest, err := r.b.Search(tagSearches...)
+	if err != nil {
+		return accounts, err
+	}
+
+	ttt := make(vocab.ItemCollection, 0, len(rest))
+	for _, tt := range rest {
+		if t, ok := tt.(vocab.Item); ok {
+			ttt = append(ttt, t)
+		}
+	}
+	return accounts, assignTagsToAccounts(accounts, ttt)
 }
 
-func (r *repository) accounts(ctx context.Context, ff ...*Filters) (AccountCollection, error) {
-	return r.accountsFromRemote(ctx, r.fedbox.Service().GetLink(), ff...)
+func (r *repository) accounts(ctx context.Context, ff ...filters.Check) (AccountCollection, error) {
+	return r.accountsFromRemote(ctx, ff...)
 }
 
 func (r *repository) objects(ctx context.Context, ff ...*Filters) (ItemCollection, error) {
@@ -1677,10 +1637,7 @@ func (r *repository) LoadSearchesV2(ctx context.Context, deps deps, checks ...fi
 			searchIRIs = append(searchIRIs, filters.SameIRI(iri))
 		}
 
-		res, err := r.b.Search(filters.Any(searchIRIs...))
-		if err != nil {
-			return emptyCursor, err
-		}
+		res, _ := r.b.Search(filters.Any(searchIRIs...))
 		for _, li := range res {
 			ob, ok := li.(vocab.Item)
 			if !ok || vocab.IsNil(ob) {
@@ -2754,13 +2711,13 @@ func (r *repository) SendFollowResponse(ctx context.Context, f FollowRequest, ac
 
 	response := new(vocab.Activity)
 	response.To, _, response.CC, response.BCC = r.defaultRecipientsList(er.Pub, accept)
-	appendRecipients(&response.To, vocab.IRI(er.Metadata.ID))
+	_ = appendRecipients(&response.To, vocab.IRI(er.Metadata.ID))
 	response.Type = vocab.RejectType
 	if accept {
 		response.Type = vocab.AcceptType
 	}
 	if reason != nil {
-		r.loadAPItem(response, *reason)
+		_ = r.loadAPItem(response, *reason)
 	}
 	response.Object = vocab.IRI(f.Metadata.ID)
 	response.Actor = vocab.IRI(ed.Metadata.ID)

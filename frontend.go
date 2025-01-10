@@ -9,7 +9,9 @@ import (
 	"git.sr.ht/~mariusor/brutalinks/internal/config"
 	log "git.sr.ht/~mariusor/lw"
 	"git.sr.ht/~mariusor/mask"
+	vocab "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
+	"github.com/go-ap/filters"
 	"github.com/gorilla/csrf"
 )
 
@@ -137,13 +139,12 @@ func (v *view) loadCurrentAccountFromSession(w http.ResponseWriter, r *http.Requ
 		"handle": acc.Handle,
 		"hash":   acc.Hash,
 	}
-	var f *Filters
+	var f filters.Check
 	if acc.IsLogged() && acc.HasMetadata() {
-		f = new(Filters)
-		f.IRI = CompStrs{EqualsString(acc.Metadata.ID)}
+		f = filters.SameIRI(vocab.IRI(acc.Metadata.ID))
 		lCtx["iri"] = acc.Metadata.ID
 	} else {
-		f = FilterAccountByHandle(acc.Handle)
+		f = AccountByHandleCheck(acc.Handle)
 	}
 	repo := ContextRepository(r.Context())
 	a, err := repo.account(r.Context(), f)
