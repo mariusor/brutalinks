@@ -7,7 +7,6 @@ import (
 type CtxtKey string
 
 var (
-	ServicesCtxtKey      CtxtKey = "__di"
 	LoggedAccountCtxtKey CtxtKey = "__acct"
 	RepositoryCtxtKey    CtxtKey = "__repository"
 	FilterCtxtKey        CtxtKey = "__filter"

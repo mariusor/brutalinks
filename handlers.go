@@ -22,6 +22,7 @@ import (
 	vocab "github.com/go-ap/activitypub"
 	"github.com/go-ap/client"
 	"github.com/go-ap/errors"
+	"github.com/go-ap/filters"
 	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/csrf"
 	"github.com/openshift/osin"
@@ -134,14 +135,16 @@ func (h *handler) HandleModerationDelete(w http.ResponseWriter, r *http.Request)
 			mod = op
 		}
 	}
+	if mod != nil {
+		if _, err := repo.ModerateDelete(r.Context(), *mod, acc); err != nil {
+			h.errFn(log.Ctx{"err": err})("unable to delete item")
+			h.v.addFlashMessage(Error, w, r, "unable to delete item")
+		}
 
-	backUrl := r.Header.Get("Referer")
-	if _, err := repo.ModerateDelete(r.Context(), *mod, acc); err != nil {
-		h.errFn(log.Ctx{"err": err})("unable to delete item")
-		h.v.addFlashMessage(Error, w, r, "unable to delete item")
+		acc.Metadata.InvalidateOutbox()
 	}
 
-	acc.Metadata.InvalidateOutbox()
+	backUrl := r.Header.Get("Referer")
 	h.v.Redirect(w, r, backUrl, http.StatusFound)
 }
 

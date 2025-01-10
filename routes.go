@@ -35,14 +35,6 @@ var assetFiles = ass.Map{
 	"/icons.svg":            {"icons.svg"},
 }
 
-var (
-	instanceSearchFns        = instanceSearches(inbox, outbox)
-	applicationInboxSearchFn = applicationSearches(inbox)
-	applicationSearchFns     = applicationSearches(inbox, outbox)
-	loggedAccountSearchFns   = loggedAccountSearches(inbox, outbox)
-	namedAccountSearchFns    = namedAccountSearches(inbox, outbox)
-)
-
 func (h *handler) ItemRoutes(extra ...func(http.Handler) http.Handler) func(chi.Router) {
 	return func(r chi.Router) {
 		r.Use(extra...)
@@ -177,9 +169,8 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 				r.With(SelfChecks(selfID), LoadV2Mw, SortByScore).Get("/self", h.HandleShow)
 				r.With(FederatedChecks(selfID), LoadV2Mw, SortByScore).Get("/federated", h.HandleShow)
 
-				r.With(h.NeedsSessions, h.ValidateLoggedIn(h.v.RedirectToErrors), Deps(Follows), FollowedFiltersMw,
-					loggedAccountSearches(inbox), LoadMw, SortByDate).
-					Get("/followed", h.HandleShow)
+				r.With(h.NeedsSessions, h.ValidateLoggedIn(h.v.RedirectToErrors), Deps(Follows),
+					FollowedChecks, LoadV2Mw, SortByDate).Get("/followed", h.HandleShow)
 
 				r.Route("/moderation", func(r chi.Router) {
 					r.With(ModelMw(&listingModel{tpl: "moderation", sortFn: ByDate}), Deps(Moderations, Follows),
