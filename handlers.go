@@ -124,9 +124,9 @@ func (h *handler) HandleModerationDelete(w http.ResponseWriter, r *http.Request)
 
 	cur := ContextCursor(r.Context())
 	if cur == nil || cur.total == 0 {
-		url := r.URL
-		url.Path = path.Dir(path.Dir(url.Path))
-		h.v.Redirect(w, r, url.RequestURI(), http.StatusTemporaryRedirect)
+		u := r.URL
+		u.Path = path.Dir(path.Dir(u.Path))
+		h.v.Redirect(w, r, u.RequestURI(), http.StatusTemporaryRedirect)
 		return
 	}
 	var mod *ModerationOp
@@ -157,19 +157,33 @@ func (h *handler) HandleModerationDiscuss(w http.ResponseWriter, r *http.Request
 func (h *handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 	acc := loggedAccount(r)
 	repo := h.storage
-	iri := objects.IRI(h.storage.fedbox.Service()).AddPath(chi.URLParam(r, "hash"))
 
-	p, err := repo.LoadItem(r.Context(), iri)
-	if err != nil {
+	checks := filters.All(
+		filters.IRILike(chi.URLParam(r, "hash")),
+		filters.SameAttributedTo(acc.AP().GetLink()),
+	)
+
+	res, err := repo.b.Search(checks)
+	if err != nil || len(res) != 1 {
 		h.errFn()("Error: %s", err)
 		h.v.HandleErrors(w, r, errors.NewNotFound(err, "not found"))
 		return
 	}
+	li := res[0]
+	it, ok := li.(vocab.Item)
+	if !ok {
+		h.v.HandleErrors(w, r, errors.NewNotFound(err, "not found"))
+		return
+	}
 
-	url := ItemPermaLink(&p)
+	p := Item{}
+	_ = p.FromActivityPub(it)
+	p.SubmittedBy = acc
+
+	u := ItemPermaLink(&p)
 	backUrl := r.Header.Get("Referer")
-	if !strings.Contains(backUrl, url) && strings.Contains(backUrl, Instance.BaseURL.String()) {
-		url = fmt.Sprintf("%s#li-%s", backUrl, p.Hash)
+	if !strings.Contains(backUrl, u) && strings.Contains(backUrl, Instance.BaseURL.String()) {
+		u = fmt.Sprintf("%s#li-%s", backUrl, p.Hash)
 	}
 	p.Delete()
 	if p, err = repo.SaveItem(r.Context(), p); err != nil {
@@ -177,7 +191,7 @@ func (h *handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	acc.Metadata.InvalidateOutbox()
-	h.v.Redirect(w, r, url, http.StatusFound)
+	h.v.Redirect(w, r, u, http.StatusFound)
 }
 
 // HandleVoting serves /{year}/{month}/{day}/{hash}/{direction} request
