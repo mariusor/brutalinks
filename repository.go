@@ -15,7 +15,6 @@ import (
 	"git.sr.ht/~mariusor/box"
 	"git.sr.ht/~mariusor/cache"
 	log "git.sr.ht/~mariusor/lw"
-	"github.com/carlmjohnson/flowmatic"
 	vocab "github.com/go-ap/activitypub"
 	"github.com/go-ap/client"
 	"github.com/go-ap/client/credentials"
@@ -177,24 +176,20 @@ func SaveModeratorTags(repo *repository) (TagCollection, error) {
 func buildAPTagObject(tag Tag, repo *repository) *vocab.Object {
 	t := new(vocab.Object)
 	t.AttributedTo = repo.app.Pub.GetLink()
-	t.Name.Set(vocab.NilLangRef, vocab.Content(tag.Name))
-	t.Summary.Set(vocab.NilLangRef, vocab.Content(fmt.Sprintf("Moderator tag for instance %s", repo.SelfURL)))
+	_ = t.Name.Set(vocab.NilLangRef, vocab.Content(tag.Name))
+	_ = t.Summary.Set(vocab.NilLangRef, vocab.Content(fmt.Sprintf("Moderator tag for instance %s", repo.SelfURL)))
 	t.URL = vocab.IRI(tag.URL)
 	return t
 }
 
 func LoadModeratorTags(repo *repository) (TagCollection, error) {
-	ff := &Filters{
-		Name: CompStrs{EqualsString(tagNameModerator), EqualsString(tagNameSysOP)},
+	ff := filters.All(
+		filters.Any(filters.NameIs(tagNameModerator), filters.NameIs(tagNameSysOP)),
 		//Type:   nilFilters, // TODO(marius): this seems to have a problem currently on FedBOX
-		AttrTo: CompStrs{EqualsString(repo.app.AP().GetID().String())},
-	}
+		filters.SameAttributedTo(repo.app.AP().GetID()),
+	)
 	tags, _, err := repo.LoadTags(context.Background(), ff)
 	return tags, err
-}
-
-func accountURL(acc Account) vocab.IRI {
-	return vocab.IRI(fmt.Sprintf("%s%s", Instance.BaseURL.String(), AccountLocalLink(&acc)))
 }
 
 func BuildID(r Renderable) (vocab.ID, bool) {
@@ -826,10 +821,6 @@ func (r *repository) loadItemsVotes(ctx context.Context, items ...Item) (ItemCol
 	return items, err
 }
 
-func EqualsString(s string) CompStr {
-	return CompStr{Operator: "=", Str: s}
-}
-
 func AccountIRIChecks(accounts ...Account) filters.Check {
 	filter := make(filters.Checks, 0, len(accounts))
 	for _, ac := range accounts {
@@ -839,14 +830,6 @@ func AccountIRIChecks(accounts ...Account) filters.Check {
 		filter = append(filter, filters.SameIRI(ac.AP().GetLink()))
 	}
 	return filters.Any(filter...)
-}
-
-func ActivityTypesFilter(t ...vocab.ActivityVocabularyType) CompStrs {
-	r := make(CompStrs, len(t))
-	for i, typ := range t {
-		r[i] = EqualsString(string(typ))
-	}
-	return r
 }
 
 func (r *repository) loadAccountsAuthors(ctx context.Context, accounts ...Account) (AccountCollection, error) {
@@ -1325,66 +1308,6 @@ func (r *repository) accounts(ctx context.Context, ff ...filters.Check) (Account
 	return r.accountsFromRemote(ctx, ff...)
 }
 
-func validFederated(i Item, f *Filters) bool {
-	ob, err := vocab.ToObject(i.Pub)
-	if err != nil {
-		return false
-	}
-	if len(f.Generator) > 0 {
-		for _, g := range f.Generator {
-			if i.Pub == nil || ob.Generator == nil {
-				continue
-			}
-			if g == nilFilter {
-				if ob.Generator.GetLink().Equals(vocab.IRI(Instance.BaseURL.String()), false) {
-					return false
-				}
-				return true
-			}
-			if ob.Generator.GetLink().Equals(vocab.IRI(g.Str), false) {
-				return true
-			}
-		}
-	}
-	// @todo(marius): currently this marks as valid nil generator, but we eventually want non nil generators
-	return ob != nil && ob.Generator == nil
-}
-
-func validRecipients(i Item, f *Filters) bool {
-	if len(f.Recipients) > 0 {
-		for _, r := range f.Recipients {
-			if vocab.IRI(r.Str).Equals(vocab.PublicNS, false) && i.Private() {
-				return false
-			}
-		}
-	}
-	return true
-}
-
-func validItem(it Item, f *Filters) bool {
-	if keep := validRecipients(it, f); !keep {
-		return keep
-	}
-	if keep := validFederated(it, f); !keep {
-		return keep
-	}
-	return true
-}
-
-func filterItems(items ItemCollection, f *Filters) ItemCollection {
-	result := make(ItemCollection, 0)
-	for _, it := range items {
-		if !it.HasMetadata() {
-			continue
-		}
-		if validItem(it, f) {
-			result = append(result, it)
-		}
-	}
-
-	return result
-}
-
 func appendToIRIs(iris *vocab.IRIs, props ...vocab.Item) {
 	append := func(iris *vocab.IRIs, prop vocab.Item) {
 		if vocab.IsNil(prop) {
@@ -1831,77 +1754,54 @@ func loadMentionsIfExisting(r *repository, ctx context.Context, incoming TagColl
 		return incoming
 	}
 
-	remoteFilters := make([]*Filters, 0)
-	remoteWebfinger := make(map[string][]string, 0)
+	remoteWebFinger := make(map[string][]string, 0)
+	checks := make(filters.Checks, 0)
+	checks = append(checks, filters.HasType(vocab.PersonType))
 	for _, m := range incoming {
 		// TODO(marius): we need to make a distinction between FedBOX remote servers and Webfinger remote servers
 		u, err := url.ParseRequestURI(m.URL)
 		if err != nil {
 			continue
 		}
-		host := fmt.Sprintf("%s://%s", u.Scheme, u.Hostname())
+		h := fmt.Sprintf("%s://%s", u.Scheme, u.Hostname())
 		if strings.Contains(m.URL, "@"+m.Name) {
-			// use webfinger
-			remoteWebfinger[host] = append(remoteWebfinger[host], m.Name+"@"+u.Hostname())
+			// use WebFinger
+			remoteWebFinger[h] = append(remoteWebFinger[h], m.Name+"@"+u.Hostname())
 			continue
 		}
-		if strings.Contains(r.SelfURL, host) {
-			host = r.fedbox.baseURL.String()
+		if strings.Contains(r.SelfURL, h) {
+			h = r.fedbox.baseURL.String()
 		}
-		urlFilter := EqualsString(host)
-		var (
-			filter *Filters
-			add    bool
-		)
-		for i, fil := range remoteFilters {
-			if fil.URL.Contains(urlFilter) {
-				filter = remoteFilters[i]
-			}
-		}
-		if filter == nil {
-			filter = &Filters{Type: ActivityTypesFilter(vocab.PersonType)}
-			filter.IRI = append(filter.IRI, urlFilter)
-			add = true
-		}
-		nameFilter := EqualsString(m.Name)
-		if !filter.Name.Contains(nameFilter) {
-			filter.Name = append(filter.Name, nameFilter)
-		}
-		if add {
-			remoteFilters = append(remoteFilters, filter)
-		}
+
+		checks = append(checks, filters.IRILike(h), filters.NameIs(m.Name))
 	}
 
-	for _, filter := range remoteFilters {
-		actorsIRI := actors.IRI(vocab.IRI(filter.IRI[0].Str))
-		filter.IRI = nil
-		col, err := r.fedbox.client.Collection(ctx, actorsIRI, Values(filter))
-		if err != nil {
-			r.errFn(log.Ctx{"err": err})("unable to load accounts from mentions")
+	col, err := r.b.Search(checks...)
+	if err != nil {
+		return nil
+	}
+	for _, li := range col {
+		it, ok := li.(vocab.Item)
+		if !ok {
 			continue
 		}
-		_ = vocab.OnCollectionIntf(col, func(col vocab.CollectionInterface) error {
-			for _, it := range col.Collection() {
-				for i, t := range incoming {
-					_ = vocab.OnActor(it, func(act *vocab.Actor) error {
-						if strings.ToLower(t.Name) == strings.ToLower(string(act.Name.Get("-"))) ||
-							strings.ToLower(t.Name) == strings.ToLower(string(act.PreferredUsername.Get("-"))) {
-							u := act.ID.String()
-							if act.URL != nil {
-								u = act.URL.GetLink().String()
-							}
-							incoming[i].Metadata = &ItemMetadata{ID: act.ID.String(), URL: u}
-							incoming[i].URL = u
-						}
-						return nil
-					})
+		for i, t := range incoming {
+			_ = vocab.OnActor(it, func(act *vocab.Actor) error {
+				if strings.ToLower(t.Name) == strings.ToLower(string(act.Name.Get("-"))) ||
+					strings.ToLower(t.Name) == strings.ToLower(string(act.PreferredUsername.Get("-"))) {
+					u := act.ID.String()
+					if act.URL != nil {
+						u = act.URL.GetLink().String()
+					}
+					incoming[i].Metadata = &ItemMetadata{ID: act.ID.String(), URL: u}
+					incoming[i].URL = u
 				}
-			}
-			return nil
-		})
+				return nil
+			})
+		}
 	}
 
-	for h, accts := range remoteWebfinger {
+	for h, accts := range remoteWebFinger {
 		for _, acct := range accts {
 			act, err := r.loadWebfingerActorFromIRI(context.TODO(), h, acct)
 			if err != nil {
@@ -1931,12 +1831,18 @@ func loadTagsIfExisting(r *repository, ctx context.Context, incoming TagCollecti
 		return incoming
 	}
 
-	tagNames := make(CompStrs, 0)
+	tagNames := make(filters.Checks, 0, len(incoming))
 	for _, t := range incoming {
-		tagNames = append(tagNames, EqualsString(t.Name), EqualsString("#"+t.Name))
+		check := filters.Tag(
+			filters.Any(
+				filters.NameIs(t.Name),
+				filters.NameIs("#"+t.Name),
+			),
+		)
+		tagNames = append(tagNames, check)
 	}
-	ff := &Filters{Name: tagNames}
-	tags, _, err := r.LoadTags(ctx, ff)
+
+	tags, _, err := r.LoadTags(ctx, tagNames...)
 	if err != nil {
 		r.errFn(log.Ctx{"err": err})("unable to load accounts from mentions")
 	}
@@ -2253,76 +2159,33 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 	return it, err
 }
 
-func (r *repository) LoadTags(ctx context.Context, ff ...*Filters) (TagCollection, uint, error) {
+func (r *repository) LoadTags(ctx context.Context, ff ...filters.Check) (TagCollection, uint, error) {
 	tags := make(TagCollection, 0)
 	var count uint = 0
 
-	fns := make([]func() error, 0)
-	for _, f := range ff {
-		fns = append(fns, func() error {
-			it, err := r.fedbox.Objects(ctx, Values(f))
-			if err != nil {
-				r.errFn()(err.Error())
-				return err
-			}
-			return vocab.OnOrderedCollection(it, func(col *vocab.OrderedCollection) error {
-				count = col.TotalItems
-				for _, it := range col.OrderedItems {
-					tag := Tag{}
-					if err := tag.FromActivityPub(it); err != nil {
-						r.errFn(log.Ctx{"type": fmt.Sprintf("%T", it)})(err.Error())
-						continue
-					}
-					tags = append(tags, tag)
-				}
-				return nil
-			})
-		})
+	res, err := r.b.Search(ff...)
+	if err != nil {
+		return nil, 0, err
 	}
-	if err := flowmatic.Do(fns...); err != nil {
-		return tags, count, err
+
+	for _, li := range res {
+		it, ok := li.(vocab.Item)
+		if !ok {
+			continue
+		}
+		tag := Tag{}
+		if err = tag.FromActivityPub(it); err != nil {
+			r.errFn(log.Ctx{"type": fmt.Sprintf("%T", it)})(err.Error())
+			continue
+		}
+		count++
+		tags = append(tags, tag)
 	}
+
 	return tags, count, nil
 }
 
 type CollectionFilterFn func(context.Context, ...client.FilterFn) (vocab.CollectionInterface, error)
-
-func (r *repository) LoadAccounts(ctx context.Context, colFn CollectionFilterFn, ff ...*Filters) (AccountCollection, uint, error) {
-	accounts := make(AccountCollection, 0)
-	var count uint = 0
-
-	if colFn == nil {
-		colFn = r.fedbox.Actors
-	}
-
-	fns := make([]func() error, 0)
-	for _, f := range ff {
-		fns = append(fns, func() error {
-			it, err := colFn(ctx, Values(f))
-			if err != nil {
-				r.errFn()(err.Error())
-				return err
-			}
-			return vocab.OnOrderedCollection(it, func(col *vocab.OrderedCollection) error {
-				count = col.TotalItems
-				for _, it := range col.OrderedItems {
-					acc := Account{Metadata: &AccountMetadata{}}
-					if err := acc.FromActivityPub(it); err != nil {
-						r.errFn(log.Ctx{"type": fmt.Sprintf("%T", it)})(err.Error())
-						continue
-					}
-					accounts = append(accounts, acc)
-				}
-				return err
-			})
-		})
-	}
-
-	if err := flowmatic.Do(fns...); err != nil {
-		return accounts, count, err
-	}
-	return accounts, count, nil
-}
 
 func (r *repository) ValidateRemoteAccount(ctx context.Context, acc *Account) error {
 	now := time.Now().UTC()
@@ -2400,36 +2263,6 @@ func Values(f interface{}) client.FilterFn {
 		}
 		return v
 	}
-}
-
-func (r *repository) LoadFollowRequests(ctx context.Context, ed *Account, f *Filters) (FollowRequests, uint, error) {
-	if ed == nil {
-		return nil, 1, fmt.Errorf("invalid nil followed account")
-	}
-	if len(f.Type) == 0 {
-		f.Type = ActivityTypesFilter(vocab.FollowType)
-		f.Actor = derefIRIFilters
-	}
-	var followReq vocab.CollectionInterface
-	var err error
-	if ed == nil {
-		followReq, err = r.fedbox.Activities(ctx, Values(f))
-	} else {
-		followReq, err = r.fedbox.Inbox(ctx, r.loadAPPerson(*ed), Values(f))
-	}
-	requests := make([]FollowRequest, 0)
-	if err == nil && len(followReq.Collection()) > 0 {
-		for _, fr := range followReq.Collection() {
-			f := new(FollowRequest)
-			if err := f.FromActivityPub(fr); err == nil {
-				if !accountInCollection(*f.SubmittedBy, ed.Followers) {
-					requests = append(requests, *f)
-				}
-			}
-		}
-		requests, err = r.loadFollowsAuthors(ctx, requests...)
-	}
-	return requests, uint(len(requests)), nil
 }
 
 func (r *repository) SendFollowResponse(ctx context.Context, f FollowRequest, accept bool, reason *Item) error {
@@ -2693,27 +2526,6 @@ func (r *repository) ReportAccount(ctx context.Context, er, ed Account, reason *
 	return nil
 }
 
-type StopLoad struct{}
-
-func (s StopLoad) Error() string {
-	return "this is the end"
-}
-
-type RemoteLoads map[vocab.IRI][]RemoteLoad
-
-type RemoteLoad struct {
-	actor   vocab.Item
-	signFn  client.RequestSignFn
-	loadFn  LoadFn
-	filters []*Filters
-}
-
-type StopSearchErr string
-
-func (s StopSearchErr) Error() string {
-	return string(s)
-}
-
 func (r *repository) loadItemFromCacheOrIRI(ctx context.Context, iri vocab.IRI) (vocab.Item, error) {
 	if it := r.cache.get(iri); !vocab.IsNil(it) {
 		if getItemUpdatedTime(it).Sub(time.Now()) < 10*time.Minute {
@@ -2731,43 +2543,6 @@ func (r *repository) loadCollectionFromCacheOrIRI(ctx context.Context, iri vocab
 	}
 	col, err := r.fedbox.collection(ctx, iri)
 	return col, false, err
-}
-
-type searchFn func(ctx context.Context, col vocab.CollectionInterface, f *Filters) error
-
-func (r *repository) searchFn(ctx context.Context, curIRI vocab.IRI, f *Filters, fn searchFn) func() error {
-	return func() error {
-		loadIRI := iri(curIRI, Values(f))
-
-		col, fromCache, err := r.loadCollectionFromCacheOrIRI(ctx, loadIRI)
-		if err != nil {
-			return errors.Annotatef(err, "failed to load search: %s", loadIRI)
-		}
-
-		maxItems := 0
-		err = vocab.OnCollectionIntf(col, func(c vocab.CollectionInterface) error {
-			maxItems = int(c.Count())
-			return fn(ctx, c, f)
-		})
-		if !fromCache {
-			r.cache.add(cacheKey(loadIRI, ContextAccount(ctx)), col)
-		}
-		if err != nil {
-			return err
-		}
-
-		if maxItems-f.MaxItems < 5 {
-			if _, f.Next = getCollectionPrevNext(col); len(f.Next) > 0 {
-				if err = flowmatic.Do(r.searchFn(ctx, curIRI, f, fn)); err != nil {
-					return err
-				}
-			}
-		} else {
-			return StopLoad{}
-		}
-
-		return nil
-	}
 }
 
 func cacheKey(i vocab.IRI, a *Account) vocab.IRI {

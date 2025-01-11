@@ -41,8 +41,6 @@ var ValidContentManagementTypes = vocab.ActivityVocabularyTypes{
 	vocab.DeleteType,
 }
 
-var ContentManagementActivitiesFilter = ActivityTypesFilter(ValidContentManagementTypes...)
-
 type Identifiable interface {
 	Id() int64
 }

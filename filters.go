@@ -13,47 +13,6 @@ import (
 	"gitlab.com/golang-commonmark/puny"
 )
 
-var (
-	nilFilter = EqualsString("-")
-
-	notNilFilter  = DifferentThanString("-")
-	notNilFilters = CompStrs{notNilFilter}
-
-	derefIRIFilters = &Filters{IRI: notNilFilters}
-)
-
-type CompStr = qstring.ComparativeString
-type CompStrs []CompStr
-
-func (cs CompStrs) Contains(f CompStr) bool {
-	for _, c := range cs {
-		if c.Str == f.Str {
-			return true
-		}
-	}
-	return false
-}
-
-type Filters struct {
-	Name       CompStrs  `qstring:"name,omitempty"`
-	Cont       CompStrs  `qstring:"content,omitempty"`
-	MedTypes   CompStrs  `qstring:"mediaType,omitempty"`
-	URL        CompStrs  `qstring:"url,omitempty"`
-	IRI        CompStrs  `qstring:"iri,omitempty"`
-	Generator  CompStrs  `qstring:"generator,omitempty"`
-	Type       CompStrs  `qstring:"type,omitempty"`
-	AttrTo     CompStrs  `qstring:"attributedTo,omitempty"`
-	InReplTo   CompStrs  `qstring:"inReplyTo,omitempty"`
-	OP         CompStrs  `qstring:"context,omitempty"`
-	Recipients CompStrs  `qstring:"recipients,omitempty"`
-	Next       vocab.IRI `qstring:"after,omitempty"`
-	Prev       vocab.IRI `qstring:"before,omitempty"`
-	MaxItems   int       `qstring:"maxItems,omitempty"`
-	Object     *Filters  `qstring:"object,omitempty"`
-	Tag        *Filters  `qstring:"tag,omitempty"`
-	Actor      *Filters  `qstring:"actor,omitempty"`
-}
-
 func AuthorChecks(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		auth := ContextAuthors(r.Context())
@@ -132,10 +91,6 @@ func FollowedChecks(next http.Handler) http.Handler {
 	})
 }
 
-func DifferentThanString(s string) CompStr {
-	return CompStr{Operator: "!", Str: s}
-}
-
 func defaultChecks(r *http.Request) filters.Checks {
 	checks := filters.FromURL(*r.URL)
 	checks = append(checks, filters.Recipients(vocab.PublicNS), filters.WithMaxCount(MaxContentItems))
@@ -165,10 +120,6 @@ func FederatedChecks(id vocab.IRI) func(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
-}
-
-func LikeString(s string) CompStr {
-	return CompStr{Operator: "~", Str: s}
 }
 
 func DomainChecksMw(next http.Handler) http.Handler {

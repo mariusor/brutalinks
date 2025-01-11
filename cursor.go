@@ -3,8 +3,6 @@ package brutalinks
 import (
 	"sort"
 	"time"
-
-	vocab "github.com/go-ap/activitypub"
 )
 
 type Cursor struct {
@@ -15,12 +13,6 @@ type Cursor struct {
 }
 
 var emptyCursor = Cursor{}
-
-type colCursor struct {
-	filters *Filters
-	loaded  int
-	items   vocab.ItemCollection
-}
 
 type RenderableList []Renderable
 

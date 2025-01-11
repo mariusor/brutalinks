@@ -293,68 +293,6 @@ func validateObject(o vocab.Item) error {
 	return nil
 }
 
-type CollectionFn func(context.Context, *Filters) (vocab.CollectionInterface, error)
-
-func (f fedbox) Inbox(ctx context.Context, actor vocab.Item, filters ...client.FilterFn) (vocab.CollectionInterface, error) {
-	if err := validateActor(actor); err != nil {
-		return nil, err
-	}
-	return f.collection(ctx, inbox(actor, filters...))
-}
-
-func (f fedbox) Outbox(ctx context.Context, actor vocab.Item, filters ...client.FilterFn) (vocab.CollectionInterface, error) {
-	if err := validateActor(actor); err != nil {
-		return nil, err
-	}
-	return f.collection(ctx, outbox(actor, filters...))
-}
-
-func (f fedbox) Following(ctx context.Context, actor vocab.Item, filters ...client.FilterFn) (vocab.CollectionInterface, error) {
-	if err := validateActor(actor); err != nil {
-		return nil, err
-	}
-	return f.collection(ctx, following(actor, filters...))
-}
-
-func (f fedbox) Followers(ctx context.Context, actor vocab.Item, filters ...client.FilterFn) (vocab.CollectionInterface, error) {
-	if err := validateActor(actor); err != nil {
-		return nil, err
-	}
-	return f.collection(ctx, followers(actor, filters...))
-}
-
-func (f fedbox) Likes(ctx context.Context, object vocab.Item, filters ...client.FilterFn) (vocab.CollectionInterface, error) {
-	if err := validateObject(object); err != nil {
-		return nil, err
-	}
-	return f.collection(ctx, likes(object, filters...))
-}
-
-func (f fedbox) Liked(ctx context.Context, actor vocab.Item, filters ...client.FilterFn) (vocab.CollectionInterface, error) {
-	if err := validateActor(actor); err != nil {
-		return nil, err
-	}
-	return f.collection(ctx, liked(actor, filters...))
-}
-
-func (f fedbox) Replies(ctx context.Context, object vocab.Item, filters ...client.FilterFn) (vocab.CollectionInterface, error) {
-	if err := validateObject(object); err != nil {
-		return nil, err
-	}
-	return f.collection(ctx, replies(object, filters...))
-}
-
-func (f fedbox) Shares(ctx context.Context, object vocab.Item, filters ...client.FilterFn) (vocab.CollectionInterface, error) {
-	if err := validateObject(object); err != nil {
-		return nil, err
-	}
-	return f.collection(ctx, shares(object, filters...))
-}
-
-func (f fedbox) Collection(ctx context.Context, i vocab.IRI, filters ...client.FilterFn) (vocab.CollectionInterface, error) {
-	return f.collection(ctx, iri(i, filters...))
-}
-
 func (f fedbox) Actor(ctx context.Context, iri vocab.IRI) (*vocab.Actor, error) {
 	it, err := f.object(ctx, iri)
 	if err != nil {

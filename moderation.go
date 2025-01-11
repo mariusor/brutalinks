@@ -11,8 +11,6 @@ import (
 
 var ValidModerationActivityTypes = vocab.ActivityVocabularyTypes{vocab.BlockType, vocab.IgnoreType, vocab.FlagType}
 
-var ModerationActivitiesFilter = ActivityTypesFilter(ValidModerationActivityTypes...)
-
 // ModerationRequests
 type ModerationRequests []ModerationOp
 
