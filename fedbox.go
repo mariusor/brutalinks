@@ -353,16 +353,19 @@ func (r *repository) ToOutbox(ctx context.Context, cred credentials.C2S, a vocab
 	sendTo = r.fedbox.normaliseIRI(sendTo)
 	cl := cred.Client(ctx, cache.FS(filepath.Join(Instance.Conf.StoragePath, "cache")))
 
-	var i vocab.IRI
-	var err error
-	i, a, err = cl.CtxToCollection(ctx, sendTo, a)
+	i, it, err := cl.CtxToCollection(ctx, sendTo, a)
 	if err != nil {
 		return i, a, err
 	}
 
-	r.b.Save()
+	toSave := vocab.ItemCollection{it}
+	if a, err = cl.LoadIRI(i); err == nil {
+		toSave = append(toSave, a)
+	}
 
-	return i, a, nil
+	_ = r.b.Save(toSave...)
+
+	return i, it, nil
 }
 
 func (f *fedbox) Service() *vocab.Service {
