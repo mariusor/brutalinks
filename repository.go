@@ -45,6 +45,22 @@ func (r *repository) Close() error {
 	return r.b.Close()
 }
 
+func LoadCredentials(b *box.Client, c appConfig) (*credentials.C2S, error) {
+	cred, err := box.LoadCredentials(b, c.OAuth2App)
+	if os.IsNotExist(err) {
+		auth := oauth2.Config{
+			ClientID:     c.OAuth2App,
+			ClientSecret: c.OAuth2Secret,
+			RedirectURL:  fmt.Sprintf("%s/auth/%s/callback", c.BaseURL, "fedbox"),
+		}
+		if cred, err = credentials.Authorize(context.Background(), c.OAuth2App, auth); err != nil {
+			return nil, err
+		}
+		err = box.SaveCredentials(b, *cred)
+	}
+	return cred, err
+}
+
 func ActivityPubService(c appConfig) (*repository, error) {
 	vocab.ItemTyperFunc = vocab.GetItemByType
 
@@ -94,19 +110,10 @@ func ActivityPubService(c appConfig) (*repository, error) {
 		return repo, err
 	}
 
-	cred, err := box.LoadCredentials(repo.b, c.OAuth2App)
-	if os.IsNotExist(err) {
-		auth := oauth2.Config{
-			ClientID:     c.OAuth2App,
-			ClientSecret: c.OAuth2Secret,
-			RedirectURL:  fmt.Sprintf("%s/auth/%s/callback", c.BaseURL, "fedbox"),
-		}
-		if cred, err = credentials.Authorize(context.Background(), c.OAuth2App, auth); err != nil {
-			return repo, fmt.Errorf("unable to load credentials or authorize Actor: %w", err)
-		}
-		_ = box.SaveCredentials(repo.b, *cred)
+	cred, err := LoadCredentials(repo.b, c)
+	if err != nil {
+		return repo, fmt.Errorf("unable to load credentials or authorize Actor: %w", err)
 	}
-
 	if actor := box.Author(repo.b, cred); actor != nil {
 		repo.app = new(Account)
 		if err := repo.app.FromActivityPub(actor); err != nil {
@@ -2305,13 +2312,15 @@ func (r *repository) FollowAccount(ctx context.Context, er, ed Account, reason *
 	if !accountValidForC2S(&er) {
 		return errors.Unauthorizedf("invalid account %s", er.Handle)
 	}
-	err := r.FollowActor(ctx, er, ed, reason)
-	r.errFn(log.Ctx{
-		"err":      err,
-		"follower": er.Handle,
-		"followed": ed.Handle,
-	})("Unable to follow")
-	return err
+	if err := r.FollowActor(ctx, er, ed, reason); err != nil {
+		r.errFn(log.Ctx{
+			"err":      err.Error(),
+			"follower": er.Handle,
+			"followed": ed.Handle,
+		})("Unable to follow")
+		return err
+	}
+	return nil
 }
 
 func (r *repository) FollowActor(ctx context.Context, er, ed Account, reason *Item) error {

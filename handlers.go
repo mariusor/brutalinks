@@ -18,9 +18,11 @@ import (
 	"strings"
 	"time"
 
+	"git.sr.ht/~mariusor/box"
 	log "git.sr.ht/~mariusor/lw"
 	vocab "github.com/go-ap/activitypub"
 	"github.com/go-ap/client"
+	"github.com/go-ap/client/credentials"
 	"github.com/go-ap/errors"
 	"github.com/go-ap/filters"
 	"github.com/go-chi/chi/v5"
@@ -1073,7 +1075,7 @@ func genStateForAccount(acct Account) string {
 func (h *handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
 	redirWithError := func(errs ...error) {
 		h.v.addFlashMessage(Error, w, r, xerrors.Join(errs...).Error())
-		h.v.saveAccountToSession(w, r, &AnonymousAccount)
+		_ = h.v.saveAccountToSession(w, r, &AnonymousAccount)
 		h.v.Redirect(w, r, "/login", http.StatusFound)
 	}
 
@@ -1102,10 +1104,11 @@ func (h *handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
 	conf := h.conf.GetOauth2Config(provider, h.conf.BaseURL)
 	tok, err := conf.Exchange(r.Context(), code)
 	if err != nil {
-		h.errFn(log.Ctx{"err": err})("Unable to load token")
+		h.errFn(log.Ctx{"err": err.Error()})("Unable to load token")
 		redirWithError(err)
 		return
 	}
+
 	acct, err := h.v.loadCurrentAccountFromSession(w, r)
 	if err != nil {
 		h.errFn(log.Ctx{"err": err.Error()})("Failed to load account from session")
@@ -1122,6 +1125,15 @@ func (h *handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
 			Code:     code,
 			Provider: provider,
 			Token:    tok,
+		}
+
+		cred := credentials.C2S{
+			IRI:  acct.AP().GetLink(),
+			Conf: conf,
+			Tok:  tok,
+		}
+		if err = box.SaveCredentials(h.storage.b, cred); err != nil {
+			h.errFn(log.Ctx{"err": err.Error()})("Unable to save C2S credentials for logged actor")
 		}
 
 		if strings.ToLower(provider) != "local" {
