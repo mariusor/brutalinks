@@ -7,7 +7,7 @@ require (
 	git.sr.ht/~mariusor/box v0.0.0-20250112164919-606a6068d9c1
 	git.sr.ht/~mariusor/cache v0.0.0-20241212172633-e1563652acb4
 	git.sr.ht/~mariusor/lw v0.0.0-20241117105956-4b4009e28502
-	git.sr.ht/~mariusor/mask v0.0.0-20240327084502-ef2a9438457e
+	git.sr.ht/~mariusor/mask v0.0.0-20250114195353-98705a6977b7
 	git.sr.ht/~mariusor/wrapper v0.0.0-20240519120935-f877e4d97def
 	github.com/carlmjohnson/flowmatic v0.23.4
 	github.com/go-ap/activitypub v0.0.0-20250112165501-7b898763a1e9
@@ -50,11 +50,11 @@ require (
 	github.com/charmbracelet/colorprofile v0.1.9 // indirect
 	github.com/charmbracelet/lipgloss v1.0.0 // indirect
 	github.com/charmbracelet/lipgloss/v2 v2.0.0-alpha.2 // indirect
-	github.com/charmbracelet/x/ansi v0.6.0 // indirect
+	github.com/charmbracelet/x/ansi v0.7.0 // indirect
 	github.com/charmbracelet/x/cellbuf v0.0.6 // indirect
 	github.com/charmbracelet/x/term v0.2.1 // indirect
-	github.com/charmbracelet/x/vt v0.0.0-20250112114943-1775be7e67ae // indirect
-	github.com/charmbracelet/x/wcwidth v0.0.0-20250112114943-1775be7e67ae // indirect
+	github.com/charmbracelet/x/vt v0.0.0-20250113133550-1814328524c0 // indirect
+	github.com/charmbracelet/x/wcwidth v0.0.0-20250113133550-1814328524c0 // indirect
 	github.com/charmbracelet/x/windows v0.2.0 // indirect
 	github.com/elnormous/contenttype v1.0.4 // indirect
 	github.com/gorilla/css v1.0.1 // indirect
