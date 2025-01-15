@@ -127,11 +127,11 @@ func DomainChecksMw(next http.Handler) http.Handler {
 		domain := chi.URLParam(r, "domain")
 		m := ContextListingModel(r.Context())
 		checks := defaultChecks(r)
-		checks = append(checks, filters.NilInReplyTo)
+		checks = append(checks, filters.NilInReplyTo, filters.Not(filters.NameEmpty))
 		if len(domain) > 0 {
 			m.Title = htmlf("Items pointing to %s", domain)
-			domainFilter := fmt.Sprintf("https://%s", puny.ToASCII(domain))
-			checks = append(checks, filters.HasType(vocab.PageType), filters.URLLike(domainFilter))
+			domainName := fmt.Sprintf("https://%s", puny.ToASCII(domain))
+			checks = append(checks, filters.HasType(vocab.PageType), filters.URLLike(domainName))
 		} else {
 			m.Title = htmlf("Discussion items")
 			// TODO(marius): add filters.MediaTypeXXX to support
