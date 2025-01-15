@@ -116,6 +116,7 @@ form label.mime-type {
 dialog {
     width: 60%;
     z-index: 1;
+    margin: 4em auto auto auto;
 }
 dialog button.close {
     width: 1.5em;
