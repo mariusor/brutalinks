@@ -38,7 +38,7 @@ var assetFiles = ass.Map{
 func (h *handler) ItemRoutes(extra ...func(http.Handler) http.Handler) func(chi.Router) {
 	return func(r chi.Router) {
 		r.Use(extra...)
-		r.Use(ContentModelMw, h.ItemChecks, LoadSingleObjectMw, SingleItemModelMw)
+		r.Use(ContentModelMw, ItemChecks, LoadSingleObjectMw, SingleItemModelMw)
 		r.With(Deps(Votes, Replies, Authors), LoadSingleItemMw, SortByScore).
 			Get("/", h.HandleShow)
 		r.With(h.ValidateLoggedIn(h.v.RedirectToErrors), LoadSingleItemMw).Post("/", h.HandleSubmit)
@@ -112,13 +112,13 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 					r.Post("/login", h.HandleLogin)
 				})
 			})
-			r.With(h.ValidateLoggedIn(h.v.RedirectToErrors), Deps(Authors, Follows), FollowChecks, LoadV2Mw).
+			r.With(h.ValidateLoggedIn(h.v.RedirectToErrors), Deps(Authors, Follows), FollowChecks, LoadMw).
 				Get("/follow/{hash}/{action}", h.HandleFollowResponseRequest)
 
-			r.With(h.LoadAuthorMw, LoadV2Mw).Get("/~{handle}.pub", h.ShowPublicKey)
+			r.With(h.LoadAuthorMw, LoadMw).Get("/~{handle}.pub", h.ShowPublicKey)
 
 			r.With(h.LoadAuthorMw).Route("/~{handle}", func(r chi.Router) {
-				r.With(AccountListingModelMw, AuthorChecks, Deps(Authors, Votes), LoadV2Mw).
+				r.With(AccountListingModelMw, AuthorChecks, Deps(Authors, Votes), LoadMw).
 					Get("/", h.HandleShow)
 
 				r.With(csrf).Route("/changepw/{hash}", func(r chi.Router) {
@@ -148,38 +148,38 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 			r.Route("/{year:[0-9]{4}}/{month:[0-9]{2}}/{day:[0-9]{2}}/{hash}", h.ItemRoutes(csrf))
 
 			// @todo(marius) :link_generation:
-			r.With(ContentModelMw, h.ItemChecks, LoadSingleObjectMw).Get("/i/{hash}", h.HandleItemRedirect)
+			r.With(ContentModelMw, ItemChecks, LoadSingleObjectMw).Get("/i/{hash}", h.HandleItemRedirect)
 
 			r.With(h.NeedsSessions).Get("/logout", h.HandleLogout)
 
 			r.With(ListingModelMw, Deps(Authors, Votes)).Group(func(r chi.Router) {
 				// todo(marius) :link_generation:
-				r.With(DefaultChecks, LoadV2Mw, SortByScore).Get("/", h.HandleShow)
+				r.With(DefaultChecks, LoadMw, SortByScore).Get("/", h.HandleShow)
 
-				r.With(DomainChecksMw, LoadV2Mw, middleware.StripSlashes, SortByDate).Get("/d", h.HandleShow)
+				r.With(DomainChecksMw, LoadMw, middleware.StripSlashes, SortByDate).Get("/d", h.HandleShow)
 
-				r.With(DomainChecksMw, LoadV2Mw, SortByDate).Get("/d/{domain}", h.HandleShow)
+				r.With(DomainChecksMw, LoadMw, SortByDate).Get("/d/{domain}", h.HandleShow)
 
-				r.With(TagChecks, LoadV2Mw, Deps(Moderations), h.ModerationListing, SortByDate).
+				r.With(TagChecks, LoadMw, Deps(Moderations), h.ModerationListing, SortByDate).
 					Get("/t/{tag}", h.HandleShow)
 
 				selfID := h.storage.fedbox.Service().ID
-				r.With(SelfChecks(selfID), LoadV2Mw, SortByScore).Get("/self", h.HandleShow)
-				r.With(FederatedChecks(selfID), LoadV2Mw, SortByScore).Get("/federated", h.HandleShow)
+				r.With(SelfChecks(selfID), LoadMw, SortByScore).Get("/self", h.HandleShow)
+				r.With(FederatedChecks(selfID), LoadMw, SortByScore).Get("/federated", h.HandleShow)
 
 				r.With(h.NeedsSessions, h.ValidateLoggedIn(h.v.RedirectToErrors), Deps(Follows),
-					FollowedChecks, LoadV2Mw, SortByDate).Get("/followed", h.HandleShow)
+					FollowedChecks, LoadMw, SortByDate).Get("/followed", h.HandleShow)
 
 				r.Route("/moderation", func(r chi.Router) {
 					r.With(ModelMw(&listingModel{tpl: "moderation", sortFn: ByDate}), Deps(Moderations, Follows),
-						ModerationListingChecks, LoadV2Mw, h.ModerationListing).Get("/", h.HandleShow)
-					r.With(h.ValidateModerator(), ModerationChecks, LoadV2Mw).Group(func(r chi.Router) {
+						ModerationListingChecks, LoadMw, h.ModerationListing).Get("/", h.HandleShow)
+					r.With(h.ValidateModerator(), ModerationChecks, LoadMw).Group(func(r chi.Router) {
 						r.Get("/{hash}/rm", h.HandleModerationDelete)
 						r.Get("/{hash}/discuss", h.HandleShow)
 					})
 				})
 
-				r.With(ModelMw(&listingModel{ShowChildren: true, sortFn: ByDate}), ActorsChecks, LoadV2Mw).
+				r.With(ModelMw(&listingModel{ShowChildren: true, sortFn: ByDate}), ActorsChecks, LoadMw).
 					Get("/~", h.HandleShow)
 			})
 

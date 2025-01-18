@@ -62,7 +62,7 @@ func ctxtErr(next http.Handler, w http.ResponseWriter, r *http.Request, err erro
 
 type CollectionLoadFn func(vocab.CollectionInterface) error
 
-func LoadV2Mw(next http.Handler) http.Handler {
+func LoadMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		repo := ContextRepository(r.Context())
 		checks := ContextActivityChecks(r.Context())

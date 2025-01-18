@@ -338,7 +338,7 @@ func (h *handler) HandleAbout(w http.ResponseWriter, r *http.Request) {
 	}
 	m.Desc.Description = info.Description
 
-	h.v.RenderTemplate(r, w, m.Template(), m)
+	_ = h.v.RenderTemplate(r, w, m.Template(), m)
 }
 
 func httpErrorResponse(e error) int {

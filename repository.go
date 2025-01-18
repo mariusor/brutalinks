@@ -413,11 +413,11 @@ func (r *repository) loadAPItem(it vocab.Item, item Item) error {
 					if pAuth := GetID(par.SubmittedBy); !vocab.PublicNS.Equals(pAuth, true) {
 						if first {
 							if !to.Contains(pAuth) {
-								appendRecipients(&to, pAuth)
+								_ = appendRecipients(&to, pAuth)
 							}
 							first = false
 						} else if !cc.Contains(pAuth) {
-							appendRecipients(&cc, pAuth)
+							_ = appendRecipients(&cc, pAuth)
 						}
 					}
 				}

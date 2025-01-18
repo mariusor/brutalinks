@@ -16,12 +16,11 @@ import (
 func AuthorChecks(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		auth := ContextAuthors(r.Context())
-		checks := make(filters.Checks, 0, len(auth))
+		checks := defaultChecks(r)
 		for _, a := range auth {
 			checks = append(checks, filters.SameAttributedTo(a.AP().GetLink()))
 		}
-		checks = append(defaultChecks(r), checks...)
-		ctx := context.WithValue(r.Context(), FilterV2CtxtKey, filters.All(checks...))
+		ctx := context.WithValue(r.Context(), FilterCtxtKey, filters.All(checks...))
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -31,14 +30,14 @@ func DefaultChecks(next http.Handler) http.Handler {
 		checks := topLevelChecks(r)
 		m := ContextListingModel(r.Context())
 		m.Title = "Newest items"
-		ctx := context.WithValue(r.Context(), FilterV2CtxtKey, filters.All(checks...))
+		ctx := context.WithValue(r.Context(), FilterCtxtKey, filters.All(checks...))
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
 // ContextActivityChecks loads the filters we use for generating storage queries from the HTTP request
 func ContextActivityChecks(ctx context.Context) filters.Check {
-	if f, ok := ctx.Value(FilterV2CtxtKey).(filters.Check); ok {
+	if f, ok := ctx.Value(FilterCtxtKey).(filters.Check); ok {
 		return f
 	}
 	return nil
@@ -51,7 +50,7 @@ func SelfChecks(id vocab.IRI) func(next http.Handler) http.Handler {
 			m.Title = "Local instance items"
 
 			checks := append(topLevelChecks(r), filters.IRILike(id.String()))
-			ctx := context.WithValue(r.Context(), FilterV2CtxtKey, filters.All(checks...))
+			ctx := context.WithValue(r.Context(), FilterCtxtKey, filters.All(checks...))
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
@@ -64,7 +63,7 @@ func FollowChecks(next http.Handler) http.Handler {
 			filters.IRILike(chi.URLParam(r, "hash")),
 		)
 
-		ctx := context.WithValue(r.Context(), FilterV2CtxtKey, checks)
+		ctx := context.WithValue(r.Context(), FilterCtxtKey, checks)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -86,27 +85,25 @@ func FollowedChecks(next http.Handler) http.Handler {
 			filters.Recipients(loggedUser.AP().GetLink()),
 			filters.Not(filters.SameAttributedTo(loggedUser.AP().GetLink())),
 		)
-		ctx := context.WithValue(r.Context(), FilterV2CtxtKey, check)
+		ctx := context.WithValue(r.Context(), FilterCtxtKey, check)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
+func requestChecks(r *http.Request) filters.Checks {
+	return append(filters.FromURL(*r.URL), filters.WithMaxCount(MaxContentItems))
+}
+
 func defaultChecks(r *http.Request) filters.Checks {
-	checks := filters.FromURL(*r.URL)
-	checks = append(checks, filters.Recipients(vocab.PublicNS), filters.WithMaxCount(MaxContentItems))
-	return checks
+	return append(requestChecks(r), filters.Recipients(vocab.PublicNS))
 }
 
 func contentChecks(r *http.Request) filters.Checks {
-	checks := defaultChecks(r)
-	checks = append(checks, filters.HasType(ValidContentTypes...))
-	return checks
+	return append(defaultChecks(r), filters.HasType(ValidContentTypes...))
 }
 
 func topLevelChecks(r *http.Request) filters.Checks {
-	checks := contentChecks(r)
-	checks = append(checks, filters.Not(filters.NameEmpty), filters.NilInReplyTo)
-	return checks
+	return append(contentChecks(r), filters.Not(filters.NameEmpty), filters.NilInReplyTo)
 }
 
 func FederatedChecks(id vocab.IRI) func(next http.Handler) http.Handler {
@@ -116,7 +113,7 @@ func FederatedChecks(id vocab.IRI) func(next http.Handler) http.Handler {
 			m.Title = "Federated items"
 
 			checks := append(topLevelChecks(r), filters.Not(filters.IRILike(id.String())))
-			ctx := context.WithValue(r.Context(), FilterV2CtxtKey, filters.All(checks...))
+			ctx := context.WithValue(r.Context(), FilterCtxtKey, filters.All(checks...))
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
@@ -138,7 +135,7 @@ func DomainChecksMw(next http.Handler) http.Handler {
 			//   filtering by MimeTypeMarkdown, MimeTypeText, MimeTypeHTML
 			checks = append(checks, filters.HasType(vocab.ArticleType, vocab.NoteType))
 		}
-		ctx := context.WithValue(r.Context(), FilterV2CtxtKey, filters.All(checks...))
+		ctx := context.WithValue(r.Context(), FilterCtxtKey, filters.All(checks...))
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -152,7 +149,7 @@ func TagChecks(next http.Handler) http.Handler {
 		}
 
 		validTypes := append(append(ValidContentTypes, ValidModerationActivityTypes...), ValidActorTypes...)
-		checks := filters.All(
+		checks := append(requestChecks(r),
 			filters.HasType(validTypes...),
 			filters.Tag(filters.NameIs("#"+tag)),
 			filters.WithMaxCount(MaxContentItems),
@@ -161,21 +158,21 @@ func TagChecks(next http.Handler) http.Handler {
 		m := ContextListingModel(r.Context())
 		m.ShowText = true
 		m.Title = htmlf("Items tagged as #%s", tag)
-		ctx := context.WithValue(r.Context(), FilterV2CtxtKey, checks)
+		ctx := context.WithValue(r.Context(), FilterCtxtKey, filters.All(checks...))
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
-func (h handler) ItemChecks(next http.Handler) http.Handler {
+func ItemChecks(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		hash := chi.URLParam(r, "hash")
 
-		checks := filters.All(
+		checks := append(defaultChecks(r),
 			filters.Recipients(vocab.PublicNS),
 			filters.HasType(ValidContentTypes...),
 			filters.IRILike(hash),
 		)
-		ctx := context.WithValue(r.Context(), FilterV2CtxtKey, checks)
+		ctx := context.WithValue(r.Context(), FilterCtxtKey, filters.All(checks...))
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -188,20 +185,18 @@ type moderationFilter struct {
 
 func ModerationChecks(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		check := filters.All(
+		checks := append(requestChecks(r),
 			filters.IRILike(chi.URLParam(r, "hash")),
 			filters.HasType(ValidModerationActivityTypes...),
 		)
 
-		ctx := context.WithValue(r.Context(), FilterV2CtxtKey, check)
+		ctx := context.WithValue(r.Context(), FilterCtxtKey, filters.All(checks...))
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
 func ModerationListingChecks(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		checks := filters.FromValues(r.URL.Query())
-
 		mf := new(moderationFilter)
 		_ = qstring.Unmarshal(r.URL.Query(), mf)
 
@@ -209,7 +204,7 @@ func ModerationListingChecks(next http.Handler) http.Handler {
 		showComments := stringInSlice(mf.Type)("c")
 		showUsers := stringInSlice(mf.Type)("a")
 
-		checks = append(checks, filters.HasType(ValidModerationActivityTypes...))
+		checks := append(requestChecks(r), filters.HasType(ValidModerationActivityTypes...))
 		if len(mf.Type) > 0 && !(showSubmissions == showComments && showSubmissions == showUsers) {
 			if showSubmissions {
 				checks = append(checks, filters.Object(
@@ -232,7 +227,7 @@ func ModerationListingChecks(next http.Handler) http.Handler {
 		if m := ContextListingModel(r.Context()); m != nil {
 			m.Title = "Moderation log"
 		}
-		ctx := context.WithValue(r.Context(), FilterV2CtxtKey, filters.All(checks...))
+		ctx := context.WithValue(r.Context(), FilterCtxtKey, filters.All(checks...))
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -320,7 +315,7 @@ func ActorsChecks(next http.Handler) http.Handler {
 		m := ContextListingModel(r.Context())
 		m.Title = "Account listing"
 		checks := filters.HasType(ValidActorTypes...)
-		ctx := context.WithValue(r.Context(), FilterV2CtxtKey, checks)
+		ctx := context.WithValue(r.Context(), FilterCtxtKey, checks)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
