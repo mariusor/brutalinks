@@ -3,7 +3,6 @@ package brutalinks
 import (
 	"fmt"
 	"net/http"
-	"sort"
 	"strings"
 	"time"
 
@@ -198,7 +197,7 @@ type Deletable interface {
 	UnDelete()
 }
 
-func (a Account) VotedOn(i Item) *Vote {
+func (a *Account) VotedOn(i Item) *Vote {
 	allVotes := make(VoteCollection, 0)
 	for _, v := range a.Votes() {
 		if v.Item == nil {
@@ -208,9 +207,6 @@ func (a Account) VotedOn(i Item) *Vote {
 			allVotes = append(allVotes, v)
 		}
 	}
-	sort.Slice(allVotes, func(i, j int) bool {
-		return allVotes[i].SubmittedAt.Sub(allVotes[j].SubmittedAt) > 0
-	})
 	if len(allVotes) == 0 {
 		return nil
 	}

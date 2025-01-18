@@ -651,10 +651,14 @@ func (r *repository) loadAccountsOutbox(ctx context.Context, acc *Account) error
 	}
 
 	ac := acc.AP()
+	validTypes := append(vocab.ActivityVocabularyTypes{vocab.LikeType}, vocab.CreateType, vocab.DeleteType)
+	check := filters.All(
+		filters.HasType(validTypes...),
+		filters.SameAttributedTo(ac.GetLink()),
+		filters.WithMaxCount(200),
+	)
 
-	validTypes := append(append(ValidAppreciationTypes, ValidModerationActivityTypes...), vocab.CreateType)
-	check := filters.HasType(validTypes...)
-	result, err := r.b.SearchInCollection(vocab.Outbox.Of(ac).GetLink(), check)
+	result, err := r.b.Search(check)
 	if err != nil {
 		return err
 	}
@@ -663,45 +667,43 @@ func (r *repository) loadAccountsOutbox(ctx context.Context, acc *Account) error
 		if !ok {
 			continue
 		}
-		if iri := it.GetLink(); !acc.Metadata.Outbox.Contains(iri) {
-			acc.Metadata.Outbox = append(acc.Metadata.Outbox, vocab.FlattenProperties(it))
-		}
-		_ = vocab.OnActivity(it, func(a *vocab.Activity) error {
-			typ := it.GetType()
-			if typ == vocab.CreateType {
-				ob := a.Object
-				if ob == nil {
-					return nil
-				}
-				if ob.IsObject() {
-					if ValidActorTypes.Contains(ob.GetType()) {
-						act := Account{}
-						_ = act.FromActivityPub(a)
-						acc.children = append(act.children, &act)
-					}
-				}
-			}
-			if ValidModerationActivityTypes.Contains(typ) {
-				m := ModerationOp{}
-				_ = m.FromActivityPub(a)
-				if m.Object != nil {
-					if m.Object.Type() != ActorType {
-						return nil
-					}
-					dude, dok := m.Object.(*Account)
-					if !dok {
-						return nil
-					}
-					if typ == vocab.BlockType {
-						acc.Blocked = append(acc.Blocked, *dude)
-					}
-					if typ == vocab.IgnoreType {
-						acc.Ignored = append(acc.Ignored, *dude)
-					}
-				}
-			}
-			return nil
-		})
+		acc.Metadata.Outbox = append(acc.Metadata.Outbox, it)
+		//_ = vocab.OnActivity(it, func(a *vocab.Activity) error {
+		//	typ := it.GetType()
+		//	if typ == vocab.CreateType {
+		//		ob := a.Object
+		//		if ob == nil {
+		//			return nil
+		//		}
+		//		if ob.IsObject() {
+		//			if ValidActorTypes.Contains(ob.GetType()) {
+		//				act := Account{}
+		//				_ = act.FromActivityPub(a)
+		//				acc.children = append(act.children, &act)
+		//			}
+		//		}
+		//	}
+		//	if ValidModerationActivityTypes.Contains(typ) {
+		//		m := ModerationOp{}
+		//		_ = m.FromActivityPub(a)
+		//		if m.Object != nil {
+		//			if m.Object.Type() != ActorType {
+		//				return nil
+		//			}
+		//			dude, dok := m.Object.(*Account)
+		//			if !dok {
+		//				return nil
+		//			}
+		//			if typ == vocab.BlockType {
+		//				acc.Blocked = append(acc.Blocked, *dude)
+		//			}
+		//			if typ == vocab.IgnoreType {
+		//				acc.Ignored = append(acc.Ignored, *dude)
+		//			}
+		//		}
+		//	}
+		//	return nil
+		//})
 	}
 	return nil
 }
@@ -1022,14 +1024,30 @@ func renderablesEqual(r1, r2 Renderable) bool {
 	if r1 == nil || r2 == nil {
 		return false
 	}
-	return r1.ID() == r2.ID()
+	it1 := r1.AP()
+	it2 := r2.AP()
+	if vocab.IsNil(it1) || vocab.IsNil(it2) {
+		return r1.ID() == r2.ID()
+	}
+	return it1.GetLink().Equals(it2.GetLink(), true)
 }
+
 func itemsEqual(i1, i2 Item) bool {
-	return i1.Hash == i2.Hash
+	it1 := i1.AP()
+	it2 := i2.AP()
+	if vocab.IsNil(it1) || vocab.IsNil(it2) {
+		return i1.Hash == i2.Hash
+	}
+	return it1.GetLink().Equals(it2.GetLink(), true)
 }
 
 func accountsEqual(a1, a2 Account) bool {
-	return a1.Hash == a2.Hash || (len(a1.Handle)+len(a2.Handle) > 0 && a1.Handle == a2.Handle)
+	it1 := a1.AP()
+	it2 := a2.AP()
+	if vocab.IsNil(it1) || vocab.IsNil(it2) {
+		return a1.Hash == a2.Hash
+	}
+	return it1.GetLink().Equals(it2.GetLink(), true)
 }
 
 func baseIRI(iri vocab.IRI) vocab.IRI {
