@@ -11,6 +11,9 @@ article.item, article.account, article.moderation-request, article.follow-reques
     grid-template-columns: 1.4rem 18fr;
     grid-template-rows: minmax(1.4rem, min-content) minmax(0, min-content) minmax(0, min-content);
 }
+.top-level {
+    margin-top: .4rem;
+}
 .top-level > li {
     margin-bottom: 1em;
 }

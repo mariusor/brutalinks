@@ -2,9 +2,6 @@
 *, *::before, *::after {
     box-sizing: border-box;
 }
-* {
-    margin: 0;
-}
 body {
     line-height: 1.5;
 }
@@ -24,7 +21,7 @@ p {
 h1, h2, h3, h4, h5, h6 {
     text-wrap: balance;
 }
-div, span, applet, object, iframe, h1, h2, h3, h4, h5, h6, p, blockquote, pre, abbr,
+body, html, div, span, applet, object, iframe, h1, h2, h3, h4, h5, h6, p, blockquote, pre, abbr,
 acronym, address, big, cite, code, del, dfn, em, img, ins, kbd, q, s, samp, small,
 strike, strong, tt, var, b, u, i, center, a, details, dl, dt, dd, ol, ul, li, table,
 caption, tbody, tfoot, thead, tr, th, td, article, aside, canvas, details, embed,
