@@ -3,11 +3,13 @@ package brutalinks
 import (
 	"sort"
 	"time"
+
+	vocab "github.com/go-ap/activitypub"
 )
 
 type Cursor struct {
-	after  Hash
-	before Hash
+	after  vocab.IRI
+	before vocab.IRI
 	items  RenderableList
 	total  uint
 }

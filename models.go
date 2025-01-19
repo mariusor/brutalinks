@@ -7,10 +7,14 @@ import (
 	vocab "github.com/go-ap/activitypub"
 )
 
-type Paginator interface {
+type CursorSetter interface {
 	SetCursor(*Cursor)
-	NextPage() Hash
-	PrevPage() Hash
+}
+
+type Paginator interface {
+	CursorSetter
+	NextPage() vocab.IRI
+	PrevPage() vocab.IRI
 }
 
 type Model interface {
@@ -25,8 +29,8 @@ type listingModel struct {
 	ShowChildren bool
 	children     RenderableList
 	ShowText     bool
-	after        Hash
-	before       Hash
+	after        vocab.IRI
+	before       vocab.IRI
 	sortFn       func(list RenderableList) []Renderable
 }
 
@@ -56,11 +60,11 @@ func (m listingModel) ID() Hash {
 	return Hash{}
 }
 
-func (m listingModel) NextPage() Hash {
+func (m listingModel) NextPage() vocab.IRI {
 	return m.after
 }
 
-func (m listingModel) PrevPage() Hash {
+func (m listingModel) PrevPage() vocab.IRI {
 	return m.before
 }
 
@@ -108,19 +112,19 @@ type contentModel struct {
 	Content      Renderable
 	ShowChildren bool
 	Message      mBox
-	after        Hash
-	before       Hash
+	after        vocab.IRI
+	before       vocab.IRI
 }
 
 func (m contentModel) ID() Hash {
 	return Hash{}
 }
 
-func (m contentModel) NextPage() Hash {
+func (m contentModel) NextPage() vocab.IRI {
 	return m.after
 }
 
-func (m contentModel) PrevPage() Hash {
+func (m contentModel) PrevPage() vocab.IRI {
 	return m.before
 }
 
@@ -211,15 +215,15 @@ type moderationModel struct {
 	Content      *ModerationOp
 	ShowChildren bool
 	Message      mBox
-	after        Hash
-	before       Hash
+	after        vocab.IRI
+	before       vocab.IRI
 }
 
-func (m moderationModel) NextPage() Hash {
+func (m moderationModel) NextPage() vocab.IRI {
 	return m.after
 }
 
-func (m moderationModel) PrevPage() Hash {
+func (m moderationModel) PrevPage() vocab.IRI {
 	return m.before
 }
 

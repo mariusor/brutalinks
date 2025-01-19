@@ -650,15 +650,21 @@ func (r *repository) loadAccountsOutbox(ctx context.Context, acc *Account) error
 		return nil
 	}
 
+	now := time.Now().UTC()
+	lastUpdated := acc.Metadata.OutboxUpdated
+	if now.Sub(lastUpdated)-5*time.Minute < 0 {
+		return nil
+	}
+
 	ac := acc.AP()
 	validTypes := append(vocab.ActivityVocabularyTypes{vocab.LikeType}, vocab.CreateType, vocab.DeleteType)
-	check := filters.All(
+	check := []filters.Check{
 		filters.HasType(validTypes...),
 		filters.SameAttributedTo(ac.GetLink()),
 		filters.WithMaxCount(200),
-	)
+	}
 
-	result, err := r.b.Search(check)
+	result, err := r.b.Search(check...)
 	if err != nil {
 		return err
 	}
@@ -705,6 +711,7 @@ func (r *repository) loadAccountsOutbox(ctx context.Context, acc *Account) error
 		//	return nil
 		//})
 	}
+	acc.Metadata.OutboxUpdated = now
 	return nil
 }
 
@@ -784,7 +791,7 @@ func irisFromItems(items ...Item) vocab.IRIs {
 		if it.Deleted() {
 			continue
 		}
-		iris = append(iris, it.Pub.GetLink())
+		_ = iris.Append(it.AP())
 	}
 	return iris
 }
@@ -831,12 +838,15 @@ func (r *repository) loadItemsVotes(ctx context.Context, items ...Item) (ItemCol
 }
 
 func AccountIRIChecks(accounts ...Account) filters.Check {
-	filter := make(filters.Checks, 0, len(accounts))
+	iris := make(vocab.IRIs, 0, len(accounts))
 	for _, ac := range accounts {
-		if ac.Pub == nil {
-			continue
+		if it := ac.AP(); !vocab.IsNil(it) {
+			_ = iris.Append(it.GetLink())
 		}
-		filter = append(filter, filters.SameIRI(ac.AP().GetLink()))
+	}
+	filter := make(filters.Checks, 0, len(accounts))
+	for _, i := range iris {
+		filter = append(filter, filters.SameIRI(i))
 	}
 	return filters.Any(filter...)
 }
@@ -1175,62 +1185,12 @@ func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemC
 	return col, nil
 }
 
-func getCollectionPrevNext(col vocab.CollectionInterface) (prev, next vocab.IRI) {
-	qFn := func(i vocab.Item) url.Values {
-		if i == nil {
-			return url.Values{}
-		}
-		if u, err := i.GetLink().URL(); err == nil {
-			return u.Query()
-		}
-		return url.Values{}
+func getCollectionPrevNext(col vocab.ItemCollection) (prev, next vocab.IRI) {
+	if len(col) > 0 {
+		prev = col.First().GetLink()
 	}
-	beforeFn := func(i vocab.Item) vocab.IRI {
-		return vocab.IRI(qFn(i).Get("before"))
-	}
-	afterFn := func(i vocab.Item) vocab.IRI {
-		return vocab.IRI(qFn(i).Get("after"))
-	}
-	nextFromLastFn := func(i vocab.Item) vocab.IRI {
-		return i.GetLink()
-	}
-	switch col.GetType() {
-	case vocab.OrderedCollectionPageType:
-		if c, ok := col.(*vocab.OrderedCollectionPage); ok {
-			prev = beforeFn(c.Prev)
-			if int(c.TotalItems) > len(c.OrderedItems) {
-				next = afterFn(c.Next)
-			}
-		}
-	case vocab.OrderedCollectionType:
-		if c, ok := col.(*vocab.OrderedCollection); ok {
-			if len(c.OrderedItems) > 0 && int(c.TotalItems) > len(c.OrderedItems) {
-				next = nextFromLastFn(c.OrderedItems[len(c.OrderedItems)-1])
-			}
-		}
-	case vocab.CollectionPageType:
-		if c, ok := col.(*vocab.CollectionPage); ok {
-			prev = beforeFn(c.Prev)
-			if int(c.TotalItems) > len(c.Items) {
-				next = afterFn(c.Next)
-			}
-		}
-	case vocab.CollectionType:
-		if c, ok := col.(*vocab.Collection); ok {
-			if len(c.Items) > 0 && int(c.TotalItems) > len(c.Items) {
-				next = nextFromLastFn(c.Items[len(c.Items)-1])
-			}
-		}
-	}
-	// NOTE(marius): we check if current Collection id contains a cursor, and if `after` points to the same URL
-	//   we don't take it into consideration.
-	if next != "" {
-		f := struct {
-			Next vocab.IRI `qstring:"after"`
-		}{}
-		if err := qstring.Unmarshal(qFn(col.GetLink()), &f); err == nil && next.Equals(f.Next, true) {
-			next = ""
-		}
+	if len(col) > 1 {
+		next = col[len(col)-1].GetLink()
 	}
 	return prev, next
 }
@@ -1404,8 +1364,6 @@ func (r *repository) LoadSearches(ctx context.Context, deps deps, checks ...filt
 	result := make(RenderableList, 0)
 	resM := new(sync.RWMutex)
 
-	var next, prev vocab.IRI
-
 	results, err := r.b.Search(checks...)
 	if err != nil {
 		return emptyCursor, err
@@ -1507,6 +1465,7 @@ func (r *repository) LoadSearches(ctx context.Context, deps deps, checks ...filt
 		return emptyCursor, err
 	}
 
+	next, prev := getCollectionPrevNext(results)
 	if len(deferredRemote) > 0 {
 		searchIRIs := make(filters.Checks, 0, len(deferredRemote))
 		for _, iri := range deferredRemote {
@@ -1601,8 +1560,8 @@ func (r *repository) LoadSearches(ctx context.Context, deps deps, checks ...filt
 	})
 
 	return Cursor{
-		after:  HashFromIRI(next),
-		before: HashFromIRI(prev),
+		after:  next,
+		before: prev,
 		items:  result,
 		total:  uint(len(result)),
 	}, nil
@@ -2238,11 +2197,6 @@ func (r *repository) ValidateRemoteAccount(ctx context.Context, acc *Account) er
 }
 
 func (r *repository) LoadAccountDetails(ctx context.Context, acc *Account) error {
-	now := time.Now().UTC()
-	lastUpdated := acc.Metadata.OutboxUpdated
-	if now.Sub(lastUpdated)-5*time.Minute < 0 {
-		return nil
-	}
 	var err error
 	ltx := log.Ctx{"handle": acc.Handle, "hash": acc.Hash}
 	r.infoFn(ltx)("loading account details")
@@ -2250,18 +2204,17 @@ func (r *repository) LoadAccountDetails(ctx context.Context, acc *Account) error
 	if err = r.loadAccountsOutbox(ctx, acc); err != nil {
 		r.infoFn(ltx, log.Ctx{"err": err.Error()})("unable to load outbox")
 	}
-	if len(acc.Followers) == 0 {
-		// TODO(marius): this needs to be moved to where we're handling all Inbox activities, not on page load
-		if err = r.loadAccountsFollowers(ctx, acc); err != nil {
-			r.infoFn(ltx, log.Ctx{"err": err.Error()})("unable to load followers")
-		}
-	}
-	if len(acc.Following) == 0 {
-		if err = r.loadAccountsFollowing(ctx, acc); err != nil {
-			r.infoFn(ltx, log.Ctx{"err": err.Error()})("unable to load following")
-		}
-	}
-	acc.Metadata.OutboxUpdated = now
+	//if len(acc.Followers) == 0 {
+	//	// TODO(marius): this needs to be moved to where we're handling all Inbox activities, not on page load
+	//	if err = r.loadAccountsFollowers(ctx, acc); err != nil {
+	//		r.infoFn(ltx, log.Ctx{"err": err.Error()})("unable to load followers")
+	//	}
+	//}
+	//if len(acc.Following) == 0 {
+	//	if err = r.loadAccountsFollowing(ctx, acc); err != nil {
+	//		r.infoFn(ltx, log.Ctx{"err": err.Error()})("unable to load following")
+	//	}
+	//}
 	return err
 }
 

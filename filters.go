@@ -4,10 +4,13 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
+	"strconv"
 
 	vocab "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
 	"github.com/go-ap/filters"
+	"github.com/go-ap/filters/index"
 	"github.com/go-chi/chi/v5"
 	"github.com/mariusor/qstring"
 	"gitlab.com/golang-commonmark/puny"
@@ -90,8 +93,58 @@ func FollowedChecks(next http.Handler) http.Handler {
 	})
 }
 
+const (
+	refBase   = 36
+	keyAfter  = "after"
+	keyBefore = "before"
+)
+
+type cursorRef uint64
+
+func (c cursorRef) Match(it vocab.Item) bool {
+	ref := index.HashFn(it.GetLink())
+	return uint64(c) == ref
+}
+
+func (c cursorRef) String() string {
+	return strconv.FormatUint(uint64(c), refBase)
+}
+
+var _ filters.Check = cursorRef(0)
+
+func RefValue(r uint64) cursorRef {
+	return cursorRef(r)
+}
+
+func IRIRef(i vocab.IRI) cursorRef {
+	return cursorRef(index.HashFn(i))
+}
+
+func FromURL(u url.URL) filters.Checks {
+	q := u.Query()
+	appendChecks := func(checks *filters.Checks, check func(...filters.Check) filters.Check, vv []string) {
+		for _, v := range vv {
+			if r, err := strconv.ParseUint(v, refBase, 64); err == nil {
+				*checks = append(*checks, check(RefValue(r)))
+			}
+		}
+	}
+	checks := make(filters.Checks, 0, len(q))
+	for k, vv := range q {
+		if k == keyAfter {
+			appendChecks(&checks, filters.After, vv)
+			q.Del(k)
+		}
+		if k == keyBefore {
+			appendChecks(&checks, filters.Before, vv)
+			q.Del(k)
+		}
+	}
+	return append(filters.FromValues(q), checks...)
+}
+
 func requestChecks(r *http.Request) filters.Checks {
-	return append(filters.FromURL(*r.URL), filters.WithMaxCount(MaxContentItems))
+	return append(FromURL(*r.URL), filters.WithMaxCount(MaxContentItems))
 }
 
 func defaultChecks(r *http.Request) filters.Checks {

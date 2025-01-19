@@ -23,6 +23,7 @@ import (
 	log "git.sr.ht/~mariusor/lw"
 	vocab "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
+	"github.com/go-ap/filters"
 	"github.com/gorilla/csrf"
 	"github.com/mariusor/qstring"
 	"github.com/mariusor/render"
@@ -298,7 +299,7 @@ func (v *view) RenderTemplate(r *http.Request, w http.ResponseWriter, name strin
 		v.errFn(log.Ctx{"err": err, "model": m})("failed to render template %s", name)
 		return errors.Annotatef(err, "failed to render template")
 	}
-	io.Copy(w, &wrt)
+	_, _ = io.Copy(w, &wrt)
 	return nil
 }
 
@@ -881,16 +882,18 @@ func rejectLink(f FollowRequest) string {
 	return path.Join(followLink(f), "reject")
 }
 
-func nextPageLink(p Hash) template.HTML {
-	if p.String() != "" {
-		return template.HTML(fmt.Sprintf("?after=%s", p))
+func nextPageLink(p vocab.IRI) template.HTML {
+	if p != "" {
+		u := filters.ToValues(filters.After(IRIRef(p)))
+		return template.HTML("?" + u.Encode())
 	}
 	return ""
 }
 
-func prevPageLink(p Hash) template.HTML {
-	if p.String() != "" {
-		return template.HTML(fmt.Sprintf("?before=%s", p))
+func prevPageLink(p vocab.IRI) template.HTML {
+	if p != "" {
+		u := filters.ToValues(filters.Before(IRIRef(p)))
+		return template.HTML("?" + u.Encode())
 	}
 	return ""
 }

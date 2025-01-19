@@ -1,11 +1,11 @@
 {{ if and (CanPaginate .) -}}
-{{ if  (or .PrevPage.IsValid .NextPage.IsValid) }}
+{{ if  (or (ne .PrevPage "") (ne .NextPage "")) }}
 <nav class="pagination">View more:
     <ul>
-        {{ if .PrevPage.IsValid -}}
+        {{ if ne .PrevPage "" -}}
             <li><a href="{{ .PrevPage | PrevPageLink }}" rel="prev prefetch">{{icon "angle-double-right" "v-mirror"}}prev</a></li>
         {{- end -}}
-        {{ if .NextPage.IsValid -}}
+        {{ if ne .NextPage "" -}}
             <li><a href="{{.NextPage | NextPageLink }}" rel="next prefetch">next{{icon "angle-double-right"}}</a></li>
         {{- end}}
     </ul>

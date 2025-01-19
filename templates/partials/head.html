@@ -2,10 +2,10 @@
 <title>{{ .Title }}</title>
 <style>{{- style "/css/inline.css" -}}</style>
 {{- if and (not Config.Env.IsDev) (CanPaginate .) -}}
-{{- if .PrevPage.IsValid }}
+{{- if ne .PrevPage "" }}
 <link href="{{ .PrevPage | PrevPageLink }}" rel="prev prefetch" />
 {{end -}}
-{{- if .NextPage.IsValid }}
+{{- if ne .NextPage "" }}
 <link href="{{ .NextPage | NextPageLink }}" rel="next prefetch" />
 {{end -}}
 {{end -}}

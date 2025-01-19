@@ -1180,7 +1180,7 @@ func (h *handler) HandleShow(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if cursor := ContextCursor(r.Context()); cursor != nil {
-		if mod, ok := m.(Paginator); ok {
+		if mod, ok := m.(CursorSetter); ok {
 			mod.SetCursor(cursor)
 		}
 	}
