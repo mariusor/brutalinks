@@ -1,2 +1,5 @@
 User-agent: *
 Disallow: /
+
+User-agent: search.marginalia.nu
+Allow: /
