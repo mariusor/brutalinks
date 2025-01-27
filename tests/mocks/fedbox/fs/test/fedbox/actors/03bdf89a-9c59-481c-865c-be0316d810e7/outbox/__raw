@@ -1,1 +1,1 @@
-{"id":"https://fedbox/actors/03bdf89a-9c59-481c-865c-be0316d810e7/outbox","type":"OrderedCollection","generator":"https://fedbox/","published":"2023-03-21T16:31:02Z","totalItems":11}
+{"id":"https://fedbox/actors/03bdf89a-9c59-481c-865c-be0316d810e7/outbox","type":"OrderedCollection","generator":"https://fedbox/","to":["https://www.w3.org/ns/activitystreams#Public"],"published":"2023-03-21T16:31:02Z","totalItems":11}
