@@ -653,7 +653,7 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		var a *vocab.Actor
 		if a, err = repo.loadWebfingerActorFromIRI(ctx, host, wf); err == nil {
 			acct := Account{}
-			acct.FromActivityPub(a)
+			_ = acct.FromActivityPub(a)
 			accts = append(accts, acct)
 		}
 	}
@@ -687,7 +687,7 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	config := h.conf.GetOauth2Config(fedboxProvider, h.conf.BaseURL)
 	var state string
 	for _, acct = range accts {
-		vocab.OnActor(acct.AP(), func(a *vocab.Actor) error {
+		_ = vocab.OnActor(acct.AP(), func(a *vocab.Actor) error {
 			if a.Endpoints == nil {
 				return nil
 			}
@@ -710,7 +710,7 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 // HandleLogout serves /logout requests
 func (h *handler) HandleLogout(w http.ResponseWriter, r *http.Request) {
-	h.v.saveAccountToSession(w, r, &AnonymousAccount)
+	_ = h.v.saveAccountToSession(w, r, &AnonymousAccount)
 	backUrl := "/"
 	if refUrl := r.Header.Get("Referer"); HostIsLocal(refUrl) && !strings.Contains(refUrl, "followed") {
 		backUrl = refUrl

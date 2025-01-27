@@ -126,6 +126,8 @@ func ActivityPubService(c appConfig) (*repository, error) {
 			tr = trr
 		}
 		repo.fedbox.client = *Client(tr, *Instance.Conf, l)
+	} else {
+		return repo, fmt.Errorf("invalid authorized Actor: %s", cred.IRI)
 	}
 
 	go func() {
