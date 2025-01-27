@@ -22,7 +22,6 @@ import (
 	"github.com/go-ap/filters"
 	j "github.com/go-ap/jsonld"
 	"github.com/mariusor/qstring"
-	"golang.org/x/oauth2"
 )
 
 type repository struct {
@@ -48,7 +47,7 @@ func (r *repository) Close() error {
 func LoadCredentials(b *box.Client, c appConfig) (*credentials.C2S, error) {
 	cred, err := box.LoadCredentials(b, c.OAuth2App)
 	if os.IsNotExist(err) {
-		auth := oauth2.Config{
+		auth := credentials.ClientConfig{
 			ClientID:     c.OAuth2App,
 			ClientSecret: c.OAuth2Secret,
 			RedirectURL:  fmt.Sprintf("%s/auth/%s/callback", c.BaseURL, "fedbox"),
@@ -121,7 +120,12 @@ func ActivityPubService(c appConfig) (*repository, error) {
 		}
 
 		repo.cred = cred
-		repo.fedbox.client = *cred.Client(context.Background(), cache.FS(filepath.Join(c.SessionsPath, "cache")))
+		tr := cred.Transport(context.Background())
+		if trr, ok := repo.fedbox.transport.(cache.Transport); ok {
+			trr.Base = tr
+			tr = trr
+		}
+		repo.fedbox.client = *Client(tr, *Instance.Conf, l)
 	}
 
 	go func() {

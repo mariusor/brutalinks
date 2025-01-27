@@ -39,6 +39,8 @@ var (
 	oneYearishAgo = time.Now().Add(-12 * 30 * 24 * time.Hour).UTC()
 )
 
+const ProjectURL = "https://git.sr.ht/~mariusor/brutalinks"
+
 // Application is the global state of our application
 type Application struct {
 	Version string
@@ -109,7 +111,6 @@ func (a *Application) init(c *config.Configuration, l log.Logger, host string, p
 func (a *Application) Front() error {
 	conf := appConfig{
 		Configuration: *a.Conf,
-		Version:       a.Version,
 		BaseURL:       a.BaseURL.String(),
 		Logger:        a.Logger.New(log.Ctx{"log": "frontend"}),
 	}

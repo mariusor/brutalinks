@@ -135,6 +135,7 @@ func main() {
 		}
 	}
 
+	c.Version = version
 	a, err := brutalinks.New(c, l, host, port, version)
 	if err != nil {
 		l.Errorf("Failed to start application: %+s", err)

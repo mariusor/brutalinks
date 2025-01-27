@@ -4,17 +4,16 @@ go 1.23
 
 require (
 	git.sr.ht/~mariusor/assets v0.0.0-20241011130619-ac139c364a49
-	git.sr.ht/~mariusor/box v0.0.0-20250112164919-606a6068d9c1
-	git.sr.ht/~mariusor/cache v0.0.0-20241212172633-e1563652acb4
-	git.sr.ht/~mariusor/lw v0.0.0-20241117105956-4b4009e28502
+	git.sr.ht/~mariusor/box v0.0.0-20250127100105-3e1f3d09f178
+	git.sr.ht/~mariusor/cache v0.0.0-20250122165545-14c90d7a9de8
+	git.sr.ht/~mariusor/lw v0.0.0-20250114195945-ba9c7bcca3c1
 	git.sr.ht/~mariusor/mask v0.0.0-20250114195353-98705a6977b7
 	git.sr.ht/~mariusor/wrapper v0.0.0-20240519120935-f877e4d97def
-	github.com/carlmjohnson/flowmatic v0.23.4
-	github.com/go-ap/activitypub v0.0.0-20250112165501-7b898763a1e9
-	github.com/go-ap/cache v0.0.0-20250112165639-6a4b00eb5067
-	github.com/go-ap/client v0.0.0-20250112171502-daf7a388c2cc
-	github.com/go-ap/errors v0.0.0-20241212155021-5a598b6bf467
-	github.com/go-ap/filters v0.0.0-20250112171040-56ab034847c4
+	github.com/go-ap/activitypub v0.0.0-20250124194921-d52b4c694e14
+	github.com/go-ap/cache v0.0.0-20250124200926-2c9bbefd884b
+	github.com/go-ap/client v0.0.0-20250126153921-26e3111da3d7
+	github.com/go-ap/errors v0.0.0-20250124135319-3da8adefd4a9
+	github.com/go-ap/filters v0.0.0-20250126122444-86878f94a9e6
 	github.com/go-ap/jsonld v0.0.0-20221030091449-f2a191312c73
 	github.com/go-chi/chi/v5 v5.2.0
 	github.com/google/uuid v1.6.0
@@ -44,7 +43,6 @@ require (
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/bits-and-blooms/bitset v1.20.0 // indirect
 	github.com/captncraig/cors v0.0.0-20190703115713-e80254a89df1 // indirect
-	github.com/carlmjohnson/deque v0.23.1 // indirect
 	github.com/charmbracelet/bubbles/v2 v2.0.0-alpha.2 // indirect
 	github.com/charmbracelet/bubbletea/v2 v2.0.0-alpha.2 // indirect
 	github.com/charmbracelet/colorprofile v0.1.9 // indirect
@@ -53,10 +51,11 @@ require (
 	github.com/charmbracelet/x/ansi v0.7.0 // indirect
 	github.com/charmbracelet/x/cellbuf v0.0.6 // indirect
 	github.com/charmbracelet/x/term v0.2.1 // indirect
-	github.com/charmbracelet/x/vt v0.0.0-20250113133550-1814328524c0 // indirect
-	github.com/charmbracelet/x/wcwidth v0.0.0-20250113133550-1814328524c0 // indirect
+	github.com/charmbracelet/x/vt v0.0.0-20250124215903-081d4cf20230 // indirect
+	github.com/charmbracelet/x/wcwidth v0.0.0-20250124215903-081d4cf20230 // indirect
 	github.com/charmbracelet/x/windows v0.2.0 // indirect
 	github.com/elnormous/contenttype v1.0.4 // indirect
+	github.com/go-fed/httpsig v1.1.0 // indirect
 	github.com/gorilla/css v1.0.1 // indirect
 	github.com/gorilla/securecookie v1.1.2 // indirect
 	github.com/jdkato/prose v1.2.1 // indirect
@@ -83,6 +82,7 @@ require (
 	gitlab.com/golang-commonmark/linkify v0.0.0-20200225224916-64bca66f6ad3 // indirect
 	gitlab.com/golang-commonmark/mdurl v0.0.0-20191124015652-932350d1cb84 // indirect
 	go.etcd.io/bbolt v1.3.11 // indirect
+	golang.org/x/crypto v0.32.0 // indirect
 	golang.org/x/net v0.34.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect
 	golang.org/x/sys v0.29.0 // indirect

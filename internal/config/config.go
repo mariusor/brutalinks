@@ -46,6 +46,7 @@ type Configuration struct {
 	OAuth2App                  string
 	OAuth2Secret               string
 	OAuth2URL                  string
+	Version                    string
 }
 
 const (

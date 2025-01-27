@@ -49,7 +49,6 @@ func (h handler) errFn(ctx ...log.Ctx) LogFn {
 
 type appConfig struct {
 	config.Configuration
-	Version string
 	BaseURL string
 	Logger  log.Logger
 }

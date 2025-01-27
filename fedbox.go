@@ -8,6 +8,7 @@ import (
 	"path"
 	"path/filepath"
 
+	"git.sr.ht/~mariusor/brutalinks/internal/config"
 	"git.sr.ht/~mariusor/cache"
 	log "git.sr.ht/~mariusor/lw"
 	vocab "github.com/go-ap/activitypub"
@@ -101,14 +102,6 @@ func (f fedbox) withAccount(a *Account) client.RequestSignFn {
 		}
 		return c2sSign(a, req)
 	}
-}
-
-func (f *fedbox) SignBy(signer *Account) {
-	if signer == nil {
-		return
-	}
-
-	f.client.SignFn(f.withAccount(signer))
 }
 
 func SkipTLSCheck(skip bool) OptionFn {
@@ -340,6 +333,24 @@ func validateIRIForRequest(i vocab.IRI) error {
 	return nil
 }
 
+func Client(tr http.RoundTripper, conf config.Configuration, l log.Logger) *client.C {
+	if tr == nil {
+		tr = &http.Transport{}
+	}
+
+	client.UserAgent = fmt.Sprintf("%s/%s (+%s)", conf.Name, Instance.Version, ProjectURL)
+	baseClient := &http.Client{
+		Transport: cache.Private(tr, cache.FS(filepath.Join(conf.SessionsPath, conf.HostName))),
+	}
+
+	return client.New(
+		client.WithLogger(l.WithContext(log.Ctx{"log": "client"})),
+		client.WithHTTPClient(baseClient),
+		client.SkipTLSValidation(!conf.Env.IsProd()),
+		client.SetDefaultHTTPClient(),
+	)
+}
+
 func (r *repository) ToOutbox(ctx context.Context, cred credentials.C2S, a vocab.Item) (vocab.IRI, vocab.Item, error) {
 	sendTo := vocab.IRI("")
 	_ = vocab.OnActivity(a, func(a *vocab.Activity) error {
@@ -351,8 +362,14 @@ func (r *repository) ToOutbox(ctx context.Context, cred credentials.C2S, a vocab
 	}
 
 	sendTo = r.fedbox.normaliseIRI(sendTo)
-	cl := cred.Client(ctx, cache.FS(filepath.Join(Instance.Conf.StoragePath, "cache")))
 
+	tr := cred.Transport(ctx)
+	if trr, ok := r.fedbox.transport.(cache.Transport); ok {
+		trr.Base = tr
+		tr = trr
+	}
+
+	cl := Client(tr, *Instance.Conf, r.fedbox.l)
 	i, it, err := cl.CtxToCollection(ctx, sendTo, a)
 	if err != nil {
 		return i, a, err
