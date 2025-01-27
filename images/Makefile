@@ -25,13 +25,13 @@ help: ## Help target that shows this message.
 $(ENV_FILE):
 	touch $(ENV_FILE)
 
-brutalinks.pem:
-	./gen-certs.sh brutalinks
+$(APP_HOSTNAME).pem:
+	./gen-certs.sh $(APP_HOSTNAME)
 
-cert: brutalinks.pem ## Builds the certificate to include in the image.
+cert: $(APP_HOSTNAME).pem ## Builds the certificate to include in the image.
 
 clean: ## Clean the workspace.
-	@-$(RM) brutalinks.{key,crt,pem}
+	@-$(RM) $(APP_HOSTNAME).{key,crt,pem}
 
 builder: ## Build the builder image for compiling the Brutalinks application.
 	./build.sh .. brutalinks/builder
