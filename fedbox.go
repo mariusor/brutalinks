@@ -6,9 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
-	"path/filepath"
 
-	"git.sr.ht/~mariusor/brutalinks/internal/config"
 	"git.sr.ht/~mariusor/cache"
 	log "git.sr.ht/~mariusor/lw"
 	vocab "github.com/go-ap/activitypub"
@@ -23,22 +21,42 @@ const (
 	objects    = vocab.CollectionPath("objects")
 )
 
-type fedbox struct {
-	baseURL       vocab.IRI
-	skipTLSVerify bool
-	transport     http.RoundTripper
-	pub           *vocab.Actor
-	client        client.C
+type Conf struct {
+	UserAgent     string
+	SkipTLSVerify bool
+	CachePath     string
+	BaseURL       vocab.IRI
 	l             log.Logger
-	infoFn        CtxLogFn
-	errFn         CtxLogFn
+}
+
+func (f fedbox) Transport() http.RoundTripper {
+	var tr http.RoundTripper = &http.Transport{}
+	if f.cred != nil {
+		tr = f.cred.Transport(context.Background())
+	}
+	return cache.Private(tr, cache.FS(f.conf.CachePath))
+}
+
+type fedbox struct {
+	conf   Conf
+	cred   *credentials.C2S
+	pub    *vocab.Actor
+	infoFn CtxLogFn
+	errFn  CtxLogFn
 }
 
 type OptionFn func(*fedbox) error
 
+func WithOAuth2(cred *credentials.C2S) OptionFn {
+	return func(f *fedbox) error {
+		f.cred = cred
+		return nil
+	}
+}
+
 func WithLogger(l log.Logger) OptionFn {
 	return func(f *fedbox) error {
-		f.l = l
+		f.conf.l = l
 		if l != nil {
 			f.infoFn = func(ctx ...log.Ctx) LogFn {
 				return l.WithContext(ctx...).Debugf
@@ -57,7 +75,7 @@ func WithURL(s string) OptionFn {
 		if err != nil {
 			return err
 		}
-		f.baseURL = vocab.IRI(s)
+		f.conf.BaseURL = vocab.IRI(s)
 		return nil
 	}
 }
@@ -92,7 +110,7 @@ func (f fedbox) withAccount(a *Account) client.RequestSignFn {
 			// if a.Metadata.PrivateKey != nil {
 			//      s2sSign(a.Metadata.PrivateKey, req)
 			// }
-			f.l.WithContext(log.Ctx{
+			f.conf.l.WithContext(log.Ctx{
 				"method": req.Method,
 				"url":    req.URL.String(),
 				"handle": a.Handle,
@@ -106,26 +124,20 @@ func (f fedbox) withAccount(a *Account) client.RequestSignFn {
 
 func SkipTLSCheck(skip bool) OptionFn {
 	return func(f *fedbox) error {
-		f.skipTLSVerify = skip
+		f.conf.SkipTLSVerify = skip
 		return nil
 	}
 }
 
 func WithUA(s string) OptionFn {
 	return func(f *fedbox) error {
-		client.UserAgent = s
-		return nil
-	}
-}
-
-func WithHTTPTransport(t http.RoundTripper) OptionFn {
-	return func(f *fedbox) error {
-		f.transport = t
+		f.conf.UserAgent = s
 		return nil
 	}
 }
 
 func NewClient(o ...OptionFn) (*fedbox, error) {
+	ctx := context.Background()
 	f := fedbox{
 		infoFn: defaultCtxLogFn,
 		errFn:  defaultCtxLogFn,
@@ -137,18 +149,17 @@ func NewClient(o ...OptionFn) (*fedbox, error) {
 	}
 
 	options := make([]client.OptionFn, 0)
-	if f.transport != nil {
-		cl := http.DefaultClient
-		cl.Transport = f.transport
-		options = append(options, client.WithHTTPClient(cl))
-	}
 	options = append(options,
-		client.WithLogger(f.l.WithContext(log.Ctx{"log": "client"})),
-		client.SkipTLSValidation(f.skipTLSVerify),
-		client.SetDefaultHTTPClient(),
+		client.WithLogger(f.conf.l.WithContext(log.Ctx{"log": "client"})),
+		client.SkipTLSValidation(f.conf.SkipTLSVerify),
 	)
-	f.client = *client.New(options...)
-	service, err := f.client.LoadIRI(f.baseURL)
+
+	var tr http.RoundTripper = &http.Transport{}
+	if f.conf.CachePath != "" {
+		tr = cache.Private(tr, cache.FS(f.conf.CachePath))
+	}
+	cl := f.Client(nil)
+	service, err := cl.Actor(ctx, f.conf.BaseURL)
 	if err != nil {
 		return &f, err
 	}
@@ -163,8 +174,8 @@ func (f *fedbox) normaliseIRI(i vocab.IRI) vocab.IRI {
 	if ie != nil {
 		return i
 	}
-	if i.Contains(f.baseURL, false) {
-		bu, be := f.baseURL.URL()
+	if i.Contains(f.conf.BaseURL, false) {
+		bu, be := f.conf.BaseURL.URL()
 		if be != nil {
 			return i
 		}
@@ -180,7 +191,7 @@ func (f *fedbox) normaliseIRI(i vocab.IRI) vocab.IRI {
 }
 
 func (f fedbox) collection(ctx context.Context, i vocab.IRI) (vocab.CollectionInterface, error) {
-	it, err := f.client.CtxLoadIRI(ctx, i)
+	it, err := f.Client(nil).CtxLoadIRI(ctx, i)
 	if err != nil {
 		return nil, errors.Annotatef(err, "Unable to load IRI: %s", i)
 	}
@@ -199,7 +210,7 @@ func (f fedbox) collection(ctx context.Context, i vocab.IRI) (vocab.CollectionIn
 }
 
 func (f fedbox) object(ctx context.Context, i vocab.IRI) (vocab.Item, error) {
-	return f.client.CtxLoadIRI(ctx, f.normaliseIRI(i))
+	return f.Client(nil).CtxLoadIRI(ctx, f.normaliseIRI(i))
 }
 
 func rawFilterQuery(f ...client.FilterFn) string {
@@ -333,22 +344,19 @@ func validateIRIForRequest(i vocab.IRI) error {
 	return nil
 }
 
-func Client(tr http.RoundTripper, conf config.Configuration, l log.Logger) *client.C {
+func (f fedbox) Client(tr http.RoundTripper) *client.C {
 	if tr == nil {
-		tr = &http.Transport{}
+		tr = f.Transport()
 	}
 
-	baseClient := &http.Client{
-		Transport: cache.Private(tr, cache.FS(filepath.Join(conf.SessionsPath, conf.HostName))),
-	}
+	conf := f.conf
+	baseClient := &http.Client{Transport: tr}
 
-	ua := fmt.Sprintf("%s/%s (+%s)", conf.HostName, Instance.Version, ProjectURL)
 	return client.New(
-		client.WithUserAgent(ua),
-		client.WithLogger(l.WithContext(log.Ctx{"log": "client"})),
+		client.WithUserAgent(conf.UserAgent),
+		client.WithLogger(conf.l.WithContext(log.Ctx{"log": "client"})),
 		client.WithHTTPClient(baseClient),
-		client.SkipTLSValidation(!conf.Env.IsProd()),
-		client.SetDefaultHTTPClient(),
+		client.SkipTLSValidation(conf.SkipTLSVerify),
 	)
 }
 
@@ -364,13 +372,8 @@ func (r *repository) ToOutbox(ctx context.Context, cred credentials.C2S, a vocab
 
 	sendTo = r.fedbox.normaliseIRI(sendTo)
 
-	tr := cred.Transport(ctx)
-	if trr, ok := r.fedbox.transport.(cache.Transport); ok {
-		trr.Base = tr
-		tr = trr
-	}
-
-	cl := Client(tr, *Instance.Conf, r.fedbox.l)
+	// NOTE(marius): we avoid the cache transport for outgoing POST requests.
+	cl := r.fedbox.Client(cred.Transport(ctx))
 	i, it, err := cl.CtxToCollection(ctx, sendTo, a)
 	if err != nil {
 		return i, a, err
@@ -388,7 +391,8 @@ func (r *repository) ToOutbox(ctx context.Context, cred credentials.C2S, a vocab
 
 func (f *fedbox) Service() *vocab.Service {
 	if f.pub == nil {
-		return &vocab.Actor{ID: f.baseURL, Type: vocab.ServiceType}
+		// TODO(marius): this should probably fail if there's no service actor for our FedBOX server
+		panic(errors.NotFoundf("the service should be already loaded"))
 	}
 	return f.pub
 }

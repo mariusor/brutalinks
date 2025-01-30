@@ -556,8 +556,7 @@ function authenticate(u) {
     });
 
     return check(response, Object.assign(
-        RedirectChecks('/'),
-        {
+        RedirectChecks('/'), {
         'has session cookie': (r) => {
             const cookiesForURL = http.cookieJar().cookiesForURL(r.url);
             let status = cookiesForURL._s.length > 0;

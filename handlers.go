@@ -312,7 +312,7 @@ const (
 
 func (r *repository) loadWebfingerActorFromIRI(ctx context.Context, host, acct string) (*vocab.Actor, error) {
 	loadFromURL := func(url string, what any) error {
-		resp, err := r.fedbox.client.Get(url)
+		resp, err := r.fedbox.Client(nil).Get(url)
 		if err != nil {
 			return err
 		}
@@ -361,7 +361,7 @@ func (r *repository) loadInstanceActorFromIRI(ctx context.Context, iri vocab.IRI
 	}
 	nodeInfoURL := fmt.Sprintf("%s/.well-known/nodeinfo", iri)
 	loadFromURL := func(url string, what any) error {
-		resp, err := r.fedbox.client.Get(url)
+		resp, err := r.fedbox.Client(nil).Get(url)
 		if err != nil {
 			return err
 		}

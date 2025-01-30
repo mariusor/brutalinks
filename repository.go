@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -13,7 +12,6 @@ import (
 	"time"
 
 	"git.sr.ht/~mariusor/box"
-	"git.sr.ht/~mariusor/cache"
 	log "git.sr.ht/~mariusor/lw"
 	vocab "github.com/go-ap/activitypub"
 	"github.com/go-ap/client"
@@ -37,7 +35,7 @@ type repository struct {
 }
 
 func (r *repository) BaseURL() vocab.IRI {
-	return r.fedbox.baseURL
+	return r.fedbox.conf.BaseURL
 }
 
 func (r *repository) Close() error {
@@ -95,24 +93,22 @@ func ActivityPubService(c appConfig) (*repository, error) {
 		return repo, fmt.Errorf("invalid OAuth2 application name %s", c.OAuth2App)
 	}
 
-	repo.fedbox, err = NewClient(
-		WithURL(c.APIURL),
-		WithHTTPTransport(
-			cache.Shared(http.DefaultTransport, cache.FS(filepath.Join(c.SessionsPath, "cache"))),
-		),
-		WithUA(ua),
-		WithLogger(c.Logger),
-		SkipTLSCheck(!c.Env.IsProd()),
-	)
-
-	if err != nil {
-		return repo, err
-	}
-
 	cred, err := LoadCredentials(repo.b, c)
 	if err != nil {
 		return repo, fmt.Errorf("unable to load credentials or authorize Actor: %w", err)
 	}
+
+	repo.fedbox, err = NewClient(
+		WithURL(c.APIURL),
+		WithUA(ua),
+		WithLogger(c.Logger),
+		WithOAuth2(cred),
+		SkipTLSCheck(!c.Env.IsProd()),
+	)
+	if err != nil {
+		return repo, err
+	}
+
 	if actor := box.Author(repo.b, cred); actor != nil {
 		repo.app = new(Account)
 		if err := repo.app.FromActivityPub(actor); err != nil {
@@ -120,12 +116,6 @@ func ActivityPubService(c appConfig) (*repository, error) {
 		}
 
 		repo.cred = cred
-		tr := cred.Transport(context.Background())
-		if trr, ok := repo.fedbox.transport.(cache.Transport); ok {
-			trr.Base = tr
-			tr = trr
-		}
-		repo.fedbox.client = *Client(tr, *Instance.Conf, l)
 	} else {
 		return repo, fmt.Errorf("invalid authorized Actor: %s", cred.IRI)
 	}
@@ -1760,7 +1750,7 @@ func loadMentionsIfExisting(r *repository, ctx context.Context, incoming TagColl
 			continue
 		}
 		if strings.Contains(r.SelfURL, h) {
-			h = r.fedbox.baseURL.String()
+			h = r.fedbox.conf.BaseURL.String()
 		}
 
 		checks = append(checks, filters.IRILike(h), filters.NameIs(m.Name))
@@ -2518,7 +2508,7 @@ func (r *repository) loadItemFromCacheOrIRI(ctx context.Context, iri vocab.IRI) 
 			return it, nil
 		}
 	}
-	return r.fedbox.client.CtxLoadIRI(ctx, iri)
+	return r.fedbox.Client(nil).CtxLoadIRI(ctx, iri)
 }
 
 func (r *repository) loadCollectionFromCacheOrIRI(ctx context.Context, iri vocab.IRI) (vocab.CollectionInterface, bool, error) {
