@@ -1159,15 +1159,16 @@ func ItemPermaLink(i *Item) string {
 }
 
 func isReadOnly(r Renderable) bool {
+	//now := time.Now()
 	switch i := r.(type) {
 	case *Item:
-		return (!i.SubmittedAt.IsZero() && i.SubmittedAt.Sub(oneYearishAgo) < 0) || i.Deleted()
+		return i.Deleted() //|| i.SubmittedAt.Add(DurationYearish).Before(now)
 	case *FollowRequest:
-		return (!i.SubmittedAt.IsZero() && i.SubmittedAt.Sub(oneYearishAgo) < 0) || i.Deleted()
+		return i.Deleted() //|| i.SubmittedAt.Add(DurationYearish).Before(now)
 	case *ModerationGroup:
-		return (!i.SubmittedAt.IsZero() && i.SubmittedAt.Sub(oneYearishAgo) < 0) || i.Deleted()
+		return i.Deleted() //|| i.SubmittedAt.Add(DurationYearish).Before(now)
 	case *ModerationOp:
-		return (!i.SubmittedAt.IsZero() && i.SubmittedAt.Sub(oneYearishAgo) < 0) || i.Deleted()
+		return i.Deleted() //|| i.SubmittedAt.Add(DurationYearish).Before(now)
 	}
 	return false
 }
