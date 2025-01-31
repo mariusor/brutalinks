@@ -35,7 +35,7 @@ func Run(a *brutalinks.Application) error {
 		dir, _ := filepath.Split(a.Conf.ListenHost)
 		if _, err := os.Stat(dir); err == nil {
 			setters = append(setters, w.OnSocket(a.Conf.ListenHost))
-			defer func() { os.RemoveAll(a.Conf.ListenHost) }()
+			defer func() { _ = os.RemoveAll(a.Conf.ListenHost) }()
 		}
 	} else {
 		setters = append(setters, w.OnTCP(a.Conf.Listen()))
@@ -55,12 +55,16 @@ func Run(a *brutalinks.Application) error {
 	})
 
 	stopFn := func(ctx context.Context) {
-		if err := srvStop(ctx); err != nil {
-			l.Errorf("Error: %s", err)
-		}
 		// NOTE(marius): close the storage repository
-		a.Close()
-		l.Infof("Stopped")
+		if err := a.Close(); err != nil {
+			l.Warnf("Close error: %s", err)
+			return
+		}
+		if err := srvStop(ctx); err != nil {
+			l.Errorf("Stopped with error: %s", err)
+		} else {
+			l.Infof("Stopped")
+		}
 	}
 
 	l.Infof("Started")

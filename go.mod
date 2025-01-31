@@ -11,9 +11,9 @@ require (
 	git.sr.ht/~mariusor/wrapper v0.0.0-20240519120935-f877e4d97def
 	github.com/go-ap/activitypub v0.0.0-20250124194921-d52b4c694e14
 	github.com/go-ap/cache v0.0.0-20250124200926-2c9bbefd884b
-	github.com/go-ap/client v0.0.0-20250127152558-684a99938132
+	github.com/go-ap/client v0.0.0-20250131093345-c5680a9e664b
 	github.com/go-ap/errors v0.0.0-20250124135319-3da8adefd4a9
-	github.com/go-ap/filters v0.0.0-20250126122444-86878f94a9e6
+	github.com/go-ap/filters v0.0.0-20250128143727-4cb9a9d7db48
 	github.com/go-ap/jsonld v0.0.0-20221030091449-f2a191312c73
 	github.com/go-chi/chi/v5 v5.2.0
 	github.com/google/uuid v1.6.0
@@ -45,14 +45,14 @@ require (
 	github.com/captncraig/cors v0.0.0-20190703115713-e80254a89df1 // indirect
 	github.com/charmbracelet/bubbles/v2 v2.0.0-alpha.2 // indirect
 	github.com/charmbracelet/bubbletea/v2 v2.0.0-alpha.2 // indirect
-	github.com/charmbracelet/colorprofile v0.1.9 // indirect
+	github.com/charmbracelet/colorprofile v0.2.0 // indirect
 	github.com/charmbracelet/lipgloss v1.0.0 // indirect
 	github.com/charmbracelet/lipgloss/v2 v2.0.0-alpha.2 // indirect
-	github.com/charmbracelet/x/ansi v0.7.0 // indirect
-	github.com/charmbracelet/x/cellbuf v0.0.6 // indirect
+	github.com/charmbracelet/x/ansi v0.8.0 // indirect
+	github.com/charmbracelet/x/cellbuf v0.0.8 // indirect
 	github.com/charmbracelet/x/term v0.2.1 // indirect
-	github.com/charmbracelet/x/vt v0.0.0-20250127142642-47b367694781 // indirect
-	github.com/charmbracelet/x/wcwidth v0.0.0-20250127142642-47b367694781 // indirect
+	github.com/charmbracelet/x/vt v0.0.0-20250128152640-d9da2a4aec3d // indirect
+	github.com/charmbracelet/x/wcwidth v0.0.0-20250128152640-d9da2a4aec3d // indirect
 	github.com/charmbracelet/x/windows v0.2.0 // indirect
 	github.com/elnormous/contenttype v1.0.4 // indirect
 	github.com/go-fed/httpsig v1.1.0 // indirect

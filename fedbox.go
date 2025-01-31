@@ -80,48 +80,6 @@ func WithURL(s string) OptionFn {
 	}
 }
 
-func c2sSign(a *Account, req *http.Request) error {
-	if a.Metadata.OAuth.Token == nil {
-		return errors.Newf("local account is missing authentication token")
-	}
-	a.Metadata.OAuth.Token.SetAuthHeader(req)
-	return nil
-}
-
-func sameHostForAccountAndURL(a *Account, u *url.URL) bool {
-	if (a == nil || a.Metadata == nil || a.Metadata.ID == "") && u != nil {
-		return false
-	}
-	au, _ := url.ParseRequestURI(a.Metadata.ID)
-	return au.Hostname() == u.Hostname()
-}
-
-func (f fedbox) withAccount(a *Account) client.RequestSignFn {
-	if !a.IsValid() || !a.IsLogged() || !a.IsLocal() {
-		return func(req *http.Request) error { return nil }
-	}
-	return func(req *http.Request) error {
-		if !sameHostForAccountAndURL(a, req.URL) {
-			// NOTE(marius): we don't have access to the actor's private key,
-			// so we can't sign requests going to other instances
-			// If at any point we decide to keep the private key here, we can use it
-			// to sign S2S requests:
-			//
-			// if a.Metadata.PrivateKey != nil {
-			//      s2sSign(a.Metadata.PrivateKey, req)
-			// }
-			f.conf.l.WithContext(log.Ctx{
-				"method": req.Method,
-				"url":    req.URL.String(),
-				"handle": a.Handle,
-				"IRI":    a.Metadata.ID,
-			}).Debugf("skip signing cross server request")
-			return nil
-		}
-		return c2sSign(a, req)
-	}
-}
-
 func SkipTLSCheck(skip bool) OptionFn {
 	return func(f *fedbox) error {
 		f.conf.SkipTLSVerify = skip
@@ -344,7 +302,7 @@ func validateIRIForRequest(i vocab.IRI) error {
 	return nil
 }
 
-func (f fedbox) Client(tr http.RoundTripper) *client.C {
+func (f *fedbox) Client(tr http.RoundTripper) *client.C {
 	if tr == nil {
 		tr = f.Transport()
 	}
