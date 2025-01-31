@@ -51,9 +51,7 @@ details[open] > summary {
 .h-mirror.v-mirror {
     transform: rotateY(180deg) rotateX(180deg);
 }
-svg.icon-trash-o, svg.icon-activitypub, svg.icon-star, svg.icon-edit, svg.icon-adjust,
-svg.icon-plus, svg.icon-minus, svg.icon-code, svg.icon-angle-double-right, svg.icon-clock-o,
-svg.icon-user, svg.icon-lock, svg.icon-check {
+svg.icon-adjust, svg.icon-plus, svg.icon-minus, svg.icon-code, svg.icon-angle-double-right,svg.icon-lock, svg.icon-check {
     vertical-align: text-top;
 }
 .icon.icon-home, .icon.icon-star, .icon.icon-activitypub, .icon.icon-adjust,

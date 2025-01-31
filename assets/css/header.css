@@ -20,8 +20,23 @@ body > header menu.tabs li {
 body > header menu.tabs > li::before {
     content: unset;
 }
-svg.icon.icon-home {
-    vertical-align: top;
+body > header svg.icon {
+    vertical-align: text-bottom;
+    width: 1.3rem;
+    height: 1.3rem;
+}
+body > header svg.icon.icon-activitypub {
+    width: 1.6rem;
+}
+body > header svg.icon.icon-star {
+    width: 1.38rem;
+    height: 1.38rem;
+}
+body > header svg.icon.icon-trash-o {
+    position: relative;
+    top: -.2rem;
+    width: 2rem;
+    height: 2rem;
 }
 body > header small {
     opacity: .7;
@@ -37,12 +52,6 @@ small data.score::before {
 }
 small data.score::after {
     content: ")";
-}
-svg.icon.icon-activitypub {
-    width: 1.4rem;
-}
-svg.icon.icon-home {
-    vertical-align: top;
 }
 body > header small {
     opacity: .7;

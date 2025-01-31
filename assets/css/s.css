@@ -21,6 +21,9 @@
     body > footer menu li:first-of-type {
         display: inline-block;
     }
+    body > header h1 a small, body > header menu a span {
+        display: none;
+    }
     main article > header h2 {
         font-size: 1.16em;
     }
