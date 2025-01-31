@@ -88,6 +88,9 @@ func ByDate(r RenderableList) []Renderable {
 }
 
 func ByScore(r RenderableList) []Renderable {
+	if !Instance.Conf.VotingEnabled {
+		return ByDate(r)
+	}
 	rl := make([]Renderable, 0, len(r))
 	for _, rr := range r {
 		rl = append(rl, rr)
@@ -100,16 +103,14 @@ func ByScore(r RenderableList) []Renderable {
 
 		rj := rl[j]
 		ij, okj := rj.(*Item)
-		if Instance.Conf.VotingEnabled {
-			if oki {
-				hi = Hacker(int64(ii.Votes.Score()), time.Now().Sub(ii.SubmittedAt))
-			}
-			if okj {
-				hj = Hacker(int64(ij.Votes.Score()), time.Now().Sub(ij.SubmittedAt))
-			}
-			if oki && okj {
-				return hi > hj
-			}
+		if oki {
+			hi = Hacker(int64(ii.Votes.Score()), time.Now().Sub(ii.SubmittedAt))
+		}
+		if okj {
+			hj = Hacker(int64(ij.Votes.Score()), time.Now().Sub(ij.SubmittedAt))
+		}
+		if oki && okj && hi+hj > 0 {
+			return hi >= hj
 		}
 		return ri.Date().After(rj.Date())
 	})

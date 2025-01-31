@@ -29,14 +29,15 @@ func Wilson(ups, downs int64) float64 {
 	return w
 }
 
-// hackernews' hot sort
+// Hacker hackernews' hot sort
 // https://medium.com/hacking-and-gonzo/how-hacker-news-ranking-algorithm-works-1d9b0cf2c08d
 func Hacker(votes int64, date time.Duration) float64 {
-	hoursAge := date.Hours()
-	return float64(votes-1) / math.Pow(hoursAge+2, HNGravity)
+	secondsAge := date.Seconds()
+	ageDelta := 2 * time.Hour.Seconds()
+	return float64(votes) / math.Pow(secondsAge+ageDelta, HNGravity)
 }
 
-// reddit's hot sort
+// Reddit reddit's hot sort
 // http://amix.dk/blog/post/19588
 func Reddit(ups, downs int64, date time.Duration) float64 {
 	decay := 45000.0
