@@ -61,7 +61,7 @@ func ViewInit(c appConfig, l log.Logger) (*view, error) {
 		Layout:                    "layout",
 		Extensions:                []string{".html"},
 		FileSystem:                templateFs,
-		IsDevelopment:             Instance.Conf.Env.IsDev(),
+		IsDevelopment:             v.c.Env.IsDev(),
 		DisableHTTPErrorRendering: true,
 		Funcs: []template.FuncMap{{
 			"sluggify":          sluggify,
@@ -109,7 +109,7 @@ func ViewInit(c appConfig, l log.Logger) (*view, error) {
 			"PrevPageLink":      prevPageLink,
 			"CanPaginate":       canPaginate,
 			"Config":            func() config.Configuration { return *v.c },
-			"Version":           func() string { return Instance.Version },
+			"Version":           func() string { return v.c.Version },
 			"Name":              appName,
 			"icon":              icon,
 			"icons":             icons,
@@ -803,62 +803,100 @@ func pluralize(d float64, unit string) string {
 	return unit
 }
 
+const (
+	DurationDay      = 24 * time.Hour
+	DurationWeek     = 7 * DurationDay
+	DurationMonthish = 31 * DurationDay
+	DurationYearish  = 365 * DurationDay
+	DurationDecade   = 10 * DurationYearish
+	DurationCentury  = 100 * DurationYearish
+)
+
+var durationUnits = map[time.Duration]string{
+	time.Second:      "second",
+	time.Minute:      "minute",
+	time.Hour:        "hour",
+	DurationDay:      "day",
+	DurationWeek:     "week",
+	DurationMonthish: "month",
+	DurationYearish:  "year",
+	DurationDecade:   "decade",
+	DurationCentury:  "century",
+}
+
+func timeValWithUnit(td time.Duration) (float64, time.Duration) {
+	unitDur := getDurationInterval(td)
+	val := float64(td.Truncate(unitDur)) / float64(unitDur)
+	return val, unitDur
+}
+
 func relTimeFmt(old time.Time) string {
 	td := time.Now().UTC().Sub(old)
-	val := 0.0
-	unit := ""
+
 	when := "ago"
+	if td < 0 {
+		// we're in the future
+		when = "in the future"
+		td *= -1
+	}
+	if td == math.MaxInt64 {
+		return fmt.Sprintf("eons %s", when)
+	}
+	if td.Truncate(time.Minute) == 0 {
+		return "in the last minute"
+	}
+	val, unitDur := timeValWithUnit(td)
+
+	unit, ok := durationUnits[unitDur]
+	if !ok {
+		return "sometime unknown"
+	}
+
+	switch unitDur {
+	case DurationDay:
+		fallthrough
+	case time.Hour:
+		fallthrough
+	case time.Minute:
+		return fmt.Sprintf("%.0f %s %s", val, pluralize(val, unit), when)
+	}
+	decDur := td - td.Truncate(unitDur)
+	decVal, decUnitDur := timeValWithUnit(decDur)
+	decUnit, ok := durationUnits[decUnitDur]
+	if ok && decVal > 0 {
+		return fmt.Sprintf("%.0f %s, %.0f %s %s", val, pluralize(val, unit), decVal, pluralize(decVal, decUnit), when)
+	}
+	return fmt.Sprintf("%.1f %s %s", val, pluralize(val, unit), when)
+}
+
+func getDurationInterval(td time.Duration) time.Duration {
+	unit := time.Second
 
 	hours := math.Abs(td.Hours())
 	minutes := math.Abs(td.Minutes())
-	seconds := math.Abs(td.Seconds())
 
-	if td.Seconds() < 0 {
-		// we're in the future
-		when = "in the future"
-	}
-	if seconds < 30 {
-		return "now"
-	}
 	if hours < 1 {
 		if minutes < 1 {
-			val = math.Mod(seconds, 60)
-			unit = "second"
+			unit = time.Second
 		} else {
-			val = math.Mod(minutes, 60)
-			unit = "minute"
+			unit = time.Minute
 		}
 	} else if hours < 24 {
-		val = hours
-		unit = "hour"
+		unit = time.Hour
 	} else if hours < 168 {
-		val = hours / 24
-		unit = "day"
+		unit = DurationDay
 	} else if hours < 672 {
-		val = hours / 168
-		unit = "week"
+		unit = DurationWeek
 	} else if hours < 8760 {
-		val = hours / 730
-		unit = "month"
+		unit = DurationMonthish
 	} else if hours < 87600 {
-		val = hours / 8760
-		unit = "year"
+		unit = DurationYearish
 	} else if hours < 876000 {
-		val = hours / 87600
-		unit = "decade"
+		unit = DurationDecade
 	} else {
-		val = hours / 876000
-		unit = "century"
+		unit = DurationCentury
 	}
-	switch unit {
-	case "day":
-		fallthrough
-	case "hour":
-		fallthrough
-	case "minute":
-		return fmt.Sprintf("%.0f %s %s", val, pluralize(val, unit), when)
-	}
-	return fmt.Sprintf("%.1f %s %s", val, pluralize(val, unit), when)
+	return unit
 }
 
 func scoreLink(i Item, dir string) string {
