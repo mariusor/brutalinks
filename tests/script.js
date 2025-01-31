@@ -348,8 +348,8 @@ function checkItemType(r, type) {
 function checkArticleTime(r) {
     let status = false;
     parseHTML(r.body).find('ol.top-level > li > article footer time').each(function (i, n) {
-         status = n.getAttribute('datetime') === '2022-02-25T16:47:16.000+00:00'
-     })
+        status = n.getAttribute('datetime') === '2022-02-25T16:47:16.000+00:00'
+    })
     return status;
 }
 
