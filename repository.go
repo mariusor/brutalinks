@@ -292,11 +292,11 @@ func loadFromParent(ob *vocab.Object, it vocab.Item) error {
 	if repl, err := appendReplies(it); err == nil {
 		ob.InReplyTo = repl
 	}
-	vocab.OnObject(it, func(p *vocab.Object) error {
-		appendRecipients(&ob.To, p.To)
-		appendRecipients(&ob.Bto, p.Bto)
-		appendRecipients(&ob.CC, p.CC)
-		appendRecipients(&ob.BCC, p.BCC)
+	_ = vocab.OnObject(it, func(p *vocab.Object) error {
+		_ = appendRecipients(&ob.To, p.To)
+		_ = appendRecipients(&ob.Bto, p.Bto)
+		_ = appendRecipients(&ob.CC, p.CC)
+		_ = appendRecipients(&ob.BCC, p.BCC)
 		return nil
 	})
 
