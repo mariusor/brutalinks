@@ -9,13 +9,13 @@ require (
 	git.sr.ht/~mariusor/lw v0.0.0-20250114195945-ba9c7bcca3c1
 	git.sr.ht/~mariusor/mask v0.0.0-20250114195353-98705a6977b7
 	git.sr.ht/~mariusor/wrapper v0.0.0-20240519120935-f877e4d97def
-	github.com/go-ap/activitypub v0.0.0-20250124194921-d52b4c694e14
-	github.com/go-ap/cache v0.0.0-20250124200926-2c9bbefd884b
-	github.com/go-ap/client v0.0.0-20250131093345-c5680a9e664b
+	github.com/go-ap/activitypub v0.0.0-20250212090640-aeb6499ba581
+	github.com/go-ap/cache v0.0.0-20250212092834-8063df8eb5ff
+	github.com/go-ap/client v0.0.0-20250212093435-5abaf05c43c3
 	github.com/go-ap/errors v0.0.0-20250124135319-3da8adefd4a9
-	github.com/go-ap/filters v0.0.0-20250128143727-4cb9a9d7db48
+	github.com/go-ap/filters v0.0.0-20250215161313-df9d6de7ad5a
 	github.com/go-ap/jsonld v0.0.0-20221030091449-f2a191312c73
-	github.com/go-chi/chi/v5 v5.2.0
+	github.com/go-chi/chi/v5 v5.2.1
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/csrf v1.7.2
 	github.com/gorilla/sessions v1.4.0
@@ -28,8 +28,8 @@ require (
 	github.com/writeas/go-nodeinfo v1.0.0
 	gitlab.com/golang-commonmark/markdown v0.0.0-20211110145824-bf3e522c626a
 	gitlab.com/golang-commonmark/puny v0.0.0-20191124015043-9f83538fa04f
-	golang.org/x/oauth2 v0.25.0
-	golang.org/x/text v0.21.0
+	golang.org/x/oauth2 v0.26.0
+	golang.org/x/text v0.22.0
 )
 
 require (
@@ -49,7 +49,7 @@ require (
 	github.com/charmbracelet/lipgloss v1.0.0 // indirect
 	github.com/charmbracelet/lipgloss/v2 v2.0.0-alpha.2 // indirect
 	github.com/charmbracelet/x/ansi v0.8.0 // indirect
-	github.com/charmbracelet/x/cellbuf v0.0.8 // indirect
+	github.com/charmbracelet/x/cellbuf v0.0.11 // indirect
 	github.com/charmbracelet/x/term v0.2.1 // indirect
 	github.com/charmbracelet/x/vt v0.0.0-20250128152640-d9da2a4aec3d // indirect
 	github.com/charmbracelet/x/wcwidth v0.0.0-20250128152640-d9da2a4aec3d // indirect
@@ -81,10 +81,10 @@ require (
 	gitlab.com/golang-commonmark/html v0.0.0-20191124015941-a22733972181 // indirect
 	gitlab.com/golang-commonmark/linkify v0.0.0-20200225224916-64bca66f6ad3 // indirect
 	gitlab.com/golang-commonmark/mdurl v0.0.0-20191124015652-932350d1cb84 // indirect
-	go.etcd.io/bbolt v1.3.11 // indirect
-	golang.org/x/crypto v0.32.0 // indirect
-	golang.org/x/net v0.34.0 // indirect
-	golang.org/x/sync v0.10.0 // indirect
-	golang.org/x/sys v0.29.0 // indirect
+	go.etcd.io/bbolt v1.4.0 // indirect
+	golang.org/x/crypto v0.33.0 // indirect
+	golang.org/x/net v0.35.0 // indirect
+	golang.org/x/sync v0.11.0 // indirect
+	golang.org/x/sys v0.30.0 // indirect
 	gopkg.in/neurosnap/sentences.v1 v1.0.7 // indirect
 )
