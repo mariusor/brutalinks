@@ -12,6 +12,7 @@ LDFLAGS ?= -X main.version=$(VERSION)
 BUILDFLAGS ?= -a -ldflags '$(LDFLAGS)'
 TEST_FLAGS ?= -count=1
 
+UPX = upx
 GO ?= go
 APPSOURCES := $(wildcard ./*.go internal/*/*.go cmd/brutalinks/*.go)
 ASSETFILES := $(wildcard assets/*/* assets/*)
@@ -63,6 +64,9 @@ internal/assets/assets.gen.go: $(ASSETFILES)
 
 bin/brutalinks: go.mod go.sum $(APPSOURCES) assets
 	$(BUILD) -tags $(ENV) -o $@ ./cmd/brutalinks
+ifneq ($(ENV),dev)
+	$(UPX) -q --mono --no-progress --best $@ || true
+endif
 
 run: ./bin/brutalinks ## Runs the brutalinks binary.
 	@./bin/brutalinks
