@@ -87,7 +87,9 @@ func ActivityPubService(c appConfig) (*repository, error) {
 	if err != nil {
 		return repo, err
 	}
-	repo.b.Open()
+	if err = repo.b.Open(); err != nil {
+		return repo, err
+	}
 
 	if c.OAuth2App == "" {
 		return repo, fmt.Errorf("invalid OAuth2 application name %s", c.OAuth2App)
