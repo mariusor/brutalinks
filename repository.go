@@ -68,7 +68,6 @@ func ActivityPubService(c appConfig) (*repository, error) {
 	errFn := func(ctx ...log.Ctx) LogFn {
 		return l.WithContext(ctx...).Warnf
 	}
-	ua := fmt.Sprintf("%s:%s (https://github.com/mariusor/brutalinks)", c.HostName, c.Version)
 
 	repo := &repository{
 		SelfURL: c.BaseURL,
@@ -81,9 +80,10 @@ func ActivityPubService(c appConfig) (*repository, error) {
 	if c.StoragePath != "" {
 		storeFn = box.UseBasePath(c.StoragePath)
 	}
+	ua := fmt.Sprintf("%s (+ https://github.com/mariusor/brutalinks@%s)", c.HostName, c.Version)
 
 	var err error
-	repo.b, err = box.New(storeFn, box.UseLogger(c.Logger.WithContext(log.Ctx{"log": "box"})))
+	repo.b, err = box.New(storeFn, box.UseLogger(c.Logger.WithContext(log.Ctx{"log": "box"})), box.WithUserAgent(ua))
 	if err != nil {
 		return repo, err
 	}
@@ -102,7 +102,7 @@ func ActivityPubService(c appConfig) (*repository, error) {
 
 	repo.fedbox, err = NewClient(
 		WithURL(c.APIURL),
-		WithUA(ua),
+		WithUserAgent(ua),
 		WithLogger(c.Logger),
 		WithOAuth2(cred),
 		SkipTLSCheck(!c.Env.IsProd()),

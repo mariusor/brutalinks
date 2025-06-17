@@ -87,7 +87,7 @@ func SkipTLSCheck(skip bool) OptionFn {
 	}
 }
 
-func WithUA(s string) OptionFn {
+func WithUserAgent(s string) OptionFn {
 	return func(f *fedbox) error {
 		f.conf.UserAgent = s
 		return nil
@@ -308,10 +308,10 @@ func (f *fedbox) Client(tr http.RoundTripper) *client.C {
 	}
 
 	conf := f.conf
-	baseClient := &http.Client{Transport: tr}
+
+	baseClient := &http.Client{Transport: client.UserAgentTransport(conf.UserAgent, tr)}
 
 	return client.New(
-		client.WithUserAgent(conf.UserAgent),
 		client.WithLogger(conf.l.WithContext(log.Ctx{"log": "client"})),
 		client.WithHTTPClient(baseClient),
 		client.SkipTLSValidation(conf.SkipTLSVerify),
