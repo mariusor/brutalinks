@@ -35,6 +35,7 @@ podman run -d --replace \
 _fedbox_running=$(podman ps --filter name=tests_fedbox --format '{{ .Names }}')
 if [ -z "${_fedbox_running}" ]; then
     echo "Unable to run fedbox test pod: ${FEDBOX_IMAGE}"
+    podman logs tests_fedbox
     exit 1
 fi
 
@@ -52,6 +53,7 @@ podman run -d --replace \
 _auth_running=$(podman ps --filter name=tests_auth --format '{{ .Names }}')
 if [ -z "${_auth_running}" ]; then
     echo "Unable to run test fedbox OAuth2 pod: ${AUTH_IMAGE}"
+    podman logs tests_auth
     exit 1
 fi
 
@@ -72,6 +74,7 @@ podman run --replace -d \
 _caddy_running=$(podman ps --filter name=tests_caddy --format '{{ .Names }}')
 if [ -z "${_caddy_running}" ]; then
     echo "Unable to run test pod for Caddy"
+    podman logs tests_caddy
     exit 1
 fi
 
@@ -93,6 +96,7 @@ sleep 1
 _brutalinks_running=$(podman ps --filter name=tests_brutalinks --format '{{ .Names }}')
 if [ -z "${_brutalinks_running}" ]; then
     echo "Unable to run Brutalinks test pod: ${IMAGE}"
+    podman logs tests_brutalinks
     exit 1
 fi
 echo "Brutalinks pod running: ${IMAGE}"
