@@ -15,7 +15,7 @@ pwd := $(abspath $(dir mkfile_path))
 .PHONY: test
 
 pods:
-	TEST_PORT=$(TEST_PORT) ./run-pods.sh
+	TEST_PORT=$(TEST_PORT) ENV=$(ENV) ./run-pods.sh
 
 test:
 	k6 run --no-usage-report --insecure-skip-tls-verify \

@@ -4,8 +4,8 @@ set -e
 
 ENV=${ENV:-dev}
 TEST_PORT=${TEST_PORT:-4499}
-AUTH_IMAGE=${AUTH_IMAGE:-localhost/auth/app:dev}
-FEDBOX_IMAGE=${FEDBOX_IMAGE:-localhost/fedbox/app:dev}
+AUTH_IMAGE=${AUTH_IMAGE:-localhost/auth/app:dev-fs}
+FEDBOX_IMAGE=${FEDBOX_IMAGE:-localhost/fedbox/app:dev-fs}
 IMAGE=${IMAGE:-localhost/brutalinks/app:${ENV}}
 NETWORK=${NETWORK:-tests_network}
 
@@ -67,7 +67,7 @@ podman run --replace -d \
     --ip 10.6.6.6 \
     --expose 443 \
     --expose 80 \
-    docker.io/library/caddy:2.7
+    docker.io/library/caddy:2
 
 _caddy_running=$(podman ps --filter name=tests_caddy --format '{{ .Names }}')
 if [ -z "${_caddy_running}" ]; then

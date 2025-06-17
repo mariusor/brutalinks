@@ -73,7 +73,7 @@ tasks:
 
       cd brutalinks
       make IMAGE=quay.io/go-ap/brutalinks:qa \
-      AUTH_IMAGE=quay.io/go-ap/auth:qa \
+      AUTH_IMAGE=quay.io/go-ap/auth:qa-fs \
       FEDBOX_IMAGE=quay.io/go-ap/fedbox:qa-fs \
       integration
 
