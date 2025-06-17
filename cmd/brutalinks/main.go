@@ -58,7 +58,6 @@ func Run(a *brutalinks.Application) error {
 		// NOTE(marius): close the storage repository
 		if err := a.Close(); err != nil {
 			l.Warnf("Close error: %s", err)
-			return
 		}
 		if err := srvStop(ctx); err != nil {
 			l.Errorf("Stopped with error: %s", err)
@@ -66,10 +65,10 @@ func Run(a *brutalinks.Application) error {
 			l.Infof("Stopped")
 		}
 	}
+	defer stopFn(ctx)
 
 	l.Infof("Started")
 
-	defer stopFn(ctx)
 	// Set up the signal handlers functions so the OS can tell us if it requires us to stop
 	sigHandlerFns := w.SignalHandlers{
 		syscall.SIGHUP: func(_ chan<- error) {
@@ -79,23 +78,28 @@ func Run(a *brutalinks.Application) error {
 			}
 		},
 		syscall.SIGUSR1: func(_ chan<- error) {
-			l.Infof("SIGUSR1 received, switching to maintenance mode")
-			a.Conf.MaintenanceMode = !a.Conf.MaintenanceMode
+			inMaintenanceMode := a.Conf.MaintenanceMode
+			op := "to"
+			if inMaintenanceMode {
+				op = "out of"
+			}
+			l.Infof("SIGUSR1 received, switching %s maintenance mode", op)
+			a.Conf.MaintenanceMode = !inMaintenanceMode
 		},
-		syscall.SIGTERM: func(status chan<- error) {
+		syscall.SIGTERM: func(exit chan<- error) {
 			// kill -SIGTERM XXXX
 			l.Infof("SIGTERM received, stopping")
-			status <- nil
+			exit <- nil
 		},
-		syscall.SIGINT: func(status chan<- error) {
+		syscall.SIGINT: func(exit chan<- error) {
 			// kill -SIGINT XXXX or Ctrl+c
 			l.Infof("SIGINT received, stopping")
-			status <- nil
+			exit <- nil
 		},
-		syscall.SIGQUIT: func(status chan<- error) {
+		syscall.SIGQUIT: func(exit chan<- error) {
 			l.Warnf("SIGQUIT received, force stopping")
 			cancelFn()
-			status <- nil
+			exit <- nil
 		},
 	}
 
