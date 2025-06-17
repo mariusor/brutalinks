@@ -788,7 +788,7 @@ func ItemFromContext(ctx context.Context, repo *repository, hash string) (Item, 
 	if p := ContextItem(ctx); p != nil {
 		return *p, nil
 	}
-	return Item{}, errors.NotFoundf(hash)
+	return Item{}, errors.NotFoundf("Item not found %s", hash)
 }
 
 func ContextFollowRequest(ctx context.Context) *FollowRequest {
@@ -815,7 +815,7 @@ func FollowRequestFromContext(ctx context.Context, hash string) (FollowRequest, 
 			}
 		}
 	}
-	return FollowRequest{}, errors.NotFoundf(hash)
+	return FollowRequest{}, errors.NotFoundf("Item not found %s", hash)
 }
 
 // HandleItemRedirect serves /i/{hash} request
@@ -1065,10 +1065,9 @@ func genStateForAccount(acct Account) string {
 	buf.WriteString("\n")
 	if acct.HasPublicKey() {
 		buf.Write(acct.Metadata.Key.Public)
-		buf.WriteString("\n")
 	}
-	data := strconv.AppendInt(buf.Bytes(), time.Now().UTC().Truncate(10*time.Minute).Unix(), 10)
-	return fmt.Sprintf("%2x", crc32.ChecksumIEEE(data))
+	raw := strconv.AppendInt(buf.Bytes(), time.Now().UTC().Truncate(10*time.Minute).Unix(), 10)
+	return fmt.Sprintf("%2x", crc32.ChecksumIEEE(raw))
 }
 
 // HandleCallback serves /auth/{provider}/callback request
@@ -1088,7 +1087,7 @@ func (h *handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
 		errs := make([]error, len(errDescriptions)+1)
 		errs[0] = errors.Newf("%s OAuth2 error:", provider)
 		for i, errDesc := range errDescriptions {
-			errs[i+1] = errors.Errorf(errDesc)
+			errs[i+1] = errors.Errorf("%s", errDesc)
 		}
 		redirWithError(errs...)
 		return

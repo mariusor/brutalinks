@@ -36,7 +36,7 @@ func Write(s fs.FS, errFn func(http.ResponseWriter, *http.Request, ...error)) fu
 		buf, err := fs.ReadFile(s, asset)
 		if err != nil {
 			if errors.Is(err, os.ErrNotExist) {
-				err = errors.NewNotFound(err, asset)
+				err = errors.NewNotFound(err, "%s", asset)
 			}
 			errFn(w, r, err)
 			return

@@ -1679,7 +1679,7 @@ func (r *repository) handlerErrorResponse(body []byte) error {
 		return nil
 	}
 	err := errs.Errors[0]
-	return errors.WrapWithStatus(err.Code, nil, err.Message)
+	return errors.WrapWithStatus(err.Code, nil, "%s", err.Message)
 }
 
 func (r *repository) handleItemSaveSuccessResponse(ctx context.Context, it Item, body []byte) (Item, error) {

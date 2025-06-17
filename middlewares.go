@@ -73,7 +73,7 @@ func LoadMw(next http.Handler) http.Handler {
 
 		c, err := repo.LoadSearches(r.Context(), *d, checks)
 		if err != nil {
-			ctxtErr(next, w, r, errors.NotFoundf(strings.TrimLeft(r.URL.Path, "/")))
+			ctxtErr(next, w, r, errors.NotFoundf("%s", strings.TrimLeft(r.URL.Path, "/")))
 			return
 		}
 		c.items = reparentRenderables(c.items)
@@ -94,7 +94,7 @@ func LoadSingleItemMw(next http.Handler) http.Handler {
 		repo := ContextRepository(r.Context())
 		item := ContextItem(r.Context())
 		if !item.IsValid() {
-			ctxtErr(next, w, r, errors.NotFoundf(strings.TrimLeft(r.URL.Path, "/")))
+			ctxtErr(next, w, r, errors.NotFoundf("%s", strings.TrimLeft(r.URL.Path, "/")))
 			return
 		}
 
@@ -137,7 +137,7 @@ func SingleItemModelMw(next http.Handler) http.Handler {
 		}
 		item := ContextItem(r.Context())
 		if item == nil {
-			ctxtErr(next, w, r, errors.NotFoundf(strings.TrimLeft(r.URL.Path, "/")))
+			ctxtErr(next, w, r, errors.NotFoundf("%s", strings.TrimLeft(r.URL.Path, "/")))
 			return
 		}
 
@@ -164,7 +164,7 @@ func LoadSingleObjectMw(next http.Handler) http.Handler {
 				ctx["err"] = err.Error()
 			}
 			repo.errFn(ctx)("item not found")
-			ctxtErr(next, w, r, errors.NotFoundf(strings.TrimLeft(r.URL.Path, "/")))
+			ctxtErr(next, w, r, errors.NotFoundf("%s", strings.TrimLeft(r.URL.Path, "/")))
 			return
 		}
 
@@ -176,7 +176,7 @@ func LoadSingleObjectMw(next http.Handler) http.Handler {
 				ctx["err"] = err.Error()
 			}
 			repo.errFn(ctx)("item not found")
-			ctxtErr(next, w, r, errors.NotFoundf(strings.TrimLeft(r.URL.Path, "/")))
+			ctxtErr(next, w, r, errors.NotFoundf("%s", strings.TrimLeft(r.URL.Path, "/")))
 			return
 		}
 		rtx := context.WithValue(r.Context(), ContentCtxtKey, &content)
@@ -338,7 +338,7 @@ func ReportAccountModelMw(next http.Handler) http.Handler {
 		m.Title = htmlf("Report %s", auth.Handle)
 		m.Message.Label = htmlf("Report %s:", auth.Handle)
 		m.Title = "Report account"
-		m.Message.Back = htmlf(PermaLink(&auth))
+		m.Message.Back = htmlf("%s", PermaLink(&auth))
 		next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, ModelCtxtKey, m)))
 	})
 }
@@ -379,7 +379,7 @@ func BlockAccountModelMw(next http.Handler) http.Handler {
 		m.Content.Object = &auth
 		m.Title = htmlf("Block %s", auth.Handle)
 		m.Message.Label = htmlf("Block %s:", auth.Handle)
-		m.Message.Back = htmlf(PermaLink(&auth))
+		m.Message.Back = htmlf("%s", PermaLink(&auth))
 		next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, ModelCtxtKey, m)))
 	})
 }
@@ -416,7 +416,7 @@ func MessageUserContentModelMw(next http.Handler) http.Handler {
 		m.Title = htmlf("Send user %s private message", auth.Handle)
 		m.Message.Editable = true
 		m.Message.Label = htmlf("Message %s:", auth.Handle)
-		m.Message.Back = htmlf(PermaLink(&auth))
+		m.Message.Back = htmlf("%s", PermaLink(&auth))
 		m.Message.SubmitLabel = htmlf("%s Send", icon("lock"))
 		next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, ModelCtxtKey, m)))
 	})

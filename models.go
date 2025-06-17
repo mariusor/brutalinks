@@ -200,7 +200,7 @@ func (m *contentModel) SetCursor(c *Cursor) {
 				m.Message.SubmitLabel = htmlf("%s %s", icon("lock"), lbl)
 			}
 		}
-		m.Message.Back = htmlf(PermaLink(m.Content))
+		m.Message.Back = htmlf("%s", PermaLink(m.Content))
 	} else {
 		missing := DeletedItem
 		missing.Hash = m.Hash
@@ -248,7 +248,7 @@ func (m *moderationModel) SetCursor(c *Cursor) {
 		m.Content.Object = getItemFromList(&Item{Hash: m.Hash}, c.items)
 	}
 	if m.Content.Object != nil && len(m.Message.Back) == 0 {
-		m.Message.Back = htmlf(PermaLink(m.Content.Object))
+		m.Message.Back = htmlf("%s", PermaLink(m.Content.Object))
 	}
 }
 
