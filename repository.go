@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"io/fs"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -42,9 +43,13 @@ func (r *repository) Close() error {
 	return r.b.Close()
 }
 
+func IsNotExist(err error) bool {
+	return os.IsNotExist(err) || errors.Is(err, fs.ErrNotExist)
+}
+
 func LoadCredentials(b *box.Client, c appConfig) (*credentials.C2S, error) {
 	cred, err := box.LoadCredentials(b, c.OAuth2App)
-	if os.IsNotExist(err) {
+	if IsNotExist(err) {
 		auth := credentials.ClientConfig{
 			ClientID:     c.OAuth2App,
 			ClientSecret: c.OAuth2Secret,

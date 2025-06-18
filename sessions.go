@@ -119,7 +119,7 @@ func makeSessionsPath(path string) error {
 }
 
 func initFileSession(c appConfig, path string, infoFn, errFn CtxLogFn) (sessions.Store, error) {
-	if _, err := os.Stat(path); err != nil && os.IsNotExist(err) {
+	if _, err := os.Stat(path); err != nil && IsNotExist(err) {
 		if err := makeSessionsPath(path); err != nil {
 			return nil, err
 		}
@@ -170,7 +170,7 @@ func (s *sess) get(w http.ResponseWriter, r *http.Request) (*sessions.Session, e
 		return nil, errors.Newf("invalid session")
 	}
 	ss, err := s.s.Get(r, s.name)
-	if os.IsNotExist(err) {
+	if IsNotExist(err) {
 		err = nil
 	}
 	return ss, err
