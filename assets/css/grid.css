@@ -1,0 +1,36 @@
+@media (grid: 1) {
+    ul, ol {
+        list-style: unset;
+    }
+    svg {
+        display: none;
+    }
+    body > footer {
+        text-align: unset;
+    }
+    article > header small:last-child::before,
+    article > header small:last-child::after,
+    small data.score::before, small data.score::after {
+        content: unset;
+    }
+    noscript, article > header > h2, aside.score data,
+    article > header > small {
+        display: inline;
+    }
+    aside.score data small::before {
+        margin-right: 1ex;
+    }
+    article footer ul li * {
+        padding-left: 1ex;
+    }
+    noscript {
+        padding-left: 1ex;
+    }
+    li {
+        margin-bottom: unset;
+    }
+    body > footer nav {
+  margin-top: unset;
+  float: unset;
+}
+}

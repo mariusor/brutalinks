@@ -29,6 +29,7 @@ var assetFiles = ass.Map{
 	"/css/register.css":     append(basicStyles, "css/login.css"),
 	"/css/inline.css":       {"css/inline.css"},
 	"/css/simple.css":       {"css/simple.css"},
+	"/css/grid.css":         {"css/grid.css"},
 	"/js/main.js":           {"js/base.js", "js/main.js"},
 	"/robots.txt":           {"robots.txt"},
 	"/favicon.ico":          {"favicon.ico"},

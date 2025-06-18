@@ -102,7 +102,6 @@ article footer ul, article footer ul li {
 section footer:not(:first-child)::before {
     content: '\2012';
 }
-.score noscript { display: none; }
 small data.score::before {
     content: "(";
 }

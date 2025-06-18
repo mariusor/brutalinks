@@ -6,7 +6,7 @@ toolchain go1.24.4
 
 require (
 	git.sr.ht/~mariusor/assets v0.0.0-20241011130619-ac139c364a49
-	git.sr.ht/~mariusor/box v0.0.0-20250611071723-810111c35f72
+	git.sr.ht/~mariusor/box v0.0.0-20250618083203-3eaf325bce9c
 	git.sr.ht/~mariusor/cache v0.0.0-20250616110250-18a60a6f9473
 	git.sr.ht/~mariusor/lw v0.0.0-20250325163623-1639f3fb0e0d
 	git.sr.ht/~mariusor/mask v0.0.0-20250114195353-98705a6977b7
@@ -36,7 +36,7 @@ require (
 
 require (
 	git.sr.ht/~mariusor/go-xsd-duration v0.0.0-20220703122237-02e73435a078 // indirect
-	git.sr.ht/~mariusor/ssm v0.0.0-20250615150627-08de2032bb63 // indirect
+	git.sr.ht/~mariusor/ssm v0.0.0-20250617180832-c3c0db41a98e // indirect
 	git.sr.ht/~mariusor/tagextractor v0.0.0-20240907091823-17f6587b742f // indirect
 	git.sr.ht/~mariusor/vocab-bubbles v0.0.0-20250527200556-ed630ecb4d37 // indirect
 	github.com/RoaringBitmap/roaring v1.9.4 // indirect
@@ -48,7 +48,7 @@ require (
 	github.com/charmbracelet/bubbletea/v2 v2.0.0-beta1 // indirect
 	github.com/charmbracelet/colorprofile v0.3.1 // indirect
 	github.com/charmbracelet/lipgloss/v2 v2.0.0-beta1 // indirect
-	github.com/charmbracelet/x/ansi v0.9.2 // indirect
+	github.com/charmbracelet/x/ansi v0.9.3 // indirect
 	github.com/charmbracelet/x/cellbuf v0.0.14-0.20250520193441-8304e91a28cb // indirect
 	github.com/charmbracelet/x/input v0.3.5-0.20250520193441-8304e91a28cb // indirect
 	github.com/charmbracelet/x/term v0.2.1 // indirect

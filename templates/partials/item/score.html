@@ -8,10 +8,10 @@
 <aside data-hash="{{.ID}}"> {{ icon "recycle" }} </aside>
 {{- else -}}
 <aside class="score" data-score="{{ $score | ScoreFmt }}" data-hash="{{.ID}}">
-    <noscript>score </noscript>
     {{- $vote := $account.VotedOn . -}}
     {{ if Config.VotingEnabled }}<a href="{{if not $readonly }}{{ . | YayLink}}{{ else }}#{{ end }}" class="yay{{if IsYay $vote }} ed{{end}}" data-action="yay" data-hash="{{.ID}}" rel="nofollow" title="yay">{{- icon "plus" -}}</a>{{ end }}
     <data class="{{- $score | ScoreClass -}}" value="{{.Score | NumberFmt }}">
+        <noscript>score </noscript>
         <small>{{ $score | ScoreFmt }}</small>
     </data>
     {{ if Config.VotingEnabled }}{{ if Config.DownvotingEnabled }}<a href="{{if not $readonly }}{{ . | NayLink}}{{ else }}#{{ end }}" class="nay{{if IsNay $vote }} ed{{end}}" data-action="nay" data-hash="{{.ID}}" rel="nofollow" title="nay">{{- icon "minus" -}}</a>{{ end }}{{ end }}

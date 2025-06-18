@@ -59,7 +59,7 @@ svg.icon-adjust, svg.icon-plus, svg.icon-minus, svg.icon-code, svg.icon-angle-do
 {
     margin-right: -.1em;
 }
-nav ul, nav ul li, nav dl, nav dl dd, nav dl dt, footer ul, footer ul li {
+nav ul, nav ul li, nav dl, nav dl dd, nav dl dt, footer ul {
     display: inline-block;
 }
 .item footer ul li {
