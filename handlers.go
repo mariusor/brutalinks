@@ -352,8 +352,8 @@ func (r *repository) loadWebfingerActorFromIRI(ctx context.Context, host, acct s
 		}
 	}
 	return nil, errors.Errorf("unable to find webfinger actor")
-
 }
+
 func (r *repository) loadInstanceActorFromIRI(ctx context.Context, iri vocab.IRI) (*vocab.Actor, error) {
 	actor, err := r.fedbox.Actor(ctx, iri)
 	if err == nil {

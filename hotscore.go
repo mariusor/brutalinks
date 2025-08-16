@@ -5,14 +5,14 @@ import (
 	"time"
 )
 
-// represents the statistical confidence
-// var StatisticalConfidence = 1.0 => ~69%, 1.96 => ~95% (default)
+// StatisticalConfidence represents the statistical confidence
+// value 1.0 => ~69%, 1.96 => ~95% (default)
 var StatisticalConfidence = 1.94
 
-// represents how fast elapsed hours affect the order of an item
+// HNGravity represents how fast elapsed hours affect the order of an item
 var HNGravity = 1.5
 
-// wilson score interval sort
+// Wilson implements the score interval sort
 // http://www.evanmiller.org/how-not-to-sort-by-average-rating.html
 func Wilson(ups, downs int64) float64 {
 	n := ups + downs
@@ -29,7 +29,7 @@ func Wilson(ups, downs int64) float64 {
 	return w
 }
 
-// Hacker hackernews' hot sort
+// Hacker implements initial HackerNews' hot sort
 // https://medium.com/hacking-and-gonzo/how-hacker-news-ranking-algorithm-works-1d9b0cf2c08d
 func Hacker(votes int64, date time.Duration) float64 {
 	secondsAge := date.Seconds()
@@ -37,11 +37,13 @@ func Hacker(votes int64, date time.Duration) float64 {
 	return float64(votes) / math.Pow(secondsAge+ageDelta, HNGravity)
 }
 
-// Reddit reddit's hot sort
+// Decay represents the decay rate for reddit scores
+var Decay = 45000.0
+
+// Reddit implements reddit's hot sort
 // http://amix.dk/blog/post/19588
 func Reddit(ups, downs int64, date time.Duration) float64 {
-	decay := 45000.0
 	s := float64(ups - downs)
 	order := math.Log(math.Max(math.Abs(s), 1)) / math.Ln10
-	return order - date.Seconds()/float64(decay)
+	return order - date.Seconds()/Decay
 }
