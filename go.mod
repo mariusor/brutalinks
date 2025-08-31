@@ -6,18 +6,18 @@ toolchain go1.24.4
 
 require (
 	git.sr.ht/~mariusor/assets v0.0.0-20241011130619-ac139c364a49
-	git.sr.ht/~mariusor/box v0.0.0-20250810161407-bac8d72e929d
+	git.sr.ht/~mariusor/box v0.0.0-20250831144124-2e38f1b1cb30
 	git.sr.ht/~mariusor/cache v0.0.0-20250616110250-18a60a6f9473
 	git.sr.ht/~mariusor/lw v0.0.0-20250325163623-1639f3fb0e0d
 	git.sr.ht/~mariusor/mask v0.0.0-20250114195353-98705a6977b7
 	git.sr.ht/~mariusor/wrapper v0.0.0-20250504120759-5fa47ac25e08
-	github.com/go-ap/activitypub v0.0.0-20250810115208-cb73b20a1742
-	github.com/go-ap/cache v0.0.0-20250810115305-0742a12ab1a1
-	github.com/go-ap/client v0.0.0-20250810115406-535063f251fa
+	github.com/go-ap/activitypub v0.0.0-20250831121713-4e61cc722305
+	github.com/go-ap/cache v0.0.0-20250831121752-c44fafe4041e
+	github.com/go-ap/client v0.0.0-20250831121842-86170bce4a07
 	github.com/go-ap/errors v0.0.0-20250527110557-c8db454e53fd
-	github.com/go-ap/filters v0.0.0-20250810115343-b996bd3d3865
+	github.com/go-ap/filters v0.0.0-20250831121811-28474286712c
 	github.com/go-ap/jsonld v0.0.0-20221030091449-f2a191312c73
-	github.com/go-chi/chi/v5 v5.2.2
+	github.com/go-chi/chi/v5 v5.2.3
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/csrf v1.7.3
 	github.com/gorilla/sessions v1.4.0
@@ -80,7 +80,7 @@ require (
 	gitlab.com/golang-commonmark/html v0.0.0-20191124015941-a22733972181 // indirect
 	gitlab.com/golang-commonmark/linkify v0.0.0-20200225224916-64bca66f6ad3 // indirect
 	gitlab.com/golang-commonmark/mdurl v0.0.0-20191124015652-932350d1cb84 // indirect
-	go.etcd.io/bbolt v1.4.2 // indirect
+	go.etcd.io/bbolt v1.4.3 // indirect
 	golang.org/x/crypto v0.41.0 // indirect
 	golang.org/x/net v0.43.0 // indirect
 	golang.org/x/sync v0.16.0 // indirect
