@@ -88,5 +88,7 @@ coverage: TEST_FLAGS += -covermode=count -coverprofile $(PROJECT_NAME).coverprof
 coverage: test ## Run unit tests for the service with coverage.
 
 integration: download ## Run integration tests for the service.
-	make ENV=qa -C images builder build
-	make ENV=qa -C tests pods test-podman
+	if [ -z "${IMAGE}" ]; then
+		make ENV=dev -C images builder build
+	fi
+	make -C tests pods test-podman
