@@ -74,6 +74,7 @@ tasks:
       cd brutalinks
       make IMAGE=quay.io/go-ap/brutalinks:qa \
       AUTH_IMAGE=quay.io/go-ap/auth:qa-fs \
+      POINT_IMAGE=quay.io/go-ap/point:qa-fs \
       FEDBOX_IMAGE=quay.io/go-ap/fedbox:qa-fs \
       integration
 
@@ -81,4 +82,3 @@ tasks:
       if [ $_status != 0 ]; then
         podman logs -tn --tail=100 tests_brutalinks tests_fedbox tests_auth && exit $_status
       fi
-

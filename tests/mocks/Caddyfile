@@ -16,6 +16,11 @@ fedbox {
 	handle /actors/*/oauth/* {
 		reverse_proxy http://auth-internal:8080
 	}
+	handle /.well-known/* {
+		reverse_proxy http://point-internal:8080 {
+			transport http
+		}
+	}
 
 	reverse_proxy https://fedbox-internal:8443 {
 		transport http {
@@ -26,6 +31,11 @@ fedbox {
 }
 
 brutalinks {
+	handle /.well-known/* {
+		reverse_proxy http://point-internal:8080 {
+			transport http
+		}
+	}
 	reverse_proxy https://brutalinks-internal:8443 {
 		transport http {
 			tls
