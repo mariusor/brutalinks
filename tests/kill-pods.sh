@@ -1,3 +1,3 @@
 #!/bin/bash
 
-podman kill $(podman ps -q --filter name=tests_)
+podman ps -q --filter name=tests_ | xargs podman kill
