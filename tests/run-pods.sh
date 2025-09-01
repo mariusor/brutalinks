@@ -17,6 +17,8 @@ if [ "${NETWORK}" != "host" ]; then
     podman network create --subnet 10.6.6.0/24 --gateway 10.6.6.1 "${NETWORK}"
 fi
 
+./kill-pods.sh || true
+
 ## FedBOX
 
 if [ "${NETWORK}" != "host" ]; then

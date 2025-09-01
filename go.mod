@@ -23,7 +23,7 @@ require (
 	github.com/gorilla/sessions v1.4.0
 	github.com/joho/godotenv v1.5.1
 	github.com/mariusor/qstring v0.0.0-20200204164351-5a99d46de39d
-	github.com/mariusor/render v1.5.1-0.20250901121516-a541058175ad
+	github.com/mariusor/render v1.5.1-0.20250901122421-8ac127627c3f
 	github.com/microcosm-cc/bluemonday v1.0.27
 	github.com/openshift/osin v1.0.2-0.20210113124101-8612686d6dda
 	github.com/tdewolff/minify v2.3.6+incompatible

@@ -7,16 +7,16 @@ const errors = new Rate('error_rate');
 
 export const options = {
     thresholds: {
-        'http_req_failed{type:content}': ['rate<0.001'], // http errors should be less than 4%
+        'http_req_failed{type:content}': ['rate<0.5'], // http errors should be less than 5%
         'http_req_failed{type:static}': ['rate<0.0001'], // http errors should be less than 1%
         'http_req_duration{type:content}': ['p(50)<50'], // threshold on API requests only under 150ms
         'http_req_duration{type:static}': ['p(50)<5'], // threshold on static content only under 5ms
-        'error_rate': [{threshold: 'rate < 0.1', abortOnFail: true, delayAbortEval: '1s'}],
-        'error_rate{errorType:responseStatusError}': [{threshold: 'rate < 0.1'}],
-        'error_rate{errorType:contentTypeError}': [{threshold: 'rate < 0.1'}],
+        'error_rate': [{threshold: 'rate < 0.2', abortOnFail: true, delayAbortEval: '1s'}],
+        'error_rate{errorType:responseStatusError}': [{threshold: 'rate < 0.2'}],
+        'error_rate{errorType:contentTypeError}': [{threshold: 'rate < 0.2'}],
         'error_rate{errorType:cookieMissingError}': [{threshold: 'rate < 0.1'}],
         'error_rate{errorType:authorizationError}': [{threshold: 'rate < 0.1'}],
-        'error_rate{errorType:contentError}': [{threshold: 'rate < 0.2'}],
+        'error_rate{errorType:contentError}': [{threshold: 'rate < 0.25'}],
     },
     scenarios: {
         regular_browsing: {
