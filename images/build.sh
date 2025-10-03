@@ -4,7 +4,7 @@
 
 _workdir=${1:-../}
 _image_name=${2:-brutalinks/builder}
-_go_version=${GO_VERSION:-1.24}
+_go_version=${GO_VERSION:-1.25}
 
 _context=$(realpath "${_workdir}")
 
