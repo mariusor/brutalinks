@@ -85,7 +85,7 @@ func ActivityPubService(c appConfig) (*repository, error) {
 	if c.StoragePath != "" {
 		storeFn = box.UseBasePath(c.StoragePath)
 	}
-	ua := fmt.Sprintf("%s (+ https://github.com/mariusor/brutalinks@%s)", c.HostName, c.Version)
+	ua := fmt.Sprintf("%s (+https://github.com/mariusor/brutalinks@%s)", c.HostName, c.Version)
 
 	var err error
 	repo.b, err = box.New(storeFn, box.UseLogger(c.Logger.WithContext(log.Ctx{"log": "box"})), box.WithUserAgent(ua))
