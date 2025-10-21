@@ -28,8 +28,8 @@ func (h *Hash) FromActivityPub(it vocab.Item) error {
 }
 
 func FromObject(a *Account, o *vocab.Object) error {
-	a.Hash.FromActivityPub(o)
-	name := o.Name.First().Value
+	_ = a.Hash.FromActivityPub(o)
+	name := o.Name.First()
 	if len(name) > 0 {
 		a.Handle = name.String()
 	}
@@ -48,7 +48,7 @@ func FromObject(a *Account, o *vocab.Object) error {
 		}
 	}
 	if o.Icon != nil {
-		vocab.OnObject(o.Icon, func(o *vocab.Object) error {
+		_ = vocab.OnObject(o.Icon, func(o *vocab.Object) error {
 			return iconMetadataFromObject(&a.Metadata.Icon, o)
 		})
 	}
@@ -64,15 +64,15 @@ func FromObject(a *Account, o *vocab.Object) error {
 	}
 	if o.AttributedTo != nil {
 		act := Account{}
-		act.FromActivityPub(o.AttributedTo)
+		_ = act.FromActivityPub(o.AttributedTo)
 		a.CreatedBy = &act
 	}
 	return nil
 }
 
 func FromActor(a *Account, p *vocab.Actor) error {
-	a.Hash.FromActivityPub(p)
-	name := p.Name.First().Value
+	_ = a.Hash.FromActivityPub(p)
+	name := p.Name.First()
 	if len(name) > 0 {
 		a.Handle = name.String()
 	}
@@ -109,14 +109,14 @@ func FromActor(a *Account, p *vocab.Actor) error {
 	}
 	if p.AttributedTo != nil {
 		act := Account{}
-		act.FromActivityPub(p.AttributedTo)
+		_ = act.FromActivityPub(p.AttributedTo)
 		a.CreatedBy = &act
 	}
-	pName := p.PreferredUsername.First().Value
+	pName := p.PreferredUsername.First()
 	if pName.Equals(vocab.Content("")) {
-		pName = p.Name.First().Value
+		pName = p.Name.First()
 	}
-	sum := p.Summary.First().Value
+	sum := p.Summary.First()
 	if len(sum) > 0 {
 		a.Metadata.Blurb = string(sum)
 	}
@@ -137,12 +137,12 @@ func FromActor(a *Account, p *vocab.Actor) error {
 		a.Metadata.LikedIRI = p.Liked.GetLink().String()
 	}
 	if p.Icon != nil {
-		vocab.OnObject(p.Icon, func(o *vocab.Object) error {
+		_ = vocab.OnObject(p.Icon, func(o *vocab.Object) error {
 			return iconMetadataFromObject(&a.Metadata.Icon, o)
 		})
 	}
 	if p.Icon != nil {
-		vocab.OnObject(p.Icon, func(ic *vocab.Object) error {
+		_ = vocab.OnObject(p.Icon, func(ic *vocab.Object) error {
 			a.Metadata.Icon = ImageMetadata{
 				MimeType: string(ic.MediaType),
 			}
@@ -172,7 +172,7 @@ func FromActor(a *Account, p *vocab.Actor) error {
 	if p.Tag != nil {
 		a.Metadata.Tags = make(TagCollection, 0)
 		tags := TagCollection{}
-		tags.FromActivityPub(p.Tag)
+		_ = tags.FromActivityPub(p.Tag)
 		for _, t := range tags {
 			if t.Type == TagTag && !a.Metadata.Tags.Contains(t) {
 				a.Metadata.Tags = append(a.Metadata.Tags, t)
@@ -222,7 +222,7 @@ func (a *Account) FromActivityPub(it vocab.Item) error {
 			*a = SystemAccount
 		}
 		if !a.Hash.IsValid() {
-			a.Hash.FromActivityPub(iri)
+			_ = a.Hash.FromActivityPub(iri)
 		}
 		a.Metadata = &AccountMetadata{ID: iri.String()}
 		return nil
@@ -235,7 +235,7 @@ func (a *Account) FromActivityPub(it vocab.Item) error {
 			err := a.FromActivityPub(act.Object)
 			if !a.CreatedBy.IsValid() {
 				acc := Account{}
-				acc.FromActivityPub(act.Actor)
+				_ = acc.FromActivityPub(act.Actor)
 				a.CreatedBy = &acc
 			}
 			return err
@@ -276,7 +276,7 @@ func iconMetadataFromObject(m *ImageMetadata, o *vocab.Object) error {
 		m.URI = o.URL.GetLink().String()
 	}
 	if o.Content != nil && len(o.Content) > 0 {
-		var cnt []byte = o.Content.First().Value
+		var cnt []byte = o.Content.First()
 		buf := make([]byte, base64.RawStdEncoding.DecodedLen(len(cnt)))
 		if _, err := base64.RawStdEncoding.Decode(buf, cnt); err != nil {
 			m.URI = base64.RawStdEncoding.EncodeToString(buf)
@@ -288,8 +288,8 @@ func iconMetadataFromObject(m *ImageMetadata, o *vocab.Object) error {
 }
 
 func FromMention(t *Tag, a *vocab.Mention) error {
-	t.Hash.FromActivityPub(a)
-	if title := a.Name.First().Value; len(title) > 0 {
+	_ = t.Hash.FromActivityPub(a)
+	if title := a.Name.First(); len(title) > 0 {
 		t.Name = title.String()
 	}
 	t.Type = TagMention
@@ -308,8 +308,8 @@ func FromMention(t *Tag, a *vocab.Mention) error {
 }
 
 func FromTag(t *Tag, a *vocab.Object) error {
-	t.Hash.FromActivityPub(a)
-	if title := a.Name.First().Value; len(title) > 0 {
+	_ = t.Hash.FromActivityPub(a)
+	if title := a.Name.First(); len(title) > 0 {
 		t.Name = title.String()
 	}
 	t.Type = TagTag
@@ -324,7 +324,7 @@ func FromTag(t *Tag, a *vocab.Object) error {
 
 	if a.AttributedTo != nil {
 		auth := Account{Metadata: &AccountMetadata{}}
-		auth.FromActivityPub(a.AttributedTo)
+		_ = auth.FromActivityPub(a.AttributedTo)
 		t.SubmittedBy = &auth
 		t.Metadata.AuthorURI = a.AttributedTo.GetLink().String()
 	}
@@ -336,7 +336,7 @@ func FromTag(t *Tag, a *vocab.Object) error {
 	t.URL = local.String()
 
 	if a.Icon != nil {
-		vocab.OnObject(a.Icon, func(o *vocab.Object) error {
+		_ = vocab.OnObject(a.Icon, func(o *vocab.Object) error {
 			return iconMetadataFromObject(&t.Metadata.Icon, o)
 		})
 	}
@@ -368,16 +368,16 @@ func BlueMondayPolicy() *bluemonday.Policy {
 }
 
 func FromArticle(i *Item, a *vocab.Object) error {
-	i.Hash.FromActivityPub(a)
+	_ = i.Hash.FromActivityPub(a)
 	if len(a.Name) > 0 {
-		i.Title = a.Name.First().Value.String()
+		i.Title = a.Name.First().String()
 	}
 	if len(a.Content) > 0 {
 		i.MimeType = MimeTypeHTML
 		if len(a.MediaType) > 0 {
 			i.MimeType = string(a.MediaType)
 		}
-		i.Data = a.Content.First().Value.String()
+		i.Data = a.Content.First().String()
 	} else if a.URL != nil && len(a.URL.GetLink()) > 0 {
 		i.Data = string(a.URL.GetLink())
 		i.MimeType = MimeTypeURL
@@ -390,7 +390,7 @@ func FromArticle(i *Item, a *vocab.Object) error {
 
 	if a.AttributedTo != nil {
 		auth := Account{Metadata: &AccountMetadata{}}
-		auth.FromActivityPub(a.AttributedTo)
+		_ = auth.FromActivityPub(a.AttributedTo)
 		i.SubmittedBy = &auth
 		i.Metadata.AuthorURI = a.AttributedTo.GetLink().String()
 	}
@@ -402,13 +402,13 @@ func FromArticle(i *Item, a *vocab.Object) error {
 		}
 	}
 	if a.Icon != nil {
-		vocab.OnObject(a.Icon, func(o *vocab.Object) error {
+		_ = vocab.OnObject(a.Icon, func(o *vocab.Object) error {
 			return iconMetadataFromObject(&i.Metadata.Icon, o)
 		})
 	}
 	if a.Context != nil {
 		op := Item{}
-		op.FromActivityPub(a.Context)
+		_ = op.FromActivityPub(a.Context)
 		i.OP = &op
 	}
 	if a.InReplyTo != nil {
@@ -417,7 +417,7 @@ func FromArticle(i *Item, a *vocab.Object) error {
 				first := repl.First()
 				if first != nil {
 					par := Item{}
-					par.FromActivityPub(first)
+					_ = par.FromActivityPub(first)
 					i.Parent = &par
 					if i.OP == nil {
 						i.OP = &par
@@ -426,7 +426,7 @@ func FromArticle(i *Item, a *vocab.Object) error {
 			}
 		} else {
 			par := Item{}
-			par.FromActivityPub(a.InReplyTo)
+			_ = par.FromActivityPub(a.InReplyTo)
 			i.Parent = &par
 			if i.OP == nil {
 				i.OP = &par
@@ -435,14 +435,14 @@ func FromArticle(i *Item, a *vocab.Object) error {
 	}
 	if len(i.Title) == 0 && a.InReplyTo == nil {
 		if a.Summary != nil && len(a.Summary) > 0 {
-			i.Title = bluemonday.StrictPolicy().Sanitize(a.Summary.First().Value.String())
+			i.Title = bluemonday.StrictPolicy().Sanitize(a.Summary.First().String())
 		}
 	}
 	// TODO(marius): here we seem to have a bug, when Source.Content is nil when it shouldn't
 	//    to repro, I used some copy/pasted comments from console javascript
 	if len(a.Source.Content) > 0 && len(a.Source.MediaType) > 0 {
-		i.Data = LocalHTMLPolicy.Sanitize(a.Source.Content.First().Value.String())
-		i.Data = a.Source.Content.First().Value.String()
+		i.Data = LocalHTMLPolicy.Sanitize(a.Source.Content.First().String())
+		i.Data = a.Source.Content.First().String()
 		i.MimeType = string(a.Source.MediaType)
 	}
 	if a.Tag != nil {
@@ -450,7 +450,7 @@ func FromArticle(i *Item, a *vocab.Object) error {
 		i.Metadata.Mentions = make(TagCollection, 0)
 
 		tags := TagCollection{}
-		tags.FromActivityPub(a.Tag)
+		_ = tags.FromActivityPub(a.Tag)
 		for _, t := range tags {
 			if t.Type == TagTag {
 				i.Metadata.Tags = append(i.Metadata.Tags, t)
@@ -460,7 +460,7 @@ func FromArticle(i *Item, a *vocab.Object) error {
 			}
 		}
 	}
-	loadRecipients(i, a)
+	_ = loadRecipients(i, a)
 
 	return nil
 }
@@ -488,8 +488,7 @@ func loadRecipientsFrom(recipients vocab.ItemCollection) (AccountCollection, boo
 			result = append(result, acc)
 		} else {
 			acc := Account{}
-			acc.FromActivityPub(rec)
-			if acc.IsValid() {
+			if _ = acc.FromActivityPub(rec); acc.IsValid() {
 				result = append(result, acc)
 			}
 		}
@@ -520,7 +519,7 @@ func (t *Tag) FromActivityPub(it vocab.Item) error {
 	t.Pub = it
 	typ := it.GetType()
 	if it.IsLink() && typ != vocab.MentionType {
-		t.Hash.FromActivityPub(it.GetLink())
+		_ = t.Hash.FromActivityPub(it.GetLink())
 		t.Type = TagTag
 		t.Metadata = &ItemMetadata{
 			ID: it.GetLink().String(),
@@ -540,7 +539,7 @@ func (t *Tag) FromActivityPub(it vocab.Item) error {
 			if err := t.FromActivityPub(act.Object); err != nil {
 				return err
 			}
-			t.SubmittedBy.FromActivityPub(act.Actor)
+			_ = t.SubmittedBy.FromActivityPub(act.Actor)
 			if t.Metadata == nil {
 				t.Metadata = &ItemMetadata{}
 			}
@@ -553,7 +552,7 @@ func (t *Tag) FromActivityPub(it vocab.Item) error {
 		})
 	case vocab.TombstoneType:
 		id := it.GetLink()
-		t.Hash.FromActivityPub(id)
+		_ = t.Hash.FromActivityPub(id)
 		t.Type = TagTag
 		if t.Metadata == nil {
 			t.Metadata = &ItemMetadata{}
@@ -562,13 +561,13 @@ func (t *Tag) FromActivityPub(it vocab.Item) error {
 			t.Metadata.ID = id.String()
 		}
 		t.SubmittedBy = &AnonymousAccount
-		vocab.OnTombstone(it, func(o *vocab.Tombstone) error {
+		_ = vocab.OnTombstone(it, func(o *vocab.Tombstone) error {
 			if o.FormerType == vocab.MentionType {
 				t.Type = TagMention
 			}
 			return nil
 		})
-		vocab.OnObject(it, func(o *vocab.Object) error {
+		_ = vocab.OnObject(it, func(o *vocab.Object) error {
 			t.SubmittedAt = o.Published
 			t.UpdatedAt = o.Updated
 			return nil
@@ -589,7 +588,7 @@ func (i *Item) FromActivityPub(it vocab.Item) error {
 	}
 	i.Pub = it
 	if it.IsLink() {
-		i.Hash.FromActivityPub(it.GetLink())
+		_ = i.Hash.FromActivityPub(it.GetLink())
 		i.Metadata = &ItemMetadata{
 			ID: it.GetLink().String(),
 		}
@@ -611,7 +610,7 @@ func (i *Item) FromActivityPub(it vocab.Item) error {
 			if err := i.FromActivityPub(act.Object); err != nil {
 				return err
 			}
-			i.SubmittedBy.FromActivityPub(act.Actor)
+			_ = i.SubmittedBy.FromActivityPub(act.Actor)
 			if i.Metadata == nil {
 				i.Metadata = &ItemMetadata{}
 			}
@@ -628,14 +627,14 @@ func (i *Item) FromActivityPub(it vocab.Item) error {
 		})
 	case vocab.TombstoneType:
 		id := it.GetLink()
-		i.Hash.FromActivityPub(id)
+		_ = i.Hash.FromActivityPub(id)
 		if i.Metadata == nil {
 			i.Metadata = &ItemMetadata{}
 		}
 		if len(id) > 0 {
 			i.Metadata.ID = id.String()
 		}
-		vocab.OnObject(it, func(o *vocab.Object) error {
+		_ = vocab.OnObject(it, func(o *vocab.Object) error {
 			if o.Context != nil {
 				op := new(Item)
 				if err := op.FromActivityPub(o.Context); err == nil {
@@ -667,7 +666,7 @@ func (i *Item) FromActivityPub(it vocab.Item) error {
 			i.SubmittedAt = o.Published
 			return nil
 		})
-		vocab.OnTombstone(it, func(t *vocab.Tombstone) error {
+		_ = vocab.OnTombstone(it, func(t *vocab.Tombstone) error {
 			i.UpdatedAt = t.Deleted
 			if i.SubmittedAt.IsZero() {
 				i.SubmittedAt = i.UpdatedAt
@@ -695,11 +694,11 @@ func (v *Vote) FromActivityPub(it vocab.Item) error {
 	case vocab.UndoType, vocab.LikeType, vocab.DislikeType:
 		fromAct := func(act vocab.Activity, v *Vote) {
 			on := Item{}
-			on.FromActivityPub(act.Object)
+			_ = on.FromActivityPub(act.Object)
 			v.Item = &on
 
 			er := Account{Metadata: &AccountMetadata{}}
-			er.FromActivityPub(act.Actor)
+			_ = er.FromActivityPub(act.Actor)
 			v.SubmittedBy = &er
 
 			v.SubmittedAt = act.Published
@@ -719,7 +718,7 @@ func (v *Vote) FromActivityPub(it vocab.Item) error {
 				v.Metadata.OriginalIRI = act.Object.GetLink().String()
 			}
 		}
-		vocab.OnActivity(it, func(act *vocab.Activity) error {
+		_ = vocab.OnActivity(it, func(act *vocab.Activity) error {
 			fromAct(*act, v)
 			return nil
 		})
@@ -748,14 +747,14 @@ func (c *TagCollection) FromActivityPub(tag vocab.Item) error {
 	}
 	appendTag := func(it vocab.Item) error {
 		t := Tag{}
-		t.FromActivityPub(it)
+		_ = t.FromActivityPub(it)
 		*c = append(*c, t)
 		return nil
 	}
 	if tag.IsCollection() {
 		return vocab.OnCollectionIntf(tag, func(c vocab.CollectionInterface) error {
 			for _, it := range c.Collection() {
-				appendTag(it)
+				_ = appendTag(it)
 			}
 			return nil
 		})
@@ -781,7 +780,7 @@ func LoadFromActivityPubItem(it vocab.Item) (Renderable, error) {
 		result = f
 	}
 	if typ == vocab.TombstoneType {
-		vocab.OnTombstone(it, func(t *vocab.Tombstone) error {
+		_ = vocab.OnTombstone(it, func(t *vocab.Tombstone) error {
 			typ = t.FormerType
 			return nil
 		})

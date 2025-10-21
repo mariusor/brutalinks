@@ -4,16 +4,16 @@ go 1.25
 
 require (
 	git.sr.ht/~mariusor/assets v0.0.0-20241011130619-ac139c364a49
-	git.sr.ht/~mariusor/box v0.0.0-20251006081312-5ebe7aac9bfc
+	git.sr.ht/~mariusor/box v0.0.0-20251022091016-d9eb4bf724f7
 	git.sr.ht/~mariusor/cache v0.0.0-20250616110250-18a60a6f9473
 	git.sr.ht/~mariusor/lw v0.0.0-20250325163623-1639f3fb0e0d
 	git.sr.ht/~mariusor/mask v0.0.0-20250114195353-98705a6977b7
 	git.sr.ht/~mariusor/wrapper v0.0.0-20250504120759-5fa47ac25e08
-	github.com/go-ap/activitypub v0.0.0-20251007131428-e3b22fbf6257
-	github.com/go-ap/cache v0.0.0-20251007131541-7f856f34616b
-	github.com/go-ap/client v0.0.0-20251014115429-d8c9aab73d73
+	github.com/go-ap/activitypub v0.0.0-20251022084400-f44621942aee
+	github.com/go-ap/cache v0.0.0-20251022084521-a10e0edaae1a
+	github.com/go-ap/client v0.0.0-20251022084648-fd5d06099298
 	github.com/go-ap/errors v0.0.0-20250905102357-4480b47a00c4
-	github.com/go-ap/filters v0.0.0-20251007131616-3481286d74d2
+	github.com/go-ap/filters v0.0.0-20251022084558-fe06f0291d39
 	github.com/go-ap/jsonld v0.0.0-20250905102310-8480b0fe24d9
 	github.com/go-chi/chi/v5 v5.2.3
 	github.com/google/uuid v1.6.0

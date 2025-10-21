@@ -345,14 +345,14 @@ func (r *repository) loadAPItem(it vocab.Item, item Item) error {
 				o.Source.MediaType = vocab.MimeType(item.MimeType)
 				o.MediaType = MimeTypeHTML
 				if item.Data != "" {
-					o.Source.Content.Set("en", vocab.Content(item.Data))
-					o.Content.Set("en", vocab.Content(Markdown(item.Data)))
+					o.Source.Content.Set(vocab.DefaultLang, vocab.Content(item.Data))
+					o.Content.Set(vocab.DefaultLang, vocab.Content(Markdown(item.Data)))
 				}
 			case MimeTypeText:
 				fallthrough
 			case MimeTypeHTML:
 				o.MediaType = vocab.MimeType(item.MimeType)
-				o.Content.Set("en", vocab.Content(item.Data))
+				o.Content.Set(vocab.DefaultLang, vocab.Content(item.Data))
 			}
 		}
 
@@ -392,7 +392,7 @@ func (r *repository) loadAPItem(it vocab.Item, item Item) error {
 		}
 
 		if item.Title != "" {
-			o.Name.Set("en", vocab.Content(item.Title))
+			o.Name.Set(vocab.DefaultLang, vocab.Content(item.Title))
 		}
 		if item.SubmittedBy != nil {
 			o.AttributedTo = GetID(item.SubmittedBy)
@@ -459,7 +459,7 @@ func (r *repository) loadAPItem(it vocab.Item, item Item) error {
 					// todo(marius): retrieve object ids of each mention and add it to the CC of the object
 					t := vocab.Mention{
 						Type: vocab.MentionType,
-						Name: vocab.NaturalLanguageValues{{Ref: vocab.NilLangRef, Value: vocab.Content(men.Name)}},
+						Name: vocab.NaturalLanguageValues{vocab.NilLangRef: vocab.Content(men.Name)},
 						Href: vocab.IRI(men.URL),
 					}
 					if men.Metadata != nil && len(men.Metadata.ID) > 0 {
@@ -474,12 +474,12 @@ func (r *repository) loadAPItem(it vocab.Item, item Item) error {
 					}
 					t := vocab.Object{
 						URL:  vocab.ID(tag.URL),
-						Name: vocab.NaturalLanguageValues{{Ref: vocab.NilLangRef, Value: vocab.Content(name)}},
+						Name: vocab.NaturalLanguageValues{vocab.NilLangRef: vocab.Content(name)},
 					}
 					if tag.Metadata != nil && len(tag.Metadata.ID) > 0 {
 						t.ID = vocab.IRI(tag.Metadata.ID)
 					}
-					o.Tag.Append(t)
+					_ = o.Tag.Append(t)
 				}
 			}
 		}
@@ -493,9 +493,9 @@ func (r *repository) loadAPItem(it vocab.Item, item Item) error {
 
 var anonymousActor = &vocab.Actor{
 	ID:                vocab.PublicNS,
-	Name:              vocab.NaturalLanguageValues{{vocab.NilLangRef, vocab.Content(Anonymous)}},
+	Name:              vocab.NaturalLanguageValues{vocab.NilLangRef: vocab.Content(Anonymous)},
 	Type:              vocab.PersonType,
-	PreferredUsername: vocab.NaturalLanguageValues{{vocab.NilLangRef, vocab.Content(Anonymous)}},
+	PreferredUsername: vocab.NaturalLanguageValues{vocab.NilLangRef: vocab.Content(Anonymous)},
 }
 
 func anonymousPerson(url vocab.IRI) *vocab.Actor {
@@ -539,7 +539,7 @@ func (r *repository) loadAPPerson(a Account) *vocab.Actor {
 		}
 		if p.Name.Count() == 0 && a.Metadata.Name != "" {
 			p.Name = vocab.NaturalLanguageValuesNew()
-			p.Name.Set("en", vocab.Content(a.Metadata.Name))
+			p.Name.Set(vocab.DefaultLang, vocab.Content(a.Metadata.Name))
 		}
 		if p.Inbox == nil && len(a.Metadata.InboxIRI) > 0 {
 			p.Inbox = vocab.IRI(a.Metadata.InboxIRI)
@@ -1774,8 +1774,8 @@ func loadMentionsIfExisting(r *repository, ctx context.Context, incoming TagColl
 		}
 		for i, t := range incoming {
 			_ = vocab.OnActor(it, func(act *vocab.Actor) error {
-				if strings.ToLower(t.Name) == strings.ToLower(string(act.Name.Get("-"))) ||
-					strings.ToLower(t.Name) == strings.ToLower(string(act.PreferredUsername.Get("-"))) {
+				if strings.ToLower(t.Name) == strings.ToLower(act.Name.First().String()) ||
+					strings.ToLower(t.Name) == strings.ToLower(act.PreferredUsername.First().String()) {
 					u := act.ID.String()
 					if act.URL != nil {
 						u = act.URL.GetLink().String()
@@ -1797,8 +1797,8 @@ func loadMentionsIfExisting(r *repository, ctx context.Context, incoming TagColl
 			}
 
 			for i, t := range incoming {
-				if strings.ToLower(t.Name) == strings.ToLower(string(act.Name.Get("-"))) ||
-					strings.ToLower(t.Name) == strings.ToLower(string(act.PreferredUsername.Get("-"))) {
+				if strings.ToLower(t.Name) == strings.ToLower(act.Name.First().String()) ||
+					strings.ToLower(t.Name) == strings.ToLower(act.PreferredUsername.First().String()) {
 					u := act.ID.String()
 					if act.URL != nil {
 						u = act.URL.GetLink().String()
