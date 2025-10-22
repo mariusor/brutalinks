@@ -185,6 +185,8 @@ func SaveModeratorTags(repo *repository) (TagCollection, error) {
 
 func buildAPTagObject(tag Tag, repo *repository) *vocab.Object {
 	t := new(vocab.Object)
+	t.Name = make(vocab.NaturalLanguageValues)
+	t.Summary = make(vocab.NaturalLanguageValues)
 	t.AttributedTo = repo.app.Pub.GetLink()
 	_ = t.Name.Set(vocab.NilLangRef, vocab.Content(tag.Name))
 	_ = t.Summary.Set(vocab.NilLangRef, vocab.Content(fmt.Sprintf("Moderator tag for instance %s", repo.SelfURL)))
@@ -339,20 +341,29 @@ func (r *repository) loadAPItem(it vocab.Item, item Item) error {
 			if item.Hash.IsValid() {
 				o.URL = vocab.IRI(ItemLocalLink(&item))
 			}
-			o.Name = make(vocab.NaturalLanguageValues, 0)
+
 			switch item.MimeType {
 			case MimeTypeMarkdown:
 				o.Source.MediaType = vocab.MimeType(item.MimeType)
 				o.MediaType = MimeTypeHTML
 				if item.Data != "" {
-					o.Source.Content.Set(vocab.DefaultLang, vocab.Content(item.Data))
-					o.Content.Set(vocab.DefaultLang, vocab.Content(Markdown(item.Data)))
+					if o.Source.Content == nil {
+						o.Source.Content = make(vocab.NaturalLanguageValues)
+					}
+					_ = o.Source.Content.Set(vocab.DefaultLang, vocab.Content(item.Data))
+					if o.Content == nil {
+						o.Content = make(vocab.NaturalLanguageValues)
+					}
+					_ = o.Content.Set(vocab.DefaultLang, vocab.Content(Markdown(item.Data)))
 				}
 			case MimeTypeText:
 				fallthrough
 			case MimeTypeHTML:
 				o.MediaType = vocab.MimeType(item.MimeType)
-				o.Content.Set(vocab.DefaultLang, vocab.Content(item.Data))
+				if o.Content == nil {
+					o.Content = make(vocab.NaturalLanguageValues)
+				}
+				_ = o.Content.Set(vocab.DefaultLang, vocab.Content(item.Data))
 			}
 		}
 
@@ -392,7 +403,10 @@ func (r *repository) loadAPItem(it vocab.Item, item Item) error {
 		}
 
 		if item.Title != "" {
-			o.Name.Set(vocab.DefaultLang, vocab.Content(item.Title))
+			if o.Name == nil {
+				o.Name = make(vocab.NaturalLanguageValues)
+			}
+			_ = o.Name.Set(vocab.DefaultLang, vocab.Content(item.Title))
 		}
 		if item.SubmittedBy != nil {
 			o.AttributedTo = GetID(item.SubmittedBy)
@@ -444,13 +458,13 @@ func (r *repository) loadAPItem(it vocab.Item, item Item) error {
 			for _, rec := range m.To {
 				mto := vocab.IRI(rec.Metadata.ID)
 				if !to.Contains(mto) {
-					appendRecipients(&to, mto)
+					_ = appendRecipients(&to, mto)
 				}
 			}
 			for _, rec := range m.CC {
 				mcc := vocab.IRI(rec.Metadata.ID)
 				if !cc.Contains(mcc) {
-					appendRecipients(&cc, mcc)
+					_ = appendRecipients(&cc, mcc)
 				}
 			}
 			if m.Mentions != nil || m.Tags != nil {
@@ -465,7 +479,7 @@ func (r *repository) loadAPItem(it vocab.Item, item Item) error {
 					if men.Metadata != nil && len(men.Metadata.ID) > 0 {
 						t.ID = vocab.IRI(men.Metadata.ID)
 					}
-					o.Tag.Append(t)
+					_ = o.Tag.Append(t)
 				}
 				for _, tag := range m.Tags {
 					name := "#" + tag.Name
@@ -517,8 +531,8 @@ func (r *repository) loadAPPerson(a Account) *vocab.Actor {
 
 	if a.HasMetadata() {
 		if p.Summary.Count() == 0 && len(a.Metadata.Blurb) > 0 {
-			p.Summary = vocab.NaturalLanguageValuesNew()
-			p.Summary.Set(vocab.NilLangRef, vocab.Content(a.Metadata.Blurb))
+			p.Summary = make(vocab.NaturalLanguageValues)
+			_ = p.Summary.Set(vocab.NilLangRef, vocab.Content(a.Metadata.Blurb))
 		}
 		if p.Icon == nil && len(a.Metadata.Icon.URI) > 0 {
 			avatar := vocab.ObjectNew(vocab.ImageType)
@@ -529,8 +543,8 @@ func (r *repository) loadAPPerson(a Account) *vocab.Actor {
 	}
 
 	if p.PreferredUsername.Count() == 0 {
-		p.PreferredUsername = vocab.NaturalLanguageValuesNew()
-		p.PreferredUsername.Set(vocab.NilLangRef, vocab.Content(a.Handle))
+		p.PreferredUsername = make(vocab.NaturalLanguageValues)
+		_ = p.PreferredUsername.Set(vocab.NilLangRef, vocab.Content(a.Handle))
 	}
 
 	if a.Hash.IsValid() {
@@ -538,8 +552,8 @@ func (r *repository) loadAPPerson(a Account) *vocab.Actor {
 			p.ID = vocab.ID(a.Metadata.ID)
 		}
 		if p.Name.Count() == 0 && a.Metadata.Name != "" {
-			p.Name = vocab.NaturalLanguageValuesNew()
-			p.Name.Set(vocab.DefaultLang, vocab.Content(a.Metadata.Name))
+			p.Name = make(vocab.NaturalLanguageValues)
+			_ = p.Name.Set(vocab.DefaultLang, vocab.Content(a.Metadata.Name))
 		}
 		if p.Inbox == nil && len(a.Metadata.InboxIRI) > 0 {
 			p.Inbox = vocab.IRI(a.Metadata.InboxIRI)

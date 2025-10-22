@@ -4,16 +4,16 @@ go 1.25
 
 require (
 	git.sr.ht/~mariusor/assets v0.0.0-20241011130619-ac139c364a49
-	git.sr.ht/~mariusor/box v0.0.0-20251022093452-16292a661bc7
+	git.sr.ht/~mariusor/box v0.0.0-20251023134230-204db056a97b
 	git.sr.ht/~mariusor/cache v0.0.0-20250616110250-18a60a6f9473
 	git.sr.ht/~mariusor/lw v0.0.0-20250325163623-1639f3fb0e0d
 	git.sr.ht/~mariusor/mask v0.0.0-20250114195353-98705a6977b7
 	git.sr.ht/~mariusor/wrapper v0.0.0-20250504120759-5fa47ac25e08
-	github.com/go-ap/activitypub v0.0.0-20251022084400-f44621942aee
-	github.com/go-ap/cache v0.0.0-20251022084521-a10e0edaae1a
-	github.com/go-ap/client v0.0.0-20251022084648-fd5d06099298
+	github.com/go-ap/activitypub v0.0.0-20251023124303-72d37526e637
+	github.com/go-ap/cache v0.0.0-20251023124652-cea883170078
+	github.com/go-ap/client v0.0.0-20251023124838-07369e5662e8
 	github.com/go-ap/errors v0.0.0-20250905102357-4480b47a00c4
-	github.com/go-ap/filters v0.0.0-20251022084558-fe06f0291d39
+	github.com/go-ap/filters v0.0.0-20251023124807-74f4640efcf0
 	github.com/go-ap/jsonld v0.0.0-20250905102310-8480b0fe24d9
 	github.com/go-chi/chi/v5 v5.2.3
 	github.com/google/uuid v1.6.0
@@ -35,8 +35,8 @@ require (
 require (
 	git.sr.ht/~mariusor/go-xsd-duration v0.0.0-20220703122237-02e73435a078 // indirect
 	git.sr.ht/~mariusor/ssm v0.0.0-20250920150353-cc21fa885fda // indirect
-	git.sr.ht/~mariusor/tagextractor v0.0.0-20250804084154-f70c946df175 // indirect
-	git.sr.ht/~mariusor/vocab-bubbles v0.0.0-20250720113534-deb634c05608 // indirect
+	git.sr.ht/~mariusor/tagextractor v0.0.0-20251023131152-f56ce38cb6b9 // indirect
+	git.sr.ht/~mariusor/vocab-bubbles v0.0.0-20251023133912-d8a4d7b7747c // indirect
 	github.com/RoaringBitmap/roaring v1.9.4 // indirect
 	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
