@@ -44,14 +44,15 @@ func Run(a *brutalinks.Application) error {
 	srvRun, srvStop := w.HttpServer(setters...)
 
 	l := a.Logger.WithContext(log.Ctx{
-		"version":  a.Version,
-		"listenOn": a.Conf.Listen(),
-		"TLS":      a.Conf.Secure,
-		"host":     a.Conf.HostName,
-		"env":      a.Conf.Env,
-		"timeout":  a.Conf.TimeOut,
-		"cert":     a.Conf.CertPath,
-		"key":      a.Conf.KeyPath,
+		"version":     a.Version,
+		"maintenance": a.Conf.MaintenanceMode,
+		"listenOn":    a.Conf.Listen(),
+		"TLS":         a.Conf.Secure,
+		"host":        a.Conf.HostName,
+		"env":         a.Conf.Env,
+		"timeout":     a.Conf.TimeOut,
+		"cert":        a.Conf.CertPath,
+		"key":         a.Conf.KeyPath,
 	})
 
 	stopFn := func(ctx context.Context) {

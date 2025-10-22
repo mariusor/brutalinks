@@ -110,13 +110,13 @@ func (a *Application) init(c *config.Configuration, l log.Logger, host string, p
 
 func (a *Application) Front() error {
 	conf := appConfig{
-		Configuration: *a.Conf,
+		Configuration: a.Conf,
 		BaseURL:       a.BaseURL.String(),
 		Logger:        a.Logger.New(log.Ctx{"log": "frontend"}),
 	}
 	a.front = new(handler)
 	if err := a.front.init(conf); err != nil {
-		return err
+		a.Conf.MaintenanceMode = true
 	}
 	a.ModTags = a.front.storage.modTags
 	return nil

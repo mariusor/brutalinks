@@ -48,7 +48,7 @@ func (h handler) errFn(ctx ...log.Ctx) LogFn {
 }
 
 type appConfig struct {
-	config.Configuration
+	*config.Configuration
 	BaseURL string
 	Logger  log.Logger
 }
@@ -68,7 +68,8 @@ func (h *handler) init(c appConfig) error {
 	h.conf = c
 
 	if err = ConnectFedBOX(h, h.conf); err != nil {
-		return errors.Annotatef(err, "error connecting to ActivityPub service: %s", h.conf.APIURL)
+		h.conf.MaintenanceMode = true
+		c.Logger.WithContext(log.Ctx{"err": err.Error(), "service": h.conf.APIURL}).Warnf("error connecting to ActivityPub actor")
 	}
 	if h.v, err = ViewInit(h.conf, h.logger); err != nil {
 		return errors.Annotatef(err, "error initializing view")

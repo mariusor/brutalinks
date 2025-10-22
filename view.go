@@ -47,7 +47,7 @@ type view struct {
 
 func ViewInit(c appConfig, l log.Logger) (*view, error) {
 	v := new(view)
-	v.c = &c.Configuration
+	v.c = c.Configuration
 
 	v.infoFn = func(ctx ...log.Ctx) LogFn {
 		return l.WithContext(ctx...).Infof

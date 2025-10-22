@@ -348,9 +348,9 @@ func (r *repository) ToOutbox(ctx context.Context, cred credentials.C2S, a vocab
 }
 
 func (f *fedbox) Service() *vocab.Service {
-	if f.pub == nil {
+	if f == nil || f.pub == nil {
 		// TODO(marius): this should probably fail if there's no service actor for our FedBOX server
-		panic(errors.NotFoundf("the service should be already loaded"))
+		return anonymousActor
 	}
 	return f.pub
 }
