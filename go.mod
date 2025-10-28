@@ -9,11 +9,11 @@ require (
 	git.sr.ht/~mariusor/lw v0.0.0-20250325163623-1639f3fb0e0d
 	git.sr.ht/~mariusor/mask v0.0.0-20250114195353-98705a6977b7
 	git.sr.ht/~mariusor/wrapper v0.0.0-20250504120759-5fa47ac25e08
-	github.com/go-ap/activitypub v0.0.0-20251023124303-72d37526e637
-	github.com/go-ap/cache v0.0.0-20251023124652-cea883170078
-	github.com/go-ap/client v0.0.0-20251023124838-07369e5662e8
+	github.com/go-ap/activitypub v0.0.0-20251028130710-8bc6217f6c8d
+	github.com/go-ap/cache v0.0.0-20251028142135-e067d18ce6a1
+	github.com/go-ap/client v0.0.0-20251028142600-fee16b588e45
 	github.com/go-ap/errors v0.0.0-20250905102357-4480b47a00c4
-	github.com/go-ap/filters v0.0.0-20251023124807-74f4640efcf0
+	github.com/go-ap/filters v0.0.0-20251028142811-9b3305faa3cd
 	github.com/go-ap/jsonld v0.0.0-20250905102310-8480b0fe24d9
 	github.com/go-chi/chi/v5 v5.2.3
 	github.com/google/uuid v1.6.0
@@ -40,7 +40,7 @@ require (
 	github.com/RoaringBitmap/roaring v1.9.4 // indirect
 	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
-	github.com/bits-and-blooms/bitset v1.24.1 // indirect
+	github.com/bits-and-blooms/bitset v1.24.3 // indirect
 	github.com/captncraig/cors v0.0.0-20190703115713-e80254a89df1 // indirect
 	github.com/charmbracelet/bubbles/v2 v2.0.0-beta.1 // indirect
 	github.com/charmbracelet/bubbletea/v2 v2.0.0-beta1 // indirect
@@ -51,7 +51,8 @@ require (
 	github.com/charmbracelet/x/input v0.3.7 // indirect
 	github.com/charmbracelet/x/term v0.2.1 // indirect
 	github.com/charmbracelet/x/windows v0.2.2 // indirect
-	github.com/clipperhouse/uax29/v2 v2.2.0 // indirect
+	github.com/clipperhouse/stringish v0.1.1 // indirect
+	github.com/clipperhouse/uax29/v2 v2.3.0 // indirect
 	github.com/cowboyrushforth/go-webfinger v0.0.0-20130704082154-c529bc770972 // indirect
 	github.com/elnormous/contenttype v1.0.4 // indirect
 	github.com/go-fed/httpsig v1.1.0 // indirect

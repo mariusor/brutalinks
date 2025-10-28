@@ -113,7 +113,7 @@ func FromActor(a *Account, p *vocab.Actor) error {
 		a.CreatedBy = &act
 	}
 	pName := p.PreferredUsername.First()
-	if pName.Equals(vocab.Content("")) {
+	if pName.Equal(vocab.Content("")) {
 		pName = p.Name.First()
 	}
 	sum := p.Summary.First()
