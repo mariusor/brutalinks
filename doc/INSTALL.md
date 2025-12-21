@@ -19,7 +19,7 @@ After FedBOX is running, you need to create the required brutalinks actors:
 
 ```sh
 # This creates an OAuth2 account and ActivityPub Application Actor for Brutalinks.
-$ fedboxctl oauth client add --redirectUri https://brutalinks.example.com/callback
+$ fedbox oauth client add --redirectUri https://brutalinks.example.com/callback
 client's pw:
 pw again:
 Client ID: 4f449c81-1dbb-dead-beef-5a83926a0fbf
@@ -29,11 +29,11 @@ Client ID: 4f449c81-1dbb-dead-beef-5a83926a0fbf
 # We can now create some of the additional objects:
 
 # First we create tags for the instance operators and moderators:
-$ fedboxctl ap add --name "#sysop" --name "#mod" \
+$ fedbox ap add --name "#sysop" --name "#mod" \
 --attributedTo https://fedbox.example.com/actors/4f449c81-1dbb-dead-beef-5a83926a0fbf
 
 # This creates a Person actor named "admin" with the #sysop tag
-$ fedboxctl ap actor add admin --tag "#sysop"
+$ fedbox ap actor add admin --tag "#sysop"
 admin's pw:
 pw again:
 Added "Person" [admin]: https://fedbox.example.com/actors/310a1a7c-dead-beef-d00d-9a6a8e40acdf
