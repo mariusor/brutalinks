@@ -90,17 +90,17 @@ func Run(a *brutalinks.Application) error {
 		syscall.SIGTERM: func(exit chan<- error) {
 			// kill -SIGTERM XXXX
 			l.Infof("SIGTERM received, stopping")
-			exit <- nil
+			exit <- w.Interrupt
 		},
 		syscall.SIGINT: func(exit chan<- error) {
 			// kill -SIGINT XXXX or Ctrl+c
 			l.Infof("SIGINT received, stopping")
-			exit <- nil
+			exit <- w.Interrupt
 		},
 		syscall.SIGQUIT: func(exit chan<- error) {
 			l.Warnf("SIGQUIT received, force stopping")
 			cancelFn()
-			exit <- nil
+			exit <- w.Interrupt
 		},
 	}
 
