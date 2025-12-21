@@ -4,8 +4,6 @@ packages:
   - podman
   - buildah
   - passt
-  - crun
-  - iptables-nft
   - aardvark-dns
 sources:
   - https://git.sr.ht/~mariusor/brutalinks
@@ -15,6 +13,7 @@ secrets:
   - 3dcea276-38d6-4a7e-85e5-20cbc903e1ea
 tasks:
   - build: |
+      yay -S crun iptables-nft | yes
       test ${BUILD_SUBMITTER} != "git.sr.ht" && complete-build
       set +x
       cd brutalinks
