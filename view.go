@@ -1351,8 +1351,8 @@ func GetInviteLink(v *view) func(invitee *Account) template.HTMLAttr {
 		// @todo(marius): :link_generation:
 		bodyFmt := "Hello,\n\nThis is an invitation to join %s.\n\nTo accept this invitation and create an account, visit the URL below: %s\n\n/%s"
 		mailContent := struct {
-			Subject string `qstring:subject`
-			Body    string `qstring:body`
+			Subject string `qstring:"subject"`
+			Body    string `qstring:"body"`
 		}{
 			Subject: fmt.Sprintf("You are invited to join %s", v.c.HostName),
 			Body:    fmt.Sprintf(bodyFmt, Instance.BaseURL.String(), u, handle),

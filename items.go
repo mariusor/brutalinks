@@ -13,7 +13,7 @@ import (
 
 type ItemMetadata struct {
 	To         AccountCollection `json:"to,omitempty"`
-	CC         AccountCollection `json:"to,omitempty"`
+	CC         AccountCollection `json:"cc,omitempty"`
 	Tags       TagCollection     `json:"tags,omitempty"`
 	Mentions   TagCollection     `json:"mentions,omitempty"`
 	ID         string            `json:"id,omitempty"`
