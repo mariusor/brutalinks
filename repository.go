@@ -48,7 +48,7 @@ func IsNotExist(err error) bool {
 }
 
 func LoadCredentials(b *box.Client, c appConfig) (*credentials.C2S, error) {
-	cred, err := box.LoadCredentials(b, c.OAuth2App)
+	cred, err := box.LoadCredentials(b, vocab.IRI(c.OAuth2App))
 	if IsNotExist(err) {
 		auth := credentials.ClientConfig{
 			ClientID:     c.OAuth2App,
@@ -131,7 +131,7 @@ func ActivityPubService(c appConfig) (*repository, error) {
 		// NOTE(marius): this is the new BrutaLinks long polling mechanism that fetches
 		// the relevant collections for the instance actor every minute.
 		ctx := context.TODO()
-		if err := repo.b.Follow(ctx, repo.b.BuildCollectionFetches(ctx)...); err != nil {
+		if err := repo.b.Follow(ctx); err != nil {
 			c.Logger.WithContext(log.Ctx{"err": err.Error()}).Warnf("error fetching remotes")
 		}
 	}()
