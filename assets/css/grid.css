@@ -30,7 +30,7 @@
         margin-bottom: unset;
     }
     body > footer nav {
-  margin-top: unset;
-  float: unset;
-}
+      margin-top: unset;
+      float: unset;
+    }
 }
