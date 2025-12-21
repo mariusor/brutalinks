@@ -4,6 +4,8 @@ packages:
   - podman
   - buildah
   - passt
+  - crun
+  - iptables-nft
   - aardvark-dns
 sources:
   - https://git.sr.ht/~mariusor/brutalinks
