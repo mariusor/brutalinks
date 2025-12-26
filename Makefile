@@ -83,8 +83,11 @@ test: TEST_TARGET := . ./internal/...
 test: download go.sum ## Run unit tests for the service.
 	$(TEST) $(TEST_FLAGS) $(TEST_TARGET)
 
-coverage: integration ## Run unit tests for the service with coverage.
-	$(GO) tool covdata percent -i=./tests/.cache -o $(PROJECT).coverprofile
+coverage: ## Run unit tests for the service with coverage.
+	mkdir -p /tmp/brutalinks-coverage
+	$(TEST) $(TEST_FLAGS) -coverpkg git.sr.ht/~mariusor/brutalinks -covermode=count -args -test.gocoverdir="/tmp/brutalinks-coverage" $(TEST_TARGET)
+	$(GO) tool covdata percent -i=/tmp/brutalinks-coverage -o $(PROJECT).coverprofile
+	$(RM) -r /tmp/brutalinks-coverage
 
 integration: download ## Run integration tests for the service.
 	if [ -z "${IMAGE}" ]; then
