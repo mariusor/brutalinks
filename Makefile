@@ -93,4 +93,4 @@ integration: download ## Run integration tests for the service.
 	if [ -z "${IMAGE}" ]; then
 		make ENV=dev -C images builder build
 	fi
-	make -C tests test-podman
+	make -C tests pods test-podman
