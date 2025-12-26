@@ -10,36 +10,30 @@ APP_HOSTNAME ?= brutalinks.local
 PORT ?= 4001
 VERSION ?= HEAD
 ENV_FILE ?= $(shell realpath .env.$(ENV))
-GO_VERSION ?= 1.23
 
 TAG_CMD=podman tag
 PUSH_CMD=podman push
+
+ifeq ($(shell git describe --always > /dev/null 2>&1 ; echo $$?), 0)
+	BRANCH=$(shell git rev-parse --abbrev-ref HEAD | tr '/' '-')
+	HASH=$(shell git rev-parse --short HEAD)
+	VERSION = $(shell printf "%s-%s" "$(BRANCH)" "$(HASH)")
+endif
+ifeq ($(shell git describe --tags > /dev/null 2>&1 ; echo $$?), 0)
+	VERSION = $(shell git describe --tags | tr '/' '-')
+endif
 
 .PHONY: clean images cert build builder run push start
 
 .DEFAULT_GOAL := help
 
-help: ## Help target that shows this message.
-	@sed -rn 's/^([^:]+):.*[ ]##[ ](.+)/\1:\2/p' $(MAKEFILE_LIST) | column -ts: -l2
-
 $(ENV_FILE):
 	touch $(ENV_FILE)
 
-$(APP_HOSTNAME).pem:
-	./gen-certs.sh $(APP_HOSTNAME)
-
-cert: $(APP_HOSTNAME).pem ## Builds the certificate to include in the image.
-
-clean: ## Clean the workspace.
-	@-$(RM) $(APP_HOSTNAME).{key,crt,pem}
-
-builder: ## Build the builder image for compiling the Brutalinks application.
-	./build.sh .. brutalinks/builder
-
-build: ## Build the Brutalinks application.
+build:
 	ENV="$(ENV)" VERSION="$(VERSION)" PORT="$(PORT)" APP_HOSTNAME="$(APP_HOSTNAME)" ./image.sh "brutalinks/app:$(ENV)"
 
-push: build ## Push the Brutalinks application images to Quay.io.
+push: build
 	$(TAG_CMD) brutalinks/app:$(ENV) quay.io/go-ap/brutalinks:$(ENV)
 	$(PUSH_CMD) quay.io/go-ap/brutalinks:$(ENV)
 ifeq ($(ENV),dev)
