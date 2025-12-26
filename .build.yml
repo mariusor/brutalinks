@@ -4,7 +4,6 @@ packages:
   - podman
   - buildah
   - passt
-  - aardvark-dns
 sources:
   - https://git.sr.ht/~mariusor/brutalinks
 secrets:
