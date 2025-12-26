@@ -41,6 +41,7 @@ require (
 	git.sr.ht/~mariusor/tagextractor v0.0.0-20251023131152-f56ce38cb6b9 // indirect
 	git.sr.ht/~mariusor/vocab-bubbles v0.0.0-20251209130033-60697a52a4eb // indirect
 	github.com/RoaringBitmap/roaring v1.9.4 // indirect
+	github.com/alecthomas/kong v1.13.0 // indirect
 	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/bits-and-blooms/bitset v1.24.4 // indirect

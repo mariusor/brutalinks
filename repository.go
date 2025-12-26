@@ -2120,7 +2120,7 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 	loadAuthors := true
 	if it.Deleted() {
 		if len(id) == 0 {
-			r.errFn(log.Ctx{"item": it.Hash})(err.Error())
+			r.errFn(log.Ctx{"item": it.Hash, "err": err})("unable to delete item with no ID")
 			return it, errors.NotFoundf("item hash is empty, can not delete")
 		}
 		act.Object = id

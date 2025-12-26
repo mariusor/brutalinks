@@ -2,10 +2,11 @@ package main
 
 import (
 	"context"
-	"flag"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime/debug"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 	"git.sr.ht/~mariusor/brutalinks/internal/config"
 	log "git.sr.ht/~mariusor/lw"
 	w "git.sr.ht/~mariusor/wrapper"
+	"github.com/alecthomas/kong"
 	"github.com/go-ap/errors"
 )
 
@@ -22,10 +24,17 @@ const defaultPort = config.DefaultListenPort
 const defaultTimeout = time.Second * 5
 
 // Run is the wrapper for starting the web-server and handling signals
-func Run(a *brutalinks.Application) error {
+func (s Serve) Run(cc ctl) error {
+	c := cc.conf
+	l := cc.logger
+	a, err := brutalinks.New(c, l, s.Host, s.Port, version)
+	if err != nil {
+		l.Errorf("Failed to start application: %+s", err)
+		os.Exit(1)
+	}
 	ctx, cancelFn := context.WithCancel(context.TODO())
 
-	setters := []w.SetFn{w.Handler(a.Mux)}
+	setters := []w.SetFn{w.Handler(a.Mux), w.GracefulWait(s.Wait)}
 	if a.Conf.Secure && len(a.Conf.CertPath) > 0 && len(a.Conf.KeyPath) > 0 {
 		setters = append(setters, w.WithTLSCert(a.Conf.CertPath, a.Conf.KeyPath))
 	}
@@ -43,16 +52,15 @@ func Run(a *brutalinks.Application) error {
 
 	srvRun, srvStop := w.HttpServer(setters...)
 
-	l := a.Logger.WithContext(log.Ctx{
-		"version":     a.Version,
-		"maintenance": a.Conf.MaintenanceMode,
-		"listenOn":    a.Conf.Listen(),
-		"TLS":         a.Conf.Secure,
-		"host":        a.Conf.HostName,
-		"env":         a.Conf.Env,
-		"timeout":     a.Conf.TimeOut,
-		"cert":        a.Conf.CertPath,
-		"key":         a.Conf.KeyPath,
+	l = l.WithContext(log.Ctx{
+		"version":  a.Version,
+		"listenOn": a.Conf.Listen(),
+		"TLS":      a.Conf.Secure,
+		"host":     a.Conf.HostName,
+		"env":      a.Conf.Env,
+		"timeout":  a.Conf.TimeOut,
+		"cert":     a.Conf.CertPath,
+		"key":      a.Conf.KeyPath,
 	})
 
 	stopFn := func(ctx context.Context) {
@@ -105,31 +113,35 @@ func Run(a *brutalinks.Application) error {
 	}
 
 	// Wait for OS signals asynchronously
-	err := w.RegisterSignalHandlers(sigHandlerFns).Exec(ctx, srvRun)
-	if err != nil {
+	err = w.RegisterSignalHandlers(sigHandlerFns).Exec(ctx, srvRun)
+	if err == nil {
 		l.Infof("Shutting down")
 	}
 	return err
 }
 
+type CTL struct {
+	Verbose int              `counter:"v" help:"Increase verbosity level from the default associated with the environment settings."`
+	Path    string           `path:"" help:"The path for the storage folder or socket" default:"." env:"STORAGE_PATH"`
+	Version kong.VersionFlag `short:"V"`
+
+	// Commands
+	Run Serve `cmd:"" help:"Run the ${name} instance server (version: ${version})" default:"withargs"`
+}
+
+type Serve struct {
+	Wait time.Duration  `default:"${defaultTimeout}" help:"the duration for which the server gracefully wait for existing connections to finish - e.g. 15s or 1m"`
+	Env  config.EnvType `enum:"${envTypes}" help:"The environment to use. Expected values: ${envTypes}" default:"${defaultEnv}"`
+	Port int            `default:"${defaultPort}" help:"the port on which we should listen on"`
+	Host string         `help:"the host on which we should listen on"`
+}
+
+type ctl struct {
+	conf   *config.Configuration
+	logger log.Logger
+}
+
 func main() {
-	var wait time.Duration
-	var port int
-	var host string
-	var env string
-
-	flag.DurationVar(&wait, "graceful-timeout", defaultTimeout, "the duration for which the server gracefully wait for existing connections to finish - e.g. 15s or 1m")
-	flag.IntVar(&port, "port", defaultPort, "the port on which we should listen on")
-	flag.StringVar(&host, "host", "", "the host on which we should listen on")
-	flag.StringVar(&env, "env", "unknown", "the environment type")
-	flag.Parse()
-
-	c := config.Load(config.EnvType(env), wait)
-	l := log.Dev(log.SetLevel(c.LogLevel))
-	if c.Env.IsDev() {
-		errors.IncludeBacktrace = c.Env.IsDev()
-	}
-
 	if build, ok := debug.ReadBuildInfo(); ok && version == "HEAD" {
 		if build.Main.Version != "(devel)" {
 			version = build.Main.Version
@@ -144,14 +156,30 @@ func main() {
 		}
 	}
 
+	CTLRun := new(CTL)
+	ctx := kong.Parse(
+		CTLRun,
+		kong.Name("brutalinks"),
+		kong.Description("${name} server (version ${version})"),
+		kong.Vars{
+			"defaultTimeout": defaultTimeout.String(),
+			"version":        version,
+			"name":           "brutalinks", //AppName,
+			"defaultEnv":     string(config.DEV),
+			"defaultPort":    strconv.Itoa(defaultPort),
+			"envTypes":       fmt.Sprintf("%s, %s, %s, %s", config.TEST, config.DEV, config.QA, config.PROD),
+		},
+	)
+	c := config.Load(CTLRun.Run.Env, CTLRun.Run.Wait)
 	c.Version = version
-	a, err := brutalinks.New(c, l, host, port, version)
-	if err != nil {
-		l.Errorf("Failed to start application: %+s", err)
-		os.Exit(1)
+
+	l := log.Dev(log.SetLevel(c.LogLevel))
+	if c.Env.IsDev() {
+		errors.IncludeBacktrace = c.Env.IsDev()
 	}
-	if err = Run(a); err != nil {
-		l.Errorf("Error: %+s", err)
+
+	if err := ctx.Run(ctl{conf: c, logger: l}); err != nil {
+		l.WithContext(log.Ctx{"err": err}).Errorf("failed to run server")
 		os.Exit(1)
 	}
 	os.Exit(0)
