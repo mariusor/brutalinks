@@ -96,6 +96,7 @@ func ActivityPubService(c appConfig) (*repository, error) {
 	if err = repo.b.Open(); err != nil {
 		return repo, err
 	}
+	c.Logger.WithContext(log.Ctx{"path": repo.b.StoragePath()}).Infof("BOX storage opened")
 
 	if c.OAuth2App == "" {
 		return repo, fmt.Errorf("invalid OAuth2 application name %s", c.OAuth2App)

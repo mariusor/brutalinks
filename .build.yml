@@ -19,7 +19,7 @@ tasks:
       make all
   - tests: |
       test ${BUILD_SUBMITTER} != "git.sr.ht" && complete-build
-      set -a
+      set -a +x
       source ~/.env.test
       cd brutalinks
       make test
