@@ -19,6 +19,7 @@ import (
 )
 
 var version = "HEAD"
+var AppName = "brutalinks"
 
 const defaultPort = config.DefaultListenPort
 const defaultTimeout = time.Second * 5
@@ -159,12 +160,12 @@ func main() {
 	CTLRun := new(CTL)
 	ctx := kong.Parse(
 		CTLRun,
-		kong.Name("brutalinks"),
+		kong.Name(AppName),
 		kong.Description("${name} server (version ${version})"),
 		kong.Vars{
 			"defaultTimeout": defaultTimeout.String(),
 			"version":        version,
-			"name":           "brutalinks", //AppName,
+			"name":           AppName,
 			"defaultEnv":     string(config.DEV),
 			"defaultPort":    strconv.Itoa(defaultPort),
 			"envTypes":       fmt.Sprintf("%s, %s, %s, %s", config.TEST, config.DEV, config.QA, config.PROD),

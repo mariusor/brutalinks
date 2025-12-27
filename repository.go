@@ -49,17 +49,18 @@ func IsNotExist(err error) bool {
 
 func LoadCredentials(b *box.Client, c appConfig) (*credentials.C2S, error) {
 	cred, err := box.LoadCredentials(b, vocab.IRI(c.OAuth2App))
-	if IsNotExist(err) {
-		auth := credentials.ClientConfig{
-			ClientID:     c.OAuth2App,
-			ClientSecret: c.OAuth2Secret,
-			RedirectURL:  fmt.Sprintf("%s/auth/%s/callback", c.BaseURL, "fedbox"),
-		}
-		if cred, err = credentials.Authorize(context.Background(), c.OAuth2App, auth); err != nil {
-			return nil, err
-		}
-		err = box.SaveCredentials(b, *cred)
+	if err == nil {
+		return cred, err
 	}
+	auth := credentials.ClientConfig{
+		ClientID:     c.OAuth2App,
+		ClientSecret: c.OAuth2Secret,
+		RedirectURL:  fmt.Sprintf("%s/auth/%s/callback", c.BaseURL, "fedbox"),
+	}
+	if cred, err = credentials.Authorize(context.Background(), c.OAuth2App, auth); err != nil {
+		return nil, err
+	}
+	err = box.SaveCredentials(b, *cred)
 	return cred, err
 }
 
