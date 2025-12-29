@@ -175,9 +175,7 @@ func main() {
 	c.Version = version
 
 	l := log.Dev(log.SetLevel(c.LogLevel))
-	if c.Env.IsDev() {
-		errors.IncludeBacktrace = c.Env.IsDev()
-	}
+	errors.SetIncludeBacktrace(c.Env.IsDev())
 
 	if err := ctx.Run(ctl{conf: c, logger: l}); err != nil {
 		l.WithContext(log.Ctx{"err": err}).Errorf("failed to run server")

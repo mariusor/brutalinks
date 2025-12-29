@@ -4,16 +4,16 @@ go 1.25
 
 require (
 	git.sr.ht/~mariusor/assets v0.0.0-20241011130619-ac139c364a49
-	git.sr.ht/~mariusor/box v0.0.0-20251221134442-7aeb09007436
+	git.sr.ht/~mariusor/box v0.0.0-20251229182238-5cbc4857abc1
 	git.sr.ht/~mariusor/cache v0.0.0-20250616110250-18a60a6f9473
 	git.sr.ht/~mariusor/lw v0.0.0-20250325163623-1639f3fb0e0d
 	git.sr.ht/~mariusor/mask v0.0.0-20250114195353-98705a6977b7
-	git.sr.ht/~mariusor/wrapper v0.0.0-20251221111217-c45748b78917
-	github.com/go-ap/activitypub v0.0.0-20251217103921-9808e9a35f7b
-	github.com/go-ap/cache v0.0.0-20251216163157-446dbe3865f8
-	github.com/go-ap/client v0.0.0-20251217104137-490438ffbafc
-	github.com/go-ap/errors v0.0.0-20251216162958-cb99ea99a461
-	github.com/go-ap/filters v0.0.0-20251217104054-a89c371835ef
+	git.sr.ht/~mariusor/wrapper v0.0.0-20251224151401-852801607a0c
+	github.com/go-ap/activitypub v0.0.0-20251229135531-ed9c5f603bba
+	github.com/go-ap/cache v0.0.0-20251229135553-bd6d722b241f
+	github.com/go-ap/client v0.0.0-20251229135838-c4e2594e4aa1
+	github.com/go-ap/errors v0.0.0-20251229095444-2702aa2d8569
+	github.com/go-ap/filters v0.0.0-20251229135628-42af05c677ee
 	github.com/go-ap/jsonld v0.0.0-20251216162253-e38fa664ea77
 	github.com/go-chi/chi/v5 v5.2.3
 	github.com/google/uuid v1.6.0
