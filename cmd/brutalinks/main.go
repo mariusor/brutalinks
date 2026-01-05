@@ -13,6 +13,7 @@ import (
 	"git.sr.ht/~mariusor/brutalinks"
 	"git.sr.ht/~mariusor/brutalinks/internal/config"
 	log "git.sr.ht/~mariusor/lw"
+	m "git.sr.ht/~mariusor/servermux"
 	w "git.sr.ht/~mariusor/wrapper"
 	"github.com/alecthomas/kong"
 	"github.com/go-ap/errors"
@@ -34,25 +35,33 @@ func (s Serve) Run(cc ctl) error {
 		os.Exit(1)
 	}
 	ctx, cancelFn := context.WithCancel(context.TODO())
+	defer cancelFn()
 
-	setters := []w.SetFn{w.Handler(a.Mux), w.GracefulWait(s.Wait)}
+	setters := []m.SetFn{m.Handler(a.Mux)}
 	if a.Conf.Secure && len(a.Conf.CertPath) > 0 && len(a.Conf.KeyPath) > 0 {
-		setters = append(setters, w.WithTLSCert(a.Conf.CertPath, a.Conf.KeyPath))
+		setters = append(setters, m.WithTLSCert(a.Conf.CertPath, a.Conf.KeyPath))
 	}
 	if a.Conf.ListenHost == "systemd" {
-		setters = append(setters, w.OnSystemd())
+		setters = append(setters, m.OnSystemd())
 	} else if filepath.IsAbs(a.Conf.ListenHost) {
 		dir, _ := filepath.Split(a.Conf.ListenHost)
 		if _, err := os.Stat(dir); err == nil {
-			setters = append(setters, w.OnSocket(a.Conf.ListenHost))
+			setters = append(setters, m.OnSocket(a.Conf.ListenHost))
 			defer func() { _ = os.RemoveAll(a.Conf.ListenHost) }()
 		}
 	} else {
-		setters = append(setters, w.OnTCP(a.Conf.Listen()))
+		setters = append(setters, m.OnTCP(a.Conf.Listen()))
 	}
 
-	srvRun, srvStop := w.HttpServer(setters...)
+	httpSrv, err := m.HttpServer(setters...)
+	if err != nil {
+		return err
+	}
 
+	srv, err := m.Mux(m.WithServer(httpSrv), m.GracefulWait(s.Wait))
+	if err != nil {
+		return err
+	}
 	l = l.WithContext(log.Ctx{
 		"version":  a.Version,
 		"listenOn": a.Conf.Listen(),
@@ -69,7 +78,7 @@ func (s Serve) Run(cc ctl) error {
 		if err := a.Close(); err != nil {
 			l.Warnf("Close error: %s", err)
 		}
-		if err := srvStop(ctx); err != nil {
+		if err := srv.Stop(ctx); err != nil {
 			l.Errorf("Stopped with error: %s", err)
 		} else {
 			l.Infof("Stopped")
@@ -114,7 +123,7 @@ func (s Serve) Run(cc ctl) error {
 	}
 
 	// Wait for OS signals asynchronously
-	err = w.RegisterSignalHandlers(sigHandlerFns).Exec(ctx, srvRun)
+	err = w.RegisterSignalHandlers(sigHandlerFns).Exec(ctx, srv.Start)
 	if err == nil {
 		l.Infof("Shutting down")
 	}
