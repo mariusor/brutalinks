@@ -187,8 +187,9 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 			r.Post("/follow", h.HandleFollowInstanceRequest)
 			r.Get("/about", h.HandleAbout)
 			r.Route("/auth", func(r chi.Router) {
-				r.Use(h.NeedsSessions)
-				r.Get("/{provider}/callback", h.HandleCallback)
+
+				r.Get("/client", h.ShowOAuthClientIdentityMetadata)
+				r.With(h.NeedsSessions).Get("/{provider}/callback", h.HandleCallback)
 			})
 		})
 
