@@ -806,7 +806,7 @@ func pluralize(d float64, unit string) string {
 const (
 	DurationDay      = 24 * time.Hour
 	DurationWeek     = 7 * DurationDay
-	DurationMonthish = 31 * DurationDay
+	DurationMonthish = 30 * DurationDay
 	DurationYearish  = 365 * DurationDay
 	DurationDecade   = 10 * DurationYearish
 	DurationCentury  = 100 * DurationYearish
@@ -826,7 +826,7 @@ var durationUnits = map[time.Duration]string{
 
 func timeValWithUnit(td time.Duration) (float64, time.Duration) {
 	unitDur := getDurationInterval(td)
-	val := float64(td.Truncate(unitDur)) / float64(unitDur)
+	val := float64(td.Round(unitDur)) / float64(unitDur)
 	return val, unitDur
 }
 
@@ -860,7 +860,7 @@ func relTimeFmt(old time.Time) string {
 	case time.Minute:
 		return fmt.Sprintf("%.0f %s %s", val, pluralize(val, unit), when)
 	}
-	decDur := td - td.Truncate(unitDur)
+	decDur := td - td.Round(unitDur)
 	decVal, decUnitDur := timeValWithUnit(decDur)
 	decUnit, ok := durationUnits[decUnitDur]
 	if ok && decVal > 0 {
@@ -872,29 +872,29 @@ func relTimeFmt(old time.Time) string {
 func getDurationInterval(td time.Duration) time.Duration {
 	unit := time.Second
 
-	hours := math.Abs(td.Hours())
 	minutes := math.Abs(td.Minutes())
 
-	if hours < 1 {
+	switch {
+	case td > 100*DurationYearish:
+		unit = DurationCentury
+	case td > 10*DurationYearish:
+		unit = DurationDecade
+	case td > DurationYearish:
+		unit = DurationYearish
+	case td > DurationMonthish:
+		unit = DurationMonthish
+	case td > DurationWeek:
+		unit = DurationWeek
+	case td > DurationDay:
+		unit = DurationDay
+	case td > time.Hour:
+		unit = time.Hour
+	default:
 		if minutes < 1 {
 			unit = time.Second
 		} else {
 			unit = time.Minute
 		}
-	} else if hours < 24 {
-		unit = time.Hour
-	} else if hours < 168 {
-		unit = DurationDay
-	} else if hours < 672 {
-		unit = DurationWeek
-	} else if hours < 8760 {
-		unit = DurationMonthish
-	} else if hours < 87600 {
-		unit = DurationYearish
-	} else if hours < 876000 {
-		unit = DurationDecade
-	} else {
-		unit = DurationCentury
 	}
 	return unit
 }

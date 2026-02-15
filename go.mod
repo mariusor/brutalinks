@@ -4,7 +4,7 @@ go 1.25
 
 require (
 	git.sr.ht/~mariusor/assets v0.0.0-20241011130619-ac139c364a49
-	git.sr.ht/~mariusor/box v0.0.0-20260215143528-7e87fbb76d11
+	git.sr.ht/~mariusor/box v0.0.0-20260215152408-8af6ba7a13bd
 	git.sr.ht/~mariusor/cache v0.0.0-20250616110250-18a60a6f9473
 	git.sr.ht/~mariusor/lw v0.0.0-20250325163623-1639f3fb0e0d
 	git.sr.ht/~mariusor/mask v0.0.0-20250114195353-98705a6977b7
@@ -13,7 +13,7 @@ require (
 	github.com/alecthomas/kong v1.13.0
 	github.com/go-ap/activitypub v0.0.0-20260208110334-902f6cf8c2cc
 	github.com/go-ap/cache v0.0.0-20260208110517-9ae26d9d036b
-	github.com/go-ap/client v0.0.0-20260215143105-532819c9a932
+	github.com/go-ap/client v0.0.0-20260215151109-4ba4c3524026
 	github.com/go-ap/errors v0.0.0-20260208110149-e1b309365966
 	github.com/go-ap/filters v0.0.0-20260208110534-2b07661eb286
 	github.com/go-ap/jsonld v0.0.0-20251216162253-e38fa664ea77
