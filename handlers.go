@@ -618,7 +618,6 @@ func publicKey(data []byte) crypto.PublicKey {
 
 // HandleLogin handles POST /login requests
 func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
-	pw := r.PostFormValue("pw")
 	handle := r.PostFormValue("handle")
 	wf := r.PostFormValue("webfinger")
 
@@ -663,29 +662,10 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	lCtx := log.Ctx{"handle": handle, "count": len(accts)}
 	if len(accts) == 0 {
 		lCtx["err"] = "unable to find account"
-		handleErr("Login failed: unable to find account for authorization", lCtx)
+		handleErr("Login failed: no account found with that handle", lCtx)
 		return
 	}
 	var acct Account
-	if len(pw) > 0 {
-		acct = h.loadAccountsByPw(ctx, accts, pw)
-		if !acct.IsLogged() {
-			if err == nil {
-				err = errors.Errorf("unable to authenticate account")
-			}
-			lCtx["err"] = err.Error()
-			handleErr("Login failed: invalid authentication data", lCtx)
-			return
-		}
-		s, err := h.v.s.get(w, r)
-		if err != nil {
-			lCtx["err"] = err.Error()
-			handleErr("Login failed: unable to save session", lCtx)
-			return
-		}
-		s.Values[SessionUserKey] = acct
-		h.v.Redirect(w, r, "/", http.StatusSeeOther)
-	}
 	config := h.conf.GetOauth2Config(fedboxProvider, h.conf.BaseURL)
 	var state string
 	for _, acct = range accts {
@@ -1341,33 +1321,32 @@ func (h *handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
 		h.errFn(log.Ctx{"err": err.Error()})("Failed to load account from session")
 		redirWithError(errors.Newf("Failed to login with %s", provider))
 		return
+	}
+	if expected := genStateForAccount(*acct); expected != state {
+		h.errFn(log.Ctx{"received": state, "expected": expected})("Failed to validate state received from OAuth2 provider")
+		redirWithError(errors.Newf("Failed to login with %s", provider))
+		return
+	}
+	acct.Metadata.OAuth = OAuth{
+		State:    state,
+		Code:     code,
+		Provider: provider,
+		Token:    tok,
+	}
+
+	cred := credentials.C2S{
+		IRI:  acct.AP().GetLink(),
+		Conf: conf,
+		Tok:  tok,
+	}
+	if err = box.SaveCredentials(h.storage.b, cred); err != nil {
+		h.errFn(log.Ctx{"err": err.Error()})("Unable to save C2S credentials for logged actor")
+	}
+
+	if strings.ToLower(provider) != "local" {
+		h.v.addFlashMessage(Success, w, r, fmt.Sprintf("Login successful with %s", provider))
 	} else {
-		if expected := genStateForAccount(*acct); expected != state {
-			h.errFn(log.Ctx{"received": state, "expected": expected})("Failed to validate state received from OAuth2 provider")
-			redirWithError(errors.Newf("Failed to login with %s", provider))
-			return
-		}
-		acct.Metadata.OAuth = OAuth{
-			State:    state,
-			Code:     code,
-			Provider: provider,
-			Token:    tok,
-		}
-
-		cred := credentials.C2S{
-			IRI:  acct.AP().GetLink(),
-			Conf: conf,
-			Tok:  tok,
-		}
-		if err = box.SaveCredentials(h.storage.b, cred); err != nil {
-			h.errFn(log.Ctx{"err": err.Error()})("Unable to save C2S credentials for logged actor")
-		}
-
-		if strings.ToLower(provider) != "local" {
-			h.v.addFlashMessage(Success, w, r, fmt.Sprintf("Login successful with %s", provider))
-		} else {
-			h.v.addFlashMessage(Success, w, r, "Login successful")
-		}
+		h.v.addFlashMessage(Success, w, r, "Login successful")
 	}
 	if err := h.v.saveAccountToSession(w, r, acct); err != nil {
 		h.errFn()("Unable to save account to session")
