@@ -227,16 +227,16 @@ func (m *ModerationOp) Deleted() bool {
 
 func GetRenderableByType(typ vocab.ActivityVocabularyType) Renderable {
 	var result Renderable
-	if ValidAppreciationTypes.Contains(typ) {
+	if ValidAppreciationTypes.Match(typ) {
 		result = new(Vote)
 	}
-	if ValidModerationActivityTypes.Contains(typ) {
+	if ValidModerationActivityTypes.Match(typ) {
 		result = new(ModerationOp)
 	}
-	if ValidActorTypes.Contains(typ) {
+	if ValidActorTypes.Match(typ) {
 		result = new(Account)
 	}
-	if ValidContentTypes.Contains(typ) {
+	if ValidContentTypes.Match(typ) {
 		result = new(Item)
 	}
 	return result
@@ -267,7 +267,7 @@ func (m *ModerationOp) FromActivityPub(it vocab.Item) error {
 		m.Hash.FromActivityPub(a)
 		wer := new(Account)
 
-		m.Icon = icon(strings.ToLower(string(a.Type)))
+		m.Icon = icon(strings.ToLower(a.Type.AsTypes().String()))
 		wer.FromActivityPub(a.Actor)
 		m.SubmittedBy = wer
 		if a.Object.IsCollection() {

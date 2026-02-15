@@ -157,11 +157,11 @@ func (f fedbox) collection(ctx context.Context, i vocab.IRI) (vocab.CollectionIn
 		return nil, errors.Newf("Unable to load IRI, nil item: %s", i)
 	}
 	typ := it.GetType()
-	if !vocab.CollectionTypes.Contains(it.GetType()) {
+	if !vocab.CollectionTypes.Match(it.GetType()) {
 		return nil, errors.Errorf("Response item type is not a valid collection: %s", typ)
 	}
 
-	if !vocab.CollectionTypes.Contains(typ) {
+	if !vocab.CollectionTypes.Match(typ) {
 		return nil, errors.Errorf("Unable to convert item type %s to any of the collection types", typ)
 	}
 	return it.(vocab.CollectionInterface), nil
@@ -239,7 +239,7 @@ func validateActor(a vocab.Item) error {
 	if a == nil {
 		return errors.Errorf("Actor is nil")
 	}
-	if a.IsObject() && !vocab.ActorTypes.Contains(a.GetType()) {
+	if a.IsObject() && !vocab.ActorTypes.Match(a.GetType()) {
 		return errors.Errorf("Invalid Actor type %s", a.GetType())
 	}
 	return nil
@@ -249,7 +249,7 @@ func validateObject(o vocab.Item) error {
 	if o == nil {
 		return errors.Errorf("object is nil")
 	}
-	if o.IsObject() && !vocab.ObjectTypes.Contains(o.GetType()) {
+	if o.IsObject() && !vocab.ObjectTypes.Match(o.GetType()) {
 		return errors.Errorf("invalid Object type %q", o.GetType())
 	}
 	return nil

@@ -527,7 +527,7 @@ func (r *repository) loadAPPerson(a Account) *vocab.Actor {
 	} else {
 		p = new(vocab.Actor)
 	}
-	if p.Type == "" {
+	if vocab.NilType.Match(p.Type) {
 		p.Type = vocab.PersonType
 	}
 
@@ -609,7 +609,7 @@ func (r *repository) loadAccountsFollowers(ctx context.Context, acc *Account) er
 		if !ok {
 			continue
 		}
-		if !vocab.ActorTypes.Contains(fol.GetType()) {
+		if !vocab.ActorTypes.Match(fol.GetType()) {
 			continue
 		}
 		p := Account{}
@@ -644,7 +644,7 @@ func (r *repository) loadAccountsFollowing(ctx context.Context, acc *Account) er
 		if !ok {
 			continue
 		}
-		if !vocab.ActorTypes.Contains(fol.GetType()) {
+		if !vocab.ActorTypes.Match(fol.GetType()) {
 			continue
 		}
 		p := Account{}
@@ -1023,7 +1023,7 @@ func (r *repository) loadModerationDetails(ctx context.Context, items ...Moderat
 			continue
 		}
 		for i, mod := range items {
-			if ValidContentTypes.Contains(ob.GetType()) {
+			if ValidContentTypes.Match(ob.GetType()) {
 				it := Item{}
 				if err := it.FromActivityPub(ob); err == nil {
 					if renderablesEqual(mod.Object, &it) {
@@ -1031,7 +1031,7 @@ func (r *repository) loadModerationDetails(ctx context.Context, items ...Moderat
 					}
 				}
 			}
-			if ValidActorTypes.Contains(ob.GetType()) {
+			if ValidActorTypes.Match(ob.GetType()) {
 				auth := Account{}
 				if err := auth.FromActivityPub(ob); err == nil {
 					if renderablesEqual(mod.Object, &auth) {
@@ -1232,7 +1232,7 @@ func accumulateAccountsFromCollection(col vocab.CollectionInterface) (AccountCol
 	accounts := make(AccountCollection, 0)
 	deferredTagLoads := make(vocab.IRIs, 0)
 	for _, it := range col.Collection() {
-		if !it.IsObject() || !ValidActorTypes.Contains(it.GetType()) {
+		if !it.IsObject() || !ValidActorTypes.Match(it.GetType()) {
 			continue
 		}
 		a := Account{}
@@ -1394,7 +1394,7 @@ func (r *repository) LoadSearches(ctx context.Context, deps deps, checks ...filt
 		}
 		typ := it.GetType()
 		switch {
-		case ValidContentTypes.Contains(typ):
+		case ValidContentTypes.Match(typ):
 			err = vocab.OnObject(it, func(o *vocab.Object) error {
 				i := Item{}
 				if err := i.FromActivityPub(o); err != nil {
@@ -1404,7 +1404,7 @@ func (r *repository) LoadSearches(ctx context.Context, deps deps, checks ...filt
 				relations.Store(o.GetLink(), o.GetLink())
 				return nil
 			})
-		case ValidActorTypes.Contains(typ):
+		case ValidActorTypes.Match(typ):
 			err = vocab.OnActor(it, func(a *vocab.Actor) error {
 				act := Account{}
 				if err := act.FromActivityPub(a); err != nil {
@@ -1414,7 +1414,7 @@ func (r *repository) LoadSearches(ctx context.Context, deps deps, checks ...filt
 				relations.Store(a.GetLink(), a.GetLink())
 				return nil
 			})
-		case vocab.IntransitiveActivityTypes.Contains(typ), vocab.ActivityTypes.Contains(typ):
+		case vocab.IntransitiveActivityTypes.Match(typ), vocab.ActivityTypes.Match(typ):
 			err = vocab.OnActivity(it, func(a *vocab.Activity) error {
 				if typ == vocab.CreateType {
 					ob := a.Object
@@ -1422,14 +1422,14 @@ func (r *repository) LoadSearches(ctx context.Context, deps deps, checks ...filt
 						return errors.Newf("nil activity object")
 					}
 					if vocab.IsObject(ob) {
-						if ValidContentTypes.Contains(ob.GetType()) {
+						if ValidContentTypes.Match(ob.GetType()) {
 							i := Item{}
 							if err := i.FromActivityPub(a); err != nil {
 								return err
 							}
 							items = append(items, i)
 						}
-						if ValidActorTypes.Contains(ob.GetType()) {
+						if ValidActorTypes.Match(ob.GetType()) {
 							act := Account{}
 							if err := act.FromActivityPub(a); err != nil {
 								return err
@@ -1452,7 +1452,7 @@ func (r *repository) LoadSearches(ctx context.Context, deps deps, checks ...filt
 					follows = append(follows, f)
 					relations.Store(a.GetLink(), a.GetLink())
 				}
-				if ValidModerationActivityTypes.Contains(typ) {
+				if ValidModerationActivityTypes.Match(typ) {
 					m := ModerationOp{}
 					if err := m.FromActivityPub(a); err != nil {
 						return err
@@ -1460,7 +1460,7 @@ func (r *repository) LoadSearches(ctx context.Context, deps deps, checks ...filt
 					moderations = append(moderations, m)
 					relations.Store(a.GetLink(), a.GetLink())
 				}
-				if ValidAppreciationTypes.Contains(typ) {
+				if ValidAppreciationTypes.Match(typ) {
 					v := Vote{}
 					if err := v.FromActivityPub(a); err != nil {
 						return err
@@ -1498,13 +1498,13 @@ func (r *repository) LoadSearches(ctx context.Context, deps deps, checks ...filt
 				continue
 			}
 			typ := ob.GetType()
-			if vocab.ActorTypes.Contains(typ) {
+			if vocab.ActorTypes.Match(typ) {
 				ac := Account{}
 				if err := ac.FromActivityPub(ob); err == nil {
 					accounts = append(accounts, ac)
 				}
 			}
-			if vocab.ObjectTypes.Contains(typ) {
+			if vocab.ObjectTypes.Match(typ) {
 				it := Item{}
 				if err := it.FromActivityPub(ob); err == nil {
 					items = append(items, it)

@@ -533,7 +533,7 @@ func (t *Tag) FromActivityPub(it vocab.Item) error {
 		})
 	case vocab.CreateType, vocab.UpdateType, vocab.ActivityType:
 		return vocab.OnActivity(it, func(act *vocab.Activity) error {
-			if (vocab.ActivityVocabularyTypes{vocab.CreateType, vocab.UpdateType}).Contains(act.Type) {
+			if (vocab.ActivityVocabularyTypes{vocab.CreateType, vocab.UpdateType}).Match(act.Type) {
 				return errors.Newf("Invalid activity to load from %s", act.Type)
 			}
 			if err := t.FromActivityPub(act.Object); err != nil {
@@ -604,7 +604,7 @@ func (i *Item) FromActivityPub(it vocab.Item) error {
 	case vocab.CreateType, vocab.UpdateType, vocab.ActivityType:
 		return vocab.OnActivity(it, func(act *vocab.Activity) error {
 			// TODO(marius): this logic is probably broken if the activity is anything else except a Create
-			if !(vocab.ActivityVocabularyTypes{vocab.CreateType, vocab.UpdateType}).Contains(act.Type) {
+			if !(vocab.ActivityVocabularyTypes{vocab.CreateType, vocab.UpdateType}).Match(act.Type) {
 				return errors.Newf("Invalid activity to load from %s", act.Type)
 			}
 			if err := i.FromActivityPub(act.Object); err != nil {
@@ -785,27 +785,27 @@ func LoadFromActivityPubItem(it vocab.Item) (Renderable, error) {
 			return nil
 		})
 	}
-	if ValidContentManagementTypes.Contains(typ) || typ == "" {
+	if ValidContentManagementTypes.Match(typ) || vocab.NilType.Match(typ) {
 		item := new(Item)
 		err = item.FromActivityPub(it)
 		result = item
 	}
-	if ValidAppreciationTypes.Contains(typ) {
+	if ValidAppreciationTypes.Match(typ) {
 		vot := new(Vote)
 		err = vot.FromActivityPub(it)
 		result = vot
 	}
-	if ValidModerationActivityTypes.Contains(typ) {
+	if ValidModerationActivityTypes.Match(typ) {
 		op := new(ModerationOp)
 		err = op.FromActivityPub(it)
 		result = op
 	}
-	if ValidActorTypes.Contains(typ) {
+	if ValidActorTypes.Match(typ) {
 		acc := new(Account)
 		err = acc.FromActivityPub(it)
 		result = acc
 	}
-	if ValidContentTypes.Contains(typ) {
+	if ValidContentTypes.Match(typ) {
 		item := new(Item)
 		err = item.FromActivityPub(it)
 		result = item

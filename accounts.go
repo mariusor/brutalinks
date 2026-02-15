@@ -173,7 +173,7 @@ func (a Account) Votes() VoteCollection {
 	}
 	votes := make(VoteCollection, 0)
 	for _, it := range a.Metadata.Outbox {
-		if !ValidAppreciationTypes.Contains(it.GetType()) {
+		if !ValidAppreciationTypes.Match(it.GetType()) {
 			continue
 		}
 		v := Vote{}

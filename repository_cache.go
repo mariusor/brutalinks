@@ -46,7 +46,7 @@ func (c *cc) removeRelated(items ...vocab.Item) {
 		}
 		if vocab.IsObject(it) || vocab.IsItemCollection(it) && len(it.GetLink()) > 0 {
 			typ := it.GetType()
-			if vocab.ActivityTypes.Contains(typ) || vocab.IntransitiveActivityTypes.Contains(typ) {
+			if vocab.ActivityTypes.Match(typ) || vocab.IntransitiveActivityTypes.Match(typ) {
 				vocab.OnActivity(it, c.accumActivityIRIs(&toRemove))
 			} else {
 				vocab.OnObject(it, c.accumObjectIRIs(&toRemove))
@@ -100,7 +100,7 @@ func (c *cc) accumActivityIRIs(toRemove *vocab.IRIs) func(activity *vocab.Activi
 		}
 		typ := a.Type
 		withSideEffects := vocab.ActivityVocabularyTypes{vocab.UpdateType, vocab.UndoType, vocab.DeleteType}
-		if withSideEffects.Contains(typ) {
+		if withSideEffects.Match(typ) {
 			base := filepath.Dir(a.Object.GetLink().String())
 			*toRemove = append(*toRemove, vocab.IRI(base), a.Object.GetLink())
 		}
