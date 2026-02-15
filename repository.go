@@ -124,6 +124,7 @@ func ActivityPubService(c appConfig) (*repository, error) {
 			l.WithContext(log.Ctx{"err": err.Error()}).Errorf("unable to load instance Actor")
 		}
 
+		repo.app.Metadata.OAuth.Token = cred.Tok
 		repo.cred = cred
 	} else {
 		return repo, fmt.Errorf("invalid authorized Actor: %s", cred.IRI)
@@ -2344,10 +2345,12 @@ func (r *repository) SaveAccount(ctx context.Context, a Account) (Account, error
 	}
 	p.Updated = now
 
+	auth := r.app
 	fx := r.fedbox.Service()
 	parent := fx
 	if a.CreatedBy != nil {
 		parent = r.loadAPPerson(*a.CreatedBy)
+		auth = a.CreatedBy
 	}
 
 	act := vocab.Activity{Updated: now}
@@ -2381,7 +2384,7 @@ func (r *repository) SaveAccount(ctx context.Context, a Account) (Account, error
 
 	var ap vocab.Item
 	ltx := log.Ctx{"actor": a.Handle}
-	i, ap, err := r.ToOutbox(ctx, a.Credentials(), act)
+	i, ap, err := r.ToOutbox(ctx, auth.Credentials(), act)
 	if err != nil {
 		ltx["parent"] = parent.GetLink()
 		if ap != nil {
@@ -2409,7 +2412,7 @@ func (r *repository) moderationActivity(ctx context.Context, er *vocab.Actor, ed
 
 	// We need to add the ed/er accounts' creators to the CC list
 	if er.AttributedTo != nil && !er.AttributedTo.GetLink().Equals(vocab.PublicNS, true) {
-		appendRecipients(&act.CC, er.AttributedTo.GetLink())
+		_ = appendRecipients(&act.CC, er.AttributedTo.GetLink())
 	}
 	vocab.OnObject(ed, func(o *vocab.Object) error {
 		if o.AttributedTo != nil {

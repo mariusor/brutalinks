@@ -364,10 +364,12 @@ func (a *Account) Credentials() credentials.C2S {
 	conf := oauth2.Config{
 		ClientID:     Instance.Conf.OAuth2App,
 		ClientSecret: Instance.Conf.OAuth2Secret,
-		Endpoint: oauth2.Endpoint{
+	}
+	if a.HasMetadata() {
+		conf.Endpoint = oauth2.Endpoint{
 			AuthURL:  a.Metadata.AuthorizationEndPoint,
 			TokenURL: a.Metadata.TokenEndPoint,
-		},
+		}
 	}
 	return credentials.C2S{
 		IRI:  vocab.IRI(a.Metadata.ID),
