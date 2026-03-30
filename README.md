@@ -10,7 +10,7 @@ Built using a performant stack, and with minimal dependencies, it tries to provi
 
 ## Further reading
 
-More information about BrutaLinks and the other packages in the GoActivityPub library can be found on the [wiki](https://man.sr.ht/~mariusor/go-activitypub/brutalinks/index.md).
+More information about BrutaLinks and the other packages in the GoActivityPub library can be found on the [wiki](https://go-activitypub.federated.id/apps/brutalinks/).
 
 ## Contact and feedback
 
