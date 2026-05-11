@@ -386,11 +386,18 @@ func (h handler) CSRF() func(http.Handler) http.Handler {
 	if h.conf.Env.IsDev() {
 		return passThrough
 	}
+
+	csrfErrorHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		reason := csrf.FailureReason(r)
+		h.logger.WithContext(log.Ctx{"err": reason}).Warnf("failed CSRF validation")
+		h.ErrorHandler(errors.Forbiddenf("Failed CSRF validation")).ServeHTTP(w, r)
+	})
 	opts := []csrf.Option{
+		csrf.TrustedOrigins([]string{h.conf.ListenHost}),
 		csrf.CookieName(csrfName),
 		csrf.FieldName(csrfName),
 		csrf.Secure(h.conf.Env.IsProd()),
-		csrf.ErrorHandler(h.ErrorHandler(errors.Forbiddenf("Invalid request token"))),
+		csrf.ErrorHandler(csrfErrorHandler),
 	}
 	var authKey []byte
 	if len(h.conf.SessionKeys) <= 0 {
