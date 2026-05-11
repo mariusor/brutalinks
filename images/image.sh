@@ -19,7 +19,7 @@ HOST_GOMODCACHE=$(go env GOMODCACHE)
 GOCACHE=/root/.cache/go-build
 GOMODCACHE=/go/pkg/mod
 
-_builder=$(buildah from docker.io/library/golang:1.25-alpine)
+_builder=$(buildah from docker.io/library/golang:1.26-alpine)
 
 buildah run "${_builder}" /sbin/apk update
 buildah run "${_builder}" /sbin/apk add make bash openssl upx

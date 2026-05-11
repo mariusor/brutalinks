@@ -314,7 +314,8 @@ const (
 
 func (r *repository) loadWebfingerActorFromIRI(ctx context.Context, host, acct string) (*vocab.Actor, error) {
 	loadFromURL := func(url string, what any) error {
-		resp, err := r.fedbox.Client(nil).Get(url)
+		cl := client.HTTPClient(r.fedbox.Client(nil))
+		resp, err := cl.Get(url)
 		if err != nil {
 			return err
 		}
@@ -363,7 +364,8 @@ func (r *repository) loadInstanceActorFromIRI(ctx context.Context, iri vocab.IRI
 	}
 	nodeInfoURL := fmt.Sprintf("%s/.well-known/nodeinfo", iri)
 	loadFromURL := func(url string, what any) error {
-		resp, err := r.fedbox.Client(nil).Get(url)
+		cl := client.HTTPClient(r.fedbox.Client(nil))
+		resp, err := cl.Get(url)
 		if err != nil {
 			return err
 		}
@@ -973,52 +975,11 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO(marius): Start oauth2 authorize session
-	config := h.conf.GetOauth2Config(fedboxProvider, h.conf.BaseURL)
-	config.Scopes = []string{scopeAnonymousUserCreate}
-	param := oauth2.SetAuthURLParam("actor", a.Metadata.ID)
-	sessUrl := config.AuthCodeURL(csrf.Token(r), param)
-
-	res, err := http.Get(sessUrl)
-	if err != nil {
-		h.v.HandleErrors(w, r, err)
-		return
-	}
-
-	var body []byte
-	if body, err = io.ReadAll(res.Body); err != nil {
-		h.v.HandleErrors(w, r, err)
-		return
-	}
-	if res.StatusCode != http.StatusOK {
-		incoming, e := errors.UnmarshalJSON(body)
-		var errs []error
-		if e == nil {
-			errs = make([]error, len(incoming))
-			for i := range incoming {
-				errs[i] = incoming[i]
-			}
-		} else {
-			errs = []error{errors.WrapWithStatus(res.StatusCode, errors.Newf(""), "invalid response")}
-		}
-		h.v.HandleErrors(w, r, errs...)
-		return
-	}
-	d := osin.AuthorizeData{}
-	if err := json.Unmarshal(body, &d); err != nil {
-		h.v.HandleErrors(w, r, err)
-		return
-	}
-	if d.Code == "" {
-		h.v.HandleErrors(w, r, errors.NotValidf("unable to get session token for setting the user's password"))
-		return
-	}
-
 	// pos
 	pwChURL := fmt.Sprintf("%s/oauth/pw", h.storage.BaseURL())
 	u, _ := url.Parse(pwChURL)
 	q := u.Query()
-	q.Set("s", d.Code)
+	q.Set("s", app.Credentials().Tok.AccessToken)
 	u.RawQuery = q.Encode()
 	form := url.Values{}
 	pw := r.PostFormValue("pw")
@@ -1028,7 +989,8 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	form.Add("pw-confirm", pwConfirm)
 
 	pwChRes, err := http.Post(u.String(), "application/x-www-form-urlencoded", strings.NewReader(form.Encode()))
-	if body, err = io.ReadAll(pwChRes.Body); err != nil {
+	body, err := io.ReadAll(pwChRes.Body)
+	if err != nil {
 		h.errFn()("Error: %s", err)
 		h.v.HandleErrors(w, r, err)
 		return
