@@ -13,6 +13,7 @@ import (
 	"github.com/go-ap/client"
 	"github.com/go-ap/client/credentials"
 	"github.com/go-ap/errors"
+	"github.com/go-ap/filters"
 )
 
 const (
@@ -171,88 +172,18 @@ func (f fedbox) object(ctx context.Context, i vocab.IRI) (vocab.Item, error) {
 	return f.Client(nil).CtxLoadIRI(ctx, f.normaliseIRI(i))
 }
 
-func rawFilterQuery(f ...client.FilterFn) string {
-	if len(f) == 0 {
-		return ""
-	}
-	q := make(url.Values)
-	for _, ff := range f {
-		qq := ff()
-		for k, v := range qq {
-			q[k] = append(q[k], v...)
-		}
-	}
-	if len(q) == 0 {
-		return ""
-	}
+type LoadFn func(vocab.Item, ...filters.Check) vocab.IRI
 
-	return "?" + q.Encode()
+func iri(i vocab.IRI, f ...filters.Check) vocab.IRI {
+	return vocab.IRI(fmt.Sprintf("%s?%s", i, filters.ToValues(f...).Encode()))
 }
 
-type LoadFn func(vocab.Item, ...client.FilterFn) vocab.IRI
-
-func iri(i vocab.IRI, f ...client.FilterFn) vocab.IRI {
-	return vocab.IRI(fmt.Sprintf("%s%s", i, rawFilterQuery(f...)))
-}
-
-func inbox(a vocab.Item, f ...client.FilterFn) vocab.IRI {
-	return iri(vocab.Inbox.IRI(a), f...)
-}
-
-func outbox(a vocab.Item, f ...client.FilterFn) vocab.IRI {
+func outbox(a vocab.Item, f ...filters.Check) vocab.IRI {
 	return iri(vocab.Outbox.IRI(a), f...)
 }
 
-func following(a vocab.Item, f ...client.FilterFn) vocab.IRI {
-	return iri(vocab.Following.IRI(a), f...)
-}
-
-func followers(a vocab.Item, f ...client.FilterFn) vocab.IRI {
+func followers(a vocab.Item, f ...filters.Check) vocab.IRI {
 	return iri(vocab.Followers.IRI(a), f...)
-}
-
-func liked(a vocab.Item, f ...client.FilterFn) vocab.IRI {
-	return iri(vocab.Liked.IRI(a), f...)
-}
-
-func likes(o vocab.Item, f ...client.FilterFn) vocab.IRI {
-	return iri(vocab.Likes.IRI(o), f...)
-}
-
-func shares(o vocab.Item, f ...client.FilterFn) vocab.IRI {
-	return iri(vocab.Shares.IRI(o), f...)
-}
-
-func replies(o vocab.Item, f ...client.FilterFn) vocab.IRI {
-	return iri(vocab.Replies.IRI(o), f...)
-}
-
-func blocked(a vocab.Item, f ...client.FilterFn) vocab.IRI {
-	return iri(vocab.CollectionPath("blocked").IRI(a), f...)
-}
-
-func ignored(a vocab.Item, f ...client.FilterFn) vocab.IRI {
-	return iri(vocab.CollectionPath("ignored").IRI(a), f...)
-}
-
-func validateActor(a vocab.Item) error {
-	if a == nil {
-		return errors.Errorf("Actor is nil")
-	}
-	if a.IsObject() && !vocab.ActorTypes.Match(a.GetType()) {
-		return errors.Errorf("Invalid Actor type %s", a.GetType())
-	}
-	return nil
-}
-
-func validateObject(o vocab.Item) error {
-	if o == nil {
-		return errors.Errorf("object is nil")
-	}
-	if o.IsObject() && !vocab.ObjectTypes.Match(o.GetType()) {
-		return errors.Errorf("invalid Object type %q", o.GetType())
-	}
-	return nil
 }
 
 func (f fedbox) Actor(ctx context.Context, iri vocab.IRI) (*vocab.Actor, error) {
@@ -279,15 +210,15 @@ func (f fedbox) Object(ctx context.Context, iri vocab.IRI) (*vocab.Object, error
 	return vocab.ToObject(it)
 }
 
-func (f fedbox) Activities(ctx context.Context, filters ...client.FilterFn) (vocab.CollectionInterface, error) {
+func (f fedbox) Activities(ctx context.Context, filters ...filters.Check) (vocab.CollectionInterface, error) {
 	return f.collection(ctx, iri(activities.IRI(f.Service()), filters...))
 }
 
-func (f fedbox) Actors(ctx context.Context, filters ...client.FilterFn) (vocab.CollectionInterface, error) {
+func (f fedbox) Actors(ctx context.Context, filters ...filters.Check) (vocab.CollectionInterface, error) {
 	return f.collection(ctx, iri(actors.IRI(f.Service()), filters...))
 }
 
-func (f fedbox) Objects(ctx context.Context, filters ...client.FilterFn) (vocab.CollectionInterface, error) {
+func (f fedbox) Objects(ctx context.Context, filters ...filters.Check) (vocab.CollectionInterface, error) {
 	return f.collection(ctx, iri(objects.IRI(f.Service()), filters...))
 }
 
@@ -332,7 +263,7 @@ func (r *repository) ToOutbox(ctx context.Context, cred credentials.C2S, a vocab
 
 	// NOTE(marius): we avoid the cache transport for outgoing POST requests.
 	cl := r.fedbox.Client(cred.Transport(ctx))
-	i, it, err := cl.CtxToCollection(ctx, sendTo, a)
+	i, it, err := cl.CtxToCollection(ctx, a, sendTo)
 	if err != nil {
 		return i, a, err
 	}

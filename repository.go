@@ -15,12 +15,10 @@ import (
 	"git.sr.ht/~mariusor/box"
 	log "git.sr.ht/~mariusor/lw"
 	vocab "github.com/go-ap/activitypub"
-	"github.com/go-ap/client"
 	"github.com/go-ap/client/credentials"
 	"github.com/go-ap/errors"
 	"github.com/go-ap/filters"
 	j "github.com/go-ap/jsonld"
-	"github.com/mariusor/qstring"
 )
 
 type repository struct {
@@ -2189,7 +2187,7 @@ func (r *repository) LoadTags(ctx context.Context, ff ...filters.Check) (TagColl
 	return tags, count, nil
 }
 
-type CollectionFilterFn func(context.Context, ...client.FilterFn) (vocab.CollectionInterface, error)
+type CollectionFilterFn func(context.Context, ...filters.Check) (vocab.CollectionInterface, error)
 
 func (r *repository) ValidateRemoteAccount(ctx context.Context, acc *Account) error {
 	now := time.Now().UTC()
@@ -2251,16 +2249,6 @@ func (r *repository) LoadAccount(ctx context.Context, iri vocab.IRI) (*Account, 
 	}
 	err = r.ValidateRemoteAccount(ctx, acc)
 	return acc, err
-}
-
-func Values(f interface{}) client.FilterFn {
-	return func() url.Values {
-		v, e := qstring.Marshal(f)
-		if e != nil {
-			return url.Values{}
-		}
-		return v
-	}
 }
 
 func (r *repository) SendFollowResponse(ctx context.Context, f FollowRequest, accept bool, reason *Item) error {
