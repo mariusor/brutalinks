@@ -21,6 +21,7 @@ import (
 	"git.sr.ht/~mariusor/brutalinks/internal/assets"
 	"git.sr.ht/~mariusor/brutalinks/internal/config"
 	log "git.sr.ht/~mariusor/lw"
+	"git.sr.ht/~mariusor/tdiff"
 	vocab "github.com/go-ap/activitypub"
 	"github.com/go-ap/errors"
 	"github.com/go-ap/filters"
@@ -97,7 +98,7 @@ func ViewInit(c appConfig, l log.Logger) (*view, error) {
 			"IsReadOnly":        isReadOnly,
 			"ScoreFmt":          scoreFmt,
 			"NumberFmt":         func(i int) string { return numberFormat("%d", i) },
-			"TimeFmt":           relTimeFmt,
+			"TimeFmt":           humanTimeFmt,
 			"ISOTimeFmt":        isoTimeFmt,
 			"ShowUpdate":        showUpdateTime,
 			"ScoreClass":        scoreClass,
@@ -783,8 +784,12 @@ func isoTimeFmt(t time.Time) string {
 	return t.Format("2006-01-02T15:04:05.000-07:00")
 }
 
+func humanTimeFmt(with time.Time) string {
+	return relTimeFmt(time.Now().Round(time.Millisecond).UTC(), with)
+}
+
 func pluralize(d float64, unit string) string {
-	l := len(unit)
+	// TODO(marius): replace with the x/text/feature/plural
 	cons := func(c byte) bool {
 		cons := []byte{'b', 'c', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'm', 'n', 'p', 'q', 'r', 's', 't', 'v', 'w', 'y', 'z'}
 		for _, cc := range cons {
@@ -794,7 +799,7 @@ func pluralize(d float64, unit string) string {
 		}
 		return false
 	}
-	if math.Round(d) != 1 {
+	if l := len(unit); l > 2 && math.Round(d) != 1 {
 		if cons(unit[l-2]) && unit[l-1] == 'y' {
 			unit = unit[:l-1] + "ie"
 		}
@@ -803,100 +808,8 @@ func pluralize(d float64, unit string) string {
 	return unit
 }
 
-const (
-	DurationDay      = 24 * time.Hour
-	DurationWeek     = 7 * DurationDay
-	DurationMonthish = 30 * DurationDay
-	DurationYearish  = 365 * DurationDay
-	DurationDecade   = 10 * DurationYearish
-	DurationCentury  = 100 * DurationYearish
-)
-
-var durationUnits = map[time.Duration]string{
-	time.Second:      "second",
-	time.Minute:      "minute",
-	time.Hour:        "hour",
-	DurationDay:      "day",
-	DurationWeek:     "week",
-	DurationMonthish: "month",
-	DurationYearish:  "year",
-	DurationDecade:   "decade",
-	DurationCentury:  "century",
-}
-
-func timeValWithUnit(td time.Duration) (float64, time.Duration) {
-	unitDur := getDurationInterval(td)
-	val := float64(td.Round(unitDur)) / float64(unitDur)
-	return val, unitDur
-}
-
-func relTimeFmt(old time.Time) string {
-	td := time.Now().UTC().Sub(old)
-
-	when := "ago"
-	if td < 0 {
-		// we're in the future
-		when = "in the future"
-		td *= -1
-	}
-	if td == math.MaxInt64 {
-		return fmt.Sprintf("eons %s", when)
-	}
-	if td.Truncate(time.Minute) == 0 {
-		return "in the last minute"
-	}
-	val, unitDur := timeValWithUnit(td)
-
-	unit, ok := durationUnits[unitDur]
-	if !ok {
-		return "sometime unknown"
-	}
-
-	switch unitDur {
-	case DurationDay:
-		fallthrough
-	case time.Hour:
-		fallthrough
-	case time.Minute:
-		return fmt.Sprintf("%.0f %s %s", val, pluralize(val, unit), when)
-	}
-	decDur := td - td.Round(unitDur)
-	decVal, decUnitDur := timeValWithUnit(decDur)
-	decUnit, ok := durationUnits[decUnitDur]
-	if ok && decVal > 0 {
-		return fmt.Sprintf("%.0f %s, %.0f %s %s", val, pluralize(val, unit), decVal, pluralize(decVal, decUnit), when)
-	}
-	return fmt.Sprintf("%.1f %s %s", val, pluralize(val, unit), when)
-}
-
-func getDurationInterval(td time.Duration) time.Duration {
-	unit := time.Second
-
-	minutes := math.Abs(td.Minutes())
-
-	switch {
-	case td > 100*DurationYearish:
-		unit = DurationCentury
-	case td > 10*DurationYearish:
-		unit = DurationDecade
-	case td > DurationYearish:
-		unit = DurationYearish
-	case td > DurationMonthish:
-		unit = DurationMonthish
-	case td > DurationWeek:
-		unit = DurationWeek
-	case td > DurationDay:
-		unit = DurationDay
-	case td > time.Hour:
-		unit = time.Hour
-	default:
-		if minutes < 1 {
-			unit = time.Second
-		} else {
-			unit = time.Minute
-		}
-	}
-	return unit
+func relTimeFmt(new, old time.Time) string {
+	return fmt.Sprintf("%s", tdiff.Formatter(new, old, tdiff.PastSuffix("ago"), tdiff.FutureSuffix("in the future")))
 }
 
 func scoreLink(i Item, dir string) string {
