@@ -341,37 +341,6 @@ func (h *handler) HandleAbout(w http.ResponseWriter, r *http.Request) {
 	_ = h.v.RenderTemplate(r, w, m.Template(), m)
 }
 
-func httpErrorResponse(e error) int {
-	if errors.IsBadRequest(e) {
-		return http.StatusBadRequest
-	}
-	if errors.IsForbidden(e) {
-		return http.StatusForbidden
-	}
-	if errors.IsNotSupported(e) {
-		return http.StatusHTTPVersionNotSupported
-	}
-	if errors.IsMethodNotAllowed(e) {
-		return http.StatusMethodNotAllowed
-	}
-	if errors.IsNotFound(e) {
-		return http.StatusNotFound
-	}
-	if errors.IsNotImplemented(e) {
-		return http.StatusNotImplemented
-	}
-	if errors.IsUnauthorized(e) {
-		return http.StatusUnauthorized
-	}
-	if errors.IsTimeout(e) {
-		return http.StatusGatewayTimeout
-	}
-	if errors.IsNotValid(e) {
-		return http.StatusInternalServerError
-	}
-	return http.StatusInternalServerError
-}
-
 func (h *handler) ErrorHandler(errs ...error) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		h.v.HandleErrors(w, r, errs...)

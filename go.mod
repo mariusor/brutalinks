@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	git.sr.ht/~mariusor/assets v0.0.0-20241011130619-ac139c364a49
-	git.sr.ht/~mariusor/box v0.0.0-20260518090626-38e34b387934
+	git.sr.ht/~mariusor/box v0.0.0-20260621132933-ae088f64992e
 	git.sr.ht/~mariusor/cache v0.0.0-20260516133819-5427e9c3067b
 	git.sr.ht/~mariusor/lw v0.0.0-20250325163623-1639f3fb0e0d
 	git.sr.ht/~mariusor/mask v0.0.0-20250114195353-98705a6977b7
@@ -12,12 +12,12 @@ require (
 	git.sr.ht/~mariusor/tdiff v0.0.0-20260507174357-e36a9010f0f0
 	git.sr.ht/~mariusor/wrapper v0.0.0-20260103185140-9873830de009
 	github.com/alecthomas/kong v1.13.0
-	github.com/go-ap/activitypub v0.0.0-20260416122353-fb80985e153a
-	github.com/go-ap/cache v0.0.0-20260601105412-761bb369c090
-	github.com/go-ap/client v0.0.0-20260515125006-7c971011a6dd
-	github.com/go-ap/errors v0.0.0-20260208110149-e1b309365966
-	github.com/go-ap/filters v0.0.0-20260416122840-724cb3c8974c
-	github.com/go-ap/jsonld v0.0.0-20251216162253-e38fa664ea77
+	github.com/go-ap/activitypub v0.0.0-20260701132640-13f25467c431
+	github.com/go-ap/cache v0.0.0-20260701132808-71a22e0f7796
+	github.com/go-ap/client v0.0.0-20260701132857-1eae75312fd8
+	github.com/go-ap/errors v0.0.0-20260701132509-92e5e4fd6394
+	github.com/go-ap/filters v0.0.0-20260701132827-4ad866f2a41d
+	github.com/go-ap/jsonld v0.0.0-20260607140920-737b40e0ca38
 	github.com/go-chi/chi/v5 v5.3.0
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/csrf v1.7.3
@@ -32,13 +32,13 @@ require (
 	gitlab.com/golang-commonmark/markdown v0.0.0-20211110145824-bf3e522c626a
 	gitlab.com/golang-commonmark/puny v0.0.0-20191124015043-9f83538fa04f
 	golang.org/x/oauth2 v0.36.0
-	golang.org/x/text v0.37.0
+	golang.org/x/text v0.38.0
 )
 
 require (
 	charm.land/bubbles/v2 v2.1.0 // indirect
-	charm.land/bubbletea/v2 v2.0.6 // indirect
-	charm.land/lipgloss/v2 v2.0.3 // indirect
+	charm.land/bubbletea/v2 v2.0.7 // indirect
+	charm.land/lipgloss/v2 v2.0.4 // indirect
 	charm.land/log/v2 v2.0.0 // indirect
 	charm.land/wish/v2 v2.0.1 // indirect
 	git.sr.ht/~mariusor/go-xsd-duration v0.0.0-20220703122237-02e73435a078 // indirect
@@ -49,12 +49,13 @@ require (
 	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be // indirect
 	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
-	github.com/bits-and-blooms/bitset v1.24.4 // indirect
+	github.com/bits-and-blooms/bitset v1.24.5 // indirect
 	github.com/captncraig/cors v0.0.0-20190703115713-e80254a89df1 // indirect
+	github.com/carlmjohnson/requests v0.25.1 // indirect
 	github.com/charmbracelet/colorprofile v0.4.3 // indirect
 	github.com/charmbracelet/keygen v0.5.4 // indirect
 	github.com/charmbracelet/ssh v0.0.0-20250826160808-ebfa259c7309 // indirect
-	github.com/charmbracelet/ultraviolet v0.0.0-20260525132238-948f4557a654 // indirect
+	github.com/charmbracelet/ultraviolet v0.0.0-20260622092850-f39628c8a989 // indirect
 	github.com/charmbracelet/x/ansi v0.11.7 // indirect
 	github.com/charmbracelet/x/conpty v0.2.0 // indirect
 	github.com/charmbracelet/x/term v0.2.2 // indirect
@@ -96,12 +97,12 @@ require (
 	gitlab.com/golang-commonmark/html v0.0.0-20191124015941-a22733972181 // indirect
 	gitlab.com/golang-commonmark/linkify v0.0.0-20200225224916-64bca66f6ad3 // indirect
 	gitlab.com/golang-commonmark/mdurl v0.0.0-20191124015652-932350d1cb84 // indirect
-	go.etcd.io/bbolt v1.4.3 // indirect
-	golang.org/x/crypto v0.52.0 // indirect
-	golang.org/x/exp v0.0.0-20260529124908-c761662dc8c9 // indirect
-	golang.org/x/net v0.55.0 // indirect
-	golang.org/x/sync v0.20.0 // indirect
-	golang.org/x/sys v0.45.0 // indirect
+	go.etcd.io/bbolt v1.5.0 // indirect
+	golang.org/x/crypto v0.53.0 // indirect
+	golang.org/x/exp v0.0.0-20260611194520-c48552f49976 // indirect
+	golang.org/x/net v0.56.0 // indirect
+	golang.org/x/sync v0.21.0 // indirect
+	golang.org/x/sys v0.46.0 // indirect
 	gopkg.in/neurosnap/sentences.v1 v1.0.7 // indirect
 	quamina.net/go/quamina/v2 v2.0.2 // indirect
 )

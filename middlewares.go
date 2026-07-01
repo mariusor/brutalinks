@@ -17,7 +17,7 @@ func (h handler) LoadAuthorMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		handle := chi.URLParam(r, "handle")
 		if handle == "" {
-			h.ErrorHandler(errors.NotValidf("missing account handle")).ServeHTTP(w, r)
+			h.ErrorHandler(errors.NotFoundf("missing account handle")).ServeHTTP(w, r)
 			return
 		}
 		var authors AccountCollection

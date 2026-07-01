@@ -425,7 +425,7 @@ func (h *handler) HandleFollowInstanceRequest(w http.ResponseWriter, r *http.Req
 	instanceURL := r.FormValue("url")
 	backURL := r.Header.Get("Referer")
 	if len(instanceURL) == 0 {
-		h.v.HandleErrors(w, r, errors.NotValidf("Empty instance URL"))
+		h.v.HandleErrors(w, r, errors.Errorf("Empty instance URL"))
 		return
 	}
 	if instanceURL == h.conf.APIURL {
@@ -441,7 +441,7 @@ func (h *handler) HandleFollowInstanceRequest(w http.ResponseWriter, r *http.Req
 	}
 	if rem.PublicKey.ID == "" {
 		// NOTE(marius): if the actor that we want to follow with doesn't have a public key, it can't federate
-		h.v.HandleErrors(w, r, errors.NotValidf("Instance doesn't support federation: %s", instanceURL))
+		h.v.HandleErrors(w, r, errors.NotAcceptablef("Instance doesn't support federation: %s", instanceURL))
 		return
 	}
 
@@ -911,7 +911,7 @@ func (h *handler) HandleChangePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if d.Code == "" {
-		h.v.HandleErrors(w, r, errors.NotValidf("unable to get session token for setting the user's password"))
+		h.v.HandleErrors(w, r, errors.BadRequestf("unable to get session token for setting the user's password"))
 		return
 	}
 

@@ -400,7 +400,7 @@ func (v *view) HandleErrors(w http.ResponseWriter, r *http.Request, errs ...erro
 			continue
 		}
 		if renderErrors {
-			status = httpErrorResponse(err)
+			status = errors.HttpStatus(err)
 		} else {
 			v.addFlashMessage(Error, w, r, err.Error())
 		}
