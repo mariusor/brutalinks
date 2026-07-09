@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	git.sr.ht/~mariusor/assets v0.0.0-20241011130619-ac139c364a49
-	git.sr.ht/~mariusor/box v0.0.0-20260709170128-09b51ada5cb9
+	git.sr.ht/~mariusor/box v0.0.0-20260709180106-0de0badf0155
 	git.sr.ht/~mariusor/cache v0.0.0-20260516133819-5427e9c3067b
 	git.sr.ht/~mariusor/lw v0.0.0-20250325163623-1639f3fb0e0d
 	git.sr.ht/~mariusor/mask v0.0.0-20250114195353-98705a6977b7
@@ -14,7 +14,7 @@ require (
 	github.com/alecthomas/kong v1.13.0
 	github.com/go-ap/activitypub v0.0.0-20260701132640-13f25467c431
 	github.com/go-ap/cache v0.0.0-20260701132808-71a22e0f7796
-	github.com/go-ap/client v0.0.0-20260708113053-fc9c1082a30f
+	github.com/go-ap/client v0.0.0-20260709175057-d3ada04cc300
 	github.com/go-ap/errors v0.0.0-20260701132509-92e5e4fd6394
 	github.com/go-ap/filters v0.0.0-20260701132827-4ad866f2a41d
 	github.com/go-ap/jsonld v0.0.0-20260607140920-737b40e0ca38
@@ -96,7 +96,7 @@ require (
 	gitlab.com/golang-commonmark/mdurl v0.0.0-20191124015652-932350d1cb84 // indirect
 	go.etcd.io/bbolt v1.5.0 // indirect
 	golang.org/x/crypto v0.54.0 // indirect
-	golang.org/x/exp v0.0.0-20260611194520-c48552f49976 // indirect
+	golang.org/x/exp v0.0.0-20260709172345-9ea1abe57597 // indirect
 	golang.org/x/net v0.57.0 // indirect
 	golang.org/x/sync v0.22.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect

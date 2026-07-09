@@ -8,7 +8,6 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
-	xerrors "errors"
 	"fmt"
 	"hash/crc32"
 	"io"
@@ -1046,8 +1045,8 @@ func (h *handler) ShowOAuthClientIdentityMetadata(w http.ResponseWriter, r *http
 
 // HandleCallback serves /auth/{provider}/callback request
 func (h *handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
-	redirWithError := func(errs ...error) {
-		h.v.addFlashMessage(Error, w, r, xerrors.Join(errs...).Error())
+	redirWithError := func(msgs ...string) {
+		h.v.addFlashMessage(Error, w, r, strings.Join(msgs, ": "))
 		_ = h.v.saveAccountToSession(w, r, &AnonymousAccount)
 		h.v.Redirect(w, r, "/login", http.StatusFound)
 	}
@@ -1055,42 +1054,45 @@ func (h *handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 
 	provider := chi.URLParam(r, "provider")
+	switch provider {
+	case fedboxProvider:
+		provider = "FedBOX"
+	}
 
 	if q.Has("error") {
 		errDescriptions := q["error_description"]
-		errs := make([]error, len(errDescriptions)+1)
-		errs[0] = errors.Newf("%s OAuth2 error:", provider)
-		for i, errDesc := range errDescriptions {
-			errs[i+1] = errors.Errorf("%s", errDesc)
+		msgs := []string{fmt.Sprintf("Failed to login with %s", provider)}
+		for _, errDesc := range errDescriptions {
+			msgs = append(msgs, errDesc)
 		}
-		redirWithError(errs...)
+		redirWithError(msgs...)
 		return
 	}
 
 	state := q.Get("state")
 	code := q.Get("code")
 	if len(code) == 0 {
-		redirWithError(errors.Newf("%s error: Empty authentication token", provider))
+		redirWithError(fmt.Sprintf("%s error: Empty authentication token", provider))
 		return
 	}
 
-	conf := h.conf.GetOauth2Config(provider, h.conf.BaseURL)
+	conf := h.storage.GetOauth2Config(provider)
 	tok, err := conf.Exchange(r.Context(), code)
 	if err != nil {
 		h.errFn(log.Ctx{"err": err.Error()})("Unable to load token")
-		redirWithError(err)
+		redirWithError(err.Error())
 		return
 	}
 
 	acct, err := h.v.loadCurrentAccountFromSession(w, r)
 	if err != nil {
 		h.errFn(log.Ctx{"err": err.Error()})("Failed to load account from session")
-		redirWithError(errors.Newf("Failed to login with %s", provider))
+		redirWithError(fmt.Sprintf("Failed to login with %s", provider))
 		return
 	}
 	if expected := genStateForAccount(*acct); expected != state {
 		h.errFn(log.Ctx{"received": state, "expected": expected})("Failed to validate state received from OAuth2 provider")
-		redirWithError(errors.Newf("Failed to login with %s", provider))
+		redirWithError(fmt.Sprintf("Failed to login with %s", provider))
 		return
 	}
 	acct.Metadata.OAuth = OAuth{
