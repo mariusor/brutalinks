@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"path"
 
+	"git.sr.ht/~mariusor/box"
 	"git.sr.ht/~mariusor/cache"
 	log "git.sr.ht/~mariusor/lw"
 	vocab "github.com/go-ap/activitypub"
@@ -23,7 +24,6 @@ const (
 )
 
 type Conf struct {
-	UserAgent     string
 	SkipTLSVerify bool
 	CachePath     string
 	BaseURL       vocab.IRI
@@ -84,13 +84,6 @@ func WithURL(s string) OptionFn {
 func SkipTLSCheck(skip bool) OptionFn {
 	return func(f *fedbox) error {
 		f.conf.SkipTLSVerify = skip
-		return nil
-	}
-}
-
-func WithUserAgent(s string) OptionFn {
-	return func(f *fedbox) error {
-		f.conf.UserAgent = s
 		return nil
 	}
 }
@@ -240,12 +233,13 @@ func (f *fedbox) Client(tr http.RoundTripper) *client.C {
 
 	conf := f.conf
 
-	baseClient := &http.Client{Transport: client.UserAgentTransport(conf.UserAgent, tr)}
+	baseClient := &http.Client{Transport: tr}
 
 	return client.New(
 		client.WithLogger(conf.l.WithContext(log.Ctx{"log": "client"})),
 		client.WithHTTPClient(baseClient),
 		client.SkipTLSValidation(conf.SkipTLSVerify),
+		client.WithUserAgent(box.DefaultUserAgent()),
 	)
 }
 

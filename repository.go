@@ -84,10 +84,13 @@ func ActivityPubService(c appConfig) (*repository, error) {
 	if c.StoragePath != "" {
 		storeFn = box.UseBasePath(c.StoragePath)
 	}
-	ua := fmt.Sprintf("%s (+https://github.com/mariusor/brutalinks@%s)", c.HostName, c.Version)
+
+	box.AppName = c.HostName
+	box.AppVersion = c.Version
+	box.AppWebsite = sourceURL
 
 	var err error
-	repo.b, err = box.New(storeFn, box.UseLogger(c.Logger.WithContext(log.Ctx{"log": "box"})), box.WithUserAgent(ua))
+	repo.b, err = box.New(storeFn, box.UseLogger(c.Logger.WithContext(log.Ctx{"log": "box"})))
 	if err != nil {
 		return repo, err
 	}
@@ -107,7 +110,6 @@ func ActivityPubService(c appConfig) (*repository, error) {
 
 	repo.fedbox, err = NewClient(
 		WithURL(c.APIURL),
-		WithUserAgent(ua),
 		WithLogger(c.Logger),
 		WithOAuth2(cred),
 		SkipTLSCheck(!c.Env.IsProd()),
@@ -593,7 +595,7 @@ func (r *repository) loadAPPerson(a Account) *vocab.Actor {
 	return p
 }
 
-func (r *repository) loadAccountsFollowers(ctx context.Context, acc *Account) error {
+func (r *repository) loadAccountsFollowers(_ context.Context, acc *Account) error {
 	if !acc.HasMetadata() || len(acc.Metadata.FollowersIRI) == 0 || acc.AP() == nil {
 		return nil
 	}

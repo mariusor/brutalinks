@@ -88,7 +88,7 @@ func (a *Application) init(c *config.Configuration, l log.Logger, host string, p
 	if len(c.HostName) == 0 {
 		c.HostName = host
 	}
-	a.BaseURL = url.URL{Scheme: "http", Host: c.HostName} //fmt.Sprintf("https://%s", c.HostName)
+	a.BaseURL = url.URL{Scheme: "http", Host: c.HostName}
 	if c.Secure {
 		a.BaseURL.Scheme = "https"
 	}
