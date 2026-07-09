@@ -46,20 +46,19 @@ func IsNotExist(err error) bool {
 }
 
 func LoadCredentials(b *box.Client, c appConfig) (*credentials.C2S, error) {
-	cred, err := box.LoadCredentials(b, vocab.IRI(c.OAuth2App))
+	cred, err := box.LoadCredentials(b, vocab.IRI(c.BaseURL))
 	if err == nil {
 		return cred, err
 	}
-	auth := credentials.ClientConfig{
-		ClientID:     c.OAuth2App,
-		ClientSecret: c.OAuth2Secret,
-		RedirectURL:  fmt.Sprintf("%s/auth/%s/callback", c.BaseURL, "fedbox"),
+
+	auth, err := TryOAuth2ClientRegistration(vocab.IRI(c.APIURL), c)
+	if err != nil {
+		return nil, errors.Annotatef(err, "unable to register dynamic OAuth client")
 	}
-	if cred, err = credentials.Authorize(context.Background(), c.OAuth2App, auth); err != nil {
+	if cred, err = credentials.Authorize(context.Background(), auth.ClientID, *auth); err != nil {
 		return nil, err
 	}
-	err = box.SaveCredentials(b, *cred)
-	return cred, err
+	return cred, box.SaveCredentials(b, *cred)
 }
 
 func ActivityPubService(c appConfig) (*repository, error) {
@@ -100,7 +99,9 @@ func ActivityPubService(c appConfig) (*repository, error) {
 	c.Logger.WithContext(log.Ctx{"path": repo.b.StoragePath()}).Infof("BOX storage opened")
 
 	if c.OAuth2App == "" {
-		return repo, fmt.Errorf("invalid OAuth2 application name %s", c.OAuth2App)
+		c.OAuth2App = buildOAuth2ClientURL(c.BaseURL)
+		c.OAuth2URL = buildOAuth2RedirectURL(c.BaseURL)
+		//return repo, fmt.Errorf("invalid OAuth2 application name %s", c.OAuth2App)
 	}
 
 	cred, err := LoadCredentials(repo.b, c)

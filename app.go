@@ -101,6 +101,7 @@ func (a *Application) init(c *config.Configuration, l log.Logger, host string, p
 	if port != config.DefaultListenPort {
 		c.ListenPort = port
 	}
+	c.BaseURL = a.BaseURL.String()
 	if err := a.Front(); err != nil {
 		return err
 	}
@@ -111,7 +112,6 @@ func (a *Application) init(c *config.Configuration, l log.Logger, host string, p
 func (a *Application) Front() error {
 	conf := appConfig{
 		Configuration: a.Conf,
-		BaseURL:       a.BaseURL.String(),
 		Logger:        a.Logger.New(log.Ctx{"log": "frontend"}),
 	}
 	a.front = new(handler)

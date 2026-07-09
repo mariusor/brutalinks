@@ -49,8 +49,15 @@ func (h handler) errFn(ctx ...log.Ctx) LogFn {
 
 type appConfig struct {
 	*config.Configuration
-	BaseURL string
-	Logger  log.Logger
+	Logger log.Logger
+}
+
+func (a appConfig) BuildOAuth2ClientURL() string {
+	return fmt.Sprintf("%s/client-metadata.json", a.BaseURL)
+}
+
+func (a appConfig) buildOAuth2RedirectURL() string {
+	return fmt.Sprintf("%s/auth/%s/callback", a.BaseURL, fedboxProvider)
 }
 
 var defaultLogFn = func(string, ...interface{}) {}

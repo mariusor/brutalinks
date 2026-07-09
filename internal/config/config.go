@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"net/url"
 	"os"
 	"path"
 	"strconv"
@@ -11,11 +10,11 @@ import (
 
 	log "git.sr.ht/~mariusor/lw"
 	"github.com/joho/godotenv"
-	"golang.org/x/oauth2"
 )
 
 type Configuration struct {
 	HostName                   string
+	BaseURL                    string
 	Name                       string
 	TimeOut                    time.Duration
 	ListenPort                 int
@@ -43,9 +42,6 @@ type Configuration struct {
 	SessionKeys                [][]byte
 	SessionsBackend            string
 	SessionsPath               string
-	OAuth2App                  string
-	OAuth2Secret               string
-	OAuth2URL                  string
 	Version                    string
 }
 
@@ -86,10 +82,9 @@ const (
 
 	KeyMaintenanceMode = "MAINTENANCE_MODE"
 
-	KeyOAuth2App       = "OAUTH2_APP"
-	KeyFedBOXKey       = "OAUTH2_KEY"
-	KeyOAuth2Secret    = "OAUTH2_SECRET"
-	KeyOAuth2ReturnURL = "OAUTH2_URL"
+	KeyOAuth2App    = "OAUTH2_APP"
+	KeyFedBOXKey    = "OAUTH2_KEY"
+	KeyOAuth2Secret = "OAUTH2_SECRET"
 
 	KeySessionAuthKey = "SESS_AUTH_KEY"
 	KeySessionEncKey  = "SESS_ENC_KEY"
@@ -105,10 +100,10 @@ func prefKey(k string) string {
 }
 
 func loadKeyFromEnv(name, def string) string {
-	if val := os.Getenv(prefKey(name)); len(val) > 0 {
+	if val := strings.TrimSpace(os.Getenv(prefKey(name))); len(val) > 0 {
 		return val
 	}
-	if val := os.Getenv(name); len(val) > 0 {
+	if val := strings.TrimSpace(os.Getenv(name)); len(val) > 0 {
 		return val
 	}
 	return def
@@ -215,14 +210,6 @@ func Load(e EnvType, wait time.Duration) *Configuration {
 	c.AutoAcceptFollows, _ = strconv.ParseBool(loadKeyFromEnv(KeyAutoAcceptFollows, ""))
 	c.MaintenanceMode, _ = strconv.ParseBool(loadKeyFromEnv(KeyMaintenanceMode, ""))
 
-	c.OAuth2Secret = loadKeyFromEnv(KeyOAuth2Secret, "")
-	if u, err := url.Parse(loadKeyFromEnv(KeyOAuth2App, "")); err == nil {
-		c.OAuth2App = u.String()
-	}
-	if u, err := url.Parse(loadKeyFromEnv(KeyOAuth2ReturnURL, "")); err == nil {
-		c.OAuth2URL = u.String()
-	}
-
 	return c
 }
 
@@ -231,60 +218,4 @@ func (c Configuration) Listen() string {
 		return fmt.Sprintf("%s:%d", c.ListenHost, c.ListenPort)
 	}
 	return fmt.Sprintf(":%d", c.ListenPort)
-}
-
-func (c Configuration) GetOauth2Config(provider string, localBaseURL string) oauth2.Config {
-	var conf oauth2.Config
-	switch strings.ToLower(provider) {
-	case "github":
-		conf.ClientID = os.Getenv("GITHUB_KEY")
-		conf.ClientSecret = os.Getenv("GITHUB_SECRET")
-		conf.Endpoint = oauth2.Endpoint{
-			AuthURL:  "https://github.com/login/oauth/authorize",
-			TokenURL: "https://github.com/login/oauth/access_token",
-		}
-	case "gitlab":
-		conf.ClientID = os.Getenv("GITLAB_KEY")
-		conf.ClientSecret = os.Getenv("GITLAB_SECRET")
-		conf.Endpoint = oauth2.Endpoint{
-			AuthURL:  "https://gitlab.com/login/oauth/authorize",
-			TokenURL: "https://gitlab.com/login/oauth/access_token",
-		}
-	case "facebook":
-		conf.ClientID = os.Getenv("FACEBOOK_KEY")
-		conf.ClientSecret = os.Getenv("FACEBOOK_SECRET")
-		conf.Endpoint = oauth2.Endpoint{
-			AuthURL:  "https://graph.facebook.com/oauth/authorize",
-			TokenURL: "https://graph.facebook.com/oauth/access_token",
-		}
-	case "google":
-		conf.ClientID = os.Getenv("GOOGLE_KEY")
-		conf.ClientSecret = os.Getenv("GOOGLE_SECRET")
-		conf.Endpoint = oauth2.Endpoint{
-			AuthURL:  "https://accounts.google.com/o/oauth2/auth", // access_type=offline
-			TokenURL: "https://accounts.google.com/o/oauth2/token",
-		}
-	case "fedbox":
-		fallthrough
-	default:
-		apiURL := strings.TrimRight(c.APIURL, "/")
-		clientID := os.Getenv(KeyFedBOXKey)
-		if clientID == "" {
-			if u, err := url.Parse(os.Getenv(KeyOAuth2App)); err == nil {
-				clientID = u.String()
-			}
-		}
-		conf.ClientID = clientID
-		conf.ClientSecret = os.Getenv(KeyOAuth2Secret)
-		conf.Endpoint = oauth2.Endpoint{
-			AuthURL:  fmt.Sprintf("%s/oauth/authorize", apiURL),
-			TokenURL: fmt.Sprintf("%s/oauth/token", apiURL),
-		}
-	}
-	if u, err := url.Parse(os.Getenv("OAUTH2_URL")); err == nil && u.Host != "" {
-		conf.RedirectURL = u.String()
-	} else {
-		conf.RedirectURL = fmt.Sprintf("%s/auth/%s/callback", localBaseURL, provider)
-	}
-	return conf
 }

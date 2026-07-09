@@ -361,10 +361,7 @@ func reparentAccounts(allAccounts *AccountPtrCollection) {
 }
 
 func (a *Account) Credentials() credentials.C2S {
-	conf := oauth2.Config{
-		ClientID:     Instance.Conf.OAuth2App,
-		ClientSecret: Instance.Conf.OAuth2Secret,
-	}
+	conf := Instance.front.storage.cred.Conf
 	if a.HasMetadata() {
 		conf.Endpoint = oauth2.Endpoint{
 			AuthURL:  a.Metadata.AuthorizationEndPoint,

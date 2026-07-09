@@ -185,18 +185,19 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 			})
 
 			r.Post("/follow", h.HandleFollowInstanceRequest)
-			r.Get("/about", h.HandleAbout)
 			r.Route("/auth", func(r chi.Router) {
-
-				r.Get("/client", h.ShowOAuthClientIdentityMetadata)
 				r.With(h.NeedsSessions).Get("/{provider}/callback", h.HandleCallback)
 			})
 		})
 
 		r.Group(func(r chi.Router) {
+			// NOTE(marius): routes that don't need the connection to FedBOX to be up.
 			r.Get("/{path}", h.v.assetHandler)
 			r.Get("/css/{path}", h.v.assetHandler)
 			r.Get("/js/{path}", h.v.assetHandler)
+
+			r.Get("/about", h.HandleAbout)
+			r.Get("/client-metadata.json", h.ShowOAuthClientIdentityMetadata)
 		})
 		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 			h.v.HandleErrors(w, r, errors.NotFoundf("%q", r.RequestURI))
