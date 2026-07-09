@@ -88,9 +88,10 @@ func (n NodeInfoResolver) Usage() (nodeinfo.Usage, error) {
 }
 
 const (
-	softwareName = "brutalinks"
-	sourceURL    = "https://git.sr.ht/~mariusor/brutalinks"
-	author       = "@mariusor@metalhead.club"
+	softwareName    = "BrutaLinks"
+	softwareContact = "https://lists.sr.ht/~mariusor/go-activitypub-discuss"
+	sourceURL       = "https://git.sr.ht/~mariusor/brutalinks"
+	author          = "acct:@mariusor@metalhead.club"
 )
 
 func NodeInfoConfig() nodeinfo.Config {

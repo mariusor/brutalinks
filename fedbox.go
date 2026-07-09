@@ -7,7 +7,6 @@ import (
 	"net/url"
 	"path"
 
-	"git.sr.ht/~mariusor/box"
 	"git.sr.ht/~mariusor/cache"
 	log "git.sr.ht/~mariusor/lw"
 	vocab "github.com/go-ap/activitypub"
@@ -39,6 +38,7 @@ func (f fedbox) Transport() http.RoundTripper {
 }
 
 type fedbox struct {
+	ua     string
 	conf   Conf
 	cred   *credentials.C2S
 	pub    *vocab.Actor
@@ -77,6 +77,13 @@ func WithURL(s string) OptionFn {
 			return err
 		}
 		f.conf.BaseURL = vocab.IRI(s)
+		return nil
+	}
+}
+
+func WithUserAgent(u string) OptionFn {
+	return func(f *fedbox) error {
+		f.ua = u
 		return nil
 	}
 }
@@ -239,7 +246,7 @@ func (f *fedbox) Client(tr http.RoundTripper) *client.C {
 		client.WithLogger(conf.l.WithContext(log.Ctx{"log": "client"})),
 		client.WithHTTPClient(baseClient),
 		client.SkipTLSValidation(conf.SkipTLSVerify),
-		client.WithUserAgent(box.DefaultUserAgent()),
+		client.WithUserAgent(f.ua),
 	)
 }
 

@@ -84,12 +84,9 @@ func ActivityPubService(c appConfig) (*repository, error) {
 		storeFn = box.UseBasePath(c.StoragePath)
 	}
 
-	box.AppName = c.HostName
-	box.AppVersion = c.Version
-	box.AppWebsite = sourceURL
-
+	ua := fmt.Sprintf("%s@%s (+%s)", strings.TrimLeft(sourceURL, "https://"), c.Version, c.BaseURL)
 	var err error
-	repo.b, err = box.New(storeFn, box.UseLogger(c.Logger.WithContext(log.Ctx{"log": "box"})))
+	repo.b, err = box.New(storeFn, box.UseLogger(c.Logger.WithContext(log.Ctx{"log": "box"})), box.WithUserAgent(ua))
 	if err != nil {
 		return repo, err
 	}
@@ -98,12 +95,6 @@ func ActivityPubService(c appConfig) (*repository, error) {
 	}
 	c.Logger.WithContext(log.Ctx{"path": repo.b.StoragePath()}).Infof("BOX storage opened")
 
-	if c.OAuth2App == "" {
-		c.OAuth2App = buildOAuth2ClientURL(c.BaseURL)
-		c.OAuth2URL = buildOAuth2RedirectURL(c.BaseURL)
-		//return repo, fmt.Errorf("invalid OAuth2 application name %s", c.OAuth2App)
-	}
-
 	cred, err := LoadCredentials(repo.b, c)
 	if err != nil {
 		return repo, fmt.Errorf("unable to load credentials or authorize Actor: %w", err)
@@ -111,6 +102,7 @@ func ActivityPubService(c appConfig) (*repository, error) {
 
 	repo.fedbox, err = NewClient(
 		WithURL(c.APIURL),
+		WithUserAgent(ua),
 		WithLogger(c.Logger),
 		WithOAuth2(cred),
 		SkipTLSCheck(!c.Env.IsProd()),
