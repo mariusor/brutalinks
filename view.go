@@ -46,7 +46,7 @@ type view struct {
 	errFn  CtxLogFn
 }
 
-func ViewInit(c appConfig, l log.Logger) (*view, error) {
+func ViewInit(c *appConfig, l log.Logger) (*view, error) {
 	v := new(view)
 	v.c = c.Configuration
 

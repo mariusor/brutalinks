@@ -13,7 +13,6 @@ import (
 
 	"git.sr.ht/~mariusor/box"
 	vocab "github.com/go-ap/activitypub"
-	"github.com/go-ap/client/credentials"
 	"github.com/go-ap/errors"
 	"github.com/google/uuid"
 	"golang.org/x/oauth2"
@@ -32,7 +31,7 @@ func buildOAuthAuthorizationWellKnownURL(actor vocab.IRI) (string, error) {
 	return u.String(), nil
 }
 
-func createDynamicOAuth2Client(cl *http.Client, actor vocab.IRI, conf appConfig) (*box.ClientRegistrationResponse, error) {
+func createDynamicOAuth2Client(cl *http.Client, actor vocab.IRI, conf *appConfig) (*box.ClientRegistrationResponse, error) {
 	// NOTE(marius): this is the RFC8414 .well-known/oauth-authorization-server method for
 	// creating the OAuth2 client for the actor.
 	oauthURL, err := buildOAuthAuthorizationWellKnownURL(actor)
@@ -112,7 +111,7 @@ func createDynamicOAuth2Client(cl *http.Client, actor vocab.IRI, conf appConfig)
 	return &regRespData, nil
 }
 
-func TryOAuth2ClientRegistration(fedboxIRI vocab.IRI, conf appConfig) (*credentials.ClientConfig, error) {
+func TryOAuth2ClientRegistration(fedboxIRI vocab.IRI, conf *appConfig) (*box.ClientConfig, error) {
 	cl := http.DefaultClient
 
 	regRespData, err := createDynamicOAuth2Client(cl, fedboxIRI, conf)
@@ -120,7 +119,7 @@ func TryOAuth2ClientRegistration(fedboxIRI vocab.IRI, conf appConfig) (*credenti
 		return nil, err
 	}
 
-	auth := credentials.ClientConfig{
+	auth := box.ClientConfig{
 		RedirectURL:  conf.buildOAuth2RedirectURL(),
 		ClientID:     regRespData.ClientID,
 		ClientSecret: regRespData.ClientSecret,
@@ -169,7 +168,7 @@ func (r repository) GetOauth2Config(provider string) oauth2.Config {
 	case "fedbox":
 		fallthrough
 	default:
-		conf = r.cred.Conf
+		conf = r.fedbox.cred.Conf
 	}
 	return conf
 }

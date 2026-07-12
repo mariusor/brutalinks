@@ -50,7 +50,7 @@ func NodeInfoResolverNew(r *repository) NodeInfoResolver {
 	}
 
 	loadFn := func(f filters.Check, fn func(int) error) error {
-		res, err := r.b.Search(f)
+		res, err := r.Search(f)
 		if err != nil {
 			return err
 		}

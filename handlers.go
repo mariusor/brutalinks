@@ -22,7 +22,6 @@ import (
 	log "git.sr.ht/~mariusor/lw"
 	vocab "github.com/go-ap/activitypub"
 	"github.com/go-ap/client"
-	"github.com/go-ap/client/credentials"
 	"github.com/go-ap/errors"
 	"github.com/go-ap/filters"
 	"github.com/go-chi/chi/v5"
@@ -166,7 +165,7 @@ func (h *handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 		filters.SameAttributedTo(acc.AP().GetLink()),
 	)
 
-	res, err := repo.b.Search(checks)
+	res, err := repo.Search(checks)
 	if err != nil || len(res) != 1 {
 		h.errFn()("Error: %s", err)
 		h.v.HandleErrors(w, r, errors.NewNotFound(err, "not found"))
@@ -1102,7 +1101,7 @@ func (h *handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
 		Token:    tok,
 	}
 
-	cred := credentials.C2S{
+	cred := box.C2S{
 		IRI:  acct.AP().GetLink(),
 		Conf: conf,
 		Tok:  tok,

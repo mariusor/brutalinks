@@ -7,11 +7,11 @@ import (
 	"net/url"
 	"path"
 
+	"git.sr.ht/~mariusor/box"
 	"git.sr.ht/~mariusor/cache"
 	log "git.sr.ht/~mariusor/lw"
 	vocab "github.com/go-ap/activitypub"
 	"github.com/go-ap/client"
-	"github.com/go-ap/client/credentials"
 	"github.com/go-ap/errors"
 	"github.com/go-ap/filters"
 )
@@ -26,21 +26,13 @@ type Conf struct {
 	SkipTLSVerify bool
 	CachePath     string
 	BaseURL       vocab.IRI
+	UserAgent     string
 	l             log.Logger
 }
 
-func (f fedbox) Transport() http.RoundTripper {
-	var tr http.RoundTripper = &http.Transport{}
-	if f.cred != nil {
-		tr = f.cred.Transport(context.Background())
-	}
-	return cache.Private(tr, cache.FS(f.conf.CachePath))
-}
-
 type fedbox struct {
-	ua     string
 	conf   Conf
-	cred   *credentials.C2S
+	cred   *box.C2S
 	pub    *vocab.Actor
 	infoFn CtxLogFn
 	errFn  CtxLogFn
@@ -48,7 +40,7 @@ type fedbox struct {
 
 type OptionFn func(*fedbox) error
 
-func WithOAuth2(cred *credentials.C2S) OptionFn {
+func WithOAuth2(cred *box.C2S) OptionFn {
 	return func(f *fedbox) error {
 		f.cred = cred
 		return nil
@@ -83,7 +75,7 @@ func WithURL(s string) OptionFn {
 
 func WithUserAgent(u string) OptionFn {
 	return func(f *fedbox) error {
-		f.ua = u
+		f.conf.UserAgent = u
 		return nil
 	}
 }
@@ -233,24 +225,20 @@ func validateIRIForRequest(i vocab.IRI) error {
 	return nil
 }
 
-func (f *fedbox) Client(tr http.RoundTripper) *client.C {
-	if tr == nil {
-		tr = f.Transport()
+func (f *fedbox) Client(baseClient *http.Client) *client.C {
+	if baseClient == nil {
+		baseClient = &http.Client{Transport: cache.Private(http.DefaultTransport, cache.Mem(client.MByte))}
 	}
-
 	conf := f.conf
-
-	baseClient := &http.Client{Transport: tr}
-
 	return client.New(
 		client.WithLogger(conf.l.WithContext(log.Ctx{"log": "client"})),
 		client.WithHTTPClient(baseClient),
 		client.SkipTLSValidation(conf.SkipTLSVerify),
-		client.WithUserAgent(f.ua),
+		client.WithUserAgent(f.conf.UserAgent),
 	)
 }
 
-func (r *repository) ToOutbox(ctx context.Context, cred credentials.C2S, a vocab.Item) (vocab.IRI, vocab.Item, error) {
+func (r *repository) ToOutbox(ctx context.Context, cred box.C2S, a vocab.Item) (vocab.IRI, vocab.Item, error) {
 	sendTo := vocab.IRI("")
 	_ = vocab.OnActivity(a, func(a *vocab.Activity) error {
 		sendTo = outbox(a.Actor)
@@ -263,18 +251,16 @@ func (r *repository) ToOutbox(ctx context.Context, cred credentials.C2S, a vocab
 	sendTo = r.fedbox.normaliseIRI(sendTo)
 
 	// NOTE(marius): we avoid the cache transport for outgoing POST requests.
-	cl := r.fedbox.Client(cred.Transport(ctx))
+	cl := r.fedbox.Client(cred.Client(ctx))
 	i, it, err := cl.CtxToCollection(ctx, a, sendTo)
 	if err != nil {
 		return i, a, err
 	}
 
-	toSave := vocab.ItemCollection{it}
+	_ = r.st.Save(it)
 	if a, err = cl.LoadIRI(i); err == nil {
-		toSave = append(toSave, a)
+		_ = r.st.Save(a)
 	}
-
-	_ = r.b.Save(toSave...)
 
 	return i, it, nil
 }

@@ -15,7 +15,7 @@ import (
 	"git.sr.ht/~mariusor/box"
 	log "git.sr.ht/~mariusor/lw"
 	vocab "github.com/go-ap/activitypub"
-	"github.com/go-ap/client/credentials"
+	"github.com/go-ap/client"
 	"github.com/go-ap/errors"
 	"github.com/go-ap/filters"
 	j "github.com/go-ap/jsonld"
@@ -23,11 +23,13 @@ import (
 
 type repository struct {
 	SelfURL string
+	conf    *appConfig
 	b       *box.Client
-	cred    *credentials.C2S
+	fedbox  *fedbox
+	c       client.C
+	st      *Storage
 	cache   *cc
 	app     *Account
-	fedbox  *fedbox
 	modTags TagCollection
 	infoFn  CtxLogFn
 	errFn   CtxLogFn
@@ -38,14 +40,14 @@ func (r *repository) BaseURL() vocab.IRI {
 }
 
 func (r *repository) Close() error {
-	return r.b.Close()
+	return r.st.Close()
 }
 
 func IsNotExist(err error) bool {
 	return os.IsNotExist(err) || errors.Is(err, fs.ErrNotExist)
 }
 
-func LoadCredentials(b *box.Client, c appConfig) (*credentials.C2S, error) {
+func LoadCredentials(b *box.Client, c *appConfig) (*box.C2S, error) {
 	cred, err := box.LoadCredentials(b, vocab.IRI(c.BaseURL))
 	if err == nil {
 		return cred, err
@@ -55,13 +57,13 @@ func LoadCredentials(b *box.Client, c appConfig) (*credentials.C2S, error) {
 	if err != nil {
 		return nil, errors.Annotatef(err, "unable to register dynamic OAuth client")
 	}
-	if cred, err = credentials.Authorize(context.Background(), auth.ClientID, *auth); err != nil {
+	if cred, err = box.Authorize(context.Background(), auth.ClientID, *auth); err != nil {
 		return nil, err
 	}
 	return cred, box.SaveCredentials(b, *cred)
 }
 
-func ActivityPubService(c appConfig) (*repository, error) {
+func ActivityPubService(c *appConfig) (*repository, error) {
 	vocab.ItemTyperFunc = vocab.GetItemByType
 
 	l := c.Logger.WithContext(log.Ctx{"log": "api"})
@@ -72,28 +74,33 @@ func ActivityPubService(c appConfig) (*repository, error) {
 		return l.WithContext(ctx...).Warnf
 	}
 
-	repo := &repository{
-		SelfURL: c.BaseURL,
-		infoFn:  infoFn,
-		errFn:   errFn,
-		cache:   caches(c.CachingEnabled),
-	}
-
 	storeFn := box.UseXDGPaths(c.HostName)
 	if c.StoragePath != "" {
 		storeFn = box.UseBasePath(c.StoragePath)
 	}
 
 	ua := fmt.Sprintf("%s@%s (+%s)", strings.TrimLeft(sourceURL, "https://"), c.Version, c.BaseURL)
-	var err error
-	repo.b, err = box.New(storeFn, box.UseLogger(c.Logger.WithContext(log.Ctx{"log": "box"})), box.WithUserAgent(ua))
+	b, err := box.New(storeFn, box.UseLogger(c.Logger.WithContext(log.Ctx{"log": "box"})), box.WithUserAgent(ua))
 	if err != nil {
+		return nil, err
+	}
+	st, err := NewStorage(b.StoragePath())
+	if err != nil {
+		return nil, err
+	}
+	repo := &repository{
+		conf:   c,
+		infoFn: infoFn,
+		errFn:  errFn,
+		cache:  caches(c.CachingEnabled),
+		st:     st,
+		b:      b,
+	}
+
+	if err = st.Open(); err != nil {
 		return repo, err
 	}
-	if err = repo.b.Open(); err != nil {
-		return repo, err
-	}
-	c.Logger.WithContext(log.Ctx{"path": repo.b.StoragePath()}).Infof("BOX storage opened")
+	c.Logger.WithContext(log.Ctx{"path": repo.b.StoragePath()}).Infof("Storage opened")
 
 	cred, err := LoadCredentials(repo.b, c)
 	if err != nil {
@@ -118,7 +125,7 @@ func ActivityPubService(c appConfig) (*repository, error) {
 		}
 
 		repo.app.Metadata.OAuth.Token = cred.Tok
-		repo.cred = cred
+		repo.fedbox.cred = cred
 	} else {
 		return repo, fmt.Errorf("invalid authorized Actor: %s", cred.IRI)
 	}
@@ -127,7 +134,7 @@ func ActivityPubService(c appConfig) (*repository, error) {
 		// NOTE(marius): this is the new BrutaLinks long polling mechanism that fetches
 		// the relevant collections for the instance actor every minute.
 		ctx := context.TODO()
-		if err := repo.b.Follow(ctx); err != nil {
+		if err := repo.Follow(ctx); err != nil {
 			c.Logger.WithContext(log.Ctx{"err": err.Error()}).Warnf("error fetching remotes")
 		}
 	}()
@@ -144,7 +151,7 @@ func SaveModeratorTags(repo *repository) (TagCollection, error) {
 		Tag{
 			Type: TagTag,
 			Name: tagNameModerator,
-			URL:  repo.SelfURL + filepath.Join("/", "t", strings.TrimLeft(tagNameModerator, "#")),
+			URL:  repo.conf.BaseURL + filepath.Join("/", "t", strings.TrimLeft(tagNameModerator, "#")),
 		},
 		Tag{
 			Type: TagTag,
@@ -167,7 +174,7 @@ func SaveModeratorTags(repo *repository) (TagCollection, error) {
 		ap := buildAPTagObject(tag, repo)
 		create := wrapItemInCreate(ap, repo.app.Pub)
 		create.To, _, create.CC, create.BCC = repo.defaultRecipientsList(repo.app.Pub, true)
-		_, tagIt, err := repo.ToOutbox(context.TODO(), *repo.cred, create)
+		_, tagIt, err := repo.ToOutbox(context.TODO(), *repo.fedbox.cred, create)
 		if err != nil {
 			repo.errFn()("unable to save moderation tag %q on remote instance: %s", tag.Name, err)
 		}
@@ -594,7 +601,7 @@ func (r *repository) loadAccountsFollowers(_ context.Context, acc *Account) erro
 	}
 
 	ac := acc.AP()
-	result, err := r.b.SearchInCollection(followers(ac.GetLink()))
+	result, err := r.SearchInCollection(followers(ac.GetLink()))
 	if err != nil {
 		return err
 	}
@@ -628,7 +635,7 @@ func (r *repository) loadAccountsFollowing(ctx context.Context, acc *Account) er
 		return nil
 	}
 	ac := acc.AP()
-	res, err := r.b.SearchInCollection(vocab.Followers.Of(ac).GetLink())
+	res, err := r.SearchInCollection(vocab.Followers.Of(ac).GetLink())
 	if err != nil {
 		return err
 	}
@@ -677,7 +684,7 @@ func (r *repository) loadAccountsOutbox(ctx context.Context, acc *Account) error
 		filters.WithMaxCount(200),
 	}
 
-	result, err := r.b.Search(check...)
+	result, err := r.Search(check...)
 	if err != nil {
 		return err
 	}
@@ -769,7 +776,7 @@ func (r *repository) loadItemsReplies(ctx context.Context, items ...Item) (ItemC
 		filters.Any(inReplyTo...),
 	)
 
-	repl, err := r.b.Search(checks)
+	repl, err := r.Search(checks)
 	if err != nil {
 		r.errFn()(err.Error())
 	}
@@ -821,7 +828,7 @@ func (r *repository) loadItemsVotes(ctx context.Context, items ...Item) (ItemCol
 
 	searches := likesFilter(irisFromItems(items...), activeAppreciationTypes...)
 	votes := make(VoteCollection, 0)
-	results, err := r.b.Search(searches)
+	results, err := r.Search(searches)
 	for _, res := range results {
 		it, ok := res.(vocab.Item)
 		if !ok {
@@ -959,7 +966,7 @@ func (r *repository) loadModerationFollowups(ctx context.Context, items Renderab
 	for _, iri := range inReplyTos {
 		checks = append(checks, filters.SameInReplyTo(iri))
 	}
-	followups, err := r.b.Search(filters.HasType(vocab.DeleteType, vocab.UpdateType), filters.Any(checks...))
+	followups, err := r.Search(filters.HasType(vocab.DeleteType, vocab.UpdateType), filters.Any(checks...))
 	if err != nil {
 		return nil, err
 	}
@@ -1006,7 +1013,7 @@ func (r *repository) loadModerationDetails(ctx context.Context, items ...Moderat
 		checks = append(checks, filters.SameIRI(iri))
 	}
 
-	result, err := r.b.Search(filters.Any(checks...))
+	result, err := r.Search(filters.Any(checks...))
 	if err != nil {
 		return items, err
 	}
@@ -1137,7 +1144,7 @@ func (r *repository) loadItemsAuthors(ctx context.Context, items ...Item) (ItemC
 		checks = append(checks, filters.SameIRI(auth.GetLink()))
 	}
 
-	found, err := r.b.Search(filters.Any(checks...))
+	found, err := r.Search(filters.Any(checks...))
 	if err != nil {
 		r.errFn()(err.Error())
 	}
@@ -1262,7 +1269,7 @@ func assignTagsToAccounts(accounts AccountCollection, col vocab.ItemCollection) 
 
 func (r *repository) accountsFromRemote(ctx context.Context, ff ...filters.Check) (AccountCollection, error) {
 	accounts := make(AccountCollection, 0)
-	res, err := r.b.Search(ff...)
+	res, err := r.Search(ff...)
 	if err != nil {
 		return accounts, err
 	}
@@ -1288,7 +1295,7 @@ func (r *repository) accountsFromRemote(ctx context.Context, ff ...filters.Check
 		tagSearches = append(tagSearches, filters.SameIRI(tag))
 	}
 
-	rest, err := r.b.Search(tagSearches...)
+	rest, err := r.Search(tagSearches...)
 	if err != nil {
 		return accounts, err
 	}
@@ -1377,7 +1384,7 @@ func (r *repository) LoadSearches(ctx context.Context, deps deps, checks ...filt
 	result := make(RenderableList, 0)
 	resM := new(sync.RWMutex)
 
-	results, err := r.b.Search(checks...)
+	results, err := r.Search(checks...)
 	if err != nil {
 		return emptyCursor, err
 	}
@@ -1485,7 +1492,7 @@ func (r *repository) LoadSearches(ctx context.Context, deps deps, checks ...filt
 			searchIRIs = append(searchIRIs, filters.SameIRI(iri))
 		}
 
-		res, _ := r.b.Search(filters.Any(searchIRIs...))
+		res, _ := r.Search(filters.Any(searchIRIs...))
 		for _, li := range res {
 			ob, ok := li.(vocab.Item)
 			if !ok || vocab.IsNil(ob) {
@@ -1773,7 +1780,7 @@ func loadMentionsIfExisting(r *repository, ctx context.Context, incoming TagColl
 		checks = append(checks, filters.IRILike(h), filters.NameIs(m.Name))
 	}
 
-	col, err := r.b.Search(checks...)
+	col, err := r.Search(checks...)
 	if err != nil {
 		return nil
 	}
@@ -2160,7 +2167,7 @@ func (r *repository) LoadTags(ctx context.Context, ff ...filters.Check) (TagColl
 	tags := make(TagCollection, 0)
 	var count uint = 0
 
-	res, err := r.b.Search(ff...)
+	res, err := r.Search(ff...)
 	if err != nil {
 		return nil, 0, err
 	}

@@ -38,7 +38,7 @@ type sess struct {
 	errFn   CtxLogFn
 }
 
-func initSession(c appConfig, infoFn, errFn CtxLogFn) (sess, error) {
+func initSession(c *appConfig, infoFn, errFn CtxLogFn) (sess, error) {
 	// session encoding for account and flash message objects
 	gob.Register(Account{})
 	gob.Register(flash{})
@@ -90,7 +90,7 @@ func maskSessionKeys(keys ...[]byte) []string {
 	return hidden
 }
 
-func initCookieSession(c appConfig, infoFn, errFn CtxLogFn) (sessions.Store, error) {
+func initCookieSession(c *appConfig, infoFn, errFn CtxLogFn) (sessions.Store, error) {
 	ss := sessions.NewCookieStore(c.SessionKeys...)
 	ss.Options.Path = "/"
 	ss.Options.HttpOnly = true
@@ -118,7 +118,7 @@ func makeSessionsPath(path string) error {
 	return nil
 }
 
-func initFileSession(c appConfig, path string, infoFn, errFn CtxLogFn) (sessions.Store, error) {
+func initFileSession(c *appConfig, path string, infoFn, errFn CtxLogFn) (sessions.Store, error) {
 	if _, err := os.Stat(path); err != nil && IsNotExist(err) {
 		if err := makeSessionsPath(path); err != nil {
 			return nil, err

@@ -24,7 +24,7 @@ const (
 var templateFs embed.FS
 
 type handler struct {
-	conf    appConfig
+	conf    *appConfig
 	v       *view
 	storage *repository
 	logger  log.Logger
@@ -65,7 +65,7 @@ var defaultCtxLogFn = func(c ...log.Ctx) LogFn { return defaultLogFn }
 
 const fedboxProvider = "fedbox"
 
-func (h *handler) init(c appConfig) error {
+func (h *handler) init(c *appConfig) error {
 	var err error
 
 	if c.Logger != nil {
@@ -84,7 +84,7 @@ func (h *handler) init(c appConfig) error {
 	return nil
 }
 
-func ConnectFedBOX(h *handler, c appConfig) error {
+func ConnectFedBOX(h *handler, c *appConfig) error {
 	var err error
 	h.storage, err = ActivityPubService(c)
 	if err != nil {

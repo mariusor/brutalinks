@@ -157,7 +157,7 @@ func LoadSingleObjectMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		repo := ContextRepository(r.Context())
 		checks := ContextActivityChecks(r.Context())
-		items, err := repo.b.Search(checks)
+		items, err := repo.Search(checks)
 		if err != nil || len(items) != 1 {
 			ctx := log.Ctx{}
 			if err != nil {

@@ -115,7 +115,7 @@ func (a *Application) Front() error {
 		Logger:        a.Logger.New(log.Ctx{"log": "frontend"}),
 	}
 	a.front = new(handler)
-	if err := a.front.init(conf); err != nil {
+	if err := a.front.init(&conf); err != nil {
 		a.Conf.MaintenanceMode = true
 	}
 	a.ModTags = a.front.storage.modTags
