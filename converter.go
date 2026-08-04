@@ -518,7 +518,7 @@ func (t *Tag) FromActivityPub(it vocab.Item) error {
 	}
 	t.Pub = it
 	typ := it.GetType()
-	if it.IsLink() && typ != vocab.MentionType {
+	if vocab.IsIRI(it) && typ != vocab.MentionType {
 		_ = t.Hash.FromActivityPub(it.GetLink())
 		t.Type = TagTag
 		t.Metadata = &ItemMetadata{
@@ -587,7 +587,7 @@ func (i *Item) FromActivityPub(it vocab.Item) error {
 		return errors.Newf("nil item received")
 	}
 	i.Pub = it
-	if it.IsLink() {
+	if vocab.IsIRI(it) {
 		_ = i.Hash.FromActivityPub(it.GetLink())
 		i.Metadata = &ItemMetadata{
 			ID: it.GetLink().String(),
@@ -687,7 +687,7 @@ func (v *Vote) FromActivityPub(it vocab.Item) error {
 		return errors.Newf("nil item received")
 	}
 	v.Pub, _ = vocab.ToActivity(it)
-	if it.IsLink() {
+	if vocab.IsIRI(it) {
 		return errors.Newf("unable to load from IRI")
 	}
 	switch it.GetType() {
@@ -751,7 +751,7 @@ func (c *TagCollection) FromActivityPub(tag vocab.Item) error {
 		*c = append(*c, t)
 		return nil
 	}
-	if tag.IsCollection() {
+	if vocab.IsCollection(tag) {
 		return vocab.OnCollectionIntf(tag, func(c vocab.CollectionInterface) error {
 			for _, it := range c.Collection() {
 				_ = appendTag(it)

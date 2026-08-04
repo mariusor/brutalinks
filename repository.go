@@ -317,16 +317,12 @@ func appendReplies(parent vocab.Item) (vocab.ItemCollection, error) {
 		return nil, nil
 	}
 	repl := make(vocab.ItemCollection, 0)
-	if parent.IsLink() {
-		if !repl.Contains(parent.GetLink()) {
-			repl = append(repl, parent.GetLink())
-		}
+	if vocab.IsIRI(parent) {
+		repl.Append(parent.GetLink())
 		return repl, nil
 	}
 	err := vocab.OnObject(parent, func(ob *vocab.Object) error {
-		if !repl.Contains(ob.GetLink()) {
-			repl = append(repl, ob.GetLink())
-		}
+		repl.Append(ob.GetLink())
 		if ob.InReplyTo == nil {
 			return nil
 		}
@@ -1293,7 +1289,7 @@ func accumulateAccountsFromCollection(col vocab.CollectionInterface) (AccountCol
 	accounts := make(AccountCollection, 0)
 	deferredTagLoads := make(vocab.IRIs, 0)
 	for _, it := range col.Collection() {
-		if !it.IsObject() || !ValidActorTypes.Match(it.GetType()) {
+		if !vocab.IsObject(it) || !ValidActorTypes.Match(it.GetType()) {
 			continue
 		}
 		a := Account{}

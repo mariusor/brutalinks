@@ -345,7 +345,7 @@ func (r *repository) loadWebfingerActorFromIRI(ctx context.Context, host, acct s
 	}
 
 	for _, l := range meta.Links {
-		if l.Type == client.ContentTypeActivityJson {
+		if l.Type == client.ContentTypeJsonActivity {
 			actor := vocab.Actor{}
 			if err := loadFromURL(l.Href, &actor); err == nil {
 				return &actor, nil
@@ -411,7 +411,7 @@ func (r *repository) loadInstanceActorFromIRI(ctx context.Context, iri vocab.IRI
 			return nil, err
 		}
 		for _, l := range wf.Links {
-			if l.Rel == selfName && l.Type == client.ContentTypeActivityJson {
+			if l.Rel == selfName && l.Type == client.ContentTypeJsonActivity {
 				return r.fedbox.Actor(ctx, vocab.IRI(l.Href))
 			}
 		}

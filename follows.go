@@ -43,7 +43,7 @@ func (f *FollowRequest) FromActivityPub(it vocab.Item) error {
 		return errors.Newf("nil item received")
 	}
 	f.pub = it
-	if it.IsLink() {
+	if vocab.IsIRI(it) {
 		iri := it.GetLink()
 		f.Hash.FromActivityPub(iri)
 		f.Metadata = &ActivityMetadata{

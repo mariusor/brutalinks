@@ -255,7 +255,7 @@ func (m *ModerationOp) FromActivityPub(it vocab.Item) error {
 		return errors.Newf("nil item received")
 	}
 	m.Pub = it
-	if it.IsLink() {
+	if vocab.IsIRI(it) {
 		iri := it.GetLink()
 		m.Hash.FromActivityPub(iri)
 		m.Metadata = &ModerationMetadata{
@@ -270,7 +270,7 @@ func (m *ModerationOp) FromActivityPub(it vocab.Item) error {
 		m.Icon = icon(strings.ToLower(a.Type.AsTypes().String()))
 		wer.FromActivityPub(a.Actor)
 		m.SubmittedBy = wer
-		if a.Object.IsCollection() {
+		if vocab.IsCollection(a.Object) {
 			cc := make([]Renderable, 0)
 			vocab.OnCollectionIntf(a.Object, func(c vocab.CollectionInterface) error {
 				for _, it := range c.Collection() {

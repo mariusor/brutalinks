@@ -110,10 +110,10 @@ func (c *cc) accumActivityIRIs(toRemove *vocab.IRIs) func(activity *vocab.Activi
 
 func (c *cc) accumObjectIRIs(toRemove *vocab.IRIs) func(*vocab.Object) error {
 	return func(ob *vocab.Object) error {
-		if ob == nil {
+		if vocab.IsNil(ob) {
 			return nil
 		}
-		if !ob.IsObject() {
+		if !vocab.IsObject(ob) {
 			return nil
 		}
 		if obIRI := ob.GetLink(); len(obIRI) > 0 && !toRemove.Contains(obIRI) {
