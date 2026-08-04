@@ -25,6 +25,8 @@ var AppName = "brutalinks"
 const defaultPort = config.DefaultListenPort
 const defaultTimeout = time.Second * 5
 
+var DefaultLogLevel = log.WarnLevel
+
 // Run is the wrapper for starting the web-server and handling signals
 func (s Serve) Run(cc ctl) error {
 	c := cc.conf
@@ -131,7 +133,7 @@ func (s Serve) Run(cc ctl) error {
 }
 
 type CTL struct {
-	Verbose int              `counter:"v" help:"Increase verbosity level from the default associated with the environment settings."`
+	Verbose int              `name:"verbose" short:"v" default:"0" type:"counter" help:"Increase verbosity of the log output" `
 	Path    string           `path:"" help:"The path for the storage folder or socket" default:"." env:"STORAGE_PATH"`
 	Version kong.VersionFlag `short:"V"`
 
@@ -183,7 +185,8 @@ func main() {
 	c := config.Load(CTLRun.Run.Env, CTLRun.Run.Wait)
 	c.Version = version
 
-	l := log.Dev(log.SetLevel(c.LogLevel))
+	logVerbosity := max(c.LogLevel-log.Level(CTLRun.Verbose), log.TraceLevel)
+	l := log.Dev(log.SetLevel(logVerbosity))
 	errors.SetIncludeBacktrace(c.Env.IsDev())
 
 	if err := ctx.Run(ctl{conf: c, logger: l}); err != nil {
