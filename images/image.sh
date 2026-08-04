@@ -36,7 +36,7 @@ buildah run \
     --mount="type=bind,rw,source=${HOST_GOMODCACHE},destination=${GOMODCACHE}" \
     --mount="type=bind,rw,source=${_context},destination=/go/src/app" \
     --mount=type=cache,rw,id=bin,target=/go/src/app/bin "${_builder}" \
-    make ENV="${_environment}" VERSION="${_version}" APP_HOSTNAME="${_hostname}" clean all cert
+    make ENV="${_environment}" VERSION="${_version}" APP_HOSTNAME="${_hostname}" clean all cert compress
 
 if [ "${_environment}" = "dev" ]; then
     buildah run \
