@@ -3,6 +3,7 @@ form button {
 }
 form fieldset {
     border-width: 2px;
+    max-width: fit-content;
 }
 form input {
     padding: .2em;
