@@ -38,7 +38,7 @@ endif
 BUILD := $(GO) build $(BUILDFLAGS)
 TEST := $(GO) test $(BUILDFLAGS)
 
-.PHONY: all cert brutalinks clean test images test assets download help
+.PHONY: all cert brutalinks clean test images test assets download help compress
 
 .DEFAULT_GOAL := help
 
@@ -56,8 +56,10 @@ go.sum: go.mod
 brutalinks: bin/brutalinks ## Builds the brutalinks binary.
 bin/brutalinks: go.mod go.sum $(APPSOURCES) assets
 	$(BUILD) -tags $(ENV) -o $@ ./cmd/brutalinks
+
+compress: bin/brutalinks ## Compress the binary.
 ifneq ($(ENV),dev)
-	$(UPX) -q --mono --no-progress --best $@ || true
+	$(UPX) -q --mono --no-progress --best $< || true
 endif
 
 assets: ## Builds static javascript and css files for embedding in the production binaries.
