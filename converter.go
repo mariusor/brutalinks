@@ -49,7 +49,7 @@ func FromObject(a *Account, o *vocab.Object) error {
 	}
 	if o.Icon != nil {
 		_ = vocab.OnObject(o.Icon, func(o *vocab.Object) error {
-			return iconMetadataFromObject(&a.Metadata.Icon, o)
+			return imageMetadataFromObject(&a.Metadata.Icon, o)
 		})
 	}
 	if o.GetType() == vocab.TombstoneType {
@@ -138,7 +138,7 @@ func FromActor(a *Account, p *vocab.Actor) error {
 	}
 	if p.Icon != nil {
 		_ = vocab.OnObject(p.Icon, func(o *vocab.Object) error {
-			return iconMetadataFromObject(&a.Metadata.Icon, o)
+			return imageMetadataFromObject(&a.Metadata.Icon, o)
 		})
 	}
 	if p.Icon != nil {
@@ -213,7 +213,7 @@ func (a *Account) FromActivityPub(it vocab.Item) error {
 		return errors.Newf("nil item received")
 	}
 	a.Pub = it
-	if it.IsLink() {
+	if vocab.IsIRI(it) {
 		iri := it.GetLink()
 		if iri == vocab.PublicNS {
 			*a = AnonymousAccount
@@ -267,7 +267,7 @@ func FromObjectWithBinaryData(i *Item, a *vocab.Object) error {
 	return nil
 }
 
-func iconMetadataFromObject(m *ImageMetadata, o *vocab.Object) error {
+func imageMetadataFromObject(m *ImageMetadata, o *vocab.Object) error {
 	if m == nil || o == nil {
 		return nil
 	}
@@ -337,7 +337,7 @@ func FromTag(t *Tag, a *vocab.Object) error {
 
 	if a.Icon != nil {
 		_ = vocab.OnObject(a.Icon, func(o *vocab.Object) error {
-			return iconMetadataFromObject(&t.Metadata.Icon, o)
+			return imageMetadataFromObject(&t.Metadata.Icon, o)
 		})
 	}
 	return nil
@@ -403,7 +403,7 @@ func FromArticle(i *Item, a *vocab.Object) error {
 	}
 	if a.Icon != nil {
 		_ = vocab.OnObject(a.Icon, func(o *vocab.Object) error {
-			return iconMetadataFromObject(&i.Metadata.Icon, o)
+			return imageMetadataFromObject(&i.Metadata.Icon, o)
 		})
 	}
 	if a.Context != nil {

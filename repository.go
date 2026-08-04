@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io/fs"
+	"mime"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -13,6 +14,7 @@ import (
 	"time"
 
 	"git.sr.ht/~mariusor/box"
+	"git.sr.ht/~mariusor/brutalinks/internal/assets"
 	log "git.sr.ht/~mariusor/lw"
 	vocab "github.com/go-ap/activitypub"
 	"github.com/go-ap/client"
@@ -61,6 +63,15 @@ func LoadCredentials(b *box.Client, c *appConfig) (*box.C2S, error) {
 		return nil, err
 	}
 	return cred, box.SaveCredentials(b, *cred)
+}
+
+func consumerStart(repo *repository, l log.Logger) {
+	// NOTE(marius): this is the new BrutaLinks long polling mechanism that fetches
+	// the relevant collections for the instance actor every minute.
+	ctx := context.TODO()
+	if err := repo.Follow(ctx); err != nil {
+		l.WithContext(log.Ctx{"err": err.Error()}).Errorf("error fetching remotes")
+	}
 }
 
 func ActivityPubService(c *appConfig) (*repository, error) {
@@ -118,6 +129,7 @@ func ActivityPubService(c *appConfig) (*repository, error) {
 		return repo, err
 	}
 
+	var needsIconUpdate bool
 	if actor := box.Author(repo.b, cred); actor != nil {
 		repo.app = new(Account)
 		if err := repo.app.FromActivityPub(actor); err != nil {
@@ -126,24 +138,72 @@ func ActivityPubService(c *appConfig) (*repository, error) {
 
 		repo.app.Metadata.OAuth.Token = cred.Tok
 		repo.fedbox.cred = cred
+		needsIconUpdate = vocab.IsNil(actor.Icon)
 	} else {
 		return repo, fmt.Errorf("invalid authorized Actor: %s", cred.IRI)
 	}
 
-	go func() {
-		// NOTE(marius): this is the new BrutaLinks long polling mechanism that fetches
-		// the relevant collections for the instance actor every minute.
-		ctx := context.TODO()
-		if err := repo.Follow(ctx); err != nil {
+	go consumerStart(repo, l)
+
+	if needsIconUpdate {
+		if err = UpdateAppIcon(repo); err != nil {
 			c.Logger.WithContext(log.Ctx{"err": err.Error()}).Warnf("error fetching remotes")
 		}
-	}()
-
+	}
 	if repo.modTags, err = SaveModeratorTags(repo); err != nil {
 		return repo, fmt.Errorf("failed to create mod tag objects: %w", err)
 	}
 
 	return repo, nil
+}
+
+func UpdateAppIcon(repo *repository) error {
+	ob := new(vocab.Object)
+
+	iconName := "trash.svg"
+
+	ext := filepath.Ext(iconName)
+	contentType := mime.TypeByExtension(ext)
+
+	ob.MediaType = vocab.MimeType(contentType)
+	ob.Type = getActivityObjectType(ob.MediaType)
+	ob.URL = vocab.IRI(repo.conf.BaseURL).AddPath(iconName)
+
+	if file, err := assets.AssetFS.Open(iconName); err == nil {
+		loadContentFromFile(file, ob)
+	}
+
+	create := wrapItemInCreate(ob, repo.app.Pub)
+	create.To, _, create.CC, create.BCC = repo.defaultRecipientsList(repo.app.Pub, true)
+	_, it, err := repo.ToOutbox(context.TODO(), *repo.fedbox.cred, create)
+	if err != nil {
+		return err
+	}
+
+	err = vocab.OnObject(it, func(o *vocab.Object) error {
+		return imageMetadataFromObject(&repo.app.Metadata.Icon, o)
+	})
+	if err != nil {
+		return err
+	}
+
+	actor, err := vocab.ToActor(repo.app.Pub)
+	if err != nil {
+		return err
+	}
+
+	actor.Icon = it.GetLink()
+	update := &vocab.Activity{
+		Type:   vocab.UpdateType,
+		Actor:  actor.GetLink(),
+		Object: actor,
+	}
+	update.To, _, update.CC, update.BCC = repo.defaultRecipientsList(repo.app.Pub, true)
+	_, it, err = repo.ToOutbox(context.TODO(), *repo.fedbox.cred, update)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func SaveModeratorTags(repo *repository) (TagCollection, error) {

@@ -2,6 +2,8 @@ package brutalinks
 
 import (
 	"net/http"
+	"strings"
+	"time"
 
 	ass "git.sr.ht/~mariusor/assets"
 	"git.sr.ht/~mariusor/brutalinks/internal/assets"
@@ -10,7 +12,14 @@ import (
 	"github.com/go-ap/errors"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 )
+
+type justPrintLogger func(string, ...any)
+
+func (c justPrintLogger) Printf(f string, v ...any) {
+	c(strings.TrimSpace(f), v...)
+}
 
 var basicStyles = []string{"css/reset.css", "css/main.css", "css/header.css", "css/footer.css", "css/s.css"}
 var assetFiles = ass.Map{
@@ -34,6 +43,7 @@ var assetFiles = ass.Map{
 	"/robots.txt":           {"robots.txt"},
 	"/favicon.ico":          {"favicon.ico"},
 	"/icons.svg":            {"icons.svg"},
+	"/trash.svg":            {"trash.svg"},
 }
 
 func (h *handler) ItemRoutes(extra ...func(http.Handler) http.Handler) func(chi.Router) {
@@ -64,6 +74,9 @@ func (h *handler) ItemRoutes(extra ...func(http.Handler) http.Handler) func(chi.
 	}
 }
 
+func checkOriginForBlockedActors(r *http.Request, origin string) bool {
+	return true
+}
 func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 	h.v.assets = assetFiles
 
@@ -73,6 +86,18 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 	} else {
 		h.errFn()("%s: %s", assets.AssetFS, err)
 	}
+
+	allowedOrigins := []string{"https://*"}
+	cors := cors.New(cors.Options{
+		AllowedOrigins:   allowedOrigins,
+		AllowedMethods:   []string{"GET", "POST", "OPTIONS"},
+		AllowedHeaders:   []string{"*"},
+		AllowCredentials: true,
+		AllowOriginFunc:  checkOriginForBlockedActors,
+		MaxAge:           int(time.Hour.Seconds()),
+		Debug:            !h.conf.Env.IsProd(),
+	})
+	cors.Log = justPrintLogger(h.logger.WithContext(lw.Ctx{"log": "cors"}).Tracef)
 
 	csrf := h.CSRF()
 	return func(r chi.Router) {
@@ -191,6 +216,7 @@ func (h *handler) Routes(c *config.Configuration) func(chi.Router) {
 		})
 
 		r.Group(func(r chi.Router) {
+			r.Use(cors.Handler)
 			// NOTE(marius): routes that don't need the connection to FedBOX to be up.
 			r.Get("/{path}", h.v.assetHandler)
 			r.Get("/css/{path}", h.v.assetHandler)
