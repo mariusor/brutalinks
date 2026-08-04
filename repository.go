@@ -37,7 +37,7 @@ type repository struct {
 	errFn   CtxLogFn
 }
 
-func (r *repository) BaseURL() vocab.IRI {
+func (r *repository) APIBaseURL() vocab.IRI {
 	return r.fedbox.conf.BaseURL
 }
 
@@ -1713,7 +1713,7 @@ func (r *repository) SaveVote(ctx context.Context, v Vote) (Vote, error) {
 	}
 	if v.Item.SubmittedBy != nil && v.Item.SubmittedBy.Pub != nil {
 		auth := v.Item.SubmittedBy.Pub
-		if !auth.GetLink().Contains(r.BaseURL(), false) {
+		if !auth.GetLink().Contains(r.APIBaseURL(), false) {
 			// NOTE(marius): this assumes that the instance the user is from has a shared inbox at {instance_hostname}/inbox
 			u, _ := auth.GetLink().URL()
 			u.Path = ""
@@ -1788,7 +1788,7 @@ func (r *repository) getAuthorRequestURL(a *Account) string {
 			reqURL = author.Inbox.GetLink().String()
 		}
 	} else {
-		author := anonymousPerson(r.BaseURL())
+		author := anonymousPerson(r.APIBaseURL())
 		reqURL = author.Inbox.GetLink().String()
 	}
 	return reqURL
@@ -2105,7 +2105,7 @@ func (r *repository) SaveItem(ctx context.Context, it Item) (Item, error) {
 	if it.SubmittedBy.IsLogged() {
 		author = r.loadAPPerson(*it.SubmittedBy)
 	} else {
-		author = anonymousPerson(r.BaseURL())
+		author = anonymousPerson(r.APIBaseURL())
 	}
 	if !accountValidForC2S(it.SubmittedBy) {
 		return it, errors.Unauthorizedf("invalid account %s", it.SubmittedBy.Handle)

@@ -294,7 +294,7 @@ func (h *handler) accountFromPost(r *http.Request) (Account, error) {
 	if len(hash) > 0 {
 		// NOTE(marius): coming from an invite
 		s := h.storage
-		a, _ = s.LoadAccount(r.Context(), actors.IRI(s.BaseURL()).AddPath(hash))
+		a, _ = s.LoadAccount(r.Context(), actors.IRI(s.APIBaseURL()).AddPath(hash))
 	}
 	if accountsEqual(*a, AnonymousAccount) {
 		*a = Account{Metadata: &AccountMetadata{}}

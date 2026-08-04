@@ -914,7 +914,7 @@ func (h *handler) HandleChangePassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// pos
-	pwChURL := fmt.Sprintf("%s/oauth/pw", h.storage.BaseURL())
+	pwChURL := fmt.Sprintf("%s/oauth/pw", h.storage.APIBaseURL())
 	u, _ := url.Parse(pwChURL)
 	q := u.Query()
 	q.Set("s", d.Code)
@@ -974,7 +974,7 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// pos
-	pwChURL := fmt.Sprintf("%s/oauth/pw", h.storage.BaseURL())
+	pwChURL := fmt.Sprintf("%s/oauth/pw", h.storage.APIBaseURL())
 	u, _ := url.Parse(pwChURL)
 	q := u.Query()
 	q.Set("s", app.Credentials().Tok.AccessToken)

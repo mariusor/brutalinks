@@ -5,6 +5,7 @@ import (
 	"embed"
 	"fmt"
 	"net/http"
+	"slices"
 
 	"git.sr.ht/~mariusor/brutalinks/internal/config"
 	log "git.sr.ht/~mariusor/lw"
@@ -74,21 +75,13 @@ func (h *handler) init(c *appConfig) error {
 
 	h.conf = c
 
-	if err = ConnectFedBOX(h, h.conf); err != nil {
+	h.storage, err = ActivityPubService(c)
+	if err != nil {
 		h.conf.MaintenanceMode = true
 		c.Logger.WithContext(log.Ctx{"err": err.Error(), "service": h.conf.APIURL}).Warnf("error connecting to ActivityPub actor")
 	}
 	if h.v, err = ViewInit(h.conf, h.logger); err != nil {
 		return errors.Annotatef(err, "error initializing view")
-	}
-	return nil
-}
-
-func ConnectFedBOX(h *handler, c *appConfig) error {
-	var err error
-	h.storage, err = ActivityPubService(c)
-	if err != nil {
-		return fmt.Errorf("failed to load actor: %w", err)
 	}
 	return nil
 }
@@ -170,6 +163,13 @@ func (v *view) SetSecurityHeaders(next http.Handler) http.Handler {
 				w.Header().Set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload")
 			} else {
 				w.Header().Set("Strict-Transport-Security", "max-age=0")
+			}
+		}
+		if origin := r.Header.Get("Origin"); origin != "" {
+			// NOTE(marius): currently allow requests only from self and the FedBOX server
+			if slices.Contains([]string{v.c.BaseURL, v.c.APIURL}, origin) {
+				w.Header().Set("Access-Control-Allow-Origin", origin)
+				w.Header().Set("Vary", "Origin")
 			}
 		}
 		w.Header().Set("X-Frame-Options", "DENY")
