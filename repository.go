@@ -59,7 +59,7 @@ func LoadCredentials(b *box.Client, c *appConfig) (*box.C2S, error) {
 	if err != nil {
 		return nil, errors.Annotatef(err, "unable to register dynamic OAuth client")
 	}
-	if cred, err = box.Authorize(context.Background(), auth.ClientID, *auth); err != nil {
+	if cred, err = box.Authorize(context.Background(), vocab.IRI(auth.ClientID), *auth); err != nil {
 		return nil, err
 	}
 	return cred, box.SaveCredentials(b, *cred)
@@ -67,7 +67,7 @@ func LoadCredentials(b *box.Client, c *appConfig) (*box.C2S, error) {
 
 func consumerStart(repo *repository, l log.Logger) {
 	// NOTE(marius): this is the new BrutaLinks long polling mechanism that fetches
-	// the relevant collections for the instance actor every minute.
+	//  the relevant collections for the instance actor every minute.
 	ctx := context.TODO()
 	if err := repo.Follow(ctx); err != nil {
 		l.WithContext(log.Ctx{"err": err.Error()}).Errorf("error fetching remotes")

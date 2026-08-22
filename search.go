@@ -2,7 +2,7 @@ package brutalinks
 
 import (
 	"errors"
-	"sort"
+	"slices"
 
 	"github.com/RoaringBitmap/roaring/roaring64"
 	vocab "github.com/go-ap/activitypub"
@@ -18,7 +18,7 @@ func (r *repository) SearchInCollection(col vocab.IRI, checks ...filters.Check) 
 	return r.st.SearchInCollection(col, checks...)
 }
 
-var SortFn = vocab.ItemOrderTimestamp
+var SortFn = filters.TimestampSortFunc
 
 func (st *Storage) searchBitmaps(bmp *roaring64.Bitmap, checks ...filters.Check) (vocab.ItemCollection, error) {
 	if bmp.IsEmpty() {
@@ -45,9 +45,7 @@ func (st *Storage) searchBitmaps(bmp *roaring64.Bitmap, checks ...filters.Check)
 	}
 
 	if SortFn != nil {
-		sort.Slice(result, func(i, j int) bool {
-			return SortFn(result[i], result[j])
-		})
+		slices.SortStableFunc(result, SortFn)
 	}
 	if cursorChecks := filters.PaginationChecks(checks...); len(cursorChecks) > 0 {
 		if paginated, ok := filters.PaginateCollection(result, cursorChecks...).(vocab.ItemCollection); ok {
