@@ -4,7 +4,7 @@ go 1.26.8
 
 require (
 	git.sr.ht/~mariusor/assets v0.0.0-20241011130619-ac139c364a49
-	git.sr.ht/~mariusor/box v0.0.0-20260917112652-90f2c3e50f78
+	git.sr.ht/~mariusor/box v0.0.0-20260917113247-ba91007c164f
 	git.sr.ht/~mariusor/cache v0.0.0-20260911160635-3a397efbb885
 	git.sr.ht/~mariusor/lw v0.0.0-20260917101519-2e0b081e156c
 	git.sr.ht/~mariusor/mask v0.0.0-20250114195353-98705a6977b7
