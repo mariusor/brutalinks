@@ -595,10 +595,11 @@ func (r *repository) loadAPPerson(a Account) *vocab.Actor {
 			_ = p.Summary.Set(vocab.NilLangRef, vocab.Content(a.Metadata.Blurb))
 		}
 		if p.Icon == nil && len(a.Metadata.Icon.URI) > 0 {
-			avatar := vocab.ObjectNew(vocab.ImageType)
-			avatar.MediaType = vocab.MimeType(a.Metadata.Icon.MimeType)
-			avatar.URL = vocab.IRI(a.Metadata.Icon.URI)
-			p.Icon = avatar
+			p.Icon = &vocab.Object{
+				Type:      vocab.ImageType,
+				MediaType: vocab.MimeType(a.Metadata.Icon.MimeType),
+				URL:       vocab.IRI(a.Metadata.Icon.URI),
+			}
 		}
 	}
 
