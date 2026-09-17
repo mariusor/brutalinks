@@ -527,7 +527,7 @@ func (r *repository) loadAPItem(it vocab.Item, item Item) error {
 				}
 			}
 			if m.Mentions != nil || m.Tags != nil {
-				o.Tag = make(vocab.ItemCollection, 0)
+				tags := make(vocab.ItemCollection, 0)
 				for _, men := range m.Mentions {
 					// todo(marius): retrieve object ids of each mention and add it to the CC of the object
 					t := vocab.Mention{
@@ -538,7 +538,7 @@ func (r *repository) loadAPItem(it vocab.Item, item Item) error {
 					if men.Metadata != nil && len(men.Metadata.ID) > 0 {
 						t.ID = vocab.IRI(men.Metadata.ID)
 					}
-					_ = o.Tag.Append(t)
+					_ = tags.Append(t)
 				}
 				for _, tag := range m.Tags {
 					name := "#" + tag.Name
@@ -552,8 +552,9 @@ func (r *repository) loadAPItem(it vocab.Item, item Item) error {
 					if tag.Metadata != nil && len(tag.Metadata.ID) > 0 {
 						t.ID = vocab.IRI(tag.Metadata.ID)
 					}
-					_ = o.Tag.Append(t)
+					_ = tags.Append(t)
 				}
+				o.Tag = tags.Normalize()
 			}
 		}
 		o.To = to

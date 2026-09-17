@@ -304,7 +304,7 @@ func (m *ModerationOp) FromActivityPub(it vocab.Item) error {
 				return nil
 			})
 		}
-		if a.Tag != nil && len(a.Tag) > 0 {
+		if !vocab.IsNil(a.Tag) {
 			m.Metadata.Tags = make(TagCollection, 0)
 			m.Metadata.Mentions = make(TagCollection, 0)
 

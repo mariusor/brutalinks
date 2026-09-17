@@ -1,12 +1,12 @@
 module git.sr.ht/~mariusor/brutalinks
 
-go 1.26.0
+go 1.26.8
 
 require (
 	git.sr.ht/~mariusor/assets v0.0.0-20241011130619-ac139c364a49
-	git.sr.ht/~mariusor/box v0.0.0-20260831142230-7ffa9bf8c83d
-	git.sr.ht/~mariusor/cache v0.0.0-20260516133819-5427e9c3067b
-	git.sr.ht/~mariusor/lw v0.0.0-20260818081520-a466820a662e
+	git.sr.ht/~mariusor/box v0.0.0-20260917112652-90f2c3e50f78
+	git.sr.ht/~mariusor/cache v0.0.0-20260911160635-3a397efbb885
+	git.sr.ht/~mariusor/lw v0.0.0-20260917101519-2e0b081e156c
 	git.sr.ht/~mariusor/mask v0.0.0-20250114195353-98705a6977b7
 	git.sr.ht/~mariusor/servermux v0.0.0-20260730181755-b356bceeedee
 	git.sr.ht/~mariusor/ssm v0.0.0-20260505081700-875e54c38633
@@ -15,11 +15,11 @@ require (
 	github.com/RoaringBitmap/roaring v1.9.4
 	github.com/alecthomas/kong v1.13.0
 	github.com/elnormous/contenttype v1.0.4
-	github.com/go-ap/activitypub v0.0.0-20260831124014-72a94f5a8a10
-	github.com/go-ap/cache v0.0.0-20260831124102-1153c19aa428
-	github.com/go-ap/client v0.0.0-20260831130403-5680ad0797ed
+	github.com/go-ap/activitypub v0.0.0-20260916121612-da08652e08dc
+	github.com/go-ap/cache v0.0.0-20260916121817-c59ee0716a68
+	github.com/go-ap/client v0.0.0-20260916122137-21c2c7868ee9
 	github.com/go-ap/errors v0.0.0-20260701132509-92e5e4fd6394
-	github.com/go-ap/filters v0.0.0-20260831130242-f116eb702ce2
+	github.com/go-ap/filters v0.0.0-20260916121847-9aca56ef40a8
 	github.com/go-ap/jsonld v0.0.0-20260607140920-737b40e0ca38
 	github.com/go-chi/chi/v5 v5.3.2
 	github.com/go-chi/cors v1.2.2
@@ -36,32 +36,33 @@ require (
 	gitlab.com/golang-commonmark/markdown v0.0.0-20211110145824-bf3e522c626a
 	gitlab.com/golang-commonmark/puny v0.0.0-20191124015043-9f83538fa04f
 	go.etcd.io/bbolt v1.5.0
-	golang.org/x/oauth2 v0.36.0
-	golang.org/x/text v0.41.0
+	golang.org/x/oauth2 v0.37.0
+	golang.org/x/text v0.42.0
 )
 
 require (
 	charm.land/bubbles/v2 v2.2.1 // indirect
 	charm.land/bubbletea/v2 v2.0.9 // indirect
 	charm.land/lipgloss/v2 v2.0.6 // indirect
-	charm.land/log/v2 v2.0.0 // indirect
+	charm.land/log/v2 v2.0.1 // indirect
 	charm.land/ssh v0.4.3 // indirect
-	charm.land/wish/v2 v2.0.3 // indirect
+	charm.land/wish/v2 v2.0.4 // indirect
 	git.sr.ht/~mariusor/go-xsd-duration v0.0.0-20220703122237-02e73435a078 // indirect
 	git.sr.ht/~mariusor/tagextractor v0.0.0-20260518085636-bf7a51d51654 // indirect
 	git.sr.ht/~mariusor/vocab-bubbles v0.0.0-20260817114847-89ee77e7b19b // indirect
 	github.com/PuerkitoBio/goquery v1.13.0 // indirect
-	github.com/andybalholm/cascadia v1.3.4 // indirect
+	github.com/andybalholm/cascadia v1.3.5 // indirect
 	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be // indirect
 	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/bits-and-blooms/bitset v1.25.0 // indirect
 	github.com/captncraig/cors v0.0.0-20190703115713-e80254a89df1 // indirect
 	github.com/carlmjohnson/requests v0.26.1 // indirect
+	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/charmbracelet/colorprofile v0.4.3 // indirect
 	github.com/charmbracelet/keygen v0.5.4 // indirect
 	github.com/charmbracelet/ssh v0.0.0-20250826160808-ebfa259c7309 // indirect
-	github.com/charmbracelet/ultraviolet v0.0.0-20260812204455-68fa937c71be // indirect
+	github.com/charmbracelet/ultraviolet v0.0.0-20260910203606-6c9e17dc7a16 // indirect
 	github.com/charmbracelet/x/ansi v0.11.8 // indirect
 	github.com/charmbracelet/x/conpty v0.2.0 // indirect
 	github.com/charmbracelet/x/term v0.2.2 // indirect
@@ -82,7 +83,7 @@ require (
 	github.com/mariusor/bubbles-tree v0.0.0-20260804092904-048968f1532d // indirect
 	github.com/mattn/go-colorable v0.1.15 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect
-	github.com/mattn/go-runewidth v0.0.28 // indirect
+	github.com/mattn/go-runewidth v0.0.30 // indirect
 	github.com/mschoch/smat v0.2.0 // indirect
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/muesli/reflow v0.3.0 // indirect
@@ -91,21 +92,24 @@ require (
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/rs/xid v1.6.0 // indirect
 	github.com/rs/zerolog v1.35.1 // indirect
+	github.com/samber/slog-http v1.12.1 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/tdewolff/parse v2.3.4+incompatible // indirect
 	github.com/tdewolff/test v1.0.7 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fastjson v1.6.10 // indirect
 	github.com/writeas/go-webfinger v1.1.0 // indirect
-	github.com/xo/terminfo v1.0.0 // indirect
+	github.com/xo/terminfo v1.2.0 // indirect
 	gitlab.com/golang-commonmark/html v0.0.0-20191124015941-a22733972181 // indirect
 	gitlab.com/golang-commonmark/linkify v0.0.0-20200225224916-64bca66f6ad3 // indirect
 	gitlab.com/golang-commonmark/mdurl v0.0.0-20191124015652-932350d1cb84 // indirect
-	golang.org/x/crypto v0.55.0 // indirect
-	golang.org/x/exp v0.0.0-20260824195058-e88cd73687aa // indirect
-	golang.org/x/net v0.58.0 // indirect
-	golang.org/x/sync v0.22.0 // indirect
-	golang.org/x/sys v0.47.0 // indirect
+	go.opentelemetry.io/otel v1.46.0 // indirect
+	go.opentelemetry.io/otel/trace v1.46.0 // indirect
+	golang.org/x/crypto v0.57.0 // indirect
+	golang.org/x/exp v0.0.0-20260908205506-85c1c2202aba // indirect
+	golang.org/x/net v0.59.0 // indirect
+	golang.org/x/sync v0.23.0 // indirect
+	golang.org/x/sys v0.48.0 // indirect
 	gopkg.in/neurosnap/sentences.v1 v1.0.7 // indirect
-	quamina.net/go/quamina/v2 v2.0.2 // indirect
+	quamina.net/go/quamina/v2 v2.0.3 // indirect
 )
