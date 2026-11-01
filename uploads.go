@@ -40,7 +40,7 @@ func getActivityObjectType(t vocab.MimeType) vocab.ActivityVocabularyType {
 	return ""
 }
 func nl[T ~string](s T) vocab.NaturalLanguageValues {
-	return vocab.DefaultNaturalLanguage(s)
+	return vocab.DefaultLangValue(s)
 }
 
 var enc = base64.RawStdEncoding
