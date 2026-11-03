@@ -974,7 +974,7 @@ func (h *handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// pos
-	pwChURL := fmt.Sprintf("%s/oauth/pw", h.storage.APIBaseURL())
+	pwChURL := fmt.Sprintf("%s/oauth/pw", a.Metadata.ID)
 	u, _ := url.Parse(pwChURL)
 	q := u.Query()
 	q.Set("s", app.Credentials().Tok.AccessToken)
@@ -1085,7 +1085,12 @@ func (h *handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
 
 	acct, err := h.v.loadCurrentAccountFromSession(w, r)
 	if err != nil {
-		h.errFn(log.Ctx{"err": err.Error()})("Failed to load account from session")
+		h.errFn(log.Ctx{"err": err})("Failed to load account from session")
+		redirWithError(fmt.Sprintf("Failed to login with %s", provider))
+		return
+	}
+	if !acct.IsValid() {
+		h.errFn()("Failed to load account from session")
 		redirWithError(fmt.Sprintf("Failed to login with %s", provider))
 		return
 	}

@@ -111,6 +111,9 @@ func (v *view) saveAccountToSession(w http.ResponseWriter, r *http.Request, a *A
 	if err != nil {
 		return err
 	}
+	if vocab.IsObject(a.Pub) {
+		a.Pub = a.Pub.GetLink()
+	}
 	s.Values[SessionUserKey] = *a
 	return nil
 }

@@ -148,7 +148,7 @@ func ActivityPubService(c *appConfig) (*repository, error) {
 	return repo, nil
 }
 
-func UpdateAppActor(repo *repository, actor *vocab.Actor) error {
+func UpdateActor(repo *repository, actor *vocab.Actor) error {
 	needsUpdate := false
 	if vocab.IsNil(actor.Inbox) {
 		needsUpdate = true
@@ -170,12 +170,6 @@ func UpdateAppActor(repo *repository, actor *vocab.Actor) error {
 		needsUpdate = true
 		actor.Shares = vocab.Shares.IRI(actor)
 	}
-	if vocab.IsNil(actor.Icon) {
-		needsUpdate = true
-		if err := UpdateAppIcon(repo, actor); err != nil {
-			return err
-		}
-	}
 
 	if needsUpdate {
 		update := &vocab.Activity{
@@ -196,9 +190,20 @@ func UpdateAppActor(repo *repository, actor *vocab.Actor) error {
 			return err
 		}
 	}
+	return nil
+}
 
+func UpdateAppActor(repo *repository, actor *vocab.Actor) error {
+	if err := UpdateActor(repo, actor); err != nil {
+		return errors.Annotatef(err, "failed to update application actor")
+	}
+	if vocab.IsNil(actor.Icon) {
+		if err := UpdateAppIcon(repo, actor); err != nil {
+			return errors.Annotatef(err, "failed to update application icon")
+		}
+	}
 	if tags, err := SaveModeratorTags(repo, actor); err != nil {
-		return fmt.Errorf("failed to create mod tag objects: %w", err)
+		return errors.Annotatef(err, "failed to create mod tag objects")
 	} else {
 		repo.modTags = tags
 	}
@@ -2110,8 +2115,10 @@ func (r *repository) defaultRecipientsList(act vocab.Item, withPublic bool) (voc
 		}
 		_ = bcc.Append(r.fedbox.Service().ID)
 	}
-	// NOTE(marius): we publish the activity just to the instance and its followers
-	_ = cc.Append(act.GetID(), vocab.Followers.IRI(act))
+	if r.app != nil && r.app.Pub != nil {
+		// NOTE(marius): we publish the activity just to the instance and its followers
+		_ = cc.Append(r.app.Pub.GetLink(), vocab.Followers.IRI(r.app.Pub))
+	}
 
 	return to, bto, cc, bcc
 }
@@ -2468,7 +2475,7 @@ func (r *repository) SaveAccount(ctx context.Context, a Account) (Account, error
 		return a, err
 	}
 	r.cache.removeRelated(i, ap, act)
-	if err := a.FromActivityPub(ap); err != nil {
+	if err = a.FromActivityPub(ap); err != nil {
 		r.errFn(ltx, log.Ctx{"err": err})("loading of actor from JSON failed")
 	}
 	return a, nil
