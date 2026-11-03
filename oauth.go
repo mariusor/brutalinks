@@ -50,19 +50,19 @@ func createDynamicOAuth2Client(cl *http.Client, actor vocab.IRI, conf *appConfig
 
 	// TODO(marius): improve handling of the error cases
 	if metaResp.StatusCode != http.StatusOK {
-		return nil, errors.Newf("invalid response returned: %d: %s", metaResp.StatusCode, metaResp.Status)
+		return nil, errors.Newf("invalid .well-known/oauth-authorization-server returned: %d: %s", metaResp.StatusCode, metaResp.Status)
 	}
 
-	metadata := box.OAuthAuthorizationMetadata{}
-	if err = json.NewDecoder(metaResp.Body).Decode(&metadata); err != nil {
+	m := box.OAuthAuthorizationMetadata{}
+	if err = json.NewDecoder(metaResp.Body).Decode(&m); err != nil {
 		return nil, errors.Annotatef(err, "unable to decode OAuth authorization metadata")
 	}
 
-	if !metadata.Issuer.Equals(actor, true) {
+	if !m.Issuer.Equals(actor, true) {
 		return nil, errors.Newf("issuer metadata is different than the actor originating this operation")
 	}
 
-	if metadata.RegistrationEndpoint == "" {
+	if m.RegistrationEndpoint == "" {
 		return nil, errors.Newf("no registration endpoint in the OAuth authorization metadata")
 	}
 
@@ -81,12 +81,12 @@ func createDynamicOAuth2Client(cl *http.Client, actor vocab.IRI, conf *appConfig
 		SoftwareID:              uid.String(),
 	}
 
-	data := bytes.Buffer{}
-	if err = json.NewEncoder(&data).Encode(registerData); err != nil {
+	raw := bytes.Buffer{}
+	if err = json.NewEncoder(&raw).Encode(registerData); err != nil {
 		return nil, errors.Annotatef(err, "unable to encode OAuth client registration data")
 	}
 
-	registerReq, err := http.NewRequest(http.MethodPost, metadata.RegistrationEndpoint, &data)
+	registerReq, err := http.NewRequest(http.MethodPost, m.RegistrationEndpoint, &raw)
 	if err != nil {
 		return nil, errors.Annotatef(err, "unable to build OAuth registration request")
 	}

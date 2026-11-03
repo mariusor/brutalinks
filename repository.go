@@ -129,35 +129,83 @@ func ActivityPubService(c *appConfig) (*repository, error) {
 		return repo, err
 	}
 
-	var needsIconUpdate bool
-	if actor := box.Author(repo.b, cred); actor != nil {
-		repo.app = new(Account)
-		if err := repo.app.FromActivityPub(actor); err != nil {
-			l.WithContext(log.Ctx{"err": err.Error()}).Errorf("unable to load instance Actor")
-		}
-
-		repo.app.Metadata.OAuth.Token = cred.Tok
-		repo.fedbox.cred = cred
-		needsIconUpdate = vocab.IsNil(actor.Icon)
-	} else {
+	actor := box.Author(repo.b, cred)
+	if actor == nil {
 		return repo, fmt.Errorf("invalid authorized Actor: %s", cred.IRI)
 	}
+	if err = UpdateAppActor(repo, actor); err != nil {
+		return repo, fmt.Errorf("unable to update Actor: %s", cred.IRI)
+	}
+
+	repo.app = new(Account)
+	if err = repo.app.FromActivityPub(actor); err != nil {
+		l.WithContext(log.Ctx{"err": err.Error()}).Errorf("unable to load instance Actor")
+	}
+	repo.app.Metadata.OAuth.Token = cred.Tok
 
 	go consumerStart(repo, l)
-
-	if needsIconUpdate {
-		if err = UpdateAppIcon(repo); err != nil {
-			c.Logger.WithContext(log.Ctx{"err": err.Error()}).Warnf("error fetching remotes")
-		}
-	}
-	if repo.modTags, err = SaveModeratorTags(repo); err != nil {
-		return repo, fmt.Errorf("failed to create mod tag objects: %w", err)
-	}
 
 	return repo, nil
 }
 
-func UpdateAppIcon(repo *repository) error {
+func UpdateAppActor(repo *repository, actor *vocab.Actor) error {
+	needsUpdate := false
+	if vocab.IsNil(actor.Inbox) {
+		needsUpdate = true
+		actor.Inbox = vocab.Inbox.IRI(actor)
+	}
+	if vocab.IsNil(actor.Outbox) {
+		needsUpdate = true
+		actor.Outbox = vocab.Outbox.IRI(actor)
+	}
+	if vocab.IsNil(actor.Followers) {
+		needsUpdate = true
+		actor.Followers = vocab.Followers.IRI(actor)
+	}
+	if vocab.IsNil(actor.Following) {
+		needsUpdate = true
+		actor.Following = vocab.Following.IRI(actor)
+	}
+	if vocab.IsNil(actor.Shares) {
+		needsUpdate = true
+		actor.Shares = vocab.Shares.IRI(actor)
+	}
+	if vocab.IsNil(actor.Icon) {
+		needsUpdate = true
+		if err := UpdateAppIcon(repo, actor); err != nil {
+			return err
+		}
+	}
+
+	if needsUpdate {
+		update := &vocab.Activity{
+			Type:   vocab.UpdateType,
+			Actor:  actor.GetLink(),
+			Object: actor,
+		}
+		update.To, _, update.CC, update.BCC = repo.defaultRecipientsList(actor, true)
+		_, it, err := repo.ToOutbox(context.TODO(), *repo.fedbox.cred, update)
+		if err != nil {
+			return err
+		}
+		err = vocab.OnActivity(it, func(upd *vocab.Activity) error {
+			actor, err = vocab.ToActor(upd.Actor)
+			return err
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	if tags, err := SaveModeratorTags(repo, actor); err != nil {
+		return fmt.Errorf("failed to create mod tag objects: %w", err)
+	} else {
+		repo.modTags = tags
+	}
+	return nil
+}
+
+func UpdateAppIcon(repo *repository, actor *vocab.Actor) error {
 	ob := new(vocab.Object)
 
 	iconName := "trash.svg"
@@ -173,40 +221,18 @@ func UpdateAppIcon(repo *repository) error {
 		loadContentFromFile(file, ob)
 	}
 
-	create := wrapItemInCreate(ob, repo.app.Pub)
-	create.To, _, create.CC, create.BCC = repo.defaultRecipientsList(repo.app.Pub, true)
+	create := wrapItemInCreate(ob, actor)
+	create.To, _, create.CC, create.BCC = repo.defaultRecipientsList(actor, true)
 	_, it, err := repo.ToOutbox(context.TODO(), *repo.fedbox.cred, create)
 	if err != nil {
 		return err
 	}
 
-	err = vocab.OnObject(it, func(o *vocab.Object) error {
-		return imageMetadataFromObject(&repo.app.Metadata.Icon, o)
-	})
-	if err != nil {
-		return err
-	}
-
-	actor, err := vocab.ToActor(repo.app.Pub)
-	if err != nil {
-		return err
-	}
-
 	actor.Icon = it.GetLink()
-	update := &vocab.Activity{
-		Type:   vocab.UpdateType,
-		Actor:  actor.GetLink(),
-		Object: actor,
-	}
-	update.To, _, update.CC, update.BCC = repo.defaultRecipientsList(repo.app.Pub, true)
-	_, it, err = repo.ToOutbox(context.TODO(), *repo.fedbox.cred, update)
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
-func SaveModeratorTags(repo *repository) (TagCollection, error) {
+func SaveModeratorTags(repo *repository, actor *vocab.Actor) (TagCollection, error) {
 	modTags := TagCollection{
 		Tag{
 			Type: TagTag,
@@ -219,7 +245,7 @@ func SaveModeratorTags(repo *repository) (TagCollection, error) {
 			URL:  repo.SelfURL + filepath.Join("/", "t", strings.TrimLeft(tagNameSysOP, "#")),
 		},
 	}
-	tags, err := LoadModeratorTags(repo)
+	tags, err := LoadModeratorTags(repo, actor)
 	if err != nil {
 		repo.errFn()("unable to load moderation tags from remote instance: %s", err)
 	}
@@ -231,9 +257,9 @@ func SaveModeratorTags(repo *repository) (TagCollection, error) {
 	}
 
 	for i, tag := range toSaveTags {
-		ap := buildAPTagObject(tag, repo)
-		create := wrapItemInCreate(ap, repo.app.Pub)
-		create.To, _, create.CC, create.BCC = repo.defaultRecipientsList(repo.app.Pub, true)
+		ap := buildAPTagObject(tag, actor, repo)
+		create := wrapItemInCreate(ap, actor)
+		create.To, _, create.CC, create.BCC = repo.defaultRecipientsList(actor, true)
 		_, tagIt, err := repo.ToOutbox(context.TODO(), *repo.fedbox.cred, create)
 		if err != nil {
 			repo.errFn()("unable to save moderation tag %q on remote instance: %s", tag.Name, err)
@@ -246,22 +272,22 @@ func SaveModeratorTags(repo *repository) (TagCollection, error) {
 	return toSaveTags, nil
 }
 
-func buildAPTagObject(tag Tag, repo *repository) *vocab.Object {
+func buildAPTagObject(tag Tag, actor *vocab.Actor, repo *repository) *vocab.Object {
 	t := new(vocab.Object)
 	t.Name = make(vocab.NaturalLanguageValues)
 	t.Summary = make(vocab.NaturalLanguageValues)
-	t.AttributedTo = repo.app.Pub.GetLink()
+	t.AttributedTo = actor.GetLink()
 	t.Name.Set(vocab.NilLangRef, vocab.Content(tag.Name))
 	t.Summary.Set(vocab.NilLangRef, vocab.Content(fmt.Sprintf("Moderator tag for instance %s", repo.SelfURL)))
 	t.URL = vocab.IRI(tag.URL)
 	return t
 }
 
-func LoadModeratorTags(repo *repository) (TagCollection, error) {
+func LoadModeratorTags(repo *repository, actor *vocab.Actor) (TagCollection, error) {
 	ff := filters.All(
 		filters.Any(filters.NameIs(tagNameModerator), filters.NameIs(tagNameSysOP)),
 		//Type:   nilFilters, // TODO(marius): this seems to have a problem currently on FedBOX
-		filters.SameAttributedTo(repo.app.AP().GetID()),
+		filters.SameAttributedTo(actor.GetID()),
 	)
 	tags, _, err := repo.LoadTags(context.Background(), ff)
 	return tags, err
@@ -2085,7 +2111,7 @@ func (r *repository) defaultRecipientsList(act vocab.Item, withPublic bool) (voc
 		_ = bcc.Append(r.fedbox.Service().ID)
 	}
 	// NOTE(marius): we publish the activity just to the instance and its followers
-	_ = cc.Append(r.app.Pub.GetLink(), vocab.Followers.IRI(r.app.Pub))
+	_ = cc.Append(act.GetID(), vocab.Followers.IRI(act))
 
 	return to, bto, cc, bcc
 }

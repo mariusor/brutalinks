@@ -6,6 +6,7 @@
 *.orig
 go.sum
 bin/*
+*.gch
 *.pem
 *.crt
 *.key

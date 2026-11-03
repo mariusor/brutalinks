@@ -49,7 +49,7 @@ require (
 	charm.land/wish/v2 v2.0.5 // indirect
 	git.sr.ht/~mariusor/go-xsd-duration v0.0.0-20220703122237-02e73435a078 // indirect
 	git.sr.ht/~mariusor/tagextractor v0.0.0-20261001094848-bcd2fee4ea52 // indirect
-	git.sr.ht/~mariusor/vocab-bubbles v0.0.0-20260817114847-89ee77e7b19b // indirect
+	git.sr.ht/~mariusor/vocab-bubbles v0.0.0-20261101191316-63aaf1d7c85d // indirect
 	github.com/PuerkitoBio/goquery v1.13.0 // indirect
 	github.com/andybalholm/cascadia v1.3.5 // indirect
 	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be // indirect

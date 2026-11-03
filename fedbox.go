@@ -135,6 +135,9 @@ func (f *fedbox) normaliseIRI(i vocab.IRI) vocab.IRI {
 			iu.Scheme = bu.Scheme
 		}
 	}
+	if iu.RawQuery != "" {
+		iu.RawQuery = ""
+	}
 	if iu.Path != "" {
 		iu.Path = path.Clean(iu.Path)
 	}
