@@ -9,7 +9,7 @@ sources:
 secrets:
   - 32610757-76e9-4671-adf1-98163ca8b594
   - 3f30fd61-e33d-4198-aafb-0ff341e9db1c
-  - 3dcea276-38d6-4a7e-85e5-20cbc903e1ea
+  - c523dfd7-44d6-4a1a-9971-5b355d02c567
 tasks:
   - build: |
       yes | yay -S crun iptables-nft
