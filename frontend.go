@@ -114,6 +114,7 @@ func (v *view) saveAccountToSession(w http.ResponseWriter, r *http.Request, a *A
 	if vocab.IsObject(a.Pub) {
 		a.Pub = a.Pub.GetLink()
 	}
+	a.Metadata.Outbox = nil
 	s.Values[SessionUserKey] = *a
 	return nil
 }
@@ -306,12 +307,12 @@ func (v *view) LoadSession(next http.Handler) http.Handler {
 		acc, err := v.loadCurrentAccountFromSession(w, r)
 		if err != nil {
 			acc = &AnonymousAccount
-			v.errFn(log.Ctx{"err": err.Error()})("unable to load actor from session")
+			v.errFn(log.Ctx{"err": err})("unable to load actor from session")
 		}
 		if acc.IsLogged() {
 			ctx := context.WithValue(r.Context(), LoggedAccountCtxtKey, acc)
 			if err = storage.LoadAccountDetails(ctx, acc); err != nil {
-				v.errFn(ltx, log.Ctx{"err": err.Error()})("unable to load account")
+				v.errFn(ltx, log.Ctx{"err": err})("unable to load account")
 			} else {
 				clearAccount = false
 			}
