@@ -2,6 +2,7 @@ package brutalinks
 
 import (
 	"crypto/tls"
+	"encoding/gob"
 	"net/http"
 	"net/url"
 	"strings"
@@ -68,6 +69,8 @@ func (a Application) Hash() string {
 
 // New instantiates a new Application
 func New(c *config.Configuration, l log.Logger, host string, port int, ver string) (*Application, error) {
+	gob.Register(SessionActor{})
+
 	Instance = &Application{Version: ver}
 
 	if err := Instance.init(c, l, host, port); err != nil {

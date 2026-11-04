@@ -111,12 +111,17 @@ func (v *view) saveAccountToSession(w http.ResponseWriter, r *http.Request, a *A
 	if err != nil {
 		return err
 	}
-	if vocab.IsObject(a.Pub) {
-		a.Pub = a.Pub.GetLink()
+
+	if vocab.IsNil(a.Pub) {
+		return errors.Newf("no valid activitypub actor")
 	}
-	a.Metadata.Outbox = nil
-	s.Values[SessionUserKey] = *a
+	s.Values[SessionUserKey] = SessionActor{IRI: a.Pub.GetLink(), OAuth: a.Metadata.OAuth}
 	return nil
+}
+
+type SessionActor struct {
+	IRI   vocab.IRI
+	OAuth OAuth
 }
 
 func (v *view) loadCurrentAccountFromSession(w http.ResponseWriter, r *http.Request) (*Account, error) {
@@ -126,38 +131,28 @@ func (v *view) loadCurrentAccountFromSession(w http.ResponseWriter, r *http.Requ
 	}
 	s, err := v.s.get(w, r)
 	if err != nil {
-		v.s.clear(w, r)
+		_ = v.s.clear(w, r)
 		return &acc, errors.Annotatef(err, "session load error")
 	}
 	// load the current account from the session or setting it to anonymous
+	var sessAct SessionActor
 	if raw, ok := s.Values[SessionUserKey]; ok {
-		if acc, ok = raw.(Account); !ok {
-			v.errFn(log.Ctx{"sess": s.Values})("invalid account in session")
+		if sessAct, ok = raw.(SessionActor); !ok {
+			v.errFn()("invalid account in session")
 		}
 	}
-	if !acc.IsLogged() {
+
+	if sessAct.IRI.Equal("") {
 		return &acc, nil
 	}
-
-	lCtx := log.Ctx{
-		"handle": acc.Handle,
-		"hash":   acc.Hash,
-	}
-	var f filters.Check
-	if acc.IsLogged() && acc.HasMetadata() {
-		f = filters.SameIRI(vocab.IRI(acc.Metadata.ID))
-		lCtx["iri"] = acc.Metadata.ID
-	} else {
-		f = AccountByHandleCheck(acc.Handle)
-	}
+	f := filters.SameIRI(sessAct.IRI)
 	repo := ContextRepository(r.Context())
 	a, err := repo.account(r.Context(), f)
 	if err != nil {
 		return &acc, errors.Annotatef(err, "unable to load actor for session account")
 	}
-	loadAccountData(&acc, *a)
-	v.infoFn(lCtx)("loaded account from session")
-	return &acc, nil
+	a.Metadata.OAuth = sessAct.OAuth
+	return a, nil
 }
 
 func (v *view) SetSecurityHeaders(next http.Handler) http.Handler {
