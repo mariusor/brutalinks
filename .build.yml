@@ -34,7 +34,7 @@ tasks:
 
       cd brutalinks
       git remote add hub git@github.com:mariusor/go-littr
-      git push hub --force --all
+      git push hub --force --all || true
   - image: |
       test ${BUILD_SUBMITTER} != "git.sr.ht" && complete-build
       set -a +x
