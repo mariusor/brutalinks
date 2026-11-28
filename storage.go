@@ -62,7 +62,7 @@ func NewStorage(path string) (*Storage, error) {
 		switch typ {
 		case ByID:
 			// NOTE(marius): this is needed for actor/object byId filters to work
-			s.in[typ] = index.All()
+			s.in[typ] = index.NewTokenIndex(index.ExtractID)
 		case ByType:
 			s.in[typ] = index.NewTokenIndex(index.ExtractType)
 		case ByName:
@@ -463,7 +463,9 @@ func (st *Storage) save(it vocab.LinkOrIRI) error {
 			return nil
 		})
 		typ := ob.GetType()
-		if vocab.ActivityTypes.Match(typ) {
+
+		switch {
+		case vocab.ActivityTypes.Match(typ):
 			_ = st.in[ByActor].Add(ob)
 			_ = st.in[ByObject].Add(ob)
 
@@ -472,13 +474,12 @@ func (st *Storage) save(it vocab.LinkOrIRI) error {
 				if !vocab.IsNil(a.Actor) && !st.itemExists(a.Actor) {
 					_ = st.Save(a.Actor)
 				}
-				if !vocab.IsNil(a.Actor) && (!st.itemExists(a.Object) || objectShouldUpdate.Match(a.Type)) {
+				if !vocab.IsNil(a.Object) && (!st.itemExists(a.Object) || objectShouldUpdate.Match(a.Type)) {
 					_ = st.Save(a.Object)
 				}
 				return nil
 			})
-		}
-		if vocab.IntransitiveActivityTypes.Match(typ) {
+		case vocab.IntransitiveActivityTypes.Match(typ):
 			_ = st.in[ByActor].Add(ob)
 			_ = vocab.OnIntransitiveActivity(ob, func(a *vocab.IntransitiveActivity) error {
 				if !vocab.IsNil(a.Actor) && !st.itemExists(a.Actor) {
