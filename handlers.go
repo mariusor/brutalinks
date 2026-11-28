@@ -346,13 +346,10 @@ func (r *repository) loadWebfingerActorFromIRI(ctx context.Context, host, acct s
 
 	for _, l := range meta.Links {
 		if l.Type == client.ContentTypeJsonActivity {
-			actor := vocab.Actor{}
-			if err := loadFromURL(l.Href, &actor); err == nil {
-				return &actor, nil
-			}
+			return r.c.Actor(ctx, vocab.IRI(l.Href))
 		}
 	}
-	return nil, errors.Errorf("unable to find webfinger actor")
+	return nil, errors.Errorf("unable to find WebFinger handle %s@%s", acct, host)
 }
 
 func (r *repository) loadInstanceActorFromIRI(ctx context.Context, iri vocab.IRI) (*vocab.Actor, error) {
