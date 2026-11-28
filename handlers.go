@@ -618,7 +618,7 @@ func publicKey(data []byte) crypto.PublicKey {
 
 // HandleLogin handles POST /login requests
 func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
-	handle := r.PostFormValue("handle")
+	var handle string
 	wf := r.PostFormValue("webfinger")
 
 	ctx := context.Background()
@@ -632,29 +632,24 @@ func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		h.v.Redirect(w, r, "/login", http.StatusSeeOther)
 	}
 
-	host := h.conf.APIURL
+	authority := h.conf.APIURL
 	if len(wf) > 0 {
 		if pieces := strings.Split(strings.TrimPrefix(wf, "@"), "@"); len(pieces) > 0 {
 			handle = pieces[0]
 			if len(pieces) > 1 {
-				host = fmt.Sprintf("https://%s", pieces[1])
+				authority = fmt.Sprintf("https://%s", pieces[1])
 			}
 		}
 	}
 
 	accts := make([]Account, 0)
-	// Try to load actor from handle
-	f := AccountByHandleCheck(handle)
-	f = filters.All(f, filters.IRILike(host))
-	if acc, err := repo.accounts(ctx, f); err == nil {
-		accts = append(accts, acc...)
-	}
-
 	if len(wf) > 0 {
 		var a *vocab.Actor
-		if a, err = repo.loadWebfingerActorFromIRI(ctx, host, wf); err == nil {
+		if a, err = repo.loadWebfingerActorFromIRI(ctx, authority, wf); err == nil {
 			acct := Account{}
 			_ = acct.FromActivityPub(a)
+			// NOTE(marius): make sure we have a copy of the actor locally?
+			_ = h.storage.Save(a)
 			accts = append(accts, acct)
 		}
 	}
@@ -1049,7 +1044,6 @@ func (h *handler) HandleCallback(w http.ResponseWriter, r *http.Request) {
 		_ = h.v.saveAccountToSession(w, r, &AnonymousAccount)
 		h.v.Redirect(w, r, "/login", http.StatusFound)
 	}
-
 	q := r.URL.Query()
 
 	provider := chi.URLParam(r, "provider")
