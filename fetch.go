@@ -162,6 +162,11 @@ func (r *repository) loadCredentialsAndRun(ctx context.Context) ssm.Fn {
 				f.Collections = append(f.Collections, iri.GetLink())
 			}
 		}
+		if r.app.Pub.GetID().Equal(actor.ID) {
+			f.Collections = append(f.Collections, vocab.Outbox.IRI(vocab.IRI(r.conf.APIURL)), vocab.Inbox.IRI(vocab.IRI(r.conf.APIURL)))
+			//f.Collections = append(f.Collections, vocab.Followers.IRI(vocab.IRI(r.conf.APIURL)))
+			//f.Collections = append(f.Collections, vocab.IRI(r.conf.APIURL).AddPath("actors"))
+		}
 
 		for _, toLoad := range f.Collections {
 			fetchFns = append(fetchFns, f.fetchCollection(r.st, toLoad))
@@ -249,10 +254,6 @@ func (f *Fetch) fetchCollection(st *Storage, toLoad vocab.IRI) ssm.Fn {
 	l := f.infoFn(logIRI(toLoad), lw.Ctx{"as": f.cred.IRI})
 
 	return func(ctx context.Context) ssm.Fn {
-		//if f.Paused() {
-		//	l("Fetch is paused, exiting")
-		//	return ssm.End
-		//}
 		start := time.Now()
 
 		l("Loading")
