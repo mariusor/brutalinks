@@ -4,7 +4,7 @@ go 1.27
 
 require (
 	git.sr.ht/~mariusor/assets v0.0.0-20241011130619-ac139c364a49
-	git.sr.ht/~mariusor/box v0.0.0-20261101185741-d38579a72f04
+	git.sr.ht/~mariusor/box v0.0.0-20261128085622-bbed0f88d998
 	git.sr.ht/~mariusor/cache v0.0.0-20260911160635-3a397efbb885
 	git.sr.ht/~mariusor/lw v0.0.0-20261123081753-504d91c384ed
 	git.sr.ht/~mariusor/mask v0.0.0-20250114195353-98705a6977b7
@@ -42,14 +42,14 @@ require (
 
 require (
 	charm.land/bubbles/v2 v2.2.2 // indirect
-	charm.land/bubbletea/v2 v2.1.2 // indirect
+	charm.land/bubbletea/v2 v2.2.0 // indirect
 	charm.land/lipgloss/v2 v2.1.1 // indirect
 	charm.land/log/v2 v2.0.1 // indirect
 	charm.land/ssh v0.4.3 // indirect
-	charm.land/wish/v2 v2.0.5 // indirect
+	charm.land/wish/v2 v2.0.6 // indirect
 	git.sr.ht/~mariusor/go-xsd-duration v0.0.0-20220703122237-02e73435a078 // indirect
 	git.sr.ht/~mariusor/tagextractor v0.0.0-20261001094848-bcd2fee4ea52 // indirect
-	git.sr.ht/~mariusor/vocab-bubbles v0.0.0-20261101191316-63aaf1d7c85d // indirect
+	git.sr.ht/~mariusor/vocab-bubbles v0.0.0-20261127195959-cf2f33e879fe // indirect
 	github.com/PuerkitoBio/goquery v1.14.0 // indirect
 	github.com/andybalholm/cascadia v1.3.5 // indirect
 	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be // indirect
@@ -61,8 +61,8 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/charmbracelet/colorprofile v0.4.3 // indirect
 	github.com/charmbracelet/keygen v0.5.4 // indirect
-	github.com/charmbracelet/ultraviolet v0.0.0-20261119151026-8ecbcf0e188c // indirect
-	github.com/charmbracelet/x/ansi v0.11.10 // indirect
+	github.com/charmbracelet/ultraviolet v0.0.0-20261125122737-8ed499892fb4 // indirect
+	github.com/charmbracelet/x/ansi v0.12.0 // indirect
 	github.com/charmbracelet/x/conpty v0.2.0 // indirect
 	github.com/charmbracelet/x/term v0.2.2 // indirect
 	github.com/charmbracelet/x/termios v0.1.1 // indirect
@@ -102,7 +102,7 @@ require (
 	go.opentelemetry.io/otel v1.47.0 // indirect
 	go.opentelemetry.io/otel/trace v1.47.0 // indirect
 	golang.org/x/crypto v0.59.0 // indirect
-	golang.org/x/exp v0.0.0-20261121134650-e1094eeca1b5 // indirect
+	golang.org/x/exp v0.0.0-20261128033645-f63ec7c7eed0 // indirect
 	golang.org/x/net v0.63.0 // indirect
 	golang.org/x/sync v0.25.0 // indirect
 	golang.org/x/sys v0.50.0 // indirect
